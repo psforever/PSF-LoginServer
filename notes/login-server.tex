@@ -1,0 +1,56 @@
+\documentclass{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+
+\usepackage{graphicx}
+\usepackage[margin=1in]{geometry} 
+\usepackage{float}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{float}
+\usepackage{amsmath}
+ 
+\begin{document}
+
+\title{PSForever Server Notes}
+ 
+\author{Chord $<$chord@tuta.io$>$}
+ 
+\maketitle
+
+%\section*{Security Model}
+%
+%\subsection*{Trust Model}
+%
+%\subsection*{Threat Model}
+%
+%\subsection*{Security Objects}
+%
+%\subsubsection*{Client Objects}
+
+\section*{FAQ}
+\paragraph*{A new packet comes in, who is it for?}
+A UDP packet has a source address and port. This pair will allow the
+server to identify which session the packet is for. If no sessions are found
+matching this pair, then a new session is created. Essentially packets have to
+be routed to session objects which know what to do with it, given the state of the session.
+
+\paragraph*{What is a session and what type of information does a session store?}
+A session is some state used to represent a unique user's connection. This
+state can be the current connection's status, the last time a message was
+received for this session, and much more.
+
+\paragraph*{}
+
+%\section*{Code Structure}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Begin References
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{thebibliography}{99}
+
+\end{thebibliography}
+
+\end{document}
+
+\end{document}
