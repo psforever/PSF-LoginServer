@@ -1,4 +1,6 @@
 // Copyright (c) 2016 PSForever.net to present
+import java.net.{InetAddress, InetSocketAddress}
+
 import org.specs2.mutable._
 import psforever.net._
 import scodec.bits._
@@ -17,9 +19,15 @@ class GamePacketTest extends Specification {
           case VNLWorldStatusMessage(message, worlds) =>
             worlds.length mustEqual 1
             message mustEqual "Welcome to PlanetSide! "
-            worlds{0}.name mustEqual "gemini"
-            worlds{0}.empireNeed mustEqual EmpireNeed.NC
-            worlds{0}.status mustEqual WorldStatus.Up
+            val world = worlds{0}
+
+            world.name mustEqual "gemini"
+            world.empireNeed mustEqual EmpireNeed.NC
+            world.status mustEqual WorldStatus.Up
+
+            world.connections.length mustEqual 1
+            world.connections{0}.address.getPort mustEqual 30007
+            world.connections{0}.address.getAddress.toString mustEqual "/64.37.158.69"
           case default =>
             true mustEqual false
         }
@@ -27,7 +35,14 @@ class GamePacketTest extends Specification {
 
       "encode" in {
         val msg = VNLWorldStatusMessage("Welcome to PlanetSide! ",
-          Vector(WorldInformation("gemini", WorldStatus.Up, ServerType.Beta, EmpireNeed.NC)))
+          Vector(
+            WorldInformation("gemini", WorldStatus.Up, ServerType.Beta,
+              Vector(
+                WorldConnectionInfo(new InetSocketAddress(InetAddress.getByName("64.37.158.69"), 30007))
+              ), EmpireNeed.NC
+            )
+          )
+        )
         //0100 04 00 01459e2540377540
 
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
@@ -38,8 +53,8 @@ class GamePacketTest extends Specification {
       "encode and decode multiple worlds" in {
         val msg = VNLWorldStatusMessage("Welcome to PlanetSide! ",
           Vector(
-            WorldInformation("PSForever1", WorldStatus.Up, ServerType.Released, EmpireNeed.NC),
-            WorldInformation("PSForever2", WorldStatus.Down, ServerType.Beta, EmpireNeed.TR)
+            WorldInformation("PSForever1", WorldStatus.Up, ServerType.Released, Vector(), EmpireNeed.NC),
+            WorldInformation("PSForever2", WorldStatus.Down, ServerType.Beta, Vector(), EmpireNeed.TR)
           ))
 
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector

@@ -209,7 +209,7 @@ class LoginSessionActor(session : LoginSession) extends Actor with ActorLogging 
 
             val msg = VNLWorldStatusMessage("Welcome to PlanetSide! ",
               Vector(
-                WorldInformation("gemini", WorldStatus.Up, ServerType.Released, EmpireNeed.NC)
+                WorldInformation("gemini", WorldStatus.Up, ServerType.Released, Vector(), EmpireNeed.NC)
               ))
 
             sendResponse(PacketCoding.encryptPacket(cryptoState.get, PacketCoding.CreateGamePacket(4,

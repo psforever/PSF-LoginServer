@@ -1,5 +1,8 @@
 // Copyright (c) 2016 PSForever.net to present
 package psforever.net
+
+import java.net.{InetAddress, InetSocketAddress}
+
 import scodec._
 import scodec.bits._
 import scodec.codecs._
@@ -24,8 +27,12 @@ object EmpireNeed extends Enumeration {
   implicit val codec = PacketHelpers.createEnumerationCodec(this, uint2L)
 }
 
+final case class WorldConnectionInfo(address : InetSocketAddress)
+
 final case class WorldInformation(name : String, status : WorldStatus.Value,
-                             serverType : ServerType.Value, empireNeed : EmpireNeed.Value)
+                                  serverType : ServerType.Value,
+                                  connections : Vector[WorldConnectionInfo],
+                                  empireNeed : EmpireNeed.Value)
 
 final case class VNLWorldStatusMessage(welcomeMessage : String, worlds : Vector[WorldInformation])
   extends PlanetSideGamePacket {
@@ -74,6 +81,28 @@ object VNLWorldStatusMessage extends Marshallable[VNLWorldStatusMessage] {
     ("status1" | uint8L)).xmap(to, from)
   }
 
+  implicit val connectionCodec : Codec[WorldConnectionInfo] = {
+
+    type DecodeStruct = ByteVector :: Int :: HNil
+    type EncodeStruct = InetSocketAddress :: HNil
+
+    def decode(a : DecodeStruct) : EncodeStruct = a match {
+      case ipBytes :: port :: HNil =>
+        val addr = new InetSocketAddress(InetAddress.getByAddress(ipBytes.reverse.toArray), port)
+        addr  :: HNil
+    }
+
+    def encode(a : EncodeStruct) : DecodeStruct = a match {
+      case addr :: HNil =>
+        val ip = addr.getAddress.getAddress
+        val port = addr.getPort
+
+        ByteVector(ip).reverse :: port :: HNil
+    }
+
+    (bytes(4) :: uint16L).xmap(decode, encode).as[WorldConnectionInfo]
+  }
+
   implicit val codec : Codec[VNLWorldStatusMessage] = (
     ("welcome_message" | PacketHelpers.encodedWideString) ::
       ("worlds" | vectorOfN(uint8L, (
@@ -81,7 +110,8 @@ object VNLWorldStatusMessage extends Marshallable[VNLWorldStatusMessage] {
         // XXX: this needs to be byte aligned, but not sure how to do this
         ("world_name" | PacketHelpers.encodedString) :: (
           ("status_and_type" | statusCodec) :+
-          ("unknown" | constant(hex"01459e25403775")) :+
+          // TODO: limit the size of this vector to 11 as the client will fail on any more
+          ("connections" | vectorOfN(uint8L, connectionCodec)) :+
           ("empire_need" | EmpireNeed.codec)
         )
       ).as[WorldInformation]
