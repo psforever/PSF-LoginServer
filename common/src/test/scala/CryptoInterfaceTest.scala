@@ -1,6 +1,6 @@
 import org.specs2.mutable._
 import psforever.crypto.CryptoInterface
-import psforever.crypto.CryptoInterface.{CryptoState, CryptoDHState}
+import psforever.crypto.CryptoInterface.CryptoDHState
 import scodec.bits._
 
 class CryptoInterfaceTest extends Specification {

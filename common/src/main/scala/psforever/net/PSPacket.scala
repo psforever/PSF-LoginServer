@@ -1,5 +1,7 @@
 package psforever.net
 
+import java.nio.charset.Charset
+
 import scodec.{DecodeResult, Err, Codec, Attempt}
 import scodec.bits._
 import scodec.codecs._
@@ -14,22 +16,22 @@ sealed trait PlanetSidePacket extends Serializable {
 }
 
 // Used by companion objects to create encoders and decoders
-sealed trait Marshallable[T] {
+trait Marshallable[T] {
   implicit val codec : Codec[T]
   def encode(a : T) : Attempt[BitVector] = codec.encode(a)
   // assert that when decoding a marshallable type, that no bits are left over
-  def decode(a : BitVector) : Attempt[DecodeResult[T]] = codec.complete.decode(a)
+  def decode(a : BitVector) : Attempt[DecodeResult[T]] = codec.decode(a)
 }
 
-sealed trait PlanetSideGamePacket extends PlanetSidePacket {
+trait PlanetSideGamePacket extends PlanetSidePacket {
   def opcode : GamePacketOpcode.Type
 }
 
-sealed trait PlanetSideControlPacket extends PlanetSidePacket {
+trait PlanetSideControlPacket extends PlanetSidePacket {
   def opcode : ControlPacketOpcode.Type
 }
 
-sealed trait PlanetSideCryptoPacket extends PlanetSidePacket {
+trait PlanetSideCryptoPacket extends PlanetSidePacket {
   def opcode : CryptoPacketOpcode.Type
 }
 
@@ -143,6 +145,17 @@ object LoginMessage extends Marshallable[LoginMessage] {
 
   type Struct = String :: Option[String] :: Option[String] :: HNil
 
+  /* Okay, okay, here's what's happening here:
+
+     PlanetSide's *wonderful* packet design reuses packets for different encodings.
+     What we have here is that depending on a boolean in the LoginPacket, we will either
+     be decoding a username & password OR a token & username. Yeah...so this doesn't
+     really fit in to a fixed packet decoding scheme.
+
+     The below code abstracts away from this by using pattern matching.
+     The scodec specific part is the either(...) Codec, which decodes one bit and chooses
+     Left or Right depending on it.
+   */
   implicit val credentialChoice : Codec[Struct] = {
     type InStruct = Either[String :: String :: HNil, String :: String :: HNil]
 
@@ -307,12 +320,7 @@ object PacketType extends Enumeration(1) {
   type Type = Value
   val ResetSequence, Unknown2, Crypto, Normal = Value
 
-  val storageType = uint4L
-
-  assert(maxId <= Math.pow(storageType.sizeBound.exact.get, 2),
-    this.getClass.getCanonicalName + ": maxId exceeds primitive type")
-
-  implicit val codec: Codec[this.Value] = PacketHelpers.createEnumerationCodec(this, storageType)
+  implicit val codec: Codec[this.Value] = PacketHelpers.createEnumerationCodec(this, uint4L)
 }
 
 object PlanetSidePacketFlags extends Marshallable[PlanetSidePacketFlags] {
@@ -327,10 +335,16 @@ object PlanetSidePacketFlags extends Marshallable[PlanetSidePacketFlags] {
 
 //////////////////////////////////////////////////
 
-// TODO: figure out why I can't insert codecs without using a new case class
-// Notes: https://mpilquist.github.io/blog/2013/06/09/scodec-part-3/
-// https://stackoverflow.com/questions/29585649/using-nested-case-classes-with-scodec
-// https://gist.github.com/travisbrown/3945529
+/*class MarshallableEnum[+T] extends Enumeration {
+  type StorageType = Codec[Int]
+
+  implicit val storageType : StorageType = uint8
+
+  assert(maxId <= Math.pow(storageType.sizeBound.exact.get, 2),
+    this.getClass.getCanonicalName + ": maxId exceeds primitive type")
+
+  implicit val codec: Codec[T] = PacketHelpers.createEnumerationCodec(this, storageType)
+}*/
 
 object PacketHelpers {
   def emptyCodec[T](instance : T) = {
@@ -339,13 +353,14 @@ object PacketHelpers {
     Codec[HNil].xmap[T](from, to)
   }
 
+
   def createEnumerationCodec[E <: Enumeration](enum : E, storageCodec : Codec[Int]) : Codec[E#Value] = {
     type Struct = Int :: HNil
     val struct: Codec[Struct] = storageCodec.hlist
 
     // Assure that the enum will always be able to fit in a N-bit int
     assert(enum.maxId <= Math.pow(storageCodec.sizeBound.exact.get, 2),
-      this.getClass.getCanonicalName + ": maxId exceeds primitive type")
+      enum.getClass.getCanonicalName + ": maxId exceeds primitive type")
 
     def to(pkt: E#Value): Struct = {
       pkt.id :: HNil
@@ -372,15 +387,47 @@ object PacketHelpers {
   private def encodedStringSize : Codec[Int] = either(bool, uint(15), uint(7)).
     xmap[Int](
     (a : Either[Int, Int]) => a.fold[Int](a => a, a => a),
-    (a : Int) => if(a > 0x7f) Left(a) else Right(a)
+    (a : Int) =>
+      // if the specified goes above 0x7f (127) then we need two bytes to represent it
+      if(a > 0x7f) Left(a) else Right(a)
   )
 
-  private def encodedStringSizeWithPad(pad : Int) : Codec[Int] = either(bool, uint(15), uint(7)).
-    xmap[Int](
-    (a : Either[Int, Int]) => a.fold[Int](a => a, a => a),
-    (a : Int) => if(a > 0x7f) Left(a) else Right(a)
-  ) <~ ignore(pad)
+  /*private def encodedStringSizeWithLimit(limit : Int) : Codec[Int] = {
+    either(bool, uint(15), uint(7)).
+      exmap[Int](
+        (a : Either[Int, Int]) => {
+          val result = a.fold[Int](a => a, a => a)
+
+          if(result > limit)
+            Attempt.failure(Err(s"Encoded string exceeded byte limit of $limit"))
+          else
+            Attempt.successful(result)
+        },
+        (a : Int) => {
+          if(a > limit)
+            return Attempt.failure(Err("adsf"))
+          //return Left(Attempt.failure(Err(s"Encoded string exceeded byte limit of $limit")))
+
+          if(a > 0x7f)
+            return Attempt.successful(Left(a))
+          else
+            Right(a)
+        }
+    )
+  }*/
+
+  private def encodedStringSizeWithPad(pad : Int) : Codec[Int] = encodedStringSize <~ ignore(pad)
 
   def encodedString : Codec[String] = variableSizeBytes(encodedStringSize, ascii)
+  //def encodedStringWithLimit(limit : Int) : Codec[String] = variableSizeBytes(encodedStringSizeWithLimit(limit), ascii)
   def encodedStringAligned(adjustment : Int) : Codec[String] = variableSizeBytes(encodedStringSizeWithPad(adjustment), ascii)
+
+  /// Variable for the charset that planetside uses for unicode
+  val utf16 = string(Charset.forName("UTF-16LE"))
+
+  /// An encoded *wide* string is twice the length of the given encoded size and half of the length of the
+  /// input string. We use xmap to transform the encodedString codec as this change is just a division and multiply
+  def encodedWideString : Codec[String] = variableSizeBytes(encodedStringSize.xmap(
+    insize => insize*2,
+    outSize => outSize/2), utf16)
 }

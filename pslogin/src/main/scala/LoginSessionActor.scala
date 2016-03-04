@@ -8,11 +8,11 @@ import scodec.{Err, Attempt, Codec}
 import scodec.codecs.{uint16L, uint8L, bytes}
 import java.security.SecureRandom
 
-/*sealed trait SessionState extends Serializable
-final case class NewSession() extends SessionState
-final case class EstablishSecureChannel() extends SessionState
-final case class SessionDead() extends SessionState*/
-
+/**
+  * Actor that stores crypto state for a connection and filters away any packet metadata.
+  * Also decrypts and handles packet retries using the sequence numbers.
+  * @param session Per session state
+  */
 class LoginSessionActor(session : LoginSession) extends Actor with ActorLogging {
   var cryptoDHState = new CryptoInterface.CryptoDHState()
   var cryptoState : Option[CryptoInterface.CryptoStateWithMAC] = None
@@ -27,10 +27,11 @@ class LoginSessionActor(session : LoginSession) extends Actor with ActorLogging 
   var clientChallenge = ByteVector.empty
   var clientChallengeResult = ByteVector.empty
 
-  def receive = clientStart
+  def receive = NewClient
 
-  def clientStart : Receive = {
+  def NewClient : Receive = {
     case RawPacket(msg) =>
+      // PacketCoding.DecodePacket
       PacketCoding.UnmarshalPacket(msg) match {
         case Failure(e) => log.error("Could not decode packet: " + e)
         case Successful(p) =>
@@ -39,7 +40,8 @@ class LoginSessionActor(session : LoginSession) extends Actor with ActorLogging 
           p match {
             case ControlPacket(_, ClientStart(nonce)) =>
               sendResponse(PacketCoding.CreateControlPacket(ServerStart(nonce, Math.abs(random.nextInt()))))
-              context.become(clientXchg)
+
+              context.become(CryptoExchange)
             case default =>
               log.error("Unexpected packet type " + p)
           }
@@ -47,7 +49,7 @@ class LoginSessionActor(session : LoginSession) extends Actor with ActorLogging 
     case default => log.error(s"Invalid message received ${default}")
   }
 
-  def clientXchg : Receive = {
+  def CryptoExchange : Receive = {
     case RawPacket(msg) =>
       PacketCoding.UnmarshalPacket(msg, CryptoPacketOpcode.ClientChallengeXchg) match {
         case Failure(e) => log.error("Could not decode packet: " + e)
@@ -79,14 +81,14 @@ class LoginSessionActor(session : LoginSession) extends Actor with ActorLogging 
               // save the sent packet a MAC check
               serverMACBuffer ++= sentPacket.drop(3)
 
-              context.become(clientFinished)
+              context.become(CryptoSetupFinishing)
             case default => log.error("Unexpected packet type " + p)
           }
       }
     case default => log.error(s"Invalid message received ${default}")
   }
 
-  def clientFinished : Receive = {
+  def CryptoSetupFinishing : Receive = {
     case RawPacket(msg) =>
       PacketCoding.UnmarshalPacket(msg, CryptoPacketOpcode.ClientFinished) match {
         case Failure(e) => log.error("Could not decode packet: " + e)
@@ -163,14 +165,14 @@ class LoginSessionActor(session : LoginSession) extends Actor with ActorLogging 
 
               sendResponse(packet)
 
-              context.become(established)
+              context.become(Established)
             case default => failWithError("Unexpected packet type " + default)
           }
       }
     case default => failWithError(s"Invalid message received ${default}")
   }
 
-  def established : Receive = {
+  def Established : Receive = {
     case RawPacket(msg) =>
       PacketCoding.UnmarshalPacket(msg) match {
         case Successful(p) =>
@@ -204,6 +206,15 @@ class LoginSessionActor(session : LoginSession) extends Actor with ActorLogging 
               ))).require
 
             sendResponse(packet)
+
+            val msg = VNLWorldStatusMessage("Welcome to PlanetSide! ",
+              Vector(
+                WorldInformation("gemini", WorldStatus.Up, ServerType.Released, EmpireNeed.NC)
+              ))
+
+            sendResponse(PacketCoding.encryptPacket(cryptoState.get, PacketCoding.CreateGamePacket(4,
+              msg
+            )).require)
           case Failure(e) => println("Failed to decode inner packet " + e)
         }
     }

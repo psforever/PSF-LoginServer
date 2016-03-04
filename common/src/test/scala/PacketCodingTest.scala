@@ -1,5 +1,4 @@
 import org.specs2.mutable._
-import psforever.crypto.CryptoInterface
 import psforever.net._
 import scodec.bits._
 

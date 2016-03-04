@@ -3,7 +3,7 @@ import psforever.net._
 import scodec.Codec
 import scodec.bits._
 
-class CryptoPackets extends Specification {
+class CryptoPacketTest extends Specification {
 
   "PlanetSide crypto packet" in {
     val cNonce = 656287232

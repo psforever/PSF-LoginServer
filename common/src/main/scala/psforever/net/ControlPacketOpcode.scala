@@ -59,10 +59,5 @@ object ControlPacketOpcode extends Enumeration {
     case default => (a : BitVector) => Attempt.failure(Err(s"Could not find a marshaller for control packet ${opcode}"))
   }
 
-  val storageType = uint8L
-
-  assert(maxId <= Math.pow(storageType.sizeBound.exact.get, 2),
-    this.getClass.getCanonicalName + ": maxId exceeds primitive type")
-
-  implicit val codec: Codec[this.Value] = PacketHelpers.createEnumerationCodec(this, storageType)
+  implicit val codec: Codec[this.Value] = PacketHelpers.createEnumerationCodec(this, uint8L)
 }
