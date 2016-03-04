@@ -9,3 +9,6 @@ out/
 *.iml
 *.swp
 /*.csv
+*.so
+*.dll
+*.exe
