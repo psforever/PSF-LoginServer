@@ -1,3 +1,4 @@
+// Copyright (c) 2016 PSForever.net to present
 import java.net.InetSocketAddress
 
 import akka.actor.{ActorLogging, Actor, ActorRef}

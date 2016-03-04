@@ -1,3 +1,4 @@
+// Copyright (c) 2016 PSForever.net to present
 import akka.actor.{Actor, ActorLogging}
 import psforever.crypto.CryptoInterface.{CryptoStateWithMAC, CryptoState}
 import psforever.crypto.CryptoInterface

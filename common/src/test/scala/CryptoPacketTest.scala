@@ -1,3 +1,4 @@
+// Copyright (c) 2016 PSForever.net to present
 import org.specs2.mutable._
 import psforever.net._
 import scodec.Codec

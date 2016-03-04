@@ -1,3 +1,4 @@
+// Copyright (c) 2016 PSForever.net to present
 import akka.actor.{Props, ActorSystem}
 import psforever.crypto.CryptoInterface
 

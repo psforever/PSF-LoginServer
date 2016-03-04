@@ -1,3 +1,4 @@
+// Copyright (c) 2016 PSForever.net to present
 package psforever
 
 class ObjectFinalizedException(msg : String) extends Exception(msg)

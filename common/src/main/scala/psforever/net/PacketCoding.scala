@@ -1,3 +1,4 @@
+// Copyright (c) 2016 PSForever.net to present
 package psforever.net
 
 import psforever.crypto.CryptoInterface
