@@ -8,9 +8,9 @@ import scodec.bits.ByteVector
 
 object CryptoInterface {
   final val libName = "pscrypto"
-  // TODO: make this cross platform
-  final val fullLibName = "lib" + libName + ".so"
+  final val fullLibName = libName
   final val psLib = new Library(libName)
+
   final val RC5_BLOCK_SIZE = 8
   final val MD5_MAC_SIZE = 16
 
@@ -26,8 +26,27 @@ object CryptoInterface {
     "Free_RC5"
   )
 
+  /**
+    * Used to initialize the crypto library at runtime. This allows
+    */
   def initialize() : Unit = {
     functionsList foreach psLib.prefetch
+  }
+
+  /**
+   * Used for debugging object loading
+   */
+  def printEnvironment() : Unit = {
+    import java.io.File
+
+    val classpath = System.getProperty("java.class.path")
+    val classpathEntries = classpath.split(File.pathSeparator)
+
+    val myLibraryPath = System.getProperty("user.dir")
+    println("User dir: " + myLibraryPath)
+    classpathEntries.foreach(println)
+
+    println("Required data model: " + System.getProperty("sun.arch.data.model"))
   }
 
   def MD5MAC(key : ByteVector, message : ByteVector, bytesWanted : Int) : ByteVector = {

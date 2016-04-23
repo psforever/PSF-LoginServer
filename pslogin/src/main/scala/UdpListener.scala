@@ -11,7 +11,7 @@ final case class SendPacket(msg : ByteVector, to : InetSocketAddress)
 
 class UdpListener(nextActor: ActorRef) extends Actor with ActorLogging {
   import context.system
-  IO(Udp) ! Udp.Bind(self, new InetSocketAddress("localhost", 51000))
+  IO(Udp) ! Udp.Bind(self, new InetSocketAddress("0.0.0.0", 51000))
 
   var bytesRecevied = 0L
   var bytesSent = 0L

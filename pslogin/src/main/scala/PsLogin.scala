@@ -13,6 +13,8 @@ object PsLogin {
     catch {
       case e : UnsatisfiedLinkError =>
         println("Unable to initialize " + CryptoInterface.libName)
+        println("Reason: " + e.getMessage)
+        e.getStackTrace.foreach(println)
         sys.exit(1)
     }
 
