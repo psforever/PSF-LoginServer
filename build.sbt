@@ -1,12 +1,6 @@
-import AssemblyKeys._
-
-assemblySettings
-
-
 lazy val commonSettings = Seq(
-  organization := "com.psforever",
+  organization := "net.psforever",
   version := "1.0",
-  jarName in assembly := "pslogin.jar",
   scalaVersion := "2.11.7",
   scalacOptions := Seq("-unchecked", "-deprecation", "-encoding", "utf8"),
   resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
@@ -28,7 +22,7 @@ lazy val pslogin = (project in file("pslogin")).
   settings(commonSettings: _*).
   settings(
     name := "pslogin"
-  ).settings(assemblySettings: _*).dependsOn(common)
+  ).settings(packAutoSettings: _*).dependsOn(common)
 
 lazy val common = (project in file("common")).
   settings(commonSettings: _*).
