@@ -1,13 +1,15 @@
 // Copyright (c) 2016 PSForever.net to present
 import java.net.InetSocketAddress
 
-import akka.actor.{ActorLogging, Actor, ActorRef}
+import akka.actor.{Identify, ActorLogging, Actor, ActorRef}
 import akka.io._
 import scodec.bits.ByteVector
 import scodec.interop.akka._
 
 final case class ReceivedPacket(msg : ByteVector, from : InetSocketAddress)
 final case class SendPacket(msg : ByteVector, to : InetSocketAddress)
+final case class Hello()
+final case class HelloFriend(next: ActorRef)
 
 class UdpListener(nextActor: ActorRef) extends Actor with ActorLogging {
   import context.system
@@ -19,6 +21,8 @@ class UdpListener(nextActor: ActorRef) extends Actor with ActorLogging {
   def receive = {
     case Udp.Bound(local) =>
       println("UDP bound: " + local)
+
+      nextActor ! Hello()
       context.become(ready(sender()))
   }
 
