@@ -53,7 +53,7 @@ class CryptoSessionActor extends Actor with ActorLogging {
       PacketCoding.UnmarshalPacket(msg) match {
         case Failure(e) => log.error("Could not decode packet: " + e)
         case Successful(p) =>
-          println("RECV: " + p)
+          //println("RECV: " + p)
 
           p match {
             case ControlPacket(_, ClientStart(nonce)) =>
@@ -72,7 +72,7 @@ class CryptoSessionActor extends Actor with ActorLogging {
       PacketCoding.UnmarshalPacket(msg, CryptoPacketOpcode.ClientChallengeXchg) match {
         case Failure(e) => log.error("Could not decode packet: " + e)
         case Successful(p) =>
-          println("RECV: " + p)
+          //println("RECV: " + p)
 
           p match {
             case CryptoPacket(seq, ClientChallengeXchg(time, challenge, p, g)) =>
@@ -111,7 +111,7 @@ class CryptoSessionActor extends Actor with ActorLogging {
       PacketCoding.UnmarshalPacket(msg, CryptoPacketOpcode.ClientFinished) match {
         case Failure(e) => log.error("Could not decode packet: " + e)
         case Successful(p) =>
-          println("RECV: " + p)
+          //println("RECV: " + p)
 
           p match {
             case CryptoPacket(seq, ClientFinished(clientPubKey, clientChalResult)) =>
@@ -196,10 +196,10 @@ class CryptoSessionActor extends Actor with ActorLogging {
         case Successful(p) =>
           p match {
             case encPacket @ EncryptedPacket(seq, _) =>
-              println("Decrypting packet..." + encPacket)
+              //println("Decrypting packet..." + encPacket)
               PacketCoding.decryptPacket(cryptoState.get, encPacket) match {
                 case Successful(packet) =>
-                  println("RECV[E]: " + packet)
+                  //println("RECV[E]: " + packet)
 
                   self ! packet
                 case Failure(e) =>
@@ -218,38 +218,11 @@ class CryptoSessionActor extends Actor with ActorLogging {
       val from = sender()
 
       handleEstablishedPacket(from, game)
-    /*  case SlottedMetaPacket(innerPacket) =>
-        PacketCoding.DecodePacket(innerPacket) match {
-          case Successful(p) =>
-            println("RECV[INNER]: " + p)
-
-            val packet = PacketCoding.encryptPacket(cryptoState.get, PacketCoding.CreateGamePacket(3,
-              LoginRespMessage("AAAABBBBCCCCDDDD",
-              hex"00000000 18FABE0C 00000000 00000000",
-              0, 1, 2, 685276011,
-              "AAAAAAAA", 0, false
-              ))).require
-
-            sendResponse(packet)
-
-            val msg = VNLWorldStatusMessage("Welcome to PlanetSide! ",
-              Vector(
-                WorldInformation("PSForever", WorldStatus.Up, ServerType.Development,
-                  Vector(WorldConnectionInfo(new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 51001))), EmpireNeed.TR)
-              ))
-
-            sendResponse(PacketCoding.encryptPacket(cryptoState.get, PacketCoding.CreateGamePacket(4,
-              msg
-            )).require)
-          case Failure(e) => println("Failed to decode inner packet " + e)
-        }
-        */
     case default => failWithError(s"Invalid message received ${default}")
   }
 
   def failWithError(error : String) = {
     log.error(error)
-    sendResponse(PacketCoding.CreateControlPacket(ConnectionClose()))
   }
 
   def resetState() : Unit = {
@@ -285,7 +258,7 @@ class CryptoSessionActor extends Actor with ActorLogging {
   }
 
   def sendResponse(cont : PlanetSidePacketContainer) : ByteVector = {
-    println("CRYPTO SEND: " + cont)
+    //println("CRYPTO SEND: " + cont)
     val pkt = PacketCoding.MarshalPacket(cont).require
     val bytes = pkt.toByteVector
 

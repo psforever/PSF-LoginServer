@@ -68,7 +68,7 @@ class LoginSessionActor extends Actor with ActorLogging {
   }
 
   def sendResponse(cont : PlanetSidePacketContainer) = {
-    log.info("LOGIN SEND: " + cont)
+    println("LOGIN SEND: " + cont)
     rightRef ! cont
   }
 }
