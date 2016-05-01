@@ -49,7 +49,7 @@ class LoginSessionActor extends Actor with ActorLogging {
             val msg = VNLWorldStatusMessage("Welcome to PlanetSide! ",
               Vector(
                 WorldInformation("PSForever", WorldStatus.Up, ServerType.Development,
-                  Vector(WorldConnectionInfo(new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 51001))), EmpireNeed.TR)
+                  Vector(WorldConnectionInfo(new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 51000))), EmpireNeed.TR)
               ))
 
             sendResponse(PacketCoding.CreateGamePacket(0, msg))
