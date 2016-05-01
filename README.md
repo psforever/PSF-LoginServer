@@ -1,6 +1,8 @@
 # PlanetSide Login Server
 This project contains the code to run and manage the login server role for PlanetSide 1.
 
+![PSForever Login Server banner](https://i.imgur.com/EkbIv5x.png)
+
 ## Features
 * Crypto session establishment
 * Username and password (or token) acceptance
