@@ -13,7 +13,9 @@ case class SessionState(id : Long, address : InetSocketAddress, pipeline : List[
   def inject(pkt : RawPacket) = pipeline.head ! pkt
 }
 
-class SessionRouter extends Actor with ActorLogging {
+class SessionRouter extends Actor {
+  private[this] val logger = org.log4s.getLogger
+
   val idBySocket = mutable.Map[InetSocketAddress, Long]()
   val sessionById = mutable.Map[Long, SessionState]()
   val sessionByActor = mutable.Map[ActorRef, SessionState]()
@@ -43,7 +45,7 @@ class SessionRouter extends Actor with ActorLogging {
       inputRef = sender()
       context.become(started)
     case _ =>
-      log.error("Unknown message")
+      logger.error("Unknown message")
       context.stop(self)
   }
 
@@ -52,7 +54,7 @@ class SessionRouter extends Actor with ActorLogging {
       if(idBySocket.contains(from)) {
         sessionById{idBySocket{from}}.inject(RawPacket(msg))
       } else {
-        log.info("New session from " + from.toString)
+        logger.info("New session from " + from.toString)
 
         val session = createNewSession(from)
         idBySocket{from} = session.id
@@ -66,7 +68,7 @@ class SessionRouter extends Actor with ActorLogging {
       val session = sessionByActor{sender()}
 
       inputRef ! SendPacket(msg, session.address)
-    case _ => log.error("Unknown message")
+    case _ => logger.error("Unknown message")
   }
 
   def createNewSession(address : InetSocketAddress) = {

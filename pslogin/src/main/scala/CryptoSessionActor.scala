@@ -1,7 +1,7 @@
 // Copyright (c) 2016 PSForever.net to present
 import java.net.{InetAddress, InetSocketAddress}
 
-import akka.actor.{ActorRef, Identify, Actor, ActorLogging}
+import akka.actor.{ActorRef, Identify, Actor}
 import psforever.crypto.CryptoInterface.{CryptoStateWithMAC, CryptoState}
 import psforever.crypto.CryptoInterface
 import psforever.net._
@@ -14,7 +14,9 @@ import java.security.SecureRandom
 /**
   * Actor that stores crypto state for a connection and filters away any packet metadata.
   */
-class CryptoSessionActor extends Actor with ActorLogging {
+class CryptoSessionActor extends Actor {
+  private[this] val logger = org.log4s.getLogger
+
   var leftRef : ActorRef = ActorRef.noSender
   var rightRef : ActorRef = ActorRef.noSender
 
@@ -43,7 +45,7 @@ class CryptoSessionActor extends Actor with ActorLogging {
 
       context.become(NewClient)
     case _ =>
-      log.error("Unknown message")
+      logger.error("Unknown message")
       context.stop(self)
   }
 
@@ -51,7 +53,7 @@ class CryptoSessionActor extends Actor with ActorLogging {
     case RawPacket(msg) =>
       // PacketCoding.DecodePacket
       PacketCoding.UnmarshalPacket(msg) match {
-        case Failure(e) => log.error("Could not decode packet: " + e)
+        case Failure(e) => logger.error("Could not decode packet: " + e)
         case Successful(p) =>
           //println("RECV: " + p)
 
@@ -61,16 +63,16 @@ class CryptoSessionActor extends Actor with ActorLogging {
 
               context.become(CryptoExchange)
             case default =>
-              log.error("Unexpected packet type " + p)
+              logger.error("Unexpected packet type " + p)
           }
       }
-    case default => log.error(s"Invalid message received ${default}")
+    case default => logger.error(s"Invalid message received ${default}")
   }
 
   def CryptoExchange : Receive = {
     case RawPacket(msg) =>
       PacketCoding.UnmarshalPacket(msg, CryptoPacketOpcode.ClientChallengeXchg) match {
-        case Failure(e) => log.error("Could not decode packet: " + e)
+        case Failure(e) => logger.error("Could not decode packet: " + e)
         case Successful(p) =>
           //println("RECV: " + p)
 
@@ -100,16 +102,16 @@ class CryptoSessionActor extends Actor with ActorLogging {
               serverMACBuffer ++= sentPacket.drop(3)
 
               context.become(CryptoSetupFinishing)
-            case default => log.error("Unexpected packet type " + p)
+            case default => logger.error("Unexpected packet type " + p)
           }
       }
-    case default => log.error(s"Invalid message received ${default}")
+    case default => logger.error(s"Invalid message received ${default}")
   }
 
   def CryptoSetupFinishing : Receive = {
     case RawPacket(msg) =>
       PacketCoding.UnmarshalPacket(msg, CryptoPacketOpcode.ClientFinished) match {
-        case Failure(e) => log.error("Could not decode packet: " + e)
+        case Failure(e) => logger.error("Could not decode packet: " + e)
         case Successful(p) =>
           //println("RECV: " + p)
 
@@ -203,12 +205,12 @@ class CryptoSessionActor extends Actor with ActorLogging {
 
                   self ! packet
                 case Failure(e) =>
-                  println("Failed to decode encrypted packet: " + e)
+                  logger.error("Failed to decode encrypted packet: " + e)
               }
             case default => failWithError("Unexpected packet type " + default)
 
           }
-        case Failure(e) => println("Could not decode raw packet: " + e)
+        case Failure(e) => logger.error("Could not decode raw packet: " + e)
       }
     case ctrl @ ControlPacket(_, _) =>
       val from = sender()
@@ -222,7 +224,7 @@ class CryptoSessionActor extends Actor with ActorLogging {
   }
 
   def failWithError(error : String) = {
-    log.error(error)
+    logger.error(error)
   }
 
   def resetState() : Unit = {
@@ -253,7 +255,7 @@ class CryptoSessionActor extends Actor with ActorLogging {
       val packet = PacketCoding.encryptPacket(cryptoState.get, cont).require
       sendResponse(packet)
     } else {
-      log.error("Invalid sender")
+      logger.error("Invalid sender")
     }
   }
 

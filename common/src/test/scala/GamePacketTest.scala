@@ -59,7 +59,7 @@ class GamePacketTest extends Specification {
 
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
-        println(pkt)
+        //println(pkt)
 
         true mustEqual true
       }

@@ -11,7 +11,9 @@ final case class SendPacket(msg : ByteVector, to : InetSocketAddress)
 final case class Hello()
 final case class HelloFriend(next: ActorRef)
 
-class UdpListener(nextActor: ActorRef) extends Actor with ActorLogging {
+class UdpListener(nextActor: ActorRef) extends Actor {
+  private val logger = org.log4s.getLogger
+
   import context.system
   IO(Udp) ! Udp.Bind(self, new InetSocketAddress("127.0.0.1", 51000))
 
@@ -20,7 +22,7 @@ class UdpListener(nextActor: ActorRef) extends Actor with ActorLogging {
 
   def receive = {
     case Udp.Bound(local) =>
-      println("UDP bound: " + local)
+      logger.info(s"Now listening on UDP:$local")
 
       nextActor ! Hello()
       context.become(ready(sender()))
@@ -35,6 +37,6 @@ class UdpListener(nextActor: ActorRef) extends Actor with ActorLogging {
       nextActor ! ReceivedPacket(data.toByteVector, remote)
     case Udp.Unbind  => socket ! Udp.Unbind
     case Udp.Unbound => context.stop(self)
-    case x : Any => log.error("Unhandled message: " + x.toString)
+    case x : Any => logger.error("Unhandled message: " + x.toString)
   }
 }
