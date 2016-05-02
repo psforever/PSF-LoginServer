@@ -1,7 +1,7 @@
 // Copyright (c) 2016 PSForever.net to present
-import java.net.InetSocketAddress
+import java.net.{InetAddress, InetSocketAddress}
 
-import akka.actor.{Identify, ActorLogging, Actor, ActorRef}
+import akka.actor.{Actor, ActorLogging, ActorRef, Identify}
 import akka.io._
 import scodec.bits.ByteVector
 import scodec.interop.akka._
@@ -15,7 +15,7 @@ class UdpListener(nextActor: ActorRef) extends Actor {
   private val logger = org.log4s.getLogger
 
   import context.system
-  IO(Udp) ! Udp.Bind(self, new InetSocketAddress("127.0.0.1", 51000))
+  IO(Udp) ! Udp.Bind(self, new InetSocketAddress(InetAddress.getLocalHost, 51000))
 
   var bytesRecevied = 0L
   var bytesSent = 0L
