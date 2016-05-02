@@ -11,3 +11,6 @@ This project contains the code to run and manage the login server role for Plane
 ## Planned Features
 * Database integration for account lookup
 * Further netcode integration
+
+## License
+GNU GPLv3. See LICENSE.md for the full copy.
