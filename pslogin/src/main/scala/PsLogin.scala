@@ -1,14 +1,15 @@
 // Copyright (c) 2016 PSForever.net to present
 import akka.actor.{ActorSystem, Props}
 import ch.qos.logback.classic.LoggerContext
+import ch.qos.logback.core.status._
 import ch.qos.logback.core.util.StatusPrinter
+import com.typesafe.config.ConfigFactory
 import psforever.crypto.CryptoInterface
-import org.log4s._
 import org.slf4j
-import org.slf4j.LoggerFactory
-
 import org.fusesource.jansi.Ansi._
 import org.fusesource.jansi.Ansi.Color._
+
+import scala.collection.JavaConverters._
 
 object PsLogin {
   private val logger = org.log4s.getLogger
@@ -22,14 +23,22 @@ object PsLogin {
     println
   }
 
+  def loggerHasErrors(context : LoggerContext) = {
+    val statusUtil = new StatusUtil(context)
+
+    statusUtil.getHighestLevel(0) >= Status.WARN
+  }
+
   def main(args : Array[String]) : Unit = {
     banner
 
     // assume SLF4J is bound to logback in the current environment
     val lc = slf4j.LoggerFactory.getILoggerFactory.asInstanceOf[LoggerContext]
 
-    // print logback's internal status
-    StatusPrinter.printInCaseOfErrorsOrWarnings(lc)
+    if(loggerHasErrors(lc)) {
+      StatusPrinter.printInCaseOfErrorsOrWarnings(lc)
+      sys.exit(1)
+    }
 
     try {
       CryptoInterface.initialize()
@@ -41,12 +50,19 @@ object PsLogin {
         sys.exit(1)
     }
 
+    logger.info(s"Detected ${Runtime.getRuntime.availableProcessors()} available logical processors")
+
     logger.info("Starting actor subsystems...")
 
-    val system = ActorSystem("PsLogin")
+    val config = Map(
+      "akka.loggers" -> List("akka.event.slf4j.Slf4jLogger").asJava,
+      "akka.loglevel" -> "INFO",
+      "akka.logging-filter" -> "akka.event.slf4j.Slf4jLoggingFilter"
+    ).asJava
+
+    //val system = ActorSystem("PsLogin", Some(ConfigFactory.parseMap(config)), None, Some(MDCPropagatingExecutionContextWrapper(ExecutionContext.Implicits.global)))
+    val system = ActorSystem("PsLogin", ConfigFactory.parseMap(config))
     val session = system.actorOf(Props[SessionRouter], "session-router")
     val listener = system.actorOf(Props(new UdpListener(session)), "udp-listener")
-
-    system.awaitTermination()
   }
 }

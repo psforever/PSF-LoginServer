@@ -2,19 +2,23 @@
 import java.net.InetSocketAddress
 
 import akka.actor._
+import org.log4s.MDC
 import scodec.bits._
 
 import scala.collection.mutable
+import MDCContextAware.Implicits._
+import akka.actor.MDCContextAware.MdcMsg
 
 final case class RawPacket(data : ByteVector)
 final case class ResponsePacket(data : ByteVector)
 
 case class SessionState(id : Long, address : InetSocketAddress, pipeline : List[ActorRef]) {
-  def inject(pkt : RawPacket) = pipeline.head ! pkt
+  def startOfPipe = pipeline.head
+  def nextOfStart = pipeline.tail.head
 }
 
-class SessionRouter extends Actor {
-  private[this] val logger = org.log4s.getLogger
+class SessionRouter extends Actor with MDCContextAware {
+  private[this] val log = org.log4s.getLogger
 
   val idBySocket = mutable.Map[InetSocketAddress, Long]()
   val sessionById = mutable.Map[Long, SessionState]()
@@ -45,30 +49,43 @@ class SessionRouter extends Actor {
       inputRef = sender()
       context.become(started)
     case _ =>
-      logger.error("Unknown message")
+      log.error("Unknown message")
       context.stop(self)
   }
 
   def started : Receive = {
     case ReceivedPacket(msg, from) =>
       if(idBySocket.contains(from)) {
-        sessionById{idBySocket{from}}.inject(RawPacket(msg))
-      } else {
-        logger.info("New session from " + from.toString)
+        MDC("sessionId") = idBySocket{from}.toString
 
+        log.trace(s"Handling recieved packet")
+        sessionById{idBySocket{from}}.startOfPipe !> RawPacket(msg)
+
+        MDC.clear()
+      } else {
         val session = createNewSession(from)
         idBySocket{from} = session.id
 
         sessionById{session.id} = session
         sessionByActor{session.pipeline.head} = session
 
-        sessionById{session.id}.inject(RawPacket(msg))
+        MDC("sessionId") = session.id.toString
+
+        log.info("New session from " + from.toString)
+
+        // send the initial message with MDC context (give the session ID to the lower layers)
+        sessionById{session.id}.startOfPipe !> HelloFriend(sessionById{session.id}.nextOfStart)
+        sessionById{session.id}.startOfPipe ! RawPacket(msg)
+
+        MDC.clear()
       }
     case ResponsePacket(msg) =>
       val session = sessionByActor{sender()}
 
+      log.trace(s"Sending response ${msg}")
+
       inputRef ! SendPacket(msg, session.address)
-    case _ => logger.error("Unknown message")
+    case _ => log.error("Unknown message")
   }
 
   def createNewSession(address : InetSocketAddress) = {
@@ -78,9 +95,6 @@ class SessionRouter extends Actor {
       "crypto-session" + id.toString)
     val loginSession = context.actorOf(Props[LoginSessionActor],
       "login-session" + id.toString)
-
-    // start the pipeline setup
-    cryptoSession ! HelloFriend(loginSession)
 
     SessionState(id, address, List(cryptoSession, loginSession))
   }

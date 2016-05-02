@@ -1,21 +1,21 @@
 // Copyright (c) 2016 PSForever.net to present
 import java.net.{InetAddress, InetSocketAddress}
 
-import akka.actor.{ActorRef, Identify, Actor}
-import psforever.crypto.CryptoInterface.{CryptoStateWithMAC, CryptoState}
+import akka.actor.{Actor, ActorLogging, ActorRef, DiagnosticActorLogging, Identify, MDCContextAware}
+import psforever.crypto.CryptoInterface.{CryptoState, CryptoStateWithMAC}
 import psforever.crypto.CryptoInterface
 import psforever.net._
-import scodec.Attempt.{Successful, Failure}
+import scodec.Attempt.{Failure, Successful}
 import scodec.bits._
-import scodec.{Err, Attempt, Codec}
-import scodec.codecs.{uint16L, uint8L, bytes}
+import scodec.{Attempt, Codec, Err}
+import scodec.codecs.{bytes, uint16L, uint8L}
 import java.security.SecureRandom
 
 /**
   * Actor that stores crypto state for a connection and filters away any packet metadata.
   */
-class CryptoSessionActor extends Actor {
-  private[this] val logger = org.log4s.getLogger
+class CryptoSessionActor extends Actor with MDCContextAware {
+  private[this] val log = org.log4s.getLogger
 
   var leftRef : ActorRef = ActorRef.noSender
   var rightRef : ActorRef = ActorRef.noSender
@@ -37,23 +37,25 @@ class CryptoSessionActor extends Actor {
 
   def Initializing : Receive = {
     case HelloFriend(right) =>
+      import MDCContextAware.Implicits._
       leftRef = sender()
       rightRef = right.asInstanceOf[ActorRef]
 
       // who ever we send to has to send something back to us
-      rightRef ! HelloFriend(self)
+      rightRef !> HelloFriend(self)
+
+      log.trace(s"Left sender ${leftRef.path.name}")
 
       context.become(NewClient)
-    case _ =>
-      logger.error("Unknown message")
+    case default =>
+      log.error("Unknown message " + default)
       context.stop(self)
   }
 
   def NewClient : Receive = {
     case RawPacket(msg) =>
-      // PacketCoding.DecodePacket
       PacketCoding.UnmarshalPacket(msg) match {
-        case Failure(e) => logger.error("Could not decode packet: " + e)
+        case Failure(e) => log.error("Could not decode packet: " + e)
         case Successful(p) =>
           //println("RECV: " + p)
 
@@ -63,16 +65,16 @@ class CryptoSessionActor extends Actor {
 
               context.become(CryptoExchange)
             case default =>
-              logger.error("Unexpected packet type " + p)
+              log.error(s"Unexpected packet type ${p} in state NewClient")
           }
       }
-    case default => logger.error(s"Invalid message received ${default}")
+    case default => log.error(s"Invalid message '$default' received in state NewClient")
   }
 
   def CryptoExchange : Receive = {
     case RawPacket(msg) =>
       PacketCoding.UnmarshalPacket(msg, CryptoPacketOpcode.ClientChallengeXchg) match {
-        case Failure(e) => logger.error("Could not decode packet: " + e)
+        case Failure(e) => log.error("Could not decode packet: " + e)
         case Successful(p) =>
           //println("RECV: " + p)
 
@@ -102,16 +104,16 @@ class CryptoSessionActor extends Actor {
               serverMACBuffer ++= sentPacket.drop(3)
 
               context.become(CryptoSetupFinishing)
-            case default => logger.error("Unexpected packet type " + p)
+            case default => log.error(s"Unexpected packet type $p in state CryptoExchange")
           }
       }
-    case default => logger.error(s"Invalid message received ${default}")
+    case default => log.error(s"Invalid message '$default' received in state CryptoExchange")
   }
 
   def CryptoSetupFinishing : Receive = {
     case RawPacket(msg) =>
       PacketCoding.UnmarshalPacket(msg, CryptoPacketOpcode.ClientFinished) match {
-        case Failure(e) => logger.error("Could not decode packet: " + e)
+        case Failure(e) => log.error("Could not decode packet: " + e)
         case Successful(p) =>
           //println("RECV: " + p)
 
@@ -186,10 +188,10 @@ class CryptoSessionActor extends Actor {
               sendResponse(packet)
 
               context.become(Established)
-            case default => failWithError("Unexpected packet type " + default)
+            case default => failWithError(s"Unexpected packet type $default in state CryptoSetupFinished")
           }
       }
-    case default => failWithError(s"Invalid message received ${default}")
+    case default => failWithError(s"Invalid message '$default' received in state CryptoSetupFinished")
   }
 
   def Established : Receive = {
@@ -205,12 +207,12 @@ class CryptoSessionActor extends Actor {
 
                   self ! packet
                 case Failure(e) =>
-                  logger.error("Failed to decode encrypted packet: " + e)
+                  log.error("Failed to decode encrypted packet: " + e)
               }
-            case default => failWithError("Unexpected packet type " + default)
+            case default => failWithError(s"Unexpected packet type $default in state Established")
 
           }
-        case Failure(e) => logger.error("Could not decode raw packet: " + e)
+        case Failure(e) => log.error("Could not decode raw packet: " + e)
       }
     case ctrl @ ControlPacket(_, _) =>
       val from = sender()
@@ -220,11 +222,11 @@ class CryptoSessionActor extends Actor {
       val from = sender()
 
       handleEstablishedPacket(from, game)
-    case default => failWithError(s"Invalid message received ${default}")
+    case default => failWithError(s"Invalid message '$default' received in state Established")
   }
 
   def failWithError(error : String) = {
-    logger.error(error)
+    log.error(error)
   }
 
   def resetState() : Unit = {
@@ -255,7 +257,7 @@ class CryptoSessionActor extends Actor {
       val packet = PacketCoding.encryptPacket(cryptoState.get, cont).require
       sendResponse(packet)
     } else {
-      logger.error("Invalid sender")
+      log.error("Invalid sender")
     }
   }
 

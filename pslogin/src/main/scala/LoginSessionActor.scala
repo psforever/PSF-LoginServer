@@ -1,13 +1,13 @@
 // Copyright (c) 2016 PSForever.net to present
 import java.net.{InetAddress, InetSocketAddress}
 
-import akka.actor.{ActorRef, Identify, Actor, ActorLogging}
+import akka.actor.{Actor, ActorLogging, ActorRef, Identify, MDCContextAware}
 import psforever.net._
 import scodec.Attempt.{Failure, Successful}
 import scodec.bits._
 
-class LoginSessionActor extends Actor {
-  private[this] val logger = org.log4s.getLogger
+class LoginSessionActor extends Actor with MDCContextAware {
+  private[this] val log = org.log4s.getLogger
 
   var leftRef : ActorRef = ActorRef.noSender
   var rightRef : ActorRef = ActorRef.noSender
@@ -21,7 +21,7 @@ class LoginSessionActor extends Actor {
 
       context.become(Started)
     case _ =>
-      logger.error("Unknown message")
+      log.error("Unknown message")
       context.stop(self)
   }
 
@@ -38,7 +38,7 @@ class LoginSessionActor extends Actor {
       case SlottedMetaPacket(innerPacket) =>
         PacketCoding.DecodePacket(innerPacket) match {
           case Successful(p) =>
-            logger.trace("RECV[INNER]: " + p)
+            log.trace("RECV[INNER]: " + p)
 
             val packet = LoginRespMessage("AAAABBBBCCCCDDDD",
                 hex"00000000 18FABE0C 00000000 00000000",
@@ -55,7 +55,7 @@ class LoginSessionActor extends Actor {
               ))
 
             sendResponse(PacketCoding.CreateGamePacket(0, msg))
-          case Failure(e) => logger.error("Failed to decode inner packet " + e)
+          case Failure(e) => log.error("Failed to decode inner packet " + e)
         }
     }
   }
@@ -65,12 +65,12 @@ class LoginSessionActor extends Actor {
   }
 
   def failWithError(error : String) = {
-    logger.error(error)
+    log.error(error)
     sendResponse(PacketCoding.CreateControlPacket(ConnectionClose()))
   }
 
   def sendResponse(cont : PlanetSidePacketContainer) = {
-    logger.trace("LOGIN SEND: " + cont)
+    log.trace("LOGIN SEND: " + cont)
     rightRef ! cont
   }
 }

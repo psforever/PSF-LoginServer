@@ -11,6 +11,7 @@ lazy val commonSettings = Seq(
     "org.scodec"                 %% "scodec-core"   % "1.8.3",
     "org.scodec"                 %% "scodec-akka"   % "0.1.0-SNAPSHOT",
     "net.java.dev.jna"            % "jna"           % "4.2.1",
+    "com.typesafe.akka"          %% "akka-slf4j"    % "2.4.4",
     "ch.qos.logback"              % "logback-classic" % "1.1.7",
     "org.log4s"                  %% "log4s"         % "1.3.0",
     "org.fusesource.jansi"        % "jansi"         % "1.12"
