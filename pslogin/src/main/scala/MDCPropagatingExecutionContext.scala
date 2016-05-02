@@ -1,3 +1,4 @@
+// Copyright (c) 2016 PSForever.net to present
 // Taken from http://code.hootsuite.com/logging-contextual-info-in-an-asynchronous-scala-application/
 
 import org.slf4j.MDC
