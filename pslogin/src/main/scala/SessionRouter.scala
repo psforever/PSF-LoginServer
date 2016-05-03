@@ -75,7 +75,7 @@ class SessionRouter extends Actor with MDCContextAware {
 
         // send the initial message with MDC context (give the session ID to the lower layers)
         sessionById{session.id}.startOfPipe !> HelloFriend(sessionById{session.id}.nextOfStart)
-        sessionById{session.id}.startOfPipe ! RawPacket(msg)
+        sessionById{session.id}.startOfPipe !> RawPacket(msg)
 
         MDC.clear()
       }
