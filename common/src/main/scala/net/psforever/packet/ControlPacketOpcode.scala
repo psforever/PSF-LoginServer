@@ -1,5 +1,5 @@
 // Copyright (c) 2016 PSForever.net to present
-package psforever.net
+package net.psforever.packet
 
 import scodec.bits.BitVector
 import scodec.{Err, DecodeResult, Attempt, Codec}
@@ -50,14 +50,18 @@ object ControlPacketOpcode extends Enumeration {
   Unknown30
   = Value
 
-  def getPacketDecoder(opcode : ControlPacketOpcode.Type) : (BitVector) => Attempt[DecodeResult[PlanetSideControlPacket]] = opcode match {
-    case HandleGamePacket => psforever.net.HandleGamePacket.decode
-    case ServerStart => psforever.net.ServerStart.decode
-    case ClientStart => psforever.net.ClientStart.decode
-    case MultiPacket => psforever.net.MultiPacket.decode
-    case SlottedMetaPacket0 => psforever.net.SlottedMetaPacket.decode
-    case ConnectionClose => psforever.net.ConnectionClose.decode
-    case default => (a : BitVector) => Attempt.failure(Err(s"Could not find a marshaller for control packet ${opcode}"))
+  def getPacketDecoder(opcode : ControlPacketOpcode.Type) : (BitVector) => Attempt[DecodeResult[PlanetSideControlPacket]] = {
+    import net.psforever
+
+    opcode match {
+      case HandleGamePacket => psforever.packet.HandleGamePacket.decode
+      case ServerStart => psforever.packet.ServerStart.decode
+      case ClientStart => psforever.packet.ClientStart.decode
+      case MultiPacket => psforever.packet.MultiPacket.decode
+      case SlottedMetaPacket0 => psforever.packet.SlottedMetaPacket.decode
+      case ConnectionClose => psforever.packet.ConnectionClose.decode
+      case default => (a : BitVector) => Attempt.failure(Err(s"Could not find a marshaller for control packet ${opcode}"))
+    }
   }
 
   implicit val codec: Codec[this.Value] = PacketHelpers.createEnumerationCodec(this, uint8L)

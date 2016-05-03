@@ -4,7 +4,7 @@ import ch.qos.logback.classic.LoggerContext
 import ch.qos.logback.core.status._
 import ch.qos.logback.core.util.StatusPrinter
 import com.typesafe.config.ConfigFactory
-import psforever.crypto.CryptoInterface
+import net.psforever.crypto.CryptoInterface
 import org.slf4j
 import org.fusesource.jansi.Ansi._
 import org.fusesource.jansi.Ansi.Color._

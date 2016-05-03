@@ -1,5 +1,5 @@
 // Copyright (c) 2016 PSForever.net to present
-package psforever
+package net.psforever
 
 class ObjectFinalizedException(msg : String) extends Exception(msg)
 

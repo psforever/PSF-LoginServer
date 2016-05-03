@@ -1,5 +1,5 @@
 // Copyright (c) 2016 PSForever.net to present
-package psforever.net
+package net.psforever.packet
 
 import scodec.{Err, DecodeResult, Attempt, Codec}
 import scodec.bits.BitVector
@@ -31,11 +31,15 @@ object GamePacketOpcode extends Enumeration {
   DismountVehicleMsg
   = Value
 
-  def getPacketDecoder(opcode : GamePacketOpcode.Type) : (BitVector) => Attempt[DecodeResult[PlanetSideGamePacket]] = opcode match {
-    case LoginMessage => psforever.net.LoginMessage.decode
-    case LoginRespMessage => psforever.net.LoginRespMessage.decode
-    case VNLWorldStatusMessage => psforever.net.VNLWorldStatusMessage.decode
-    case default => (a : BitVector) => Attempt.failure(Err(s"Could not find a marshaller for game packet ${opcode}"))
+  def getPacketDecoder(opcode : GamePacketOpcode.Type) : (BitVector) => Attempt[DecodeResult[PlanetSideGamePacket]] = {
+    import net.psforever
+
+    opcode match {
+      case LoginMessage => psforever.packet.LoginMessage.decode
+      case LoginRespMessage => psforever.packet.LoginRespMessage.decode
+      case VNLWorldStatusMessage => psforever.packet.VNLWorldStatusMessage.decode
+      case default => (a : BitVector) => Attempt.failure(Err(s"Could not find a marshaller for game packet ${opcode}"))
+    }
   }
 
   implicit val codec: Codec[this.Value] = PacketHelpers.createEnumerationCodec(this, uint8L)

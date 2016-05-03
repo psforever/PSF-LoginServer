@@ -1,5 +1,5 @@
 lazy val commonSettings = Seq(
-  organization := "net.psforever",
+  organization := "net.net.psforever",
   version := "1.0",
   scalaVersion := "2.11.7",
   scalacOptions := Seq("-unchecked", "-deprecation", "-encoding", "utf8"),

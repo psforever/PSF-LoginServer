@@ -1,8 +1,8 @@
 // Copyright (c) 2016 PSForever.net to present
-package psforever.net
+package net.psforever.packet
 
-import psforever.crypto.CryptoInterface
-import psforever.crypto.CryptoInterface._
+import net.psforever.crypto.CryptoInterface
+import net.psforever.crypto.CryptoInterface._
 import scodec.Attempt.{Successful, Failure}
 import scodec.bits._
 import scodec.{DecodeResult, Err, Attempt, Codec}
@@ -38,6 +38,7 @@ object PacketCoding {
     * decode it given an optional header and required payload. This function does all of the
     * hard work of making decisions along the way in order to decode a planetside packet to
     * completion.
+    *
     * @param msg the raw packet
     * @param cryptoState the current state of the connection's crypto. This is only used when decoding
     *                    crypto packets as they do not have opcodes
@@ -60,6 +61,7 @@ object PacketCoding {
   /**
     * Helper function to decode a packet without specifying a crypto packet state.
     * Mostly used when there is no crypto state available, such as tests.
+    *
     * @param msg packet data bytes
     * @return PlanetSidePacketContainer
     */
@@ -70,6 +72,7 @@ object PacketCoding {
   /**
     * Similar to UnmarshalPacket, but does not process any packet header and does not support
     * decoding of crypto packets. Mostly used in tests.
+    *
     * @param msg raw, unencrypted packet
     * @return PlanetSidePacket
     */

@@ -1,7 +1,7 @@
 // Copyright (c) 2016 PSForever.net to present
-package psforever.crypto
+package net.psforever.crypto
 
-import psforever.IFinalizable
+import net.psforever.IFinalizable
 import sna.Library
 import com.sun.jna.Pointer
 import scodec.bits.ByteVector
@@ -63,6 +63,7 @@ object CryptoInterface {
 
   /**
     * Checks if two MAC values are the same in constant time, preventing a timing attack for MAC forgery
+ *
     * @param mac1
     * @param mac2
     */
@@ -218,6 +219,7 @@ object CryptoInterface {
                            val encryptionMACKey : ByteVector) extends CryptoState(decryptionKey, encryptionKey) {
     /**
       * Performs a MAC operation over the message. Used when encrypting packets
+ *
       * @param message
       * @return ByteVector
       */
@@ -227,6 +229,7 @@ object CryptoInterface {
 
     /**
       * Performs a MAC operation over the message. Used when verifying decrypted packets
+ *
       * @param message
       * @return ByteVector
       */
@@ -237,6 +240,7 @@ object CryptoInterface {
     /**
       * MACs the plaintext message, encrypts it, and then returns the encrypted message with the
       * MAC appended to the end.
+ *
       * @param message Arbitrary set of bytes
       * @return ByteVector
       */

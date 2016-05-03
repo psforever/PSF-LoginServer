@@ -1,6 +1,6 @@
 // Copyright (c) 2016 PSForever.net to present
 import org.specs2.mutable._
-import psforever.net._
+import net.psforever.packet._
 import scodec.Codec
 import scodec.bits._
 

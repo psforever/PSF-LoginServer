@@ -2,9 +2,9 @@
 import java.net.{InetAddress, InetSocketAddress}
 
 import akka.actor.{Actor, ActorLogging, ActorRef, DiagnosticActorLogging, Identify, MDCContextAware}
-import psforever.crypto.CryptoInterface.{CryptoState, CryptoStateWithMAC}
-import psforever.crypto.CryptoInterface
-import psforever.net._
+import net.psforever.crypto.CryptoInterface.{CryptoState, CryptoStateWithMAC}
+import net.psforever.crypto.CryptoInterface
+import net.psforever.packet._
 import scodec.Attempt.{Failure, Successful}
 import scodec.bits._
 import scodec.{Attempt, Codec, Err}

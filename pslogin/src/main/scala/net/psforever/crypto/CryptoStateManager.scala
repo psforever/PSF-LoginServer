@@ -1,5 +1,5 @@
 // Copyright (c) 2016 PSForever.net to present
-package psforever.crypto
+package net.psforever.crypto
 
 import akka.actor.{Actor, ActorLogging, FSM}
 import akka.util.ByteString
@@ -22,7 +22,7 @@ class CryptoStateManager extends Actor with ActorLogging with FSM[CryptoState, C
 
   when(ClientStart()) {
     /*case Event(RawPacket(msg), _) => {
-      val decoded = Codec.decode[psforever.net.ClientStart](msg.bits)
+      val decoded = Codec.decode[net.psforever.net.ClientStart](msg.bits)
       try {
         val packet = decoded.require.value
         println("Got cNonce: " + packet.clientNonce)

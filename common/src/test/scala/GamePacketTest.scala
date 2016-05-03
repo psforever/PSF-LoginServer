@@ -2,7 +2,7 @@
 import java.net.{InetAddress, InetSocketAddress}
 
 import org.specs2.mutable._
-import psforever.net._
+import net.psforever.packet._
 import scodec.bits._
 
 class GamePacketTest extends Specification {

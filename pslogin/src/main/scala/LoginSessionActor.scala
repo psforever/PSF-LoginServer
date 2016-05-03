@@ -2,7 +2,7 @@
 import java.net.{InetAddress, InetSocketAddress}
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Identify, MDCContextAware}
-import psforever.net._
+import net.psforever.packet._
 import scodec.Attempt.{Failure, Successful}
 import scodec.bits._
 
