@@ -1,6 +1,7 @@
 // Copyright (c) 2016 PSForever.net to present
-package net.psforever.packet
+package net.psforever.packet.control
 
+import net.psforever.packet._
 import scodec.Codec
 
 final case class ConnectionClose()

@@ -1,10 +1,10 @@
 // Copyright (c) 2016 PSForever.net to present
-package net.psforever.packet
+package net.psforever.packet.game
 
-import scodec.bits.ByteVector
+import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
 import scodec.Codec
+import scodec.bits.ByteVector
 import scodec.codecs._
-import scodec.bits._
 
 final case class LoginRespMessage(token : String, // printable ascii for 16
                                   unknown : ByteVector, // hex"00000000 18FABE0C 00000000 00000000"

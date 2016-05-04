@@ -1,6 +1,7 @@
 // Copyright (c) 2016 PSForever.net to present
 import org.specs2.mutable._
 import net.psforever.packet._
+import net.psforever.packet.control.{ClientStart, ServerStart}
 import scodec.bits._
 
 class PacketCodingTest extends Specification {

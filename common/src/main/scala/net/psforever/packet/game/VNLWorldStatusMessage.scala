@@ -1,8 +1,9 @@
 // Copyright (c) 2016 PSForever.net to present
-package net.psforever.packet
+package net.psforever.packet.game
 
 import java.net.{InetAddress, InetSocketAddress}
 
+import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
 import scodec._
 import scodec.bits._
 import scodec.codecs._

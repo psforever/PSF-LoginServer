@@ -2,7 +2,7 @@
 package net.psforever.packet
 
 import scodec.bits.BitVector
-import scodec.{Err, DecodeResult, Attempt}
+import scodec.{Attempt, DecodeResult, Err}
 
 // this isnt actually used as an opcode (i.e not serialized)
 object CryptoPacketOpcode extends Enumeration {
@@ -14,10 +14,10 @@ object CryptoPacketOpcode extends Enumeration {
     import net.psforever
 
     opcode match {
-      case ClientChallengeXchg => psforever.packet.ClientChallengeXchg.decode
-      case ServerChallengeXchg => psforever.packet.ServerChallengeXchg.decode
-      case ServerFinished => psforever.packet.ServerFinished.decode
-      case ClientFinished => psforever.packet.ClientFinished.decode
+      case ClientChallengeXchg => crypto.ClientChallengeXchg.decode
+      case ServerChallengeXchg => crypto.ServerChallengeXchg.decode
+      case ServerFinished => crypto.ServerFinished.decode
+      case ClientFinished => crypto.ClientFinished.decode
       case default => (a : BitVector) => Attempt.failure(Err(s"Could not find a marshaller for crypto packet ${opcode}")
         .pushContext("get_marshaller"))
     }

@@ -1,8 +1,9 @@
 // Copyright (c) 2016 PSForever.net to present
 package net.psforever.packet
 
+import net.psforever.packet.control.SlottedMetaPacket
 import scodec.bits.BitVector
-import scodec.{Err, DecodeResult, Attempt, Codec}
+import scodec.{Attempt, Codec, DecodeResult, Err}
 import scodec.codecs._
 
 object ControlPacketOpcode extends Enumeration {
@@ -54,12 +55,12 @@ object ControlPacketOpcode extends Enumeration {
     import net.psforever
 
     opcode match {
-      case HandleGamePacket => psforever.packet.HandleGamePacket.decode
-      case ServerStart => psforever.packet.ServerStart.decode
-      case ClientStart => psforever.packet.ClientStart.decode
-      case MultiPacket => psforever.packet.MultiPacket.decode
-      case SlottedMetaPacket0 => psforever.packet.SlottedMetaPacket.decode
-      case ConnectionClose => psforever.packet.ConnectionClose.decode
+      case HandleGamePacket => control.HandleGamePacket.decode
+      case ServerStart => control.ServerStart.decode
+      case ClientStart => control.ClientStart.decode
+      case MultiPacket => control.MultiPacket.decode
+      case SlottedMetaPacket0 => SlottedMetaPacket.decode
+      case ConnectionClose => control.ConnectionClose.decode
       case default => (a : BitVector) => Attempt.failure(Err(s"Could not find a marshaller for control packet ${opcode}"))
     }
   }

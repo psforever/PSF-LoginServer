@@ -1,7 +1,7 @@
 // Copyright (c) 2016 PSForever.net to present
 package net.psforever.packet
 
-import scodec.{Err, DecodeResult, Attempt, Codec}
+import scodec.{Attempt, Codec, DecodeResult, Err}
 import scodec.bits.BitVector
 import scodec.codecs._
 
@@ -35,9 +35,9 @@ object GamePacketOpcode extends Enumeration {
     import net.psforever
 
     opcode match {
-      case LoginMessage => psforever.packet.LoginMessage.decode
-      case LoginRespMessage => psforever.packet.LoginRespMessage.decode
-      case VNLWorldStatusMessage => psforever.packet.VNLWorldStatusMessage.decode
+      case LoginMessage => game.LoginMessage.decode
+      case LoginRespMessage => game.LoginRespMessage.decode
+      case VNLWorldStatusMessage => game.VNLWorldStatusMessage.decode
       case default => (a : BitVector) => Attempt.failure(Err(s"Could not find a marshaller for game packet ${opcode}"))
     }
   }

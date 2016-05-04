@@ -1,9 +1,9 @@
 // Copyright (c) 2016 PSForever.net to present
-package net.psforever.packet
+package net.psforever.packet.game
 
+import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
 import scodec.Codec
 import scodec.codecs._
-import scodec.bits._
 import shapeless._
 
 final case class LoginMessage(majorVersion : Long,

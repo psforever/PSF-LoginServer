@@ -1,8 +1,9 @@
 // Copyright (c) 2016 PSForever.net to present
-package net.psforever.packet
+package net.psforever.packet.control
 
-import scodec.bits.ByteVector
+import net.psforever.packet.{ControlPacketOpcode, Marshallable, PlanetSideControlPacket}
 import scodec.Codec
+import scodec.bits.ByteVector
 import scodec.codecs._
 
 final case class SlottedMetaPacket(/*slot : Int,*/ packet : ByteVector)

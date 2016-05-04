@@ -1,9 +1,10 @@
 // Copyright (c) 2016 PSForever.net to present
-package net.psforever.packet
+package net.psforever.packet.control
 
+import net.psforever.packet.{ControlPacketOpcode, Marshallable, PlanetSideControlPacket}
 import scodec.Codec
-import scodec.codecs._
 import scodec.bits._
+import scodec.codecs._
 
 final case class ClientStart(clientNonce : Long)
   extends PlanetSideControlPacket {

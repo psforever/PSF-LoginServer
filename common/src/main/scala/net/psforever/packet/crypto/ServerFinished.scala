@@ -1,10 +1,10 @@
 // Copyright (c) 2016 PSForever.net to present
-package net.psforever.packet
+package net.psforever.packet.crypto
 
-import scodec.bits.ByteVector
+import net.psforever.packet.{CryptoPacketOpcode, Marshallable, PlanetSideCryptoPacket}
 import scodec.Codec
+import scodec.bits.{ByteVector, _}
 import scodec.codecs._
-import scodec.bits._
 
 final case class ServerFinished(challengeResult : ByteVector)
   extends PlanetSideCryptoPacket {

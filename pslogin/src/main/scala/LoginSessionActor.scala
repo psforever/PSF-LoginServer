@@ -3,6 +3,8 @@ import java.net.{InetAddress, InetSocketAddress}
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Identify, MDCContextAware}
 import net.psforever.packet._
+import net.psforever.packet.control.{ConnectionClose, SlottedMetaPacket}
+import net.psforever.packet.game._
 import scodec.Attempt.{Failure, Successful}
 import scodec.bits._
 
@@ -61,7 +63,7 @@ class LoginSessionActor extends Actor with MDCContextAware {
   }
 
   def handleGamePkt(pkt : PlanetSideGamePacket) = {
-
+    log.debug(s"Unhandled GamePacket ${pkt}")
   }
 
   def failWithError(error : String) = {

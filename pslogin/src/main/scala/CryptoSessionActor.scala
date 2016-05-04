@@ -11,6 +11,9 @@ import scodec.{Attempt, Codec, Err}
 import scodec.codecs.{bytes, uint16L, uint8L}
 import java.security.SecureRandom
 
+import net.psforever.packet.control.{ClientStart, ServerStart}
+import net.psforever.packet.crypto._
+
 /**
   * Actor that stores crypto state for a connection and filters away any packet metadata.
   */
