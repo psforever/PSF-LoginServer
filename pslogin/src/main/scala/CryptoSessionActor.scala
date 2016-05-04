@@ -260,18 +260,23 @@ class CryptoSessionActor extends Actor with MDCContextAware {
       val packet = PacketCoding.encryptPacket(cryptoState.get, cont).require
       sendResponse(packet)
     } else {
-      log.error("Invalid sender")
+      log.error(s"Invalid sender when handling a message in Established ${from}")
     }
   }
 
   def sendResponse(cont : PlanetSidePacketContainer) : ByteVector = {
     //println("CRYPTO SEND: " + cont)
-    val pkt = PacketCoding.MarshalPacket(cont).require
-    val bytes = pkt.toByteVector
+    val pkt = PacketCoding.MarshalPacket(cont)
 
-    leftRef ! ResponsePacket(bytes)
-
-    bytes
+    pkt match {
+      case Failure(e) =>
+        log.error(s"Failed to marshal packet ${cont.getClass.getName} when sending response")
+        ByteVector.empty
+      case Successful(v) =>
+        val bytes = v.toByteVector
+        leftRef ! ResponsePacket(bytes)
+        bytes
+    }
   }
 
   def getRandBytes(amount : Int) : ByteVector = {

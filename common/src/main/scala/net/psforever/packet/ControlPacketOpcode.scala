@@ -51,19 +51,23 @@ object ControlPacketOpcode extends Enumeration {
   Unknown30
   = Value
 
-  def getPacketDecoder(opcode : ControlPacketOpcode.Type) : (BitVector) => Attempt[DecodeResult[PlanetSideControlPacket]] = {
-    import net.psforever
-
-    opcode match {
+  def getPacketDecoder(opcode : ControlPacketOpcode.Type) : (BitVector) => Attempt[DecodeResult[PlanetSideControlPacket]] = opcode match {
       case HandleGamePacket => control.HandleGamePacket.decode
       case ServerStart => control.ServerStart.decode
       case ClientStart => control.ClientStart.decode
       case MultiPacket => control.MultiPacket.decode
-      case SlottedMetaPacket0 => SlottedMetaPacket.decode
+        // IT'S GETTING "WET" IN HERE
+      case SlottedMetaPacket0 => SlottedMetaPacket.decodeWithOpcode(SlottedMetaPacket0)
+      case SlottedMetaPacket1 => SlottedMetaPacket.decodeWithOpcode(SlottedMetaPacket1)
+      case SlottedMetaPacket2 => SlottedMetaPacket.decodeWithOpcode(SlottedMetaPacket2)
+      case SlottedMetaPacket3 => SlottedMetaPacket.decodeWithOpcode(SlottedMetaPacket3)
+      case SlottedMetaPacket4 => SlottedMetaPacket.decodeWithOpcode(SlottedMetaPacket4)
+      case SlottedMetaPacket5 => SlottedMetaPacket.decodeWithOpcode(SlottedMetaPacket5)
+      case SlottedMetaPacket6 => SlottedMetaPacket.decodeWithOpcode(SlottedMetaPacket6)
+      case SlottedMetaPacket7 => SlottedMetaPacket.decodeWithOpcode(SlottedMetaPacket7)
       case ConnectionClose => control.ConnectionClose.decode
       case default => (a : BitVector) => Attempt.failure(Err(s"Could not find a marshaller for control packet ${opcode}"))
     }
-  }
 
   implicit val codec: Codec[this.Value] = PacketHelpers.createEnumerationCodec(this, uint8L)
 }

@@ -31,16 +31,12 @@ object GamePacketOpcode extends Enumeration {
   DismountVehicleMsg
   = Value
 
-  def getPacketDecoder(opcode : GamePacketOpcode.Type) : (BitVector) => Attempt[DecodeResult[PlanetSideGamePacket]] = {
-    import net.psforever
-
-    opcode match {
+  def getPacketDecoder(opcode : GamePacketOpcode.Type) : (BitVector) => Attempt[DecodeResult[PlanetSideGamePacket]] = opcode match {
       case LoginMessage => game.LoginMessage.decode
       case LoginRespMessage => game.LoginRespMessage.decode
       case VNLWorldStatusMessage => game.VNLWorldStatusMessage.decode
       case default => (a : BitVector) => Attempt.failure(Err(s"Could not find a marshaller for game packet ${opcode}"))
     }
-  }
 
   implicit val codec: Codec[this.Value] = PacketHelpers.createEnumerationCodec(this, uint8L)
 }

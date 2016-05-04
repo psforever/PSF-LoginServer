@@ -1,9 +1,9 @@
 // Copyright (c) 2016 PSForever.net to present
 import java.net.{InetAddress, InetSocketAddress}
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Identify, MDCContextAware}
+import akka.actor.{Actor, ActorRef, MDCContextAware}
 import net.psforever.packet._
-import net.psforever.packet.control.{ConnectionClose, SlottedMetaPacket}
+import net.psforever.packet.control._
 import net.psforever.packet.game._
 import scodec.Attempt.{Failure, Successful}
 import scodec.bits._
@@ -28,16 +28,24 @@ class LoginSessionActor extends Actor with MDCContextAware {
   }
 
   def Started : Receive = {
-    case ctrl @ ControlPacket(opcode, pkt) =>
-        handleControlPkt(pkt)
-    case game @ GamePacket(opcode, seq, pkt) =>
-        handleGamePkt(pkt)
-    case default => failWithError(s"Invalid message received $default")
+    case ctrl @ ControlPacket(_, _) =>
+      handlePkt(ctrl)
+    case game @ GamePacket(_, _, _) =>
+      handlePkt(game)
+    case default => failWithError(s"Invalid packet class received: $default")
+  }
+
+  def handlePkt(pkt : PlanetSidePacketContainer) : Unit = pkt match {
+    case ctrl @ ControlPacket(opcode, ctrlPkt) =>
+      handleControlPkt(ctrlPkt)
+    case game @ GamePacket(opcode, seq, gamePkt) =>
+      handleGamePkt(gamePkt)
+    case default => failWithError(s"Invalid packet class received: $default")
   }
 
   def handleControlPkt(pkt : PlanetSideControlPacket) = {
     pkt match {
-      case SlottedMetaPacket(innerPacket) =>
+      case meta @ SlottedMetaPacket(slot, subslot, innerPacket) =>
         PacketCoding.DecodePacket(innerPacket) match {
           case Successful(p) =>
             log.trace("RECV[INNER]: " + p)
@@ -59,6 +67,17 @@ class LoginSessionActor extends Actor with MDCContextAware {
             sendResponse(PacketCoding.CreateGamePacket(0, msg))
           case Failure(e) => log.error("Failed to decode inner packet " + e)
         }
+      case MultiPacket(packets) =>
+        packets.foreach { pkt =>
+          PacketCoding.UnmarshalPacket(pkt) match {
+            case Failure(e) =>
+              log.error(s"Failed to decode inner packet of MultiPacket: $e")
+            case Successful(v) =>
+              handlePkt(v) // dont send a message to ourselves as then packets will be processed in the wrong order
+          }
+        }
+      case default =>
+        log.debug(s"Unhandled ControlPacket $default")
     }
   }
 
@@ -68,7 +87,7 @@ class LoginSessionActor extends Actor with MDCContextAware {
 
   def failWithError(error : String) = {
     log.error(error)
-    sendResponse(PacketCoding.CreateControlPacket(ConnectionClose()))
+    //sendResponse(PacketCoding.CreateControlPacket(ConnectionClose()))
   }
 
   def sendResponse(cont : PlanetSidePacketContainer) = {
