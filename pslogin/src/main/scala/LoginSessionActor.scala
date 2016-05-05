@@ -106,51 +106,18 @@ class LoginSessionActor extends Actor with MDCContextAware {
       case default => log.debug(s"Unhandled GamePacket ${pkt}")
   }
 
-  val scrollerWindow = 20
-  val scrollerText = "PSForever_The_next_generation_of_PlanetSide_Hey_what_a_neat_scroller!"
-  var scrollerOffset = 0
+  val serverName = "PSForever"
 
   def updateServerList = {
-    val start = scrollerOffset % scrollerText.length
-    var end = (scrollerOffset+scrollerWindow) % scrollerText.length
-
-    var finalName = ""
-    if(end < start)
-      finalName = scrollerText.substring(start, scrollerText.length) + ";" + scrollerText.substring(0, end)
-    else
-      finalName = scrollerText.substring(start, end)
-
-    scrollerOffset += 1
-
-    //println(finalName)
     val msg = VNLWorldStatusMessage("Welcome to PlanetSide! ",
       Vector(
-        WorldInformation(finalName, WorldStatus.Up, ServerType.Development,
+        WorldInformation(serverName, WorldStatus.Up, ServerType.Development,
           Vector(WorldConnectionInfo(new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 51000))), EmpireNeed.TR)
       ))
 
     sendResponse(PacketCoding.CreateGamePacket(0, msg))
   }
 
-    /*
-
-
-            val packet = LoginRespMessage("AAAABBBBCCCCDDDD",
-                hex"00000000 18FABE0C 00000000 00000000",
-                0, 1, 2, 685276011,
-                "AAAAAAAA", 0, false
-              )
-
-            sendResponse(PacketCoding.CreateGamePacket(0, packet))
-
-            val msg = VNLWorldStatusMessage("Welcome to PlanetSide! ",
-              Vector(
-                WorldInformation("PSForever", WorldStatus.Up, ServerType.Development,
-                  Vector(WorldConnectionInfo(new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 51000))), EmpireNeed.TR)
-              ))
-
-            sendResponse(PacketCoding.CreateGamePacket(0, msg))
-     */
   def failWithError(error : String) = {
     log.error(error)
     //sendResponse(PacketCoding.CreateControlPacket(ConnectionClose()))

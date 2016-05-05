@@ -1,4 +1,6 @@
 // Copyright (c) 2016 PSForever.net to present
+import java.net.InetAddress
+
 import akka.actor.{ActorSystem, Props}
 import ch.qos.logback.classic.LoggerContext
 import ch.qos.logback.core.status._
@@ -63,6 +65,6 @@ object PsLogin {
     //val system = ActorSystem("PsLogin", Some(ConfigFactory.parseMap(config)), None, Some(MDCPropagatingExecutionContextWrapper(ExecutionContext.Implicits.global)))
     val system = ActorSystem("PsLogin", ConfigFactory.parseMap(config))
     val session = system.actorOf(Props[SessionRouter], "session-router")
-    val listener = system.actorOf(Props(new UdpListener(session)), "udp-listener")
+    val listener = system.actorOf(Props(new UdpListener(session, InetAddress.getLocalHost, 51000)), "login-udp-endpoint")
   }
 }
