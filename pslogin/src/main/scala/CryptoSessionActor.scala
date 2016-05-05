@@ -255,7 +255,8 @@ class CryptoSessionActor extends Actor with MDCContextAware {
   def handleEstablishedPacket(from : ActorRef, cont : PlanetSidePacketContainer) = {
     // we are processing a packet we decrypted
     if(from == self) {
-      rightRef ! cont
+      import MDCContextAware.Implicits._
+      rightRef !> cont
     } else if(from == rightRef) { // processing a completed packet from the right. encrypt
       val packet = PacketCoding.encryptPacket(cryptoState.get, cont).require
       sendResponse(packet)
