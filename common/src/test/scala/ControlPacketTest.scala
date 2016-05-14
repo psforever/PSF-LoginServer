@@ -10,7 +10,58 @@ import scodec.codecs.uint16
 class ControlPacketTest extends Specification {
 
   "PlanetSide control packet" in {
-    val cNonce = 656287232
+    "ControlSync" should {
+      val string = hex"0007 5268 0000004D 00000052 0000004D 0000007C 0000004D 0000000000000276 0000000000000275"
+
+      "decode" in {
+        PacketCoding.DecodePacket(string).require match {
+          case ControlSync(a, b, c, d, e, f, g, h) =>
+            a mustEqual 21096
+
+            b mustEqual 0x4d
+            c mustEqual 0x52
+            d mustEqual 0x4d
+            e mustEqual 0x7c
+            f mustEqual 0x4d
+
+            g mustEqual 0x276
+            h mustEqual 0x275
+          case default =>
+            true mustEqual false
+        }
+      }
+
+      "encode" in {
+        val encoded = PacketCoding.EncodePacket(ControlSync(21096, 0x4d, 0x52, 0x4d, 0x7c, 0x4d, 0x276, 0x275)).require
+
+        encoded.toByteVector mustEqual string
+      }
+    }
+
+    "ControlSyncResp" should {
+      val string = hex"0008 5268 21392D92 0000000000000276 0000000000000275 0000000000000275 0000000000000276"
+
+      "decode" in {
+        PacketCoding.DecodePacket(string).require match {
+          case ControlSyncResp(a, b, c, d, e, f) =>
+            a mustEqual 21096
+
+            b mustEqual 0x21392D92
+            c mustEqual 0x276
+            d mustEqual 0x275
+            e mustEqual 0x275
+            f mustEqual 0x276
+          case default =>
+            true mustEqual false
+        }
+      }
+
+      "encode" in {
+        val encoded = PacketCoding.EncodePacket(ControlSyncResp(21096, 0x21392D92, 0x276, 0x275, 0x275, 0x276)).require
+
+        encoded.toByteVector mustEqual string
+      }
+    }
 
     "SlottedMetaPacket" should {
       val string = hex"00 09 00 00 00194302484C36563130433F" ++
