@@ -9,11 +9,33 @@ import scodec.bits._
 class GamePacketTest extends Specification {
 
   "PlanetSide game packet" in {
-    val cNonce = 656287232
+
+    "ConnectToWorldMessage" should {
+      val string = hex"04 8667656D696E69  8C36342E33372E3135382E36393C75"
+
+      "decode" in {
+        PacketCoding.DecodePacket(string).require match {
+          case ConnectToWorldMessage(serverName, serverIp, serverPort) =>
+            serverName mustEqual "gemini"
+            serverIp mustEqual "64.37.158.69"
+            serverPort mustEqual 30012
+          case default =>
+            true mustEqual false
+        }
+      }
+
+      "encode" in {
+        val msg = ConnectToWorldMessage("gemini", "64.37.158.69", 30012)
+        val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+        pkt mustEqual string
+      }
+    }
 
     "VNLWorldStatusMessage" should {
+      // NOTE: the ServerType is encoded as 0x03 here, but the real planetside server will encode it as 0x04
       val string = hex"0597570065006c0063006f006d006500200074006f00200050006c0061006e00650074005300690064006500210020000186" ++
-              hex"67656d696e69" ++ hex"0100 01 00 01459e2540 3775" ++ bin"01".toByteVector
+              hex"67656d696e69" ++ hex"0100 03 00 01459e2540 3775" ++ bin"01".toByteVector
 
       "decode" in {
         PacketCoding.DecodePacket(string).require match {
@@ -25,6 +47,7 @@ class GamePacketTest extends Specification {
             world.name mustEqual "gemini"
             world.empireNeed mustEqual EmpireNeed.NC
             world.status mustEqual WorldStatus.Up
+            world.serverType mustEqual ServerType.Released
 
             world.connections.length mustEqual 1
             world.connections{0}.address.getPort mustEqual 30007
@@ -37,7 +60,7 @@ class GamePacketTest extends Specification {
       "encode" in {
         val msg = VNLWorldStatusMessage("Welcome to PlanetSide! ",
           Vector(
-            WorldInformation("gemini", WorldStatus.Up, ServerType.Beta,
+            WorldInformation("gemini", WorldStatus.Up, ServerType.Released,
               Vector(
                 WorldConnectionInfo(new InetSocketAddress(InetAddress.getByName("64.37.158.69"), 30007))
               ), EmpireNeed.NC

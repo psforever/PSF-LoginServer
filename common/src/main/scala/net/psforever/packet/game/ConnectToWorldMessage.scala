@@ -1,11 +1,11 @@
 // Copyright (c) 2016 PSForever.net to present
 package net.psforever.packet.game
 
-import net.psforever.packet.{GamePacketOpcode, Marshallable, PlanetSideGamePacket}
+import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
 import scodec.Codec
 import scodec.codecs._
 
-final case class ConnectToWorldMessage(world : String)
+final case class ConnectToWorldMessage(server : String, serverIp : String, port : Int)
   extends PlanetSideGamePacket {
   type Packet = ConnectToWorldMessage
   def opcode = GamePacketOpcode.ConnectToWorldMessage
@@ -13,5 +13,9 @@ final case class ConnectToWorldMessage(world : String)
 }
 
 object ConnectToWorldMessage extends Marshallable[ConnectToWorldMessage] {
-  implicit val codec : Codec[ConnectToWorldMessage] = ascii.as[ConnectToWorldMessage]
+  implicit val codec : Codec[ConnectToWorldMessage] = (
+      ("server_name" | PacketHelpers.encodedString) ::
+      ("server_ip" | PacketHelpers.encodedString) ::
+      ("server_port" | uint16L)
+    ).as[ConnectToWorldMessage]
 }
