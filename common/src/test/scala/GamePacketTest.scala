@@ -10,6 +10,31 @@ class GamePacketTest extends Specification {
 
   "PlanetSide game packet" in {
 
+    "ConnectToWorldRequestMessage" should {
+      val string = hex"03 8667656D696E69 0000000000000000 00000000 00000000 00000000 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  80 00 00 "
+
+      "decode" in {
+        PacketCoding.DecodePacket(string).require match {
+          case ConnectToWorldRequestMessage(serverName, majorVersion, minorVersion, revision, buildDate, unk) =>
+            serverName mustEqual "gemini"
+            majorVersion mustEqual 0
+            minorVersion mustEqual 0
+            revision mustEqual 0
+            buildDate mustEqual ""
+            unk mustEqual 0
+          case default =>
+            true mustEqual false
+        }
+      }
+
+      "encode" in {
+        val msg = ConnectToWorldRequestMessage("gemini", 0, 0, 0, "", 0)
+        val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+        pkt mustEqual string
+      }
+    }
+
     "ConnectToWorldMessage" should {
       val string = hex"04 8667656D696E69  8C36342E33372E3135382E36393C75"
 

@@ -32,7 +32,7 @@ object GamePacketOpcode extends Enumeration {
   = Value
 
   def getPacketDecoder(opcode : GamePacketOpcode.Type) : (BitVector) => Attempt[DecodeResult[PlanetSideGamePacket]] = opcode match {
-      //case ConnectToWorldRequestMessage => game.ConnectToWorldRequestMessage.decode
+      case ConnectToWorldRequestMessage => game.ConnectToWorldRequestMessage.decode
       case ConnectToWorldMessage => game.ConnectToWorldMessage.decode
       case LoginMessage => game.LoginMessage.decode
       case LoginRespMessage => game.LoginRespMessage.decode
