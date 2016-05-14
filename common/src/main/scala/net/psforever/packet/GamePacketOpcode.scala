@@ -14,7 +14,7 @@ object GamePacketOpcode extends Enumeration {
   Unknown0,
   LoginMessage,
   LoginRespMessage,
-  Unknown3,
+  ConnectToWorldRequestMessage, // found by searching for 83 F8 03 89 in IDA
   ConnectToWorldMessage,
   VNLWorldStatusMessage,
   UnknownMessage6,
