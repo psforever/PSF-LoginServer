@@ -14,7 +14,8 @@ object WorldStatus extends Enumeration {
   val Up, Down, Locked, Full = Value
 }
 
-object ServerType extends Enumeration {
+// this enumeration starts from one and is subtracted from before processing (0x005FF12A)
+object ServerType extends Enumeration(1) {
   type Type = Value
   val Development, Beta, Released = Value
 
