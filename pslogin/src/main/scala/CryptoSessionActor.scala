@@ -15,7 +15,8 @@ import net.psforever.packet.control.{ClientStart, ServerStart}
 import net.psforever.packet.crypto._
 
 /**
-  * Actor that stores crypto state for a connection and filters away any packet metadata.
+  * Actor that stores crypto state for a connection, appropriately encrypts and decrypts packets,
+  * and passes packets along to the next hop once processed.
   */
 class CryptoSessionActor extends Actor with MDCContextAware {
   private[this] val log = org.log4s.getLogger
@@ -23,7 +24,7 @@ class CryptoSessionActor extends Actor with MDCContextAware {
   var leftRef : ActorRef = ActorRef.noSender
   var rightRef : ActorRef = ActorRef.noSender
 
-  var cryptoDHState = new CryptoInterface.CryptoDHState()
+  var cryptoDHState : Option[CryptoInterface.CryptoDHState] = None
   var cryptoState : Option[CryptoInterface.CryptoStateWithMAC] = None
   val random = new SecureRandom()
 
@@ -35,6 +36,11 @@ class CryptoSessionActor extends Actor with MDCContextAware {
   var clientPublicKey = ByteVector.empty
   var clientChallenge = ByteVector.empty
   var clientChallengeResult = ByteVector.empty
+
+  // Don't leak crypto object memory even on an exception
+  override def postStop() = {
+    cleanupCrypto()
+  }
 
   def receive = Initializing
 
@@ -83,8 +89,13 @@ class CryptoSessionActor extends Actor with MDCContextAware {
 
           p match {
             case CryptoPacket(seq, ClientChallengeXchg(time, challenge, p, g)) =>
+
+              cryptoDHState = Some(new CryptoInterface.CryptoDHState())
+
+              val dh = cryptoDHState.get
+
               // initialize our crypto state from the client's P and G
-              cryptoDHState.start(p, g)
+              dh.start(p, g)
 
               // save the client challenge
               clientChallenge = ServerChallengeXchg.getCompleteChallenge(time, challenge)
@@ -99,7 +110,7 @@ class CryptoSessionActor extends Actor with MDCContextAware {
               serverChallenge = ServerChallengeXchg.getCompleteChallenge(serverTime, randomChallenge)
 
               val packet = PacketCoding.CreateCryptoPacket(seq,
-                ServerChallengeXchg(serverTime, randomChallenge, cryptoDHState.getPublicKey))
+                ServerChallengeXchg(serverTime, randomChallenge, dh.getPublicKey))
 
               val sentPacket = sendResponse(packet)
 
@@ -128,7 +139,11 @@ class CryptoSessionActor extends Actor with MDCContextAware {
               // save the packet we got for a MAC check later
               serverMACBuffer ++= msg.drop(3)
 
-              val agreedValue = cryptoDHState.agree(clientPublicKey)
+              val dh = cryptoDHState.get
+              val agreedValue = dh.agree(clientPublicKey)
+
+              // we are now done with the DH crypto object
+              dh.close
 
               /*println("Agreed: " + agreedValue)
               println(s"Client challenge: $clientChallenge")*/
@@ -232,17 +247,23 @@ class CryptoSessionActor extends Actor with MDCContextAware {
     log.error(error)
   }
 
-  def resetState() : Unit = {
-    context.become(receive)
-
-    // reset the crypto primitives
-    cryptoDHState.close
-    cryptoDHState = new CryptoInterface.CryptoDHState()
+  def cleanupCrypto() = {
+    if(cryptoDHState.isDefined) {
+      cryptoDHState.get.close
+      cryptoDHState = None
+    }
 
     if(cryptoState.isDefined) {
       cryptoState.get.close
       cryptoState = None
     }
+  }
+
+  def resetState() : Unit = {
+    context.become(receive)
+
+    // reset the crypto primitives
+    cleanupCrypto()
 
     serverChallenge = ByteVector.empty
     serverChallengeResult = ByteVector.empty

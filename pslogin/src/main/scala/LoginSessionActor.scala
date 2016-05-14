@@ -98,11 +98,7 @@ class LoginSessionActor extends Actor with MDCContextAware {
           0, 1, 2, 685276011, username, 0, false)
 
         sendResponse(PacketCoding.CreateGamePacket(0, response))
-
-        import scala.concurrent.duration._
-        import scala.concurrent.ExecutionContext.Implicits.global
-        context.system.scheduler.schedule(0 seconds, 250 milliseconds, self, UpdateServerList())
-
+        updateServerList
       case default => log.debug(s"Unhandled GamePacket ${pkt}")
   }
 

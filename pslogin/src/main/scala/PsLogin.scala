@@ -64,7 +64,7 @@ object PsLogin {
 
     //val system = ActorSystem("PsLogin", Some(ConfigFactory.parseMap(config)), None, Some(MDCPropagatingExecutionContextWrapper(ExecutionContext.Implicits.global)))
     val system = ActorSystem("PsLogin", ConfigFactory.parseMap(config))
-    val session = system.actorOf(Props[SessionRouter], "session-router")
-    val listener = system.actorOf(Props(new UdpListener(session, InetAddress.getLocalHost, 51000)), "login-udp-endpoint")
+    val listener = system.actorOf(Props(new UdpListener(Props[SessionRouter], "session-router",
+      InetAddress.getLocalHost, 51000)), "login-udp-endpoint")
   }
 }

@@ -8,6 +8,7 @@ import scodec.bits._
 import scala.collection.mutable
 import MDCContextAware.Implicits._
 import akka.actor.MDCContextAware.MdcMsg
+import akka.actor.SupervisorStrategy.Stop
 
 final case class RawPacket(data : ByteVector)
 final case class ResponsePacket(data : ByteVector)
@@ -26,6 +27,12 @@ class SessionRouter extends Actor with MDCContextAware {
 
   var sessionId = 0L // this is a connection session, not an actual logged in session ID
   var inputRef : ActorRef = ActorRef.noSender
+
+  override def supervisorStrategy = OneForOneStrategy() { case _ => Stop }
+
+  override def preStart = {
+    log.info("SessionRouter started...ready for PlanetSide sessions")
+  }
 
   /*
     Login sessions are divided between two actors. the crypto session actor transparently handles all of the cryptographic
@@ -47,9 +54,12 @@ class SessionRouter extends Actor with MDCContextAware {
   def initializing : Receive = {
     case Hello() =>
       inputRef = sender()
+
+      inputRef ! SendPacket(hex"41414141", new InetSocketAddress("8.8.8.8", 51000))
+
       context.become(started)
-    case _ =>
-      log.error("Unknown message")
+    case default =>
+      log.error(s"Unknown message $default. Stopping...")
       context.stop(self)
   }
 
@@ -67,7 +77,8 @@ class SessionRouter extends Actor with MDCContextAware {
         idBySocket{from} = session.id
 
         sessionById{session.id} = session
-        sessionByActor{session.pipeline.head} = session
+        sessionByActor{session.startOfPipe} = session
+        sessionByActor{session.nextOfStart} = session
 
         MDC("sessionId") = session.id.toString
 
@@ -80,23 +91,54 @@ class SessionRouter extends Actor with MDCContextAware {
         MDC.clear()
       }
     case ResponsePacket(msg) =>
-      val session = sessionByActor{sender()}
+      val session = sessionByActor.get(sender())
 
-      log.trace(s"Sending response ${msg}")
+      // drop any old queued messages from old actors
+      //if(session.isDefined) {
+        log.trace(s"Sending response ${msg}")
 
-      inputRef ! SendPacket(msg, session.address)
-    case _ => log.error("Unknown message")
+        inputRef ! SendPacket(msg, session.get.address)
+      //}
+    case Terminated(actor) =>
+      val terminatedSession = sessionByActor.get(actor)
+
+      if(terminatedSession.isDefined) {
+        removeSessionById(terminatedSession.get.id, s"${actor.path.name} died")
+      }
+    case default =>
+      log.error(s"Unknown message $default")
   }
 
   def createNewSession(address : InetSocketAddress) = {
     val id = newSessionId
 
     val cryptoSession = context.actorOf(Props[CryptoSessionActor],
-      "crypto-session" + id.toString)
+      "crypto-session-" + id.toString)
     val loginSession = context.actorOf(Props[LoginSessionActor],
-      "login-session" + id.toString)
+      "login-session-" + id.toString)
+
+    context.watch(cryptoSession)
+    context.watch(loginSession)
 
     SessionState(id, address, List(cryptoSession, loginSession))
+  }
+
+  def removeSessionById(id : Long, reason : String) : Unit = {
+    val sessionOption = sessionById.get(id)
+
+    if(!sessionOption.isDefined)
+      return
+
+    val session = sessionOption.get
+
+    // TODO: add some sort of delay to prevent old session packets from coming through
+    // kill all session specific actors
+    session.pipeline.foreach(_ ! PoisonPill)
+    session.pipeline.foreach(sessionByActor remove _)
+    sessionById.remove(id)
+    idBySocket.remove(session.address)
+
+    log.info(s"Stopping session ${id} (reason: $reason)")
   }
 
   def newSessionId = {
