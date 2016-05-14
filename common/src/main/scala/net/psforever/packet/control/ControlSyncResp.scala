@@ -5,7 +5,7 @@ import net.psforever.packet.{ControlPacketOpcode, Marshallable, PlanetSideContro
 import scodec.Codec
 import scodec.codecs._
 
-final case class ControlSyncResp(timeDiff : Int, unk : Long,
+final case class ControlSyncResp(timeDiff : Int, serverTick : Long,
                              field1 : Long, field2 : Long, field3 : Long, field4 : Long)
   extends PlanetSideControlPacket {
   type Packet = ControlSyncResp
@@ -16,7 +16,7 @@ final case class ControlSyncResp(timeDiff : Int, unk : Long,
 object ControlSyncResp extends Marshallable[ControlSyncResp] {
   implicit val codec : Codec[ControlSyncResp] = (
       ("time_diff" | uint16) ::
-      ("unk" | uint32) ::
+      ("server_tick" | uint32) ::
       ("field1" | int64) ::
       ("field2" | int64) ::
       ("field3" | int64) ::

@@ -68,6 +68,11 @@ class LoginSessionActor extends Actor with MDCContextAware {
           case Successful(v) =>
             handlePkt(v)
         }
+      case sync @ ControlSync(diff, unk, f1, f2, f3, f4, fa, fb) =>
+        log.debug(s"SYNC: ${sync}")
+        val serverTick = Math.abs(System.nanoTime().toInt) // limit the size to prevent encoding error
+        sendResponse(PacketCoding.CreateControlPacket(ControlSyncResp(diff, serverTick,
+          fa, fb, fb, fa)))
       case MultiPacket(packets) =>
         packets.foreach { pkt =>
           PacketCoding.DecodePacket(pkt) match {
