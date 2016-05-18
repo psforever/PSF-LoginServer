@@ -18,7 +18,9 @@ case class SessionState(id : Long, address : InetSocketAddress, pipeline : List[
   def nextOfStart = pipeline.tail.head
 }
 
-class SessionRouter extends Actor with MDCContextAware {
+case class SessionPipeline(nameTemplate : String, props : Props)
+
+class SessionRouter(pipeline : List[SessionPipeline]) extends Actor with MDCContextAware {
   private[this] val log = org.log4s.getLogger
 
   val idBySocket = mutable.Map[InetSocketAddress, Long]()
@@ -112,15 +114,24 @@ class SessionRouter extends Actor with MDCContextAware {
   def createNewSession(address : InetSocketAddress) = {
     val id = newSessionId
 
-    val cryptoSession = context.actorOf(Props[CryptoSessionActor],
+
+
+    // inflate the pipeline
+    val actors = pipeline.map { actor =>
+      val a = context.actorOf(actor.props, actor.nameTemplate + id.toString)
+      context.watch(a)
+      a
+    }
+
+    /*val cryptoSession = context.actorOf(Props[CryptoSessionActor],
       "crypto-session-" + id.toString)
     val loginSession = context.actorOf(Props[LoginSessionActor],
-      "login-session-" + id.toString)
+      "login-session-" + id.toString)*/
 
-    context.watch(cryptoSession)
-    context.watch(loginSession)
+    //context.watch(cryptoSession)
+    //context.watch(loginSession)
 
-    SessionState(id, address, List(cryptoSession, loginSession))
+    SessionState(id, address, actors)
   }
 
   def removeSessionById(id : Long, reason : String) : Unit = {

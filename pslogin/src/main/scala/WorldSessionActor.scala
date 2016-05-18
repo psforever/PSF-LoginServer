@@ -8,9 +8,7 @@ import net.psforever.packet.game._
 import scodec.Attempt.{Failure, Successful}
 import scodec.bits._
 
-import scala.util.Random
-
-class LoginSessionActor extends Actor with MDCContextAware {
+class WorldSessionActor extends Actor with MDCContextAware {
   private[this] val log = org.log4s.getLogger
 
   private case class UpdateServerList()
@@ -32,8 +30,6 @@ class LoginSessionActor extends Actor with MDCContextAware {
   }
 
   def Started : Receive = {
-    case UpdateServerList() =>
-      updateServerList
     case ctrl @ ControlPacket(_, _) =>
       handlePktContainer(ctrl)
     case game @ GamePacket(_, _, _) =>
@@ -87,42 +83,21 @@ class LoginSessionActor extends Actor with MDCContextAware {
     }
   }
 
-  val serverName = "PSForever"
-  val serverAddress = new InetSocketAddress(InetAddress.getLocalHost, 51001)
-
   def handleGamePkt(pkt : PlanetSideGamePacket) = pkt match {
-      case LoginMessage(majorVersion, minorVersion, buildDate, username,
-        password, token, revision) =>
+    case LoginMessage(majorVersion, minorVersion, buildDate, username,
+    password, token, revision) =>
 
-        val clientVersion = s"Client Version: ${majorVersion}.${minorVersion}.${revision}, ${buildDate}"
+      val clientVersion = s"Client Version: ${majorVersion}.${minorVersion}.${revision}, ${buildDate}"
 
-        if(token.isDefined)
-          log.info(s"New login UN:$username Token:${token.get}. ${clientVersion}")
-        else
-          log.info(s"New login UN:$username PW:$password. ${clientVersion}")
+      if(token.isDefined)
+        log.info(s"New login UN:$username Token:${token.get}. ${clientVersion}")
+      else
+        log.info(s"New login UN:$username PW:$password. ${clientVersion}")
 
-        val newToken = token.getOrElse("THISISMYTOKENYES")
-        val response = LoginRespMessage(newToken, hex"00000000 18FABE0C 00000000 00000000",
-          0, 1, 2, 685276011, username, 0, false)
-
-        sendResponse(PacketCoding.CreateGamePacket(0, response))
-        updateServerList
-      case ConnectToWorldRequestMessage(name, _, _, _, _, _) =>
-        log.info(s"Connect to world request for '${name}'")
-
-        val response = ConnectToWorldMessage(serverName, serverAddress.getHostName, serverAddress.getPort)
-        sendResponse(PacketCoding.CreateGamePacket(0, response))
-      case default => log.debug(s"Unhandled GamePacket ${pkt}")
-  }
-
-  def updateServerList = {
-    val msg = VNLWorldStatusMessage("Welcome to PlanetSide! ",
-      Vector(
-        WorldInformation(serverName, WorldStatus.Up, ServerType.Released,
-          Vector(WorldConnectionInfo(serverAddress)), EmpireNeed.TR)
-      ))
-
-    sendResponse(PacketCoding.CreateGamePacket(0, msg))
+      // testing
+      //sendRawResponse(hex"00 09 00 00 00 19 08 2C  00 00 4B 00 00 00 00 02 1F 80 09 9B 05 00 00 00  0D 77 BC F1 05 12 2E 40 00 80 3F D7 04 00 00 00  61 C0 6C 6F 63 6B 2D 7A 33 61 C0 6C 6F 63 6B 2D  7A 34 61 C0 6C 6F 63 6B 2D 7A 39 64 00 6C 6F 63  6B 2D 69 31 2D 69 32 2D 69 33 2D 69 34 04 00 00  00 40 40 10 30 04 10 01 06 00 ")
+      //sendRawResponse(hex"00 09 00 01 00 19 08 2C  00 00 70 01 00 00 00 6A 95 01 00 00 00 00 79 94  FD BF 00 A1 AF BF F3 A5 D0 3E 26 39 76 3B 08 00  00 00 36 AE 11 3F 70 5D 9B 3E 2E 15 9A 9B 3A 3F  CC 90 DB 3E 45 1C EC 0F 14 3D AF CF 36 3F 06 32  BA AF 13 3F 18 4C 12 3F 26 2F D2 2D 71 3F 94 AA  FB 3E 4D 16 5D 1B 1A 3F 0C 25 D5 3C 55 6B 38 89  63 3F 5D F5 25 3F 3C AC 8E 5E E6 3E 79 25 62 3F  10 32 1F 12 E3 40 00 9A 40 43 4D 54 5F 43 55 4C  4C 57 41 54 45 52 4D 41 52 4B 5F 73 75 63 63 65  73 73 ")
+    case default => log.debug(s"Unhandled GamePacket ${pkt}")
   }
 
   def failWithError(error : String) = {
@@ -131,12 +106,12 @@ class LoginSessionActor extends Actor with MDCContextAware {
   }
 
   def sendResponse(cont : PlanetSidePacketContainer) = {
-    log.trace("LOGIN SEND: " + cont)
+    log.trace("WORLD SEND: " + cont)
     rightRef ! cont
   }
 
   def sendRawResponse(pkt : ByteVector) = {
-    log.trace("LOGIN SEND RAW: " + pkt)
+    log.trace("WORLD SEND RAW: " + pkt)
     rightRef ! RawPacket(pkt)
   }
 }

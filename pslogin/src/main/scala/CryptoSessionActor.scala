@@ -214,23 +214,28 @@ class CryptoSessionActor extends Actor with MDCContextAware {
 
   def Established : Receive = {
     case RawPacket(msg) =>
-      PacketCoding.UnmarshalPacket(msg) match {
-        case Successful(p) =>
-          p match {
-            case encPacket @ EncryptedPacket(seq, _) =>
-              //println("Decrypting packet..." + encPacket)
-              PacketCoding.decryptPacket(cryptoState.get, encPacket) match {
-                case Successful(packet) =>
-                  //println("RECV[E]: " + packet)
+      if(sender() == rightRef) {
+        val packet = PacketCoding.encryptPacket(cryptoState.get, 0, msg).require
+        sendResponse(packet)
+      } else {
+        PacketCoding.UnmarshalPacket(msg) match {
+          case Successful(p) =>
+            p match {
+              case encPacket @ EncryptedPacket(seq, _) =>
+                //println("Decrypting packet..." + encPacket)
+                PacketCoding.decryptPacket(cryptoState.get, encPacket) match {
+                  case Successful(packet) =>
+                    //println("RECV[E]: " + packet)
 
-                  self ! packet
-                case Failure(e) =>
-                  log.error("Failed to decode encrypted packet: " + e)
-              }
-            case default => failWithError(s"Unexpected packet type $default in state Established")
+                    self ! packet
+                  case Failure(e) =>
+                    log.error("Failed to decode encrypted packet: " + e)
+                }
+              case default => failWithError(s"Unexpected packet type $default in state Established")
 
-          }
-        case Failure(e) => log.error("Could not decode raw packet: " + e)
+            }
+          case Failure(e) => log.error("Could not decode raw packet: " + e)
+        }
       }
     case ctrl @ ControlPacket(_, _) =>
       val from = sender()

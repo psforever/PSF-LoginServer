@@ -64,7 +64,15 @@ object PsLogin {
 
     //val system = ActorSystem("PsLogin", Some(ConfigFactory.parseMap(config)), None, Some(MDCPropagatingExecutionContextWrapper(ExecutionContext.Implicits.global)))
     val system = ActorSystem("PsLogin", ConfigFactory.parseMap(config))
-    val listener = system.actorOf(Props(new UdpListener(Props[SessionRouter], "session-router",
+
+    val loginTemplate = List(SessionPipeline("crypto-session-", Props[CryptoSessionActor]),
+      SessionPipeline("login-session-", Props[LoginSessionActor]))
+    val worldTemplate = List(SessionPipeline("crypto-session-", Props[CryptoSessionActor]),
+      SessionPipeline("world-session-", Props[WorldSessionActor]))
+
+    val listener = system.actorOf(Props(new UdpListener(Props(new SessionRouter(loginTemplate)), "login-session-router",
       InetAddress.getLocalHost, 51000)), "login-udp-endpoint")
+    val worldListener = system.actorOf(Props(new UdpListener(Props(new SessionRouter(worldTemplate)), "world-session-router",
+      InetAddress.getLocalHost, 51001)), "world-udp-endpoint")
   }
 }
