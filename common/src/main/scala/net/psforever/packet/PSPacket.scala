@@ -80,10 +80,11 @@ object PacketHelpers {
   def createEnumerationCodec[E <: Enumeration](enum : E, storageCodec : Codec[Int]) : Codec[E#Value] = {
     type Struct = Int :: HNil
     val struct: Codec[Struct] = storageCodec.hlist
+    val primitiveLimit = Math.pow(2, storageCodec.sizeBound.exact.get)
 
     // Assure that the enum will always be able to fit in a N-bit int
-    assert(enum.maxId <= Math.pow(storageCodec.sizeBound.exact.get, 2),
-      enum.getClass.getCanonicalName + ": maxId exceeds primitive type")
+    assert(enum.maxId <= primitiveLimit,
+      enum.getClass.getCanonicalName + s": maxId exceeds primitive type (limit of $primitiveLimit, maxId ${enum.maxId})")
 
     def to(pkt: E#Value): Struct = {
       pkt.id :: HNil
