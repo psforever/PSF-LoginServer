@@ -15,8 +15,9 @@ class GamePacketTest extends Specification {
 
       "decode" in {
         PacketCoding.DecodePacket(string).require match {
-          case ConnectToWorldRequestMessage(serverName, majorVersion, minorVersion, revision, buildDate, unk) =>
+          case ConnectToWorldRequestMessage(serverName, token, majorVersion, minorVersion, revision, buildDate, unk) =>
             serverName mustEqual "gemini"
+            token mustEqual ""
             majorVersion mustEqual 0
             minorVersion mustEqual 0
             revision mustEqual 0
@@ -28,7 +29,7 @@ class GamePacketTest extends Specification {
       }
 
       "encode" in {
-        val msg = ConnectToWorldRequestMessage("gemini", 0, 0, 0, "", 0)
+        val msg = ConnectToWorldRequestMessage("gemini", "", 0, 0, 0, "", 0)
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
         pkt mustEqual string

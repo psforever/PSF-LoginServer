@@ -25,7 +25,7 @@ final case class LoginMessage(majorVersion : Long,
 object LoginMessage extends Marshallable[LoginMessage] {
   private def username = PacketHelpers.encodedStringAligned(7)
   private def password = PacketHelpers.encodedString
-  private def tokenPath = fixedSizeBytes(32, ascii) :: username
+  private def tokenPath = paddedFixedSizeBytes(32, cstring, ignore(8)) :: username
   private def passwordPath = username :: password
 
   type Struct = String :: Option[String] :: Option[String] :: HNil

@@ -8,6 +8,7 @@ import scodec.codecs._
 // NOTE: this packet has a ton of bytes left over at the end and is usually all zeros
 // except for the server name and a 0x80 near the end
 final case class ConnectToWorldRequestMessage(server : String,
+                                              token : String,
                                               majorVersion : Long,
                                               minorVersion : Long,
                                               revision : Long,
@@ -21,7 +22,7 @@ final case class ConnectToWorldRequestMessage(server : String,
 object ConnectToWorldRequestMessage extends Marshallable[ConnectToWorldRequestMessage] {
   implicit val codec : Codec[ConnectToWorldRequestMessage] = (
     ("server_name" | PacketHelpers.encodedString) ::
-      ("unknown" | ignore(32*8)) ::
+      ("token" | paddedFixedSizeBytes(32, cstring, ignore(8))) :: // must be an ignore 8 as the memory might not be 0x00
       ("major_version" | uint32L) ::
       ("minor_version" | uint32L) ::
       ("revision" | uint32L) ::
