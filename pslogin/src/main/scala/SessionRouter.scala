@@ -21,7 +21,7 @@ case class SessionState(id : Long, address : InetSocketAddress, pipeline : List[
 case class SessionPipeline(nameTemplate : String, props : Props)
 
 class SessionRouter(pipeline : List[SessionPipeline]) extends Actor with MDCContextAware {
-  private[this] val log = org.log4s.getLogger
+  private[this] val log = org.log4s.getLogger(self.path.name)
 
   val idBySocket = mutable.Map[InetSocketAddress, Long]()
   val sessionById = mutable.Map[Long, SessionState]()
