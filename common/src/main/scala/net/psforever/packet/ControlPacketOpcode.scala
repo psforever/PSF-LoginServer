@@ -51,15 +51,23 @@ object ControlPacketOpcode extends Enumeration {
   Unknown30
   = Value
 
+  private def noDecoder(opcode : ControlPacketOpcode.Type) = (a : BitVector) =>
+    Attempt.failure(Err(s"Could not find a marshaller for control packet ${opcode}"))
+
   def getPacketDecoder(opcode : ControlPacketOpcode.Type) : (BitVector) => Attempt[DecodeResult[PlanetSideControlPacket]] = opcode match {
+      // OPCODE 0
       case HandleGamePacket => control.HandleGamePacket.decode
       case ServerStart => control.ServerStart.decode
       case ClientStart => control.ClientStart.decode
       case MultiPacket => control.MultiPacket.decode
+      case Unknown4 => noDecoder(opcode)
+      case Unknown5 => noDecoder(opcode)
+      case Unknown6 => noDecoder(opcode)
       case ControlSync => control.ControlSync.decode
       case ControlSyncResp => control.ControlSyncResp.decode
-        // IT'S GETTING "WET" IN HERE
       case SlottedMetaPacket0 => SlottedMetaPacket.decodeWithOpcode(SlottedMetaPacket0)
+
+      // OPCODE 10
       case SlottedMetaPacket1 => SlottedMetaPacket.decodeWithOpcode(SlottedMetaPacket1)
       case SlottedMetaPacket2 => SlottedMetaPacket.decodeWithOpcode(SlottedMetaPacket2)
       case SlottedMetaPacket3 => SlottedMetaPacket.decodeWithOpcode(SlottedMetaPacket3)
@@ -67,9 +75,26 @@ object ControlPacketOpcode extends Enumeration {
       case SlottedMetaPacket5 => SlottedMetaPacket.decodeWithOpcode(SlottedMetaPacket5)
       case SlottedMetaPacket6 => SlottedMetaPacket.decodeWithOpcode(SlottedMetaPacket6)
       case SlottedMetaPacket7 => SlottedMetaPacket.decodeWithOpcode(SlottedMetaPacket7)
+      case RelatedA0 => noDecoder(opcode)
+      case RelatedA1 => noDecoder(opcode)
+      case RelatedA2 => noDecoder(opcode)
+
+      // OPCODE 20
+      case RelatedA3 => noDecoder(opcode)
+      case RelatedB0 => noDecoder(opcode)
+      case RelatedB1 => noDecoder(opcode)
+      case RelatedB2 => noDecoder(opcode)
+      case RelatedB3 => noDecoder(opcode)
+      case AggregatePacket => noDecoder(opcode)
+      case Unknown26 => noDecoder(opcode)
+      case Unknown27 => noDecoder(opcode)
+      case Unknown28 => noDecoder(opcode)
       case ConnectionClose => control.ConnectionClose.decode
-      case default => (a : BitVector) => Attempt.failure(Err(s"Could not find a marshaller for control packet ${opcode}"))
-    }
+
+      // OPCODE 30
+      case Unknown30 => noDecoder(opcode)
+      case default => noDecoder(opcode)
+  }
 
   implicit val codec: Codec[this.Value] = PacketHelpers.createEnumerationCodec(this, uint8L)
 }
