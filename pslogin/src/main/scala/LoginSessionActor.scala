@@ -69,10 +69,12 @@ class LoginSessionActor extends Actor with MDCContextAware {
             handlePkt(v)
         }
       case sync @ ControlSync(diff, unk, f1, f2, f3, f4, fa, fb) =>
-        log.debug(s"SYNC: ${sync}")
+        log.trace(s"SYNC: ${sync}")
+
         val serverTick = Math.abs(System.nanoTime().toInt) // limit the size to prevent encoding error
         sendResponse(PacketCoding.CreateControlPacket(ControlSyncResp(diff, serverTick,
           fa, fb, fb, fa)))
+
       case MultiPacket(packets) =>
         packets.foreach { pkt =>
           PacketCoding.DecodePacket(pkt) match {
@@ -107,7 +109,7 @@ class LoginSessionActor extends Actor with MDCContextAware {
 
         sendResponse(PacketCoding.CreateGamePacket(0, response))
         updateServerList
-      case ConnectToWorldRequestMessage(name, _, _, _, _, _) =>
+      case ConnectToWorldRequestMessage(name, _, _, _, _, _, _) =>
         log.info(s"Connect to world request for '${name}'")
 
         val response = ConnectToWorldMessage(serverName, serverAddress.getHostName, serverAddress.getPort)
