@@ -73,7 +73,7 @@ object CryptoInterface {
     if(mac1.length != mac2.length)
       return false
 
-    for(i <- 0 until mac1.length) {
+    for(i <- 0 until mac1.length.toInt) {
       okay = okay && mac1{i} == mac2{i}
     }
 
@@ -182,7 +182,7 @@ object CryptoInterface {
       if(plaintext.length % RC5_BLOCK_SIZE != 0)
         throw new IllegalArgumentException(s"input must be padded to the nearest $RC5_BLOCK_SIZE byte boundary")
 
-      val ciphertext = Array.ofDim[Byte](plaintext.length)
+      val ciphertext = Array.ofDim[Byte](plaintext.length.toInt)
 
       val ret = psLib.RC5_Encrypt(encCryptoHandle, plaintext.toArray, plaintext.length, ciphertext)[Boolean]
 
@@ -196,7 +196,7 @@ object CryptoInterface {
       if(ciphertext.length % RC5_BLOCK_SIZE != 0)
         throw new IllegalArgumentException(s"input must be padded to the nearest $RC5_BLOCK_SIZE byte boundary")
 
-      val plaintext = Array.ofDim[Byte](ciphertext.length)
+      val plaintext = Array.ofDim[Byte](ciphertext.length.toInt)
 
       val ret = psLib.RC5_Decrypt(decCryptoHandle, ciphertext.toArray, ciphertext.length, plaintext)[Boolean]
 

@@ -102,7 +102,7 @@ class CryptoInterfaceTest extends Specification {
         hex"b4aea1559444a20b6112a2892de40eac00000000c8aea155b53d187076b79abab59001b600000000"
       val expected = hex"5aa15de41f5220cf5cca489155e1438c5aa15de4"
 
-      val output = CryptoInterface.MD5MAC(key, message, expected.length)
+      val output = CryptoInterface.MD5MAC(key, message, expected.length.toInt)
 
       output mustEqual expected
     }

@@ -386,7 +386,7 @@ object PacketCoding {
 
     // minus 1 because of the actual byte telling of the padding, which always has to be there
     val paddingNeeded = CryptoInterface.RC5_BLOCK_SIZE - remainder - 1
-    val paddingEncoded = uint8L.encode(paddingNeeded).require
+    val paddingEncoded = uint8L.encode(paddingNeeded.toInt).require
 
     val packetWithPadding = packetNoPadding ++ ByteVector.fill(paddingNeeded)(0x00) ++ paddingEncoded.toByteVector
 

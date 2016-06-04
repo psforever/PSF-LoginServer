@@ -1,8 +1,10 @@
 // Copyright (c) 2016 PSForever.net to present
 
 import org.specs2.mutable._
+import org.specs2.specification
 import net.psforever.packet._
 import net.psforever.packet.control._
+import org.specs2.specification.core.Fragment
 import scodec.Attempt.Successful
 import scodec.bits._
 import scodec.codecs.uint16
@@ -27,7 +29,7 @@ class ControlPacketTest extends Specification {
             g mustEqual 0x276
             h mustEqual 0x275
           case default =>
-            true mustEqual false
+            ko
         }
       }
 
@@ -52,7 +54,7 @@ class ControlPacketTest extends Specification {
             e mustEqual 0x275
             f mustEqual 0x276
           case default =>
-            true mustEqual false
+            ko
         }
       }
 
@@ -86,7 +88,7 @@ class ControlPacketTest extends Specification {
             subslot mustEqual 0
             rest mustEqual string.drop(4)
           case default =>
-            true mustEqual false
+            ko
         }
       }
 
@@ -94,25 +96,25 @@ class ControlPacketTest extends Specification {
         val maxSlots = ControlPacketOpcode.SlottedMetaPacket7.id - ControlPacketOpcode.SlottedMetaPacket0.id
 
         // create all possible SlottedMetaPackets
-        for(i <- 0 until maxSlots) {
-          val subslot = 12323
-          val pkt = createMetaPacket(i, subslot, ByteVector.empty)
+        Fragment.foreach(0 to maxSlots) { i =>
+          "slot " + i ! {
+            val subslot = 12323
+            val pkt = createMetaPacket(i, subslot, ByteVector.empty)
 
-          PacketCoding.DecodePacket(pkt).require match {
-            case SlottedMetaPacket(slot, subslotDecoded, rest) =>
+            PacketCoding.DecodePacket(pkt).require match {
+              case SlottedMetaPacket(slot, subslotDecoded, rest) =>
 
-              // XXX: there isn't a simple solution to Slot0 and Slot4 be aliases of each other structurally
-              // This is probably best left to higher layers
-              //slot mustEqual i % 4 // this is seen at 0x00A3FBFA
-              slot mustEqual i
-              subslotDecoded mustEqual subslot
-              rest mustEqual ByteVector.empty // empty in this case
-            case default =>
-              true mustEqual false
+                // XXX: there isn't a simple solution to Slot0 and Slot4 be aliases of each other structurally
+                // This is probably best left to higher layers
+                //slot mustEqual i % 4 // this is seen at 0x00A3FBFA
+                slot mustEqual i
+                subslotDecoded mustEqual subslot
+                rest mustEqual ByteVector.empty // empty in this case
+              case default =>
+                ko
+            }
           }
         }
-
-        true
       }
 
       "encode" in {
@@ -154,19 +156,15 @@ class ControlPacketTest extends Specification {
       )
 
       "decode" in {
-        for(i <- strings.indices) {
-          MultiPacketEx.decode(strings{i}.bits).require.value mustEqual packets{i}
+        Fragment.foreach(strings.indices) { i =>
+          "test "+i ! {  MultiPacketEx.decode(strings{i}.bits).require.value mustEqual packets{i} }
         }
-
-        true mustEqual true
       }
 
       "encode" in {
-        for(i <- packets.indices) {
-          MultiPacketEx.encode(packets{i}).require.toByteVector mustEqual strings{i}
+        Fragment.foreach(packets.indices) { i =>
+          "test "+i ! {  MultiPacketEx.encode(packets{i}).require.toByteVector mustEqual strings{i} }
         }
-
-        true mustEqual true
       }
     }
   }

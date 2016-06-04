@@ -24,7 +24,7 @@ class GamePacketTest extends Specification {
             buildDate mustEqual ""
             unk mustEqual 0
           case default =>
-            true mustEqual false
+            ko
         }
       }
 
@@ -46,7 +46,7 @@ class GamePacketTest extends Specification {
             serverIp mustEqual "64.37.158.69"
             serverPort mustEqual 30012
           case default =>
-            true mustEqual false
+            ko
         }
       }
 
@@ -79,7 +79,7 @@ class GamePacketTest extends Specification {
             world.connections{0}.address.getPort mustEqual 30007
             world.connections{0}.address.getAddress.toString mustEqual "/64.37.158.69"
           case default =>
-            true mustEqual false
+            ko
         }
       }
 
@@ -111,7 +111,8 @@ class GamePacketTest extends Specification {
 
         //println(pkt)
 
-        true mustEqual true
+        // TODO: actually test something
+        ok
       }
     }
 
