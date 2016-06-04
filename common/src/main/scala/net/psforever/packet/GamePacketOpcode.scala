@@ -361,7 +361,7 @@ object GamePacketOpcode extends Enumeration {
 
       // OPCODE 30
       case UnknownMessage30 => noDecoder(opcode)
-      case ActionResultMessage => noDecoder(opcode)
+      case ActionResultMessage => game.ActionResultMessage.decode
       case UnknownMessage32 => noDecoder(opcode)
       case ActionProgressMessage => noDecoder(opcode)
       case ActionCancelMessage => noDecoder(opcode)

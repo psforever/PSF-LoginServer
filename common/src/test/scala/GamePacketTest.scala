@@ -4,6 +4,7 @@ import java.net.{InetAddress, InetSocketAddress}
 import org.specs2.mutable._
 import net.psforever.packet._
 import net.psforever.packet.game._
+import scodec.Attempt.Successful
 import scodec.bits._
 
 class GamePacketTest extends Specification {
@@ -116,5 +117,30 @@ class GamePacketTest extends Specification {
       }
     }
 
+    "ActionResultMessage" should {
+      "decode" in {
+        PacketCoding.DecodePacket(hex"1f 80").require match {
+          case ActionResultMessage(okay, code) =>
+            okay === true
+            code === None
+          case default =>
+            ko
+        }
+
+        PacketCoding.DecodePacket((hex"1f".bits ++ bin"0" ++ hex"01000000".bits).toByteVector).require match {
+          case ActionResultMessage(okay, code) =>
+            okay === false
+            code === Some(1)
+          case default =>
+            ko
+        }
+      }
+
+      "encode" in {
+        PacketCoding.EncodePacket(ActionResultMessage(true, None)).require.toByteVector === hex"1f 80"
+        PacketCoding.EncodePacket(ActionResultMessage(false, Some(1))).require.toByteVector ===
+          (hex"1f".bits ++ bin"0" ++ hex"01000000".bits).toByteVector
+      }
+    }
   }
 }
