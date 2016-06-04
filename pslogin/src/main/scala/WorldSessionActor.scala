@@ -78,6 +78,15 @@ class WorldSessionActor extends Actor with MDCContextAware {
               handlePkt(v)
           }
         }
+      case MultiPacketEx(packets) =>
+        packets.foreach { pkt =>
+          PacketCoding.DecodePacket(pkt) match {
+            case Failure(e) =>
+              log.error(s"Failed to decode inner packet of MultiPacketEx: $e")
+            case Successful(v) =>
+              handlePkt(v)
+          }
+        }
       case default =>
         log.debug(s"Unhandled ControlPacket $default")
     }

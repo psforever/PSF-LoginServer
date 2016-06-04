@@ -41,7 +41,7 @@ object ControlPacketOpcode extends Enumeration {
   RelatedB1,
   RelatedB2,
   RelatedB3,
-  AggregatePacket, // same as MultiPacket, but with the ability to send extended length packets
+  MultiPacketEx, // same as MultiPacket, but with the ability to send extended length packets
   Unknown26,
   Unknown27,
   Unknown28,
@@ -85,7 +85,7 @@ object ControlPacketOpcode extends Enumeration {
       case RelatedB1 => noDecoder(opcode)
       case RelatedB2 => noDecoder(opcode)
       case RelatedB3 => noDecoder(opcode)
-      case AggregatePacket => noDecoder(opcode)
+      case MultiPacketEx => control.MultiPacketEx.decode
       case Unknown26 => noDecoder(opcode)
       case Unknown27 => noDecoder(opcode)
       case Unknown28 => noDecoder(opcode)

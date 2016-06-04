@@ -67,7 +67,7 @@ object GamePacketOpcode extends Enumeration {
   UnknownMessage45,
   UnknownMessage46,
   UnknownMessage47,
-  UnknownMessage48,
+  CharacterRequestMessage,
   LoadMapMessage,
 
   // OPCODE 50
@@ -380,7 +380,7 @@ object GamePacketOpcode extends Enumeration {
       case UnknownMessage45 => noDecoder(opcode)
       case UnknownMessage46 => noDecoder(opcode)
       case UnknownMessage47 => noDecoder(opcode)
-      case UnknownMessage48 => noDecoder(opcode)
+      case CharacterRequestMessage => game.CharacterRequestMessage.decode
       case LoadMapMessage => noDecoder(opcode)
 
       // OPCODE 50
