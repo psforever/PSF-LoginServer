@@ -56,9 +56,6 @@ class SessionRouter(pipeline : List[SessionPipeline]) extends Actor with MDCCont
   def initializing : Receive = {
     case Hello() =>
       inputRef = sender()
-
-      inputRef ! SendPacket(hex"41414141", new InetSocketAddress("8.8.8.8", 51000))
-
       context.become(started)
     case default =>
       log.error(s"Unknown message $default. Stopping...")
