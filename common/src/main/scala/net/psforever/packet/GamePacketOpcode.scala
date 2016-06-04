@@ -348,7 +348,7 @@ object GamePacketOpcode extends Enumeration {
       case CharacterNoRecordMessage => noDecoder(opcode)
 
       // OPCODE 20
-      case CharacterInfoMessage => noDecoder(opcode)
+      case CharacterInfoMessage => game.CharacterInfoMessage.decode
       case UnknownMessage21 => noDecoder(opcode)
       case BindPlayerMessage => noDecoder(opcode)
       case UnknownMessage23 => noDecoder(opcode)
