@@ -41,8 +41,7 @@ class UdpListener(nextActorProps : Props, nextActorName : String, address : Inet
   def ready(socket: ActorRef): Receive = {
     case SendPacket(msg, to) =>
       bytesSent += msg.size
-      // XXX: revert back to msg.toByteString when scodec-akka is unbroken... (this is doing a copy)
-      socket ! Udp.Send(ByteString(msg.toByteBuffer), to)
+      socket ! Udp.Send(msg.toByteString, to)
     case Udp.Received(data, remote) =>
       bytesRecevied += data.size
       nextActor ! ReceivedPacket(data.toByteVector, remote)
