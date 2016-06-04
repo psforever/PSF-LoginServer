@@ -113,7 +113,7 @@ object PacketHelpers {
   // when the first bit of the byte is set, the size can be between [0, 127].
   // otherwise, it is between [128, 32767] and two bytes are used for encoding
   // The magic in this is next level
-  private def encodedStringSize : Codec[Int] = either(bool, uint(15), uint(7)).
+  def encodedStringSize : Codec[Int] = either(bool, uint(15), uint(7)).
     xmap[Int](
     (a : Either[Int, Int]) => a.fold[Int](a => a, a => a),
     (a : Int) =>
