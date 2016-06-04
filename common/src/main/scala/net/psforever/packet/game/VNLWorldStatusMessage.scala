@@ -22,7 +22,7 @@ object ServerType extends Enumeration(1) {
   implicit val codec = PacketHelpers.createEnumerationCodec(this, uint8L)
 }
 
-object EmpireNeed extends Enumeration {
+object PlanetSideEmpire extends Enumeration {
   type Type = Value
   val TR, NC, VS = Value
 
@@ -34,7 +34,7 @@ final case class WorldConnectionInfo(address : InetSocketAddress)
 final case class WorldInformation(name : String, status : WorldStatus.Value,
                                   serverType : ServerType.Value,
                                   connections : Vector[WorldConnectionInfo],
-                                  empireNeed : EmpireNeed.Value)
+                                  empireNeed : PlanetSideEmpire.Value)
 
 final case class VNLWorldStatusMessage(welcomeMessage : String, worlds : Vector[WorldInformation])
   extends PlanetSideGamePacket {
@@ -114,7 +114,7 @@ object VNLWorldStatusMessage extends Marshallable[VNLWorldStatusMessage] {
           ("status_and_type" | statusCodec) :+
           // TODO: limit the size of this vector to 11 as the client will fail on any more
           ("connections" | vectorOfN(uint8L, connectionCodec)) :+
-          ("empire_need" | EmpireNeed.codec)
+          ("empire_need" | PlanetSideEmpire.codec)
         )
       ).as[WorldInformation]
       ))).as[VNLWorldStatusMessage]

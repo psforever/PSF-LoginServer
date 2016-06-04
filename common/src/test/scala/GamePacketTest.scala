@@ -71,7 +71,7 @@ class GamePacketTest extends Specification {
             val world = worlds{0}
 
             world.name mustEqual "gemini"
-            world.empireNeed mustEqual EmpireNeed.NC
+            world.empireNeed mustEqual PlanetSideEmpire.NC
             world.status mustEqual WorldStatus.Up
             world.serverType mustEqual ServerType.Released
 
@@ -89,7 +89,7 @@ class GamePacketTest extends Specification {
             WorldInformation("gemini", WorldStatus.Up, ServerType.Released,
               Vector(
                 WorldConnectionInfo(new InetSocketAddress(InetAddress.getByName("64.37.158.69"), 30007))
-              ), EmpireNeed.NC
+              ), PlanetSideEmpire.NC
             )
           )
         )
@@ -103,8 +103,8 @@ class GamePacketTest extends Specification {
       "encode and decode multiple worlds" in {
         val msg = VNLWorldStatusMessage("Welcome to PlanetSide! ",
           Vector(
-            WorldInformation("PSForever1", WorldStatus.Up, ServerType.Released, Vector(), EmpireNeed.NC),
-            WorldInformation("PSForever2", WorldStatus.Down, ServerType.Beta, Vector(), EmpireNeed.TR)
+            WorldInformation("PSForever1", WorldStatus.Up, ServerType.Released, Vector(), PlanetSideEmpire.NC),
+            WorldInformation("PSForever2", WorldStatus.Down, ServerType.Beta, Vector(), PlanetSideEmpire.TR)
           ))
 
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
