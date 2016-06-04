@@ -76,6 +76,11 @@ object PacketHelpers {
     Codec[HNil].xmap[T](from, to)
   }
 
+  // NOTE: enumerations in scala can't be represented by more than an Int anyways, so this conversion shouldnt matter.
+  // This is only to overload createEnumerationCodec to work with uint32[L] codecs (which are Long)
+  def createLongEnumerationCodec[E <: Enumeration](enum : E, storageCodec : Codec[Long]) : Codec[E#Value] = {
+    createEnumerationCodec(enum, storageCodec.xmap[Int](_.toInt, _.toLong))
+  }
 
   def createEnumerationCodec[E <: Enumeration](enum : E, storageCodec : Codec[Int]) : Codec[E#Value] = {
     type Struct = Int :: HNil
