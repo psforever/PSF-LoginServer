@@ -23,10 +23,13 @@ object PlanetSideGUID {
   * about a certain character for rendering purposes (zone background, etc). Acts as an array insert for the
   * client character list. A blank displayed character is most likely caused by a mismatch between an
   * ObjectCreateMessage GUID and the GUID from this message.
+  *
+  * @param finished True when there are no more characters to give info on
   */
 final case class CharacterInfoMessage(zoneId : PlanetSideZoneID,
                                       charId : Long,
                                       guid : PlanetSideGUID,
+                                      finished : Boolean,
                                       secondsSinceLastLogin : Long)
   extends PlanetSideGamePacket {
   type Packet = CharacterInfoMessage
@@ -40,7 +43,7 @@ object CharacterInfoMessage extends Marshallable[CharacterInfoMessage] {
       ("zoneId" | PlanetSideZoneID.codec) ::
         ("charId" | uint32L) ::
         ("charGUID" | PlanetSideGUID.codec) ::
-        ("unknown_bit" | bool.unit(false)) ::
+        ("finished" | bool) ::
         ("seconds_since_last_login" | uint32L)
     ).as[CharacterInfoMessage]
 }
