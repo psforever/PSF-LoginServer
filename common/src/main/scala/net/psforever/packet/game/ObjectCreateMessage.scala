@@ -11,7 +11,8 @@ case class ObjectCreateMessageParent(guid : Int, slot : Int)
 case class ObjectCreateMessage(streamLength : Long,
                                objectClass : Int,
                                guid : Int,
-                               parentInfo : Option[ObjectCreateMessageParent])
+                               parentInfo : Option[ObjectCreateMessageParent]
+                              )
   extends PlanetSideGamePacket {
 
   def opcode = GamePacketOpcode.ObjectCreateMessage

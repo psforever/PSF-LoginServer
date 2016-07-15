@@ -64,7 +64,7 @@ class CryptoSessionActor extends Actor with MDCContextAware {
   def NewClient : Receive = {
     case RawPacket(msg) =>
       PacketCoding.UnmarshalPacket(msg) match {
-        case Failure(e) => log.error("Could not decode packet: " + e)
+        case Failure(e) => log.error("Could not decode packet: " + e + s", msg ${msg.toString}")
         case Successful(p) =>
           //println("RECV: " + p)
 

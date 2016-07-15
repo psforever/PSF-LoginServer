@@ -90,7 +90,7 @@ class LoginSessionActor extends Actor with MDCContextAware {
   }
 
   val serverName = "PSForever"
-  val serverAddress = new InetSocketAddress(InetAddress.getLocalHost, 51001)
+  val serverAddress = new InetSocketAddress("192.168.0.2", 51001)
 
   def handleGamePkt(pkt : PlanetSideGamePacket) = pkt match {
       case LoginMessage(majorVersion, minorVersion, buildDate, username,
@@ -112,7 +112,7 @@ class LoginSessionActor extends Actor with MDCContextAware {
       case ConnectToWorldRequestMessage(name, _, _, _, _, _, _) =>
         log.info(s"Connect to world request for '${name}'")
 
-        val response = ConnectToWorldMessage(serverName, serverAddress.getHostName, serverAddress.getPort)
+        val response = ConnectToWorldMessage(serverName, serverAddress.getHostString, serverAddress.getPort)
         sendResponse(PacketCoding.CreateGamePacket(0, response))
       case default => log.debug(s"Unhandled GamePacket ${pkt}")
   }
