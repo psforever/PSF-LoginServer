@@ -144,6 +144,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case KeepAliveMessage(code) =>
       sendResponse(PacketCoding.CreateGamePacket(0, KeepAliveMessage(0)))
+
+    case PlayerStateMessageUpstream(_) =>
+
     case default => log.debug(s"Unhandled GamePacket ${pkt}")
   }
 

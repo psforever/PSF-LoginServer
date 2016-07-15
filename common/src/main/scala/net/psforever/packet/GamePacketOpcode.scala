@@ -544,7 +544,7 @@ object GamePacketOpcode extends Enumeration {
       case KeepAliveMessage => game.KeepAliveMessage.decode
       case MapObjectStateBlockMessage => noDecoder(opcode)
       case SnoopMsg => noDecoder(opcode)
-      case PlayerStateMessageUpstream => noDecoder(opcode)
+      case PlayerStateMessageUpstream => game.PlayerStateMessageUpstream.decode
 
       // OPCODE 190
       case PlayerStateShiftMessage => noDecoder(opcode)
