@@ -42,6 +42,21 @@ sbt pslogin/run
 ```
 This will clone the repository and SBT will compile and run the login server. Note: SBT is quite slow at starting up. It's recommended you have an open SBT console in order to avoid this startup time.
 
+## Creating a Release
+If you want to test the project without an IDE or deploy it to a server for run, you can run `sbt pack` to create a release.
+First make sure you have the [SBT tool](http://www.scala-sbt.org/download.html) on your command line. Then get a copy of the source directory (either in ZIP or cloned form). Then do the below
+
+```
+cd PSF-LoginServer
+sbt pack
+```
+
+This will use the sbt-pack plugin to create a JAR file and some helper scripts to run the server. The output for this will be in `PSF-LoginServer\pslogin\target\pack`. Copy or ZIP up that entire pack directory and copy it to the server you want to run it on. You will need the Java 8 runtime (JRE) to run this. Navigate to the `bin/` directory in the pack folder and run the correct file for your platform (.BAT for Windows and other for Unix).
+
+Note: you *will* need the pscrypto.dll or libpscrypto.so placed in your `bin/` directory in order to run this.
+
+Automatic or nightly releases coming in the future.
+
 ## Troublshooting
 
 #### Unable to initialize pscrypto
@@ -50,7 +65,7 @@ If you get an error like below
 12:17:28.037 [main] ERROR PsLogin - Unable to initialize pscrypto
 java.lang.UnsatisfiedLinkError: Unable to load library 'pscrypto': Native library (win32-x86-64/pscrypto.dll) not found in resource path 
 ```
-Then you are missing the native library required to provide cryptographic functions to the login server. To fix this, you need a binary build of the https://github.com/psforever/PSCrypto project. Automatic builds are not set up at the moment, so get in touch with Chord for a working binary.
+Then you are missing the native library required to provide cryptographic functions to the login server. To fix this, you need a binary build of the https://github.com/psforever/PSCrypto project. Automatic builds are not set up at the moment, so get in touch with Chord for a working binary or attempt to build it yourself: YMMV.
 
 ## Contributing
 Please fork the project and provide a pull request to contribute code. Coding guidelines and contribution checklists coming soon.
