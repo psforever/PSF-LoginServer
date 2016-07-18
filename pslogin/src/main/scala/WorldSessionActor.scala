@@ -146,6 +146,13 @@ class WorldSessionActor extends Actor with MDCContextAware {
       sendResponse(PacketCoding.CreateGamePacket(0, KeepAliveMessage(0)))
 
     case PlayerStateMessageUpstream(_) =>
+    
+    case msg @ ChatMsg(messagetype, unk1, recipient, contents) =>
+      log.info("Chat: " + msg)
+      
+      // TODO: Depending on messagetype, may need to prepend sender's name to contents with proper spacing
+      // TODO: Just replays the packet straight back to sender; actually needs to be routed to recipients!
+      sendResponse(PacketCoding.CreateGamePacket(0, ChatMsg(messagetype, unk1, recipient, contents)))
 
     case default => log.debug(s"Unhandled GamePacket ${pkt}")
   }
