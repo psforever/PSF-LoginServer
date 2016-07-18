@@ -159,4 +159,8 @@ object PacketHelpers {
   def encodedWideString : Codec[String] = variableSizeBytes(encodedStringSize.xmap(
     insize => insize*2,
     outSize => outSize/2), utf16)
+
+  def encodedWideStringAligned(adjustment : Int) : Codec[String] = variableSizeBytes(encodedStringSizeWithPad(adjustment).xmap(
+    insize => insize*2,
+    outSize => outSize/2), utf16)
 }

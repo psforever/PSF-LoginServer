@@ -339,7 +339,7 @@ object GamePacketOpcode extends Enumeration {
       case DismountVehicleMsg => noDecoder(opcode)
       case UseItemMessage => noDecoder(opcode)
       case MoveItemMessage => noDecoder(opcode)
-      case ChatMsg => noDecoder(opcode)
+      case ChatMsg => game.ChatMsg.decode
       case CharacterNoRecordMessage => noDecoder(opcode)
 
       // OPCODE 20
