@@ -14,7 +14,7 @@ final case class Hello()
 final case class HelloFriend(next: ActorRef)
 
 class UdpListener(nextActorProps : Props, nextActorName : String, address : InetAddress, port : Int) extends Actor {
-  private val log = org.log4s.getLogger
+  private val log = org.log4s.getLogger(self.path.name)
 
   override def supervisorStrategy = OneForOneStrategy() {
     case _ => Stop
