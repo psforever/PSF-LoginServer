@@ -124,7 +124,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             case ObjectCreateMessage(len, cls, guid, _) =>
               // LoadMapMessage 13714 in mossy .gcap
               // XXX: hardcoded shit
-              sendRawResponse(hex"31 85 6D 61 70 31 32 85  68 6F 6D 65 32 6C 9D 19 00 00 00 5F 40 B2 1C 80  ")
+              sendRawResponse(hex"31 85 6D 61 70 31 33 85  68 6F 6D 65 33 A4 9C 19 00 00 00 2E 30 5E 70 00  ")
               sendRawResponse(objectHex)
               sendResponse(PacketCoding.CreateGamePacket(0, SetCurrentAvatarMessage(PlanetSideGUID(guid),0,0)))
 
