@@ -3,6 +3,8 @@ import java.net.InetAddress
 
 import akka.actor.{ActorSystem, Props}
 import ch.qos.logback.classic.LoggerContext
+import ch.qos.logback.classic.joran.JoranConfigurator
+import ch.qos.logback.core.joran.spi.JoranException
 import ch.qos.logback.core.status._
 import ch.qos.logback.core.util.StatusPrinter
 import com.typesafe.config.ConfigFactory
@@ -24,6 +26,7 @@ object PsLogin {
     println(ansi().fgBright(MAGENTA).a(""" / ___/\ \/ _// _ \/ __/ -_) |/ / -_) __/"""))
     println(ansi().fgBright(RED).a("""/_/  /___/_/  \___/_/  \__/|___/\__/_/""").reset())
     println("""   Login Server - PSForever Project""")
+    println("""        http://psforever.net""")
     println
   }
 
@@ -57,17 +60,36 @@ object PsLogin {
     statusUtil.getHighestLevel(0) >= Status.WARN
   }
 
-  def main(args : Array[String]) : Unit = {
-    banner()
-    println(systemInformation)
-
+  /** Loads the logging configuration and starts logging */
+  def initializeLogging(logfile : String) : Unit = {
     // assume SLF4J is bound to logback in the current environment
     val lc = slf4j.LoggerFactory.getILoggerFactory.asInstanceOf[LoggerContext]
 
+    try {
+      val configurator = new JoranConfigurator()
+      configurator.setContext(lc)
+
+      // reset any loaded settings
+      lc.reset()
+      configurator.doConfigure(logfile)
+    }
+    catch {
+      case je : JoranException => ;
+    }
+
     if(loggerHasErrors(lc)) {
+      println("Loading log settings failed")
       StatusPrinter.printInCaseOfErrorsOrWarnings(lc)
       sys.exit(1)
     }
+  }
+
+  def main(args : Array[String]) : Unit = {
+    // Early start up
+    banner()
+    println(systemInformation)
+
+    initializeLogging("logback.xml")
 
     /** Initialize the PSCrypto native library
       *
