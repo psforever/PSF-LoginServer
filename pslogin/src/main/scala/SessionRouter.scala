@@ -36,19 +36,19 @@ class SessionRouter(pipeline : List[SessionPipeline]) extends Actor with MDCCont
     log.info("SessionRouter started...ready for PlanetSide sessions")
   }
 
-  /*
-    Login sessions are divided between two actors. the crypto session actor transparently handles all of the cryptographic
-    setup of the connection. Once a correct crypto session has been established, all packets, after being decrypted
-    will be passed on to the login session actor. This actor has important state that is used to maintain the login
-    session.
-
-                         > PlanetSide Session Pipeline <
-
-               read()                  route                decrypt
-    UDP Socket -----> [Session Router] -----> [Crypto Actor] -----> [Session Actor]
-         ^              |          ^           |        ^                 |
-         |     write()  |          |  encrypt  |        |   response      |
-         +--------------+          +-----------+        +-----------------+
+  /**
+    * Login sessions are divided between two actors. The crypto session actor transparently handles all of the cryptographic
+    * setup of the connection. Once a correct crypto session has been established, all packets, after being decrypted
+    * will be passed on to the login session actor. This actor has important state that is used to maintain the login
+    * session.
+    *
+    *                      > PlanetSide Session Pipeline <
+    *
+    *            read()                  route                decrypt
+    * UDP Socket -----> [Session Router] -----> [Crypto Actor] -----> [Session Actor]
+    *      ^              |          ^           |        ^                 |
+    *      |     write()  |          |  encrypt  |        |   response      |
+    *      +--------------+          +-----------+        +-----------------+
    */
 
   def receive = initializing
