@@ -4,6 +4,7 @@ import java.net.{InetAddress, InetSocketAddress}
 import org.specs2.mutable._
 import net.psforever.packet._
 import net.psforever.packet.game._
+import net.psforever.types._
 import scodec.Attempt.Successful
 import scodec.bits._
 
@@ -161,6 +162,45 @@ class GamePacketTest extends Specification {
 
       "encode" in {
         ok
+      }
+    }
+    
+    "ChatMsg" should {
+      val string_local = hex"12 1A C000 83610062006300"
+      val string_tell  = hex"12 20 C180640065006600 83610062006300"
+      
+      "decode" in {
+        PacketCoding.DecodePacket(string_local).require match {
+          case ChatMsg(messagetype, unk1, recipient, contents) =>
+            messagetype mustEqual ChatMessageType.Local
+            unk1 mustEqual true
+            recipient mustEqual ""
+            contents mustEqual "abc"
+          case default =>
+            ko
+        }
+        
+        PacketCoding.DecodePacket(string_tell).require match {
+          case ChatMsg(messagetype, unk1, recipient, contents) =>
+            messagetype mustEqual ChatMessageType.Tell
+            unk1 mustEqual true
+            recipient mustEqual "def"
+            contents mustEqual "abc"
+          case default =>
+            ko
+        }
+      }
+
+      "encode" in {
+        val msg_local = ChatMsg(ChatMessageType.Local, true, "", "abc")
+        val pkt_local = PacketCoding.EncodePacket(msg_local).require.toByteVector
+
+        pkt_local mustEqual string_local
+        
+        val msg_tell = ChatMsg(ChatMessageType.Tell, true, "def", "abc")
+        val pkt_tell = PacketCoding.EncodePacket(msg_tell).require.toByteVector
+
+        pkt_tell mustEqual string_tell
       }
     }
   }
