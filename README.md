@@ -3,7 +3,9 @@ This project contains the code to run and manage the login server role for Plane
 
 ![PSForever Login Server banner](https://i.imgur.com/EkbIv5x.png)
 
-## Requirements
+Currently there are no releases of the server. You will need to have a development environment set up in order to get it running.
+
+## Build Requirements
 
 * SBT 0.13.x
 * Scala 2.11.7
@@ -41,6 +43,20 @@ cd PSF-LoginServer
 sbt pslogin/run
 ```
 This will clone the repository and SBT will compile and run the login server. Note: SBT is quite slow at starting up. It's recommended you have an open SBT console in order to avoid this startup time.
+
+## Connecting to the Server through the Client
+To get PlanetSide to connect to your custom server, you will have to navigate to the `client.ini` file (located within the PlanetSide game directory) and modify the IP addresses.
+
+Check to see what IP the server is listening on (look for the `login-udp-endpoint` line) and copy that IP, followed by port 51000 to the the second line of the `client.ini`, which should initially say `login0=64.37.158.81:45000`. Your new line should say `login0=YourIP:51000`.  Delete all of the other lines in the file except `[network]` at the top of the file. Save and enjoy!
+
+The file should now look like this
+
+```ini
+[network]
+login0=your.local.ip:your-port
+```
+
+**You must restart PlanetSide when changing `client.ini`**
 
 ## Creating a Release
 If you want to test the project without an IDE or deploy it to a server for run, you can run `sbt pack` to create a release.
