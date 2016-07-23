@@ -203,5 +203,26 @@ class GamePacketTest extends Specification {
         pkt_tell mustEqual string_tell
       }
     }
+
+    "ChangeFireModeMessage" should {
+      val string = hex"46 4C0020"
+
+      "decode" in {
+        PacketCoding.DecodePacket(string).require match {
+          case ChangeFireModeMessage(item_guid, fire_mode) =>
+            item_guid mustEqual PlanetSideGUID(76)
+            fire_mode mustEqual 1
+          case default =>
+            ko
+        }
+      }
+
+      "encode" in {
+        val msg = ChangeFireModeMessage(PlanetSideGUID(76), 1)
+        val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+        pkt mustEqual string
+      }
+    }
   }
 }
