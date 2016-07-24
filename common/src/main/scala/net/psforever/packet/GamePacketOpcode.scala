@@ -372,7 +372,7 @@ object GamePacketOpcode extends Enumeration {
       case ObjectAttachMessage => noDecoder(opcode)
       case UnknownMessage43 => noDecoder(opcode)
       case PlanetsideAttributeMessage => noDecoder(opcode)
-      case RequestDestroyMessage => noDecoder(opcode)
+      case RequestDestroyMessage => game.RequestDestroyMessage.decode
       case UnknownMessage46 => noDecoder(opcode)
       case CharacterCreateRequestMessage => game.CharacterCreateRequestMessage.decode
       case CharacterRequestMessage => game.CharacterRequestMessage.decode
