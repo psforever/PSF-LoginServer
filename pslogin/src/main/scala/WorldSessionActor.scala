@@ -167,6 +167,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
       log.info("Emote: " + msg)
       sendResponse(PacketCoding.CreateGamePacket(0, EmoteMsg(avatar_guid, emote_id)))
 
+    case msg @ DropItemMessage(item_guid) =>
+      log.info("DropItem: " + msg)
+
     case default => log.debug(s"Unhandled GamePacket ${pkt}")
   }
 
