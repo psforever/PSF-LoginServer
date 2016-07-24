@@ -157,6 +157,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ ChangeFireModeMessage(item_guid, fire_mode) =>
       log.info("ChangeFireMode: " + msg)
 
+    case msg @ ChangeFireStateMessage_Start(item_guid) =>
+      log.info("ChangeFireState_Start: " + msg)
+
+    case msg @ ChangeFireStateMessage_Stop(item_guid) =>
+      log.info("ChangeFireState_Stop: " + msg)
+
     case default => log.debug(s"Unhandled GamePacket ${pkt}")
   }
 
