@@ -264,5 +264,26 @@ class GamePacketTest extends Specification {
         pkt mustEqual string
       }
     }
+
+    "EmoteMsg" should {
+      val string = hex"25 4B0004"
+
+      "decode" in {
+        PacketCoding.DecodePacket(string).require match {
+          case EmoteMsg(avatar_guid, emote_id) =>
+            avatar_guid mustEqual PlanetSideGUID(75)
+            emote_id mustEqual 4
+          case default =>
+            ko
+        }
+      }
+
+      "encode" in {
+        val msg = EmoteMsg(PlanetSideGUID(75), 4)
+        val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+        pkt mustEqual string
+      }
+    }
   }
 }
