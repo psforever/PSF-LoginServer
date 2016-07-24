@@ -185,6 +185,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ ObjectDeleteMessage(object_guid, unk1) =>
       log.info("ObjectDelete: " + msg)
 
+    case msg @ MoveItemMessage(item_guid, avatar_guid_1, avatar_guid_2, dest, unk1) =>
+      log.info("MoveItem: " + msg)
+
     case default => log.debug(s"Unhandled GamePacket ${pkt}")
   }
 
