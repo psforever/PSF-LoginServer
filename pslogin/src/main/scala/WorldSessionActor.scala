@@ -163,9 +163,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ ChangeFireStateMessage_Stop(item_guid) =>
       log.info("ChangeFireState_Stop: " + msg)
 
-    case msg @ EmoteMsg(avatar_guid, emote_id) =>
+    case msg @ EmoteMsg(avatar_guid, emote) =>
       log.info("Emote: " + msg)
-      sendResponse(PacketCoding.CreateGamePacket(0, EmoteMsg(avatar_guid, emote_id)))
+      sendResponse(PacketCoding.CreateGamePacket(0, EmoteMsg(avatar_guid, emote)))
 
     case msg @ DropItemMessage(item_guid) =>
       log.info("DropItem: " + msg)

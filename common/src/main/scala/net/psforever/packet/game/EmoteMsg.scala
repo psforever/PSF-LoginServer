@@ -2,11 +2,12 @@
 package net.psforever.packet.game
 
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
+import net.psforever.types.EmoteType
 import scodec.Codec
 import scodec.codecs._
 
 final case class EmoteMsg(avatar_guid : PlanetSideGUID,
-                          emote_id : Int)
+                          emote : EmoteType.Value)
   extends PlanetSideGamePacket {
   type Packet = EmoteMsg
   def opcode = GamePacketOpcode.EmoteMsg
@@ -16,6 +17,6 @@ final case class EmoteMsg(avatar_guid : PlanetSideGUID,
 object EmoteMsg extends Marshallable[EmoteMsg] {
   implicit val codec : Codec[EmoteMsg] = (
       ("avatar_guid" | PlanetSideGUID.codec) ::
-        ("emote_id" | uint8L)
+        ("emote" | EmoteType.codec)
     ).as[EmoteMsg]
 }
