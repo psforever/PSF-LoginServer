@@ -348,7 +348,7 @@ object GamePacketOpcode extends Enumeration {
       case BindPlayerMessage => noDecoder(opcode)
       case ObjectCreateMessage_Duplicate => noDecoder(opcode)
       case ObjectCreateMessage => game.ObjectCreateMessage.decode
-      case ObjectDeleteMessage => noDecoder(opcode)
+      case ObjectDeleteMessage => game.ObjectDeleteMessage.decode
       case PingMsg => noDecoder(opcode)
       case VehicleStateMessage => noDecoder(opcode)
       case FrameVehicleStateMessage => noDecoder(opcode)
