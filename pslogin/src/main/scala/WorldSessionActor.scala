@@ -153,6 +153,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
       // TODO: Depending on messagetype, may need to prepend sender's name to contents with proper spacing
       // TODO: Just replays the packet straight back to sender; actually needs to be routed to recipients!
       sendResponse(PacketCoding.CreateGamePacket(0, ChatMsg(messagetype, unk1, recipient, contents)))
+      
+    case msg @ ChangeFireModeMessage(item_guid, fire_mode) =>
+      log.info("ChangeFireMode: " + msg)
 
     case default => log.debug(s"Unhandled GamePacket ${pkt}")
   }
