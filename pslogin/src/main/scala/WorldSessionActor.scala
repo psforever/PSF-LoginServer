@@ -174,6 +174,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
       log.info("Reload: " + msg)
       sendResponse(PacketCoding.CreateGamePacket(0, ReloadMessage(item_guid, 123, unk1)))
 
+    case msg @ ObjectHeldMessage(avatar_guid, held_holsters, unk1) =>
+      log.info("ObjectHeld: " + msg)
+
     case default => log.debug(s"Unhandled GamePacket ${pkt}")
   }
 
