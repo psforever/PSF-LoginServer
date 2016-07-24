@@ -285,5 +285,25 @@ class GamePacketTest extends Specification {
         pkt mustEqual string
       }
     }
+
+    "DropItemMessage" should {
+      val string = hex"37 4C00"
+
+      "decode" in {
+        PacketCoding.DecodePacket(string).require match {
+          case DropItemMessage(item_guid) =>
+            item_guid mustEqual PlanetSideGUID(76)
+          case default =>
+            ko
+        }
+      }
+
+      "encode" in {
+        val msg = DropItemMessage(PlanetSideGUID(76))
+        val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+        pkt mustEqual string
+      }
+    }
   }
 }
