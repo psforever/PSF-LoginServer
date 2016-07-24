@@ -224,5 +224,45 @@ class GamePacketTest extends Specification {
         pkt mustEqual string
       }
     }
+
+    "ChangeFireStateMessage_Start" should {
+      val string = hex"39 4C00"
+
+      "decode" in {
+        PacketCoding.DecodePacket(string).require match {
+          case ChangeFireStateMessage_Start(item_guid) =>
+            item_guid mustEqual PlanetSideGUID(76)
+          case default =>
+            ko
+        }
+      }
+
+      "encode" in {
+        val msg = ChangeFireStateMessage_Start(PlanetSideGUID(76))
+        val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+        pkt mustEqual string
+      }
+    }
+
+    "ChangeFireStateMessage_Stop" should {
+      val string = hex"3A 4C00"
+
+      "decode" in {
+        PacketCoding.DecodePacket(string).require match {
+          case ChangeFireStateMessage_Stop(item_guid) =>
+            item_guid mustEqual PlanetSideGUID(76)
+          case default =>
+            ko
+        }
+      }
+
+      "encode" in {
+        val msg = ChangeFireStateMessage_Stop(PlanetSideGUID(76))
+        val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+        pkt mustEqual string
+      }
+    }
   }
 }
