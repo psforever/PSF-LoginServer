@@ -177,6 +177,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ ObjectHeldMessage(avatar_guid, held_holsters, unk1) =>
       log.info("ObjectHeld: " + msg)
 
+    case msg @ RequestDestroyMessage(object_guid) =>
+      log.info("RequestDestroy: " + msg)
+
     case default => log.debug(s"Unhandled GamePacket ${pkt}")
   }
 
