@@ -87,8 +87,8 @@ object GamePacketOpcode extends Enumeration {
   PickupItemMessage,
   DropItemMessage,
   InventoryStateMessage,
-  ChangeFireStateMessage_Duplicate,
-  ChangeFireStateMessage,
+  ChangeFireStateMessage_Start,
+  ChangeFireStateMessage_Stop,
   UnknownMessage59,
 
   // OPCODE 60
@@ -386,8 +386,8 @@ object GamePacketOpcode extends Enumeration {
       case PickupItemMessage => noDecoder(opcode)
       case DropItemMessage => noDecoder(opcode)
       case InventoryStateMessage => noDecoder(opcode)
-      case ChangeFireStateMessage_Duplicate => noDecoder(opcode)
-      case ChangeFireStateMessage => noDecoder(opcode)
+      case ChangeFireStateMessage_Start => game.ChangeFireStateMessage_Start.decode
+      case ChangeFireStateMessage_Stop => game.ChangeFireStateMessage_Stop.decode
       case UnknownMessage59 => noDecoder(opcode)
 
       // OPCODE 60
