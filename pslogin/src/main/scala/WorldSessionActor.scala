@@ -179,6 +179,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ RequestDestroyMessage(object_guid) =>
       log.info("RequestDestroy: " + msg)
+      // TODO: Make sure this is the correct response in all cases
+      sendResponse(PacketCoding.CreateGamePacket(0, ObjectDeleteMessage(object_guid, 0)))
+
+    case msg @ ObjectDeleteMessage(object_guid, unk1) =>
+      log.info("ObjectDelete: " + msg)
 
     case default => log.debug(s"Unhandled GamePacket ${pkt}")
   }

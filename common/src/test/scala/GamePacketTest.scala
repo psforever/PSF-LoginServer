@@ -369,5 +369,26 @@ class GamePacketTest extends Specification {
         pkt mustEqual string
       }
     }
+
+    "ObjectDeleteMessage" should {
+      val string = hex"19 4C00 00"
+
+      "decode" in {
+        PacketCoding.DecodePacket(string).require match {
+          case ObjectDeleteMessage(object_guid, unk1) =>
+            object_guid mustEqual PlanetSideGUID(76)
+            unk1 mustEqual 0
+          case default =>
+            ko
+        }
+      }
+
+      "encode" in {
+        val msg = ObjectDeleteMessage(PlanetSideGUID(76), 0)
+        val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+        pkt mustEqual string
+      }
+    }
   }
 }
