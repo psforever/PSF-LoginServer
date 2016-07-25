@@ -43,7 +43,12 @@ object CryptoInterface {
     val classpathEntries = classpath.split(File.pathSeparator)
 
     val myLibraryPath = System.getProperty("user.dir")
+    val jnaLibrary = System.getProperty("jna.library.path")
+    val javaLibrary = System.getProperty("java.library.path")
     println("User dir: " + myLibraryPath)
+    println("JNA Lib: " + jnaLibrary)
+    println("Java Lib: " + javaLibrary)
+    print("Classpath: ")
     classpathEntries.foreach(println)
 
     println("Required data model: " + System.getProperty("sun.arch.data.model"))

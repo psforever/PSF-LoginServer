@@ -17,3 +17,5 @@ out/
 *.so
 *.dll
 *.exe
+*.zip
+pscrypto-lib/
