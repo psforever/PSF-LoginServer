@@ -37,10 +37,7 @@ final class QuantizedDoubleCodec(min: Double, max: Double, bits: Int) extends Co
   }
 
   override def encode(value: Double) = {
-    if (value == 0.0)
-      Attempt.successful(BitVector.fromInt(0, bits))
-    else
-      Attempt.successful(BitVector.fromInt(QuantizeDouble(value), bits, ByteOrdering.LittleEndian))
+    Attempt.successful(BitVector.fromInt(QuantizeDouble(value), bits, ByteOrdering.LittleEndian))
   }
 
   override def decode(buffer: BitVector) = {
