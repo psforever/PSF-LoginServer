@@ -1,6 +1,7 @@
 // Copyright (c) 2016 PSForever.net to present
 import org.specs2.mutable._
 import net.psforever.newcodecs._
+import net.psforever.types._
 import scodec.bits._
 
 class CodecTest extends Specification {
@@ -29,6 +30,27 @@ class CodecTest extends Specification {
       newcodecs.q_double(-256.0, 256.0, 14).encode(-3.84375).require.bytes mustEqual string_4
       newcodecs.q_double(-256.0, 256.0, 14).encode(2.59375).require.bytes mustEqual string_5
       newcodecs.q_double(-256.0, 256.0, 14).encode(257.0).require.bytes mustEqual string_6
+    }
+  }
+
+  "Vector3" should {
+    val string_pos = hex"6E2D762222B616"
+    val string_vel = hex"857D4E0FFFC0"
+
+    "decode position" in {
+      Vector3.codec_pos.decode(string_pos.bits).require.value mustEqual Vector3(3674.859375f, 1092.7656f, 90.84375f)
+    }
+
+    "encode position" in {
+      Vector3.codec_pos.encode(Vector3(3674.859375f, 1092.7656f, 90.84375f)).require.bytes mustEqual string_pos
+    }
+
+    "decode velocity" in {
+      Vector3.codec_vel.decode(string_vel.bits).require.value mustEqual Vector3(-3.84375f, 2.59375f, 255.96875f)
+    }
+
+    "encode velocity" in {
+      Vector3.codec_vel.encode(Vector3(-3.84375f, 2.59375f, 255.96875f)).require.bytes mustEqual string_vel
     }
   }
 }
