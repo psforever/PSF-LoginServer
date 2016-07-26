@@ -481,7 +481,7 @@ object GamePacketOpcode extends Enumeration {
       case OffshoreVehicleMessage => noDecoder(opcode)
       case ObjectDeployedMessage => noDecoder(opcode)
       case ObjectDeployedCountMessage => noDecoder(opcode)
-      case WeaponDelayFireMessage => noDecoder(opcode)
+      case WeaponDelayFireMessage => game.WeaponDelayFireMessage.decode
       case BugReportMessage => noDecoder(opcode)
       case PlayerStasisMessage => noDecoder(opcode)
       case UnknownMessage139 => noDecoder(opcode)
