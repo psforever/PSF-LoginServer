@@ -352,7 +352,7 @@ object GamePacketOpcode extends Enumeration {
       case PingMsg => noDecoder(opcode)
       case VehicleStateMessage => noDecoder(opcode)
       case FrameVehicleStateMessage => noDecoder(opcode)
-      case GenericObjectStateMsg => noDecoder(opcode)
+      case GenericObjectStateMsg => game.GenericObjectStateMsg.decode
 
       // OPCODE 30
       case ChildObjectStateMessage => noDecoder(opcode)
