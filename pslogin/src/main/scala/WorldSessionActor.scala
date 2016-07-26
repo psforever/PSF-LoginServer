@@ -203,6 +203,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ GenericObjectStateMsg(object_guid, unk1) =>
       log.info("GenericObjectState: " + msg)
 
+    case msg @ ItemTransactionMessage(terminal_guid, transaction_type, item_page, item_name, unk1, item_guid) =>
+      log.info("ItemTransaction: " + msg)
+
     case default => log.debug(s"Unhandled GamePacket ${pkt}")
   }
 
