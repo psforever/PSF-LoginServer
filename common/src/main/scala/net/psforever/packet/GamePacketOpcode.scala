@@ -399,7 +399,7 @@ object GamePacketOpcode extends Enumeration {
       case DismountVehicleCargoMsg => noDecoder(opcode)
       case CargoMountPointStatusMessage => noDecoder(opcode)
       case BeginZoningMessage => noDecoder(opcode)
-      case ItemTransactionMessage => noDecoder(opcode)
+      case ItemTransactionMessage => game.ItemTransactionMessage.decode
       case ItemTransactionResultMessage => noDecoder(opcode)
 
       // OPCODE 70
