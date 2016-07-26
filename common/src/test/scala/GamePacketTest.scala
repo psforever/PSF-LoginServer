@@ -441,21 +441,21 @@ class GamePacketTest extends Specification {
 
       "decode" in {
         PacketCoding.DecodePacket(string).require match {
-          case PlayerStateMessageUpstream(avatar_guid, pos, vel, unk1, aim_pitch, unk2, unk3, unk4, is_crouching, unk5, unk6, unk7, unk8, unk9) =>
+          case PlayerStateMessageUpstream(avatar_guid, pos, vel, unk1, aim_pitch, unk2, seq_time, unk3, is_crouching, unk4, unk5, unk6, unk7, unk8) =>
             avatar_guid mustEqual PlanetSideGUID(75)
             pos mustEqual Vector3(3694.1094f, 2735.4531f, 90.84375f)
             vel mustEqual Some(Vector3(4.375f, 2.59375f, 0.0f))
             unk1 mustEqual 10
             aim_pitch mustEqual 3
             unk2 mustEqual 0
-            unk3 mustEqual 136
-            unk4 mustEqual 0
+            seq_time mustEqual 136
+            unk3 mustEqual 0
             is_crouching mustEqual false
+            unk4 mustEqual false
             unk5 mustEqual false
             unk6 mustEqual false
-            unk7 mustEqual false
-            unk8 mustEqual 112
-            unk9 mustEqual 0
+            unk7 mustEqual 112
+            unk8 mustEqual 0
           case default =>
             ko
         }
