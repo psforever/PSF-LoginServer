@@ -6,20 +6,25 @@ import net.psforever.types.Vector3
 import scodec.Codec
 import scodec.codecs._
 
+/** PlayerStateMessageUpstream is constantly sent from the client to the server to update avatar properties.
+  *
+  * Note: seq_time appears to be used in other message definitions as well. It
+  * seems to represent a timestamp for ordering of e.g. player and weapon events.
+  */
 final case class PlayerStateMessageUpstream(avatar_guid : PlanetSideGUID,
                                             pos : Vector3,
                                             vel : Option[Vector3],
                                             unk1 : Int,
                                             aim_pitch : Int,
                                             unk2 : Int,
+                                            seq_time : Int,
                                             unk3 : Int,
-                                            unk4 : Int,
                                             is_crouching : Boolean,
+                                            unk4 : Boolean,
                                             unk5 : Boolean,
                                             unk6 : Boolean,
-                                            unk7 : Boolean,
-                                            unk8 : Int,
-                                            unk9 : Int)
+                                            unk7 : Int,
+                                            unk8 : Int)
   extends PlanetSideGamePacket {
   type Packet = PlayerStateMessageUpstream
   def opcode = GamePacketOpcode.PlayerStateMessageUpstream
@@ -34,13 +39,13 @@ object PlayerStateMessageUpstream extends Marshallable[PlayerStateMessageUpstrea
       ("unk1" | uint8L) ::
       ("aim_pitch" | uint8L) ::
       ("unk2" | uint8L) ::
-      ("unk3" | uintL(10)) ::
-      ("unk4" | uintL(3)) ::
+      ("seq_time" | uintL(10)) ::
+      ("unk3" | uintL(3)) ::
       ("is_crouching" | bool) ::
+      ("unk4" | bool) ::
       ("unk5" | bool) ::
       ("unk6" | bool) ::
-      ("unk7" | bool) ::
-      ("unk8" | uint8L) ::
-      ("unk9" | uint16L)
+      ("unk7" | uint8L) ::
+      ("unk8" | uint16L)
     ).as[PlayerStateMessageUpstream]
 }

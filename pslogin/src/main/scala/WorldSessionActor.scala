@@ -145,7 +145,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case KeepAliveMessage(code) =>
       sendResponse(PacketCoding.CreateGamePacket(0, KeepAliveMessage(0)))
 
-    case msg @ PlayerStateMessageUpstream(avatar_guid, pos, vel, unk1, aim_pitch, unk2, unk3, unk4, is_crouching, unk5, unk6, unk7, unk8, unk9) =>
+    case msg @ PlayerStateMessageUpstream(avatar_guid, pos, vel, unk1, aim_pitch, unk2, seq_time, unk3, is_crouching, unk4, unk5, unk6, unk7, unk8) =>
       //log.info("PlayerState: " + msg)
 
     case msg @ ChatMsg(messagetype, unk1, recipient, contents) =>
