@@ -66,7 +66,7 @@ class CryptoSessionActor extends Actor with MDCContextAware {
       PacketCoding.UnmarshalPacket(msg) match {
         case Failure(e) => log.error("Could not decode packet: " + e + s", msg ${msg.toString}")
         case Successful(p) =>
-          //println("RECV: " + p)
+          log.trace("Initializing -> NewClient")
 
           p match {
             case ControlPacket(_, ClientStart(nonce)) =>
@@ -85,7 +85,7 @@ class CryptoSessionActor extends Actor with MDCContextAware {
       PacketCoding.UnmarshalPacket(msg, CryptoPacketOpcode.ClientChallengeXchg) match {
         case Failure(e) => log.error("Could not decode packet: " + e)
         case Successful(p) =>
-          //println("RECV: " + p)
+          log.trace("NewClient -> CryptoExchange")
 
           p match {
             case CryptoPacket(seq, ClientChallengeXchg(time, challenge, p, g)) =>
@@ -129,7 +129,7 @@ class CryptoSessionActor extends Actor with MDCContextAware {
       PacketCoding.UnmarshalPacket(msg, CryptoPacketOpcode.ClientFinished) match {
         case Failure(e) => log.error("Could not decode packet: " + e)
         case Successful(p) =>
-          //println("RECV: " + p)
+          log.trace("CryptoExchange -> CryptoSetupFinishing")
 
           p match {
             case CryptoPacket(seq, ClientFinished(clientPubKey, clientChalResult)) =>
@@ -292,7 +292,7 @@ class CryptoSessionActor extends Actor with MDCContextAware {
   }
 
   def sendResponse(cont : PlanetSidePacketContainer) : ByteVector = {
-    //println("CRYPTO SEND: " + cont)
+    log.trace("CRYPTO SEND: " + cont)
     val pkt = PacketCoding.MarshalPacket(cont)
 
     pkt match {

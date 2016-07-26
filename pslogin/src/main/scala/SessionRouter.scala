@@ -67,7 +67,7 @@ class SessionRouter(pipeline : List[SessionPipeline]) extends Actor with MDCCont
       if(idBySocket.contains(from)) {
         MDC("sessionId") = idBySocket{from}.toString
 
-        log.trace(s"Handling recieved packet")
+        log.trace(s"Handling received packet ${msg} -> ${sessionById{idBySocket{from}}.startOfPipe.path.name}")
         sessionById{idBySocket{from}}.startOfPipe !> RawPacket(msg)
 
         MDC.clear()
