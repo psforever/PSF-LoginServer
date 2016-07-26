@@ -206,6 +206,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ ItemTransactionMessage(terminal_guid, transaction_type, item_page, item_name, unk1, item_guid) =>
       log.info("ItemTransaction: " + msg)
 
+    case msg @ WeaponDelayFireMessage(seq_time, weapon_guid) =>
+      log.info("WeaponDelayFire: " + msg)
+
     case default => log.debug(s"Unhandled GamePacket ${pkt}")
   }
 
