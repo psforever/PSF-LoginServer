@@ -165,6 +165,12 @@ object PsLogin {
 
     logger.info(s"NOTE: Set client.ini to point to ${LoginConfig.serverIpAddress.getHostAddress}:$loginServerPort")
 
+    // Add our shutdown hook (this works for Control+C as well, but not in Cygwin)
+    sys addShutdownHook {
+      // TODO: clean up active sessions and close resources safely
+      logger.info("Login server now shutting down...")
+    }
+
     // Wait forever until the actor system shuts down
     Await.result(system.whenTerminated, Duration.Inf)
   }
