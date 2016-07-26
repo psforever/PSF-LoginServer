@@ -192,6 +192,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ ChangeAmmoMessage(item_guid, unk1) =>
       log.info("ChangeAmmo: " + msg)
 
+    case msg @ UseItemMessage(avatar_guid, unk1, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, unk9) =>
+      log.info("UseItem: " + msg)
+      // TODO: Not all fields in the response are identical to source in real packet logs (but seems to be ok)
+      // TODO: Not all incoming UseItemMessage's respond with another UseItemMessage (i.e. doors only send out GenericObjectStateMsg)
+      sendResponse(PacketCoding.CreateGamePacket(0, UseItemMessage(avatar_guid, unk1, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, unk9)))
+
     case default => log.debug(s"Unhandled GamePacket ${pkt}")
   }
 
