@@ -84,12 +84,22 @@ object PsLogin {
     }
   }
 
+  def parseArgs(args : Array[String]) : Unit = {
+    if(args.length == 1) {
+      LoginConfig.serverIpAddress = InetAddress.getByName(args{0})
+    }
+    else {
+      LoginConfig.serverIpAddress = InetAddress.getLocalHost
+    }
+  }
+
   def main(args : Array[String]) : Unit = {
     // Early start up
     banner()
     println(systemInformation)
 
     initializeLogging("logback.xml")
+    parseArgs(args)
 
     /** Initialize the PSCrypto native library
       *
@@ -149,11 +159,11 @@ object PsLogin {
 
     /** Create two actors for handling the login and world server endpoints */
     val listener = system.actorOf(Props(new UdpListener(Props(new SessionRouter(loginTemplate)), "login-session-router",
-      InetAddress.getLocalHost, loginServerPort)), "login-udp-endpoint")
+      LoginConfig.serverIpAddress, loginServerPort)), "login-udp-endpoint")
     val worldListener = system.actorOf(Props(new UdpListener(Props(new SessionRouter(worldTemplate)), "world-session-router",
-      InetAddress.getLocalHost, worldServerPort)), "world-udp-endpoint")
+      LoginConfig.serverIpAddress, worldServerPort)), "world-udp-endpoint")
 
-    logger.info(s"NOTE: Set client.ini to point to ${InetAddress.getLocalHost.getHostAddress}:$loginServerPort")
+    logger.info(s"NOTE: Set client.ini to point to ${LoginConfig.serverIpAddress.getHostAddress}:$loginServerPort")
 
     // Wait forever until the actor system shuts down
     Await.result(system.whenTerminated, Duration.Inf)

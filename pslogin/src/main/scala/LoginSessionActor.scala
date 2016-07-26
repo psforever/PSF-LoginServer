@@ -89,8 +89,9 @@ class LoginSessionActor extends Actor with MDCContextAware {
     }
   }
 
+  // TODO: move to global configuration or database lookup
   val serverName = "PSForever"
-  val serverAddress = new InetSocketAddress(InetAddress.getLocalHost.getHostAddress, 51001)
+  val serverAddress = new InetSocketAddress(LoginConfig.serverIpAddress.getHostAddress, 51001)
 
   def handleGamePkt(pkt : PlanetSideGamePacket) = pkt match {
       case LoginMessage(majorVersion, minorVersion, buildDate, username,

@@ -1,7 +1,7 @@
 // Copyright (c) 2016 PSForever.net to present
 import java.net.{InetAddress, InetSocketAddress}
 
-import akka.actor.SupervisorStrategy.{Restart, Stop}
+import akka.actor.SupervisorStrategy.Stop
 import akka.actor.{Actor, ActorRef, OneForOneStrategy, Props, Terminated}
 import akka.io._
 import scodec.bits._
@@ -34,6 +34,9 @@ class UdpListener(nextActorProps : Props, nextActorName : String, address : Inet
       createNextActor()
 
       context.become(ready(sender()))
+    case Udp.CommandFailed(Udp.Bind(_, address, _)) =>
+      log.error("Failed to bind to the network interface: " + address)
+      context.system.terminate()
     case default =>
       log.error(s"Unexpected message $default")
   }
