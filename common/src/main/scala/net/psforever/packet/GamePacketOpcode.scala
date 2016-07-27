@@ -382,7 +382,7 @@ object GamePacketOpcode extends Enumeration {
       case SetCurrentAvatarMessage => game.SetCurrentAvatarMessage.decode
       case ObjectHeldMessage => game.ObjectHeldMessage.decode
       case WeaponFireMessage => game.WeaponFireMessage.decode
-      case AvatarJumpMessage => noDecoder(opcode)
+      case AvatarJumpMessage => game.AvatarJumpMessage.decode
       case PickupItemMessage => noDecoder(opcode)
       case DropItemMessage => game.DropItemMessage.decode
       case InventoryStateMessage => noDecoder(opcode)
