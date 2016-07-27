@@ -148,13 +148,13 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ PlayerStateMessageUpstream(avatar_guid, pos, vel, unk1, aim_pitch, unk2, seq_time, unk3, is_crouching, unk4, unk5, unk6, unk7, unk8) =>
       //log.info("PlayerState: " + msg)
 
-    case msg @ ChatMsg(messagetype, unk1, recipient, contents) =>
+    case msg @ ChatMsg(messagetype, has_wide_contents, recipient, contents, note_contents) =>
       log.info("Chat: " + msg)
-      
+
       // TODO: Depending on messagetype, may need to prepend sender's name to contents with proper spacing
       // TODO: Just replays the packet straight back to sender; actually needs to be routed to recipients!
-      sendResponse(PacketCoding.CreateGamePacket(0, ChatMsg(messagetype, unk1, recipient, contents)))
-      
+      sendResponse(PacketCoding.CreateGamePacket(0, ChatMsg(messagetype, has_wide_contents, recipient, contents, note_contents)))
+
     case msg @ ChangeFireModeMessage(item_guid, fire_mode) =>
       log.info("ChangeFireMode: " + msg)
 
