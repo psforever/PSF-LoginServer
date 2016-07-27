@@ -10,6 +10,7 @@ Currently there are no releases of the server. You will need to have a developme
 * SBT 0.13.x
 * Scala 2.11.7
 * https://github.com/psforever/PSCrypto - binary DLL (Windows) or Shared Library (Linux) placed in the root directory of the project.
+* PSCrypto v1.0
 
 ## Setting up a Build Environment
 PSF-LoginServer is built using Simple Build Tool (SBT), which allows it to be built on any platform. SBT is the Scala version of Make, but is more powerful as build definitions are written in Scala. SBT is distributed as a Java JAR and the only dependency it has is a JDK.
@@ -20,6 +21,11 @@ This project is tested with the official [JDK 8 from Oracle](http://www.oracle.c
 ### Downloading the Scala Development Kit
 In order to use scala, you need the compiler `scalac`. This is equivalent to Java's `javac`, but for the Scala language. [Grab the 2.11.7 version from Scala-Lang.org](http://www.scala-lang.org/download/2.11.7.html).
 Install this on to your system and the compiler and Scala REPL will be added to your PATH.
+
+### Downloading PSCrypto
+The server requires PSCrypto in order to run. [Download the latest release](https://github.com/psforever/PSCrypto/releases/download/v1.0/pscrypto-lib-1.0.zip) and extract the ZIP in to the top level of your source directory.
+
+SBT and IDEA will automatically find the required libraries when running.
 
 ### Using an IDE
 Scala code can be fairly complex and a good IDE helps you understand the code and what methods are available for certain types.
@@ -65,11 +71,10 @@ First make sure you have the [SBT tool](http://www.scala-sbt.org/download.html) 
 ```
 cd PSF-LoginServer
 sbt pack
+sbt packArchiveZip # creates a single zip with resources
 ```
 
-This will use the sbt-pack plugin to create a JAR file and some helper scripts to run the server. The output for this will be in `PSF-LoginServer\pslogin\target\pack`. Copy or ZIP up that entire pack directory and copy it to the server you want to run it on. You will need the Java 8 runtime (JRE) to run this. Navigate to the `bin/` directory in the pack folder and run the correct file for your platform (.BAT for Windows and other for Unix).
-
-Note: you *will* need the pscrypto.dll or libpscrypto.so placed in your `bin/` directory in order to run this.
+This will use the sbt-pack plugin to create a JAR file and some helper scripts to run the server. The output for this will be in `PSF-LoginServer\target\pack`. Copy or ZIP up that entire pack directory and copy it to the server you want to run it on. You will need the Java 8 runtime (JRE) to run this. Navigate to the `bin/` directory in the pack folder and run the correct file for your platform (.BAT for Windows and other for Unix).
 
 Automatic or nightly releases coming in the future.
 
@@ -81,7 +86,7 @@ If you get an error like below
 12:17:28.037 [main] ERROR PsLogin - Unable to initialize pscrypto
 java.lang.UnsatisfiedLinkError: Unable to load library 'pscrypto': Native library (win32-x86-64/pscrypto.dll) not found in resource path 
 ```
-Then you are missing the native library required to provide cryptographic functions to the login server. To fix this, you need a binary build of the https://github.com/psforever/PSCrypto project. Automatic builds are not set up at the moment, so get in touch with Chord for a working binary or attempt to build it yourself: YMMV.
+Then you are missing the native library required to provide cryptographic functions to the login server. To fix this, you need a binary build of the https://github.com/psforever/PSCrypto project. See the above step for extracting the required files.
 
 ## Contributing
 Please fork the project and provide a pull request to contribute code. Coding guidelines and contribution checklists coming soon.
