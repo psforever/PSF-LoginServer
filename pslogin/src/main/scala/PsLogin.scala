@@ -1,5 +1,6 @@
 // Copyright (c) 2016 PSForever.net to present
 import java.net.InetAddress
+import java.io.File
 
 import akka.actor.{ActorSystem, Props}
 import ch.qos.logback.classic.LoggerContext
@@ -98,7 +99,16 @@ object PsLogin {
     banner()
     println(systemInformation)
 
-    initializeLogging("logback.xml")
+    // Config directory
+    // Assume a default of the current directory
+    var configDirectory = "config"
+
+    // This is defined when we are running from SBT pack
+    if(System.getProperty("prog.home") != null) {
+      configDirectory = System.getProperty("prog.home") + File.separator + "config"
+    }
+
+    initializeLogging(configDirectory + File.separator + "logback.xml")
     parseArgs(args)
 
     /** Initialize the PSCrypto native library

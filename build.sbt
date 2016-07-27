@@ -19,13 +19,21 @@ lazy val commonSettings = Seq(
 )
 
 lazy val pscryptoSettings = Seq(
-    unmanagedClasspath in Test += (baseDirectory in ThisBuild).value / "pscrypto-lib",
-    unmanagedClasspath in Runtime += (baseDirectory in ThisBuild).value / "pscrypto-lib",
-    unmanagedResources in Runtime += (baseDirectory in ThisBuild).value / "pscrypto-lib"
+  unmanagedClasspath in Test += (baseDirectory in ThisBuild).value / "pscrypto-lib",
+  unmanagedClasspath in Runtime += (baseDirectory in ThisBuild).value / "pscrypto-lib"
+)
+
+lazy val psloginPackSettings = packAutoSettings ++ Seq(
+  packArchivePrefix := "pslogin",
+  packExtraClasspath := Map("ps-login" -> Seq("${PROG_HOME}/pscrypto-lib",
+    "${PROG_HOME}/config")),
+  packResourceDir += (baseDirectory.value / "pscrypto-lib" -> "pscrypto-lib"),
+  packResourceDir += (baseDirectory.value / "config" -> "config")
 )
 
 lazy val root = (project in file(".")).
   settings(commonSettings: _*).
+  settings(psloginPackSettings: _*).
   aggregate(pslogin, common)
 
 lazy val pslogin = (project in file("pslogin")).
@@ -34,7 +42,7 @@ lazy val pslogin = (project in file("pslogin")).
     name := "pslogin"
   ).
   settings(pscryptoSettings: _*).
-  settings(packAutoSettings: _*).dependsOn(common)
+  dependsOn(common)
 
 lazy val common = (project in file("common")).
   settings(commonSettings: _*).
