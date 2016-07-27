@@ -350,6 +350,26 @@ class GamePacketTest extends Specification {
       }
     }
 
+    "AvatarJumpMessage" should {
+      val string = hex"35 80"
+
+      "decode" in {
+        PacketCoding.DecodePacket(string).require match {
+          case AvatarJumpMessage(state) =>
+            state mustEqual true
+          case default =>
+            ko
+        }
+      }
+
+      "encode" in {
+        val msg = AvatarJumpMessage(true)
+        val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+        pkt mustEqual string
+      }
+    }
+
     "RequestDestroyMessage" should {
       val string = hex"2D A49C"
 
