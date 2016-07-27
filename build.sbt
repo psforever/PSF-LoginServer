@@ -4,7 +4,7 @@ lazy val commonSettings = Seq(
   scalaVersion := "2.11.7",
   scalacOptions := Seq("-unchecked", "-deprecation", "-encoding", "utf8"),
   resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
-  libraryDependencies := Seq(
+  libraryDependencies ++= Seq(
     "com.typesafe.akka"          %% "akka-actor"    % "2.4.4",
     "com.typesafe.scala-logging" %% "scala-logging" % "3.1.0",
     "org.specs2"                 %% "specs2-core"   % "3.8.3" % "test",
@@ -14,7 +14,8 @@ lazy val commonSettings = Seq(
     "com.typesafe.akka"          %% "akka-slf4j"    % "2.4.4",
     "ch.qos.logback"              % "logback-classic" % "1.1.7",
     "org.log4s"                  %% "log4s"         % "1.3.0",
-    "org.fusesource.jansi"        % "jansi"         % "1.12"
+    "org.fusesource.jansi"        % "jansi"         % "1.12",
+    "org.scoverage"              %% "scalac-scoverage-plugin" % "1.1.1"
   )
 )
 
