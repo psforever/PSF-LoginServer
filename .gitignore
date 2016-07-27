@@ -9,6 +9,9 @@ out/
 *.ipr
 *.iml
 
+# Log files
+*.log
+
 # Random
 *.swp
 /*.csv
