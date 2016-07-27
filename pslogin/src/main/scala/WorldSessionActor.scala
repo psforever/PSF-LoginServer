@@ -178,6 +178,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ ObjectHeldMessage(avatar_guid, held_holsters, unk1) =>
       log.info("ObjectHeld: " + msg)
 
+    case msg @ AvatarJumpMessage(state) =>
+      //log.info("AvatarJump: " + msg)
+
     case msg @ RequestDestroyMessage(object_guid) =>
       log.info("RequestDestroy: " + msg)
       // TODO: Make sure this is the correct response in all cases
