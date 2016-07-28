@@ -6,9 +6,9 @@ import scodec.Codec
 import scodec.codecs._
 
 /**
-  * Create a dispatched game packet that instructs the client to update the user about continents being conquered.
+  * Create a dispatched game packet that instructs the client to update the user about continents that are conquered.
   *
-  * This generates the event message "The [empire] have captured [continent_guid]."
+  * This generates the event message "The [empire] have captured [continent]."
   * If the continent_guid is not a valid zone, no message is displayed.
   * If empire is not a valid empire, no message is displayed.
   *
