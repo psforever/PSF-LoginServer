@@ -519,7 +519,7 @@ object GamePacketOpcode extends Enumeration {
       case WarpgateResponse => noDecoder(opcode)
       case DamageWithPositionMessage => noDecoder(opcode)
       case GenericActionMessage => noDecoder(opcode)
-      case ContinentalLockUpdateMessage => noDecoder(opcode)
+      case ContinentalLockUpdateMessage => game.ContinentalLockUpdateMessage.decode
       case AvatarGrenadeStateMessage => noDecoder(opcode)
 
       // OPCODE 170
