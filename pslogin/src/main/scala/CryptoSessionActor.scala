@@ -83,13 +83,12 @@ class CryptoSessionActor extends Actor with MDCContextAware {
   def CryptoExchange : Receive = {
     case RawPacket(msg) =>
       PacketCoding.UnmarshalPacket(msg, CryptoPacketOpcode.ClientChallengeXchg) match {
-        case Failure(e) => log.error("Could not decode packet: " + e)
+        case Failure(e) => log.error("Could not decode packet in state CryptoExchange: " + e)
         case Successful(p) =>
           log.trace("NewClient -> CryptoExchange")
 
           p match {
             case CryptoPacket(seq, ClientChallengeXchg(time, challenge, p, g)) =>
-
               cryptoDHState = Some(new CryptoInterface.CryptoDHState())
 
               val dh = cryptoDHState.get
@@ -127,7 +126,7 @@ class CryptoSessionActor extends Actor with MDCContextAware {
   def CryptoSetupFinishing : Receive = {
     case RawPacket(msg) =>
       PacketCoding.UnmarshalPacket(msg, CryptoPacketOpcode.ClientFinished) match {
-        case Failure(e) => log.error("Could not decode packet: " + e)
+        case Failure(e) => log.error("Could not decode packet in state CryptoSetupFinishing: " + e)
         case Successful(p) =>
           log.trace("CryptoExchange -> CryptoSetupFinishing")
 
@@ -222,11 +221,8 @@ class CryptoSessionActor extends Actor with MDCContextAware {
           case Successful(p) =>
             p match {
               case encPacket @ EncryptedPacket(seq, _) =>
-                //println("Decrypting packet..." + encPacket)
                 PacketCoding.decryptPacket(cryptoState.get, encPacket) match {
                   case Successful(packet) =>
-                    //println("RECV[E]: " + packet)
-
                     self ! packet
                   case Failure(e) =>
                     log.error("Failed to decode encrypted packet: " + e)

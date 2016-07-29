@@ -7,21 +7,34 @@
     <encoder>
       <pattern>[%highlight(%5level)] %logger{35} - %msg%n</pattern>
     </encoder>
+    <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+      <level>INFO</level>
+    </filter>
   </appender>
 
-  <appender name="FILE" class="ch.qos.logback.core.FileAppender">
+  <appender name="FILE-TRACE" class="ch.qos.logback.core.FileAppender">
+    <file>pslogin-trace.log</file>
+    <encoder>
+      <pattern>%date{ISO8601} [%thread] %-5level %X %logger{35} - %msg%n</pattern>
+    </encoder>
+    <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+      <level>TRACE</level>
+    </filter>
+  </appender>
+
+  <appender name="FILE-DEBUG" class="ch.qos.logback.core.FileAppender">
     <file>pslogin-debug.log</file>
     <encoder>
-      <!--<pattern>%date{ISO8601} %highlight(%-5level) [%thread MDC{%X}] %logger{35} - %msg%n</pattern>-->
       <pattern>%date{ISO8601} %-5level %X %logger{35} - %msg%n</pattern>
     </encoder>
+    <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+      <level>DEBUG</level>
+    </filter>
   </appender>
 
   <root level="INFO">
     <appender-ref ref="STDOUT" />
+    <appender-ref ref="FILE-TRACE" />
+    <appender-ref ref="FILE-DEBUG" />
   </root>
-
-  <logger name="debug-logger" level="DEBUG">
-    <appender-ref ref="FILE" />
-  </logger>
 </configuration>
