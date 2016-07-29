@@ -11,4 +11,6 @@ package object newcodecs {
 
   def q_float(min : Double, max : Double, bits : Int): Codec[Float] = q_double(min, max, bits).narrow(v => Attempt.successful(v.toFloat), _.toDouble)
 
+  def binary_choice[A](choice: Boolean, codec_true: => Codec[A], codec_false: => Codec[A]): Codec[A] = new BinaryChoiceCodec(choice, codec_true, codec_false)
+
 }
