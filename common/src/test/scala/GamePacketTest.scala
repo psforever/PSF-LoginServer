@@ -624,6 +624,27 @@ class GamePacketTest extends Specification {
       }
     }
 
+    "ContinentalLockUpdateMessage" should {
+      val string = hex"A8 16 00 40"
+
+      "decode" in {
+        PacketCoding.DecodePacket(string).require match {
+          case ContinentalLockUpdateMessage(continent_guid, empire) =>
+            continent_guid mustEqual PlanetSideGUID(22)
+            empire mustEqual PlanetSideEmpire.NC
+          case default =>
+            ko
+        }
+      }
+
+      "encode" in {
+        val msg = ContinentalLockUpdateMessage(PlanetSideGUID(22), PlanetSideEmpire.NC)
+        val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+        pkt mustEqual string
+      }
+    }
+
     "WeaponFireMessage" should {
       val string = hex"34 44130029272F0B5DFD4D4EC5C00009BEF78172003FC0"
 
