@@ -13,11 +13,10 @@ import scodec.codecs._
   * If empire is not a valid empire, no message is displayed.
   *
   * @param continent_guid identifies the zone (continent)
-  * @param empire identifies the empire;
-  *               this value is matchable against PlanetSideEmpire, except for hex `C0` (open)
+  * @param empire identifies the empire; this value is matchable against PlanetSideEmpire
   */
 final case class ContinentalLockUpdateMessage(continent_guid : PlanetSideGUID,
-                                              empire : Int) // 00 for TR, 40 for NC, 80 for VS; C0 is used, but it generates no message
+                                              empire : PlanetSideEmpire.Value) // 00 for TR, 40 for NC, 80 for VS; C0 generates no message
   extends PlanetSideGamePacket {
   type Packet = ContinentalLockUpdateMessage
   def opcode = GamePacketOpcode.ContinentalLockUpdateMessage
@@ -27,6 +26,6 @@ final case class ContinentalLockUpdateMessage(continent_guid : PlanetSideGUID,
 object ContinentalLockUpdateMessage extends Marshallable[ContinentalLockUpdateMessage] {
   implicit val codec : Codec[ContinentalLockUpdateMessage] = (
     ("continent_guid" | PlanetSideGUID.codec) ::
-      ("empire" | uint8L)
+      ("empire" | PlanetSideEmpire.codec)
     ).as[ContinentalLockUpdateMessage]
 }

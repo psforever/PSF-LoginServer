@@ -629,14 +629,14 @@ class GamePacketTest extends Specification {
         PacketCoding.DecodePacket(string).require match {
           case ContinentalLockUpdateMessage(continent_guid, empire) =>
             continent_guid mustEqual PlanetSideGUID(22)
-            empire mustEqual 64
+            empire mustEqual PlanetSideEmpire.NC
           case default =>
             ko
         }
       }
 
       "encode" in {
-        val msg = ContinentalLockUpdateMessage(PlanetSideGUID(22), 64)
+        val msg = ContinentalLockUpdateMessage(PlanetSideGUID(22), PlanetSideEmpire.NC)
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
         pkt mustEqual string
