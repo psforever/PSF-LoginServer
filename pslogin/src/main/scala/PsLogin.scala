@@ -123,8 +123,14 @@ object PsLogin {
     }
     catch {
       case e : UnsatisfiedLinkError =>
-        logger.error(e)("Unable to initialize " + CryptoInterface.libName)
-        CryptoInterface.printEnvironment()
+        logger.error("Unable to initialize " + CryptoInterface.libName)
+        logger.error(e)("This means that your PSCrypto version is out of date. Get the latest version from the README" +
+          " https://github.com/psforever/PSF-LoginServer#downloading-pscrypto")
+        sys.exit(1)
+      case e : IllegalArgumentException =>
+        logger.error("Unable to initialize " + CryptoInterface.libName)
+        logger.error(e)("This means that your PSCrypto version is out of date. Get the latest version from the README" +
+          " https://github.com/psforever/PSF-LoginServer#downloading-pscrypto")
         sys.exit(1)
     }
 

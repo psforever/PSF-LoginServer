@@ -8,9 +8,9 @@ Currently there are no releases of the server. You will need to have a developme
 ## Build Requirements
 
 * SBT 0.13.x
-* Scala 2.11.7
+* Scala 2.11.8
 * https://github.com/psforever/PSCrypto - binary DLL (Windows) or Shared Library (Linux) placed in the root directory of the project.
-* PSCrypto v1.0
+* PSCrypto v1.1
 
 ## Setting up a Build Environment
 PSF-LoginServer is built using Simple Build Tool (SBT), which allows it to be built on any platform. SBT is the Scala version of Make, but is more powerful as build definitions are written in Scala. SBT is distributed as a Java JAR and the only dependency it has is a JDK.
@@ -19,11 +19,11 @@ PSF-LoginServer is built using Simple Build Tool (SBT), which allows it to be bu
 This project is tested with the official [JDK 8 from Oracle](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html). Download and install it for your system in order to start compiling Scala. If you are new to Scala, this may seem strange to be installing Java for Scala. Scala runs on top of the Java Virtual Machine, meaning it generates `.class` and `.jar` files and uses the `java` executable. Essentially, Scala is just a compiler that targets the JVM, which is its runtime.
 
 ### Downloading the Scala Development Kit
-In order to use scala, you need the compiler `scalac`. This is equivalent to Java's `javac`, but for the Scala language. [Grab the 2.11.7 version from Scala-Lang.org](http://www.scala-lang.org/download/2.11.7.html).
+In order to use scala, you need the compiler `scalac`. This is equivalent to Java's `javac`, but for the Scala language. [Grab the 2.11.8 version from Scala-Lang.org](http://www.scala-lang.org/download/2.11.8.html).
 Install this on to your system and the compiler and Scala REPL will be added to your PATH.
 
 ### Downloading PSCrypto
-The server requires PSCrypto in order to run. [Download the latest release](https://github.com/psforever/PSCrypto/releases/download/v1.0/pscrypto-lib-1.0.zip) and extract the ZIP in to the top level of your source directory.
+The server requires PSCrypto in order to run. [Download the latest release](https://github.com/psforever/PSCrypto/releases/download/v1.1/pscrypto-lib-1.1.zip) and extract the ZIP in to the top level of your source directory.
 
 SBT and IDEA will automatically find the required libraries when running.
 
