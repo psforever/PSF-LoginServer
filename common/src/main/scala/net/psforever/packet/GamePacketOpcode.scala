@@ -578,7 +578,7 @@ object GamePacketOpcode extends Enumeration {
       case WarpgateLinkOverrideMessage => noDecoder(opcode)
       case EmpireBenefitsMessage => noDecoder(opcode)
       case ForceEmpireMessage => noDecoder(opcode)
-      case BroadcastWarpgateUpdateMessage => noDecoder(opcode)
+      case BroadcastWarpgateUpdateMessage => game.BroadcastWarpgateUpdateMessage.decode
       case UnknownMessage218 => noDecoder(opcode)
       case SquadMainTerminalMessage => noDecoder(opcode)
 
