@@ -49,7 +49,7 @@ class SessionRouter(pipeline : List[SessionPipeline]) extends Actor with MDCCont
     *      ^              |          ^           |        ^                 |
     *      |     write()  |          |  encrypt  |        |   response      |
     *      +--------------+          +-----------+        +-----------------+
-   */
+    **/
 
   def receive = initializing
 
@@ -84,34 +84,34 @@ class SessionRouter(pipeline : List[SessionPipeline]) extends Actor with MDCCont
         log.info("New session from " + from.toString)
 
         // send the initial message with MDC context (give the session ID to the lower layers)
-        sessionById{session.id}.startOfPipe !> HelloFriend(sessionById{session.id}.nextOfStart)
+        sessionById{session.id}.startOfPipe !> HelloFriend(session.id, sessionById{session.id}.nextOfStart)
         sessionById{session.id}.startOfPipe !> RawPacket(msg)
 
         MDC.clear()
       }
     case ResponsePacket(msg) =>
       val session = sessionByActor.get(sender())
-
-      // drop any old queued messages from old actors
-      //if(session.isDefined) {
+      if(session.isDefined) {
         log.trace(s"Sending response ${msg}")
 
         inputRef ! SendPacket(msg, session.get.address)
-      //}
+      } else {
+        log.error("Dropped old response packet from session actor " + sender().path.name)
+      }
     case Terminated(actor) =>
       val terminatedSession = sessionByActor.get(actor)
 
       if(terminatedSession.isDefined) {
         removeSessionById(terminatedSession.get.id, s"${actor.path.name} died")
+      } else {
+        log.error("Received an invalid actor Termination from " + actor.path.name)
       }
     case default =>
-      log.error(s"Unknown message $default")
+      log.error(s"Unknown message $default from " + sender().path)
   }
 
   def createNewSession(address : InetSocketAddress) = {
     val id = newSessionId
-
-
 
     // inflate the pipeline
     val actors = pipeline.map { actor =>
@@ -120,21 +120,13 @@ class SessionRouter(pipeline : List[SessionPipeline]) extends Actor with MDCCont
       a
     }
 
-    /*val cryptoSession = context.actorOf(Props[CryptoSessionActor],
-      "crypto-session-" + id.toString)
-    val loginSession = context.actorOf(Props[LoginSessionActor],
-      "login-session-" + id.toString)*/
-
-    //context.watch(cryptoSession)
-    //context.watch(loginSession)
-
     SessionState(id, address, actors)
   }
 
   def removeSessionById(id : Long, reason : String) : Unit = {
     val sessionOption = sessionById.get(id)
 
-    if(!sessionOption.isDefined)
+    if(sessionOption.isEmpty)
       return
 
     val session = sessionOption.get
@@ -142,7 +134,7 @@ class SessionRouter(pipeline : List[SessionPipeline]) extends Actor with MDCCont
     // TODO: add some sort of delay to prevent old session packets from coming through
     // kill all session specific actors
     session.pipeline.foreach(_ ! PoisonPill)
-    session.pipeline.foreach(sessionByActor remove _)
+    session.pipeline.foreach(sessionByActor remove)
     sessionById.remove(id)
     idBySocket.remove(session.address)
 

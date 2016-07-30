@@ -7,10 +7,10 @@ import scodec.codecs._
 
 /** Sent periodically by the PlanetSide client when connected to the Login server. Not encrypted
   *
-  * @param unk1
-  * @param unk2
+  * @param serverSlot Which server on the server display is the ping referring to
+  * @param ticks The number of ticks. Usually just reflected back to the client
   */
-final case class PingMsg(unk1 : Long, unk2 : Long) extends PlanetSideGamePacket {
+final case class PingMsg(serverSlot : Long, ticks : Long) extends PlanetSideGamePacket {
   type Packet = PingMsg
   def opcode = GamePacketOpcode.PingMsg
   def encode = PingMsg.encode(this)
@@ -18,7 +18,7 @@ final case class PingMsg(unk1 : Long, unk2 : Long) extends PlanetSideGamePacket 
 
 object PingMsg extends Marshallable[PingMsg] {
   implicit val codec : Codec[PingMsg] = (
-    ("unk1" | uint32L) ::
-      ("unk2" | uint32L)
+    ("server_slot" | uint32L) ::
+      ("ticks" | uint32L)
     ).as[PingMsg]
 }

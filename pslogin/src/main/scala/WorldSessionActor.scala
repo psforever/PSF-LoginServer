@@ -7,19 +7,23 @@ import net.psforever.packet.control._
 import net.psforever.packet.game._
 import scodec.Attempt.{Failure, Successful}
 import scodec.bits._
+import org.log4s.MDC
+import MDCContextAware.Implicits._
 
 class WorldSessionActor extends Actor with MDCContextAware {
   private[this] val log = org.log4s.getLogger
 
   private case class PokeClient()
 
+  var sessionId : Long = 0
   var leftRef : ActorRef = ActorRef.noSender
   var rightRef : ActorRef = ActorRef.noSender
 
   def receive = Initializing
 
   def Initializing : Receive = {
-    case HelloFriend(right) =>
+    case HelloFriend(sessionId, right) =>
+      this.sessionId = sessionId
       leftRef = sender()
       rightRef = right.asInstanceOf[ActorRef]
 
@@ -121,7 +125,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
           sendResponse(PacketCoding.CreateGamePacket(0, ActionResultMessage(false, Some(1))))
         case CharacterRequestAction.Select =>
           PacketCoding.DecodeGamePacket(objectHex).require match {
-            case ObjectCreateMessage(len, cls, guid, _) =>
+            case obj @ ObjectCreateMessage(len, cls, guid, _, _) =>
+              log.debug("Object: " + obj)
               // LoadMapMessage 13714 in mossy .gcap
               // XXX: hardcoded shit
               sendRawResponse(hex"31 85 6D 61 70 31 33 85  68 6F 6D 65 33 A4 9C 19 00 00 00 AE 30 5E 70 00  ")
@@ -232,11 +237,15 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
   def sendResponse(cont : PlanetSidePacketContainer) = {
     log.trace("WORLD SEND: " + cont)
-    rightRef ! cont
+
+    MDC("sessionId") = sessionId.toString
+    rightRef !> cont
   }
 
   def sendRawResponse(pkt : ByteVector) = {
     log.trace("WORLD SEND RAW: " + pkt)
-    rightRef ! RawPacket(pkt)
+
+    MDC("sessionId") = sessionId.toString
+    rightRef !> RawPacket(pkt)
   }
 }

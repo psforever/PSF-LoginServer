@@ -5,8 +5,10 @@ import akka.actor.{Actor, ActorRef, MDCContextAware}
 import net.psforever.packet.{PlanetSideGamePacket, _}
 import net.psforever.packet.control._
 import net.psforever.packet.game._
+import org.log4s.MDC
 import scodec.Attempt.{Failure, Successful}
 import scodec.bits._
+import MDCContextAware.Implicits._
 
 import scala.util.Random
 
@@ -15,13 +17,15 @@ class LoginSessionActor extends Actor with MDCContextAware {
 
   private case class UpdateServerList()
 
+  var sessionId : Long = 0
   var leftRef : ActorRef = ActorRef.noSender
   var rightRef : ActorRef = ActorRef.noSender
 
   def receive = Initializing
 
   def Initializing : Receive = {
-    case HelloFriend(right) =>
+    case HelloFriend(sessionId, right) =>
+      this.sessionId = sessionId
       leftRef = sender()
       rightRef = right.asInstanceOf[ActorRef]
 
@@ -33,7 +37,7 @@ class LoginSessionActor extends Actor with MDCContextAware {
 
   def Started : Receive = {
     case UpdateServerList() =>
-      updateServerList
+      updateServerList()
     case ctrl @ ControlPacket(_, _) =>
       handlePktContainer(ctrl)
     case game @ GamePacket(_, _, _) =>
@@ -74,7 +78,6 @@ class LoginSessionActor extends Actor with MDCContextAware {
         val serverTick = Math.abs(System.nanoTime().toInt) // limit the size to prevent encoding error
         sendResponse(PacketCoding.CreateControlPacket(ControlSyncResp(diff, serverTick,
           fa, fb, fb, fa)))
-
       case MultiPacket(packets) =>
         packets.foreach { pkt =>
           PacketCoding.DecodePacket(pkt) match {
@@ -109,7 +112,7 @@ class LoginSessionActor extends Actor with MDCContextAware {
           0, 1, 2, 685276011, username, 0, false)
 
         sendResponse(PacketCoding.CreateGamePacket(0, response))
-        updateServerList
+        updateServerList()
       case ConnectToWorldRequestMessage(name, _, _, _, _, _, _) =>
         log.info(s"Connect to world request for '${name}'")
 
@@ -118,7 +121,7 @@ class LoginSessionActor extends Actor with MDCContextAware {
       case default => log.debug(s"Unhandled GamePacket ${pkt}")
   }
 
-  def updateServerList = {
+  def updateServerList() = {
     val msg = VNLWorldStatusMessage("Welcome to PlanetSide! ",
       Vector(
         WorldInformation(serverName, WorldStatus.Up, ServerType.Released,
@@ -135,11 +138,15 @@ class LoginSessionActor extends Actor with MDCContextAware {
 
   def sendResponse(cont : PlanetSidePacketContainer) = {
     log.trace("LOGIN SEND: " + cont)
-    rightRef ! cont
+
+    MDC("sessionId") = sessionId.toString
+    rightRef !> cont
   }
 
   def sendRawResponse(pkt : ByteVector) = {
     log.trace("LOGIN SEND RAW: " + pkt)
-    rightRef ! RawPacket(pkt)
+
+    MDC("sessionId") = sessionId.toString
+    rightRef !> RawPacket(pkt)
   }
 }

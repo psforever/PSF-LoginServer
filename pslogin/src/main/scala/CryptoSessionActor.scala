@@ -14,6 +14,8 @@ import java.security.SecureRandom
 import net.psforever.packet.control.{ClientStart, ServerStart}
 import net.psforever.packet.crypto._
 import net.psforever.packet.game.PingMsg
+import org.log4s.MDC
+import MDCContextAware.Implicits._
 
 /**
   * Actor that stores crypto state for a connection, appropriately encrypts and decrypts packets,
@@ -22,6 +24,7 @@ import net.psforever.packet.game.PingMsg
 class CryptoSessionActor extends Actor with MDCContextAware {
   private[this] val log = org.log4s.getLogger
 
+  var sessionId : Long = 0
   var leftRef : ActorRef = ActorRef.noSender
   var rightRef : ActorRef = ActorRef.noSender
 
@@ -46,13 +49,14 @@ class CryptoSessionActor extends Actor with MDCContextAware {
   def receive = Initializing
 
   def Initializing : Receive = {
-    case HelloFriend(right) =>
+    case HelloFriend(sessionId, right) =>
       import MDCContextAware.Implicits._
+      this.sessionId = sessionId
       leftRef = sender()
       rightRef = right.asInstanceOf[ActorRef]
 
       // who ever we send to has to send something back to us
-      rightRef !> HelloFriend(self)
+      rightRef !> HelloFriend(sessionId, self)
 
       log.trace(s"Left sender ${leftRef.path.name}")
 
@@ -78,14 +82,14 @@ class CryptoSessionActor extends Actor with MDCContextAware {
           }
         case Failure(e) =>
           // There is a special case where no crypto is being used.
-          // The only packet coming through looks like PingMsg
-
+          // The only packet coming through looks like PingMsg. This is a hardcoded
+          // feature of the client @ 0x005FD618
           PacketCoding.DecodePacket(msg) match {
             case Successful(packet) =>
               packet match {
-                case ping @ PingMsg(unk1, unk2) =>
-                  // TODO: figure out how to get ping to show up on the planetside client
-                  //sendResponse(PingMsg(unk2, unk1))
+                case ping @ PingMsg(_, _) =>
+                  // reflect the packet back to the sender
+                  sendResponse(ping)
                 case default => log.error(s"Unexpected non-crypto packet type ${packet} in state NewClient")
               }
             case Failure(e) =>
@@ -238,7 +242,7 @@ class CryptoSessionActor extends Actor with MDCContextAware {
               case encPacket @ EncryptedPacket(seq, _) =>
                 PacketCoding.decryptPacket(cryptoState.get, encPacket) match {
                   case Successful(packet) =>
-                    self ! packet
+                    self !> packet
                   case Failure(e) =>
                     log.error("Failed to decode encrypted packet: " + e)
                 }
@@ -292,7 +296,6 @@ class CryptoSessionActor extends Actor with MDCContextAware {
   def handleEstablishedPacket(from : ActorRef, cont : PlanetSidePacketContainer) = {
     // we are processing a packet we decrypted
     if(from == self) {
-      import MDCContextAware.Implicits._
       rightRef !> cont
     } else if(from == rightRef) { // processing a completed packet from the right. encrypt
       val packet = PacketCoding.encryptPacket(cryptoState.get, cont).require
@@ -312,7 +315,10 @@ class CryptoSessionActor extends Actor with MDCContextAware {
         ByteVector.empty
       case Successful(v) =>
         val bytes = v.toByteVector
-        leftRef ! ResponsePacket(bytes)
+
+        MDC("sessionId") = sessionId.toString
+        leftRef !> ResponsePacket(bytes)
+
         bytes
     }
   }
@@ -327,7 +333,10 @@ class CryptoSessionActor extends Actor with MDCContextAware {
         ByteVector.empty
       case Successful(v) =>
         val bytes = v.toByteVector
-        leftRef ! ResponsePacket(bytes)
+
+        MDC("sessionId") = sessionId.toString
+        leftRef !> ResponsePacket(bytes)
+
         bytes
     }
   }

@@ -15,7 +15,7 @@ trait MDCContextAware extends Actor with ActorLogging  {
     val orig = MDC.getCopyOfContextMap
     try {
       msg match {
-        case MdcMsg(mdc, origMsg) =>
+        case mdcObj @ MdcMsg(mdc, origMsg) =>
           if (mdc != null)
             MDC.setContextMap(mdc)
           else
