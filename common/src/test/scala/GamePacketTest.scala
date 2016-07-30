@@ -150,10 +150,12 @@ class GamePacketTest extends Specification {
 
       "decode" in {
         PacketCoding.DecodePacket(packet2).require match {
-          case obj @ ObjectCreateMessage(len, cls, guid, parent) =>
+          case obj @ ObjectCreateMessage(len, cls, guid, parent, rest) =>
+            val manualRest = packet2.bits.drop(32 + 1 + 0xb + 16)
             len === 29719
             cls === 121
             guid === 2497
+            rest === manualRest
             parent === None
           case default =>
             ko
@@ -739,6 +741,25 @@ class GamePacketTest extends Specification {
         val pkt_hitobj = PacketCoding.EncodePacket(msg_hitobj).require.toByteVector
 
         pkt_hitobj mustEqual string_hitobj
+      }
+    }
+
+    "PingMsg" should  {
+      val packet = hex"1a 00000000 b0360000"
+
+      "decode" in {
+        PacketCoding.DecodePacket(packet).require match {
+          case PingMsg(unk1, unk2) =>
+            unk1 === 0
+            unk2 === 14000
+          case default =>
+            ko
+        }
+      }
+
+      "encode" in {
+        val msg = PingMsg(0, 14000)
+        PacketCoding.EncodePacket(msg).require.toByteVector === packet
       }
     }
   }

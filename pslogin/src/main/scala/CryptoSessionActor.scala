@@ -13,6 +13,7 @@ import java.security.SecureRandom
 
 import net.psforever.packet.control.{ClientStart, ServerStart}
 import net.psforever.packet.crypto._
+import net.psforever.packet.game.PingMsg
 
 /**
   * Actor that stores crypto state for a connection, appropriately encrypts and decrypts packets,
@@ -64,7 +65,6 @@ class CryptoSessionActor extends Actor with MDCContextAware {
   def NewClient : Receive = {
     case RawPacket(msg) =>
       PacketCoding.UnmarshalPacket(msg) match {
-        case Failure(e) => log.error("Could not decode packet: " + e + s", msg ${msg.toString}")
         case Successful(p) =>
           log.trace("Initializing -> NewClient")
 
@@ -75,6 +75,21 @@ class CryptoSessionActor extends Actor with MDCContextAware {
               context.become(CryptoExchange)
             case default =>
               log.error(s"Unexpected packet type ${p} in state NewClient")
+          }
+        case Failure(e) =>
+          // There is a special case where no crypto is being used.
+          // The only packet coming through looks like PingMsg
+
+          PacketCoding.DecodePacket(msg) match {
+            case Successful(packet) =>
+              packet match {
+                case ping @ PingMsg(unk1, unk2) =>
+                  // TODO: figure out how to get ping to show up on the planetside client
+                  //sendResponse(PingMsg(unk2, unk1))
+                case default => log.error(s"Unexpected non-crypto packet type ${packet} in state NewClient")
+              }
+            case Failure(e) =>
+              log.error("Could not decode packet: " + e + s" in state NewClient")
           }
       }
     case default => log.error(s"Invalid message '$default' received in state NewClient")
@@ -294,6 +309,21 @@ class CryptoSessionActor extends Actor with MDCContextAware {
     pkt match {
       case Failure(e) =>
         log.error(s"Failed to marshal packet ${cont.getClass.getName} when sending response")
+        ByteVector.empty
+      case Successful(v) =>
+        val bytes = v.toByteVector
+        leftRef ! ResponsePacket(bytes)
+        bytes
+    }
+  }
+
+  def sendResponse(pkt : PlanetSideGamePacket) : ByteVector = {
+    log.trace("CRYPTO SEND GAME: " + pkt)
+    val pktEncoded = PacketCoding.EncodePacket(pkt)
+
+    pktEncoded match {
+      case Failure(e) =>
+        log.error(s"Failed to encode packet ${pkt.getClass.getName} when sending response")
         ByteVector.empty
       case Successful(v) =>
         val bytes = v.toByteVector
