@@ -2,7 +2,7 @@ language: scala
 scala:
   - 2.11.8
 before_script:
-  - wget https://github.com/psforever/PSCrypto/releases/download/v1.0/pscrypto-lib-1.1.zip
+  - wget https://github.com/psforever/PSCrypto/releases/download/v1.1/pscrypto-lib-1.1.zip
   - unzip pscrypto-lib-1.1.zip
 script:
   - sbt ++$TRAVIS_SCALA_VERSION clean coverage test coverageReport
