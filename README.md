@@ -3,6 +3,8 @@ This project contains the code to run and manage the login server role for Plane
 
 ![PSForever Login Server banner](https://i.imgur.com/EkbIv5x.png)
 
+The login server and world server are currently combined for ease of contributing.
+The world and game servers are build to work with PlanetSide version 3.15.84.0. Anything older is not guaranteed to work.
 Currently there are no releases of the server. You will need to have a development environment set up in order to get it running.
 
 ## Build Requirements
