@@ -174,9 +174,9 @@ object PsLogin {
     val worldServerPort = 51001
 
     /** Create two actors for handling the login and world server endpoints */
-    val listener = system.actorOf(Props(new UdpListener(Props(new SessionRouter(loginTemplate)), "login-session-router",
+    val listener = system.actorOf(Props(new UdpListener(Props(new SessionRouter("Login", loginTemplate)), "login-session-router",
       LoginConfig.serverIpAddress, loginServerPort)), "login-udp-endpoint")
-    val worldListener = system.actorOf(Props(new UdpListener(Props(new SessionRouter(worldTemplate)), "world-session-router",
+    val worldListener = system.actorOf(Props(new UdpListener(Props(new SessionRouter("World", worldTemplate)), "world-session-router",
       LoginConfig.serverIpAddress, worldServerPort)), "world-udp-endpoint")
 
     logger.info(s"NOTE: Set client.ini to point to ${LoginConfig.serverIpAddress.getHostAddress}:$loginServerPort")

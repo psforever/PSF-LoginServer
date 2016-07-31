@@ -167,5 +167,24 @@ class ControlPacketTest extends Specification {
         }
       }
     }
+
+    "TeardownConnection" should {
+      val string = hex"00 05 02 4F 57 17 00 06"
+
+      "decode" in {
+        PacketCoding.DecodePacket(string).require match {
+          case TeardownConnection(nonce) =>
+            nonce mustEqual 391597826
+          case default =>
+            ko
+        }
+      }
+
+      "encode" in {
+        val encoded = PacketCoding.EncodePacket(TeardownConnection(391597826)).require
+
+        encoded.toByteVector mustEqual string
+      }
+    }
   }
 }

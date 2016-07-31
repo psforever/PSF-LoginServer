@@ -11,11 +11,14 @@ import scodec.{Attempt, Codec, Err}
 import scodec.codecs.{bytes, uint16L, uint8L}
 import java.security.SecureRandom
 
-import net.psforever.packet.control.{ClientStart, ServerStart}
+import net.psforever.packet.control.{ClientStart, ServerStart, TeardownConnection}
 import net.psforever.packet.crypto._
 import net.psforever.packet.game.PingMsg
 import org.log4s.MDC
 import MDCContextAware.Implicits._
+
+sealed trait CryptoSessionAPI
+final case class DropCryptoSession() extends CryptoSessionAPI
 
 /**
   * Actor that stores crypto state for a connection, appropriately encrypts and decrypts packets,
@@ -40,6 +43,9 @@ class CryptoSessionActor extends Actor with MDCContextAware {
   var clientPublicKey = ByteVector.empty
   var clientChallenge = ByteVector.empty
   var clientChallengeResult = ByteVector.empty
+
+  var clientNonce : Long = 0
+  var serverNonce : Long = 0
 
   // Don't leak crypto object memory even on an exception
   override def postStop() = {
@@ -74,7 +80,9 @@ class CryptoSessionActor extends Actor with MDCContextAware {
 
           p match {
             case ControlPacket(_, ClientStart(nonce)) =>
-              sendResponse(PacketCoding.CreateControlPacket(ServerStart(nonce, Math.abs(random.nextInt()))))
+              clientNonce = nonce
+              serverNonce = Math.abs(random.nextInt())
+              sendResponse(PacketCoding.CreateControlPacket(ServerStart(nonce, serverNonce)))
 
               context.become(CryptoExchange)
             case default =>
@@ -252,6 +260,14 @@ class CryptoSessionActor extends Actor with MDCContextAware {
           case Failure(e) => log.error("Could not decode raw packet: " + e)
         }
       }
+    case api : CryptoSessionAPI =>
+      api match {
+        case DropCryptoSession() =>
+          handleEstablishedPacket(
+            sender(),
+            PacketCoding.CreateControlPacket(TeardownConnection(clientNonce))
+          )
+      }
     case ctrl @ ControlPacket(_, _) =>
       val from = sender()
 
@@ -260,6 +276,8 @@ class CryptoSessionActor extends Actor with MDCContextAware {
       val from = sender()
 
       handleEstablishedPacket(from, game)
+    case sessionAPI : SessionRouterAPI =>
+      leftRef !> sessionAPI
     case default => failWithError(s"Invalid message '$default' received in state Established")
   }
 

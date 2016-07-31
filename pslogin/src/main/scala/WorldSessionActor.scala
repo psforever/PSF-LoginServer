@@ -1,7 +1,7 @@
 // Copyright (c) 2016 PSForever.net to present
 import java.net.{InetAddress, InetSocketAddress}
 
-import akka.actor.{Actor, ActorRef, MDCContextAware}
+import akka.actor.{Actor, ActorRef, Cancellable, MDCContextAware}
 import net.psforever.packet.{PlanetSideGamePacket, _}
 import net.psforever.packet.control._
 import net.psforever.packet.game._
@@ -9,6 +9,7 @@ import scodec.Attempt.{Failure, Successful}
 import scodec.bits._
 import org.log4s.MDC
 import MDCContextAware.Implicits._
+import net.psforever.types.ChatMessageType
 
 class WorldSessionActor extends Actor with MDCContextAware {
   private[this] val log = org.log4s.getLogger
@@ -18,6 +19,13 @@ class WorldSessionActor extends Actor with MDCContextAware {
   var sessionId : Long = 0
   var leftRef : ActorRef = ActorRef.noSender
   var rightRef : ActorRef = ActorRef.noSender
+
+  var clientKeepAlive : Cancellable = null
+
+  override def postStop() = {
+    if(clientKeepAlive != null)
+      clientKeepAlive.cancel()
+  }
 
   def receive = Initializing
 
@@ -139,7 +147,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
               import scala.concurrent.duration._
               import scala.concurrent.ExecutionContext.Implicits.global
-              context.system.scheduler.schedule(0 seconds, 1000 milliseconds, self, PokeClient())
+              clientKeepAlive = context.system.scheduler.schedule(0 seconds, 1000 milliseconds, self, PokeClient())
           }
         case default =>
           log.error("Unsupported " + default + " in " + msg)
@@ -159,6 +167,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ ChatMsg(messagetype, has_wide_contents, recipient, contents, note_contents) =>
       log.info("Chat: " + msg)
+
+      // TODO: handle this appropriately
+      if(messagetype == ChatMessageType.PopupQuit) {
+        sendResponse(DropCryptoSession())
+        sendResponse(DropSession(sessionId, "user quit"))
+      }
 
       // TODO: Depending on messagetype, may need to prepend sender's name to contents with proper spacing
       // TODO: Just replays the packet straight back to sender; actually needs to be routed to recipients!
@@ -235,17 +249,18 @@ class WorldSessionActor extends Actor with MDCContextAware {
     //sendResponse(PacketCoding.CreateControlPacket(ConnectionClose()))
   }
 
-  def sendResponse(cont : PlanetSidePacketContainer) = {
+  def sendResponse(cont : PlanetSidePacketContainer) : Unit = {
     log.trace("WORLD SEND: " + cont)
+    sendResponse(cont.asInstanceOf[Any])
+  }
 
+  def sendResponse(msg : Any) : Unit = {
     MDC("sessionId") = sessionId.toString
-    rightRef !> cont
+    rightRef !> msg
   }
 
   def sendRawResponse(pkt : ByteVector) = {
     log.trace("WORLD SEND RAW: " + pkt)
-
-    MDC("sessionId") = sessionId.toString
-    rightRef !> RawPacket(pkt)
+    sendResponse(RawPacket(pkt))
   }
 }

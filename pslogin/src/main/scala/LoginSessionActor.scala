@@ -1,7 +1,7 @@
 // Copyright (c) 2016 PSForever.net to present
 import java.net.{InetAddress, InetSocketAddress}
 
-import akka.actor.{Actor, ActorRef, MDCContextAware}
+import akka.actor.{Actor, ActorRef, Cancellable, MDCContextAware}
 import net.psforever.packet.{PlanetSideGamePacket, _}
 import net.psforever.packet.control._
 import net.psforever.packet.game._
@@ -10,16 +10,25 @@ import scodec.Attempt.{Failure, Successful}
 import scodec.bits._
 import MDCContextAware.Implicits._
 
+import scala.concurrent.duration._
 import scala.util.Random
 
 class LoginSessionActor extends Actor with MDCContextAware {
   private[this] val log = org.log4s.getLogger
 
+  import scala.concurrent.ExecutionContext.Implicits.global
   private case class UpdateServerList()
 
   var sessionId : Long = 0
   var leftRef : ActorRef = ActorRef.noSender
   var rightRef : ActorRef = ActorRef.noSender
+
+  var updateServerListTask : Cancellable = null
+
+  override def postStop() = {
+    if(updateServerListTask != null)
+      updateServerListTask.cancel()
+  }
 
   def receive = Initializing
 
@@ -112,12 +121,14 @@ class LoginSessionActor extends Actor with MDCContextAware {
           0, 1, 2, 685276011, username, 0, false)
 
         sendResponse(PacketCoding.CreateGamePacket(0, response))
-        updateServerList()
+
+        updateServerListTask = context.system.scheduler.schedule(0 seconds, 2 seconds, self, UpdateServerList())
       case ConnectToWorldRequestMessage(name, _, _, _, _, _, _) =>
         log.info(s"Connect to world request for '${name}'")
 
         val response = ConnectToWorldMessage(serverName, serverAddress.getHostString, serverAddress.getPort)
         sendResponse(PacketCoding.CreateGamePacket(0, response))
+        sendResponse(DropSession(sessionId, "user transferring to world"))
       case default => log.debug(s"Unhandled GamePacket ${pkt}")
   }
 
@@ -136,7 +147,7 @@ class LoginSessionActor extends Actor with MDCContextAware {
     //sendResponse(PacketCoding.CreateControlPacket(ConnectionClose()))
   }
 
-  def sendResponse(cont : PlanetSidePacketContainer) = {
+  def sendResponse(cont : Any) = {
     log.trace("LOGIN SEND: " + cont)
 
     MDC("sessionId") = sessionId.toString

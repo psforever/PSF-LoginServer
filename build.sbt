@@ -15,7 +15,8 @@ lazy val commonSettings = Seq(
     "ch.qos.logback"              % "logback-classic" % "1.1.7",
     "org.log4s"                  %% "log4s"         % "1.3.0",
     "org.fusesource.jansi"        % "jansi"         % "1.12",
-    "org.scoverage"              %% "scalac-scoverage-plugin" % "1.1.1"
+    "org.scoverage"              %% "scalac-scoverage-plugin" % "1.1.1",
+    "com.github.nscala-time"     %% "nscala-time"   % "2.12.0"
   )
 )
 
