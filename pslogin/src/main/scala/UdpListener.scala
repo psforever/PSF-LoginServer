@@ -13,7 +13,11 @@ final case class SendPacket(msg : ByteVector, to : InetSocketAddress)
 final case class Hello()
 final case class HelloFriend(sessionId : Long, next: ActorRef)
 
-class UdpListener(nextActorProps : Props, nextActorName : String, address : InetAddress, port : Int) extends Actor {
+class UdpListener(nextActorProps : Props,
+                  nextActorName : String,
+                  listenAddress : InetAddress,
+                  port : Int,
+                  netParams : Option[NetworkSimulatorParameters]) extends Actor {
   private val log = org.log4s.getLogger(self.path.name)
 
   override def supervisorStrategy = OneForOneStrategy() {
@@ -21,7 +25,16 @@ class UdpListener(nextActorProps : Props, nextActorName : String, address : Inet
   }
 
   import context.system
-  IO(Udp) ! Udp.Bind(self, new InetSocketAddress(address, port))
+
+  // If we have network parameters, start the network simulator
+  if(netParams.isDefined) {
+    // See http://www.cakesolutions.net/teamblogs/understanding-akkas-recommended-practice-for-actor-creation-in-scala
+    // For why we cant do Props(new Actor) here
+    val sim = context.actorOf(Props(classOf[UdpNetworkSimulator], self, netParams.get))
+    IO(Udp).tell(Udp.Bind(sim, new InetSocketAddress(listenAddress, port)), sim)
+  } else {
+    IO(Udp) ! Udp.Bind(self, new InetSocketAddress(listenAddress, port))
+  }
 
   var bytesRecevied = 0L
   var bytesSent = 0L
@@ -32,7 +45,6 @@ class UdpListener(nextActorProps : Props, nextActorName : String, address : Inet
       log.info(s"Now listening on UDP:$local")
 
       createNextActor()
-
       context.become(ready(sender()))
     case Udp.CommandFailed(Udp.Bind(_, address, _)) =>
       log.error("Failed to bind to the network interface: " + address)

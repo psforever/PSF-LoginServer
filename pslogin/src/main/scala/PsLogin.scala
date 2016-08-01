@@ -173,11 +173,23 @@ object PsLogin {
     val loginServerPort = 51000
     val worldServerPort = 51001
 
+
+    // Uncomment for network simulation
+    // TODO: make this config or command flag
+    /*
+    val netParams = NetworkSimulatorParameters(
+      packetLoss = 0.02,
+      packetDelay = 500,
+      packetReorderingChance = 0.005,
+      packetReorderingTime = 400
+    )
+    */
+
     /** Create two actors for handling the login and world server endpoints */
     val listener = system.actorOf(Props(new UdpListener(Props(new SessionRouter("Login", loginTemplate)), "login-session-router",
-      LoginConfig.serverIpAddress, loginServerPort)), "login-udp-endpoint")
+      LoginConfig.serverIpAddress, loginServerPort, None)), "login-udp-endpoint")
     val worldListener = system.actorOf(Props(new UdpListener(Props(new SessionRouter("World", worldTemplate)), "world-session-router",
-      LoginConfig.serverIpAddress, worldServerPort)), "world-udp-endpoint")
+      LoginConfig.serverIpAddress, worldServerPort, None)), "world-udp-endpoint")
 
     logger.info(s"NOTE: Set client.ini to point to ${LoginConfig.serverIpAddress.getHostAddress}:$loginServerPort")
 
