@@ -166,10 +166,13 @@ class WorldSessionActor extends Actor with MDCContextAware {
       //log.info("PlayerState: " + msg)
 
     case msg @ ChatMsg(messagetype, has_wide_contents, recipient, contents, note_contents) =>
-      log.info("Chat: " + msg)
+      // TODO: Prevents log spam, but should be handled correctly
+      if (messagetype != ChatMessageType.CMT_TOGGLE_GM) {
+        log.info("Chat: " + msg)
+      }
 
       // TODO: handle this appropriately
-      if(messagetype == ChatMessageType.PopupQuit) {
+      if(messagetype == ChatMessageType.CMT_QUIT) {
         sendResponse(DropCryptoSession())
         sendResponse(DropSession(sessionId, "user quit"))
       }
