@@ -639,30 +639,30 @@ class GamePacketTest extends Specification {
         }
       }
 
-      "BroadcastWarpgateUpdateMessage" should {
-        val string = hex"D9 0D 00 01 00 20"
+      "encode" in {
+        val msg = ContinentalLockUpdateMessage(PlanetSideGUID(22), PlanetSideEmpire.NC)
+        val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
-        "decode" in {
-          PacketCoding.DecodePacket(string).require match {
-            case BroadcastWarpgateUpdateMessage(continent_guid, building_guid, state) =>
-              continent_guid mustEqual PlanetSideGUID(13)
-              building_guid mustEqual PlanetSideGUID(1)
-              state mustEqual 32
-            case default =>
-              ko
-          }
-        }
+        pkt mustEqual string
+      }
+    }
 
-        "encode" in {
-          val msg = BroadcastWarpgateUpdateMessage(PlanetSideGUID(13), PlanetSideGUID(1), 32)
-          val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    "BroadcastWarpgateUpdateMessage" should {
+      val string = hex"D9 0D 00 01 00 20"
 
-          pkt mustEqual string
+      "decode" in {
+        PacketCoding.DecodePacket(string).require match {
+          case BroadcastWarpgateUpdateMessage(continent_guid, building_guid, state) =>
+            continent_guid mustEqual PlanetSideGUID(13)
+            building_guid mustEqual PlanetSideGUID(1)
+            state mustEqual 32
+          case default =>
+            ko
         }
       }
 
       "encode" in {
-        val msg = ContinentalLockUpdateMessage(PlanetSideGUID(22), PlanetSideEmpire.NC)
+        val msg = BroadcastWarpgateUpdateMessage(PlanetSideGUID(13), PlanetSideGUID(1), 32)
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
         pkt mustEqual string
