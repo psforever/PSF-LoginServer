@@ -174,7 +174,7 @@ class GamePacketTest extends Specification {
       "decode" in {
         PacketCoding.DecodePacket(string_local).require match {
           case ChatMsg(messagetype, has_wide_contents, recipient, contents, note_contents) =>
-            messagetype mustEqual ChatMessageType.Local
+            messagetype mustEqual ChatMessageType.CMT_OPEN
             has_wide_contents mustEqual true
             recipient mustEqual ""
             contents mustEqual "abc"
@@ -185,7 +185,7 @@ class GamePacketTest extends Specification {
 
         PacketCoding.DecodePacket(string_tell).require match {
           case ChatMsg(messagetype, has_wide_contents, recipient, contents, note_contents) =>
-            messagetype mustEqual ChatMessageType.Tell
+            messagetype mustEqual ChatMessageType.CMT_TELL
             has_wide_contents mustEqual true
             recipient mustEqual "def"
             contents mustEqual "abc"
@@ -196,12 +196,12 @@ class GamePacketTest extends Specification {
       }
 
       "encode" in {
-        val msg_local = ChatMsg(ChatMessageType.Local, true, "", "abc", None)
+        val msg_local = ChatMsg(ChatMessageType.CMT_OPEN, true, "", "abc", None)
         val pkt_local = PacketCoding.EncodePacket(msg_local).require.toByteVector
 
         pkt_local mustEqual string_local
 
-        val msg_tell = ChatMsg(ChatMessageType.Tell, true, "def", "abc", None)
+        val msg_tell = ChatMsg(ChatMessageType.CMT_TELL, true, "def", "abc", None)
         val pkt_tell = PacketCoding.EncodePacket(msg_tell).require.toByteVector
 
         pkt_tell mustEqual string_tell
