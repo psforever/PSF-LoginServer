@@ -11,6 +11,7 @@ out/
 
 # Log files
 *.log
+logs/
 
 # Random
 *.swp

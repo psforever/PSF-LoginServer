@@ -147,7 +147,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
               import scala.concurrent.duration._
               import scala.concurrent.ExecutionContext.Implicits.global
-              clientKeepAlive = context.system.scheduler.schedule(0 seconds, 1000 milliseconds, self, PokeClient())
+              clientKeepAlive = context.system.scheduler.schedule(0 seconds, 500 milliseconds, self, PokeClient())
           }
         case default =>
           log.error("Unsupported " + default + " in " + msg)
