@@ -5,7 +5,7 @@ import net.psforever.crypto.CryptoInterface
 import net.psforever.crypto.CryptoInterface.CryptoDHState
 import scodec.bits._
 
-class CryptoInterfaceTest extends Specification {
+class CryptoInterfaceTest extends Specification { args(stopOnFail = true)
   "Crypto interface" should {
     "correctly initialize" in {
       CryptoInterface.initialize()

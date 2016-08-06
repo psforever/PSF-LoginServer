@@ -26,7 +26,9 @@ object LoginRespMessage extends Marshallable[LoginRespMessage] {
     ("station_error" | uint32L) ::
     ("subscription_status" | uint32L) ::
     ("unknown" | uint32L) ::
-    ("username" | PacketHelpers.encodedString) :: (
-    ("privilege" | uint32L) flatZip { priv => bool } xmap[Long]({case (a, _) => a}, priv => (priv, (priv & 1) == 1)))
+    ("username" | PacketHelpers.encodedString) ::
+    ("privilege" | uint32L)
+      .flatZip(priv => bool)
+      .xmap[Long]({case (a, _) => a}, priv => (priv, (priv & 1) == 1))
     ).as[LoginRespMessage]
 }
