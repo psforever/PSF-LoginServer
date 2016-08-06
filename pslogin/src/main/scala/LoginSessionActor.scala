@@ -118,7 +118,7 @@ class LoginSessionActor extends Actor with MDCContextAware {
 
         val newToken = token.getOrElse("THISISMYTOKENYES")
         val response = LoginRespMessage(newToken, hex"00000000 18FABE0C 00000000 00000000",
-          0, 1, 2, 685276011, username, 0, false)
+          0, 1, 2, 685276011, username, 10001)
 
         sendResponse(PacketCoding.CreateGamePacket(0, response))
 
