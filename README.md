@@ -1,18 +1,18 @@
 # PlanetSide Login Server [![Build Status](https://travis-ci.org/psforever/PSF-LoginServer.svg?branch=master)](https://travis-ci.org/psforever/PSF-LoginServer) [![Code coverage](https://codecov.io/gh/psforever/PSF-LoginServer/coverage.svg?branch=master)](https://codecov.io/gh/psforever/PSF-LoginServer/)
-This project contains the code to run and manage the login server role for PlanetSide 1.
+This project contains the code to run and manage the login and world server roles for PlanetSide 1.
+The login server and world server are currently combined for ease of contributing.
 
 ![PSForever Login Server banner](https://i.imgur.com/EkbIv5x.png)
 
-The login server and world server are currently combined for ease of contributing.
-The world and game servers are build to work with PlanetSide version 3.15.84.0. Anything older is not guaranteed to work.
+The login and world servers are built to work with PlanetSide version 3.15.84.0. Anything older is not guaranteed to work.
 Currently there are no releases of the server. You will need to have a development environment set up in order to get it running.
+Or you can jump right in and join the [public test server](#connecting-to-the-server-through-the-client)!
 
 ## Build Requirements
 
 * SBT 0.13.x
 * Scala 2.11.8
-* https://github.com/psforever/PSCrypto - binary DLL (Windows) or Shared Library (Linux) placed in the root directory of the project.
-* PSCrypto v1.1
+* PSCrypto v1.1 - binary DLL (Windows) or Shared Library (Linux) placed in the root directory of the project. See [Downloading PSCrypto](#downloading-pscrypto) to get it set up.
 
 ## Setting up a Build Environment
 PSF-LoginServer is built using Simple Build Tool (SBT), which allows it to be built on any platform. SBT is the Scala version of Make, but is more powerful as build definitions are written in Scala. SBT is distributed as a Java JAR and the only dependency it has is a JDK.
@@ -25,9 +25,8 @@ In order to use scala, you need the compiler `scalac`. This is equivalent to Jav
 Install this on to your system and the compiler and Scala REPL will be added to your PATH.
 
 ### Downloading PSCrypto
-The server requires PSCrypto in order to run. [Download the latest release](https://github.com/psforever/PSCrypto/releases/download/v1.1/pscrypto-lib-1.1.zip) and extract the ZIP in to the top level of your source directory.
-
-SBT and IDEA will automatically find the required libraries when running.
+The server requires PSCrypto in order to run. [Download the latest release](https://github.com/psforever/PSCrypto/releases/download/v1.1/pscrypto-lib-1.1.zip) and extract the ZIP in to the top level of your source directory. SBT, IDEA, and Java will automatically find the required libraries when running the server.
+If you are not comfortable with compiled binaries, you can [build the libraries yourself](https://github.com/psforever/PSCrypto).
 
 ### Using an IDE
 Scala code can be fairly complex and a good IDE helps you understand the code and what methods are available for certain types.
@@ -64,21 +63,25 @@ The file should now look like this
 login0=your.local.ip:your-port
 ```
 
-**You must restart PlanetSide when changing `client.ini`**
+If you want to connect to the public test server, this is what your file would look like
+
+```ini
+[network]
+login0=play.psforever.net:51000
+```
+
+**You must restart PlanetSide when changing the `client.ini` file!**
 
 ## Creating a Release
-If you want to test the project without an IDE or deploy it to a server for run, you can run `sbt pack` to create a release.
-First make sure you have the [SBT tool](http://www.scala-sbt.org/download.html) on your command line. Then get a copy of the source directory (either in ZIP or cloned form). Then do the below
+If you want to test the project without an IDE or deploy it to a server for run, you can use sbt-pack to create a release (included with the repository).
+First make sure you have the [SBT tool](http://www.scala-sbt.org/download.html) on your command line (or create a new task in IntelliJ IDEA). Then get a copy of the source directory (either in ZIP or cloned form). Then do the below
 
 ```
 cd PSF-LoginServer
-sbt pack
 sbt packArchiveZip # creates a single zip with resources
 ```
 
-This will use the sbt-pack plugin to create a JAR file and some helper scripts to run the server. The output for this will be in `PSF-LoginServer\target\pack`. Copy or ZIP up that entire pack directory and copy it to the server you want to run it on. You will need the Java 8 runtime (JRE) to run this. Navigate to the `bin/` directory in the pack folder and run the correct file for your platform (.BAT for Windows and other for Unix).
-
-Automatic or nightly releases coming in the future.
+This will use the sbt-pack plugin to create a JAR file and some helper scripts to run the server. The output for this will be in the `PSF-LoginServer\target` directory. Now you can copy the ZIP file to a server you want to run it on. You will need the Java 8 runtime (JRE only) on the target to run this. In the ZIP file, there is a `bin/` directory with some helper scripts. Run the correct file for your platform (.BAT for Windows and shell script for Unix).
 
 ## Troublshooting
 
@@ -88,7 +91,7 @@ If you get an error like below
 12:17:28.037 [main] ERROR PsLogin - Unable to initialize pscrypto
 java.lang.UnsatisfiedLinkError: Unable to load library 'pscrypto': Native library (win32-x86-64/pscrypto.dll) not found in resource path 
 ```
-Then you are missing the native library required to provide cryptographic functions to the login server. To fix this, you need a binary build of the https://github.com/psforever/PSCrypto project. See the above step for extracting the required files.
+Then you are missing the native library required to provide cryptographic functions to the login server. To fix this, you need a binary build of [PSCrypto](#downloading-pscrypto).
 
 ## Contributing
 Please fork the project and provide a pull request to contribute code. Coding guidelines and contribution checklists coming soon.
