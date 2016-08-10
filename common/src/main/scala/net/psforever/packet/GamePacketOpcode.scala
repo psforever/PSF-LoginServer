@@ -444,7 +444,7 @@ object GamePacketOpcode extends Enumeration {
       case WeaponJammedMessage => noDecoder(opcode)
       case LinkDeadAwarenessMsg => noDecoder(opcode)
       case DroppodFreefallingMessage => noDecoder(opcode)
-      case AvatarFirstTimeEventMessage => noDecoder(opcode)
+      case AvatarFirstTimeEventMessage => game.AvatarFirstTimeEventMessage.decode
       case AggravatedDamageMessage => noDecoder(opcode)
       case TriggerSoundMessage => noDecoder(opcode)
       case LootItemMessage => noDecoder(opcode)

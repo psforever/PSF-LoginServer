@@ -8,7 +8,7 @@ import scodec.codecs._
 final case class AvatarFirstTimeEventMessage(avatar_guid : PlanetSideGUID,
                                              object_guid : PlanetSideGUID,
                                              unk1 : Long,
-                                             message : String)
+                                             event_name : String)
   extends PlanetSideGamePacket {
   type Packet = AvatarFirstTimeEventMessage
   def opcode = GamePacketOpcode.AvatarFirstTimeEventMessage
@@ -20,6 +20,6 @@ object AvatarFirstTimeEventMessage extends Marshallable[AvatarFirstTimeEventMess
      ("avatar_guid" | PlanetSideGUID.codec) ::
      ("object_guid" | PlanetSideGUID.codec) ::
      ("unk1" | uint32L ) ::
-     ("message" | PacketHelpers.encodedString)
+     ("event_name" | PacketHelpers.encodedString)
     ).as[AvatarFirstTimeEventMessage]
 }
