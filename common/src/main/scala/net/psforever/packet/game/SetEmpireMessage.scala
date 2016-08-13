@@ -5,6 +5,10 @@ import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, Plan
 import scodec.Codec
 import scodec.codecs._
 
+/**
+ * The object_guid space for SetEmpireMessage is continent specific.
+ * SetEmpireMessage is usually followed by HackMessage (indicating the hack disposition of the same object_guid)
+ */
 final case class SetEmpireMessage(continent_guid : PlanetSideGUID,
                                    empire : PlanetSideEmpire.Value)
   extends PlanetSideGamePacket {
@@ -15,7 +19,7 @@ final case class SetEmpireMessage(continent_guid : PlanetSideGUID,
 
 object SetEmpireMessage extends Marshallable[SetEmpireMessage] {
   implicit val codec : Codec[SetEmpireMessage] = (
-      ("continent_guid" | PlanetSideGUID.codec) ::
+      ("object_guid" | PlanetSideGUID.codec) ::
         ("empire" | PlanetSideEmpire.codec)
     ).as[SetEmpireMessage]
 }
