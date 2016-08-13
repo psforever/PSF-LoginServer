@@ -28,8 +28,8 @@ final case class LoadMapMessage(map_name : String,
 
 object LoadMapMessage extends Marshallable[LoadMapMessage] {
   implicit val codec : Codec[LoadMapMessage] = (
-      ("map_name" | PacketHelpers.encodedString) ::
-      ("nav_map_name" | PacketHelpers.encodedString) ::
+      ("map_name" | PacketHelpers.encodedString) :: // TODO: Change to encodedStringWithLimit
+      ("nav_map_name" | PacketHelpers.encodedString) :: //TODO: Change to encodedStringWithLimit
       ("unk1" | uint16L) ::
       ("unk2" | uint32L) ::
       ("weapons_unlocked" | bool) ::
