@@ -12,7 +12,7 @@ import scodec.codecs._
  * ex:
  * map13 & home3 = vs sanc
  * map10 & z10 = amerish
- * map7 & z7 = esamir
+ * map07 & z7 = esamir
  */
 final case class LoadMapMessage(map_name : String,
                                 nav_map_name : String, // Also determines loading screen
