@@ -140,7 +140,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
               sendRawResponse(hex"31 85 6D 61 70 31 33 85  68 6F 6D 65 33 A4 9C 19 00 00 00 AE 30 5E 70 00  ")
               sendRawResponse(objectHex)
 
-              // These building_guids are specfic to VS Sanc
+              // These object_guids are specfic to VS Sanc
               sendResponse(PacketCoding.CreateGamePacket(0, SetEmpireMessage(PlanetSideGUID(2), PlanetSideEmpire.VS))) //HART building C
               sendResponse(PacketCoding.CreateGamePacket(0, SetEmpireMessage(PlanetSideGUID(29), PlanetSideEmpire.NC))) //South Villa Gun Tower
 

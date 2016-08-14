@@ -801,8 +801,8 @@ class GamePacketTest extends Specification {
 
       "decode" in {
         PacketCoding.DecodePacket(string).require match {
-          case SetEmpireMessage(building_guid, empire) =>
-            building_guid mustEqual PlanetSideGUID(2)
+          case SetEmpireMessage(object_guid, empire) =>
+            object_guid mustEqual PlanetSideGUID(2)
             empire mustEqual PlanetSideEmpire.VS
           case default =>
             ko
