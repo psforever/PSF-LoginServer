@@ -7,9 +7,9 @@ import scodec.codecs._
 
 /**
  * The object_guid space for SetEmpireMessage is continent specific.
- * SetEmpireMessage is usually followed by HackMessage (indicating the hack disposition of the same object_guid)
+ * SetEmpireMessage is usually followed by HackMessage (indicating the hack disposition of the same building_guid)
  */
-final case class SetEmpireMessage(continent_guid : PlanetSideGUID,
+final case class SetEmpireMessage(building_guid : PlanetSideGUID,
                                    empire : PlanetSideEmpire.Value)
   extends PlanetSideGamePacket {
   type Packet = SetEmpireMessage
@@ -19,7 +19,7 @@ final case class SetEmpireMessage(continent_guid : PlanetSideGUID,
 
 object SetEmpireMessage extends Marshallable[SetEmpireMessage] {
   implicit val codec : Codec[SetEmpireMessage] = (
-      ("object_guid" | PlanetSideGUID.codec) ::
+      ("building_guid" | PlanetSideGUID.codec) ::
         ("empire" | PlanetSideEmpire.codec)
     ).as[SetEmpireMessage]
 }
