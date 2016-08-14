@@ -816,6 +816,27 @@ class GamePacketTest extends Specification {
       }
     }
 
+    "SetEmpireMessage" should {
+      val string = hex"24 02 00 80"
+
+      "decode" in {
+        PacketCoding.DecodePacket(string).require match {
+          case SetEmpireMessage(object_guid, empire) =>
+            object_guid mustEqual PlanetSideGUID(2)
+            empire mustEqual PlanetSideEmpire.VS
+          case default =>
+            ko
+        }
+      }
+
+      "encode" in {
+        val msg = SetEmpireMessage(PlanetSideGUID(2), PlanetSideEmpire.VS)
+        val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+        pkt mustEqual string
+      }
+    }
+
     "PingMsg" should  {
       val packet = hex"1a 00000000 b0360000"
 

@@ -361,7 +361,7 @@ object GamePacketOpcode extends Enumeration {
       case ActionProgressMessage => noDecoder(opcode)
       case ActionCancelMessage => noDecoder(opcode)
       case ActionCancelAcknowledgeMessage => noDecoder(opcode)
-      case SetEmpireMessage => noDecoder(opcode)
+      case SetEmpireMessage => game.SetEmpireMessage.decode
       case EmoteMsg => game.EmoteMsg.decode
       case UnuseItemMessage => noDecoder(opcode)
       case ObjectDetachMessage => noDecoder(opcode)
