@@ -392,7 +392,7 @@ object GamePacketOpcode extends Enumeration {
 
       // OPCODE 60
       case GenericCollisionMsg => noDecoder(opcode)
-      case QuantityUpdateMessage => noDecoder(opcode)
+      case QuantityUpdateMessage => game.QuantityUpdateMessage.decode
       case ArmorChangedMessage => noDecoder(opcode)
       case ProjectileStateMessage => noDecoder(opcode)
       case MountVehicleCargoMsg => noDecoder(opcode)
