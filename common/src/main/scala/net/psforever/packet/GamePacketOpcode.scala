@@ -441,7 +441,7 @@ object GamePacketOpcode extends Enumeration {
       // OPCODE 100
       case AvatarSearchCriteriaMessage => noDecoder(opcode)
       case AvatarSearchResponse => noDecoder(opcode)
-      case WeaponJammedMessage => noDecoder(opcode)
+      case WeaponJammedMessage => game.WeaponJammedMessage.decode
       case LinkDeadAwarenessMsg => noDecoder(opcode)
       case DroppodFreefallingMessage => noDecoder(opcode)
       case AvatarFirstTimeEventMessage => game.AvatarFirstTimeEventMessage.decode
