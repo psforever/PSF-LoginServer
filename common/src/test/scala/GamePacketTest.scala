@@ -776,6 +776,27 @@ class GamePacketTest extends Specification {
       }
     }
 
+    "QuantityUpdateMessage" should {
+      val string = hex"3D 5300 7B000000"
+
+      "decode" in {
+        PacketCoding.DecodePacket(string).require match {
+          case QuantityUpdateMessage(item_guid, quantity) =>
+            item_guid mustEqual PlanetSideGUID(83)
+            quantity mustEqual 123
+          case default =>
+            ko
+        }
+      }
+
+      "encode" in {
+        val msg = QuantityUpdateMessage(PlanetSideGUID(83), 123)
+        val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+        pkt mustEqual string
+      }
+    }
+
     "PingMsg" should  {
       val packet = hex"1a 00000000 b0360000"
 
