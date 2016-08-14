@@ -417,7 +417,7 @@ object GamePacketOpcode extends Enumeration {
       // OPCODE 80
       case TargetingInfoMessage => noDecoder(opcode)
       case TriggerEffectMessage => noDecoder(opcode)
-      case WeaponDryFireMessage => noDecoder(opcode)
+      case WeaponDryFireMessage => game.WeaponDryFireMessage.decode
       case DroppodLaunchRequestMessage => noDecoder(opcode)
       case HackMessage => noDecoder(opcode)
       case DroppodLaunchResponseMessage => noDecoder(opcode)
