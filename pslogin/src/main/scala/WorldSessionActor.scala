@@ -137,7 +137,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
               log.debug("Object: " + obj)
               // LoadMapMessage 13714 in mossy .gcap
               // XXX: hardcoded shit
-              sendRawResponse(hex"31 85 6D 61 70 31 33 85  68 6F 6D 65 33 A4 9C 19 00 00 00 AE 30 5E 70 00  ")
+              sendResponse(PacketCoding.CreateGamePacket(0, LoadMapMessage("map13","home3",40100,25,true,3770441820L))) //VS Sanctuary
               sendRawResponse(objectHex)
 
               // These object_guids are specfic to VS Sanc
