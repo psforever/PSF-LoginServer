@@ -136,8 +136,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
             case obj @ ObjectCreateMessage(len, cls, guid, _, _) =>
               log.debug("Object: " + obj)
               // LoadMapMessage 13714 in mossy .gcap
-              // XXX: hardcoded shit
-              sendRawResponse(hex"31 85 6D 61 70 31 33 85  68 6F 6D 65 33 A4 9C 19 00 00 00 AE 30 5E 70 00  ")
+              sendResponse(PacketCoding.CreateGamePacket(0, LoadMapMessage("map13","home3",40100,25,true,3770441820L))) //VS Sanctuary
+              //sendResponse(PacketCoding.CreateGamePacket(0, LoadMapMessage("map10","z10",40975,25,true,230810349))) //Amerish
               sendRawResponse(objectHex)
 
               sendResponse(PacketCoding.CreateGamePacket(0, ContinentalLockUpdateMessage(PlanetSideGUID(13), PlanetSideEmpire.VS))) // "The VS have captured the VS Sanctuary."
