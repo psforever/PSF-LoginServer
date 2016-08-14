@@ -776,6 +776,26 @@ class GamePacketTest extends Specification {
       }
     }
 
+    "WeaponDryFireMessage" should {
+      val string = hex"52 4C00"
+
+      "decode" in {
+        PacketCoding.DecodePacket(string).require match {
+          case WeaponDryFireMessage(weapon_guid) =>
+            weapon_guid mustEqual PlanetSideGUID(76)
+          case default =>
+            ko
+        }
+      }
+
+      "encode" in {
+        val msg = WeaponDryFireMessage(PlanetSideGUID(76))
+        val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+        pkt mustEqual string
+      }
+    }
+
     "PingMsg" should  {
       val packet = hex"1a 00000000 b0360000"
 
