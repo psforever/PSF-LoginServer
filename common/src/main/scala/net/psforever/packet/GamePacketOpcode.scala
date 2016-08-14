@@ -376,7 +376,7 @@ object GamePacketOpcode extends Enumeration {
       case UnknownMessage46 => noDecoder(opcode)
       case CharacterCreateRequestMessage => game.CharacterCreateRequestMessage.decode
       case CharacterRequestMessage => game.CharacterRequestMessage.decode
-      case LoadMapMessage => noDecoder(opcode)
+      case LoadMapMessage => game.LoadMapMessage.decode
 
       // OPCODE 50
       case SetCurrentAvatarMessage => game.SetCurrentAvatarMessage.decode
