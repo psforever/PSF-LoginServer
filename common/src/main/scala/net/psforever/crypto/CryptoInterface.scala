@@ -1,20 +1,27 @@
 // Copyright (c) 2016 PSForever.net to present
 package net.psforever.crypto
 
+import com.sun.jna.ptr.IntByReference
 import net.psforever.IFinalizable
 import sna.Library
-import com.sun.jna.Pointer
+import com.sun.jna.{NativeLibrary, Pointer}
 import scodec.bits.ByteVector
 
 object CryptoInterface {
   final val libName = "pscrypto"
   final val fullLibName = libName
+  final val PSCRYPTO_VERSION_MAJOR = 1
+  final val PSCRYPTO_VERSION_MINOR = 1
+
   final val psLib = new Library(libName)
 
   final val RC5_BLOCK_SIZE = 8
   final val MD5_MAC_SIZE = 16
 
   val functionsList = List(
+    "PSCrypto_Init",
+    "PSCrypto_Get_Version",
+    "PSCrypto_Version_String",
     "RC5_Init",
     "RC5_Encrypt",
     "RC5_Decrypt",
@@ -27,10 +34,22 @@ object CryptoInterface {
   )
 
   /**
-    * Used to initialize the crypto library at runtime. This allows
+    * Used to initialize the crypto library at runtime. The version is checked and
+    * all functions are mapped.
     */
   def initialize() : Unit = {
+    // preload all library functions for speed
     functionsList foreach psLib.prefetch
+
+    val libraryMajor = new IntByReference
+    val libraryMinor = new IntByReference
+
+    psLib.PSCrypto_Get_Version(libraryMajor, libraryMinor)[Unit]
+
+    if(!psLib.PSCrypto_Init(PSCRYPTO_VERSION_MAJOR, PSCRYPTO_VERSION_MINOR)[Boolean]) {
+      throw new IllegalArgumentException(s"Invalid PSCrypto library version ${libraryMajor.getValue}.${libraryMinor.getValue}. Expected " +
+        s"${PSCRYPTO_VERSION_MAJOR}.${PSCRYPTO_VERSION_MINOR}")
+    }
   }
 
   /**
@@ -43,7 +62,12 @@ object CryptoInterface {
     val classpathEntries = classpath.split(File.pathSeparator)
 
     val myLibraryPath = System.getProperty("user.dir")
+    val jnaLibrary = System.getProperty("jna.library.path")
+    val javaLibrary = System.getProperty("java.library.path")
     println("User dir: " + myLibraryPath)
+    println("JNA Lib: " + jnaLibrary)
+    println("Java Lib: " + javaLibrary)
+    print("Classpath: ")
     classpathEntries.foreach(println)
 
     println("Required data model: " + System.getProperty("sun.arch.data.model"))
@@ -62,14 +86,16 @@ object CryptoInterface {
   }
 
   /**
-    * Checks if two MAC values are the same in constant time, preventing a timing attack for MAC forgery
- *
-    * @param mac1
-    * @param mac2
+    * Checks if two Message Authentication Codes are the same in constant time,
+    * preventing a timing attack for MAC forgery
+    *
+    * @param mac1 A MAC value
+    * @param mac2 Another MAC value
     */
   def verifyMAC(mac1 : ByteVector, mac2 : ByteVector) : Boolean = {
     var okay = true
 
+    // prevent byte by byte guessing
     if(mac1.length != mac2.length)
       return false
 
@@ -158,6 +184,7 @@ object CryptoInterface {
 
     override def close = {
       if(started) {
+        // TODO: zero private key material
         psLib.Free_DH(dhHandle)[Unit]
         started = false
       }

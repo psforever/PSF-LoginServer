@@ -1,3 +1,4 @@
+# Project crap
 target
 *.class
 .idea/
@@ -7,8 +8,18 @@ out/
 *.iws
 *.ipr
 *.iml
+
+# Log files
+*.log
+logs/
+
+# Random
 *.swp
 /*.csv
+
+# Binary files
 *.so
 *.dll
 *.exe
+*.zip
+pscrypto-lib/

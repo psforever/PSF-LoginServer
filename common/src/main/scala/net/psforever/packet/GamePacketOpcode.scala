@@ -87,8 +87,8 @@ object GamePacketOpcode extends Enumeration {
   PickupItemMessage,
   DropItemMessage,
   InventoryStateMessage,
-  ChangeFireStateMessage_Duplicate,
-  ChangeFireStateMessage,
+  ChangeFireStateMessage_Start,
+  ChangeFireStateMessage_Stop,
   UnknownMessage59,
 
   // OPCODE 60
@@ -328,18 +328,18 @@ object GamePacketOpcode extends Enumeration {
       case UnknownMessage6 => noDecoder(opcode)
       case UnknownMessage7 => noDecoder(opcode)
       case PlayerStateMessage => noDecoder(opcode)
-      case HitMessage => noDecoder(opcode)
+      case HitMessage => game.HitMessage.decode
 
       // OPCODE 10
       case HitHint => noDecoder(opcode)
       case DamageMessage => noDecoder(opcode)
       case DestroyMessage => noDecoder(opcode)
-      case ReloadMessage => noDecoder(opcode)
+      case ReloadMessage => game.ReloadMessage.decode
       case MountVehicleMsg => noDecoder(opcode)
       case DismountVehicleMsg => noDecoder(opcode)
-      case UseItemMessage => noDecoder(opcode)
-      case MoveItemMessage => noDecoder(opcode)
-      case ChatMsg => noDecoder(opcode)
+      case UseItemMessage => game.UseItemMessage.decode
+      case MoveItemMessage => game.MoveItemMessage.decode
+      case ChatMsg => game.ChatMsg.decode
       case CharacterNoRecordMessage => noDecoder(opcode)
 
       // OPCODE 20
@@ -348,11 +348,11 @@ object GamePacketOpcode extends Enumeration {
       case BindPlayerMessage => noDecoder(opcode)
       case ObjectCreateMessage_Duplicate => noDecoder(opcode)
       case ObjectCreateMessage => game.ObjectCreateMessage.decode
-      case ObjectDeleteMessage => noDecoder(opcode)
-      case PingMsg => noDecoder(opcode)
+      case ObjectDeleteMessage => game.ObjectDeleteMessage.decode
+      case PingMsg => game.PingMsg.decode
       case VehicleStateMessage => noDecoder(opcode)
       case FrameVehicleStateMessage => noDecoder(opcode)
-      case GenericObjectStateMsg => noDecoder(opcode)
+      case GenericObjectStateMsg => game.GenericObjectStateMsg.decode
 
       // OPCODE 30
       case ChildObjectStateMessage => noDecoder(opcode)
@@ -361,8 +361,8 @@ object GamePacketOpcode extends Enumeration {
       case ActionProgressMessage => noDecoder(opcode)
       case ActionCancelMessage => noDecoder(opcode)
       case ActionCancelAcknowledgeMessage => noDecoder(opcode)
-      case SetEmpireMessage => noDecoder(opcode)
-      case EmoteMsg => noDecoder(opcode)
+      case SetEmpireMessage => game.SetEmpireMessage.decode
+      case EmoteMsg => game.EmoteMsg.decode
       case UnuseItemMessage => noDecoder(opcode)
       case ObjectDetachMessage => noDecoder(opcode)
 
@@ -372,39 +372,39 @@ object GamePacketOpcode extends Enumeration {
       case ObjectAttachMessage => noDecoder(opcode)
       case UnknownMessage43 => noDecoder(opcode)
       case PlanetsideAttributeMessage => noDecoder(opcode)
-      case RequestDestroyMessage => noDecoder(opcode)
+      case RequestDestroyMessage => game.RequestDestroyMessage.decode
       case UnknownMessage46 => noDecoder(opcode)
       case CharacterCreateRequestMessage => game.CharacterCreateRequestMessage.decode
       case CharacterRequestMessage => game.CharacterRequestMessage.decode
-      case LoadMapMessage => noDecoder(opcode)
+      case LoadMapMessage => game.LoadMapMessage.decode
 
       // OPCODE 50
       case SetCurrentAvatarMessage => game.SetCurrentAvatarMessage.decode
-      case ObjectHeldMessage => noDecoder(opcode)
-      case WeaponFireMessage => noDecoder(opcode)
-      case AvatarJumpMessage => noDecoder(opcode)
+      case ObjectHeldMessage => game.ObjectHeldMessage.decode
+      case WeaponFireMessage => game.WeaponFireMessage.decode
+      case AvatarJumpMessage => game.AvatarJumpMessage.decode
       case PickupItemMessage => noDecoder(opcode)
-      case DropItemMessage => noDecoder(opcode)
+      case DropItemMessage => game.DropItemMessage.decode
       case InventoryStateMessage => noDecoder(opcode)
-      case ChangeFireStateMessage_Duplicate => noDecoder(opcode)
-      case ChangeFireStateMessage => noDecoder(opcode)
+      case ChangeFireStateMessage_Start => game.ChangeFireStateMessage_Start.decode
+      case ChangeFireStateMessage_Stop => game.ChangeFireStateMessage_Stop.decode
       case UnknownMessage59 => noDecoder(opcode)
 
       // OPCODE 60
       case GenericCollisionMsg => noDecoder(opcode)
-      case QuantityUpdateMessage => noDecoder(opcode)
+      case QuantityUpdateMessage => game.QuantityUpdateMessage.decode
       case ArmorChangedMessage => noDecoder(opcode)
       case ProjectileStateMessage => noDecoder(opcode)
       case MountVehicleCargoMsg => noDecoder(opcode)
       case DismountVehicleCargoMsg => noDecoder(opcode)
       case CargoMountPointStatusMessage => noDecoder(opcode)
       case BeginZoningMessage => noDecoder(opcode)
-      case ItemTransactionMessage => noDecoder(opcode)
+      case ItemTransactionMessage => game.ItemTransactionMessage.decode
       case ItemTransactionResultMessage => noDecoder(opcode)
 
       // OPCODE 70
-      case ChangeFireModeMessage => noDecoder(opcode)
-      case ChangeAmmoMessage => noDecoder(opcode)
+      case ChangeFireModeMessage => game.ChangeFireModeMessage.decode
+      case ChangeAmmoMessage => game.ChangeAmmoMessage.decode
       case TimeOfDayMessage => noDecoder(opcode)
       case UnknownMessage73 => noDecoder(opcode)
       case SpawnRequestMessage => noDecoder(opcode)
@@ -417,7 +417,7 @@ object GamePacketOpcode extends Enumeration {
       // OPCODE 80
       case TargetingInfoMessage => noDecoder(opcode)
       case TriggerEffectMessage => noDecoder(opcode)
-      case WeaponDryFireMessage => noDecoder(opcode)
+      case WeaponDryFireMessage => game.WeaponDryFireMessage.decode
       case DroppodLaunchRequestMessage => noDecoder(opcode)
       case HackMessage => noDecoder(opcode)
       case DroppodLaunchResponseMessage => noDecoder(opcode)
@@ -441,10 +441,10 @@ object GamePacketOpcode extends Enumeration {
       // OPCODE 100
       case AvatarSearchCriteriaMessage => noDecoder(opcode)
       case AvatarSearchResponse => noDecoder(opcode)
-      case WeaponJammedMessage => noDecoder(opcode)
+      case WeaponJammedMessage => game.WeaponJammedMessage.decode
       case LinkDeadAwarenessMsg => noDecoder(opcode)
       case DroppodFreefallingMessage => noDecoder(opcode)
-      case AvatarFirstTimeEventMessage => noDecoder(opcode)
+      case AvatarFirstTimeEventMessage => game.AvatarFirstTimeEventMessage.decode
       case AggravatedDamageMessage => noDecoder(opcode)
       case TriggerSoundMessage => noDecoder(opcode)
       case LootItemMessage => noDecoder(opcode)
@@ -481,7 +481,7 @@ object GamePacketOpcode extends Enumeration {
       case OffshoreVehicleMessage => noDecoder(opcode)
       case ObjectDeployedMessage => noDecoder(opcode)
       case ObjectDeployedCountMessage => noDecoder(opcode)
-      case WeaponDelayFireMessage => noDecoder(opcode)
+      case WeaponDelayFireMessage => game.WeaponDelayFireMessage.decode
       case BugReportMessage => noDecoder(opcode)
       case PlayerStasisMessage => noDecoder(opcode)
       case UnknownMessage139 => noDecoder(opcode)
@@ -519,7 +519,7 @@ object GamePacketOpcode extends Enumeration {
       case WarpgateResponse => noDecoder(opcode)
       case DamageWithPositionMessage => noDecoder(opcode)
       case GenericActionMessage => noDecoder(opcode)
-      case ContinentalLockUpdateMessage => noDecoder(opcode)
+      case ContinentalLockUpdateMessage => game.ContinentalLockUpdateMessage.decode
       case AvatarGrenadeStateMessage => noDecoder(opcode)
 
       // OPCODE 170
@@ -553,7 +553,7 @@ object GamePacketOpcode extends Enumeration {
       case VanuModuleUpdateMessage => noDecoder(opcode)
       case FacilityBenefitShieldChargeRequestMessage => noDecoder(opcode)
       case ProximityTerminalUseMessage => noDecoder(opcode)
-      case QuantityDeltaUpdateMessage => noDecoder(opcode)
+      case QuantityDeltaUpdateMessage => game.QuantityDeltaUpdateMessage.decode
       case ChainLashMessage => noDecoder(opcode)
       case ZoneInfoMessage => noDecoder(opcode)
       case LongRangeProjectileInfoMessage => noDecoder(opcode)
@@ -578,7 +578,7 @@ object GamePacketOpcode extends Enumeration {
       case WarpgateLinkOverrideMessage => noDecoder(opcode)
       case EmpireBenefitsMessage => noDecoder(opcode)
       case ForceEmpireMessage => noDecoder(opcode)
-      case BroadcastWarpgateUpdateMessage => noDecoder(opcode)
+      case BroadcastWarpgateUpdateMessage => game.BroadcastWarpgateUpdateMessage.decode
       case UnknownMessage218 => noDecoder(opcode)
       case SquadMainTerminalMessage => noDecoder(opcode)
 

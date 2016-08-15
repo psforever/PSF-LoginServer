@@ -1,7 +1,7 @@
 // Copyright (c) 2016 PSForever.net to present
 import java.net.{InetAddress, InetSocketAddress}
 
-import akka.actor.SupervisorStrategy.{Restart, Stop}
+import akka.actor.SupervisorStrategy.Stop
 import akka.actor.{Actor, ActorRef, OneForOneStrategy, Props, Terminated}
 import akka.io._
 import scodec.bits._
@@ -11,17 +11,30 @@ import akka.util.ByteString
 final case class ReceivedPacket(msg : ByteVector, from : InetSocketAddress)
 final case class SendPacket(msg : ByteVector, to : InetSocketAddress)
 final case class Hello()
-final case class HelloFriend(next: ActorRef)
+final case class HelloFriend(sessionId : Long, next: ActorRef)
 
-class UdpListener(nextActorProps : Props, nextActorName : String, address : InetAddress, port : Int) extends Actor {
-  private val log = org.log4s.getLogger
+class UdpListener(nextActorProps : Props,
+                  nextActorName : String,
+                  listenAddress : InetAddress,
+                  port : Int,
+                  netParams : Option[NetworkSimulatorParameters]) extends Actor {
+  private val log = org.log4s.getLogger(self.path.name)
 
   override def supervisorStrategy = OneForOneStrategy() {
     case _ => Stop
   }
 
   import context.system
-  IO(Udp) ! Udp.Bind(self, new InetSocketAddress(address, port))
+
+  // If we have network parameters, start the network simulator
+  if(netParams.isDefined) {
+    // See http://www.cakesolutions.net/teamblogs/understanding-akkas-recommended-practice-for-actor-creation-in-scala
+    // For why we cant do Props(new Actor) here
+    val sim = context.actorOf(Props(classOf[UdpNetworkSimulator], self, netParams.get))
+    IO(Udp).tell(Udp.Bind(sim, new InetSocketAddress(listenAddress, port)), sim)
+  } else {
+    IO(Udp) ! Udp.Bind(self, new InetSocketAddress(listenAddress, port))
+  }
 
   var bytesRecevied = 0L
   var bytesSent = 0L
@@ -32,8 +45,10 @@ class UdpListener(nextActorProps : Props, nextActorName : String, address : Inet
       log.info(s"Now listening on UDP:$local")
 
       createNextActor()
-
       context.become(ready(sender()))
+    case Udp.CommandFailed(Udp.Bind(_, address, _)) =>
+      log.error("Failed to bind to the network interface: " + address)
+      context.system.terminate()
     case default =>
       log.error(s"Unexpected message $default")
   }

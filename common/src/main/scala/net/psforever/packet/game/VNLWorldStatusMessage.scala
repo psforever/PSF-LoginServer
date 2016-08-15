@@ -24,7 +24,7 @@ object ServerType extends Enumeration(1) {
 
 object PlanetSideEmpire extends Enumeration {
   type Type = Value
-  val TR, NC, VS = Value
+  val TR, NC, VS, NEUTRAL = Value
 
   implicit val codec = PacketHelpers.createEnumerationCodec(this, uint2L)
 }

@@ -11,8 +11,14 @@ import scodec.{Attempt, Codec, Err}
 import scodec.codecs.{bytes, uint16L, uint8L}
 import java.security.SecureRandom
 
-import net.psforever.packet.control.{ClientStart, ServerStart}
+import net.psforever.packet.control.{ClientStart, ServerStart, TeardownConnection}
 import net.psforever.packet.crypto._
+import net.psforever.packet.game.PingMsg
+import org.log4s.MDC
+import MDCContextAware.Implicits._
+
+sealed trait CryptoSessionAPI
+final case class DropCryptoSession() extends CryptoSessionAPI
 
 /**
   * Actor that stores crypto state for a connection, appropriately encrypts and decrypts packets,
@@ -21,6 +27,7 @@ import net.psforever.packet.crypto._
 class CryptoSessionActor extends Actor with MDCContextAware {
   private[this] val log = org.log4s.getLogger
 
+  var sessionId : Long = 0
   var leftRef : ActorRef = ActorRef.noSender
   var rightRef : ActorRef = ActorRef.noSender
 
@@ -37,6 +44,9 @@ class CryptoSessionActor extends Actor with MDCContextAware {
   var clientChallenge = ByteVector.empty
   var clientChallengeResult = ByteVector.empty
 
+  var clientNonce : Long = 0
+  var serverNonce : Long = 0
+
   // Don't leak crypto object memory even on an exception
   override def postStop() = {
     cleanupCrypto()
@@ -45,13 +55,14 @@ class CryptoSessionActor extends Actor with MDCContextAware {
   def receive = Initializing
 
   def Initializing : Receive = {
-    case HelloFriend(right) =>
+    case HelloFriend(sessionId, right) =>
       import MDCContextAware.Implicits._
+      this.sessionId = sessionId
       leftRef = sender()
       rightRef = right.asInstanceOf[ActorRef]
 
       // who ever we send to has to send something back to us
-      rightRef !> HelloFriend(self)
+      rightRef !> HelloFriend(sessionId, self)
 
       log.trace(s"Left sender ${leftRef.path.name}")
 
@@ -64,17 +75,33 @@ class CryptoSessionActor extends Actor with MDCContextAware {
   def NewClient : Receive = {
     case RawPacket(msg) =>
       PacketCoding.UnmarshalPacket(msg) match {
-        case Failure(e) => log.error("Could not decode packet: " + e + s", msg ${msg.toString}")
         case Successful(p) =>
-          //println("RECV: " + p)
+          log.trace("Initializing -> NewClient")
 
           p match {
             case ControlPacket(_, ClientStart(nonce)) =>
-              sendResponse(PacketCoding.CreateControlPacket(ServerStart(nonce, Math.abs(random.nextInt()))))
+              clientNonce = nonce
+              serverNonce = Math.abs(random.nextInt())
+              sendResponse(PacketCoding.CreateControlPacket(ServerStart(nonce, serverNonce)))
 
               context.become(CryptoExchange)
             case default =>
               log.error(s"Unexpected packet type ${p} in state NewClient")
+          }
+        case Failure(e) =>
+          // There is a special case where no crypto is being used.
+          // The only packet coming through looks like PingMsg. This is a hardcoded
+          // feature of the client @ 0x005FD618
+          PacketCoding.DecodePacket(msg) match {
+            case Successful(packet) =>
+              packet match {
+                case ping @ PingMsg(_, _) =>
+                  // reflect the packet back to the sender
+                  sendResponse(ping)
+                case default => log.error(s"Unexpected non-crypto packet type ${packet} in state NewClient")
+              }
+            case Failure(e) =>
+              log.error("Could not decode packet: " + e + s" in state NewClient")
           }
       }
     case default => log.error(s"Invalid message '$default' received in state NewClient")
@@ -83,13 +110,12 @@ class CryptoSessionActor extends Actor with MDCContextAware {
   def CryptoExchange : Receive = {
     case RawPacket(msg) =>
       PacketCoding.UnmarshalPacket(msg, CryptoPacketOpcode.ClientChallengeXchg) match {
-        case Failure(e) => log.error("Could not decode packet: " + e)
+        case Failure(e) => log.error("Could not decode packet in state CryptoExchange: " + e)
         case Successful(p) =>
-          //println("RECV: " + p)
+          log.trace("NewClient -> CryptoExchange")
 
           p match {
             case CryptoPacket(seq, ClientChallengeXchg(time, challenge, p, g)) =>
-
               cryptoDHState = Some(new CryptoInterface.CryptoDHState())
 
               val dh = cryptoDHState.get
@@ -127,9 +153,9 @@ class CryptoSessionActor extends Actor with MDCContextAware {
   def CryptoSetupFinishing : Receive = {
     case RawPacket(msg) =>
       PacketCoding.UnmarshalPacket(msg, CryptoPacketOpcode.ClientFinished) match {
-        case Failure(e) => log.error("Could not decode packet: " + e)
+        case Failure(e) => log.error("Could not decode packet in state CryptoSetupFinishing: " + e)
         case Successful(p) =>
-          //println("RECV: " + p)
+          log.trace("CryptoExchange -> CryptoSetupFinishing")
 
           p match {
             case CryptoPacket(seq, ClientFinished(clientPubKey, clientChalResult)) =>
@@ -222,12 +248,9 @@ class CryptoSessionActor extends Actor with MDCContextAware {
           case Successful(p) =>
             p match {
               case encPacket @ EncryptedPacket(seq, _) =>
-                //println("Decrypting packet..." + encPacket)
                 PacketCoding.decryptPacket(cryptoState.get, encPacket) match {
                   case Successful(packet) =>
-                    //println("RECV[E]: " + packet)
-
-                    self ! packet
+                    self !> packet
                   case Failure(e) =>
                     log.error("Failed to decode encrypted packet: " + e)
                 }
@@ -237,6 +260,14 @@ class CryptoSessionActor extends Actor with MDCContextAware {
           case Failure(e) => log.error("Could not decode raw packet: " + e)
         }
       }
+    case api : CryptoSessionAPI =>
+      api match {
+        case DropCryptoSession() =>
+          handleEstablishedPacket(
+            sender(),
+            PacketCoding.CreateControlPacket(TeardownConnection(clientNonce))
+          )
+      }
     case ctrl @ ControlPacket(_, _) =>
       val from = sender()
 
@@ -245,6 +276,8 @@ class CryptoSessionActor extends Actor with MDCContextAware {
       val from = sender()
 
       handleEstablishedPacket(from, game)
+    case sessionAPI : SessionRouterAPI =>
+      leftRef !> sessionAPI
     case default => failWithError(s"Invalid message '$default' received in state Established")
   }
 
@@ -281,7 +314,6 @@ class CryptoSessionActor extends Actor with MDCContextAware {
   def handleEstablishedPacket(from : ActorRef, cont : PlanetSidePacketContainer) = {
     // we are processing a packet we decrypted
     if(from == self) {
-      import MDCContextAware.Implicits._
       rightRef !> cont
     } else if(from == rightRef) { // processing a completed packet from the right. encrypt
       val packet = PacketCoding.encryptPacket(cryptoState.get, cont).require
@@ -292,7 +324,7 @@ class CryptoSessionActor extends Actor with MDCContextAware {
   }
 
   def sendResponse(cont : PlanetSidePacketContainer) : ByteVector = {
-    //println("CRYPTO SEND: " + cont)
+    log.trace("CRYPTO SEND: " + cont)
     val pkt = PacketCoding.MarshalPacket(cont)
 
     pkt match {
@@ -301,7 +333,28 @@ class CryptoSessionActor extends Actor with MDCContextAware {
         ByteVector.empty
       case Successful(v) =>
         val bytes = v.toByteVector
-        leftRef ! ResponsePacket(bytes)
+
+        MDC("sessionId") = sessionId.toString
+        leftRef !> ResponsePacket(bytes)
+
+        bytes
+    }
+  }
+
+  def sendResponse(pkt : PlanetSideGamePacket) : ByteVector = {
+    log.trace("CRYPTO SEND GAME: " + pkt)
+    val pktEncoded = PacketCoding.EncodePacket(pkt)
+
+    pktEncoded match {
+      case Failure(e) =>
+        log.error(s"Failed to encode packet ${pkt.getClass.getName} when sending response")
+        ByteVector.empty
+      case Successful(v) =>
+        val bytes = v.toByteVector
+
+        MDC("sessionId") = sessionId.toString
+        leftRef !> ResponsePacket(bytes)
+
         bytes
     }
   }

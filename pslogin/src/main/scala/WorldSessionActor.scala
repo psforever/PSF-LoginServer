@@ -1,25 +1,37 @@
 // Copyright (c) 2016 PSForever.net to present
 import java.net.{InetAddress, InetSocketAddress}
 
-import akka.actor.{Actor, ActorRef, MDCContextAware}
+import akka.actor.{Actor, ActorRef, Cancellable, MDCContextAware}
 import net.psforever.packet.{PlanetSideGamePacket, _}
 import net.psforever.packet.control._
 import net.psforever.packet.game._
 import scodec.Attempt.{Failure, Successful}
 import scodec.bits._
+import org.log4s.MDC
+import MDCContextAware.Implicits._
+import net.psforever.types.ChatMessageType
 
 class WorldSessionActor extends Actor with MDCContextAware {
   private[this] val log = org.log4s.getLogger
 
   private case class PokeClient()
 
+  var sessionId : Long = 0
   var leftRef : ActorRef = ActorRef.noSender
   var rightRef : ActorRef = ActorRef.noSender
+
+  var clientKeepAlive : Cancellable = null
+
+  override def postStop() = {
+    if(clientKeepAlive != null)
+      clientKeepAlive.cancel()
+  }
 
   def receive = Initializing
 
   def Initializing : Receive = {
-    case HelloFriend(right) =>
+    case HelloFriend(sessionId, right) =>
+      this.sessionId = sessionId
       leftRef = sender()
       rightRef = right.asInstanceOf[ActorRef]
 
@@ -121,16 +133,25 @@ class WorldSessionActor extends Actor with MDCContextAware {
           sendResponse(PacketCoding.CreateGamePacket(0, ActionResultMessage(false, Some(1))))
         case CharacterRequestAction.Select =>
           PacketCoding.DecodeGamePacket(objectHex).require match {
-            case ObjectCreateMessage(len, cls, guid, _) =>
+            case obj @ ObjectCreateMessage(len, cls, guid, _, _) =>
+              log.debug("Object: " + obj)
               // LoadMapMessage 13714 in mossy .gcap
               // XXX: hardcoded shit
-              sendRawResponse(hex"31 85 6D 61 70 31 32 85  68 6F 6D 65 32 6C 9D 19 00 00 00 5F 40 B2 1C 80  ")
+              sendResponse(PacketCoding.CreateGamePacket(0, LoadMapMessage("map13","home3",40100,25,true,3770441820L))) //VS Sanctuary
               sendRawResponse(objectHex)
+
+              // These object_guids are specfic to VS Sanc
+              sendResponse(PacketCoding.CreateGamePacket(0, SetEmpireMessage(PlanetSideGUID(2), PlanetSideEmpire.VS))) //HART building C
+              sendResponse(PacketCoding.CreateGamePacket(0, SetEmpireMessage(PlanetSideGUID(29), PlanetSideEmpire.NC))) //South Villa Gun Tower
+
+              sendResponse(PacketCoding.CreateGamePacket(0, ContinentalLockUpdateMessage(PlanetSideGUID(13), PlanetSideEmpire.VS))) // "The VS have captured the VS Sanctuary."
+              sendResponse(PacketCoding.CreateGamePacket(0, BroadcastWarpgateUpdateMessage(PlanetSideGUID(13), PlanetSideGUID(1), 32))) // VS Sanctuary: Inactive Warpgate -> Broadcast Warpgate
+
               sendResponse(PacketCoding.CreateGamePacket(0, SetCurrentAvatarMessage(PlanetSideGUID(guid),0,0)))
 
               import scala.concurrent.duration._
               import scala.concurrent.ExecutionContext.Implicits.global
-              context.system.scheduler.schedule(0 seconds, 1000 milliseconds, self, PokeClient())
+              clientKeepAlive = context.system.scheduler.schedule(0 seconds, 500 milliseconds, self, PokeClient())
           }
         case default =>
           log.error("Unsupported " + default + " in " + msg)
@@ -145,7 +166,90 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case KeepAliveMessage(code) =>
       sendResponse(PacketCoding.CreateGamePacket(0, KeepAliveMessage(0)))
 
-    case PlayerStateMessageUpstream(_) =>
+    case msg @ PlayerStateMessageUpstream(avatar_guid, pos, vel, unk1, aim_pitch, unk2, seq_time, unk3, is_crouching, unk4, unk5, unk6, unk7, unk8) =>
+      //log.info("PlayerState: " + msg)
+
+    case msg @ ChatMsg(messagetype, has_wide_contents, recipient, contents, note_contents) =>
+      // TODO: Prevents log spam, but should be handled correctly
+      if (messagetype != ChatMessageType.CMT_TOGGLE_GM) {
+        log.info("Chat: " + msg)
+      }
+
+      // TODO: handle this appropriately
+      if(messagetype == ChatMessageType.CMT_QUIT) {
+        sendResponse(DropCryptoSession())
+        sendResponse(DropSession(sessionId, "user quit"))
+      }
+
+      // TODO: Depending on messagetype, may need to prepend sender's name to contents with proper spacing
+      // TODO: Just replays the packet straight back to sender; actually needs to be routed to recipients!
+      sendResponse(PacketCoding.CreateGamePacket(0, ChatMsg(messagetype, has_wide_contents, recipient, contents, note_contents)))
+
+    case msg @ ChangeFireModeMessage(item_guid, fire_mode) =>
+      log.info("ChangeFireMode: " + msg)
+
+    case msg @ ChangeFireStateMessage_Start(item_guid) =>
+      log.info("ChangeFireState_Start: " + msg)
+
+    case msg @ ChangeFireStateMessage_Stop(item_guid) =>
+      log.info("ChangeFireState_Stop: " + msg)
+
+    case msg @ EmoteMsg(avatar_guid, emote) =>
+      log.info("Emote: " + msg)
+      sendResponse(PacketCoding.CreateGamePacket(0, EmoteMsg(avatar_guid, emote)))
+
+    case msg @ DropItemMessage(item_guid) =>
+      log.info("DropItem: " + msg)
+
+    case msg @ ReloadMessage(item_guid, ammo_clip, unk1) =>
+      log.info("Reload: " + msg)
+      sendResponse(PacketCoding.CreateGamePacket(0, ReloadMessage(item_guid, 123, unk1)))
+
+    case msg @ ObjectHeldMessage(avatar_guid, held_holsters, unk1) =>
+      log.info("ObjectHeld: " + msg)
+
+    case msg @ AvatarJumpMessage(state) =>
+      //log.info("AvatarJump: " + msg)
+
+    case msg @ RequestDestroyMessage(object_guid) =>
+      log.info("RequestDestroy: " + msg)
+      // TODO: Make sure this is the correct response in all cases
+      sendResponse(PacketCoding.CreateGamePacket(0, ObjectDeleteMessage(object_guid, 0)))
+
+    case msg @ ObjectDeleteMessage(object_guid, unk1) =>
+      log.info("ObjectDelete: " + msg)
+
+    case msg @ MoveItemMessage(item_guid, avatar_guid_1, avatar_guid_2, dest, unk1) =>
+      log.info("MoveItem: " + msg)
+
+    case msg @ ChangeAmmoMessage(item_guid, unk1) =>
+      log.info("ChangeAmmo: " + msg)
+
+    case msg @ UseItemMessage(avatar_guid, unk1, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, unk9) =>
+      log.info("UseItem: " + msg)
+      // TODO: Not all fields in the response are identical to source in real packet logs (but seems to be ok)
+      // TODO: Not all incoming UseItemMessage's respond with another UseItemMessage (i.e. doors only send out GenericObjectStateMsg)
+      sendResponse(PacketCoding.CreateGamePacket(0, UseItemMessage(avatar_guid, unk1, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, unk9)))
+      // TODO: This should only actually be sent to doors upon opening; may break non-door items upon use
+      sendResponse(PacketCoding.CreateGamePacket(0, GenericObjectStateMsg(object_guid, 16)))
+
+    case msg @ GenericObjectStateMsg(object_guid, unk1) =>
+      log.info("GenericObjectState: " + msg)
+
+    case msg @ ItemTransactionMessage(terminal_guid, transaction_type, item_page, item_name, unk1, item_guid) =>
+      log.info("ItemTransaction: " + msg)
+
+    case msg @ WeaponDelayFireMessage(seq_time, weapon_guid) =>
+      log.info("WeaponDelayFire: " + msg)
+
+    case msg @ WeaponFireMessage(seq_time, weapon_guid, projectile_guid, shot_origin, unk1, unk2, unk3, unk4, unk5, unk6, unk7) =>
+      log.info("WeaponFire: " + msg)
+
+    case msg @ HitMessage(seq_time, projectile_guid, unk1, hit_info, unk2, unk3, unk4) =>
+      log.info("Hit: " + msg)
+
+    case msg @ AvatarFirstTimeEventMessage(avatar_guid, object_guid, unk1, event_name) =>
+      log.info("AvatarFirstTimeEvent: " + msg)
 
     case default => log.debug(s"Unhandled GamePacket ${pkt}")
   }
@@ -155,13 +259,18 @@ class WorldSessionActor extends Actor with MDCContextAware {
     //sendResponse(PacketCoding.CreateControlPacket(ConnectionClose()))
   }
 
-  def sendResponse(cont : PlanetSidePacketContainer) = {
+  def sendResponse(cont : PlanetSidePacketContainer) : Unit = {
     log.trace("WORLD SEND: " + cont)
-    rightRef ! cont
+    sendResponse(cont.asInstanceOf[Any])
+  }
+
+  def sendResponse(msg : Any) : Unit = {
+    MDC("sessionId") = sessionId.toString
+    rightRef !> msg
   }
 
   def sendRawResponse(pkt : ByteVector) = {
     log.trace("WORLD SEND RAW: " + pkt)
-    rightRef ! RawPacket(pkt)
+    sendResponse(RawPacket(pkt))
   }
 }

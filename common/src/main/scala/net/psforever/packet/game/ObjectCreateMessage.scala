@@ -8,10 +8,11 @@ import shapeless._
 
 case class ObjectCreateMessageParent(guid : Int, slot : Int)
 
-case class ObjectCreateMessage(streamLength : Long,
+case class ObjectCreateMessage(streamLength : Long, // in bits
                                objectClass : Int,
                                guid : Int,
-                               parentInfo : Option[ObjectCreateMessageParent]
+                               parentInfo : Option[ObjectCreateMessageParent],
+                               stream : BitVector
                               )
   extends PlanetSideGamePacket {
 
@@ -42,7 +43,7 @@ object ObjectCreateMessage extends Marshallable[ObjectCreateMessage] {
   })
 
   implicit val codec : Codec[ObjectCreateMessage] = (
-    ("stream_length" | uint32L) :: either(bool, parent, noParent).exmap[Pattern]( {
+    ("stream_length" | uint32L) :: (either(bool, parent, noParent).exmap[Pattern]( {
       case Left(a :: b :: Some(c) :: HNil) => Attempt.successful(a :: b :: Some(c) :: HNil)
       case Right(a :: b :: None :: HNil) => Attempt.successful(a :: b :: None :: HNil)
         // failure cases
@@ -51,6 +52,6 @@ object ObjectCreateMessage extends Marshallable[ObjectCreateMessage] {
     }, {
       case a :: b :: Some(c) :: HNil => Attempt.successful(Left(a :: b :: Some(c) :: HNil))
       case a :: b :: None :: HNil => Attempt.successful(Right(a :: b :: None :: HNil))
-    })
+    }) :+ ("rest" | bits) )
     ).as[ObjectCreateMessage]
 }
