@@ -922,5 +922,35 @@ class GamePacketTest extends Specification {
         PacketCoding.EncodePacket(msg).require.toByteVector === packet
       }
     }
+        "BuildingInfoUpdateMessage" should {
+      val string = hex"a0 0400 0900 66 000000 0080 00 00 00 14 00  00 00 00 00 00 46"
+
+      "decode" in {
+        PacketCoding.DecodePacket(string).require match {
+          case BuildingInfoUpdateMessage(continent_guid, building_guid, ntu_lvl, unk1, unk2, building_Empire, unk3, building_Status, unk4, unk5, unk6) =>
+            println(continent_guid, building_guid, ntu_lvl, unk1, unk2, building_Empire, unk3, building_Status, unk4, unk5, unk6)
+            continent_guid mustEqual PlanetSideGUID(4)
+            building_guid mustEqual PlanetSideGUID(9)
+            ntu_lvl mustEqual 102
+            unk1 mustEqual 0
+            unk2 mustEqual 0
+            building_Empire mustEqual 128
+            unk3 mustEqual 0
+            building_Status mustEqual 5120
+            unk4 mustEqual 0
+            unk5 mustEqual 0
+            unk6 mustEqual 70
+          case default =>
+            ko
+        }
+      }
+
+      "encode" in {
+        val msg = BuildingInfoUpdateMessage(PlanetSideGUID(4),PlanetSideGUID(9),102,0,0,128,0,5120,0,0,70)
+        val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+        println(pkt)
+        pkt mustEqual string
+      }
+    }
   }
 }
