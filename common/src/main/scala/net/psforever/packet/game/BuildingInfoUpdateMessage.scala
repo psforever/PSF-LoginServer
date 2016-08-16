@@ -61,7 +61,7 @@ object BuildingInfoUpdateMessage extends Marshallable[BuildingInfoUpdateMessage]
       ("unk2" | bool) ::
       ("lattice_benefits" | uintL(5)) :: //5 possible benefits, bitwise combination. (MSB)5:Tech 4:Inter 3:Bio 2:Drop 1:Amp(LSB)
       ("unk3" | uintL(10)) :: //module and cavern lock benefit, not sure how encoded. Probably bitwise given 6 modules and 4 caverns. Modules probably just also need timer.
-      ("unk4" | uint4L) :: //TODO: additional fields if unk5 > 0
+      ("unk4" | uint4L) :: //TODO: additional fields if unk4 > 0
       
       ("unk5" | uint32L) ::
       ("unk6" | bool) ::
