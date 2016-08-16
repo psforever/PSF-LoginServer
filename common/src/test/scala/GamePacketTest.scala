@@ -870,40 +870,40 @@ class GamePacketTest extends Specification {
                                          building_guid : PlanetSideGUID,
                                          ntu_level : Int,
                                          is_hacked : Boolean,
-                                         hacking_empire : PlanetSideEmpire.Value,
+                                         empire_hack : PlanetSideEmpire.Value,
                                          hack_time_remaining : Long,
-                                         owning_empire : PlanetSideEmpire.Value,
+                                         empire_own : PlanetSideEmpire.Value,
                                          unk1 : Long,
                                          generator_state : PlanetSideGeneratorState.Value,
-                                         tubes_not_destroyed : Boolean,
-                                         unk2 : Boolean,
-                                         lattice_benefits : Int,
+                                         spawn_tubes_normal : Boolean,
+                                         force_dome_active : Boolean,
+                                         lattice_benefit : Int,
                                          unk3 : Int,
                                          unk4 : Int,
                                          unk5 : Long,
                                          unk6 : Boolean,
                                          unk7 : Int,
-                                         unk8 : Boolean,
-                                         unk9 : Boolean) =>
+                                         boost_spawn_pain : Boolean,
+                                         boost_generator_pain : Boolean) =>
             continent_guid mustEqual PlanetSideGUID(4)
             building_guid mustEqual PlanetSideGUID(9)
             ntu_level mustEqual 1
             is_hacked mustEqual false
-            hacking_empire mustEqual PlanetSideEmpire.NEUTRAL
+            empire_hack mustEqual PlanetSideEmpire.NEUTRAL
             hack_time_remaining mustEqual 0
-            owning_empire mustEqual PlanetSideEmpire.NC
+            empire_own mustEqual PlanetSideEmpire.NC
             unk1 mustEqual 0
             generator_state mustEqual PlanetSideGeneratorState.Normal
-            tubes_not_destroyed mustEqual true
-            unk2 mustEqual false
-            lattice_benefits mustEqual 28
+            spawn_tubes_normal mustEqual true
+            force_dome_active mustEqual false
+            lattice_benefit mustEqual 28
             unk3 mustEqual 0
             unk4 mustEqual 0
             unk5 mustEqual 0
             unk6 mustEqual false
             unk7 mustEqual 8
-            unk8 mustEqual false
-            unk9 mustEqual false
+            boost_spawn_pain mustEqual false
+            boost_generator_pain mustEqual false
           case default =>
             ko
         }
