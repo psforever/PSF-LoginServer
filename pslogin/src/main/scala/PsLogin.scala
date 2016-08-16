@@ -31,6 +31,20 @@ object PsLogin {
     println
   }
 
+  // Little job to made some data from gcap files
+  import scala.io.Source
+  import java.io.FileWriter
+
+  val FileToRead = "D:\\all-captures-07-13-16\\all_a0.txt"
+  val FileToWrite = "D:\\all-captures-07-13-16\\all_a0_W.txt"
+  val fw = new FileWriter(FileToWrite, true)
+
+  for (line <- Source.fromFile(FileToRead).getLines()) {
+     fw.write( line.drop(line.lastIndexOf(' ')) + System.getProperty("line.separator") )
+  }
+  fw.close()
+
+
   /** Grabs the most essential system information and returns it as a preformatted string */
   def systemInformation : String = {
     s"""|~~~ System Information ~~~
