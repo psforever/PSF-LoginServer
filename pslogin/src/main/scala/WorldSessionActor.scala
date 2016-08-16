@@ -315,6 +315,23 @@ class WorldSessionActor extends Actor with MDCContextAware {
       if (messagetype != ChatMessageType.CMT_TOGGLE_GM) {
         log.info("Chat: " + msg)
       }
+      if (messagetype == ChatMessageType.CMT_TELL && recipient == "bot1") {
+        //sendRawResponse(hex"a004000900660000000080000000" ++ ByteVector.fromValidHex(contents) ++ hex"00000000000046")
+        //sendRawResponse(hex"a0 0400 0900 16 000000 0080 000000 " ++ ByteVector.fromValidHex(contents) ++ hex"00 00 00 00 00 40")
+        sendRawResponse(hex"a0 0700  " ++ ByteVector.fromValidHex(contents) ++ hex" 16 000000 0080 000000 1000 00 00 00 00 00 40")
+        //sendRawResponse(hex"a0 0700 1d01                                            06 000000 0180 000000 1000 00 00 00 00 00 40")
+      }
+      if (messagetype == ChatMessageType.CMT_TELL && recipient == "bot" && contents == "01") {
+        sendRawResponse(hex"a0040005008805000a0080000000000000000000001c00")
+      }
+      if (messagetype == ChatMessageType.CMT_TELL && recipient == "bot" && contents == "02") {
+      }
+      if (messagetype == ChatMessageType.CMT_TELL && recipient == "bot" && contents == "03") {
+      }
+      if (messagetype == ChatMessageType.CMT_TELL && recipient == "bot" && contents == "04") {
+      }
+      if (messagetype == ChatMessageType.CMT_TELL && recipient == "bot" && contents == "05") {
+      }
 
       // TODO: handle this appropriately
       if(messagetype == ChatMessageType.CMT_QUIT) {
