@@ -922,33 +922,90 @@ class GamePacketTest extends Specification {
         PacketCoding.EncodePacket(msg).require.toByteVector === packet
       }
     }
-        "BuildingInfoUpdateMessage" should {
-      val string = hex"a0 0400 0900 66 000000 0080 00 00 00 14 00  00 00 00 00 00 46"
+
+    "BuildingInfoUpdateMessage" should {
+      //val string = hex"a0 04 00 09 00 16 00 00 00 00 80 00 00 00 17 00  00 00 00 00 00 40"
+      val string =   hex"a0 04 00 05 00 ac 05 00 0a 00 00 00 00 00 00 00 00 00 00 00 00 1c 00"
+      //(PlanetSideGUID(4),PlanetSideGUID(5),10,true,VS,360450,TR,0,Normal,false,false,0,0,0,0,false,3,true,false)
 
       "decode" in {
         PacketCoding.DecodePacket(string).require match {
-          case BuildingInfoUpdateMessage(continent_guid, building_guid, ntu_lvl, unk1, unk2, building_Empire, unk3, building_Status, unk4, unk5, unk6) =>
-            println(continent_guid, building_guid, ntu_lvl, unk1, unk2, building_Empire, unk3, building_Status, unk4, unk5, unk6)
+          case BuildingInfoUpdateMessage(continent_guid : PlanetSideGUID,
+          building_guid : PlanetSideGUID,
+          ntu_level : Int,
+          is_hacked : Boolean,
+          hacking_empire : PlanetSideEmpire.Value,
+          hack_time_remaining : Long,
+          owning_empire : PlanetSideEmpire.Value,
+          unk1 : Long,
+          generator_state : PlanetSideGeneratorState.Value,
+          tubes_not_destroyed : Boolean,
+          unk2 : Boolean,
+          lattice_benefits : Int,
+          unk3 : Int,
+          unk4 : Int,
+          unk5 : Long,
+          unk6 : Boolean,
+          unk7 : Int,
+          unk8 : Boolean,
+          unk9 : Boolean) =>
+            println(continent_guid,building_guid,ntu_level,is_hacked,hacking_empire,hack_time_remaining,owning_empire,unk1,generator_state,
+              tubes_not_destroyed,
+              unk2,
+              lattice_benefits,
+              unk3,
+              unk4,
+              unk5,
+              unk6,
+              unk7,
+              unk8,
+              unk9)
             continent_guid mustEqual PlanetSideGUID(4)
             building_guid mustEqual PlanetSideGUID(9)
-            ntu_lvl mustEqual 102
+            ntu_level mustEqual 1
+            is_hacked mustEqual false
+            hacking_empire mustEqual PlanetSideEmpire.NEUTRAL
+            hack_time_remaining mustEqual 0
+            owning_empire mustEqual PlanetSideEmpire.NC
             unk1 mustEqual 0
-            unk2 mustEqual 0
-            building_Empire mustEqual 128
+            generator_state mustEqual PlanetSideGeneratorState.Normal
+            tubes_not_destroyed mustEqual true
+            unk2 mustEqual false
+            lattice_benefits mustEqual 28
             unk3 mustEqual 0
-            building_Status mustEqual 5120
             unk4 mustEqual 0
             unk5 mustEqual 0
-            unk6 mustEqual 70
+            unk6 mustEqual false
+            unk7 mustEqual 8
+            unk8 mustEqual false
+            unk9 mustEqual false
           case default =>
             ko
         }
       }
 
       "encode" in {
-        val msg = BuildingInfoUpdateMessage(PlanetSideGUID(4),PlanetSideGUID(9),102,0,0,128,0,5120,0,0,70)
+        val msg = BuildingInfoUpdateMessage(PlanetSideGUID(4),
+          PlanetSideGUID(9),
+          1,
+          false,
+          PlanetSideEmpire.NEUTRAL,
+          0,
+          PlanetSideEmpire.NC,
+          0,
+          PlanetSideGeneratorState.Normal,
+          true,
+          false,
+          28,
+          0,
+          0,
+          0,
+          false,
+          8,
+          false,
+          false)
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
-        println(pkt)
+
         pkt mustEqual string
       }
     }

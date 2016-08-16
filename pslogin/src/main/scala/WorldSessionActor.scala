@@ -155,6 +155,27 @@ class WorldSessionActor extends Actor with MDCContextAware {
               sendResponse(PacketCoding.CreateGamePacket(0, ContinentalLockUpdateMessage(PlanetSideGUID(13), PlanetSideEmpire.VS))) // "The VS have captured the VS Sanctuary."
               sendResponse(PacketCoding.CreateGamePacket(0, BroadcastWarpgateUpdateMessage(PlanetSideGUID(13), PlanetSideGUID(1), 32))) // VS Sanctuary: Inactive Warpgate -> Broadcast Warpgate
 
+              sendResponse(PacketCoding.CreateGamePacket(0,BuildingInfoUpdateMessage(
+                PlanetSideGUID(6),   //Ceryshen
+                PlanetSideGUID(6),   //Pinga
+                8,                   //80% NTU
+                true,                //Base hacked
+                PlanetSideEmpire.NC, //Base hacked by NC
+                600000,              //10 minutes remaining for hack
+                PlanetSideEmpire.VS, //Base owned by VS
+                0,                   //!!See class def. Non-zero will currently cause malformed packet
+                PlanetSideGeneratorState.Critical, //Generator critical
+                false,               //Respawn tubes destroyed
+                false,
+                16,                  //Tech benefit
+                0,
+                0,                   //!! Field > 0 will cause malformed packet
+                0,
+                false,
+                8,                   //!! Field != 8 will cause malformed packet
+                false,
+                true)))
+
               sendResponse(PacketCoding.CreateGamePacket(0, SetCurrentAvatarMessage(PlanetSideGUID(guid),0,0)))
 
               // Some data for oshur (modified packets from PSCap-2016-07-01_01-40-34-.gcap _ ishundar)
@@ -321,17 +342,31 @@ class WorldSessionActor extends Actor with MDCContextAware {
         sendRawResponse(hex"a0 0700  " ++ ByteVector.fromValidHex(contents) ++ hex" 16 000000 0080 000000 1000 00 00 00 00 00 40")
         //sendRawResponse(hex"a0 0700 1d01                                            06 000000 0180 000000 1000 00 00 00 00 00 40")
       }
+      if (messagetype == ChatMessageType.CMT_TELL && recipient == "bot" && contents == "00") {
+        sendRawResponse(hex"a0 0400 0500 a6 000000 0080 000000 17c0 00 00 00 00 00 40") // Akkan - TR - 100%
+      }
       if (messagetype == ChatMessageType.CMT_TELL && recipient == "bot" && contents == "01") {
-        sendRawResponse(hex"a0040005008805000a0080000000000000000000001c00")
+        sendRawResponse(hex"a0 0400 0500 ac 05000a 0000 000000 0000 00 00 00 00 00 1c 00")
       }
       if (messagetype == ChatMessageType.CMT_TELL && recipient == "bot" && contents == "02") {
+        sendRawResponse(hex"a004000500890618080080000000100000000000001c00")
       }
       if (messagetype == ChatMessageType.CMT_TELL && recipient == "bot" && contents == "03") {
+        sendRawResponse(hex"a00400050089bda2060080000000000000000000001c00")
       }
       if (messagetype == ChatMessageType.CMT_TELL && recipient == "bot" && contents == "04") {
+        sendRawResponse(hex"a004000500880e1e060080000000100000000000001c00")
       }
       if (messagetype == ChatMessageType.CMT_TELL && recipient == "bot" && contents == "05") {
+        sendRawResponse(hex"a0030005000600000001800000002000000000000040")
       }
+      if (messagetype == ChatMessageType.CMT_TELL && recipient == "bot" && contents == "06") {
+        sendRawResponse(hex"a00400050088e096040080000000000000000000001c00")
+      }
+      if (messagetype == ChatMessageType.CMT_TELL && recipient == "bot" && contents == "07") {
+        sendRawResponse(hex"a00400050089346e040080000000000000000000001c00")
+      }
+
 
       // TODO: handle this appropriately
       if(messagetype == ChatMessageType.CMT_QUIT) {
