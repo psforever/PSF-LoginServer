@@ -137,6 +137,27 @@ class WorldSessionActor extends Actor with MDCContextAware {
               log.debug("Object: " + obj)
               // LoadMapMessage 13714 in mossy .gcap
               // XXX: hardcoded shit
+
+
+
+
+              // Little job to made some data from gcap files
+              import scala.io.Source
+
+              val FileToRead = "D:\\all-captures-07-13-16\\a0_1_W.txt"
+              for (line <- Source.fromFile(FileToRead).getLines()) {
+                //println(line)
+                val results = line.split(',')
+                sendResponse(PacketCoding.CreateGamePacket(0,BuildingInfoUpdateMessage(results{1}.toInt,results{2}.toInt,results{3}.toInt,
+                  results{4}.toBoolean,results{5}.toInt,results{6}.toInt,
+                  results{7}.toInt,results{8}.toInt,results{9}.toInt,results{10}.toBoolean,results{11}.toBoolean,results{12}.toInt,
+                  results{13}.toInt,results{14}.toInt,results{15}.toInt,results{16}.toBoolean,results{17}.toInt,results{18}.toBoolean,results{19}.toBoolean)))
+                //fw.write( "//" + line.drop(line.lastIndexOf(' '))  )
+              }
+
+
+
+
               sendResponse(PacketCoding.CreateGamePacket(0, LoadMapMessage("map13","home3",40100,25,true,3770441820L))) // home3 - map13 @home3=VS Sanctuary
               //sendResponse(PacketCoding.CreateGamePacket(0, LoadMapMessage("map04","z4",40100,25,true,3770441820L))) //Ishundar
               //sendResponse(PacketCoding.CreateGamePacket(0, LoadMapMessage("ugd1","c1",40100,25,true,3770441820L))) // supai
@@ -146,26 +167,26 @@ class WorldSessionActor extends Actor with MDCContextAware {
               sendRawResponse(objectHex)
 
 
-              sendResponse(PacketCoding.CreateGamePacket(0,BuildingInfoUpdateMessage(
-                PlanetSideGUID(6),   //Ceryshen
-                PlanetSideGUID(2),   //Anguta
-                8,                   //80% NTU
-                true,                //Base hacked
-                PlanetSideEmpire.NC, //Base hacked by NC
-                600000,              //10 minutes remaining for hack
-                PlanetSideEmpire.VS, //Base owned by VS
-                0,                   //!! Field != 0 will cause malformed packet. See class def.
-                PlanetSideGeneratorState.Critical, //Generator critical
-                true,                //Respawn tubes destroyed
-                true,                //Force dome active
-                16,                  //Tech plant lattice benefit
-                0,
-                0,                   //!! Field > 0 will cause malformed packet. See class def.
-                0,
-                false,
-                8,                   //!! Field != 8 will cause malformed packet. See class def.
-                true,                //Boosted spawn room pain field
-                true)))              //Boosted generator room pain field
+//              sendResponse(PacketCoding.CreateGamePacket(0,BuildingInfoUpdateMessage(
+//                PlanetSideGUID(6),   //Ceryshen
+//                PlanetSideGUID(2),   //Anguta
+//                8,                   //80% NTU
+//                true,                //Base hacked
+//                PlanetSideEmpire.NC, //Base hacked by NC
+//                600000,              //10 minutes remaining for hack
+//                PlanetSideEmpire.VS, //Base owned by VS
+//                0,                   //!! Field != 0 will cause malformed packet. See class def.
+//                PlanetSideGeneratorState.Critical, //Generator critical
+//                true,                //Respawn tubes destroyed
+//                true,                //Force dome active
+//                16,                  //Tech plant lattice benefit
+//                0,
+//                0,                   //!! Field > 0 will cause malformed packet. See class def.
+//                0,
+//                false,
+//                8,                   //!! Field != 8 will cause malformed packet. See class def.
+//                true,                //Boosted spawn room pain field
+//                true)))              //Boosted generator room pain field
 
 
               // These object_guids are specfic to VS Sanc
@@ -180,137 +201,138 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
               sendResponse(PacketCoding.CreateGamePacket(0, SetCurrentAvatarMessage(PlanetSideGUID(guid),0,0)))
 
+
               // Some data for oshur (modified packets from PSCap-2016-07-01_01-40-34-.gcap _ ishundar)
-              sendRawResponse(hex"a0080001000600000001800000001000000000000040")
-              sendRawResponse(hex"a0080002000600000001800000001000000000000040")
-              sendRawResponse(hex"a0080003000600000001800000001000000000000040")
-              sendRawResponse(hex"a0080004000600000001800000001000000000000040")
-              sendRawResponse(hex"a008000500a6000000000000000017c0000000000040")
-              sendRawResponse(hex"a00800060086000000000000000017c0000000000040")
-              sendRawResponse(hex"a00800070096000000000000000017c0000000000040")
-              sendRawResponse(hex"a00800080096000000000000000017c0000000000040")
-              sendRawResponse(hex"a0080009001600000000800000001700000000000040")
-              sendRawResponse(hex"a008000a009600000000800000001700000000000040")
-              sendRawResponse(hex"a008000b005600000000800000001700000000000040")
-              sendRawResponse(hex"a008000c009cf47c0a00000000001000000000000040")
-              sendRawResponse(hex"a008000d004c215a0c01800000002000000000000040")
-              sendRawResponse(hex"a008000e005600000000800000001400000000000040")
-              sendRawResponse(hex"a008000f0096000000000000000017c0000000000040")
-              sendRawResponse(hex"a008001000a6000000000000000017c0000000000040")
-              sendRawResponse(hex"a0080011000600000000800000001000000000000040")
-              sendRawResponse(hex"a0080012000600000000000000001000000000000040")
-              sendRawResponse(hex"a0080013000600000001000000001000000000000040")
-              sendRawResponse(hex"a0080014000600000000000000001000000000000040")
-              sendRawResponse(hex"a0080015000600000000000000001000000000000040")
-              sendRawResponse(hex"a0080016000600000000000000001000000000000040")
-              sendRawResponse(hex"a0080017000600000001000000001000000000000040")
-              sendRawResponse(hex"a0080018000600000000000000001000000000000040")
-              sendRawResponse(hex"a0080019000600000000000000001000000000000040")
-              sendRawResponse(hex"a008001a000600000001000000001000000000000040")
-              sendRawResponse(hex"a008001b000600000000800000001000000000000040")
-              sendRawResponse(hex"a008001c000600000000800000001000000000000040")
-              sendRawResponse(hex"a008001d000600000000000000001000000000000040")
-              sendRawResponse(hex"a008001e000600000000800000001000000000000040")
-              sendRawResponse(hex"a008001f000600000000800000001000000000000040")
-              sendRawResponse(hex"a0080020000600000000000000001000000000000040")
-              sendRawResponse(hex"a0080021000600000000800000001000000000000040")
-              sendRawResponse(hex"a0080022000600000000800000001000000000000040")
-              sendRawResponse(hex"a0080023000600000000000000001000000000000040")
-              sendRawResponse(hex"a0080024000600000000800000001000000000000040")
-              sendRawResponse(hex"a0080025000600000000000000001000000000000040")
-              sendRawResponse(hex"a0080026000600000000000000001000000000000040")
-              sendRawResponse(hex"a0080027000600000000000000001000000000000040")
-              sendRawResponse(hex"a0080028000600000000000000001000000000000040")
-              sendRawResponse(hex"a0080029000600000000000000001000000000000040")
-              sendRawResponse(hex"a008002a000600000001800000000000000000000040")
-              sendRawResponse(hex"a008002b000600000001800000000000000000000040")
-              sendRawResponse(hex"a008002c000600000001800000000000000000000040")
-              sendRawResponse(hex"a008002d000600000001800000000000000000000040")
-              sendRawResponse(hex"a008002e000600000001800000000000000000000040")
-              sendRawResponse(hex"a008002f000600000001800000000000000000000040")
-              sendRawResponse(hex"a0080030000600000001800000000000000000000040")
-              sendRawResponse(hex"a0080031000600000001800000000000000000000040")
-              sendRawResponse(hex"a0080032000600000001800000000000000000000040")
-              sendRawResponse(hex"a0080033000600000001800000000000000000000040")
-              sendRawResponse(hex"a0080034000600000001800000000000000000000040")
-              sendRawResponse(hex"a0080035000600000001800000000000000000000040")
-              sendRawResponse(hex"a0080036000600000001800000000000000000000040")
-              sendRawResponse(hex"a0080037000600000000800000001000000000000040")
-              sendRawResponse(hex"a0080038000600000000800000001000000000000040")
-              sendRawResponse(hex"a0080039000600000000000000001000000000000040")
-              sendRawResponse(hex"a008003a000600000000000000001000000000000040")
-              sendRawResponse(hex"a008003b000600000000800000001000000000000040")
-              sendRawResponse(hex"a008003c000600000000000000001000000000000040")
-              sendRawResponse(hex"a008003d000600000000800000001000000000000040")
-              sendRawResponse(hex"a008003e000600000000800000001000000000000040")
-              sendRawResponse(hex"a008003f000600000000000000001000000000000040")
-              sendRawResponse(hex"a0080040000600000001800000000000000000000040")
-              sendRawResponse(hex"a0080041000600000000000000001000000000000040")
-              sendRawResponse(hex"a0080042000600000001800000001000000000000040")
-              sendRawResponse(hex"a0080043000600000001800000001000000000000040")
-              sendRawResponse(hex"a0080044000600000001800000001000000000000040")
-              sendRawResponse(hex"a0080045000600000001800000001000000000000040")
-              sendRawResponse(hex"a0080046000600000001800000001000000000000040")
-              sendRawResponse(hex"a0080047000600000001800000001000000000000040")
-              sendRawResponse(hex"a0080048000600000001800000001000000000000040")
-              sendRawResponse(hex"a0080049000600000001800000001000000000000040")
-              sendRawResponse(hex"a008004a000600000001800000001000000000000040")
-              sendRawResponse(hex"a008004b000600000001800000001000000000000040")
-              sendRawResponse(hex"a008004c000600000001800000001000000000000040")
-              sendRawResponse(hex"a008004d000600000001800000001000000000000040")
-              sendRawResponse(hex"a008004e000600000001800000001000000000000040")
-              sendRawResponse(hex"a0080075000600000001800000001000000000000040")
-              sendRawResponse(hex"a0080076000600000001800000001000000000000040")
-              sendRawResponse(hex"a0080077000600000001800000001000000000000040")
-              sendRawResponse(hex"a0080078000600000001800000001000000000000040")
-              sendRawResponse(hex"a0080079000600000001800000001000000000000040")
-              sendRawResponse(hex"a008007a000600000001800000001000000000000040")
-              sendRawResponse(hex"a008007b000600000001800000001000000000000040")
-              sendRawResponse(hex"a008007c000600000001800000001000000000000040")
-              sendRawResponse(hex"a008007d000600000001800000001000000000000040")
-              sendRawResponse(hex"a008008a000600000001800000001000000000000040")
-              sendRawResponse(hex"a008008b000600000001800000001000000000000040")
-              sendRawResponse(hex"a008008c000600000001800000001000000000000040")
-              sendRawResponse(hex"a008008d000600000001800000001000000000000040")
-              sendRawResponse(hex"a008008e000600000001800000001000000000000040")
-              sendRawResponse(hex"a008008f000600000001800000001000000000000040")
-              sendRawResponse(hex"a0080090000600000001800000001000000000000040")
-              sendRawResponse(hex"a0080091000600000001800000001000000000000040")
-              sendRawResponse(hex"a0080092000600000001800000001000000000000040")
-              sendRawResponse(hex"a0080093000600000001800000001000000000000040")
-              sendRawResponse(hex"a0080094000600000001800000001000000000000040")
-              sendRawResponse(hex"a0080095000600000001800000001000000000000040")
-              sendRawResponse(hex"a0080096000600000001800000001000000000000040")
-              sendRawResponse(hex"a00800ce000600000001800000001000000000000040")
-              sendRawResponse(hex"a00800cf000600000001800000001000000000000040")
-              sendRawResponse(hex"a00800d0000600000001800000001000000000000040")
-              sendRawResponse(hex"a00800d1000600000001800000001000000000000040")
-              sendRawResponse(hex"a00800d2000600000001800000001000000000000040")
-              sendRawResponse(hex"a00800d3000600000001800000001000000000000040")
-              sendRawResponse(hex"a00800d4000600000001800000001000000000000040")
-              sendRawResponse(hex"a00800d5000600000001800000001000000000000040")
-              sendRawResponse(hex"a00800d6000600000001800000001000000000000040")
-              sendRawResponse(hex"a00800d7000600000001800000001000000000000040")
-              sendRawResponse(hex"a00800f7000600000001800000001000000000000040")
-              sendRawResponse(hex"a00800f8000600000001800000001000000000000040")
-              sendRawResponse(hex"a00800f9000600000001800000001000000000000040")
-              sendRawResponse(hex"a00800fa000600000001800000001000000000000040")
-              sendRawResponse(hex"a00800fb000600000001800000001000000000000040")
-              sendRawResponse(hex"a00800fc000600000001800000001000000000000040")
-              sendRawResponse(hex"a00800fd000600000001800000001000000000000040")
-              sendRawResponse(hex"a00800fe000600000001800000001000000000000040")
-              sendRawResponse(hex"a00800ff000600000001800000001000000000000040")
-              sendRawResponse(hex"a0080000010600000001800000001000000000000040")
-              sendRawResponse(hex"a0080001010600000001800000001000000000000040")
-              sendRawResponse(hex"a0080002010600000001800000001000000000000040")
-              sendRawResponse(hex"a0080034010600000001800000001000000000000040")
-              sendRawResponse(hex"a0080035010600000001800000001000000000000040")
-              sendRawResponse(hex"a0080036010600000001800000001000000000000040")
-              sendRawResponse(hex"a0080037010600000001800000001000000000000040")
-              sendRawResponse(hex"a0080038010600000001800000001000000000000040")
-              sendRawResponse(hex"a0080039010600000001800000001000000000000040")
-              sendRawResponse(hex"a00800fc670600000001800000001000000000000040")
-              sendRawResponse(hex"a00800fd670600000001800000001000000000000040")
+//              sendRawResponse(hex"a0080001000600000001800000001000000000000040")
+//              sendRawResponse(hex"a0080002000600000001800000001000000000000040")
+//              sendRawResponse(hex"a0080003000600000001800000001000000000000040")
+//              sendRawResponse(hex"a0080004000600000001800000001000000000000040")
+//              sendRawResponse(hex"a008000500a6000000000000000017c0000000000040")
+//              sendRawResponse(hex"a00800060086000000000000000017c0000000000040")
+//              sendRawResponse(hex"a00800070096000000000000000017c0000000000040")
+//              sendRawResponse(hex"a00800080096000000000000000017c0000000000040")
+//              sendRawResponse(hex"a0080009001600000000800000001700000000000040")
+//              sendRawResponse(hex"a008000a009600000000800000001700000000000040")
+//              sendRawResponse(hex"a008000b005600000000800000001700000000000040")
+//              sendRawResponse(hex"a008000c009cf47c0a00000000001000000000000040")
+//              sendRawResponse(hex"a008000d004c215a0c01800000002000000000000040")
+//              sendRawResponse(hex"a008000e005600000000800000001400000000000040")
+//              sendRawResponse(hex"a008000f0096000000000000000017c0000000000040")
+//              sendRawResponse(hex"a008001000a6000000000000000017c0000000000040")
+//              sendRawResponse(hex"a0080011000600000000800000001000000000000040")
+//              sendRawResponse(hex"a0080012000600000000000000001000000000000040")
+//              sendRawResponse(hex"a0080013000600000001000000001000000000000040")
+//              sendRawResponse(hex"a0080014000600000000000000001000000000000040")
+//              sendRawResponse(hex"a0080015000600000000000000001000000000000040")
+//              sendRawResponse(hex"a0080016000600000000000000001000000000000040")
+//              sendRawResponse(hex"a0080017000600000001000000001000000000000040")
+//              sendRawResponse(hex"a0080018000600000000000000001000000000000040")
+//              sendRawResponse(hex"a0080019000600000000000000001000000000000040")
+//              sendRawResponse(hex"a008001a000600000001000000001000000000000040")
+//              sendRawResponse(hex"a008001b000600000000800000001000000000000040")
+//              sendRawResponse(hex"a008001c000600000000800000001000000000000040")
+//              sendRawResponse(hex"a008001d000600000000000000001000000000000040")
+//              sendRawResponse(hex"a008001e000600000000800000001000000000000040")
+//              sendRawResponse(hex"a008001f000600000000800000001000000000000040")
+//              sendRawResponse(hex"a0080020000600000000000000001000000000000040")
+//              sendRawResponse(hex"a0080021000600000000800000001000000000000040")
+//              sendRawResponse(hex"a0080022000600000000800000001000000000000040")
+//              sendRawResponse(hex"a0080023000600000000000000001000000000000040")
+//              sendRawResponse(hex"a0080024000600000000800000001000000000000040")
+//              sendRawResponse(hex"a0080025000600000000000000001000000000000040")
+//              sendRawResponse(hex"a0080026000600000000000000001000000000000040")
+//              sendRawResponse(hex"a0080027000600000000000000001000000000000040")
+//              sendRawResponse(hex"a0080028000600000000000000001000000000000040")
+//              sendRawResponse(hex"a0080029000600000000000000001000000000000040")
+//              sendRawResponse(hex"a008002a000600000001800000000000000000000040")
+//              sendRawResponse(hex"a008002b000600000001800000000000000000000040")
+//              sendRawResponse(hex"a008002c000600000001800000000000000000000040")
+//              sendRawResponse(hex"a008002d000600000001800000000000000000000040")
+//              sendRawResponse(hex"a008002e000600000001800000000000000000000040")
+//              sendRawResponse(hex"a008002f000600000001800000000000000000000040")
+//              sendRawResponse(hex"a0080030000600000001800000000000000000000040")
+//              sendRawResponse(hex"a0080031000600000001800000000000000000000040")
+//              sendRawResponse(hex"a0080032000600000001800000000000000000000040")
+//              sendRawResponse(hex"a0080033000600000001800000000000000000000040")
+//              sendRawResponse(hex"a0080034000600000001800000000000000000000040")
+//              sendRawResponse(hex"a0080035000600000001800000000000000000000040")
+//              sendRawResponse(hex"a0080036000600000001800000000000000000000040")
+//              sendRawResponse(hex"a0080037000600000000800000001000000000000040")
+//              sendRawResponse(hex"a0080038000600000000800000001000000000000040")
+//              sendRawResponse(hex"a0080039000600000000000000001000000000000040")
+//              sendRawResponse(hex"a008003a000600000000000000001000000000000040")
+//              sendRawResponse(hex"a008003b000600000000800000001000000000000040")
+//              sendRawResponse(hex"a008003c000600000000000000001000000000000040")
+//              sendRawResponse(hex"a008003d000600000000800000001000000000000040")
+//              sendRawResponse(hex"a008003e000600000000800000001000000000000040")
+//              sendRawResponse(hex"a008003f000600000000000000001000000000000040")
+//              sendRawResponse(hex"a0080040000600000001800000000000000000000040")
+//              sendRawResponse(hex"a0080041000600000000000000001000000000000040")
+//              sendRawResponse(hex"a0080042000600000001800000001000000000000040")
+//              sendRawResponse(hex"a0080043000600000001800000001000000000000040")
+//              sendRawResponse(hex"a0080044000600000001800000001000000000000040")
+//              sendRawResponse(hex"a0080045000600000001800000001000000000000040")
+//              sendRawResponse(hex"a0080046000600000001800000001000000000000040")
+//              sendRawResponse(hex"a0080047000600000001800000001000000000000040")
+//              sendRawResponse(hex"a0080048000600000001800000001000000000000040")
+//              sendRawResponse(hex"a0080049000600000001800000001000000000000040")
+//              sendRawResponse(hex"a008004a000600000001800000001000000000000040")
+//              sendRawResponse(hex"a008004b000600000001800000001000000000000040")
+//              sendRawResponse(hex"a008004c000600000001800000001000000000000040")
+//              sendRawResponse(hex"a008004d000600000001800000001000000000000040")
+//              sendRawResponse(hex"a008004e000600000001800000001000000000000040")
+//              sendRawResponse(hex"a0080075000600000001800000001000000000000040")
+//              sendRawResponse(hex"a0080076000600000001800000001000000000000040")
+//              sendRawResponse(hex"a0080077000600000001800000001000000000000040")
+//              sendRawResponse(hex"a0080078000600000001800000001000000000000040")
+//              sendRawResponse(hex"a0080079000600000001800000001000000000000040")
+//              sendRawResponse(hex"a008007a000600000001800000001000000000000040")
+//              sendRawResponse(hex"a008007b000600000001800000001000000000000040")
+//              sendRawResponse(hex"a008007c000600000001800000001000000000000040")
+//              sendRawResponse(hex"a008007d000600000001800000001000000000000040")
+//              sendRawResponse(hex"a008008a000600000001800000001000000000000040")
+//              sendRawResponse(hex"a008008b000600000001800000001000000000000040")
+//              sendRawResponse(hex"a008008c000600000001800000001000000000000040")
+//              sendRawResponse(hex"a008008d000600000001800000001000000000000040")
+//              sendRawResponse(hex"a008008e000600000001800000001000000000000040")
+//              sendRawResponse(hex"a008008f000600000001800000001000000000000040")
+//              sendRawResponse(hex"a0080090000600000001800000001000000000000040")
+//              sendRawResponse(hex"a0080091000600000001800000001000000000000040")
+//              sendRawResponse(hex"a0080092000600000001800000001000000000000040")
+//              sendRawResponse(hex"a0080093000600000001800000001000000000000040")
+//              sendRawResponse(hex"a0080094000600000001800000001000000000000040")
+//              sendRawResponse(hex"a0080095000600000001800000001000000000000040")
+//              sendRawResponse(hex"a0080096000600000001800000001000000000000040")
+//              sendRawResponse(hex"a00800ce000600000001800000001000000000000040")
+//              sendRawResponse(hex"a00800cf000600000001800000001000000000000040")
+//              sendRawResponse(hex"a00800d0000600000001800000001000000000000040")
+//              sendRawResponse(hex"a00800d1000600000001800000001000000000000040")
+//              sendRawResponse(hex"a00800d2000600000001800000001000000000000040")
+//              sendRawResponse(hex"a00800d3000600000001800000001000000000000040")
+//              sendRawResponse(hex"a00800d4000600000001800000001000000000000040")
+//              sendRawResponse(hex"a00800d5000600000001800000001000000000000040")
+//              sendRawResponse(hex"a00800d6000600000001800000001000000000000040")
+//              sendRawResponse(hex"a00800d7000600000001800000001000000000000040")
+//              sendRawResponse(hex"a00800f7000600000001800000001000000000000040")
+//              sendRawResponse(hex"a00800f8000600000001800000001000000000000040")
+//              sendRawResponse(hex"a00800f9000600000001800000001000000000000040")
+//              sendRawResponse(hex"a00800fa000600000001800000001000000000000040")
+//              sendRawResponse(hex"a00800fb000600000001800000001000000000000040")
+//              sendRawResponse(hex"a00800fc000600000001800000001000000000000040")
+//              sendRawResponse(hex"a00800fd000600000001800000001000000000000040")
+//              sendRawResponse(hex"a00800fe000600000001800000001000000000000040")
+//              sendRawResponse(hex"a00800ff000600000001800000001000000000000040")
+//              sendRawResponse(hex"a0080000010600000001800000001000000000000040")
+//              sendRawResponse(hex"a0080001010600000001800000001000000000000040")
+//              sendRawResponse(hex"a0080002010600000001800000001000000000000040")
+//              sendRawResponse(hex"a0080034010600000001800000001000000000000040")
+//              sendRawResponse(hex"a0080035010600000001800000001000000000000040")
+//              sendRawResponse(hex"a0080036010600000001800000001000000000000040")
+//              sendRawResponse(hex"a0080037010600000001800000001000000000000040")
+//              sendRawResponse(hex"a0080038010600000001800000001000000000000040")
+//              sendRawResponse(hex"a0080039010600000001800000001000000000000040")
+//              sendRawResponse(hex"a00800fc670600000001800000001000000000000040")
+//              sendRawResponse(hex"a00800fd670600000001800000001000000000000040")
 
 
               import scala.concurrent.duration._

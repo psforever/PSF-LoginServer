@@ -31,16 +31,52 @@ object PsLogin {
     println
   }
 
-  // Little job to made some data from gcap files
+// Little job to made some data from gcap files
   import scala.io.Source
   import java.io.FileWriter
+  import net.psforever.packet.PacketCoding
+  import net.psforever.packet.game.{BuildingInfoUpdateMessage, PlanetSideEmpire, PlanetSideGUID, PlanetSideGeneratorState}
+  import scodec.bits._
 
-  val FileToRead = "D:\\all-captures-07-13-16\\all_a0.txt"
-  val FileToWrite = "D:\\all-captures-07-13-16\\all_a0_W.txt"
+  val FileToRead = "D:\\all-captures-07-13-16\\a0_1.txt"
+  val FileToWrite = "D:\\all-captures-07-13-16\\a0_1_W.txt"
   val fw = new FileWriter(FileToWrite, true)
 
   for (line <- Source.fromFile(FileToRead).getLines()) {
-     fw.write( line.drop(line.lastIndexOf(' ')) + System.getProperty("line.separator") )
+    //fw.write( "//" + line.drop(line.lastIndexOf(' ')) + System.getProperty("line.separator") )
+
+    val string = ByteVector.fromValidHex(line.drop(line.lastIndexOf(' ')))
+      PacketCoding.DecodePacket(string).require match {
+        case BuildingInfoUpdateMessage(continent_guid: PlanetSideGUID,
+        building_guid: PlanetSideGUID,
+        ntu_level: Int,
+        is_hacked: Boolean,
+        empire_hack: PlanetSideEmpire.Value,
+        hack_time_remaining: Long,
+        empire_own: PlanetSideEmpire.Value,
+        unk1: Long,
+        generator_state: PlanetSideGeneratorState.Value,
+        spawn_tubes_normal: Boolean,
+        force_dome_active: Boolean,
+        lattice_benefit: Int,
+        unk3: Int,
+        unk4: Int,
+        unk5: Long,
+        unk6: Boolean,
+        unk7: Int,
+        boost_spawn_pain: Boolean,
+        boost_generator_pain: Boolean) =>
+//          val tata = "sendResponse(PacketCoding.CreateGamePacket(0,BuildingInfoUpdateMessage("+continent_guid+","+building_guid.toString+","+ntu_level+","+is_hacked+",PlanetSideEmpire."+empire_hack+","+hack_time_remaining+",PlanetSideEmpire."+empire_own+","+
+//            unk1+",PlanetSideGeneratorState."+generator_state+","+spawn_tubes_normal+","+force_dome_active+","+lattice_benefit+","+unk3+","+unk4+","+unk5+","+unk6+","+
+//            unk7+","+boost_spawn_pain+","+boost_generator_pain+")))"
+          val tata = continent_guid+","+building_guid.toString+","+ntu_level+","+is_hacked+",PlanetSideEmpire."+empire_hack+","+hack_time_remaining+",PlanetSideEmpire."+empire_own+","+
+            unk1+",PlanetSideGeneratorState."+generator_state+","+spawn_tubes_normal+","+force_dome_active+","+lattice_benefit+","+unk3+","+unk4+","+unk5+","+unk6+","+
+            unk7+","+boost_spawn_pain+","+boost_generator_pain
+          //fw.write( tata + " //" + line.drop(line.lastIndexOf(' ')) + System.getProperty("line.separator") )
+          fw.write( tata + System.getProperty("line.separator") )
+
+      }
+
   }
   fw.close()
 
