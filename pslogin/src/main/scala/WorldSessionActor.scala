@@ -141,39 +141,41 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
               // Little job to made some data from gcap files
               import scala.io.Source
-              val FileToRead = "BuildingInfoUpdateMessage.txt"
+
+              val FileToRead = ".\\pslogin\\src\\main\\scala\\BuildingInfoUpdateMessage.txt"
               for (line <- Source.fromFile(FileToRead).getLines()) {
-                val results = line.split(',')
+                val SomeDataFromFile = line.split(',')
 
                 sendResponse(PacketCoding.CreateGamePacket(0,BuildingInfoUpdateMessage(
-                  PlanetSideGUID(results{0}.toInt),
-                  PlanetSideGUID(results{1}.toInt),
-                  results{2}.toInt,
-                  results{3}.toBoolean,
-                  PlanetSideEmpire(results{4}.toInt),
-                  results{5}.toInt,
-                  PlanetSideEmpire(results{6}.toInt),
-                  results{7}.toInt,
-                  PlanetSideGeneratorState(results{8}.toInt),
-                  results{9}.toBoolean,
-                  results{10}.toBoolean,
-                  results{11}.toInt,
-                  results{12}.toInt,
-                  results{13}.toInt,
-                  results{14}.toInt,
-                  results{15}.toBoolean,
-                  results{16}.toInt,
-                  results{17}.toBoolean,
-                  results{18}.toBoolean)))
+                  PlanetSideGUID(SomeDataFromFile{0}.toInt),
+                  PlanetSideGUID(SomeDataFromFile{1}.toInt),
+                  SomeDataFromFile{2}.toInt,
+                  SomeDataFromFile{3}.toBoolean,
+                  PlanetSideEmpire(SomeDataFromFile{4}.toInt),
+                  SomeDataFromFile{5}.toInt,
+                  PlanetSideEmpire(SomeDataFromFile{6}.toInt),
+                  SomeDataFromFile{7}.toInt,
+                  PlanetSideGeneratorState(SomeDataFromFile{8}.toInt),
+                  SomeDataFromFile{9}.toBoolean,
+                  SomeDataFromFile{10}.toBoolean,
+                  SomeDataFromFile{11}.toInt,
+                  SomeDataFromFile{12}.toInt,
+                  SomeDataFromFile{13}.toInt,
+                  SomeDataFromFile{14}.toInt,
+                  SomeDataFromFile{15}.toBoolean,
+                  SomeDataFromFile{16}.toInt,
+                  SomeDataFromFile{17}.toBoolean,
+                  SomeDataFromFile{18}.toBoolean)))
               }
 
-
+              // Some places to load
               sendResponse(PacketCoding.CreateGamePacket(0, LoadMapMessage("map13","home3",40100,25,true,3770441820L))) // home3 - map13 @home3=VS Sanctuary
               //sendResponse(PacketCoding.CreateGamePacket(0, LoadMapMessage("map04","z4",40100,25,true,3770441820L))) //Ishundar
-              //sendResponse(PacketCoding.CreateGamePacket(0, LoadMapMessage("ugd1","c1",40100,25,true,3770441820L))) // supai
+              //sendResponse(PacketCoding.CreateGamePacket(0, LoadMapMessage("ugd1","c1",40100,25,true,3770441820L))) // supai /!\ not working
               //sendResponse(PacketCoding.CreateGamePacket(0, LoadMapMessage("map08","z8",40100,25,true,3770441820L))) // old oshur
               //sendResponse(PacketCoding.CreateGamePacket(0, LoadMapMessage("map15","tzdrvs",40100,25,true,3770441820L))) //tzdrvs - map15 @tzdrvs=VR Vehicle Training Area
               //sendResponse(PacketCoding.CreateGamePacket(0, LoadMapMessage("map16","tzcovs",40100,25,true,3770441820L))) // tzcovs - map16  Virtual Combat Zone
+
               sendRawResponse(objectHex)
 
 
