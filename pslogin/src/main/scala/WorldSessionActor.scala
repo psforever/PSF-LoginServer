@@ -137,15 +137,22 @@ class WorldSessionActor extends Actor with MDCContextAware {
               log.debug("Object: " + obj)
               // LoadMapMessage 13714 in mossy .gcap
               // XXX: hardcoded shit
+              sendResponse(PacketCoding.CreateGamePacket(0, LoadMapMessage("map13","home3",40100,25,true,3770441820L))) //VS Sanctuary
+              sendRawResponse(objectHex)
 
+              // These object_guids are specfic to VS Sanc
+              sendResponse(PacketCoding.CreateGamePacket(0, SetEmpireMessage(PlanetSideGUID(2), PlanetSideEmpire.VS))) //HART building C
+              sendResponse(PacketCoding.CreateGamePacket(0, SetEmpireMessage(PlanetSideGUID(29), PlanetSideEmpire.NC))) //South Villa Gun Tower
 
-              // Little job to made some data from gcap files
+              sendResponse(PacketCoding.CreateGamePacket(0, TimeOfDayMessage(0, 4653056, 0, 0, 32, 65)))
+              sendResponse(PacketCoding.CreateGamePacket(0, ContinentalLockUpdateMessage(PlanetSideGUID(13), PlanetSideEmpire.VS))) // "The VS have captured the VS Sanctuary."
+              sendResponse(PacketCoding.CreateGamePacket(0, BroadcastWarpgateUpdateMessage(PlanetSideGUID(13), PlanetSideGUID(1), 32))) // VS Sanctuary: Inactive Warpgate -> Broadcast Warpgate
+
+              // Little job to load some data from gcap files
               import scala.io.Source
-
               val FileToRead = ".\\pslogin\\src\\main\\scala\\BuildingInfoUpdateMessage.txt"
               for (line <- Source.fromFile(FileToRead).getLines()) {
                 val SomeDataFromFile = line.split(',')
-
                 sendResponse(PacketCoding.CreateGamePacket(0,BuildingInfoUpdateMessage(
                   PlanetSideGUID(SomeDataFromFile{0}.toInt),
                   PlanetSideGUID(SomeDataFromFile{1}.toInt),
@@ -168,17 +175,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
                   SomeDataFromFile{18}.toBoolean)))
               }
 
-              // Some places to load
-              sendResponse(PacketCoding.CreateGamePacket(0, LoadMapMessage("map13","home3",40100,25,true,3770441820L))) // home3 - map13 @home3=VS Sanctuary
-              //sendResponse(PacketCoding.CreateGamePacket(0, LoadMapMessage("map04","z4",40100,25,true,3770441820L))) //Ishundar
-              //sendResponse(PacketCoding.CreateGamePacket(0, LoadMapMessage("ugd1","c1",40100,25,true,3770441820L))) // supai /!\ not working
-              //sendResponse(PacketCoding.CreateGamePacket(0, LoadMapMessage("map08","z8",40100,25,true,3770441820L))) // old oshur
-              //sendResponse(PacketCoding.CreateGamePacket(0, LoadMapMessage("map15","tzdrvs",40100,25,true,3770441820L))) //tzdrvs - map15 @tzdrvs=VR Vehicle Training Area
-              //sendResponse(PacketCoding.CreateGamePacket(0, LoadMapMessage("map16","tzcovs",40100,25,true,3770441820L))) // tzcovs - map16  Virtual Combat Zone
-
-              sendRawResponse(objectHex)
-
-
 //              sendResponse(PacketCoding.CreateGamePacket(0,BuildingInfoUpdateMessage(
 //                PlanetSideGUID(6),   //Ceryshen
 //                PlanetSideGUID(2),   //Anguta
@@ -200,22 +196,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 //                true,                //Boosted spawn room pain field
 //                true)))              //Boosted generator room pain field
 
-
-
-              for(toto <- 0 to 1024)
-                sendResponse(PacketCoding.CreateGamePacket(0, SetEmpireMessage(PlanetSideGUID(toto), PlanetSideEmpire.VS)))
-
-              // These object_guids are specfic to VS Sanc
-              //sendResponse(PacketCoding.CreateGamePacket(0, SetEmpireMessage(PlanetSideGUID(2), PlanetSideEmpire.VS))) //HART building C
-              //sendResponse(PacketCoding.CreateGamePacket(0, SetEmpireMessage(PlanetSideGUID(29), PlanetSideEmpire.NC))) //South Villa Gun Tower
-
-              sendResponse(PacketCoding.CreateGamePacket(0, TimeOfDayMessage(0, 4653056, 0, 0, 32, 65)))
-              sendResponse(PacketCoding.CreateGamePacket(0, ContinentalLockUpdateMessage(PlanetSideGUID(13), PlanetSideEmpire.VS))) // "The VS have captured the VS Sanctuary."
-              sendResponse(PacketCoding.CreateGamePacket(0, BroadcastWarpgateUpdateMessage(PlanetSideGUID(13), PlanetSideGUID(1), 32))) // VS Sanctuary: Inactive Warpgate -> Broadcast Warpgate
-
-
               sendResponse(PacketCoding.CreateGamePacket(0, SetCurrentAvatarMessage(PlanetSideGUID(guid),0,0)))
-
 
               import scala.concurrent.duration._
               import scala.concurrent.ExecutionContext.Implicits.global
@@ -242,37 +223,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
       if (messagetype != ChatMessageType.CMT_TOGGLE_GM) {
         log.info("Chat: " + msg)
       }
-      if (messagetype == ChatMessageType.CMT_TELL && recipient == "bot1") {
-        //sendRawResponse(hex"a004000900660000000080000000" ++ ByteVector.fromValidHex(contents) ++ hex"00000000000046")
-        //sendRawResponse(hex"a0 0400 0900 16 000000 0080 000000 " ++ ByteVector.fromValidHex(contents) ++ hex"00 00 00 00 00 40")
-        sendRawResponse(hex"a0 0700  " ++ ByteVector.fromValidHex(contents) ++ hex" 16 000000 0080 000000 1000 00 00 00 00 00 40")
-        //sendRawResponse(hex"a0 0700 1d01                                            06 000000 0180 000000 1000 00 00 00 00 00 40")
-      }
-      if (messagetype == ChatMessageType.CMT_TELL && recipient == "bot" && contents == "00") {
-        sendRawResponse(hex"a0 0400 0500 a6 000000 0080 000000 17c0 00 00 00 00 00 40") // Akkan - TR - 100%
-      }
-      if (messagetype == ChatMessageType.CMT_TELL && recipient == "bot" && contents == "01") {
-        sendRawResponse(hex"a0 0400 0500 ac 05000a 0000 000000 0000 00 00 00 00 00 1c 00")
-      }
-      if (messagetype == ChatMessageType.CMT_TELL && recipient == "bot" && contents == "02") {
-        sendRawResponse(hex"a004000500890618080080000000100000000000001c00")
-      }
-      if (messagetype == ChatMessageType.CMT_TELL && recipient == "bot" && contents == "03") {
-        sendRawResponse(hex"a00400050089bda2060080000000000000000000001c00")
-      }
-      if (messagetype == ChatMessageType.CMT_TELL && recipient == "bot" && contents == "04") {
-        sendRawResponse(hex"a004000500880e1e060080000000100000000000001c00")
-      }
-      if (messagetype == ChatMessageType.CMT_TELL && recipient == "bot" && contents == "05") {
-        sendRawResponse(hex"a0030005000600000001800000002000000000000040")
-      }
-      if (messagetype == ChatMessageType.CMT_TELL && recipient == "bot" && contents == "06") {
-        sendRawResponse(hex"a00400050088e096040080000000000000000000001c00")
-      }
-      if (messagetype == ChatMessageType.CMT_TELL && recipient == "bot" && contents == "07") {
-        sendRawResponse(hex"a00400050089346e040080000000000000000000001c00")
-      }
-
 
       // TODO: handle this appropriately
       if(messagetype == ChatMessageType.CMT_QUIT) {
