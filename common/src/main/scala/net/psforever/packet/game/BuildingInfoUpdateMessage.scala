@@ -9,17 +9,17 @@ import scodec.bits._
 object PlanetSideGeneratorState extends Enumeration {
   type Type = Value
   val Normal,
-  Critical,
-  Destroyed,
-  Unk3
-  = Value
+      Critical,
+      Destroyed,
+      Unk3
+       = Value
 
   implicit val codec = PacketHelpers.createEnumerationCodec(this, uintL(2))
 }
 
 /**
-  * BuildingInfoUpdateMessage is sent for all bases, towers, and warpgates from all continents upon login.
-  */
+ * BuildingInfoUpdateMessage is sent for all bases, towers, and warpgates from all continents upon login.
+ */
 final case class BuildingInfoUpdateMessage(continent_guid : PlanetSideGUID,
                                            building_guid : PlanetSideGUID,
                                            ntu_level : Int,
@@ -47,7 +47,7 @@ final case class BuildingInfoUpdateMessage(continent_guid : PlanetSideGUID,
 
 object BuildingInfoUpdateMessage extends Marshallable[BuildingInfoUpdateMessage] {
   implicit val codec : Codec[BuildingInfoUpdateMessage] = (
-    ("continent_guid" | PlanetSideGUID.codec) ::
+      ("continent_guid" | PlanetSideGUID.codec) ::
       ("building_guid" | PlanetSideGUID.codec) ::
       ("ntu_level" | uint4L) ::
       ("is_hacked" | bool ) ::
@@ -55,14 +55,14 @@ object BuildingInfoUpdateMessage extends Marshallable[BuildingInfoUpdateMessage]
       ("hack_time_remaining" | uint32L ) :: //In milliseconds
       ("empire_own" | PlanetSideEmpire.codec) ::
       ("unk1" | uint32L) :: //TODO: string, uint16L, and uint32L follow if unk1 != 0
-
+      
       ("generator_state" | PlanetSideGeneratorState.codec) ::
       ("spawn_tubes_normal" | bool) ::
       ("force_dome_active" | bool) ::
       ("lattice_benefit" | uintL(5)) :: //5 possible benefits, bitwise combination. (MSB)5:Tech 4:Inter 3:Bio 2:Drop 1:Amp(LSB)
       ("unk3" | uintL(10)) :: //Module related. 0x3FF gives all modules with no timer. Unclear how this works.
       ("unk4" | uint4L) :: //TODO: additional fields if unk4 > 0
-
+      
       ("unk5" | uint32L) ::
       ("unk6" | bool) ::
       ("unk7" | uint4L) :: //TODO: bool and uintL(2) follow if unk7 != 8
