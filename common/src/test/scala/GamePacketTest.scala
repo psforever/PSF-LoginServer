@@ -469,6 +469,31 @@ class GamePacketTest extends Specification {
       }
     }
 
+    "TimeOfDayMessage" should {
+      val string = hex"48 00 00 00 47 00 00 20 41"
+
+      "decode" in {
+        PacketCoding.DecodePacket(string).require match {
+          case TimeOfDayMessage(unk1, time, unk2, unk3, unk4, unk5) =>
+            unk1 mustEqual 0
+            time mustEqual 4653056
+            unk2 mustEqual 0
+            unk3 mustEqual 0
+            unk4 mustEqual 32
+            unk5 mustEqual 65
+          case default =>
+            ko
+        }
+      }
+
+      "encode" in {
+        val msg = TimeOfDayMessage(0, 4653056, 0, 0, 32, 65)
+        val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+        pkt mustEqual string
+      }
+    }
+
     "PlayerStateMessageUpstream" should {
       val string = hex"BD 4B000 E377BA575B616C640A70004014060110007000000"
 
