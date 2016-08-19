@@ -6,26 +6,28 @@ import scodec.Codec
 import scodec.codecs._
 
 /**
-  * Sets Auraxis time on the client.<br>
+  * Sets Auraxis time on the client.
+  * Use the slash-command /time to view the current time in the event window.
+  * Auraxis time is represented as a standard military twenty-four hour clock, displayed in hours and minutes.<br>
   * <br>
   * Time is set per zone on map loading.
-  * Use the slash-command /time to view the current time in the event window.
-  * Auraxis time is represented as a hastened standard military twenty-four hour clock, displayed in hours and minutes.
   * Time affects, primarily, ambient light on surfaces.
   * It goes from full daylight, to twilights, to slightly darker nights, though the actual intensity will differ by zone.<br>
   * <br>
   * Auraxis time is weird.
   * The data from the server is deconstructed into both a current time and a rate of progression.
   * The lower the value, the lower the rate; the greater the value, the greater the rate.
-  * The rate is a product of the number of "cycles" between the current time and an origin time.
-  * The rate normally doubles about every 00 80 (32768).
-  * The current time is constrained to a looping twenty-four hour interval.
-  * Setting the current time extremely high can cause psychadelic rendering distortions as the current time overflows and the rate is too fast.
+  * The rate is the product of the number of "cycles" between the current time and an origin time and a base interval.
+  * The current time is constrained to a looping twenty-four hour interval.<br>
+  * <br>
+  * If no time is set, the client starts counting from 10:00 at an initial rate of about one Auraxis minute every four or five real seconds.
+  * Setting the current time to 00 00 42 sets the current time to 00:00 with an indeterminate, but slow, rate.
+  * Time is normally initialized somewhere within an interval between 00 00 46 and FF FF 47.
+  * Setting the current time extremely high can cause psychedelic rendering as the current time overflows and the rate is too fast.
   * (Setting the time to FF FF FF will reduce the rendering system to true gibberish.)<br>
   * <br>
-  * If no time is set, the client starts counting from 10:00 at an initial rate of about one Auraxis minute every three or four real seconds.
-  * A value of 00 00 42 (or less) will start the clock nearly at 00:00 with a progression to 00:01 at about 00 01 42.
-  * Auxaxis time is normally initialized somewhere within an interval between 00 00 46 and FF FF 47.
+  * The interval from 5E 39 46 (4602206, which is ~03:18) to 00 C0 47 (4702208, which is 03:18) is about a full twenty-four hours.
+  * Coincidentally, that is a count of 100002.
   * @param unk1 consistently 00; does nothing?
   * @param time Auraxis time
   * @param unk2 consistently 00; does nothing?
@@ -57,8 +59,7 @@ object TimeOfDayMessage extends Marshallable[TimeOfDayMessage] {
 }
 
 /*
-Testing Conducted in VS Sanctuary
-Example of "00 00 47" intervals
+Time Testing Conducted in VS Sanctuary
 48 00 __ __ __ 00 00 20 41
 --------------------------
      +01 00 00
@@ -86,6 +87,7 @@ Example of "00 00 47" intervals
 48 00 D0 00 47 00 00 20 41 //09:09
 48 00 E0 00 47 00 00 20 41 //09:10
 48 00 F0 00 47 00 00 20 41 //09:10
+48 00 00 01 47 00 00 20 41 //09:10
 --------------------------
      +00 01 00
 --------------------------
@@ -109,9 +111,6 @@ Example of "00 00 47" intervals
 --------------------------
      +00 10 00
 --------------------------
-48 00 00 D0 45 00 00 20 41 //01:50 (-00:09)
-48 00 00 E0 45 00 00 20 41 //01:59 (-00:09)
-48 00 00 F0 45 00 00 20 41 //02:08 (-00:09)
 48 00 00 00 46 00 00 20 41 //02:17 (-00:17)
 48 00 00 10 46 00 00 20 41 //02:34 (-00:17)
 48 00 00 20 46 00 00 20 41 //02:51 (-00:17)
@@ -144,4 +143,5 @@ Example of "00 00 47" intervals
 48 00 00 D0 47 00 00 20 41 //05:35 (+02:17)
 48 00 00 E0 47 00 00 20 41 //07:51 (+02:16)
 48 00 00 F0 47 00 00 20 41 //10:08 (+02:17)
+48 00 00 00 48 00 00 20 41 //12:24 (+02:16)
 */
