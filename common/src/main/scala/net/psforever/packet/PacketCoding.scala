@@ -280,16 +280,16 @@ object PacketCoding {
 
     opcode match {
       case Failure(e) =>
-        return Attempt.failure(Err("Failed to decode control packet's opcode: " + e.message))
-      case _ =>
-    }
+        Attempt.failure(Err("Failed to decode control packet's opcode: " + e.message))
+      case Successful(op) =>
+        val packet = ControlPacketOpcode.getPacketDecoder(op.value)(op.remainder)
 
-    val packet = ControlPacketOpcode.getPacketDecoder(opcode.require.value)(opcode.require.remainder)
-
-    packet match {
-      case Failure(e) =>
-        Attempt.failure(Err(f"Failed to parse control packet 0x${opcode.require.value.id}%02x: " + e.messageWithContext))
-      case Successful(p) => Attempt.successful(p.value)
+        packet match {
+          case Failure(e) =>
+            Attempt.failure(Err(f"Failed to parse control packet ${op.value}: " + e.messageWithContext))
+          case Successful(p) =>
+            Attempt.successful(p.value)
+        }
     }
   }
 

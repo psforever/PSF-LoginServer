@@ -5,6 +5,8 @@ import scodec.{Attempt, Codec, DecodeResult, Err}
 import scodec.bits.BitVector
 import scodec.codecs._
 
+import scala.annotation.switch
+
 /**
   * The master list of Game packet opcodes that have been discovered in the PlanetSide client.
   *
@@ -17,9 +19,7 @@ import scodec.codecs._
 object GamePacketOpcode extends Enumeration {
   type Type = Value
   val
-
-  // Opcodes should have a marker every 10 (decimal)
-  // OPCODE 0
+  // OPCODES 0x00-0f
   Unknown0,
   LoginMessage,
   LoginRespMessage,
@@ -28,36 +28,36 @@ object GamePacketOpcode extends Enumeration {
   VNLWorldStatusMessage,
   UnknownMessage6,
   UnknownMessage7,
+  // 0x08
   PlayerStateMessage,
   HitMessage,
-
-  // OPCODE 10
   HitHint,
   DamageMessage,
   DestroyMessage,
   ReloadMessage,
   MountVehicleMsg,
   DismountVehicleMsg,
+
+  // OPCODES 0x10-1f
   UseItemMessage,
   MoveItemMessage,
   ChatMsg,
   CharacterNoRecordMessage,
-
-  // OPCODE 20
   CharacterInfoMessage,
   UnknownMessage21,
   BindPlayerMessage,
   ObjectCreateMessage_Duplicate,
+  // 0x18
   ObjectCreateMessage,
   ObjectDeleteMessage,
   PingMsg,
   VehicleStateMessage,
   FrameVehicleStateMessage,
   GenericObjectStateMsg,
-
-  // OPCODE 30
   ChildObjectStateMessage,
   ActionResultMessage,
+
+  // OPCODES 0x20-2f
   UnknownMessage32,
   ActionProgressMessage,
   ActionCancelMessage,
@@ -66,8 +66,7 @@ object GamePacketOpcode extends Enumeration {
   EmoteMsg,
   UnuseItemMessage,
   ObjectDetachMessage,
-
-  // OPCODE 40
+  // 0x28
   CreateShortcutMessage,
   ChangeShortcutBankMessage,
   ObjectAttachMessage,
@@ -76,36 +75,36 @@ object GamePacketOpcode extends Enumeration {
   RequestDestroyMessage,
   UnknownMessage46,
   CharacterCreateRequestMessage,
+
+  // OPCODES 0x30-3f
   CharacterRequestMessage,
   LoadMapMessage,
-
-  // OPCODE 50
   SetCurrentAvatarMessage,
   ObjectHeldMessage,
   WeaponFireMessage,
   AvatarJumpMessage,
   PickupItemMessage,
   DropItemMessage,
+  // 0x38
   InventoryStateMessage,
   ChangeFireStateMessage_Start,
   ChangeFireStateMessage_Stop,
   UnknownMessage59,
-
-  // OPCODE 60
   GenericCollisionMsg,
   QuantityUpdateMessage,
   ArmorChangedMessage,
   ProjectileStateMessage,
+
+  // OPCODES 0x40-4f
   MountVehicleCargoMsg,
   DismountVehicleCargoMsg,
   CargoMountPointStatusMessage,
   BeginZoningMessage,
   ItemTransactionMessage,
   ItemTransactionResultMessage,
-
-  // OPCODE 70
   ChangeFireModeMessage,
   ChangeAmmoMessage,
+  // 0x48
   TimeOfDayMessage,
   UnknownMessage73,
   SpawnRequestMessage,
@@ -115,7 +114,7 @@ object GamePacketOpcode extends Enumeration {
   ServerVehicleOverrideMsg,
   LashMessage,
 
-  // OPCODE 80
+  // OPCODES 0x50-5f
   TargetingInfoMessage,
   TriggerEffectMessage,
   WeaponDryFireMessage,
@@ -124,36 +123,36 @@ object GamePacketOpcode extends Enumeration {
   DroppodLaunchResponseMessage,
   GenericObjectActionMessage,
   AvatarVehicleTimerMessage,
+  // 0x58
   AvatarImplantMessage,
   UnknownMessage89,
-
-  // OPCODE 90
   DelayedPathMountMsg,
   OrbitalShuttleTimeMsg,
   AIDamage,
   DeployObjectMessage,
   FavoritesRequest,
   FavoritesResponse,
+
+  // OPCODES 0x60-6f
   FavoritesMessage,
   ObjectDetectedMessage,
   SplashHitMessage,
   SetChatFilterMessage,
-
-  // OPCODE 100
   AvatarSearchCriteriaMessage,
   AvatarSearchResponse,
   WeaponJammedMessage,
   LinkDeadAwarenessMsg,
+  // 0x68
   DroppodFreefallingMessage,
   AvatarFirstTimeEventMessage,
   AggravatedDamageMessage,
   TriggerSoundMessage,
   LootItemMessage,
   VehicleSubStateMessage,
-
-  // OPCODE 110
   SquadMembershipRequest,
   SquadMembershipResponse,
+
+  // OPCODES 0x70-7f
   SquadMemberEvent,
   PlatoonEvent,
   FriendsRequest,
@@ -162,8 +161,7 @@ object GamePacketOpcode extends Enumeration {
   TrainingZoneMessage,
   DeployableObjectsInfoMessage,
   SquadState,
-
-  // OPCODE 120
+  // 0x78
   OxygenStateMessage,
   TradeMessage,
   UnknownMessage122,
@@ -172,36 +170,36 @@ object GamePacketOpcode extends Enumeration {
   UnknownMessage125,
   UnknownMessage126,
   AvatarStatisticsMessage,
+
+  // OPCODES 0x80-8f
   GenericObjectAction2Message,
   DestroyDisplayMessage,
-
-  // OPCODE 130
   TriggerBotAction,
   SquadWaypointRequest,
   SquadWaypointEvent,
   OffshoreVehicleMessage,
   ObjectDeployedMessage,
   ObjectDeployedCountMessage,
+  // 0x88
   WeaponDelayFireMessage,
   BugReportMessage,
   PlayerStasisMessage,
   UnknownMessage139,
-
-  // OPCODE 140
   OutfitMembershipRequest,
   OutfitMembershipResponse,
   OutfitRequest,
   OutfitEvent,
+
+  // OPCODES 0x90-9f
   OutfitMemberEvent,
   OutfitMemberUpdate,
   PlanetsideStringAttributeMessage,
   DataChallengeMessage,
   DataChallengeMessageResp,
   WeatherMessage,
-
-  // OPCODE 150
   SimDataChallenge,
   SimDataChallengeResp,
+  // 0x98
   OutfitListEvent,
   EmpireIncentivesMessage,
   InvalidTerrainMessage,
@@ -211,7 +209,7 @@ object GamePacketOpcode extends Enumeration {
   UplinkPositionEvent,
   HotSpotUpdateMessage,
 
-  // OPCODE 160
+  // OPCODES 0xa0-af
   BuildingInfoUpdateMessage,
   FireHintMessage,
   UplinkRequest,
@@ -220,36 +218,36 @@ object GamePacketOpcode extends Enumeration {
   WarpgateResponse,
   DamageWithPositionMessage,
   GenericActionMessage,
+  // 0xa8
   ContinentalLockUpdateMessage,
   AvatarGrenadeStateMessage,
-
-  // OPCODE 170
   UnknownMessage170,
   UnknownMessage171,
   ReleaseAvatarRequestMessage,
   AvatarDeadStateMessage,
   CSAssistMessage,
   CSAssistCommentMessage,
+
+  // OPCODES 0xb0-bf
   VoiceHostRequest,
   VoiceHostKill,
   VoiceHostInfo,
   BattleplanMessage,
-
-  // OPCODE 180
   BattleExperienceMessage,
   TargetingImplantRequest,
   ZonePopulationUpdateMessage,
   DisconnectMessage,
+  // 0xb8
   ExperienceAddedMessage,
   OrbitalStrikeWaypointMessage,
   KeepAliveMessage,
   MapObjectStateBlockMessage,
   SnoopMsg,
   PlayerStateMessageUpstream,
-
-  // OPCODE 190
   PlayerStateShiftMessage,
   ZipLineMessage,
+
+  // OPCODES 0xc0-cf
   CaptureFlagUpdateMessage,
   VanuModuleUpdateMessage,
   FacilityBenefitShieldChargeRequestMessage,
@@ -258,8 +256,7 @@ object GamePacketOpcode extends Enumeration {
   ChainLashMessage,
   ZoneInfoMessage,
   LongRangeProjectileInfoMessage,
-
-  // OPCODE 200
+  // 0xc8
   WeaponLazeTargetPositionMessage,
   ModuleLimitsMessage,
   OutfitBenefitMessage,
@@ -268,36 +265,36 @@ object GamePacketOpcode extends Enumeration {
   DensityLevelUpdateMessage,
   ActOfGodMessage,
   AvatarAwardMessage,
+
+  // OPCODES 0xd0-df
   UnknownMessage208,
   DisplayedAwardMessage,
-
-  // OPCODE 210
   RespawnAMSInfoMessage,
   ComponentDamageMessage,
   GenericObjectActionAtPositionMessage,
   PropertyOverrideMessage,
   WarpgateLinkOverrideMessage,
   EmpireBenefitsMessage,
+  // 0xd8
   ForceEmpireMessage,
   BroadcastWarpgateUpdateMessage,
   UnknownMessage218,
   SquadMainTerminalMessage,
-
-  // OPCODE 220
   SquadMainTerminalResponseMessage,
   SquadOrderMessage,
   SquadOrderResponse,
   ZoneLockInfoMessage,
+
+  // OPCODES 0xe0-ef
   SquadBindInfoMessage,
   AudioSequenceMessage,
   SquadFacilityBindInfoMessage,
   ZoneForcedCavernConnectionsMessage,
   MissionActionMessage,
   MissionKillTriggerMessage,
-
-  // OPCODE 230
   ReplicationStreamMessage,
   SquadDefinitionActionMessage,
+  // 0xe8
   SquadDetailDefinitionUpdateMessage,
   TacticsMessage,
   RabbitUpdateMessage,
@@ -307,7 +304,7 @@ object GamePacketOpcode extends Enumeration {
   UnknownMessage238,
   OrderTerminalBugMessage,
 
-  // OPCODE 240
+  // OPCODES 0xf0-f3
   QueueTimedHelpMessage,
   MailMessage,
   GameVarUpdate,
@@ -317,301 +314,301 @@ object GamePacketOpcode extends Enumeration {
   private def noDecoder(opcode : GamePacketOpcode.Type) = (a : BitVector) =>
     Attempt.failure(Err(s"Could not find a marshaller for game packet ${opcode}"))
 
-  def getPacketDecoder(opcode : GamePacketOpcode.Type) : (BitVector) => Attempt[DecodeResult[PlanetSideGamePacket]] = opcode match {
-      // OPCODE 0
-      case Unknown0 => noDecoder(opcode)
-      case LoginMessage => game.LoginMessage.decode
-      case LoginRespMessage => game.LoginRespMessage.decode
-      case ConnectToWorldRequestMessage => game.ConnectToWorldRequestMessage.decode
-      case ConnectToWorldMessage => game.ConnectToWorldMessage.decode
-      case VNLWorldStatusMessage => game.VNLWorldStatusMessage.decode
-      case UnknownMessage6 => noDecoder(opcode)
-      case UnknownMessage7 => noDecoder(opcode)
-      case PlayerStateMessage => noDecoder(opcode)
-      case HitMessage => game.HitMessage.decode
+  /// Mapping of packet IDs to decoders. Notice that we are using the @switch annotation which ensures that the Scala
+  /// compiler will be able to optimize this as a lookup table (switch statement). Microbenchmarks show a nearly 400x
+  /// speedup when using a switch (given the worst case of not finding a decoder)
+  def getPacketDecoder(opcode : GamePacketOpcode.Type) : (BitVector) => Attempt[DecodeResult[PlanetSideGamePacket]] = (opcode.id : @switch) match {
+    // OPCODES 0x00-0f
+    case 0x00 => noDecoder(Unknown0)
+    case 0x01 => game.LoginMessage.decode
+    case 0x02 => game.LoginRespMessage.decode
+    case 0x03 => game.ConnectToWorldRequestMessage.decode
+    case 0x04 => game.ConnectToWorldMessage.decode
+    case 0x05 => game.VNLWorldStatusMessage.decode
+    case 0x06 => noDecoder(UnknownMessage6)
+    case 0x07 => noDecoder(UnknownMessage7)
+    // 0x08
+    case 0x08 => noDecoder(PlayerStateMessage)
+    case 0x09 => game.HitMessage.decode
+    case 0x0a => noDecoder(HitHint)
+    case 0x0b => noDecoder(DamageMessage)
+    case 0x0c => noDecoder(DestroyMessage)
+    case 0x0d => game.ReloadMessage.decode
+    case 0x0e => noDecoder(MountVehicleMsg)
+    case 0x0f => noDecoder(DismountVehicleMsg)
 
-      // OPCODE 10
-      case HitHint => noDecoder(opcode)
-      case DamageMessage => noDecoder(opcode)
-      case DestroyMessage => noDecoder(opcode)
-      case ReloadMessage => game.ReloadMessage.decode
-      case MountVehicleMsg => noDecoder(opcode)
-      case DismountVehicleMsg => noDecoder(opcode)
-      case UseItemMessage => game.UseItemMessage.decode
-      case MoveItemMessage => game.MoveItemMessage.decode
-      case ChatMsg => game.ChatMsg.decode
-      case CharacterNoRecordMessage => noDecoder(opcode)
+    // OPCODES 0x10-1f
+    case 0x10 => game.UseItemMessage.decode
+    case 0x11 => game.MoveItemMessage.decode
+    case 0x12 => game.ChatMsg.decode
+    case 0x13 => noDecoder(CharacterNoRecordMessage)
+    case 0x14 => game.CharacterInfoMessage.decode
+    case 0x15 => noDecoder(UnknownMessage21)
+    case 0x16 => noDecoder(BindPlayerMessage)
+    case 0x17 => noDecoder(ObjectCreateMessage_Duplicate)
+    // 0x18
+    case 0x18 => game.ObjectCreateMessage.decode
+    case 0x19 => game.ObjectDeleteMessage.decode
+    case 0x1a => game.PingMsg.decode
+    case 0x1b => noDecoder(VehicleStateMessage)
+    case 0x1c => noDecoder(FrameVehicleStateMessage)
+    case 0x1d => game.GenericObjectStateMsg.decode
+    case 0x1e => noDecoder(ChildObjectStateMessage)
+    case 0x1f => game.ActionResultMessage.decode
 
-      // OPCODE 20
-      case CharacterInfoMessage => game.CharacterInfoMessage.decode
-      case UnknownMessage21 => noDecoder(opcode)
-      case BindPlayerMessage => noDecoder(opcode)
-      case ObjectCreateMessage_Duplicate => noDecoder(opcode)
-      case ObjectCreateMessage => game.ObjectCreateMessage.decode
-      case ObjectDeleteMessage => game.ObjectDeleteMessage.decode
-      case PingMsg => game.PingMsg.decode
-      case VehicleStateMessage => noDecoder(opcode)
-      case FrameVehicleStateMessage => noDecoder(opcode)
-      case GenericObjectStateMsg => game.GenericObjectStateMsg.decode
+    // OPCODES 0x20-2f
+    case 0x20 => noDecoder(UnknownMessage32)
+    case 0x21 => noDecoder(ActionProgressMessage)
+    case 0x22 => noDecoder(ActionCancelMessage)
+    case 0x23 => noDecoder(ActionCancelAcknowledgeMessage)
+    case 0x24 => game.SetEmpireMessage.decode
+    case 0x25 => game.EmoteMsg.decode
+    case 0x26 => noDecoder(UnuseItemMessage)
+    case 0x27 => noDecoder(ObjectDetachMessage)
+    // 0x28
+    case 0x28 => noDecoder(CreateShortcutMessage)
+    case 0x29 => noDecoder(ChangeShortcutBankMessage)
+    case 0x2a => noDecoder(ObjectAttachMessage)
+    case 0x2b => noDecoder(UnknownMessage43)
+    case 0x2c => noDecoder(PlanetsideAttributeMessage)
+    case 0x2d => game.RequestDestroyMessage.decode
+    case 0x2e => noDecoder(UnknownMessage46)
+    case 0x2f => game.CharacterCreateRequestMessage.decode
 
-      // OPCODE 30
-      case ChildObjectStateMessage => noDecoder(opcode)
-      case ActionResultMessage => game.ActionResultMessage.decode
-      case UnknownMessage32 => noDecoder(opcode)
-      case ActionProgressMessage => noDecoder(opcode)
-      case ActionCancelMessage => noDecoder(opcode)
-      case ActionCancelAcknowledgeMessage => noDecoder(opcode)
-      case SetEmpireMessage => game.SetEmpireMessage.decode
-      case EmoteMsg => game.EmoteMsg.decode
-      case UnuseItemMessage => noDecoder(opcode)
-      case ObjectDetachMessage => noDecoder(opcode)
+    // OPCODES 0x30-3f
+    case 0x30 => game.CharacterRequestMessage.decode
+    case 0x31 => game.LoadMapMessage.decode
+    case 0x32 => game.SetCurrentAvatarMessage.decode
+    case 0x33 => game.ObjectHeldMessage.decode
+    case 0x34 => game.WeaponFireMessage.decode
+    case 0x35 => game.AvatarJumpMessage.decode
+    case 0x36 => noDecoder(PickupItemMessage)
+    case 0x37 => game.DropItemMessage.decode
+    // 0x38
+    case 0x38 => noDecoder(InventoryStateMessage)
+    case 0x39 => game.ChangeFireStateMessage_Start.decode
+    case 0x3a => game.ChangeFireStateMessage_Stop.decode
+    case 0x3b => noDecoder(UnknownMessage59)
+    case 0x3c => noDecoder(GenericCollisionMsg)
+    case 0x3d => game.QuantityUpdateMessage.decode
+    case 0x3e => noDecoder(ArmorChangedMessage)
+    case 0x3f => noDecoder(ProjectileStateMessage)
 
-      // OPCODE 40
-      case CreateShortcutMessage => noDecoder(opcode)
-      case ChangeShortcutBankMessage => noDecoder(opcode)
-      case ObjectAttachMessage => noDecoder(opcode)
-      case UnknownMessage43 => noDecoder(opcode)
-      case PlanetsideAttributeMessage => noDecoder(opcode)
-      case RequestDestroyMessage => game.RequestDestroyMessage.decode
-      case UnknownMessage46 => noDecoder(opcode)
-      case CharacterCreateRequestMessage => game.CharacterCreateRequestMessage.decode
-      case CharacterRequestMessage => game.CharacterRequestMessage.decode
-      case LoadMapMessage => game.LoadMapMessage.decode
+    // OPCODES 0x40-4f
+    case 0x40 => noDecoder(MountVehicleCargoMsg)
+    case 0x41 => noDecoder(DismountVehicleCargoMsg)
+    case 0x42 => noDecoder(CargoMountPointStatusMessage)
+    case 0x43 => noDecoder(BeginZoningMessage)
+    case 0x44 => game.ItemTransactionMessage.decode
+    case 0x45 => noDecoder(ItemTransactionResultMessage)
+    case 0x46 => game.ChangeFireModeMessage.decode
+    case 0x47 => game.ChangeAmmoMessage.decode
+    // 0x48
+    case 0x48 => game.TimeOfDayMessage.decode
+    case 0x49 => noDecoder(UnknownMessage73)
+    case 0x4a => noDecoder(SpawnRequestMessage)
+    case 0x4b => noDecoder(DeployRequestMessage)
+    case 0x4c => noDecoder(UnknownMessage76)
+    case 0x4d => noDecoder(RepairMessage)
+    case 0x4e => noDecoder(ServerVehicleOverrideMsg)
+    case 0x4f => noDecoder(LashMessage)
 
-      // OPCODE 50
-      case SetCurrentAvatarMessage => game.SetCurrentAvatarMessage.decode
-      case ObjectHeldMessage => game.ObjectHeldMessage.decode
-      case WeaponFireMessage => game.WeaponFireMessage.decode
-      case AvatarJumpMessage => game.AvatarJumpMessage.decode
-      case PickupItemMessage => noDecoder(opcode)
-      case DropItemMessage => game.DropItemMessage.decode
-      case InventoryStateMessage => noDecoder(opcode)
-      case ChangeFireStateMessage_Start => game.ChangeFireStateMessage_Start.decode
-      case ChangeFireStateMessage_Stop => game.ChangeFireStateMessage_Stop.decode
-      case UnknownMessage59 => noDecoder(opcode)
+    // OPCODES 0x50-5f
+    case 0x50 => noDecoder(TargetingInfoMessage)
+    case 0x51 => noDecoder(TriggerEffectMessage)
+    case 0x52 => game.WeaponDryFireMessage.decode
+    case 0x53 => noDecoder(DroppodLaunchRequestMessage)
+    case 0x54 => noDecoder(HackMessage)
+    case 0x55 => noDecoder(DroppodLaunchResponseMessage)
+    case 0x56 => noDecoder(GenericObjectActionMessage)
+    case 0x57 => noDecoder(AvatarVehicleTimerMessage)
+    // 0x58
+    case 0x58 => noDecoder(AvatarImplantMessage)
+    case 0x59 => noDecoder(UnknownMessage89)
+    case 0x5a => noDecoder(DelayedPathMountMsg)
+    case 0x5b => noDecoder(OrbitalShuttleTimeMsg)
+    case 0x5c => noDecoder(AIDamage)
+    case 0x5d => noDecoder(DeployObjectMessage)
+    case 0x5e => noDecoder(FavoritesRequest)
+    case 0x5f => noDecoder(FavoritesResponse)
 
-      // OPCODE 60
-      case GenericCollisionMsg => noDecoder(opcode)
-      case QuantityUpdateMessage => game.QuantityUpdateMessage.decode
-      case ArmorChangedMessage => noDecoder(opcode)
-      case ProjectileStateMessage => noDecoder(opcode)
-      case MountVehicleCargoMsg => noDecoder(opcode)
-      case DismountVehicleCargoMsg => noDecoder(opcode)
-      case CargoMountPointStatusMessage => noDecoder(opcode)
-      case BeginZoningMessage => noDecoder(opcode)
-      case ItemTransactionMessage => game.ItemTransactionMessage.decode
-      case ItemTransactionResultMessage => noDecoder(opcode)
+    // OPCODES 0x60-6f
+    case 0x60 => noDecoder(FavoritesMessage)
+    case 0x61 => noDecoder(ObjectDetectedMessage)
+    case 0x62 => noDecoder(SplashHitMessage)
+    case 0x63 => noDecoder(SetChatFilterMessage)
+    case 0x64 => noDecoder(AvatarSearchCriteriaMessage)
+    case 0x65 => noDecoder(AvatarSearchResponse)
+    case 0x66 => game.WeaponJammedMessage.decode
+    case 0x67 => noDecoder(LinkDeadAwarenessMsg)
+    // 0x68
+    case 0x68 => noDecoder(DroppodFreefallingMessage)
+    case 0x69 => game.AvatarFirstTimeEventMessage.decode
+    case 0x6a => noDecoder(AggravatedDamageMessage)
+    case 0x6b => noDecoder(TriggerSoundMessage)
+    case 0x6c => noDecoder(LootItemMessage)
+    case 0x6d => noDecoder(VehicleSubStateMessage)
+    case 0x6e => noDecoder(SquadMembershipRequest)
+    case 0x6f => noDecoder(SquadMembershipResponse)
 
-      // OPCODE 70
-      case ChangeFireModeMessage => game.ChangeFireModeMessage.decode
-      case ChangeAmmoMessage => game.ChangeAmmoMessage.decode
-      case TimeOfDayMessage => noDecoder(opcode)
-      case UnknownMessage73 => noDecoder(opcode)
-      case SpawnRequestMessage => noDecoder(opcode)
-      case DeployRequestMessage => noDecoder(opcode)
-      case UnknownMessage76 => noDecoder(opcode)
-      case RepairMessage => noDecoder(opcode)
-      case ServerVehicleOverrideMsg => noDecoder(opcode)
-      case LashMessage => noDecoder(opcode)
+    // OPCODES 0x70-7f
+    case 0x70 => noDecoder(SquadMemberEvent)
+    case 0x71 => noDecoder(PlatoonEvent)
+    case 0x72 => noDecoder(FriendsRequest)
+    case 0x73 => noDecoder(FriendsResponse)
+    case 0x74 => noDecoder(TriggerEnvironmentalDamageMessage)
+    case 0x75 => noDecoder(TrainingZoneMessage)
+    case 0x76 => noDecoder(DeployableObjectsInfoMessage)
+    case 0x77 => noDecoder(SquadState)
+    // 0x78
+    case 0x78 => noDecoder(OxygenStateMessage)
+    case 0x79 => noDecoder(TradeMessage)
+    case 0x7a => noDecoder(UnknownMessage122)
+    case 0x7b => noDecoder(DamageFeedbackMessage)
+    case 0x7c => noDecoder(DismountBuildingMsg)
+    case 0x7d => noDecoder(UnknownMessage125)
+    case 0x7e => noDecoder(UnknownMessage126)
+    case 0x7f => noDecoder(AvatarStatisticsMessage)
 
-      // OPCODE 80
-      case TargetingInfoMessage => noDecoder(opcode)
-      case TriggerEffectMessage => noDecoder(opcode)
-      case WeaponDryFireMessage => game.WeaponDryFireMessage.decode
-      case DroppodLaunchRequestMessage => noDecoder(opcode)
-      case HackMessage => noDecoder(opcode)
-      case DroppodLaunchResponseMessage => noDecoder(opcode)
-      case GenericObjectActionMessage => noDecoder(opcode)
-      case AvatarVehicleTimerMessage => noDecoder(opcode)
-      case AvatarImplantMessage => noDecoder(opcode)
-      case UnknownMessage89 => noDecoder(opcode)
+    // OPCODES 0x80-8f
+    case 0x80 => noDecoder(GenericObjectAction2Message)
+    case 0x81 => noDecoder(DestroyDisplayMessage)
+    case 0x82 => noDecoder(TriggerBotAction)
+    case 0x83 => noDecoder(SquadWaypointRequest)
+    case 0x84 => noDecoder(SquadWaypointEvent)
+    case 0x85 => noDecoder(OffshoreVehicleMessage)
+    case 0x86 => noDecoder(ObjectDeployedMessage)
+    case 0x87 => noDecoder(ObjectDeployedCountMessage)
+    // 0x88
+    case 0x88 => game.WeaponDelayFireMessage.decode
+    case 0x89 => noDecoder(BugReportMessage)
+    case 0x8a => noDecoder(PlayerStasisMessage)
+    case 0x8b => noDecoder(UnknownMessage139)
+    case 0x8c => noDecoder(OutfitMembershipRequest)
+    case 0x8d => noDecoder(OutfitMembershipResponse)
+    case 0x8e => noDecoder(OutfitRequest)
+    case 0x8f => noDecoder(OutfitEvent)
 
-      // OPCODE 90
-      case DelayedPathMountMsg => noDecoder(opcode)
-      case OrbitalShuttleTimeMsg => noDecoder(opcode)
-      case AIDamage => noDecoder(opcode)
-      case DeployObjectMessage => noDecoder(opcode)
-      case FavoritesRequest => noDecoder(opcode)
-      case FavoritesResponse => noDecoder(opcode)
-      case FavoritesMessage => noDecoder(opcode)
-      case ObjectDetectedMessage => noDecoder(opcode)
-      case SplashHitMessage => noDecoder(opcode)
-      case SetChatFilterMessage => noDecoder(opcode)
+    // OPCODES 0x90-9f
+    case 0x90 => noDecoder(OutfitMemberEvent)
+    case 0x91 => noDecoder(OutfitMemberUpdate)
+    case 0x92 => noDecoder(PlanetsideStringAttributeMessage)
+    case 0x93 => noDecoder(DataChallengeMessage)
+    case 0x94 => noDecoder(DataChallengeMessageResp)
+    case 0x95 => noDecoder(WeatherMessage)
+    case 0x96 => noDecoder(SimDataChallenge)
+    case 0x97 => noDecoder(SimDataChallengeResp)
+    // 0x98
+    case 0x98 => noDecoder(OutfitListEvent)
+    case 0x99 => noDecoder(EmpireIncentivesMessage)
+    case 0x9a => noDecoder(InvalidTerrainMessage)
+    case 0x9b => noDecoder(SyncMessage)
+    case 0x9c => noDecoder(DebugDrawMessage)
+    case 0x9d => noDecoder(SoulMarkMessage)
+    case 0x9e => noDecoder(UplinkPositionEvent)
+    case 0x9f => noDecoder(HotSpotUpdateMessage)
 
-      // OPCODE 100
-      case AvatarSearchCriteriaMessage => noDecoder(opcode)
-      case AvatarSearchResponse => noDecoder(opcode)
-      case WeaponJammedMessage => game.WeaponJammedMessage.decode
-      case LinkDeadAwarenessMsg => noDecoder(opcode)
-      case DroppodFreefallingMessage => noDecoder(opcode)
-      case AvatarFirstTimeEventMessage => game.AvatarFirstTimeEventMessage.decode
-      case AggravatedDamageMessage => noDecoder(opcode)
-      case TriggerSoundMessage => noDecoder(opcode)
-      case LootItemMessage => noDecoder(opcode)
-      case VehicleSubStateMessage => noDecoder(opcode)
+    // OPCODES 0xa0-af
+    case 0xa0 => game.BuildingInfoUpdateMessage.decode
+    case 0xa1 => noDecoder(FireHintMessage)
+    case 0xa2 => noDecoder(UplinkRequest)
+    case 0xa3 => noDecoder(UplinkResponse)
+    case 0xa4 => noDecoder(WarpgateRequest)
+    case 0xa5 => noDecoder(WarpgateResponse)
+    case 0xa6 => noDecoder(DamageWithPositionMessage)
+    case 0xa7 => noDecoder(GenericActionMessage)
+    // 0xa8
+    case 0xa8 => game.ContinentalLockUpdateMessage.decode
+    case 0xa9 => noDecoder(AvatarGrenadeStateMessage)
+    case 0xaa => noDecoder(UnknownMessage170)
+    case 0xab => noDecoder(UnknownMessage171)
+    case 0xac => noDecoder(ReleaseAvatarRequestMessage)
+    case 0xad => noDecoder(AvatarDeadStateMessage)
+    case 0xae => noDecoder(CSAssistMessage)
+    case 0xaf => noDecoder(CSAssistCommentMessage)
 
-      // OPCODE 110
-      case SquadMembershipRequest => noDecoder(opcode)
-      case SquadMembershipResponse => noDecoder(opcode)
-      case SquadMemberEvent => noDecoder(opcode)
-      case PlatoonEvent => noDecoder(opcode)
-      case FriendsRequest => noDecoder(opcode)
-      case FriendsResponse => noDecoder(opcode)
-      case TriggerEnvironmentalDamageMessage => noDecoder(opcode)
-      case TrainingZoneMessage => noDecoder(opcode)
-      case DeployableObjectsInfoMessage => noDecoder(opcode)
-      case SquadState => noDecoder(opcode)
+    // OPCODES 0xb0-bf
+    case 0xb0 => noDecoder(VoiceHostRequest)
+    case 0xb1 => noDecoder(VoiceHostKill)
+    case 0xb2 => noDecoder(VoiceHostInfo)
+    case 0xb3 => noDecoder(BattleplanMessage)
+    case 0xb4 => noDecoder(BattleExperienceMessage)
+    case 0xb5 => noDecoder(TargetingImplantRequest)
+    case 0xb6 => noDecoder(ZonePopulationUpdateMessage)
+    case 0xb7 => noDecoder(DisconnectMessage)
+    // 0xb8
+    case 0xb8 => noDecoder(ExperienceAddedMessage)
+    case 0xb9 => noDecoder(OrbitalStrikeWaypointMessage)
+    case 0xba => game.KeepAliveMessage.decode
+    case 0xbb => noDecoder(MapObjectStateBlockMessage)
+    case 0xbc => noDecoder(SnoopMsg)
+    case 0xbd => game.PlayerStateMessageUpstream.decode
+    case 0xbe => noDecoder(PlayerStateShiftMessage)
+    case 0xbf => noDecoder(ZipLineMessage)
 
-      // OPCODE 120
-      case OxygenStateMessage => noDecoder(opcode)
-      case TradeMessage => noDecoder(opcode)
-      case UnknownMessage122 => noDecoder(opcode)
-      case DamageFeedbackMessage => noDecoder(opcode)
-      case DismountBuildingMsg => noDecoder(opcode)
-      case UnknownMessage125 => noDecoder(opcode)
-      case UnknownMessage126 => noDecoder(opcode)
-      case AvatarStatisticsMessage => noDecoder(opcode)
-      case GenericObjectAction2Message => noDecoder(opcode)
-      case DestroyDisplayMessage => noDecoder(opcode)
+    // OPCODES 0xc0-cf
+    case 0xc0 => noDecoder(CaptureFlagUpdateMessage)
+    case 0xc1 => noDecoder(VanuModuleUpdateMessage)
+    case 0xc2 => noDecoder(FacilityBenefitShieldChargeRequestMessage)
+    case 0xc3 => noDecoder(ProximityTerminalUseMessage)
+    case 0xc4 => game.QuantityDeltaUpdateMessage.decode
+    case 0xc5 => noDecoder(ChainLashMessage)
+    case 0xc6 => noDecoder(ZoneInfoMessage)
+    case 0xc7 => noDecoder(LongRangeProjectileInfoMessage)
+    // 0xc8
+    case 0xc8 => noDecoder(WeaponLazeTargetPositionMessage)
+    case 0xc9 => noDecoder(ModuleLimitsMessage)
+    case 0xca => noDecoder(OutfitBenefitMessage)
+    case 0xcb => noDecoder(EmpireChangeTimeMessage)
+    case 0xcc => noDecoder(ClockCalibrationMessage)
+    case 0xcd => noDecoder(DensityLevelUpdateMessage)
+    case 0xce => noDecoder(ActOfGodMessage)
+    case 0xcf => noDecoder(AvatarAwardMessage)
 
-      // OPCODE 130
-      case TriggerBotAction => noDecoder(opcode)
-      case SquadWaypointRequest => noDecoder(opcode)
-      case SquadWaypointEvent => noDecoder(opcode)
-      case OffshoreVehicleMessage => noDecoder(opcode)
-      case ObjectDeployedMessage => noDecoder(opcode)
-      case ObjectDeployedCountMessage => noDecoder(opcode)
-      case WeaponDelayFireMessage => game.WeaponDelayFireMessage.decode
-      case BugReportMessage => noDecoder(opcode)
-      case PlayerStasisMessage => noDecoder(opcode)
-      case UnknownMessage139 => noDecoder(opcode)
+    // OPCODES 0xd0-df
+    case 0xd0 => noDecoder(UnknownMessage208)
+    case 0xd1 => noDecoder(DisplayedAwardMessage)
+    case 0xd2 => noDecoder(RespawnAMSInfoMessage)
+    case 0xd3 => noDecoder(ComponentDamageMessage)
+    case 0xd4 => noDecoder(GenericObjectActionAtPositionMessage)
+    case 0xd5 => noDecoder(PropertyOverrideMessage)
+    case 0xd6 => noDecoder(WarpgateLinkOverrideMessage)
+    case 0xd7 => noDecoder(EmpireBenefitsMessage)
+    // 0xd8
+    case 0xd8 => noDecoder(ForceEmpireMessage)
+    case 0xd9 => game.BroadcastWarpgateUpdateMessage.decode
+    case 0xda => noDecoder(UnknownMessage218)
+    case 0xdb => noDecoder(SquadMainTerminalMessage)
+    case 0xdc => noDecoder(SquadMainTerminalResponseMessage)
+    case 0xdd => noDecoder(SquadOrderMessage)
+    case 0xde => noDecoder(SquadOrderResponse)
+    case 0xdf => noDecoder(ZoneLockInfoMessage)
 
-      // OPCODE 140
-      case OutfitMembershipRequest => noDecoder(opcode)
-      case OutfitMembershipResponse => noDecoder(opcode)
-      case OutfitRequest => noDecoder(opcode)
-      case OutfitEvent => noDecoder(opcode)
-      case OutfitMemberEvent => noDecoder(opcode)
-      case OutfitMemberUpdate => noDecoder(opcode)
-      case PlanetsideStringAttributeMessage => noDecoder(opcode)
-      case DataChallengeMessage => noDecoder(opcode)
-      case DataChallengeMessageResp => noDecoder(opcode)
-      case WeatherMessage => noDecoder(opcode)
+    // OPCODES 0xe0-ef
+    case 0xe0 => noDecoder(SquadBindInfoMessage)
+    case 0xe1 => noDecoder(AudioSequenceMessage)
+    case 0xe2 => noDecoder(SquadFacilityBindInfoMessage)
+    case 0xe3 => noDecoder(ZoneForcedCavernConnectionsMessage)
+    case 0xe4 => noDecoder(MissionActionMessage)
+    case 0xe5 => noDecoder(MissionKillTriggerMessage)
+    case 0xe6 => noDecoder(ReplicationStreamMessage)
+    case 0xe7 => noDecoder(SquadDefinitionActionMessage)
+    // 0xe8
+    case 0xe8 => noDecoder(SquadDetailDefinitionUpdateMessage)
+    case 0xe9 => noDecoder(TacticsMessage)
+    case 0xea => noDecoder(RabbitUpdateMessage)
+    case 0xeb => noDecoder(SquadInvitationRequestMessage)
+    case 0xec => noDecoder(CharacterKnowledgeMessage)
+    case 0xed => noDecoder(GameScoreUpdateMessage)
+    case 0xee => noDecoder(UnknownMessage238)
+    case 0xef => noDecoder(OrderTerminalBugMessage)
 
-      // OPCODE 150
-      case SimDataChallenge => noDecoder(opcode)
-      case SimDataChallengeResp => noDecoder(opcode)
-      case OutfitListEvent => noDecoder(opcode)
-      case EmpireIncentivesMessage => noDecoder(opcode)
-      case InvalidTerrainMessage => noDecoder(opcode)
-      case SyncMessage => noDecoder(opcode)
-      case DebugDrawMessage => noDecoder(opcode)
-      case SoulMarkMessage => noDecoder(opcode)
-      case UplinkPositionEvent => noDecoder(opcode)
-      case HotSpotUpdateMessage => noDecoder(opcode)
-
-      // OPCODE 160
-      case BuildingInfoUpdateMessage => game.BuildingInfoUpdateMessage.decode
-      case FireHintMessage => noDecoder(opcode)
-      case UplinkRequest => noDecoder(opcode)
-      case UplinkResponse => noDecoder(opcode)
-      case WarpgateRequest => noDecoder(opcode)
-      case WarpgateResponse => noDecoder(opcode)
-      case DamageWithPositionMessage => noDecoder(opcode)
-      case GenericActionMessage => noDecoder(opcode)
-      case ContinentalLockUpdateMessage => game.ContinentalLockUpdateMessage.decode
-      case AvatarGrenadeStateMessage => noDecoder(opcode)
-
-      // OPCODE 170
-      case UnknownMessage170 => noDecoder(opcode)
-      case UnknownMessage171 => noDecoder(opcode)
-      case ReleaseAvatarRequestMessage => noDecoder(opcode)
-      case AvatarDeadStateMessage => noDecoder(opcode)
-      case CSAssistMessage => noDecoder(opcode)
-      case CSAssistCommentMessage => noDecoder(opcode)
-      case VoiceHostRequest => noDecoder(opcode)
-      case VoiceHostKill => noDecoder(opcode)
-      case VoiceHostInfo => noDecoder(opcode)
-      case BattleplanMessage => noDecoder(opcode)
-
-      // OPCODE 180
-      case BattleExperienceMessage => noDecoder(opcode)
-      case TargetingImplantRequest => noDecoder(opcode)
-      case ZonePopulationUpdateMessage => noDecoder(opcode)
-      case DisconnectMessage => noDecoder(opcode)
-      case ExperienceAddedMessage => noDecoder(opcode)
-      case OrbitalStrikeWaypointMessage => noDecoder(opcode)
-      case KeepAliveMessage => game.KeepAliveMessage.decode
-      case MapObjectStateBlockMessage => noDecoder(opcode)
-      case SnoopMsg => noDecoder(opcode)
-      case PlayerStateMessageUpstream => game.PlayerStateMessageUpstream.decode
-
-      // OPCODE 190
-      case PlayerStateShiftMessage => noDecoder(opcode)
-      case ZipLineMessage => noDecoder(opcode)
-      case CaptureFlagUpdateMessage => noDecoder(opcode)
-      case VanuModuleUpdateMessage => noDecoder(opcode)
-      case FacilityBenefitShieldChargeRequestMessage => noDecoder(opcode)
-      case ProximityTerminalUseMessage => noDecoder(opcode)
-      case QuantityDeltaUpdateMessage => game.QuantityDeltaUpdateMessage.decode
-      case ChainLashMessage => noDecoder(opcode)
-      case ZoneInfoMessage => noDecoder(opcode)
-      case LongRangeProjectileInfoMessage => noDecoder(opcode)
-
-      // OPCODE 200
-      case WeaponLazeTargetPositionMessage => noDecoder(opcode)
-      case ModuleLimitsMessage => noDecoder(opcode)
-      case OutfitBenefitMessage => noDecoder(opcode)
-      case EmpireChangeTimeMessage => noDecoder(opcode)
-      case ClockCalibrationMessage => noDecoder(opcode)
-      case DensityLevelUpdateMessage => noDecoder(opcode)
-      case ActOfGodMessage => noDecoder(opcode)
-      case AvatarAwardMessage => noDecoder(opcode)
-      case UnknownMessage208 => noDecoder(opcode)
-      case DisplayedAwardMessage => noDecoder(opcode)
-
-      // OPCODE 210
-      case RespawnAMSInfoMessage => noDecoder(opcode)
-      case ComponentDamageMessage => noDecoder(opcode)
-      case GenericObjectActionAtPositionMessage => noDecoder(opcode)
-      case PropertyOverrideMessage => noDecoder(opcode)
-      case WarpgateLinkOverrideMessage => noDecoder(opcode)
-      case EmpireBenefitsMessage => noDecoder(opcode)
-      case ForceEmpireMessage => noDecoder(opcode)
-      case BroadcastWarpgateUpdateMessage => game.BroadcastWarpgateUpdateMessage.decode
-      case UnknownMessage218 => noDecoder(opcode)
-      case SquadMainTerminalMessage => noDecoder(opcode)
-
-      // OPCODE 220
-      case SquadMainTerminalResponseMessage => noDecoder(opcode)
-      case SquadOrderMessage => noDecoder(opcode)
-      case SquadOrderResponse => noDecoder(opcode)
-      case ZoneLockInfoMessage => noDecoder(opcode)
-      case SquadBindInfoMessage => noDecoder(opcode)
-      case AudioSequenceMessage => noDecoder(opcode)
-      case SquadFacilityBindInfoMessage => noDecoder(opcode)
-      case ZoneForcedCavernConnectionsMessage => noDecoder(opcode)
-      case MissionActionMessage => noDecoder(opcode)
-      case MissionKillTriggerMessage => noDecoder(opcode)
-
-      // OPCODE 230
-      case ReplicationStreamMessage => noDecoder(opcode)
-      case SquadDefinitionActionMessage => noDecoder(opcode)
-      case SquadDetailDefinitionUpdateMessage => noDecoder(opcode)
-      case TacticsMessage => noDecoder(opcode)
-      case RabbitUpdateMessage => noDecoder(opcode)
-      case SquadInvitationRequestMessage => noDecoder(opcode)
-      case CharacterKnowledgeMessage => noDecoder(opcode)
-      case GameScoreUpdateMessage => noDecoder(opcode)
-      case UnknownMessage238 => noDecoder(opcode)
-      case OrderTerminalBugMessage => noDecoder(opcode)
-
-      // OPCODE 240
-      case QueueTimedHelpMessage => noDecoder(opcode)
-      case MailMessage => noDecoder(opcode)
-      case GameVarUpdate => noDecoder(opcode)
-      case ClientCheatedMessage => noDecoder(opcode)
-      case default => noDecoder(opcode)
+    // OPCODES 0xf0-f3
+    case 0xf0 => noDecoder(QueueTimedHelpMessage)
+    case 0xf1 => noDecoder(MailMessage)
+    case 0xf2 => noDecoder(GameVarUpdate)
+    case 0xf3 => noDecoder(ClientCheatedMessage)
+    case default => noDecoder(opcode)
   }
 
   implicit val codec: Codec[this.Value] = PacketHelpers.createEnumerationCodec(this, uint8L)
