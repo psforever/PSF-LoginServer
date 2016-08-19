@@ -313,7 +313,7 @@ object GamePacketOpcode extends Enumeration {
 
   private def noDecoder(opcode : GamePacketOpcode.Type) = (a : BitVector) =>
     Attempt.failure(Err(s"Could not find a marshaller for game packet ${opcode}"))
-  
+
   /// Mapping of packet IDs to decoders. Notice that we are using the @switch annotation which ensures that the Scala
   /// compiler will be able to optimize this as a lookup table (switch statement). Microbenchmarks show a nearly 400x
   /// speedup when using a switch (given the worst case of not finding a decoder)
@@ -377,7 +377,7 @@ object GamePacketOpcode extends Enumeration {
 
     // OPCODES 0x30-3f
     case 0x30 => game.CharacterRequestMessage.decode
-    case 0x31 => noDecoder(LoadMapMessage)
+    case 0x31 => game.LoadMapMessage.decode
     case 0x32 => game.SetCurrentAvatarMessage.decode
     case 0x33 => game.ObjectHeldMessage.decode
     case 0x34 => game.WeaponFireMessage.decode
@@ -509,7 +509,7 @@ object GamePacketOpcode extends Enumeration {
     case 0x9f => noDecoder(HotSpotUpdateMessage)
 
     // OPCODES 0xa0-af
-    case 0xa0 => noDecoder(BuildingInfoUpdateMessage)
+    case 0xa0 => game.BuildingInfoUpdateMessage.decode
     case 0xa1 => noDecoder(FireHintMessage)
     case 0xa2 => noDecoder(UplinkRequest)
     case 0xa3 => noDecoder(UplinkResponse)
