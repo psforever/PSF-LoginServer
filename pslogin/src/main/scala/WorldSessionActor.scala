@@ -141,8 +141,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
               // Little job to made some data from gcap files
               import scala.io.Source
-
-              val FileToRead = "D:\\all-captures-07-13-16\\a0_1_W.txt"
+              val FileToRead = "BuildingInfoUpdateMessage.txt"
               for (line <- Source.fromFile(FileToRead).getLines()) {
                 val results = line.split(',')
 
@@ -151,11 +150,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
                   PlanetSideGUID(results{1}.toInt),
                   results{2}.toInt,
                   results{3}.toBoolean,
-                  PlanetSideEmpire.VS, // Dont know how use results{4}
+                  PlanetSideEmpire(results{4}.toInt),
                   results{5}.toInt,
-                  PlanetSideEmpire.TR, // Dont know how use results{6}
+                  PlanetSideEmpire(results{6}.toInt),
                   results{7}.toInt,
-                  PlanetSideGeneratorState.Normal, // Dont know how use results{8}
+                  PlanetSideGeneratorState(results{8}.toInt),
                   results{9}.toBoolean,
                   results{10}.toBoolean,
                   results{11}.toInt,
@@ -169,10 +168,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
               }
 
 
-              //sendResponse(PacketCoding.CreateGamePacket(0, LoadMapMessage("map13","home3",40100,25,true,3770441820L))) // home3 - map13 @home3=VS Sanctuary
+              sendResponse(PacketCoding.CreateGamePacket(0, LoadMapMessage("map13","home3",40100,25,true,3770441820L))) // home3 - map13 @home3=VS Sanctuary
               //sendResponse(PacketCoding.CreateGamePacket(0, LoadMapMessage("map04","z4",40100,25,true,3770441820L))) //Ishundar
               //sendResponse(PacketCoding.CreateGamePacket(0, LoadMapMessage("ugd1","c1",40100,25,true,3770441820L))) // supai
-              sendResponse(PacketCoding.CreateGamePacket(0, LoadMapMessage("map08","z8",40100,25,true,3770441820L))) // old oshur
+              //sendResponse(PacketCoding.CreateGamePacket(0, LoadMapMessage("map08","z8",40100,25,true,3770441820L))) // old oshur
               //sendResponse(PacketCoding.CreateGamePacket(0, LoadMapMessage("map15","tzdrvs",40100,25,true,3770441820L))) //tzdrvs - map15 @tzdrvs=VR Vehicle Training Area
               //sendResponse(PacketCoding.CreateGamePacket(0, LoadMapMessage("map16","tzcovs",40100,25,true,3770441820L))) // tzcovs - map16  Virtual Combat Zone
               sendRawResponse(objectHex)
@@ -200,9 +199,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
 //                true)))              //Boosted generator room pain field
 
 
-              // These object_guids are specfic to VS Sanc
+
               for(toto <- 0 to 1024)
                 sendResponse(PacketCoding.CreateGamePacket(0, SetEmpireMessage(PlanetSideGUID(toto), PlanetSideEmpire.VS)))
+
+              // These object_guids are specfic to VS Sanc
               //sendResponse(PacketCoding.CreateGamePacket(0, SetEmpireMessage(PlanetSideGUID(2), PlanetSideEmpire.VS))) //HART building C
               //sendResponse(PacketCoding.CreateGamePacket(0, SetEmpireMessage(PlanetSideGUID(29), PlanetSideEmpire.NC))) //South Villa Gun Tower
 
