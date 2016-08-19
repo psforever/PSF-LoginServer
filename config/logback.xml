@@ -1,4 +1,4 @@
-<configuration scan="true" scanPeriod="10 seconds">
+<configuration scan="true" scanPeriod="5 seconds">
   <timestamp key="bySecond" datePattern="yyyy-MM-dd_HH-mm-ss"/>
 
   <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
