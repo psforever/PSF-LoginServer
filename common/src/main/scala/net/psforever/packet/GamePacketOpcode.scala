@@ -511,7 +511,7 @@ object GamePacketOpcode extends Enumeration {
       case HotSpotUpdateMessage => noDecoder(opcode)
 
       // OPCODE 160
-      case BuildingInfoUpdateMessage => noDecoder(opcode)
+      case BuildingInfoUpdateMessage => game.BuildingInfoUpdateMessage.decode
       case FireHintMessage => noDecoder(opcode)
       case UplinkRequest => noDecoder(opcode)
       case UplinkResponse => noDecoder(opcode)

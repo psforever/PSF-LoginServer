@@ -144,10 +144,31 @@ class WorldSessionActor extends Actor with MDCContextAware {
               sendResponse(PacketCoding.CreateGamePacket(0, SetEmpireMessage(PlanetSideGUID(2), PlanetSideEmpire.VS))) //HART building C
               sendResponse(PacketCoding.CreateGamePacket(0, SetEmpireMessage(PlanetSideGUID(29), PlanetSideEmpire.NC))) //South Villa Gun Tower
 
+              sendResponse(PacketCoding.CreateGamePacket(0, TimeOfDayMessage(0, 4653056, 0, 0, 32, 65)))
               sendResponse(PacketCoding.CreateGamePacket(0, ContinentalLockUpdateMessage(PlanetSideGUID(13), PlanetSideEmpire.VS))) // "The VS have captured the VS Sanctuary."
               sendResponse(PacketCoding.CreateGamePacket(0, BroadcastWarpgateUpdateMessage(PlanetSideGUID(13), PlanetSideGUID(1), 32))) // VS Sanctuary: Inactive Warpgate -> Broadcast Warpgate
 
-              sendResponse(PacketCoding.CreateGamePacket(0, TimeOfDayMessage(0, 4653056, 0, 0, 32, 65)))
+              sendResponse(PacketCoding.CreateGamePacket(0,BuildingInfoUpdateMessage(
+                PlanetSideGUID(6),   //Ceryshen
+                PlanetSideGUID(2),   //Anguta
+                8,                   //80% NTU
+                true,                //Base hacked
+                PlanetSideEmpire.NC, //Base hacked by NC
+                600000,              //10 minutes remaining for hack
+                PlanetSideEmpire.VS, //Base owned by VS
+                0,                   //!! Field != 0 will cause malformed packet. See class def.
+                PlanetSideGeneratorState.Critical, //Generator critical
+                true,                //Respawn tubes destroyed
+                true,                //Force dome active
+                16,                  //Tech plant lattice benefit
+                0,
+                0,                   //!! Field > 0 will cause malformed packet. See class def.
+                0,
+                false,
+                8,                   //!! Field != 8 will cause malformed packet. See class def.
+                true,                //Boosted spawn room pain field
+                true)))              //Boosted generator room pain field
+
               sendResponse(PacketCoding.CreateGamePacket(0, SetCurrentAvatarMessage(PlanetSideGUID(guid),0,0)))
 
               import scala.concurrent.duration._
