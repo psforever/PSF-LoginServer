@@ -405,7 +405,7 @@ object GamePacketOpcode extends Enumeration {
       // OPCODE 70
       case ChangeFireModeMessage => game.ChangeFireModeMessage.decode
       case ChangeAmmoMessage => game.ChangeAmmoMessage.decode
-      case TimeOfDayMessage => noDecoder(opcode)
+      case TimeOfDayMessage => game.TimeOfDayMessage.decode
       case UnknownMessage73 => noDecoder(opcode)
       case SpawnRequestMessage => noDecoder(opcode)
       case DeployRequestMessage => noDecoder(opcode)

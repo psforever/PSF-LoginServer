@@ -5,15 +5,72 @@ import net.psforever.packet.{GamePacketOpcode, Marshallable, PlanetSideGamePacke
 import scodec.Codec
 import scodec.codecs._
 
+/**
+  * Sets Auraxis time on the client.<br>
+  * <br>
+  * Time is set per zone on map loading.
+  * Use the slash-command /time to view the current time in the event window.
+  * Auraxis time is represented as a hastened standard military twenty-four hour clock, displayed in hours and minutes.
+  * Time affects, primarily, ambient light on surfaces.
+  * It goes from full daylight, to twilights, to slightly darker nights, though the actual intensity will differ by zone.<br>
+  * <br>
+  * Auraxis time is weird.
+  * The data from the server is deconstructed into both a current time and a rate of progression.
+  * The lower the value, the lower the rate; the greater the value, the greater the rate.
+  * The rate is a product of the number of "cycles" between the current time and an origin time.
+  * The rate normally doubles about every 00 80 (32768).
+  * The current time is constrained to a looping twenty-four hour interval.
+  * Setting the current time extremely high can cause psychadelic rendering distortions as the current time overflows and the rate is too fast.
+  * (Setting the time to FF FF FF will reduce the rendering system to true gibberish.)<br>
+  * <br>
+  * If no time is set, the client starts counting from 10:00 at an initial rate of about one Auraxis minute every three or four real seconds.
+  * A value of 00 00 42 (or less) will start the clock nearly at 00:00 with a progression to 00:01 at about 00 01 42.
+  * Auxaxis time is normally initialized somewhere within an interval between 00 00 46 and FF FF 47.
+  * @param unk1 consistently 00; does nothing?
+  * @param time Auraxis time
+  * @param unk2 consistently 00; does nothing?
+  * @param unk3 consistently 00; does nothing?
+  * @param unk4 consistently 20; does nothing?
+  * @param unk5 consistently 41; does nothing?
+  */
+final case class TimeOfDayMessage(unk1 : Int,
+                                  time : Int,
+                                  unk2 : Int,
+                                  unk3 : Int,
+                                  unk4 : Int,
+                                  unk5 : Int)
+  extends PlanetSideGamePacket {
+  type Packet = TimeOfDayMessage
+  def opcode = GamePacketOpcode.TimeOfDayMessage
+  def encode = TimeOfDayMessage.encode(this)
+}
+
+object TimeOfDayMessage extends Marshallable[TimeOfDayMessage] {
+  implicit val codec : Codec[TimeOfDayMessage] = (
+    ("unk1" | uint8L) ::
+      ("time" | uintL(24)) ::
+      ("unk2" | uint8L) ::
+      ("unk3" | uint8L) ::
+      ("unk4" | uint8L) ::
+      ("unk5" | uint8L)
+    ).as[TimeOfDayMessage]
+}
+
 /*
+Testing Conducted in VS Sanctuary
+Example of "00 00 47" intervals
 48 00 __ __ __ 00 00 20 41
+--------------------------
+     +01 00 00
 --------------------------
 48 00 1B 00 47 00 00 20 41 //09:06
 48 00 1C 00 47 00 00 20 41 //09:07
 ...
-48 00 59 00 47 00 00 20 41 //09:08 (+3D / +3C)
+48 00 59 00 47 00 00 20 41 //09:08 (+3D 00 00)
 --------------------------
-48 00 00 00 47 00 00 20 41 //09:06
+     +10 00 00
+--------------------------
+48 00 00 00 47 00 00 20 41 //09:06 <--
 48 00 10 00 47 00 00 20 41 //09:06
 48 00 20 00 47 00 00 20 41 //09:07
 48 00 30 00 47 00 00 20 41 //09:07
@@ -30,7 +87,9 @@ import scodec.codecs._
 48 00 E0 00 47 00 00 20 41 //09:10
 48 00 F0 00 47 00 00 20 41 //09:10
 --------------------------
-48 00 00 00 47 00 00 20 41 //09:06
+     +00 01 00
+--------------------------
+48 00 00 00 47 00 00 20 41 //09:06 <--
 48 00 00 01 47 00 00 20 41 //09:10
 48 00 00 02 47 00 00 20 41 //09:15
 48 00 00 03 47 00 00 20 41 //09:19
@@ -48,7 +107,8 @@ import scodec.codecs._
 48 00 00 0F 47 00 00 20 41 //10:10
 48 00 00 10 47 00 00 20 41 //10:14
 --------------------------
-48 00 00 C0 45 00 00 20 41 //01:41 (-00:09)
+     +00 10 00
+--------------------------
 48 00 00 D0 45 00 00 20 41 //01:50 (-00:09)
 48 00 00 E0 45 00 00 20 41 //01:59 (-00:09)
 48 00 00 F0 45 00 00 20 41 //02:08 (-00:09)
@@ -84,45 +144,4 @@ import scodec.codecs._
 48 00 00 D0 47 00 00 20 41 //05:35 (+02:17)
 48 00 00 E0 47 00 00 20 41 //07:51 (+02:16)
 48 00 00 F0 47 00 00 20 41 //10:08 (+02:17)
---------------------------
 */
-
-/**
-  * Sets Auraxis time on the client, which affects, among things, shadowcasting and ambience.
-  * Use the command /time to view the time.<br>
-  * <br>
-  * Auraxis time is represented as a dilated standard military twenty-four hour clock.
-  * The progression of time is very weird.
-  * The actual value for time is represented by the second, the third, and the fourth bytes of the data section.
-  * None of the unknown values appear to do anything when modified.<br>
-  * <br>
-  *
-  * @param unk1 does nothing? always 00.
-  * @param time Auraxis time, in three bytes AA BB CC.  CC is typically 47 but occasionally 46.
-  * @param unk2 does nothing? always 00.
-  * @param unk3 does nothing? always 00.
-  * @param unk4 does nothing? always 20.
-  * @param unk5 does nothing? always 41.
-  */
-final case class TimeOfDayMessage(unk1 : Int,
-                                  time : Int,
-                                  unk2 : Int,
-                                  unk3 : Int,
-                                  unk4 : Int,
-                                  unk5 : Int)
-  extends PlanetSideGamePacket {
-  type Packet = TimeOfDayMessage
-  def opcode = GamePacketOpcode.TimeOfDayMessage
-  def encode = TimeOfDayMessage.encode(this)
-}
-
-object TimeOfDayMessage extends Marshallable[TimeOfDayMessage] {
-  implicit val codec : Codec[TimeOfDayMessage] = (
-    ("unk1" | uint8L) ::
-      ("time" | uintL(24)) ::
-      ("unk2" | uint8L) ::
-      ("unk3" | uint8L) ::
-      ("unk4" | uint8L) ::
-      ("unk5" | uint8L)
-    ).as[TimeOfDayMessage]
-}
