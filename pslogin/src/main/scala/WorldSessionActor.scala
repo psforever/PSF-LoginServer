@@ -150,8 +150,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
               // Little job to load some data from gcap files
               import scala.io.Source
-              val FileToRead = ".\\pslogin\\src\\main\\scala\\BuildingInfoUpdateMessage.txt"
-              for (line <- Source.fromFile(FileToRead).getLines()) {
+              val bufferedFile = Source.fromFile(".\\pslogin\\src\\main\\scala\\BuildingInfoUpdateMessage.txt")
+              for (line <- bufferedFile.getLines){
                 val SomeDataFromFile = line.split(',')
                 sendResponse(PacketCoding.CreateGamePacket(0,BuildingInfoUpdateMessage(
                   PlanetSideGUID(SomeDataFromFile{0}.toInt),
@@ -174,6 +174,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                   SomeDataFromFile{17}.toBoolean,
                   SomeDataFromFile{18}.toBoolean)))
               }
+              bufferedFile.close()
 
 //              sendResponse(PacketCoding.CreateGamePacket(0,BuildingInfoUpdateMessage(
 //                PlanetSideGUID(6),   //Ceryshen
