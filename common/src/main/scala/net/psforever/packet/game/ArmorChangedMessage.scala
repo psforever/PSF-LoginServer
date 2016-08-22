@@ -6,28 +6,31 @@ import scodec.Codec
 import scodec.codecs._
 
 /**
-  * Force a player to change their exo-suit.
-  * This one command sets personal armor value, weapon slots, GUI elements, and other such things, related to the exo-suit being worn.<br>
+  * Force a player model to change its exo-suit.
+  * Set all GUI elements and functional elements to be associated with that type of exo-suit.
+  * Inventory and holster contents are discarded.<br>
   * <br>
-  * Due to the way MAXes are handled internally, a player of one faction may not spawn in the MAX suit of another faction.
-  * MAXes do not get their weapon by default.
-  * It is created by subsequent ObjectCreatedMessage and an ObjectHeldMessage pairs (two for TR?).
-  * Consequentially, the three MAX values all produce the same mechanized exo-suit body visually.<br>
+  * Due to the way armor is handled internally, a player of one faction may not spawn in the exo-suit of another faction.
+  * That style of exo-suit is never available through this packet.
+  * As MAX units do not get their weapon by default, all the MAX values produce the same faction-appropriate mechanized exo-suit body visually.
+  * (The MAX weapons are supplied in subsequent packets.)<br>
+  * <br>
+  * All values in between the ones indicated (below) dress the player in the lesser suit, e.g., 1F is Agile, 21 is Reinforced.
+  * 44, 48, and 4C are distinguished in that those are the prescribed values for terminal-swapped MAX exo-suits.<br>
   * <br>
   * `
-  * - Standard:     hex 00, dec  0<br>
-  * - Agile:        hex 00, dex  0<br>
-  * - Reinforced:   hex 00, dex  0<br>
-  * - MAX AI:       hex 44, dec 68<br>
-  * - MAX AV:       hex 48, dec 72<br>
-  * - MAX AA:       hex 4C, dec 76<br>
-  * - Infiltration: hex 60, dec 96<br>
+  * 00 - Agile (0)<br>
+  * 20 - Reinforced (32)<br>
+  * 40 - MAX (64)<br>
+  * 44 - AI MAX (68)<br>
+  * 48 - AV MAX (72)<br>
+  * 4C - AA MAX (76)<br>
+  * 60 - Infiltration (96)<br>
+  * 80 - Standard (128)
   * `
-  *
   * @param player_guid the player
-  * @param armor the type of armor to change into (if a MAX, you will not have your weapons)
+  * @param armor the type of exo-suit
   */
-//sendResponse(PacketCoding.CreateGamePacket(0, ArmorChangedMessage(PlanetSideGUID(guid),68)))
 final case class ArmorChangedMessage(player_guid : PlanetSideGUID,
                                     armor : Int)
   extends PlanetSideGamePacket {
@@ -39,6 +42,6 @@ final case class ArmorChangedMessage(player_guid : PlanetSideGUID,
 object ArmorChangedMessage extends Marshallable[ArmorChangedMessage] {
   implicit val codec : Codec[ArmorChangedMessage] = (
     ("player_guid" | PlanetSideGUID.codec) ::
-      ("time" | uint8L)
+      ("armor" | uint8L)
     ).as[ArmorChangedMessage]
 }
