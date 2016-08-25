@@ -704,30 +704,20 @@ class GamePacketTest extends Specification {
     }
 
     "ZonePopulationUpdateMessage" should {
-      val string = hex"B6 04 00 9E 01 00 00 8A  00 00 00 25 00 00 00 8A  00 00 00 25 00 00 00 8A  00 00 00 25 00 00 00 8A  00 00 00 25 00 00 00"
+      val string = hex"B6 0400 9E010000 8A000000 25000000 8A000000 25000000 8A000000 25000000 8A000000 25000000"
 
       "decode" in {
         PacketCoding.DecodePacket(string).require match {
-          case ZonePopulationUpdateMessage(continent_guid, emblem, unk10, unk11, tr_queue, unk20, unk21, tr_pop, nc_queue, unk30, unk31, nc_pop, vs_queue, unk40, unk41, vs_pop, bo_queue, unk50, unk51, bo_pop) =>
+          case ZonePopulationUpdateMessage(continent_guid, zone_queue, tr_queue, tr_pop, nc_queue, nc_pop, vs_queue, vs_pop, bo_queue, bo_pop) =>
             continent_guid mustEqual PlanetSideGUID(4)
-            emblem mustEqual 414
-            unk10 mustEqual 0
-            unk11 mustEqual 0
+            zone_queue mustEqual 414
             tr_queue mustEqual 138
-            unk20 mustEqual 0
-            unk21 mustEqual 0
             tr_pop mustEqual 37
             nc_queue mustEqual 138
-            unk30 mustEqual 0
-            unk31 mustEqual 0
             nc_pop mustEqual 37
             vs_queue mustEqual 138
-            unk40 mustEqual 0
-            unk41 mustEqual 0
             vs_pop mustEqual 37
             bo_queue mustEqual 138
-            unk50 mustEqual 0
-            unk51 mustEqual 0
             bo_pop mustEqual 37
           case default =>
             ko
@@ -735,7 +725,7 @@ class GamePacketTest extends Specification {
       }
 
       "encode" in {
-        val msg = ZonePopulationUpdateMessage(PlanetSideGUID(4), 414, 0, 0, 138, 0, 0, 37, 138, 0, 0, 37, 138, 0, 0, 37, 138, 0, 0, 37)
+        val msg = ZonePopulationUpdateMessage(PlanetSideGUID(4), 414, 138, 37, 138, 37, 138, 37, 138, 37)
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
         pkt mustEqual string
