@@ -639,6 +639,37 @@ class GamePacketTest extends Specification {
       }
     }
 
+    "DestroyDisplayMessage" should {
+      val ownedKillString = hex"81 89 44006500760069006E00610074006F007200 E110 D501 4F 20 19405 14 0 3100530068006F00740031004B00690049006C00 4659 1000 80" // Devinator-NC (Jackhammer) 1Shot1KiIl-VS
+
+      "decode" in {
+        PacketCoding.DecodePacket(ownedKillString).require match {
+          case DestroyDisplayMessage(killer, unk1, unk2, killer_empire_mode, buffer20, method, victim_name_length, buffer0, victim, unk3, unk4, victim_empire_mode) =>
+            killer mustEqual "Devinator"
+            unk1 mustEqual 4321
+            unk2 mustEqual 469
+            killer_empire_mode mustEqual 79
+            buffer20 mustEqual 32
+            method mustEqual 344089
+            victim_name_length mustEqual 20
+            buffer0 mustEqual 0
+            victim mustEqual "1Shot1KiIl"
+            unk3 mustEqual 22854
+            unk4 mustEqual 16
+            victim_empire_mode mustEqual 80
+          case default =>
+            ko
+        }
+      }
+
+      "encode" in {
+        val msg = DestroyDisplayMessage("Devinator", 4321, 469, 79, 32, 344089, 20, 0, "1Shot1KiIl", 22854, 16, 128)
+        val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+        pkt mustEqual ownedKillString
+      }
+    }
+
     "WeaponDelayFireMessage" should {
       val string = hex"88 A3140000"
 
