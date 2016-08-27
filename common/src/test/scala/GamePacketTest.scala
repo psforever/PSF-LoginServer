@@ -981,6 +981,28 @@ class GamePacketTest extends Specification {
       }
     }
 
+    "ArmorChangedMessage" should {
+      val string = hex"3E 11 01 4C"
+
+      "decode" in {
+        PacketCoding.DecodePacket(string).require match {
+          case ArmorChangedMessage(player_guid, armor, subtype) =>
+            player_guid mustEqual PlanetSideGUID(273)
+            armor mustEqual 2
+            subtype mustEqual 3
+          case default =>
+            ko
+        }
+      }
+
+      "encode" in {
+        val msg = ArmorChangedMessage(PlanetSideGUID(273), 2, 3)
+        val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+        pkt mustEqual string
+      }
+    }
+
     "QuantityDeltaUpdateMessage" should {
       val string = hex"C4 5300 FBFFFFFF"
 
