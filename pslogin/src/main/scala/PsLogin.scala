@@ -21,6 +21,14 @@ import scala.concurrent.duration._
 object PsLogin {
   private val logger = org.log4s.getLogger
 
+  var args : Array[String] = Array()
+  var config : java.util.Map[String,Object] = null
+  var system : akka.actor.ActorSystem = null
+  var loginRouter : akka.actor.Props = null
+  var worldRouter : akka.actor.Props = null
+  var loginListener : akka.actor.ActorRef = null
+  var worldListener : akka.actor.ActorRef = null
+
   def banner() : Unit = {
     println(ansi().fgBright(BLUE).a("""   ___  ________"""))
     println(ansi().fgBright(BLUE).a("""  / _ \/ __/ __/__  _______ _  _____ ____"""))
@@ -94,7 +102,7 @@ object PsLogin {
     }
   }
 
-  def main(args : Array[String]) : Unit = {
+  def run() : Unit = {
     // Early start up
     banner()
     println(systemInformation)
@@ -109,7 +117,7 @@ object PsLogin {
     }
 
     initializeLogging(configDirectory + File.separator + "logback.xml")
-    parseArgs(args)
+    parseArgs(this.args)
 
     /** Initialize the PSCrypto native library
       *
@@ -143,14 +151,14 @@ object PsLogin {
       * This same config can be specified in a configuration file, but that's more work at this point.
       * In the future we will have a unified configuration file specific to this server
       */
-    val config = Map(
+    config = Map(
       "akka.loggers" -> List("akka.event.slf4j.Slf4jLogger").asJava,
       "akka.loglevel" -> "INFO",
       "akka.logging-filter" -> "akka.event.slf4j.Slf4jLoggingFilter"
     ).asJava
 
     /** Start up the main actor system. This "system" is the home for all actors running on this server */
-    val system = ActorSystem("PsLogin", ConfigFactory.parseMap(config))
+    system = ActorSystem("PsLogin", ConfigFactory.parseMap(config))
 
     /** Create pipelines for the login and world servers
       *
@@ -186,10 +194,10 @@ object PsLogin {
     */
 
     /** Create two actors for handling the login and world server endpoints */
-    val listener = system.actorOf(Props(new UdpListener(Props(new SessionRouter("Login", loginTemplate)), "login-session-router",
-      LoginConfig.serverIpAddress, loginServerPort, None)), "login-udp-endpoint")
-    val worldListener = system.actorOf(Props(new UdpListener(Props(new SessionRouter("World", worldTemplate)), "world-session-router",
-      LoginConfig.serverIpAddress, worldServerPort, None)), "world-udp-endpoint")
+    loginRouter = Props(new SessionRouter("Login", loginTemplate))
+    worldRouter = Props(new SessionRouter("World", worldTemplate))
+    loginListener = system.actorOf(Props(new UdpListener(loginRouter, "login-session-router", LoginConfig.serverIpAddress, loginServerPort, None)), "login-udp-endpoint")
+    worldListener = system.actorOf(Props(new UdpListener(worldRouter, "world-session-router", LoginConfig.serverIpAddress, worldServerPort, None)), "world-udp-endpoint")
 
     logger.info(s"NOTE: Set client.ini to point to ${LoginConfig.serverIpAddress.getHostAddress}:$loginServerPort")
 
@@ -198,6 +206,11 @@ object PsLogin {
       // TODO: clean up active sessions and close resources safely
       logger.info("Login server now shutting down...")
     }
+  }
+
+  def main(args : Array[String]) : Unit = {
+    this.args = args
+    run()
 
     // Wait forever until the actor system shuts down
     Await.result(system.whenTerminated, Duration.Inf)

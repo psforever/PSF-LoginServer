@@ -51,6 +51,40 @@ sbt pslogin/run
 ```
 This will clone the repository and SBT will compile and run the login server. Note: SBT is quite slow at starting up. It's recommended you have an open SBT console in order to avoid this startup time.
 
+## Running the Server
+
+To run a headless, non-interactive server, run
+
+```
+sbt pslogin/run
+```
+
+PlanetSide can now connect to your server.
+
+To run your custom server with an interactive `scala>` REPL, run
+
+```
+sbt pslogin/console
+```
+
+![image](https://cloud.githubusercontent.com/assets/16912082/18024110/7b48dba8-6bc8-11e6-81d8-4692bc9d48a8.png)
+
+To start the server and begin listening for connections, enter the following expression into the REPL:
+
+```
+PsLogin.run
+```
+
+![image](https://cloud.githubusercontent.com/assets/16912082/18024137/1167452a-6bc9-11e6-8765-a86fb465de61.png)
+
+This process is identical to running the headless, non-interactive server: PlanetSide clients can connect, logging output will be printed to the screen, etc. The advantage is that you now have an interactive REPL that will evaluate any Scala expression you type into it.
+
+![image](https://cloud.githubusercontent.com/assets/16912082/18024339/62197f66-6bcd-11e6-90f7-5569d33472a7.png)
+
+The REPL supports various useful commands. For example, to see the type of an arbitrary expression `foo`, run `:type foo`. To print all members of a type, run `:javap -p some-type`. You can run `:help` to see a full list of commands.
+
+![image](https://cloud.githubusercontent.com/assets/16912082/18024371/e0b72f9e-6bcd-11e6-9de5-421ec3eff994.png)
+
 ## Connecting to the Server through the Client
 To get PlanetSide to connect to your custom server, you will have to navigate to the `client.ini` file (located within the PlanetSide game directory) and modify the IP addresses.
 
