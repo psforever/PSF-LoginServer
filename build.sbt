@@ -22,7 +22,8 @@ lazy val commonSettings = Seq(
 
 lazy val pscryptoSettings = Seq(
   unmanagedClasspath in Test += (baseDirectory in ThisBuild).value / "pscrypto-lib",
-  unmanagedClasspath in Runtime += (baseDirectory in ThisBuild).value / "pscrypto-lib"
+  unmanagedClasspath in Runtime += (baseDirectory in ThisBuild).value / "pscrypto-lib",
+  unmanagedClasspath in Compile += (baseDirectory in ThisBuild).value / "pscrypto-lib"
 )
 
 lazy val psloginPackSettings = packAutoSettings ++ Seq(

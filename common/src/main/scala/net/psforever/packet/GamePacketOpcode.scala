@@ -391,7 +391,7 @@ object GamePacketOpcode extends Enumeration {
     case 0x3b => noDecoder(UnknownMessage59)
     case 0x3c => noDecoder(GenericCollisionMsg)
     case 0x3d => game.QuantityUpdateMessage.decode
-    case 0x3e => noDecoder(ArmorChangedMessage)
+    case 0x3e => game.ArmorChangedMessage.decode
     case 0x3f => noDecoder(ProjectileStateMessage)
 
     // OPCODES 0x40-4f
@@ -534,7 +534,7 @@ object GamePacketOpcode extends Enumeration {
     case 0xb3 => noDecoder(BattleplanMessage)
     case 0xb4 => noDecoder(BattleExperienceMessage)
     case 0xb5 => noDecoder(TargetingImplantRequest)
-    case 0xb6 => noDecoder(ZonePopulationUpdateMessage)
+    case 0xb6 => game.ZonePopulationUpdateMessage.decode
     case 0xb7 => noDecoder(DisconnectMessage)
     // 0xb8
     case 0xb8 => noDecoder(ExperienceAddedMessage)
