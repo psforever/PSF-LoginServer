@@ -640,30 +640,30 @@ class GamePacketTest extends Specification {
     }
 
     "DestroyDisplayMessage" should {
-      val ownedKillString = hex"81 89 44006500760069006E00610074006F007200 E110 D501 4F 20 19405 14 0 3100530068006F00740031004B00690049006C00 4659 1000 80" // Devinator-NC (Jackhammer) 1Shot1KiIl-VS
+      val ownedKillString = hex"81 87 41006E00670065006C006C006F00 35BCD801 8F2019207 0A0 48004D00460049004300 B18ED901 00" // Angello-VS (???) HMFIC-TR
 
       "decode" in {
         PacketCoding.DecodePacket(ownedKillString).require match {
-          case DestroyDisplayMessage(killer, unk1, unk2, killer_empire_mode, buffer20, method, victim_name_length, buffer0, victim, unk3, unk4, victim_empire_mode) =>
-            killer mustEqual "Devinator"
-            unk1 mustEqual 4321
-            unk2 mustEqual 469
-            killer_empire_mode mustEqual 79
-            buffer20 mustEqual 32
-            method mustEqual 344089
-            victim_name_length mustEqual 20
-            buffer0 mustEqual 0
-            victim mustEqual "1Shot1KiIl"
-            unk3 mustEqual 22854
-            unk4 mustEqual 16
+          case DestroyDisplayMessage(killer, unk1, killer_empire_mode, unk2, unk3, unk4, victim_name_length, victim_name_alignm, victim_name, unk5, victim_empire_mode, unk6) =>
+            killer mustEqual "Angello"
+            unk1 mustEqual 30740705
+            killer_empire_mode mustEqual 2
+            unk2 mustEqual false
+            unk3 mustEqual PlanetSideGUID(79)
+            unk4 mustEqual 0x3C9
+            victim_name_length mustEqual 5
+            victim_name_alignm mustEqual 4
+            victim_name mustEqual "HMFIC"
+            unk5 mustEqual 22854
             victim_empire_mode mustEqual 80
+            unk6 mustEqual false
           case default =>
             ko
         }
       }
 
       "encode" in {
-        val msg = DestroyDisplayMessage("Devinator", 4321, 469, 79, 32, 344089, 20, 0, "1Shot1KiIl", 22854, 16, 128)
+        val msg = DestroyDisplayMessage("Angello", 30740705, 2, false, PlanetSideGUID(79), 0x3C9, 5, 4, BitVector("HMFIC"), 31035057, 0, false)
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
         pkt mustEqual ownedKillString

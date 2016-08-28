@@ -1,9 +1,9 @@
 // Copyright (c) 2016 PSForever.net to present
 package net.psforever.packet.game
 
-import akka.util.ByteString
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
 import scodec.Codec
+import scodec.bits.BitVector
 import scodec.codecs._
 
 /**
@@ -49,51 +49,53 @@ import scodec.codecs._
   * `81 89 44006500760069006E00610074006F007200     E110D501 4F 20 19405 14 0 3100530068006F00740031004B00690049006C00 46591000 80`<br>
   *
   * @param killer the wide character name of the player who did the killing
-  * @param unk1 see Exploration above
-  * @param unk2 see Exploration above
+  * @param unk1 na
   * @param killer_empire_mode the empire affiliation of the killer and whether they are a pedestrian
-  * @param buffer20 a buffering value separating the killer and victim sides of the data; typically, 20
-  * @param method how the victim was killed (what icon to display)
-  * @param victim_name_length the length of the victim's name
-  * @param buffer0 a buffering value; typically, 0
-  * @param victim the wide character name of the player who was killed (note: not preceded by the length and can not be processed if prepended)
-  * @param unk3 see Exploration above
-  * @param unk4 see Exploration above
+  * @param unk2 na
+  * @param unk3 na
+  * @param unk4 na
+  * @param victim_name_length na
+  * @param victim_name_alignm na
+  * @param victim_name na
+  * @param unk5 na
   * @param victim_empire_mode the empire affiliation of the victim
+  * @param unk6 na
   */
 //sendRawResponse(hex"81 89 44006500760069006E00610074006F007200 E110 D501 4F 20 19405 14 0 3100530068006F00740031004B00690049006C00 4659 1000 80") // Devinator-NC (Jackhammer) 1Shot1KiIl-VS
 final case class DestroyDisplayMessage(killer : String,
-                                       unk1 : Int,
-                                       unk2 : Int,
+                                       unk1 : Long,
                                        killer_empire_mode : Int,
-                                       buffer20 : Int,
-                                       method : Int,
-                                       victim_name_length : Int,
-                                       buffer0 : Int,
-                                       victim : String,
-                                       unk3 : Int,
+                                       unk2 : Boolean,
+                                       unk3 : PlanetSideGUID,
                                        unk4 : Int,
-                                       victim_empire_mode : Int)
+                                       victim_name_length : Int,
+                                       victim_name_alignm : Int,
+                                       victim_name : BitVector,
+                                       unk5 : Long,
+                                       victim_empire_mode : Int,
+                                       unk6 : Boolean
+)
   extends PlanetSideGamePacket {
   type Packet = DestroyDisplayMessage
   def opcode = GamePacketOpcode.DestroyDisplayMessage
   def encode = DestroyDisplayMessage.encode(this)
-  ByteString
 }
 
 object DestroyDisplayMessage extends Marshallable[DestroyDisplayMessage] {
   implicit val codec : Codec[DestroyDisplayMessage] = (
     ("killer" | PacketHelpers.encodedWideString) ::
-      ("unk1" | uint16L) ::
-      ("unk2" | uint16L) ::
-      ("killer_empire_mode" | uint8L) ::
-      ("buffer20" | uint8L) ::
-      ("method" | uintL(20)) ::
-      ("victim_name_length" | uint8L) ::
-      ("buffer0" | uintL(4)) ::
-      (("victim" | PacketHelpers.encodedWideString).) ::
-      ("unk3" | uint16L) ::
-      ("unk4" | uint16L) ::
-      ("victim_empire_mode" | uint8L)
+      ("unk1" | ulongL(32)) ::
+      ("killer_empire_mode" | uintL(2)) ::
+      ("unk2" | bool) ::
+      ("unk3" | PlanetSideGUID.codec) ::
+      ("unk4" | uint16L) :: (
+        ("victim_name_length" | uint8L) >>:~ { victim_name_length =>
+          ("victim_name_alignm" | uintL(5)) ::
+          ("victim_name" | bits(16 * victim_name_length)) ::
+          ("unk5" | ulongL(32)) ::
+          ("victim_empire_mode" | uintL(2)) ::
+          ("unk6" | bool)
+        }
+      )
     ).as[DestroyDisplayMessage]
 }
