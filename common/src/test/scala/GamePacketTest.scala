@@ -640,33 +640,30 @@ class GamePacketTest extends Specification {
     }
 
     "DestroyDisplayMessage" should {
-      val ownedKillString = hex"81 87 41006E00670065006C006C006F00 35BCD801 8F2019207 0A0 48004D00460049004300 B18ED901 00" // Angello-VS (???) HMFIC-TR
+      val string = hex"81 87 41006E00670065006C006C006F00 35BCD801 8 F201 9207 0A 0 48004D00460049004300 B18ED901 00" // Angello-VS (???) HMFIC-TR
 
       "decode" in {
-        PacketCoding.DecodePacket(ownedKillString).require match {
-          case DestroyDisplayMessage(killer, unk1, killer_empire_mode, unk2, unk3, unk4, victim_name_length, victim_name_alignm, victim_name, unk5, victim_empire_mode, unk6) =>
+        PacketCoding.DecodePacket(string).require match {
+          case DestroyDisplayMessage(killer, killer_unk, killer_empire, killer_inVehicle, unk, method, victim, victim_unk, victim_empire, victim_inVehicle) =>
             killer mustEqual "Angello"
-            unk1 mustEqual 30740705
-            killer_empire_mode mustEqual 2
-            unk2 mustEqual false
-            unk3 mustEqual PlanetSideGUID(79)
-            unk4 mustEqual 0x3C9
-            victim_name_length mustEqual 5
-            victim_name_alignm mustEqual 4
-            victim_name mustEqual "HMFIC"
-            unk5 mustEqual 22854
-            victim_empire_mode mustEqual 80
-            unk6 mustEqual false
+            killer_unk mustEqual 30981173
+            killer_empire mustEqual 2
+            killer_inVehicle mustEqual false
+            unk mustEqual PlanetSideGUID(121)
+            method mustEqual PlanetSideGUID(969)
+            victim mustEqual "HMFIC"
+            victim_unk mustEqual 31035057
+            victim_empire mustEqual 0
+            victim_inVehicle mustEqual false
           case default =>
             ko
         }
       }
 
       "encode" in {
-        val msg = DestroyDisplayMessage("Angello", 30740705, 2, false, PlanetSideGUID(79), 0x3C9, 5, 4, BitVector("HMFIC"), 31035057, 0, false)
+        val msg = DestroyDisplayMessage("Angello", 30981173, 2, false, PlanetSideGUID(121), PlanetSideGUID(969), "HMFIC", 31035057, 0, false)
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
-
-        pkt mustEqual ownedKillString
+        pkt mustEqual string
       }
     }
 

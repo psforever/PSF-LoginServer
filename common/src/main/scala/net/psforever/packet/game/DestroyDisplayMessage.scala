@@ -3,77 +3,60 @@ package net.psforever.packet.game
 
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
 import scodec.Codec
-import scodec.bits.BitVector
 import scodec.codecs._
 
 /**
   * Display a message in the event window that informs of a player death.<br>
   * <br>
   * The message is composed of three parts:<br>
-  * 1) killer - who or what is attributed the death<br>
-  * 2) method - an icon of the implement of death<br>
-  * 3) victim - the player that was killed<br>
+  * 1) killer information<br>
+  * 2) method information<br>
+  * 3) victim information<br>
   * In the case of a player kill, the player's name will be attributed directly.
-  * In the case of an absent kill, a description of the method will be attributed.
-  * In the case of a suicide, the player attributed is the player who was killed; but, the player is only shown as the victim.<br>
+  * In the case of an absentee kill, a description of the method of death will be attributed.
+  * In the case of a suicide, the player attributed is the player who was killed (message format displays only the victim).
+  * The victim's name is byte-aligned with a 5-bit buffer.<br>
   * <br>
-  * The faction affiliation and whether or not the individual is/was in a vehicle are combined into one byte.
-  * After normal byte values for faction - see PlanetSideEmpire - 20 (32) is added depending on whether the player is vehicle-occupying at the time.
-  * When marked like this, the player gets square brackets around their name.
-  * An extra 0F is added for the killer's affiliation as convention, but it is not absolutely necessary.
-  * For example, for a vehicle-bound NC player, 40 + F + 20 = 6F (64 + 15 + 32 = 111).
-  * This formula works for all factions, even Black OPs.
-  * The extra 0F is not generally applied to the victim's affiliation but adding 20 still applies square brackets to the name.
-  * (The name length parameters do not need to take the brackets into account.)<br>
+  * The four bytes that follow each name seems to be important to the identification of the associated player.
+  * The same value will be seen in every `DestroyDisplayMessage` that includes the player, with respect to whether they are listed as the "killer" or as the "victim."
+  * This holds true for every entry within thie same login session, at least.
+  * Blanking these values out does not change anything about the format of the event message.
+  * In the case of absentee kills, for example, where there is no killer listed, this field has been zero'd (`00000000`).<br>
   * <br>
-  * The method of homicide or suicide is passed as a 20-bit value, or two bytes and the high order nibble of a third.
-  * The color of the icon is borrowed from the killer's faction affiliation if it can be determined.
-  * An unidentified method parameter defaults into a skull and crossbones icon.
-  * The color of the victim's name is often borrowed from the killer's faction affiliation in the case of slightly malformed, but still accepted, packets.<br>
+  * The faction affiliation is different from the normal way `PlanetSideEmpire` values are recorded.
+  * The higher nibble will reflect the first part of the `PlanetSideEmpire` value - `0` for TR, `4` for NC `8` for TR, `C` for Neutral/BOPs.
+  * An extra `20` will be added if the player is in a vehicle or turret at the time - `2` for TR, `6` for NC, `A` for VS, `E` for Neutral/BOPs.
+  * When marked as being in a vehicle or turret, the player's name will be enclosed within square brackets.
+  * The length of the player's name found at the start of the wide character string does not reflect whether or not there will be square brackets (fortunately).<br>
   * <br>
-  * The length of the victim's name is a normal byte flush against the 20-bit method portion.
-  * If all bytes are paired properly, this would divide it between the low order nibble of the third method byte and the high order nibble of the next byte.
-  * This leaves the high order nibble (0-F) between the victim's name's length and the victim's double wide character name unused.
-  * Unlike with the killer, the victim's name is reported at twice its string length, reflecting the double-wide characters.<br>
-  * <br>
-  * Exploration:<br>
-  * Following each player name are four bytes that, within the same login session, should match up to the player.
-  * The association of these bytes to the player is valid regardless of whether that player is marked herein as a "killer" or as a "victim."
-  * It seems likely that one pair of bytes is the player GUID (PlanetSideGUID).
-  * What do the other bytes represent? and which pair is which?<br>
-  * <br>
-  * Examples:<br>
-  * 1Shot1KiIl-VS (Lasher) BlueJay-NC<br>
-  * `81 8A 3100530068006F00740031004B00690049006C00 46591000 8F 20 15A03 0E 0 42006C00750065004A0061007900             F4FC0500 40`<br>
-  * Devinator-NC (Jackhammer) 1Shot1KiIl-VS<br>
-  * `81 89 44006500760069006E00610074006F007200     E110D501 4F 20 19405 14 0 3100530068006F00740031004B00690049006C00 46591000 80`<br>
-  *
-  * @param killer the wide character name of the player who did the killing
-  * @param unk1 na
-  * @param killer_empire_mode the empire affiliation of the killer and whether they are a pedestrian
-  * @param unk2 na
-  * @param unk3 na
-  * @param unk4 na
-  * @param victim_name_length na
-  * @param victim_name_alignm na
-  * @param victim_name na
-  * @param unk5 na
-  * @param victim_empire_mode the empire affiliation of the victim
-  * @param unk6 na
+  * The two bytes in between the killer section and the victim section are the method of homicide or suicide.
+  * The color of the resulting icon is borrowed from the attributed killer's faction affiliation if it can be determined.
+  * An unidentified method defaults to a skull and crossbones icon.
+  * The exact range of unique and valid icon values for this parameter is currently unknown.
+  * It is also unknown what the two bytes preceding `method` specify, as changing them does nothing to the displayed message.
+  * @param killer the name of the player who did the killing
+  * @param killer_unk See above
+  * @param killer_empire the empire affiliation of the killer:
+  *                      0 - TR, 1 - NC, 2 - VS, 3 - Neutral/BOPs
+  * @param killer_inVehicle true, if the killer was in a vehicle at the time of the kill; false, otherwise
+  * @param unk na; but does not like being set to 0
+  * @param method modifies the icon in the message, related to the way the victim was killed
+  * @param victim the name of the player who was killed
+  * @param victim_unk See above
+  * @param victim_empire the empire affiliation of the victim:
+  *                      0 - TR, 1 - NC, 2 - VS, 3 - Neutral/BOPs
+  * @param victim_inVehicle true, if the victim was in a vehicle when he was killed; false, otherwise
   */
-//sendRawResponse(hex"81 89 44006500760069006E00610074006F007200 E110 D501 4F 20 19405 14 0 3100530068006F00740031004B00690049006C00 4659 1000 80") // Devinator-NC (Jackhammer) 1Shot1KiIl-VS
 final case class DestroyDisplayMessage(killer : String,
-                                       unk1 : Long,
-                                       killer_empire_mode : Int,
-                                       unk2 : Boolean,
-                                       unk3 : PlanetSideGUID,
-                                       unk4 : Int,
-                                       victim_name_length : Int,
-                                       victim_name_alignm : Int,
-                                       victim_name : BitVector,
-                                       unk5 : Long,
-                                       victim_empire_mode : Int,
-                                       unk6 : Boolean
+                                       killer_unk : Long,
+                                       killer_empire : Int,
+                                       killer_inVehicle : Boolean,
+                                       unk : PlanetSideGUID,
+                                       method : PlanetSideGUID,
+                                       victim : String,
+                                       victim_unk : Long,
+                                       victim_empire : Int,
+                                       victim_inVehicle : Boolean
 )
   extends PlanetSideGamePacket {
   type Packet = DestroyDisplayMessage
@@ -84,18 +67,14 @@ final case class DestroyDisplayMessage(killer : String,
 object DestroyDisplayMessage extends Marshallable[DestroyDisplayMessage] {
   implicit val codec : Codec[DestroyDisplayMessage] = (
     ("killer" | PacketHelpers.encodedWideString) ::
-      ("unk1" | ulongL(32)) ::
-      ("killer_empire_mode" | uintL(2)) ::
-      ("unk2" | bool) ::
-      ("unk3" | PlanetSideGUID.codec) ::
-      ("unk4" | uint16L) :: (
-        ("victim_name_length" | uint8L) >>:~ { victim_name_length =>
-          ("victim_name_alignm" | uintL(5)) ::
-          ("victim_name" | bits(16 * victim_name_length)) ::
-          ("unk5" | ulongL(32)) ::
-          ("victim_empire_mode" | uintL(2)) ::
-          ("unk6" | bool)
-        }
-      )
+      ("killer_unk" | ulongL(32)) ::
+      ("killer_empire" | uintL(2)) ::
+      ("killer_inVehicle" | bool) ::
+      ("unk" | PlanetSideGUID.codec) ::
+      ("method" | PlanetSideGUID.codec) ::
+      ("victim" | PacketHelpers.encodedWideStringAligned(5)) ::
+      ("victim_unk" | ulongL(32)) ::
+      ("victim_empire" | uintL(2)) ::
+      ("victim_inVehicle" | bool)
     ).as[DestroyDisplayMessage]
 }
