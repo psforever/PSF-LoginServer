@@ -368,7 +368,7 @@ object GamePacketOpcode extends Enumeration {
     // 0x28
     case 0x28 => noDecoder(CreateShortcutMessage)
     case 0x29 => noDecoder(ChangeShortcutBankMessage)
-    case 0x2a => noDecoder(ObjectAttachMessage)
+    case 0x2a => game.ObjectAttachMessage.decode
     case 0x2b => noDecoder(UnknownMessage43)
     case 0x2c => noDecoder(PlanetsideAttributeMessage)
     case 0x2d => game.RequestDestroyMessage.decode

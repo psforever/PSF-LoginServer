@@ -299,6 +299,29 @@ class GamePacketTest extends Specification {
       }
     }
 
+    "ObjectAttachMessage" should {
+      val stringToInventory = hex"2A 9F05 D405 86"
+      val stringToCursor = hex"2A 9F05 D405 00FA"
+
+      "encode" in {
+        PacketCoding.DecodePacket(stringToInventory).require match {
+          case ObjectAttachMessage(player_guid, item_guid, index) =>
+            player_guid mustEqual PlanetSideGUID(1439)
+            item_guid mustEqual PlanetSideGUID(1492)
+            index mustEqual 134
+          case default =>
+            ko
+        }
+      }
+
+      "decode" in {
+        val msg = ObjectAttachMessage(PlanetSideGUID(1439), PlanetSideGUID(1492), 134)
+        val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+        pkt mustEqual stringToInventory
+      }
+    }
+
     "DropItemMessage" should {
       val string = hex"37 4C00"
 
