@@ -856,22 +856,20 @@ class GamePacketTest extends Specification {
 
       "decode (for infantry)" in {
         PacketCoding.DecodePacket(stringInfantry).require match {
-          case FavoritesMessage(list, player_guid, line, subject, armor, subtype) =>
+          case FavoritesMessage(list, player_guid, line, label, armor) =>
             list mustEqual 0
             player_guid mustEqual PlanetSideGUID(3760)
             line mustEqual 0
-            subject mustEqual "Agile (basic)"
+            label mustEqual "Agile (basic)"
             armor.isDefined mustEqual true
             armor.get mustEqual 1
-            subtype.isDefined mustEqual true
-            subtype.get mustEqual 0
           case default =>
             ko
         }
       }
 
       "encode (for infantry)" in {
-        val msg = FavoritesMessage(0, PlanetSideGUID(3760), 0, "Agile (basic)", Option(1), Option(0))
+        val msg = FavoritesMessage(0, PlanetSideGUID(3760), 0, "Agile (basic)", Option(1))
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
         pkt mustEqual stringInfantry
@@ -879,13 +877,12 @@ class GamePacketTest extends Specification {
 
       "decode (for vehicles)" in {
         PacketCoding.DecodePacket(stringVehicles).require match {
-          case FavoritesMessage(list, player_guid, line, subject, armor, subtype) =>
+          case FavoritesMessage(list, player_guid, line, label, armor) =>
             list mustEqual 1
             player_guid mustEqual PlanetSideGUID(4210)
             line mustEqual 0
-            subject mustEqual "Skyguard"
+            label mustEqual "Skyguard"
             armor.isDefined mustEqual false
-            subtype.isDefined mustEqual false
           case default =>
             ko
         }
