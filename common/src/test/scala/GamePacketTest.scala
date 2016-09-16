@@ -915,6 +915,27 @@ class GamePacketTest extends Specification {
       }
     }
 
+    "HotSpotUpdateMessage" should {
+      val stringClear = hex"9F 0500 10 00"
+
+      "decode (clear)" in {
+        PacketCoding.DecodePacket(stringClear).require match {
+          case HotSpotUpdateMessage(continent_guid, unk, spots) =>
+            continent_guid mustEqual PlanetSideGUID(5)
+            unk mustEqual 16
+            spots.size mustEqual 0
+          case _ =>
+            ko
+        }
+      }
+
+      "encode (clear)" in {
+        val msg = HotSpotUpdateMessage(PlanetSideGUID(5),16)
+        val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+        pkt mustEqual stringClear
+      }
+    }
+
     "BuildingInfoUpdateMessage" should {
       val string = hex"a0 04 00 09 00 16 00 00 00 00 80 00 00 00 17 00  00 00 00 00 00 40"
 
