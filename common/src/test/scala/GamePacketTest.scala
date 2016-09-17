@@ -916,13 +916,14 @@ class GamePacketTest extends Specification {
     }
 
     "HotSpotUpdateMessage" should {
-      val stringClear = hex"9F 0500 10 00"
+      val stringClear = hex"9F 0500 1 00 0"
+      val stringOne = hex"9F 0500 1 01 0 00 2E9 00 145 80000 0"
 
       "decode (clear)" in {
         PacketCoding.DecodePacket(stringClear).require match {
           case HotSpotUpdateMessage(continent_guid, unk, spots) =>
             continent_guid mustEqual PlanetSideGUID(5)
-            unk mustEqual 16
+            unk mustEqual 1
             spots.size mustEqual 0
           case _ =>
             ko
@@ -930,7 +931,7 @@ class GamePacketTest extends Specification {
       }
 
       "encode (clear)" in {
-        val msg = HotSpotUpdateMessage(PlanetSideGUID(5),16)
+        val msg = HotSpotUpdateMessage(PlanetSideGUID(5),1)
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
         pkt mustEqual stringClear
       }
