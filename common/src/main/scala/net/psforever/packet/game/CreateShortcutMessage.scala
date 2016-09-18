@@ -29,12 +29,12 @@ import scodec.codecs._
   * @param effect1 for macros, a three letter acronym displayed in the hotbar
   * @param effect2 for macros, the chat message content
   */
-//TODO Failed to parse game packet 0x28: purpose: cannot acquire 15 bits from a vector that contains 4 bits -- encountered when attempting to move shortcuts -- look into this
+//TODO must handle case 0x28 xxxx 01 00 00 for moving shortcuts
 final case class CreateShortcutMessage(player_guid : PlanetSideGUID,
                                        slot : Int,
                                        unk1 : Int,
                                        unk2 : Int,
-                                       purpose : String,
+                                       purpose : String = "",
                                        effect1 : String = "",
                                        effect2 : String = "")
   extends PlanetSideGamePacket {
@@ -42,7 +42,7 @@ final case class CreateShortcutMessage(player_guid : PlanetSideGUID,
   def opcode = GamePacketOpcode.CreateShortcutMessage
   def encode = CreateShortcutMessage.encode(this)
 }
-
+//*
 object CreateShortcutMessage extends Marshallable[CreateShortcutMessage] {
   implicit val codec : Codec[CreateShortcutMessage] = (
     ("player_guid" | PlanetSideGUID.codec) ::
@@ -54,3 +54,18 @@ object CreateShortcutMessage extends Marshallable[CreateShortcutMessage] {
       ("effect2" | PacketHelpers.encodedWideString)
     ).as[CreateShortcutMessage]
 }
+// */
+/*
+object CreateShortcutMessage extends Marshallable[CreateShortcutMessage] {
+  implicit val codec : Codec[CreateShortcutMessage] = (
+    ("player_guid" | PlanetSideGUID.codec) ::
+      ("slot" | uint8L) ::
+      ("unk1" | uint8L) ::
+        ("unk2" | uintL(3)) >>:~ ( value =>
+          conditional(value.last > 0, "purpose" | PacketHelpers.encodedStringAligned(5)) ::
+            conditional(value.last > 0, "effect1" | PacketHelpers.encodedWideString) ::
+            conditional(value.last > 0, "effect2" | PacketHelpers.encodedWideString)
+        )
+    ).as[CreateShortcutMessage]
+}
+// */
