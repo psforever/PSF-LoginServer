@@ -299,6 +299,78 @@ class GamePacketTest extends Specification {
       }
     }
 
+    "CreateShortcutMessage" should {
+      val stringMedkit = hex"28 7210 01 00 90 C0 6D65646B6974 80 80"
+      val stringImplant = hex"28 7210 04 00 D0 A0 7375726765 80 80"
+      val stringMacro = hex"28 4C05 08 00 B1 C0 73686F72746375745F6D6163726F 83 4E00 5400 5500 9B 2F00 7000 6C00 6100 7400 6F00 6F00 6E00 2000 4900 6E00 6300 6F00 6D00 6900 6E00 6700 2000 4E00 5400 5500 2000 7300 7000 6100 6D00 2100"
+
+      "decode (medkit)" in {
+        PacketCoding.DecodePacket(stringMedkit).require match {
+          case CreateShortcutMessage(player_guid, slot, unk1, unk2, purpose, effect1, effect2) =>
+            player_guid mustEqual PlanetSideGUID(4210)
+            slot mustEqual 1
+            unk1 mustEqual 0
+            unk2 mustEqual 4
+            purpose mustEqual "medkit"
+            effect1 mustEqual ""
+            effect2 mustEqual ""
+          case default =>
+            ko
+        }
+      }
+
+      "decode (implant)" in {
+        PacketCoding.DecodePacket(stringImplant).require match {
+          case CreateShortcutMessage(player_guid, slot, unk1, unk2, purpose, effect1, effect2) =>
+            player_guid mustEqual PlanetSideGUID(4210)
+            slot mustEqual 4
+            unk1 mustEqual 0
+            unk2 mustEqual 6
+            purpose mustEqual "surge"
+            effect1 mustEqual ""
+            effect2 mustEqual ""
+          case default =>
+            ko
+        }
+      }
+
+      "decode (macro)" in {
+        PacketCoding.DecodePacket(stringMacro).require match {
+          case CreateShortcutMessage(player_guid, slot, unk1, unk2, purpose, effect1, effect2) =>
+            player_guid mustEqual PlanetSideGUID(1356)
+            slot mustEqual 8
+            unk1 mustEqual 0
+            unk2 mustEqual 5
+            purpose mustEqual "shortcut_macro"
+            effect1 mustEqual "NTU"
+            effect2 mustEqual "/platoon Incoming NTU spam!"
+          case default =>
+            ko
+        }
+      }
+
+      "encode (medkit)" in {
+        val msg = CreateShortcutMessage(PlanetSideGUID(4210), 1, 0, 4, "medkit")
+        val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+        pkt mustEqual stringMedkit
+      }
+
+      "encode (implant)" in {
+        val msg = CreateShortcutMessage(PlanetSideGUID(4210), 4, 0, 6, "surge")
+        val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+        pkt mustEqual stringImplant
+      }
+
+      "encode (macro)" in {
+        val msg = CreateShortcutMessage(PlanetSideGUID(1356), 8, 0, 5, "shortcut_macro", "NTU", "/platoon Incoming NTU spam!")
+        val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+        pkt mustEqual stringMacro
+      }
+    }
+
     "DropItemMessage" should {
       val string = hex"37 4C00"
 
