@@ -32,7 +32,7 @@ final case class ChangeShortcutBankMessage(player_guid : PlanetSideGUID,
 
 object ChangeShortcutBankMessage extends Marshallable[ChangeShortcutBankMessage] {
   implicit val codec : Codec[ChangeShortcutBankMessage] = (
-    ("unk1" | PlanetSideGUID.codec) ::
+    ("player_guid" | PlanetSideGUID.codec) ::
       ("bank" | uintL(4))
     ).as[ChangeShortcutBankMessage]
 }
