@@ -203,4 +203,27 @@ object PacketHelpers {
 
   def encodedStringWithLimit(limit : Int) : Codec[String] = variableSizeBytes(encodedStringSizeWithLimit(limit), ascii)
   */
+
+  def listOfNAligned[A](countCodec: Codec[Int], alignment : Int, valueCodec: Codec[A]): Codec[List[A]] = {
+    countCodec.
+      flatZip { count => new AlignedListCodec(valueCodec, alignment, Some(count)) }.
+      narrow[List[A]]({ case (cnt, xs) =>
+      if (xs.size == cnt) Attempt.successful(xs)
+      else Attempt.failure(Err(s"Insufficient number of elements: decoded ${xs.size} but should have decoded $cnt"))
+    }, xs => (xs.size, xs)).
+      withToString(s"listOfN($countCodec, $valueCodec)")
+  }
+}
+
+private final class AlignedListCodec[A](codec: Codec[A], alignment : Int, limit: Option[Int] = None) extends Codec[List[A]] {
+  def sizeBound = limit match {
+    case None => SizeBound.unknown
+    case Some(lim) => codec.sizeBound * lim.toLong
+  }
+
+  def encode(list: List[A]) = Encoder.encodeSeq(codec)(list)
+
+  def decode(buffer: BitVector) = Decoder.decodeCollect[List, A](codec, limit)(buffer.drop(alignment))
+
+  override def toString = s"list($codec)"
 }

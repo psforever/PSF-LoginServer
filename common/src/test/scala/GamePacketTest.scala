@@ -937,8 +937,8 @@ class GamePacketTest extends Specification {
             continent_guid mustEqual PlanetSideGUID(5)
             unk mustEqual 1
             spots.size mustEqual 1
-            spots.head.x mustEqual 3730
-            spots.head.y mustEqual 1105
+            spots.head.x mustEqual 2350
+            spots.head.y mustEqual 1300
             spots.head.scale mustEqual 128
           case _ =>
             ko
@@ -951,11 +951,11 @@ class GamePacketTest extends Specification {
             continent_guid mustEqual PlanetSideGUID(5)
             unk mustEqual 5
             spots.size mustEqual 2
-            spots.head.x mustEqual 125
-            spots.head.y mustEqual 3240
+            spots.head.x mustEqual 2000
+            spots.head.y mustEqual 2700
             spots.head.scale mustEqual 128
-            spots(1).x mustEqual 3755
-            spots(1).y mustEqual 3140
+            spots(1).x mustEqual 2750
+            spots(1).y mustEqual 1100
             spots(1).scale mustEqual 128
           case _ =>
             ko
@@ -969,13 +969,13 @@ class GamePacketTest extends Specification {
       }
 
       "encode (one)" in {
-        val msg = HotSpotUpdateMessage(PlanetSideGUID(5),1, HotSpotInfo(0,3730,0,1105,128)::Nil)
+        val msg = HotSpotUpdateMessage(PlanetSideGUID(5),1, HotSpotInfo(0,2350,0,1300,128)::Nil)
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
         pkt mustEqual stringOne
       }
 
       "encode (two)" in {
-        val msg = HotSpotUpdateMessage(PlanetSideGUID(5),1, HotSpotInfo(0,125,0,3240,128)::HotSpotInfo(0,3755,0,3140,128)::Nil)
+        val msg = HotSpotUpdateMessage(PlanetSideGUID(5),1, HotSpotInfo(0,2000,0,2700,128)::HotSpotInfo(0,2750,0,1100,128)::Nil)
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
         pkt mustEqual stringOne
       }

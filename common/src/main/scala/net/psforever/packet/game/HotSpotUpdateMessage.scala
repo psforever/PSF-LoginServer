@@ -1,7 +1,7 @@
 // Copyright (c) 2016 PSForever.net to present
 package net.psforever.packet.game
 
-import net.psforever.packet.{GamePacketOpcode, Marshallable, PlanetSideGamePacket}
+import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
 import scodec.Codec
 import scodec.codecs._
 
@@ -41,6 +41,7 @@ final case class HotSpotInfo(unk1 : Int,
   * @param spots a List of HotSpotInfo, or `Nil` if empty
   */
 // TODO need aligned/padded list support
+// TODO test with sendRawResponse(hex"9F 0D00 5 02 0 00 D07 00 8CA 00020 00 BEA 00 4C4 40000")
 final case class HotSpotUpdateMessage(continent_guid : PlanetSideGUID,
                                       unk : Int,
                                       spots : List[HotSpotInfo] = Nil)
@@ -64,6 +65,6 @@ object HotSpotUpdateMessage extends Marshallable[HotSpotUpdateMessage] {
   implicit val codec : Codec[HotSpotUpdateMessage] = (
     ("continent_guid" | PlanetSideGUID.codec) ::
       ("unk" | uint4L) ::
-      ("spots" | listOfN(uint8L, HotSpotInfo.codec))
+      ("spots" | PacketHelpers.listOfNAligned(uint8L, 4, HotSpotInfo.codec))
     ).as[HotSpotUpdateMessage]
 }
