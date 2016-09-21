@@ -918,6 +918,7 @@ class GamePacketTest extends Specification {
     "HotSpotUpdateMessage" should {
       val stringClear = hex"9F 0500 1 00 0"
       val stringOne = hex"9F 0500 1 01 0 00 2E9 00 145 80000 0"
+      val stringTwo = hex"9F 0500 5 02 0 00 D07 00 8CA 80000 00 BEA 00 4C4 80000"
 
       "decode (clear)" in {
         PacketCoding.DecodePacket(stringClear).require match {
@@ -930,10 +931,53 @@ class GamePacketTest extends Specification {
         }
       }
 
+      "decode (one)" in {
+        PacketCoding.DecodePacket(stringOne).require match {
+          case HotSpotUpdateMessage(continent_guid, unk, spots) =>
+            continent_guid mustEqual PlanetSideGUID(5)
+            unk mustEqual 1
+            spots.size mustEqual 1
+            spots.head.x mustEqual 3730
+            spots.head.y mustEqual 1105
+            spots.head.scale mustEqual 128
+          case _ =>
+            ko
+        }
+      }
+
+      "decode (two)" in {
+        PacketCoding.DecodePacket(stringTwo).require match {
+          case HotSpotUpdateMessage(continent_guid, unk, spots) =>
+            continent_guid mustEqual PlanetSideGUID(5)
+            unk mustEqual 5
+            spots.size mustEqual 2
+            spots.head.x mustEqual 125
+            spots.head.y mustEqual 3240
+            spots.head.scale mustEqual 128
+            spots(1).x mustEqual 3755
+            spots(1).y mustEqual 3140
+            spots(1).scale mustEqual 128
+          case _ =>
+            ko
+        }
+      }
+
       "encode (clear)" in {
         val msg = HotSpotUpdateMessage(PlanetSideGUID(5),1)
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
         pkt mustEqual stringClear
+      }
+
+      "encode (one)" in {
+        val msg = HotSpotUpdateMessage(PlanetSideGUID(5),1, HotSpotInfo(0,3730,0,1105,128)::Nil)
+        val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+        pkt mustEqual stringOne
+      }
+
+      "encode (two)" in {
+        val msg = HotSpotUpdateMessage(PlanetSideGUID(5),1, HotSpotInfo(0,125,0,3240,128)::HotSpotInfo(0,3755,0,3140,128)::Nil)
+        val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+        pkt mustEqual stringOne
       }
     }
 

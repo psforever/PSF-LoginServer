@@ -8,17 +8,15 @@ import scodec.codecs._
 /**
   * Information for positioning a hotspot on the continental map.<br>
   * <br>
-  * The coordinate values and the scaling value have different endianness than most numbers transmitted as packet data.
-  * The two unknown values are not part of the positioning system, at least not a part of the coordinates.<br>
-  * <br>
   * The origin point is the lowest left corner of the map grid.
-  * On either axis, the other edge of the map is found at the maximum value 4096 (`FFF`).
-  * The scale is typically set as 128 (`80000`) but can also be made smaller or made absurdly big.
+  * The coordinates of the hotspot do not match up to the map's internal coordinate system - what you learn using the `/loc` command.
+  * Hotspot coordinates ranges across from 0 (`000`) to 4096 (`FFF`) on both axes.
+  * The scale is typically set as 128 (`80000`) but can also be made smaller or even made absurdly big.
   * @param unk1 na
   * @param x the x-coord of the center of the hotspot
   * @param unk2 na
   * @param y the y-coord of the center of the hotspot
-  * @param scale the scaling of the hotspot icon
+  * @param scale how big the hotspot explosion icon appears
   */
 final case class HotSpotInfo(unk1 : Int,
                              x : Int,
@@ -52,18 +50,20 @@ final case class HotSpotUpdateMessage(continent_guid : PlanetSideGUID,
   def encode = HotSpotUpdateMessage.encode(this)
 }
 
-object HotSpotUpdateMessage extends Marshallable[HotSpotUpdateMessage] {
-  implicit val hotspot_codec : Codec[HotSpotInfo] = {
-    ("unk1" | uint8) ::
-      ("x" | uint(12)) ::
-      ("unk2" | uint8) ::
-      ("y" | uint(12)) ::
-      ("scale" | uint(20))
+object HotSpotInfo extends Marshallable[HotSpotInfo] {
+  implicit val codec : Codec[HotSpotInfo] = {
+    ("unk1" | uint8L) ::
+      ("x" | uintL(12)) ::
+      ("unk2" | uint8L) ::
+      ("y" | uintL(12)) ::
+      ("scale" | uintL(20))
   }.as[HotSpotInfo]
+}
 
+object HotSpotUpdateMessage extends Marshallable[HotSpotUpdateMessage] {
   implicit val codec : Codec[HotSpotUpdateMessage] = (
     ("continent_guid" | PlanetSideGUID.codec) ::
       ("unk" | uint4L) ::
-      ("spots" | listOfN(uint8L, hotspot_codec))
+      ("spots" | listOfN(uint8L, HotSpotInfo.codec))
     ).as[HotSpotUpdateMessage]
 }
