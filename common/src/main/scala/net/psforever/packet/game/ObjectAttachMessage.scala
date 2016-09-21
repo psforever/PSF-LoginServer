@@ -31,11 +31,14 @@ import scodec.codecs._
   * @param player_guid the player GUID
   * @param item_guid the item GUID
   * @param dest a codified location within the player's inventory see above
-  * //@param extra optional; a special kind of item manipulation; the common one is `FA`
+  * @param extra optional; a special kind of item manipulation; the common one is `FA`
+  * @see MoveItemMessage
+  * @see ObjectAttachMessage
   */
 final case class ObjectAttachMessage(player_guid : PlanetSideGUID,
                                      item_guid : PlanetSideGUID,
-                                     dest : Int)
+                                     dest : Int,
+                                     extra : Option[Int])
   extends PlanetSideGamePacket {
   type Packet = ObjectAttachMessage
   def opcode = GamePacketOpcode.ObjectAttachMessage
@@ -43,18 +46,11 @@ final case class ObjectAttachMessage(player_guid : PlanetSideGUID,
 }
 
 object ObjectAttachMessage extends Marshallable[ObjectAttachMessage] {
-//  implicit val codec : Codec[ObjectAttachMessage] = (
-//    ("player_guid" | PlanetSideGUID.codec) ::
-//      ("item_guid" | PlanetSideGUID.codec) >>:~ { _ =>
-//        ("dest" | uint8L) >>:~ ( loc =>
-//          conditional(loc == 0, "extra" | uint8L)
-//        )
-//      }
-//    ).as[ObjectAttachMessage]
-
   implicit val codec : Codec[ObjectAttachMessage] = (
     ("player_guid" | PlanetSideGUID.codec) ::
       ("item_guid" | PlanetSideGUID.codec) ::
-      ("dest" | uint8L)
+      (("dest" | uint8L) >>:~ { loc =>
+        conditional(loc == 0, "extra" | uint8L).hlist
+      })
     ).as[ObjectAttachMessage]
 }
