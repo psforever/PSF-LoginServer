@@ -5,6 +5,7 @@ import org.specs2.mutable._
 import net.psforever.packet._
 import net.psforever.packet.game._
 import net.psforever.types._
+import scodec.Attempt
 import scodec.Attempt.Successful
 import scodec.bits._
 
@@ -911,6 +912,34 @@ class GamePacketTest extends Specification {
       "encode" in {
         val msg = LoadMapMessage("map10","z10",40975,25,true,230810349)
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+        pkt mustEqual string
+      }
+    }
+
+    "HotSpotInfo" should {
+      val string = hex"00 D0 70 08 CA 80 00 00" // note: completing that last byte is required to avoid it being placed at the start of the vector
+      "decode" in {
+        HotSpotInfo.codec.decode(string.toBitVector) match {
+          case Attempt.Successful(decoded) =>
+            decoded.value.x mustEqual 2000
+            decoded.value.y mustEqual 2700
+            decoded.value.scale mustEqual 128
+          case _ =>
+            ko
+        }
+      }
+
+      "encode (long-hand)" in {
+        val msg = HotSpotInfo(0, 2000, 0, 2700, 128)
+        val pkt = HotSpotInfo.codec.encode(msg).require.toByteVector
+
+        pkt mustEqual string
+      }
+
+      "encode (short-hand)" in {
+        val msg = HotSpotInfo(2000, 2700, 128)
+        val pkt = HotSpotInfo.codec.encode(msg).require.toByteVector
+
         pkt mustEqual string
       }
     }
