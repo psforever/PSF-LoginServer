@@ -3,11 +3,14 @@ package net.psforever.packet
 
 import java.nio.charset.Charset
 
-import scodec.{DecodeResult, Err, Codec, Attempt}
+import scodec.Attempt.Successful
+import scodec.{Attempt, Codec, DecodeResult, Err}
 import scodec.bits._
 import scodec.codecs._
 import scodec._
 import shapeless._
+
+import scala.util.Success
 
 /** The base of all packets */
 sealed trait PlanetSidePacket extends Serializable {
@@ -204,6 +207,17 @@ object PacketHelpers {
   def encodedStringWithLimit(limit : Int) : Codec[String] = variableSizeBytes(encodedStringSizeWithLimit(limit), ascii)
   */
 
+  /**
+    * Encode and decode a byte-aligned `List`.<br>
+    * <br>
+    * This function is copied almost verbatim from its source, with exception of swapping the normal `ListCodec` for a new `AlignedListCodec`.
+    * @param countCodec the codec that represents the prefixed size of the List
+    * @param alignment the number of bits padded between the List size and the List contents
+    * @param valueCodec a codec that describes each of the contents of the List
+    * @tparam A the type of the List contents
+    * @see codec\package.scala, listOfN
+    * @return a codec that works on a List of A
+    */
   def listOfNAligned[A](countCodec: Codec[Int], alignment : Int, valueCodec: Codec[A]): Codec[List[A]] = {
     countCodec.
       flatZip { count => new AlignedListCodec(valueCodec, alignment, Some(count)) }.
@@ -215,15 +229,68 @@ object PacketHelpers {
   }
 }
 
-private final class AlignedListCodec[A](codec: Codec[A], alignment : Int, limit: Option[Int] = None) extends Codec[List[A]] {
+/**
+  * The codec that encodes and decodes a byte-aligned `List`.<br>
+  * <br>
+  * This class is copied almost verbatim from its source, with only heavy modifications to its `encode` process.
+  * @param codec a codec that describes each of the contents of the `List`
+  * @param alignment the number of bits padded between the `List` size and the `List` contents (on successful)
+  * @param limit the number of elements in the `List`
+  * @tparam A the type of the `List` contents
+  * @see ListCodec.scala
+  */
+private class AlignedListCodec[A](codec: Codec[A], alignment : Int, limit: Option[Int] = None) extends Codec[List[A]] {
+  /**
+    * Convert a `List` of elements into a byte-aligned `BitVector`.<br>
+    * <br>
+    * Bit padding after the encoded size of the `List` is only added if the `alignment` value is greater than zero and the initial encoding process was successful.
+    * The padding is rather heavy-handed and a completely different `BitVector` is returned if successful.
+    * Performance hits for this complexity are not expected to be significant.<br>
+    * <br>
+    * __Warning__:<br>
+    * A significant assumption is present in the code!
+    * The algorithm never confirms the bit size of the encoded size of the `List` and assumes it is equivalent to a `uint8`.
+    * The encoding is always split after its first eight bits.
+    * Obviously, if the bit size is a `uint16` or greater, the aligned encoding process will produce garbage.
+    * No `Exception`s will be thrown.
+    * @param list the `List` to be encoded
+    * @return the `BitVector` encoding, if successful
+    */
+  def encode(list: List[A]) : Attempt[BitVector] = {
+    val solve : Attempt[BitVector] = Encoder.encodeSeq(codec)(list)
+    if(alignment > 0) {
+      solve match {
+        case Attempt.Successful(vector) =>
+          return Successful(vector.take(8L) ++ BitVector.fill(alignment)(false) ++ vector.drop(8L))
+        case _ =>
+      }
+    }
+    solve
+  }
+
+  /**
+    * Convert a byte-aligned `BitVector` into a `List` of elements.
+    * @param buffer the encoded bits in the `List`, preceded by the alignment bits
+    * @return the decoded `List`
+    */
+  def decode(buffer: BitVector) = Decoder.decodeCollect[List, A](codec, limit)(buffer.drop(alignment))
+
+  /**
+    * The size of the encoded `List`.<br>
+    * <br>
+    * Unchanged from original.
+    * @return the size as calculated by the size of each element for each element
+    */
   def sizeBound = limit match {
     case None => SizeBound.unknown
     case Some(lim) => codec.sizeBound * lim.toLong
   }
 
-  def encode(list: List[A]) = Encoder.encodeSeq(codec)(list)
-
-  def decode(buffer: BitVector) = Decoder.decodeCollect[List, A](codec, limit)(buffer.drop(alignment))
-
+  /**
+    * Get a `String` representation of this `List`.<br>
+    * <br>
+    * Unchanged from original.
+    * @return the `String` representation
+    */
   override def toString = s"list($codec)"
 }

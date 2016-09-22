@@ -975,9 +975,9 @@ class GamePacketTest extends Specification {
       }
 
       "encode (two)" in {
-        val msg = HotSpotUpdateMessage(PlanetSideGUID(5),1, HotSpotInfo(0,2000,0,2700,128)::HotSpotInfo(0,2750,0,1100,128)::Nil)
+        val msg = HotSpotUpdateMessage(PlanetSideGUID(5),5, HotSpotInfo(0,2000,0,2700,128)::HotSpotInfo(0,2750,0,1100,128)::Nil)
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
-        pkt mustEqual stringOne
+        pkt mustEqual stringTwo
       }
     }
 
