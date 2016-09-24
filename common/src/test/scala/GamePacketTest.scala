@@ -703,6 +703,28 @@ class GamePacketTest extends Specification {
       }
     }
 
+    "BattleExperienceMessage" should {
+      val string = hex"B4 8A0A E7030000 00"
+
+      "decode" in {
+        PacketCoding.DecodePacket(string).require match {
+          case BattleExperienceMessage(player_guid, experience, unk) =>
+            player_guid mustEqual PlanetSideGUID(2698)
+            experience mustEqual 999
+            unk mustEqual 0
+          case default =>
+            ko
+        }
+      }
+
+      "encode" in {
+        val msg = BattleExperienceMessage(PlanetSideGUID(2698), 999, 0)
+        val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+        pkt mustEqual string
+      }
+    }
+
     "ZonePopulationUpdateMessage" should {
       val string = hex"B6 0400 9E010000 8A000000 25000000 8A000000 25000000 8A000000 25000000 8A000000 25000000"
 
