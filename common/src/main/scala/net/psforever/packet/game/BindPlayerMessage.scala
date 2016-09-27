@@ -3,7 +3,7 @@ package net.psforever.packet.game
 
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PlanetSideGamePacket}
 import scodec.Codec
-import scodec.bits.{ByteVector, HexStringSyntax} //It's not unused! shut up. :(
+import scodec.bits.{ByteVector, HexStringSyntax} //It's not unused! shut up, IDEA. :(
 import scodec.codecs._
 
 /**
@@ -14,7 +14,7 @@ import scodec.codecs._
   * The server does not attempt to "bind" during initial login.<br>
   * <br>
   * Exploration:<br>
-  * We will not have any clue how this packet truly works until we are at the point where we left the player change continents.
+  * We will not have any clue how this packet truly works until we are at the point where we allow the player to change continents.
   * Before that, however, all evidence seems to indicate "standard" `BindPlayerMessage` data, as indicated below.
   * @param unk1 na; always 2 (`02`)?
   * @param unk2 na; always 128 (`80`)?
