@@ -217,6 +217,36 @@ class GamePacketTest extends Specification {
       }
     }
 
+    "BindPlayerMessage" should {
+      val string = hex"16 02 80 04 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+
+      "decode" in {
+        PacketCoding.DecodePacket(string).require match {
+          case BindPlayerMessage(unk1, unk2, unk3, unk4) =>
+            unk1 mustEqual 2
+            unk2 mustEqual 128
+            unk3 mustEqual 4
+            unk4.toString mustEqual hex"000000000000000000000000000000".toString
+          case default =>
+            ko
+        }
+      }
+
+      "encode" in {
+        val msg = BindPlayerMessage(2, 128, 4, hex"000000000000000000000000000000")
+        val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+        pkt mustEqual string
+      }
+
+      "standard" in {
+        val msg = BindPlayerMessage.STANDARD
+        val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+        pkt mustEqual string
+      }
+    }
+
     "ChangeFireModeMessage" should {
       val string = hex"46 4C0020"
 
