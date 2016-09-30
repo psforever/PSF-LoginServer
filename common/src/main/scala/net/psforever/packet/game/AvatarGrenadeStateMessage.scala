@@ -1,30 +1,24 @@
 // Copyright (c) 2016 PSForever.net to present
 package net.psforever.packet.game
 
-import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
+import net.psforever.packet.{GamePacketOpcode, Marshallable, PlanetSideGamePacket}
 import scodec.Codec
 import scodec.codecs._
 
-object GrenadeState extends Enumeration {
-  type Type = Value
-  val unk0,
-  PRIMED,
-  THROWN,
-  unk3
-  = Value
-
-  implicit val codec = PacketHelpers.createEnumerationCodec(this, uintL(1))
-}
-
 /**
-  * na
+  * Report the state of the "grenade throw" animation for this player.<br>
+  * <br>
+  * States:<br>
+  * 1 - prepare for throwing (grenade held back over shoulder)<br>
+  * 2 - throwing (grenade released overhand)<br>
+  * <br>
+  * Exploration:<br>
+  * How many grenade states are possible?
   * @param player_guid the player
-  * @param count the state
+  * @param state the animation state
   */
-//case msg @ AvatarGrenadeStateMessage(player_guid, state) =>
-//log.info("AvatarGrenadeStateMessage: " + msg)
 final case class AvatarGrenadeStateMessage(player_guid : PlanetSideGUID,
-                                           count : GrenadeState.Value)
+                                           state : Int)
   extends PlanetSideGamePacket {
   type Packet = AvatarGrenadeStateMessage
   def opcode = GamePacketOpcode.AvatarGrenadeStateMessage
@@ -34,7 +28,6 @@ final case class AvatarGrenadeStateMessage(player_guid : PlanetSideGUID,
 object AvatarGrenadeStateMessage extends Marshallable[AvatarGrenadeStateMessage] {
   implicit val codec : Codec[AvatarGrenadeStateMessage] = (
     ("player_guid" | PlanetSideGUID.codec) ::
-      ("state" | GrenadeState.codec)
+      ("state" | uint8L)
     ).as[AvatarGrenadeStateMessage]
 }
-

@@ -681,6 +681,27 @@ class GamePacketTest extends Specification {
       }
     }
 
+    "AvatarGrenadeStateMessage" should {
+      val string = hex"A9 DA11 01"
+
+      "decode" in {
+        PacketCoding.DecodePacket(string).require match {
+          case AvatarGrenadeStateMessage(player_guid, state) =>
+            player_guid mustEqual PlanetSideGUID(4570)
+            state mustEqual 1
+          case default =>
+            ko
+        }
+      }
+
+      "encode" in {
+        val msg = AvatarGrenadeStateMessage(PlanetSideGUID(4570), 1)
+        val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+        pkt mustEqual string
+      }
+    }
+
     "BroadcastWarpgateUpdateMessage" should {
       val string = hex"D9 0D 00 01 00 20"
 
