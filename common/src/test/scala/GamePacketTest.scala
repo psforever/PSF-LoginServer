@@ -218,22 +218,24 @@ class GamePacketTest extends Specification {
     }
 
     "BindPlayerMessage" should {
-      val string = hex"16 02 80 04 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+      val string = hex"16 05 84 40 61 6D 73 08  28 00 00 00 00 00 00 00  00 00 00 00 00 00 00"
 
       "decode" in {
         PacketCoding.DecodePacket(string).require match {
-          case BindPlayerMessage(unk1, unk2, unk3, unk4) =>
-            unk1 mustEqual 2
-            unk2 mustEqual 128
-            unk3 mustEqual 4
-            unk4.toString mustEqual hex"000000000000000000000000000000".toString
+          case BindPlayerMessage(unk1, bindDesc, unk2, unk3, unk4) =>
+            unk1 mustEqual 5
+            bindDesc.length mustEqual 4
+            bindDesc mustEqual "@ams"
+            unk2 mustEqual 8
+            unk3 mustEqual 40
+            unk4.toString mustEqual hex"0000000000000000000000000000".toString
           case default =>
             ko
         }
       }
 
       "encode" in {
-        val msg = BindPlayerMessage(2, 128, 4, hex"000000000000000000000000000000")
+        val msg = BindPlayerMessage(5, "@ams", 8, 40, hex"0000000000000000000000000000")
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
         pkt mustEqual string
@@ -243,7 +245,7 @@ class GamePacketTest extends Specification {
         val msg = BindPlayerMessage.STANDARD
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
-        pkt mustEqual string
+        pkt mustEqual hex"16028004000000000000000000000000000000"
       }
     }
 
