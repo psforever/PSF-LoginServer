@@ -223,15 +223,15 @@ class GamePacketTest extends Specification {
 
       "decode (ams)" in {
         PacketCoding.DecodePacket(string_ams).require match {
-          case BindPlayerMessage(unk1, bindDesc, unk2, unk3, unk4, unk5, unk6, pos) =>
-            unk1 mustEqual 5
+          case BindPlayerMessage(action, bindDesc, unk1, logging, unk2, unk3, unk4, pos) =>
+            action mustEqual 5
             bindDesc.length mustEqual 4
             bindDesc mustEqual "@ams"
-            unk2 mustEqual false
-            unk3 mustEqual false
-            unk4 mustEqual 4
-            unk5 mustEqual 40
-            unk6 mustEqual 0
+            unk1 mustEqual false
+            logging mustEqual false
+            unk2 mustEqual 4
+            unk3 mustEqual 40
+            unk4 mustEqual 0
             pos.x mustEqual 0f
             pos.y mustEqual 0f
             pos.z mustEqual 0f
@@ -242,15 +242,15 @@ class GamePacketTest extends Specification {
 
       "decode (tech)" in {
         PacketCoding.DecodePacket(string_tech).require match {
-          case BindPlayerMessage(unk1, bindDesc, unk2, unk3, unk4, unk5, unk6, pos) =>
-            unk1 mustEqual 1
+          case BindPlayerMessage(action, bindDesc, unk1, logging, unk2, unk3, unk4, pos) =>
+            action mustEqual 1
             bindDesc.length mustEqual 11
             bindDesc mustEqual "@tech_plant"
-            unk2 mustEqual true
-            unk3 mustEqual true
-            unk4 mustEqual 10
-            unk5 mustEqual 40
-            unk6 mustEqual 56
+            unk1 mustEqual true
+            logging mustEqual true
+            unk2 mustEqual 10
+            unk3 mustEqual 40
+            unk4 mustEqual 56
             pos.x mustEqual 2060.0f
             pos.y mustEqual 598.0078f
             pos.z mustEqual 274.5f
