@@ -830,6 +830,29 @@ class GamePacketTest extends Specification {
       }
     }
 
+    "FriendsResponse" should {
+      val string = hex"73 618C 60 4B007500720074004800650063007400690063002D004700 00"
+
+      "decode" in {
+        PacketCoding.DecodePacket(string).require match {
+          case FriendsResponse(player_guid, friend, unk) =>
+            player_guid mustEqual PlanetSideGUID(35937)
+            friend.length mustEqual 12
+            friend mustEqual "KurtHectic-G"
+            unk mustEqual 0
+          case default =>
+            ko
+        }
+      }
+
+      "encode" in {
+        val msg = FriendsResponse(PlanetSideGUID(35937), "KurtHectic-G", 0)
+        val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+        pkt mustEqual string
+      }
+    }
+
     "WeaponDryFireMessage" should {
       val string = hex"52 4C00"
 

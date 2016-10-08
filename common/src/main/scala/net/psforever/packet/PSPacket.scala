@@ -203,4 +203,17 @@ object PacketHelpers {
 
   def encodedStringWithLimit(limit : Int) : Codec[String] = variableSizeBytes(encodedStringSizeWithLimit(limit), ascii)
   */
+
+  /**
+    * Construct a `Codec` for reading `wchar_t` (wide character) `Strings` whose length field are constrained to specific bit size proportions.
+    * Padding may also exist between the length field and the beginning of the contents.
+    * @param lenSize a codec that defines the bit size that encodes the length
+    * @param adjustment the optional alignment for padding; defaults to 0
+    * @return the `String` `Codec`
+    */
+  def specSizeWideStringAligned(lenSize : Codec[Int], adjustment : Int = 0) : Codec[String] =
+    variableSizeBytes((lenSize <~ ignore(adjustment)).xmap(
+      insize => insize*2, // number of symbols -> number of bytes (decode)
+      outSize => outSize/2 // number of bytes -> number of symbols (encode)
+    ), utf16)
 }
