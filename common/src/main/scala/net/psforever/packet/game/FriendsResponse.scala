@@ -13,7 +13,7 @@ import scodec.codecs._
   */
 final case class FriendsResponse(player_guid : PlanetSideGUID,
                                  friend : String,
-                                 unk : Int)
+                                 unk : Boolean)
   extends PlanetSideGamePacket {
   type Packet = FriendsResponse
   def opcode = GamePacketOpcode.FriendsResponse
@@ -24,6 +24,6 @@ object FriendsReponse extends Marshallable[FriendsResponse] {
   implicit val codec : Codec[FriendsResponse] = (
     ("player_guid" | PlanetSideGUID.codec) ::
       ("friend" | PacketHelpers.specSizeWideStringAligned(uint(5), 3)) ::
-      ("unk" | uint8L)
+      ("unk" | bool)
     ).as[FriendsResponse]
 }

@@ -839,14 +839,14 @@ class GamePacketTest extends Specification {
             player_guid mustEqual PlanetSideGUID(35937)
             friend.length mustEqual 12
             friend mustEqual "KurtHectic-G"
-            unk mustEqual 0
+            unk mustEqual false
           case default =>
             ko
         }
       }
 
       "encode" in {
-        val msg = FriendsResponse(PlanetSideGUID(35937), "KurtHectic-G", 0)
+        val msg = FriendsResponse(PlanetSideGUID(35937), "KurtHectic-G", false)
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
         pkt mustEqual string
