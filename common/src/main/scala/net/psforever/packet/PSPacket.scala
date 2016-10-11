@@ -3,7 +3,8 @@ package net.psforever.packet
 
 import java.nio.charset.Charset
 
-import scodec.{DecodeResult, Err, Codec, Attempt}
+import scodec.Attempt.Successful
+import scodec.{Attempt, Codec, DecodeResult, Err}
 import scodec.bits._
 import scodec.codecs._
 import scodec._
@@ -205,15 +206,17 @@ object PacketHelpers {
   */
 
   /**
-    * Construct a `Codec` for reading `wchar_t` (wide character) `Strings` whose length field are constrained to specific bit size proportions.
-    * Padding may also exist between the length field and the beginning of the contents.
-    * @param lenSize a codec that defines the bit size that encodes the length
-    * @param adjustment the optional alignment for padding; defaults to 0
-    * @return the `String` `Codec`
+    * Codec that encodes/decodes a list of `n` elements, where `n` is known at compile time.<br>
+    * <br>
+    * This function is copied almost verbatim from its source, with exception of swapping the parameter that is normally a `Nat` `literal`.
+    * The modified function takes a normal unsigned `Integer` and assures that the parameter is a non-negative before further processing.
+    * @param size  the fixed size of the `List`
+    * @param codec a codec that describes each of the contents of the `List`
+    * @tparam A the type of the `List` contents
+    * @see codec\package.scala, sizedList
+    * @see codec\package.scala, listOfN
+    * @see codec\package.scala, provides
+    * @return a codec that works on a List of A but excludes the size from the encoding
     */
-  def specSizeWideStringAligned(lenSize : Codec[Int], adjustment : Int = 0) : Codec[String] =
-    variableSizeBytes((lenSize <~ ignore(adjustment)).xmap(
-      insize => insize*2, // number of symbols -> number of bytes (decode)
-      outSize => outSize/2 // number of bytes -> number of symbols (encode)
-    ), utf16)
+  def sizedList[A](size : Int, codec : Codec[A]) : Codec[List[A]] = listOfN(provide(if(size < 0) 0 else size), codec)
 }
