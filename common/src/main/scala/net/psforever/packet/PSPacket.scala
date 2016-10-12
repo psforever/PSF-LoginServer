@@ -209,8 +209,8 @@ object PacketHelpers {
     * Codec that encodes/decodes a list of `n` elements, where `n` is known at compile time.<br>
     * <br>
     * This function is copied almost verbatim from its source, with exception of swapping the parameter that is normally a `Nat` `literal`.
-    * The modified function takes a normal unsigned `Integer` and assures that the parameter is a non-negative before further processing.
-    * @param size  the fixed size of the `List`
+    * The modified function takes a normal unsigned `Integer` and assures that the parameter is non-negative before further processing.
+    * @param size the known size of the `List`
     * @param codec a codec that describes each of the contents of the `List`
     * @tparam A the type of the `List` contents
     * @see codec\package.scala, sizedList
