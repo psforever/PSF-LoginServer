@@ -3,7 +3,7 @@ package net.psforever.packet
 
 import java.nio.charset.Charset
 
-import scodec.{Attempt, Codec, DecodeResult, Err}
+import scodec.{DecodeResult, Err, Codec, Attempt}
 import scodec.bits._
 import scodec.codecs._
 import scodec._
