@@ -989,6 +989,26 @@ class GamePacketTest extends Specification {
       }
     }
 
+    "GenericActionMessage" should {
+      val string = hex"A7 94"
+
+      "decode" in {
+        PacketCoding.DecodePacket(string).require match {
+          case GenericActionMessage(action) =>
+            action mustEqual 37
+          case default =>
+            ko
+        }
+      }
+
+      "encode" in {
+        val msg = GenericActionMessage(37)
+        val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+        pkt mustEqual string
+      }
+    }
+
     "QuantityUpdateMessage" should {
       val string = hex"3D 5300 7B000000"
 
