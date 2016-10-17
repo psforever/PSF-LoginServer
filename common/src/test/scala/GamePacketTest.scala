@@ -835,18 +835,15 @@ class GamePacketTest extends Specification {
 
       "decode" in {
         PacketCoding.DecodePacket(string).require match {
-          case TrainingZoneMessage(zone, unk1, unk2, unk3) =>
+          case TrainingZoneMessage(zone) =>
             zone mustEqual 19
-            unk1 mustEqual 0
-            unk2 mustEqual 0
-            unk3 mustEqual 0
           case default =>
             ko
         }
       }
 
       "encode" in {
-        val msg = TrainingZoneMessage(19, 0, 0, 0)
+        val msg = TrainingZoneMessage(19)
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
         pkt mustEqual string

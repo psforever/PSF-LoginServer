@@ -27,14 +27,8 @@ import scodec.codecs._
   * 21 - `15` - NC Vehicle Training Area<br>
   * 22 - `16` - VS Vehicle Training Area
   * @param zone the virtual reality zone to send the player
-  * @param unk1 na; always zero?
-  * @param unk2 na; always zero?
-  * @param unk3 na; always zero?
   */
-final case class TrainingZoneMessage(zone : Int,
-                                     unk1 : Int,
-                                     unk2 : Int,
-                                     unk3 : Int)
+final case class TrainingZoneMessage(zone : Long)
   extends PlanetSideGamePacket {
   type Packet = TrainingZoneMessage
   def opcode = GamePacketOpcode.TrainingZoneMessage
@@ -43,9 +37,6 @@ final case class TrainingZoneMessage(zone : Int,
 
 object TrainingZoneMessage extends Marshallable[TrainingZoneMessage] {
   implicit val codec : Codec[TrainingZoneMessage] = (
-      ("zone" | uint8L) ::
-        ("unk1" | uint8L) ::
-        ("unk2" | uint8L) ::
-        ("unk3" | uint8L)
+      "zone" | uint32L
     ).as[TrainingZoneMessage]
 }
