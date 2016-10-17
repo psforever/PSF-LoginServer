@@ -6,22 +6,35 @@ import scodec.Codec
 import scodec.codecs._
 
 /**
-  * The client is telling the server that the player wants to go to the training zones.<br>
+  * Dispatched when the player wants to go to the training zones.
+  * When a player enters the virtual reality hallways behind sanctuary spawn rooms and walks to the base of the ramp, he is presented with a prompt.
+  * From the prompt, the player accepts either "Shooting Range" or "Vehicle Training Area."<br>
   * <br>
-  * This message is dispatched when a player enters the VR hallway / VR teleport and accepts the "Shooting Range" or the "Vehicle Training Area" options on the prompt.
-  * The packet sends indication to the server (as if it didn't know?) in regards to which training grounds the player should be sent.
-  * Players are sent to their respective empire's area by default.<br>
-  * @param unk1 na;
-  *             19 (`13`) when shooting range;
-  *             22 (`16`) when ground vehicle range
+  * Both sets of training zones utilize the same map for their type - `map14` for shooting and `map15` for vehicles.
+  * The factions are kept separate so there are actually six separated zones - two each - to accommodate the three factions.
+  * There is no global map notation, i.e., `map##`, for going to a faction-instance training zone map.
+  * The zone modifier is used in conjunction with the `LoadMapMessage` packet to determine the faction-instance of the training map.<br>
+  * <br>
+  * Players are sent to their respective empire's area by default.
+  * A TR player utilizing the virtual reality hallway in the NC sanctuary and will still only be offered the TR virtual reality areas.
+  * Black OPs do not have normal access to virtual reality areas.<br>
+  * <br>
+  * Zone:<br>
+  * 17 - `11` - TR Shooting Range<br>
+  * 18 - `12` - NC Shooting Range<br>
+  * 19 - `13` - VS Shooting Range<br>
+  * 20 - `14` - TR Vehicle Training Area<br>
+  * 21 - `15` - NC Vehicle Training Area<br>
+  * 22 - `16` - VS Vehicle Training Area
+  * @param zone the virtual reality zone to send the player
+  * @param unk1 na; always zero?
   * @param unk2 na; always zero?
   * @param unk3 na; always zero?
-  * @param unk4 na; always zero?
   */
-final case class TrainingZoneMessage(unk1 : Int,
+final case class TrainingZoneMessage(zone : Int,
+                                     unk1 : Int,
                                      unk2 : Int,
-                                     unk3 : Int,
-                                     unk4 : Int)
+                                     unk3 : Int)
   extends PlanetSideGamePacket {
   type Packet = TrainingZoneMessage
   def opcode = GamePacketOpcode.TrainingZoneMessage
@@ -30,9 +43,9 @@ final case class TrainingZoneMessage(unk1 : Int,
 
 object TrainingZoneMessage extends Marshallable[TrainingZoneMessage] {
   implicit val codec : Codec[TrainingZoneMessage] = (
-      ("unk1" | uint8L) ::
+      ("zone" | uint8L) ::
+        ("unk1" | uint8L) ::
         ("unk2" | uint8L) ::
-        ("unk3" | uint8L) ::
-        ("unk4" | uint8L)
+        ("unk3" | uint8L)
     ).as[TrainingZoneMessage]
 }

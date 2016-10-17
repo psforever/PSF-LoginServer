@@ -830,6 +830,29 @@ class GamePacketTest extends Specification {
       }
     }
 
+    "TrainingZoneMessage" should {
+      val string = hex"75 13 000000"
+
+      "decode" in {
+        PacketCoding.DecodePacket(string).require match {
+          case TrainingZoneMessage(zone, unk1, unk2, unk3) =>
+            zone mustEqual 19
+            unk1 mustEqual 0
+            unk2 mustEqual 0
+            unk3 mustEqual 0
+          case default =>
+            ko
+        }
+      }
+
+      "encode" in {
+        val msg = TrainingZoneMessage(19, 0, 0, 0)
+        val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+        pkt mustEqual string
+      }
+    }
+
     "WeaponDryFireMessage" should {
       val string = hex"52 4C00"
 
