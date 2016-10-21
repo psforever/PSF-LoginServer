@@ -544,7 +544,7 @@ object GamePacketOpcode extends Enumeration {
     case 0xbc => noDecoder(SnoopMsg)
     case 0xbd => game.PlayerStateMessageUpstream.decode
     case 0xbe => noDecoder(PlayerStateShiftMessage)
-    case 0xbf => noDecoder(ZipLineMessage)
+    case 0xbf => game.ZipLineMessage.decode
 
     // OPCODES 0xc0-cf
     case 0xc0 => noDecoder(CaptureFlagUpdateMessage)
