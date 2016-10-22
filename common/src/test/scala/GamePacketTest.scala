@@ -527,6 +527,32 @@ class GamePacketTest extends Specification {
       }
     }
 
+    "ZipLineMessage" should {
+      val string = hex"BF 4B00 19 80000010 5bb4089c 52116881 cf76e840"
+
+      "decode" in {
+        PacketCoding.DecodePacket(string).require match {
+          case ZipLineMessage(player_guid, origin_side, unk1, unk2, unk3, unk4, unk5) =>
+            player_guid mustEqual PlanetSideGUID(75)
+            origin_side mustEqual false
+            unk1 mustEqual 0
+            unk2 mustEqual 204
+            unk3 mustEqual 1151393154
+            unk4 mustEqual 1149997282
+            unk5 mustEqual 1119320846
+          case _ =>
+            ko
+        }
+      }
+
+      "encode" in {
+        val msg = ZipLineMessage(PlanetSideGUID(75), false, 0, 204, 1151393154, 1149997282, 1119320846)
+        val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+        pkt mustEqual string
+      }
+    }
+
     "UseItemMessage" should {
       val string = hex"10 4B00 0000 7401 FFFFFFFF 4001000000000000000000000000058C803600800000"
 
