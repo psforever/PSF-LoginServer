@@ -550,7 +550,7 @@ object GamePacketOpcode extends Enumeration {
     case 0xc0 => noDecoder(CaptureFlagUpdateMessage)
     case 0xc1 => noDecoder(VanuModuleUpdateMessage)
     case 0xc2 => noDecoder(FacilityBenefitShieldChargeRequestMessage)
-    case 0xc3 => noDecoder(ProximityTerminalUseMessage)
+    case 0xc3 => game.ProximityTerminalUseMessage.decode
     case 0xc4 => game.QuantityDeltaUpdateMessage.decode
     case 0xc5 => noDecoder(ChainLashMessage)
     case 0xc6 => game.ZoneInfoMessage.decode
