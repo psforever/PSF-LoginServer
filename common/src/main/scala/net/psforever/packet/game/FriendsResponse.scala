@@ -48,7 +48,7 @@ final case class FriendsResponse(action : Int,
   extends PlanetSideGamePacket {
   type Packet = FriendsResponse
   def opcode = GamePacketOpcode.FriendsResponse
-  def encode = FriendsReponse.encode(this)
+  def encode = FriendsResponse.encode(this)
 }
 
 object Friend extends Marshallable[Friend] {
@@ -67,7 +67,7 @@ object Friend extends Marshallable[Friend] {
     ).as[Friend]
 }
 
-object FriendsReponse extends Marshallable[FriendsResponse] {
+object FriendsResponse extends Marshallable[FriendsResponse] {
   implicit val codec : Codec[FriendsResponse] = (
     ("action" | uintL(3)) ::
       ("unk1" | uint4L) ::
