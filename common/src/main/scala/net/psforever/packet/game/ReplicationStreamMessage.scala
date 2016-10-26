@@ -3,7 +3,6 @@ package net.psforever.packet.game
 
 import net.psforever.newcodecs.newcodecs
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
-import scodec.Attempt.Successful
 import scodec.Codec
 import scodec.codecs._
 
