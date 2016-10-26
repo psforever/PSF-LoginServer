@@ -705,6 +705,7 @@ class GamePacketTest extends Specification {
 
     "ReplicationStreamMessage" should {
       val stringNone = hex"E6 B9 FE"
+      val stringOne = hex"E6 B8 01 06 01 00 8B 46007200610067004C0041004E00640049004E004300 84 4600720061006700 0A00 00 00 0A FF"
 
       "decode (none)" in {
         PacketCoding.DecodePacket(stringNone).require match {
@@ -712,6 +713,30 @@ class GamePacketTest extends Specification {
             unk mustEqual 92
             entries.length mustEqual 1
             entries.head.index mustEqual 255
+            entries.head.listing.isDefined mustEqual false
+          case _ =>
+            ko
+        }
+      }
+
+      "decode (one)" in {
+        PacketCoding.DecodePacket(stringOne).require match {
+          case ReplicationStreamMessage(unk, entries) =>
+            unk mustEqual 92
+            entries.length mustEqual 2
+            entries.head.index mustEqual 0
+            entries.head.listing.isDefined mustEqual true
+            entries.head.listing.get.unk1 mustEqual 131
+            entries.head.listing.get.unk2 mustEqual 0
+            entries.head.listing.get.unk3 mustEqual 128
+            entries.head.listing.get.unk4 mustEqual false
+            entries.head.listing.get.leader mustEqual "FragLANdINC"
+            entries.head.listing.get.name mustEqual "Frag"
+            entries.head.listing.get.continent_guid mustEqual PlanetSideGUID(10)
+            entries.head.listing.get.unk5 mustEqual 0
+            entries.head.listing.get.size mustEqual 0
+            entries.head.listing.get.capacity mustEqual 10
+            entries(1).index mustEqual 255
           case _ =>
             ko
         }
@@ -722,6 +747,13 @@ class GamePacketTest extends Specification {
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
         pkt mustEqual stringNone
+      }
+
+      "encode (one)" in {
+        val msg = ReplicationStreamMessage(92, Vector(SquadListing(0, Option(SquadHeader(131, 0, 128, false, "FragLANdINC", "Frag", PlanetSideGUID(10), 0, 0, 10))), SquadListing(255)))
+        val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+        pkt mustEqual stringOne
       }
     }
 

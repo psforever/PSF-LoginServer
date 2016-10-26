@@ -3,6 +3,7 @@ package net.psforever.packet.game
 
 import net.psforever.newcodecs.newcodecs
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
+import scodec.Attempt.Successful
 import scodec.Codec
 import scodec.codecs._
 
@@ -18,7 +19,8 @@ final case class SquadHeader(unk1 : Int,
                              capacity : Int = 10)
 
 final case class SquadListing(index : Int = 255,
-                              listing : Option[SquadHeader] = None)
+                              listing : Option[SquadHeader] = None,
+                              na : Option[Unit] = None)
 
 final case class ReplicationStreamMessage(unk : Int,
                                           entries : Vector[SquadListing] = Vector.empty)
@@ -63,7 +65,9 @@ object SquadListing extends Marshallable[SquadListing] {
         newcodecs.binary_choice(index == 0,
           "listing" | SquadHeader.codec,
           "listing" | SquadHeader.alt_codec)
-      ) :: ignore(1)
+      ) >>:~ { listing =>
+        conditional(listing.isEmpty, choice(ignore(1), ignore(0))).hlist
+      }
     }).as[SquadListing]
 }
 
