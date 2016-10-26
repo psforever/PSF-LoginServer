@@ -1,14 +1,19 @@
 // Copyright (c) 2016 PSForever.net to present
 package net.psforever.packet.game
 
+import net.psforever.newcodecs.newcodecs
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
 import scodec.Codec
 import scodec.codecs._
 
-final case class SquadHeader(leader : String,
+final case class SquadHeader(unk1 : Int,
+                             unk2 : Int,
+                             unk3 : Int,
+                             unk4 : Boolean,
+                             leader : String,
                              name : String,
                              continent_guid : PlanetSideGUID,
-                             unk : Int,
+                             unk5 : Int,
                              size : Int,
                              capacity : Int = 10)
 
@@ -16,7 +21,7 @@ final case class SquadListing(index : Int = 255,
                               listing : Option[SquadHeader] = None)
 
 final case class ReplicationStreamMessage(unk : Int,
-                                          entries : Vector[SquadListing])
+                                          entries : Vector[SquadListing] = Vector.empty)
   extends PlanetSideGamePacket {
   type Packet = ReplicationStreamMessage
   def opcode = GamePacketOpcode.ReplicationStreamMessage
@@ -25,10 +30,27 @@ final case class ReplicationStreamMessage(unk : Int,
 
 object SquadHeader extends Marshallable[SquadHeader] {
   implicit val codec : Codec[SquadHeader] = (
-    ("leader" | PacketHelpers.encodedWideString) ::
+    ("unk1" | uint8L) ::
+      ("unk2" | uint8L) ::
+      ("unk3" | uint8L) ::
+      ("unk4" | bool) ::
+      ("leader" | PacketHelpers.encodedWideString) ::
       ("name" | PacketHelpers.encodedWideString) ::
       ("continent_guid" | PlanetSideGUID.codec) ::
-      ("unk" | uint16L) ::
+      ("unk5" | uint16L) ::
+      ("size" | uint4L) ::
+      ("capacity" | uint4L)
+    ).as[SquadHeader]
+
+  implicit val alt_codec : Codec[SquadHeader] = (
+    ("unk1" | uint8L) ::
+      ("unk2" | uint8L) ::
+      ("unk3" | uint8L) ::
+      ("unk4" | bool) ::
+      ("leader" | PacketHelpers.encodedWideStringAligned(7)) ::
+      ("name" | PacketHelpers.encodedWideString) ::
+      ("continent_guid" | PlanetSideGUID.codec) ::
+      ("unk5" | uint16L) ::
       ("size" | uint4L) ::
       ("capacity" | uint4L)
     ).as[SquadHeader]
@@ -37,7 +59,11 @@ object SquadHeader extends Marshallable[SquadHeader] {
 object SquadListing extends Marshallable[SquadListing] {
   implicit val codec : Codec[SquadListing] = (
     ("index" | uint8L) >>:~ { index =>
-      conditional(index < 255, "listing" | SquadHeader.codec) :: ignore(0)
+      conditional(index < 255,
+        newcodecs.binary_choice(index == 0,
+          "listing" | SquadHeader.codec,
+          "listing" | SquadHeader.alt_codec)
+      ) :: ignore(1)
     }).as[SquadListing]
 }
 

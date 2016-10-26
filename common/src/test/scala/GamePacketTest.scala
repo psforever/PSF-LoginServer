@@ -703,6 +703,28 @@ class GamePacketTest extends Specification {
       }
     }
 
+    "ReplicationStreamMessage" should {
+      val stringNone = hex"E6 B9 FE"
+
+      "decode (none)" in {
+        PacketCoding.DecodePacket(stringNone).require match {
+          case ReplicationStreamMessage(unk, entries) =>
+            unk mustEqual 92
+            entries.length mustEqual 1
+            entries.head.index mustEqual 255
+          case _ =>
+            ko
+        }
+      }
+
+      "encode (none)" in {
+        val msg = ReplicationStreamMessage(92, Vector(SquadListing(255)))
+        val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+        pkt mustEqual stringNone
+      }
+    }
+
     "ZonePopulationUpdateMessage" should {
       val string = hex"B6 0400 9E010000 8A000000 25000000 8A000000 25000000 8A000000 25000000 8A000000 25000000"
 
