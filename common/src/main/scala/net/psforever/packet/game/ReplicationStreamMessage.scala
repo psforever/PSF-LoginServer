@@ -8,6 +8,7 @@ import scodec.codecs._
 
 final case class SquadHeader(unk1 : Int,
                              unk2 : Int,
+                             squad_guid : Int,
                              unk3 : Int,
                              unk4 : Boolean,
                              leader : String,
@@ -32,8 +33,9 @@ final case class ReplicationStreamMessage(unk : Int,
 object SquadHeader extends Marshallable[SquadHeader] {
   implicit val codec : Codec[SquadHeader] = (
     ("unk1" | uint8L) ::
-      ("unk2" | uint8L) ::
-      ("unk3" | uint8L) ::
+      ("unk2" | uintL(3)) ::
+      ("squad_guid" | uint8L) ::
+      ("unk3" | uintL(5)) ::
       ("unk4" | bool) ::
       ("leader" | PacketHelpers.encodedWideString) ::
       ("name" | PacketHelpers.encodedWideString) ::
@@ -45,8 +47,9 @@ object SquadHeader extends Marshallable[SquadHeader] {
 
   implicit val alt_codec : Codec[SquadHeader] = (
     ("unk1" | uint8L) ::
-      ("unk2" | uint8L) ::
-      ("unk3" | uint8L) ::
+      ("unk2" | uintL(3)) ::
+      ("squad_guid" | uint8L) ::
+      ("unk3" | uintL(5)) ::
       ("unk4" | bool) ::
       ("leader" | PacketHelpers.encodedWideStringAligned(7)) ::
       ("name" | PacketHelpers.encodedWideString) ::
