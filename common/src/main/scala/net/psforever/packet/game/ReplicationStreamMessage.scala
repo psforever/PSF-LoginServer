@@ -9,7 +9,7 @@ import scodec.codecs._
 final case class SquadHeader(unk1 : Int,
                              unk2 : Int,
                              squad_guid : Int,
-                             unk3 : Int,
+                             unk3 : Boolean,
                              unk4 : Boolean,
                              leader : String,
                              name : String,
@@ -34,8 +34,8 @@ object SquadHeader extends Marshallable[SquadHeader] {
   implicit val codec : Codec[SquadHeader] = (
     ("unk1" | uint8L) ::
       ("unk2" | uintL(3)) ::
-      ("squad_guid" | uint8L) ::
-      ("unk3" | uintL(5)) ::
+      ("squad_guid" | uintL(12)) ::
+      ("unk3" | bool) ::
       ("unk4" | bool) ::
       ("leader" | PacketHelpers.encodedWideString) ::
       ("name" | PacketHelpers.encodedWideString) ::
@@ -48,8 +48,8 @@ object SquadHeader extends Marshallable[SquadHeader] {
   implicit val alt_codec : Codec[SquadHeader] = (
     ("unk1" | uint8L) ::
       ("unk2" | uintL(3)) ::
-      ("squad_guid" | uint8L) ::
-      ("unk3" | uintL(5)) ::
+      ("squad_guid" | uintL(12)) ::
+      ("unk3" | bool) ::
       ("unk4" | bool) ::
       ("leader" | PacketHelpers.encodedWideStringAligned(7)) ::
       ("name" | PacketHelpers.encodedWideString) ::

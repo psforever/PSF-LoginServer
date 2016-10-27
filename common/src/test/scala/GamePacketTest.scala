@@ -731,7 +731,7 @@ class GamePacketTest extends Specification {
             entries.head.listing.get.unk1 mustEqual 131
             entries.head.listing.get.unk2 mustEqual 0
             entries.head.listing.get.squad_guid mustEqual 4
-            entries.head.listing.get.unk3 mustEqual 0
+            entries.head.listing.get.unk3 mustEqual false
             entries.head.listing.get.unk4 mustEqual false
             entries.head.listing.get.leader mustEqual "FragLANdINC"
             entries.head.listing.get.name mustEqual "Frag"
@@ -740,6 +740,7 @@ class GamePacketTest extends Specification {
             entries.head.listing.get.size mustEqual 0
             entries.head.listing.get.capacity mustEqual 10
             entries(1).index mustEqual 255
+            entries(1).listing.isDefined mustEqual false
           case _ =>
             ko
         }
@@ -751,11 +752,10 @@ class GamePacketTest extends Specification {
             unk mustEqual 92
             entries.length mustEqual 3
             entries.head.index mustEqual 0
-            entries.head.listing.isDefined mustEqual true
             entries.head.listing.get.unk1 mustEqual 131
             entries.head.listing.get.unk2 mustEqual 0
             entries.head.listing.get.squad_guid mustEqual 24
-            entries.head.listing.get.unk3 mustEqual 0
+            entries.head.listing.get.unk3 mustEqual false
             entries.head.listing.get.unk4 mustEqual false
             entries.head.listing.get.leader mustEqual "GeneralGorgutz"
             entries.head.listing.get.name mustEqual "FLY,All welcome,cn last night!!!!"
@@ -767,7 +767,7 @@ class GamePacketTest extends Specification {
             entries(1).listing.get.unk1 mustEqual 131
             entries(1).listing.get.unk2 mustEqual 0
             entries(1).listing.get.squad_guid mustEqual 16
-            entries(1).listing.get.unk3 mustEqual 0
+            entries(1).listing.get.unk3 mustEqual false
             entries(1).listing.get.unk4 mustEqual false
             entries(1).listing.get.leader mustEqual "KOKkiasMFCN"
             entries(1).listing.get.name mustEqual "Squad 2"
@@ -787,11 +787,10 @@ class GamePacketTest extends Specification {
             unk mustEqual 92
             entries.length mustEqual 4
             entries.head.index mustEqual 0
-            entries.head.listing.isDefined mustEqual true
             entries.head.listing.get.unk1 mustEqual 131
             entries.head.listing.get.unk2 mustEqual 0
             entries.head.listing.get.squad_guid mustEqual 24
-            entries.head.listing.get.unk3 mustEqual 0
+            entries.head.listing.get.unk3 mustEqual false
             entries.head.listing.get.unk4 mustEqual false
             entries.head.listing.get.leader mustEqual "GeneralGorgutz"
             entries.head.listing.get.name mustEqual "FLY,All welcome,cn last night!!!!"
@@ -803,7 +802,7 @@ class GamePacketTest extends Specification {
             entries(1).listing.get.unk1 mustEqual 131
             entries(1).listing.get.unk2 mustEqual 0
             entries(1).listing.get.squad_guid mustEqual 12
-            entries(1).listing.get.unk3 mustEqual 0
+            entries(1).listing.get.unk3 mustEqual false
             entries(1).listing.get.unk4 mustEqual false
             entries(1).listing.get.leader mustEqual "NIGHT88RAVEN"
             entries(1).listing.get.name mustEqual "All Welcome"
@@ -815,7 +814,7 @@ class GamePacketTest extends Specification {
             entries(2).listing.get.unk1 mustEqual 131
             entries(2).listing.get.unk2 mustEqual 0
             entries(2).listing.get.squad_guid mustEqual 16
-            entries(2).listing.get.unk3 mustEqual 0
+            entries(2).listing.get.unk3 mustEqual false
             entries(2).listing.get.unk4 mustEqual false
             entries(2).listing.get.leader mustEqual "KOKkiasMFCN"
             entries(2).listing.get.name mustEqual "Squad 2"
@@ -838,7 +837,7 @@ class GamePacketTest extends Specification {
 
       "encode (one)" in {
         val msg = ReplicationStreamMessage(92, Vector(
-          SquadListing(0, Option(SquadHeader(131, 0, 4, 0, false, "FragLANdINC", "Frag", PlanetSideGUID(10), 0, 0, 10))),
+          SquadListing(0, Option(SquadHeader(131, 0, 4, false, false, "FragLANdINC", "Frag", PlanetSideGUID(10), 0, 0, 10))),
           SquadListing(255)))
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
@@ -847,8 +846,8 @@ class GamePacketTest extends Specification {
 
       "encode (two)" in {
         val msg = ReplicationStreamMessage(92, Vector(
-          SquadListing(0, Option(SquadHeader(131, 0, 24, 0, false, "GeneralGorgutz", "FLY,All welcome,cn last night!!!!", PlanetSideGUID(4), 0, 7, 10))),
-          SquadListing(1, Option(SquadHeader(131, 0, 16, 0, false, "KOKkiasMFCN", "Squad 2", PlanetSideGUID(4), 0, 6, 10))),
+          SquadListing(0, Option(SquadHeader(131, 0, 24, false, false, "GeneralGorgutz", "FLY,All welcome,cn last night!!!!", PlanetSideGUID(4), 0, 7, 10))),
+          SquadListing(1, Option(SquadHeader(131, 0, 16, false, false, "KOKkiasMFCN", "Squad 2", PlanetSideGUID(4), 0, 6, 10))),
           SquadListing(255)))
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
@@ -857,9 +856,9 @@ class GamePacketTest extends Specification {
 
       "encode (three)" in {
         val msg = ReplicationStreamMessage(92, Vector(
-          SquadListing(0, Option(SquadHeader(131, 0, 24, 0, false, "GeneralGorgutz", "FLY,All welcome,cn last night!!!!", PlanetSideGUID(4), 0, 7, 10))),
-          SquadListing(1, Option(SquadHeader(131, 0, 12, 0, false, "NIGHT88RAVEN", "All Welcome", PlanetSideGUID(10), 0, 4, 10))),
-          SquadListing(2, Option(SquadHeader(131, 0, 16, 0, false, "KOKkiasMFCN", "Squad 2", PlanetSideGUID(4), 0, 6, 10))),
+          SquadListing(0, Option(SquadHeader(131, 0, 24, false, false, "GeneralGorgutz", "FLY,All welcome,cn last night!!!!", PlanetSideGUID(4), 0, 7, 10))),
+          SquadListing(1, Option(SquadHeader(131, 0, 12, false, false, "NIGHT88RAVEN", "All Welcome", PlanetSideGUID(10), 0, 4, 10))),
+          SquadListing(2, Option(SquadHeader(131, 0, 16, false, false, "KOKkiasMFCN", "Squad 2", PlanetSideGUID(4), 0, 6, 10))),
           SquadListing(255)))
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
