@@ -6,23 +6,27 @@ import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, Plan
 import scodec.Codec
 import scodec.codecs._
 
+//this packet is limited mainly by byte-size
+
+//continents are stored in this packet as 32-bit numbers instead of 16-bit; after the normal 16 bits, two bytes can be ignored
+
+final case class SquadInfo(leader : String,
+                           task : String,
+                           continent_guid : PlanetSideGUID,
+                           size : Int,
+                           capacity : Int)
+
 final case class SquadHeader(unk1 : Int,
-                             unk2 : Int,
-                             squad_guid : Int,
-                             unk3 : Boolean,
-                             unk4 : Boolean,
-                             leader : String,
-                             name : String,
-                             continent_guid : PlanetSideGUID,
-                             unk5 : Int,
-                             size : Int,
-                             capacity : Int = 10)
+                             unk2 : Boolean,
+                             squad_guid : PlanetSideGUID,
+                             info : SquadInfo)
 
 final case class SquadListing(index : Int = 255,
                               listing : Option[SquadHeader] = None,
                               na : Option[Unit] = None)
 
-final case class ReplicationStreamMessage(unk : Int,
+final case class ReplicationStreamMessage(action : Int,
+                                          unk : Int,
                                           entries : Vector[SquadListing] = Vector.empty)
   extends PlanetSideGamePacket {
   type Packet = ReplicationStreamMessage
@@ -30,33 +34,39 @@ final case class ReplicationStreamMessage(unk : Int,
   def encode = ReplicationStreamMessage.encode(this)
 }
 
+object SquadInfo extends Marshallable[SquadInfo] {
+  implicit val codec : Codec[SquadInfo] = (
+    ("leader" | PacketHelpers.encodedWideString) ::
+      ("task" | PacketHelpers.encodedWideString) ::
+      ("continent_guid" | PlanetSideGUID.codec) ::
+      ignore(16) ::
+      ("size" | uint4L) ::
+      ("capacity" | uint4L)
+    ).as[SquadInfo]
+
+  implicit val alt_codec : Codec[SquadInfo] = (
+    ("leader" | PacketHelpers.encodedWideStringAligned(7)) ::
+      ("task" | PacketHelpers.encodedWideString) ::
+      ("continent_guid" | PlanetSideGUID.codec) ::
+      ignore(16) ::
+      ("size" | uint4L) ::
+      ("capacity" | uint4L)
+    ).as[SquadInfo]
+}
+
 object SquadHeader extends Marshallable[SquadHeader] {
   implicit val codec : Codec[SquadHeader] = (
     ("unk1" | uint8L) ::
-      ("unk2" | uintL(3)) ::
-      ("squad_guid" | uintL(12)) ::
-      ("unk3" | bool) ::
-      ("unk4" | bool) ::
-      ("leader" | PacketHelpers.encodedWideString) ::
-      ("name" | PacketHelpers.encodedWideString) ::
-      ("continent_guid" | PlanetSideGUID.codec) ::
-      ("unk5" | uint16L) ::
-      ("size" | uint4L) ::
-      ("capacity" | uint4L)
+      ("unk2" | bool) ::
+      ("squad_guid" | PlanetSideGUID.codec) ::
+      ("info" | SquadInfo.codec)
     ).as[SquadHeader]
 
   implicit val alt_codec : Codec[SquadHeader] = (
     ("unk1" | uint8L) ::
-      ("unk2" | uintL(3)) ::
-      ("squad_guid" | uintL(12)) ::
-      ("unk3" | bool) ::
-      ("unk4" | bool) ::
-      ("leader" | PacketHelpers.encodedWideStringAligned(7)) ::
-      ("name" | PacketHelpers.encodedWideString) ::
-      ("continent_guid" | PlanetSideGUID.codec) ::
-      ("unk5" | uint16L) ::
-      ("size" | uint4L) ::
-      ("capacity" | uint4L)
+      ("unk2" | bool) ::
+      ("squad_guid" | PlanetSideGUID.codec) ::
+      ("info" | SquadInfo.alt_codec)
     ).as[SquadHeader]
 }
 
@@ -75,7 +85,8 @@ object SquadListing extends Marshallable[SquadListing] {
 
 object ReplicationStreamMessage extends Marshallable[ReplicationStreamMessage] {
   implicit val codec : Codec[ReplicationStreamMessage] = (
-    ("unk" | uintL(7)) ::
+    ("action" | uintL(3)) ::
+      ("unk" | uint4L) ::
       ("entries" | vector(SquadListing.codec))
     ).as[ReplicationStreamMessage]
 }

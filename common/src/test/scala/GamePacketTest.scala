@@ -711,8 +711,9 @@ class GamePacketTest extends Specification {
 
       "decode (none)" in {
         PacketCoding.DecodePacket(stringNone).require match {
-          case ReplicationStreamMessage(unk, entries) =>
-            unk mustEqual 92
+          case ReplicationStreamMessage(action, unk, entries) =>
+            action mustEqual 5
+            unk mustEqual 12
             entries.length mustEqual 1
             entries.head.index mustEqual 255
             entries.head.listing.isDefined mustEqual false
@@ -723,22 +724,20 @@ class GamePacketTest extends Specification {
 
       "decode (one)" in {
         PacketCoding.DecodePacket(stringOne).require match {
-          case ReplicationStreamMessage(unk, entries) =>
-            unk mustEqual 92
+          case ReplicationStreamMessage(action, unk, entries) =>
+            action mustEqual 5
+            unk mustEqual 12
             entries.length mustEqual 2
             entries.head.index mustEqual 0
             entries.head.listing.isDefined mustEqual true
             entries.head.listing.get.unk1 mustEqual 131
-            entries.head.listing.get.unk2 mustEqual 0
-            entries.head.listing.get.squad_guid mustEqual 4
-            entries.head.listing.get.unk3 mustEqual false
-            entries.head.listing.get.unk4 mustEqual false
-            entries.head.listing.get.leader mustEqual "FragLANdINC"
-            entries.head.listing.get.name mustEqual "Frag"
-            entries.head.listing.get.continent_guid mustEqual PlanetSideGUID(10)
-            entries.head.listing.get.unk5 mustEqual 0
-            entries.head.listing.get.size mustEqual 0
-            entries.head.listing.get.capacity mustEqual 10
+            entries.head.listing.get.unk2 mustEqual false
+            entries.head.listing.get.squad_guid mustEqual PlanetSideGUID(1)
+            entries.head.listing.get.info.leader mustEqual "FragLANdINC"
+            entries.head.listing.get.info.task mustEqual "Frag"
+            entries.head.listing.get.info.continent_guid mustEqual PlanetSideGUID(10)
+            entries.head.listing.get.info.size mustEqual 0
+            entries.head.listing.get.info.capacity mustEqual 10
             entries(1).index mustEqual 255
             entries(1).listing.isDefined mustEqual false
           case _ =>
@@ -748,33 +747,28 @@ class GamePacketTest extends Specification {
 
       "decode (two)" in {
         PacketCoding.DecodePacket(stringTwo).require match {
-          case ReplicationStreamMessage(unk, entries) =>
-            unk mustEqual 92
+          case ReplicationStreamMessage(action, unk, entries) =>
+            action mustEqual 5
+            unk mustEqual 12
             entries.length mustEqual 3
             entries.head.index mustEqual 0
             entries.head.listing.get.unk1 mustEqual 131
-            entries.head.listing.get.unk2 mustEqual 0
-            entries.head.listing.get.squad_guid mustEqual 24
-            entries.head.listing.get.unk3 mustEqual false
-            entries.head.listing.get.unk4 mustEqual false
-            entries.head.listing.get.leader mustEqual "GeneralGorgutz"
-            entries.head.listing.get.name mustEqual "FLY,All welcome,cn last night!!!!"
-            entries.head.listing.get.continent_guid mustEqual PlanetSideGUID(4)
-            entries.head.listing.get.unk5 mustEqual 0
-            entries.head.listing.get.size mustEqual 7
-            entries.head.listing.get.capacity mustEqual 10
+            entries.head.listing.get.unk2 mustEqual false
+            entries.head.listing.get.squad_guid mustEqual PlanetSideGUID(6)
+            entries.head.listing.get.info.leader mustEqual "GeneralGorgutz"
+            entries.head.listing.get.info.task mustEqual "FLY,All welcome,cn last night!!!!"
+            entries.head.listing.get.info.continent_guid mustEqual PlanetSideGUID(4)
+            entries.head.listing.get.info.size mustEqual 7
+            entries.head.listing.get.info.capacity mustEqual 10
             entries(1).index mustEqual 1
             entries(1).listing.get.unk1 mustEqual 131
-            entries(1).listing.get.unk2 mustEqual 0
-            entries(1).listing.get.squad_guid mustEqual 16
-            entries(1).listing.get.unk3 mustEqual false
-            entries(1).listing.get.unk4 mustEqual false
-            entries(1).listing.get.leader mustEqual "KOKkiasMFCN"
-            entries(1).listing.get.name mustEqual "Squad 2"
-            entries(1).listing.get.continent_guid mustEqual PlanetSideGUID(4)
-            entries(1).listing.get.unk5 mustEqual 0
-            entries(1).listing.get.size mustEqual 6
-            entries(1).listing.get.capacity mustEqual 10
+            entries(1).listing.get.unk2 mustEqual false
+            entries(1).listing.get.squad_guid mustEqual PlanetSideGUID(4)
+            entries(1).listing.get.info.leader mustEqual "KOKkiasMFCN"
+            entries(1).listing.get.info.task mustEqual "Squad 2"
+            entries(1).listing.get.info.continent_guid mustEqual PlanetSideGUID(4)
+            entries(1).listing.get.info.size mustEqual 6
+            entries(1).listing.get.info.capacity mustEqual 10
             entries(2).index mustEqual 255
           case _ =>
             ko
@@ -783,45 +777,37 @@ class GamePacketTest extends Specification {
 
       "decode (three)" in {
         PacketCoding.DecodePacket(stringThree).require match {
-          case ReplicationStreamMessage(unk, entries) =>
-            unk mustEqual 92
+          case ReplicationStreamMessage(action, unk, entries) =>
+            action mustEqual 5
+            unk mustEqual 12
             entries.length mustEqual 4
             entries.head.index mustEqual 0
             entries.head.listing.get.unk1 mustEqual 131
-            entries.head.listing.get.unk2 mustEqual 0
-            entries.head.listing.get.squad_guid mustEqual 24
-            entries.head.listing.get.unk3 mustEqual false
-            entries.head.listing.get.unk4 mustEqual false
-            entries.head.listing.get.leader mustEqual "GeneralGorgutz"
-            entries.head.listing.get.name mustEqual "FLY,All welcome,cn last night!!!!"
-            entries.head.listing.get.continent_guid mustEqual PlanetSideGUID(4)
-            entries.head.listing.get.unk5 mustEqual 0
-            entries.head.listing.get.size mustEqual 7
-            entries.head.listing.get.capacity mustEqual 10
+            entries.head.listing.get.unk2 mustEqual false
+            entries.head.listing.get.squad_guid mustEqual PlanetSideGUID(6)
+            entries.head.listing.get.info.leader mustEqual "GeneralGorgutz"
+            entries.head.listing.get.info.task mustEqual "FLY,All welcome,cn last night!!!!"
+            entries.head.listing.get.info.continent_guid mustEqual PlanetSideGUID(4)
+            entries.head.listing.get.info.size mustEqual 7
+            entries.head.listing.get.info.capacity mustEqual 10
             entries(1).index mustEqual 1
             entries(1).listing.get.unk1 mustEqual 131
-            entries(1).listing.get.unk2 mustEqual 0
-            entries(1).listing.get.squad_guid mustEqual 12
-            entries(1).listing.get.unk3 mustEqual false
-            entries(1).listing.get.unk4 mustEqual false
-            entries(1).listing.get.leader mustEqual "NIGHT88RAVEN"
-            entries(1).listing.get.name mustEqual "All Welcome"
-            entries(1).listing.get.continent_guid mustEqual PlanetSideGUID(10)
-            entries(1).listing.get.unk5 mustEqual 0
-            entries(1).listing.get.size mustEqual 4
-            entries(1).listing.get.capacity mustEqual 10
+            entries(1).listing.get.unk2 mustEqual false
+            entries(1).listing.get.squad_guid mustEqual PlanetSideGUID(3)
+            entries(1).listing.get.info.leader mustEqual "NIGHT88RAVEN"
+            entries(1).listing.get.info.task mustEqual "All Welcome"
+            entries(1).listing.get.info.continent_guid mustEqual PlanetSideGUID(10)
+            entries(1).listing.get.info.size mustEqual 4
+            entries(1).listing.get.info.capacity mustEqual 10
             entries(2).index mustEqual 2
             entries(2).listing.get.unk1 mustEqual 131
-            entries(2).listing.get.unk2 mustEqual 0
-            entries(2).listing.get.squad_guid mustEqual 16
-            entries(2).listing.get.unk3 mustEqual false
-            entries(2).listing.get.unk4 mustEqual false
-            entries(2).listing.get.leader mustEqual "KOKkiasMFCN"
-            entries(2).listing.get.name mustEqual "Squad 2"
-            entries(2).listing.get.continent_guid mustEqual PlanetSideGUID(4)
-            entries(2).listing.get.unk5 mustEqual 0
-            entries(2).listing.get.size mustEqual 6
-            entries(2).listing.get.capacity mustEqual 10
+            entries(2).listing.get.unk2 mustEqual false
+            entries(2).listing.get.squad_guid mustEqual PlanetSideGUID(4)
+            entries(2).listing.get.info.leader mustEqual "KOKkiasMFCN"
+            entries(2).listing.get.info.task mustEqual "Squad 2"
+            entries(2).listing.get.info.continent_guid mustEqual PlanetSideGUID(4)
+            entries(2).listing.get.info.size mustEqual 6
+            entries(2).listing.get.info.capacity mustEqual 10
             entries(3).index mustEqual 255
           case _ =>
             ko
@@ -829,15 +815,15 @@ class GamePacketTest extends Specification {
       }
 
       "encode (none)" in {
-        val msg = ReplicationStreamMessage(92, Vector(SquadListing(255)))
+        val msg = ReplicationStreamMessage(5, 12, Vector(SquadListing(255)))
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
         pkt mustEqual stringNone
       }
 
       "encode (one)" in {
-        val msg = ReplicationStreamMessage(92, Vector(
-          SquadListing(0, Option(SquadHeader(131, 0, 4, false, false, "FragLANdINC", "Frag", PlanetSideGUID(10), 0, 0, 10))),
+        val msg = ReplicationStreamMessage(5, 12, Vector(
+          SquadListing(0, Option(SquadHeader(131, false, PlanetSideGUID(1), SquadInfo("FragLANdINC", "Frag", PlanetSideGUID(10), 0, 10)))),
           SquadListing(255)))
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
@@ -845,9 +831,9 @@ class GamePacketTest extends Specification {
       }
 
       "encode (two)" in {
-        val msg = ReplicationStreamMessage(92, Vector(
-          SquadListing(0, Option(SquadHeader(131, 0, 24, false, false, "GeneralGorgutz", "FLY,All welcome,cn last night!!!!", PlanetSideGUID(4), 0, 7, 10))),
-          SquadListing(1, Option(SquadHeader(131, 0, 16, false, false, "KOKkiasMFCN", "Squad 2", PlanetSideGUID(4), 0, 6, 10))),
+        val msg = ReplicationStreamMessage(5, 12, Vector(
+          SquadListing(0, Option(SquadHeader(131, false, PlanetSideGUID(6), SquadInfo("GeneralGorgutz", "FLY,All welcome,cn last night!!!!", PlanetSideGUID(4), 7, 10)))),
+          SquadListing(1, Option(SquadHeader(131, false, PlanetSideGUID(4), SquadInfo("KOKkiasMFCN", "Squad 2", PlanetSideGUID(4), 6, 10)))),
           SquadListing(255)))
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
@@ -855,10 +841,10 @@ class GamePacketTest extends Specification {
       }
 
       "encode (three)" in {
-        val msg = ReplicationStreamMessage(92, Vector(
-          SquadListing(0, Option(SquadHeader(131, 0, 24, false, false, "GeneralGorgutz", "FLY,All welcome,cn last night!!!!", PlanetSideGUID(4), 0, 7, 10))),
-          SquadListing(1, Option(SquadHeader(131, 0, 12, false, false, "NIGHT88RAVEN", "All Welcome", PlanetSideGUID(10), 0, 4, 10))),
-          SquadListing(2, Option(SquadHeader(131, 0, 16, false, false, "KOKkiasMFCN", "Squad 2", PlanetSideGUID(4), 0, 6, 10))),
+        val msg = ReplicationStreamMessage(5, 12, Vector(
+          SquadListing(0, Option(SquadHeader(131, false, PlanetSideGUID(6), SquadInfo("GeneralGorgutz", "FLY,All welcome,cn last night!!!!", PlanetSideGUID(4), 7, 10)))),
+          SquadListing(1, Option(SquadHeader(131, false, PlanetSideGUID(3), SquadInfo("NIGHT88RAVEN", "All Welcome", PlanetSideGUID(10), 4, 10)))),
+          SquadListing(2, Option(SquadHeader(131, false, PlanetSideGUID(4), SquadInfo("KOKkiasMFCN", "Squad 2", PlanetSideGUID(4), 6, 10)))),
           SquadListing(255)))
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
