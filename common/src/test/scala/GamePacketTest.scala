@@ -704,19 +704,25 @@ class GamePacketTest extends Specification {
     }
 
     "ReplicationStreamMessage" should {
-      val stringNone = hex"E6 B9 FE"
+      val stringClear = hex"E6 B9 FE"
       val stringOne = hex"E6 B8 01 06 01 00 8B 46007200610067004C0041004E00640049004E004300 84 4600720061006700 0A00 00 00 0A FF"
       val stringTwo = hex"E6 B8 01 06 06 00 8E 470065006E006500720061006C0047006F0072006700750074007A00 A1 46004C0059002C0041006C006C002000770065006C0063006F006D0065002C0063006E0020006C0061007300740020006E0069006700680074002100210021002100 0400 00 00 7A 01 83 02 00 45 80 4B004F004B006B006900610073004D00460043004E00 87 5300710075006100640020003200 0400 00 00 6A FF"
       val stringThree = hex"E6 B8 01 06 06 00 8E 470065006E006500720061006C0047006F0072006700750074007A00 A1 46004C0059002C0041006C006C002000770065006C0063006F006D0065002C0063006E0020006C0061007300740020006E0069006700680074002100210021002100 0400 00 00 7A 01 83 01 80 4600 4E0049004700480054003800380052004100560045004E00 8B 41006C006C002000570065006C0063006F006D006500 0A 00 00 00 4A 02 83 02 00 45 80 4B004F004B006B006900610073004D00460043004E00 87 5300710075006100640020003200 0400 00 00 6A FF"
 
-      "decode (none)" in {
-        PacketCoding.DecodePacket(stringNone).require match {
-          case ReplicationStreamMessage(action, unk, entries) =>
-            action mustEqual 5
-            unk mustEqual 12
-            entries.length mustEqual 1
-            entries.head.index mustEqual 255
-            entries.head.listing.isDefined mustEqual false
+      "decode (clear)" in {
+        PacketCoding.DecodePacket(stringClear).require match {
+          case ReplicationStreamMessage(behavior, init, unk, entries) =>
+            behavior mustEqual 5
+            init.isDefined mustEqual true
+            init.get.behavior mustEqual 6
+            init.get.init.isDefined mustEqual false
+            init.get.unk.isDefined mustEqual true
+            init.get.unk.get mustEqual false
+            init.get.entries.length mustEqual 1
+            init.get.entries.head.index mustEqual 255
+            init.get.entries.head.listing.isDefined mustEqual false
+            unk.isDefined mustEqual false
+            entries.length mustEqual 0
           case _ =>
             ko
         }
@@ -724,22 +730,35 @@ class GamePacketTest extends Specification {
 
       "decode (one)" in {
         PacketCoding.DecodePacket(stringOne).require match {
-          case ReplicationStreamMessage(action, unk, entries) =>
-            action mustEqual 5
-            unk mustEqual 12
-            entries.length mustEqual 2
-            entries.head.index mustEqual 0
-            entries.head.listing.isDefined mustEqual true
-            entries.head.listing.get.unk1 mustEqual 131
-            entries.head.listing.get.unk2 mustEqual false
-            entries.head.listing.get.squad_guid mustEqual PlanetSideGUID(1)
-            entries.head.listing.get.info.leader mustEqual "FragLANdINC"
-            entries.head.listing.get.info.task mustEqual "Frag"
-            entries.head.listing.get.info.continent_guid mustEqual PlanetSideGUID(10)
-            entries.head.listing.get.info.size mustEqual 0
-            entries.head.listing.get.info.capacity mustEqual 10
-            entries(1).index mustEqual 255
-            entries(1).listing.isDefined mustEqual false
+          case ReplicationStreamMessage(behavior, init, unk, entries) =>
+            behavior mustEqual 5
+            init.isDefined mustEqual true
+            init.get.behavior mustEqual 6
+            init.get.init.isDefined mustEqual false
+            init.get.unk.isDefined mustEqual true
+            init.get.unk.get mustEqual false
+            init.get.entries.length mustEqual 2
+            init.get.entries.head.index mustEqual 0
+            init.get.entries.head.listing.isDefined mustEqual true
+            init.get.entries.head.listing.get.action mustEqual 131
+            init.get.entries.head.listing.get.unk mustEqual false
+            init.get.entries.head.listing.get.action2.isDefined mustEqual false
+            init.get.entries.head.listing.get.info.leader.isDefined mustEqual true
+            init.get.entries.head.listing.get.info.leader.get mustEqual "FragLANdINC"
+            init.get.entries.head.listing.get.info.task.isDefined mustEqual true
+            init.get.entries.head.listing.get.info.task.get mustEqual "Frag"
+            init.get.entries.head.listing.get.info.continent_guid.isDefined mustEqual true
+            init.get.entries.head.listing.get.info.continent_guid.get mustEqual PlanetSideGUID(10)
+            init.get.entries.head.listing.get.info.size.isDefined mustEqual true
+            init.get.entries.head.listing.get.info.size.get mustEqual 0
+            init.get.entries.head.listing.get.info.capacity.isDefined mustEqual true
+            init.get.entries.head.listing.get.info.capacity.get mustEqual 10
+            init.get.entries.head.listing.get.info.squad_guid.isDefined mustEqual true
+            init.get.entries.head.listing.get.info.squad_guid.get mustEqual PlanetSideGUID(1)
+            init.get.entries(1).index mustEqual 255
+            init.get.entries(1).listing.isDefined mustEqual false
+            unk.isDefined mustEqual false
+            entries.length mustEqual 0
           case _ =>
             ko
         }
@@ -747,29 +766,35 @@ class GamePacketTest extends Specification {
 
       "decode (two)" in {
         PacketCoding.DecodePacket(stringTwo).require match {
-          case ReplicationStreamMessage(action, unk, entries) =>
-            action mustEqual 5
-            unk mustEqual 12
-            entries.length mustEqual 3
-            entries.head.index mustEqual 0
-            entries.head.listing.get.unk1 mustEqual 131
-            entries.head.listing.get.unk2 mustEqual false
-            entries.head.listing.get.squad_guid mustEqual PlanetSideGUID(6)
-            entries.head.listing.get.info.leader mustEqual "GeneralGorgutz"
-            entries.head.listing.get.info.task mustEqual "FLY,All welcome,cn last night!!!!"
-            entries.head.listing.get.info.continent_guid mustEqual PlanetSideGUID(4)
-            entries.head.listing.get.info.size mustEqual 7
-            entries.head.listing.get.info.capacity mustEqual 10
-            entries(1).index mustEqual 1
-            entries(1).listing.get.unk1 mustEqual 131
-            entries(1).listing.get.unk2 mustEqual false
-            entries(1).listing.get.squad_guid mustEqual PlanetSideGUID(4)
-            entries(1).listing.get.info.leader mustEqual "KOKkiasMFCN"
-            entries(1).listing.get.info.task mustEqual "Squad 2"
-            entries(1).listing.get.info.continent_guid mustEqual PlanetSideGUID(4)
-            entries(1).listing.get.info.size mustEqual 6
-            entries(1).listing.get.info.capacity mustEqual 10
-            entries(2).index mustEqual 255
+          case ReplicationStreamMessage(behavior, init, unk, entries) =>
+            behavior mustEqual 5
+            init.isDefined mustEqual true
+            init.get.behavior mustEqual 6
+            init.get.init.isDefined mustEqual false
+            init.get.unk.isDefined mustEqual true
+            init.get.unk.get mustEqual false
+            init.get.entries.length mustEqual 3
+            init.get.entries.head.index mustEqual 0
+            init.get.entries.head.listing.get.action mustEqual 131
+            init.get.entries.head.listing.get.unk mustEqual false
+            init.get.entries.head.listing.get.action2.isDefined mustEqual false
+            init.get.entries.head.listing.get.info.leader.get mustEqual "GeneralGorgutz"
+            init.get.entries.head.listing.get.info.task.get mustEqual "FLY,All welcome,cn last night!!!!"
+            init.get.entries.head.listing.get.info.continent_guid.get mustEqual PlanetSideGUID(4)
+            init.get.entries.head.listing.get.info.size.get mustEqual 7
+            init.get.entries.head.listing.get.info.capacity.get mustEqual 10
+            init.get.entries.head.listing.get.info.squad_guid.get mustEqual PlanetSideGUID(6)
+            init.get.entries(1).index mustEqual 1
+            init.get.entries(1).listing.get.action mustEqual 131
+            init.get.entries(1).listing.get.unk mustEqual false
+            init.get.entries(1).listing.get.action2.isDefined mustEqual false
+            init.get.entries(1).listing.get.info.leader.get mustEqual "KOKkiasMFCN"
+            init.get.entries(1).listing.get.info.task.get mustEqual "Squad 2"
+            init.get.entries(1).listing.get.info.continent_guid.get mustEqual PlanetSideGUID(4)
+            init.get.entries(1).listing.get.info.size.get mustEqual 6
+            init.get.entries(1).listing.get.info.capacity.get mustEqual 10
+            init.get.entries(1).listing.get.info.squad_guid.get mustEqual PlanetSideGUID(4)
+            init.get.entries(2).index mustEqual 255
           case _ =>
             ko
         }
@@ -777,75 +802,95 @@ class GamePacketTest extends Specification {
 
       "decode (three)" in {
         PacketCoding.DecodePacket(stringThree).require match {
-          case ReplicationStreamMessage(action, unk, entries) =>
-            action mustEqual 5
-            unk mustEqual 12
-            entries.length mustEqual 4
-            entries.head.index mustEqual 0
-            entries.head.listing.get.unk1 mustEqual 131
-            entries.head.listing.get.unk2 mustEqual false
-            entries.head.listing.get.squad_guid mustEqual PlanetSideGUID(6)
-            entries.head.listing.get.info.leader mustEqual "GeneralGorgutz"
-            entries.head.listing.get.info.task mustEqual "FLY,All welcome,cn last night!!!!"
-            entries.head.listing.get.info.continent_guid mustEqual PlanetSideGUID(4)
-            entries.head.listing.get.info.size mustEqual 7
-            entries.head.listing.get.info.capacity mustEqual 10
-            entries(1).index mustEqual 1
-            entries(1).listing.get.unk1 mustEqual 131
-            entries(1).listing.get.unk2 mustEqual false
-            entries(1).listing.get.squad_guid mustEqual PlanetSideGUID(3)
-            entries(1).listing.get.info.leader mustEqual "NIGHT88RAVEN"
-            entries(1).listing.get.info.task mustEqual "All Welcome"
-            entries(1).listing.get.info.continent_guid mustEqual PlanetSideGUID(10)
-            entries(1).listing.get.info.size mustEqual 4
-            entries(1).listing.get.info.capacity mustEqual 10
-            entries(2).index mustEqual 2
-            entries(2).listing.get.unk1 mustEqual 131
-            entries(2).listing.get.unk2 mustEqual false
-            entries(2).listing.get.squad_guid mustEqual PlanetSideGUID(4)
-            entries(2).listing.get.info.leader mustEqual "KOKkiasMFCN"
-            entries(2).listing.get.info.task mustEqual "Squad 2"
-            entries(2).listing.get.info.continent_guid mustEqual PlanetSideGUID(4)
-            entries(2).listing.get.info.size mustEqual 6
-            entries(2).listing.get.info.capacity mustEqual 10
-            entries(3).index mustEqual 255
+          case ReplicationStreamMessage(behavior, init, unk, entries) =>
+            behavior mustEqual 5
+            init.isDefined mustEqual true
+            init.get.behavior mustEqual 6
+            init.get.init.isDefined mustEqual false
+            init.get.unk.isDefined mustEqual true
+            init.get.unk.get mustEqual false
+            init.get.entries.length mustEqual 4
+            init.get.entries.head.index mustEqual 0
+            init.get.entries.head.listing.get.action mustEqual 131
+            init.get.entries.head.listing.get.unk mustEqual false
+            init.get.entries.head.listing.get.action2.isDefined mustEqual false
+            init.get.entries.head.listing.get.info.leader.get mustEqual "GeneralGorgutz"
+            init.get.entries.head.listing.get.info.task.get mustEqual "FLY,All welcome,cn last night!!!!"
+            init.get.entries.head.listing.get.info.continent_guid.get mustEqual PlanetSideGUID(4)
+            init.get.entries.head.listing.get.info.size.get mustEqual 7
+            init.get.entries.head.listing.get.info.capacity.get mustEqual 10
+            init.get.entries.head.listing.get.info.squad_guid.get mustEqual PlanetSideGUID(6)
+            init.get.entries(1).index mustEqual 1
+            init.get.entries(1).listing.get.action mustEqual 131
+            init.get.entries(1).listing.get.unk mustEqual false
+            init.get.entries(1).listing.get.action2.isDefined mustEqual false
+            init.get.entries(1).listing.get.info.leader.get mustEqual "NIGHT88RAVEN"
+            init.get.entries(1).listing.get.info.task.get mustEqual "All Welcome"
+            init.get.entries(1).listing.get.info.continent_guid.get mustEqual PlanetSideGUID(10)
+            init.get.entries(1).listing.get.info.size.get mustEqual 4
+            init.get.entries(1).listing.get.info.capacity.get mustEqual 10
+            init.get.entries(1).listing.get.info.squad_guid.get mustEqual PlanetSideGUID(3)
+            init.get.entries(2).index mustEqual 2
+            init.get.entries(2).listing.get.action mustEqual 131
+            init.get.entries(2).listing.get.unk mustEqual false
+            init.get.entries(2).listing.get.action2.isDefined mustEqual false
+            init.get.entries(2).listing.get.info.leader.get mustEqual "KOKkiasMFCN"
+            init.get.entries(2).listing.get.info.task.get mustEqual "Squad 2"
+            init.get.entries(2).listing.get.info.continent_guid.get mustEqual PlanetSideGUID(4)
+            init.get.entries(2).listing.get.info.size.get mustEqual 6
+            init.get.entries(2).listing.get.info.capacity.get mustEqual 10
+            init.get.entries(2).listing.get.info.squad_guid.get mustEqual PlanetSideGUID(4)
+            init.get.entries(3).index mustEqual 255
           case _ =>
             ko
         }
       }
 
-      "encode (none)" in {
-        val msg = ReplicationStreamMessage(5, 12, Vector(SquadListing(255)))
+      "encode (clear)" in {
+        val msg = ReplicationStreamMessage(5,
+          Some(ReplicationStreamMessage(6, None, Some(false),
+            Vector(SquadListing(255))
+          ))
+        )
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
-        pkt mustEqual stringNone
+        pkt mustEqual stringClear
       }
 
       "encode (one)" in {
-        val msg = ReplicationStreamMessage(5, 12, Vector(
-          SquadListing(0, Option(SquadHeader(131, false, PlanetSideGUID(1), SquadInfo("FragLANdINC", "Frag", PlanetSideGUID(10), 0, 10)))),
-          SquadListing(255)))
+        val msg = ReplicationStreamMessage(5,
+          Some(ReplicationStreamMessage(6, None, Some(false), Vector(
+            SquadListing(0, Option(SquadHeader(131, false, None, SquadInfo("FragLANdINC", "Frag", PlanetSideGUID(10), 0, 10, PlanetSideGUID(1))))),
+            SquadListing(255))
+          ))
+        )
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
         pkt mustEqual stringOne
       }
 
       "encode (two)" in {
-        val msg = ReplicationStreamMessage(5, 12, Vector(
-          SquadListing(0, Option(SquadHeader(131, false, PlanetSideGUID(6), SquadInfo("GeneralGorgutz", "FLY,All welcome,cn last night!!!!", PlanetSideGUID(4), 7, 10)))),
-          SquadListing(1, Option(SquadHeader(131, false, PlanetSideGUID(4), SquadInfo("KOKkiasMFCN", "Squad 2", PlanetSideGUID(4), 6, 10)))),
-          SquadListing(255)))
+        val msg = ReplicationStreamMessage(5,
+          Some(ReplicationStreamMessage(6, None, Some(false), Vector(
+            SquadListing(0, Option(SquadHeader(131, false, None, SquadInfo("GeneralGorgutz", "FLY,All welcome,cn last night!!!!", PlanetSideGUID(4), 7, 10, PlanetSideGUID(6))))),
+            SquadListing(1, Option(SquadHeader(131, false, None, SquadInfo("KOKkiasMFCN", "Squad 2", PlanetSideGUID(4), 6, 10, PlanetSideGUID(4))))),
+            SquadListing(255))
+          ))
+        )
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
         pkt mustEqual stringTwo
       }
 
       "encode (three)" in {
-        val msg = ReplicationStreamMessage(5, 12, Vector(
-          SquadListing(0, Option(SquadHeader(131, false, PlanetSideGUID(6), SquadInfo("GeneralGorgutz", "FLY,All welcome,cn last night!!!!", PlanetSideGUID(4), 7, 10)))),
-          SquadListing(1, Option(SquadHeader(131, false, PlanetSideGUID(3), SquadInfo("NIGHT88RAVEN", "All Welcome", PlanetSideGUID(10), 4, 10)))),
-          SquadListing(2, Option(SquadHeader(131, false, PlanetSideGUID(4), SquadInfo("KOKkiasMFCN", "Squad 2", PlanetSideGUID(4), 6, 10)))),
-          SquadListing(255)))
+        val msg = ReplicationStreamMessage(5,
+          Some(ReplicationStreamMessage(6, None, Some(false), Vector(
+            SquadListing(0, Option(SquadHeader(131, false, None, SquadInfo("GeneralGorgutz", "FLY,All welcome,cn last night!!!!", PlanetSideGUID(4), 7, 10, PlanetSideGUID(6))))),
+            SquadListing(1, Option(SquadHeader(131, false, None, SquadInfo("NIGHT88RAVEN", "All Welcome", PlanetSideGUID(10), 4, 10, PlanetSideGUID(3))))),
+            SquadListing(2, Option(SquadHeader(131, false, None, SquadInfo("KOKkiasMFCN", "Squad 2", PlanetSideGUID(4), 6, 10, PlanetSideGUID(4))))),
+            SquadListing(255))
+          ))
+        )
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
         pkt mustEqual stringThree
