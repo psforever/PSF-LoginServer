@@ -135,7 +135,7 @@ object SquadHeader extends Marshallable[SquadHeader] {
         Some(SquadInfo(lead, None)) :: HNil
     },
     {
-      case Some(SquadInfo(lead, None, None, None, None, None)) :: HNil =>
+      case Some(SquadInfo(lead, _, _, _, _, _)) :: HNil =>
         true :: lead.get :: HNil
     }
   )
@@ -154,9 +154,9 @@ object SquadHeader extends Marshallable[SquadHeader] {
         Some(SquadInfo(None, tsk.get)) :: HNil
     },
     {
-      case Some(SquadInfo(None, None, cguid, None, None, None)) :: HNil =>
-        true :: Some(cguid.get) :: Some(0) :: None :: HNil
-      case Some(SquadInfo(None, tsk, None, None, None, None)) :: HNil =>
+      case Some(SquadInfo(_, None, cguid, _, _, _)) :: HNil =>
+        true :: cguid :: Some(0) :: None :: HNil
+      case Some(SquadInfo(_, tsk, None, _, _, _)) :: HNil =>
         false :: None :: None :: tsk :: HNil
     }
   )
@@ -170,7 +170,7 @@ object SquadHeader extends Marshallable[SquadHeader] {
         Some(SquadInfo(sz, None)) :: HNil
     },
     {
-      case Some(SquadInfo(None, None, None, sz, None, None)) :: HNil =>
+      case Some(SquadInfo(_, _, _, sz, _, _)) :: HNil =>
         false :: sz.get :: HNil
     }
   )
@@ -186,7 +186,7 @@ object SquadHeader extends Marshallable[SquadHeader] {
         Some(SquadInfo(lead, sz)) :: HNil
     },
     {
-      case Some(SquadInfo(lead, None, None, sz, None, None)) ::HNil =>
+      case Some(SquadInfo(lead, _, _, sz, _, _)) ::HNil =>
         true :: lead.get :: 4 :: sz.get :: HNil
     }
   )
@@ -204,18 +204,22 @@ object SquadHeader extends Marshallable[SquadHeader] {
         Some(SquadInfo(tsk, cguid)) :: HNil
     },
     {
-      case Some(SquadInfo(None, tsk, cguid, None, None, None)) :: HNil =>
+      case Some(SquadInfo(_, tsk, cguid, _, _, _)) :: HNil =>
         false :: tsk.get :: 1 :: true :: cguid.get :: 0 :: HNil
     }
   )
 
   val removeCodec : Codec[squadPattern] = conditional(false, bool).xmap[squadPattern] (
     {
+      case None =>
+        None :: HNil
       case _ =>
         None :: HNil
     },
     {
       case None :: HNil =>
+        None
+      case _ =>
         None
     }
   )
@@ -224,11 +228,11 @@ object SquadHeader extends Marshallable[SquadHeader] {
   val failureCodec : Codec[squadPattern] = peek(bool).xmap[squadPattern] (
     {
       case false => Some(SquadInfo(None, None, None, None, None, None)) :: HNil
-      case _ => Some(SquadInfo(None, None, None, None, None, None)) :: HNil
+      case true => Some(SquadInfo(None, None, None, None, None, None)) :: HNil
     },
     {
-      case Some(SquadInfo(None, None, None, None, None, None)) :: HNil => false
-      case _ => false
+      case Some(x) :: HNil => false
+      case None :: HNil => false
     }
   )
 
@@ -239,7 +243,7 @@ object SquadHeader extends Marshallable[SquadHeader] {
   implicit val codec : Codec[SquadHeader] = (
     ("action" | uint8L) >>:~ { action =>
       ("unk" | bool) >>:~ { unk =>
-        conditional(action != 131 && !unk, "action2" | uintL(3)) >>:~ { action2 =>
+        conditional(action != 131, "action2" | uintL(3)) >>:~ { action2 =>
           selectCodec(action, unk, action2)
         }
       }
@@ -283,7 +287,7 @@ object SquadHeader extends Marshallable[SquadHeader] {
     }
 
     //TODO better error handling here?
-    Err("requesting an unknown codec")
+    Err("unhandled codec")
     failureCodec
   }
 }
@@ -304,7 +308,7 @@ object ReplicationStreamMessage extends Marshallable[ReplicationStreamMessage] {
   implicit val codec : Codec[ReplicationStreamMessage] = (
     (("behavior" | uintL(3)) >>:~ { behavior =>
       conditional(behavior == 5, "behavior2" | uintL(3)) :: //note: uses self
-        conditional(behavior != 2, "unk" | bool)
+        conditional(behavior != 1, "unk" | bool)
     }) :+
       ("entries" | vector(SquadListing.codec))
     ).as[ReplicationStreamMessage]
