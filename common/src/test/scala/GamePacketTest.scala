@@ -841,7 +841,7 @@ class GamePacketTest extends Specification {
             ko
         }
       }
-//TODO not working
+
       "decode (remove)" in {
         PacketCoding.DecodePacket(stringListRemove).require match {
           case ReplicationStreamMessage(behavior, behavior2, unk, entries) =>
@@ -1031,38 +1031,38 @@ class GamePacketTest extends Specification {
             ko
         }
       }
-//TODO "all" currently can not be used
-//      "decode (update all)" in {
-//        PacketCoding.DecodePacket(stringUpdateAll).require match {
-//          case ReplicationStreamMessage(behavior, behavior2, unk, entries) =>
-//            behavior mustEqual 6
-//            behavior2.isDefined mustEqual false
-//            unk.isDefined mustEqual true
-//            unk.get mustEqual false
-//            entries.length mustEqual 2
-//            entries.head.index mustEqual 1
-//            entries.head.listing.isDefined mustEqual true
-//            entries.head.listing.get.action mustEqual 131
-//            entries.head.listing.get.unk mustEqual false
-//            entries.head.listing.get.action2.isDefined mustEqual false
-//            entries.head.listing.get.info.isDefined mustEqual true
-//            entries.head.listing.get.info.get.leader.isDefined mustEqual true
-//            entries.head.listing.get.info.get.leader.get mustEqual "madmuj"
-//            entries.head.listing.get.info.get.task.isDefined mustEqual true
-//            entries.head.listing.get.info.get.task.get mustEqual ""
-//            entries.head.listing.get.info.get.continent_guid.isDefined mustEqual true
-//            entries.head.listing.get.info.get.continent_guid.get mustEqual PlanetSideGUID(4)
-//            entries.head.listing.get.info.get.size.isDefined mustEqual true
-//            entries.head.listing.get.info.get.size.get mustEqual 0
-//            entries.head.listing.get.info.get.capacity.isDefined mustEqual true
-//            entries.head.listing.get.info.get.capacity.get mustEqual 10
-//            entries.head.listing.get.info.get.squad_guid.isDefined mustEqual true
-//            entries.head.listing.get.info.get.squad_guid.get mustEqual PlanetSideGUID(11)
-//            entries(1).index mustEqual 255
-//          case _ =>
-//            ko
-//        }
-//      }
+
+      "decode (update all)" in {
+        PacketCoding.DecodePacket(stringUpdateAll).require match {
+          case ReplicationStreamMessage(behavior, behavior2, unk, entries) =>
+            behavior mustEqual 6
+            behavior2.isDefined mustEqual false
+            unk.isDefined mustEqual true
+            unk.get mustEqual false
+            entries.length mustEqual 2
+            entries.head.index mustEqual 7
+            entries.head.listing.isDefined mustEqual true
+            entries.head.listing.get.action mustEqual 131
+            entries.head.listing.get.unk mustEqual false
+            entries.head.listing.get.action2.isDefined mustEqual false
+            entries.head.listing.get.info.isDefined mustEqual true
+            entries.head.listing.get.info.get.leader.isDefined mustEqual true
+            entries.head.listing.get.info.get.leader.get mustEqual "madmuj"
+            entries.head.listing.get.info.get.task.isDefined mustEqual true
+            entries.head.listing.get.info.get.task.get mustEqual ""
+            entries.head.listing.get.info.get.continent_guid.isDefined mustEqual true
+            entries.head.listing.get.info.get.continent_guid.get mustEqual PlanetSideGUID(4)
+            entries.head.listing.get.info.get.size.isDefined mustEqual true
+            entries.head.listing.get.info.get.size.get mustEqual 0
+            entries.head.listing.get.info.get.capacity.isDefined mustEqual true
+            entries.head.listing.get.info.get.capacity.get mustEqual 10
+            entries.head.listing.get.info.get.squad_guid.isDefined mustEqual true
+            entries.head.listing.get.info.get.squad_guid.get mustEqual PlanetSideGUID(11)
+            entries(1).index mustEqual 255
+          case _ =>
+            ko
+        }
+      }
 
       "encode (clear)" in {
         val msg = ReplicationStreamMessage(5, Some(6), Some(false),
@@ -1197,18 +1197,18 @@ class GamePacketTest extends Specification {
 
         pkt mustEqual stringUpdateTaskContinent
       }
-//TODO "all" currently can not be used
-//      "encode (update all)" in {
-//        val msg = ReplicationStreamMessage(6, None, Some(false),
-//          Vector(
-//            SquadListing(7, Some(SquadHeader(131, false, None, SquadInfo("madmuj", "", PlanetSideGUID(4), 0, 10, PlanetSideGUID(11))))),
-//            SquadListing(255)
-//          )
-//        )
-//        val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
-//
-//        pkt mustEqual stringUpdateAll
-//      }
+
+      "encode (update all)" in {
+        val msg = ReplicationStreamMessage(6, None, Some(false),
+          Vector(
+            SquadListing(7, Some(SquadHeader(131, false, None, SquadInfo("madmuj", "", PlanetSideGUID(4), 0, 10, PlanetSideGUID(11))))),
+            SquadListing(255)
+          )
+        )
+        val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+        pkt mustEqual stringUpdateAll
+      }
     }
 
     "ZonePopulationUpdateMessage" should {
