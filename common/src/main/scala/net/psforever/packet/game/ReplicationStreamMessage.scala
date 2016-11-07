@@ -306,17 +306,21 @@ object SquadHeader extends Marshallable[SquadHeader] {
 
   implicit val init_codec : Codec[SquadHeader] = (
     ("action" | uint8L) >>:~ { action =>
-      ("unk" | bool) ::
-        conditional(action != 131, "action2" | uintL(3)) ::
-        initCodec
+      ("unk" | bool) >>:~ { unk =>
+        conditional(action != 131, "action2" | uintL(3)) >>:~ { action2 =>
+          selectCodec(action, unk, action2, initCodec)
+        }
+      }
     }
     ).as[SquadHeader]
 
   implicit val alt_init_codec : Codec[SquadHeader] = (
     ("action" | uint8L) >>:~ { action =>
-      ("unk" | bool) ::
-        conditional(action != 131, "action2" | uintL(3)) ::
-        alt_initCodec
+      ("unk" | bool) >>:~ { unk =>
+        conditional(action != 131, "action2" | uintL(3)) >>:~ { action2 =>
+          selectCodec(action, unk, action2, alt_initCodec)
+        }
+      }
     }
     ).as[SquadHeader]
 
