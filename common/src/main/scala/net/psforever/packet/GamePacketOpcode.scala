@@ -591,7 +591,7 @@ object GamePacketOpcode extends Enumeration {
     case 0xe3 => noDecoder(ZoneForcedCavernConnectionsMessage)
     case 0xe4 => noDecoder(MissionActionMessage)
     case 0xe5 => noDecoder(MissionKillTriggerMessage)
-    case 0xe6 => noDecoder(ReplicationStreamMessage)
+    case 0xe6 => game.ReplicationStreamMessage.decode
     case 0xe7 => noDecoder(SquadDefinitionActionMessage)
     // 0xe8
     case 0xe8 => noDecoder(SquadDetailDefinitionUpdateMessage)
