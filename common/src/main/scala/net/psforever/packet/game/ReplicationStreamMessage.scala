@@ -289,18 +289,18 @@ object SquadHeader extends Marshallable[SquadHeader] {
       uint16L ::
       ("size" | uint4L) ::
       ("capacity" | uint4L)
-    ).xmap[squadPattern] (
+    ).exmap[squadPattern] (
     {
       case sguid :: lead :: tsk :: cguid :: 0 :: sz :: cap :: HNil =>
-        Some(SquadInfo(lead, tsk, cguid, sz, cap, sguid)) :: HNil
+        Attempt.successful(Some(SquadInfo(lead, tsk, cguid, sz, cap, sguid)) :: HNil)
       case _ =>
-        throw new RuntimeException("failed to decode squad data for adding [A] a squad entry")
+        Attempt.failure(Err("failed to decode squad data for adding [A] a squad entry"))
     },
     {
       case Some(SquadInfo(Some(lead), Some(tsk), Some(cguid), Some(sz), Some(cap), Some(sguid))) :: HNil =>
-        sguid :: lead :: tsk :: cguid :: 0 :: sz :: cap :: HNil
+        Attempt.successful(sguid :: lead :: tsk :: cguid :: 0 :: sz :: cap :: HNil)
       case _ =>
-        throw new RuntimeException("failed to encode squad data for adding [A] a squad entry")
+        Attempt.failure(Err("failed to encode squad data for adding [A] a squad entry"))
     }
   )
 
@@ -315,18 +315,18 @@ object SquadHeader extends Marshallable[SquadHeader] {
       uint16L ::
       ("size" | uint4L) ::
       ("capacity" | uint4L)
-    ).xmap[squadPattern] (
+    ).exmap[squadPattern] (
     {
       case sguid :: lead :: tsk :: cguid :: 0 :: sz :: cap :: HNil =>
-        Some(SquadInfo(lead, tsk, cguid, sz, cap, sguid)) :: HNil
+        Attempt.successful(Some(SquadInfo(lead, tsk, cguid, sz, cap, sguid)) :: HNil)
       case _ =>
-        throw new RuntimeException("failed to decode squad data for adding [B] a squad entry")
+        Attempt.failure(Err("failed to decode squad data for adding [B] a squad entry"))
     },
     {
       case Some(SquadInfo(Some(lead), Some(tsk), Some(cguid), Some(sz), Some(cap), Some(sguid))) :: HNil =>
-        sguid :: lead :: tsk :: cguid :: 0 :: sz :: cap :: HNil
+        Attempt.successful(sguid :: lead :: tsk :: cguid :: 0 :: sz :: cap :: HNil)
       case _ =>
-        throw new RuntimeException("failed to encode squad data for adding [B] a squad entry")
+        Attempt.failure(Err("failed to encode squad data for adding [B] a squad entry"))
     }
   )
 
@@ -341,18 +341,18 @@ object SquadHeader extends Marshallable[SquadHeader] {
       uint16L ::
       ("size" | uint4L) ::
       ("capacity" | uint4L)
-    ).xmap[squadPattern] (
+    ).exmap[squadPattern] (
     {
       case sguid :: lead :: tsk :: cguid :: 0 :: sz :: cap :: HNil =>
-        Some(SquadInfo(lead, tsk, cguid, sz, cap, sguid)) :: HNil
+        Attempt.successful(Some(SquadInfo(lead, tsk, cguid, sz, cap, sguid)) :: HNil)
       case _ =>
-        throw new RuntimeException("failed to decode squad data for updating a squad entry")
+        Attempt.failure(Err("failed to decode squad data for updating a squad entry"))
     },
     {
       case Some(SquadInfo(Some(lead), Some(tsk), Some(cguid), Some(sz), Some(cap), Some(sguid))) :: HNil =>
-        sguid :: lead :: tsk :: cguid :: 0 :: sz :: cap :: HNil
+        Attempt.successful(sguid :: lead :: tsk :: cguid :: 0 :: sz :: cap :: HNil)
       case _ =>
-        throw new RuntimeException("failed to encode squad data for updating a squad entry")
+        Attempt.failure(Err("failed to encode squad data for updating a squad entry"))
     }
   )
 
@@ -362,18 +362,18 @@ object SquadHeader extends Marshallable[SquadHeader] {
   private val leaderCodec : Codec[squadPattern] = (
     bool ::
       ("leader" | PacketHelpers.encodedWideStringAligned(7))
-    ).xmap[squadPattern] (
+    ).exmap[squadPattern] (
     {
       case true :: lead :: HNil =>
-        Some(SquadInfo(lead, None)) :: HNil
+        Attempt.successful(Some(SquadInfo(lead, None)) :: HNil)
       case _ =>
-        throw new RuntimeException("failed to decode squad data for a leader name")
+        Attempt.failure(Err("failed to decode squad data for a leader name"))
     },
     {
       case Some(SquadInfo(Some(lead), _, _, _, _, _)) :: HNil =>
-        true :: lead :: HNil
+        Attempt.successful(true :: lead :: HNil)
       case _ =>
-        throw new RuntimeException("failed to encode squad data for a leader name")
+        Attempt.failure(Err("failed to encode squad data for a leader name"))
     }
   )
 
@@ -386,26 +386,26 @@ object SquadHeader extends Marshallable[SquadHeader] {
         conditional(path, uint16L) ::
         conditional(!path, "task" | PacketHelpers.encodedWideStringAligned(7))
     }
-    ).xmap[squadPattern] (
+    ).exmap[squadPattern] (
     {
       case true :: Some(cguid) :: Some(0) :: _ :: HNil =>
-        Some(SquadInfo(cguid)) :: HNil
+        Attempt.successful(Some(SquadInfo(cguid)) :: HNil)
       case true :: Some(cguid) :: Some(_) :: _ :: HNil =>
-        throw new RuntimeException("failed to decode squad data for a continent - malformed GUID")
+        Attempt.failure(Err("failed to decode squad data for a continent - malformed GUID"))
       case false :: _ :: _ :: Some(tsk) :: HNil =>
-        Some(SquadInfo(None, tsk)) :: HNil
+        Attempt.successful(Some(SquadInfo(None, tsk)) :: HNil)
       case false :: _ :: _ :: None :: HNil =>
-        throw new RuntimeException("failed to decode squad data for a task - no task")
+        Attempt.failure(Err("failed to decode squad data for a task - no task"))
     },
     {
       case Some(SquadInfo(_, None, Some(cguid), _, _, _)) :: HNil =>
-        true :: Some(cguid) :: Some(0) :: None :: HNil
+        Attempt.successful(true :: Some(cguid) :: Some(0) :: None :: HNil)
       case Some(SquadInfo(_, Some(tsk), None, _, _, _)) :: HNil =>
-        false :: None :: None :: Some(tsk) :: HNil
+        Attempt.successful(false :: None :: None :: Some(tsk) :: HNil)
       case Some(SquadInfo(_, Some(tsk), Some(cguid), _, _, _)) :: HNil =>
-        throw new RuntimeException("failed to encode squad data for either a task or a continent - multiple encodings reachable")
+        Attempt.failure(Err("failed to encode squad data for either a task or a continent - multiple encodings reachable"))
       case _ =>
-        throw new RuntimeException("failed to encode squad data for either a task or a continent")
+        Attempt.failure(Err("failed to encode squad data for either a task or a continent"))
     }
   )
 
@@ -415,18 +415,18 @@ object SquadHeader extends Marshallable[SquadHeader] {
   private val sizeCodec : Codec[squadPattern] = (
     bool ::
       ("size" | uint4L)
-    ).xmap[squadPattern] (
+    ).exmap[squadPattern] (
     {
       case false :: sz :: HNil =>
-        Some(SquadInfo(sz, None)) :: HNil
+        Attempt.successful(Some(SquadInfo(sz, None)) :: HNil)
       case _ =>
-        throw new RuntimeException("failed to decode squad data for a size")
+        Attempt.failure(Err("failed to decode squad data for a size"))
     },
     {
       case Some(SquadInfo(_, _, _, Some(sz), _, _)) :: HNil =>
-        false :: sz :: HNil
+        Attempt.successful(false :: sz :: HNil)
       case _ =>
-        throw new RuntimeException("failed to encode squad data for a size")
+        Attempt.failure(Err("failed to encode squad data for a size"))
     }
   )
 
@@ -438,18 +438,18 @@ object SquadHeader extends Marshallable[SquadHeader] {
       ("leader" | PacketHelpers.encodedWideStringAligned(7)) ::
       uint4L ::
       ("size" | uint4L)
-    ).xmap[squadPattern] (
+    ).exmap[squadPattern] (
     {
       case true :: lead :: 4 :: sz :: HNil =>
-        Some(SquadInfo(lead, sz)) :: HNil
+        Attempt.successful(Some(SquadInfo(lead, sz)) :: HNil)
       case _ =>
-        throw new RuntimeException("failed to decode squad data for a leader and a size")
+        Attempt.failure(Err("failed to decode squad data for a leader and a size"))
     },
     {
       case Some(SquadInfo(Some(lead), _, _, Some(sz), _, _)) :: HNil =>
-        true :: lead :: 4 :: sz :: HNil
+        Attempt.successful(true :: lead :: 4 :: sz :: HNil)
       case _ =>
-        throw new RuntimeException("failed to encode squad data for a leader and a size")
+        Attempt.failure(Err("failed to encode squad data for a leader and a size"))
     }
   )
 
@@ -463,18 +463,18 @@ object SquadHeader extends Marshallable[SquadHeader] {
       bool ::
       ("continent_guid" | PlanetSideGUID.codec) ::
       uint16L
-    ).xmap[squadPattern] (
+    ).exmap[squadPattern] (
     {
       case false :: tsk :: 1 :: true :: cguid :: 0 :: HNil =>
-        Some(SquadInfo(tsk, cguid)) :: HNil
+        Attempt.successful(Some(SquadInfo(tsk, cguid)) :: HNil)
       case _ =>
-        throw new RuntimeException("failed to decode squad data for a task and a continent")
+        Attempt.failure(Err("failed to decode squad data for a task and a continent"))
     },
     {
       case Some(SquadInfo(_, Some(tsk), Some(cguid), _, _, _)) :: HNil =>
-        false :: tsk :: 1 :: true :: cguid :: 0 :: HNil
+        Attempt.successful(false :: tsk :: 1 :: true :: cguid :: 0 :: HNil)
       case _ =>
-        throw new RuntimeException("failed to encode squad data for a task and a continent")
+        Attempt.failure(Err("failed to encode squad data for a task and a continent"))
     }
   )
 
@@ -499,14 +499,14 @@ object SquadHeader extends Marshallable[SquadHeader] {
     * This codec is an invalid codec that does not read any bit data.
     * The `conditional` will always return `None` because its determining boolean is explicitly `false`.
     */
-  val failureCodec : Codec[squadPattern] = conditional(false, bool).xmap[squadPattern] (
+  val failureCodec : Codec[squadPattern] = conditional(false, bool).exmap[squadPattern] (
     {
       case None | _ =>
-        throw new RuntimeException("decoding with unhandled codec")
+        Attempt.failure(Err("decoding with unhandled codec"))
     },
     {
       case None :: HNil | _ =>
-        throw new RuntimeException("encoding with unhandled codec")
+        Attempt.failure(Err("encoding with unhandled codec"))
     }
   )
 

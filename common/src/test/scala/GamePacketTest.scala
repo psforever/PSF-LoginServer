@@ -1101,16 +1101,16 @@ class GamePacketTest extends Specification {
       }
 
       "decode (fails)" in {
-        PacketCoding.DecodePacket(stringCodecFail) must throwA[RuntimeException]
-        PacketCoding.DecodePacket(stringListOneFail) must throwA[RuntimeException]
-        PacketCoding.DecodePacket(stringListTwoFail) must throwA[RuntimeException]
-        PacketCoding.DecodePacket(stringUpdateLeaderFail) must throwA[RuntimeException]
-        PacketCoding.DecodePacket(stringUpdateTaskFail) must throwA[RuntimeException]
-        PacketCoding.DecodePacket(stringUpdateContinentFail) must throwA[RuntimeException]
-        PacketCoding.DecodePacket(stringUpdateSizeFail) must throwA[RuntimeException]
-        PacketCoding.DecodePacket(stringUpdateLeaderSizeFail) must throwA[RuntimeException]
-        PacketCoding.DecodePacket(stringUpdateTaskContinentFail) must throwA[RuntimeException]
-        PacketCoding.DecodePacket(stringUpdateAllFail) must throwA[RuntimeException]
+        PacketCoding.DecodePacket(stringCodecFail).isFailure mustEqual true
+        PacketCoding.DecodePacket(stringListOneFail).isFailure mustEqual true
+        PacketCoding.DecodePacket(stringListTwoFail).isFailure mustEqual true
+        PacketCoding.DecodePacket(stringUpdateLeaderFail).isFailure mustEqual true
+        PacketCoding.DecodePacket(stringUpdateTaskFail).isFailure mustEqual true
+        PacketCoding.DecodePacket(stringUpdateContinentFail).isFailure mustEqual true
+        PacketCoding.DecodePacket(stringUpdateSizeFail).isFailure mustEqual true
+        PacketCoding.DecodePacket(stringUpdateLeaderSizeFail).isFailure mustEqual true
+        PacketCoding.DecodePacket(stringUpdateTaskContinentFail).isFailure mustEqual true
+        PacketCoding.DecodePacket(stringUpdateAllFail).isFailure mustEqual true
       }
 
       "encode (clear)" in {
@@ -1268,7 +1268,7 @@ class GamePacketTest extends Specification {
               SquadListing(255)
             )
           )
-        ).require.toByteVector must throwA[RuntimeException]
+        ).isFailure mustEqual true
 
         //encode one
         PacketCoding.EncodePacket(
@@ -1278,7 +1278,7 @@ class GamePacketTest extends Specification {
               SquadListing(255)
             )
           )
-        ).require.toByteVector must throwA[RuntimeException]
+        ).isFailure mustEqual true
 
         //encode two
         PacketCoding.EncodePacket(
@@ -1289,7 +1289,7 @@ class GamePacketTest extends Specification {
               SquadListing(255)
             )
           )
-        ).require.toByteVector must throwA[RuntimeException]
+        ).isFailure mustEqual true
 
         //encode leader
         PacketCoding.EncodePacket(
@@ -1299,7 +1299,7 @@ class GamePacketTest extends Specification {
               SquadListing(255)
             )
           )
-        ).require.toByteVector must throwA[RuntimeException]
+        ).isFailure mustEqual true
 
         //encode task
         PacketCoding.EncodePacket(
@@ -1309,7 +1309,7 @@ class GamePacketTest extends Specification {
               SquadListing(255)
             )
           )
-        ).require.toByteVector must throwA[RuntimeException]
+        ).isFailure mustEqual true
 
         //encode continent
         PacketCoding.EncodePacket(
@@ -1319,7 +1319,7 @@ class GamePacketTest extends Specification {
               SquadListing(255)
             )
           )
-        ).require.toByteVector must throwA[RuntimeException]
+        ).isFailure mustEqual true
 
         //encode task or continent
         PacketCoding.EncodePacket(
@@ -1329,7 +1329,7 @@ class GamePacketTest extends Specification {
               SquadListing(255)
             )
           )
-        ).require.toByteVector must throwA[RuntimeException]
+        ).isFailure mustEqual true
 
         //encode size
         PacketCoding.EncodePacket(
@@ -1339,7 +1339,7 @@ class GamePacketTest extends Specification {
               SquadListing(255)
             )
           )
-        ).require.toByteVector must throwA[RuntimeException]
+        ).isFailure mustEqual true
 
         //encode leader and size
         PacketCoding.EncodePacket(
@@ -1349,7 +1349,7 @@ class GamePacketTest extends Specification {
               SquadListing(255)
             )
           )
-        ).require.toByteVector must throwA[RuntimeException]
+        ).isFailure mustEqual true
 
         //encode task and continent
         PacketCoding.EncodePacket(
@@ -1359,7 +1359,7 @@ class GamePacketTest extends Specification {
               SquadListing(255)
             )
           )
-        ).require.toByteVector must throwA[RuntimeException]
+        ).isFailure mustEqual true
 
         //encode all
         PacketCoding.EncodePacket(
@@ -1369,7 +1369,7 @@ class GamePacketTest extends Specification {
               SquadListing(255)
             )
           )
-        ).require.toByteVector must throwA[RuntimeException]
+        ).isFailure mustEqual true
       }
     }
 
