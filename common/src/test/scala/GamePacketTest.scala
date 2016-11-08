@@ -5,6 +5,7 @@ import org.specs2.mutable._
 import net.psforever.packet._
 import net.psforever.packet.game._
 import net.psforever.types._
+import scodec.Attempt
 import scodec.Attempt.Successful
 import scodec.bits._
 
@@ -716,6 +717,41 @@ class GamePacketTest extends Specification {
       val stringUpdateLeaderSize = hex"E6 C0 58 10 C3 00 4A0069006D006D0079006E00 43 FF"
       val stringUpdateTaskContinent = hex"E6 C0 58 11 40 80 3200 3 04000000 FF0"
       val stringUpdateAll = hex"E6 C0 78 30 58 0430 6D00610064006D0075006A00 80 040000000A FF"
+      //failing conditions
+      val stringCodecFail = hex"E6 20 A1 19 FE"
+      val stringListOneFail = hex"E6 B8 01 06 01 00 8B 46007200610067004C0041004E00640049004E004300 84 4600720061006700 0A00 00 01 0A FF"
+      val stringListTwoFail = hex"E6 B8 01 06 06 00 8E 470065006E006500720061006C0047006F0072006700750074007A00 A1 46004C0059002C0041006C006C002000770065006C0063006F006D0065002C0063006E0020006C0061007300740020006E0069006700680074002100210021002100 0400 00 00 7A 01 83 02 00 45 80 4B004F004B006B006900610073004D00460043004E00 87 5300710075006100640020003200 0400 00 01 6A FF"
+      val stringUpdateLeaderFail = hex"E6 C0 28 08 44 00 46006100740065004A0048004E004300 FF"
+      val stringUpdateTaskFail = hex"E6 C0 58 09CE00 52004900500020005000530031002C0020007600690073006900740020005000530046006F00720065007600650072002E006E0065007400 FF"
+      val stringUpdateContinentFail = hex"E6 C0 38 09 85000001 7F80"
+      val stringUpdateSizeFail = hex"E6 C0 18 0A B7 F8"
+      val stringUpdateLeaderSizeFail = hex"E6 C0 58 10 43 00 4A0069006D006D0079006E00 43 FF"
+      val stringUpdateTaskContinentFail = hex"E6 C0 58 11 C0 80 3200 3 04000000 FF0"
+      val stringUpdateAllFail = hex"E6 C0 78 30 58 0430 6D00610064006D0075006A00 80 04000001 0A FF"
+
+      "SquadInfo (w/ squad_guid)" in {
+        val o = SquadInfo("FragLANdINC", "Frag", PlanetSideGUID(10), 0, 10)
+        o.leader.isDefined mustEqual true
+        o.leader.get mustEqual "FragLANdINC"
+        o.task.isDefined mustEqual true
+        o.task.get mustEqual "Frag"
+        o.continent_guid.isDefined mustEqual true
+        o.continent_guid.get mustEqual PlanetSideGUID(10)
+        o.size.isDefined mustEqual true
+        o.size.get mustEqual 0
+        o.capacity.isDefined mustEqual true
+        o.capacity.get mustEqual 10
+      }
+
+      "SquadInfo (capacity)" in {
+        val o = SquadInfo(None, 7)
+        o.leader.isDefined mustEqual false
+        o.task.isDefined mustEqual false
+        o.continent_guid.isDefined mustEqual false
+        o.size.isDefined mustEqual false
+        o.capacity.isDefined mustEqual true
+        o.capacity.get mustEqual 7
+      }
 
       "decode (clear)" in {
         PacketCoding.DecodePacket(stringListClear).require match {
@@ -742,9 +778,9 @@ class GamePacketTest extends Specification {
             entries.length mustEqual 2
             entries.head.index mustEqual 0
             entries.head.listing.isDefined mustEqual true
-            entries.head.listing.get.action mustEqual 131
-            entries.head.listing.get.unk mustEqual false
-            entries.head.listing.get.action2.isDefined mustEqual false
+            entries.head.listing.get.unk1 mustEqual 131
+            entries.head.listing.get.unk2 mustEqual false
+            entries.head.listing.get.unk3.isDefined mustEqual false
             entries.head.listing.get.info.isDefined mustEqual true
             entries.head.listing.get.info.get.leader.isDefined mustEqual true
             entries.head.listing.get.info.get.leader.get mustEqual "FragLANdINC"
@@ -773,9 +809,9 @@ class GamePacketTest extends Specification {
             unk.get mustEqual false
             entries.length mustEqual 3
             entries.head.index mustEqual 0
-            entries.head.listing.get.action mustEqual 131
-            entries.head.listing.get.unk mustEqual false
-            entries.head.listing.get.action2.isDefined mustEqual false
+            entries.head.listing.get.unk1 mustEqual 131
+            entries.head.listing.get.unk2 mustEqual false
+            entries.head.listing.get.unk3.isDefined mustEqual false
             entries.head.listing.get.info.get.leader.get mustEqual "GeneralGorgutz"
             entries.head.listing.get.info.get.task.get mustEqual "FLY,All welcome,cn last night!!!!"
             entries.head.listing.get.info.get.continent_guid.get mustEqual PlanetSideGUID(4)
@@ -783,9 +819,9 @@ class GamePacketTest extends Specification {
             entries.head.listing.get.info.get.capacity.get mustEqual 10
             entries.head.listing.get.info.get.squad_guid.get mustEqual PlanetSideGUID(6)
             entries(1).index mustEqual 1
-            entries(1).listing.get.action mustEqual 131
-            entries(1).listing.get.unk mustEqual false
-            entries(1).listing.get.action2.isDefined mustEqual false
+            entries(1).listing.get.unk1 mustEqual 131
+            entries(1).listing.get.unk2 mustEqual false
+            entries(1).listing.get.unk3.isDefined mustEqual false
             entries(1).listing.get.info.get.leader.get mustEqual "KOKkiasMFCN"
             entries(1).listing.get.info.get.task.get mustEqual "Squad 2"
             entries(1).listing.get.info.get.continent_guid.get mustEqual PlanetSideGUID(4)
@@ -807,9 +843,9 @@ class GamePacketTest extends Specification {
             unk.get mustEqual false
             entries.length mustEqual 4
             entries.head.index mustEqual 0
-            entries.head.listing.get.action mustEqual 131
-            entries.head.listing.get.unk mustEqual false
-            entries.head.listing.get.action2.isDefined mustEqual false
+            entries.head.listing.get.unk1 mustEqual 131
+            entries.head.listing.get.unk2 mustEqual false
+            entries.head.listing.get.unk3.isDefined mustEqual false
             entries.head.listing.get.info.get.leader.get mustEqual "GeneralGorgutz"
             entries.head.listing.get.info.get.task.get mustEqual "FLY,All welcome,cn last night!!!!"
             entries.head.listing.get.info.get.continent_guid.get mustEqual PlanetSideGUID(4)
@@ -817,9 +853,9 @@ class GamePacketTest extends Specification {
             entries.head.listing.get.info.get.capacity.get mustEqual 10
             entries.head.listing.get.info.get.squad_guid.get mustEqual PlanetSideGUID(6)
             entries(1).index mustEqual 1
-            entries(1).listing.get.action mustEqual 131
-            entries(1).listing.get.unk mustEqual false
-            entries(1).listing.get.action2.isDefined mustEqual false
+            entries(1).listing.get.unk1 mustEqual 131
+            entries(1).listing.get.unk2 mustEqual false
+            entries(1).listing.get.unk3.isDefined mustEqual false
             entries(1).listing.get.info.get.leader.get mustEqual "NIGHT88RAVEN"
             entries(1).listing.get.info.get.task.get mustEqual "All Welcome"
             entries(1).listing.get.info.get.continent_guid.get mustEqual PlanetSideGUID(10)
@@ -827,9 +863,9 @@ class GamePacketTest extends Specification {
             entries(1).listing.get.info.get.capacity.get mustEqual 10
             entries(1).listing.get.info.get.squad_guid.get mustEqual PlanetSideGUID(3)
             entries(2).index mustEqual 2
-            entries(2).listing.get.action mustEqual 131
-            entries(2).listing.get.unk mustEqual false
-            entries(2).listing.get.action2.isDefined mustEqual false
+            entries(2).listing.get.unk1 mustEqual 131
+            entries(2).listing.get.unk2 mustEqual false
+            entries(2).listing.get.unk3.isDefined mustEqual false
             entries(2).listing.get.info.get.leader.get mustEqual "KOKkiasMFCN"
             entries(2).listing.get.info.get.task.get mustEqual "Squad 2"
             entries(2).listing.get.info.get.continent_guid.get mustEqual PlanetSideGUID(4)
@@ -851,10 +887,10 @@ class GamePacketTest extends Specification {
             entries.length mustEqual 2
             entries.head.index mustEqual 5
             entries.head.listing.isDefined mustEqual true
-            entries.head.listing.get.action mustEqual 0
-            entries.head.listing.get.unk mustEqual true
-            entries.head.listing.get.action2.isDefined mustEqual true
-            entries.head.listing.get.action2.get mustEqual 4
+            entries.head.listing.get.unk1 mustEqual 0
+            entries.head.listing.get.unk2 mustEqual true
+            entries.head.listing.get.unk3.isDefined mustEqual true
+            entries.head.listing.get.unk3.get mustEqual 4
             entries.head.listing.get.info.isDefined mustEqual false
             entries(1).index mustEqual 255
           case _ =>
@@ -872,10 +908,10 @@ class GamePacketTest extends Specification {
             entries.length mustEqual 2
             entries.head.index mustEqual 2
             entries.head.listing.isDefined mustEqual true
-            entries.head.listing.get.action mustEqual 128
-            entries.head.listing.get.unk mustEqual true
-            entries.head.listing.get.action2.isDefined mustEqual true
-            entries.head.listing.get.action2.get mustEqual 0
+            entries.head.listing.get.unk1 mustEqual 128
+            entries.head.listing.get.unk2 mustEqual true
+            entries.head.listing.get.unk3.isDefined mustEqual true
+            entries.head.listing.get.unk3.get mustEqual 0
             entries.head.listing.get.info.isDefined mustEqual true
             entries.head.listing.get.info.get.leader.isDefined mustEqual true
             entries.head.listing.get.info.get.leader.get mustEqual "FateJHNC"
@@ -900,10 +936,10 @@ class GamePacketTest extends Specification {
             entries.length mustEqual 2
             entries.head.index mustEqual 5
             entries.head.listing.isDefined mustEqual true
-            entries.head.listing.get.action mustEqual 128
-            entries.head.listing.get.unk mustEqual true
-            entries.head.listing.get.action2.isDefined mustEqual true
-            entries.head.listing.get.action2.get mustEqual 1
+            entries.head.listing.get.unk1 mustEqual 128
+            entries.head.listing.get.unk2 mustEqual true
+            entries.head.listing.get.unk3.isDefined mustEqual true
+            entries.head.listing.get.unk3.get mustEqual 1
             entries.head.listing.get.info.isDefined mustEqual true
             entries.head.listing.get.info.get.leader.isDefined mustEqual false
             entries.head.listing.get.info.get.task.isDefined mustEqual true
@@ -928,10 +964,10 @@ class GamePacketTest extends Specification {
             entries.length mustEqual 2
             entries.head.index mustEqual 3
             entries.head.listing.isDefined mustEqual true
-            entries.head.listing.get.action mustEqual 128
-            entries.head.listing.get.unk mustEqual true
-            entries.head.listing.get.action2.isDefined mustEqual true
-            entries.head.listing.get.action2.get mustEqual 1
+            entries.head.listing.get.unk1 mustEqual 128
+            entries.head.listing.get.unk2 mustEqual true
+            entries.head.listing.get.unk3.isDefined mustEqual true
+            entries.head.listing.get.unk3.get mustEqual 1
             entries.head.listing.get.info.isDefined mustEqual true
             entries.head.listing.get.info.get.leader.isDefined mustEqual false
             entries.head.listing.get.info.get.task.isDefined mustEqual false
@@ -956,10 +992,10 @@ class GamePacketTest extends Specification {
             entries.length mustEqual 2
             entries.head.index mustEqual 1
             entries.head.listing.isDefined mustEqual true
-            entries.head.listing.get.action mustEqual 128
-            entries.head.listing.get.unk mustEqual true
-            entries.head.listing.get.action2.isDefined mustEqual true
-            entries.head.listing.get.action2.get mustEqual 2
+            entries.head.listing.get.unk1 mustEqual 128
+            entries.head.listing.get.unk2 mustEqual true
+            entries.head.listing.get.unk3.isDefined mustEqual true
+            entries.head.listing.get.unk3.get mustEqual 2
             entries.head.listing.get.info.isDefined mustEqual true
             entries.head.listing.get.info.get.leader.isDefined mustEqual false
             entries.head.listing.get.info.get.task.isDefined mustEqual false
@@ -984,10 +1020,10 @@ class GamePacketTest extends Specification {
             entries.length mustEqual 2
             entries.head.index mustEqual 5
             entries.head.listing.isDefined mustEqual true
-            entries.head.listing.get.action mustEqual 129
-            entries.head.listing.get.unk mustEqual false
-            entries.head.listing.get.action2.isDefined mustEqual true
-            entries.head.listing.get.action2.get mustEqual 0
+            entries.head.listing.get.unk1 mustEqual 129
+            entries.head.listing.get.unk2 mustEqual false
+            entries.head.listing.get.unk3.isDefined mustEqual true
+            entries.head.listing.get.unk3.get mustEqual 0
             entries.head.listing.get.info.isDefined mustEqual true
             entries.head.listing.get.info.get.leader.isDefined mustEqual true
             entries.head.listing.get.info.get.leader.get mustEqual "Jimmyn"
@@ -1013,10 +1049,10 @@ class GamePacketTest extends Specification {
             entries.length mustEqual 2
             entries.head.index mustEqual 5
             entries.head.listing.isDefined mustEqual true
-            entries.head.listing.get.action mustEqual 129
-            entries.head.listing.get.unk mustEqual false
-            entries.head.listing.get.action2.isDefined mustEqual true
-            entries.head.listing.get.action2.get mustEqual 1
+            entries.head.listing.get.unk1 mustEqual 129
+            entries.head.listing.get.unk2 mustEqual false
+            entries.head.listing.get.unk3.isDefined mustEqual true
+            entries.head.listing.get.unk3.get mustEqual 1
             entries.head.listing.get.info.isDefined mustEqual true
             entries.head.listing.get.info.get.leader.isDefined mustEqual false
             entries.head.listing.get.info.get.task.isDefined mustEqual true
@@ -1042,9 +1078,9 @@ class GamePacketTest extends Specification {
             entries.length mustEqual 2
             entries.head.index mustEqual 7
             entries.head.listing.isDefined mustEqual true
-            entries.head.listing.get.action mustEqual 131
-            entries.head.listing.get.unk mustEqual false
-            entries.head.listing.get.action2.isDefined mustEqual false
+            entries.head.listing.get.unk1 mustEqual 131
+            entries.head.listing.get.unk2 mustEqual false
+            entries.head.listing.get.unk3.isDefined mustEqual false
             entries.head.listing.get.info.isDefined mustEqual true
             entries.head.listing.get.info.get.leader.isDefined mustEqual true
             entries.head.listing.get.info.get.leader.get mustEqual "madmuj"
@@ -1062,6 +1098,19 @@ class GamePacketTest extends Specification {
           case _ =>
             ko
         }
+      }
+
+      "decode (fails)" in {
+        PacketCoding.DecodePacket(stringCodecFail) must throwA[RuntimeException]
+        PacketCoding.DecodePacket(stringListOneFail) must throwA[RuntimeException]
+        PacketCoding.DecodePacket(stringListTwoFail) must throwA[RuntimeException]
+        PacketCoding.DecodePacket(stringUpdateLeaderFail) must throwA[RuntimeException]
+        PacketCoding.DecodePacket(stringUpdateTaskFail) must throwA[RuntimeException]
+        PacketCoding.DecodePacket(stringUpdateContinentFail) must throwA[RuntimeException]
+        PacketCoding.DecodePacket(stringUpdateSizeFail) must throwA[RuntimeException]
+        PacketCoding.DecodePacket(stringUpdateLeaderSizeFail) must throwA[RuntimeException]
+        PacketCoding.DecodePacket(stringUpdateTaskContinentFail) must throwA[RuntimeException]
+        PacketCoding.DecodePacket(stringUpdateAllFail) must throwA[RuntimeException]
       }
 
       "encode (clear)" in {
@@ -1129,7 +1178,7 @@ class GamePacketTest extends Specification {
       "encode (update leader)" in {
         val msg = ReplicationStreamMessage(6, None, Some(false),
           Vector(
-            SquadListing(2, Some(SquadHeader(128, true, Some(0), Some(SquadInfo("FateJHNC", None))))),
+            SquadListing(2, Some(SquadHeader(128, true, Some(0), SquadInfo("FateJHNC", None)))),
             SquadListing(255)
           )
         )
@@ -1141,7 +1190,7 @@ class GamePacketTest extends Specification {
       "encode (update task)" in {
         val msg = ReplicationStreamMessage(6, None, Some(false),
           Vector(
-            SquadListing(5, Some(SquadHeader(128, true, Some(1), Some(SquadInfo(None, "RIP PS1, visit PSForever.net"))))),
+            SquadListing(5, Some(SquadHeader(128, true, Some(1), SquadInfo(None, "RIP PS1, visit PSForever.net")))),
             SquadListing(255)
           )
         )
@@ -1153,7 +1202,7 @@ class GamePacketTest extends Specification {
       "encode (update continent)" in {
         val msg = ReplicationStreamMessage(6, None, Some(false),
           Vector(
-            SquadListing(3, Some(SquadHeader(128, true, Some(1), Some(SquadInfo(PlanetSideGUID(10)))))),
+            SquadListing(3, Some(SquadHeader(128, true, Some(1), SquadInfo(PlanetSideGUID(10))))),
             SquadListing(255)
           )
         )
@@ -1165,7 +1214,7 @@ class GamePacketTest extends Specification {
       "encode (update size)" in {
         val msg = ReplicationStreamMessage(6, None, Some(false),
           Vector(
-            SquadListing(1, Some(SquadHeader(128, true, Some(2), Some(SquadInfo(6, None))))),
+            SquadListing(1, Some(SquadHeader(128, true, Some(2), SquadInfo(6, None)))),
             SquadListing(255)
           )
         )
@@ -1177,7 +1226,7 @@ class GamePacketTest extends Specification {
       "encode (update leader and size)" in {
         val msg = ReplicationStreamMessage(6, None, Some(false),
           Vector(
-            SquadListing(5, Some(SquadHeader(129, false, Some(0), Some(SquadInfo("Jimmyn", 3))))),
+            SquadListing(5, Some(SquadHeader(129, false, Some(0), SquadInfo("Jimmyn", 3)))),
             SquadListing(255)
           )
         )
@@ -1189,7 +1238,7 @@ class GamePacketTest extends Specification {
       "encode (update task and continent)" in {
         val msg = ReplicationStreamMessage(6, None, Some(false),
           Vector(
-            SquadListing(5, Some(SquadHeader(129, false, Some(1), Some(SquadInfo("2", PlanetSideGUID(4)))))),
+            SquadListing(5, Some(SquadHeader(129, false, Some(1), SquadInfo("2", PlanetSideGUID(4))))),
             SquadListing(255)
           )
         )
@@ -1208,6 +1257,119 @@ class GamePacketTest extends Specification {
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
         pkt mustEqual stringUpdateAll
+      }
+
+      "encode (fails)" in {
+        //encode codec fail
+        PacketCoding.EncodePacket(
+          ReplicationStreamMessage(1, None, None,
+            Vector(
+              SquadListing(5, Some(SquadHeader(0, false, Some(4)))),
+              SquadListing(255)
+            )
+          )
+        ).require.toByteVector must throwA[RuntimeException]
+
+        //encode one
+        PacketCoding.EncodePacket(
+          ReplicationStreamMessage(5, Some(6), Some(false),
+            Vector(
+              SquadListing(0, Some(SquadHeader(131, false, None, Some(SquadInfo(Some("FragLANdINC"), Some("Frag"), None, Some(0),Some(10), Some(PlanetSideGUID(1))))))),
+              SquadListing(255)
+            )
+          )
+        ).require.toByteVector must throwA[RuntimeException]
+
+        //encode two
+        PacketCoding.EncodePacket(
+          ReplicationStreamMessage(5, Some(6), Some(false),
+            Vector(
+              SquadListing(0, Some(SquadHeader(131, false, None, SquadInfo("GeneralGorgutz", "FLY,All welcome,cn last night!!!!", PlanetSideGUID(4), 7, 10, PlanetSideGUID(6))))),
+              SquadListing(1, Some(SquadHeader(131, false, None, Some(SquadInfo(Some("KOKkiasMFCN"), Some("Squad 2"), None, Some(6), Some(10), Some(PlanetSideGUID(4))))))),
+              SquadListing(255)
+            )
+          )
+        ).require.toByteVector must throwA[RuntimeException]
+
+        //encode leader
+        PacketCoding.EncodePacket(
+          ReplicationStreamMessage(6, None, Some(false),
+            Vector(
+              SquadListing(2, Some(SquadHeader(128, true, Some(0), Some(SquadInfo(None, None, None, None, None, None))))),
+              SquadListing(255)
+            )
+          )
+        ).require.toByteVector must throwA[RuntimeException]
+
+        //encode task
+        PacketCoding.EncodePacket(
+          ReplicationStreamMessage(6, None, Some(false),
+            Vector(
+              SquadListing(5, Some(SquadHeader(128, true, Some(1), Some(SquadInfo(None, None, None, None, None, None))))),
+              SquadListing(255)
+            )
+          )
+        ).require.toByteVector must throwA[RuntimeException]
+
+        //encode continent
+        PacketCoding.EncodePacket(
+          ReplicationStreamMessage(6, None, Some(false),
+            Vector(
+              SquadListing(3, Some(SquadHeader(128, true, Some(1), Some(SquadInfo(None, None, None, None, None, None))))),
+              SquadListing(255)
+            )
+          )
+        ).require.toByteVector must throwA[RuntimeException]
+
+        //encode task or continent
+        PacketCoding.EncodePacket(
+          ReplicationStreamMessage(6, None, Some(false),
+            Vector(
+              SquadListing(3, Some(SquadHeader(128, true, Some(1), Some(SquadInfo(None, Some(""), Some(PlanetSideGUID(10)), None, None, None))))),
+              SquadListing(255)
+            )
+          )
+        ).require.toByteVector must throwA[RuntimeException]
+
+        //encode size
+        PacketCoding.EncodePacket(
+          ReplicationStreamMessage(6, None, Some(false),
+            Vector(
+              SquadListing(1, Some(SquadHeader(128, true, Some(2), Some(SquadInfo(None, None, None, None, None, None))))),
+              SquadListing(255)
+            )
+          )
+        ).require.toByteVector must throwA[RuntimeException]
+
+        //encode leader and size
+        PacketCoding.EncodePacket(
+          ReplicationStreamMessage(6, None, Some(false),
+            Vector(
+              SquadListing(5, Some(SquadHeader(129, false, Some(0), Some(SquadInfo(None, None, None, None, None, None))))),
+              SquadListing(255)
+            )
+          )
+        ).require.toByteVector must throwA[RuntimeException]
+
+        //encode task and continent
+        PacketCoding.EncodePacket(
+          ReplicationStreamMessage(6, None, Some(false),
+            Vector(
+              SquadListing(5, Some(SquadHeader(129, false, Some(1), Some(SquadInfo(None, None, None, None, None, None))))),
+              SquadListing(255)
+            )
+          )
+        ).require.toByteVector must throwA[RuntimeException]
+
+        //encode all
+        PacketCoding.EncodePacket(
+          ReplicationStreamMessage(6, None, Some(false),
+            Vector(
+              SquadListing(7, Some(SquadHeader(131, false, None, Some(SquadInfo(None, None, None, None, None, None))))),
+              SquadListing(255)
+            )
+          )
+        ).require.toByteVector must throwA[RuntimeException]
       }
     }
 
