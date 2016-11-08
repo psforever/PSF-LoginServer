@@ -481,23 +481,23 @@ object SquadHeader extends Marshallable[SquadHeader] {
   /**
     * Codec for reading the `SquadInfo` data in a "remove squad from list" entry.
     * This codec is unique because it is considered a valid codec that does not read any bit data.
-    * The `conditional` will always return `None` because its determining boolean is explicitly `false`.
+    * The `conditional` will always return `None` because its determining conditional statement is explicitly `false`.
     */
-  private val removeCodec : Codec[squadPattern] = conditional(false, bool).xmap[squadPattern] (
+  private val removeCodec : Codec[squadPattern] = conditional(false, bool).exmap[squadPattern] (
     {
       case None | _ =>
-        None :: HNil
+        Attempt.successful(None :: HNil)
     },
     {
       case None :: HNil | _ =>
-        None
+        Attempt.successful(None)
     }
   )
 
   /**
     * Codec for failing to determine a valid codec based on the entry data.
     * This codec is an invalid codec that does not read any bit data.
-    * The `conditional` will always return `None` because its determining boolean is explicitly `false`.
+    * The `conditional` will always return `None` because its determining conditional statement is explicitly `false`.
     */
   val failureCodec : Codec[squadPattern] = conditional(false, bool).exmap[squadPattern] (
     {
