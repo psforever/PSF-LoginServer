@@ -6,6 +6,46 @@ import scodec.{Attempt, Codec, Err}
 import scodec.codecs._
 import shapeless._
 
+import scala.annotation.switch
+
+case class Weapon(unk1 : Int,
+                  magazine : Int,
+                  unk2 : Int)
+
+object Weapon extends Marshallable[Weapon] {
+  implicit val codec : Codec[Weapon] = (
+    ("unk1" | uintL(23)) ::
+      ("magazine" | uint8L) ::
+      ("unk2" | uintL(13))
+    ).as[Weapon]
+}
+
+case class Mold(objectClass : Int,
+                dataPortion : BitVector) {
+
+  private var obj : Option[Any] = Mold.selectMold(objectClass, dataPortion)
+}
+
+object Mold extends Marshallable[Mold] {
+  def apply(objectClass : Int,
+            obj : T forSome { type T }) : Mold =
+    new Mold(objectClass, bin"")
+
+  def selectMold(objClass : Int, data : BitVector) : Option[Any] = {
+    (objClass : @switch) match {
+      case 0x4D3 =>
+        Weapon.codec.decode(data).toOption
+      case _ =>
+        None
+    }
+  }
+
+  implicit val codec : Codec[Mold] = (
+    ("objectClass" | uintL(11)) ::
+      ("dataPortion" | bits)
+    ).as[Mold]
+}
+
 /**
   * The parent information of a created object.<br>
   * <br>
