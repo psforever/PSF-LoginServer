@@ -8,42 +8,48 @@ import shapeless._
 
 import scala.annotation.switch
 
-case class Weapon(unk1 : Int,
-                  magazine : Int,
-                  unk2 : Int)
+case class AmmoBox(magazine : Int)
 
-object Weapon extends Marshallable[Weapon] {
-  implicit val codec : Codec[Weapon] = (
-    ("unk1" | uintL(23)) ::
-      ("magazine" | uint8L) ::
-      ("unk2" | uintL(13))
-    ).as[Weapon]
+object AmmoBox extends Marshallable[AmmoBox] {
+  implicit val codec : Codec[AmmoBox] = (
+    ("code" | uintL(23)) ::
+      ("magazine" | uint16L)
+    ).exmap[AmmoBox] (
+      {
+        case 0xC8 :: mag :: HNil =>
+          Attempt.successful(AmmoBox(mag))
+        case x :: _ :: HNil =>
+          Attempt.failure(Err("code wrong - looking for 200, found "+x))
+      },
+      {
+        case AmmoBox(mag) =>
+          Attempt.successful(0xC8 :: mag :: HNil)
+      }
+    ).as[AmmoBox]
 }
 
 case class Mold(objectClass : Int,
-                dataPortion : BitVector) {
+                data : BitVector) {
+  private val obj : Option[Any] = Mold.selectMold(objectClass, data)
 
-  private var obj : Option[Any] = Mold.selectMold(objectClass, dataPortion)
+  def isDefined : Boolean = this.obj.isDefined
+
+  def get : T forSome { type T } = this.obj.get
 }
 
-object Mold extends Marshallable[Mold] {
+object Mold {
   def apply(objectClass : Int,
             obj : T forSome { type T }) : Mold =
     new Mold(objectClass, bin"")
 
-  def selectMold(objClass : Int, data : BitVector) : Option[Any] = {
+  def selectMold(objClass : Int, data : BitVector) : Option[_] = {
     (objClass : @switch) match {
-      case 0x4D3 =>
-        Weapon.codec.decode(data).toOption
+      case 0x1C =>
+        Some(AmmoBox.codec.decode(data))
       case _ =>
         None
     }
   }
-
-  implicit val codec : Codec[Mold] = (
-    ("objectClass" | uintL(11)) ::
-      ("dataPortion" | bits)
-    ).as[Mold]
 }
 
 /**
@@ -87,14 +93,14 @@ case class ObjectCreateMessageParent(guid : PlanetSideGUID,
   * @param objectClass the code for the type of object being constructed
   * @param guid the GUID this object will be assigned
   * @param parentInfo if defined, the relationship between this object and another object (its parent)
-  * @param data the data used to construct this type of object;
+  * @param mold the data used to construct this type of object;
   *             requires further object-specific processing
   */
 case class ObjectCreateMessage(streamLength : Long,
                                objectClass : Int,
                                guid : PlanetSideGUID,
                                parentInfo : Option[ObjectCreateMessageParent],
-                               data : BitVector)
+                               mold : Mold)
   extends PlanetSideGamePacket {
   def opcode = GamePacketOpcode.ObjectCreateMessage
   def encode = ObjectCreateMessage.encode(this)
@@ -195,12 +201,12 @@ object ObjectCreateMessage extends Marshallable[ObjectCreateMessage] {
     ).xmap[ObjectCreateMessage] (
     {
       case len :: cls :: guid :: info :: data :: HNil =>
-        ObjectCreateMessage(len, cls, guid, info, data)
+        ObjectCreateMessage(len, cls, guid, info, Mold(cls, data))
     },
     {
       //the user should not have to manually supply a proper stream length, that's a restrictive requirement
-      case ObjectCreateMessage(_, cls, guid, info, data) =>
-        streamLen(info, data) :: cls :: guid :: info :: data :: HNil
+      case ObjectCreateMessage(_, cls, guid, info, mold) =>
+        streamLen(info, mold.data) :: cls :: guid :: info :: mold.data :: HNil
     }
   ).as[ObjectCreateMessage]
 }

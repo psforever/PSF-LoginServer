@@ -170,7 +170,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                 true,                //Boosted spawn room pain field
                 true)))              //Boosted generator room pain field
 
-              sendResponse(PacketCoding.CreateGamePacket(0, SetCurrentAvatarMessage(PlanetSideGUID(guid),0,0)))
+              sendResponse(PacketCoding.CreateGamePacket(0, SetCurrentAvatarMessage(guid,0,0)))
 
               import scala.concurrent.duration._
               import scala.concurrent.ExecutionContext.Implicits.global
