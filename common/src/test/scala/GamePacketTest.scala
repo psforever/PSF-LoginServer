@@ -153,7 +153,7 @@ class GamePacketTest extends Specification {
       "decode (2)" in {
         PacketCoding.DecodePacket(packet2).require match {
           case obj @ ObjectCreateMessage(len, cls, guid, parent, mold) =>
-            len mustEqual 248
+            len mustEqual 248 //60 + 188
             cls mustEqual 121
             guid mustEqual PlanetSideGUID(2497)
             parent mustEqual None
@@ -174,6 +174,9 @@ class GamePacketTest extends Specification {
             parent.get.guid mustEqual PlanetSideGUID(75)
             parent.get.slot mustEqual 33
             mold.isDefined mustEqual true
+
+            val obj = mold.get.asInstanceOf[AmmoBoxData]
+            obj.magazine mustEqual 50
           case default =>
             ko
         }
@@ -184,6 +187,14 @@ class GamePacketTest extends Specification {
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
         pkt mustEqual packet2
+      }
+
+      "encode (9mm)" in {
+        val obj = Mold(28, AmmoBoxData(50))
+        val msg = ObjectCreateMessage(0, 28, PlanetSideGUID(1280), Some(ObjectCreateMessageParent(PlanetSideGUID(75), 33)), obj)
+        val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+        pkt mustEqual string_9mm
       }
     }
 

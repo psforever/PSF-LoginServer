@@ -7,48 +7,85 @@ import scodec.codecs._
 import shapeless._
 
 import scala.annotation.switch
+import scala.util.Try
 
-case class AmmoBox(magazine : Int)
+abstract class ConstructorData
 
-object AmmoBox extends Marshallable[AmmoBox] {
-  implicit val codec : Codec[AmmoBox] = (
+case class AmmoBoxData(magazine : Int) extends ConstructorData
+
+object AmmoBoxData extends Marshallable[AmmoBoxData] {
+  implicit val codec : Codec[AmmoBoxData] = (
     ("code" | uintL(23)) ::
       ("magazine" | uint16L)
-    ).exmap[AmmoBox] (
+    ).exmap[AmmoBoxData] (
       {
         case 0xC8 :: mag :: HNil =>
-          Attempt.successful(AmmoBox(mag))
+          Attempt.successful(AmmoBoxData(mag))
         case x :: _ :: HNil =>
           Attempt.failure(Err("code wrong - looking for 200, found "+x))
       },
       {
-        case AmmoBox(mag) =>
+        case AmmoBoxData(mag) =>
           Attempt.successful(0xC8 :: mag :: HNil)
       }
-    ).as[AmmoBox]
+    ).as[AmmoBoxData]
 }
 
 case class Mold(objectClass : Int,
                 data : BitVector) {
-  private val obj : Option[Any] = Mold.selectMold(objectClass, data)
+  private var obj : Option[ConstructorData] = Mold.selectMold(objectClass, data)
 
   def isDefined : Boolean = this.obj.isDefined
 
-  def get : T forSome { type T } = this.obj.get
+  def get : ConstructorData = this.obj.get
+
+  def set(data : ConstructorData) : Boolean = {
+    var ret = false
+    if(Some(data).isDefined) {
+      obj = Some(data)
+      ret = true
+    }
+    ret
+  }
 }
 
 object Mold {
-  def apply(objectClass : Int,
-            obj : T forSome { type T }) : Mold =
-    new Mold(objectClass, bin"")
+  def apply(objectClass : Int, obj : ConstructorData) : Mold =
+    new Mold( objectClass, Mold.serialize(objectClass, obj) )
 
-  def selectMold(objClass : Int, data : BitVector) : Option[_] = {
-    (objClass : @switch) match {
-      case 0x1C =>
-        Some(AmmoBox.codec.decode(data))
-      case _ =>
-        None
+  private def selectMold(objClass : Int, data : BitVector) : Option[ConstructorData] = {
+    var out : Option[ConstructorData] = None
+    if(!data.isEmpty) {
+      (objClass : @switch) match {
+        case 0x1C =>
+          val opt = AmmoBoxData.codec.decode(data).toOption
+          if(opt.isDefined) {
+            out = Some(opt.get.value)
+          }
+        case _ =>
+          out = None
+      }
     }
+    out
+  }
+
+  private def serialize(objClass : Int, obj : ConstructorData) : BitVector = {
+    var out = BitVector.empty
+    try {
+      (objClass : @switch) match {
+        case 0x1C =>
+          val opt = AmmoBoxData.codec.encode(obj.asInstanceOf[AmmoBoxData]).toOption
+          if(opt.isDefined) {
+            out = opt.get
+          }
+      }
+    }
+    catch {
+      case ex : ClassCastException => {
+        //TODO generate and log wrong class error message
+      }
+    }
+    out
   }
 }
 
@@ -106,14 +143,6 @@ case class ObjectCreateMessage(streamLength : Long,
   def encode = ObjectCreateMessage.encode(this)
 }
 
-object ObjectCreateMessageParent extends Marshallable[ObjectCreateMessageParent] {
-  implicit val codec : Codec[ObjectCreateMessageParent] = (
-    ("guid" | PlanetSideGUID.codec) ::
-      ("slot" | PacketHelpers.encodedStringSize)
-    ).as[ObjectCreateMessageParent]
-}
-
-
 object ObjectCreateMessage extends Marshallable[ObjectCreateMessage] {
   type Pattern = Int :: PlanetSideGUID :: Option[ObjectCreateMessageParent] :: HNil
   /**
@@ -167,13 +196,20 @@ object ObjectCreateMessage extends Marshallable[ObjectCreateMessage] {
     * @return the total length of the stream in bits
     */
   private def streamLen(parentInfo : Option[ObjectCreateMessageParent], data : BitVector) : Long = {
-    (if(parentInfo.isDefined) {
-      if(parentInfo.get.slot > 127) 92 else 84 //60u + 16u + (8u or 16u)
+    //known length
+    val first : Long = if(parentInfo.isDefined) {
+      if(parentInfo.get.slot > 127) 92L else 84L //60u + 16u + (8u or 16u)
     }
     else {
-      60
+      60L
     }
-      + data.size)
+    //variant length
+    var second : Long = data.size
+    val secondMod4 : Long = second % 4L
+    if(secondMod4 > 0L) { //pad to include last whole nibble
+      second += 4L - secondMod4
+    }
+    first + second
   }
 
   implicit val codec : Codec[ObjectCreateMessage] = (
