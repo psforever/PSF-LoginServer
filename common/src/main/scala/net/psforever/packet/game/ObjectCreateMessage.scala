@@ -1,13 +1,13 @@
 package net.psforever.packet.game
 
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
+//import net.psforever.types.Vector3
 import scodec.bits._
 import scodec.{Attempt, Codec, Err}
 import scodec.codecs._
 import shapeless._
 
 import scala.annotation.switch
-import scala.util.Try
 
 abstract class ConstructorData
 
@@ -29,6 +29,190 @@ object AmmoBoxData extends Marshallable[AmmoBoxData] {
           Attempt.successful(0xC8 :: mag :: HNil)
       }
     ).as[AmmoBoxData]
+}
+
+case class WeaponData(ammo : InternalMold) extends ConstructorData
+
+object WeaponData extends Marshallable[WeaponData] {
+  implicit val codec : Codec[WeaponData] = (
+    ("code" | uint16L) ::
+      ignore(12) ::
+      uint4L ::
+      ignore(4) ::
+      uintL(12) ::
+      ("data" | InternalMold.codec)
+    ).exmap[WeaponData] (
+    {
+      case 0x88 :: _ :: 2 :: _ :: 0x2C0 :: ammo :: HNil =>
+        Attempt.successful(WeaponData(ammo))
+      case x :: _ ::  y :: _ :: z :: _ :: HNil =>
+        Attempt.failure(Err("code wrong - looking for 136-2-704, found %d-%d-%d".format(x,y,z)))
+    },
+    {
+      case WeaponData(ammo) =>
+        Attempt.successful(0x88 :: () :: 2 :: () :: 0x2C0 :: ammo :: HNil)
+    }
+  ).as[WeaponData]
+}
+
+//case class CharacterData(pos : Vector3,
+//                         obj_yaw : Int,
+//                         faction : Int,
+//                         bops : Boolean,
+//                         name : String,
+//                         exosuit : Int,
+//                         sex : Int,
+//                         face1 : Int,
+//                         face2 : Int,
+//                         voice : Int,
+//                         unk1 : Int, //0x8080
+//                         unk2 : Int, //0xFFFF or 0x0
+//                         unk3 : Int, //2
+//                         anchor : Boolean,
+//                         viewPitch : Int,
+//                         viewYaw : Int,
+//                         upperMerit : Int, //0xFFFF means no merit (for all ...)
+//                         middleMerit : Int,
+//                         lowerMerit : Int,
+//                         termOfServiceMerit : Int,
+//                         healthMax : Int,
+//                         health : Int,
+//                         armor : Int,
+//                         unk4 : Int, //1
+//                         unk5 : Int, //7
+//                         unk6 : Int, //7
+//                         staminaMax : Int,
+//                         stamina : Int,
+//                         unk7 : Int, // 192
+//                         unk8 : Int, //66
+//                         unk9 : Int, //197
+//                         unk10 : Int, //70
+//                         unk11 : Int, //134
+//                         unk12 : Int, //199
+//                         firstTimeEvent_length : Long,
+//                         firstEntry : String,
+//                         firstTimEvent_list : List[String],
+//                         tutorial_list : List[String],
+//                         inventory : BitVector
+//                        ) extends ConstructorData
+//
+//object CharacterData extends Marshallable[CharacterData] {
+//  //all ignore()s are intentional; please do not mess with them
+//  implicit val codec : Codec[CharacterData] = (
+//    ("pos" | Vector3.codec_pos) ::
+//      ignore(16) ::
+//      ("obj_yaw" | uint8L) ::
+//      ignore(1) ::
+//      ("faction" | uintL(2)) ::
+//      ("bops" | bool) ::
+//      ignore(4) ::
+//      ignore(16) ::
+//      ("name" | PacketHelpers.encodedWideStringAligned(4)) ::
+//      ("exosuit" | uintL(3)) ::
+//      ignore(1) ::
+//      ignore(1) ::
+//      ("sex" | uintL(2)) ::
+//      ("face1" | uint4L) ::
+//      ("face2" | uint4L) ::
+//      ("voice" | uintL(3)) ::
+//      ignore(2) ::
+//      ignore(4) ::
+//      ignore(16) ::
+//      ("unk1" | uint16L) ::
+//      ignore(40) ::
+//      ignore(2) ::
+//      ("unk2" | uint16L) ::
+//      ignore(2) ::
+//      ignore(28) ::
+//      ("unk3" | uintL(4)) ::
+//      ignore(4) ::
+//      ignore(16) ::
+//      ignore(2) ::
+//      ("anchor" | bool) ::
+//      ignore(1) ::
+//      ("viewPitch" | uint8L) ::
+//      ("viewYaw" | uint8L) ::
+//      ignore(4) ::
+//      ignore(4) ::
+//      ignore(2) ::
+//      ("upperMerit" | uint16L) ::
+//      ("middleMerit" | uint16L) ::
+//      ("lowerMerit" | uint16L) ::
+//      ("termOfServiceMerit" | uint16L) ::
+//      ignore(2) ::
+//      ignore(156) ::
+//      ignore(2) ::
+//      ("healthMax" | uint16L) ::
+//      ("health" | uint16L) ::
+//      ignore(1) ::
+//      ("armor" | uint16L) ::
+//      ignore(1) ::
+//      ignore(8) ::
+//      ("unk4" | uint8L) ::
+//      ignore(8) ::
+//      ("unk5" | uint4L) ::
+//      ("unk6" | uintL(3)) ::
+//      ("staminaMax" | uint16L) ::
+//      ("stamina" | uint16L) ::
+//      ignore(148) ::
+//      ignore(4) ::
+//      ("unk7" | uint16L) ::
+//      ("unk8" | uint8L) ::
+//      ("unk9" | uint8L) ::
+//      ("unk10" | uint8L) ::
+//      ("unk11" | uint8L) ::
+//      ("unk12" | uintL(12)) ::
+//      ignore(3) ::
+//      (("firstTimeEvent_length" | uint32L) >>:~ { len =>
+//        ("firstEntry" | PacketHelpers.encodedStringAligned(5)) ::
+//          ("firstTimeEvent_list" | PacketHelpers.listOfNSized(len - 1, PacketHelpers.encodedString))
+//      }) ::
+//      ("tutorial_list" | PacketHelpers.listOfNAligned(uint32L, 0, PacketHelpers.encodedString)) ::
+//      ignore(204) ::
+//      ignore(3) ::
+//      ("inventory" | bits)
+//    ).as[CharacterData]
+//}
+
+case class InternalMold(objectClass : Int,
+                        guid : PlanetSideGUID,
+                        parentSlot : Int,
+                        obj : Option[ConstructorData])
+
+object InternalMold extends Marshallable[InternalMold] {
+  type objPattern = Int :: PlanetSideGUID :: Int :: Option[ConstructorData] :: HNil
+
+  implicit val codec : Codec[InternalMold] = (
+    ignore(1) :: //TODO determine what this bit does
+      ("objectClass" | uintL(11)) ::
+      ("guid" | PlanetSideGUID.codec) ::
+      ("parentSlot" | PacketHelpers.encodedStringSize) ::
+      ("data" | bits)
+    ).exmap[objPattern] (
+    {
+      case _ :: cls :: guid :: slot :: data :: HNil =>
+        Attempt.successful(cls :: guid :: slot :: Mold.selectMold(cls, data) :: HNil)
+    },
+    {
+      case cls :: guid :: slot :: None :: HNil =>
+        Attempt.failure(Err("no constuctor data could be found"))
+      case cls :: guid :: slot :: mold :: HNil =>
+        Attempt.successful(() :: cls :: guid :: slot :: Mold.serialize(cls, mold.get) :: HNil)
+    }
+  ).exmap[objPattern] (
+    {
+      case cls :: guid :: slot :: None :: HNil =>
+        Attempt.failure(Err("no decoded constructor data"))
+      case cls :: guid :: slot :: mold :: HNil =>
+        Attempt.successful(cls :: guid :: slot :: mold :: HNil)
+    },
+    {
+      case cls :: guid :: slot :: BitVector.empty :: HNil =>
+        Attempt.failure(Err("no encoded constructor data"))
+      case cls :: guid :: slot :: data :: HNil =>
+        Attempt.successful(cls :: guid :: slot :: data :: HNil)
+    }
+  ).as[InternalMold]
 }
 
 case class Mold(objectClass : Int,
@@ -53,37 +237,45 @@ object Mold {
   def apply(objectClass : Int, obj : ConstructorData) : Mold =
     new Mold( objectClass, Mold.serialize(objectClass, obj) )
 
-  private def selectMold(objClass : Int, data : BitVector) : Option[ConstructorData] = {
+  def selectMold(objClass : Int, data : BitVector) : Option[ConstructorData] = {
     var out : Option[ConstructorData] = None
     if(!data.isEmpty) {
       (objClass : @switch) match {
-        case 0x1C =>
+        case 0x1C => //9mm
           val opt = AmmoBoxData.codec.decode(data).toOption
-          if(opt.isDefined) {
+          if(opt.isDefined)
             out = Some(opt.get.value)
-          }
+        case 0x46 => //beamer
+          val opt = WeaponData.codec.decode(data).toOption
+          if(opt.isDefined)
+            out = Some(opt.get.value)
         case _ =>
-          out = None
       }
     }
     out
   }
 
-  private def serialize(objClass : Int, obj : ConstructorData) : BitVector = {
+  def serialize(objClass : Int, obj : ConstructorData) : BitVector = {
     var out = BitVector.empty
     try {
       (objClass : @switch) match {
-        case 0x1C =>
+        case 0x1C => //9mm
           val opt = AmmoBoxData.codec.encode(obj.asInstanceOf[AmmoBoxData]).toOption
-          if(opt.isDefined) {
+          if(opt.isDefined)
             out = opt.get
-          }
+        case 0x46 => //beamer
+          val opt = WeaponData.codec.encode(obj.asInstanceOf[WeaponData]).toOption
+          if(opt.isDefined)
+            out = opt.get
+        case _ =>
+          throw new ClassCastException("cannot find object code - "+objClass)
       }
     }
     catch {
-      case ex : ClassCastException => {
+      case ex : ClassCastException =>
         //TODO generate and log wrong class error message
-      }
+      case ex : Exception =>
+        //TODO generic error
     }
     out
   }
