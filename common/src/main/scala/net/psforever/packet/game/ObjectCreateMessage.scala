@@ -15,45 +15,48 @@ case class AmmoBoxData(magazine : Int) extends ConstructorData
 
 object AmmoBoxData extends Marshallable[AmmoBoxData] {
   implicit val codec : Codec[AmmoBoxData] = (
-    ("code" | uintL(23)) ::
+    uintL(8) ::
+      ignore(15) ::
       ("magazine" | uint16L)
     ).exmap[AmmoBoxData] (
       {
-        case 0xC8 :: mag :: HNil =>
+        case 0xC8 :: _ :: mag :: HNil =>
           Attempt.successful(AmmoBoxData(mag))
-        case x :: _ :: HNil =>
+        case x :: _ :: _ :: HNil =>
           Attempt.failure(Err("code wrong - looking for 200, found "+x))
       },
       {
         case AmmoBoxData(mag) =>
-          Attempt.successful(0xC8 :: mag :: HNil)
+          Attempt.successful(0xC8 :: () :: mag :: HNil)
       }
     ).as[AmmoBoxData]
 }
 
-case class WeaponData(ammo : InternalMold) extends ConstructorData
+case class WeaponData(unk : Int,
+                      ammo : InternalMold) extends ConstructorData
 
 object WeaponData extends Marshallable[WeaponData] {
-  type rawPattern = Int :: Unit :: Int :: Unit :: Int :: InternalMold :: HNil
+  def apply(unk : Int, cls : Int, guid : PlanetSideGUID, parentSlot : Int, ammo : AmmoBoxData) : WeaponData =
+    new WeaponData(unk, InternalMold(cls, guid, parentSlot, Some(ammo)))
+
   implicit val codec : Codec[WeaponData] = (
-    ("code" | uint16L) ::
-      ignore(12) ::
+    ("unk" | uint4L) ::
+      uint4L ::
+      ignore(20) ::
       uint4L ::
       ignore(16) ::
-      ("tail" | uintL(11)) ::
-      ("data" | InternalMold.codec)
+      uintL(11) ::
+      InternalMold.codec
     ).exmap[WeaponData] (
     {
-      case 0x48 :: _ :: 2 :: _ :: 0x2C0 :: ammo :: HNil => //TODO: this will work for decoding, but not for encoding
-        Attempt.successful(WeaponData(ammo))
-      case 0x88 :: _ :: 2 :: _ :: 0x2C0 :: ammo :: HNil =>
-        Attempt.successful(WeaponData(ammo))
-      case x :: _ ::  y :: _ :: z :: _ :: HNil =>
-        Attempt.failure(Err("code wrong - looking for 136-2-704, found %d-%d-%d".format(x,y,z)))
+      case code :: 8 :: _ :: 2 :: _ :: 0x2C0 :: ammo :: HNil =>
+        Attempt.successful(WeaponData(code, ammo))
+      case _ :: x :: _ ::  y :: _ :: z :: _ :: HNil =>
+        Attempt.failure(Err("looking for 8-2-704 pattern, found %d-%d-%d".format(x,y,z)))
     },
     {
-      case WeaponData(ammo) =>
-        Attempt.successful(0x88 :: () :: 2 :: () :: 0x2C0 :: ammo :: HNil) //TODO: this will not work for encoding (see above)
+      case WeaponData(code, ammo) =>
+        Attempt.successful(code :: 8 :: () :: 2 :: () :: 0x2C0 :: ammo :: HNil)
     }
   ).as[WeaponData]
 }
@@ -177,6 +180,13 @@ object WeaponData extends Marshallable[WeaponData] {
 //    ).as[CharacterData]
 //}
 
+/**
+  * na
+  * @param objectClass na
+  * @param guid na
+  * @param parentSlot na
+  * @param obj na
+  */
 case class InternalMold(objectClass : Int,
                         guid : PlanetSideGUID,
                         parentSlot : Int,
