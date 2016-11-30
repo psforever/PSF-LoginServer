@@ -149,6 +149,7 @@ class GamePacketTest extends Specification {
       val packet2 = hex"18 F8 00 00 00 BC 8C 10 90 3B 45 C6 FA 94 00 9F F0 00 00 40 00 08 C0 44 00 69 00 66 00 66 00 45" //faked data?
       val packet2Rest = packet2.bits.drop(8 + 32 + 1 + 11 + 16)
       val string_9mm = hex"18 7C000000 2580 0E0 0005 A1 C8000064000"
+      val string_gauss = hex"18 DC000000 2580 2C9 B905 82 480000020000C04 1C00C0B0190000078000"
 
       "decode (2)" in {
         PacketCoding.DecodePacket(packet2).require match {
@@ -174,9 +175,31 @@ class GamePacketTest extends Specification {
             parent.get.guid mustEqual PlanetSideGUID(75)
             parent.get.slot mustEqual 33
             mold.isDefined mustEqual true
-
             val obj = mold.get.asInstanceOf[AmmoBoxData]
             obj.magazine mustEqual 50
+          case default =>
+            ko
+        }
+      }
+
+      "decode (gauss)" in {
+        PacketCoding.DecodePacket(string_gauss).require match {
+          case obj @ ObjectCreateMessage(len, cls, guid, parent, mold) =>
+            len mustEqual 220
+            cls mustEqual 345
+            guid mustEqual PlanetSideGUID(1465)
+            parent.isDefined mustEqual true
+            parent.get.guid mustEqual PlanetSideGUID(75)
+            parent.get.slot mustEqual 2
+            mold.isDefined mustEqual true
+            val obj_wep = mold.get.asInstanceOf[WeaponData]
+            val obj_ammo = obj_wep.ammo//.asInstanceOf[InternalMold]
+            obj_ammo.objectClass mustEqual 28
+            obj_ammo.guid mustEqual PlanetSideGUID(1286)
+            obj_ammo.parentSlot mustEqual 0
+            obj_ammo.obj.isDefined mustEqual true
+            val ammo = obj_ammo.obj.get.asInstanceOf[AmmoBoxData]
+            ammo.magazine mustEqual 30
           case default =>
             ko
         }

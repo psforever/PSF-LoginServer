@@ -34,15 +34,18 @@ object AmmoBoxData extends Marshallable[AmmoBoxData] {
 case class WeaponData(ammo : InternalMold) extends ConstructorData
 
 object WeaponData extends Marshallable[WeaponData] {
+  type rawPattern = Int :: Unit :: Int :: Unit :: Int :: InternalMold :: HNil
   implicit val codec : Codec[WeaponData] = (
     ("code" | uint16L) ::
       ignore(12) ::
       uint4L ::
-      ignore(4) ::
-      uintL(12) ::
+      ignore(16) ::
+      ("tail" | uintL(11)) ::
       ("data" | InternalMold.codec)
     ).exmap[WeaponData] (
     {
+      case 0x48 :: _ :: 2 :: _ :: 0x2C0 :: ammo :: HNil => //TODO: this will work for decoding, but not for encoding
+        Attempt.successful(WeaponData(ammo))
       case 0x88 :: _ :: 2 :: _ :: 0x2C0 :: ammo :: HNil =>
         Attempt.successful(WeaponData(ammo))
       case x :: _ ::  y :: _ :: z :: _ :: HNil =>
@@ -50,7 +53,7 @@ object WeaponData extends Marshallable[WeaponData] {
     },
     {
       case WeaponData(ammo) =>
-        Attempt.successful(0x88 :: () :: 2 :: () :: 0x2C0 :: ammo :: HNil)
+        Attempt.successful(0x88 :: () :: 2 :: () :: 0x2C0 :: ammo :: HNil) //TODO: this will not work for encoding (see above)
     }
   ).as[WeaponData]
 }
@@ -249,6 +252,10 @@ object Mold {
           val opt = WeaponData.codec.decode(data).toOption
           if(opt.isDefined)
             out = Some(opt.get.value)
+        case 0x159 => //gauss
+          val opt = WeaponData.codec.decode(data).toOption
+          if(opt.isDefined)
+            out = Some(opt.get.value)
         case _ =>
       }
     }
@@ -264,6 +271,10 @@ object Mold {
           if(opt.isDefined)
             out = opt.get
         case 0x46 => //beamer
+          val opt = WeaponData.codec.encode(obj.asInstanceOf[WeaponData]).toOption
+          if(opt.isDefined)
+            out = opt.get
+        case 0x159 => //gauss
           val opt = WeaponData.codec.encode(obj.asInstanceOf[WeaponData]).toOption
           if(opt.isDefined)
             out = opt.get
