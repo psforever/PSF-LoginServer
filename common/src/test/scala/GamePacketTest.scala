@@ -193,10 +193,31 @@ class GamePacketTest extends Specification {
             char.unk3 mustEqual 2
             char.viewPitch mustEqual 0xFF
             char.viewYaw mustEqual 0x6A
-            char.upperMerit mustEqual 0xFFFF //none
-            char.middleMerit mustEqual 0xFFFF //none
-            char.lowerMerit mustEqual 0xFFFF //none
-            char.termOfServiceMerit mustEqual 0xFFFF //none
+            char.upperMerit mustEqual 0xFFFFFFFFL //none
+            char.middleMerit mustEqual 0xFFFFFFFFL //none
+            char.lowerMerit mustEqual 0xFFFFFFFFL //none
+            char.termOfServiceMerit mustEqual 0xFFFFFFFFL //none
+            char.healthMax mustEqual 100
+            char.health mustEqual 100
+            char.armor mustEqual 50 //standard exosuit value
+            char.unk4 mustEqual 1
+            char.unk5 mustEqual 7
+            char.unk6 mustEqual 7
+            char.staminaMax mustEqual 100
+            char.stamina mustEqual 100
+            char.unk7 mustEqual 28
+            char.unk8 mustEqual 4
+            char.unk9 mustEqual 44
+            char.unk10 mustEqual 84
+            char.unk11 mustEqual 104
+            char.unk12 mustEqual 1900
+            char.firstTimeEvent_length mustEqual 4
+            char.firstEntry mustEqual Some("xpe_sanctuary_help")
+            char.firstTimeEvent_list.size mustEqual 3
+            char.firstTimeEvent_list.head mustEqual "xpe_th_firemodes"
+            char.firstTimeEvent_list(1) mustEqual "used_beamer"
+            char.firstTimeEvent_list(2) mustEqual "map13"
+            char.tutorial_list.size mustEqual 0
           case default =>
             ko
         }
