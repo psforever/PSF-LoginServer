@@ -150,6 +150,7 @@ class GamePacketTest extends Specification {
       val packet2Rest = packet2.bits.drop(8 + 32 + 1 + 11 + 16)
       val string_9mm = hex"18 7C000000 2580 0E0 0005 A1 C8000064000"
       val string_gauss = hex"18 DC000000 2580 2C9 B905 82 480000020000C04 1C00C0B0190000078000"
+      val string_testchar = hex"18 570C0000 BC8 4B00 6C2D7 65535 CA16 0 00 01 34 40 00 0970 49006C006C006C004900490049006C006C006C0049006C0049006C006C0049006C006C006C0049006C006C004900 84 52 70 76 1E 80 80 00 00 00 00 00 3FFFC 0 00 00 00 20 00 00 0F F6 A7 03 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FD 90 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 90 01 90 00 64 00 00 01 00 7E C8 00 C8 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 C0 00 42 C5 46  86 C7 00 00 00 80 00 00 12 40 78 70 65 5F 73 61 6E 63 74 75 61 72 79 5F 68 65 6C 70 90 78 70 65 5F 74 68 5F 66 69 72 65 6D 6F 64 65 73 8B 75 73 65 64 5F 62 65 61 6D 65 72 85 6D 61 70 31 33 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 0A 23 02 60 04 04 40 00 00 10 00 06 02 08 14 D0 08 0C 80 00 02 00 02 6B 4E 00 82 88 00 00 02 00 00 C0 41 C0 9E 01 01 90 00 00 64 00 44 2A 00 10 91 00 00 00 40 00 18 08 38 94 40 20 32 00 00 00 80 19 05 48 02 17 20 00 00 08 00 70 29 80 43 64 00 00 32 00 0E 05 40 08 9C 80 00 06 40 01 C0 AA 01 19 90 00 00 C8 00 3A 15 80 28 72 00 00 19 00 04 0A B8 05 26 40 00 03 20 06 C2 58 00 A7 88 00 00 02 00 00 80 00 00"
 
       "decode (2)" in {
         PacketCoding.DecodePacket(packet2).require match {
@@ -160,6 +161,42 @@ class GamePacketTest extends Specification {
             parent mustEqual None
             mold.data mustEqual packet2Rest
             mold.isDefined mustEqual false
+          case default =>
+            ko
+        }
+      }
+
+      "decode (char)" in {
+        PacketCoding.DecodePacket(string_testchar).require match {
+          case obj @ ObjectCreateMessage(len, cls, guid, parent, mold) =>
+            len mustEqual 3159
+            cls mustEqual 0x79
+            guid mustEqual PlanetSideGUID(75)
+            parent.isDefined mustEqual false
+            mold.isDefined mustEqual true
+
+            val char = mold.get.asInstanceOf[CharacterData]
+            char.pos.x mustEqual 3674.8438f
+            char.pos.y mustEqual 2726.789f
+            char.pos.z mustEqual 91.15625f
+            char.objYaw mustEqual 19
+            char.faction mustEqual 2 //vs
+            char.bops mustEqual false
+            char.name mustEqual "IlllIIIlllIlIllIlllIllI"
+            char.exosuit mustEqual 4 //standard
+            char.sex mustEqual 2 //female
+            char.face1 mustEqual 2
+            char.face2 mustEqual 9
+            char.voice mustEqual 1 //female 1
+            char.unk1 mustEqual 0x8080
+            char.unk2 mustEqual 0xFFFF
+            char.unk3 mustEqual 2
+            char.viewPitch mustEqual 0xFF
+            char.viewYaw mustEqual 0x6A
+            char.upperMerit mustEqual 0xFFFF //none
+            char.middleMerit mustEqual 0xFFFF //none
+            char.lowerMerit mustEqual 0xFFFF //none
+            char.termOfServiceMerit mustEqual 0xFFFF //none
           case default =>
             ko
         }
@@ -194,7 +231,7 @@ class GamePacketTest extends Specification {
             mold.isDefined mustEqual true
             val obj_wep = mold.get.asInstanceOf[WeaponData]
             obj_wep.unk mustEqual 4
-            val obj_ammo = obj_wep.ammo//.asInstanceOf[InternalMold]
+            val obj_ammo = obj_wep.ammo//.asInstanceOf[InternalSlot]
             obj_ammo.objectClass mustEqual 28
             obj_ammo.guid mustEqual PlanetSideGUID(1286)
             obj_ammo.parentSlot mustEqual 0
