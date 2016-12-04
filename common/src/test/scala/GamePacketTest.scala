@@ -4,6 +4,7 @@ import java.net.{InetAddress, InetSocketAddress}
 import org.specs2.mutable._
 import net.psforever.packet._
 import net.psforever.packet.game._
+import net.psforever.packet.game.objectcreate._
 import net.psforever.types._
 import scodec.Attempt.Successful
 import scodec.bits._
@@ -150,7 +151,7 @@ class GamePacketTest extends Specification {
       val packet2Rest = packet2.bits.drop(8 + 32 + 1 + 11 + 16)
       val string_9mm = hex"18 7C000000 2580 0E0 0005 A1 C8000064000"
       val string_gauss = hex"18 DC000000 2580 2C9 B905 82 480000020000C04 1C00C0B0190000078000"
-      val string_testchar = hex"18 570C0000 BC8 4B00 6C2D7 65535 CA16 0 00 01 34 40 00 0970 49006C006C006C004900490049006C006C006C0049006C0049006C006C0049006C006C006C0049006C006C004900 84 52 70 76 1E 80 80 00 00 00 00 00 3FFFC 0 00 00 00 20 00 00 0F F6 A7 03 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FD 90 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 90 01 90 00 64 00 00 01 00 7E C8 00 C8 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 C0 00 42 C5 46  86 C7 00 00 00 80 00 00 12 40 78 70 65 5F 73 61 6E 63 74 75 61 72 79 5F 68 65 6C 70 90 78 70 65 5F 74 68 5F 66 69 72 65 6D 6F 64 65 73 8B 75 73 65 64 5F 62 65 61 6D 65 72 85 6D 61 70 31 33 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 0A 23 02 60 04 04 40 00 00 10 00 06 02 08 14 D0 08 0C 80 00 02 00 02 6B 4E 00 82 88 00 00 02 00 00 C0 41 C0 9E 01 01 90 00 00 64 00 44 2A 00 10 91 00 00 00 40 00 18 08 38 94 40 20 32 00 00 00 80 19 05 48 02 17 20 00 00 08 00 70 29 80 43 64 00 00 32 00 0E 05 40 08 9C 80 00 06 40 01 C0 AA 01 19 90 00 00 C8 00 3A 15 80 28 72 00 00 19 00 04 0A B8 05 26 40 00 03 20 06 C2 58 00 A7 88 00 00 02 00 00 80 00 00"
+      val string_testchar = hex"18 570C0000 BC8 4B00 6C2D7 65535 CA16 0 00 01 34 40 00 0970 49006C006C006C004900490049006C006C006C0049006C0049006C006C0049006C006C006C0049006C006C004900 84 52 70 76 1E 80 80 00 00 00 00 00 3FFFC 0 00 00 00 20 00 00 0F F6 A7 03 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FD 90 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 90 01 90 00 64 00 00 01 00 7E C8 00 C8 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 C0 00 42 C5 46  86 C7 00 00 00 80 00 00 12 40 78 70 65 5F 73 61 6E 63 74 75 61 72 79 5F 68 65 6C 70 90 78 70 65 5F 74 68 5F 66 69 72 65 6D 6F 64 65 73 8B 75 73 65 64 5F 62 65 61 6D 65 72 85 6D 61 70 31 33 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 01 23 02 60 04 04 40 00 00 10 00 06 02 08 14 D0 08 0C 80 00 02 00 02 6B 4E 00 82 88 00 00 02 00 00 C0 41 C0 9E 01 01 90 00 00 64 00 44 2A 00 10 91 00 00 00 40 00 18 08 38 94 40 20 32 00 00 00 80 19 05 48 02 17 20 00 00 08 00 70 29 80 43 64 00 00 32 00 0E 05 40 08 9C 80 00 06 40 01 C0 AA 01 19 90 00 00 C8 00 3A 15 80 28 72 00 00 19 00 04 0A B8 05 26 40 00 03 20 06 C2 58 00 A7 88 00 00 02 00 00 80 00 00"
 
       "decode (2)" in {
         PacketCoding.DecodePacket(packet2).require match {
@@ -193,10 +194,10 @@ class GamePacketTest extends Specification {
             char.unk3 mustEqual 2
             char.viewPitch mustEqual 0xFF
             char.viewYaw mustEqual 0x6A
-            char.upperMerit mustEqual 0xFFFFFFFFL //none
-            char.middleMerit mustEqual 0xFFFFFFFFL //none
-            char.lowerMerit mustEqual 0xFFFFFFFFL //none
-            char.termOfServiceMerit mustEqual 0xFFFFFFFFL //none
+            char.ribbons.upper mustEqual 0xFFFFFFFFL //none
+            char.ribbons.middle mustEqual 0xFFFFFFFFL //none
+            char.ribbons.lower mustEqual 0xFFFFFFFFL //none
+            char.ribbons.tos mustEqual 0xFFFFFFFFL //none
             char.healthMax mustEqual 100
             char.health mustEqual 100
             char.armor mustEqual 50 //standard exosuit value
@@ -218,6 +219,9 @@ class GamePacketTest extends Specification {
             char.firstTimeEvent_list(1) mustEqual "used_beamer"
             char.firstTimeEvent_list(2) mustEqual "map13"
             char.tutorial_list.size mustEqual 0
+            char.inventory.unk1 mustEqual true
+            char.inventory.size mustEqual 10
+            char.inventory.unk2 mustEqual false
           case default =>
             ko
         }
