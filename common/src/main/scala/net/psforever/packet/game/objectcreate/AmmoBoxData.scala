@@ -8,7 +8,7 @@ import shapeless.{::, HNil}
 
 case class AmmoBoxData(magazine : Int
                       ) extends ConstructorData {
-  override def bsize : Long = 39L
+  override def bitsize : Long = 39L
 }
 
 object AmmoBoxData extends Marshallable[AmmoBoxData] {

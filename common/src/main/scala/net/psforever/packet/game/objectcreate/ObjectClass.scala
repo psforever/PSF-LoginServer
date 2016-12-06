@@ -1,7 +1,8 @@
 // Copyright (c) 2016 PSForever.net to present
 package net.psforever.packet.game.objectcreate
 
-import scodec.Codec
+import scodec.{Attempt, Codec, Err}
+import scodec.codecs._
 
 import scala.annotation.switch
 
@@ -36,18 +37,17 @@ object ObjectClass {
       case ObjectClass.SUPPRESSOR => WeaponData.genericCodec
       case ObjectClass.REK => REKData.genericCodec
       case ObjectClass.SLOT_BLOCKER => AmmoBoxData.genericCodec
-      case _ => RecoveredData.genericCodec
+      //failure case
+      case _ => conditional(false, bool).exmap[ConstructorData.genericPattern] (
+        {
+          case None | _ =>
+            Attempt.failure(Err("decoding unknown object class - "+objClass))
+        },
+        {
+          case None | _ =>
+            Attempt.failure(Err("encoding unknown object class - "+objClass))
+        }
+      )
     }
   }
-
-//  val failureCodec : Codec[ConstructorData.genericPattern] = conditional(false, bool).exmap[ConstructorData.genericPattern] (
-//    {
-//      case None | _ =>
-//        Attempt.failure(Err("object class unrecognized during decoding"))
-//    },
-//    {
-//      case None | _ =>
-//        Attempt.failure(Err("object class unrecognized during encoding"))
-//    }
-//  )
 }

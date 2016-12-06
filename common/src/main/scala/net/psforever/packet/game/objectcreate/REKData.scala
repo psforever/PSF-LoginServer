@@ -8,7 +8,7 @@ import shapeless.{::, HNil}
 
 case class REKData(unk : Int
                   ) extends ConstructorData {
-  override def bsize : Long = 72L
+  override def bitsize : Long = 72L
 }
 
 object REKData extends Marshallable[REKData] {

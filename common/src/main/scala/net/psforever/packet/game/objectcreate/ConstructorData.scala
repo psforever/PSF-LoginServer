@@ -2,7 +2,7 @@
 package net.psforever.packet.game.objectcreate
 
 abstract class ConstructorData() {
-  def bsize : Long = 0L
+  def bitsize : Long = 0L
 }
 
 object ConstructorData {

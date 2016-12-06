@@ -42,8 +42,8 @@ case class CharacterData(pos : Vector3,
                          tutorial_list : List[String],
                          inventory : InventoryData
                         ) extends ConstructorData {
-  override def bsize : Long = {
-    //represents static fields
+  override def bitsize : Long = {
+    //represents static fields (includes medals.bitsize)
     val first : Long = 1194L //TODO due to changing understanding of the bit patterns in this data, this value will change
     //name
     val second : Long = CharacterData.stringBitSize(name, 16) + 4L //plus the padding
@@ -60,7 +60,7 @@ case class CharacterData(pos : Vector3,
     for(str <- tutorial_list) {
       fourth += CharacterData.stringBitSize(str)
     }
-    first + second + third + fourth + inventory.bsize
+    first + second + third + fourth + inventory.bitsize
   }
 }
 

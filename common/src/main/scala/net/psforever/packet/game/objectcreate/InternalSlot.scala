@@ -19,9 +19,9 @@ case class InternalSlot(objectClass : Int,
                         guid : PlanetSideGUID,
                         parentSlot : Int,
                         obj : Option[ConstructorData]) {
-  def bsize : Long = {
+  def bitsize : Long = {
     val first : Long = if(parentSlot > 127) 44L else 36L
-    val second : Long = if(obj.isDefined) obj.get.bsize else 0L
+    val second : Long = if(obj.isDefined) obj.get.bitsize else 0L
     first + second
   }
 }
