@@ -6,7 +6,10 @@ import scodec.{Attempt, Codec, Err}
 import scodec.codecs._
 import shapeless.{::, HNil}
 
-case class REKData(unk : Int) extends ConstructorData
+case class REKData(unk : Int
+                  ) extends ConstructorData {
+  override def bsize : Long = 72L
+}
 
 object REKData extends Marshallable[REKData] {
   implicit val codec : Codec[REKData] = (
@@ -29,4 +32,19 @@ object REKData extends Marshallable[REKData] {
         Attempt.successful(code :: 8 :: () :: 2 :: () :: 8 :: () :: HNil)
     }
   ).as[REKData]
+
+
+
+  val genericCodec : Codec[ConstructorData.genericPattern] = codec.exmap[ConstructorData.genericPattern] (
+    {
+      case x =>
+        Attempt.successful(Some(x.asInstanceOf[ConstructorData]))
+    },
+    {
+      case Some(x) =>
+        Attempt.successful(x.asInstanceOf[REKData])
+      case _ =>
+        Attempt.failure(Err(""))
+    }
+  )
 }

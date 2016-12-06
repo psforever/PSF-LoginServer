@@ -6,7 +6,10 @@ import scodec.{Attempt, Codec, Err}
 import scodec.codecs._
 import shapeless.{::, HNil}
 
-case class AmmoBoxData(magazine : Int) extends ConstructorData
+case class AmmoBoxData(magazine : Int
+                      ) extends ConstructorData {
+  override def bsize : Long = 39L
+}
 
 object AmmoBoxData extends Marshallable[AmmoBoxData] {
   implicit val codec : Codec[AmmoBoxData] = (
@@ -24,5 +27,18 @@ object AmmoBoxData extends Marshallable[AmmoBoxData] {
       case AmmoBoxData(mag) =>
         Attempt.successful(0xC8 :: () :: mag :: HNil)
     }
-  ).as[AmmoBoxData]
+  )
+
+  val genericCodec : Codec[ConstructorData.genericPattern] = codec.exmap[ConstructorData.genericPattern] (
+    {
+      case x =>
+        Attempt.successful(Some(x.asInstanceOf[ConstructorData]))
+    },
+    {
+      case Some(x) =>
+        Attempt.successful(x.asInstanceOf[AmmoBoxData])
+      case _ =>
+        Attempt.failure(Err(""))
+    }
+  )
 }

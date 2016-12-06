@@ -5,13 +5,10 @@ import net.psforever.packet.Marshallable
 import scodec.Codec
 import scodec.codecs._
 
-case class InventoryItem(item : InternalSlot,
-                         na : Option[Boolean] = None)
+case class InventoryItem(item : InternalSlot)
 
 object InventoryItem extends Marshallable[InventoryItem] {
   implicit val codec : Codec[InventoryItem] = (
-    "item" | InternalSlot.codec >>:~ { item =>
-      conditional(item.obj.isDefined && item.obj.get.isInstanceOf[WeaponData], bool).hlist
-    }
+    "item" | InternalSlot.codec
     ).as[InventoryItem]
 }

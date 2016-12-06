@@ -1,9 +1,8 @@
 // Copyright (c) 2016 PSForever.net to present
 package net.psforever.packet.game
 
-import net.psforever.packet.game.objectcreate.Mold
+import net.psforever.packet.game.objectcreate.{ConstructorData, ObjectClass}
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
-import scodec.bits._
 import scodec.{Attempt, Codec, Err}
 import scodec.codecs._
 import shapeless.{::, HNil}
@@ -49,35 +48,37 @@ case class ObjectCreateMessageParent(guid : PlanetSideGUID,
   * @param objectClass the code for the type of object being constructed
   * @param guid the GUID this object will be assigned
   * @param parentInfo if defined, the relationship between this object and another object (its parent)
-  * @param mold the data used to construct this type of object;
-  *             requires further object-specific processing
+  * @param data the data used to construct this type of object
   */
 case class ObjectCreateMessage(streamLength : Long,
                                objectClass : Int,
                                guid : PlanetSideGUID,
                                parentInfo : Option[ObjectCreateMessageParent],
-                               mold : Mold)
+                               data : Option[ConstructorData])
   extends PlanetSideGamePacket {
   def opcode = GamePacketOpcode.ObjectCreateMessage
   def encode = ObjectCreateMessage.encode(this)
 }
 
 object ObjectCreateMessage extends Marshallable[ObjectCreateMessage] {
-  type Pattern = Int :: PlanetSideGUID :: Option[ObjectCreateMessageParent] :: HNil
+  type Pattern = Int :: PlanetSideGUID :: Option[ObjectCreateMessageParent] :: Option[ConstructorData] :: HNil
+  type outPattern = Long :: Int :: PlanetSideGUID :: Option[ObjectCreateMessageParent] :: Option[ConstructorData] :: HNil
   /**
     * Codec for formatting around the lack of parent data in the stream.
     */
   val noParent : Codec[Pattern] = (
-    ("objectClass" | uintL(0xb)) :: //11u
-      ("guid" | PlanetSideGUID.codec) //16u
+    ("objectClass" | uintL(0xb)) >>:~ { cls => //11u
+      ("guid" | PlanetSideGUID.codec) :: //16u
+        ("data" | ObjectClass.selectDataCodec(cls))
+    }
     ).xmap[Pattern] (
     {
-      case cls :: guid :: HNil =>
-        cls :: guid :: None :: HNil
+      case cls :: guid :: data :: HNil =>
+        cls :: guid :: None :: data :: HNil
     },
     {
-      case cls :: guid :: None :: HNil =>
-        cls :: guid :: HNil
+      case cls :: guid :: None :: data :: HNil =>
+        cls :: guid :: data :: HNil
     }
   )
 
@@ -86,17 +87,19 @@ object ObjectCreateMessage extends Marshallable[ObjectCreateMessage] {
     */
   val parent : Codec[Pattern] = (
     ("parentGuid" | PlanetSideGUID.codec) :: //16u
-      ("objectClass" | uintL(0xb)) :: //11u
-      ("guid" | PlanetSideGUID.codec) :: //16u
-      ("parentSlotIndex" | PacketHelpers.encodedStringSize) //8u or 16u
+      (("objectClass" | uintL(0xb)) >>:~ { cls => //11u
+        ("guid" | PlanetSideGUID.codec) :: //16u
+          ("parentSlotIndex" | PacketHelpers.encodedStringSize) :: //8u or 16u
+          ("data" | ObjectClass.selectDataCodec(cls))
+      })
     ).xmap[Pattern] (
     {
-      case pguid :: cls :: guid :: slot :: HNil =>
-        cls :: guid :: Some(ObjectCreateMessageParent(pguid, slot)) :: HNil
+      case pguid :: cls :: guid :: slot :: data :: HNil =>
+        cls :: guid :: Some(ObjectCreateMessageParent(pguid, slot)) :: data :: HNil
     },
     {
-      case cls :: guid :: Some(ObjectCreateMessageParent(pguid, slot)) :: HNil =>
-        pguid :: cls :: guid :: slot :: HNil
+      case cls :: guid :: Some(ObjectCreateMessageParent(pguid, slot)) :: data :: HNil =>
+        pguid :: cls :: guid :: slot :: data :: HNil
     }
   )
 
@@ -114,16 +117,16 @@ object ObjectCreateMessage extends Marshallable[ObjectCreateMessage] {
     * @param data the data length is indeterminate until it is read
     * @return the total length of the stream in bits
     */
-  private def streamLen(parentInfo : Option[ObjectCreateMessageParent], data : BitVector) : Long = {
-    //known length
-    val first : Long = if(parentInfo.isDefined) {
-      if(parentInfo.get.slot > 127) 92L else 84L //60u + 16u + (8u or 16u)
+  private def streamLen(parentInfo : Option[ObjectCreateMessageParent], data : Option[ConstructorData]) : Long = {
+    //msg length
+    val first : Long = if(parentInfo.isDefined) { //(32u + 1u + 11u + 16u) ?+ (16u + (8u | 16u))
+      if(parentInfo.get.slot > 127) 92L else 84L
     }
     else {
       60L
     }
-    //variant length
-    var second : Long = data.size
+    //data length
+    var second : Long = if(data.isDefined) data.get.bsize else 0L
     val secondMod4 : Long = second % 4L
     if(secondMod4 > 0L) { //pad to include last whole nibble
       second += 4L - secondMod4
@@ -133,34 +136,142 @@ object ObjectCreateMessage extends Marshallable[ObjectCreateMessage] {
 
   implicit val codec : Codec[ObjectCreateMessage] = (
     ("streamLength" | uint32L) ::
-      (either(bool, parent, noParent).exmap[Pattern] (
+      either(bool, parent, noParent).exmap[Pattern] (
         {
-          case Left(a :: b :: Some(c) :: HNil) =>
-            Attempt.successful(a :: b :: Some(c) :: HNil) //true, _, _, Some(c)
-          case Right(a :: b :: None :: HNil) =>
-            Attempt.successful(a :: b :: None :: HNil) //false, _, _, None
+          case Left(a :: b :: Some(c) :: d :: HNil) =>
+            Attempt.successful(a :: b :: Some(c) :: d :: HNil) //true, _, _, Some(c)
+          case Right(a :: b :: None :: d :: HNil) =>
+            Attempt.successful(a :: b :: None :: d :: HNil) //false, _, _, None
           // failure cases
-          case Left(a :: b :: None :: HNil) =>
+          case Left(a :: b :: None :: _ :: HNil) =>
             Attempt.failure(Err("missing parent structure")) //true, _, _, None
-          case Right(a :: b :: Some(c) :: HNil) =>
+          case Right(a :: b :: Some(c) :: _ :: HNil) =>
             Attempt.failure(Err("unexpected parent structure")) //false, _, _, Some(c)
         },
         {
-          case a :: b :: Some(c) :: HNil =>
-            Attempt.successful(Left(a :: b :: Some(c) :: HNil))
-          case a :: b :: None :: HNil =>
-            Attempt.successful(Right(a :: b :: None :: HNil))
+          case a :: b :: Some(c) :: d :: HNil =>
+            Attempt.successful(Left(a :: b :: Some(c) :: d :: HNil))
+          case a :: b :: None :: d :: HNil =>
+            Attempt.successful(Right(a :: b :: None :: d :: HNil))
         }
-      ) :+
-        ("data" | bits) )
-    ).xmap[ObjectCreateMessage] (
+      )
+    ).xmap[outPattern] (
     {
-      case len :: cls :: guid :: info :: data :: HNil =>
-        ObjectCreateMessage(len, cls, guid, info, Mold(cls, data))
+      case len :: cls :: guid :: par :: data :: HNil =>
+        len :: cls :: guid :: par :: data :: HNil
     },
     {
-      case ObjectCreateMessage(_, cls, guid, info, mold) =>
-        streamLen(info, mold.data) :: cls :: guid :: info :: mold.data :: HNil
+      case _ :: cls :: guid :: par :: data :: HNil =>
+        streamLen(par, data) :: cls :: guid :: par :: data :: HNil
     }
   ).as[ObjectCreateMessage]
 }
+
+//import net.psforever.packet.game.objectcreate.Mold
+//import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
+//import scodec.bits._
+//import scodec.{Attempt, Codec, Err}
+//import scodec.codecs._
+//import shapeless.{::, HNil}
+//
+//case class ObjectCreateMessageParent(guid : PlanetSideGUID,
+//                                     slot : Int)
+//
+//case class ObjectCreateMessage(streamLength : Long,
+//                               objectClass : Int,
+//                               guid : PlanetSideGUID,
+//                               parentInfo : Option[ObjectCreateMessageParent],
+//                               mold : Mold)
+//  extends PlanetSideGamePacket {
+//  def opcode = GamePacketOpcode.ObjectCreateMessage
+//  def encode = ObjectCreateMessage.encode(this)
+//}
+//
+//object ObjectCreateMessage extends Marshallable[ObjectCreateMessage] {
+//  type Pattern = Int :: PlanetSideGUID :: Option[ObjectCreateMessageParent] :: HNil
+//  /**
+//    * Codec for formatting around the lack of parent data in the stream.
+//    */
+//  val noParent : Codec[Pattern] = (
+//    ("objectClass" | uintL(0xb)) :: //11u
+//      ("guid" | PlanetSideGUID.codec) //16u
+//    ).xmap[Pattern] (
+//    {
+//      case cls :: guid :: HNil =>
+//        cls :: guid :: None :: HNil
+//    },
+//    {
+//      case cls :: guid :: None :: HNil =>
+//        cls :: guid :: HNil
+//    }
+//  )
+//
+//  /**
+//    * Codec for reading and formatting parent data from the stream.
+//    */
+//  val parent : Codec[Pattern] = (
+//    ("parentGuid" | PlanetSideGUID.codec) :: //16u
+//      ("objectClass" | uintL(0xb)) :: //11u
+//      ("guid" | PlanetSideGUID.codec) :: //16u
+//      ("parentSlotIndex" | PacketHelpers.encodedStringSize) //8u or 16u
+//    ).xmap[Pattern] (
+//    {
+//      case pguid :: cls :: guid :: slot :: HNil =>
+//        cls :: guid :: Some(ObjectCreateMessageParent(pguid, slot)) :: HNil
+//    },
+//    {
+//      case cls :: guid :: Some(ObjectCreateMessageParent(pguid, slot)) :: HNil =>
+//        pguid :: cls :: guid :: slot :: HNil
+//    }
+//  )
+//
+//  private def streamLen(parentInfo : Option[ObjectCreateMessageParent], data : BitVector) : Long = {
+//    //known length
+//    val first : Long = if(parentInfo.isDefined) {
+//      if(parentInfo.get.slot > 127) 92L else 84L //60u + 16u + (8u or 16u)
+//    }
+//    else {
+//      60L
+//    }
+//    //variant length
+//    var second : Long = data.size
+//    val secondMod4 : Long = second % 4L
+//    if(secondMod4 > 0L) { //pad to include last whole nibble
+//      second += 4L - secondMod4
+//    }
+//    first + second
+//  }
+//
+//  implicit val codec : Codec[ObjectCreateMessage] = (
+//    ("streamLength" | uint32L) ::
+//      (either(bool, parent, noParent).exmap[Pattern] (
+//        {
+//          case Left(a :: b :: Some(c) :: HNil) =>
+//            Attempt.successful(a :: b :: Some(c) :: HNil) //true, _, _, Some(c)
+//          case Right(a :: b :: None :: HNil) =>
+//            Attempt.successful(a :: b :: None :: HNil) //false, _, _, None
+//          // failure cases
+//          case Left(a :: b :: None :: HNil) =>
+//            Attempt.failure(Err("missing parent structure")) //true, _, _, None
+//          case Right(a :: b :: Some(c) :: HNil) =>
+//            Attempt.failure(Err("unexpected parent structure")) //false, _, _, Some(c)
+//        },
+//        {
+//          case a :: b :: Some(c) :: HNil =>
+//            Attempt.successful(Left(a :: b :: Some(c) :: HNil))
+//          case a :: b :: None :: HNil =>
+//            Attempt.successful(Right(a :: b :: None :: HNil))
+//        }
+//      ) :+
+//        ("data" | bits) )
+//    ).xmap[ObjectCreateMessage] (
+//    {
+//      case len :: cls :: guid :: info :: data :: HNil =>
+//        ObjectCreateMessage(len, cls, guid, info, Mold(cls, data))
+//    },
+//    {
+//      case ObjectCreateMessage(_, cls, guid, info, mold) =>
+//        streamLen(info, mold.data) :: cls :: guid :: info :: mold.data :: HNil
+//    }
+//  ).as[ObjectCreateMessage]
+//}

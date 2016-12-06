@@ -8,7 +8,9 @@ import scodec.codecs._
 import shapeless.{::, HNil}
 
 case class WeaponData(unk : Int,
-                      ammo : InternalSlot) extends ConstructorData
+                      ammo : InternalSlot) extends ConstructorData {
+  override def bsize : Long = 59L + ammo.bsize
+}
 
 object WeaponData extends Marshallable[WeaponData] {
   def apply(unk : Int, cls : Int, guid : PlanetSideGUID, parentSlot : Int, ammo : AmmoBoxData) : WeaponData =
@@ -34,4 +36,19 @@ object WeaponData extends Marshallable[WeaponData] {
         Attempt.successful(code :: 8 :: () :: 2 :: () :: 0x2C0 :: ammo :: HNil)
     }
   ).as[WeaponData]
+
+
+
+  val genericCodec : Codec[ConstructorData.genericPattern] = codec.exmap[ConstructorData.genericPattern] (
+    {
+      case x =>
+        Attempt.successful(Some(x.asInstanceOf[ConstructorData]))
+    },
+    {
+      case Some(x) =>
+        Attempt.successful(x.asInstanceOf[WeaponData])
+      case _ =>
+        Attempt.failure(Err(""))
+    }
+  )
 }

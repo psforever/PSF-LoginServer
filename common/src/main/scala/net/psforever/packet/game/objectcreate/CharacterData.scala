@@ -3,7 +3,7 @@ package net.psforever.packet.game.objectcreate
 
 import net.psforever.packet.{Marshallable, PacketHelpers}
 import net.psforever.types.Vector3
-import scodec.Codec
+import scodec.{Attempt, Codec, Err}
 import scodec.codecs._
 
 case class CharacterData(pos : Vector3,
@@ -41,9 +41,36 @@ case class CharacterData(pos : Vector3,
                          firstTimeEvent_list : List[String],
                          tutorial_list : List[String],
                          inventory : InventoryData
-                        ) extends ConstructorData
+                        ) extends ConstructorData {
+  override def bsize : Long = {
+    //represents static fields
+    val first : Long = 1194L //TODO due to changing understanding of the bit patterns in this data, this value will change
+    //name
+    val second : Long = CharacterData.stringBitSize(name, 16) + 4L //plus the padding
+    //fte_list
+    var third : Long = 32L
+    if(firstEntry.isDefined) {
+      third += CharacterData.stringBitSize(firstEntry.get) + 5L //plus the padding
+      for(str <- firstTimeEvent_list) {
+        third += CharacterData.stringBitSize(str)
+      }
+    }
+    //tutorial list
+    var fourth : Long = 32L
+    for(str <- tutorial_list) {
+      fourth += CharacterData.stringBitSize(str)
+    }
+    first + second + third + fourth + inventory.bsize
+  }
+}
 
 object CharacterData extends Marshallable[CharacterData] {
+  private def stringBitSize(str : String, width : Int = 8) : Long = {
+    val strlen = str.length
+    val lenSize = if(strlen > 127) 16L else 8L
+    lenSize + strlen * width
+  }
+
   implicit val codec : Codec[CharacterData] = (
     ("pos" | Vector3.codec_pos) ::
       ignore(16) ::
@@ -56,7 +83,7 @@ object CharacterData extends Marshallable[CharacterData] {
       ("exosuit" | uintL(3)) ::
       ignore(2) ::
       ("sex" | uintL(2)) ::
-      ("face1" | uint8L) ::
+      ("face1" | uint4L) ::
       ("face2" | uint4L) ::
       ("voice" | uintL(3)) ::
       ignore(22) ::
@@ -98,4 +125,17 @@ object CharacterData extends Marshallable[CharacterData] {
           ("inventory" | InventoryData.codec)
       })
     ).as[CharacterData]
+
+  val genericCodec : Codec[ConstructorData.genericPattern] = codec.exmap[ConstructorData.genericPattern] (
+    {
+      case x =>
+        Attempt.successful(Some(x.asInstanceOf[ConstructorData]))
+    },
+    {
+      case Some(x) =>
+        Attempt.successful(x.asInstanceOf[CharacterData])
+      case _ =>
+        Attempt.failure(Err(""))
+    }
+  )
 }
