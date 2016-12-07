@@ -7,14 +7,42 @@ import scodec.{Attempt, Codec, Err}
 import scodec.codecs._
 import shapeless.{::, HNil}
 
+/**
+  * A representation of the weapon portion of `ObjectCreateMessage` packet data.
+  * When alone, this data will help construct a "weapon" such as Suppressor.<br>
+  * <br>
+  * The data for the weapon also nests required default ammunition data.
+  * Where the ammunition is loaded is considered the "first slot."
+  * @param unk na
+  * @param ammo data regarding the currently loaded ammunition type and quantity
+  * @see AmmoBoxData
+  */
 case class WeaponData(unk : Int,
                       ammo : InternalSlot) extends ConstructorData {
+  /**
+    * Performs a "sizeof()" analysis of the given object.
+    * @see ConstructorData.bitsize
+    * @see AmmoBoxData.bitsize
+    * @return the number of bits necessary to represent this object
+    */
   override def bitsize : Long = 59L + ammo.bitsize
 }
 
 object WeaponData extends Marshallable[WeaponData] {
+  /**
+    * An abbreviated constructor for creating `WeaponData` while masking use of `InternalSlot` for its `AmmoBoxData`.<br>
+    * <br>
+    * Exploration:<br>
+    * This class may need to be rewritten later to support objects spawned in the world environment.
+    * @param unk na
+    * @param cls the code for the type of object (ammunition) being constructed
+    * @param guid the globally unique id assigned to the ammunition
+    * @param parentSlot the slot where the ammunition is to be installed in the weapon
+    * @param ammo the constructor data for the ammunition
+    * @return a WeaponData object
+    */
   def apply(unk : Int, cls : Int, guid : PlanetSideGUID, parentSlot : Int, ammo : AmmoBoxData) : WeaponData =
-    new WeaponData(unk, InternalSlot(cls, guid, parentSlot, Some(ammo)))
+    new WeaponData(unk, InternalSlot(cls, guid, parentSlot, ammo))
 
   implicit val codec : Codec[WeaponData] = (
     ("unk" | uint4L) ::
@@ -37,8 +65,9 @@ object WeaponData extends Marshallable[WeaponData] {
     }
   ).as[WeaponData]
 
-
-
+  /**
+    * Transform between WeaponData and ConstructorData.
+    */
   val genericCodec : Codec[ConstructorData.genericPattern] = codec.exmap[ConstructorData.genericPattern] (
     {
       case x =>

@@ -6,8 +6,18 @@ import scodec.{Attempt, Codec, Err}
 import scodec.codecs._
 import shapeless.{::, HNil}
 
+/**
+  * A representation of the REK portion of `ObjectCreateMessage` packet data.
+  * When alone, this data will help construct the "tool" called a Remote Electronics Kit.
+  * @param unk na
+  */
 case class REKData(unk : Int
                   ) extends ConstructorData {
+  /**
+    * Performs a "sizeof()" analysis of the given object.
+    * @see ConstructorData.bitsize
+    * @return the number of bits necessary to represent this object
+    */
   override def bitsize : Long = 72L
 }
 
@@ -33,8 +43,9 @@ object REKData extends Marshallable[REKData] {
     }
   ).as[REKData]
 
-
-
+  /**
+    * Transform between REKData and ConstructorData.
+    */
   val genericCodec : Codec[ConstructorData.genericPattern] = codec.exmap[ConstructorData.genericPattern] (
     {
       case x =>

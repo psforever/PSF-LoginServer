@@ -6,8 +6,21 @@ import scodec.{Attempt, Codec, Err}
 import scodec.codecs._
 import shapeless.{::, HNil}
 
+/**
+  * A representation of the ammunition portion of `ObjectCreateMessage` packet data.
+  * When alone, this data will help construct a "box" of that type of ammunition, hence the name.<br>
+  * <br>
+  * Exploration:<br>
+  * This class may need to be rewritten later to support objects spawned in the world environment.
+  * @param magazine the number of rounds available
+  */
 case class AmmoBoxData(magazine : Int
                       ) extends ConstructorData {
+  /**
+    * Performs a "sizeof()" analysis of the given object.
+    * @see ConstructorData.bitsize
+    * @return the number of bits necessary to represent this object
+    */
   override def bitsize : Long = 39L
 }
 
@@ -29,6 +42,9 @@ object AmmoBoxData extends Marshallable[AmmoBoxData] {
     }
   )
 
+  /**
+    * Transform between AmmoBoxData and ConstructorData.
+    */
   val genericCodec : Codec[ConstructorData.genericPattern] = codec.exmap[ConstructorData.genericPattern] (
     {
       case x =>

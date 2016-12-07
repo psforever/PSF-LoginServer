@@ -15,7 +15,7 @@ import shapeless.{::, HNil}
   * The parent is a pre-existing object into which the (created) child is attached.<br>
   * <br>
   * The slot is encoded as a string length integer commonly used by PlanetSide.
-  * It is either a 0-127 eight bit number (0 = 0x80), or a 128-32767 sixteen bit number (128 = 0x0080).
+  * It is either a 0-127 eight bit number (0 = `0x80`), or a 128-32767 sixteen bit number (128 = `0x0080`).
   * @param guid the GUID of the parent object
   * @param slot a parent-defined slot identifier that explains where the child is to be attached to the parent
   */
@@ -59,6 +59,18 @@ case class ObjectCreateMessage(streamLength : Long,
 }
 
 object ObjectCreateMessage extends Marshallable[ObjectCreateMessage] {
+  /**
+    * An abbreviated constructor for creating `ObjectCreateMessages`, ignoring the optional aspect of some fields.
+    * @param streamLength the total length of the data that composes this packet in bits, excluding the opcode and end padding
+    * @param objectClass the code for the type of object being constructed
+    * @param guid the GUID this object will be assigned
+    * @param parentInfo the relationship between this object and another object (its parent)
+    * @param data the data used to construct this type of object
+    * @return an ObjectCreateMessage
+    */
+  def apply(streamLength : Long, objectClass : Int, guid : PlanetSideGUID, parentInfo : ObjectCreateMessageParent, data : ConstructorData) : ObjectCreateMessage =
+    ObjectCreateMessage(streamLength, objectClass, guid, Some(parentInfo), Some(data))
+
   type Pattern = Int :: PlanetSideGUID :: Option[ObjectCreateMessageParent] :: HNil
   type outPattern = Long :: Int :: PlanetSideGUID :: Option[ObjectCreateMessageParent] :: Option[ConstructorData] :: HNil
   /**
@@ -146,44 +158,7 @@ object ObjectCreateMessage extends Marshallable[ObjectCreateMessage] {
 
   /**
     * Calculate the stream length in number of bits by factoring in the whole message in two portions.
-    * @param parentInfo if defined, information about the parent
-    * @param data       the data length is indeterminate until it is read
-    * @return the total length of the stream in bits
-    */
-  private def streamLen(parentInfo : Option[ObjectCreateMessageParent], data : BitVector) : Long = {
-    //knowable length
-    val first : Long = commonMsgLen(parentInfo)
-    //data length
-    var second : Long = data.size
-    val secondMod4 : Long = second % 4L
-    if(secondMod4 > 0L) {
-      //pad to include last whole nibble
-      second += 4L - secondMod4
-    }
-    first + second
-  }
-
-  /**
-    * Calculate the stream length in number of bits by factoring in the whole message in two portions.
-    * @param parentInfo if defined, information about the parent
-    * @param data       the data length is indeterminate until it is read
-    * @return the total length of the stream in bits
-    */
-  private def streamLen(parentInfo : Option[ObjectCreateMessageParent], data : ConstructorData) : Long = {
-    //knowable length
-    val first : Long = commonMsgLen(parentInfo)
-    //data length
-    var second : Long = data.bitsize
-    val secondMod4 : Long = second % 4L
-    if(secondMod4 > 0L) {
-      //pad to include last whole nibble
-      second += 4L - secondMod4
-    }
-    first + second
-  }
-
-  /**
-    * Calculate the length (in number of bits) of the basic packet message region.<br>
+    * This process automates for: object encoding.<br>
     * <br>
     * Ignoring the parent data, constant field lengths have already been factored into the results.
     * That includes:
@@ -192,17 +167,26 @@ object ObjectCreateMessage extends Marshallable[ObjectCreateMessage] {
     * the object's GUID (16u),
     * and the bit to determine if there will be parent data.
     * In total, these fields form a known fixed length of 60u.
-    * @param parentInfo if defined, the parentInfo adds either 24u or 32u
-    * @return the length, including the optional parent data
+    * @param parentInfo if defined, information about the parent adds either 24u or 32u
+    * @param data the data length is indeterminate until it is walked-through
+    * @return the total length of the stream in bits
     */
-  private def commonMsgLen(parentInfo : Option[ObjectCreateMessageParent]) : Long = {
-    if(parentInfo.isDefined) {
-      //(32u + 1u + 11u + 16u) ?+ (16u + (8u | 16u))
-      if(parentInfo.get.slot > 127) 92L else 84L
+  private def streamLen(parentInfo : Option[ObjectCreateMessageParent], data : ConstructorData) : Long = {
+    //knowable length
+    val first : Long = if(parentInfo.isDefined) {
+      if(parentInfo.get.slot > 127) 92L else 84L //(32u + 1u + 11u + 16u) ?+ (16u + (8u | 16u))
     }
     else {
       60L
     }
+    //object length
+    var second : Long = data.bitsize
+    val secondMod4 : Long = second % 4L
+    if(secondMod4 > 0L) {
+      //pad to include last whole nibble
+      second += 4L - secondMod4
+    }
+    first + second
   }
 
   implicit val codec : Codec[ObjectCreateMessage] = (
@@ -226,25 +210,27 @@ object ObjectCreateMessage extends Marshallable[ObjectCreateMessage] {
         }
       ) :+
         ("data" | bits)) //greed is good
-    ).xmap[outPattern](
+    ).exmap[outPattern] (
     {
+      case _ :: _ :: _ :: _ :: BitVector.empty :: HNil =>
+        Attempt.failure(Err("no data to decode"))
       case len :: cls :: guid :: par :: data :: HNil =>
-        len :: cls :: guid :: par :: decodeData(cls, data) :: HNil
-    }, {
+        Attempt.successful(len :: cls :: guid :: par :: decodeData(cls, data) :: HNil)
+    },
+    {
+      case _ :: _ :: _ :: _ :: None :: HNil =>
+        Attempt.failure(Err("no object to encode"))
       case _ :: cls :: guid :: par :: Some(obj) :: HNil =>
-        streamLen(par, obj) :: cls :: guid :: par :: encodeData(cls, obj) :: HNil
-      case _ :: cls :: guid :: par :: None :: HNil =>
-        streamLen(par, BitVector.empty) :: cls :: guid :: par :: BitVector.empty :: HNil
+        Attempt.successful(streamLen(par, obj) :: cls :: guid :: par :: encodeData(cls, obj) :: HNil)
     }
-  ).exmap[ObjectCreateMessage](
+  ).xmap[ObjectCreateMessage] (
     {
       case len :: cls :: guid :: par :: obj :: HNil =>
-        Attempt.successful(ObjectCreateMessage(len, cls, guid, par, obj))
-    }, {
-      case ObjectCreateMessage(_, _, _, _, None) =>
-        Attempt.failure(Err("no object to encode"))
+        ObjectCreateMessage(len, cls, guid, par, obj)
+    },
+    {
       case ObjectCreateMessage(len, cls, guid, par, obj) =>
-        Attempt.successful(len :: cls :: guid :: par :: obj :: HNil)
+        len :: cls :: guid :: par :: obj :: HNil
     }
   ).as[ObjectCreateMessage]
 }

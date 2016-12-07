@@ -6,7 +6,7 @@ import net.psforever.packet._
 import net.psforever.packet.game._
 import net.psforever.packet.game.objectcreate._
 import net.psforever.types._
-import scodec.Attempt
+import scodec.{Attempt, Err}
 import scodec.Attempt.Successful
 import scodec.bits._
 
@@ -164,16 +164,16 @@ class GamePacketTest extends Specification {
         val invData = InventoryItem.codec.decode(invTestWep.toBitVector.drop(1)).toOption
         invData.isDefined mustEqual true
 
-        InventoryData.codec.decode(invTest.toBitVector.drop(7)).toOption match {
-          case Some(x) =>
-            x.value.unk1 equals true
-            x.value.size mustEqual 1
-            x.value.unk2 mustEqual false
-            //x.value.inv.head.item.objectClass mustEqual 0x8C
-            //x.value.inv.head.na mustEqual false
-          case _ =>
-            ko
-        }
+//        InventoryData.codec.decode(invTest.toBitVector.drop(7)) match {
+//          case Attempt.Successful(x) =>
+//            x.value.unk1 equals true
+//            x.value.size mustEqual 1
+//            x.value.unk2 mustEqual false
+//            //x.value.inv.head.item.objectClass mustEqual 0x8C
+//            //x.value.inv.head.na mustEqual false
+//          case Attempt.Failure(x) =>
+//            x.message mustEqual ""
+//        }
       }
 
       "decode (2)" in {
@@ -190,7 +190,7 @@ class GamePacketTest extends Specification {
         }
       }
 
-      "decode (char)" in {
+      "decode (character)" in {
         PacketCoding.DecodePacket(string_testchar).require match {
           case obj @ ObjectCreateMessage(len, cls, guid, parent, data) =>
             len mustEqual 3159
@@ -200,27 +200,27 @@ class GamePacketTest extends Specification {
             data.isDefined mustEqual true
 
             val char = data.get.asInstanceOf[CharacterData]
-            char.pos.x mustEqual 3674.8438f
-            char.pos.y mustEqual 2726.789f
-            char.pos.z mustEqual 91.15625f
-            char.objYaw mustEqual 19
-            char.faction mustEqual 2 //vs
-            char.bops mustEqual false
-            char.name mustEqual "IlllIIIlllIlIllIlllIllI"
-            char.exosuit mustEqual 4 //standard
-            char.sex mustEqual 2 //female
-            char.face1 mustEqual 2
-            char.face2 mustEqual 9
-            char.voice mustEqual 1 //female 1
-            char.unk1 mustEqual 0x8080
-            char.unk2 mustEqual 0xFFFF
-            char.unk3 mustEqual 2
-            char.viewPitch mustEqual 0xFF
-            char.viewYaw mustEqual 0x6A
-            char.ribbons.upper mustEqual 0xFFFFFFFFL //none
-            char.ribbons.middle mustEqual 0xFFFFFFFFL //none
-            char.ribbons.lower mustEqual 0xFFFFFFFFL //none
-            char.ribbons.tos mustEqual 0xFFFFFFFFL //none
+            char.appearance.pos.x mustEqual 3674.8438f
+            char.appearance.pos.y mustEqual 2726.789f
+            char.appearance.pos.z mustEqual 91.15625f
+            char.appearance.objYaw mustEqual 19
+            char.appearance.faction mustEqual 2 //vs
+            char.appearance.bops mustEqual false
+            char.appearance.name mustEqual "IlllIIIlllIlIllIlllIllI"
+            char.appearance.exosuit mustEqual 4 //standard
+            char.appearance.sex mustEqual 2 //female
+            char.appearance.face1 mustEqual 2
+            char.appearance.face2 mustEqual 9
+            char.appearance.voice mustEqual 1 //female 1
+            char.appearance.unk1 mustEqual 0x8080
+            char.appearance.unk2 mustEqual 0xFFFF
+            char.appearance.unk3 mustEqual 2
+            char.appearance.viewPitch mustEqual 0xFF
+            char.appearance.viewYaw mustEqual 0x6A
+            char.appearance.ribbons.upper mustEqual 0xFFFFFFFFL //none
+            char.appearance.ribbons.middle mustEqual 0xFFFFFFFFL //none
+            char.appearance.ribbons.lower mustEqual 0xFFFFFFFFL //none
+            char.appearance.ribbons.tos mustEqual 0xFFFFFFFFL //none
             char.healthMax mustEqual 100
             char.health mustEqual 100
             char.armor mustEqual 50 //standard exosuit value
@@ -235,16 +235,78 @@ class GamePacketTest extends Specification {
             char.unk10 mustEqual 84
             char.unk11 mustEqual 104
             char.unk12 mustEqual 1900
-            char.firstTimeEvent_length mustEqual 4
-            char.firstEntry mustEqual Some("xpe_sanctuary_help")
-            char.firstTimeEvent_list.size mustEqual 3
-            char.firstTimeEvent_list.head mustEqual "xpe_th_firemodes"
-            char.firstTimeEvent_list(1) mustEqual "used_beamer"
-            char.firstTimeEvent_list(2) mustEqual "map13"
-            char.tutorial_list.size mustEqual 0
+            char.firstTimeEvents.size mustEqual 4
+            char.firstTimeEvents.head mustEqual "xpe_sanctuary_help"
+            char.firstTimeEvents(1) mustEqual "xpe_th_firemodes"
+            char.firstTimeEvents(2) mustEqual "used_beamer"
+            char.firstTimeEvents(3) mustEqual "map13"
+            char.tutorials.size mustEqual 0
             char.inventory.unk1 mustEqual true
-            char.inventory.size mustEqual 10
             char.inventory.unk2 mustEqual false
+            char.inventory.contents.length mustEqual 10
+            val inventory = char.inventory.contents
+            //0
+            inventory.head.item.objectClass mustEqual 0x8C //beamer
+            inventory.head.item.guid mustEqual PlanetSideGUID(76)
+            inventory.head.item.parentSlot mustEqual 0
+            var wep = inventory.head.item.obj.asInstanceOf[WeaponData]
+            wep.ammo.objectClass mustEqual 0x110 //plasma
+            wep.ammo.guid mustEqual PlanetSideGUID(77)
+            wep.ammo.parentSlot mustEqual 0
+            wep.ammo.obj.asInstanceOf[AmmoBoxData].magazine mustEqual 16
+            //1
+            inventory(1).item.objectClass mustEqual 0x34D //suppressor
+            inventory(1).item.guid mustEqual PlanetSideGUID(78)
+            inventory(1).item.parentSlot mustEqual 2
+            wep = inventory(1).item.obj.asInstanceOf[WeaponData]
+            wep.ammo.objectClass mustEqual 0x1C //9mm
+            wep.ammo.guid mustEqual PlanetSideGUID(79)
+            wep.ammo.parentSlot mustEqual 0
+            wep.ammo.obj.asInstanceOf[AmmoBoxData].magazine mustEqual 25
+            //2
+            inventory(2).item.objectClass mustEqual 0x144 //force blade
+            inventory(2).item.guid mustEqual PlanetSideGUID(80)
+            inventory(2).item.parentSlot mustEqual 4
+            wep = inventory(2).item.obj.asInstanceOf[WeaponData]
+            wep.ammo.objectClass mustEqual 0x21C //force blade ammo
+            wep.ammo.guid mustEqual PlanetSideGUID(81)
+            wep.ammo.parentSlot mustEqual 0
+            wep.ammo.obj.asInstanceOf[AmmoBoxData].magazine mustEqual 1
+            //3
+            inventory(3).item.objectClass mustEqual 0x1C8 //thing
+            inventory(3).item.guid mustEqual PlanetSideGUID(82)
+            inventory(3).item.parentSlot mustEqual 5
+            inventory(3).item.obj.asInstanceOf[AmmoBoxData].magazine mustEqual 1
+            //4
+            inventory(4).item.objectClass mustEqual 0x1C //9mm
+            inventory(4).item.guid mustEqual PlanetSideGUID(83)
+            inventory(4).item.parentSlot mustEqual 6
+            inventory(4).item.obj.asInstanceOf[AmmoBoxData].magazine mustEqual 50
+            //5
+            inventory(5).item.objectClass mustEqual 0x1C //9mm
+            inventory(5).item.guid mustEqual PlanetSideGUID(84)
+            inventory(5).item.parentSlot mustEqual 9
+            inventory(5).item.obj.asInstanceOf[AmmoBoxData].magazine mustEqual 50
+            //6
+            inventory(6).item.objectClass mustEqual 0x1C //9mm
+            inventory(6).item.guid mustEqual PlanetSideGUID(85)
+            inventory(6).item.parentSlot mustEqual 12
+            inventory(6).item.obj.asInstanceOf[AmmoBoxData].magazine mustEqual 50
+            //7
+            inventory(7).item.objectClass mustEqual 0x1D //9mm ap
+            inventory(7).item.guid mustEqual PlanetSideGUID(86)
+            inventory(7).item.parentSlot mustEqual 33
+            inventory(7).item.obj.asInstanceOf[AmmoBoxData].magazine mustEqual 50
+            //8
+            inventory(8).item.objectClass mustEqual 0x110 //plasma
+            inventory(8).item.guid mustEqual PlanetSideGUID(87)
+            inventory(8).item.parentSlot mustEqual 36
+            inventory(8).item.obj.asInstanceOf[AmmoBoxData].magazine mustEqual 50
+            //9
+            inventory(9).item.objectClass mustEqual 0x2D8 //rek
+            inventory(9).item.guid mustEqual PlanetSideGUID(88)
+            inventory(9).item.parentSlot mustEqual 39
+            //the rek has data but none worth testing here
           case default =>
             ko
         }
@@ -260,8 +322,7 @@ class GamePacketTest extends Specification {
             parent.get.guid mustEqual PlanetSideGUID(75)
             parent.get.slot mustEqual 33
             data.isDefined mustEqual true
-            val obj = data.get.asInstanceOf[AmmoBoxData]
-            obj.magazine mustEqual 50
+            data.get.asInstanceOf[AmmoBoxData].magazine mustEqual 50
           case default =>
             ko
         }
@@ -283,9 +344,7 @@ class GamePacketTest extends Specification {
             obj_ammo.objectClass mustEqual 28
             obj_ammo.guid mustEqual PlanetSideGUID(1286)
             obj_ammo.parentSlot mustEqual 0
-            obj_ammo.obj.isDefined mustEqual true
-            val ammo = obj_ammo.obj.get.asInstanceOf[AmmoBoxData]
-            ammo.magazine mustEqual 30
+            obj_ammo.obj.asInstanceOf[AmmoBoxData].magazine mustEqual 30
           case default =>
             ko
         }
@@ -298,16 +357,16 @@ class GamePacketTest extends Specification {
       }
 
       "encode (9mm)" in {
-        val obj : ConstructorData = AmmoBoxData(50).asInstanceOf[ConstructorData]
-        val msg = ObjectCreateMessage(0, 28, PlanetSideGUID(1280), Some(ObjectCreateMessageParent(PlanetSideGUID(75), 33)), Some(obj))
+        val obj = AmmoBoxData(50)
+        val msg = ObjectCreateMessage(0, 28, PlanetSideGUID(1280), ObjectCreateMessageParent(PlanetSideGUID(75), 33), obj)
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
         pkt mustEqual string_9mm
       }
 
       "encode (gauss)" in {
-        val obj : ConstructorData = WeaponData(4, 28, PlanetSideGUID(1286), 0, AmmoBoxData(30)).asInstanceOf[ConstructorData]
-        val msg = ObjectCreateMessage(0, 345, PlanetSideGUID(1465), Some(ObjectCreateMessageParent(PlanetSideGUID(75), 2)), Some(obj))
+        val obj = WeaponData(4, 28, PlanetSideGUID(1286), 0, AmmoBoxData(30))
+        val msg = ObjectCreateMessage(0, 345, PlanetSideGUID(1465), ObjectCreateMessageParent(PlanetSideGUID(75), 2), obj)
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
         pkt mustEqual string_gauss
