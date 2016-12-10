@@ -10,22 +10,23 @@ import scodec.codecs._
   * These are the medals players wish to brandish on their left pauldron.<br>
   * <br>
   * All merit commendation ribbons are represented by a 32-bit signature.
-  * The default "no-ribbon" value is `0xFFFFFFFF`.
+  * The default "no-ribbon" value is `0xFFFFFFFF`, although some illegal values will also work.
+  * The term of service ribbon can not be modified by the user and will apply itself to its slot automatically when valid.
   * @param upper the "top" configurable merit ribbon
   * @param middle the central configurable merit ribbon
   * @param lower the lower configurable merit ribbon
-  * @param tos the automatic top-most term of service merit ribbon
+  * @param tos the top-most term of service merit ribbon
   */
 case class RibbonBars(upper : Long = 0xFFFFFFFFL,
                       middle : Long = 0xFFFFFFFFL,
                       lower : Long = 0xFFFFFFFFL,
-                      tos : Long = 0xFFFFFFFFL) {
+                      tos : Long = 0xFFFFFFFFL) extends StreamBitSize {
   /**
     * Performs a "sizeof()" analysis of the given object.
     * @see ConstructorData.bitsize
     * @return the number of bits necessary to represent this object
     */
-  def bitsize : Long = 128L
+  override def bitsize : Long = 128L
 }
 
 object RibbonBars extends Marshallable[RibbonBars] {

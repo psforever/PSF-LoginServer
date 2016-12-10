@@ -4,7 +4,7 @@ import java.net.{InetAddress, InetSocketAddress}
 import org.specs2.mutable._
 import net.psforever.packet._
 import net.psforever.packet.game._
-import net.psforever.packet.game.objectcreate._
+import net.psforever.packet.game.objectcreate.{InventoryItem, _}
 import net.psforever.types._
 import scodec.{Attempt, Err}
 import scodec.Attempt.Successful
@@ -153,39 +153,73 @@ class GamePacketTest extends Specification {
       var string_inventoryItem = hex"46 04 C0 08 08 80 00 00 20 00 0C 04 10 29 A0 10 19 00 00 04 00 00"
       val string_9mm = hex"18 7C000000 2580 0E0 0005 A1 C8000064000"
       val string_gauss = hex"18 DC000000 2580 2C9 B905 82 480000020000C04 1C00C0B0190000078000"
-      val string_testchar = hex"18 570C0000 BC8 4B00 6C2D7 65535 CA16 0 00 01 34 40 00 0970 49006C006C006C004900490049006C006C006C0049006C0049006C006C0049006C006C006C0049006C006C004900 84 52 70 76 1E 80 80 00 00 00 00 00 3FFFC 0 00 00 00 20 00 00 0F F6 A7 03 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FD 90 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 90 01 90 00 64 00 00 01 00 7E C8 00 C8 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 C0 00 42 C5 46  86 C7 00 00 00 80 00 00 12 40 78 70 65 5F 73 61 6E 63 74 75 61 72 79 5F 68 65 6C 70 90 78 70 65 5F 74 68 5F 66 69 72 65 6D 6F 64 65 73 8B 75 73 65 64 5F 62 65 61 6D 65 72 85 6D 61 70 31 33 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 0A 23 02 60 04 04 40 00 00 10 00 06 02 08 14 D0 08 0C 80 00 02 00 02 6B 4E 00 82 88 00 00 02 00 00 C0 41 C0 9E 01 01 90 00 00 64 00 44 2A 00 10 91 00 00 00 40 00 18 08 38 94 40 20 32 00 00 00 80 19 05 48 02 17 20 00 00 08 00 70 29 80 43 64 00 00 32 00 0E 05 40 08 9C 80 00 06 40 01 C0 AA 01 19 90 00 00 C8 00 3A 15 80 28 72 00 00 19 00 04 0A B8 05 26 40 00 03 20 06 C2 58 00 A7 88 00 00 02 00 00 80 00 00"
-      val invTest = hex"01 01 23 02 60 04 04 40 00 00 10 00 06 02 08 14 D0 08 0C 80 00 02 00 00 00"
-      val invTestWep = hex"23 02 60 04 04 40 00 00 10 00 06 02 08 14 D0 08 0C 80 00 02 00 00 00"
-
-      "InventoryTest" in {
-        val intSlot = InternalSlot.codec.decode(invTestWep.toBitVector.drop(1)).toOption
-        intSlot.isDefined mustEqual true
-
-        val invData = InventoryItem.codec.decode(invTestWep.toBitVector.drop(1)).toOption
-        invData.isDefined mustEqual true
-
-//        InventoryData.codec.decode(invTest.toBitVector.drop(7)) match {
-//          case Attempt.Successful(x) =>
-//            x.value.unk1 equals true
-//            x.value.size mustEqual 1
-//            x.value.unk2 mustEqual false
-//            //x.value.inv.head.item.objectClass mustEqual 0x8C
-//            //x.value.inv.head.na mustEqual false
-//          case Attempt.Failure(x) =>
-//            x.message mustEqual ""
-//        }
-      }
+      val string_rek = hex"18 97000000 2580 6C2 9F05 81 48000002000080000"
+      val string_testchar = hex"18 570C0000 BC8 4B00 6C2D7 65535 CA16 0 00 01 34 40 00 0970 49006C006C006C004900490049006C006C006C0049006C0049006C006C0049006C006C006C0049006C006C004900 84 52 70 76 1E 80 80 00 00 00 00 00 3FFFC 0 00 00 00 20 00 00 0F F6 A7 03 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FC 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 90 01 90 00 64 00 00 01 00 7E C8 00 C8 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 C0 00 42 C5 46  86 C7 00 00 00 80 00 00 12 40 78 70 65 5F 73 61 6E 63 74 75 61 72 79 5F 68 65 6C 70 90 78 70 65 5F 74 68 5F 66 69 72 65 6D 6F 64 65 73 8B 75 73 65 64 5F 62 65 61 6D 65 72 85 6D 61 70 31 33 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 0A 23 02 60 04 04 40 00 00 10 00 06 02 08 14 D0 08 0C 80 00 02 00 02 6B 4E 00 82 88 00 00 02 00 00 C0 41 C0 9E 01 01 90 00 00 64 00 44 2A 00 10 91 00 00 00 40 00 18 08 38 94 40 20 32 00 00 00 80 19 05 48 02 17 20 00 00 08 00 70 29 80 43 64 00 00 32 00 0E 05 40 08 9C 80 00 06 40 01 C0 AA 01 19 90 00 00 C8 00 3A 15 80 28 72 00 00 19 00 04 0A B8 05 26 40 00 03 20 06 C2 58 00 A7 88 00 00 02 00 00 80 00 00"
 
       "decode (2)" in {
         //an invalid bit representation will fail to turn into an object
         PacketCoding.DecodePacket(packet2).require match {
           case obj @ ObjectCreateMessage(len, cls, guid, parent, data) =>
-            len mustEqual 248 //60 + 188
+            len mustEqual 248
             cls mustEqual 121
             guid mustEqual PlanetSideGUID(2497)
             parent mustEqual None
             data.isDefined mustEqual false
           case default =>
+            ko
+        }
+      }
+
+      "decode (9mm)" in {
+        PacketCoding.DecodePacket(string_9mm).require match {
+          case obj @ ObjectCreateMessage(len, cls, guid, parent, data) =>
+            len mustEqual 124
+            cls mustEqual 28
+            guid mustEqual PlanetSideGUID(1280)
+            parent.isDefined mustEqual true
+            parent.get.guid mustEqual PlanetSideGUID(75)
+            parent.get.slot mustEqual 33
+            data.isDefined mustEqual true
+            data.get.asInstanceOf[AmmoBoxData].magazine mustEqual 50
+          case default =>
+            ko
+        }
+      }
+
+      "decode (gauss)" in {
+        PacketCoding.DecodePacket(string_gauss).require match {
+          case obj @ ObjectCreateMessage(len, cls, guid, parent, data) =>
+            len mustEqual 220
+            cls mustEqual 345
+            guid mustEqual PlanetSideGUID(1465)
+            parent.isDefined mustEqual true
+            parent.get.guid mustEqual PlanetSideGUID(75)
+            parent.get.slot mustEqual 2
+            data.isDefined mustEqual true
+            val obj_wep = data.get.asInstanceOf[WeaponData]
+            obj_wep.unk mustEqual 4
+            val obj_ammo = obj_wep.ammo
+            obj_ammo.objectClass mustEqual 28
+            obj_ammo.guid mustEqual PlanetSideGUID(1286)
+            obj_ammo.parentSlot mustEqual 0
+            obj_ammo.obj.asInstanceOf[AmmoBoxData].magazine mustEqual 30
+          case default =>
+            ko
+        }
+      }
+
+      "decode (rek)" in {
+        PacketCoding.DecodePacket(string_rek).require match {
+          case obj @ ObjectCreateMessage(len, cls, guid, parent, data) =>
+            len mustEqual 151
+            cls mustEqual 0x2D8
+            guid mustEqual PlanetSideGUID(1439)
+            parent.isDefined mustEqual true
+            parent.get.guid mustEqual PlanetSideGUID(75)
+            parent.get.slot mustEqual 1
+            data.isDefined mustEqual true
+            data.get.asInstanceOf[REKData].unk mustEqual 4
+          case _ =>
             ko
         }
       }
@@ -206,17 +240,22 @@ class GamePacketTest extends Specification {
             char.appearance.objYaw mustEqual 19
             char.appearance.faction mustEqual 2 //vs
             char.appearance.bops mustEqual false
+            char.appearance.unk1 mustEqual 4
             char.appearance.name mustEqual "IlllIIIlllIlIllIlllIllI"
             char.appearance.exosuit mustEqual 4 //standard
             char.appearance.sex mustEqual 2 //female
             char.appearance.face1 mustEqual 2
             char.appearance.face2 mustEqual 9
             char.appearance.voice mustEqual 1 //female 1
-            char.appearance.unk1 mustEqual 0x8080
-            char.appearance.unk2 mustEqual 0xFFFF
-            char.appearance.unk3 mustEqual 2
+            char.appearance.unk2 mustEqual 3
+            char.appearance.unk3 mustEqual 118
+            char.appearance.unk4 mustEqual 30
+            char.appearance.unk5 mustEqual 0x8080
+            char.appearance.unk6 mustEqual 0xFFFF
+            char.appearance.unk7 mustEqual 2
             char.appearance.viewPitch mustEqual 0xFF
             char.appearance.viewYaw mustEqual 0x6A
+            char.appearance.unk8 mustEqual 7
             char.appearance.ribbons.upper mustEqual 0xFFFFFFFFL //none
             char.appearance.ribbons.middle mustEqual 0xFFFFFFFFL //none
             char.appearance.ribbons.lower mustEqual 0xFFFFFFFFL //none
@@ -224,17 +263,17 @@ class GamePacketTest extends Specification {
             char.healthMax mustEqual 100
             char.health mustEqual 100
             char.armor mustEqual 50 //standard exosuit value
-            char.unk4 mustEqual 1
-            char.unk5 mustEqual 7
-            char.unk6 mustEqual 7
+            char.unk1 mustEqual 1
+            char.unk2 mustEqual 7
+            char.unk3 mustEqual 7
             char.staminaMax mustEqual 100
             char.stamina mustEqual 100
-            char.unk7 mustEqual 28
-            char.unk8 mustEqual 4
-            char.unk9 mustEqual 44
-            char.unk10 mustEqual 84
-            char.unk11 mustEqual 104
-            char.unk12 mustEqual 1900
+            char.unk4 mustEqual 28
+            char.unk5 mustEqual 4
+            char.unk6 mustEqual 44
+            char.unk7 mustEqual 84
+            char.unk8 mustEqual 104
+            char.unk9 mustEqual 1900
             char.firstTimeEvents.size mustEqual 4
             char.firstTimeEvents.head mustEqual "xpe_sanctuary_help"
             char.firstTimeEvents(1) mustEqual "xpe_th_firemodes"
@@ -243,7 +282,7 @@ class GamePacketTest extends Specification {
             char.tutorials.size mustEqual 0
             char.inventory.unk1 mustEqual true
             char.inventory.unk2 mustEqual false
-            char.inventory.contents.length mustEqual 10
+            char.inventory.contents.size mustEqual 10
             val inventory = char.inventory.contents
             //0
             inventory.head.item.objectClass mustEqual 0x8C //beamer
@@ -306,45 +345,7 @@ class GamePacketTest extends Specification {
             inventory(9).item.objectClass mustEqual 0x2D8 //rek
             inventory(9).item.guid mustEqual PlanetSideGUID(88)
             inventory(9).item.parentSlot mustEqual 39
-            //the rek has data but none worth testing here
-          case default =>
-            ko
-        }
-      }
-
-      "decode (9mm)" in {
-        PacketCoding.DecodePacket(string_9mm).require match {
-          case obj @ ObjectCreateMessage(len, cls, guid, parent, data) =>
-            len mustEqual 124
-            cls mustEqual 28
-            guid mustEqual PlanetSideGUID(1280)
-            parent.isDefined mustEqual true
-            parent.get.guid mustEqual PlanetSideGUID(75)
-            parent.get.slot mustEqual 33
-            data.isDefined mustEqual true
-            data.get.asInstanceOf[AmmoBoxData].magazine mustEqual 50
-          case default =>
-            ko
-        }
-      }
-
-      "decode (gauss)" in {
-        PacketCoding.DecodePacket(string_gauss).require match {
-          case obj @ ObjectCreateMessage(len, cls, guid, parent, data) =>
-            len mustEqual 220
-            cls mustEqual 345
-            guid mustEqual PlanetSideGUID(1465)
-            parent.isDefined mustEqual true
-            parent.get.guid mustEqual PlanetSideGUID(75)
-            parent.get.slot mustEqual 2
-            data.isDefined mustEqual true
-            val obj_wep = data.get.asInstanceOf[WeaponData]
-            obj_wep.unk mustEqual 4
-            val obj_ammo = obj_wep.ammo//.asInstanceOf[InternalSlot]
-            obj_ammo.objectClass mustEqual 28
-            obj_ammo.guid mustEqual PlanetSideGUID(1286)
-            obj_ammo.parentSlot mustEqual 0
-            obj_ammo.obj.asInstanceOf[AmmoBoxData].magazine mustEqual 30
+          //the rek has data but none worth testing here
           case default =>
             ko
         }
@@ -370,6 +371,60 @@ class GamePacketTest extends Specification {
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
         pkt mustEqual string_gauss
+      }
+
+      "encode (rek)" in {
+        val obj = REKData(4)
+        val msg = ObjectCreateMessage(0, 0x2D8, PlanetSideGUID(1439), ObjectCreateMessageParent(PlanetSideGUID(75), 1), obj)
+        val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+        pkt mustEqual string_rek
+      }
+
+      "encode (character)" in {
+        val app = CharacterAppearanceData(
+          Vector3(3674.8438f, 2726.789f, 91.15625f),
+          19,
+          2,
+          false,
+          4,
+          "IlllIIIlllIlIllIlllIllI",
+          4,
+          2,
+          2,9,
+          1,
+          3, 118,30, 0x8080, 0xFFFF, 2,
+          255, 106, 7,
+          RibbonBars()
+        )
+        val inv = InventoryItem(0x8C, PlanetSideGUID(76), 0, WeaponData(8, 0x110, PlanetSideGUID(77), 0, AmmoBoxData(16))) ::
+          InventoryItem(0x34D, PlanetSideGUID(78), 2, WeaponData(8, 0x1C, PlanetSideGUID(79), 0, AmmoBoxData(25))) ::
+          InventoryItem(0x144, PlanetSideGUID(80), 4, WeaponData(8, 0x21C, PlanetSideGUID(81), 0, AmmoBoxData(1))) ::
+          InventoryItem(0x1C8, PlanetSideGUID(82), 5, AmmoBoxData(1)) ::
+          InventoryItem(0x1C, PlanetSideGUID(83), 6, AmmoBoxData(50)) ::
+          InventoryItem(0x1C, PlanetSideGUID(84), 9, AmmoBoxData(50)) ::
+          InventoryItem(0x1C, PlanetSideGUID(85), 12, AmmoBoxData(50)) ::
+          InventoryItem(0x1D, PlanetSideGUID(86), 33, AmmoBoxData(50)) ::
+          InventoryItem(0x110, PlanetSideGUID(87), 36, AmmoBoxData(50)) ::
+          InventoryItem(0x2D8, PlanetSideGUID(88), 39, REKData(8)) ::
+          Nil
+        val obj = CharacterData(
+          app,
+          100, 100,
+          50,
+          1, 7, 7,
+          100, 100,
+          28, 4, 44, 84, 104, 1900,
+          "xpe_sanctuary_help" :: "xpe_th_firemodes" :: "used_beamer" :: "map13" :: Nil,
+          List.empty,
+          InventoryData(
+            true, false, false, inv
+          )
+        )
+        val msg = ObjectCreateMessage(0, 0x79, PlanetSideGUID(75), obj)
+        val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+        pkt mustEqual string_testchar
       }
     }
 

@@ -1,7 +1,7 @@
 // Copyright (c) 2016 PSForever.net to present
 package net.psforever.packet.game
 
-import net.psforever.packet.game.objectcreate.{ConstructorData, ObjectClass}
+import net.psforever.packet.game.objectcreate.{ConstructorData, ObjectClass, StreamBitSize}
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
 import scodec.bits.BitVector
 import scodec.{Attempt, Codec, DecodeResult, Err}
@@ -12,10 +12,9 @@ import shapeless.{::, HNil}
   * The parent information of a created object.<br>
   * <br>
   * Rather than a created-parent with a created-child relationship, the whole of the packet still only creates the child.
-  * The parent is a pre-existing object into which the (created) child is attached.<br>
-  * <br>
-  * The slot is encoded as a string length integer commonly used by PlanetSide.
-  * It is either a 0-127 eight bit number (0 = `0x80`), or a 128-32767 sixteen bit number (128 = `0x0080`).
+  * The parent is a pre-existing object into which the (created) child is attached.
+  * The slot is encoded as a string length integer, following PlanetSide Classic convention for slot numbering.
+  * It is either a 0-127 eight bit number, or a 128-32767 sixteen bit number.
   * @param guid the GUID of the parent object
   * @param slot a parent-defined slot identifier that explains where the child is to be attached to the parent
   */
@@ -46,7 +45,8 @@ case class ObjectCreateMessageParent(guid : PlanetSideGUID,
   * @param objectClass the code for the type of object being constructed
   * @param guid the GUID this object will be assigned
   * @param parentInfo if defined, the relationship between this object and another object (its parent)
-  * @param data  if defined, the data used to construct this type of object
+  * @param data if defined, the data used to construct this type of object
+  * @see ObjectClass.selectDataCodec
   */
 case class ObjectCreateMessage(streamLength : Long,
                                objectClass : Int,
@@ -70,6 +70,17 @@ object ObjectCreateMessage extends Marshallable[ObjectCreateMessage] {
     */
   def apply(streamLength : Long, objectClass : Int, guid : PlanetSideGUID, parentInfo : ObjectCreateMessageParent, data : ConstructorData) : ObjectCreateMessage =
     ObjectCreateMessage(streamLength, objectClass, guid, Some(parentInfo), Some(data))
+
+  /**
+    * An abbreviated constructor for creating `ObjectCreateMessages`, ignoring `parentInfo`.
+    * @param streamLength the total length of the data that composes this packet in bits, excluding the opcode and end padding
+    * @param objectClass the code for the type of object being constructed
+    * @param guid the GUID this object will be assigned
+    * @param data the data used to construct this type of object
+    * @return an ObjectCreateMessage
+    */
+  def apply(streamLength : Long, objectClass : Int, guid : PlanetSideGUID, data : ConstructorData) : ObjectCreateMessage =
+    ObjectCreateMessage(streamLength, objectClass, guid, None, Some(data))
 
   type Pattern = Int :: PlanetSideGUID :: Option[ObjectCreateMessageParent] :: HNil
   type outPattern = Long :: Int :: PlanetSideGUID :: Option[ObjectCreateMessageParent] :: Option[ConstructorData] :: HNil
@@ -107,21 +118,18 @@ object ObjectCreateMessage extends Marshallable[ObjectCreateMessage] {
   )
 
   /**
-    * Take bit data and transform it into an object that expresses the important information of a game piece.<br>
-    * <br>
+    * Take bit data and transform it into an object that expresses the important information of a game piece.
     * This function is fail-safe because it catches errors involving bad parsing of the bitstream data.
-    * Generally, the `Exception` messages themselves are not useful.
+    * Generally, the `Exception` messages themselves are not useful here.
     * The important parts are what the packet thought the object class should be and what it actually processed.
-    * The bit data that failed to parse is retained for debugging at a later time.
     * @param objectClass the code for the type of object being constructed
-    * @param data        the bitstream data
+    * @param data the bitstream data
     * @return the optional constructed object
     */
   private def decodeData(objectClass : Int, data : BitVector) : Option[ConstructorData] = {
     var out : Option[ConstructorData] = None
-    val copy = data.drop(0)
     try {
-      val outOpt : Option[DecodeResult[_]] = ObjectClass.selectDataCodec(objectClass).decode(copy).toOption
+      val outOpt : Option[DecodeResult[_]] = ObjectClass.selectDataCodec(objectClass).decode(data).toOption
       if(outOpt.isDefined)
         out = outOpt.get.value.asInstanceOf[ConstructorData.genericPattern]
     }
@@ -133,13 +141,11 @@ object ObjectCreateMessage extends Marshallable[ObjectCreateMessage] {
   }
 
   /**
-    * Take the important information of a game piece and transform it into bit data.<br>
-    * <br>
+    * Take the important information of a game piece and transform it into bit data.
     * This function is fail-safe because it catches errors involving bad parsing of the object data.
-    * Generally, the `Exception` messages themselves are not useful.
-    * If parsing fails, all data pertinent to debugging the failure is retained in the constructor.
+    * Generally, the `Exception` messages themselves are not useful here.
     * @param objClass the code for the type of object being deconstructed
-    * @param obj      the object data
+    * @param obj the object data
     * @return the bitstream data
     */
   private def encodeData(objClass : Int, obj : ConstructorData) : BitVector = {
@@ -167,26 +173,22 @@ object ObjectCreateMessage extends Marshallable[ObjectCreateMessage] {
     * the object's GUID (16u),
     * and the bit to determine if there will be parent data.
     * In total, these fields form a known fixed length of 60u.
-    * @param parentInfo if defined, information about the parent adds either 24u or 32u
-    * @param data the data length is indeterminate until it is walked-through
-    * @return the total length of the stream in bits
+    * @param parentInfo if defined, the relationship between this object and another object (its parent);
+    *                   information about the parent adds either 24u or 32u
+    * @param data if defined, the data used to construct this type of object;
+    *             the data length is indeterminate until it is walked-through;
+    *             note: the type is `StreamBitSize` as opposed to `ConstructorData`
+    * @return the total length of the resulting data stream in bits
     */
-  private def streamLen(parentInfo : Option[ObjectCreateMessageParent], data : ConstructorData) : Long = {
+  private def streamLen(parentInfo : Option[ObjectCreateMessageParent], data : StreamBitSize) : Long = {
     //knowable length
-    val first : Long = if(parentInfo.isDefined) {
+    val base : Long = if(parentInfo.isDefined) {
       if(parentInfo.get.slot > 127) 92L else 84L //(32u + 1u + 11u + 16u) ?+ (16u + (8u | 16u))
     }
     else {
       60L
     }
-    //object length
-    var second : Long = data.bitsize
-    val secondMod4 : Long = second % 4L
-    if(secondMod4 > 0L) {
-      //pad to include last whole nibble
-      second += 4L - secondMod4
-    }
-    first + second
+    base + data.bitsize
   }
 
   implicit val codec : Codec[ObjectCreateMessage] = (

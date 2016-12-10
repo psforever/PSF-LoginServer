@@ -8,7 +8,9 @@ import shapeless.{::, HNil}
 
 /**
   * A representation of the REK portion of `ObjectCreateMessage` packet data.
-  * When alone, this data will help construct the "tool" called a Remote Electronics Kit.
+  * This data will help construct the "tool" called a Remote Electronics Kit.<br>
+  * <br>
+  * Of note is the first portion of the data which resembles the `WeaponData` format.
   * @param unk na
   */
 case class REKData(unk : Int
@@ -18,28 +20,28 @@ case class REKData(unk : Int
     * @see ConstructorData.bitsize
     * @return the number of bits necessary to represent this object
     */
-  override def bitsize : Long = 72L
+  override def bitsize : Long = 67L
 }
 
 object REKData extends Marshallable[REKData] {
   implicit val codec : Codec[REKData] = (
     ("unk" | uint4L) ::
       uint4L ::
-      ignore(20) ::
+      uintL(20) ::
       uint4L ::
-      ignore(16) ::
+      uintL(16) ::
       uint4L ::
-      ignore(20)
+      uintL(15)
     ).exmap[REKData] (
     {
-      case code :: 8 :: _ :: 2 :: _ :: 8 :: _ :: HNil =>
+      case code :: 8 :: 0 :: 2 :: 0 :: 8 :: 0 :: HNil =>
         Attempt.successful(REKData(code))
-      case _ :: x :: _ :: y :: _ :: z :: _ :: HNil =>
-        Attempt.failure(Err("looking for 8-2-8 pattern, found %d-%d-%d".format(x,y,z))) //TODO I actually don't know what of this is actually important
+      case code :: _ :: _ :: _ :: _ :: _ :: _ :: HNil =>
+        Attempt.failure(Err("illegal rek data format"))
     },
     {
       case REKData(code) =>
-        Attempt.successful(code :: 8 :: () :: 2 :: () :: 8 :: () :: HNil)
+        Attempt.successful(code :: 8 :: 0 :: 2 :: 0 :: 8 :: 0 :: HNil)
     }
   ).as[REKData]
 
@@ -55,7 +57,7 @@ object REKData extends Marshallable[REKData] {
       case Some(x) =>
         Attempt.successful(x.asInstanceOf[REKData])
       case _ =>
-        Attempt.failure(Err(""))
+        Attempt.failure(Err("can not encode rek data"))
     }
   )
 }

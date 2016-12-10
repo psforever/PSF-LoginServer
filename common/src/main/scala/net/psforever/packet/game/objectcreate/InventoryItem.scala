@@ -7,28 +7,22 @@ import scodec.Codec
 import scodec.codecs._
 
 /**
-  * Represent an item in inventory.<br>
+  * A representation of an item in an avatar's inventory.
+  * Reliance on `InternalSlot` indicates that this item is applicable to the same implicit parental relationship.
+  * (That is, its parent object will be clarified earlier on in the data stream.)
+  * Unwinding inventory items into individual standard `ObjectCreateMessage` packet data is entirely possible.<br>
   * <br>
-  * Note the use of `InternalSlot` to indicate the implicit parent ownership of the resulting item.
-  * Unwinding inventory items into individual standard `ObjectCreateMessage` packet data is entirely possible.
+  * This intermediary object is primarily intended to mask external use of `InternalSlot`.
   * @param item the object in inventory
-  * @param na the user should not have to worry about this potential bit;
-  *           it follows after weapon entries, allegedly
+  * @see InternalSlot
   */
-case class InventoryItem(item : InternalSlot,
-                         na : Option[Boolean] = None) {
+case class InventoryItem(item : InternalSlot) extends StreamBitSize {
   /**
     * Performs a "sizeof()" analysis of the given object.
     * @see ConstructorData.bitsize
     * @return the number of bits necessary to represent this object
     */
-  def bitsize : Long = {
-    //item
-    val first : Long = item.bitsize
-    //trailing bit
-    val second : Long = if(na.isDefined) 1L else 0L
-    first + second
-  }
+  override def bitsize : Long = item.bitsize
 }
 
 object InventoryItem extends Marshallable[InventoryItem] {
@@ -40,22 +34,10 @@ object InventoryItem extends Marshallable[InventoryItem] {
     * @param obj the constructor data
     * @return an InventoryItem
     */
-  def apply(objClass : Int, guid : PlanetSideGUID, parentSlot : Int, obj : ConstructorData) : InventoryItem = {
-    val isWep = if(obj.isInstanceOf[WeaponData]) Some(false) else None
-    //TODO is this always Some(false)?
-    InventoryItem(InternalSlot(objClass, guid, parentSlot, obj), isWep)
-  }
-
-  /**
-    * Determine whether the allocated item is a weapon.
-    * @param itm the inventory item
-    * @return true, if the item is a weapon; false, otherwise
-    */
-  def wasWeapon(itm : InternalSlot) : Boolean = itm.obj.isInstanceOf[WeaponData]
+  def apply(objClass : Int, guid : PlanetSideGUID, parentSlot : Int, obj : ConstructorData) : InventoryItem =
+    InventoryItem(InternalSlot(objClass, guid, parentSlot, obj))
 
   implicit val codec : Codec[InventoryItem] = (
-    ("item" | InternalSlot.codec) >>:~ { item =>
-      conditional(wasWeapon(item), bool).hlist
-    }
+    "item" | InternalSlot.codec
   ).as[InventoryItem]
 }

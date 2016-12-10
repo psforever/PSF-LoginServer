@@ -1,20 +1,27 @@
 // Copyright (c) 2016 PSForever.net to present
 package net.psforever.packet.game.objectcreate
 
-import net.psforever.packet.Marshallable
+import net.psforever.packet.{Marshallable, PacketHelpers}
 import scodec.Codec
 import scodec.codecs._
-import shapeless.{::,HNil}
+import shapeless.{::, HNil}
 
 /**
   * A representation of the inventory portion of `ObjectCreateMessage` packet data for avatars.<br>
   * <br>
-  * Unfortunately, the inventory is a fail-fast greedy thing.
-  * Any format discrepancies will cause it to fail and that will cause character encoding to fail as well.
-  * Care should be taken that all possible item encodings are representable.
+  * The inventory is a temperamental thing.
+  * Items placed into the inventory must follow their proper encoding schematics to the letter.
+  * No values are allowed to be misplaced and no unexpected regions of data can be discovered.
+  * If there is even a minor failure, the whole of the inventory will fail to translate.<br>
+  * <br>
+  * Exploration:<br>
+  * 4u of ignored bits are tagged onto the end of this field for purposes of finding four missing bits of stream length.
+  * The rest of the encoding is valid.
+  * Conditions must certainly decide whether these bits are present or not.
   * @param unk1 na;
-  *             always `true` to mark the start of the inventory data?
+  *             `true` to mark the start of the inventory data?
   * @param unk2 na
+  * @param unk3 na
   * @param contents the actual items in the inventory;
   *                  holster slots are 0-4;
   *                  an inaccessible slot is 5;
@@ -22,38 +29,42 @@ import shapeless.{::,HNil}
   */
 case class InventoryData(unk1 : Boolean,
                          unk2 : Boolean,
-                         contents : Vector[InventoryItem]) {
+                         unk3 : Boolean,
+                         contents : List[InventoryItem]) extends StreamBitSize {
   /**
     * Performs a "sizeof()" analysis of the given object.
     * @see ConstructorData.bitsize
     * @return the number of bits necessary to represent this object
     */
-  def bitsize : Long = {
-    //two booleans and the 8-bit length field
-    val first : Long = 10L
+  override def bitsize : Long = {
+    //three booleans, the 4u and the 8u length field
+    val base : Long = 15L
     //length of all items in inventory
-    var second : Long = 0L
+    var invSize : Long = 0L
     for(item <- contents) {
-      second += item.bitsize
+      invSize += item.bitsize
     }
-    first + second
+    base + invSize
   }
 }
 
 object InventoryData extends Marshallable[InventoryData] {
   implicit val codec : Codec[InventoryData] = (
     ("unk1" | bool) ::
-      ("len" | uint8L) ::
-      ("unk2" | bool) ::
-      ("contents" | vector(InventoryItem.codec))
-    ).xmap[InventoryData] (
+      (("len" | uint8L) >>:~ { len =>
+        ("unk2" | bool) ::
+          ("unk3" | bool) ::
+          ("contents" | PacketHelpers.listOfNSized(len, InventoryItem.codec)) ::
+          ignore(4)
+      })
+      ).xmap[InventoryData] (
     {
-      case u1 :: _ :: u2 :: vector :: HNil =>
-        InventoryData(u1, u2, vector)
+      case u1 :: _ :: u2 :: u3 :: ctnt :: _ :: HNil =>
+        InventoryData(u1, u2, u3, ctnt)
     },
     {
-      case InventoryData(u1, u2, vector) =>
-        u1 :: vector.length :: u2 :: vector :: HNil
+      case InventoryData(u1, u2, u3, ctnt) =>
+        u1 :: ctnt.size :: u2 :: u3 :: ctnt :: () :: HNil
     }
   ).as[InventoryData]
 }

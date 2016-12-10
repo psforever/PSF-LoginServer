@@ -8,11 +8,14 @@ import shapeless.{::, HNil}
 
 /**
   * A representation of the ammunition portion of `ObjectCreateMessage` packet data.
-  * When alone, this data will help construct a "box" of that type of ammunition, hence the name.<br>
+  * This data will help construct a "box" of that type of ammunition when standalone.
+  * It can also be constructed directly inside a weapon as its magazine.<br>
   * <br>
-  * Exploration:<br>
-  * This class may need to be rewritten later to support objects spawned in the world environment.
+  * The maximum amount of ammunition that can be stored in a single box is 65535 units.
+  * Regardless of the interface, however, the number will never be fully visible.
+  * Only the first three digits or first four digits may be represented.
   * @param magazine the number of rounds available
+  * @see WeaponData
   */
 case class AmmoBoxData(magazine : Int
                       ) extends ConstructorData {
@@ -21,24 +24,25 @@ case class AmmoBoxData(magazine : Int
     * @see ConstructorData.bitsize
     * @return the number of bits necessary to represent this object
     */
-  override def bitsize : Long = 39L
+  override def bitsize : Long = 40L
 }
 
 object AmmoBoxData extends Marshallable[AmmoBoxData] {
   implicit val codec : Codec[AmmoBoxData] = (
     uintL(8) ::
-      ignore(15) ::
-      ("magazine" | uint16L)
+      uintL(15) ::
+      ("magazine" | uint16L) ::
+      bool
     ).exmap[AmmoBoxData] (
     {
-      case 0xC8 :: _ :: mag :: HNil =>
+      case 0xC8 :: 0 :: mag :: false :: HNil =>
         Attempt.successful(AmmoBoxData(mag))
-      case x :: _ :: _ :: HNil =>
-        Attempt.failure(Err("looking for 200, found "+x))
+      case a :: b :: _ :: d :: HNil =>
+        Attempt.failure(Err("illegal ammunition data format"))
     },
     {
       case AmmoBoxData(mag) =>
-        Attempt.successful(0xC8 :: () :: mag :: HNil)
+        Attempt.successful(0xC8 :: 0 :: mag :: false:: HNil)
     }
   )
 
@@ -54,7 +58,7 @@ object AmmoBoxData extends Marshallable[AmmoBoxData] {
       case Some(x) =>
         Attempt.successful(x.asInstanceOf[AmmoBoxData])
       case _ =>
-        Attempt.failure(Err(""))
+        Attempt.failure(Err("can not encode ammo box data"))
     }
   )
 }

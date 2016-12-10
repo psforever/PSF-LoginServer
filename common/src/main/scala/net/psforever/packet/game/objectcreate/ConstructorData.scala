@@ -7,23 +7,15 @@ package net.psforever.packet.game.objectcreate
   * Children of this class are expected to be able to translate through `scodec` operations into packet data.<br>
   * <br>
   * The object data is uncoupled from the object class as multiple classes use the same format for their data.
-  * For example, both the Suppressor and the Gauss use a weapon data format.
-  * For example, both 9mm Bullets and energy cells use am ammunition data format.
+  * For example, both the Suppressor and the Gauss will use a "weapon data" format.
+  * For example, both 9mm bullets and energy cells will use an "ammunition data" format.
   */
-abstract class ConstructorData() {
-  /**
-    * Performs a "sizeof()" analysis of the given object.
-    * @return the number of bits necessary to represent this object;
-    *         reflects the `Codec` definition rather than the parameter fields;
-    *         defaults to `0L`
-    */
-  def bitsize : Long = 0L
-}
+abstract class ConstructorData extends StreamBitSize
 
 object ConstructorData {
   /**
     * This pattern is intended to provide common conversion between all of the `Codec`s of the children of this class.
-    * The casting will be performed through use of `exmap`.
+    * The casting will be performed through use of `exmap` in the child class.
     */
   type genericPattern = Option[ConstructorData]
 }
