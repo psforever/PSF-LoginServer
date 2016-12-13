@@ -9,7 +9,8 @@ import scodec.Attempt.{Failure, Successful}
 import scodec.bits._
 import org.log4s.MDC
 import MDCContextAware.Implicits._
-import net.psforever.types.ChatMessageType
+import net.psforever.packet.game.objectcreate._
+import net.psforever.types.{ChatMessageType, Vector3}
 
 class WorldSessionActor extends Actor with MDCContextAware {
   private[this] val log = org.log4s.getLogger
@@ -107,8 +108,49 @@ class WorldSessionActor extends Actor with MDCContextAware {
     }
   }
 
-  // XXX: hard coded ObjectCreateMessage
-  val objectHex = hex"18 57 0C 00 00 BC 84 B0  06 C2 D7 65 53 5C A1 60 00 01 34 40 00 09 70 49  00 6C 00 6C 00 6C 00 49 00 49 00 49 00 6C 00 6C  00 6C 00 49 00 6C 00 49 00 6C 00 6C 00 49 00 6C  00 6C 00 6C 00 49 00 6C 00 6C 00 49 00 84 52 70  76 1E 80 80 00 00 00 00 00 3F FF C0 00 00 00 20  00 00 0F F6 A7 03 FF FF FF FF FF FF FF FF FF FF  FF FF FF FF FF FD 90 00 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 00 01 90 01 90 00 64 00  00 01 00 7E C8 00 C8 00 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 00 00 01 C0 00 42 C5 46  86 C7 00 00 00 80 00 00 12 40 78 70 65 5F 73 61  6E 63 74 75 61 72 79 5F 68 65 6C 70 90 78 70 65  5F 74 68 5F 66 69 72 65 6D 6F 64 65 73 8B 75 73  65 64 5F 62 65 61 6D 65 72 85 6D 61 70 31 33 00  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 00 00 00 00 01 0A 23 02  60 04 04 40 00 00 10 00 06 02 08 14 D0 08 0C 80  00 02 00 02 6B 4E 00 82 88 00 00 02 00 00 C0 41  C0 9E 01 01 90 00 00 64 00 44 2A 00 10 91 00 00  00 40 00 18 08 38 94 40 20 32 00 00 00 80 19 05  48 02 17 20 00 00 08 00 70 29 80 43 64 00 00 32  00 0E 05 40 08 9C 80 00 06 40 01 C0 AA 01 19 90  00 00 C8 00 3A 15 80 28 72 00 00 19 00 04 0A B8  05 26 40 00 03 20 06 C2 58 00 A7 88 00 00 02 00  00 80 00 00 "
+  //val objectHex = hex"18 57 0C 00 00 BC 84 B0 06 C2 D7 65 53 5C A1 60 00 01 34 40 00 09 70 49 00 6C 00 6C 00 6C 00 49 00 49 00 49 00 6C 00 6C 00 6C 00 49 00 6C 00 49 00 6C 00 6C 00 49 00 6C 00 6C 00 6C 00 49 00 6C 00 6C 00 49 00 84 52 70 76 1E 80 80 00 00 00 00 00 3F FF C0 00 00 00 20 00 00 0F F6 A7 03 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FD 90 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 90 01 90 00 64 00 00 01 00 7E C8 00 C8 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 C0 00 42 C5 46 86 C7 00 00 00 80 00 00 12 40 78 70 65 5F 73 61 6E 63 74 75 61 72 79 5F 68 65 6C 70 90 78 70 65 5F 74 68 5F 66 69 72 65 6D 6F 64 65 73 8B 75 73 65 64 5F 62 65 61 6D 65 72 85 6D 61 70 31 33 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 0A 23 02 60 04 04 40 00 00 10 00 06 02 08 14 D0 08 0C 80 00 02 00 02 6B 4E 00 82 88 00 00 02 00 00 C0 41 C0 9E 01 01 90 00 00 64 00 44 2A 00 10 91 00 00 00 40 00 18 08 38 94 40 20 32 00 00 00 80 19 05 48 02 17 20 00 00 08 00 70 29 80 43 64 00 00 32 00 0E 05 40 08 9C 80 00 06 40 01 C0 AA 01 19 90 00 00 C8 00 3A 15 80 28 72 00 00 19 00 04 0A B8 05 26 40 00 03 20 06 C2 58 00 A7 88 00 00 02 00 00 80 00 00"
+  //currently, the character's starting BEP is discarded due to unknown bit format
+  val app = CharacterAppearanceData(
+    Vector3(3674.8438f, 2726.789f, 91.15625f),
+    19,
+    2,
+    false,
+    4,
+    "IlllIIIlllIlIllIlllIllI",
+    4,
+    2,
+    2, 9,
+    1,
+    3, 118, 30, 0x8080, 0xFFFF, 2,
+    255, 106, 7,
+    RibbonBars()
+  )
+  val inv =
+    InventoryItem(ObjectClass.BEAMER, PlanetSideGUID(76), 0, WeaponData(8, ObjectClass.ENERGY_CELL, PlanetSideGUID(77), 0, AmmoBoxData(16))) ::
+    InventoryItem(ObjectClass.SUPPRESSOR, PlanetSideGUID(78), 2, WeaponData(8, ObjectClass.BULLETS_9MM, PlanetSideGUID(79), 0, AmmoBoxData(25))) ::
+    InventoryItem(ObjectClass.FORCE_BLADE, PlanetSideGUID(80), 4, WeaponData(8, ObjectClass.FORCE_BLADE_AMMO, PlanetSideGUID(81), 0, AmmoBoxData(1))) ::
+    InventoryItem(ObjectClass.SLOT_BLOCKER, PlanetSideGUID(82), 5, AmmoBoxData(1)) ::
+    InventoryItem(ObjectClass.BULLETS_9MM, PlanetSideGUID(83), 6, AmmoBoxData(50)) ::
+    InventoryItem(ObjectClass.BULLETS_9MM, PlanetSideGUID(84), 9, AmmoBoxData(50)) ::
+    InventoryItem(ObjectClass.BULLETS_9MM, PlanetSideGUID(85), 12, AmmoBoxData(50)) ::
+    InventoryItem(ObjectClass.BULLETS_9MM_AP, PlanetSideGUID(86), 33, AmmoBoxData(50)) ::
+    InventoryItem(ObjectClass.ENERGY_CELL, PlanetSideGUID(87), 36, AmmoBoxData(50)) ::
+    InventoryItem(ObjectClass.REK, PlanetSideGUID(88), 39, REKData(8)) ::
+    Nil
+  val obj = CharacterData(
+    app,
+    100, 100,
+    50,
+    1, 7, 7,
+    100, 100,
+    28, 4, 44, 84, 104, 1900,
+    "xpe_sanctuary_help" :: "xpe_th_firemodes" :: "used_beamer" :: "map13" :: Nil,
+    List.empty,
+    InventoryData(
+      true, false, false, inv
+    )
+  )
+  val objectHex = ObjectCreateMessage(0, ObjectClass.AVATAR, PlanetSideGUID(75), obj)
 
   def handleGamePkt(pkt : PlanetSideGamePacket) = pkt match {
     case ConnectToWorldRequestMessage(server, token, majorVersion, minorVersion, revision, buildDate, unk) =>
@@ -118,7 +160,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       log.info(s"New world login to ${server} with Token:${token}. ${clientVersion}")
 
       // ObjectCreateMessage
-      sendRawResponse(objectHex)
+      sendResponse(PacketCoding.CreateGamePacket(0, objectHex))
       // XXX: hard coded message
       sendRawResponse(hex"14 0F 00 00 00 10 27 00  00 C1 D8 7A 02 4B 00 26 5C B0 80 00 ")
 
@@ -132,14 +174,14 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case CharacterRequestAction.Delete =>
           sendResponse(PacketCoding.CreateGamePacket(0, ActionResultMessage(false, Some(1))))
         case CharacterRequestAction.Select =>
-          PacketCoding.DecodeGamePacket(objectHex).require match {
+          objectHex match {
             case obj @ ObjectCreateMessage(len, cls, guid, _, _) =>
               log.debug("Object: " + obj)
               // LoadMapMessage 13714 in mossy .gcap
               // XXX: hardcoded shit
               sendResponse(PacketCoding.CreateGamePacket(0, LoadMapMessage("map13","home3",40100,25,true,3770441820L))) //VS Sanctuary
               sendResponse(PacketCoding.CreateGamePacket(0, ZonePopulationUpdateMessage(PlanetSideGUID(13), 414, 138, 0, 138, 0, 138, 0, 138, 0)))
-              sendRawResponse(objectHex)
+              sendResponse(PacketCoding.CreateGamePacket(0, objectHex))
 
               // These object_guids are specfic to VS Sanc
               sendResponse(PacketCoding.CreateGamePacket(0, SetEmpireMessage(PlanetSideGUID(2), PlanetSideEmpire.VS))) //HART building C

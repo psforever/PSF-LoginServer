@@ -8,15 +8,15 @@ import scodec.codecs._
 
 /**
   * A representation of an item in an avatar's inventory.
-  * Reliance on `InternalSlot` indicates that this item is applicable to the same implicit parental relationship.
-  * (That is, its parent object will be clarified earlier on in the data stream.)
+  * Reliance on `InternalSlot` indicates that this item is applicable to the same implicit parent-child relationship.
+  * (That is, its parent object will be clarified by the containing element, e.g., the inventory or its owner.)
   * Unwinding inventory items into individual standard `ObjectCreateMessage` packet data is entirely possible.<br>
   * <br>
-  * This intermediary object is primarily intended to mask external use of `InternalSlot`.
+  * This intermediary object is primarily intended to mask external use of `InternalSlot`, as specified by the class.
   * @param item the object in inventory
   * @see InternalSlot
   */
-case class InventoryItem(item : InternalSlot) extends StreamBitSize {
+final case class InventoryItem(item : InternalSlot) extends StreamBitSize {
   /**
     * Performs a "sizeof()" analysis of the given object.
     * @see ConstructorData.bitsize

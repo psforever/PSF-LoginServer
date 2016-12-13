@@ -153,6 +153,7 @@ class GamePacketTest extends Specification {
       var string_inventoryItem = hex"46 04 C0 08 08 80 00 00 20 00 0C 04 10 29 A0 10 19 00 00 04 00 00"
       val string_9mm = hex"18 7C000000 2580 0E0 0005 A1 C8000064000"
       val string_gauss = hex"18 DC000000 2580 2C9 B905 82 480000020000C04 1C00C0B0190000078000"
+      val string_punisher = hex"18 27010000 2580 612 a706 82 080000020000c08 1c13a0d01900000780 13a4701a072000000800"
       val string_rek = hex"18 97000000 2580 6C2 9F05 81 48000002000080000"
       val string_testchar = hex"18 570C0000 BC8 4B00 6C2D7 65535 CA16 0 00 01 34 40 00 0970 49006C006C006C004900490049006C006C006C0049006C0049006C006C0049006C006C006C0049006C006C004900 84 52 70 76 1E 80 80 00 00 00 00 00 3FFFC 0 00 00 00 20 00 00 0F F6 A7 03 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FC 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 90 01 90 00 64 00 00 01 00 7E C8 00 C8 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 C0 00 42 C5 46  86 C7 00 00 00 80 00 00 12 40 78 70 65 5F 73 61 6E 63 74 75 61 72 79 5F 68 65 6C 70 90 78 70 65 5F 74 68 5F 66 69 72 65 6D 6F 64 65 73 8B 75 73 65 64 5F 62 65 61 6D 65 72 85 6D 61 70 31 33 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 0A 23 02 60 04 04 40 00 00 10 00 06 02 08 14 D0 08 0C 80 00 02 00 02 6B 4E 00 82 88 00 00 02 00 00 C0 41 C0 9E 01 01 90 00 00 64 00 44 2A 00 10 91 00 00 00 40 00 18 08 38 94 40 20 32 00 00 00 80 19 05 48 02 17 20 00 00 08 00 70 29 80 43 64 00 00 32 00 0E 05 40 08 9C 80 00 06 40 01 C0 AA 01 19 90 00 00 C8 00 3A 15 80 28 72 00 00 19 00 04 0A B8 05 26 40 00 03 20 06 C2 58 00 A7 88 00 00 02 00 00 80 00 00"
 
@@ -207,6 +208,33 @@ class GamePacketTest extends Specification {
             ko
         }
       }
+
+      "decode (punisher)" in {
+        PacketCoding.DecodePacket(string_punisher).require match {
+          case obj @ ObjectCreateMessage(len, cls, guid, parent, data) =>
+            len mustEqual 295
+            cls mustEqual 706
+            guid mustEqual PlanetSideGUID(1703)
+            parent.isDefined mustEqual true
+            parent.get.guid mustEqual PlanetSideGUID(75)
+            parent.get.slot mustEqual 2
+            data.isDefined mustEqual true
+            val obj_wep = data.get.asInstanceOf[ConcurrentFeedWeaponData]
+            obj_wep.unk mustEqual 0
+            val obj_ammo = obj_wep.ammo
+            obj_ammo.size mustEqual 2
+            obj_ammo.head.objectClass mustEqual 28
+            obj_ammo.head.guid mustEqual PlanetSideGUID(1693)
+            obj_ammo.head.parentSlot mustEqual 0
+            obj_ammo.head.obj.asInstanceOf[AmmoBoxData].magazine mustEqual 30
+            obj_ammo(1).objectClass mustEqual 413
+            obj_ammo(1).guid mustEqual PlanetSideGUID(1564)
+            obj_ammo(1).parentSlot mustEqual 1
+            obj_ammo(1).obj.asInstanceOf[AmmoBoxData].magazine mustEqual 1
+          case _ =>
+            ko
+          }
+        }
 
       "decode (rek)" in {
         PacketCoding.DecodePacket(string_rek).require match {
@@ -371,6 +399,14 @@ class GamePacketTest extends Specification {
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
         pkt mustEqual string_gauss
+      }
+
+      "encode (punisher)" in {
+        val obj = ConcurrentFeedWeaponData(0, AmmoBoxData(28, PlanetSideGUID(1693), 0, AmmoBoxData(30)) :: AmmoBoxData(413, PlanetSideGUID(1564), 1, AmmoBoxData(1)) :: Nil)
+        val msg = ObjectCreateMessage(0, 706, PlanetSideGUID(1703), ObjectCreateMessageParent(PlanetSideGUID(75), 2), obj)
+        var pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+        pkt mustEqual string_punisher
       }
 
       "encode (rek)" in {

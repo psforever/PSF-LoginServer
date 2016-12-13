@@ -18,8 +18,8 @@ import shapeless.{::, HNil}
   * @param guid the GUID of the parent object
   * @param slot a parent-defined slot identifier that explains where the child is to be attached to the parent
   */
-case class ObjectCreateMessageParent(guid : PlanetSideGUID,
-                                     slot : Int)
+final case class ObjectCreateMessageParent(guid : PlanetSideGUID,
+                                           slot : Int)
 
 /**
   * Communicate with the client that a certain object with certain properties is to be created.
@@ -45,14 +45,15 @@ case class ObjectCreateMessageParent(guid : PlanetSideGUID,
   * @param objectClass the code for the type of object being constructed
   * @param guid the GUID this object will be assigned
   * @param parentInfo if defined, the relationship between this object and another object (its parent)
-  * @param data if defined, the data used to construct this type of object
+  * @param data the data used to construct this type of object;
+  *             on decoding, set to `None` if the process failed
   * @see ObjectClass.selectDataCodec
   */
-case class ObjectCreateMessage(streamLength : Long,
-                               objectClass : Int,
-                               guid : PlanetSideGUID,
-                               parentInfo : Option[ObjectCreateMessageParent],
-                               data : Option[ConstructorData])
+final case class ObjectCreateMessage(streamLength : Long,
+                                     objectClass : Int,
+                                     guid : PlanetSideGUID,
+                                     parentInfo : Option[ObjectCreateMessageParent],
+                                     data : Option[ConstructorData])
   extends PlanetSideGamePacket {
   def opcode = GamePacketOpcode.ObjectCreateMessage
   def encode = ObjectCreateMessage.encode(this)

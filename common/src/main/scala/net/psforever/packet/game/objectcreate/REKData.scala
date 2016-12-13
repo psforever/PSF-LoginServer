@@ -13,8 +13,7 @@ import shapeless.{::, HNil}
   * Of note is the first portion of the data which resembles the `WeaponData` format.
   * @param unk na
   */
-case class REKData(unk : Int
-                  ) extends ConstructorData {
+final case class REKData(unk : Int) extends ConstructorData {
   /**
     * Performs a "sizeof()" analysis of the given object.
     * @see ConstructorData.bitsize
@@ -29,7 +28,7 @@ object REKData extends Marshallable[REKData] {
       uint4L ::
       uintL(20) ::
       uint4L ::
-      uintL(16) ::
+      uint16L ::
       uint4L ::
       uintL(15)
     ).exmap[REKData] (
@@ -37,7 +36,7 @@ object REKData extends Marshallable[REKData] {
       case code :: 8 :: 0 :: 2 :: 0 :: 8 :: 0 :: HNil =>
         Attempt.successful(REKData(code))
       case code :: _ :: _ :: _ :: _ :: _ :: _ :: HNil =>
-        Attempt.failure(Err("illegal rek data format"))
+        Attempt.failure(Err("invalid rek data format"))
     },
     {
       case REKData(code) =>

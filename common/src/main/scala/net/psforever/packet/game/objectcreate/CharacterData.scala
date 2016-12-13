@@ -89,27 +89,27 @@ import shapeless.{::, HNil}
   * @param unk8 na
   * @param ribbons the four merit commendation ribbon medals
   */
-case class CharacterAppearanceData(pos : Vector3,
-                                   objYaw : Int,
-                                   faction : Int,
-                                   bops : Boolean,
-                                   unk1 : Int,
-                                   name : String,
-                                   exosuit : Int,
-                                   sex : Int,
-                                   face1 : Int,
-                                   face2 : Int,
-                                   voice : Int,
-                                   unk2 : Int,
-                                   unk3 : Int,
-                                   unk4 : Int,
-                                   unk5 : Int,
-                                   unk6 : Int,
-                                   unk7 : Int,
-                                   viewPitch : Int,
-                                   viewYaw : Int,
-                                   unk8 : Int,
-                                   ribbons : RibbonBars) extends StreamBitSize {
+final case class CharacterAppearanceData(pos : Vector3,
+                                         objYaw : Int,
+                                         faction : Int,
+                                         bops : Boolean,
+                                         unk1 : Int,
+                                         name : String,
+                                         exosuit : Int,
+                                         sex : Int,
+                                         face1 : Int,
+                                         face2 : Int,
+                                         voice : Int,
+                                         unk2 : Int,
+                                         unk3 : Int,
+                                         unk4 : Int,
+                                         unk5 : Int,
+                                         unk6 : Int,
+                                         unk7 : Int,
+                                         viewPitch : Int,
+                                         viewYaw : Int,
+                                         unk8 : Int,
+                                         ribbons : RibbonBars) extends StreamBitSize {
   /**
     * Performs a "sizeof()" analysis of the given object.
     * @see ConstructorData.bitsize
@@ -138,18 +138,18 @@ object CharacterAppearanceData extends Marshallable[CharacterAppearanceData] {
       ignore(16) ::
       ("objYaw" | uint8L) ::
       ignore(1) ::
-      ("faction" | uintL(2)) ::
+      ("faction" | uint2L) ::
       ("bops" | bool) ::
       ("unk1" | uint4L) ::
       ignore(16) ::
       ("name" | PacketHelpers.encodedWideStringAligned( namePadding )) ::
       ("exosuit" | uintL(3)) ::
       ignore(2) ::
-      ("sex" | uintL(2)) ::
+      ("sex" | uint2L) ::
       ("face1" | uint4L) ::
       ("face2" | uint4L) ::
       ("voice" | uintL(3)) ::
-      ("unk2" | uintL(2)) ::
+      ("unk2" | uint2L) ::
       ignore(4) ::
       ("unk3" | uint8L) ::
       ("unk4" | uint8L) ::
@@ -219,29 +219,29 @@ object CharacterAppearanceData extends Marshallable[CharacterAppearanceData] {
   *                        the size field is a 32-bit number;
   *                        the first entry may be padded
   * @param tutorials the list of tutorials completed by this avatar;
-  *                        the size field is a 32-bit number;
-  *                        the first entry may be padded
+  *                  the size field is a 32-bit number;
+  *                  the first entry may be padded
   * @param inventory the avatar's inventory
   */
-case class CharacterData(appearance : CharacterAppearanceData,
-                         healthMax : Int,
-                         health : Int,
-                         armor : Int,
-                         unk1 : Int, //1
-                         unk2 : Int, //7
-                         unk3 : Int, //7
-                         staminaMax : Int,
-                         stamina : Int,
-                         unk4 : Int, //28
-                         unk5 : Int, //4
-                         unk6 : Int, //44
-                         unk7 : Int, //84
-                         unk8 : Int, //104
-                         unk9 : Int, //1900
-                         firstTimeEvents : List[String],
-                         tutorials : List[String],
-                         inventory : InventoryData
-                        ) extends ConstructorData {
+final case class CharacterData(appearance : CharacterAppearanceData,
+                               healthMax : Int,
+                               health : Int,
+                               armor : Int,
+                               unk1 : Int, //1
+                               unk2 : Int, //7
+                               unk3 : Int, //7
+                               staminaMax : Int,
+                               stamina : Int,
+                               unk4 : Int, //28
+                               unk5 : Int, //4
+                               unk6 : Int, //44
+                               unk7 : Int, //84
+                               unk8 : Int, //104
+                               unk9 : Int, //1900
+                               firstTimeEvents : List[String],
+                               tutorials : List[String],
+                               inventory : InventoryData
+                               ) extends ConstructorData {
   /**
     * Performs a "sizeof()" analysis of the given object.
     * @see ConstructorData.bitsize
@@ -310,7 +310,7 @@ object CharacterData extends Marshallable[CharacterData] {
     if(len > 0) //automatic alignment from previous List
       0
     else if(len2 > 0) //need to align for elements
-      1
+      5
     else //both lists are empty
       0
   }

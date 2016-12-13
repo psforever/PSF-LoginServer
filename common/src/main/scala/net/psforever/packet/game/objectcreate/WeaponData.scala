@@ -8,11 +8,11 @@ import scodec.codecs._
 import shapeless.{::, HNil}
 
 /**
-  * A representation of the weapon portion of `ObjectCreateMessage` packet data.
-  * This data will help construct a "weapon" such as a Suppressor or a Gauss.<br>
+  * A representation of a class of weapons that can be created using `ObjectCreateMessage` packet data.
+  * This data will help construct a "loaded weapon" such as a Suppressor or a Gauss.<br>
   * <br>
   * The data for the weapons nests information for the default (current) type and number of ammunition in its magazine.
-  * This ammunition data essentially is the weapon's magazine as numbered slots.
+  * This ammunition data essentially is the weapon's magazines as numbered slots.
   * Having said that, this format only handles one type of ammunition at a time.
   * Any weapon that has two types of ammunition simultaneously loaded, e.g., a Punisher, must be handled with another `Codec`.
   * This functionality is unrelated to a weapon that switches ammunition type;
@@ -21,8 +21,8 @@ import shapeless.{::, HNil}
   * @param ammo data regarding the currently loaded ammunition type and quantity
   * @see AmmoBoxData
   */
-case class WeaponData(unk : Int,
-                      ammo : InternalSlot) extends ConstructorData {
+final case class WeaponData(unk : Int,
+                            ammo : InternalSlot) extends ConstructorData {
   /**
     * Performs a "sizeof()" analysis of the given object.
     * @see ConstructorData.bitsize
@@ -51,23 +51,23 @@ object WeaponData extends Marshallable[WeaponData] {
   implicit val codec : Codec[WeaponData] = (
     ("unk" | uint4L) ::
       uint4L ::
-      uintL(20) ::
-      uint4L ::
-      uintL(16) ::
-      uintL(11) ::
-      bool ::
+      uint24 ::
+      uint16L ::
+      uint2 ::
+      uint8 :: //size = 1 type of ammunition loaded
+      uint2 ::
       ("ammo" | InternalSlot.codec) ::
       bool
     ).exmap[WeaponData] (
     {
-      case code :: 8 :: 0 :: 2 :: 0 :: 0x2C0 :: false :: ammo :: false :: HNil =>
+      case code :: 8 :: 2 :: 0 :: 3 :: 1 :: 0 :: ammo :: false :: HNil =>
         Attempt.successful(WeaponData(code, ammo))
       case code :: _ :: _ ::  _ :: _ :: _ :: _ :: _ :: _ :: HNil =>
-        Attempt.failure(Err("illegal weapon data format"))
+        Attempt.failure(Err("invalid weapon data format"))
     },
     {
       case WeaponData(code, ammo) =>
-        Attempt.successful(code :: 8 :: 0 :: 2 :: 0 :: 0x2C0 :: false :: ammo :: false :: HNil)
+        Attempt.successful(code :: 8 :: 2 :: 0 :: 3 :: 1 :: 0 :: ammo :: false :: HNil)
     }
   ).as[WeaponData]
 

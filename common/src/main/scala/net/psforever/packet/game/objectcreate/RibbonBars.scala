@@ -17,10 +17,10 @@ import scodec.codecs._
   * @param lower the lower configurable merit ribbon
   * @param tos the top-most term of service merit ribbon
   */
-case class RibbonBars(upper : Long = 0xFFFFFFFFL,
-                      middle : Long = 0xFFFFFFFFL,
-                      lower : Long = 0xFFFFFFFFL,
-                      tos : Long = 0xFFFFFFFFL) extends StreamBitSize {
+final case class RibbonBars(upper : Long = 0xFFFFFFFFL,
+                            middle : Long = 0xFFFFFFFFL,
+                            lower : Long = 0xFFFFFFFFL,
+                            tos : Long = 0xFFFFFFFFL) extends StreamBitSize {
   /**
     * Performs a "sizeof()" analysis of the given object.
     * @see ConstructorData.bitsize

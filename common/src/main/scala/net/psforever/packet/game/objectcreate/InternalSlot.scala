@@ -8,22 +8,22 @@ import scodec.codecs._
 import shapeless.{::, HNil}
 
 /**
-  * Similar fields as required for a formal `ObjectCreateMessage` but with a required but implicit parent relationship.
-  * Specifically, the purpose of the packet is to start to define a new object within the definition of a previous object.
-  * This prior object will clarify the identity of the parent object that owns the given `parentSlot`.<br>
+  * An intermediate class for the primary fields of `ObjectCreateMessage` with an implicit parent-child relationship.<br>
   * <br>
-  * An `InternalSlot` object is not a top-level object.
-  * Extra effort should be made to ensure the user does not have to directly construct an `InternalSlot`.
+  * Any object that is contained in a "slot" of another object will use `InternalSlot` to hold the anchoring data.
+  * This prior object will clarify the identity of the "parent" object that owns the given `parentSlot`.<br>
+  * <br>
+  * Try to avoid exposing `InternalSlot` in the process of implementing code.
   * @param objectClass the code for the type of object being constructed
   * @param guid the GUID this object will be assigned
   * @param parentSlot a parent-defined slot identifier that explains where the child is to be attached to the parent
   * @param obj the data used as representation of the object to be constructed
   * @see ObjectClass.selectDataCodec
   */
-case class InternalSlot(objectClass : Int,
-                        guid : PlanetSideGUID,
-                        parentSlot : Int,
-                        obj : ConstructorData) extends StreamBitSize {
+final case class InternalSlot(objectClass : Int,
+                              guid : PlanetSideGUID,
+                              parentSlot : Int,
+                              obj : ConstructorData) extends StreamBitSize {
   /**
     * Performs a "sizeof()" analysis of the given object.
     * @see ConstructorData.bitsize
