@@ -8,23 +8,50 @@ import scodec.codecs._
 import shapeless.{::, HNil}
 
 /**
-  * na
-  * @param pos the position to move the character to in the world environment (in three coordinates)
+  * Instructs an avatar to be stood, to look, and to move, in a certain way.<br>
+  * <br>
+  * The position defines a coordinate location in the avatar's current zone to which the avatar is immediately moved
+  * This movement is instantaneous and has no associated animation.
+  * If velocity is defined, the avatar is provided an "external force" that "pushes" the avatar in a given direction.
+  * This external force is not accumulative.
+  * Also, the external force is only applied once the avatar is set to the provided position.<br>
+  * <br>
+  * `viewYawLim` defines a "range of angles" that the avatar may look centered on the supplied angle.
+  * The avatar must be facing within 60-degrees of that direction, subjectively his left or his right.
+  * The avatar's view is immediately set to the closest 60-degree mark if it is outside of that range.
+  * The absolute angular displacement of the avatar is considered before applying this corrective behavior.
+  * After rotating any number of times:
+  * stopping in a valid part of the range is acceptable;
+  * stopping in an invalid part of the range will cause the avatar to align to the __earliest__ still-valid 60-degree mark.
+  * For that reason, even if the avatar's final angle is closest to the "left mark," it may re-align to the "right mark."
+  * This also resets the avatar's angular displacement.
+  * @param pos the position to move the character to in the world environment
   * @param viewYawLim an angle with respect to the horizon towards which the avatar is looking (to some respect)
-  * @param vel the velocity to apply to to the character at the given position (in three coordinates)
+  * @param vel if defined, the velocity to apply to to the character at the given position
   */
-final case class PlayerState(pos : Vector3,
+final case class ShiftState(pos : Vector3,
                              viewYawLim : Int,
                              vel : Option[Vector3])
 
 /**
-  * Force the client's character to adhere to the influence of specific external stimulus.
-  * @param unk1 na
-  * @param state the state to influence the character with respect to his environment in the current zone
-
+  * Push specific motion-based stimuli on a specific character.<br>
+  * <br>
+  * `PlayerStateMessageUpstream` involves data transmitted from a client to the server regarding its avatar.
+  * `PlayerStateMessage` involves data transmitted from the server to the clients regarding characters other than that client's avatar.
+  * `PlayerStateShiftMessage` involves data transmitted from the server to a client about that client's avatar.
+  * It temporarily asserts itself before normal player movement and asserts specific placement and motion.
+  * An application of this packet is being `/warp`ed within a zone via a non-triggering agent (like a teleporter).
+  * Another, more common, application of this packet is being thrown about when the target of an attempted roadkill.<br>
+  * <br>
+  * Exploration:<br>
+  * What do the leading and trailing values do?
+  * @param unk1 na;
+  *             seems to have different purposes depending on whether `state` is defined
+  * @param state if defined, the behaviors to influence the character
+  * @param unk2 na
   */
 final case class PlayerStateShiftMessage(unk1 : Int,
-                                         state : Option[PlayerState],
+                                         state : Option[ShiftState],
                                          unk2 : Boolean)
   extends PlanetSideGamePacket {
   type Packet = TimeOfDayMessage
@@ -32,60 +59,58 @@ final case class PlayerStateShiftMessage(unk1 : Int,
   def encode = PlayerStateShiftMessage.encode(this)
 }
 
-object PlayerState extends Marshallable[PlayerState] {
+object ShiftState extends Marshallable[ShiftState] {
   /**
-    * An abbreviated constructor for creating `PlayerState`, assuming velocity is not applied.
-    * @param pos the position of the character in the world environment (in three coordinates)
+    * An abbreviated constructor for creating `ShiftState`, assuming velocity is not applied.
+    * @param pos the position of the character in the world environment
     * @param viewYawLim an angle with respect to the horizon towards which the avatar is looking (to some respect)
-    * @param vel the velocity to apply to to the character at the given position (in three coordinates)
-    * @return a `PlayerState` object
+    * @param vel the velocity to apply to to the character at the given position
+    * @return a `ShiftState` object
     */
-  def apply(pos : Vector3, viewYawLim : Int, vel : Vector3) : PlayerState =
-    PlayerState(pos, viewYawLim, Some(vel))
+  def apply(pos : Vector3, viewYawLim : Int, vel : Vector3) : ShiftState =
+    ShiftState(pos, viewYawLim, Some(vel))
 
   /**
-    * An abbreviated constructor for creating `PlayerState`, removing the optional condition of all parameters.
-    * @param pos the position of the character in the world environment (in three coordinates)
+    * An abbreviated constructor for creating `ShiftState`, removing the optional condition of all parameters.
+    * @param pos the position of the character in the world environment
     * @param viewYawLim an angle with respect to the horizon towards which the avatar is looking (to some respect)
-    * @return a `PlayerState` object
+    * @return a `ShiftState` object
     */
-  def apply(pos : Vector3, viewYawLim : Int) : PlayerState =
-    PlayerState(pos, viewYawLim, None)
+  def apply(pos : Vector3, viewYawLim : Int) : ShiftState =
+    ShiftState(pos, viewYawLim, None)
 
-  implicit val codec : Codec[PlayerState] = (
+  implicit val codec : Codec[ShiftState] = (
       ("pos" | Vector3.codec_pos) ::
-      ("unk2" | uint8L) ::
-      (bool >>:~ { test =>
-        ignore(0) ::
-          conditional(test, "pos" | Vector3.codec_vel)
-      })
-    ).xmap[PlayerState] (
+        ("unk2" | uint8L) ::
+        (bool >>:~ { test =>
+          ignore(0) ::
+            conditional(test, "pos" | Vector3.codec_vel)
+        })
+    ).xmap[ShiftState] (
       {
         case a :: b :: false :: _ :: None :: HNil =>
-          PlayerState(a, b, None)
+          ShiftState(a, b, None)
         case a :: b :: true :: _ :: Some(vel) :: HNil =>
-          PlayerState(a, b, Some(vel))
+          ShiftState(a, b, Some(vel))
       },
       {
-        case PlayerState(a, b, None) =>
+        case ShiftState(a, b, None) =>
           a :: b :: false :: () :: None :: HNil
-        case PlayerState(a, b, Some(vel)) =>
+        case ShiftState(a, b, Some(vel)) =>
           a :: b :: true :: () :: Some(vel) :: HNil
       }
-    ).as[PlayerState]
+    ).as[ShiftState]
 }
 
 object PlayerStateShiftMessage extends Marshallable[PlayerStateShiftMessage] {
-  private type pattern = Int :: Option[PlayerState] :: Boolean :: HNil
-
   /**
     * An abbreviated constructor for creating `PlayerStateShiftMessage`, removing the optional condition of `state`.
     * @param unk1 na
-    * @param state the state to which to influence the character with respect to his environment in the current zone
+    * @param state the behaviors to influence the character
     * @param unk2 na
     * @return a `PlayerStateShiftMessage` packet
     */
-  def apply(unk1 : Int, state : PlayerState, unk2 : Boolean) : PlayerStateShiftMessage =
+  def apply(unk1 : Int, state : ShiftState, unk2 : Boolean) : PlayerStateShiftMessage =
     PlayerStateShiftMessage(unk1, Some(state), unk2)
 
   /**
@@ -98,9 +123,9 @@ object PlayerStateShiftMessage extends Marshallable[PlayerStateShiftMessage] {
     PlayerStateShiftMessage(unk1, None, unk2)
 
   implicit val codec : Codec[PlayerStateShiftMessage] = (
-    bool >>:~ { test1 =>
+    bool >>:~ { test =>
       ("unk1" | uintL(3)) ::
-        conditional(test1, "pos" | PlayerState.codec) ::
+        conditional(test, "state" | ShiftState.codec) ::
         ("unk2" | bool)
     }).xmap[PlayerStateShiftMessage] (
       {

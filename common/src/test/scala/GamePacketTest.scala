@@ -587,7 +587,7 @@ class GamePacketTest extends Specification {
 
       "encode (pos)" in {
         val msg = PlayerStateShiftMessage(1,
-          PlayerState(Vector3(4624.703f, 5922.1484f, 46.171875f), 255),
+          ShiftState(Vector3(4624.703f, 5922.1484f, 46.171875f), 255),
           false)
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
@@ -596,7 +596,7 @@ class GamePacketTest extends Specification {
 
       "encode (pos and vel)" in {
         val msg = PlayerStateShiftMessage(2,
-          PlayerState(Vector3(4645.75f, 5811.6016f, 50.3125f), 14, Vector3(2.8125f, -8.0f, 0.375f)),
+          ShiftState(Vector3(4645.75f, 5811.6016f, 50.3125f), 14, Vector3(2.8125f, -8.0f, 0.375f)),
           false)
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
