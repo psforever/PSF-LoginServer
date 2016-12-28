@@ -50,7 +50,7 @@ final case class PlayerStateMessage(guid : PlanetSideGUID,
                                     isJumping : Boolean = false,
                                     unk8 : Boolean = false)
   extends PlanetSideGamePacket {
-  type Packet = TimeOfDayMessage
+  type Packet = PlayerStateMessage
   def opcode = GamePacketOpcode.PlayerStateMessage
   def encode = PlayerStateMessage.encode(this)
 }
