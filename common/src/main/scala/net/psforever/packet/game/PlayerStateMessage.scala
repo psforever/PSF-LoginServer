@@ -11,13 +11,27 @@ import shapeless.{::, HNil}
 import scala.collection.mutable
 
 /**
-  * The server instructs clients to render a certain avatar not operated by its player to move in a certain way.<br>
+  * The server instructs some clients to render a player (usually not that client's avatar) to move in a certain way.<br>
   * <br>
-  * The avatar model normally moves from where it currently is to `pos`.
-  * When `vel` is defined, `pos` is treated as where the avatar model starts its animation;
-  * and, from there, it moves a certain distance as according to the values.
-  * The repositioning always takes the same amount of time and the player model is left in running animation (in place).
-  * The coordinates evaluate between -256.0 and 256.0.<br>
+  * This packet instructs the basic aspects of how the player character is positioned and how the player character moves.
+  * Each client keeps track of where a character "currently" is according to that client.
+  * `pos` reflects an update in regards to where the character should be moved.
+  * Data between this "currently" and "new" are interpolated over a fixed time interval.
+  * Position and velocity data is standard to normal PlanetSide ranges.
+  * All angles follow the convention that every `0x1` is about 2.8125 degrees; so, `0x10` is 45.0 degrees.<br>
+  * <br>
+  * The avatar model normally moves from where it "currently" is to `pos`.
+  * When `vel` is defined, `pos` is treated as where the avatar model starts its animation.
+  * In that case, it sppears to teleport to `pos` to carry out the interpolated movement according to `vel`.
+  * After the move, it remains at essentially `pos + vel * t`.
+  * The repositioning always takes the same amount of time.
+  * The player model is left in a walking/running animation (in place) until directed otherwise.<br>
+  * <br>
+  * If the model must interact with the environment during a velocity-driven move, it copes with local physics.
+  * A demonstration of this is what happens when one player "runs past"/"into" another player running up stairs.
+  * The climbing player is frequently reported by the other to appear to bounce over that player's head.
+  * If the other player is off the ground, passing too near to the observer can cause a rubber band effect on trajectory.
+  * This effect is entirely client-side to the observer and affects the moving player in no way.<br>
   * <br>
   * facingYaw:<br>
   * `0x00` -- E<br>
@@ -46,22 +60,18 @@ import scala.collection.mutable
   * @param pos the position of the avatar in the world environment (in three coordinates)
   * @param vel an optional velocity
   * @param facingYaw the angle with respect to the horizon towards which the avatar is looking;
-  *                  every `0x1` is about 2.8125 degrees;
   *                  measurements are counter-clockwise from East
-  * @param facingPitch the angle with respect to the sky and the ground towards which the avatar is looking;
-  *                    every `0x1` is about 2.8125 degrees
-  * @param facingYawUpper the angle of the avatar's upper body with respect to its forward-facing direction;
-  *                       every `0x1` is about 2.8125 degrees
+  * @param facingPitch the angle with respect to the sky and the ground towards which the avatar is looking
+  * @param facingYawUpper the angle of the avatar's upper body with respect to its forward-facing direction
   * @param unk1 na
-  * @param fourBools set to `false` to parse the following four fields, otherwise those values will be ignored
   * @param isCrouching avatar is crouching;
-  *                    must remain flagged for crouch to maintain animation;
-  *                    turn off to stand up
+  *                    must remain flagged to maintain crouch
   * @param isJumping avatar is jumping;
   *                  must remain flagged for jump to maintain animation;
   *                  turn off to land(?)
   * @param unk2 na
-  * @param unk3 na
+  * @param isCloaked avatar is cloaked by virtue of an Infiltration Suit;
+  *                  must remain flagged to stay cloaked
   */
 final case class PlayerStateMessage(guid : PlanetSideGUID,
                                     pos : Vector3,
@@ -70,11 +80,10 @@ final case class PlayerStateMessage(guid : PlanetSideGUID,
                                     facingPitch : Int,
                                     facingYawUpper : Int,
                                     unk1 : Int,
-                                    fourBools : Boolean,
                                     isCrouching : Boolean = false,
                                     isJumping : Boolean = false,
                                     unk2 : Boolean = false,
-                                    unk3 : Boolean = false)
+                                    isCloaked : Boolean = false)
   extends PlanetSideGamePacket {
   type Packet = PlayerStateMessage
   def opcode = GamePacketOpcode.PlayerStateMessage
@@ -91,7 +100,7 @@ object PlayerStateMessage extends Marshallable[PlayerStateMessage] {
     ("isCrouching" | bool) ::
       ("isJumping" | bool) ::
       ("unk2" | bool) ::
-      ("unk3" | bool)
+      ("isCloaked" | bool)
     ).as[fourBoolPattern]
 
   /**
@@ -124,28 +133,25 @@ object PlayerStateMessage extends Marshallable[PlayerStateMessage] {
       })
     ).xmap[PlayerStateMessage] (
     {
-      case uid :: p :: true :: Some(extra) :: f1 :: f2 :: f3 :: u :: b :: _ :: b1 :: b2 :: b3 :: b4 :: HNil =>
-        PlayerStateMessage(uid, p, Some(extra), f1, f2, f3, u, b, b1, b2, b3, b4)
-      case uid :: p :: false :: None :: f1 :: f2 :: f3 :: u :: b :: _ :: b1 :: b2 :: b3 :: b4 :: HNil =>
-        PlayerStateMessage(uid, p, None, f1, f2, f3, u, b, b1, b2, b3, b4)
+      case uid :: pos :: _ :: vel :: f1 :: f2 :: f3 :: u :: _ :: _ :: b1 :: b2 :: b3 :: b4 :: HNil =>
+        PlayerStateMessage(uid, pos, vel, f1, f2, f3, u, b1, b2, b3, b4)
     },
     {
-      case PlayerStateMessage(uid, p, Some(extra), f1, f2, f3, u, b, b1, b2, b3, b4) =>
-        uid :: p :: true :: Some(extra) :: f1 :: f2 :: f3 :: u :: b :: () :: b1 :: b2 :: b3 :: b4 :: HNil
-      case PlayerStateMessage(uid, p, None, f1, f2, f3, u, b, b1, b2, b3, b4) =>
-        uid :: p :: false :: None :: f1 :: f2 :: f3 :: u :: b :: () :: b1 :: b2 :: b3 :: b4 :: HNil
+      case PlayerStateMessage(uid, pos, vel, f1, f2, f3, u, b1, b2, b3, b4) =>
+        val b : Boolean = !(b1 || b2 || b3 || b4)
+        uid :: pos :: vel.isDefined :: vel :: f1 :: f2 :: f3 :: u :: b :: () :: b1 :: b2 :: b3 :: b4 :: HNil
     }
   )
 }
 
 //TODO the following logic is unimplemented
 /*
-There is a bool that is currently unhandled that determines if the packet is aware that this code would run.
+There is a boolean that is currently unhandled(?) that determines if the packet is aware that this code would run.
 If it passes, the first 8-bit value is the number of times the data will be iterated over.
 On each pass, a 4-bit value is extracted from the packet and compared against 15.
 When 15 is read, an 8-bit value is read on that same turn.
 On each subsequent turn, 8-bit values will be read until the number of iterations or there is an exception.
-I have no clue what any of this is supposed to do.
+Until I find a packet that responds somehow, I have no clue what any of this is supposed to do.
  */
 /**
   * na
