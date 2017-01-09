@@ -208,6 +208,13 @@ class WorldSessionActor extends Actor with MDCContextAware {
       // TODO: Just replays the packet straight back to sender; actually needs to be routed to recipients!
       sendResponse(PacketCoding.CreateGamePacket(0, ChatMsg(messagetype, has_wide_contents, recipient, contents, note_contents)))
 
+    case msg @ VoiceHostRequest(unk, PlanetSideGUID(player_guid), data) =>
+      log.info("Player "+player_guid+" requested in-game voice chat.")
+      sendResponse(PacketCoding.CreateGamePacket(0, VoiceHostKill()))
+
+    case msg @ VoiceHostInfo(player_guid, data) =>
+      sendResponse(PacketCoding.CreateGamePacket(0, VoiceHostKill()))
+
     case msg @ ChangeFireModeMessage(item_guid, fire_mode) =>
       log.info("ChangeFireMode: " + msg)
 
