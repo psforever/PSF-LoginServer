@@ -4,6 +4,7 @@ package net.psforever.packet.game
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
 import scodec.Codec
 import scodec.codecs._
+import shapeless.{::, HNil}
 
 /**
   * An entry in the list of players known to and tracked by this player.
@@ -34,16 +35,12 @@ final case class Friend(name : String,
   * @param unk1 na; always 0?
   * @param unk2 na; always `true`?
   * @param unk3 na; always `true`?
-  * @param number_of_friends the number of `Friend` entries handled by this packet; max is 15 per packet
-  * @param friend the first `Friend` entry
-  * @param friends all the other `Friend` entries
+  * @param friends a list of `Friend`s
   */
 final case class FriendsResponse(action : Int,
                                  unk1 : Int,
                                  unk2 : Boolean,
                                  unk3 : Boolean,
-                                 number_of_friends : Int,
-                                 friend : Option[Friend] = None,
                                  friends : List[Friend] = Nil)
   extends PlanetSideGamePacket {
   type Packet = FriendsResponse
@@ -75,7 +72,23 @@ object FriendsResponse extends Marshallable[FriendsResponse] {
       ("unk3" | bool) ::
       (("number_of_friends" | uint4L) >>:~ { len =>
         conditional(len > 0, "friend" | Friend.codec) ::
-        ("friends" | PacketHelpers.sizedList(len-1, Friend.codec_list)) //List of 'Friend(String, Boolean)'s without a size field when encoded
+        ("friends" | PacketHelpers.listOfNSized(len-1, Friend.codec_list))
       })
-    ).as[FriendsResponse]
+    ).xmap[FriendsResponse] (
+    {
+      case act :: u1 :: u2 :: u3 :: num :: friend1 :: friends :: HNil =>
+        val friendList : List[Friend] = if(friend1.isDefined) { friend1.get :: friends } else { friends }
+        FriendsResponse(act, u1, u2, u3, friendList)
+    },
+    {
+      case FriendsResponse(act, u1, u2, u3, friends) =>
+        var friend1 : Option[Friend] = None
+        var friendList : List[Friend] = Nil
+        if(friends.nonEmpty) {
+          friend1 = Some(friends.head)
+          friendList = friends.drop(1)
+        }
+        act :: u1 :: u2 :: u3 :: friends.size :: friend1 :: friendList :: HNil
+    }
+  )
 }

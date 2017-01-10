@@ -837,16 +837,14 @@ class GamePacketTest extends Specification {
 
       "decode (one friend)" in {
         PacketCoding.DecodePacket(stringOneFriend).require match {
-          case FriendsResponse(unk1, unk2, unk3, unk4, number_of_friends, friend, list) =>
-            unk1 mustEqual 3
+          case FriendsResponse(action, unk2, unk3, unk4, list) =>
+            action mustEqual 3
             unk2 mustEqual 0
             unk3 mustEqual true
             unk4 mustEqual true
-            number_of_friends mustEqual 1
-            friend.isDefined mustEqual true
-            friend.get.name mustEqual "KurtHectic-G"
-            friend.get.online mustEqual false
-            list.size mustEqual 0
+            list.size mustEqual 1
+            list.head.name mustEqual "KurtHectic-G"
+            list.head.online mustEqual false
           case default =>
             ko
         }
@@ -854,24 +852,22 @@ class GamePacketTest extends Specification {
 
       "decode (multiple friends)" in {
         PacketCoding.DecodePacket(stringManyFriends).require match {
-          case FriendsResponse(unk1, unk2, unk3, unk4, number_of_friends, friend, list) =>
-            unk1 mustEqual 0
+          case FriendsResponse(action, unk2, unk3, unk4, list) =>
+            action mustEqual 0
             unk2 mustEqual 0
             unk3 mustEqual true
             unk4 mustEqual true
-            number_of_friends mustEqual 5
-            friend.isDefined mustEqual true
-            friend.get.name mustEqual "Angello-W"
-            friend.get.online mustEqual false
-            list.size mustEqual 4
-            list.head.name mustEqual "thephattphrogg"
+            list.size mustEqual 5
+            list.head.name mustEqual "Angello-W"
             list.head.online mustEqual false
-            list(1).name mustEqual "Kimpossible12"
+            list(1).name mustEqual "thephattphrogg"
             list(1).online mustEqual false
-            list(2).name mustEqual "Zearthling"
+            list(2).name mustEqual "Kimpossible12"
             list(2).online mustEqual false
-            list(3).name mustEqual "KurtHectic-G"
+            list(3).name mustEqual "Zearthling"
             list(3).online mustEqual false
+            list(4).name mustEqual "KurtHectic-G"
+            list(4).online mustEqual false
           case default =>
             ko
         }
@@ -879,13 +875,11 @@ class GamePacketTest extends Specification {
 
       "decode (short)" in {
         PacketCoding.DecodePacket(stringShort).require match {
-          case FriendsResponse(unk1, unk2, unk3, unk4, number_of_friends, friend, list) =>
-            unk1 mustEqual 4
+          case FriendsResponse(action, unk2, unk3, unk4, list) =>
+            action mustEqual 4
             unk2 mustEqual 0
             unk3 mustEqual true
             unk4 mustEqual true
-            number_of_friends mustEqual 0
-            friend.isDefined mustEqual false
             list.size mustEqual 0
           case default =>
             ko
@@ -893,24 +887,25 @@ class GamePacketTest extends Specification {
       }
 
       "encode (one friend)" in {
-        val msg = FriendsResponse(3, 0, true, true, 1, Option(Friend("KurtHectic-G", false)))
+        val msg = FriendsResponse(3, 0, true, true, Friend("KurtHectic-G", false) :: Nil)
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
         pkt mustEqual stringOneFriend
       }
 
       "encode (multiple friends)" in {
-        val msg = FriendsResponse(0, 0, true, true, 5, Option(Friend("Angello-W", false)), Friend("thephattphrogg", false) ::
-                                                                                            Friend("Kimpossible12", false) ::
-                                                                                            Friend("Zearthling", false) ::
-                                                                                            Friend("KurtHectic-G", false) :: Nil)
+        val msg = FriendsResponse(0, 0, true, true, Friend("Angello-W", false) ::
+                                                    Friend("thephattphrogg", false) ::
+                                                    Friend("Kimpossible12", false) ::
+                                                    Friend("Zearthling", false) ::
+                                                    Friend("KurtHectic-G", false) :: Nil)
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
         pkt mustEqual stringManyFriends
       }
 
       "encode (short)" in {
-        val msg = FriendsResponse(4, 0, true, true, 0)
+        val msg = FriendsResponse(4, 0, true, true)
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
         pkt mustEqual stringShort

@@ -209,13 +209,130 @@ object PacketHelpers {
     * <br>
     * This function is copied almost verbatim from its source, with exception of swapping the parameter that is normally a `Nat` `literal`.
     * The modified function takes a normal unsigned `Integer` and assures that the parameter is non-negative before further processing.
-    * @param size the known size of the `List`
+    * It casts to a `Long` and passes onto an overloaded method.
+    * @param size  the known size of the `List`
     * @param codec a codec that describes each of the contents of the `List`
     * @tparam A the type of the `List` contents
     * @see codec\package.scala, sizedList
     * @see codec\package.scala, listOfN
-    * @see codec\package.scala, provides
     * @return a codec that works on a List of A but excludes the size from the encoding
     */
-  def sizedList[A](size : Int, codec : Codec[A]) : Codec[List[A]] = listOfN(provide(if(size < 0) 0 else size), codec)
+  def listOfNSized[A](size : Int, codec : Codec[A]) : Codec[List[A]] = listOfNSized(if(size < 0) 0L else size.asInstanceOf[Long], codec)
+
+  /**
+    * Codec that encodes/decodes a list of `n` elements, where `n` is known at compile time.<br>
+    * <br>
+    * This function is copied almost verbatim from its source, with exception of swapping the parameter that is normally a `Nat` `literal`.
+    * The modified function takes a normal unsigned `Long` and assures that the parameter is non-negative before further processing.
+    * @param size  the known size of the `List`
+    * @param codec a codec that describes each of the contents of the `List`
+    * @tparam A the type of the `List` contents
+    * @see codec\package.scala, sizedList
+    * @see codec\package.scala, listOfN
+    * @see codec\package.scala, provide
+    * @return a codec that works on a List of A but excludes the size from the encoding
+    */
+  def listOfNSized[A](size : Long, codec : Codec[A]) : Codec[List[A]] = listOfNAligned(provide(if(size < 0) 0 else size), 0, codec)
+
+  /**
+    * Encode and decode a byte-aligned `List`.<br>
+    * <br>
+    * This function is copied almost verbatim from its source, but swapping the normal `ListCodec` for a new `AlignedListCodec`.
+    * It also changes the type of the list length `Codec` from `Int` to `Long`.
+    * Due to type erasure, this method can not be overloaded for both `Codec[Int]` and `Codec[Long]`.
+    * The compiler would resolve both internally into type `Codec[T]` and their function definitions would be identical.
+    * For the purposes of use, `longL(n)` will cast to an `Int` for the same acceptable values of `n` as in `uintL(n)`.
+    * @param countCodec the codec that represents the prefixed size of the `List`
+    * @param alignment  the number of bits padded between the `List` size and the `List` contents
+    * @param valueCodec a codec that describes each of the contents of the `List`
+    * @tparam A the type of the `List` contents
+    * @see codec\package.scala, listOfN
+    * @return a codec that works on a List of A
+    */
+  def listOfNAligned[A](countCodec : Codec[Long], alignment : Int, valueCodec : Codec[A]) : Codec[List[A]] = {
+    countCodec.
+      flatZip {
+        count =>
+          new AlignedListCodec(countCodec, valueCodec, alignment, Some(count))
+      }.
+      narrow[List[A]] (
+      {
+        case (cnt, xs) =>
+          if(xs.size == cnt)
+            Attempt.successful(xs)
+          else
+            Attempt.failure(Err(s"Insufficient number of elements: decoded ${xs.size} but should have decoded $cnt"))
+      },
+      {
+        xs =>
+          (xs.size, xs)
+      }
+    ).
+      withToString(s"listOfN($countCodec, $valueCodec)")
+  }
+}
+
+/**
+  * The greater `Codec` class that encodes and decodes a byte-aligned `List`.<br>
+  * <br>
+  * This class is copied almost verbatim from its source, with two major modifications.
+  * First, heavy modifications to its `encode` process account for the alignment value.
+  * Second, the length field is parsed as a `Codec[Long]` value and type conversion is accounted for at several points.
+  * @param countCodec the codec that represents the prefixed size of the `List`
+  * @param valueCodec a codec that describes each of the contents of the `List`
+  * @param alignment the number of bits padded between the `List` size and the `List` contents (on successful)
+  * @param limit the number of elements in the `List`
+  * @tparam A the type of the `List` contents
+  * @see ListCodec.scala
+  */
+private class AlignedListCodec[A](countCodec : Codec[Long], valueCodec: Codec[A], alignment : Int, limit: Option[Long] = None) extends Codec[List[A]] {
+  /**
+    * Convert a `List` of elements into a byte-aligned `BitVector`.<br>
+    * <br>
+    * Bit padding after the encoded size of the `List` is only added if the `alignment` value is greater than zero and the initial encoding process was successful.
+    * The padding is rather heavy-handed and a completely different `BitVector` is returned if successful.
+    * @param list the `List` to be encoded
+    * @return the `BitVector` encoding, if successful
+    */
+  override def encode(list : List[A]) : Attempt[BitVector] = {
+    var solve : Attempt[BitVector] = Encoder.encodeSeq(valueCodec)(list)
+    if(alignment > 0) {
+      solve match {
+        case Attempt.Successful(vector) =>
+          val countCodecSize : Long = countCodec.sizeBound.lowerBound
+          solve = Attempt.successful(vector.take(countCodecSize) ++ BitVector.fill(alignment)(false) ++ vector.drop(countCodecSize))
+        case _ =>
+          solve = Attempt.failure(Err("failed to create a list"))
+      }
+    }
+    solve
+  }
+
+  /**
+    * Convert a byte-aligned `BitVector` into a `List` of elements.
+    * @param buffer the encoded bits in the `List`, preceded by the alignment bits
+    * @return the decoded `List`
+    */
+  override def decode(buffer: BitVector) = {
+    val lim = Option( if(limit.isDefined) limit.get.asInstanceOf[Int] else 0 ) //TODO potentially unsafe size conversion
+    Decoder.decodeCollect[List, A](valueCodec, lim)(buffer.drop(alignment))
+  }
+
+  /**
+    * The size of the encoded `List`.
+    * @return the size as calculated by the size of each element for each element
+    */
+  override def sizeBound = limit match {
+    case None =>
+      SizeBound.unknown
+    case Some(lim : Long) =>
+      valueCodec.sizeBound * lim
+  }
+
+  /**
+    * Get a `String` representation of this `List`.
+    * Unchanged from original.
+    * @return the `String` representation
+    */
+  override def toString = s"list($valueCodec)"
 }
