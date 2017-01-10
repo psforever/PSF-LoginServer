@@ -4,24 +4,24 @@ package net.psforever.packet.game
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
 import scodec.Codec
 import scodec.codecs._
+import shapeless.{::, HNil}
 
 /**
   * Load the designator for an entry in the player's favorites list.<br>
   * <br>
-  * This entry defines a loadout but does not directly associate itself with the configurations and contents of the loadout.
-  * It is just the user-defined name that appears on a "Favorites" tab list and can be selected.
-  * A subsequent server request - `ItemTransactionMessage` - must be made to retrieve the said configuration and content for loading.
+  * This entry defines a user-defined loadout label that appears on a "Favorites" tab list and can be selected.
+  * A subsequent server request - `ItemTransactionMessage` - must be made to retrieve the said loadout contents.
   * Multiple separated favorites lists are present in the game.
-  * All entries are prepended with their destination list, which determines what kind of terminal or menu allows them to be viewable.<br>
+  * All entries are prepended with their destination list which indicates how from how that list is viewable.
+  * Different lists also have different numbers of available lines to store loadout entries.<br>
   * <br>
   * Infantry equipment favorites are appended with a code for the type of exo-suit that they will load on a player.
-  * This does not match the same two field numbering system as in `ArmorChangedMessage` packets.
-  * Subtypes are not considered separately.<br>
+  * This does not match the same two field numbering system as in `ArmorChangedMessage` packets.<br>
   * <br>
   * Lists:<br>
   * `
   * 0 - Equipment Terminal (infantry)<br>
-  * 1 - Repair/Rearm (standard vehicles)<br>
+  * 1 - Repair/Rearm Silo (standard vehicles)<br>
   * `
   * <br>
   * Armors:<br>
@@ -34,19 +34,16 @@ import scodec.codecs._
   * `
   * <br>
   * Exploration 1:<br>
-  * The identifier for the list is two bits so four separated lists of Favorites are supportable.
+  * The identifier for the list is two bits so four separated lists of `Favorites` are supportable.
   * Two of the lists are common enough and we can assume one of the others is related to Battleframe Robotics.
-  * What, if anything, is the fourth indexed list?<br>
+  * These lists also do not include `Squad Defintion...` presets.
+  * What are the unknown lists?<br>
   * <br>
   * Exploration 2:<br>
-  * There are three unaccounted exo-suit indices - '0', '3', and '7' - and two specific kinds of exo-suit that are not defined - Infiltration and Standard.
+  * There are three unaccounted exo-suit indices - 0, 3, and 7;
+  * and, there are two specific kinds of exo-suit that are not defined - Infiltration and Standard.
   * It is possible that one of the indices also defines the generic MAX (see `ArmorChangedMessage`).
-  * Which exo-suit is associated with which index?<br>
-  * <br>
-  * Exploration 3:<br>
-  * The `armor` parameter coincides with the type of exo-suit maintained by the loadout.
-  * Does this value help the client judge when a favorite can be selected by checking against certifications for exo-suit permission?
-  * (If so, why isn't it working?)
+  * Which exo-suit is associated with which index?
   * @param list the destination list
   * @param player_guid the player
   * @param line the zero-indexed line number of this entry in its list
@@ -66,10 +63,20 @@ final case class FavoritesMessage(list : Int,
 
 object FavoritesMessage extends Marshallable[FavoritesMessage] {
   implicit val codec : Codec[FavoritesMessage] = (
-    ("list" | uintL(2)) >>:~ { value =>
+    ("list" | uint2L) >>:~ { value =>
       ("player_guid" | PlanetSideGUID.codec) ::
-        ("line" | uintL(4)) ::
+        ("line" | uint4L) ::
         ("label" | PacketHelpers.encodedWideStringAligned(2)) ::
         conditional(value == 0, "armor" | uintL(3))
-    }).as[FavoritesMessage]
+    }).xmap[FavoritesMessage] (
+    {
+      case lst :: guid :: ln :: str :: arm :: HNil =>
+        FavoritesMessage(lst, guid, ln, str, arm)
+    },
+    {
+      case FavoritesMessage(lst, guid, ln, str, arm) =>
+        val armset : Option[Int] = if(lst == 0 && arm.isEmpty) { Some(0) } else  { arm }
+        lst :: guid :: ln :: str :: armset :: HNil
+    }
+  )
 }
