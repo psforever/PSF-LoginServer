@@ -455,7 +455,7 @@ object GamePacketOpcode extends Enumeration {
     case 0x70 => noDecoder(SquadMemberEvent)
     case 0x71 => noDecoder(PlatoonEvent)
     case 0x72 => noDecoder(FriendsRequest)
-    case 0x73 => noDecoder(FriendsResponse)
+    case 0x73 => game.FriendsResponse.decode
     case 0x74 => noDecoder(TriggerEnvironmentalDamageMessage)
     case 0x75 => noDecoder(TrainingZoneMessage)
     case 0x76 => noDecoder(DeployableObjectsInfoMessage)
