@@ -22,21 +22,20 @@ import scodec.codecs._
   * It waits until it receives an `ObjectAttachMessage` in confirmation.<br>
   * <br>
   *  Destination codes:<br>
-  * `0x80` is the first pistol slot<br>
-  * `0x81` is the second pistol slot<br>
-  * `0x82` is the first rifle slot<br>
-  * `0x83` is the second rifle slot<br>
-  * `0x84` is the melee/knife slot<br>
-  * `0x86` is the first entry in the player's grid inventory<br>
-  * `0x00FA` is a special dest/extra code that "attaches the object to the player's cursor"<br>
-  * <br>
-  * Exploration:<br>
-  * What is slot `0x85`?
-  * @param player_guid the player GUID
-  * @param item_guid the item GUID
-  * @param slot a codified location within the player's inventory;
-  *             may be 8u (0 is 0x80, to 127) or 16u (128 is 0x0080)
-  * @see MoveItemMessage
+  * `0x80` - pistol slot 1<br>
+  * `0x81` - pistol slot 2<br>
+  * `0x82` - rifle slot 1<br>
+  * `0x83` - rifle slot 2<br>
+  * `0x84` - melee/knife slot<br>
+  * `0x85` - mystery slot<br>
+  * `0x86` - grid inventory (1,1)<br>
+  * `0x00FA` is a special dest/extra code that "attaches the item to the player's cursor"
+  * @param player_guid the player
+  * @param item_guid the item
+  * @param slot a codified location within an inventory, and overlapping the player's holsters if need be;
+  *             8u (0 - 127 or `0x80 - 0xFF`) or
+  *             16u (128 - 32767 or `0x0080 - 0x7FFF`)
+  * @see `MoveItemMessage`, `objectcreate\ObjectClass.SLOT_BLOCKER`
   */
 final case class ObjectAttachMessage(player_guid : PlanetSideGUID,
                                      item_guid : PlanetSideGUID,
