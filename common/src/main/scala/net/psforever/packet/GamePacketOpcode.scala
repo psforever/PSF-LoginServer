@@ -433,7 +433,7 @@ object GamePacketOpcode extends Enumeration {
     case 0x5f => noDecoder(FavoritesResponse)
 
     // OPCODES 0x60-6f
-    case 0x60 => noDecoder(FavoritesMessage)
+    case 0x60 => game.FavoritesMessage.decode
     case 0x61 => noDecoder(ObjectDetectedMessage)
     case 0x62 => noDecoder(SplashHitMessage)
     case 0x63 => noDecoder(SetChatFilterMessage)
