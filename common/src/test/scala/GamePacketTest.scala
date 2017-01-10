@@ -317,7 +317,7 @@ class GamePacketTest extends Specification {
             shortcut.get.tile mustEqual "medkit"
             shortcut.get.effect1 mustEqual ""
             shortcut.get.effect2 mustEqual ""
-          case default =>
+          case _ =>
             ko
         }
       }
@@ -347,7 +347,7 @@ class GamePacketTest extends Specification {
             unk mustEqual 0
             addShortcut mustEqual false
             shortcut.isDefined mustEqual false
-          case default =>
+          case _ =>
             ko
         }
       }
@@ -404,6 +404,47 @@ class GamePacketTest extends Specification {
         Shortcut.SENSOR_SHIELD.get.tile mustEqual "silent_run"
         Shortcut.SURGE.get.purpose mustEqual 2
         Shortcut.SURGE.get.tile mustEqual "surge"
+      }
+    }
+
+    "ObjectAttachMessage" should {
+      val stringToInventory = hex"2A 9F05 D405 86"
+      val stringToCursor = hex"2A 9F05 D405 00FA"
+
+      "decode (inventory 1,1)" in {
+        PacketCoding.DecodePacket(stringToInventory).require match {
+          case ObjectAttachMessage(player_guid, item_guid, index) =>
+            player_guid mustEqual PlanetSideGUID(1439)
+            item_guid mustEqual PlanetSideGUID(1492)
+            index mustEqual 6
+          case default =>
+            ko
+        }
+      }
+
+      "decode (cursor)" in {
+        PacketCoding.DecodePacket(stringToCursor).require match {
+          case ObjectAttachMessage(player_guid, item_guid, index) =>
+            player_guid mustEqual PlanetSideGUID(1439)
+            item_guid mustEqual PlanetSideGUID(1492)
+            index mustEqual 250
+          case default =>
+            ko
+        }
+      }
+
+      "encode (inventory 1,1)" in {
+        val msg = ObjectAttachMessage(PlanetSideGUID(1439), PlanetSideGUID(1492), 6)
+        val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+        pkt mustEqual stringToInventory
+      }
+
+      "encode (cursor)" in {
+        val msg = ObjectAttachMessage(PlanetSideGUID(1439), PlanetSideGUID(1492), 250)
+        val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+        pkt mustEqual stringToCursor
       }
     }
 
@@ -997,6 +1038,8 @@ class GamePacketTest extends Specification {
             list(3).online mustEqual false
             list(4).name mustEqual "KurtHectic-G"
             list(4).online mustEqual false
+          case default =>
+            ko
         }
       }
 
