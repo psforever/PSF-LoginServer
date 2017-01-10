@@ -506,7 +506,7 @@ object GamePacketOpcode extends Enumeration {
     case 0x9c => noDecoder(DebugDrawMessage)
     case 0x9d => noDecoder(SoulMarkMessage)
     case 0x9e => noDecoder(UplinkPositionEvent)
-    case 0x9f => noDecoder(HotSpotUpdateMessage)
+    case 0x9f => game.HotSpotUpdateMessage.decode
 
     // OPCODES 0xa0-af
     case 0xa0 => game.BuildingInfoUpdateMessage.decode
