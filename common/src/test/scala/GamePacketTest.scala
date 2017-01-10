@@ -334,7 +334,7 @@ class GamePacketTest extends Specification {
             shortcut.get.tile mustEqual "shortcut_macro"
             shortcut.get.effect1 mustEqual "NTU"
             shortcut.get.effect2 mustEqual "/platoon Incoming NTU spam!"
-          case default =>
+          case _ =>
             ko
         }
       }
@@ -404,6 +404,27 @@ class GamePacketTest extends Specification {
         Shortcut.SENSOR_SHIELD.get.tile mustEqual "silent_run"
         Shortcut.SURGE.get.purpose mustEqual 2
         Shortcut.SURGE.get.tile mustEqual "surge"
+      }
+    }
+
+    "ChangeShortcutBankMessage" should {
+      val string = hex"29 4B00 20"
+
+      "decode" in {
+        PacketCoding.DecodePacket(string).require match {
+          case ChangeShortcutBankMessage(player_guid, bank) =>
+            player_guid mustEqual PlanetSideGUID(75)
+            bank mustEqual 2
+          case default =>
+            ko
+        }
+      }
+
+      "encode" in {
+        val msg = ChangeShortcutBankMessage(PlanetSideGUID(75), 2)
+        val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+        pkt mustEqual string
       }
     }
 

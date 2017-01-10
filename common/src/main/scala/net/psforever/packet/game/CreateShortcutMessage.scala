@@ -57,7 +57,13 @@ final case class Shortcut(purpose : Int,
   * <br>
   * When `addShortcut` is `true`, the provided `Shortcut` will be defined and attached to the respective hotbar slot indicated by `slot`.
   * If it is `false`, the given `slot` will be unbound.
-  * Nothing happens if the `slot` selection is invalid.
+  * Nothing happens if the `slot` selection is invalid.<br>
+  * <br>
+  * This packet coordinates the shortcut both as an upstream and as a downstream packet, leaning heavily towards the latter.
+  * An interesting application is that, if the user does not already have a medkit or a medkit shortcut;
+  * but, if he places a medkit in his inventory, the shortcut will be automatically added to his hotbar.
+  * This, in turn, dispatches a packet informing the server.
+  * The prior functionality will rarely be appreciated, however, as players rarely never have their medkit shortcut unbound.
   * @param player_guid the player
   * @param slot the hotbar slot number (one-indexed)
   * @param unk na; always zero?
