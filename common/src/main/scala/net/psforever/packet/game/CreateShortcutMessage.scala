@@ -8,12 +8,14 @@ import scodec.codecs._
 /**
   * Details regarding this shortcut.<br>
   * <br>
-  * The parameters `purpose` and `tile` are closely related, as is explained below.
-  * These two fields are constant for all shortcuts.
-  * The parameters `effect1` and `effect2` are exclusive to text macro shortcuts and are defaulted to empty `String`s.
-  * `tile` is related to what kind of graphic is displayed in this shortcut's slot on the hotbar.
-  * Implants and the medkit have self-explanatory graphics.
+  * The parameters `purpose` and `tile` are closely related.
+  * These two fields are consistent for all shortcuts of the same type.
+  * `purpose` indicates the purpose of the shortcut.
+  * `tile` is related to what kind of graphic is displayed in this shortcut's slot on the hotbar based on its purpose.
+  * The parameters `effect1` and `effect2` are exclusive to text macro shortcuts and are defaulted to empty `String`s.<br>
+  * <br>
   * The `shortcut_macro` setting displays a word bubble superimposed by the (first three letters of) `effect1` text.<br>
+  * Implants and the medkit should have self-explanatory graphics.
   * <br>
   * Purpose:<br>
   * `0 - Medkit`<br>
@@ -35,8 +37,8 @@ import scodec.codecs._
   * `targeting` (enhanced targetting)<br>
   * <br>
   * Exploration:<br>
-  * Does the shortcut do something different when `purpose` is set to 3?
-  * @param purpose the primary purpose/use of this shortcut
+  * What is `purpose` when 3?
+  * @param purpose the primary use of this shortcut
   * @param tile the visual element of the shortcut
   * @param effect1 for macros, a three letter acronym displayed in the hotbar
   * @param effect2 for macros, the chat message content
@@ -50,11 +52,11 @@ final case class Shortcut(purpose : Int,
   * Facilitate a quick-use button for the hotbar.<br>
   * <br>
   * The hotbar is the eight quick-use slots along the bottom center of the HUD.
-  * Each of these slots is a shortcut to the application of medkits from one's inventory, or use of an implant, or repetition of a text macro.
-  * There are actually sixty-four of these slots, divided into sets of eight, and tentatively bound to the Function keys depending on which set is selected at the time.<br>
+  * Each of these slots is the application of a medkit, or use of an implant, or repetition of a text macro.
+  * There are actually sixty-four of these slots, eight bound to the Function keys depending on which set is selected.<br>
   * <br>
-  * When `addShortcut` is `true`, the provided `shortcut` will be defined and attached to the respective hotbar slot indicated by `slot`.
-  * If it is `false`, the given slot will be unbound and `shortcut` will be undefined.
+  * When `addShortcut` is `true`, the provided `Shortcut` will be defined and attached to the respective hotbar slot indicated by `slot`.
+  * If it is `false`, the given `slot` will be unbound.
   * Nothing happens if the `slot` selection is invalid.
   * @param player_guid the player
   * @param slot the hotbar slot number (one-indexed)
@@ -75,13 +77,6 @@ final case class CreateShortcutMessage(player_guid : PlanetSideGUID,
 }
 
 object Shortcut extends Marshallable[Shortcut] {
-  implicit val codec : Codec[Shortcut] = (
-    ("purpose" | uintL(2)) ::
-      ("tile" | PacketHelpers.encodedStringAligned(5)) ::
-      ("effect1" | PacketHelpers.encodedWideString) ::
-      ("effect2" | PacketHelpers.encodedWideString)
-    ).as[Shortcut]
-
   // Convenient predefined Shortcuts for the Medkit and Implants
   /**
     * Preset for the Audio Amplifier implant. */
@@ -123,6 +118,13 @@ object Shortcut extends Marshallable[Shortcut] {
     * @return `Some` shortcut that represents a voice macro command
     */
   def MACRO(effect1 : String, effect2 : String) : Some[Shortcut] = Some(Shortcut(1, "shortcut_macro", effect1, effect2))
+
+  implicit val codec : Codec[Shortcut] = (
+    ("purpose" | uint2L) ::
+      ("tile" | PacketHelpers.encodedStringAligned(5)) ::
+      ("effect1" | PacketHelpers.encodedWideString) ::
+      ("effect2" | PacketHelpers.encodedWideString)
+    ).as[Shortcut]
 }
 
 object CreateShortcutMessage extends Marshallable[CreateShortcutMessage] {
