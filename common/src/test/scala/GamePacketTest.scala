@@ -869,8 +869,6 @@ class GamePacketTest extends Specification {
             list(3).online mustEqual false
             list(4).name mustEqual "KurtHectic-G"
             list(4).online mustEqual false
-          case default =>
-            ko
         }
       }
 
@@ -896,10 +894,10 @@ class GamePacketTest extends Specification {
 
       "encode (multiple friends)" in {
         val msg = FriendsResponse(0, 0, true, true, Friend("Angello-W", false) ::
-                                                    Friend("thephattphrogg", false) ::
-                                                    Friend("Kimpossible12", false) ::
-                                                    Friend("Zearthling", false) ::
-                                                    Friend("KurtHectic-G", false) :: Nil)
+          Friend("thephattphrogg", false) ::
+          Friend("Kimpossible12", false) ::
+          Friend("Zearthling", false) ::
+          Friend("KurtHectic-G", false) :: Nil)
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
         pkt mustEqual stringManyFriends
@@ -910,6 +908,28 @@ class GamePacketTest extends Specification {
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
         pkt mustEqual stringShort
+      }
+    }
+
+    "FriendsRequest" should {
+      val string = hex"72 3 0A0 46004A0048004E004300"
+
+      "decode" in {
+        PacketCoding.DecodePacket(string).require match {
+          case FriendsRequest(action, friend) =>
+            action mustEqual 1
+            friend.length mustEqual 5
+            friend mustEqual "FJHNC"
+          case default =>
+            ko
+        }
+      }
+
+      "encode" in {
+        val msg = FriendsRequest(1, "FJHNC")
+        val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+        pkt mustEqual string
       }
     }
 
