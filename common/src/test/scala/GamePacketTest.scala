@@ -921,23 +921,16 @@ class GamePacketTest extends Specification {
       "decode" in {
         HotSpotInfo.codec.decode(string.toBitVector) match {
           case Attempt.Successful(decoded) =>
-            decoded.value.x mustEqual 2000
-            decoded.value.y mustEqual 2700
-            decoded.value.scale mustEqual 128
+            decoded.value.x mustEqual 4000.0f
+            decoded.value.y mustEqual 5400.0f
+            decoded.value.scale mustEqual 64.0f
           case _ =>
             ko
         }
       }
 
-      "encode (long-hand)" in {
-        val msg = HotSpotInfo(0, 2000, 0, 2700, 128)
-        val pkt = HotSpotInfo.codec.encode(msg).require.toByteVector
-
-        pkt mustEqual string
-      }
-
-      "encode (short-hand)" in {
-        val msg = HotSpotInfo(2000, 2700, 128)
+      "encode" in {
+        val msg = HotSpotInfo(4000.0f, 5400.0f, 64.0f)
         val pkt = HotSpotInfo.codec.encode(msg).require.toByteVector
 
         pkt mustEqual string
@@ -966,9 +959,9 @@ class GamePacketTest extends Specification {
             continent_guid mustEqual PlanetSideGUID(5)
             unk mustEqual 1
             spots.size mustEqual 1
-            spots.head.x mustEqual 2350
-            spots.head.y mustEqual 1300
-            spots.head.scale mustEqual 128
+            spots.head.x mustEqual 4700.0f
+            spots.head.y mustEqual 2600.0f
+            spots.head.scale mustEqual 64.0f
           case _ =>
             ko
         }
@@ -980,12 +973,12 @@ class GamePacketTest extends Specification {
             continent_guid mustEqual PlanetSideGUID(5)
             unk mustEqual 5
             spots.size mustEqual 2
-            spots.head.x mustEqual 2000
-            spots.head.y mustEqual 2700
-            spots.head.scale mustEqual 128
-            spots(1).x mustEqual 2750
-            spots(1).y mustEqual 1100
-            spots(1).scale mustEqual 128
+            spots.head.x mustEqual 4000.0f
+            spots.head.y mustEqual 5400.0f
+            spots.head.scale mustEqual 64.0f
+            spots(1).x mustEqual 5500.0f
+            spots(1).y mustEqual 2200.0f
+            spots(1).scale mustEqual 64.0f
           case _ =>
             ko
         }
@@ -998,13 +991,13 @@ class GamePacketTest extends Specification {
       }
 
       "encode (one)" in {
-        val msg = HotSpotUpdateMessage(PlanetSideGUID(5),1, HotSpotInfo(0,2350,0,1300,128)::Nil)
+        val msg = HotSpotUpdateMessage(PlanetSideGUID(5),1, HotSpotInfo(4700.0f, 2600.0f, 64.0f)::Nil)
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
         pkt mustEqual stringOne
       }
 
       "encode (two)" in {
-        val msg = HotSpotUpdateMessage(PlanetSideGUID(5),5, HotSpotInfo(0,2000,0,2700,128)::HotSpotInfo(0,2750,0,1100,128)::Nil)
+        val msg = HotSpotUpdateMessage(PlanetSideGUID(5),5, HotSpotInfo(4000.0f, 5400.0f, 64.0f)::HotSpotInfo(5500.0f, 2200.0f, 64.0f)::Nil)
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
         pkt mustEqual stringTwo
       }
