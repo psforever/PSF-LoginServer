@@ -532,7 +532,7 @@ object GamePacketOpcode extends Enumeration {
     case 0xb1 => game.VoiceHostKill.decode
     case 0xb2 => game.VoiceHostInfo.decode
     case 0xb3 => noDecoder(BattleplanMessage)
-    case 0xb4 => noDecoder(BattleExperienceMessage)
+    case 0xb4 => game.BattleExperienceMessage.decode
     case 0xb5 => noDecoder(TargetingImplantRequest)
     case 0xb6 => game.ZonePopulationUpdateMessage.decode
     case 0xb7 => noDecoder(DisconnectMessage)
