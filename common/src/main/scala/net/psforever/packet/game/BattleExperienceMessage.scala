@@ -16,14 +16,25 @@ import scodec.codecs._
   * <br>
   * It is possible to award more battle experience than is necessary to progress one's character to the highest battle rank.
   * (This must be accomplished in a single event packet.)
-  * Only the most significant notification will be displayed.
+  * Only the most significant notifications will be displayed in that case.
+  * If the BEP has been modified, there will be an extra three bits to indicate which message to display.<br>
+  * <br>
+  * Messages:<br>
+  * 0 - Normal<br>
+  * 1 - Normal (repeat?)<br>
+  * 2 - Support bonus ("due to support activity")<br>
+  * 4 - Rabbit bonus ("+25% rabbit Bonus")<br>
+  * (Support message has priority over Rabbit message.)<br>
+  * <br>
+  * Exploration:<br>
+  * `msg = 1` probably does not do the same thing as `mod = 0`.
   * @param player_guid the player
   * @param experience the current total experience
-  * @param unk na; always zero?
+  * @param msg modifies the awarded experience message
   */
 final case class BattleExperienceMessage(player_guid : PlanetSideGUID,
                                          experience : Long,
-                                         unk : Int)
+                                         msg : Int)
   extends PlanetSideGamePacket {
   type Packet = BattleExperienceMessage
   def opcode = GamePacketOpcode.BattleExperienceMessage
@@ -33,7 +44,7 @@ final case class BattleExperienceMessage(player_guid : PlanetSideGUID,
 object BattleExperienceMessage extends Marshallable[BattleExperienceMessage] {
   implicit val codec : Codec[BattleExperienceMessage] = (
     ("player_guid" | PlanetSideGUID.codec) ::
-      ("experience" | ulongL(32)) ::
-      ("unk" | uint8L)
+      ("experience" | uint32L) ::
+      ("msg" | uintL(3))
     ).as[BattleExperienceMessage]
 }
