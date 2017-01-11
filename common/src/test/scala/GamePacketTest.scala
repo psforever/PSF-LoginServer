@@ -474,20 +474,16 @@ class GamePacketTest extends Specification {
 
       "decode" in {
         PacketCoding.DecodePacket(string).require match {
-          case TimeOfDayMessage(unk1, time, unk2, unk3, unk4, unk5) =>
-            unk1 mustEqual 0
-            time mustEqual 4653056
-            unk2 mustEqual 0
-            unk3 mustEqual 0
-            unk4 mustEqual 32
-            unk5 mustEqual 65
+          case TimeOfDayMessage(time, unk) =>
+            time mustEqual 1191182336
+            unk mustEqual 1092616192
           case default =>
             ko
         }
       }
 
       "encode" in {
-        val msg = TimeOfDayMessage(0, 4653056, 0, 0, 32, 65)
+        val msg = TimeOfDayMessage(1191182336)
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
         pkt mustEqual string

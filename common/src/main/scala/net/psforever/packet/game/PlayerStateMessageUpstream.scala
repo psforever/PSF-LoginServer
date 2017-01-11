@@ -23,7 +23,7 @@ import scodec.codecs._
   * @param is_crouching whether the player is crouched
   * @param unk4 na
   * @param unk5 na
-  * @param is_cloaking whether the player is cloaked (Infiltration Suit)
+  * @param is_cloaking whether the player is cloaked by virtue of an Infiltration Suit
   * @param unk6 na
   * @param unk7 na
   */

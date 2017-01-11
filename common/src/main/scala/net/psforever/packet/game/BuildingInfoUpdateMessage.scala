@@ -4,7 +4,6 @@ package net.psforever.packet.game
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
 import scodec.Codec
 import scodec.codecs._
-import scodec.bits._
 
 object PlanetSideGeneratorState extends Enumeration {
   type Type = Value
@@ -66,7 +65,6 @@ object BuildingInfoUpdateMessage extends Marshallable[BuildingInfoUpdateMessage]
       ("unk5" | uint32L) ::
       ("unk6" | bool) ::
       ("unk7" | uint4L) :: //TODO: bool and uintL(2) follow if unk7 != 8
-
       ("boost_spawn_pain" | bool) ::
       ("boost_generator_pain" | bool)
     ).as[BuildingInfoUpdateMessage]
