@@ -6,8 +6,8 @@ import scodec.Codec
 import scodec.codecs._
 
 /**
-  * Sets Auraxis time on the client.
-  * Use the slash-command /time to view the current time in the event window.
+  * Sets Auraxis time for a continent (zone) on the client.
+  * Use the slash-command `/time` to view the current time in the event window.
   * Auraxis time is represented as a standard military twenty-four hour clock, displayed in hours and minutes.<br>
   * <br>
   * Time is set per zone on map loading.
@@ -21,26 +21,18 @@ import scodec.codecs._
   * The current time is constrained to a looping twenty-four hour interval.<br>
   * <br>
   * If no time is set, the client starts counting from 10:00 at an initial rate of about one Auraxis minute every four or five real seconds.
-  * Setting the current time to 00 00 42 sets the current time to 00:00 with an indeterminate, but slow, rate.
-  * Time is normally initialized somewhere within an interval between 00 00 46 and FF FF 47.
-  * Setting the current time extremely high can cause psychedelic rendering as the current time overflows and the rate is too fast.
-  * (Setting the time to FF FF FF will reduce the rendering system to true gibberish.)<br>
+  * Setting the current time to 1107296256 sets the current time to 00:00 with an indeterminate, but slow, rate.
+  * Time is normally initialized somewhere within an interval between 1174405120 and 1207959296.
+  * Setting the current time extremely high (near the numerical maximum) can cause psychedelic rendering.
+  * (Setting the time to 4294967040 exactly will reduce the rendering system to gibberish.)<br>
   * <br>
-  * The interval from 5E 39 46 (4602206, which is ~03:18) to 00 C0 47 (4702208, which is 03:18) is about a full twenty-four hours.
-  * Coincidentally, that is a count of 100002.
-  * @param unk1 consistently 00; does nothing?
+  * The interval from 1178164736 (~03:18) to 1203765248 (03:18) is about a full twenty-four hours.
+  * That is a count of 25600512.
   * @param time Auraxis time
-  * @param unk2 consistently 00; does nothing?
-  * @param unk3 consistently 00; does nothing?
-  * @param unk4 consistently 20; does nothing?
-  * @param unk5 consistently 41; does nothing?
+  * @param unk consistently 1092616192; does nothing?
   */
-final case class TimeOfDayMessage(unk1 : Int,
-                                  time : Int,
-                                  unk2 : Int,
-                                  unk3 : Int,
-                                  unk4 : Int,
-                                  unk5 : Int)
+final case class TimeOfDayMessage(time : Long,
+                                  unk : Long = 1092616192L)
   extends PlanetSideGamePacket {
   type Packet = TimeOfDayMessage
   def opcode = GamePacketOpcode.TimeOfDayMessage
@@ -49,12 +41,8 @@ final case class TimeOfDayMessage(unk1 : Int,
 
 object TimeOfDayMessage extends Marshallable[TimeOfDayMessage] {
   implicit val codec : Codec[TimeOfDayMessage] = (
-    ("unk1" | uint8L) ::
-      ("time" | uintL(24)) ::
-      ("unk2" | uint8L) ::
-      ("unk3" | uint8L) ::
-      ("unk4" | uint8L) ::
-      ("unk5" | uint8L)
+      ("time" | uint32L) ::
+      ("unk" | uint32L)
     ).as[TimeOfDayMessage]
 }
 
