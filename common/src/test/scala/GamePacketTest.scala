@@ -835,15 +835,15 @@ class GamePacketTest extends Specification {
 
       "decode" in {
         PacketCoding.DecodePacket(string).require match {
-          case TrainingZoneMessage(zone) =>
-            zone mustEqual 19
+          case TrainingZoneMessage(zone, unk) =>
+            zone mustEqual PlanetSideGUID(19)
           case default =>
             ko
         }
       }
 
       "encode" in {
-        val msg = TrainingZoneMessage(19)
+        val msg = TrainingZoneMessage(PlanetSideGUID(19))
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
         pkt mustEqual string
