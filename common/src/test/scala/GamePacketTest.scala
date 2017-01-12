@@ -534,10 +534,10 @@ class GamePacketTest extends Specification {
 
       "decode (short)" in {
         PacketCoding.DecodePacket(string_short).require match {
-          case PlayerStateShiftMessage(unk1, state, unk2) =>
-            unk1 mustEqual 6
+          case PlayerStateShiftMessage(state, unk) =>
             state.isDefined mustEqual false
-            unk2 mustEqual true
+            unk.isDefined mustEqual true
+            unk.get mustEqual 5
           case _ =>
             ko
         }
@@ -545,15 +545,15 @@ class GamePacketTest extends Specification {
 
       "decode (pos)" in {
         PacketCoding.DecodePacket(string_pos).require match {
-          case PlayerStateShiftMessage(unk1, state, unk2) =>
-            unk1 mustEqual 1
+          case PlayerStateShiftMessage(state, unk) =>
             state.isDefined mustEqual true
+            state.get.unk mustEqual 1
             state.get.pos.x mustEqual 4624.703f
             state.get.pos.y mustEqual 5922.1484f
             state.get.pos.z mustEqual 46.171875f
             state.get.viewYawLim mustEqual 255
             state.get.vel.isDefined mustEqual false
-            unk2 mustEqual false
+            unk.isDefined mustEqual false
           case _ =>
             ko
         }
@@ -561,9 +561,9 @@ class GamePacketTest extends Specification {
 
       "decode (pos and vel)" in {
         PacketCoding.DecodePacket(string_posAndVel).require match {
-          case PlayerStateShiftMessage(unk1, state, unk2) =>
-            unk1 mustEqual 2
+          case PlayerStateShiftMessage(state, unk) =>
             state.isDefined mustEqual true
+            state.get.unk mustEqual 2
             state.get.pos.x mustEqual 4645.75f
             state.get.pos.y mustEqual 5811.6016f
             state.get.pos.z mustEqual 50.3125f
@@ -572,32 +572,28 @@ class GamePacketTest extends Specification {
             state.get.vel.get.x mustEqual 2.8125f
             state.get.vel.get.y mustEqual -8.0f
             state.get.vel.get.z mustEqual 0.375f
-            unk2 mustEqual false
+            unk.isDefined mustEqual false
           case _ =>
             ko
         }
       }
 
       "encode (short)" in {
-        val msg = PlayerStateShiftMessage(6, true)
+        val msg = PlayerStateShiftMessage(5)
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
         pkt mustEqual string_short
       }
 
       "encode (pos)" in {
-        val msg = PlayerStateShiftMessage(1,
-          ShiftState(Vector3(4624.703f, 5922.1484f, 46.171875f), 255),
-          false)
+        val msg = PlayerStateShiftMessage(ShiftState(1, Vector3(4624.703f, 5922.1484f, 46.171875f), 255))
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
         pkt mustEqual string_pos
       }
 
       "encode (pos and vel)" in {
-        val msg = PlayerStateShiftMessage(2,
-          ShiftState(Vector3(4645.75f, 5811.6016f, 50.3125f), 14, Vector3(2.8125f, -8.0f, 0.375f)),
-          false)
+        val msg = PlayerStateShiftMessage(ShiftState(2, Vector3(4645.75f, 5811.6016f, 50.3125f), 14, Vector3(2.8125f, -8.0f, 0.375f)))
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
         pkt mustEqual string_posAndVel

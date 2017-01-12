@@ -3,7 +3,7 @@ package net.psforever.packet.game
 
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PlanetSideGamePacket}
 import net.psforever.types.Vector3
-import scodec.Codec
+import scodec.{Attempt, Codec, Err}
 import scodec.codecs._
 import shapeless.{::, HNil}
 
@@ -25,13 +25,15 @@ import shapeless.{::, HNil}
   * stopping in an invalid part of the range will cause the avatar to align to the __earliest__ still-valid 60-degree mark.
   * For that reason, even if the avatar's final angle is closest to the "left mark," it may re-align to the "right mark."
   * This also resets the avatar's angular displacement.
+  * @param unk na
   * @param pos the position to move the character to in the world environment
   * @param viewYawLim an angle with respect to the horizon towards which the avatar is looking (to some respect)
   * @param vel if defined, the velocity to apply to to the character at the given position
   */
-final case class ShiftState(pos : Vector3,
-                             viewYawLim : Int,
-                             vel : Option[Vector3])
+final case class ShiftState(unk : Int,
+                            pos : Vector3,
+                            viewYawLim : Int,
+                            vel : Option[Vector3])
 
 /**
   * Push specific motion-based stimuli on a specific character.<br>
@@ -41,18 +43,12 @@ final case class ShiftState(pos : Vector3,
   * `PlayerStateShiftMessage` involves data transmitted from the server to a client about that client's avatar.
   * It temporarily asserts itself before normal player movement and asserts specific placement and motion.
   * An application of this packet is being `/warp`ed within a zone via a non-triggering agent (like a teleporter).
-  * Another, more common, application of this packet is being thrown about when the target of an attempted roadkill.<br>
-  * <br>
-  * Exploration:<br>
-  * What do the leading and trailing values do?
-  * @param unk1 na;
-  *             seems to have different purposes depending on whether `state` is defined
+  * Another, more common, application of this packet is being thrown about when the target of an attempted roadkill.
   * @param state if defined, the behaviors to influence the character
-  * @param unk2 na
+  * @param unk na
   */
-final case class PlayerStateShiftMessage(unk1 : Int,
-                                         state : Option[ShiftState],
-                                         unk2 : Boolean)
+final case class PlayerStateShiftMessage(state : Option[ShiftState],
+                                         unk : Option[Int] = None)
   extends PlanetSideGamePacket {
   type Packet = TimeOfDayMessage
   def opcode = GamePacketOpcode.PlayerStateShiftMessage
@@ -62,42 +58,38 @@ final case class PlayerStateShiftMessage(unk1 : Int,
 object ShiftState extends Marshallable[ShiftState] {
   /**
     * An abbreviated constructor for creating `ShiftState`, assuming velocity is not applied.
+    * @param unk na
     * @param pos the position of the character in the world environment
     * @param viewYawLim an angle with respect to the horizon towards which the avatar is looking (to some respect)
     * @param vel the velocity to apply to to the character at the given position
     * @return a `ShiftState` object
     */
-  def apply(pos : Vector3, viewYawLim : Int, vel : Vector3) : ShiftState =
-    ShiftState(pos, viewYawLim, Some(vel))
+  def apply(unk : Int, pos : Vector3, viewYawLim : Int, vel : Vector3) : ShiftState =
+    ShiftState(unk, pos, viewYawLim, Some(vel))
 
   /**
     * An abbreviated constructor for creating `ShiftState`, removing the optional condition of all parameters.
+    * @param unk na
     * @param pos the position of the character in the world environment
     * @param viewYawLim an angle with respect to the horizon towards which the avatar is looking (to some respect)
     * @return a `ShiftState` object
     */
-  def apply(pos : Vector3, viewYawLim : Int) : ShiftState =
-    ShiftState(pos, viewYawLim, None)
+  def apply(unk : Int, pos : Vector3, viewYawLim : Int) : ShiftState =
+    ShiftState(unk, pos, viewYawLim, None)
 
   implicit val codec : Codec[ShiftState] = (
+    ("unk1" | uintL(3)) ::
       ("pos" | Vector3.codec_pos) ::
-        ("unk2" | uint8L) ::
-        (bool >>:~ { test =>
-          ignore(0) ::
-            conditional(test, "pos" | Vector3.codec_vel)
-        })
+      ("viewYawLim" | uint8L) ::
+      optional(bool, "pos" | Vector3.codec_vel)
     ).xmap[ShiftState] (
       {
-        case a :: b :: false :: _ :: None :: HNil =>
-          ShiftState(a, b, None)
-        case a :: b :: true :: _ :: Some(vel) :: HNil =>
-          ShiftState(a, b, Some(vel))
+        case a :: b :: c :: d :: HNil =>
+          ShiftState(a, b, c, d)
       },
       {
-        case ShiftState(a, b, None) =>
-          a :: b :: false :: () :: None :: HNil
-        case ShiftState(a, b, Some(vel)) =>
-          a :: b :: true :: () :: Some(vel) :: HNil
+        case ShiftState(a, b, c, d) =>
+          a :: b :: c :: d :: HNil
       }
     ).as[ShiftState]
 }
@@ -105,40 +97,40 @@ object ShiftState extends Marshallable[ShiftState] {
 object PlayerStateShiftMessage extends Marshallable[PlayerStateShiftMessage] {
   /**
     * An abbreviated constructor for creating `PlayerStateShiftMessage`, removing the optional condition of `state`.
-    * @param unk1 na
     * @param state the behaviors to influence the character
-    * @param unk2 na
+    * @param unk na
     * @return a `PlayerStateShiftMessage` packet
     */
-  def apply(unk1 : Int, state : ShiftState, unk2 : Boolean) : PlayerStateShiftMessage =
-    PlayerStateShiftMessage(unk1, Some(state), unk2)
+  def apply(state : ShiftState, unk : Int) : PlayerStateShiftMessage =
+    PlayerStateShiftMessage(Some(state), Some(unk))
 
   /**
-    * An abbreviated constructor for creating `PlayerStateShiftMessage`, assuming the parameter `state` is not defined.
-    * @param unk1 na
-    * @param unk2 na
+    * An abbreviated constructor for creating `PlayerStateShiftMessage`, removing the optional condition of `unk2`.
+    * @param state the behaviors to influence the character
     * @return a `PlayerStateShiftMessage` packet
     */
-  def apply(unk1 : Int, unk2 : Boolean) : PlayerStateShiftMessage =
-    PlayerStateShiftMessage(unk1, None, unk2)
+  def apply(state : ShiftState) : PlayerStateShiftMessage =
+    PlayerStateShiftMessage(Some(state), None)
+
+  /**
+    * An abbreviated constructor for creating `PlayerStateShiftMessage`, assuming the parameters `unk1` and `state` are not defined.
+    * @param unk na
+    * @return a `PlayerStateShiftMessage` packet
+    */
+  def apply(unk : Int) : PlayerStateShiftMessage =
+    PlayerStateShiftMessage(None, Some(unk))
 
   implicit val codec : Codec[PlayerStateShiftMessage] = (
-    bool >>:~ { test =>
-      ("unk1" | uintL(3)) ::
-        conditional(test, "state" | ShiftState.codec) ::
-        ("unk2" | bool)
-    }).xmap[PlayerStateShiftMessage] (
+    optional(bool, "state" | ShiftState.codec) ::
+      optional(bool, "unk" | uintL(3))
+    ).xmap[PlayerStateShiftMessage] (
       {
-        case false :: a :: None :: b :: HNil =>
-          PlayerStateShiftMessage(a, None, b)
-        case true :: a :: Some(pos) :: b :: HNil =>
-          PlayerStateShiftMessage(a, Some(pos), b)
+        case a :: b :: HNil =>
+          PlayerStateShiftMessage(a, b)
       },
       {
-        case PlayerStateShiftMessage(a, None, b) =>
-          false :: a :: None :: b :: HNil
-        case PlayerStateShiftMessage(a, Some(pos), b) =>
-          true :: a :: Some(pos) :: b :: HNil
+        case PlayerStateShiftMessage(a, b) =>
+          a :: b :: HNil
       }
     ).as[PlayerStateShiftMessage]
 }
