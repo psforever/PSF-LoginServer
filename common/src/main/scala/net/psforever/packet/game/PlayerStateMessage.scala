@@ -60,18 +60,16 @@ import scala.collection.mutable
   * @param pos the position of the avatar in the world environment (in three coordinates)
   * @param vel an optional velocity
   * @param facingYaw the angle with respect to the horizon towards which the avatar is looking;
+  *                  the model's whole body is facing this direction;
   *                  measurements are counter-clockwise from East
   * @param facingPitch the angle with respect to the sky and the ground towards which the avatar is looking
   * @param facingYawUpper the angle of the avatar's upper body with respect to its forward-facing direction
   * @param unk1 na
-  * @param isCrouching avatar is crouching;
-  *                    must remain flagged to maintain crouch
-  * @param isJumping avatar is jumping;
-  *                  must remain flagged for jump to maintain animation;
-  *                  turn off to land(?)
+  * @param is_crouching avatar is crouching
+  * @param is_jumping avatar is jumping;
+  *                   must remain flagged for jump to maintain animation
   * @param unk2 na
-  * @param isCloaked avatar is cloaked by virtue of an Infiltration Suit;
-  *                  must remain flagged to stay cloaked
+  * @param is_cloaked avatar is cloaked by virtue of an Infiltration Suit
   */
 final case class PlayerStateMessage(guid : PlanetSideGUID,
                                     pos : Vector3,
@@ -80,10 +78,10 @@ final case class PlayerStateMessage(guid : PlanetSideGUID,
                                     facingPitch : Int,
                                     facingYawUpper : Int,
                                     unk1 : Int,
-                                    isCrouching : Boolean = false,
-                                    isJumping : Boolean = false,
+                                    is_crouching : Boolean = false,
+                                    is_jumping : Boolean = false,
                                     unk2 : Boolean = false,
-                                    isCloaked : Boolean = false)
+                                    is_cloaked : Boolean = false)
   extends PlanetSideGamePacket {
   type Packet = PlayerStateMessage
   def opcode = GamePacketOpcode.PlayerStateMessage
@@ -97,49 +95,46 @@ object PlayerStateMessage extends Marshallable[PlayerStateMessage] {
     * A `Codec` for reading out the four `Boolean` values near the end of the formal packet.
     */
   val booleanCodec : Codec[fourBoolPattern] = (
-    ("isCrouching" | bool) ::
-      ("isJumping" | bool) ::
+    ("is_crouching" | bool) ::
+      ("is_jumping" | bool) ::
       ("unk2" | bool) ::
-      ("isCloaked" | bool)
+      ("is_cloaked" | bool)
     ).as[fourBoolPattern]
 
   /**
     * A `Codec` for ignoring the four values at the end of the formal packet (all set to `false`).
     */
-  val defaultCodec : Codec[fourBoolPattern] = ignore(0).xmap[fourBoolPattern] (
+  val defaultCodec : Codec[fourBoolPattern] = ignore(0).hlist.xmap[fourBoolPattern] (
     {
-      case _ =>
+      case _ :: HNil =>
         false :: false :: false :: false :: HNil
     },
     {
-      case _ =>
-        ()
+      case _ :: _ :: _ :: _ :: HNil =>
+        () :: HNil
     }
   ).as[fourBoolPattern]
 
   implicit val codec : Codec[PlayerStateMessage] = (
     ("guid" | PlanetSideGUID.codec) ::
       ("pos" | Vector3.codec_pos) ::
-      (bool >>:~ { b1 =>
-        conditional(b1, "unk1" | Vector3.codec_vel) ::
-          ("facingYaw" | uint8L) ::
-          ("facingPitch" | uint8L) ::
-          ("facingYawUpper" | uint8L) ::
-          ("unk1" | uintL(10)) ::
-          ("fourBools" | bool >>:~ { b2 =>
-            ignore(0) ::
-              newcodecs.binary_choice(!b2, booleanCodec, defaultCodec)
-          })
+      optional(bool, "unk1" | Vector3.codec_vel) ::
+      ("facingYaw" | uint8L) ::
+      ("facingPitch" | uint8L) ::
+      ("facingYawUpper" | uint8L) ::
+      ("unk1" | uintL(10)) ::
+      (bool >>:~ { fourBools =>
+        newcodecs.binary_choice(!fourBools, booleanCodec, defaultCodec)
       })
     ).xmap[PlayerStateMessage] (
     {
-      case uid :: pos :: _ :: vel :: f1 :: f2 :: f3 :: u :: _ :: _ :: b1 :: b2 :: b3 :: b4 :: HNil =>
+      case uid :: pos :: vel :: f1 :: f2 :: f3 :: u :: _ :: b1 :: b2 :: b3 :: b4 :: HNil =>
         PlayerStateMessage(uid, pos, vel, f1, f2, f3, u, b1, b2, b3, b4)
     },
     {
       case PlayerStateMessage(uid, pos, vel, f1, f2, f3, u, b1, b2, b3, b4) =>
         val b : Boolean = !(b1 || b2 || b3 || b4)
-        uid :: pos :: vel.isDefined :: vel :: f1 :: f2 :: f3 :: u :: b :: () :: b1 :: b2 :: b3 :: b4 :: HNil
+        uid :: pos :: vel :: f1 :: f2 :: f3 :: u :: b :: b1 :: b2 :: b3 :: b4 :: HNil
     }
   )
 }
@@ -150,13 +145,14 @@ There is a boolean that is currently unhandled(?) that determines if the packet 
 If it passes, the first 8-bit value is the number of times the data will be iterated over.
 On each pass, a 4-bit value is extracted from the packet and compared against 15.
 When 15 is read, an 8-bit value is read on that same turn.
-On each subsequent turn, 8-bit values will be read until the number of iterations or there is an exception.
+On each subsequent turn, 8-bit values will be read until the number of iterations or until there is an exception.
 Until I find a packet that responds somehow, I have no clue what any of this is supposed to do.
  */
 /**
   * na
   * @param size a length to be applied to the next list, but not necessarily the length of that list
-  * @param data a list of data that comes in either a single 8-bit value, or a 4-bit value and, maybe, an 8-bit value
+  *             (if I could prove that size == list.size always then I could eliminate superfluous logic from `Extra1`)
+  * @param data a list of data that comes as either an 8-bit value, or as a 4-bit value and, maybe, an 8-bit value
   */
 final case class Extra1(size : Int,
                         data : List[Extra2])
@@ -204,25 +200,23 @@ object Extra1 {
 
   implicit val codec : Codec[Extra1] = (
     ("size" | uint8L) >>:~ { sz =>
-      ignore(0) ::
         //external logic: the client checks sz < dword_D33D38 before decoding beyond this point
-        conditional(sz != 0, "data" | Extra2.processData(sz))
+        conditional(sz != 0, "data" | Extra2.processData(sz)).hlist
     }
     ).xmap[Extra1] (
     {
-      case a :: _ :: None :: HNil =>
+      case a :: None :: HNil =>
         Extra1(a, List.empty) //it's okay if a != 0
-      case a :: _ :: b :: HNil =>
+      case a :: b :: HNil =>
         val list = mutable.ListBuffer[Extra2]()
         packExtraList(list, b)
         Extra1(a, list.toList)
     },
     {
+      case Extra1(a, Nil) =>
+        a :: None :: HNil
       case Extra1(a, b) =>
-        if(b.isEmpty)
-          a :: () :: None :: HNil
-        else
-          a :: () :: unpackExtraList(b.iterator) :: HNil
+        a :: unpackExtraList(b.iterator) :: HNil
     }
   )
 }
@@ -250,17 +244,14 @@ object Extra2 {
   /**
     * A `Codec` for reading a single value.
     */
-  private val oneValueCodec : Codec[Extra2] = (
-    ignore(0) ::
-      ("unk2" | uint8L)
-    ).xmap[Extra2] (
+  private val oneValueCodec : Codec[Extra2] = ("unk2" | uint8L).hlist.xmap[Extra2] (
     {
-      case _ :: a :: HNil =>
+      case  a :: HNil =>
         Extra2(a, None, None)
     },
     {
       case Extra2(a, None, _) =>
-        () :: a :: HNil
+         a :: HNil
     }
   )
 
@@ -269,47 +260,70 @@ object Extra2 {
     */
   private val twoValueCodec : Codec[Extra2] = (
     ("unk1" | uint4L) >>:~ { unk =>
-      ignore(0) ::
-        conditional(unk == 15, "unk2" | uint8L)
+      conditional(unk == 15, "unk2" | uint8L).hlist
     }
     ).xmap[Extra2] (
     {
-      case a :: _ :: b :: HNil =>
+      case a :: b :: HNil =>
         Extra2(a, b, None)
     },
     {
       case Extra2(a, b, _) =>
-        a :: () :: b :: HNil
+        a :: b :: HNil
     }
   )
 
   /**
-    * A recursive `Codec` that allows for swapping between different `Codec`s to account for two ways to parse the next element.
+    * Half of a recursive `Codec` that allows for swapping between different `Codec`s in between `List` elements.<br>
+    * <br>
     * The function calls itself to process each element in the sequence of data in the same manner until complete.
     * The `Extra2` object that is recovered from the first choice of `Codec`s is merely an intermediary object.
     * Due to immutability, the initial object is repackaged to append the chain of `Extra2` in an `Extra2` object.
+    * Eventually, `processData` will parse a 4-bit value of 15 and will pass control over to `processDataSingle`.
     * @param size the number of iterations of the looping process left to perform, including this one
-    * @param form determine whether we use `oneValueCodec` or `twoValueCodec`;
-    *             should be set to `false` at first and set to `true` when two values are read in one pass;
-    *             it will stay as `false` until set to `true`, whereupon it will always be `true`
-    * @return a `Codec` the translates a chain of `Extra2` data
+    * @return a `Codec` translating a chain of `Extra2` data
+    * @see Extra2.processDataSingle
     */
-  def processData(size : Int, form : Boolean = false) : Codec[Extra2] = (
-    newcodecs.binary_choice(form, Extra2.oneValueCodec, Extra2.twoValueCodec) >>:~ { elem =>
-      ignore(0) ::
-        conditional(size > 0, newcodecs.binary_choice(form || elem.unk2.isDefined,
-          Extra2.processData(size - 1, true),
-          Extra2.processData(size - 1))
-        )
+  def processData(size : Int) : Codec[Extra2] = (
+    //TODO: without tail recursion, this might cause a stack overflow
+    twoValueCodec >>:~ { elem =>
+      conditional(size > 0, newcodecs.binary_choice(elem.unk2.isDefined,
+        processDataSingle(size - 1),
+        processData(size - 1))
+      ).hlist
     }
     ).xmap[Extra2] (
     {
-      case a :: _ :: b :: HNil =>
+      case a :: b :: HNil =>
         Extra2(a.unk1, a.unk2, b)
     },
     {
       case Extra2(a, b, c) =>
-        Extra2(a, b) :: () :: c :: HNil
+        Extra2(a, b) :: c :: HNil
+    }
+  )
+
+  /**
+    * Latter half of a recursive `Codec` that allows for swapping between different `Codec`s in between `List` elements.
+    * This `Codec` no longer performs swapping and merely runs out the data.<br>
+    * <br>
+    * @param size the number of iterations of the looping process left to perform, including this one
+    * @return a `Codec` translating a chain of `Extra2` data
+    * @see Extra2.processData
+    */
+  private def processDataSingle(size : Int) : Codec[Extra2] = (
+    //TODO: without tail recursion, this might cause a stack overflow
+    oneValueCodec >>:~ { elem =>
+      conditional(size > 0, processDataSingle(size - 1)).hlist
+    }
+    ).xmap[Extra2] (
+    {
+      case a :: b :: HNil =>
+        Extra2(a.unk1, a.unk2, b)
+    },
+    {
+      case Extra2(a, b, c) =>
+        Extra2(a, b) :: c :: HNil
     }
   )
 }
