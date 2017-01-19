@@ -20,6 +20,9 @@ final case class Additional1(unk1 : String,
                              unk2 : Int,
                              unk3 : Long)
 
+final case class Additional2(unk1 : Int,
+                             unk2 : Long)
+
 final case class Additional3(unk1 : Boolean,
                              unk2 : Int)
 
@@ -40,7 +43,7 @@ final case class BuildingInfoUpdateMessage(continent_guid : PlanetSideGUID,
                                            force_dome_active : Boolean,
                                            lattice_benefit : Int,
                                            unk3 : Int,
-                                           unk4 : Int,
+                                           unk4 : List[Additional2],
                                            unk5 : Long,
                                            unk6 : Boolean,
                                            unk7 : Int,
@@ -59,6 +62,11 @@ object BuildingInfoUpdateMessage extends Marshallable[BuildingInfoUpdateMessage]
       ("unk2" | uint8L) ::
       ("unk3" | uint32L)
     ).as[Additional1]
+
+  private val additional2_codec : Codec[Additional2] = (
+    ("unk1" | uint4L) ::
+      ("unk2" | uint32L)
+    ).as[Additional2]
 
   private val additional3_codec : Codec[Additional3] = (
     ("unk1" | bool) ::
@@ -80,8 +88,7 @@ object BuildingInfoUpdateMessage extends Marshallable[BuildingInfoUpdateMessage]
           ("force_dome_active" | bool) ::
           ("lattice_benefit" | uintL(5)) :: //5 possible benefits, bitwise combination. (MSB)5:Tech 4:Inter 3:Bio 2:Drop 1:Amp(LSB)
           ("unk3" | uintL(10)) :: //Module related. 0x3FF gives all modules with no timer. Unclear how this works.
-          ("unk4" | uint4L) ::
-          //TODO: additional fields if unk4 > 0
+          ("unk4" | listOfN(uint4L, additional2_codec)) ::
           ("unk5" | uint32L) ::
           ("unk6" | bool) ::
           (("unk7" | uint4L) >>:~ { unk7 =>

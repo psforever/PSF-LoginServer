@@ -206,7 +206,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                 true,                //Force dome active
                 16,                  //Tech plant lattice benefit
                 0,
-                0,                   //!! Field > 0 will cause malformed packet. See class def.
+                Nil,                   //!! Field > 0 will cause malformed packet. See class def.
                 0,
                 false,
                 8,                   //!! Field != 8 will cause malformed packet. See class def.

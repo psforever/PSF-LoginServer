@@ -1878,7 +1878,7 @@ class GamePacketTest extends Specification {
                                          force_dome_active : Boolean,
                                          lattice_benefit : Int,
                                          unk3 : Int,
-                                         unk4 : Int,
+                                         unk4 : List[Additional2],
                                          unk5 : Long,
                                          unk6 : Boolean,
                                          unk7 : Int,
@@ -1899,7 +1899,8 @@ class GamePacketTest extends Specification {
             force_dome_active mustEqual false
             lattice_benefit mustEqual 28
             unk3 mustEqual 0
-            unk4 mustEqual 0
+            unk4.size mustEqual 0
+            unk4.isEmpty mustEqual true
             unk5 mustEqual 0
             unk6 mustEqual false
             unk7 mustEqual 8
@@ -1926,7 +1927,7 @@ class GamePacketTest extends Specification {
                                             false,
                                             28,
                                             0,
-                                            0,
+                                            Nil,
                                             0,
                                             false,
                                             8,
