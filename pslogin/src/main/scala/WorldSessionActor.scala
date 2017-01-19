@@ -200,6 +200,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                 600000,              //10 minutes remaining for hack
                 PlanetSideEmpire.VS, //Base owned by VS
                 0,                   //!! Field != 0 will cause malformed packet. See class def.
+                None,
                 PlanetSideGeneratorState.Critical, //Generator critical
                 true,                //Respawn tubes destroyed
                 true,                //Force dome active
@@ -209,6 +210,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                 0,
                 false,
                 8,                   //!! Field != 8 will cause malformed packet. See class def.
+                None,
                 true,                //Boosted spawn room pain field
                 true)))              //Boosted generator room pain field
 
