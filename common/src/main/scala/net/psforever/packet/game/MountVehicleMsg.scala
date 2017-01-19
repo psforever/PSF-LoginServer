@@ -6,20 +6,22 @@ import scodec.Codec
 import scodec.codecs._
 
 /**
-  * Alert that the player wishes to board a vehicle into a specific seat.<br>
+  * Alert that the player wishes to board a vehicle at a specific entry point.<br>
   * <br>
-  * The client will only dispatch this packet when it feels confident that the player can get into the specific seat on a vehicle.
+  * The client will only dispatch this packet when it feels confident that the player can get into a vehicle.
   * It makes its own check whether or not to display that "enter vehicle here" icon on the ground.
-  * Even without that condition, the player is not allowed to do anything until the server responds in affirmation.<br>
+  * This is called an "entry point."
+  * Entry points and seat numbers are not required as one-to-one;
+  * multiple entry points can lead to the same seat, such as the driver seat of an ANT.<br>
   * <br>
-  * Base turrets and implant terminals count as "vehicles" for the purpose of mounting.
+  * The player is not allowed to board anything until the server responds in affirmation.
   * @param player_guid the player
   * @param vehicle_guid the vehicle
-  * @param seat the vehicle-specific seat index
+  * @param entry_point the entry index that maps to a seat index, specific to the selected vehicle
   */
 final case class MountVehicleMsg(player_guid : PlanetSideGUID,
                                  vehicle_guid : PlanetSideGUID,
-                                 seat : Int)
+                                 entry_point : Int)
   extends PlanetSideGamePacket {
   type Packet = MountVehicleMsg
   def opcode = GamePacketOpcode.MountVehicleMsg
@@ -30,6 +32,6 @@ object MountVehicleMsg extends Marshallable[MountVehicleMsg] {
   implicit val codec : Codec[MountVehicleMsg] = (
     ("player_guid" | PlanetSideGUID.codec) ::
       ("vehicle_guid" | PlanetSideGUID.codec) ::
-      ("seat" | uint8L)
+      ("entry_point" | uint8L)
     ).as[MountVehicleMsg]
 }

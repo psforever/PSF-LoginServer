@@ -346,10 +346,10 @@ class GamePacketTest extends Specification {
 
       "decode" in {
         PacketCoding.DecodePacket(string).require match {
-          case MountVehicleMsg(player_guid, vehicle_guid, seat) =>
+          case MountVehicleMsg(player_guid, vehicle_guid, entry) =>
             player_guid mustEqual PlanetSideGUID(1249)
             vehicle_guid mustEqual PlanetSideGUID(1127)
-            seat mustEqual 6
+            entry mustEqual 6
           case default =>
             ko
         }
