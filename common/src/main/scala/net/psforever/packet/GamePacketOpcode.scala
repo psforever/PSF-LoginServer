@@ -482,7 +482,7 @@ object GamePacketOpcode extends Enumeration {
     // 0x88
     case 0x88 => game.WeaponDelayFireMessage.decode
     case 0x89 => noDecoder(BugReportMessage)
-    case 0x8a => noDecoder(PlayerStasisMessage)
+    case 0x8a => game.PlayerStasisMessage.decode
     case 0x8b => noDecoder(UnknownMessage139)
     case 0x8c => noDecoder(OutfitMembershipRequest)
     case 0x8d => noDecoder(OutfitMembershipResponse)
