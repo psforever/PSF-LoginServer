@@ -1471,6 +1471,47 @@ class GamePacketTest extends Specification {
       }
     }
 
+    "OrbitalStrikeWaypointMessage" should {
+      val string_on = hex"B9 46 0C AA E3 D2 2A 92 00"
+      val string_off = hex"B9 46 0C 00"
+
+      "decode (on)" in {
+        PacketCoding.DecodePacket(string_on).require match {
+          case OrbitalStrikeWaypointMessage(guid, coords) =>
+            guid mustEqual PlanetSideGUID(3142)
+            coords.isDefined mustEqual true
+            coords.get.x mustEqual 5518.664f
+            coords.get.y mustEqual 2212.539f
+          case default =>
+            ko
+        }
+      }
+
+      "decode (off)" in {
+        PacketCoding.DecodePacket(string_off).require match {
+          case OrbitalStrikeWaypointMessage(guid, coords) =>
+            guid mustEqual PlanetSideGUID(3142)
+            coords.isDefined mustEqual false
+          case default =>
+            ko
+        }
+      }
+
+      "encode (on)" in {
+        val msg = OrbitalStrikeWaypointMessage(PlanetSideGUID(3142), XY(5518.664f, 2212.539f))
+        val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+        pkt mustEqual string_on
+      }
+
+      "encode (off)" in {
+        val msg = OrbitalStrikeWaypointMessage(PlanetSideGUID(3142))
+        val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+        pkt mustEqual string_off
+      }
+    }
+
     "WeaponFireMessage" should {
       val string = hex"34 44130029272F0B5DFD4D4EC5C00009BEF78172003FC0"
 
