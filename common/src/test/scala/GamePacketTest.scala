@@ -622,6 +622,26 @@ class GamePacketTest extends Specification {
       }
     }
 
+    "CharacterNoRecordMessage" should {
+      val string = hex"13 00400000" //we have no record of this packet, so here's something fake that works
+
+      "deocde" in {
+        PacketCoding.DecodePacket(string).require match {
+          case CharacterNoRecordMessage(unk) =>
+            unk mustEqual 16384
+          case default =>
+            ko
+        }
+      }
+
+      "encode" in {
+        val msg = CharacterNoRecordMessage(16384)
+        val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+        pkt mustEqual string
+      }
+    }
+
     "ChangeFireModeMessage" should {
       val string = hex"46 4C0020"
 
