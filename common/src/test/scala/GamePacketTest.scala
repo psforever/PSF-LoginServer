@@ -688,14 +688,14 @@ class GamePacketTest extends Specification {
         PacketCoding.DecodePacket(string).require match {
           case AvatarGrenadeStateMessage(player_guid, state) =>
             player_guid mustEqual PlanetSideGUID(4570)
-            state mustEqual 1
+            state mustEqual GrenadeState.PRIMED
           case default =>
             ko
         }
       }
 
       "encode" in {
-        val msg = AvatarGrenadeStateMessage(PlanetSideGUID(4570), 1)
+        val msg = AvatarGrenadeStateMessage(PlanetSideGUID(4570), GrenadeState.PRIMED)
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
         pkt mustEqual string
