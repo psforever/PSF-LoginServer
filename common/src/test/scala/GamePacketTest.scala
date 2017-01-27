@@ -1498,7 +1498,7 @@ class GamePacketTest extends Specification {
       }
 
       "encode (on)" in {
-        val msg = OrbitalStrikeWaypointMessage(PlanetSideGUID(3142), XY(5518.664f, 2212.539f))
+        val msg = OrbitalStrikeWaypointMessage(PlanetSideGUID(3142), 5518.664f, 2212.539f)
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
         pkt mustEqual string_on
