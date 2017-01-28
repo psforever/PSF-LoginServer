@@ -1377,6 +1377,27 @@ class GamePacketTest extends Specification {
       }
     }
 
+    "PlayerStasisMessage" should {
+      val string = hex"8A 4B 00 80"
+
+      "decode" in {
+        PacketCoding.DecodePacket(string).require match {
+          case PlayerStasisMessage(player_guid, stasis) =>
+            player_guid mustEqual PlanetSideGUID(75)
+            stasis mustEqual true
+          case default =>
+            ko
+        }
+      }
+
+      "encode" in {
+        val msg = PlayerStasisMessage(PlanetSideGUID(75))
+        val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+        pkt mustEqual string
+      }
+    }
+
     "ContinentalLockUpdateMessage" should {
       val string = hex"A8 16 00 40"
 
