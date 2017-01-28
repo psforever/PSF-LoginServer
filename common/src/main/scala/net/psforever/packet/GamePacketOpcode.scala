@@ -535,7 +535,7 @@ object GamePacketOpcode extends Enumeration {
     case 0xb4 => game.BattleExperienceMessage.decode
     case 0xb5 => noDecoder(TargetingImplantRequest)
     case 0xb6 => game.ZonePopulationUpdateMessage.decode
-    case 0xb7 => noDecoder(DisconnectMessage)
+    case 0xb7 => game.DisconnectMessage.decode
     // 0xb8
     case 0xb8 => noDecoder(ExperienceAddedMessage)
     case 0xb9 => game.OrbitalStrikeWaypointMessage.decode
