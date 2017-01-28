@@ -2182,6 +2182,28 @@ class GamePacketTest extends Specification {
       }
     }
 
+    "ZoneInfoMessage" should {
+      val string = hex"C6 0C 00 80 00 00 00 00"
+
+      "decode" in {
+        PacketCoding.DecodePacket(string).require match {
+          case ZoneInfoMessage(zone, empire_status, unk) =>
+            zone mustEqual 12
+            empire_status mustEqual true
+            unk mustEqual 0
+          case default =>
+            ko
+        }
+      }
+
+      "encode" in {
+        val msg = ZoneInfoMessage(12, true, 0)
+        val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+        pkt mustEqual string
+      }
+    }
+
     "PingMsg" should  {
       val packet = hex"1a 00000000 b0360000"
 
