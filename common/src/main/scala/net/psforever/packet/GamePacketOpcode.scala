@@ -537,7 +537,7 @@ object GamePacketOpcode extends Enumeration {
     case 0xb6 => game.ZonePopulationUpdateMessage.decode
     case 0xb7 => game.DisconnectMessage.decode
     // 0xb8
-    case 0xb8 => noDecoder(ExperienceAddedMessage)
+    case 0xb8 => game.ExperienceAddedMessage.decode
     case 0xb9 => game.OrbitalStrikeWaypointMessage.decode
     case 0xba => game.KeepAliveMessage.decode
     case 0xbb => noDecoder(MapObjectStateBlockMessage)

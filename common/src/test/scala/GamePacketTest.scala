@@ -1555,6 +1555,27 @@ class GamePacketTest extends Specification {
       }
     }
 
+    "ExperienceAddedMessage" should {
+      val string = hex"B8 04 03"
+
+      "decode" in {
+        PacketCoding.DecodePacket(string).require match {
+          case ExperienceAddedMessage(exp, unk) =>
+            exp mustEqual 260 //0x104
+            unk mustEqual true
+          case default =>
+            ko
+        }
+      }
+
+      "encode" in {
+        val msg = ExperienceAddedMessage(260)
+        val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+        pkt mustEqual string
+      }
+    }
+
     "WeaponFireMessage" should {
       val string = hex"34 44130029272F0B5DFD4D4EC5C00009BEF78172003FC0"
 
