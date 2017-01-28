@@ -8,8 +8,9 @@ import scodec.codecs._
 /**
   * Dispatched to the client to force a disconnect.<br>
   * <br>
-  * The client's render will fade and be centered with a system textbox with the given message.
+  * The client's view of the game world will fade and be centered with a PlanetSide textbox with the given message.
   * Using the button on the textbox will drop the current world session and return the player to the world select screen.
+  * Technically, they're already disconnected by the time the textbox is visible.
   * Being disconnected like this has no client-based consequences on its own.<br>
   * <br>
   * Exploration:<br>
