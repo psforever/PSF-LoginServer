@@ -582,7 +582,7 @@ object GamePacketOpcode extends Enumeration {
     case 0xdc => noDecoder(SquadMainTerminalResponseMessage)
     case 0xdd => noDecoder(SquadOrderMessage)
     case 0xde => noDecoder(SquadOrderResponse)
-    case 0xdf => noDecoder(ZoneLockInfoMessage)
+    case 0xdf => game.ZoneLockInfoMessage.decode
 
     // OPCODES 0xe0-ef
     case 0xe0 => noDecoder(SquadBindInfoMessage)

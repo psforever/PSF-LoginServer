@@ -1462,6 +1462,28 @@ class GamePacketTest extends Specification {
       }
     }
 
+    "ZoneLockInfoMesage" should {
+      val string = hex"DF 1B 00 40"
+
+      "decode" in {
+        PacketCoding.DecodePacket(string).require match {
+          case ZoneLockInfoMessage(zone, locked, unk) =>
+            zone mustEqual PlanetSideGUID(27)
+            locked mustEqual false
+            unk mustEqual true
+          case default =>
+            ko
+        }
+      }
+
+      "encode" in {
+        val msg = ZoneLockInfoMessage(PlanetSideGUID(27), false, true)
+        val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+        pkt mustEqual string
+      }
+    }
+
     "BattleExperienceMessage" should {
       val string = hex"B4 8A0A E7030000 00"
 
