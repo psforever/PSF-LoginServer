@@ -2184,8 +2184,9 @@ class GamePacketTest extends Specification {
 
     "ZoneInfoMessage" should {
       val string = hex"C6 0C 00 80 00 00 00 00"
+      val string_cavern = hex"C6 1B 00 1D F9 F3 00 00"
 
-      "decode" in {
+      "decode (normal)" in {
         PacketCoding.DecodePacket(string).require match {
           case ZoneInfoMessage(zone, empire_status, unk) =>
             zone mustEqual 12
@@ -2196,11 +2197,29 @@ class GamePacketTest extends Specification {
         }
       }
 
-      "encode" in {
+      "decode (cavern)" in {
+        PacketCoding.DecodePacket(string_cavern).require match {
+          case ZoneInfoMessage(zone, empire_status, unk) =>
+            zone mustEqual 27
+            empire_status mustEqual false
+            unk mustEqual 15135547
+          case default =>
+            ko
+        }
+      }
+
+      "encode (normal)" in {
         val msg = ZoneInfoMessage(12, true, 0)
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
         pkt mustEqual string
+      }
+
+      "encode (cavern)" in {
+        val msg = ZoneInfoMessage(27, false, 15135547)
+        val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+        pkt mustEqual string_cavern
       }
     }
 
