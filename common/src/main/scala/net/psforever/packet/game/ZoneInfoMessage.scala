@@ -6,7 +6,8 @@ import scodec.Codec
 import scodec.codecs._
 
 /**
-  * Change the "Empire Status" text in the Interstellar Map zone description for the specified zone.<br>
+  * Change the "Empire Status" text in the Interstellar Map zone description for the specified zone.
+  * The Empire Incentives window also displays the changed information.<br>
   * <br>
   * The `Long` value is applicable to the caverns.
   * It indicates how long the given cavern will remain locked until at least one of their geowarps will open during normal rotation.
