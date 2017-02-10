@@ -1445,17 +1445,19 @@ class GamePacketTest extends Specification {
 
       "decode" in {
         PacketCoding.DecodePacket(string).require match {
-          case BroadcastWarpgateUpdateMessage(continent_guid, building_guid, state) =>
+          case BroadcastWarpgateUpdateMessage(continent_guid, building_guid, state1, state2, state3) =>
             continent_guid mustEqual PlanetSideGUID(13)
             building_guid mustEqual PlanetSideGUID(1)
-            state mustEqual 32
+            state1 mustEqual false
+            state2 mustEqual false
+            state3 mustEqual true
           case default =>
             ko
         }
       }
 
       "encode" in {
-        val msg = BroadcastWarpgateUpdateMessage(PlanetSideGUID(13), PlanetSideGUID(1), 32)
+        val msg = BroadcastWarpgateUpdateMessage(PlanetSideGUID(13), PlanetSideGUID(1), false, false, true)
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
         pkt mustEqual string

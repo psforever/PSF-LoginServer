@@ -189,7 +189,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
               sendResponse(PacketCoding.CreateGamePacket(0, TimeOfDayMessage(1191182336)))
               sendResponse(PacketCoding.CreateGamePacket(0, ContinentalLockUpdateMessage(PlanetSideGUID(13), PlanetSideEmpire.VS))) // "The VS have captured the VS Sanctuary."
-              sendResponse(PacketCoding.CreateGamePacket(0, BroadcastWarpgateUpdateMessage(PlanetSideGUID(13), PlanetSideGUID(1), 32))) // VS Sanctuary: Inactive Warpgate -> Broadcast Warpgate
+              sendResponse(PacketCoding.CreateGamePacket(0, BroadcastWarpgateUpdateMessage(PlanetSideGUID(13), PlanetSideGUID(1), false, false, true))) // VS Sanctuary: Inactive Warpgate -> Broadcast Warpgate
+
+              sendRawResponse(hex"A0 03 00 03 00 06 00 00 00 01 80 00 00 00 10 00 00 00 00 00 00 40")
+              sendRawResponse(hex"CD 03 00 03 00 00 00 00")
+              sendResponse(PacketCoding.CreateGamePacket(0, BroadcastWarpgateUpdateMessage(PlanetSideGUID(3), PlanetSideGUID(3), true, false, true)))
 
               sendResponse(PacketCoding.CreateGamePacket(0,BuildingInfoUpdateMessage(
                 PlanetSideGUID(6),   //Ceryshen
