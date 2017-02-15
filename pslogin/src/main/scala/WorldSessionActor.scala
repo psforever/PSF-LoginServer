@@ -332,6 +332,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ AvatarGrenadeStateMessage(player_guid, state) =>
       log.info("AvatarGrenadeStateMessage: " + msg)
 
+    case msg @ SquadDefinitionActionMessage(a, b, c, d, e, f, g, h, i) =>
+      log.info("SquadDefinitionAction: " + msg)
+
     case default => log.debug(s"Unhandled GamePacket ${pkt}")
   }
 
