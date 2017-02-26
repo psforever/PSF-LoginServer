@@ -126,16 +126,16 @@ class WorldSessionActor extends Actor with MDCContextAware {
     RibbonBars()
   )
   val inv =
-    InventoryItem(ObjectClass.BEAMER, PlanetSideGUID(76), 0, WeaponData(8, ObjectClass.ENERGY_CELL, PlanetSideGUID(77), 0, AmmoBoxData(16))) ::
-    InventoryItem(ObjectClass.SUPPRESSOR, PlanetSideGUID(78), 2, WeaponData(8, ObjectClass.BULLETS_9MM, PlanetSideGUID(79), 0, AmmoBoxData(25))) ::
-    InventoryItem(ObjectClass.FORCE_BLADE, PlanetSideGUID(80), 4, WeaponData(8, ObjectClass.FORCE_BLADE_AMMO, PlanetSideGUID(81), 0, AmmoBoxData(1))) ::
-    InventoryItem(ObjectClass.SLOT_BLOCKER, PlanetSideGUID(82), 5, AmmoBoxData(1)) ::
-    InventoryItem(ObjectClass.BULLETS_9MM, PlanetSideGUID(83), 6, AmmoBoxData(50)) ::
-    InventoryItem(ObjectClass.BULLETS_9MM, PlanetSideGUID(84), 9, AmmoBoxData(50)) ::
-    InventoryItem(ObjectClass.BULLETS_9MM, PlanetSideGUID(85), 12, AmmoBoxData(50)) ::
-    InventoryItem(ObjectClass.BULLETS_9MM_AP, PlanetSideGUID(86), 33, AmmoBoxData(50)) ::
-    InventoryItem(ObjectClass.ENERGY_CELL, PlanetSideGUID(87), 36, AmmoBoxData(50)) ::
-    InventoryItem(ObjectClass.REK, PlanetSideGUID(88), 39, REKData(8)) ::
+    InventoryItem(ObjectClass.beamer, PlanetSideGUID(76), 0, WeaponData(8, ObjectClass.energy_cell, PlanetSideGUID(77), 0, AmmoBoxData(16))) ::
+    InventoryItem(ObjectClass.suppressor, PlanetSideGUID(78), 2, WeaponData(8, ObjectClass.bullet_9mm, PlanetSideGUID(79), 0, AmmoBoxData(25))) ::
+    InventoryItem(ObjectClass.forceblade, PlanetSideGUID(80), 4, WeaponData(8, ObjectClass.melee_ammo, PlanetSideGUID(81), 0, AmmoBoxData(1))) ::
+    InventoryItem(ObjectClass.locker_container, PlanetSideGUID(82), 5, AmmoBoxData(1)) ::
+    InventoryItem(ObjectClass.bullet_9mm, PlanetSideGUID(83), 6, AmmoBoxData(50)) ::
+    InventoryItem(ObjectClass.bullet_9mm, PlanetSideGUID(84), 9, AmmoBoxData(50)) ::
+    InventoryItem(ObjectClass.bullet_9mm, PlanetSideGUID(85), 12, AmmoBoxData(50)) ::
+    InventoryItem(ObjectClass.bullet_9mm_AP, PlanetSideGUID(86), 33, AmmoBoxData(50)) ::
+    InventoryItem(ObjectClass.energy_cell, PlanetSideGUID(87), 36, AmmoBoxData(50)) ::
+    InventoryItem(ObjectClass.remote_electronics_kit, PlanetSideGUID(88), 39, REKData(8)) ::
     Nil
   val obj = CharacterData(
     app,
@@ -150,7 +150,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       true, false, false, inv
     )
   )
-  val objectHex = ObjectCreateMessage(0, ObjectClass.AVATAR, PlanetSideGUID(75), obj)
+  val objectHex = ObjectCreateMessage(0, ObjectClass.avatar, PlanetSideGUID(75), obj)
 
   def handleGamePkt(pkt : PlanetSideGamePacket) = pkt match {
     case ConnectToWorldRequestMessage(server, token, majorVersion, minorVersion, revision, buildDate, unk) =>
