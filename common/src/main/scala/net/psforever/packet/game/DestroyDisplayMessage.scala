@@ -49,13 +49,13 @@ import scodec.codecs._
   */
 final case class DestroyDisplayMessage(killer : String,
                                        killer_unk : Long,
-                                       killer_empire : Int,
+                                       killer_empire : PlanetSideEmpire.Value,
                                        killer_inVehicle : Boolean,
-                                       unk : PlanetSideGUID,
-                                       method : PlanetSideGUID,
+                                       unk : Int,
+                                       method : Int,
                                        victim : String,
                                        victim_unk : Long,
-                                       victim_empire : Int,
+                                       victim_empire : PlanetSideEmpire.Value,
                                        victim_inVehicle : Boolean
 )
   extends PlanetSideGamePacket {
@@ -68,13 +68,13 @@ object DestroyDisplayMessage extends Marshallable[DestroyDisplayMessage] {
   implicit val codec : Codec[DestroyDisplayMessage] = (
     ("killer" | PacketHelpers.encodedWideString) ::
       ("killer_unk" | ulongL(32)) ::
-      ("killer_empire" | uintL(2)) ::
+      ("killer_empire" | PlanetSideEmpire.codec) ::
       ("killer_inVehicle" | bool) ::
-      ("unk" | PlanetSideGUID.codec) ::
-      ("method" | PlanetSideGUID.codec) ::
+      ("unk" | uint16L) ::
+      ("method" | uint16L) ::
       ("victim" | PacketHelpers.encodedWideStringAligned(5)) ::
       ("victim_unk" | ulongL(32)) ::
-      ("victim_empire" | uintL(2)) ::
+      ("victim_empire" | PlanetSideEmpire.codec) ::
       ("victim_inVehicle" | bool)
     ).as[DestroyDisplayMessage]
 }
