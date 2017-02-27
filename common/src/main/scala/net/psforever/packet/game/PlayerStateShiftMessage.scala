@@ -50,7 +50,7 @@ final case class ShiftState(unk : Int,
 final case class PlayerStateShiftMessage(state : Option[ShiftState],
                                          unk : Option[Int] = None)
   extends PlanetSideGamePacket {
-  type Packet = TimeOfDayMessage
+  type Packet = PlayerStateShiftMessage
   def opcode = GamePacketOpcode.PlayerStateShiftMessage
   def encode = PlayerStateShiftMessage.encode(this)
 }
