@@ -191,34 +191,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
               sendResponse(PacketCoding.CreateGamePacket(0, ContinentalLockUpdateMessage(PlanetSideGUID(13), PlanetSideEmpire.VS))) // "The VS have captured the VS Sanctuary."
               sendResponse(PacketCoding.CreateGamePacket(0, BroadcastWarpgateUpdateMessage(PlanetSideGUID(13), PlanetSideGUID(1), false, false, true))) // VS Sanctuary: Inactive Warpgate -> Broadcast Warpgate
 
-//              // Little job to load some data from gcap files
-//              import scala.io.Source
-//              val bufferedFile = Source.fromFile(".\\pslogin\\src\\main\\scala\\BuildingInfoUpdateMessage.txt")
-//              for (line <- bufferedFile.getLines){
-//                val SomeDataFromFile = line.split(',')
-//                sendResponse(PacketCoding.CreateGamePacket(0,BuildingInfoUpdateMessage(
-//                  PlanetSideGUID(SomeDataFromFile{0}.toInt),
-//                  PlanetSideGUID(SomeDataFromFile{1}.toInt),
-//                  SomeDataFromFile{2}.toInt,
-//                  SomeDataFromFile{3}.toBoolean,
-//                  PlanetSideEmpire(SomeDataFromFile{4}.toInt),
-//                  SomeDataFromFile{5}.toInt,
-//                  PlanetSideEmpire(SomeDataFromFile{6}.toInt),
-//                  SomeDataFromFile{7}.toInt,
-//                  PlanetSideGeneratorState(SomeDataFromFile{8}.toInt),
-//                  SomeDataFromFile{9}.toBoolean,
-//                  SomeDataFromFile{10}.toBoolean,
-//                  SomeDataFromFile{11}.toInt,
-//                  SomeDataFromFile{12}.toInt,
-//                  SomeDataFromFile{13}.toInt,
-//                  SomeDataFromFile{14}.toInt,
-//                  SomeDataFromFile{15}.toBoolean,
-//                  SomeDataFromFile{16}.toInt,
-//                  SomeDataFromFile{17}.toBoolean,
-//                  SomeDataFromFile{18}.toBoolean)))
-//              }
-//              bufferedFile.close()
-
               sendResponse(PacketCoding.CreateGamePacket(0,BuildingInfoUpdateMessage(
                 PlanetSideGUID(6),   //Ceryshen
                 PlanetSideGUID(2),   //Anguta
