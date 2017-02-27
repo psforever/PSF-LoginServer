@@ -12,7 +12,7 @@ object TransactionType extends Enumeration {
       Sell,
       Unk4,
       Unk5,
-      Unk6,
+      Infantry_Loadout,
       Unk7
       = Value
 

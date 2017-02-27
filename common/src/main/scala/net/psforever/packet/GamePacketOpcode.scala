@@ -328,20 +328,20 @@ object GamePacketOpcode extends Enumeration {
     case 0x06 => noDecoder(UnknownMessage6)
     case 0x07 => noDecoder(UnknownMessage7)
     // 0x08
-    case 0x08 => noDecoder(PlayerStateMessage)
+    case 0x08 => game.PlayerStateMessage.decode
     case 0x09 => game.HitMessage.decode
     case 0x0a => noDecoder(HitHint)
     case 0x0b => noDecoder(DamageMessage)
     case 0x0c => noDecoder(DestroyMessage)
     case 0x0d => game.ReloadMessage.decode
-    case 0x0e => noDecoder(MountVehicleMsg)
+    case 0x0e => game.MountVehicleMsg.decode
     case 0x0f => noDecoder(DismountVehicleMsg)
 
     // OPCODES 0x10-1f
     case 0x10 => game.UseItemMessage.decode
     case 0x11 => game.MoveItemMessage.decode
     case 0x12 => game.ChatMsg.decode
-    case 0x13 => noDecoder(CharacterNoRecordMessage)
+    case 0x13 => game.CharacterNoRecordMessage.decode
     case 0x14 => game.CharacterInfoMessage.decode
     case 0x15 => noDecoder(UnknownMessage21)
     case 0x16 => noDecoder(BindPlayerMessage)
@@ -366,9 +366,9 @@ object GamePacketOpcode extends Enumeration {
     case 0x26 => noDecoder(UnuseItemMessage)
     case 0x27 => noDecoder(ObjectDetachMessage)
     // 0x28
-    case 0x28 => noDecoder(CreateShortcutMessage)
-    case 0x29 => noDecoder(ChangeShortcutBankMessage)
-    case 0x2a => noDecoder(ObjectAttachMessage)
+    case 0x28 => game.CreateShortcutMessage.decode
+    case 0x29 => game.ChangeShortcutBankMessage.decode
+    case 0x2a => game.ObjectAttachMessage.decode
     case 0x2b => noDecoder(UnknownMessage43)
     case 0x2c => noDecoder(PlanetsideAttributeMessage)
     case 0x2d => game.RequestDestroyMessage.decode
@@ -433,7 +433,7 @@ object GamePacketOpcode extends Enumeration {
     case 0x5f => noDecoder(FavoritesResponse)
 
     // OPCODES 0x60-6f
-    case 0x60 => noDecoder(FavoritesMessage)
+    case 0x60 => game.FavoritesMessage.decode
     case 0x61 => noDecoder(ObjectDetectedMessage)
     case 0x62 => noDecoder(SplashHitMessage)
     case 0x63 => noDecoder(SetChatFilterMessage)
@@ -454,10 +454,10 @@ object GamePacketOpcode extends Enumeration {
     // OPCODES 0x70-7f
     case 0x70 => noDecoder(SquadMemberEvent)
     case 0x71 => noDecoder(PlatoonEvent)
-    case 0x72 => noDecoder(FriendsRequest)
-    case 0x73 => noDecoder(FriendsResponse)
+    case 0x72 => game.FriendsRequest.decode
+    case 0x73 => game.FriendsResponse.decode
     case 0x74 => noDecoder(TriggerEnvironmentalDamageMessage)
-    case 0x75 => noDecoder(TrainingZoneMessage)
+    case 0x75 => game.TrainingZoneMessage.decode
     case 0x76 => noDecoder(DeployableObjectsInfoMessage)
     case 0x77 => noDecoder(SquadState)
     // 0x78
@@ -472,7 +472,7 @@ object GamePacketOpcode extends Enumeration {
 
     // OPCODES 0x80-8f
     case 0x80 => noDecoder(GenericObjectAction2Message)
-    case 0x81 => noDecoder(DestroyDisplayMessage)
+    case 0x81 => game.DestroyDisplayMessage.decode
     case 0x82 => noDecoder(TriggerBotAction)
     case 0x83 => noDecoder(SquadWaypointRequest)
     case 0x84 => noDecoder(SquadWaypointEvent)
@@ -481,8 +481,8 @@ object GamePacketOpcode extends Enumeration {
     case 0x87 => noDecoder(ObjectDeployedCountMessage)
     // 0x88
     case 0x88 => game.WeaponDelayFireMessage.decode
-    case 0x89 => noDecoder(BugReportMessage)
-    case 0x8a => noDecoder(PlayerStasisMessage)
+    case 0x89 => game.BugReportMessage.decode
+    case 0x8a => game.PlayerStasisMessage.decode
     case 0x8b => noDecoder(UnknownMessage139)
     case 0x8c => noDecoder(OutfitMembershipRequest)
     case 0x8d => noDecoder(OutfitMembershipResponse)
@@ -506,7 +506,7 @@ object GamePacketOpcode extends Enumeration {
     case 0x9c => noDecoder(DebugDrawMessage)
     case 0x9d => noDecoder(SoulMarkMessage)
     case 0x9e => noDecoder(UplinkPositionEvent)
-    case 0x9f => noDecoder(HotSpotUpdateMessage)
+    case 0x9f => game.HotSpotUpdateMessage.decode
 
     // OPCODES 0xa0-af
     case 0xa0 => game.BuildingInfoUpdateMessage.decode
@@ -519,7 +519,7 @@ object GamePacketOpcode extends Enumeration {
     case 0xa7 => noDecoder(GenericActionMessage)
     // 0xa8
     case 0xa8 => game.ContinentalLockUpdateMessage.decode
-    case 0xa9 => noDecoder(AvatarGrenadeStateMessage)
+    case 0xa9 => game.AvatarGrenadeStateMessage.decode
     case 0xaa => noDecoder(UnknownMessage170)
     case 0xab => noDecoder(UnknownMessage171)
     case 0xac => noDecoder(ReleaseAvatarRequestMessage)
@@ -528,22 +528,22 @@ object GamePacketOpcode extends Enumeration {
     case 0xaf => noDecoder(CSAssistCommentMessage)
 
     // OPCODES 0xb0-bf
-    case 0xb0 => noDecoder(VoiceHostRequest)
-    case 0xb1 => noDecoder(VoiceHostKill)
-    case 0xb2 => noDecoder(VoiceHostInfo)
+    case 0xb0 => game.VoiceHostRequest.decode
+    case 0xb1 => game.VoiceHostKill.decode
+    case 0xb2 => game.VoiceHostInfo.decode
     case 0xb3 => noDecoder(BattleplanMessage)
-    case 0xb4 => noDecoder(BattleExperienceMessage)
+    case 0xb4 => game.BattleExperienceMessage.decode
     case 0xb5 => noDecoder(TargetingImplantRequest)
     case 0xb6 => game.ZonePopulationUpdateMessage.decode
-    case 0xb7 => noDecoder(DisconnectMessage)
+    case 0xb7 => game.DisconnectMessage.decode
     // 0xb8
-    case 0xb8 => noDecoder(ExperienceAddedMessage)
-    case 0xb9 => noDecoder(OrbitalStrikeWaypointMessage)
+    case 0xb8 => game.ExperienceAddedMessage.decode
+    case 0xb9 => game.OrbitalStrikeWaypointMessage.decode
     case 0xba => game.KeepAliveMessage.decode
     case 0xbb => noDecoder(MapObjectStateBlockMessage)
     case 0xbc => noDecoder(SnoopMsg)
     case 0xbd => game.PlayerStateMessageUpstream.decode
-    case 0xbe => noDecoder(PlayerStateShiftMessage)
+    case 0xbe => game.PlayerStateShiftMessage.decode
     case 0xbf => noDecoder(ZipLineMessage)
 
     // OPCODES 0xc0-cf
@@ -553,7 +553,7 @@ object GamePacketOpcode extends Enumeration {
     case 0xc3 => noDecoder(ProximityTerminalUseMessage)
     case 0xc4 => game.QuantityDeltaUpdateMessage.decode
     case 0xc5 => noDecoder(ChainLashMessage)
-    case 0xc6 => noDecoder(ZoneInfoMessage)
+    case 0xc6 => game.ZoneInfoMessage.decode
     case 0xc7 => noDecoder(LongRangeProjectileInfoMessage)
     // 0xc8
     case 0xc8 => noDecoder(WeaponLazeTargetPositionMessage)
@@ -582,7 +582,7 @@ object GamePacketOpcode extends Enumeration {
     case 0xdc => noDecoder(SquadMainTerminalResponseMessage)
     case 0xdd => noDecoder(SquadOrderMessage)
     case 0xde => noDecoder(SquadOrderResponse)
-    case 0xdf => noDecoder(ZoneLockInfoMessage)
+    case 0xdf => game.ZoneLockInfoMessage.decode
 
     // OPCODES 0xe0-ef
     case 0xe0 => noDecoder(SquadBindInfoMessage)
@@ -592,7 +592,7 @@ object GamePacketOpcode extends Enumeration {
     case 0xe4 => noDecoder(MissionActionMessage)
     case 0xe5 => noDecoder(MissionKillTriggerMessage)
     case 0xe6 => noDecoder(ReplicationStreamMessage)
-    case 0xe7 => noDecoder(SquadDefinitionActionMessage)
+    case 0xe7 => game.SquadDefinitionActionMessage.decode
     // 0xe8
     case 0xe8 => noDecoder(SquadDetailDefinitionUpdateMessage)
     case 0xe9 => noDecoder(TacticsMessage)

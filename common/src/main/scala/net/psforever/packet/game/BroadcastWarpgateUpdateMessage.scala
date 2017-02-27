@@ -6,25 +6,28 @@ import scodec.Codec
 import scodec.codecs._
 
 /**
-  * Promotes a Broadcast Warpgate.
-  *
-  * Change the map name of a warpgate into "Broadcast Warpgate."
+  * Promotes a warpgate's "broadcast" functionality.<br>
+  * <br>
+  * Change the map name of a warpgate into "Broadcast" when the proper state is set.
   * If a proper warpgate is not designated, nothing happens.
-  * The input state is a byte starting at 00 where the first valid "on" state is 20.
-  * Subsequent "on" states are 40 values apart - 20, 60, A0, and E0.
-  * All other numbers (seem to) default to the normal map designation for the warpgate.
-  *
-  * Exploration: is this packet merely cosmetic or does it change the functionality of a warpgate too?
-  * Exploration: are there any differences between the states besides "on" and "off"?
-  *
+  * If not set, the map name of the warpgate will default to whatever is normally written on the map.
+  * The map designation of geowarps is not affected by this packet.<br>
+  * <br>
+  * Exploration:<br>
+  * I believe these `Boolean` values actually indicate some measure of warpgate operation.
+  * Geowarps, for example, though their appearance does not change, recieve this packet.
+  * Moreover, they can operate as a receiving-end broadcast gate.
   * @param continent_guid identifies the zone (continent)
-  * @param building_guid identifies the warpgate (see BuildingInfoUpdateMessage)
-  * @param state whether or not a warpgate is considered "broadcast;"
-  *            00, 20, 80, and A0 are common values; C0 is an uncommon value
+  * @param building_guid identifies the warpgate (see `BuildingInfoUpdateMessage`)
+  * @param unk1 na
+  * @param unk2 na
+  * @param is_broadcast if true, the gate replaces its destination text with "Broadcast"
   */
 final case class BroadcastWarpgateUpdateMessage(continent_guid : PlanetSideGUID,
                                                 building_guid : PlanetSideGUID,
-                                                state : Int)
+                                                unk1 : Boolean,
+                                                unk2 : Boolean,
+                                                is_broadcast : Boolean)
   extends PlanetSideGamePacket {
   type Packet = BroadcastWarpgateUpdateMessage
   def opcode = GamePacketOpcode.BroadcastWarpgateUpdateMessage
@@ -35,6 +38,8 @@ object BroadcastWarpgateUpdateMessage extends Marshallable[BroadcastWarpgateUpda
   implicit val codec : Codec[BroadcastWarpgateUpdateMessage] = (
     ("continent_guid" | PlanetSideGUID.codec) ::
       ("building_guid" | PlanetSideGUID.codec) ::
-      ("state" | uint8L)
+      ("unk1" | bool) ::
+      ("unk2" | bool) ::
+      ("is_broadcast" | bool)
     ).as[BroadcastWarpgateUpdateMessage]
 }
