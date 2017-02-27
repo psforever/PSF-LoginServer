@@ -10,7 +10,7 @@ import scodec.bits._
 import org.log4s.MDC
 import MDCContextAware.Implicits._
 import net.psforever.packet.game.objectcreate._
-import net.psforever.types.{ChatMessageType, Vector3}
+import net.psforever.types.{ChatMessageType, TransactionType, Vector3}
 
 class WorldSessionActor extends Actor with MDCContextAware {
   private[this] val log = org.log4s.getLogger
@@ -234,13 +234,17 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case KeepAliveMessage(code) =>
       sendResponse(PacketCoding.CreateGamePacket(0, KeepAliveMessage(0)))
 
-    case msg @ PlayerStateMessageUpstream(avatar_guid, pos, vel, unk1, aim_pitch, unk2, seq_time, unk3, is_crouching, unk4, unk5, is_cloaking, unk6, unk7) =>
+    case msg @ PlayerStateMessageUpstream(avatar_guid, pos, vel, unk1, aim_pitch, unk2, seq_time, unk3, is_crouching, is_jumping, unk4, is_cloaking, unk5, unk6) =>
       //log.info("PlayerState: " + msg)
 
     case msg @ ChatMsg(messagetype, has_wide_contents, recipient, contents, note_contents) =>
       // TODO: Prevents log spam, but should be handled correctly
       if (messagetype != ChatMessageType.CMT_TOGGLE_GM) {
         log.info("Chat: " + msg)
+      }
+
+      if (messagetype == ChatMessageType.CMT_VOICE) {
+        sendResponse(PacketCoding.CreateGamePacket(0, ChatMsg(ChatMessageType.CMT_VOICE, false, "IlllIIIlllIlIllIlllIllI", contents, None)))
       }
 
       // TODO: handle this appropriately
@@ -292,9 +296,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
       sendResponse(PacketCoding.CreateGamePacket(0, ObjectDeleteMessage(object_guid, 0)))
 
     case msg @ ObjectDeleteMessage(object_guid, unk1) =>
+      sendResponse(PacketCoding.CreateGamePacket(0, ObjectDeleteMessage(object_guid, 0)))
       log.info("ObjectDelete: " + msg)
 
     case msg @ MoveItemMessage(item_guid, avatar_guid_1, avatar_guid_2, dest, unk1) =>
+      sendResponse(PacketCoding.CreateGamePacket(0, ObjectAttachMessage(avatar_guid_1,item_guid,dest)))
       log.info("MoveItem: " + msg)
 
     case msg @ ChangeAmmoMessage(item_guid, unk1) =>
@@ -305,13 +311,21 @@ class WorldSessionActor extends Actor with MDCContextAware {
       // TODO: Not all fields in the response are identical to source in real packet logs (but seems to be ok)
       // TODO: Not all incoming UseItemMessage's respond with another UseItemMessage (i.e. doors only send out GenericObjectStateMsg)
       sendResponse(PacketCoding.CreateGamePacket(0, UseItemMessage(avatar_guid, unk1, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, unk9)))
-      // TODO: This should only actually be sent to doors upon opening; may break non-door items upon use
-      sendResponse(PacketCoding.CreateGamePacket(0, GenericObjectStateMsg(object_guid, 16)))
+      if(unk1 != 0){ // TODO : medkit use ?!
+        sendResponse(PacketCoding.CreateGamePacket(0, GenericObjectStateMsg(object_guid, 16)))
+        sendResponse(PacketCoding.CreateGamePacket(0, ObjectDeleteMessage(PlanetSideGUID(unk1), 2)))
+      } else {
+        // TODO: This should only actually be sent to doors upon opening; may break non-door items upon use
+        sendResponse(PacketCoding.CreateGamePacket(0, GenericObjectStateMsg(object_guid, 16)))
+      }
 
     case msg @ GenericObjectStateMsg(object_guid, unk1) =>
       log.info("GenericObjectState: " + msg)
 
     case msg @ ItemTransactionMessage(terminal_guid, transaction_type, item_page, item_name, unk1, item_guid) =>
+      if(transaction_type == TransactionType.Sell) {
+        sendResponse(PacketCoding.CreateGamePacket(0, ObjectDeleteMessage(item_guid, 0)))
+      }
       log.info("ItemTransaction: " + msg)
 
     case msg @ WeaponDelayFireMessage(seq_time, weapon_guid) =>
@@ -327,6 +341,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       log.info("AvatarFirstTimeEvent: " + msg)
 
     case msg @ MountVehicleMsg(player_guid, vehicle_guid, unk) =>
+      sendResponse(PacketCoding.CreateGamePacket(0, ObjectAttachMessage(vehicle_guid,player_guid,0)))
       log.info("MounVehicleMsg: "+msg)
 
     case msg @ AvatarGrenadeStateMessage(player_guid, state) =>
@@ -335,7 +350,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ SquadDefinitionActionMessage(a, b, c, d, e, f, g, h, i) =>
       log.info("SquadDefinitionAction: " + msg)
 
-    case default => log.debug(s"Unhandled GamePacket ${pkt}")
+    case default => log.info(s"Unhandled GamePacket ${pkt}")
   }
 
   def failWithError(error : String) = {
