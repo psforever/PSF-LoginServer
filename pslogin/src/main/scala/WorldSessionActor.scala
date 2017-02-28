@@ -10,7 +10,7 @@ import scodec.bits._
 import org.log4s.MDC
 import MDCContextAware.Implicits._
 import net.psforever.packet.game.objectcreate._
-import net.psforever.types.{ChatMessageType, Vector3}
+import net.psforever.types.{ChatMessageType, PlanetSideEmpire, Vector3}
 
 class WorldSessionActor extends Actor with MDCContextAware {
   private[this] val log = org.log4s.getLogger
@@ -113,7 +113,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
   val app = CharacterAppearanceData(
     Vector3(3674.8438f, 2726.789f, 91.15625f),
     19,
-    2,
+    PlanetSideEmpire.VS,
     false,
     4,
     "IlllIIIlllIlIllIlllIllI",
