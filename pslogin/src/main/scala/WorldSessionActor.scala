@@ -216,6 +216,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
               sendResponse(PacketCoding.CreateGamePacket(0, SetCurrentAvatarMessage(guid,0,0)))
               sendResponse(PacketCoding.CreateGamePacket(0, CreateShortcutMessage(guid, 1, 0, true, Shortcut.MEDKIT)))
+              sendResponse(PacketCoding.CreateGamePacket(0, ReplicationStreamMessage(5, Some(6), Vector(SquadListing(255))))) //clear squad list
 
               import scala.concurrent.duration._
               import scala.concurrent.ExecutionContext.Implicits.global
