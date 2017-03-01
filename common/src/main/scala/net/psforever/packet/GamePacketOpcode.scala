@@ -389,7 +389,7 @@ object GamePacketOpcode extends Enumeration {
     case 0x39 => game.ChangeFireStateMessage_Start.decode
     case 0x3a => game.ChangeFireStateMessage_Stop.decode
     case 0x3b => noDecoder(UnknownMessage59)
-    case 0x3c => noDecoder(GenericCollisionMsg)
+    case 0x3c => game.GenericCollisionMsg.decode
     case 0x3d => game.QuantityUpdateMessage.decode
     case 0x3e => game.ArmorChangedMessage.decode
     case 0x3f => noDecoder(ProjectileStateMessage)
