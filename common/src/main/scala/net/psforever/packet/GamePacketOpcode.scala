@@ -516,7 +516,7 @@ object GamePacketOpcode extends Enumeration {
     case 0xa4 => noDecoder(WarpgateRequest)
     case 0xa5 => noDecoder(WarpgateResponse)
     case 0xa6 => noDecoder(DamageWithPositionMessage)
-    case 0xa7 => noDecoder(GenericActionMessage)
+    case 0xa7 => game.GenericActionMessage.decode
     // 0xa8
     case 0xa8 => game.ContinentalLockUpdateMessage.decode
     case 0xa9 => game.AvatarGrenadeStateMessage.decode
