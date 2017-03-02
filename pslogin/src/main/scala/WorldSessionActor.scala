@@ -350,7 +350,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ SquadDefinitionActionMessage(a, b, c, d, e, f, g, h, i) =>
       log.info("SquadDefinitionAction: " + msg)
 
+    case msg @ BugReportMessage(version_major,version_minor,version_date,bug_type,repeatable,location,zone,pos,summary,desc) =>
+      log.info("BugReportMessage: " + msg)
+
     case default => log.info(s"Unhandled GamePacket ${pkt}")
+
   }
 
   def failWithError(error : String) = {
