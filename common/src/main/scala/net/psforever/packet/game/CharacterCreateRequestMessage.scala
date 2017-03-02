@@ -2,8 +2,10 @@
 package net.psforever.packet.game
 
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
-import scodec.Codec
+import net.psforever.types.PlanetSideEmpire
+import scodec.{Attempt, Codec, Err}
 import scodec.codecs._
+import shapeless.{::, HNil}
 
 object CharacterGender extends Enumeration(1) {
   type Type = Value
@@ -34,5 +36,17 @@ object CharacterCreateRequestMessage extends Marshallable[CharacterCreateRequest
       ("voiceId" | uint8L) ::
       ("gender" | CharacterGender.codec) ::
       ("empire" | PlanetSideEmpire.codec)
-    ).as[CharacterCreateRequestMessage]
+    ).exmap[CharacterCreateRequestMessage] (
+    {
+      case name :: headId :: voiceId :: gender :: empire :: HNil =>
+        Attempt.successful(CharacterCreateRequestMessage(name, headId, voiceId, gender, empire))
+    },
+    {
+      case CharacterCreateRequestMessage(name, _, _, _, PlanetSideEmpire.NEUTRAL) =>
+        Attempt.failure(Err(s"character $name's faction can not declare as neutral"))
+
+      case CharacterCreateRequestMessage(name, headId, voiceId, gender, empire) =>
+        Attempt.successful(name :: headId :: voiceId :: gender :: empire :: HNil)
+    }
+  )
 }

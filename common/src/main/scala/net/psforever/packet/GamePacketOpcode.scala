@@ -544,13 +544,13 @@ object GamePacketOpcode extends Enumeration {
     case 0xbc => noDecoder(SnoopMsg)
     case 0xbd => game.PlayerStateMessageUpstream.decode
     case 0xbe => game.PlayerStateShiftMessage.decode
-    case 0xbf => noDecoder(ZipLineMessage)
+    case 0xbf => game.ZipLineMessage.decode
 
     // OPCODES 0xc0-cf
     case 0xc0 => noDecoder(CaptureFlagUpdateMessage)
     case 0xc1 => noDecoder(VanuModuleUpdateMessage)
     case 0xc2 => noDecoder(FacilityBenefitShieldChargeRequestMessage)
-    case 0xc3 => noDecoder(ProximityTerminalUseMessage)
+    case 0xc3 => game.ProximityTerminalUseMessage.decode
     case 0xc4 => game.QuantityDeltaUpdateMessage.decode
     case 0xc5 => noDecoder(ChainLashMessage)
     case 0xc6 => game.ZoneInfoMessage.decode
@@ -591,7 +591,7 @@ object GamePacketOpcode extends Enumeration {
     case 0xe3 => noDecoder(ZoneForcedCavernConnectionsMessage)
     case 0xe4 => noDecoder(MissionActionMessage)
     case 0xe5 => noDecoder(MissionKillTriggerMessage)
-    case 0xe6 => noDecoder(ReplicationStreamMessage)
+    case 0xe6 => game.ReplicationStreamMessage.decode
     case 0xe7 => game.SquadDefinitionActionMessage.decode
     // 0xe8
     case 0xe8 => noDecoder(SquadDetailDefinitionUpdateMessage)

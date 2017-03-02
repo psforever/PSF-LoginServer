@@ -109,13 +109,11 @@ class CryptoInterfaceTest extends Specification { args(stopOnFail = true)
 
     "safely handle multiple starts" in {
       val dontCare = ByteVector.fill(16)(0x42)
-      var dh = new CryptoDHState()
+      val dh = new CryptoDHState()
 
       dh.start()
       dh.start() must throwA[IllegalStateException]
       dh.close
-
-      dh = new CryptoDHState()
 
       ok
     }

@@ -2,7 +2,7 @@
 package net.psforever.packet.game.objectcreate
 
 import net.psforever.packet.{Marshallable, PacketHelpers}
-import net.psforever.types.Vector3
+import net.psforever.types.{PlanetSideEmpire, Vector3}
 import scodec.{Attempt, Codec, Err}
 import scodec.codecs._
 import shapeless.{::, HNil}
@@ -17,11 +17,6 @@ import shapeless.{::, HNil}
   * <br>
   * This base length of this stream is __430__ known bits, excluding the length of the name and the padding on that name.
   * Of that, __203__ bits are perfectly unknown in significance.
-  * <br>
-  * Faction:<br>
-  * `0 - Terran Republic`<br>
-  * `1 - New Conglomerate`<br>
-  * `2 - Vanu Sovereignty`<br>
   * <br>
   * Exo-suit:<br>
   * `0 - Agile`<br>
@@ -91,7 +86,7 @@ import shapeless.{::, HNil}
   */
 final case class CharacterAppearanceData(pos : Vector3,
                                          objYaw : Int,
-                                         faction : Int,
+                                         faction : PlanetSideEmpire.Value,
                                          bops : Boolean,
                                          unk1 : Int,
                                          name : String,
@@ -138,7 +133,7 @@ object CharacterAppearanceData extends Marshallable[CharacterAppearanceData] {
       ignore(16) ::
       ("objYaw" | uint8L) ::
       ignore(1) ::
-      ("faction" | uint2L) ::
+      ("faction" | PlanetSideEmpire.codec) ::
       ("bops" | bool) ::
       ("unk1" | uint4L) ::
       ignore(16) ::
@@ -164,7 +159,23 @@ object CharacterAppearanceData extends Marshallable[CharacterAppearanceData] {
       ("unk8" | uint4L) ::
       ignore(6) ::
       ("ribbons" | RibbonBars.codec)
-    ).as[CharacterAppearanceData]
+    ).exmap[CharacterAppearanceData] (
+    {
+      case a :: _ :: b :: _ :: c :: d :: e :: _ :: f :: g :: _ :: h :: i :: j :: k :: l :: _ :: m :: n :: o :: _ :: p :: _ :: q :: _ :: r :: s :: t :: _ :: u :: HNil =>
+        Attempt.successful(
+          CharacterAppearanceData(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u)
+        )
+    },
+    {
+      case CharacterAppearanceData(_, _, PlanetSideEmpire.NEUTRAL, _, _, name, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _) =>
+        Attempt.failure(Err(s"character $name's faction can not declare as neutral"))
+
+      case CharacterAppearanceData(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u) =>
+        Attempt.successful(
+          a :: () :: b :: () :: c :: d :: e :: () :: f :: g :: () :: h :: i :: j :: k :: l :: () :: m :: n :: o :: () :: p :: () :: q :: () :: r :: s :: t :: () :: u :: HNil
+        )
+    }
+  )
 }
 
 /**

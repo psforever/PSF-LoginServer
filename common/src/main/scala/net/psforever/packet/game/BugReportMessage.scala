@@ -34,10 +34,9 @@ object BugType extends Enumeration {
   * @param version_date the date the client was compiled
   * @param bug_type the kind of bug that took place
   * @param repeatable whether the bug is repeatable
-  * @param unk na;
-  *            always 0?
+  * @param location 0 when "other location", 2 when "current location"
   * @param zone which zone the bug took place
-  * @param pos the location where ther bug took place
+  * @param pos the x y z location where the bug took place
   * @param summary a short explanation of the bug
   * @param desc a detailed explanation of the bug
   */
@@ -46,7 +45,7 @@ final case class BugReportMessage(version_major : Long,
                                   version_date : String,
                                   bug_type : BugType.Value,
                                   repeatable : Boolean,
-                                  unk : Int,
+                                  location : Int,
                                   zone : Int,
                                   pos : Vector3,
                                   summary : String,
@@ -65,7 +64,7 @@ object BugReportMessage extends Marshallable[BugReportMessage] {
       ("bug_type" | BugType.codec) ::
       ignore(3) ::
       ("repeatable" | bool) ::
-      ("unk" | uint4L) ::
+      ("location" | uint4L) ::
       ("zone" | uint8L) ::
       ("pos" | Vector3.codec_pos) ::
       ("summary" | PacketHelpers.encodedWideStringAligned(4)) ::

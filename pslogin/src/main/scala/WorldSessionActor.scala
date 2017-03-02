@@ -10,7 +10,7 @@ import scodec.bits._
 import org.log4s.MDC
 import MDCContextAware.Implicits._
 import net.psforever.packet.game.objectcreate._
-import net.psforever.types.{ChatMessageType, Vector3}
+import net.psforever.types.{ChatMessageType, PlanetSideEmpire, Vector3}
 
 class WorldSessionActor extends Actor with MDCContextAware {
   private[this] val log = org.log4s.getLogger
@@ -113,7 +113,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
   val app = CharacterAppearanceData(
     Vector3(3674.8438f, 2726.789f, 91.15625f),
     19,
-    2,
+    PlanetSideEmpire.VS,
     false,
     4,
     "IlllIIIlllIlIllIlllIllI",
@@ -216,6 +216,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
               sendResponse(PacketCoding.CreateGamePacket(0, SetCurrentAvatarMessage(guid,0,0)))
               sendResponse(PacketCoding.CreateGamePacket(0, CreateShortcutMessage(guid, 1, 0, true, Shortcut.MEDKIT)))
+              sendResponse(PacketCoding.CreateGamePacket(0, ReplicationStreamMessage(5, Some(6), Vector(SquadListing(255))))) //clear squad list
 
               import scala.concurrent.duration._
               import scala.concurrent.ExecutionContext.Implicits.global
@@ -286,6 +287,19 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ AvatarJumpMessage(state) =>
       //log.info("AvatarJump: " + msg)
 
+    case msg @ ZipLineMessage(player_guid,origin_side,action,id,x,y,z) =>
+      log.info("ZipLineMessage: " + msg)
+      if(action == 0) {
+        //doing this lets you use the zip line, but you can't get off
+        //sendResponse(PacketCoding.CreateGamePacket(0,ZipLineMessage(player_guid, origin_side, action, id, x,y,z)))
+      }
+      else if(action == 1) {
+        //disembark from zipline at destination?
+      }
+      else if(action == 2) {
+        //get off by force
+      }
+
     case msg @ RequestDestroyMessage(object_guid) =>
       log.info("RequestDestroy: " + msg)
       // TODO: Make sure this is the correct response in all cases
@@ -334,6 +348,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ SquadDefinitionActionMessage(a, b, c, d, e, f, g, h, i) =>
       log.info("SquadDefinitionAction: " + msg)
+
+    case msg @ BugReportMessage(version_major,version_minor,version_date,bug_type,repeatable,location,zone,pos,summary,desc) =>
+      log.info("BugReportMessage: " + msg)
 
     case default => log.debug(s"Unhandled GamePacket ${pkt}")
   }
