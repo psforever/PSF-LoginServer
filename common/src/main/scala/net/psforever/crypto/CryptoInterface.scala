@@ -13,6 +13,20 @@ object CryptoInterface {
   final val PSCRYPTO_VERSION_MAJOR = 1
   final val PSCRYPTO_VERSION_MINOR = 1
 
+  /**
+     NOTE: this is a single, global shared library for the entire server's crypto needs
+
+     Unfortunately, access to this object didn't used to be synchronized. I noticed that
+     tests for this module were hanging ("arrive at a shared secret" & "must fail to agree on
+     a secret..."). This heisenbug was responsible for failed Travis test runs and developer
+     issues as well. Using Windows minidumps, I tracked the issue to a single thread deep in
+     pscrypto.dll. It appeared to be executing an EB FE instruction (on Intel x86 this is
+     `jmp $-2` or jump to self), which is an infinite loop. The stack trace made little to no
+     sense and after banging my head on the wall for many hours, I assumed that something deep
+     in CryptoPP, the libgcc libraries, or MSVC++ was the cause (or myself). Now all access to
+     pscrypto functions that allocate and deallocate memory (DH_Start, RC5_Init) are synchronized.
+     This *appears* to have fixed the problem.
+  */
   final val psLib = new Library(libName)
 
   final val RC5_BLOCK_SIZE = 8
@@ -48,7 +62,7 @@ object CryptoInterface {
 
     if(!psLib.PSCrypto_Init(PSCRYPTO_VERSION_MAJOR, PSCRYPTO_VERSION_MINOR)[Boolean]) {
       throw new IllegalArgumentException(s"Invalid PSCrypto library version ${libraryMajor.getValue}.${libraryMinor.getValue}. Expected " +
-        s"${PSCRYPTO_VERSION_MAJOR}.${PSCRYPTO_VERSION_MINOR}")
+        s"$PSCRYPTO_VERSION_MAJOR.$PSCRYPTO_VERSION_MINOR")
     }
   }
 
@@ -121,7 +135,9 @@ object CryptoInterface {
       if(started)
         throw new IllegalStateException("DH state has already been started")
 
-      dhHandle = psLib.DH_Start(modulus.toArray, generator.toArray, privateKey, publicKey)[Pointer]
+      psLib.synchronized {
+        dhHandle = psLib.DH_Start(modulus.toArray, generator.toArray, privateKey, publicKey)[Pointer]
+      }
 
       if(dhHandle == Pointer.NULL)
         throw new Exception("DH initialization failed!")
@@ -138,7 +154,9 @@ object CryptoInterface {
       if(started)
         throw new IllegalStateException("DH state has already been started")
 
-      dhHandle = psLib.DH_Start_Generate(privateKey, publicKey, p, g)[Pointer]
+      psLib.synchronized {
+        dhHandle = psLib.DH_Start_Generate(privateKey, publicKey, p, g)[Pointer]
+      }
 
       if(dhHandle == Pointer.NULL)
         throw new Exception("DH initialization failed!")
@@ -185,7 +203,9 @@ object CryptoInterface {
     override def close = {
       if(started) {
         // TODO: zero private key material
-        psLib.Free_DH(dhHandle)[Unit]
+        psLib.synchronized {
+          psLib.Free_DH(dhHandle)[Unit]
+        }
         started = false
       }
 
@@ -196,8 +216,13 @@ object CryptoInterface {
   class CryptoState(val decryptionKey : ByteVector,
                     val encryptionKey : ByteVector) extends IFinalizable {
     // Note that the keys must be returned as primitive Arrays for JNA to work
-    val encCryptoHandle = psLib.RC5_Init(encryptionKey.toArray, encryptionKey.length, true)[Pointer]
-    val decCryptoHandle = psLib.RC5_Init(decryptionKey.toArray, decryptionKey.length, false)[Pointer]
+    var encCryptoHandle : Pointer = Pointer.NULL
+    var decCryptoHandle : Pointer = Pointer.NULL
+
+    psLib.synchronized {
+      encCryptoHandle = psLib.RC5_Init(encryptionKey.toArray, encryptionKey.length, true)[Pointer]
+      decCryptoHandle = psLib.RC5_Init(decryptionKey.toArray, decryptionKey.length, false)[Pointer]
+    }
 
     if(encCryptoHandle == Pointer.NULL)
       throw new Exception("Encryption initialization failed!")
@@ -234,8 +259,10 @@ object CryptoInterface {
     }
 
     override def close = {
-      psLib.Free_RC5(encCryptoHandle)[Unit]
-      psLib.Free_RC5(decCryptoHandle)[Unit]
+      psLib.synchronized {
+        psLib.Free_RC5(encCryptoHandle)[Unit]
+        psLib.Free_RC5(decCryptoHandle)[Unit]
+      }
       super.close
     }
   }
@@ -246,8 +273,8 @@ object CryptoInterface {
                            val encryptionMACKey : ByteVector) extends CryptoState(decryptionKey, encryptionKey) {
     /**
       * Performs a MAC operation over the message. Used when encrypting packets
- *
-      * @param message
+      *
+      * @param message the input message
       * @return ByteVector
       */
     def macForEncrypt(message : ByteVector) : ByteVector = {
@@ -256,8 +283,8 @@ object CryptoInterface {
 
     /**
       * Performs a MAC operation over the message. Used when verifying decrypted packets
- *
-      * @param message
+      *
+      * @param message the input message
       * @return ByteVector
       */
     def macForDecrypt(message : ByteVector) : ByteVector = {
