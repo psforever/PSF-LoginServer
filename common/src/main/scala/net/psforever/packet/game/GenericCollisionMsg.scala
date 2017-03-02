@@ -6,6 +6,26 @@ import net.psforever.types.Vector3
 import scodec.Codec
 import scodec.codecs._
 
+/**
+  * Dispatched by the client when the player has encountered a physical interaction that would cause damage.
+  * Being run over by vehicles and falling from an exceptional height (without hot drop) are common causes.
+  * @param unk1 na
+  * @param player the player or player-controlled vehicle
+  * @param target the other party in the collision
+  * @param player_health the player's health
+  * @param target_health the target's health
+  * @param player_velocity_x the x-component of the player's velocity
+  * @param player_velocity_y the y-component of the player's velocity
+  * @param player_velocity_z the z-component of the player's velocity
+  * @param target_velocity_x the x-component of the target's velocity
+  * @param target_velocity_y the y-component of the target's velocity
+  * @param target_velocity_z the z-component of the target's velocity
+  * @param player_pos the player's world coordinates
+  * @param target_pos the target's world coordinates
+  * @param unk2 na
+  * @param unk3 na
+  * @param unk4 na
+  */
 final case class GenericCollisionMsg(unk1 : Int,
                                      player : PlanetSideGUID,
                                      target : PlanetSideGUID,
