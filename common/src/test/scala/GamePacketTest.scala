@@ -374,7 +374,7 @@ class GamePacketTest extends Specification {
             char.appearance.pos.y mustEqual 2726.789f
             char.appearance.pos.z mustEqual 91.15625f
             char.appearance.objYaw mustEqual 19
-            char.appearance.faction mustEqual 2 //vs
+            char.appearance.faction mustEqual PlanetSideEmpire.VS
             char.appearance.bops mustEqual false
             char.appearance.unk1 mustEqual 4
             char.appearance.name mustEqual "IlllIIIlllIlIllIlllIllI"
@@ -529,7 +529,7 @@ class GamePacketTest extends Specification {
         val app = CharacterAppearanceData(
           Vector3(3674.8438f, 2726.789f, 91.15625f),
           19,
-          2,
+          PlanetSideEmpire.VS,
           false,
           4,
           "IlllIIIlllIlIllIlllIllI",
@@ -1332,13 +1332,13 @@ class GamePacketTest extends Specification {
           case DestroyDisplayMessage(killer, killer_unk, killer_empire, killer_inVehicle, unk, method, victim, victim_unk, victim_empire, victim_inVehicle) =>
             killer mustEqual "Angello"
             killer_unk mustEqual 30981173
-            killer_empire mustEqual 2
+            killer_empire mustEqual PlanetSideEmpire.VS
             killer_inVehicle mustEqual false
-            unk mustEqual PlanetSideGUID(121)
-            method mustEqual PlanetSideGUID(969)
+            unk mustEqual 121
+            method mustEqual 969
             victim mustEqual "HMFIC"
             victim_unk mustEqual 31035057
-            victim_empire mustEqual 0
+            victim_empire mustEqual PlanetSideEmpire.TR
             victim_inVehicle mustEqual false
           case default =>
             ko
@@ -1346,7 +1346,7 @@ class GamePacketTest extends Specification {
       }
 
       "encode" in {
-        val msg = DestroyDisplayMessage("Angello", 30981173, 2, false, PlanetSideGUID(121), PlanetSideGUID(969), "HMFIC", 31035057, 0, false)
+        val msg = DestroyDisplayMessage("Angello", 30981173, PlanetSideEmpire.VS, false, 121, 969, "HMFIC", 31035057, PlanetSideEmpire.TR, false)
         val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
         pkt mustEqual string
       }
