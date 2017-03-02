@@ -583,7 +583,7 @@ object SquadHeader {
 
 object SquadListing {
   /**
-    * `Codec` for standard `SquadHeader` entries.
+    * `Codec` for standard `SquadListing` entries.
     */
   val codec : Codec[SquadListing] = (
     ("index" | uint8L) >>:~ { index =>
@@ -601,7 +601,7 @@ object SquadListing {
   )
 
   /**
-    * `Codec` for types of `SquadHeader` initializations.
+    * `Codec` for branching types of `SquadListing` initializations.
     */
   val init_codec : Codec[SquadListing] = (
     ("index" | uint8L) >>:~ { index =>
