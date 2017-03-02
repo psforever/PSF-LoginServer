@@ -43,7 +43,7 @@ object ZipLineMessage extends Marshallable[ZipLineMessage] {
   /**
     * A `Codec` for when three `Float` values are to be read or written.
     */
-  val threeLongValues : Codec[threeFloatsPattern] = (
+  val threeFloatValues : Codec[threeFloatsPattern] = (
     ("x" | floatL) ::
       ("y" | floatL) ::
       ("z" | floatL)
@@ -52,7 +52,7 @@ object ZipLineMessage extends Marshallable[ZipLineMessage] {
   /**
     * A `Codec` for when there are no extra `Float` values present.
     */
-  val noLongValues : Codec[threeFloatsPattern] = ignore(0).xmap[threeFloatsPattern] (
+  val noFloatValues : Codec[threeFloatsPattern] = ignore(0).xmap[threeFloatsPattern] (
     {
       case () =>
         0f :: 0f :: 0f :: HNil
@@ -68,7 +68,7 @@ object ZipLineMessage extends Marshallable[ZipLineMessage] {
       ("origin_side" | bool) ::
         ("action" | uint2) ::
         ("id" | uint32L) ::
-        newcodecs.binary_choice(player.guid > 0, threeLongValues, noLongValues) // !(player.guid == 0)
+        newcodecs.binary_choice(player.guid > 0, threeFloatValues, noFloatValues) // !(player.guid == 0)
     }
     ).as[ZipLineMessage]
 }
