@@ -287,6 +287,19 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ AvatarJumpMessage(state) =>
       //log.info("AvatarJump: " + msg)
 
+    case msg @ ZipLineMessage(player_guid,origin_side,action,id,x,y,z) =>
+      log.info("ZipLineMessage: " + msg)
+      if(action == 0) {
+        //doing this lets you use the zip line, but you can't get off
+        //sendResponse(PacketCoding.CreateGamePacket(0,ZipLineMessage(player_guid, origin_side, action, id, x,y,z)))
+      }
+      else if(action == 1) {
+        //disembark from zipline at destination?
+      }
+      else if(action == 2) {
+        //get off by force
+      }
+
     case msg @ RequestDestroyMessage(object_guid) =>
       log.info("RequestDestroy: " + msg)
       // TODO: Make sure this is the correct response in all cases
