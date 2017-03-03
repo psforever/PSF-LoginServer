@@ -9,6 +9,7 @@ import org.log4s.MDC
 import scodec.Attempt.{Failure, Successful}
 import scodec.bits._
 import MDCContextAware.Implicits._
+import net.psforever.types.PlanetSideEmpire
 
 import scala.concurrent.duration._
 import scala.util.Random

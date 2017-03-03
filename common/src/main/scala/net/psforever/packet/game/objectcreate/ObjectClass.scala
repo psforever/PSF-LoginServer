@@ -421,7 +421,6 @@ object ObjectClass {
       case ObjectClass.battlewagon_weapon_systemb => WeaponData.genericCodec
       case ObjectClass.battlewagon_weapon_systemc => WeaponData.genericCodec
       case ObjectClass.battlewagon_weapon_systemd => WeaponData.genericCodec
-      case ObjectClass.beamer => WeaponData.genericCodec
       case ObjectClass.bolt_driver => WeaponData.genericCodec
       case ObjectClass.chainblade => WeaponData.genericCodec
       case ObjectClass.chaingun_p => WeaponData.genericCodec
