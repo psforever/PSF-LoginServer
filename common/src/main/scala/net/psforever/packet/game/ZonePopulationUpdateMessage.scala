@@ -15,12 +15,12 @@ import scodec.codecs._
   * This packet also shifts the flavor text for that zone.<br>
   * <br>
   * The size of zone's queue is the final upper population limit for that zone.
-  * Common values for the zone queue fields are 00 00 00 00 (locked) and 9E 01 00 00 (414 positions).
+  * Common values for the zone queue fields are 0 (locked) and 414 positions.
   * When a continent can not accept any players at all, a lock icon will appear over its view pane in the Interstellar View.
   * Setting the zone's queue to zero will also render this icon.<br>
   * <br>
   * The individual queue fields set the maximum empire occupancy for a zone that is represented in the zone Incentives text.
-  * Common values for the empire queue fields are 00 00 00 00 (locked population), 8A 00 00 00 (138 positions), and FA 01 00 00 (500 positions).
+  * Common values for the empire queue fields are 0 (locked population), 138 positions, and 500 positions.
   * Zone Incentives text, however, will never report more than a "100+" vacancy.
   * The actual limits are probably set based on server load.
   * The latter queue value is typical for VR area zones.<br>
@@ -51,8 +51,8 @@ final case class ZonePopulationUpdateMessage(continent_guid : PlanetSideGUID,
                                              nc_pop : Long,
                                              vs_queue : Long,
                                              vs_pop : Long,
-                                             bo_queue : Long,
-                                             bo_pop : Long)
+                                             bo_queue : Long = 0L,
+                                             bo_pop : Long = 0L)
   extends PlanetSideGamePacket {
   type Packet = ZonePopulationUpdateMessage
   def opcode = GamePacketOpcode.ZonePopulationUpdateMessage
@@ -62,10 +62,10 @@ final case class ZonePopulationUpdateMessage(continent_guid : PlanetSideGUID,
 object ZonePopulationUpdateMessage extends Marshallable[ZonePopulationUpdateMessage] {
   implicit val codec : Codec[ZonePopulationUpdateMessage] = (
     ("continent_guid" | PlanetSideGUID.codec) ::
-      ("zone_queue" | ulongL(32)) ::
-      ("tr_queue" | ulongL(32)) :: ("tr_pop" | ulongL(32)) ::
-      ("nc_queue" | ulongL(32)) :: ("nc_pop" | ulongL(32)) ::
-      ("vs_queue" | ulongL(32)) :: ("vs_pop" | ulongL(32)) ::
-      ("bo_queue" | ulongL(32)) :: ("bo_pop" | ulongL(32))
+      ("zone_queue" | uint32L) ::
+      ("tr_queue" | uint32L) :: ("tr_pop" | uint32L) ::
+      ("nc_queue" | uint32L) :: ("nc_pop" | uint32L) ::
+      ("vs_queue" | uint32L) :: ("vs_pop" | uint32L) ::
+      ("bo_queue" | uint32L) :: ("bo_pop" | uint32L)
   ).as[ZonePopulationUpdateMessage]
 }

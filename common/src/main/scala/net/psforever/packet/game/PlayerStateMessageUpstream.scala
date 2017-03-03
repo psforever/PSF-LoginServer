@@ -6,10 +6,26 @@ import net.psforever.types.Vector3
 import scodec.Codec
 import scodec.codecs._
 
-/** PlayerStateMessageUpstream is constantly sent from the client to the server to update avatar properties.
-  *
-  * Note: seq_time appears to be used in other message definitions as well. It
-  * seems to represent a timestamp for ordering of e.g. player and weapon events.
+/**
+  * Constantly sent from the client to the server to update player avatar properties.<br>
+  * <br>
+  * Exploration:<br>
+  * `seq_time` appears to be used in other message definitions as well.
+  * It seems to represent a timestamp for ordering, e.g., player and weapon events.
+  * @param avatar_guid the player's GUID
+  * @param pos where the player is in the world
+  * @param vel how the player is moving
+  * @param unk1 na
+  * @param aim_pitch the vertical angle of viewing
+  * @param unk2 na
+  * @param seq_time na
+  * @param unk3 na
+  * @param is_crouching whether the player is crouched
+  * @param unk4 na
+  * @param unk5 na
+  * @param is_cloaking whether the player is cloaked by virtue of an Infiltration Suit
+  * @param unk6 na
+  * @param unk7 na
   */
 final case class PlayerStateMessageUpstream(avatar_guid : PlanetSideGUID,
                                             pos : Vector3,
@@ -22,9 +38,9 @@ final case class PlayerStateMessageUpstream(avatar_guid : PlanetSideGUID,
                                             is_crouching : Boolean,
                                             unk4 : Boolean,
                                             unk5 : Boolean,
-                                            unk6 : Boolean,
-                                            unk7 : Int,
-                                            unk8 : Int)
+                                            is_cloaking : Boolean,
+                                            unk6 : Int,
+                                            unk7 : Int)
   extends PlanetSideGamePacket {
   type Packet = PlayerStateMessageUpstream
   def opcode = GamePacketOpcode.PlayerStateMessageUpstream
@@ -44,8 +60,8 @@ object PlayerStateMessageUpstream extends Marshallable[PlayerStateMessageUpstrea
       ("is_crouching" | bool) ::
       ("unk4" | bool) ::
       ("unk5" | bool) ::
-      ("unk6" | bool) ::
-      ("unk7" | uint8L) ::
-      ("unk8" | uint16L)
+      ("is_cloaking" | bool) ::
+      ("unk6" | uint8L) ::
+      ("unk7" | uint16L)
     ).as[PlayerStateMessageUpstream]
 }
