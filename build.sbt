@@ -16,7 +16,8 @@ lazy val commonSettings = Seq(
     "org.log4s"                  %% "log4s"         % "1.3.0",
     "org.fusesource.jansi"        % "jansi"         % "1.12",
     "org.scoverage"              %% "scalac-scoverage-plugin" % "1.1.1",
-    "com.github.nscala-time"     %% "nscala-time"   % "2.12.0"
+    "com.github.nscala-time"     %% "nscala-time"   % "2.12.0",
+    "com.github.mauricio"        %% "mysql-async"   % "0.2.21"
   )
 )
 
