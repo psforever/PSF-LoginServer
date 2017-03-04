@@ -355,7 +355,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       log.info("AvatarFirstTimeEvent: " + msg)
 
     case msg @ MountVehicleMsg(player_guid, vehicle_guid, unk) =>
-      sendResponse(PacketCoding.CreateGamePacket(0, ObjectAttachMessage(vehicle_guid,player_guid,0)))
+      //sendResponse(PacketCoding.CreateGamePacket(0, ObjectAttachMessage(vehicle_guid,player_guid,0)))
       log.info("MounVehicleMsg: "+msg)
 
     case msg @ AvatarGrenadeStateMessage(player_guid, state) =>
@@ -367,7 +367,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ BugReportMessage(version_major,version_minor,version_date,bug_type,repeatable,location,zone,pos,summary,desc) =>
       log.info("BugReportMessage: " + msg)
 
-    case default => log.info(s"Unhandled GamePacket ${pkt}")
+    case default => log.error(s"Unhandled GamePacket ${pkt}")
 
   }
 
