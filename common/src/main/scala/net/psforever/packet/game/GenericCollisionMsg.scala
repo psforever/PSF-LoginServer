@@ -7,8 +7,12 @@ import scodec.Codec
 import scodec.codecs._
 
 /**
-  * Dispatched by the client when the player has encountered a physical interaction that would cause damage.
-  * Being run over by vehicles and falling from an exceptional height (without hot drop) are common causes.
+  * Dispatched by the client when the player has encountered a physical interaction that would cause damage.<br>
+  * <br>
+  * Collision information reports about two subjects who were involved in an altercation.
+  * The first is the `player`, that is, the client's avatar.
+  * The second is the `target` with respect to the `player` - whatever the avatar ran into, or whatever ran into the avatar.
+  * In the case of isolated forms of collision such as fall damage the `target` fields are blank or zero'd.
   * @param unk1 na
   * @param player the player or player-controlled vehicle
   * @param target the other party in the collision
