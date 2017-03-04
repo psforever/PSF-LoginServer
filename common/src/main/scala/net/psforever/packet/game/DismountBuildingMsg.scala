@@ -10,7 +10,7 @@ import scodec.codecs._
   * <br>
   * Paragraph in which "'dismounting' a building" is explained.
   * @param player_guid the player
-  * @param building_guid the building being "dismounted"
+  * @param building_guid the building
   */
 final case class DismountBuildingMsg(player_guid : PlanetSideGUID,
                                      building_guid : PlanetSideGUID)
