@@ -10,16 +10,16 @@ import scodec.codecs._
   */
 object ImplantType extends Enumeration {
   type Type = Value
-  val REGENERATION,
-      ENHANCED_TARGETING,
-      AUDIO_AMPLIFIER,
-      DARKLIGHT_VISION,
-      MELEE_BOOSTER,
-      PERSONAL_SHIELD,
-      RANGE_MAGNIFIER,
-      UNKNOWN7,
-      SENSOR_SHIELD,
-      SURGE = Value
+  val advanced_regen,
+      targeting,
+      audio_amplifier,
+      darklight_vision,
+      melee_booster,
+      personal_shield,
+      range_magnifier,
+      unknown7,
+      silent_run,
+      surge = Value
 
   implicit val codec = PacketHelpers.createEnumerationCodec(this, uint4L)
 }
