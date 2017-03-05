@@ -1,4 +1,4 @@
-// Copyright (c) 2016 PSForever.net to present
+// Copyright (c) 2017 PSForever
 import org.specs2.mutable._
 import net.psforever.newcodecs._
 import net.psforever.types._

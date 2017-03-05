@@ -1,4 +1,4 @@
-// Copyright (c) 2016 PSForever.net to present
+// Copyright (c) 2017 PSForever
 package net.psforever.packet.crypto
 
 import net.psforever.packet.{CryptoPacketOpcode, Marshallable, PlanetSideCryptoPacket}
