@@ -339,6 +339,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ ItemTransactionMessage(terminal_guid, transaction_type, item_page, item_name, unk1, item_guid) =>
       if(transaction_type == TransactionType.Sell) {
         sendResponse(PacketCoding.CreateGamePacket(0, ObjectDeleteMessage(item_guid, 0)))
+        sendResponse(PacketCoding.CreateGamePacket(0, ItemTransactionResultMessage(terminal_guid, transaction_type, true)))
       }
       log.info("ItemTransaction: " + msg)
 
