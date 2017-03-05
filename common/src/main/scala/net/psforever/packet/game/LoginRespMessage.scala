@@ -4,7 +4,6 @@ package net.psforever.packet.game
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
 import scodec.Codec
 import scodec.codecs._
-import net.psforever.packet.game.LoginRespMessage.{LoginError,StationError,StationSubscriptionStatus}
 
 /**
   * This message is sent from the server to the client upon reception of a [[LoginMessage]].
@@ -29,9 +28,9 @@ import net.psforever.packet.game.LoginRespMessage.{LoginError,StationError,Stati
   * @param privilege If set above 10000, then the user has access to GM commands. Not sure of other values.
   */
 final case class LoginRespMessage(token : String,
-                                  error : LoginError.Type,
-                                  stationError : StationError.Type,
-                                  subscriptionStatus : StationSubscriptionStatus.Type,
+                                  error : LoginRespMessage.LoginError.Type,
+                                  stationError : LoginRespMessage.StationError.Type,
+                                  subscriptionStatus : LoginRespMessage.StationSubscriptionStatus.Type,
                                   unkUIRelated : Long,
                                   username : String,
                                   privilege : Long) extends PlanetSideGamePacket {
