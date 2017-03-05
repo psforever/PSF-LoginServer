@@ -423,7 +423,7 @@ object GamePacketOpcode extends Enumeration {
     case 0x56 => noDecoder(GenericObjectActionMessage)
     case 0x57 => noDecoder(AvatarVehicleTimerMessage)
     // 0x58
-    case 0x58 => noDecoder(AvatarImplantMessage)
+    case 0x58 => game.AvatarImplantMessage.decode
     case 0x59 => noDecoder(UnknownMessage89)
     case 0x5a => noDecoder(DelayedPathMountMsg)
     case 0x5b => noDecoder(OrbitalShuttleTimeMsg)
