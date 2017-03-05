@@ -11,9 +11,9 @@ class HitHintTest extends Specification {
 
   "decode" in {
     PacketCoding.DecodePacket(string).require match {
-      case HitHint(unk1, unk2) =>
-        unk1 mustEqual PlanetSideGUID(2886)
-        unk2 mustEqual PlanetSideGUID(1)
+      case HitHint(source, player) =>
+        source mustEqual PlanetSideGUID(2886)
+        player mustEqual PlanetSideGUID(1)
       case _ =>
         ko
     }
