@@ -556,7 +556,7 @@ object GamePacketOpcode extends Enumeration {
     case 0xc6 => game.ZoneInfoMessage.decode
     case 0xc7 => noDecoder(LongRangeProjectileInfoMessage)
     // 0xc8
-    case 0xc8 => noDecoder(WeaponLazeTargetPositionMessage)
+    case 0xc8 => game.WeaponLazeTargetPositionMessage.decode
     case 0xc9 => noDecoder(ModuleLimitsMessage)
     case 0xca => noDecoder(OutfitBenefitMessage)
     case 0xcb => noDecoder(EmpireChangeTimeMessage)
