@@ -21,4 +21,10 @@ object Vector3 {
       ("y" | newcodecs.q_float(-256.0, 256.0, 14)) ::
       ("z" | newcodecs.q_float(-256.0, 256.0, 14))
     ).as[Vector3]
+
+  implicit val codec_float : Codec[Vector3] = (
+      ("x" | floatL) ::
+      ("y" | floatL) ::
+      ("z" | floatL)
+    ).as[Vector3]
 }

@@ -23,9 +23,11 @@ final case class LoginMessage(majorVersion : Long,
 }
 
 object LoginMessage extends Marshallable[LoginMessage] {
+  lazy val tokenCodec = paddedFixedSizeBytes(32, cstring, ignore(8))
+
   private def username = PacketHelpers.encodedStringAligned(7)
   private def password = PacketHelpers.encodedString
-  private def tokenPath = paddedFixedSizeBytes(32, cstring, ignore(8)) :: username
+  private def tokenPath = tokenCodec :: username
   private def passwordPath = username :: password
 
   type Struct = String :: Option[String] :: Option[String] :: HNil

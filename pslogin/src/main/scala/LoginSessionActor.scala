@@ -9,7 +9,13 @@ import org.log4s.MDC
 import scodec.Attempt.{Failure, Successful}
 import scodec.bits._
 import MDCContextAware.Implicits._
+import com.github.mauricio.async.db.{Connection, QueryResult, RowData}
+import com.github.mauricio.async.db.mysql.MySQLConnection
+import com.github.mauricio.async.db.mysql.exceptions.MySQLException
+import com.github.mauricio.async.db.mysql.util.URLParser
+import net.psforever.types.PlanetSideEmpire
 
+import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.util.Random
 
@@ -73,14 +79,17 @@ class LoginSessionActor extends Actor with MDCContextAware {
   def handleControlPkt(pkt : PlanetSideControlPacket) = {
     pkt match {
       case SlottedMetaPacket(slot, subslot, innerPacket) =>
+        // Meta packets are like TCP packets - then need to be ACKed to the client
         sendResponse(PacketCoding.CreateControlPacket(SlottedMetaAck(slot, subslot)))
 
-        PacketCoding.DecodePacket(innerPacket) match {
-          case Failure(e) =>
-            log.error(s"Failed to decode inner packet of SlottedMetaPacket: $e")
-          case Successful(v) =>
-            handlePkt(v)
-        }
+        // Decode the inner packet and handle it or error
+        PacketCoding.DecodePacket(innerPacket).fold({
+          error => log.error(s"Failed to decode inner packet of SlottedMetaPacket: $error")
+        }, {
+          handlePkt(_)
+        })
+      /// TODO: figure out what this is what what it does for the PS client
+      /// I believe it has something to do with reliable packet transmission and resending
       case sync @ ControlSync(diff, unk, f1, f2, f3, f4, fa, fb) =>
         log.trace(s"SYNC: ${sync}")
 
@@ -88,16 +97,17 @@ class LoginSessionActor extends Actor with MDCContextAware {
         sendResponse(PacketCoding.CreateControlPacket(ControlSyncResp(diff, serverTick,
           fa, fb, fb, fa)))
       case MultiPacket(packets) =>
+
+        /// Extract out each of the subpackets in the MultiPacket and handle them or raise a packet error
         packets.foreach { pkt =>
-          PacketCoding.DecodePacket(pkt) match {
-            case Failure(e) =>
-              log.error(s"Failed to decode inner packet of MultiPacket: $e")
-            case Successful(v) =>
-              handlePkt(v)
-          }
+          PacketCoding.DecodePacket(pkt).fold({ error =>
+            log.error(s"Failed to decode inner packet of MultiPacket: $error")
+          }, {
+            handlePkt(_)
+          })
         }
       case default =>
-        log.debug(s"Unhandled ControlPacket $default")
+        log.error(s"Unhandled ControlPacket $default")
     }
   }
 
@@ -105,9 +115,51 @@ class LoginSessionActor extends Actor with MDCContextAware {
   val serverName = "PSForever"
   val serverAddress = new InetSocketAddress(LoginConfig.serverIpAddress.getHostAddress, 51001)
 
+  // TESTING CODE FOR ACCOUNT LOOKUP
+  def accountLookup(username : String, password : String) : Boolean = {
+    val connection: Connection = DatabaseConnector.getAccountsConnection
+
+    Await.result(connection.connect, 5 seconds)
+
+    // create account
+    //   username, password, email
+    //   Result: worked or failed
+    // login to account
+    //   username, password
+    //   Result: token (session cookie)
+
+    val future: Future[QueryResult] = connection.sendPreparedStatement("SELECT * FROM accounts where username=?", Array(username))
+
+    val mapResult: Future[Any] = future.map(queryResult => queryResult.rows match {
+      case Some(resultSet) => {
+        val row : RowData = resultSet.head
+        row(0)
+      }
+      case None => -1
+    }
+    )
+
+    try {
+      // XXX: remove awaits
+      val result = Await.result( mapResult, 5 seconds )
+      return true
+    } catch {
+      case e : MySQLException =>
+        log.error(s"SQL exception $e")
+      case e: Exception =>
+        log.error(s"Unknown exception when executing SQL statement: $e")
+    } finally {
+      connection.disconnect
+    }
+
+    false
+  }
+
   def handleGamePkt(pkt : PlanetSideGamePacket) = pkt match {
       case LoginMessage(majorVersion, minorVersion, buildDate, username,
         password, token, revision) =>
+        // TODO: prevent multiple LoginMessages from being processed in a row!! We need a state machine
+        import game.LoginRespMessage._
 
         val clientVersion = s"Client Version: ${majorVersion}.${minorVersion}.${revision}, ${buildDate}"
 
@@ -116,13 +168,28 @@ class LoginSessionActor extends Actor with MDCContextAware {
         else
           log.info(s"New login UN:$username PW:$password. ${clientVersion}")
 
-        val newToken = token.getOrElse("THISISMYTOKENYES")
-        val response = LoginRespMessage(newToken, hex"00000000 18FABE0C 00000000 00000000",
-          0, 1, 2, 685276011, username, 10001)
+        // This is temporary until a schema has been developed
+        //val loginSucceeded = accountLookup(username, password.getOrElse(token.get))
 
-        sendResponse(PacketCoding.CreateGamePacket(0, response))
+        // Allow any one to login for now
+        val loginSucceeded = true
 
-        updateServerListTask = context.system.scheduler.schedule(0 seconds, 2 seconds, self, UpdateServerList())
+        if(loginSucceeded) {
+          val newToken = token.getOrElse("AAAABBBBCCCCDDDDEEEEFFFFGGGGHHH")
+          val response = LoginRespMessage(newToken, LoginError.Success, StationError.AccountActive,
+            StationSubscriptionStatus.Active, 0, username, 10001)
+
+          sendResponse(PacketCoding.CreateGamePacket(0, response))
+
+          updateServerListTask = context.system.scheduler.schedule(0 seconds, 2 seconds, self, UpdateServerList())
+        } else {
+          val newToken = token.getOrElse("AAAABBBBCCCCDDDDEEEEFFFFGGGGHHH")
+          val response = LoginRespMessage(newToken, LoginError.BadUsernameOrPassword, StationError.AccountActive,
+            StationSubscriptionStatus.Active, 685276011, username, 10001)
+
+          log.info(s"Failed login to account ${username}")
+          sendResponse(PacketCoding.CreateGamePacket(0, response))
+        }
       case ConnectToWorldRequestMessage(name, _, _, _, _, _, _) =>
         log.info(s"Connect to world request for '${name}'")
 

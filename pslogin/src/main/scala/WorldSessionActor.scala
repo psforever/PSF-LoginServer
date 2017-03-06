@@ -10,7 +10,7 @@ import scodec.bits._
 import org.log4s.MDC
 import MDCContextAware.Implicits._
 import net.psforever.packet.game.objectcreate._
-import net.psforever.types.{ChatMessageType, TransactionType, Vector3}
+import net.psforever.types.{ChatMessageType, TransactionType, PlanetSideEmpire, Vector3}
 
 class WorldSessionActor extends Actor with MDCContextAware {
   private[this] val log = org.log4s.getLogger
@@ -113,7 +113,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
   val app = CharacterAppearanceData(
     Vector3(3674.8438f, 2726.789f, 91.15625f),
     19,
-    2,
+    PlanetSideEmpire.VS,
     false,
     4,
     "IlllIIIlllIlIllIlllIllI",
@@ -216,6 +216,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
               sendResponse(PacketCoding.CreateGamePacket(0, SetCurrentAvatarMessage(guid,0,0)))
               sendResponse(PacketCoding.CreateGamePacket(0, CreateShortcutMessage(guid, 1, 0, true, Shortcut.MEDKIT)))
+              sendResponse(PacketCoding.CreateGamePacket(0, ReplicationStreamMessage(5, Some(6), Vector(SquadListing(255))))) //clear squad list
 
               import scala.concurrent.duration._
               import scala.concurrent.ExecutionContext.Implicits.global
@@ -291,6 +292,19 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ AvatarJumpMessage(state) =>
       //log.info("AvatarJump: " + msg)
 
+    case msg @ ZipLineMessage(player_guid,origin_side,action,id,x,y,z) =>
+      log.info("ZipLineMessage: " + msg)
+      if(action == 0) {
+        //doing this lets you use the zip line, but you can't get off
+        //sendResponse(PacketCoding.CreateGamePacket(0,ZipLineMessage(player_guid, origin_side, action, id, x,y,z)))
+      }
+      else if(action == 1) {
+        //disembark from zipline at destination?
+      }
+      else if(action == 2) {
+        //get off by force
+      }
+
     case msg @ RequestDestroyMessage(object_guid) =>
       log.info("RequestDestroy: " + msg)
       // TODO: Make sure this is the correct response in all cases
@@ -326,6 +340,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ ItemTransactionMessage(terminal_guid, transaction_type, item_page, item_name, unk1, item_guid) =>
       if(transaction_type == TransactionType.Sell) {
         sendResponse(PacketCoding.CreateGamePacket(0, ObjectDeleteMessage(item_guid, 0)))
+        sendResponse(PacketCoding.CreateGamePacket(0, ItemTransactionResultMessage(terminal_guid, transaction_type, true)))
       }
       log.info("ItemTransaction: " + msg)
 
@@ -338,11 +353,17 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ HitMessage(seq_time, projectile_guid, unk1, hit_info, unk2, unk3, unk4) =>
       log.info("Hit: " + msg)
 
+    case msg @ SplashHitMessage(unk1, unk2, unk3, unk4, unk5, unk6, unk7, unk8) =>
+      log.info("SplashHitMessage: " + msg)
+
     case msg @ AvatarFirstTimeEventMessage(avatar_guid, object_guid, unk1, event_name) =>
       log.info("AvatarFirstTimeEvent: " + msg)
 
+    case msg @ WarpgateRequest(continent_guid, building_guid, dest_building_guid, dest_continent_guid, unk1, unk2) =>
+      log.info("WarpgateRequest: " + msg)
+
     case msg @ MountVehicleMsg(player_guid, vehicle_guid, unk) =>
-      sendResponse(PacketCoding.CreateGamePacket(0, ObjectAttachMessage(vehicle_guid,player_guid,0)))
+      //sendResponse(PacketCoding.CreateGamePacket(0, ObjectAttachMessage(vehicle_guid,player_guid,0)))
       log.info("MounVehicleMsg: "+msg)
 
     case msg @ AvatarGrenadeStateMessage(player_guid, state) =>
@@ -351,7 +372,16 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ SquadDefinitionActionMessage(a, b, c, d, e, f, g, h, i) =>
       log.info("SquadDefinitionAction: " + msg)
 
-    case default => log.info(s"Unhandled GamePacket ${pkt}")
+    case msg @ GenericCollisionMsg(u1, p, t, php, thp, pv, tv, ppos, tpos, u2, u3, u4) =>
+      log.info("Ouch! " + msg)
+
+    case msg @ BugReportMessage(version_major,version_minor,version_date,bug_type,repeatable,location,zone,pos,summary,desc) =>
+      log.info("BugReportMessage: " + msg)
+
+    case msg @ BindPlayerMessage(action, bindDesc, unk1, logging, unk2, unk3, unk4, pos) =>
+      log.info("BindPlayerMessage: " + msg)
+
+    case default => log.error(s"Unhandled GamePacket ${pkt}")
   }
 
   def failWithError(error : String) = {

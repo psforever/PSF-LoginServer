@@ -2,6 +2,7 @@
 package net.psforever.packet.game
 
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
+import net.psforever.types.PlanetSideEmpire
 import scodec.Codec
 import scodec.codecs._
 
@@ -24,8 +25,8 @@ import scodec.codecs._
   * In the case of absentee kills, for example, where there is no killer listed, this field has been zero'd (`00000000`).<br>
   * <br>
   * The faction affiliation is different from the normal way `PlanetSideEmpire` values are recorded.
-  * The higher nibble will reflect the first part of the `PlanetSideEmpire` value - `0` for TR, `4` for NC `8` for TR, `C` for Neutral/BOPs.
-  * An extra `20` will be added if the player is in a vehicle or turret at the time - `2` for TR, `6` for NC, `A` for VS, `E` for Neutral/BOPs.
+  * The higher nibble will reflect the first part of the `PlanetSideEmpire` value.
+  * An extra `20` will be added if the player is in a vehicle or turret at the time.
   * When marked as being in a vehicle or turret, the player's name will be enclosed within square brackets.
   * The length of the player's name found at the start of the wide character string does not reflect whether or not there will be square brackets (fortunately).<br>
   * <br>
@@ -36,26 +37,24 @@ import scodec.codecs._
   * It is also unknown what the two bytes preceding `method` specify, as changing them does nothing to the displayed message.
   * @param killer the name of the player who did the killing
   * @param killer_unk See above
-  * @param killer_empire the empire affiliation of the killer:
-  *                      0 - TR, 1 - NC, 2 - VS, 3 - Neutral/BOPs
+  * @param killer_empire the empire affiliation of the killer
   * @param killer_inVehicle true, if the killer was in a vehicle at the time of the kill; false, otherwise
   * @param unk na; but does not like being set to 0
   * @param method modifies the icon in the message, related to the way the victim was killed
   * @param victim the name of the player who was killed
   * @param victim_unk See above
-  * @param victim_empire the empire affiliation of the victim:
-  *                      0 - TR, 1 - NC, 2 - VS, 3 - Neutral/BOPs
+  * @param victim_empire the empire affiliation of the victim
   * @param victim_inVehicle true, if the victim was in a vehicle when he was killed; false, otherwise
   */
 final case class DestroyDisplayMessage(killer : String,
                                        killer_unk : Long,
-                                       killer_empire : Int,
+                                       killer_empire : PlanetSideEmpire.Value,
                                        killer_inVehicle : Boolean,
-                                       unk : PlanetSideGUID,
-                                       method : PlanetSideGUID,
+                                       unk : Int,
+                                       method : Int,
                                        victim : String,
                                        victim_unk : Long,
-                                       victim_empire : Int,
+                                       victim_empire : PlanetSideEmpire.Value,
                                        victim_inVehicle : Boolean
 )
   extends PlanetSideGamePacket {
@@ -68,13 +67,13 @@ object DestroyDisplayMessage extends Marshallable[DestroyDisplayMessage] {
   implicit val codec : Codec[DestroyDisplayMessage] = (
     ("killer" | PacketHelpers.encodedWideString) ::
       ("killer_unk" | ulongL(32)) ::
-      ("killer_empire" | uintL(2)) ::
+      ("killer_empire" | PlanetSideEmpire.codec) ::
       ("killer_inVehicle" | bool) ::
-      ("unk" | PlanetSideGUID.codec) ::
-      ("method" | PlanetSideGUID.codec) ::
+      ("unk" | uint16L) ::
+      ("method" | uint16L) ::
       ("victim" | PacketHelpers.encodedWideStringAligned(5)) ::
       ("victim_unk" | ulongL(32)) ::
-      ("victim_empire" | uintL(2)) ::
+      ("victim_empire" | PlanetSideEmpire.codec) ::
       ("victim_inVehicle" | bool)
     ).as[DestroyDisplayMessage]
 }

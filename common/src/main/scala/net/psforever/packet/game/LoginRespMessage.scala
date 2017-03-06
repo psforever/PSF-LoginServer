@@ -3,32 +3,81 @@ package net.psforever.packet.game
 
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
 import scodec.Codec
-import scodec.bits.ByteVector
 import scodec.codecs._
 
-final case class LoginRespMessage(token : String, // printable ascii for 16
-                                  unknown : ByteVector, // hex"00000000 18FABE0C 00000000 00000000"
-                                  error : Long, // 0
-                                  stationError : Long, // 1
-                                  subscriptionStatus : Long, // 2 or 5
-                                  someToken : Long, // 685276011
-                                  username : String, // the user
+/**
+  * This message is sent from the server to the client upon reception of a [[LoginMessage]].
+  *
+  * The result of the login is contained in this message. When a login is successful, a session token
+  * is returned to the client which then forwards this to the World server it chooses to connect to.
+  *
+  * In terms of failed logins, the PS client favors errors in this order
+  *
+  * 1. LoginError
+  * 2. StationError
+  * 3. StationSubscriptionStatus
+  *
+  * Don't try and set more than one error at the same time. Just provide a single error message to be displayed.
+  *
+  * @param token A 'token' which acts exactly like a session cookie in a browser. Allows logins to not use a password
+  * @param error A general login error message
+  * @param stationError A PlanetSide Sony Online Entertainment (SOE) station result
+  * @param subscriptionStatus A response detailing the current subscription type
+  * @param unkUIRelated An unknown possible bitfield that controls some game variables (possibly expansions?)
+  * @param username The login username
+  * @param privilege If set above 10000, then the user has access to GM commands. Not sure of other values.
+  */
+final case class LoginRespMessage(token : String,
+                                  error : LoginRespMessage.LoginError.Type,
+                                  stationError : LoginRespMessage.StationError.Type,
+                                  subscriptionStatus : LoginRespMessage.StationSubscriptionStatus.Type,
+                                  unkUIRelated : Long,
+                                  username : String,
                                   privilege : Long) extends PlanetSideGamePacket {
   def opcode = GamePacketOpcode.LoginRespMessage
   def encode = LoginRespMessage.encode(this)
 }
 
+
 object LoginRespMessage extends Marshallable[LoginRespMessage] {
+
+  object LoginError extends Enumeration {
+    type Type = Value
+    val Success = Value(0)
+    val BadUsernameOrPassword = Value(5)
+    val BadVersion = Value(0xf)
+
+    implicit val codec = PacketHelpers.createLongEnumerationCodec(this, uint32L)
+  }
+
+  object StationError extends Enumeration {
+    type Type = Value
+    val AccountActive = Value(1)
+    val AccountClosed = Value(2)
+
+    implicit val codec = PacketHelpers.createLongEnumerationCodec(this, uint32L)
+  }
+
+  object StationSubscriptionStatus extends Enumeration {
+    type Type = Value
+    val None = Value(1)
+    val Active = Value(2) /// Not sure about this one (guessing)
+    val Closed = Value(4)
+    val Trial = Value(5) /// Not sure about this one either
+    val TrialExpired = Value(6)
+
+    implicit val codec = PacketHelpers.createLongEnumerationCodec(this, uint32L)
+  }
+
   implicit val codec : Codec[LoginRespMessage] = (
-    ("token" | fixedSizeBytes(16, ascii)) ::
-    ("unknown" | bytes(16)) ::
-    ("error" | uint32L) ::
-    ("station_error" | uint32L) ::
-    ("subscription_status" | uint32L) ::
+    ("token" | LoginMessage.tokenCodec) ::
+    ("error" | LoginError.codec) ::
+    ("station_error" | StationError.codec) ::
+    ("subscription_status" | StationSubscriptionStatus.codec) ::
     ("unknown" | uint32L) ::
     ("username" | PacketHelpers.encodedString) ::
     ("privilege" | uint32L)
-      .flatZip(priv => bool)
+      .flatZip(priv => bool) // really not so sure about this bool part. client gets just a single bit
       .xmap[Long]({case (a, _) => a}, priv => (priv, (priv & 1) == 1))
     ).as[LoginRespMessage]
 }
