@@ -26,7 +26,11 @@ class WeaponLazeTargetPositionMessageTest extends Specification {
   }
 
   "encode" in {
-    val msg = WeaponLazeTargetPositionMessage(PlanetSideGUID(76), Vector3(3674.8438f, 2726.789f, 91.15625f), Vector3(3675.1875f, 2726.5781f, 91.15625f))
+    val msg = WeaponLazeTargetPositionMessage(
+      PlanetSideGUID(76),
+      Vector3(3674.8438f, 2726.789f, 91.15625f),
+      Vector3(3675.1875f, 2726.5781f, 91.15625f)
+    )
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string
