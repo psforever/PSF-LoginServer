@@ -324,6 +324,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ AvatarFirstTimeEventMessage(avatar_guid, object_guid, unk1, event_name) =>
       log.info("AvatarFirstTimeEvent: " + msg)
 
+    case msg @ PlanetsideAttributeMessage(avatar_guid, attribute_type, attribute_value) =>
+      log.info("PlanetsideAttributeMessage: "+msg)
+      sendResponse(PacketCoding.CreateGamePacket(0,PlanetsideAttributeMessage(avatar_guid, attribute_type, attribute_value)))
+
     case default => log.debug(s"Unhandled GamePacket ${pkt}")
   }
 
