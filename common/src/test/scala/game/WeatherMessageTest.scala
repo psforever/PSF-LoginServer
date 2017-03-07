@@ -3,7 +3,8 @@ package game
 
 import org.specs2.mutable._
 import net.psforever.packet._
-import net.psforever.packet.game._
+import net.psforever.packet.game.{WeatherMessage, CloudInfo, StormInfo}
+import net.psforever.types.Vector3
 import scodec.bits._
 
 class WeatherMessageTest extends Specification {
@@ -11,90 +12,90 @@ class WeatherMessageTest extends Specification {
 
   "decode" in {
     PacketCoding.DecodePacket(string).require match {
-      case WeatherMessage(unk1, unk2) =>
-        unk1.size mustEqual 1
-        unk1.head.unk1 mustEqual 0
-        unk1.head.unk2 mustEqual 3221686346L
-        unk1.head.unk3 mustEqual 3213843414L
-        unk1.head.unk4 mustEqual 1063659300L
-        unk1.head.unk5 mustEqual 3188229655L
+      case WeatherMessage(clouds, storms) =>
+        clouds.size mustEqual 1
+        clouds.head.id mustEqual 0
+        clouds.head.unk1.x mustEqual -2.109881f
+        clouds.head.unk1.y mustEqual -1.1199901f
+        clouds.head.unk2.x mustEqual 0.89903474f
+        clouds.head.unk2.y mustEqual -0.13332401f
 
-        unk2.size mustEqual 11
+        storms.size mustEqual 11
         //0
-        unk2.head.unk1 mustEqual 1054960640L
-        unk2.head.unk2 mustEqual 1057896716L
-        unk2.head.unk3 mustEqual 100
-        unk2.head.unk4 mustEqual 68
+        storms.head.loc.x mustEqual 0.4402771f
+        storms.head.loc.y mustEqual 0.55555797f
+        storms.head.unk1 mustEqual 100
+        storms.head.unk2 mustEqual 68
         //1
-        unk2(1).unk1 mustEqual 1052751708L
-        unk2(1).unk2 mustEqual 1039281932L
-        unk2(1).unk3 mustEqual 164
-        unk2(1).unk4 mustEqual 98
+        storms(1).loc.x mustEqual 0.3744458f
+        storms(1).loc.y mustEqual 0.1182538f
+        storms(1).unk1 mustEqual 164
+        storms(1).unk2 mustEqual 98
         //2
-        unk2(2).unk1 mustEqual 1058644836L
-        unk2(2).unk2 mustEqual 1060000442L
-        unk2(2).unk3 mustEqual 89
-        unk2(2).unk4 mustEqual 125
+        storms(2).loc.x mustEqual 0.6001494f
+        storms(2).loc.y mustEqual 0.6809498f
+        storms(2).unk1 mustEqual 89
+        storms(2).unk2 mustEqual 125
         //3
-        unk2(3).unk1 mustEqual 1057592986L
-        unk2(3).unk2 mustEqual 1033812373L
-        unk2(3).unk3 mustEqual 8
-        unk2(3).unk4 mustEqual 0
+        storms(3).loc.x mustEqual 0.53745425f
+        storms(3).loc.y mustEqual 0.07750241f
+        storms(3).unk1 mustEqual 8
+        storms(3).unk2 mustEqual 0
         //4
-        unk2(4).unk1 mustEqual 1055223561L
-        unk2(4).unk2 mustEqual 1062393452L
-        unk2(4).unk3 mustEqual 57
-        unk2(4).unk4 mustEqual 25
+        storms(4).loc.x mustEqual 0.44811276f
+        storms(4).loc.y mustEqual 0.8235843f
+        storms(4).unk1 mustEqual 57
+        storms(4).unk2 mustEqual 25
         //5
-        unk2(5).unk1 mustEqual 1063825294L
-        unk2(5).unk2 mustEqual 1026990235L
-        unk2(5).unk3 mustEqual 1
-        unk2(5).unk4 mustEqual 0
+        storms(5).loc.x mustEqual 0.90892875f
+        storms(5).loc.y mustEqual 0.04458676f
+        storms(5).unk1 mustEqual 1
+        storms(5).unk2 mustEqual 0
         //6
-        unk2(6).unk1 mustEqual 1062221212L
-        unk2(6).unk2 mustEqual 1061052318L
-        unk2(6).unk3 mustEqual 60
-        unk2(6).unk4 mustEqual 48
+        storms(6).loc.x mustEqual 0.813318f
+        storms(6).loc.y mustEqual 0.7436465f
+        storms(6).unk1 mustEqual 60
+        storms(6).unk2 mustEqual 48
         //7
-        unk2(7).unk1 mustEqual 1056065102L
-        unk2(7).unk2 mustEqual 1049519865L
-        unk2(7).unk3 mustEqual 107
-        unk2(7).unk4 mustEqual 86
+        storms(7).loc.x mustEqual 0.47319263f
+        storms(7).loc.y mustEqual 0.27812937f
+        storms(7).unk1 mustEqual 107
+        storms(7).unk2 mustEqual 86
         //8
-        unk2(8).unk1 mustEqual 1065297864L
-        unk2(8).unk2 mustEqual 1056146608L
-        unk2(8).unk3 mustEqual 182
-        unk2(8).unk4 mustEqual 193
+        storms(8).loc.x mustEqual 0.99670076f
+        storms(8).loc.y mustEqual 0.4756217f
+        storms(8).unk1 mustEqual 182
+        storms(8).unk2 mustEqual 193
         //9
-        unk2(9).unk1 mustEqual 1061327106L
-        unk2(9).unk2 mustEqual 1063681969L
-        unk2(9).unk3 mustEqual 0
-        unk2(9).unk4 mustEqual 0
+        storms(9).loc.x mustEqual 0.76002514f
+        storms(9).loc.y mustEqual 0.9003859f
+        storms(9).unk1 mustEqual 0
+        storms(9).unk2 mustEqual 0
         //10
-        unk2(10).unk1 mustEqual 1048512396L
-        unk2(10).unk2 mustEqual 1053832497L
-        unk2(10).unk3 mustEqual 50
-        unk2(10).unk4 mustEqual 10
-      case default =>
+        storms(10).loc.x mustEqual 0.24905223f
+        storms(10).loc.y mustEqual 0.40665582f
+        storms(10).unk1 mustEqual 50
+        storms(10).unk2 mustEqual 10
+      case _ =>
         ko
     }
   }
 
   "encode" in {
     val msg = WeatherMessage(
-      Weather1(0, 3221686346L, 3213843414L, 1063659300L, 3188229655L) :: //00 4A0807C0 D65B8FBF 2427663F 178608BE
+      CloudInfo(0, Vector3(-2.109881f, -1.1199901f, 0.0f), Vector3(0.89903474f, -0.13332401f, 0.0f)) ::
         Nil,
-      Weather2(1054960640L, 1057896716L, 100, 68) :: //006CE13E 0C390E3F 64 44
-        Weather2(1052751708L, 1039281932L, 164, 98) :: //5CB7BF3E 0C2FF23D A4 62
-        Weather2(1058644836L, 1060000442L, 89, 125) :: //64A3193F BA522E3F 59 7D
-        Weather2(1057592986L, 1033812373L, 8, 0) :: //9A96093F 95B99E3D 08 00
-        Weather2(1055223561L, 1062393452L, 57, 25) :: //096FE53E 6CD6523F 39 19
-        Weather2(1063825294L, 1026990235L, 1, 0) :: //8EAF683F 9BA0363D 01 00
-        Weather2(1062221212L, 1061052318L, 60, 48) :: //9C35503F 9E5F3E3F 3C 30
-        Weather2(1056065102L, 1049519865L, 107, 86) :: //4E46F23E F9668E3E 6B 56
-        Weather2(1065297864L, 1056146608L, 182, 193) :: //C8277F3F B084F33E B6 C1
-        Weather2(1061327106L, 1063681969L, 0, 0) :: //0291423F B17F663F 00 00
-        Weather2(1048512396L, 1053832497L, 50, 10) :: //8C077F3E 3135D03E 32 0A
+      StormInfo(Vector3(0.4402771f, 0.55555797f, 0.0f), 100, 68) ::
+        StormInfo(Vector3(0.3744458f, 0.1182538f, 0.0f), 164, 98) ::
+        StormInfo(Vector3(0.6001494f, 0.6809498f, 0.0f), 89, 125) ::
+        StormInfo(Vector3(0.53745425f, 0.07750241f, 0.0f), 8, 0) ::
+        StormInfo(Vector3(0.44811276f, 0.8235843f, 0.0f), 57, 25) ::
+        StormInfo(Vector3(0.90892875f, 0.04458676f, 0.0f),1 ,0) ::
+        StormInfo(Vector3(0.813318f, 0.7436465f, 0.0f), 60, 48) ::
+        StormInfo(Vector3(0.47319263f, 0.27812937f, 0.0f), 107, 86) ::
+        StormInfo(Vector3(0.99670076f, 0.4756217f, 0.0f), 182, 193) ::
+        StormInfo(Vector3(0.76002514f, 0.9003859f, 0.0f), 0, 0) ::
+        StormInfo(Vector3(0.24905223f, 0.40665582f, 0.0f), 50, 10) ::
         Nil
     )
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
