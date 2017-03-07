@@ -1,4 +1,4 @@
-// Copyright (c) 2016 PSForever.net to present
+// Copyright (c) 2017 PSForever
 import akka.actor.{Actor, ActorRef}
 import akka.io._
 import akka.util.ByteString
