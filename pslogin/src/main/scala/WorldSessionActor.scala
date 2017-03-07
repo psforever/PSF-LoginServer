@@ -349,6 +349,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ WeaponFireMessage(seq_time, weapon_guid, projectile_guid, shot_origin, unk1, unk2, unk3, unk4, unk5, unk6, unk7) =>
       log.info("WeaponFire: " + msg)
 
+    case msg @ WeaponLazeTargetPositionMessage(weapon, pos1, pos2) =>
+      log.info("Lazing position: " + pos2.toString)
+
     case msg @ HitMessage(seq_time, projectile_guid, unk1, hit_info, unk2, unk3, unk4) =>
       log.info("Hit: " + msg)
 
