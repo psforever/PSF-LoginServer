@@ -24,58 +24,58 @@ class WeatherMessageTest extends Specification {
         //0
         storms.head.loc.x mustEqual 0.4402771f
         storms.head.loc.y mustEqual 0.55555797f
-        storms.head.unk1 mustEqual 100
-        storms.head.unk2 mustEqual 68
+        storms.head.intensity mustEqual 100
+        storms.head.radius mustEqual 68
         //1
         storms(1).loc.x mustEqual 0.3744458f
         storms(1).loc.y mustEqual 0.1182538f
-        storms(1).unk1 mustEqual 164
-        storms(1).unk2 mustEqual 98
+        storms(1).intensity mustEqual 164
+        storms(1).radius mustEqual 98
         //2
         storms(2).loc.x mustEqual 0.6001494f
         storms(2).loc.y mustEqual 0.6809498f
-        storms(2).unk1 mustEqual 89
-        storms(2).unk2 mustEqual 125
+        storms(2).intensity mustEqual 89
+        storms(2).radius mustEqual 125
         //3
         storms(3).loc.x mustEqual 0.53745425f
         storms(3).loc.y mustEqual 0.07750241f
-        storms(3).unk1 mustEqual 8
-        storms(3).unk2 mustEqual 0
+        storms(3).intensity mustEqual 8
+        storms(3).radius mustEqual 0
         //4
         storms(4).loc.x mustEqual 0.44811276f
         storms(4).loc.y mustEqual 0.8235843f
-        storms(4).unk1 mustEqual 57
-        storms(4).unk2 mustEqual 25
+        storms(4).intensity mustEqual 57
+        storms(4).radius mustEqual 25
         //5
         storms(5).loc.x mustEqual 0.90892875f
         storms(5).loc.y mustEqual 0.04458676f
-        storms(5).unk1 mustEqual 1
-        storms(5).unk2 mustEqual 0
+        storms(5).intensity mustEqual 1
+        storms(5).radius mustEqual 0
         //6
         storms(6).loc.x mustEqual 0.813318f
         storms(6).loc.y mustEqual 0.7436465f
-        storms(6).unk1 mustEqual 60
-        storms(6).unk2 mustEqual 48
+        storms(6).intensity mustEqual 60
+        storms(6).radius mustEqual 48
         //7
         storms(7).loc.x mustEqual 0.47319263f
         storms(7).loc.y mustEqual 0.27812937f
-        storms(7).unk1 mustEqual 107
-        storms(7).unk2 mustEqual 86
+        storms(7).intensity mustEqual 107
+        storms(7).radius mustEqual 86
         //8
         storms(8).loc.x mustEqual 0.99670076f
         storms(8).loc.y mustEqual 0.4756217f
-        storms(8).unk1 mustEqual 182
-        storms(8).unk2 mustEqual 193
+        storms(8).intensity mustEqual 182
+        storms(8).radius mustEqual 193
         //9
         storms(9).loc.x mustEqual 0.76002514f
         storms(9).loc.y mustEqual 0.9003859f
-        storms(9).unk1 mustEqual 0
-        storms(9).unk2 mustEqual 0
+        storms(9).intensity mustEqual 0
+        storms(9).radius mustEqual 0
         //10
         storms(10).loc.x mustEqual 0.24905223f
         storms(10).loc.y mustEqual 0.40665582f
-        storms(10).unk1 mustEqual 50
-        storms(10).unk2 mustEqual 10
+        storms(10).intensity mustEqual 50
+        storms(10).radius mustEqual 10
       case _ =>
         ko
     }

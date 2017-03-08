@@ -25,18 +25,16 @@ final case class CloudInfo(id : Int,
                            unk2 : Vector3)
 
 /**
-  * Storm data.<br>
-  * <br>
-  * The remaining fields should be divided between an "intensity" and a "radius" as per debug output.
-  * The converted data, however, seems weird for the kind of information those fields would suggest.
+  * Storm data.
   * @param loc the location of the storm;
   *            the z-component is always `0.0f`
-  * @param unk1 na
-  * @param unk2 na
+  * @param intensity na
+  * @param radius na;
+  *               100 is about 819.2
   */
 final case class StormInfo(loc : Vector3,
-                           unk1 : Int,
-                           unk2 : Int)
+                           intensity : Int,
+                           radius : Int)
 
 /**
   * Dispatched by the server to update weather conditions.
@@ -97,16 +95,16 @@ object WeatherMessage extends Marshallable[WeatherMessage] {
   private val stormCodec : Codec[StormInfo] = (
     ("unkx" | floatL) ::
       ("unky" | floatL) ::
-      ("unk1" | uint8L) ::
-      ("unk2" | uint8L)
+      ("i" | uint8L) ::
+      ("r" | uint8L)
     ).xmap[StormInfo] (
     {
-      case x :: y :: u1 :: u2 :: HNil =>
-        StormInfo(Vector3(x, y, 0.0f), u1, u2)
+      case x :: y :: i :: r :: HNil =>
+        StormInfo(Vector3(x, y, 0.0f), i, r)
     },
     {
-      case StormInfo(Vector3(x, y, _), u1, u2) =>
-        x :: y :: u1 :: u2 :: HNil
+      case StormInfo(Vector3(x, y, _), i, r) =>
+        x :: y :: i :: r :: HNil
     }
   )
 
