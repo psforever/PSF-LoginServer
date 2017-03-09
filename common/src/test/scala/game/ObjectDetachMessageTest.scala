@@ -12,15 +12,15 @@ class ObjectDetachMessageTest extends Specification {
 
   "decode" in {
     PacketCoding.DecodePacket(string).require match {
-      case ObjectDetachMessage(parent_guid, child_guid, pos, unk1, unk2, unk3) =>
+      case ObjectDetachMessage(parent_guid, child_guid, pos, roll, pitch, yaw) =>
         parent_guid mustEqual PlanetSideGUID(2916)
         child_guid mustEqual PlanetSideGUID(2502)
         pos.x mustEqual 3567.1406f
         pos.y mustEqual 2988.0078f
         pos.z mustEqual 71.84375f
-        unk1 mustEqual 0
-        unk2 mustEqual 0
-        unk3 mustEqual 64
+        roll mustEqual 0
+        pitch mustEqual 0
+        yaw mustEqual 64
       case _ =>
         ko
     }
