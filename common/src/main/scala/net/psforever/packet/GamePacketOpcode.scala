@@ -335,7 +335,7 @@ object GamePacketOpcode extends Enumeration {
     case 0x0c => noDecoder(DestroyMessage)
     case 0x0d => game.ReloadMessage.decode
     case 0x0e => game.MountVehicleMsg.decode
-    case 0x0f => noDecoder(DismountVehicleMsg)
+    case 0x0f => game.DismountVehicleMsg.decode
 
     // OPCODES 0x10-1f
     case 0x10 => game.UseItemMessage.decode
