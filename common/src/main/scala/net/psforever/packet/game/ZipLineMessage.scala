@@ -1,11 +1,10 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.packet.game
 
-import net.psforever.newcodecs.newcodecs
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PlanetSideGamePacket}
+import net.psforever.types.Vector3
 import scodec.Codec
 import scodec.codecs._
-import shapeless.{::, HNil}
 
 /**
   * Dispatched by the client when the player is interacting with a zip line.
@@ -20,17 +19,14 @@ import shapeless.{::, HNil}
   * @param origin_side whether this corresponds with the "entry" or the "exit" of the zip line, as per the direction of the light pulse visuals
   * @param action how the player interacts with the zip line
   * @param guid a number that is consistent to a terminus
-  * @param x the x-coordinate of the point where the player is interacting with the zip line
-  * @param y the y-coordinate of the point where the player is interacting with the zip line
-  * @param z the z-coordinate of the point where the player is interacting with the zip line
+  * @param pos the coordinates of the point where the player is interacting with the zip line;
+  *            "optional," in theory
   */
 final case class ZipLineMessage(player_guid : PlanetSideGUID,
                                 origin_side : Boolean,
                                 action : Int,
                                 guid : Long,
-                                x : Float,
-                                y : Float,
-                                z : Float)
+                                pos : Option[Vector3] = None)
   extends PlanetSideGamePacket {
   type Packet = ZipLineMessage
   def opcode = GamePacketOpcode.ZipLineMessage
@@ -38,37 +34,25 @@ final case class ZipLineMessage(player_guid : PlanetSideGUID,
 }
 
 object ZipLineMessage extends Marshallable[ZipLineMessage] {
-  type threeFloatsPattern = Float :: Float :: Float :: HNil
-
   /**
-    * A `Codec` for when three `Float` values are to be read or written.
+    * Alternate constructor for `ZipLineMessage` that requirement for the last field.
+    * @param player_guid the player
+    * @param origin_side whether this corresponds with the "entry" or the "exit" of the zip line, as per the direction of the light pulse visuals
+    * @param action how the player interacts with the zip line
+    * @param guid a number that is consistent to a terminus
+    * @param pos the coordinates of the point where the player is interacting with the zip line
+    * @return a `ZipLineMessage` object
     */
-  val threeFloatValues : Codec[threeFloatsPattern] = (
-    ("x" | floatL) ::
-      ("y" | floatL) ::
-      ("z" | floatL)
-    ).as[threeFloatsPattern]
-
-  /**
-    * A `Codec` for when there are no extra `Float` values present.
-    */
-  val noFloatValues : Codec[threeFloatsPattern] = ignore(0).xmap[threeFloatsPattern] (
-    {
-      case () =>
-        0f :: 0f :: 0f :: HNil
-    },
-    {
-      case _ =>
-        ()
-    }
-  )
+  def apply(player_guid : PlanetSideGUID, origin_side : Boolean, action : Int, guid : Long, pos : Vector3) : ZipLineMessage = {
+    ZipLineMessage(player_guid, origin_side, action, guid, Some(pos))
+  }
 
   implicit val codec : Codec[ZipLineMessage] = (
     ("player_guid" | PlanetSideGUID.codec) >>:~ { player =>
       ("origin_side" | bool) ::
         ("action" | uint2) ::
         ("id" | uint32L) ::
-        newcodecs.binary_choice(player.guid > 0, threeFloatValues, noFloatValues) // !(player.guid == 0)
+        conditional(player.guid > 0, Vector3.codec_float) // !(player.guid == 0)
     }
     ).as[ZipLineMessage]
 }
