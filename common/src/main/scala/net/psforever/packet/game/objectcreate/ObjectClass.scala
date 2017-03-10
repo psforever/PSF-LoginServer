@@ -1,4 +1,4 @@
-// Copyright (c) 2016 PSForever.net to present
+// Copyright (c) 2017 PSForever
 package net.psforever.packet.game.objectcreate
 
 import scodec.{Attempt, Codec, Err}
@@ -271,6 +271,7 @@ object ObjectClass {
   final val bank = 132
   final val nano_dispenser = 577
   final val command_detonater = 213
+  final val laze_pointer = 297
   //unknown
   final val locker_container = 456 //strange item found in inventory slot #5, between holsters and grid
 
@@ -547,7 +548,7 @@ object ObjectClass {
       case ObjectClass.bank => WeaponData.genericCodec
       case ObjectClass.nano_dispenser => WeaponData.genericCodec
       case ObjectClass.command_detonater => WeaponData.genericCodec
-
+      case ObjectClass.laze_pointer => WeaponData.genericCodec
 
 
 
