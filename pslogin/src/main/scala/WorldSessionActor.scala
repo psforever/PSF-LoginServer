@@ -383,6 +383,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ BindPlayerMessage(action, bindDesc, unk1, logging, unk2, unk3, unk4, pos) =>
       log.info("BindPlayerMessage: " + msg)
 
+    case msg @ PlanetsideAttributeMessage(avatar_guid, attribute_type, attribute_value) =>
+      log.info("PlanetsideAttributeMessage: "+msg)
+      sendResponse(PacketCoding.CreateGamePacket(0,PlanetsideAttributeMessage(avatar_guid, attribute_type, attribute_value)))
+
     case default => log.error(s"Unhandled GamePacket ${pkt}")
   }
 
