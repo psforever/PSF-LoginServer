@@ -365,8 +365,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
       log.info("WarpgateRequest: " + msg)
 
     case msg @ MountVehicleMsg(player_guid, vehicle_guid, unk) =>
-      //sendResponse(PacketCoding.CreateGamePacket(0, ObjectAttachMessage(vehicle_guid,player_guid,0)))
+      sendResponse(PacketCoding.CreateGamePacket(0, ObjectAttachMessage(vehicle_guid,player_guid,0)))
       log.info("MounVehicleMsg: "+msg)
+
+    case msg @ DismountVehicleMsg(player_guid, unk1, unk2) =>
+      sendResponse(PacketCoding.CreateGamePacket(0, msg)) //should be safe; replace with ObjectDetachMessage later
+      log.info("DismountVehicleMsg: " + msg)
 
     case msg @ AvatarGrenadeStateMessage(player_guid, state) =>
       log.info("AvatarGrenadeStateMessage: " + msg)
