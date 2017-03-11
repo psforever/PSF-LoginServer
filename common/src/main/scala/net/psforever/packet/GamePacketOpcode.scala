@@ -409,7 +409,7 @@ object GamePacketOpcode extends Enumeration {
     case 0x4a => noDecoder(SpawnRequestMessage)
     case 0x4b => noDecoder(DeployRequestMessage)
     case 0x4c => noDecoder(UnknownMessage76)
-    case 0x4d => noDecoder(RepairMessage)
+    case 0x4d => game.RepairMessage.decode
     case 0x4e => noDecoder(ServerVehicleOverrideMsg)
     case 0x4f => noDecoder(LashMessage)
 
