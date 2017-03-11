@@ -495,7 +495,7 @@ object GamePacketOpcode extends Enumeration {
     case 0x92 => noDecoder(PlanetsideStringAttributeMessage)
     case 0x93 => noDecoder(DataChallengeMessage)
     case 0x94 => noDecoder(DataChallengeMessageResp)
-    case 0x95 => noDecoder(WeatherMessage)
+    case 0x95 => game.WeatherMessage.decode
     case 0x96 => noDecoder(SimDataChallenge)
     case 0x97 => noDecoder(SimDataChallengeResp)
     // 0x98
