@@ -9,9 +9,11 @@ import shapeless.{::, HNil}
 /**
   * na
   * @param guid1 na
-  * @param guid2 na
+  * @param guid2 na;
+  *              often matches with `guid1`
   * @param unk1 na
-  * @param unk2 na
+  * @param unk2 na;
+  *             normally contains at least one element
   */
 final case class ObjectDetectedMessage(guid1 : PlanetSideGUID,
                                        guid2 : PlanetSideGUID,
