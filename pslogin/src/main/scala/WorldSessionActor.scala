@@ -279,6 +279,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
       sendResponse(PacketCoding.CreateGamePacket(0, EmoteMsg(avatar_guid, emote)))
 
     case msg @ DropItemMessage(item_guid) =>
+      //item dropped where you spawn in VS Sanctuary
+      sendResponse(PacketCoding.CreateGamePacket(0, ObjectDetachMessage(PlanetSideGUID(75), item_guid, app.pos, 0, 0, 0)))
       log.info("DropItem: " + msg)
 
     case msg @ ReloadMessage(item_guid, ammo_clip, unk1) =>

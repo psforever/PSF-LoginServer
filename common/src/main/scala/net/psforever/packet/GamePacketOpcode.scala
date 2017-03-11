@@ -364,7 +364,7 @@ object GamePacketOpcode extends Enumeration {
     case 0x24 => game.SetEmpireMessage.decode
     case 0x25 => game.EmoteMsg.decode
     case 0x26 => noDecoder(UnuseItemMessage)
-    case 0x27 => noDecoder(ObjectDetachMessage)
+    case 0x27 => game.ObjectDetachMessage.decode
     // 0x28
     case 0x28 => game.CreateShortcutMessage.decode
     case 0x29 => game.ChangeShortcutBankMessage.decode
