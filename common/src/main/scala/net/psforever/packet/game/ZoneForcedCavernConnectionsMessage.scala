@@ -6,10 +6,9 @@ import scodec.Codec
 import scodec.codecs._
 
 /**
-  * Dispatched to the client.
+  * Dispatched to the client in regards to cavern connections via geowarp gates.
   * @param zone the zone
-  * @param unk na;
-  *            usually 0
+  * @param unk na
   */
 final case class ZoneForcedCavernConnectionsMessage(zone : PlanetSideGUID,
                                                     unk : Int)
@@ -21,7 +20,7 @@ final case class ZoneForcedCavernConnectionsMessage(zone : PlanetSideGUID,
 
 object ZoneForcedCavernConnectionsMessage extends Marshallable[ZoneForcedCavernConnectionsMessage] {
   implicit val codec : Codec[ZoneForcedCavernConnectionsMessage] = (
-    ("zone_guid" | PlanetSideGUID.codec) ::
+    ("zone" | PlanetSideGUID.codec) ::
       ("unk" | uint2L)
     ).as[ZoneForcedCavernConnectionsMessage]
 }

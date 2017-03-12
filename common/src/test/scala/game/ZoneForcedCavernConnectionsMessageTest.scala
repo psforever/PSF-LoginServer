@@ -8,20 +8,20 @@ import net.psforever.types.Vector3
 import scodec.bits._
 
 class ZoneForcedCavernConnectionsMessageTest extends Specification {
-  val string = hex"E3130000"
+  val string = hex"E3200040"
 
   "decode" in {
     PacketCoding.DecodePacket(string).require match {
       case ZoneForcedCavernConnectionsMessage(zone, unk) =>
-        zone mustEqual PlanetSideGUID(19)
-        unk mustEqual 0
+        zone mustEqual PlanetSideGUID(32)
+        unk mustEqual 1
       case _ =>
         ko
     }
   }
 
   "encode" in {
-    val msg = ZoneForcedCavernConnectionsMessage(PlanetSideGUID(19), 0)
+    val msg = ZoneForcedCavernConnectionsMessage(PlanetSideGUID(32), 1)
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string
