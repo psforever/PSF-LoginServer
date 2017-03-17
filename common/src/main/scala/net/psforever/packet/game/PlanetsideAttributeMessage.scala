@@ -14,6 +14,7 @@ import scodec.codecs._
   * `3 - staminaMax`<br>
   * `4 - armor`<br>
   * `5 - armorMax`<br>
+  * `6 - transform the (other) avatar in backpack on ground`<br>
   * `14 - Something with grief`<br>
   * `15 - Weapon Lock. Value exemple : 600 to have 1 min lock. Max possible is 30min lock`<br>
   * `17 - BEP. Value seems to be the same as BattleExperienceMessage`<br>
@@ -21,8 +22,11 @@ import scodec.codecs._
   * `19 - Anchors. Value is 0 to disengage, 1 to engage.`<br>
   * `24 - Certifications`<br>
   * `29 - Visible ?! That's not the cloaked effect, Maybe for spectator mode ?. Value is 0 to visible, 1 to invisible.`<br>
+  * `31 - Info under avatar name : 0 = LFS, 1 = Looking For Squad Members`<br>
+  * `32 - Info under avatar name : 0 = Looking For Squad Members, 1 = LFS`<br>
   * `35 - BR. Value is the BR`<br>
   * `36 - CR. Value is the CR`<br>
+  * `43 - Info on avatar name : 0 = Nothing, 1 = "(LD)" message`<br>
   * `53 - LFS. Value is 1 to flag LFS`<br>
   * `54 - Player "Aura". Values are : 0 for nothing, 1 for plasma, 2 for ancient, 3 for plasma + ancient,<br>
   *         4 for LLU?, 5 for plasma + LLU?, 6 for ancient + LLU?, 7 for plasma + ancient + LLU?, 8 for fire,<br>
