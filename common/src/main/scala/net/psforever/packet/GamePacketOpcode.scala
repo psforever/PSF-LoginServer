@@ -335,7 +335,7 @@ object GamePacketOpcode extends Enumeration {
     case 0x0c => noDecoder(DestroyMessage)
     case 0x0d => game.ReloadMessage.decode
     case 0x0e => game.MountVehicleMsg.decode
-    case 0x0f => noDecoder(DismountVehicleMsg)
+    case 0x0f => game.DismountVehicleMsg.decode
 
     // OPCODES 0x10-1f
     case 0x10 => game.UseItemMessage.decode
@@ -364,7 +364,7 @@ object GamePacketOpcode extends Enumeration {
     case 0x24 => game.SetEmpireMessage.decode
     case 0x25 => game.EmoteMsg.decode
     case 0x26 => noDecoder(UnuseItemMessage)
-    case 0x27 => noDecoder(ObjectDetachMessage)
+    case 0x27 => game.ObjectDetachMessage.decode
     // 0x28
     case 0x28 => game.CreateShortcutMessage.decode
     case 0x29 => game.ChangeShortcutBankMessage.decode
@@ -382,7 +382,7 @@ object GamePacketOpcode extends Enumeration {
     case 0x33 => game.ObjectHeldMessage.decode
     case 0x34 => game.WeaponFireMessage.decode
     case 0x35 => game.AvatarJumpMessage.decode
-    case 0x36 => noDecoder(PickupItemMessage)
+    case 0x36 => game.PickupItemMessage.decode
     case 0x37 => game.DropItemMessage.decode
     // 0x38
     case 0x38 => noDecoder(InventoryStateMessage)
@@ -409,7 +409,7 @@ object GamePacketOpcode extends Enumeration {
     case 0x4a => noDecoder(SpawnRequestMessage)
     case 0x4b => noDecoder(DeployRequestMessage)
     case 0x4c => noDecoder(UnknownMessage76)
-    case 0x4d => noDecoder(RepairMessage)
+    case 0x4d => game.RepairMessage.decode
     case 0x4e => noDecoder(ServerVehicleOverrideMsg)
     case 0x4f => noDecoder(LashMessage)
 
@@ -495,7 +495,7 @@ object GamePacketOpcode extends Enumeration {
     case 0x92 => noDecoder(PlanetsideStringAttributeMessage)
     case 0x93 => noDecoder(DataChallengeMessage)
     case 0x94 => noDecoder(DataChallengeMessageResp)
-    case 0x95 => noDecoder(WeatherMessage)
+    case 0x95 => game.WeatherMessage.decode
     case 0x96 => noDecoder(SimDataChallenge)
     case 0x97 => noDecoder(SimDataChallengeResp)
     // 0x98
