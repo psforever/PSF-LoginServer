@@ -1,7 +1,6 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.packet.game.objectcreate
 
-import net.psforever.packet.Marshallable
 import net.psforever.packet.game.PlanetSideGUID
 import scodec.Codec
 import scodec.codecs._
@@ -16,16 +15,12 @@ import scodec.codecs._
   * @param item the object in inventory
   * @see InternalSlot
   */
-final case class InventoryItem(item : InternalSlot) extends StreamBitSize {
-  /**
-    * Performs a "sizeof()" analysis of the given object.
-    * @see ConstructorData.bitsize
-    * @return the number of bits necessary to represent this object
-    */
+final case class InventoryItem(item : InternalSlot
+                              ) extends StreamBitSize {
   override def bitsize : Long = item.bitsize
 }
 
-object InventoryItem extends Marshallable[InventoryItem] {
+object InventoryItem {
   /**
     * An abbreviated constructor for creating an `InventoryItem` without interacting with `InternalSlot` directly.
     * @param objClass the code for the type of object (ammunition) being constructed
@@ -37,7 +32,13 @@ object InventoryItem extends Marshallable[InventoryItem] {
   def apply(objClass : Int, guid : PlanetSideGUID, parentSlot : Int, obj : ConstructorData) : InventoryItem =
     InventoryItem(InternalSlot(objClass, guid, parentSlot, obj))
 
-  implicit val codec : Codec[InventoryItem] = (
-    "item" | InternalSlot.codec
-  ).as[InventoryItem]
+  /**
+    * A `Codec` for `0x17` `ObjectCreateMessage` data.
+    */
+  val codec : Codec[InventoryItem] = ("item" | InternalSlot.codec).as[InventoryItem]
+
+  /**
+    * A `Codec` for `0x18` `ObjectCreateDetailedMessage` data.
+    */
+  val codec_detailed : Codec[InventoryItem] = ("item" | InternalSlot.codec_detailed).as[InventoryItem]
 }
