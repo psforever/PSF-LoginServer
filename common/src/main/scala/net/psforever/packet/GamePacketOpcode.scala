@@ -434,7 +434,7 @@ object GamePacketOpcode extends Enumeration {
 
     // OPCODES 0x60-6f
     case 0x60 => game.FavoritesMessage.decode
-    case 0x61 => noDecoder(ObjectDetectedMessage)
+    case 0x61 => game.ObjectDetectedMessage.decode
     case 0x62 => game.SplashHitMessage.decode
     case 0x63 => noDecoder(SetChatFilterMessage)
     case 0x64 => noDecoder(AvatarSearchCriteriaMessage)
