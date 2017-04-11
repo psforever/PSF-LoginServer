@@ -9,7 +9,7 @@ final case class MoveItemMessage(item_guid : PlanetSideGUID,
                                  avatar_guid_1 : PlanetSideGUID,
                                  avatar_guid_2 : PlanetSideGUID,
                                  dest : Int,
-                                 unk1 : Int)
+                                 unk1 : Int)  // TODO ammo quantity ?
   extends PlanetSideGamePacket {
   type Packet = MoveItemMessage
   def opcode = GamePacketOpcode.MoveItemMessage

@@ -6,6 +6,20 @@ import net.psforever.types.Vector3
 import scodec.Codec
 import scodec.codecs._
 
+/**
+  * (Where the child object was before it was moved is not specified or important.)<br>
+  * @param avatar_guid  the player.
+  * @param unk1         dont know how call that. It's the "item" ID when use a rek to hack or a medkit to heal.
+  * @param object_guid  can be : Door, Terminal, Avatar (medkit).
+  * @param unk2         ???
+  * @param unk3         ??? true when use a rek (false when door, medkit or open equip term)
+  * @param unk4         ???
+  * @param unk5         ???
+  * @param unk6         ???
+  * @param unk7         ??? 25 when door 223 when terminal
+  * @param unk8         ??? 0 when door 1 when use rek (252 then equipment term)
+  * @param itemType     object ID from game_objects.adb (ex 612 is an equipment terminal, for medkit we have 121 (avatar))
+  */
 final case class UseItemMessage(avatar_guid : PlanetSideGUID,
                                 unk1 : Int,
                                 object_guid : PlanetSideGUID,
@@ -16,7 +30,7 @@ final case class UseItemMessage(avatar_guid : PlanetSideGUID,
                                 unk6 : Int,
                                 unk7 : Int,
                                 unk8 : Int,
-                                unk9 : Long)
+                                itemType : Long)
   extends PlanetSideGamePacket {
   type Packet = UseItemMessage
   def opcode = GamePacketOpcode.UseItemMessage
@@ -35,6 +49,6 @@ object UseItemMessage extends Marshallable[UseItemMessage] {
       ("unk6" | uint8L) ::
       ("unk7" | uint8L) ::
       ("unk8" | uint8L) ::
-      ("unk9" | uint32L)
+      ("itemType" | uint32L)
     ).as[UseItemMessage]
 }

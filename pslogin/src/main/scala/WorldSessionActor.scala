@@ -279,12 +279,14 @@ class WorldSessionActor extends Actor with MDCContextAware {
       sendResponse(PacketCoding.CreateGamePacket(0, EmoteMsg(avatar_guid, emote)))
 
     case msg @ DropItemMessage(item_guid) =>
+      log.info("DropItem: " + msg)
       //item dropped where you spawn in VS Sanctuary
       sendResponse(PacketCoding.CreateGamePacket(0, ObjectDetachMessage(PlanetSideGUID(75), item_guid, app.pos, 0, 0, 0)))
-      log.info("DropItem: " + msg)
 
     case msg @ PickupItemMessage(item_guid, player_guid, unk1, unk2) =>
       log.info("PickupItem: " + msg)
+      sendResponse(PacketCoding.CreateGamePacket(0, PickupItemMessage(item_guid, player_guid, unk1, unk2)))
+      sendResponse(PacketCoding.CreateGamePacket(0, ObjectAttachMessage(player_guid, item_guid, 250))) // item on mouse
 
     case msg @ ReloadMessage(item_guid, ammo_clip, unk1) =>
       log.info("Reload: " + msg)
@@ -298,15 +300,20 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ ZipLineMessage(player_guid,origin_side,action,id,pos) =>
       log.info("ZipLineMessage: " + msg)
-      if(action == 0) {
-        //doing this lets you use the zip line, but you can't get off
-        //sendResponse(PacketCoding.CreateGamePacket(0,ZipLineMessage(player_guid, origin_side, action, id, pos)))
+      if (!origin_side && action == 0) {
+        //doing this lets you use the zip line in one direction, cant come back
+        sendResponse(PacketCoding.CreateGamePacket(0, ZipLineMessage(player_guid, origin_side, action, id, pos)))
       }
-      else if(action == 1) {
-        //disembark from zipline at destination?
+      else if (!origin_side && action == 1) {
+        //disembark from zipline at destination !
+        sendResponse(PacketCoding.CreateGamePacket(0, ZipLineMessage(player_guid, origin_side, action, 0, pos)))
       }
-      else if(action == 2) {
+      else if (!origin_side && action == 2) {
         //get off by force
+        sendResponse(PacketCoding.CreateGamePacket(0, ZipLineMessage(player_guid, origin_side, action, 0, pos)))
+      }
+      else if (origin_side && action == 0) {
+        // for teleporters & the other zipline direction
       }
 
     case msg @ RequestDestroyMessage(object_guid) =>
@@ -325,15 +332,17 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ ChangeAmmoMessage(item_guid, unk1) =>
       log.info("ChangeAmmo: " + msg)
 
-    case msg @ UseItemMessage(avatar_guid, unk1, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, unk9) =>
+    case msg @ UseItemMessage(avatar_guid, unk1, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType) =>
       log.info("UseItem: " + msg)
       // TODO: Not all fields in the response are identical to source in real packet logs (but seems to be ok)
       // TODO: Not all incoming UseItemMessage's respond with another UseItemMessage (i.e. doors only send out GenericObjectStateMsg)
-      sendResponse(PacketCoding.CreateGamePacket(0, UseItemMessage(avatar_guid, unk1, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, unk9)))
-      if(unk1 != 0){ // TODO : medkit use ?!
-        sendResponse(PacketCoding.CreateGamePacket(0, GenericObjectStateMsg(object_guid, 16)))
+      if (itemType != 121) sendResponse(PacketCoding.CreateGamePacket(0, UseItemMessage(avatar_guid, unk1, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType)))
+      if (itemType == 121 && !unk3){ // TODO : medkit use ?!
+        sendResponse(PacketCoding.CreateGamePacket(0, UseItemMessage(avatar_guid, unk1, object_guid, 0, unk3, unk4, unk5, unk6, unk7, unk8, itemType)))
+        sendResponse(PacketCoding.CreateGamePacket(0, PlanetsideAttributeMessage(avatar_guid, 0, 100))) // avatar with 100 hp
         sendResponse(PacketCoding.CreateGamePacket(0, ObjectDeleteMessage(PlanetSideGUID(unk1), 2)))
-      } else {
+      }
+      if (unk1 == 0 && !unk3 && unk7 == 25) {
         // TODO: This should only actually be sent to doors upon opening; may break non-door items upon use
         sendResponse(PacketCoding.CreateGamePacket(0, GenericObjectStateMsg(object_guid, 16)))
       }
