@@ -14,7 +14,7 @@ class PlayerStateMessageTest extends Specification {
 
   "decode (short)" in {
     PacketCoding.DecodePacket(string_short).require match {
-      case PlayerStateMessage(guid, pos, vel, facingYaw, facingPitch, facingUpper, unk1, crouching, jumping, unk2, unk3) =>
+      case PlayerStateMessage(guid, pos, vel, facingYaw, facingPitch, facingUpper, unk1, crouching, jumping, jthrust, cloaked) =>
         guid mustEqual PlanetSideGUID(1696)
         pos.x mustEqual 4003.7422f
         pos.y mustEqual 5981.414f
@@ -26,8 +26,8 @@ class PlayerStateMessageTest extends Specification {
         unk1 mustEqual 83
         crouching mustEqual false
         jumping mustEqual false
-        unk2 mustEqual false
-        unk3 mustEqual false
+        jthrust mustEqual false
+        cloaked mustEqual false
       case _ =>
         ko
     }
@@ -35,7 +35,7 @@ class PlayerStateMessageTest extends Specification {
 
   "decode (mod)" in {
     PacketCoding.DecodePacket(string_mod).require match {
-      case PlayerStateMessage(guid, pos, vel, facingYaw, facingPitch, facingUpper, unk1, crouching, jumping, unk2, unk3) =>
+      case PlayerStateMessage(guid, pos, vel, facingYaw, facingPitch, facingUpper, unk1, crouching, jumping, jthrust, cloaked) =>
         guid mustEqual PlanetSideGUID(1696)
         pos.x mustEqual 4003.7422f
         pos.y mustEqual 5981.414f
@@ -47,8 +47,8 @@ class PlayerStateMessageTest extends Specification {
         unk1 mustEqual 83
         crouching mustEqual false
         jumping mustEqual true
-        unk2 mustEqual false
-        unk3 mustEqual true
+        jthrust mustEqual false
+        cloaked mustEqual true
       case _ =>
         ko
     }
@@ -56,7 +56,7 @@ class PlayerStateMessageTest extends Specification {
 
   "decode (vel)" in {
     PacketCoding.DecodePacket(string_vel).require match {
-      case PlayerStateMessage(guid, pos, vel, facingYaw, facingPitch, facingUpper, unk1, crouching, jumping, unk2, unk3) =>
+      case PlayerStateMessage(guid, pos, vel, facingYaw, facingPitch, facingUpper, unk1, crouching, jumping, jthrust, cloaked) =>
         guid mustEqual PlanetSideGUID(1696)
         pos.x mustEqual 4008.6016f
         pos.y mustEqual 5987.6016f
@@ -71,8 +71,8 @@ class PlayerStateMessageTest extends Specification {
         unk1 mustEqual 165
         crouching mustEqual false
         jumping mustEqual false
-        unk2 mustEqual false
-        unk3 mustEqual false
+        jthrust mustEqual false
+        cloaked mustEqual false
       case _ =>
         ko
     }

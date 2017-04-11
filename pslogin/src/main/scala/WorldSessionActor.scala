@@ -279,8 +279,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
       sendResponse(PacketCoding.CreateGamePacket(0, EmoteMsg(avatar_guid, emote)))
 
     case msg @ DropItemMessage(item_guid) =>
-      sendResponse(PacketCoding.CreateGamePacket(0, DropItemMessage(item_guid)))
       log.info("DropItem: " + msg)
+      //item dropped where you spawn in VS Sanctuary
+      sendResponse(PacketCoding.CreateGamePacket(0, ObjectDetachMessage(PlanetSideGUID(75), item_guid, app.pos, 0, 0, 0)))
+
+    case msg @ PickupItemMessage(item_guid, player_guid, unk1, unk2) =>
+      log.info("PickupItem: " + msg)
 
     case msg @ ReloadMessage(item_guid, ammo_clip, unk1) =>
       log.info("Reload: " + msg)
@@ -366,8 +370,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
       log.info("WarpgateRequest: " + msg)
 
     case msg @ MountVehicleMsg(player_guid, vehicle_guid, unk) =>
-      //sendResponse(PacketCoding.CreateGamePacket(0, ObjectAttachMessage(vehicle_guid,player_guid,0)))
+      sendResponse(PacketCoding.CreateGamePacket(0, ObjectAttachMessage(vehicle_guid,player_guid,0)))
       log.info("MounVehicleMsg: "+msg)
+
+    case msg @ DismountVehicleMsg(player_guid, unk1, unk2) =>
+      sendResponse(PacketCoding.CreateGamePacket(0, msg)) //should be safe; replace with ObjectDetachMessage later
+      log.info("DismountVehicleMsg: " + msg)
 
     case msg @ AvatarGrenadeStateMessage(player_guid, state) =>
       log.info("AvatarGrenadeStateMessage: " + msg)
@@ -383,6 +391,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ BindPlayerMessage(action, bindDesc, unk1, logging, unk2, unk3, unk4, pos) =>
       log.info("BindPlayerMessage: " + msg)
+
+    case msg @ PlanetsideAttributeMessage(avatar_guid, attribute_type, attribute_value) =>
+      log.info("PlanetsideAttributeMessage: "+msg)
+      sendResponse(PacketCoding.CreateGamePacket(0,PlanetsideAttributeMessage(avatar_guid, attribute_type, attribute_value)))
 
     case default => log.error(s"Unhandled GamePacket ${pkt}")
   }
