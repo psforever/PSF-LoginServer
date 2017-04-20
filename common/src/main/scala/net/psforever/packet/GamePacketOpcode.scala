@@ -522,7 +522,7 @@ object GamePacketOpcode extends Enumeration {
     case 0xa9 => game.AvatarGrenadeStateMessage.decode
     case 0xaa => noDecoder(UnknownMessage170)
     case 0xab => noDecoder(UnknownMessage171)
-    case 0xac => noDecoder(ReleaseAvatarRequestMessage)
+    case 0xac => game.ReleaseAvatarRequestMessage.decode
     case 0xad => game.AvatarDeadStateMessage.decode
     case 0xae => noDecoder(CSAssistMessage)
     case 0xaf => noDecoder(CSAssistCommentMessage)
