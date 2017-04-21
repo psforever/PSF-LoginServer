@@ -19,13 +19,11 @@ import scodec.codecs._
   * @param pitch the angle with respect to the sky and the ground towards which the object is directed;
   *              an 8-bit unsigned value;
   *              0 is perfectly level and forward-facing and mapped to 255;
-  *              positive rotation is downwards from forward-facing;
-  *              between 7 (down) and 231 (up), for 32 angles
+  *              positive rotation is downwards from forward-facing
   * @param yaw the angle with respect to the horizon towards which the object is directed;
   *            an 8-bit unsigned value;
   *            0 is forward-facing, wrapping around at 127;
-  *            positive rotation is counter-clockwise of forward-facing;
-  *            full rotation
+  *            positive rotation is counter-clockwise of forward-facing
   */
 final case class ChildObjectStateMessage(object_guid : PlanetSideGUID,
                                          pitch : Int,
