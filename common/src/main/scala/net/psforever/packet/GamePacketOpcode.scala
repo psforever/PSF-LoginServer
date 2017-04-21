@@ -605,7 +605,7 @@ object GamePacketOpcode extends Enumeration {
 
     // OPCODES 0xf0-f3
     case 0xf0 => noDecoder(QueueTimedHelpMessage)
-    case 0xf1 => noDecoder(MailMessage)
+    case 0xf1 => game.MailMessage.decode
     case 0xf2 => noDecoder(GameVarUpdate)
     case 0xf3 => noDecoder(ClientCheatedMessage)
     case default => noDecoder(opcode)
