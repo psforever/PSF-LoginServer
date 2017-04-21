@@ -31,7 +31,7 @@ final case class ControlPacket(opcode : ControlPacketOpcode.Value,
 
 object PacketCoding {
   /// A lower bound on the packet size
-  final val PLANETSIDE_MIN_PACKET_SIZE = 2
+  final val PLANETSIDE_MIN_PACKET_SIZE = 1
 
   /**
     * Given a full and complete planetside packet as it would be sent on the wire, attempt to
