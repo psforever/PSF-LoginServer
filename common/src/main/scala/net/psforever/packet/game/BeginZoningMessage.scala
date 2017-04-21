@@ -5,7 +5,14 @@ import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, Plan
 import scodec.Codec
 
 /**
-  * na
+  * Dispatched by the client after the current map has been fully loaded locally and its objects are ready to be initialized.<br>
+  * <br>
+  * When the server receives the packet, for each object on that map, it sends the packets to the client:<br>
+  * - `SetEmpireMessage`<br>
+  * - `HackMessage`<br>
+  * - `PlanetSideAttributeMessage`<br>
+  * - ... and so forth<br>
+  * Afterwards, an avatar POV is declared and the remaining details about the said avatar are assigned.
   */
 final case class BeginZoningMessage()
   extends PlanetSideGamePacket {
