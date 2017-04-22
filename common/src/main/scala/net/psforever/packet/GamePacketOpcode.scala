@@ -428,7 +428,7 @@ object GamePacketOpcode extends Enumeration {
     case 0x5a => noDecoder(DelayedPathMountMsg)
     case 0x5b => noDecoder(OrbitalShuttleTimeMsg)
     case 0x5c => noDecoder(AIDamage)
-    case 0x5d => noDecoder(DeployObjectMessage)
+    case 0x5d => game.DeployObjectMessage.decode
     case 0x5e => noDecoder(FavoritesRequest)
     case 0x5f => noDecoder(FavoritesResponse)
 
