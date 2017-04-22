@@ -27,8 +27,42 @@ final case class TargetingInfoMessage(target_list : List[TargetInfo])
   def encode = TargetingInfoMessage.encode(this)
 }
 
+object TargetInfo {
+  /**
+    * Transform an unsigned number between 0 and 256 into a percentage of a 255 number.
+    * @param n an unsigned `Integer` number
+    * @return a scaled `Float` number
+    */
+  private def rangedFloat(n : Int) : Float = {
+    (
+      (if(n < 0) {
+        0
+      }
+      else if(n > 255) {
+        255
+      }
+      else {
+        n
+      }).toDouble * TargetingInfoMessage.unit
+    ).toFloat
+  }
+
+  /**
+    * Overloaded constructor that takes `Integer` values rather than `Float` values.
+    * @param target_guid the target
+    * @param unk1 na
+    * @param unk2 na
+    * @return a `TargetInfo` object
+    */
+  def apply(target_guid : PlanetSideGUID, unk1 : Int, unk2 : Int) : TargetInfo = {
+    val unk1_2 : Float = rangedFloat(unk1)
+    val unk2_2 : Float = rangedFloat(unk2)
+    TargetInfo(target_guid, unk1_2, unk2_2)
+  }
+}
+
 object TargetingInfoMessage extends Marshallable[TargetingInfoMessage] {
-  private final val unit : Double = 0.0039215689 //common constant for 1/255
+  final val unit : Double = 0.0039215689 //common constant for 1/255
 
   private val info_codec : Codec[TargetInfo] = (
     ("target_guid" | PlanetSideGUID.codec) ::
