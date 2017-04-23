@@ -4,7 +4,6 @@ package game
 import org.specs2.mutable._
 import net.psforever.packet._
 import net.psforever.packet.game._
-import net.psforever.types.Vector3
 import scodec.bits._
 
 class ObjectDeployedMessageTest extends Specification {
@@ -12,10 +11,10 @@ class ObjectDeployedMessageTest extends Specification {
 
   "decode" in {
     PacketCoding.DecodePacket(string_boomer).require match {
-      case ObjectDeployedMessage(guid : PlanetSideGUID, desc : String, unk : Long, count : Long, max : Long) =>
-        guid mustEqual PlanetSideGUID(0)
+      case ObjectDeployedMessage(unk : Int, desc : String, act : DeploymentOutcome.Value, count : Long, max : Long) =>
+        unk mustEqual 0
         desc mustEqual "boomer"
-        unk mustEqual 4
+        act mustEqual DeploymentOutcome.Success
         count mustEqual 1
         max mustEqual 25
       case _ =>
@@ -24,7 +23,7 @@ class ObjectDeployedMessageTest extends Specification {
   }
 
   "encode" in {
-    val msg = ObjectDeployedMessage("boomer", 4, 1, 25)
+    val msg = ObjectDeployedMessage("boomer", DeploymentOutcome.Success, 1, 25)
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string_boomer
