@@ -17,10 +17,12 @@ import shapeless.{::, HNil}
   * and, `thing` is the label for objects of this type.
   * This text is not directly placed into the message's field but, rather, is a token for language-appropriate descriptive text.<br>
   * "boomer," for example, is replaced by "Heavy Explosive Mines" in the message for English language.
-  * @param guid na
+  * @param guid na;
+  *             usually 0?
   * @param desc descriptive text of what kind of object is being deployed;
   *             matches the `String` description of the object class
-  * @param unk na
+  * @param unk na;
+  *            usually 4
   * @param count the current number of this type of object deployed
   * @param max the maximum number of this type of object that can be deployed
   * @see `ObjectClass`
