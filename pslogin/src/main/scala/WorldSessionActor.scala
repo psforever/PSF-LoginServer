@@ -179,7 +179,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
               log.debug("Object: " + obj)
               // LoadMapMessage 13714 in mossy .gcap
               // XXX: hardcoded shit
-              sendResponse(PacketCoding.CreateGamePacket(0, LoadMapMessage("map13","home3",40100,25,true,3770441820L))) //VS Sanctuary
+              sendResponse(PacketCoding.CreateGamePacket(0, LoadMapMessage("map10","z10",40100,25,true,3770441820L))) //VS Sanctuary
               sendResponse(PacketCoding.CreateGamePacket(0, ZonePopulationUpdateMessage(PlanetSideGUID(13), 414, 138, 0, 138, 0, 138, 0, 138, 0)))
               sendResponse(PacketCoding.CreateGamePacket(0, objectHex))
 
@@ -217,7 +217,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
               sendResponse(PacketCoding.CreateGamePacket(0, SetCurrentAvatarMessage(guid,0,0)))
               sendResponse(PacketCoding.CreateGamePacket(0, CreateShortcutMessage(guid, 1, 0, true, Shortcut.MEDKIT)))
               sendResponse(PacketCoding.CreateGamePacket(0, ReplicationStreamMessage(5, Some(6), Vector(SquadListing(255))))) //clear squad list
-
+sendRawResponse(hex"b3 3a197902 94 59006500740041006e006f0074006800650072004600610069006c0075007200650041006c007400 0000 01 e0")
+sendRawResponse(hex"b3 3a197902 8c 4f0075007400730074006100620075006c006f0075007300 0a00202aba2b4aae8bd2aba334aae8dd2aca3b4ab28fd2aca414ab29152aca474ab292d2ada4d4ab69452ada534ab695d2ada594ab696d2ada5d4ab697d2ada614ab698d2ada654ab699d2ada694ab69ad2aea6d4aba9bd2aea714aba9cd2aea754aba9dd2aea794aba9ed")
               import scala.concurrent.duration._
               import scala.concurrent.ExecutionContext.Implicits.global
               clientKeepAlive = context.system.scheduler.schedule(0 seconds, 500 milliseconds, self, PokeClient())
