@@ -16,7 +16,7 @@ object DiagramActionCode extends Enumeration {
 
   val Action0,
       Action1,
-      Action2,
+      Vertex,
       Action3,
       Action4,
       Action5,
@@ -49,12 +49,12 @@ final case class StrokeOne(unk1 : Float,
                            unk2 : Int) extends DiagramStroke
 
 /**
-  * na
-  * @param unk1 na
-  * @param unk2 na
+  * Mark coordinates on the tactical map.
+  * @param x the x-coordinate of this point
+  * @param y the y-coordinate of this point
   */
-final case class StrokeTwo(unk1 : Float,
-                           unk2 : Float) extends DiagramStroke
+final case class StrokeTwo(x : Float,
+                           y : Float) extends DiagramStroke
 
 /**
   * na
@@ -91,7 +91,7 @@ final case class StrokeSeven(unk : Int) extends DiagramStroke
 /**
   * na
   * @param action the behavior of this stroke;
-  *               a hint to kind of stroke data stored, if at all, and how to use it or incorporate prior data
+  *               a hint to the kind of stroke data stored, if at all, and how to use it or incorporate prior data
   * @param stroke the data
   */
 final case class BattleDiagramAction(action : DiagramActionCode.Value,
@@ -107,7 +107,7 @@ final case class BattleDiagramAction(action : DiagramActionCode.Value,
   */
 final case class BattleplanMessage(char_id : Long,
                                    player_name : String,
-                                   zone_id : Int,
+                                   zone_id : PlanetSideGUID,
                                    diagrams : List[BattleDiagramAction])
   extends PlanetSideGamePacket {
   type Packet = BattleplanMessage
@@ -115,7 +115,7 @@ final case class BattleplanMessage(char_id : Long,
   def encode = BattleplanMessage.encode(this)
 }
 
-object BattelplanDiagram {
+object BattleDiagramAction {
   /**
     * Create a `BattleDiagramAction` object containing `StrokeOne` data.
     * @param unk1 na
@@ -126,13 +126,13 @@ object BattelplanDiagram {
     BattleDiagramAction(DiagramActionCode.Action1, Some(StrokeOne(unk1, unk2)))
 
   /**
-    * Create a `BattleDiagramAction` object containing `StrokeTwo` data.
-    * @param unk1 na
-    * @param unk2 na
+    * Create a `BattleDiagramAction` object containing `StrokeTwo` vertex data.
+    * @param x the x-coordinate of this point
+    * @param y the y-coordinate of this point
     * @return a `BattleDiagramAction` object
     */
-  def stroke2(unk1 : Float, unk2 : Float) : BattleDiagramAction =
-    BattleDiagramAction(DiagramActionCode.Action2, Some(StrokeTwo(unk1, unk2)))
+  def vertex(x : Float, y : Float) : BattleDiagramAction =
+    BattleDiagramAction(DiagramActionCode.Vertex, Some(StrokeTwo(x, y)))
 
   /**
     * Create a `BattleDiagramAction` object containing `StrokeFive` data.
@@ -233,7 +233,7 @@ object BattleplanMessage extends Marshallable[BattleplanMessage] {
     */
   private def diagram_codec(plan : DiagramActionCode.Value, pad : Int) : Codec[BattleDiagramAction] = (
     conditional(plan == DiagramActionCode.Action1, plan1_codec) ::
-      conditional(plan == DiagramActionCode.Action2, plan2_codec) ::
+      conditional(plan == DiagramActionCode.Vertex, plan2_codec) ::
       conditional(plan == DiagramActionCode.Action5, plan5_codec) ::
       conditional(plan == DiagramActionCode.Action6, plan6_codec(pad)) ::
       conditional(plan == DiagramActionCode.Action7, plan7_codec)
@@ -264,7 +264,7 @@ object BattleplanMessage extends Marshallable[BattleplanMessage] {
       case BattleDiagramAction(DiagramActionCode.Action1, Some(stroke)) =>
         Attempt.successful(Some(stroke.asInstanceOf[StrokeOne]) :: None :: None :: None :: None :: HNil)
 
-      case BattleDiagramAction(DiagramActionCode.Action2, Some(stroke)) =>
+      case BattleDiagramAction(DiagramActionCode.Vertex, Some(stroke)) =>
         Attempt.successful(None :: Some(stroke.asInstanceOf[StrokeTwo]) :: None :: None :: None :: HNil)
 
       case BattleDiagramAction(DiagramActionCode.Action5, Some(stroke)) =>
@@ -298,7 +298,7 @@ object BattleplanMessage extends Marshallable[BattleplanMessage] {
         conditional(remaining > 1,
           "next" | parse_diagrams_codec(
             remaining - 1,
-            pad + (if(plan == DiagramActionCode.Action2 || plan == DiagramActionCode.Action7) { 2 } else if(plan == DiagramActionCode.Action5) { 4 } else if(plan == DiagramActionCode.Action6) { -pad } else { 0 })
+            pad + (if(plan == DiagramActionCode.Vertex || plan == DiagramActionCode.Action7) { 2 } else if(plan == DiagramActionCode.Action5) { 4 } else if(plan == DiagramActionCode.Action6) { -pad } else { 0 })
           )
         )
     }).exmap[BattleDiagramChain] (
@@ -342,7 +342,7 @@ object BattleplanMessage extends Marshallable[BattleplanMessage] {
   implicit val codec : Codec[BattleplanMessage] = (
     ("char_id" | uint32L) ::
       ("player_name" | PacketHelpers.encodedWideString) ::
-      ("zone_id" | uint16L) ::
+      ("zone_id" | PlanetSideGUID.codec) ::
       (uint8L >>:~ { count =>
         conditional(count > 0, "diagrams" | parse_diagrams_codec(count)).hlist
       })

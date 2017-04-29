@@ -8,32 +8,17 @@ import scodec.bits._
 
 class BattleplanMessageTest extends Specification {
   val string = hex"b3 3a197902 94 59006500740041006e006f0074006800650072004600610069006c0075007200650041006c007400 0000 01 e0"
-  //0xb3856477028c4f0075007400730074006100620075006c006f00750073000a00202aba2b4aae8bd2aba334aae8dd2aca3b4ab28fd2aca414ab29152aca474ab292d2ada4d4ab69452ada534ab695d2ada594ab696d2ada5d4ab697d2ada614ab698d2ada654ab699d2ada694ab69ad2aea6d4aba9bd2aea714aba9cd2aea754aba9dd2aea794aba9ed
-  //0xb3856477028c4f0075007400730074006100620075006c006f00750073000a002025ca4d497292525ca47497291525ca4149728f525ca3b49728dd25ca3549728cd25ca3149728bd25ca2d49728ad25ca29497289d25ca25497288d25ca21497287d25ca1d497286d25ca19497285d25ca15497284d25da11497683d25da0d497682d25da09497681d
-  //0xb3856477028c4f0075007400730074006100620075006c006f00750073000a002025da05497680d25da014976ffc25dbfd0976fec25dbf90976fdc25dbf50976fcc25dbf10976fbc25dbed0976fac25dbe90976f9425dbe30972f8425cbdd0972f6425cbd70972f4c25bbcf096ef2c25bbc9096ef1c25bbc5096ef0425bbbf096eef425bbbb096eee4
-  //0xb3856477028c4f0075007400730074006100620075006c006f00750073000a002027aa4349ea90527aa3f49ea8f527aa3b49ea8e527ba3749ee8d527ba3349ee8bd27ba2d49ee8ad27ca2949f289d27ca2549f288d27ca2149f287d27da1d49f686d27da1749fa85527ea1349fa84527ea0f49fe83527fa0b49fe82527fa0749fe81527fa0349fe805
-  //0xb3856477028c4f0075007400730074006100620075006c006f00750073000a00202a8bbb0aa6eec2a9bbd0aa6efc2a9bc10aa6f0c2a9bc50aa6f1c2a9bc90aa6f2c2a9bcf0aa6f442a9bd30aa6f542a9bd70aa6f642a9bdb0aa6f742a9bdf0aa6f842a9be30aa6f942a9be70aa6fa42a9beb0aa6fb42a9bef0aa6fcc2a9bf50aa6fdc2a9bf90aa6ff4
-  //0xb3856477028c4f0075007400730074006100620075006c006f00750073000a00201b127ba8949eea1d27ba8549eea0527aa7f49ea9f527aa7b49ea9e527aa7749ea9d527aa7349ea9c527aa6f49ea9ad27aa6949ea99d27aa6349ea98527aa5f49ea97527aa5b49ea96527aa5549ea94d27aa5149ea93d27aa4d49ea92d27aa4949ea91d27aa4540
-  //0xb3856477028c4f0075007400730074006100620075006c006f00750073000a001e27fbff09feff427fbfb09fafe427ebf709fafd427ebf309f6fcc27dbf109f6fbc27dbed09f2fac27cbe909f2f9c27cbe509eef8c27bbe109eef7c27abdd09eaf6c27abd909eaf5c27abd509e6f54279bd309e6f44279bcf09e6f34279bcb09e6f240
-  //0xb3856477028c4f0075007400730074006100620075006c006f00750073000a0020891b1260a8b4982a25260a874982a15260a834982a0525fa7f497e9f525fa7b497e9e525ea77497a9d525ea73497a9c525ea6f497a9b525ea6b497a9a525da67497699525da63497698525da5f497697525da5b497696525ca57497295525ca534
-  //0xb3856477028c4f0075007400730074006100620075006c006f00750073000a001a25abad096aeac25aba9096ae9c25aba5096ae8c25aba1096ae7c25ab9d096ae6c25ab99096ae5c25ab95096ae4c25ab91096ae3c25ab8d096ae2c25ab89096ae1c25ab85096ae0c25ab81096adfc25bb7d096edec0
-  //0xb3856477028c4f0075007400730074006100620075006c006f00750073000a0018241c8149071fd241c7d49071ed241c7949071dd241c7549031cd240c7149031bd240c6d49031ad240c69490319d240c65490318d240c61490317d240c5d490316d240c59490315d240c55490314d
-  //0xb3856477028c4f0075007400730074006100620075006c006f00750073000a000a2a9bff0aaa8052aaa074aaa82d2aaa0f4aaa85d2aaa1b4aaa87d2aaa234aae89d0
-  //0xb3856477028c4f0075007400730074006100620075006c006f00750073000a000a279bc709e6f14279bc309e6f04279bbf09e6ef4279bbb09e2eec278bb90c
-  //0xb3856477028c4f0075007400730074006100620075006c006f00750073000a000829ebb90a7eee42a0bb90a86eec2a2bbb0a96eec2a6bbb0a9eeec
-  //0xb3856477028c4f0075007400730074006100620075006c006f00750073000a00072aea7d4aba9fd2aea814abaa0d2aea854abaa1d2aea894
-  //0xb3856477028c4f0075007400730074006100620075006c006f00750073000a000625bbb7096eed425bbb3096eec425bbaf096aebc0
-  //0xb3856477028c4f0075007400730074006100620075006c006f00750073000a000225ca51497293d0
+  val string_line = hex"b3 85647702 8c4f0075007400730074006100620075006c006f0075007300 0a00 20 2aba2b4aae8bd2aba334aae8dd2aca3b4ab28fd2aca414ab29152aca474ab292d2ada4d4ab69452ada534ab695d2ada594ab696d2ada5d4ab697d2ada614ab698d2ada654ab699d2ada694ab69ad2aea6d4aba9bd2aea714aba9cd2aea754aba9dd2aea794aba9ed"
   //0xb3856477028c4f0075007400730074006100620075006c006f00750073000a000130
 
-  "decode" in {
+  "decode (short)" in {
     PacketCoding.DecodePacket(string).require match {
       case BattleplanMessage(char_id, player_name, zone_id, diagrams) =>
         char_id mustEqual 41490746
         player_name mustEqual "YetAnotherFailureAlt"
-        zone_id mustEqual 0
+        zone_id mustEqual PlanetSideGUID(0)
         diagrams.size mustEqual 1
-        //h0
+        //0
         diagrams.head.action mustEqual DiagramActionCode.ActionE
         diagrams.head.stroke.isDefined mustEqual false
       case _ =>
@@ -41,16 +26,202 @@ class BattleplanMessageTest extends Specification {
     }
   }
 
-  "encode" in {
+  "decode (line)" in {
+    PacketCoding.DecodePacket(string_line).require match {
+      case BattleplanMessage(char_id, player_name, zone_id, diagrams) =>
+        char_id mustEqual 41378949
+        player_name mustEqual "Outstabulous"
+        zone_id mustEqual PlanetSideGUID(10)
+        diagrams.size mustEqual 32
+        //0
+        diagrams.head.action mustEqual DiagramActionCode.Vertex
+        diagrams.head.stroke.isDefined mustEqual true
+        diagrams.head.stroke.get.isInstanceOf[StrokeTwo] mustEqual true
+        diagrams.head.stroke.get.asInstanceOf[StrokeTwo].x mustEqual 7512.0f
+        diagrams.head.stroke.get.asInstanceOf[StrokeTwo].y mustEqual 6312.0f
+        //1
+        diagrams(1).action mustEqual DiagramActionCode.Vertex
+        diagrams(1).stroke.get.asInstanceOf[StrokeTwo].x mustEqual 7512.0f
+        diagrams(1).stroke.get.asInstanceOf[StrokeTwo].y mustEqual 6328.0f
+        //2
+        diagrams(2).action mustEqual DiagramActionCode.Vertex
+        diagrams(2).stroke.get.asInstanceOf[StrokeTwo].x mustEqual 7512.0f
+        diagrams(2).stroke.get.asInstanceOf[StrokeTwo].y mustEqual 6344.0f
+        //3
+        diagrams(3).action mustEqual DiagramActionCode.Vertex
+        diagrams(3).stroke.get.asInstanceOf[StrokeTwo].x mustEqual 7512.0f
+        diagrams(3).stroke.get.asInstanceOf[StrokeTwo].y mustEqual 6360.0f
+        //4
+        diagrams(4).action mustEqual DiagramActionCode.Vertex
+        diagrams(4).stroke.get.asInstanceOf[StrokeTwo].x mustEqual 7520.0f
+        diagrams(4).stroke.get.asInstanceOf[StrokeTwo].y mustEqual 6376.0f
+        //5
+        diagrams(5).action mustEqual DiagramActionCode.Vertex
+        diagrams(5).stroke.get.asInstanceOf[StrokeTwo].x mustEqual 7520.0f
+        diagrams(5).stroke.get.asInstanceOf[StrokeTwo].y mustEqual 6392.0f
+        //6
+        diagrams(6).action mustEqual DiagramActionCode.Vertex
+        diagrams(6).stroke.get.asInstanceOf[StrokeTwo].x mustEqual 7520.0f
+        diagrams(6).stroke.get.asInstanceOf[StrokeTwo].y mustEqual 6400.0f
+        //7
+        diagrams(7).action mustEqual DiagramActionCode.Vertex
+        diagrams(7).stroke.get.asInstanceOf[StrokeTwo].x mustEqual 7520.0f
+        diagrams(7).stroke.get.asInstanceOf[StrokeTwo].y mustEqual 6416.0f
+        //8
+        diagrams(8).action mustEqual DiagramActionCode.Vertex
+        diagrams(8).stroke.get.asInstanceOf[StrokeTwo].x mustEqual 7520.0f
+        diagrams(8).stroke.get.asInstanceOf[StrokeTwo].y mustEqual 6424.0f
+        //9
+        diagrams(9).action mustEqual DiagramActionCode.Vertex
+        diagrams(9).stroke.get.asInstanceOf[StrokeTwo].x mustEqual 7520.0f
+        diagrams(9).stroke.get.asInstanceOf[StrokeTwo].y mustEqual 6440.0f
+        //10
+        diagrams(10).action mustEqual DiagramActionCode.Vertex
+        diagrams(10).stroke.get.asInstanceOf[StrokeTwo].x mustEqual 7528.0f
+        diagrams(10).stroke.get.asInstanceOf[StrokeTwo].y mustEqual 6448.0f
+        //11
+        diagrams(11).action mustEqual DiagramActionCode.Vertex
+        diagrams(11).stroke.get.asInstanceOf[StrokeTwo].x mustEqual 7528.0f
+        diagrams(11).stroke.get.asInstanceOf[StrokeTwo].y mustEqual 6464.0f
+        //12
+        diagrams(12).action mustEqual DiagramActionCode.Vertex
+        diagrams(12).stroke.get.asInstanceOf[StrokeTwo].x mustEqual 7528.0f
+        diagrams(12).stroke.get.asInstanceOf[StrokeTwo].y mustEqual 6472.0f
+        //13
+        diagrams(13).action mustEqual DiagramActionCode.Vertex
+        diagrams(13).stroke.get.asInstanceOf[StrokeTwo].x mustEqual 7528.0f
+        diagrams(13).stroke.get.asInstanceOf[StrokeTwo].y mustEqual 6488.0f
+        //14
+        diagrams(14).action mustEqual DiagramActionCode.Vertex
+        diagrams(14).stroke.get.asInstanceOf[StrokeTwo].x mustEqual 7528.0f
+        diagrams(14).stroke.get.asInstanceOf[StrokeTwo].y mustEqual 6496.0f
+        //15
+        diagrams(15).action mustEqual DiagramActionCode.Vertex
+        diagrams(15).stroke.get.asInstanceOf[StrokeTwo].x mustEqual 7528.0f
+        diagrams(15).stroke.get.asInstanceOf[StrokeTwo].y mustEqual 6504.0f
+        //16
+        diagrams(16).action mustEqual DiagramActionCode.Vertex
+        diagrams(16).stroke.get.asInstanceOf[StrokeTwo].x mustEqual 7528.0f
+        diagrams(16).stroke.get.asInstanceOf[StrokeTwo].y mustEqual 6512.0f
+        //17
+        diagrams(17).action mustEqual DiagramActionCode.Vertex
+        diagrams(17).stroke.get.asInstanceOf[StrokeTwo].x mustEqual 7528.0f
+        diagrams(17).stroke.get.asInstanceOf[StrokeTwo].y mustEqual 6520.0f
+        //18
+        diagrams(18).action mustEqual DiagramActionCode.Vertex
+        diagrams(18).stroke.get.asInstanceOf[StrokeTwo].x mustEqual 7528.0f
+        diagrams(18).stroke.get.asInstanceOf[StrokeTwo].y mustEqual 6528.0f
+        //19
+        diagrams(19).action mustEqual DiagramActionCode.Vertex
+        diagrams(19).stroke.get.asInstanceOf[StrokeTwo].x mustEqual 7528.0f
+        diagrams(19).stroke.get.asInstanceOf[StrokeTwo].y mustEqual 6536.0f
+        //20
+        diagrams(20).action mustEqual DiagramActionCode.Vertex
+        diagrams(20).stroke.get.asInstanceOf[StrokeTwo].x mustEqual 7528.0f
+        diagrams(20).stroke.get.asInstanceOf[StrokeTwo].y mustEqual 6544.0f
+        //21
+        diagrams(21).action mustEqual DiagramActionCode.Vertex
+        diagrams(21).stroke.get.asInstanceOf[StrokeTwo].x mustEqual 7528.0f
+        diagrams(21).stroke.get.asInstanceOf[StrokeTwo].y mustEqual 6552.0f
+        //22
+        diagrams(22).action mustEqual DiagramActionCode.Vertex
+        diagrams(22).stroke.get.asInstanceOf[StrokeTwo].x mustEqual 7528.0f
+        diagrams(22).stroke.get.asInstanceOf[StrokeTwo].y mustEqual 6560.0f
+        //23
+        diagrams(23).action mustEqual DiagramActionCode.Vertex
+        diagrams(23).stroke.get.asInstanceOf[StrokeTwo].x mustEqual 7528.0f
+        diagrams(23).stroke.get.asInstanceOf[StrokeTwo].y mustEqual 6568.0f
+        //24
+        diagrams(24).action mustEqual DiagramActionCode.Vertex
+        diagrams(24).stroke.get.asInstanceOf[StrokeTwo].x mustEqual 7536.0f
+        diagrams(24).stroke.get.asInstanceOf[StrokeTwo].y mustEqual 6576.0f
+        //25
+        diagrams(25).action mustEqual DiagramActionCode.Vertex
+        diagrams(25).stroke.get.asInstanceOf[StrokeTwo].x mustEqual 7536.0f
+        diagrams(25).stroke.get.asInstanceOf[StrokeTwo].y mustEqual 6584.0f
+        //26
+        diagrams(26).action mustEqual DiagramActionCode.Vertex
+        diagrams(26).stroke.get.asInstanceOf[StrokeTwo].x mustEqual 7536.0f
+        diagrams(26).stroke.get.asInstanceOf[StrokeTwo].y mustEqual 6592.0f
+        //27
+        diagrams(27).action mustEqual DiagramActionCode.Vertex
+        diagrams(27).stroke.get.asInstanceOf[StrokeTwo].x mustEqual 7536.0f
+        diagrams(27).stroke.get.asInstanceOf[StrokeTwo].y mustEqual 6600.0f
+        //28
+        diagrams(28).action mustEqual DiagramActionCode.Vertex
+        diagrams(28).stroke.get.asInstanceOf[StrokeTwo].x mustEqual 7536.0f
+        diagrams(28).stroke.get.asInstanceOf[StrokeTwo].y mustEqual 6608.0f
+        //29
+        diagrams(29).action mustEqual DiagramActionCode.Vertex
+        diagrams(29).stroke.get.asInstanceOf[StrokeTwo].x mustEqual 7536.0f
+        diagrams(29).stroke.get.asInstanceOf[StrokeTwo].y mustEqual 6616.0f
+        //30
+        diagrams(30).action mustEqual DiagramActionCode.Vertex
+        diagrams(30).stroke.get.asInstanceOf[StrokeTwo].x mustEqual 7536.0f
+        diagrams(30).stroke.get.asInstanceOf[StrokeTwo].y mustEqual 6624.0f
+        //31
+        diagrams(31).action mustEqual DiagramActionCode.Vertex
+        diagrams(31).stroke.get.asInstanceOf[StrokeTwo].x mustEqual 7536.0f
+        diagrams(31).stroke.get.asInstanceOf[StrokeTwo].y mustEqual 6632.0f
+      case _ =>
+        ko
+    }
+  }
+
+  "encode (short)" in {
     val msg = BattleplanMessage(
       41490746,
       "YetAnotherFailureAlt",
-      0,
+      PlanetSideGUID(0),
       BattleDiagramAction(DiagramActionCode.ActionE) ::
         Nil
     )
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string
+  }
+
+  "encode (line)" in {
+    val msg = BattleplanMessage(
+      41378949,
+      "Outstabulous",
+      PlanetSideGUID(10),
+      BattleDiagramAction.vertex(7512.0f, 6312.0f) ::
+        BattleDiagramAction.vertex(7512.0f, 6328.0f) ::
+        BattleDiagramAction.vertex(7512.0f, 6344.0f) ::
+        BattleDiagramAction.vertex(7512.0f, 6360.0f) ::
+        BattleDiagramAction.vertex(7520.0f, 6376.0f) ::
+        BattleDiagramAction.vertex(7520.0f, 6392.0f) ::
+        BattleDiagramAction.vertex(7520.0f, 6400.0f) ::
+        BattleDiagramAction.vertex(7520.0f, 6416.0f) ::
+        BattleDiagramAction.vertex(7520.0f, 6424.0f) ::
+        BattleDiagramAction.vertex(7520.0f, 6440.0f) ::
+        BattleDiagramAction.vertex(7528.0f, 6448.0f) ::
+        BattleDiagramAction.vertex(7528.0f, 6464.0f) ::
+        BattleDiagramAction.vertex(7528.0f, 6472.0f) ::
+        BattleDiagramAction.vertex(7528.0f, 6488.0f) ::
+        BattleDiagramAction.vertex(7528.0f, 6496.0f) ::
+        BattleDiagramAction.vertex(7528.0f, 6504.0f) ::
+        BattleDiagramAction.vertex(7528.0f, 6512.0f) ::
+        BattleDiagramAction.vertex(7528.0f, 6520.0f) ::
+        BattleDiagramAction.vertex(7528.0f, 6528.0f) ::
+        BattleDiagramAction.vertex(7528.0f, 6536.0f) ::
+        BattleDiagramAction.vertex(7528.0f, 6544.0f) ::
+        BattleDiagramAction.vertex(7528.0f, 6552.0f) ::
+        BattleDiagramAction.vertex(7528.0f, 6560.0f) ::
+        BattleDiagramAction.vertex(7528.0f, 6568.0f) ::
+        BattleDiagramAction.vertex(7536.0f, 6576.0f) ::
+        BattleDiagramAction.vertex(7536.0f, 6584.0f) ::
+        BattleDiagramAction.vertex(7536.0f, 6592.0f) ::
+        BattleDiagramAction.vertex(7536.0f, 6600.0f) ::
+        BattleDiagramAction.vertex(7536.0f, 6608.0f) ::
+        BattleDiagramAction.vertex(7536.0f, 6616.0f) ::
+        BattleDiagramAction.vertex(7536.0f, 6624.0f) ::
+        BattleDiagramAction.vertex(7536.0f, 6632.0f) ::
+        Nil
+    )
+    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+    pkt mustEqual string_line
   }
 }
