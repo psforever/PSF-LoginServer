@@ -190,7 +190,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
               log.debug("Object: " + obj)
               // LoadMapMessage 13714 in mossy .gcap
               // XXX: hardcoded shit
-              sendResponse(PacketCoding.CreateGamePacket(0, LoadMapMessage("map10","z10",40100,25,true,3770441820L))) //VS Sanctuary
+              sendResponse(PacketCoding.CreateGamePacket(0, LoadMapMessage("map13","home3",40100,25,true,3770441820L))) //VS Sanctuary
               sendResponse(PacketCoding.CreateGamePacket(0, ZonePopulationUpdateMessage(PlanetSideGUID(13), 414, 138, 0, 138, 0, 138, 0, 138, 0)))
               sendResponse(PacketCoding.CreateGamePacket(0, objectHex))
 
@@ -354,6 +354,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
         // TODO: This should only actually be sent to doors upon opening; may break non-door items upon use
         sendResponse(PacketCoding.CreateGamePacket(0, GenericObjectStateMsg(object_guid, 16)))
       }
+
+    case msg @ UnuseItemMessage(player, item) =>
+      log.info("UnuseItem: " + msg)
 
     case msg @ GenericObjectStateMsg(object_guid, unk1) =>
       log.info("GenericObjectState: " + msg)

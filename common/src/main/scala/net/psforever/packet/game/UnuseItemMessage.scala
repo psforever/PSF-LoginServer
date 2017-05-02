@@ -6,11 +6,16 @@ import scodec.Codec
 import scodec.codecs._
 
 /**
-  * Dispatched by the client when its player is done using something.
-  * The classic example is sifting through backpacks, an exclusive activity that only one player can do at a time.
+  * Dispatched by the client when its player is done using something.<br>
+  * <br>
+  * The common example is sifting through backpacks, an activity that only one player is allowed to do at a time.
+  * When a backpack is accessed by one player, other players are blocked.
+  * When the first player is done accessing the backpack, this packet informs the server so other players may be allowed access.
+  * @param player_guid the player
+  * @param item_guid the item
   */
-final case class UnuseItemMessage(guid1 : PlanetSideGUID,
-                                  guid2 : PlanetSideGUID)
+final case class UnuseItemMessage(player_guid : PlanetSideGUID,
+                                  item_guid : PlanetSideGUID)
   extends PlanetSideGamePacket {
   type Packet = UnuseItemMessage
   def opcode = GamePacketOpcode.UnuseItemMessage
@@ -19,7 +24,7 @@ final case class UnuseItemMessage(guid1 : PlanetSideGUID,
 
 object UnuseItemMessage extends Marshallable[UnuseItemMessage] {
   implicit val codec : Codec[UnuseItemMessage] = (
-    ("guid1" | PlanetSideGUID.codec) ::
-      ("guid2" | PlanetSideGUID.codec)
+    ("player_guid" | PlanetSideGUID.codec) ::
+      ("item_guid" | PlanetSideGUID.codec)
     ).as[UnuseItemMessage]
 }
