@@ -8,68 +8,46 @@ import scodec.codecs._
 import shapeless.{::, HNil}
 
 /**
-  * A representation of the ammunition portion of `ObjectCreateMessage` packet data.
+  * A representation of ammunition that can be created using `ObjectCreateMessage` packet data.
   * This data will help construct a "box" of that type of ammunition when standalone.
   * It can also be constructed directly inside a weapon as its magazine.<br>
   * <br>
-  * The maximum amount of ammunition that can be stored in a single box is 65535 units.
-  * Regardless of the interface, however, the number will never be fully visible.
-  * Only the first three digits or the first four digits may be represented.
-  * @param magazine the number of rounds available
-  * @see WeaponData
+  * This ammunition object ompletely ignores thr capacity field, normal to detailed ammunition objects.
+  * Creating an object of this type directly and picking it up or observing it (in a weapon) reveals a single round.
+  * @param unk na;
+  *            defaults to 0
+  * @see `DetailedAmmoBoxData`
   */
-final case class AmmoBoxData(magazine : Int) extends ConstructorData {
-  /**
-    * Performs a "sizeof()" analysis of the given object.
-    * @see ConstructorData.bitsize
-    * @return the number of bits necessary to represent this object
-    */
-  override def bitsize : Long = 40L
+final case class AmmoBoxData(unk : Int = 0) extends ConstructorData {
+  override def bitsize : Long = 24L
 }
 
 object AmmoBoxData extends Marshallable[AmmoBoxData] {
   /**
-    * An abbreviated constructor for creating `WeaponData` while masking use of `InternalSlot`.
+    * An abbreviated constructor for creating `AmmoBoxData` while masking use of `InternalSlot`.
     * @param cls the code for the type of object being constructed
     * @param guid the GUID this object will be assigned
     * @param parentSlot a parent-defined slot identifier that explains where the child is to be attached to the parent
-    * @param ammo the `AmmoBoxData`
+    * @param ammo the ammunition object
     * @return an `InternalSlot` object that encapsulates `AmmoBoxData`
     */
   def apply(cls : Int, guid : PlanetSideGUID, parentSlot : Int, ammo : AmmoBoxData) : InternalSlot =
     new InternalSlot(cls, guid, parentSlot, ammo)
 
   implicit val codec : Codec[AmmoBoxData] = (
-    uint8L ::
-      uint(15) ::
-      ("magazine" | uint16L) ::
-      bool
-    ).exmap[AmmoBoxData] (
+    uint4L ::
+    ("unk" | uint4L) ::
+    uint(16)
+  ).exmap[AmmoBoxData] (
     {
-      case 0xC8 :: 0 :: mag :: false :: HNil =>
-        Attempt.successful(AmmoBoxData(mag))
-      case a :: b :: _ :: d :: HNil =>
+      case 0xC :: unk :: 0 :: HNil  =>
+        Attempt.successful(AmmoBoxData(unk))
+      case _ :: _ :: _ :: HNil =>
         Attempt.failure(Err("invalid ammunition data format"))
     },
     {
-      case AmmoBoxData(mag) =>
-        Attempt.successful(0xC8 :: 0 :: mag :: false:: HNil)
-    }
-  )
-
-  /**
-    * Transform between AmmoBoxData and ConstructorData.
-    */
-  val genericCodec : Codec[ConstructorData.genericPattern] = codec.exmap[ConstructorData.genericPattern] (
-    {
-      case x =>
-        Attempt.successful(Some(x.asInstanceOf[ConstructorData]))
-    },
-    {
-      case Some(x) =>
-        Attempt.successful(x.asInstanceOf[AmmoBoxData])
-      case _ =>
-        Attempt.failure(Err("can not encode ammo box data"))
+      case AmmoBoxData(unk) =>
+        Attempt.successful(0xC :: unk :: 0 :: HNil)
     }
   )
 }

@@ -345,9 +345,9 @@ object GamePacketOpcode extends Enumeration {
     case 0x14 => game.CharacterInfoMessage.decode
     case 0x15 => noDecoder(UnknownMessage21)
     case 0x16 => game.BindPlayerMessage.decode
-    case 0x17 => noDecoder(ObjectCreateMessage_Duplicate)
+    case 0x17 => game.ObjectCreateMessage.decode
     // 0x18
-    case 0x18 => game.ObjectCreateMessage.decode
+    case 0x18 => game.ObjectCreateDetailedMessage.decode
     case 0x19 => game.ObjectDeleteMessage.decode
     case 0x1a => game.PingMsg.decode
     case 0x1b => noDecoder(VehicleStateMessage)
@@ -428,7 +428,7 @@ object GamePacketOpcode extends Enumeration {
     case 0x5a => noDecoder(DelayedPathMountMsg)
     case 0x5b => noDecoder(OrbitalShuttleTimeMsg)
     case 0x5c => noDecoder(AIDamage)
-    case 0x5d => noDecoder(DeployObjectMessage)
+    case 0x5d => game.DeployObjectMessage.decode
     case 0x5e => noDecoder(FavoritesRequest)
     case 0x5f => noDecoder(FavoritesResponse)
 
@@ -456,9 +456,9 @@ object GamePacketOpcode extends Enumeration {
     case 0x71 => noDecoder(PlatoonEvent)
     case 0x72 => game.FriendsRequest.decode
     case 0x73 => game.FriendsResponse.decode
-    case 0x74 => noDecoder(TriggerEnvironmentalDamageMessage)
+    case 0x74 => game.TriggerEnvironmentalDamageMessage.decode
     case 0x75 => game.TrainingZoneMessage.decode
-    case 0x76 => noDecoder(DeployableObjectsInfoMessage)
+    case 0x76 => game.DeployableObjectsInfoMessage.decode
     case 0x77 => noDecoder(SquadState)
     // 0x78
     case 0x78 => noDecoder(OxygenStateMessage)

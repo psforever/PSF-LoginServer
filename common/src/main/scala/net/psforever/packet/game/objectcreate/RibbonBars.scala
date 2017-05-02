@@ -17,19 +17,16 @@ import scodec.codecs._
   * @param lower the lower configurable merit ribbon
   * @param tos the top-most term of service merit ribbon
   */
-final case class RibbonBars(upper : Long = 0xFFFFFFFFL,
-                            middle : Long = 0xFFFFFFFFL,
-                            lower : Long = 0xFFFFFFFFL,
-                            tos : Long = 0xFFFFFFFFL) extends StreamBitSize {
-  /**
-    * Performs a "sizeof()" analysis of the given object.
-    * @see ConstructorData.bitsize
-    * @return the number of bits necessary to represent this object
-    */
+final case class RibbonBars(upper : Long = RibbonBars.noRibbon,
+                            middle : Long = RibbonBars.noRibbon,
+                            lower : Long = RibbonBars.noRibbon,
+                            tos : Long = RibbonBars.noRibbon) extends StreamBitSize {
   override def bitsize : Long = 128L
 }
 
 object RibbonBars extends Marshallable[RibbonBars] {
+  val noRibbon : Long = 0xFFFFFFFFL
+
   implicit val codec : Codec[RibbonBars] = (
     ("upper" | uint32L) ::
       ("middle" | uint32L) ::

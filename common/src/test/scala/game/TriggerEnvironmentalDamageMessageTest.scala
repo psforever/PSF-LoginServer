@@ -4,24 +4,24 @@ package game
 import org.specs2.mutable._
 import net.psforever.packet._
 import net.psforever.packet.game._
-import net.psforever.types.GrenadeState
 import scodec.bits._
 
-class AvatarGrenadeStateMessageTest extends Specification {
-  val string = hex"A9 DA11 01"
+class TriggerEnvironmentalDamageMessageTest extends Specification {
+  val string = hex"74 a7c44140000000"
 
   "decode" in {
     PacketCoding.DecodePacket(string).require match {
-      case AvatarGrenadeStateMessage(player_guid, state) =>
-        player_guid mustEqual PlanetSideGUID(4570)
-        state mustEqual GrenadeState.Primed
+      case TriggerEnvironmentalDamageMessage(unk1, guid, unk2) =>
+        unk1 mustEqual 2
+        guid mustEqual PlanetSideGUID(4511)
+        unk2 mustEqual 5L
       case _ =>
         ko
     }
   }
 
   "encode" in {
-    val msg = AvatarGrenadeStateMessage(PlanetSideGUID(4570), GrenadeState.Primed)
+    val msg = TriggerEnvironmentalDamageMessage(2, PlanetSideGUID(4511), 5L)
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string
