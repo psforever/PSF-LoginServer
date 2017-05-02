@@ -35,10 +35,10 @@ object TargetInfo {
     */
   private def rangedFloat(n : Int) : Float = {
     (
-      (if(n < 0) {
+      (if(n <= 0) {
         0
       }
-      else if(n > 255) {
+      else if(n >= 255) {
         255
       }
       else {
@@ -58,6 +58,17 @@ object TargetInfo {
     val unk1_2 : Float = rangedFloat(unk1)
     val unk2_2 : Float = rangedFloat(unk2)
     TargetInfo(target_guid, unk1_2, unk2_2)
+  }
+
+  /**
+    * Overloaded constructor that takes `Integer` values rather than `Float` values and assumes the second `Integer` is zero.
+    * @param target_guid the target
+    * @param unk na
+    * @return a `TargetInfo` object
+    */
+  def apply(target_guid : PlanetSideGUID, unk : Int) : TargetInfo = {
+    val unk1_2 : Float = rangedFloat(unk)
+    TargetInfo(target_guid, unk1_2, 0)
   }
 }
 
