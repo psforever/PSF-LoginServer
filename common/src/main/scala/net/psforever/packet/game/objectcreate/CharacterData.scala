@@ -2,402 +2,194 @@
 package net.psforever.packet.game.objectcreate
 
 import net.psforever.packet.{Marshallable, PacketHelpers}
-import net.psforever.types.{PlanetSideEmpire, Vector3}
-import scodec.{Attempt, Codec, Err}
 import scodec.codecs._
+import scodec.{Attempt, Codec, Err}
 import shapeless.{::, HNil}
 
 /**
-  * A part of a representation of the avatar portion of `ObjectCreateMessage` packet data.<br>
+  * Values for the implant effects on a character model.
+  * The effects can not be activated simultaneously.
+  * In at least one case, attempting to activate multiple effects will cause the PlanetSide client to crash.<br>
   * <br>
-  * This partition of the data stream contains information used to represent how the player's avatar is presented.
-  * This appearance can be considered the avatar's obvious points beyond experience levels.
-  * It does not include passive exo-suit upgrades, battle rank 24 cosmetics, special postures, or current equipment.
-  * Those will occur later back in the main data stream.<br>
-  * <br>
-  * This base length of this stream is __430__ known bits, excluding the length of the name and the padding on that name.
-  * Of that, __203__ bits are perfectly unknown in significance.
-  * <br>
-  * Exo-suit:<br>
-  * `0 - Agile`<br>
-  * `1 - Refinforced`<br>
-  * `2 - Mechanized Assault`<br>
-  * `3 - Infiltration`<br>
-  * `4 - Standard`<br>
-  * <br>
-  * Sex:<br>
-  * `0 - invalid`<br>
-  * `1 - Male`<br>
-  * `2 - Female`<br>
-  * `3 - invalid`<br>
-  * <br>
-  * Voice:<br>
-  * `&nbsp;&nbsp;&nbsp;&nbsp;MALE&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FEMALE`<br>
-  * `0 - no voice &nbsp;no voice`<br>
-  * `1 - male_1 &nbsp;&nbsp; female_1`<br>
-  * `2 - male_2 &nbsp;&nbsp; female_2`<br>
-  * `3 - male_3 &nbsp;&nbsp; female_3`<br>
-  * `4 - male_4 &nbsp;&nbsp; female_4`<br>
-  * `5 - male_5 &nbsp;&nbsp; female_5`<br>
-  * `6 - female_1 &nbsp;no voice`<br>
-  * `7 - female_2 &nbsp;no voice`
-  * @param pos the position of the character in the world environment (in three coordinates)
-  * @param objYaw the angle with respect to the horizon towards which the object's front is facing;
-  *               every `0x1` is 2.813 degrees counter clockwise from North;
-  *               every `0x10` is 45-degrees;
-  *               it wraps at `0x0` == `0x80` == North
-  *               (note: references the avatar as a game object?)
-  * @param faction the empire to which the avatar belongs;
-  *                the value scale is different from `PlanetSideEmpire`
-  * @param bops whether or not this avatar is enrolled in Black OPs
-  * @param unk1 na;
-  *             defaults to 4
-  * @param name the wide character name of the avatar, minimum of two characters
-  * @param exosuit the type of exosuit the avatar will be depicted in;
-  *                for Black OPs, the agile exo-suit and the reinforced exo-suit are replaced with the Black OPs exo-suits
-  * @param sex whether the avatar is male or female
-  * @param face1 the avatar's face, as by column number on the character creation screen
-  * @param face2 the avatar's face, as by row number on the character creation screen
-  * @param voice the avatar's voice selection
-  * @param unk2 na
-  * @param unk3 na;
-  *           can be missing from the stream under certain conditions;
-  *           see next
-  * @param unk4 na;
-  *           can be missing from the stream under certain conditions;
-  *           see previous
-  * @param unk5 na;
-  *             defaults to `0x8080`
-  * @param unk6 na;
-  *             defaults to `0xFFFF`;
-  *             may be `0x0`
-  * @param unk7 na;
-  *             defaults to 2
-  * @param viewPitch the angle with respect to the sky and the ground towards which the avatar is looking;
-  *                  only supports downwards view angles;
-  *                  `0x0` is forwards-facing;
-  *                  `0x20` to `0xFF` is downwards-facing
-  * @param viewYaw the angle with respect to the horizon towards which the avatar is looking;
-  *               every `0x1` is 2.813 degrees counter clockwise from North;
-  *               every `0x10` is 45-degrees;
-  *               it wraps at `0x0` == `0x80` == North
-  * @param unk8 na
-  * @param ribbons the four merit commendation ribbon medals
+  * `RegenEffects` is a reverse-flagged item - inactive when the corresponding bit is set.
+  * For that reason, every other effect is `n`+1, while `NoEffects` is 1 and `RegenEffects` is 0.
   */
-final case class CharacterAppearanceData(pos : Vector3,
-                                         objYaw : Int,
-                                         faction : PlanetSideEmpire.Value,
-                                         bops : Boolean,
-                                         unk1 : Int,
-                                         name : String,
-                                         exosuit : Int,
-                                         sex : Int,
-                                         face1 : Int,
-                                         face2 : Int,
-                                         voice : Int,
-                                         unk2 : Int,
-                                         unk3 : Int,
-                                         unk4 : Int,
-                                         unk5 : Int,
-                                         unk6 : Int,
-                                         unk7 : Int,
-                                         viewPitch : Int,
-                                         viewYaw : Int,
-                                         unk8 : Int,
-                                         ribbons : RibbonBars) extends StreamBitSize {
-  /**
-    * Performs a "sizeof()" analysis of the given object.
-    * @see ConstructorData.bitsize
-    * @return the number of bits necessary to represent this object
-    */
-  override def bitsize : Long = {
-    //TODO ongoing analysis, this value will be subject to change
-    430L + CharacterData.stringBitSize(name, 16) + CharacterAppearanceData.namePadding
-  }
-}
+object ImplantEffects extends Enumeration {
+  type Type = Value
 
-object CharacterAppearanceData extends Marshallable[CharacterAppearanceData] {
-  /**
-    * Get the padding of the avatar's name.
-    * The padding will always be a number 0-7.
-    * @return the pad length in bits
-    */
-  private def namePadding : Int = {
-    //TODO the parameters for this function are not correct
-    //TODO the proper padding length should reflect all variability in the substream prior to this point
-    4
-  }
+  val SurgeEffects = Value(9)
+  val PersonalShieldEffects = Value(5)
+  val DarklightEffects = Value(3)
+  val RegenEffects = Value(0)
+  val NoEffects = Value(1)
 
-  implicit val codec : Codec[CharacterAppearanceData] = (
-    ("pos" | Vector3.codec_pos) ::
-      ignore(16) ::
-      ("objYaw" | uint8L) ::
-      ignore(1) ::
-      ("faction" | PlanetSideEmpire.codec) ::
-      ("bops" | bool) ::
-      ("unk1" | uint4L) ::
-      ignore(16) ::
-      ("name" | PacketHelpers.encodedWideStringAligned( namePadding )) ::
-      ("exosuit" | uintL(3)) ::
-      ignore(2) ::
-      ("sex" | uint2L) ::
-      ("face1" | uint4L) ::
-      ("face2" | uint4L) ::
-      ("voice" | uintL(3)) ::
-      ("unk2" | uint2L) ::
-      ignore(4) ::
-      ("unk3" | uint8L) ::
-      ("unk4" | uint8L) ::
-      ("unk5" | uint16L) ::
-      ignore(42) ::
-      ("unk6" | uint16L) ::
-      ignore(30) ::
-      ("unk7" | uint4L) ::
-      ignore(24) ::
-      ("viewPitch" | uint8L) ::
-      ("viewYaw" | uint8L) ::
-      ("unk8" | uint4L) ::
-      ignore(6) ::
-      ("ribbons" | RibbonBars.codec)
-    ).exmap[CharacterAppearanceData] (
-    {
-      case a :: _ :: b :: _ :: c :: d :: e :: _ :: f :: g :: _ :: h :: i :: j :: k :: l :: _ :: m :: n :: o :: _ :: p :: _ :: q :: _ :: r :: s :: t :: _ :: u :: HNil =>
-        Attempt.successful(
-          CharacterAppearanceData(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u)
-        )
-    },
-    {
-      case CharacterAppearanceData(_, _, PlanetSideEmpire.NEUTRAL, _, _, name, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _) =>
-        Attempt.failure(Err(s"character $name's faction can not declare as neutral"))
-
-      case CharacterAppearanceData(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u) =>
-        Attempt.successful(
-          a :: () :: b :: () :: c :: d :: e :: () :: f :: g :: () :: h :: i :: j :: k :: l :: () :: m :: n :: o :: () :: p :: () :: q :: () :: r :: s :: t :: () :: u :: HNil
-        )
-    }
-  )
+  implicit val codec = PacketHelpers.createEnumerationCodec(this, uint4L)
 }
 
 /**
-  * A representation of the avatar portion of `ObjectCreateMessage` packet data.<br>
+  * Values for the four different color designs that impact a player's uniform.
+  * Exo-suits get minor graphical updates at the following battle rank levels: seven, fourteen, and twenty-five.
+  */
+object UniformStyle extends Enumeration {
+  type Type = Value
+
+  val Normal = Value(0)
+  val FirstUpgrade = Value(1)
+  val SecondUpgrade = Value(2)
+  val ThirdUpgrade = Value(4)
+
+  implicit val codec = PacketHelpers.createEnumerationCodec(this, uintL(3))
+}
+
+/**
+  * The different cosmetics that a player can apply to their model's head.<br>
   * <br>
-  * This object is huge, representing the quantity of densely-encoded data in its packet.
-  * Certain bits, when set or unset, introduce or remove other bits from the packet data as well.
-  * (As in: flipping a bit may create room or negate other bits from somewhere else in the data stream.
-  * Not accounting for this new pattern of bits will break decoding and encoding.)
-  * Due to the very real concern that bloating the constructor for this object with parameters could break the `apply` method,
-  * parameters will often be composed of nested case objects that contain a group of formal parameters.
-  * There are lists of byte-aligned `Strings` later-on in the packet data that will need access to these objects to calculate padding length.<br>
+  * The player gets the ability to apply these minor modifications at battle rank twenty-four, just one rank before the third uniform upgrade.
+  * @param no_helmet removes the current helmet on the reinforced exo-suit and the agile exo-suit;
+  *                  all other cosmetics require `no_helmet` to be `true` before they can be seen
+  * @param beret player dons a beret
+  * @param sunglasses player dons sunglasses
+  * @param earpiece player dons an earpiece on the left
+  * @param brimmed_cap player dons a cap;
+  *                    the cap overrides the beret, if both are selected
+  */
+final case class Cosmetics(no_helmet : Boolean,
+                           beret : Boolean,
+                           sunglasses : Boolean,
+                           earpiece : Boolean,
+                           brimmed_cap : Boolean)
+
+/**
+  * A part of a representation of the avatar portion of `ObjectCreateMessage` packet data.
+  * This densely-packed information outlines most of the specifics of depicting some other character.<br>
   * <br>
-  * The first subdivision of parameters concerns the avatar's basic aesthetics, mostly.
-  * (No other parts of the data divided up yet.)
-  * The final sections include two lists of accredited activity performed/completed by the player.
-  * The remainder of the data, following after that, can be read straight, up to and through the inventory.<br>
+  * The character created by this data is treated like an NPC from the perspective of the server.
+  * Someone else decides how that character is behaving and the server tells each client how to depict that behavior.
+  * For that reason, the character is mostly for presentation purposes, rather than really being fleshed-out.
+  * (As far as the client is concerned, nothing stops this character from being declared an "avatar."
+  * A player would find such a client-controlled character lacking many important details and have poor equipment.
+  * They would also be competing with some other player for input control, if they could control the character at all.)<br>
   * <br>
-  * The base length of the stream is currently __1138__ bits, excluding `List`s and `String`s and inventory.
-  * Of that, __831__ bits are perfectly unknown.
-  * @param appearance data about the avatar's basic aesthetics
-  * @param healthMax for `x / y` of hitpoints, this is the avatar's `y` value;
-  *                  range is 0-65535
-  * @param health for `x / y` of hitpoints, this is the avatar's `x` value;
-  *               range is 0-65535
-  * @param armor for `x / y` of armor points, this is the avatar's `x` value;
-  *              range is 0-65535;
-  *              the avatar's `y` armor points is tied to their exo-suit type
-  * @param unk1 na;
-  *             defaults to 1
-  * @param unk2 na;
-  *             defaults to 7
-  * @param unk3 na;
-  *             defaults to 7
-  * @param staminaMax for `x / y` of stamina points, this is the avatar's `y` value;
-  *                   range is 0-65535
-  * @param stamina for `x / y` of stamina points, this is the avatar's `x` value;
-  *                range is 0-65535
-  * @param unk4 na;
-  *             defaults to 28
-  * @param unk5 na;
-  *             defaults to 4
-  * @param unk6 na;
-  *             defaults to 44
-  * @param unk7 na;
-  *              defaults to 84
-  * @param unk8 na;
-  *              defaults to 104
-  * @param unk9 na;
-  *              defaults to 1900
-  * @param firstTimeEvents the list of first time events performed by this avatar;
-  *                        the size field is a 32-bit number;
-  *                        the first entry may be padded
-  * @param tutorials the list of tutorials completed by this avatar;
-  *                  the size field is a 32-bit number;
-  *                  the first entry may be padded
-  * @param inventory the avatar's inventory
+  * Divisions exist to make the data more manageable.
+  * The first division of data only manages the general appearance of the player's in-game model.
+  * The second division (currently, the fields actually in this class) manages the status of the character.
+  * In general, it passes more simplified data about the character, the minimum that is necessary to explain status to some other player.
+  * For example, health and armor are percentages, and are depicted as bars over the player's head near the nameplate.
+  * The third is the inventory (composed of normal-type objects).
+  * Rather than equipment other players would never interact with, it only comprises the contents of the five holster slots.<br>
+  * <br>
+  * If this player is spawned as dead - with their `health` at 0% - he will start standing and then immediately fall into a lying pose.
+  * The death pose selected is randomized, can not be influenced, and is not be shared across clients.
+  * @param appearance the player's cardinal appearance settings
+  * @param health the amount of health the player has, as a percentage of a filled bar;
+  *               the bar has 85 states, with 3 points for each state;
+  *               when 0% (less than 3 of 255), the player will collapse into a death pose on the ground
+  * @param armor the amount of armor the player has, as a percentage of a filled bar;
+  *              the bar has 85 states, with 3 points for each state
+  * @param uniform_upgrade the level of upgrade to apply to the player's base uniform
+  * @param command_rank the player's command rank as a number from 0 to 5;
+  *                     cosmetic armor associated with the command rank will be applied automatically
+  * @param implant_effects the effects of implants that can be seen on a player's character;
+  *                        though many implants can be used simultaneously, only one implant effect can be applied here
+  * @param cosmetics optional decorative features that are added to the player's head model by console/chat commands;
+  *                  they become available at battle rank 24, but here they require the third uniform upgrade (rank 25);
+  *                  these flags do not exist if they are not applicable
+  * @param inventory the avatar's inventory;
+  *                  typically, only the tools and weapons in the equipment holster slots
+  * @param drawn_slot the holster that is initially drawn;
+  *                   defaults to `DrawnSlot.None`
+  * @see `CharacterAppearanceData`
+  * @see `DetailedCharacterData`
+  * @see `InventoryData`
+  * @see `DrawnSlot`
   */
 final case class CharacterData(appearance : CharacterAppearanceData,
-                               healthMax : Int,
                                health : Int,
                                armor : Int,
-                               unk1 : Int, //1
-                               unk2 : Int, //7
-                               unk3 : Int, //7
-                               staminaMax : Int,
-                               stamina : Int,
-                               unk4 : Int, //28
-                               unk5 : Int, //4
-                               unk6 : Int, //44
-                               unk7 : Int, //84
-                               unk8 : Int, //104
-                               unk9 : Int, //1900
-                               firstTimeEvents : List[String],
-                               tutorials : List[String],
-                               inventory : InventoryData
-                               ) extends ConstructorData {
-  /**
-    * Performs a "sizeof()" analysis of the given object.
-    * @see ConstructorData.bitsize
-    * @return the number of bits necessary to represent this object
-    */
+                               uniform_upgrade : UniformStyle.Value,
+                               command_rank : Int,
+                               implant_effects : Option[ImplantEffects.Value],
+                               cosmetics : Option[Cosmetics],
+                               inventory : Option[InventoryData],
+                               drawn_slot : DrawnSlot.Value = DrawnSlot.None
+                              ) extends ConstructorData {
+
   override def bitsize : Long = {
-    //TODO ongoing analysis, this value will be subject to change
-    //fte list
-    val fteLen = firstTimeEvents.size
-    var eventListSize : Long = 32L + CharacterData.ftePadding(fteLen)
-    for(str <- firstTimeEvents) {
-      eventListSize += CharacterData.stringBitSize(str)
-    }
-    //tutorial list
-    val tutLen = tutorials.size
-    var tutorialListSize : Long = 32L + CharacterData.tutPadding(fteLen, tutLen)
-    for(str <- tutorials) {
-      tutorialListSize += CharacterData.stringBitSize(str)
-    }
-    708L + appearance.bitsize + eventListSize + tutorialListSize + inventory.bitsize
+    //factor guard bool values into the base size, not its corresponding optional field
+    val appearanceSize : Long = appearance.bitsize
+    val effectsSize : Long = if(implant_effects.isDefined) { 4L } else { 0L }
+    val cosmeticsSize : Long = if(cosmetics.isDefined) { 5L } else { 0L }
+    val inventorySize : Long = if(inventory.isDefined) { inventory.get.bitsize } else { 0L }
+    32L + appearanceSize + effectsSize + cosmeticsSize + inventorySize
   }
 }
 
 object CharacterData extends Marshallable[CharacterData] {
   /**
-    * Calculate the size of a string, including the length of the "string length" field that precedes it.
-    * Do not pass null-terminated strings.
-    * @param str a length-prefixed string
-    * @param width the width of the character encoding;
-    *              defaults to the standard 8-bits
-    * @return the size in bits
+    * An overloaded constructor for `CharacterData` that allows for a not-optional inventory.
+    * @param appearance the player's cardinal appearance settings
+    * @param health the amount of health the player has, as a percentage of a filled bar
+    * @param armor the amount of armor the player has, as a percentage of a filled bar
+    * @param uniform the level of upgrade to apply to the player's base uniform
+    * @param cr the player's command rank as a number from 0 to 5
+    * @param implant_effects the effects of implants that can be seen on a player's character
+    * @param cosmetics optional decorative features that are added to the player's head model by console/chat commands
+    * @param inv the avatar's inventory
+    * @param drawn_slot the holster that is initially drawn
+    * @return a `CharacterData` object
     */
-  def stringBitSize(str : String, width : Int = 8) : Long = {
-    val strlen = str.length
-    val lenSize = if(strlen > 127) 16L else 8L
-    lenSize  + (strlen * width)
-  }
+  def apply(appearance : CharacterAppearanceData, health : Int, armor : Int, uniform : UniformStyle.Value, cr : Int, implant_effects : Option[ImplantEffects.Value], cosmetics : Option[Cosmetics], inv : InventoryData, drawn_slot : DrawnSlot.Value) : CharacterData =
+    new CharacterData(appearance, health, armor, uniform, cr, implant_effects, cosmetics, Some(inv), drawn_slot)
 
   /**
-    * Get the padding of the first entry in the first time events list.
-    * The padding will always be a number 0-7.
-    * @param len the length of the list
-    * @return the pad length in bits
+    * Check for the bit flags for the cosmetic items.
+    * These flags are only valid if the player has acquired their third uniform upgrade.
+    * @see `UniformStyle.ThirdUpgrade`
     */
-  private def ftePadding(len : Long) : Int = {
-    //TODO the parameters for this function are not correct
-    //TODO the proper padding length should reflect all variability in the stream prior to this point
-    if(len > 0) {
-      5
-    }
-    else
-      0
-  }
-
-  /**
-    * Get the padding of the first entry in the completed tutorials list.
-    * The padding will always be a number 0-7.<br>
-    * <br>
-    * The tutorials list follows the first time event list and that contains byte-aligned strings too.
-    * While there will be more to the padding, this other list is important.
-    * Any elements in that list causes the automatic byte-alignment of this list's first entry.
-    * @param len the length of the list
-    * @return the pad length in bits
-    */
-  private def tutPadding(len : Long, len2 : Long) : Int = {
-    if(len > 0) //automatic alignment from previous List
-      0
-    else if(len2 > 0) //need to align for elements
-      5
-    else //both lists are empty
-      0
-  }
+  private val cosmeticsCodec : Codec[Cosmetics] = (
+    ("no_helmet" | bool) ::
+      ("beret" | bool) ::
+      ("sunglasses" | bool) ::
+      ("earpiece" | bool) ::
+      ("brimmed_cap" | bool)
+  ).as[Cosmetics]
 
   implicit val codec : Codec[CharacterData] = (
-    ("appearance" | CharacterAppearanceData.codec) ::
-      ignore(160) ::
-      ("healthMax" | uint16L) ::
-      ("health" | uint16L) ::
-      ignore(1) ::
-      ("armor" | uint16L) ::
-      ignore(9) ::
-      ("unk1" | uint8L) ::
-      ignore(8) ::
-      ("unk2" | uint4L) ::
-      ("unk3" | uintL(3)) ::
-      ("staminaMax" | uint16L) ::
-      ("stamina" | uint16L) ::
-      ignore(149) ::
-      ("unk4" | uint16L) ::
-      ("unk5" | uint8L) ::
-      ("unk6" | uint8L) ::
-      ("unk7" | uint8L) ::
-      ("unk8" | uint8L) ::
-      ("unk9" | uintL(12)) ::
-      ignore(19) ::
-      (("firstTimeEvent_length" | uint32L) >>:~ { len =>
-        conditional(len > 0, "firstTimeEvent_firstEntry" | PacketHelpers.encodedStringAligned( ftePadding(len) )) ::
-          ("firstTimeEvent_list" | PacketHelpers.listOfNSized(len - 1, PacketHelpers.encodedString)) ::
-          (("tutorial_length" | uint32L) >>:~ { len2 =>
-            conditional(len2 > 0, "tutorial_firstEntry" | PacketHelpers.encodedStringAligned( tutPadding(len, len2) )) ::
-              ("tutorial_list" | PacketHelpers.listOfNSized(len2 - 1, PacketHelpers.encodedString)) ::
-              ignore(207) ::
-              ("inventory" | InventoryData.codec)
-        })
+    ("app" | CharacterAppearanceData.codec) ::
+      ("health" | uint8L) :: //dead state when health == 0
+      ("armor" | uint8L) ::
+      (("uniform_upgrade" | UniformStyle.codec) >>:~ { style =>
+        ignore(3) :: //unknown
+          ("command_rank" | uintL(3)) ::
+          bool :: //stream misalignment when != 1
+          optional(bool, "implant_effects" | ImplantEffects.codec) ::
+          conditional(style == UniformStyle.ThirdUpgrade, "cosmetics" | cosmeticsCodec) ::
+          optional(bool, "inventory" | InventoryData.codec) ::
+          ("drawn_slot" | DrawnSlot.codec) ::
+          bool //usually false
       })
-    ).xmap[CharacterData] (
+  ).exmap[CharacterData] (
     {
-      case app :: _ :: b :: c :: _ :: d :: _ :: e :: _ :: f :: g :: h :: i :: _ :: j :: k :: l :: m :: n :: o :: _ :: p :: q :: r :: s :: t :: u :: _ :: v :: HNil =>
-        //prepend the displaced first elements to their lists
-        val fteList : List[String] = if(q.isDefined) { q.get :: r } else r
-        val tutList : List[String] = if(t.isDefined) { t.get :: u } else u
-        CharacterData(app, b, c, d, e, f, g, h, i, j, k, l, m, n, o, fteList, tutList, v)
-    },
-    {
-      case CharacterData(app, b, c, d, e, f, g, h, i, j, k, l, m, n, o, fteList, tutList, p) =>
-        //shift the first elements off their lists
-        var fteListCopy = fteList
-        var firstEvent : Option[String] = None
-        if(fteList.nonEmpty) {
-          firstEvent = Some(fteList.head)
-          fteListCopy = fteList.drop(1)
+      case app :: health :: armor :: uniform :: _ :: cr :: false :: implant_effects :: cosmetics :: inv :: drawn_slot :: false :: HNil =>
+        var newHealth = health
+        if(app.backpack) {
+          newHealth = 0
         }
-        var tutListCopy = tutList
-        var firstTutorial : Option[String] = None
-        if(tutList.nonEmpty) {
-          firstTutorial = Some(tutList.head)
-          tutListCopy = tutList.drop(1)
-        }
-        app :: () :: b :: c :: () :: d :: () :: e :: () :: f :: g :: h :: i :: () :: j :: k :: l :: m :: n :: o :: () :: fteList.size.toLong :: firstEvent :: fteListCopy :: tutList.size.toLong :: firstTutorial :: tutListCopy :: () :: p :: HNil
-    }
-  ).as[CharacterData]
+        Attempt.Successful(CharacterData(app, newHealth, armor, uniform, cr, implant_effects, cosmetics, inv, drawn_slot))
 
-  /**
-    * Transform between CharacterData and ConstructorData.
-    */
-  val genericCodec : Codec[ConstructorData.genericPattern] = codec.exmap[ConstructorData.genericPattern] (
-    {
-      case x =>
-        Attempt.successful(Some(x.asInstanceOf[ConstructorData]))
+      case _ =>
+        Attempt.Failure(Err("invalid character data; can not encode"))
     },
     {
-      case Some(x) =>
-        Attempt.successful(x.asInstanceOf[CharacterData])
+      case CharacterData(app, health, armor, uniform, cr, implant_effects, cosmetics, inv, drawn_slot) =>
+        var newHealth = health
+        if(app.backpack) {
+          newHealth = 0
+        }
+        Attempt.Successful(app :: newHealth :: armor :: uniform :: () :: cr :: false :: implant_effects :: cosmetics :: inv :: drawn_slot :: false :: HNil)
+
       case _ =>
-        Attempt.failure(Err("can not encode character data"))
+        Attempt.Failure(Err("invalid character data; can not decode"))
     }
   )
 }
