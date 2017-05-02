@@ -5,9 +5,20 @@ import net.psforever.packet.{GamePacketOpcode, Marshallable, PlanetSideGamePacke
 import scodec.Codec
 import scodec.codecs._
 
+/**
+  * An entry regarding a specific target.
+  * @param target_guid the target
+  * @param unk na
+  */
 final case class TargetRequest(target_guid : PlanetSideGUID,
                                unk : Boolean)
 
+/**
+  * Dispatched by the client when the advanced targeting implant activates to collect status information from the server.<br>
+  * <br>
+  * This packet is answered by a `TargetingInfoMessage` with `List` entries of thed corresponding UIDs.
+  * @param target_list a `List` of targets
+  */
 final case class TargetingImplantRequest(target_list : List[TargetRequest])
   extends PlanetSideGamePacket {
   type Packet = TargetingImplantRequest

@@ -7,10 +7,23 @@ import net.psforever.packet.game._
 import scodec.bits._
 
 class TargetingImplantRequestTest extends Specification {
-  val string = hex"b5 41edeb12d4409f0144053f8010541ba91d03df376831b1e26000611041e1107c0209c0"//0510085013d9ffb6720d5b132900003770?
+  val string_single = hex"b5 061016"
+  val string_long = hex"b5 41edeb12d4409f0144053f8010541ba91d03df376831b1e26000611041e1107c0209c0"//0510085013d9ffb6720d5b132900003770?
 
-  "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+  "decode (single)" in {
+    PacketCoding.DecodePacket(string_single).require match {
+      case TargetingImplantRequest(target_list) =>
+        target_list.length mustEqual 1
+        //0
+        target_list.head.target_guid mustEqual PlanetSideGUID(1412)
+        target_list.head.unk mustEqual true
+      case _ =>
+        ko
+    }
+  }
+
+  "decode (long)" in {
+    PacketCoding.DecodePacket(string_long).require match {
       case TargetingImplantRequest(target_list) =>
         target_list.length mustEqual 16
         //0
@@ -66,7 +79,17 @@ class TargetingImplantRequestTest extends Specification {
     }
   }
 
-  "encode" in {
+  "encode (single)" in {
+    val msg = TargetingImplantRequest(
+      TargetRequest(PlanetSideGUID(1412), true) ::
+        Nil
+    )
+    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+    pkt mustEqual string_single
+  }
+
+  "encode (long)" in {
     val msg = TargetingImplantRequest(
       TargetRequest(PlanetSideGUID(31355), true) ::
         TargetRequest(PlanetSideGUID(27273), false) ::
@@ -88,6 +111,6 @@ class TargetingImplantRequestTest extends Specification {
     )
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
-    pkt mustEqual string
+    pkt mustEqual string_long
   }
 }
