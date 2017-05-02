@@ -7,17 +7,30 @@ import scodec.codecs._
 import shapeless.{::, HNil}
 
 /**
-  * na
+  * An entry regarding a target's health and, if applicable, any secondary defensive option they possess, hitherto, "armor."
   * @param target_guid the target
-  * @param unk1 na
-  * @param unk2 na
+  * @param health the amount of health the target has, as a percentage of a filled bar scaled between 0f and 1f inclusive
+  * @param armor the amount of armor the target has, as a percentage of a filled bar scaled between 0f and 1f inclusive;
+  *              defaults to 0f
   */
 final case class TargetInfo(target_guid : PlanetSideGUID,
-                            unk1 : Float,
-                            unk2 : Float = 0f)
+                            health : Float,
+                            armor : Float = 0f)
 
 /**
-  * na
+  * Dispatched by the server to update status information regarding the listed targets.<br>
+  * <br>
+  * This packet is often in response to a client-sent `TargetingImplantRequest` packet, when related to the implant's operation.
+  * It can also arrive independent of a formal request and will operate even without the implant.
+  * The enumerated targets report their status as two "progress bars" that can be empty (0f) or filled (1f).
+  * When this packet is received, the client will actually update the current fields associated with those values for the target.
+  * For example, for `0x17` player characters, the values are assigned to their health points and armor points respectively.
+  * Allied player characters will have their "progress bar" visuals updated immediately;
+  * the implant is still necessary to view enemy target progress bars, if they will be visible.<br>
+  * <br>
+  * This function can be used to update fields properly.
+  * The value between 0 and 255 (0f to 1f) can be inserted directly into `ObjectCreateMessage` creations as it matches the scale.
+  * The target will be killed or destroyed as expected when health is set to zero.
   * @param target_list a list of targets
   */
 final case class TargetingInfoMessage(target_list : List[TargetInfo])
@@ -29,11 +42,39 @@ final case class TargetingInfoMessage(target_list : List[TargetInfo])
 
 object TargetInfo {
   /**
-    * Transform an unsigned number between 0 and 256 into a percentage of a 255 number.
-    * @param n an unsigned `Integer` number
-    * @return a scaled `Float` number
+    * Overloaded constructor that takes `Integer` values rather than `Float` values.
+    * @param target_guid the target
+    * @param health the amount of health the target has
+    * @param armor the amount of armor the target has
+    * @return a `TargetInfo` object
     */
-  private def rangedFloat(n : Int) : Float = {
+  def apply(target_guid : PlanetSideGUID, health : Int, armor : Int) : TargetInfo = {
+    val health2 : Float = TargetingInfoMessage.rangedFloat(health)
+    val armor2 : Float = TargetingInfoMessage.rangedFloat(armor)
+    TargetInfo(target_guid, health2, armor2)
+  }
+
+  /**
+    * Overloaded constructor that takes `Integer` values rather than `Float` values and only expects the first field.
+    * @param target_guid the target
+    * @param health the amount of health the target has
+    * @return a `TargetInfo` object
+    */
+  def apply(target_guid : PlanetSideGUID, health : Int) : TargetInfo = {
+    val health2 : Float = TargetingInfoMessage.rangedFloat(health)
+    TargetInfo(target_guid, health2)
+  }
+}
+
+object TargetingInfoMessage extends Marshallable[TargetingInfoMessage] {
+  private final val unit : Double = 0.0039215689 //common constant for 1/255
+
+  /**
+    * Transform an unsigned `Integer` number into a scaled `Float`.
+    * @param n an unsigned `Integer` number inclusive 0 and below 256
+    * @return a scaled `Float` number inclusive to 0f to 1f
+    */
+  def rangedFloat(n : Int) : Float = {
     (
       (if(n <= 0) {
         0
@@ -43,37 +84,27 @@ object TargetInfo {
       }
       else {
         n
-      }).toDouble * TargetingInfoMessage.unit
-    ).toFloat
+      }).toDouble * unit
+      ).toFloat
   }
-
   /**
-    * Overloaded constructor that takes `Integer` values rather than `Float` values.
-    * @param target_guid the target
-    * @param unk1 na
-    * @param unk2 na
-    * @return a `TargetInfo` object
+    * Transform a scaled `Float` number into an unsigned `Integer`.
+    * @param n `Float` number inclusive to 0f to 1f
+    * @return a scaled unsigned `Integer` number inclusive 0 and below 256
     */
-  def apply(target_guid : PlanetSideGUID, unk1 : Int, unk2 : Int) : TargetInfo = {
-    val unk1_2 : Float = rangedFloat(unk1)
-    val unk2_2 : Float = rangedFloat(unk2)
-    TargetInfo(target_guid, unk1_2, unk2_2)
+  def rangedInt(n : Float) : Int = {
+    (
+      (if(n <= 0f) {
+        0f
+      }
+      else if(n >= 1.0f) {
+        1.0f
+      }
+      else {
+        n
+      }).toDouble * 255
+    ).toInt
   }
-
-  /**
-    * Overloaded constructor that takes `Integer` values rather than `Float` values and assumes the second `Integer` is zero.
-    * @param target_guid the target
-    * @param unk na
-    * @return a `TargetInfo` object
-    */
-  def apply(target_guid : PlanetSideGUID, unk : Int) : TargetInfo = {
-    val unk1_2 : Float = rangedFloat(unk)
-    TargetInfo(target_guid, unk1_2, 0)
-  }
-}
-
-object TargetingInfoMessage extends Marshallable[TargetingInfoMessage] {
-  final val unit : Double = 0.0039215689 //common constant for 1/255
 
   private val info_codec : Codec[TargetInfo] = (
     ("target_guid" | PlanetSideGUID.codec) ::
@@ -82,15 +113,15 @@ object TargetingInfoMessage extends Marshallable[TargetingInfoMessage] {
   ).xmap[TargetInfo] (
     {
       case a :: b :: c :: HNil =>
-        val bFloat : Float = (b.toDouble * unit).toFloat
-        val cFloat : Float = (c.toDouble * unit).toFloat
-        TargetInfo(a, bFloat, cFloat)
+        val b2 : Float = rangedFloat(b)
+        val c2 : Float = rangedFloat(c)
+        TargetInfo(a, b2, c2)
     },
     {
-      case TargetInfo(a, bFloat, cFloat) =>
-        val b : Int = (bFloat.toDouble * 255).toInt
-        val c : Int = (cFloat.toDouble * 255).toInt
-        a :: b :: c :: HNil
+      case TargetInfo(a, b, c) =>
+        val b2 : Int = rangedInt(b)
+        val c2 : Int = rangedInt(c)
+        a :: b2 :: c2 :: HNil
     }
   )
 

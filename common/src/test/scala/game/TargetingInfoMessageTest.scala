@@ -15,24 +15,24 @@ class TargetingInfoMessageTest extends Specification {
         target_list.size mustEqual 5
         //0
         target_list.head.target_guid mustEqual PlanetSideGUID(4157)
-        target_list.head.unk1 mustEqual 0.7607844f
-        target_list.head.unk2 mustEqual 0f
+        target_list.head.health mustEqual 0.7607844f
+        target_list.head.armor mustEqual 0f
         //1
         target_list(1).target_guid mustEqual PlanetSideGUID(3671)
-        target_list(1).unk1 mustEqual 1.0000001f
-        target_list(1).unk2 mustEqual 0.23529413f
+        target_list(1).health mustEqual 1.0000001f
+        target_list(1).armor mustEqual 0.23529413f
         //2
         target_list(2).target_guid mustEqual PlanetSideGUID(1572)
-        target_list(2).unk1 mustEqual 0.92549026f
-        target_list(2).unk2 mustEqual 0f
+        target_list(2).health mustEqual 0.92549026f
+        target_list(2).armor mustEqual 0f
         //3
         target_list(3).target_guid mustEqual PlanetSideGUID(1579)
-        target_list(3).unk1 mustEqual 0.54901963f
-        target_list(3).unk2 mustEqual 0f
+        target_list(3).health mustEqual 0.54901963f
+        target_list(3).armor mustEqual 0f
         //4
         target_list(4).target_guid mustEqual PlanetSideGUID(1578)
-        target_list(4).unk1 mustEqual 0.5803922f
-        target_list(4).unk2 mustEqual 0f
+        target_list(4).health mustEqual 0.5803922f
+        target_list(4).armor mustEqual 0f
       case _ =>
         ko
     }
