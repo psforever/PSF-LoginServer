@@ -177,7 +177,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
       // NOTE: PlanetSideZoneID just chooses the background
       sendResponse(PacketCoding.CreateGamePacket(0,
-        CharacterInfoMessage(PlanetSideZoneID(1), 0, PlanetSideGUID(0), true, 0)))
+        CharacterInfoMessage(0, PlanetSideZoneID(1), 0, PlanetSideGUID(0), true, 0)))
     case msg @ CharacterRequestMessage(charId, action) =>
       log.info("Handling " + msg)
 
@@ -190,7 +190,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
               log.debug("Object: " + obj)
               // LoadMapMessage 13714 in mossy .gcap
               // XXX: hardcoded shit
-              sendResponse(PacketCoding.CreateGamePacket(0, LoadMapMessage("map10","z10",40100,25,true,3770441820L))) //VS Sanctuary
+              sendResponse(PacketCoding.CreateGamePacket(0, LoadMapMessage("map13","home3",40100,25,true,3770441820L))) //VS Sanctuary
               sendResponse(PacketCoding.CreateGamePacket(0, ZonePopulationUpdateMessage(PlanetSideGUID(13), 414, 138, 0, 138, 0, 138, 0, 138, 0)))
               sendResponse(PacketCoding.CreateGamePacket(0, objectHex))
 
@@ -241,10 +241,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
       sendResponse(PacketCoding.CreateGamePacket(0, ActionResultMessage(true, None)))
       sendResponse(PacketCoding.CreateGamePacket(0,
-        CharacterInfoMessage(PlanetSideZoneID(0), 0, PlanetSideGUID(0), true, 0)))
+        CharacterInfoMessage(0, PlanetSideZoneID(0), 0, PlanetSideGUID(0), true, 0)))
 
     case KeepAliveMessage(code) =>
-      sendResponse(PacketCoding.CreateGamePacket(0, KeepAliveMessage(0)))
+      sendResponse(PacketCoding.CreateGamePacket(0, KeepAliveMessage()))
 
     case msg @ BeginZoningMessage() =>
       log.info("Reticulating splines ...")

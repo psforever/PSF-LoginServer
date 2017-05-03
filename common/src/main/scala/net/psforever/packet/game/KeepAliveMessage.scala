@@ -1,11 +1,11 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.packet.game
 
-import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
+import net.psforever.packet.{GamePacketOpcode, Marshallable, PlanetSideGamePacket}
 import scodec.Codec
 import scodec.codecs._
 
-final case class KeepAliveMessage(code : Int) extends PlanetSideGamePacket {
+final case class KeepAliveMessage(code : Int = 0) extends PlanetSideGamePacket {
   type Packet = KeepAliveMessage
   def opcode = GamePacketOpcode.KeepAliveMessage
   def encode = KeepAliveMessage.encode(this)
