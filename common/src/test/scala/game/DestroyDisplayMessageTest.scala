@@ -12,15 +12,15 @@ class DestroyDisplayMessageTest extends Specification {
 
   "decode" in {
     PacketCoding.DecodePacket(string).require match {
-      case DestroyDisplayMessage(killer, killer_unk, killer_empire, killer_inVehicle, unk, method, victim, victim_unk, victim_empire, victim_inVehicle) =>
+      case DestroyDisplayMessage(killer, killer_charId, killer_empire, killer_inVehicle, unk, method, victim, victim_charId, victim_empire, victim_inVehicle) =>
         killer mustEqual "Angello"
-        killer_unk mustEqual 30981173
+        killer_charId mustEqual 30981173
         killer_empire mustEqual PlanetSideEmpire.VS
         killer_inVehicle mustEqual false
         unk mustEqual 121
         method mustEqual 969
         victim mustEqual "HMFIC"
-        victim_unk mustEqual 31035057
+        victim_charId mustEqual 31035057
         victim_empire mustEqual PlanetSideEmpire.TR
         victim_inVehicle mustEqual false
       case _ =>

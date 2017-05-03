@@ -36,24 +36,24 @@ import scodec.codecs._
   * The exact range of unique and valid icon values for this parameter is currently unknown.
   * It is also unknown what the two bytes preceding `method` specify, as changing them does nothing to the displayed message.
   * @param killer the name of the player who did the killing
-  * @param killer_unk See above
+  * @param killer_charId Same as CharacterInfoMessage
   * @param killer_empire the empire affiliation of the killer
   * @param killer_inVehicle true, if the killer was in a vehicle at the time of the kill; false, otherwise
   * @param unk na; but does not like being set to 0
   * @param method modifies the icon in the message, related to the way the victim was killed
   * @param victim the name of the player who was killed
-  * @param victim_unk See above
+  * @param victim_charId Same as CharacterInfoMessage
   * @param victim_empire the empire affiliation of the victim
   * @param victim_inVehicle true, if the victim was in a vehicle when he was killed; false, otherwise
   */
 final case class DestroyDisplayMessage(killer : String,
-                                       killer_unk : Long,
+                                       killer_charId : Long,
                                        killer_empire : PlanetSideEmpire.Value,
                                        killer_inVehicle : Boolean,
                                        unk : Int,
                                        method : Int,
                                        victim : String,
-                                       victim_unk : Long,
+                                       victim_charId : Long,
                                        victim_empire : PlanetSideEmpire.Value,
                                        victim_inVehicle : Boolean
 )
@@ -66,13 +66,13 @@ final case class DestroyDisplayMessage(killer : String,
 object DestroyDisplayMessage extends Marshallable[DestroyDisplayMessage] {
   implicit val codec : Codec[DestroyDisplayMessage] = (
     ("killer" | PacketHelpers.encodedWideString) ::
-      ("killer_unk" | ulongL(32)) ::
+      ("killer_charId" | ulongL(32)) ::
       ("killer_empire" | PlanetSideEmpire.codec) ::
       ("killer_inVehicle" | bool) ::
       ("unk" | uint16L) ::
       ("method" | uint16L) ::
       ("victim" | PacketHelpers.encodedWideStringAligned(5)) ::
-      ("victim_unk" | ulongL(32)) ::
+      ("victim_charId" | ulongL(32)) ::
       ("victim_empire" | PlanetSideEmpire.codec) ::
       ("victim_inVehicle" | bool)
     ).as[DestroyDisplayMessage]

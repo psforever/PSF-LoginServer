@@ -12,7 +12,7 @@ class UseItemMessageTest extends Specification {
 
   "decode" in {
     PacketCoding.DecodePacket(string).require match {
-      case UseItemMessage(avatar_guid, unk1, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, unk9) =>
+      case UseItemMessage(avatar_guid, unk1, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType) =>
         avatar_guid mustEqual PlanetSideGUID(75)
         unk1 mustEqual 0
         object_guid mustEqual PlanetSideGUID(372)
@@ -23,7 +23,7 @@ class UseItemMessageTest extends Specification {
         unk6 mustEqual 11
         unk7 mustEqual 25
         unk8 mustEqual 0
-        unk9 mustEqual 364
+        itemType mustEqual 364
       case _ =>
         ko
     }
