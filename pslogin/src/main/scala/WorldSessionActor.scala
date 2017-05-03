@@ -190,7 +190,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
               log.debug("Object: " + obj)
               // LoadMapMessage 13714 in mossy .gcap
               // XXX: hardcoded shit
-              sendResponse(PacketCoding.CreateGamePacket(0, LoadMapMessage("map10","z10",40100,25,true,3770441820L))) //VS Sanctuary
+              sendResponse(PacketCoding.CreateGamePacket(0, LoadMapMessage("map13","home3",40100,25,true,3770441820L))) //VS Sanctuary
               sendResponse(PacketCoding.CreateGamePacket(0, ZonePopulationUpdateMessage(PlanetSideGUID(13), 414, 138, 0, 138, 0, 138, 0, 138, 0)))
               sendResponse(PacketCoding.CreateGamePacket(0, objectHex))
 
@@ -254,6 +254,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ ChildObjectStateMessage(object_guid : PlanetSideGUID, pitch : Int, yaw : Int) =>
       //log.info("ChildObjectState: " + msg)
+
+    case msg @ ProjectileStateMessage(projectile_guid, shot_pos, shot_vector, unk1, unk2, unk3, unk4, time_alive) =>
+      //log.info("ProjectileState: " + msg)
 
     case msg @ ChatMsg(messagetype, has_wide_contents, recipient, contents, note_contents) =>
       // TODO: Prevents log spam, but should be handled correctly
