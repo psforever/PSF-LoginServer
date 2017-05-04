@@ -364,6 +364,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
         sendResponse(PacketCoding.CreateGamePacket(0, GenericObjectStateMsg(object_guid, 16)))
       }
 
+    case msg @ DeployObjectMessage(guid, unk1, pos, roll, pitch, yaw, unk2) =>
+      log.info("DeployObject: " + msg)
+
     case msg @ GenericObjectStateMsg(object_guid, unk1) =>
       log.info("GenericObjectState: " + msg)
 

@@ -7,23 +7,26 @@ import scodec.Codec
 import scodec.codecs._
 
 /**
-  * For completion's sake.
-  * We've never actually sent or received this packet during session captures on Gemini Live.
-  * @param guid na
+  * Dispatched from the client to request that an object be deployed.<br>
+  * <br>
+  * Information in the packet mainly reports about the surface on which the object will be coplanar when/if placed.
+  * The server responds with a `ObjectDeployedMessage` packet with the results.
+  * If successful, that is followed by an `ObjectCreateMessage` packet and a `DeployableObjectsInfoMessage` packet.
+  * @param object_guid the object
   * @param unk1 na
-  * @param pos na
+  * @param pos the location where the object is to be deployed
+  * @param roll the amount of roll that affects orientation
+  * @param pitch the amount of pitch that affects orientation
+  * @param yaw the amount of yaw that affects orientation
   * @param unk2 na
-  * @param unk3 na
-  * @param unk4 na
-  * @param unk5 na
   */
-final case class DeployObjectMessage(guid : PlanetSideGUID,
+final case class DeployObjectMessage(object_guid : PlanetSideGUID,
                                      unk1 : Long,
                                      pos : Vector3,
-                                     unk2 : Int,
-                                     unk3 : Int,
-                                     unk4 : Int,
-                                     unk5 : Long)
+                                     roll : Int,
+                                     pitch : Int,
+                                     yaw : Int,
+                                     unk2 : Long)
   extends PlanetSideGamePacket {
   type Packet = DeployObjectMessage
   def opcode = GamePacketOpcode.DeployObjectMessage
@@ -32,12 +35,12 @@ final case class DeployObjectMessage(guid : PlanetSideGUID,
 
 object DeployObjectMessage extends Marshallable[DeployObjectMessage] {
   implicit val codec : Codec[DeployObjectMessage] = (
-    ("guid1" | PlanetSideGUID.codec) ::
+    ("object_guid" | PlanetSideGUID.codec) ::
       ("unk1" | uint32L) ::
       ("pos" | Vector3.codec_pos) ::
-      ("unk2" | uint8L) ::
-      ("unk3" | uint8L) ::
-      ("unk4" | uint8L) ::
-      ("unk5" | uint32L)
+      ("roll" | uint8L) ::
+      ("pitch" | uint8L) ::
+      ("yaw" | uint8L) ::
+      ("unk2" | uint32L)
     ).as[DeployObjectMessage]
 }
