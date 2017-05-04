@@ -510,7 +510,7 @@ object GamePacketOpcode extends Enumeration {
 
     // OPCODES 0xa0-af
     case 0xa0 => game.BuildingInfoUpdateMessage.decode
-    case 0xa1 => noDecoder(FireHintMessage)
+    case 0xa1 => game.FireHintMessage.decode
     case 0xa2 => noDecoder(UplinkRequest)
     case 0xa3 => noDecoder(UplinkResponse)
     case 0xa4 => game.WarpgateRequest.decode
