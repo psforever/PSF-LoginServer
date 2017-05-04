@@ -437,6 +437,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ WeaponDryFireMessage(weapon) =>
       log.info("WeaponDryFireMessage: "+msg)
 
+    case msg @ TargetingImplantRequest(list) =>
+      log.info("TargetingImplantRequest: "+msg)
+
     case default => log.error(s"Unhandled GamePacket ${pkt}")
   }
 
