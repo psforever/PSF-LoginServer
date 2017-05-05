@@ -10,7 +10,7 @@ import scodec.bits._
 import org.log4s.MDC
 import MDCContextAware.Implicits._
 import net.psforever.packet.game.objectcreate._
-import net.psforever.types.{ChatMessageType, TransactionType, PlanetSideEmpire, Vector3}
+import net.psforever.types._
 
 class WorldSessionActor extends Actor with MDCContextAware {
   private[this] val log = org.log4s.getLogger
@@ -111,33 +111,45 @@ class WorldSessionActor extends Actor with MDCContextAware {
   //val objectHex = hex"18 57 0C 00 00 BC 84 B0 06 C2 D7 65 53 5C A1 60 00 01 34 40 00 09 70 49 00 6C 00 6C 00 6C 00 49 00 49 00 49 00 6C 00 6C 00 6C 00 49 00 6C 00 49 00 6C 00 6C 00 49 00 6C 00 6C 00 6C 00 49 00 6C 00 6C 00 49 00 84 52 70 76 1E 80 80 00 00 00 00 00 3F FF C0 00 00 00 20 00 00 0F F6 A7 03 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FD 90 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 90 01 90 00 64 00 00 01 00 7E C8 00 C8 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 C0 00 42 C5 46 86 C7 00 00 00 80 00 00 12 40 78 70 65 5F 73 61 6E 63 74 75 61 72 79 5F 68 65 6C 70 90 78 70 65 5F 74 68 5F 66 69 72 65 6D 6F 64 65 73 8B 75 73 65 64 5F 62 65 61 6D 65 72 85 6D 61 70 31 33 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 0A 23 02 60 04 04 40 00 00 10 00 06 02 08 14 D0 08 0C 80 00 02 00 02 6B 4E 00 82 88 00 00 02 00 00 C0 41 C0 9E 01 01 90 00 00 64 00 44 2A 00 10 91 00 00 00 40 00 18 08 38 94 40 20 32 00 00 00 80 19 05 48 02 17 20 00 00 08 00 70 29 80 43 64 00 00 32 00 0E 05 40 08 9C 80 00 06 40 01 C0 AA 01 19 90 00 00 C8 00 3A 15 80 28 72 00 00 19 00 04 0A B8 05 26 40 00 03 20 06 C2 58 00 A7 88 00 00 02 00 00 80 00 00"
   //currently, the character's starting BEP is discarded due to unknown bit format
   val app = CharacterAppearanceData(
-    Vector3(3674.8438f, 2726.789f, 91.15625f),
-    19,
-    PlanetSideEmpire.VS,
+    PlacementData(
+      Vector3(3674.8438f, 2726.789f, 91.15625f),
+      0, 0,
+      19
+    ),
+    BasicCharacterData(
+      "IlllIIIlllIlIllIlllIllI",
+      PlanetSideEmpire.VS,
+      CharacterGender.Female,
+      41,
+      1
+    ),
+    3,
     false,
-    4,
-    "IlllIIIlllIlIllIlllIllI",
-    4,
-    2,
-    2, 9,
-    1,
-    3, 118, 30, 0x8080, 0xFFFF, 2,
-    255, 106, 7,
+    false,
+    ExoSuitType.Standard,
+    "",
+    0,
+    false,
+    0, 181,
+    true,
+    GrenadeState.None,
+    false,
+    false,
+    false,
     RibbonBars()
   )
-  val inv =
-    InventoryItem(ObjectClass.beamer, PlanetSideGUID(76), 0, WeaponData(8, ObjectClass.energy_cell, PlanetSideGUID(77), 0, AmmoBoxData(16))) ::
-    InventoryItem(ObjectClass.suppressor, PlanetSideGUID(78), 2, WeaponData(8, ObjectClass.bullet_9mm, PlanetSideGUID(79), 0, AmmoBoxData(25))) ::
-    InventoryItem(ObjectClass.forceblade, PlanetSideGUID(80), 4, WeaponData(8, ObjectClass.melee_ammo, PlanetSideGUID(81), 0, AmmoBoxData(1))) ::
-    InventoryItem(ObjectClass.locker_container, PlanetSideGUID(82), 5, AmmoBoxData(1)) ::
-    InventoryItem(ObjectClass.bullet_9mm, PlanetSideGUID(83), 6, AmmoBoxData(50)) ::
-    InventoryItem(ObjectClass.bullet_9mm, PlanetSideGUID(84), 9, AmmoBoxData(50)) ::
-    InventoryItem(ObjectClass.bullet_9mm, PlanetSideGUID(85), 12, AmmoBoxData(50)) ::
-    InventoryItem(ObjectClass.bullet_9mm_AP, PlanetSideGUID(86), 33, AmmoBoxData(50)) ::
-    InventoryItem(ObjectClass.energy_cell, PlanetSideGUID(87), 36, AmmoBoxData(50)) ::
-    InventoryItem(ObjectClass.remote_electronics_kit, PlanetSideGUID(88), 39, REKData(8)) ::
+  val inv = InventoryItem(ObjectClass.beamer, PlanetSideGUID(76), 0, DetailedWeaponData(8, ObjectClass.energy_cell, PlanetSideGUID(77), 0, DetailedAmmoBoxData(8, 16))) ::
+    InventoryItem(ObjectClass.suppressor, PlanetSideGUID(78), 2, DetailedWeaponData(8, ObjectClass.bullet_9mm, PlanetSideGUID(79), 0, DetailedAmmoBoxData(8, 25))) ::
+    InventoryItem(ObjectClass.forceblade, PlanetSideGUID(80), 4, DetailedWeaponData(8, ObjectClass.melee_ammo, PlanetSideGUID(81), 0, DetailedAmmoBoxData(8, 1))) ::
+    InventoryItem(ObjectClass.locker_container, PlanetSideGUID(82), 5, DetailedAmmoBoxData(8, 1)) ::
+    InventoryItem(ObjectClass.bullet_9mm, PlanetSideGUID(83), 6, DetailedAmmoBoxData(8, 50)) ::
+    InventoryItem(ObjectClass.bullet_9mm, PlanetSideGUID(84), 9, DetailedAmmoBoxData(8, 50)) ::
+    InventoryItem(ObjectClass.bullet_9mm, PlanetSideGUID(85), 12, DetailedAmmoBoxData(8, 50)) ::
+    InventoryItem(ObjectClass.bullet_9mm_AP, PlanetSideGUID(86), 33, DetailedAmmoBoxData(8, 50)) ::
+    InventoryItem(ObjectClass.energy_cell, PlanetSideGUID(87), 36, DetailedAmmoBoxData(8, 50)) ::
+    InventoryItem(ObjectClass.remote_electronics_kit, PlanetSideGUID(88), 39, DetailedREKData(8)) ::
     Nil
-  val obj = CharacterData(
+  val obj = DetailedCharacterData(
     app,
     100, 100,
     50,
@@ -146,11 +158,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
     28, 4, 44, 84, 104, 1900,
     "xpe_sanctuary_help" :: "xpe_th_firemodes" :: "used_beamer" :: "map13" :: Nil,
     List.empty,
-    InventoryData(
-      true, false, false, inv
-    )
+    InventoryData(inv),
+    DrawnSlot.None
   )
-  val objectHex = ObjectCreateMessage(0, ObjectClass.avatar, PlanetSideGUID(75), obj)
+  val objectHex = ObjectCreateDetailedMessage(ObjectClass.avatar, PlanetSideGUID(75), obj)
 
   def handleGamePkt(pkt : PlanetSideGamePacket) = pkt match {
     case ConnectToWorldRequestMessage(server, token, majorVersion, minorVersion, revision, buildDate, unk) =>
@@ -175,7 +186,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           sendResponse(PacketCoding.CreateGamePacket(0, ActionResultMessage(false, Some(1))))
         case CharacterRequestAction.Select =>
           objectHex match {
-            case obj @ ObjectCreateMessage(len, cls, guid, _, _) =>
+            case obj @ ObjectCreateDetailedMessage(len, cls, guid, _, _) =>
               log.debug("Object: " + obj)
               // LoadMapMessage 13714 in mossy .gcap
               // XXX: hardcoded shit
@@ -216,7 +227,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
               sendResponse(PacketCoding.CreateGamePacket(0, SetCurrentAvatarMessage(guid,0,0)))
               sendResponse(PacketCoding.CreateGamePacket(0, CreateShortcutMessage(guid, 1, 0, true, Shortcut.MEDKIT)))
-              sendResponse(PacketCoding.CreateGamePacket(0, ReplicationStreamMessage(5, Some(6), Vector(SquadListing(255))))) //clear squad list
+              sendResponse(PacketCoding.CreateGamePacket(0, ReplicationStreamMessage(5, Some(6), Vector(SquadListing())))) //clear squad list
 
               import scala.concurrent.duration._
               import scala.concurrent.ExecutionContext.Implicits.global
@@ -235,8 +246,14 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case KeepAliveMessage(code) =>
       sendResponse(PacketCoding.CreateGamePacket(0, KeepAliveMessage(0)))
 
+    case msg @ BeginZoningMessage() =>
+      log.info("Reticulating splines ...")
+
     case msg @ PlayerStateMessageUpstream(avatar_guid, pos, vel, unk1, aim_pitch, unk2, seq_time, unk3, is_crouching, is_jumping, unk4, is_cloaking, unk5, unk6) =>
       //log.info("PlayerState: " + msg)
+
+    case msg @ ChildObjectStateMessage(object_guid : PlanetSideGUID, pitch : Int, yaw : Int) =>
+      //log.info("ChildObjectState: " + msg)
 
     case msg @ ChatMsg(messagetype, has_wide_contents, recipient, contents, note_contents) =>
       // TODO: Prevents log spam, but should be handled correctly
@@ -281,10 +298,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ DropItemMessage(item_guid) =>
       log.info("DropItem: " + msg)
       //item dropped where you spawn in VS Sanctuary
-      sendResponse(PacketCoding.CreateGamePacket(0, ObjectDetachMessage(PlanetSideGUID(75), item_guid, app.pos, 0, 0, 0)))
+      sendResponse(PacketCoding.CreateGamePacket(0, ObjectDetachMessage(PlanetSideGUID(75), item_guid, app.pos.coord, 0, 0, 0)))
 
     case msg @ PickupItemMessage(item_guid, player_guid, unk1, unk2) =>
       log.info("PickupItem: " + msg)
+      sendResponse(PacketCoding.CreateGamePacket(0, PickupItemMessage(item_guid, player_guid, unk1, unk2)))
+      sendResponse(PacketCoding.CreateGamePacket(0, ObjectAttachMessage(player_guid, item_guid, 250))) // item on mouse
 
     case msg @ ReloadMessage(item_guid, ammo_clip, unk1) =>
       log.info("Reload: " + msg)
@@ -298,15 +317,20 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ ZipLineMessage(player_guid,origin_side,action,id,pos) =>
       log.info("ZipLineMessage: " + msg)
-      if(action == 0) {
-        //doing this lets you use the zip line, but you can't get off
-        //sendResponse(PacketCoding.CreateGamePacket(0,ZipLineMessage(player_guid, origin_side, action, id, pos)))
+      if (!origin_side && action == 0) {
+        //doing this lets you use the zip line in one direction, cant come back
+        sendResponse(PacketCoding.CreateGamePacket(0, ZipLineMessage(player_guid, origin_side, action, id, pos)))
       }
-      else if(action == 1) {
-        //disembark from zipline at destination?
+      else if (!origin_side && action == 1) {
+        //disembark from zipline at destination !
+        sendResponse(PacketCoding.CreateGamePacket(0, ZipLineMessage(player_guid, origin_side, action, 0, pos)))
       }
-      else if(action == 2) {
+      else if (!origin_side && action == 2) {
         //get off by force
+        sendResponse(PacketCoding.CreateGamePacket(0, ZipLineMessage(player_guid, origin_side, action, 0, pos)))
+      }
+      else if (origin_side && action == 0) {
+        // for teleporters & the other zipline direction
       }
 
     case msg @ RequestDestroyMessage(object_guid) =>
@@ -325,18 +349,23 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ ChangeAmmoMessage(item_guid, unk1) =>
       log.info("ChangeAmmo: " + msg)
 
-    case msg @ UseItemMessage(avatar_guid, unk1, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, unk9) =>
+    case msg @ UseItemMessage(avatar_guid, unk1, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType) =>
       log.info("UseItem: " + msg)
       // TODO: Not all fields in the response are identical to source in real packet logs (but seems to be ok)
       // TODO: Not all incoming UseItemMessage's respond with another UseItemMessage (i.e. doors only send out GenericObjectStateMsg)
-      sendResponse(PacketCoding.CreateGamePacket(0, UseItemMessage(avatar_guid, unk1, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, unk9)))
-      if(unk1 != 0){ // TODO : medkit use ?!
-        sendResponse(PacketCoding.CreateGamePacket(0, GenericObjectStateMsg(object_guid, 16)))
+      if (itemType != 121) sendResponse(PacketCoding.CreateGamePacket(0, UseItemMessage(avatar_guid, unk1, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType)))
+      if (itemType == 121 && !unk3){ // TODO : medkit use ?!
+        sendResponse(PacketCoding.CreateGamePacket(0, UseItemMessage(avatar_guid, unk1, object_guid, 0, unk3, unk4, unk5, unk6, unk7, unk8, itemType)))
+        sendResponse(PacketCoding.CreateGamePacket(0, PlanetsideAttributeMessage(avatar_guid, 0, 100))) // avatar with 100 hp
         sendResponse(PacketCoding.CreateGamePacket(0, ObjectDeleteMessage(PlanetSideGUID(unk1), 2)))
-      } else {
+      }
+      if (unk1 == 0 && !unk3 && unk7 == 25) {
         // TODO: This should only actually be sent to doors upon opening; may break non-door items upon use
         sendResponse(PacketCoding.CreateGamePacket(0, GenericObjectStateMsg(object_guid, 16)))
       }
+
+    case msg @ UnuseItemMessage(player, item) =>
+      log.info("UnuseItem: " + msg)
 
     case msg @ GenericObjectStateMsg(object_guid, unk1) =>
       log.info("GenericObjectState: " + msg)
@@ -395,6 +424,24 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ PlanetsideAttributeMessage(avatar_guid, attribute_type, attribute_value) =>
       log.info("PlanetsideAttributeMessage: "+msg)
       sendResponse(PacketCoding.CreateGamePacket(0,PlanetsideAttributeMessage(avatar_guid, attribute_type, attribute_value)))
+
+    case msg @ BattleplanMessage(char_id, player_name, zonr_id, diagrams) =>
+      log.info("Battleplan: "+msg)
+
+    case msg @ CreateShortcutMessage(player_guid, slot, unk, add, shortcut) =>
+      log.info("CreateShortcutMessage: "+msg)
+
+    case msg @ FriendsRequest(action, friend) =>
+      log.info("FriendsRequest: "+msg)
+
+    case msg @ HitHint(source, player) =>
+      log.info("HitHint: "+msg)
+
+    case msg @ WeaponDryFireMessage(weapon) =>
+      log.info("WeaponDryFireMessage: "+msg)
+
+    case msg @ TargetingImplantRequest(list) =>
+      log.info("TargetingImplantRequest: "+msg)
 
     case default => log.error(s"Unhandled GamePacket ${pkt}")
   }

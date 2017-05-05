@@ -12,21 +12,21 @@ class PlayerStateMessageUpstreamTest extends Specification {
 
   "decode" in {
     PacketCoding.DecodePacket(string).require match {
-      case PlayerStateMessageUpstream(avatar_guid, pos, vel, unk1, aim_pitch, unk2, seq_time, unk3, is_crouching, unk4, unk5, is_cloaking, unk6, unk7) =>
+      case PlayerStateMessageUpstream(avatar_guid, pos, vel, facingYaw, facingPitch, facingYawUpper, seq_time, unk1, is_crouching, is_jumping, jump_thrust, is_cloaked, unk2, unk3) =>
         avatar_guid mustEqual PlanetSideGUID(75)
         pos mustEqual Vector3(3694.1094f, 2735.4531f, 90.84375f)
         vel mustEqual Some(Vector3(4.375f, 2.59375f, 0.0f))
-        unk1 mustEqual 10
-        aim_pitch mustEqual 3
-        unk2 mustEqual 0
+        facingYaw mustEqual 10
+        facingPitch mustEqual 3
+        facingYawUpper mustEqual 0
         seq_time mustEqual 136
-        unk3 mustEqual 0
+        unk1 mustEqual 0
         is_crouching mustEqual false
-        unk4 mustEqual false
-        unk5 mustEqual false
-        is_cloaking mustEqual false
-        unk6 mustEqual 112
-        unk7 mustEqual 0
+        is_jumping mustEqual false
+        jump_thrust mustEqual false
+        is_cloaked mustEqual false
+        unk2 mustEqual 112
+        unk3 mustEqual 0
       case _ =>
         ko
     }

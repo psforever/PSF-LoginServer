@@ -2,18 +2,10 @@
 package net.psforever.packet.game
 
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
-import net.psforever.types.PlanetSideEmpire
+import net.psforever.types.{CharacterGender, PlanetSideEmpire}
 import scodec.{Attempt, Codec, Err}
 import scodec.codecs._
 import shapeless.{::, HNil}
-
-object CharacterGender extends Enumeration(1) {
-  type Type = Value
-
-  val Male, Female = Value
-
-  implicit val codec = PacketHelpers.createEnumerationCodec(this, uint2L)
-}
 
 /**
   * Is sent by the PlanetSide client on character selection completion.

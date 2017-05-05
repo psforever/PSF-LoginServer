@@ -4,6 +4,7 @@ package game
 import org.specs2.mutable._
 import net.psforever.packet._
 import net.psforever.packet.game._
+import net.psforever.types.ExoSuitType
 import scodec.bits._
 
 class ArmorChangedMessageTest extends Specification {
@@ -13,7 +14,7 @@ class ArmorChangedMessageTest extends Specification {
     PacketCoding.DecodePacket(string).require match {
       case ArmorChangedMessage(player_guid, armor, subtype) =>
         player_guid mustEqual PlanetSideGUID(273)
-        armor mustEqual 2
+        armor mustEqual ExoSuitType.MAX
         subtype mustEqual 3
       case _ =>
         ko
@@ -21,7 +22,7 @@ class ArmorChangedMessageTest extends Specification {
   }
 
   "encode" in {
-    val msg = ArmorChangedMessage(PlanetSideGUID(273), 2, 3)
+    val msg = ArmorChangedMessage(PlanetSideGUID(273), ExoSuitType.MAX, 3)
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string

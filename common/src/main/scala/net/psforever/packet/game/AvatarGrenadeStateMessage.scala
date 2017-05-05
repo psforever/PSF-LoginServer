@@ -1,22 +1,10 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.packet.game
 
-import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
+import net.psforever.packet.{GamePacketOpcode, Marshallable, PlanetSideGamePacket}
+import net.psforever.types.GrenadeState
 import scodec.Codec
 import scodec.codecs._
-
-/**
-  * An `Enumeration` of the kinds of states applicable to the grenade animation.
-  */
-object GrenadeState extends Enumeration {
-  type Type = Value
-  val UNK0,
-  PRIMED, //avatars and other depicted player characters
-  THROWN //avatars only
-  = Value
-
-  implicit val codec = PacketHelpers.createEnumerationCodec(this, uint8L)
-}
 
 /**
   * Report the state of the grenade throw animation for this player.
@@ -25,12 +13,12 @@ object GrenadeState extends Enumeration {
   * The throwing animation has a minor timing glitch.
   * Causing another player to raise his arm will always result in that arm being lowered a few seconds later.
   * This is as opposed to the client's avatar, who can seem to hold a grenade in the "prepare to throw" state indefinitely.
-  * If the avatar looks away from a player whose grenade arm is up ("prepare to throw"), however, when they look back at the player
+  * If the avatar looks away from a player whose grenade arm is up ("prepare to throw"), however, when they look back at the player,
   * his grenade arm will occasionally have been lowered ("held at side") again before it would normally be lowered.<br>
   * <br>
-  * A client will dispatch state '1' and state '2' for the avatar's actions.
-  * A client will only react temporarily for another character other than the avatar when the given a state '1'.
-  * If that internal state is not changed, however, that other character will not respond to any subsequent '1' state.
+  * A client will dispatch state 'Primed' and state 'Thrown' for the avatar's actions.
+  * A client will only react temporarily for another character other than the avatar when the given a state 'Primed'.
+  * If that internal state is not changed, however, that other character will not respond to any subsequent 'Primed' state.
   * (This may also be a glitch.)<br>
   * <br>
   * States:<br>
