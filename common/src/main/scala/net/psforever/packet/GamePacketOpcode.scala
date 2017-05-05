@@ -415,7 +415,7 @@ object GamePacketOpcode extends Enumeration {
 
     // OPCODES 0x50-5f
     case 0x50 => game.TargetingInfoMessage.decode
-    case 0x51 => noDecoder(TriggerEffectMessage)
+    case 0x51 => game.TriggerEffectMessage.decode
     case 0x52 => game.WeaponDryFireMessage.decode
     case 0x53 => noDecoder(DroppodLaunchRequestMessage)
     case 0x54 => noDecoder(HackMessage)
