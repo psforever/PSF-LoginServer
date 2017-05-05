@@ -2,7 +2,7 @@ lazy val commonSettings = Seq(
   organization := "net.psforever",
   version := "1.0.2-SNAPSHOT",
   scalaVersion := "2.11.8",
-  scalacOptions := Seq("-unchecked", "-deprecation", "-encoding", "utf8"),
+  scalacOptions := Seq("-unchecked", "-deprecation", "-encoding", "utf8", "-language:postfixOps"),
   resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
   libraryDependencies ++= Seq(
     "com.typesafe.akka"          %% "akka-actor"    % "2.4.4",
