@@ -42,6 +42,11 @@ lazy val root = (project in file(".")).
 
 lazy val pslogin = (project in file("pslogin")).
   settings(commonSettings: _*).
+  settings(libraryDependencies ++= Seq(
+      "org.jline" % "jline-terminal" % "3.2.0",
+      "org.jline" % "jline-reader" % "3.2.0"
+    )
+  ).
   settings(
     name := "pslogin"
   ).

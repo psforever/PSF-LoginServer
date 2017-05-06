@@ -215,6 +215,10 @@ object PsLogin {
     this.args = args
     run()
 
+    // Boot up the console on the main thread
+    val psConsole = new PsConsole(system)
+    psConsole.process
+
     // Wait forever until the actor system shuts down
     Await.result(system.whenTerminated, Duration.Inf)
   }
