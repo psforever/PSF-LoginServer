@@ -19,6 +19,7 @@ final case class RawPacket(data : ByteVector) extends SessionRouterAPI
 final case class ResponsePacket(data : ByteVector) extends SessionRouterAPI
 final case class DropSession(id : Long, reason : String) extends SessionRouterAPI
 final case class SessionReaper() extends SessionRouterAPI
+final case class ListSessions() extends SessionRouterAPI
 
 case class SessionPipeline(nameTemplate : String, props : Props)
 
@@ -124,6 +125,10 @@ class SessionRouter(role : String, pipeline : List[SessionPipeline]) extends Act
         } else if(session.timeSinceLastOutboundEvent > 4000) {
           removeSessionById(id, "session timed out (outbound)", graceful = true) // tell client to STFU
         }
+      }
+    case ListSessions() =>
+      sessionById.foreach { case (id, session) =>
+        log.info(session.toString)
       }
     case Terminated(actor) =>
       val terminatedSession = sessionByActor.get(actor)

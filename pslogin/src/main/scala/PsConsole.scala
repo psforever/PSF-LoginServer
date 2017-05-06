@@ -25,8 +25,6 @@ class PsConsole(system : ActorSystem) {
     if(sz == "")
       return false
 
-    println("Cmd " + sz)
-
     val argv = sz.split(" ")
 
     val cmd = argv{0}
@@ -35,6 +33,41 @@ class PsConsole(system : ActorSystem) {
     cmd match {
       case "exit" | "quit" | "shutdown" =>
         return true
+      case "session" =>
+        if(argc < 1)
+          return false
+
+          val login = system.actorSelection("akka://PsLogin/user/login-udp-endpoint/login-session-router")
+          val world = system.actorSelection("akka://PsLogin/user/world-udp-endpoint/world-session-router")
+
+        argv{1} match {
+          case "list" =>
+            login ! ListSessions()
+            world ! ListSessions()
+          case "drop-login" =>
+            if(argc < 2)
+              return false
+
+            try {
+              login ! DropSession(argv{2}.toLong, "Dropped from console")
+            } catch {
+              case e: NumberFormatException =>
+                println("Invalid session id")
+            }
+          case "drop-world" =>
+            if(argc < 2)
+              return false
+
+            try {
+              world ! DropSession(argv{2}.toLong, "Dropped from console")
+            } catch {
+              case e: NumberFormatException =>
+                println("Invalid session id")
+            }
+          case _ =>
+        }
+
+        return false
       case "log" =>
         import collection.JavaConverters._;
 
