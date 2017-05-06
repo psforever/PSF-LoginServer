@@ -86,6 +86,10 @@ class Session(val sessionId : Long,
     bytesSent + bytesReceived
   }
 
+  def getTotalPackets = {
+    outboundPackets + inboundPackets
+  }
+
   def timeSinceLastInboundEvent = {
     (System.nanoTime() - lastInboundEvent)/1000000
   }
@@ -96,6 +100,6 @@ class Session(val sessionId : Long,
 
 
   override def toString : String = {
-    s"Session($sessionId, $getTotalBytes)"
+    s"Session($sessionId - $sessionCreatedTime) - Bytes[TOTAL $getTotalBytes, IN $bytesReceived OUT $bytesSent] Packets[TOTAL $getTotalPackets, IN $inboundPackets, OUT $outboundPackets]"
   }
 }
