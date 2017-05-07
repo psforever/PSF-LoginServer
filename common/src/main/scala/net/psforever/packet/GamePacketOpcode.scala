@@ -425,7 +425,7 @@ object GamePacketOpcode extends Enumeration {
     // 0x58
     case 0x58 => game.AvatarImplantMessage.decode
     case 0x59 => noDecoder(UnknownMessage89)
-    case 0x5a => noDecoder(DelayedPathMountMsg)
+    case 0x5a => game.DelayedPathMountMsg.decode
     case 0x5b => noDecoder(OrbitalShuttleTimeMsg)
     case 0x5c => noDecoder(AIDamage)
     case 0x5d => game.DeployObjectMessage.decode
