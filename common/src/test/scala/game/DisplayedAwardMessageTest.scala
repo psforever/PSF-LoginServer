@@ -1,6 +1,7 @@
 // Copyright (c) 2017 PSForever
 package game
 
+import net.psforever.types.MeritCommendation
 import org.specs2.mutable._
 import net.psforever.packet._
 import net.psforever.packet.game._
@@ -13,7 +14,7 @@ class DisplayedAwardMessageTest extends Specification {
     PacketCoding.DecodePacket(string).require match {
       case DisplayedAwardMessage(player_guid, ribbon, bar) =>
         player_guid mustEqual PlanetSideGUID(1695)
-        ribbon mustEqual 422L
+        ribbon mustEqual MeritCommendation.TwoYearTR
         bar mustEqual RibbonBarsSlot.TermOfService
       case _ =>
         ko
@@ -21,7 +22,7 @@ class DisplayedAwardMessageTest extends Specification {
   }
 
   "encode" in {
-    val msg = DisplayedAwardMessage(PlanetSideGUID(1695), 422L, RibbonBarsSlot.TermOfService)
+    val msg = DisplayedAwardMessage(PlanetSideGUID(1695), MeritCommendation.TwoYearTR, RibbonBarsSlot.TermOfService)
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string

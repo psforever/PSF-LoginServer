@@ -4,7 +4,7 @@ package game
 import net.psforever.packet._
 import net.psforever.packet.game._
 import net.psforever.packet.game.objectcreate._
-import net.psforever.types.{CharacterGender, ExoSuitType, GrenadeState, PlanetSideEmpire, Vector3}
+import net.psforever.types._
 import org.specs2.mutable._
 import scodec.bits._
 
@@ -684,10 +684,10 @@ class ObjectCreateMessageTest extends Specification {
         pc.appearance.is_cloaking mustEqual false
         pc.appearance.charging_pose mustEqual false
         pc.appearance.on_zipline mustEqual false
-        pc.appearance.ribbons.upper mustEqual 276L
-        pc.appearance.ribbons.middle mustEqual 239L
-        pc.appearance.ribbons.lower mustEqual 397L
-        pc.appearance.ribbons.tos mustEqual 360L
+        pc.appearance.ribbons.upper mustEqual MeritCommendation.Loser4
+        pc.appearance.ribbons.middle mustEqual MeritCommendation.HeavyInfantry3
+        pc.appearance.ribbons.lower mustEqual MeritCommendation.TankBuster6
+        pc.appearance.ribbons.tos mustEqual MeritCommendation.SixYearNC
         pc.health mustEqual 255
         pc.armor mustEqual 253
         pc.uniform_upgrade mustEqual UniformStyle.ThirdUpgrade
@@ -780,10 +780,10 @@ class ObjectCreateMessageTest extends Specification {
         pc.appearance.is_cloaking mustEqual false
         pc.appearance.charging_pose mustEqual false
         pc.appearance.on_zipline mustEqual false
-        pc.appearance.ribbons.upper mustEqual 244L
-        pc.appearance.ribbons.middle mustEqual 353L
-        pc.appearance.ribbons.lower mustEqual 33L
-        pc.appearance.ribbons.tos mustEqual 361L
+        pc.appearance.ribbons.upper mustEqual MeritCommendation.Jacking
+        pc.appearance.ribbons.middle mustEqual MeritCommendation.ScavengerTR6
+        pc.appearance.ribbons.lower mustEqual MeritCommendation.AMSSupport4
+        pc.appearance.ribbons.tos mustEqual MeritCommendation.SixYearTR
         pc.health mustEqual 0
         pc.armor mustEqual 0
         pc.uniform_upgrade mustEqual UniformStyle.ThirdUpgrade
@@ -1107,7 +1107,12 @@ class ObjectCreateMessageTest extends Specification {
         false,
         GrenadeState.None,
         false, false, false,
-        RibbonBars(276L, 239L, 397L, 360L)
+        RibbonBars(
+          MeritCommendation.Loser4,
+          MeritCommendation.HeavyInfantry3,
+          MeritCommendation.TankBuster6,
+          MeritCommendation.SixYearNC
+        )
       ),
       255, 253,
       UniformStyle.ThirdUpgrade,
@@ -1159,7 +1164,12 @@ class ObjectCreateMessageTest extends Specification {
         false,
         GrenadeState.None,
         false, false, false,
-        RibbonBars(244L, 353L, 33L, 361L)
+        RibbonBars(
+          MeritCommendation.Jacking,
+          MeritCommendation.ScavengerTR6,
+          MeritCommendation.AMSSupport4,
+          MeritCommendation.SixYearTR
+        )
       ),
       0, 0,
       UniformStyle.ThirdUpgrade,

@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.packet.game
 
-import net.psforever.packet.game.objectcreate.RibbonBars
+import net.psforever.types.MeritCommendation
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
 import scodec.Codec
 import scodec.codecs._
@@ -35,14 +35,15 @@ object RibbonBarsSlot extends Enumeration {
   * The last set slot is considered the valid position to which that ribbon will be placed/moved.
   * @param player_guid the player
   * @param ribbon the award to be displayed;
-  *               defaults to `RibbonsBars.noRibbon`;
-  *               use `RibbonsBars.noRibbon` when indicating "no ribbon"
+  *               defaults to `MeritCommendation.None`;
+  *               use `MeritCommendation.None` when indicating "no ribbon"
   * @param bar any of the four positions where the award ribbon is to be displayed;
   *            defaults to `TermOfService`
   * @see `RibbonBars`
+  * @see `MeritCommendation`
   */
 final case class DisplayedAwardMessage(player_guid : PlanetSideGUID,
-                                       ribbon : Long = RibbonBars.noRibbon,
+                                       ribbon : MeritCommendation.Value = MeritCommendation.None,
                                        bar : RibbonBarsSlot.Value = RibbonBarsSlot.TermOfService)
   extends PlanetSideGamePacket {
   type Packet = DisplayedAwardMessage
@@ -53,7 +54,7 @@ final case class DisplayedAwardMessage(player_guid : PlanetSideGUID,
 object DisplayedAwardMessage extends Marshallable[DisplayedAwardMessage] {
   implicit val codec : Codec[DisplayedAwardMessage] = (
     ("player_guid" | PlanetSideGUID.codec) ::
-      ("ribbon" | uint32L) ::
+      ("ribbon" | MeritCommendation.codec) ::
       ("bar" | RibbonBarsSlot.codec)
     ).as[DisplayedAwardMessage]
 }
