@@ -461,7 +461,7 @@ object GamePacketOpcode extends Enumeration {
     case 0x76 => game.DeployableObjectsInfoMessage.decode
     case 0x77 => noDecoder(SquadState)
     // 0x78
-    case 0x78 => noDecoder(OxygenStateMessage)
+    case 0x78 => game.OxygenStateMessage.decode
     case 0x79 => noDecoder(TradeMessage)
     case 0x7a => noDecoder(UnknownMessage122)
     case 0x7b => noDecoder(DamageFeedbackMessage)
