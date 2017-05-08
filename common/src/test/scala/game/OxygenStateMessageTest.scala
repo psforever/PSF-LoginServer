@@ -26,11 +26,11 @@ class OxygenStateMessageTest extends Specification {
     PacketCoding.DecodePacket(string_vehicle).require match {
       case OxygenStateMessage(guid, time, active, veh_state) =>
         guid mustEqual PlanetSideGUID(75)
-        time mustEqual 50.0
+        time mustEqual 50.0f
         active mustEqual true
         veh_state.isDefined mustEqual true
         veh_state.get.vehicle_guid mustEqual PlanetSideGUID(1546)
-        veh_state.get.time mustEqual 50.0
+        veh_state.get.time mustEqual 50.0f
         veh_state.get.active mustEqual true
       case _ =>
         ko
@@ -38,14 +38,14 @@ class OxygenStateMessageTest extends Specification {
   }
 
   "encode (self)" in {
-    val msg = OxygenStateMessage(PlanetSideGUID(75), 50.0, true)
+    val msg = OxygenStateMessage(PlanetSideGUID(75), 50.0f, true)
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string_self
   }
 
   "encode (vehicle)" in {
-    val msg = OxygenStateMessage(PlanetSideGUID(75), 50.0, true, WaterloggedVehicleState(PlanetSideGUID(1546), 50.0, true))
+    val msg = OxygenStateMessage(PlanetSideGUID(75), 50.0f, true, WaterloggedVehicleState(PlanetSideGUID(1546), 50.0f, true))
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string_vehicle

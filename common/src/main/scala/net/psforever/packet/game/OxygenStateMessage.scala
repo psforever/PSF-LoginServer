@@ -8,26 +8,46 @@ import scodec.codecs._
 import shapeless.{::, HNil}
 
 /**
-  * na
+  * Alert the condition of a vehicle the player is using when going too far underwater.
+  * The player must be mounted to this vehicle at start time for this countdown to display.
   * @param vehicle_guid the player's mounted vehicle
-  * @param time the countdown's time upon start
+  * @param time the countdown's time, in seconds
   * @param active show a new countdown if `true` (resets any active countdown);
-  *               clear any active countdowns if `false`
+  *               clear any active countdowns if `false`;
+  *               defaults to `true`
   */
 final case class WaterloggedVehicleState(vehicle_guid : PlanetSideGUID,
-                                         time : Double,
-                                         active : Boolean)
+                                         time : Float,
+                                         active : Boolean = true)
 
 /**
-  * na
+  * Dispatched by the server to cause the player to slowly drown.
+  * If the player is mounted in a vehicle at the time, alert the player that the vehicle may be disabled.<br>
+  * <br>
+  * When a player walks too far underwater, a borderless red progress bar with a countdown from 100 (98) is displayed across the screen.
+  * The countdown proceeds to zero at a fixed rate and is timed with the depleting progress bar.
+  * When it reaches zero, the player will be killed.
+  * If the player is in a vehicle after a certain depth, a blue bar and countdown pair will superimpose the red indicators.
+  * It depletes much more rapidly than the red indicators.
+  * When it reaches zero, the vehicle will become disabled.
+  * All players in the vehicle's seats will be kicked and they will not be allowed back in.<br>
+  * <br>
+  * Normally, the countdowns should be set to begin at 100.0s.
+  * This is the earliest the drowning GUI will appear for either blue or red indicators.
+  * Passing greater intervals - up to 204.8s - will start the countdown silently but the GUI will be hidden until 100.0s.
+  * (The progress indicators will actually appear to start counting from 98%.)
+  * Managing the secondary vehicle countdown independent of the primary player countdown requires updating with the correct times.
+  * The countdown can be cancelled by instructing it to be `active = false`.<br>
+  * <br>
+  * Except for updating the indicators, all other functionality of "drowning" is automated by the server.
   * @param player_guid the player
-  * @param time the countdown's time upon start
+  * @param time the countdown's time, in seconds
   * @param active show a new countdown if `true` (resets any active countdown);
   *               clear any active countdowns if `false`
   * @param vehicle_state optional state of the vehicle the player is driving
   */
 final case class OxygenStateMessage(player_guid : PlanetSideGUID,
-                                    time : Double,
+                                    time : Float,
                                     active : Boolean,
                                     vehicle_state : Option[WaterloggedVehicleState] = None)
   extends PlanetSideGamePacket {
@@ -45,13 +65,13 @@ object OxygenStateMessage extends Marshallable[OxygenStateMessage] {
     * @param vehicle_state state of the vehicle the player is driving
     * @return
     */
-  def apply(player_guid : PlanetSideGUID, time : Double, active : Boolean, vehicle_state : WaterloggedVehicleState) : OxygenStateMessage =
+  def apply(player_guid : PlanetSideGUID, time : Float, active : Boolean, vehicle_state : WaterloggedVehicleState) : OxygenStateMessage =
     OxygenStateMessage(player_guid, time, active, Some(vehicle_state))
 
   /**
     * A simple pattern that expands the datatypes of the packet's basic `Codec`.
     */
-  private type basePattern = PlanetSideGUID :: Double :: Boolean :: HNil
+  private type basePattern = PlanetSideGUID :: Float :: Boolean :: HNil
 
   /**
     * A `Codec` for the repeated processing of three values.
@@ -59,7 +79,7 @@ object OxygenStateMessage extends Marshallable[OxygenStateMessage] {
     */
   private val base_codec : Codec[basePattern] =
     PlanetSideGUID.codec ::
-      newcodecs.q_double(0.0, 204.8, 11) :: //hackish: 2^11 == 2047, so it should be 204.7; but, 204.8 allows the decode == encode
+      newcodecs.q_float(0.0f, 204.8f, 11) :: //hackish: 2^11 == 2047, so it should be 204.7; but, 204.8 allows decode == encode
       bool
 
   implicit val codec : Codec[OxygenStateMessage] = (
