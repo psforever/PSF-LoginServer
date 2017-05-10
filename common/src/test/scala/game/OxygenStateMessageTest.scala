@@ -12,9 +12,9 @@ class OxygenStateMessageTest extends Specification {
 
   "decode (self)" in {
     PacketCoding.DecodePacket(string_self).require match {
-      case OxygenStateMessage(guid, time, active, veh_state) =>
+      case OxygenStateMessage(guid, progress, active, veh_state) =>
         guid mustEqual PlanetSideGUID(75)
-        time mustEqual 50.0
+        progress mustEqual 50.0
         active mustEqual true
         veh_state.isDefined mustEqual false
       case _ =>
@@ -24,13 +24,13 @@ class OxygenStateMessageTest extends Specification {
 
   "decode (vehicle)" in {
     PacketCoding.DecodePacket(string_vehicle).require match {
-      case OxygenStateMessage(guid, time, active, veh_state) =>
+      case OxygenStateMessage(guid, progress, active, veh_state) =>
         guid mustEqual PlanetSideGUID(75)
-        time mustEqual 50.0f
+        progress mustEqual 50.0f
         active mustEqual true
         veh_state.isDefined mustEqual true
         veh_state.get.vehicle_guid mustEqual PlanetSideGUID(1546)
-        veh_state.get.time mustEqual 50.0f
+        veh_state.get.progress mustEqual 50.0f
         veh_state.get.active mustEqual true
       case _ =>
         ko
