@@ -1,0 +1,30 @@
+// Copyright (c) 2017 PSForever
+package game
+
+import net.psforever.types.MeritCommendation
+import org.specs2.mutable._
+import net.psforever.packet._
+import net.psforever.packet.game._
+import scodec.bits._
+
+class DisplayedAwardMessageTest extends Specification {
+  val string = hex"D1 9F06 A6010000 3 0"
+
+  "decode" in {
+    PacketCoding.DecodePacket(string).require match {
+      case DisplayedAwardMessage(player_guid, ribbon, bar) =>
+        player_guid mustEqual PlanetSideGUID(1695)
+        ribbon mustEqual MeritCommendation.TwoYearTR
+        bar mustEqual RibbonBarsSlot.TermOfService
+      case _ =>
+        ko
+    }
+  }
+
+  "encode" in {
+    val msg = DisplayedAwardMessage(PlanetSideGUID(1695), MeritCommendation.TwoYearTR, RibbonBarsSlot.TermOfService)
+    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+    pkt mustEqual string
+  }
+}

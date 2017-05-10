@@ -567,7 +567,7 @@ object GamePacketOpcode extends Enumeration {
 
     // OPCODES 0xd0-df
     case 0xd0 => noDecoder(UnknownMessage208)
-    case 0xd1 => noDecoder(DisplayedAwardMessage)
+    case 0xd1 => game.DisplayedAwardMessage.decode
     case 0xd2 => noDecoder(RespawnAMSInfoMessage)
     case 0xd3 => noDecoder(ComponentDamageMessage)
     case 0xd4 => noDecoder(GenericObjectActionAtPositionMessage)

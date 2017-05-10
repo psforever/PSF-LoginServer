@@ -55,8 +55,10 @@ object ObjectCreateDetailedMessage extends Marshallable[ObjectCreateDetailedMess
     * @param data the data used to construct this type of object
     * @return an ObjectCreateMessage
     */
-  def apply(objectClass : Int, guid : PlanetSideGUID, parentInfo : ObjectCreateMessageParent, data : ConstructorData) : ObjectCreateDetailedMessage =
-    ObjectCreateDetailedMessage(0L, objectClass, guid, Some(parentInfo), Some(data))
+  def apply(objectClass : Int, guid : PlanetSideGUID, parentInfo : ObjectCreateMessageParent, data : ConstructorData) : ObjectCreateDetailedMessage = {
+    val parentInfoOpt : Option[ObjectCreateMessageParent] = Some(parentInfo)
+    ObjectCreateDetailedMessage(ObjectCreateBase.streamLen(parentInfoOpt, data), objectClass, guid, parentInfoOpt, Some(data))
+  }
 
   /**
     * An abbreviated constructor for creating `ObjectCreateMessages`, ignoring `parentInfo`.
@@ -65,8 +67,9 @@ object ObjectCreateDetailedMessage extends Marshallable[ObjectCreateDetailedMess
     * @param data the data used to construct this type of object
     * @return an ObjectCreateMessage
     */
-  def apply(objectClass : Int, guid : PlanetSideGUID, data : ConstructorData) : ObjectCreateDetailedMessage =
-    ObjectCreateDetailedMessage(0L, objectClass, guid, None, Some(data))
+  def apply(objectClass : Int, guid : PlanetSideGUID, data : ConstructorData) : ObjectCreateDetailedMessage = {
+    ObjectCreateDetailedMessage(ObjectCreateBase.streamLen(None, data), objectClass, guid, None, Some(data))
+  }
 
   /**
     * Take the important information of a game piece and transform it into bit data.
