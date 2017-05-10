@@ -200,10 +200,10 @@ object BuildingInfoUpdateMessage extends Marshallable[BuildingInfoUpdateMessage]
         Attempt.successful(BuildingInfoUpdateMessage(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u))
     },
     {
-      case BuildingInfoUpdateMessage(_, _, _, _, _, _, _, 0, Some(x), _, _, _, _, _, _, _, _, _, _, _, _) =>
+      case BuildingInfoUpdateMessage(_, _, _, _, _, _, _, 0, Some(_), _, _, _, _, _, _, _, _, _, _, _, _) =>
         Attempt.failure(Err("invalid properties when value == 0"))
 
-      case BuildingInfoUpdateMessage(_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, 8, Some(x), _, _) =>
+      case BuildingInfoUpdateMessage(_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, 8, Some(_), _, _) =>
         Attempt.failure(Err("invalid properties when value == 8"))
 
       case BuildingInfoUpdateMessage(a, b, c, d, e, f, g, h, i, j, k, l, m, n, lst, p, q, r, s, t, u) =>

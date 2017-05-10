@@ -350,7 +350,7 @@ object GamePacketOpcode extends Enumeration {
     case 0x18 => game.ObjectCreateDetailedMessage.decode
     case 0x19 => game.ObjectDeleteMessage.decode
     case 0x1a => game.PingMsg.decode
-    case 0x1b => noDecoder(VehicleStateMessage)
+    case 0x1b => game.VehicleStateMessage.decode
     case 0x1c => noDecoder(FrameVehicleStateMessage)
     case 0x1d => game.GenericObjectStateMsg.decode
     case 0x1e => game.ChildObjectStateMessage.decode

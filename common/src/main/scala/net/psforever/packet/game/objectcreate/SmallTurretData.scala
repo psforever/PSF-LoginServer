@@ -20,13 +20,13 @@ import shapeless.{::, HNil}
   * @param health the amount of health the object has, as a percentage of a filled bar
   * @param internals data regarding the mounted weapon
   */
-final case class SmallTurretData(deploy : ACEDeployableData,
+final case class SmallTurretData(deploy : CommonFieldData,
                                  health : Int,
                                  internals : Option[InternalSlot] = None
                                 ) extends ConstructorData {
   override def bitsize : Long = {
     val deploySize = deploy.bitsize
-    val internalSize = if(internals.isDefined) { ACEDeployableData.internalWeapon_bitsize + internals.get.bitsize } else { 0L }
+    val internalSize = if(internals.isDefined) { CommonFieldData.internalWeapon_bitsize + internals.get.bitsize } else { 0L }
     23L + deploySize + internalSize //1u + 8u + 7u + 4u + 2u + 1u
   }
 }
@@ -39,7 +39,7 @@ object SmallTurretData extends Marshallable[SmallTurretData] {
     * @param internals data regarding the mounted weapon
     * @return a `SmallTurretData` object
     */
-  def apply(deploy : ACEDeployableData,  health : Int,  internals : InternalSlot) : SmallTurretData =
+  def apply(deploy : CommonFieldData, health : Int, internals : InternalSlot) : SmallTurretData =
     new SmallTurretData(deploy, health, Some(internals))
 
   /**
@@ -81,13 +81,13 @@ object SmallTurretData extends Marshallable[SmallTurretData] {
     )
 
   implicit val codec : Codec[SmallTurretData] = (
-    ("deploy" | ACEDeployableData.codec) ::
+    ("deploy" | CommonFieldData.codec) ::
       bool ::
       ("health" | uint8L) ::
       uintL(7) ::
       uint4L ::
       uint2L ::
-      optional(bool, "internals" | ACEDeployableData.internalWeaponCodec)
+      optional(bool, "internals" | CommonFieldData.internalWeaponCodec)
   ).exmap[SmallTurretData] (
     {
       case deploy :: false :: health :: 0 :: 0xF :: 0 :: internals :: HNil =>

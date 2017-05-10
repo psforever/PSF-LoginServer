@@ -138,9 +138,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
     false,
     RibbonBars()
   )
-  val inv = InventoryItem(ObjectClass.beamer, PlanetSideGUID(76), 0, DetailedWeaponData(8, ObjectClass.energy_cell, PlanetSideGUID(77), 0, DetailedAmmoBoxData(8, 16))) ::
-    InventoryItem(ObjectClass.suppressor, PlanetSideGUID(78), 2, DetailedWeaponData(8, ObjectClass.bullet_9mm, PlanetSideGUID(79), 0, DetailedAmmoBoxData(8, 25))) ::
-    InventoryItem(ObjectClass.forceblade, PlanetSideGUID(80), 4, DetailedWeaponData(8, ObjectClass.melee_ammo, PlanetSideGUID(81), 0, DetailedAmmoBoxData(8, 1))) ::
+  val inv = InventoryItem(ObjectClass.beamer, PlanetSideGUID(76), 0, DetailedWeaponData(4, 8, ObjectClass.energy_cell, PlanetSideGUID(77), 0, DetailedAmmoBoxData(8, 16))) ::
+    InventoryItem(ObjectClass.suppressor, PlanetSideGUID(78), 2, DetailedWeaponData(4, 8, ObjectClass.bullet_9mm, PlanetSideGUID(79), 0, DetailedAmmoBoxData(8, 25))) ::
+    InventoryItem(ObjectClass.forceblade, PlanetSideGUID(80), 4, DetailedWeaponData(4, 8, ObjectClass.melee_ammo, PlanetSideGUID(81), 0, DetailedAmmoBoxData(8, 1))) ::
     InventoryItem(ObjectClass.locker_container, PlanetSideGUID(82), 5, DetailedAmmoBoxData(8, 1)) ::
     InventoryItem(ObjectClass.bullet_9mm, PlanetSideGUID(83), 6, DetailedAmmoBoxData(8, 50)) ::
     InventoryItem(ObjectClass.bullet_9mm, PlanetSideGUID(84), 9, DetailedAmmoBoxData(8, 50)) ::
@@ -254,6 +254,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ ChildObjectStateMessage(object_guid : PlanetSideGUID, pitch : Int, yaw : Int) =>
       //log.info("ChildObjectState: " + msg)
+
+    case msg @ VehicleStateMessage(vehicle_guid, unk1, pos, roll, pitch, yaw, vel, unk5, unk6, unk7, wheels, unk9, unkA) =>
+      //log.info("VehicleState: " + msg)
 
     case msg @ ProjectileStateMessage(projectile_guid, shot_pos, shot_vector, unk1, unk2, unk3, unk4, time_alive) =>
       //log.info("ProjectileState: " + msg)
