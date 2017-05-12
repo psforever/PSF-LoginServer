@@ -6,8 +6,31 @@ import net.psforever.types.Vector3
 import scodec.Codec
 import scodec.codecs._
 
-final case class DeployRequestMessage(guid1 : PlanetSideGUID,
-                                      guid2 : PlanetSideGUID,
+/**
+  * Dispatched by the client when the player attempts to deploy a vehicle.
+  * Dispatched by the server to cause a specific vehicle to be deployed.<br>
+  * <br>
+  * "Deployment" usually isn't enough by itself.
+  * It only changes the physical configuration of the vehicle.
+  * (It's an animation request/trigger?)
+  * Anything that can be "deployed" does so for a very specific reason, to perform a complex function.
+  * These functions are not immediately available.
+  * Attributes must be set properly for the transition between behaviors to occur properly.
+  * In addition, the recently-deployed vehicles will hang in a state of limbo if not configured properly.
+  * It will not even dispatch an un-deploy request upon command in this state.
+  * <br>
+  * This packet has nothing to do with ACE deployables.
+  * @param player_guid the player requesting the deployment
+  * @param vehicle_guid the vehicle to be deployed
+  * @param unk1 na;
+  *             usually 2
+  * @param unk2 na;
+  *             usually 0
+  * @param unk3 na
+  * @param pos the position where the object will deploy itself
+  */
+final case class DeployRequestMessage(player_guid : PlanetSideGUID,
+                                      vehicle_guid : PlanetSideGUID,
                                       unk1 : Int,
                                       unk2 : Int,
                                       unk3 : Boolean,
@@ -20,8 +43,8 @@ final case class DeployRequestMessage(guid1 : PlanetSideGUID,
 
 object DeployRequestMessage extends Marshallable[DeployRequestMessage] {
   implicit val codec : Codec[DeployRequestMessage] = (
-    ("guid1" | PlanetSideGUID.codec) ::
-      ("guid2" | PlanetSideGUID.codec) ::
+    ("player_guid" | PlanetSideGUID.codec) ::
+      ("deploy_guid" | PlanetSideGUID.codec) ::
       ("unk1" | uint(3)) ::
       ("unk2" | uint(5)) ::
       ("unk3" | bool) ::

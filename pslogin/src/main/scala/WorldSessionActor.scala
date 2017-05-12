@@ -190,7 +190,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
               log.debug("Object: " + obj)
               // LoadMapMessage 13714 in mossy .gcap
               // XXX: hardcoded shit
-              sendResponse(PacketCoding.CreateGamePacket(0, LoadMapMessage("map10","z10",40100,25,true,3770441820L))) //VS Sanctuary
+              sendResponse(PacketCoding.CreateGamePacket(0, LoadMapMessage("map13","home3",40100,25,true,3770441820L))) //VS Sanctuary
               sendResponse(PacketCoding.CreateGamePacket(0, ZonePopulationUpdateMessage(PlanetSideGUID(13), 414, 138, 0, 138, 0, 138, 0, 138, 0)))
               sendResponse(PacketCoding.CreateGamePacket(0, objectHex))
 
@@ -402,6 +402,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ DismountVehicleMsg(player_guid, unk1, unk2) =>
       sendResponse(PacketCoding.CreateGamePacket(0, msg)) //should be safe; replace with ObjectDetachMessage later
       log.info("DismountVehicleMsg: " + msg)
+
+    case msg @ DeployRequestMessage(player, entity, unk1, unk2, unk3, pos) =>
+      //if you try to deploy, can not undeploy
+      log.info("DeployRequest: " + msg)
 
     case msg @ AvatarGrenadeStateMessage(player_guid, state) =>
       log.info("AvatarGrenadeStateMessage: " + msg)
