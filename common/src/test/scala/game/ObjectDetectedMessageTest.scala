@@ -11,25 +11,37 @@ class ObjectDetectedMessageTest extends Specification {
 
   "decode" in {
     PacketCoding.DecodePacket(string).require match {
-      case ObjectDetectedMessage(guid1, guid2, unk1, unk2) =>
+      case ObjectDetectedMessage(guid1, guid2, unk1, list) =>
         guid1 mustEqual PlanetSideGUID(4070)
         guid2 mustEqual PlanetSideGUID(4070)
         unk1 mustEqual 0
-        unk2.size mustEqual 7
-        unk2.head mustEqual 3623
-        unk2(1) mustEqual 3198
-        unk2(2) mustEqual 3088
-        unk2(3) mustEqual 1579
-        unk2(4) mustEqual 1578
-        unk2(5) mustEqual 3341
-        unk2(6) mustEqual 2997
+        list.size mustEqual 7
+        list.head mustEqual PlanetSideGUID(3623)
+        list(1) mustEqual PlanetSideGUID(3198)
+        list(2) mustEqual PlanetSideGUID(3088)
+        list(3) mustEqual PlanetSideGUID(1579)
+        list(4) mustEqual PlanetSideGUID(1578)
+        list(5) mustEqual PlanetSideGUID(3341)
+        list(6) mustEqual PlanetSideGUID(2997)
       case _ =>
         ko
     }
   }
 
   "encode" in {
-    val msg = ObjectDetectedMessage(PlanetSideGUID(4070), PlanetSideGUID(4070), 0, 3623 :: 3198 :: 3088 :: 1579 :: 1578 :: 3341 :: 2997 :: Nil)
+    val msg = ObjectDetectedMessage(
+      PlanetSideGUID(4070),
+      PlanetSideGUID(4070),
+      0,
+      PlanetSideGUID(3623) ::
+        PlanetSideGUID(3198) ::
+        PlanetSideGUID(3088) ::
+        PlanetSideGUID(1579) ::
+        PlanetSideGUID(1578) ::
+        PlanetSideGUID(3341) ::
+        PlanetSideGUID(2997) ::
+        Nil
+    )
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string

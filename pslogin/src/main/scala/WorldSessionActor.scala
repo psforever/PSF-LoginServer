@@ -177,7 +177,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
       // NOTE: PlanetSideZoneID just chooses the background
       sendResponse(PacketCoding.CreateGamePacket(0,
-        CharacterInfoMessage(PlanetSideZoneID(1), 0, PlanetSideGUID(0), true, 0)))
+        CharacterInfoMessage(0, PlanetSideZoneID(1), 0, PlanetSideGUID(0), true, 0)))
     case msg @ CharacterRequestMessage(charId, action) =>
       log.info("Handling " + msg)
 
@@ -241,10 +241,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
       sendResponse(PacketCoding.CreateGamePacket(0, ActionResultMessage(true, None)))
       sendResponse(PacketCoding.CreateGamePacket(0,
-        CharacterInfoMessage(PlanetSideZoneID(0), 0, PlanetSideGUID(0), true, 0)))
+        CharacterInfoMessage(0, PlanetSideZoneID(0), 0, PlanetSideGUID(0), true, 0)))
 
     case KeepAliveMessage(code) =>
-      sendResponse(PacketCoding.CreateGamePacket(0, KeepAliveMessage(0)))
+      sendResponse(PacketCoding.CreateGamePacket(0, KeepAliveMessage()))
 
     case msg @ BeginZoningMessage() =>
       log.info("Reticulating splines ...")
@@ -366,9 +366,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
         // TODO: This should only actually be sent to doors upon opening; may break non-door items upon use
         sendResponse(PacketCoding.CreateGamePacket(0, GenericObjectStateMsg(object_guid, 16)))
       }
-
+    
     case msg @ UnuseItemMessage(player, item) =>
       log.info("UnuseItem: " + msg)
+
+    case msg @ DeployObjectMessage(guid, unk1, pos, roll, pitch, yaw, unk2) =>
+      log.info("DeployObject: " + msg)
 
     case msg @ GenericObjectStateMsg(object_guid, unk1) =>
       log.info("GenericObjectState: " + msg)
