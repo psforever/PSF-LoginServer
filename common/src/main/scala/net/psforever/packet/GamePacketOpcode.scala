@@ -363,7 +363,7 @@ object GamePacketOpcode extends Enumeration {
     case 0x23 => noDecoder(ActionCancelAcknowledgeMessage)
     case 0x24 => game.SetEmpireMessage.decode
     case 0x25 => game.EmoteMsg.decode
-    case 0x26 => noDecoder(UnuseItemMessage)
+    case 0x26 => game.UnuseItemMessage.decode
     case 0x27 => game.ObjectDetachMessage.decode
     // 0x28
     case 0x28 => game.CreateShortcutMessage.decode
@@ -392,7 +392,7 @@ object GamePacketOpcode extends Enumeration {
     case 0x3c => game.GenericCollisionMsg.decode
     case 0x3d => game.QuantityUpdateMessage.decode
     case 0x3e => game.ArmorChangedMessage.decode
-    case 0x3f => noDecoder(ProjectileStateMessage)
+    case 0x3f => game.ProjectileStateMessage.decode
 
     // OPCODES 0x40-4f
     case 0x40 => noDecoder(MountVehicleCargoMsg)
@@ -415,7 +415,7 @@ object GamePacketOpcode extends Enumeration {
 
     // OPCODES 0x50-5f
     case 0x50 => game.TargetingInfoMessage.decode
-    case 0x51 => noDecoder(TriggerEffectMessage)
+    case 0x51 => game.TriggerEffectMessage.decode
     case 0x52 => game.WeaponDryFireMessage.decode
     case 0x53 => noDecoder(DroppodLaunchRequestMessage)
     case 0x54 => noDecoder(HackMessage)
@@ -425,7 +425,7 @@ object GamePacketOpcode extends Enumeration {
     // 0x58
     case 0x58 => game.AvatarImplantMessage.decode
     case 0x59 => noDecoder(UnknownMessage89)
-    case 0x5a => noDecoder(DelayedPathMountMsg)
+    case 0x5a => game.DelayedPathMountMsg.decode
     case 0x5b => noDecoder(OrbitalShuttleTimeMsg)
     case 0x5c => noDecoder(AIDamage)
     case 0x5d => game.DeployObjectMessage.decode
@@ -461,7 +461,7 @@ object GamePacketOpcode extends Enumeration {
     case 0x76 => game.DeployableObjectsInfoMessage.decode
     case 0x77 => noDecoder(SquadState)
     // 0x78
-    case 0x78 => noDecoder(OxygenStateMessage)
+    case 0x78 => game.OxygenStateMessage.decode
     case 0x79 => noDecoder(TradeMessage)
     case 0x7a => noDecoder(UnknownMessage122)
     case 0x7b => noDecoder(DamageFeedbackMessage)
@@ -510,7 +510,7 @@ object GamePacketOpcode extends Enumeration {
 
     // OPCODES 0xa0-af
     case 0xa0 => game.BuildingInfoUpdateMessage.decode
-    case 0xa1 => noDecoder(FireHintMessage)
+    case 0xa1 => game.FireHintMessage.decode
     case 0xa2 => noDecoder(UplinkRequest)
     case 0xa3 => noDecoder(UplinkResponse)
     case 0xa4 => game.WarpgateRequest.decode
@@ -533,7 +533,7 @@ object GamePacketOpcode extends Enumeration {
     case 0xb2 => game.VoiceHostInfo.decode
     case 0xb3 => game.BattleplanMessage.decode
     case 0xb4 => game.BattleExperienceMessage.decode
-    case 0xb5 => noDecoder(TargetingImplantRequest)
+    case 0xb5 => game.TargetingImplantRequest.decode
     case 0xb6 => game.ZonePopulationUpdateMessage.decode
     case 0xb7 => game.DisconnectMessage.decode
     // 0xb8
@@ -567,7 +567,7 @@ object GamePacketOpcode extends Enumeration {
 
     // OPCODES 0xd0-df
     case 0xd0 => noDecoder(UnknownMessage208)
-    case 0xd1 => noDecoder(DisplayedAwardMessage)
+    case 0xd1 => game.DisplayedAwardMessage.decode
     case 0xd2 => noDecoder(RespawnAMSInfoMessage)
     case 0xd3 => noDecoder(ComponentDamageMessage)
     case 0xd4 => noDecoder(GenericObjectActionAtPositionMessage)

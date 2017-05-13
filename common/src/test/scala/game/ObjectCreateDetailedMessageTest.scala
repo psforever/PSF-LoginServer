@@ -201,10 +201,10 @@ class ObjectCreateDetailedMessageTest extends Specification {
         char.appearance.is_cloaking mustEqual false
         char.appearance.charging_pose mustEqual false
         char.appearance.on_zipline mustEqual false
-        char.appearance.ribbons.upper mustEqual 0xFFFFFFFFL //none
-        char.appearance.ribbons.middle mustEqual 0xFFFFFFFFL //none
-        char.appearance.ribbons.lower mustEqual 0xFFFFFFFFL //none
-        char.appearance.ribbons.tos mustEqual 0xFFFFFFFFL //none
+        char.appearance.ribbons.upper mustEqual MeritCommendation.None
+        char.appearance.ribbons.middle mustEqual MeritCommendation.None
+        char.appearance.ribbons.lower mustEqual MeritCommendation.None
+        char.appearance.ribbons.tos mustEqual MeritCommendation.None
         char.healthMax mustEqual 100
         char.health mustEqual 100
         char.armor mustEqual 50 //standard exosuit value

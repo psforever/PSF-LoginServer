@@ -255,6 +255,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ ChildObjectStateMessage(object_guid : PlanetSideGUID, pitch : Int, yaw : Int) =>
       //log.info("ChildObjectState: " + msg)
 
+    case msg @ ProjectileStateMessage(projectile_guid, shot_pos, shot_vector, unk1, unk2, unk3, unk4, time_alive) =>
+      //log.info("ProjectileState: " + msg)
+
     case msg @ ChatMsg(messagetype, has_wide_contents, recipient, contents, note_contents) =>
       // TODO: Prevents log spam, but should be handled correctly
       if (messagetype != ChatMessageType.CMT_TOGGLE_GM) {
@@ -363,6 +366,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
         // TODO: This should only actually be sent to doors upon opening; may break non-door items upon use
         sendResponse(PacketCoding.CreateGamePacket(0, GenericObjectStateMsg(object_guid, 16)))
       }
+    
+    case msg @ UnuseItemMessage(player, item) =>
+      log.info("UnuseItem: " + msg)
 
     case msg @ DeployObjectMessage(guid, unk1, pos, roll, pitch, yaw, unk2) =>
       log.info("DeployObject: " + msg)
@@ -439,6 +445,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ WeaponDryFireMessage(weapon) =>
       log.info("WeaponDryFireMessage: "+msg)
+
+    case msg @ TargetingImplantRequest(list) =>
+      log.info("TargetingImplantRequest: "+msg)
 
     case default => log.error(s"Unhandled GamePacket ${pkt}")
   }
