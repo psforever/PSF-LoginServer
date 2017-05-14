@@ -412,6 +412,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
       sendResponse(PacketCoding.CreateGamePacket(0, msg)) //should be safe; replace with ObjectDetachMessage later
       log.info("DismountVehicleMsg: " + msg)
 
+    case msg @ DeployRequestMessage(player, entity, unk1, unk2, unk3, pos) =>
+      //if you try to deploy, can not undeploy
+      log.info("DeployRequest: " + msg)
+
     case msg @ AvatarGrenadeStateMessage(player_guid, state) =>
       log.info("AvatarGrenadeStateMessage: " + msg)
 
