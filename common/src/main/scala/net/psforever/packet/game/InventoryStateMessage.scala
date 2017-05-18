@@ -32,6 +32,16 @@ final case class InventoryStateMessage(object_guid : PlanetSideGUID,
 }
 
 object InventoryStateMessage extends Marshallable[InventoryStateMessage] {
+  /**
+    * Overloaded constructor that ignores the unknown field.
+    * @param object_guid the object being affected
+    * @param container_guid the object in which `object_guid` is contained
+    * @param value an amount with which to update `object_guid`
+    * @return an `InventoryStateMessage` object
+    */
+  def apply(object_guid : PlanetSideGUID, container_guid : PlanetSideGUID, value : Long) : InventoryStateMessage =
+    InventoryStateMessage(object_guid, 0, container_guid, value)
+
   implicit val codec : Codec[InventoryStateMessage] = (
     ("object_guid" | PlanetSideGUID.codec) ::
       ("unk" | uintL(10)) ::
