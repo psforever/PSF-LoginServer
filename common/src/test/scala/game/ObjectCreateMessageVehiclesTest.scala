@@ -17,7 +17,8 @@ class ObjectCreateMessageVehiclesTest extends Specification {
   val string_ams_destroyed = hex"17 8D000000 978 3D10 002D765535CA16000000 0"
   val string_switchblade = hex"17 93010000 A7B A201 FBC1C12A832F06000021 4400003FC00001013AD3180C0E4000000408330DC03019000006620406072000000"
   val string_droppod = hex"17 C1000000 8110B0E00FA9000ACFFFF000000 4400007F83C0900"
-  val string_orbital_shuttle = hex"17 82000000 0901B026904838000001FE0700"
+  val string_orbital_shuttle_1 = hex"17 82000000 0901B026904838000001FE0700"
+  val string_orbital_shuttle_2 = hex"17 C3000000 B02670402F5AA14F88C210000604000007F8FF03C0"
 
   "decode (fury)" in {
     PacketCoding.DecodePacket(string_fury).require match {
@@ -332,9 +333,8 @@ class ObjectCreateMessageVehiclesTest extends Specification {
     }
   }
 
-  "decode (shuttle)" in {
-
-    PacketCoding.DecodePacket(string_orbital_shuttle).require match {
+  "decode (shuttle 1)" in {
+    PacketCoding.DecodePacket(string_orbital_shuttle_1).require match {
       case ObjectCreateMessage(len, cls, guid, parent, data) =>
         len mustEqual 130
         cls mustEqual ObjectClass.orbital_shuttle
@@ -344,6 +344,31 @@ class ObjectCreateMessageVehiclesTest extends Specification {
         parent.get.slot mustEqual 3
         data.isDefined mustEqual true
         data.get.isInstanceOf[OrbitalShuttleData] mustEqual true
+        data.get.asInstanceOf[OrbitalShuttleData].faction mustEqual PlanetSideEmpire.VS
+        data.get.asInstanceOf[OrbitalShuttleData].pos.isDefined mustEqual false
+      case _ =>
+        ko
+    }
+  }
+
+  "decode (shuttle 2)" in {
+    PacketCoding.DecodePacket(string_orbital_shuttle_2).require match {
+      case ObjectCreateMessage(len, cls, guid, parent, data) =>
+        len mustEqual 195
+        cls mustEqual ObjectClass.orbital_shuttle
+        guid mustEqual PlanetSideGUID(1127)
+        parent.isDefined mustEqual false
+        data.isDefined mustEqual true
+        data.get.isInstanceOf[OrbitalShuttleData] mustEqual true
+        val shuttle = data.get.asInstanceOf[OrbitalShuttleData]
+        shuttle.faction mustEqual PlanetSideEmpire.VS
+        shuttle.pos.isDefined mustEqual true
+        shuttle.pos.get.coord.x mustEqual 5610.0156f
+        shuttle.pos.get.coord.y mustEqual 4255.258f
+        shuttle.pos.get.coord.z mustEqual 134.1875f
+        shuttle.pos.get.roll mustEqual 0
+        shuttle.pos.get.pitch mustEqual 0
+        shuttle.pos.get.yaw mustEqual 96
       case _ =>
         ko
     }
@@ -488,11 +513,19 @@ class ObjectCreateMessageVehiclesTest extends Specification {
     pkt mustEqual string_droppod
   }
 
-  "encode (shuttle)" in {
-    val obj = OrbitalShuttleData()
+  "encode (shuttle 1)" in {
+    val obj = OrbitalShuttleData(PlanetSideEmpire.VS)
     val msg = ObjectCreateMessage(ObjectClass.orbital_shuttle, PlanetSideGUID(1129), ObjectCreateMessageParent(PlanetSideGUID(786), 3), obj)
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
-    pkt mustEqual string_orbital_shuttle
+    pkt mustEqual string_orbital_shuttle_1
+  }
+
+  "encode (shuttle 2)" in {
+    val obj = OrbitalShuttleData(PlacementData(5610.0156f, 4255.258f, 134.1875f, 0, 0, 96), PlanetSideEmpire.VS)
+    val msg = ObjectCreateMessage(ObjectClass.orbital_shuttle, PlanetSideGUID(1127), obj)
+    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+    pkt mustEqual string_orbital_shuttle_2
   }
 }

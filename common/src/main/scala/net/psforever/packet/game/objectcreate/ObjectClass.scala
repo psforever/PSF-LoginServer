@@ -1159,6 +1159,7 @@ object ObjectClass {
       case ObjectClass.lightning_destroyed => ConstructorData.genericCodec(DestroyedVehicleData.codec, "wreckage")
       case ObjectClass.mediumtransport => ConstructorData.genericCodec(VehicleData.codec(2)(), "vehicle")
       case ObjectClass.mediumtransport_destroyed => ConstructorData.genericCodec(DestroyedVehicleData.codec, "wreckage")
+      case ObjectClass.orbital_shuttle => ConstructorData.genericCodec(OrbitalShuttleData.codec_pos, "HART")
       case ObjectClass.quadassault => ConstructorData.genericCodec(VehicleData.codec, "vehicle")
       case ObjectClass.quadassault_destroyed => ConstructorData.genericCodec(DestroyedVehicleData.codec, "wreckage")
       case ObjectClass.quadstealth => ConstructorData.genericCodec(VehicleData.codec(0)(), "vehicle")
