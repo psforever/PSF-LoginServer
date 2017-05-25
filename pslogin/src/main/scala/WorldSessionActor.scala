@@ -475,23 +475,4 @@ class WorldSessionActor extends Actor with MDCContextAware {
     log.trace("WORLD SEND RAW: " + pkt)
     sendResponse(RawPacket(pkt))
   }
-
-  def experimentalSlotted(bytes : ByteVector): Unit = {
-    if(bytes.size > 467L) {
-      val packet1 : MultiPacketEx = MultiPacketEx(Vector(bytes))
-      val packet2 : ByteVector = bytes
-      val size : Long = packet2.size
-      var i : Long = 0
-      var subslot = 257
-      leftRef !> ResponsePacket(hex"00 15 01 00")
-      while(i < size) {
-        val packet3 = packet2.slice(i, i + 463L)
-        val packet4 = SlottedMetaPacket(0x4, subslot, packet3)
-        val packet5 : ByteVector = PacketCoding.EncodePacket(packet4).require.toByteVector
-        leftRef !> ResponsePacket(packet5)
-        i += 463L
-        subslot += 1
-      }
-    }
-  }
 }
