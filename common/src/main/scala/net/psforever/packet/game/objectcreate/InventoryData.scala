@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.packet.game.objectcreate
 
-import InventoryItem._
+import InventoryItemData._
 import net.psforever.packet.PacketHelpers
 import scodec.Codec
 import scodec.codecs._
@@ -19,7 +19,7 @@ import shapeless.{::, HNil}
   * <br>
   * Inventories are usually prefaced with a single bit value not accounted for here to switch them "on."
   * @param contents the items in the inventory
-  * @see `InventoryItem`
+  * @see `InventoryItemData`
   */
 final case class InventoryData(contents : List[InventoryItem] = List.empty) extends StreamBitSize {
   override def bitsize : Long = {
@@ -57,10 +57,10 @@ object InventoryData {
   /**
     * A `Codec` for `0x17` `ObjectCreateMessage` data.
     */
-  val codec : Codec[InventoryData] = codec(InventoryItem.codec)
+  val codec : Codec[InventoryData] = codec(InventoryItemData.codec)
 
   /**
     * A `Codec` for `0x18` `ObjectCreateDetailedMessage` data.
     */
-  val codec_detailed : Codec[InventoryData] = codec(InventoryItem.codec_detailed)
+  val codec_detailed : Codec[InventoryData] = codec(InventoryItemData.codec_detailed)
 }

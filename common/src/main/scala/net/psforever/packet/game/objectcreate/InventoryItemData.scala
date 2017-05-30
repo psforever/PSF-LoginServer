@@ -5,21 +5,21 @@ import net.psforever.packet.game.PlanetSideGUID
 import scodec.Codec
 
 /**
-  * Mask the use of `InternalSlot` using a fake class called an `InventoryItem`.
+  * Mask the use of `InternalSlot` using a fake class called an `InventoryItemData`.
   */
-object InventoryItem {
+object InventoryItemData {
   /**
-    * Constructor for creating an `InventoryItem`.
+    * Constructor for creating an `InventoryItemData`.
     * @param guid the GUID this object will be assigned
     * @param slot a parent-defined slot identifier that explains where the child is to be attached to the parent
     * @param obj the data used as representation of the object to be constructed
-    * @return an `InventoryItem` object
+    * @return an `InventoryItemData` object
     */
   def apply(objClass : Int, guid : PlanetSideGUID, slot : Int, obj : ConstructorData) : InventoryItem =
     InternalSlot(objClass, guid, slot, obj)
 
   /**
-    * Alias `InventoryItem` to `InternalSlot`.
+    * Alias `InventoryItemData` to `InternalSlot`.
     */
   type InventoryItem = InternalSlot
 

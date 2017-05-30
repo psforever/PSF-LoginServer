@@ -275,7 +275,7 @@ object ObjectClass {
   final val bank = 132
   final val nano_dispenser = 577
   final val command_detonater = 213
-  final val laze_pointer = 297
+  final val flail_targeting_laser = 297
   //ace deployables
   final val ace = 32
   final val advanced_ace = 39
@@ -612,7 +612,7 @@ object ObjectClass {
       case ObjectClass.applicator => ConstructorData.genericCodec(DetailedWeaponData.codec, "tool")
       case ObjectClass.bank => ConstructorData.genericCodec(DetailedWeaponData.codec, "tool")
       case ObjectClass.command_detonater => ConstructorData.genericCodec(DetailedCommandDetonaterData.codec, "tool")
-      case ObjectClass.laze_pointer => ConstructorData.genericCodec(DetailedWeaponData.codec, "tool")
+      case ObjectClass.flail_targeting_laser => ConstructorData.genericCodec(DetailedCommandDetonaterData.codec, "tool")
       case ObjectClass.medicalapplicator => ConstructorData.genericCodec(DetailedWeaponData.codec, "tool")
       case ObjectClass.nano_dispenser => ConstructorData.genericCodec(DetailedWeaponData.codec, "tool")
       case ObjectClass.remote_electronics_kit => ConstructorData.genericCodec(DetailedREKData.codec, "tool")
@@ -894,7 +894,7 @@ object ObjectClass {
       case ObjectClass.applicator => ConstructorData.genericCodec(WeaponData.codec, "tool")
       case ObjectClass.bank => ConstructorData.genericCodec(WeaponData.codec, "tool")
       case ObjectClass.command_detonater => ConstructorData.genericCodec(CommandDetonaterData.codec, "tool")
-      case ObjectClass.laze_pointer => ConstructorData.genericCodec(WeaponData.codec, "tool")
+      case ObjectClass.flail_targeting_laser => ConstructorData.genericCodec(CommandDetonaterData.codec, "tool")
       case ObjectClass.medicalapplicator => ConstructorData.genericCodec(WeaponData.codec, "tool")
       case ObjectClass.nano_dispenser => ConstructorData.genericCodec(WeaponData.codec, "tool")
       case ObjectClass.remote_electronics_kit => ConstructorData.genericCodec(REKData.codec, "tool")
@@ -1117,7 +1117,7 @@ object ObjectClass {
       case ObjectClass.applicator => DroppedItemData.genericCodec(WeaponData.codec, "tool")
       case ObjectClass.bank => DroppedItemData.genericCodec(WeaponData.codec, "tool")
       case ObjectClass.command_detonater => DroppedItemData.genericCodec(CommandDetonaterData.codec, "tool")
-      case ObjectClass.laze_pointer => DroppedItemData.genericCodec(WeaponData.codec, "tool")
+      case ObjectClass.flail_targeting_laser => DroppedItemData.genericCodec(CommandDetonaterData.codec, "tool")
       case ObjectClass.medicalapplicator => DroppedItemData.genericCodec(WeaponData.codec, "tool")
       case ObjectClass.nano_dispenser => DroppedItemData.genericCodec(WeaponData.codec, "tool")
       case ObjectClass.remote_electronics_kit => DroppedItemData.genericCodec(REKData.codec, " tool")

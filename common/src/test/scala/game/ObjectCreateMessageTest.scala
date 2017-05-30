@@ -1076,9 +1076,9 @@ class ObjectCreateMessageTest extends Specification {
   "encode (locker container)" in {
     val obj = LockerContainerData(
       InventoryData(
-        InventoryItem(ObjectClass.nano_dispenser, PlanetSideGUID(2935), 0, WeaponData(0x6, 0x0, ObjectClass.armor_canister, PlanetSideGUID(3426), 0, AmmoBoxData())) ::
-          InventoryItem(ObjectClass.armor_canister, PlanetSideGUID(4090), 45, AmmoBoxData()) ::
-          InventoryItem(ObjectClass.armor_canister, PlanetSideGUID(3326), 78, AmmoBoxData()) ::
+        InventoryItemData(ObjectClass.nano_dispenser, PlanetSideGUID(2935), 0, WeaponData(0x6, 0x0, ObjectClass.armor_canister, PlanetSideGUID(3426), 0, AmmoBoxData())) ::
+          InventoryItemData(ObjectClass.armor_canister, PlanetSideGUID(4090), 45, AmmoBoxData()) ::
+          InventoryItemData(ObjectClass.armor_canister, PlanetSideGUID(3326), 78, AmmoBoxData()) ::
           Nil
       )
     )
@@ -1127,11 +1127,11 @@ class ObjectCreateMessageTest extends Specification {
       Some(ImplantEffects.NoEffects),
       Some(Cosmetics(true, true, true, true, false)),
       InventoryData(
-        InventoryItem(ObjectClass.plasma_grenade, PlanetSideGUID(3662), 0, WeaponData(0, 0, ObjectClass.plasma_grenade_ammo, PlanetSideGUID(3751), 0, AmmoBoxData())) ::
-          InventoryItem(ObjectClass.bank, PlanetSideGUID(3908), 1, WeaponData(0, 0, 1, ObjectClass.armor_canister, PlanetSideGUID(4143), 0, AmmoBoxData())) ::
-          InventoryItem(ObjectClass.mini_chaingun, PlanetSideGUID(4164), 2, WeaponData(0, 0, ObjectClass.bullet_9mm, PlanetSideGUID(3728), 0, AmmoBoxData())) ::
-          InventoryItem(ObjectClass.phoenix, PlanetSideGUID(3603), 3, WeaponData(0, 0, ObjectClass.phoenix_missile, PlanetSideGUID(3056), 0, AmmoBoxData())) ::
-          InventoryItem(ObjectClass.chainblade, PlanetSideGUID(4088), 4, WeaponData(0, 0, 1, ObjectClass.melee_ammo, PlanetSideGUID(3279), 0, AmmoBoxData())) ::
+        InventoryItemData(ObjectClass.plasma_grenade, PlanetSideGUID(3662), 0, WeaponData(0, 0, ObjectClass.plasma_grenade_ammo, PlanetSideGUID(3751), 0, AmmoBoxData())) ::
+          InventoryItemData(ObjectClass.bank, PlanetSideGUID(3908), 1, WeaponData(0, 0, 1, ObjectClass.armor_canister, PlanetSideGUID(4143), 0, AmmoBoxData())) ::
+          InventoryItemData(ObjectClass.mini_chaingun, PlanetSideGUID(4164), 2, WeaponData(0, 0, ObjectClass.bullet_9mm, PlanetSideGUID(3728), 0, AmmoBoxData())) ::
+          InventoryItemData(ObjectClass.phoenix, PlanetSideGUID(3603), 3, WeaponData(0, 0, ObjectClass.phoenix_missile, PlanetSideGUID(3056), 0, AmmoBoxData())) ::
+          InventoryItemData(ObjectClass.chainblade, PlanetSideGUID(4088), 4, WeaponData(0, 0, 1, ObjectClass.melee_ammo, PlanetSideGUID(3279), 0, AmmoBoxData())) ::
           Nil
       ),
       DrawnSlot.Rifle1
