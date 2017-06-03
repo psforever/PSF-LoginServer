@@ -10,13 +10,13 @@ import shapeless.{::, HNil}
   * A representation of simple objects that are spawned by the adaptive construction engine.
   * @param deploy data common to objects spawned by the (advanced) adaptive construction engine
   */
-final case class SmallDeployableData(deploy : ACEDeployableData) extends ConstructorData {
+final case class SmallDeployableData(deploy : CommonFieldData) extends ConstructorData {
   override def bitsize : Long = deploy.bitsize + 1L
 }
 
 object SmallDeployableData extends Marshallable[SmallDeployableData] {
   implicit val codec : Codec[SmallDeployableData] = (
-    ("deploy" | ACEDeployableData.codec) ::
+    ("deploy" | CommonFieldData.codec) ::
       bool
     ).exmap[SmallDeployableData] (
     {

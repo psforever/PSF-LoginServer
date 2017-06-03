@@ -3,25 +3,38 @@ package net.psforever.packet.game.objectcreate
 
 import net.psforever.packet.Marshallable
 import net.psforever.packet.game.PlanetSideGUID
+import net.psforever.types.PlanetSideEmpire
 import scodec.{Attempt, Codec, Err}
 import scodec.codecs._
 import shapeless.{::, HNil}
 
 /**
-  * Data that is common to a number of items that are spawned by the adaptive construction engine, or its advanced version.
+  * Data that is common to a number of game object serializations.
   * @param pos where and how the object is oriented
+  * @param faction association of the object with
   * @param unk na
-  * @param player_guid the player who placed this object
+  * @param player_guid the player who placed/leverages/[action]s this object
   */
-final case class ACEDeployableData(pos : PlacementData,
-                                   unk : Int,
-                                   player_guid : PlanetSideGUID
+final case class CommonFieldData(pos : PlacementData,
+                                 faction : PlanetSideEmpire.Value,
+                                 unk : Int,
+                                 player_guid : PlanetSideGUID
                                   ) extends StreamBitSize {
   override def bitsize : Long = 23L + pos.bitsize
 }
 
-object ACEDeployableData extends Marshallable[ACEDeployableData] {
+object CommonFieldData extends Marshallable[CommonFieldData] {
   final val internalWeapon_bitsize : Long = 10
+
+  /**
+    * Overloaded constructor that eliminates the need to list the fourth, optional, GUID field.
+    * @param pos where and how the object is oriented
+    * @param faction association of the object with
+    * @param unk na
+    * @return a `CommonFieldData` object
+    */
+  def apply(pos : PlacementData, faction : PlanetSideEmpire.Value, unk : Int) : CommonFieldData =
+    CommonFieldData(pos, faction, unk, PlanetSideGUID(0))
 
   /**
     * `Codec` for transforming reliable `WeaponData` from the internal structure of the turret when it is defined.
@@ -57,21 +70,22 @@ object ACEDeployableData extends Marshallable[ACEDeployableData] {
     }
   )
 
-  implicit val codec : Codec[ACEDeployableData] = (
+  implicit val codec : Codec[CommonFieldData] = (
     ("pos" | PlacementData.codec) ::
-      ("unk1" | uint(7)) ::
+      ("faction" | PlanetSideEmpire.codec) ::
+      ("unk" | uint(5)) ::
       ("player_guid" | PlanetSideGUID.codec)
-    ).exmap[ACEDeployableData] (
+    ).exmap[CommonFieldData] (
     {
-      case pos :: unk :: player :: HNil =>
-        Attempt.successful(ACEDeployableData(pos, unk, player))
+      case pos :: fac :: unk :: player :: HNil =>
+        Attempt.successful(CommonFieldData(pos, fac, unk, player))
 
       case _ =>
         Attempt.failure(Err("invalid deployable data format"))
     },
     {
-      case ACEDeployableData(pos, unk, player) =>
-        Attempt.successful(pos :: unk :: player :: HNil)
+      case CommonFieldData(pos, fac, unk, player) =>
+        Attempt.successful(pos :: fac :: unk :: player :: HNil)
     }
   )
 }

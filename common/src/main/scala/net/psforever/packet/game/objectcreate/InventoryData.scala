@@ -1,6 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.packet.game.objectcreate
 
+import InventoryItem._
 import net.psforever.packet.PacketHelpers
 import scodec.Codec
 import scodec.codecs._
@@ -16,15 +17,11 @@ import shapeless.{::, HNil}
   * No values are allowed to be misplaced and no unexpected regions of data can be discovered.
   * If there is even a minor failure, the remainder of the inventory will fail to translate.<br>
   * <br>
-  * Inventories are usually prefaced with a `bin1` value not accounted for here.
-  * It can be treated as optional.
+  * Inventories are usually prefaced with a single bit value not accounted for here to switch them "on."
   * @param contents the items in the inventory
-  * @param unk1 na
-  * @param unk2 na
+  * @see `InventoryItem`
   */
-final case class InventoryData(contents : List[InventoryItem] = List.empty,
-                               unk1 : Boolean = false,
-                               unk2 : Boolean = false) extends StreamBitSize {
+final case class InventoryData(contents : List[InventoryItem] = List.empty) extends StreamBitSize {
   override def bitsize : Long = {
     val base : Long = 10L //8u + 1u + 1u
     var invSize : Long = 0L //length of all items in inventory
@@ -36,48 +33,34 @@ final case class InventoryData(contents : List[InventoryItem] = List.empty,
 }
 
 object InventoryData {
-  private def inventoryCodec(itemCodec : Codec[InventoryItem]) : Codec[InventoryData] = (
+  /**
+    * The primary `Codec` that parses the common format for an inventory `List`.
+    * @param itemCodec a `Codec` that describes each of the contents of the list
+    * @return an `InventoryData` object, or a `BitVector`
+    */
+  def codec(itemCodec : Codec[InventoryItem]) : Codec[InventoryData] = (
     uint8L >>:~ { len =>
-      ("unk1" | bool) ::
-        ("unk2" | bool) ::
+      uint2L ::
         ("contents" | PacketHelpers.listOfNSized(len, itemCodec))
     }
   ).xmap[InventoryData] (
     {
-      case _ :: a :: b :: c :: HNil =>
-        InventoryData(c, a, b)
+      case _ :: 0 :: c :: HNil =>
+        InventoryData(c)
     },
     {
-      case InventoryData(c, a, b) =>
-        c.size :: a :: b :: c :: HNil
+      case InventoryData(c) =>
+        c.size :: 0 :: c :: HNil
     }
   )
 
   /**
     * A `Codec` for `0x17` `ObjectCreateMessage` data.
     */
-  val codec : Codec[InventoryData] = inventoryCodec(InventoryItem.codec).hlist.xmap[InventoryData] (
-    {
-      case inventory :: HNil =>
-        inventory
-    },
-    {
-      case InventoryData(a, b, c) =>
-        InventoryData(a, b, c) :: HNil
-    }
-  )
+  val codec : Codec[InventoryData] = codec(InventoryItem.codec)
 
   /**
     * A `Codec` for `0x18` `ObjectCreateDetailedMessage` data.
     */
-  val codec_detailed : Codec[InventoryData] = inventoryCodec(InventoryItem.codec_detailed).hlist.xmap[InventoryData] (
-    {
-      case inventory :: HNil =>
-        inventory
-    },
-    {
-      case InventoryData(a, b, c) =>
-        InventoryData(a, b, c) :: HNil
-    }
-  )
+  val codec_detailed : Codec[InventoryData] = codec(InventoryItem.codec_detailed)
 }

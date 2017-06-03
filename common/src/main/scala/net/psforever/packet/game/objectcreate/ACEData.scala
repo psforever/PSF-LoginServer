@@ -2,7 +2,6 @@
 package net.psforever.packet.game.objectcreate
 
 import net.psforever.packet.Marshallable
-import net.psforever.packet.game.PlanetSideGUID
 import scodec.{Attempt, Codec, Err}
 import scodec.codecs._
 import shapeless.{::, HNil}

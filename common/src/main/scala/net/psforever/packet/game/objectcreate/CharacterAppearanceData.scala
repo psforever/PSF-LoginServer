@@ -113,7 +113,7 @@ final case class CharacterAppearanceData(pos : PlacementData,
   override def bitsize : Long = {
     //factor guard bool values into the base size, not its corresponding optional field
     val placementSize : Long = pos.bitsize
-    val nameStringSize : Long = StreamBitSize.stringBitSize(basic_appearance.name, 16) + CharacterAppearanceData.namePadding(pos.init_move)
+    val nameStringSize : Long = StreamBitSize.stringBitSize(basic_appearance.name, 16) + CharacterAppearanceData.namePadding(pos.vel)
     val outfitStringSize : Long = StreamBitSize.stringBitSize(outfit_name, 16) + CharacterAppearanceData.outfitNamePadding
     val altModelSize = if(on_zipline || backpack) { 1L }  else { 0L }
     335L + placementSize + nameStringSize + outfitStringSize + altModelSize
@@ -153,7 +153,7 @@ object CharacterAppearanceData extends Marshallable[CharacterAppearanceData] {
             ("jammered" | bool) ::
             bool :: //crashes client
             uint(16) :: //unknown, but usually 0
-            ("name" | PacketHelpers.encodedWideStringAligned( namePadding(pos.init_move) )) ::
+            ("name" | PacketHelpers.encodedWideStringAligned( namePadding(pos.vel) )) ::
             ("exosuit" | ExoSuitType.codec) ::
             ignore(2) :: //unknown
             ("sex" | CharacterGender.codec) ::

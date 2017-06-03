@@ -14,8 +14,8 @@ import shapeless.{::, HNil}
   * This prior object will clarify the identity of the "parent" object that owns the given `parentSlot`.
   * As the name implies, this should never have to be used in the representation of a non-child object.<br>
   * <br>
-  * Try to avoid exposing `InternalSlot` in the process of implementing object code.
-  * (Provide overrode constructors where applicable.)
+  * Try to avoid exposing this class in the process of implementing common object code.
+  * Provide overrode constructors that mask the creation of `InternalSlot` where applicable.
   * @param objectClass the code for the type of object being constructed
   * @param guid the GUID this object will be assigned
   * @param parentSlot a parent-defined slot identifier that explains where the child is to be attached to the parent
