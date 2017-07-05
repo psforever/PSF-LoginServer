@@ -12,15 +12,15 @@ class VehicleStateMessageTest extends Specification {
 
   "decode" in {
     PacketCoding.DecodePacket(string).require match {
-      case VehicleStateMessage(guid, unk1, pos, roll, pitch, yaw, vel, unk2, unk3, unk4, wheel, unk5, unk6) =>
+      case VehicleStateMessage(guid, unk1, pos, ang, vel, unk2, unk3, unk4, wheel, unk5, unk6) =>
         guid mustEqual PlanetSideGUID(413)
         unk1 mustEqual 0
         pos.x mustEqual 3674.8438f
         pos.y mustEqual 2726.789f
         pos.z mustEqual 91.09375f
-        roll mustEqual 359.29688f
-        pitch mustEqual 1.0546875f
-        yaw mustEqual 90.35156f
+        ang.x mustEqual 359.29688f
+        ang.y mustEqual 1.0546875f
+        ang.z mustEqual 90.35156f
         vel.isDefined mustEqual true
         vel.get.x mustEqual 0.0f
         vel.get.y mustEqual 0.0f
@@ -41,7 +41,7 @@ class VehicleStateMessageTest extends Specification {
       PlanetSideGUID(413),
       0,
       Vector3(3674.8438f, 2726.789f, 91.09375f),
-      359.29688f, 1.0546875f, 90.35156f,
+      Vector3(359.29688f, 1.0546875f, 90.35156f),
       Some(Vector3(0.0f, 0.0f, 0.03125f)),
       None,
       0, 0, 15,

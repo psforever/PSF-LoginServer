@@ -2,7 +2,7 @@
 package net.psforever.packet.game.objectcreate
 
 import net.psforever.packet.{Marshallable, PacketHelpers}
-import net.psforever.types.{CharacterGender, ExoSuitType, GrenadeState, PlanetSideEmpire}
+import net.psforever.types._
 import scodec.{Attempt, Codec, Err}
 import scodec.codecs._
 import shapeless.{::, HNil}
@@ -74,8 +74,10 @@ final case class BasicCharacterData(name : String,
   *                    if the option is selected, allies with see either "[`outfit_name`]" or "{No Outfit}" under the player's name
   * @param outfit_logo the decal seen on the player's exo-suit (and beret and cap) associated with the player's outfit;
   *                    if there is a variable color for that decal, the faction-appropriate one is selected
-  * @param facingPitch the angle with respect to the sky and the ground towards which the avatar is looking
-  * @param facingYawUpper  the angle of the avatar's upper body with respect to its forward-facing direction
+  * @param facingPitch a "pitch" angle
+  * @param facingYawUpper a "yaw" angle that represents the angle of the avatar's upper body with respect to its forward-facing direction;
+  *                       this number is normally 0 for forward facing;
+  *                       the range is limited between approximately 61 degrees of center turned to left or right
   * @param lfs this player is looking for a squad;
   *            all allies will see the phrase "[Looking for Squad]" under the player's name
   * @param is_cloaking avatar is cloaked by virtue of an Infiltration Suit
@@ -101,8 +103,8 @@ final case class CharacterAppearanceData(pos : PlacementData,
                                          outfit_name : String,
                                          outfit_logo : Int,
                                          backpack : Boolean,
-                                         facingPitch : Int,
-                                         facingYawUpper : Int,
+                                         facingPitch : Float,
+                                         facingYawUpper : Float,
                                          lfs : Boolean,
                                          grenade_state : GrenadeState.Value,
                                          is_cloaking : Boolean,
@@ -168,8 +170,8 @@ object CharacterAppearanceData extends Marshallable[CharacterAppearanceData] {
             ignore(1) :: //unknown
             ("backpack" | bool) :: //requires alt_model flag (does NOT require health == 0)
             bool :: //stream misalignment when set
-            ("facingPitch" | uint8L) ::
-            ("facingYawUpper" | uint8L) ::
+            ("facingPitch" | Angular.codec_pitch) ::
+            ("facingYawUpper" | Angular.codec_yaw(0f)) ::
             ignore(1) :: //unknown
             conditional(alt_model, bool) :: //alt_model flag adds a bit before lfs
             ignore(1) :: //an alternate lfs?

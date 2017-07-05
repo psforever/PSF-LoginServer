@@ -1,6 +1,4 @@
 // Copyright (c) 2017 PSForever
-import java.net.{InetAddress, InetSocketAddress}
-
 import akka.actor.{Actor, ActorRef, Cancellable, MDCContextAware}
 import net.psforever.packet.{PlanetSideGamePacket, _}
 import net.psforever.packet.control._
@@ -31,8 +29,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
   def receive = Initializing
 
   def Initializing : Receive = {
-    case HelloFriend(sessionId, right) =>
-      this.sessionId = sessionId
+    case HelloFriend(inSessionId, right) =>
+      this.sessionId = inSessionId
       leftRef = sender()
       rightRef = right.asInstanceOf[ActorRef]
 
@@ -81,7 +79,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             handlePkt(v)
         }
       case sync @ ControlSync(diff, unk, f1, f2, f3, f4, fa, fb) =>
-        log.debug(s"SYNC: ${sync}")
+        log.debug(s"SYNC: $sync")
         val serverTick = Math.abs(System.nanoTime().toInt) // limit the size to prevent encoding error
         sendResponse(PacketCoding.CreateControlPacket(ControlSyncResp(diff, serverTick,
           fa, fb, fb, fa)))
@@ -113,8 +111,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
   val app = CharacterAppearanceData(
     PlacementData(
       Vector3(3674.8438f, 2726.789f, 91.15625f),
-      0, 0,
-      19
+      0f, 0f, 90f
     ),
     BasicCharacterData(
       "IlllIIIlllIlIllIlllIllI",
@@ -166,9 +163,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
   def handleGamePkt(pkt : PlanetSideGamePacket) = pkt match {
     case ConnectToWorldRequestMessage(server, token, majorVersion, minorVersion, revision, buildDate, unk) =>
 
-      val clientVersion = s"Client Version: ${majorVersion}.${minorVersion}.${revision}, ${buildDate}"
+      val clientVersion = s"Client Version: $majorVersion.$minorVersion.$revision, $buildDate"
 
-      log.info(s"New world login to ${server} with Token:${token}. ${clientVersion}")
+      log.info(s"New world login to $server with Token:$token. $clientVersion")
 
       // ObjectCreateMessage
       sendResponse(PacketCoding.CreateGamePacket(0, objectHex))
@@ -229,6 +226,18 @@ class WorldSessionActor extends Actor with MDCContextAware {
               sendResponse(PacketCoding.CreateGamePacket(0, CreateShortcutMessage(guid, 1, 0, true, Shortcut.MEDKIT)))
               sendResponse(PacketCoding.CreateGamePacket(0, ReplicationStreamMessage(5, Some(6), Vector(SquadListing())))) //clear squad list
 
+              val fury = VehicleData(
+                CommonFieldData(
+                  PlacementData(3674.8438f, 2732f, 91.15625f, 0.0f, 0.0f, 90.0f),
+                  PlanetSideEmpire.VS, 4
+                ),
+                255,
+                MountItem(ObjectClass.fury_weapon_systema, PlanetSideGUID(400), 1,
+                  WeaponData(0x6, 0x8, 0, ObjectClass.hellfire_ammo, PlanetSideGUID(432), 0, AmmoBoxData(0x8))
+                )
+              )
+              sendResponse(PacketCoding.CreateGamePacket(0, ObjectCreateMessage(ObjectClass.fury, PlanetSideGUID(413), fury)))
+
               import scala.concurrent.duration._
               import scala.concurrent.ExecutionContext.Implicits.global
               clientKeepAlive = context.system.scheduler.schedule(0 seconds, 500 milliseconds, self, PokeClient())
@@ -249,13 +258,13 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ BeginZoningMessage() =>
       log.info("Reticulating splines ...")
 
-    case msg @ PlayerStateMessageUpstream(avatar_guid, pos, vel, unk1, aim_pitch, unk2, seq_time, unk3, is_crouching, is_jumping, unk4, is_cloaking, unk5, unk6) =>
+    case msg @ PlayerStateMessageUpstream(avatar_guid, pos, vel, yaw, pitch, yawUpper, seq_time, unk3, is_crouching, is_jumping, unk4, is_cloaking, unk5, unk6) =>
       //log.info("PlayerState: " + msg)
 
-    case msg @ ChildObjectStateMessage(object_guid : PlanetSideGUID, pitch : Int, yaw : Int) =>
+    case msg @ ChildObjectStateMessage(object_guid, pitch, yaw) =>
       //log.info("ChildObjectState: " + msg)
 
-    case msg @ VehicleStateMessage(vehicle_guid, unk1, pos, roll, pitch, yaw, vel, unk5, unk6, unk7, wheels, unk9, unkA) =>
+    case msg @ VehicleStateMessage(vehicle_guid, unk1, pos, ang, vel, unk5, unk6, unk7, wheels, unk9, unkA) =>
       //log.info("VehicleState: " + msg)
 
     case msg @ ProjectileStateMessage(projectile_guid, shot_pos, shot_vector, unk1, unk2, unk3, unk4, time_alive) =>
@@ -456,7 +465,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ TargetingImplantRequest(list) =>
       log.info("TargetingImplantRequest: "+msg)
 
-    case default => log.error(s"Unhandled GamePacket ${pkt}")
+    case default => log.error(s"Unhandled GamePacket $pkt")
   }
 
   def failWithError(error : String) = {

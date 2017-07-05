@@ -2,7 +2,7 @@
 package net.psforever.packet.game.objectcreate
 
 import net.psforever.packet.Marshallable
-import net.psforever.types.Vector3
+import net.psforever.types.{Angular, Vector3}
 import scodec.codecs._
 import scodec.Codec
 
@@ -15,9 +15,9 @@ import scodec.Codec
   * @param vel optional movement data (that occurs upon placement)
   */
 final case class PlacementData(coord : Vector3,
-                               roll : Int,
-                               pitch : Int,
-                               yaw : Int,
+                               roll : Float,
+                               pitch : Float,
+                               yaw : Float,
                                vel : Option[Vector3] = None
                               ) extends StreamBitSize {
   override def bitsize : Long = {
@@ -35,7 +35,7 @@ object PlacementData extends Marshallable[PlacementData] {
     * @return a `PlacementData` object
     */
   def apply(x : Float, y : Float, z : Float) : PlacementData =
-    new PlacementData(Vector3(x, y, z), 0, 0, 0)
+    new PlacementData(Vector3(x, y, z), 0f, 0f, 0f)
 
   /**
     * An abbreviated constructor for creating `PlacementData`, ignoring the `Vector3` for position data, supplying other important fields.
@@ -47,7 +47,7 @@ object PlacementData extends Marshallable[PlacementData] {
     * @param yaw the amount of yaw that affects orientation
     * @return a `PlacementData` object
     */
-  def apply(x : Float, y : Float, z : Float, roll : Int, pitch : Int, yaw : Int) : PlacementData =
+  def apply(x : Float, y : Float, z : Float, roll : Float, pitch : Float, yaw : Float) : PlacementData =
     new PlacementData(Vector3(x, y, z), roll, pitch, yaw)
 
   /**
@@ -61,14 +61,14 @@ object PlacementData extends Marshallable[PlacementData] {
     * @param vel optional movement data that occurs upon placement
     * @return a `PlacementData` object
     */
-  def apply(x : Float, y : Float, z : Float, roll : Int, pitch : Int, yaw : Int, vel : Vector3) : PlacementData =
+  def apply(x : Float, y : Float, z : Float, roll : Float, pitch : Float, yaw : Float, vel : Vector3) : PlacementData =
     new PlacementData(Vector3(x, y, z), roll, pitch, yaw, Some(vel))
 
   implicit val codec : Codec[PlacementData] = (
     ("coord" | Vector3.codec_pos) ::
-      ("roll" | uint8L) ::
-      ("pitch" | uint8L) ::
-      ("yaw" | uint8L) ::
+      ("roll" | Angular.codec_roll) ::
+      ("pitch" | Angular.codec_pitch) ::
+      ("yaw" | Angular.codec_yaw()) ::
       optional(bool, "vel" | Vector3.codec_vel)
     ).as[PlacementData]
 }
