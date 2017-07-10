@@ -180,9 +180,9 @@ class ObjectCreateDetailedMessageTest extends Specification {
         char.appearance.pos.coord.x mustEqual 3674.8438f
         char.appearance.pos.coord.y mustEqual 2726.789f
         char.appearance.pos.coord.z mustEqual 91.15625f
-        char.appearance.pos.roll mustEqual 0
-        char.appearance.pos.pitch mustEqual 0f
-        char.appearance.pos.yaw mustEqual 36.5625f
+        char.appearance.pos.orient.x mustEqual 0
+        char.appearance.pos.orient.y mustEqual 0f
+        char.appearance.pos.orient.z mustEqual 36.5625f
         char.appearance.basic_appearance.name mustEqual "IlllIIIlllIlIllIlllIllI"
         char.appearance.basic_appearance.faction mustEqual PlanetSideEmpire.VS
         char.appearance.basic_appearance.sex mustEqual CharacterGender.Female
@@ -367,8 +367,7 @@ class ObjectCreateDetailedMessageTest extends Specification {
     val app = CharacterAppearanceData(
       PlacementData(
         Vector3(3674.8438f, 2726.789f, 91.15625f),
-        0,
-        0f, 36.5625f
+        Vector3(0f, 0f, 36.5625f)
       ),
       BasicCharacterData(
         "IlllIIIlllIlIllIlllIllI",

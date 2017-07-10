@@ -48,9 +48,9 @@ class ObjectCreateMessageTest extends Specification {
         projectile.pos.coord.x mustEqual 4644.5938f
         projectile.pos.coord.y mustEqual 5472.0938f
         projectile.pos.coord.z mustEqual 82.375f
-        projectile.pos.roll mustEqual 0f
-        projectile.pos.pitch mustEqual 30.9375f
-        projectile.pos.yaw mustEqual 171.5625f
+        projectile.pos.orient.x mustEqual 0f
+        projectile.pos.orient.y mustEqual 30.9375f
+        projectile.pos.orient.z mustEqual 171.5625f
         projectile.unk1 mustEqual 0
         projectile.unk2 mustEqual TrackedProjectileData.striker_missile_targetting_projectile_data
       case _ =>
@@ -88,9 +88,9 @@ class ObjectCreateMessageTest extends Specification {
         drop.pos.coord.x mustEqual 4579.3438f
         drop.pos.coord.y mustEqual 5615.0703f
         drop.pos.coord.z mustEqual 72.953125f
-        drop.pos.pitch mustEqual 0f
-        drop.pos.roll mustEqual 0f
-        drop.pos.yaw mustEqual 98.4375f
+        drop.pos.orient.x mustEqual 0f
+        drop.pos.orient.y mustEqual 0f
+        drop.pos.orient.z mustEqual 98.4375f
         drop.obj.isInstanceOf[CommonTerminalData] mustEqual true
         val term = drop.obj.asInstanceOf[CommonTerminalData]
         term.faction mustEqual PlanetSideEmpire.NC
@@ -249,9 +249,9 @@ class ObjectCreateMessageTest extends Specification {
         flag.pos.coord.x mustEqual 3912.0312f
         flag.pos.coord.y mustEqual 5169.4375f
         flag.pos.coord.z mustEqual 59.96875f
-        flag.pos.roll mustEqual 0f
-        flag.pos.pitch mustEqual 0f
-        flag.pos.yaw mustEqual 47.8125f
+        flag.pos.orient.x mustEqual 0f
+        flag.pos.orient.y mustEqual 0f
+        flag.pos.orient.z mustEqual 47.8125f
         flag.faction mustEqual PlanetSideEmpire.NC
         flag.unk1 mustEqual 21
         flag.unk2 mustEqual 4
@@ -274,9 +274,9 @@ class ObjectCreateMessageTest extends Specification {
         drop.pos.coord.x mustEqual 4708.461f
         drop.pos.coord.y mustEqual 5547.539f
         drop.pos.coord.z mustEqual 72.703125f
-        drop.pos.roll mustEqual 0f
-        drop.pos.pitch mustEqual 0f
-        drop.pos.yaw mustEqual 194.0625f
+        drop.pos.orient.x mustEqual 0f
+        drop.pos.orient.y mustEqual 0f
+        drop.pos.orient.z mustEqual 194.0625f
         drop.obj.isInstanceOf[ACEData] mustEqual true
         val ace = drop.obj.asInstanceOf[ACEData]
         ace.unk1 mustEqual 8
@@ -299,9 +299,9 @@ class ObjectCreateMessageTest extends Specification {
         drop.pos.coord.x mustEqual 4777.633f
         drop.pos.coord.y mustEqual 5485.4062f
         drop.pos.coord.z mustEqual 85.8125f
-        drop.pos.roll mustEqual 0f
-        drop.pos.pitch mustEqual 0f
-        drop.pos.yaw mustEqual 14.0625f
+        drop.pos.orient.x mustEqual 0f
+        drop.pos.orient.y mustEqual 0f
+        drop.pos.orient.z mustEqual 14.0625f
         drop.obj.isInstanceOf[CommandDetonaterData] mustEqual true
       case _ =>
         ko
@@ -321,9 +321,9 @@ class ObjectCreateMessageTest extends Specification {
         drop.pos.coord.x mustEqual 4684.7344f
         drop.pos.coord.y mustEqual 5547.4844f
         drop.pos.coord.z mustEqual 83.765625f
-        drop.pos.roll mustEqual 0f
-        drop.pos.pitch mustEqual 0f
-        drop.pos.yaw mustEqual 199.6875f
+        drop.pos.orient.x mustEqual 0f
+        drop.pos.orient.y mustEqual 0f
+        drop.pos.orient.z mustEqual 199.6875f
         drop.obj.isInstanceOf[AmmoBoxData] mustEqual true
         val box = drop.obj.asInstanceOf[AmmoBoxData]
         box.unk mustEqual 0
@@ -345,9 +345,9 @@ class ObjectCreateMessageTest extends Specification {
         drop.pos.coord.x mustEqual 4691.1953f
         drop.pos.coord.y mustEqual 5537.039f
         drop.pos.coord.z mustEqual 65.484375f
-        drop.pos.roll mustEqual 0f
-        drop.pos.pitch mustEqual 0f
-        drop.pos.yaw mustEqual 0f
+        drop.pos.orient.x mustEqual 0f
+        drop.pos.orient.y mustEqual 0f
+        drop.pos.orient.z mustEqual 0f
         drop.obj.isInstanceOf[WeaponData] mustEqual true
         val wep = drop.obj.asInstanceOf[WeaponData]
         wep.unk1 mustEqual 4
@@ -377,9 +377,9 @@ class ObjectCreateMessageTest extends Specification {
         drop.pos.coord.x mustEqual 4789.133f
         drop.pos.coord.y mustEqual 5522.3125f
         drop.pos.coord.z mustEqual 72.3125f
-        drop.pos.roll mustEqual 0f
-        drop.pos.pitch mustEqual 0f
-        drop.pos.yaw mustEqual 306.5625f
+        drop.pos.orient.x mustEqual 0f
+        drop.pos.orient.y mustEqual 0f
+        drop.pos.orient.z mustEqual 306.5625f
         drop.obj.isInstanceOf[WeaponData] mustEqual true
         val wep = drop.obj.asInstanceOf[WeaponData]
         wep.unk1 mustEqual 2
@@ -417,9 +417,9 @@ class ObjectCreateMessageTest extends Specification {
         dropped.pos.coord.x mustEqual 4675.039f
         dropped.pos.coord.y mustEqual 5506.953f
         dropped.pos.coord.z mustEqual 72.703125f
-        dropped.pos.roll mustEqual 0f
-        dropped.pos.pitch mustEqual 0f
-        dropped.pos.yaw mustEqual 230.625f
+        dropped.pos.orient.x mustEqual 0f
+        dropped.pos.orient.y mustEqual 0f
+        dropped.pos.orient.z mustEqual 230.625f
         dropped.obj.isInstanceOf[REKData] mustEqual true
         val rek = dropped.obj.asInstanceOf[REKData]
         rek.unk1 mustEqual 8
@@ -443,9 +443,9 @@ class ObjectCreateMessageTest extends Specification {
         boomer.deploy.pos.coord.x mustEqual 4704.172f
         boomer.deploy.pos.coord.y mustEqual 5546.4375f
         boomer.deploy.pos.coord.z mustEqual 82.234375f
-        boomer.deploy.pos.roll mustEqual 0f
-        boomer.deploy.pos.pitch mustEqual 0f
-        boomer.deploy.pos.yaw mustEqual 272.8125f
+        boomer.deploy.pos.orient.x mustEqual 0f
+        boomer.deploy.pos.orient.y mustEqual 0f
+        boomer.deploy.pos.orient.z mustEqual 272.8125f
         boomer.deploy.unk mustEqual 0
         boomer.deploy.player_guid mustEqual PlanetSideGUID(4145)
       case _ =>
@@ -466,9 +466,9 @@ class ObjectCreateMessageTest extends Specification {
         turret.deploy.pos.coord.x mustEqual 4577.7812f
         turret.deploy.pos.coord.y mustEqual 5624.828f
         turret.deploy.pos.coord.z mustEqual 72.046875f
-        turret.deploy.pos.roll mustEqual 0f
-        turret.deploy.pos.pitch mustEqual 2.8125f
-        turret.deploy.pos.yaw mustEqual 264.375f
+        turret.deploy.pos.orient.x mustEqual 0f
+        turret.deploy.pos.orient.y mustEqual 2.8125f
+        turret.deploy.pos.orient.z mustEqual 264.375f
         turret.deploy.faction mustEqual PlanetSideEmpire.NC
         turret.deploy.unk mustEqual 12
         turret.deploy.player_guid mustEqual PlanetSideGUID(3871)
@@ -492,9 +492,9 @@ class ObjectCreateMessageTest extends Specification {
         turret.deploy.pos.coord.x mustEqual 4527.633f
         turret.deploy.pos.coord.y mustEqual 6271.3594f
         turret.deploy.pos.coord.z mustEqual 70.265625f
-        turret.deploy.pos.roll mustEqual 0f
-        turret.deploy.pos.pitch mustEqual 0f
-        turret.deploy.pos.yaw mustEqual 154.6875f
+        turret.deploy.pos.orient.x mustEqual 0f
+        turret.deploy.pos.orient.y mustEqual 0f
+        turret.deploy.pos.orient.z mustEqual 154.6875f
         turret.deploy.faction mustEqual PlanetSideEmpire.VS
         turret.deploy.unk mustEqual 4
         turret.deploy.player_guid mustEqual PlanetSideGUID(4232)
@@ -533,9 +533,9 @@ class ObjectCreateMessageTest extends Specification {
         trap.deploy.pos.coord.x mustEqual 3572.4453f
         trap.deploy.pos.coord.y mustEqual 3277.9766f
         trap.deploy.pos.coord.z mustEqual 114.0f
-        trap.deploy.pos.roll mustEqual 0f
-        trap.deploy.pos.pitch mustEqual 0f
-        trap.deploy.pos.yaw mustEqual 90.0f
+        trap.deploy.pos.orient.x mustEqual 0f
+        trap.deploy.pos.orient.y mustEqual 0f
+        trap.deploy.pos.orient.z mustEqual 90.0f
         trap.deploy.faction mustEqual PlanetSideEmpire.VS
         trap.deploy.unk mustEqual 4
         trap.health mustEqual 255
@@ -558,9 +558,9 @@ class ObjectCreateMessageTest extends Specification {
         aegis.deploy.pos.coord.x mustEqual 3571.2266f
         aegis.deploy.pos.coord.y mustEqual 3278.0938f
         aegis.deploy.pos.coord.z mustEqual 114.0f
-        aegis.deploy.pos.roll mustEqual 0f
-        aegis.deploy.pos.pitch mustEqual 0f
-        aegis.deploy.pos.yaw mustEqual 90.0f
+        aegis.deploy.pos.orient.x mustEqual 0f
+        aegis.deploy.pos.orient.y mustEqual 0f
+        aegis.deploy.pos.orient.z mustEqual 90.0f
         aegis.deploy.faction mustEqual PlanetSideEmpire.VS
         aegis.deploy.unk mustEqual 4
         aegis.health mustEqual 255
@@ -583,9 +583,9 @@ class ObjectCreateMessageTest extends Specification {
         omft.deploy.pos.coord.x mustEqual 3567.1406f
         omft.deploy.pos.coord.y mustEqual 2988.0078f
         omft.deploy.pos.coord.z mustEqual 71.84375f
-        omft.deploy.pos.roll mustEqual 0f
-        omft.deploy.pos.pitch mustEqual 0f
-        omft.deploy.pos.yaw mustEqual 185.625f
+        omft.deploy.pos.orient.x mustEqual 0f
+        omft.deploy.pos.orient.y mustEqual 0f
+        omft.deploy.pos.orient.z mustEqual 185.625f
         omft.deploy.faction mustEqual PlanetSideEmpire.VS
         omft.deploy.unk mustEqual 4
         omft.deploy.player_guid mustEqual PlanetSideGUID(2502)
@@ -666,9 +666,9 @@ class ObjectCreateMessageTest extends Specification {
         pc.appearance.pos.coord.x mustEqual 3674.8438f
         pc.appearance.pos.coord.y mustEqual 2726.789f
         pc.appearance.pos.coord.z mustEqual 91.15625f
-        pc.appearance.pos.roll mustEqual 0f
-        pc.appearance.pos.pitch mustEqual 0f
-        pc.appearance.pos.yaw mustEqual 64.6875f
+        pc.appearance.pos.orient.x mustEqual 0f
+        pc.appearance.pos.orient.y mustEqual 0f
+        pc.appearance.pos.orient.z mustEqual 64.6875f
         pc.appearance.pos.vel.isDefined mustEqual true
         pc.appearance.pos.vel.get.x mustEqual 1.4375f
         pc.appearance.pos.vel.get.y mustEqual -0.4375f
@@ -765,9 +765,9 @@ class ObjectCreateMessageTest extends Specification {
         pc.appearance.pos.coord.x mustEqual 4629.8906f
         pc.appearance.pos.coord.y mustEqual 6316.4453f
         pc.appearance.pos.coord.z mustEqual 54.734375f
-        pc.appearance.pos.roll mustEqual 0f
-        pc.appearance.pos.pitch mustEqual 0f
-        pc.appearance.pos.yaw mustEqual 126.5625f
+        pc.appearance.pos.orient.x mustEqual 0f
+        pc.appearance.pos.orient.y mustEqual 0f
+        pc.appearance.pos.orient.z mustEqual 126.5625f
         pc.appearance.pos.vel.isDefined mustEqual false
         pc.appearance.basic_appearance.name mustEqual "Angello"
         pc.appearance.basic_appearance.faction mustEqual PlanetSideEmpire.VS
@@ -904,7 +904,7 @@ class ObjectCreateMessageTest extends Specification {
 
   "encode (ace, dropped)" in {
     val obj = DroppedItemData(
-      PlacementData(Vector3(4708.461f, 5547.539f, 72.703125f), 0f, 0f, 194.0625f),
+      PlacementData(4708.461f, 5547.539f, 72.703125f, 0f, 0f, 194.0625f),
       ACEData(8, 8)
     )
     val msg = ObjectCreateMessage(ObjectClass.ace, PlanetSideGUID(4388), obj)
@@ -915,7 +915,7 @@ class ObjectCreateMessageTest extends Specification {
 
   "encode (detonator, dropped)" in {
     val obj = DroppedItemData(
-      PlacementData(Vector3(4777.633f, 5485.4062f, 85.8125f), 0f, 0f, 14.0625f),
+      PlacementData(4777.633f, 5485.4062f, 85.8125f, 0f, 0f, 14.0625f),
       CommandDetonaterData()
     )
     val msg = ObjectCreateMessage(ObjectClass.command_detonater, PlanetSideGUID(3682), obj)
@@ -926,7 +926,7 @@ class ObjectCreateMessageTest extends Specification {
 
   "encode (shotgun shells, dropped)" in {
     val obj = DroppedItemData(
-      PlacementData(Vector3(4684.7344f, 5547.4844f, 83.765625f), 0f, 0f, 199.6875f),
+      PlacementData(4684.7344f, 5547.4844f, 83.765625f, 0f, 0f, 199.6875f),
       AmmoBoxData()
     )
     val msg = ObjectCreateMessage(ObjectClass.shotgun_shell, PlanetSideGUID(3453), obj)
@@ -937,7 +937,7 @@ class ObjectCreateMessageTest extends Specification {
 
   "encode (lasher, dropped)" in {
     val obj = DroppedItemData(
-      PlacementData(Vector3(4691.1953f, 5537.039f, 65.484375f), 0.0f, 0.0f, 0.0f),
+      PlacementData(4691.1953f, 5537.039f, 65.484375f, 0.0f, 0.0f, 0.0f),
       WeaponData(4, 0, ObjectClass.energy_cell, PlanetSideGUID(3268), 0, AmmoBoxData())
     )
     val msg = ObjectCreateMessage(ObjectClass.lasher, PlanetSideGUID(3074), obj)
@@ -948,7 +948,7 @@ class ObjectCreateMessageTest extends Specification {
 
   "encode (punisher, dropped)" in {
     val obj = DroppedItemData(
-      PlacementData(Vector3(4789.133f, 5522.3125f, 72.3125f), 0f, 0f, 306.5625f),
+      PlacementData(4789.133f, 5522.3125f, 72.3125f, 0f, 0f, 306.5625f),
       WeaponData(2, 0, 0,
         AmmoBoxData(ObjectClass.bullet_9mm, PlanetSideGUID(3528), 0, AmmoBoxData()) ::
           AmmoBoxData(ObjectClass.rocket, PlanetSideGUID(3031), 1, AmmoBoxData()) ::
@@ -963,7 +963,7 @@ class ObjectCreateMessageTest extends Specification {
 
   "encode (REK, dropped)" in {
     val obj = DroppedItemData(
-      PlacementData(Vector3(4675.039f, 5506.953f, 72.703125f), 0f, 0f, 230.625f),
+      PlacementData(4675.039f, 5506.953f, 72.703125f, 0f, 0f, 230.625f),
       REKData(8, 0, 3)
     )
     val msg = ObjectCreateMessage(ObjectClass.remote_electronics_kit, PlanetSideGUID(4355), obj)
@@ -975,7 +975,7 @@ class ObjectCreateMessageTest extends Specification {
   "encode (boomer)" in {
     val obj = SmallDeployableData(
       CommonFieldData(
-        PlacementData(Vector3(4704.172f, 5546.4375f, 82.234375f), 0f, 0f, 272.8125f),
+        PlacementData(4704.172f, 5546.4375f, 82.234375f, 0f, 0f, 272.8125f),
         PlanetSideEmpire.TR, 0, PlanetSideGUID(4145)
       )
     )
@@ -988,7 +988,7 @@ class ObjectCreateMessageTest extends Specification {
   "encode (spitfire, short)" in {
     val obj = SmallTurretData(
       CommonFieldData(
-        PlacementData(Vector3(4577.7812f, 5624.828f, 72.046875f), 0f, 2.8125f, 264.375f),
+        PlacementData(4577.7812f, 5624.828f, 72.046875f, 0f, 2.8125f, 264.375f),
         PlanetSideEmpire.NC, 12, PlanetSideGUID(3871)
       ),
       255 //sets to 0
@@ -1006,7 +1006,7 @@ class ObjectCreateMessageTest extends Specification {
   "encode (spitfire)" in {
     val obj = SmallTurretData(
       CommonFieldData(
-        PlacementData(Vector3(4527.633f, 6271.3594f, 70.265625f), 0f, 0f, 154.6875f),
+        PlacementData(4527.633f, 6271.3594f, 70.265625f, 0f, 0f, 154.6875f),
         PlanetSideEmpire.VS, 4, PlanetSideGUID(4232)
       ),
       255,
@@ -1025,7 +1025,7 @@ class ObjectCreateMessageTest extends Specification {
   "encode (trap)" in {
     val obj = TRAPData(
       CommonFieldData(
-        PlacementData(Vector3(3572.4453f, 3277.9766f, 114.0f), 0f, 0f, 90.0f),
+        PlacementData(3572.4453f, 3277.9766f, 114.0f, 0f, 0f, 90.0f),
         PlanetSideEmpire.VS, 4, PlanetSideGUID(2502)
       ),
       255
@@ -1043,7 +1043,7 @@ class ObjectCreateMessageTest extends Specification {
   "encode (aegis)"  in {
     val obj = AegisShieldGeneratorData(
       CommonFieldData(
-        PlacementData(Vector3(3571.2266f, 3278.0938f, 114.0f), 0f, 0f, 90.0f),
+        PlacementData(3571.2266f, 3278.0938f, 114.0f, 0f, 0f, 90.0f),
         PlanetSideEmpire.VS, 4, PlanetSideGUID(2366)
       ),
       255
@@ -1057,7 +1057,7 @@ class ObjectCreateMessageTest extends Specification {
   "encode (orion)" in {
     val obj = OneMannedFieldTurretData(
       CommonFieldData(
-        PlacementData(Vector3(3567.1406f, 2988.0078f, 71.84375f), 0f, 0f, 185.625f),
+        PlacementData(3567.1406f, 2988.0078f, 71.84375f, 0f, 0f, 185.625f),
         PlanetSideEmpire.VS, 4, PlanetSideGUID(2502)
       ),
       255,
@@ -1093,7 +1093,7 @@ class ObjectCreateMessageTest extends Specification {
       CharacterAppearanceData(
         PlacementData(
           Vector3(3674.8438f, 2726.789f, 91.15625f),
-          0f, 0f, 64.6875f,
+          Vector3(0f, 0f, 64.6875f),
           Some(Vector3(1.4375f, -0.4375f, 0f))
         ),
         BasicCharacterData(

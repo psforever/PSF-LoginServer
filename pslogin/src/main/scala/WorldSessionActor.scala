@@ -111,7 +111,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
   val app = CharacterAppearanceData(
     PlacementData(
       Vector3(3674.8438f, 2726.789f, 91.15625f),
-      0f, 0f, 90f
+      Vector3(0f, 0f, 90f)
     ),
     BasicCharacterData(
       "IlllIIIlllIlIllIlllIllI",
