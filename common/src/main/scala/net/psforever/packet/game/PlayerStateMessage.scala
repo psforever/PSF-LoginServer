@@ -3,7 +3,7 @@ package net.psforever.packet.game
 
 import net.psforever.newcodecs.newcodecs
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PlanetSideGamePacket}
-import net.psforever.types.Vector3
+import net.psforever.types.{Angular, Vector3}
 import scodec.Codec
 import scodec.codecs._
 import shapeless.{::, HNil}
@@ -20,7 +20,7 @@ import shapeless.{::, HNil}
   * <br>
   * The avatar model normally moves from where it "currently" is to `pos`.
   * When `vel` is defined, `pos` is treated as where the avatar model starts its animation.
-  * In that case, it sppears to teleport to `pos` to carry out the interpolated movement according to `vel`.
+  * In that case, it appears to teleport to `pos` to carry out the interpolated movement according to `vel`.
   * After the move, it remains at essentially `pos + vel * t`.
   * The repositioning always takes the same amount of time.
   * The player model is left in a walking/running animation (in place) until directed otherwise.<br>
@@ -29,39 +29,15 @@ import shapeless.{::, HNil}
   * A demonstration of this is what happens when one player "runs past"/"into" another player running up stairs.
   * The climbing player is frequently reported by the other to appear to bounce over that player's head.
   * If the other player is off the ground, passing too near to the observer can cause a rubber band effect on trajectory.
-  * This effect is entirely client-side to the observer and affects the moving player in no way.<br>
-  * <br>
-  * facingYaw:<br>
-  * `0x00` -- E<br>
-  * `0x10` -- NE<br>
-  * `0x20` -- N<br>
-  * `0x30` -- NW<br>
-  * `0x40` -- W<br>
-  * `0x50` -- SW<br>
-  * `0x60` -- S<br>
-  * `0x70` -- SE<br>
-  * `0x80` -- E<br>
-  * <br>
-  * facingPitch:<br>
-  * `0x00`-`0x20` -- downwards-facing angles, with `0x00` as forwards-facing<br>
-  * `0x21`-`0x40` -- downwards-facing<br>
-  * `0x41`-`0x59` -- upwards-facing<br>
-  * `0x60`-`0x80` -- upwards-facing angles, with `0x80` as forwards-facing<br>
-  * <br>
-  * facingYawUpper:<br>
-  * `0x00`-`0x20` -- turning to left, with `0x00` being forward-facing<br>
-  * `0x21`-`0x40` -- facing leftwards<br>
-  * `0x41`-`0x59` -- facing rightwards<br>
-  * `0x60`-`0x80` -- turning to right, with `0x80` being forward-facing
-  *
+  * This effect is entirely client-side to the observer and affects the moving player in no way.
   * @param guid the avatar's guid
   * @param pos the position of the avatar in the world environment (in three coordinates)
   * @param vel an optional velocity
-  * @param facingYaw the angle with respect to the horizon towards which the avatar is looking;
-  *                  the model's whole body is facing this direction;
-  *                  measurements are counter-clockwise from East
-  * @param facingPitch the angle with respect to the sky and the ground towards which the avatar is looking
-  * @param facingYawUpper the angle of the avatar's upper body with respect to its forward-facing direction
+  * @param facingYaw a "yaw" angle
+  * @param facingPitch a "pitch" angle
+  * @param facingYawUpper a "yaw" angle that represents the angle of the avatar's upper body with respect to its forward-facing direction;
+  *                       this number is normally 0 for forward facing;
+  *                       the range is limited between approximately 61 degrees of center turned to left or right
   * @param unk1 na
   * @param is_crouching avatar is crouching
   * @param is_jumping avatar is jumping;
@@ -72,9 +48,9 @@ import shapeless.{::, HNil}
 final case class PlayerStateMessage(guid : PlanetSideGUID,
                                     pos : Vector3,
                                     vel : Option[Vector3],
-                                    facingYaw : Int,
-                                    facingPitch : Int,
-                                    facingYawUpper : Int,
+                                    facingYaw : Float,
+                                    facingPitch : Float,
+                                    facingYawUpper : Float,
                                     unk1 : Int,
                                     is_crouching : Boolean = false,
                                     is_jumping : Boolean = false,
@@ -117,9 +93,9 @@ object PlayerStateMessage extends Marshallable[PlayerStateMessage] {
     ("guid" | PlanetSideGUID.codec) ::
       ("pos" | Vector3.codec_pos) ::
       optional(bool, "vel" | Vector3.codec_vel) ::
-      ("facingYaw" | uint8L) ::
-      ("facingPitch" | uint8L) ::
-      ("facingYawUpper" | uint8L) ::
+      ("facingYaw" | Angular.codec_yaw()) ::
+      ("facingPitch" | Angular.codec_pitch) ::
+      ("facingYawUpper" | Angular.codec_yaw(0f)) ::
       ("unk1" | uintL(10)) ::
       (bool >>:~ { fourBools =>
         newcodecs.binary_choice(!fourBools, booleanCodec, defaultCodec)

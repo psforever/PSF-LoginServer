@@ -1,12 +1,10 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.packet.game
 
-import net.psforever.newcodecs.newcodecs
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PlanetSideGamePacket}
-import net.psforever.types.Vector3
+import net.psforever.types.{Angular, Vector3}
 import scodec.Codec
 import scodec.codecs._
-import shapeless.{::, HNil}
 
 //TODO write more thorough comments later.
 /**
@@ -14,15 +12,7 @@ import shapeless.{::, HNil}
   * @param vehicle_guid the vehicle
   * @param unk1 na
   * @param pos the xyz-coordinate location in the world
-  * @param roll the amount of roll that affects orientation;
-  *            0.0f is flat to the ground;
-  *            roll-right rotation increases angle
-  * @param pitch the amount of pitch that affects orientation;
-  *            0.0f is flat to the ground;
-  *            front-up rotation increases angle
-  * @param yaw the amount of yaw that affects orientation;
-  *            0.0f is North (before the correction, 0.0f is East);
-  *            clockwise rotation increases angle
+  * @param ang the orientation of the vehicle
   * @param vel optional movement data
   * @param unk2 na
   * @param unk3 na
@@ -38,9 +28,7 @@ import shapeless.{::, HNil}
 final case class VehicleStateMessage(vehicle_guid : PlanetSideGUID,
                                      unk1 : Int,
                                      pos : Vector3,
-                                     roll : Float,
-                                     pitch : Float,
-                                     yaw : Float,
+                                     ang : Vector3,
                                      vel : Option[Vector3],
                                      unk2 : Option[Int],
                                      unk3 : Int,
@@ -55,13 +43,23 @@ final case class VehicleStateMessage(vehicle_guid : PlanetSideGUID,
 }
 
 object VehicleStateMessage extends Marshallable[VehicleStateMessage] {
+  /**
+    * Calculate common orientation from little-endian bit data.
+    * @see `Angular.codec_roll`
+    * @see `Angular.codec_pitch`
+    * @see `Angular.codec_yaw`
+    */
+  private val codec_orient : Codec[Vector3] = (
+    ("roll"    | Angular.codec_roll(10)) ::
+      ("pitch" | Angular.codec_pitch(10)) ::
+      ("yaw"   | Angular.codec_yaw(10, 90f))
+    ).as[Vector3]
+
   implicit val codec : Codec[VehicleStateMessage] = (
     ("vehicle_guid" | PlanetSideGUID.codec) ::
       ("unk1" | uintL(3)) ::
       ("pos" | Vector3.codec_pos) ::
-      ("roll" | newcodecs.q_float(0.0f, 360.0f, 10)) ::
-      ("pitch" | newcodecs.q_float(360.0f, 0.0f, 10)) ::
-      ("yaw" | newcodecs.q_float(360.0f, 0.0f, 10)) ::
+      ("ang" | codec_orient) ::
       optional(bool, "vel" | Vector3.codec_vel) ::
       optional(bool, "unk2" | uintL(5)) ::
       ("unk3" | uintL(7)) ::
@@ -69,27 +67,5 @@ object VehicleStateMessage extends Marshallable[VehicleStateMessage] {
       ("wheel_direction" | uintL(5)) ::
       ("int5" | bool) ::
       ("int6" | bool)
-    ).xmap[VehicleStateMessage] (
-    {
-      case guid :: u1 :: pos :: roll :: pitch :: yaw :: vel :: u2 :: u3 :: u4 :: wheel :: u5 :: u6 :: HNil =>
-        var northCorrectedYaw : Float = yaw + 90f
-        if(northCorrectedYaw > 360f) {
-          northCorrectedYaw = northCorrectedYaw - 360f
-        }
-        VehicleStateMessage(guid, u1, pos, roll, pitch, northCorrectedYaw, vel, u2, u3, u4, wheel, u5, u6)
-    },
-
-    {
-      case VehicleStateMessage(guid, u1, pos, roll, pitch, yaw, vel, u2, u3, u4, wheel, u5, u6) =>
-        var northCorrectedYaw : Float = yaw - 90f
-        //TODO this invites imprecision
-        while(northCorrectedYaw < 0f) {
-          northCorrectedYaw = 360f + northCorrectedYaw
-        }
-        if(northCorrectedYaw > 360f) {
-          northCorrectedYaw = northCorrectedYaw % 360f
-        }
-        guid :: u1 :: pos :: roll :: pitch :: northCorrectedYaw :: vel :: u2 :: u3 :: u4 :: wheel :: u5 :: u6 :: HNil
-    }
-  )
+    ).as[VehicleStateMessage]
 }

@@ -180,9 +180,9 @@ class ObjectCreateDetailedMessageTest extends Specification {
         char.appearance.pos.coord.x mustEqual 3674.8438f
         char.appearance.pos.coord.y mustEqual 2726.789f
         char.appearance.pos.coord.z mustEqual 91.15625f
-        char.appearance.pos.roll mustEqual 0
-        char.appearance.pos.pitch mustEqual 0
-        char.appearance.pos.yaw mustEqual 19
+        char.appearance.pos.orient.x mustEqual 0
+        char.appearance.pos.orient.y mustEqual 0f
+        char.appearance.pos.orient.z mustEqual 36.5625f
         char.appearance.basic_appearance.name mustEqual "IlllIIIlllIlIllIlllIllI"
         char.appearance.basic_appearance.faction mustEqual PlanetSideEmpire.VS
         char.appearance.basic_appearance.sex mustEqual CharacterGender.Female
@@ -195,8 +195,8 @@ class ObjectCreateDetailedMessageTest extends Specification {
         char.appearance.outfit_name mustEqual ""
         char.appearance.outfit_logo mustEqual 0
         char.appearance.backpack mustEqual false
-        char.appearance.facingPitch mustEqual 127
-        char.appearance.facingYawUpper mustEqual 181
+        char.appearance.facingPitch mustEqual 2.8125f
+        char.appearance.facingYawUpper mustEqual 210.9375f
         char.appearance.lfs mustEqual true
         char.appearance.grenade_state mustEqual GrenadeState.None
         char.appearance.is_cloaking mustEqual false
@@ -367,8 +367,7 @@ class ObjectCreateDetailedMessageTest extends Specification {
     val app = CharacterAppearanceData(
       PlacementData(
         Vector3(3674.8438f, 2726.789f, 91.15625f),
-        0, 0,
-        19
+        Vector3(0f, 0f, 36.5625f)
       ),
       BasicCharacterData(
         "IlllIIIlllIlIllIlllIllI",
@@ -384,7 +383,7 @@ class ObjectCreateDetailedMessageTest extends Specification {
       "",
       0,
       false,
-      127, 181,
+      2.8125f, 210.9375f,
       true,
       GrenadeState.None,
       false,
@@ -422,7 +421,8 @@ class ObjectCreateDetailedMessageTest extends Specification {
     val ori_bitv = string_testchar.toBitVector
     pkt_bitv.take(153) mustEqual ori_bitv.take(153) //skip 1
     pkt_bitv.drop(154).take(422) mustEqual ori_bitv.drop(154).take(422) //skip 126
-    pkt_bitv.drop(702) mustEqual ori_bitv.drop(702)
+    pkt_bitv.drop(702).take(29) mustEqual ori_bitv.drop(702).take(29) //skip 1
+    pkt_bitv.drop(732) mustEqual ori_bitv.drop(732)
     //TODO work on DetailedCharacterData to make this pass as a single stream
   }
 }

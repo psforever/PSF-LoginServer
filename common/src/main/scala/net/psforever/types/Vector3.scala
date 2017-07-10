@@ -4,6 +4,7 @@ package net.psforever.types
 import net.psforever.newcodecs._
 import scodec.Codec
 import scodec.codecs._
+import shapeless.{::, HNil}
 
 final case class Vector3(x : Float,
                          y : Float,

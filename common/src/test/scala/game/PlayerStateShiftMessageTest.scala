@@ -9,7 +9,7 @@ import scodec.bits._
 
 class PlayerStateShiftMessageTest extends Specification {
   val string_short = hex"BE 68"
-  val string_pos = hex"BE 95 A0 89 13 91 B8 B0 BF F0"
+  val string_pos = hex"BE 95 A0 89 13 91 B8 B0 B7 F0" //orig: ... B0 BF F0
   val string_posAndVel = hex"BE AE 01 29 CD 59 B9 40 C0 EA D4 00 0F 86 40"
 
   "decode (short)" in {
@@ -31,7 +31,7 @@ class PlayerStateShiftMessageTest extends Specification {
         state.get.pos.x mustEqual 4624.703f
         state.get.pos.y mustEqual 5922.1484f
         state.get.pos.z mustEqual 46.171875f
-        state.get.viewYawLim mustEqual 255
+        state.get.viewYawLim mustEqual 92.8125f
         state.get.vel.isDefined mustEqual false
         unk.isDefined mustEqual false
       case _ =>
@@ -47,7 +47,7 @@ class PlayerStateShiftMessageTest extends Specification {
         state.get.pos.x mustEqual 4645.75f
         state.get.pos.y mustEqual 5811.6016f
         state.get.pos.z mustEqual 50.3125f
-        state.get.viewYawLim mustEqual 14
+        state.get.viewYawLim mustEqual 50.625f
         state.get.vel.isDefined mustEqual true
         state.get.vel.get.x mustEqual 2.8125f
         state.get.vel.get.y mustEqual -8.0f
@@ -66,14 +66,14 @@ class PlayerStateShiftMessageTest extends Specification {
   }
 
   "encode (pos)" in {
-    val msg = PlayerStateShiftMessage(ShiftState(1, Vector3(4624.703f, 5922.1484f, 46.171875f), 255))
+    val msg = PlayerStateShiftMessage(ShiftState(1, Vector3(4624.703f, 5922.1484f, 46.171875f), 92.8125f))
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string_pos
   }
 
   "encode (pos and vel)" in {
-    val msg = PlayerStateShiftMessage(ShiftState(2, Vector3(4645.75f, 5811.6016f, 50.3125f), 14, Vector3(2.8125f, -8.0f, 0.375f)))
+    val msg = PlayerStateShiftMessage(ShiftState(2, Vector3(4645.75f, 5811.6016f, 50.3125f), 50.625f, Vector3(2.8125f, -8.0f, 0.375f)))
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string_posAndVel

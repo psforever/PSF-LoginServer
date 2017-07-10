@@ -33,9 +33,9 @@ class ObjectCreateMessageVehiclesTest extends Specification {
         fury.basic.pos.coord.x mustEqual 6531.961f
         fury.basic.pos.coord.y mustEqual 1872.1406f
         fury.basic.pos.coord.z mustEqual 24.734375f
-        fury.basic.pos.roll mustEqual 0
-        fury.basic.pos.pitch mustEqual 0
-        fury.basic.pos.yaw mustEqual 33
+        fury.basic.pos.orient.x mustEqual 0f
+        fury.basic.pos.orient.y mustEqual 0f
+        fury.basic.pos.orient.z mustEqual 357.1875f
         fury.basic.pos.vel.isDefined mustEqual false
         fury.basic.faction mustEqual PlanetSideEmpire.VS
         fury.basic.unk mustEqual 4
@@ -78,9 +78,9 @@ class ObjectCreateMessageVehiclesTest extends Specification {
         ant.basic.pos.coord.x mustEqual 3674.8438f
         ant.basic.pos.coord.y mustEqual 2726.789f
         ant.basic.pos.coord.z mustEqual 91.15625f
-        ant.basic.pos.roll mustEqual 0
-        ant.basic.pos.pitch mustEqual 0
-        ant.basic.pos.yaw mustEqual 0
+        ant.basic.pos.orient.x mustEqual 0f
+        ant.basic.pos.orient.y mustEqual 0f
+        ant.basic.pos.orient.z mustEqual 90.0f
         ant.basic.faction mustEqual PlanetSideEmpire.VS
         ant.basic.unk mustEqual 4
         ant.basic.player_guid mustEqual PlanetSideGUID(0)
@@ -104,9 +104,9 @@ class ObjectCreateMessageVehiclesTest extends Specification {
         lightning.basic.pos.coord.x mustEqual 3674.8438f
         lightning.basic.pos.coord.y mustEqual 2726.789f
         lightning.basic.pos.coord.z mustEqual 91.15625f
-        lightning.basic.pos.roll mustEqual 0
-        lightning.basic.pos.pitch mustEqual 0
-        lightning.basic.pos.yaw mustEqual 0
+        lightning.basic.pos.orient.x mustEqual 0f
+        lightning.basic.pos.orient.y mustEqual 0f
+        lightning.basic.pos.orient.z mustEqual 90.0f
         lightning.basic.faction mustEqual PlanetSideEmpire.VS
         lightning.basic.unk mustEqual 4
         lightning.basic.player_guid mustEqual PlanetSideGUID(0)
@@ -155,9 +155,9 @@ class ObjectCreateMessageVehiclesTest extends Specification {
         deliverer.basic.pos.coord.x mustEqual 6531.961f
         deliverer.basic.pos.coord.y mustEqual 1872.1406f
         deliverer.basic.pos.coord.z mustEqual 24.734375f
-        deliverer.basic.pos.roll mustEqual 0
-        deliverer.basic.pos.pitch mustEqual 0
-        deliverer.basic.pos.yaw mustEqual 33
+        deliverer.basic.pos.orient.x mustEqual 0f
+        deliverer.basic.pos.orient.y mustEqual 0f
+        deliverer.basic.pos.orient.z mustEqual 357.1875f
         deliverer.basic.faction mustEqual PlanetSideEmpire.NC
         deliverer.basic.unk mustEqual 4
         deliverer.basic.player_guid mustEqual PlanetSideGUID(0)
@@ -221,9 +221,9 @@ class ObjectCreateMessageVehiclesTest extends Specification {
         ams.basic.pos.coord.x mustEqual 3674.0f
         ams.basic.pos.coord.y mustEqual 2726.789f
         ams.basic.pos.coord.z mustEqual 91.15625f
-        ams.basic.pos.roll mustEqual 0
-        ams.basic.pos.pitch mustEqual 0
-        ams.basic.pos.yaw mustEqual 0
+        ams.basic.pos.orient.x mustEqual 0f
+        ams.basic.pos.orient.y mustEqual 0f
+        ams.basic.pos.orient.z mustEqual 90.0f
         ams.basic.faction mustEqual PlanetSideEmpire.VS
         ams.basic.unk mustEqual 0
         ams.basic.player_guid mustEqual PlanetSideGUID(34082)
@@ -253,9 +253,9 @@ class ObjectCreateMessageVehiclesTest extends Specification {
         dams.pos.coord.x mustEqual 3674.0f
         dams.pos.coord.y mustEqual 2726.789f
         dams.pos.coord.z mustEqual 91.15625f
-        dams.pos.roll mustEqual 0
-        dams.pos.pitch mustEqual 0
-        dams.pos.yaw mustEqual 0
+        dams.pos.orient.x mustEqual 0f
+        dams.pos.orient.y mustEqual 0f
+        dams.pos.orient.z mustEqual 90.0f
       case _ =>
         ko
     }
@@ -274,9 +274,9 @@ class ObjectCreateMessageVehiclesTest extends Specification {
         switchblade.basic.pos.coord.x mustEqual 6531.961f
         switchblade.basic.pos.coord.y mustEqual 1872.1406f
         switchblade.basic.pos.coord.z mustEqual 24.734375f
-        switchblade.basic.pos.roll mustEqual 0
-        switchblade.basic.pos.pitch mustEqual 0
-        switchblade.basic.pos.yaw mustEqual 33
+        switchblade.basic.pos.orient.x mustEqual 0f
+        switchblade.basic.pos.orient.y mustEqual 0f
+        switchblade.basic.pos.orient.z mustEqual 357.1875f
         switchblade.basic.faction mustEqual PlanetSideEmpire.VS
         switchblade.basic.unk mustEqual 4
         switchblade.health mustEqual 255
@@ -321,9 +321,9 @@ class ObjectCreateMessageVehiclesTest extends Specification {
         droppod.basic.pos.coord.x mustEqual 5108.0f
         droppod.basic.pos.coord.y mustEqual 6164.0f
         droppod.basic.pos.coord.z mustEqual 1023.9844f
-        droppod.basic.pos.roll mustEqual 0
-        droppod.basic.pos.pitch mustEqual 0
-        droppod.basic.pos.yaw mustEqual 0
+        droppod.basic.pos.orient.x mustEqual 0f
+        droppod.basic.pos.orient.y mustEqual 0f
+        droppod.basic.pos.orient.z mustEqual 90.0f
         droppod.basic.unk mustEqual 4
         droppod.basic.player_guid mustEqual PlanetSideGUID(0)
         droppod.burn mustEqual false
@@ -366,9 +366,9 @@ class ObjectCreateMessageVehiclesTest extends Specification {
         shuttle.pos.get.coord.x mustEqual 5610.0156f
         shuttle.pos.get.coord.y mustEqual 4255.258f
         shuttle.pos.get.coord.z mustEqual 134.1875f
-        shuttle.pos.get.roll mustEqual 0
-        shuttle.pos.get.pitch mustEqual 0
-        shuttle.pos.get.yaw mustEqual 96
+        shuttle.pos.get.orient.x mustEqual 0f
+        shuttle.pos.get.orient.y mustEqual 0f
+        shuttle.pos.get.orient.z mustEqual 180.0f
       case _ =>
         ko
     }
@@ -377,7 +377,7 @@ class ObjectCreateMessageVehiclesTest extends Specification {
   "encode (fury)" in {
     val obj = VehicleData(
       CommonFieldData(
-        PlacementData(6531.961f, 1872.1406f, 24.734375f, 0, 0, 33),
+        PlacementData(6531.961f, 1872.1406f, 24.734375f, 0f, 0f, 357.1875f),
         PlanetSideEmpire.VS, 4
       ),
       255,
@@ -394,7 +394,7 @@ class ObjectCreateMessageVehiclesTest extends Specification {
   "encode (ant)" in {
     val obj = ANTData(
       CommonFieldData(
-        PlacementData(3674.8438f, 2726.789f, 91.15625f),
+        PlacementData(3674.8438f, 2726.789f, 91.15625f, 0f, 0f, 90.0f),
         PlanetSideEmpire.VS, 4
       ),
       255,
@@ -409,7 +409,7 @@ class ObjectCreateMessageVehiclesTest extends Specification {
   "encode (lightning)" in {
     val obj = VehicleData(
       CommonFieldData(
-        PlacementData(3674.8438f, 2726.789f, 91.15625f),
+        PlacementData(3674.8438f, 2726.789f, 91.15625f, 0f, 0f, 90.0f),
         PlanetSideEmpire.VS, 4
       ),
       255,
@@ -423,10 +423,10 @@ class ObjectCreateMessageVehiclesTest extends Specification {
     pkt mustEqual string_lightning
   }
 
-  "encode (deliverer)" in {
+  "encode (medium transport)" in {
     val obj = VehicleData(
       CommonFieldData(
-        PlacementData(6531.961f, 1872.1406f, 24.734375f, 0, 0, 33),
+        PlacementData(6531.961f, 1872.1406f, 24.734375f, 0f, 0f, 357.1875f),
         PlanetSideEmpire.NC, 4
       ),
       0,
@@ -455,7 +455,8 @@ class ObjectCreateMessageVehiclesTest extends Specification {
 
   "encode (ams)" in {
     val obj = AMSData(
-      CommonFieldData(PlacementData(3674.0f, 2726.789f, 91.15625f, 0, 0, 0),
+      CommonFieldData(
+        PlacementData(3674.0f, 2726.789f, 91.15625f, 0f, 0f, 90.0f),
         PlanetSideEmpire.VS, 0,
         PlanetSideGUID(34082)
       ),
@@ -476,17 +477,19 @@ class ObjectCreateMessageVehiclesTest extends Specification {
   }
 
   "encode (ams, destroyed)" in {
-    val obj = DestroyedVehicleData(PlacementData(3674.0f, 2726.789f, 91.15625f))
+    val obj = DestroyedVehicleData(PlacementData(3674.0f, 2726.789f, 91.15625f, 0f, 0f, 90.0f))
     val msg = ObjectCreateMessage(ObjectClass.ams_destroyed, PlanetSideGUID(4157), obj)
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string_ams_destroyed
   }
 
-  "encode (switchblade(" in {
+  "encode (switchblade)" in {
     val obj = Vehicle2Data(
-      CommonFieldData(PlacementData(6531.961f, 1872.1406f, 24.734375f ,0 ,0 ,33),
-        PlanetSideEmpire.VS, 4
+      CommonFieldData(
+        PlacementData(6531.961f, 1872.1406f, 24.734375f, 0f, 0f, 357.1875f),
+        PlanetSideEmpire.VS,
+        4
       ),
       255,
       DriveState.Mobile,
@@ -503,8 +506,9 @@ class ObjectCreateMessageVehiclesTest extends Specification {
   "encode (droppod)" in {
     val obj = DroppodData(
       CommonFieldData(
-        PlacementData(5108.0f, 6164.0f, 1023.9844f),
-        PlanetSideEmpire.VS, 4
+        PlacementData(5108.0f, 6164.0f, 1023.9844f, 0f, 0f, 90.0f),
+        PlanetSideEmpire.VS,
+        4
       )
     )
     val msg = ObjectCreateMessage(ObjectClass.droppod, PlanetSideGUID(3595), obj)
@@ -522,7 +526,7 @@ class ObjectCreateMessageVehiclesTest extends Specification {
   }
 
   "encode (shuttle 2)" in {
-    val obj = OrbitalShuttleData(PlacementData(5610.0156f, 4255.258f, 134.1875f, 0, 0, 96), PlanetSideEmpire.VS)
+    val obj = OrbitalShuttleData(PlacementData(5610.0156f, 4255.258f, 134.1875f, 0f, 0f, 180.0f), PlanetSideEmpire.VS)
     val msg = ObjectCreateMessage(ObjectClass.orbital_shuttle, PlanetSideGUID(1127), obj)
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 

@@ -2,7 +2,7 @@
 package net.psforever.packet.game
 
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PlanetSideGamePacket}
-import net.psforever.types.Vector3
+import net.psforever.types.{Angular, Vector3}
 import scodec.Codec
 import scodec.codecs._
 
@@ -23,25 +23,16 @@ import scodec.codecs._
   * @param parent_guid the container/connector object
   * @param child_guid the contained/connected object
   * @param pos where the contained/connected object will be placed after it has detached
-  * @param roll the roll of the dropped item;
-  *             every `0x1` is 2.813 degrees;
-  *             every `0x10` is 45-degrees;
-  *             it wraps at `0x0` == `0x80` == top facing up
-  * @param pitch the pitch of the dropped item;
-  *              every `0x1` is 2.813 degrees;
-  *              every `0x10` is 45-degrees;
-  *             it wraps at `0x0` == `0x80` == top facing up
-  * @param yaw the yaw of the dropped item;
-  *            every `0x1` is 2.813 degrees counter clockwise from East;
-  *            every `0x10` is 45-degrees;
-  *            it wraps at `0x0` == `0x80` == front facing East
+  * @param roll the amount of roll that affects orientation of the dropped item
+  * @param pitch the amount of pitch that affects orientation of the dropped item
+  * @param yaw the amount of yaw that affects orientation of the dropped item
   */
 final case class ObjectDetachMessage(parent_guid : PlanetSideGUID,
                                      child_guid : PlanetSideGUID,
                                      pos : Vector3,
-                                     roll : Int,
-                                     pitch : Int,
-                                     yaw : Int)
+                                     roll : Float,
+                                     pitch : Float,
+                                     yaw : Float)
   extends PlanetSideGamePacket {
   type Packet = ObjectDetachMessage
   def opcode = GamePacketOpcode.ObjectDetachMessage
@@ -53,8 +44,8 @@ object ObjectDetachMessage extends Marshallable[ObjectDetachMessage] {
     ("parent_guid" | PlanetSideGUID.codec) ::
       ("child_guid" | PlanetSideGUID.codec) ::
       ("pos" | Vector3.codec_pos) ::
-      ("roll" | uint8L) ::
-      ("pitch" | uint8L) ::
-      ("yaw" | uint8L)
+      ("roll" | Angular.codec_roll) ::
+      ("pitch" | Angular.codec_pitch) ::
+      ("yaw" | Angular.codec_yaw())
     ).as[ObjectDetachMessage]
 }
