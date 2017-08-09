@@ -104,9 +104,9 @@ If you want to connect to the public test server, this is what your file would l
 login0=play.psforever.net:51000
 ```
 
-Afterwards, it is recommended that you create a shortcut to Planetside.exe. Afterwards, right click on the shortcut, select "Properties", and go under the "Shortcut" tab. In there, add these launch arguments in the target box after the quotes:  /K:StagingTest /CC . It should look like this in the target boxa fter you are done: "<Directory to your planetside.exe>\planetside.exe" /K:StagingTest /CC"  This will allow you to bypass the launcher and directly go to a login screen. /K:StagingTest is the argument that bypasses the launcher, and /CC fixes some errors with certain objects and features related to the Core Combat expansion (like allowing some buildings to appear, ceasing the message that "you must purchase Come Combat", etc.).
+Afterwards, it is recommended that you create a shortcut to Planetside.exe. Afterwards, right click on the shortcut, select "Properties", and go under the "Shortcut" tab. In there, add these launch arguments in the target box after the quotes:  /K:StagingTest /CC . It should look like this in the target boxa fter you are done: <Directory to your planetside.exe>\planetside.exe" /K:StagingTest /CC . This will allow you to bypass the launcher and directly go to a login screen. /K:StagingTest is the argument that bypasses the launcher, and /CC fixes some errors with certain objects and features related to the Core Combat expansion (like allowing some buildings to appear, ceasing the message that "you must purchase Come Combat", etc.).
 
-As of right now, there is no username/password checking ot persistance, so feel free to fill in whatever you like into those boxes. Afterwards, choose your server and select one of the default characters or make your own. There is also no character persistence in the current build of PSForever, so any character you make will be lost when you log out of them.
+As of right now, there is no username/password checking or persistance, so feel free to fill in whatever you like into those boxes. Afterwards, choose your server and select one of the default characters or make your own. There is also no character persistence in the current build of PSForever, so any character you make will be lost when you log out of them.
 
 **You must restart PlanetSide when changing the `client.ini` file!**
 
@@ -138,7 +138,7 @@ Please fork the project and provide a pull request to contribute code. Coding gu
 
 * Website: http://psforever.net
 * Discord (chat with us): https://discord.gg/0nRe5TNbTYoUruA4
-  - Join the #scala-code channel and ask any questions you have there
+  - Join the #code channel and ask any questions you have there
 
 Chord is the lead developer and you can contact him on Discord as Chord or by email [chord@tuta.io](mailto:chord@tuta.io). Discord is preferred.
 
