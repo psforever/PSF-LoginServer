@@ -157,7 +157,7 @@ class PropertyOverrideMessageTest extends Specification {
         //
         list(8).zone mustEqual 30
         list(8).list.length mustEqual 21
-        list(7).list.head.target mustEqual 83
+        list(8).list.head.target mustEqual 83
         list(8).list.head.list.length mustEqual 1
         list(8).list.head.list.head.field1 mustEqual "allowed"
         list(8).list.head.list.head.field2 mustEqual "false"
