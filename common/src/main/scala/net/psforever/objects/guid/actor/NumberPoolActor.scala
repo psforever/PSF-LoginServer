@@ -87,8 +87,8 @@ object NumberPoolActor {
   def GetSpecificNumber(pool : NumberPool, number : Int) : Try[Int] = {
     val original : NumberSelector = pool.Selector
     val specific : SpecificSelector = new SpecificSelector
-    specific.SelectionIndex = pool.Numbers.indexOf(number)
     pool.Selector = specific
+    specific.SelectionIndex = pool.Numbers.indexOf(number)
     val out : Try[Int] = pool.Get()
     pool.Selector = original
     out
