@@ -24,7 +24,7 @@ class EntityTest extends Specification {
       val obj : EntityTestClass = new EntityTestClass()
       obj.Position mustEqual Vector3(0f, 0f, 0f)
       obj.Orientation mustEqual Vector3(0f, 0f, 0f)
-      obj.Velocity mustEqual Vector3(0f, 0f, 0f)
+      obj.Velocity mustEqual None
     }
 
     "mutate and access" in {
@@ -35,7 +35,7 @@ class EntityTest extends Specification {
 
       obj.Position mustEqual Vector3(1f, 1f, 1f)
       obj.Orientation mustEqual Vector3(2f, 2f, 2f)
-      obj.Velocity mustEqual Vector3(3f, 3f, 3f)
+      obj.Velocity mustEqual Some(Vector3(3f, 3f, 3f))
     }
 
     "clamp Orientation" in {
