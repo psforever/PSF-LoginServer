@@ -304,15 +304,27 @@ object ObjectClass {
   final val ams_destroyed = 47
   final val ant = 60
   final val ant_destroyed = 61
+  final val aphelion_flight = 83
+  final val aphelion_gunner = 84
   final val aurora = 118
   final val battlewagon = 135 //raider
+  final val colossus_flight = 199
+  final val colossus_gunner = 200
   final val droppod = 258
+  final val flail = 294
   final val fury = 335
+  final val galaxy_gunship = 338
+  final val liberator = 432
+  final val lightgunship = 441
   final val lightning = 446
   final val lightning_destroyed = 447
+  final val magrider = 470
   final val mediumtransport = 532
   final val mediumtransport_destroyed = 533
   final val orbital_shuttle = 608
+  final val peregrine_flight = 642
+  final val peregrine_gunner = 643
+  final val prowler = 697
   final val quadassault = 707
   final val quadassault_destroyed = 708
   final val quadstealth = 710
@@ -328,6 +340,8 @@ object ObjectClass {
   final val twomanheavybuggy_destroyed = 899
   final val twomanhoverbuggy = 900 //thresher
   final val twomanhoverbuggy_destroyed = 901
+  final val vanguard = 923
+  final val vulture = 986
   //other
   final val ams_respawn_tube = 49
   final val avatar = 121
