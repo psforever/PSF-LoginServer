@@ -15,7 +15,10 @@ trait Task {
 }
 
 object Task {
-  def TimeNow : Long = { java.time.Instant.now().getEpochSecond }
+  def TimeNow : Long = {
+    System.nanoTime()
+    //java.time.Instant.now().getEpochSecond
+  }
 
   object Resolution extends Enumeration {
     val Success, Incomplete, Failure = Value
