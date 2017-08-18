@@ -15,11 +15,13 @@ import org.specs2.specification.Scope
 import scala.concurrent.duration.Duration
 import scala.util.Success
 
-class NumberPoolActorTest extends TestKit(ActorSystem("test")) with Scope with ImplicitSender with WordSpecLike with Matchers with BeforeAndAfterAll {
+abstract class ActorTest(sys : ActorSystem) extends TestKit(sys) with Scope with ImplicitSender with WordSpecLike with Matchers with BeforeAndAfterAll {
   override def afterAll {
     TestKit.shutdownActorSystem(system)
   }
+}
 
+class NumberPoolActorTest extends ActorTest(ActorSystem("test")) {
   "NumberPoolActor" should {
     "GetAnyNumber" in {
       val pool = new ExclusivePool((25 to 50).toList)
@@ -29,7 +31,11 @@ class NumberPoolActorTest extends TestKit(ActorSystem("test")) with Scope with I
       val msg = receiveOne(Duration.create(100, "ms"))
       assert(msg.isInstanceOf[NumberPoolActor.GiveNumber])
     }
+  }
+}
 
+class NumberPoolActorTest1 extends ActorTest(ActorSystem("test")) {
+  "NumberPoolActor" should {
     "GetSpecificNumber" in {
       val pool = new ExclusivePool((25 to 50).toList)
       pool.Selector = new RandomSelector
@@ -37,7 +43,11 @@ class NumberPoolActorTest extends TestKit(ActorSystem("test")) with Scope with I
       poolActor ! NumberPoolActor.GetSpecificNumber(37)
       expectMsg(NumberPoolActor.GiveNumber(37, None))
     }
+  }
+}
 
+class NumberPoolActorTest2 extends ActorTest(ActorSystem("test")) {
+  "NumberPoolActor" should {
     "NoNumber" in {
       val pool = new ExclusivePool((25 to 25).toList) //pool only has one number - 25
       pool.Selector = new RandomSelector
@@ -50,7 +60,9 @@ class NumberPoolActorTest extends TestKit(ActorSystem("test")) with Scope with I
       assert(msg.isInstanceOf[NumberPoolActor.NoNumber])
     }
   }
+}
 
+class NumberPoolActorTest3 extends ActorTest(ActorSystem("test")) {
   "NumberPoolAccessorActor" should {
     class TestEntity extends IdentifiableEntity
 
