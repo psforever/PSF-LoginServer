@@ -116,12 +116,7 @@ class GridInventory {
   }
 
   /**
-    * Test whether a given piece of `Equipment` would collide with any stowed content in the inventory.<br>
-    * <br>
-    * If there are fewer items stored in the inventory than there are cells required to represent the testing item,
-    * test the collision by iterating through the list of items.
-    * If there are more items, check that each cell that would be used for the testing items tile does not collide.
-    * The "testing item" in this case has already been transformed into its tile dimensions.
+    * Test whether a given piece of `Equipment` would collide with any stowed content in the inventory.
     * @param start the cell index to test this `Equipment` for insertion
     * @param w the width of the `Equipment` to be tested
     * @param h the height of the `Equipment` to be tested
@@ -132,8 +127,33 @@ class GridInventory {
       Success(List.empty[Int])
     }
     else {
-      def check : (Int,Int,Int) => Try[List[Int]] = if(items.size < w * h) { CheckCollisionsAsList } else { CheckCollisionsAsGrid }
-      check(start, w, h)
+      CheckCollisionsVar(start, w, h) match {
+        case Success(list) =>
+          Success(list.map({ f => f.obj.GUID.guid }))
+        case Failure(ex) =>
+          Failure(ex)
+      }
+    }
+  }
+
+  /**
+    * Test whether a given piece of `Equipment` would collide with any stowed content in the inventory.<br>
+    * <br>
+    * If there are fewer items stored in the inventory than there are cells required to represent the testing item,
+    * test the collision by iterating through the list of items.
+    * If there are more items, check that each cell that would be used for the testing items tile does not collide.
+    * The "testing item" in this case has already been transformed into its tile dimensions.
+    * @param start the cell index to test this `Equipment` for insertion
+    * @param w the width of the `Equipment` to be tested
+    * @param h the height of the `Equipment` to be tested
+    * @return a `List` of existing items that an item of this scale would overlap if inserted
+    */
+  def CheckCollisionsVar(start : Int, w : Int, h : Int) : Try[List[InventoryItem]] = {
+    if(items.size < w * h) {
+      CheckCollisionsAsList(start, w, h)
+    }
+    else {
+      CheckCollisionsAsGrid(start, w, h)
     }
   }
 
@@ -145,10 +165,10 @@ class GridInventory {
     * @param start the cell index to test this `Equipment` for insertion
     * @param w the width of the `Equipment` to be tested
     * @param h the height of the `Equipment` to be tested
-    * @return a `List` of GUID values for all existing contents that this item would overlap if inserted
+    * @return a `List` of existing items that an item of this scale would overlap if inserted
     * @throws IndexOutOfBoundsException if the region extends outside of the grid boundaries
     */
-  def CheckCollisionsAsList(start : Int, w : Int, h : Int) : Try[List[Int]] = {
+  def CheckCollisionsAsList(start : Int, w : Int, h : Int) : Try[List[InventoryItem]] = {
     val actualSlot = start - offset
     val startx : Int = actualSlot % width
     val starty : Int = actualSlot / width
@@ -159,7 +179,7 @@ class GridInventory {
       Failure(new IndexOutOfBoundsException(s"requested region escapes the $bounds edge of the grid inventory - $startx, $starty; $w x $h"))
     }
     else {
-      val collisions : mutable.Set[Int] = mutable.Set[Int]()
+      val collisions : mutable.Set[InventoryItem] = mutable.Set[InventoryItem]()
       items.values.foreach({ item : InventoryItem =>
         val actualItemStart : Int = item.start - offset
         val itemx : Int = actualItemStart % width
@@ -168,7 +188,7 @@ class GridInventory {
         val clipsOnX : Boolean = if(itemx < startx) { itemx + tile.width > startx } else { itemx <= startw }
         val clipsOnY : Boolean = if(itemy < starty) { itemy + tile.height > starty } else { itemy <= starth }
         if(clipsOnX && clipsOnY) {
-          collisions += item.GUID.guid
+          collisions += item
         }
       })
       Success(collisions.toList)
@@ -183,10 +203,10 @@ class GridInventory {
     * @param start the cell index to test this `Equipment` for insertion
     * @param w the width of the `Equipment` to be tested
     * @param h the height of the `Equipment` to be tested
-    * @return a `List` of GUID values for all existing contents that this item would overlap if inserted
+    * @return a `List` of existing items that an item of this scale would overlap if inserted
     * @throws IndexOutOfBoundsException if the region extends outside of the grid boundaries
     */
-  def CheckCollisionsAsGrid(start : Int, w : Int, h : Int) : Try[List[Int]] = {
+  def CheckCollisionsAsGrid(start : Int, w : Int, h : Int) : Try[List[InventoryItem]] = {
     val actualSlot = start - offset
     if(actualSlot < 0 || actualSlot >= grid.length || (actualSlot % width) + w > width || (actualSlot / width) + h > height) {
       val startx : Int = actualSlot % width
@@ -196,12 +216,12 @@ class GridInventory {
       Failure(new IndexOutOfBoundsException(s"requested region escapes the $bounds edge of the grid inventory - $startx, $starty; $w x $h"))
     }
     else {
-      val collisions : mutable.Set[Int] = mutable.Set[Int]()
+      val collisions : mutable.Set[InventoryItem] = mutable.Set[InventoryItem]()
       var curr = actualSlot
       for(_ <- 0 until h) {
         for(col <- 0 until w) {
           if(grid(curr + col) > -1) {
-            collisions += items(grid(curr + col)).GUID.guid
+            collisions += items(grid(curr + col))
           }
         }
         curr += width

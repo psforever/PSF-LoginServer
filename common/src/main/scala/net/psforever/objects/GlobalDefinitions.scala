@@ -1117,10 +1117,12 @@ object GlobalDefinitions {
   val
   flail_targeting_laser = SimpleItemDefinition(SItem.flail_targeting_laser)
   flail_targeting_laser.Packet = new CommandDetonaterConverter
+  flail_targeting_laser.Tile = InventoryTile.Tile33
 
   val
   command_detonater = SimpleItemDefinition(SItem.command_detonater)
   command_detonater.Packet = new CommandDetonaterConverter
+  command_detonater.Tile = InventoryTile.Tile33
 
   val
   ace = ConstructionItemDefinition(CItem.Unit.ace)

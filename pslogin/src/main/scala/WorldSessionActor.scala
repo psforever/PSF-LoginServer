@@ -21,6 +21,7 @@ import net.psforever.packet.game.objectcreate._
 import net.psforever.types._
 
 import scala.annotation.tailrec
+import scala.util.Success
 
 class WorldSessionActor extends Actor with MDCContextAware {
   private[this] val log = org.log4s.getLogger
@@ -857,50 +858,68 @@ class WorldSessionActor extends Actor with MDCContextAware {
       player.Find(item_guid) match {
         case Some(index) =>
           val indexSlot = player.Slot(index)
+          var itemOpt = indexSlot.Equipment //use this to short circuit
+          val item = itemOpt.get
           val destSlot = player.Slot(dest)
-          val item = indexSlot.Equipment.get
-          val destItem = destSlot.Equipment
-          indexSlot.Equipment = None
-          destSlot.Equipment = None
 
-          (destSlot.Equipment = item) match {
-            case Some(_) => //move item
-              log.info(s"MoveItem: $item_guid moved from $avatar_guid_1 @ $index to $avatar_guid_1 @ $dest")
-              //continue on to the code following the next match statement after resolving the match statement
-              destItem match {
-                case Some(item2) => //second item to swap?
-                  (indexSlot.Equipment = destItem) match {
-                    case Some(_) => //yes, swap
-                      log.info(s"MoveItem: ${item2.GUID} swapped to $avatar_guid_1 @ $index")
-                      //we must shuffle items around cleanly to avoid causing icons to "disappear"
-                      if(index == Player.FreeHandSlot) { //temporarily put in safe location, A -> C
-                        sendResponse(PacketCoding.CreateGamePacket(0, ObjectDetachMessage(player.GUID, item.GUID, Vector3(0f, 0f, 0f), 0f, 0f, 0f))) //ground
-                      }
-                      else {
-                        sendResponse(PacketCoding.CreateGamePacket(0, ObjectAttachMessage(player.GUID, item.GUID, Player.FreeHandSlot))) //free hand
-                      }
-                      sendResponse(PacketCoding.CreateGamePacket(0, ObjectAttachMessage(player.GUID, item2.GUID, index))) //B -> A
-                      if(0 <= index && index < 5) {
-                        avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.EquipmentInHand(player.GUID, index, item2))
-                      }
-
-                    case None => //can't complete the swap; drop the other item on the ground
-                      sendResponse(PacketCoding.CreateGamePacket(0, ObjectDetachMessage(player.GUID, item2.GUID, player.Position, 0f, 0f, player.Orientation.z))) //ground
-                      avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.EquipmentOnGround(player.GUID, player.Position, player.Orientation, item2))
-                  }
-
-                case None => ; //just move item over
-              }
-              sendResponse(PacketCoding.CreateGamePacket(0, ObjectAttachMessage(avatar_guid_1, item_guid, dest)))
-              if(0 <= dest && dest < 5) {
-                avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.EquipmentInHand(player.GUID, dest, item))
-              }
-
-            case None => //restore original contents
-              indexSlot.Equipment = item
-              destSlot.Equipment = destItem
+          val destItem = if((-1 < dest && dest < 5) || dest == Player.FreeHandSlot) {
+            destSlot.Equipment match {
+              case Some(found) =>
+                Some(InventoryItem(found, dest))
+              case None =>
+                None
+            }
           }
-        case None => ;
+          else {
+            val tile = item.Definition.Tile
+            player.Inventory.CheckCollisionsVar(dest, tile.Width, tile.Height) match {
+              case Success(Nil) => None //no item swap
+              case Success(entry :: Nil) => Some(entry) //one item to swap
+              case Success(_) | scala.util.Failure(_) => itemOpt = None; None //abort item move altogether
+            }
+          }
+
+          if(itemOpt.isDefined) {
+            log.info(s"MoveItem: $item_guid moved from $avatar_guid_1 @ $index to $avatar_guid_1 @ $dest")
+            indexSlot.Equipment = None
+            destItem match { //do we have a swap item?
+              case Some(entry) => //yes, swap
+                val item2 = entry.obj
+                player.Slot(entry.start).Equipment = None //remove item2 to make room for item
+                destSlot.Equipment = item //in case dest and index could block each other
+                (indexSlot.Equipment = entry.obj) match {
+                  case Some(_) => //item and item2 swapped places successfully
+                    log.info(s"MoveItem: ${item2.GUID} swapped to $avatar_guid_1 @ $index")
+                    //we must shuffle items around cleanly to avoid causing icons to "disappear"
+                    if(index == Player.FreeHandSlot) { //temporarily put in safe location, A -> C
+                      sendResponse(PacketCoding.CreateGamePacket(0, ObjectDetachMessage(player.GUID, item.GUID, Vector3(0f, 0f, 0f), 0f, 0f, 0f))) //ground
+                    }
+                    else {
+                      sendResponse(PacketCoding.CreateGamePacket(0, ObjectAttachMessage(player.GUID, item.GUID, Player.FreeHandSlot))) //free hand
+                    }
+                    sendResponse(PacketCoding.CreateGamePacket(0, ObjectAttachMessage(player.GUID, item2.GUID, index))) //B -> A
+                    if(0 <= index && index < 5) {
+                      avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.EquipmentInHand(player.GUID, index, item2))
+                    }
+
+                  case None => //item2 does not fit; drop on ground
+                    val pos = player.Position
+                    val orient = player.Orientation
+                    DropItemOnGround(item2, pos, player.Orientation)
+                    sendResponse(PacketCoding.CreateGamePacket(0, ObjectDetachMessage(player.GUID, item2.GUID, pos, 0f, 0f, orient.z))) //ground
+                    avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.EquipmentOnGround(player.GUID, pos, orient, item2))
+                }
+
+              case None => //just move item over
+                destSlot.Equipment = item
+            }
+            sendResponse(PacketCoding.CreateGamePacket(0, ObjectAttachMessage(avatar_guid_1, item_guid, dest)))
+            if(0 <= dest && dest < 5) {
+              avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.EquipmentInHand(player.GUID, dest, item))
+            }
+          }
+        case None =>
+          log.info(s"MoveItem: $avatar_guid_1 wanted to move the item $item_guid but could not find it")
       }
 
     case msg @ ChangeAmmoMessage(item_guid, unk1) =>

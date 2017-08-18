@@ -21,12 +21,26 @@ class EquipmentSlot {
     Size
   }
 
+  /**
+    * Determine what `Equipment` is stowed in the given position.
+    * @return the `Equipment` in this slot
+    */
   def Equipment : Option[Equipment] = tool
 
+  /**
+    * Attempt to stow an item at the given position.
+    * @param assignEquipment the change in `Equipment` for this slot
+    * @return the `Equipment` in this slot
+    */
   def Equipment_=(assignEquipment : Equipment) : Option[Equipment] = {
     Equipment = Some(assignEquipment)
   }
 
+  /**
+    * Attempt to stow an item at the given position.
+    * @param assignEquipment the change in `Equipment` for this slot
+    * @return the `Equipment` in this slot
+    */
   def Equipment_=(assignEquipment : Option[Equipment]) : Option[Equipment] = {
     if(assignEquipment.isDefined) { //if new equipment is defined, don't put it in the slot if the slot is being used
       if(tool.isEmpty && EquipmentSize.isEqual(size, assignEquipment.get.Size)) {

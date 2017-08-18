@@ -59,14 +59,30 @@ class InventoryTest extends Specification {
       obj.Capacity mustEqual 45
       val w = bullet9mmBox2.Tile.width
       val h = bullet9mmBox2.Tile.height
-      obj.CheckCollisionsAsList(0, w, h) mustEqual Success(1 :: Nil)
-      obj.CheckCollisionsAsList(1, w, h) mustEqual Success(1 :: Nil)
-      obj.CheckCollisionsAsList(2, w, h) mustEqual Success(1 :: Nil)
-      obj.CheckCollisionsAsList(3, w, h) mustEqual Success(Nil)
-      obj.CheckCollisionsAsGrid(0, w, h) mustEqual Success(1 :: Nil)
-      obj.CheckCollisionsAsGrid(1, w, h) mustEqual Success(1 :: Nil)
-      obj.CheckCollisionsAsGrid(2, w, h) mustEqual Success(1 :: Nil)
-      obj.CheckCollisionsAsGrid(3, w, h) mustEqual Success(Nil)
+      val list0 = obj.CheckCollisionsAsList(0, w, h)
+      list0 match {
+        case scala.util.Success(list) => list.length mustEqual 1
+        case scala.util.Failure(_) => ko
+      }
+      val list1 = obj.CheckCollisionsAsList(1, w, h)
+      list1 match {
+        case scala.util.Success(list) => list.length mustEqual 1
+        case scala.util.Failure(_) => ko
+      }
+      val list2 = obj.CheckCollisionsAsList(2, w, h)
+      list2 match {
+        case scala.util.Success(list) => list.length mustEqual 1
+        case scala.util.Failure(_) => ko
+      }
+      val list3 = obj.CheckCollisionsAsList(3, w, h)
+      list3 match {
+        case scala.util.Success(list) => list.isEmpty mustEqual true
+        case scala.util.Failure(_) => ko
+      }
+      obj.CheckCollisionsAsGrid(0, w, h) mustEqual list0
+      obj.CheckCollisionsAsGrid(1, w, h) mustEqual list1
+      obj.CheckCollisionsAsGrid(2, w, h) mustEqual list2
+      obj.CheckCollisionsAsGrid(3, w, h) mustEqual list3
       obj.Clear()
       ok
     }
@@ -77,14 +93,30 @@ class InventoryTest extends Specification {
       obj.Capacity mustEqual 45
       val w = bullet9mmBox2.Tile.width
       val h = bullet9mmBox2.Tile.height
-      obj.CheckCollisionsAsList(3, w, h) mustEqual Success(1 :: Nil)
-      obj.CheckCollisionsAsList(2, w, h) mustEqual Success(1 :: Nil)
-      obj.CheckCollisionsAsList(1, w, h) mustEqual Success(1 :: Nil)
-      obj.CheckCollisionsAsList(0, w, h) mustEqual Success(Nil)
-      obj.CheckCollisionsAsGrid(3, w, h) mustEqual Success(1 :: Nil)
-      obj.CheckCollisionsAsGrid(2, w, h) mustEqual Success(1 :: Nil)
-      obj.CheckCollisionsAsGrid(1, w, h) mustEqual Success(1 :: Nil)
-      obj.CheckCollisionsAsGrid(0, w, h) mustEqual Success(Nil)
+      val list0 = obj.CheckCollisionsAsList(3, w, h)
+      list0 match {
+        case scala.util.Success(list) => list.length mustEqual 1
+        case scala.util.Failure(_) => ko
+      }
+      val list1 = obj.CheckCollisionsAsList(2, w, h)
+      list1 match {
+        case scala.util.Success(list) => list.length mustEqual 1
+        case scala.util.Failure(_) => ko
+      }
+      val list2 = obj.CheckCollisionsAsList(1, w, h)
+      list2 match {
+        case scala.util.Success(list) => list.length mustEqual 1
+        case scala.util.Failure(_) => ko
+      }
+      val list3 = obj.CheckCollisionsAsList(0, w, h)
+      list3 match {
+        case scala.util.Success(list) => list.isEmpty mustEqual true
+        case scala.util.Failure(_) => ko
+      }
+      obj.CheckCollisionsAsGrid(3, w, h) mustEqual list0
+      obj.CheckCollisionsAsGrid(2, w, h) mustEqual list1
+      obj.CheckCollisionsAsGrid(1, w, h) mustEqual list2
+      obj.CheckCollisionsAsGrid(0, w, h) mustEqual list3
       obj.Clear()
       ok
     }
@@ -95,14 +127,30 @@ class InventoryTest extends Specification {
       obj.Capacity mustEqual 45
       val w = bullet9mmBox2.Tile.width
       val h = bullet9mmBox2.Tile.height
-      obj.CheckCollisionsAsList(0, w, h) mustEqual Success(1 :: Nil)
-      obj.CheckCollisionsAsList(9, w, h) mustEqual Success(1 :: Nil)
-      obj.CheckCollisionsAsList(18, w, h) mustEqual Success(1 :: Nil)
-      obj.CheckCollisionsAsList(27, w, h) mustEqual Success(Nil)
-      obj.CheckCollisionsAsGrid(0, w, h) mustEqual Success(1 :: Nil)
-      obj.CheckCollisionsAsGrid(9, w, h) mustEqual Success(1 :: Nil)
-      obj.CheckCollisionsAsGrid(18, w, h) mustEqual Success(1 :: Nil)
-      obj.CheckCollisionsAsGrid(27, w, h) mustEqual Success(Nil)
+      val list0 = obj.CheckCollisionsAsList(0, w, h)
+      list0 match {
+        case scala.util.Success(list) => list.length mustEqual 1
+        case scala.util.Failure(_) => ko
+      }
+      val list1 = obj.CheckCollisionsAsList(9, w, h)
+      list1 match {
+        case scala.util.Success(list) => list.length mustEqual 1
+        case scala.util.Failure(_) => ko
+      }
+      val list2 = obj.CheckCollisionsAsList(18, w, h)
+      list2 match {
+        case scala.util.Success(list) => list.length mustEqual 1
+        case scala.util.Failure(_) => ko
+      }
+      val list3 = obj.CheckCollisionsAsList(27, w, h)
+      list3 match {
+        case scala.util.Success(list) => list.isEmpty mustEqual true
+        case scala.util.Failure(_) => ko
+      }
+      obj.CheckCollisionsAsGrid(0, w, h) mustEqual list0
+      obj.CheckCollisionsAsGrid(9, w, h) mustEqual list1
+      obj.CheckCollisionsAsGrid(18, w, h) mustEqual list2
+      obj.CheckCollisionsAsGrid(27, w, h) mustEqual list3
       obj.Clear()
       ok
     }
@@ -113,14 +161,100 @@ class InventoryTest extends Specification {
       obj.Capacity mustEqual 45
       val w = bullet9mmBox2.Tile.width
       val h = bullet9mmBox2.Tile.height
-      obj.CheckCollisionsAsList(27, w, h) mustEqual Success(1 :: Nil)
-      obj.CheckCollisionsAsList(19, w, h) mustEqual Success(1 :: Nil)
-      obj.CheckCollisionsAsList(9, w, h) mustEqual Success(1 :: Nil)
-      obj.CheckCollisionsAsList(0, w, h) mustEqual Success(Nil)
-      obj.CheckCollisionsAsGrid(27, w, h) mustEqual Success(1 :: Nil)
-      obj.CheckCollisionsAsGrid(19, w, h) mustEqual Success(1 :: Nil)
-      obj.CheckCollisionsAsGrid(9, w, h) mustEqual Success(1 :: Nil)
-      obj.CheckCollisionsAsGrid(0, w, h) mustEqual Success(Nil)
+      val list0 = obj.CheckCollisionsAsList(27, w, h)
+      list0 match {
+        case scala.util.Success(list) => list.length mustEqual 1
+        case scala.util.Failure(_) => ko
+      }
+      val list1 = obj.CheckCollisionsAsList(18, w, h)
+      list1 match {
+        case scala.util.Success(list) => list.length mustEqual 1
+        case scala.util.Failure(_) => ko
+      }
+      val list2 = obj.CheckCollisionsAsList(9, w, h)
+      list2 match {
+        case scala.util.Success(list) => list.length mustEqual 1
+        case scala.util.Failure(_) => ko
+      }
+      val list3 = obj.CheckCollisionsAsList(0, w, h)
+      list3 match {
+        case scala.util.Success(list) => list.isEmpty mustEqual true
+        case scala.util.Failure(_) => ko
+      }
+      obj.CheckCollisionsAsGrid(27, w, h) mustEqual list0
+      obj.CheckCollisionsAsGrid(18, w, h) mustEqual list1
+      obj.CheckCollisionsAsGrid(9, w, h) mustEqual list2
+      obj.CheckCollisionsAsGrid(0, w, h) mustEqual list3
+      obj.Clear()
+      ok
+    }
+
+    "check for item collision (diagonal insert)" in {
+      /*
+      Number indicates upper-left corner of attempted 3x3 insertion by list#
+      0 - - - - - 2 - - - - -
+      - 1 - - - 3 - - - - - -
+      - - - - - - - - - - - -
+      - - - X X X - - - - - -
+      - - - X X X - - - - - -
+      - 5 - X X 7 - - - - - -
+      4 - - - - - 6 - - - - -
+      - - - - - - - - - - - -
+      - - - - - - - - - - - -
+       */
+      val obj : GridInventory = GridInventory(12, 9)
+      obj += 39 -> bullet9mmBox1
+      obj.Capacity mustEqual 99 //108 - 9
+      val w = bullet9mmBox2.Tile.width
+      val h = bullet9mmBox2.Tile.height
+      val list0 = obj.CheckCollisionsAsList(0, w, h)
+      list0 match {
+        case scala.util.Success(list) => list.isEmpty mustEqual true
+        case scala.util.Failure(_) => ko
+      }
+      val list1 = obj.CheckCollisionsAsList(13, w, h)
+      list1 match {
+        case scala.util.Success(list) => list.length mustEqual 1
+        case scala.util.Failure(_) => ko
+      }
+      val list2 = obj.CheckCollisionsAsList(6, w, h)
+      list2 match {
+        case scala.util.Success(list) =>list.isEmpty mustEqual true
+        case scala.util.Failure(_) => ko
+      }
+      val list3 = obj.CheckCollisionsAsList(17, w, h)
+      list3 match {
+        case scala.util.Success(list) => list.length mustEqual 1
+        case scala.util.Failure(_) => ko
+      }
+      val list4 = obj.CheckCollisionsAsList(72, w, h)
+      list4 match {
+        case scala.util.Success(list) => list.isEmpty mustEqual true
+        case scala.util.Failure(_) => ko
+      }
+      val list5 = obj.CheckCollisionsAsList(61, w, h)
+      list5 match {
+        case scala.util.Success(list) => list.length mustEqual 1
+        case scala.util.Failure(_) => ko
+      }
+      val list6 = obj.CheckCollisionsAsList(78, w, h)
+      list6 match {
+        case scala.util.Success(list) => list.isEmpty mustEqual true
+        case scala.util.Failure(_) => ko
+      }
+      val list7 = obj.CheckCollisionsAsList(65, w, h)
+      list7 match {
+        case scala.util.Success(list) => list.length mustEqual 1
+        case scala.util.Failure(_) => ko
+      }
+      obj.CheckCollisionsAsGrid(0, w, h) mustEqual list0
+      obj.CheckCollisionsAsGrid(13, w, h) mustEqual list1
+      obj.CheckCollisionsAsGrid(6, w, h) mustEqual list2
+      obj.CheckCollisionsAsGrid(17, w, h) mustEqual list3
+      obj.CheckCollisionsAsGrid(72, w, h) mustEqual list4
+      obj.CheckCollisionsAsGrid(61, w, h) mustEqual list5
+      obj.CheckCollisionsAsGrid(78, w, h) mustEqual list6
+      obj.CheckCollisionsAsGrid(65, w, h) mustEqual list7
       obj.Clear()
       ok
     }
