@@ -60,16 +60,20 @@ class WorldSessionActor extends Actor with MDCContextAware {
   def receive = Initializing
 
   def Initializing : Receive = {
-    case HelloFriend(inSessionId, right) =>
+    case HelloFriend(inSessionId, pipe) =>
       this.sessionId = inSessionId
       leftRef = sender()
-      rightRef = right.asInstanceOf[ActorRef]
-
+      if(pipe.hasNext) {
+        rightRef = pipe.next
+        rightRef !> HelloFriend(sessionId, pipe)
+      } else {
+        rightRef = sender()
+      }
+      context.become(Started)
       ServiceManager.serviceManager ! Lookup("avatar")
       ServiceManager.serviceManager ! Lookup("accessor1")
       ServiceManager.serviceManager ! Lookup("taskResolver")
 
-      context.become(Started)
     case _ =>
       log.error("Unknown message")
       context.stop(self)
@@ -537,8 +541,18 @@ class WorldSessionActor extends Actor with MDCContextAware {
               handlePkt(v)
           }
         }
+
+      case RelatedA0(subslot) =>
+        log.error(s"Client not ready for last control packet with subslot $subslot; potential system disarray")
+
+      case RelatedB0(subslot) =>
+        log.trace(s"Good control packet received $subslot")
+
+      case TeardownConnection(_) =>
+        log.info("Good bye")
+
       case default =>
-        log.debug(s"Unhandled ControlPacket $default")
+        log.warn(s"Unhandled ControlPacket $default")
     }
   }
 
