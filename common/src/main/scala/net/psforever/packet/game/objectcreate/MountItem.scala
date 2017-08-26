@@ -13,7 +13,7 @@ object MountItem {
     * @param guid the GUID this object will be assigned
     * @param slot a parent-defined slot identifier that explains where the child is to be attached to the parent
     * @param obj the data used as representation of the object to be constructed
-    * @return an `InventoryItem` object
+    * @return an `InventoryItemData` object
     */
   def apply(objClass : Int, guid : PlanetSideGUID, slot : Int, obj : ConstructorData) : MountItem =
     InternalSlot(objClass, guid, slot, obj)
