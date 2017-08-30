@@ -260,7 +260,8 @@ class ObjectCreateDetailedMessageTest extends Specification {
         inventory(3).objectClass mustEqual ObjectClass.locker_container
         inventory(3).guid mustEqual PlanetSideGUID(82)
         inventory(3).parentSlot mustEqual 5
-        inventory(3).obj.asInstanceOf[DetailedAmmoBoxData].magazine mustEqual 1
+        inventory(3).obj.isInstanceOf[DetailedLockerContainerData] mustEqual true
+        inventory(3).obj.asInstanceOf[DetailedLockerContainerData].contents.isDefined mustEqual false
         //4
         inventory(4).objectClass mustEqual ObjectClass.bullet_9mm
         inventory(4).guid mustEqual PlanetSideGUID(83)
@@ -342,7 +343,7 @@ class ObjectCreateDetailedMessageTest extends Specification {
         Nil
     )(2)
     val msg = ObjectCreateDetailedMessage(ObjectClass.punisher, PlanetSideGUID(1703), ObjectCreateMessageParent(PlanetSideGUID(75), 2), obj)
-    var pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string_punisher
   }
@@ -394,7 +395,7 @@ class ObjectCreateDetailedMessageTest extends Specification {
     val inv = InventoryItemData(ObjectClass.beamer, PlanetSideGUID(76), 0, DetailedWeaponData(4, 8, ObjectClass.energy_cell, PlanetSideGUID(77), 0, DetailedAmmoBoxData(8, 16))) ::
       InventoryItemData(ObjectClass.suppressor, PlanetSideGUID(78), 2, DetailedWeaponData(4, 8, ObjectClass.bullet_9mm, PlanetSideGUID(79), 0, DetailedAmmoBoxData(8, 25))) ::
       InventoryItemData(ObjectClass.forceblade, PlanetSideGUID(80), 4, DetailedWeaponData(4, 8, ObjectClass.melee_ammo, PlanetSideGUID(81), 0, DetailedAmmoBoxData(8, 1))) ::
-      InventoryItemData(ObjectClass.locker_container, PlanetSideGUID(82), 5, DetailedAmmoBoxData(8, 1)) ::
+      InventoryItemData(ObjectClass.locker_container, PlanetSideGUID(82), 5, DetailedLockerContainerData(8)) ::
       InventoryItemData(ObjectClass.bullet_9mm, PlanetSideGUID(83), 6, DetailedAmmoBoxData(8, 50)) ::
       InventoryItemData(ObjectClass.bullet_9mm, PlanetSideGUID(84), 9, DetailedAmmoBoxData(8, 50)) ::
       InventoryItemData(ObjectClass.bullet_9mm, PlanetSideGUID(85), 12, DetailedAmmoBoxData(8, 50)) ::

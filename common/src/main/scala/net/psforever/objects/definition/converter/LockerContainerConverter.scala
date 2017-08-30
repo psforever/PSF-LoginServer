@@ -5,7 +5,7 @@ import net.psforever.objects.LockerContainer
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.inventory.GridInventory
 import net.psforever.packet.game.PlanetSideGUID
-import net.psforever.packet.game.objectcreate.{DetailedAmmoBoxData, InternalSlot, InventoryData, LockerContainerData}
+import net.psforever.packet.game.objectcreate._
 
 import scala.util.{Success, Try}
 
@@ -14,8 +14,8 @@ class LockerContainerConverter extends ObjectCreateConverter[LockerContainer]() 
     Success(LockerContainerData(InventoryData(MakeInventory(obj.Inventory))))
   }
 
-  override def DetailedConstructorData(obj : LockerContainer) : Try[DetailedAmmoBoxData] = {
-    Success(DetailedAmmoBoxData(8, 1)) //same format as AmmoBox data
+  override def DetailedConstructorData(obj : LockerContainer) : Try[DetailedLockerContainerData] = {
+    Success(DetailedLockerContainerData(8))
   }
 
   /**
