@@ -15,7 +15,8 @@ class LockerContainerConverter extends ObjectCreateConverter[LockerContainer]() 
   }
 
   override def DetailedConstructorData(obj : LockerContainer) : Try[DetailedLockerContainerData] = {
-    Success(DetailedLockerContainerData(8))
+    val contents : Option[List[InternalSlot]] = if(obj.Inventory.Size > 0) { Some(MakeInventory(obj.Inventory)) } else { None }
+    Success(DetailedLockerContainerData(8, contents))
   }
 
   /**

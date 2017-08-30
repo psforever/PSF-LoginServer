@@ -162,6 +162,24 @@ class ConverterTest extends Specification {
     }
   }
 
+  "LockerContainer" should {
+    "convert to packet" in {
+      val obj = LockerContainer()
+      obj.Definition.Packet.DetailedConstructorData(obj) match {
+        case Success(pkt) =>
+          pkt mustEqual DetailedLockerContainerData(8)
+        case _ =>
+          ko
+      }
+      obj.Definition.Packet.ConstructorData(obj) match {
+        case Success(pkt) =>
+          pkt mustEqual LockerContainerData(InventoryData(List.empty))
+        case _ =>
+          ko
+      }
+    }
+  }
+
   "Vehicle" should {
     "convert to packet" in {
       val hellfire_ammo = AmmoBoxDefinition(Ammo.hellfire_ammo.id)
