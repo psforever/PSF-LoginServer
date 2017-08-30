@@ -15,20 +15,14 @@ import shapeless.{::, HNil}
   * Items are generally added and removed in the same way as with any other opened inventory.
   * Unlike other inventories, however, locker space is personal to an avatar and can not be accessed by other players.
   * @param unk na
-  * @param contents the items in the inventory
+  * @param inventory the items in this inventory
   */
 final case class DetailedLockerContainerData(unk : Int,
-                                             contents : Option[List[InternalSlot]]
+                                             inventory : Option[InventoryData]
                                             ) extends ConstructorData {
   override def bitsize : Long = {
     val base : Long = 40L
-    var invSize : Long = 0L //length of all items in inventory
-    if(contents.isDefined) {
-      invSize = InventoryData.BaseSize
-      for(item <- contents.get) {
-        invSize += item.bitsize
-      }
-    }
+    val invSize : Long = if(inventory.isDefined) { inventory.get.bitsize } else { 0L }
     base + invSize
   }
 }
@@ -45,11 +39,11 @@ object DetailedLockerContainerData extends Marshallable[DetailedLockerContainerD
   /**
     * Overloaded constructor for creating `DetailedLockerContainerData` containing known items.
     * @param unk na
-    * @param contents the items in the inventory
+    * @param inventory the items in the inventory
     * @return a `DetailedLockerContainerData` object
     */
-  def apply(unk : Int, contents : List[InternalSlot]) : DetailedLockerContainerData =
-    new DetailedLockerContainerData(unk, Some(contents))
+  def apply(unk : Int, inventory : List[InternalSlot]) : DetailedLockerContainerData =
+    new DetailedLockerContainerData(unk, Some(InventoryData(inventory)))
 
   /**
     * Overloaded constructor for creating `DetailedLockerContainerData` while masking use of `InternalSlot`.
@@ -73,8 +67,8 @@ object DetailedLockerContainerData extends Marshallable[DetailedLockerContainerD
       case 0xC :: unk :: 0 :: 1 :: None :: HNil =>
         Attempt.successful(DetailedLockerContainerData(unk, None))
 
-      case 0xC :: unk :: 0 :: 1 :: Some(InventoryData(list)) :: HNil =>
-        Attempt.successful(DetailedLockerContainerData(unk, Some(list)))
+      case 0xC :: unk :: 0 :: 1 :: Some(inv) :: HNil =>
+        Attempt.successful(DetailedLockerContainerData(unk, Some(inv)))
       case _ =>
         Attempt.failure(Err(s"invalid locker container data format"))
     },
@@ -82,8 +76,8 @@ object DetailedLockerContainerData extends Marshallable[DetailedLockerContainerD
       case DetailedLockerContainerData(unk, None) =>
         Attempt.successful(0xC :: unk :: 0 :: 1 :: None :: HNil)
 
-      case DetailedLockerContainerData(unk, Some(list)) =>
-        Attempt.successful(0xC :: unk :: 0 :: 1 :: Some(InventoryData(list)) :: HNil)
+      case DetailedLockerContainerData(unk, Some(inv)) =>
+        Attempt.successful(0xC :: unk :: 0 :: 1 :: Some(inv) :: HNil)
     }
   )
 }

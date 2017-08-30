@@ -261,7 +261,7 @@ class ObjectCreateDetailedMessageTest extends Specification {
         inventory(3).guid mustEqual PlanetSideGUID(82)
         inventory(3).parentSlot mustEqual 5
         inventory(3).obj.isInstanceOf[DetailedLockerContainerData] mustEqual true
-        inventory(3).obj.asInstanceOf[DetailedLockerContainerData].contents.isDefined mustEqual false
+        inventory(3).obj.asInstanceOf[DetailedLockerContainerData].inventory.isDefined mustEqual false
         //4
         inventory(4).objectClass mustEqual ObjectClass.bullet_9mm
         inventory(4).guid mustEqual PlanetSideGUID(83)
