@@ -2,8 +2,8 @@
 package net.psforever.packet.game
 
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PlanetSideGamePacket}
-import net.psforever.types.Vector3
-import scodec.{Attempt, Codec, Err}
+import net.psforever.types.{Angular, Vector3}
+import scodec.Codec
 import scodec.codecs._
 import shapeless.{::, HNil}
 
@@ -16,23 +16,25 @@ import shapeless.{::, HNil}
   * This external force is not accumulative.
   * Also, the external force is only applied once the avatar is set to the provided position.<br>
   * <br>
-  * `viewYawLim` defines a "range of angles" that the avatar may look centered on the supplied angle.
-  * The avatar must be facing within 60-degrees of that direction, subjectively his left or his right.
-  * The avatar's view is immediately set to the closest 60-degree mark if it is outside of that range.
-  * The absolute angular displacement of the avatar is considered before applying this corrective behavior.
-  * After rotating any number of times:
-  * stopping in a valid part of the range is acceptable;
-  * stopping in an invalid part of the range will cause the avatar to align to the __earliest__ still-valid 60-degree mark.
-  * For that reason, even if the avatar's final angle is closest to the "left mark," it may re-align to the "right mark."
-  * This also resets the avatar's angular displacement.
+  * The angle defines the center of a range of angles that count as "in front of the avatar."
+  * Specifically, this range is the upper body's turn limit.
+  * A stationary player may look left and right, rotating their upper body only, until they hit a certain angle.
+  * Normally, the player's whole body will then turn to accommodate turning further than this angle.
+  * This packet marks that limit as a hard limit for rotation and will reset the player's model and camera if necessary.
+  * While it is in effect, the player will not turn their whole body once they can no longer turn their upper body.
   * @param unk na
   * @param pos the position to move the character to in the world environment
-  * @param viewYawLim an angle with respect to the horizon towards which the avatar is looking (to some respect)
+  * @param viewYawLim the center of the range of upper body angles, the player's actual yaw;
+  *                   if this value is beyond its angular limit values,
+  *                   the model will attempt to snap to what it considers the closest upper body turning limit angle;
+  *                   the actual range is approximately `viewYawLimit +/- 61.8215`;
   * @param vel if defined, the velocity to apply to to the character at the given position
+  * @see `PlayerStateMessageUpstream.facingYawUpper`
+  * @see `PlayerStateMessage.facingYawUpper`
   */
 final case class ShiftState(unk : Int,
                             pos : Vector3,
-                            viewYawLim : Int,
+                            viewYawLim : Float,
                             vel : Option[Vector3])
 
 /**
@@ -55,7 +57,7 @@ final case class PlayerStateShiftMessage(state : Option[ShiftState],
   def encode = PlayerStateShiftMessage.encode(this)
 }
 
-object ShiftState extends Marshallable[ShiftState] {
+object ShiftState {
   /**
     * An abbreviated constructor for creating `ShiftState`, assuming velocity is not applied.
     * @param unk na
@@ -64,7 +66,7 @@ object ShiftState extends Marshallable[ShiftState] {
     * @param vel the velocity to apply to to the character at the given position
     * @return a `ShiftState` object
     */
-  def apply(unk : Int, pos : Vector3, viewYawLim : Int, vel : Vector3) : ShiftState =
+  def apply(unk : Int, pos : Vector3, viewYawLim : Float, vel : Vector3) : ShiftState =
     ShiftState(unk, pos, viewYawLim, Some(vel))
 
   /**
@@ -74,24 +76,8 @@ object ShiftState extends Marshallable[ShiftState] {
     * @param viewYawLim an angle with respect to the horizon towards which the avatar is looking (to some respect)
     * @return a `ShiftState` object
     */
-  def apply(unk : Int, pos : Vector3, viewYawLim : Int) : ShiftState =
+  def apply(unk : Int, pos : Vector3, viewYawLim : Float) : ShiftState =
     ShiftState(unk, pos, viewYawLim, None)
-
-  implicit val codec : Codec[ShiftState] = (
-    ("unk1" | uintL(3)) ::
-      ("pos" | Vector3.codec_pos) ::
-      ("viewYawLim" | uint8L) ::
-      optional(bool, "pos" | Vector3.codec_vel)
-    ).xmap[ShiftState] (
-      {
-        case a :: b :: c :: d :: HNil =>
-          ShiftState(a, b, c, d)
-      },
-      {
-        case ShiftState(a, b, c, d) =>
-          a :: b :: c :: d :: HNil
-      }
-    ).as[ShiftState]
 }
 
 object PlayerStateShiftMessage extends Marshallable[PlayerStateShiftMessage] {
@@ -120,8 +106,30 @@ object PlayerStateShiftMessage extends Marshallable[PlayerStateShiftMessage] {
   def apply(unk : Int) : PlayerStateShiftMessage =
     PlayerStateShiftMessage(None, Some(unk))
 
+  private val shift_codec : Codec[ShiftState] = (
+    /*
+    IMPORTANT:
+    Packet data indicates that viewYawLimit is an 8u value.
+    When read as an 8u value, the resulting number does not map to directions properly.
+    As a 7u value, the numbers maps better so the first bit will be ignored.
+     */
+    ("unk" | uintL(3)) ::
+      ("pos" | Vector3.codec_pos) ::
+      ("viewYawLim" | Angular.codec_yaw()) ::
+      optional(bool, "pos" | Vector3.codec_vel)
+    ).xmap[ShiftState] (
+    {
+      case a :: b :: c :: d :: HNil =>
+        ShiftState(a, b, c, d)
+    },
+    {
+      case ShiftState(a, b, c, d) =>
+        a :: b :: c :: d :: HNil
+    }
+  ).as[ShiftState]
+
   implicit val codec : Codec[PlayerStateShiftMessage] = (
-    optional(bool, "state" | ShiftState.codec) ::
+    optional(bool, "state" | shift_codec) ::
       optional(bool, "unk" | uintL(3))
     ).xmap[PlayerStateShiftMessage] (
       {

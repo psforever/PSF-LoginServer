@@ -34,23 +34,190 @@ class CodecTest extends Specification {
   }
 
   "Vector3" should {
-    val string_pos = hex"6E2D762222B616"
-    val string_vel = hex"857D4E0FFFC0"
+    "position" should {
+      val string_pos = hex"6E2D762222B616"
 
-    "decode position" in {
-      Vector3.codec_pos.decode(string_pos.bits).require.value mustEqual Vector3(3674.859375f, 1092.7656f, 90.84375f)
+      "decode" in {
+        Vector3.codec_pos.decode(string_pos.bits).require.value mustEqual Vector3(3674.859375f, 1092.7656f, 90.84375f)
+      }
+
+      "encode" in {
+        Vector3.codec_pos.encode(Vector3(3674.859375f, 1092.7656f, 90.84375f)).require.bytes mustEqual string_pos
+      }
     }
 
-    "encode position" in {
-      Vector3.codec_pos.encode(Vector3(3674.859375f, 1092.7656f, 90.84375f)).require.bytes mustEqual string_pos
+    "velocity" should {
+      val string_vel = hex"857D4E0FFFC0"
+
+      "decode" in {
+        Vector3.codec_vel.decode(string_vel.bits).require.value mustEqual Vector3(-3.84375f, 2.59375f, 255.96875f)
+      }
+
+      "encode" in {
+        Vector3.codec_vel.encode(Vector3(-3.84375f, 2.59375f, 255.96875f)).require.bytes mustEqual string_vel
+      }
+    }
+  }
+
+  "Angular" should {
+    "roll" should {
+      val string_roll_0 = hex"00"
+      val string_roll_90 = hex"20"
+      val string_roll_180 = hex"40"
+      val string_roll_270 = hex"60"
+
+      "decode (0)" in {
+        Angular.codec_roll.decode(string_roll_0.bits).require.value mustEqual 0f
+      }
+
+      "decode (90)" in {
+        Angular.codec_roll.decode(string_roll_90.bits).require.value mustEqual 90f
+      }
+
+      "decode (180)" in {
+        Angular.codec_roll.decode(string_roll_180.bits).require.value mustEqual 180f
+      }
+
+      "decode (270)" in {
+        Angular.codec_roll.decode(string_roll_270.bits).require.value mustEqual 270f
+      }
+
+      "encode (0)" in {
+        Angular.codec_roll.encode(0f).require.bytes mustEqual string_roll_0
+      }
+
+      "encode (90)" in {
+        Angular.codec_roll.encode(90f).require.bytes mustEqual string_roll_90
+      }
+
+      "encode (180)" in {
+        Angular.codec_roll.encode(180f).require.bytes mustEqual string_roll_180
+      }
+
+      "encode (270)" in {
+        Angular.codec_roll.encode(270f).require.bytes mustEqual string_roll_270
+      }
     }
 
-    "decode velocity" in {
-      Vector3.codec_vel.decode(string_vel.bits).require.value mustEqual Vector3(-3.84375f, 2.59375f, 255.96875f)
+    "pitch" should {
+      val string_pitch_0 = hex"00"
+      val string_pitch_90 = hex"60"
+      val string_pitch_180 = hex"40"
+      val string_pitch_270 = hex"20"
+
+      "decode (0)" in {
+        Angular.codec_pitch.decode(string_pitch_0.bits).require.value mustEqual 0f
+      }
+
+      "decode (90)" in {
+        Angular.codec_pitch.decode(string_pitch_90.bits).require.value mustEqual 90f
+      }
+
+      "decode (180)" in {
+        Angular.codec_pitch.decode(string_pitch_180.bits).require.value mustEqual 180f
+      }
+
+      "decode (270)" in {
+        Angular.codec_pitch.decode(string_pitch_270.bits).require.value mustEqual 270f
+      }
+
+      "encode (0)" in {
+        Angular.codec_pitch.encode(0f).require.bytes mustEqual string_pitch_0
+      }
+
+      "encode (90)" in {
+        Angular.codec_pitch.encode(90f).require.bytes mustEqual string_pitch_90
+      }
+
+      "encode (180)" in {
+        Angular.codec_pitch.encode(180f).require.bytes mustEqual string_pitch_180
+      }
+
+      "encode (270)" in {
+        Angular.codec_pitch.encode(270f).require.bytes mustEqual string_pitch_270
+      }
     }
 
-    "encode velocity" in {
-      Vector3.codec_vel.encode(Vector3(-3.84375f, 2.59375f, 255.96875f)).require.bytes mustEqual string_vel
+    "yaw, normal" should {
+      val string_pitch_0 = hex"00"
+      val string_pitch_90 = hex"60"
+      val string_pitch_180 = hex"40"
+      val string_pitch_270 = hex"20"
+      val string_yaw_0 = hex"20"
+      val string_yaw_90 = hex"00"
+      val string_yaw_180 = hex"60"
+      val string_yaw_270 = hex"40"
+
+      "decode (0)" in {
+        Angular.codec_yaw(0f).decode(string_yaw_0.bits).require.value mustEqual 270f
+      }
+
+      "decode (90)" in {
+        Angular.codec_yaw(0f).decode(string_yaw_90.bits).require.value mustEqual 0f
+      }
+
+      "decode (180)" in {
+        Angular.codec_yaw(0f).decode(string_yaw_180.bits).require.value mustEqual 90f
+      }
+
+      "decode (270)" in {
+        Angular.codec_yaw(0f).decode(string_yaw_270.bits).require.value mustEqual 180f
+      }
+
+      "encode (0)" in {
+        Angular.codec_yaw(0f).encode(0f).require.bytes mustEqual string_pitch_0
+      }
+
+      "encode (90)" in {
+        Angular.codec_yaw(0f).encode(90f).require.bytes mustEqual string_pitch_90
+      }
+
+      "encode (180)" in {
+        Angular.codec_yaw(0f).encode(180f).require.bytes mustEqual string_pitch_180
+      }
+
+      "encode (270)" in {
+        Angular.codec_yaw(0f).encode(270f).require.bytes mustEqual string_pitch_270
+      }
+    }
+
+    "yaw, North-corrected" should {
+      val string_yaw_0 = hex"20"
+      val string_yaw_90 = hex"00"
+      val string_yaw_180 = hex"60"
+      val string_yaw_270 = hex"40"
+
+      "decode (0)" in {
+        Angular.codec_yaw().decode(string_yaw_0.bits).require.value mustEqual 0f
+      }
+
+      "decode (90)" in {
+        Angular.codec_yaw().decode(string_yaw_90.bits).require.value mustEqual 90f
+      }
+
+      "decode (180)" in {
+        Angular.codec_yaw().decode(string_yaw_180.bits).require.value mustEqual 180f
+      }
+
+      "decode (270)" in {
+        Angular.codec_yaw().decode(string_yaw_270.bits).require.value mustEqual 270f
+      }
+
+      "encode (0)" in {
+        Angular.codec_yaw().encode(0f).require.bytes mustEqual string_yaw_0
+      }
+
+      "encode (90)" in {
+        Angular.codec_yaw().encode(90f).require.bytes mustEqual string_yaw_90
+      }
+
+      "encode (180)" in {
+        Angular.codec_yaw().encode(180f).require.bytes mustEqual string_yaw_180
+      }
+
+      "encode (270)" in {
+        Angular.codec_yaw().encode(270f).require.bytes mustEqual string_yaw_270
+      }
     }
   }
 }

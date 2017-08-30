@@ -18,16 +18,16 @@ class ObjectDetachMessageTest extends Specification {
         pos.x mustEqual 3567.1406f
         pos.y mustEqual 2988.0078f
         pos.z mustEqual 71.84375f
-        roll mustEqual 0
-        pitch mustEqual 0
-        yaw mustEqual 64
+        roll mustEqual 0f
+        pitch mustEqual 0f
+        yaw mustEqual 270f
       case _ =>
         ko
     }
   }
 
   "encode" in {
-    val msg = ObjectDetachMessage(PlanetSideGUID(2916), PlanetSideGUID(2502), Vector3(3567.1406f, 2988.0078f, 71.84375f), 0, 0, 64)
+    val msg = ObjectDetachMessage(PlanetSideGUID(2916), PlanetSideGUID(2502), Vector3(3567.1406f, 2988.0078f, 71.84375f), 0f, 0f, 270f)
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string

@@ -96,12 +96,13 @@ class ObjectCreateDetailedMessageTest extends Specification {
         parent.get.slot mustEqual 2
         data.isDefined mustEqual true
         val obj_wep = data.get.asInstanceOf[DetailedWeaponData]
-        obj_wep.unk mustEqual 4
+        obj_wep.unk1 mustEqual 2
+        obj_wep.unk2 mustEqual 8
         val obj_ammo = obj_wep.ammo
-        obj_ammo.objectClass mustEqual 28
-        obj_ammo.guid mustEqual PlanetSideGUID(1286)
-        obj_ammo.parentSlot mustEqual 0
-        obj_ammo.obj.asInstanceOf[DetailedAmmoBoxData].magazine mustEqual 30
+        obj_ammo.head.objectClass mustEqual 28
+        obj_ammo.head.guid mustEqual PlanetSideGUID(1286)
+        obj_ammo.head.parentSlot mustEqual 0
+        obj_ammo.head.obj.asInstanceOf[DetailedAmmoBoxData].magazine mustEqual 30
       case _ =>
         ko
     }
@@ -117,7 +118,7 @@ class ObjectCreateDetailedMessageTest extends Specification {
         parent.get.guid mustEqual PlanetSideGUID(75)
         parent.get.slot mustEqual 2
         data.isDefined mustEqual true
-        val obj_wep = data.get.asInstanceOf[DetailedConcurrentFeedWeaponData]
+        val obj_wep = data.get.asInstanceOf[DetailedWeaponData]
         obj_wep.unk1 mustEqual 0
         obj_wep.unk2 mustEqual 8
         val obj_ammo = obj_wep.ammo
@@ -179,9 +180,9 @@ class ObjectCreateDetailedMessageTest extends Specification {
         char.appearance.pos.coord.x mustEqual 3674.8438f
         char.appearance.pos.coord.y mustEqual 2726.789f
         char.appearance.pos.coord.z mustEqual 91.15625f
-        char.appearance.pos.roll mustEqual 0
-        char.appearance.pos.pitch mustEqual 0
-        char.appearance.pos.yaw mustEqual 19
+        char.appearance.pos.orient.x mustEqual 0
+        char.appearance.pos.orient.y mustEqual 0f
+        char.appearance.pos.orient.z mustEqual 36.5625f
         char.appearance.basic_appearance.name mustEqual "IlllIIIlllIlIllIlllIllI"
         char.appearance.basic_appearance.faction mustEqual PlanetSideEmpire.VS
         char.appearance.basic_appearance.sex mustEqual CharacterGender.Female
@@ -194,17 +195,17 @@ class ObjectCreateDetailedMessageTest extends Specification {
         char.appearance.outfit_name mustEqual ""
         char.appearance.outfit_logo mustEqual 0
         char.appearance.backpack mustEqual false
-        char.appearance.facingPitch mustEqual 127
-        char.appearance.facingYawUpper mustEqual 181
+        char.appearance.facingPitch mustEqual 2.8125f
+        char.appearance.facingYawUpper mustEqual 210.9375f
         char.appearance.lfs mustEqual true
         char.appearance.grenade_state mustEqual GrenadeState.None
         char.appearance.is_cloaking mustEqual false
         char.appearance.charging_pose mustEqual false
         char.appearance.on_zipline mustEqual false
-        char.appearance.ribbons.upper mustEqual 0xFFFFFFFFL //none
-        char.appearance.ribbons.middle mustEqual 0xFFFFFFFFL //none
-        char.appearance.ribbons.lower mustEqual 0xFFFFFFFFL //none
-        char.appearance.ribbons.tos mustEqual 0xFFFFFFFFL //none
+        char.appearance.ribbons.upper mustEqual MeritCommendation.None
+        char.appearance.ribbons.middle mustEqual MeritCommendation.None
+        char.appearance.ribbons.lower mustEqual MeritCommendation.None
+        char.appearance.ribbons.tos mustEqual MeritCommendation.None
         char.healthMax mustEqual 100
         char.health mustEqual 100
         char.armor mustEqual 50 //standard exosuit value
@@ -229,66 +230,66 @@ class ObjectCreateDetailedMessageTest extends Specification {
         val inventory = char.inventory.get.contents
         inventory.size mustEqual 10
         //0
-        inventory.head.item.objectClass mustEqual ObjectClass.beamer
-        inventory.head.item.guid mustEqual PlanetSideGUID(76)
-        inventory.head.item.parentSlot mustEqual 0
-        var wep = inventory.head.item.obj.asInstanceOf[DetailedWeaponData]
-        wep.ammo.objectClass mustEqual ObjectClass.energy_cell
-        wep.ammo.guid mustEqual PlanetSideGUID(77)
-        wep.ammo.parentSlot mustEqual 0
-        wep.ammo.obj.asInstanceOf[DetailedAmmoBoxData].magazine mustEqual 16
+        inventory.head.objectClass mustEqual ObjectClass.beamer
+        inventory.head.guid mustEqual PlanetSideGUID(76)
+        inventory.head.parentSlot mustEqual 0
+        var wep = inventory.head.obj.asInstanceOf[DetailedWeaponData]
+        wep.ammo.head.objectClass mustEqual ObjectClass.energy_cell
+        wep.ammo.head.guid mustEqual PlanetSideGUID(77)
+        wep.ammo.head.parentSlot mustEqual 0
+        wep.ammo.head.obj.asInstanceOf[DetailedAmmoBoxData].magazine mustEqual 16
         //1
-        inventory(1).item.objectClass mustEqual ObjectClass.suppressor
-        inventory(1).item.guid mustEqual PlanetSideGUID(78)
-        inventory(1).item.parentSlot mustEqual 2
-        wep = inventory(1).item.obj.asInstanceOf[DetailedWeaponData]
-        wep.ammo.objectClass mustEqual ObjectClass.bullet_9mm
-        wep.ammo.guid mustEqual PlanetSideGUID(79)
-        wep.ammo.parentSlot mustEqual 0
-        wep.ammo.obj.asInstanceOf[DetailedAmmoBoxData].magazine mustEqual 25
+        inventory(1).objectClass mustEqual ObjectClass.suppressor
+        inventory(1).guid mustEqual PlanetSideGUID(78)
+        inventory(1).parentSlot mustEqual 2
+        wep = inventory(1).obj.asInstanceOf[DetailedWeaponData]
+        wep.ammo.head.objectClass mustEqual ObjectClass.bullet_9mm
+        wep.ammo.head.guid mustEqual PlanetSideGUID(79)
+        wep.ammo.head.parentSlot mustEqual 0
+        wep.ammo.head.obj.asInstanceOf[DetailedAmmoBoxData].magazine mustEqual 25
         //2
-        inventory(2).item.objectClass mustEqual ObjectClass.forceblade
-        inventory(2).item.guid mustEqual PlanetSideGUID(80)
-        inventory(2).item.parentSlot mustEqual 4
-        wep = inventory(2).item.obj.asInstanceOf[DetailedWeaponData]
-        wep.ammo.objectClass mustEqual ObjectClass.melee_ammo
-        wep.ammo.guid mustEqual PlanetSideGUID(81)
-        wep.ammo.parentSlot mustEqual 0
-        wep.ammo.obj.asInstanceOf[DetailedAmmoBoxData].magazine mustEqual 1
+        inventory(2).objectClass mustEqual ObjectClass.forceblade
+        inventory(2).guid mustEqual PlanetSideGUID(80)
+        inventory(2).parentSlot mustEqual 4
+        wep = inventory(2).obj.asInstanceOf[DetailedWeaponData]
+        wep.ammo.head.objectClass mustEqual ObjectClass.melee_ammo
+        wep.ammo.head.guid mustEqual PlanetSideGUID(81)
+        wep.ammo.head.parentSlot mustEqual 0
+        wep.ammo.head.obj.asInstanceOf[DetailedAmmoBoxData].magazine mustEqual 1
         //3
-        inventory(3).item.objectClass mustEqual ObjectClass.locker_container
-        inventory(3).item.guid mustEqual PlanetSideGUID(82)
-        inventory(3).item.parentSlot mustEqual 5
-        inventory(3).item.obj.asInstanceOf[DetailedAmmoBoxData].magazine mustEqual 1
+        inventory(3).objectClass mustEqual ObjectClass.locker_container
+        inventory(3).guid mustEqual PlanetSideGUID(82)
+        inventory(3).parentSlot mustEqual 5
+        inventory(3).obj.asInstanceOf[DetailedAmmoBoxData].magazine mustEqual 1
         //4
-        inventory(4).item.objectClass mustEqual ObjectClass.bullet_9mm
-        inventory(4).item.guid mustEqual PlanetSideGUID(83)
-        inventory(4).item.parentSlot mustEqual 6
-        inventory(4).item.obj.asInstanceOf[DetailedAmmoBoxData].magazine mustEqual 50
+        inventory(4).objectClass mustEqual ObjectClass.bullet_9mm
+        inventory(4).guid mustEqual PlanetSideGUID(83)
+        inventory(4).parentSlot mustEqual 6
+        inventory(4).obj.asInstanceOf[DetailedAmmoBoxData].magazine mustEqual 50
         //5
-        inventory(5).item.objectClass mustEqual ObjectClass.bullet_9mm
-        inventory(5).item.guid mustEqual PlanetSideGUID(84)
-        inventory(5).item.parentSlot mustEqual 9
-        inventory(5).item.obj.asInstanceOf[DetailedAmmoBoxData].magazine mustEqual 50
+        inventory(5).objectClass mustEqual ObjectClass.bullet_9mm
+        inventory(5).guid mustEqual PlanetSideGUID(84)
+        inventory(5).parentSlot mustEqual 9
+        inventory(5).obj.asInstanceOf[DetailedAmmoBoxData].magazine mustEqual 50
         //6
-        inventory(6).item.objectClass mustEqual ObjectClass.bullet_9mm
-        inventory(6).item.guid mustEqual PlanetSideGUID(85)
-        inventory(6).item.parentSlot mustEqual 12
-        inventory(6).item.obj.asInstanceOf[DetailedAmmoBoxData].magazine mustEqual 50
+        inventory(6).objectClass mustEqual ObjectClass.bullet_9mm
+        inventory(6).guid mustEqual PlanetSideGUID(85)
+        inventory(6).parentSlot mustEqual 12
+        inventory(6).obj.asInstanceOf[DetailedAmmoBoxData].magazine mustEqual 50
         //7
-        inventory(7).item.objectClass mustEqual ObjectClass.bullet_9mm_AP
-        inventory(7).item.guid mustEqual PlanetSideGUID(86)
-        inventory(7).item.parentSlot mustEqual 33
-        inventory(7).item.obj.asInstanceOf[DetailedAmmoBoxData].magazine mustEqual 50
+        inventory(7).objectClass mustEqual ObjectClass.bullet_9mm_AP
+        inventory(7).guid mustEqual PlanetSideGUID(86)
+        inventory(7).parentSlot mustEqual 33
+        inventory(7).obj.asInstanceOf[DetailedAmmoBoxData].magazine mustEqual 50
         //8
-        inventory(8).item.objectClass mustEqual ObjectClass.energy_cell
-        inventory(8).item.guid mustEqual PlanetSideGUID(87)
-        inventory(8).item.parentSlot mustEqual 36
-        inventory(8).item.obj.asInstanceOf[DetailedAmmoBoxData].magazine mustEqual 50
+        inventory(8).objectClass mustEqual ObjectClass.energy_cell
+        inventory(8).guid mustEqual PlanetSideGUID(87)
+        inventory(8).parentSlot mustEqual 36
+        inventory(8).obj.asInstanceOf[DetailedAmmoBoxData].magazine mustEqual 50
         //9
-        inventory(9).item.objectClass mustEqual ObjectClass.remote_electronics_kit
-        inventory(9).item.guid mustEqual PlanetSideGUID(88)
-        inventory(9).item.parentSlot mustEqual 39
+        inventory(9).objectClass mustEqual ObjectClass.remote_electronics_kit
+        inventory(9).guid mustEqual PlanetSideGUID(88)
+        inventory(9).parentSlot mustEqual 39
       //the rek has data but none worth testing here
         char.drawn_slot mustEqual DrawnSlot.Pistol1
       case _ =>
@@ -327,7 +328,7 @@ class ObjectCreateDetailedMessageTest extends Specification {
   }
 
   "encode (gauss)" in {
-    val obj = DetailedWeaponData(4, ObjectClass.bullet_9mm, PlanetSideGUID(1286), 0, DetailedAmmoBoxData(8, 30))
+    val obj = DetailedWeaponData(2, 8, ObjectClass.bullet_9mm, PlanetSideGUID(1286), 0, DetailedAmmoBoxData(8, 30))
     val msg = ObjectCreateDetailedMessage(ObjectClass.gauss, PlanetSideGUID(1465), ObjectCreateMessageParent(PlanetSideGUID(75), 2), obj)
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
@@ -335,7 +336,11 @@ class ObjectCreateDetailedMessageTest extends Specification {
   }
 
   "encode (punisher)" in {
-    val obj = DetailedConcurrentFeedWeaponData(0, 8, DetailedAmmoBoxData(ObjectClass.bullet_9mm, PlanetSideGUID(1693), 0, DetailedAmmoBoxData(8, 30)) :: DetailedAmmoBoxData(ObjectClass.jammer_cartridge, PlanetSideGUID(1564), 1, DetailedAmmoBoxData(8, 1)) :: Nil)
+    val obj = DetailedWeaponData(0, 8,
+      DetailedAmmoBoxData(ObjectClass.bullet_9mm, PlanetSideGUID(1693), 0, DetailedAmmoBoxData(8, 30)) ::
+        DetailedAmmoBoxData(ObjectClass.jammer_cartridge, PlanetSideGUID(1564), 1, DetailedAmmoBoxData(8, 1)) ::
+        Nil
+    )(2)
     val msg = ObjectCreateDetailedMessage(ObjectClass.punisher, PlanetSideGUID(1703), ObjectCreateMessageParent(PlanetSideGUID(75), 2), obj)
     var pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
@@ -362,8 +367,7 @@ class ObjectCreateDetailedMessageTest extends Specification {
     val app = CharacterAppearanceData(
       PlacementData(
         Vector3(3674.8438f, 2726.789f, 91.15625f),
-        0, 0,
-        19
+        Vector3(0f, 0f, 36.5625f)
       ),
       BasicCharacterData(
         "IlllIIIlllIlIllIlllIllI",
@@ -379,7 +383,7 @@ class ObjectCreateDetailedMessageTest extends Specification {
       "",
       0,
       false,
-      127, 181,
+      2.8125f, 210.9375f,
       true,
       GrenadeState.None,
       false,
@@ -387,16 +391,16 @@ class ObjectCreateDetailedMessageTest extends Specification {
       false,
       RibbonBars()
     )
-    val inv = InventoryItem(ObjectClass.beamer, PlanetSideGUID(76), 0, DetailedWeaponData(8, ObjectClass.energy_cell, PlanetSideGUID(77), 0, DetailedAmmoBoxData(8, 16))) ::
-      InventoryItem(ObjectClass.suppressor, PlanetSideGUID(78), 2, DetailedWeaponData(8, ObjectClass.bullet_9mm, PlanetSideGUID(79), 0, DetailedAmmoBoxData(8, 25))) ::
-      InventoryItem(ObjectClass.forceblade, PlanetSideGUID(80), 4, DetailedWeaponData(8, ObjectClass.melee_ammo, PlanetSideGUID(81), 0, DetailedAmmoBoxData(8, 1))) ::
-      InventoryItem(ObjectClass.locker_container, PlanetSideGUID(82), 5, DetailedAmmoBoxData(8, 1)) ::
-      InventoryItem(ObjectClass.bullet_9mm, PlanetSideGUID(83), 6, DetailedAmmoBoxData(8, 50)) ::
-      InventoryItem(ObjectClass.bullet_9mm, PlanetSideGUID(84), 9, DetailedAmmoBoxData(8, 50)) ::
-      InventoryItem(ObjectClass.bullet_9mm, PlanetSideGUID(85), 12, DetailedAmmoBoxData(8, 50)) ::
-      InventoryItem(ObjectClass.bullet_9mm_AP, PlanetSideGUID(86), 33, DetailedAmmoBoxData(8, 50)) ::
-      InventoryItem(ObjectClass.energy_cell, PlanetSideGUID(87), 36, DetailedAmmoBoxData(8, 50)) ::
-      InventoryItem(ObjectClass.remote_electronics_kit, PlanetSideGUID(88), 39, DetailedREKData(8)) ::
+    val inv = InventoryItemData(ObjectClass.beamer, PlanetSideGUID(76), 0, DetailedWeaponData(4, 8, ObjectClass.energy_cell, PlanetSideGUID(77), 0, DetailedAmmoBoxData(8, 16))) ::
+      InventoryItemData(ObjectClass.suppressor, PlanetSideGUID(78), 2, DetailedWeaponData(4, 8, ObjectClass.bullet_9mm, PlanetSideGUID(79), 0, DetailedAmmoBoxData(8, 25))) ::
+      InventoryItemData(ObjectClass.forceblade, PlanetSideGUID(80), 4, DetailedWeaponData(4, 8, ObjectClass.melee_ammo, PlanetSideGUID(81), 0, DetailedAmmoBoxData(8, 1))) ::
+      InventoryItemData(ObjectClass.locker_container, PlanetSideGUID(82), 5, DetailedAmmoBoxData(8, 1)) ::
+      InventoryItemData(ObjectClass.bullet_9mm, PlanetSideGUID(83), 6, DetailedAmmoBoxData(8, 50)) ::
+      InventoryItemData(ObjectClass.bullet_9mm, PlanetSideGUID(84), 9, DetailedAmmoBoxData(8, 50)) ::
+      InventoryItemData(ObjectClass.bullet_9mm, PlanetSideGUID(85), 12, DetailedAmmoBoxData(8, 50)) ::
+      InventoryItemData(ObjectClass.bullet_9mm_AP, PlanetSideGUID(86), 33, DetailedAmmoBoxData(8, 50)) ::
+      InventoryItemData(ObjectClass.energy_cell, PlanetSideGUID(87), 36, DetailedAmmoBoxData(8, 50)) ::
+      InventoryItemData(ObjectClass.remote_electronics_kit, PlanetSideGUID(88), 39, DetailedREKData(8)) ::
       Nil
     val obj = DetailedCharacterData(
       app,
@@ -417,7 +421,8 @@ class ObjectCreateDetailedMessageTest extends Specification {
     val ori_bitv = string_testchar.toBitVector
     pkt_bitv.take(153) mustEqual ori_bitv.take(153) //skip 1
     pkt_bitv.drop(154).take(422) mustEqual ori_bitv.drop(154).take(422) //skip 126
-    pkt_bitv.drop(702) mustEqual ori_bitv.drop(702)
+    pkt_bitv.drop(702).take(29) mustEqual ori_bitv.drop(702).take(29) //skip 1
+    pkt_bitv.drop(732) mustEqual ori_bitv.drop(732)
     //TODO work on DetailedCharacterData to make this pass as a single stream
   }
 }

@@ -13,15 +13,15 @@ class ChildObjectStateMessageTest extends Specification {
     PacketCoding.DecodePacket(string).require match {
       case ChildObjectStateMessage(object_guid, pitch, yaw) =>
         object_guid mustEqual PlanetSideGUID(2916)
-        pitch mustEqual 6
-        yaw mustEqual 71
+        pitch mustEqual 343.125f
+        yaw mustEqual 160.3125f
       case _ =>
         ko
     }
   }
 
   "encode" in {
-    val msg = ChildObjectStateMessage(PlanetSideGUID(2916), 6, 71)
+    val msg = ChildObjectStateMessage(PlanetSideGUID(2916), 343.125f, 160.3125f)
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string

@@ -1,49 +1,16 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.packet.game
 
-import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
+import net.psforever.packet.{GamePacketOpcode, Marshallable, PlanetSideGamePacket}
+import net.psforever.types.ImplantType
 import scodec.Codec
 import scodec.codecs._
 
 /**
-  * An `Enumeration` of the available implants.
-  */
-object ImplantType extends Enumeration {
-  type Type = Value
-  val AdvancedRegen,
-      Targeting,
-      AudioAmplifier,
-      DarklightVision,
-      MeleeBooster,
-      PersonalShield,
-      RangeMagnifier,
-      Unknown7,
-      SilentRun,
-      Surge = Value
-
-  implicit val codec = PacketHelpers.createEnumerationCodec(this, uint4L)
-}
-
-/**
   * Change the state of the implant.<br>
-  * Write better comments.
   * <br>
-  * Implant:<br>
-  * `
-  * 00 - Regeneration (advanced_regen)<br>
-  * 01 - Enhanced Targeting (targeting)<br>
-  * 02 - Audio Amplifier (audio_amplifier)<br>
-  * 03 - Darklight Vision (darklight_vision)<br>
-  * 04 - Melee Booster (melee_booster)<br>
-  * 05 - Personal Shield (personal_shield)<br>
-  * 06 - Range Magnifier (range_magnifier)<br>
-  * 07 - `None`<br>
-  * 08 - Sensor Shield (silent_run)<br>
-  * 09 - Surge (surge)<br>
-  * `
-  * <br>
-  * Exploration<br>
-  * Where is Second Wind (second_wind)?
+  * The implant Second Wind is technically an invalid `ImplantType` for this packet.
+  * This owes to the unique activation trigger for that implant - a near-death experience of ~0HP.
   * @param player_guid the player
   * @param unk1 na
   * @param unk2 na

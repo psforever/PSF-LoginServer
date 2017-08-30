@@ -2,6 +2,7 @@
 package net.psforever.packet.game
 
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PlanetSideGamePacket}
+import net.psforever.types.Angular
 import scodec.Codec
 import scodec.codecs._
 
@@ -16,18 +17,12 @@ import scodec.codecs._
   * The only concern is the direction the object is facing.
   * The angles are relative to the object's normal forward-facing and typically begin tracking at 0, 0 (forward-facing).
   * @param object_guid the object being manipulated (controlled)
-  * @param pitch the angle with respect to the sky and the ground towards which the object is directed;
-  *              an 8-bit unsigned value;
-  *              0 is perfectly level and forward-facing and mapped to 255;
-  *              positive rotation is downwards from forward-facing
-  * @param yaw the angle with respect to the horizon towards which the object is directed;
-  *            an 8-bit unsigned value;
-  *            0 is forward-facing, wrapping around at 127;
-  *            positive rotation is counter-clockwise of forward-facing
+  * @param pitch the amount of pitch that affects orientation from forward facing (0)
+  * @param yaw the amount of yaw that affects orientation from forward-facing (0)
   */
 final case class ChildObjectStateMessage(object_guid : PlanetSideGUID,
-                                         pitch : Int,
-                                         yaw : Int)
+                                         pitch : Float,
+                                         yaw : Float)
   extends PlanetSideGamePacket {
   type Packet = ChildObjectStateMessage
   def opcode = GamePacketOpcode.ChildObjectStateMessage
@@ -37,7 +32,7 @@ final case class ChildObjectStateMessage(object_guid : PlanetSideGUID,
 object ChildObjectStateMessage extends Marshallable[ChildObjectStateMessage] {
   implicit val codec : Codec[ChildObjectStateMessage] = (
     ("object_guid" | PlanetSideGUID.codec) ::
-      ("pitch" | uint8L) ::
-      ("yaw" | uint8L)
+      ("pitch" | Angular.codec_pitch) ::
+      ("yaw" | Angular.codec_yaw(0f))
     ).as[ChildObjectStateMessage]
 }

@@ -350,7 +350,7 @@ object GamePacketOpcode extends Enumeration {
     case 0x18 => game.ObjectCreateDetailedMessage.decode
     case 0x19 => game.ObjectDeleteMessage.decode
     case 0x1a => game.PingMsg.decode
-    case 0x1b => noDecoder(VehicleStateMessage)
+    case 0x1b => game.VehicleStateMessage.decode
     case 0x1c => noDecoder(FrameVehicleStateMessage)
     case 0x1d => game.GenericObjectStateMsg.decode
     case 0x1e => game.ChildObjectStateMessage.decode
@@ -385,14 +385,14 @@ object GamePacketOpcode extends Enumeration {
     case 0x36 => game.PickupItemMessage.decode
     case 0x37 => game.DropItemMessage.decode
     // 0x38
-    case 0x38 => noDecoder(InventoryStateMessage)
+    case 0x38 => game.InventoryStateMessage.decode
     case 0x39 => game.ChangeFireStateMessage_Start.decode
     case 0x3a => game.ChangeFireStateMessage_Stop.decode
     case 0x3b => noDecoder(UnknownMessage59)
     case 0x3c => game.GenericCollisionMsg.decode
     case 0x3d => game.QuantityUpdateMessage.decode
     case 0x3e => game.ArmorChangedMessage.decode
-    case 0x3f => noDecoder(ProjectileStateMessage)
+    case 0x3f => game.ProjectileStateMessage.decode
 
     // OPCODES 0x40-4f
     case 0x40 => noDecoder(MountVehicleCargoMsg)
@@ -407,7 +407,7 @@ object GamePacketOpcode extends Enumeration {
     case 0x48 => game.TimeOfDayMessage.decode
     case 0x49 => noDecoder(UnknownMessage73)
     case 0x4a => noDecoder(SpawnRequestMessage)
-    case 0x4b => noDecoder(DeployRequestMessage)
+    case 0x4b => game.DeployRequestMessage.decode
     case 0x4c => noDecoder(UnknownMessage76)
     case 0x4d => game.RepairMessage.decode
     case 0x4e => noDecoder(ServerVehicleOverrideMsg)
@@ -415,7 +415,7 @@ object GamePacketOpcode extends Enumeration {
 
     // OPCODES 0x50-5f
     case 0x50 => game.TargetingInfoMessage.decode
-    case 0x51 => noDecoder(TriggerEffectMessage)
+    case 0x51 => game.TriggerEffectMessage.decode
     case 0x52 => game.WeaponDryFireMessage.decode
     case 0x53 => noDecoder(DroppodLaunchRequestMessage)
     case 0x54 => noDecoder(HackMessage)
@@ -425,11 +425,11 @@ object GamePacketOpcode extends Enumeration {
     // 0x58
     case 0x58 => game.AvatarImplantMessage.decode
     case 0x59 => noDecoder(UnknownMessage89)
-    case 0x5a => noDecoder(DelayedPathMountMsg)
+    case 0x5a => game.DelayedPathMountMsg.decode
     case 0x5b => noDecoder(OrbitalShuttleTimeMsg)
     case 0x5c => noDecoder(AIDamage)
     case 0x5d => game.DeployObjectMessage.decode
-    case 0x5e => noDecoder(FavoritesRequest)
+    case 0x5e => game.FavoritesRequest.decode
     case 0x5f => noDecoder(FavoritesResponse)
 
     // OPCODES 0x60-6f
@@ -461,7 +461,7 @@ object GamePacketOpcode extends Enumeration {
     case 0x76 => game.DeployableObjectsInfoMessage.decode
     case 0x77 => noDecoder(SquadState)
     // 0x78
-    case 0x78 => noDecoder(OxygenStateMessage)
+    case 0x78 => game.OxygenStateMessage.decode
     case 0x79 => noDecoder(TradeMessage)
     case 0x7a => noDecoder(UnknownMessage122)
     case 0x7b => noDecoder(DamageFeedbackMessage)
@@ -510,7 +510,7 @@ object GamePacketOpcode extends Enumeration {
 
     // OPCODES 0xa0-af
     case 0xa0 => game.BuildingInfoUpdateMessage.decode
-    case 0xa1 => noDecoder(FireHintMessage)
+    case 0xa1 => game.FireHintMessage.decode
     case 0xa2 => noDecoder(UplinkRequest)
     case 0xa3 => noDecoder(UplinkResponse)
     case 0xa4 => game.WarpgateRequest.decode
@@ -567,11 +567,11 @@ object GamePacketOpcode extends Enumeration {
 
     // OPCODES 0xd0-df
     case 0xd0 => noDecoder(UnknownMessage208)
-    case 0xd1 => noDecoder(DisplayedAwardMessage)
+    case 0xd1 => game.DisplayedAwardMessage.decode
     case 0xd2 => noDecoder(RespawnAMSInfoMessage)
     case 0xd3 => noDecoder(ComponentDamageMessage)
     case 0xd4 => noDecoder(GenericObjectActionAtPositionMessage)
-    case 0xd5 => noDecoder(PropertyOverrideMessage)
+    case 0xd5 => game.PropertyOverrideMessage.decode
     case 0xd6 => noDecoder(WarpgateLinkOverrideMessage)
     case 0xd7 => noDecoder(EmpireBenefitsMessage)
     // 0xd8

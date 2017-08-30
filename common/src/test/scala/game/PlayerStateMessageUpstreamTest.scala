@@ -16,9 +16,9 @@ class PlayerStateMessageUpstreamTest extends Specification {
         avatar_guid mustEqual PlanetSideGUID(75)
         pos mustEqual Vector3(3694.1094f, 2735.4531f, 90.84375f)
         vel mustEqual Some(Vector3(4.375f, 2.59375f, 0.0f))
-        facingYaw mustEqual 10
-        facingPitch mustEqual 3
-        facingYawUpper mustEqual 0
+        facingYaw mustEqual 61.875f
+        facingPitch mustEqual 351.5625f
+        facingYawUpper mustEqual 0.0f
         seq_time mustEqual 136
         unk1 mustEqual 0
         is_crouching mustEqual false
@@ -33,7 +33,7 @@ class PlayerStateMessageUpstreamTest extends Specification {
   }
 
   "encode" in {
-    val msg = PlayerStateMessageUpstream(PlanetSideGUID(75), Vector3(3694.1094f, 2735.4531f, 90.84375f), Some(Vector3(4.375f, 2.59375f, 0.0f)), 10, 3, 0, 136, 0, false, false, false, false, 112, 0)
+    val msg = PlayerStateMessageUpstream(PlanetSideGUID(75), Vector3(3694.1094f, 2735.4531f, 90.84375f), Some(Vector3(4.375f, 2.59375f, 0.0f)), 61.875f, 351.5625f, 0.0f, 136, 0, false, false, false, false, 112, 0)
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string

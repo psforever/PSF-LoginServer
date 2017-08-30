@@ -5,7 +5,8 @@ import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, Plan
 import scodec.Codec
 
 /**
-  * Dispatched by the client after the current map has been fully loaded locally and its objects are ready to be initialized.<br>
+  * Dispatched by the client after the current map has been fully loaded locally and its objects are ready to be initialized.
+  * This packet is a direct response to `LoadMapMessage`.<br>
   * <br>
   * When the server receives the packet, for each object on that map, it sends the packets to the client:<br>
   * - `SetEmpireMessage`<br>

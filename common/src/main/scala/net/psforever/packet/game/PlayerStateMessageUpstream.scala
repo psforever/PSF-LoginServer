@@ -1,8 +1,8 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.packet.game
 
-import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
-import net.psforever.types.Vector3
+import net.psforever.packet.{GamePacketOpcode, Marshallable, PlanetSideGamePacket}
+import net.psforever.types.{Angular, Vector3}
 import scodec.Codec
 import scodec.codecs._
 
@@ -15,11 +15,11 @@ import scodec.codecs._
   * @param avatar_guid the player's GUID
   * @param pos where the player is in the world
   * @param vel how the player is moving
-  * @param facingYaw the angle with respect to the horizon towards which the avatar is looking;
-  *                  the model's whole body is facing this direction;
-  *                  measurements are counter-clockwise from East
-  * @param facingPitch the angle with respect to the sky and the ground towards which the avatar is looking
-  * @param facingYawUpper the angle of the avatar's upper body with respect to its forward-facing direction
+  * @param facingYaw a "yaw" angle
+  * @param facingPitch a "pitch" angle
+  * @param facingYawUpper a "yaw" angle that represents the angle of the avatar's upper body with respect to its forward-facing direction;
+  *                       this number is normally 0 for forward facing;
+  *                       the range is limited between approximately 61 degrees of center turned to left or right
   * @param seq_time na
   * @param unk1 na
   * @param is_crouching avatar is crouching
@@ -33,9 +33,9 @@ import scodec.codecs._
 final case class PlayerStateMessageUpstream(avatar_guid : PlanetSideGUID,
                                             pos : Vector3,
                                             vel : Option[Vector3],
-                                            facingYaw : Int,
-                                            facingPitch : Int,
-                                            facingYawUpper : Int,
+                                            facingYaw : Float,
+                                            facingPitch : Float,
+                                            facingYawUpper : Float,
                                             seq_time : Int,
                                             unk1 : Int,
                                             is_crouching : Boolean,
@@ -55,9 +55,9 @@ object PlayerStateMessageUpstream extends Marshallable[PlayerStateMessageUpstrea
     ("avatar_guid" | PlanetSideGUID.codec) ::
       ("pos" | Vector3.codec_pos) ::
       ("vel" | optional(bool, Vector3.codec_vel)) ::
-      ("facingYaw" | uint8L) ::
-      ("facingPitch" | uint8L) ::
-      ("facingYawUpper" | uint8L) ::
+      ("facingYaw" | Angular.codec_yaw()) ::
+      ("facingPitch" | Angular.codec_pitch) ::
+      ("facingYawUpper" | Angular.codec_yaw(0f)) ::
       ("seq_time" | uintL(10)) ::
       ("unk1" | uintL(3)) ::
       ("is_crouching" | bool) ::

@@ -77,7 +77,7 @@ object LoginRespMessage extends Marshallable[LoginRespMessage] {
     ("unknown" | uint32L) ::
     ("username" | PacketHelpers.encodedString) ::
     ("privilege" | uint32L)
-      .flatZip(priv => bool) // really not so sure about this bool part. client gets just a single bit
+      .flatZip(_ => bool) // really not so sure about this bool part. client gets just a single bit
       .xmap[Long]({case (a, _) => a}, priv => (priv, (priv & 1) == 1))
     ).as[LoginRespMessage]
 }

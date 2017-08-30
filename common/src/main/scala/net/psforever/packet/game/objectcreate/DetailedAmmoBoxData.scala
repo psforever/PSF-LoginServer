@@ -39,7 +39,7 @@ object DetailedAmmoBoxData extends Marshallable[DetailedAmmoBoxData] {
 
   implicit val codec : Codec[DetailedAmmoBoxData] = (
     uint4L ::
-      ("unk" | uint4L) ::
+      ("unk" | uint4L) :: // 8 - common - 4 - safe, 2 - stream misalignment, 1 - safe, 0 - common
       uint(15) ::
       ("magazine" | uint16L) ::
       bool

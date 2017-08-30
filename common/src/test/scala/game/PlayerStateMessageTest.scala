@@ -20,9 +20,9 @@ class PlayerStateMessageTest extends Specification {
         pos.y mustEqual 5981.414f
         pos.z mustEqual 44.875f
         vel.isDefined mustEqual false
-        facingYaw mustEqual 31
-        facingPitch mustEqual 0
-        facingUpper mustEqual 0
+        facingYaw mustEqual 2.8125f
+        facingPitch mustEqual 0f
+        facingUpper mustEqual 0f
         unk1 mustEqual 83
         crouching mustEqual false
         jumping mustEqual false
@@ -41,9 +41,9 @@ class PlayerStateMessageTest extends Specification {
         pos.y mustEqual 5981.414f
         pos.z mustEqual 44.875f
         vel.isDefined mustEqual false
-        facingYaw mustEqual 31
-        facingPitch mustEqual 0
-        facingUpper mustEqual 0
+        facingYaw mustEqual 2.8125f
+        facingPitch mustEqual 0f
+        facingUpper mustEqual 0f
         unk1 mustEqual 83
         crouching mustEqual false
         jumping mustEqual true
@@ -65,9 +65,9 @@ class PlayerStateMessageTest extends Specification {
         vel.get.x mustEqual 2.53125f
         vel.get.y mustEqual 6.5625f
         vel.get.z mustEqual 0.0f
-        facingYaw mustEqual 24
-        facingPitch mustEqual 4
-        facingUpper mustEqual 0
+        facingYaw mustEqual 22.5f
+        facingPitch mustEqual 348.75f
+        facingUpper mustEqual 0f
         unk1 mustEqual 165
         crouching mustEqual false
         jumping mustEqual false
@@ -83,7 +83,7 @@ class PlayerStateMessageTest extends Specification {
       PlanetSideGUID(1696),
       Vector3(4003.7422f, 5981.414f, 44.875f),
       None,
-      31, 0, 0, 83,
+      2.8125f, 0f, 0f, 83,
       false, false, false, false)
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
     pkt mustEqual string_short
@@ -94,7 +94,7 @@ class PlayerStateMessageTest extends Specification {
       PlanetSideGUID(1696),
       Vector3(4003.7422f, 5981.414f, 44.875f),
       None,
-      31, 0, 0, 83,
+      2.8125f, 0f, 0f, 83,
       false, true, false, true)
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
     pkt mustEqual string_mod
@@ -105,7 +105,7 @@ class PlayerStateMessageTest extends Specification {
       PlanetSideGUID(1696),
       Vector3(4008.6016f, 5987.6016f, 44.1875f),
       Some(Vector3(2.53125f, 6.5625f, 0f)),
-      24, 4, 0, 165,
+      22.5f, 348.75f, 0f, 165,
       false, false, false, false)
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
     pkt mustEqual string_vel

@@ -48,7 +48,7 @@ import scodec.codecs._
   *         25 : BFR Anti Infantry<br>
   *         26 : ?! Removed Cert ?<br>
   *         27 : ?! Removed Cert ?<br>
-  *         28 : Reinforced ExoSuit<br>
+  *         28 : Reinforced ExoSuitDefinition<br>
   *         29 : Infiltration Suit<br>
   *         30 : MAX (Burster)<br>
   *         31 : MAX (Dual-Cycler)<br>

@@ -4,6 +4,7 @@ import java.io.File
 import java.util.Locale
 
 import akka.actor.{ActorSystem, Props}
+import akka.routing.RandomPool
 import ch.qos.logback.classic.LoggerContext
 import ch.qos.logback.classic.joran.JoranConfigurator
 import ch.qos.logback.core.joran.spi.JoranException
@@ -11,6 +12,10 @@ import ch.qos.logback.core.status._
 import ch.qos.logback.core.util.StatusPrinter
 import com.typesafe.config.ConfigFactory
 import net.psforever.crypto.CryptoInterface
+import net.psforever.objects.guid.{NumberPoolHub, TaskResolver}
+import net.psforever.objects.guid.actor.{NumberPoolAccessorActor, NumberPoolActor}
+import net.psforever.objects.guid.selector.RandomSelector
+import net.psforever.objects.guid.source.LimitedNumberSource
 import org.slf4j
 import org.fusesource.jansi.Ansi._
 import org.fusesource.jansi.Ansi.Color._
@@ -25,7 +30,7 @@ object PsLogin {
 
   var args : Array[String] = Array()
   var config : java.util.Map[String,Object] = null
-  var system : akka.actor.ActorSystem = null
+  implicit var system : akka.actor.ActorSystem = null
   var loginRouter : akka.actor.Props = null
   var worldRouter : akka.actor.Props = null
   var loginListener : akka.actor.ActorRef = null
@@ -194,6 +199,25 @@ object PsLogin {
       packetReorderingTime = 400
     )
     */
+
+    val serviceManager = ServiceManager.boot
+
+    //experimental guid code
+    val hub = new NumberPoolHub(new LimitedNumberSource(65536))
+    val pool1 = hub.AddPool("test1", (400 to 599).toList)
+    val poolActor1 = system.actorOf(Props(classOf[NumberPoolActor], pool1), name = "poolActor1")
+    pool1.Selector = new RandomSelector
+    val pool2 = hub.AddPool("test2", (600 to 799).toList)
+    val poolActor2 = system.actorOf(Props(classOf[NumberPoolActor], pool2), name = "poolActor2")
+    pool2.Selector = new RandomSelector
+
+    serviceManager ! ServiceManager.Register(Props(classOf[NumberPoolAccessorActor], hub, pool1, poolActor1), "accessor1")
+    serviceManager ! ServiceManager.Register(Props(classOf[NumberPoolAccessorActor], hub, pool2, poolActor2), "accessor2")
+
+    //task resolver
+    serviceManager ! ServiceManager.Register(RandomPool(50).props(Props[TaskResolver]), "taskResolver")
+
+    serviceManager ! ServiceManager.Register(Props[AvatarService], "avatar")
 
     /** Create two actors for handling the login and world server endpoints */
     loginRouter = Props(new SessionRouter("Login", loginTemplate))

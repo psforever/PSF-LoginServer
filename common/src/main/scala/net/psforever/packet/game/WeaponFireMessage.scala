@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.packet.game
 
-import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
+import net.psforever.packet.{GamePacketOpcode, Marshallable, PlanetSideGamePacket}
 import net.psforever.types.Vector3
 import scodec.Codec
 import scodec.codecs._
@@ -39,7 +39,7 @@ object WeaponFireMessage extends Marshallable[WeaponFireMessage] {
         ("unk4" | uint16L) ::
         ("unk5" | uint8L) ::
         (("unk6" | uintL(3)) >>:~ { unk6_value =>
-          conditional(unk6_value == 3, ("unk7" | optional(bool, Vector3.codec_vel))).hlist
+          conditional(unk6_value == 3, "unk7" | optional(bool, Vector3.codec_vel)).hlist
         })
     ).as[WeaponFireMessage]
 }
