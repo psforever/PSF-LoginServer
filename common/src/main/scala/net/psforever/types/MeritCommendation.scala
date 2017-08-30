@@ -68,7 +68,6 @@ object MeritCommendation extends Enumeration {
       Avenger6,
       //50
       Avenger7,
-      AwardColors, //what?
       BendingMovieActor,
       BFRAdvanced,
       BFRAdvanced2,
@@ -77,8 +76,8 @@ object MeritCommendation extends Enumeration {
       BFRAdvanced5,
       BFRBuster1,
       BFRBuster2,
-      //60
       BFRBuster3,
+      //60
       BFRBuster4,
       BFRBuster5,
       BFRBuster6,
@@ -88,8 +87,8 @@ object MeritCommendation extends Enumeration {
       BlackOpsHunter3,
       BlackOpsHunter4,
       BlackOpsHunter5,
-      //70
       BlackOpsParticipant,
+      //70
       BlackOpsVictory,
       Bombadier1,
       Bombadier2,
@@ -99,8 +98,8 @@ object MeritCommendation extends Enumeration {
       Bombadier6,
       Bombadier7,
       BomberAce1,
-      //80
       BomberAce2,
+      //80
       BomberAce3,
       BomberAce4,
       BomberAce5,
@@ -110,8 +109,8 @@ object MeritCommendation extends Enumeration {
       Boomer2,
       Boomer3,
       Boomer4,
-      //90
       Boomer5,
+      //90
       Boomer6,
       Boomer7,
       CalvaryDriver1,
@@ -121,8 +120,8 @@ object MeritCommendation extends Enumeration {
       CalvaryDriver5,
       CalvaryDriver6,
       CalvaryDriver7,
-      //100
       CalvaryPilot,
+      //100
       CalvaryPilot2,
       CalvaryPilot3,
       CalvaryPilot4,
@@ -132,8 +131,8 @@ object MeritCommendation extends Enumeration {
       CMTopOutfit,
       CombatMedic,
       CombatMedic2,
-      //110
       CombatMedic3,
+      //110
       CombatMedic4,
       CombatMedic5,
       CombatMedic6,
@@ -143,8 +142,8 @@ object MeritCommendation extends Enumeration {
       CombatRepair3,
       CombatRepair4,
       CombatRepair5,
-      //120
       CombatRepair6,
+      //120
       CombatRepair7,
       ContestFirstBR40,
       ContestMovieMaker,
@@ -154,8 +153,8 @@ object MeritCommendation extends Enumeration {
       CSAppreciation,
       DefenseNC1,
       DefenseNC2,
-      //130
       DefenseNC3,
+      //130
       DefenseNC4,
       DefenseNC5,
       DefenseNC6,
@@ -165,8 +164,8 @@ object MeritCommendation extends Enumeration {
       DefenseTR3,
       DefenseTR4,
       DefenseTR5,
-      //40
       DefenseTR6,
+      //140
       DefenseTR7,
       DefenseVS1,
       DefenseVS2,
@@ -176,8 +175,8 @@ object MeritCommendation extends Enumeration {
       DefenseVS6,
       DefenseVS7,
       DevilDogsMovie,
-      //150
       DogFighter1,
+      //150
       DogFighter2,
       DogFighter3,
       DogFighter4,
@@ -187,8 +186,8 @@ object MeritCommendation extends Enumeration {
       DriverGunner1,
       DriverGunner2,
       DriverGunner3,
-      //160
       DriverGunner4,
+      //160
       DriverGunner5,
       DriverGunner6,
       DriverGunner7,
@@ -198,8 +197,8 @@ object MeritCommendation extends Enumeration {
       EliteAssault3,
       EliteAssault4,
       EliteAssault5,
-      //170
       EliteAssault6,
+      //170
       EliteAssault7,
       EmeraldVeteran,
       Engineer1,
@@ -209,8 +208,8 @@ object MeritCommendation extends Enumeration {
       Engineer5,
       Engineer6,
       EquipmentSupport1,
-      //180
       EquipmentSupport2,
+      //180
       EquipmentSupport3,
       EquipmentSupport4,
       EquipmentSupport5,
@@ -220,8 +219,8 @@ object MeritCommendation extends Enumeration {
       EventNCElite,
       EventNCSoldier,
       EventTRCommander,
-      //190
       EventTRElite,
+      //190
       EventTRSoldier,
       EventVSCommander,
       EventVSElite,
@@ -231,8 +230,8 @@ object MeritCommendation extends Enumeration {
       FiveYearTR,
       FiveYearVS,
       FourYearNC,
-      //200
       FourYearTR,
+      //200
       FourYearVS,
       GalaxySupport1,
       GalaxySupport2,
@@ -242,8 +241,8 @@ object MeritCommendation extends Enumeration {
       GalaxySupport6,
       GalaxySupport7,
       Grenade1,
-      //210
       Grenade2,
+      //210
       Grenade3,
       Grenade4,
       Grenade5,
@@ -253,8 +252,8 @@ object MeritCommendation extends Enumeration {
       GroundGunner2,
       GroundGunner3,
       GroundGunner4,
-      //220
       GroundGunner5,
+      //220
       GroundGunner6,
       GroundGunner7,
       HackingSupport1,
@@ -264,8 +263,8 @@ object MeritCommendation extends Enumeration {
       HackingSupport5,
       HackingSupport6,
       HackingSupport7,
-      //230
       HeavyAssault1,
+      //230
       HeavyAssault2,
       HeavyAssault3,
       HeavyAssault4,
@@ -275,8 +274,8 @@ object MeritCommendation extends Enumeration {
       HeavyInfantry,
       HeavyInfantry2,
       HeavyInfantry3,
-      //240
       HeavyInfantry4,
+      //240
       InfantryExpert1,
       InfantryExpert2,
       InfantryExpert3,
@@ -286,8 +285,8 @@ object MeritCommendation extends Enumeration {
       Jacking4,
       Jacking5,
       Jacking6,
-      //250
       Jacking7,
+      //250
       KnifeCombat1,
       KnifeCombat2,
       KnifeCombat3,
@@ -297,8 +296,8 @@ object MeritCommendation extends Enumeration {
       KnifeCombat7,
       LightInfantry,
       LockerCracker1,
-      //260
       LockerCracker2,
+      //260
       LockerCracker3,
       LockerCracker4,
       LockerCracker5,
@@ -308,8 +307,8 @@ object MeritCommendation extends Enumeration {
       LodestarSupport2,
       LodestarSupport3,
       LodestarSupport4,
-      //270
       LodestarSupport5,
+      //270
       LodestarSupport6,
       LodestarSupport7,
       Loser,
@@ -319,8 +318,8 @@ object MeritCommendation extends Enumeration {
       MarkovVeteran,
       Max1,
       Max2,
-      //280
       Max3,
+      //280
       Max4,
       Max5,
       Max6,
@@ -330,8 +329,8 @@ object MeritCommendation extends Enumeration {
       MaxBuster4,
       MaxBuster5,
       MaxBuster6,
-      //290
       MediumAssault1,
+      //290
       MediumAssault2,
       MediumAssault3,
       MediumAssault4,
@@ -341,8 +340,8 @@ object MeritCommendation extends Enumeration {
       OneYearNC,
       OneYearTR,
       OneYearVS,
-      //300
       Orion1,
+      //300
       Orion2,
       Orion3,
       Orion4,
@@ -352,8 +351,8 @@ object MeritCommendation extends Enumeration {
       Osprey1,
       Osprey2,
       Osprey3,
-      //310
       Osprey4,
+      //310
       Osprey5,
       Osprey6,
       Osprey7,
@@ -363,8 +362,8 @@ object MeritCommendation extends Enumeration {
       Phalanx4,
       Phalanx5,
       Phalanx6,
-      //320
       Phalanx7,
+      //320
       PSUMaAttendee,
       PSUMbAttendee,
       QAAppreciation,
@@ -374,8 +373,8 @@ object MeritCommendation extends Enumeration {
       ReinforcementVehicleSpecialist,
       RouterSupport1,
       RouterSupport2,
-      //330
       RouterSupport3,
+      //330
       RouterSupport4,
       RouterSupport5,
       RouterSupport6,
@@ -385,8 +384,8 @@ object MeritCommendation extends Enumeration {
       RouterTelepadDeploy3,
       RouterTelepadDeploy4,
       RouterTelepadDeploy5,
-      //340
       RouterTelepadDeploy6,
+      //340
       RouterTelepadDeploy7,
       ScavengerNC1,
       ScavengerNC2,
@@ -396,8 +395,8 @@ object MeritCommendation extends Enumeration {
       ScavengerNC6,
       ScavengerTR1,
       ScavengerTR2,
-      //350
       ScavengerTR3,
+      //350
       ScavengerTR4,
       ScavengerTR5,
       ScavengerTR6,
@@ -407,8 +406,8 @@ object MeritCommendation extends Enumeration {
       ScavengerVS4,
       ScavengerVS5,
       ScavengerVS6,
-      //360
       SixYearNC,
+      //360
       SixYearTR,
       SixYearVS,
       Sniper1,
@@ -418,8 +417,8 @@ object MeritCommendation extends Enumeration {
       Sniper5,
       Sniper6,
       Sniper7,
-      //370
       SpecialAssault1,
+      //370
       SpecialAssault2,
       SpecialAssault3,
       SpecialAssault4,
@@ -429,8 +428,8 @@ object MeritCommendation extends Enumeration {
       StandardAssault1,
       StandardAssault2,
       StandardAssault3,
-      //380
       StandardAssault4,
+      //380
       StandardAssault5,
       StandardAssault6,
       StandardAssault7,
@@ -440,8 +439,8 @@ object MeritCommendation extends Enumeration {
       Supply3,
       Supply4,
       Supply5,
-      //390
       Supply6,
+      //390
       Supply7,
       TankBuster1,
       TankBuster2,
@@ -451,8 +450,8 @@ object MeritCommendation extends Enumeration {
       TankBuster6,
       TankBuster7,
       ThreeYearNC,
-      //400
       ThreeYearTR,
+      //400
       ThreeYearVS,
       TinyRoboticSupport1,
       TinyRoboticSupport2,
@@ -462,8 +461,8 @@ object MeritCommendation extends Enumeration {
       TinyRoboticSupport6,
       TinyRoboticSupport7,
       Transport1,
-      //410
       Transport2,
+      //410
       Transport3,
       Transport4,
       Transport5,
@@ -473,8 +472,8 @@ object MeritCommendation extends Enumeration {
       TransportationCitation2,
       TransportationCitation3,
       TransportationCitation4,
-      //420
       TransportationCitation5,
+      //420
       TwoYearNC,
       TwoYearTR,
       TwoYearVS,
