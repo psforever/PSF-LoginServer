@@ -1417,17 +1417,17 @@ class WorldSessionActor extends Actor with MDCContextAware {
     tplayer.Holsters().foreach(holster => {
       SetCharacterSelectScreenGUID_SelectEquipment(holster.Equipment, gen)
     })
-    tplayer.Inventory.Items.foreach({ case((_, entry : InventoryItem)) =>
-      SetCharacterSelectScreenGUID_SelectEquipment(Some(entry.obj), gen)
-    })
-    tplayer.Slot(5).Equipment match {
-      case Some(locker) =>
-        locker.GUID = PlanetSideGUID(gen.getAndIncrement)
-        locker.asInstanceOf[LockerContainer].Inventory.Items.foreach({ case((_, entry : InventoryItem)) =>
-          SetCharacterSelectScreenGUID_SelectEquipment(Some(entry.obj), gen)
-        })
-      case None => ;
-    }
+//    tplayer.Inventory.Items.foreach({ case((_, entry : InventoryItem)) =>
+//      SetCharacterSelectScreenGUID_SelectEquipment(Some(entry.obj), gen)
+//    })
+//    tplayer.Slot(5).Equipment match {
+//      case Some(locker) =>
+//        locker.GUID = PlanetSideGUID(gen.getAndIncrement)
+//        locker.asInstanceOf[LockerContainer].Inventory.Items.foreach({ case((_, entry : InventoryItem)) =>
+//          SetCharacterSelectScreenGUID_SelectEquipment(Some(entry.obj), gen)
+//        })
+//      case None => ;
+//    }
     tplayer.GUID = PlanetSideGUID(gen.getAndIncrement)
   }
 
@@ -1459,17 +1459,17 @@ class WorldSessionActor extends Actor with MDCContextAware {
     tplayer.Holsters().foreach(holster => {
       RemoveCharacterSelectScreenGUID_SelectEquipment(holster.Equipment)
     })
-    tplayer.Inventory.Items.foreach({ case((_, entry : InventoryItem)) =>
-      RemoveCharacterSelectScreenGUID_SelectEquipment(Some(entry.obj))
-    })
-    tplayer.Slot(5).Equipment match {
-      case Some(locker) =>
-        locker.Invalidate()
-        locker.asInstanceOf[LockerContainer].Inventory.Items.foreach({ case((_, entry : InventoryItem)) =>
-          RemoveCharacterSelectScreenGUID_SelectEquipment(Some(entry.obj))
-        })
-      case None => ;
-    }
+//    tplayer.Inventory.Items.foreach({ case((_, entry : InventoryItem)) =>
+//      RemoveCharacterSelectScreenGUID_SelectEquipment(Some(entry.obj))
+//    })
+//    tplayer.Slot(5).Equipment match {
+//      case Some(locker) =>
+//        locker.Invalidate()
+//        locker.asInstanceOf[LockerContainer].Inventory.Items.foreach({ case((_, entry : InventoryItem)) =>
+//          RemoveCharacterSelectScreenGUID_SelectEquipment(Some(entry.obj))
+//        })
+//      case None => ;
+//    }
     tplayer.Invalidate()
   }
 
