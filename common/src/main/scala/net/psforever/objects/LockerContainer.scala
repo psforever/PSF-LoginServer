@@ -7,17 +7,13 @@ import net.psforever.objects.equipment.{Equipment, EquipmentSize}
 import net.psforever.objects.inventory.GridInventory
 
 class LockerContainer extends Equipment {
-  private val inventory = GridInventory() //?
+  private val inventory = GridInventory(30, 20)
 
   def Inventory : GridInventory = inventory
 
   def Fit(obj : Equipment) : Option[Int] = inventory.Fit(obj.Definition.Tile)
 
-  def Definition : EquipmentDefinition = new EquipmentDefinition(456) {
-    Name = "locker container"
-    Size = EquipmentSize.Inventory
-    Packet = new LockerContainerConverter()
-  }
+  def Definition : EquipmentDefinition = GlobalDefinitions.locker_container
 }
 
 object LockerContainer {

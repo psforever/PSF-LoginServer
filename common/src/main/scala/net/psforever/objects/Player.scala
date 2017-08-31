@@ -70,6 +70,7 @@ class Player(private val name : String,
   var PlanetsideAttribute : Array[Long] = Array.ofDim(120)
 
   Player.SuitSetup(this, ExoSuit)
+  fifthSlot.Equipment = new LockerContainer() //the fifth slot is the player's "locker"
 
   def Name : String = name
 
@@ -158,7 +159,9 @@ class Player(private val name : String,
       holsters(slot)
     }
     else if(slot == 5) {
-      fifthSlot
+      new OffhandEquipmentSlot(EquipmentSize.Inventory) {
+        Equipment = fifthSlot.Equipment
+      }
     }
     else if(slot == Player.FreeHandSlot) {
       freeHand

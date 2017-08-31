@@ -155,6 +155,7 @@ class ConverterTest extends Specification {
       tool.AmmoSlots.head.Box = box1
       val obj = Player(PlanetSideGUID(93), "Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
       obj.Slot(2).Equipment = tool
+      obj.Slot(5).Equipment.get.GUID = PlanetSideGUID(94)
       obj.Inventory += 8 -> box2
 
       obj.Definition.Packet.DetailedConstructorData(obj).isSuccess mustEqual true
@@ -163,17 +164,38 @@ class ConverterTest extends Specification {
   }
 
   "LockerContainer" should {
-    "convert to packet" in {
+    "convert to packet (empty)" in {
       val obj = LockerContainer()
       obj.Definition.Packet.DetailedConstructorData(obj) match {
         case Success(pkt) =>
-          pkt mustEqual DetailedLockerContainerData(8)
+          pkt mustEqual DetailedLockerContainerData(8, None)
         case _ =>
           ko
       }
       obj.Definition.Packet.ConstructorData(obj) match {
         case Success(pkt) =>
           pkt mustEqual LockerContainerData(InventoryData(List.empty))
+        case _ =>
+          ko
+      }
+    }
+
+    "convert to packet (occupied)" in {
+      import GlobalDefinitions._
+      val obj = LockerContainer()
+      val rek = SimpleItem(remote_electronics_kit)
+      rek.GUID = PlanetSideGUID(1)
+      obj.Inventory += 0 -> rek
+
+      obj.Definition.Packet.DetailedConstructorData(obj) match {
+        case Success(pkt) =>
+          pkt mustEqual DetailedLockerContainerData(8, InternalSlot(remote_electronics_kit.ObjectId, PlanetSideGUID(1), 0, DetailedREKData(8)) :: Nil)
+        case _ =>
+          ko
+      }
+      obj.Definition.Packet.ConstructorData(obj) match {
+        case Success(pkt) =>
+          pkt mustEqual LockerContainerData(InventoryData(InternalSlot(remote_electronics_kit.ObjectId, PlanetSideGUID(1), 0, REKData(8,0)) :: Nil))
         case _ =>
           ko
       }
