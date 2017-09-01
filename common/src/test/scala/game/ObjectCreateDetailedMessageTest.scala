@@ -216,10 +216,13 @@ class ObjectCreateDetailedMessageTest extends Specification {
         char.stamina mustEqual 100
         char.unk4 mustEqual 28
         char.unk5 mustEqual 4
-        char.unk6 mustEqual 44
-        char.unk7 mustEqual 84
-        char.unk8 mustEqual 104
-        char.unk9 mustEqual 1900
+        char.brFields.field00 mustEqual 44
+        char.brFields.field01 mustEqual 84
+        char.brFields.field02 mustEqual 104
+        char.brFields.field03 mustEqual 108
+        char.brFields.field04 mustEqual 112
+        char.brFields.field05 mustEqual 0
+        char.brFields.field06 mustEqual 0
         char.firstTimeEvents.size mustEqual 4
         char.firstTimeEvents.head mustEqual "xpe_sanctuary_help"
         char.firstTimeEvents(1) mustEqual "xpe_th_firemodes"
@@ -405,11 +408,13 @@ class ObjectCreateDetailedMessageTest extends Specification {
       Nil
     val obj = DetailedCharacterData(
       app,
+      0,
       100, 100,
       50,
       1, 7, 7,
       100, 100,
-      28, 4, 44, 84, 104, 1900,
+      28, 4,
+      BattleRankFieldData(44, 84, 104, 108, 112, 0, 0),
       "xpe_sanctuary_help" :: "xpe_th_firemodes" :: "used_beamer" :: "map13" :: Nil,
       List.empty,
       InventoryData(inv),
