@@ -3,7 +3,7 @@ import java.net.InetAddress
 import java.io.File
 import java.util.Locale
 
-import akka.actor.{ActorSystem, Props}
+import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.routing.RandomPool
 import ch.qos.logback.classic.LoggerContext
 import ch.qos.logback.classic.joran.JoranConfigurator
@@ -24,17 +24,16 @@ import scala.collection.JavaConverters._
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
-
 object PsLogin {
   private val logger = org.log4s.getLogger
 
   var args : Array[String] = Array()
   var config : java.util.Map[String,Object] = null
-  implicit var system : akka.actor.ActorSystem = null
-  var loginRouter : akka.actor.Props = null
-  var worldRouter : akka.actor.Props = null
-  var loginListener : akka.actor.ActorRef = null
-  var worldListener : akka.actor.ActorRef = null
+  implicit var system : ActorSystem = null
+  var loginRouter : Props = Props.empty
+  var worldRouter : Props = Props.empty
+  var loginListener : ActorRef = ActorRef.noSender
+  var worldListener : ActorRef = ActorRef.noSender
 
   def banner() : Unit = {
     println(ansi().fgBright(BLUE).a("""   ___  ________"""))
@@ -178,10 +177,12 @@ object PsLogin {
       */
     val loginTemplate = List(
       SessionPipeline("crypto-session-", Props[CryptoSessionActor]),
+      SessionPipeline("packet-session-", Props[PacketCodingActor]),
       SessionPipeline("login-session-", Props[LoginSessionActor])
     )
     val worldTemplate = List(
       SessionPipeline("crypto-session-", Props[CryptoSessionActor]),
+      SessionPipeline("packet-session-", Props[PacketCodingActor]),
       SessionPipeline("world-session-", Props[WorldSessionActor])
     )
 

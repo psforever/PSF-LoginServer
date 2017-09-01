@@ -5,8 +5,27 @@ import net.psforever.packet.{ControlPacketOpcode, Marshallable, PlanetSideContro
 import scodec.Codec
 import scodec.codecs._
 
-final case class ControlSyncResp(timeDiff : Int, serverTick : Long,
-                             field1 : Long, field2 : Long, field3 : Long, field4 : Long)
+/**
+  * The response packet dispatched by the server to a client's `ControlSync` packet.
+  * As noted, it echoes most of the fields originating from within its companion packet except for `serverTick`.
+  * @param timeDiff na;
+  *                 echoes `ControlSync.timeDiff`
+  * @param serverTick na
+  * @param field1 na;
+  *               echoes `ControlSync.field64A`
+  * @param field2 na;
+  *               echoes `ControlSync.field64B`
+  * @param field3 na;
+  *               echoes `ControlSync.field64B` (+/- 1)
+  * @param field4 na;
+  *               echoes `ControlSync.field64A`
+  */
+final case class ControlSyncResp(timeDiff : Int,
+                                 serverTick : Long,
+                                 field1 : Long,
+                                 field2 : Long,
+                                 field3 : Long,
+                                 field4 : Long)
   extends PlanetSideControlPacket {
   type Packet = ControlSyncResp
   def opcode = ControlPacketOpcode.ControlSyncResp

@@ -2,13 +2,13 @@
 package net.psforever.packet
 
 import net.psforever.crypto.CryptoInterface
-import scodec.Attempt.{Successful, Failure}
+import scodec.Attempt.{Failure, Successful}
 import scodec.bits._
-import scodec.{Err, Attempt, Codec}
-import scodec.codecs.{uint16L, uint8L, bytes}
+import scodec.{Attempt, Codec, Err}
+import scodec.codecs.{bytes, uint16L, uint8L}
 
 /**
-  * Base trait of the packet container `case class`es.
+  * Base trait of the packet container `case class`.
   */
 sealed trait PlanetSidePacketContainer
 
@@ -81,7 +81,7 @@ object PacketCoding {
 /* Marshalling and Encoding. */
 
   /**
-    * Transforms a type of packet into the `BitVector` representations of its component data and then reconstructs those components.
+    * Transform a kind of packet into the sequence of data that represents it.
     * Wraps around the encoding process for all valid packet container types.
     * @param packet the packet to encode
     * @return a `BitVector` translated from the packet's data
@@ -140,12 +140,11 @@ object PacketCoding {
         case Successful(p) => seqEncoded = p
       }
     }
-
     Attempt.successful(flagsEncoded ++ seqEncoded ++ paddingEncoded ++ payloadEncoded)
   }
 
   /**
-    * Overloaded method for transforming a control packet into its `BitVector` representation.
+    * Overloaded method for transforming a `ControlPacket` into its `BitVector` representation.
     * @param packet the control packet to encode
     * @return a `BitVector` translated from the packet's data
     */
@@ -156,7 +155,6 @@ object PacketCoding {
       case Failure(e) => return Attempt.failure(Err(s"Failed to marshal opcode in control packet $opcode: " + e.messageWithContext))
       case Successful(p) => opcodeEncoded = p
     }
-
     var payloadEncoded = BitVector.empty
     encodePacket(packet) match {
       case Failure(e) => return Attempt.failure(Err(s"Failed to marshal control packet $packet: " + e.messageWithContext))
@@ -166,7 +164,7 @@ object PacketCoding {
   }
 
   /**
-    * Overloaded method for transforming a crypto packet into its `BitVector` representation.
+    * Overloaded method for transforming a `CryptoPacket` into its `BitVector` representation.
     * @param packet the crypto packet to encode
     * @return a `BitVector` translated from the packet's data
     */
@@ -178,7 +176,7 @@ object PacketCoding {
   }
 
   /**
-    * Overloaded method for transforming a game packet into its `BitVector` representation.
+    * Overloaded method for transforming a `GamePacket` into its `BitVector` representation.
     * @param packet the game packet to encode
     * @return a `BitVector` translated from the packet's data
     */
@@ -189,7 +187,6 @@ object PacketCoding {
       case Failure(e) => return Attempt.failure(Err(s"Failed to marshal opcode in game packet $opcode: " + e.messageWithContext))
       case Successful(p) => opcodeEncoded = p
     }
-
     var payloadEncoded = BitVector.empty
     encodePacket(packet) match {
       case Failure(e) => return Attempt.failure(Err(s"Failed to marshal game packet $packet: " + e.messageWithContext))
@@ -199,7 +196,7 @@ object PacketCoding {
   }
 
   /**
-    * Calls the packet-specific encode function.
+    * Calls the packet's own `encode` function.
     * Lowest encode call before the packet-specific implementations.
     * @param packet the packet to encode
     * @return a `BitVector` translated from the packet's data
@@ -214,12 +211,9 @@ object PacketCoding {
   final val PLANETSIDE_MIN_PACKET_SIZE = 1
 
   /**
-    * Transforms `BitVector` data into a PlanetSide packet.<br>
-    * <br>
-    * Given a full and complete planetside packet as it would be sent on the wire, attempt to
-    * decode it given an optional header and required payload. This function does all of the
-    * hard work of making decisions along the way in order to decode a planetside packet to
-    * completion.
+    * Transforms `ByteVector` data into a PlanetSide packet.
+    * Attempt to decode with an optional header and required payload.
+    * Does not decode into a `GamePacket`.
     * @param msg the raw packet
     * @param cryptoState the current state of the connection's crypto. This is only used when decoding
     *                    crypto packets as they do not have opcodes
@@ -237,18 +231,18 @@ object PacketCoding {
   }
 
   /**
-    * Helper function to decode a packet without specifying a crypto packet state.
-    * Mostly used when there is no crypto state available, such as tests.
+    * Helper function to decode a packet without specifying a crypto state.
+    * Used when there is no crypto state available such as in tests.
     * @param msg packet data bytes
     * @return `PlanetSidePacketContainer`
     */
   def UnmarshalPacket(msg : ByteVector) : Attempt[PlanetSidePacketContainer] = UnmarshalPacket(msg, CryptoPacketOpcode.Ignore)
 
   /**
-    * Handle decoding for a packet that has been identified as not a control packet.
-    * It may just be encrypted or it may be involved in the encryption process itself.
+    * Handle decoding for a packet that has been identified as not a `ControlPacket`.
+    * It may just be encrypted (`EncryptedPacket`) or it may be involved in the encryption process itself (`CryptoPacket`).
     * @param msg the packet
-    * @param cryptoState the current state of the connection's crypto
+    * @param cryptoState the current cryptographic state
     * @return a `PlanetSidePacketContainer`
     */
   private def unmarshalFlaggedPacket(msg : ByteVector, cryptoState : CryptoPacketOpcode.Type) : Attempt[PlanetSidePacketContainer] = {
@@ -258,7 +252,6 @@ object PacketCoding {
         return Attempt.failure(Err("Failed to parse packet flags: " + e.message))
       case _ =>
     }
-
     val flags = decodedFlags.require.value
     val packetType = flags.packetType
     packetType match {
@@ -275,7 +268,6 @@ object PacketCoding {
       case _ =>
         return Attempt.failure(Err("Unsupported packet type: " + flags.packetType.toString))
     }
-
     //all packets have a two byte sequence ID
     val decodedSeq = uint16L.decode(decodedFlags.require.remainder) //TODO: make this a codec for reuse
     decodedSeq match {
@@ -285,7 +277,6 @@ object PacketCoding {
     }
     val sequence = decodedSeq.require.value
     val payload = decodedSeq.require.remainder.toByteVector
-
     packetType match {
       case PacketType.Crypto =>
         unmarshalCryptoPacket(cryptoState, sequence, payload)
@@ -295,35 +286,37 @@ object PacketCoding {
   }
 
   /**
-    * Handle decoding for a control packet.
+    * Handle decoding for a `ControlPacket`.
     * @param msg the packet
     * @return a `ControlPacket`
     */
   private def unmarshalControlPacket(msg : ByteVector) : Attempt[ControlPacket] = {
     DecodeControlPacket(msg) match {
-      case f @ Failure(_) => f
+      case f @ Failure(_) =>
+        f
       case Successful(p) =>
         Attempt.successful(CreateControlPacket(p))
     }
   }
 
   /**
-    * Handle decoding for a game packet.
+    * Handle decoding for a `GamePacket`.
     * @param sequence na
     * @param msg the packet data
     * @return a `GamePacket`
     */
   private def unmarshalGamePacket(sequence : Int, msg : ByteVector) : Attempt[GamePacket] = {
    DecodeGamePacket(msg) match {
-      case f @ Failure(_) => f
+      case f @ Failure(_) =>
+        f
       case Successful(p) =>
         Attempt.successful(CreateGamePacket(sequence, p))
     }
   }
 
   /**
-    * Handle decoding for a crypto packet.
-    * @param state the current state of the connection's crypto
+    * Handle decoding for a `CryptoPacket`.
+    * @param state the current cryptographic state
     * @param sequence na
     * @param payload the packet data
     * @return a `CryptoPacket`
@@ -338,8 +331,8 @@ object PacketCoding {
   }
 
   /**
-    * Handle decoding for an encrypted packet.
-    * That is, it's already encrypted.
+    * Handle decoding for an `EncryptedPacket`.
+    * The payload is already encrypted.
     * Just repackage the data.
     * @param sequence na
     * @param payload the packet data
@@ -350,15 +343,17 @@ object PacketCoding {
   }
 
   /**
-    * Similar to `UnmarshalPacket`, but does not process any packet header and does not support decoding of crypto packets.
+    * Transforms `ByteVector` data into a PlanetSide packet.
+    * Similar to the `UnmarshalPacket` but it does not process packet headers.
+    * It supports `GamePacket` in exchange for not supporting `CryptoPacket` (like `UnMarshalPacket`).
     * Mostly used in tests.
     * @param msg raw, unencrypted packet
     * @return `PlanetSidePacket`
+    * @see `UnMarshalPacket`
     */
   def DecodePacket(msg : ByteVector) : Attempt[PlanetSidePacket] = {
     if(msg.length < PLANETSIDE_MIN_PACKET_SIZE)
       return Attempt.failure(Err(s"Packet does not meet the minimum length of $PLANETSIDE_MIN_PACKET_SIZE bytes"))
-
     val firstByte = msg{0}
     firstByte match {
       case 0x00 => DecodeControlPacket(msg.drop(1)) //control packets dont need the first byte
@@ -367,7 +362,7 @@ object PacketCoding {
   }
 
   /**
-    * Transform a `BitVector` into a control packet.
+    * Transform a `ByteVector` into a `ControlPacket`.
     * @param msg the the raw data to decode
     * @return a `PlanetSideControlPacket`
     */
@@ -388,7 +383,7 @@ object PacketCoding {
   }
 
   /**
-    * Transform a `BitVector` into a game packet.
+    * Transform a `ByteVector` into a `GamePacket`.
     * @param msg the the raw data to decode
     * @return a `PlanetSideGamePacket`
     */
@@ -411,28 +406,45 @@ object PacketCoding {
 /* Encrypting and Decrypting. */
 
   /**
-    * Encrypt the provided packet using the provided crypto state.
-    * @param crypto the current state of the connection's crypto
+    * Transform the privileged `packet` into a `RawPacket` representation to get:
+    * the sequence number,
+    * and the raw `ByteVector` data.
     * @param packet the unencrypted packet
-    * @return an `EncryptedPacket`
+    * @return paired data based on the packet
     */
-  def encryptPacket(crypto : CryptoInterface.CryptoStateWithMAC, packet : PlanetSidePacketContainer) : Attempt[EncryptedPacket] = {
+  def getPacketDataForEncryption(packet : PlanetSidePacketContainer) : Attempt[(Int, ByteVector)] = {
     makeRawPacket(packet) match {
       case Successful(rawPacket) =>
-        var sequenceNumber = 0
-        packet match { //the sequence is a not default if this is a GamePacket
-          case GamePacket(_, seq, _) => sequenceNumber = seq
-          case _ => ;
+        val sequenceNumber = packet match { //the sequence is variable if this is a GamePacket
+          case GamePacket(_, seq, _) => seq
+          case _ => 0
         }
-        encryptPacket(crypto, sequenceNumber, rawPacket.toByteVector)
+        Successful((sequenceNumber, rawPacket.toByteVector))
 
-      case f @ Failure(_) => f;
+      case f @ Failure(_) =>
+        f
     }
   }
 
   /**
-    * Transform either a game packet or a control packet into a `BitVector`.
-    * This is more thorough than the process of unmarshalling, though the results are very similar.
+    * Encrypt the provided packet using the provided cryptographic state.
+    * Translate the packet into data to send on to the actual encryption process.
+    * @param crypto the current cryptographic state
+    * @param packet the unencrypted packet
+    * @return an `EncryptedPacket`
+    */
+  def encryptPacket(crypto : CryptoInterface.CryptoStateWithMAC, packet : PlanetSidePacketContainer) : Attempt[EncryptedPacket] = {
+    getPacketDataForEncryption(packet) match {
+      case Successful((seq, data)) =>
+        encryptPacket(crypto, seq, data)
+      case f @ Failure(_) =>
+        f
+    }
+  }
+
+  /**
+    * Transform either a `GamePacket` or a `ControlPacket` into a `BitVector`.
+    * This is not as thorough as the process of unmarshalling though the results are very similar.
     * @param packet a packet
     * @return a `BitVector` that represents the packet
     */
@@ -440,7 +452,8 @@ object PacketCoding {
     case GamePacket(opcode, _, payload) =>
       val opcodeEncoded = GamePacketOpcode.codec.encode(opcode)
       opcodeEncoded match {
-        case Failure(e) => Attempt.failure(Err(s"Failed to marshal opcode in packet $opcode: " + e.message))
+        case Failure(e) =>
+          Attempt.failure(Err(s"Failed to marshal opcode in packet $opcode: " + e.message))
         case _ =>
           encodePacket(payload) match {
             case Failure(e) => Attempt.failure(Err(s"Failed to marshal packet $opcode: " + e.messageWithContext))
@@ -451,7 +464,8 @@ object PacketCoding {
     case ControlPacket(opcode, payload) =>
       val opcodeEncoded = ControlPacketOpcode.codec.encode(opcode)
       opcodeEncoded match {
-        case Failure(e) => Attempt.failure(Err(s"Failed to marshal opcode in packet $opcode: " + e.messageWithContext))
+        case Failure(e) =>
+          Attempt.failure(Err(s"Failed to marshal opcode in packet $opcode: " + e.messageWithContext))
         case _ =>
           encodePacket(payload) match {
             case Failure(e) => Attempt.failure(Err(s"Failed to marshal packet $opcode: " + e.messageWithContext))
@@ -465,10 +479,10 @@ object PacketCoding {
 
   /**
     * Perform encryption on the packet's raw data.
-    * @param crypto the current state of the connection's crypto
+    * @param crypto the current cryptographic state
     * @param sequenceNumber na
     * @param rawPacket a `ByteVector` that represents the packet data
-    * @return
+    * @return an `EncryptedPacket`
     */
   def encryptPacket(crypto : CryptoInterface.CryptoStateWithMAC, sequenceNumber : Int, rawPacket : ByteVector) : Attempt[EncryptedPacket] = {
     val packetMac = crypto.macForEncrypt(rawPacket)
@@ -482,12 +496,39 @@ object PacketCoding {
   }
 
   /**
-    * Perform decryption on a packet's data.
+    * Perform decryption on an `EncryptedPacket`.
     * @param crypto the current state of the connection's crypto
     * @param packet an encrypted packet
-    * @return
+    * @return a general packet container type
     */
   def decryptPacket(crypto : CryptoInterface.CryptoStateWithMAC, packet : EncryptedPacket) : Attempt[PlanetSidePacketContainer] = {
+    decryptPacketData(crypto, packet) match {
+      case Successful(payload) => unmarshalPayload(packet.sequenceNumber, payload)
+      case f @ Failure(_) => f
+    }
+  }
+
+  /**
+    * Transform decrypted packet data into the type of packet that it represents.
+    * Will not compose data into an `EncryptedPacket` or into a `CryptoPacket`.
+    * @param sequenceNumber na
+    * @param payload the decrypted packet data
+    * @return a general packet container type
+    */
+  def unmarshalPayload(sequenceNumber : Int, payload : ByteVector) : Attempt[PlanetSidePacketContainer] = {
+    payload{0} match {
+      case 0x00 => unmarshalControlPacket(payload.drop(1))
+      case _ => unmarshalGamePacket(sequenceNumber, payload)
+    }
+  }
+
+  /**
+    * Compose the decrypted payload data from a formerly encrypted packet.
+    * @param crypto the current state of the connection's crypto
+    * @param packet an encrypted packet
+    * @return a sequence of decrypted data
+    */
+  def decryptPacketData(crypto : CryptoInterface.CryptoStateWithMAC, packet : EncryptedPacket) : Attempt[ByteVector] = {
     val payloadDecrypted = crypto.decrypt(packet.payload)
     val payloadJustLen = payloadDecrypted.takeRight(1) //get the last byte which is the padding length
     val padding = uint8L.decode(payloadJustLen.bits)
@@ -523,9 +564,6 @@ object PacketCoding {
     if(payloadNoMac.length < PLANETSIDE_MIN_PACKET_SIZE) {
       return Attempt.failure(Err(s"Decrypted packet does not meet the minimum length of $PLANETSIDE_MIN_PACKET_SIZE bytes"))
     }
-    payloadNoMac{0} match {
-      case 0x00 => unmarshalControlPacket(payloadNoMac.drop(1))
-      case _ => unmarshalGamePacket(packet.sequenceNumber, payloadNoMac)
-    }
+    Successful(payloadNoMac)
   }
 }
