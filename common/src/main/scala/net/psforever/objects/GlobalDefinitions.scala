@@ -2,7 +2,7 @@
 package net.psforever.objects
 
 import net.psforever.objects.definition._
-import net.psforever.objects.definition.converter.{CommandDetonaterConverter, REKConverter}
+import net.psforever.objects.definition.converter.{CommandDetonaterConverter, LockerContainerConverter, REKConverter}
 import net.psforever.objects.equipment.CItem.DeployedItem
 import net.psforever.objects.equipment._
 import net.psforever.objects.inventory.InventoryTile
@@ -239,6 +239,13 @@ object GlobalDefinitions {
       case _ =>
         false
     }
+  }
+
+  val
+  locker_container = new EquipmentDefinition(456) {
+    Name = "locker container"
+    Size = EquipmentSize.Inventory
+    Packet = new LockerContainerConverter()
   }
 
   val

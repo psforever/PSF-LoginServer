@@ -578,7 +578,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
   forceblade1 = Tool(forceblade)
   forceblade1.AmmoSlots.head.Box = melee_ammo_box
   val rek = SimpleItem(remote_electronics_kit)
-  val lockerContainer = LockerContainer()
+  val extra_rek = SimpleItem(remote_electronics_kit)
   val
   player = Player("IlllIIIlllIlIllIlllIllI", PlanetSideEmpire.VS, CharacterGender.Female, 41, 1)
   player.Position = Vector3(3674.8438f, 2726.789f, 91.15625f)
@@ -587,13 +587,13 @@ class WorldSessionActor extends Actor with MDCContextAware {
   player.Slot(0).Equipment = beamer1
   player.Slot(2).Equipment = suppressor1
   player.Slot(4).Equipment = forceblade1
-  player.Slot(5).Equipment = lockerContainer
   player.Slot(6).Equipment = bullet_9mm_box1
   player.Slot(9).Equipment = bullet_9mm_box2
   player.Slot(12).Equipment = bullet_9mm_box3
   player.Slot(33).Equipment = bullet_9mm_AP_box
   player.Slot(36).Equipment = energy_cell_box1
   player.Slot(39).Equipment = rek
+  player.Slot(5).Equipment.get.asInstanceOf[LockerContainer].Inventory += 0 -> extra_rek
 
   //for player2
   val energy_cell_box3 = AmmoBox(PlanetSideGUID(187), energy_cell)
@@ -617,8 +617,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
   val
   rek2 = SimpleItem(PlanetSideGUID(188), remote_electronics_kit)
   val
-  lockerContainer2 = LockerContainer(PlanetSideGUID(182))
-  val
   player2 = Player(PlanetSideGUID(275), "Doppelganger", PlanetSideEmpire.NC, CharacterGender.Female, 41, 1)
   player2.Position = Vector3(3680f, 2726.789f, 91.15625f)
   player2.Orientation = Vector3(0f, 0f, 0f)
@@ -626,7 +624,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
   player2.Slot(0).Equipment = beamer2
   player2.Slot(2).Equipment = suppressor2
   player2.Slot(4).Equipment = forceblade2
-  player2.Slot(5).Equipment = lockerContainer2
+  player2.Slot(5).Equipment.get.GUID = PlanetSideGUID(182)
   player2.Slot(6).Equipment = bullet_9mm_box5
   player2.Slot(9).Equipment = bullet_9mm_box6
   player2.Slot(12).Equipment = bullet_9mm_box7
@@ -1285,8 +1283,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
   private def RegisterAvatar(tplayer : Player) : TaskResolver.GiveTask = {
     val holsterTasks = recursiveHolsterTaskBuilding(tplayer.Holsters().iterator, RegisterEquipment)
     val fifthHolsterTask = tplayer.Slot(5).Equipment match {
-      case Some(item) =>
-        RegisterEquipment(item) :: Nil
+      case Some(locker) =>
+        RegisterObjectTask(locker) :: locker.asInstanceOf[LockerContainer].Inventory.Items.map({ case((_ : Int, entry : InventoryItem)) => RegisterEquipment(entry.obj)}).toList
       case None =>
         List.empty[TaskResolver.GiveTask];
     }
@@ -1413,8 +1411,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
     val holsterTasks = recursiveHolsterTaskBuilding(tplayer.Holsters().iterator, UnregisterEquipment)
     val inventoryTasks = tplayer.Inventory.Items.map({ case((_ : Int, entry : InventoryItem)) => UnregisterEquipment(entry.obj)})
     val fifthHolsterTask = tplayer.Slot(5).Equipment match {
-      case Some(item) =>
-        UnregisterEquipment(item) :: Nil
+      case Some(locker) =>
+        UnregisterObjectTask(locker) :: locker.asInstanceOf[LockerContainer].Inventory.Items.map({ case((_ : Int, entry : InventoryItem)) => UnregisterEquipment(entry.obj)}).toList
       case None =>
         List.empty[TaskResolver.GiveTask];
     }
@@ -1433,10 +1431,17 @@ class WorldSessionActor extends Actor with MDCContextAware {
     tplayer.Holsters().foreach(holster => {
       SetCharacterSelectScreenGUID_SelectEquipment(holster.Equipment, gen)
     })
-    tplayer.Inventory.Items.foreach({ case((_, entry : InventoryItem)) =>
-      SetCharacterSelectScreenGUID_SelectEquipment(Some(entry.obj), gen)
-    })
-    tplayer.Slot(5).Equipment.get.GUID = PlanetSideGUID(gen.getAndIncrement)
+//    tplayer.Inventory.Items.foreach({ case((_, entry : InventoryItem)) =>
+//      SetCharacterSelectScreenGUID_SelectEquipment(Some(entry.obj), gen)
+//    })
+//    tplayer.Slot(5).Equipment match {
+//      case Some(locker) =>
+//        locker.GUID = PlanetSideGUID(gen.getAndIncrement)
+//        locker.asInstanceOf[LockerContainer].Inventory.Items.foreach({ case((_, entry : InventoryItem)) =>
+//          SetCharacterSelectScreenGUID_SelectEquipment(Some(entry.obj), gen)
+//        })
+//      case None => ;
+//    }
     tplayer.GUID = PlanetSideGUID(gen.getAndIncrement)
   }
 
@@ -1468,10 +1473,17 @@ class WorldSessionActor extends Actor with MDCContextAware {
     tplayer.Holsters().foreach(holster => {
       RemoveCharacterSelectScreenGUID_SelectEquipment(holster.Equipment)
     })
-    tplayer.Inventory.Items.foreach({ case((_, entry : InventoryItem)) =>
-      RemoveCharacterSelectScreenGUID_SelectEquipment(Some(entry.obj))
-    })
-    tplayer.Slot(5).Equipment.get.Invalidate()
+//    tplayer.Inventory.Items.foreach({ case((_, entry : InventoryItem)) =>
+//      RemoveCharacterSelectScreenGUID_SelectEquipment(Some(entry.obj))
+//    })
+//    tplayer.Slot(5).Equipment match {
+//      case Some(locker) =>
+//        locker.Invalidate()
+//        locker.asInstanceOf[LockerContainer].Inventory.Items.foreach({ case((_, entry : InventoryItem)) =>
+//          RemoveCharacterSelectScreenGUID_SelectEquipment(Some(entry.obj))
+//        })
+//      case None => ;
+//    }
     tplayer.Invalidate()
   }
 
