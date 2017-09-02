@@ -25,7 +25,7 @@ final case class BattleRankFieldData(field00 : Int,
                                      field10 : Option[Int] = None) extends StreamBitSize {
   override def bitsize : Long = {
     val extraFieldSize : Long = if(field10.isDefined) {
-      72L
+      70L
     }
     else if(field0E.isDefined) {
       50L
@@ -265,18 +265,15 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
       ("f0D" | uint8L) ::
       ("f0E" | uint8L) ::
       ("f0F" | uint8L) ::
-      ("f10" | uint8L) ::
-      ("f11" | bool)
+      ("f10" | uintL(5))
     ).exmap[BattleRankFieldData] (
     {
-      case f01 :: f02 :: f03 :: f04 :: f05 :: f06 :: f07 :: f08 :: f09 :: f0a :: f0b :: f0c :: f0d :: f0e :: f0f :: f10 :: f11:: HNil =>
-        val f11Int : Int = if(f11) { 1 } else { 0 }
-        Attempt.successful(BattleRankFieldData(f01, f02, f03, f04, f05, f06, f07, Some(f08), Some(f09), Some(f0a), Some(f0b), Some(f0c), Some(f0d), Some(f0e), Some(f0f), Some(f10), Some(f11Int)))
+      case f01 :: f02 :: f03 :: f04 :: f05 :: f06 :: f07 :: f08 :: f09 :: f0a :: f0b :: f0c :: f0d :: f0e :: f0f :: f10 :: HNil =>
+        Attempt.successful(BattleRankFieldData(f01, f02, f03, f04, f05, f06, f07, Some(f08), Some(f09), Some(f0a), Some(f0b), Some(f0c), Some(f0d), Some(f0e), Some(f0f), Some(f10)))
     },
     {
-      case BattleRankFieldData(f01, f02, f03, f04, f05, f06, f07, Some(f08), Some(f09), Some(f0a), Some(f0b), Some(f0c), Some(f0d), Some(f0e), Some(f0f), Some(f10), Some(f11)) =>
-        val f11Bool : Boolean = if(f11 == 0) { false } else { true }
-        Attempt.successful(f01 :: f02 :: f03 :: f04 :: f05 :: f06 :: f07 :: f08 :: f09 :: f0a :: f0b :: f0c :: f0d :: f0e :: f0f :: f10 :: f11Bool :: HNil)
+      case BattleRankFieldData(f01, f02, f03, f04, f05, f06, f07, Some(f08), Some(f09), Some(f0a), Some(f0b), Some(f0c), Some(f0d), Some(f0e), Some(f0f), Some(f10), _) =>
+        Attempt.successful(f01 :: f02 :: f03 :: f04 :: f05 :: f06 :: f07 :: f08 :: f09 :: f0a :: f0b :: f0c :: f0d :: f0e :: f0f :: f10 :: HNil)
       case _ =>
         Attempt.failure(Err("expected battle rank 18 field data"))
     }
