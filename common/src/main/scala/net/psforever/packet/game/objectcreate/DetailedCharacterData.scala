@@ -1,42 +1,27 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.packet.game.objectcreate
 
+import net.psforever.newcodecs.newcodecs
 import net.psforever.packet.{Marshallable, PacketHelpers}
-import scodec.{Attempt, Codec, Err}
+import net.psforever.types.ImplantType
+import scodec.{Attempt, Codec}
 import scodec.codecs._
 import shapeless.{::, HNil}
 
-final case class BattleRankFieldData(field00 : Int,
-                                     field01 : Int,
-                                     field02 : Int,
-                                     field03 : Int,
-                                     field04 : Int,
-                                     field05 : Int,
-                                     field06 : Int,
-                                     field07 : Option[Int] = None,
-                                     field08 : Option[Int] = None,
-                                     field09 : Option[Int] = None,
-                                     field0A : Option[Int] = None,
-                                     field0B : Option[Int] = None,
-                                     field0C : Option[Int] = None,
-                                     field0D : Option[Int] = None,
-                                     field0E : Option[Int] = None,
-                                     field0F : Option[Int] = None,
-                                     field10 : Option[Int] = None) extends StreamBitSize {
+import scala.annotation.tailrec
+
+/**
+  * An entry in the `List` of valid implant slots in `DetailedCharacterData`.
+  * "`activation`" is not necessarily the best word for it ...
+  * @param implant the type of implant
+  * @param activation na
+  * @see `ImplantType`
+  */
+final case class ImplantEntry(implant : ImplantType.Value,
+                              activation : Option[Int]) extends StreamBitSize {
   override def bitsize : Long = {
-    val extraFieldSize : Long = if(field10.isDefined) {
-      70L
-    }
-    else if(field0E.isDefined) {
-      50L
-    }
-    else if(field09.isDefined) {
-      10L
-    }
-    else {
-      0L
-    }
-    55L + extraFieldSize
+    val activationSize = if(activation.isDefined) { 12L } else { 5L }
+    5L + activationSize
   }
 }
 
@@ -49,16 +34,16 @@ final case class BattleRankFieldData(field00 : Int,
   * <br>
   * Divisions exist to make the data more manageable.
   * The first division of data only manages the general appearance of the player's in-game model.
-  * The second division (currently, the fields actually in this class) manages the status of the character as an avatar.
+  * It is shared between `DetailedCharacterData` avatars and `CharacterData` player characters.
+  * The second division (of fields) manages the status of the character as an avatar.
   * In general, it passes more thorough data about the character that the client can display to the owner of the client.
   * For example, health is a full number, rather than a percentage.
   * Just as prominent is the list of first time events and the list of completed tutorials.
   * The third subdivision is also exclusive to avatar-prepared characters and contains (omitted).
-  * The fourth is the inventory (composed of `Direct`-type objects).<br>
-  * <br>
-  * Exploration:<br>
-  * Lots of analysis needed for the remainder of the byte data.
+  * The fourth is the inventory (composed of `Direct`-type objects).
   * @param appearance data about the avatar's basic aesthetics
+  * @param bep the avatar's battle experience points, which determines his Battle Rank
+  * @param cep the avatar's command experience points, which determines his Command Rank
   * @param healthMax for `x / y` of hitpoints, this is the avatar's `y` value;
   *                  range is 0-65535
   * @param health for `x / y` of hitpoints, this is the avatar's `x` value;
@@ -76,15 +61,12 @@ final case class BattleRankFieldData(field00 : Int,
   *                   range is 0-65535
   * @param stamina for `x / y` of stamina points, this is the avatar's `x` value;
   *                range is 0-65535
-  * @param unk4 na;
-  *             defaults to 28
-  * @param unk5 na;
-  *             defaults to 4
-  * @param brFields na
+  * @param certs the `List` of active certifications
+  * @param implants the `List` of implant slots currently possessed by this avatar
   * @param firstTimeEvents the list of first time events performed by this avatar;
   *                        the size field is a 32-bit number;
   *                        the first entry may be padded
-  * @param tutorials the list of tutorials completed by this avatar;
+  * @param tutorials the `List` of tutorials completed by this avatar;
   *                  the size field is a 32-bit number;
   *                  the first entry may be padded
   * @param inventory the avatar's inventory
@@ -95,7 +77,8 @@ final case class BattleRankFieldData(field00 : Int,
   * @see `DrawnSlot`
   */
 final case class DetailedCharacterData(appearance : CharacterAppearanceData,
-                                       bep : Int,
+                                       bep : Long,
+                                       cep : Long,
                                        healthMax : Int,
                                        health : Int,
                                        armor : Int,
@@ -104,9 +87,8 @@ final case class DetailedCharacterData(appearance : CharacterAppearanceData,
                                        unk3 : Int, //7
                                        staminaMax : Int,
                                        stamina : Int,
-                                       unk4 : Int, //28
-                                       unk5 : Int, //4
-                                       brFields : BattleRankFieldData,
+                                       certs : List[Int],
+                                       implants : List[ImplantEntry],
                                        firstTimeEvents : List[String],
                                        tutorials : List[String],
                                        inventory : Option[InventoryData],
@@ -114,46 +96,36 @@ final case class DetailedCharacterData(appearance : CharacterAppearanceData,
                                       ) extends ConstructorData {
 
   override def bitsize : Long = {
-    //factor guard bool values into the base size, not its corresponding optional field
+    //factor guard bool values into the base size, not corresponding optional fields, unless contained or enumerated
     val appearanceSize = appearance.bitsize
-    val brFieldSize = brFields.bitsize
+    val varBit : Option[Int] = CharacterAppearanceData.altModelBit(appearance)
+    val certSize = (certs.length + 1) * 8 //cert list
+    var implantSize : Long = 0L //implant list
+    for(entry <- implants) {
+      implantSize += entry.bitsize
+    }
+    val implantPadding = DetailedCharacterData.implantFieldPadding(implants, varBit)
     val fteLen = firstTimeEvents.size //fte list
-    var eventListSize : Long = 32L + DetailedCharacterData.ftePadding(fteLen, bep)
+    var eventListSize : Long = 32L + DetailedCharacterData.ftePadding(fteLen, implantPadding)
     for(str <- firstTimeEvents) {
       eventListSize += StreamBitSize.stringBitSize(str)
     }
     val tutLen = tutorials.size //tutorial list
-    var tutorialListSize : Long = 32L + DetailedCharacterData.tutPadding(fteLen, tutLen, bep)
+    var tutorialListSize : Long = 32L + DetailedCharacterData.tutPadding(fteLen, tutLen, implantPadding)
     for(str <- tutorials) {
       tutorialListSize += StreamBitSize.stringBitSize(str)
     }
-    var inventorySize : Long = 0L //inventory
-    if(inventory.isDefined) {
-      inventorySize = inventory.get.bitsize
+    val inventorySize : Long = if(inventory.isDefined) { //inventory
+      inventory.get.bitsize
     }
-    658L + appearanceSize + brFieldSize + eventListSize + tutorialListSize + inventorySize
+    else {
+      0L
+    }
+    649L + appearanceSize + certSize + implantSize + eventListSize + tutorialListSize + inventorySize
   }
 }
 
 object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
-//  /**
-//    * Overloaded constructor for `DetailedCharacterData` that skips all the unknowns by assigning defaulted values.
-//    * It also allows for a not-optional inventory.
-//    * @param appearance data about the avatar's basic aesthetics
-//    * @param healthMax for `x / y` of hitpoints, this is the avatar's `y` value
-//    * @param health for `x / y` of hitpoints, this is the avatar's `x` value
-//    * @param armor for `x / y` of armor points, this is the avatar's `x` value
-//    * @param staminaMax for `x / y` of stamina points, this is the avatar's `y` value
-//    * @param stamina for `x / y` of stamina points, this is the avatar's `x` value
-//    * @param firstTimeEvents the list of first time events performed by this avatar
-//    * @param tutorials the list of tutorials completed by this avatar
-//    * @param inventory the avatar's inventory
-//    * @param drawn_slot the holster that is initially drawn
-//    * @return a `DetailedCharacterData` object
-//    */
-//  def apply(appearance : CharacterAppearanceData, bep : Int, healthMax : Int, health : Int, armor : Int, staminaMax : Int, stamina : Int, firstTimeEvents : List[String], tutorials : List[String], inventory : InventoryData, drawn_slot : DrawnSlot.Value) : DetailedCharacterData =
-//    new DetailedCharacterData(appearance, bep, healthMax, health, armor, 1, 7, 7, staminaMax, stamina, 28, 4, 44, 84, 104, 1900, firstTimeEvents, tutorials, Some(inventory), drawn_slot)
-
   /**
     * Overloaded constructor for `DetailedCharacterData` that allows for a not-optional inventory.
     * @param appearance data about the avatar's basic aesthetics
@@ -165,171 +137,108 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
     * @param unk3 na
     * @param staminaMax for `x / y` of stamina points, this is the avatar's `y` value
     * @param stamina for `x / y` of stamina points, this is the avatar's `x` value
-    * @param unk4 na
-    * @param unk5 na
-    * @param unk6 na
+    * @param certs na
     * @param firstTimeEvents the list of first time events performed by this avatar
     * @param tutorials the list of tutorials completed by this avatar
     * @param inventory the avatar's inventory
     * @param drawn_slot the holster that is initially drawn
     * @return a `DetailedCharacterData` object
     */
-  def apply(appearance : CharacterAppearanceData, bep : Int, healthMax : Int, health : Int, armor : Int, unk1 : Int, unk2 : Int, unk3 : Int, staminaMax : Int, stamina : Int, unk4 : Int, unk5 : Int, unk6 : BattleRankFieldData, firstTimeEvents : List[String], tutorials : List[String], inventory : InventoryData, drawn_slot : DrawnSlot.Value) : DetailedCharacterData =
-    new DetailedCharacterData(appearance, bep, healthMax, health, armor, unk1, unk2, unk3, staminaMax, stamina, unk4, unk5, unk6, firstTimeEvents, tutorials, Some(inventory), drawn_slot)
+  def apply(appearance : CharacterAppearanceData, bep : Long, cep : Long, healthMax : Int, health : Int, armor : Int, unk1 : Int, unk2 : Int, unk3 : Int, staminaMax : Int, stamina : Int, certs : List[Int], implants : List[ImplantEntry], firstTimeEvents : List[String], tutorials : List[String], inventory : InventoryData, drawn_slot : DrawnSlot.Value) : DetailedCharacterData =
+    new DetailedCharacterData(appearance, bep, cep, healthMax, health, armor, unk1, unk2, unk3, staminaMax, stamina, certs, implants, firstTimeEvents, tutorials, Some(inventory), drawn_slot)
 
-  private val br1FieldCodec : Codec[BattleRankFieldData] = ( // +0u
-    ("f1" | uint8L) ::
-      ("f2" | uint8L) ::
-      ("f3" | uint8L) ::
-      ("f4" | uint8L) ::
-      ("f5" | uint8L) ::
-      ("f6" | uint8L) ::
-      ("f7" | uintL(7))
-  ).exmap[BattleRankFieldData] (
+  /**
+    * `Codec` for entires in the list of implants.
+    */
+  private val implant_entry_codec : Codec[ImplantEntry] = (
+    ("implant" | ImplantType.codec) ::
+      (bool >>:~ { guard =>
+        newcodecs.binary_choice(guard, uintL(5), uintL(12)).hlist
+      })
+  ).xmap[ImplantEntry] (
     {
-      case f1 :: f2 :: f3 :: f4 :: f5 :: f6 :: f7 :: HNil =>
-        Attempt.successful(BattleRankFieldData(f1, f2, f3, f4, f5, f6, f7))
+      case implant :: true :: _ :: HNil =>
+        ImplantEntry(implant, None)
+
+      case implant :: false :: extra :: HNil =>
+        ImplantEntry(implant, Some(extra))
     },
     {
-      case BattleRankFieldData(f1, f2, f3, f4, f5, f6, f7, _, _, _, _, _, _, _, _, _, _) =>
-        Attempt.successful(f1 :: f2 :: f3 :: f4 :: f5 :: f6 :: f7 :: HNil)
-    }
-  )
+      case ImplantEntry(implant, None) =>
+        implant :: true :: 0 :: HNil
 
-  private val br6FieldCodec : Codec[BattleRankFieldData] = ( //+10u
-    ("f1" | uint8L) ::
-      ("f2" | uint8L) ::
-      ("f3" | uint8L) ::
-      ("f4" | uint8L) ::
-      ("f5" | uint8L) ::
-      ("f6" | uint8L) ::
-      ("f7" | uint8L) ::
-      ("f8" | uint8L) ::
-      ("f9" | bool)
-    ).exmap[BattleRankFieldData] (
-    {
-      case f1 :: f2 :: f3 :: f4 :: f5 :: f6 :: f7 :: f8 :: f9 :: HNil =>
-        val f9Int : Int = if(f9) { 1 } else { 0 }
-        Attempt.successful(BattleRankFieldData(f1, f2, f3, f4, f5, f6, f7, Some(f8), Some(f9Int)))
-    },
-    {
-      case BattleRankFieldData(f1, f2, f3, f4, f5, f6, f7, Some(f8), Some(f9), _, _, _, _, _, _, _, _) =>
-        val f9Bool : Boolean = if(f9 == 0) { false } else { true }
-        Attempt.successful(f1 :: f2 :: f3 :: f4 :: f5 :: f6 :: f7 :: f8 :: f9Bool :: HNil)
-      case _ =>
-        Attempt.failure(Err("expected battle rank 6 field data"))
-    }
-  )
-
-  private val br12FieldCodec : Codec[BattleRankFieldData] = ( //+52u
-    ("f1" | uint8L) ::
-      ("f2" | uint8L) ::
-      ("f3" | uint8L) ::
-      ("f4" | uint8L) ::
-      ("f5" | uint8L) ::
-      ("f6" | uint8L) ::
-      ("f7" | uint8L) ::
-      ("f8" | uint8L) ::
-      ("f9" | uint8L) ::
-      ("fA" | uint8L) ::
-      ("fB" | uint8L) ::
-      ("fC" | uint8L) ::
-      ("fD" | uint8L) ::
-      ("fE" | uintL(3))
-    ).exmap[BattleRankFieldData] (
-    {
-      case f1 :: f2 :: f3 :: f4 :: f5 :: f6 :: f7 :: f8 :: f9 :: fa :: fb :: fc :: fd :: fe :: HNil =>
-        Attempt.successful(BattleRankFieldData(f1, f2, f3, f4, f5, f6, f7, Some(f8), Some(f9), Some(fa), Some(fb), Some(fc), Some(fd), Some(fe)))
-    },
-    {
-      case BattleRankFieldData(f1, f2, f3, f4, f5, f6, f7, Some(f8), Some(f9), Some(fa), Some(fb), Some(fc), Some(fd), Some(fe), _, _, _) =>
-        Attempt.successful(f1 :: f2 :: f3 :: f4 :: f5 :: f6 :: f7 :: f8 :: f9 :: fa :: fb :: fc :: fd :: fe :: HNil)
-      case _ =>
-        Attempt.failure(Err("expected battle rank 12 field data"))
-    }
-  )
-
-  private val br18FieldCodec : Codec[BattleRankFieldData] = ( //+70u
-    ("f01" | uint8L) ::
-      ("f02" | uint8L) ::
-      ("f03" | uint8L) ::
-      ("f04" | uint8L) ::
-      ("f05" | uint8L) ::
-      ("f06" | uint8L) ::
-      ("f07" | uint8L) ::
-      ("f08" | uint8L) ::
-      ("f09" | uint8L) ::
-      ("f0A" | uint8L) ::
-      ("f0B" | uint8L) ::
-      ("f0C" | uint8L) ::
-      ("f0D" | uint8L) ::
-      ("f0E" | uint8L) ::
-      ("f0F" | uint8L) ::
-      ("f10" | uintL(5))
-    ).exmap[BattleRankFieldData] (
-    {
-      case f01 :: f02 :: f03 :: f04 :: f05 :: f06 :: f07 :: f08 :: f09 :: f0a :: f0b :: f0c :: f0d :: f0e :: f0f :: f10 :: HNil =>
-        Attempt.successful(BattleRankFieldData(f01, f02, f03, f04, f05, f06, f07, Some(f08), Some(f09), Some(f0a), Some(f0b), Some(f0c), Some(f0d), Some(f0e), Some(f0f), Some(f10)))
-    },
-    {
-      case BattleRankFieldData(f01, f02, f03, f04, f05, f06, f07, Some(f08), Some(f09), Some(f0a), Some(f0b), Some(f0c), Some(f0d), Some(f0e), Some(f0f), Some(f10), _) =>
-        Attempt.successful(f01 :: f02 :: f03 :: f04 :: f05 :: f06 :: f07 :: f08 :: f09 :: f0a :: f0b :: f0c :: f0d :: f0e :: f0f :: f10 :: HNil)
-      case _ =>
-        Attempt.failure(Err("expected battle rank 18 field data"))
+      case ImplantEntry(implant, Some(extra)) =>
+        implant :: false :: extra :: HNil
     }
   )
 
   /**
-    * na
-    * @param bep the battle experience points
-    * @return the appropriate `Codec` for the fields representing a player with the implied battle rank
+    * A player's battle rank, determined by their battle experience points, determines how many implants to which they have access.
+    * Starting with "no implants" at BR1, a player earns one at each of the three ranks: BR6, BR12, and BR18.
+    * @param bep battle experience points
+    * @return the number of accessible implant slots
     */
-  private def selectBattleRankFieldCodec(bep : Int) : Codec[BattleRankFieldData] = {
-    if(bep > 754370) {
-      br18FieldCodec
+  private def numberOfImplantSlots(bep : Long) : Int = {
+    if(bep > 754370) { //BR18+
+      3
     }
-    else if(bep > 197753) {
-      br12FieldCodec
+    else if(bep > 197753) { //BR12+
+      2
     }
-    else if(bep > 29999) {
-      br6FieldCodec
+    else if(bep > 29999) { //BR6+
+      1
     }
-    else {
-      br1FieldCodec
+    else { //BR1+
+      0
     }
   }
 
   /**
     * The padding value of the first entry in either of two byte-aligned `List` structures.
-    * @param bep the battle experience points
-    * @return the pad length in bits `n < 8`
+    * @param implants implant entries
+    * @return the pad length in bits `0 <= n < 8`
     */
-  private def bepFieldPadding(bep : Int) : Int = {
-    if(bep > 754370) { //BR18+
-      7
+  private def implantFieldPadding(implants : List[ImplantEntry], varBit : Option[Int] = None) : Int = {
+    val base : Int = 5 //the offset with no implant entries
+    val baseOffset : Int = base - varBit.getOrElse(0)
+    val resultA = if(baseOffset < 0) { 8 - baseOffset } else { baseOffset % 8 }
+
+    var implantOffset : Int = 0
+    implants.foreach({entry =>
+      implantOffset += entry.bitsize.toInt
+    })
+    val resultB : Int = resultA - (implantOffset % 8)
+    if(resultB < 0) { 8 - resultB } else { resultB }
+  }
+
+  /**
+    * Players with certain battle rank will always have a certain number of implant slots.
+    * The encoding requires it.
+    * Pad empty slots onto the end of a list of
+    * @param size the required number of implant slots
+    * @param list the `List` of implant slots
+    * @return a fully-populated (or over-populated) `List` of implant slots
+    * @see `ImplantEntry`
+    */
+  @tailrec private def recursiveEnsureImplantSlots(size : Int, list : List[ImplantEntry] = Nil) : List[ImplantEntry] = {
+    if(list.length >= size) {
+      list
     }
-    else if(bep > 197753) { //BR12+
-      1
-    }
-    else if(bep > 29999) { //BR6+
-      3
-    }
-    else { //BR1+
-      5
+    else {
+      recursiveEnsureImplantSlots(size, list :+ ImplantEntry(ImplantType.None, None))
     }
   }
 
   /**
     * Get the padding of the first entry in the first time events list.
-    * @param len the length of the list
-    * @param bep the battle experience points
-    * @return the pad length in bits `n < 8`
+    * @param len the length of the first time events list
+    * @param implantPadding the padding that resulted from implant entries
+    * @return the pad length in bits `0 <= n < 8`
     */
-  private def ftePadding(len : Long, bep : Int) : Int = {
-    //TODO the parameters for this function are not correct
+  private def ftePadding(len : Long, implantPadding : Int) : Int = {
     //TODO the proper padding length should reflect all variability in the stream prior to this point
     if(len > 0) {
-      bepFieldPadding(bep)
+      implantPadding
     }
     else {
       0
@@ -342,29 +251,28 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
     * The tutorials list follows the first time event list and also contains byte-aligned strings.
     * If the both lists are populated or empty at the same time, the first entry will not need padding.
     * If the first time events list is unpopulated, but this list is populated, the first entry will need padding bits.
-    * @param len the length of the list
-    * @param bep the battle experience points
+    * @param len the length of the first time events list
+    * @param len2 the length of the tutorial list
+    * @param implantPadding the padding that resulted from implant entries
     * @return the pad length in bits `n < 8`
     */
-  private def tutPadding(len : Long, len2 : Long, bep : Int) : Int = {
+  private def tutPadding(len : Long, len2 : Long, implantPadding : Int) : Int = {
     if(len > 0) {
-      //automatic alignment from previous List
-      0
+      0 //automatic alignment from previous List
     }
     else if(len2 > 0) {
-      //need to align for elements
-      bepFieldPadding(bep)
+      implantPadding //need to align for elements
     }
     else {
-      //both lists are empty
-      0
+      0 //both lists are empty
     }
   }
 
   implicit val codec : Codec[DetailedCharacterData] = (
-    ("appearance" | CharacterAppearanceData.codec) ::
-      (("bep" | uint24L) >>:~ { bep =>
-        ignore(136) ::
+    ("appearance" | CharacterAppearanceData.codec) >>:~ { app =>
+      ("bep" | uint32L) >>:~ { bep =>
+        ("cep" | uint32L) ::
+          ignore(96) ::
           ("healthMax" | uint16L) ::
           ("health" | uint16L) ::
           ignore(1) ::
@@ -376,47 +284,57 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
           ("unk3" | uintL(3)) ::
           ("staminaMax" | uint16L) ::
           ("stamina" | uint16L) ::
-          ignore(149) ::
-          ("unk4" | uint16L) ::
-          ("unk5" | uint8L) ::
-          ("brFields" | selectBattleRankFieldCodec(bep)) :: //TODO do this for all these fields until their bits are better defined
-          (("firstTimeEvent_length" | uint32L) >>:~ { len =>
-            conditional(len > 0, "firstTimeEvent_firstEntry" | PacketHelpers.encodedStringAligned(ftePadding(len, bep))) ::
-              ("firstTimeEvent_list" | PacketHelpers.listOfNSized(len - 1, PacketHelpers.encodedString)) ::
-              (("tutorial_length" | uint32L) >>:~ { len2 =>
-                conditional(len2 > 0, "tutorial_firstEntry" | PacketHelpers.encodedStringAligned(tutPadding(len, len2, bep))) ::
-                  ("tutorial_list" | PacketHelpers.listOfNSized(len2 - 1, PacketHelpers.encodedString)) ::
-                  ignore(207) ::
-                  optional(bool, "inventory" | InventoryData.codec_detailed) ::
-                  ("drawn_slot" | DrawnSlot.codec) ::
-                  bool //usually false
+          ignore(147) ::
+          ("certs" | listOfN(uint8L, uint8L)) ::
+          ignore(5) ::
+          (("implants" | PacketHelpers.listOfNSized(numberOfImplantSlots(bep), implant_entry_codec)) >>:~ { implants =>
+            ignore(12) ::
+              (("firstTimeEvent_length" | uint32L) >>:~ { len =>
+                conditional(len > 0, "firstTimeEvent_firstEntry" | PacketHelpers.encodedStringAligned(ftePadding(len, implantFieldPadding(implants, CharacterAppearanceData.altModelBit(app))))) ::
+                  ("firstTimeEvent_list" | PacketHelpers.listOfNSized(len - 1, PacketHelpers.encodedString)) ::
+                  (("tutorial_length" | uint32L) >>:~ { len2 =>
+                    conditional(len2 > 0, "tutorial_firstEntry" | PacketHelpers.encodedStringAligned(tutPadding(len, len2, implantFieldPadding(implants, CharacterAppearanceData.altModelBit(app))))) ::
+                      ("tutorial_list" | PacketHelpers.listOfNSized(len2 - 1, PacketHelpers.encodedString)) ::
+                      ignore(207) ::
+                      optional(bool, "inventory" | InventoryData.codec_detailed) ::
+                      ("drawn_slot" | DrawnSlot.codec) ::
+                      bool //usually false
+                  })
               })
           })
-      })
+      }
+    }
     ).exmap[DetailedCharacterData] (
     {
-      case app :: bep :: _ :: hpmax :: hp :: _ :: armor :: _ :: u1 :: _ :: u2 :: u3 :: stamax :: stam :: _ :: u4 :: u5 :: brFields :: _ :: fte0 :: fte1 :: _ :: tut0 :: tut1 :: _ :: inv :: drawn :: false :: HNil =>
+      case app :: bep :: cep :: _ :: hpmax :: hp :: _ :: armor :: _ :: u1 :: _ :: u2 :: u3 :: stamax :: stam :: _ :: certs :: _  :: implants :: _ :: _ :: fte0 :: fte1 :: _ :: tut0 :: tut1 :: _ :: inv :: drawn :: false :: HNil =>
         //prepend the displaced first elements to their lists
         val fteList : List[String] = if(fte0.isDefined) { fte0.get +: fte1 } else fte1
         val tutList : List[String] = if(tut0.isDefined) { tut0.get +: tut1 } else tut1
-        Attempt.successful(DetailedCharacterData(app, bep, hpmax, hp, armor, u1, u2, u3, stamax, stam, u4, u5, brFields, fteList, tutList, inv, drawn))
+        Attempt.successful(DetailedCharacterData(app, bep, cep, hpmax, hp, armor, u1, u2, u3, stamax, stam, certs, implants, fteList, tutList, inv, drawn))
     },
     {
-      case DetailedCharacterData(app, bep, hpmax, hp, armor, u1, u2, u3, stamax, stam, u4, u5, brFields, fteList, tutList, inv, drawn) =>
+      case DetailedCharacterData(app, bep, cep, hpmax, hp, armor, u1, u2, u3, stamax, stam, certs, implants, fteList, tutList, inv, drawn) =>
+        val implantCapacity : Int = numberOfImplantSlots(bep)
+        val implantList = if(implants.length > implantCapacity) {
+          implants.slice(0, implantCapacity)
+        }
+        else {
+          recursiveEnsureImplantSlots(implantCapacity, implants)
+        }
         //shift the first elements off their lists
         var fteListCopy = fteList
         var firstEvent : Option[String] = None
         if(fteList.nonEmpty) {
           firstEvent = Some(fteList.head)
-          fteListCopy = fteList.drop(1)
+          fteListCopy = fteList.tail
         }
         var tutListCopy = tutList
         var firstTutorial : Option[String] = None
         if(tutList.nonEmpty) {
           firstTutorial = Some(tutList.head)
-          tutListCopy = tutList.drop(1)
+          tutListCopy = tutList.tail
         }
-        Attempt.successful(app :: bep :: () :: hpmax :: hp :: () :: armor :: () :: u1 :: () :: u2 :: u3 :: stamax :: stam :: () :: u4 :: u5 :: brFields :: fteList.size.toLong :: firstEvent :: fteListCopy :: tutList.size.toLong :: firstTutorial :: tutListCopy :: () :: inv :: drawn :: false :: HNil)
+        Attempt.successful(app :: bep :: cep :: () :: hpmax :: hp :: () :: armor :: () :: u1 :: () :: u2 :: u3 :: stamax :: stam :: () :: certs :: () :: implantList :: () :: fteList.size.toLong :: firstEvent :: fteListCopy :: tutList.size.toLong :: firstTutorial :: tutListCopy :: () :: inv :: drawn :: false :: HNil)
     }
   )
 }

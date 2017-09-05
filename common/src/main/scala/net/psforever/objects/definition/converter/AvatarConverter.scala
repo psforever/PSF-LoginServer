@@ -3,7 +3,7 @@ package net.psforever.objects.definition.converter
 
 import net.psforever.objects.{EquipmentSlot, Player}
 import net.psforever.objects.equipment.Equipment
-import net.psforever.packet.game.objectcreate.{BasicCharacterData, BattleRankFieldData, CharacterAppearanceData, CharacterData, DetailedCharacterData, DrawnSlot, InternalSlot, InventoryData, PlacementData, RibbonBars, UniformStyle}
+import net.psforever.packet.game.objectcreate.{BasicCharacterData, CharacterAppearanceData, CharacterData, DetailedCharacterData, DrawnSlot, InternalSlot, InventoryData, PlacementData, RibbonBars, UniformStyle}
 import net.psforever.types.GrenadeState
 
 import scala.annotation.tailrec
@@ -31,15 +31,16 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
     Success(
       DetailedCharacterData(
         MakeAppearanceData(obj),
-        0,
+        0L,
+        0L,
         obj.MaxHealth,
         obj.Health,
         obj.Armor,
         1, 7, 7,
         obj.MaxStamina,
         obj.Stamina,
-        28, 4,
-        BattleRankFieldData(44, 84, 104, 108, 112, 0, 0),
+        List(0, 1, 11, 21, 26, 27, 28), //TODO certification list
+        List(), //TODO implant list
         List.empty[String], //TODO fte list
         List.empty[String], //TODO tutorial list
         InventoryData((MakeHolsters(obj, BuildDetailedEquipment) ++ MakeFifthSlot(obj) ++ MakeInventory(obj)).sortBy(_.parentSlot)),
