@@ -54,7 +54,7 @@ class ImplantSlot {
 }
 
 object ImplantSlot {
-  private val default = new Implant(ImplantDefinition(ImplantType.RangeMagnifier))
+  private val default = new Implant(ImplantDefinition(ImplantType.None))
 
   def apply() : ImplantSlot = {
     new ImplantSlot()

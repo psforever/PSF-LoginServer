@@ -3,8 +3,8 @@ package net.psforever.objects.definition.converter
 
 import net.psforever.objects.{EquipmentSlot, Player}
 import net.psforever.objects.equipment.Equipment
-import net.psforever.packet.game.objectcreate.{BasicCharacterData, CharacterAppearanceData, CharacterData, DetailedCharacterData, DrawnSlot, InternalSlot, InventoryData, PlacementData, RibbonBars, UniformStyle}
-import net.psforever.types.GrenadeState
+import net.psforever.packet.game.objectcreate.{BasicCharacterData, CharacterAppearanceData, CharacterData, DetailedCharacterData, DrawnSlot, ImplantEntry, InternalSlot, InventoryData, PlacementData, RibbonBars, UniformStyle}
+import net.psforever.types.{GrenadeState, ImplantType}
 
 import scala.annotation.tailrec
 import scala.util.{Success, Try}
@@ -28,26 +28,24 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
   }
 
   override def DetailedConstructorData(obj : Player) : Try[DetailedCharacterData] = {
-    import net.psforever.types.CertificationType._
     Success(
       DetailedCharacterData(
         MakeAppearanceData(obj),
-        0L,
-        0L,
+        obj.BEP,
+        obj.CEP,
         obj.MaxHealth,
         obj.Health,
         obj.Armor,
         obj.MaxStamina,
         obj.Stamina,
-        List(StandardAssault, MediumAssault, ATV, Harasser, StandardExoSuit, AgileExoSuit, ReinforcedExoSuit), //TODO certification list
-        List(), //TODO implant list
+        obj.Certifications.toList.sortBy(_.id),
+        MakeImplantEntries(obj),
         List.empty[String], //TODO fte list
         List.empty[String], //TODO tutorial list
         InventoryData((MakeHolsters(obj, BuildDetailedEquipment) ++ MakeFifthSlot(obj) ++ MakeInventory(obj)).sortBy(_.parentSlot)),
         GetDrawnSlot(obj)
       )
     )
-    //TODO tidy this mess up
   }
 
   /**
@@ -66,8 +64,8 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
       "",
       0,
       obj.isBackpack,
-      obj.Orientation.y.toInt,
-      obj.FacingYawUpper.toInt,
+      obj.Orientation.y,
+      obj.FacingYawUpper,
       true,
       GrenadeState.None,
       false,
@@ -75,6 +73,28 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
       false,
       RibbonBars()
     )
+  }
+
+  /**
+    * Transform an `Array` of `Implant` objects into a `List` of `ImplantEntry` objects suitable as packet data.
+    * @param obj the `Player` game object
+    * @return the resulting implant `List`
+    * @see `ImplantEntry` in `DetailedCharacterData`
+    */
+  private def MakeImplantEntries(obj : Player) : List[ImplantEntry] = {
+    obj.Implants.map(impl => {
+      impl.Installed match {
+        case Some(module) =>
+          if(impl.Implant.get.Ready) {
+            ImplantEntry(module, None)
+          }
+          else {
+            ImplantEntry(module, Some(impl.Implant.get.Timer.toInt))
+          }
+        case None =>
+          ImplantEntry(ImplantType.None, None)
+      }
+    }).toList
   }
 
   /**

@@ -12,7 +12,7 @@ import scala.annotation.tailrec
 
 /**
   * An entry in the `List` of valid implant slots in `DetailedCharacterData`.
-  * `activation`, if defined, indicates the time remaining (in seconds?) before an implant can be activated.
+  * `activation`, if defined, indicates the time remaining (in seconds?) before an implant becomes usable.
   * @param implant the type of implant
   * @param activation the activation timer
   * @see `ImplantType`

@@ -8,6 +8,7 @@ import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types._
 
 import scala.annotation.tailrec
+import scala.collection.mutable
 
 class Player(private val name : String,
              private val faction : PlanetSideEmpire.Value,
@@ -33,6 +34,9 @@ class Player(private val name : String,
 
   private val loadouts : Array[Option[InfantryLoadout]] = Array.fill[Option[InfantryLoadout]](10)(None)
 
+  private var bep : Long = 0
+  private var cep : Long = 0
+  private val certifications : mutable.Set[CertificationType.Value] = mutable.Set[CertificationType.Value]()
   private val implants : Array[ImplantSlot] = Array.fill[ImplantSlot](3)(new ImplantSlot)
 
 //  private var tosRibbon : MeritCommendation.Value = MeritCommendation.None
@@ -311,6 +315,22 @@ class Player(private val name : String,
   def ExoSuit_=(suit : ExoSuitType.Value) : Unit = {
     exosuit = suit
   }
+
+  def BEP : Long = bep
+
+  def BEP_=(battleExperiencePoints : Long) : Long = {
+    bep = math.max(0L, math.min(battleExperiencePoints, 4294967295L))
+    BEP
+  }
+
+  def CEP : Long = cep
+
+  def CEP_=(commandExperiencePoints : Long) : Long = {
+    cep = math.max(0L, math.min(commandExperiencePoints, 4294967295L))
+    CEP
+  }
+
+  def Certifications : mutable.Set[CertificationType.Value] = certifications
 
   def Implants : Array[ImplantSlot] = implants
 
