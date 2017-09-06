@@ -3,7 +3,7 @@ package net.psforever.packet.game.objectcreate
 
 import net.psforever.newcodecs.newcodecs
 import net.psforever.packet.{Marshallable, PacketHelpers}
-import net.psforever.types.ImplantType
+import net.psforever.types.{CertificationType, ImplantType}
 import scodec.{Attempt, Codec}
 import scodec.codecs._
 import shapeless.{::, HNil}
@@ -12,9 +12,9 @@ import scala.annotation.tailrec
 
 /**
   * An entry in the `List` of valid implant slots in `DetailedCharacterData`.
-  * "`activation`" is not necessarily the best word for it ...
+  * `activation`, if defined, indicates the time remaining (in seconds?) before an implant can be activated.
   * @param implant the type of implant
-  * @param activation na
+  * @param activation the activation timer
   * @see `ImplantType`
   */
 final case class ImplantEntry(implant : ImplantType.Value,
@@ -87,7 +87,7 @@ final case class DetailedCharacterData(appearance : CharacterAppearanceData,
                                        unk3 : Int, //7
                                        staminaMax : Int,
                                        stamina : Int,
-                                       certs : List[Int],
+                                       certs : List[CertificationType.Value],
                                        implants : List[ImplantEntry],
                                        firstTimeEvents : List[String],
                                        tutorials : List[String],
@@ -98,13 +98,12 @@ final case class DetailedCharacterData(appearance : CharacterAppearanceData,
   override def bitsize : Long = {
     //factor guard bool values into the base size, not corresponding optional fields, unless contained or enumerated
     val appearanceSize = appearance.bitsize
-    val varBit : Option[Int] = CharacterAppearanceData.altModelBit(appearance)
     val certSize = (certs.length + 1) * 8 //cert list
     var implantSize : Long = 0L //implant list
     for(entry <- implants) {
       implantSize += entry.bitsize
     }
-    val implantPadding = DetailedCharacterData.implantFieldPadding(implants, varBit)
+    val implantPadding = DetailedCharacterData.implantFieldPadding(implants, CharacterAppearanceData.altModelBit(appearance))
     val fteLen = firstTimeEvents.size //fte list
     var eventListSize : Long = 32L + DetailedCharacterData.ftePadding(fteLen, implantPadding)
     for(str <- firstTimeEvents) {
@@ -127,28 +126,28 @@ final case class DetailedCharacterData(appearance : CharacterAppearanceData,
 
 object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
   /**
-    * Overloaded constructor for `DetailedCharacterData` that allows for a not-optional inventory.
+    * Overloaded constructor for `DetailedCharacterData` that requires an inventory and drops unknown values.
     * @param appearance data about the avatar's basic aesthetics
+    * @param bep the avatar's battle experience points, which determines his Battle Rank
+    * @param cep the avatar's command experience points, which determines his Command Rank
     * @param healthMax for `x / y` of hitpoints, this is the avatar's `y` value
     * @param health for `x / y` of hitpoints, this is the avatar's `x` value
     * @param armor for `x / y` of armor points, this is the avatar's `x` value
-    * @param unk1 na
-    * @param unk2 na
-    * @param unk3 na
     * @param staminaMax for `x / y` of stamina points, this is the avatar's `y` value
     * @param stamina for `x / y` of stamina points, this is the avatar's `x` value
-    * @param certs na
+    * @param certs the `List` of active certifications
+    * @param implants the `List` of implant slots currently possessed by this avatar
     * @param firstTimeEvents the list of first time events performed by this avatar
     * @param tutorials the list of tutorials completed by this avatar
     * @param inventory the avatar's inventory
     * @param drawn_slot the holster that is initially drawn
     * @return a `DetailedCharacterData` object
     */
-  def apply(appearance : CharacterAppearanceData, bep : Long, cep : Long, healthMax : Int, health : Int, armor : Int, unk1 : Int, unk2 : Int, unk3 : Int, staminaMax : Int, stamina : Int, certs : List[Int], implants : List[ImplantEntry], firstTimeEvents : List[String], tutorials : List[String], inventory : InventoryData, drawn_slot : DrawnSlot.Value) : DetailedCharacterData =
-    new DetailedCharacterData(appearance, bep, cep, healthMax, health, armor, unk1, unk2, unk3, staminaMax, stamina, certs, implants, firstTimeEvents, tutorials, Some(inventory), drawn_slot)
+  def apply(appearance : CharacterAppearanceData, bep : Long, cep : Long, healthMax : Int, health : Int, armor : Int, staminaMax : Int, stamina : Int, certs : List[CertificationType.Value], implants : List[ImplantEntry], firstTimeEvents : List[String], tutorials : List[String], inventory : InventoryData, drawn_slot : DrawnSlot.Value) : DetailedCharacterData =
+    new DetailedCharacterData(appearance, bep, cep, healthMax, health, armor, 1, 7, 7, staminaMax, stamina, certs, implants, firstTimeEvents, tutorials, Some(inventory), drawn_slot)
 
   /**
-    * `Codec` for entires in the list of implants.
+    * `Codec` for entries in the `List` of implants.
     */
   private val implant_entry_codec : Codec[ImplantEntry] = (
     ("implant" | ImplantType.codec) ::
@@ -285,7 +284,7 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
           ("staminaMax" | uint16L) ::
           ("stamina" | uint16L) ::
           ignore(147) ::
-          ("certs" | listOfN(uint8L, uint8L)) ::
+          ("certs" | listOfN(uint8L, CertificationType.codec)) ::
           optional(bool, uint32L) :: //ask about sample CCRIDER
           ignore(4) ::
           (("implants" | PacketHelpers.listOfNSized(numberOfImplantSlots(bep), implant_entry_codec)) >>:~ { implants =>

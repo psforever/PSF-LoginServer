@@ -28,6 +28,7 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
   }
 
   override def DetailedConstructorData(obj : Player) : Try[DetailedCharacterData] = {
+    import net.psforever.types.CertificationType._
     Success(
       DetailedCharacterData(
         MakeAppearanceData(obj),
@@ -36,10 +37,9 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
         obj.MaxHealth,
         obj.Health,
         obj.Armor,
-        1, 7, 7,
         obj.MaxStamina,
         obj.Stamina,
-        List(0, 1, 11, 21, 26, 27, 28), //TODO certification list
+        List(StandardAssault, MediumAssault, ATV, Harasser, StandardExoSuit, AgileExoSuit, ReinforcedExoSuit), //TODO certification list
         List(), //TODO implant list
         List.empty[String], //TODO fte list
         List.empty[String], //TODO tutorial list
