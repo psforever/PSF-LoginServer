@@ -286,7 +286,8 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
           ("stamina" | uint16L) ::
           ignore(147) ::
           ("certs" | listOfN(uint8L, uint8L)) ::
-          ignore(5) ::
+          optional(bool, uint32L) :: //ask about sample CCRIDER
+          ignore(4) ::
           (("implants" | PacketHelpers.listOfNSized(numberOfImplantSlots(bep), implant_entry_codec)) >>:~ { implants =>
             ignore(12) ::
               (("firstTimeEvent_length" | uint32L) >>:~ { len =>
@@ -306,7 +307,7 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
     }
     ).exmap[DetailedCharacterData] (
     {
-      case app :: bep :: cep :: _ :: hpmax :: hp :: _ :: armor :: _ :: u1 :: _ :: u2 :: u3 :: stamax :: stam :: _ :: certs :: _  :: implants :: _ :: _ :: fte0 :: fte1 :: _ :: tut0 :: tut1 :: _ :: inv :: drawn :: false :: HNil =>
+      case app :: bep :: cep :: _ :: hpmax :: hp :: _ :: armor :: _ :: u1 :: _ :: u2 :: u3 :: stamax :: stam :: _ :: certs :: _ :: _  :: implants :: _ :: _ :: fte0 :: fte1 :: _ :: tut0 :: tut1 :: _ :: inv :: drawn :: false :: HNil =>
         //prepend the displaced first elements to their lists
         val fteList : List[String] = if(fte0.isDefined) { fte0.get +: fte1 } else fte1
         val tutList : List[String] = if(tut0.isDefined) { tut0.get +: tut1 } else tut1
@@ -334,7 +335,7 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
           firstTutorial = Some(tutList.head)
           tutListCopy = tutList.tail
         }
-        Attempt.successful(app :: bep :: cep :: () :: hpmax :: hp :: () :: armor :: () :: u1 :: () :: u2 :: u3 :: stamax :: stam :: () :: certs :: () :: implantList :: () :: fteList.size.toLong :: firstEvent :: fteListCopy :: tutList.size.toLong :: firstTutorial :: tutListCopy :: () :: inv :: drawn :: false :: HNil)
+        Attempt.successful(app :: bep :: cep :: () :: hpmax :: hp :: () :: armor :: () :: u1 :: () :: u2 :: u3 :: stamax :: stam :: () :: certs :: None :: () :: implantList :: () :: fteList.size.toLong :: firstEvent :: fteListCopy :: tutList.size.toLong :: firstTutorial :: tutListCopy :: () :: inv :: drawn :: false :: HNil)
     }
   )
 }
