@@ -16,8 +16,8 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
         MakeAppearanceData(obj),
         obj.Health / obj.MaxHealth * 255, //TODO not precise
         obj.Armor / obj.MaxArmor * 255, //TODO not precise
-        UniformStyle.Normal,
-        0,
+        DressBattleRank(obj),
+        DressCommandRank(obj),
         None, //TODO cosmetics
         None, //TODO implant effects
         InventoryData(MakeHolsters(obj, BuildEquipment).sortBy(_.parentSlot)),
@@ -38,7 +38,7 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
         obj.Armor,
         obj.MaxStamina,
         obj.Stamina,
-        obj.Certifications.toList.sortBy(_.id),
+        obj.Certifications.toList.sortBy(_.id), //TODO is sorting necessary?
         MakeImplantEntries(obj),
         List.empty[String], //TODO fte list
         List.empty[String], //TODO tutorial list
@@ -73,6 +73,56 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
       false,
       RibbonBars()
     )
+  }
+
+  /**
+    * Select the appropriate `UniformStyle` design for a player's accumulated battle experience points.
+    * At certain battle ranks, all exo-suits undergo some form of coloration change.
+    * @param obj the `Player` game object
+    * @return the resulting uniform upgrade level
+    */
+  private def DressBattleRank(obj : Player) : UniformStyle.Value = {
+    val bep : Long = obj.BEP
+    if(bep > 2583440) { //BR25+
+      UniformStyle.ThirdUpgrade
+    }
+    else if(bep > 308989) { //BR14+
+      UniformStyle.SecondUpgrade
+    }
+    else if(bep > 44999) { //BR7+
+      UniformStyle.FirstUpgrade
+    }
+    else { //BR1+
+      UniformStyle.Normal
+    }
+  }
+
+  /**
+    * Select the appropriate design for a player's accumulated command experience points.
+    * Visual cues for command rank include armlets, anklets, and, finally, a backpack, awarded at different ranks.
+    * @param obj the `Player` game object
+    * @return the resulting uniform upgrade level
+    */
+  private def DressCommandRank(obj : Player) : Int = {
+    val cep = obj.CEP
+    if(cep > 599999) {
+      5
+    }
+    else if(cep > 299999) {
+      4
+    }
+    else if(cep > 149999) {
+      3
+    }
+    else if(cep > 49999) {
+      2
+    }
+    else if(cep > 9999) {
+      1
+    }
+    else {
+      0
+    }
   }
 
   /**

@@ -6,7 +6,6 @@ import net.psforever.objects.definition.converter.{CommandDetonaterConverter, Lo
 import net.psforever.objects.equipment.CItem.DeployedItem
 import net.psforever.objects.equipment._
 import net.psforever.objects.inventory.InventoryTile
-import net.psforever.packet.game.objectcreate.ObjectClass
 import net.psforever.types.PlanetSideEmpire
 
 object GlobalDefinitions {
@@ -162,6 +161,36 @@ object GlobalDefinitions {
   }
 
   /**
+    * Using the definition for a piece of `Equipment` determine if it is a grenade-type weapon.
+    * Only the normal grenades count; the grenade packs are excluded.
+    * @param edef the `EquipmentDefinition` of the item
+    * @return `true`, if it is a grenade-type weapon; `false`, otherwise
+    */
+  def isGrenade(edef : EquipmentDefinition) : Boolean = {
+    edef match {
+      case `frag_grenade` | `jammer_grenade` | `plasma_grenade` =>
+        true
+      case _ =>
+        false
+    }
+  }
+
+  /**
+    * Using the definition for a piece of `Equipment` determine if it is a grenade-type weapon.
+    * Only the grenade packs count; the normal grenades are excluded.
+    * @param edef the `EquipmentDefinition` of the item
+    * @return `true`, if it is a grenade-type weapon; `false`, otherwise
+    */
+  def isGrenadePack(edef : EquipmentDefinition) : Boolean = {
+    edef match {
+      case `frag_cartridge` | `jammer_cartridge` | `plasma_cartridge` =>
+        true
+      case _ =>
+        false
+    }
+  }
+
+  /**
     * Using the definition for a piece of `Equipment` determine with which faction it aligns if it is a weapon.
     * Only checks `Tool` objects.
     * Useful for determining if some item has to be dropped during an activity like `InfantryLoadout` switching.
@@ -241,6 +270,7 @@ object GlobalDefinitions {
     }
   }
 
+  import net.psforever.packet.game.objectcreate.ObjectClass
   val
   locker_container = new EquipmentDefinition(456) {
     Name = "locker container"
