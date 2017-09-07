@@ -71,10 +71,11 @@ final case class ImplantEntry(implant : ImplantType.Value,
   *                  the first entry may be padded
   * @param inventory the avatar's inventory
   * @param drawn_slot the holster that is initially drawn
-  * @see `CharacterAppearanceData`
-  * @see `CharacterData`
-  * @see `InventoryData`
-  * @see `DrawnSlot`
+  * @see `CharacterAppearanceData`<br>
+  *       `CharacterData`<br>
+  *       `CertificationType`<br>
+  *       `InventoryData`<br>
+  *       `DrawnSlot`
   */
 final case class DetailedCharacterData(appearance : CharacterAppearanceData,
                                        bep : Long,
@@ -322,17 +323,15 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
           recursiveEnsureImplantSlots(implantCapacity, implants)
         }
         //shift the first elements off their lists
-        var fteListCopy = fteList
-        var firstEvent : Option[String] = None
-        if(fteList.nonEmpty) {
-          firstEvent = Some(fteList.head)
-          fteListCopy = fteList.tail
+        val (firstEvent, fteListCopy) = fteList match {
+          case (f : String) +: Nil => (Some(f), Nil)
+          case ((f : String) +: (rest : List[String])) => (Some(f), rest)
+          case Nil => (None, Nil)
         }
-        var tutListCopy = tutList
-        var firstTutorial : Option[String] = None
-        if(tutList.nonEmpty) {
-          firstTutorial = Some(tutList.head)
-          tutListCopy = tutList.tail
+        val (firstTutorial, tutListCopy) = tutList match {
+          case (f : String) +: Nil => (Some(f), Nil)
+          case ((f : String) +: (rest : List[String])) => (Some(f), rest)
+          case Nil => (None, Nil)
         }
         Attempt.successful(app :: bep :: cep :: () :: hpmax :: hp :: () :: armor :: () :: u1 :: () :: u2 :: u3 :: stamax :: stam :: () :: certs :: None :: () :: implantList :: () :: fteList.size.toLong :: firstEvent :: fteListCopy :: tutList.size.toLong :: firstTutorial :: tutListCopy :: () :: inv :: drawn :: false :: HNil)
     }

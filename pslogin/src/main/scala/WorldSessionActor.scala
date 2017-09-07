@@ -394,25 +394,22 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case ListAccountCharacters =>
       val gen : AtomicInteger = new AtomicInteger(1)
 
-      //log.info(s"${PacketCoding.DecodePacket(objectHex)}")
-      sendResponse(objectHex)
-      sendResponse(PacketCoding.CreateGamePacket(0, CharacterInfoMessage(15,PlanetSideZoneID(10000), 41605313, PlanetSideGUID(75), false, 6404428)))
       //load characters
-//      SetCharacterSelectScreenGUID(player, gen)
-//      val health = player.Health
-//      val stamina = player.Stamina
-//      val armor = player.Armor
-//      player.Spawn
-//      sendResponse(PacketCoding.CreateGamePacket(0,
-//        ObjectCreateMessage(ObjectClass.avatar, player.GUID, player.Definition.Packet.ConstructorData(player).get)
-//      ))
-//      if(health > 0) { //player can not be dead; stay spawned as alive
-//        player.Health = health
-//        player.Stamina = stamina
-//        player.Armor = armor
-//      }
-//      sendResponse(PacketCoding.CreateGamePacket(0, CharacterInfoMessage(15,PlanetSideZoneID(10000), 41605313, player.GUID, false, 6404428)))
-//      RemoveCharacterSelectScreenGUID(player)
+      SetCharacterSelectScreenGUID(player, gen)
+      val health = player.Health
+      val stamina = player.Stamina
+      val armor = player.Armor
+      player.Spawn
+      sendResponse(PacketCoding.CreateGamePacket(0,
+        ObjectCreateMessage(ObjectClass.avatar, player.GUID, player.Definition.Packet.ConstructorData(player).get)
+      ))
+      if(health > 0) { //player can not be dead; stay spawned as alive
+        player.Health = health
+        player.Stamina = stamina
+        player.Armor = armor
+      }
+      sendResponse(PacketCoding.CreateGamePacket(0, CharacterInfoMessage(15,PlanetSideZoneID(10000), 41605313, player.GUID, false, 6404428)))
+      RemoveCharacterSelectScreenGUID(player)
 
       sendResponse(PacketCoding.CreateGamePacket(0, CharacterInfoMessage(0, PlanetSideZoneID(1), 0, PlanetSideGUID(0), true, 0)))
 
@@ -453,16 +450,15 @@ class WorldSessionActor extends Actor with MDCContextAware {
       sendResponse(PacketCoding.CreateGamePacket(0, LoadMapMessage("map13","home3",40100,25,true,3770441820L))) //VS Sanctuary
       //load the now-registered player
       tplayer.Spawn
-//      sendResponse(PacketCoding.CreateGamePacket(0,
-//        ObjectCreateDetailedMessage(ObjectClass.avatar, tplayer.GUID, tplayer.Definition.Packet.DetailedConstructorData(tplayer).get)
-//      ))
-      sendResponse(objectHex)
+      sendResponse(PacketCoding.CreateGamePacket(0,
+        ObjectCreateDetailedMessage(ObjectClass.avatar, tplayer.GUID, tplayer.Definition.Packet.DetailedConstructorData(tplayer).get)
+      ))
       avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.LoadPlayer(tplayer.GUID, tplayer.Definition.Packet.ConstructorData(tplayer).get))
       log.debug(s"ObjectCreateDetailedMessage: ${tplayer.Definition.Packet.DetailedConstructorData(tplayer).get}")
 
     case SetCurrentAvatar(tplayer) =>
       //avatar-specific
-      val guid = PlanetSideGUID(75)//tplayer.GUID
+      val guid = tplayer.GUID
       LivePlayerList.Assign(sessionId, guid)
       sendResponse(PacketCoding.CreateGamePacket(0, SetCurrentAvatarMessage(guid,0,0)))
       sendResponse(PacketCoding.CreateGamePacket(0, CreateShortcutMessage(guid, 1, 0, true, Shortcut.MEDKIT)))
@@ -494,54 +490,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case default =>
       failWithError(s"Invalid packet class received: $default")
   }
-
-//  val objectHex = hex"18 57 0C 00 00 BC 84 B0 06 C2 D7 65 53 5C A1 60 00 01 34 40 00 09 70 49 00 6C 00 6C 00 6C 00 49 00 49 00 49 00 6C 00 6C 00 6C 00 49 00 6C 00 49 00 6C 00 6C 00 49 00 6C 00 6C 00 6C 00 49 00 6C 00 6C 00 49 00 84 52 70 76 1E 80 80 00 00 00 00 00 3F FF C0 00 00 00 20 00 00 0F F6 A7 03 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FD 90 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 90 01 90 00 64 00 00 01 00 7E C8 00 C8 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 C0 00 42 C5 46 86 C7 00 00 00 80 00 00 12 40 78 70 65 5F 73 61 6E 63 74 75 61 72 79 5F 68 65 6C 70 90 78 70 65 5F 74 68 5F 66 69 72 65 6D 6F 64 65 73 8B 75 73 65 64 5F 62 65 61 6D 65 72 85 6D 61 70 31 33 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 0A 23 02 60 04 04 40 00 00 10 00 06 02 08 14 D0 08 0C 80 00 02 00 02 6B 4E 00 82 88 00 00 02 00 00 C0 41 C0 9E 01 01 90 00 00 64 00 44 2A 00 10 91 00 00 00 40 00 18 08 38 94 40 20 32 00 00 00 80 19 05 48 02 17 20 00 00 08 00 70 29 80 43 64 00 00 32 00 0E 05 40 08 9C 80 00 06 40 01 C0 AA 01 19 90 00 00 C8 00 3A 15 80 28 72 00 00 19 00 04 0A B8 05 26 40 00 03 20 06 C2 58 00 A7 88 00 00 02 00 00 80 00 00"
-  val objectHex = PacketCoding.CreateGamePacket(0,
-    ObjectCreateDetailedMessage(
-      121,
-      PlanetSideGUID(75),
-      DetailedCharacterData(
-        CharacterAppearanceData(
-          PlacementData(Vector3(3674.8438f,2726.789f,91.15625f), Vector3(0.0f,0.0f,36.5625f)),
-          BasicCharacterData("psemu2",PlanetSideEmpire.VS,CharacterGender.Female,41,1),
-          0,
-          false,
-          false,
-          ExoSuitType.Standard,
-          "",
-          0,
-          false,
-          2.8125f, 210.9375f,
-          true,
-          GrenadeState.None,
-          false,
-          false,
-          false,
-          RibbonBars()
-        ),
-        0,
-        0,
-        100, 100,
-        50,
-        1,7,7,
-        100,100,
-        List(
-          CertificationType.StandardAssault,
-          CertificationType.MediumAssault,
-          CertificationType.ATV,
-          CertificationType.Harasser,
-          CertificationType.StandardExoSuit,
-          CertificationType.AgileExoSuit,
-          CertificationType.ReinforcedExoSuit
-        ),
-        List(),
-        List("xpe_blackops"),
-        List(),
-        None,
-        DrawnSlot.None
-      )
-    )
-  )
 
   def handlePkt(pkt : PlanetSidePacket) : Unit = pkt match {
     case ctrl : PlanetSideControlPacket =>
@@ -636,6 +584,13 @@ class WorldSessionActor extends Actor with MDCContextAware {
   player.Position = Vector3(3674.8438f, 2726.789f, 91.15625f)
   player.Orientation = Vector3(0f, 0f, 90f)
   player.Continent = "home3"
+  player.Certifications += CertificationType.StandardAssault
+  player.Certifications += CertificationType.MediumAssault
+  player.Certifications += CertificationType.StandardExoSuit
+  player.Certifications += CertificationType.AgileExoSuit
+  player.Certifications += CertificationType.ReinforcedExoSuit
+  player.Certifications += CertificationType.ATV
+  player.Certifications += CertificationType.Harasser
   player.Slot(0).Equipment = beamer1
   player.Slot(2).Equipment = suppressor1
   player.Slot(4).Equipment = forceblade1
