@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects
 
-import net.psforever.objects.definition.AvatarDefinition
+import net.psforever.objects.definition.{AvatarDefinition, ImplantDefinition}
 import net.psforever.objects.equipment.{Equipment, EquipmentSize}
 import net.psforever.objects.inventory.{GridInventory, InventoryItem}
 import net.psforever.packet.game.PlanetSideGUID
@@ -334,26 +334,22 @@ class Player(private val name : String,
 
   def Implants : Array[ImplantSlot] = implants
 
-  def Implant(slot : Int) : Option[ImplantType.Value] = {
-    if(-1 < slot && slot < implants.length) { implants(slot).Installed } else { None }
+  def Implant(slot : Int) : ImplantType.Value = {
+    if(-1 < slot && slot < implants.length) { implants(slot).Implant } else { ImplantType.None }
   }
 
-  def Implant(implantType : ImplantType.Value) : Option[Implant] = {
-    implants.find(_.Installed.contains(implantType)) match {
-      case Some(slot) =>
-        slot.Implant
+  def InstallImplant(implant : ImplantDefinition) : Boolean = {
+    implants.find({p => p.Installed.contains(implant)}) match { //try to find the installed implant
       case None =>
-        None
-    }
-  }
-
-  def InstallImplant(implant : Implant) : Boolean = {
-    getAvailableImplantSlot(implants.iterator, implant.Definition.Type) match {
-      case Some(slot) =>
-        slot.Implant = implant
-        slot.Implant.get.Reset()
-        true
-      case None =>
+        //install in a free slot
+        getAvailableImplantSlot(implants.iterator, implant.Type) match {
+          case Some(slot) =>
+            slot.Implant = implant
+            true
+          case None =>
+            false
+        }
+      case Some(_) =>
         false
     }
   }
@@ -364,7 +360,7 @@ class Player(private val name : String,
     }
     else {
       val slot = iter.next
-      if(!slot.Unlocked || slot.Installed.contains(implantType)) {
+      if(!slot.Unlocked || slot.Implant == implantType) {
         None
       }
       else if(slot.Installed.isEmpty) {
@@ -377,7 +373,7 @@ class Player(private val name : String,
   }
 
   def UninstallImplant(implantType : ImplantType.Value) : Boolean = {
-    implants.find({slot => slot.Installed.contains(implantType)}) match {
+    implants.find({slot => slot.Implant == implantType}) match {
       case Some(slot) =>
         slot.Implant = None
         true
@@ -388,9 +384,9 @@ class Player(private val name : String,
 
   def ResetAllImplants() : Unit = {
     implants.foreach(slot => {
-      slot.Implant match {
-        case Some(implant) =>
-          implant.Reset()
+      slot.Installed match {
+        case Some(_) =>
+          slot.Initialized = false
         case None => ;
       }
     })
@@ -590,7 +586,7 @@ object Player {
       //hand over implants
       (0 until 3).foreach(index => {
         if(obj.Implants(index).Unlocked = player.Implants(index).Unlocked) {
-          obj.Implants(index).Implant = player.Implants(index).Implant
+          obj.Implants(index).Implant = player.Implants(index).Installed
         }
       })
       //hand over knife

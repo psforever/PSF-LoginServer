@@ -9,10 +9,13 @@ import scala.collection.mutable
   * An `Enumeration` of a variety of poses or generalized movement.
   */
 object Stance extends Enumeration {
-  val Crouching,
-      Standing,
-      Walking, //not used, but should still be defined
-      Running = Value
+  val
+  Crouching,
+  CrouchWalking, //not used, but should still be defined
+  Standing,
+  Walking, //not used, but should still be defined
+  Running
+  = Value
 }
 
 /**

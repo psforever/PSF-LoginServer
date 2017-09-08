@@ -270,6 +270,42 @@ object GlobalDefinitions {
     }
   }
 
+  /*
+  Implants
+   */
+  val
+  advanced_regen = ImplantDefinition(0)
+
+  val
+  targeting = ImplantDefinition(1)
+
+  val
+  audio_amplifier = ImplantDefinition(2)
+
+  val
+  darklight_vision = ImplantDefinition(3)
+
+  val
+  melee_booster = ImplantDefinition(4)
+
+  val
+  personal_shield = ImplantDefinition(5)
+
+  val
+  range_magnifier = ImplantDefinition(6)
+
+  val
+  second_wind = ImplantDefinition(7)
+
+  val
+  silent_run = ImplantDefinition(8)
+
+  val
+  surge = ImplantDefinition(9)
+
+  /*
+  Equipment (locker_container, kits, ammunition, weapons)
+   */
   import net.psforever.packet.game.objectcreate.ObjectClass
   val
   locker_container = new EquipmentDefinition(456) {

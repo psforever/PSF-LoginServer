@@ -1,61 +1,117 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects
 
-import net.psforever.objects.definition.ImplantDefinition
-import net.psforever.types.ImplantType
+import net.psforever.objects.definition.{ImplantDefinition, Stance}
+import net.psforever.types.{ExoSuitType, ImplantType}
 
 /**
-  * A slot "on the player" into which an implant is installed.<br>
+  * A slot "on the player" into which an implant is installed.
+  * In total, players have three implant slots.<br>
   * <br>
-  * In total, players have three implant slots.
-  * At battle rank one (BR1), however, all of those slots are locked.
-  * The player earns implants at BR16, BR12, and BR18.
-  * A locked implant slot can not be used.
-  * (The code uses "not yet unlocked" logic.)
-  * When unlocked, an implant may be installed into that slot.<br>
-  * <br>
-  * The default implant that the underlying slot utilizes is the "Range Magnifier."
-  * Until the `Installed` condition is some value other than `None`, however, the implant in the slot will not work.
+  * All implants slots start as "locked" and must be "unlocked" through battle rank advancement.
+  * Only after it is "unlocked" may an implant be "installed" into the slot.
+  * Upon installation, it undergoes an initialization period and then, after which, it is ready for user activation.
+  * Being jammed de-activates the implant, put it into a state of "not being ready," and causes the initialization to repeat.
   */
 class ImplantSlot {
   /** is this slot available for holding an implant */
   private var unlocked : Boolean = false
+  /** whether this implant is ready for use */
+  private var initialized : Boolean = false
+  /** is this implant active */
+  private var active : Boolean = false
   /** what implant is currently installed in this slot; None if there is no implant currently installed */
-  private var installed : Option[ImplantType.Value] = None
-  /** the entry for that specific implant used by the a player; always occupied by some type of implant */
-  private var implant : Implant = ImplantSlot.default
+  private var implant : Option[ImplantDefinition] = None
 
   def Unlocked : Boolean = unlocked
 
   def Unlocked_=(lock : Boolean) : Boolean = {
-    unlocked = lock
+    unlocked = lock || unlocked
     Unlocked
   }
 
-  def Installed : Option[ImplantType.Value] = installed
+  def Initialized : Boolean = initialized
 
-  def Implant : Option[Implant] = if(Installed.isDefined) { Some(implant) } else { None }
+  def Initialized_=(init : Boolean) : Boolean = {
+    initialized = Installed.isDefined && init
+    Active = Active && initialized //can not be active just yet
+    Initialized
+  }
 
-  def Implant_=(anImplant : Option[Implant]) : Option[Implant] = {
-    anImplant match {
-      case Some(module) =>
-        Implant = module
-      case None =>
-        installed = None
+  def Active : Boolean = active
+
+  def Active_=(state : Boolean) : Boolean = {
+    active = Initialized && state
+    Active
+  }
+
+  def Implant : ImplantType.Value = if(Installed.isDefined) {
+    implant.get.Type
+  }
+  else {
+    Active = false
+    Initialized = false
+    ImplantType.None
+  }
+
+  def Implant_=(anImplant : ImplantDefinition) : ImplantType.Value = {
+    Implant_=(Some(anImplant))
+  }
+
+  def Implant_=(anImplant : Option[ImplantDefinition]) : ImplantType.Value = {
+    if(Unlocked) {
+      anImplant match {
+        case Some(_) =>
+          implant = anImplant
+        case None =>
+          implant = None
+      }
     }
     Implant
   }
 
-  def Implant_=(anImplant : Implant) : Option[Implant] = {
-    implant = anImplant
-    installed = Some(anImplant.Definition.Type)
-    Implant
+  def Installed : Option[ImplantDefinition] = implant
+
+  def MaxTimer : Long = Implant match {
+    case ImplantType.None =>
+      -1L
+    case _ =>
+      Installed.get.Initialization
+  }
+
+  def ActivationCharge : Int =  {
+    if(Active) {
+      Installed.get.ActivationCharge
+    }
+    else {
+      0
+    }
+  }
+
+  /**
+    * Calculate the stamina consumption of the implant for any given moment of being active after its activation.
+    * As implant energy use can be influenced by both exo-suit worn and general stance held, both are considered.
+    * @param suit the exo-suit being worn
+    * @param stance the player's stance
+    * @return the amount of stamina (energy) that is consumed
+    */
+  def Charge(suit : ExoSuitType.Value, stance : Stance.Value) : Int = {
+    if(Active) {
+      val inst = Installed.get
+      inst.DurationChargeBase + inst.DurationChargeByExoSuit(suit) + inst.DurationChargeByStance(stance)
+    }
+    else {
+      0
+    }
+  }
+
+  def Jammed() : Unit = {
+    Active = false
+    Initialized = false
   }
 }
 
 object ImplantSlot {
-  private val default = new Implant(ImplantDefinition(ImplantType.None))
-
   def apply() : ImplantSlot = {
     new ImplantSlot()
   }

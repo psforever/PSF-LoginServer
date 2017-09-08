@@ -1,9 +1,9 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.definition.converter
 
-import net.psforever.objects.{EquipmentSlot, Player}
+import net.psforever.objects.{EquipmentSlot, GlobalDefinitions, ImplantSlot, Player}
 import net.psforever.objects.equipment.Equipment
-import net.psforever.packet.game.objectcreate.{BasicCharacterData, CharacterAppearanceData, CharacterData, DetailedCharacterData, DrawnSlot, ImplantEntry, InternalSlot, InventoryData, PlacementData, RibbonBars, UniformStyle}
+import net.psforever.packet.game.objectcreate.{BasicCharacterData, CharacterAppearanceData, CharacterData, DetailedCharacterData, DrawnSlot, ImplantEffects, ImplantEntry, InternalSlot, InventoryData, PlacementData, RibbonBars, UniformStyle}
 import net.psforever.types.{GrenadeState, ImplantType}
 
 import scala.annotation.tailrec
@@ -18,9 +18,9 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
         obj.Armor / obj.MaxArmor * 255, //TODO not precise
         DressBattleRank(obj),
         DressCommandRank(obj),
+        recursiveMakeImplantEffects(obj.Implants.iterator),
         None, //TODO cosmetics
-        None, //TODO implant effects
-        InventoryData(MakeHolsters(obj, BuildEquipment).sortBy(_.parentSlot)),
+        InventoryData(MakeHolsters(obj, BuildEquipment).sortBy(_.parentSlot)), //TODO is sorting necessary?
         GetDrawnSlot(obj)
       )
     )
@@ -132,19 +132,48 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
     * @see `ImplantEntry` in `DetailedCharacterData`
     */
   private def MakeImplantEntries(obj : Player) : List[ImplantEntry] = {
-    obj.Implants.map(impl => {
-      impl.Installed match {
-        case Some(module) =>
-          if(impl.Implant.get.Ready) {
-            ImplantEntry(module, None)
+    obj.Implants.map(slot => {
+      slot.Installed match {
+        case Some(_) =>
+          if(slot.Initialized) {
+            ImplantEntry(slot.Implant, None)
           }
           else {
-            ImplantEntry(module, Some(impl.Implant.get.Timer.toInt))
+            ImplantEntry(slot.Implant, Some(slot.Installed.get.Initialization.toInt))
           }
         case None =>
           ImplantEntry(ImplantType.None, None)
       }
     }).toList
+  }
+
+  /**
+    * Find an active implant whose effect will be displayed on this player.
+    * @param iter an `Iterator` of `ImplantSlot` objects
+    * @return the effect of an active implant
+    */
+  @tailrec private def recursiveMakeImplantEffects(iter : Iterator[ImplantSlot]) : Option[ImplantEffects.Value] = {
+    if(!iter.hasNext) {
+      None
+    }
+    else {
+      val slot = iter.next
+      if(slot.Active) {
+        import GlobalDefinitions._
+        slot.Installed match {
+          case Some(`advanced_regen`) =>
+            Some(ImplantEffects.RegenEffects)
+          case Some(`darklight_vision`) =>
+            Some(ImplantEffects.DarklightEffects)
+          case Some(`personal_shield`) =>
+            Some(ImplantEffects.PersonalShieldEffects)
+          case Some(`surge`) =>
+            Some(ImplantEffects.SurgeEffects)
+          case _ => ;
+        }
+      }
+      recursiveMakeImplantEffects(iter)
+    }
   }
 
   /**
@@ -211,6 +240,14 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
     InternalSlot(equip.Definition.ObjectId, equip.GUID, index, equip.Definition.Packet.DetailedConstructorData(equip).get)
   }
 
+  /**
+    * Given some equipment holsters, convert the contents of those holsters into converted-decoded packet data.
+    * @param iter an `Iterator` of `EquipmentSlot` objects that are a part of the player's holsters
+    * @param builder the function used to transform to the decoded packet form
+    * @param list the current `List` of transformed data
+    * @param index which holster is currently being explored
+    * @return the `List` of inventory data created from the holsters
+    */
   @tailrec private def recursiveMakeHolsters(iter : Iterator[EquipmentSlot], builder : ((Int, Equipment) => InternalSlot), list : List[InternalSlot] = Nil, index : Int = 0) : List[InternalSlot] = {
     if(!iter.hasNext) {
       list
