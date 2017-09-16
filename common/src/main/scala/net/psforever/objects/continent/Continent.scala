@@ -51,7 +51,7 @@ object Continent {
 
   final case class GetItemOnGround(player : Player, item_guid : PlanetSideGUID)
 
-  final case class GiveItemFromGround(player : Player, item : Equipment)
+  final case class ItemFromGround(player : Player, item : Equipment)
 
   def apply(zoneId : String, map : String) : Continent = {
     new Continent(zoneId, map)

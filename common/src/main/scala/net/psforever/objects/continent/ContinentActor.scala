@@ -20,7 +20,7 @@ class ContinentActor(continent : Continent) extends Actor {
     case GetItemOnGround(player, item_guid) =>
       FindItemOnGround(item_guid) match {
         case Some(item) =>
-          sender ! GiveItemFromGround(player, item)
+          sender ! ItemFromGround(player, item)
         case None =>
           log.warn(s"item on ground $item_guid was requested by $player for pickup but was not found")
       }
