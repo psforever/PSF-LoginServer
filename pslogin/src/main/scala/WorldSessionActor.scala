@@ -11,6 +11,7 @@ import org.log4s.MDC
 import MDCContextAware.Implicits._
 import ServiceManager.Lookup
 import net.psforever.objects._
+import net.psforever.objects.continent.{Continent, IntergalacticCluster}
 import net.psforever.objects.entity.IdentifiableEntity
 import net.psforever.objects.equipment._
 import net.psforever.objects.guid.{Task, TaskResolver}
@@ -24,21 +25,16 @@ import scala.annotation.tailrec
 import scala.util.Success
 
 class WorldSessionActor extends Actor with MDCContextAware {
+  import WorldSessionActor._
   private[this] val log = org.log4s.getLogger
-
-  private final case class PokeClient()
-  private final case class ServerLoaded()
-  private final case class PlayerLoaded(tplayer : Player)
-  private final case class ListAccountCharacters()
-  private final case class SetCurrentAvatar(tplayer : Player)
-  private final case class Continent_GiveItemFromGround(tplyaer : Player, item : Option[Equipment]) //TODO wrong place, move later
 
   var sessionId : Long = 0
   var leftRef : ActorRef = ActorRef.noSender
   var rightRef : ActorRef = ActorRef.noSender
   var avatarService = Actor.noSender
-  var accessor = Actor.noSender
   var taskResolver = Actor.noSender
+  var galaxy = Actor.noSender
+  var continent : Continent = Continent.Nowhere
 
   var clientKeepAlive : Cancellable = WorldSessionActor.DefaultCancellable
 
@@ -71,8 +67,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
       }
       context.become(Started)
       ServiceManager.serviceManager ! Lookup("avatar")
-      ServiceManager.serviceManager ! Lookup("accessor1")
       ServiceManager.serviceManager ! Lookup("taskResolver")
+      ServiceManager.serviceManager ! Lookup("galaxy")
 
     case _ =>
       log.error("Unknown message")
@@ -83,12 +79,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case ServiceManager.LookupResult("avatar", endpoint) =>
       avatarService = endpoint
       log.info("ID: " + sessionId + " Got avatar service " + endpoint)
-    case ServiceManager.LookupResult("accessor1", endpoint) =>
-      accessor = endpoint
-      log.info("ID: " + sessionId + " Got guid service " + endpoint)
     case ServiceManager.LookupResult("taskResolver", endpoint) =>
       taskResolver = endpoint
       log.info("ID: " + sessionId + " Got task resolver service " + endpoint)
+    case ServiceManager.LookupResult("galaxy", endpoint) =>
+      galaxy = endpoint
+      log.info("ID: " + sessionId + " Got galaxy service " + endpoint)
 
     case ctrl @ ControlPacket(_, _) =>
       handlePktContainer(ctrl)
@@ -413,6 +409,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
       sendResponse(PacketCoding.CreateGamePacket(0, CharacterInfoMessage(0, PlanetSideZoneID(1), 0, PlanetSideGUID(0), true, 0)))
 
+    case IntergalacticCluster.GiveWorld(zoneId, zone) =>
+      player.Continent = zoneId
+      continent = zone
+      taskResolver ! RegisterAvatar(player)
+
     case PlayerLoaded(tplayer) =>
       log.info(s"Player $tplayer has been loaded")
       //init for whole server
@@ -456,6 +457,18 @@ class WorldSessionActor extends Actor with MDCContextAware {
       avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.LoadPlayer(tplayer.GUID, tplayer.Definition.Packet.ConstructorData(tplayer).get))
       log.debug(s"ObjectCreateDetailedMessage: ${tplayer.Definition.Packet.DetailedConstructorData(tplayer).get}")
 
+    case PlayerFailedToLoad(tplayer) =>
+      player.Continent match {
+        case "tzshvs" =>
+          failWithError(s"$tplayer failed to load anywhere")
+        case "tzdrvs" =>
+          galaxy ! IntergalacticCluster.GetWorld("tzshvs")
+        case "home3" =>
+          galaxy ! IntergalacticCluster.GetWorld("tzdrvs")
+        case _ =>
+          galaxy ! IntergalacticCluster.GetWorld("home3")
+      }
+
     case SetCurrentAvatar(tplayer) =>
       //avatar-specific
       val guid = tplayer.GUID
@@ -488,7 +501,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       sendResponse(pkt)
 
     case default =>
-      failWithError(s"Invalid packet class received: $default")
+     log.warn(s"Invalid packet class received: $default")
   }
 
   def handlePkt(pkt : PlanetSidePacket) : Unit = pkt match {
@@ -496,7 +509,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       handleControlPkt(ctrl)
     case game : PlanetSideGamePacket =>
       handleGamePkt(game)
-    case default => failWithError(s"Invalid packet class received: $default")
+    case default => log.error(s"Invalid packet class received: $default")
   }
 
   def handlePktContainer(pkt : PlanetSidePacketContainer) : Unit = pkt match {
@@ -504,7 +517,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       handleControlPkt(ctrlPkt)
     case game @ GamePacket(opcode, seq, gamePkt) =>
       handleGamePkt(gamePkt)
-    case default => failWithError(s"Invalid packet container class received: $default")
+    case default => log.warn(s"Invalid packet container class received: $default")
   }
 
   def handleControlPkt(pkt : PlanetSideControlPacket) = {
@@ -667,7 +680,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           //check can spawn on last continent/location from player
           //if yes, get continent guid accessors
           //if no, get sanctuary guid accessors and reset the player's expectations
-          taskResolver ! RegisterAvatar(player)
+          galaxy ! IntergalacticCluster.GetWorld("home3")
 
           import scala.concurrent.duration._
           import scala.concurrent.ExecutionContext.Implicits.global
@@ -1181,7 +1194,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     TaskResolver.GiveTask(
       new Task() {
         private val localObject = obj
-        private val localAccessor = accessor
+        private val localAccessor = continent.GUID
 
         override def isComplete : Task.Resolution.Value = {
           try {
@@ -1316,7 +1329,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     TaskResolver.GiveTask(
       new Task() {
         private val localObject = obj
-        private val localAccessor = accessor
+        private val localAccessor = continent.GUID
 
         override def isComplete : Task.Resolution.Value = {
           try {
@@ -1561,7 +1574,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
   def failWithError(error : String) = {
     log.error(error)
-    //sendResponse(PacketCoding.CreateControlPacket(ConnectionClose()))
+    sendResponse(PacketCoding.CreateControlPacket(ConnectionClose()))
   }
 
   def sendResponse(cont : PlanetSidePacketContainer) : Unit = {
@@ -1581,7 +1594,14 @@ class WorldSessionActor extends Actor with MDCContextAware {
 }
 
 object WorldSessionActor {
-  final case class ResponseToSelf(pkt : GamePacket)
+  private final case class ResponseToSelf(pkt : GamePacket)
+  private final case class PokeClient()
+  private final case class ServerLoaded()
+  private final case class PlayerLoaded(tplayer : Player)
+  private final case class PlayerFailedToLoad(tplayer : Player)
+  private final case class ListAccountCharacters()
+  private final case class SetCurrentAvatar(tplayer : Player)
+  private final case class Continent_GiveItemFromGround(tplyaer : Player, item : Option[Equipment]) //TODO wrong place, move later
 
   /**
     * A placeholder `Cancellable` object.
