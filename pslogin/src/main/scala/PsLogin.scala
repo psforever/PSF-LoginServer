@@ -12,7 +12,7 @@ import ch.qos.logback.core.status._
 import ch.qos.logback.core.util.StatusPrinter
 import com.typesafe.config.ConfigFactory
 import net.psforever.crypto.CryptoInterface
-import net.psforever.objects.continent.{Continent, IntergalacticCluster}
+import net.psforever.objects.continent.{Zone, IntergalacticCluster}
 import net.psforever.objects.guid.TaskResolver
 import org.slf4j
 import org.fusesource.jansi.Ansi._
@@ -219,8 +219,8 @@ object PsLogin {
     }
   }
 
-  def createContinents() : List[Continent] = {
-    Continent("home3","map13") :: Nil
+  def createContinents() : List[Zone] = {
+    Zone("home3",13,"map13") :: Nil
   }
 
   def main(args : Array[String]) : Unit = {

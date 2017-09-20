@@ -7,9 +7,9 @@ import net.psforever.packet.game.PlanetSideGUID
 
 import scala.annotation.tailrec
 
-class ContinentActor(continent : Continent) extends Actor {
+class ZoneActor(continent : Zone) extends Actor {
   private[this] val log = org.log4s.getLogger
-  import Continent._
+  import Zone._
 
   def receive : Receive = {
     case DropItemOnGround(item, pos, orient) =>

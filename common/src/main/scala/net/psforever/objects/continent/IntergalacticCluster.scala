@@ -2,10 +2,11 @@
 package net.psforever.objects.continent
 
 import akka.actor.Actor
+import net.psforever.objects.Player
 
 import scala.annotation.tailrec
 
-class IntergalacticCluster(continents : List[Continent]) extends Actor {
+class IntergalacticCluster(continents : List[Zone]) extends Actor {
   //private[this] val log = org.log4s.getLogger
   for(continent <- continents) {
     continent.Actor //seed context
@@ -17,13 +18,19 @@ class IntergalacticCluster(continents : List[Continent]) extends Actor {
         case Some(continent) =>
           sender ! IntergalacticCluster.GiveWorld(zoneId, continent)
         case None =>
-          sender ! IntergalacticCluster.GiveWorld(zoneId, Continent.Nowhere)
+          sender ! IntergalacticCluster.GiveWorld(zoneId, Zone.Nowhere)
       }
+
+    case IntergalacticCluster.RequestZoneInitialization(tplayer) =>
+      continents.foreach(zone => {
+        sender ! Zone.ZoneInitialization(zone.ZoneInitialization())
+      })
+      sender ! IntergalacticCluster.ZoneInitializationComplete(tplayer)
 
     case _ => ;
   }
 
-  @tailrec private def findWorldInCluster(iter : Iterator[Continent], zoneId : String) : Option[Continent] = {
+  @tailrec private def findWorldInCluster(iter : Iterator[Zone], zoneId : String) : Option[Zone] = {
     if(!iter.hasNext) {
       None
     }
@@ -42,5 +49,9 @@ class IntergalacticCluster(continents : List[Continent]) extends Actor {
 object IntergalacticCluster {
   final case class GetWorld(zoneId : String)
 
-  final case class GiveWorld(zoneId : String, zone : Continent)
+  final case class GiveWorld(zoneId : String, zone : Zone)
+
+  final case class RequestZoneInitialization(tplayer : Player)
+
+  final case class ZoneInitializationComplete(tplayer : Player)
 }
