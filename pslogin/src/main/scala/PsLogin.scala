@@ -12,8 +12,10 @@ import ch.qos.logback.core.status._
 import ch.qos.logback.core.util.StatusPrinter
 import com.typesafe.config.ConfigFactory
 import net.psforever.crypto.CryptoInterface
-import net.psforever.objects.continent.{Zone, IntergalacticCluster}
+import net.psforever.objects.continent.{IntergalacticCluster, Zone}
 import net.psforever.objects.guid.TaskResolver
+import net.psforever.objects.terminals.{OrderTerminalDefinition, Terminal}
+import net.psforever.packet.game.PlanetSideGUID
 import org.slf4j
 import org.fusesource.jansi.Ansi._
 import org.fusesource.jansi.Ansi.Color._
@@ -220,7 +222,11 @@ object PsLogin {
   }
 
   def createContinents() : List[Zone] = {
-    Zone("home3",13,"map13") :: Nil
+    val home3 = Zone("home3",13,"map13")
+    home3.AddUtility(Terminal(new OrderTerminalDefinition), 336)
+
+    home3 ::
+      Nil
   }
 
   def main(args : Array[String]) : Unit = {

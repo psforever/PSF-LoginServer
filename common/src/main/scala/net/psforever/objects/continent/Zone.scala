@@ -6,7 +6,7 @@ import net.psforever.objects.Player
 import net.psforever.objects.entity.IdentifiableEntity
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.guid.NumberPoolHub
-import net.psforever.objects.guid.actor.{NumberPoolAccessorActor, NumberPoolActor}
+import net.psforever.objects.guid.actor.{NumberPoolAccessorActor, NumberPoolActor, Register}
 import net.psforever.objects.guid.selector.RandomSelector
 import net.psforever.objects.guid.source.LimitedNumberSource
 import net.psforever.packet.GamePacket
@@ -17,17 +17,20 @@ import scala.collection.mutable.ListBuffer
 
 class Zone(id : String, zoneNumber : Int, map : String) {
   private var actor = ActorRef.noSender
-  private var guid : NumberPoolHub = new NumberPoolHub(new LimitedNumberSource(6))
+  private var guid : NumberPoolHub = new NumberPoolHub(new LimitedNumberSource(65536))
   private var accessor : ActorRef = ActorRef.noSender
+  private var startupUtilities : List[(IdentifiableEntity, Int)] = List()
 
   def Actor(implicit context : ActorContext) : ActorRef =  {
     if(actor == ActorRef.noSender) {
       actor = context.actorOf(Props(classOf[ZoneActor], this), s"$id-actor")
 
-      val pool = guid.AddPool("pool", 6 :: Nil)//(400 to 599).toList)
+      val pool = guid.AddPool("pool", (200 to 400).toList)
       val poolActor = context.actorOf(Props(classOf[NumberPoolActor], pool), name = s"$ZoneId-poolActor")
       pool.Selector = new RandomSelector
       accessor = context.actorOf(Props(classOf[NumberPoolAccessorActor], guid, pool, poolActor), s"$ZoneId-accessor")
+
+      startupUtilities.foreach({case ((obj, uid)) => accessor ! Register(obj, uid, actor)})
     }
     actor
   }
@@ -53,6 +56,10 @@ class Zone(id : String, zoneNumber : Int, map : String) {
 
   def EquipmentOnGround : ListBuffer[Equipment] = equipmentOnGround
 
+  def AddUtility(obj : IdentifiableEntity, id : Int) : Unit = {
+    startupUtilities = startupUtilities :+ (obj, id)
+  }
+
   def ZoneInitialization() : List[GamePacket] = {
     List.empty[GamePacket]
   }
@@ -63,6 +70,7 @@ class Zone(id : String, zoneNumber : Int, map : String) {
 }
 
 object Zone {
+  final def BlankInitFunction() : Unit = { }
   final def Nowhere : Zone = { Zone("nowhere", 0, "nowhere") } //TODO needs overrides
 
   final case class DropItemOnGround(item : Equipment, pos : Vector3, orient : Vector3)

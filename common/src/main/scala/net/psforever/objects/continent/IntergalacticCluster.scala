@@ -7,13 +7,15 @@ import net.psforever.objects.Player
 import scala.annotation.tailrec
 
 class IntergalacticCluster(continents : List[Zone]) extends Actor {
-  //private[this] val log = org.log4s.getLogger
+  private[this] val log = org.log4s.getLogger
   for(continent <- continents) {
+    log.info(s"Built continent ${continent.ZoneId}")
     continent.Actor //seed context
   }
 
   def receive : Receive = {
     case IntergalacticCluster.GetWorld(zoneId) =>
+      log.info(s"Asked to find $zoneId")
       findWorldInCluster(continents.iterator, zoneId) match {
         case Some(continent) =>
           sender ! IntergalacticCluster.GiveWorld(zoneId, continent)

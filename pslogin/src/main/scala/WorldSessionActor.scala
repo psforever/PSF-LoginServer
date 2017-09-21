@@ -412,6 +412,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       sendResponse(PacketCoding.CreateGamePacket(0, CharacterInfoMessage(0, PlanetSideZoneID(1), 0, PlanetSideGUID(0), true, 0)))
 
     case IntergalacticCluster.GiveWorld(zoneId, zone) =>
+      log.info(s"Zone $zoneId has been loaded")
       player.Continent = zoneId
       continent = zone
       taskResolver ! RegisterAvatar(player)
@@ -424,8 +425,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case PlayerFailedToLoad(tplayer) =>
       player.Continent match {
         case "tzshvs" =>
-          log.error(s"$tplayer failed to load anywhere")
-          self ! IntergalacticCluster.GiveWorld("", Zone.Nowhere)
+          failWithError(s"$tplayer failed to load anywhere")
+          //self ! IntergalacticCluster.GiveWorld("", Zone.Nowhere)
         case "tzdrvs" =>
           galaxy ! IntergalacticCluster.GetWorld("tzshvs")
         case "home3" =>
@@ -434,7 +435,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           galaxy ! IntergalacticCluster.GetWorld("home3")
       }
 
-    case Zone.ZoneInitialization(initList) =>
+    case Zone.ZoneInitialization(/*initList*/_) =>
       //TODO iterate over initList; for now, just do this
       sendResponse(
         PacketCoding.CreateGamePacket(0,
@@ -470,6 +471,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case IntergalacticCluster.ZoneInitializationComplete(tplayer)=>
       //this will cause the client to send back a BeginZoningMessage packet (see below)
       sendResponse(PacketCoding.CreateGamePacket(0, LoadMapMessage(continent.Map, continent.ZoneId, 40100,25,true,3770441820L))) //VS Sanctuary
+      log.info("Load the now-registered player")
       //load the now-registered player
       tplayer.Spawn
       sendResponse(PacketCoding.CreateGamePacket(0,
@@ -1322,7 +1324,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
         private val localAnnounce = self
 
         override def isComplete : Task.Resolution.Value = {
-          Task.Resolution.Incomplete
+          if(localPlayer.HasGUID) {
+            Task.Resolution.Success
+          }
+          else {
+            Task.Resolution.Incomplete
+          }
         }
 
         def Execute(resolver : ActorRef) : Unit = {
@@ -1462,17 +1469,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
     tplayer.Holsters().foreach(holster => {
       SetCharacterSelectScreenGUID_SelectEquipment(holster.Equipment, gen)
     })
-//    tplayer.Inventory.Items.foreach({ case((_, entry : InventoryItem)) =>
-//      SetCharacterSelectScreenGUID_SelectEquipment(Some(entry.obj), gen)
-//    })
-//    tplayer.Slot(5).Equipment match {
-//      case Some(locker) =>
-//        locker.GUID = PlanetSideGUID(gen.getAndIncrement)
-//        locker.asInstanceOf[LockerContainer].Inventory.Items.foreach({ case((_, entry : InventoryItem)) =>
-//          SetCharacterSelectScreenGUID_SelectEquipment(Some(entry.obj), gen)
-//        })
-//      case None => ;
-//    }
     tplayer.GUID = PlanetSideGUID(gen.getAndIncrement)
   }
 
@@ -1504,17 +1500,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
     tplayer.Holsters().foreach(holster => {
       RemoveCharacterSelectScreenGUID_SelectEquipment(holster.Equipment)
     })
-//    tplayer.Inventory.Items.foreach({ case((_, entry : InventoryItem)) =>
-//      RemoveCharacterSelectScreenGUID_SelectEquipment(Some(entry.obj))
-//    })
-//    tplayer.Slot(5).Equipment match {
-//      case Some(locker) =>
-//        locker.Invalidate()
-//        locker.asInstanceOf[LockerContainer].Inventory.Items.foreach({ case((_, entry : InventoryItem)) =>
-//          RemoveCharacterSelectScreenGUID_SelectEquipment(Some(entry.obj))
-//        })
-//      case None => ;
-//    }
     tplayer.Invalidate()
   }
 
