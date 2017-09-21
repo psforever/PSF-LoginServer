@@ -25,9 +25,9 @@ class IntergalacticCluster(continents : List[Zone]) extends Actor {
 
     case IntergalacticCluster.RequestZoneInitialization(tplayer) =>
       continents.foreach(zone => {
-        sender ! Zone.ZoneInitialization(zone.ZoneInitialization())
+        sender ! Zone.ClientInitialization(zone.ClientInitialization())
       })
-      sender ! IntergalacticCluster.ZoneInitializationComplete(tplayer)
+      sender ! IntergalacticCluster.ClientInitializationComplete(tplayer)
 
     case _ => ;
   }
@@ -55,5 +55,5 @@ object IntergalacticCluster {
 
   final case class RequestZoneInitialization(tplayer : Player)
 
-  final case class ZoneInitializationComplete(tplayer : Player)
+  final case class ClientInitializationComplete(tplayer : Player)
 }

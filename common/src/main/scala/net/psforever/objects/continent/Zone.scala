@@ -2,7 +2,7 @@
 package net.psforever.objects.continent
 
 import akka.actor.{ActorContext, ActorRef, Props}
-import net.psforever.objects.Player
+import net.psforever.objects.{PlanetSideGameObject, Player}
 import net.psforever.objects.entity.IdentifiableEntity
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.guid.NumberPoolHub
@@ -25,12 +25,12 @@ class Zone(id : String, zoneNumber : Int, map : String) {
     if(actor == ActorRef.noSender) {
       actor = context.actorOf(Props(classOf[ZoneActor], this), s"$id-actor")
 
-      val pool = guid.AddPool("pool", (200 to 400).toList)
+      val pool = guid.AddPool("pool", (200 to 1000).toList)
       val poolActor = context.actorOf(Props(classOf[NumberPoolActor], pool), name = s"$ZoneId-poolActor")
       pool.Selector = new RandomSelector
       accessor = context.actorOf(Props(classOf[NumberPoolAccessorActor], guid, pool, poolActor), s"$ZoneId-accessor")
 
-      startupUtilities.foreach({case ((obj, uid)) => accessor ! Register(obj, uid, actor)})
+      startupUtilities.foreach({case ((obj, uid)) => accessor ! Register(obj, uid, actor) })
     }
     actor
   }
@@ -52,7 +52,12 @@ class Zone(id : String, zoneNumber : Int, map : String) {
     accessor
   }
 
-  def GUID(object_guid : PlanetSideGUID) : Option[IdentifiableEntity] = guid(object_guid.guid)
+  def GUID(object_guid : PlanetSideGUID) : Option[PlanetSideGameObject] = guid(object_guid.guid) match {
+    case Some(obj) =>
+      Some(obj.asInstanceOf[PlanetSideGameObject]) //potential casting error
+    case None =>
+      None
+  }
 
   def EquipmentOnGround : ListBuffer[Equipment] = equipmentOnGround
 
@@ -60,11 +65,11 @@ class Zone(id : String, zoneNumber : Int, map : String) {
     startupUtilities = startupUtilities :+ (obj, id)
   }
 
-  def ZoneInitialization() : List[GamePacket] = {
+  def ClientInitialization() : List[GamePacket] = {
     List.empty[GamePacket]
   }
 
-  def ZoneConfiguration() : List[GamePacket] = {
+  def ClientConfiguration() : List[GamePacket] = {
     List.empty[GamePacket]
   }
 }
@@ -79,7 +84,7 @@ object Zone {
 
   final case class ItemFromGround(player : Player, item : Equipment)
 
-  final case class ZoneInitialization(list : List[GamePacket])
+  final case class ClientInitialization(list : List[GamePacket])
 
   def apply(zoneId : String, zoneNumber : Int, map : String) : Zone = {
     new Zone(zoneId, zoneNumber, map)

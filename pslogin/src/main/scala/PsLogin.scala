@@ -223,7 +223,10 @@ object PsLogin {
 
   def createContinents() : List[Zone] = {
     val home3 = Zone("home3",13,"map13")
-    home3.AddUtility(Terminal(new OrderTerminalDefinition), 336)
+    val orderTerm = new OrderTerminalDefinition
+    home3.AddUtility(Terminal(orderTerm), 853)
+    home3.AddUtility(Terminal(orderTerm), 855)
+    home3.AddUtility(Terminal(orderTerm), 860)
 
     home3 ::
       Nil

@@ -17,7 +17,7 @@ import net.psforever.objects.equipment._
 import net.psforever.objects.guid.{Task, TaskResolver}
 import net.psforever.objects.guid.actor.{Register, Unregister}
 import net.psforever.objects.inventory.{GridInventory, InventoryItem}
-import net.psforever.objects.terminals.{OrderTerminalDefinition, Terminal}
+import net.psforever.objects.terminals.Terminal
 import net.psforever.packet.game.objectcreate._
 import net.psforever.types._
 
@@ -435,7 +435,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           galaxy ! IntergalacticCluster.GetWorld("home3")
       }
 
-    case Zone.ZoneInitialization(/*initList*/_) =>
+    case Zone.ClientInitialization(/*initList*/_) =>
       //TODO iterate over initList; for now, just do this
       sendResponse(
         PacketCoding.CreateGamePacket(0,
@@ -468,7 +468,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       sendResponse(PacketCoding.CreateGamePacket(0, BroadcastWarpgateUpdateMessage(PlanetSideGUID(13), PlanetSideGUID(1), false, false, true))) // VS Sanctuary: Inactive Warpgate -> Broadcast Warpgate
       sendResponse(PacketCoding.CreateGamePacket(0, ZonePopulationUpdateMessage(PlanetSideGUID(13), 414, 138, 0, 138, 0, 138, 0, 138, 0)))
 
-    case IntergalacticCluster.ZoneInitializationComplete(tplayer)=>
+    case IntergalacticCluster.ClientInitializationComplete(tplayer)=>
       //this will cause the client to send back a BeginZoningMessage packet (see below)
       sendResponse(PacketCoding.CreateGamePacket(0, LoadMapMessage(continent.Map, continent.ZoneId, 40100,25,true,3770441820L))) //VS Sanctuary
       log.info("Load the now-registered player")
@@ -583,8 +583,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
         log.warn(s"Unhandled ControlPacket $default")
     }
   }
-
-  val terminal = Terminal(PlanetSideGUID(55000), new OrderTerminalDefinition)
 
   import net.psforever.objects.GlobalDefinitions._
   //this part is created by the player (should be in case of ConnectToWorldRequestMessage, maybe)
@@ -711,7 +709,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ BeginZoningMessage() =>
       log.info("Reticulating splines ...")
       //map-specific initializations
-      //TODO continent.ZoneConfiguration()
+      //TODO continent.ClientConfiguration()
       sendResponse(PacketCoding.CreateGamePacket(0, SetEmpireMessage(PlanetSideGUID(2), PlanetSideEmpire.VS))) //HART building C
       sendResponse(PacketCoding.CreateGamePacket(0, SetEmpireMessage(PlanetSideGUID(29), PlanetSideEmpire.NC))) //South Villa Gun Tower
       //sendResponse(PacketCoding.CreateGamePacket(0, object2Hex))
@@ -990,9 +988,14 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ GenericObjectStateMsg(object_guid, unk1) =>
       log.info("GenericObjectState: " + msg)
 
-    case msg @ ItemTransactionMessage(terminal_guid, transaction_type, item_page, item_name, unk1, item_guid) =>
-      terminal.Actor ! Terminal.Request(player, msg)
+    case msg @ ItemTransactionMessage(terminal_guid, _, _, _, _, _) =>
       log.info("ItemTransaction: " + msg)
+      continent.GUID(terminal_guid) match {
+        case Some(term : Terminal) =>
+          term.Actor ! Terminal.Request(player, msg)
+        case Some(obj : PlanetSideGameObject) => ;
+        case None => ;
+      }
 
     case msg @ FavoritesRequest(player_guid, unk, action, line, label) =>
       if(player.GUID == player_guid) {
