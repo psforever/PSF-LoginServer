@@ -1,22 +1,27 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.continent
 
-import akka.actor.Actor
+import akka.actor.{Actor, Props}
 import net.psforever.objects.Player
 
 import scala.annotation.tailrec
 
-class IntergalacticCluster(continents : List[Zone]) extends Actor {
+class IntergalacticCluster(zones : List[Zone]) extends Actor {
   private[this] val log = org.log4s.getLogger
-  for(continent <- continents) {
-    log.info(s"Built continent ${continent.ZoneId}")
-    continent.Actor //seed context
+  log.info("Starting interplanetary cluster ...")
+
+  override def preStart() : Unit = {
+    super.preStart()
+    for(zone <- zones) {
+      log.info(s"Built continent ${zone.ZoneId}")
+      zone.Actor = context.actorOf(Props(classOf[ZoneActor], zone), s"${zone.ZoneId}-actor")
+    }
   }
 
   def receive : Receive = {
     case IntergalacticCluster.GetWorld(zoneId) =>
       log.info(s"Asked to find $zoneId")
-      findWorldInCluster(continents.iterator, zoneId) match {
+      findWorldInCluster(zones.iterator, zoneId) match {
         case Some(continent) =>
           sender ! IntergalacticCluster.GiveWorld(zoneId, continent)
         case None =>
@@ -24,7 +29,7 @@ class IntergalacticCluster(continents : List[Zone]) extends Actor {
       }
 
     case IntergalacticCluster.RequestZoneInitialization(tplayer) =>
-      continents.foreach(zone => {
+      zones.foreach(zone => {
         sender ! Zone.ClientInitialization(zone.ClientInitialization())
       })
       sender ! IntergalacticCluster.ClientInitializationComplete(tplayer)

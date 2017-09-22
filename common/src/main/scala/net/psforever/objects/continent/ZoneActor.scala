@@ -3,24 +3,30 @@ package net.psforever.objects.continent
 
 import akka.actor.Actor
 import net.psforever.objects.equipment.Equipment
+import net.psforever.objects.guid.actor.Register
 import net.psforever.packet.game.PlanetSideGUID
 
 import scala.annotation.tailrec
 
-class ZoneActor(continent : Zone) extends Actor {
+class ZoneActor(zone : Zone) extends Actor {
   private[this] val log = org.log4s.getLogger
-  import Zone._
+
+  override def preStart() : Unit = {
+    super.preStart()
+    log.info(s"Calling ${zone.ZoneId} init ...")
+    zone.Init
+  }
 
   def receive : Receive = {
-    case DropItemOnGround(item, pos, orient) =>
+    case Zone.DropItemOnGround(item, pos, orient) =>
       item.Position = pos
       item.Orientation = orient
-      continent.EquipmentOnGround += item
+      zone.EquipmentOnGround += item
 
-    case GetItemOnGround(player, item_guid) =>
+    case Zone.GetItemOnGround(player, item_guid) =>
       FindItemOnGround(item_guid) match {
         case Some(item) =>
-          sender ! ItemFromGround(player, item)
+          sender ! Zone.ItemFromGround(player, item)
         case None =>
           log.warn(s"item on ground $item_guid was requested by $player for pickup but was not found")
       }
@@ -29,9 +35,9 @@ class ZoneActor(continent : Zone) extends Actor {
   }
 
   private def FindItemOnGround(item_guid : PlanetSideGUID) : Option[Equipment] = {
-    recursiveFindItemOnGround(continent.EquipmentOnGround.iterator, item_guid) match {
+    recursiveFindItemOnGround(zone.EquipmentOnGround.iterator, item_guid) match {
       case Some(index) =>
-        Some(continent.EquipmentOnGround.remove(index))
+        Some(zone.EquipmentOnGround.remove(index))
       case None =>
         None
     }

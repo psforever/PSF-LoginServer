@@ -3,7 +3,7 @@ import java.net.InetAddress
 import java.io.File
 import java.util.Locale
 
-import akka.actor.{ActorRef, ActorSystem, Props}
+import akka.actor.{ActorContext, ActorRef, ActorSystem, Props}
 import akka.routing.RandomPool
 import ch.qos.logback.classic.LoggerContext
 import ch.qos.logback.classic.joran.JoranConfigurator
@@ -15,7 +15,6 @@ import net.psforever.crypto.CryptoInterface
 import net.psforever.objects.continent.{IntergalacticCluster, Zone}
 import net.psforever.objects.guid.TaskResolver
 import net.psforever.objects.terminals.{OrderTerminalDefinition, Terminal}
-import net.psforever.packet.game.PlanetSideGUID
 import org.slf4j
 import org.fusesource.jansi.Ansi._
 import org.fusesource.jansi.Ansi.Color._
@@ -222,11 +221,22 @@ object PsLogin {
   }
 
   def createContinents() : List[Zone] = {
-    val home3 = Zone("home3",13,"map13")
-    val orderTerm = new OrderTerminalDefinition
-    home3.AddUtility(Terminal(orderTerm), 853)
-    home3.AddUtility(Terminal(orderTerm), 855)
-    home3.AddUtility(Terminal(orderTerm), 860)
+    val home3 = new Zone("home3",13,"map13") {
+      override def Init(implicit context : ActorContext) : Unit = {
+        val orderTerm = new OrderTerminalDefinition
+        val obj853 = Terminal(orderTerm)
+        val obj855 = Terminal(orderTerm)
+        val obj860 = Terminal(orderTerm)
+        AddUtility(obj853, 853)
+        AddUtility(obj855, 855)
+        AddUtility(obj860, 860)
+
+        super.Init
+        obj853.Actor
+        obj855.Actor
+        obj860.Actor
+      }
+    }
 
     home3 ::
       Nil
