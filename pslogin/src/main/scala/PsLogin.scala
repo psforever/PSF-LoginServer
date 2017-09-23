@@ -12,9 +12,8 @@ import ch.qos.logback.core.status._
 import ch.qos.logback.core.util.StatusPrinter
 import com.typesafe.config.ConfigFactory
 import net.psforever.crypto.CryptoInterface
-import net.psforever.objects.continent.{IntergalacticCluster, Zone}
+import net.psforever.objects.continent.{IntergalacticCluster, TerminalObjectBuilder, Zone, ZoneMap}
 import net.psforever.objects.guid.TaskResolver
-import net.psforever.objects.terminals.{OrderTerminalDefinition, Terminal}
 import org.slf4j
 import org.fusesource.jansi.Ansi._
 import org.fusesource.jansi.Ansi.Color._
@@ -221,22 +220,13 @@ object PsLogin {
   }
 
   def createContinents() : List[Zone] = {
-    val home3 = new Zone("home3",13,"map13") {
-      override def Init(implicit context : ActorContext) : Unit = {
-        val orderTerm = new OrderTerminalDefinition
-        val obj853 = Terminal(orderTerm)
-        val obj855 = Terminal(orderTerm)
-        val obj860 = Terminal(orderTerm)
-        AddUtility(obj853, 853)
-        AddUtility(obj855, 855)
-        AddUtility(obj860, 860)
-
-        super.Init
-        obj853.Actor
-        obj855.Actor
-        obj860.Actor
-      }
+    val map13 = new ZoneMap("map13") {
+      import net.psforever.objects.GlobalDefinitions._
+      LocalObject(TerminalObjectBuilder(orderTerminal, 853))
+      LocalObject(TerminalObjectBuilder(orderTerminal, 855))
+      LocalObject(TerminalObjectBuilder(orderTerminal, 860))
     }
+    val home3 = Zone("home3", map13, 13)
 
     home3 ::
       Nil

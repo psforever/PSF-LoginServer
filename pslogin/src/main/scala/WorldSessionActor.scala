@@ -34,7 +34,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
   var avatarService = Actor.noSender
   var taskResolver = Actor.noSender
   var galaxy = Actor.noSender
-  var continent : Zone = Zone.Nowhere
+  var continent : Zone = null
 
   var clientKeepAlive : Cancellable = WorldSessionActor.DefaultCancellable
 
@@ -358,7 +358,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
           avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.PlanetsideAttribute(tplayer.GUID, 4, tplayer.Armor))
           //re-draw equipment held in free hand
           beforeFreeHand match {
-            //TODO was any previous free hand item deleted?
             case Some(item) =>
               tplayer.FreeHand.Equipment = beforeFreeHand
               val definition = item.Definition
@@ -424,15 +423,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case PlayerFailedToLoad(tplayer) =>
       player.Continent match {
-        case "tzshvs" =>
-          failWithError(s"$tplayer failed to load anywhere")
-          //self ! IntergalacticCluster.GiveWorld("", Zone.Nowhere)
-        case "tzdrvs" =>
-          galaxy ! IntergalacticCluster.GetWorld("tzshvs")
-        case "home3" =>
-          galaxy ! IntergalacticCluster.GetWorld("tzdrvs")
         case _ =>
-          galaxy ! IntergalacticCluster.GetWorld("home3")
+          failWithError(s"$tplayer failed to load anywhere")
       }
 
     case Zone.ClientInitialization(/*initList*/_) =>
@@ -470,7 +462,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case IntergalacticCluster.ClientInitializationComplete(tplayer)=>
       //this will cause the client to send back a BeginZoningMessage packet (see below)
-      sendResponse(PacketCoding.CreateGamePacket(0, LoadMapMessage(continent.Map, continent.ZoneId, 40100,25,true,3770441820L))) //VS Sanctuary
+      sendResponse(PacketCoding.CreateGamePacket(0, LoadMapMessage(continent.Map.Name, continent.ZoneId, 40100,25,true,3770441820L))) //VS Sanctuary
       log.info("Load the now-registered player")
       //load the now-registered player
       tplayer.Spawn
@@ -585,7 +577,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
   }
 
   import net.psforever.objects.GlobalDefinitions._
-  //this part is created by the player (should be in case of ConnectToWorldRequestMessage, maybe)
+  //this part is created by WSA based on the database query (should be in case of ConnectToWorldRequestMessage, maybe)
   val energy_cell_box1 = AmmoBox(energy_cell)
   val energy_cell_box2 = AmmoBox(energy_cell, 16)
   val bullet_9mm_box1 = AmmoBox(bullet_9mm)
@@ -609,7 +601,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
   player = Player("IlllIIIlllIlIllIlllIllI", PlanetSideEmpire.VS, CharacterGender.Female, 41, 1)
   player.Position = Vector3(3674.8438f, 2726.789f, 91.15625f)
   player.Orientation = Vector3(0f, 0f, 90f)
-  //player.Continent = "home3"
   player.Slot(0).Equipment = beamer1
   player.Slot(2).Equipment = suppressor1
   player.Slot(4).Equipment = forceblade1
@@ -620,57 +611,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
   player.Slot(36).Equipment = energy_cell_box1
   player.Slot(39).Equipment = rek
   player.Slot(5).Equipment.get.asInstanceOf[LockerContainer].Inventory += 0 -> extra_rek
-
-  //for player2
-  val energy_cell_box3 = AmmoBox(PlanetSideGUID(187), energy_cell)
-  val energy_cell_box4 = AmmoBox(PlanetSideGUID(177), energy_cell, 16)
-  val bullet_9mm_box5 = AmmoBox(PlanetSideGUID(183), bullet_9mm)
-  val bullet_9mm_box6 = AmmoBox(PlanetSideGUID(184), bullet_9mm)
-  val bullet_9mm_box7 = AmmoBox(PlanetSideGUID(185), bullet_9mm)
-  val bullet_9mm_box8 = AmmoBox(PlanetSideGUID(179), bullet_9mm, 25)
-  val bullet_9mm_AP_box2 = AmmoBox(PlanetSideGUID(186), bullet_9mm_AP)
-  val melee_ammo_box2 = AmmoBox(PlanetSideGUID(181), melee_ammo)
-
-  val
-  beamer2 = Tool(PlanetSideGUID(176), beamer)
-  beamer2.AmmoSlots.head.Box = energy_cell_box4
-  val
-  suppressor2 = Tool(PlanetSideGUID(178), suppressor)
-  suppressor2.AmmoSlots.head.Box = bullet_9mm_box8
-  val
-  forceblade2 = Tool(PlanetSideGUID(180), forceblade)
-  forceblade2.AmmoSlots.head.Box = melee_ammo_box2
-  val
-  rek2 = SimpleItem(PlanetSideGUID(188), remote_electronics_kit)
-  val
-  player2 = Player(PlanetSideGUID(275), "Doppelganger", PlanetSideEmpire.NC, CharacterGender.Female, 41, 1)
-  player2.Position = Vector3(3680f, 2726.789f, 91.15625f)
-  player2.Orientation = Vector3(0f, 0f, 0f)
-  player2.Continent = "home3"
-  player2.Slot(0).Equipment = beamer2
-  player2.Slot(2).Equipment = suppressor2
-  player2.Slot(4).Equipment = forceblade2
-  player2.Slot(5).Equipment.get.GUID = PlanetSideGUID(182)
-  player2.Slot(6).Equipment = bullet_9mm_box5
-  player2.Slot(9).Equipment = bullet_9mm_box6
-  player2.Slot(12).Equipment = bullet_9mm_box7
-  player2.Slot(33).Equipment = bullet_9mm_AP_box2
-  player2.Slot(36).Equipment = energy_cell_box3
-  player2.Slot(39).Equipment = rek2
-  player2.Spawn
-
-  val hellfire_ammo_box = AmmoBox(PlanetSideGUID(432), hellfire_ammo)
-
-  val
-  fury1 = Vehicle(PlanetSideGUID(313), fury)
-  fury1.Faction = PlanetSideEmpire.VS
-  fury1.Position = Vector3(3674.8438f, 2732f, 91.15625f)
-  fury1.Orientation = Vector3(0.0f, 0.0f, 90.0f)
-  fury1.WeaponControlledFromSeat(0).get.GUID = PlanetSideGUID(300)
-  fury1.WeaponControlledFromSeat(0).get.AmmoSlots.head.Box = hellfire_ammo_box
-
-  val object2Hex = ObjectCreateMessage(ObjectClass.avatar, PlanetSideGUID(275), player2.Definition.Packet.ConstructorData(player2).get)
-  val furyHex = ObjectCreateMessage(ObjectClass.fury, PlanetSideGUID(313), fury1.Definition.Packet.ConstructorData(fury1).get)
 
   def handleGamePkt(pkt : PlanetSideGamePacket) = pkt match {
     case ConnectToWorldRequestMessage(server, token, majorVersion, minorVersion, revision, buildDate, unk) =>
@@ -712,8 +652,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
       //TODO continent.ClientConfiguration()
       sendResponse(PacketCoding.CreateGamePacket(0, SetEmpireMessage(PlanetSideGUID(2), PlanetSideEmpire.VS))) //HART building C
       sendResponse(PacketCoding.CreateGamePacket(0, SetEmpireMessage(PlanetSideGUID(29), PlanetSideEmpire.NC))) //South Villa Gun Tower
-      //sendResponse(PacketCoding.CreateGamePacket(0, object2Hex))
-      //sendResponse(PacketCoding.CreateGamePacket(0, furyHex))
 
       sendResponse(PacketCoding.CreateGamePacket(0, TimeOfDayMessage(1191182336)))
       sendResponse(PacketCoding.CreateGamePacket(0, ReplicationStreamMessage(5, Some(6), Vector(SquadListing())))) //clear squad list

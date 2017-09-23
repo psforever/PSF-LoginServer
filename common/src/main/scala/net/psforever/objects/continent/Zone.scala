@@ -3,10 +3,9 @@ package net.psforever.objects.continent
 
 import akka.actor.{ActorContext, ActorRef, Props}
 import net.psforever.objects.{PlanetSideGameObject, Player}
-import net.psforever.objects.entity.IdentifiableEntity
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.guid.NumberPoolHub
-import net.psforever.objects.guid.actor.{NumberPoolAccessorActor, NumberPoolActor, Register}
+import net.psforever.objects.guid.actor.{NumberPoolAccessorActor, NumberPoolActor}
 import net.psforever.objects.guid.selector.RandomSelector
 import net.psforever.objects.guid.source.LimitedNumberSource
 import net.psforever.packet.GamePacket
@@ -15,23 +14,24 @@ import net.psforever.types.Vector3
 
 import scala.collection.mutable.ListBuffer
 
-class Zone(id : String, zoneNumber : Int, map : String) {
+class Zone(id : String, map : ZoneMap, zoneNumber : Int) {
   private var actor = ActorRef.noSender
   private var accessor : ActorRef = ActorRef.noSender
-  private var startupUtilities : List[(PlanetSideGameObject, Int)] = List()
+  //private var startupUtilities : List[ServerObjectBuilder] = List()
   private var guid : NumberPoolHub = new NumberPoolHub(new LimitedNumberSource(65536))
 
   def Actor : ActorRef = actor
 
   def Init(implicit context : ActorContext) : Unit = {
     //TODO wrong initialization
+    implicit val guid = this.guid
     val pool = guid.AddPool("pool", (200 to 1000).toList)
     pool.Selector = new RandomSelector
     val poolActor = context.actorOf(Props(classOf[NumberPoolActor], pool), name = s"$ZoneId-poolActor")
     accessor = context.actorOf(Props(classOf[NumberPoolAccessorActor], guid, pool, poolActor), s"$ZoneId-accessor")
 
-    StartupUtilities.foreach({case ((obj, uid)) =>
-      guid.register(obj, uid)
+    map.LocalObjects.foreach({builderObject =>
+      builderObject.Build
     })
   }
 
@@ -48,7 +48,7 @@ class Zone(id : String, zoneNumber : Int, map : String) {
 
   def ZoneNumber : Int = zoneNumber
 
-  def Map : String = map
+  def Map : ZoneMap = map
 
   def GUID : ActorRef = accessor
 
@@ -70,15 +70,15 @@ class Zone(id : String, zoneNumber : Int, map : String) {
 
   def EquipmentOnGround : ListBuffer[Equipment] = equipmentOnGround
 
-  def AddUtility(obj : PlanetSideGameObject, id : Int) : Unit = {
-    startupUtilities = startupUtilities :+ (obj, id)
-  }
-
-  def StartupUtilities : List[(IdentifiableEntity, Int)] =  {
-    val utilities = startupUtilities
-    startupUtilities = Nil
-    utilities
-  }
+//  def AddUtility(obj : ServerObjectBuilder) : Unit = {
+//    startupUtilities = startupUtilities :+ obj
+//  }
+//
+//  def StartupUtilities : List[ServerObjectBuilder] =  {
+//    val utilities = startupUtilities
+//    startupUtilities = Nil
+//    utilities
+//  }
 
   def ClientInitialization() : List[GamePacket] = {
     List.empty[GamePacket]
@@ -90,8 +90,6 @@ class Zone(id : String, zoneNumber : Int, map : String) {
 }
 
 object Zone {
-  final def Nowhere : Zone = { Zone("nowhere", 0, "nowhere") } //TODO needs overrides
-
   final case class DropItemOnGround(item : Equipment, pos : Vector3, orient : Vector3)
 
   final case class GetItemOnGround(player : Player, item_guid : PlanetSideGUID)
@@ -100,7 +98,7 @@ object Zone {
 
   final case class ClientInitialization(list : List[GamePacket])
 
-  def apply(zoneId : String, zoneNumber : Int, map : String) : Zone = {
-    new Zone(zoneId, zoneNumber, map)
+  def apply(id : String, map : ZoneMap, number : Int) : Zone = {
+    new Zone(id, map, number)
   }
 }

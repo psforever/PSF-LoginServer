@@ -3,7 +3,6 @@ package net.psforever.objects.continent
 
 import akka.actor.Actor
 import net.psforever.objects.equipment.Equipment
-import net.psforever.objects.guid.actor.Register
 import net.psforever.packet.game.PlanetSideGUID
 
 import scala.annotation.tailrec
@@ -13,7 +12,6 @@ class ZoneActor(zone : Zone) extends Actor {
 
   override def preStart() : Unit = {
     super.preStart()
-    log.info(s"Calling ${zone.ZoneId} init ...")
     zone.Init
   }
 

@@ -25,7 +25,7 @@ class IntergalacticCluster(zones : List[Zone]) extends Actor {
         case Some(continent) =>
           sender ! IntergalacticCluster.GiveWorld(zoneId, continent)
         case None =>
-          sender ! IntergalacticCluster.GiveWorld(zoneId, Zone.Nowhere)
+          log.error(s"Requested zone with id $zoneId could not be found")
       }
 
     case IntergalacticCluster.RequestZoneInitialization(tplayer) =>
