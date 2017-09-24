@@ -206,6 +206,8 @@ class ObjectCreateDetailedMessageTest extends Specification {
         char.appearance.ribbons.middle mustEqual MeritCommendation.None
         char.appearance.ribbons.lower mustEqual MeritCommendation.None
         char.appearance.ribbons.tos mustEqual MeritCommendation.None
+        char.bep mustEqual 0
+        char.cep mustEqual 0
         char.healthMax mustEqual 100
         char.health mustEqual 100
         char.armor mustEqual 50 //standard exosuit value
@@ -214,12 +216,15 @@ class ObjectCreateDetailedMessageTest extends Specification {
         char.unk3 mustEqual 7
         char.staminaMax mustEqual 100
         char.stamina mustEqual 100
-        char.unk4 mustEqual 28
-        char.unk5 mustEqual 4
-        char.unk6 mustEqual 44
-        char.unk7 mustEqual 84
-        char.unk8 mustEqual 104
-        char.unk9 mustEqual 1900
+        char.certs.length mustEqual 7
+        char.certs.head mustEqual CertificationType.StandardAssault
+        char.certs(1) mustEqual CertificationType.MediumAssault
+        char.certs(2) mustEqual CertificationType.ATV
+        char.certs(3) mustEqual CertificationType.Harasser
+        char.certs(4) mustEqual CertificationType.StandardExoSuit
+        char.certs(5) mustEqual CertificationType.AgileExoSuit
+        char.certs(6) mustEqual CertificationType.ReinforcedExoSuit
+        char.implants.length mustEqual 0
         char.firstTimeEvents.size mustEqual 4
         char.firstTimeEvents.head mustEqual "xpe_sanctuary_help"
         char.firstTimeEvents(1) mustEqual "xpe_th_firemodes"
@@ -405,14 +410,25 @@ class ObjectCreateDetailedMessageTest extends Specification {
       Nil
     val obj = DetailedCharacterData(
       app,
+      0,
+      0,
       100, 100,
       50,
       1, 7, 7,
       100, 100,
-      28, 4, 44, 84, 104, 1900,
+      List(
+        CertificationType.StandardAssault,
+        CertificationType.MediumAssault,
+        CertificationType.ATV,
+        CertificationType.Harasser,
+        CertificationType.StandardExoSuit,
+        CertificationType.AgileExoSuit,
+        CertificationType.ReinforcedExoSuit
+      ),
+      List(),
       "xpe_sanctuary_help" :: "xpe_th_firemodes" :: "used_beamer" :: "map13" :: Nil,
       List.empty,
-      InventoryData(inv),
+      Some(InventoryData(inv)),
       DrawnSlot.Pistol1
     )
     val msg = ObjectCreateDetailedMessage(0x79, PlanetSideGUID(75), obj)
