@@ -1,41 +1,47 @@
 // Copyright (c) 2017 PSForever
-package net.psforever.objects.continent
+package net.psforever.objects.zones
 
 import akka.actor.Actor
 import net.psforever.objects.equipment.Equipment
 import net.psforever.packet.game.PlanetSideGUID
 
 import scala.annotation.tailrec
+import scala.collection.mutable.ListBuffer
 
-class ZoneActor(zone : Zone) extends Actor {
-  private[this] val log = org.log4s.getLogger
-
-  override def preStart() : Unit = {
-    super.preStart()
-    zone.Init
-  }
+/**
+  * na
+  * @param equipmentOnGround a `List` of items (`Equipment`) dropped by players on the ground and can be collected again
+  */
+class ZoneGroundActor(equipmentOnGround : ListBuffer[Equipment]) extends Actor {
+  //private[this] val log = org.log4s.getLogger
 
   def receive : Receive = {
     case Zone.DropItemOnGround(item, pos, orient) =>
       item.Position = pos
       item.Orientation = orient
-      zone.EquipmentOnGround += item
+      equipmentOnGround += item
 
     case Zone.GetItemOnGround(player, item_guid) =>
       FindItemOnGround(item_guid) match {
         case Some(item) =>
           sender ! Zone.ItemFromGround(player, item)
         case None =>
-          log.warn(s"item on ground $item_guid was requested by $player for pickup but was not found")
+          org.log4s.getLogger.warn(s"item on ground $item_guid was requested by $player for pickup but was not found")
       }
 
     case _ => ;
   }
 
+  /**
+    * Shift through objects on the ground to find the location of a specific item.
+    * @param item_guid the global unique identifier of the piece of `Equipment` being sought
+    * @return the index of the object matching `item_guid`, if found;
+    *         `None`, otherwise
+    */
   private def FindItemOnGround(item_guid : PlanetSideGUID) : Option[Equipment] = {
-    recursiveFindItemOnGround(zone.EquipmentOnGround.iterator, item_guid) match {
+    recursiveFindItemOnGround(equipmentOnGround.iterator, item_guid) match {
       case Some(index) =>
-        Some(zone.EquipmentOnGround.remove(index))
+        Some(equipmentOnGround.remove(index))
       case None =>
         None
     }

@@ -3,7 +3,7 @@ import java.net.InetAddress
 import java.io.File
 import java.util.Locale
 
-import akka.actor.{ActorContext, ActorRef, ActorSystem, Props}
+import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.routing.RandomPool
 import ch.qos.logback.classic.LoggerContext
 import ch.qos.logback.classic.joran.JoranConfigurator
@@ -12,7 +12,7 @@ import ch.qos.logback.core.status._
 import ch.qos.logback.core.util.StatusPrinter
 import com.typesafe.config.ConfigFactory
 import net.psforever.crypto.CryptoInterface
-import net.psforever.objects.continent.{IntergalacticCluster, TerminalObjectBuilder, Zone, ZoneMap}
+import net.psforever.objects.zones.{InterstellarCluster, TerminalObjectBuilder, Zone, ZoneMap}
 import net.psforever.objects.guid.TaskResolver
 import org.slf4j
 import org.fusesource.jansi.Ansi._
@@ -202,7 +202,7 @@ object PsLogin {
     val serviceManager = ServiceManager.boot
     serviceManager ! ServiceManager.Register(RandomPool(50).props(Props[TaskResolver]), "taskResolver")
     serviceManager ! ServiceManager.Register(Props[AvatarService], "avatar")
-    serviceManager ! ServiceManager.Register(Props(classOf[IntergalacticCluster], createContinents()), "galaxy")
+    serviceManager ! ServiceManager.Register(Props(classOf[InterstellarCluster], createContinents()), "galaxy")
 
     /** Create two actors for handling the login and world server endpoints */
     loginRouter = Props(new SessionRouter("Login", loginTemplate))

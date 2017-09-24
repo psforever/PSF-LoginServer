@@ -11,7 +11,7 @@ import org.log4s.MDC
 import MDCContextAware.Implicits._
 import ServiceManager.Lookup
 import net.psforever.objects._
-import net.psforever.objects.continent.{Zone, IntergalacticCluster}
+import net.psforever.objects.zones.{InterstellarCluster, Zone}
 import net.psforever.objects.entity.IdentifiableEntity
 import net.psforever.objects.equipment._
 import net.psforever.objects.guid.{Task, TaskResolver}
@@ -410,7 +410,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
       sendResponse(PacketCoding.CreateGamePacket(0, CharacterInfoMessage(0, PlanetSideZoneID(1), 0, PlanetSideGUID(0), true, 0)))
 
-    case IntergalacticCluster.GiveWorld(zoneId, zone) =>
+    case InterstellarCluster.GiveWorld(zoneId, zone) =>
       log.info(s"Zone $zoneId has been loaded")
       player.Continent = zoneId
       continent = zone
@@ -419,7 +419,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case PlayerLoaded(tplayer) =>
       log.info(s"Player $tplayer has been loaded")
       //init for whole server
-      galaxy ! IntergalacticCluster.RequestZoneInitialization(tplayer)
+      galaxy ! InterstellarCluster.RequestClientInitialization(tplayer)
 
     case PlayerFailedToLoad(tplayer) =>
       player.Continent match {
@@ -460,9 +460,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
       sendResponse(PacketCoding.CreateGamePacket(0, BroadcastWarpgateUpdateMessage(PlanetSideGUID(13), PlanetSideGUID(1), false, false, true))) // VS Sanctuary: Inactive Warpgate -> Broadcast Warpgate
       sendResponse(PacketCoding.CreateGamePacket(0, ZonePopulationUpdateMessage(PlanetSideGUID(13), 414, 138, 0, 138, 0, 138, 0, 138, 0)))
 
-    case IntergalacticCluster.ClientInitializationComplete(tplayer)=>
+    case InterstellarCluster.ClientInitializationComplete(tplayer)=>
       //this will cause the client to send back a BeginZoningMessage packet (see below)
-      sendResponse(PacketCoding.CreateGamePacket(0, LoadMapMessage(continent.Map.Name, continent.ZoneId, 40100,25,true,3770441820L))) //VS Sanctuary
+      sendResponse(PacketCoding.CreateGamePacket(0, LoadMapMessage(continent.Map.Name, continent.Id, 40100,25,true,3770441820L))) //VS Sanctuary
       log.info("Load the now-registered player")
       //load the now-registered player
       tplayer.Spawn
@@ -474,7 +474,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case SetCurrentAvatar(tplayer) =>
       val guid = tplayer.GUID
-      LivePlayerList.Assign(continent.ZoneNumber, sessionId, guid)
+      LivePlayerList.Assign(continent.Number, sessionId, guid)
       sendResponse(PacketCoding.CreateGamePacket(0, SetCurrentAvatarMessage(guid,0,0)))
       sendResponse(PacketCoding.CreateGamePacket(0, CreateShortcutMessage(guid, 1, 0, true, Shortcut.MEDKIT)))
 
@@ -633,7 +633,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           //TODO check if can spawn on last continent/location from player?
           //TODO if yes, get continent guid accessors
           //TODO if no, get sanctuary guid accessors and reset the player's expectations
-          galaxy ! IntergalacticCluster.GetWorld("home3")
+          galaxy ! InterstellarCluster.GetWorld("home3")
 
           import scala.concurrent.duration._
           import scala.concurrent.ExecutionContext.Implicits.global
@@ -657,7 +657,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       sendResponse(PacketCoding.CreateGamePacket(0, ReplicationStreamMessage(5, Some(6), Vector(SquadListing())))) //clear squad list
 
       //load active players in zone
-      LivePlayerList.ZonePopulation(continent.ZoneNumber, _ => true).foreach(char => {
+      LivePlayerList.ZonePopulation(continent.Number, _ => true).foreach(char => {
         sendResponse(
           PacketCoding.CreateGamePacket(0,
             ObjectCreateMessage(ObjectClass.avatar, char.GUID, char.Definition.Packet.ConstructorData(char).get)
@@ -752,7 +752,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           if(item.GUID == item_guid) {
             val orient : Vector3 = Vector3(0f, 0f, player.Orientation.z)
             player.FreeHand.Equipment = None
-            continent.Actor ! Zone.DropItemOnGround(item, player.Position, orient) //TODO do I need to wait for callback?
+            continent.Ground ! Zone.DropItemOnGround(item, player.Position, orient)
             sendResponse(PacketCoding.CreateGamePacket(0, ObjectDetachMessage(player.GUID, item.GUID, player.Position, 0f, 0f, player.Orientation.z)))
             avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.EquipmentOnGround(player.GUID, player.Position, orient, item))
           }
@@ -765,7 +765,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ PickupItemMessage(item_guid, player_guid, unk1, unk2) =>
       log.info("PickupItem: " + msg)
-      continent.Actor ! Zone.GetItemOnGround(player, item_guid)
+      continent.Ground ! Zone.GetItemOnGround(player, item_guid)
 
     case msg @ ReloadMessage(item_guid, ammo_clip, unk1) =>
       log.info("Reload: " + msg)
