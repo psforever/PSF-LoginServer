@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package objects
 
-import net.psforever.objects.{Implant, Player, SimpleItem}
+import net.psforever.objects.{Player, SimpleItem}
 import net.psforever.objects.definition.{ImplantDefinition, SimpleItemDefinition}
 import net.psforever.objects.equipment.EquipmentSize
 import net.psforever.types.{CharacterGender, ExoSuitType, ImplantType, PlanetSideEmpire}
@@ -106,31 +106,39 @@ class PlayerTest extends Specification {
     obj.LastDrawnSlot mustEqual 1
   }
 
-  "install no implants until a slot is unlocked" in {
-    val testplant : Implant = Implant(ImplantDefinition(1))
+  "install an implant" in {
+    val testplant : ImplantDefinition = ImplantDefinition(1)
     val obj = new Player("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
-    obj.Implants(0).Unlocked mustEqual false
-    obj.Implant(0) mustEqual None
-    obj.InstallImplant(testplant)
-    obj.Implant(0) mustEqual None
-    obj.Implant(ImplantType(1)) mustEqual None
-
     obj.Implants(0).Unlocked = true
-    obj.InstallImplant(testplant)
-    obj.Implant(0) mustEqual Some(testplant.Definition.Type)
-    obj.Implant(ImplantType(1)) mustEqual Some(testplant)
+    obj.InstallImplant(testplant) mustEqual true
+    obj.Implants.find({p => p.Implant == ImplantType(1)}) match { //find the installed implant
+      case Some(slot) =>
+        slot.Installed mustEqual Some(testplant)
+      case _ =>
+        ko
+    }
+    ok
+  }
+
+  "can not install the same type of implant twice" in {
+    val testplant1 : ImplantDefinition = ImplantDefinition(1)
+    val testplant2 : ImplantDefinition = ImplantDefinition(1)
+    val obj = new Player("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
+    obj.Implants(0).Unlocked = true
+    obj.Implants(1).Unlocked = true
+    obj.InstallImplant(testplant1) mustEqual true
+    obj.InstallImplant(testplant2) mustEqual false
   }
 
   "uninstall implants" in {
-    val testplant : Implant = Implant(ImplantDefinition(1))
+    val testplant : ImplantDefinition = ImplantDefinition(1)
     val obj = new Player("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
     obj.Implants(0).Unlocked = true
-    obj.InstallImplant(testplant)
-    obj.Implant(ImplantType(1)) mustEqual Some(testplant)
+    obj.InstallImplant(testplant) mustEqual true
+    obj.Implants(0).Installed mustEqual Some(testplant)
 
-    obj.UninstallImplant(ImplantType(1))
-    obj.Implant(0) mustEqual None
-    obj.Implant(ImplantType(1)) mustEqual None
+    obj.UninstallImplant(testplant.Type)
+    obj.Implants(0).Installed mustEqual None
   }
 
   "administrate" in {

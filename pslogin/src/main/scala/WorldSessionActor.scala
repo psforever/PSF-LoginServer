@@ -584,6 +584,13 @@ class WorldSessionActor extends Actor with MDCContextAware {
   player.Position = Vector3(3674.8438f, 2726.789f, 91.15625f)
   player.Orientation = Vector3(0f, 0f, 90f)
   player.Continent = "home3"
+  player.Certifications += CertificationType.StandardAssault
+  player.Certifications += CertificationType.MediumAssault
+  player.Certifications += CertificationType.StandardExoSuit
+  player.Certifications += CertificationType.AgileExoSuit
+  player.Certifications += CertificationType.ReinforcedExoSuit
+  player.Certifications += CertificationType.ATV
+  player.Certifications += CertificationType.Harasser
   player.Slot(0).Equipment = beamer1
   player.Slot(2).Equipment = suppressor1
   player.Slot(4).Equipment = forceblade1
@@ -936,6 +943,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ ChangeAmmoMessage(item_guid, unk1) =>
       log.info("ChangeAmmo: " + msg)
+
+    case msg @ AvatarImplantMessage(_, _, _, _) => //(player_guid, unk1, unk2, implant) =>
+      log.info("AvatarImplantMessage: " + msg)
 
     case msg @ UseItemMessage(avatar_guid, unk1, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType) =>
       log.info("UseItem: " + msg)

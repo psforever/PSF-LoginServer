@@ -1,11 +1,10 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.definition.converter
 
-import net.psforever.objects.{EquipmentSlot, Player}
+import net.psforever.objects.{EquipmentSlot, GlobalDefinitions, ImplantSlot, Player}
 import net.psforever.objects.equipment.Equipment
-import net.psforever.packet.game.PlanetSideGUID
-import net.psforever.packet.game.objectcreate.{BasicCharacterData, CharacterAppearanceData, CharacterData, DetailedCharacterData, DrawnSlot, InternalSlot, InventoryData, PlacementData, RibbonBars, UniformStyle}
-import net.psforever.types.GrenadeState
+import net.psforever.packet.game.objectcreate.{BasicCharacterData, CharacterAppearanceData, CharacterData, DetailedCharacterData, DrawnSlot, ImplantEffects, ImplantEntry, InternalSlot, InventoryData, PlacementData, RibbonBars, UniformStyle}
+import net.psforever.types.{GrenadeState, ImplantType}
 
 import scala.annotation.tailrec
 import scala.util.{Success, Try}
@@ -17,11 +16,11 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
         MakeAppearanceData(obj),
         obj.Health / obj.MaxHealth * 255, //TODO not precise
         obj.Armor / obj.MaxArmor * 255, //TODO not precise
-        UniformStyle.Normal,
-        0,
+        DressBattleRank(obj),
+        DressCommandRank(obj),
+        recursiveMakeImplantEffects(obj.Implants.iterator),
         None, //TODO cosmetics
-        None, //TODO implant effects
-        InventoryData(MakeHolsters(obj, BuildEquipment).sortBy(_.parentSlot)),
+        InventoryData(MakeHolsters(obj, BuildEquipment).sortBy(_.parentSlot)), //TODO is sorting necessary?
         GetDrawnSlot(obj)
       )
     )
@@ -32,20 +31,21 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
     Success(
       DetailedCharacterData(
         MakeAppearanceData(obj),
+        obj.BEP,
+        obj.CEP,
         obj.MaxHealth,
         obj.Health,
         obj.Armor,
-        1, 7, 7,
         obj.MaxStamina,
         obj.Stamina,
-        28, 4, 44, 84, 104, 1900,
+        obj.Certifications.toList.sortBy(_.id), //TODO is sorting necessary?
+        MakeImplantEntries(obj),
         List.empty[String], //TODO fte list
         List.empty[String], //TODO tutorial list
         InventoryData((MakeHolsters(obj, BuildDetailedEquipment) ++ MakeFifthSlot(obj) ++ MakeInventory(obj)).sortBy(_.parentSlot)),
         GetDrawnSlot(obj)
       )
     )
-    //TODO tidy this mess up
   }
 
   /**
@@ -64,8 +64,8 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
       "",
       0,
       obj.isBackpack,
-      obj.Orientation.y.toInt,
-      obj.FacingYawUpper.toInt,
+      obj.Orientation.y,
+      obj.FacingYawUpper,
       true,
       GrenadeState.None,
       false,
@@ -73,6 +73,107 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
       false,
       RibbonBars()
     )
+  }
+
+  /**
+    * Select the appropriate `UniformStyle` design for a player's accumulated battle experience points.
+    * At certain battle ranks, all exo-suits undergo some form of coloration change.
+    * @param obj the `Player` game object
+    * @return the resulting uniform upgrade level
+    */
+  private def DressBattleRank(obj : Player) : UniformStyle.Value = {
+    val bep : Long = obj.BEP
+    if(bep > 2583440) { //BR25+
+      UniformStyle.ThirdUpgrade
+    }
+    else if(bep > 308989) { //BR14+
+      UniformStyle.SecondUpgrade
+    }
+    else if(bep > 44999) { //BR7+
+      UniformStyle.FirstUpgrade
+    }
+    else { //BR1+
+      UniformStyle.Normal
+    }
+  }
+
+  /**
+    * Select the appropriate design for a player's accumulated command experience points.
+    * Visual cues for command rank include armlets, anklets, and, finally, a backpack, awarded at different ranks.
+    * @param obj the `Player` game object
+    * @return the resulting uniform upgrade level
+    */
+  private def DressCommandRank(obj : Player) : Int = {
+    val cep = obj.CEP
+    if(cep > 599999) {
+      5
+    }
+    else if(cep > 299999) {
+      4
+    }
+    else if(cep > 149999) {
+      3
+    }
+    else if(cep > 49999) {
+      2
+    }
+    else if(cep > 9999) {
+      1
+    }
+    else {
+      0
+    }
+  }
+
+  /**
+    * Transform an `Array` of `Implant` objects into a `List` of `ImplantEntry` objects suitable as packet data.
+    * @param obj the `Player` game object
+    * @return the resulting implant `List`
+    * @see `ImplantEntry` in `DetailedCharacterData`
+    */
+  private def MakeImplantEntries(obj : Player) : List[ImplantEntry] = {
+    obj.Implants.map(slot => {
+      slot.Installed match {
+        case Some(_) =>
+          if(slot.Initialized) {
+            ImplantEntry(slot.Implant, None)
+          }
+          else {
+            ImplantEntry(slot.Implant, Some(slot.Installed.get.Initialization.toInt))
+          }
+        case None =>
+          ImplantEntry(ImplantType.None, None)
+      }
+    }).toList
+  }
+
+  /**
+    * Find an active implant whose effect will be displayed on this player.
+    * @param iter an `Iterator` of `ImplantSlot` objects
+    * @return the effect of an active implant
+    */
+  @tailrec private def recursiveMakeImplantEffects(iter : Iterator[ImplantSlot]) : Option[ImplantEffects.Value] = {
+    if(!iter.hasNext) {
+      None
+    }
+    else {
+      val slot = iter.next
+      if(slot.Active) {
+        import GlobalDefinitions._
+        slot.Installed match {
+          case Some(`advanced_regen`) =>
+            Some(ImplantEffects.RegenEffects)
+          case Some(`darklight_vision`) =>
+            Some(ImplantEffects.DarklightEffects)
+          case Some(`personal_shield`) =>
+            Some(ImplantEffects.PersonalShieldEffects)
+          case Some(`surge`) =>
+            Some(ImplantEffects.SurgeEffects)
+          case _ => ;
+        }
+      }
+      recursiveMakeImplantEffects(iter)
+    }
   }
 
   /**
@@ -139,6 +240,14 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
     InternalSlot(equip.Definition.ObjectId, equip.GUID, index, equip.Definition.Packet.DetailedConstructorData(equip).get)
   }
 
+  /**
+    * Given some equipment holsters, convert the contents of those holsters into converted-decoded packet data.
+    * @param iter an `Iterator` of `EquipmentSlot` objects that are a part of the player's holsters
+    * @param builder the function used to transform to the decoded packet form
+    * @param list the current `List` of transformed data
+    * @param index which holster is currently being explored
+    * @return the `List` of inventory data created from the holsters
+    */
   @tailrec private def recursiveMakeHolsters(iter : Iterator[EquipmentSlot], builder : ((Int, Equipment) => InternalSlot), list : List[InternalSlot] = Nil, index : Int = 0) : List[InternalSlot] = {
     if(!iter.hasNext) {
       list

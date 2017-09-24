@@ -117,12 +117,27 @@ final case class CharacterAppearanceData(pos : PlacementData,
     val placementSize : Long = pos.bitsize
     val nameStringSize : Long = StreamBitSize.stringBitSize(basic_appearance.name, 16) + CharacterAppearanceData.namePadding(pos.vel)
     val outfitStringSize : Long = StreamBitSize.stringBitSize(outfit_name, 16) + CharacterAppearanceData.outfitNamePadding
-    val altModelSize = if(on_zipline || backpack) { 1L }  else { 0L }
+    val altModelSize = CharacterAppearanceData.altModelBit(this).getOrElse(0)
     335L + placementSize + nameStringSize + outfitStringSize + altModelSize
   }
 }
 
 object CharacterAppearanceData extends Marshallable[CharacterAppearanceData] {
+  /**
+    * When a player is released-dead or attached to a zipline, their basic infantry model is replaced with a different one.
+    * In the former casde, a backpack.
+    * In the latter case, a ball of colored energy.
+    * In this state, the length of the stream of data is modified.
+    * @param app the appearance
+    * @return the length of the variable field that exists when using alternate models
+    */
+  def altModelBit(app : CharacterAppearanceData) : Option[Int] = if(app.backpack || app.on_zipline) {
+      Some(1)
+    }
+    else {
+      None
+    }
+
   /**
     * Get the padding of the player's name.
     * The padding will always be a number 0-7.
@@ -151,7 +166,7 @@ object CharacterAppearanceData extends Marshallable[CharacterAppearanceData] {
       ("faction" | PlanetSideEmpire.codec) ::
         ("black_ops" | bool) ::
         (("alt_model" | bool) >>:~ { alt_model => //modifies stream format (to display alternate player models)
-            ignore(1) :: //unknown
+          ignore(1) :: //unknown
             ("jammered" | bool) ::
             bool :: //crashes client
             uint(16) :: //unknown, but usually 0
@@ -204,7 +219,7 @@ object CharacterAppearanceData extends Marshallable[CharacterAppearanceData] {
         Attempt.failure(Err(s"character $name's faction can not declare as neutral"))
 
       case CharacterAppearanceData(pos, BasicCharacterData(name, faction, sex, head, v1), v2, bops, jamd, suit, outfit, logo, bpack, facingPitch, facingYawUpper, lfs, gstate, cloaking, charging, zipline, ribbons) =>
-        val has_outfit_name : Long = outfit.length.toLong //todo this is a kludge
+        val has_outfit_name : Long = outfit.length.toLong //TODO this is a kludge
         var alt_model : Boolean = false
         var alt_model_extrabit : Option[Boolean] = None
         if(zipline || bpack) {
