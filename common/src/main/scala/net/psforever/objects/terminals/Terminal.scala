@@ -142,6 +142,10 @@ object Terminal {
     */
   final case class InfantryLoadout(exosuit : ExoSuitType.Value, subtype : Int = 0, holsters : List[InventoryItem], inventory : List[InventoryItem]) extends Exchange
 
+  def apply(tdef : TerminalDefinition) : Terminal = {
+    new Terminal(tdef)
+  }
+
   import net.psforever.packet.game.PlanetSideGUID
   def apply(guid : PlanetSideGUID, tdef : TerminalDefinition) : Terminal = {
     val obj = new Terminal(tdef)

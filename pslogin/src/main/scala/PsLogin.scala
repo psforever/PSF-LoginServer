@@ -12,10 +12,8 @@ import ch.qos.logback.core.status._
 import ch.qos.logback.core.util.StatusPrinter
 import com.typesafe.config.ConfigFactory
 import net.psforever.crypto.CryptoInterface
-import net.psforever.objects.guid.{NumberPoolHub, TaskResolver}
-import net.psforever.objects.guid.actor.{NumberPoolAccessorActor, NumberPoolActor}
-import net.psforever.objects.guid.selector.RandomSelector
-import net.psforever.objects.guid.source.LimitedNumberSource
+import net.psforever.objects.zones.{InterstellarCluster, TerminalObjectBuilder, Zone, ZoneMap}
+import net.psforever.objects.guid.TaskResolver
 import org.slf4j
 import org.fusesource.jansi.Ansi._
 import org.fusesource.jansi.Ansi.Color._
@@ -89,7 +87,7 @@ object PsLogin {
       configurator.doConfigure(logfile)
     }
     catch {
-      case je : JoranException => ;
+      case _ : JoranException => ;
     }
 
     if(loggerHasErrors(lc)) {
@@ -202,23 +200,9 @@ object PsLogin {
     */
 
     val serviceManager = ServiceManager.boot
-
-    //experimental guid code
-    val hub = new NumberPoolHub(new LimitedNumberSource(65536))
-    val pool1 = hub.AddPool("test1", (400 to 599).toList)
-    val poolActor1 = system.actorOf(Props(classOf[NumberPoolActor], pool1), name = "poolActor1")
-    pool1.Selector = new RandomSelector
-    val pool2 = hub.AddPool("test2", (600 to 799).toList)
-    val poolActor2 = system.actorOf(Props(classOf[NumberPoolActor], pool2), name = "poolActor2")
-    pool2.Selector = new RandomSelector
-
-    serviceManager ! ServiceManager.Register(Props(classOf[NumberPoolAccessorActor], hub, pool1, poolActor1), "accessor1")
-    serviceManager ! ServiceManager.Register(Props(classOf[NumberPoolAccessorActor], hub, pool2, poolActor2), "accessor2")
-
-    //task resolver
     serviceManager ! ServiceManager.Register(RandomPool(50).props(Props[TaskResolver]), "taskResolver")
-
     serviceManager ! ServiceManager.Register(Props[AvatarService], "avatar")
+    serviceManager ! ServiceManager.Register(Props(classOf[InterstellarCluster], createContinents()), "galaxy")
 
     /** Create two actors for handling the login and world server endpoints */
     loginRouter = Props(new SessionRouter("Login", loginTemplate))
@@ -233,6 +217,19 @@ object PsLogin {
       // TODO: clean up active sessions and close resources safely
       logger.info("Login server now shutting down...")
     }
+  }
+
+  def createContinents() : List[Zone] = {
+    val map13 = new ZoneMap("map13") {
+      import net.psforever.objects.GlobalDefinitions._
+      LocalObject(TerminalObjectBuilder(orderTerminal, 853))
+      LocalObject(TerminalObjectBuilder(orderTerminal, 855))
+      LocalObject(TerminalObjectBuilder(orderTerminal, 860))
+    }
+    val home3 = Zone("home3", map13, 13)
+
+    home3 ::
+      Nil
   }
 
   def main(args : Array[String]) : Unit = {

@@ -6,6 +6,8 @@ import net.psforever.objects.definition.converter.{CommandDetonaterConverter, Lo
 import net.psforever.objects.equipment.CItem.DeployedItem
 import net.psforever.objects.equipment._
 import net.psforever.objects.inventory.InventoryTile
+import net.psforever.objects.terminals.OrderTerminalDefinition
+import net.psforever.packet.game.objectcreate.ObjectClass
 import net.psforever.types.PlanetSideEmpire
 
 object GlobalDefinitions {
@@ -1235,4 +1237,7 @@ object GlobalDefinitions {
   fury.Weapons += 1 -> fury_weapon_systema
   fury.TrunkSize = InventoryTile(11, 11)
   fury.TrunkOffset = 30
+
+  val
+  orderTerminal = new OrderTerminalDefinition
 }
