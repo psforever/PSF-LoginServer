@@ -11,6 +11,7 @@ import org.log4s.MDC
 import MDCContextAware.Implicits._
 import ServiceManager.Lookup
 import net.psforever.objects._
+import net.psforever.objects.doors.Door
 import net.psforever.objects.zones.{InterstellarCluster, Zone}
 import net.psforever.objects.entity.IdentifiableEntity
 import net.psforever.objects.equipment._
@@ -204,6 +205,17 @@ class WorldSessionActor extends Actor with MDCContextAware {
           }
 
         case _ => ;
+      }
+
+    case Door.DoorMessage(_, msg, order) =>
+      order match {
+        case Door.OpenEvent() =>
+          sendResponse(PacketCoding.CreateGamePacket(0, GenericObjectStateMsg(msg.object_guid, 16)))
+
+        case Door.CloseEvent() =>
+          sendResponse(PacketCoding.CreateGamePacket(0, GenericObjectStateMsg(msg.object_guid, 17)))
+
+        case Door.NoEvent() => ;
       }
 
     case Terminal.TerminalMessage(tplayer, msg, order) =>
@@ -943,15 +955,24 @@ class WorldSessionActor extends Actor with MDCContextAware {
       log.info("UseItem: " + msg)
       // TODO: Not all fields in the response are identical to source in real packet logs (but seems to be ok)
       // TODO: Not all incoming UseItemMessage's respond with another UseItemMessage (i.e. doors only send out GenericObjectStateMsg)
-      if (itemType != 121) sendResponse(PacketCoding.CreateGamePacket(0, UseItemMessage(avatar_guid, unk1, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType)))
-      if (itemType == 121 && !unk3){ // TODO : medkit use ?!
-        sendResponse(PacketCoding.CreateGamePacket(0, UseItemMessage(avatar_guid, unk1, object_guid, 0, unk3, unk4, unk5, unk6, unk7, unk8, itemType)))
-        sendResponse(PacketCoding.CreateGamePacket(0, PlanetsideAttributeMessage(avatar_guid, 0, 100))) // avatar with 100 hp
-        sendResponse(PacketCoding.CreateGamePacket(0, ObjectDeleteMessage(PlanetSideGUID(unk1), 2)))
-      }
-      if (unk1 == 0 && !unk3 && unk7 == 25) {
-        // TODO: This should only actually be sent to doors upon opening; may break non-door items upon use
-        sendResponse(PacketCoding.CreateGamePacket(0, GenericObjectStateMsg(object_guid, 16)))
+      continent.GUID(object_guid) match {
+        case Some(door : Door) =>
+          log.info("Door action!")
+          door.Actor ! Door.Request(player, msg)
+        case Some(obj : PlanetSideGameObject) =>
+          if(itemType != 121) {
+            sendResponse(PacketCoding.CreateGamePacket(0, UseItemMessage(avatar_guid, unk1, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType)))
+          }
+          else if(itemType == 121 && !unk3) { // TODO : medkit use ?!
+            sendResponse(PacketCoding.CreateGamePacket(0, UseItemMessage(avatar_guid, unk1, object_guid, 0, unk3, unk4, unk5, unk6, unk7, unk8, itemType)))
+            sendResponse(PacketCoding.CreateGamePacket(0, PlanetsideAttributeMessage(avatar_guid, 0, 100))) // avatar with 100 hp
+            sendResponse(PacketCoding.CreateGamePacket(0, ObjectDeleteMessage(PlanetSideGUID(unk1), 2)))
+          }
+//          if(unk1 == 0 && !unk3 && unk7 == 25) {
+//            // TODO: This should only actually be sent to doors upon opening; may break non-door items upon use
+//            sendResponse(PacketCoding.CreateGamePacket(0, GenericObjectStateMsg(object_guid, 16)))
+//          }
+        case None => ;
       }
     
     case msg @ UnuseItemMessage(player_guid, item) =>

@@ -12,7 +12,7 @@ import ch.qos.logback.core.status._
 import ch.qos.logback.core.util.StatusPrinter
 import com.typesafe.config.ConfigFactory
 import net.psforever.crypto.CryptoInterface
-import net.psforever.objects.zones.{InterstellarCluster, TerminalObjectBuilder, Zone, ZoneMap}
+import net.psforever.objects.zones._
 import net.psforever.objects.guid.TaskResolver
 import org.slf4j
 import org.fusesource.jansi.Ansi._
@@ -222,6 +222,12 @@ object PsLogin {
   def createContinents() : List[Zone] = {
     val map13 = new ZoneMap("map13") {
       import net.psforever.objects.GlobalDefinitions._
+      val ddef = new net.psforever.objects.doors.DoorDefinition(242) {} //generic door
+
+      LocalObject(DoorObjectBuilder(ddef, 330))
+      LocalObject(DoorObjectBuilder(ddef, 332))
+      LocalObject(DoorObjectBuilder(ddef, 372))
+      LocalObject(DoorObjectBuilder(ddef, 373))
       LocalObject(TerminalObjectBuilder(cert_terminal, 186))
       LocalObject(TerminalObjectBuilder(cert_terminal, 187))
       LocalObject(TerminalObjectBuilder(cert_terminal, 188))

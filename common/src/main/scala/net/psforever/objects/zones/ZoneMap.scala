@@ -21,7 +21,7 @@ package net.psforever.objects.zones
   *      `LoadMapMessage`
   */
 class ZoneMap(private val name : String) {
-  private var localObjects : List[ServerObjectBuilder] = List()
+  private var localObjects : List[ServerObjectBuilder[_]] = List()
 
   def Name : String = name
 
@@ -29,7 +29,7 @@ class ZoneMap(private val name : String) {
     * Append the builder for a server object to the list of builders known to this `ZoneMap`.
     * @param obj the builder for a server object
     */
-  def LocalObject(obj : ServerObjectBuilder) : Unit = {
+  def LocalObject(obj : ServerObjectBuilder[_]) : Unit = {
     localObjects = localObjects :+ obj
   }
 
@@ -37,7 +37,7 @@ class ZoneMap(private val name : String) {
     * The list of all server object builder wrappers that have been assigned to this `ZoneMap`.
     * @return the `List` of all `ServerObjectBuilders` known to this `ZoneMap`
     */
-  def LocalObjects : List[ServerObjectBuilder] =  {
+  def LocalObjects : List[ServerObjectBuilder[_]] =  {
     localObjects
   }
 }

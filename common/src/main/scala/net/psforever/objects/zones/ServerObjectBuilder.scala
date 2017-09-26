@@ -9,7 +9,7 @@ import net.psforever.objects.guid.NumberPoolHub
   * Wrapper `Trait` designed to be extended to implement custom object instantiation logic at the `ZoneMap` level.
   * @see `Zone.Init`
   */
-trait ServerObjectBuilder {
+trait ServerObjectBuilder[A <: PlanetSideGameObject] {
   /**
     * Instantiate and configure the given server object
     * (at a later time compared to the construction of the builder class).<br>
@@ -23,5 +23,5 @@ trait ServerObjectBuilder {
     *             defaults to `null`
     * @return the object that was created and integrated into the `Zone`
     */
-  def Build(implicit context : ActorContext = null, guid : NumberPoolHub = null) : PlanetSideGameObject
+  def Build(implicit context : ActorContext = null, guid : NumberPoolHub = null) : A
 }

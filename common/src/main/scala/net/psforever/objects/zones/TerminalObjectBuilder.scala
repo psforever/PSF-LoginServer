@@ -8,7 +8,7 @@ import net.psforever.objects.terminals.{Terminal, TerminalDefinition}
   * @param tdef a `TerminalDefinition` object, indicating the specific functionality of the resulting `Terminal`
   * @param id the globally unique identifier to which this `Terminal` will be registered
   */
-class TerminalObjectBuilder(private val tdef : TerminalDefinition, private val id : Int) extends ServerObjectBuilder {
+class TerminalObjectBuilder(private val tdef : TerminalDefinition, private val id : Int) extends ServerObjectBuilder[Terminal] {
   import akka.actor.ActorContext
   import net.psforever.objects.guid.NumberPoolHub
 
