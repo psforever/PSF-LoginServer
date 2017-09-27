@@ -76,12 +76,12 @@ class UniqueNumberSystem(private val guid : NumberPoolHub, private val poolActor
             case Some(entry) =>
               entry.replyTo ! Failure(ex) //ONLY callback that is possible
             case None => ;
-              log.warn(s"awkward no number error $ex") //neither a successful request nor an entry of making the request
+              log.warn(s"failed number request and no record of number request - $ex") //neither a successful request nor an entry of making the request
           }
         case None => ;
-          log.warn(s"awkward no number error $ex") //neither a successful request nor an entry of making the request
+          log.warn(s"failed number request and no record of number request - $ex") //neither a successful request nor an entry of making the request
         case _ => ;
-          log.warn(s"unrecognized request $id accompanying a no number error $ex")
+          log.warn(s"unrecognized request $id accompanying a failed number request - $ex")
       }
 
     case Unregister(obj, call) =>
@@ -126,7 +126,7 @@ class UniqueNumberSystem(private val guid : NumberPoolHub, private val poolActor
               log.error(s"could not find original request $nid that caused error $ex, but pool was $sender")
               //no callback is possible
           }
-        case None => ;
+        case _ => ;
           log.error(s"could not find original request $id that caused error $ex, but pool was $sender")
           //no callback is possible
       }

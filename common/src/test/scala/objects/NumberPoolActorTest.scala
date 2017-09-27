@@ -2,24 +2,16 @@
 package objects
 
 import akka.actor.{ActorSystem, Props}
-import akka.testkit.{ImplicitSender, TestKit, TestProbe}
+import akka.testkit.TestProbe
 import net.psforever.objects.entity.IdentifiableEntity
 import net.psforever.objects.guid.NumberPoolHub
-import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 import net.psforever.objects.guid.actor.{NumberPoolAccessorActor, NumberPoolActor, Register}
 import net.psforever.objects.guid.pool.ExclusivePool
 import net.psforever.objects.guid.selector.RandomSelector
 import net.psforever.objects.guid.source.LimitedNumberSource
-import org.specs2.specification.Scope
 
 import scala.concurrent.duration.Duration
 import scala.util.Success
-
-abstract class ActorTest(sys : ActorSystem) extends TestKit(sys) with Scope with ImplicitSender with WordSpecLike with Matchers with BeforeAndAfterAll {
-  override def afterAll {
-    TestKit.shutdownActorSystem(system)
-  }
-}
 
 class NumberPoolActorTest extends ActorTest(ActorSystem("test")) {
   "NumberPoolActor" should {
