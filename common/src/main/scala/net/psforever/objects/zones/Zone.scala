@@ -2,6 +2,7 @@
 package net.psforever.objects.zones
 
 import akka.actor.{ActorContext, ActorRef, Props}
+import net.psforever.objects.doors.Base
 import net.psforever.objects.{PlanetSideGameObject, Player}
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.guid.NumberPoolHub
@@ -48,6 +49,8 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
   /** Used by the `Zone` to coordinate `Equipment` dropping and collection requests. */
   private var ground : ActorRef = ActorRef.noSender
 
+  private var bases : List[Base] = List()
+
   /**
     * Establish the basic accessible conditions necessary for a functional `Zone`.<br>
     * <br>
@@ -69,6 +72,8 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
       Map.LocalObjects.foreach({ builderObject =>
         builderObject.Build
       })
+
+      MakeBases(Map.LocalBases)
     }
   }
 
@@ -168,6 +173,15 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
     *      `Zone.ItemFromGround`
     */
   def Ground : ActorRef = ground
+
+  def MakeBases(num : Int) : List[Base] = {
+    bases = (0 to num).map(id => new Base(id)).toList
+    bases
+  }
+
+  def Base(id : Int) : Option[Base] = {
+    bases.lift(id)
+  }
 
   /**
     * Provide bulk correspondence on all map entities that can be composed into packet messages and reported to a client.

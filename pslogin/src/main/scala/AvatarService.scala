@@ -1,22 +1,14 @@
-// Copyright (c) 2016 PSForever.net to present
+// Copyright (c) 2017 PSForever
 import akka.actor.Actor
-import akka.event.{ActorEventBus, SubchannelClassification}
-import akka.util.Subclassification
 import net.psforever.objects.equipment.Equipment
 import net.psforever.packet.game.objectcreate.ConstructorData
 import net.psforever.types.ExoSuitType
 import net.psforever.packet.game.{PlanetSideGUID, PlayerStateMessageUpstream}
 import net.psforever.types.Vector3
 
-sealed trait Action
-
-sealed trait Response
-
-final case class Join(channel : String)
-final case class Leave()
-final case class LeaveAll()
-
 object AvatarAction {
+  trait Action
+
   final case class ArmorChanged(player_guid : PlanetSideGUID, suit : ExoSuitType.Value, subtype : Int) extends Action
   //final case class DropItem(pos : Vector3, orient : Vector3, item : PlanetSideGUID) extends Action
   final case class EquipmentInHand(player_guid : PlanetSideGUID, slot : Int, item : Equipment) extends Action
@@ -36,6 +28,8 @@ object AvatarAction {
 }
 
 object AvatarServiceResponse {
+  trait Response
+
   final case class ArmorChanged(suit : ExoSuitType.Value, subtype : Int) extends Response
   //final case class DropItem(pos : Vector3, orient : Vector3, item : PlanetSideGUID) extends Response
   final case class EquipmentInHand(slot : Int, item : Equipment) extends Response
@@ -54,29 +48,13 @@ object AvatarServiceResponse {
 //  final case class ChangeWeapon(facingYaw : Int) extends Response
 }
 
-final case class AvatarServiceMessage(forChannel : String, actionMessage : Action)
+final case class AvatarServiceMessage(forChannel : String, actionMessage : AvatarAction.Action)
 
-final case class AvatarServiceResponse(toChannel : String, avatar_guid : PlanetSideGUID, replyMessage : Response)
+final case class AvatarServiceResponse(toChannel : String, avatar_guid : PlanetSideGUID, replyMessage : AvatarServiceResponse.Response) extends GenericEventBusMsg
 
 /*
-   /avatar/
+   /Avatar/
  */
-
-class AvatarEventBus extends ActorEventBus with SubchannelClassification {
-  type Event = AvatarServiceResponse
-  type Classifier = String
-
-  protected def classify(event: Event): Classifier = event.toChannel
-
-  protected def subclassification = new Subclassification[Classifier] {
-    def isEqual(x: Classifier, y: Classifier) = x == y
-    def isSubclass(x: Classifier, y: Classifier) = x.startsWith(y)
-  }
-
-  protected def publish(event: Event, subscriber: Subscriber): Unit = {
-    subscriber ! event
-  }
-}
 
 class AvatarService extends Actor {
   //import AvatarServiceResponse._
@@ -86,62 +64,58 @@ class AvatarService extends Actor {
     log.info("Starting...")
   }
 
-  val AvatarEvents = new AvatarEventBus
-
-  /*val channelMap = Map(
-    AvatarMessageType.CMT_OPEN -> AvatarPath("local")
-  )*/
+  val AvatarEvents = new GenericEventBus[AvatarServiceResponse] //AvatarEventBus
 
   def receive = {
-    case Join(channel) =>
-      val path = "/Avatar/" + channel
+    case Service.Join(channel) =>
+      val path = s"/$channel/Avatar"
       val who = sender()
 
       log.info(s"$who has joined $path")
 
       AvatarEvents.subscribe(who, path)
-    case Leave() =>
+    case Service.Leave() =>
       AvatarEvents.unsubscribe(sender())
-    case LeaveAll() =>
+    case Service.LeaveAll() =>
       AvatarEvents.unsubscribe(sender())
 
     case AvatarServiceMessage(forChannel, action) =>
       action match {
         case AvatarAction.ArmorChanged(player_guid, suit, subtype) =>
           AvatarEvents.publish(
-            AvatarServiceResponse("/Avatar/" + forChannel, player_guid, AvatarServiceResponse.ArmorChanged(suit, subtype))
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarServiceResponse.ArmorChanged(suit, subtype))
           )
         case AvatarAction.EquipmentInHand(player_guid, slot, obj) =>
           AvatarEvents.publish(
-            AvatarServiceResponse("/Avatar/" + forChannel, player_guid, AvatarServiceResponse.EquipmentInHand(slot, obj))
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarServiceResponse.EquipmentInHand(slot, obj))
           )
         case AvatarAction.EquipmentOnGround(player_guid, pos, orient, obj) =>
           AvatarEvents.publish(
-            AvatarServiceResponse("/Avatar/" + forChannel, player_guid, AvatarServiceResponse.EquipmentOnGround(pos, orient, obj))
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarServiceResponse.EquipmentOnGround(pos, orient, obj))
           )
         case AvatarAction.LoadPlayer(player_guid, pdata) =>
           AvatarEvents.publish(
-            AvatarServiceResponse("/Avatar/" + forChannel, player_guid, AvatarServiceResponse.LoadPlayer(pdata))
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarServiceResponse.LoadPlayer(pdata))
           )
         case AvatarAction.ObjectDelete(player_guid, item_guid, unk) =>
           AvatarEvents.publish(
-            AvatarServiceResponse("/Avatar/" + forChannel, player_guid, AvatarServiceResponse.ObjectDelete(item_guid, unk))
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarServiceResponse.ObjectDelete(item_guid, unk))
           )
         case AvatarAction.ObjectHeld(player_guid, slot) =>
           AvatarEvents.publish(
-            AvatarServiceResponse("/Avatar/" + forChannel, player_guid, AvatarServiceResponse.ObjectHeld(slot))
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarServiceResponse.ObjectHeld(slot))
           )
         case AvatarAction.PlanetsideAttribute(guid, attribute_type, attribute_value) =>
           AvatarEvents.publish(
-            AvatarServiceResponse("/Avatar/" + forChannel, guid, AvatarServiceResponse.PlanetSideAttribute(attribute_type, attribute_value))
+            AvatarServiceResponse(s"/$forChannel/Avatar", guid, AvatarServiceResponse.PlanetSideAttribute(attribute_type, attribute_value))
           )
         case AvatarAction.PlayerState(guid, msg, spectator, weapon) =>
           AvatarEvents.publish(
-            AvatarServiceResponse("/Avatar/" + forChannel, guid, AvatarServiceResponse.PlayerState(msg, spectator, weapon))
+            AvatarServiceResponse(s"/$forChannel/Avatar", guid, AvatarServiceResponse.PlayerState(msg, spectator, weapon))
           )
         case AvatarAction.Reload(player_guid, mag) =>
           AvatarEvents.publish(
-            AvatarServiceResponse("/Avatar/" + forChannel, player_guid, AvatarServiceResponse.Reload(mag))
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarServiceResponse.Reload(mag))
           )
         case _ => ;
     }

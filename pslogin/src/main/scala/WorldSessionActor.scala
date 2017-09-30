@@ -11,7 +11,7 @@ import org.log4s.MDC
 import MDCContextAware.Implicits._
 import ServiceManager.Lookup
 import net.psforever.objects._
-import net.psforever.objects.doors.Door
+import net.psforever.objects.doors.{Door, IFFLock}
 import net.psforever.objects.zones.{InterstellarCluster, Zone}
 import net.psforever.objects.entity.IdentifiableEntity
 import net.psforever.objects.equipment._
@@ -32,9 +32,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
   var sessionId : Long = 0
   var leftRef : ActorRef = ActorRef.noSender
   var rightRef : ActorRef = ActorRef.noSender
-  var avatarService = Actor.noSender
-  var taskResolver = Actor.noSender
-  var galaxy = Actor.noSender
+  var avatarService : ActorRef = ActorRef.noSender
+  var localService : ActorRef = ActorRef.noSender
+  var taskResolver : ActorRef = Actor.noSender
+  var galaxy : ActorRef = Actor.noSender
   var continent : Zone = null
 
   var clientKeepAlive : Cancellable = WorldSessionActor.DefaultCancellable
@@ -43,7 +44,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     if(clientKeepAlive != null)
       clientKeepAlive.cancel()
 
-    avatarService ! Leave()
+    avatarService ! Service.Leave()
     LivePlayerList.Remove(sessionId) match {
       case Some(tplayer) =>
         if(tplayer.HasGUID) {
@@ -70,6 +71,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       }
       context.become(Started)
       ServiceManager.serviceManager ! Lookup("avatar")
+      ServiceManager.serviceManager ! Lookup("local")
       ServiceManager.serviceManager ! Lookup("taskResolver")
       ServiceManager.serviceManager ! Lookup("galaxy")
 
@@ -82,6 +84,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case ServiceManager.LookupResult("avatar", endpoint) =>
       avatarService = endpoint
       log.info("ID: " + sessionId + " Got avatar service " + endpoint)
+    case ServiceManager.LookupResult("local", endpoint) =>
+      localService = endpoint
+      log.info("ID: " + sessionId + " Got local service " + endpoint)
     case ServiceManager.LookupResult("taskResolver", endpoint) =>
       taskResolver = endpoint
       log.info("ID: " + sessionId + " Got task resolver service " + endpoint)
@@ -724,7 +729,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         )
       })
 
-      avatarService ! Join(player.Continent)
+      avatarService ! Service.Join(player.Continent)
       self ! SetCurrentAvatar(player)
 
     case msg @ PlayerStateMessageUpstream(avatar_guid, pos, vel, yaw, pitch, yaw_upper, seq_time, unk3, is_crouching, is_jumping, unk4, is_cloaking, unk5, unk6) =>
@@ -957,8 +962,23 @@ class WorldSessionActor extends Actor with MDCContextAware {
       // TODO: Not all incoming UseItemMessage's respond with another UseItemMessage (i.e. doors only send out GenericObjectStateMsg)
       continent.GUID(object_guid) match {
         case Some(door : Door) =>
-          log.info("Door action!")
-          door.Actor ! Door.Request(player, msg)
+          continent.Map.DoorToLock.get(object_guid.guid) match { //check for IFFLock
+            case Some(lock_guid) =>
+              val lock_hacked = continent.GUID(lock_guid).get.asInstanceOf[IFFLock].Hacker.contains(player.Faction)
+              continent.Map.ObjectToBase.get(lock_guid) match { //check for associated base
+                case Some(base_id) =>
+                  if(continent.Base(base_id).get.Faction == player.Faction || lock_hacked) { //either base allegiance aligns or lock is hacked
+                    door.Actor ! Door.Use(player, msg)
+                  }
+                case None =>
+                  if(lock_hacked) { //is lock hacked?
+                    door.Actor ! Door.Use(player, msg)
+                  }
+              }
+            case None =>
+              door.Actor ! Door.Use(player, msg) //let door open freely
+          }
+
         case Some(obj : PlanetSideGameObject) =>
           if(itemType != 121) {
             sendResponse(PacketCoding.CreateGamePacket(0, UseItemMessage(avatar_guid, unk1, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType)))

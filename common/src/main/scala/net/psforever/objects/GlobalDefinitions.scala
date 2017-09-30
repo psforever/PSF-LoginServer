@@ -3,11 +3,16 @@ package net.psforever.objects
 
 import net.psforever.objects.definition._
 import net.psforever.objects.definition.converter.{CommandDetonaterConverter, LockerContainerConverter, REKConverter}
+import net.psforever.objects.doors.{DoorDefinition, IFFLockDefinition}
 import net.psforever.objects.equipment.CItem.DeployedItem
 import net.psforever.objects.equipment._
 import net.psforever.objects.inventory.InventoryTile
+<<<<<<< c5ae9e477ccade5759eac2e9526ba898d0e8f16b
 import net.psforever.objects.terminals.{CertTerminalDefinition, OrderTerminalDefinition}
 import net.psforever.packet.game.objectcreate.ObjectClass
+=======
+import net.psforever.objects.terminals.OrderTerminalDefinition
+>>>>>>> automated doors, IFF locks, and bases thus that only permissible doors can be opened by players of correct faction alignment; Base is just a prototype example, hastily created for this functionality; LocalService will eventually be used for doors messages (and other things)
 import net.psforever.types.PlanetSideEmpire
 
 object GlobalDefinitions {
@@ -1242,4 +1247,9 @@ object GlobalDefinitions {
   order_terminal = new OrderTerminalDefinition
   val
   cert_terminal = new CertTerminalDefinition
+
+  val
+  external_lock = new IFFLockDefinition
+  val
+  door = new DoorDefinition
 }

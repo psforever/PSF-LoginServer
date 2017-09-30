@@ -4,7 +4,6 @@ package net.psforever.objects.doors
 import akka.actor.{ActorContext, ActorRef, Props}
 import net.psforever.objects.{PlanetSideGameObject, Player}
 import net.psforever.packet.game.UseItemMessage
-import net.psforever.types.PlanetSideEmpire
 
 /**
   * na
@@ -22,26 +21,29 @@ class Door(ddef : DoorDefinition) extends PlanetSideGameObject {
   }
 
   private var openState : Boolean = false
-  private var faction : PlanetSideEmpire.Value = PlanetSideEmpire.NEUTRAL
-  private var hackedBy : Option[PlanetSideEmpire.Value] = None
+  private var lockState : Boolean = false
 
   def Open : Boolean = openState
 
-  def Faction : PlanetSideEmpire.Value = faction
-
-  def Convert(toFaction : PlanetSideEmpire.Value) : Unit = {
-    hackedBy = None
-    faction = toFaction
+  def Open_=(open : Boolean) : Boolean = {
+    openState = open
+    Open
   }
 
-  def Request(player : Player, msg : UseItemMessage) : Door.Exchange = {
-    if(!openState) {
-      if(faction == PlanetSideEmpire.NEUTRAL || player.Faction == faction) {
-        Door.OpenEvent()
-      }
-      else {
-        Door.NoEvent()
-      }
+  def Locked : Boolean = lockState
+
+  def Locked_=(lock : Boolean) : Boolean = {
+    lockState = lock
+    Locked
+  }
+
+  def Use(player : Player, msg : UseItemMessage) : Door.Exchange = {
+    if(!lockState && !openState) {
+      openState = true
+      Door.OpenEvent()
+    }
+    else if(openState) {
+      Door.CloseEvent()
     }
     else {
       Door.NoEvent()
@@ -52,7 +54,7 @@ class Door(ddef : DoorDefinition) extends PlanetSideGameObject {
 }
 
 object Door {
-  final case class Request(player : Player, msg : UseItemMessage)
+  final case class Use(player : Player, msg : UseItemMessage)
 
   sealed trait Exchange
 

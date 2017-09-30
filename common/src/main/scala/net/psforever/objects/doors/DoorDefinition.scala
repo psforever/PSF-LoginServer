@@ -5,9 +5,8 @@ import net.psforever.objects.definition.ObjectDefinition
 
 /**
   * The definition for any `door`.
-  * @param objectId the object's identifier number
+  * Object Id 242 is a generic door.
   */
-abstract class DoorDefinition(objectId : Int) extends ObjectDefinition(objectId) {
+class DoorDefinition extends ObjectDefinition(242) {
   Name = "door"
 }
-
