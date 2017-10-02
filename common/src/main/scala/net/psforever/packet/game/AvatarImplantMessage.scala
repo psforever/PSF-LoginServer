@@ -12,14 +12,14 @@ import scodec.codecs._
   * The implant Second Wind is technically an invalid `ImplantType` for this packet.
   * This owes to the unique activation trigger for that implant - a near-death experience of ~0HP.
   * @param player_guid the player
-  * @param unk1 na
-  * @param unk2 na
-  * @param implant the implant
+  * @param action 2 to init, 3 to activate
+  * @param implantSlot na
+  * @param status 0 to uninit or unactivate, 1 to init or activate
   */
 final case class AvatarImplantMessage(player_guid : PlanetSideGUID,
-                                      unk1 : Int,
-                                      unk2 : Int,
-                                      implant : ImplantType.Value)
+                                      action : Int,
+                                      implantSlot : Int,
+                                      status : Int)
   extends PlanetSideGamePacket {
   type Packet = AvatarImplantMessage
   def opcode = GamePacketOpcode.AvatarImplantMessage
@@ -29,8 +29,8 @@ final case class AvatarImplantMessage(player_guid : PlanetSideGUID,
 object AvatarImplantMessage extends Marshallable[AvatarImplantMessage] {
   implicit val codec : Codec[AvatarImplantMessage] = (
     ("player_guid" | PlanetSideGUID.codec) ::
-      ("unk1" | uintL(3)) ::
-      ("unk2" | uint2L) ::
-      ("implant" | ImplantType.codec)
+      ("action" | uintL(3)) ::
+      ("implantSlot" | uint2L) ::
+      ("status" | uint4L)
     ).as[AvatarImplantMessage]
 }
