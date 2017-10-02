@@ -4,8 +4,7 @@ package net.psforever.objects.definition.converter
 import net.psforever.objects.LockerContainer
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.inventory.GridInventory
-import net.psforever.packet.game.PlanetSideGUID
-import net.psforever.packet.game.objectcreate.{DetailedAmmoBoxData, InternalSlot, InventoryData, LockerContainerData}
+import net.psforever.packet.game.objectcreate._
 
 import scala.util.{Success, Try}
 
@@ -14,8 +13,13 @@ class LockerContainerConverter extends ObjectCreateConverter[LockerContainer]() 
     Success(LockerContainerData(InventoryData(MakeInventory(obj.Inventory))))
   }
 
-  override def DetailedConstructorData(obj : LockerContainer) : Try[DetailedAmmoBoxData] = {
-    Success(DetailedAmmoBoxData(8, 1)) //same format as AmmoBox data
+  override def DetailedConstructorData(obj : LockerContainer) : Try[DetailedLockerContainerData] = {
+    if(obj.Inventory.Size > 0) {
+      Success(DetailedLockerContainerData(8, Some(InventoryData(MakeDetailedInventory(obj.Inventory)))))
+    }
+    else {
+      Success(DetailedLockerContainerData(8, None))
+    }
   }
 
   /**
@@ -27,9 +31,24 @@ class LockerContainerConverter extends ObjectCreateConverter[LockerContainer]() 
   private def MakeInventory(inv : GridInventory) : List[InternalSlot] = {
     inv.Items
       .map({
-        case(guid, item) =>
+        case(_, item) =>
           val equip : Equipment = item.obj
-          InternalSlot(equip.Definition.ObjectId, PlanetSideGUID(guid), item.start, equip.Definition.Packet.ConstructorData(equip).get)
+          InternalSlot(equip.Definition.ObjectId, equip.GUID, item.start, equip.Definition.Packet.ConstructorData(equip).get)
       }).toList
     }
+
+  /**
+    * Transform a list of contained items into a list of contained `InternalSlot` objects.
+    * All objects will take the form of data as if found in an `0x18` packet.
+    * @param inv the inventory container
+    * @return a list of all items that were in the inventory in decoded packet form
+    */
+  private def MakeDetailedInventory(inv : GridInventory) : List[InternalSlot] = {
+    inv.Items
+      .map({
+        case(_, item) =>
+          val equip : Equipment = item.obj
+          InternalSlot(equip.Definition.ObjectId, equip.GUID, item.start, equip.Definition.Packet.DetailedConstructorData(equip).get)
+      }).toList
+  }
 }

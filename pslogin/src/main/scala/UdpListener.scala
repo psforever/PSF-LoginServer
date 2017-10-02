@@ -11,7 +11,7 @@ import akka.util.ByteString
 final case class ReceivedPacket(msg : ByteVector, from : InetSocketAddress)
 final case class SendPacket(msg : ByteVector, to : InetSocketAddress)
 final case class Hello()
-final case class HelloFriend(sessionId : Long, next: ActorRef)
+final case class HelloFriend(sessionId : Long, next: Iterator[ActorRef])
 
 class UdpListener(nextActorProps : Props,
                   nextActorName : String,

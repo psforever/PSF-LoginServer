@@ -206,6 +206,8 @@ class ObjectCreateDetailedMessageTest extends Specification {
         char.appearance.ribbons.middle mustEqual MeritCommendation.None
         char.appearance.ribbons.lower mustEqual MeritCommendation.None
         char.appearance.ribbons.tos mustEqual MeritCommendation.None
+        char.bep mustEqual 0
+        char.cep mustEqual 0
         char.healthMax mustEqual 100
         char.health mustEqual 100
         char.armor mustEqual 50 //standard exosuit value
@@ -214,12 +216,15 @@ class ObjectCreateDetailedMessageTest extends Specification {
         char.unk3 mustEqual 7
         char.staminaMax mustEqual 100
         char.stamina mustEqual 100
-        char.unk4 mustEqual 28
-        char.unk5 mustEqual 4
-        char.unk6 mustEqual 44
-        char.unk7 mustEqual 84
-        char.unk8 mustEqual 104
-        char.unk9 mustEqual 1900
+        char.certs.length mustEqual 7
+        char.certs.head mustEqual CertificationType.StandardAssault
+        char.certs(1) mustEqual CertificationType.MediumAssault
+        char.certs(2) mustEqual CertificationType.ATV
+        char.certs(3) mustEqual CertificationType.Harasser
+        char.certs(4) mustEqual CertificationType.StandardExoSuit
+        char.certs(5) mustEqual CertificationType.AgileExoSuit
+        char.certs(6) mustEqual CertificationType.ReinforcedExoSuit
+        char.implants.length mustEqual 0
         char.firstTimeEvents.size mustEqual 4
         char.firstTimeEvents.head mustEqual "xpe_sanctuary_help"
         char.firstTimeEvents(1) mustEqual "xpe_th_firemodes"
@@ -260,7 +265,8 @@ class ObjectCreateDetailedMessageTest extends Specification {
         inventory(3).objectClass mustEqual ObjectClass.locker_container
         inventory(3).guid mustEqual PlanetSideGUID(82)
         inventory(3).parentSlot mustEqual 5
-        inventory(3).obj.asInstanceOf[DetailedAmmoBoxData].magazine mustEqual 1
+        inventory(3).obj.isInstanceOf[DetailedLockerContainerData] mustEqual true
+        inventory(3).obj.asInstanceOf[DetailedLockerContainerData].inventory.isDefined mustEqual false
         //4
         inventory(4).objectClass mustEqual ObjectClass.bullet_9mm
         inventory(4).guid mustEqual PlanetSideGUID(83)
@@ -342,7 +348,7 @@ class ObjectCreateDetailedMessageTest extends Specification {
         Nil
     )(2)
     val msg = ObjectCreateDetailedMessage(ObjectClass.punisher, PlanetSideGUID(1703), ObjectCreateMessageParent(PlanetSideGUID(75), 2), obj)
-    var pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string_punisher
   }
@@ -394,7 +400,7 @@ class ObjectCreateDetailedMessageTest extends Specification {
     val inv = InventoryItemData(ObjectClass.beamer, PlanetSideGUID(76), 0, DetailedWeaponData(4, 8, ObjectClass.energy_cell, PlanetSideGUID(77), 0, DetailedAmmoBoxData(8, 16))) ::
       InventoryItemData(ObjectClass.suppressor, PlanetSideGUID(78), 2, DetailedWeaponData(4, 8, ObjectClass.bullet_9mm, PlanetSideGUID(79), 0, DetailedAmmoBoxData(8, 25))) ::
       InventoryItemData(ObjectClass.forceblade, PlanetSideGUID(80), 4, DetailedWeaponData(4, 8, ObjectClass.melee_ammo, PlanetSideGUID(81), 0, DetailedAmmoBoxData(8, 1))) ::
-      InventoryItemData(ObjectClass.locker_container, PlanetSideGUID(82), 5, DetailedAmmoBoxData(8, 1)) ::
+      InventoryItemData(ObjectClass.locker_container, PlanetSideGUID(82), 5, DetailedLockerContainerData(8)) ::
       InventoryItemData(ObjectClass.bullet_9mm, PlanetSideGUID(83), 6, DetailedAmmoBoxData(8, 50)) ::
       InventoryItemData(ObjectClass.bullet_9mm, PlanetSideGUID(84), 9, DetailedAmmoBoxData(8, 50)) ::
       InventoryItemData(ObjectClass.bullet_9mm, PlanetSideGUID(85), 12, DetailedAmmoBoxData(8, 50)) ::
@@ -404,14 +410,25 @@ class ObjectCreateDetailedMessageTest extends Specification {
       Nil
     val obj = DetailedCharacterData(
       app,
+      0,
+      0,
       100, 100,
       50,
       1, 7, 7,
       100, 100,
-      28, 4, 44, 84, 104, 1900,
+      List(
+        CertificationType.StandardAssault,
+        CertificationType.MediumAssault,
+        CertificationType.ATV,
+        CertificationType.Harasser,
+        CertificationType.StandardExoSuit,
+        CertificationType.AgileExoSuit,
+        CertificationType.ReinforcedExoSuit
+      ),
+      List(),
       "xpe_sanctuary_help" :: "xpe_th_firemodes" :: "used_beamer" :: "map13" :: Nil,
       List.empty,
-      InventoryData(inv),
+      Some(InventoryData(inv)),
       DrawnSlot.Pistol1
     )
     val msg = ObjectCreateDetailedMessage(0x79, PlanetSideGUID(75), obj)

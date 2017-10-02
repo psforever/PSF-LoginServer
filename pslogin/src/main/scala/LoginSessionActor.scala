@@ -1,23 +1,19 @@
 // Copyright (c) 2017 PSForever
-import java.net.{InetAddress, InetSocketAddress}
+import java.net.InetSocketAddress
 
 import akka.actor.{Actor, ActorRef, Cancellable, MDCContextAware}
 import net.psforever.packet.{PlanetSideGamePacket, _}
 import net.psforever.packet.control._
 import net.psforever.packet.game._
 import org.log4s.MDC
-import scodec.Attempt.{Failure, Successful}
 import scodec.bits._
 import MDCContextAware.Implicits._
 import com.github.mauricio.async.db.{Connection, QueryResult, RowData}
-import com.github.mauricio.async.db.mysql.MySQLConnection
 import com.github.mauricio.async.db.mysql.exceptions.MySQLException
-import com.github.mauricio.async.db.mysql.util.URLParser
 import net.psforever.types.PlanetSideEmpire
 
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
-import scala.util.Random
 
 class LoginSessionActor extends Actor with MDCContextAware {
   private[this] val log = org.log4s.getLogger
@@ -29,7 +25,7 @@ class LoginSessionActor extends Actor with MDCContextAware {
   var leftRef : ActorRef = ActorRef.noSender
   var rightRef : ActorRef = ActorRef.noSender
 
-  var updateServerListTask : Cancellable = null
+  var updateServerListTask : Cancellable = LoginSessionActor.DefaultCancellable
 
   override def postStop() = {
     if(updateServerListTask != null)
@@ -39,12 +35,17 @@ class LoginSessionActor extends Actor with MDCContextAware {
   def receive = Initializing
 
   def Initializing : Receive = {
-    case HelloFriend(sessionId, right) =>
-      this.sessionId = sessionId
+    case HelloFriend(aSessionId, pipe) =>
+      this.sessionId = aSessionId
       leftRef = sender()
-      rightRef = right.asInstanceOf[ActorRef]
-
+      if(pipe.hasNext) {
+        rightRef = pipe.next
+        rightRef !> HelloFriend(aSessionId, pipe)
+      } else {
+        rightRef = sender()
+      }
       context.become(Started)
+
     case _ =>
       log.error("Unknown message")
       context.stop(self)
@@ -91,7 +92,7 @@ class LoginSessionActor extends Actor with MDCContextAware {
       /// TODO: figure out what this is what what it does for the PS client
       /// I believe it has something to do with reliable packet transmission and resending
       case sync @ ControlSync(diff, unk, f1, f2, f3, f4, fa, fb) =>
-        log.trace(s"SYNC: ${sync}")
+        log.trace(s"SYNC: $sync")
 
         val serverTick = Math.abs(System.nanoTime().toInt) // limit the size to prevent encoding error
         sendResponse(PacketCoding.CreateControlPacket(ControlSyncResp(diff, serverTick,
@@ -131,10 +132,9 @@ class LoginSessionActor extends Actor with MDCContextAware {
     val future: Future[QueryResult] = connection.sendPreparedStatement("SELECT * FROM accounts where username=?", Array(username))
 
     val mapResult: Future[Any] = future.map(queryResult => queryResult.rows match {
-      case Some(resultSet) => {
+      case Some(resultSet) =>
         val row : RowData = resultSet.head
         row(0)
-      }
       case None => -1
     }
     )
@@ -161,12 +161,12 @@ class LoginSessionActor extends Actor with MDCContextAware {
         // TODO: prevent multiple LoginMessages from being processed in a row!! We need a state machine
         import game.LoginRespMessage._
 
-        val clientVersion = s"Client Version: ${majorVersion}.${minorVersion}.${revision}, ${buildDate}"
+        val clientVersion = s"Client Version: $majorVersion.$minorVersion.$revision, $buildDate"
 
         if(token.isDefined)
-          log.info(s"New login UN:$username Token:${token.get}. ${clientVersion}")
+          log.info(s"New login UN:$username Token:${token.get}. $clientVersion")
         else
-          log.info(s"New login UN:$username PW:$password. ${clientVersion}")
+          log.info(s"New login UN:$username PW:$password. $clientVersion")
 
         // This is temporary until a schema has been developed
         //val loginSucceeded = accountLookup(username, password.getOrElse(token.get))
@@ -187,16 +187,16 @@ class LoginSessionActor extends Actor with MDCContextAware {
           val response = LoginRespMessage(newToken, LoginError.BadUsernameOrPassword, StationError.AccountActive,
             StationSubscriptionStatus.Active, 685276011, username, 10001)
 
-          log.info(s"Failed login to account ${username}")
+          log.info(s"Failed login to account $username")
           sendResponse(PacketCoding.CreateGamePacket(0, response))
         }
       case ConnectToWorldRequestMessage(name, _, _, _, _, _, _) =>
-        log.info(s"Connect to world request for '${name}'")
+        log.info(s"Connect to world request for '$name'")
 
         val response = ConnectToWorldMessage(serverName, serverAddress.getHostString, serverAddress.getPort)
         sendResponse(PacketCoding.CreateGamePacket(0, response))
         sendResponse(DropSession(sessionId, "user transferring to world"))
-      case default => log.debug(s"Unhandled GamePacket ${pkt}")
+      case default => log.debug(s"Unhandled GamePacket $pkt")
   }
 
   def updateServerList() = {
@@ -226,5 +226,12 @@ class LoginSessionActor extends Actor with MDCContextAware {
 
     MDC("sessionId") = sessionId.toString
     rightRef !> RawPacket(pkt)
+  }
+}
+
+object LoginSessionActor {
+  final val DefaultCancellable = new Cancellable() {
+    def isCancelled : Boolean = true
+    def cancel : Boolean = true
   }
 }

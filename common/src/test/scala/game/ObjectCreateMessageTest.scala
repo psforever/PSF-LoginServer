@@ -691,10 +691,10 @@ class ObjectCreateMessageTest extends Specification {
         pc.appearance.is_cloaking mustEqual false
         pc.appearance.charging_pose mustEqual false
         pc.appearance.on_zipline mustEqual false
-        pc.appearance.ribbons.upper mustEqual MeritCommendation.Loser4
-        pc.appearance.ribbons.middle mustEqual MeritCommendation.HeavyInfantry3
-        pc.appearance.ribbons.lower mustEqual MeritCommendation.TankBuster6
-        pc.appearance.ribbons.tos mustEqual MeritCommendation.SixYearNC
+        pc.appearance.ribbons.upper mustEqual MeritCommendation.MarkovVeteran
+        pc.appearance.ribbons.middle mustEqual MeritCommendation.HeavyInfantry4
+        pc.appearance.ribbons.lower mustEqual MeritCommendation.TankBuster7
+        pc.appearance.ribbons.tos mustEqual MeritCommendation.SixYearTR
         pc.health mustEqual 255
         pc.armor mustEqual 253
         pc.uniform_upgrade mustEqual UniformStyle.ThirdUpgrade
@@ -787,10 +787,10 @@ class ObjectCreateMessageTest extends Specification {
         pc.appearance.is_cloaking mustEqual false
         pc.appearance.charging_pose mustEqual false
         pc.appearance.on_zipline mustEqual false
-        pc.appearance.ribbons.upper mustEqual MeritCommendation.Jacking
-        pc.appearance.ribbons.middle mustEqual MeritCommendation.ScavengerTR6
+        pc.appearance.ribbons.upper mustEqual MeritCommendation.Jacking2
+        pc.appearance.ribbons.middle mustEqual MeritCommendation.ScavengerVS1
         pc.appearance.ribbons.lower mustEqual MeritCommendation.AMSSupport4
-        pc.appearance.ribbons.tos mustEqual MeritCommendation.SixYearTR
+        pc.appearance.ribbons.tos mustEqual MeritCommendation.SixYearVS
         pc.health mustEqual 0
         pc.armor mustEqual 0
         pc.uniform_upgrade mustEqual UniformStyle.ThirdUpgrade
@@ -1115,10 +1115,10 @@ class ObjectCreateMessageTest extends Specification {
         GrenadeState.None,
         false, false, false,
         RibbonBars(
-          MeritCommendation.Loser4,
-          MeritCommendation.HeavyInfantry3,
-          MeritCommendation.TankBuster6,
-          MeritCommendation.SixYearNC
+          MeritCommendation.MarkovVeteran,
+          MeritCommendation.HeavyInfantry4,
+          MeritCommendation.TankBuster7,
+          MeritCommendation.SixYearTR
         )
       ),
       255, 253,
@@ -1172,10 +1172,10 @@ class ObjectCreateMessageTest extends Specification {
         GrenadeState.None,
         false, false, false,
         RibbonBars(
-          MeritCommendation.Jacking,
-          MeritCommendation.ScavengerTR6,
+          MeritCommendation.Jacking2,
+          MeritCommendation.ScavengerVS1,
           MeritCommendation.AMSSupport4,
-          MeritCommendation.SixYearTR
+          MeritCommendation.SixYearVS
         )
       ),
       0, 0,

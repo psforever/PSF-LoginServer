@@ -10,7 +10,7 @@ import shapeless.{::, HNil}
   * A representation for a game object that can contain items.<br>
   * <br>
   * For whatever reason, these "lockers" are typically placed at the origin coordinates.
-  * @param inventory the items inside his locker
+  * @param inventory the items inside this locker
   */
 final case class LockerContainerData(inventory : InventoryData) extends ConstructorData {
   override def bitsize : Long =  105L + inventory.bitsize //81u + 2u + 21u + 1u

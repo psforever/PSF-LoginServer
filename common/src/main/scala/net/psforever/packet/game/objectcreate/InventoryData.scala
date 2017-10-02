@@ -23,7 +23,7 @@ import shapeless.{::, HNil}
   */
 final case class InventoryData(contents : List[InventoryItem] = List.empty) extends StreamBitSize {
   override def bitsize : Long = {
-    val base : Long = 10L //8u + 1u + 1u
+    val base : Long = InventoryData.BaseSize
     var invSize : Long = 0L //length of all items in inventory
     for(item <- contents) {
       invSize += item.bitsize
@@ -33,6 +33,8 @@ final case class InventoryData(contents : List[InventoryItem] = List.empty) exte
 }
 
 object InventoryData {
+  final val BaseSize : Long = 10L //8u + 1u + 1u
+
   /**
     * The primary `Codec` that parses the common format for an inventory `List`.
     * @param itemCodec a `Codec` that describes each of the contents of the list

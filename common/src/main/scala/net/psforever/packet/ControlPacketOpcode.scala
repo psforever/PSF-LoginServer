@@ -49,8 +49,8 @@ object ControlPacketOpcode extends Enumeration {
   Unknown30
   = Value
 
-  private def noDecoder(opcode : ControlPacketOpcode.Type) = (a : BitVector) =>
-    Attempt.failure(Err(s"Could not find a marshaller for control packet ${opcode}"))
+  private def noDecoder(opcode : ControlPacketOpcode.Type) = (_ : BitVector) =>
+    Attempt.failure(Err(s"Could not find a marshaller for control packet $opcode"))
 
   def getPacketDecoder(opcode : ControlPacketOpcode.Type) : (BitVector) => Attempt[DecodeResult[PlanetSideControlPacket]] = (opcode.id : @switch) match {
     // OPCODES 0x00-0f
@@ -74,11 +74,11 @@ object ControlPacketOpcode extends Enumeration {
 
     // OPCODES 0x10-1e
     case 0x10 => SlottedMetaPacket.decodeWithOpcode(SlottedMetaPacket7)
-    case 0x11 => noDecoder(RelatedA0)
+    case 0x11 => control.RelatedA0.decode
     case 0x12 => noDecoder(RelatedA1)
     case 0x13 => noDecoder(RelatedA2)
     case 0x14 => noDecoder(RelatedA3)
-    case 0x15 => noDecoder(RelatedB0)
+    case 0x15 => control.RelatedB0.decode
     case 0x16 => noDecoder(RelatedB1)
     case 0x17 => noDecoder(RelatedB2)
     // 0x18
@@ -89,7 +89,7 @@ object ControlPacketOpcode extends Enumeration {
     case 0x1c => noDecoder(Unknown28)
     case 0x1d => control.ConnectionClose.decode
     case 0x1e => noDecoder(Unknown30)
-    case default => noDecoder(opcode)
+    case _ => noDecoder(opcode)
   }
 
   implicit val codec: Codec[this.Value] = PacketHelpers.createEnumerationCodec(this, uint8L)

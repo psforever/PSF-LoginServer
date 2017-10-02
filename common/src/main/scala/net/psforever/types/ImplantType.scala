@@ -9,16 +9,16 @@ import scodec.codecs._
   * <br>
   * Implant:<br>
   * `
-  * 00 - Regeneration (advanced_regen)<br>
-  * 01 - Enhanced Targeting (targeting)<br>
-  * 02 - Audio Amplifier (audio_amplifier)<br>
-  * 03 - Darklight Vision (darklight_vision)<br>
-  * 04 - Melee Booster (melee_booster)<br>
-  * 05 - Personal Shield (personal_shield)<br>
-  * 06 - Range Magnifier (range_magnifier)<br>
-  * 07 - Second Wind `(na)`<br>
-  * 08 - Sensor Shield (silent_run)<br>
-  * 09 - Surge (surge)<br>
+  * 0 - Regeneration (advanced_regen)<br>
+  * 1 - Enhanced Targeting (targeting)<br>
+  * 2 - Audio Amplifier (audio_amplifier)<br>
+  * 3 - Darklight Vision (darklight_vision)<br>
+  * 4 - Melee Booster (melee_booster)<br>
+  * 5 - Personal Shield (personal_shield)<br>
+  * 6 - Range Magnifier (range_magnifier)<br>
+  * 7 - Second Wind `(na)`<br>
+  * 8 - Sensor Shield (silent_run)<br>
+  * 9 - Surge (surge)
   * `
   */
 object ImplantType extends Enumeration {
@@ -33,6 +33,8 @@ object ImplantType extends Enumeration {
   SecondWind, //technically
   SilentRun,
   Surge = Value
+
+  val None = Value(15) //TODO unconfirmed
 
   implicit val codec = PacketHelpers.createEnumerationCodec(this, uint4L)
 }

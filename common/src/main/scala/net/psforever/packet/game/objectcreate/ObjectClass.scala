@@ -638,7 +638,7 @@ object ObjectClass {
       case ObjectClass.boomer_trigger => ConstructorData.genericCodec(DetailedBoomerTriggerData.codec, "boomer trigger")
       //other
       case ObjectClass.avatar => ConstructorData.genericCodec(DetailedCharacterData.codec, "avatar")
-      case ObjectClass.locker_container => ConstructorData.genericCodec(DetailedAmmoBoxData.codec, "locker container")
+      case ObjectClass.locker_container => ConstructorData.genericCodec(DetailedLockerContainerData.codec, "locker container")
 
       //failure case
       case _ => defaultFailureCodec(objClass)
