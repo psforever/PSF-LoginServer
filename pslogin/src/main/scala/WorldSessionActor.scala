@@ -1175,7 +1175,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         }
 
         def Execute(resolver : ActorRef) : Unit = {
-          localAccessor ! Register(localObject, resolver)
+          localAccessor ! Register(localObject, "dynamic", resolver)
         }
       })
   }
