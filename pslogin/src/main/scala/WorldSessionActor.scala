@@ -37,8 +37,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
   var taskResolver : ActorRef = Actor.noSender
   var galaxy : ActorRef = Actor.noSender
   var continent : Zone = null
+  var progressBarValue : Option[Float] = None
 
   var clientKeepAlive : Cancellable = WorldSessionActor.DefaultCancellable
+  var progressBarUpdate : Cancellable = WorldSessionActor.DefaultCancellable
 
   override def postStop() = {
     if(clientKeepAlive != null)
@@ -547,6 +549,25 @@ class WorldSessionActor extends Actor with MDCContextAware {
           continent.Actor ! Zone.DropItemOnGround(item, item.Position, item.Orientation) //restore
       }
 
+    case ItemHacking(tplayer, target, tool_guid, delta) =>
+      progressBarUpdate.cancel
+      if(progressBarValue.isDefined) {
+        val progressBarVal : Float = progressBarValue.get + delta
+        sendResponse(PacketCoding.CreateGamePacket(0, RepairMessage(target.GUID, progressBarVal.toInt)))
+        if(progressBarVal > 100) {
+          progressBarValue = None
+          log.info(s"We've hacked the item $target!  Now what?")
+          sendResponse(PacketCoding.CreateGamePacket(0, ChangeFireStateMessage_Stop(tool_guid)))
+          //TODO now what?
+        }
+        else {
+          progressBarValue = Some(progressBarVal)
+          import scala.concurrent.duration._
+          import scala.concurrent.ExecutionContext.Implicits.global
+          progressBarUpdate = context.system.scheduler.scheduleOnce(250 milliseconds, self, ItemHacking(tplayer, target, tool_guid, delta))
+        }
+      }
+
     case ResponseToSelf(pkt) =>
       log.info(s"Received a direct message: $pkt")
       sendResponse(pkt)
@@ -791,6 +812,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ ChangeFireStateMessage_Stop(item_guid) =>
       log.info("ChangeFireState_Stop: " + msg)
+      progressBarUpdate.cancel
 
     case msg @ EmoteMsg(avatar_guid, emote) =>
       log.info("Emote: " + msg)
@@ -978,6 +1000,18 @@ class WorldSessionActor extends Actor with MDCContextAware {
             case None =>
               door.Actor ! Door.Use(player, msg) //let door open freely
           }
+
+        case Some(panel : IFFLock) =>
+          player.Slot(player.DrawnSlot).Equipment match {
+            case Some(tool : SimpleItem) =>
+              if(tool.Definition == GlobalDefinitions.remote_electronics_kit) {
+                progressBarValue = Some(-2.66f)
+                self ! WorldSessionActor.ItemHacking(player, panel, tool.GUID, 2.66f)
+              }
+            case _ => ;
+          }
+         log.info("Hacking a door~")
+         //TODO get player hack level (for now, presume 15s in internals of 4/s)
 
         case Some(obj : PlanetSideGameObject) =>
           if(itemType != 121) {
@@ -1569,6 +1603,7 @@ object WorldSessionActor {
   private final case class PlayerFailedToLoad(tplayer : Player)
   private final case class ListAccountCharacters()
   private final case class SetCurrentAvatar(tplayer : Player)
+  private final case class ItemHacking(tplayer : Player, target : PlanetSideGameObject, tool_guid : PlanetSideGUID, delta : Float)
 
   /**
     * A placeholder `Cancellable` object.
