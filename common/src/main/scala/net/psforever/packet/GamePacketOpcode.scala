@@ -358,7 +358,7 @@ object GamePacketOpcode extends Enumeration {
 
     // OPCODES 0x20-2f
     case 0x20 => noDecoder(UnknownMessage32)
-    case 0x21 => noDecoder(ActionProgressMessage)
+    case 0x21 => game.ActionProgressMessage.decode
     case 0x22 => noDecoder(ActionCancelMessage)
     case 0x23 => noDecoder(ActionCancelAcknowledgeMessage)
     case 0x24 => game.SetEmpireMessage.decode
