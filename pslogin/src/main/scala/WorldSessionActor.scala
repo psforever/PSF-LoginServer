@@ -553,11 +553,19 @@ class WorldSessionActor extends Actor with MDCContextAware {
       progressBarUpdate.cancel
       if(progressBarValue.isDefined) {
         val progressBarVal : Float = progressBarValue.get + delta
-        sendResponse(PacketCoding.CreateGamePacket(0, RepairMessage(target.GUID, progressBarVal.toInt)))
+        val vis = if(progressBarVal == 0L) {
+          1
+        }
+        else if(progressBarVal >= 100L) {
+          4
+        }
+        else {
+          3
+        }
+        sendResponse(PacketCoding.CreateGamePacket(0, HackMessage(1, target.GUID.guid, player.GUID.guid, progressBarVal.toInt, 0L, vis, 8L)))
         if(progressBarVal > 100) {
           progressBarValue = None
           log.info(s"We've hacked the item $target!  Now what?")
-          sendResponse(PacketCoding.CreateGamePacket(0, ChangeFireStateMessage_Stop(tool_guid)))
           //TODO now what?
         }
         else {
@@ -1131,6 +1139,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ TargetingImplantRequest(list) =>
       log.info("TargetingImplantRequest: "+msg)
+
+    case msg @ ActionCancelMessage(u1, u2, u3) =>
+      log.info("Cancelled: "+msg)
 
     case default => log.error(s"Unhandled GamePacket $pkt")
   }
