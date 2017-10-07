@@ -30,9 +30,9 @@ object CertificationType extends Enumeration {
   AntiVehicular,
   Sniping,
   EliteAssault,
-  AirCalvaryScout,
-  AirCalvaryInterceptor,
-  AirCalvaryAssault,
+  AirCavalryScout,
+  AirCavalryInterceptor,
+  AirCavalryAssault,
   //10
   AirSupport,
   ATV,
