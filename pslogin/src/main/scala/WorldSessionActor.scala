@@ -312,6 +312,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
               avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.EquipmentOnGround(tplayer.GUID, pos, orient, obj))
             })
           }
+          sendResponse(PacketCoding.CreateGamePacket(0, ItemTransactionResultMessage (msg.terminal_guid, TransactionType.Buy, true)))
 
         case Terminal.BuyEquipment(item) => ;
           tplayer.Fit(item) match {
@@ -382,6 +383,31 @@ class WorldSessionActor extends Actor with MDCContextAware {
             PutEquipmentInSlot(tplayer, entry.obj, entry.start)
           })
           //TODO drop items on ground
+          sendResponse(PacketCoding.CreateGamePacket(0, ItemTransactionResultMessage (msg.terminal_guid, TransactionType.InfantryLoadout, true)))
+
+        case Terminal.LearnCertification(cert, cost) =>
+          if(!player.Certifications.contains(cert)) {
+            log.info(s"$tplayer is learning the $cert certification for $cost points")
+            tplayer.Certifications += cert
+            sendResponse(PacketCoding.CreateGamePacket(0, PlanetsideAttributeMessage(tplayer.GUID, 24, cert.id.toLong)))
+            sendResponse(PacketCoding.CreateGamePacket(0, ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Learn, true)))
+          }
+          else {
+            log.warn(s"$tplayer already knows the $cert certification, so he can't learn it")
+            sendResponse(PacketCoding.CreateGamePacket(0, ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Learn, false)))
+          }
+
+        case Terminal.SellCertification(cert, cost) =>
+          if(player.Certifications.contains(cert)) {
+            log.info(s"$tplayer is forgetting the $cert certification for $cost points")
+            tplayer.Certifications -= cert
+            sendResponse(PacketCoding.CreateGamePacket(0, PlanetsideAttributeMessage(tplayer.GUID, 25, cert.id.toLong)))
+            sendResponse(PacketCoding.CreateGamePacket(0, ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Sell, true)))
+          }
+          else {
+            log.warn(s"$tplayer doesn't know what a $cert certification is, so he can't forget it")
+            sendResponse(PacketCoding.CreateGamePacket(0, ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Learn, false)))
+          }
 
         case Terminal.NoDeal() =>
           log.warn(s"$tplayer made a request but the terminal rejected the order $msg")
@@ -477,6 +503,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       LivePlayerList.Assign(continent.Number, sessionId, guid)
       sendResponse(PacketCoding.CreateGamePacket(0, SetCurrentAvatarMessage(guid,0,0)))
       sendResponse(PacketCoding.CreateGamePacket(0, CreateShortcutMessage(guid, 1, 0, true, Shortcut.MEDKIT)))
+      sendResponse(PacketCoding.CreateGamePacket(0, ChatMsg(ChatMessageType.CMT_EXPANSIONS, true, "", "1 on", None))) //CC on
 
     case Zone.ItemFromGround(tplayer, item) =>
       val obj_guid = item.GUID

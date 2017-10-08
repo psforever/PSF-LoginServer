@@ -66,14 +66,14 @@ class Terminal(tdef : TerminalDefinition) extends PlanetSideGameObject {
     */
   def Request(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
     msg.transaction_type match {
-      case TransactionType.Buy =>
+      case TransactionType.Buy | TransactionType.Learn =>
         tdef.Buy(player, msg)
 
       case TransactionType.Sell =>
         tdef.Sell(player, msg)
 
       case TransactionType.InfantryLoadout =>
-        tdef.InfantryLoadout(player, msg)
+        tdef.Loadout(player, msg)
 
       case _ =>
         Terminal.NoDeal()
@@ -132,6 +132,12 @@ object Terminal {
     */
   //TODO if there are exceptions, find them
   final case class SellEquipment() extends Exchange
+
+  import net.psforever.types.CertificationType
+  final case class LearnCertification(cert : CertificationType.Value, cost : Int) extends Exchange
+
+  final case class SellCertification(cert : CertificationType.Value, cost : Int) extends Exchange
+
   /**
     * Recover a former exo-suit and `Equipment` configuration that the `Player` possessed.
     * A result of a processed request.

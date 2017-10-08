@@ -20,7 +20,7 @@ import scodec.codecs._
   * `17 - BEP. Value seems to be the same as BattleExperienceMessage`<br>
   * `18 - CEP.`<br>
   * `19 - Anchors. Value is 0 to disengage, 1 to engage.`<br>
-  * `24 - Certifications with value :`<br>
+  * `24 - Learn certifications with value :`<br>
   *         01 : Medium Assault<br>
   *         02 : Heavy Assault<br>
   *         03 : Special Assault<br>
@@ -66,6 +66,7 @@ import scodec.codecs._
   *         43 : Fortification Engineering<br>
   *         44 : Assault Engineering<br>
   *         45 : Advanced Engineering (= Fortification Engineering + Assault Engineering) Must have Combat Engineering<br>
+  * `25 - Forget certifications (same order as 24)`
   * `29 - Visible ?! That's not the cloaked effect, Maybe for spectator mode ?. Value is 0 to visible, 1 to invisible.`<br>
   * `31 - Info under avatar name : 0 = LFS, 1 = Looking For Squad Members`<br>
   * `32 - Info under avatar name : 0 = Looking For Squad Members, 1 = LFS`<br>

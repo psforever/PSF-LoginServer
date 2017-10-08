@@ -6,7 +6,7 @@ import net.psforever.objects.definition.converter.{CommandDetonaterConverter, Lo
 import net.psforever.objects.equipment.CItem.DeployedItem
 import net.psforever.objects.equipment._
 import net.psforever.objects.inventory.InventoryTile
-import net.psforever.objects.terminals.OrderTerminalDefinition
+import net.psforever.objects.terminals.{CertTerminalDefinition, OrderTerminalDefinition}
 import net.psforever.packet.game.objectcreate.ObjectClass
 import net.psforever.types.PlanetSideEmpire
 
@@ -1239,5 +1239,7 @@ object GlobalDefinitions {
   fury.TrunkOffset = 30
 
   val
-  orderTerminal = new OrderTerminalDefinition
+  order_terminal = new OrderTerminalDefinition
+  val
+  cert_terminal = new CertTerminalDefinition
 }

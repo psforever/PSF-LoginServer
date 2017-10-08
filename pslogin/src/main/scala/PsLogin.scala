@@ -222,9 +222,12 @@ object PsLogin {
   def createContinents() : List[Zone] = {
     val map13 = new ZoneMap("map13") {
       import net.psforever.objects.GlobalDefinitions._
-      LocalObject(TerminalObjectBuilder(orderTerminal, 853))
-      LocalObject(TerminalObjectBuilder(orderTerminal, 855))
-      LocalObject(TerminalObjectBuilder(orderTerminal, 860))
+      LocalObject(TerminalObjectBuilder(cert_terminal, 186))
+      LocalObject(TerminalObjectBuilder(cert_terminal, 187))
+      LocalObject(TerminalObjectBuilder(cert_terminal, 188))
+      LocalObject(TerminalObjectBuilder(order_terminal, 853))
+      LocalObject(TerminalObjectBuilder(order_terminal, 855))
+      LocalObject(TerminalObjectBuilder(order_terminal, 860))
     }
     val home3 = Zone("home3", map13, 13)
 
