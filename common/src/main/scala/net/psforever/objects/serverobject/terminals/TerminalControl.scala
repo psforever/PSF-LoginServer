@@ -1,5 +1,5 @@
 // Copyright (c) 2017 PSForever
-package net.psforever.objects.terminals
+package net.psforever.objects.serverobject.terminals
 
 import akka.actor.Actor
 
@@ -14,17 +14,11 @@ class TerminalControl(term : Terminal) extends Actor {
     case Terminal.Request(player, msg) =>
       sender ! Terminal.TerminalMessage(player, msg, term.Request(player, msg))
 
-    case TemporaryTerminalMessages.Convert(fact) =>
-      term.Convert(fact)
+    case TemporaryTerminalMessages.Hack(player) =>
+      term.HackedBy = player
 
-    case TemporaryTerminalMessages.Hacked(fact) =>
-      term.HackedBy(fact)
-
-    case TemporaryTerminalMessages.Damaged(dam) =>
-      term.Damaged(dam)
-
-    case TemporaryTerminalMessages.Repaired(rep) =>
-      term.Repair(rep)
+    case TemporaryTerminalMessages.ClearHack() =>
+      term.HackedBy = None
 
     case _ =>
       sender ! Terminal.NoDeal()

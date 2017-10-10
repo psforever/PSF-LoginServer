@@ -1,7 +1,8 @@
 // Copyright (c) 2017 PSForever
-package net.psforever.objects.zones
+package net.psforever.objects.serverobject.builders
 
-import net.psforever.objects.terminals.{Terminal, TerminalDefinition}
+import akka.actor.Props
+import net.psforever.objects.serverobject.terminals.{Terminal, TerminalControl, TerminalDefinition}
 
 /**
   * Wrapper `Class` designed to instantiate a `Terminal` server object.
@@ -15,7 +16,7 @@ class TerminalObjectBuilder(private val tdef : TerminalDefinition, private val i
   def Build(implicit context : ActorContext, guid : NumberPoolHub) : Terminal = {
     val obj = Terminal(tdef)
     guid.register(obj, id) //non-Actor GUID registration
-    obj.Actor //it's necessary to register beforehand because the Actor name utilizes the GUID
+    obj.Actor = context.actorOf(Props(classOf[TerminalControl], obj), s"${tdef.Name}_${obj.GUID.guid}")
     obj
   }
 }

@@ -1,14 +1,14 @@
 // Copyright (c) 2017 PSForever
-package net.psforever.objects.doors
+package net.psforever.objects.zones
 
-import akka.actor.{Actor, ActorRef, Cancellable}
+import akka.actor.{Actor, Cancellable}
 import net.psforever.packet.game.PlanetSideGUID
-import scala.concurrent.duration._
 
 import scala.annotation.tailrec
+import scala.concurrent.duration._
 
-class DoorCloseControl(implicit val environment : ActorRef) extends Actor {
-  import DoorCloseControl._
+class ZoneDoorActor(implicit val zone : Zone) extends Actor {
+  import ZoneDoorActor._
   private var doorCloserTrigger : Cancellable = DefaultCloser
   private var openDoors : List[DoorEntry] = Nil
 
@@ -17,7 +17,7 @@ class DoorCloseControl(implicit val environment : ActorRef) extends Actor {
       openDoors = openDoors :+ DoorEntry(guid, time)
       if(doorCloserTrigger.isCancelled) {
         import scala.concurrent.ExecutionContext.Implicits.global
-        doorCloserTrigger = context.system.scheduler.scheduleOnce(timeout, self, DoorCloseControl.CloseTheDoor())
+        doorCloserTrigger = context.system.scheduler.scheduleOnce(timeout, self, ZoneDoorActor.CloseTheDoor())
       }
 
     case CloseTheDoor() =>
@@ -25,9 +25,9 @@ class DoorCloseControl(implicit val environment : ActorRef) extends Actor {
       val now : Long = System.nanoTime
       recursiveCloseDoors(openDoors.iterator, now) match {
         case entry :: rest =>
-          openDoors = entry :: rest
+          openDoors = rest
           import scala.concurrent.ExecutionContext.Implicits.global
-          doorCloserTrigger = context.system.scheduler.scheduleOnce((now - entry.opened_at_time + timeout_time)*1000 milliseconds, self, DoorCloseControl.CloseTheDoor())
+          doorCloserTrigger = context.system.scheduler.scheduleOnce((now - entry.opened_at_time + timeout_time)*1000 milliseconds, self, ZoneDoorActor.CloseTheDoor())
         case Nil =>
           openDoors = Nil
       }
@@ -52,7 +52,7 @@ class DoorCloseControl(implicit val environment : ActorRef) extends Actor {
   }
 }
 
-object DoorCloseControl {
+object ZoneDoorActor {
   private final val timeout_time = 5000
   private final val timeout : FiniteDuration = timeout_time milliseconds
 
@@ -61,9 +61,9 @@ object DoorCloseControl {
     override def isCancelled : Boolean = true
   }
 
-  private final case class DoorEntry(door_guid : PlanetSideGUID, opened_at_time : Long)
-
   final case class DoorIsOpen(door_guid : PlanetSideGUID, opened_at_time : Long = System.nanoTime())
+
+  private final case class DoorEntry(door_guid : PlanetSideGUID, opened_at_time : Long)
 
   private final case class CloseTheDoor()
 }

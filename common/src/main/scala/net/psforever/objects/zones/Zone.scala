@@ -2,7 +2,7 @@
 package net.psforever.objects.zones
 
 import akka.actor.{ActorContext, ActorRef, Props}
-import net.psforever.objects.doors.Base
+import net.psforever.objects.serverobject.doors.Base
 import net.psforever.objects.{PlanetSideGameObject, Player}
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.guid.NumberPoolHub
@@ -48,6 +48,10 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
   private val equipmentOnGround : ListBuffer[Equipment] = ListBuffer[Equipment]()
   /** Used by the `Zone` to coordinate `Equipment` dropping and collection requests. */
   private var ground : ActorRef = ActorRef.noSender
+  /** */
+  private var doors : ActorRef = ActorRef.noSender
+  /** */
+  private var events : ActorRef = ActorRef.noSender
 
   private var bases : List[Base] = List()
 
@@ -68,6 +72,7 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
       implicit val guid : NumberPoolHub = this.guid //passed into builderObject.Build implicitly
       accessor = context.actorOf(Props(classOf[UniqueNumberSystem], guid, UniqueNumberSystem.AllocateNumberPoolActors(guid)), s"$Id-uns")
       ground = context.actorOf(Props(classOf[ZoneGroundActor], equipmentOnGround), s"$Id-ground")
+      doors = context.actorOf(Props(classOf[ZoneDoorActor], this), s"$Id-doors")
 
       Map.LocalObjects.foreach({ builderObject =>
         builderObject.Build
@@ -173,6 +178,17 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
     *      `Zone.ItemFromGround`
     */
   def Ground : ActorRef = ground
+
+  def Doors : ActorRef = doors
+
+  def Events : ActorRef = events
+
+  def Events_=(zoneActor : ActorRef) : ActorRef = {
+    if(events == ActorRef.noSender) {
+      events = zoneActor
+    }
+    Events
+  }
 
   def MakeBases(num : Int) : List[Base] = {
     bases = (0 to num).map(id => new Base(id)).toList

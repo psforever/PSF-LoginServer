@@ -1,53 +1,51 @@
 // Copyright (c) 2017 PSForever
-package net.psforever.objects.terminals
+package net.psforever.objects.serverobject.terminals
 
-import akka.actor.{ActorContext, ActorRef, Props}
-import net.psforever.objects.{PlanetSideGameObject, Player}
+import net.psforever.objects.Player
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.inventory.InventoryItem
+import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.packet.game.ItemTransactionMessage
-import net.psforever.types.{ExoSuitType, PlanetSideEmpire, TransactionType}
+import net.psforever.types.{ExoSuitType, PlanetSideEmpire, TransactionType, Vector3}
 
 /**
   * na
   * @param tdef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
   */
-class Terminal(tdef : TerminalDefinition) extends PlanetSideGameObject {
-  /** Internal reference to the `Actor` for this `Terminal`, sets up by this `Terminal`. */
-  private var actor = ActorRef.noSender
-
-  /**
-    * Get access to the internal `TerminalControl` `Actor` for this `Terminal`.
-    * If called for the first time, create the said `Actor`.
-    * Must be called only after the globally unique identifier has been set.
-    * @param context the `ActorContext` under which this `Terminal`'s `Actor` will be created
-    * @return the `Terminal`'s `Actor`
-    */
-  def Actor(implicit context : ActorContext) : ActorRef =  {
-    if(actor == ActorRef.noSender) {
-      actor = context.actorOf(Props(classOf[TerminalControl], this), s"${tdef.Name}_${GUID.guid}")
-    }
-    actor
-  }
-
+class Terminal(tdef : TerminalDefinition) extends PlanetSideServerObject {
   //the following fields and related methods are neither finalized no integrated; GOTO Request
   private var faction : PlanetSideEmpire.Value = PlanetSideEmpire.NEUTRAL
-  private var hackedBy : Option[PlanetSideEmpire.Value] = None
+  private var hackedBy : Option[(Player, Vector3)] = None
   private var health : Int = 100 //TODO not real health value
 
   def Faction : PlanetSideEmpire.Value = faction
 
-  def HackedBy : Option[PlanetSideEmpire.Value] = hackedBy
+  def HackedBy : Option[(Player, Vector3)] = hackedBy
+
+  def HackedBy_=(agent : Player) : Option[(Player, Vector3)] = HackedBy_=(Some(agent))
+
+  def HackedBy_=(agent : Option[Player]) : Option[(Player, Vector3)] = {
+    hackedBy match {
+      case None =>
+        if(agent.isDefined) {
+          hackedBy = Some(agent.get, agent.get.Position)
+        }
+      case Some(_) =>
+        if(agent.isEmpty) {
+          hackedBy = None
+        }
+        else if(agent.get.Faction != hackedBy.get._1.Faction) {
+          hackedBy = Some(agent.get, agent.get.Position) //overwrite
+        }
+    }
+    HackedBy
+  }
 
   def Health : Int = health
 
   def Convert(toFaction : PlanetSideEmpire.Value) : Unit = {
     hackedBy = None
     faction = toFaction
-  }
-
-  def HackedBy(toFaction : Option[PlanetSideEmpire.Value]) : Unit = {
-    hackedBy = if(toFaction.contains(faction)) { None } else { toFaction }
   }
 
   def Damaged(dam : Int) : Unit = {

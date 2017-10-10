@@ -1,6 +1,7 @@
 // Copyright (c) 2017 PSForever
 import akka.actor.Actor
 import net.psforever.objects.equipment.Equipment
+import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.packet.game.objectcreate.ConstructorData
 import net.psforever.types.ExoSuitType
 import net.psforever.packet.game.{PlanetSideGUID, PlayerStateMessageUpstream}
@@ -13,6 +14,7 @@ object AvatarAction {
   //final case class DropItem(pos : Vector3, orient : Vector3, item : PlanetSideGUID) extends Action
   final case class EquipmentInHand(player_guid : PlanetSideGUID, slot : Int, item : Equipment) extends Action
   final case class EquipmentOnGround(player_guid : PlanetSideGUID, pos : Vector3, orient : Vector3, item : Equipment) extends Action
+  final case class Hack(player_guid : PlanetSideGUID, target : PlanetSideServerObject, unk1 : Long, unk2 : Long = 8L) extends Action
   final case class LoadPlayer(player_guid : PlanetSideGUID, pdata : ConstructorData) extends Action
 //  final case class LoadMap(msg : PlanetSideGUID) extends Action
 //  final case class unLoadMap(msg : PlanetSideGUID) extends Action
@@ -34,6 +36,7 @@ object AvatarServiceResponse {
   //final case class DropItem(pos : Vector3, orient : Vector3, item : PlanetSideGUID) extends Response
   final case class EquipmentInHand(slot : Int, item : Equipment) extends Response
   final case class EquipmentOnGround(pos : Vector3, orient : Vector3, item : Equipment) extends Response
+  final case class Hack(target_guid : PlanetSideGUID, unk1 : Long, unk2 : Long = 8L) extends Response
   final case class LoadPlayer(pdata : ConstructorData) extends Response
 //  final case class unLoadMap() extends Response
 //  final case class LoadMap() extends Response
@@ -92,6 +95,10 @@ class AvatarService extends Actor {
         case AvatarAction.EquipmentOnGround(player_guid, pos, orient, obj) =>
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarServiceResponse.EquipmentOnGround(pos, orient, obj))
+          )
+        case AvatarAction.Hack(player_guid, target, unk1, unk2) =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarServiceResponse.Hack(target.GUID, unk1, unk2))
           )
         case AvatarAction.LoadPlayer(player_guid, pdata) =>
           AvatarEvents.publish(

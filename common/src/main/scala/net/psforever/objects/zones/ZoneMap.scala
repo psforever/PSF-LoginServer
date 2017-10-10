@@ -1,6 +1,8 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.zones
 
+import net.psforever.objects.serverobject.builders.ServerObjectBuilder
+
 /**
   * The fixed instantiation and relation of a series of server objects.<br>
   * <br>

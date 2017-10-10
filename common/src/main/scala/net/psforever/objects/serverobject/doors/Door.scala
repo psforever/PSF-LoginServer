@@ -1,25 +1,15 @@
 // Copyright (c) 2017 PSForever
-package net.psforever.objects.doors
+package net.psforever.objects.serverobject.doors
 
-import akka.actor.{ActorContext, ActorRef, Props}
-import net.psforever.objects.{PlanetSideGameObject, Player}
+import net.psforever.objects.serverobject.PlanetSideServerObject
+import net.psforever.objects.Player
 import net.psforever.packet.game.UseItemMessage
 
 /**
   * na
   * @param ddef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
   */
-class Door(ddef : DoorDefinition) extends PlanetSideGameObject {
-  /** Internal reference to the `Actor` for this `Door`, sets up by this `Door`. */
-  private var actor = ActorRef.noSender
-
-  def Actor(implicit context : ActorContext) : ActorRef =  {
-    if(actor == ActorRef.noSender) {
-      actor = context.actorOf(Props(classOf[DoorControl], this), s"${ddef.Name}_${GUID.guid}")
-    }
-    actor
-  }
-
+class Door(ddef : DoorDefinition) extends PlanetSideServerObject {
   private var openState : Boolean = false
   private var lockState : Boolean = false
 

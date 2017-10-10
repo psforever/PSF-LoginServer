@@ -14,6 +14,7 @@ import com.typesafe.config.ConfigFactory
 import net.psforever.crypto.CryptoInterface
 import net.psforever.objects.zones._
 import net.psforever.objects.guid.TaskResolver
+import net.psforever.objects.serverobject.builders.{DoorObjectBuilder, IFFLockObjectBuilder, TerminalObjectBuilder}
 import org.slf4j
 import org.fusesource.jansi.Ansi._
 import org.fusesource.jansi.Ansi.Color._

@@ -1,5 +1,5 @@
 // Copyright (c) 2017 PSForever
-package net.psforever.objects.doors
+package net.psforever.objects.serverobject.doors
 
 import akka.actor.{Actor, Cancellable}
 
@@ -8,12 +8,9 @@ import akka.actor.{Actor, Cancellable}
   * @param door the `Door` object being governed
   */
 class DoorControl(door : Door) extends Actor {
-  private var doorCloser : Cancellable = DoorControl.DefaultCloser
-
   def receive : Receive = {
     case Door.Use(player, msg) =>
       sender ! Door.DoorMessage(player, msg, door.Use(player, msg))
-      //doorCloser = context.system.scheduler.scheduleOnce(5000L, sender, Door.DoorMessage())
     case _ =>
       sender ! Door.NoEvent()
   }

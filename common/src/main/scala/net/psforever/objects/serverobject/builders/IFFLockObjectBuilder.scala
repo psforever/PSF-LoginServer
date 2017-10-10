@@ -1,7 +1,8 @@
 // Copyright (c) 2017 PSForever
-package net.psforever.objects.zones
+package net.psforever.objects.serverobject.builders
 
-import net.psforever.objects.doors.{IFFLock, IFFLockDefinition}
+import akka.actor.Props
+import net.psforever.objects.serverobject.locks.{IFFLock, IFFLockControl, IFFLockDefinition}
 
 /**
   * Wrapper `Class` designed to instantiate a `Door` server object.
@@ -15,6 +16,7 @@ class IFFLockObjectBuilder(private val idef : IFFLockDefinition, private val id 
   def Build(implicit context : ActorContext, guid : NumberPoolHub) : IFFLock = {
     val obj = IFFLock()
     guid.register(obj, id) //non-Actor GUID registration
+    obj.Actor = context.actorOf(Props(classOf[IFFLockControl], obj), s"${idef.Name}_${obj.GUID.guid}")
     obj
   }
 }

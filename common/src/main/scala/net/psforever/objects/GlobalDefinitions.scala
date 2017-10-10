@@ -3,11 +3,12 @@ package net.psforever.objects
 
 import net.psforever.objects.definition._
 import net.psforever.objects.definition.converter.{CommandDetonaterConverter, LockerContainerConverter, REKConverter}
-import net.psforever.objects.doors.{DoorDefinition, IFFLockDefinition}
+import net.psforever.objects.serverobject.doors.DoorDefinition
 import net.psforever.objects.equipment.CItem.DeployedItem
 import net.psforever.objects.equipment._
 import net.psforever.objects.inventory.InventoryTile
-import net.psforever.objects.terminals.{CertTerminalDefinition, OrderTerminalDefinition}
+import net.psforever.objects.serverobject.locks.IFFLockDefinition
+import net.psforever.objects.serverobject.terminals.{CertTerminalDefinition, OrderTerminalDefinition}
 import net.psforever.types.PlanetSideEmpire
 
 object GlobalDefinitions {

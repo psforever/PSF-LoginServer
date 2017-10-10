@@ -1,5 +1,5 @@
 // Copyright (c) 2017 PSForever
-package net.psforever.objects.doors
+package net.psforever.objects.serverobject.locks
 
 import net.psforever.objects.definition.ObjectDefinition
 

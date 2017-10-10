@@ -1,7 +1,8 @@
 // Copyright (c) 2017 PSForever
-package net.psforever.objects.zones
+package net.psforever.objects.serverobject.builders
 
-import net.psforever.objects.doors.{Door, DoorDefinition}
+import akka.actor.Props
+import net.psforever.objects.serverobject.doors.{Door, DoorControl, DoorDefinition}
 
 /**
   * Wrapper `Class` designed to instantiate a `Door` server object.
@@ -15,7 +16,7 @@ class DoorObjectBuilder(private val ddef : DoorDefinition, private val id : Int)
   def Build(implicit context : ActorContext, guid : NumberPoolHub) : Door = {
     val obj = Door(ddef)
     guid.register(obj, id) //non-Actor GUID registration
-    obj.Actor //it's necessary to register beforehand because the Actor name utilizes the GUID
+    obj.Actor = context.actorOf(Props(classOf[DoorControl], obj), s"${ddef.Name}_${obj.GUID.guid}")
     obj
   }
 }

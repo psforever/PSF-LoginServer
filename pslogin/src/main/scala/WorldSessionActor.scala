@@ -11,14 +11,16 @@ import org.log4s.MDC
 import MDCContextAware.Implicits._
 import ServiceManager.Lookup
 import net.psforever.objects._
-import net.psforever.objects.doors.{Door, IFFLock}
+import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.zones.{InterstellarCluster, Zone}
 import net.psforever.objects.entity.IdentifiableEntity
 import net.psforever.objects.equipment._
 import net.psforever.objects.guid.{Task, TaskResolver}
 import net.psforever.objects.guid.actor.{Register, Unregister}
 import net.psforever.objects.inventory.{GridInventory, InventoryItem}
-import net.psforever.objects.terminals.Terminal
+import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
+import net.psforever.objects.serverobject.locks.IFFLock
+import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.packet.game.objectcreate._
 import net.psforever.types._
 
@@ -138,6 +140,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
                 )
               )
             )
+          }
+
+        case AvatarServiceResponse.Hack(target_guid, unk1, unk2) =>
+          if(player.GUID != guid) {
+            sendResponse(PacketCoding.CreateGamePacket(0, HackMessage(0, target_guid.guid, guid.guid, 100, unk1, 6, unk2)))
           }
 
         case AvatarServiceResponse.LoadPlayer(pdata) =>
@@ -566,6 +573,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
         if(progressBarVal > 100) {
           progressBarValue = None
           log.info(s"We've hacked the item $target!  Now what?")
+          sendResponse(PacketCoding.CreateGamePacket(0, HackMessage(0, target.GUID.guid, player.GUID.guid, 100, 1114636288, 6, 8L)))
+          target.Actor ! CommonMessages.Hack(tplayer)
+          avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.Hack(tplayer.GUID, target, 1114636288))
           //TODO now what?
         }
         else {
@@ -994,14 +1004,19 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case Some(door : Door) =>
           continent.Map.DoorToLock.get(object_guid.guid) match { //check for IFFLock
             case Some(lock_guid) =>
-              val lock_hacked = continent.GUID(lock_guid).get.asInstanceOf[IFFLock].Hacker.contains(player.Faction)
+              val lock_hacked = continent.GUID(lock_guid).get.asInstanceOf[IFFLock].HackedBy match {
+                case Some((tplayer, _)) =>
+                  tplayer.Faction == player.Faction
+                case None =>
+                  false
+              }
               continent.Map.ObjectToBase.get(lock_guid) match { //check for associated base
                 case Some(base_id) =>
-                  if(continent.Base(base_id).get.Faction == player.Faction || lock_hacked) { //either base allegiance aligns or lock is hacked
+                  if(continent.Base(base_id).get.Faction == player.Faction || lock_hacked) { //either base allegiance aligns or locks is hacked
                     door.Actor ! Door.Use(player, msg)
                   }
                 case None =>
-                  if(lock_hacked) { //is lock hacked?
+                  if(lock_hacked) { //is locks hacked?
                     door.Actor ! Door.Use(player, msg)
                   }
               }
@@ -1614,7 +1629,7 @@ object WorldSessionActor {
   private final case class PlayerFailedToLoad(tplayer : Player)
   private final case class ListAccountCharacters()
   private final case class SetCurrentAvatar(tplayer : Player)
-  private final case class ItemHacking(tplayer : Player, target : PlanetSideGameObject, tool_guid : PlanetSideGUID, delta : Float)
+  private final case class ItemHacking(tplayer : Player, target : PlanetSideServerObject, tool_guid : PlanetSideGUID, delta : Float)
 
   /**
     * A placeholder `Cancellable` object.
