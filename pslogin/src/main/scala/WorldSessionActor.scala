@@ -635,6 +635,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
   player.Certifications += CertificationType.ReinforcedExoSuit
   player.Certifications += CertificationType.ATV
   player.Certifications += CertificationType.Harasser
+  player.BEP = 10000000
   player.Slot(0).Equipment = beamer1
   player.Slot(2).Equipment = suppressor1
   player.Slot(4).Equipment = forceblade1
@@ -945,9 +946,17 @@ class WorldSessionActor extends Actor with MDCContextAware {
       // TODO: Not all incoming UseItemMessage's respond with another UseItemMessage (i.e. doors only send out GenericObjectStateMsg)
       if (itemType != 121) sendResponse(PacketCoding.CreateGamePacket(0, UseItemMessage(avatar_guid, unk1, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType)))
       if (itemType == 121 && !unk3){ // TODO : medkit use ?!
+        player.Find(PlanetSideGUID(unk1)) match {
+          case Some(slot) =>
+            taskResolver ! RemoveEquipmentFromSlot(player, player.Slot(slot).Equipment.get, slot)
+            log.info("RequestDestroy: " + msg)
+          case None =>
+            sendResponse(PacketCoding.CreateGamePacket(0, ObjectDeleteMessage(PlanetSideGUID(unk1), 0)))
+            log.warn(s"RequestDestroy: object $unk1 not found")
+        }
         sendResponse(PacketCoding.CreateGamePacket(0, UseItemMessage(avatar_guid, unk1, object_guid, 0, unk3, unk4, unk5, unk6, unk7, unk8, itemType)))
-        sendResponse(PacketCoding.CreateGamePacket(0, PlanetsideAttributeMessage(avatar_guid, 0, 100))) // avatar with 100 hp
-        sendResponse(PacketCoding.CreateGamePacket(0, ObjectDeleteMessage(PlanetSideGUID(unk1), 2)))
+        sendResponse(PacketCoding.CreateGamePacket(0, PlanetsideAttributeMessage(avatar_guid, 0, 50))) // avatar with 100 hp
+        //sendResponse(PacketCoding.CreateGamePacket(0, ObjectDeleteMessage(PlanetSideGUID(unk1), 2)))
       }
       if (unk1 == 0 && !unk3 && unk7 == 25) {
         // TODO: This should only actually be sent to doors upon opening; may break non-door items upon use

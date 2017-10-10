@@ -231,7 +231,13 @@ object PsLogin {
     }
     val home3 = Zone("home3", map13, 13)
 
-    home3 ::
+
+    val map98 = new ZoneMap("map98") {
+
+    }
+    val i2 = Zone("i2", map98, 31)
+
+    home3 :: i2 ::
       Nil
   }
 
