@@ -49,6 +49,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       clientKeepAlive.cancel()
 
     avatarService ! Service.Leave()
+    localService ! Service.Leave()
     LivePlayerList.Remove(sessionId) match {
       case Some(tplayer) =>
         if(tplayer.HasGUID) {
@@ -70,7 +71,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
       if(pipe.hasNext) {
         rightRef = pipe.next
         rightRef !> HelloFriend(sessionId, pipe)
-      } else {
+      }
+      else {
         rightRef = sender()
       }
       context.become(Started)
@@ -221,13 +223,33 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case _ => ;
       }
 
-    case Door.DoorMessage(_, msg, order) =>
+    case LocalServiceResponse(_, guid, reply) =>
+      reply match {
+        case LocalServiceResponse.DoorOpens(door_guid) =>
+          if(player.GUID != guid) {
+            sendResponse(PacketCoding.CreateGamePacket(0, GenericObjectStateMsg(door_guid, 16)))
+          }
+
+        case LocalServiceResponse.DoorCloses(door_guid) => //door closes for everyone
+          sendResponse(PacketCoding.CreateGamePacket(0, GenericObjectStateMsg(door_guid, 17)))
+      }
+
+    case Door.DoorMessage(tplayer, msg, order) =>
+      val door_guid = msg.object_guid
       order match {
         case Door.OpenEvent() =>
-          sendResponse(PacketCoding.CreateGamePacket(0, GenericObjectStateMsg(msg.object_guid, 16)))
+          continent.GUID(door_guid) match {
+            case Some(door : Door) =>
+              sendResponse(PacketCoding.CreateGamePacket(0, GenericObjectStateMsg(door_guid, 16)))
+              localService ! LocalServiceMessage (continent.Id, LocalAction.DoorOpens (tplayer.GUID, continent, door) )
+
+            case _ =>
+              log.warn(s"door $door_guid wanted to be opened but could not be found")
+          }
 
         case Door.CloseEvent() =>
-          sendResponse(PacketCoding.CreateGamePacket(0, GenericObjectStateMsg(msg.object_guid, 17)))
+          sendResponse(PacketCoding.CreateGamePacket(0, GenericObjectStateMsg(door_guid, 17)))
+          localService ! LocalServiceMessage(continent.Id, LocalAction.DoorCloses(tplayer.GUID, door_guid))
 
         case Door.NoEvent() => ;
       }
@@ -769,6 +791,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       })
 
       avatarService ! Service.Join(player.Continent)
+      localService ! Service.Join(player.Continent)
       self ! SetCurrentAvatar(player)
 
     case msg @ PlayerStateMessageUpstream(avatar_guid, pos, vel, yaw, pitch, yaw_upper, seq_time, unk3, is_crouching, is_jumping, unk4, is_cloaking, unk5, unk6) =>

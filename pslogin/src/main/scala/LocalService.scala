@@ -1,17 +1,21 @@
 // Copyright (c) 2017 PSForever
-import akka.actor.Actor
+import akka.actor.{Actor, Props}
+import net.psforever.objects.serverobject.doors.Door
+import net.psforever.objects.zones.{DoorCloseActor, Zone}
 import net.psforever.packet.game.PlanetSideGUID
 
 object LocalAction {
   trait Action
 
-  final case class Door(player_guid : PlanetSideGUID) extends Action
+  final case class DoorOpens(player_guid : PlanetSideGUID, continent : Zone, door : Door) extends Action
+  final case class DoorCloses(player_guid : PlanetSideGUID, door_guid : PlanetSideGUID) extends Action
 }
 
 object LocalServiceResponse {
   trait Response
 
-  final case class Door(player_guid : PlanetSideGUID) extends Response
+  final case class DoorOpens(door_guid : PlanetSideGUID) extends Response
+  final case class DoorCloses(door_guid : PlanetSideGUID) extends Response
 }
 
 final case class LocalServiceMessage(forChannel : String, actionMessage : LocalAction.Action)
@@ -24,6 +28,7 @@ final case class LocalServiceResponse(toChannel : String, avatar_guid : PlanetSi
 
 class LocalService extends Actor {
   //import LocalService._
+  private val doorCloser = context.actorOf(Props[DoorCloseActor], "local-door-closer")
   private [this] val log = org.log4s.getLogger
 
   override def preStart = {
@@ -45,12 +50,24 @@ class LocalService extends Actor {
 
     case LocalServiceMessage(forChannel, action) =>
       action match {
-        case LocalAction.Door(player_guid) =>
+        case LocalAction.DoorOpens(player_guid, zone, door) =>
+          doorCloser ! DoorCloseActor.DoorIsOpen(door, zone)
           LocalEvents.publish(
-            LocalServiceResponse(s"/$forChannel/LocalEnvironment" + forChannel, player_guid, LocalServiceResponse.Door(player_guid))
+            LocalServiceResponse(s"/$forChannel/LocalEnvironment", player_guid, LocalServiceResponse.DoorOpens(door.GUID))
+          )
+
+        case LocalAction.DoorCloses(player_guid, door_guid) =>
+          LocalEvents.publish(
+            LocalServiceResponse(s"/$forChannel/LocalEnvironment", player_guid, LocalServiceResponse.DoorCloses(door_guid))
           )
         case _ => ;
       }
+
+    //response from DoorCloseActor
+    case DoorCloseActor.CloseTheDoor(door_guid, zone_id) =>
+      LocalEvents.publish(
+        LocalServiceResponse(s"/$zone_id/LocalEnvironment", PlanetSideGUID(0), LocalServiceResponse.DoorCloses(door_guid))
+      )
 
     case msg =>
       log.info(s"Unhandled message $msg from $sender")

@@ -11,6 +11,7 @@ class DoorControl(door : Door) extends Actor {
   def receive : Receive = {
     case Door.Use(player, msg) =>
       sender ! Door.DoorMessage(player, msg, door.Use(player, msg))
+
     case _ =>
       sender ! Door.NoEvent()
   }

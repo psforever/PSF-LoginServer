@@ -33,6 +33,7 @@ class Door(ddef : DoorDefinition) extends PlanetSideServerObject {
       Door.OpenEvent()
     }
     else if(openState) {
+      openState = false
       Door.CloseEvent()
     }
     else {
