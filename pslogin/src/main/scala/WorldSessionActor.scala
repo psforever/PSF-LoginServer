@@ -144,11 +144,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
             )
           }
 
-        case AvatarServiceResponse.Hack(target_guid, unk1, unk2) =>
-          if(player.GUID != guid) {
-            sendResponse(PacketCoding.CreateGamePacket(0, HackMessage(0, target_guid.guid, guid.guid, 100, unk1, 6, unk2)))
-          }
-
         case AvatarServiceResponse.LoadPlayer(pdata) =>
           if(player.GUID != guid) {
             sendResponse(
@@ -232,6 +227,15 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
         case LocalServiceResponse.DoorCloses(door_guid) => //door closes for everyone
           sendResponse(PacketCoding.CreateGamePacket(0, GenericObjectStateMsg(door_guid, 17)))
+
+        case LocalServiceResponse.HackClear(target_guid, unk1, unk2) =>
+          log.info(s"Clear hack of $target_guid")
+          sendResponse(PacketCoding.CreateGamePacket(0, HackMessage(0, target_guid.guid, guid.guid, 0, unk1, 7, unk2)))
+
+        case LocalServiceResponse.HackObject(target_guid, unk1, unk2) =>
+          if(player.GUID != guid) {
+            sendResponse(PacketCoding.CreateGamePacket(0, HackMessage(0, target_guid.guid, guid.guid, 100, unk1, 6, unk2)))
+          }
       }
 
     case Door.DoorMessage(tplayer, msg, order) =>
@@ -241,7 +245,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           continent.GUID(door_guid) match {
             case Some(door : Door) =>
               sendResponse(PacketCoding.CreateGamePacket(0, GenericObjectStateMsg(door_guid, 16)))
-              localService ! LocalServiceMessage (continent.Id, LocalAction.DoorOpens (tplayer.GUID, continent, door) )
+              localService ! LocalServiceMessage(continent.Id, LocalAction.DoorOpens (tplayer.GUID, continent, door) )
 
             case _ =>
               log.warn(s"door $door_guid wanted to be opened but could not be found")
@@ -578,7 +582,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           continent.Actor ! Zone.DropItemOnGround(item, item.Position, item.Orientation) //restore
       }
 
-    case ItemHacking(tplayer, target, tool_guid, delta) =>
+    case ItemHacking(tplayer, target, tool_guid, delta, completeAction, tickAction) =>
       progressBarUpdate.cancel
       if(progressBarValue.isDefined) {
         val progressBarVal : Float = progressBarValue.get + delta
@@ -594,17 +598,16 @@ class WorldSessionActor extends Actor with MDCContextAware {
         sendResponse(PacketCoding.CreateGamePacket(0, HackMessage(1, target.GUID.guid, player.GUID.guid, progressBarVal.toInt, 0L, vis, 8L)))
         if(progressBarVal > 100) {
           progressBarValue = None
-          log.info(s"We've hacked the item $target!  Now what?")
-          sendResponse(PacketCoding.CreateGamePacket(0, HackMessage(0, target.GUID.guid, player.GUID.guid, 100, 1114636288, 6, 8L)))
-          target.Actor ! CommonMessages.Hack(tplayer)
-          avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.Hack(tplayer.GUID, target, 1114636288))
-          //TODO now what?
+          log.info(s"Hacked a $target")
+          sendResponse(PacketCoding.CreateGamePacket(0, HackMessage(0, target.GUID.guid, player.GUID.guid, 100, 1114636288L, 6, 8L)))
+          completeAction()
         }
         else {
+          tickAction.getOrElse(() => Unit)()
           progressBarValue = Some(progressBarVal)
           import scala.concurrent.duration._
           import scala.concurrent.ExecutionContext.Implicits.global
-          progressBarUpdate = context.system.scheduler.scheduleOnce(250 milliseconds, self, ItemHacking(tplayer, target, tool_guid, delta))
+          progressBarUpdate = context.system.scheduler.scheduleOnce(250 milliseconds, self, ItemHacking(tplayer, target, tool_guid, delta, completeAction))
         }
       }
 
@@ -1052,7 +1055,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             case Some(tool : SimpleItem) =>
               if(tool.Definition == GlobalDefinitions.remote_electronics_kit) {
                 progressBarValue = Some(-2.66f)
-                self ! WorldSessionActor.ItemHacking(player, panel, tool.GUID, 2.66f)
+                self ! WorldSessionActor.ItemHacking(player, panel, tool.GUID, 2.66f, HackTemporary(panel))
               }
             case _ => ;
           }
@@ -1622,6 +1625,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
     }
   }
 
+  private def HackTemporary(target : PlanetSideServerObject)() : Unit = {
+    target.Actor ! CommonMessages.Hack(player)
+    localService ! LocalServiceMessage(player.Continent, LocalAction.HackTemporarily(player.GUID, continent, target, 1114636288L))
+  }
+
   def failWithError(error : String) = {
     log.error(error)
     sendResponse(PacketCoding.CreateControlPacket(ConnectionClose()))
@@ -1652,8 +1660,12 @@ object WorldSessionActor {
   private final case class PlayerFailedToLoad(tplayer : Player)
   private final case class ListAccountCharacters()
   private final case class SetCurrentAvatar(tplayer : Player)
-  private final case class ItemHacking(tplayer : Player, target : PlanetSideServerObject, tool_guid : PlanetSideGUID, delta : Float)
-
+  private final case class ItemHacking(tplayer : Player,
+                                       target : PlanetSideServerObject,
+                                       tool_guid : PlanetSideGUID,
+                                       delta : Float,
+                                       completeAction : () => Unit,
+                                       tickAction : Option[() => Unit] = None)
   /**
     * A placeholder `Cancellable` object.
     */

@@ -3,7 +3,6 @@ package net.psforever.objects.serverobject.locks
 
 import akka.actor.{Actor, Cancellable}
 import net.psforever.objects.serverobject.CommonMessages
-import net.psforever.objects.serverobject.doors.Door
 
 class IFFLockControl(lock : IFFLock) extends Actor {
   def receive : Receive = {
@@ -11,8 +10,7 @@ class IFFLockControl(lock : IFFLock) extends Actor {
       lock.HackedBy = player
     case CommonMessages.ClearHack() =>
       lock.HackedBy = None
-    case _ =>
-      sender ! Door.NoEvent()
+    case _ => ;
   }
 }
 
