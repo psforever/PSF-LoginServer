@@ -64,8 +64,6 @@ class Player(private val name : String,
   /** Last medkituse. */
   var lastMedkit : Long = 0
   var death_by : Int = 0
-  var doors : Array[Int] = Array.ofDim(120)
-  var doorsTime : Array[Long] = Array.ofDim(120)
   var lastSeenStreamMessage : Array[Long] = Array.fill[Long](65535)(0L)
   var lastShotSeq_time : Int = -1
   /** The player is shooting. */

@@ -5,8 +5,8 @@ import akka.actor.Props
 import net.psforever.objects.serverobject.locks.{IFFLock, IFFLockControl, IFFLockDefinition}
 
 /**
-  * Wrapper `Class` designed to instantiate a `Door` server object.
-  * @param idef a `IFFLockDefinition` object, indicating the specific functionality of the resulting `Door`
+  * Wrapper `Class` designed to instantiate a door lock server object that is sensitive to user faction affiliation.
+  * @param idef a `IFFLockDefinition` object, indicating the specific functionality
   * @param id the globally unique identifier to which this `IFFLock` will be registered
   */
 class IFFLockObjectBuilder(private val idef : IFFLockDefinition, private val id : Int) extends ServerObjectBuilder[IFFLock] {
@@ -14,7 +14,7 @@ class IFFLockObjectBuilder(private val idef : IFFLockDefinition, private val id 
   import net.psforever.objects.guid.NumberPoolHub
 
   def Build(implicit context : ActorContext, guid : NumberPoolHub) : IFFLock = {
-    val obj = IFFLock()
+    val obj = IFFLock(idef)
     guid.register(obj, id) //non-Actor GUID registration
     obj.Actor = context.actorOf(Props(classOf[IFFLockControl], obj), s"${idef.Name}_${obj.GUID.guid}")
     obj

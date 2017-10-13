@@ -1245,7 +1245,7 @@ object GlobalDefinitions {
   cert_terminal = new CertTerminalDefinition
 
   val
-  external_lock = new IFFLockDefinition
+  lock_external = new IFFLockDefinition
   val
   door = new DoorDefinition
 }

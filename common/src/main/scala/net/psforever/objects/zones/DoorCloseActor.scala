@@ -8,33 +8,38 @@ import net.psforever.packet.game.PlanetSideGUID
 import scala.annotation.tailrec
 import scala.concurrent.duration._
 
+/**
+  * Close an opened door after a certain amount of time has passed.
+  * This `Actor` is intended to sit on top of the event system that handles broadcast messaging regarding doors opening.
+  * @see `LocalService`
+  */
 class DoorCloseActor() extends Actor {
-  import DoorCloseActor._
-  private var doorCloserTrigger : Cancellable = DefaultCloser
-  private var openDoors : List[DoorEntry] = Nil
+  /** The periodic `Executor` that checks for doors to be closed */
+  private var doorCloserTrigger : Cancellable = DoorCloseActor.DefaultCloser
+  /** A `List` of currently open doors */
+  private var openDoors : List[DoorCloseActor.DoorEntry] = Nil
   //private[this] val log = org.log4s.getLogger
 
   def receive : Receive = {
-    case DoorIsOpen(door, zone, time) =>
-      openDoors = openDoors :+ DoorEntry(door, zone, time)
-      if(openDoors.size == 1) {
+    case DoorCloseActor.DoorIsOpen(door, zone, time) =>
+      openDoors = openDoors :+ DoorCloseActor.DoorEntry(door, zone, time)
+      if(openDoors.size == 1) { //we were the only entry so the event must be started from scratch
         import scala.concurrent.ExecutionContext.Implicits.global
-        doorCloserTrigger = context.system.scheduler.scheduleOnce(timeout, self, DoorCloseActor.TryCloseDoors())
+        doorCloserTrigger = context.system.scheduler.scheduleOnce(DoorCloseActor.timeout, self, DoorCloseActor.TryCloseDoors())
       }
 
-    case TryCloseDoors() =>
+    case DoorCloseActor.TryCloseDoors() =>
       doorCloserTrigger.cancel
       val now : Long = System.nanoTime
-      //TODO we can just walk across the list of doors and extract only the first few entries
-      val (doorsToClose, doorsLeftOpen) = recursivePartitionDoors(openDoors.iterator, now)
+      val (doorsToClose, doorsLeftOpen) = PartitionEntries(openDoors, now)
       openDoors = doorsLeftOpen
       doorsToClose.foreach(entry => {
-        entry.door.Open = false //permissible
-        context.parent ! DoorCloseActor.CloseTheDoor(entry.door.GUID, entry.zone.Id)
+        entry.door.Open = false //permissible break from synchronization
+        context.parent ! DoorCloseActor.CloseTheDoor(entry.door.GUID, entry.zone.Id) //call up to the main event system
       })
 
       if(doorsLeftOpen.nonEmpty) {
-        val short_timeout : FiniteDuration = math.max(1, timeout_time - (now - doorsLeftOpen.head.opened_at_time)) nanoseconds
+        val short_timeout : FiniteDuration = math.max(1, DoorCloseActor.timeout_time - (now - doorsLeftOpen.head.time)) nanoseconds
         import scala.concurrent.ExecutionContext.Implicits.global
         doorCloserTrigger = context.system.scheduler.scheduleOnce(short_timeout, self, DoorCloseActor.TryCloseDoors())
       }
@@ -43,33 +48,53 @@ class DoorCloseActor() extends Actor {
   }
 
   /**
-    * na
-    * @param iter na
-    * @param now na
-    * @param list na
+    * Iterate over entries in a `List` until an entry that does not exceed the time limit is discovered.
+    * Separate the original `List` into two:
+    * a `List` of elements that have exceeded the time limit,
+    * and a `List` of elements that still satisfy the time limit.
+    * As newer entries to the `List` will always resolve later than old ones,
+    * and newer entries are always added to the end of the main `List`,
+    * processing in order is always correct.
+    * @param list the `List` of entries to divide
+    * @param now the time right now (in nanoseconds)
     * @see `List.partition`
-    * @return a `Tuple` of two `Lists`:
-    *         the entries for all `Door`s that are closing,
-    *         and the entries for all doors that are staying open
+    * @return a `Tuple` of two `Lists`, whose qualifications are explained above
     */
-  @tailrec private def recursivePartitionDoors(iter : Iterator[DoorEntry], now : Long, list : List[DoorEntry] = Nil) : (List[DoorEntry], List[DoorEntry]) = {
+  private def PartitionEntries(list : List[DoorCloseActor.DoorEntry], now : Long) : (List[DoorCloseActor.DoorEntry], List[DoorCloseActor.DoorEntry]) = {
+    val n : Int = recursivePartitionEntries(list.iterator, now)
+    (list.take(n), list.drop(n)) //take and drop so to always return new lists
+  }
+
+  /**
+    * Mark the index where the `List` of elements can be divided into two:
+    * a `List` of elements that have exceeded the time limit,
+    * and a `List` of elements that still satisfy the time limit.
+    * @param iter the `Iterator` of entries to divide
+    * @param now the time right now (in nanoseconds)
+    * @param index a persistent record of the index where list division should occur;
+    *              defaults to 0
+    * @return the index where division will occur
+    */
+  @tailrec private def recursivePartitionEntries(iter : Iterator[DoorCloseActor.DoorEntry], now : Long, index : Int = 0) : Int = {
     if(!iter.hasNext) {
-      (list, iter.toList)
+      index
     }
     else {
       val entry = iter.next()
-      if(now - entry.opened_at_time >= timeout_time) {
-        recursivePartitionDoors(iter, now, list :+ entry)
+      if(now - entry.time >= DoorCloseActor.timeout_time) {
+        recursivePartitionEntries(iter, now, index + 1)
       }
       else {
-        (list, entry +: iter.toList)
+        index
       }
     }
   }
 }
 
 object DoorCloseActor {
-  private final val timeout_time : Long = 5000000000L //nanoseconds
+  /** The wait before an open door closes; as a Long for calculation simplicity */
+  private final val timeout_time : Long = 5000000000L //nanoseconds (5s)
+  /** The wait before an open door closes; as a `FiniteDuration` for `Executor` simplicity */
   private final val timeout : FiniteDuration = timeout_time nanoseconds
 
   private final val DefaultCloser : Cancellable = new Cancellable() {
@@ -77,11 +102,33 @@ object DoorCloseActor {
     override def isCancelled : Boolean = true
   }
 
-  final case class DoorIsOpen(door : Door, zone : Zone, opened_at_time : Long = System.nanoTime())
-
+  /**
+    * Message that carries information about a door that has been opened.
+    * @param door the door object
+    * @param zone the zone in which the door resides
+    * @param time when the door was opened
+    * @see `DoorEntry`
+    */
+  final case class DoorIsOpen(door : Door, zone : Zone, time : Long = System.nanoTime())
+  /**
+    * Message that carries information about a door that needs to close.
+    * Prompting, as compared to `DoorIsOpen` which is reactionary.
+    * @param door_guid the door
+    * @param zone_id the zone in which the door resides
+    */
   final case class CloseTheDoor(door_guid : PlanetSideGUID, zone_id : String)
-
-  private final case class DoorEntry(door : Door, zone : Zone, opened_at_time : Long)
-
+  /**
+    * Internal message used to signal a test of the queued door information.
+    */
   private final case class TryCloseDoors()
+
+  /**
+    * Entry of door information.
+    * The `zone` is maintained separately to ensure that any message resulting in an attempt to close doors is targetted.
+    * @param door the door object
+    * @param zone the zone in which the door resides
+    * @param time when the door was opened
+    * @see `DoorIsOpen`
+    */
+  private final case class DoorEntry(door : Door, zone : Zone, time : Long)
 }

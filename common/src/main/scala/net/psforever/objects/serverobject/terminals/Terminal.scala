@@ -5,48 +5,54 @@ import net.psforever.objects.Player
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.inventory.InventoryItem
 import net.psforever.objects.serverobject.PlanetSideServerObject
-import net.psforever.packet.game.ItemTransactionMessage
-import net.psforever.types.{ExoSuitType, PlanetSideEmpire, TransactionType, Vector3}
+import net.psforever.packet.game.{ItemTransactionMessage, PlanetSideGUID}
+import net.psforever.types.{ExoSuitType, TransactionType, Vector3}
 
 /**
-  * na
+  * A structure-owned server object that is a "terminal" that can be accessed for amenities and services.
   * @param tdef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
   */
 class Terminal(tdef : TerminalDefinition) extends PlanetSideServerObject {
-  //the following fields and related methods are neither finalized no integrated; GOTO Request
-  private var faction : PlanetSideEmpire.Value = PlanetSideEmpire.NEUTRAL
-  private var hackedBy : Option[(Player, Vector3)] = None
-  private var health : Int = 100 //TODO not real health value
+  /**
+    * An entry that maintains a reference to the `Player`, and the player's GUID and location when the message was received.
+    */
+  private var hackedBy : Option[(Player, PlanetSideGUID, Vector3)] = None
 
-  def Faction : PlanetSideEmpire.Value = faction
+  def HackedBy : Option[(Player, PlanetSideGUID, Vector3)] = hackedBy
 
-  def HackedBy : Option[(Player, Vector3)] = hackedBy
+  def HackedBy_=(agent : Player) : Option[(Player, PlanetSideGUID, Vector3)] = HackedBy_=(Some(agent))
 
-  def HackedBy_=(agent : Player) : Option[(Player, Vector3)] = HackedBy_=(Some(agent))
-
-  def HackedBy_=(agent : Option[Player]) : Option[(Player, Vector3)] = {
+  /**
+    * Set the hack state of this object by recording important information about the player that caused it.
+    * Set the hack state if there is no current hack state.
+    * Override the hack state with a new hack state if the new user has different faction affiliation.
+    * @param agent a `Player`, or no player
+    * @return the player hack entry
+    */
+  def HackedBy_=(agent : Option[Player]) : Option[(Player, PlanetSideGUID, Vector3)] = {
     hackedBy match {
       case None =>
+        //set the hack state if there is no current hack state
         if(agent.isDefined) {
-          hackedBy = Some(agent.get, agent.get.Position)
+          hackedBy = Some(agent.get, agent.get.GUID, agent.get.Position)
         }
       case Some(_) =>
+        //clear the hack state
         if(agent.isEmpty) {
           hackedBy = None
         }
+        //override the hack state with a new hack state if the new user has different faction affiliation
         else if(agent.get.Faction != hackedBy.get._1.Faction) {
-          hackedBy = Some(agent.get, agent.get.Position) //overwrite
+          hackedBy = Some(agent.get, agent.get.GUID, agent.get.Position)
         }
     }
     HackedBy
   }
 
-  def Health : Int = health
+  //the following fields and related methods are neither finalized nor integrated; GOTO Request
+  private var health : Int = 100 //TODO not real health value
 
-  def Convert(toFaction : PlanetSideEmpire.Value) : Unit = {
-    hackedBy = None
-    faction = toFaction
-  }
+  def Health : Int = health
 
   def Damaged(dam : Int) : Unit = {
     health = Math.max(0, Health - dam)
@@ -146,14 +152,11 @@ object Terminal {
     */
   final case class InfantryLoadout(exosuit : ExoSuitType.Value, subtype : Int = 0, holsters : List[InventoryItem], inventory : List[InventoryItem]) extends Exchange
 
+  /**
+    * Overloaded constructor.
+    * @param tdef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
+    */
   def apply(tdef : TerminalDefinition) : Terminal = {
     new Terminal(tdef)
-  }
-
-  import net.psforever.packet.game.PlanetSideGUID
-  def apply(guid : PlanetSideGUID, tdef : TerminalDefinition) : Terminal = {
-    val obj = new Terminal(tdef)
-    obj.GUID = guid
-    obj
   }
 }

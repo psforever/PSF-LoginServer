@@ -230,11 +230,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
         case LocalServiceResponse.HackClear(target_guid, unk1, unk2) =>
           log.info(s"Clear hack of $target_guid")
-          sendResponse(PacketCoding.CreateGamePacket(0, HackMessage(0, target_guid.guid, guid.guid, 0, unk1, 7, unk2)))
+          sendResponse(PacketCoding.CreateGamePacket(0, HackMessage(0, target_guid, guid, 0, unk1, HackState.HackCleared, unk2)))
 
         case LocalServiceResponse.HackObject(target_guid, unk1, unk2) =>
           if(player.GUID != guid) {
-            sendResponse(PacketCoding.CreateGamePacket(0, HackMessage(0, target_guid.guid, guid.guid, 100, unk1, 6, unk2)))
+            sendResponse(PacketCoding.CreateGamePacket(0, HackMessage(0, target_guid, guid, 100, unk1, HackState.Hacked, unk2)))
           }
       }
 
@@ -586,23 +586,23 @@ class WorldSessionActor extends Actor with MDCContextAware {
       progressBarUpdate.cancel
       if(progressBarValue.isDefined) {
         val progressBarVal : Float = progressBarValue.get + delta
-        val vis = if(progressBarVal == 0L) {
-          1
+        val vis = if(progressBarVal == 0L) { //hack state for progress bar visibility
+          HackState.Start
         }
-        else if(progressBarVal >= 100L) {
-          4
+        else if(progressBarVal > 100L) {
+          HackState.Finished
         }
         else {
-          3
+          HackState.Ongoing
         }
-        sendResponse(PacketCoding.CreateGamePacket(0, HackMessage(1, target.GUID.guid, player.GUID.guid, progressBarVal.toInt, 0L, vis, 8L)))
-        if(progressBarVal > 100) {
+        sendResponse(PacketCoding.CreateGamePacket(0, HackMessage(1, target.GUID, player.GUID, progressBarVal.toInt, 0L, vis, 8L)))
+        if(progressBarVal > 100) { //done
           progressBarValue = None
           log.info(s"Hacked a $target")
-          sendResponse(PacketCoding.CreateGamePacket(0, HackMessage(0, target.GUID.guid, player.GUID.guid, 100, 1114636288L, 6, 8L)))
+          sendResponse(PacketCoding.CreateGamePacket(0, HackMessage(0, target.GUID, player.GUID, 100, 1114636288L, HackState.Hacked, 8L)))
           completeAction()
         }
-        else {
+        else { //continue next tick
           tickAction.getOrElse(() => Unit)()
           progressBarValue = Some(progressBarVal)
           import scala.concurrent.duration._
@@ -1028,10 +1028,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
       // TODO: Not all incoming UseItemMessage's respond with another UseItemMessage (i.e. doors only send out GenericObjectStateMsg)
       continent.GUID(object_guid) match {
         case Some(door : Door) =>
-          continent.Map.DoorToLock.get(object_guid.guid) match { //check for IFFLock
+          continent.Map.DoorToLock.get(object_guid.guid) match { //check for IFF Lock
             case Some(lock_guid) =>
               val lock_hacked = continent.GUID(lock_guid).get.asInstanceOf[IFFLock].HackedBy match {
-                case Some((tplayer, _)) =>
+                case Some((tplayer, _, _)) =>
                   tplayer.Faction == player.Faction
                 case None =>
                   false
@@ -1042,7 +1042,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                     door.Actor ! Door.Use(player, msg)
                   }
                 case None =>
-                  if(lock_hacked) { //is locks hacked?
+                  if(lock_hacked) { //is lock hacked? this may be a weird case
                     door.Actor ! Door.Use(player, msg)
                   }
               }
@@ -1054,13 +1054,13 @@ class WorldSessionActor extends Actor with MDCContextAware {
           player.Slot(player.DrawnSlot).Equipment match {
             case Some(tool : SimpleItem) =>
               if(tool.Definition == GlobalDefinitions.remote_electronics_kit) {
+                //TODO get player hack level (for now, presume 15s in intervals of 4/s)
                 progressBarValue = Some(-2.66f)
-                self ! WorldSessionActor.ItemHacking(player, panel, tool.GUID, 2.66f, HackTemporary(panel))
+                self ! WorldSessionActor.ItemHacking(player, panel, tool.GUID, 2.66f, FinishHackingDoor(panel, 1114636288L))
+                log.info("Hacking a door~")
               }
             case _ => ;
           }
-         log.info("Hacking a door~")
-         //TODO get player hack level (for now, presume 15s in internals of 4/s)
 
         case Some(obj : PlanetSideGameObject) =>
           if(itemType != 121) {
@@ -1071,10 +1071,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             sendResponse(PacketCoding.CreateGamePacket(0, PlanetsideAttributeMessage(avatar_guid, 0, 100))) // avatar with 100 hp
             sendResponse(PacketCoding.CreateGamePacket(0, ObjectDeleteMessage(PlanetSideGUID(unk1), 2)))
           }
-//          if(unk1 == 0 && !unk3 && unk7 == 25) {
-//            // TODO: This should only actually be sent to doors upon opening; may break non-door items upon use
-//            sendResponse(PacketCoding.CreateGamePacket(0, GenericObjectStateMsg(object_guid, 16)))
-//          }
+
         case None => ;
       }
     
@@ -1625,9 +1622,18 @@ class WorldSessionActor extends Actor with MDCContextAware {
     }
   }
 
-  private def HackTemporary(target : PlanetSideServerObject)() : Unit = {
+  /**
+    * The process of hacking the `Door` `IFFLock` is completed.
+    * Pass the message onto the lock and onto the local events system.
+    * @param target the `IFFLock` belonging to the door that is being hacked
+    * @param unk na;
+    *            used by `HackingMessage` as `unk5`
+    * @see `HackMessage`
+    */
+  //TODO add params here depending on which params in HackMessage are important
+  private def FinishHackingDoor(target : IFFLock, unk : Long)() : Unit = {
     target.Actor ! CommonMessages.Hack(player)
-    localService ! LocalServiceMessage(player.Continent, LocalAction.HackTemporarily(player.GUID, continent, target, 1114636288L))
+    localService ! LocalServiceMessage(continent.Id, LocalAction.HackTemporarily(player.GUID, continent, target, unk))
   }
 
   def failWithError(error : String) = {
@@ -1660,6 +1666,18 @@ object WorldSessionActor {
   private final case class PlayerFailedToLoad(tplayer : Player)
   private final case class ListAccountCharacters()
   private final case class SetCurrentAvatar(tplayer : Player)
+
+  /**
+    * A message that indicates the user is using a remote electronics kit to hack some server object.
+    * Each time this message is sent for a given hack attempt counts as a single "tick" of progress.
+    * The process of "making progress" with a hack involves sending this message repeatedly until the progress is 100 or more.
+    * @param tplayer the player
+    * @param target the object being hacked
+    * @param tool_guid the REK
+    * @param delta how much the progress bar value changes each tick
+    * @param completeAction a custom action performed once the hack is completed
+    * @param tickAction an optional action is is performed for each tick of progress
+    */
   private final case class ItemHacking(tplayer : Player,
                                        target : PlanetSideServerObject,
                                        tool_guid : PlanetSideGUID,

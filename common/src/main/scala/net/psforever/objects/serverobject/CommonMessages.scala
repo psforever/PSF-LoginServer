@@ -2,9 +2,8 @@
 package net.psforever.objects.serverobject
 
 import net.psforever.objects.Player
-import net.psforever.types.PlanetSideEmpire
 
-//temporary location for these temporary messages
+//temporary location for these messages
 object CommonMessages {
   final case class Hack(player : Player)
   final case class ClearHack()

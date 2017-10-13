@@ -7,8 +7,10 @@ import net.psforever.objects.guid.NumberPoolHub
 
 /**
   * Wrapper `Trait` designed to be extended to implement custom object instantiation logic at the `ZoneMap` level.
+  * @tparam A any object that extends from PlanetSideGameObject
   * @see `Zone.Init`
   */
+//TODO can we changed PlanetSideGameObject -> PlanetSideServerObject?
 trait ServerObjectBuilder[A <: PlanetSideGameObject] {
   /**
     * Instantiate and configure the given server object

@@ -6,10 +6,10 @@ import net.psforever.objects.Player
 import net.psforever.packet.game.UseItemMessage
 
 /**
-  * na
+  * A structure-owned server object that is a "door" that can open and can close.
   * @param ddef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
   */
-class Door(ddef : DoorDefinition) extends PlanetSideServerObject {
+class Door(private val ddef : DoorDefinition) extends PlanetSideServerObject {
   private var openState : Boolean = false
   private var lockState : Boolean = false
 
@@ -45,26 +45,46 @@ class Door(ddef : DoorDefinition) extends PlanetSideServerObject {
 }
 
 object Door {
+  /**
+    * Entry message into this `Door` that carries the request.
+    * @param player the player who sent this request message
+    * @param msg the original packet carrying the request
+    */
   final case class Use(player : Player, msg : UseItemMessage)
 
+  /**
+    * A basic `Trait` connecting all of the actionable `Door` response messages.
+    */
   sealed trait Exchange
 
+  /**
+    * Message that carries the result of the processed request message back to the original user (`player`).
+    * @param player the player who sent this request message
+    * @param msg the original packet carrying the request
+    * @param response the result of the processed request
+    */
   final case class DoorMessage(player : Player, msg : UseItemMessage, response : Exchange)
 
+  /**
+    * This door will open.
+    */
   final case class OpenEvent() extends Exchange
 
+  /**
+    * This door will close.
+    */
   final case class CloseEvent() extends Exchange
 
+  /**
+    * This door will do nothing.
+    */
   final case class NoEvent() extends Exchange
 
+  /**
+    * Overloaded constructor.
+    * @param tdef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
+    */
   def apply(tdef : DoorDefinition) : Door = {
     new Door(tdef)
-  }
-
-  import net.psforever.packet.game.PlanetSideGUID
-  def apply(guid : PlanetSideGUID, ddef : DoorDefinition) : Door = {
-    val obj = new Door(ddef)
-    obj.GUID = guid
-    obj
   }
 }

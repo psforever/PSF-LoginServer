@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.doors
 
-import akka.actor.{Actor, Cancellable}
+import akka.actor.Actor
 
 /**
   * An `Actor` that handles messages being dispatched to a specific `Door`.
@@ -14,12 +14,5 @@ class DoorControl(door : Door) extends Actor {
 
     case _ =>
       sender ! Door.NoEvent()
-  }
-}
-
-object DoorControl {
-  final val DefaultCloser : Cancellable = new Cancellable() {
-    override def cancel : Boolean = true
-    override def isCancelled : Boolean = true
   }
 }
