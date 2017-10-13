@@ -1,8 +1,9 @@
 // Copyright (c) 2017 PSForever
-package net.psforever.objects.zones
+package services.local.support
 
 import akka.actor.{Actor, Cancellable}
 import net.psforever.objects.serverobject.doors.Door
+import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.PlanetSideGUID
 
 import scala.annotation.tailrec

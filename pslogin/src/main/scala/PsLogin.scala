@@ -18,6 +18,8 @@ import net.psforever.objects.serverobject.builders.{DoorObjectBuilder, IFFLockOb
 import org.slf4j
 import org.fusesource.jansi.Ansi._
 import org.fusesource.jansi.Ansi.Color._
+import services.avatar._
+import services.local._
 
 import scala.collection.JavaConverters._
 import scala.concurrent.Await

@@ -2,9 +2,9 @@
 import java.util.concurrent.atomic.AtomicInteger
 
 import akka.actor.{Actor, ActorRef, Cancellable, MDCContextAware}
-import net.psforever.packet.{PlanetSideGamePacket, _}
+import net.psforever.packet._
 import net.psforever.packet.control._
-import net.psforever.packet.game.{ObjectCreateDetailedMessage, _}
+import net.psforever.packet.game._
 import scodec.Attempt.{Failure, Successful}
 import scodec.bits._
 import org.log4s.MDC
@@ -23,6 +23,9 @@ import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.packet.game.objectcreate._
 import net.psforever.types._
+import services._
+import services.avatar._
+import services.local._
 
 import scala.annotation.tailrec
 import scala.util.Success
@@ -229,13 +232,15 @@ class WorldSessionActor extends Actor with MDCContextAware {
           sendResponse(PacketCoding.CreateGamePacket(0, GenericObjectStateMsg(door_guid, 17)))
 
         case LocalServiceResponse.HackClear(target_guid, unk1, unk2) =>
-          log.info(s"Clear hack of $target_guid")
           sendResponse(PacketCoding.CreateGamePacket(0, HackMessage(0, target_guid, guid, 0, unk1, HackState.HackCleared, unk2)))
 
         case LocalServiceResponse.HackObject(target_guid, unk1, unk2) =>
           if(player.GUID != guid) {
             sendResponse(PacketCoding.CreateGamePacket(0, HackMessage(0, target_guid, guid, 100, unk1, HackState.Hacked, unk2)))
           }
+
+        case LocalServiceResponse.TriggerSound(sound, pos, unk, volume) =>
+          sendResponse(PacketCoding.CreateGamePacket(0, TriggerSoundMessage(sound, pos, unk, volume)))
       }
 
     case Door.DoorMessage(tplayer, msg, order) =>
@@ -1631,8 +1636,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * @see `HackMessage`
     */
   //TODO add params here depending on which params in HackMessage are important
+  //TODO sound should be centered on IFFLock, not on player
   private def FinishHackingDoor(target : IFFLock, unk : Long)() : Unit = {
     target.Actor ! CommonMessages.Hack(player)
+    localService ! LocalServiceMessage(continent.Id, LocalAction.TriggerSound(player.GUID, TriggeredSound.HackDoor, player.Position, 30, 0.49803925f))
     localService ! LocalServiceMessage(continent.Id, LocalAction.HackTemporarily(player.GUID, continent, target, unk))
   }
 

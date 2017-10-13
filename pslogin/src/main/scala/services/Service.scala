@@ -1,8 +1,13 @@
 // Copyright (c) 2017 PSForever
+package services
+
 import akka.event.{ActorEventBus, SubchannelClassification}
 import akka.util.Subclassification
+import net.psforever.packet.game.PlanetSideGUID
 
 object Service {
+  final val defaultPlayerGUID : PlanetSideGUID = PlanetSideGUID(0)
+
   final case class Join(channel : String)
   final case class Leave()
   final case class LeaveAll()
