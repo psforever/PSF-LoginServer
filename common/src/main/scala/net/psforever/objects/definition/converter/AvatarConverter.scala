@@ -40,7 +40,7 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
         obj.Stamina,
         obj.Certifications.toList.sortBy(_.id), //TODO is sorting necessary?
         MakeImplantEntries(obj),
-        List.empty[String], //TODO fte list
+        "xpe_battle_rank_10" :: Nil, //TODO fte list
         List.empty[String], //TODO tutorial list
         InventoryData((MakeHolsters(obj, BuildDetailedEquipment) ++ MakeFifthSlot(obj) ++ MakeInventory(obj)).sortBy(_.parentSlot)),
         GetDrawnSlot(obj)
@@ -56,7 +56,7 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
   private def MakeAppearanceData(obj : Player) : CharacterAppearanceData = {
     CharacterAppearanceData(
       PlacementData(obj.Position, obj.Orientation, obj.Velocity),
-      BasicCharacterData(obj.Name, obj.Faction, obj.Sex, obj.Voice, obj.Head),
+      BasicCharacterData(obj.Name, obj.Faction, obj.Sex, obj.Head, obj.Voice),
       0,
       false,
       false,
@@ -132,7 +132,10 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
     * @see `ImplantEntry` in `DetailedCharacterData`
     */
   private def MakeImplantEntries(obj : Player) : List[ImplantEntry] = {
-    obj.Implants.map(slot => {
+    val numImplants : Int = NumberOfImplantSlots(obj.BEP)
+    val implants = obj.Implants
+    (0 until numImplants).map(index => {
+      val slot = implants(index)
       slot.Installed match {
         case Some(_) =>
           if(slot.Initialized) {
@@ -145,6 +148,27 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
           ImplantEntry(ImplantType.None, None)
       }
     }).toList
+  }
+
+  /**
+    * A player's battle rank, determined by their battle experience points, determines how many implants to which they have access.
+    * Starting with "no implants" at BR1, a player earns one at each of the three ranks: BR6, BR12, and BR18.
+    * @param bep battle experience points
+    * @return the number of accessible implant slots
+    */
+  private def NumberOfImplantSlots(bep : Long) : Int = {
+    if(bep > 754370) { //BR18+
+      3
+    }
+    else if(bep > 197753) { //BR12+
+      2
+    }
+    else if(bep > 29999) { //BR6+
+      1
+    }
+    else { //BR1+
+      0
+    }
   }
 
   /**

@@ -23,7 +23,9 @@ import scodec.codecs._
   */
 object ImplantType extends Enumeration {
   type Type = Value
-  val AdvancedRegen,
+
+  val
+  AdvancedRegen,
   Targeting,
   AudioAmplifier,
   DarklightVision,

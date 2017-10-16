@@ -209,7 +209,7 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
       implantOffset += entry.bitsize.toInt
     })
     val resultB : Int = resultA - (implantOffset % 8)
-    if(resultB < 0) { 8 - resultB } else { resultB }
+    if(resultB < 0) { 8 + resultB } else { resultB }
   }
 
   /**
@@ -297,8 +297,8 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
                   (("tutorial_length" | uint32L) >>:~ { len2 =>
                     conditional(len2 > 0, "tutorial_firstEntry" | PacketHelpers.encodedStringAligned(tutPadding(len, len2, implantFieldPadding(implants, CharacterAppearanceData.altModelBit(app))))) ::
                       ("tutorial_list" | PacketHelpers.listOfNSized(len2 - 1, PacketHelpers.encodedString)) ::
-                      ignore(207) ::
-                      optional(bool, "inventory" | InventoryData.codec_detailed) ::
+                      ignore(200) ::
+                      conditional(true, "inventory" | InventoryData.codec_detailed) ::
                       ("drawn_slot" | DrawnSlot.codec) ::
                       bool //usually false
                   })
