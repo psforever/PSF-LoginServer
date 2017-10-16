@@ -146,7 +146,8 @@ class ObjectCreateDetailedMessageTest extends Specification {
         parent.get.guid mustEqual PlanetSideGUID(75)
         parent.get.slot mustEqual 1
         data.isDefined mustEqual true
-        data.get.asInstanceOf[DetailedREKData].unk mustEqual 4
+        data.get.asInstanceOf[DetailedREKData].unk1 mustEqual 4
+        data.get.asInstanceOf[DetailedREKData].unk2 mustEqual 0
       case _ =>
         ko
     }
@@ -231,6 +232,7 @@ class ObjectCreateDetailedMessageTest extends Specification {
         char.firstTimeEvents(2) mustEqual "used_beamer"
         char.firstTimeEvents(3) mustEqual "map13"
         char.tutorials.size mustEqual 0
+        char.cosmetics.isDefined mustEqual false
         char.inventory.isDefined mustEqual true
         val inventory = char.inventory.get.contents
         inventory.size mustEqual 10
@@ -428,6 +430,7 @@ class ObjectCreateDetailedMessageTest extends Specification {
       List(),
       "xpe_sanctuary_help" :: "xpe_th_firemodes" :: "used_beamer" :: "map13" :: Nil,
       List.empty,
+      None,
       Some(InventoryData(inv)),
       DrawnSlot.Pistol1
     )

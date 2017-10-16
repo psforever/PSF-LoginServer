@@ -3,7 +3,7 @@ package net.psforever.objects.definition.converter
 
 import net.psforever.objects.{EquipmentSlot, GlobalDefinitions, ImplantSlot, Player}
 import net.psforever.objects.equipment.Equipment
-import net.psforever.packet.game.objectcreate.{BasicCharacterData, CharacterAppearanceData, CharacterData, DetailedCharacterData, DrawnSlot, ImplantEffects, ImplantEntry, InternalSlot, InventoryData, PlacementData, RibbonBars, UniformStyle}
+import net.psforever.packet.game.objectcreate.{BasicCharacterData, CharacterAppearanceData, CharacterData, Cosmetics, DetailedCharacterData, DrawnSlot, ImplantEffects, ImplantEntry, InternalSlot, InventoryData, PlacementData, RibbonBars, UniformStyle}
 import net.psforever.types.{GrenadeState, ImplantType}
 
 import scala.annotation.tailrec
@@ -40,8 +40,9 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
         obj.Stamina,
         obj.Certifications.toList.sortBy(_.id), //TODO is sorting necessary?
         MakeImplantEntries(obj),
-        "xpe_battle_rank_10" :: Nil, //TODO fte list
+        List.empty[String], //TODO fte list
         List.empty[String], //TODO tutorial list
+        MakeCosmetics(obj.BEP),
         InventoryData((MakeHolsters(obj, BuildDetailedEquipment) ++ MakeFifthSlot(obj) ++ MakeInventory(obj)).sortBy(_.parentSlot)),
         GetDrawnSlot(obj)
       )
@@ -132,7 +133,7 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
     * @see `ImplantEntry` in `DetailedCharacterData`
     */
   private def MakeImplantEntries(obj : Player) : List[ImplantEntry] = {
-    val numImplants : Int = NumberOfImplantSlots(obj.BEP)
+    val numImplants : Int = DetailedCharacterData.numberOfImplantSlots(obj.BEP)
     val implants = obj.Implants
     (0 until numImplants).map(index => {
       val slot = implants(index)
@@ -148,27 +149,6 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
           ImplantEntry(ImplantType.None, None)
       }
     }).toList
-  }
-
-  /**
-    * A player's battle rank, determined by their battle experience points, determines how many implants to which they have access.
-    * Starting with "no implants" at BR1, a player earns one at each of the three ranks: BR6, BR12, and BR18.
-    * @param bep battle experience points
-    * @return the number of accessible implant slots
-    */
-  private def NumberOfImplantSlots(bep : Long) : Int = {
-    if(bep > 754370) { //BR18+
-      3
-    }
-    else if(bep > 197753) { //BR12+
-      2
-    }
-    else if(bep > 29999) { //BR6+
-      1
-    }
-    else { //BR1+
-      0
-    }
   }
 
   /**
@@ -199,6 +179,20 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
       recursiveMakeImplantEffects(iter)
     }
   }
+
+  /**
+    * Should this player be of battle rank 24 or higher, they will have a mandatory cosmetics object.
+    * @param bep battle experience points
+    * @see `Cosmetics`
+    * @return the `Cosmetics` options
+    */
+  protected def MakeCosmetics(bep : Long) : Option[Cosmetics] =
+    if(DetailedCharacterData.isBR24(bep)) {
+      Some(Cosmetics(false, false, false, false, false))
+    }
+    else {
+      None
+    }
 
   /**
     * Given a player with an inventory, convert the contents of that inventory into converted-decoded packet data.
@@ -260,7 +254,7 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
     * @param equip the game object
     * @return the game object in decoded packet form
     */
-  private def BuildDetailedEquipment(index : Int, equip : Equipment) : InternalSlot = {
+  protected def BuildDetailedEquipment(index : Int, equip : Equipment) : InternalSlot = {
     InternalSlot(equip.Definition.ObjectId, equip.GUID, index, equip.Definition.Packet.DetailedConstructorData(equip).get)
   }
 
@@ -298,7 +292,7 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
     * @param obj the `Player` game object
     * @return the holster's Enumeration value
     */
-  private def GetDrawnSlot(obj : Player) : DrawnSlot.Value = {
+  protected def GetDrawnSlot(obj : Player) : DrawnSlot.Value = {
     try { DrawnSlot(obj.DrawnSlot) } catch { case _ : Exception => DrawnSlot.None }
   }
 }
