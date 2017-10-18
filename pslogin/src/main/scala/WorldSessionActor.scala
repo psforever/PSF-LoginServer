@@ -2,24 +2,30 @@
 import java.util.concurrent.atomic.AtomicInteger
 
 import akka.actor.{Actor, ActorRef, Cancellable, MDCContextAware}
-import net.psforever.packet.{PlanetSideGamePacket, _}
+import net.psforever.packet._
 import net.psforever.packet.control._
-import net.psforever.packet.game.{ObjectCreateDetailedMessage, _}
+import net.psforever.packet.game._
 import scodec.Attempt.{Failure, Successful}
 import scodec.bits._
 import org.log4s.MDC
 import MDCContextAware.Implicits._
 import ServiceManager.Lookup
 import net.psforever.objects._
+import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.zones.{InterstellarCluster, Zone}
 import net.psforever.objects.entity.IdentifiableEntity
 import net.psforever.objects.equipment._
 import net.psforever.objects.guid.{Task, TaskResolver}
 import net.psforever.objects.guid.actor.{Register, Unregister}
 import net.psforever.objects.inventory.{GridInventory, InventoryItem}
-import net.psforever.objects.terminals.Terminal
+import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
+import net.psforever.objects.serverobject.locks.IFFLock
+import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.packet.game.objectcreate._
 import net.psforever.types._
+import services._
+import services.avatar._
+import services.local._
 
 import scala.annotation.tailrec
 import scala.util.Success
@@ -31,18 +37,22 @@ class WorldSessionActor extends Actor with MDCContextAware {
   var sessionId : Long = 0
   var leftRef : ActorRef = ActorRef.noSender
   var rightRef : ActorRef = ActorRef.noSender
-  var avatarService = Actor.noSender
-  var taskResolver = Actor.noSender
-  var galaxy = Actor.noSender
+  var avatarService : ActorRef = ActorRef.noSender
+  var localService : ActorRef = ActorRef.noSender
+  var taskResolver : ActorRef = Actor.noSender
+  var galaxy : ActorRef = Actor.noSender
   var continent : Zone = null
+  var progressBarValue : Option[Float] = None
 
   var clientKeepAlive : Cancellable = WorldSessionActor.DefaultCancellable
+  var progressBarUpdate : Cancellable = WorldSessionActor.DefaultCancellable
 
   override def postStop() = {
     if(clientKeepAlive != null)
       clientKeepAlive.cancel()
 
-    avatarService ! Leave()
+    avatarService ! Service.Leave()
+    localService ! Service.Leave()
     LivePlayerList.Remove(sessionId) match {
       case Some(tplayer) =>
         if(tplayer.HasGUID) {
@@ -64,11 +74,13 @@ class WorldSessionActor extends Actor with MDCContextAware {
       if(pipe.hasNext) {
         rightRef = pipe.next
         rightRef !> HelloFriend(sessionId, pipe)
-      } else {
+      }
+      else {
         rightRef = sender()
       }
       context.become(Started)
       ServiceManager.serviceManager ! Lookup("avatar")
+      ServiceManager.serviceManager ! Lookup("local")
       ServiceManager.serviceManager ! Lookup("taskResolver")
       ServiceManager.serviceManager ! Lookup("galaxy")
 
@@ -81,6 +93,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case ServiceManager.LookupResult("avatar", endpoint) =>
       avatarService = endpoint
       log.info("ID: " + sessionId + " Got avatar service " + endpoint)
+    case ServiceManager.LookupResult("local", endpoint) =>
+      localService = endpoint
+      log.info("ID: " + sessionId + " Got local service " + endpoint)
     case ServiceManager.LookupResult("taskResolver", endpoint) =>
       taskResolver = endpoint
       log.info("ID: " + sessionId + " Got task resolver service " + endpoint)
@@ -204,6 +219,48 @@ class WorldSessionActor extends Actor with MDCContextAware {
           }
 
         case _ => ;
+      }
+
+    case LocalServiceResponse(_, guid, reply) =>
+      reply match {
+        case LocalServiceResponse.DoorOpens(door_guid) =>
+          if(player.GUID != guid) {
+            sendResponse(PacketCoding.CreateGamePacket(0, GenericObjectStateMsg(door_guid, 16)))
+          }
+
+        case LocalServiceResponse.DoorCloses(door_guid) => //door closes for everyone
+          sendResponse(PacketCoding.CreateGamePacket(0, GenericObjectStateMsg(door_guid, 17)))
+
+        case LocalServiceResponse.HackClear(target_guid, unk1, unk2) =>
+          sendResponse(PacketCoding.CreateGamePacket(0, HackMessage(0, target_guid, guid, 0, unk1, HackState.HackCleared, unk2)))
+
+        case LocalServiceResponse.HackObject(target_guid, unk1, unk2) =>
+          if(player.GUID != guid) {
+            sendResponse(PacketCoding.CreateGamePacket(0, HackMessage(0, target_guid, guid, 100, unk1, HackState.Hacked, unk2)))
+          }
+
+        case LocalServiceResponse.TriggerSound(sound, pos, unk, volume) =>
+          sendResponse(PacketCoding.CreateGamePacket(0, TriggerSoundMessage(sound, pos, unk, volume)))
+      }
+
+    case Door.DoorMessage(tplayer, msg, order) =>
+      val door_guid = msg.object_guid
+      order match {
+        case Door.OpenEvent() =>
+          continent.GUID(door_guid) match {
+            case Some(door : Door) =>
+              sendResponse(PacketCoding.CreateGamePacket(0, GenericObjectStateMsg(door_guid, 16)))
+              localService ! LocalServiceMessage(continent.Id, LocalAction.DoorOpens (tplayer.GUID, continent, door) )
+
+            case _ =>
+              log.warn(s"door $door_guid wanted to be opened but could not be found")
+          }
+
+        case Door.CloseEvent() =>
+          sendResponse(PacketCoding.CreateGamePacket(0, GenericObjectStateMsg(door_guid, 17)))
+          localService ! LocalServiceMessage(continent.Id, LocalAction.DoorCloses(tplayer.GUID, door_guid))
+
+        case Door.NoEvent() => ;
       }
 
     case Terminal.TerminalMessage(tplayer, msg, order) =>
@@ -532,6 +589,35 @@ class WorldSessionActor extends Actor with MDCContextAware {
           continent.Actor ! Zone.DropItemOnGround(item, item.Position, item.Orientation) //restore
       }
 
+    case ItemHacking(tplayer, target, tool_guid, delta, completeAction, tickAction) =>
+      progressBarUpdate.cancel
+      if(progressBarValue.isDefined) {
+        val progressBarVal : Float = progressBarValue.get + delta
+        val vis = if(progressBarVal == 0L) { //hack state for progress bar visibility
+          HackState.Start
+        }
+        else if(progressBarVal > 100L) {
+          HackState.Finished
+        }
+        else {
+          HackState.Ongoing
+        }
+        sendResponse(PacketCoding.CreateGamePacket(0, HackMessage(1, target.GUID, player.GUID, progressBarVal.toInt, 0L, vis, 8L)))
+        if(progressBarVal > 100) { //done
+          progressBarValue = None
+          log.info(s"Hacked a $target")
+          sendResponse(PacketCoding.CreateGamePacket(0, HackMessage(0, target.GUID, player.GUID, 100, 1114636288L, HackState.Hacked, 8L)))
+          completeAction()
+        }
+        else { //continue next tick
+          tickAction.getOrElse(() => Unit)()
+          progressBarValue = Some(progressBarVal)
+          import scala.concurrent.duration._
+          import scala.concurrent.ExecutionContext.Implicits.global
+          progressBarUpdate = context.system.scheduler.scheduleOnce(250 milliseconds, self, ItemHacking(tplayer, target, tool_guid, delta, completeAction))
+        }
+      }
+
     case ResponseToSelf(pkt) =>
       log.info(s"Received a direct message: $pkt")
       sendResponse(pkt)
@@ -714,7 +800,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
         )
       })
 
-      avatarService ! Join(player.Continent)
+      avatarService ! Service.Join(player.Continent)
+      localService ! Service.Join(player.Continent)
       self ! SetCurrentAvatar(player)
 
     case msg @ PlayerStateMessageUpstream(avatar_guid, pos, vel, yaw, pitch, yaw_upper, seq_time, unk3, is_crouching, is_jumping, unk4, is_cloaking, unk5, unk6) =>
@@ -776,6 +863,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ ChangeFireStateMessage_Stop(item_guid) =>
       log.info("ChangeFireState_Stop: " + msg)
+      progressBarUpdate.cancel
 
     case msg @ EmoteMsg(avatar_guid, emote) =>
       log.info("Emote: " + msg)
@@ -945,15 +1033,53 @@ class WorldSessionActor extends Actor with MDCContextAware {
       log.info("UseItem: " + msg)
       // TODO: Not all fields in the response are identical to source in real packet logs (but seems to be ok)
       // TODO: Not all incoming UseItemMessage's respond with another UseItemMessage (i.e. doors only send out GenericObjectStateMsg)
-      if (itemType != 121) sendResponse(PacketCoding.CreateGamePacket(0, UseItemMessage(avatar_guid, unk1, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType)))
-      if (itemType == 121 && !unk3){ // TODO : medkit use ?!
-        sendResponse(PacketCoding.CreateGamePacket(0, UseItemMessage(avatar_guid, unk1, object_guid, 0, unk3, unk4, unk5, unk6, unk7, unk8, itemType)))
-        sendResponse(PacketCoding.CreateGamePacket(0, PlanetsideAttributeMessage(avatar_guid, 0, 100))) // avatar with 100 hp
-        sendResponse(PacketCoding.CreateGamePacket(0, ObjectDeleteMessage(PlanetSideGUID(unk1), 2)))
-      }
-      if (unk1 == 0 && !unk3 && unk7 == 25) {
-        // TODO: This should only actually be sent to doors upon opening; may break non-door items upon use
-        sendResponse(PacketCoding.CreateGamePacket(0, GenericObjectStateMsg(object_guid, 16)))
+      continent.GUID(object_guid) match {
+        case Some(door : Door) =>
+          continent.Map.DoorToLock.get(object_guid.guid) match { //check for IFF Lock
+            case Some(lock_guid) =>
+              val lock_hacked = continent.GUID(lock_guid).get.asInstanceOf[IFFLock].HackedBy match {
+                case Some((tplayer, _, _)) =>
+                  tplayer.Faction == player.Faction
+                case None =>
+                  false
+              }
+              continent.Map.ObjectToBase.get(lock_guid) match { //check for associated base
+                case Some(base_id) =>
+                  if(continent.Base(base_id).get.Faction == player.Faction || lock_hacked) { //either base allegiance aligns or locks is hacked
+                    door.Actor ! Door.Use(player, msg)
+                  }
+                case None =>
+                  if(lock_hacked) { //is lock hacked? this may be a weird case
+                    door.Actor ! Door.Use(player, msg)
+                  }
+              }
+            case None =>
+              door.Actor ! Door.Use(player, msg) //let door open freely
+          }
+
+        case Some(panel : IFFLock) =>
+          player.Slot(player.DrawnSlot).Equipment match {
+            case Some(tool : SimpleItem) =>
+              if(tool.Definition == GlobalDefinitions.remote_electronics_kit) {
+                //TODO get player hack level (for now, presume 15s in intervals of 4/s)
+                progressBarValue = Some(-2.66f)
+                self ! WorldSessionActor.ItemHacking(player, panel, tool.GUID, 2.66f, FinishHackingDoor(panel, 1114636288L))
+                log.info("Hacking a door~")
+              }
+            case _ => ;
+          }
+
+        case Some(obj : PlanetSideGameObject) =>
+          if(itemType != 121) {
+            sendResponse(PacketCoding.CreateGamePacket(0, UseItemMessage(avatar_guid, unk1, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType)))
+          }
+          else if(itemType == 121 && !unk3) { // TODO : medkit use ?!
+            sendResponse(PacketCoding.CreateGamePacket(0, UseItemMessage(avatar_guid, unk1, object_guid, 0, unk3, unk4, unk5, unk6, unk7, unk8, itemType)))
+            sendResponse(PacketCoding.CreateGamePacket(0, PlanetsideAttributeMessage(avatar_guid, 0, 100))) // avatar with 100 hp
+            sendResponse(PacketCoding.CreateGamePacket(0, ObjectDeleteMessage(PlanetSideGUID(unk1), 2)))
+          }
+
+        case None => ;
       }
     
     case msg @ UnuseItemMessage(player_guid, item) =>
@@ -1058,6 +1184,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ TargetingImplantRequest(list) =>
       log.info("TargetingImplantRequest: "+msg)
+
+    case msg @ ActionCancelMessage(u1, u2, u3) =>
+      log.info("Cancelled: "+msg)
 
     case default => log.error(s"Unhandled GamePacket $pkt")
   }
@@ -1500,6 +1629,22 @@ class WorldSessionActor extends Actor with MDCContextAware {
     }
   }
 
+  /**
+    * The process of hacking the `Door` `IFFLock` is completed.
+    * Pass the message onto the lock and onto the local events system.
+    * @param target the `IFFLock` belonging to the door that is being hacked
+    * @param unk na;
+    *            used by `HackingMessage` as `unk5`
+    * @see `HackMessage`
+    */
+  //TODO add params here depending on which params in HackMessage are important
+  //TODO sound should be centered on IFFLock, not on player
+  private def FinishHackingDoor(target : IFFLock, unk : Long)() : Unit = {
+    target.Actor ! CommonMessages.Hack(player)
+    localService ! LocalServiceMessage(continent.Id, LocalAction.TriggerSound(player.GUID, TriggeredSound.HackDoor, player.Position, 30, 0.49803925f))
+    localService ! LocalServiceMessage(continent.Id, LocalAction.HackTemporarily(player.GUID, continent, target, unk))
+  }
+
   def failWithError(error : String) = {
     log.error(error)
     sendResponse(PacketCoding.CreateControlPacket(ConnectionClose()))
@@ -1531,6 +1676,23 @@ object WorldSessionActor {
   private final case class ListAccountCharacters()
   private final case class SetCurrentAvatar(tplayer : Player)
 
+  /**
+    * A message that indicates the user is using a remote electronics kit to hack some server object.
+    * Each time this message is sent for a given hack attempt counts as a single "tick" of progress.
+    * The process of "making progress" with a hack involves sending this message repeatedly until the progress is 100 or more.
+    * @param tplayer the player
+    * @param target the object being hacked
+    * @param tool_guid the REK
+    * @param delta how much the progress bar value changes each tick
+    * @param completeAction a custom action performed once the hack is completed
+    * @param tickAction an optional action is is performed for each tick of progress
+    */
+  private final case class ItemHacking(tplayer : Player,
+                                       target : PlanetSideServerObject,
+                                       tool_guid : PlanetSideGUID,
+                                       delta : Float,
+                                       completeAction : () => Unit,
+                                       tickAction : Option[() => Unit] = None)
   /**
     * A placeholder `Cancellable` object.
     */

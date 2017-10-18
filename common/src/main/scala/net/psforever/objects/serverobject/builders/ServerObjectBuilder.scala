@@ -1,5 +1,5 @@
 // Copyright (c) 2017 PSForever
-package net.psforever.objects.zones
+package net.psforever.objects.serverobject.builders
 
 import akka.actor.ActorContext
 import net.psforever.objects.PlanetSideGameObject
@@ -7,9 +7,11 @@ import net.psforever.objects.guid.NumberPoolHub
 
 /**
   * Wrapper `Trait` designed to be extended to implement custom object instantiation logic at the `ZoneMap` level.
+  * @tparam A any object that extends from PlanetSideGameObject
   * @see `Zone.Init`
   */
-trait ServerObjectBuilder {
+//TODO can we changed PlanetSideGameObject -> PlanetSideServerObject?
+trait ServerObjectBuilder[A <: PlanetSideGameObject] {
   /**
     * Instantiate and configure the given server object
     * (at a later time compared to the construction of the builder class).<br>
@@ -23,5 +25,5 @@ trait ServerObjectBuilder {
     *             defaults to `null`
     * @return the object that was created and integrated into the `Zone`
     */
-  def Build(implicit context : ActorContext = null, guid : NumberPoolHub = null) : PlanetSideGameObject
+  def Build(implicit context : ActorContext = null, guid : NumberPoolHub = null) : A
 }

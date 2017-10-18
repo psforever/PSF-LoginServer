@@ -1,5 +1,5 @@
 // Copyright (c) 2017 PSForever
-package net.psforever.objects.terminals
+package net.psforever.objects.serverobject.terminals
 
 import net.psforever.objects.InfantryLoadout.Simplification
 import net.psforever.objects.{Player, Tool}
