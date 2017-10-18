@@ -415,7 +415,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
       }
 
     case ListAccountCharacters =>
+      import net.psforever.objects.definition.converter.CharacterSelectConverter
       val gen : AtomicInteger = new AtomicInteger(1)
+      val converter : CharacterSelectConverter = new CharacterSelectConverter
 
       //load characters
       SetCharacterSelectScreenGUID(player, gen)
@@ -424,7 +426,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       val armor = player.Armor
       player.Spawn
       sendResponse(PacketCoding.CreateGamePacket(0,
-        ObjectCreateMessage(ObjectClass.avatar, player.GUID, player.Definition.Packet.ConstructorData(player).get)
+        ObjectCreateDetailedMessage(ObjectClass.avatar, player.GUID, converter.DetailedConstructorData(player).get)
       ))
       if(health > 0) { //player can not be dead; stay spawned as alive
         player.Health = health
@@ -652,6 +654,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
       log.info(s"New world login to $server with Token:$token. $clientVersion")
       self ! ListAccountCharacters
 
+      import scala.concurrent.duration._
+      import scala.concurrent.ExecutionContext.Implicits.global
+      clientKeepAlive.cancel
+      clientKeepAlive = context.system.scheduler.schedule(0 seconds, 500 milliseconds, self, PokeClient())
+
     case msg @ CharacterCreateRequestMessage(name, head, voice, gender, empire) =>
       log.info("Handling " + msg)
       sendResponse(PacketCoding.CreateGamePacket(0, ActionResultMessage(true, None)))
@@ -668,11 +675,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
           //TODO if yes, get continent guid accessors
           //TODO if no, get sanctuary guid accessors and reset the player's expectations
           galaxy ! InterstellarCluster.GetWorld("home3")
-
-          import scala.concurrent.duration._
-          import scala.concurrent.ExecutionContext.Implicits.global
-          clientKeepAlive.cancel
-          clientKeepAlive = context.system.scheduler.schedule(0 seconds, 500 milliseconds, self, PokeClient())
         case default =>
           log.error("Unsupported " + default + " in " + msg)
       }
@@ -699,7 +701,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         )
       })
       //render Equipment that was dropped into zone before the player arrived
-      continent.EquipmentOnGround.toList.foreach(item => {
+      continent.EquipmentOnGround.foreach(item => {
         val definition = item.Definition
         sendResponse(
           PacketCoding.CreateGamePacket(0,

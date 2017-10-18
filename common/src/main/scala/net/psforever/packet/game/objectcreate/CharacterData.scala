@@ -42,24 +42,6 @@ object UniformStyle extends Enumeration {
 }
 
 /**
-  * The different cosmetics that a player can apply to their model's head.<br>
-  * <br>
-  * The player gets the ability to apply these minor modifications at battle rank twenty-four, just one rank before the third uniform upgrade.
-  * @param no_helmet removes the current helmet on the reinforced exo-suit and the agile exo-suit;
-  *                  all other cosmetics require `no_helmet` to be `true` before they can be seen
-  * @param beret player dons a beret
-  * @param sunglasses player dons sunglasses
-  * @param earpiece player dons an earpiece on the left
-  * @param brimmed_cap player dons a cap;
-  *                    the cap overrides the beret, if both are selected
-  */
-final case class Cosmetics(no_helmet : Boolean,
-                           beret : Boolean,
-                           sunglasses : Boolean,
-                           earpiece : Boolean,
-                           brimmed_cap : Boolean)
-
-/**
   * A part of a representation of the avatar portion of `ObjectCreateMessage` packet data.
   * This densely-packed information outlines most of the specifics of depicting some other character.<br>
   * <br>
@@ -118,7 +100,7 @@ final case class CharacterData(appearance : CharacterAppearanceData,
     //factor guard bool values into the base size, not its corresponding optional field
     val appearanceSize : Long = appearance.bitsize
     val effectsSize : Long = if(implant_effects.isDefined) { 4L } else { 0L }
-    val cosmeticsSize : Long = if(cosmetics.isDefined) { 5L } else { 0L }
+    val cosmeticsSize : Long = if(cosmetics.isDefined) { cosmetics.get.bitsize } else { 0L }
     val inventorySize : Long = if(inventory.isDefined) { inventory.get.bitsize } else { 0L }
     32L + appearanceSize + effectsSize + cosmeticsSize + inventorySize
   }
@@ -141,19 +123,6 @@ object CharacterData extends Marshallable[CharacterData] {
   def apply(appearance : CharacterAppearanceData, health : Int, armor : Int, uniform : UniformStyle.Value, cr : Int, implant_effects : Option[ImplantEffects.Value], cosmetics : Option[Cosmetics], inv : InventoryData, drawn_slot : DrawnSlot.Value) : CharacterData =
     new CharacterData(appearance, health, armor, uniform, cr, implant_effects, cosmetics, Some(inv), drawn_slot)
 
-  /**
-    * Check for the bit flags for the cosmetic items.
-    * These flags are only valid if the player has acquired their third uniform upgrade.
-    * @see `UniformStyle.ThirdUpgrade`
-    */
-  private val cosmeticsCodec : Codec[Cosmetics] = (
-    ("no_helmet" | bool) ::
-      ("beret" | bool) ::
-      ("sunglasses" | bool) ::
-      ("earpiece" | bool) ::
-      ("brimmed_cap" | bool)
-  ).as[Cosmetics]
-
   implicit val codec : Codec[CharacterData] = (
     ("app" | CharacterAppearanceData.codec) ::
       ("health" | uint8L) :: //dead state when health == 0
@@ -163,7 +132,7 @@ object CharacterData extends Marshallable[CharacterData] {
           ("command_rank" | uintL(3)) ::
           bool :: //stream misalignment when != 1
           optional(bool, "implant_effects" | ImplantEffects.codec) ::
-          conditional(style == UniformStyle.ThirdUpgrade, "cosmetics" | cosmeticsCodec) ::
+          conditional(style == UniformStyle.ThirdUpgrade, "cosmetics" | Cosmetics.codec) ::
           optional(bool, "inventory" | InventoryData.codec) ::
           ("drawn_slot" | DrawnSlot.codec) ::
           bool //usually false

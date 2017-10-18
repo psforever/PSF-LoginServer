@@ -13,8 +13,8 @@ import scala.collection.mutable
 class Player(private val name : String,
              private val faction : PlanetSideEmpire.Value,
              private val sex : CharacterGender.Value,
-             private val voice : Int,
-             private val head : Int
+             private val head : Int,
+             private val voice : Int
             ) extends PlanetSideGameObject {
   private var alive : Boolean = false
   private var backpack : Boolean = false
@@ -521,11 +521,11 @@ object Player {
   final val FreeHandSlot : Int = 250
   final val HandsDownSlot : Int = 255
 
-  def apply(name : String, faction : PlanetSideEmpire.Value, sex : CharacterGender.Value, voice : Int, head : Int) : Player = {
-    new Player(name, faction, sex, voice, head)
+  def apply(name : String, faction : PlanetSideEmpire.Value, sex : CharacterGender.Value, head : Int, voice : Int) : Player = {
+    new Player(name, faction, sex, head, voice)
   }
 
-  def apply(guid : PlanetSideGUID, name : String, faction : PlanetSideEmpire.Value, sex : CharacterGender.Value, voice : Int, head : Int) : Player = {
+  def apply(guid : PlanetSideGUID, name : String, faction : PlanetSideEmpire.Value, sex : CharacterGender.Value, head : Int, voice : Int) : Player = {
     val obj = new Player(name, faction, sex, voice, head)
     obj.GUID = guid
     obj
