@@ -799,7 +799,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
           )
         )
       })
-
       avatarService ! Service.Join(player.Continent)
       localService ! Service.Join(player.Continent)
       self ! SetCurrentAvatar(player)

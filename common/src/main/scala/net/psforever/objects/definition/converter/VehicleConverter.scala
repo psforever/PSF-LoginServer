@@ -4,14 +4,13 @@ package net.psforever.objects.definition.converter
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.{EquipmentSlot, Vehicle}
 import net.psforever.packet.game.PlanetSideGUID
-import net.psforever.packet.game.objectcreate.MountItem.MountItem
-import net.psforever.packet.game.objectcreate.{CommonFieldData, DriveState, MountItem, PlacementData, VehicleData}
+import net.psforever.packet.game.objectcreate.{InventoryItemData, _}
 
 import scala.annotation.tailrec
-import scala.util.{Success, Try}
+import scala.util.{Failure, Success, Try}
 
 class VehicleConverter extends ObjectCreateConverter[Vehicle]() {
-  /* Vehicles do not have a conversion for `0x18` packet data. */
+  override def DetailedConstructorData(obj : Vehicle) : Try[VehicleData] = Failure(new Exception("VehicleConverter should not be used to generate detailed VehicleData"))
 
   override def ConstructorData(obj : Vehicle) : Try[VehicleData] = {
     Success(
@@ -24,14 +23,15 @@ class VehicleConverter extends ObjectCreateConverter[Vehicle]() {
         ),
         0,
         obj.Health / obj.MaxHealth * 255, //TODO not precise
-        0,
+        false, false,
         DriveState.Mobile,
         false,
-        0,
-        Some(MakeMountings(obj).sortBy(_.parentSlot))
-      )
+        false,
+        false,
+        SpecificFormatData(obj),
+        Some(InventoryData(MakeMountings(obj).sortBy(_.parentSlot)))
+      )(SpecificFormatModifier)
     )
-    //TODO work utilities into this mess?
   }
 
   /**
@@ -39,9 +39,9 @@ class VehicleConverter extends ObjectCreateConverter[Vehicle]() {
     * @param obj the Vehicle game object
     * @return the converted data
     */
-  private def MakeMountings(obj : Vehicle) : List[MountItem] = recursiveMakeMountings(obj.Weapons.iterator)
+  private def MakeMountings(obj : Vehicle) : List[InventoryItemData.InventoryItem] = recursiveMakeMountings(obj.Weapons.iterator)
 
-  @tailrec private def recursiveMakeMountings(iter : Iterator[(Int,EquipmentSlot)], list : List[MountItem] = Nil) : List[MountItem] = {
+  @tailrec private def recursiveMakeMountings(iter : Iterator[(Int,EquipmentSlot)], list : List[InventoryItemData.InventoryItem] = Nil) : List[InventoryItemData.InventoryItem] = {
     if(!iter.hasNext) {
       list
     }
@@ -51,7 +51,7 @@ class VehicleConverter extends ObjectCreateConverter[Vehicle]() {
         val equip : Equipment = slot.Equipment.get
         recursiveMakeMountings(
           iter,
-          list :+ MountItem(equip.Definition.ObjectId, equip.GUID, index, equip.Definition.Packet.ConstructorData(equip).get)
+          list :+ InventoryItemData(equip.Definition.ObjectId, equip.GUID, index, equip.Definition.Packet.ConstructorData(equip).get)
         )
       }
       else {
@@ -59,4 +59,8 @@ class VehicleConverter extends ObjectCreateConverter[Vehicle]() {
       }
     }
   }
+
+  protected def SpecificFormatModifier : VehicleFormat.Value = VehicleFormat.Normal
+
+  protected def SpecificFormatData(obj : Vehicle) : Option[SpecificVehicleData] = None
 }

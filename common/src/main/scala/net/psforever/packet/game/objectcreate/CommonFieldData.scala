@@ -17,7 +17,10 @@ import shapeless.{::, HNil}
   */
 final case class CommonFieldData(pos : PlacementData,
                                  faction : PlanetSideEmpire.Value,
+                                 bops : Boolean,
+                                 destroyed : Boolean,
                                  unk : Int,
+                                 jammered : Boolean,
                                  player_guid : PlanetSideGUID
                                   ) extends StreamBitSize {
   override def bitsize : Long = 23L + pos.bitsize
@@ -34,7 +37,16 @@ object CommonFieldData extends Marshallable[CommonFieldData] {
     * @return a `CommonFieldData` object
     */
   def apply(pos : PlacementData, faction : PlanetSideEmpire.Value, unk : Int) : CommonFieldData =
-    CommonFieldData(pos, faction, unk, PlanetSideGUID(0))
+    CommonFieldData(pos, faction, false, false, unk, false, PlanetSideGUID(0))
+
+  def apply(pos : PlacementData, faction : PlanetSideEmpire.Value, unk : Int, player_guid : PlanetSideGUID) : CommonFieldData =
+    CommonFieldData(pos, faction, false, false, unk, false, player_guid)
+
+  def apply(pos : PlacementData, faction : PlanetSideEmpire.Value, destroyed : Boolean, unk : Int) : CommonFieldData =
+    CommonFieldData(pos, faction, false, destroyed, unk, false, PlanetSideGUID(0))
+
+  def apply(pos : PlacementData, faction : PlanetSideEmpire.Value, destroyed : Boolean, unk : Int, player_guid : PlanetSideGUID) : CommonFieldData =
+    CommonFieldData(pos, faction, false, destroyed, unk, false, player_guid)
 
   /**
     * `Codec` for transforming reliable `WeaponData` from the internal structure of the turret when it is defined.
@@ -73,19 +85,19 @@ object CommonFieldData extends Marshallable[CommonFieldData] {
   implicit val codec : Codec[CommonFieldData] = (
     ("pos" | PlacementData.codec) ::
       ("faction" | PlanetSideEmpire.codec) ::
-      ("unk" | uint(5)) ::
+      ("bops" | bool) ::
+      ("destroyed" | bool) ::
+      ("unk" | uint2L) :: //3 - na, 2 - common, 1 - na, 0 - common?
+      ("jammered" | bool) ::
       ("player_guid" | PlanetSideGUID.codec)
     ).exmap[CommonFieldData] (
     {
-      case pos :: fac :: unk :: player :: HNil =>
-        Attempt.successful(CommonFieldData(pos, fac, unk, player))
-
-      case _ =>
-        Attempt.failure(Err("invalid deployable data format"))
+      case pos :: fac :: bops :: wrecked :: unk :: jammered :: player :: HNil =>
+        Attempt.successful(CommonFieldData(pos, fac, bops, wrecked, unk,jammered, player))
     },
     {
-      case CommonFieldData(pos, fac, unk, player) =>
-        Attempt.successful(pos :: fac :: unk :: player :: HNil)
+      case CommonFieldData(pos, fac, bops, wrecked, unk, jammered, player) =>
+        Attempt.successful(pos :: fac :: bops :: wrecked :: unk :: jammered :: player :: HNil)
     }
   )
 }
