@@ -3,7 +3,7 @@ import java.net.InetAddress
 import java.io.File
 import java.util.Locale
 
-import akka.actor.{ActorRef, ActorSystem, Props}
+import akka.actor.{ActorContext, ActorRef, ActorSystem, Props}
 import akka.routing.RandomPool
 import ch.qos.logback.classic.LoggerContext
 import ch.qos.logback.classic.joran.JoranConfigurator
@@ -12,11 +12,14 @@ import ch.qos.logback.core.status._
 import ch.qos.logback.core.util.StatusPrinter
 import com.typesafe.config.ConfigFactory
 import net.psforever.crypto.CryptoInterface
-import net.psforever.objects.zones.{InterstellarCluster, TerminalObjectBuilder, Zone, ZoneMap}
+import net.psforever.objects.zones._
 import net.psforever.objects.guid.TaskResolver
+import net.psforever.objects.serverobject.builders.{DoorObjectBuilder, IFFLockObjectBuilder, TerminalObjectBuilder}
 import org.slf4j
 import org.fusesource.jansi.Ansi._
 import org.fusesource.jansi.Ansi.Color._
+import services.avatar._
+import services.local._
 
 import scala.collection.JavaConverters._
 import scala.concurrent.Await
@@ -202,6 +205,7 @@ object PsLogin {
     val serviceManager = ServiceManager.boot
     serviceManager ! ServiceManager.Register(RandomPool(50).props(Props[TaskResolver]), "taskResolver")
     serviceManager ! ServiceManager.Register(Props[AvatarService], "avatar")
+    serviceManager ! ServiceManager.Register(Props[LocalService], "local")
     serviceManager ! ServiceManager.Register(Props(classOf[InterstellarCluster], createContinents()), "galaxy")
 
     /** Create two actors for handling the login and world server endpoints */
@@ -222,14 +226,38 @@ object PsLogin {
   def createContinents() : List[Zone] = {
     val map13 = new ZoneMap("map13") {
       import net.psforever.objects.GlobalDefinitions._
+
+      LocalObject(DoorObjectBuilder(door, 330))
+      LocalObject(DoorObjectBuilder(door, 332))
+      LocalObject(DoorObjectBuilder(door, 372))
+      LocalObject(DoorObjectBuilder(door, 373))
+      LocalObject(IFFLockObjectBuilder(lock_external, 556))
+      LocalObject(IFFLockObjectBuilder(lock_external, 558))
       LocalObject(TerminalObjectBuilder(cert_terminal, 186))
       LocalObject(TerminalObjectBuilder(cert_terminal, 187))
       LocalObject(TerminalObjectBuilder(cert_terminal, 188))
       LocalObject(TerminalObjectBuilder(order_terminal, 853))
       LocalObject(TerminalObjectBuilder(order_terminal, 855))
       LocalObject(TerminalObjectBuilder(order_terminal, 860))
+
+      LocalBases = 30
+
+      ObjectToBase(330, 29)
+      ObjectToBase(332, 29)
+      ObjectToBase(556, 29)
+      ObjectToBase(558, 29)
+      DoorToLock(330, 558)
+      DoorToLock(332, 556)
     }
-    val home3 = Zone("home3", map13, 13)
+    val home3 = new Zone("home3", map13, 13) {
+      override def Init(implicit context : ActorContext) : Unit = {
+        super.Init(context)
+
+        import net.psforever.types.PlanetSideEmpire
+        Base(2).get.Faction = PlanetSideEmpire.VS //HART building C
+        Base(29).get.Faction = PlanetSideEmpire.NC //South Villa Gun Tower
+      }
+    }
 
 
     val map98 = new ZoneMap("map98") {

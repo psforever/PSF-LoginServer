@@ -11,9 +11,12 @@ import shapeless.{::, HNil}
   * This data will help construct the "tool" called a Remote Electronics Kit.<br>
   * <br>
   * Of note is the first portion of the data which resembles the `DetailedWeaponData` format.
-  * @param unk na
+  * @param unk1 na
+  * @param unk2 na
   */
-final case class DetailedREKData(unk : Int) extends ConstructorData {
+final case class DetailedREKData(unk1 : Int,
+                                 unk2 : Int = 0
+                                ) extends ConstructorData {
   override def bitsize : Long = 67L
 }
 
@@ -25,17 +28,17 @@ object DetailedREKData extends Marshallable[DetailedREKData] {
       uint4L ::
       uint16L ::
       uint4L ::
-      uintL(15)
+      ("unk2" | uintL(15))
     ).exmap[DetailedREKData] (
     {
-      case code :: 8 :: 0 :: 2 :: 0 :: 8 :: 0 :: HNil =>
-        Attempt.successful(DetailedREKData(code))
+      case code :: 8 :: 0 :: 2 :: 0 :: 8 :: unk2 :: HNil =>
+        Attempt.successful(DetailedREKData(code, unk2))
       case _ =>
         Attempt.failure(Err("invalid rek data format"))
     },
     {
-      case DetailedREKData(code) =>
-        Attempt.successful(code :: 8 :: 0 :: 2 :: 0 :: 8 :: 0 :: HNil)
+      case DetailedREKData(code, unk2) =>
+        Attempt.successful(code :: 8 :: 0 :: 2 :: 0 :: 8 :: unk2 :: HNil)
     }
   )
 }

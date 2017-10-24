@@ -70,6 +70,9 @@ final case class ImplantEntry(implant : ImplantType.Value,
   * @param tutorials the `List` of tutorials completed by this avatar;
   *                  the size field is a 32-bit number;
   *                  the first entry may be padded
+  * @param cosmetics optional decorative features that are added to the player's head model by console/chat commands;
+  *                  they become available at battle rank 24;
+  *                  these flags do not exist if they are not applicable
   * @param inventory the avatar's inventory
   * @param drawn_slot the holster that is initially drawn
   * @see `CharacterAppearanceData`<br>
@@ -93,6 +96,7 @@ final case class DetailedCharacterData(appearance : CharacterAppearanceData,
                                        implants : List[ImplantEntry],
                                        firstTimeEvents : List[String],
                                        tutorials : List[String],
+                                       cosmetics : Option[Cosmetics],
                                        inventory : Option[InventoryData],
                                        drawn_slot : DrawnSlot.Value = DrawnSlot.None
                                       ) extends ConstructorData {
@@ -116,13 +120,16 @@ final case class DetailedCharacterData(appearance : CharacterAppearanceData,
     for(str <- tutorials) {
       tutorialListSize += StreamBitSize.stringBitSize(str)
     }
+    val br24 = DetailedCharacterData.isBR24(bep) //character is at least BR24
+    val extraBitSize : Long = if(br24) { 33L } else { 46L }
+    val cosmeticsSize : Long = if(br24) { cosmetics.get.bitsize } else { 0L }
     val inventorySize : Long = if(inventory.isDefined) { //inventory
       inventory.get.bitsize
     }
     else {
       0L
     }
-    649L + appearanceSize + certSize + implantSize + eventListSize + tutorialListSize + inventorySize
+    603L + appearanceSize + certSize + implantSize + eventListSize + extraBitSize + cosmeticsSize + tutorialListSize + inventorySize
   }
 }
 
@@ -145,8 +152,8 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
     * @param drawn_slot the holster that is initially drawn
     * @return a `DetailedCharacterData` object
     */
-  def apply(appearance : CharacterAppearanceData, bep : Long, cep : Long, healthMax : Int, health : Int, armor : Int, staminaMax : Int, stamina : Int, certs : List[CertificationType.Value], implants : List[ImplantEntry], firstTimeEvents : List[String], tutorials : List[String], inventory : InventoryData, drawn_slot : DrawnSlot.Value) : DetailedCharacterData =
-    new DetailedCharacterData(appearance, bep, cep, healthMax, health, armor, 1, 7, 7, staminaMax, stamina, certs, implants, firstTimeEvents, tutorials, Some(inventory), drawn_slot)
+  def apply(appearance : CharacterAppearanceData, bep : Long, cep : Long, healthMax : Int, health : Int, armor : Int, staminaMax : Int, stamina : Int, certs : List[CertificationType.Value], implants : List[ImplantEntry], firstTimeEvents : List[String], tutorials : List[String], cosmetics : Option[Cosmetics], inventory : InventoryData, drawn_slot : DrawnSlot.Value) : DetailedCharacterData =
+    new DetailedCharacterData(appearance, bep, cep, healthMax, health, armor, 1, 7, 7, staminaMax, stamina, certs, implants, firstTimeEvents, tutorials, cosmetics, Some(inventory), drawn_slot)
 
   /**
     * `Codec` for entries in the `List` of implants.
@@ -179,7 +186,7 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
     * @param bep battle experience points
     * @return the number of accessible implant slots
     */
-  private def numberOfImplantSlots(bep : Long) : Int = {
+  def numberOfImplantSlots(bep : Long) : Int = {
     if(bep > 754370) { //BR18+
       3
     }
@@ -209,7 +216,7 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
       implantOffset += entry.bitsize.toInt
     })
     val resultB : Int = resultA - (implantOffset % 8)
-    if(resultB < 0) { 8 - resultB } else { resultB }
+    if(resultB < 0) { 8 + resultB } else { resultB }
   }
 
   /**
@@ -269,6 +276,8 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
     }
   }
 
+  def isBR24(bep : Long) : Boolean = bep > 2286230
+
   implicit val codec : Codec[DetailedCharacterData] = (
     ("appearance" | CharacterAppearanceData.codec) >>:~ { app =>
       ("bep" | uint32L) >>:~ { bep =>
@@ -297,10 +306,14 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
                   (("tutorial_length" | uint32L) >>:~ { len2 =>
                     conditional(len2 > 0, "tutorial_firstEntry" | PacketHelpers.encodedStringAligned(tutPadding(len, len2, implantFieldPadding(implants, CharacterAppearanceData.altModelBit(app))))) ::
                       ("tutorial_list" | PacketHelpers.listOfNSized(len2 - 1, PacketHelpers.encodedString)) ::
-                      ignore(207) ::
-                      optional(bool, "inventory" | InventoryData.codec_detailed) ::
-                      ("drawn_slot" | DrawnSlot.codec) ::
-                      bool //usually false
+                      ignore(160) ::
+                      (bool >>:~ { br24 => //BR24+
+                        newcodecs.binary_choice(br24, ignore(33), ignore(46)) ::
+                        conditional(br24, Cosmetics.codec) ::
+                        optional(bool, "inventory" | InventoryData.codec_detailed) ::
+                        ("drawn_slot" | DrawnSlot.codec) ::
+                        bool //usually false
+                      })
                   })
               })
           })
@@ -308,14 +321,14 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
     }
     ).exmap[DetailedCharacterData] (
     {
-      case app :: bep :: cep :: _ :: hpmax :: hp :: _ :: armor :: _ :: u1 :: _ :: u2 :: u3 :: stamax :: stam :: _ :: certs :: _ :: _  :: implants :: _ :: _ :: fte0 :: fte1 :: _ :: tut0 :: tut1 :: _ :: inv :: drawn :: false :: HNil =>
+      case app :: bep :: cep :: _ :: hpmax :: hp :: _ :: armor :: _ :: u1 :: _ :: u2 :: u3 :: stamax :: stam :: _ :: certs :: _ :: _  :: implants :: _ :: _ :: fte0 :: fte1 :: _ :: tut0 :: tut1 :: _ :: _ :: _ :: cosmetics :: inv :: drawn :: false :: HNil =>
         //prepend the displaced first elements to their lists
-        val fteList : List[String] = if(fte0.isDefined) { fte0.get +: fte1 } else fte1
-        val tutList : List[String] = if(tut0.isDefined) { tut0.get +: tut1 } else tut1
-        Attempt.successful(DetailedCharacterData(app, bep, cep, hpmax, hp, armor, u1, u2, u3, stamax, stam, certs, implants, fteList, tutList, inv, drawn))
+        val fteList : List[String] = if(fte0.isDefined) { fte0.get +: fte1 } else { fte1 }
+        val tutList : List[String] = if(tut0.isDefined) { tut0.get +: tut1 } else { tut1 }
+        Attempt.successful(DetailedCharacterData(app, bep, cep, hpmax, hp, armor, u1, u2, u3, stamax, stam, certs, implants, fteList, tutList, cosmetics, inv, drawn))
     },
     {
-      case DetailedCharacterData(app, bep, cep, hpmax, hp, armor, u1, u2, u3, stamax, stam, certs, implants, fteList, tutList, inv, drawn) =>
+      case DetailedCharacterData(app, bep, cep, hpmax, hp, armor, u1, u2, u3, stamax, stam, certs, implants, fteList, tutList, cos, inv, drawn) =>
         val implantCapacity : Int = numberOfImplantSlots(bep)
         val implantList = if(implants.length > implantCapacity) {
           implants.slice(0, implantCapacity)
@@ -334,7 +347,9 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
           case ((f : String) +: (rest : List[String])) => (Some(f), rest)
           case Nil => (None, Nil)
         }
-        Attempt.successful(app :: bep :: cep :: () :: hpmax :: hp :: () :: armor :: () :: u1 :: () :: u2 :: u3 :: stamax :: stam :: () :: certs :: None :: () :: implantList :: () :: fteList.size.toLong :: firstEvent :: fteListCopy :: tutList.size.toLong :: firstTutorial :: tutListCopy :: () :: inv :: drawn :: false :: HNil)
+        val br24 : Boolean = isBR24(bep)
+        val cosmetics : Option[Cosmetics] = if(br24) { cos } else { None }
+        Attempt.successful(app :: bep :: cep :: () :: hpmax :: hp :: () :: armor :: () :: u1 :: () :: u2 :: u3 :: stamax :: stam :: () :: certs :: None :: () :: implantList :: () :: fteList.size.toLong :: firstEvent :: fteListCopy :: tutList.size.toLong :: firstTutorial :: tutListCopy :: () :: br24 :: () :: cosmetics :: inv :: drawn :: false :: HNil)
     }
   )
 }
