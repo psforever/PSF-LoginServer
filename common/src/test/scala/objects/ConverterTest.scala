@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package objects
 
-import net.psforever.objects.definition.converter.{ACEConverter, REKConverter}
+import net.psforever.objects.definition.converter.{ACEConverter, CharacterSelectConverter, REKConverter}
 import net.psforever.objects._
 import net.psforever.objects.definition._
 import net.psforever.objects.equipment.CItem.{DeployedItem, Unit}
@@ -130,7 +130,7 @@ class ConverterTest extends Specification {
   }
 
   "Player" should {
-    "convert to packet" in {
+    val obj : Player = {
       /*
       Create an AmmoBoxDefinition with which to build two AmmoBoxes
       Create a ToolDefinition with which to create a Tool
@@ -157,9 +157,64 @@ class ConverterTest extends Specification {
       obj.Slot(2).Equipment = tool
       obj.Slot(5).Equipment.get.GUID = PlanetSideGUID(94)
       obj.Inventory += 8 -> box2
+      obj
+    }
+    val converter = new CharacterSelectConverter
 
-      obj.Definition.Packet.DetailedConstructorData(obj).isSuccess mustEqual true
-      ok //TODO write more of this test
+    "convert to packet (BR < 24)" in {
+      obj.BEP = 0
+      obj.Definition.Packet.DetailedConstructorData(obj) match {
+        case Success(pkt) =>
+          ok
+        case _ =>
+          ko
+      }
+      obj.Definition.Packet.ConstructorData(obj) match {
+        case Success(pkt) =>
+          ok
+        case _ =>
+          ko
+      }
+    }
+
+    "convert to packet (BR >= 24)" in {
+      obj.BEP = 10000000
+      obj.Definition.Packet.DetailedConstructorData(obj) match {
+        case Success(pkt) =>
+          ok
+        case _ =>
+          ko
+      }
+      obj.Definition.Packet.ConstructorData(obj) match {
+        case Success(pkt) =>
+          ok
+        case _ =>
+          ko
+      }
+    }
+
+    "convert to simple packet (BR < 24)" in {
+      obj.BEP = 0
+      converter.DetailedConstructorData(obj) match {
+        case Success(pkt) =>
+          ok
+        case _ =>
+          ko
+      }
+      converter.ConstructorData(obj).isFailure mustEqual true
+      converter.ConstructorData(obj).get must throwA[Exception]
+    }
+
+    "convert to simple packet (BR >= 24)" in {
+      obj.BEP = 10000000
+      converter.DetailedConstructorData(obj) match {
+        case Success(pkt) =>
+          ok
+        case _ =>
+          ko
+      }
+      converter.ConstructorData(obj).isFailure mustEqual true
+      converter.ConstructorData(obj).get must throwA[Exception]
     }
   }
 

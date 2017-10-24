@@ -2,10 +2,11 @@
 package net.psforever.objects.zones
 
 import akka.actor.{ActorContext, ActorRef, Props}
+import net.psforever.objects.serverobject.doors.Base
 import net.psforever.objects.{PlanetSideGameObject, Player}
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.guid.NumberPoolHub
-import net.psforever.objects.guid.actor.{NumberPoolAccessorActor, NumberPoolActor}
+import net.psforever.objects.guid.actor.UniqueNumberSystem
 import net.psforever.objects.guid.selector.RandomSelector
 import net.psforever.objects.guid.source.LimitedNumberSource
 import net.psforever.packet.GamePacket
@@ -41,10 +42,14 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
   private var accessor : ActorRef = ActorRef.noSender
   /** The basic support structure for the globally unique number system used by this `Zone`. */
   private var guid : NumberPoolHub = new NumberPoolHub(new LimitedNumberSource(65536))
+  guid.AddPool("environment", (0 to 2000).toList)
+  guid.AddPool("dynamic", (2001 to 10000).toList).Selector = new RandomSelector //TODO unlump pools later; do not make too big
   /** A synchronized `List` of items (`Equipment`) dropped by players on the ground and can be collected again. */
   private val equipmentOnGround : ListBuffer[Equipment] = ListBuffer[Equipment]()
   /** Used by the `Zone` to coordinate `Equipment` dropping and collection requests. */
   private var ground : ActorRef = ActorRef.noSender
+
+  private var bases : List[Base] = List()
 
   /**
     * Establish the basic accessible conditions necessary for a functional `Zone`.<br>
@@ -60,18 +65,15 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
     */
   def Init(implicit context : ActorContext) : Unit = {
     if(accessor == ActorRef.noSender) {
-      //TODO wrong initialization for GUID
-      implicit val guid = this.guid
-      //passed into builderObject.Build implicitly
-      val pool = guid.AddPool("pool", (200 to 1000).toList)
-      pool.Selector = new RandomSelector
-      val poolActor = context.actorOf(Props(classOf[NumberPoolActor], pool), name = s"$Id-poolActor")
-      accessor = context.actorOf(Props(classOf[NumberPoolAccessorActor], guid, pool, poolActor), s"$Id-accessor")
+      implicit val guid : NumberPoolHub = this.guid //passed into builderObject.Build implicitly
+      accessor = context.actorOf(Props(classOf[UniqueNumberSystem], guid, UniqueNumberSystem.AllocateNumberPoolActors(guid)), s"$Id-uns")
       ground = context.actorOf(Props(classOf[ZoneGroundActor], equipmentOnGround), s"$Id-ground")
 
       Map.LocalObjects.foreach({ builderObject =>
         builderObject.Build
       })
+
+      MakeBases(Map.LocalBases)
     }
   }
 
@@ -171,6 +173,15 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
     *      `Zone.ItemFromGround`
     */
   def Ground : ActorRef = ground
+
+  def MakeBases(num : Int) : List[Base] = {
+    bases = (0 to num).map(id => new Base(id)).toList
+    bases
+  }
+
+  def Base(id : Int) : Option[Base] = {
+    bases.lift(id)
+  }
 
   /**
     * Provide bulk correspondence on all map entities that can be composed into packet messages and reported to a client.

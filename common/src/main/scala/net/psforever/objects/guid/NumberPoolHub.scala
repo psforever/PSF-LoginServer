@@ -60,13 +60,17 @@ class NumberPoolHub(private val source : NumberSource) {
     * @param name the name of the pool
     * @param pool the `List` of numbers that will belong to the pool
     * @return the newly-created number pool
-    * @throws IllegalArgumentException if the pool is already defined;
-    *                                  if the pool contains numbers the source does not
+    * @throws IllegalArgumentException if the pool's name is already defined;
+    *                                  if the pool is (already) empty;
+    *                                  if the pool contains numbers the source does not;
     *                                  if the pool contains numbers from already existing pools
     */
   def AddPool(name : String, pool : List[Int]) : NumberPool = {
     if(hash.get(name).isDefined) {
       throw new IllegalArgumentException(s"can not add pool $name - name already known to this hub?")
+    }
+    if(pool.isEmpty) {
+      throw new IllegalArgumentException(s"can not add empty pool $name")
     }
     if(source.Size <= pool.max) {
       throw new IllegalArgumentException(s"can not add pool $name - max(pool) is greater than source.size")
@@ -203,8 +207,8 @@ class NumberPoolHub(private val source : NumberSource) {
         val slctr = pool.Selector
         import net.psforever.objects.guid.selector.SpecificSelector
         val specific = new SpecificSelector
-        specific.SelectionIndex = number
         pool.Selector = specific
+        specific.SelectionIndex = number
         pool.Get()
         pool.Selector = slctr
         register_GetAvailableNumberFromSource(number)

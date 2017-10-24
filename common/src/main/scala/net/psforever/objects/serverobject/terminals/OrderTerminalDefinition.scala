@@ -1,5 +1,5 @@
 // Copyright (c) 2017 PSForever
-package net.psforever.objects.terminals
+package net.psforever.objects.serverobject.terminals
 
 import net.psforever.objects.InfantryLoadout.Simplification
 import net.psforever.objects.{Player, Tool}
@@ -10,6 +10,11 @@ import net.psforever.packet.game.ItemTransactionMessage
 
 import scala.annotation.switch
 
+/**
+  * The definition for any `Terminal` that is of a type "order_terminal".
+  * `Buy` and `Sell` `Equipment` items and `AmmoBox` items.
+  * Change `ExoSuitType` and retrieve `InfantryLoadout` entries.
+  */
 class OrderTerminalDefinition extends TerminalDefinition(612) {
   Name = "order_terminal"
 
@@ -21,10 +26,10 @@ class OrderTerminalDefinition extends TerminalDefinition(612) {
 
   /**
     * Process a `TransactionType.Buy` action by the user.
+    * Either attempt to purchase equipment or attempt to switch directly to a different exo-suit.
     * @param player the player
     * @param msg the original packet carrying the request
-    * @return an actionable message that explains how to process the request;
-    *         either you attempt to purchase equipment or attempt to switch directly to a different exo-suit
+    * @return an actionable message that explains how to process the request
     */
   def Buy(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange =  {
     (msg.item_page : @switch) match {
@@ -64,6 +69,7 @@ class OrderTerminalDefinition extends TerminalDefinition(612) {
   /**
     * Process a `TransactionType.Sell` action by the user.
     * There is no specific `order_terminal` tab associated with this action.
+    * Additionally, the equipment to be sold ia almost always in the player's `FreeHand` slot.
     * Selling `Equipment` is always permitted.
     * @param player the player
     * @param msg the original packet carrying the request
@@ -81,7 +87,7 @@ class OrderTerminalDefinition extends TerminalDefinition(612) {
     * @param msg the original packet carrying the request
     * @return an actionable message that explains how to process the request
     */
-  def InfantryLoadout(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
+  def Loadout(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
     if(msg.item_page == 4) { //Favorites tab
       player.LoadLoadout(msg.unk1) match {
         case Some(loadout) =>

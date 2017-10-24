@@ -358,8 +358,8 @@ object GamePacketOpcode extends Enumeration {
 
     // OPCODES 0x20-2f
     case 0x20 => noDecoder(UnknownMessage32)
-    case 0x21 => noDecoder(ActionProgressMessage)
-    case 0x22 => noDecoder(ActionCancelMessage)
+    case 0x21 => game.ActionProgressMessage.decode
+    case 0x22 => game.ActionCancelMessage.decode
     case 0x23 => noDecoder(ActionCancelAcknowledgeMessage)
     case 0x24 => game.SetEmpireMessage.decode
     case 0x25 => game.EmoteMsg.decode
@@ -418,7 +418,7 @@ object GamePacketOpcode extends Enumeration {
     case 0x51 => game.TriggerEffectMessage.decode
     case 0x52 => game.WeaponDryFireMessage.decode
     case 0x53 => noDecoder(DroppodLaunchRequestMessage)
-    case 0x54 => noDecoder(HackMessage)
+    case 0x54 => game.HackMessage.decode
     case 0x55 => noDecoder(DroppodLaunchResponseMessage)
     case 0x56 => noDecoder(GenericObjectActionMessage)
     case 0x57 => game.AvatarVehicleTimerMessage.decode
@@ -445,7 +445,7 @@ object GamePacketOpcode extends Enumeration {
     case 0x68 => noDecoder(DroppodFreefallingMessage)
     case 0x69 => game.AvatarFirstTimeEventMessage.decode
     case 0x6a => noDecoder(AggravatedDamageMessage)
-    case 0x6b => noDecoder(TriggerSoundMessage)
+    case 0x6b => game.TriggerSoundMessage.decode
     case 0x6c => noDecoder(LootItemMessage)
     case 0x6d => noDecoder(VehicleSubStateMessage)
     case 0x6e => noDecoder(SquadMembershipRequest)
@@ -515,7 +515,7 @@ object GamePacketOpcode extends Enumeration {
     case 0xa3 => noDecoder(UplinkResponse)
     case 0xa4 => game.WarpgateRequest.decode
     case 0xa5 => noDecoder(WarpgateResponse)
-    case 0xa6 => noDecoder(DamageWithPositionMessage)
+    case 0xa6 => game.DamageWithPositionMessage.decode
     case 0xa7 => game.GenericActionMessage.decode
     // 0xa8
     case 0xa8 => game.ContinentalLockUpdateMessage.decode

@@ -1,13 +1,11 @@
 // Copyright (c) 2017 PSForever
-package net.psforever.objects.terminals
+package net.psforever.objects.serverobject.terminals
 
 import net.psforever.objects._
 import net.psforever.objects.definition._
 import net.psforever.objects.equipment.Equipment
 import net.psforever.packet.game.ItemTransactionMessage
 import net.psforever.types.ExoSuitType
-
-import scala.collection.immutable.HashMap
 
 /**
   * The definition for any `Terminal`.
@@ -17,7 +15,7 @@ abstract class TerminalDefinition(objectId : Int) extends ObjectDefinition(objec
   Name = "terminal"
 
   /**
-    * The unimplemented functionality for this `Terminal`'s `TransactionType.Buy` activity.
+    * The unimplemented functionality for this `Terminal`'s `TransactionType.Buy` and `TransactionType.Learn` activity.
     */
   def Buy(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange
 
@@ -29,7 +27,7 @@ abstract class TerminalDefinition(objectId : Int) extends ObjectDefinition(objec
   /**
     * The unimplemented functionality for this `Terminal`'s `TransactionType.InfantryLoadout` activity.
     */
-  def InfantryLoadout(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange
+  def Loadout(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange
 
   /**
     * A `Map` of information for changing exo-suits.
@@ -49,7 +47,7 @@ abstract class TerminalDefinition(objectId : Int) extends ObjectDefinition(objec
     * key - an identification string sent by the client
     * value - a curried function that builds the object
     */
-  protected val infantryAmmunition : HashMap[String, ()=>Equipment] = HashMap(
+  protected val infantryAmmunition : Map[String, ()=>Equipment] = Map(
     "9mmbullet" -> MakeAmmoBox(bullet_9mm),
     "9mmbullet_AP" -> MakeAmmoBox(bullet_9mm_AP),
     "shotgun_shell" -> MakeAmmoBox(shotgun_shell),
@@ -75,7 +73,7 @@ abstract class TerminalDefinition(objectId : Int) extends ObjectDefinition(objec
     * key - an identification string sent by the client
     * value - a curried function that builds the object
     */
-  protected val supportAmmunition : HashMap[String, ()=>Equipment] = HashMap(
+  protected val supportAmmunition : Map[String, ()=>Equipment] = Map(
     "health_canister" -> MakeAmmoBox(health_canister),
     "armor_canister" -> MakeAmmoBox(armor_canister),
     "upgrade_canister" -> MakeAmmoBox(upgrade_canister)
@@ -86,7 +84,7 @@ abstract class TerminalDefinition(objectId : Int) extends ObjectDefinition(objec
     * key - an identification string sent by the client
     * value - a curried function that builds the object
     */
-  protected val vehicleAmmunition : HashMap[String, ()=>Equipment] = HashMap(
+  protected val vehicleAmmunition : Map[String, ()=>Equipment] = Map(
     "35mmbullet" -> MakeAmmoBox(bullet_35mm),
     "hellfire_ammo" -> MakeAmmoBox(hellfire_ammo),
     "liberator_bomb" -> MakeAmmoBox(liberator_bomb),
@@ -129,7 +127,7 @@ abstract class TerminalDefinition(objectId : Int) extends ObjectDefinition(objec
     * key - an identification string sent by the client
     * value - a curried function that builds the object
     */
-  protected val infantryWeapons : HashMap[String, ()=>Equipment] = HashMap(
+  protected val infantryWeapons : Map[String, ()=>Equipment] = Map(
     "ilc9" -> MakeTool(ilc9, bullet_9mm),
     "repeater" -> MakeTool(repeater, bullet_9mm),
     "isp" -> MakeTool(isp, shotgun_shell), //amp
@@ -173,7 +171,7 @@ abstract class TerminalDefinition(objectId : Int) extends ObjectDefinition(objec
     * key - an identification string sent by the client
     * value - a curried function that builds the object
     */
-  protected val supportWeapons : HashMap[String, ()=>Equipment] = HashMap(
+  protected val supportWeapons : Map[String, ()=>Equipment] = Map(
     "medkit" -> MakeKit(medkit),
     "super_medkit" -> MakeKit(super_medkit),
     "super_armorkit" -> MakeKit(super_armorkit),
