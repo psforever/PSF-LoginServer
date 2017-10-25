@@ -229,6 +229,8 @@ object PsLogin {
 
       LocalObject(DoorObjectBuilder(door, 330))
       LocalObject(DoorObjectBuilder(door, 332))
+      LocalObject(DoorObjectBuilder(door, 370))
+      LocalObject(DoorObjectBuilder(door, 371))
       LocalObject(DoorObjectBuilder(door, 372))
       LocalObject(DoorObjectBuilder(door, 373))
       LocalObject(IFFLockObjectBuilder(lock_external, 556))

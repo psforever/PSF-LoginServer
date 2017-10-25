@@ -2,6 +2,7 @@
 package net.psforever.objects.zones
 
 import akka.actor.{ActorContext, ActorRef, Props}
+import akka.routing.RandomPool
 import net.psforever.objects.serverobject.doors.Base
 import net.psforever.objects.{PlanetSideGameObject, Player}
 import net.psforever.objects.equipment.Equipment
@@ -66,7 +67,7 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
   def Init(implicit context : ActorContext) : Unit = {
     if(accessor == ActorRef.noSender) {
       implicit val guid : NumberPoolHub = this.guid //passed into builderObject.Build implicitly
-      accessor = context.actorOf(Props(classOf[UniqueNumberSystem], guid, UniqueNumberSystem.AllocateNumberPoolActors(guid)), s"$Id-uns")
+      accessor = context.actorOf(RandomPool(25).props(Props(classOf[UniqueNumberSystem], guid, UniqueNumberSystem.AllocateNumberPoolActors(guid))), s"$Id-uns")
       ground = context.actorOf(Props(classOf[ZoneGroundActor], equipmentOnGround), s"$Id-ground")
 
       Map.LocalObjects.foreach({ builderObject =>
