@@ -15,7 +15,7 @@ import scala.util.{Failure, Success}
 class TaskResolver() extends Actor {
   /** list of all work currently managed by this resolver */
   private val tasks : ListBuffer[TaskResolver.TaskEntry] = new ListBuffer[TaskResolver.TaskEntry]
-  /** scheduled termination of all managed work */
+  /** scheduled termination of tardy managed work */
   private var timeoutCleanup : Cancellable = TaskResolver.DefaultCancellable
   /** logging utilities; default to tracing */
   private[this] val log = org.log4s.getLogger
