@@ -32,7 +32,7 @@ class TaskResolver() extends Actor {
     */
     timeoutCleanup.cancel()
     TimeoutCleanup()
-    OnSuccess()
+    tasks.filter(entry => entry.task.isComplete == Task.Resolution.Success).foreach(entry => OnSuccess(entry.task) )
     val ex : Throwable = new Exception(s"a task is being stopped")
     tasks.foreach(entry => {
       OnFailure(entry.task, ex)
