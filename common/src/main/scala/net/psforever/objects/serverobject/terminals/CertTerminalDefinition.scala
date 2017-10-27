@@ -18,7 +18,7 @@ class CertTerminalDefinition extends TerminalDefinition(171) {
     */
   private val certificationList : Map[String, (CertificationType.Value, Int)] = Map(
     "medium_assault" -> (CertificationType.MediumAssault, 2),
-    "reinforced_armo" -> (CertificationType.ReinforcedExoSuit, 3),
+    "reinforced_armor" -> (CertificationType.ReinforcedExoSuit, 3),
     "quad_all" -> (CertificationType.ATV, 1),
     "switchblade" -> (CertificationType.Switchblade, 1),
     "harasser" -> (CertificationType.Harasser, 1),
