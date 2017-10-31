@@ -586,7 +586,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.EquipmentInHand(player_guid, slot, item))
           }
         case None =>
-          continent.Actor ! Zone.DropItemOnGround(item, item.Position, item.Orientation) //restore
+          continent.Ground ! Zone.DropItemOnGround(item, item.Position, item.Orientation) //restore
       }
 
     case ItemHacking(tplayer, target, tool_guid, delta, completeAction, tickAction) =>
@@ -1390,7 +1390,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
         def Execute(resolver : ActorRef) : Unit = {
           localTarget.Slot(localIndex).Equipment = localObject
-          resolver ! scala.util.Success(localObject)
+          resolver ! scala.util.Success(this)
         }
 
         override def onSuccess() : Unit = {
@@ -1442,8 +1442,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
         }
 
         def Execute(resolver : ActorRef) : Unit = {
+          log.info(s"Player $localPlayer is registered")
+          resolver ! scala.util.Success(this)
           localAnnounce ! PlayerLoaded(localPlayer) //alerts WSA
-          resolver ! scala.util.Success(localPlayer)
         }
 
         override def onFailure(ex : Throwable) : Unit = {
@@ -1536,7 +1537,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
         def Execute(resolver : ActorRef) : Unit = {
           localTarget.Slot(localIndex).Equipment = None
-          resolver ! scala.util.Success(localObject)
+          resolver ! scala.util.Success(this)
         }
 
         override def onSuccess() : Unit = {
