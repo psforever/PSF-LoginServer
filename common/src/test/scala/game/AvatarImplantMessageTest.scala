@@ -16,14 +16,14 @@ class AvatarImplantMessageTest extends Specification {
         player_guid mustEqual PlanetSideGUID(3171)
         unk1 mustEqual 3
         unk2 mustEqual 1
-        implant mustEqual ImplantType.Targeting
+        implant mustEqual 1
       case _ =>
         ko
     }
   }
 
   "encode" in {
-    val msg = AvatarImplantMessage(PlanetSideGUID(3171), 3, 1, ImplantType.Targeting)
+    val msg = AvatarImplantMessage(PlanetSideGUID(3171), 3, 1, 1)
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string
