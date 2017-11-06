@@ -1,5 +1,5 @@
 // Copyright (c) 2017 PSForever
-package scripts
+package net.psforever.objects.guid
 
 /**
   * The basic compiled tasks for assigning (registering) and revoking (unregistering) globally unique identifiers.<br>
@@ -20,7 +20,6 @@ object GUIDTask {
   import akka.actor.ActorRef
   import net.psforever.objects.entity.IdentifiableEntity
   import net.psforever.objects.equipment.Equipment
-  import net.psforever.objects.guid.{Task, TaskResolver}
   import net.psforever.objects.{EquipmentSlot, Player, Tool, Vehicle}
 
   import scala.annotation.tailrec

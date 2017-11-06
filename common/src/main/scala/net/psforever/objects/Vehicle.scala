@@ -71,10 +71,14 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
     this.owner
   }
 
+  def Owner_=(owner : PlanetSideGUID) : Option[PlanetSideGUID] = Owner_=(Some(owner))
+
+  def Owner_=(owner : Player) : Option[PlanetSideGUID] = Owner_=(Some(owner.GUID))
+
   def Owner_=(owner : Option[PlanetSideGUID]) : Option[PlanetSideGUID] = {
     owner match {
       case Some(_) =>
-        if(Definition.CanBeOwned) {
+        if(Definition.CanBeOwned) { //e.g., base turrets
           this.owner = owner
         }
       case None =>
@@ -102,7 +106,7 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
 
   def Shields_=(strength : Int) : Int = {
     this.shields = strength
-    strength
+    Shields
   }
 
   def MaxShields : Int = {
@@ -252,12 +256,11 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
     * @return a weapon, or `None`
     */
   def ControlledWeapon(wepNumber : Int) : Option[Equipment] = {
-    val slot = this.weapons.get(wepNumber)
-    if(slot.isDefined) {
-      slot.get.Equipment
-    }
-    else {
-      None
+    weapons.get(wepNumber) match {
+      case Some(mount) =>
+        mount.Equipment
+      case None =>
+        None
     }
   }
 
@@ -284,11 +287,11 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
   }
 
   /**
-    * Given a valid seat number, retrieve an index where a weapon controlled from this seat is attached.
+    * Given a valid seat number, retrieve an index where the weapon controlled from this seat is mounted.
     * @param seatNumber the seat number
     * @return a mounted weapon by index, or `None` if either the seat doesn't exist or there is no controlled weapon
     */
-  def WeaponControlledFromSeat(seatNumber : Int) : Option[Tool] = {
+  def WeaponControlledFromSeat(seatNumber : Int) : Option[Equipment] = {
     Seat(seatNumber) match {
       case Some(seat) =>
         wepFromSeat(seat)
@@ -297,7 +300,7 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
     }
   }
 
-  private def wepFromSeat(seat : Seat) : Option[Tool] = {
+  private def wepFromSeat(seat : Seat) : Option[Equipment] = {
     seat.ControlledWeapon match {
       case Some(index) =>
         wepFromSeat(index)
@@ -306,10 +309,10 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
     }
   }
 
-  private def wepFromSeat(wepIndex : Int) : Option[Tool] = {
+  private def wepFromSeat(wepIndex : Int) : Option[Equipment] = {
     weapons.get(wepIndex) match {
       case Some(wep) =>
-        wep.Equipment.asInstanceOf[Option[Tool]]
+        wep.Equipment
       case None =>
         None
     }

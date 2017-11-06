@@ -12,7 +12,7 @@ import MDCContextAware.Implicits._
 import services.ServiceManager.Lookup
 import net.psforever.objects._
 import net.psforever.objects.equipment._
-import net.psforever.objects.guid.{Task, TaskResolver}
+import net.psforever.objects.guid.{GUIDTask, Task, TaskResolver}
 import net.psforever.objects.inventory.{GridInventory, InventoryItem}
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.serverobject.doors.Door
@@ -22,7 +22,6 @@ import net.psforever.objects.vehicles.{AccessPermissionGroup, Seat, VehicleLockS
 import net.psforever.objects.zones.{InterstellarCluster, Zone}
 import net.psforever.packet.game.objectcreate._
 import net.psforever.types._
-import scripts.GUIDTask
 import services._
 import services.avatar._
 import services.local._
@@ -552,7 +551,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                   val box = item.obj.asInstanceOf[AmmoBox]
                   sendResponse(PacketCoding.CreateGamePacket(0, InventoryStateMessage(box.GUID, 0, vehicle_guid, box.Capacity.toLong)))
                 })
-            case None => ; //no weapons to update
+            case _ => ; //no weapons to update
           }
           val player_guid : PlanetSideGUID = tplayer.GUID
           sendResponse(PacketCoding.CreateGamePacket(0, ObjectAttachMessage(vehicle_guid, player_guid, seat_num)))

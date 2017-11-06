@@ -136,11 +136,14 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
     * The replacement will not occur if the current system is populated or if its synchronized reference has been created.
     * @return synchronized reference to the globally unique identifier system
     */
-  def GUID(hub : NumberPoolHub) : ActorRef = {
+  def GUID(hub : NumberPoolHub) : Boolean = {
     if(actor == ActorRef.noSender && guid.Pools.map({case ((_, pool)) => pool.Count}).sum == 0) {
       guid = hub
+      true
     }
-    Actor
+    else {
+      false
+    }
   }
 
   /**
@@ -215,7 +218,7 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
   def Transport : ActorRef = transport
 
   def MakeBases(num : Int) : List[Base] = {
-    bases = (0 to num).map(id => new Base(id)).toList
+    bases = (1 to num).map(id => new Base(id)).toList
     bases
   }
 

@@ -8,4 +8,3 @@ final case class VehicleServiceResponse(toChannel : String,
                                         avatar_guid : PlanetSideGUID,
                                         replyMessage : VehicleResponse.Response
                                        ) extends GenericEventBusMsg
-

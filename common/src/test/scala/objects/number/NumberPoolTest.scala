@@ -1,5 +1,5 @@
 // Copyright (c) 2017 PSForever
-package objects
+package objects.number
 
 import net.psforever.objects.guid.pool.{ExclusivePool, GenericPool, SimplePool}
 import net.psforever.objects.guid.selector.SpecificSelector
@@ -191,4 +191,3 @@ class NumberPoolTest extends Specification {
     }
   }
 }
-

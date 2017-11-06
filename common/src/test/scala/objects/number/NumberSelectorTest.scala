@@ -1,5 +1,5 @@
 // Copyright (c) 2017 PSForever
-package objects
+package objects.number
 
 import net.psforever.objects.guid.selector.{RandomSequenceSelector, _}
 import org.specs2.mutable.Specification
@@ -323,4 +323,3 @@ class NumberSelectorTest extends Specification {
     }
   }
 }
-

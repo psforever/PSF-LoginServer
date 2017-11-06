@@ -3,10 +3,10 @@ package services.vehicle.support
 
 import akka.actor.{Actor, ActorRef, Cancellable}
 import net.psforever.objects.Vehicle
+import net.psforever.objects.guid.GUIDTask
 import net.psforever.objects.vehicles.Seat
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.PlanetSideGUID
-import scripts.GUIDTask
 import services.ServiceManager
 import services.ServiceManager.Lookup
 import services.vehicle.{VehicleAction, VehicleServiceMessage}

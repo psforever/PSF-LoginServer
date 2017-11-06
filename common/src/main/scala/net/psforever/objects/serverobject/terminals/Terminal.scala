@@ -13,9 +13,7 @@ import net.psforever.types.{ExoSuitType, TransactionType, Vector3}
   * @param tdef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
   */
 class Terminal(tdef : TerminalDefinition) extends PlanetSideServerObject {
-  /**
-    * An entry that maintains a reference to the `Player`, and the player's GUID and location when the message was received.
-    */
+  /** An entry that maintains a reference to the `Player`, and the player's GUID and location when the message was received. */
   private var hackedBy : Option[(Player, PlanetSideGUID, Vector3)] = None
 
   def HackedBy : Option[(Player, PlanetSideGUID, Vector3)] = hackedBy

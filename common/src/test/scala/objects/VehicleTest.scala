@@ -1,9 +1,11 @@
 // Copyright (c) 2017 PSForever
 package objects
 
-import net.psforever.objects.{GlobalDefinitions, Vehicle}
+import net.psforever.objects.{GlobalDefinitions, Player, Vehicle}
 import net.psforever.objects.definition.SeatDefinition
-import net.psforever.objects.vehicles.{Seat, SeatArmorRestriction, VehicleLockState}
+import net.psforever.objects.vehicles.{AccessPermissionGroup, Seat, SeatArmorRestriction, VehicleLockState}
+import net.psforever.packet.game.PlanetSideGUID
+import net.psforever.types.{CharacterGender, ExoSuitType, PlanetSideEmpire}
 import org.specs2.mutable._
 
 class VehicleTest extends Specification {
@@ -37,8 +39,7 @@ class VehicleTest extends Specification {
       fury.Seats(0).Bailable mustEqual true
       fury.Seats(0).ControlledWeapon mustEqual Some(1)
       fury.MountPoints.size mustEqual 2
-      fury.MountPoints.get(0) mustEqual Some(0)
-      fury.MountPoints.get(1) mustEqual None
+      fury.MountPoints.get(1) mustEqual Some(0)
       fury.MountPoints.get(2) mustEqual Some(0)
       fury.Weapons.size mustEqual 1
       fury.Weapons.get(0) mustEqual None
@@ -62,6 +63,58 @@ class VehicleTest extends Specification {
       seat.ControlledWeapon mustEqual Some(5)
       seat.isOccupied mustEqual false
       seat.Occupant mustEqual None
+    }
+
+    "player can sit" in {
+      val seat = new Seat(seat_def)
+      seat.Occupant.isDefined mustEqual false
+
+      val player1 = Player("test1", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+      player1.ExoSuit = ExoSuitType.MAX
+      seat.Occupant = player1
+      seat.Occupant.isDefined mustEqual true
+      seat.Occupant.contains(player1) mustEqual true
+    }
+
+    "one occupant at a time" in {
+      val seat = new Seat(seat_def)
+      seat.Occupant.isDefined mustEqual false
+
+      val player1 = Player("test1", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+      player1.ExoSuit = ExoSuitType.MAX
+      seat.Occupant = player1
+      seat.Occupant.isDefined mustEqual true
+      seat.Occupant.contains(player1) mustEqual true
+
+      val player2 = Player("test2", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+      player2.ExoSuit = ExoSuitType.MAX
+      seat.Occupant = player2
+      seat.Occupant.isDefined mustEqual true
+      seat.Occupant.contains(player1) mustEqual true
+    }
+
+    "one player must get out of seat before other can get in" in {
+      val seat = new Seat(seat_def)
+      seat.Occupant.isDefined mustEqual false
+
+      val player1 = Player("test1", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+      player1.ExoSuit = ExoSuitType.MAX
+      seat.Occupant = player1
+      seat.Occupant.isDefined mustEqual true
+      seat.Occupant.contains(player1) mustEqual true
+
+      val player2 = Player("test2", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+      player2.ExoSuit = ExoSuitType.MAX
+      seat.Occupant = player2
+      seat.Occupant.isDefined mustEqual true
+      seat.Occupant.contains(player2) mustEqual false
+      seat.Occupant.contains(player1) mustEqual true
+
+      seat.Occupant = None
+      seat.Occupant.isDefined mustEqual false
+      seat.Occupant = player2
+      seat.Occupant.isDefined mustEqual true
+      seat.Occupant.contains(player2) mustEqual true
     }
   }
 
@@ -93,11 +146,111 @@ class VehicleTest extends Specification {
       fury_vehicle.Trunk.Width mustEqual 11
       fury_vehicle.Trunk.Height mustEqual 11
       fury_vehicle.Trunk.Offset mustEqual 30
-      fury_vehicle.GetSeatFromMountPoint(0) mustEqual Some(0)
-      fury_vehicle.GetSeatFromMountPoint(1) mustEqual None
+      fury_vehicle.GetSeatFromMountPoint(1) mustEqual Some(0)
       fury_vehicle.GetSeatFromMountPoint(2) mustEqual Some(0)
       fury_vehicle.Decal mustEqual 0
       fury_vehicle.Health mustEqual fury_vehicle.Definition.MaxHealth
+    }
+
+    "can be owned by a player" in {
+      val fury_vehicle = Vehicle(GlobalDefinitions.fury)
+      fury_vehicle.Owner.isDefined mustEqual false
+
+      val player1 = Player("test1", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+      player1.GUID = PlanetSideGUID(1)
+      fury_vehicle.Owner = player1
+      fury_vehicle.Owner.isDefined mustEqual true
+      fury_vehicle.Owner.contains(PlanetSideGUID(1)) mustEqual true
+    }
+
+    "ownership depends on who last was granted it" in {
+      val fury_vehicle = Vehicle(GlobalDefinitions.fury)
+      fury_vehicle.Owner.isDefined mustEqual false
+
+      val player1 = Player("test1", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+      player1.GUID = PlanetSideGUID(1)
+      fury_vehicle.Owner = player1
+      fury_vehicle.Owner.isDefined mustEqual true
+      fury_vehicle.Owner.contains(PlanetSideGUID(1)) mustEqual true
+
+      val player2 = Player("test2", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+      player2.GUID = PlanetSideGUID(2)
+      fury_vehicle.Owner = player2
+      fury_vehicle.Owner.isDefined mustEqual true
+      fury_vehicle.Owner.contains(PlanetSideGUID(2)) mustEqual true
+    }
+
+    "can use mount point to get seat number" in {
+      val fury_vehicle = Vehicle(GlobalDefinitions.fury)
+      fury_vehicle.GetSeatFromMountPoint(0) mustEqual None
+      fury_vehicle.GetSeatFromMountPoint(1) mustEqual Some(0)
+      fury_vehicle.GetSeatFromMountPoint(2) mustEqual Some(0)
+      fury_vehicle.GetSeatFromMountPoint(3) mustEqual None
+    }
+
+    "has four permission groups" in {
+      val fury_vehicle = Vehicle(GlobalDefinitions.fury)
+      fury_vehicle.PermissionGroup(AccessPermissionGroup.Driver.id) mustEqual Some(VehicleLockState.Locked)
+      fury_vehicle.PermissionGroup(AccessPermissionGroup.Gunner.id) mustEqual Some(VehicleLockState.Empire)
+      fury_vehicle.PermissionGroup(AccessPermissionGroup.Passenger.id) mustEqual Some(VehicleLockState.Empire)
+      fury_vehicle.PermissionGroup(AccessPermissionGroup.Trunk.id) mustEqual Some(VehicleLockState.Locked)
+    }
+
+    "set new permission level" in {
+      val fury_vehicle = Vehicle(GlobalDefinitions.fury)
+      fury_vehicle.PermissionGroup(AccessPermissionGroup.Driver.id) mustEqual Some(VehicleLockState.Locked)
+      fury_vehicle.PermissionGroup(AccessPermissionGroup.Driver.id, VehicleLockState.Group.id) mustEqual Some(VehicleLockState.Group)
+    }
+
+    "set the same permission level" in {
+      val fury_vehicle = Vehicle(GlobalDefinitions.fury)
+      fury_vehicle.PermissionGroup(AccessPermissionGroup.Driver.id) mustEqual Some(VehicleLockState.Locked)
+      fury_vehicle.PermissionGroup(AccessPermissionGroup.Driver.id, VehicleLockState.Locked.id) mustEqual None
+    }
+
+    "alternate permission level indices" in {
+      val fury_vehicle = Vehicle(GlobalDefinitions.fury)
+      fury_vehicle.PermissionGroup(AccessPermissionGroup.Driver.id) mustEqual fury_vehicle.PermissionGroup(10)
+      fury_vehicle.PermissionGroup(AccessPermissionGroup.Gunner.id) mustEqual fury_vehicle.PermissionGroup(11)
+      fury_vehicle.PermissionGroup(AccessPermissionGroup.Passenger.id) mustEqual fury_vehicle.PermissionGroup(12)
+      fury_vehicle.PermissionGroup(AccessPermissionGroup.Trunk.id) mustEqual fury_vehicle.PermissionGroup(13)
+
+      (AccessPermissionGroup.Driver.id + 10) mustEqual 10
+      fury_vehicle.PermissionGroup(AccessPermissionGroup.Driver.id, VehicleLockState.Group.id) mustEqual Some(VehicleLockState.Group)
+      fury_vehicle.PermissionGroup(AccessPermissionGroup.Driver.id) mustEqual fury_vehicle.PermissionGroup(10)
+    }
+
+    "can determine permission group from seat" in {
+      val harasser_vehicle = Vehicle(GlobalDefinitions.two_man_assault_buggy)
+      harasser_vehicle.SeatPermissionGroup(0) mustEqual Some(AccessPermissionGroup.Driver)
+      harasser_vehicle.SeatPermissionGroup(1) mustEqual Some(AccessPermissionGroup.Gunner)
+      harasser_vehicle.SeatPermissionGroup(2) mustEqual None
+      //TODO test for AccessPermissionGroup.Passenger later
+    }
+
+    "can find a passenger in a seat" in {
+      val harasser_vehicle = Vehicle(GlobalDefinitions.two_man_assault_buggy)
+      val player1 = Player("test1", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+      player1.GUID = PlanetSideGUID(1)
+      val player2 = Player("test2", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+      player2.GUID = PlanetSideGUID(2)
+      harasser_vehicle.Seat(0).get.Occupant = player1 //don't worry about ownership for now
+      harasser_vehicle.Seat(1).get.Occupant = player2
+
+      harasser_vehicle.PassengerInSeat(player1) mustEqual Some(0)
+      harasser_vehicle.PassengerInSeat(player2) mustEqual Some(1)
+      harasser_vehicle.Seat(0).get.Occupant = None
+      harasser_vehicle.PassengerInSeat(player1) mustEqual None
+      harasser_vehicle.PassengerInSeat(player2) mustEqual Some(1)
+    }
+
+    "can find a weapon controlled from seat" in {
+      val harasser_vehicle = Vehicle(GlobalDefinitions.two_man_assault_buggy)
+      val chaingun_p = harasser_vehicle.Weapons(2).Equipment
+      chaingun_p.isDefined mustEqual true
+
+      harasser_vehicle.WeaponControlledFromSeat(0) mustEqual None
+      harasser_vehicle.WeaponControlledFromSeat(1) mustEqual chaingun_p
     }
   }
 }

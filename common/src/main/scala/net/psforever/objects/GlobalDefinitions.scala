@@ -1251,7 +1251,7 @@ object GlobalDefinitions {
   fury.Seats += 0 -> new SeatDefinition()
   fury.Seats(0).Bailable = true
   fury.Seats(0).ControlledWeapon = 1
-  fury.MountPoints += 0 -> 0
+  fury.MountPoints += 1 -> 0
   fury.MountPoints += 2 -> 0
   fury.Weapons += 1 -> fury_weapon_systema
   fury.TrunkSize = InventoryTile(11, 11)
@@ -1262,7 +1262,7 @@ object GlobalDefinitions {
   quadassault.Seats += 0 -> new SeatDefinition()
   quadassault.Seats(0).Bailable = true
   quadassault.Seats(0).ControlledWeapon = 1
-  quadassault.MountPoints += 0 -> 0
+  quadassault.MountPoints += 1 -> 0
   quadassault.MountPoints += 2 -> 0
   quadassault.Weapons += 1 -> quadassault_weapon_system
   quadassault.TrunkSize = InventoryTile(11, 11)
@@ -1273,7 +1273,7 @@ object GlobalDefinitions {
   quadstealth.CanCloak = true
   quadstealth.Seats += 0 -> new SeatDefinition()
   quadstealth.Seats(0).Bailable = true
-  quadstealth.MountPoints += 0 -> 0
+  quadstealth.MountPoints += 1 -> 0
   quadstealth.MountPoints += 2 -> 0
   quadstealth.CanCloak = true
   quadstealth.TrunkSize = InventoryTile(11, 11)

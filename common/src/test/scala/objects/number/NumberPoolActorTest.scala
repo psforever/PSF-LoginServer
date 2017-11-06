@@ -1,10 +1,11 @@
 // Copyright (c) 2017 PSForever
-package objects
+package objects.number
 
 import akka.actor.{ActorSystem, Props}
 import net.psforever.objects.guid.actor.NumberPoolActor
 import net.psforever.objects.guid.pool.ExclusivePool
 import net.psforever.objects.guid.selector.RandomSelector
+import objects.ActorTest
 
 import scala.concurrent.duration.Duration
 
@@ -15,7 +16,7 @@ class NumberPoolActorTest extends ActorTest(ActorSystem("test")) {
       pool.Selector = new RandomSelector
       val poolActor = system.actorOf(Props(classOf[NumberPoolActor], pool), name = "poolActor1")
       poolActor ! NumberPoolActor.GetAnyNumber()
-      val msg = receiveOne(Duration.create(100, "ms"))
+      val msg = receiveOne(Duration.create(500, "ms"))
       assert(msg.isInstanceOf[NumberPoolActor.GiveNumber])
     }
   }
@@ -43,7 +44,7 @@ class NumberPoolActorTest2 extends ActorTest(ActorSystem("test")) {
       expectMsg(NumberPoolActor.GiveNumber(25, None))
 
       poolActor ! NumberPoolActor.GetAnyNumber()
-      val msg = receiveOne(Duration.create(100, "ms"))
+      val msg = receiveOne(Duration.create(500, "ms"))
       assert(msg.isInstanceOf[NumberPoolActor.NoNumber])
     }
   }
