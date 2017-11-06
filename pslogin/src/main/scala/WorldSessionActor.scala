@@ -1692,6 +1692,13 @@ class WorldSessionActor extends Actor with MDCContextAware {
     )
   }
 
+  /**
+    * Construct tasking that adds a completed and registered vehicle into the scene.
+    * Use this function to renew the globally unique identifiers on a vehicle that has already been added to the scene once.
+    * @param vehicle the `Vehicle` object
+    * @see `RegisterNewVehicle`
+    * @return a `TaskResolver.GiveTask` message
+    */
   def RegisterVehicle(vehicle : Vehicle) : TaskResolver.GiveTask = {
     TaskResolver.GiveTask(
       new Task() {
@@ -1716,6 +1723,16 @@ class WorldSessionActor extends Actor with MDCContextAware {
     )
   }
 
+  /**
+    * Construct tasking that adds a completed and registered vehicle into the scene.
+    * The major difference between `RegisterVehicle` and `RegisterNewVehicle` is the assumption that this vehicle lacks an internal `Actor`.
+    * Before being finished, that vehicle is supplied an `Actor` such that it may function properly.
+    * This function wraps around `RegisterVehicle` and is used in case, prior to this event,
+    * the vehicle is being brought into existence from scratch and was never a member of any `Zone`.
+    * @param obj the `Vehicle` object
+    * @see `RegisterVehicle`
+    * @return a `TaskResolver.GiveTask` message
+    */
   def RegisterNewVehicle(obj : Vehicle) : TaskResolver.GiveTask = {
     TaskResolver.GiveTask(
       new Task() {
@@ -1936,10 +1953,23 @@ object WorldSessionActor {
     def isCancelled() : Boolean = true
   }
 
+  /**
+    * Calculate the actual distance between two points.
+    * @param pos1 the first point
+    * @param pos2 the second point
+    * @return the distance
+    */
   def Distance(pos1 : Vector3, pos2 : Vector3) : Float = {
     math.sqrt(DistanceSquared(pos1, pos2)).toFloat
   }
 
+  /**
+    * Calculate the squared distance between two points.
+    * Though some time is saved care must be taken that any comparative distance is also squared.
+    * @param pos1 the first point
+    * @param pos2 the second point
+    * @return the distance
+    */
   def DistanceSquared(pos1 : Vector3, pos2 : Vector3) : Float = {
     val dx : Float = pos1.x - pos2.x
     val dy : Float = pos1.y - pos2.y

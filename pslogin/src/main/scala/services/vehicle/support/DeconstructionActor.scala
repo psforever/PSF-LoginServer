@@ -3,7 +3,7 @@ package services.vehicle.support
 
 import akka.actor.{Actor, ActorRef, Cancellable}
 import net.psforever.objects.Vehicle
-import net.psforever.objects.guid.GUIDTask
+import net.psforever.objects.guid.TaskResolver
 import net.psforever.objects.vehicles.Seat
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.PlanetSideGUID
@@ -79,7 +79,7 @@ class DeconstructionActor extends Actor {
         entry.zone.Transport ! Zone.DespawnVehicle(vehicle)
         context.parent ! DeconstructionActor.DeleteVehicle(vehicle.GUID, zone.Id) //call up to the main event system
         context.parent ! VehicleServiceMessage.RevokeActorControl(vehicle) //call up to a sibling manager
-        taskResolver ! GUIDTask.UnregisterVehicle(vehicle)(zone.GUID)
+        taskResolver ! DeconstructionTask(vehicle, zone)
       })
 
       if(vehiclesRemain.nonEmpty) {
@@ -88,7 +88,37 @@ class DeconstructionActor extends Actor {
         scrappingProcess = context.system.scheduler.scheduleOnce(short_timeout, self, DeconstructionActor.TryDeleteVehicle())
       }
 
+    case DeconstructionActor.FailureToDeleteVehicle(localVehicle, localZone, ex) =>
+      org.log4s.getLogger.error(s"vehicle deconstruction: $localVehicle failed to be properly cleaned up from zone $localZone - $ex")
+
     case _ => ;
+  }
+
+  /**
+    * Construct a middleman `Task` intended to return error messages to the `DeconstructionActor`.
+    * @param vehicle the `Vehicle` object
+    * @param zone the `Zone` in which the vehicle resides
+    * @return a `TaskResolver.GiveTask` message
+    */
+  def DeconstructionTask(vehicle : Vehicle, zone : Zone) : TaskResolver.GiveTask = {
+    import net.psforever.objects.guid.{GUIDTask, Task}
+    TaskResolver.GiveTask (
+      new Task() {
+        private val localVehicle = vehicle
+        private val localZone = zone
+        private val localAnnounce = self
+
+        override def isComplete : Task.Resolution.Value = Task.Resolution.Success
+
+        def Execute(resolver : ActorRef) : Unit = {
+          resolver ! scala.util.Success(this)
+        }
+
+        override def onFailure(ex : Throwable): Unit = {
+          localAnnounce ! DeconstructionActor.FailureToDeleteVehicle(localVehicle, localZone, ex)
+        }
+      }, List(GUIDTask.UnregisterVehicle(vehicle)(zone.GUID))
+    )
   }
 
   /**
@@ -167,6 +197,14 @@ object DeconstructionActor {
     * Internal message used to signal a test of the queued vehicle information.
     */
   private final case class TryDeleteVehicle()
+
+  /**
+    * Error-passing message carrying information out of the final deconstruction GUID unregistering task.
+    * @param vehicle the `Vehicle` object
+    * @param zone the `Zone` in which the vehicle may or may not reside
+    * @param ex information regarding what happened
+    */
+  private final case class FailureToDeleteVehicle(vehicle : Vehicle, zone : Zone, ex : Throwable)
 
   /**
     * Entry of vehicle information.
