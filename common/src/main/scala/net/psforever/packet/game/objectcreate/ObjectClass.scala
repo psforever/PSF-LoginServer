@@ -347,6 +347,8 @@ object ObjectClass {
   final val quadstealth_destroyed = 711
   final val router = 741
   final val router_destroyed = 742
+  final val skyguard = 784
+  final val skyguard_destroyed = 785
   final val switchblade = 847
   final val switchblade_destroyed = 848
   final val threemanheavybuggy = 862 //marauder
@@ -845,7 +847,7 @@ object ObjectClass {
       case ObjectClass.lancer => ConstructorData.genericCodec(WeaponData.codec, "weapon")
       case ObjectClass.lasher => ConstructorData.genericCodec(WeaponData.codec, "weapon")
       case ObjectClass.liberator_25mm_cannon => ConstructorData.genericCodec(WeaponData.codec, "weapon")
-      case ObjectClass.liberator_bomb_bay => ConstructorData.genericCodec(WeaponData.codec(2), "weapon")
+      case ObjectClass.liberator_bomb_bay => ConstructorData.genericCodec(WeaponData.codec, "weapon")
       case ObjectClass.liberator_weapon_system => ConstructorData.genericCodec(WeaponData.codec, "weapon")
       case ObjectClass.lightgunship_weapon_system => ConstructorData.genericCodec(WeaponData.codec(2), "weapon")
       case ObjectClass.lightning_weapon_system => ConstructorData.genericCodec(WeaponData.codec(2), "weapon")
@@ -888,7 +890,7 @@ object ObjectClass {
       case ObjectClass.rocklet => ConstructorData.genericCodec(WeaponData.codec, "weapon")
       case ObjectClass.rotarychaingun_mosquito => ConstructorData.genericCodec(WeaponData.codec, "weapon")
       case ObjectClass.scythe => ConstructorData.genericCodec(WeaponData.codec(2), "weapon")
-      case ObjectClass.skyguard_weapon_system => ConstructorData.genericCodec(WeaponData.codec, "weapon")
+      case ObjectClass.skyguard_weapon_system => ConstructorData.genericCodec(WeaponData.codec(2), "weapon")
       case ObjectClass.spiker => ConstructorData.genericCodec(WeaponData.codec, "weapon")
       case ObjectClass.spitfire_aa_weapon => ConstructorData.genericCodec(WeaponData.codec, "weapon")
       case ObjectClass.spitfire_weapon => ConstructorData.genericCodec(WeaponData.codec, "weapon")
@@ -1245,6 +1247,8 @@ object ObjectClass {
       case ObjectClass.quadstealth_destroyed => ConstructorData.genericCodec(DestroyedVehicleData.codec, "wreckage")
       case ObjectClass.router => ConstructorData.genericCodec(VehicleData.codec(VehicleFormat.Variant), "vehicle")
       case ObjectClass.router_destroyed => ConstructorData.genericCodec(DestroyedVehicleData.codec, "wreckage")
+      case ObjectClass.skyguard => ConstructorData.genericCodec(VehicleData.codec, "vehicle")
+      case ObjectClass.skyguard_destroyed => ConstructorData.genericCodec(DestroyedVehicleData.codec, "wreckage")
       case ObjectClass.switchblade => ConstructorData.genericCodec(VehicleData.codec(VehicleFormat.Variant), "vehicle")
       case ObjectClass.switchblade_destroyed => ConstructorData.genericCodec(DestroyedVehicleData.codec, "wreckage")
       case ObjectClass.threemanheavybuggy => ConstructorData.genericCodec(VehicleData.codec, "vehicle")

@@ -10,6 +10,7 @@ object AvatarResponse {
   trait Response
 
   final case class ArmorChanged(suit : ExoSuitType.Value, subtype : Int) extends Response
+  final case class ConcealPlayer() extends Response
   //final case class DropItem(pos : Vector3, orient : Vector3, item : PlanetSideGUID) extends Response
   final case class EquipmentInHand(slot : Int, item : Equipment) extends Response
   final case class EquipmentOnGround(pos : Vector3, orient : Vector3, item : Equipment) extends Response

@@ -2,13 +2,14 @@
 package net.psforever.objects
 
 import net.psforever.objects.definition._
-import net.psforever.objects.definition.converter.{CommandDetonaterConverter, LockerContainerConverter, REKConverter}
+import net.psforever.objects.definition.converter._
 import net.psforever.objects.serverobject.doors.DoorDefinition
 import net.psforever.objects.equipment.CItem.DeployedItem
 import net.psforever.objects.equipment._
 import net.psforever.objects.inventory.InventoryTile
 import net.psforever.objects.serverobject.locks.IFFLockDefinition
-import net.psforever.objects.serverobject.terminals.{CertTerminalDefinition, OrderTerminalDefinition}
+import net.psforever.objects.serverobject.terminals._
+import net.psforever.objects.vehicles.SeatArmorRestriction
 import net.psforever.types.PlanetSideEmpire
 
 object GlobalDefinitions {
@@ -163,6 +164,33 @@ object GlobalDefinitions {
     }
   }
 
+  def AIMAX(faction : PlanetSideEmpire.Value) : ToolDefinition = {
+    faction match {
+      case PlanetSideEmpire.TR => trhev_dualcycler
+      case PlanetSideEmpire.NC => nchev_scattercannon
+      case PlanetSideEmpire.VS => vshev_quasar
+      case PlanetSideEmpire.NEUTRAL => suppressor //there is no common pool MAX arms
+    }
+  }
+
+  def AVMAX(faction : PlanetSideEmpire.Value) : ToolDefinition = {
+    faction match {
+      case PlanetSideEmpire.TR => trhev_pounder
+      case PlanetSideEmpire.NC => nchev_falcon
+      case PlanetSideEmpire.VS => vshev_comet
+      case PlanetSideEmpire.NEUTRAL => suppressor //there is no common pool MAX arms
+    }
+  }
+
+  def AAMAX(faction : PlanetSideEmpire.Value) : ToolDefinition = {
+    faction match {
+      case PlanetSideEmpire.TR => trhev_burster
+      case PlanetSideEmpire.NC => nchev_sparrow
+      case PlanetSideEmpire.VS => vshev_starfire
+      case PlanetSideEmpire.NEUTRAL => suppressor //there is no common pool MAX arms
+    }
+  }
+
   /**
     * Using the definition for a piece of `Equipment` determine if it is a grenade-type weapon.
     * Only the normal grenades count; the grenade packs are excluded.
@@ -196,17 +224,17 @@ object GlobalDefinitions {
   /**
     * Using the definition for a piece of `Equipment` determine with which faction it aligns if it is a weapon.
     * Only checks `Tool` objects.
-    * Useful for determining if some item has to be dropped during an activity like `InfantryLoadout` switching.
+    * Useful for determining if some item has to be dropped during an activity like `Loadout` switching.
     * @param edef the `EquipmentDefinition` of the item
     * @return the faction alignment, or `Neutral`
     */
   def isFactionWeapon(edef : EquipmentDefinition) : PlanetSideEmpire.Value = {
     edef match {
-      case `chainblade` | `repeater` | `anniversary_guna` | `cycler` | `mini_chaingun` | `striker` =>
+      case `chainblade` | `repeater` | `anniversary_guna` | `cycler` | `mini_chaingun` | `striker` | `trhev_dualcycler` | `trhev_pounder` | `trhev_burster` =>
         PlanetSideEmpire.TR
-      case `magcutter` | `isp` | `anniversary_gun` | `gauss` | `r_shotgun` | `hunterseeker` =>
+      case `magcutter` | `isp` | `anniversary_gun` | `gauss` | `r_shotgun` | `hunterseeker` | `nchev_scattercannon` | `nchev_falcon` | `nchev_sparrow` =>
         PlanetSideEmpire.NC
-      case `forceblade` | `beamer` | `anniversary_gunb` | `pulsar` | `lasher` | `lancer` =>
+      case `forceblade` | `beamer` | `anniversary_gunb` | `pulsar` | `lasher` | `lancer` | `vshev_quasar` | `vshev_comet` | `vshev_starfire` =>
         PlanetSideEmpire.VS
       case _ =>
         PlanetSideEmpire.NEUTRAL
@@ -221,11 +249,11 @@ object GlobalDefinitions {
     */
   def isFactionEquipment(edef : EquipmentDefinition) : PlanetSideEmpire.Value = {
     edef match {
-      case `chainblade` | `repeater` | `anniversary_guna` | `cycler` | `mini_chaingun` | `striker` | `striker_missile_ammo` =>
+      case `chainblade` | `repeater` | `anniversary_guna` | `cycler` | `mini_chaingun` | `striker` | `striker_missile_ammo` | `trhev_dualcycler` | `trhev_pounder` | `trhev_burster` =>
         PlanetSideEmpire.TR
-      case `magcutter` | `isp` | `anniversary_gun` | `gauss` | `r_shotgun` | `hunterseeker` | `hunter_seeker_missile` =>
+      case `magcutter` | `isp` | `anniversary_gun` | `gauss` | `r_shotgun` | `hunterseeker` | `hunter_seeker_missile` | `nchev_scattercannon` | `nchev_falcon` | `nchev_sparrow` =>
         PlanetSideEmpire.NC
-      case `forceblade` | `beamer` | `anniversary_gunb` | `pulsar` | `lasher` | `lancer` | `energy_cell` | `lancer_cartridge` =>
+      case `forceblade` | `beamer` | `anniversary_gunb` | `pulsar` | `lasher` | `lancer` | `energy_cell` | `lancer_cartridge` | `vshev_quasar` | `vshev_comet` | `vshev_starfire` =>
         PlanetSideEmpire.VS
       case _ =>
         PlanetSideEmpire.NEUTRAL
@@ -234,7 +262,7 @@ object GlobalDefinitions {
 
   /**
     * Using the definition for a piece of `Equipment` determine whether it is a "cavern weapon."
-    * Useful for determining if some item has to be dropped during an activity like `InfantryLoadout` switching.
+    * Useful for determining if some item has to be dropped during an activity like `Loadout` switching.
     * @param edef the `EquipmentDefinition` of the item
     * @return `true`, if it is; otherwise, `false`
     */
@@ -457,6 +485,9 @@ object GlobalDefinitions {
   bullet_35mm.Capacity = 100
   bullet_35mm.Tile = InventoryTile.Tile44
 
+  val ancient_ammo_vehicle = AmmoBoxDefinition(Ammo.ancient_ammo_vehicle)
+//
+
   val
   aphelion_laser_ammo = AmmoBoxDefinition(Ammo.aphelion_laser_ammo)
   aphelion_laser_ammo.Capacity = 165
@@ -486,6 +517,11 @@ object GlobalDefinitions {
   skyguard_flak_cannon_ammo = AmmoBoxDefinition(Ammo.skyguard_flak_cannon_ammo)
   skyguard_flak_cannon_ammo.Capacity = 200
   skyguard_flak_cannon_ammo.Tile = InventoryTile.Tile44
+
+  val
+  firebird_missile = AmmoBoxDefinition(ObjectClass.firebird_missile)
+  firebird_missile.Capacity = 50
+  firebird_missile.Tile = InventoryTile.Tile44
 
   val
   flux_cannon_thresher_battery = AmmoBoxDefinition(Ammo.flux_cannon_thresher_battery)
@@ -630,7 +666,7 @@ object GlobalDefinitions {
   val
   chainblade = ToolDefinition(ObjectClass.chainblade)
   chainblade.Size = EquipmentSize.Melee
-  chainblade.AmmoTypes += Ammo.melee_ammo
+  chainblade.AmmoTypes += melee_ammo
   chainblade.FireModes += new FireModeDefinition
   chainblade.FireModes.head.AmmoTypeIndices += 0
   chainblade.FireModes.head.AmmoSlotIndex = 0
@@ -643,7 +679,7 @@ object GlobalDefinitions {
   val
   magcutter = ToolDefinition(ObjectClass.magcutter)
   magcutter.Size = EquipmentSize.Melee
-  magcutter.AmmoTypes += Ammo.melee_ammo
+  magcutter.AmmoTypes += melee_ammo
   magcutter.FireModes += new FireModeDefinition
   magcutter.FireModes.head.AmmoTypeIndices += 0
   magcutter.FireModes.head.AmmoSlotIndex = 0
@@ -656,7 +692,7 @@ object GlobalDefinitions {
   val
   forceblade = ToolDefinition(ObjectClass.forceblade)
   forceblade.Size = EquipmentSize.Melee
-  forceblade.AmmoTypes += Ammo.melee_ammo
+  forceblade.AmmoTypes += melee_ammo
   forceblade.FireModes += new FireModeDefinition
   forceblade.FireModes.head.AmmoTypeIndices += 0
   forceblade.FireModes.head.AmmoSlotIndex = 0
@@ -671,7 +707,7 @@ object GlobalDefinitions {
   val
   katana = ToolDefinition(ObjectClass.katana)
   katana.Size = EquipmentSize.Melee
-  katana.AmmoTypes += Ammo.melee_ammo
+  katana.AmmoTypes += melee_ammo
   katana.FireModes += new FireModeDefinition
   katana.FireModes.head.AmmoTypeIndices += 0
   katana.FireModes.head.AmmoSlotIndex = 0
@@ -686,7 +722,7 @@ object GlobalDefinitions {
   val
   frag_grenade = ToolDefinition(ObjectClass.frag_grenade)
   frag_grenade.Size = EquipmentSize.Pistol
-  frag_grenade.AmmoTypes += Ammo.frag_grenade_ammo
+  frag_grenade.AmmoTypes += frag_grenade_ammo
   frag_grenade.FireModes += new FireModeDefinition
   frag_grenade.FireModes.head.AmmoTypeIndices += 0
   frag_grenade.FireModes.head.AmmoSlotIndex = 0
@@ -700,7 +736,7 @@ object GlobalDefinitions {
   val
   plasma_grenade = ToolDefinition(ObjectClass.plasma_grenade)
   plasma_grenade.Size = EquipmentSize.Pistol
-  plasma_grenade.AmmoTypes += Ammo.plasma_grenade_ammo
+  plasma_grenade.AmmoTypes += plasma_grenade_ammo
   plasma_grenade.FireModes += new FireModeDefinition
   plasma_grenade.FireModes.head.AmmoTypeIndices += 0
   plasma_grenade.FireModes.head.AmmoSlotIndex = 0
@@ -714,7 +750,7 @@ object GlobalDefinitions {
   val
   jammer_grenade = ToolDefinition(ObjectClass.jammer_grenade)
   jammer_grenade.Size = EquipmentSize.Pistol
-  jammer_grenade.AmmoTypes += Ammo.jammer_grenade_ammo
+  jammer_grenade.AmmoTypes += jammer_grenade_ammo
   jammer_grenade.FireModes += new FireModeDefinition
   jammer_grenade.FireModes.head.AmmoTypeIndices += 0
   jammer_grenade.FireModes.head.AmmoSlotIndex = 0
@@ -728,8 +764,8 @@ object GlobalDefinitions {
   val
   repeater = ToolDefinition(ObjectClass.repeater)
   repeater.Size = EquipmentSize.Pistol
-  repeater.AmmoTypes += Ammo.bullet_9mm
-  repeater.AmmoTypes += Ammo.bullet_9mm_AP
+  repeater.AmmoTypes += bullet_9mm
+  repeater.AmmoTypes += bullet_9mm_AP
   repeater.FireModes += new FireModeDefinition
   repeater.FireModes.head.AmmoTypeIndices += 0
   repeater.FireModes.head.AmmoTypeIndices += 1
@@ -740,8 +776,8 @@ object GlobalDefinitions {
   val
   isp = ToolDefinition(ObjectClass.isp) //mag-scatter
   isp.Size = EquipmentSize.Pistol
-  isp.AmmoTypes += Ammo.shotgun_shell
-  isp.AmmoTypes += Ammo.shotgun_shell_AP
+  isp.AmmoTypes += shotgun_shell
+  isp.AmmoTypes += shotgun_shell_AP
   isp.FireModes += new FireModeDefinition
   isp.FireModes.head.AmmoTypeIndices += 0
   isp.FireModes.head.AmmoTypeIndices += 1
@@ -752,7 +788,7 @@ object GlobalDefinitions {
   val
   beamer = ToolDefinition(ObjectClass.beamer)
   beamer.Size = EquipmentSize.Pistol
-  beamer.AmmoTypes += Ammo.energy_cell
+  beamer.AmmoTypes += energy_cell
   beamer.FireModes += new FireModeDefinition
   beamer.FireModes.head.AmmoTypeIndices += 0
   beamer.FireModes.head.AmmoSlotIndex = 0
@@ -766,8 +802,8 @@ object GlobalDefinitions {
   val
   ilc9 = ToolDefinition(ObjectClass.ilc9) //amp
   ilc9.Size = EquipmentSize.Pistol
-  ilc9.AmmoTypes += Ammo.bullet_9mm
-  ilc9.AmmoTypes += Ammo.bullet_9mm_AP
+  ilc9.AmmoTypes += bullet_9mm
+  ilc9.AmmoTypes += bullet_9mm_AP
   ilc9.FireModes += new FireModeDefinition
   ilc9.FireModes.head.AmmoTypeIndices += 0
   ilc9.FireModes.head.AmmoTypeIndices += 1
@@ -778,8 +814,8 @@ object GlobalDefinitions {
   val
   suppressor = ToolDefinition(ObjectClass.suppressor)
   suppressor.Size = EquipmentSize.Rifle
-  suppressor.AmmoTypes += Ammo.bullet_9mm
-  suppressor.AmmoTypes += Ammo.bullet_9mm_AP
+  suppressor.AmmoTypes += bullet_9mm
+  suppressor.AmmoTypes += bullet_9mm_AP
   suppressor.FireModes += new FireModeDefinition
   suppressor.FireModes.head.AmmoTypeIndices += 0
   suppressor.FireModes.head.AmmoTypeIndices += 1
@@ -790,12 +826,12 @@ object GlobalDefinitions {
   val
   punisher = ToolDefinition(ObjectClass.punisher)
   punisher.Size = EquipmentSize.Rifle
-  punisher.AmmoTypes += Ammo.bullet_9mm
-  punisher.AmmoTypes += Ammo.bullet_9mm_AP
-  punisher.AmmoTypes += Ammo.rocket
-  punisher.AmmoTypes += Ammo.frag_cartridge
-  punisher.AmmoTypes += Ammo.jammer_cartridge
-  punisher.AmmoTypes += Ammo.plasma_cartridge
+  punisher.AmmoTypes += bullet_9mm
+  punisher.AmmoTypes += bullet_9mm_AP
+  punisher.AmmoTypes += rocket
+  punisher.AmmoTypes += frag_cartridge
+  punisher.AmmoTypes += jammer_cartridge
+  punisher.AmmoTypes += plasma_cartridge
   punisher.FireModes += new FireModeDefinition
   punisher.FireModes.head.AmmoTypeIndices += 0
   punisher.FireModes.head.AmmoTypeIndices += 1
@@ -813,8 +849,8 @@ object GlobalDefinitions {
   val
   flechette = ToolDefinition(ObjectClass.flechette) //sweeper
   flechette.Size = EquipmentSize.Rifle
-  flechette.AmmoTypes += Ammo.shotgun_shell
-  flechette.AmmoTypes += Ammo.shotgun_shell_AP
+  flechette.AmmoTypes += shotgun_shell
+  flechette.AmmoTypes += shotgun_shell_AP
   flechette.FireModes += new FireModeDefinition
   flechette.FireModes.head.AmmoTypeIndices += 0
   flechette.FireModes.head.AmmoTypeIndices += 1
@@ -825,8 +861,8 @@ object GlobalDefinitions {
   val
   cycler = ToolDefinition(ObjectClass.cycler)
   cycler.Size = EquipmentSize.Rifle
-  cycler.AmmoTypes += Ammo.bullet_9mm
-  cycler.AmmoTypes += Ammo.bullet_9mm_AP
+  cycler.AmmoTypes += bullet_9mm
+  cycler.AmmoTypes += bullet_9mm_AP
   cycler.FireModes += new FireModeDefinition
   cycler.FireModes.head.AmmoTypeIndices += 0
   cycler.FireModes.head.AmmoTypeIndices += 1
@@ -837,8 +873,8 @@ object GlobalDefinitions {
   val
   gauss = ToolDefinition(ObjectClass.gauss)
   gauss.Size = EquipmentSize.Rifle
-  gauss.AmmoTypes += Ammo.bullet_9mm
-  gauss.AmmoTypes += Ammo.bullet_9mm_AP
+  gauss.AmmoTypes += bullet_9mm
+  gauss.AmmoTypes += bullet_9mm_AP
   gauss.FireModes += new FireModeDefinition
   gauss.FireModes.head.AmmoTypeIndices += 0
   gauss.FireModes.head.AmmoTypeIndices += 1
@@ -849,7 +885,7 @@ object GlobalDefinitions {
   val
   pulsar = ToolDefinition(ObjectClass.pulsar)
   pulsar.Size = EquipmentSize.Rifle
-  pulsar.AmmoTypes += Ammo.energy_cell
+  pulsar.AmmoTypes += energy_cell
   pulsar.FireModes += new FireModeDefinition
   pulsar.FireModes.head.AmmoTypeIndices += 0
   pulsar.FireModes.head.AmmoSlotIndex = 0
@@ -863,7 +899,7 @@ object GlobalDefinitions {
   val
   anniversary_guna = ToolDefinition(ObjectClass.anniversary_guna) //tr stinger
   anniversary_guna.Size = EquipmentSize.Pistol
-  anniversary_guna.AmmoTypes += Ammo.anniversary_ammo
+  anniversary_guna.AmmoTypes += anniversary_ammo
   anniversary_guna.FireModes += new FireModeDefinition
   anniversary_guna.FireModes.head.AmmoTypeIndices += 0
   anniversary_guna.FireModes.head.AmmoSlotIndex = 0
@@ -878,7 +914,7 @@ object GlobalDefinitions {
   val
   anniversary_gun = ToolDefinition(ObjectClass.anniversary_gun) //nc spear
   anniversary_gun.Size = EquipmentSize.Pistol
-  anniversary_gun.AmmoTypes += Ammo.anniversary_ammo
+  anniversary_gun.AmmoTypes += anniversary_ammo
   anniversary_gun.FireModes += new FireModeDefinition
   anniversary_gun.FireModes.head.AmmoTypeIndices += 0
   anniversary_gun.FireModes.head.AmmoSlotIndex = 0
@@ -893,7 +929,7 @@ object GlobalDefinitions {
   val
   anniversary_gunb = ToolDefinition(ObjectClass.anniversary_gunb) //vs eraser
   anniversary_gunb.Size = EquipmentSize.Pistol
-  anniversary_gunb.AmmoTypes += Ammo.anniversary_ammo
+  anniversary_gunb.AmmoTypes += anniversary_ammo
   anniversary_gunb.FireModes += new FireModeDefinition
   anniversary_gunb.FireModes.head.AmmoTypeIndices += 0
   anniversary_gunb.FireModes.head.AmmoSlotIndex = 0
@@ -908,7 +944,7 @@ object GlobalDefinitions {
   val
   spiker = ToolDefinition(ObjectClass.spiker)
   spiker.Size = EquipmentSize.Pistol
-  spiker.AmmoTypes += Ammo.ancient_ammo_combo
+  spiker.AmmoTypes += ancient_ammo_combo
   spiker.FireModes += new FireModeDefinition
   spiker.FireModes.head.AmmoTypeIndices += 0
   spiker.FireModes.head.AmmoSlotIndex = 0
@@ -918,8 +954,8 @@ object GlobalDefinitions {
   val
   mini_chaingun = ToolDefinition(ObjectClass.mini_chaingun)
   mini_chaingun.Size = EquipmentSize.Rifle
-  mini_chaingun.AmmoTypes += Ammo.bullet_9mm
-  mini_chaingun.AmmoTypes += Ammo.bullet_9mm_AP
+  mini_chaingun.AmmoTypes += bullet_9mm
+  mini_chaingun.AmmoTypes += bullet_9mm_AP
   mini_chaingun.FireModes += new FireModeDefinition
   mini_chaingun.FireModes.head.AmmoTypeIndices += 0
   mini_chaingun.FireModes.head.AmmoTypeIndices += 1
@@ -930,8 +966,8 @@ object GlobalDefinitions {
   val
   r_shotgun = ToolDefinition(ObjectClass.r_shotgun) //jackhammer
   r_shotgun.Size = EquipmentSize.Rifle
-  r_shotgun.AmmoTypes += Ammo.shotgun_shell
-  r_shotgun.AmmoTypes += Ammo.shotgun_shell_AP
+  r_shotgun.AmmoTypes += shotgun_shell
+  r_shotgun.AmmoTypes += shotgun_shell_AP
   r_shotgun.FireModes += new FireModeDefinition
   r_shotgun.FireModes.head.AmmoTypeIndices += 0
   r_shotgun.FireModes.head.AmmoTypeIndices += 1
@@ -948,7 +984,7 @@ object GlobalDefinitions {
   val
   lasher = ToolDefinition(ObjectClass.lasher)
   lasher.Size = EquipmentSize.Rifle
-  lasher.AmmoTypes += Ammo.energy_cell
+  lasher.AmmoTypes += energy_cell
   lasher.FireModes += new FireModeDefinition
   lasher.FireModes.head.AmmoTypeIndices += 0
   lasher.FireModes.head.AmmoSlotIndex = 0
@@ -962,7 +998,7 @@ object GlobalDefinitions {
   val
   maelstrom = ToolDefinition(ObjectClass.maelstrom)
   maelstrom.Size = EquipmentSize.Rifle
-  maelstrom.AmmoTypes += Ammo.maelstrom_ammo
+  maelstrom.AmmoTypes += maelstrom_ammo
   maelstrom.FireModes += new FireModeDefinition
   maelstrom.FireModes.head.AmmoTypeIndices += 0
   maelstrom.FireModes.head.AmmoSlotIndex = 0
@@ -980,7 +1016,7 @@ object GlobalDefinitions {
   val
   phoenix = ToolDefinition(ObjectClass.phoenix) //decimator
   phoenix.Size = EquipmentSize.Rifle
-  phoenix.AmmoTypes += Ammo.phoenix_missile
+  phoenix.AmmoTypes += phoenix_missile
   phoenix.FireModes += new FireModeDefinition
   phoenix.FireModes.head.AmmoTypeIndices += 0
   phoenix.FireModes.head.AmmoSlotIndex = 0
@@ -994,7 +1030,7 @@ object GlobalDefinitions {
   val
   striker = ToolDefinition(ObjectClass.striker)
   striker.Size = EquipmentSize.Rifle
-  striker.AmmoTypes += Ammo.striker_missile_ammo
+  striker.AmmoTypes += striker_missile_ammo
   striker.FireModes += new FireModeDefinition
   striker.FireModes.head.AmmoTypeIndices += 0
   striker.FireModes.head.AmmoSlotIndex = 0
@@ -1008,7 +1044,7 @@ object GlobalDefinitions {
   val
   hunterseeker = ToolDefinition(ObjectClass.hunterseeker) //phoenix
   hunterseeker.Size = EquipmentSize.Rifle
-  hunterseeker.AmmoTypes += Ammo.hunter_seeker_missile
+  hunterseeker.AmmoTypes += hunter_seeker_missile
   hunterseeker.FireModes += new FireModeDefinition
   hunterseeker.FireModes.head.AmmoTypeIndices += 0
   hunterseeker.FireModes.head.AmmoSlotIndex = 0
@@ -1022,7 +1058,7 @@ object GlobalDefinitions {
   val
   lancer = ToolDefinition(ObjectClass.lancer)
   lancer.Size = EquipmentSize.Rifle
-  lancer.AmmoTypes += Ammo.lancer_cartridge
+  lancer.AmmoTypes += lancer_cartridge
   lancer.FireModes += new FireModeDefinition
   lancer.FireModes.head.AmmoTypeIndices += 0
   lancer.FireModes.head.AmmoSlotIndex = 0
@@ -1032,8 +1068,8 @@ object GlobalDefinitions {
   val
   rocklet = ToolDefinition(ObjectClass.rocklet)
   rocklet.Size = EquipmentSize.Rifle
-  rocklet.AmmoTypes += Ammo.rocket
-  rocklet.AmmoTypes += Ammo.frag_cartridge
+  rocklet.AmmoTypes += rocket
+  rocklet.AmmoTypes += frag_cartridge
   rocklet.FireModes += new FireModeDefinition
   rocklet.FireModes.head.AmmoTypeIndices += 0
   rocklet.FireModes.head.AmmoTypeIndices += 1
@@ -1050,9 +1086,9 @@ object GlobalDefinitions {
   val
   thumper = ToolDefinition(ObjectClass.thumper)
   thumper.Size = EquipmentSize.Rifle
-  thumper.AmmoTypes += Ammo.frag_cartridge
-  thumper.AmmoTypes += Ammo.plasma_cartridge
-  thumper.AmmoTypes += Ammo.jammer_cartridge
+  thumper.AmmoTypes += frag_cartridge
+  thumper.AmmoTypes += plasma_cartridge
+  thumper.AmmoTypes += jammer_cartridge
   thumper.FireModes += new FireModeDefinition
   thumper.FireModes.head.AmmoTypeIndices += 0
   thumper.FireModes.head.AmmoTypeIndices += 1
@@ -1070,7 +1106,7 @@ object GlobalDefinitions {
   val
   radiator = ToolDefinition(ObjectClass.radiator)
   radiator.Size = EquipmentSize.Rifle
-  radiator.AmmoTypes += Ammo.ancient_ammo_combo
+  radiator.AmmoTypes += ancient_ammo_combo
   radiator.FireModes += new FireModeDefinition
   radiator.FireModes.head.AmmoTypeIndices += 0
   radiator.FireModes.head.AmmoSlotIndex = 0
@@ -1084,7 +1120,7 @@ object GlobalDefinitions {
   val
   heavy_sniper = ToolDefinition(ObjectClass.heavy_sniper) //hsr
   heavy_sniper.Size = EquipmentSize.Rifle
-  heavy_sniper.AmmoTypes += Ammo.bolt
+  heavy_sniper.AmmoTypes += bolt
   heavy_sniper.FireModes += new FireModeDefinition
   heavy_sniper.FireModes.head.AmmoTypeIndices += 0
   heavy_sniper.FireModes.head.AmmoSlotIndex = 0
@@ -1094,7 +1130,7 @@ object GlobalDefinitions {
   val
   bolt_driver = ToolDefinition(ObjectClass.bolt_driver)
   bolt_driver.Size = EquipmentSize.Rifle
-  bolt_driver.AmmoTypes += Ammo.bolt
+  bolt_driver.AmmoTypes += bolt
   bolt_driver.FireModes += new FireModeDefinition
   bolt_driver.FireModes.head.AmmoTypeIndices += 0
   bolt_driver.FireModes.head.AmmoSlotIndex = 0
@@ -1104,7 +1140,7 @@ object GlobalDefinitions {
   val
   oicw = ToolDefinition(ObjectClass.oicw) //scorpion
   oicw.Size = EquipmentSize.Rifle
-  oicw.AmmoTypes += Ammo.oicw_ammo
+  oicw.AmmoTypes += oicw_ammo
   oicw.FireModes += new FireModeDefinition
   oicw.FireModes.head.AmmoTypeIndices += 0
   oicw.FireModes.head.AmmoSlotIndex = 0
@@ -1118,7 +1154,7 @@ object GlobalDefinitions {
   val
   flamethrower = ToolDefinition(ObjectClass.flamethrower)
   flamethrower.Size = EquipmentSize.Rifle
-  flamethrower.AmmoTypes += Ammo.flamethrower_ammo
+  flamethrower.AmmoTypes += flamethrower_ammo
   flamethrower.FireModes += new FireModeDefinition
   flamethrower.FireModes.head.AmmoTypeIndices += 0
   flamethrower.FireModes.head.AmmoSlotIndex = 0
@@ -1132,9 +1168,36 @@ object GlobalDefinitions {
   flamethrower.Tile = InventoryTile.Tile63
 
   val
+  trhev_dualcycler = ToolDefinition(ObjectClass.trhev_dualcycler)
+
+  val
+  trhev_pounder = ToolDefinition(ObjectClass.trhev_pounder)
+
+  val
+  trhev_burster = ToolDefinition(ObjectClass.trhev_burster)
+
+  val
+  nchev_scattercannon = ToolDefinition(ObjectClass.nchev_scattercannon)
+
+  val
+  nchev_falcon = ToolDefinition(ObjectClass.nchev_falcon)
+
+  val
+  nchev_sparrow = ToolDefinition(ObjectClass.nchev_sparrow)
+
+  val
+  vshev_quasar = ToolDefinition(ObjectClass.vshev_quasar)
+
+  val
+  vshev_comet = ToolDefinition(ObjectClass.vshev_comet)
+
+  val
+  vshev_starfire = ToolDefinition(ObjectClass.vshev_starfire)
+
+  val
   medicalapplicator = ToolDefinition(ObjectClass.medicalapplicator)
   medicalapplicator.Size = EquipmentSize.Pistol
-  medicalapplicator.AmmoTypes += Ammo.health_canister
+  medicalapplicator.AmmoTypes += health_canister
   medicalapplicator.FireModes += new FireModeDefinition
   medicalapplicator.FireModes.head.AmmoTypeIndices += 0
   medicalapplicator.FireModes.head.AmmoSlotIndex = 0
@@ -1148,8 +1211,8 @@ object GlobalDefinitions {
   val
   nano_dispenser = ToolDefinition(ObjectClass.nano_dispenser)
   nano_dispenser.Size = EquipmentSize.Rifle
-  nano_dispenser.AmmoTypes += Ammo.armor_canister
-  nano_dispenser.AmmoTypes += Ammo.upgrade_canister
+  nano_dispenser.AmmoTypes += armor_canister
+  nano_dispenser.AmmoTypes += upgrade_canister
   nano_dispenser.FireModes += new FireModeDefinition
   nano_dispenser.FireModes.head.AmmoTypeIndices += 0
   nano_dispenser.FireModes.head.AmmoTypeIndices += 1
@@ -1160,7 +1223,7 @@ object GlobalDefinitions {
   val
   bank = ToolDefinition(ObjectClass.bank)
   bank.Size = EquipmentSize.Pistol
-  bank.AmmoTypes += Ammo.armor_canister
+  bank.AmmoTypes += armor_canister
   bank.FireModes += new FireModeDefinition
   bank.FireModes.head.AmmoTypeIndices += 0
   bank.FireModes.head.AmmoSlotIndex = 0
@@ -1179,7 +1242,7 @@ object GlobalDefinitions {
   val
   trek = ToolDefinition(ObjectClass.trek)
   trek.Size = EquipmentSize.Pistol
-  trek.AmmoTypes += Ammo.trek_ammo
+  trek.AmmoTypes += trek_ammo
   trek.FireModes += new FireModeDefinition
   trek.FireModes.head.AmmoTypeIndices += 0
   trek.FireModes.head.AmmoSlotIndex = 0
@@ -1222,7 +1285,7 @@ object GlobalDefinitions {
   val
   fury_weapon_systema = ToolDefinition(ObjectClass.fury_weapon_systema)
   fury_weapon_systema.Size = EquipmentSize.VehicleWeapon
-  fury_weapon_systema.AmmoTypes += Ammo.hellfire_ammo
+  fury_weapon_systema.AmmoTypes += hellfire_ammo
   fury_weapon_systema.FireModes += new FireModeDefinition
   fury_weapon_systema.FireModes.head.AmmoTypeIndices += 0
   fury_weapon_systema.FireModes.head.AmmoSlotIndex = 0
@@ -1231,30 +1294,486 @@ object GlobalDefinitions {
   val
   quadassault_weapon_system = ToolDefinition(ObjectClass.quadassault_weapon_system)
   quadassault_weapon_system.Size = EquipmentSize.VehicleWeapon
-  quadassault_weapon_system.AmmoTypes += Ammo.bullet_12mm
+  quadassault_weapon_system.AmmoTypes += bullet_12mm
   quadassault_weapon_system.FireModes += new FireModeDefinition
   quadassault_weapon_system.FireModes.head.AmmoTypeIndices += 0
   quadassault_weapon_system.FireModes.head.AmmoSlotIndex = 0
-  quadassault_weapon_system.FireModes.head.Magazine = 100
+  quadassault_weapon_system.FireModes.head.Magazine = 150
+
+  val
+  scythe = ToolDefinition(ObjectClass.scythe) //TODO resolve ammo slot/pool discrepancy
+  scythe.Size = EquipmentSize.VehicleWeapon
+  scythe.AmmoTypes += ancient_ammo_vehicle
+  scythe.AmmoTypes += ancient_ammo_vehicle
+  scythe.FireModes += new FireModeDefinition
+  scythe.FireModes.head.AmmoTypeIndices += 0
+  scythe.FireModes.head.AmmoSlotIndex = 0
+  scythe.FireModes.head.Magazine = 250
+  scythe.FireModes += new FireModeDefinition
+  scythe.FireModes(1).AmmoTypeIndices += 0
+  scythe.FireModes(1).AmmoSlotIndex = 1 //note: the scythe has two magazines using a single pool; however, it can not ammo-switch or mode-switch
+  scythe.FireModes(1).Magazine = 250
 
   val
   chaingun_p = ToolDefinition(ObjectClass.chaingun_p)
   chaingun_p.Size = EquipmentSize.VehicleWeapon
-  chaingun_p.AmmoTypes += Ammo.bullet_12mm
+  chaingun_p.AmmoTypes += bullet_12mm
   chaingun_p.FireModes += new FireModeDefinition
   chaingun_p.FireModes.head.AmmoTypeIndices += 0
   chaingun_p.FireModes.head.AmmoSlotIndex = 0
   chaingun_p.FireModes.head.Magazine = 150
 
   val
+  skyguard_weapon_system = ToolDefinition(ObjectClass.skyguard_weapon_system)
+  skyguard_weapon_system.Size = EquipmentSize.VehicleWeapon
+  skyguard_weapon_system.AmmoTypes += skyguard_flak_cannon_ammo
+  skyguard_weapon_system.AmmoTypes += bullet_12mm
+  skyguard_weapon_system.FireModes += new FireModeDefinition
+  skyguard_weapon_system.FireModes.head.AmmoTypeIndices += 0
+  skyguard_weapon_system.FireModes.head.AmmoSlotIndex = 0
+  skyguard_weapon_system.FireModes.head.Magazine = 40
+  skyguard_weapon_system.FireModes += new FireModeDefinition
+  skyguard_weapon_system.FireModes(1).AmmoTypeIndices += 1
+  skyguard_weapon_system.FireModes(1).AmmoSlotIndex = 1
+  skyguard_weapon_system.FireModes(1).Magazine = 1 //TODO check
+
+  val
+  grenade_launcher_marauder = ToolDefinition(ObjectClass.grenade_launcher_marauder)
+  grenade_launcher_marauder.Size = EquipmentSize.VehicleWeapon
+  grenade_launcher_marauder.AmmoTypes += heavy_grenade_mortar
+  grenade_launcher_marauder.FireModes += new FireModeDefinition
+  grenade_launcher_marauder.FireModes.head.AmmoTypeIndices += 0
+  grenade_launcher_marauder.FireModes.head.AmmoSlotIndex = 0
+  grenade_launcher_marauder.FireModes.head.Magazine = 50
+
+  val
+  advanced_missile_launcher_t = ToolDefinition(ObjectClass.advanced_missile_launcher_t)
+  advanced_missile_launcher_t.Size = EquipmentSize.VehicleWeapon
+  advanced_missile_launcher_t.AmmoTypes += firebird_missile
+  advanced_missile_launcher_t.FireModes += new FireModeDefinition
+  advanced_missile_launcher_t.FireModes.head.AmmoTypeIndices += 0
+  advanced_missile_launcher_t.FireModes.head.AmmoSlotIndex = 0
+  advanced_missile_launcher_t.FireModes.head.Magazine = 40
+
+  val
+  flux_cannon_thresher = ToolDefinition(ObjectClass.flux_cannon_thresher)
+  flux_cannon_thresher.Size = EquipmentSize.VehicleWeapon
+  flux_cannon_thresher.AmmoTypes += flux_cannon_thresher_battery
+  flux_cannon_thresher.FireModes += new FireModeDefinition
+  flux_cannon_thresher.FireModes.head.AmmoTypeIndices += 0
+  flux_cannon_thresher.FireModes.head.AmmoSlotIndex = 0
+  flux_cannon_thresher.FireModes.head.Magazine = 100
+
+  val
+  mediumtransport_weapon_systemA = ToolDefinition(ObjectClass.mediumtransport_weapon_systemA)
+  mediumtransport_weapon_systemA.Size = EquipmentSize.VehicleWeapon
+  mediumtransport_weapon_systemA.AmmoTypes += bullet_20mm
+  mediumtransport_weapon_systemA.FireModes += new FireModeDefinition
+  mediumtransport_weapon_systemA.FireModes.head.AmmoTypeIndices += 0
+  mediumtransport_weapon_systemA.FireModes.head.AmmoSlotIndex = 0
+  mediumtransport_weapon_systemA.FireModes.head.Magazine = 150
+
+  val
+  mediumtransport_weapon_systemB = ToolDefinition(ObjectClass.mediumtransport_weapon_systemB)
+  mediumtransport_weapon_systemB.Size = EquipmentSize.VehicleWeapon
+  mediumtransport_weapon_systemB.AmmoTypes += bullet_20mm
+  mediumtransport_weapon_systemB.FireModes += new FireModeDefinition
+  mediumtransport_weapon_systemB.FireModes.head.AmmoTypeIndices += 0
+  mediumtransport_weapon_systemB.FireModes.head.AmmoSlotIndex = 0
+  mediumtransport_weapon_systemB.FireModes.head.Magazine = 150
+
+  val
+  battlewagon_weapon_systema = ToolDefinition(ObjectClass.battlewagon_weapon_systema)
+  battlewagon_weapon_systema.Size = EquipmentSize.VehicleWeapon
+  battlewagon_weapon_systema.AmmoTypes += bullet_15mm
+  battlewagon_weapon_systema.FireModes += new FireModeDefinition
+  battlewagon_weapon_systema.FireModes.head.AmmoTypeIndices += 0
+  battlewagon_weapon_systema.FireModes.head.AmmoSlotIndex = 0
+  battlewagon_weapon_systema.FireModes.head.Magazine = 235
+
+  val
+  battlewagon_weapon_systemb = ToolDefinition(ObjectClass.battlewagon_weapon_systemb)
+  battlewagon_weapon_systemb.Size = EquipmentSize.VehicleWeapon
+  battlewagon_weapon_systemb.AmmoTypes += bullet_15mm
+  battlewagon_weapon_systemb.FireModes += new FireModeDefinition
+  battlewagon_weapon_systemb.FireModes.head.AmmoTypeIndices += 0
+  battlewagon_weapon_systemb.FireModes.head.AmmoSlotIndex = 0
+  battlewagon_weapon_systemb.FireModes.head.Magazine = 235
+
+  val
+  battlewagon_weapon_systemc = ToolDefinition(ObjectClass.battlewagon_weapon_systemc)
+  battlewagon_weapon_systemc.Size = EquipmentSize.VehicleWeapon
+  battlewagon_weapon_systemc.AmmoTypes += bullet_15mm
+  battlewagon_weapon_systemc.FireModes += new FireModeDefinition
+  battlewagon_weapon_systemc.FireModes.head.AmmoTypeIndices += 0
+  battlewagon_weapon_systemc.FireModes.head.AmmoSlotIndex = 0
+  battlewagon_weapon_systemc.FireModes.head.Magazine = 235
+
+  val
+  battlewagon_weapon_systemd = ToolDefinition(ObjectClass.battlewagon_weapon_systemd)
+  battlewagon_weapon_systemd.Size = EquipmentSize.VehicleWeapon
+  battlewagon_weapon_systemd.AmmoTypes += bullet_15mm
+  battlewagon_weapon_systemd.FireModes += new FireModeDefinition
+  battlewagon_weapon_systemd.FireModes.head.AmmoTypeIndices += 0
+  battlewagon_weapon_systemd.FireModes.head.AmmoSlotIndex = 0
+  battlewagon_weapon_systemd.FireModes.head.Magazine = 235
+
+  val
+  thunderer_weapon_systema = ToolDefinition(ObjectClass.thunderer_weapon_systema)
+  thunderer_weapon_systema.Size = EquipmentSize.VehicleWeapon
+  thunderer_weapon_systema.AmmoTypes += gauss_cannon_ammo
+  thunderer_weapon_systema.FireModes += new FireModeDefinition
+  thunderer_weapon_systema.FireModes.head.AmmoTypeIndices += 0
+  thunderer_weapon_systema.FireModes.head.AmmoSlotIndex = 0
+  thunderer_weapon_systema.FireModes.head.Magazine = 15
+
+  val
+  thunderer_weapon_systemb = ToolDefinition(ObjectClass.thunderer_weapon_systemb)
+  thunderer_weapon_systemb.Size = EquipmentSize.VehicleWeapon
+  thunderer_weapon_systemb.AmmoTypes += gauss_cannon_ammo
+  thunderer_weapon_systemb.FireModes += new FireModeDefinition
+  thunderer_weapon_systemb.FireModes.head.AmmoTypeIndices += 0
+  thunderer_weapon_systemb.FireModes.head.AmmoSlotIndex = 0
+  thunderer_weapon_systemb.FireModes.head.Magazine = 15
+
+  val
+  aurora_weapon_systema = ToolDefinition(ObjectClass.aurora_weapon_systema)
+  aurora_weapon_systema.Size = EquipmentSize.VehicleWeapon
+  aurora_weapon_systema.AmmoTypes += fluxpod_ammo
+  aurora_weapon_systema.FireModes += new FireModeDefinition
+  aurora_weapon_systema.FireModes.head.AmmoTypeIndices += 0
+  aurora_weapon_systema.FireModes.head.AmmoSlotIndex = 0
+  aurora_weapon_systema.FireModes.head.Magazine = 12
+  aurora_weapon_systema.FireModes += new FireModeDefinition
+  aurora_weapon_systema.FireModes(1).AmmoTypeIndices += 0
+  aurora_weapon_systema.FireModes(1).AmmoSlotIndex = 1
+  aurora_weapon_systema.FireModes(1).Magazine = 12
+
+  val
+  aurora_weapon_systemb = ToolDefinition(ObjectClass.aurora_weapon_systemb)
+  aurora_weapon_systemb.Size = EquipmentSize.VehicleWeapon
+  aurora_weapon_systemb.AmmoTypes += fluxpod_ammo
+  aurora_weapon_systemb.FireModes += new FireModeDefinition
+  aurora_weapon_systemb.FireModes.head.AmmoTypeIndices += 0
+  aurora_weapon_systemb.FireModes.head.AmmoSlotIndex = 0
+  aurora_weapon_systemb.FireModes.head.Magazine = 12
+  aurora_weapon_systemb.FireModes += new FireModeDefinition
+  aurora_weapon_systemb.FireModes(1).AmmoTypeIndices += 0
+  aurora_weapon_systemb.FireModes(1).AmmoSlotIndex = 1
+  aurora_weapon_systemb.FireModes(1).Magazine = 12
+
+  val
+  apc_weapon_systema = ToolDefinition(ObjectClass.apc_weapon_systema)
+  apc_weapon_systema.Size = EquipmentSize.VehicleWeapon
+  apc_weapon_systema.AmmoTypes += bullet_75mm
+  apc_weapon_systema.FireModes += new FireModeDefinition
+  apc_weapon_systema.FireModes.head.AmmoTypeIndices += 0
+  apc_weapon_systema.FireModes.head.AmmoSlotIndex = 0
+  apc_weapon_systema.FireModes.head.Magazine = 50
+
+  val
+  apc_weapon_systemb = ToolDefinition(ObjectClass.apc_weapon_systemb)
+  apc_weapon_systemb.Size = EquipmentSize.VehicleWeapon
+  apc_weapon_systemb.AmmoTypes += bullet_75mm
+  apc_weapon_systemb.FireModes += new FireModeDefinition
+  apc_weapon_systemb.FireModes.head.AmmoTypeIndices += 0
+  apc_weapon_systemb.FireModes.head.AmmoSlotIndex = 0
+  apc_weapon_systemb.FireModes.head.Magazine = 50
+
+  val
+  apc_ballgun_r = ToolDefinition(ObjectClass.apc_ballgun_r)
+  apc_ballgun_r.Size = EquipmentSize.VehicleWeapon
+  apc_ballgun_r.AmmoTypes += bullet_12mm
+  apc_ballgun_r.FireModes += new FireModeDefinition
+  apc_ballgun_r.FireModes.head.AmmoTypeIndices += 0
+  apc_ballgun_r.FireModes.head.AmmoSlotIndex = 0
+  apc_ballgun_r.FireModes.head.Magazine = 150
+
+  val
+  apc_ballgun_l = ToolDefinition(ObjectClass.apc_ballgun_l)
+  apc_ballgun_l.Size = EquipmentSize.VehicleWeapon
+  apc_ballgun_l.AmmoTypes += bullet_12mm
+  apc_ballgun_l.FireModes += new FireModeDefinition
+  apc_ballgun_l.FireModes.head.AmmoTypeIndices += 0
+  apc_ballgun_l.FireModes.head.AmmoSlotIndex = 0
+  apc_ballgun_l.FireModes.head.Magazine = 150
+
+  val
+  apc_weapon_systemc_tr = ToolDefinition(ObjectClass.apc_weapon_systemc_tr)
+  apc_weapon_systemc_tr.Size = EquipmentSize.VehicleWeapon
+  apc_weapon_systemc_tr.AmmoTypes += bullet_15mm
+  apc_weapon_systemc_tr.FireModes += new FireModeDefinition
+  apc_weapon_systemc_tr.FireModes.head.AmmoTypeIndices += 0
+  apc_weapon_systemc_tr.FireModes.head.AmmoSlotIndex = 0
+  apc_weapon_systemc_tr.FireModes.head.Magazine = 150
+
+  val
+  apc_weapon_systemd_tr = ToolDefinition(ObjectClass.apc_weapon_systemd_tr)
+  apc_weapon_systemd_tr.Size = EquipmentSize.VehicleWeapon
+  apc_weapon_systemd_tr.AmmoTypes += bullet_15mm
+  apc_weapon_systemd_tr.FireModes += new FireModeDefinition
+  apc_weapon_systemd_tr.FireModes.head.AmmoTypeIndices += 0
+  apc_weapon_systemd_tr.FireModes.head.AmmoSlotIndex = 0
+  apc_weapon_systemd_tr.FireModes.head.Magazine = 150
+
+  val
+  apc_weapon_systemc_nc = ToolDefinition(ObjectClass.apc_weapon_systemc_nc)
+  apc_weapon_systemc_nc.Size = EquipmentSize.VehicleWeapon
+  apc_weapon_systemc_nc.AmmoTypes += bullet_20mm
+  apc_weapon_systemc_nc.FireModes += new FireModeDefinition
+  apc_weapon_systemc_nc.FireModes.head.AmmoTypeIndices += 0
+  apc_weapon_systemc_nc.FireModes.head.AmmoSlotIndex = 0
+  apc_weapon_systemc_nc.FireModes.head.Magazine = 150
+
+  val
+  apc_weapon_systemd_nc = ToolDefinition(ObjectClass.apc_weapon_systemd_nc)
+  apc_weapon_systemd_nc.Size = EquipmentSize.VehicleWeapon
+  apc_weapon_systemd_nc.AmmoTypes += bullet_20mm
+  apc_weapon_systemd_nc.FireModes += new FireModeDefinition
+  apc_weapon_systemd_nc.FireModes.head.AmmoTypeIndices += 0
+  apc_weapon_systemd_nc.FireModes.head.AmmoSlotIndex = 0
+  apc_weapon_systemd_nc.FireModes.head.Magazine = 150
+
+  val
+  apc_weapon_systemc_vs = ToolDefinition(ObjectClass.apc_weapon_systemc_vs)
+  apc_weapon_systemc_vs.Size = EquipmentSize.VehicleWeapon
+  apc_weapon_systemc_vs.AmmoTypes += flux_cannon_thresher_battery
+  apc_weapon_systemc_vs.FireModes += new FireModeDefinition
+  apc_weapon_systemc_vs.FireModes.head.AmmoTypeIndices += 0
+  apc_weapon_systemc_vs.FireModes.head.AmmoSlotIndex = 0
+  apc_weapon_systemc_vs.FireModes.head.Magazine = 100
+
+  val
+  apc_weapon_systemd_vs = ToolDefinition(ObjectClass.apc_weapon_systemd_vs)
+  apc_weapon_systemd_vs.Size = EquipmentSize.VehicleWeapon
+  apc_weapon_systemd_vs.AmmoTypes += flux_cannon_thresher_battery
+  apc_weapon_systemd_vs.FireModes += new FireModeDefinition
+  apc_weapon_systemd_vs.FireModes.head.AmmoTypeIndices += 0
+  apc_weapon_systemd_vs.FireModes.head.AmmoSlotIndex = 0
+  apc_weapon_systemd_vs.FireModes.head.Magazine = 100
+
+  val
+  lightning_weapon_system = ToolDefinition(ObjectClass.lightning_weapon_system)
+  lightning_weapon_system.Size = EquipmentSize.VehicleWeapon
+  lightning_weapon_system.AmmoTypes += bullet_75mm
+  lightning_weapon_system.AmmoTypes += bullet_25mm
+  lightning_weapon_system.FireModes += new FireModeDefinition
+  lightning_weapon_system.FireModes.head.AmmoTypeIndices += 0
+  lightning_weapon_system.FireModes.head.AmmoSlotIndex = 0
+  lightning_weapon_system.FireModes.head.Magazine = 20
+  lightning_weapon_system.FireModes += new FireModeDefinition
+  lightning_weapon_system.FireModes(1).AmmoTypeIndices += 1
+  lightning_weapon_system.FireModes(1).AmmoSlotIndex = 1
+  lightning_weapon_system.FireModes(1).Magazine = 1 //TODO check
+
+  val
+  prowler_weapon_systemA = ToolDefinition(ObjectClass.prowler_weapon_systemA)
+  prowler_weapon_systemA.Size = EquipmentSize.VehicleWeapon
+  prowler_weapon_systemA.AmmoTypes += bullet_105mm
+  prowler_weapon_systemA.FireModes += new FireModeDefinition
+  prowler_weapon_systemA.FireModes.head.AmmoTypeIndices += 0
+  prowler_weapon_systemA.FireModes.head.AmmoSlotIndex = 0
+  prowler_weapon_systemA.FireModes.head.Magazine = 20
+
+  val
+  prowler_weapon_systemB = ToolDefinition(ObjectClass.prowler_weapon_systemB)
+  prowler_weapon_systemB.Size = EquipmentSize.VehicleWeapon
+  prowler_weapon_systemB.AmmoTypes += bullet_15mm
+  prowler_weapon_systemB.FireModes += new FireModeDefinition
+  prowler_weapon_systemB.FireModes.head.AmmoTypeIndices += 0
+  prowler_weapon_systemB.FireModes.head.AmmoSlotIndex = 0
+  prowler_weapon_systemB.FireModes.head.Magazine = 235
+
+  val
+  vanguard_weapon_system = ToolDefinition(ObjectClass.vanguard_weapon_system)
+  vanguard_weapon_system.Size = EquipmentSize.VehicleWeapon
+  vanguard_weapon_system.AmmoTypes += bullet_150mm
+  vanguard_weapon_system.AmmoTypes += bullet_20mm
+  vanguard_weapon_system.FireModes += new FireModeDefinition
+  vanguard_weapon_system.FireModes.head.AmmoTypeIndices += 0
+  vanguard_weapon_system.FireModes.head.AmmoSlotIndex = 0
+  vanguard_weapon_system.FireModes.head.Magazine = 10
+  vanguard_weapon_system.FireModes += new FireModeDefinition
+  vanguard_weapon_system.FireModes(1).AmmoTypeIndices += 1
+  vanguard_weapon_system.FireModes(1).AmmoSlotIndex = 1
+  vanguard_weapon_system.FireModes(1).Magazine = 1 //TODO check
+
+  val
+  particle_beam_magrider = ToolDefinition(ObjectClass.particle_beam_magrider)
+  particle_beam_magrider.Size = EquipmentSize.VehicleWeapon
+  particle_beam_magrider.AmmoTypes += pulse_battery
+  particle_beam_magrider.FireModes += new FireModeDefinition
+  particle_beam_magrider.FireModes.head.AmmoTypeIndices += 0
+  particle_beam_magrider.FireModes.head.AmmoSlotIndex = 0
+  particle_beam_magrider.FireModes.head.Magazine = 150
+
+  val
+  heavy_rail_beam_magrider = ToolDefinition(ObjectClass.heavy_rail_beam_magrider)
+  heavy_rail_beam_magrider.Size = EquipmentSize.VehicleWeapon
+  heavy_rail_beam_magrider.AmmoTypes += heavy_rail_beam_battery
+  heavy_rail_beam_magrider.FireModes += new FireModeDefinition
+  heavy_rail_beam_magrider.FireModes.head.AmmoTypeIndices += 0
+  heavy_rail_beam_magrider.FireModes.head.AmmoSlotIndex = 0
+  heavy_rail_beam_magrider.FireModes.head.Magazine = 25
+
+  val
+  flail_weapon = ToolDefinition(ObjectClass.flail_weapon)
+  flail_weapon.Size = EquipmentSize.VehicleWeapon
+  flail_weapon.AmmoTypes += ancient_ammo_vehicle
+  flail_weapon.FireModes += new FireModeDefinition
+  flail_weapon.FireModes.head.AmmoTypeIndices += 0
+  flail_weapon.FireModes.head.AmmoSlotIndex = 0
+  flail_weapon.FireModes.head.Magazine = 100
+
+  val
+  rotarychaingun_mosquito = ToolDefinition(ObjectClass.rotarychaingun_mosquito)
+  rotarychaingun_mosquito.Size = EquipmentSize.VehicleWeapon
+  rotarychaingun_mosquito.AmmoTypes += bullet_12mm
+  rotarychaingun_mosquito.FireModes += new FireModeDefinition
+  rotarychaingun_mosquito.FireModes.head.AmmoTypeIndices += 0
+  rotarychaingun_mosquito.FireModes.head.AmmoSlotIndex = 0
+  rotarychaingun_mosquito.FireModes.head.Magazine = 150
+
+  val
+  lightgunship_weapon_system = ToolDefinition(ObjectClass.lightgunship_weapon_system)
+  lightgunship_weapon_system.Size = EquipmentSize.VehicleWeapon
+  lightgunship_weapon_system.AmmoTypes += bullet_20mm
+  lightgunship_weapon_system.AmmoTypes += reaver_rocket
+  lightgunship_weapon_system.FireModes += new FireModeDefinition
+  lightgunship_weapon_system.FireModes.head.AmmoTypeIndices += 0
+  lightgunship_weapon_system.FireModes.head.AmmoSlotIndex = 0
+  lightgunship_weapon_system.FireModes.head.Magazine = 150
+  lightgunship_weapon_system.FireModes += new FireModeDefinition
+  lightgunship_weapon_system.FireModes(1).AmmoTypeIndices += 1
+  lightgunship_weapon_system.FireModes(1).AmmoSlotIndex = 1
+  lightgunship_weapon_system.FireModes(1).Magazine = 1 //TODO check
+
+  val
+  wasp_weapon_system = ToolDefinition(ObjectClass.wasp_weapon_system)
+  wasp_weapon_system.Size = EquipmentSize.VehicleWeapon
+  wasp_weapon_system.AmmoTypes += wasp_gun_ammo
+  wasp_weapon_system.AmmoTypes += wasp_rocket_ammo
+  wasp_weapon_system.FireModes += new FireModeDefinition
+  wasp_weapon_system.FireModes.head.AmmoTypeIndices += 0
+  wasp_weapon_system.FireModes.head.AmmoSlotIndex = 0
+  wasp_weapon_system.FireModes.head.Magazine = 30
+  wasp_weapon_system.FireModes += new FireModeDefinition
+  wasp_weapon_system.FireModes(1).AmmoTypeIndices += 1
+  wasp_weapon_system.FireModes(1).AmmoSlotIndex = 1
+  wasp_weapon_system.FireModes(1).Magazine = 1 //TODO check
+  
+  val
+  liberator_weapon_system = ToolDefinition(ObjectClass.liberator_weapon_system)
+  liberator_weapon_system.Size = EquipmentSize.VehicleWeapon
+  liberator_weapon_system.AmmoTypes += bullet_35mm
+  liberator_weapon_system.FireModes += new FireModeDefinition
+  liberator_weapon_system.FireModes.head.AmmoTypeIndices += 0
+  liberator_weapon_system.FireModes.head.AmmoSlotIndex = 0
+  liberator_weapon_system.FireModes.head.Magazine = 100
+
+  val
+  liberator_bomb_bay = ToolDefinition(ObjectClass.liberator_bomb_bay)
+  liberator_bomb_bay.Size = EquipmentSize.VehicleWeapon
+  liberator_bomb_bay.AmmoTypes += liberator_bomb
+  liberator_bomb_bay.FireModes += new FireModeDefinition
+  liberator_bomb_bay.FireModes.head.AmmoTypeIndices += 0
+  liberator_bomb_bay.FireModes.head.AmmoSlotIndex = 0
+  liberator_bomb_bay.FireModes.head.Magazine = 10
+  liberator_bomb_bay.FireModes += new FireModeDefinition
+  liberator_bomb_bay.FireModes(1).AmmoTypeIndices += 0
+  liberator_bomb_bay.FireModes(1).AmmoSlotIndex = 0
+  liberator_bomb_bay.FireModes(1).Magazine = 10
+
+  val
+  liberator_25mm_cannon = ToolDefinition(ObjectClass.liberator_25mm_cannon)
+  liberator_25mm_cannon.Size = EquipmentSize.VehicleWeapon
+  liberator_25mm_cannon.AmmoTypes += bullet_25mm
+  liberator_25mm_cannon.FireModes += new FireModeDefinition
+  liberator_25mm_cannon.FireModes.head.AmmoTypeIndices += 0
+  liberator_25mm_cannon.FireModes.head.AmmoSlotIndex = 0
+  liberator_25mm_cannon.FireModes.head.Magazine = 150
+
+  val
+  vulture_nose_weapon_system = ToolDefinition(ObjectClass.vulture_nose_weapon_system)
+  vulture_nose_weapon_system.Size = EquipmentSize.VehicleWeapon
+  vulture_nose_weapon_system.AmmoTypes += bullet_35mm
+  vulture_nose_weapon_system.FireModes += new FireModeDefinition
+  vulture_nose_weapon_system.FireModes.head.AmmoTypeIndices += 0
+  vulture_nose_weapon_system.FireModes.head.AmmoSlotIndex = 0
+  vulture_nose_weapon_system.FireModes.head.Magazine = 75 //80?
+
+  val
+  vulture_bomb_bay = ToolDefinition(ObjectClass.vulture_bomb_bay)
+  vulture_bomb_bay.Size = EquipmentSize.VehicleWeapon
+  vulture_bomb_bay.AmmoTypes += liberator_bomb
+  vulture_bomb_bay.FireModes += new FireModeDefinition
+  vulture_bomb_bay.FireModes.head.AmmoTypeIndices += 0
+  vulture_bomb_bay.FireModes.head.AmmoSlotIndex = 0
+  vulture_bomb_bay.FireModes.head.Magazine = 10
+
+  val
+  vulture_tail_cannon = ToolDefinition(ObjectClass.vulture_tail_cannon)
+  vulture_tail_cannon.Size = EquipmentSize.VehicleWeapon
+  vulture_tail_cannon.AmmoTypes += bullet_25mm
+  vulture_tail_cannon.FireModes += new FireModeDefinition
+  vulture_tail_cannon.FireModes.head.AmmoTypeIndices += 0
+  vulture_tail_cannon.FireModes.head.AmmoSlotIndex = 0
+  vulture_tail_cannon.FireModes.head.Magazine = 100
+
+  val
+  cannon_dropship_20mm = ToolDefinition(ObjectClass.cannon_dropship_20mm)
+  cannon_dropship_20mm.Size = EquipmentSize.VehicleWeapon
+  cannon_dropship_20mm.AmmoTypes += bullet_20mm
+  cannon_dropship_20mm.FireModes += new FireModeDefinition
+  cannon_dropship_20mm.FireModes.head.AmmoTypeIndices += 0
+  cannon_dropship_20mm.FireModes.head.AmmoSlotIndex = 0
+  cannon_dropship_20mm.FireModes.head.Magazine = 250
+
+  val
+  dropship_rear_turret = ToolDefinition(ObjectClass.dropship_rear_turret)
+  dropship_rear_turret.Size = EquipmentSize.VehicleWeapon
+  dropship_rear_turret.AmmoTypes += bullet_20mm
+  dropship_rear_turret.FireModes += new FireModeDefinition
+  dropship_rear_turret.FireModes.head.AmmoTypeIndices += 0
+  dropship_rear_turret.FireModes.head.AmmoSlotIndex = 0
+  dropship_rear_turret.FireModes.head.Magazine = 250
+
+  val
+  galaxy_gunship_cannon = ToolDefinition(ObjectClass.galaxy_gunship_cannon)
+  galaxy_gunship_cannon.Size = EquipmentSize.VehicleWeapon
+  galaxy_gunship_cannon.AmmoTypes += heavy_grenade_mortar
+  galaxy_gunship_cannon.FireModes += new FireModeDefinition
+  galaxy_gunship_cannon.FireModes.head.AmmoTypeIndices += 0
+  galaxy_gunship_cannon.FireModes.head.AmmoSlotIndex = 0
+  galaxy_gunship_cannon.FireModes.head.Magazine = 50
+
+  val
+  galaxy_gunship_tailgun = ToolDefinition(ObjectClass.galaxy_gunship_tailgun)
+  galaxy_gunship_tailgun.Size = EquipmentSize.VehicleWeapon
+  galaxy_gunship_tailgun.AmmoTypes += bullet_35mm
+  galaxy_gunship_tailgun.FireModes += new FireModeDefinition
+  galaxy_gunship_tailgun.FireModes.head.AmmoTypeIndices += 0
+  galaxy_gunship_tailgun.FireModes.head.AmmoSlotIndex = 0
+  galaxy_gunship_tailgun.FireModes.head.Magazine = 200
+
+  val
+  galaxy_gunship_gun = ToolDefinition(ObjectClass.galaxy_gunship_gun)
+  galaxy_gunship_gun.Size = EquipmentSize.VehicleWeapon
+  galaxy_gunship_gun.AmmoTypes += bullet_35mm
+  galaxy_gunship_gun.FireModes += new FireModeDefinition
+  galaxy_gunship_gun.FireModes.head.AmmoTypeIndices += 0
+  galaxy_gunship_gun.FireModes.head.AmmoSlotIndex = 0
+  galaxy_gunship_gun.FireModes.head.Magazine = 200
+
+  val
   fury = VehicleDefinition(ObjectClass.fury)
   fury.Seats += 0 -> new SeatDefinition()
   fury.Seats(0).Bailable = true
   fury.Seats(0).ControlledWeapon = 1
+  fury.Weapons += 1 -> fury_weapon_systema
   fury.MountPoints += 1 -> 0
   fury.MountPoints += 2 -> 0
-  fury.Weapons += 1 -> fury_weapon_systema
-  fury.TrunkSize = InventoryTile(11, 11)
+  fury.TrunkSize = InventoryTile.Tile1111
   fury.TrunkOffset = 30
 
   val
@@ -1262,10 +1781,10 @@ object GlobalDefinitions {
   quadassault.Seats += 0 -> new SeatDefinition()
   quadassault.Seats(0).Bailable = true
   quadassault.Seats(0).ControlledWeapon = 1
+  quadassault.Weapons += 1 -> quadassault_weapon_system
   quadassault.MountPoints += 1 -> 0
   quadassault.MountPoints += 2 -> 0
-  quadassault.Weapons += 1 -> quadassault_weapon_system
-  quadassault.TrunkSize = InventoryTile(11, 11)
+  quadassault.TrunkSize = InventoryTile.Tile1111
   quadassault.TrunkOffset = 30
 
   val
@@ -1273,10 +1792,10 @@ object GlobalDefinitions {
   quadstealth.CanCloak = true
   quadstealth.Seats += 0 -> new SeatDefinition()
   quadstealth.Seats(0).Bailable = true
+  quadstealth.CanCloak = true
   quadstealth.MountPoints += 1 -> 0
   quadstealth.MountPoints += 2 -> 0
-  quadstealth.CanCloak = true
-  quadstealth.TrunkSize = InventoryTile(11, 11)
+  quadstealth.TrunkSize = InventoryTile.Tile1111
   quadstealth.TrunkOffset = 30
 
   val
@@ -1286,11 +1805,541 @@ object GlobalDefinitions {
   two_man_assault_buggy.Seats += 1 -> new SeatDefinition()
   two_man_assault_buggy.Seats(1).Bailable = true
   two_man_assault_buggy.Seats(1).ControlledWeapon = 2
+  two_man_assault_buggy.Weapons += 2 -> chaingun_p
   two_man_assault_buggy.MountPoints += 1 -> 0
   two_man_assault_buggy.MountPoints += 2 -> 1
-  two_man_assault_buggy.Weapons += 2 -> chaingun_p
-  two_man_assault_buggy.TrunkSize = InventoryTile(11, 11)
+  two_man_assault_buggy.TrunkSize = InventoryTile.Tile1111
   two_man_assault_buggy.TrunkOffset = 30
+
+  val
+  skyguard = VehicleDefinition(ObjectClass.skyguard)
+  skyguard.Seats += 0 -> new SeatDefinition()
+  skyguard.Seats(0).Bailable = true
+  skyguard.Seats += 1 -> new SeatDefinition()
+  skyguard.Seats(1).Bailable = true
+  skyguard.Seats(1).ControlledWeapon = 2
+  skyguard.Weapons += 2 -> skyguard_weapon_system
+  skyguard.MountPoints += 1 -> 0
+  skyguard.MountPoints += 2 -> 0
+  skyguard.MountPoints += 3 -> 1
+  skyguard.TrunkSize = InventoryTile.Tile1511
+  skyguard.TrunkOffset = 30
+
+  val
+  threemanheavybuggy = VehicleDefinition(ObjectClass.threemanheavybuggy)
+  threemanheavybuggy.Seats += 0 -> new SeatDefinition()
+  threemanheavybuggy.Seats(0).Bailable = true
+  threemanheavybuggy.Seats += 1 -> new SeatDefinition()
+  threemanheavybuggy.Seats(1).Bailable = true
+  threemanheavybuggy.Seats(1).ControlledWeapon = 3
+  threemanheavybuggy.Seats += 2 -> new SeatDefinition()
+  threemanheavybuggy.Seats(2).Bailable = true
+  threemanheavybuggy.Seats(2).ControlledWeapon = 4
+  threemanheavybuggy.Weapons += 3 -> chaingun_p
+  threemanheavybuggy.Weapons += 4 -> grenade_launcher_marauder
+  threemanheavybuggy.MountPoints += 1 -> 0
+  threemanheavybuggy.MountPoints += 2 -> 1
+  threemanheavybuggy.MountPoints += 3 -> 2
+  threemanheavybuggy.TrunkSize = InventoryTile.Tile1511
+  threemanheavybuggy.TrunkOffset = 30
+
+  val
+  twomanheavybuggy = VehicleDefinition(ObjectClass.twomanheavybuggy)
+  twomanheavybuggy.Seats += 0 -> new SeatDefinition()
+  twomanheavybuggy.Seats(0).Bailable = true
+  twomanheavybuggy.Seats += 1 -> new SeatDefinition()
+  twomanheavybuggy.Seats(1).Bailable = true
+  twomanheavybuggy.Seats(1).ControlledWeapon = 2
+  twomanheavybuggy.Weapons += 2 -> advanced_missile_launcher_t
+  twomanheavybuggy.MountPoints += 1 -> 0
+  twomanheavybuggy.MountPoints += 2 -> 1
+  twomanheavybuggy.TrunkSize = InventoryTile.Tile1511
+  twomanheavybuggy.TrunkOffset = 30
+
+  val
+  twomanhoverbuggy = VehicleDefinition(ObjectClass.twomanhoverbuggy)
+  twomanhoverbuggy.Seats += 0 -> new SeatDefinition()
+  twomanhoverbuggy.Seats(0).Bailable = true
+  twomanhoverbuggy.Seats += 1 -> new SeatDefinition()
+  twomanhoverbuggy.Seats(1).Bailable = true
+  twomanhoverbuggy.Seats(1).ControlledWeapon = 2
+  twomanhoverbuggy.Weapons += 2 -> flux_cannon_thresher
+  twomanhoverbuggy.MountPoints += 1 -> 0
+  twomanhoverbuggy.MountPoints += 2 -> 1
+  twomanhoverbuggy.TrunkSize = InventoryTile.Tile1511
+  twomanhoverbuggy.TrunkOffset = 30
+
+  val
+  mediumtransport = VehicleDefinition(ObjectClass.mediumtransport)
+  mediumtransport.Seats += 0 -> new SeatDefinition()
+  mediumtransport.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
+  mediumtransport.Seats += 1 -> new SeatDefinition()
+  mediumtransport.Seats(1).ControlledWeapon = 5
+  mediumtransport.Seats += 2 -> new SeatDefinition()
+  mediumtransport.Seats(2).ControlledWeapon = 6
+  mediumtransport.Seats += 3 -> new SeatDefinition()
+  mediumtransport.Seats += 4 -> new SeatDefinition()
+  mediumtransport.Weapons += 5 -> mediumtransport_weapon_systemA
+  mediumtransport.Weapons += 6 -> mediumtransport_weapon_systemB
+  mediumtransport.MountPoints += 1 -> 0
+  mediumtransport.MountPoints += 2 -> 1
+  mediumtransport.MountPoints += 3 -> 2
+  mediumtransport.MountPoints += 4 -> 3
+  mediumtransport.MountPoints += 5 -> 4
+  mediumtransport.TrunkSize = InventoryTile.Tile1515
+  mediumtransport.TrunkOffset = 30
+
+  val
+  battlewagon = VehicleDefinition(ObjectClass.battlewagon)
+  battlewagon.Seats += 0 -> new SeatDefinition()
+  battlewagon.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
+  battlewagon.Seats += 1 -> new SeatDefinition()
+  battlewagon.Seats(1).ControlledWeapon = 5
+  battlewagon.Seats += 2 -> new SeatDefinition()
+  battlewagon.Seats(2).ControlledWeapon = 6
+  battlewagon.Seats += 3 -> new SeatDefinition()
+  battlewagon.Seats(3).ControlledWeapon = 7
+  battlewagon.Seats += 4 -> new SeatDefinition()
+  battlewagon.Seats(4).ControlledWeapon = 8
+  battlewagon.Weapons += 5 -> battlewagon_weapon_systema
+  battlewagon.Weapons += 6 -> battlewagon_weapon_systemb
+  battlewagon.Weapons += 7 -> battlewagon_weapon_systemc
+  battlewagon.Weapons += 8 -> battlewagon_weapon_systemd
+  battlewagon.MountPoints += 1 -> 0
+  battlewagon.MountPoints += 2 -> 1
+  battlewagon.MountPoints += 3 -> 2
+  battlewagon.MountPoints += 4 -> 3
+  battlewagon.MountPoints += 5 -> 4
+  battlewagon.TrunkSize = InventoryTile.Tile1515
+  battlewagon.TrunkOffset = 30
+
+  val
+  thunderer = VehicleDefinition(ObjectClass.thunderer)
+  thunderer.Seats += 0 -> new SeatDefinition()
+  thunderer.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
+  thunderer.Seats += 1 -> new SeatDefinition()
+  thunderer.Seats(1).ControlledWeapon = 5
+  thunderer.Seats += 2 -> new SeatDefinition()
+  thunderer.Seats(2).ControlledWeapon = 6
+  thunderer.Seats += 3 -> new SeatDefinition()
+  thunderer.Seats += 4 -> new SeatDefinition()
+  thunderer.Weapons += 5 -> thunderer_weapon_systema
+  thunderer.Weapons += 6 -> thunderer_weapon_systemb
+  thunderer.MountPoints += 1 -> 0
+  thunderer.MountPoints += 2 -> 1
+  thunderer.MountPoints += 3 -> 2
+  thunderer.MountPoints += 4 -> 3
+  thunderer.MountPoints += 5 -> 4
+  thunderer.TrunkSize = InventoryTile.Tile1515
+  thunderer.TrunkOffset = 30
+
+  val
+  aurora = VehicleDefinition(ObjectClass.aurora)
+  aurora.Seats += 0 -> new SeatDefinition()
+  aurora.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
+  aurora.Seats += 1 -> new SeatDefinition()
+  aurora.Seats(1).ControlledWeapon = 5
+  aurora.Seats += 2 -> new SeatDefinition()
+  aurora.Seats(2).ControlledWeapon = 6
+  aurora.Seats += 3 -> new SeatDefinition()
+  aurora.Seats += 4 -> new SeatDefinition()
+  aurora.Weapons += 5 -> aurora_weapon_systema
+  aurora.Weapons += 6 -> aurora_weapon_systemb
+  aurora.MountPoints += 1 -> 0
+  aurora.MountPoints += 2 -> 1
+  aurora.MountPoints += 3 -> 2
+  aurora.MountPoints += 4 -> 3
+  aurora.MountPoints += 5 -> 4
+  aurora.TrunkSize = InventoryTile.Tile1515
+  aurora.TrunkOffset = 30
+
+  val
+  apc_tr = VehicleDefinition(ObjectClass.apc_tr)
+  apc_tr.Seats += 0 -> new SeatDefinition()
+  apc_tr.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
+  apc_tr.Seats += 1 -> new SeatDefinition()
+  apc_tr.Seats(1).ControlledWeapon = 11
+  apc_tr.Seats += 2 -> new SeatDefinition()
+  apc_tr.Seats(2).ControlledWeapon = 12
+  apc_tr.Seats += 3 -> new SeatDefinition()
+  apc_tr.Seats += 4 -> new SeatDefinition()
+  apc_tr.Seats += 5 -> new SeatDefinition()
+  apc_tr.Seats(5).ControlledWeapon = 15
+  apc_tr.Seats += 6 -> new SeatDefinition()
+  apc_tr.Seats(6).ControlledWeapon = 16
+  apc_tr.Seats += 7 -> new SeatDefinition()
+  apc_tr.Seats(7).ControlledWeapon = 13
+  apc_tr.Seats += 8 -> new SeatDefinition()
+  apc_tr.Seats(8).ControlledWeapon = 14
+  apc_tr.Seats += 9 -> new SeatDefinition()
+  apc_tr.Seats(9).ArmorRestriction = SeatArmorRestriction.MaxOnly
+  apc_tr.Seats += 10 -> new SeatDefinition()
+  apc_tr.Seats(10).ArmorRestriction = SeatArmorRestriction.MaxOnly
+  apc_tr.Weapons += 11 -> apc_weapon_systemc_tr
+  apc_tr.Weapons += 12 -> apc_weapon_systemb
+  apc_tr.Weapons += 13 -> apc_weapon_systema
+  apc_tr.Weapons += 14 -> apc_weapon_systemd_tr
+  apc_tr.Weapons += 15 -> apc_ballgun_r
+  apc_tr.Weapons += 16 -> apc_ballgun_l
+  apc_tr.MountPoints += 1 -> 0
+  apc_tr.MountPoints += 2 -> 0
+  apc_tr.MountPoints += 3 -> 1
+  apc_tr.MountPoints += 4 -> 2
+  apc_tr.MountPoints += 5 -> 3
+  apc_tr.MountPoints += 6 -> 4
+  apc_tr.MountPoints += 7 -> 5
+  apc_tr.MountPoints += 8 -> 6
+  apc_tr.MountPoints += 9 -> 7
+  apc_tr.MountPoints += 10 -> 8
+  apc_tr.MountPoints += 11 -> 9
+  apc_tr.MountPoints += 12 -> 10
+  apc_tr.TrunkSize = InventoryTile.Tile2016
+  apc_tr.TrunkOffset = 30
+
+  val
+  apc_nc = VehicleDefinition(ObjectClass.apc_nc)
+  apc_nc.Seats += 0 -> new SeatDefinition()
+  apc_nc.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
+  apc_nc.Seats += 1 -> new SeatDefinition()
+  apc_nc.Seats(1).ControlledWeapon = 11
+  apc_nc.Seats += 2 -> new SeatDefinition()
+  apc_nc.Seats(2).ControlledWeapon = 12
+  apc_nc.Seats += 3 -> new SeatDefinition()
+  apc_nc.Seats += 4 -> new SeatDefinition()
+  apc_nc.Seats += 5 -> new SeatDefinition()
+  apc_nc.Seats(5).ControlledWeapon = 15
+  apc_nc.Seats += 6 -> new SeatDefinition()
+  apc_nc.Seats(6).ControlledWeapon = 16
+  apc_nc.Seats += 7 -> new SeatDefinition()
+  apc_nc.Seats(7).ControlledWeapon = 13
+  apc_nc.Seats += 8 -> new SeatDefinition()
+  apc_nc.Seats(8).ControlledWeapon = 14
+  apc_nc.Seats += 9 -> new SeatDefinition()
+  apc_nc.Seats(9).ArmorRestriction = SeatArmorRestriction.MaxOnly
+  apc_nc.Seats += 10 -> new SeatDefinition()
+  apc_nc.Seats(10).ArmorRestriction = SeatArmorRestriction.MaxOnly
+  apc_nc.Weapons += 11 -> apc_weapon_systemc_nc
+  apc_nc.Weapons += 12 -> apc_weapon_systemb
+  apc_nc.Weapons += 13 -> apc_weapon_systema
+  apc_nc.Weapons += 14 -> apc_weapon_systemd_nc
+  apc_nc.Weapons += 15 -> apc_ballgun_r
+  apc_nc.Weapons += 16 -> apc_ballgun_l
+  apc_nc.MountPoints += 1 -> 0
+  apc_nc.MountPoints += 2 -> 0
+  apc_nc.MountPoints += 3 -> 1
+  apc_nc.MountPoints += 4 -> 2
+  apc_nc.MountPoints += 5 -> 3
+  apc_nc.MountPoints += 6 -> 4
+  apc_nc.MountPoints += 7 -> 5
+  apc_nc.MountPoints += 8 -> 6
+  apc_nc.MountPoints += 9 -> 7
+  apc_nc.MountPoints += 10 -> 8
+  apc_nc.MountPoints += 11 -> 9
+  apc_nc.MountPoints += 12 -> 10
+  apc_nc.TrunkSize = InventoryTile.Tile2016
+  apc_nc.TrunkOffset = 30
+
+  val
+  apc_vs = VehicleDefinition(ObjectClass.apc_vs)
+  apc_vs.Seats += 0 -> new SeatDefinition()
+  apc_vs.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
+  apc_vs.Seats += 1 -> new SeatDefinition()
+  apc_vs.Seats(1).ControlledWeapon = 11
+  apc_vs.Seats += 2 -> new SeatDefinition()
+  apc_vs.Seats(2).ControlledWeapon = 12
+  apc_vs.Seats += 3 -> new SeatDefinition()
+  apc_vs.Seats += 4 -> new SeatDefinition()
+  apc_vs.Seats += 5 -> new SeatDefinition()
+  apc_vs.Seats(5).ControlledWeapon = 15
+  apc_vs.Seats += 6 -> new SeatDefinition()
+  apc_vs.Seats(6).ControlledWeapon = 16
+  apc_vs.Seats += 7 -> new SeatDefinition()
+  apc_vs.Seats(7).ControlledWeapon = 13
+  apc_vs.Seats += 8 -> new SeatDefinition()
+  apc_vs.Seats(8).ControlledWeapon = 14 
+  apc_vs.Seats += 9 -> new SeatDefinition()
+  apc_vs.Seats(9).ArmorRestriction = SeatArmorRestriction.MaxOnly
+  apc_vs.Seats += 10 -> new SeatDefinition()
+  apc_vs.Seats(10).ArmorRestriction = SeatArmorRestriction.MaxOnly
+  apc_vs.Weapons += 11 -> apc_weapon_systemc_vs
+  apc_vs.Weapons += 12 -> apc_weapon_systemb
+  apc_vs.Weapons += 13 -> apc_weapon_systema
+  apc_vs.Weapons += 14 -> apc_weapon_systemd_vs
+  apc_vs.Weapons += 15 -> apc_ballgun_r
+  apc_vs.Weapons += 16 -> apc_ballgun_l
+  apc_vs.MountPoints += 1 -> 0
+  apc_vs.MountPoints += 2 -> 0
+  apc_vs.MountPoints += 3 -> 1
+  apc_vs.MountPoints += 4 -> 2
+  apc_vs.MountPoints += 5 -> 3
+  apc_vs.MountPoints += 6 -> 4
+  apc_vs.MountPoints += 7 -> 5
+  apc_vs.MountPoints += 8 -> 6
+  apc_vs.MountPoints += 9 -> 7
+  apc_vs.MountPoints += 10 -> 8
+  apc_vs.MountPoints += 11 -> 9
+  apc_vs.MountPoints += 12 -> 10
+  apc_vs.TrunkSize = InventoryTile.Tile2016
+  apc_vs.TrunkOffset = 30
+
+  val
+  lightning = VehicleDefinition(ObjectClass.lightning)
+  lightning.Seats += 0 -> new SeatDefinition()
+  lightning.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
+  lightning.Seats(0).ControlledWeapon = 1
+  lightning.Weapons += 1 -> lightning_weapon_system
+  lightning.MountPoints += 1 -> 0
+  lightning.MountPoints += 2 -> 0
+  lightning.TrunkSize = InventoryTile.Tile1511
+  lightning.TrunkOffset = 30
+
+  val
+  prowler = VehicleDefinition(ObjectClass.prowler)
+  prowler.Seats += 0 -> new SeatDefinition()
+  prowler.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
+  prowler.Seats += 1 -> new SeatDefinition()
+  prowler.Seats(1).ControlledWeapon = 3
+  prowler.Seats += 2 -> new SeatDefinition()
+  prowler.Seats(2).ControlledWeapon = 4
+  prowler.Weapons += 3 -> prowler_weapon_systemA
+  prowler.Weapons += 4 -> prowler_weapon_systemB
+  prowler.MountPoints += 1 -> 0
+  prowler.MountPoints += 2 -> 1
+  prowler.MountPoints += 3 -> 2
+  prowler.TrunkSize = InventoryTile.Tile1511
+  prowler.TrunkOffset = 30
+
+  val
+  vanguard = VehicleDefinition(ObjectClass.vanguard)
+  vanguard.Seats += 0 -> new SeatDefinition()
+  vanguard.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
+  vanguard.Seats += 1 -> new SeatDefinition()
+  vanguard.Seats(1).ControlledWeapon = 2
+  vanguard.Weapons += 2 -> vanguard_weapon_system
+  vanguard.MountPoints += 1 -> 0
+  vanguard.MountPoints += 2 -> 1
+  vanguard.TrunkSize = InventoryTile.Tile1511
+  vanguard.TrunkOffset = 30
+
+  val
+  magrider = VehicleDefinition(ObjectClass.magrider)
+  magrider.Seats += 0 -> new SeatDefinition()
+  magrider.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
+  magrider.Seats(0).ControlledWeapon = 2
+  magrider.Seats += 1 -> new SeatDefinition()
+  magrider.Seats(1).ControlledWeapon = 3
+  magrider.Weapons += 2 -> particle_beam_magrider
+  magrider.Weapons += 3 -> heavy_rail_beam_magrider
+  magrider.MountPoints += 1 -> 0
+  magrider.MountPoints += 2 -> 1
+  magrider.TrunkSize = InventoryTile.Tile1511
+  magrider.TrunkOffset = 30
+
+  private val utilityConverter = new UtilityVehicleConverter
+  val
+  ant = VehicleDefinition(ObjectClass.ant)
+  ant.Seats += 0 -> new SeatDefinition()
+  ant.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
+  ant.MountPoints += 1 -> 0
+  ant.MountPoints += 2 -> 0
+  ant.Packet = utilityConverter
+
+  val
+  ams = VehicleDefinition(ObjectClass.ams)
+  ams.Seats += 0 -> new SeatDefinition()
+  ams.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
+  ams.MountPoints += 1 -> 0
+  ams.MountPoints += 2 -> 0
+  ams.Packet = utilityConverter
+
+  private val variantConverter = new VariantVehicleConverter
+  val
+  router = VehicleDefinition(ObjectClass.router)
+  router.Seats += 0 -> new SeatDefinition()
+  router.MountPoints += 1 -> 0
+  router.TrunkSize = InventoryTile.Tile1511
+  router.TrunkOffset = 30
+  router.Packet = variantConverter
+
+  val
+  switchblade = VehicleDefinition(ObjectClass.switchblade)
+  switchblade.Seats += 0 -> new SeatDefinition()
+  switchblade.Seats(0).ControlledWeapon = 1
+  switchblade.Weapons += 1 -> scythe
+  switchblade.MountPoints += 1 -> 0
+  switchblade.MountPoints += 2 -> 0
+  switchblade.TrunkSize = InventoryTile.Tile1511
+  switchblade.TrunkOffset = 30
+  switchblade.Packet = variantConverter
+
+  val
+  flail = VehicleDefinition(ObjectClass.flail)
+  flail.Seats += 0 -> new SeatDefinition()
+  flail.Seats(0).ControlledWeapon = 1
+  flail.Weapons += 1 -> flail_weapon
+  flail.MountPoints += 1 -> 0
+  flail.TrunkSize = InventoryTile.Tile1511
+  flail.TrunkOffset = 30
+  flail.Packet = variantConverter
+
+  val
+  mosquito = VehicleDefinition(ObjectClass.mosquito)
+  mosquito.Seats += 0 -> new SeatDefinition()
+  mosquito.Seats(0).Bailable = true
+  mosquito.Seats(0).ControlledWeapon = 1
+  mosquito.Weapons += 1 -> rotarychaingun_mosquito
+  mosquito.MountPoints += 1 -> 0
+  mosquito.MountPoints += 2 -> 0
+  mosquito.TrunkSize = InventoryTile.Tile1111
+  mosquito.TrunkOffset = 30
+  mosquito.Packet = variantConverter
+
+  val
+  lightgunship = VehicleDefinition(ObjectClass.lightgunship)
+  lightgunship.Seats += 0 -> new SeatDefinition()
+  lightgunship.Seats(0).Bailable = true
+  lightgunship.Seats(0).ControlledWeapon = 1
+  lightgunship.Weapons += 1 -> lightgunship_weapon_system
+  lightgunship.MountPoints += 1 -> 0
+  lightgunship.MountPoints += 2 -> 0
+  lightgunship.TrunkSize = InventoryTile.Tile1511
+  lightgunship.TrunkOffset = 30
+  lightgunship.Packet = variantConverter
+
+  val
+  wasp = VehicleDefinition(ObjectClass.wasp)
+  wasp.Seats += 0 -> new SeatDefinition()
+  wasp.Seats(0).Bailable = true
+  wasp.Seats(0).ControlledWeapon = 1
+  wasp.Weapons += 1 -> wasp_weapon_system
+  wasp.MountPoints += 1 -> 0
+  wasp.MountPoints += 2 -> 0
+  wasp.TrunkSize = InventoryTile.Tile1111
+  wasp.TrunkOffset = 30
+  wasp.Packet = variantConverter
+
+  val
+  liberator = VehicleDefinition(ObjectClass.liberator)
+  liberator.Seats += 0 -> new SeatDefinition()
+  liberator.Seats(0).ControlledWeapon = 3
+  liberator.Seats += 1 -> new SeatDefinition()
+  liberator.Seats(1).ControlledWeapon = 4
+  liberator.Seats += 2 -> new SeatDefinition()
+  liberator.Seats(2).ControlledWeapon = 5
+  liberator.Weapons += 3 -> liberator_weapon_system
+  liberator.Weapons += 4 -> liberator_bomb_bay
+  liberator.Weapons += 5 -> liberator_25mm_cannon
+  liberator.MountPoints += 1 -> 0
+  liberator.MountPoints += 2 -> 1
+  liberator.MountPoints += 3 -> 1
+  liberator.MountPoints += 4 -> 2
+  liberator.TrunkSize = InventoryTile.Tile1515
+  liberator.TrunkOffset = 30
+  liberator.Packet = variantConverter
+
+  val
+  vulture = VehicleDefinition(ObjectClass.vulture)
+  vulture.Seats += 0 -> new SeatDefinition()
+  vulture.Seats(0).ControlledWeapon = 3
+  vulture.Seats += 1 -> new SeatDefinition()
+  vulture.Seats(1).ControlledWeapon = 4
+  vulture.Seats += 2 -> new SeatDefinition()
+  vulture.Seats(2).ControlledWeapon = 5
+  vulture.Weapons += 3 -> vulture_nose_weapon_system
+  vulture.Weapons += 4 -> vulture_bomb_bay
+  vulture.Weapons += 5 -> vulture_tail_cannon
+  vulture.MountPoints += 1 -> 0
+  vulture.MountPoints += 2 -> 1
+  vulture.MountPoints += 3 -> 1
+  vulture.MountPoints += 4 -> 2
+  vulture.TrunkSize = InventoryTile.Tile1611
+  vulture.TrunkOffset = 30
+  vulture.Packet = variantConverter
+
+  val
+  dropship = VehicleDefinition(ObjectClass.dropship)
+  dropship.Seats += 0 -> new SeatDefinition()
+  dropship.Seats += 1 -> new SeatDefinition()
+  dropship.Seats(1).Bailable = true
+  dropship.Seats(1).ControlledWeapon = 12
+  dropship.Seats += 2 -> new SeatDefinition()
+  dropship.Seats(2).Bailable = true
+  dropship.Seats(2).ControlledWeapon = 13
+  dropship.Seats += 3 -> new SeatDefinition()
+  dropship.Seats(3).Bailable = true
+  dropship.Seats += 4 -> new SeatDefinition()
+  dropship.Seats(4).Bailable = true
+  dropship.Seats += 5 -> new SeatDefinition()
+  dropship.Seats(5).Bailable = true
+  dropship.Seats += 6 -> new SeatDefinition()
+  dropship.Seats(6).Bailable = true
+  dropship.Seats += 7 -> new SeatDefinition()
+  dropship.Seats(7).Bailable = true
+  dropship.Seats += 8 -> new SeatDefinition()
+  dropship.Seats(8).Bailable = true
+  dropship.Seats += 9 -> new SeatDefinition()
+  dropship.Seats(9).Bailable = true
+  dropship.Seats(9).ArmorRestriction = SeatArmorRestriction.MaxOnly
+  dropship.Seats += 10 -> new SeatDefinition()
+  dropship.Seats(10).Bailable = true
+  dropship.Seats(10).ArmorRestriction = SeatArmorRestriction.MaxOnly
+  dropship.Seats += 11 -> new SeatDefinition()
+  dropship.Seats(11).Bailable = true
+  dropship.Seats(11).ControlledWeapon = 14
+  dropship.Weapons += 12 -> cannon_dropship_20mm
+  dropship.Weapons += 13 -> cannon_dropship_20mm
+  dropship.Weapons += 14 -> dropship_rear_turret
+  dropship.MountPoints += 1 -> 0
+  dropship.MountPoints += 2 -> 11
+  dropship.MountPoints += 3 -> 1
+  dropship.MountPoints += 4 -> 2
+  dropship.MountPoints += 5 -> 3
+  dropship.MountPoints += 6 -> 4
+  dropship.MountPoints += 7 -> 5
+  dropship.MountPoints += 8 -> 6
+  dropship.MountPoints += 9 -> 7
+  dropship.MountPoints += 10 -> 8
+  dropship.MountPoints += 11 -> 9
+  dropship.MountPoints += 12 -> 10
+  dropship.TrunkSize = InventoryTile.Tile1612
+  dropship.TrunkOffset = 30
+  dropship.Packet = variantConverter
+
+  val
+  galaxy_gunship = VehicleDefinition(ObjectClass.galaxy_gunship)
+  galaxy_gunship.Seats += 0 -> new SeatDefinition()
+  galaxy_gunship.Seats += 1 -> new SeatDefinition()
+  galaxy_gunship.Seats(1).ControlledWeapon = 6
+  galaxy_gunship.Seats += 2 -> new SeatDefinition()
+  galaxy_gunship.Seats(2).ControlledWeapon = 7
+  galaxy_gunship.Seats += 3 -> new SeatDefinition()
+  galaxy_gunship.Seats(3).ControlledWeapon = 8
+  galaxy_gunship.Seats += 4 -> new SeatDefinition()
+  galaxy_gunship.Seats(4).ControlledWeapon = 9
+  galaxy_gunship.Seats += 5 -> new SeatDefinition()
+  galaxy_gunship.Seats(5).ControlledWeapon = 10
+  galaxy_gunship.Weapons += 6 -> galaxy_gunship_cannon
+  galaxy_gunship.Weapons += 7 -> galaxy_gunship_cannon
+  galaxy_gunship.Weapons += 8 -> galaxy_gunship_tailgun
+  galaxy_gunship.Weapons += 9 -> galaxy_gunship_gun
+  galaxy_gunship.Weapons += 10 -> galaxy_gunship_gun
+  galaxy_gunship.MountPoints += 1 -> 0
+  galaxy_gunship.MountPoints += 2 -> 3
+  galaxy_gunship.MountPoints += 3 -> 1
+  galaxy_gunship.MountPoints += 4 -> 2
+  galaxy_gunship.MountPoints += 5 -> 4
+  galaxy_gunship.MountPoints += 6 -> 5
+  galaxy_gunship.TrunkSize = InventoryTile.Tile1816
+  galaxy_gunship.TrunkOffset = 30
+  galaxy_gunship.Packet = variantConverter
+
+  val
+  lodestar = VehicleDefinition(ObjectClass.lodestar)
+  lodestar.Seats += 0 -> new SeatDefinition()
+  lodestar.MountPoints += 1 -> 0
+  lodestar.TrunkSize = InventoryTile.Tile1612
+  lodestar.TrunkOffset = 30
+  lodestar.Packet = variantConverter
 
   val
   phantasm = VehicleDefinition(ObjectClass.phantasm)
@@ -1304,14 +2353,30 @@ object GlobalDefinitions {
   phantasm.Seats(3).Bailable = true
   phantasm.Seats += 4 -> new SeatDefinition()
   phantasm.Seats(4).Bailable = true
-  phantasm.MountPoints += 1 -> 0 //TODO add and check all
-  phantasm.TrunkSize = InventoryTile(11, 8)
-  phantasm.TrunkOffset = 30 //TODO check
+  phantasm.MountPoints += 1 -> 0
+  phantasm.MountPoints += 2 -> 1
+  phantasm.MountPoints += 3 -> 2
+  phantasm.MountPoints += 4 -> 3
+  phantasm.MountPoints += 5 -> 4
+  phantasm.TrunkSize = InventoryTile.Tile1107
+  phantasm.TrunkOffset = 30
+  phantasm.Packet = variantConverter
 
   val
   order_terminal = new OrderTerminalDefinition
   val
   cert_terminal = new CertTerminalDefinition
+  val
+  ground_vehicle_terminal = new GroundVehicleTerminalDefinition
+  val
+  air_vehicle_terminal = new AirVehicleTerminalDefinition
+  val
+  dropship_vehicle_terminal = new DropshipVehicleTerminalDefinition
+  val
+  vehicle_terminal_combined = new VehicleTerminalCombinedDefinition
+
+  val
+  spawn_pad = new ObjectDefinition(800) { Name = "spawn_pad" }
 
   val
   lock_external = new IFFLockDefinition

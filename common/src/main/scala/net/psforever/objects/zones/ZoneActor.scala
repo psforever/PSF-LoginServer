@@ -2,7 +2,6 @@
 package net.psforever.objects.zones
 
 import akka.actor.Actor
-import net.psforever.objects.serverobject.locks.IFFLock
 
 /**
   * na
@@ -35,8 +34,9 @@ class ZoneActor(zone : Zone) extends Actor {
       }
     })
 
-    //check door to locks association
+    //check door to lock association
     import net.psforever.objects.serverobject.doors.Door
+    import net.psforever.objects.serverobject.locks.IFFLock
     map.DoorToLock.foreach({ case((door_guid, lock_guid)) =>
       try {
         if(!guid(door_guid).get.isInstanceOf[Door]) {
@@ -45,7 +45,7 @@ class ZoneActor(zone : Zone) extends Actor {
       }
       catch {
         case _ : Exception =>
-          slog.error(s"expected a door, but looking for uninitialized object $door_guid")
+          slog.error(s"expected a door at id $door_guid, but looking for uninitialized object")
       }
       try {
         if(!guid(lock_guid).get.isInstanceOf[IFFLock]) {
@@ -54,7 +54,31 @@ class ZoneActor(zone : Zone) extends Actor {
       }
       catch {
         case _ : Exception =>
-          slog.error(s"expected an IFF locks, but looking for uninitialized object $lock_guid")
+          slog.error(s"expected an IFF locks at id $lock_guid, but looking for uninitialized object")
+      }
+    })
+
+    //check vehicle terminal to spawn pad association
+    import net.psforever.objects.serverobject.pad.VehicleSpawnPad
+    import net.psforever.objects.serverobject.terminals.Terminal
+    map.TerminalToSpawnPad.foreach({ case ((term_guid, pad_guid)) =>
+      try {
+        if(!guid(term_guid).get.isInstanceOf[Terminal]) { //TODO check is vehicle terminal
+          slog.error(s"expected id $term_guid to be a terminal, but it was not")
+        }
+      }
+      catch {
+        case _ : Exception =>
+          slog.error(s"expected a terminal at id $term_guid, but looking for uninitialized object")
+      }
+      try {
+        if(!guid(pad_guid).get.isInstanceOf[VehicleSpawnPad]) {
+          slog.error(s"expected id $pad_guid to be a spawn pad, but it was not")
+        }
+      }
+      catch {
+        case _ : Exception =>
+          slog.error(s"expected a spawn pad at id $pad_guid, but looking for uninitialized object")
       }
     })
   }

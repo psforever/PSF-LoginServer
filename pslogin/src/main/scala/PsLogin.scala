@@ -14,7 +14,8 @@ import com.typesafe.config.ConfigFactory
 import net.psforever.crypto.CryptoInterface
 import net.psforever.objects.zones._
 import net.psforever.objects.guid.TaskResolver
-import net.psforever.objects.serverobject.builders.{DoorObjectBuilder, IFFLockObjectBuilder, TerminalObjectBuilder}
+import net.psforever.objects.serverobject.builders.{DoorObjectBuilder, IFFLockObjectBuilder, TerminalObjectBuilder, VehicleSpawnPadObjectBuilder}
+import net.psforever.types.Vector3
 import org.slf4j
 import org.fusesource.jansi.Ansi._
 import org.fusesource.jansi.Ansi.Color._
@@ -244,6 +245,10 @@ object PsLogin {
       LocalObject(TerminalObjectBuilder(order_terminal, 853))
       LocalObject(TerminalObjectBuilder(order_terminal, 855))
       LocalObject(TerminalObjectBuilder(order_terminal, 860))
+      LocalObject(TerminalObjectBuilder(ground_vehicle_terminal, 1063))
+      LocalObject(VehicleSpawnPadObjectBuilder(spawn_pad, 500)) //TODO guid not correct
+      LocalObject(TerminalObjectBuilder(dropship_vehicle_terminal, 304))
+      LocalObject(VehicleSpawnPadObjectBuilder(spawn_pad, 501)) //TODO guid not correct
 
       LocalBases = 30
 
@@ -251,8 +256,14 @@ object PsLogin {
       ObjectToBase(332, 29)
       ObjectToBase(556, 29)
       ObjectToBase(558, 29)
+      ObjectToBase(1063, 29) //TODO unowned courtyard terminal?
+      ObjectToBase(500, 29) //TODO unowned courtyard spawnpad?
+      ObjectToBase(304, 29) //TODO unowned courtyard terminal?
+      ObjectToBase(501, 29) //TODO unowned courtyard spawnpad?
       DoorToLock(330, 558)
       DoorToLock(332, 556)
+      TerminalToSpawnPad(1063, 500)
+      TerminalToSpawnPad(304, 501)
     }
     val home3 = new Zone("home3", map13, 13) {
       override def Init(implicit context : ActorContext) : Unit = {
@@ -261,6 +272,19 @@ object PsLogin {
         import net.psforever.types.PlanetSideEmpire
         Base(2).get.Faction = PlanetSideEmpire.VS //HART building C
         Base(29).get.Faction = PlanetSideEmpire.NC //South Villa Gun Tower
+
+        GUID(500) match {
+          case Some(pad) =>
+            pad.Position = Vector3(3506.0f, 2820.0f, 92.0f)
+            pad.Orientation = Vector3(0f, 0f, 270.0f)
+          case None => ;
+        }
+        GUID(501) match {
+          case Some(pad) =>
+            pad.Position = Vector3(3508.9844f, 2895.961f, 92.296875f)
+            pad.Orientation = Vector3(0f, 0f, 270.0f)
+          case None => ;
+        }
       }
     }
 

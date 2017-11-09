@@ -24,7 +24,7 @@ abstract class PlanetSideServerObject extends PlanetSideGameObject {
     * @return the current internal `ActorRef`
     */
   def Actor_=(control : ActorRef) : ActorRef =  {
-    if(actor == ActorRef.noSender) {
+    if(actor == ActorRef.noSender || control == ActorRef.noSender) {
       actor = control
     }
     actor

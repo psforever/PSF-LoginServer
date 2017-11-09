@@ -27,6 +27,81 @@ object Prefab {
       VehicleData(CommonFieldData(loc, faction, 0), 0, health, false, false, driveState, false, false, false, Some(UtilityVehicleData(0)), None)(VehicleFormat.Utility)
     }
 
+    def apc_nc(loc : PlacementData, faction : PlanetSideEmpire.Value, health : Int, weapon1_guid : PlanetSideGUID, ammo1_guid : PlanetSideGUID, weapon2_guid : PlanetSideGUID, ammo2_guid : PlanetSideGUID, weapon3_guid : PlanetSideGUID, ammo3_guid : PlanetSideGUID, weapon4_guid : PlanetSideGUID, ammo4_guid : PlanetSideGUID, weapon5_guid : PlanetSideGUID, ammo5_guid : PlanetSideGUID, weapon6_guid : PlanetSideGUID, ammo6_guid : PlanetSideGUID) : VehicleData = {
+      VehicleData(CommonFieldData(loc, faction, 2), 0, health, false, false, DriveState.State7, true, false, false, None,
+        Some(InventoryData(
+          InventoryItemData(ObjectClass.apc_weapon_systemc_nc, weapon1_guid, 11,
+            WeaponData(0x6, 0x8, 0, ObjectClass.bullet_20mm, ammo1_guid, 0, AmmoBoxData(8))
+          ) ::
+            InventoryItemData(ObjectClass.apc_weapon_systemb, weapon2_guid, 12,
+              WeaponData(0x6, 0x8, 0, ObjectClass.bullet_75mm, ammo2_guid, 0, AmmoBoxData(8))
+            ) ::
+            InventoryItemData(ObjectClass.apc_weapon_systema, weapon3_guid, 13,
+              WeaponData(0x6, 0x8, 0, ObjectClass.bullet_75mm, ammo3_guid, 0, AmmoBoxData(8))
+            ) ::
+            InventoryItemData(ObjectClass.apc_weapon_systemd_nc, weapon4_guid, 14,
+              WeaponData(0x6, 0x8, 0, ObjectClass.bullet_20mm, ammo4_guid, 0, AmmoBoxData(8))
+            ) ::
+            InventoryItemData(ObjectClass.apc_ballgun_r, weapon5_guid, 15,
+              WeaponData(0x6, 0x8, 0, ObjectClass.bullet_12mm, ammo5_guid, 0, AmmoBoxData(8))
+            ) ::
+            InventoryItemData(ObjectClass.apc_ballgun_l, weapon6_guid, 16,
+              WeaponData(0x6, 0x8, 0, ObjectClass.bullet_12mm, ammo6_guid, 0, AmmoBoxData(8))
+            ) :: Nil
+        ))
+      )(VehicleFormat.Normal)
+    }
+
+    def apc_tr(loc : PlacementData, faction : PlanetSideEmpire.Value, health : Int, weapon1_guid : PlanetSideGUID, ammo1_guid : PlanetSideGUID, weapon2_guid : PlanetSideGUID, ammo2_guid : PlanetSideGUID, weapon3_guid : PlanetSideGUID, ammo3_guid : PlanetSideGUID, weapon4_guid : PlanetSideGUID, ammo4_guid : PlanetSideGUID, weapon5_guid : PlanetSideGUID, ammo5_guid : PlanetSideGUID, weapon6_guid : PlanetSideGUID, ammo6_guid : PlanetSideGUID) : VehicleData = {
+      VehicleData(CommonFieldData(loc, faction, 2), 0, health, false, false, DriveState.State7, true, false, false, None,
+        Some(InventoryData(
+          InventoryItemData(ObjectClass.apc_weapon_systemc_tr, weapon1_guid, 11,
+            WeaponData(0x6, 0x8, 0, ObjectClass.bullet_15mm, ammo1_guid, 0, AmmoBoxData(8))
+          ) ::
+            InventoryItemData(ObjectClass.apc_weapon_systemb, weapon2_guid, 12,
+              WeaponData(0x6, 0x8, 0, ObjectClass.bullet_75mm, ammo2_guid, 0, AmmoBoxData(8))
+            ) ::
+            InventoryItemData(ObjectClass.apc_weapon_systema, weapon3_guid, 13,
+              WeaponData(0x6, 0x8, 0, ObjectClass.bullet_75mm, ammo3_guid, 0, AmmoBoxData(8))
+            ) ::
+            InventoryItemData(ObjectClass.apc_weapon_systemd_tr, weapon4_guid, 14,
+              WeaponData(0x6, 0x8, 0, ObjectClass.bullet_15mm, ammo4_guid, 0, AmmoBoxData(8))
+            ) ::
+            InventoryItemData(ObjectClass.apc_ballgun_r, weapon5_guid, 15,
+              WeaponData(0x6, 0x8, 0, ObjectClass.bullet_12mm, ammo5_guid, 0, AmmoBoxData(8))
+            ) ::
+            InventoryItemData(ObjectClass.apc_ballgun_l, weapon6_guid, 16,
+              WeaponData(0x6, 0x8, 0, ObjectClass.bullet_12mm, ammo6_guid, 0, AmmoBoxData(8))
+            ) :: Nil
+        ))
+      )(VehicleFormat.Normal)
+    }
+
+    def apc_vs(loc : PlacementData, faction : PlanetSideEmpire.Value, health : Int, weapon1_guid : PlanetSideGUID, ammo1_guid : PlanetSideGUID, weapon2_guid : PlanetSideGUID, ammo2_guid : PlanetSideGUID, weapon3_guid : PlanetSideGUID, ammo3_guid : PlanetSideGUID, weapon4_guid : PlanetSideGUID, ammo4_guid : PlanetSideGUID, weapon5_guid : PlanetSideGUID, ammo5_guid : PlanetSideGUID, weapon6_guid : PlanetSideGUID, ammo6_guid : PlanetSideGUID) : VehicleData = {
+      VehicleData(CommonFieldData(loc, faction, 2), 0, health, false, false, DriveState.State7, true, false, false, None,
+        Some(InventoryData(
+          InventoryItemData(ObjectClass.apc_weapon_systemc_vs, weapon1_guid, 11,
+            WeaponData(0x6, 0x8, 0, ObjectClass.flux_cannon_thresher_battery, ammo1_guid, 0, AmmoBoxData(8))
+          ) ::
+            InventoryItemData(ObjectClass.apc_weapon_systemb, weapon2_guid, 12,
+              WeaponData(0x6, 0x8, 0, ObjectClass.bullet_75mm, ammo2_guid, 0, AmmoBoxData(8))
+            ) ::
+            InventoryItemData(ObjectClass.apc_weapon_systema, weapon3_guid, 13,
+              WeaponData(0x6, 0x8, 0, ObjectClass.bullet_75mm, ammo3_guid, 0, AmmoBoxData(8))
+            ) ::
+            InventoryItemData(ObjectClass.apc_weapon_systemd_vs, weapon4_guid, 14,
+              WeaponData(0x6, 0x8, 0, ObjectClass.flux_cannon_thresher_battery, ammo4_guid, 0, AmmoBoxData(8))
+            ) ::
+            InventoryItemData(ObjectClass.apc_ballgun_r, weapon5_guid, 15,
+              WeaponData(0x6, 0x8, 0, ObjectClass.bullet_12mm, ammo5_guid, 0, AmmoBoxData(8))
+            ) ::
+            InventoryItemData(ObjectClass.apc_ballgun_l, weapon6_guid, 16,
+              WeaponData(0x6, 0x8, 0, ObjectClass.bullet_12mm, ammo6_guid, 0, AmmoBoxData(8))
+            ) :: Nil
+        ))
+      )(VehicleFormat.Normal)
+    }
+
     def aurora(loc : PlacementData, faction : PlanetSideEmpire.Value, health : Int, weapon1_guid : PlanetSideGUID, ammo11_guid : PlanetSideGUID, ammo12_guid : PlanetSideGUID, weapon2_guid : PlanetSideGUID, ammo21_guid : PlanetSideGUID, ammo22_guid : PlanetSideGUID) : VehicleData = {
       VehicleData(CommonFieldData(loc, faction, 0), 0, health, false, false, DriveState.State7, true, false, false, None,
         Some(InventoryData(
@@ -118,56 +193,6 @@ object Prefab {
       )(VehicleFormat.Variant)
     }
 
-    def juggernaut(loc : PlacementData, faction : PlanetSideEmpire.Value, health : Int, weapon1_guid : PlanetSideGUID, ammo1_guid : PlanetSideGUID, weapon2_guid : PlanetSideGUID, ammo2_guid : PlanetSideGUID, weapon3_guid : PlanetSideGUID, ammo3_guid : PlanetSideGUID, weapon4_guid : PlanetSideGUID, ammo4_guid : PlanetSideGUID, weapon5_guid : PlanetSideGUID, ammo5_guid : PlanetSideGUID, weapon6_guid : PlanetSideGUID, ammo6_guid : PlanetSideGUID) : VehicleData = {
-      VehicleData(CommonFieldData(loc, faction, 2), 0, health, false, false, DriveState.State7, true, false, false, None,
-        Some(InventoryData(
-          InventoryItemData(ObjectClass.apc_weapon_systemc_tr, weapon1_guid, 11,
-            WeaponData(0x6, 0x8, 0, ObjectClass.bullet_15mm, ammo1_guid, 0, AmmoBoxData(8))
-          ) ::
-            InventoryItemData(ObjectClass.apc_weapon_systemb, weapon2_guid, 12,
-              WeaponData(0x6, 0x8, 0, ObjectClass.bullet_75mm, ammo2_guid, 0, AmmoBoxData(8))
-            ) ::
-            InventoryItemData(ObjectClass.apc_weapon_systema, weapon3_guid, 13,
-              WeaponData(0x6, 0x8, 0, ObjectClass.bullet_75mm, ammo3_guid, 0, AmmoBoxData(8))
-            ) ::
-            InventoryItemData(ObjectClass.apc_weapon_systemd_tr, weapon4_guid, 14,
-              WeaponData(0x6, 0x8, 0, ObjectClass.bullet_15mm, ammo4_guid, 0, AmmoBoxData(8))
-            ) ::
-            InventoryItemData(ObjectClass.apc_ballgun_r, weapon5_guid, 15,
-              WeaponData(0x6, 0x8, 0, ObjectClass.bullet_12mm, ammo5_guid, 0, AmmoBoxData(8))
-            ) ::
-            InventoryItemData(ObjectClass.apc_ballgun_l, weapon6_guid, 16,
-              WeaponData(0x6, 0x8, 0, ObjectClass.bullet_12mm, ammo6_guid, 0, AmmoBoxData(8))
-            ) :: Nil
-        ))
-      )(VehicleFormat.Normal)
-    }
-
-    def leviathan(loc : PlacementData, faction : PlanetSideEmpire.Value, health : Int, weapon1_guid : PlanetSideGUID, ammo1_guid : PlanetSideGUID, weapon2_guid : PlanetSideGUID, ammo2_guid : PlanetSideGUID, weapon3_guid : PlanetSideGUID, ammo3_guid : PlanetSideGUID, weapon4_guid : PlanetSideGUID, ammo4_guid : PlanetSideGUID, weapon5_guid : PlanetSideGUID, ammo5_guid : PlanetSideGUID, weapon6_guid : PlanetSideGUID, ammo6_guid : PlanetSideGUID) : VehicleData = {
-      VehicleData(CommonFieldData(loc, faction, 2), 0, health, false, false, DriveState.State7, true, false, false, None,
-        Some(InventoryData(
-          InventoryItemData(ObjectClass.apc_weapon_systemc_vs, weapon1_guid, 11,
-            WeaponData(0x6, 0x8, 0, ObjectClass.flux_cannon_thresher_battery, ammo1_guid, 0, AmmoBoxData(8))
-          ) ::
-            InventoryItemData(ObjectClass.apc_weapon_systemb, weapon2_guid, 12,
-              WeaponData(0x6, 0x8, 0, ObjectClass.bullet_75mm, ammo2_guid, 0, AmmoBoxData(8))
-            ) ::
-            InventoryItemData(ObjectClass.apc_weapon_systema, weapon3_guid, 13,
-              WeaponData(0x6, 0x8, 0, ObjectClass.bullet_75mm, ammo3_guid, 0, AmmoBoxData(8))
-            ) ::
-            InventoryItemData(ObjectClass.apc_weapon_systemd_vs, weapon4_guid, 14,
-              WeaponData(0x6, 0x8, 0, ObjectClass.flux_cannon_thresher_battery, ammo4_guid, 0, AmmoBoxData(8))
-            ) ::
-            InventoryItemData(ObjectClass.apc_ballgun_r, weapon5_guid, 15,
-              WeaponData(0x6, 0x8, 0, ObjectClass.bullet_12mm, ammo5_guid, 0, AmmoBoxData(8))
-            ) ::
-            InventoryItemData(ObjectClass.apc_ballgun_l, weapon6_guid, 16,
-              WeaponData(0x6, 0x8, 0, ObjectClass.bullet_12mm, ammo6_guid, 0, AmmoBoxData(8))
-            ) :: Nil
-        ))
-      )(VehicleFormat.Normal)
-    }
-
     def liberator(loc : PlacementData, faction : PlanetSideEmpire.Value, health : Int, weapon1_guid : PlanetSideGUID, ammo1_guid : PlanetSideGUID, weapon2_guid : PlanetSideGUID, ammo2_guid : PlanetSideGUID, ammo3_guid : PlanetSideGUID, weapon3_guid : PlanetSideGUID, ammo4_guid : PlanetSideGUID) : VehicleData = {
       VehicleData(CommonFieldData(loc, faction, 2), 0, health, false, false, DriveState.State7, true, false, false, Some(VariantVehicleData(0)),
         Some(InventoryData(
@@ -187,8 +212,8 @@ object Prefab {
     def lightgunship(loc : PlacementData, faction : PlanetSideEmpire.Value, health : Int, weapon_guid : PlanetSideGUID, ammo1_guid : PlanetSideGUID, ammo2_guid : PlanetSideGUID) : VehicleData = {
       VehicleData(CommonFieldData(loc, faction, 2), 0, health, false, false, DriveState.Mobile, false, false, false, Some(VariantVehicleData(0)),
         Some(InventoryData(
-          InventoryItemData(445, weapon_guid, 1,
-            WeaponData(0x6, 0x8, 0, 16, ammo1_guid, 0, AmmoBoxData(8), 722, ammo2_guid,1, AmmoBoxData(8))
+          InventoryItemData(ObjectClass.lightgunship_weapon_system, weapon_guid, 1,
+            WeaponData(0x6, 0x8, 0, ObjectClass.bullet_20mm, ammo1_guid, 0, AmmoBoxData(8), ObjectClass.reaver_rocket, ammo2_guid,1, AmmoBoxData(8))
           ) :: Nil
         ))
       )(VehicleFormat.Variant)
@@ -270,14 +295,6 @@ object Prefab {
       )(VehicleFormat.Normal)
     }
 
-    def router(loc : PlacementData, faction : PlanetSideEmpire.Value, health : Int, terminal_guid : PlanetSideGUID) : VehicleData = {
-      VehicleData(CommonFieldData(loc, faction, 2), 0, health, false, false, DriveState.Mobile, false, false, false, Some(VariantVehicleData(0)),
-        Some(InventoryData(
-          InventoryItemData(ObjectClass.teleportpad_terminal, terminal_guid, 1, CommonTerminalData(faction, 2)) :: Nil
-        ))
-      )(VehicleFormat.Variant)
-    }
-
     def quadassault(loc : PlacementData, faction : PlanetSideEmpire.Value, health : Int, weapon_guid : PlanetSideGUID, ammo_guid : PlanetSideGUID) : VehicleData = {
       VehicleData(CommonFieldData(loc, faction, 0), 0, health, false, false, DriveState.State7, true, false, false, None,
         Some(InventoryData(
@@ -290,6 +307,24 @@ object Prefab {
 
     def quadstealth(loc : PlacementData, faction : PlanetSideEmpire.Value, health : Int) : VehicleData = {
       VehicleData(CommonFieldData(loc, faction, 0), 0, health, false, false, DriveState.State7, false, false, false, None, None)(VehicleFormat.Normal)
+    }
+
+    def router(loc : PlacementData, faction : PlanetSideEmpire.Value, health : Int, terminal_guid : PlanetSideGUID) : VehicleData = {
+      VehicleData(CommonFieldData(loc, faction, 2), 0, health, false, false, DriveState.Mobile, false, false, false, Some(VariantVehicleData(0)),
+        Some(InventoryData(
+          InventoryItemData(ObjectClass.teleportpad_terminal, terminal_guid, 1, CommonTerminalData(faction, 2)) :: Nil
+        ))
+      )(VehicleFormat.Variant)
+    }
+
+    def skyguard(loc : PlacementData, faction : PlanetSideEmpire.Value, health : Int, weapon_guid : PlanetSideGUID, ammo1_guid : PlanetSideGUID, ammo2_guid : PlanetSideGUID) : VehicleData = {
+      VehicleData(CommonFieldData(loc, faction, 2), 0, health, false, false, DriveState.State7, true, false, false, None,
+        Some(InventoryData(
+          InventoryItemData(ObjectClass.skyguard_weapon_system, weapon_guid, 2,
+            WeaponData(0x6, 0x8, 0, ObjectClass.skyguard_flak_cannon_ammo, ammo1_guid, 0, AmmoBoxData(8), ObjectClass.bullet_12mm, ammo2_guid, 1, AmmoBoxData(8))
+          ) :: Nil
+        ))
+      )(VehicleFormat.Normal)
     }
 
     def switchblade(loc : PlacementData, faction : PlanetSideEmpire.Value, health : Int, driveState : DriveState.Value, weapon_guid : PlanetSideGUID, ammo1_guid : PlanetSideGUID, ammo2_guid : PlanetSideGUID) : VehicleData = {
@@ -364,31 +399,6 @@ object Prefab {
           InventoryItemData(ObjectClass.vanguard_weapon_system, weapon_guid, 2,
             WeaponData(0x6, 0x8, 0, ObjectClass.bullet_150mm, ammo1_guid, 0, AmmoBoxData(8), ObjectClass.bullet_20mm, ammo2_guid, 1, AmmoBoxData(8))
           ) :: Nil
-        ))
-      )(VehicleFormat.Normal)
-    }
-
-    def vindicator(loc : PlacementData, faction : PlanetSideEmpire.Value, health : Int, weapon1_guid : PlanetSideGUID, ammo1_guid : PlanetSideGUID, weapon2_guid : PlanetSideGUID, ammo2_guid : PlanetSideGUID, weapon3_guid : PlanetSideGUID, ammo3_guid : PlanetSideGUID, weapon4_guid : PlanetSideGUID, ammo4_guid : PlanetSideGUID, weapon5_guid : PlanetSideGUID, ammo5_guid : PlanetSideGUID, weapon6_guid : PlanetSideGUID, ammo6_guid : PlanetSideGUID) : VehicleData = {
-      VehicleData(CommonFieldData(loc, faction, 2), 0, health, false, false, DriveState.State7, true, false, false, None,
-        Some(InventoryData(
-          InventoryItemData(ObjectClass.apc_weapon_systemc_nc, weapon1_guid, 11,
-            WeaponData(0x6, 0x8, 0, ObjectClass.bullet_20mm, ammo1_guid, 0, AmmoBoxData(8))
-          ) ::
-            InventoryItemData(ObjectClass.apc_weapon_systemb, weapon2_guid, 12,
-              WeaponData(0x6, 0x8, 0, ObjectClass.bullet_75mm, ammo2_guid, 0, AmmoBoxData(8))
-            ) ::
-            InventoryItemData(ObjectClass.apc_weapon_systema, weapon3_guid, 13,
-              WeaponData(0x6, 0x8, 0, ObjectClass.bullet_75mm, ammo3_guid, 0, AmmoBoxData(8))
-            ) ::
-            InventoryItemData(ObjectClass.apc_weapon_systemd_nc, weapon4_guid, 14,
-              WeaponData(0x6, 0x8, 0, ObjectClass.bullet_20mm, ammo4_guid, 0, AmmoBoxData(8))
-            ) ::
-            InventoryItemData(ObjectClass.apc_ballgun_r, weapon5_guid, 15,
-              WeaponData(0x6, 0x8, 0, ObjectClass.bullet_12mm, ammo5_guid, 0, AmmoBoxData(8))
-            ) ::
-            InventoryItemData(ObjectClass.apc_ballgun_l, weapon6_guid, 16,
-              WeaponData(0x6, 0x8, 0, ObjectClass.bullet_12mm, ammo6_guid, 0, AmmoBoxData(8))
-            ) :: Nil
         ))
       )(VehicleFormat.Normal)
     }

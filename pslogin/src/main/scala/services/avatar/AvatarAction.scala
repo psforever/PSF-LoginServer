@@ -10,6 +10,7 @@ object AvatarAction {
   trait Action
 
   final case class ArmorChanged(player_guid : PlanetSideGUID, suit : ExoSuitType.Value, subtype : Int) extends Action
+  final case class ConcealPlayer(player_guid : PlanetSideGUID) extends Action
   //final case class DropItem(pos : Vector3, orient : Vector3, item : PlanetSideGUID) extends Action
   final case class EquipmentInHand(player_guid : PlanetSideGUID, slot : Int, item : Equipment) extends Action
   final case class EquipmentOnGround(player_guid : PlanetSideGUID, pos : Vector3, orient : Vector3, item : Equipment) extends Action

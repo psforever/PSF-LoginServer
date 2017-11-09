@@ -11,7 +11,7 @@ import scala.annotation.tailrec
 /**
   * From a `Player` their current exo-suit and their `Equipment`, retain a set of instructions to reconstruct this arrangement.<br>
   * <br>
-  * `InfantryLoadout` objects are composed of the following information, as if a blueprint:<br>
+  * `Loadout` objects are composed of the following information, as if a blueprint:<br>
   * - the avatar's current exo-suit<br>
   * - the type of specialization, called a "subtype" (mechanized assault exo-suits only)<br>
   * - the contents of the avatar's occupied holster slots<br>
@@ -28,25 +28,24 @@ import scala.annotation.tailrec
   * Even a whole blueprint can be denied if the user lacks the necessary exo-suit certification.
   * A completely new piece of `Equipment` is constructed when the `Loadout` is regurgitated.<br>
   * <br>
-  * The fifth tab on an `order_terminal` window is for "Favorite" blueprints for `InfantryLoadout` entries.
+  * The fifth tab on an `order_terminal` window is for "Favorite" blueprints for `Loadout` entries.
   * The ten-long list is initialized with `FavoritesMessage` packets.
   * Specific entries are loaded or removed using `FavoritesRequest` packets.
   * @param player the player
   * @param label the name by which this inventory will be known when displayed in a Favorites list
   */
-class InfantryLoadout(player : Player, private val label : String) {
+class Loadout(player : Player, private val label : String) {
   /** the exo-suit */
   private val exosuit : ExoSuitType.Value = player.ExoSuit
   /** the MAX specialization, to differentiate the three types of MAXes who all use the same exo-suit name */
   private val subtype =
     if(exosuit == ExoSuitType.MAX) {
-      import net.psforever.packet.game.objectcreate.ObjectClass
-      player.Holsters().head.Equipment.get.Definition.ObjectId match {
-        case ObjectClass.trhev_dualcycler | ObjectClass.nchev_scattercannon | ObjectClass.vshev_quasar =>
+      player.Holsters().head.Equipment.get.Definition match {
+        case GlobalDefinitions.trhev_dualcycler | GlobalDefinitions.nchev_scattercannon | GlobalDefinitions.vshev_quasar =>
           1
-        case ObjectClass.trhev_pounder | ObjectClass.nchev_falcon | ObjectClass.vshev_comet =>
+        case GlobalDefinitions.trhev_pounder | GlobalDefinitions.nchev_falcon | GlobalDefinitions.vshev_comet =>
           2
-        case ObjectClass.trhev_burster | ObjectClass.nchev_sparrow | ObjectClass.vshev_starfire =>
+        case GlobalDefinitions.trhev_burster | GlobalDefinitions.nchev_sparrow | GlobalDefinitions.vshev_starfire =>
           3
         case _ =>
           0
@@ -56,14 +55,14 @@ class InfantryLoadout(player : Player, private val label : String) {
       0
     }
   /** simplified representation of the holster `Equipment` */
-  private val holsters : List[InfantryLoadout.SimplifiedEntry] =
-    InfantryLoadout.packageSimplifications(player.Holsters())
+  private val holsters : List[Loadout.SimplifiedEntry] =
+    Loadout.packageSimplifications(player.Holsters())
   /** simplified representation of the inventory `Equipment` */
-  private val inventory : List[InfantryLoadout.SimplifiedEntry] =
-    InfantryLoadout.packageSimplifications(player.Inventory.Items.values.toList)
+  private val inventory : List[Loadout.SimplifiedEntry] =
+    Loadout.packageSimplifications(player.Inventory.Items.values.toList)
 
   /**
-    * The label by which this `InfantryLoadout` is called.
+    * The label by which this `Loadout` is called.
     * @return the label
     */
   def Label : String = label
@@ -87,26 +86,26 @@ class InfantryLoadout(player : Player, private val label : String) {
   def Subtype : Int = subtype
 
   /**
-    * The `Equipment` in the `Player`'s holster slots when this `InfantryLoadout` is created.
+    * The `Equipment` in the `Player`'s holster slots when this `Loadout` is created.
     * @return a `List` of the holster item blueprints
     */
-  def Holsters : List[InfantryLoadout.SimplifiedEntry] = holsters
+  def Holsters : List[Loadout.SimplifiedEntry] = holsters
 
   /**
-    * The `Equipment` in the `Player`'s inventory region when this `InfantryLoadout` is created.
+    * The `Equipment` in the `Player`'s inventory region when this `Loadout` is created.
     * @return a `List` of the inventory item blueprints
     */
-  def Inventory : List[InfantryLoadout.SimplifiedEntry] = inventory
+  def Inventory : List[Loadout.SimplifiedEntry] = inventory
 }
 
-object InfantryLoadout {
+object Loadout {
   /**
     * A basic `Trait` connecting all of the `Equipment` blueprints.
     */
   sealed trait Simplification
 
   /**
-    * An entry in the `InfantryLoadout`, wrapping around a slot index and what is in the slot index.
+    * An entry in the `Loadout`, wrapping around a slot index and what is in the slot index.
     * @param item the `Equipment`
     * @param index the slot number where the `Equipment` is to be stowed
     * @see `InventoryItem`
@@ -163,7 +162,7 @@ object InfantryLoadout {
     * @return a `List` of simplified `Equipment`
     */
   private def packageSimplifications(equipment : List[InventoryItem]) : List[SimplifiedEntry] = {
-    recursiveInventorySimplifications(equipment.iterator)
+    equipment.map(entry => { SimplifiedEntry(buildSimplification(entry.obj), entry.start) })
   }
 
   /**
@@ -194,23 +193,6 @@ object InfantryLoadout {
   }
 
   /**
-    * Traverse a `Player`'s inventory and transform `Equipment` into simplified blueprints.
-    * @param iter an `Iterator`
-    * @param list an updating `List` of simplified `Equipment` blueprints;
-    *             empty, by default
-    * @return a `List` of simplified `Equipment` blueprints
-    */
-  @tailrec private def recursiveInventorySimplifications(iter : Iterator[InventoryItem], list : List[SimplifiedEntry] = Nil) : List[SimplifiedEntry] = {
-    if(!iter.hasNext) {
-      list
-    }
-    else {
-      val entry = iter.next
-      recursiveInventorySimplifications(iter, list :+ SimplifiedEntry(buildSimplification(entry.obj), entry.start))
-    }
-  }
-
-  /**
     * Ammunition slots are internal connection points where `AmmoBox` units and their characteristics represent a `Tool`'s magazine.
     * Their simplification process has a layer of complexity that ensures that the content of the slot matches the type of content that should be in the slot.
     * If it does not, it extracts information about the slot from the `EquipmentDefinition` and sets the blueprints to that.
@@ -235,7 +217,7 @@ object InfantryLoadout {
       else {
         ShorthandAmmotSlot(
           entry.AmmoTypeIndex,
-          ShorthandAmmoBox(AmmoBoxDefinition(entry.Tool.Definition.AmmoTypes(entry.Definition.AmmoTypeIndices.head).id), 1)
+          ShorthandAmmoBox(entry.Tool.AmmoTypes(entry.Definition.AmmoTypeIndices.head), 1)
         )
       }
       recursiveFireModeSimplications(iter, list :+ fmodeSimp)

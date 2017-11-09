@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package services.vehicle.support
 
-import akka.actor.{Actor, Props}
+import akka.actor.{Actor, ActorRef, Props}
 import net.psforever.objects.vehicles.VehicleControl
 import services.vehicle.VehicleServiceMessage
 
@@ -15,15 +15,18 @@ import services.vehicle.VehicleServiceMessage
   * <br>
   * The only purpose of this `Actor` is to allow vehicles to borrow a context for the purpose of `Actor` creation.
   * It is also be allowed to be responsible for cleaning up that context.
-  * (In reality, it can be cleaned up anywhere a `PoisonPill` can be sent.)
+  * (In reality, it can be cleaned up anywhere a `PoisonPill` can be sent.)<br>
+  * <br>
+  * This `Actor` is intended to sit on top of the event system that handles broadcast messaging.
   */
 class VehicleContextActor() extends Actor {
   def receive : Receive = {
     case VehicleServiceMessage.GiveActorControl(vehicle, actorName) =>
-      vehicle.Actor = context.actorOf(Props(classOf[VehicleControl], vehicle), s"${vehicle.Definition.Name}_$actorName")
+      vehicle.Actor = context.actorOf(Props(classOf[VehicleControl], vehicle), s"${vehicle.Definition.Name}_$actorName.${System.nanoTime()}")
 
     case VehicleServiceMessage.RevokeActorControl(vehicle) =>
       vehicle.Actor ! akka.actor.PoisonPill
+      vehicle.Actor = ActorRef.noSender
 
     case _ => ;
   }

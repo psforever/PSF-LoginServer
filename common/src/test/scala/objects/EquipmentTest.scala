@@ -10,7 +10,6 @@ import net.psforever.objects.GlobalDefinitions._
 import org.specs2.mutable._
 
 class EquipmentTest extends Specification {
-
   "AmmoBox" should {
     "define" in {
       val obj = AmmoBoxDefinition(86)
@@ -19,8 +18,8 @@ class EquipmentTest extends Specification {
 
       obj.AmmoType mustEqual Ammo.aphelion_immolation_cannon_ammo
       obj.Capacity mustEqual 300
-      obj.Tile.width mustEqual InventoryTile.Tile44.width
-      obj.Tile.height mustEqual InventoryTile.Tile44.height
+      obj.Tile.Width mustEqual InventoryTile.Tile44.Width
+      obj.Tile.Height mustEqual InventoryTile.Tile44.Height
       obj.ObjectId mustEqual 86
     }
 
@@ -58,8 +57,8 @@ class EquipmentTest extends Specification {
       val obj = ToolDefinition(1076)
       obj.Name = "sample_weapon"
       obj.Size = EquipmentSize.Rifle
-      obj.AmmoTypes += Ammo.shotgun_shell
-      obj.AmmoTypes += Ammo.shotgun_shell_AP
+      obj.AmmoTypes += GlobalDefinitions.shotgun_shell
+      obj.AmmoTypes += GlobalDefinitions.shotgun_shell_AP
       obj.FireModes += new FireModeDefinition
       obj.FireModes.head.AmmoTypeIndices += 0
       obj.FireModes.head.AmmoTypeIndices += 1
@@ -74,9 +73,10 @@ class EquipmentTest extends Specification {
       obj.FireModes(1).Magazine = 18
       obj.Tile = InventoryTile.Tile93
       obj.ObjectId mustEqual 1076
+
       obj.Name mustEqual "sample_weapon"
-      obj.AmmoTypes.head mustEqual Ammo.shotgun_shell
-      obj.AmmoTypes(1) mustEqual Ammo.shotgun_shell_AP
+      obj.AmmoTypes.head mustEqual GlobalDefinitions.shotgun_shell
+      obj.AmmoTypes(1) mustEqual GlobalDefinitions.shotgun_shell_AP
       obj.FireModes.head.AmmoTypeIndices.head mustEqual 0
       obj.FireModes.head.AmmoTypeIndices(1) mustEqual 1
       obj.FireModes.head.AmmoSlotIndex mustEqual 0
@@ -89,8 +89,8 @@ class EquipmentTest extends Specification {
       obj.FireModes(1).Chamber mustEqual 3
       obj.FireModes(1).Magazine mustEqual 18
       obj.FireModes(1).ResetAmmoIndexOnSwap mustEqual false
-      obj.Tile.width mustEqual InventoryTile.Tile93.width
-      obj.Tile.height mustEqual InventoryTile.Tile93.height
+      obj.Tile.Width mustEqual InventoryTile.Tile93.Width
+      obj.Tile.Height mustEqual InventoryTile.Tile93.Height
     }
 
     "construct" in {
@@ -118,8 +118,8 @@ class EquipmentTest extends Specification {
       //explanation: sample_weapon has two fire modes; adjusting the FireMode changes between them
       val tdef = ToolDefinition(1076)
       tdef.Size = EquipmentSize.Rifle
-      tdef.AmmoTypes += Ammo.shotgun_shell
-      tdef.AmmoTypes += Ammo.shotgun_shell_AP
+      tdef.AmmoTypes += GlobalDefinitions.shotgun_shell
+      tdef.AmmoTypes += GlobalDefinitions.shotgun_shell_AP
       tdef.FireModes += new FireModeDefinition
       tdef.FireModes.head.AmmoTypeIndices += 0
       tdef.FireModes.head.AmmoSlotIndex = 0
@@ -149,8 +149,8 @@ class EquipmentTest extends Specification {
       //explanation: obj has one fire mode and two ammunitions; adjusting the AmmoType changes between them
       val tdef = ToolDefinition(1076)
       tdef.Size = EquipmentSize.Rifle
-      tdef.AmmoTypes += Ammo.shotgun_shell
-      tdef.AmmoTypes += Ammo.shotgun_shell_AP
+      tdef.AmmoTypes += GlobalDefinitions.shotgun_shell
+      tdef.AmmoTypes += GlobalDefinitions.shotgun_shell_AP
       tdef.FireModes += new FireModeDefinition
       tdef.FireModes.head.AmmoTypeIndices += 0
       tdef.FireModes.head.AmmoTypeIndices += 1
@@ -168,14 +168,54 @@ class EquipmentTest extends Specification {
       obj.AmmoTypeIndex mustEqual 0
       obj.AmmoType mustEqual Ammo.shotgun_shell
     }
+
+    "multiple ammo types and multiple fire modes, split (Punisher)" in {
+      val obj = Tool(GlobalDefinitions.punisher)
+      //ammo = 0, fmode = 0
+      obj.FireModeIndex mustEqual 0
+      obj.AmmoTypeIndex mustEqual 0
+      obj.AmmoType mustEqual Ammo.bullet_9mm
+      //ammo = 2, fmode = 1
+      obj.NextFireMode
+      obj.FireModeIndex mustEqual 1
+      obj.AmmoTypeIndex mustEqual 2
+      obj.AmmoType mustEqual Ammo.rocket
+      //ammo = 3, fmode = 1
+      obj.NextAmmoType
+      obj.AmmoTypeIndex mustEqual 3
+      obj.AmmoType mustEqual Ammo.frag_cartridge
+      //ammo = 4, fmode = 1
+      obj.NextAmmoType
+      obj.AmmoTypeIndex mustEqual 4
+      obj.AmmoType mustEqual Ammo.jammer_cartridge
+      //ammo = 0, fmode = 0
+      obj.NextFireMode
+      obj.FireModeIndex mustEqual 0
+      obj.AmmoTypeIndex mustEqual 0
+      obj.AmmoType mustEqual Ammo.bullet_9mm
+      //ammo = 1, fmode = 0
+      obj.NextAmmoType
+      obj.AmmoTypeIndex mustEqual 1
+      obj.AmmoType mustEqual Ammo.bullet_9mm_AP
+      //ammo = 5, fmode = 1
+      obj.NextFireMode
+      obj.NextAmmoType
+      obj.FireModeIndex mustEqual 1
+      obj.AmmoTypeIndex mustEqual 5
+      obj.AmmoType mustEqual Ammo.plasma_cartridge
+      //ammo = 2, fmode = 1
+      obj.NextAmmoType
+      obj.AmmoTypeIndex mustEqual 2
+      obj.AmmoType mustEqual Ammo.rocket
+    }
   }
 
   "Kit" should {
     "define" in {
       val sample = KitDefinition(Kits.medkit)
       sample.ObjectId mustEqual medkit.ObjectId
-      sample.Tile.width mustEqual medkit.Tile.width
-      sample.Tile.height mustEqual medkit.Tile.height
+      sample.Tile.Width mustEqual medkit.Tile.Width
+      sample.Tile.Height mustEqual medkit.Tile.Height
     }
 
     "construct" in {
@@ -200,8 +240,8 @@ class EquipmentTest extends Specification {
       sample.Modes.head mustEqual DeployedItem.tank_traps
       sample.Modes(1) mustEqual DeployedItem.portable_manned_turret_tr
       sample.Modes(2) mustEqual DeployedItem.deployable_shield_generator
-      sample.Tile.width mustEqual InventoryTile.Tile63.width
-      sample.Tile.height mustEqual InventoryTile.Tile63.height
+      sample.Tile.Width mustEqual InventoryTile.Tile63.Width
+      sample.Tile.Height mustEqual InventoryTile.Tile63.Height
     }
 
     "construct" in {

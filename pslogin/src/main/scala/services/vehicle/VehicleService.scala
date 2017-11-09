@@ -2,12 +2,13 @@
 package services.vehicle
 
 import akka.actor.{Actor, ActorRef, Props}
-import services.vehicle.support.{DeconstructionActor, VehicleContextActor}
+import services.vehicle.support.{DeconstructionActor, DelayedDeconstructionActor, VehicleContextActor}
 import services.{GenericEventBus, Service}
 
 class VehicleService extends Actor {
   private val vehicleContext : ActorRef = context.actorOf(Props[VehicleContextActor], "vehicle-context-root")
   private val vehicleDecon : ActorRef = context.actorOf(Props[DeconstructionActor], "vehicle-decon-agent")
+  private val vehicleDelayedDecon : ActorRef = context.actorOf(Props[DelayedDeconstructionActor], "vehicle-delayed-decon-agent")
   vehicleDecon ! DeconstructionActor.RequestTaskResolver
   private [this] val log = org.log4s.getLogger
 
@@ -78,6 +79,14 @@ class VehicleService extends Actor {
     //message to DeconstructionActor
     case VehicleServiceMessage.RequestDeleteVehicle(vehicle, continent) =>
       vehicleDecon ! DeconstructionActor.RequestDeleteVehicle(vehicle, continent)
+
+    //message to DelayedDeconstructionActor
+    case VehicleServiceMessage.DelayedVehicleDeconstruction(vehicle, zone, timeAlive) =>
+      vehicleDelayedDecon ! DelayedDeconstructionActor.ScheduleDeconstruction(vehicle, zone, timeAlive)
+
+    //message to DelayedDeconstructionActor
+    case VehicleServiceMessage.UnscheduleDeconstruction(vehicle_guid) =>
+      vehicleDelayedDecon ! DelayedDeconstructionActor.UnscheduleDeconstruction(vehicle_guid)
 
     //response from DeconstructionActor
     case DeconstructionActor.DeleteVehicle(vehicle_guid, zone_id) =>

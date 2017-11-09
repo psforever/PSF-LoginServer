@@ -136,9 +136,23 @@ object Terminal {
   final case class SellEquipment() extends Exchange
 
   import net.psforever.types.CertificationType
+
+  /**
+    * Provide the certification type unlocked by the player.
+    * @param cert the certification unlocked
+    * @param cost the certification point cost
+    */
   final case class LearnCertification(cert : CertificationType.Value, cost : Int) extends Exchange
 
+  /**
+    * Provide the certification type freed-up by the player.
+    * @param cert the certification returned
+    * @param cost the certification point cost
+    */
   final case class SellCertification(cert : CertificationType.Value, cost : Int) extends Exchange
+
+  import net.psforever.objects.Vehicle
+  final case class BuyVehicle(vehicle : Vehicle, loadout: List[Any]) extends Exchange
 
   /**
     * Recover a former exo-suit and `Equipment` configuration that the `Player` possessed.
