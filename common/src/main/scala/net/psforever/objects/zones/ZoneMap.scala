@@ -50,7 +50,9 @@ class ZoneMap(private val name : String) {
   def LocalBases : Int = numBases
 
   def LocalBases_=(num : Int) : Int = {
-    numBases = math.max(0, num)
+    if(num > 0) {
+      numBases = num
+    }
     LocalBases
   }
 

@@ -1,8 +1,8 @@
 // Copyright (c) 2017 PSForever
-package objects
+package objects.number
 
-import net.psforever.objects.guid.key.{LoanedKey, SecureKey}
 import net.psforever.objects.guid.AvailabilityPolicy
+import net.psforever.objects.guid.key.{LoanedKey, SecureKey}
 import org.specs2.mutable.Specification
 
 class NumberSourceTest extends Specification {

@@ -37,8 +37,12 @@ class SeatDefinition extends BasicDefinition {
     this.weaponMount
   }
 
-  def ControlledWeapon_=(seat : Option[Int]) : Option[Int] = {
-    this.weaponMount = seat
+  def ControlledWeapon_=(wep : Int) : Option[Int] = {
+    ControlledWeapon_=(Some(wep))
+  }
+
+  def ControlledWeapon_=(wep : Option[Int]) : Option[Int] = {
+    this.weaponMount = wep
     ControlledWeapon
   }
 }

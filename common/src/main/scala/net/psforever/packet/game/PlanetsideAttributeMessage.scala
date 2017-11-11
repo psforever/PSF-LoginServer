@@ -6,7 +6,7 @@ import scodec.Codec
 import scodec.codecs._
 
 /**
-  * Attribute Type:<br>
+  * Players/General:<br>
   * Server to client : <br>
   * `0 - health`<br>
   * `1 - healthMax`<br>
@@ -86,7 +86,19 @@ import scodec.codecs._
   * `78 - Cavern Kills. Value is the number of kills`<br>
   * `106 - Custom Head`
   * Client to Server : <br>
-  * `106 - Custom Head`
+  * `106 - Custom Head`<br>
+  * <br>
+  * Vehicles:<br>
+  * 0 - Vehicle health<br>
+  * 10 - Driver seat permissions (0 = Locked, 1 = Group, 3 = Empire)<br>
+  * 11 - Gunner seat(s) permissions (same)<br>
+  * 12 - Passenger seat(s) permissions (same) <br>
+  * 13 - Trunk permissions (same)<br>
+  * 21 - Asserts first time event eligibility / makes owner if no owner is assigned<br>
+  * 22 - Toggles gunner and passenger mount points (1 = hides, 0 = reveals; this also locks their permissions)<br>
+  * 68 - ???<br>
+  * 80 - Damage vehicle (unknown value)<br>
+  * 113 - ???
   * @param player_guid the player
   * @param attribute_type na
   * @param attribute_value na

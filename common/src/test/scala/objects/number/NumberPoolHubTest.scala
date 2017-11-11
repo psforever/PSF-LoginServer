@@ -1,5 +1,5 @@
 // Copyright (c) 2017 PSForever
-package objects
+package objects.number
 
 import net.psforever.objects.entity.IdentifiableEntity
 import net.psforever.objects.guid.NumberPoolHub

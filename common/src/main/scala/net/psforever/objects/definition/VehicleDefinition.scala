@@ -22,7 +22,9 @@ class VehicleDefinition(objectId : Int) extends ObjectDefinition(objectId) {
   private var deployment : Boolean = false
   private val utilities : mutable.ArrayBuffer[Int] = mutable.ArrayBuffer[Int]()
   private var trunkSize : InventoryTile = InventoryTile.None
-  private var trunkOffset: Int = 0
+  private var trunkOffset : Int = 0
+  private var canCloak : Boolean = false
+  private var canBeOwned : Boolean = true
   Name = "vehicle"
   Packet = new VehicleConverter
 
@@ -43,6 +45,20 @@ class VehicleDefinition(objectId : Int) extends ObjectDefinition(objectId) {
   def Seats : mutable.HashMap[Int, SeatDefinition] = seats
 
   def MountPoints : mutable.HashMap[Int, Int] = mountPoints
+
+  def CanBeOwned : Boolean = canBeOwned
+
+  def CanBeOwned_=(ownable : Boolean) : Boolean =  {
+    canBeOwned = ownable
+    CanBeOwned
+  }
+
+  def CanCloak : Boolean = canCloak
+
+  def CanCloak_=(cloakable : Boolean) : Boolean =  {
+    canCloak = cloakable
+    CanCloak
+  }
 
   def Weapons : mutable.HashMap[Int, ToolDefinition] = weapons
 

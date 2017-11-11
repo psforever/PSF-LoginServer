@@ -1229,15 +1229,84 @@ object GlobalDefinitions {
   fury_weapon_systema.FireModes.head.Magazine = 2
 
   val
+  quadassault_weapon_system = ToolDefinition(ObjectClass.quadassault_weapon_system)
+  quadassault_weapon_system.Size = EquipmentSize.VehicleWeapon
+  quadassault_weapon_system.AmmoTypes += Ammo.bullet_12mm
+  quadassault_weapon_system.FireModes += new FireModeDefinition
+  quadassault_weapon_system.FireModes.head.AmmoTypeIndices += 0
+  quadassault_weapon_system.FireModes.head.AmmoSlotIndex = 0
+  quadassault_weapon_system.FireModes.head.Magazine = 100
+
+  val
+  chaingun_p = ToolDefinition(ObjectClass.chaingun_p)
+  chaingun_p.Size = EquipmentSize.VehicleWeapon
+  chaingun_p.AmmoTypes += Ammo.bullet_12mm
+  chaingun_p.FireModes += new FireModeDefinition
+  chaingun_p.FireModes.head.AmmoTypeIndices += 0
+  chaingun_p.FireModes.head.AmmoSlotIndex = 0
+  chaingun_p.FireModes.head.Magazine = 150
+
+  val
   fury = VehicleDefinition(ObjectClass.fury)
   fury.Seats += 0 -> new SeatDefinition()
   fury.Seats(0).Bailable = true
-  fury.Seats(0).ControlledWeapon = Some(1)
-  fury.MountPoints += 0 -> 0
+  fury.Seats(0).ControlledWeapon = 1
+  fury.MountPoints += 1 -> 0
   fury.MountPoints += 2 -> 0
   fury.Weapons += 1 -> fury_weapon_systema
   fury.TrunkSize = InventoryTile(11, 11)
   fury.TrunkOffset = 30
+
+  val
+  quadassault = VehicleDefinition(ObjectClass.quadassault)
+  quadassault.Seats += 0 -> new SeatDefinition()
+  quadassault.Seats(0).Bailable = true
+  quadassault.Seats(0).ControlledWeapon = 1
+  quadassault.MountPoints += 1 -> 0
+  quadassault.MountPoints += 2 -> 0
+  quadassault.Weapons += 1 -> quadassault_weapon_system
+  quadassault.TrunkSize = InventoryTile(11, 11)
+  quadassault.TrunkOffset = 30
+
+  val
+  quadstealth = VehicleDefinition(ObjectClass.quadstealth)
+  quadstealth.CanCloak = true
+  quadstealth.Seats += 0 -> new SeatDefinition()
+  quadstealth.Seats(0).Bailable = true
+  quadstealth.MountPoints += 1 -> 0
+  quadstealth.MountPoints += 2 -> 0
+  quadstealth.CanCloak = true
+  quadstealth.TrunkSize = InventoryTile(11, 11)
+  quadstealth.TrunkOffset = 30
+
+  val
+  two_man_assault_buggy = VehicleDefinition(ObjectClass.two_man_assault_buggy)
+  two_man_assault_buggy.Seats += 0 -> new SeatDefinition()
+  two_man_assault_buggy.Seats(0).Bailable = true
+  two_man_assault_buggy.Seats += 1 -> new SeatDefinition()
+  two_man_assault_buggy.Seats(1).Bailable = true
+  two_man_assault_buggy.Seats(1).ControlledWeapon = 2
+  two_man_assault_buggy.MountPoints += 1 -> 0
+  two_man_assault_buggy.MountPoints += 2 -> 1
+  two_man_assault_buggy.Weapons += 2 -> chaingun_p
+  two_man_assault_buggy.TrunkSize = InventoryTile(11, 11)
+  two_man_assault_buggy.TrunkOffset = 30
+
+  val
+  phantasm = VehicleDefinition(ObjectClass.phantasm)
+  phantasm.CanCloak = true
+  phantasm.Seats += 0 -> new SeatDefinition()
+  phantasm.Seats += 1 -> new SeatDefinition()
+  phantasm.Seats(1).Bailable = true
+  phantasm.Seats += 2 -> new SeatDefinition()
+  phantasm.Seats(2).Bailable = true
+  phantasm.Seats += 3 -> new SeatDefinition()
+  phantasm.Seats(3).Bailable = true
+  phantasm.Seats += 4 -> new SeatDefinition()
+  phantasm.Seats(4).Bailable = true
+  phantasm.MountPoints += 1 -> 0 //TODO add and check all
+  phantasm.TrunkSize = InventoryTile(11, 8)
+  phantasm.TrunkOffset = 30 //TODO check
 
   val
   order_terminal = new OrderTerminalDefinition

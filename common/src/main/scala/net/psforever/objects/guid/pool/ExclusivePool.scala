@@ -5,7 +5,7 @@ import net.psforever.objects.guid.selector.NumberSelector
 
 import scala.util.{Failure, Success, Try}
 
-class ExclusivePool(numbers : List[Int]) extends SimplePool(numbers) {
+class ExclusivePool(override val numbers : List[Int]) extends SimplePool(numbers) {
   private val pool : Array[Int] = Array.ofDim[Int](numbers.length)
   numbers.indices.foreach(i => { pool(i) = i })
 
