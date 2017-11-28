@@ -61,7 +61,9 @@ class DeconstructionActor extends Actor {
           case Some(tplayer) =>
             seat.Occupant = None
             tplayer.VehicleSeated = None
-            context.parent ! VehicleServiceMessage(zone_id, VehicleAction.KickPassenger(tplayer.GUID, 4, false))
+            if(tplayer.HasGUID) {
+              context.parent ! VehicleServiceMessage(zone_id, VehicleAction.KickPassenger(tplayer.GUID, 4, false))
+            }
           case None => ;
         }
       })
