@@ -32,7 +32,7 @@ class Player(private val name : String,
   private var drawnSlot : Int = Player.HandsDownSlot
   private var lastDrawnSlot : Int = 0
 
-  private val loadouts : Array[Option[InfantryLoadout]] = Array.fill[Option[InfantryLoadout]](10)(None)
+  private val loadouts : Array[Option[Loadout]] = Array.fill[Option[Loadout]](10)(None)
 
   private var bep : Long = 0
   private var cep : Long = 0
@@ -230,10 +230,10 @@ class Player(private val name : String,
   }
 
   def SaveLoadout(label : String, line : Int) : Unit = {
-    loadouts(line) = Some(new InfantryLoadout(this, label))
+    loadouts(line) = Some(new Loadout(this, label))
   }
 
-  def LoadLoadout(line : Int) : Option[InfantryLoadout] = loadouts(line)
+  def LoadLoadout(line : Int) : Option[Loadout] = loadouts(line)
 
   def DeleteLoadout(line : Int) : Unit = {
     loadouts(line) = None
@@ -551,7 +551,7 @@ object Player {
     player.ExoSuit = eSuit
     //inventory
     player.Inventory.Clear()
-    player.Inventory.Resize(esuitDef.InventoryScale.width, esuitDef.InventoryScale.height)
+    player.Inventory.Resize(esuitDef.InventoryScale.Width, esuitDef.InventoryScale.Height)
     player.Inventory.Offset = esuitDef.InventoryOffset
     //holsters
     (0 until 5).foreach(index => { player.Slot(index).Size = esuitDef.Holster(index) })

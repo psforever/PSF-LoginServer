@@ -2,6 +2,7 @@
 package services.local.support
 
 import akka.actor.{Actor, Cancellable}
+import net.psforever.objects.DefaultCancellable
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.PlanetSideGUID
@@ -16,7 +17,7 @@ import scala.concurrent.duration._
   */
 class HackClearActor() extends Actor {
   /** The periodic `Executor` that checks for server objects to be unhacked */
-  private var clearTrigger : Cancellable = HackClearActor.DefaultClearer
+  private var clearTrigger : Cancellable = DefaultCancellable.obj
   /** A `List` of currently hacked server objects */
   private var hackedObjects : List[HackClearActor.HackEntry] = Nil
   //private[this] val log = org.log4s.getLogger
@@ -98,11 +99,6 @@ object HackClearActor {
   private final val timeout_time : Long = 60000000000L //nanoseconds (60s)
   /** The wait before a server object is to unhack; as a `FiniteDuration` for `Executor` simplicity */
   private final val timeout : FiniteDuration = timeout_time nanoseconds
-
-  private final val DefaultClearer : Cancellable = new Cancellable() {
-    override def cancel : Boolean = true
-    override def isCancelled : Boolean = true
-  }
 
   /**
     * Message that carries information about a server object that has been hacked.

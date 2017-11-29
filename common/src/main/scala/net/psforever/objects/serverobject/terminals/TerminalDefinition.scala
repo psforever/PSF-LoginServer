@@ -8,10 +8,11 @@ import net.psforever.packet.game.ItemTransactionMessage
 import net.psforever.types.ExoSuitType
 
 /**
-  * The definition for any `Terminal`.
+  * The basic definition for any `Terminal`.
   * @param objectId the object's identifier number
   */
 abstract class TerminalDefinition(objectId : Int) extends ObjectDefinition(objectId) {
+  private[this] val log = org.log4s.getLogger("TerminalDefinition")
   Name = "terminal"
 
   /**
@@ -22,12 +23,12 @@ abstract class TerminalDefinition(objectId : Int) extends ObjectDefinition(objec
   /**
     * The unimplemented functionality for this `Terminal`'s `TransactionType.Sell` activity.
     */
-  def Sell(player: Player, msg : ItemTransactionMessage) : Terminal.Exchange
+  def Sell(player: Player, msg : ItemTransactionMessage) : Terminal.Exchange = Terminal.NoDeal()
 
   /**
     * The unimplemented functionality for this `Terminal`'s `TransactionType.InfantryLoadout` activity.
     */
-  def Loadout(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange
+  def Loadout(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = Terminal.NoDeal()
 
   /**
     * A `Map` of information for changing exo-suits.
@@ -128,42 +129,42 @@ abstract class TerminalDefinition(objectId : Int) extends ObjectDefinition(objec
     * value - a curried function that builds the object
     */
   protected val infantryWeapons : Map[String, ()=>Equipment] = Map(
-    "ilc9" -> MakeTool(ilc9, bullet_9mm),
-    "repeater" -> MakeTool(repeater, bullet_9mm),
-    "isp" -> MakeTool(isp, shotgun_shell), //amp
-    "beamer" -> MakeTool(beamer, energy_cell),
-    "suppressor" -> MakeTool(suppressor, bullet_9mm),
-    "anniversary_guna" -> MakeTool(anniversary_guna, anniversary_ammo), //tr stinger
-    "anniversary_gun" -> MakeTool(anniversary_gun, anniversary_ammo), //nc spear
-    "anniversary_gunb" -> MakeTool(anniversary_gunb, anniversary_ammo), //vs eraser
-    "cycler" -> MakeTool(cycler, bullet_9mm),
-    "gauss" -> MakeTool(gauss, bullet_9mm),
-    "pulsar" -> MakeTool(pulsar, energy_cell),
-    "punisher" -> MakeTool(punisher, List(bullet_9mm, rocket)),
-    "flechette" -> MakeTool(flechette, shotgun_shell),
-    "spiker" -> MakeTool(spiker, ancient_ammo_combo),
-    "frag_grenade" -> MakeTool(frag_grenade, frag_grenade_ammo),
-    "jammer_grenade" -> MakeTool(jammer_grenade, jammer_grenade_ammo),
-    "plasma_grenade" -> MakeTool(plasma_grenade, plasma_grenade_ammo),
-    "katana" -> MakeTool(katana, melee_ammo),
-    "chainblade" -> MakeTool(chainblade, melee_ammo),
-    "magcutter" -> MakeTool(magcutter, melee_ammo),
-    "forceblade" -> MakeTool(forceblade, melee_ammo),
-    "mini_chaingun" -> MakeTool(mini_chaingun, bullet_9mm),
-    "r_shotgun" -> MakeTool(r_shotgun, shotgun_shell), //jackhammer
-    "lasher" -> MakeTool(lasher, energy_cell),
-    "maelstrom" -> MakeTool(maelstrom, maelstrom_ammo),
-    "striker" -> MakeTool(striker, striker_missile_ammo),
-    "hunterseeker" -> MakeTool(hunterseeker, hunter_seeker_missile), //phoenix
-    "lancer" -> MakeTool(lancer, lancer_cartridge),
-    "phoenix" -> MakeTool(phoenix, phoenix_missile), //decimator
-    "rocklet" -> MakeTool(rocklet, rocket),
-    "thumper" -> MakeTool(thumper, frag_cartridge),
-    "radiator" -> MakeTool(radiator, ancient_ammo_combo),
-    "heavy_sniper" -> MakeTool(heavy_sniper, bolt), //hsr
-    "bolt_driver" -> MakeTool(bolt_driver, bolt),
-    "oicw" -> MakeTool(oicw, oicw_ammo), //scorpion
-    "flamethrower" -> MakeTool(flamethrower, flamethrower_ammo)
+    "ilc9" -> MakeTool(ilc9),
+    "repeater" -> MakeTool(repeater),
+    "isp" -> MakeTool(isp), //amp
+    "beamer" -> MakeTool(beamer),
+    "suppressor" -> MakeTool(suppressor),
+    "anniversary_guna" -> MakeTool(anniversary_guna), //tr stinger
+    "anniversary_gun" -> MakeTool(anniversary_gun), //nc spear
+    "anniversary_gunb" -> MakeTool(anniversary_gunb), //vs eraser
+    "cycler" -> MakeTool(cycler),
+    "gauss" -> MakeTool(gauss),
+    "pulsar" -> MakeTool(pulsar),
+    "punisher" -> MakeTool(punisher),
+    "flechette" -> MakeTool(flechette),
+    "spiker" -> MakeTool(spiker),
+    "frag_grenade" -> MakeTool(frag_grenade),
+    "jammer_grenade" -> MakeTool(jammer_grenade),
+    "plasma_grenade" -> MakeTool(plasma_grenade),
+    "katana" -> MakeTool(katana),
+    "chainblade" -> MakeTool(chainblade),
+    "magcutter" -> MakeTool(magcutter),
+    "forceblade" -> MakeTool(forceblade),
+    "mini_chaingun" -> MakeTool(mini_chaingun),
+    "r_shotgun" -> MakeTool(r_shotgun), //jackhammer
+    "lasher" -> MakeTool(lasher),
+    "maelstrom" -> MakeTool(maelstrom),
+    "striker" -> MakeTool(striker),
+    "hunterseeker" -> MakeTool(hunterseeker), //phoenix
+    "lancer" -> MakeTool(lancer),
+    "phoenix" -> MakeTool(phoenix), //decimator
+    "rocklet" -> MakeTool(rocklet),
+    "thumper" -> MakeTool(thumper),
+    "radiator" -> MakeTool(radiator),
+    "heavy_sniper" -> MakeTool(heavy_sniper), //hsr
+    "bolt_driver" -> MakeTool(bolt_driver),
+    "oicw" -> MakeTool(oicw), //scorpion
+    "flamethrower" -> MakeTool(flamethrower)
   )
 
   /**
@@ -176,20 +177,98 @@ abstract class TerminalDefinition(objectId : Int) extends ObjectDefinition(objec
     "super_medkit" -> MakeKit(super_medkit),
     "super_armorkit" -> MakeKit(super_armorkit),
     "super_staminakit" -> MakeKit(super_staminakit),
-    "medicalapplicator" -> MakeTool(medicalapplicator, health_canister),
+    "medicalapplicator" -> MakeTool(medicalapplicator),
     "bank" -> MakeTool(bank, armor_canister),
-    "nano_dispenser" -> MakeTool(nano_dispenser, armor_canister),
+    "nano_dispenser" -> MakeTool(nano_dispenser),
     //TODO "ace" -> MakeConstructionItem(ace),
     //TODO "advanced_ace" -> MakeConstructionItem(advanced_ace),
     "remote_electronics_kit" -> MakeSimpleItem(remote_electronics_kit),
-    "trek" -> MakeTool(trek, trek_ammo),
+    "trek" -> MakeTool(trek),
     "command_detonater" -> MakeSimpleItem(command_detonater),
     "flail_targeting_laser" -> MakeSimpleItem(flail_targeting_laser)
   )
 
   /**
+    * A `Map` of operations for producing a ground-based `Vehicle`.
+    * key - an identification string sent by the client
+    * value - a curried function that builds the object
+    */
+  protected val groundVehicles : Map[String, ()=>Vehicle] = Map(
+    "quadassault" -> MakeVehicle(quadassault),
+    "fury" -> MakeVehicle(fury),
+    "quadstealth" -> MakeVehicle(quadstealth),
+    "ant" -> MakeVehicle(ant),
+    "ams" -> MakeVehicle(ams),
+    "mediumtransport" -> MakeVehicle(mediumtransport),
+    "two_man_assault_buggy" -> MakeVehicle(two_man_assault_buggy),
+    "skyguard" -> MakeVehicle(skyguard),
+    "lightning" -> MakeVehicle(lightning),
+    "threemanheavybuggy" -> MakeVehicle(threemanheavybuggy),
+    "battlewagon" -> MakeVehicle(battlewagon),
+    "apc_tr" -> MakeVehicle(apc_tr),
+    "prowler" -> MakeVehicle(prowler),
+    "twomanheavybuggy" -> MakeVehicle(twomanheavybuggy),
+    "thunderer" -> MakeVehicle(thunderer),
+    "apc_nc" -> MakeVehicle(apc_nc),
+    "vanguard" -> MakeVehicle(vanguard),
+    "twomanhoverbuggy" -> MakeVehicle(twomanhoverbuggy),
+    "aurora" -> MakeVehicle(aurora),
+    "apc_vs" -> MakeVehicle(apc_vs),
+    "magrider" -> MakeVehicle(magrider),
+    "flail" -> MakeVehicle(flail),
+    "switchblade" -> MakeVehicle(switchblade),
+    "router" -> MakeVehicle(router)
+  )
+
+  /**
+    * A `Map` of operations for producing most flight-based `Vehicle`.
+    * key - an identification string sent by the client
+    * value - a curried function that builds the object
+    */
+  protected val flight1Vehicles : Map[String, ()=>Vehicle] = Map(
+    "mosquito" -> MakeVehicle(mosquito),
+    "lightgunship" -> MakeVehicle(lightgunship),
+    "wasp" -> MakeVehicle(wasp),
+    "phantasm" -> MakeVehicle(phantasm),
+    "vulture" -> MakeVehicle(vulture),
+    "liberator" -> MakeVehicle(liberator)
+  )
+
+  /**
+    * A `Map` of operations for producing a flight-based `Vehicle` specific to the dropship terminal.
+    * key - an identification string sent by the client
+    * value - a curried function that builds the object
+    */
+  protected val flight2Vehicles : Map[String, ()=>Vehicle] = Map(
+    "dropship" -> MakeVehicle(dropship),
+    "galaxy_gunship" -> MakeVehicle(galaxy_gunship),
+    "lodestar" -> MakeVehicle(lodestar)
+  )
+
+  /**
+    * A `Map` of operations for producing a ground-based `Vehicle` specific to the bfr terminal.
+    * key - an identification string sent by the client
+    * value - a curried function that builds the object
+    */
+  protected val bfrVehicles : Map[String, ()=>Vehicle] = Map(
+//    "colossus_gunner" -> (()=>Unit),
+//    "colossus_flight" -> (()=>Unit),
+//    "peregrine_gunner" -> (()=>Unit),
+//    "peregrine_flight" -> (()=>Unit),
+//    "aphelion_gunner" -> (()=>Unit),
+//    "aphelion_flight" -> (()=>Unit)
+  )
+
+  /**
     * Create a new `Tool` from provided `EquipmentDefinition` objects.
-    * @param tdef the `ToolDefinition` objects
+    * @param tdef the `ToolDefinition` object
+    * @return a partial function that, when called, creates the piece of `Equipment`
+    */
+  protected def MakeTool(tdef : ToolDefinition)() : Tool = MakeTool(tdef, Nil)
+
+  /**
+    * Create a new `Tool` from provided `EquipmentDefinition` objects.
+    * @param tdef the `ToolDefinition` object
     * @param adef an `AmmoBoxDefinition` object
     * @return a partial function that, when called, creates the piece of `Equipment`
     */
@@ -200,24 +279,55 @@ abstract class TerminalDefinition(objectId : Int) extends ObjectDefinition(objec
     * Only use this function to create default `Tools` with the default parameters.
     * For example, loadouts can retain `Tool` information that utilizes alternate, valid ammunition types;
     * and, this method function will not construct a complete object if provided that information.
-    * @param tdef the `ToolDefinition` objects
+    * @param tdef the `ToolDefinition` object
     * @param adefs a `List` of `AmmoBoxDefinition` objects
     * @return a curried function that, when called, creates the piece of `Equipment`
     * @see `GlobalDefinitions`
     * @see `OrderTerminalDefinition.BuildSimplifiedPattern`
     */
-  protected def MakeTool(tdef : ToolDefinition, adefs : List[AmmoBoxDefinition])() : Tool =  {
+  protected def MakeTool(tdef : ToolDefinition, adefs : List[AmmoBoxDefinition])() : Tool = {
     val obj = Tool(tdef)
-    (0 until obj.MaxAmmoSlot).foreach(index => {
-      val aType = adefs(index)
-      val ammo = MakeAmmoBox(aType, Some(obj.Definition.FireModes(index).Magazine)) //make internal magazine, full
-      (obj.AmmoSlots(index).Box = ammo) match {
-        case Some(_) => ; //this means it worked
-        case None =>
-          org.log4s.getLogger("TerminalDefinition").warn(s"plans do not match definition: trying to feed ${ammo.AmmoType} ammunition into Tool (${obj.Definition.ObjectId} @ $index)")
+    adefs match {
+      case _ :: _ =>
+        LoadAmmunitionIntoWeapon(obj, adefs)
+      case Nil => ; //as-is
+    }
+    obj
+  }
+
+  /**
+    * Given a weapon, and custom ammunition profiles, attempt to load those boxes of ammunition into the weapon.<br>
+    * <br>
+    * This is a customization function that should normally go unused.
+    * All of the information necessary to generate a `Tool` from a `Terminal` request should be available on the `ToolDefinition` object.
+    * The ammunition information, regardless of "customization,"  must satisfy the type limits of the original definition.
+    * As thus, to introduce very strange ammunition to a give `Tool`,
+    * either the definition must be modified or a different definition must be used.
+    * The custom ammunition is organized into order of ammunition slots based on the `FireModeDefinition` objects.
+    * That is:
+    * the first custom element is processed by the first ammunition slot;
+    * the second custom element is processed by the second ammunition slot; and, so forth.
+    * @param weapon the `Tool` object
+    * @param adefs a sequential `List` of ammunition to be loaded into weapon
+    * @see `AmmoBoxDefinition`
+    * @see `FireModeDefinition`
+    */
+  private def LoadAmmunitionIntoWeapon(weapon : Tool, adefs : List[AmmoBoxDefinition]) : Unit = {
+    val definition = weapon.Definition
+    (0 until math.min(weapon.MaxAmmoSlot, adefs.length)).foreach(index => {
+      val ammoSlot = weapon.AmmoSlots(index)
+      adefs.lift(index) match {
+        case Some(aType) =>
+          ammoSlot.AllAmmoTypes.indexOf(aType.AmmoType) match {
+            case -1 =>
+              log.warn(s"terminal plans do not match definition: can not feed ${aType.AmmoType} ammunition into Tool (${definition.ObjectId} @ ammo $index)")
+            case n =>
+              ammoSlot.AmmoTypeIndex = n
+              ammoSlot.Box = MakeAmmoBox(aType, Some(definition.FireModes(index).Magazine)) //make new internal magazine, full
+          }
+        case None => ;
       }
     })
-    obj
   }
 
   /**
@@ -229,11 +339,12 @@ abstract class TerminalDefinition(objectId : Int) extends ObjectDefinition(objec
     * @see `GlobalDefinitions`
     */
   protected def MakeAmmoBox(adef : AmmoBoxDefinition, capacity : Option[Int] = None)() : AmmoBox = {
-    val obj = AmmoBox(adef)
-    if(capacity.isDefined) {
-      obj.Capacity = capacity.get
+    capacity match {
+      case Some(cap) =>
+        AmmoBox(adef, cap)
+      case None =>
+        AmmoBox(adef)
     }
-    obj
   }
 
   /**
@@ -259,4 +370,12 @@ abstract class TerminalDefinition(objectId : Int) extends ObjectDefinition(objec
     * @see `GlobalDefinitions`
     */
   protected def MakeConstructionItem(cdef : ConstructionItemDefinition)() : ConstructionItem = ConstructionItem(cdef)
+
+  /**
+    * Create a new `Vehicle` from provided `VehicleDefinition` objects.
+    * @param vdef the `VehicleDefinition` object
+    * @return a curried function that, when called, creates the `Vehicle`
+    * @see `GlobalDefinitions`
+    */
+  protected def MakeVehicle(vdef : VehicleDefinition)() : Vehicle = Vehicle(vdef)
 }

@@ -2,7 +2,7 @@
 package services.vehicle.support
 
 import akka.actor.{Actor, ActorRef, Cancellable}
-import net.psforever.objects.Vehicle
+import net.psforever.objects.{DefaultCancellable, Vehicle}
 import net.psforever.objects.guid.TaskResolver
 import net.psforever.objects.vehicles.Seat
 import net.psforever.objects.zones.Zone
@@ -20,11 +20,13 @@ import scala.concurrent.duration._
   * A reference to a vehicle should be passed to this object as soon as it is going to be cleaned-up from the game world.
   * Once accepted, only a few seconds will remain before the vehicle is deleted.
   * To ensure that no players are lost in the deletion, all occupants of the vehicle are kicked out.
-  * Furthermore, the vehicle is rendered "dead" and inaccessible right up to the point where it is removed.
+  * Furthermore, the vehicle is rendered "dead" and inaccessible right up to the point where it is removed.<br>
+  * <br>
+  * This `Actor` is intended to sit on top of the event system that handles broadcast messaging.
   */
 class DeconstructionActor extends Actor {
   /** The periodic `Executor` that scraps the next vehicle on the list */
-  private var scrappingProcess : Cancellable = DeconstructionActor.DefaultProcess
+  private var scrappingProcess : Cancellable = DefaultCancellable.obj
   /** A `List` of currently doomed vehicles */
   private var vehicles : List[DeconstructionActor.VehicleEntry] = Nil
   /** The manager that helps unregister the vehicle from its current GUID scope */
@@ -59,7 +61,9 @@ class DeconstructionActor extends Actor {
           case Some(tplayer) =>
             seat.Occupant = None
             tplayer.VehicleSeated = None
-            context.parent ! VehicleServiceMessage(zone_id, VehicleAction.KickPassenger(tplayer.GUID, 4, false))
+            if(tplayer.HasGUID) {
+              context.parent ! VehicleServiceMessage(zone_id, VehicleAction.KickPassenger(tplayer.GUID, 4, false))
+            }
           case None => ;
         }
       })
@@ -170,11 +174,6 @@ object DeconstructionActor {
   private final val timeout_time : Long = 5000000000L //nanoseconds (5s)
   /** The wait before completely deleting a vehicle; as a `FiniteDuration` for `Executor` simplicity */
   private final val timeout : FiniteDuration = timeout_time nanoseconds
-
-  private final val DefaultProcess : Cancellable = new Cancellable() {
-    override def cancel : Boolean = true
-    override def isCancelled : Boolean = true
-  }
 
   final case class RequestTaskResolver()
 

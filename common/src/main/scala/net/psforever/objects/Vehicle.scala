@@ -3,7 +3,7 @@ package net.psforever.objects
 
 import net.psforever.objects.definition.VehicleDefinition
 import net.psforever.objects.equipment.{Equipment, EquipmentSize}
-import net.psforever.objects.inventory.GridInventory
+import net.psforever.objects.inventory.{GridInventory, InventoryTile}
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.vehicles.{AccessPermissionGroup, Seat, Utility, VehicleLockState}
 import net.psforever.packet.game.PlanetSideGUID
@@ -480,8 +480,12 @@ object Vehicle {
       vehicle.Utilities += Utility.Select(i, vehicle)
     }
     //trunk
-    vehicle.trunk.Resize(vdef.TrunkSize.width, vdef.TrunkSize.height)
-    vehicle.trunk.Offset = vdef.TrunkOffset
+    vdef.TrunkSize match {
+      case InventoryTile.None => ;
+      case dim =>
+        vehicle.trunk.Resize(dim.Width, dim.Height)
+        vehicle.trunk.Offset = vdef.TrunkOffset
+    }
     vehicle
   }
 

@@ -89,7 +89,7 @@ import scodec.codecs._
   * `106 - Custom Head`<br>
   * <br>
   * Vehicles:<br>
-  * 0 - Vehicle health<br>
+  * 0 - Vehicle base health<br>
   * 10 - Driver seat permissions (0 = Locked, 1 = Group, 3 = Empire)<br>
   * 11 - Gunner seat(s) permissions (same)<br>
   * 12 - Passenger seat(s) permissions (same) <br>

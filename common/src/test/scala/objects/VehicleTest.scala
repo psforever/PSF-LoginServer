@@ -44,8 +44,8 @@ class VehicleTest extends Specification {
       fury.Weapons.size mustEqual 1
       fury.Weapons.get(0) mustEqual None
       fury.Weapons.get(1) mustEqual Some(GlobalDefinitions.fury_weapon_systema)
-      fury.TrunkSize.width mustEqual 11
-      fury.TrunkSize.height mustEqual 11
+      fury.TrunkSize.Width mustEqual 11
+      fury.TrunkSize.Height mustEqual 11
       fury.TrunkOffset mustEqual 30
     }
   }

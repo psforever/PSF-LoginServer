@@ -68,7 +68,7 @@ class GridInventory {
     * @return the number of free cells
     */
   def Capacity : Int = {
-    TotalCapacity - items.values.foldLeft(0)((cnt, item) => cnt + (item.obj.Tile.width * item.obj.Tile.height))
+    TotalCapacity - items.values.foldLeft(0)((cnt, item) => cnt + (item.obj.Tile.Width * item.obj.Tile.Height))
   }
 
   /**
@@ -112,7 +112,7 @@ class GridInventory {
     */
   def CheckCollisions(start : Int, item : Equipment) : Try[List[Int]] = {
     val tile : InventoryTile = item.Tile
-    CheckCollisions(start, tile.width, tile.height)
+    CheckCollisions(start, tile.Width, tile.Height)
   }
 
   /**
@@ -185,8 +185,8 @@ class GridInventory {
         val itemx : Int = actualItemStart % width
         val itemy : Int = actualItemStart / width
         val tile = item.obj.Tile
-        val clipsOnX : Boolean = if(itemx < startx) { itemx + tile.width > startx } else { itemx <= startw }
-        val clipsOnY : Boolean = if(itemy < starty) { itemy + tile.height > starty } else { itemy <= starth }
+        val clipsOnX : Boolean = if(itemx < startx) { itemx + tile.Width > startx } else { itemx <= startw }
+        val clipsOnY : Boolean = if(itemy < starty) { itemy + tile.Height > starty } else { itemy <= starth }
         if(clipsOnX && clipsOnY) {
           collisions += item
         }
@@ -237,8 +237,8 @@ class GridInventory {
     * @return the grid index of the upper left corner where equipment to which the `tile` belongs should be placed
     */
   def Fit(tile : InventoryTile) : Option[Int] = {
-    val tWidth = tile.width
-    val tHeight = tile.height
+    val tWidth = tile.Width
+    val tHeight = tile.Height
     val gridIter = (0 until (grid.length - (tHeight - 1) * width))
       .filter(cell => grid(cell) == -1 && (width - cell%width >= tWidth))
       .iterator
@@ -325,7 +325,7 @@ class GridInventory {
         val card = InventoryItem(obj, start)
         items += key -> card
         val tile = obj.Tile
-        SetCells(start, tile.width, tile.height, key)
+        SetCells(start, tile.Width, tile.Height, key)
         true
       case _ =>
         false
@@ -348,7 +348,7 @@ class GridInventory {
     items.remove(key) match {
       case Some(item) =>
         val tile = item.obj.Tile
-        SetCells(item.start, tile.width, tile.height)
+        SetCells(item.start, tile.Width, tile.Height)
         true
       case None =>
         false
@@ -362,7 +362,7 @@ class GridInventory {
       case Some(index) =>
         val item = items.remove(index).get
         val tile = item.obj.Tile
-        SetCells(item.start, tile.width, tile.height)
+        SetCells(item.start, tile.Width, tile.Height)
         true
       case None =>
         false
@@ -492,11 +492,11 @@ object GridInventory {
     (a, b) => {
       val aTile = a.obj.Tile
       val bTile = b.obj.Tile
-      if(aTile.width == bTile.width) {
-        aTile.height > bTile.height
+      if(aTile.Width == bTile.Width) {
+        aTile.Height > bTile.Height
       }
       else {
-        aTile.width > bTile.width
+        aTile.Width > bTile.Width
       }
     }
 
@@ -513,9 +513,9 @@ object GridInventory {
   private def sortKnapsack(list : List[InventoryItem], width : Int, height : Int) : Unit = {
     val root = new KnapsackNode(0, 0, width, height)
     list.foreach(item => {
-      findKnapsackSpace(root, item.obj.Tile.width, item.obj.Tile.height) match {
+      findKnapsackSpace(root, item.obj.Tile.Width, item.obj.Tile.Height) match {
         case Some(node) =>
-          splitKnapsackSpace(node, item.obj.Tile.width, item.obj.Tile.height)
+          splitKnapsackSpace(node, item.obj.Tile.Width, item.obj.Tile.Height)
           item.start = node.y * width + node.x
         case _ => ;
           item.start = -1

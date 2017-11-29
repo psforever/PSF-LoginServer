@@ -71,3 +71,40 @@ class CertTerminalControl3Test extends ActorTest() {
     assert(reply2.response == Terminal.SellCertification(CertificationType.MediumAssault, 2))
   }
 }
+
+class VehicleTerminalControl1Test extends ActorTest() {
+  "TerminalControl can be used to buy a vehicle ('two_man_assault_buggy')" in {
+    val terminal = Terminal(GlobalDefinitions.ground_vehicle_terminal)
+    terminal.Actor = system.actorOf(Props(classOf[TerminalControl], terminal), "test-cert-term")
+    val player = Player("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+    val msg = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Buy, 0, "two_man_assault_buggy", 0, PlanetSideGUID(0))
+
+    terminal.Actor ! Terminal.Request(player, msg)
+    val reply = receiveOne(Duration.create(500, "ms"))
+    assert(reply.isInstanceOf[Terminal.TerminalMessage])
+    val reply2 = reply.asInstanceOf[Terminal.TerminalMessage]
+    assert(reply2.player == player)
+    assert(reply2.msg == msg)
+    assert(reply2.response.isInstanceOf[Terminal.BuyVehicle])
+    val reply3 = reply2.response.asInstanceOf[Terminal.BuyVehicle]
+    assert(reply3.vehicle.Definition == GlobalDefinitions.two_man_assault_buggy)
+    assert(reply3.loadout == Nil) //TODO
+  }
+}
+
+class VehicleTerminalControl2Test extends ActorTest() {
+  "TerminalControl can be used to warn about not buy a vehicle ('harasser')" in {
+    val terminal = Terminal(GlobalDefinitions.ground_vehicle_terminal)
+    terminal.Actor = system.actorOf(Props(classOf[TerminalControl], terminal), "test-cert-term")
+    val player = Player("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+    val msg = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Buy, 0, "harasser", 0, PlanetSideGUID(0))
+
+    terminal.Actor ! Terminal.Request(player, msg)
+    val reply = receiveOne(Duration.create(500, "ms"))
+    assert(reply.isInstanceOf[Terminal.TerminalMessage])
+    val reply2 = reply.asInstanceOf[Terminal.TerminalMessage]
+    assert(reply2.player == player)
+    assert(reply2.msg == msg)
+    assert(reply2.response == Terminal.NoDeal())
+  }
+}

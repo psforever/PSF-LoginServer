@@ -2,6 +2,7 @@
 package services.local.support
 
 import akka.actor.{Actor, Cancellable}
+import net.psforever.objects.DefaultCancellable
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.PlanetSideGUID
@@ -16,7 +17,7 @@ import scala.concurrent.duration._
   */
 class DoorCloseActor() extends Actor {
   /** The periodic `Executor` that checks for doors to be closed */
-  private var doorCloserTrigger : Cancellable = DoorCloseActor.DefaultCloser
+  private var doorCloserTrigger : Cancellable = DefaultCancellable.obj
   /** A `List` of currently open doors */
   private var openDoors : List[DoorCloseActor.DoorEntry] = Nil
   //private[this] val log = org.log4s.getLogger
@@ -97,11 +98,6 @@ object DoorCloseActor {
   private final val timeout_time : Long = 5000000000L //nanoseconds (5s)
   /** The wait before an open door closes; as a `FiniteDuration` for `Executor` simplicity */
   private final val timeout : FiniteDuration = timeout_time nanoseconds
-
-  private final val DefaultCloser : Cancellable = new Cancellable() {
-    override def cancel : Boolean = true
-    override def isCancelled : Boolean = true
-  }
 
   /**
     * Message that carries information about a door that has been opened.

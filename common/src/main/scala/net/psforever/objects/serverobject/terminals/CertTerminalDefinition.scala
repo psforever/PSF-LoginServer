@@ -81,7 +81,7 @@ class CertTerminalDefinition extends TerminalDefinition(171) {
     * @param msg the original packet carrying the request
     * @return an actionable message that explains how to process the request
     */
-  def Sell(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
+  override def Sell(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
     certificationList.get(msg.item_name) match {
       case Some((cert, cost)) =>
         Terminal.SellCertification(cert, cost)
@@ -89,12 +89,4 @@ class CertTerminalDefinition extends TerminalDefinition(171) {
         Terminal.NoDeal()
     }
   }
-
-  /**
-    * This action is not supported by this type of `Terminal`.
-    * @param player the player
-    * @param msg the original packet carrying the request
-    * @return `Terminal.NoEvent` always
-    */
-  def Loadout(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = Terminal.NoDeal()
 }
