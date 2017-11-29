@@ -1441,6 +1441,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
       //TODO optimize this later
       log.info(s"DismountVehicleMsg: $msg")
       if(player.GUID == player_guid) {
+        //common warning for this section
+        def dismountWarning(msg : String) : Unit = {
+          log.warn(s"$msg; a vehicle may not know that a player is no longer sitting it in")
+        }
         //normally disembarking from a seat
         player.VehicleSeated match {
           case Some(vehicle_guid) =>
@@ -1448,26 +1452,27 @@ class WorldSessionActor extends Actor with MDCContextAware {
               case Some(obj : Vehicle) =>
                 obj.Seats.find(seat => seat.Occupant.contains(player)) match {
                   case Some(seat) =>
-                    val vel = obj.Velocity.getOrElse(new Vector3(0f, 0f, 0f))
-                    val total_vel : Int = math.abs(vel.x * vel.y * vel.z).toInt
-                    if(seat.Bailable || obj.Velocity.isEmpty || total_vel == 0) {
+                    val vel = obj.Velocity.getOrElse(Vector3(0f, 0f, 0f))
+                    val has_vel : Int = math.abs(vel.x * vel.y * vel.z).toInt
+                    if(seat.Bailable || obj.Velocity.isEmpty || has_vel == 0) { //ugh, float comparison
                       seat.Occupant = None
-                      player.VehicleSeated = None
-                      sendResponse(PacketCoding.CreateGamePacket(0, DismountVehicleMsg(player_guid, unk1, unk2))) //should be safe; replace with ObjectDetachMessage later
-                      vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.DismountVehicle(player_guid, unk1, unk2))
                       if(obj.Seats.count(seat => seat.isOccupied) == 0) {
                         vehicleService ! VehicleServiceMessage.DelayedVehicleDeconstruction(obj, continent, 600L) //start vehicle decay (10m)
                       }
                     }
                   case None =>
-                    log.warn(s"DismountVehicleMsg: can not find where player $player_guid is seated in vehicle $vehicle_guid")
+                    dismountWarning(s"DismountVehicleMsg: can not find where player $player_guid is seated in vehicle $vehicle_guid")
                 }
               case _ =>
-                log.warn(s"DismountVehicleMsg: can not find vehicle $vehicle_guid")
+                dismountWarning(s"DismountVehicleMsg: can not find vehicle $vehicle_guid")
             }
           case None =>
-            log.warn(s"DismountVehicleMsg: player $player_guid not considered seated in a vehicle")
+            dismountWarning(s"DismountVehicleMsg: player $player_guid not considered seated in a vehicle")
         }
+        //should be safe
+        player.VehicleSeated = None
+        sendResponse(PacketCoding.CreateGamePacket(0, DismountVehicleMsg(player_guid, unk1, unk2)))
+        vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.DismountVehicle(player_guid, unk1, unk2))
       }
       else {
         //kicking someone else out of a seat; need to own that seat
