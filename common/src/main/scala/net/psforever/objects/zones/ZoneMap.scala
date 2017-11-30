@@ -26,6 +26,7 @@ import net.psforever.objects.serverobject.builders.ServerObjectBuilder
 class ZoneMap(private val name : String) {
   private var localObjects : List[ServerObjectBuilder[_]] = List()
   private var linkTerminalPad : Map[Int, Int] = Map()
+  private var linkTerminalInterface : Map[Int, Int] = Map()
   private var linkDoorLock : Map[Int, Int] = Map()
   private var linkObjectBase : Map[Int, Int] = Map()
   private var numBases : Int = 0
@@ -73,5 +74,11 @@ class ZoneMap(private val name : String) {
 
   def TerminalToSpawnPad(terminal_guid : Int, pad_guid : Int) : Unit = {
     linkTerminalPad = linkTerminalPad ++ Map(terminal_guid -> pad_guid)
+  }
+
+  def TerminalToInterface : Map[Int, Int] = linkTerminalInterface
+
+  def TerminalToInterface(interface_guid : Int, terminal_guid : Int) : Unit = {
+    linkTerminalInterface = linkTerminalInterface ++ Map(interface_guid -> terminal_guid)
   }
 }

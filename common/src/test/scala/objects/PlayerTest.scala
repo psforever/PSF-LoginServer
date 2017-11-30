@@ -110,7 +110,7 @@ class PlayerTest extends Specification {
     val testplant : ImplantDefinition = ImplantDefinition(1)
     val obj = new Player("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
     obj.Implants(0).Unlocked = true
-    obj.InstallImplant(testplant) mustEqual true
+    obj.InstallImplant(testplant) mustEqual Some(0)
     obj.Implants.find({p => p.Implant == ImplantType(1)}) match { //find the installed implant
       case Some(slot) =>
         slot.Installed mustEqual Some(testplant)
@@ -126,15 +126,15 @@ class PlayerTest extends Specification {
     val obj = new Player("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
     obj.Implants(0).Unlocked = true
     obj.Implants(1).Unlocked = true
-    obj.InstallImplant(testplant1) mustEqual true
-    obj.InstallImplant(testplant2) mustEqual false
+    obj.InstallImplant(testplant1) mustEqual Some(0)
+    obj.InstallImplant(testplant2) mustEqual Some(1)
   }
 
   "uninstall implants" in {
     val testplant : ImplantDefinition = ImplantDefinition(1)
     val obj = new Player("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
     obj.Implants(0).Unlocked = true
-    obj.InstallImplant(testplant) mustEqual true
+    obj.InstallImplant(testplant) mustEqual Some(0)
     obj.Implants(0).Installed mustEqual Some(testplant)
 
     obj.UninstallImplant(testplant.Type)

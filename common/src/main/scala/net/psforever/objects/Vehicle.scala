@@ -4,6 +4,7 @@ package net.psforever.objects
 import net.psforever.objects.definition.VehicleDefinition
 import net.psforever.objects.equipment.{Equipment, EquipmentSize}
 import net.psforever.objects.inventory.{GridInventory, InventoryTile}
+import net.psforever.objects.mount.Mountable
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.vehicles.{AccessPermissionGroup, Seat, Utility, VehicleLockState}
 import net.psforever.packet.game.PlanetSideGUID
@@ -26,7 +27,7 @@ import scala.collection.mutable
   *                   stores and unloads pertinent information about the `Vehicle`'s configuration;
   *                   used in the initialization process (`loadVehicleDefinition`)
   */
-class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServerObject {
+class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServerObject with Mountable {
   private var faction : PlanetSideEmpire.Value = PlanetSideEmpire.TR
   private var owner : Option[PlanetSideGUID] = None
   private var health : Int = 1
@@ -97,7 +98,7 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
   }
 
   def MaxHealth : Int = {
-    this.vehicleDef.MaxHealth
+    Definition.MaxHealth
   }
 
   def Shields : Int = {
@@ -110,7 +111,7 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
   }
 
   def MaxShields : Int = {
-    vehicleDef.MaxShields
+    Definition.MaxShields
   }
 
   def Drive : DriveState.Value = {
@@ -118,7 +119,7 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
   }
 
   def Drive_=(deploy : DriveState.Value) : DriveState.Value = {
-    if(vehicleDef.Deployment) {
+    if(Definition.Deployment) {
       this.deployed = deploy
     }
     Drive
@@ -153,8 +154,10 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
     * @return a seat number, or `None`
     */
   def GetSeatFromMountPoint(mountPoint : Int) : Option[Int] = {
-    vehicleDef.MountPoints.get(mountPoint)
+    Definition.MountPoints.get(mountPoint)
   }
+
+  def MountPoints : Map[Int, Int] = Definition.MountPoints.toMap
 
   /**
     * What are the access permissions for a position on this vehicle, seats or trunk?
@@ -225,8 +228,8 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
     }
   }
 
-  def Seats : List[Seat] = {
-    seats.values.toList
+  def Seats : Map[Int, Seat] = {
+    seats
   }
 
   def SeatPermissionGroup(seatNumber : Int) : Option[AccessPermissionGroup.Value] = {
@@ -429,27 +432,6 @@ object Vehicle {
   final case class PrepareForDeletion()
 
   /**
-    * This player wants to sit down in an available(?) seat.
-    * @param seat_num the seat where the player is trying to occupy;
-    *                 this is NOT the entry mount point index;
-    *                 make certain to convert!
-    * @param player the `Player` object
-    */
-  final case class TrySeatPlayer(seat_num : Int, player : Player)
-  /**
-    * The recipient player of this packet is being allowed to sit in the assigned seat.
-    * @param vehicle the `Vehicle` object that generated this message
-    * @param seat_num the seat that the player will occupy
-    */
-  final case class CanSeatPlayer(vehicle : Vehicle, seat_num : Int) extends Exchange
-  /**
-    * The recipient player of this packet is not allowed to sit in the requested seat.
-    * @param vehicle the `Vehicle` object that generated this message
-    * @param seat_num the seat that the player can not occupy
-    */
-  final case class CannotSeatPlayer(vehicle : Vehicle, seat_num : Int) extends Exchange
-
-  /**
     * Overloaded constructor.
     * @param vehicleDef the vehicle's definition entry
     * @return a `Vehicle` object
@@ -494,7 +476,7 @@ object Vehicle {
     * @return the string output
     */
   def toString(obj : Vehicle) : String = {
-    val occupancy = obj.Seats.count(seat => seat.isOccupied)
+    val occupancy = obj.Seats.values.count(seat => seat.isOccupied)
     s"${obj.Definition.Name}, owned by ${obj.Owner}: (${obj.Health}/${obj.MaxHealth})(${obj.Shields}/${obj.MaxShields}) ($occupancy)"
   }
 }
