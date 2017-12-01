@@ -11,6 +11,7 @@ import org.log4s.MDC
 import MDCContextAware.Implicits._
 import ServiceManager.Lookup
 import net.psforever.objects._
+import net.psforever.objects.definition.{ImplantDefinition, Stance}
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.zones.{InterstellarCluster, Zone}
 import net.psforever.objects.entity.IdentifiableEntity
@@ -23,6 +24,7 @@ import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.packet.game.objectcreate._
 import net.psforever.types._
+import org.joda.time.Seconds
 import services._
 import services.avatar._
 import services.local._
@@ -107,7 +109,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       handlePktContainer(ctrl)
     case game @ GamePacket(_, _, _) =>
       handlePktContainer(game)
-      // temporary hack to keep the client from disconnecting
+    // temporary hack to keep the client from disconnecting
     case PokeClient() =>
       sendResponse(PacketCoding.CreateGamePacket(0, KeepAliveMessage()))
 
@@ -472,28 +474,67 @@ class WorldSessionActor extends Actor with MDCContextAware {
       }
 
     case ListAccountCharacters =>
+      val
+      playert1 = Player("You can create a character", PlanetSideEmpire.TR, CharacterGender.Male, 41, 1)
+      val
+      playert2 = Player("with your own preferences and name", PlanetSideEmpire.NC, CharacterGender.Male, 41, 1)
+      val
+      playert3 = Player("or use these default characters", PlanetSideEmpire.VS, CharacterGender.Male, 41, 1)
+
       import net.psforever.objects.definition.converter.CharacterSelectConverter
       val gen : AtomicInteger = new AtomicInteger(1)
       val converter : CharacterSelectConverter = new CharacterSelectConverter
 
-      //load characters
-      SetCharacterSelectScreenGUID(player, gen)
-      val health = player.Health
-      val stamina = player.Stamina
-      val armor = player.Armor
-      player.Spawn
-      sendResponse(PacketCoding.CreateGamePacket(0,
-        ObjectCreateDetailedMessage(ObjectClass.avatar, player.GUID, converter.DetailedConstructorData(player).get)
-      ))
-      if(health > 0) { //player can not be dead; stay spawned as alive
-        player.Health = health
-        player.Stamina = stamina
-        player.Armor = armor
+      if(player.Name == "IlllIIIlllIlIllIlllIllI") {
+        //load characters
+        SetCharacterSelectScreenGUID(playert1, gen)
+        SetCharacterSelectScreenGUID(playert2, gen)
+        SetCharacterSelectScreenGUID(playert3, gen)
+        val health = playert1.Health
+        val stamina = playert1.Stamina
+        val armor = playert1.Armor
+        playert1.Spawn
+        playert2.Spawn
+        playert3.Spawn
+        sendResponse(PacketCoding.CreateGamePacket(0,
+          ObjectCreateDetailedMessage(ObjectClass.avatar, playert1.GUID, converter.DetailedConstructorData(playert1).get)
+        ))
+        sendResponse(PacketCoding.CreateGamePacket(0,
+          ObjectCreateDetailedMessage(ObjectClass.avatar, playert2.GUID, converter.DetailedConstructorData(playert2).get)
+        ))
+        sendResponse(PacketCoding.CreateGamePacket(0,
+          ObjectCreateDetailedMessage(ObjectClass.avatar, playert3.GUID, converter.DetailedConstructorData(playert3).get)
+        ))
+        if(health > 0) { //player can not be dead; stay spawned as alive
+          playert1.Health = health
+          playert1.Stamina = stamina
+          playert1.Armor = armor
+        }
+        sendResponse(PacketCoding.CreateGamePacket(0, CharacterInfoMessage(15,PlanetSideZoneID(10000), 1, playert1.GUID, false, 6404428)))
+        RemoveCharacterSelectScreenGUID(playert1)
+        sendResponse(PacketCoding.CreateGamePacket(0, CharacterInfoMessage(15,PlanetSideZoneID(10000), 2, playert2.GUID, false, 6404428)))
+        RemoveCharacterSelectScreenGUID(playert2)
+        sendResponse(PacketCoding.CreateGamePacket(0, CharacterInfoMessage(15,PlanetSideZoneID(10000), 3, playert3.GUID, true, 6404428)))
+        RemoveCharacterSelectScreenGUID(playert3)
+      } else {
+        SetCharacterSelectScreenGUID(player, gen)
+        val health = player.Health
+        val stamina = player.Stamina
+        val armor = player.Armor
+        player.Spawn
+        sendResponse(PacketCoding.CreateGamePacket(0,
+          ObjectCreateDetailedMessage(ObjectClass.avatar, player.GUID, converter.DetailedConstructorData(player).get)
+        ))
+        if(health > 0) { //player can not be dead; stay spawned as alive
+          player.Health = health
+          player.Stamina = stamina
+          player.Armor = armor
+        }
+        sendResponse(PacketCoding.CreateGamePacket(0, CharacterInfoMessage(15,PlanetSideZoneID(10000), 41605315, player.GUID, true, 6404428)))
+        RemoveCharacterSelectScreenGUID(player)
       }
-      sendResponse(PacketCoding.CreateGamePacket(0, CharacterInfoMessage(15,PlanetSideZoneID(10000), 41605313, player.GUID, false, 6404428)))
-      RemoveCharacterSelectScreenGUID(player)
 
-      sendResponse(PacketCoding.CreateGamePacket(0, CharacterInfoMessage(0, PlanetSideZoneID(1), 0, PlanetSideGUID(0), true, 0)))
+//      sendResponse(PacketCoding.CreateGamePacket(0, CharacterInfoMessage(0, PlanetSideZoneID(1), 0, PlanetSideGUID(0), true, 0)))
 
     case InterstellarCluster.GiveWorld(zoneId, zone) =>
       log.info(s"Zone $zoneId has been loaded")
@@ -564,6 +605,13 @@ class WorldSessionActor extends Actor with MDCContextAware {
       sendResponse(PacketCoding.CreateGamePacket(0, CreateShortcutMessage(guid, 1, 0, true, Shortcut.MEDKIT)))
       sendResponse(PacketCoding.CreateGamePacket(0, ChatMsg(ChatMessageType.CMT_EXPANSIONS, true, "", "1 on", None))) //CC on
 
+      tplayer.Implants(0).Initialized = true
+      tplayer.Implants(1).Initialized = true
+      tplayer.Implants(2).Initialized = true
+      sendResponse(PacketCoding.CreateGamePacket(0,AvatarImplantMessage(PlanetSideGUID(tplayer.GUID.guid),2,0,1)))
+      sendResponse(PacketCoding.CreateGamePacket(0,AvatarImplantMessage(PlanetSideGUID(tplayer.GUID.guid),2,1,1)))
+      sendResponse(PacketCoding.CreateGamePacket(0,AvatarImplantMessage(PlanetSideGUID(tplayer.GUID.guid),2,2,1)))
+
     case Zone.ItemFromGround(tplayer, item) =>
       val obj_guid = item.GUID
       val player_guid = tplayer.GUID
@@ -623,7 +671,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       sendResponse(pkt)
 
     case default =>
-     log.warn(s"Invalid packet class received: $default")
+      log.warn(s"Invalid packet class received: $default")
   }
 
   def handlePkt(pkt : PlanetSidePacket) : Unit = pkt match {
@@ -699,11 +747,20 @@ class WorldSessionActor extends Actor with MDCContextAware {
   val bullet_9mm_box2 = AmmoBox(bullet_9mm)
   val bullet_9mm_box3 = AmmoBox(bullet_9mm)
   val bullet_9mm_box4 = AmmoBox(bullet_9mm, 25)
+  val bullet_9mm_box5 = AmmoBox(bullet_9mm, 20)
   val bullet_9mm_AP_box = AmmoBox(bullet_9mm_AP)
   val melee_ammo_box = AmmoBox(melee_ammo)
+  val shotgun_shell_box1 = AmmoBox(shotgun_shell)
+  val shotgun_shell_box2 = AmmoBox(shotgun_shell, 8)
   val
   beamer1 = Tool(beamer)
   beamer1.AmmoSlots.head.Box = energy_cell_box2
+  val
+  repeater1 = Tool(repeater)
+  repeater1.AmmoSlots.head.Box = bullet_9mm_box5
+  val
+  isp1 = Tool(isp)
+  isp1.AmmoSlots.head.Box = shotgun_shell_box2
   val
   suppressor1 = Tool(suppressor)
   suppressor1.AmmoSlots.head.Box = bullet_9mm_box4
@@ -712,7 +769,30 @@ class WorldSessionActor extends Actor with MDCContextAware {
   forceblade1.AmmoSlots.head.Box = melee_ammo_box
   val rek = SimpleItem(remote_electronics_kit)
   val extra_rek = SimpleItem(remote_electronics_kit)
-  val
+
+
+  val sample = new ImplantDefinition(1)
+  sample.Initialization = 60 //1:00
+  sample.Passive = true
+
+  val sample2 = new ImplantDefinition(9)
+  sample2.Initialization = 90 //1:30
+  sample2.DurationChargeBase = 1
+  sample2.DurationChargeByExoSuit += ExoSuitType.Agile -> 2
+  sample2.DurationChargeByExoSuit += ExoSuitType.Reinforced -> 2
+  sample2.DurationChargeByExoSuit += ExoSuitType.Standard -> 1
+  sample2.DurationChargeByStance += Stance.Running -> 1
+  val sample3 = new ImplantDefinition(3)
+  sample3.Initialization = 60 //1:00
+  sample3.ActivationCharge = 3
+  sample3.DurationChargeBase = 1
+  sample3.DurationChargeByExoSuit += ExoSuitType.Agile -> 2
+  sample3.DurationChargeByExoSuit += ExoSuitType.Reinforced -> 2
+  sample3.DurationChargeByExoSuit += ExoSuitType.Standard -> 1
+  sample3.DurationChargeByExoSuit += ExoSuitType.Infiltration -> 1
+  sample3.DurationChargeByStance += Stance.Running -> 1
+
+  var
   player = Player("IlllIIIlllIlIllIlllIllI", PlanetSideEmpire.VS, CharacterGender.Female, 41, 1)
   player.Position = Vector3(3674.8438f, 2726.789f, 91.15625f)
   player.Orientation = Vector3(0f, 0f, 90f)
@@ -734,6 +814,15 @@ class WorldSessionActor extends Actor with MDCContextAware {
   player.Slot(36).Equipment = energy_cell_box1
   player.Slot(39).Equipment = rek
   player.Slot(5).Equipment.get.asInstanceOf[LockerContainer].Inventory += 0 -> extra_rek
+  player.Implants(0).Unlocked = true
+  player.Implants(0).Implant = sample
+  //  player.Implants(0).Initialized = true
+  player.Implants(1).Unlocked = true
+  player.Implants(1).Implant = sample2
+  //  player.Implants(1).Initialized = true
+  player.Implants(2).Unlocked = true
+  player.Implants(2).Implant = sample3
+  //  player.Implants(2).Initialized = true
 
   def handleGamePkt(pkt : PlanetSideGamePacket) = pkt match {
     case ConnectToWorldRequestMessage(server, token, majorVersion, minorVersion, revision, buildDate, unk) =>
@@ -748,15 +837,128 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ CharacterCreateRequestMessage(name, head, voice, gender, empire) =>
       log.info("Handling " + msg)
-      sendResponse(PacketCoding.CreateGamePacket(0, ActionResultMessage(true, None)))
-      self ! ListAccountCharacters
+
+      var good : Boolean = true
+      LivePlayerList.WorldPopulation(_ => true).foreach(char => {
+        if (char.Name.equalsIgnoreCase(name)) {
+          good = false
+        }
+      })
+      if (good) {
+        player = Player(name, empire, gender, head, voice)
+        player.Position = Vector3(3674.8438f, 2726.789f, 91.15625f)
+        player.Orientation = Vector3(0f, 0f, 90f)
+        player.Certifications += CertificationType.StandardAssault
+        player.Certifications += CertificationType.MediumAssault
+        player.Certifications += CertificationType.StandardExoSuit
+        player.Certifications += CertificationType.AgileExoSuit
+        player.Certifications += CertificationType.ReinforcedExoSuit
+        player.Certifications += CertificationType.ATV
+        player.Certifications += CertificationType.Harasser
+        player.BEP = 10000000
+        player.Slot(0).Equipment = beamer1
+        player.Slot(2).Equipment = suppressor1
+        player.Slot(4).Equipment = forceblade1
+        player.Slot(6).Equipment = bullet_9mm_box1
+        player.Slot(9).Equipment = bullet_9mm_box2
+        player.Slot(12).Equipment = bullet_9mm_box3
+        player.Slot(33).Equipment = bullet_9mm_AP_box
+        player.Slot(36).Equipment = energy_cell_box1
+        player.Slot(39).Equipment = rek
+        player.Slot(5).Equipment.get.asInstanceOf[LockerContainer].Inventory += 0 -> extra_rek
+
+        sendResponse(PacketCoding.CreateGamePacket(0, ActionResultMessage(true, None)))
+        self ! ListAccountCharacters
+      }
+      else if (!good) {
+        sendResponse(PacketCoding.CreateGamePacket(0, ActionResultMessage(false, Some(1))))
+      }
 
     case msg @ CharacterRequestMessage(charId, action) =>
       log.info("Handling " + msg)
       action match {
         case CharacterRequestAction.Delete =>
           sendResponse(PacketCoding.CreateGamePacket(0, ActionResultMessage(false, Some(1))))
+          self ! ListAccountCharacters
         case CharacterRequestAction.Select =>
+          if(player.Name == "IlllIIIlllIlIllIlllIllI" && charId == 1) {
+            val playerTR = Player("UnNamed" + sessionId.toString, PlanetSideEmpire.TR, CharacterGender.Male, 41, 1)
+            playerTR.Position = Vector3(3674.8438f, 2726.789f, 91.15625f)
+            playerTR.Orientation = Vector3(0f, 0f, 90f)
+            playerTR.Certifications += CertificationType.StandardAssault
+            playerTR.Certifications += CertificationType.MediumAssault
+            playerTR.Certifications += CertificationType.StandardExoSuit
+            playerTR.Certifications += CertificationType.AgileExoSuit
+            playerTR.Certifications += CertificationType.ReinforcedExoSuit
+            playerTR.Certifications += CertificationType.ATV
+            playerTR.Certifications += CertificationType.Harasser
+            playerTR.BEP = 10000000
+            playerTR.Slot(0).Equipment = repeater1
+            playerTR.Slot(2).Equipment = suppressor1
+            playerTR.Slot(4).Equipment = forceblade1
+            playerTR.Slot(6).Equipment = bullet_9mm_box1
+            playerTR.Slot(9).Equipment = bullet_9mm_box2
+            playerTR.Slot(12).Equipment = bullet_9mm_box3
+            playerTR.Slot(33).Equipment = bullet_9mm_AP_box
+            playerTR.Slot(36).Equipment = energy_cell_box1
+            playerTR.Slot(39).Equipment = rek
+            playerTR.Slot(5).Equipment.get.asInstanceOf[LockerContainer].Inventory += 0 -> extra_rek
+            playerTR.Implants(0).Unlocked = true
+            playerTR.Implants(0).Implant = sample
+            //  playerTR.Implants(0).Initialized = true
+            playerTR.Implants(1).Unlocked = true
+            playerTR.Implants(1).Implant = sample2
+            //  playerTR.Implants(1).Initialized = true
+            playerTR.Implants(2).Unlocked = true
+            playerTR.Implants(2).Implant = sample3
+            //  playerTR.Implants(2).Initialized = true
+            player = playerTR
+          } else if (player.Name == "IlllIIIlllIlIllIlllIllI" && charId == 2) {
+            player = Player("UnNamed" + sessionId.toString, PlanetSideEmpire.NC, CharacterGender.Male, 41, 1)
+            player.Position = Vector3(3674.8438f, 2726.789f, 91.15625f)
+            player.Orientation = Vector3(0f, 0f, 90f)
+            player.Certifications += CertificationType.StandardAssault
+            player.Certifications += CertificationType.MediumAssault
+            player.Certifications += CertificationType.StandardExoSuit
+            player.Certifications += CertificationType.AgileExoSuit
+            player.Certifications += CertificationType.ReinforcedExoSuit
+            player.Certifications += CertificationType.ATV
+            player.Certifications += CertificationType.Harasser
+            player.BEP = 10000000
+            player.Slot(0).Equipment = isp1
+            player.Slot(2).Equipment = suppressor1
+            player.Slot(4).Equipment = forceblade1
+            player.Slot(6).Equipment = bullet_9mm_box1
+            player.Slot(9).Equipment = bullet_9mm_box2
+            player.Slot(12).Equipment = shotgun_shell_box1
+            player.Slot(33).Equipment = bullet_9mm_AP_box
+            player.Slot(36).Equipment = energy_cell_box1
+            player.Slot(39).Equipment = rek
+            player.Slot(5).Equipment.get.asInstanceOf[LockerContainer].Inventory += 0 -> extra_rek
+          } else if (player.Name == "IlllIIIlllIlIllIlllIllI" && charId == 3) {
+            player = Player("UnNamed" + sessionId.toString, PlanetSideEmpire.VS, CharacterGender.Male, 41, 1)
+            player.Position = Vector3(3674.8438f, 2726.789f, 91.15625f)
+            player.Orientation = Vector3(0f, 0f, 90f)
+            player.Certifications += CertificationType.StandardAssault
+            player.Certifications += CertificationType.MediumAssault
+            player.Certifications += CertificationType.StandardExoSuit
+            player.Certifications += CertificationType.AgileExoSuit
+            player.Certifications += CertificationType.ReinforcedExoSuit
+            player.Certifications += CertificationType.ATV
+            player.Certifications += CertificationType.Harasser
+            player.BEP = 10000000
+            player.Slot(0).Equipment = beamer1
+            player.Slot(2).Equipment = suppressor1
+            player.Slot(4).Equipment = forceblade1
+            player.Slot(6).Equipment = bullet_9mm_box1
+            player.Slot(9).Equipment = bullet_9mm_box2
+            player.Slot(12).Equipment = bullet_9mm_box3
+            player.Slot(33).Equipment = bullet_9mm_AP_box
+            player.Slot(36).Equipment = energy_cell_box1
+            player.Slot(39).Equipment = rek
+            player.Slot(5).Equipment.get.asInstanceOf[LockerContainer].Inventory += 0 -> extra_rek
+          }
+
           LivePlayerList.Add(sessionId, player)
           //TODO check if can spawn on last continent/location from player?
           //TODO if yes, get continent guid accessors
@@ -821,18 +1023,30 @@ class WorldSessionActor extends Actor with MDCContextAware {
     //log.info("PlayerState: " + msg)
 
     case msg @ ChildObjectStateMessage(object_guid, pitch, yaw) =>
-      //log.info("ChildObjectState: " + msg)
+    //log.info("ChildObjectState: " + msg)
 
     case msg @ VehicleStateMessage(vehicle_guid, unk1, pos, ang, vel, unk5, unk6, unk7, wheels, unk9, unkA) =>
-      //log.info("VehicleState: " + msg)
+    //log.info("VehicleState: " + msg)
 
     case msg @ ProjectileStateMessage(projectile_guid, shot_pos, shot_vector, unk1, unk2, unk3, unk4, time_alive) =>
-      //log.info("ProjectileState: " + msg)
+    //log.info("ProjectileState: " + msg)
 
     case msg @ ChatMsg(messagetype, has_wide_contents, recipient, contents, note_contents) =>
       // TODO: Prevents log spam, but should be handled correctly
       if (messagetype != ChatMessageType.CMT_TOGGLE_GM) {
         log.info("Chat: " + msg)
+      }
+
+      if (messagetype == ChatMessageType.CMT_BROADCAST) {
+        player.Implants(0).Initialized = true
+        player.Implants(1).Initialized = true
+        player.Implants(2).Initialized = true
+        sendResponse(PacketCoding.CreateGamePacket(0,AvatarImplantMessage(PlanetSideGUID(player.GUID.guid),2,0,1)))
+        sendResponse(PacketCoding.CreateGamePacket(0,AvatarImplantMessage(PlanetSideGUID(player.GUID.guid),2,1,1)))
+        sendResponse(PacketCoding.CreateGamePacket(0,AvatarImplantMessage(PlanetSideGUID(player.GUID.guid),2,2,1)))
+      }
+      if (messagetype == ChatMessageType.CMT_TELL) {
+        sendResponse(PacketCoding.CreateGamePacket(0,AvatarImplantMessage(PlanetSideGUID(player.GUID.guid),recipient.toInt,1,contents.toInt)))
       }
 
       if (messagetype == ChatMessageType.CMT_VOICE) {
@@ -920,7 +1134,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       log.info("ObjectHeld: " + msg)
 
     case msg @ AvatarJumpMessage(state) =>
-      //log.info("AvatarJump: " + msg)
+    //log.info("AvatarJump: " + msg)
 
     case msg @ ZipLineMessage(player_guid,origin_side,action,id,pos) =>
       log.info("ZipLineMessage: " + msg)
@@ -960,7 +1174,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case Some(index) =>
           val indexSlot = player.Slot(index)
           var itemOpt = indexSlot.Equipment //use this to short circuit
-          val item = itemOpt.get
+        val item = itemOpt.get
           val destSlot = player.Slot(dest)
 
           val destItem = if((-1 < dest && dest < 5) || dest == Player.FreeHandSlot) {
@@ -1027,8 +1241,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ ChangeAmmoMessage(item_guid, unk1) =>
       log.info("ChangeAmmo: " + msg)
 
-    case msg @ AvatarImplantMessage(_, _, _, _) => //(player_guid, unk1, unk2, implant) =>
+    case msg @ AvatarImplantMessage(_, action, slot, status) => //(player_guid, unk1, unk2, implant) =>
       log.info("AvatarImplantMessage: " + msg)
+      if (player.Implants(slot).Initialized) {
+        sendResponse(PacketCoding.CreateGamePacket(0,AvatarImplantMessage(PlanetSideGUID(player.GUID.guid),action,slot,status)))
+      }
+
 
     case msg @ UseItemMessage(avatar_guid, unk1, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType) =>
       log.info("UseItem: " + msg)
@@ -1087,12 +1305,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
             }
             sendResponse(PacketCoding.CreateGamePacket(0, UseItemMessage(avatar_guid, unk1, object_guid, 0, unk3, unk4, unk5, unk6, unk7, unk8, itemType)))
             sendResponse(PacketCoding.CreateGamePacket(0, PlanetsideAttributeMessage(avatar_guid, 0, 75))) // avatar with 100 hp
-            //            sendResponse(PacketCoding.CreateGamePacket(0, ObjectDeleteMessage(PlanetSideGUID(unk1), 2)))
+//            sendResponse(PacketCoding.CreateGamePacket(0, ObjectDeleteMessage(PlanetSideGUID(unk1), 2)))
           }
 
         case None => ;
       }
-    
+
     case msg @ UnuseItemMessage(player_guid, item) =>
       log.info("UnuseItem: " + msg)
 

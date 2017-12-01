@@ -37,7 +37,8 @@ abstract class TerminalDefinition(objectId : Int) extends ObjectDefinition(objec
   protected val suits : Map[String, (ExoSuitType.Value, Int)] = Map(
     "standard_issue_armor" -> (ExoSuitType.Standard, 0),
     "lite_armor" -> (ExoSuitType.Agile, 0),
-    "med_armor" -> (ExoSuitType.Reinforced, 0)
+    "med_armor" -> (ExoSuitType.Reinforced, 0),
+    "stealth_armor" -> (ExoSuitType.Infiltration, 0)
     //TODO max and infiltration suit
   )
 
