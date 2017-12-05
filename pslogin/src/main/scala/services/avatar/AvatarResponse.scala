@@ -19,7 +19,7 @@ object AvatarResponse {
   //  final case class LoadMap() extends Response
   final case class ObjectDelete(item_guid : PlanetSideGUID, unk : Int) extends Response
   final case class ObjectHeld(slot : Int) extends Response
-  final case class PlanetSideAttribute(attribute_type : Int, attribute_value : Long) extends Response
+  final case class PlanetsideAttribute(attribute_type : Int, attribute_value : Long) extends Response
   final case class PlayerState(msg : PlayerStateMessageUpstream, spectator : Boolean, weaponInHand : Boolean) extends Response
   final case class Reload(mag : Int) extends Response
   //  final case class PlayerStateShift(itemID : PlanetSideGUID) extends Response

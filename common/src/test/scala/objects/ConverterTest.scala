@@ -149,7 +149,8 @@ class ConverterTest extends Specification {
       val tool = Tool(tdef)
       tool.GUID = PlanetSideGUID(92)
       tool.AmmoSlot.Box.GUID = PlanetSideGUID(90)
-      val obj = Player(PlanetSideGUID(93), "Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
+      val obj = Player("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
+      obj.GUID = PlanetSideGUID(93)
       obj.Slot(2).Equipment = tool
       obj.Slot(5).Equipment.get.GUID = PlanetSideGUID(94)
       obj.Inventory += 8 -> AmmoBox(GlobalDefinitions.bullet_9mm)

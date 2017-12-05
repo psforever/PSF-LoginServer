@@ -59,7 +59,7 @@ class AvatarService extends Actor {
           )
         case AvatarAction.PlanetsideAttribute(guid, attribute_type, attribute_value) =>
           AvatarEvents.publish(
-            AvatarServiceResponse(s"/$forChannel/Avatar", guid, AvatarResponse.PlanetSideAttribute(attribute_type, attribute_value))
+            AvatarServiceResponse(s"/$forChannel/Avatar", guid, AvatarResponse.PlanetsideAttribute(attribute_type, attribute_value))
           )
         case AvatarAction.PlayerState(guid, msg, spectator, weapon) =>
           AvatarEvents.publish(

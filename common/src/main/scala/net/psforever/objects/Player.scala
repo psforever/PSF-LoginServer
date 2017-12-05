@@ -25,7 +25,7 @@ class Player(private val name : String,
   private var maxStamina : Int = 100 //does anything affect this?
 
   private var exosuit : ExoSuitType.Value = ExoSuitType.Standard
-  private val freeHand : EquipmentSlot = new OffhandEquipmentSlot(EquipmentSize.Any)
+  private val freeHand : EquipmentSlot = new OffhandEquipmentSlot(EquipmentSize.Inventory)
   private val holsters : Array[EquipmentSlot] = Array.fill[EquipmentSlot](5)(new EquipmentSlot)
   private val fifthSlot : EquipmentSlot = new OffhandEquipmentSlot(EquipmentSize.Inventory)
   private val inventory : GridInventory = GridInventory()
@@ -59,7 +59,6 @@ class Player(private val name : String,
   private var cloaked : Boolean = false
   private var backpackAccess : Option[PlanetSideGUID] = None
 
-  private var sessionId : Long = 0
   private var admin : Boolean = false
   private var spectator : Boolean = false
 
@@ -498,20 +497,13 @@ class Player(private val name : String,
     isBackpack && (backpackAccess.isEmpty || backpackAccess.contains(player.GUID))
   }
 
-  def SessionId : Long = sessionId
-
   def Admin : Boolean = admin
 
   def Spectator : Boolean = spectator
 
-  def Continent : String = continent
-
   def VehicleSeated : Option[PlanetSideGUID] = vehicleSeated
 
-  def VehicleSeated_=(vehicle : Vehicle) : Option[PlanetSideGUID] = {
-   vehicleSeated = Some(vehicle.GUID)
-    VehicleSeated
-  }
+  def VehicleSeated_=(guid : PlanetSideGUID) : Option[PlanetSideGUID] = VehicleSeated_=(Some(guid))
 
   def VehicleSeated_=(guid : Option[PlanetSideGUID]) : Option[PlanetSideGUID] = {
     vehicleSeated = guid
@@ -520,15 +512,14 @@ class Player(private val name : String,
 
   def VehicleOwned : Option[PlanetSideGUID] = vehicleOwned
 
-  def VehicleOwned_=(vehicle : Vehicle) : Option[PlanetSideGUID] = {
-    vehicleOwned = Some(vehicle.GUID)
-    VehicleOwned
-  }
+  def VehicleOwned_=(guid : PlanetSideGUID) : Option[PlanetSideGUID] = VehicleOwned_=(Some(guid))
 
   def VehicleOwned_=(guid : Option[PlanetSideGUID]) : Option[PlanetSideGUID] = {
     vehicleOwned = guid
     VehicleOwned
   }
+
+  def Continent : String = continent
 
   def Continent_=(zoneId : String) : String = {
     continent = zoneId
@@ -570,27 +561,16 @@ object Player {
     new Player(name, faction, sex, head, voice)
   }
 
-  def apply(guid : PlanetSideGUID, name : String, faction : PlanetSideEmpire.Value, sex : CharacterGender.Value, head : Int, voice : Int) : Player = {
-    val obj = new Player(name, faction, sex, voice, head)
-    obj.GUID = guid
-    obj
-  }
-
-  /**
-    * Change the type of `AvatarDefinition` is used to define the player.
-    * @param player the player
-    * @param avatarDef the player's new definition entry
-    * @return the changed player
-    */
-  def apply(player : Player, avatarDef : AvatarDefinition) : Player = {
-    player.playerDef = avatarDef
-    player
-  }
-
-  def apply(player : Player, sessId : Long) : Player = {
-    player.sessionId = sessId
-    player
-  }
+//  /**
+//    * Change the type of `AvatarDefinition` is used to define the player.
+//    * @param player the player
+//    * @param avatarDef the player's new definition entry
+//    * @return the changed player
+//    */
+//  def apply(player : Player, avatarDef : AvatarDefinition) : Player = {
+//    player.playerDef = avatarDef
+//    player
+//  }
 
   def SuitSetup(player : Player, eSuit : ExoSuitType.Value) : Unit = {
     val esuitDef : ExoSuitDefinition = ExoSuitDefinition.Select(eSuit)
@@ -602,11 +582,6 @@ object Player {
     player.Inventory.Offset = esuitDef.InventoryOffset
     //holsters
     (0 until 5).foreach(index => { player.Slot(index).Size = esuitDef.Holster(index) })
-  }
-
-  def ChangeSessionId(player : Player, session : Long) : Long = {
-    player.sessionId = session
-    player.SessionId
   }
 
   def Administrate(player : Player, isAdmin : Boolean) : Player = {

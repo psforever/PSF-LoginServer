@@ -16,6 +16,14 @@ class NumberPoolTest extends Specification {
       ok
     }
 
+    "fail to construct 1 (number less than zero)" in {
+      new SimplePool(-1 :: Nil) must throwA[IllegalArgumentException]
+    }
+
+    "fail to construct 2 (duplicate numbers)" in {
+      new SimplePool(1 :: 1 :: Nil) must throwA[IllegalArgumentException]
+    }
+
     "get a number" in {
       val obj = new SimplePool((0 to 10).toList)
       obj.Get() match {
@@ -24,6 +32,13 @@ class NumberPoolTest extends Specification {
         case _ =>
           ko
       }
+    }
+
+    "used number count is always zero" in {
+      val obj = new SimplePool((0 to 10).toList)
+      obj.Count mustEqual 0
+      obj.Get()
+      obj.Count mustEqual 0
     }
 
     "return a number" in {

@@ -10,6 +10,21 @@ import net.psforever.objects.GlobalDefinitions._
 import org.specs2.mutable._
 
 class EquipmentTest extends Specification {
+  "EquipmentSize" should {
+    "equal" in {
+      //basic equality
+      EquipmentSize.isEqual(EquipmentSize.Pistol, EquipmentSize.Pistol) mustEqual true
+      EquipmentSize.isEqual(EquipmentSize.Pistol, EquipmentSize.Rifle) mustEqual false
+      //Inventory is always allowed
+      EquipmentSize.isEqual(EquipmentSize.Inventory, EquipmentSize.Rifle) mustEqual true
+      EquipmentSize.isEqual(EquipmentSize.Pistol, EquipmentSize.Inventory) mustEqual true
+      //Blocked is never allowed
+      EquipmentSize.isEqual(EquipmentSize.Blocked, EquipmentSize.Rifle) mustEqual false
+      EquipmentSize.isEqual(EquipmentSize.Pistol, EquipmentSize.Blocked) mustEqual false
+      EquipmentSize.isEqual(EquipmentSize.Blocked, EquipmentSize.Inventory) mustEqual false
+    }
+  }
+
   "AmmoBox" should {
     "define" in {
       val obj = AmmoBoxDefinition(86)
@@ -59,13 +74,13 @@ class EquipmentTest extends Specification {
       obj.Size = EquipmentSize.Rifle
       obj.AmmoTypes += GlobalDefinitions.shotgun_shell
       obj.AmmoTypes += GlobalDefinitions.shotgun_shell_AP
-      obj.FireModes += new FireModeDefinition
+      obj.FireModes += FireModeDefinition()
       obj.FireModes.head.AmmoTypeIndices += 0
       obj.FireModes.head.AmmoTypeIndices += 1
       obj.FireModes.head.AmmoSlotIndex = 0
       obj.FireModes.head.Magazine = 18
       obj.FireModes.head.ResetAmmoIndexOnSwap = true
-      obj.FireModes += new FireModeDefinition
+      obj.FireModes += FireModeDefinition()
       obj.FireModes(1).AmmoTypeIndices += 0
       obj.FireModes(1).AmmoTypeIndices += 1
       obj.FireModes(1).AmmoSlotIndex = 1
