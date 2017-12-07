@@ -2,6 +2,7 @@
 package net.psforever.objects.serverobject.terminals
 
 import net.psforever.objects.Player
+import net.psforever.objects.definition.ImplantDefinition
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.inventory.InventoryItem
 import net.psforever.objects.serverobject.PlanetSideServerObject
@@ -151,7 +152,24 @@ object Terminal {
     */
   final case class SellCertification(cert : CertificationType.Value, cost : Int) extends Exchange
 
+  /**
+    * Provide the implant type unlocked by the player.
+    * @param implant the implant (definition) requested
+    */
+  final case class LearnImplant(implant : ImplantDefinition) extends Exchange
+
+  /**
+    * Provide the implant type freed-up by the player.
+    * @param implant the implant (definition) returned
+    */
+  final case class SellImplant(implant : ImplantDefinition) extends Exchange
+
   import net.psforever.objects.Vehicle
+  /**
+    * Provide a vehicle that was constructed for the player.
+    * @param vehicle the vehicle
+    * @param loadout the vehicle's trunk contents
+    */
   final case class BuyVehicle(vehicle : Vehicle, loadout: List[Any]) extends Exchange
 
   /**

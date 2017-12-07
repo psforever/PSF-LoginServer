@@ -45,16 +45,16 @@ class ZoneActor(zone : Zone) extends Actor {
       }
       catch {
         case _ : Exception =>
-          slog.error(s"expected a door at id $door_guid, but looking for uninitialized object")
+          slog.error(s"expected a door at id $door_guid but no object is initialized")
       }
       try {
         if(!guid(lock_guid).get.isInstanceOf[IFFLock]) {
-          slog.error(s"expected id $lock_guid to be an IFF locks, but it was not")
+          slog.error(s"expected id $lock_guid to be an IFF locks but it was not")
         }
       }
       catch {
         case _ : Exception =>
-          slog.error(s"expected an IFF locks at id $lock_guid, but looking for uninitialized object")
+          slog.error(s"expected an IFF locks at id $lock_guid but no object is initialized")
       }
     })
 
@@ -69,7 +69,7 @@ class ZoneActor(zone : Zone) extends Actor {
       }
       catch {
         case _ : Exception =>
-          slog.error(s"expected a terminal at id $term_guid, but looking for uninitialized object")
+          slog.error(s"expected a terminal at id $term_guid but no object is initialized")
       }
       try {
         if(!guid(pad_guid).get.isInstanceOf[VehicleSpawnPad]) {
@@ -78,7 +78,30 @@ class ZoneActor(zone : Zone) extends Actor {
       }
       catch {
         case _ : Exception =>
-          slog.error(s"expected a spawn pad at id $pad_guid, but looking for uninitialized object")
+          slog.error(s"expected a spawn pad at id $pad_guid but no object is initialized")
+      }
+    })
+
+    //check implant terminal mech to implant terminal interface association
+    import net.psforever.objects.serverobject.implantmech.ImplantTerminalMech
+    map.TerminalToInterface.foreach({case ((mech_guid, interface_guid)) =>
+      try {
+        if(!guid(mech_guid).get.isInstanceOf[ImplantTerminalMech]) {
+          slog.error(s"expected id $mech_guid to be an implant terminal mech, but it was not")
+        }
+      }
+      catch {
+        case _ : Exception =>
+          slog.error(s"expected a implant terminal mech at id $mech_guid but no object is initialized")
+      }
+      try {
+        if(!guid(interface_guid).get.isInstanceOf[Terminal]) { //TODO check is implant terminal
+          slog.error(s"expected id $interface_guid to be an implant terminal interface, but it was not")
+        }
+      }
+      catch {
+        case _ : Exception =>
+          slog.error(s"expected a implant terminal interface at id $interface_guid but no object is initialized")
       }
     })
   }
