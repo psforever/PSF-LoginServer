@@ -15,14 +15,16 @@ import net.psforever.objects.definition.{ImplantDefinition, Stance}
 import net.psforever.objects.equipment._
 import net.psforever.objects.guid.{GUIDTask, Task, TaskResolver}
 import net.psforever.objects.inventory.{GridInventory, InventoryItem}
+import net.psforever.objects.mount.Mountable
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.serverobject.doors.Door
+import net.psforever.objects.serverobject.implantmech.ImplantTerminalMech
 import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
 import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.vehicles.{AccessPermissionGroup, VehicleLockState}
 import net.psforever.objects.zones.{InterstellarCluster, Zone}
-import net.psforever.packet.game.objectcreate._
+import net.psforever.packet.game.objectcreate.{DetailedCharacterData, _}
 import net.psforever.types._
 import org.joda.time.Seconds
 import services._
@@ -344,6 +346,62 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case Door.NoEvent() => ;
       }
 
+    case Mountable.MountMessages(tplayer, reply) =>
+      reply match {
+        case Mountable.CanMount(obj : ImplantTerminalMech, seat_num) =>
+          val player_guid : PlanetSideGUID = tplayer.GUID
+          val obj_guid : PlanetSideGUID = obj.GUID
+          log.info(s"MountVehicleMsg: $player_guid mounts $obj @ $seat_num")
+          tplayer.VehicleSeated = Some(obj_guid)
+          sendResponse(PacketCoding.CreateGamePacket(0, PlanetsideAttributeMessage(obj_guid, 0, 1000L))) //health of mech
+          sendResponse(PacketCoding.CreateGamePacket(0, ObjectAttachMessage(obj_guid, player_guid, seat_num)))
+          vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.MountVehicle(player_guid, obj_guid, seat_num))
+
+        case Mountable.CanMount(obj : Vehicle, seat_num) =>
+          val obj_guid : PlanetSideGUID = obj.GUID
+          val player_guid : PlanetSideGUID = tplayer.GUID
+          log.info(s"MountVehicleMsg: $player_guid mounts $obj_guid @ $seat_num")
+          vehicleService ! VehicleServiceMessage.UnscheduleDeconstruction(obj_guid) //clear all deconstruction timers
+          tplayer.VehicleSeated = Some(obj_guid)
+          if(seat_num == 0) { //simplistic vehicle ownership management
+            obj.Owner match {
+              case Some(owner_guid) =>
+                continent.GUID(owner_guid) match {
+                  case Some(previous_owner : Player) =>
+                    if(previous_owner.VehicleOwned.contains(obj_guid)) {
+                      previous_owner.VehicleOwned = None //simplistic ownership management, player loses vehicle ownership
+                    }
+                  case _ => ;
+                }
+              case None => ;
+            }
+            tplayer.VehicleOwned = Some(obj_guid)
+            obj.Owner = Some(player_guid)
+          }
+          obj.WeaponControlledFromSeat(seat_num) match {
+            case Some(weapon : Tool) =>
+              //update mounted weapon belonging to seat
+              val magazine = weapon.AmmoSlots(weapon.FireModeIndex).Box //update the magazine in the weapon, specifically
+              sendResponse(PacketCoding.CreateGamePacket(0, InventoryStateMessage(magazine.GUID, 0, weapon.GUID, weapon.Magazine.toLong)))
+              //update all related ammunition objects in trunk
+              obj.Trunk.Items
+                .filter({ case ((_, item)) => item.obj.isInstanceOf[AmmoBox] && item.obj.asInstanceOf[AmmoBox].AmmoType == weapon.AmmoType })
+                .foreach({ case ((_, item)) =>
+                  val box = item.obj.asInstanceOf[AmmoBox]
+                  sendResponse(PacketCoding.CreateGamePacket(0, InventoryStateMessage(box.GUID, 0, obj_guid, box.Capacity.toLong)))
+                })
+            case _ => ; //no weapons to update
+          }
+          sendResponse(PacketCoding.CreateGamePacket(0, ObjectAttachMessage(obj_guid, player_guid, seat_num)))
+          vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.MountVehicle(player_guid, obj_guid, seat_num))
+
+        case Mountable.CanMount(obj : Mountable, seat_num) =>
+          log.warn(s"MountVehicleMsg: $obj is some generic mountable object and nothing will happen")
+
+        case Mountable.CanNotMount(obj, seat_num) =>
+          log.warn(s"MountVehicleMsg: $tplayer attempted to mount $obj's seat $seat_num, but was not allowed")
+      }
+
     case Terminal.TerminalMessage(tplayer, msg, order) =>
       order match {
         case Terminal.BuyExosuit(exosuit, subtype) =>
@@ -547,6 +605,84 @@ class WorldSessionActor extends Actor with MDCContextAware {
             sendResponse(PacketCoding.CreateGamePacket(0, ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Learn, false)))
           }
 
+        case Terminal.LearnImplant(implant) =>
+          val terminal_guid = msg.terminal_guid
+          val implant_type = implant.Type
+          val message = s"Implants: $tplayer wants to learn $implant_type"
+          val (interface, slotNumber) = tplayer.VehicleSeated match {
+            case Some(mech_guid) =>
+              (
+                continent.Map.TerminalToInterface.get(mech_guid.guid),
+                if(!tplayer.Implants.exists({slot => slot.Implant == implant_type})) { //no duplicates
+                  tplayer.InstallImplant(implant)
+                }
+                else {
+                  None
+                }
+              )
+            case _ =>
+              (None, None)
+          }
+
+          if(interface.contains(terminal_guid.guid) && slotNumber.isDefined) {
+            val slot = slotNumber.get
+            log.info(s"$message - put in slot $slot")
+            sendResponse(PacketCoding.CreateGamePacket(0, AvatarImplantMessage(tplayer.GUID, 0, slot, implant_type.id)))
+            sendResponse(PacketCoding.CreateGamePacket(0, ItemTransactionResultMessage(terminal_guid, TransactionType.Learn, true)))
+          }
+          else {
+            if(interface.isEmpty) {
+              log.warn(s"$message - not interacting with a terminal")
+            }
+            else if(!interface.contains(terminal_guid.guid)) {
+              log.warn(s"$message - interacting with the wrong terminal, ${interface.get}")
+            }
+            else if(slotNumber.isEmpty) {
+              log.warn(s"$message - already knows that implant")
+            }
+            else {
+              log.warn(s"$message - forgot to sit at a terminal")
+            }
+            sendResponse(PacketCoding.CreateGamePacket(0, ItemTransactionResultMessage(terminal_guid, TransactionType.Learn, false)))
+          }
+
+        case Terminal.SellImplant(implant) =>
+          val terminal_guid = msg.terminal_guid
+          val implant_type = implant.Type
+          val (interface, slotNumber) = tplayer.VehicleSeated match {
+            case Some(mech_guid) =>
+              (
+                continent.Map.TerminalToInterface.get(mech_guid.guid),
+                tplayer.UninstallImplant(implant_type)
+              )
+            case None =>
+              (None, None)
+          }
+
+          if(interface.contains(terminal_guid.guid) && slotNumber.isDefined) {
+            val slot = slotNumber.get
+            log.info(s"$tplayer is selling $implant_type - take from slot $slot")
+            sendResponse(PacketCoding.CreateGamePacket(0, AvatarImplantMessage(tplayer.GUID, 1, slot, 0)))
+            sendResponse(PacketCoding.CreateGamePacket(0, ItemTransactionResultMessage(terminal_guid, TransactionType.Sell, true)))
+          }
+          else {
+            val message = s"$tplayer can not sell $implant_type"
+            if(interface.isEmpty) {
+              log.warn(s"$message - not interacting with a terminal")
+            }
+            else if(!interface.contains(terminal_guid.guid)) {
+              log.warn(s"$message - interacting with the wrong terminal, ${interface.get}")
+            }
+            else if(slotNumber.isEmpty) {
+              log.warn(s"$message - does not know that implant")
+            }
+            else {
+              log.warn(s"$message - forgot to sit at a terminal")
+            }
+            sendResponse(PacketCoding.CreateGamePacket(0, ItemTransactionResultMessage(terminal_guid, TransactionType.Sell, false)))
+          }
+
+
         case Terminal.BuyVehicle(vehicle, loadout) =>
           continent.Map.TerminalToSpawnPad.get(msg.terminal_guid.guid) match {
             case Some(pad_guid) =>
@@ -563,52 +699,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case Terminal.NoDeal() =>
           log.warn(s"$tplayer made a request but the terminal rejected the order $msg")
           sendResponse(PacketCoding.CreateGamePacket(0, ItemTransactionResultMessage(msg.terminal_guid, msg.transaction_type, false)))
-      }
-
-    case Vehicle.VehicleMessages(tplayer, reply) =>
-      reply match {
-        case Vehicle.CanSeatPlayer(vehicle, seat_num) =>
-          log.info(s"MountVehicleMsg: ${player.GUID} mounts ${vehicle.GUID} @ $seat_num")
-          vehicleService ! VehicleServiceMessage.UnscheduleDeconstruction(vehicle.GUID) //clear all deconstruction timers
-          val vehicle_guid : PlanetSideGUID = vehicle.GUID
-          tplayer.VehicleSeated = Some(vehicle_guid)
-          if(seat_num == 0) { //simplistic vehicle ownership management
-            vehicle.Owner match {
-              case Some(owner_guid) =>
-                continent.GUID(owner_guid) match {
-                  case Some(previous_owner : Player) =>
-                    if(previous_owner.VehicleOwned.contains(vehicle_guid)) {
-                      previous_owner.VehicleOwned = None //simplistic ownership management, player loses vehicle ownership
-                    }
-                  case _ => ;
-                }
-              case None => ;
-            }
-            player.VehicleOwned = Some(vehicle_guid)
-            vehicle.Owner = Some(player.GUID)
-          }
-          vehicle.WeaponControlledFromSeat(seat_num) match {
-            case Some(weapon : Tool) =>
-              //update mounted weapon belonging to seat
-              val magazine = weapon.AmmoSlots(weapon.FireModeIndex).Box //update the magazine in the weapon, specifically
-              sendResponse(PacketCoding.CreateGamePacket(0, InventoryStateMessage(magazine.GUID, 0, weapon.GUID, weapon.Magazine.toLong)))
-              //update all related ammunition objects in trunk
-              vehicle.Trunk.Items
-                .filter({ case ((_, item)) => item.obj.isInstanceOf[AmmoBox] && item.obj.asInstanceOf[AmmoBox].AmmoType == weapon.AmmoType })
-                .foreach({ case ((_, item)) =>
-                  val box = item.obj.asInstanceOf[AmmoBox]
-                  sendResponse(PacketCoding.CreateGamePacket(0, InventoryStateMessage(box.GUID, 0, vehicle_guid, box.Capacity.toLong)))
-                })
-            case _ => ; //no weapons to update
-          }
-          val player_guid : PlanetSideGUID = tplayer.GUID
-          sendResponse(PacketCoding.CreateGamePacket(0, ObjectAttachMessage(vehicle_guid, player_guid, seat_num)))
-          vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.MountVehicle(player_guid, vehicle_guid, seat_num))
-
-        case Vehicle.CannotSeatPlayer(vehicle, seat_num) =>
-          log.warn(s"MountVehicleMsg: player $tplayer attempted to board vehicle ${vehicle.GUID}'s seat $seat_num, but was not allowed")
-
-        case _ => ;
       }
 
     case VehicleSpawnPad.ConcealPlayer =>
@@ -629,7 +719,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       //sendResponse(PacketCoding.CreateGamePacket(0, ObjectAttachMessage(vehicle_guid, player_guid, 0)))
       vehicleService ! VehicleServiceMessage.UnscheduleDeconstruction(vehicle_guid) //cancel queue timeout delay
       vehicleService ! VehicleServiceMessage.DelayedVehicleDeconstruction(vehicle, continent, 21L) //temporary drive away from pad delay
-      vehicle.Actor ! Vehicle.TrySeatPlayer(0, player)
+      vehicle.Actor ! Mountable.TryMount(player, 0)
 
     case VehicleSpawnPad.PlayerSeatedInVehicle(vehicle) =>
       vehicleService ! VehicleServiceMessage.DelayedVehicleDeconstruction(vehicle, continent, 21L) //sitting in the vehicle clears the drive away delay
@@ -984,7 +1074,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
       player.Certifications += CertificationType.AirSupport
       player.Certifications += CertificationType.GalaxyGunship
       player.Certifications += CertificationType.Phantasm
-      //player.ExoSuit = ExoSuitType.Infiltrator
+      AwardBattleExperiencePoints(player, 1000000L)
+//      player.ExoSuit = ExoSuitType.MAX //TODO strange issue; divide number above by 10 when uncommenting
       player.Slot(0).Equipment = Tool(beamer)
       player.Slot(2).Equipment = Tool(suppressor)
       player.Slot(4).Equipment = Tool(forceblade)
@@ -997,7 +1088,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
       player.Slot(5).Equipment.get.asInstanceOf[LockerContainer].Inventory += 0 -> SimpleItem(remote_electronics_kit)
       //TODO end temp player character auto-loading
       self ! ListAccountCharacters
-
       import scala.concurrent.duration._
       import scala.concurrent.ExecutionContext.Implicits.global
       clientKeepAlive.cancel
@@ -1259,24 +1349,57 @@ class WorldSessionActor extends Actor with MDCContextAware {
       //load active vehicles in zone
       continent.Vehicles.foreach(vehicle => {
         val definition = vehicle.Definition
-        sendResponse(
-          PacketCoding.CreateGamePacket(0,
-            ObjectCreateMessage(
-              definition.ObjectId,
-              vehicle.GUID,
-              definition.Packet.ConstructorData(vehicle).get
-            )
+        sendResponse(PacketCoding.CreateGamePacket(0,
+          ObjectCreateMessage(
+            definition.ObjectId,
+            vehicle.GUID,
+            definition.Packet.ConstructorData(vehicle).get
           )
-        )
+        ))
         //seat vehicle occupants
         vehicle.Definition.MountPoints.values.foreach(seat_num => {
           vehicle.Seat(seat_num).get.Occupant match {
             case Some(tplayer) =>
-              sendResponse(PacketCoding.CreateGamePacket(0, ObjectAttachMessage(vehicle.GUID, tplayer.GUID, seat_num)))
+              if(tplayer.HasGUID) {
+                sendResponse(PacketCoding.CreateGamePacket(0, ObjectAttachMessage(vehicle.GUID, tplayer.GUID, seat_num)))
+              }
             case None => ;
           }
         })
         ReloadVehicleAccessPermissions(vehicle)
+      })
+      //implant terminals
+      continent.Map.TerminalToInterface.foreach({ case((terminal_guid, interface_guid)) =>
+        val parent_guid = PlanetSideGUID(terminal_guid)
+        continent.GUID(interface_guid) match {
+          case Some(obj : Terminal) =>
+            val obj_def = obj.Definition
+            val obj_uid = obj_def.ObjectId
+            val obj_data = obj_def.Packet.ConstructorData(obj).get
+            sendResponse(PacketCoding.CreateGamePacket(0,
+              ObjectCreateMessage(
+                obj_uid,
+                PlanetSideGUID(interface_guid),
+                ObjectCreateMessageParent(parent_guid, 1),
+                obj_data
+              )
+            ))
+          case _ => ;
+        }
+        //seat terminal occupants
+        continent.GUID(terminal_guid) match {
+          case Some(obj : Mountable) =>
+            obj.MountPoints.foreach({ case((_, seat_num)) =>
+              obj.Seat(seat_num).get.Occupant match {
+                case Some(tplayer) =>
+                  if(tplayer.HasGUID) {
+                    sendResponse(PacketCoding.CreateGamePacket(0, ObjectAttachMessage(parent_guid, tplayer.GUID, seat_num)))
+                  }
+                case None => ;
+              }
+            })
+          case _ => ;
+        }
       })
       avatarService ! Service.Join(player.Continent)
       localService ! Service.Join(player.Continent)
@@ -1727,18 +1850,18 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ WarpgateRequest(continent_guid, building_guid, dest_building_guid, dest_continent_guid, unk1, unk2) =>
       log.info("WarpgateRequest: " + msg)
 
-    case msg @ MountVehicleMsg(player_guid, vehicle_guid, unk) =>
-      //log.info("MountVehicleMsg: "+msg)
-      continent.GUID(vehicle_guid) match {
-        case Some(obj : Vehicle) =>
+    case msg @ MountVehicleMsg(player_guid, mountable_guid, unk) =>
+      log.info("MountVehicleMsg: "+msg)
+      continent.GUID(mountable_guid) match {
+        case Some(obj : Mountable) =>
           obj.GetSeatFromMountPoint(unk) match {
             case Some(seat_num) =>
-              obj.Actor ! Vehicle.TrySeatPlayer(seat_num, player)
+              obj.Actor ! Mountable.TryMount(player, seat_num)
             case None =>
-              log.warn(s"MountVehicleMsg: attempted to board vehicle $vehicle_guid's seat $unk, but no seat exists there")
+              log.warn(s"MountVehicleMsg: attempted to board mountable $mountable_guid's seat $unk, but no seat exists there")
           }
         case None | Some(_) =>
-          log.warn(s"MountVehicleMsg: not a vehicle")
+          log.warn(s"MountVehicleMsg: not a mountable thing")
       }
 
     case msg @ DismountVehicleMsg(player_guid, unk1, unk2) =>
@@ -1747,31 +1870,37 @@ class WorldSessionActor extends Actor with MDCContextAware {
       if(player.GUID == player_guid) {
         //common warning for this section
         def dismountWarning(msg : String) : Unit = {
-          log.warn(s"$msg; a vehicle may not know that a player is no longer sitting it in")
+          log.warn(s"$msg; some vehicle might not know that a player is no longer sitting in it")
         }
         //normally disembarking from a seat
         player.VehicleSeated match {
-          case Some(vehicle_guid) =>
-            continent.GUID(vehicle_guid) match {
-              case Some(obj : Vehicle) =>
-                obj.Seats.find(seat => seat.Occupant.contains(player)) match {
+          case Some(obj_guid) =>
+            continent.GUID(obj_guid) match {
+              case Some(obj : Mountable) =>
+                val seats = obj.Seats.values
+                seats.find(seat => seat.Occupant.contains(player)) match {
                   case Some(seat) =>
                     val vel = obj.Velocity.getOrElse(Vector3(0f, 0f, 0f))
                     val has_vel : Int = math.abs(vel.x * vel.y * vel.z).toInt
                     if(seat.Bailable || obj.Velocity.isEmpty || has_vel == 0) { //ugh, float comparison
                       seat.Occupant = None
-                      if(obj.Seats.count(seat => seat.isOccupied) == 0) {
-                        vehicleService ! VehicleServiceMessage.DelayedVehicleDeconstruction(obj, continent, 600L) //start vehicle decay (10m)
+                      //special actions
+                      obj match {
+                        case (veh : Vehicle) =>
+                          if(seats.count(seat => seat.isOccupied) == 0) {
+                            vehicleService ! VehicleServiceMessage.DelayedVehicleDeconstruction(veh, continent, 600L) //start vehicle decay (10m)
+                          }
+                        case _ => ;
                       }
                     }
                   case None =>
-                    dismountWarning(s"DismountVehicleMsg: can not find where player $player_guid is seated in vehicle $vehicle_guid")
+                    dismountWarning(s"DismountVehicleMsg: can not find where player $player_guid is seated in mountable $obj_guid")
                 }
               case _ =>
-                dismountWarning(s"DismountVehicleMsg: can not find vehicle $vehicle_guid")
+                dismountWarning(s"DismountVehicleMsg: can not find mountable entity $obj_guid")
             }
           case None =>
-            dismountWarning(s"DismountVehicleMsg: player $player_guid not considered seated in a vehicle")
+            dismountWarning(s"DismountVehicleMsg: player $player_guid not considered seated in a mountable entity")
         }
         //should be safe
         player.VehicleSeated = None
@@ -1787,12 +1916,13 @@ class WorldSessionActor extends Actor with MDCContextAware {
                 if(tplayer.VehicleSeated.contains(vehicle_guid)) {
                   continent.GUID(vehicle_guid) match {
                     case Some(obj : Vehicle) =>
-                      obj.Seats.find(seat => seat.Occupant.contains(tplayer)) match {
+                      val seats = obj.Seats.values
+                      seats.find(seat => seat.Occupant.contains(tplayer)) match {
                         case Some(seat) =>
                           seat.Occupant = None
                           tplayer.VehicleSeated = None
                           vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.KickPassenger(player_guid, unk1, unk2))
-                          if(obj.Seats.count(seat => seat.isOccupied) == 0) {
+                          if(seats.count(seat => seat.isOccupied) == 0) {
                             vehicleService ! VehicleServiceMessage.DelayedVehicleDeconstruction(obj, continent, 600L) //start vehicle decay (10m)
                           }
                         case None =>
@@ -2286,6 +2416,34 @@ class WorldSessionActor extends Actor with MDCContextAware {
         PlanetsideAttributeMessage(vehicle_guid, group + 10, vehicle.PermissionGroup(group).get.id.toLong)
       ))
     })
+  }
+
+  /**
+    * Gives a target player positive battle experience points only.
+    * If the player has access to more implant slots as a result of changing battle experience points, unlock those slots.
+    * @param tplayer the player
+    * @param bep the change in experience points, positive by assertion
+    * @return the player's current battle experience points
+    */
+  def AwardBattleExperiencePoints(tplayer : Player, bep : Long) : Long = {
+    val oldBep = tplayer.BEP
+    if(bep <= 0) {
+      log.error(s"trying to set $bep battle experience points on $tplayer; value can not be negative")
+      oldBep
+    }
+    else {
+      val oldSlots = DetailedCharacterData.numberOfImplantSlots(oldBep)
+      val newBep = oldBep + bep
+      val newSlots = DetailedCharacterData.numberOfImplantSlots(newBep)
+      tplayer.BEP = newBep
+      if(newSlots > oldSlots) {
+        (oldSlots until newSlots).foreach(slotNumber => {
+          tplayer.Implants(slotNumber).Unlocked = true
+          log.info(s"unlocking implant slot $slotNumber for $tplayer")
+        })
+      }
+      newBep
+    }
   }
 
   def failWithError(error : String) = {

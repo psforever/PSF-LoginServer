@@ -44,6 +44,24 @@ class ZoneTest extends Specification {
       map.DoorToLock(3, 4)
       map.DoorToLock mustEqual Map(1 -> 2, 3 -> 4)
     }
+
+    "associates terminals to spawn pads (doesn't check numbers)" in {
+      val map = new ZoneMap("map13")
+      map.TerminalToSpawnPad mustEqual Map.empty
+      map.TerminalToSpawnPad(1, 2)
+      map.TerminalToSpawnPad mustEqual Map(1 -> 2)
+      map.TerminalToSpawnPad(3, 4)
+      map.TerminalToSpawnPad mustEqual Map(1 -> 2, 3 -> 4)
+    }
+
+    "associates mechanical components to implant terminals (doesn't check numbers)" in {
+      val map = new ZoneMap("map13")
+      map.TerminalToInterface mustEqual Map.empty
+      map.TerminalToInterface(1, 2)
+      map.TerminalToInterface mustEqual Map(1 -> 2)
+      map.TerminalToInterface(3, 4)
+      map.TerminalToInterface mustEqual Map(1 -> 2, 3 -> 4)
+    }
   }
 
   val map13 = new ZoneMap("map13")

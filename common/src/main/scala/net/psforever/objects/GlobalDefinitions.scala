@@ -7,6 +7,7 @@ import net.psforever.objects.serverobject.doors.DoorDefinition
 import net.psforever.objects.equipment.CItem.DeployedItem
 import net.psforever.objects.equipment._
 import net.psforever.objects.inventory.InventoryTile
+import net.psforever.objects.serverobject.implantmech.ImplantTerminalMechDefinition
 import net.psforever.objects.serverobject.locks.IFFLockDefinition
 import net.psforever.objects.serverobject.terminals._
 import net.psforever.objects.vehicles.SeatArmorRestriction
@@ -466,6 +467,10 @@ object GlobalDefinitions {
   val order_terminal = new OrderTerminalDefinition
 
   val cert_terminal = new CertTerminalDefinition
+
+  val implant_terminal_mech = new ImplantTerminalMechDefinition
+
+  val implant_terminal_interface = new ImplantTerminalInterfaceDefinition
 
   val ground_vehicle_terminal = new GroundVehicleTerminalDefinition
 

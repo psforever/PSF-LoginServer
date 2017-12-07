@@ -14,7 +14,7 @@ import com.typesafe.config.ConfigFactory
 import net.psforever.crypto.CryptoInterface
 import net.psforever.objects.zones._
 import net.psforever.objects.guid.TaskResolver
-import net.psforever.objects.serverobject.builders.{DoorObjectBuilder, IFFLockObjectBuilder, TerminalObjectBuilder, VehicleSpawnPadObjectBuilder}
+import net.psforever.objects.serverobject.builders._
 import net.psforever.types.Vector3
 import org.slf4j
 import org.fusesource.jansi.Ansi._
@@ -233,10 +233,29 @@ object PsLogin {
 
       LocalObject(DoorObjectBuilder(door, 330))
       LocalObject(DoorObjectBuilder(door, 332))
+      LocalObject(DoorObjectBuilder(door, 362))
       LocalObject(DoorObjectBuilder(door, 370))
       LocalObject(DoorObjectBuilder(door, 371))
       LocalObject(DoorObjectBuilder(door, 372))
       LocalObject(DoorObjectBuilder(door, 373))
+      LocalObject(DoorObjectBuilder(door, 374))
+      LocalObject(DoorObjectBuilder(door, 375))
+      LocalObject(DoorObjectBuilder(door, 394))
+      LocalObject(DoorObjectBuilder(door, 395))
+      LocalObject(DoorObjectBuilder(door, 396))
+      LocalObject(DoorObjectBuilder(door, 397))
+      LocalObject(DoorObjectBuilder(door, 398))
+      LocalObject(DoorObjectBuilder(door, 462))
+      LocalObject(DoorObjectBuilder(door, 463))
+      LocalObject(ImplantTerminalMechObjectBuilder(implant_terminal_mech, 520)) //Hart B
+      LocalObject(ImplantTerminalMechObjectBuilder(implant_terminal_mech, 522)) //Hart C
+      LocalObject(ImplantTerminalMechObjectBuilder(implant_terminal_mech, 523)) //Hart C
+      LocalObject(ImplantTerminalMechObjectBuilder(implant_terminal_mech, 524)) //Hart C
+      LocalObject(ImplantTerminalMechObjectBuilder(implant_terminal_mech, 525)) //Hart C
+      LocalObject(ImplantTerminalMechObjectBuilder(implant_terminal_mech, 526)) //Hart C
+      LocalObject(ImplantTerminalMechObjectBuilder(implant_terminal_mech, 527)) //Hart C
+      LocalObject(ImplantTerminalMechObjectBuilder(implant_terminal_mech, 528)) //Hart C
+      LocalObject(ImplantTerminalMechObjectBuilder(implant_terminal_mech, 529)) //Hart C
       LocalObject(IFFLockObjectBuilder(lock_external, 556))
       LocalObject(IFFLockObjectBuilder(lock_external, 558))
       LocalObject(TerminalObjectBuilder(cert_terminal, 186))
@@ -245,6 +264,15 @@ object PsLogin {
       LocalObject(TerminalObjectBuilder(order_terminal, 853))
       LocalObject(TerminalObjectBuilder(order_terminal, 855))
       LocalObject(TerminalObjectBuilder(order_terminal, 860))
+      LocalObject(TerminalObjectBuilder(implant_terminal_interface, 1081)) //tube 520
+      LocalObject(TerminalObjectBuilder(implant_terminal_interface, 1082)) //TODO guid not correct
+      LocalObject(TerminalObjectBuilder(implant_terminal_interface, 1083)) //TODO guid not correct
+      LocalObject(TerminalObjectBuilder(implant_terminal_interface, 1084)) //TODO guid not correct
+      LocalObject(TerminalObjectBuilder(implant_terminal_interface, 1085)) //TODO guid not correct
+      LocalObject(TerminalObjectBuilder(implant_terminal_interface, 1086)) //TODO guid not correct
+      LocalObject(TerminalObjectBuilder(implant_terminal_interface, 1087)) //TODO guid not correct
+      LocalObject(TerminalObjectBuilder(implant_terminal_interface, 1088)) //TODO guid not correct
+      LocalObject(TerminalObjectBuilder(implant_terminal_interface, 1089)) //TODO guid not correct
       LocalObject(TerminalObjectBuilder(ground_vehicle_terminal, 1063))
       LocalObject(VehicleSpawnPadObjectBuilder(spawn_pad, 500)) //TODO guid not correct
       LocalObject(TerminalObjectBuilder(dropship_vehicle_terminal, 304))
@@ -254,16 +282,36 @@ object PsLogin {
 
       ObjectToBase(330, 29)
       ObjectToBase(332, 29)
+      //ObjectToBase(520, 29)
+      ObjectToBase(522, 29)
+      ObjectToBase(523, 29)
+      ObjectToBase(524, 29)
+      ObjectToBase(525, 29)
+      ObjectToBase(526, 29)
+      ObjectToBase(527, 29)
+      ObjectToBase(528, 29)
+      ObjectToBase(529, 29)
       ObjectToBase(556, 29)
       ObjectToBase(558, 29)
-      ObjectToBase(1063, 29) //TODO unowned courtyard terminal?
-      ObjectToBase(500, 29) //TODO unowned courtyard spawnpad?
-      ObjectToBase(304, 29) //TODO unowned courtyard terminal?
-      ObjectToBase(501, 29) //TODO unowned courtyard spawnpad?
+      ObjectToBase(1081, 29)
+      ObjectToBase(1063, 2) //TODO unowned courtyard terminal?
+      ObjectToBase(500, 2) //TODO unowned courtyard spawnpad?
+      ObjectToBase(304, 2) //TODO unowned courtyard terminal?
+      ObjectToBase(501, 2) //TODO unowned courtyard spawnpad?
+
       DoorToLock(330, 558)
       DoorToLock(332, 556)
       TerminalToSpawnPad(1063, 500)
       TerminalToSpawnPad(304, 501)
+      TerminalToInterface(520, 1081)
+      TerminalToInterface(522, 1082)
+      TerminalToInterface(523, 1083)
+      TerminalToInterface(524, 1084)
+      TerminalToInterface(525, 1085)
+      TerminalToInterface(526, 1086)
+      TerminalToInterface(527, 1087)
+      TerminalToInterface(528, 1088)
+      TerminalToInterface(529, 1089)
     }
     val home3 = new Zone("home3", map13, 13) {
       override def Init(implicit context : ActorContext) : Unit = {

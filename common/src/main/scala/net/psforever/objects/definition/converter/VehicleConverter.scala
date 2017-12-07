@@ -9,7 +9,8 @@ import net.psforever.packet.game.objectcreate.{InventoryItemData, _}
 import scala.util.{Failure, Success, Try}
 
 class VehicleConverter extends ObjectCreateConverter[Vehicle]() {
-  override def DetailedConstructorData(obj : Vehicle) : Try[VehicleData] = Failure(new Exception("VehicleConverter should not be used to generate detailed VehicleData"))
+  override def DetailedConstructorData(obj : Vehicle) : Try[VehicleData] =
+    Failure(new Exception("VehicleConverter should not be used to generate detailed VehicleData"))
 
   override def ConstructorData(obj : Vehicle) : Try[VehicleData] = {
     Success(

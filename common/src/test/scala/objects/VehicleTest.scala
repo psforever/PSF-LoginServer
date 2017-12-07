@@ -128,11 +128,11 @@ class VehicleTest extends Specification {
       val fury_vehicle = Vehicle(GlobalDefinitions.fury)
       fury_vehicle.Owner mustEqual None
       fury_vehicle.Seats.size mustEqual 1
-      fury_vehicle.Seats.head.ArmorRestriction mustEqual SeatArmorRestriction.NoMax
-      fury_vehicle.Seats.head.isOccupied mustEqual false
-      fury_vehicle.Seats.head.Occupant mustEqual None
-      fury_vehicle.Seats.head.Bailable mustEqual true
-      fury_vehicle.Seats.head.ControlledWeapon mustEqual Some(1)
+      fury_vehicle.Seats(0).ArmorRestriction mustEqual SeatArmorRestriction.NoMax
+      fury_vehicle.Seats(0).isOccupied mustEqual false
+      fury_vehicle.Seats(0).Occupant mustEqual None
+      fury_vehicle.Seats(0).Bailable mustEqual true
+      fury_vehicle.Seats(0).ControlledWeapon mustEqual Some(1)
       fury_vehicle.PermissionGroup(0) mustEqual Some(VehicleLockState.Locked) //driver
       fury_vehicle.PermissionGroup(1) mustEqual Some(VehicleLockState.Empire) //gunner
       fury_vehicle.PermissionGroup(2) mustEqual Some(VehicleLockState.Empire) //passenger
