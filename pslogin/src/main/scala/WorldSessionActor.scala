@@ -1011,26 +1011,26 @@ class WorldSessionActor extends Actor with MDCContextAware {
     }
   }
 
-  val sample = new ImplantDefinition(1)
-  sample.Initialization = 60 //1:00
-  sample.Passive = true
-
-  val sample2 = new ImplantDefinition(9)
-  sample2.Initialization = 90 //1:30
+  val sample = new ImplantDefinition(9)
+  sample.Initialization = 90 //1:30
+  sample.DurationChargeBase = 1
+  sample.DurationChargeByExoSuit += ExoSuitType.Agile -> 2
+  sample.DurationChargeByExoSuit += ExoSuitType.Reinforced -> 2
+  sample.DurationChargeByExoSuit += ExoSuitType.Standard -> 1
+  sample.DurationChargeByStance += Stance.Running -> 1
+  val sample2 = new ImplantDefinition(3)
+  sample2.Initialization = 60 //1:00
+  sample2.ActivationCharge = 3
   sample2.DurationChargeBase = 1
   sample2.DurationChargeByExoSuit += ExoSuitType.Agile -> 2
   sample2.DurationChargeByExoSuit += ExoSuitType.Reinforced -> 2
   sample2.DurationChargeByExoSuit += ExoSuitType.Standard -> 1
+  sample2.DurationChargeByExoSuit += ExoSuitType.Infiltration -> 1
   sample2.DurationChargeByStance += Stance.Running -> 1
-  val sample3 = new ImplantDefinition(3)
+
+  val sample3 = new ImplantDefinition(1)
   sample3.Initialization = 60 //1:00
-  sample3.ActivationCharge = 3
-  sample3.DurationChargeBase = 1
-  sample3.DurationChargeByExoSuit += ExoSuitType.Agile -> 2
-  sample3.DurationChargeByExoSuit += ExoSuitType.Reinforced -> 2
-  sample3.DurationChargeByExoSuit += ExoSuitType.Standard -> 1
-  sample3.DurationChargeByExoSuit += ExoSuitType.Infiltration -> 1
-  sample3.DurationChargeByStance += Stance.Running -> 1
+  sample3.Passive = true
 
 //  player.Implants(0).Unlocked = true
 //  player.Implants(0).Implant = sample
@@ -1128,7 +1128,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         player.Certifications += CertificationType.AirSupport
         player.Certifications += CertificationType.GalaxyGunship
         player.Certifications += CertificationType.Phantasm
-        player.BEP = 2583440
+        AwardBattleExperiencePoints(player, 2583440L)
         player.CEP = 600000
         if(empire == PlanetSideEmpire.TR) {
           player.Slot(0).Equipment = Tool(repeater)
@@ -1200,7 +1200,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             player.Certifications += CertificationType.AirSupport
             player.Certifications += CertificationType.GalaxyGunship
             player.Certifications += CertificationType.Phantasm
-            player.BEP = 197754
+            AwardBattleExperiencePoints(player, 197754L)
             player.Slot(0).Equipment = Tool(repeater)
             player.Slot(2).Equipment = Tool(suppressor)
             player.Slot(4).Equipment = Tool(chainblade)
@@ -1242,7 +1242,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             player.Certifications += CertificationType.AirSupport
             player.Certifications += CertificationType.GalaxyGunship
             player.Certifications += CertificationType.Phantasm
-            player.BEP = 197754
+            AwardBattleExperiencePoints(player, 197754L)
             player.Slot(0).Equipment = Tool(isp)
             player.Slot(2).Equipment = Tool(suppressor)
             player.Slot(4).Equipment = Tool(magcutter)
@@ -1284,7 +1284,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             player.Certifications += CertificationType.AirSupport
             player.Certifications += CertificationType.GalaxyGunship
             player.Certifications += CertificationType.Phantasm
-            player.BEP = 197754
+            AwardBattleExperiencePoints(player, 197754L)
             player.Slot(0).Equipment = Tool(beamer)
             player.Slot(2).Equipment = Tool(suppressor)
             player.Slot(4).Equipment = Tool(forceblade)
