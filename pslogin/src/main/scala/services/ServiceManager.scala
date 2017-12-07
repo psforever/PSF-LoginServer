@@ -1,3 +1,5 @@
+package services
+
 // Copyright (c) 2017 PSForever
 import akka.actor.{Actor, ActorIdentity, ActorRef, ActorSystem, Identify, Props}
 

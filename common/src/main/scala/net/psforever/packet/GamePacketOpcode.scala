@@ -420,7 +420,7 @@ object GamePacketOpcode extends Enumeration {
     case 0x53 => noDecoder(DroppodLaunchRequestMessage)
     case 0x54 => game.HackMessage.decode
     case 0x55 => noDecoder(DroppodLaunchResponseMessage)
-    case 0x56 => noDecoder(GenericObjectActionMessage)
+    case 0x56 => game.GenericObjectActionMessage.decode
     case 0x57 => game.AvatarVehicleTimerMessage.decode
     // 0x58
     case 0x58 => game.AvatarImplantMessage.decode

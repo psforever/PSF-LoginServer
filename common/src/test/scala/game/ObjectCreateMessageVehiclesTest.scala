@@ -38,13 +38,13 @@ class ObjectCreateMessageVehiclesTest extends Specification {
         fury.basic.pos.orient.z mustEqual 357.1875f
         fury.basic.pos.vel.isDefined mustEqual false
         fury.basic.faction mustEqual PlanetSideEmpire.VS
-        fury.basic.unk mustEqual 4
+        fury.basic.unk mustEqual 2
         fury.basic.player_guid mustEqual PlanetSideGUID(0)
         fury.health mustEqual 255
         //
-        fury.mountings.isDefined mustEqual true
-        fury.mountings.get.size mustEqual 1
-        val mounting = fury.mountings.get.head
+        fury.inventory.isDefined mustEqual true
+        fury.inventory.get.contents.size mustEqual 1
+        val mounting = fury.inventory.get.contents.head
         mounting.objectClass mustEqual ObjectClass.fury_weapon_systema
         mounting.guid mustEqual PlanetSideGUID(400)
         mounting.parentSlot mustEqual 1
@@ -73,8 +73,8 @@ class ObjectCreateMessageVehiclesTest extends Specification {
         guid mustEqual PlanetSideGUID(380)
         parent.isDefined mustEqual false
         data.isDefined mustEqual true
-        data.get.isInstanceOf[ANTData] mustEqual true
-        val ant = data.get.asInstanceOf[ANTData]
+        data.get.isInstanceOf[VehicleData] mustEqual true
+        val ant = data.get.asInstanceOf[VehicleData]
         ant.basic.pos.coord.x mustEqual 3674.8438f
         ant.basic.pos.coord.y mustEqual 2726.789f
         ant.basic.pos.coord.z mustEqual 91.15625f
@@ -82,7 +82,7 @@ class ObjectCreateMessageVehiclesTest extends Specification {
         ant.basic.pos.orient.y mustEqual 0f
         ant.basic.pos.orient.z mustEqual 90.0f
         ant.basic.faction mustEqual PlanetSideEmpire.VS
-        ant.basic.unk mustEqual 4
+        ant.basic.unk mustEqual 2
         ant.basic.player_guid mustEqual PlanetSideGUID(0)
         ant.health mustEqual 255
         ant.driveState mustEqual DriveState.Mobile
@@ -108,12 +108,12 @@ class ObjectCreateMessageVehiclesTest extends Specification {
         lightning.basic.pos.orient.y mustEqual 0f
         lightning.basic.pos.orient.z mustEqual 90.0f
         lightning.basic.faction mustEqual PlanetSideEmpire.VS
-        lightning.basic.unk mustEqual 4
+        lightning.basic.unk mustEqual 2
         lightning.basic.player_guid mustEqual PlanetSideGUID(0)
         lightning.health mustEqual 255
-        lightning.mountings.isDefined mustEqual true
-        lightning.mountings.get.size mustEqual 1
-        val mounting = lightning.mountings.get.head
+        lightning.inventory.isDefined mustEqual true
+        lightning.inventory.get.contents.size mustEqual 1
+        val mounting = lightning.inventory.get.contents.head
         mounting.objectClass mustEqual ObjectClass.lightning_weapon_system
         mounting.guid mustEqual PlanetSideGUID(91)
         mounting.parentSlot mustEqual 1
@@ -159,18 +159,19 @@ class ObjectCreateMessageVehiclesTest extends Specification {
         deliverer.basic.pos.orient.y mustEqual 0f
         deliverer.basic.pos.orient.z mustEqual 357.1875f
         deliverer.basic.faction mustEqual PlanetSideEmpire.NC
-        deliverer.basic.unk mustEqual 4
+        deliverer.basic.unk mustEqual 2
         deliverer.basic.player_guid mustEqual PlanetSideGUID(0)
         deliverer.unk1 mustEqual 0
         deliverer.health mustEqual 255
-        deliverer.unk2 mustEqual 0
+        deliverer.unk2 mustEqual false
         deliverer.driveState mustEqual DriveState.State7
-        deliverer.unk4 mustEqual true
-        deliverer.unk5 mustEqual 0
-        deliverer.mountings.isDefined mustEqual true
-        deliverer.mountings.get.size mustEqual 2
+        deliverer.unk3 mustEqual true
+        deliverer.unk4 mustEqual None
+        deliverer.unk5 mustEqual false
+        deliverer.inventory.isDefined mustEqual true
+        deliverer.inventory.get.contents.size mustEqual 2
         //0
-        var mounting = deliverer.mountings.get.head
+        var mounting = deliverer.inventory.get.contents.head
         mounting.objectClass mustEqual ObjectClass.mediumtransport_weapon_systemA
         mounting.guid mustEqual PlanetSideGUID(383)
         mounting.parentSlot mustEqual 5
@@ -187,7 +188,7 @@ class ObjectCreateMessageVehiclesTest extends Specification {
         ammo.obj.isInstanceOf[AmmoBoxData] mustEqual true
         ammo.obj.asInstanceOf[AmmoBoxData].unk mustEqual 0x8
         //1
-        mounting = deliverer.mountings.get(1)
+        mounting = deliverer.inventory.get.contents(1)
         mounting.objectClass mustEqual ObjectClass.mediumtransport_weapon_systemB
         mounting.guid mustEqual PlanetSideGUID(556)
         mounting.parentSlot mustEqual 6
@@ -216,8 +217,8 @@ class ObjectCreateMessageVehiclesTest extends Specification {
         guid mustEqual PlanetSideGUID(4157)
         parent.isDefined mustEqual false
         data.isDefined mustEqual true
-        data.get.isInstanceOf[AMSData] mustEqual true
-        val ams = data.get.asInstanceOf[AMSData]
+        data.get.isInstanceOf[VehicleData] mustEqual true
+        val ams = data.get.asInstanceOf[VehicleData]
         ams.basic.pos.coord.x mustEqual 3674.0f
         ams.basic.pos.coord.y mustEqual 2726.789f
         ams.basic.pos.coord.z mustEqual 91.15625f
@@ -229,12 +230,27 @@ class ObjectCreateMessageVehiclesTest extends Specification {
         ams.basic.player_guid mustEqual PlanetSideGUID(34082)
         ams.unk1 mustEqual 2
         ams.health mustEqual 236
-        ams.unk2 mustEqual 0
+        ams.unk2 mustEqual false
         ams.driveState mustEqual DriveState.Deployed
-        ams.matrix_guid mustEqual PlanetSideGUID(3663)
-        ams.respawn_guid mustEqual PlanetSideGUID(3638)
-        ams.term_a_guid mustEqual PlanetSideGUID(3827)
-        ams.term_b_guid mustEqual PlanetSideGUID(3556)
+
+        ams.inventory.isDefined mustEqual true
+        val inv = ams.inventory.get.contents
+        inv.head.objectClass mustEqual ObjectClass.matrix_terminalc
+        inv.head.guid mustEqual PlanetSideGUID(3663)
+        inv.head.parentSlot mustEqual 1
+        inv.head.obj.isInstanceOf[CommonTerminalData] mustEqual true
+        inv(1).objectClass mustEqual ObjectClass.ams_respawn_tube
+        inv(1).guid mustEqual PlanetSideGUID(3638)
+        inv(1).parentSlot mustEqual 2
+        inv(1).obj.isInstanceOf[CommonTerminalData] mustEqual true
+        inv(2).objectClass mustEqual ObjectClass.order_terminala
+        inv(2).guid mustEqual PlanetSideGUID(3827)
+        inv(2).parentSlot mustEqual 3
+        inv(2).obj.isInstanceOf[CommonTerminalData] mustEqual true
+        inv(3).objectClass mustEqual ObjectClass.order_terminalb
+        inv(3).guid mustEqual PlanetSideGUID(3556)
+        inv(3).parentSlot mustEqual 4
+        inv(3).obj.isInstanceOf[CommonTerminalData] mustEqual true
       case _ =>
         ko
     }
@@ -269,8 +285,8 @@ class ObjectCreateMessageVehiclesTest extends Specification {
         guid mustEqual PlanetSideGUID(418)
         parent.isDefined mustEqual false
         data.isDefined mustEqual true
-        data.get.isInstanceOf[Vehicle2Data] mustEqual true
-        val switchblade = data.get.asInstanceOf[Vehicle2Data]
+        data.get.isInstanceOf[VehicleData] mustEqual true
+        val switchblade = data.get.asInstanceOf[VehicleData]
         switchblade.basic.pos.coord.x mustEqual 6531.961f
         switchblade.basic.pos.coord.y mustEqual 1872.1406f
         switchblade.basic.pos.coord.z mustEqual 24.734375f
@@ -278,13 +294,13 @@ class ObjectCreateMessageVehiclesTest extends Specification {
         switchblade.basic.pos.orient.y mustEqual 0f
         switchblade.basic.pos.orient.z mustEqual 357.1875f
         switchblade.basic.faction mustEqual PlanetSideEmpire.VS
-        switchblade.basic.unk mustEqual 4
+        switchblade.basic.unk mustEqual 2
         switchblade.health mustEqual 255
         switchblade.driveState mustEqual DriveState.Mobile
-        switchblade.mountings.isDefined mustEqual true
-        switchblade.mountings.get.size mustEqual 1
+        switchblade.inventory.isDefined mustEqual true
+        switchblade.inventory.get.contents.size mustEqual 1
         //0
-        val weapon = switchblade.mountings.get.head
+        val weapon = switchblade.inventory.get.contents.head
         weapon.objectClass mustEqual ObjectClass.scythe
         weapon.guid mustEqual PlanetSideGUID(355)
         weapon.parentSlot mustEqual 1
@@ -324,7 +340,7 @@ class ObjectCreateMessageVehiclesTest extends Specification {
         droppod.basic.pos.orient.x mustEqual 0f
         droppod.basic.pos.orient.y mustEqual 0f
         droppod.basic.pos.orient.z mustEqual 90.0f
-        droppod.basic.unk mustEqual 4
+        droppod.basic.unk mustEqual 2
         droppod.basic.player_guid mustEqual PlanetSideGUID(0)
         droppod.burn mustEqual false
         droppod.health mustEqual 255
@@ -378,13 +394,20 @@ class ObjectCreateMessageVehiclesTest extends Specification {
     val obj = VehicleData(
       CommonFieldData(
         PlacementData(6531.961f, 1872.1406f, 24.734375f, 0f, 0f, 357.1875f),
-        PlanetSideEmpire.VS, 4
+        PlanetSideEmpire.VS, 2
       ),
+      0,
       255,
-      MountItem(ObjectClass.fury_weapon_systema, PlanetSideGUID(400), 1,
-        WeaponData(0x6, 0x8, 0, ObjectClass.hellfire_ammo, PlanetSideGUID(432), 0, AmmoBoxData(0x8))
-      )
-    )
+      false, false,
+      DriveState.Mobile,
+      false, false, false,
+      None,
+      Some(InventoryData(
+        InventoryItemData(ObjectClass.fury_weapon_systema, PlanetSideGUID(400), 1,
+          WeaponData(0x6, 0x8, 0, ObjectClass.hellfire_ammo, PlanetSideGUID(432), 0, AmmoBoxData(0x8))
+        ) :: Nil
+      ))
+    )(VehicleFormat.Normal)
     val msg = ObjectCreateMessage(ObjectClass.fury, PlanetSideGUID(413), obj)
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
@@ -392,14 +415,19 @@ class ObjectCreateMessageVehiclesTest extends Specification {
   }
 
   "encode (ant)" in {
-    val obj = ANTData(
+    val obj = VehicleData(
       CommonFieldData(
         PlacementData(3674.8438f, 2726.789f, 91.15625f, 0f, 0f, 90.0f),
-        PlanetSideEmpire.VS, 4
+        PlanetSideEmpire.VS, 2
       ),
+      0,
       255,
-      DriveState.Mobile
-    )
+      false, false,
+      DriveState.Mobile,
+      false, false, false,
+      Some(UtilityVehicleData(0)),
+      None
+    )(VehicleFormat.Utility)
     val msg = ObjectCreateMessage(ObjectClass.ant, PlanetSideGUID(380), obj)
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
@@ -410,13 +438,20 @@ class ObjectCreateMessageVehiclesTest extends Specification {
     val obj = VehicleData(
       CommonFieldData(
         PlacementData(3674.8438f, 2726.789f, 91.15625f, 0f, 0f, 90.0f),
-        PlanetSideEmpire.VS, 4
+        PlanetSideEmpire.VS, 2
       ),
+      0,
       255,
-      MountItem(ObjectClass.lightning_weapon_system, PlanetSideGUID(91), 1,
-        WeaponData(4, 8, 0, ObjectClass.bullet_75mm, PlanetSideGUID(92), 0, AmmoBoxData(), ObjectClass.bullet_25mm, PlanetSideGUID(93), 1, AmmoBoxData())
-      )
-    )
+      false, false,
+      DriveState.Mobile,
+      false, false, false,
+      None,
+      Some(InventoryData(
+        InventoryItemData(ObjectClass.lightning_weapon_system, PlanetSideGUID(91), 1,
+          WeaponData(4, 8, 0, ObjectClass.bullet_75mm, PlanetSideGUID(92), 0, AmmoBoxData(), ObjectClass.bullet_25mm, PlanetSideGUID(93), 1, AmmoBoxData())
+        ) :: Nil
+      ))
+    )(VehicleFormat.Normal)
     val msg = ObjectCreateMessage(ObjectClass.lightning, PlanetSideGUID(90), obj)
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
@@ -427,26 +462,23 @@ class ObjectCreateMessageVehiclesTest extends Specification {
     val obj = VehicleData(
       CommonFieldData(
         PlacementData(6531.961f, 1872.1406f, 24.734375f, 0f, 0f, 357.1875f),
-        PlanetSideEmpire.NC, 4
+        PlanetSideEmpire.NC, 2
       ),
       0,
       255,
-      0,
+      false, false,
       DriveState.State7,
-      true,
-      0,
-      Some(
-        MountItem(
-          ObjectClass.mediumtransport_weapon_systemA, PlanetSideGUID(383), 5,
+      true, false, false,
+      None,
+      Some(InventoryData(
+        InventoryItemData(ObjectClass.mediumtransport_weapon_systemA, PlanetSideGUID(383), 5,
           WeaponData(6, 8, ObjectClass.bullet_20mm, PlanetSideGUID(420), 0, AmmoBoxData(8))
         ) ::
-          MountItem(
-            ObjectClass.mediumtransport_weapon_systemB, PlanetSideGUID(556), 6,
+          InventoryItemData(ObjectClass.mediumtransport_weapon_systemB, PlanetSideGUID(556), 6,
             WeaponData(6, 8, ObjectClass.bullet_20mm, PlanetSideGUID(575), 0, AmmoBoxData(8))
-          ) ::
-          Nil
-        )
-      )(2)
+          ) :: Nil
+      ))
+    )(VehicleFormat.Normal)
     val msg = ObjectCreateMessage(ObjectClass.mediumtransport, PlanetSideGUID(387), obj)
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
@@ -454,7 +486,7 @@ class ObjectCreateMessageVehiclesTest extends Specification {
   }
 
   "encode (ams)" in {
-    val obj = AMSData(
+    val obj =  VehicleData(
       CommonFieldData(
         PlacementData(3674.0f, 2726.789f, 91.15625f, 0f, 0f, 90.0f),
         PlanetSideEmpire.VS, 0,
@@ -462,14 +494,17 @@ class ObjectCreateMessageVehiclesTest extends Specification {
       ),
       2,
       236,
-      0,
+      false, false,
       DriveState.Deployed,
-      63,
-      PlanetSideGUID(3663),
-      PlanetSideGUID(3638),
-      PlanetSideGUID(3827),
-      PlanetSideGUID(3556)
-    )
+      false, true, true,
+      Some(UtilityVehicleData(60)), //what does this mean?
+      Some(InventoryData(List(
+        InternalSlot(ObjectClass.matrix_terminalc, PlanetSideGUID(3663), 1, CommonTerminalData(PlanetSideEmpire.VS)),
+        InternalSlot(ObjectClass.ams_respawn_tube, PlanetSideGUID(3638), 2, CommonTerminalData(PlanetSideEmpire.VS)),
+        InternalSlot(ObjectClass.order_terminala, PlanetSideGUID(3827), 3, CommonTerminalData(PlanetSideEmpire.VS)),
+        InternalSlot(ObjectClass.order_terminalb, PlanetSideGUID(3556), 4, CommonTerminalData(PlanetSideEmpire.VS))
+      )))
+    )(VehicleFormat.Utility)
     val msg = ObjectCreateMessage(ObjectClass.ams, PlanetSideGUID(4157), obj)
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
@@ -485,18 +520,24 @@ class ObjectCreateMessageVehiclesTest extends Specification {
   }
 
   "encode (switchblade)" in {
-    val obj = Vehicle2Data(
+    val obj = VehicleData(
       CommonFieldData(
         PlacementData(6531.961f, 1872.1406f, 24.734375f, 0f, 0f, 357.1875f),
         PlanetSideEmpire.VS,
-        4
+        2
       ),
+      0,
       255,
+      false, false,
       DriveState.Mobile,
-      MountItem(ObjectClass.scythe, PlanetSideGUID(355), 1,
-        WeaponData(0x6, 0x8, 0, ObjectClass.ancient_ammo_vehicle, PlanetSideGUID(366), 0, AmmoBoxData(0x8), ObjectClass.ancient_ammo_vehicle, PlanetSideGUID(385), 1, AmmoBoxData(0x8))
-      )
-    )
+      false, false, false,
+      Some(VariantVehicleData(0)),
+      Some(InventoryData(
+        InventoryItemData(ObjectClass.scythe, PlanetSideGUID(355), 1,
+          WeaponData(0x6, 0x8, 0, ObjectClass.ancient_ammo_vehicle, PlanetSideGUID(366), 0, AmmoBoxData(0x8), ObjectClass.ancient_ammo_vehicle, PlanetSideGUID(385), 1, AmmoBoxData(0x8))
+        ) :: Nil
+      ))
+    )(VehicleFormat.Variant)
     val msg = ObjectCreateMessage(ObjectClass.switchblade, PlanetSideGUID(418), obj)
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
@@ -508,7 +549,7 @@ class ObjectCreateMessageVehiclesTest extends Specification {
       CommonFieldData(
         PlacementData(5108.0f, 6164.0f, 1023.9844f, 0f, 0f, 90.0f),
         PlanetSideEmpire.VS,
-        4
+        2
       )
     )
     val msg = ObjectCreateMessage(ObjectClass.droppod, PlanetSideGUID(3595), obj)

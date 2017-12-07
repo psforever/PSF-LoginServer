@@ -470,7 +470,8 @@ class ObjectCreateMessageTest extends Specification {
         turret.deploy.pos.orient.y mustEqual 2.8125f
         turret.deploy.pos.orient.z mustEqual 264.375f
         turret.deploy.faction mustEqual PlanetSideEmpire.NC
-        turret.deploy.unk mustEqual 12
+        turret.deploy.destroyed mustEqual true
+        turret.deploy.unk mustEqual 2
         turret.deploy.player_guid mustEqual PlanetSideGUID(3871)
         turret.health mustEqual 0
         turret.internals.isDefined mustEqual false
@@ -496,7 +497,7 @@ class ObjectCreateMessageTest extends Specification {
         turret.deploy.pos.orient.y mustEqual 0f
         turret.deploy.pos.orient.z mustEqual 154.6875f
         turret.deploy.faction mustEqual PlanetSideEmpire.VS
-        turret.deploy.unk mustEqual 4
+        turret.deploy.unk mustEqual 2
         turret.deploy.player_guid mustEqual PlanetSideGUID(4232)
         turret.health mustEqual 255
         turret.internals.isDefined mustEqual true
@@ -537,7 +538,7 @@ class ObjectCreateMessageTest extends Specification {
         trap.deploy.pos.orient.y mustEqual 0f
         trap.deploy.pos.orient.z mustEqual 90.0f
         trap.deploy.faction mustEqual PlanetSideEmpire.VS
-        trap.deploy.unk mustEqual 4
+        trap.deploy.unk mustEqual 2
         trap.health mustEqual 255
         trap.deploy.player_guid mustEqual PlanetSideGUID(2502)
       case _ =>
@@ -562,7 +563,7 @@ class ObjectCreateMessageTest extends Specification {
         aegis.deploy.pos.orient.y mustEqual 0f
         aegis.deploy.pos.orient.z mustEqual 90.0f
         aegis.deploy.faction mustEqual PlanetSideEmpire.VS
-        aegis.deploy.unk mustEqual 4
+        aegis.deploy.unk mustEqual 2
         aegis.health mustEqual 255
         aegis.deploy.player_guid mustEqual PlanetSideGUID(2366)
       case _ =>
@@ -587,7 +588,7 @@ class ObjectCreateMessageTest extends Specification {
         omft.deploy.pos.orient.y mustEqual 0f
         omft.deploy.pos.orient.z mustEqual 185.625f
         omft.deploy.faction mustEqual PlanetSideEmpire.VS
-        omft.deploy.unk mustEqual 4
+        omft.deploy.unk mustEqual 2
         omft.deploy.player_guid mustEqual PlanetSideGUID(2502)
         omft.health mustEqual 255
         omft.internals.isDefined mustEqual true
@@ -989,7 +990,7 @@ class ObjectCreateMessageTest extends Specification {
     val obj = SmallTurretData(
       CommonFieldData(
         PlacementData(4577.7812f, 5624.828f, 72.046875f, 0f, 2.8125f, 264.375f),
-        PlanetSideEmpire.NC, 12, PlanetSideGUID(3871)
+        PlanetSideEmpire.NC, true, 2, PlanetSideGUID(3871)
       ),
       255 //sets to 0
     )
@@ -1007,7 +1008,7 @@ class ObjectCreateMessageTest extends Specification {
     val obj = SmallTurretData(
       CommonFieldData(
         PlacementData(4527.633f, 6271.3594f, 70.265625f, 0f, 0f, 154.6875f),
-        PlanetSideEmpire.VS, 4, PlanetSideGUID(4232)
+        PlanetSideEmpire.VS, 2, PlanetSideGUID(4232)
       ),
       255,
       SmallTurretData.spitfire(PlanetSideGUID(3064), 0x6, 0x8, PlanetSideGUID(3694), 8)
@@ -1026,7 +1027,7 @@ class ObjectCreateMessageTest extends Specification {
     val obj = TRAPData(
       CommonFieldData(
         PlacementData(3572.4453f, 3277.9766f, 114.0f, 0f, 0f, 90.0f),
-        PlanetSideEmpire.VS, 4, PlanetSideGUID(2502)
+        PlanetSideEmpire.VS, 2, PlanetSideGUID(2502)
       ),
       255
     )
@@ -1044,7 +1045,7 @@ class ObjectCreateMessageTest extends Specification {
     val obj = AegisShieldGeneratorData(
       CommonFieldData(
         PlacementData(3571.2266f, 3278.0938f, 114.0f, 0f, 0f, 90.0f),
-        PlanetSideEmpire.VS, 4, PlanetSideGUID(2366)
+        PlanetSideEmpire.VS, 2, PlanetSideGUID(2366)
       ),
       255
     )
@@ -1058,7 +1059,7 @@ class ObjectCreateMessageTest extends Specification {
     val obj = OneMannedFieldTurretData(
       CommonFieldData(
         PlacementData(3567.1406f, 2988.0078f, 71.84375f, 0f, 0f, 185.625f),
-        PlanetSideEmpire.VS, 4, PlanetSideGUID(2502)
+        PlanetSideEmpire.VS, 2, PlanetSideGUID(2502)
       ),
       255,
       OneMannedFieldTurretData.orion(PlanetSideGUID(2615), 0x6, 0x8, PlanetSideGUID(2510), 8)

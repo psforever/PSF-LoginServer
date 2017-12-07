@@ -3,12 +3,14 @@ package net.psforever.objects
 
 import net.psforever.objects.definition.VehicleDefinition
 import net.psforever.objects.equipment.{Equipment, EquipmentSize}
-import net.psforever.objects.inventory.GridInventory
-import net.psforever.objects.vehicles.{Seat, Utility, VehicleLockState}
+import net.psforever.objects.inventory.{GridInventory, InventoryTile}
+import net.psforever.objects.serverobject.PlanetSideServerObject
+import net.psforever.objects.vehicles.{AccessPermissionGroup, Seat, Utility, VehicleLockState}
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.packet.game.objectcreate.DriveState
 import net.psforever.types.PlanetSideEmpire
 
+import scala.annotation.tailrec
 import scala.collection.mutable
 
 /**
@@ -17,29 +19,31 @@ import scala.collection.mutable
   * All infantry seating, all mounted weapons, and the trunk space are considered part of the same index hierarchy.
   * Generally, all seating is declared first - the driver and passengers and and gunners.
   * Following that are the mounted weapons and other utilities.
-  * Trunk space starts being indexed afterwards.
-  * The first seat is always the op;erator (driver/pilot).
-  * "Passengers" are seats that are not the operator and are not in control of a mounted weapon.
-  * "Gunners" are seats that are not the operator and ARE in control of a mounted weapon.
-  * (The operator can be in control of a weapon - that is the whole point of a turret.)<br>
+  * Trunk space starts being indexed afterwards.<br>
   * <br>
-  * Having said all that, to keep it simple, infantry seating, mounted weapons, and utilities are stored in separate `Map`s.
-  * @param vehicleDef the vehicle's definition entry'
+  * To keep it simple, infantry seating, mounted weapons, and utilities are stored separately.
+  * @param vehicleDef the vehicle's definition entry';
   *                   stores and unloads pertinent information about the `Vehicle`'s configuration;
   *                   used in the initialization process (`loadVehicleDefinition`)
   */
-class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideGameObject {
+class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServerObject {
   private var faction : PlanetSideEmpire.Value = PlanetSideEmpire.TR
   private var owner : Option[PlanetSideGUID] = None
   private var health : Int = 1
   private var shields : Int = 0
   private var deployed : DriveState.Value = DriveState.Mobile
   private var decal : Int = 0
-  private var trunkLockState : VehicleLockState.Value = VehicleLockState.Locked
   private var trunkAccess : Option[PlanetSideGUID] = None
+  private var jammered : Boolean = false
+  private var cloaked : Boolean = false
 
-  private val seats : mutable.HashMap[Int, Seat] = mutable.HashMap()
-  private val weapons : mutable.HashMap[Int, EquipmentSlot] = mutable.HashMap()
+  /**
+    * Permissions control who gets to access different parts of the vehicle;
+    * the groups are Driver (seat), Gunner (seats), Passenger (seats), and the Trunk
+    */
+  private val groupPermissions : Array[VehicleLockState.Value] = Array(VehicleLockState.Locked, VehicleLockState.Empire, VehicleLockState.Empire, VehicleLockState.Locked)
+  private var seats : Map[Int, Seat] = Map.empty
+  private var weapons : Map[Int, EquipmentSlot] = Map.empty
   private val utilities : mutable.ArrayBuffer[Utility] = mutable.ArrayBuffer()
   private val trunk : GridInventory = GridInventory()
 
@@ -67,9 +71,20 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideGame
     this.owner
   }
 
+  def Owner_=(owner : PlanetSideGUID) : Option[PlanetSideGUID] = Owner_=(Some(owner))
+
+  def Owner_=(owner : Player) : Option[PlanetSideGUID] = Owner_=(Some(owner.GUID))
+
   def Owner_=(owner : Option[PlanetSideGUID]) : Option[PlanetSideGUID] = {
-    this.owner = owner
-    owner
+    owner match {
+      case Some(_) =>
+        if(Definition.CanBeOwned) { //e.g., base turrets
+          this.owner = owner
+        }
+      case None =>
+        this.owner = None
+    }
+    Owner
   }
 
   def Health : Int = {
@@ -91,22 +106,22 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideGame
 
   def Shields_=(strength : Int) : Int = {
     this.shields = strength
-    strength
+    Shields
   }
 
   def MaxShields : Int = {
     vehicleDef.MaxShields
   }
 
-  def Configuration : DriveState.Value = {
+  def Drive : DriveState.Value = {
     this.deployed
   }
 
-  def Configuration_=(deploy : DriveState.Value) : DriveState.Value = {
+  def Drive_=(deploy : DriveState.Value) : DriveState.Value = {
     if(vehicleDef.Deployment) {
       this.deployed = deploy
     }
-    Configuration
+    Drive
   }
 
   def Decal : Int = {
@@ -118,6 +133,20 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideGame
     decal
   }
 
+  def Jammered : Boolean = jammered
+
+  def Jammered_=(jamState : Boolean) : Boolean = {
+    jammered = jamState
+    Jammered
+  }
+
+  def Cloaked : Boolean = cloaked
+
+  def Cloaked_=(isCloaked : Boolean) : Boolean = {
+    cloaked = isCloaked
+    Cloaked
+  }
+
   /**
     * Given the index of an entry mounting point, return the infantry-accessible `Seat` associated with it.
     * @param mountPoint an index representing the seat position / mounting point
@@ -125,6 +154,60 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideGame
     */
   def GetSeatFromMountPoint(mountPoint : Int) : Option[Int] = {
     vehicleDef.MountPoints.get(mountPoint)
+  }
+
+  /**
+    * What are the access permissions for a position on this vehicle, seats or trunk?
+    * @param group the group index
+    * @return what sort of access permission exist for this group
+    */
+  def PermissionGroup(group : Int) : Option[VehicleLockState.Value] = {
+    reindexPermissionsGroup(group) match {
+      case Some(index) =>
+        Some(groupPermissions(index))
+      case None =>
+        None
+    }
+  }
+
+  /**
+    * Change the access permissions for a position on this vehicle, seats or trunk.
+    * @param group the group index
+    * @param level the new permission for this group
+    * @return the new access permission for this group;
+    *         `None`, if the group does not exist or the level of permission was not changed
+    */
+  def PermissionGroup(group : Int, level : Long) : Option[VehicleLockState.Value] = {
+    reindexPermissionsGroup(group) match {
+      case Some(index) =>
+        val current = groupPermissions(index)
+        val next = try { VehicleLockState(level.toInt) } catch { case _ : Exception => groupPermissions(index) }
+        if(current != next) {
+          groupPermissions(index) = next
+          PermissionGroup(index)
+        }
+        else {
+          None
+        }
+      case None =>
+        None
+    }
+  }
+
+  /**
+    * When the access permission group is communicated via `PlanetsideAttributeMessage`, the index is between 10 and 13.
+    * Internally, permission groups are stored as an `Array`, so the respective re-indexing plots 10 -> 0 and 13 -> 3.
+    * @param group the group index
+    * @return the modified group index
+    */
+  private def reindexPermissionsGroup(group : Int) : Option[Int] = if(group > 9 && group < 14) {
+    Some(group - 10)
+  }
+  else if(group > -1 && group < 4) {
+    Some(group)
+  }
+  else {
+    None
   }
 
   /**
@@ -146,7 +229,26 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideGame
     seats.values.toList
   }
 
-  def Weapons : mutable.HashMap[Int, EquipmentSlot] = weapons
+  def SeatPermissionGroup(seatNumber : Int) : Option[AccessPermissionGroup.Value] = {
+    if(seatNumber == 0) {
+      Some(AccessPermissionGroup.Driver)
+    }
+    else {
+      Seat(seatNumber) match {
+        case Some(seat) =>
+          seat.ControlledWeapon match {
+            case Some(_) =>
+              Some(AccessPermissionGroup.Gunner)
+            case None =>
+              Some(AccessPermissionGroup.Passenger)
+          }
+        case None =>
+          None
+      }
+    }
+  }
+
+  def Weapons : Map[Int, EquipmentSlot] = weapons
 
   /**
     * Get the weapon at the index.
@@ -154,38 +256,42 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideGame
     * @return a weapon, or `None`
     */
   def ControlledWeapon(wepNumber : Int) : Option[Equipment] = {
-    val slot = this.weapons.get(wepNumber)
-    if(slot.isDefined) {
-      slot.get.Equipment
+    weapons.get(wepNumber) match {
+      case Some(mount) =>
+        mount.Equipment
+      case None =>
+        None
     }
-    else {
+  }
+
+  /**
+    * Given a player who may be an occupant, retrieve an number of the seat where this player is sat.
+    * @param player the player
+    * @return a seat number, or `None` if the `player` is not actually seated in this vehicle
+    */
+  def PassengerInSeat(player : Player) : Option[Int] = recursivePassengerInSeat(seats.iterator, player)
+
+  @tailrec private def recursivePassengerInSeat(iter : Iterator[(Int, Seat)], player : Player) : Option[Int] = {
+    if(!iter.hasNext) {
       None
     }
-  }
-
-  /**
-    * Given a player who may be a passenger, retrieve an index where this player is seated.
-    * @param player the player
-    * @return a seat by index, or `None` if the `player` is not actually seated in this `Vehicle`
-    */
-  def PassengerInSeat(player : Player) : Option[Int] = {
-    var outSeat : Option[Int] = None
-    val GUID = player.GUID
-    for((seatNumber, seat) <- this.seats) {
-      val occupant : Option[PlanetSideGUID] = seat.Occupant
-      if(occupant.isDefined && occupant.get == GUID) {
-        outSeat = Some(seatNumber)
+    else {
+      val (seatNumber, seat) = iter.next
+      if(seat.Occupant.contains(player)) {
+        Some(seatNumber)
+      }
+      else {
+        recursivePassengerInSeat(iter, player)
       }
     }
-    outSeat
   }
 
   /**
-    * Given a valid seat number, retrieve an index where a weapon controlled from this seat is attached.
+    * Given a valid seat number, retrieve an index where the weapon controlled from this seat is mounted.
     * @param seatNumber the seat number
     * @return a mounted weapon by index, or `None` if either the seat doesn't exist or there is no controlled weapon
     */
-  def WeaponControlledFromSeat(seatNumber : Int) : Option[Tool] = {
+  def WeaponControlledFromSeat(seatNumber : Int) : Option[Equipment] = {
     Seat(seatNumber) match {
       case Some(seat) =>
         wepFromSeat(seat)
@@ -194,7 +300,7 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideGame
     }
   }
 
-  private def wepFromSeat(seat : Seat) : Option[Tool] = {
+  private def wepFromSeat(seat : Seat) : Option[Equipment] = {
     seat.ControlledWeapon match {
       case Some(index) =>
         wepFromSeat(index)
@@ -203,10 +309,10 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideGame
     }
   }
 
-  private def wepFromSeat(wepIndex : Int) : Option[Tool] = {
+  private def wepFromSeat(wepIndex : Int) : Option[Equipment] = {
     weapons.get(wepIndex) match {
       case Some(wep) =>
-        wep.Equipment.asInstanceOf[Option[Tool]]
+        wep.Equipment
       case None =>
         None
     }
@@ -267,7 +373,7 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideGame
     */
   def CanAccessTrunk(player : Player) : Boolean = {
     if(trunkAccess.isEmpty || trunkAccess.contains(player.GUID)) {
-      trunkLockState match {
+      groupPermissions(3) match {
         case VehicleLockState.Locked => //only the owner
           owner.isEmpty || (owner.isDefined && player.GUID == owner.get)
         case VehicleLockState.Group => //anyone in the owner's squad or platoon
@@ -285,19 +391,7 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideGame
     * Check access to the `Trunk`.
     * @return the current access value for the `Vehicle` `Trunk`
     */
-  def TrunkLockState :  VehicleLockState.Value = {
-    this.trunkLockState
-  }
-
-  /**
-    * Change the access value for the trunk.
-    * @param lockState the new access value for the `Vehicle` `Trunk`
-    * @return the current access value for the `Vehicle` `Trunk` after the change
-    */
-  def TrunkLockState_=(lockState :  VehicleLockState.Value) :  VehicleLockState.Value = {
-    this.trunkLockState = lockState
-    lockState
-  }
+  def TrunkLockState :  VehicleLockState.Value = groupPermissions(3)
 
   /**
     * This is the definition entry that is used to store and unload pertinent information about the `Vehicle`.
@@ -316,22 +410,52 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideGame
 
 object Vehicle {
   /**
-    * Overloaded constructor.
-    * @param vehicleDef the vehicle's definition entry
-    * @return a `Vwehicle` object
+    * A basic `Trait` connecting all of the actionable `Vehicle` response messages.
     */
-  def apply(vehicleDef : VehicleDefinition) : Vehicle = {
-    new Vehicle(vehicleDef)
-  }
+  sealed trait Exchange
+
+  /**
+    * Message that carries the result of the processed request message back to the original user (`player`).
+    * @param player the player who sent this request message
+    * @param response the result of the processed request
+    */
+  final case class VehicleMessages(player : Player, response : Exchange)
+
+  /**
+    * The `Vehicle` will become unresponsive to player activity.
+    * Usually, it does this to await deconstruction and clean-up
+    * @see `VehicleControl`
+    */
+  final case class PrepareForDeletion()
+
+  /**
+    * This player wants to sit down in an available(?) seat.
+    * @param seat_num the seat where the player is trying to occupy;
+    *                 this is NOT the entry mount point index;
+    *                 make certain to convert!
+    * @param player the `Player` object
+    */
+  final case class TrySeatPlayer(seat_num : Int, player : Player)
+  /**
+    * The recipient player of this packet is being allowed to sit in the assigned seat.
+    * @param vehicle the `Vehicle` object that generated this message
+    * @param seat_num the seat that the player will occupy
+    */
+  final case class CanSeatPlayer(vehicle : Vehicle, seat_num : Int) extends Exchange
+  /**
+    * The recipient player of this packet is not allowed to sit in the requested seat.
+    * @param vehicle the `Vehicle` object that generated this message
+    * @param seat_num the seat that the player can not occupy
+    */
+  final case class CannotSeatPlayer(vehicle : Vehicle, seat_num : Int) extends Exchange
+
   /**
     * Overloaded constructor.
     * @param vehicleDef the vehicle's definition entry
-    * @return a `Vwehicle` object
+    * @return a `Vehicle` object
     */
-  def apply(guid : PlanetSideGUID, vehicleDef : VehicleDefinition) : Vehicle = {
-    val obj = new Vehicle(vehicleDef)
-    obj.GUID = guid
-    obj
+  def apply(vehicleDef : VehicleDefinition) : Vehicle = {
+    new Vehicle(vehicleDef)
   }
 
   /**
@@ -344,23 +468,24 @@ object Vehicle {
     //general stuff
     vehicle.Health = vdef.MaxHealth
     //create weapons
-    for((num, definition) <- vdef.Weapons) {
+    vehicle.weapons = vdef.Weapons.map({case (num, definition) =>
       val slot = EquipmentSlot(EquipmentSize.VehicleWeapon)
       slot.Equipment = Tool(definition)
-      vehicle.weapons += num -> slot
-      vehicle
-    }
+      num -> slot
+    }).toMap
     //create seats
-    for((num, seatDef) <- vdef.Seats) {
-      vehicle.seats += num -> Seat(seatDef, vehicle)
-    }
+    vehicle.seats = vdef.Seats.map({ case(num, definition) => num -> Seat(definition)}).toMap
     for(i <- vdef.Utilities) {
       //TODO utilies must be loaded and wired on a case-by-case basis?
       vehicle.Utilities += Utility.Select(i, vehicle)
     }
     //trunk
-    vehicle.trunk.Resize(vdef.TrunkSize.width, vdef.TrunkSize.height)
-    vehicle.trunk.Offset = vdef.TrunkOffset
+    vdef.TrunkSize match {
+      case InventoryTile.None => ;
+      case dim =>
+        vehicle.trunk.Resize(dim.Width, dim.Height)
+        vehicle.trunk.Offset = vdef.TrunkOffset
+    }
     vehicle
   }
 

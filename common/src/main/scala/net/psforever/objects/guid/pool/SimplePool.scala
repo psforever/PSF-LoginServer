@@ -5,7 +5,7 @@ import net.psforever.objects.guid.selector.{NumberSelector, StrictInOrderSelecto
 
 import scala.util.{Success, Try}
 
-class SimplePool(private val numbers : List[Int]) extends NumberPool {
+class SimplePool(val numbers : List[Int]) extends NumberPool {
   if(numbers.count(_ < 0) > 0) {
     throw new IllegalArgumentException("negative numbers not allowed in number pool")
   }

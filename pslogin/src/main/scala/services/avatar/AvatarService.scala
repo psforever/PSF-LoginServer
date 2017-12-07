@@ -31,39 +31,43 @@ class AvatarService extends Actor {
       action match {
         case AvatarAction.ArmorChanged(player_guid, suit, subtype) =>
           AvatarEvents.publish(
-            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarServiceResponse.ArmorChanged(suit, subtype))
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.ArmorChanged(suit, subtype))
+          )
+        case AvatarAction.ConcealPlayer(player_guid) =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.ConcealPlayer())
           )
         case AvatarAction.EquipmentInHand(player_guid, slot, obj) =>
           AvatarEvents.publish(
-            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarServiceResponse.EquipmentInHand(slot, obj))
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.EquipmentInHand(slot, obj))
           )
         case AvatarAction.EquipmentOnGround(player_guid, pos, orient, obj) =>
           AvatarEvents.publish(
-            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarServiceResponse.EquipmentOnGround(pos, orient, obj))
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.EquipmentOnGround(pos, orient, obj))
           )
         case AvatarAction.LoadPlayer(player_guid, pdata) =>
           AvatarEvents.publish(
-            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarServiceResponse.LoadPlayer(pdata))
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.LoadPlayer(pdata))
           )
         case AvatarAction.ObjectDelete(player_guid, item_guid, unk) =>
           AvatarEvents.publish(
-            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarServiceResponse.ObjectDelete(item_guid, unk))
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.ObjectDelete(item_guid, unk))
           )
         case AvatarAction.ObjectHeld(player_guid, slot) =>
           AvatarEvents.publish(
-            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarServiceResponse.ObjectHeld(slot))
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.ObjectHeld(slot))
           )
         case AvatarAction.PlanetsideAttribute(guid, attribute_type, attribute_value) =>
           AvatarEvents.publish(
-            AvatarServiceResponse(s"/$forChannel/Avatar", guid, AvatarServiceResponse.PlanetSideAttribute(attribute_type, attribute_value))
+            AvatarServiceResponse(s"/$forChannel/Avatar", guid, AvatarResponse.PlanetSideAttribute(attribute_type, attribute_value))
           )
         case AvatarAction.PlayerState(guid, msg, spectator, weapon) =>
           AvatarEvents.publish(
-            AvatarServiceResponse(s"/$forChannel/Avatar", guid, AvatarServiceResponse.PlayerState(msg, spectator, weapon))
+            AvatarServiceResponse(s"/$forChannel/Avatar", guid, AvatarResponse.PlayerState(msg, spectator, weapon))
           )
         case AvatarAction.Reload(player_guid, mag) =>
           AvatarEvents.publish(
-            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarServiceResponse.Reload(mag))
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.Reload(mag))
           )
         case _ => ;
     }

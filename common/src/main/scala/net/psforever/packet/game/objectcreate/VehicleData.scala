@@ -1,15 +1,51 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.packet.game.objectcreate
-
 import net.psforever.packet.Marshallable
-import net.psforever.packet.game.objectcreate.MountItem.MountItem
-import scodec.codecs._
+import scodec.Attempt.{Failure, Successful}
 import scodec.{Attempt, Codec, Err}
+import scodec.codecs._
 import shapeless.{::, HNil}
 
 /**
-  * A representation of a generic vehicle, with optional mounted weapons.
-  * This data will help construct most of the game's vehicular options such as the Lightning and the Harasser.<br>
+  * An `Enumeration` of the various formats that known structures that the stream of bits for `VehicleData` can assume.
+  */
+object VehicleFormat extends Enumeration {
+  type Type = Value
+
+  val
+  Battleframe, //future expansion?
+  Normal,
+  Utility,
+  Variant = Value
+}
+
+/**
+  * A basic `Trait` connecting all of the vehicle data formats (excepting `Normal`/`None`).
+  */
+sealed trait SpecificVehicleData extends StreamBitSize
+
+/**
+  * The format of vehicle data for the type of vehicles that are considered "utility."
+  * The vehicles in this category are two:
+  * the advanced nanite transport, and
+  * the advanced mobile station.
+  * @param unk na
+  */
+final case class UtilityVehicleData(unk : Int) extends SpecificVehicleData {
+  override def bitsize : Long = 6L
+}
+
+/**
+  * A common format variant of vehicle data.
+  * This category includes all flying vehicles and the ancient cavern vehicles.
+  * @param unk na
+  */
+final case class VariantVehicleData(unk : Int) extends SpecificVehicleData {
+  override def bitsize : Long = 8L
+}
+
+/**
+  * A representation of a generic vehicle.<br>
   * <br>
   * Vehicles utilize their own packet to communicate position to the server, known as `VehicleStateMessage`.
   * This takes the place of `PlayerStateMessageUpstream` when the player avatar is in control;
@@ -17,186 +53,174 @@ import shapeless.{::, HNil}
   * If the vehicle is sufficiently complicated, a `ChildObjectStateMessage` will be used.
   * This packet will control any turret(s) on the vehicle.
   * For very complicated vehicles, the packets `FrameVehicleStateMessage` and `VehicleSubStateMessage` will also be employed.
-  * The tasks that these packets perform are different based on the vehicle that responds or generates them.<br>
-  * <br>
-  * Vehicles have a variety of features.
-  * They have their own inventory space, seating space for driver and passengers, Infantry mounting positions for the former two, and weapon mounting positions.
-  * Specialized vehicles also have terminals attached to them.
-  * The trunk is little different from player character inventories save for capacity and that it must be manually accessed.
-  * It is usually on the rear of the vehicle if that vehicle has a trunk at all.
-  * Weapons and infantry are allocated mounting slots from the same list.
-  * Weapons are constructed in their given slot with the vehicle itself and Infantry sit aside the weapons.
-  * Certain slots ("seats") allow control of one of the weapons in another slot ("weapon mounting").
-  * ("Seat" and "weapon mounting" do not coincide numerically.)
-  * For trunk and for Infantry slots, various glyphs are projected onto the ground, called "mounting positions."
-  * Standing nearly on top of the glyph and facing the vehicle allows access or seat-taking.
-  * ("Seat" and "mounting positions" will not necessarily coincide numerically either.)<br>
-  * <br>
-  * Outside of managing mounted weaponry, any vehicle with special "utilities" must be handled as a special case.
-  * Utilities are plastered onto the chassis and carried around with the vehicle.
-  * Some vehicles have to go through a sessile physical conversion known as "deploying" to get access to their utilities.<br>
-  * <br>
-  * An "expected" number of mounting data can be passed into the class for the purposes of validating input.
+  * The tasks that these packets perform are different based on the vehicle that responds or generates them.
   * @param basic data common to objects
   * @param unk1 na
-  * @param health the amount of health the vehicle has, as a percentage of a filled bar
+  * @param health the amount of health the vehicle has, as a percentage of a filled bar (255)
   * @param unk2 na
-  * @param driveState the drivable condition
+  * @param no_mount_points do not display entry points for the seats
+  * @param driveState a representation for the current mobility state;
+  *                   various vehicles also use this field to indicate "deployment," e.g., AMS
+  * @param unk3 na
+  * @param unk5 na
+  * @param cloak if a cloakable vehicle is cloaked
   * @param unk4 na
-  * @param unk5 na;
-  *             1 causes the `quadstealth` (Wraith) to cloak
-  * @param mountings data regarding the mounted utilities, usually weapons
-  * @param mount_capacity implicit;
-  *                       the total number of mounted utilities allowed on this vehicle;
-  *                       defaults to 1;
-  *                       -1 or less ignores the imposed checks
-  * @see `Vehicle2Data`
+  * @param inventory the seats, mounted weapons, and utilities (such as terminals) that are currently included;
+  *                  will also include trunk contents
+  * @param vehicle_type a modifier for parsing the vehicle data format differently;
+  *                     defaults to `Normal`
   */
 final case class VehicleData(basic : CommonFieldData,
                              unk1 : Int,
                              health : Int,
-                             unk2 : Int,
+                             unk2 : Boolean,
+                             no_mount_points : Boolean,
                              driveState : DriveState.Value,
-                             unk4 : Boolean,
-                             unk5 : Int,
-                             mountings : Option[List[MountItem]] = None
-                            )(implicit val mount_capacity : Int = 1) extends ConstructorData {
+                             unk3 : Boolean,
+                             unk5 : Boolean,
+                             cloak : Boolean,
+                             unk4 : Option[SpecificVehicleData],
+                             inventory : Option[InventoryData] = None
+                            )(val vehicle_type : VehicleFormat.Value = VehicleFormat.Normal) extends ConstructorData {
   override def bitsize : Long = {
     val basicSize = basic.bitsize
-    val mountSize = if(mountings.isDefined) {
-      var bSize : Long = 0L
-      for(item <- mountings.get) {
-        bSize += item.bitsize
-      }
-      10 + bSize
-    }
-    else {
-      0L
-    }
-    3L + VehicleData.baseVehicleSize + basicSize + mountSize
+    val extraBitsSize : Long = if(unk4.isDefined) { unk4.get.bitsize } else { 0L }
+    val inventorySize = if(inventory.isDefined) { inventory.get.bitsize } else { 0L }
+    24L + basicSize + extraBitsSize + inventorySize
   }
 }
 
 object VehicleData extends Marshallable[VehicleData] {
-  val baseVehicleSize : Long = 21L //2u + 8u + 2u + 8u + 1u
-
   /**
-    * Overloaded constructor that mandates information about a single weapon mount.
+    * Overloaded constructor for specifically handling `Normal` vehicle format.
     * @param basic data common to objects
-    * @param health the amount of health the object has, as a percentage of a filled bar
-    * @param mount data regarding the mounted weapon
+    * @param unk1 na
+    * @param health the amount of health the vehicle has, as a percentage of a filled bar (255)
+    * @param unk2 na
+    * @param driveState a representation for the current mobility state;
+    * @param unk3 na
+    * @param unk4 na
+    * @param inventory the seats, mounted weapons, and utilities (such as terminals) that are currently included
     * @return a `VehicleData` object
     */
-  def apply(basic : CommonFieldData, health : Int, mount : MountItem) : VehicleData =
-    VehicleData(basic, 0, health, 0, DriveState.Mobile, false, 0, Some(mount :: Nil))
+  def apply(basic : CommonFieldData, unk1 : Int, health : Int, unk2 : Int, driveState : DriveState.Value, unk3 : Boolean, unk4 : Int, inventory : Option[InventoryData]) : VehicleData = {
+    new VehicleData(basic, unk1, health, unk2>0, false, driveState, unk3, unk4>0, false, None, inventory)(VehicleFormat.Normal)
+  }
 
   /**
-    * Overloaded constructor that mandates information about a single weapon mount and deployment state.
+    * Overloaded constructor for specifically handling `Utility` vehicle format.
     * @param basic data common to objects
-    * @param health the amount of health the object has, as a percentage of a filled bar
-    * @param driveState the drivable condition
-    * @param mount data regarding the mounted weapon
-    * @return a `Vehicle2Data` object
+    * @param unk1 na
+    * @param health the amount of health the vehicle has, as a percentage of a filled bar (255)
+    * @param unk2 na
+    * @param driveState a representation for the current mobility state;
+    * @param unk3 na
+    * @param unk4 utility-specific field
+    * @param unk5 na
+    * @param inventory the seats, mounted weapons, and utilities (such as terminals) that are currently included
+    * @return a `VehicleData` object
     */
-  def apply(basic : CommonFieldData, health : Int, driveState : DriveState.Value, mount : MountItem) : VehicleData =
-    VehicleData(basic, 0, health, 0, driveState, false, 0, Some(mount :: Nil))
+  def apply(basic : CommonFieldData, unk1 : Int, health : Int, unk2 : Int, driveState : DriveState.Value, unk3 : Boolean, unk4 : UtilityVehicleData, unk5 : Int, inventory : Option[InventoryData]) : VehicleData = {
+    new VehicleData(basic, unk1, health, unk2>0, false, driveState, unk3, unk5>0, false, Some(unk4), inventory)(VehicleFormat.Utility)
+  }
 
   /**
-    * A `Codec` for mounted utilities, generally weapons (as `WeaponData`).
-    * @param mountCheck a function that takes a `List` of `InternalSlot` objects and returns `true` if those objects passed its test
-    * @return a `List` of mounted objects or a `BitVector` of the same
-    * @see `InventoryData`
+    * Overloaded constructor for specifically handling `Variant` vehicle format.
+    * @param basic data common to objects
+    * @param unk1 na
+    * @param health the amount of health the vehicle has, as a percentage of a filled bar (255)
+    * @param unk2 na
+    * @param driveState a representation for the current mobility state;
+    * @param unk3 na
+    * @param unk4 variant-specific field
+    * @param unk5 na
+    * @param inventory the seats, mounted weapons, and utilities (such as terminals) that are currently included
+    * @return a `VehicleData` object
     */
-  def mountedUtilitiesCodec(mountCheck : (List[MountItem]) => Boolean) : Codec[List[MountItem]] =
-    InventoryData.codec(MountItem.codec).exmap[List[MountItem]] (
-      {
-        case InventoryData(list) =>
-          if(!mountCheck(list)) {
-            Attempt.failure(Err("vehicle mount decoding is disallowed by test failure"))
-          }
-          else {
-            Attempt.successful(list)
-          }
-
-        case _ =>
-          Attempt.failure(Err("invalid mounting data format"))
-      },
-      {
-        case list =>
-          if(list.size > 255) {
-            Attempt.failure(Err("vehicle encodes too many weapon mountings (255+ objects!)"))
-          }
-          else if(!mountCheck(list)) {
-            Attempt.failure(Err("vehicle mount encoding is disallowed by test failure"))
-          }
-          else {
-            Attempt.successful(InventoryData(list))
-          }
-      }
-    )
+  def apply(basic : CommonFieldData, unk1 : Int, health : Int, unk2 : Int, driveState : DriveState.Value, unk3 : Boolean, unk4 : VariantVehicleData, unk5 : Int, inventory : Option[InventoryData]) : VehicleData = {
+    new VehicleData(basic, unk1, health, unk2>0, false, driveState, unk3, unk5>0, false, Some(unk4), inventory)(VehicleFormat.Variant)
+  }
 
   /**
-    * These values are parsed by all vehicles.
-    * Comments about the fields are provided where helpful.
+    * `Codec` for the "utility" format.
     */
-  val basic_vehicle_codec : Codec[CommonFieldData :: Int :: Int :: Int :: DriveState.Value :: Boolean :: HNil] = (
-    CommonFieldData.codec :: //not certain if player_guid is valid
-      uint2L :: //often paired with the assumed 16u field in previous?
-      uint8L :: //usually "health"
-      uint2L :: //usually 0; second bit turns off vehicle seat entry points
-      DriveState.codec :: //special field (AMS and ANT use for deploy state)
-      bool //unknown but generally false; can cause stream misalignment if set when unexpected
-    ).as[CommonFieldData :: Int :: Int :: Int :: DriveState.Value :: Boolean :: HNil]
-
-  /**
-    * Perform an evaluation of the provided object.
-    * @param list a List of objects to be compared against some criteria
-    * @return `true`, if the objects pass this test; false, otherwise
-    */
-  def onlyWeapons(list : List[MountItem]) : Boolean = !list.exists(!_.obj.isInstanceOf[WeaponData])
-
-  /**
-    * A `Codec` for `VehicleData`.
-    * @param mount_capacity the total number of mounted weapons that are attached to this vehicle;
-    *                       defaults to 1
-    * @param mountCheck implicit;
-    *                   an evaluation of the provided `List` of objects;
-    *                   a function that takes an object and returns `true` if the object passed its defined test;
-    *                   defaults to `onlyWeapons`
-    * @return a `VehicleData` object or a `BitVector`
-    */
-  def codec(mount_capacity : Int = 1)(implicit mountCheck : (List[MountItem]) => Boolean = onlyWeapons) : Codec[VehicleData] = (
-    basic_vehicle_codec :+
-      uint2L :+
-      optional(bool, "mountings" | mountedUtilitiesCodec(mountCheck))
-    ).exmap[VehicleData] (
+  private val utility_data_codec : Codec[SpecificVehicleData] = uintL(6).hlist.exmap[SpecificVehicleData] (
     {
-      case basic :: u1 :: health :: u2 :: driveState :: u4 :: u5 :: mountings :: HNil =>
-        val onboardMountCount : Int = if(mountings.isDefined) { mountings.get.size } else { 0 }
-        if(mount_capacity > -1 && mount_capacity != onboardMountCount) {
-          Attempt.failure(Err(s"vehicle decodes wrong number of mounts - actual $onboardMountCount, expected $mount_capacity"))
-        }
-        else {
-          Attempt.successful(VehicleData(basic, u1, health, u2, driveState, u4, u5, mountings)(onboardMountCount))
-        }
+      case n :: HNil =>
+        Successful(UtilityVehicleData(n).asInstanceOf[SpecificVehicleData])
     },
     {
-      case obj @ VehicleData(basic, u1, health, u2, driveState, u4, u5, mountings) =>
-        val objMountCapacity = obj.mount_capacity
-        if(objMountCapacity < 0 || mount_capacity < 0) {
-          Attempt.successful(basic :: u1 :: health :: u2 :: driveState :: u4 :: u5 :: mountings :: HNil)
+      case UtilityVehicleData(n) =>
+        Successful(n :: HNil)
+      case _ =>
+        Failure(Err("wrong kind of vehicle data object (wants 'Utility')"))
+    }
+  )
+  /**
+    * `Codec` for the "variant" format.
+    */
+  private val variant_data_codec : Codec[SpecificVehicleData] = uint8L.hlist.exmap[SpecificVehicleData] (
+    {
+      case n :: HNil =>
+        Successful(VariantVehicleData(n).asInstanceOf[SpecificVehicleData])
+    },
+    {
+      case VariantVehicleData(n) =>
+        Successful(n :: HNil)
+      case _ =>
+        Failure(Err("wrong kind of vehicle data object (wants 'Variant')"))
+    }
+  )
+
+  /**
+    * Select an appropriate `Codec` in response to the requested stream format
+    * @param vehicleFormat the requested format
+    * @return the appropriate `Codec` for parsing that format
+    */
+  private def selectFormatReader(vehicleFormat : VehicleFormat.Value) : Codec[SpecificVehicleData] = vehicleFormat match {
+    case VehicleFormat.Utility =>
+      utility_data_codec
+    case VehicleFormat.Variant =>
+      variant_data_codec
+    case _ =>
+      Failure(Err(s"$vehicleFormat is not a valid vehicle format for parsing data")).asInstanceOf[Codec[SpecificVehicleData]]
+  }
+
+  def codec(vehicle_type : VehicleFormat.Value) : Codec[VehicleData] = (
+    ("basic" | CommonFieldData.codec) ::
+      ("unk1" | uint2L) ::
+      ("health" | uint8L) ::
+      ("unk2" | bool) :: //usually 0
+      ("no_mount_points" | bool) ::
+      ("driveState" | DriveState.codec) :: //used for deploy state
+      ("unk3" | bool) :: //unknown but generally false; can cause stream misalignment if set when unexpectedly
+      ("unk4" | bool) ::
+      ("cloak" | bool) :: //cloak as wraith, phantasm
+      conditional(vehicle_type != VehicleFormat.Normal, "unk5" | selectFormatReader(vehicle_type)) :: //padding?
+      optional(bool, "inventory" | InventoryData.codec)
+    ).exmap[VehicleData] (
+    {
+      case basic :: u1 :: health :: u2 :: no_mount :: driveState :: u3 :: u4 :: u5 :: cloak :: inv :: HNil =>
+        Attempt.successful(new VehicleData(basic, u1, health, u2, no_mount, driveState, u3, u4, u5, cloak, inv)(vehicle_type))
+
+      case _ =>
+        Attempt.failure(Err("invalid vehicle data format"))
+    },
+    {
+      case obj @ VehicleData(basic, u1, health, u2, no_mount, driveState, u3, u4, cloak, Some(u5), inv) =>
+        if(obj.vehicle_type == VehicleFormat.Normal) {
+          Attempt.failure(Err("invalid vehicle data format; variable bits not expected; will ignore ..."))
         }
         else {
-          val onboardMountCount : Int = if(mountings.isDefined) { mountings.get.size } else { 0 }
-          if(mount_capacity != objMountCapacity) {
-            Attempt.failure(Err(s"different encoding expectations for amount of mounts - actual $objMountCapacity, expected $mount_capacity"))
-          }
-          else if(mount_capacity != onboardMountCount) {
-            Attempt.failure(Err(s"vehicle encodes wrong number of mounts - actual $onboardMountCount, expected $mount_capacity"))
-          }
-          else {
-            Attempt.successful(basic :: u1 :: health :: u2 :: driveState :: u4 :: u5 :: mountings :: HNil)
-          }
+          Attempt.successful(basic :: u1 :: health :: u2 :: no_mount :: driveState :: u3 :: u4 :: cloak :: Some(u5) :: inv :: HNil)
+        }
+
+      case obj @ VehicleData(basic, u1, health, u2, no_mount, driveState, u3, u4, cloak, None, inv) =>
+        if(obj.vehicle_type != VehicleFormat.Normal) {
+          Attempt.failure(Err("invalid vehicle data format; variable bits expected"))
+        }
+        else {
+          Attempt.successful(basic :: u1 :: health :: u2 :: no_mount :: driveState :: u3 :: u4 :: cloak :: None :: inv :: HNil)
         }
 
       case _ =>
@@ -204,5 +228,5 @@ object VehicleData extends Marshallable[VehicleData] {
     }
   )
 
-  implicit val codec : Codec[VehicleData] = codec()
+  implicit val codec : Codec[VehicleData] = codec(VehicleFormat.Normal)
 }

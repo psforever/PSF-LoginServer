@@ -13,9 +13,7 @@ import net.psforever.types.{ExoSuitType, TransactionType, Vector3}
   * @param tdef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
   */
 class Terminal(tdef : TerminalDefinition) extends PlanetSideServerObject {
-  /**
-    * An entry that maintains a reference to the `Player`, and the player's GUID and location when the message was received.
-    */
+  /** An entry that maintains a reference to the `Player`, and the player's GUID and location when the message was received. */
   private var hackedBy : Option[(Player, PlanetSideGUID, Vector3)] = None
 
   def HackedBy : Option[(Player, PlanetSideGUID, Vector3)] = hackedBy
@@ -138,9 +136,23 @@ object Terminal {
   final case class SellEquipment() extends Exchange
 
   import net.psforever.types.CertificationType
+
+  /**
+    * Provide the certification type unlocked by the player.
+    * @param cert the certification unlocked
+    * @param cost the certification point cost
+    */
   final case class LearnCertification(cert : CertificationType.Value, cost : Int) extends Exchange
 
+  /**
+    * Provide the certification type freed-up by the player.
+    * @param cert the certification returned
+    * @param cost the certification point cost
+    */
   final case class SellCertification(cert : CertificationType.Value, cost : Int) extends Exchange
+
+  import net.psforever.objects.Vehicle
+  final case class BuyVehicle(vehicle : Vehicle, loadout: List[Any]) extends Exchange
 
   /**
     * Recover a former exo-suit and `Equipment` configuration that the `Player` possessed.

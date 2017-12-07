@@ -40,16 +40,15 @@ class ConverterTest extends Specification {
     "convert to packet" in {
       val tdef = ToolDefinition(1076)
       tdef.Size = EquipmentSize.Rifle
-      tdef.AmmoTypes += Ammo.shotgun_shell
-      tdef.AmmoTypes += Ammo.shotgun_shell_AP
+      tdef.AmmoTypes += GlobalDefinitions.shotgun_shell
+      tdef.AmmoTypes += GlobalDefinitions.shotgun_shell_AP
       tdef.FireModes += new FireModeDefinition
       tdef.FireModes.head.AmmoTypeIndices += 0
       tdef.FireModes.head.AmmoTypeIndices += 1
       tdef.FireModes.head.AmmoSlotIndex = 0
+      tdef.FireModes.head.Magazine = 30
       val obj : Tool = Tool(tdef)
-      val box = AmmoBox(PlanetSideGUID(90), new AmmoBoxDefinition(Ammo.shotgun_shell.id))
-      obj.AmmoSlots.head.Box = box
-      obj.AmmoSlots.head.Magazine = 30
+      obj.AmmoSlot.Box.GUID = PlanetSideGUID(90)
 
       obj.Definition.Packet.DetailedConstructorData(obj) match {
         case Success(pkt) =>
@@ -139,24 +138,22 @@ class ConverterTest extends Specification {
       Give the Player's Holster (2) the Tool
       Place the remaining AmmoBox into the Player's inventory in the third slot (8)
        */
-      val bullet_9mm = AmmoBoxDefinition(28)
-      bullet_9mm.Capacity = 50
-      val box1 = AmmoBox(PlanetSideGUID(90), bullet_9mm)
-      val box2 = AmmoBox(PlanetSideGUID(91), bullet_9mm)
       val tdef = ToolDefinition(1076)
       tdef.Name = "sample_weapon"
       tdef.Size = EquipmentSize.Rifle
-      tdef.AmmoTypes += Ammo.bullet_9mm
+      tdef.AmmoTypes += GlobalDefinitions.bullet_9mm
       tdef.FireModes += new FireModeDefinition
       tdef.FireModes.head.AmmoTypeIndices += 0
       tdef.FireModes.head.AmmoSlotIndex = 0
       tdef.FireModes.head.Magazine = 18
-      val tool = Tool(PlanetSideGUID(92), tdef)
-      tool.AmmoSlots.head.Box = box1
+      val tool = Tool(tdef)
+      tool.GUID = PlanetSideGUID(92)
+      tool.AmmoSlot.Box.GUID = PlanetSideGUID(90)
       val obj = Player(PlanetSideGUID(93), "Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
       obj.Slot(2).Equipment = tool
       obj.Slot(5).Equipment.get.GUID = PlanetSideGUID(94)
-      obj.Inventory += 8 -> box2
+      obj.Inventory += 8 -> AmmoBox(GlobalDefinitions.bullet_9mm)
+      obj.Slot(8).Equipment.get.GUID = PlanetSideGUID(91)
       obj
     }
     val converter = new CharacterSelectConverter
@@ -263,7 +260,7 @@ class ConverterTest extends Specification {
 
       val fury_weapon_systema_def = ToolDefinition(ObjectClass.fury_weapon_systema)
           fury_weapon_systema_def.Size = EquipmentSize.VehicleWeapon
-          fury_weapon_systema_def.AmmoTypes += Ammo.hellfire_ammo
+          fury_weapon_systema_def.AmmoTypes += GlobalDefinitions.hellfire_ammo
           fury_weapon_systema_def.FireModes += new FireModeDefinition
           fury_weapon_systema_def.FireModes.head.AmmoTypeIndices += 0
           fury_weapon_systema_def.FireModes.head.AmmoSlotIndex = 0
@@ -281,12 +278,13 @@ class ConverterTest extends Specification {
 
       val hellfire_ammo_box = AmmoBox(PlanetSideGUID(432), hellfire_ammo)
 
-      val fury = Vehicle(PlanetSideGUID(413), fury_def)
+      val fury = Vehicle(fury_def)
+          fury.GUID = PlanetSideGUID(413)
           fury.Faction = PlanetSideEmpire.VS
           fury.Position = Vector3(3674.8438f, 2732f, 91.15625f)
           fury.Orientation = Vector3(0.0f, 0.0f, 90.0f)
           fury.WeaponControlledFromSeat(0).get.GUID = PlanetSideGUID(400)
-          fury.WeaponControlledFromSeat(0).get.AmmoSlots.head.Box = hellfire_ammo_box
+          fury.WeaponControlledFromSeat(0).get.asInstanceOf[Tool].AmmoSlots.head.Box = hellfire_ammo_box
 
       fury.Definition.Packet.ConstructorData(fury).isSuccess mustEqual true
       ok //TODO write more of this test

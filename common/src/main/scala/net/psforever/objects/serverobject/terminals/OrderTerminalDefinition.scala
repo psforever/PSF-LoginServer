@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.terminals
 
-import net.psforever.objects.InfantryLoadout.Simplification
+import net.psforever.objects.Loadout.Simplification
 import net.psforever.objects.{Player, Tool}
 import net.psforever.objects.definition._
 import net.psforever.objects.equipment.Equipment
@@ -13,7 +13,7 @@ import scala.annotation.switch
 /**
   * The definition for any `Terminal` that is of a type "order_terminal".
   * `Buy` and `Sell` `Equipment` items and `AmmoBox` items.
-  * Change `ExoSuitType` and retrieve `InfantryLoadout` entries.
+  * Change `ExoSuitType` and retrieve `Loadout` entries.
   */
 class OrderTerminalDefinition extends TerminalDefinition(612) {
   Name = "order_terminal"
@@ -75,19 +75,19 @@ class OrderTerminalDefinition extends TerminalDefinition(612) {
     * @param msg the original packet carrying the request
     * @return an actionable message that explains how to process the request
     */
-  def Sell(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
+  override def Sell(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
     Terminal.SellEquipment()
   }
 
   /**
     * Process a `TransactionType.InfantryLoadout` action by the user.
-    * `InfantryLoadout` objects are blueprints composed of exo-suit specifications and simplified `Equipment`-to-slot mappings.
+    * `Loadout` objects are blueprints composed of exo-suit specifications and simplified `Equipment`-to-slot mappings.
     * If a valid loadout is found, its data is transformed back into actual `Equipment` for return to the user.
     * @param player the player
     * @param msg the original packet carrying the request
     * @return an actionable message that explains how to process the request
     */
-  def Loadout(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
+  override def Loadout(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
     if(msg.item_page == 4) { //Favorites tab
       player.LoadLoadout(msg.unk1) match {
         case Some(loadout) =>
@@ -105,7 +105,7 @@ class OrderTerminalDefinition extends TerminalDefinition(612) {
 
   /**
     * Accept a simplified blueprint for some piece of `Equipment` and create an actual piece of `Equipment` based on it.
-    * Used specifically for the reconstruction of `Equipment` via an `InfantryLoadout`.
+    * Used specifically for the reconstruction of `Equipment` via an `Loadout`.
     * @param entry the simplified blueprint
     * @return some `Equipment` object
     * @see `TerminalDefinition.MakeTool`<br>
@@ -115,7 +115,7 @@ class OrderTerminalDefinition extends TerminalDefinition(612) {
     *       `TerminalDefinition.MakeKit`
     */
   private def BuildSimplifiedPattern(entry : Simplification) : Equipment = {
-    import net.psforever.objects.InfantryLoadout._
+    import net.psforever.objects.Loadout._
     entry match {
       case obj : ShorthandTool =>
         val ammo : List[AmmoBoxDefinition] = obj.ammo.map(fmode => { fmode.ammo.adef })

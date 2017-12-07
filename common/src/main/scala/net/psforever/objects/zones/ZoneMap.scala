@@ -25,6 +25,7 @@ import net.psforever.objects.serverobject.builders.ServerObjectBuilder
   */
 class ZoneMap(private val name : String) {
   private var localObjects : List[ServerObjectBuilder[_]] = List()
+  private var linkTerminalPad : Map[Int, Int] = Map()
   private var linkDoorLock : Map[Int, Int] = Map()
   private var linkObjectBase : Map[Int, Int] = Map()
   private var numBases : Int = 0
@@ -50,7 +51,9 @@ class ZoneMap(private val name : String) {
   def LocalBases : Int = numBases
 
   def LocalBases_=(num : Int) : Int = {
-    numBases = math.max(0, num)
+    if(num > 0) {
+      numBases = num
+    }
     LocalBases
   }
 
@@ -62,7 +65,13 @@ class ZoneMap(private val name : String) {
 
   def DoorToLock : Map[Int, Int] = linkDoorLock
 
-  def DoorToLock(door_guid : Int, lock_guid : Int) = {
+  def DoorToLock(door_guid : Int, lock_guid : Int) : Unit = {
     linkDoorLock = linkDoorLock ++ Map(door_guid -> lock_guid)
+  }
+
+  def TerminalToSpawnPad : Map[Int, Int] = linkTerminalPad
+
+  def TerminalToSpawnPad(terminal_guid : Int, pad_guid : Int) : Unit = {
+    linkTerminalPad = linkTerminalPad ++ Map(terminal_guid -> pad_guid)
   }
 }

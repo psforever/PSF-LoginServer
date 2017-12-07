@@ -11,7 +11,6 @@ import net.psforever.packet.game.UseItemMessage
   */
 class Door(private val ddef : DoorDefinition) extends PlanetSideServerObject {
   private var openState : Boolean = false
-  private var lockState : Boolean = false
 
   def Open : Boolean = openState
 
@@ -20,24 +19,14 @@ class Door(private val ddef : DoorDefinition) extends PlanetSideServerObject {
     Open
   }
 
-  def Locked : Boolean = lockState
-
-  def Locked_=(lock : Boolean) : Boolean = {
-    lockState = lock
-    Locked
-  }
-
   def Use(player : Player, msg : UseItemMessage) : Door.Exchange = {
-    if(!lockState && !openState) {
+    if(!openState) {
       openState = true
       Door.OpenEvent()
     }
-    else if(openState) {
+    else {
       openState = false
       Door.CloseEvent()
-    }
-    else {
-      Door.NoEvent()
     }
   }
 

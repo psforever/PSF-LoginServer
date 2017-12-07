@@ -1,5 +1,5 @@
 // Copyright (c) 2017 PSForever
-package objects
+package objects.number
 
 import akka.actor.{ActorRef, ActorSystem, Props}
 import net.psforever.objects.entity.IdentifiableEntity
@@ -7,11 +7,12 @@ import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.objects.guid.actor.{NumberPoolActor, Register, UniqueNumberSystem, Unregister}
 import net.psforever.objects.guid.selector.RandomSelector
 import net.psforever.objects.guid.source.LimitedNumberSource
+import objects.ActorTest
 
 import scala.concurrent.duration.Duration
 import scala.util.{Failure, Success}
 
-class AllocateNumberPoolActors extends ActorTest(ActorSystem("test")) {
+class AllocateNumberPoolActors extends ActorTest() {
   "AllocateNumberPoolActors" in {
     val src : LimitedNumberSource = LimitedNumberSource(6000)
     val guid : NumberPoolHub = new NumberPoolHub(src)
@@ -27,7 +28,7 @@ class AllocateNumberPoolActors extends ActorTest(ActorSystem("test")) {
   }
 }
 
-class UniqueNumberSystemTest extends ActorTest(ActorSystem("test")) {
+class UniqueNumberSystemTest extends ActorTest() {
   "UniqueNumberSystem" should {
     "constructor" in {
       val src : LimitedNumberSource = LimitedNumberSource(6000)
@@ -37,12 +38,11 @@ class UniqueNumberSystemTest extends ActorTest(ActorSystem("test")) {
       guid.AddPool("pool3", (5001 to 6000).toList)
       system.actorOf(Props(classOf[UniqueNumberSystem], guid, UniqueNumberSystemTest.AllocateNumberPoolActors(guid)), "uns")
       //as long as it constructs ...
-
     }
   }
 }
 
-class UniqueNumberSystemTest1 extends ActorTest(ActorSystem("test")) {
+class UniqueNumberSystemTest1 extends ActorTest() {
   class EntityTestClass extends IdentifiableEntity
 
   "UniqueNumberSystem" should {
@@ -61,7 +61,7 @@ class UniqueNumberSystemTest1 extends ActorTest(ActorSystem("test")) {
       for(_  <- 1 to 100) {
         val testObj = new EntityTestClass()
         uns ! Register(testObj, "pool1")
-        val msg = receiveOne(Duration.create(100, "ms"))
+        val msg = receiveOne(Duration.create(500, "ms"))
         assert(msg.isInstanceOf[Success[_]])
         assert(pool1.contains(testObj.GUID.guid))
       }
@@ -69,7 +69,7 @@ class UniqueNumberSystemTest1 extends ActorTest(ActorSystem("test")) {
       for(_  <- 1 to 100) {
         val testObj = new EntityTestClass()
         uns ! Register(testObj, "pool2")
-        val msg = receiveOne(Duration.create(100, "ms"))
+        val msg = receiveOne(Duration.create(500, "ms"))
         assert(msg.isInstanceOf[Success[_]])
         assert(pool2.contains(testObj.GUID.guid))
       }
@@ -77,7 +77,7 @@ class UniqueNumberSystemTest1 extends ActorTest(ActorSystem("test")) {
       for(_  <- 1 to 100) {
         val testObj = new EntityTestClass()
         uns ! Register(testObj, "pool3")
-        val msg = receiveOne(Duration.create(100, "ms"))
+        val msg = receiveOne(Duration.create(500, "ms"))
         assert(msg.isInstanceOf[Success[_]])
         assert(pool3.contains(testObj.GUID.guid))
       }
@@ -86,7 +86,7 @@ class UniqueNumberSystemTest1 extends ActorTest(ActorSystem("test")) {
   }
 }
 
-class UniqueNumberSystemTest2 extends ActorTest(ActorSystem("test")) {
+class UniqueNumberSystemTest2 extends ActorTest() {
   class EntityTestClass extends IdentifiableEntity
 
   "UniqueNumberSystem" should {
@@ -102,14 +102,14 @@ class UniqueNumberSystemTest2 extends ActorTest(ActorSystem("test")) {
       assert(src.CountUsed == 0)
 
       uns ! Register(testObj, "pool1")
-      val msg1 = receiveOne(Duration.create(100, "ms"))
+      val msg1 = receiveOne(Duration.create(500, "ms"))
       assert(msg1.isInstanceOf[Success[_]])
       assert(testObj.HasGUID)
       assert(src.CountUsed == 1)
 
       val id = testObj.GUID.guid
       uns ! Register(testObj, "pool2") //different pool; makes no difference
-      val msg2 = receiveOne(Duration.create(100, "ms"))
+      val msg2 = receiveOne(Duration.create(500, "ms"))
       assert(msg2.isInstanceOf[Success[_]])
       assert(testObj.HasGUID)
       assert(src.CountUsed == 1)
@@ -119,7 +119,7 @@ class UniqueNumberSystemTest2 extends ActorTest(ActorSystem("test")) {
   //a log.warn should have been generated during this test
 }
 
-class UniqueNumberSystemTest3 extends ActorTest(ActorSystem("test")) {
+class UniqueNumberSystemTest3 extends ActorTest() {
   class EntityTestClass extends IdentifiableEntity
 
   "UniqueNumberSystem" should {
@@ -135,7 +135,7 @@ class UniqueNumberSystemTest3 extends ActorTest(ActorSystem("test")) {
       assert(src.CountUsed == 0)
 
       uns ! Register(testObj, "pool4")
-      val msg1 = receiveOne(Duration.create(100, "ms"))
+      val msg1 = receiveOne(Duration.create(500, "ms"))
       assert(msg1.isInstanceOf[Failure[_]])
       assert(!testObj.HasGUID)
       assert(src.CountUsed == 0)
@@ -143,7 +143,7 @@ class UniqueNumberSystemTest3 extends ActorTest(ActorSystem("test")) {
   }
 }
 
-class UniqueNumberSystemTest4 extends ActorTest(ActorSystem("test")) {
+class UniqueNumberSystemTest4 extends ActorTest() {
   class EntityTestClass extends IdentifiableEntity
 
   "UniqueNumberSystem" should {
@@ -158,18 +158,18 @@ class UniqueNumberSystemTest4 extends ActorTest(ActorSystem("test")) {
 
       val testObj1 = new EntityTestClass()
       uns ! Register(testObj1, "pool4")
-      val msg1 = receiveOne(Duration.create(100, "ms"))
+      val msg1 = receiveOne(Duration.create(500, "ms"))
       assert(msg1.isInstanceOf[Success[_]]) //pool4 is now empty
 
       val testObj2 = new EntityTestClass()
       uns ! Register(testObj2, "pool4")
-      val msg2 = receiveOne(Duration.create(100, "ms"))
+      val msg2 = receiveOne(Duration.create(500, "ms"))
       assert(msg2.isInstanceOf[Failure[_]])
     }
   }
 }
 
-class UniqueNumberSystemTest5 extends ActorTest(ActorSystem("test")) {
+class UniqueNumberSystemTest5 extends ActorTest() {
   class EntityTestClass extends IdentifiableEntity
 
   "UniqueNumberSystem" should {
@@ -186,14 +186,14 @@ class UniqueNumberSystemTest5 extends ActorTest(ActorSystem("test")) {
       assert(src.CountUsed == 0)
 
       uns ! Register(testObj, "pool2")
-      val msg1 = receiveOne(Duration.create(100, "ms"))
+      val msg1 = receiveOne(Duration.create(500, "ms"))
       assert(msg1.isInstanceOf[Success[_]])
       assert(testObj.HasGUID)
       assert(pool2.contains(testObj.GUID.guid))
       assert(src.CountUsed == 1)
 
       uns ! Unregister(testObj)
-      val msg2 = receiveOne(Duration.create(100, "ms"))
+      val msg2 = receiveOne(Duration.create(500, "ms"))
       assert(msg2.isInstanceOf[Success[_]])
       assert(!testObj.HasGUID)
       assert(src.CountUsed == 0)
@@ -201,7 +201,7 @@ class UniqueNumberSystemTest5 extends ActorTest(ActorSystem("test")) {
   }
 }
 
-class UniqueNumberSystemTest6 extends ActorTest(ActorSystem("test")) {
+class UniqueNumberSystemTest6 extends ActorTest() {
   class EntityTestClass extends IdentifiableEntity
 
   "UniqueNumberSystem" should {
@@ -217,7 +217,7 @@ class UniqueNumberSystemTest6 extends ActorTest(ActorSystem("test")) {
       assert(src.CountUsed == 0)
 
       uns ! Unregister(testObj)
-      val msg1 = receiveOne(Duration.create(100, "ms"))
+      val msg1 = receiveOne(Duration.create(500, "ms"))
       assert(msg1.isInstanceOf[Success[_]])
       assert(!testObj.HasGUID)
       assert(src.CountUsed == 0)
@@ -225,7 +225,7 @@ class UniqueNumberSystemTest6 extends ActorTest(ActorSystem("test")) {
   }
 }
 
-class UniqueNumberSystemTest7 extends ActorTest(ActorSystem("test")) {
+class UniqueNumberSystemTest7 extends ActorTest() {
   class EntityTestClass extends IdentifiableEntity
 
   "UniqueNumberSystem" should {
@@ -242,7 +242,7 @@ class UniqueNumberSystemTest7 extends ActorTest(ActorSystem("test")) {
       assert(src.CountUsed == 0)
 
       uns ! Unregister(testObj)
-      val msg1 = receiveOne(Duration.create(100, "ms"))
+      val msg1 = receiveOne(Duration.create(500, "ms"))
       assert(msg1.isInstanceOf[Failure[_]])
       assert(testObj.HasGUID)
       assert(src.CountUsed == 0)
@@ -250,7 +250,7 @@ class UniqueNumberSystemTest7 extends ActorTest(ActorSystem("test")) {
   }
 }
 
-class UniqueNumberSystemTest8 extends ActorTest(ActorSystem("test")) {
+class UniqueNumberSystemTest8 extends ActorTest() {
   class EntityTestClass extends IdentifiableEntity
 
   "UniqueNumberSystem" should {
@@ -267,7 +267,7 @@ class UniqueNumberSystemTest8 extends ActorTest(ActorSystem("test")) {
       assert(src.CountUsed == 0)
 
       uns ! Unregister(testObj)
-      val msg1 = receiveOne(Duration.create(100, "ms"))
+      val msg1 = receiveOne(Duration.create(500, "ms"))
       assert(msg1.isInstanceOf[Failure[_]])
       assert(testObj.HasGUID)
       assert(src.CountUsed == 0)
@@ -285,4 +285,3 @@ object UniqueNumberSystemTest {
     }).toMap
   }
 }
-

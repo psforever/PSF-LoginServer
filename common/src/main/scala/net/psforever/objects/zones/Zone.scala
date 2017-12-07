@@ -2,8 +2,9 @@
 package net.psforever.objects.zones
 
 import akka.actor.{ActorContext, ActorRef, Props}
+import akka.routing.RandomPool
 import net.psforever.objects.serverobject.doors.Base
-import net.psforever.objects.{PlanetSideGameObject, Player}
+import net.psforever.objects.{PlanetSideGameObject, Player, Vehicle}
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.objects.guid.actor.UniqueNumberSystem
@@ -13,6 +14,7 @@ import net.psforever.packet.GamePacket
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types.Vector3
 
+import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
 
 /**
@@ -48,6 +50,10 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
   private val equipmentOnGround : ListBuffer[Equipment] = ListBuffer[Equipment]()
   /** Used by the `Zone` to coordinate `Equipment` dropping and collection requests. */
   private var ground : ActorRef = ActorRef.noSender
+  /** */
+  private var vehicles : List[Vehicle] = List[Vehicle]()
+  /** */
+  private var transport : ActorRef = ActorRef.noSender
 
   private var bases : List[Base] = List()
 
@@ -66,8 +72,9 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
   def Init(implicit context : ActorContext) : Unit = {
     if(accessor == ActorRef.noSender) {
       implicit val guid : NumberPoolHub = this.guid //passed into builderObject.Build implicitly
-      accessor = context.actorOf(Props(classOf[UniqueNumberSystem], guid, UniqueNumberSystem.AllocateNumberPoolActors(guid)), s"$Id-uns")
+      accessor = context.actorOf(RandomPool(25).props(Props(classOf[UniqueNumberSystem], guid, UniqueNumberSystem.AllocateNumberPoolActors(guid))), s"$Id-uns")
       ground = context.actorOf(Props(classOf[ZoneGroundActor], equipmentOnGround), s"$Id-ground")
+      transport = context.actorOf(Props(classOf[ZoneVehicleActor], this), s"$Id-vehicles")
 
       Map.LocalObjects.foreach({ builderObject =>
         builderObject.Build
@@ -129,11 +136,14 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
     * The replacement will not occur if the current system is populated or if its synchronized reference has been created.
     * @return synchronized reference to the globally unique identifier system
     */
-  def GUID(hub : NumberPoolHub) : ActorRef = {
+  def GUID(hub : NumberPoolHub) : Boolean = {
     if(actor == ActorRef.noSender && guid.Pools.map({case ((_, pool)) => pool.Count}).sum == 0) {
       guid = hub
+      true
     }
-    Actor
+    else {
+      false
+    }
   }
 
   /**
@@ -164,6 +174,37 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
     */
   def EquipmentOnGround : List[Equipment] = equipmentOnGround.toList
 
+  def Vehicles : List[Vehicle] = vehicles
+
+  def AddVehicle(vehicle : Vehicle) : List[Vehicle] = {
+    vehicles = vehicles :+ vehicle
+    Vehicles
+  }
+
+  def RemoveVehicle(vehicle : Vehicle) : List[Vehicle] = {
+    vehicles = recursiveFindVehicle(vehicles.iterator, vehicle) match {
+      case Some(index) =>
+        vehicles.take(index) ++ vehicles.drop(index + 1)
+      case None => ;
+        vehicles
+    }
+    Vehicles
+  }
+
+  @tailrec private def recursiveFindVehicle(iter : Iterator[Vehicle], target : Vehicle, index : Int = 0) : Option[Int] = {
+    if(!iter.hasNext) {
+      None
+    }
+    else {
+      if(iter.next.equals(target)) {
+        Some(index)
+      }
+      else {
+        recursiveFindVehicle(iter, target, index + 1)
+      }
+    }
+  }
+
   /**
     * Coordinate `Equipment` that has been dropped on the ground or to-be-dropped on the ground.
     * @return synchronized reference to the ground
@@ -174,8 +215,10 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
     */
   def Ground : ActorRef = ground
 
+  def Transport : ActorRef = transport
+
   def MakeBases(num : Int) : List[Base] = {
-    bases = (0 to num).map(id => new Base(id)).toList
+    bases = (1 to num).map(id => new Base(id)).toList
     bases
   }
 
@@ -248,6 +291,10 @@ object Zone {
     * @param item the piece of `Equipment`
     */
   final case class ItemFromGround(player : Player, item : Equipment)
+
+  final case class SpawnVehicle(vehicle : Vehicle)
+
+  final case class DespawnVehicle(vehicle : Vehicle)
 
   /**
     * Message to report the packet messages that initialize the client.
