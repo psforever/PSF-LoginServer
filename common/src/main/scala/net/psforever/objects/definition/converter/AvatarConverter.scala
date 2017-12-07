@@ -19,7 +19,7 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
         DressBattleRank(obj),
         DressCommandRank(obj),
         recursiveMakeImplantEffects(obj.Implants.iterator),
-        None, //TODO cosmetics
+        MakeCosmetics(obj.BEP),
         InventoryData(MakeHolsters(obj, BuildEquipment).sortBy(_.parentSlot)), //TODO is sorting necessary?
         GetDrawnSlot(obj)
       )
@@ -138,12 +138,12 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
     (0 until numImplants).map(index => {
       val slot = implants(index)
       slot.Installed match {
-        case Some(_) =>
+        case Some(implant) =>
           if(slot.Initialized) {
             ImplantEntry(slot.Implant, None)
           }
           else {
-            ImplantEntry(slot.Implant, Some(slot.Installed.get.Initialization.toInt))
+            ImplantEntry(slot.Implant, Some(implant.Initialization.toInt))
           }
         case None =>
           ImplantEntry(ImplantType.None, None)
@@ -173,10 +173,13 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
             Some(ImplantEffects.PersonalShieldEffects)
           case Some(`surge`) =>
             Some(ImplantEffects.SurgeEffects)
-          case _ => ;
+          case _ =>
+            recursiveMakeImplantEffects(iter)
         }
       }
-      recursiveMakeImplantEffects(iter)
+      else {
+        recursiveMakeImplantEffects(iter)
+      }
     }
   }
 
