@@ -168,9 +168,10 @@ object Terminal {
   /**
     * Provide a vehicle that was constructed for the player.
     * @param vehicle the vehicle
-    * @param loadout the vehicle's trunk contents
+    * @param weapons the vehicle's mounted armament
+    * @param inventory the vehicle's trunk contents
     */
-  final case class BuyVehicle(vehicle : Vehicle, loadout: List[Any]) extends Exchange
+  final case class BuyVehicle(vehicle : Vehicle, weapons : List[InventoryItem], inventory : List[InventoryItem]) extends Exchange
 
   /**
     * Recover a former exo-suit and `Equipment` configuration that the `Player` possessed.

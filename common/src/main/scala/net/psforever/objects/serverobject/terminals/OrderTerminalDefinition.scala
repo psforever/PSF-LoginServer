@@ -1,12 +1,11 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.terminals
 
-import net.psforever.objects.Loadout.Simplification
-import net.psforever.objects.{Player, Tool}
-import net.psforever.objects.definition._
+import net.psforever.objects.Player
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.inventory.InventoryItem
 import net.psforever.packet.game.ItemTransactionMessage
+import net.psforever.objects.serverobject.terminals.EquipmentTerminalDefinition._
 
 import scala.annotation.switch
 
@@ -15,7 +14,7 @@ import scala.annotation.switch
   * `Buy` and `Sell` `Equipment` items and `AmmoBox` items.
   * Change `ExoSuitType` and retrieve `Loadout` entries.
   */
-class OrderTerminalDefinition extends TerminalDefinition(612) {
+class OrderTerminalDefinition extends EquipmentTerminalDefinition(612) {
   Name = "order_terminal"
 
   /**
@@ -91,7 +90,7 @@ class OrderTerminalDefinition extends TerminalDefinition(612) {
     if(msg.item_page == 4) { //Favorites tab
       player.LoadLoadout(msg.unk1) match {
         case Some(loadout) =>
-          val holsters = loadout.Holsters.map(entry => { InventoryItem(BuildSimplifiedPattern(entry.item), entry.index) })
+          val holsters = loadout.VisibleSlots.map(entry => { InventoryItem(BuildSimplifiedPattern(entry.item), entry.index) })
           val inventory = loadout.Inventory.map(entry => { InventoryItem(BuildSimplifiedPattern(entry.item), entry.index) })
           Terminal.InfantryLoadout(loadout.ExoSuit, loadout.Subtype, holsters, inventory)
         case None =>
@@ -100,45 +99,6 @@ class OrderTerminalDefinition extends TerminalDefinition(612) {
     }
     else {
       Terminal.NoDeal()
-    }
-  }
-
-  /**
-    * Accept a simplified blueprint for some piece of `Equipment` and create an actual piece of `Equipment` based on it.
-    * Used specifically for the reconstruction of `Equipment` via an `Loadout`.
-    * @param entry the simplified blueprint
-    * @return some `Equipment` object
-    * @see `TerminalDefinition.MakeTool`<br>
-    *       `TerminalDefinition.MakeAmmoBox`<br>
-    *       `TerminalDefinition.MakeSimpleItem`<br>
-    *       `TerminalDefinition.MakeConstructionItem`<br>
-    *       `TerminalDefinition.MakeKit`
-    */
-  private def BuildSimplifiedPattern(entry : Simplification) : Equipment = {
-    import net.psforever.objects.Loadout._
-    entry match {
-      case obj : ShorthandTool =>
-        val ammo : List[AmmoBoxDefinition] = obj.ammo.map(fmode => { fmode.ammo.adef })
-        val tool = Tool(obj.tdef)
-        //makes Tools where an ammo slot may have one of its alternate ammo types
-        (0 until tool.MaxAmmoSlot).foreach(index => {
-          val slot = tool.AmmoSlots(index)
-          slot.AmmoTypeIndex += obj.ammo(index).ammoIndex
-          slot.Box = MakeAmmoBox(ammo(index), Some(obj.ammo(index).ammo.capacity))
-        })
-        tool
-
-      case obj : ShorthandAmmoBox =>
-        MakeAmmoBox(obj.adef, Some(obj.capacity))
-
-      case obj : ShorthandConstructionItem =>
-        MakeConstructionItem(obj.cdef)
-
-      case obj : ShorthandSimpleItem =>
-        MakeSimpleItem(obj.sdef)
-
-      case obj : ShorthandKit =>
-        MakeKit(obj.kdef)
     }
   }
 }

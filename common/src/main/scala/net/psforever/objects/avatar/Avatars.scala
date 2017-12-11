@@ -1,5 +1,5 @@
 // Copyright (c) 2017 PSForever
-package net.psforever.objects
+package net.psforever.objects.avatar
 
 /**
   * An `Enumeration` of all the avatar types in the game, paired with their object id as the `Value`.
