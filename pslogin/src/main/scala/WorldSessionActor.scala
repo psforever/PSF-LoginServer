@@ -1059,7 +1059,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
       player.Certifications += CertificationType.AgileExoSuit
       player.Certifications += CertificationType.ReinforcedExoSuit
       player.Certifications += CertificationType.ATV
-      player.Certifications += CertificationType.Harasser
+//      player.Certifications += CertificationType.Harasser
+      player.Certifications += CertificationType.InfiltrationSuit
       //
       player.Certifications += CertificationType.GroundSupport
       player.Certifications += CertificationType.GroundTransport
@@ -1113,7 +1114,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
         player.Certifications += CertificationType.AgileExoSuit
         player.Certifications += CertificationType.ReinforcedExoSuit
         player.Certifications += CertificationType.ATV
-        player.Certifications += CertificationType.Harasser
+//        player.Certifications += CertificationType.Harasser
+        player.Certifications += CertificationType.InfiltrationSuit
         //
         player.Certifications += CertificationType.GroundSupport
         player.Certifications += CertificationType.GroundTransport
@@ -1128,7 +1130,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         player.Certifications += CertificationType.AirSupport
         player.Certifications += CertificationType.GalaxyGunship
         player.Certifications += CertificationType.Phantasm
-        AwardBattleExperiencePoints(player, 2583440L)
+        AwardBattleExperiencePoints(player, 20000000L)
         player.CEP = 600000
         if(empire == PlanetSideEmpire.TR) {
           player.Slot(0).Equipment = Tool(repeater)
@@ -1185,7 +1187,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
             player.Certifications += CertificationType.AgileExoSuit
             player.Certifications += CertificationType.ReinforcedExoSuit
             player.Certifications += CertificationType.ATV
-            player.Certifications += CertificationType.Harasser
+//            player.Certifications += CertificationType.Harasser
+            player.Certifications += CertificationType.InfiltrationSuit
             //
             player.Certifications += CertificationType.GroundSupport
             player.Certifications += CertificationType.GroundTransport
@@ -1227,7 +1230,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
             player.Certifications += CertificationType.AgileExoSuit
             player.Certifications += CertificationType.ReinforcedExoSuit
             player.Certifications += CertificationType.ATV
-            player.Certifications += CertificationType.Harasser
+//            player.Certifications += CertificationType.Harasser
+            player.Certifications += CertificationType.InfiltrationSuit
             //
             player.Certifications += CertificationType.GroundSupport
             player.Certifications += CertificationType.GroundTransport
@@ -1269,7 +1273,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
             player.Certifications += CertificationType.AgileExoSuit
             player.Certifications += CertificationType.ReinforcedExoSuit
             player.Certifications += CertificationType.ATV
-            player.Certifications += CertificationType.Harasser
+//            player.Certifications += CertificationType.Harasser
+            player.Certifications += CertificationType.InfiltrationSuit
             //
             player.Certifications += CertificationType.GroundSupport
             player.Certifications += CertificationType.GroundTransport
@@ -1474,19 +1479,14 @@ class WorldSessionActor extends Actor with MDCContextAware {
       }
 
       if (messagetype == ChatMessageType.CMT_BROADCAST) {
-        player.Implants(0).Initialized = true
-        player.Implants(1).Initialized = true
-        player.Implants(2).Initialized = true
-        sendResponse(PacketCoding.CreateGamePacket(0,AvatarImplantMessage(PlanetSideGUID(player.GUID.guid),2,0,1)))
-        sendResponse(PacketCoding.CreateGamePacket(0,AvatarImplantMessage(PlanetSideGUID(player.GUID.guid),2,1,1)))
-        sendResponse(PacketCoding.CreateGamePacket(0,AvatarImplantMessage(PlanetSideGUID(player.GUID.guid),2,2,1)))
+
       }
       if (messagetype == ChatMessageType.CMT_TELL) {
-        sendResponse(PacketCoding.CreateGamePacket(0,AvatarImplantMessage(PlanetSideGUID(player.GUID.guid),recipient.toInt,1,contents.toInt)))
+
       }
 
       if (messagetype == ChatMessageType.CMT_VOICE) {
-        sendResponse(PacketCoding.CreateGamePacket(0, ChatMsg(ChatMessageType.CMT_VOICE, false, "IlllIIIlllIlIllIlllIllI", contents, None)))
+        sendResponse(PacketCoding.CreateGamePacket(0, ChatMsg(ChatMessageType.CMT_VOICE, false, player.Name, contents, None)))
       }
 
       // TODO: handle this appropriately
@@ -1716,6 +1716,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ AvatarImplantMessage(_, action, slot, status) => //(player_guid, unk1, unk2, implant) =>
       log.info("AvatarImplantMessage: " + msg)
       if (player.Implants(slot).Initialized) {
+        if(action == 3 && status == 1) { // active
+          player.Implants(slot).Active = true
+        } else if(action == 3 && status == 0) { //desactive
+          player.Implants(slot).Active = false
+        }
         sendResponse(PacketCoding.CreateGamePacket(0,AvatarImplantMessage(PlanetSideGUID(player.GUID.guid),action,slot,status)))
       }
 

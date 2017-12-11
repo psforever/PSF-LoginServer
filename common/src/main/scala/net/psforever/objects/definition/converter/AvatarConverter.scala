@@ -11,19 +11,35 @@ import scala.util.{Success, Try}
 
 class AvatarConverter extends ObjectCreateConverter[Player]() {
   override def ConstructorData(obj : Player) : Try[CharacterData] = {
-    Success(
-      CharacterData(
-        MakeAppearanceData(obj),
-        obj.Health / obj.MaxHealth * 255, //TODO not precise
-        obj.Armor / obj.MaxArmor * 255, //TODO not precise
-        DressBattleRank(obj),
-        DressCommandRank(obj),
-        recursiveMakeImplantEffects(obj.Implants.iterator),
-        None, //TODO cosmetics
-        InventoryData(MakeHolsters(obj, BuildEquipment).sortBy(_.parentSlot)), //TODO is sorting necessary?
-        GetDrawnSlot(obj)
+    if(obj.MaxArmor != 0) {
+      Success(
+        CharacterData(
+          MakeAppearanceData(obj),
+          obj.Health / obj.MaxHealth * 255, //TODO not precise
+          obj.Armor / obj.MaxArmor * 255, //TODO not precise
+          DressBattleRank(obj),
+          DressCommandRank(obj),
+          recursiveMakeImplantEffects(obj.Implants.iterator),
+          MakeCosmetics(obj.BEP),
+          InventoryData(MakeHolsters(obj, BuildEquipment).sortBy(_.parentSlot)), //TODO is sorting necessary?
+          GetDrawnSlot(obj)
+        )
       )
-    )
+    } else {
+      Success(
+        CharacterData(
+          MakeAppearanceData(obj),
+          obj.Health / obj.MaxHealth * 255, //TODO not precise
+          0,
+          DressBattleRank(obj),
+          DressCommandRank(obj),
+          recursiveMakeImplantEffects(obj.Implants.iterator),
+          MakeCosmetics(obj.BEP),
+          InventoryData(MakeHolsters(obj, BuildEquipment).sortBy(_.parentSlot)), //TODO is sorting necessary?
+          GetDrawnSlot(obj)
+        )
+      )
+    }
     //TODO tidy this mess up
   }
 
@@ -138,12 +154,12 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
     (0 until numImplants).map(index => {
       val slot = implants(index)
       slot.Installed match {
-        case Some(_) =>
+        case Some(implant) =>
           if(slot.Initialized) {
             ImplantEntry(slot.Implant, None)
           }
           else {
-            ImplantEntry(slot.Implant, Some(slot.Installed.get.Initialization.toInt))
+            ImplantEntry(slot.Implant, Some(implant.Initialization.toInt))
           }
         case None =>
           ImplantEntry(ImplantType.None, None)
@@ -168,15 +184,22 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
           case Some(`advanced_regen`) =>
             Some(ImplantEffects.RegenEffects)
           case Some(`darklight_vision`) =>
+            println(slot.Installed.get.Type,slot.Active,slot.Initialized)
+            println(slot.Implant.id)
             Some(ImplantEffects.DarklightEffects)
           case Some(`personal_shield`) =>
             Some(ImplantEffects.PersonalShieldEffects)
           case Some(`surge`) =>
             Some(ImplantEffects.SurgeEffects)
-          case _ => ;
+          case _ =>
+            println(slot.Implant.id)
+            println(slot.Installed.get.Type,slot.Active,slot.Initialized)
+            recursiveMakeImplantEffects(iter)
         }
       }
-      recursiveMakeImplantEffects(iter)
+      else {
+        recursiveMakeImplantEffects(iter)
+      }
     }
   }
 
