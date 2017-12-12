@@ -181,12 +181,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
         case AvatarResponse.LoadPlayer(pdata) =>
           if(player.GUID != guid) {
-            sendResponse(
-              PacketCoding.CreateGamePacket(
-                0,
-                ObjectCreateMessage(ObjectClass.avatar, guid, pdata)
-              )
-            )
+            sendResponse(PacketCoding.CreateGamePacket(0, ObjectCreateMessage(ObjectClass.avatar, guid, pdata)))
           }
 
         case AvatarResponse.ObjectDelete(item_guid, unk) =>

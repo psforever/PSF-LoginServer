@@ -11,11 +11,12 @@ import scala.util.{Success, Try}
 
 class AvatarConverter extends ObjectCreateConverter[Player]() {
   override def ConstructorData(obj : Player) : Try[CharacterData] = {
+    val MaxArmor = obj.MaxArmor
     Success(
       CharacterData(
         MakeAppearanceData(obj),
         obj.Health / obj.MaxHealth * 255, //TODO not precise
-        obj.Armor / obj.MaxArmor * 255, //TODO not precise
+        if(MaxArmor == 0) { 0 } else { obj.Armor / MaxArmor * 255 }, //TODO not precise
         DressBattleRank(obj),
         DressCommandRank(obj),
         recursiveMakeImplantEffects(obj.Implants.iterator),
@@ -163,15 +164,14 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
     else {
       val slot = iter.next
       if(slot.Active) {
-        import GlobalDefinitions._
         slot.Installed match {
-          case Some(`advanced_regen`) =>
+          case Some(GlobalDefinitions.advanced_regen) =>
             Some(ImplantEffects.RegenEffects)
-          case Some(`darklight_vision`) =>
+          case Some(GlobalDefinitions.darklight_vision) =>
             Some(ImplantEffects.DarklightEffects)
-          case Some(`personal_shield`) =>
+          case Some(GlobalDefinitions.personal_shield) =>
             Some(ImplantEffects.PersonalShieldEffects)
-          case Some(`surge`) =>
+          case Some(GlobalDefinitions.surge) =>
             Some(ImplantEffects.SurgeEffects)
           case _ =>
             recursiveMakeImplantEffects(iter)
