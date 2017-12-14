@@ -29,6 +29,7 @@ import net.psforever.types._
 import org.joda.time.Seconds
 import services._
 import services.avatar._
+import services.chat._
 import services.local._
 import services.vehicle.{VehicleAction, VehicleResponse, VehicleServiceMessage, VehicleServiceResponse}
 
@@ -45,6 +46,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
   var avatarService : ActorRef = ActorRef.noSender
   var localService : ActorRef = ActorRef.noSender
   var vehicleService : ActorRef = ActorRef.noSender
+  var chatService : ActorRef = ActorRef.noSender
   var taskResolver : ActorRef = Actor.noSender
   var galaxy : ActorRef = Actor.noSender
   var continent : Zone = null
@@ -58,6 +60,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       clientKeepAlive.cancel()
       localService ! Service.Leave()
       vehicleService ! Service.Leave()
+      chatService ! Service.Leave()
       avatarService ! Service.Leave()
       LivePlayerList.Remove(sessionId) match {
         case Some(tplayer) =>
@@ -107,6 +110,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       ServiceManager.serviceManager ! Lookup("avatar")
       ServiceManager.serviceManager ! Lookup("local")
       ServiceManager.serviceManager ! Lookup("vehicle")
+      ServiceManager.serviceManager ! Lookup("chat")
       ServiceManager.serviceManager ! Lookup("taskResolver")
       ServiceManager.serviceManager ! Lookup("galaxy")
 
@@ -125,6 +129,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case ServiceManager.LookupResult("vehicle", endpoint) =>
       vehicleService = endpoint
       log.info("ID: " + sessionId + " Got vehicle service " + endpoint)
+    case ServiceManager.LookupResult("chat", endpoint) =>
+      chatService = endpoint
+      log.info("ID: " + sessionId + " Got chat service " + endpoint)
     case ServiceManager.LookupResult("taskResolver", endpoint) =>
       taskResolver = endpoint
       log.info("ID: " + sessionId + " Got task resolver service " + endpoint)
@@ -325,6 +332,18 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
         case _ => ;
       }
+
+    case ChatServiceResponse(toChannel, guid, reply) =>
+      reply match {
+
+        case ChatResponse.Local(player_name, messageType, wideContents, recipient, contents, note) =>
+          println("toto",recipient,player.Name,guid,toChannel)
+          sendResponse(PacketCoding.CreateGamePacket(0, ChatMsg(messageType, wideContents, player_name, contents, note)))
+
+        case _ => ;
+
+      }
+
 
     case Door.DoorMessage(tplayer, msg, order) =>
       val door_guid = msg.object_guid
@@ -1409,6 +1428,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
       avatarService ! Service.Join(player.Continent)
       localService ! Service.Join(player.Continent)
       vehicleService ! Service.Join(player.Continent)
+
+      chatService ! Service.Join("local")
+      chatService ! Service.Join("voice")
+      chatService ! Service.Join("tell")
+      chatService ! Service.Join("broadcast")
+
       self ! SetCurrentAvatar(player)
 
     case msg @ PlayerStateMessageUpstream(avatar_guid, pos, vel, yaw, pitch, yaw_upper, seq_time, unk3, is_crouching, is_jumping, unk4, is_cloaking, unk5, unk6) =>
@@ -1478,6 +1503,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
         log.info("Chat: " + msg)
       }
 
+      if (messagetype == ChatMessageType.CMT_OPEN) {
+        chatService ! ChatServiceMessage("local", ChatAction.Local(player.GUID, player.Name, continent, msg))
+      }
+
       if (messagetype == ChatMessageType.CMT_BROADCAST) {
 
       }
@@ -1497,7 +1526,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
       // TODO: Depending on messagetype, may need to prepend sender's name to contents with proper spacing
       // TODO: Just replays the packet straight back to sender; actually needs to be routed to recipients!
-      sendResponse(PacketCoding.CreateGamePacket(0, ChatMsg(messagetype, has_wide_contents, recipient, contents, note_contents)))
+      //sendResponse(PacketCoding.CreateGamePacket(0, ChatMsg(messagetype, has_wide_contents, recipient, contents, note_contents)))
 
     case msg @ VoiceHostRequest(unk, PlanetSideGUID(player_guid), data) =>
       log.info("Player "+player_guid+" requested in-game voice chat.")

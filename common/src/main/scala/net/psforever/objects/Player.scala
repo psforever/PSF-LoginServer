@@ -369,9 +369,9 @@ class Player(private val name : String,
     implants.find({p => p.Installed.contains(implant)}) match { //try to find the installed implant
       case None =>
         recursiveFindImplantInSlot(implants.iterator, ImplantType.None) match { //install in a free slot
-          case out @ Some(slot) =>
+          case Some(slot) =>
             implants(slot).Implant = implant
-            out
+            Some(slot)
           case None =>
             None
         }
@@ -395,9 +395,9 @@ class Player(private val name : String,
     */
   def UninstallImplant(implantType : ImplantType.Value) : Option[Int] = {
     recursiveFindImplantInSlot(implants.iterator, implantType) match {
-      case out @ Some(slot) =>
+      case Some(slot) =>
         implants(slot).Implant = None
-        out
+      Some(slot)
       case None =>
         None
     }

@@ -21,6 +21,7 @@ import org.fusesource.jansi.Ansi._
 import org.fusesource.jansi.Ansi.Color._
 import services.ServiceManager
 import services.avatar._
+import services.chat.ChatService
 import services.local._
 import services.vehicle.VehicleService
 
@@ -210,6 +211,7 @@ object PsLogin {
     serviceManager ! ServiceManager.Register(Props[AvatarService], "avatar")
     serviceManager ! ServiceManager.Register(Props[LocalService], "local")
     serviceManager ! ServiceManager.Register(Props[VehicleService], "vehicle")
+    serviceManager ! ServiceManager.Register(Props[ChatService], "chat")
     serviceManager ! ServiceManager.Register(Props(classOf[InterstellarCluster], createContinents()), "galaxy")
 
     /** Create two actors for handling the login and world server endpoints */
