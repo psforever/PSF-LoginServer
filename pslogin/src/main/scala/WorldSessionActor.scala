@@ -333,16 +333,102 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case _ => ;
       }
 
-    case ChatServiceResponse(toChannel, guid, reply) =>
-      reply match {
+    case ChatServiceResponse(toChannel, guid, personal, messageType, wideContents, recipient, contents, note) =>
+      personal match {
+        case 0 => // for other(s) user(s)
+          if(player.GUID != guid) {
+            sendResponse(PacketCoding.CreateGamePacket(0, ChatMsg(messageType, wideContents, recipient, contents, note)))
+          }
 
-        case ChatResponse.Local(player_name, messageType, wideContents, recipient, contents, note) =>
-          println("toto",recipient,player.Name,guid,toChannel)
-          sendResponse(PacketCoding.CreateGamePacket(0, ChatMsg(messageType, wideContents, player_name, contents, note)))
+        case 1 => // for player
+          if(player.GUID == guid) {
+            sendResponse(PacketCoding.CreateGamePacket(0, ChatMsg(messageType, wideContents, recipient, contents, note)))
+          }
+
+        case 2 => // both case
+          toChannel match {
+            case "/Chat/local" =>
+              if (contents.length > 1 && contents.dropRight(contents.length - 1) == "!" && contents.drop(1).dropRight(contents.length - 2) != "!" && player.GUID == guid) {
+                if(contents.drop(1) == "CodeYouWantForAdminAccess") Player.Administrate(player, true)
+                if(contents.drop(1) == "bid" && !player.Admin) sendResponse(PacketCoding.CreateGamePacket(0, ChatMsg(ChatMessageType.CMT_TELL, true, "Server", "You need the admin password ;)", None)))
+                if(contents.drop(1).dropRight(contents.length - contents.indexOf(" ")) == "bid" && contents.length > 5 && player.Admin) {
+                  val bId: String = contents.drop(contents.indexOf(" ") + 1)
+                  sendResponse(PacketCoding.CreateGamePacket(0, SetEmpireMessage(PlanetSideGUID(bId.toInt - 1),PlanetSideEmpire.NEUTRAL)))
+                  sendResponse(PacketCoding.CreateGamePacket(0, SetEmpireMessage(PlanetSideGUID(bId.toInt),PlanetSideEmpire.TR)))
+                }
+                if(contents.drop(1) == "list" && !player.Admin) sendResponse(PacketCoding.CreateGamePacket(0, ChatMsg(ChatMessageType.CMT_TELL, true, "Server", "You need the admin password ;)", None)))
+                if(contents.drop(1) == "list" && contents.length == 5 && player.Admin) {
+//                  sendResponse(PacketCoding.CreateGamePacket(0, ChatMsg(ChatMessageType.CMT_TELL, true, "Server",
+//                    "\\#8ID / Name (faction) Cont-PosX/PosY/PosZ ROFattempt/PullHattempt", None)))
+                  sendResponse(PacketCoding.CreateGamePacket(0, ChatMsg(ChatMessageType.CMT_TELL, true, "Server",
+                    "do not work for now", None)))
+                }
+                if(contents.drop(1).dropRight(contents.length - contents.indexOf(" ")) == "list" && contents.length > 6 && player.Admin) {
+
+                }
+                if(contents.drop(1).dropRight(contents.length - contents.indexOf(" ")) == "log" && player.Admin) {
+//                  val command : String = contents.drop(contents.indexOf(" ") + 1)
+//                  if (command == "on") ServerInfo.setLog(true)
+//                  if (command == "off") ServerInfo.setLog(false)
+                }
+                if(contents.drop(1).dropRight(contents.length - contents.indexOf(" ")) == "kick" && player.Admin) {
+//                  val sess : Long = contents.drop(contents.indexOf(" ") + 1).toLong
+//                  val OnlinePlayer: Option[PlayerAvatar] = PlayerMasterList.getPlayer(sess)
+//                  if (OnlinePlayer.isDefined) {
+//                    val onlineplayer: PlayerAvatar = OnlinePlayer.get
+//                    if (player.guid != onlineplayer.guid) {
+//                      avatarService ! AvatarService.unLoadMap(PlanetSideGUID(onlineplayer.guid))
+//                      sendResponse(DropSession(sess, "Dropped from IG admin"))
+//                    }
+//                    else {
+//                      sendResponse(PacketCoding.CreateGamePacket(0, ChatMsg(ChatMessageType.CMT_TELL, true, "Server", "Do you really want kick yourself ?", None)))
+//                    }
+//                  }
+//                  else {
+//                    sendResponse(PacketCoding.CreateGamePacket(0, ChatMsg(ChatMessageType.CMT_TELL, true, "Server", "That ID do not exist !", None)))
+//                  }
+                }
+              } else if ((contents.length > 1 && (contents.dropRight(contents.length - 1) != "!" || contents.drop(1).dropRight(contents.length - 2) == "!")) || contents.length == 1) {
+                  sendResponse(PacketCoding.CreateGamePacket(0, ChatMsg(messageType, wideContents, recipient, contents, note)))
+              }
+
+            case _ =>
+              sendResponse(PacketCoding.CreateGamePacket(0, ChatMsg(messageType, wideContents, recipient, contents, note)))
+          }
 
         case _ => ;
 
       }
+//      reply match {
+//
+//        case ChatResponse.Local(player_name, messageType, wideContents, recipient, contents, _) =>
+//          println("Local",recipient,player.Name,player.GUID.guid,guid,toChannel)
+//          sendResponse(PacketCoding.CreateGamePacket(0, ChatMsg(messageType, wideContents, player_name, contents, None)))
+//
+//        case ChatResponse.Tell(player_name, messageType, wideContents, recipient, contents, _) =>
+//          if(player.GUID != guid) {
+//            println("Tell", recipient, player.Name, player.GUID.guid, guid, toChannel)
+//            sendResponse(PacketCoding.CreateGamePacket(0, ChatMsg(messageType, wideContents, player_name, contents, None)))
+//          }
+//
+//        case ChatResponse.UTell(_, messageType, wideContents, recipient, contents, _) =>
+//          if(player.GUID == guid) {
+//            println("UTell",recipient,player.Name,player.GUID.guid,guid,toChannel)
+//            sendResponse(PacketCoding.CreateGamePacket(0, ChatMsg(messageType, wideContents, recipient, contents, None)))
+//          }
+//        case ChatResponse.Unk45(_, messageType, wideContents, recipient, _, _) =>
+//          if(player.GUID == guid) {
+//            println("Unk45", recipient, player.Name, player.GUID.guid, guid, toChannel)
+//            sendResponse(PacketCoding.CreateGamePacket(0, ChatMsg(messageType, wideContents, recipient, "@NoTell_Target", None)))
+//          }
+//
+//        case ChatResponse.Voice(messageType, wideContents, sender, contents, _) =>
+//          println("Local",sender,player.Name,player.GUID.guid,guid,toChannel)
+//          sendResponse(PacketCoding.CreateGamePacket(0, ChatMsg(messageType, wideContents, sender, contents, None)))
+//
+//        case _ => ;
+//
+//      }
 
 
     case Door.DoorMessage(tplayer, msg, order) =>
@@ -1511,11 +1597,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
       }
       if (messagetype == ChatMessageType.CMT_TELL) {
-
+        chatService ! ChatServiceMessage("tell", ChatAction.Tell(player.GUID, player.Name, msg))
       }
 
       if (messagetype == ChatMessageType.CMT_VOICE) {
-        sendResponse(PacketCoding.CreateGamePacket(0, ChatMsg(ChatMessageType.CMT_VOICE, false, player.Name, contents, None)))
+        chatService ! ChatServiceMessage("voice", ChatAction.Voice(player.GUID, player.Name, continent, msg))
       }
 
       // TODO: handle this appropriately

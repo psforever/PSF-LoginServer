@@ -160,6 +160,7 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
   @tailrec private def recursiveMakeImplantEffects(iter : Iterator[ImplantSlot]) : Option[ImplantEffects.Value] = {
     if(!iter.hasNext) {
       None
+//      Some(ImplantEffects.NoEffects)
     }
     else {
       val slot = iter.next
@@ -174,7 +175,7 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
           case Some(GlobalDefinitions.surge) =>
             Some(ImplantEffects.SurgeEffects)
           case _ =>
-            //println(slot.Implant.id,slot.Installed.get.Type,slot.Active,slot.Initialized)
+//            println(slot.Implant.id,slot.Installed.get.Type,slot.Active,slot.Initialized)
             recursiveMakeImplantEffects(iter)
         }
       }

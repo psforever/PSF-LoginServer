@@ -2,9 +2,15 @@
 package services.chat
 
 import net.psforever.packet.game.PlanetSideGUID
+import net.psforever.types.ChatMessageType
 import services.GenericEventBusMsg
 
 final case class ChatServiceResponse(toChannel : String,
                                       avatar_guid : PlanetSideGUID,
-                                      replyMessage : ChatResponse.Response
+                                      personal : Int,
+                                     messageType : ChatMessageType.Value,
+                                     wideContents : Boolean,
+                                     recipient : String,
+                                     contents : String,
+                                     note : Option[String]
                                      ) extends GenericEventBusMsg
