@@ -11,15 +11,16 @@ import scala.util.{Success, Try}
 
 class AvatarConverter extends ObjectCreateConverter[Player]() {
   override def ConstructorData(obj : Player) : Try[CharacterData] = {
+    val MaxArmor = obj.MaxArmor
     Success(
       CharacterData(
         MakeAppearanceData(obj),
         obj.Health / obj.MaxHealth * 255, //TODO not precise
-        obj.Armor / obj.MaxArmor * 255, //TODO not precise
+        if(MaxArmor == 0) { 0 } else { obj.Armor / MaxArmor * 255 }, //TODO not precise
         DressBattleRank(obj),
         DressCommandRank(obj),
         recursiveMakeImplantEffects(obj.Implants.iterator),
-        None, //TODO cosmetics
+        MakeCosmetics(obj.BEP),
         InventoryData(MakeHolsters(obj, BuildEquipment).sortBy(_.parentSlot)), //TODO is sorting necessary?
         GetDrawnSlot(obj)
       )
@@ -138,12 +139,12 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
     (0 until numImplants).map(index => {
       val slot = implants(index)
       slot.Installed match {
-        case Some(_) =>
+        case Some(implant) =>
           if(slot.Initialized) {
             ImplantEntry(slot.Implant, None)
           }
           else {
-            ImplantEntry(slot.Implant, Some(slot.Installed.get.Initialization.toInt))
+            ImplantEntry(slot.Implant, Some(implant.Initialization.toInt))
           }
         case None =>
           ImplantEntry(ImplantType.None, None)
@@ -163,20 +164,22 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
     else {
       val slot = iter.next
       if(slot.Active) {
-        import GlobalDefinitions._
         slot.Installed match {
-          case Some(`advanced_regen`) =>
+          case Some(GlobalDefinitions.advanced_regen) =>
             Some(ImplantEffects.RegenEffects)
-          case Some(`darklight_vision`) =>
+          case Some(GlobalDefinitions.darklight_vision) =>
             Some(ImplantEffects.DarklightEffects)
-          case Some(`personal_shield`) =>
+          case Some(GlobalDefinitions.personal_shield) =>
             Some(ImplantEffects.PersonalShieldEffects)
-          case Some(`surge`) =>
+          case Some(GlobalDefinitions.surge) =>
             Some(ImplantEffects.SurgeEffects)
-          case _ => ;
+          case _ =>
+            recursiveMakeImplantEffects(iter)
         }
       }
-      recursiveMakeImplantEffects(iter)
+      else {
+        recursiveMakeImplantEffects(iter)
+      }
     }
   }
 

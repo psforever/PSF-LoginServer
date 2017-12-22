@@ -3,6 +3,7 @@ package objects.number
 
 import net.psforever.objects.guid.AvailabilityPolicy
 import net.psforever.objects.guid.key.{LoanedKey, SecureKey}
+import net.psforever.packet.game.PlanetSideGUID
 import org.specs2.mutable.Specification
 
 class NumberSourceTest extends Specification {
@@ -100,6 +101,17 @@ class NumberSourceTest extends Specification {
       result2.get.GUID mustEqual 5
       result2.get.Policy mustEqual AvailabilityPolicy.Restricted
       result2.get.Object mustEqual Some(test)
+    }
+
+    "return a secure key" in {
+      val obj = LimitedNumberSource(25)
+      val test = new TestClass()
+      val result1 : Option[LoanedKey] = obj.Available(5)
+      result1.get.Object = test
+      test.GUID = PlanetSideGUID(5)
+      val result2 : Option[SecureKey] = obj.Get(5)
+
+      obj.Return(result2.get) mustEqual Some(test)
     }
 
     "restrict a previously-assigned number" in {

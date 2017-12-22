@@ -4,48 +4,6 @@ package net.psforever.objects.guid.source
 import net.psforever.objects.entity.IdentifiableEntity
 import net.psforever.objects.guid.key.{LoanedKey, SecureKey}
 
-trait NumberSourceAccessors {
-  /**
-    * Produce an un-modifiable wrapper for the `Monitor` for this number.
-    * @param number the number
-    * @return the wrapped `Monitor`
-    */
-  def Get(number : Int) : Option[SecureKey]
-
-  /**
-    * Produce a modifiable wrapper for the `Monitor` for this number, only if the number has not been used.
-    * The `Monitor` should be updated before being wrapped, if necessary.
-    * @param number the number
-    * @return the wrapped `Monitor`, or `None`
-    */
-  def Available(number : Int) : Option[LoanedKey]
-
-  /**
-    * Consume a wrapped `Monitor` and release its number from its previous assignment/use.
-    * @param monitor the `Monitor`
-    * @return any object previously using this `Monitor`
-    */
-  def Return(monitor : SecureKey) : Option[IdentifiableEntity] = {
-    Return(monitor.GUID)
-  }
-
-  /**
-    * Consume a wrapped `Monitor` and release its number from its previous assignment/use.
-    * @param monitor the `Monitor`
-    * @return any object previously using this `Monitor`
-    */
-  def Return(monitor : LoanedKey) : Option[IdentifiableEntity] = {
-    Return(monitor.GUID)
-  }
-
-  /**
-    * Consume the number of a `Monitor` and release that number from its previous assignment/use.
-    * @param number the number
-    * @return any object previously using this number
-    */
-  def Return(number : Int) : Option[IdentifiableEntity]
-}
-
 /**
   * A `NumberSource` is considered a master "pool" of numbers from which all numbers are available to be drawn.
   * The numbers are considered to be exclusive.<br>

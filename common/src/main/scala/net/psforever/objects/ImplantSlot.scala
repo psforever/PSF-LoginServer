@@ -64,10 +64,10 @@ class ImplantSlot {
         case Some(_) =>
           implant = anImplant
         case None =>
-          Active = false
-          Initialized = false
           implant = None
       }
+      Active = false
+      Initialized = false
     }
     Implant
   }
