@@ -778,6 +778,14 @@ object GlobalDefinitions {
     * Initialize `AmmoBoxDefinition` globals.
     */
   private def init_ammo() : Unit = {
+    melee_ammo.Size = EquipmentSize.Blocked
+
+    frag_grenade_ammo.Size = EquipmentSize.Blocked
+
+    jammer_grenade_ammo.Size = EquipmentSize.Blocked
+
+    plasma_grenade_ammo.Size = EquipmentSize.Blocked
+
     bullet_9mm.Capacity = 50
     bullet_9mm.Tile = InventoryTile.Tile33
 
@@ -801,6 +809,8 @@ object GlobalDefinitions {
 
     maelstrom_ammo.Capacity = 50
     maelstrom_ammo.Tile = InventoryTile.Tile33
+
+    phoenix_missile.Size = EquipmentSize.Blocked
 
     striker_missile_ammo.Capacity = 15
     striker_missile_ammo.Tile = InventoryTile.Tile44
@@ -840,6 +850,8 @@ object GlobalDefinitions {
 
     upgrade_canister.Capacity = 100
     upgrade_canister.Tile = InventoryTile.Tile33
+
+    trek_ammo.Size = EquipmentSize.Blocked
 
     bullet_35mm.Capacity = 100
     bullet_35mm.Tile = InventoryTile.Tile44

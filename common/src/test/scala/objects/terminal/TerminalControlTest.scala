@@ -10,12 +10,23 @@ import objects.ActorTest
 
 import scala.concurrent.duration.Duration
 
-class TerminalControlTest extends ActorTest() {
+class TerminalControl1Test extends ActorTest() {
   "TerminalControl" should {
     "construct (cert terminal)" in {
       val terminal = Terminal(GlobalDefinitions.cert_terminal)
       terminal.Actor = system.actorOf(Props(classOf[TerminalControl], terminal), "test-cert-term")
     }
+  }
+}
+
+class TerminalControl2Test extends ActorTest() {
+  "TerminalControl can not process wrong messages" in {
+    val terminal = Terminal(GlobalDefinitions.cert_terminal)
+    terminal.Actor = system.actorOf(Props(classOf[TerminalControl], terminal), "test-cert-term")
+
+    terminal.Actor !"hello"
+    val reply = receiveOne(Duration.create(500, "ms"))
+    assert(reply.isInstanceOf[Terminal.NoDeal])
   }
 }
 

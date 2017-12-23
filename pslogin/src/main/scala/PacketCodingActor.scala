@@ -120,10 +120,6 @@ class PacketCodingActor extends Actor with MDCContextAware {
 //      failWithError(s"Invalid message '$default' received in state Established")
   }
 
-  def resetState() : Unit = {
-    context.become(receive)
-  }
-
   /**
     * Retrieve the current subslot number.
     * Increment the `subslot` for the next time it is needed.

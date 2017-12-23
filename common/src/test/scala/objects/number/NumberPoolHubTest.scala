@@ -281,5 +281,43 @@ class NumberPoolHubTest extends Specification {
       val hub = new NumberPoolHub(src)
       hub.unregister(4).isFailure mustEqual true
     }
+
+    "identity an object that is registered to it" in {
+      val hub1 = new NumberPoolHub(new LimitedNumberSource(10))
+      val hub2 = new NumberPoolHub(new LimitedNumberSource(10))
+      val obj1 = new EntityTestClass()
+      val obj2 = new EntityTestClass()
+      hub1.register(obj1)
+      hub2.register(obj2)
+
+      hub1.isRegistered(obj1) mustEqual true
+      hub2.isRegistered(obj2) mustEqual true
+      hub1.isRegistered(obj2) mustEqual false
+      hub2.isRegistered(obj1) mustEqual false
+    }
+
+    "identity a number that is registered to it" in {
+      val src1 = new LimitedNumberSource(5)
+      val hub1 = new NumberPoolHub(src1)
+      val src2 = new LimitedNumberSource(10)
+      src2.Restrict(0)
+      src2.Restrict(1)
+      src2.Restrict(2)
+      src2.Restrict(3)
+      src2.Restrict(4)
+      src2.Restrict(5)
+      val hub2 = new NumberPoolHub(src2)
+      val obj1 = new EntityTestClass()
+      val obj2 = new EntityTestClass()
+      hub1.register(obj1)
+      hub2.register(obj2)
+      val num1 = obj1.GUID.guid
+      val num2 = obj2.GUID.guid
+
+      hub1.isRegistered(num1) mustEqual true
+      hub2.isRegistered(num2) mustEqual true
+      hub1.isRegistered(num2) mustEqual false
+      hub2.isRegistered(num1) mustEqual false
+    }
   }
 }

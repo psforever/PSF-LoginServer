@@ -40,4 +40,8 @@ class MultiPacketExTest extends Specification {
       "test "+i ! {  MultiPacketEx.encode(packets{i}).require.toByteVector mustEqual strings{i} }
     }
   }
+
+  "sizeCodec description" in {
+    MultiPacketEx.sizeCodec.toString mustEqual "variable-bit unsigned integer"
+  }
 }

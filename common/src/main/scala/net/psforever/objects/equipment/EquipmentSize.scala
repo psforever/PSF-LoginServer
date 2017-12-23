@@ -11,8 +11,7 @@ object EquipmentSize extends Enumeration {
   VehicleWeapon, //vehicle-mounted weapons
   BFRArmWeapon, //duel arm weapons for bfr
   BFRGunnerWeapon, //gunner seat for bfr
-  Inventory, //reserved
-  Any
+  Inventory //reserved
   = Value
 
   /**
@@ -26,12 +25,12 @@ object EquipmentSize extends Enumeration {
     * @param type2 the second size
     * @return `true`, if they are equal; `false`, otherwise
     */
-  def isEqual(type1 : EquipmentSize.Value, type2 : EquipmentSize.Value) : Boolean = {
-    if(type1 >= Inventory || type2 >= Inventory) {
-      true
-    }
-    else if(type1 == Blocked || type2 == Blocked) {
+   def isEqual(type1 : EquipmentSize.Value, type2 : EquipmentSize.Value) : Boolean = {
+    if(type1 == Blocked || type2 == Blocked) {
       false
+    }
+    else if(type1 == Inventory || type2 == Inventory) {
+      true
     }
     else {
       type1 == type2

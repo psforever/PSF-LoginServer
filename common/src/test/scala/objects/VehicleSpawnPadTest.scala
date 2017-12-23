@@ -57,7 +57,7 @@ class VehicleSpawnControl2Test extends ActorTest() {
       assert(reply2.asInstanceOf[VehicleSpawnPad.LoadVehicle].vehicle == vehicle)
       assert(reply2.asInstanceOf[VehicleSpawnPad.LoadVehicle].pad == obj)
 
-      player.VehicleOwned = vehicle
+      player.VehicleOwned = Some(vehicle.GUID)
       val reply3 = receiveOne(Duration.create(10000, "ms"))
       assert(reply3.isInstanceOf[VehicleSpawnPad.PlayerSeatedInVehicle])
       assert(reply3.asInstanceOf[VehicleSpawnPad.PlayerSeatedInVehicle].vehicle == vehicle)

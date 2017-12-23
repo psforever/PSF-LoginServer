@@ -190,12 +190,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
         case AvatarResponse.LoadPlayer(pdata) =>
           if(player.GUID != guid) {
-            sendResponse(
-              PacketCoding.CreateGamePacket(
-                0,
-                ObjectCreateMessage(ObjectClass.avatar, guid, pdata)
-              )
-            )
+            sendResponse(PacketCoding.CreateGamePacket(0, ObjectCreateMessage(ObjectClass.avatar, guid, pdata)))
           }
 
         case AvatarResponse.ObjectDelete(item_guid, unk) =>
@@ -208,7 +203,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             sendResponse(PacketCoding.CreateGamePacket(0, ObjectHeldMessage(guid, slot, true)))
           }
 
-        case AvatarResponse.PlanetSideAttribute(attribute_type, attribute_value) =>
+        case AvatarResponse.PlanetsideAttribute(attribute_type, attribute_value) =>
           if(player.GUID != guid) {
             sendResponse(PacketCoding.CreateGamePacket(0, PlanetsideAttributeMessage(guid, attribute_type, attribute_value)))
           }

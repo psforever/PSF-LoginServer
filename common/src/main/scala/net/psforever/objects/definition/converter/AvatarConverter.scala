@@ -12,19 +12,19 @@ import scala.util.{Success, Try}
 class AvatarConverter extends ObjectCreateConverter[Player]() {
   override def ConstructorData(obj : Player) : Try[CharacterData] = {
     val MaxArmor = obj.MaxArmor
-      Success(
-        CharacterData(
-          MakeAppearanceData(obj),
-          obj.Health / obj.MaxHealth * 255, //TODO not precise
-          if(MaxArmor == 0) { 0 } else { obj.Armor / MaxArmor * 255 }, //TODO not precise
-          DressBattleRank(obj),
-          DressCommandRank(obj),
-          recursiveMakeImplantEffects(obj.Implants.iterator),
-          MakeCosmetics(obj.BEP),
-          InventoryData(MakeHolsters(obj, BuildEquipment).sortBy(_.parentSlot)), //TODO is sorting necessary?
-          GetDrawnSlot(obj)
-        )
+    Success(
+      CharacterData(
+        MakeAppearanceData(obj),
+        obj.Health / obj.MaxHealth * 255, //TODO not precise
+        if(MaxArmor == 0) { 0 } else { obj.Armor / MaxArmor * 255 }, //TODO not precise
+        DressBattleRank(obj),
+        DressCommandRank(obj),
+        recursiveMakeImplantEffects(obj.Implants.iterator),
+        MakeCosmetics(obj.BEP),
+        InventoryData(MakeHolsters(obj, BuildEquipment).sortBy(_.parentSlot)), //TODO is sorting necessary?
+        GetDrawnSlot(obj)
       )
+    )
     //TODO tidy this mess up
   }
 
