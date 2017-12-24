@@ -63,4 +63,20 @@ object IFFLock {
   def apply(idef : IFFLockDefinition) : IFFLock = {
     new IFFLock(idef)
   }
+
+  import akka.actor.ActorContext
+  /**
+    * Instantiate an configure a `IFFLock` object
+    * @param id the unique id that will be assigned to this entity
+    * @param context a context to allow the object to properly set up `ActorSystem` functionality
+    * @return the `IFFLock` object
+    */
+  def Constructor(id : Int, context : ActorContext) : IFFLock = {
+    import akka.actor.Props
+    import net.psforever.objects.GlobalDefinitions
+
+    val obj = IFFLock(GlobalDefinitions.lock_external)
+    obj.Actor = context.actorOf(Props(classOf[IFFLockControl], obj), s"${GlobalDefinitions.lock_external.Name}_$id")
+    obj
+  }
 }

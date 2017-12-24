@@ -36,7 +36,27 @@ class ImplantTerminalMech(private val idef : ImplantTerminalMechDefinition) exte
 }
 
 object ImplantTerminalMech {
+  /**
+    * Overloaded constructor.
+    * @param idef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
+    */
   def apply(idef : ImplantTerminalMechDefinition) : ImplantTerminalMech = {
     new ImplantTerminalMech(idef)
+  }
+
+  import akka.actor.ActorContext
+  /**
+    * Instantiate an configure a `ImplantTerminalMech` object
+    * @param id the unique id that will be assigned to this entity
+    * @param context a context to allow the object to properly set up `ActorSystem` functionality
+    * @return the `ImplantTerminalMech` object
+    */
+  def Constructor(id : Int, context : ActorContext) : ImplantTerminalMech = {
+    import akka.actor.Props
+    import net.psforever.objects.GlobalDefinitions
+
+    val obj = ImplantTerminalMech(GlobalDefinitions.implant_terminal_mech)
+    obj.Actor = context.actorOf(Props(classOf[ImplantTerminalMechControl], obj), s"${GlobalDefinitions.implant_terminal_mech.Name}_$id")
+    obj
   }
 }

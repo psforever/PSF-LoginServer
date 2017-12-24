@@ -41,5 +41,7 @@ ignore:
   - "pslogin/src/main/scala/CryptoSessionActor.scala"
   - "pslogin/src/main/scala/DatabaseConnector.scala"
   - "pslogin/src/main/scala/LoginConfig.scala"
+  - "pslogin/src/main/scala/Maps.scala"
   - "pslogin/src/main/scala/MDCContextAware.scala"
   - "pslogin/src/main/scala/MDCPropagatingExecutionContext.scala"
+  - "pslogin/src/main/scala/Zones.scala"

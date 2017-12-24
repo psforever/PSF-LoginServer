@@ -76,4 +76,20 @@ object Door {
   def apply(tdef : DoorDefinition) : Door = {
     new Door(tdef)
   }
+
+  import akka.actor.ActorContext
+  /**
+    * Instantiate an configure a `Door` object
+    * @param id the unique id that will be assigned to this entity
+    * @param context a context to allow the object to properly set up `ActorSystem` functionality
+    * @return the `Door` object
+    */
+  def Constructor(id : Int, context : ActorContext) : Door = {
+    import akka.actor.Props
+    import net.psforever.objects.GlobalDefinitions
+
+    val obj = Door(GlobalDefinitions.door)
+    obj.Actor = context.actorOf(Props(classOf[DoorControl], obj), s"${GlobalDefinitions.door.Name}_$id")
+    obj
+  }
 }
