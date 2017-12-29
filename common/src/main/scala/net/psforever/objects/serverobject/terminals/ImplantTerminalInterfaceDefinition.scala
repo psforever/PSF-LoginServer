@@ -15,6 +15,9 @@ import net.psforever.packet.game.objectcreate.ObjectClass
   * attached as a child of the visible implant terminal component - the "implant_terminal_mech."
   */
 class ImplantTerminalInterfaceDefinition extends TerminalDefinition(ObjectClass.implant_terminal_interface) {
+  Packet = new ImplantTerminalInterfaceConverter
+  Name = "implante_terminal_interface"
+
   private val implants : Map[String, ImplantDefinition] = Map (
     "advanced_regen" -> GlobalDefinitions.advanced_regen,
     "targeting" -> GlobalDefinitions.targeting,
@@ -27,8 +30,6 @@ class ImplantTerminalInterfaceDefinition extends TerminalDefinition(ObjectClass.
     "silent_run" -> GlobalDefinitions.silent_run,
     "surge" -> GlobalDefinitions.surge
   )
-  Packet = new ImplantTerminalInterfaceConverter
-  Name = "implante_terminal_interface"
 
   def Buy(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
     implants.get(msg.item_name) match {

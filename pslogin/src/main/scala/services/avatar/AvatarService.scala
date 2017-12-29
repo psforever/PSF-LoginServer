@@ -18,12 +18,18 @@ class AvatarService extends Actor {
     case Service.Join(channel) =>
       val path = s"/$channel/Avatar"
       val who = sender()
-
       log.info(s"$who has joined $path")
-
       AvatarEvents.subscribe(who, path)
-    case Service.Leave() =>
+
+    case Service.Leave(None) =>
       AvatarEvents.unsubscribe(sender())
+
+    case Service.Leave(Some(channel)) =>
+      val path = s"/$channel/Avatar"
+      val who = sender()
+      log.info(s"$who has left $path")
+      AvatarEvents.unsubscribe(sender(), path)
+
     case Service.LeaveAll() =>
       AvatarEvents.unsubscribe(sender())
 

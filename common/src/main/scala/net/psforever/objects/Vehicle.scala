@@ -3,7 +3,7 @@ package net.psforever.objects
 
 import net.psforever.objects.definition.VehicleDefinition
 import net.psforever.objects.equipment.{Equipment, EquipmentSize}
-import net.psforever.objects.inventory.{GridInventory, InventoryTile}
+import net.psforever.objects.inventory.{Container, GridInventory, InventoryItem, InventoryTile}
 import net.psforever.objects.mount.Mountable
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.vehicles.{AccessPermissionGroup, Seat, Utility, VehicleLockState}
@@ -27,7 +27,7 @@ import scala.collection.mutable
   *                   stores and unloads pertinent information about the `Vehicle`'s configuration;
   *                   used in the initialization process (`loadVehicleDefinition`)
   */
-class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServerObject with Mountable {
+class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServerObject with Mountable with Container {
   private var faction : PlanetSideEmpire.Value = PlanetSideEmpire.TR
   private var owner : Option[PlanetSideGUID] = None
   private var health : Int = 1
@@ -334,6 +334,45 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
     }
     else {
       None
+    }
+  }
+
+  def Inventory : GridInventory = trunk
+
+  def Find(obj : Equipment) : Option[Int] = Find(obj.GUID)
+
+  def Find(guid : PlanetSideGUID) : Option[Int] = {
+    findInInventory(Inventory.Items.values.iterator, guid) match {
+      case Some(index) =>
+        Some(index)
+      case None =>
+        None
+    }
+  }
+
+  @tailrec private def findInInventory(iter : Iterator[InventoryItem], guid : PlanetSideGUID) : Option[Int] = {
+    if(!iter.hasNext) {
+      None
+    }
+    else {
+      val item = iter.next
+      if(item.obj.GUID == guid) {
+        Some(item.start)
+      }
+      else {
+        findInInventory(iter, guid)
+      }
+    }
+  }
+
+  def VisibleSlots : Set[Int] = weapons.keySet
+
+  override def Slot(slot : Int) : EquipmentSlot = {
+    if(Inventory.Offset <= slot && slot <= Inventory.LastIndex) {
+      Inventory.Slot(slot)
+    }
+    else {
+      OffhandEquipmentSlot.BlockedSlot
     }
   }
 

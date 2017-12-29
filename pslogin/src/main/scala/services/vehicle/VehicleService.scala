@@ -22,12 +22,18 @@ class VehicleService extends Actor {
     case Service.Join(channel) =>
       val path = s"/$channel/Vehicle"
       val who = sender()
-
       log.info(s"$who has joined $path")
-
       VehicleEvents.subscribe(who, path)
-    case Service.Leave() =>
+
+    case Service.Leave(None) =>
       VehicleEvents.unsubscribe(sender())
+
+    case Service.Leave(Some(channel)) =>
+      val path = s"/$channel/Vehicle"
+      val who = sender()
+      log.info(s"$who has left $path")
+      VehicleEvents.unsubscribe(who, path)
+
     case Service.LeaveAll() =>
       VehicleEvents.unsubscribe(sender())
 
@@ -45,9 +51,9 @@ class VehicleService extends Actor {
           VehicleEvents.publish(
             VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.DismountVehicle(unk1, unk2))
           )
-        case VehicleAction.KickPassenger(player_guid, unk1, unk2) =>
+        case VehicleAction.KickPassenger(player_guid, unk1, unk2, vehicle_guid) =>
           VehicleEvents.publish(
-            VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.KickPassenger(unk1, unk2))
+            VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.KickPassenger(unk1, unk2, vehicle_guid))
           )
         case VehicleAction.LoadVehicle(player_guid, vehicle, vtype, vguid, vdata) =>
           VehicleEvents.publish(
@@ -60,6 +66,15 @@ class VehicleService extends Actor {
         case VehicleAction.SeatPermissions(player_guid, vehicle_guid, seat_group, permission) =>
           VehicleEvents.publish(
             VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.SeatPermissions(vehicle_guid, seat_group, permission))
+          )
+        case VehicleAction.StowEquipment(player_guid, vehicle_guid, slot, item) =>
+          val definition = item.Definition
+          VehicleEvents.publish(
+            VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.StowEquipment(vehicle_guid, slot, definition.ObjectId, item.GUID, definition.Packet.DetailedConstructorData(item).get))
+          )
+        case VehicleAction.UnstowEquipment(player_guid, item_guid) =>
+          VehicleEvents.publish(
+            VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.UnstowEquipment(item_guid))
           )
         case VehicleAction.VehicleState(player_guid, vehicle_guid, unk1, pos, ang, vel, unk2, unk3, unk4, wheel_direction, unk5, unk6) =>
           VehicleEvents.publish(

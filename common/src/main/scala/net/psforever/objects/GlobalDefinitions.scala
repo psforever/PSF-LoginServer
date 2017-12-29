@@ -910,7 +910,7 @@ object GlobalDefinitions {
     bullet_20mm.Capacity = 200
     bullet_20mm.Tile = InventoryTile.Tile44
 
-    bullet_12mm.Capacity = 200
+    bullet_12mm.Capacity = 300
     bullet_12mm.Tile = InventoryTile.Tile44
 
     wasp_rocket_ammo.Capacity = 6
@@ -1397,6 +1397,24 @@ object GlobalDefinitions {
     flamethrower.FireModes(1).Magazine = 100
     flamethrower.FireModes(1).Chamber = 50
     flamethrower.Tile = InventoryTile.Tile63
+//TODO
+    trhev_dualcycler.Size = EquipmentSize.Max
+    trhev_dualcycler.AmmoTypes += bullet_9mm
+    trhev_dualcycler.FireModes += new FireModeDefinition
+    trhev_dualcycler.FireModes.head.AmmoTypeIndices += 0
+    trhev_dualcycler.FireModes.head.AmmoSlotIndex = 0
+//TODO
+    trhev_pounder.Size = EquipmentSize.Max
+    trhev_pounder.AmmoTypes += bullet_9mm
+    trhev_pounder.FireModes += new FireModeDefinition
+    trhev_pounder.FireModes.head.AmmoTypeIndices += 0
+    trhev_pounder.FireModes.head.AmmoSlotIndex = 0
+//TODO
+    trhev_burster.Size = EquipmentSize.Max
+    trhev_burster.AmmoTypes += bullet_9mm
+    trhev_burster.FireModes += new FireModeDefinition
+    trhev_burster.FireModes.head.AmmoTypeIndices += 0
+    trhev_burster.FireModes.head.AmmoSlotIndex = 0
 
     medicalapplicator.Size = EquipmentSize.Pistol
     medicalapplicator.AmmoTypes += health_canister
@@ -1511,7 +1529,7 @@ object GlobalDefinitions {
     skyguard_weapon_system.FireModes += new FireModeDefinition
     skyguard_weapon_system.FireModes(1).AmmoTypeIndices += 1
     skyguard_weapon_system.FireModes(1).AmmoSlotIndex = 1
-    skyguard_weapon_system.FireModes(1).Magazine = 1 //TODO check
+    skyguard_weapon_system.FireModes(1).Magazine = 250
 
     grenade_launcher_marauder.Size = EquipmentSize.VehicleWeapon
     grenade_launcher_marauder.AmmoTypes += heavy_grenade_mortar
@@ -1692,7 +1710,7 @@ object GlobalDefinitions {
     lightning_weapon_system.FireModes += new FireModeDefinition
     lightning_weapon_system.FireModes(1).AmmoTypeIndices += 1
     lightning_weapon_system.FireModes(1).AmmoSlotIndex = 1
-    lightning_weapon_system.FireModes(1).Magazine = 1 //TODO check
+    lightning_weapon_system.FireModes(1).Magazine = 150
 
     prowler_weapon_systemA.Size = EquipmentSize.VehicleWeapon
     prowler_weapon_systemA.AmmoTypes += bullet_105mm
@@ -1718,7 +1736,7 @@ object GlobalDefinitions {
     vanguard_weapon_system.FireModes += new FireModeDefinition
     vanguard_weapon_system.FireModes(1).AmmoTypeIndices += 1
     vanguard_weapon_system.FireModes(1).AmmoSlotIndex = 1
-    vanguard_weapon_system.FireModes(1).Magazine = 1 //TODO check
+    vanguard_weapon_system.FireModes(1).Magazine = 200
 
     particle_beam_magrider.Size = EquipmentSize.VehicleWeapon
     particle_beam_magrider.AmmoTypes += pulse_battery
@@ -1754,11 +1772,11 @@ object GlobalDefinitions {
     lightgunship_weapon_system.FireModes += new FireModeDefinition
     lightgunship_weapon_system.FireModes.head.AmmoTypeIndices += 0
     lightgunship_weapon_system.FireModes.head.AmmoSlotIndex = 0
-    lightgunship_weapon_system.FireModes.head.Magazine = 150
+    lightgunship_weapon_system.FireModes.head.Magazine = 245
     lightgunship_weapon_system.FireModes += new FireModeDefinition
     lightgunship_weapon_system.FireModes(1).AmmoTypeIndices += 1
     lightgunship_weapon_system.FireModes(1).AmmoSlotIndex = 1
-    lightgunship_weapon_system.FireModes(1).Magazine = 1 //TODO check
+    lightgunship_weapon_system.FireModes(1).Magazine = 16
 
     wasp_weapon_system.Size = EquipmentSize.VehicleWeapon
     wasp_weapon_system.AmmoTypes += wasp_gun_ammo
@@ -1770,7 +1788,7 @@ object GlobalDefinitions {
     wasp_weapon_system.FireModes += new FireModeDefinition
     wasp_weapon_system.FireModes(1).AmmoTypeIndices += 1
     wasp_weapon_system.FireModes(1).AmmoSlotIndex = 1
-    wasp_weapon_system.FireModes(1).Magazine = 1 //TODO check
+    wasp_weapon_system.FireModes(1).Magazine = 2
 
     liberator_weapon_system.Size = EquipmentSize.VehicleWeapon
     liberator_weapon_system.AmmoTypes += bullet_35mm
@@ -1893,7 +1911,7 @@ object GlobalDefinitions {
     two_man_assault_buggy.Weapons += 2 -> chaingun_p
     two_man_assault_buggy.MountPoints += 1 -> 0
     two_man_assault_buggy.MountPoints += 2 -> 1
-    two_man_assault_buggy.TrunkSize = InventoryTile.Tile1111
+    two_man_assault_buggy.TrunkSize = InventoryTile.Tile1511
     two_man_assault_buggy.TrunkOffset = 30
 
     skyguard.Seats += 0 -> new SeatDefinition()

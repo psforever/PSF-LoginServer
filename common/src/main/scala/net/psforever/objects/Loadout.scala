@@ -8,6 +8,14 @@ import net.psforever.types.ExoSuitType
 
 import scala.annotation.tailrec
 
+//trait Loadout {
+//  def Label : String
+//  def VisibleSlots : List[Loadout.SimplifiedEntry]
+//  def Inventory : List[Loadout.SimplifiedEntry]
+//  def ExoSuit : ExoSuitType.Value
+//  def Subtype : Int
+//}
+
 /**
   * From a `Player` their current exo-suit and their `Equipment`, retain a set of instructions to reconstruct this arrangement.<br>
   * <br>
@@ -31,36 +39,17 @@ import scala.annotation.tailrec
   * The fifth tab on an `order_terminal` window is for "Favorite" blueprints for `Loadout` entries.
   * The ten-long list is initialized with `FavoritesMessage` packets.
   * Specific entries are loaded or removed using `FavoritesRequest` packets.
-  * @param player the player
   * @param label the name by which this inventory will be known when displayed in a Favorites list
+  * @param visible_slots simplified representation of the `Equipment` that can see "seen" on the target
+  * @param inventory simplified representation of the `Equipment` in the target's inventory or trunk
+  * @param exosuit na
+  * @param subtype na
   */
-class Loadout(player : Player, private val label : String) {
-  /** the exo-suit */
-  private val exosuit : ExoSuitType.Value = player.ExoSuit
-  /** the MAX specialization, to differentiate the three types of MAXes who all use the same exo-suit name */
-  private val subtype =
-    if(exosuit == ExoSuitType.MAX) {
-      player.Holsters().head.Equipment.get.Definition match {
-        case GlobalDefinitions.trhev_dualcycler | GlobalDefinitions.nchev_scattercannon | GlobalDefinitions.vshev_quasar =>
-          1
-        case GlobalDefinitions.trhev_pounder | GlobalDefinitions.nchev_falcon | GlobalDefinitions.vshev_comet =>
-          2
-        case GlobalDefinitions.trhev_burster | GlobalDefinitions.nchev_sparrow | GlobalDefinitions.vshev_starfire =>
-          3
-        case _ =>
-          0
-      }
-    }
-    else {
-      0
-    }
-  /** simplified representation of the holster `Equipment` */
-  private val holsters : List[Loadout.SimplifiedEntry] =
-    Loadout.packageSimplifications(player.Holsters())
-  /** simplified representation of the inventory `Equipment` */
-  private val inventory : List[Loadout.SimplifiedEntry] =
-    Loadout.packageSimplifications(player.Inventory.Items.values.toList)
-
+final case class Loadout(private val label : String,
+                         private val visible_slots : List[Loadout.SimplifiedEntry],
+                         private val inventory : List[Loadout.SimplifiedEntry],
+                         private val exosuit : ExoSuitType.Value,
+                         private val subtype : Int) {
   /**
     * The label by which this `Loadout` is called.
     * @return the label
@@ -89,7 +78,7 @@ class Loadout(player : Player, private val label : String) {
     * The `Equipment` in the `Player`'s holster slots when this `Loadout` is created.
     * @return a `List` of the holster item blueprints
     */
-  def Holsters : List[Loadout.SimplifiedEntry] = holsters
+  def VisibleSlots : List[Loadout.SimplifiedEntry] = visible_slots
 
   /**
     * The `Equipment` in the `Player`'s inventory region when this `Loadout` is created.
@@ -99,6 +88,28 @@ class Loadout(player : Player, private val label : String) {
 }
 
 object Loadout {
+  def apply(label : String, visible : List[SimplifiedEntry], inventory : List[SimplifiedEntry]) : Loadout = {
+    new Loadout(label, visible, inventory, ExoSuitType.Standard, 0)
+  }
+
+  def Create(player : Player, label : String) : Loadout = {
+    new Loadout(
+      label,
+      packageSimplifications(player.Holsters()),
+      packageSimplifications(player.Inventory.Items.values.toList),
+      player.ExoSuit,
+      determineSubtype(player)
+    )
+  }
+
+  def Create(vehicle : Vehicle, label : String) : Loadout = {
+    Loadout(
+      label,
+      packageSimplifications(vehicle.Weapons.map({ case ((index, weapon)) => InventoryItem(weapon.Equipment.get, index) }).toList),
+      packageSimplifications(vehicle.Trunk.Items.values.toList)
+    )
+  }
+
   /**
     * A basic `Trait` connecting all of the `Equipment` blueprints.
     */
@@ -124,13 +135,13 @@ object Loadout {
     * @param tdef the `ToolDefinition` that describes this future object
     * @param ammo the blueprints to construct the correct number of ammunition slots in the `Tool`
     */
-  final case class ShorthandTool(tdef : ToolDefinition, ammo : List[ShorthandAmmotSlot]) extends Simplification
+  final case class ShorthandTool(tdef : ToolDefinition, ammo : List[ShorthandAmmoSlot]) extends Simplification
   /**
     * The simplified form of a `Tool` `FireMode`
     * @param ammoIndex the index that points to the type of ammunition this slot currently uses
     * @param ammo a `ShorthandAmmoBox` object to load into that slot
     */
-  final case class ShorthandAmmotSlot(ammoIndex : Int, ammo : ShorthandAmmoBox)
+  final case class ShorthandAmmoSlot(ammoIndex : Int, ammo : ShorthandAmmoBox)
   /**
     * The simplified form of a `ConstructionItem`.
     * @param cdef the `ConstructionItemDefinition` that describes this future object
@@ -146,6 +157,29 @@ object Loadout {
     * @param kdef the `KitDefinition` that describes this future object
     */
   final case class ShorthandKit(kdef : KitDefinition) extends Simplification
+
+  private def determineSubtype(player : Player) : Int = {
+    if(player.ExoSuit == ExoSuitType.MAX) {
+      player.Slot(2).Equipment match {
+        case Some(item) =>
+          item.Definition match {
+            case GlobalDefinitions.trhev_dualcycler | GlobalDefinitions.nchev_scattercannon | GlobalDefinitions.vshev_quasar =>
+              1
+            case GlobalDefinitions.trhev_pounder | GlobalDefinitions.nchev_falcon | GlobalDefinitions.vshev_comet =>
+              2
+            case GlobalDefinitions.trhev_burster | GlobalDefinitions.nchev_sparrow | GlobalDefinitions.vshev_starfire =>
+              3
+            case _ =>
+              0
+          }
+        case None =>
+          0
+      }
+    }
+    else {
+      0
+    }
+  }
 
   /**
     * Overloaded entry point for constructing simplified blueprints from holster slot equipment.
@@ -164,6 +198,7 @@ object Loadout {
   private def packageSimplifications(equipment : List[InventoryItem]) : List[SimplifiedEntry] = {
     equipment.map(entry => { SimplifiedEntry(buildSimplification(entry.obj), entry.start) })
   }
+
 
   /**
     * Traverse a `Player`'s holsters and transform occupied slots into simplified blueprints for the contents of that slot.
@@ -193,29 +228,30 @@ object Loadout {
   }
 
   /**
-    * Ammunition slots are internal connection points where `AmmoBox` units and their characteristics represent a `Tool`'s magazine.
-    * Their simplification process has a layer of complexity that ensures that the content of the slot matches the type of content that should be in the slot.
-    * If it does not, it extracts information about the slot from the `EquipmentDefinition` and sets the blueprints to that.
+    * Ammunition slots are internal connection points where `AmmoBox` units represent the characteristics of a magazine.
+    * Their simplification process has a layer of complexity that ensures that the content of the slot
+    * matches the type of content that should be in the slot.
+    * If it does not, it extracts information about the slot from the `EquipmentDefinition` and sets the blueprints.
     * @param iter an `Iterator`
     * @param list an updating `List` of simplified ammo slot blueprints;
     *             empty, by default
     * @return a `List` of simplified ammo slot blueprints
     * @see `Tool.FireModeSlot`
     */
-  @tailrec private def recursiveFireModeSimplications(iter : Iterator[Tool.FireModeSlot], list : List[ShorthandAmmotSlot] = Nil) : List[ShorthandAmmotSlot] = {
+  @tailrec private def recursiveFireModeSimplications(iter : Iterator[Tool.FireModeSlot], list : List[ShorthandAmmoSlot] = Nil) : List[ShorthandAmmoSlot] = {
     if(!iter.hasNext) {
       list
     }
     else {
       val entry = iter.next
       val fmodeSimp = if(entry.Box.AmmoType == entry.AmmoType) {
-        ShorthandAmmotSlot(
+        ShorthandAmmoSlot(
           entry.AmmoTypeIndex,
           ShorthandAmmoBox(entry.Box.Definition, entry.Box.Capacity)
         )
       }
       else {
-        ShorthandAmmotSlot(
+        ShorthandAmmoSlot(
           entry.AmmoTypeIndex,
           ShorthandAmmoBox(entry.Tool.AmmoTypes(entry.Definition.AmmoTypeIndices.head), 1)
         )
