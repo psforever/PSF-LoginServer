@@ -3,7 +3,7 @@ import java.net.InetAddress
 import java.io.File
 import java.util.Locale
 
-import akka.actor.{ActorContext, ActorRef, ActorSystem, Props}
+import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.routing.RandomPool
 import ch.qos.logback.classic.LoggerContext
 import ch.qos.logback.classic.joran.JoranConfigurator
@@ -14,8 +14,6 @@ import com.typesafe.config.ConfigFactory
 import net.psforever.crypto.CryptoInterface
 import net.psforever.objects.zones._
 import net.psforever.objects.guid.TaskResolver
-import net.psforever.objects.serverobject.builders._
-import net.psforever.types.Vector3
 import org.slf4j
 import org.fusesource.jansi.Ansi._
 import org.fusesource.jansi.Ansi.Color._
@@ -228,116 +226,15 @@ object PsLogin {
   }
 
   def createContinents() : List[Zone] = {
-    val map13 = new ZoneMap("map13") {
-      import net.psforever.objects.GlobalDefinitions._
-
-      LocalObject(DoorObjectBuilder(door, 330))
-      LocalObject(DoorObjectBuilder(door, 332))
-      LocalObject(DoorObjectBuilder(door, 362))
-      LocalObject(DoorObjectBuilder(door, 370))
-      LocalObject(DoorObjectBuilder(door, 371))
-      LocalObject(DoorObjectBuilder(door, 372))
-      LocalObject(DoorObjectBuilder(door, 373))
-      LocalObject(DoorObjectBuilder(door, 374))
-      LocalObject(DoorObjectBuilder(door, 375))
-      LocalObject(DoorObjectBuilder(door, 394))
-      LocalObject(DoorObjectBuilder(door, 395))
-      LocalObject(DoorObjectBuilder(door, 396))
-      LocalObject(DoorObjectBuilder(door, 397))
-      LocalObject(DoorObjectBuilder(door, 398))
-      LocalObject(DoorObjectBuilder(door, 462))
-      LocalObject(DoorObjectBuilder(door, 463))
-      LocalObject(ImplantTerminalMechObjectBuilder(implant_terminal_mech, 520)) //Hart B
-      LocalObject(ImplantTerminalMechObjectBuilder(implant_terminal_mech, 522)) //Hart C
-      LocalObject(ImplantTerminalMechObjectBuilder(implant_terminal_mech, 523)) //Hart C
-      LocalObject(ImplantTerminalMechObjectBuilder(implant_terminal_mech, 524)) //Hart C
-      LocalObject(ImplantTerminalMechObjectBuilder(implant_terminal_mech, 525)) //Hart C
-      LocalObject(ImplantTerminalMechObjectBuilder(implant_terminal_mech, 526)) //Hart C
-      LocalObject(ImplantTerminalMechObjectBuilder(implant_terminal_mech, 527)) //Hart C
-      LocalObject(ImplantTerminalMechObjectBuilder(implant_terminal_mech, 528)) //Hart C
-      LocalObject(ImplantTerminalMechObjectBuilder(implant_terminal_mech, 529)) //Hart C
-      LocalObject(IFFLockObjectBuilder(lock_external, 556))
-      LocalObject(IFFLockObjectBuilder(lock_external, 558))
-      LocalObject(TerminalObjectBuilder(cert_terminal, 186))
-      LocalObject(TerminalObjectBuilder(cert_terminal, 187))
-      LocalObject(TerminalObjectBuilder(cert_terminal, 188))
-      LocalObject(TerminalObjectBuilder(order_terminal, 853))
-      LocalObject(TerminalObjectBuilder(order_terminal, 855))
-      LocalObject(TerminalObjectBuilder(order_terminal, 860))
-      LocalObject(TerminalObjectBuilder(implant_terminal_interface, 1081)) //tube 520
-      LocalObject(TerminalObjectBuilder(implant_terminal_interface, 1082)) //TODO guid not correct
-      LocalObject(TerminalObjectBuilder(implant_terminal_interface, 1083)) //TODO guid not correct
-      LocalObject(TerminalObjectBuilder(implant_terminal_interface, 1084)) //TODO guid not correct
-      LocalObject(TerminalObjectBuilder(implant_terminal_interface, 1085)) //TODO guid not correct
-      LocalObject(TerminalObjectBuilder(implant_terminal_interface, 1086)) //TODO guid not correct
-      LocalObject(TerminalObjectBuilder(implant_terminal_interface, 1087)) //TODO guid not correct
-      LocalObject(TerminalObjectBuilder(implant_terminal_interface, 1088)) //TODO guid not correct
-      LocalObject(TerminalObjectBuilder(implant_terminal_interface, 1089)) //TODO guid not correct
-      LocalObject(TerminalObjectBuilder(ground_vehicle_terminal, 1063))
-      LocalObject(VehicleSpawnPadObjectBuilder(spawn_pad, 500)) //TODO guid not correct
-      LocalObject(TerminalObjectBuilder(dropship_vehicle_terminal, 304))
-      LocalObject(VehicleSpawnPadObjectBuilder(spawn_pad, 501)) //TODO guid not correct
-
-      LocalBases = 30
-
-      ObjectToBase(330, 29)
-      ObjectToBase(332, 29)
-      //ObjectToBase(520, 29)
-      ObjectToBase(522, 29)
-      ObjectToBase(523, 29)
-      ObjectToBase(524, 29)
-      ObjectToBase(525, 29)
-      ObjectToBase(526, 29)
-      ObjectToBase(527, 29)
-      ObjectToBase(528, 29)
-      ObjectToBase(529, 29)
-      ObjectToBase(556, 29)
-      ObjectToBase(558, 29)
-      ObjectToBase(1081, 29)
-      ObjectToBase(1063, 2) //TODO unowned courtyard terminal?
-      ObjectToBase(500, 2) //TODO unowned courtyard spawnpad?
-      ObjectToBase(304, 2) //TODO unowned courtyard terminal?
-      ObjectToBase(501, 2) //TODO unowned courtyard spawnpad?
-
-      DoorToLock(330, 558)
-      DoorToLock(332, 556)
-      TerminalToSpawnPad(1063, 500)
-      TerminalToSpawnPad(304, 501)
-      TerminalToInterface(520, 1081)
-      TerminalToInterface(522, 1082)
-      TerminalToInterface(523, 1083)
-      TerminalToInterface(524, 1084)
-      TerminalToInterface(525, 1085)
-      TerminalToInterface(526, 1086)
-      TerminalToInterface(527, 1087)
-      TerminalToInterface(528, 1088)
-      TerminalToInterface(529, 1089)
-    }
-    val home3 = new Zone("home3", map13, 13) {
-      override def Init(implicit context : ActorContext) : Unit = {
-        super.Init(context)
-
-        import net.psforever.types.PlanetSideEmpire
-        Base(2).get.Faction = PlanetSideEmpire.VS //HART building C
-        Base(29).get.Faction = PlanetSideEmpire.NC //South Villa Gun Tower
-
-        GUID(500) match {
-          case Some(pad) =>
-            pad.Position = Vector3(3506.0f, 2820.0f, 92.0f)
-            pad.Orientation = Vector3(0f, 0f, 270.0f)
-          case None => ;
-        }
-        GUID(501) match {
-          case Some(pad) =>
-            pad.Position = Vector3(3508.9844f, 2895.961f, 92.296875f)
-            pad.Orientation = Vector3(0f, 0f, 270.0f)
-          case None => ;
-        }
-      }
-    }
-
-    home3 ::
-      Nil
+    import Zones._
+    List(
+      z1, z2, z3, z4, z5, z6, z7, z8, z9, z10,
+      home1, tzshtr, tzdrtr, tzcotr,
+      home2, tzshnc, tzdrnc, tzconc,
+      home3, tzshvs, tzdrvs, tzcovs,
+      c1, c2, c3, c4, c5, c6,
+      i1, i2, i3, i4
+    )
   }
 
   def main(args : Array[String]) : Unit = {
