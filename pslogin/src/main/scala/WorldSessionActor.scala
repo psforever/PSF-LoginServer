@@ -416,7 +416,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
       order match {
         case Terminal.BuyExosuit(exosuit, subtype) => //refresh armor points
           if(tplayer.ExoSuit == exosuit) {
-            sendResponse(PacketCoding.CreateGamePacket(0, ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, true)))
             if(Loadout.DetermineSubtype(tplayer) != subtype) {
               //special case: MAX suit switching to a different MAX suit; we need to change the main weapon
               sendResponse(PacketCoding.CreateGamePacket(0, ArmorChangedMessage(tplayer.GUID, exosuit, subtype)))
@@ -429,11 +428,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
             tplayer.Armor = tplayer.MaxArmor
             sendResponse(PacketCoding.CreateGamePacket(0, PlanetsideAttributeMessage(tplayer.GUID, 4, tplayer.Armor)))
             avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.PlanetsideAttribute(tplayer.GUID, 4, tplayer.Armor))
+            sendResponse(PacketCoding.CreateGamePacket(0, ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, true)))
           }
           else { //load a complete new exo-suit and shuffle the inventory around
             val originalSuit = tplayer.ExoSuit
             //save inventory before it gets cleared (empty holsters)
-            sendResponse(PacketCoding.CreateGamePacket(0, ItemTransactionResultMessage (msg.terminal_guid, TransactionType.Buy, true)))
             val dropPred = DropPredicate(tplayer)
             val (dropHolsters, beforeHolsters) = clearHolsters(tplayer.Holsters().iterator).partition(dropPred)
             val (dropInventory, beforeInventory) = tplayer.Inventory.Clear().partition(dropPred)
@@ -460,13 +459,13 @@ class WorldSessionActor extends Actor with MDCContextAware {
             }
             else {
               //remove potential MAX weapon
-              avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.ObjectHeld(tplayer.GUID, Player.HandsDownSlot))
               val normalWeapons = if(originalSuit == ExoSuitType.MAX) {
                 val (maxWeapons, normalWeapons) = beforeHolsters.partition(elem => elem.obj.Size == EquipmentSize.Max)
                 maxWeapons.foreach(entry => { taskResolver ! GUIDTask.UnregisterEquipment(entry.obj)(continent.GUID) })
                 normalWeapons
               }
               else {
+                avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.ObjectHeld(tplayer.GUID, Player.HandsDownSlot))
                 beforeHolsters
               }
               //fill holsters
@@ -544,8 +543,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
               )
               avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.EquipmentOnGround(tplayer.GUID, pos, orient, obj))
             })
+            sendResponse(PacketCoding.CreateGamePacket(0, ItemTransactionResultMessage (msg.terminal_guid, TransactionType.Buy, true)))
           }
-          sendResponse(PacketCoding.CreateGamePacket(0, ItemTransactionResultMessage (msg.terminal_guid, TransactionType.Buy, true)))
 
         case Terminal.BuyEquipment(item) => ;
           tplayer.Fit(item) match {
@@ -1356,7 +1355,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
               0
           }
         case None => //not in vehicle; weapon in hand?
-          player.Slot(player.DrawnSlot).Equipment match { //TODO check that item in hand is item_guid?
+          log.info(s"${player.DrawnSlot} -> ${player.Slot(player.DrawnSlot).Equipment}")
+          player.Slot(player.DrawnSlot).Equipment match {
+            //TODO check that item in hand is item_guid?
             case Some(item : Tool) =>
               item.FireMode.Magazine
             case Some(_) | None => ;
@@ -1371,7 +1372,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ ObjectHeldMessage(avatar_guid, held_holsters, unk1) =>
       log.info("ObjectHeld: " + msg)
       val before = player.DrawnSlot
-      if((player.DrawnSlot = held_holsters) != before) {
+      //TODO remove this kludge; explore how to stop BuyExoSuit(Max) sending a tardy ObjectHeldMessage(me, 255)
+      if(player.ExoSuit != ExoSuitType.MAX && (player.DrawnSlot = held_holsters) != before) {
         avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.ObjectHeld(player.GUID, held_holsters))
       }
 
