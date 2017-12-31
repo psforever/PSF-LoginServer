@@ -162,7 +162,7 @@ class Player(private val name : String,
 
   def MaxArmor : Int = ExoSuitDefinition.Select(exosuit).MaxArmor
 
-  def VisibleSlots : Set[Int] = if(exosuit == ExoSuitType.MAX) { Set(2) } else { Set(0,1,2,3,4) }
+  def VisibleSlots : Set[Int] = if(exosuit == ExoSuitType.MAX) { Set(0) } else { Set(0,1,2,3,4) }
 
   override def Slot(slot : Int) : EquipmentSlot = {
     if(inventory.Offset <= slot && slot <= inventory.LastIndex) {

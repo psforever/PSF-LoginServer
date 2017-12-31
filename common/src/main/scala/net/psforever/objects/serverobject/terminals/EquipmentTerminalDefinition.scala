@@ -21,8 +21,17 @@ object EquipmentTerminalDefinition {
   val suits : Map[String, (ExoSuitType.Value, Int)] = Map(
     "standard_issue_armor" -> (ExoSuitType.Standard, 0),
     "lite_armor" -> (ExoSuitType.Agile, 0),
-    "med_armor" -> (ExoSuitType.Reinforced, 0)
-    //TODO max and infiltration suit
+    "med_armor" -> (ExoSuitType.Reinforced, 0),
+    "stealth_armor" -> (ExoSuitType.Infiltration, 0),
+    "trhev_antiaircraft" -> (ExoSuitType.MAX, 3),
+    "trhev_antipersonnel" -> (ExoSuitType.MAX, 1),
+    "trhev_antivehicular" -> (ExoSuitType.MAX, 2),
+    "nchev_antiaircraft" -> (ExoSuitType.MAX, 3),
+    "nchev_antipersonnel" -> (ExoSuitType.MAX, 1),
+    "nchev_antivehicular" -> (ExoSuitType.MAX, 2),
+    "vshev_antiaircraft" -> (ExoSuitType.MAX, 3),
+    "vshev_antipersonnel" -> (ExoSuitType.MAX, 1),
+    "vshev_antivehicular" -> (ExoSuitType.MAX, 2)
   )
 
   import net.psforever.objects.GlobalDefinitions._
@@ -50,6 +59,17 @@ object EquipmentTerminalDefinition {
     "bolt" -> MakeAmmoBox(bolt),
     "oicw_ammo" -> MakeAmmoBox(oicw_ammo), //scorpion missile
     "flamethrower_ammo" -> MakeAmmoBox(flamethrower_ammo)
+  )
+  val maxAmmo : Map[String, () => Equipment] = Map(
+    "dualcycler_ammo" -> MakeAmmoBox(dualcycler_ammo),
+    "pounder_ammo" -> MakeAmmoBox(pounder_ammo),
+    "burster_ammo" -> MakeAmmoBox(burster_ammo),
+    "scattercannon_ammo" -> MakeAmmoBox(scattercannon_ammo),
+    "falcon_ammo" -> MakeAmmoBox(falcon_ammo),
+    "sparrow_ammo" -> MakeAmmoBox(sparrow_ammo),
+    "quasar_ammo" -> MakeAmmoBox(quasar_ammo),
+    "comet_ammo" -> MakeAmmoBox(comet_ammo),
+    "starfire_ammo" -> MakeAmmoBox(starfire_ammo)
   )
   /**
     * A `Map` of operations for producing the `AmmoBox` `Equipment` for infantry-held utilities.

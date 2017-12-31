@@ -61,7 +61,12 @@ class OrderTerminalDefinition extends EquipmentTerminalDefinition(612) {
             Terminal.NoDeal()
         }
       case _ =>
-        Terminal.NoDeal()
+        maxAmmo.get(msg.item_name) match {
+          case Some(item) =>
+            Terminal.BuyEquipment(item())
+          case None =>
+            Terminal.NoDeal()
+        }
     }
   }
 
