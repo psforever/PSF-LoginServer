@@ -58,15 +58,15 @@ class OrderTerminalDefinition extends EquipmentTerminalDefinition(612) {
           case Some((suit, subtype)) =>
             Terminal.BuyExosuit(suit, subtype)
           case None =>
-            Terminal.NoDeal()
+            maxAmmo.get(msg.item_name) match {
+              case Some(item) =>
+                Terminal.BuyEquipment(item())
+              case None =>
+                Terminal.NoDeal()
+            }
         }
       case _ =>
-        maxAmmo.get(msg.item_name) match {
-          case Some(item) =>
-            Terminal.BuyEquipment(item())
-          case None =>
-            Terminal.NoDeal()
-        }
+        Terminal.NoDeal()
     }
   }
 
