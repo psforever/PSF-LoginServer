@@ -14,7 +14,7 @@ import net.psforever.objects._
 import net.psforever.objects.definition.{ImplantDefinition, Stance}
 import net.psforever.objects.equipment._
 import net.psforever.objects.guid.{GUIDTask, Task, TaskResolver}
-import net.psforever.objects.inventory.{GridInventory, InventoryItem}
+import net.psforever.objects.inventory.{Container, GridInventory, InventoryItem}
 import net.psforever.objects.mount.Mountable
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.serverobject.doors.Door
@@ -66,7 +66,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case Some(tplayer) =>
           tplayer.VehicleSeated match {
             case Some(vehicle_guid) =>
-              vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.KickPassenger(tplayer.GUID, 0, true))
+              vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.KickPassenger(tplayer.GUID, 0, true, vehicle_guid))
             case None => ;
           }
           tplayer.VehicleOwned match {
@@ -297,8 +297,15 @@ class WorldSessionActor extends Actor with MDCContextAware {
             sendResponse(PacketCoding.CreateGamePacket(0, DismountVehicleMsg(guid, unk1, unk2)))
           }
 
-        case VehicleResponse.KickPassenger(unk1, unk2) =>
+        case VehicleResponse.KickPassenger(unk1, unk2, vehicle_guid) =>
           sendResponse(PacketCoding.CreateGamePacket(0, DismountVehicleMsg(guid, unk1, unk2)))
+          if(guid == player.GUID) {
+            continent.GUID(vehicle_guid) match {
+              case Some(obj : Vehicle) =>
+                UnAccessContents(obj)
+              case _ => ;
+            }
+          }
 
         case VehicleResponse.LoadVehicle(vehicle, vtype, vguid, vdata) =>
           //this is not be suitable for vehicles with people who are seated in it before it spawns (if that is possible)
@@ -317,8 +324,47 @@ class WorldSessionActor extends Actor with MDCContextAware {
             sendResponse(PacketCoding.CreateGamePacket(0, PlanetsideAttributeMessage(vehicle_guid, seat_group, permission)))
           }
 
+        case VehicleResponse.StowEquipment(vehicle_guid, slot, item_type, item_guid, item_data) =>
+          if(player.GUID != guid) {
+            //TODO prefer ObjectAttachMessage, but how to force ammo pools to update properly?
+            sendResponse(PacketCoding.CreateGamePacket(0,
+              ObjectCreateDetailedMessage(item_type, item_guid, ObjectCreateMessageParent(vehicle_guid, slot), item_data)
+            ))
+//            sendResponse(PacketCoding.CreateGamePacket(0, ObjectAttachMessage(vehicle_guid, item_guid, slot)))
+          }
+
         case VehicleResponse.UnloadVehicle(vehicle_guid) =>
           sendResponse(PacketCoding.CreateGamePacket(0, ObjectDeleteMessage(vehicle_guid, 0)))
+
+        case VehicleResponse.UnstowEquipment(item_guid) =>
+          if(player.GUID != guid) {
+            //TODO prefer ObjectDetachMessage, but how to force ammo pools to update properly?
+            sendResponse(PacketCoding.CreateGamePacket(0, ObjectDeleteMessage(item_guid, 0)))
+//            sendResponse(PacketCoding.CreateGamePacket(0, ObjectDetachMessage(vehicle_guid, item_guid, Vector3(0f, 0f, 0f), 0f, 0f, 0f)))
+            //...
+//            continent.GUID(vehicle_guid) match {
+//              case Some(veh : Vehicle) =>
+//                veh.PassengerInSeat(player) match {
+//                  case Some(seat_num) =>
+//                    veh.Seat(seat_num).get.ControlledWeapon match {
+//                      case Some(weapon_num) =>
+//                        veh.Weapons.get(weapon_num) match {
+//                          case Some(mount) =>
+//                            mount.Equipment match {
+//                              case Some(wep : Tool) =>
+//                                val ammo = wep.AmmoSlot
+//                                sendResponse(PacketCoding.CreateGamePacket(0, InventoryStateMessage(ammo.Box.GUID, wep.GUID, ammo.Magazine)))
+//                              case _ => ;
+//                            }
+//                          case _ => ;
+//                        }
+//                      case _ => ;
+//                    }
+//                  case _ => ;
+//                }
+//              case _ => ;
+//            }
+          }
 
         case VehicleResponse.VehicleState(vehicle_guid, unk1, pos, ang, vel, unk2, unk3, unk4, wheel_direction, unk5, unk6) =>
           if(player.GUID != guid) {
@@ -481,18 +527,14 @@ class WorldSessionActor extends Actor with MDCContextAware {
           obj.WeaponControlledFromSeat(seat_num) match {
             case Some(weapon : Tool) =>
               //update mounted weapon belonging to seat
-              val magazine = weapon.AmmoSlots(weapon.FireModeIndex).Box //update the magazine in the weapon, specifically
-              sendResponse(PacketCoding.CreateGamePacket(0, InventoryStateMessage(magazine.GUID, 0, weapon.GUID, weapon.Magazine.toLong)))
-              //update all related ammunition objects in trunk
-              obj.Trunk.Items
-                .filter({ case ((_, item)) => item.obj.isInstanceOf[AmmoBox] && item.obj.asInstanceOf[AmmoBox].AmmoType == weapon.AmmoType })
-                .foreach({ case ((_, item)) =>
-                  val box = item.obj.asInstanceOf[AmmoBox]
-                  sendResponse(PacketCoding.CreateGamePacket(0, InventoryStateMessage(box.GUID, 0, obj_guid, box.Capacity.toLong)))
-                })
+              weapon.AmmoSlots.foreach(slot => { //update the magazine(s) in the weapon, specifically
+                val magazine = slot.Box
+                sendResponse(PacketCoding.CreateGamePacket(0, InventoryStateMessage(magazine.GUID, 0, weapon.GUID, magazine.Capacity.toLong)))
+              })
             case _ => ; //no weapons to update
           }
           sendResponse(PacketCoding.CreateGamePacket(0, ObjectAttachMessage(obj_guid, player_guid, seat_num)))
+          AccessContents(obj)
           vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.MountVehicle(player_guid, obj_guid, seat_num))
 
         case Mountable.CanMount(obj : Mountable, seat_num) =>
@@ -538,7 +580,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             afterHolsters.foreach({elem => tplayer.Slot(elem.start).Equipment = elem.obj })
             val finalInventory = fillEmptyHolsters(tplayer.Holsters().iterator, toInventory ++ beforeInventory)
             //draw holsters
-            (0 until 5).foreach({index =>
+            tplayer.VisibleSlots.foreach({index =>
               tplayer.Slot(index).Equipment match {
                 case Some(obj) =>
                   val definition = obj.Definition
@@ -782,16 +824,34 @@ class WorldSessionActor extends Actor with MDCContextAware {
             sendResponse(PacketCoding.CreateGamePacket(0, ItemTransactionResultMessage(terminal_guid, TransactionType.Sell, false)))
           }
 
-
-        case Terminal.BuyVehicle(vehicle, loadout) =>
+        case Terminal.BuyVehicle(vehicle, weapons, trunk) =>
           continent.Map.TerminalToSpawnPad.get(msg.terminal_guid.guid) match {
             case Some(pad_guid) =>
               val pad = continent.GUID(pad_guid).get.asInstanceOf[VehicleSpawnPad]
               vehicle.Faction = tplayer.Faction
               vehicle.Position = pad.Position
               vehicle.Orientation = pad.Orientation
+              //default loadout, weapons
+              log.info(s"default weapons: ${weapons.size}")
+              val vWeapons = vehicle.Weapons
+              weapons.foreach(entry => {
+                val index = entry.start
+                vWeapons.get(index) match {
+                  case Some(slot) =>
+                    slot.Equipment = None
+                    slot.Equipment = entry.obj
+                  case None =>
+                    log.warn(s"applying default loadout to $vehicle, can not find a mounted weapon @ $index")
+                }
+              })
+              //default loadout, trunk
+              log.info(s"default trunk: ${trunk.size}")
+              val vTrunk = vehicle.Trunk
+              vTrunk.Clear()
+              trunk.foreach(entry => { vTrunk += entry.start -> entry.obj })
               taskResolver ! RegisterNewVehicle(vehicle, pad)
-              sendResponse(PacketCoding.CreateGamePacket(0, ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Learn, true)))
+              sendResponse(PacketCoding.CreateGamePacket(0, ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, true)))
+
             case None =>
               log.error(s"$tplayer wanted to spawn a vehicle, but there was no spawn pad associated with terminal ${msg.terminal_guid} to accept it")
           }
@@ -1177,14 +1237,14 @@ class WorldSessionActor extends Actor with MDCContextAware {
       player.Certifications += CertificationType.Phantasm
       AwardBattleExperiencePoints(player, 1000000L)
 //      player.ExoSuit = ExoSuitType.MAX //TODO strange issue; divide number above by 10 when uncommenting
-      player.Slot(0).Equipment = Tool(beamer)
+      player.Slot(0).Equipment = Tool(GlobalDefinitions.StandardPistol(player.Faction))
       player.Slot(2).Equipment = Tool(suppressor)
-      player.Slot(4).Equipment = Tool(forceblade)
+      player.Slot(4).Equipment = Tool(GlobalDefinitions.StandardMelee(player.Faction))
       player.Slot(6).Equipment = AmmoBox(bullet_9mm)
       player.Slot(9).Equipment = AmmoBox(bullet_9mm)
       player.Slot(12).Equipment = AmmoBox(bullet_9mm)
       player.Slot(33).Equipment = AmmoBox(bullet_9mm_AP)
-      player.Slot(36).Equipment = AmmoBox(energy_cell)
+      player.Slot(36).Equipment = AmmoBox(GlobalDefinitions.StandardPistolAmmo(player.Faction))
       player.Slot(39).Equipment = SimpleItem(remote_electronics_kit)
       player.Slot(5).Equipment.get.asInstanceOf[LockerContainer].Inventory += 0 -> SimpleItem(remote_electronics_kit)
       //TODO end temp player character auto-loading
@@ -1232,22 +1292,14 @@ class WorldSessionActor extends Actor with MDCContextAware {
         player.Certifications += CertificationType.Phantasm
         AwardBattleExperiencePoints(player, 20000000L)
         player.CEP = 600000
-        if(empire == PlanetSideEmpire.TR) {
-          player.Slot(0).Equipment = Tool(repeater)
-          player.Slot(4).Equipment = Tool(chainblade)
-        } else if(empire == PlanetSideEmpire.NC) {
-          player.Slot(0).Equipment = Tool(isp)
-          player.Slot(4).Equipment = Tool(magcutter)
-        } else if(empire == PlanetSideEmpire.VS) {
-          player.Slot(0).Equipment = Tool(beamer)
-          player.Slot(4).Equipment = Tool(forceblade)
-        }
+        player.Slot(0).Equipment = Tool(GlobalDefinitions.StandardPistol(player.Faction))
         player.Slot(2).Equipment = Tool(suppressor)
+        player.Slot(4).Equipment = Tool(GlobalDefinitions.StandardMelee(player.Faction))
         player.Slot(6).Equipment = AmmoBox(bullet_9mm)
         player.Slot(9).Equipment = AmmoBox(bullet_9mm_AP)
         player.Slot(12).Equipment = AmmoBox(shotgun_shell)
         player.Slot(33).Equipment = AmmoBox(shotgun_shell_AP)
-        player.Slot(36).Equipment = AmmoBox(energy_cell)
+        player.Slot(36).Equipment = AmmoBox(GlobalDefinitions.StandardPistolAmmo(player.Faction))
         player.Slot(39).Equipment = SimpleItem(remote_electronics_kit)
         player.Slot(5).Equipment.get.asInstanceOf[LockerContainer].Inventory += 0 -> SimpleItem(remote_electronics_kit)
 
@@ -1277,94 +1329,16 @@ class WorldSessionActor extends Actor with MDCContextAware {
           self ! ListAccountCharacters
         case CharacterRequestAction.Select =>
           import net.psforever.objects.GlobalDefinitions._
+          var tempEmpire  = PlanetSideEmpire.NEUTRAL
           if(player.Name.indexOf("TestCharacter") >= 0 && charId == 1) {
-            player = Player("UnNamed" + sessionId.toString, PlanetSideEmpire.TR, CharacterGender.Male, 41, 1)
-            player.Position = Vector3(3674.8438f, 2726.789f, 91.15625f)
-            player.Orientation = Vector3(0f, 0f, 90f)
-            player.Certifications += CertificationType.StandardAssault
-            player.Certifications += CertificationType.MediumAssault
-            player.Certifications += CertificationType.StandardExoSuit
-            player.Certifications += CertificationType.AgileExoSuit
-            player.Certifications += CertificationType.ReinforcedExoSuit
-            player.Certifications += CertificationType.ATV
-//            player.Certifications += CertificationType.Harasser
-            player.Certifications += CertificationType.InfiltrationSuit
-            //
-            player.Certifications += CertificationType.GroundSupport
-            player.Certifications += CertificationType.GroundTransport
-            player.Certifications += CertificationType.Flail
-            player.Certifications += CertificationType.Switchblade
-            player.Certifications += CertificationType.AssaultBuggy
-            player.Certifications += CertificationType.ArmoredAssault1
-            player.Certifications += CertificationType.ArmoredAssault2
-            player.Certifications += CertificationType.AirCavalryScout
-            player.Certifications += CertificationType.AirCavalryAssault
-            player.Certifications += CertificationType.AirCavalryInterceptor
-            player.Certifications += CertificationType.AirSupport
-            player.Certifications += CertificationType.GalaxyGunship
-            player.Certifications += CertificationType.Phantasm
-            AwardBattleExperiencePoints(player, 197754L)
-            player.Slot(0).Equipment = Tool(repeater)
-            player.Slot(2).Equipment = Tool(suppressor)
-            player.Slot(4).Equipment = Tool(chainblade)
-            player.Slot(6).Equipment = AmmoBox(bullet_9mm)
-            player.Slot(9).Equipment = AmmoBox(bullet_9mm)
-            player.Slot(12).Equipment = AmmoBox(bullet_9mm)
-            player.Slot(33).Equipment = AmmoBox(bullet_9mm_AP)
-            player.Slot(36).Equipment = AmmoBox(energy_cell)
-            player.Slot(39).Equipment = SimpleItem(remote_electronics_kit)
-            player.Slot(5).Equipment.get.asInstanceOf[LockerContainer].Inventory += 0 -> SimpleItem(remote_electronics_kit)
-            player.Implants(0).Unlocked = true
-            player.Implants(0).Implant = sample
-            //  player.Implants(0).Initialized = true
-            player.Implants(1).Unlocked = true
-            player.Implants(1).Implant = sample2
-            //  player.Implants(1).Initialized = true
+            tempEmpire = PlanetSideEmpire.TR
           } else if (player.Name.indexOf("TestCharacter") >= 0 && charId == 2) {
-            player = Player("UnNamed" + sessionId.toString, PlanetSideEmpire.NC, CharacterGender.Male, 41, 1)
-            player.Position = Vector3(3674.8438f, 2726.789f, 91.15625f)
-            player.Orientation = Vector3(0f, 0f, 90f)
-            player.Certifications += CertificationType.StandardAssault
-            player.Certifications += CertificationType.MediumAssault
-            player.Certifications += CertificationType.StandardExoSuit
-            player.Certifications += CertificationType.AgileExoSuit
-            player.Certifications += CertificationType.ReinforcedExoSuit
-            player.Certifications += CertificationType.ATV
-//            player.Certifications += CertificationType.Harasser
-            player.Certifications += CertificationType.InfiltrationSuit
-            //
-            player.Certifications += CertificationType.GroundSupport
-            player.Certifications += CertificationType.GroundTransport
-            player.Certifications += CertificationType.Flail
-            player.Certifications += CertificationType.Switchblade
-            player.Certifications += CertificationType.AssaultBuggy
-            player.Certifications += CertificationType.ArmoredAssault1
-            player.Certifications += CertificationType.ArmoredAssault2
-            player.Certifications += CertificationType.AirCavalryScout
-            player.Certifications += CertificationType.AirCavalryAssault
-            player.Certifications += CertificationType.AirCavalryInterceptor
-            player.Certifications += CertificationType.AirSupport
-            player.Certifications += CertificationType.GalaxyGunship
-            player.Certifications += CertificationType.Phantasm
-            AwardBattleExperiencePoints(player, 197754L)
-            player.Slot(0).Equipment = Tool(isp)
-            player.Slot(2).Equipment = Tool(suppressor)
-            player.Slot(4).Equipment = Tool(magcutter)
-            player.Slot(6).Equipment = AmmoBox(bullet_9mm)
-            player.Slot(9).Equipment = AmmoBox(bullet_9mm)
-            player.Slot(12).Equipment = AmmoBox(shotgun_shell)
-            player.Slot(33).Equipment = AmmoBox(shotgun_shell_AP)
-            player.Slot(36).Equipment = AmmoBox(energy_cell)
-            player.Slot(39).Equipment = SimpleItem(remote_electronics_kit)
-            player.Slot(5).Equipment.get.asInstanceOf[LockerContainer].Inventory += 0 -> SimpleItem(remote_electronics_kit)
-            player.Implants(0).Unlocked = true
-            player.Implants(0).Implant = sample
-            //  player.Implants(0).Initialized = true
-            player.Implants(1).Unlocked = true
-            player.Implants(1).Implant = sample2
-            //  player.Implants(1).Initialized = true
+            tempEmpire = PlanetSideEmpire.NC
           } else if (player.Name.indexOf("TestCharacter") >= 0 && charId == 3) {
-            player = Player("UnNamed" + sessionId.toString, PlanetSideEmpire.VS, CharacterGender.Male, 41, 1)
+            tempEmpire = PlanetSideEmpire.VS
+          }
+          if(player.Name.indexOf("TestCharacter") >= 0 && charId <= 3) {
+            player = Player("UnNamed" + sessionId.toString, tempEmpire, CharacterGender.Male, 41, 1)
             player.Position = Vector3(3674.8438f, 2726.789f, 91.15625f)
             player.Orientation = Vector3(0f, 0f, 90f)
             player.Certifications += CertificationType.StandardAssault
@@ -1390,14 +1364,14 @@ class WorldSessionActor extends Actor with MDCContextAware {
             player.Certifications += CertificationType.GalaxyGunship
             player.Certifications += CertificationType.Phantasm
             AwardBattleExperiencePoints(player, 197754L)
-            player.Slot(0).Equipment = Tool(beamer)
+            player.Slot(0).Equipment = Tool(GlobalDefinitions.StandardPistol(player.Faction))
             player.Slot(2).Equipment = Tool(suppressor)
-            player.Slot(4).Equipment = Tool(forceblade)
+            player.Slot(4).Equipment = Tool(GlobalDefinitions.StandardMelee(player.Faction))
             player.Slot(6).Equipment = AmmoBox(bullet_9mm)
             player.Slot(9).Equipment = AmmoBox(bullet_9mm)
             player.Slot(12).Equipment = AmmoBox(bullet_9mm)
             player.Slot(33).Equipment = AmmoBox(bullet_9mm_AP)
-            player.Slot(36).Equipment = AmmoBox(energy_cell)
+            player.Slot(36).Equipment = AmmoBox(GlobalDefinitions.StandardPistolAmmo(player.Faction))
             player.Slot(39).Equipment = SimpleItem(remote_electronics_kit)
             player.Slot(5).Equipment.get.asInstanceOf[LockerContainer].Inventory += 0 -> SimpleItem(remote_electronics_kit)
             player.Implants(0).Unlocked = true
@@ -1750,75 +1724,105 @@ class WorldSessionActor extends Actor with MDCContextAware {
       log.info("ObjectDelete: " + msg)
 
     case msg @ MoveItemMessage(item_guid, source_guid, destination_guid, dest, unk1) =>
-      player.Find(item_guid) match {
-        case Some(index) =>
-          val indexSlot = player.Slot(index)
-
-          var itemOpt : Option[Equipment] = indexSlot.Equipment
-          //use this to short circuit
-          val item = itemOpt.get
-          val destSlot = player.Slot(dest)
-          val destItem = if((-1 < dest && dest < 5) || dest == Player.FreeHandSlot) {
-            destSlot.Equipment match {
-              case Some(found) =>
-                Some(InventoryItem(found, dest))
-              case None =>
-                None
-            }
-          }
-          else {
-            val tile = item.Definition.Tile
-            player.Inventory.CheckCollisionsVar(dest, tile.Width, tile.Height) match {
-              case Success(Nil) => None //no item swap
-              case Success(entry :: Nil) => Some(entry) //one item to swap
-              case Success(_) | scala.util.Failure(_) => itemOpt = None; None //abort item move altogether
-            }
-          }
-          if(itemOpt.isDefined) {
-            log.info(s"MoveItem: $item_guid moved from $source_guid @ $index to $source_guid @ $dest")
-            indexSlot.Equipment = None
-            destItem match {
-              //do we have a swap item?
-              case Some(entry) => //yes, swap
-                val item2 = entry.obj
-                player.Slot(entry.start).Equipment = None //remove item2 to make room for item
-                destSlot.Equipment = item //in case dest and index could block each other
-                (indexSlot.Equipment = entry.obj) match {
-                  case Some(_) => //item and item2 swapped places successfully
-                    log.info(s"MoveItem: ${item2.GUID} swapped to $source_guid @ $index")
-                    //we must shuffle items around cleanly to avoid causing icons to "disappear"
-                    if(index == Player.FreeHandSlot) {
-                      //temporarily put in safe location, A -> C
-                      sendResponse(PacketCoding.CreateGamePacket(0, ObjectDetachMessage(player.GUID, item.GUID, Vector3(0f, 0f, 0f), 0f, 0f, 0f))) //ground
-                    }
-                    else {
-                      sendResponse(PacketCoding.CreateGamePacket(0, ObjectAttachMessage(player.GUID, item.GUID, Player.FreeHandSlot))) //free hand
-                    }
-                    sendResponse(PacketCoding.CreateGamePacket(0, ObjectAttachMessage(player.GUID, item2.GUID, index))) //B -> A
-                    if(0 <= index && index < 5) {
-                      avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.EquipmentInHand(player.GUID, index, item2))
-                    }
-
-                  case None => //item2 does not fit; drop on ground
-                    val pos = player.Position
-                    val playerOrient = player.Orientation
-                    val orient : Vector3 = Vector3(0f, 0f, playerOrient.z)
-                    continent.Actor ! Zone.DropItemOnGround(item2, pos, orient)
-                    sendResponse(PacketCoding.CreateGamePacket(0, ObjectDetachMessage(player.GUID, item2.GUID, pos, 0f, 0f, playerOrient.z))) //ground
-                    avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.EquipmentOnGround(player.GUID, pos, orient, item2))
+      (continent.GUID(source_guid), continent.GUID(destination_guid), continent.GUID(item_guid)) match {
+        case (Some(source : Container), Some(destination : Container), Some(item : Equipment)) =>
+          source.Find(item_guid) match {
+            case Some(index) =>
+              val indexSlot = source.Slot(index)
+              val destSlot = destination.Slot(dest)
+              val destItem = destSlot.Equipment
+              if( {
+                val tile = item.Definition.Tile
+                destination.Collisions(dest, tile.Width, tile.Height) match {
+                  case Success(Nil) =>
+                    destItem.isEmpty //no item swap; abort if encountering an unexpected item
+                  case Success(entry :: Nil) =>
+                    destItem.contains(entry.obj) //one item to swap; abort if destination item is missing or is wrong
+                  case Success(_) | scala.util.Failure(_) =>
+                    false //abort when too many items at destination or other failure case
                 }
+              } && indexSlot.Equipment.contains(item)) {
+                log.info(s"MoveItem: $item_guid moved from $source_guid @ $index to $destination_guid @ $dest")
+                indexSlot.Equipment = None
+                destItem match { //do we have a swap item?
+                  case Some(item2) => //yes, swap
+                    destSlot.Equipment = None //remove item2 to make room for item
+                    destSlot.Equipment = item
+                    (indexSlot.Equipment = item2) match {
+                      case Some(_) => //item and item2 swapped places successfully
+                        log.info(s"MoveItem: ${item2.GUID} swapped to $source_guid @ $index")
+                        //cleanly shuffle items around to avoid losing icons
+                        sendResponse(PacketCoding.CreateGamePacket(0, ObjectDetachMessage(source_guid, item_guid, Vector3(0f, 0f, 0f), 0f, 0f, 0f))) //ground; A -> C
+                        sendResponse(PacketCoding.CreateGamePacket(0, ObjectAttachMessage(source_guid, item2.GUID, index))) //B -> A
+                        source match {
+                          case (obj : Vehicle) =>
+                            val player_guid = player.GUID
+                            vehicleService ! VehicleServiceMessage(s"${obj.Actor}", VehicleAction.UnstowEquipment(player_guid, item_guid))
+                            vehicleService ! VehicleServiceMessage(s"${obj.Actor}", VehicleAction.StowEquipment(player_guid, source_guid, index, item2))
+                          //TODO visible slot verification, in the case of BFR arms
+                          case (_ : Player) =>
+                            if(source.VisibleSlots.contains(index)) {
+                              avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.EquipmentInHand(source_guid, index, item2))
+                            }
+                          case _ => ;
+                            //TODO something?
+                        }
 
-              case None => //just move item over
-                destSlot.Equipment = item
-            }
-            sendResponse(PacketCoding.CreateGamePacket(0, ObjectAttachMessage(source_guid, item_guid, dest)))
-            if(0 <= dest && dest < 5) {
-              avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.EquipmentInHand(player.GUID, dest, item))
-            }
+                      case None => //item2 does not fit; drop on ground
+                        val pos = source.Position
+                        val sourceOrientZ = source.Orientation.z
+                        val orient : Vector3 = Vector3(0f, 0f, sourceOrientZ)
+                        continent.Actor ! Zone.DropItemOnGround(item2, pos, orient)
+                        sendResponse(PacketCoding.CreateGamePacket(0, ObjectDetachMessage(source_guid, item2.GUID, pos, 0f, 0f, sourceOrientZ))) //ground
+                        avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.EquipmentOnGround(player.GUID, pos, orient, item2))
+                    }
+
+                  case None => //just move item over
+                    destSlot.Equipment = item
+                    source match {
+                      case (obj : Vehicle) =>
+                        vehicleService ! VehicleServiceMessage(s"${obj.Actor}", VehicleAction.UnstowEquipment(player.GUID, item_guid))
+                        //TODO visible slot verification, in the case of BFR arms
+                      case _ => ;
+                      //TODO something?
+                    }
+
+                }
+                sendResponse(PacketCoding.CreateGamePacket(0, ObjectAttachMessage(destination_guid, item_guid, dest)))
+                destination match {
+                  case (obj : Vehicle) =>
+                    vehicleService ! VehicleServiceMessage(s"${obj.Actor}", VehicleAction.StowEquipment(player.GUID, destination_guid, dest, item))
+                  //TODO visible slot verification, in the case of BFR arms
+                  case (_ : Player) =>
+                    if(destination.VisibleSlots.contains(dest)) {
+                      avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.EquipmentInHand(destination_guid, dest, item))
+                    }
+                  case _ => ;
+                    //TODO something?
+                }
+              }
+              else if(indexSlot.Equipment.nonEmpty) {
+                log.error(s"MoveItem: wanted to move $item_guid, but unexpected item ${indexSlot.Equipment.get} at origin")
+              }
+              else {
+                log.error(s"MoveItem: wanted to move $item_guid, but unexpected item(s) at destination")
+              }
+            case _ =>
+              log.error(s"MoveItem: wanted to move $item_guid, but could not find it")
           }
-        case None =>
-          log.info(s"MoveItem: $source_guid wanted to move the item $item_guid but could not find it")
+
+        case (None, _, _) =>
+          log.error(s"MoveItem: wanted to move $item_guid from $source_guid, but could not find source")
+        case (_, None, _) =>
+          log.error(s"MoveItem: wanted to move $item_guid from $source_guid to $destination_guid, but could not find destination")
+        case (_, _, None) =>
+          log.error(s"MoveItem: wanted to move $item_guid, but could not find it")
+        case _ =>
+          log.error(s"MoveItem: wanted to move $item_guid from $source_guid to $destination_guid, but multiple problems were encountered")
       }
+
+    case msg @ LootItemMessage(item_guid, target_guid) =>
+      log.info("LootItem: " + msg)
 
     case msg @ ChangeAmmoMessage(item_guid, unk1) =>
       log.info("ChangeAmmo: " + msg)
@@ -1877,14 +1881,35 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
         case Some(obj : Vehicle) =>
           if(obj.Faction == player.Faction) {
-            player.Slot(player.DrawnSlot).Equipment match {
+            val equipment = player.Slot(player.DrawnSlot).Equipment
+            if(equipment match {
               case Some(tool : Tool) =>
-                if(tool.Definition == GlobalDefinitions.nano_dispenser) {
-                  //TODO repairing behavior
+                tool.Definition match {
+                  case GlobalDefinitions.nano_dispenser | GlobalDefinitions.remote_electronics_kit => false
+                  case _ => true
                 }
-              case Some(_) | None =>
-                //TODO trunk access
+              case _ => true
+            }) {
+              //access to trunk
+              if(obj.AccessingTrunk.isEmpty) {
+                obj.AccessingTrunk = player.GUID
+                AccessContents(obj)
                 sendResponse(PacketCoding.CreateGamePacket(0, UseItemMessage(avatar_guid, unk1, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType)))
+              }
+              else {
+                log.info(s"UseItem: $player can not cut in line while player ${obj.AccessingTrunk.get} is using $obj's trunk")
+              }
+            }
+            else if(equipment.isDefined) {
+              equipment.get.Definition match {
+                case GlobalDefinitions.nano_dispenser =>
+                  //TODO repairing behavior
+
+                case GlobalDefinitions.remote_electronics_kit =>
+                  //TODO hacking behavior
+
+                case _ => ;
+              }
             }
           }
 
@@ -1911,8 +1936,17 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case None => ;
       }
 
-    case msg @ UnuseItemMessage(player_guid, item) =>
+    case msg @ UnuseItemMessage(player_guid, object_guid) =>
       log.info("UnuseItem: " + msg)
+      continent.GUID(object_guid) match {
+        case Some(obj : Vehicle) =>
+          if(obj.AccessingTrunk.contains(player.GUID)) {
+            obj.AccessingTrunk = None
+            UnAccessContents(obj)
+          }
+
+        case _ =>;
+      }
 
     case msg @ DeployObjectMessage(guid, unk1, pos, roll, pitch, yaw, unk2) =>
       log.info("DeployObject: " + msg)
@@ -1983,12 +2017,17 @@ class WorldSessionActor extends Actor with MDCContextAware {
       //TODO optimize this later
       log.info(s"DismountVehicleMsg: $msg")
       if(player.GUID == player_guid) {
+        //normally disembarking from a seat
+        val previouslySeated = player.VehicleSeated
+        player.VehicleSeated = None
+        sendResponse(PacketCoding.CreateGamePacket(0, DismountVehicleMsg(player_guid, unk1, unk2)))
+        vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.DismountVehicle(player_guid, unk1, unk2))
         //common warning for this section
         def dismountWarning(msg : String) : Unit = {
           log.warn(s"$msg; some vehicle might not know that a player is no longer sitting in it")
         }
-        //normally disembarking from a seat
-        player.VehicleSeated match {
+        //find vehicle seat and disembark it
+        previouslySeated match {
           case Some(obj_guid) =>
             continent.GUID(obj_guid) match {
               case Some(obj : Mountable) =>
@@ -2004,6 +2043,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                         case (veh : Vehicle) =>
                           if(seats.count(seat => seat.isOccupied) == 0) {
                             vehicleService ! VehicleServiceMessage.DelayedVehicleDeconstruction(veh, continent, 600L) //start vehicle decay (10m)
+                            UnAccessContents(veh)
                           }
                         case _ => ;
                       }
@@ -2017,10 +2057,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
           case None =>
             dismountWarning(s"DismountVehicleMsg: player $player_guid not considered seated in a mountable entity")
         }
-        //should be safe
-        player.VehicleSeated = None
-        sendResponse(PacketCoding.CreateGamePacket(0, DismountVehicleMsg(player_guid, unk1, unk2)))
-        vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.DismountVehicle(player_guid, unk1, unk2))
       }
       else {
         //kicking someone else out of a seat; need to own that seat
@@ -2036,7 +2072,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                         case Some(seat) =>
                           seat.Occupant = None
                           tplayer.VehicleSeated = None
-                          vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.KickPassenger(player_guid, unk1, unk2))
+                          vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.KickPassenger(player_guid, unk1, unk2, vehicle_guid))
                           if(seats.count(seat => seat.isOccupied) == 0) {
                             vehicleService ! VehicleServiceMessage.DelayedVehicleDeconstruction(obj, continent, 600L) //start vehicle decay (10m)
                           }
@@ -2097,7 +2133,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                           if(vehicle.SeatPermissionGroup(seat_num).contains(group) && tplayer != player) {
                             seat.Occupant = None
                             tplayer.VehicleSeated = None
-                            vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.KickPassenger(tplayer.GUID, 4, false))
+                            vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.KickPassenger(tplayer.GUID, 4, false, object_guid))
                           }
                         case None => ;
                       }
@@ -2368,9 +2404,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
     TaskResolver.GiveTask(
       new Task() {
         private val localVehicle = obj
+        private val localPad = pad.Actor
         private val localAnnounce = vehicleService
         private val localSession : String = sessionId.toString
-        private val localPad = pad.Actor
         private val localPlayer = player
         private val localVehicleService = vehicleService
         private val localZone = continent
@@ -2559,6 +2595,32 @@ class WorldSessionActor extends Actor with MDCContextAware {
       }
       newBep
     }
+  }
+
+  def AccessContents(vehicle : Vehicle) : Unit = {
+    vehicleService ! Service.Join(s"${vehicle.Actor}")
+    val parent_guid = vehicle.GUID
+    vehicle.Trunk.Items.foreach({
+      case ((_, entry)) =>
+        val obj = entry.obj
+        val obj_def = obj.Definition
+        sendResponse(PacketCoding.CreateGamePacket(0,
+          ObjectCreateDetailedMessage(
+            obj_def.ObjectId,
+            obj.GUID,
+            ObjectCreateMessageParent(parent_guid, entry.start),
+            obj_def.Packet.DetailedConstructorData(obj).get
+          )
+        ))
+    })
+  }
+
+  def UnAccessContents(vehicle : Vehicle) : Unit = {
+    vehicleService ! Service.Leave(Some(s"${vehicle.Actor}"))
+    vehicle.Trunk.Items.foreach({
+      case ((_, entry)) =>
+        sendResponse(PacketCoding.CreateGamePacket(0, ObjectDeleteMessage(entry.obj.GUID, 0)))
+    })
   }
 
   def failWithError(error : String) = {

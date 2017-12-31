@@ -2,6 +2,7 @@
 comment: off
 
 ignore:
+  - "common/src/main/scala/net/psforever/objects/avatar/Avatars.scala"
   - "common/src/main/scala/net/psforever/objects/equipment/Ammo.scala"
   - "common/src/main/scala/net/psforever/objects/equipment/CItem.scala"
   - "common/src/main/scala/net/psforever/objects/equipment/EquipmentSize.scala"
@@ -11,7 +12,6 @@ ignore:
   - "common/src/main/scala/net/psforever/objects/vehicles/AccessPermissionGroup.scala"
   - "common/src/main/scala/net/psforever/objects/vehicles/SeatArmoRestriction.scala"
   - "common/src/main/scala/net/psforever/objects/vehicles/VehicleLockState.scala"
-  - "common/src/main/scala/net/psforever/objects/Avatars.scala"
   - "common/src/main/scala/net/psforever/packet/crypto"
   - "common/src/main/scala/net/psforever/packet/game/objectcreate/DrawnSlot.scala"
   - "common/src/main/scala/net/psforever/packet/game/objectcreate/DriveState.scala"
@@ -41,5 +41,7 @@ ignore:
   - "pslogin/src/main/scala/CryptoSessionActor.scala"
   - "pslogin/src/main/scala/DatabaseConnector.scala"
   - "pslogin/src/main/scala/LoginConfig.scala"
+  - "pslogin/src/main/scala/Maps.scala"
   - "pslogin/src/main/scala/MDCContextAware.scala"
   - "pslogin/src/main/scala/MDCPropagatingExecutionContext.scala"
+  - "pslogin/src/main/scala/Zones.scala"

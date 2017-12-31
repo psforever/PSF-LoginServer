@@ -1,8 +1,8 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.definition
 
+import net.psforever.objects.avatar.Avatars
 import net.psforever.objects.definition.converter.AvatarConverter
-import net.psforever.objects.Avatars
 
 /**
   * The definition for game objects that look like other people, and also for players.

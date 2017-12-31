@@ -99,7 +99,14 @@ class VehicleTerminalControl1Test extends ActorTest() {
     assert(reply2.response.isInstanceOf[Terminal.BuyVehicle])
     val reply3 = reply2.response.asInstanceOf[Terminal.BuyVehicle]
     assert(reply3.vehicle.Definition == GlobalDefinitions.two_man_assault_buggy)
-    assert(reply3.loadout == Nil) //TODO
+    assert(reply3.weapons == Nil)
+    assert(reply3.inventory.length == 6) //TODO
+    assert(reply3.inventory.head.obj.Definition == GlobalDefinitions.bullet_12mm)
+    assert(reply3.inventory(1).obj.Definition == GlobalDefinitions.bullet_12mm)
+    assert(reply3.inventory(2).obj.Definition == GlobalDefinitions.bullet_12mm)
+    assert(reply3.inventory(3).obj.Definition == GlobalDefinitions.bullet_12mm)
+    assert(reply3.inventory(4).obj.Definition == GlobalDefinitions.bullet_12mm)
+    assert(reply3.inventory(5).obj.Definition == GlobalDefinitions.bullet_12mm)
   }
 }
 

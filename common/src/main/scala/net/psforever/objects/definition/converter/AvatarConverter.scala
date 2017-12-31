@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.definition.converter
 
-import net.psforever.objects.{EquipmentSlot, GlobalDefinitions, ImplantSlot, Player}
+import net.psforever.objects.{EquipmentSlot, ImplantSlot, Player}
 import net.psforever.objects.equipment.Equipment
 import net.psforever.packet.game.objectcreate.{BasicCharacterData, CharacterAppearanceData, CharacterData, Cosmetics, DetailedCharacterData, DrawnSlot, ImplantEffects, ImplantEntry, InternalSlot, InventoryData, PlacementData, RibbonBars, UniformStyle}
 import net.psforever.types.{GrenadeState, ImplantType}
@@ -165,14 +165,14 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
     else {
       val slot = iter.next
       if(slot.Active) {
-        slot.Installed match {
-          case Some(GlobalDefinitions.advanced_regen) =>
+        slot.Implant match {
+          case ImplantType.AdvancedRegen =>
             Some(ImplantEffects.RegenEffects)
-          case Some(GlobalDefinitions.darklight_vision) =>
+          case ImplantType.DarklightVision =>
             Some(ImplantEffects.DarklightEffects)
-          case Some(GlobalDefinitions.personal_shield) =>
+          case ImplantType.PersonalShield =>
             Some(ImplantEffects.PersonalShieldEffects)
-          case Some(GlobalDefinitions.surge) =>
+          case ImplantType.Surge =>
             Some(ImplantEffects.SurgeEffects)
           case _ =>
 //            println(slot.Implant.id,slot.Installed.get.Type,slot.Active,slot.Initialized)

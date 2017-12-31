@@ -1,10 +1,10 @@
 // Copyright (c) 2017 PSForever
 package objects
 
-import akka.actor.{ActorRef, Props}
+import akka.actor.{Actor, ActorRef, Props}
 import net.psforever.objects.Player
 import net.psforever.objects.definition.{ObjectDefinition, SeatDefinition}
-import net.psforever.objects.mount.{Mountable, MountableControl}
+import net.psforever.objects.mount.{Mountable, MountableBehavior}
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.vehicles.Seat
 import net.psforever.types.{CharacterGender, PlanetSideEmpire}
@@ -83,5 +83,9 @@ object MountableTest {
     def Definition : ObjectDefinition = null //eh whatever
   }
 
-  class MountableTestControl(obj : Mountable) extends MountableControl(obj)
+  class MountableTestControl(obj : Mountable) extends Actor with MountableBehavior {
+    override def MountableObject = obj
+
+    def receive : Receive = mountableBehavior
+  }
 }

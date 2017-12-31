@@ -22,8 +22,16 @@ class LocalService extends Actor {
       val who = sender()
       log.info(s"$who has joined $path")
       LocalEvents.subscribe(who, path)
-    case Service.Leave() =>
+
+    case Service.Leave(None) =>
       LocalEvents.unsubscribe(sender())
+
+    case Service.Leave(Some(channel)) =>
+      val path = s"/$channel/Local"
+      val who = sender()
+      log.info(s"$who has left $path")
+      LocalEvents.unsubscribe(who, path)
+
     case Service.LeaveAll() =>
       LocalEvents.unsubscribe(sender())
 

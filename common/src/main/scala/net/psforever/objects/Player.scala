@@ -3,19 +3,20 @@ package net.psforever.objects
 
 import net.psforever.objects.definition.{AvatarDefinition, ImplantDefinition}
 import net.psforever.objects.equipment.{Equipment, EquipmentSize}
-import net.psforever.objects.inventory.{GridInventory, InventoryItem}
+import net.psforever.objects.inventory.{Container, GridInventory, InventoryItem}
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types._
 
 import scala.annotation.tailrec
 import scala.collection.mutable
+import scala.util.{Success, Try}
 
 class Player(private val name : String,
              private val faction : PlanetSideEmpire.Value,
              private val sex : CharacterGender.Value,
              private val head : Int,
              private val voice : Int
-            ) extends PlanetSideGameObject {
+            ) extends PlanetSideGameObject with Container {
   private var alive : Boolean = false
   private var backpack : Boolean = false
   private var health : Int = 0
@@ -65,8 +66,8 @@ class Player(private val name : String,
   private var vehicleSeated : Option[PlanetSideGUID] = None
   private var vehicleOwned : Option[PlanetSideGUID] = None
 
-  private var continent : String = "home2" //actually, the zoneId
-  private var playerDef : AvatarDefinition = Player.definition
+  private var continent : String = "home2" //the zone id
+  private val playerDef : AvatarDefinition = Player.definition //TODO could be a var
 
   //SouNourS things
   /** Last medkituse. */
@@ -80,7 +81,7 @@ class Player(private val name : String,
   var PlanetsideAttribute : Array[Long] = Array.ofDim(120)
 
   Player.SuitSetup(this, ExoSuit)
-  fifthSlot.Equipment = new LockerContainer() //the fifth slot is the player's "locker"
+  fifthSlot.Equipment = new LockerContainer //the fifth slot is the player's "locker"
 
   def Name : String = name
 
@@ -161,7 +162,9 @@ class Player(private val name : String,
 
   def MaxArmor : Int = ExoSuitDefinition.Select(exosuit).MaxArmor
 
-  def Slot(slot : Int) : EquipmentSlot = {
+  def VisibleSlots : Set[Int] = if(exosuit == ExoSuitType.MAX) { Set(2) } else { Set(0,1,2,3,4) }
+
+  override def Slot(slot : Int) : EquipmentSlot = {
     if(inventory.Offset <= slot && slot <= inventory.LastIndex) {
       inventory.Slot(slot)
     }
@@ -177,7 +180,7 @@ class Player(private val name : String,
       freeHand
     }
     else {
-      new OffhandEquipmentSlot(EquipmentSize.Blocked)
+      OffhandEquipmentSlot.BlockedSlot
     }
   }
 
@@ -238,7 +241,7 @@ class Player(private val name : String,
   }
 
   def SaveLoadout(label : String, line : Int) : Unit = {
-    loadouts(line) = Some(new Loadout(this, label))
+    loadouts(line) = Some(Loadout.Create(this, label))
   }
 
   def LoadLoadout(line : Int) : Option[Loadout] = loadouts(line)
@@ -295,6 +298,28 @@ class Player(private val name : String,
       else {
         findInInventory(iter, guid)
       }
+    }
+  }
+
+  override def Collisions(dest : Int, width : Int, height : Int) : Try[List[InventoryItem]] = {
+    if(-1 < dest && dest < 5) {
+      holsters(dest).Equipment match {
+        case Some(item) =>
+          Success(List(InventoryItem(item, dest)))
+        case None =>
+          Success(List())
+      }
+    }
+    else if(dest == Player.FreeHandSlot) {
+      freeHand.Equipment match {
+        case Some(item) =>
+          Success(List(InventoryItem(item, dest)))
+        case None =>
+          Success(List())
+      }
+    }
+    else {
+      super.Collisions(dest, width, height)
     }
   }
 

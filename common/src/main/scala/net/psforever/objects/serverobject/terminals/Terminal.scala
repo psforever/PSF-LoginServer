@@ -3,11 +3,10 @@ package net.psforever.objects.serverobject.terminals
 
 import net.psforever.objects.Player
 import net.psforever.objects.definition.ImplantDefinition
-import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.inventory.InventoryItem
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.packet.game.{ItemTransactionMessage, PlanetSideGUID}
-import net.psforever.types.{ExoSuitType, TransactionType, Vector3}
+import net.psforever.types.{TransactionType, Vector3}
 
 /**
   * A structure-owned server object that is a "terminal" that can be accessed for amenities and services.
@@ -113,6 +112,8 @@ object Terminal {
     * A result of a processed request.
     */
   final case class NoDeal() extends Exchange
+
+  import net.psforever.types.ExoSuitType
   /**
     * The `Player` exo-suit will be changed to the prescribed one.
     * The subtype will be important if the user is swapping to an `ExoSuitType.MAX` exo-suit.
@@ -121,6 +122,8 @@ object Terminal {
     * @param subtype the exo-suit subtype, if any
     */
   final case class BuyExosuit(exosuit : ExoSuitType.Value, subtype : Int = 0) extends Exchange
+
+  import net.psforever.objects.equipment.Equipment
   /**
     * A single piece of `Equipment` has been selected and will be given to the `Player`.
     * The `Player` must decide what to do with it once it is in their control.
@@ -128,16 +131,15 @@ object Terminal {
     * @param item the `Equipment` being given to the player
     */
   final case class BuyEquipment(item : Equipment) extends Exchange
+
   /**
     * A roundabout message oft-times.
     * Most `Terminals` should always allow `Player`s to dispose of some piece of `Equipment`.
     * A result of a processed request.
     */
-  //TODO if there are exceptions, find them
-  final case class SellEquipment() extends Exchange
+  final case class SellEquipment() extends Exchange //TODO if there are exceptions, find them
 
   import net.psforever.types.CertificationType
-
   /**
     * Provide the certification type unlocked by the player.
     * @param cert the certification unlocked
@@ -168,10 +170,12 @@ object Terminal {
   /**
     * Provide a vehicle that was constructed for the player.
     * @param vehicle the vehicle
-    * @param loadout the vehicle's trunk contents
+    * @param weapons the vehicle's mounted armament
+    * @param inventory the vehicle's trunk contents
     */
-  final case class BuyVehicle(vehicle : Vehicle, loadout: List[Any]) extends Exchange
+  final case class BuyVehicle(vehicle : Vehicle, weapons : List[InventoryItem], inventory : List[InventoryItem]) extends Exchange
 
+  import net.psforever.objects.inventory.InventoryItem
   /**
     * Recover a former exo-suit and `Equipment` configuration that the `Player` possessed.
     * A result of a processed request.
@@ -188,5 +192,21 @@ object Terminal {
     */
   def apply(tdef : TerminalDefinition) : Terminal = {
     new Terminal(tdef)
+  }
+
+  import akka.actor.ActorContext
+  /**
+    * Instantiate an configure a `Terminal` object
+    * @param tdef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
+    * @param id the unique id that will be assigned to this entity
+    * @param context a context to allow the object to properly set up `ActorSystem` functionality
+    * @return the `Terminal` object
+    */
+  def Constructor(tdef : TerminalDefinition)(id : Int, context : ActorContext) : Terminal = {
+    import akka.actor.Props
+
+    val obj = Terminal(tdef)
+    obj.Actor = context.actorOf(Props(classOf[TerminalControl], obj), s"${tdef.Name}_$id")
+    obj
   }
 }

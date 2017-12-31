@@ -29,7 +29,7 @@ class VehicleConverter extends ObjectCreateConverter[Vehicle]() {
         false,
         obj.Cloaked,
         SpecificFormatData(obj),
-        Some(InventoryData((MakeMountings(obj) ++ MakeTrunk(obj)).sortBy(_.parentSlot)))
+        Some(InventoryData(MakeMountings(obj).sortBy(_.parentSlot)))
       )(SpecificFormatModifier)
     )
   }
@@ -47,18 +47,18 @@ class VehicleConverter extends ObjectCreateConverter[Vehicle]() {
     }).toList
   }
 
-  /**
-    * na
-    * @param obj the `Player` game object
-    * @return a list of all items that were in the inventory in decoded packet form
-    */
-  private def MakeTrunk(obj : Vehicle) : List[InternalSlot] = {
-    obj.Trunk.Items.map({
-      case(_, item) =>
-        val equip : Equipment = item.obj
-        InventoryItemData(equip.Definition.ObjectId, equip.GUID, item.start, equip.Definition.Packet.ConstructorData(equip).get)
-    }).toList
-  }
+//  /**
+//    * na
+//    * @param obj the `Player` game object
+//    * @return a list of all items that were in the inventory in decoded packet form
+//    */
+//  private def MakeTrunk(obj : Vehicle) : List[InternalSlot] = {
+//    obj.Trunk.Items.map({
+//      case(_, item) =>
+//        val equip : Equipment = item.obj
+//        InventoryItemData(equip.Definition.ObjectId, equip.GUID, item.start, equip.Definition.Packet.ConstructorData(equip).get)
+//    }).toList
+//  }
 
 //  @tailrec private def recursiveMakeSeats(iter : Iterator[(Int, Seat)], list : List[InventoryItemData.InventoryItem] = Nil) : List[InventoryItemData.InventoryItem] = {
 //    if(!iter.hasNext) {
