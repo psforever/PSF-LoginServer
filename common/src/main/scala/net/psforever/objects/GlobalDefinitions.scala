@@ -101,6 +101,24 @@ object GlobalDefinitions {
 
   val flamethrower_ammo = AmmoBoxDefinition(Ammo.flamethrower_ammo)
 
+  val dualcycler_ammo = AmmoBoxDefinition(Ammo.dualcycler_ammo)
+
+  val pounder_ammo = AmmoBoxDefinition(Ammo.pounder_ammo)
+
+  val burster_ammo = AmmoBoxDefinition(Ammo.burster_ammo)
+
+  val scattercannon_ammo = AmmoBoxDefinition(Ammo.scattercannon_ammo)
+
+  val falcon_ammo = AmmoBoxDefinition(Ammo.falcon_ammo)
+
+  val sparrow_ammo = AmmoBoxDefinition(Ammo.sparrow_ammo)
+
+  val quasar_ammo = AmmoBoxDefinition(Ammo.quasar_ammo)
+
+  val comet_ammo = AmmoBoxDefinition(Ammo.comet_ammo)
+
+  val starfire_ammo = AmmoBoxDefinition(Ammo.starfire_ammo)
+
   val health_canister = AmmoBoxDefinition(Ammo.health_canister)
 
   val armor_canister = AmmoBoxDefinition(Ammo.armor_canister)
@@ -256,23 +274,23 @@ object GlobalDefinitions {
 
   val flamethrower = ToolDefinition(ObjectClass.flamethrower)
 
-  val trhev_dualcycler = ToolDefinition(ObjectClass.trhev_dualcycler) //TODO
+  val trhev_dualcycler = ToolDefinition(ObjectClass.trhev_dualcycler)
 
-  val trhev_pounder = ToolDefinition(ObjectClass.trhev_pounder) //TODO
+  val trhev_pounder = ToolDefinition(ObjectClass.trhev_pounder)
 
-  val trhev_burster = ToolDefinition(ObjectClass.trhev_burster) //TODO
+  val trhev_burster = ToolDefinition(ObjectClass.trhev_burster)
 
-  val nchev_scattercannon = ToolDefinition(ObjectClass.nchev_scattercannon) //TODO
+  val nchev_scattercannon = ToolDefinition(ObjectClass.nchev_scattercannon)
 
-  val nchev_falcon = ToolDefinition(ObjectClass.nchev_falcon) //TODO
+  val nchev_falcon = ToolDefinition(ObjectClass.nchev_falcon)
 
-  val nchev_sparrow = ToolDefinition(ObjectClass.nchev_sparrow) //TODO
+  val nchev_sparrow = ToolDefinition(ObjectClass.nchev_sparrow)
 
-  val vshev_quasar = ToolDefinition(ObjectClass.vshev_quasar) //TODO
+  val vshev_quasar = ToolDefinition(ObjectClass.vshev_quasar)
 
-  val vshev_comet = ToolDefinition(ObjectClass.vshev_comet) //TODO
+  val vshev_comet = ToolDefinition(ObjectClass.vshev_comet)
 
-  val vshev_starfire = ToolDefinition(ObjectClass.vshev_starfire) //TODO
+  val vshev_starfire = ToolDefinition(ObjectClass.vshev_starfire)
 
   val medicalapplicator = ToolDefinition(ObjectClass.medicalapplicator)
 
@@ -637,6 +655,21 @@ object GlobalDefinitions {
     }
   }
 
+  def MAXArms(subtype : Int, faction : PlanetSideEmpire.Value) : ToolDefinition = {
+    if(subtype == 1) {
+      AIMAX(faction)
+    }
+    else if(subtype == 2) {
+      AVMAX(faction)
+    }
+    else if(subtype == 3) {
+      AAMAX(faction)
+    }
+    else {
+      suppressor //there are no common pool MAX arms
+    }
+  }
+
   def AIMAX(faction : PlanetSideEmpire.Value) : ToolDefinition = {
     faction match {
       case PlanetSideEmpire.TR => trhev_dualcycler
@@ -841,6 +874,33 @@ object GlobalDefinitions {
 
     flamethrower_ammo.Capacity = 100
     flamethrower_ammo.Tile = InventoryTile.Tile44
+
+    dualcycler_ammo.Capacity = 100
+    dualcycler_ammo.Tile = InventoryTile.Tile44
+
+    pounder_ammo.Capacity = 50
+    pounder_ammo.Tile = InventoryTile.Tile44
+
+    burster_ammo.Capacity = 100
+    burster_ammo.Tile = InventoryTile.Tile44
+
+    scattercannon_ammo.Capacity = 50
+    scattercannon_ammo.Tile = InventoryTile.Tile44
+
+    falcon_ammo.Capacity = 50
+    falcon_ammo.Tile = InventoryTile.Tile44
+
+    sparrow_ammo.Capacity = 50
+    sparrow_ammo.Tile = InventoryTile.Tile44
+
+    quasar_ammo.Capacity = 60
+    quasar_ammo.Tile = InventoryTile.Tile44
+
+    comet_ammo.Capacity = 50
+    comet_ammo.Tile = InventoryTile.Tile44
+
+    starfire_ammo.Capacity = 50
+    starfire_ammo.Tile = InventoryTile.Tile44
 
     health_canister.Capacity = 100
     health_canister.Tile = InventoryTile.Tile33
@@ -1397,24 +1457,85 @@ object GlobalDefinitions {
     flamethrower.FireModes(1).Magazine = 100
     flamethrower.FireModes(1).Chamber = 50
     flamethrower.Tile = InventoryTile.Tile63
-//TODO
+
     trhev_dualcycler.Size = EquipmentSize.Max
-    trhev_dualcycler.AmmoTypes += bullet_9mm
+    trhev_dualcycler.AmmoTypes += dualcycler_ammo
     trhev_dualcycler.FireModes += new FireModeDefinition
     trhev_dualcycler.FireModes.head.AmmoTypeIndices += 0
     trhev_dualcycler.FireModes.head.AmmoSlotIndex = 0
-//TODO
+    trhev_dualcycler.FireModes.head.Magazine = 200
+
     trhev_pounder.Size = EquipmentSize.Max
-    trhev_pounder.AmmoTypes += bullet_9mm
+    trhev_pounder.AmmoTypes += pounder_ammo
     trhev_pounder.FireModes += new FireModeDefinition
     trhev_pounder.FireModes.head.AmmoTypeIndices += 0
     trhev_pounder.FireModes.head.AmmoSlotIndex = 0
-//TODO
+    trhev_pounder.FireModes.head.Magazine = 30
+    trhev_pounder.FireModes += new FireModeDefinition
+    trhev_pounder.FireModes(1).AmmoTypeIndices += 0
+    trhev_pounder.FireModes(1).AmmoSlotIndex = 0
+    trhev_pounder.FireModes(1).Magazine = 30
+
     trhev_burster.Size = EquipmentSize.Max
-    trhev_burster.AmmoTypes += bullet_9mm
+    trhev_burster.AmmoTypes += burster_ammo
     trhev_burster.FireModes += new FireModeDefinition
     trhev_burster.FireModes.head.AmmoTypeIndices += 0
     trhev_burster.FireModes.head.AmmoSlotIndex = 0
+    trhev_burster.FireModes.head.Magazine = 40
+
+    nchev_scattercannon.Size = EquipmentSize.Max
+    nchev_scattercannon.AmmoTypes += scattercannon_ammo
+    nchev_scattercannon.FireModes += new FireModeDefinition
+    nchev_scattercannon.FireModes.head.AmmoTypeIndices += 0
+    nchev_scattercannon.FireModes.head.AmmoSlotIndex = 0
+    nchev_scattercannon.FireModes.head.Magazine = 40
+    nchev_scattercannon.FireModes += new FireModeDefinition
+    nchev_scattercannon.FireModes(1).AmmoTypeIndices += 0
+    nchev_scattercannon.FireModes(1).AmmoSlotIndex = 0
+    nchev_scattercannon.FireModes(1).Magazine = 40
+    nchev_scattercannon.FireModes += new FireModeDefinition
+    nchev_scattercannon.FireModes(2).AmmoTypeIndices += 0
+    nchev_scattercannon.FireModes(2).AmmoSlotIndex = 0
+    nchev_scattercannon.FireModes(2).Magazine = 40
+
+    nchev_falcon.Size = EquipmentSize.Max
+    nchev_falcon.AmmoTypes += falcon_ammo
+    nchev_falcon.FireModes += new FireModeDefinition
+    nchev_falcon.FireModes.head.AmmoTypeIndices += 0
+    nchev_falcon.FireModes.head.AmmoSlotIndex = 0
+    nchev_falcon.FireModes.head.Magazine = 20
+
+    nchev_sparrow.Size = EquipmentSize.Max
+    nchev_sparrow.AmmoTypes += sparrow_ammo
+    nchev_sparrow.FireModes += new FireModeDefinition
+    nchev_sparrow.FireModes.head.AmmoTypeIndices += 0
+    nchev_sparrow.FireModes.head.AmmoSlotIndex = 0
+    nchev_sparrow.FireModes.head.Magazine = 12
+
+    vshev_quasar.Size = EquipmentSize.Max
+    vshev_quasar.AmmoTypes += quasar_ammo
+    vshev_quasar.FireModes += new FireModeDefinition
+    vshev_quasar.FireModes.head.AmmoTypeIndices += 0
+    vshev_quasar.FireModes.head.AmmoSlotIndex = 0
+    vshev_quasar.FireModes.head.Magazine = 120
+    vshev_quasar.FireModes += new FireModeDefinition
+    vshev_quasar.FireModes(1).AmmoTypeIndices += 0
+    vshev_quasar.FireModes(1).AmmoSlotIndex = 0
+    vshev_quasar.FireModes(1).Magazine = 120
+
+    vshev_comet.Size = EquipmentSize.Max
+    vshev_comet.AmmoTypes += comet_ammo
+    vshev_comet.FireModes += new FireModeDefinition
+    vshev_comet.FireModes.head.AmmoTypeIndices += 0
+    vshev_comet.FireModes.head.AmmoSlotIndex = 0
+    vshev_comet.FireModes.head.Magazine = 10
+
+    vshev_starfire.Size = EquipmentSize.Max
+    vshev_starfire.AmmoTypes += starfire_ammo
+    vshev_starfire.FireModes += new FireModeDefinition
+    vshev_starfire.FireModes.head.AmmoTypeIndices += 0
+    vshev_starfire.FireModes.head.AmmoSlotIndex = 0
+    vshev_starfire.FireModes.head.Magazine = 8
 
     medicalapplicator.Size = EquipmentSize.Pistol
     medicalapplicator.AmmoTypes += health_canister
@@ -1571,28 +1692,28 @@ object GlobalDefinitions {
     battlewagon_weapon_systema.FireModes += new FireModeDefinition
     battlewagon_weapon_systema.FireModes.head.AmmoTypeIndices += 0
     battlewagon_weapon_systema.FireModes.head.AmmoSlotIndex = 0
-    battlewagon_weapon_systema.FireModes.head.Magazine = 235
+    battlewagon_weapon_systema.FireModes.head.Magazine = 240
 
     battlewagon_weapon_systemb.Size = EquipmentSize.VehicleWeapon
     battlewagon_weapon_systemb.AmmoTypes += bullet_15mm
     battlewagon_weapon_systemb.FireModes += new FireModeDefinition
     battlewagon_weapon_systemb.FireModes.head.AmmoTypeIndices += 0
     battlewagon_weapon_systemb.FireModes.head.AmmoSlotIndex = 0
-    battlewagon_weapon_systemb.FireModes.head.Magazine = 235
+    battlewagon_weapon_systemb.FireModes.head.Magazine = 240
 
     battlewagon_weapon_systemc.Size = EquipmentSize.VehicleWeapon
     battlewagon_weapon_systemc.AmmoTypes += bullet_15mm
     battlewagon_weapon_systemc.FireModes += new FireModeDefinition
     battlewagon_weapon_systemc.FireModes.head.AmmoTypeIndices += 0
     battlewagon_weapon_systemc.FireModes.head.AmmoSlotIndex = 0
-    battlewagon_weapon_systemc.FireModes.head.Magazine = 235
+    battlewagon_weapon_systemc.FireModes.head.Magazine = 240
 
     battlewagon_weapon_systemd.Size = EquipmentSize.VehicleWeapon
     battlewagon_weapon_systemd.AmmoTypes += bullet_15mm
     battlewagon_weapon_systemd.FireModes += new FireModeDefinition
     battlewagon_weapon_systemd.FireModes.head.AmmoTypeIndices += 0
     battlewagon_weapon_systemd.FireModes.head.AmmoSlotIndex = 0
-    battlewagon_weapon_systemd.FireModes.head.Magazine = 235
+    battlewagon_weapon_systemd.FireModes.head.Magazine = 240
 
     thunderer_weapon_systema.Size = EquipmentSize.VehicleWeapon
     thunderer_weapon_systema.AmmoTypes += gauss_cannon_ammo
@@ -1724,7 +1845,7 @@ object GlobalDefinitions {
     prowler_weapon_systemB.FireModes += new FireModeDefinition
     prowler_weapon_systemB.FireModes.head.AmmoTypeIndices += 0
     prowler_weapon_systemB.FireModes.head.AmmoSlotIndex = 0
-    prowler_weapon_systemB.FireModes.head.Magazine = 235
+    prowler_weapon_systemB.FireModes.head.Magazine = 240
 
     vanguard_weapon_system.Size = EquipmentSize.VehicleWeapon
     vanguard_weapon_system.AmmoTypes += bullet_150mm
@@ -1820,7 +1941,7 @@ object GlobalDefinitions {
     vulture_nose_weapon_system.FireModes += new FireModeDefinition
     vulture_nose_weapon_system.FireModes.head.AmmoTypeIndices += 0
     vulture_nose_weapon_system.FireModes.head.AmmoSlotIndex = 0
-    vulture_nose_weapon_system.FireModes.head.Magazine = 75 //80?
+    vulture_nose_weapon_system.FireModes.head.Magazine = 75
 
     vulture_bomb_bay.Size = EquipmentSize.VehicleWeapon
     vulture_bomb_bay.AmmoTypes += liberator_bomb

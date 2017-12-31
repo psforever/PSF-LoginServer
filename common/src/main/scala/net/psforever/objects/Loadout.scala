@@ -98,7 +98,7 @@ object Loadout {
       packageSimplifications(player.Holsters()),
       packageSimplifications(player.Inventory.Items.values.toList),
       player.ExoSuit,
-      determineSubtype(player)
+      DetermineSubtype(player)
     )
   }
 
@@ -158,9 +158,9 @@ object Loadout {
     */
   final case class ShorthandKit(kdef : KitDefinition) extends Simplification
 
-  private def determineSubtype(player : Player) : Int = {
+  def DetermineSubtype(player : Player) : Int = {
     if(player.ExoSuit == ExoSuitType.MAX) {
-      player.Slot(2).Equipment match {
+      player.Slot(0).Equipment match {
         case Some(item) =>
           item.Definition match {
             case GlobalDefinitions.trhev_dualcycler | GlobalDefinitions.nchev_scattercannon | GlobalDefinitions.vshev_quasar =>

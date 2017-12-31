@@ -3,6 +3,7 @@ package net.psforever.objects.serverobject.terminals
 
 import net.psforever.objects.Player
 import net.psforever.objects.definition.ImplantDefinition
+import net.psforever.objects.inventory.InventoryItem
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.packet.game.{ItemTransactionMessage, PlanetSideGUID}
 import net.psforever.types.{TransactionType, Vector3}
