@@ -447,7 +447,7 @@ object GamePacketOpcode extends Enumeration {
     case 0x6a => noDecoder(AggravatedDamageMessage)
     case 0x6b => game.TriggerSoundMessage.decode
     case 0x6c => game.LootItemMessage.decode
-    case 0x6d => noDecoder(VehicleSubStateMessage)
+    case 0x6d => game.VehicleSubStateMessage.decode
     case 0x6e => noDecoder(SquadMembershipRequest)
     case 0x6f => noDecoder(SquadMembershipResponse)
 
