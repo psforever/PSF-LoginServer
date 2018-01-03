@@ -104,7 +104,7 @@ object ExoSuitDefinition {
   MAX.MaxArmor = 650
   MAX.InventoryScale = InventoryTile.Tile1612
   MAX.InventoryOffset = 6
-  MAX.Holster(2, EquipmentSize.Max)
+  MAX.Holster(0, EquipmentSize.Max)
   MAX.Holster(4, EquipmentSize.Melee)
 
   def apply(suitType : ExoSuitType.Value) : ExoSuitDefinition = {
