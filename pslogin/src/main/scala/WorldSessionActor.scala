@@ -23,11 +23,11 @@ import net.psforever.objects.serverobject.pad.VehicleSpawnPad
 import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.vehicles.{AccessPermissionGroup, VehicleLockState}
 import net.psforever.objects.zones.{InterstellarCluster, Zone}
-import net.psforever.packet.game.objectcreate.{DetailedCharacterData, _}
+import net.psforever.packet.game.objectcreate._
 import net.psforever.types._
 import services._
-import services.avatar._
-import services.local._
+import services.avatar.{AvatarAction, AvatarResponse, AvatarServiceMessage, AvatarServiceResponse}
+import services.local.{LocalAction, LocalResponse, LocalServiceMessage, LocalServiceResponse}
 import services.vehicle.{VehicleAction, VehicleResponse, VehicleServiceMessage, VehicleServiceResponse}
 
 import scala.annotation.tailrec
@@ -47,6 +47,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
   var galaxy : ActorRef = Actor.noSender
   var continent : Zone = null
   var progressBarValue : Option[Float] = None
+  var shooting : Option[PlanetSideGUID] = None
 
   var clientKeepAlive : Cancellable = DefaultCancellable.obj
   var progressBarUpdate : Cancellable = DefaultCancellable.obj
@@ -145,6 +146,16 @@ class WorldSessionActor extends Actor with MDCContextAware {
             sendResponse(PacketCoding.CreateGamePacket(0, ArmorChangedMessage(guid, suit, subtype)))
           }
 
+        case AvatarResponse.ChangeFireState_Start(weapon_guid) =>
+          if(player.GUID != guid) {
+            sendResponse(PacketCoding.CreateGamePacket(0, ChangeFireStateMessage_Start(weapon_guid)))
+          }
+
+        case AvatarResponse.ChangeFireState_Stop(weapon_guid) =>
+          if(player.GUID != guid) {
+            sendResponse(PacketCoding.CreateGamePacket(0, ChangeFireStateMessage_Stop(weapon_guid)))
+          }
+
         case AvatarResponse.ConcealPlayer() =>
           if(player.GUID != guid) {
             sendResponse(PacketCoding.CreateGamePacket(0, GenericObjectActionMessage(guid, 36)))
@@ -215,7 +226,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
               ((distanceSq < 900 || weaponInHand) && time > 200) ||
               (distanceSq < 10000 && time > 500) ||
               (distanceSq < 160000 && (msg.is_jumping || time < 200)) ||
-              (distanceSq < 160000 && msg.vel.isEmpty && time > 2000) ||
+              (distanceSq < 160000 && (msg.vel.isEmpty || Vector3.MagnitudeSquared(msg.vel.get).toInt == 0) && time > 2000) ||
               (distanceSq < 160000 && time > 1000) ||
               (distanceSq > 160000 && time > 5000))
             {
@@ -240,9 +251,14 @@ class WorldSessionActor extends Actor with MDCContextAware {
             }
           }
 
-        case AvatarResponse.Reload(mag) =>
+        case AvatarResponse.Reload(item_guid) =>
           if(player.GUID != guid) {
-            sendResponse(PacketCoding.CreateGamePacket(0, ReloadMessage(guid, mag, 0)))
+            sendResponse(PacketCoding.CreateGamePacket(0, ReloadMessage(item_guid, 1, 0)))
+          }
+
+        case AvatarResponse.WeaponDryFire(weapon_guid) =>
+          if(player.GUID != guid) {
+            sendResponse(PacketCoding.CreateGamePacket(0, WeaponJammedMessage(weapon_guid)))
           }
 
         case _ => ;
@@ -281,6 +297,20 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case VehicleResponse.ChildObjectState(object_guid, pitch, yaw) =>
           if(player.GUID != guid) {
             sendResponse(PacketCoding.CreateGamePacket(0, ChildObjectStateMessage(object_guid, pitch, yaw)))
+          }
+
+        case VehicleResponse.InventoryState(obj, parent_guid, start, con_data) =>
+          if(player.GUID != guid) {
+            //TODO prefer ObjectDetachMessage, but how to force ammo pools to update properly?
+            val obj_guid = obj.GUID
+            sendResponse(PacketCoding.CreateGamePacket(0, ObjectDeleteMessage(obj_guid, 0)))
+            sendResponse(PacketCoding.CreateGamePacket(0,
+              ObjectCreateDetailedMessage(
+                obj.Definition.ObjectId,
+                obj_guid,
+                ObjectCreateMessageParent(parent_guid, start),
+                con_data)
+            ))
           }
 
         case VehicleResponse.DismountVehicle(unk1, unk2) =>
@@ -1306,10 +1336,19 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ ChangeFireStateMessage_Start(item_guid) =>
       log.info("ChangeFireState_Start: " + msg)
+      if(shooting.isEmpty) {
+        //TODO check that player can shoot item_guid?
+        shooting = Some(item_guid)
+        avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireState_Start(player.GUID, item_guid))
+      }
 
     case msg @ ChangeFireStateMessage_Stop(item_guid) =>
       log.info("ChangeFireState_Stop: " + msg)
-      progressBarUpdate.cancel
+      if(shooting.contains(item_guid)) {
+        shooting = None
+        avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireState_Stop(player.GUID, item_guid))
+      }
+      progressBarUpdate.cancel //TODO independent action?
 
     case msg @ EmoteMsg(avatar_guid, emote) =>
       log.info("Emote: " + msg)
@@ -1339,7 +1378,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ ReloadMessage(item_guid, ammo_clip, unk1) =>
       log.info("Reload: " + msg)
-      val reloadValue : Int = player.VehicleSeated match {
+      (player.VehicleSeated match {
         case Some(vehicle_guid) => //weapon is vehicle turret?
           continent.GUID(vehicle_guid) match {
             case Some(vehicle : Vehicle) =>
@@ -1347,29 +1386,68 @@ class WorldSessionActor extends Actor with MDCContextAware {
                 case Some(seat_num) =>
                   vehicle.WeaponControlledFromSeat(seat_num) match {
                     case Some(item : Tool) =>
-                      item.FireMode.Magazine
+                      //TODO check that item controlled by seat is item_guid?
+                      (Some(vehicle), Some(item))
                     case _ => ;
-                      0
+                      (None, None)
                   }
                 case None => ;
-                  0
+                  (None, None)
               }
             case _ => ;
-              0
+              (None, None)
           }
         case None => //not in vehicle; weapon in hand?
-          log.info(s"${player.DrawnSlot} -> ${player.Slot(player.DrawnSlot).Equipment}")
           player.Slot(player.DrawnSlot).Equipment match {
             //TODO check that item in hand is item_guid?
             case Some(item : Tool) =>
-              item.FireMode.Magazine
-            case Some(_) | None => ;
-              0
+              (Some(player), Some(item))
+            case _ => ;
+              (None, None)
           }
-      }
-      if(reloadValue > 0) {
-        //TODO hunt for ammunition in backpack/trunk
-        sendResponse(PacketCoding.CreateGamePacket(0, ReloadMessage(item_guid, reloadValue, unk1)))
+      }) match {
+        case (Some(obj), Some(tool : Tool)) =>
+          val currentMagazine : Int = tool.Magazine
+          val magazineSize : Int = tool.MaxMagazine
+          val reloadValue : Int = magazineSize - currentMagazine
+          if(magazineSize > 0 && reloadValue > 0) {
+            FindReloadAmmunition(obj, tool.AmmoType, reloadValue).reverse match {
+              case Nil =>
+                log.warn(s"ReloadMessage: no ammunition could be found for $item_guid")
+              case list @ x :: xs =>
+                val (deleteFunc, modifyFunc) : ((Int, PlanetSideGUID)=>Unit, (AmmoBox, Int)=>Unit) = obj match {
+                  case (veh : Vehicle) =>
+                    (DeleteAmmunitionInVehicle(veh), ModifyAmmunitionInVehicle(veh))
+                  case _ =>
+                    (DeleteAmmunition(obj), ModifyAmmunition(obj))
+                }
+                xs.foreach(item => {
+                  deleteFunc(item.start, item.obj.GUID)
+                })
+                val box = x.obj.asInstanceOf[AmmoBox]
+                val tailReloadValue : Int = if(xs.isEmpty) { 0 } else { xs.map(_.obj.asInstanceOf[AmmoBox].Capacity).reduceLeft(_ + _) }
+                val sumReloadValue : Int = box.Capacity + tailReloadValue
+                val actualReloadValue = (if(sumReloadValue <= reloadValue) {
+                  deleteFunc(x.start, box.GUID)
+                  sumReloadValue
+                }
+                else {
+                  modifyFunc(box, reloadValue - tailReloadValue)
+                  reloadValue
+                }) + currentMagazine
+                log.info(s"ReloadMessage: success, $tool <- $actualReloadValue ${tool.AmmoType}")
+                tool.Magazine = actualReloadValue
+                sendResponse(PacketCoding.CreateGamePacket(0, ReloadMessage(item_guid, actualReloadValue, unk1)))
+                avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.Reload(player.GUID, item_guid))
+            }
+          }
+          else {
+            log.warn(s"ReloadMessage: item $item_guid can not reload (full=$magazineSize, want=$reloadValue)")
+          }
+        case (_, Some(_)) =>
+          log.error(s"ReloadMessage: the object that was found for $item_guid was not a Tool")
+        case (_, None) =>
+          log.error(s"ReloadMessage: can not find $item_guid")
       }
 
     case msg @ ObjectHeldMessage(avatar_guid, held_holsters, unk1) =>
@@ -1673,9 +1751,60 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ WeaponDelayFireMessage(seq_time, weapon_guid) =>
       log.info("WeaponDelayFire: " + msg)
+      (player.VehicleSeated match {
+        case Some(vehicle_guid) =>
+          continent.GUID(vehicle_guid) match {
+            case Some(obj : Vehicle) =>
+              obj.PassengerInSeat(player) match {
+                case Some(seat_num) =>
+                  obj.WeaponControlledFromSeat(seat_num)
+                case None =>
+                  None
+              }
+            case _ =>
+              None
+          }
+        case None =>
+          player.Slot(player.DrawnSlot).Equipment
+      }) match {
+        case Some(tool : Tool) =>
+          avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.WeaponDryFire(player.GUID, weapon_guid))
+        case _ => ;
+      }
 
     case msg @ WeaponFireMessage(seq_time, weapon_guid, projectile_guid, shot_origin, unk1, unk2, unk3, unk4, unk5, unk6, unk7) =>
       log.info("WeaponFire: " + msg)
+      (player.VehicleSeated match {
+        case Some(vehicle_guid) =>
+          continent.GUID(vehicle_guid) match {
+            case Some(obj : Vehicle) =>
+              obj.PassengerInSeat(player) match {
+                case Some(seat_num) =>
+                  obj.WeaponControlledFromSeat(seat_num)
+                case None =>
+                  None
+              }
+            case _ =>
+              None
+          }
+        case None =>
+          player.Slot(player.DrawnSlot).Equipment
+      }) match {
+        case Some(tool : Tool) =>
+          if(tool.Magazine <= 0) { //safety: enforce ammunition depletion
+            tool.Magazine = 0
+            sendResponse(PacketCoding.CreateGamePacket(0, InventoryStateMessage(tool.AmmoSlot.Box.GUID, weapon_guid, 0)))
+            sendResponse(PacketCoding.CreateGamePacket(0, ChangeFireStateMessage_Stop(weapon_guid)))
+            avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireState_Stop(player.GUID, weapon_guid))
+            sendResponse(PacketCoding.CreateGamePacket(0, WeaponDryFireMessage(weapon_guid)))
+            avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.WeaponDryFire(player.GUID, weapon_guid))
+          }
+          else { //shooting
+            tool.Magazine = tool.Magazine - 1
+            //TODO other stuff
+          }
+        case _ => ;
+      }
 
     case msg @ WeaponLazeTargetPositionMessage(weapon, pos1, pos2) =>
       log.info("Lazing position: " + pos2.toString)
@@ -1727,9 +1856,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                 val seats = obj.Seats.values
                 seats.find(seat => seat.Occupant.contains(player)) match {
                   case Some(seat) =>
-                    val vel = obj.Velocity.getOrElse(Vector3(0f, 0f, 0f))
-                    val has_vel : Int = math.abs(vel.x * vel.y * vel.z).toInt
-                    if(seat.Bailable || obj.Velocity.isEmpty || has_vel == 0) { //ugh, float comparison
+                    if(seat.Bailable || obj.Velocity.isEmpty || Vector3.MagnitudeSquared(obj.Velocity.get).toInt == 0) { //ugh, float comparison
                       seat.Occupant = None
                       //special actions
                       obj match {
@@ -2353,6 +2480,59 @@ class WorldSessionActor extends Actor with MDCContextAware {
       case ((_, entry)) =>
         sendResponse(PacketCoding.CreateGamePacket(0, ObjectDeleteMessage(entry.obj.GUID, 0)))
     })
+  }
+
+  /**
+    * Within a specified `Container`, find the smallest number of `AmmoBox` objects of a certain type of `Ammo`
+    * whose sum capacities is greater than, or equal to, a `desiredAmount`.<br>
+    * <br>
+    * In an occupied `List` of returned `Inventory` entries, all but the last entry is considered emptied.
+    * The last entry may require having its `Capacity` be set to a non-zero number.
+    * @param obj the `Container` to search
+    * @param ammoType the type of `Ammo` to search for
+    * @param desiredAmount how much ammunition is requested to be found
+    * @return a `List` of all discovered entries totaling approximately the amount of the requested `Ammo`
+    */
+  def FindReloadAmmunition(obj : Container, ammoType : Ammo.Value, desiredAmount : Int) : List[InventoryItem] = {
+    var currentAmount : Int = 0
+    obj.Inventory.Items
+      .map({ case ((_, item)) => item })
+      .filter(obj => {
+        obj.obj match {
+          case (box : AmmoBox) =>
+            box.AmmoType == ammoType
+          case _ =>
+            false
+        }
+      })
+      .toList
+      .sortBy(_.start)
+      .takeWhile(entry => {
+        val previousAmount = currentAmount
+        currentAmount += entry.obj.asInstanceOf[AmmoBox].Capacity
+        previousAmount < desiredAmount
+      })
+  }
+
+  private def DeleteAmmunition(obj : PlanetSideGameObject with Container)(start : Int, item_guid : PlanetSideGUID) : Unit = {
+    obj.Inventory -= start
+    sendResponse(PacketCoding.CreateGamePacket(0, ObjectDeleteMessage(item_guid, 0)))
+  }
+
+  private def DeleteAmmunitionInVehicle(obj : Vehicle)(start : Int, item_guid : PlanetSideGUID) : Unit = {
+    DeleteAmmunition(obj)(start, item_guid)
+    vehicleService ! VehicleServiceMessage(s"${obj.Actor}", VehicleAction.UnstowEquipment(player.GUID, item_guid))
+  }
+
+  private def ModifyAmmunition(obj : PlanetSideGameObject with Container)(box : AmmoBox, reloadValue : Int) : Unit = {
+    val capacity = box.Capacity - reloadValue
+    box.Capacity = capacity
+    sendResponse(PacketCoding.CreateGamePacket(0, InventoryStateMessage(box.GUID, obj.GUID, capacity)))
+  }
+
+  private def ModifyAmmunitionInVehicle(obj : Vehicle)(box : AmmoBox, reloadValue : Int) : Unit = {
+    val capacity = ModifyAmmunition(obj)(box, reloadValue)
+    vehicleService ! VehicleServiceMessage(s"${obj.Actor}", VehicleAction.InventoryState(player.GUID, box, obj.GUID, obj.Find(box).get, box.Definition.Packet.DetailedConstructorData(box).get))
   }
 
   /**

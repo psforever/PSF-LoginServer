@@ -39,6 +39,14 @@ class AvatarService extends Actor {
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.ArmorChanged(suit, subtype))
           )
+        case AvatarAction.ChangeFireState_Start(player_guid, weapon_guid) =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.ChangeFireState_Start(weapon_guid))
+          )
+        case AvatarAction.ChangeFireState_Stop(player_guid, weapon_guid) =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.ChangeFireState_Stop(weapon_guid))
+          )
         case AvatarAction.ConcealPlayer(player_guid) =>
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.ConcealPlayer())
@@ -71,9 +79,13 @@ class AvatarService extends Actor {
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", guid, AvatarResponse.PlayerState(msg, spectator, weapon))
           )
-        case AvatarAction.Reload(player_guid, mag) =>
+        case AvatarAction.Reload(player_guid, weapon_guid) =>
           AvatarEvents.publish(
-            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.Reload(mag))
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.Reload(weapon_guid))
+          )
+        case AvatarAction.WeaponDryFire(player_guid, weapon_guid) =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.WeaponDryFire(weapon_guid))
           )
         case _ => ;
     }

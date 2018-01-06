@@ -176,8 +176,8 @@ class AvatarServiceCTest extends ActorTest {
     "pass Reload" in {
       val service = system.actorOf(Props[AvatarService], "service")
       service ! Service.Join("test")
-      service ! AvatarServiceMessage("test", AvatarAction.Reload(PlanetSideGUID(10), 35))
-      expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarResponse.Reload(35)))
+      service ! AvatarServiceMessage("test", AvatarAction.Reload(PlanetSideGUID(10), PlanetSideGUID(40)))
+      expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarResponse.Reload(PlanetSideGUID(40))))
     }
   }
 }
