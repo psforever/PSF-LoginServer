@@ -37,28 +37,48 @@ class ConverterTest extends Specification {
   }
 
   "Tool" should {
-    "convert to packet" in {
-      val tdef = ToolDefinition(1076)
-      tdef.Size = EquipmentSize.Rifle
-      tdef.AmmoTypes += GlobalDefinitions.shotgun_shell
-      tdef.AmmoTypes += GlobalDefinitions.shotgun_shell_AP
-      tdef.FireModes += new FireModeDefinition
-      tdef.FireModes.head.AmmoTypeIndices += 0
-      tdef.FireModes.head.AmmoTypeIndices += 1
-      tdef.FireModes.head.AmmoSlotIndex = 0
-      tdef.FireModes.head.Magazine = 30
-      val obj : Tool = Tool(tdef)
+    "convert to packet (1 fire mode slot)" in {
+      val obj : Tool = Tool(GlobalDefinitions.flechette)
       obj.AmmoSlot.Box.GUID = PlanetSideGUID(90)
 
       obj.Definition.Packet.DetailedConstructorData(obj) match {
         case Success(pkt) =>
-          pkt mustEqual DetailedWeaponData(4,8, Ammo.shotgun_shell.id, PlanetSideGUID(90), 0, DetailedAmmoBoxData(8, 30))
+          pkt mustEqual DetailedWeaponData(4,8, Ammo.shotgun_shell.id, PlanetSideGUID(90), 0, DetailedAmmoBoxData(8, 12))
         case _ =>
           ko
       }
       obj.Definition.Packet.ConstructorData(obj) match {
         case Success(pkt) =>
           pkt mustEqual WeaponData(4,8, 0, Ammo.shotgun_shell.id, PlanetSideGUID(90), 0, AmmoBoxData())
+        case _ =>
+          ko
+      }
+    }
+
+    "convert to packet (2 fire mode slots)" in {
+      val obj : Tool = Tool(GlobalDefinitions.punisher)
+      obj.AmmoSlots.head.Box.GUID = PlanetSideGUID(90)
+      obj.AmmoSlots(1).Box.GUID = PlanetSideGUID(91)
+
+      obj.Definition.Packet.DetailedConstructorData(obj) match {
+        case Success(pkt) =>
+          pkt mustEqual DetailedWeaponData(4,8, 0,
+            List(
+              InternalSlot(Ammo.bullet_9mm.id, PlanetSideGUID(90), 0, DetailedAmmoBoxData(8, 30)),
+              InternalSlot(Ammo.rocket.id, PlanetSideGUID(91), 1, DetailedAmmoBoxData(8, 1))
+            )
+          )
+        case _ =>
+          ko
+      }
+      obj.Definition.Packet.ConstructorData(obj) match {
+        case Success(pkt) =>
+          pkt mustEqual WeaponData(4,8, 0,
+            List(
+              InternalSlot(Ammo.bullet_9mm.id, PlanetSideGUID(90), 0, AmmoBoxData()),
+              InternalSlot(Ammo.rocket.id, PlanetSideGUID(91), 1, AmmoBoxData())
+            )
+          )
         case _ =>
           ko
       }

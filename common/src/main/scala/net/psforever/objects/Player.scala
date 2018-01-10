@@ -31,7 +31,7 @@ class Player(private val name : String,
   private val fifthSlot : EquipmentSlot = new OffhandEquipmentSlot(EquipmentSize.Inventory)
   private val inventory : GridInventory = GridInventory()
   private var drawnSlot : Int = Player.HandsDownSlot
-  private var lastDrawnSlot : Int = 0
+  private var lastDrawnSlot : Int = Player.HandsDownSlot
 
   private val loadouts : Array[Option[Loadout]] = Array.fill[Option[Loadout]](10)(None)
 
@@ -325,16 +325,15 @@ class Player(private val name : String,
 
   def DrawnSlot : Int = drawnSlot
 
-  def DrawnSlot_=(slot : Int = Player.HandsDownSlot) : Int = {
+  def DrawnSlot_=(slot : Int) : Int = {
     if(slot != drawnSlot) {
-      val origDrawnSlot : Int = drawnSlot
       if(slot == Player.HandsDownSlot) {
         drawnSlot = slot
       }
-      else if(-1 < slot && slot < 5 && holsters(slot).Equipment.isDefined) {
+      else if(VisibleSlots.contains(slot) && holsters(slot).Equipment.isDefined) {
         drawnSlot = slot
+        lastDrawnSlot = slot
       }
-      lastDrawnSlot = if(-1 < origDrawnSlot && origDrawnSlot < 5) { origDrawnSlot } else { lastDrawnSlot }
     }
     DrawnSlot
   }

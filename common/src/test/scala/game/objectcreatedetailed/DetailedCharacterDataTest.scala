@@ -652,59 +652,59 @@ class DetailedCharacterDataTest extends Specification {
           InventoryData(
             List(
               InternalSlot(531, PlanetSideGUID(4202), 0,
-                DetailedWeaponData(2, 8, List(InternalSlot(389, PlanetSideGUID(3942), 0,DetailedAmmoBoxData(8, 100))))
+                DetailedWeaponData(2, 8, 0, List(InternalSlot(389, PlanetSideGUID(3942), 0,DetailedAmmoBoxData(8, 100))))
               ),
               InternalSlot(132, PlanetSideGUID(6924), 1,
-                DetailedWeaponData(2, 8, List(InternalSlot(111, PlanetSideGUID(9157), 0, DetailedAmmoBoxData(8, 100))))
+                DetailedWeaponData(2, 8, 0, List(InternalSlot(111, PlanetSideGUID(9157), 0, DetailedAmmoBoxData(8, 100))))
               ),
               InternalSlot(714, PlanetSideGUID(8498), 2,
-                DetailedWeaponData(2, 8, List(InternalSlot(755, PlanetSideGUID(5356), 0, DetailedAmmoBoxData(8, 16))))
+                DetailedWeaponData(2, 8, 0, List(InternalSlot(755, PlanetSideGUID(5356), 0, DetailedAmmoBoxData(8, 16))))
               ),
               InternalSlot(468, PlanetSideGUID(7198), 4,
-                DetailedWeaponData(2, 8, List(InternalSlot(540, PlanetSideGUID(5009), 0, DetailedAmmoBoxData(8, 1))))
+                DetailedWeaponData(2, 8, 0, List(InternalSlot(540, PlanetSideGUID(5009), 0, DetailedAmmoBoxData(8, 1))))
               ),
               InternalSlot(456, PlanetSideGUID(5374), 5,
                 DetailedLockerContainerData(8, Some(InventoryData(List(
                   InternalSlot(429, PlanetSideGUID(3021), 0,
-                    DetailedWeaponData(6, 8, List(InternalSlot(272, PlanetSideGUID(8729), 0, DetailedAmmoBoxData(8, 0))))
+                    DetailedWeaponData(6, 8, 0, List(InternalSlot(272, PlanetSideGUID(8729), 0, DetailedAmmoBoxData(8, 0))))
                   ),
                   InternalSlot(838, PlanetSideGUID(8467), 9,
-                    DetailedWeaponData(6, 8, List(InternalSlot(839, PlanetSideGUID(8603), 0, DetailedAmmoBoxData(8, 5))))
+                    DetailedWeaponData(6, 8, 0, List(InternalSlot(839, PlanetSideGUID(8603), 0, DetailedAmmoBoxData(8, 5))))
                   ),
                   InternalSlot(272, PlanetSideGUID(3266), 18, DetailedAmmoBoxData(8, 27)),
                   InternalSlot(577, PlanetSideGUID(2934), 22,
-                    DetailedWeaponData(6, 8, List(InternalSlot(111, PlanetSideGUID(4682), 0, DetailedAmmoBoxData(8, 100))))
+                    DetailedWeaponData(6, 8, 0, List(InternalSlot(111, PlanetSideGUID(4682), 0, DetailedAmmoBoxData(8, 100))))
                   ),
                   InternalSlot(839, PlanetSideGUID(3271), 90, DetailedAmmoBoxData(8, 15)),
                   InternalSlot(839, PlanetSideGUID(7174), 94, DetailedAmmoBoxData(8, 6)),
                   InternalSlot(429, PlanetSideGUID(6084), 98,
-                    DetailedWeaponData(6, 8, List(InternalSlot(272, PlanetSideGUID(5928), 0, DetailedAmmoBoxData(8, 35))))
+                    DetailedWeaponData(6, 8, 0, List(InternalSlot(272, PlanetSideGUID(5928), 0, DetailedAmmoBoxData(8, 35))))
                   ),
                   InternalSlot(462, PlanetSideGUID(5000), 108,
-                    DetailedWeaponData(6, 8, List(InternalSlot(463, PlanetSideGUID(6277), 0, DetailedAmmoBoxData(8, 150))))
+                    DetailedWeaponData(6, 8, 0, List(InternalSlot(463, PlanetSideGUID(6277), 0, DetailedAmmoBoxData(8, 150))))
                   ),
                   InternalSlot(429, PlanetSideGUID(4341), 189,
-                    DetailedWeaponData(6, 8, List(InternalSlot(272, PlanetSideGUID(7043), 0, DetailedAmmoBoxData(8, 35))))
+                    DetailedWeaponData(6, 8, 0, List(InternalSlot(272, PlanetSideGUID(7043), 0, DetailedAmmoBoxData(8, 35))))
                   ),
                   InternalSlot(556, PlanetSideGUID(4168), 198,
-                    DetailedWeaponData(6, 8, List(InternalSlot(28, PlanetSideGUID(8937), 0, DetailedAmmoBoxData(8, 100))))
+                    DetailedWeaponData(6, 8, 0, List(InternalSlot(28, PlanetSideGUID(8937), 0, DetailedAmmoBoxData(8, 100))))
                   ),
                   InternalSlot(272, PlanetSideGUID(3173), 207, DetailedAmmoBoxData(8, 50)),
                   InternalSlot(462, PlanetSideGUID(3221), 210,
-                    DetailedWeaponData(6, 8, List(InternalSlot(463, PlanetSideGUID(4031), 0, DetailedAmmoBoxData(8, 150))))
+                    DetailedWeaponData(6, 8, 0, List(InternalSlot(463, PlanetSideGUID(4031), 0, DetailedAmmoBoxData(8, 150))))
                   ),
                   InternalSlot(556, PlanetSideGUID(6853), 280,
-                    DetailedWeaponData(6, 8, List(InternalSlot(29, PlanetSideGUID(8524), 0, DetailedAmmoBoxData(8, 67))))
+                    DetailedWeaponData(6, 8, 0, List(InternalSlot(29, PlanetSideGUID(8524), 0, DetailedAmmoBoxData(8, 67))))
                   ),
                   InternalSlot(556, PlanetSideGUID(4569), 290,
-                    DetailedWeaponData(6, 8, List(InternalSlot(28, PlanetSideGUID(5584), 0, DetailedAmmoBoxData(8, 100))))
+                    DetailedWeaponData(6, 8, 0, List(InternalSlot(28, PlanetSideGUID(5584), 0, DetailedAmmoBoxData(8, 100))))
                   ),
                   InternalSlot(462, PlanetSideGUID(9294), 300,
-                    DetailedWeaponData(6, 8, List(InternalSlot(463, PlanetSideGUID(3118), 0, DetailedAmmoBoxData(8, 150))))
+                    DetailedWeaponData(6, 8, 0, List(InternalSlot(463, PlanetSideGUID(3118), 0, DetailedAmmoBoxData(8, 150))))
                   ),
                   InternalSlot(272, PlanetSideGUID(4759), 387, DetailedAmmoBoxData(8, 50)),
                   InternalSlot(462, PlanetSideGUID(7377), 390,
-                    DetailedWeaponData(6, 8, List(InternalSlot(463, PlanetSideGUID(8155), 0, DetailedAmmoBoxData(8, 150))))
+                    DetailedWeaponData(6, 8, 0, List(InternalSlot(463, PlanetSideGUID(8155), 0, DetailedAmmoBoxData(8, 150))))
                   ),
                   InternalSlot(843, PlanetSideGUID(6709), 480, DetailedAmmoBoxData(8, 1)),
                   InternalSlot(843, PlanetSideGUID(5276), 484, DetailedAmmoBoxData(8, 1)),
@@ -714,109 +714,109 @@ class DetailedCharacterDataTest extends Specification {
                   InternalSlot(842, PlanetSideGUID(7279), 500, DetailedAmmoBoxData(8, 1)),
                   InternalSlot(842, PlanetSideGUID(5415), 504, DetailedAmmoBoxData(8, 1)),
                   InternalSlot(175, PlanetSideGUID(5741), 540,
-                    DetailedWeaponData(6, 8, List(InternalSlot(540, PlanetSideGUID(5183), 0, DetailedAmmoBoxData(8, 1))))
+                    DetailedWeaponData(6, 8, 0, List(InternalSlot(540, PlanetSideGUID(5183), 0, DetailedAmmoBoxData(8, 1))))
                   ),
                   InternalSlot(324, PlanetSideGUID(6208), 541,
-                    DetailedWeaponData(6, 8, List(InternalSlot(540, PlanetSideGUID(5029), 0, DetailedAmmoBoxData(8, 1))))
+                    DetailedWeaponData(6, 8, 0, List(InternalSlot(540, PlanetSideGUID(5029), 0, DetailedAmmoBoxData(8, 1))))
                   ),
                   InternalSlot(324, PlanetSideGUID(8589), 542,
-                    DetailedWeaponData(6, 8, List(InternalSlot(540, PlanetSideGUID(9217), 0, DetailedAmmoBoxData(8, 1))))
+                    DetailedWeaponData(6, 8, 0, List(InternalSlot(540, PlanetSideGUID(9217), 0, DetailedAmmoBoxData(8, 1))))
                   ),
                   InternalSlot(175, PlanetSideGUID(8901), 543,
-                    DetailedWeaponData(6, 8, List(InternalSlot(540, PlanetSideGUID(7633), 0, DetailedAmmoBoxData(8, 1))))
+                    DetailedWeaponData(6, 8, 0, List(InternalSlot(540, PlanetSideGUID(7633), 0, DetailedAmmoBoxData(8, 1))))
                   ),
                   InternalSlot(175, PlanetSideGUID(8419), 544,
-                    DetailedWeaponData(6, 8, List(InternalSlot(540, PlanetSideGUID(6546), 0, DetailedAmmoBoxData(8, 1))))
+                    DetailedWeaponData(6, 8, 0, List(InternalSlot(540, PlanetSideGUID(6546), 0, DetailedAmmoBoxData(8, 1))))
                   ),
                   InternalSlot(175, PlanetSideGUID(4715), 545,
-                    DetailedWeaponData(6, 8, List(InternalSlot(540, PlanetSideGUID(8453), 0, DetailedAmmoBoxData(8, 1))))
+                    DetailedWeaponData(6, 8, 0, List(InternalSlot(540, PlanetSideGUID(8453), 0, DetailedAmmoBoxData(8, 1))))
                   ),
                   InternalSlot(324, PlanetSideGUID(3577), 546,
-                    DetailedWeaponData(6, 8, List(InternalSlot(540, PlanetSideGUID(9202), 0, DetailedAmmoBoxData(8, 1))))
+                    DetailedWeaponData(6, 8, 0, List(InternalSlot(540, PlanetSideGUID(9202), 0, DetailedAmmoBoxData(8, 1))))
                   ),
                   InternalSlot(324, PlanetSideGUID(6003), 547,
-                    DetailedWeaponData(6, 8, List(InternalSlot(540, PlanetSideGUID(3260), 0, DetailedAmmoBoxData(8, 1))))
+                    DetailedWeaponData(6, 8, 0, List(InternalSlot(540, PlanetSideGUID(3260), 0, DetailedAmmoBoxData(8, 1))))
                   ),
                   InternalSlot(324, PlanetSideGUID(9140), 548,
-                    DetailedWeaponData(6, 8, List(InternalSlot(540,PlanetSideGUID(3815),0,DetailedAmmoBoxData(8, 1))))
+                    DetailedWeaponData(6, 8, 0, List(InternalSlot(540,PlanetSideGUID(3815),0,DetailedAmmoBoxData(8, 1))))
                   ),
                   InternalSlot(324, PlanetSideGUID(4913), 549,
-                    DetailedWeaponData(6, 8, List(InternalSlot(540,PlanetSideGUID(7222),0,DetailedAmmoBoxData(8, 1))))
+                    DetailedWeaponData(6, 8, 0, List(InternalSlot(540,PlanetSideGUID(7222),0,DetailedAmmoBoxData(8, 1))))
                   ),
                   InternalSlot(324, PlanetSideGUID(6954), 550,
-                    DetailedWeaponData(6, 8, List(InternalSlot(540,PlanetSideGUID(2953),0,DetailedAmmoBoxData(8, 1))))
+                    DetailedWeaponData(6, 8, 0, List(InternalSlot(540,PlanetSideGUID(2953),0,DetailedAmmoBoxData(8, 1))))
                   ),
                   InternalSlot(324, PlanetSideGUID(6405), 551,
-                    DetailedWeaponData(6, 8, List(InternalSlot(540,PlanetSideGUID(4676),0,DetailedAmmoBoxData(8, 1))))
+                    DetailedWeaponData(6, 8, 0, List(InternalSlot(540,PlanetSideGUID(4676),0,DetailedAmmoBoxData(8, 1))))
                   ),
                   InternalSlot(324, PlanetSideGUID(8915), 552,
-                    DetailedWeaponData(6, 8, List(InternalSlot(540,PlanetSideGUID(4018),0,DetailedAmmoBoxData(8, 1))))
+                    DetailedWeaponData(6, 8, 0, List(InternalSlot(540,PlanetSideGUID(4018),0,DetailedAmmoBoxData(8, 1))))
                   ),
                   InternalSlot(324, PlanetSideGUID(4993), 553,
-                    DetailedWeaponData(6, 8, List(InternalSlot(540,PlanetSideGUID(6775),0,DetailedAmmoBoxData(8, 1))))
+                    DetailedWeaponData(6, 8, 0, List(InternalSlot(540,PlanetSideGUID(6775),0,DetailedAmmoBoxData(8, 1))))
                   ),
                   InternalSlot(175, PlanetSideGUID(5053), 554,
-                    DetailedWeaponData(6, 8, List(InternalSlot(540,PlanetSideGUID(6418),0,DetailedAmmoBoxData(8, 1))))
+                    DetailedWeaponData(6, 8, 0, List(InternalSlot(540,PlanetSideGUID(6418),0,DetailedAmmoBoxData(8, 1))))
                   ),
                   InternalSlot(324, PlanetSideGUID(9244), 555,
-                    DetailedWeaponData(6, 8, List(InternalSlot(540,PlanetSideGUID(3327),0,DetailedAmmoBoxData(8, 1))))
+                    DetailedWeaponData(6, 8, 0, List(InternalSlot(540,PlanetSideGUID(3327),0,DetailedAmmoBoxData(8, 1))))
                   ),
                   InternalSlot(468, PlanetSideGUID(6292), 556,
-                    DetailedWeaponData(6, 8, List(InternalSlot(540,PlanetSideGUID(6918),0,DetailedAmmoBoxData(8, 1))))
+                    DetailedWeaponData(6, 8, 0, List(InternalSlot(540,PlanetSideGUID(6918),0,DetailedAmmoBoxData(8, 1))))
                   ),
                   InternalSlot(842, PlanetSideGUID(5357), 558, DetailedAmmoBoxData(8, 1)),
                   InternalSlot(844, PlanetSideGUID(4435), 562, DetailedAmmoBoxData(8, 1)),
                   InternalSlot(843, PlanetSideGUID(7242), 566, DetailedAmmoBoxData(8, 1)),
                   InternalSlot(175, PlanetSideGUID(7330), 570,
-                    DetailedWeaponData(6, 8, List(InternalSlot(540, PlanetSideGUID(4786), 0, DetailedAmmoBoxData(8, 1))))
+                    DetailedWeaponData(6, 8, 0, List(InternalSlot(540, PlanetSideGUID(4786), 0, DetailedAmmoBoxData(8, 1))))
                   ),
                   InternalSlot(468, PlanetSideGUID(7415), 571,
-                    DetailedWeaponData(6, 8, List(InternalSlot(540, PlanetSideGUID(6536), 0, DetailedAmmoBoxData(8, 1))))
+                    DetailedWeaponData(6, 8, 0, List(InternalSlot(540, PlanetSideGUID(6536), 0, DetailedAmmoBoxData(8, 1))))
                   ),
                   InternalSlot(175, PlanetSideGUID(3949), 572,
-                    DetailedWeaponData(6, 8, List(InternalSlot(540, PlanetSideGUID(7526), 0, DetailedAmmoBoxData(8, 1))))
+                    DetailedWeaponData(6, 8, 0, List(InternalSlot(540, PlanetSideGUID(7526), 0, DetailedAmmoBoxData(8, 1))))
                   ),
                   InternalSlot(175, PlanetSideGUID(3805), 573,
-                    DetailedWeaponData(6, 8, List(InternalSlot(540, PlanetSideGUID(7358), 0, DetailedAmmoBoxData(8, 1))))
+                    DetailedWeaponData(6, 8, 0, List(InternalSlot(540, PlanetSideGUID(7358), 0, DetailedAmmoBoxData(8, 1))))
                   ),
                   InternalSlot(324, PlanetSideGUID(4493), 574,
-                    DetailedWeaponData(6, 8, List(InternalSlot(540, PlanetSideGUID(6852), 0, DetailedAmmoBoxData(8, 1))))
+                    DetailedWeaponData(6, 8, 0, List(InternalSlot(540, PlanetSideGUID(6852), 0, DetailedAmmoBoxData(8, 1))))
                   ),
                   InternalSlot(324, PlanetSideGUID(5762), 575,
-                    DetailedWeaponData(6, 8, List(InternalSlot(540, PlanetSideGUID(3463), 0, DetailedAmmoBoxData(8, 1))))
+                    DetailedWeaponData(6, 8, 0, List(InternalSlot(540, PlanetSideGUID(3463), 0, DetailedAmmoBoxData(8, 1))))
                   ),
                   InternalSlot(175, PlanetSideGUID(3315), 576,
-                    DetailedWeaponData(6, 8, List(InternalSlot(540, PlanetSideGUID(7619), 0, DetailedAmmoBoxData(8, 1))))
+                    DetailedWeaponData(6, 8, 0, List(InternalSlot(540, PlanetSideGUID(7619), 0, DetailedAmmoBoxData(8, 1))))
                   ),
                   InternalSlot(324, PlanetSideGUID(6263), 577,
-                    DetailedWeaponData(6, 8, List(InternalSlot(540, PlanetSideGUID(5912), 0, DetailedAmmoBoxData(8, 1))))
+                    DetailedWeaponData(6, 8, 0, List(InternalSlot(540, PlanetSideGUID(5912), 0, DetailedAmmoBoxData(8, 1))))
                   ),
                   InternalSlot(468, PlanetSideGUID(4028), 578,
-                    DetailedWeaponData(6, 8, List(InternalSlot(540, PlanetSideGUID(8021), 0, DetailedAmmoBoxData(8, 1))))
+                    DetailedWeaponData(6, 8, 0, List(InternalSlot(540, PlanetSideGUID(8021), 0, DetailedAmmoBoxData(8, 1))))
                   ),
                   InternalSlot(175, PlanetSideGUID(2843), 579,
-                    DetailedWeaponData(6, 8, List(InternalSlot(540, PlanetSideGUID(7250), 0, DetailedAmmoBoxData(8, 1))))
+                    DetailedWeaponData(6, 8, 0, List(InternalSlot(540, PlanetSideGUID(7250), 0, DetailedAmmoBoxData(8, 1))))
                   ),
                   InternalSlot(175, PlanetSideGUID(9143), 580,
-                    DetailedWeaponData(6, 8, List(InternalSlot(540, PlanetSideGUID(5195), 0, DetailedAmmoBoxData(8, 1))))
+                    DetailedWeaponData(6, 8, 0, List(InternalSlot(540, PlanetSideGUID(5195), 0, DetailedAmmoBoxData(8, 1))))
                   ),
                   InternalSlot(468, PlanetSideGUID(5024), 581,
-                    DetailedWeaponData(6, 8, List(InternalSlot(540, PlanetSideGUID(4287), 0, DetailedAmmoBoxData(8, 1))))
+                    DetailedWeaponData(6, 8, 0, List(InternalSlot(540, PlanetSideGUID(4287), 0, DetailedAmmoBoxData(8, 1))))
                   ),
                   InternalSlot(468, PlanetSideGUID(6582), 582,
-                    DetailedWeaponData(6, 8, List(InternalSlot(540, PlanetSideGUID(4915), 0, DetailedAmmoBoxData(8, 1))))
+                    DetailedWeaponData(6, 8, 0, List(InternalSlot(540, PlanetSideGUID(4915), 0, DetailedAmmoBoxData(8, 1))))
                   ),
                   InternalSlot(468, PlanetSideGUID(6425), 583,
-                    DetailedWeaponData(6, 8, List(InternalSlot(540, PlanetSideGUID(8872), 0, DetailedAmmoBoxData(8, 1))))
+                    DetailedWeaponData(6, 8, 0, List(InternalSlot(540, PlanetSideGUID(8872), 0, DetailedAmmoBoxData(8, 1))))
                   ),
                   InternalSlot(468, PlanetSideGUID(4431), 584,
-                    DetailedWeaponData(6, 8, List(InternalSlot(540, PlanetSideGUID(4191), 0, DetailedAmmoBoxData(8, 1))))
+                    DetailedWeaponData(6, 8, 0, List(InternalSlot(540, PlanetSideGUID(4191), 0, DetailedAmmoBoxData(8, 1))))
                   ),
                   InternalSlot(175, PlanetSideGUID(8339), 585,
-                    DetailedWeaponData(6, 8, List(InternalSlot(540, PlanetSideGUID(7317), 0, DetailedAmmoBoxData(8, 1))))
+                    DetailedWeaponData(6, 8, 0, List(InternalSlot(540, PlanetSideGUID(7317), 0, DetailedAmmoBoxData(8, 1))))
                   ),
                   InternalSlot(175, PlanetSideGUID(3277), 586,
-                    DetailedWeaponData(6, 8, List(InternalSlot(540, PlanetSideGUID(6469), 0, DetailedAmmoBoxData(8, 1))))
+                    DetailedWeaponData(6, 8, 0, List(InternalSlot(540, PlanetSideGUID(6469), 0, DetailedAmmoBoxData(8, 1))))
                   )
                 ))))
               ),
@@ -825,11 +825,11 @@ class DetailedCharacterDataTest extends Specification {
               InternalSlot(728, PlanetSideGUID(7181), 12, DetailedREKData(4, 16)),
               InternalSlot(536, PlanetSideGUID(4077), 33, DetailedAmmoBoxData(8, 1)),
               InternalSlot(680, PlanetSideGUID(4377), 37,
-                DetailedWeaponData(2, 8, List(InternalSlot(681, PlanetSideGUID(8905), 0, DetailedAmmoBoxData(8, 3))))
+                DetailedWeaponData(2, 8, 0, List(InternalSlot(681, PlanetSideGUID(8905), 0, DetailedAmmoBoxData(8, 3))))
               ),
               InternalSlot(32, PlanetSideGUID(5523), 39, DetailedACEData(4)),
               InternalSlot(673, PlanetSideGUID(3661), 60,
-                DetailedWeaponData(2, 8, List(InternalSlot(674, PlanetSideGUID(8542), 0, DetailedAmmoBoxData(8, 3))))
+                DetailedWeaponData(2, 8, 0, List(InternalSlot(674, PlanetSideGUID(8542), 0, DetailedAmmoBoxData(8, 3))))
               )
             )
           )

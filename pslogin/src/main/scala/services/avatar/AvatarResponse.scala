@@ -10,11 +10,11 @@ object AvatarResponse {
   trait Response
 
   final case class ArmorChanged(suit : ExoSuitType.Value, subtype : Int) extends Response
-  final case class ChangeAmmo(weapon_guid : PlanetSideGUID, weapon_slot : Int, ammo_id : Int, ammo_guid : PlanetSideGUID, ammo_data : ConstructorData) extends Response
+  final case class ChangeAmmo(weapon_guid : PlanetSideGUID, weapon_slot : Int, old_ammo_guid : PlanetSideGUID, ammo_id : Int, ammo_guid : PlanetSideGUID, ammo_data : ConstructorData) extends Response
+  final case class ChangeFireMode(item_guid : PlanetSideGUID, mode : Int) extends Response
   final case class ChangeFireState_Start(weapon_guid : PlanetSideGUID) extends Response
   final case class ChangeFireState_Stop(weapon_guid : PlanetSideGUID) extends Response
   final case class ConcealPlayer() extends Response
-  //final case class DropItem(pos : Vector3, orient : Vector3, item : PlanetSideGUID) extends Response
   final case class EquipmentInHand(slot : Int, item : Equipment) extends Response
   final case class EquipmentOnGround(pos : Vector3, orient : Vector3, item_id : Int, item_guid : PlanetSideGUID, item_data : ConstructorData) extends Response
   final case class LoadPlayer(pdata : ConstructorData) extends Response

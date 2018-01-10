@@ -62,6 +62,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case Some(tplayer) =>
           tplayer.VehicleSeated match {
             case Some(vehicle_guid) =>
+              //TODO do this at some other time
               vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.KickPassenger(tplayer.GUID, 0, true, vehicle_guid))
             case None => ;
           }
@@ -146,9 +147,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
             sendResponse(PacketCoding.CreateGamePacket(0, ArmorChangedMessage(guid, suit, subtype)))
           }
 
-        case AvatarResponse.ChangeAmmo(weapon_guid, weapon_slot, ammo_id, ammo_guid, ammo_data) =>
+        case AvatarResponse.ChangeAmmo(weapon_guid, weapon_slot, previous_guid, ammo_id, ammo_guid, ammo_data) =>
           if(player.GUID != guid) {
             sendResponse(PacketCoding.CreateGamePacket(0,
+              ObjectDetachMessage(weapon_guid, previous_guid, Vector3(0,0,0), 0f, 0f, 0f)
+            ))
+             sendResponse(PacketCoding.CreateGamePacket(0,
               ObjectCreateMessage(
                 ammo_id,
                 ammo_guid,
@@ -157,6 +161,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
               ))
             )
             sendResponse(PacketCoding.CreateGamePacket(0, ChangeAmmoMessage(weapon_guid, 1)))
+          }
+
+        case AvatarResponse.ChangeFireMode(item_guid, mode) =>
+          if(player.GUID != guid) {
+            sendResponse(PacketCoding.CreateGamePacket(0, ChangeFireModeMessage(item_guid, mode)))
           }
 
         case AvatarResponse.ChangeFireState_Start(weapon_guid) =>
@@ -214,7 +223,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
         case AvatarResponse.ObjectHeld(slot) =>
           if(player.GUID != guid) {
-            sendResponse(PacketCoding.CreateGamePacket(0, ObjectHeldMessage(guid, slot, true)))
+            sendResponse(PacketCoding.CreateGamePacket(0, ObjectHeldMessage(guid, slot, false)))
           }
 
         case AvatarResponse.PlanetsideAttribute(attribute_type, attribute_value) =>
@@ -237,9 +246,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
             if(spectating ||
               ((distanceSq < 900 || weaponInHand) && time > 200) ||
               (distanceSq < 10000 && time > 500) ||
-              (distanceSq < 160000 && (msg.is_jumping || time < 200)) ||
-              (distanceSq < 160000 && (msg.vel.isEmpty || Vector3.MagnitudeSquared(msg.vel.get).toInt == 0) && time > 2000) ||
-              (distanceSq < 160000 && time > 1000) ||
+              (distanceSq < 160000 && (
+                (msg.is_jumping || time < 200)) ||
+                ((msg.vel.isEmpty || Vector3.MagnitudeSquared(msg.vel.get).toInt == 0) && time > 2000) ||
+                (time > 1000)) ||
               (distanceSq > 160000 && time > 5000))
             {
               sendResponse(
@@ -976,7 +986,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
               )
             )
           )
-          if(-1 < slot && slot < 5) {
+          if(tplayer.VisibleSlots.contains(slot)) {
             avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.EquipmentInHand(player_guid, slot, item))
           }
         case None =>
@@ -1124,11 +1134,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
       AwardBattleExperiencePoints(player, 1000000L)
 //      player.ExoSuit = ExoSuitType.MAX //TODO strange issue; divide number above by 10 when uncommenting
       player.Slot(0).Equipment = Tool(GlobalDefinitions.StandardPistol(player.Faction))
-      player.Slot(2).Equipment = Tool(suppressor)
+      player.Slot(2).Equipment = Tool(punisher) //suppressor
       player.Slot(4).Equipment = Tool(GlobalDefinitions.StandardMelee(player.Faction))
-      player.Slot(6).Equipment = AmmoBox(bullet_9mm)
+      player.Slot(6).Equipment = AmmoBox(frag_cartridge) //bullet_9mm
       player.Slot(9).Equipment = AmmoBox(bullet_9mm)
-      player.Slot(12).Equipment = AmmoBox(bullet_9mm)
+      //player.Slot(12).Equipment = AmmoBox(bullet_9mm)
       player.Slot(33).Equipment = AmmoBox(bullet_9mm_AP)
       player.Slot(36).Equipment = AmmoBox(GlobalDefinitions.StandardPistolAmmo(player.Faction))
       player.Slot(39).Equipment = SimpleItem(remote_electronics_kit)
@@ -1347,34 +1357,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ ChangeAmmoMessage(item_guid, unk1) =>
       log.info("ChangeAmmo: " + msg)
-      (player.VehicleSeated match {
-        case Some(vehicle_guid) => //weapon is vehicle turret?
-          continent.GUID(vehicle_guid) match {
-            case Some(vehicle : Vehicle) =>
-              vehicle.PassengerInSeat(player) match {
-                case Some(seat_num) =>
-                  vehicle.WeaponControlledFromSeat(seat_num) match {
-                    case Some(item : Tool) =>
-                      //TODO check that item controlled by seat is item_guid?
-                      (Some(vehicle), Some(item))
-                    case _ => ;
-                      (None, None)
-                  }
-                case None => ;
-                  (None, None)
-              }
-            case _ => ;
-              (None, None)
-          }
-        case None => //not in vehicle; weapon in hand?
-          player.Slot(player.DrawnSlot).Equipment match {
-            //TODO check that item in hand is item_guid?
-            case Some(item : Tool) =>
-              (Some(player), Some(item))
-            case _ => ;
-              (None, None)
-          }
-      }) match {
+      FindContainedWeapon match {
         case (Some(obj), Some(tool : Tool)) =>
           val originalAmmoType = tool.AmmoType
           val fullMagazine = tool.MaxMagazine
@@ -1413,6 +1396,14 @@ class WorldSessionActor extends Actor with MDCContextAware {
                   val ammoSlotIndex = tool.FireMode.AmmoSlotIndex
                   tool.AmmoSlots(ammoSlotIndex).Box = box //put replacement ammo in tool
                   sendResponse(PacketCoding.CreateGamePacket(0, ObjectAttachMessage(tool.GUID, box.GUID, ammoSlotIndex)))
+
+                  //announce swapped ammunition box in weapon
+                  val previous_box_guid = previousBox.GUID
+                  val boxDef = box.Definition
+                  val box_guid = box.GUID
+                  val tool_guid = tool.GUID
+                  sendResponse(PacketCoding.CreateGamePacket(0, ChangeAmmoMessage(tool_guid, box.Capacity)))
+                  avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeAmmo(player.GUID, tool_guid, ammoSlotIndex,previous_box_guid, boxDef.ObjectId, box.GUID, boxDef.Packet.ConstructorData(box).get))
 
                   //handle inventory contents
                   box.Capacity = (if(sumReloadValue <= fullMagazine) {
@@ -1454,6 +1445,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                     }
                     previousBox.Capacity = capacity
                   }
+                  
                   if(previousBox.Capacity > 0) {
                     //TODO split previousBox into AmmoBox objects of appropriate max capacity, e.g., 100 9mm -> 2 x 50 9mm
                     obj.Inventory.Fit(previousBox.Definition.Tile) match {
@@ -1463,7 +1455,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                         log.info(s"ChangeAmmo: dropping ammo box $previousBox")
                         val pos = player.Position
                         val orient = player.Orientation
-                        sendResponse(PacketCoding.CreateGamePacket(0, ObjectDetachMessage(Service.defaultPlayerGUID, previousBox.GUID, pos, 0f, 0f, orient.z)))
+                        sendResponse(PacketCoding.CreateGamePacket(0, ObjectDetachMessage(Service.defaultPlayerGUID, previous_box_guid, pos, 0f, 0f, orient.z)))
                         val orient2 = Vector3(0f, 0f, orient.z)
                         continent.Ground ! Zone.DropItemOnGround(previousBox, pos, orient2)
                         val objDef = previousBox.Definition
@@ -1473,13 +1465,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
                   else {
                     taskResolver ! GUIDTask.UnregisterObjectTask(previousBox)(continent.GUID)
                   }
-
-                  //announce swapped ammunition box in weapon
-                  val boxDef = box.Definition
-                  val box_guid = box.GUID
-                  val tool_guid = tool.GUID
-                  sendResponse(PacketCoding.CreateGamePacket(0, ChangeAmmoMessage(tool_guid, box.Capacity)))
-                  avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeAmmo(player.GUID, tool_guid, ammoSlotIndex, boxDef.ObjectId, box.GUID, boxDef.Packet.ConstructorData(box).get))
               }
             }
           }
@@ -1493,6 +1478,26 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ ChangeFireModeMessage(item_guid, fire_mode) =>
       log.info("ChangeFireMode: " + msg)
+      FindContainedWeapon match {
+        case (_, Some(tool : Tool)) =>
+          val originalModeIndex = tool.FireModeIndex
+          tool.NextFireMode
+          val modeIndex = tool.FireModeIndex
+          val tool_guid = tool.GUID
+          if(originalModeIndex != modeIndex) {
+            log.info(s"ChangeFireMode: changing $tool_guid to fire mode $modeIndex")
+            sendResponse(PacketCoding.CreateGamePacket(0, ChangeFireModeMessage(tool_guid, modeIndex)))
+            avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireMode(player.GUID, tool_guid, modeIndex))
+          }
+          else {
+            tool.FireModeIndex = originalModeIndex
+            sendResponse(PacketCoding.CreateGamePacket(0, ChangeFireModeMessage(tool_guid, originalModeIndex)))
+          }
+        case (_, Some(_)) =>
+          log.error(s"ChangeFireMode: the object that was found for $item_guid was not a Tool")
+        case (_, None) =>
+          log.error(s"ChangeFireMode: can not find $item_guid")
+      }
 
     case msg @ ChangeFireStateMessage_Start(item_guid) =>
       log.info("ChangeFireState_Start: " + msg)
@@ -1539,34 +1544,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ ReloadMessage(item_guid, ammo_clip, unk1) =>
       log.info("Reload: " + msg)
-      (player.VehicleSeated match {
-        case Some(vehicle_guid) => //weapon is vehicle turret?
-          continent.GUID(vehicle_guid) match {
-            case Some(vehicle : Vehicle) =>
-              vehicle.PassengerInSeat(player) match {
-                case Some(seat_num) =>
-                  vehicle.WeaponControlledFromSeat(seat_num) match {
-                    case Some(item : Tool) =>
-                      //TODO check that item controlled by seat is item_guid?
-                      (Some(vehicle), Some(item))
-                    case _ => ;
-                      (None, None)
-                  }
-                case None => ;
-                  (None, None)
-              }
-            case _ => ;
-              (None, None)
-          }
-        case None => //not in vehicle; weapon in hand?
-          player.Slot(player.DrawnSlot).Equipment match {
-            //TODO check that item in hand is item_guid?
-            case Some(item : Tool) =>
-              (Some(player), Some(item))
-            case _ => ;
-              (None, None)
-          }
-      }) match {
+      FindContainedWeapon match {
         case (Some(obj), Some(tool : Tool)) =>
           val currentMagazine : Int = tool.Magazine
           val magazineSize : Int = tool.MaxMagazine
@@ -1616,7 +1594,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       val before = player.DrawnSlot
       //TODO remove this kludge; explore how to stop BuyExoSuit(Max) sending a tardy ObjectHeldMessage(me, 255)
       if(player.ExoSuit != ExoSuitType.MAX && (player.DrawnSlot = held_holsters) != before) {
-        avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.ObjectHeld(player.GUID, held_holsters))
+        avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.ObjectHeld(player.GUID, player.LastDrawnSlot))
       }
 
     case msg @ AvatarJumpMessage(state) =>
@@ -1913,22 +1891,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ WeaponDryFireMessage(weapon_guid) =>
       log.info("WeaponDryFireMessage: "+msg)
-      (player.VehicleSeated match {
-        case Some(vehicle_guid) =>
-          continent.GUID(vehicle_guid) match {
-            case Some(obj : Vehicle) =>
-              obj.PassengerInSeat(player) match {
-                case Some(seat_num) =>
-                  obj.WeaponControlledFromSeat(seat_num)
-                case None =>
-                  None
-              }
-            case _ =>
-              None
-          }
-        case None =>
-          player.Slot(player.DrawnSlot).Equipment
-      }) match {
+      FindWeapon match {
         case Some(tool : Tool) =>
           avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.WeaponDryFire(player.GUID, weapon_guid))
         case _ => ;
@@ -1936,22 +1899,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ WeaponFireMessage(seq_time, weapon_guid, projectile_guid, shot_origin, unk1, unk2, unk3, unk4, unk5, unk6, unk7) =>
       log.info("WeaponFire: " + msg)
-      (player.VehicleSeated match {
-        case Some(vehicle_guid) =>
-          continent.GUID(vehicle_guid) match {
-            case Some(obj : Vehicle) =>
-              obj.PassengerInSeat(player) match {
-                case Some(seat_num) =>
-                  obj.WeaponControlledFromSeat(seat_num)
-                case None =>
-                  None
-              }
-            case _ =>
-              None
-          }
-        case None =>
-          player.Slot(player.DrawnSlot).Equipment
-      }) match {
+      FindWeapon match {
         case Some(tool : Tool) =>
           if(tool.Magazine <= 0) { //safety: enforce ammunition depletion
             tool.Magazine = 0
@@ -1963,7 +1911,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           }
           else { //shooting
             tool.Magazine = tool.Magazine - 1
-            //TODO other stuff
+            //TODO other stuff?
           }
         case _ => ;
       }
@@ -2653,6 +2601,59 @@ class WorldSessionActor extends Actor with MDCContextAware {
         sendResponse(PacketCoding.CreateGamePacket(0, ObjectDeleteMessage(entry.obj.GUID, 0)))
     })
   }
+
+  /**
+    * Check two locations for a controlled piece of equipment that is associated with the `player`.<br>
+    * <br>
+    * The first location is dependent on whether the avatar is in a vehicle.
+    * Some vehicle seats may have a "controlled weapon" which counts as the first location to be checked.
+    * The second location is dependent on whether the avatar has a raised hand.
+    * That is only possible if the player has something in their hand at the moment, hence the second location.
+    * Players do have a concept called a "last drawn slot" (hand) but that former location is not eligible.<br>
+    * <br>
+    * Along with any discovered item, a containing object such that the statement:<br>
+    *   `container.Find(object) = Some(slot)`<br>
+    * ... will return a proper result.
+    * For a seat controlled weapon, the vehicle is returned.
+    * For the player's hand, the player is returned.
+    * @return a `Tuple` of the returned values;
+    *         the first value is a `Container` object;
+    *         the second value is an `Equipment` object in the former
+    */
+  def FindContainedWeapon : (Option[PlanetSideGameObject with Container], Option[Equipment]) = {
+    player.VehicleSeated match {
+      case Some(vehicle_guid) => //weapon is vehicle turret?
+        continent.GUID(vehicle_guid) match {
+          case Some(vehicle : Vehicle) =>
+            vehicle.PassengerInSeat(player) match {
+              case Some(seat_num) =>
+                vehicle.WeaponControlledFromSeat(seat_num) match {
+                  case Some(item : Tool) =>
+                    (Some(vehicle), Some(item))
+                  case _ => ;
+                    (None, None)
+                }
+              case None => ;
+                (None, None)
+            }
+          case _ => ;
+            (None, None)
+        }
+      case None => //not in vehicle; weapon in hand?
+        player.Slot(player.DrawnSlot).Equipment match {
+          case Some(item : Tool) =>
+            (Some(player), Some(item))
+          case _ => ;
+            (None, None)
+        }
+    }
+  }
+
+  /**
+    * Runs `FindContainedWeapon` but ignores the `Container` object output.
+    * @return an `Equipment` object
+    */
+  def FindWeapon : Option[Equipment] = FindContainedWeapon._2
 
   /**
     * Within a specified `Container`, find the smallest number of `AmmoBox` objects of a certain type of `Ammo`

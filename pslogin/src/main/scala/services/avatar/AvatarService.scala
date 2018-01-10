@@ -39,9 +39,13 @@ class AvatarService extends Actor {
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.ArmorChanged(suit, subtype))
           )
-        case AvatarAction.ChangeAmmo(player_guid, weapon_guid, weapon_slot, ammo_id, ammo_guid, ammo_data) =>
+        case AvatarAction.ChangeAmmo(player_guid, weapon_guid, weapon_slot, old_ammo_guid, ammo_id, ammo_guid, ammo_data) =>
           AvatarEvents.publish(
-            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.ChangeAmmo(weapon_guid, weapon_slot, ammo_id, ammo_guid, ammo_data))
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.ChangeAmmo(weapon_guid, weapon_slot, old_ammo_guid, ammo_id, ammo_guid, ammo_data))
+          )
+        case AvatarAction.ChangeFireMode(player_guid, item_guid, mode) =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.ChangeFireMode(item_guid, mode))
           )
         case AvatarAction.ChangeFireState_Start(player_guid, weapon_guid) =>
           AvatarEvents.publish(

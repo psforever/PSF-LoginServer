@@ -1032,10 +1032,12 @@ object GlobalDefinitions {
     chainblade.FireModes.head.AmmoTypeIndices += 0
     chainblade.FireModes.head.AmmoSlotIndex = 0
     chainblade.FireModes.head.Magazine = 1
+    chainblade.FireModes.head.Chamber = 0
     chainblade.FireModes += new FireModeDefinition
     chainblade.FireModes(1).AmmoTypeIndices += 0
     chainblade.FireModes(1).AmmoSlotIndex = 0
     chainblade.FireModes(1).Magazine = 1
+    chainblade.FireModes.head.Chamber = 0
 
     magcutter.Size = EquipmentSize.Melee
     magcutter.AmmoTypes += melee_ammo
@@ -1043,10 +1045,12 @@ object GlobalDefinitions {
     magcutter.FireModes.head.AmmoTypeIndices += 0
     magcutter.FireModes.head.AmmoSlotIndex = 0
     magcutter.FireModes.head.Magazine = 1
+    magcutter.FireModes.head.Chamber = 0
     magcutter.FireModes += new FireModeDefinition
     magcutter.FireModes(1).AmmoTypeIndices += 0
     magcutter.FireModes(1).AmmoSlotIndex = 0
     magcutter.FireModes(1).Magazine = 1
+    magcutter.FireModes.head.Chamber = 0
 
     forceblade.Size = EquipmentSize.Melee
     forceblade.AmmoTypes += melee_ammo
@@ -1583,7 +1587,8 @@ object GlobalDefinitions {
     trek.FireModes += new FireModeDefinition
     trek.FireModes(1).AmmoTypeIndices += 0
     trek.FireModes(1).AmmoSlotIndex = 0
-    trek.FireModes(1).Magazine = 0
+    trek.FireModes(1).Magazine = 1
+    trek.FireModes(1).Chamber = 0
     trek.Tile = InventoryTile.Tile33
 
     flail_targeting_laser.Packet = new CommandDetonaterConverter

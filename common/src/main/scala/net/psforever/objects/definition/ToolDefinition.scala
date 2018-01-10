@@ -10,7 +10,7 @@ class ToolDefinition(objectId : Int) extends EquipmentDefinition(objectId) {
   private val ammoTypes : mutable.ListBuffer[AmmoBoxDefinition] = new mutable.ListBuffer[AmmoBoxDefinition]
   private val fireModes : mutable.ListBuffer[FireModeDefinition] = new mutable.ListBuffer[FireModeDefinition]
   Name = "tool"
-  Packet = new ToolConverter()
+  Packet = ToolDefinition.converter
 
   def AmmoTypes : mutable.ListBuffer[AmmoBoxDefinition] = ammoTypes
 
@@ -18,6 +18,8 @@ class ToolDefinition(objectId : Int) extends EquipmentDefinition(objectId) {
 }
 
 object ToolDefinition {
+  private val converter = new ToolConverter()
+
   def apply(objectId : Int) : ToolDefinition = {
     new ToolDefinition(objectId)
   }

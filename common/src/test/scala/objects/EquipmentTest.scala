@@ -114,7 +114,6 @@ class EquipmentTest extends Specification {
       obj.FireModes.head.AmmoTypeIndices += 1
       obj.FireModes.head.AmmoSlotIndex = 0
       obj.FireModes.head.Magazine = 18
-      obj.FireModes.head.ResetAmmoIndexOnSwap = true
       obj.FireModes += FireModeDefinition()
       obj.FireModes(1).AmmoTypeIndices += 0
       obj.FireModes(1).AmmoTypeIndices += 1
@@ -132,13 +131,11 @@ class EquipmentTest extends Specification {
       obj.FireModes.head.AmmoSlotIndex mustEqual 0
       obj.FireModes.head.Chamber mustEqual 1
       obj.FireModes.head.Magazine mustEqual 18
-      obj.FireModes.head.ResetAmmoIndexOnSwap mustEqual true
       obj.FireModes(1).AmmoTypeIndices.head mustEqual 0
       obj.FireModes(1).AmmoTypeIndices(1) mustEqual 1
       obj.FireModes(1).AmmoSlotIndex mustEqual 1
       obj.FireModes(1).Chamber mustEqual 3
       obj.FireModes(1).Magazine mustEqual 18
-      obj.FireModes(1).ResetAmmoIndexOnSwap mustEqual false
       obj.Tile.Width mustEqual InventoryTile.Tile93.Width
       obj.Tile.Height mustEqual InventoryTile.Tile93.Height
     }

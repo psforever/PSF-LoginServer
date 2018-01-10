@@ -9,7 +9,6 @@ class FireModeDefinition {
   private var chamber : Int = 1 //how many rounds are queued to be fired at once, e.g., 3 for the Jackhammer's triple burst
   private var magazine : Int = 1 //how many rounds are queued for each reload cycle
 //  private var target : Any = _ //target designation (self? other?)
-  private var resetAmmoIndexOnSwap : Boolean = false //when changing fire modes, do not attempt to match previous mode's ammo type
 
   //damage modifiers will follow here ...
 
@@ -46,13 +45,6 @@ class FireModeDefinition {
 //    target = setAsTarget
 //    Target
 //  }
-
-  def ResetAmmoIndexOnSwap : Boolean = resetAmmoIndexOnSwap
-
-  def ResetAmmoIndexOnSwap_=(reset : Boolean) : Boolean = {
-    resetAmmoIndexOnSwap = reset
-    ResetAmmoIndexOnSwap
-  }
 }
 
 object FireModeDefinition {

@@ -10,11 +10,11 @@ object AvatarAction {
   trait Action
 
   final case class ArmorChanged(player_guid : PlanetSideGUID, suit : ExoSuitType.Value, subtype : Int) extends Action
-  final case class ChangeAmmo(player_guid : PlanetSideGUID, weapon_guid : PlanetSideGUID, weapon_slot : Int, ammo_id : Int, ammo_guid : PlanetSideGUID, ammo_data : ConstructorData) extends Action
+  final case class ChangeAmmo(player_guid : PlanetSideGUID, weapon_guid : PlanetSideGUID, weapon_slot : Int, old_ammo_guid : PlanetSideGUID, ammo_id : Int, ammo_guid : PlanetSideGUID, ammo_data : ConstructorData) extends Action
+  final case class ChangeFireMode(player_guid : PlanetSideGUID, item_guid : PlanetSideGUID, mode : Int) extends Action
   final case class ChangeFireState_Start(player_guid : PlanetSideGUID, weapon_guid : PlanetSideGUID) extends Action
   final case class ChangeFireState_Stop(player_guid : PlanetSideGUID, weapon_guid : PlanetSideGUID) extends Action
   final case class ConcealPlayer(player_guid : PlanetSideGUID) extends Action
-  //final case class DropItem(pos : Vector3, orient : Vector3, item : PlanetSideGUID) extends Action
   final case class EquipmentInHand(player_guid : PlanetSideGUID, slot : Int, item : Equipment) extends Action
   final case class EquipmentOnGround(player_guid : PlanetSideGUID, pos : Vector3, orient : Vector3, item_id : Int, item_guid : PlanetSideGUID, item_data : ConstructorData) extends Action
   final case class LoadPlayer(player_guid : PlanetSideGUID, pdata : ConstructorData) extends Action

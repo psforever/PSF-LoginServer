@@ -15,7 +15,7 @@ class AvatarService0Test extends ActorTest {
   }
 }
 
-class AvatarService1ATest extends ActorTest {
+class AvatarService1_1Test extends ActorTest {
   "AvatarService" should {
     "subscribe" in {
       val service = system.actorOf(Props[AvatarService], "service")
@@ -25,7 +25,7 @@ class AvatarService1ATest extends ActorTest {
   }
 }
 
-class AvatarService1BTest extends ActorTest {
+class AvatarService1_2Test extends ActorTest {
   "AvatarService" should {
     "subscribe" in {
       val service = system.actorOf(Props[AvatarService], "service")
@@ -36,7 +36,7 @@ class AvatarService1BTest extends ActorTest {
   }
 }
 
-class AvatarService1CTest extends ActorTest {
+class AvatarService1_3Test extends ActorTest {
   "AvatarService" should {
     "subscribe" in {
       val service = system.actorOf(Props[AvatarService], "service")
@@ -179,6 +179,67 @@ class AvatarServiceCTest extends ActorTest {
       service ! Service.Join("test")
       service ! AvatarServiceMessage("test", AvatarAction.Reload(PlanetSideGUID(10), PlanetSideGUID(40)))
       expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarResponse.Reload(PlanetSideGUID(40))))
+    }
+  }
+}
+
+class AvatarServiceDTest extends ActorTest {
+  val ammoDef = GlobalDefinitions.energy_cell
+  val ammoBox = AmmoBox(ammoDef)
+
+  "AvatarService" should {
+    "pass ChangeAmmo" in {
+      val service = system.actorOf(Props[AvatarService], "service")
+      service ! Service.Join("test")
+      service ! AvatarServiceMessage("test", AvatarAction.ChangeAmmo(PlanetSideGUID(10), PlanetSideGUID(40), 0, PlanetSideGUID(40), ammoDef.ObjectId, PlanetSideGUID(41), ammoDef.Packet.ConstructorData(ammoBox).get))
+      expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarResponse.ChangeAmmo(PlanetSideGUID(40), 0, PlanetSideGUID(40), ammoDef.ObjectId, PlanetSideGUID(41), ammoDef.Packet.ConstructorData(ammoBox).get)))
+    }
+  }
+}
+
+class AvatarServiceETest extends ActorTest {
+  val ammoDef = GlobalDefinitions.energy_cell
+  val ammoBox = AmmoBox(ammoDef)
+
+  "AvatarService" should {
+    "pass ChangeFireMode" in {
+      val service = system.actorOf(Props[AvatarService], "service")
+      service ! Service.Join("test")
+      service ! AvatarServiceMessage("test", AvatarAction.ChangeFireMode(PlanetSideGUID(10), PlanetSideGUID(40), 0))
+      expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarResponse.ChangeFireMode(PlanetSideGUID(40), 0)))
+    }
+  }
+}
+
+class AvatarServiceF_1Test extends ActorTest {
+  "AvatarService" should {
+    "pass ChangeFireState_Start" in {
+      val service = system.actorOf(Props[AvatarService], "service")
+      service ! Service.Join("test")
+      service ! AvatarServiceMessage("test", AvatarAction.ChangeFireState_Start(PlanetSideGUID(10), PlanetSideGUID(40)))
+      expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarResponse.ChangeFireState_Start(PlanetSideGUID(40))))
+    }
+  }
+}
+
+class AvatarServiceF_2Test extends ActorTest {
+  "AvatarService" should {
+    "pass ChangeFireState_Stop" in {
+      val service = system.actorOf(Props[AvatarService], "service")
+      service ! Service.Join("test")
+      service ! AvatarServiceMessage("test", AvatarAction.ChangeFireState_Stop(PlanetSideGUID(10), PlanetSideGUID(40)))
+      expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarResponse.ChangeFireState_Stop(PlanetSideGUID(40))))
+    }
+  }
+}
+
+class AvatarService01Test extends ActorTest {
+  "AvatarService" should {
+    "pass WeaponDryFire" in {
+      val service = system.actorOf(Props[AvatarService], "service")
+      service ! Service.Join("test")
+      service ! AvatarServiceMessage("test", AvatarAction.WeaponDryFire(PlanetSideGUID(10), PlanetSideGUID(40)))
+      expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarResponse.WeaponDryFire(PlanetSideGUID(40))))
     }
   }
 }
