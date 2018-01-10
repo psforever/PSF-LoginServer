@@ -94,14 +94,15 @@ class AvatarService5Test extends ActorTest {
 }
 
 class AvatarService6Test extends ActorTest {
-  val tool = Tool(GlobalDefinitions.beamer)
+  val toolDef = GlobalDefinitions.beamer
+  val tool = Tool(toolDef)
 
   "AvatarService" should {
     "pass EquipmentOnGround" in {
       val service = system.actorOf(Props[AvatarService], "service")
       service ! Service.Join("test")
-      service ! AvatarServiceMessage("test", AvatarAction.EquipmentOnGround(PlanetSideGUID(10), Vector3(300f, 200f, 100f), Vector3(450f, 300f, 150f), tool))
-      expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarResponse.EquipmentOnGround(Vector3(300f, 200f, 100f), Vector3(450f, 300f, 150f), tool)))
+      service ! AvatarServiceMessage("test", AvatarAction.EquipmentOnGround(PlanetSideGUID(10), Vector3(300f, 200f, 100f), Vector3(450f, 300f, 150f), toolDef.ObjectId, PlanetSideGUID(11), toolDef.Packet.ConstructorData(tool).get))
+      expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarResponse.EquipmentOnGround(Vector3(300f, 200f, 100f), Vector3(450f, 300f, 150f), toolDef.ObjectId, PlanetSideGUID(11), toolDef.Packet.ConstructorData(tool).get)))
     }
   }
 }

@@ -65,6 +65,41 @@ class EquipmentTest extends Specification {
       obj.Capacity = 65536
       obj.Capacity mustEqual 65535
     }
+
+    "split (0)" in {
+      val obj = AmmoBox(bullet_9mm)
+      obj.Capacity = 0
+      val list = AmmoBox.Split(obj)
+      list.size mustEqual 0
+    }
+
+    "split (1)" in {
+      val obj = AmmoBox(bullet_9mm)
+      obj.Capacity = 50
+      val list = AmmoBox.Split(obj)
+      list.size mustEqual 1
+      list.head.Capacity mustEqual 50
+    }
+
+    "split (2)" in {
+      val obj = AmmoBox(bullet_9mm)
+      obj.Capacity = 75
+      val list = AmmoBox.Split(obj)
+      list.size mustEqual 2
+      list.head.Capacity mustEqual 50
+      list(1).Capacity mustEqual 25
+    }
+
+    "split (4)" in {
+      val obj = AmmoBox(bullet_9mm)
+      obj.Capacity = 165
+      val list = AmmoBox.Split(obj)
+      list.size mustEqual 4
+      list.head.Capacity mustEqual 50
+      list(1).Capacity mustEqual 50
+      list(2).Capacity mustEqual 50
+      list(3).Capacity mustEqual 15
+    }
   }
 
   "Tool" should {

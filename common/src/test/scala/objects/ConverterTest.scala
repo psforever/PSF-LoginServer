@@ -277,7 +277,8 @@ class ConverterTest extends Specification {
           fury_def.TrunkSize = InventoryTile(11, 11)
           fury_def.TrunkOffset = 30
 
-      val hellfire_ammo_box = AmmoBox(PlanetSideGUID(432), hellfire_ammo)
+      val hellfire_ammo_box = AmmoBox(hellfire_ammo)
+          hellfire_ammo_box.GUID = PlanetSideGUID(432)
 
       val fury = Vehicle(fury_def)
           fury.GUID = PlanetSideGUID(413)

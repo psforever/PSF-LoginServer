@@ -39,6 +39,10 @@ class AvatarService extends Actor {
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.ArmorChanged(suit, subtype))
           )
+        case AvatarAction.ChangeAmmo(player_guid, weapon_guid, weapon_slot, ammo_id, ammo_guid, ammo_data) =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.ChangeAmmo(weapon_guid, weapon_slot, ammo_id, ammo_guid, ammo_data))
+          )
         case AvatarAction.ChangeFireState_Start(player_guid, weapon_guid) =>
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.ChangeFireState_Start(weapon_guid))
@@ -55,9 +59,9 @@ class AvatarService extends Actor {
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.EquipmentInHand(slot, obj))
           )
-        case AvatarAction.EquipmentOnGround(player_guid, pos, orient, obj) =>
+        case AvatarAction.EquipmentOnGround(player_guid, pos, orient, item_id, item_guid, item_data) =>
           AvatarEvents.publish(
-            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.EquipmentOnGround(pos, orient, obj))
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.EquipmentOnGround(pos, orient, item_id, item_guid, item_data))
           )
         case AvatarAction.LoadPlayer(player_guid, pdata) =>
           AvatarEvents.publish(
