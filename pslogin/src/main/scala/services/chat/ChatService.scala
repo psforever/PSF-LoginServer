@@ -21,7 +21,7 @@ class ChatService extends Actor {
       val who = sender()
       log.info(s"$who has joined $path")
       ChatEvents.subscribe(who, path)
-    case Service.Leave() =>
+    case Service.Leave(None) =>
       ChatEvents.unsubscribe(sender())
     case Service.LeaveAll() =>
       ChatEvents.unsubscribe(sender())

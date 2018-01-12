@@ -1234,7 +1234,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       import net.psforever.objects.GlobalDefinitions._
       player = Player("TestCharacter"+sessionId.toString, PlanetSideEmpire.VS, CharacterGender.Female, 41, 1)
       //player.Position = Vector3(3674.8438f, 2726.789f, 91.15625f)
-//      player.Position = Vector3(3523.039f, 2855.5078f, 90.859375f)
+      //player.Position = Vector3(3523.039f, 2855.5078f, 90.859375f)
       player.Position = Vector3(3561.0f, 2854.0f, 90.859375f)
       player.Orientation = Vector3(0f, 0f, 90f)
       player.Certifications += CertificationType.StandardAssault

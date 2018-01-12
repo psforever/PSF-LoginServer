@@ -173,7 +173,7 @@ class LoadoutTest extends Specification {
 
     "distinguish MAX subtype information" in {
       val obj : Player = CreatePlayer()
-      val slot = obj.Slot(2)
+      val slot = obj.Slot(0)
       slot.Equipment = None //only an unequipped slot can have its Equipment Size changed (Rifle -> Max)
       Player.SuitSetup(obj, ExoSuitType.MAX)
       obj.SaveLoadout("generic", 0) //weaponless
