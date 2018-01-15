@@ -2,8 +2,6 @@
 package net.psforever.objects.serverobject.terminals
 
 import net.psforever.objects.Player
-import net.psforever.objects.definition.ImplantDefinition
-import net.psforever.objects.inventory.InventoryItem
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.packet.game.{ItemTransactionMessage, PlanetSideGUID}
 import net.psforever.types.{TransactionType, Vector3}
@@ -154,6 +152,7 @@ object Terminal {
     */
   final case class SellCertification(cert : CertificationType.Value, cost : Int) extends Exchange
 
+  import net.psforever.objects.definition.ImplantDefinition
   /**
     * Provide the implant type unlocked by the player.
     * @param implant the implant (definition) requested
@@ -167,6 +166,7 @@ object Terminal {
   final case class SellImplant(implant : ImplantDefinition) extends Exchange
 
   import net.psforever.objects.Vehicle
+  import net.psforever.objects.inventory.InventoryItem
   /**
     * Provide a vehicle that was constructed for the player.
     * @param vehicle the vehicle
@@ -175,7 +175,6 @@ object Terminal {
     */
   final case class BuyVehicle(vehicle : Vehicle, weapons : List[InventoryItem], inventory : List[InventoryItem]) extends Exchange
 
-  import net.psforever.objects.inventory.InventoryItem
   /**
     * Recover a former exo-suit and `Equipment` configuration that the `Player` possessed.
     * A result of a processed request.
