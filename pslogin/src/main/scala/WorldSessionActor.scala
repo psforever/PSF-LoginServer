@@ -1136,12 +1136,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
       player.Slot(0).Equipment = Tool(GlobalDefinitions.StandardPistol(player.Faction))
       player.Slot(2).Equipment = Tool(punisher) //suppressor
       player.Slot(4).Equipment = Tool(GlobalDefinitions.StandardMelee(player.Faction))
-      player.Slot(6).Equipment = AmmoBox(frag_cartridge) //bullet_9mm
-      player.Slot(9).Equipment = AmmoBox(bullet_9mm)
-      //player.Slot(12).Equipment = AmmoBox(bullet_9mm)
+      player.Slot(6).Equipment = AmmoBox(bullet_9mm, 20) //bullet_9mm
+      player.Slot(9).Equipment = AmmoBox(rocket, 11) //bullet_9mm
+      player.Slot(12).Equipment = AmmoBox(frag_cartridge) //bullet_9mm
       player.Slot(33).Equipment = AmmoBox(bullet_9mm_AP)
       player.Slot(36).Equipment = AmmoBox(GlobalDefinitions.StandardPistolAmmo(player.Faction))
-      player.Slot(39).Equipment = SimpleItem(remote_electronics_kit)
+      player.Slot(39).Equipment = AmmoBox(plasma_cartridge) //SimpleItem(remote_electronics_kit)
       player.Slot(5).Equipment.get.asInstanceOf[LockerContainer].Inventory += 0 -> SimpleItem(remote_electronics_kit)
       //TODO end temp player character auto-loading
       self ! ListAccountCharacters
