@@ -1268,6 +1268,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
       }
       //log.info("VehicleState: " + msg)
 
+    case msg @ VehicleSubStateMessage(vehicle_guid, player_guid, vehicle_pos, vehicle_ang, vel, unk1, unk2) =>
+      //log.info(s"VehicleSubState: $vehicle_guid, $player_guid, $vehicle_pos, $vehicle_ang, $vel, $unk1, $unk2")
+
     case msg @ ProjectileStateMessage(projectile_guid, shot_pos, shot_vector, unk1, unk2, unk3, unk4, time_alive) =>
       //log.info("ProjectileState: " + msg)
 

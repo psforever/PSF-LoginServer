@@ -49,7 +49,7 @@ object VehicleStateMessage extends Marshallable[VehicleStateMessage] {
     * @see `Angular.codec_pitch`
     * @see `Angular.codec_yaw`
     */
-  private val codec_orient : Codec[Vector3] = (
+  val codec_orient : Codec[Vector3] = (
     ("roll"    | Angular.codec_roll(10)) ::
       ("pitch" | Angular.codec_pitch(10)) ::
       ("yaw"   | Angular.codec_yaw(10, 90f))
