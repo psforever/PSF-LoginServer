@@ -9,17 +9,17 @@ import scodec.codecs._
 /**
   * Dispatched by the server to cause two associated objects to disentangle from one another.<br>
   * <br>
-  * `ObjectDetachMessage` is the opposite to `ObjectAttachMessage`.
-  * When detached, the resulting freed object will be placed at the given coordinates.
-  * For some container objects, most often static ones, a default placement point does exist.
+  * `ObjectDetachMessage` is the opposite of `ObjectAttachMessage`.
+  * When detached, the resulting freed object will be placed at the given coordinates in the game world.
+  * For detachment from some container objects, a default placement point may exist.
   * This usually matches the position where the original mounting occurred, or is relative to the current position of the container.
-  * Using a position that is not the mounting one, in this case, counts as a temporary teleport of the character.
-  * As soon as available, e.g., the end of an animation, the character will rw-appear at the mounting point.
-  * The object may also have its orientation aspect changed.<br>
+  * This mounting position overrides the input one, but other temporary side-effects may occur.
+  * For example, if a player detaches from a vehicle with coordinates for "somewhere else,"
+  * the camera will temporarily be moved to that location "somewhere else" for the duration of the animation
+  * but it will soon regain the player who appeared where expected.<br>
   * <br>
-  * This packet is considered proper response to:<br>
-  * - `DismountVehicleMsg`<br>
-  * - `DropItemMessage`
+  * An object that is already dropped is a special case where the parent (container) does not technically exist.
+  * The parent also does not need to exist as the object will still be transported to the specified coordinates.
   * @param parent_guid the container/connector object
   * @param child_guid the contained/connected object
   * @param pos where the contained/connected object will be placed after it has detached

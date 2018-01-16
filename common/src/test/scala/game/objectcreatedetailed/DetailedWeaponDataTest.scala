@@ -72,7 +72,7 @@ class DetailedWeaponDataTest extends Specification {
     }
 
     "encode (punisher)" in {
-      val obj = DetailedWeaponData(0, 8,
+      val obj = DetailedWeaponData(0, 8, 0,
         DetailedAmmoBoxData(ObjectClass.bullet_9mm, PlanetSideGUID(1693), 0, DetailedAmmoBoxData(8, 30)) ::
           DetailedAmmoBoxData(ObjectClass.jammer_cartridge, PlanetSideGUID(1564), 1, DetailedAmmoBoxData(8, 1)) ::
           Nil

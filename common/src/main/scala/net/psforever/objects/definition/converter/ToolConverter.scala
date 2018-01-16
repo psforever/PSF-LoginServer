@@ -25,6 +25,6 @@ class ToolConverter extends ObjectCreateConverter[Tool]() {
       val box = obj.AmmoSlots(index).Box
       slots += InternalSlot(box.Definition.ObjectId, box.GUID, index, box.Definition.Packet.DetailedConstructorData(box).get)
     })
-    Success(DetailedWeaponData(4,8, slots.toList)(maxSlot))
+    Success(DetailedWeaponData(4,8, obj.FireModeIndex, slots.toList)(maxSlot))
   }
 }

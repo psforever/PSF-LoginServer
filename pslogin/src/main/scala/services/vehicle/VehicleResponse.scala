@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package services.vehicle
 
-import net.psforever.objects.Vehicle
+import net.psforever.objects.{PlanetSideGameObject, Vehicle}
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.packet.game.objectcreate.ConstructorData
 import net.psforever.types.Vector3
@@ -12,6 +12,7 @@ object VehicleResponse {
   final case class Awareness(vehicle_guid : PlanetSideGUID) extends Response
   final case class ChildObjectState(object_guid : PlanetSideGUID, pitch : Float, yaw : Float) extends Response
   final case class DismountVehicle(unk1 : Int, unk2 : Boolean) extends Response
+  final case class InventoryState(obj : PlanetSideGameObject, parent_guid : PlanetSideGUID, start : Int, con_data : ConstructorData) extends Response
   final case class KickPassenger(unk1 : Int, unk2 : Boolean, vehicle_guid : PlanetSideGUID) extends Response
   final case class LoadVehicle(vehicle : Vehicle, vtype : Int, vguid : PlanetSideGUID, vdata : ConstructorData) extends Response
   final case class MountVehicle(object_guid : PlanetSideGUID, seat : Int) extends Response

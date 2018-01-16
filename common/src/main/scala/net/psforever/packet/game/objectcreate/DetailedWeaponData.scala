@@ -28,6 +28,7 @@ import shapeless.{::, HNil}
   */
 final case class DetailedWeaponData(unk1 : Int,
                                     unk2 : Int,
+                                    fire_mode : Int,
                                     ammo : List[InternalSlot]
                                    )(implicit val mag_capacity : Int = 1) extends ConstructorData {
   override def bitsize : Long = {
@@ -35,7 +36,7 @@ final case class DetailedWeaponData(unk1 : Int,
     for(o <- ammo) {
       bitsize += o.bitsize
     }
-    61L + bitsize
+    61L + bitsize //51 + 10 (from InventoryData) + ammo
   }
 }
 
@@ -51,7 +52,21 @@ object DetailedWeaponData extends Marshallable[DetailedWeaponData] {
     * @return a `DetailedWeaponData` object
     */
   def apply(unk1 : Int, unk2 : Int, cls : Int, guid : PlanetSideGUID, parentSlot : Int, ammo : DetailedAmmoBoxData) : DetailedWeaponData =
-    new DetailedWeaponData(unk1, unk2, InternalSlot(cls, guid, parentSlot, ammo) :: Nil)
+    new DetailedWeaponData(unk1, unk2, 0, InternalSlot(cls, guid, parentSlot, ammo) :: Nil)
+
+
+  /**
+    * Overloaded constructor for creating `DetailedWeaponData` while masking use of `InternalSlot` for its `DetailedAmmoBoxData`.
+    * @param unk1 na
+    * @param unk2 na
+    * @param cls the code for the type of object (ammunition) being constructed
+    * @param guid the globally unique id assigned to the ammunition
+    * @param parentSlot the slot where the ammunition is to be installed in the weapon
+    * @param ammo the constructor data for the ammunition
+    * @return a `DetailedWeaponData` object
+    */
+  def apply(unk1 : Int, unk2 : Int, fire_mode : Int, cls : Int, guid : PlanetSideGUID, parentSlot : Int, ammo : DetailedAmmoBoxData) : DetailedWeaponData =
+    new DetailedWeaponData(unk1, unk2, fire_mode, InternalSlot(cls, guid, parentSlot, ammo) :: Nil)
 
   /**
     * A `Codec` for `DetailedWeaponData`
@@ -60,17 +75,18 @@ object DetailedWeaponData extends Marshallable[DetailedWeaponData] {
     * @return a `WeaponData` object or a `BitVector`
     */
   def codec(mag_capacity : Int = 1) : Codec[DetailedWeaponData] = (
-    ("unk1" | uintL(3)) ::
+    ("unk1" | uint(3)) ::
       bool :: //weapon refuses to shoot if set (not weapons lock?)
       ("unk2" | uint4L) :: //8 - common; 4 - jammers weapons; 2 - weapon breaks; 1, 0 - safe
       uint24 ::
-      uint16 ::
-      uint2L ::
+      uint(12) ::
+      ("fire_mode" | uint(3)) :: //TODO size?
+      uint(3) ::
       ("ammo" | InventoryData.codec_detailed) ::
       bool
     ).exmap[DetailedWeaponData] (
     {
-      case unk1 :: false :: unk2 :: 2 :: 0 :: 3 :: InventoryData(ammo) :: false :: HNil =>
+      case unk1 :: false :: unk2 :: 2 :: 0 :: fmode :: 3 :: InventoryData(ammo) :: false :: HNil =>
         val magSize = ammo.size
         if(mag_capacity == 0 || magSize == 0) {
           Attempt.failure(Err("weapon must decode some ammunition"))
@@ -79,21 +95,21 @@ object DetailedWeaponData extends Marshallable[DetailedWeaponData] {
           Attempt.failure(Err(s"weapon decodes too much or too little ammunition - actual $magSize, expected $mag_capacity"))
         }
         else {
-          Attempt.successful(DetailedWeaponData(unk1, unk2, ammo)(magSize))
+          Attempt.successful(DetailedWeaponData(unk1, unk2, fmode, ammo)(magSize))
         }
 
       case _ =>
         Attempt.failure(Err("invalid weapon data format"))
     },
     {
-      case obj @ DetailedWeaponData(unk1, unk2, ammo) =>
+      case obj @ DetailedWeaponData(unk1, unk2, fmode, ammo) =>
         val magSize = ammo.size
         val magCapacity = obj.mag_capacity
         if(mag_capacity == 0 || magCapacity == 0 || magSize == 0) {
           Attempt.failure(Err("weapon must encode some ammunition"))
         }
         else if(magCapacity < 0 || mag_capacity < 0) {
-          Attempt.successful(unk1 :: false :: unk2 :: 2 :: 0 :: 3 :: InventoryData(ammo) :: false :: HNil)
+          Attempt.successful(unk1 :: false :: unk2 :: 2 :: 0 :: fmode :: 3 :: InventoryData(ammo) :: false :: HNil)
         }
         else {
           if(magCapacity != mag_capacity) {
@@ -106,7 +122,7 @@ object DetailedWeaponData extends Marshallable[DetailedWeaponData] {
             Attempt.failure(Err("weapon encodes too much ammunition (255+ types!)"))
           }
           else {
-            Attempt.successful(unk1 :: false :: unk2 :: 2 :: 0 :: 3 :: InventoryData(ammo) :: false :: HNil)
+            Attempt.successful(unk1 :: false :: unk2 :: 2 :: 0 :: fmode :: 3 :: InventoryData(ammo) :: false :: HNil)
           }
         }
 

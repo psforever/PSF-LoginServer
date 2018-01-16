@@ -65,6 +65,41 @@ class EquipmentTest extends Specification {
       obj.Capacity = 65536
       obj.Capacity mustEqual 65535
     }
+
+    "split (0)" in {
+      val obj = AmmoBox(bullet_9mm)
+      obj.Capacity = 0
+      val list = AmmoBox.Split(obj)
+      list.size mustEqual 0
+    }
+
+    "split (1)" in {
+      val obj = AmmoBox(bullet_9mm)
+      obj.Capacity = 50
+      val list = AmmoBox.Split(obj)
+      list.size mustEqual 1
+      list.head.Capacity mustEqual 50
+    }
+
+    "split (2)" in {
+      val obj = AmmoBox(bullet_9mm)
+      obj.Capacity = 75
+      val list = AmmoBox.Split(obj)
+      list.size mustEqual 2
+      list.head.Capacity mustEqual 50
+      list(1).Capacity mustEqual 25
+    }
+
+    "split (4)" in {
+      val obj = AmmoBox(bullet_9mm)
+      obj.Capacity = 165
+      val list = AmmoBox.Split(obj)
+      list.size mustEqual 4
+      list.head.Capacity mustEqual 50
+      list(1).Capacity mustEqual 50
+      list(2).Capacity mustEqual 50
+      list(3).Capacity mustEqual 15
+    }
   }
 
   "Tool" should {
@@ -79,7 +114,6 @@ class EquipmentTest extends Specification {
       obj.FireModes.head.AmmoTypeIndices += 1
       obj.FireModes.head.AmmoSlotIndex = 0
       obj.FireModes.head.Magazine = 18
-      obj.FireModes.head.ResetAmmoIndexOnSwap = true
       obj.FireModes += FireModeDefinition()
       obj.FireModes(1).AmmoTypeIndices += 0
       obj.FireModes(1).AmmoTypeIndices += 1
@@ -97,13 +131,11 @@ class EquipmentTest extends Specification {
       obj.FireModes.head.AmmoSlotIndex mustEqual 0
       obj.FireModes.head.Chamber mustEqual 1
       obj.FireModes.head.Magazine mustEqual 18
-      obj.FireModes.head.ResetAmmoIndexOnSwap mustEqual true
       obj.FireModes(1).AmmoTypeIndices.head mustEqual 0
       obj.FireModes(1).AmmoTypeIndices(1) mustEqual 1
       obj.FireModes(1).AmmoSlotIndex mustEqual 1
       obj.FireModes(1).Chamber mustEqual 3
       obj.FireModes(1).Magazine mustEqual 18
-      obj.FireModes(1).ResetAmmoIndexOnSwap mustEqual false
       obj.Tile.Width mustEqual InventoryTile.Tile93.Width
       obj.Tile.Height mustEqual InventoryTile.Tile93.Height
     }

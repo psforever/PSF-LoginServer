@@ -36,17 +36,26 @@ object AmmoBox {
     new AmmoBox(ammoDef, Some(capacity))
   }
 
-  import net.psforever.packet.game.PlanetSideGUID
-  def apply(guid : PlanetSideGUID, ammoDef : AmmoBoxDefinition) : AmmoBox = {
-    val obj = new AmmoBox(ammoDef)
-    obj.GUID = guid
-    obj
-  }
-
-  def apply(guid : PlanetSideGUID, ammoDef : AmmoBoxDefinition, capacity : Int) : AmmoBox = {
-    val obj = new AmmoBox(ammoDef, Some(capacity))
-    obj.GUID = guid
-    obj
+  /**
+    * Accepting an `AmmoBox` object that has an uncertain amount of ammunition in it,
+    * create multiple `AmmoBox` objects where none contain more than the maximum capacity for that ammunition type,
+    * and the sum of all objects' capacities is the original object's capacity.
+    * @param box an `AmmoBox` object of unspecified capacity
+    * @return a `List` of `AmmoBox` objects with correct capacities
+    */
+  def Split(box : AmmoBox) : List[AmmoBox] = {
+    val ammoDef = box.Definition
+    var boxCap : Int = box.Capacity
+    val maxCap : Int = ammoDef.Capacity
+    val splitCap : Int = boxCap / maxCap
+    val list : List[AmmoBox] = List.fill(splitCap)(new AmmoBox(ammoDef))
+    val leftover = boxCap - maxCap * splitCap
+    if(leftover > 0) {
+      list :+ AmmoBox(ammoDef, leftover)
+    }
+    else {
+      list
+    }
   }
 
   def limitCapacity(count : Int, min : Int = 0) : Int = math.min(math.max(min, count), 65535)
