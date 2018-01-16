@@ -1478,8 +1478,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ ChangeFireModeMessage(item_guid, fire_mode) =>
       log.info("ChangeFireMode: " + msg)
-      FindContainedWeapon match {
-        case (_, Some(tool : Tool)) =>
+      FindWeapon match {
+        case Some(tool : Tool) =>
           val originalModeIndex = tool.FireModeIndex
           tool.NextFireMode
           val modeIndex = tool.FireModeIndex
@@ -1493,18 +1493,26 @@ class WorldSessionActor extends Actor with MDCContextAware {
             tool.FireModeIndex = originalModeIndex
             sendResponse(PacketCoding.CreateGamePacket(0, ChangeFireModeMessage(tool_guid, originalModeIndex)))
           }
-        case (_, Some(_)) =>
+        case Some(_) =>
           log.error(s"ChangeFireMode: the object that was found for $item_guid was not a Tool")
-        case (_, None) =>
+        case None =>
           log.error(s"ChangeFireMode: can not find $item_guid")
       }
 
     case msg @ ChangeFireStateMessage_Start(item_guid) =>
       log.info("ChangeFireState_Start: " + msg)
       if(shooting.isEmpty) {
-        //TODO check that player can shoot item_guid?
-        shooting = Some(item_guid)
-        avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireState_Start(player.GUID, item_guid))
+        FindWeapon match {
+          case Some(tool : Tool) =>
+            if(tool.GUID == item_guid && tool.Magazine > 0) {
+              shooting = Some(item_guid)
+              avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireState_Start(player.GUID, item_guid))
+            }
+          case Some(_) =>
+            log.error(s"ChangeFireState_Start: the object that was found for $item_guid was not a Tool")
+          case None =>
+            log.error(s"ChangeFireState_Start: can not find $item_guid")
+        }
       }
 
     case msg @ ChangeFireStateMessage_Stop(item_guid) =>
