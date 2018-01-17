@@ -14,7 +14,9 @@ object Zones {
       super.Init(context)
 
       import net.psforever.types.PlanetSideEmpire
+      Base(21).get.Faction = PlanetSideEmpire.VS //Irkalla
       Base(30).get.Faction = PlanetSideEmpire.TR //Hanish
+      Base(48).get.Faction = PlanetSideEmpire.NC //Girru
     }
   }
 

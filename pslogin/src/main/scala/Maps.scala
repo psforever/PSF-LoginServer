@@ -18,27 +18,157 @@ object Maps {
 
   val map4 = new ZoneMap("map04") {
 
+    // Hanish
+    LocalObject(ServerObjectBuilder(471, Door.Constructor))
+    LocalObject(ServerObjectBuilder(474, Door.Constructor))
+    LocalObject(ServerObjectBuilder(476, Door.Constructor))
+    LocalObject(ServerObjectBuilder(481, Door.Constructor))
+    LocalObject(ServerObjectBuilder(484, Door.Constructor))
+    LocalObject(ServerObjectBuilder(770, Door.Constructor))
+    LocalObject(ServerObjectBuilder(771, Door.Constructor))
+    LocalObject(ServerObjectBuilder(772, Door.Constructor))
+    LocalObject(ServerObjectBuilder(774, Door.Constructor))
+    LocalObject(ServerObjectBuilder(775, Door.Constructor))
     LocalObject(ServerObjectBuilder(776, Door.Constructor))
     LocalObject(ServerObjectBuilder(777, Door.Constructor))
+    LocalObject(ServerObjectBuilder(778, Door.Constructor))
     LocalObject(ServerObjectBuilder(779, Door.Constructor))
+    LocalObject(ServerObjectBuilder(780, Door.Constructor))
     LocalObject(ServerObjectBuilder(923, Door.Constructor))
+    LocalObject(ServerObjectBuilder(933, Door.Constructor))
+
+    LocalObject(ServerObjectBuilder(1106, IFFLock.Constructor))
+    LocalObject(ServerObjectBuilder(1114, IFFLock.Constructor))
+
     LocalObject(ServerObjectBuilder(1991, Terminal.Constructor(order_terminal)))
     LocalObject(ServerObjectBuilder(1993, Terminal.Constructor(order_terminal)))
     LocalObject(ServerObjectBuilder(1994, Terminal.Constructor(order_terminal)))
+
     LocalObject(ServerObjectBuilder(3070, Terminal.Constructor(vehicle_terminal_combined)))
-    LocalObject(ServerObjectBuilder(500,
-      VehicleSpawnPad.Constructor(Vector3(3675.0f, 5458.0f, 89.0f), Vector3(0f, 0f, 270.0f))
+    LocalObject(ServerObjectBuilder(1886,
+      VehicleSpawnPad.Constructor(Vector3(3675.0f, 5458.0f, 89.0f), Vector3(0f, 0f, 0f))
     )) //TODO guid not correct
+
+    // Girru
+    LocalObject(ServerObjectBuilder(657, Door.Constructor))
+    LocalObject(ServerObjectBuilder(810, Door.Constructor))
+    LocalObject(ServerObjectBuilder(811, Door.Constructor))
+    LocalObject(ServerObjectBuilder(812, Door.Constructor))
+    LocalObject(ServerObjectBuilder(813, Door.Constructor))
+    LocalObject(ServerObjectBuilder(814, Door.Constructor))
+    LocalObject(ServerObjectBuilder(815, Door.Constructor))
+    LocalObject(ServerObjectBuilder(816, Door.Constructor))
+    LocalObject(ServerObjectBuilder(817, Door.Constructor))
+    LocalObject(ServerObjectBuilder(818, Door.Constructor))
+    LocalObject(ServerObjectBuilder(819, Door.Constructor))
+    LocalObject(ServerObjectBuilder(820, Door.Constructor))
+    LocalObject(ServerObjectBuilder(821, Door.Constructor))
+    LocalObject(ServerObjectBuilder(822, Door.Constructor))
+    LocalObject(ServerObjectBuilder(823, Door.Constructor))
+    LocalObject(ServerObjectBuilder(824, Door.Constructor))
+    LocalObject(ServerObjectBuilder(825, Door.Constructor))
+    LocalObject(ServerObjectBuilder(826, Door.Constructor))
+    LocalObject(ServerObjectBuilder(827, Door.Constructor))
+    LocalObject(ServerObjectBuilder(828, Door.Constructor))
+
+    LocalObject(ServerObjectBuilder(1145, IFFLock.Constructor))
+    LocalObject(ServerObjectBuilder(1147, IFFLock.Constructor))
+
+    LocalObject(ServerObjectBuilder(2015, Terminal.Constructor(order_terminal)))
+    LocalObject(ServerObjectBuilder(2016, Terminal.Constructor(order_terminal)))
+    LocalObject(ServerObjectBuilder(2017, Terminal.Constructor(order_terminal)))
+
+    LocalObject(ServerObjectBuilder(3072, Terminal.Constructor(ground_vehicle_terminal)))
+    LocalObject(ServerObjectBuilder(501,
+      VehicleSpawnPad.Constructor(Vector3(4337.0f, 5903.0f, 58.0f), Vector3(0f, 0f, 270.0f))
+    )) //TODO guid not correct
+
+    // Irkalla
+    LocalObject(ServerObjectBuilder(852, Door.Constructor))
+    LocalObject(ServerObjectBuilder(853, Door.Constructor))
+    LocalObject(ServerObjectBuilder(854, Door.Constructor))
+    LocalObject(ServerObjectBuilder(855, Door.Constructor))
+    LocalObject(ServerObjectBuilder(856, Door.Constructor))
+    LocalObject(ServerObjectBuilder(858, Door.Constructor))
+    LocalObject(ServerObjectBuilder(861, Door.Constructor))
+    LocalObject(ServerObjectBuilder(862, Door.Constructor))
+    LocalObject(ServerObjectBuilder(869, Door.Constructor))
+    LocalObject(ServerObjectBuilder(871, Door.Constructor))
+
+    LocalObject(ServerObjectBuilder(2037, Terminal.Constructor(order_terminal)))
+    LocalObject(ServerObjectBuilder(2038, Terminal.Constructor(order_terminal)))
+    LocalObject(ServerObjectBuilder(2039, Terminal.Constructor(order_terminal)))
 
     LocalBases = 100
 
+
+    // Hanish
+    ObjectToBase(471, 30)
+    ObjectToBase(474, 30)
+    ObjectToBase(476, 30)
+    ObjectToBase(481, 30)
+    ObjectToBase(484, 30)
+    ObjectToBase(770, 30)
+    ObjectToBase(771, 30)
+    ObjectToBase(772, 30)
+    ObjectToBase(774, 30)
+    ObjectToBase(775, 30)
     ObjectToBase(776, 30)
     ObjectToBase(777, 30)
+    ObjectToBase(778, 30)
     ObjectToBase(779, 30)
+    ObjectToBase(780, 30)
     ObjectToBase(923, 30)
+    ObjectToBase(933, 30)
+    ObjectToBase(1106, 30)
+    ObjectToBase(1114, 30)
+
+    DoorToLock(771, 1106)
+    DoorToLock(779, 1114)
 
     ObjectToBase(3070, 30)
-    TerminalToSpawnPad(3070, 500)
+    ObjectToBase(1886, 30)
+    TerminalToSpawnPad(3070, 1886)
+    // Girru
+    ObjectToBase(657, 48)
+    ObjectToBase(810, 48)
+    ObjectToBase(811, 48)
+    ObjectToBase(812, 48)
+    ObjectToBase(813, 48)
+    ObjectToBase(814, 48)
+    ObjectToBase(815, 48)
+    ObjectToBase(816, 48)
+    ObjectToBase(817, 48)
+    ObjectToBase(818, 48)
+    ObjectToBase(819, 48)
+    ObjectToBase(820, 48)
+    ObjectToBase(821, 48)
+    ObjectToBase(822, 48)
+    ObjectToBase(823, 48)
+    ObjectToBase(824, 48)
+    ObjectToBase(825, 48)
+    ObjectToBase(827, 48)
+    ObjectToBase(828, 48)
+    ObjectToBase(1145, 48)
+    ObjectToBase(1147, 48)
+
+    DoorToLock(825, 1145)
+    DoorToLock(824, 1147)
+
+    ObjectToBase(3072, 48)
+    TerminalToSpawnPad(3072, 501)
+
+    // Irkalla
+    ObjectToBase(852, 21)
+    ObjectToBase(853, 21)
+    ObjectToBase(854, 21)
+    ObjectToBase(855, 21)
+    ObjectToBase(856, 21)
+    ObjectToBase(858, 21)
+    ObjectToBase(861, 21)
+    ObjectToBase(862, 21)
+    ObjectToBase(869, 21)
+    ObjectToBase(871, 21)
 
   }
 
