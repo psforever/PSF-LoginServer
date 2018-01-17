@@ -33,6 +33,7 @@ class Tool(private val toolDef : ToolDefinition) extends Equipment with FireMode
 
   def NextFireMode : FireModeDefinition = {
     FireModeIndex = FireModeIndex + 1
+    AmmoSlot.Chamber = FireMode.Chamber
     FireMode
   }
 
@@ -59,7 +60,9 @@ class Tool(private val toolDef : ToolDefinition) extends Equipment with FireMode
 
   def MaxMagazine : Int = FireMode.Magazine
 
-  def NextDischarge : Int = math.min(Magazine, FireMode.Chamber)
+  def Discharge : Int = {
+    Magazine = FireMode.Discharge(this)
+  }
 
   def AmmoSlot : Tool.FireModeSlot = ammoSlots(FireMode.AmmoSlotIndex)
 
@@ -127,6 +130,7 @@ object Tool {
     private var ammoTypeIndex : Int = 0
     /** a reference to the actual `AmmoBox` of this slot */
     private var box : AmmoBox = AmmoBox(AmmoDefinition, fdef.Magazine)
+    private var chamber = fdef.Chamber
 
     def AmmoTypeIndex : Int = ammoTypeIndex
 
@@ -156,6 +160,13 @@ object Tool {
     def Magazine_=(mag : Int) : Int = {
       box.Capacity = mag
       Magazine
+    }
+
+    def Chamber : Int = chamber
+
+    def Chamber_=(chmbr : Int) : Int =  {
+      chamber = math.min(math.max(0, chmbr), fdef.Chamber)
+      Chamber
     }
 
     def Box : AmmoBox = box

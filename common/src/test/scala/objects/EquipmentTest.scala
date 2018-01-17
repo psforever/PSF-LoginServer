@@ -2,11 +2,11 @@
 package objects
 
 import net.psforever.objects._
-import net.psforever.objects.definition._
 import net.psforever.objects.equipment.CItem.{DeployedItem, Unit}
 import net.psforever.objects.equipment._
 import net.psforever.objects.inventory.InventoryTile
 import net.psforever.objects.GlobalDefinitions._
+import net.psforever.objects.definition._
 import org.specs2.mutable._
 
 class EquipmentTest extends Specification {
@@ -109,12 +109,12 @@ class EquipmentTest extends Specification {
       obj.Size = EquipmentSize.Rifle
       obj.AmmoTypes += GlobalDefinitions.shotgun_shell
       obj.AmmoTypes += GlobalDefinitions.shotgun_shell_AP
-      obj.FireModes += FireModeDefinition()
+      obj.FireModes += new FireModeDefinition
       obj.FireModes.head.AmmoTypeIndices += 0
       obj.FireModes.head.AmmoTypeIndices += 1
       obj.FireModes.head.AmmoSlotIndex = 0
       obj.FireModes.head.Magazine = 18
-      obj.FireModes += FireModeDefinition()
+      obj.FireModes += new FireModeDefinition
       obj.FireModes(1).AmmoTypeIndices += 0
       obj.FireModes(1).AmmoTypeIndices += 1
       obj.FireModes(1).AmmoSlotIndex = 1
@@ -162,47 +162,27 @@ class EquipmentTest extends Specification {
     }
 
     "multiple fire modes" in {
-      //explanation: sample_weapon has two fire modes; adjusting the FireMode changes between them
-      val tdef = ToolDefinition(1076)
-      tdef.Size = EquipmentSize.Rifle
-      tdef.AmmoTypes += GlobalDefinitions.shotgun_shell
-      tdef.AmmoTypes += GlobalDefinitions.shotgun_shell_AP
-      tdef.FireModes += new FireModeDefinition
-      tdef.FireModes.head.AmmoTypeIndices += 0
-      tdef.FireModes.head.AmmoSlotIndex = 0
-      tdef.FireModes.head.Magazine = 9
-      tdef.FireModes += new FireModeDefinition
-      tdef.FireModes(1).AmmoTypeIndices += 1
-      tdef.FireModes(1).AmmoSlotIndex = 1
-      tdef.FireModes(1).Magazine = 18
-      val obj : Tool = Tool(tdef)
+      //explanation: sample_weapon has two fire modes; each fire mode has a different ammunition type
+      val obj : Tool = Tool(punisher)
       //fmode = 0
       obj.FireModeIndex mustEqual 0
-      obj.FireMode.Magazine mustEqual 9
-      obj.AmmoType mustEqual Ammo.shotgun_shell
+      obj.FireMode.Magazine mustEqual 30
+      obj.AmmoType mustEqual Ammo.bullet_9mm
       //fmode -> 1
       obj.NextFireMode
       obj.FireModeIndex mustEqual 1
-      obj.FireMode.Magazine mustEqual 18
-      obj.AmmoType mustEqual Ammo.shotgun_shell_AP
+      obj.FireMode.Magazine mustEqual 1
+      obj.AmmoType mustEqual Ammo.rocket
       //fmode -> 0
       obj.NextFireMode
       obj.FireModeIndex mustEqual 0
-      obj.FireMode.Magazine mustEqual 9
-      obj.AmmoType mustEqual Ammo.shotgun_shell
+      obj.FireMode.Magazine mustEqual 30
+      obj.AmmoType mustEqual Ammo.bullet_9mm
     }
 
     "multiple types of ammunition" in {
       //explanation: obj has one fire mode and two ammunitions; adjusting the AmmoType changes between them
-      val tdef = ToolDefinition(1076)
-      tdef.Size = EquipmentSize.Rifle
-      tdef.AmmoTypes += GlobalDefinitions.shotgun_shell
-      tdef.AmmoTypes += GlobalDefinitions.shotgun_shell_AP
-      tdef.FireModes += new FireModeDefinition
-      tdef.FireModes.head.AmmoTypeIndices += 0
-      tdef.FireModes.head.AmmoTypeIndices += 1
-      tdef.FireModes.head.AmmoSlotIndex = 0
-      val obj : Tool = Tool(tdef)
+      val obj : Tool = Tool(flechette)
       //ammo = 0
       obj.AmmoTypeIndex mustEqual 0
       obj.AmmoType mustEqual Ammo.shotgun_shell
@@ -254,6 +234,39 @@ class EquipmentTest extends Specification {
       obj.NextAmmoType
       obj.AmmoTypeIndex mustEqual 2
       obj.AmmoType mustEqual Ammo.rocket
+    }
+
+    "discharge (1)" in {
+      val obj = Tool(GlobalDefinitions.punisher)
+      obj.Magazine mustEqual 30
+      obj.Discharge
+      obj.Magazine mustEqual 29
+      obj.Discharge
+      obj.Discharge
+      obj.Magazine mustEqual 27
+    }
+
+    "chamber" in {
+      val obj = Tool(GlobalDefinitions.flechette)
+      obj.Magazine mustEqual 12
+      obj.AmmoSlot.Chamber mustEqual 8
+
+      obj.Discharge
+      obj.Magazine mustEqual 12
+      obj.AmmoSlot.Chamber mustEqual 7
+      obj.Discharge
+      obj.Discharge
+      obj.Magazine mustEqual 12
+      obj.AmmoSlot.Chamber mustEqual 5
+      obj.Discharge
+      obj.Discharge
+      obj.Discharge
+      obj.Discharge
+      obj.Magazine mustEqual 12
+      obj.AmmoSlot.Chamber mustEqual 1
+      obj.Discharge
+      obj.Magazine mustEqual 11
+      obj.AmmoSlot.Chamber mustEqual 8
     }
   }
 
