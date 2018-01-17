@@ -1345,8 +1345,18 @@ class WorldSessionActor extends Actor with MDCContextAware {
       if (good) {
         import net.psforever.objects.GlobalDefinitions._
         player = Player(name, empire, gender, head, voice)
+
+        var tempPos = Vector3(0f,0f,0f)
+        if(empire == PlanetSideEmpire.TR) {
+          tempPos = Vector3(3749f,5470f,79f)
+        } else if (empire == PlanetSideEmpire.NC) {
+          tempPos = Vector3(4405f,5894f,70f)
+        } else if (empire == PlanetSideEmpire.VS) {
+          tempPos = Vector3(4807f,5208f,56f)
+        }
 //        player.Position = Vector3(3674.8438f, 2726.789f, 91.15625f)
-        player.Position = Vector3(3561.0f, 2854.0f, 90.859375f)
+//        player.Position = Vector3(3561.0f, 2854.0f, 90.859375f)
+        player.Position = tempPos
         player.Orientation = Vector3(0f, 0f, 90f)
         player.Certifications += CertificationType.StandardAssault
         player.Certifications += CertificationType.MediumAssault
@@ -1411,17 +1421,22 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case CharacterRequestAction.Select =>
           import net.psforever.objects.GlobalDefinitions._
           var tempEmpire  = PlanetSideEmpire.NEUTRAL
+          var tempPos = Vector3(0f,0f,0f)
           if(player.Name.indexOf("TestCharacter") >= 0 && charId == 1) {
             tempEmpire = PlanetSideEmpire.TR
+            tempPos = Vector3(3749f,5470f,79f)
           } else if (player.Name.indexOf("TestCharacter") >= 0 && charId == 2) {
             tempEmpire = PlanetSideEmpire.NC
+            tempPos = Vector3(4405f,5894f,70f)
           } else if (player.Name.indexOf("TestCharacter") >= 0 && charId == 3) {
             tempEmpire = PlanetSideEmpire.VS
+            tempPos = Vector3(4807f,5208f,56f)
           }
           if(player.Name.indexOf("TestCharacter") >= 0 && charId <= 3) {
             player = Player("UnNamed" + sessionId.toString, tempEmpire, CharacterGender.Male, 41, 1)
 //            player.Position = Vector3(3674.8438f, 2726.789f, 91.15625f)
-            player.Position = Vector3(3561.0f, 2854.0f, 90.859375f)
+//            player.Position = Vector3(3561.0f, 2854.0f, 90.859375f)
+            player.Position = tempPos
             player.Orientation = Vector3(0f, 0f, 90f)
             player.Certifications += CertificationType.StandardAssault
             player.Certifications += CertificationType.MediumAssault
@@ -1469,7 +1484,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           //TODO check if can spawn on last continent/location from player?
           //TODO if yes, get continent guid accessors
           //TODO if no, get sanctuary guid accessors and reset the player's expectations
-          galaxy ! InterstellarCluster.GetWorld("home3")
+          galaxy ! InterstellarCluster.GetWorld("z4")
         case default =>
           log.error("Unsupported " + default + " in " + msg)
       }
@@ -1482,7 +1497,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
       //map-specific initializations
       //TODO continent.ClientConfiguration()
       sendResponse(PacketCoding.CreateGamePacket(0, SetEmpireMessage(PlanetSideGUID(2), PlanetSideEmpire.VS))) //HART building C
-      sendResponse(PacketCoding.CreateGamePacket(0, SetEmpireMessage(PlanetSideGUID(29), PlanetSideEmpire.NC))) //South Villa Gun Tower
+      sendResponse(PacketCoding.CreateGamePacket(0, SetEmpireMessage(PlanetSideGUID(21), PlanetSideEmpire.VS))) //Irkalla
+      sendResponse(PacketCoding.CreateGamePacket(0, SetEmpireMessage(PlanetSideGUID(30), PlanetSideEmpire.TR))) //Hanish
+      sendResponse(PacketCoding.CreateGamePacket(0, SetEmpireMessage(PlanetSideGUID(48), PlanetSideEmpire.NC))) //Girru
 
       sendResponse(PacketCoding.CreateGamePacket(0, TimeOfDayMessage(1191182336)))
       sendResponse(PacketCoding.CreateGamePacket(0, ReplicationStreamMessage(5, Some(6), Vector(SquadListing())))) //clear squad list

@@ -16,7 +16,31 @@ object Maps {
 
   val map3 = new ZoneMap("map03")
 
-  val map4 = new ZoneMap("map04")
+  val map4 = new ZoneMap("map04") {
+
+    LocalObject(ServerObjectBuilder(776, Door.Constructor))
+    LocalObject(ServerObjectBuilder(777, Door.Constructor))
+    LocalObject(ServerObjectBuilder(779, Door.Constructor))
+    LocalObject(ServerObjectBuilder(923, Door.Constructor))
+    LocalObject(ServerObjectBuilder(1991, Terminal.Constructor(order_terminal)))
+    LocalObject(ServerObjectBuilder(1993, Terminal.Constructor(order_terminal)))
+    LocalObject(ServerObjectBuilder(1994, Terminal.Constructor(order_terminal)))
+    LocalObject(ServerObjectBuilder(3070, Terminal.Constructor(vehicle_terminal_combined)))
+    LocalObject(ServerObjectBuilder(500,
+      VehicleSpawnPad.Constructor(Vector3(3675.0f, 5458.0f, 89.0f), Vector3(0f, 0f, 270.0f))
+    )) //TODO guid not correct
+
+    LocalBases = 100
+
+    ObjectToBase(776, 30)
+    ObjectToBase(777, 30)
+    ObjectToBase(779, 30)
+    ObjectToBase(923, 30)
+
+    ObjectToBase(3070, 30)
+    TerminalToSpawnPad(3070, 500)
+
+  }
 
   val map5 = new ZoneMap("map05")
 
