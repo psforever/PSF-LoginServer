@@ -19,14 +19,28 @@ object Maps {
   val map4 = new ZoneMap("map04") {
 
     // Hanish
+    LocalObject(ServerObjectBuilder(470, Door.Constructor))
     LocalObject(ServerObjectBuilder(471, Door.Constructor))
+    LocalObject(ServerObjectBuilder(472, Door.Constructor))
+    LocalObject(ServerObjectBuilder(473, Door.Constructor))
     LocalObject(ServerObjectBuilder(474, Door.Constructor))
+    LocalObject(ServerObjectBuilder(475, Door.Constructor))
     LocalObject(ServerObjectBuilder(476, Door.Constructor))
     LocalObject(ServerObjectBuilder(481, Door.Constructor))
+    LocalObject(ServerObjectBuilder(482, Door.Constructor))
+    LocalObject(ServerObjectBuilder(483, Door.Constructor))
     LocalObject(ServerObjectBuilder(484, Door.Constructor))
+    LocalObject(ServerObjectBuilder(763, Door.Constructor))
+    LocalObject(ServerObjectBuilder(764, Door.Constructor))
+    LocalObject(ServerObjectBuilder(765, Door.Constructor))
+    LocalObject(ServerObjectBuilder(766, Door.Constructor))
+    LocalObject(ServerObjectBuilder(767, Door.Constructor))
+    LocalObject(ServerObjectBuilder(768, Door.Constructor))
+    LocalObject(ServerObjectBuilder(769, Door.Constructor))
     LocalObject(ServerObjectBuilder(770, Door.Constructor))
     LocalObject(ServerObjectBuilder(771, Door.Constructor))
     LocalObject(ServerObjectBuilder(772, Door.Constructor))
+    LocalObject(ServerObjectBuilder(773, Door.Constructor))
     LocalObject(ServerObjectBuilder(774, Door.Constructor))
     LocalObject(ServerObjectBuilder(775, Door.Constructor))
     LocalObject(ServerObjectBuilder(776, Door.Constructor))
@@ -34,13 +48,41 @@ object Maps {
     LocalObject(ServerObjectBuilder(778, Door.Constructor))
     LocalObject(ServerObjectBuilder(779, Door.Constructor))
     LocalObject(ServerObjectBuilder(780, Door.Constructor))
+    LocalObject(ServerObjectBuilder(781, Door.Constructor))
+    LocalObject(ServerObjectBuilder(782, Door.Constructor))
+    LocalObject(ServerObjectBuilder(783, Door.Constructor))
+    LocalObject(ServerObjectBuilder(784, Door.Constructor))
+    LocalObject(ServerObjectBuilder(785, Door.Constructor))
     LocalObject(ServerObjectBuilder(923, Door.Constructor))
+    LocalObject(ServerObjectBuilder(932, Door.Constructor))
     LocalObject(ServerObjectBuilder(933, Door.Constructor))
 
+    LocalObject(ServerObjectBuilder(971, IFFLock.Constructor))
+    LocalObject(ServerObjectBuilder(1105, IFFLock.Constructor))
     LocalObject(ServerObjectBuilder(1106, IFFLock.Constructor))
+    LocalObject(ServerObjectBuilder(1108, IFFLock.Constructor))
+    LocalObject(ServerObjectBuilder(1113, IFFLock.Constructor))
     LocalObject(ServerObjectBuilder(1114, IFFLock.Constructor))
+    LocalObject(ServerObjectBuilder(1115, IFFLock.Constructor))
+    LocalObject(ServerObjectBuilder(1116, IFFLock.Constructor))
+
+    LocalObject(ServerObjectBuilder(238, Terminal.Constructor(cert_terminal)))
+    LocalObject(ServerObjectBuilder(239, Terminal.Constructor(cert_terminal)))
+    LocalObject(ServerObjectBuilder(240, Terminal.Constructor(cert_terminal)))
+    LocalObject(ServerObjectBuilder(241, Terminal.Constructor(cert_terminal)))
+    LocalObject(ServerObjectBuilder(242, Terminal.Constructor(cert_terminal)))
+    LocalObject(ServerObjectBuilder(243, Terminal.Constructor(cert_terminal)))
+    LocalObject(ServerObjectBuilder(244, Terminal.Constructor(cert_terminal)))
+    LocalObject(ServerObjectBuilder(245, Terminal.Constructor(cert_terminal)))
+
+    LocalObject(ServerObjectBuilder(948, ImplantTerminalMech.Constructor))
+    LocalObject(ServerObjectBuilder(949, ImplantTerminalMech.Constructor))
+
+    LocalObject(ServerObjectBuilder(10000, Terminal.Constructor(implant_terminal_interface)))
+    LocalObject(ServerObjectBuilder(10001, Terminal.Constructor(implant_terminal_interface)))
 
     LocalObject(ServerObjectBuilder(1991, Terminal.Constructor(order_terminal)))
+    LocalObject(ServerObjectBuilder(1992, Terminal.Constructor(order_terminal)))
     LocalObject(ServerObjectBuilder(1993, Terminal.Constructor(order_terminal)))
     LocalObject(ServerObjectBuilder(1994, Terminal.Constructor(order_terminal)))
 
@@ -103,14 +145,28 @@ object Maps {
 
 
     // Hanish
+    ObjectToBase(470, 30)
     ObjectToBase(471, 30)
+    ObjectToBase(472, 30)
+    ObjectToBase(473, 30)
     ObjectToBase(474, 30)
+    ObjectToBase(475, 30)
     ObjectToBase(476, 30)
     ObjectToBase(481, 30)
+    ObjectToBase(482, 30)
+    ObjectToBase(483, 30)
     ObjectToBase(484, 30)
+    ObjectToBase(763, 30)
+    ObjectToBase(764, 30)
+    ObjectToBase(765, 30)
+    ObjectToBase(766, 30)
+    ObjectToBase(767, 30)
+    ObjectToBase(768, 30)
+    ObjectToBase(769, 30)
     ObjectToBase(770, 30)
     ObjectToBase(771, 30)
     ObjectToBase(772, 30)
+    ObjectToBase(773, 30)
     ObjectToBase(774, 30)
     ObjectToBase(775, 30)
     ObjectToBase(776, 30)
@@ -118,13 +174,38 @@ object Maps {
     ObjectToBase(778, 30)
     ObjectToBase(779, 30)
     ObjectToBase(780, 30)
+    ObjectToBase(781, 30)
+    ObjectToBase(782, 30)
+    ObjectToBase(783, 30)
+    ObjectToBase(784, 30)
+    ObjectToBase(785, 30)
     ObjectToBase(923, 30)
+    ObjectToBase(932, 30)
     ObjectToBase(933, 30)
-    ObjectToBase(1106, 30)
-    ObjectToBase(1114, 30)
 
+    ObjectToBase(971, 30)
+    ObjectToBase(1105, 30)
+    ObjectToBase(1106, 30)
+    ObjectToBase(1108, 30)
+    ObjectToBase(1113, 30)
+    ObjectToBase(1114, 30)
+    ObjectToBase(1115, 30)
+    ObjectToBase(1116, 30)
+
+    ObjectToBase(948, 30)
+    ObjectToBase(949, 30)
+
+    DoorToLock(470, 1105)
+    DoorToLock(475, 1108)
+    DoorToLock(481, 1113)
     DoorToLock(771, 1106)
     DoorToLock(779, 1114)
+    DoorToLock(784, 1116)
+    DoorToLock(785, 1115)
+    DoorToLock(923, 971)
+
+    TerminalToInterface(948, 10000)
+    TerminalToInterface(949, 10001)
 
     ObjectToBase(3070, 30)
     ObjectToBase(1886, 30)
@@ -169,6 +250,11 @@ object Maps {
     ObjectToBase(862, 21)
     ObjectToBase(869, 21)
     ObjectToBase(871, 21)
+
+    //Dagon : 27
+    // lahar : 36
+    // baal : 42
+
 
   }
 

@@ -1513,7 +1513,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
       //TODO continent.ClientConfiguration()
       sendResponse(PacketCoding.CreateGamePacket(0, SetEmpireMessage(PlanetSideGUID(2), PlanetSideEmpire.VS))) //HART building C
       sendResponse(PacketCoding.CreateGamePacket(0, SetEmpireMessage(PlanetSideGUID(21), PlanetSideEmpire.VS))) //Irkalla
+      sendResponse(PacketCoding.CreateGamePacket(0, SetEmpireMessage(PlanetSideGUID(27), PlanetSideEmpire.TR))) //Dagon
       sendResponse(PacketCoding.CreateGamePacket(0, SetEmpireMessage(PlanetSideGUID(30), PlanetSideEmpire.TR))) //Hanish
+      sendResponse(PacketCoding.CreateGamePacket(0, SetEmpireMessage(PlanetSideGUID(42), PlanetSideEmpire.TR))) //Baal
       sendResponse(PacketCoding.CreateGamePacket(0, SetEmpireMessage(PlanetSideGUID(48), PlanetSideEmpire.NC))) //Girru
 
       sendResponse(PacketCoding.CreateGamePacket(0, TimeOfDayMessage(1191182336)))

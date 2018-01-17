@@ -15,7 +15,9 @@ object Zones {
 
       import net.psforever.types.PlanetSideEmpire
       Base(21).get.Faction = PlanetSideEmpire.VS //Irkalla
+      Base(27).get.Faction = PlanetSideEmpire.TR //Dagon
       Base(30).get.Faction = PlanetSideEmpire.TR //Hanish
+      Base(42).get.Faction = PlanetSideEmpire.TR //Baal
       Base(48).get.Faction = PlanetSideEmpire.NC //Girru
     }
   }
