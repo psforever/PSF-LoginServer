@@ -1301,6 +1301,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
       player.Certifications += CertificationType.UniMAX
       player.Certifications += CertificationType.InfiltrationSuit
       //
+      player.Certifications += CertificationType.Sniping
+      player.Certifications += CertificationType.AntiVehicular
+      player.Certifications += CertificationType.HeavyAssault
+      player.Certifications += CertificationType.SpecialAssault
+      player.Certifications += CertificationType.EliteAssault
       player.Certifications += CertificationType.GroundSupport
       player.Certifications += CertificationType.GroundTransport
       player.Certifications += CertificationType.Flail
@@ -1368,6 +1373,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
         player.Certifications += CertificationType.InfiltrationSuit
         player.Certifications += CertificationType.UniMAX
         //
+        player.Certifications += CertificationType.Sniping
+        player.Certifications += CertificationType.AntiVehicular
+        player.Certifications += CertificationType.HeavyAssault
+        player.Certifications += CertificationType.SpecialAssault
+        player.Certifications += CertificationType.EliteAssault
         player.Certifications += CertificationType.GroundSupport
         player.Certifications += CertificationType.GroundTransport
         player.Certifications += CertificationType.Flail
@@ -1448,6 +1458,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
             player.Certifications += CertificationType.InfiltrationSuit
             player.Certifications += CertificationType.UniMAX
             //
+            player.Certifications += CertificationType.Sniping
+            player.Certifications += CertificationType.AntiVehicular
+            player.Certifications += CertificationType.HeavyAssault
+            player.Certifications += CertificationType.SpecialAssault
+            player.Certifications += CertificationType.EliteAssault
             player.Certifications += CertificationType.GroundSupport
             player.Certifications += CertificationType.GroundTransport
             player.Certifications += CertificationType.Flail
@@ -1855,9 +1870,31 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ ChangeFireStateMessage_Stop(item_guid) =>
       log.info("ChangeFireState_Stop: " + msg)
-      if(shooting.contains(item_guid)) {
+      val weapon : Option[Equipment] = if(shooting.contains(item_guid)) {
         shooting = None
         avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireState_Stop(player.GUID, item_guid))
+        FindWeapon
+      }
+      else {
+        //some weapons, e.g., the decimator, do not send a ChangeFireState_Start on the last shot
+        FindWeapon match {
+          case Some(tool : Tool) =>
+            if(tool.Definition == GlobalDefinitions.phoenix) {
+              avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireState_Start(player.GUID, item_guid))
+              avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireState_Stop(player.GUID, item_guid))
+            }
+            Some(tool)
+          case _ =>
+            log.warn(s"ChangeFireState_Stop: received an unexpected message about $item_guid")
+            None
+        }
+      }
+      weapon match {
+        case Some(tool : Tool) =>
+          if(tool.Magazine == 0) {
+            FireCycleCleanup(tool)
+          }
+        case _ => ;
       }
       progressBarUpdate.cancel //TODO independent action?
 
@@ -2275,7 +2312,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.WeaponDryFire(player.GUID, weapon_guid))
           }
           else { //shooting
-            tool.Magazine = tool.Magazine - 1
+            tool.Discharge
             //TODO other stuff?
           }
         case _ => ;
@@ -2610,7 +2647,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
               )
             )
           )
-          if(0 <= localIndex && localIndex < 5) {
+          if(localTarget.VisibleSlots.contains(localIndex)) {
             localService ! AvatarServiceMessage(continent.Id, AvatarAction.EquipmentInHand(localTarget.GUID, localIndex, localObject))
           }
         }
@@ -2755,7 +2792,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
         override def onSuccess() : Unit = {
           localAnnounce ! ResponseToSelf(PacketCoding.CreateGamePacket(0, ObjectDeleteMessage(localObjectGUID, 0)))
-          if(0 <= localIndex && localIndex < 5) {
+          if(localTarget.VisibleSlots.contains(localIndex)) {
             localService ! AvatarServiceMessage(localContinent, AvatarAction.ObjectDelete(localTarget.GUID, localObjectGUID))
           }
         }
@@ -3182,6 +3219,21 @@ class WorldSessionActor extends Actor with MDCContextAware {
       },
       List(StowNewAmmunition(obj)(index, item))
     )
+  }
+
+  /**
+    * After a weapon has finished shooting, determine if it needs to be sorted in a special way.
+    * @param tool a weapon
+    */
+  def FireCycleCleanup(tool : Tool) : Unit = {
+    //TODO this is temporary and will be replaced by more appropriate functionality in the future.
+    val tdef = tool.Definition
+    if(GlobalDefinitions.isGrenade(tdef)) {
+      taskResolver ! RemoveEquipmentFromSlot(player, tool, player.Find(tool).get)
+    }
+    else if(tdef == GlobalDefinitions.phoenix) {
+      taskResolver ! RemoveEquipmentFromSlot(player, tool, player.Find(tool).get)
+    }
   }
 
   /**
