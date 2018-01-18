@@ -44,8 +44,8 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
   private var accessor : ActorRef = ActorRef.noSender
   /** The basic support structure for the globally unique number system used by this `Zone`. */
   private var guid : NumberPoolHub = new NumberPoolHub(new LimitedNumberSource(65536))
-  guid.AddPool("environment", (0 to 2000).toList)
-  guid.AddPool("dynamic", (2001 to 10000).toList).Selector = new RandomSelector //TODO unlump pools later; do not make too big
+  guid.AddPool("environment", (0 to 4000).toList)
+  guid.AddPool("dynamic", (4001 to 12000).toList).Selector = new RandomSelector //TODO unlump pools later; do not make too big
   /** A synchronized `List` of items (`Equipment`) dropped by players on the ground and can be collected again. */
   private val equipmentOnGround : ListBuffer[Equipment] = ListBuffer[Equipment]()
   /** Used by the `Zone` to coordinate `Equipment` dropping and collection requests. */
