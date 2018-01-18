@@ -19,6 +19,10 @@ object Maps {
   val map4 = new ZoneMap("map04") {
 
     // Hanish
+//    LocalObject(ServerObjectBuilder(2934, Door.Constructor))
+//    LocalObject(ServerObjectBuilder(2937, Door.Constructor))
+//    LocalObject(ServerObjectBuilder(2938, Door.Constructor))
+
     LocalObject(ServerObjectBuilder(470, Door.Constructor))
     LocalObject(ServerObjectBuilder(471, Door.Constructor))
     LocalObject(ServerObjectBuilder(472, Door.Constructor))
@@ -91,7 +95,61 @@ object Maps {
       VehicleSpawnPad.Constructor(Vector3(3675.0f, 5458.0f, 89.0f), Vector3(0f, 0f, 0f))
     )) //TODO guid not correct
 
-    // Girru
+    // West Hanish Gun Tower, Ishundar (ID: 56)
+    LocalObject(ServerObjectBuilder(2914, Door.Constructor))
+    LocalObject(ServerObjectBuilder(2915, Door.Constructor))
+    LocalObject(ServerObjectBuilder(404, Door.Constructor))
+    LocalObject(ServerObjectBuilder(405, Door.Constructor))
+    LocalObject(ServerObjectBuilder(406, Door.Constructor))
+    LocalObject(ServerObjectBuilder(407, Door.Constructor))
+    LocalObject(ServerObjectBuilder(1054, IFFLock.Constructor))
+    LocalObject(ServerObjectBuilder(1055, IFFLock.Constructor))
+    LocalObject(ServerObjectBuilder(1056, IFFLock.Constructor))
+    LocalObject(ServerObjectBuilder(1057, IFFLock.Constructor))
+    LocalObject(ServerObjectBuilder(1960, Terminal.Constructor(order_terminal)))
+    LocalObject(ServerObjectBuilder(1961, Terminal.Constructor(order_terminal)))
+    LocalObject(ServerObjectBuilder(1962, Terminal.Constructor(order_terminal)))
+
+    // SW Hanish Air Tower, Ishundar (ID: 82)
+    LocalObject(ServerObjectBuilder(2932, Door.Constructor))
+    LocalObject(ServerObjectBuilder(2933, Door.Constructor))
+    LocalObject(ServerObjectBuilder(466, Door.Constructor))
+    LocalObject(ServerObjectBuilder(467, Door.Constructor))
+    LocalObject(ServerObjectBuilder(468, Door.Constructor))
+    LocalObject(ServerObjectBuilder(469, Door.Constructor))
+    LocalObject(ServerObjectBuilder(1101, IFFLock.Constructor))
+    LocalObject(ServerObjectBuilder(1102, IFFLock.Constructor))
+    LocalObject(ServerObjectBuilder(1103, IFFLock.Constructor))
+    LocalObject(ServerObjectBuilder(1104, IFFLock.Constructor))
+    LocalObject(ServerObjectBuilder(1988, Terminal.Constructor(order_terminal)))
+    LocalObject(ServerObjectBuilder(1989, Terminal.Constructor(order_terminal)))
+    LocalObject(ServerObjectBuilder(1990, Terminal.Constructor(order_terminal)))
+
+    // NE Akkan Watch Tower, Ishundar (ID: 69)
+    LocalObject(ServerObjectBuilder(2917, Door.Constructor))
+    LocalObject(ServerObjectBuilder(2918, Door.Constructor))
+    LocalObject(ServerObjectBuilder(414, Door.Constructor))
+    LocalObject(ServerObjectBuilder(415, Door.Constructor))
+    LocalObject(ServerObjectBuilder(416, Door.Constructor))
+    LocalObject(ServerObjectBuilder(417, Door.Constructor))
+    LocalObject(ServerObjectBuilder(418, Door.Constructor))
+    LocalObject(ServerObjectBuilder(419, Door.Constructor))
+    LocalObject(ServerObjectBuilder(1062, IFFLock.Constructor))
+    LocalObject(ServerObjectBuilder(1063, IFFLock.Constructor))
+    LocalObject(ServerObjectBuilder(1064, IFFLock.Constructor))
+    LocalObject(ServerObjectBuilder(1066, IFFLock.Constructor))
+    LocalObject(ServerObjectBuilder(1067, IFFLock.Constructor))
+    LocalObject(ServerObjectBuilder(1068, IFFLock.Constructor))
+    LocalObject(ServerObjectBuilder(1966, Terminal.Constructor(order_terminal)))
+    LocalObject(ServerObjectBuilder(1967, Terminal.Constructor(order_terminal)))
+    LocalObject(ServerObjectBuilder(1968, Terminal.Constructor(order_terminal)))
+
+    // Girru Technology Plant, Ishundar (ID: 48)
+
+//    LocalObject(ServerObjectBuilder(2948, Door.Constructor))
+//    LocalObject(ServerObjectBuilder(2949, Door.Constructor))
+//    LocalObject(ServerObjectBuilder(2950, Door.Constructor))
+
     LocalObject(ServerObjectBuilder(513, Door.Constructor))
     LocalObject(ServerObjectBuilder(514, Door.Constructor))
     LocalObject(ServerObjectBuilder(515, Door.Constructor))
@@ -149,7 +207,8 @@ object Maps {
 
     LocalObject(ServerObjectBuilder(3072, Terminal.Constructor(ground_vehicle_terminal)))
     LocalObject(ServerObjectBuilder(501,
-      VehicleSpawnPad.Constructor(Vector3(4337.0f, 5903.0f, 58.0f), Vector3(0f, 0f, 0f))
+//      VehicleSpawnPad.Constructor(Vector3(4337.0f, 5903.0f, 58.0f), Vector3(0f, 0f, 0f))
+        VehicleSpawnPad.Constructor(Vector3(4340.0f, 5985.0f, 78.0f), Vector3(0f, 0f, 0f))
     )) //TODO guid not correct
     LocalObject(ServerObjectBuilder(176, Terminal.Constructor(air_vehicle_terminal)))
     LocalObject(ServerObjectBuilder(502,
@@ -160,7 +219,62 @@ object Maps {
       VehicleSpawnPad.Constructor(Vector3(4407.0f, 5927.0f, 93.0f), Vector3(0f, 0f, 0f))
     )) //TODO guid not correct
 
+    // East Girru Gun Tower, Ishundar (ID: 62)
+    LocalObject(ServerObjectBuilder(2957, Door.Constructor))
+    LocalObject(ServerObjectBuilder(2958, Door.Constructor))
+    LocalObject(ServerObjectBuilder(542, Door.Constructor))
+    LocalObject(ServerObjectBuilder(543, Door.Constructor))
+    LocalObject(ServerObjectBuilder(544, Door.Constructor))
+    LocalObject(ServerObjectBuilder(545, Door.Constructor))
+    LocalObject(ServerObjectBuilder(1164, IFFLock.Constructor))
+    LocalObject(ServerObjectBuilder(1165, IFFLock.Constructor))
+    LocalObject(ServerObjectBuilder(1166, IFFLock.Constructor))
+    LocalObject(ServerObjectBuilder(1167, IFFLock.Constructor))
+    LocalObject(ServerObjectBuilder(2027, Terminal.Constructor(order_terminal)))
+    LocalObject(ServerObjectBuilder(2028, Terminal.Constructor(order_terminal)))
+    LocalObject(ServerObjectBuilder(2029, Terminal.Constructor(order_terminal)))
+
+    // West Girru Air Tower, Ishundar (ID: 83)
+    LocalObject(ServerObjectBuilder(2935, Door.Constructor))
+    LocalObject(ServerObjectBuilder(2936, Door.Constructor))
+    LocalObject(ServerObjectBuilder(477, Door.Constructor))
+    LocalObject(ServerObjectBuilder(478, Door.Constructor))
+    LocalObject(ServerObjectBuilder(479, Door.Constructor))
+    LocalObject(ServerObjectBuilder(480, Door.Constructor))
+    LocalObject(ServerObjectBuilder(1109, IFFLock.Constructor))
+    LocalObject(ServerObjectBuilder(1110, IFFLock.Constructor))
+    LocalObject(ServerObjectBuilder(1111, IFFLock.Constructor))
+    LocalObject(ServerObjectBuilder(1112, IFFLock.Constructor))
+    LocalObject(ServerObjectBuilder(1995, Terminal.Constructor(order_terminal)))
+    LocalObject(ServerObjectBuilder(1996, Terminal.Constructor(order_terminal)))
+    LocalObject(ServerObjectBuilder(1997, Terminal.Constructor(order_terminal)))
+
+    // Gate Outpost Watch Tower (South of Cyssor Warpgate), Ishundar (ID: 73)
+    LocalObject(ServerObjectBuilder(2959, Door.Constructor))
+    LocalObject(ServerObjectBuilder(2960, Door.Constructor))
+    LocalObject(ServerObjectBuilder(546, Door.Constructor))
+    LocalObject(ServerObjectBuilder(547, Door.Constructor))
+    LocalObject(ServerObjectBuilder(548, Door.Constructor))
+    LocalObject(ServerObjectBuilder(549, Door.Constructor))
+    LocalObject(ServerObjectBuilder(550, Door.Constructor))
+    LocalObject(ServerObjectBuilder(551, Door.Constructor))
+    LocalObject(ServerObjectBuilder(1168, IFFLock.Constructor))
+    LocalObject(ServerObjectBuilder(1169, IFFLock.Constructor))
+    LocalObject(ServerObjectBuilder(1170, IFFLock.Constructor))
+    LocalObject(ServerObjectBuilder(1171, IFFLock.Constructor))
+    LocalObject(ServerObjectBuilder(1172, IFFLock.Constructor))
+    LocalObject(ServerObjectBuilder(1173, IFFLock.Constructor))
+    LocalObject(ServerObjectBuilder(2030, Terminal.Constructor(order_terminal)))
+    LocalObject(ServerObjectBuilder(2031, Terminal.Constructor(order_terminal)))
+    LocalObject(ServerObjectBuilder(2032, Terminal.Constructor(order_terminal)))
+
+
+
     // Irkalla
+//    LocalObject(ServerObjectBuilder(2964, Door.Constructor))
+//    LocalObject(ServerObjectBuilder(2965, Door.Constructor))
+//    LocalObject(ServerObjectBuilder(2966, Door.Constructor))
+
     LocalObject(ServerObjectBuilder(562, Door.Constructor))
     LocalObject(ServerObjectBuilder(563, Door.Constructor))
     LocalObject(ServerObjectBuilder(566, Door.Constructor))
@@ -298,6 +412,63 @@ object Maps {
     ObjectToBase(1886, 30)
     TerminalToSpawnPad(3070, 1886)
 
+    // West Hanish Gun Tower, Ishundar (ID: 56)
+    ObjectToBase(2914, 56)
+    ObjectToBase(2915, 56)
+    ObjectToBase(404, 56)
+    ObjectToBase(405, 56)
+    ObjectToBase(406, 56)
+    ObjectToBase(407, 56)
+    ObjectToBase(1056, 56)
+    ObjectToBase(1057, 56)
+    ObjectToBase(1054, 56)
+    ObjectToBase(1055, 56)
+
+    DoorToLock(404, 1056)
+    DoorToLock(405, 1057)
+    DoorToLock(406, 1054)
+    DoorToLock(407, 1055)
+
+    // SW Hanish Air Tower, Ishundar (ID: 82)
+    ObjectToBase(2932, 82)
+    ObjectToBase(2933, 82)
+    ObjectToBase(466, 82)
+    ObjectToBase(467, 82)
+    ObjectToBase(468, 82)
+    ObjectToBase(469, 82)
+    ObjectToBase(1101, 82)
+    ObjectToBase(1102, 82)
+    ObjectToBase(1103, 82)
+    ObjectToBase(1104, 82)
+
+    DoorToLock(466, 1103)
+    DoorToLock(467, 1104)
+    DoorToLock(468, 1101)
+    DoorToLock(469, 1102)
+
+    // NE Akkan Watch Tower, Ishundar (ID: 69)
+    ObjectToBase(2917, 69)
+    ObjectToBase(2918, 69)
+    ObjectToBase(414, 69)
+    ObjectToBase(415, 69)
+    ObjectToBase(416, 69)
+    ObjectToBase(417, 69)
+    ObjectToBase(418, 69)
+    ObjectToBase(419, 69)
+    ObjectToBase(1062, 69)
+    ObjectToBase(1063, 69)
+    ObjectToBase(1064, 69)
+    ObjectToBase(1066, 69)
+    ObjectToBase(1067, 69)
+    ObjectToBase(1068, 69)
+
+    DoorToLock(414, 1066)
+    DoorToLock(415, 1067)
+    DoorToLock(416, 1068)
+    DoorToLock(417, 1062)
+    DoorToLock(418, 1063)
+    DoorToLock(419, 1064)
+
     // Girru
     ObjectToBase(513, 48)
     ObjectToBase(514, 48)
@@ -365,6 +536,67 @@ object Maps {
     TerminalToSpawnPad(176, 502)
     ObjectToBase(177, 48)
     TerminalToSpawnPad(177, 503)
+
+    // East Girru Gun Tower, Ishundar (ID: 62)
+    ObjectToBase(2957, 62)
+    ObjectToBase(2958, 62)
+    ObjectToBase(542, 62)
+    ObjectToBase(543, 62)
+    ObjectToBase(544, 62)
+    ObjectToBase(545, 62)
+    ObjectToBase(1164, 62)
+    ObjectToBase(1165, 62)
+    ObjectToBase(1166, 62)
+    ObjectToBase(1167, 62)
+
+    DoorToLock(542, 1166)
+    DoorToLock(543, 1167)
+    DoorToLock(544, 1164)
+    DoorToLock(545, 1165)
+
+
+
+    // West Girru Air Tower, Ishundar (ID: 83)
+    ObjectToBase(2935, 83)
+    ObjectToBase(2936, 83)
+    ObjectToBase(477, 83)
+    ObjectToBase(478, 83)
+    ObjectToBase(479, 83)
+    ObjectToBase(480, 83)
+    ObjectToBase(1109, 83)
+    ObjectToBase(1110, 83)
+    ObjectToBase(1111, 83)
+    ObjectToBase(1112, 83)
+
+    DoorToLock(477, 1111)
+    DoorToLock(478, 1112)
+    DoorToLock(479, 1109)
+    DoorToLock(480, 1110)
+
+
+    // Gate Outpost Watch Tower (South of Cyssor Warpgate), Ishundar (ID: 73)
+    ObjectToBase(2959, 73)
+    ObjectToBase(2960, 73)
+    ObjectToBase(546, 73)
+    ObjectToBase(547, 73)
+    ObjectToBase(548, 73)
+    ObjectToBase(549, 73)
+    ObjectToBase(550, 73)
+    ObjectToBase(551, 73)
+    ObjectToBase(1168, 73)
+    ObjectToBase(1169, 73)
+    ObjectToBase(1170, 73)
+    ObjectToBase(1171, 73)
+    ObjectToBase(1172, 73)
+    ObjectToBase(1173, 73)
+
+    DoorToLock(546, 1171)
+    DoorToLock(547, 1172)
+    DoorToLock(548, 1173)
+    DoorToLock(549, 1168)
+    DoorToLock(550, 1169)
+    DoorToLock(551, 1170)
+
 
     // Irkalla
     ObjectToBase(562, 21)
@@ -438,9 +670,6 @@ object Maps {
     TerminalToSpawnPad(3074, 504)
 
 
-    //Dagon : 27
-    // lahar : 36
-    // baal : 42
 
   }
 

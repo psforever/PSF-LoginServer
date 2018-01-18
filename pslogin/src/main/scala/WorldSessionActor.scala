@@ -1514,29 +1514,35 @@ class WorldSessionActor extends Actor with MDCContextAware {
       //map-specific initializations
       //TODO continent.ClientConfiguration()
       sendResponse(PacketCoding.CreateGamePacket(0, SetEmpireMessage(PlanetSideGUID(21), PlanetSideEmpire.VS))) //Irkalla
-      sendResponse(PacketCoding.CreateGamePacket(0, SetEmpireMessage(PlanetSideGUID(27), PlanetSideEmpire.NC))) //Dagon
+//      sendResponse(PacketCoding.CreateGamePacket(0, SetEmpireMessage(PlanetSideGUID(27), PlanetSideEmpire.NC))) //Dagon
       sendResponse(PacketCoding.CreateGamePacket(0, SetEmpireMessage(PlanetSideGUID(30), PlanetSideEmpire.TR))) //Hanish
-      sendResponse(PacketCoding.CreateGamePacket(0, SetEmpireMessage(PlanetSideGUID(36), PlanetSideEmpire.VS))) //Lahar
-      sendResponse(PacketCoding.CreateGamePacket(0, SetEmpireMessage(PlanetSideGUID(42), PlanetSideEmpire.TR))) //Baal
+      sendResponse(PacketCoding.CreateGamePacket(0, SetEmpireMessage(PlanetSideGUID(56), PlanetSideEmpire.TR)))
+      sendResponse(PacketCoding.CreateGamePacket(0, SetEmpireMessage(PlanetSideGUID(82), PlanetSideEmpire.TR)))
+      sendResponse(PacketCoding.CreateGamePacket(0, SetEmpireMessage(PlanetSideGUID(69), PlanetSideEmpire.TR)))
+//      sendResponse(PacketCoding.CreateGamePacket(0, SetEmpireMessage(PlanetSideGUID(36), PlanetSideEmpire.VS))) //Lahar
+//      sendResponse(PacketCoding.CreateGamePacket(0, SetEmpireMessage(PlanetSideGUID(42), PlanetSideEmpire.TR))) //Baal
       sendResponse(PacketCoding.CreateGamePacket(0, SetEmpireMessage(PlanetSideGUID(48), PlanetSideEmpire.NC))) //Girru
+      sendResponse(PacketCoding.CreateGamePacket(0, SetEmpireMessage(PlanetSideGUID(62), PlanetSideEmpire.NC)))
+      sendResponse(PacketCoding.CreateGamePacket(0, SetEmpireMessage(PlanetSideGUID(73), PlanetSideEmpire.NC)))
+      sendResponse(PacketCoding.CreateGamePacket(0, SetEmpireMessage(PlanetSideGUID(83), PlanetSideEmpire.NC)))
 
       sendResponse(PacketCoding.CreateGamePacket(0, BuildingInfoUpdateMessage(PlanetSideGUID(4), PlanetSideGUID(11), 10, false, PlanetSideEmpire.NEUTRAL, 0,
-        PlanetSideEmpire.VS, 0, None, PlanetSideGeneratorState.Normal, true, false, 28, 0, List(), 0, false, 8, None, false, false))) // Irkalla VS
+        PlanetSideEmpire.VS, 0, None, PlanetSideGeneratorState.Normal, true, false, 30, 188, List(), 0, false, 8, None, false, false))) // Irkalla VS
       sendResponse(PacketCoding.CreateGamePacket(0, BuildingInfoUpdateMessage(PlanetSideGUID(4), PlanetSideGUID(10), 10, false, PlanetSideEmpire.NEUTRAL, 0,
-        PlanetSideEmpire.TR, 0, None, PlanetSideGeneratorState.Normal, true, false, 22, 252, List(), 0, false, 8, None, false, false))) // Hanish TR
+        PlanetSideEmpire.TR, 0, None, PlanetSideGeneratorState.Normal, true, false, 30, 188, List(), 0, false, 8, None, false, false))) // Hanish TR
       sendResponse(PacketCoding.CreateGamePacket(0, BuildingInfoUpdateMessage(PlanetSideGUID(4), PlanetSideGUID(9), 10, false, PlanetSideEmpire.NEUTRAL, 0,
-        PlanetSideEmpire.NC, 0, None, PlanetSideGeneratorState.Normal, true, false, 16, 0, List(), 0, false, 8, None, false, false))) // Girru NC
+        PlanetSideEmpire.NC, 0, None, PlanetSideGeneratorState.Normal, true, false, 30, 188, List(), 0, false, 8, None, false, false))) // Girru NC
 
-      sendResponse(PacketCoding.CreateGamePacket(0, BuildingInfoUpdateMessage(PlanetSideGUID(4), PlanetSideGUID(5), 10, false, PlanetSideEmpire.NEUTRAL, 0,
-        PlanetSideEmpire.TR, 0, None, PlanetSideGeneratorState.Normal, true, false, 22, 0, List(), 0, false, 8, None, false, false))) // Akkan TR
-      sendResponse(PacketCoding.CreateGamePacket(0, BuildingInfoUpdateMessage(PlanetSideGUID(4), PlanetSideGUID(6), 10, false, PlanetSideEmpire.NEUTRAL, 0,
-        PlanetSideEmpire.TR, 0, None, PlanetSideGeneratorState.Normal, true, false, 22, 0, List(), 0, false, 8, None, false, false))) // Baal TR
-      sendResponse(PacketCoding.CreateGamePacket(0, BuildingInfoUpdateMessage(PlanetSideGUID(4), PlanetSideGUID(7), 10, false, PlanetSideEmpire.NEUTRAL, 0,
-        PlanetSideEmpire.NC, 0, None, PlanetSideGeneratorState.Normal, true, false, 4, 0, List(), 0, false, 8, None, false, false))) // Dagon NC
-      sendResponse(PacketCoding.CreateGamePacket(0, BuildingInfoUpdateMessage(PlanetSideGUID(4), PlanetSideGUID(12), 10, false, PlanetSideEmpire.NEUTRAL, 0,
-        PlanetSideEmpire.VS, 0, None, PlanetSideGeneratorState.Normal, true, false, 28, 0, List(), 0, false, 8, None, false, false))) // Kusag VS
-      sendResponse(PacketCoding.CreateGamePacket(0, BuildingInfoUpdateMessage(PlanetSideGUID(4), PlanetSideGUID(13), 10, false, PlanetSideEmpire.NEUTRAL, 0,
-        PlanetSideEmpire.VS, 0, None, PlanetSideGeneratorState.Normal, true, false, 28, 0, List(), 0, false, 8, None, false, false))) // Lahar VS
+//      sendResponse(PacketCoding.CreateGamePacket(0, BuildingInfoUpdateMessage(PlanetSideGUID(4), PlanetSideGUID(5), 10, false, PlanetSideEmpire.NEUTRAL, 0,
+//        PlanetSideEmpire.TR, 0, None, PlanetSideGeneratorState.Normal, true, false, 22, 0, List(), 0, false, 8, None, false, false))) // Akkan TR
+//      sendResponse(PacketCoding.CreateGamePacket(0, BuildingInfoUpdateMessage(PlanetSideGUID(4), PlanetSideGUID(6), 10, false, PlanetSideEmpire.NEUTRAL, 0,
+//        PlanetSideEmpire.TR, 0, None, PlanetSideGeneratorState.Normal, true, false, 22, 0, List(), 0, false, 8, None, false, false))) // Baal TR
+//      sendResponse(PacketCoding.CreateGamePacket(0, BuildingInfoUpdateMessage(PlanetSideGUID(4), PlanetSideGUID(7), 10, false, PlanetSideEmpire.NEUTRAL, 0,
+//        PlanetSideEmpire.NC, 0, None, PlanetSideGeneratorState.Normal, true, false, 4, 0, List(), 0, false, 8, None, false, false))) // Dagon NC
+//      sendResponse(PacketCoding.CreateGamePacket(0, BuildingInfoUpdateMessage(PlanetSideGUID(4), PlanetSideGUID(12), 10, false, PlanetSideEmpire.NEUTRAL, 0,
+//        PlanetSideEmpire.VS, 0, None, PlanetSideGeneratorState.Normal, true, false, 28, 0, List(), 0, false, 8, None, false, false))) // Kusag VS
+//      sendResponse(PacketCoding.CreateGamePacket(0, BuildingInfoUpdateMessage(PlanetSideGUID(4), PlanetSideGUID(13), 10, false, PlanetSideEmpire.NEUTRAL, 0,
+//        PlanetSideEmpire.VS, 0, None, PlanetSideGeneratorState.Normal, true, false, 28, 0, List(), 0, false, 8, None, false, false))) // Lahar VS
 
 
       sendResponse(PacketCoding.CreateGamePacket(0, TimeOfDayMessage(1191182336)))
