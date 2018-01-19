@@ -1514,6 +1514,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
       //map-specific initializations
       //TODO continent.ClientConfiguration()
       sendResponse(PacketCoding.CreateGamePacket(0, SetEmpireMessage(PlanetSideGUID(21), PlanetSideEmpire.VS))) //Irkalla
+      sendResponse(PacketCoding.CreateGamePacket(0, SetEmpireMessage(PlanetSideGUID(60), PlanetSideEmpire.VS)))
+      sendResponse(PacketCoding.CreateGamePacket(0, SetEmpireMessage(PlanetSideGUID(74), PlanetSideEmpire.VS)))
+      sendResponse(PacketCoding.CreateGamePacket(0, SetEmpireMessage(PlanetSideGUID(86), PlanetSideEmpire.VS)))
 //      sendResponse(PacketCoding.CreateGamePacket(0, SetEmpireMessage(PlanetSideGUID(27), PlanetSideEmpire.NC))) //Dagon
       sendResponse(PacketCoding.CreateGamePacket(0, SetEmpireMessage(PlanetSideGUID(30), PlanetSideEmpire.TR))) //Hanish
       sendResponse(PacketCoding.CreateGamePacket(0, SetEmpireMessage(PlanetSideGUID(56), PlanetSideEmpire.TR)))
@@ -2467,6 +2470,14 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ GenericCollisionMsg(u1, p, t, php, thp, pv, tv, ppos, tpos, u2, u3, u4) =>
       log.info("Ouch! " + msg)
+//      continent.GUID(p) match {
+//        case Some(vehicle : Vehicle) =>
+//          println(vehicle.Health, vehicle.MaxHealth)
+//          vehicle.Health = vehicle.Health - 1
+//          sendResponse(PacketCoding.CreateGamePacket(0,PlanetsideAttributeMessage(p, 0, vehicle.Health)))
+//        case _ =>
+//          log.info("Ouch 2 ! " + msg)
+//      }
 
     case msg @ BugReportMessage(version_major,version_minor,version_date,bug_type,repeatable,location,zone,pos,summary,desc) =>
       log.info("BugReportMessage: " + msg)

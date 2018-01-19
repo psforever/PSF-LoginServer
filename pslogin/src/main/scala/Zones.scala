@@ -18,13 +18,16 @@ object Zones {
       Base(27).get.Faction = PlanetSideEmpire.TR //Dagon
       Base(30).get.Faction = PlanetSideEmpire.TR //Hanish
       Base(42).get.Faction = PlanetSideEmpire.TR //Baal
-      Base(56).get.Faction = PlanetSideEmpire.TR
-      Base(82).get.Faction = PlanetSideEmpire.TR
-      Base(69).get.Faction = PlanetSideEmpire.TR
       Base(48).get.Faction = PlanetSideEmpire.NC //Girru
-      Base(62).get.Faction = PlanetSideEmpire.NC //East Girru Gun Tower, Ishundar
-      Base(73).get.Faction = PlanetSideEmpire.NC //Gate Outpost Watch Tower (South of Cyssor Warpgate), Ishundar
-      Base(83).get.Faction = PlanetSideEmpire.NC //West Girru Air Tower, Ishundar
+      Base(56).get.Faction = PlanetSideEmpire.TR //West Hanish Gun Tower
+      Base(60).get.Faction = PlanetSideEmpire.VS //SE Hanish Gun Tower
+      Base(62).get.Faction = PlanetSideEmpire.NC //East Girru Gun Tower
+      Base(69).get.Faction = PlanetSideEmpire.TR //Northeast Akkan Watch tower
+      Base(73).get.Faction = PlanetSideEmpire.NC //Gate Outpost Watch Tower (South of Cyssor Warpgate)
+      Base(74).get.Faction = PlanetSideEmpire.VS //Gate Outpost Watch Tower (North of Forseral Warpgate)
+      Base(82).get.Faction = PlanetSideEmpire.TR //Southwest Hanish Air Tower
+      Base(83).get.Faction = PlanetSideEmpire.NC //West Girru Air Tower
+      Base(86).get.Faction = PlanetSideEmpire.VS //South Irkalla Air Tower
     }
   }
 
