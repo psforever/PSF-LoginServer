@@ -234,6 +234,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case AvatarResponse.PlayerState(msg, spectating, weaponInHand) =>
           if(player.GUID != guid) {
             val now = System.currentTimeMillis()
+
             val (location, time, distanceSq) : (Vector3, Long, Float) = if(spectating) {
               (Vector3(2, 2, 2), 0L, 0f)
             }
@@ -280,7 +281,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
         case AvatarResponse.WeaponDryFire(weapon_guid) =>
           if(player.GUID != guid) {
-            sendResponse(PacketCoding.CreateGamePacket(0, WeaponJammedMessage(weapon_guid)))
+            sendResponse(PacketCoding.CreateGamePacket(0, WeaponDryFireMessage(weapon_guid)))
           }
 
         case _ => ;
@@ -387,6 +388,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case VehicleResponse.VehicleState(vehicle_guid, unk1, pos, ang, vel, unk2, unk3, unk4, wheel_direction, unk5, unk6) =>
           if(player.GUID != guid) {
             sendResponse(PacketCoding.CreateGamePacket(0, VehicleStateMessage(vehicle_guid, unk1, pos, ang, vel, unk2, unk3, unk4, wheel_direction, unk5, unk6)))
+            if(player.VehicleSeated.contains(vehicle_guid)) {
+              player.Position = pos
+            }
           }
 
         case _ => ;
@@ -449,7 +453,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
               //update mounted weapon belonging to seat
               weapon.AmmoSlots.foreach(slot => { //update the magazine(s) in the weapon, specifically
                 val magazine = slot.Box
-                sendResponse(PacketCoding.CreateGamePacket(0, InventoryStateMessage(magazine.GUID, 0, weapon.GUID, magazine.Capacity.toLong)))
+                sendResponse(PacketCoding.CreateGamePacket(0, InventoryStateMessage(magazine.GUID, weapon.GUID, magazine.Capacity.toLong)))
               })
             case _ => ; //no weapons to update
           }
@@ -1295,6 +1299,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                     case Some(tool) =>
                       if(tool.GUID == object_guid) {
                         //TODO set tool orientation?
+                        player.Orientation = Vector3(0f, pitch, yaw)
                         vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.ChildObjectState(player.GUID, object_guid, pitch, yaw))
                       }
                     case None =>
@@ -1315,7 +1320,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ VehicleStateMessage(vehicle_guid, unk1, pos, ang, vel, unk5, unk6, unk7, wheels, unk9, unkA) =>
       continent.GUID(vehicle_guid) match {
         case Some(obj : Vehicle) =>
-          if(obj.Seat(0).get.Occupant.contains(player)) { //we're driving the vehicle
+          val seat = obj.Seat(0).get
+          if(seat.Occupant.contains(player)) { //we're driving the vehicle
+            player.Position = pos //convenient
+            if(seat.ControlledWeapon.isEmpty) {
+              player.Orientation = Vector3(0f, 0f, ang.z) //convenient
+            }
             obj.Position = pos
             obj.Orientation = ang
             obj.Velocity = vel
