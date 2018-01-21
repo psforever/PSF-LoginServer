@@ -102,7 +102,7 @@ object WeaponData extends Marshallable[WeaponData] {
       bool :: //weapon refuses to shoot if set (not weapons lock?)
       ("unk2" | uint4L) :: //8 - common; 4 - jammers weapons; 2 - weapon breaks; 1, 0 - safe
       uint(20) ::
-      ("fire_mode" | int(3)) ::
+      ("fire_mode" | int(3)) :: //TODO size?
       bool ::
       bool ::
       ("ammo" | InventoryData.codec) ::

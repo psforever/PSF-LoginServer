@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects
 
-import net.psforever.objects.definition.ToolDefinition
+import net.psforever.objects.definition.{AmmoBoxDefinition, ToolDefinition}
 import net.psforever.objects.equipment.{Ammo, Equipment, FireModeDefinition, FireModeSwitch}
 
 import scala.annotation.tailrec
@@ -33,6 +33,7 @@ class Tool(private val toolDef : ToolDefinition) extends Equipment with FireMode
 
   def NextFireMode : FireModeDefinition = {
     FireModeIndex = FireModeIndex + 1
+    AmmoSlot.Chamber = FireMode.Chamber
     FireMode
   }
 
@@ -59,7 +60,9 @@ class Tool(private val toolDef : ToolDefinition) extends Equipment with FireMode
 
   def MaxMagazine : Int = FireMode.Magazine
 
-  def NextDischarge : Int = math.min(Magazine, FireMode.Chamber)
+  def Discharge : Int = {
+    Magazine = FireMode.Discharge(this)
+  }
 
   def AmmoSlot : Tool.FireModeSlot = ammoSlots(FireMode.AmmoSlotIndex)
 
@@ -126,7 +129,8 @@ object Tool {
       */
     private var ammoTypeIndex : Int = 0
     /** a reference to the actual `AmmoBox` of this slot */
-    private var box : AmmoBox = AmmoBox(tdef.AmmoTypes(ammoTypeIndex), fdef.Magazine)
+    private var box : AmmoBox = AmmoBox(AmmoDefinition, fdef.Magazine)
+    private var chamber = fdef.Chamber
 
     def AmmoTypeIndex : Int = ammoTypeIndex
 
@@ -135,13 +139,17 @@ object Tool {
       AmmoTypeIndex
     }
 
+    private def AmmoDefinition : AmmoBoxDefinition = {
+      tdef.AmmoTypes(fdef.AmmoTypeIndices(ammoTypeIndex))
+    }
+
     /**
       * This is a reference to the `Ammo.Value` whose `AmmoBoxDefinition` should be loaded into `box`.
       * It may not be the correct `Ammo.Value` whose `AmmoBoxDefinition` is loaded into `box` such as is the case during ammunition swaps.
       * Generally, convert from this index, to the index in the fire mode's ammunition list, to the index in the `ToolDefinition`'s ammunition list.
       * @return the `Ammo` type that should be loaded into the magazine right now
       */
-    def AmmoType : Ammo.Value = tdef.AmmoTypes(fdef.AmmoTypeIndices(ammoTypeIndex)).AmmoType
+    def AmmoType : Ammo.Value = AmmoDefinition.AmmoType
 
     def AllAmmoTypes : List[Ammo.Value] = {
       fdef.AmmoTypeIndices.map(index => tdef.AmmoTypes(fdef.AmmoTypeIndices(index)).AmmoType).toList
@@ -152,6 +160,13 @@ object Tool {
     def Magazine_=(mag : Int) : Int = {
       box.Capacity = mag
       Magazine
+    }
+
+    def Chamber : Int = chamber
+
+    def Chamber_=(chmbr : Int) : Int =  {
+      chamber = math.min(math.max(0, chmbr), fdef.Chamber)
+      Chamber
     }
 
     def Box : AmmoBox = box

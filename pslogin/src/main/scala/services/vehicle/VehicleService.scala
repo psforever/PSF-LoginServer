@@ -2,6 +2,8 @@
 package services.vehicle
 
 import akka.actor.{Actor, ActorRef, Props}
+import net.psforever.packet.game.PlanetSideGUID
+import net.psforever.packet.game.objectcreate.ConstructorData
 import services.vehicle.support.{DeconstructionActor, DelayedDeconstructionActor, VehicleContextActor}
 import services.{GenericEventBus, Service}
 
@@ -46,6 +48,10 @@ class VehicleService extends Actor {
         case VehicleAction.ChildObjectState(player_guid, object_guid, pitch, yaw) =>
           VehicleEvents.publish(
             VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.ChildObjectState(object_guid, pitch, yaw))
+          )
+        case VehicleAction.InventoryState(player_guid, obj, parent_guid, start, con_data) =>
+          VehicleEvents.publish(
+            VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.InventoryState(obj, parent_guid, start, con_data))
           )
         case VehicleAction.DismountVehicle(player_guid, unk1, unk2) =>
           VehicleEvents.publish(

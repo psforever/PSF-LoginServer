@@ -1028,51 +1028,47 @@ object GlobalDefinitions {
   private def init_tools() : Unit = {
     chainblade.Size = EquipmentSize.Melee
     chainblade.AmmoTypes += melee_ammo
-    chainblade.FireModes += new FireModeDefinition
+    chainblade.FireModes += new InfiniteFireModeDefinition
     chainblade.FireModes.head.AmmoTypeIndices += 0
     chainblade.FireModes.head.AmmoSlotIndex = 0
     chainblade.FireModes.head.Magazine = 1
-    chainblade.FireModes += new FireModeDefinition
+    chainblade.FireModes += new InfiniteFireModeDefinition
     chainblade.FireModes(1).AmmoTypeIndices += 0
     chainblade.FireModes(1).AmmoSlotIndex = 0
     chainblade.FireModes(1).Magazine = 1
 
     magcutter.Size = EquipmentSize.Melee
     magcutter.AmmoTypes += melee_ammo
-    magcutter.FireModes += new FireModeDefinition
+    magcutter.FireModes += new InfiniteFireModeDefinition
     magcutter.FireModes.head.AmmoTypeIndices += 0
     magcutter.FireModes.head.AmmoSlotIndex = 0
     magcutter.FireModes.head.Magazine = 1
-    magcutter.FireModes += new FireModeDefinition
+    magcutter.FireModes += new InfiniteFireModeDefinition
     magcutter.FireModes(1).AmmoTypeIndices += 0
     magcutter.FireModes(1).AmmoSlotIndex = 0
     magcutter.FireModes(1).Magazine = 1
 
     forceblade.Size = EquipmentSize.Melee
     forceblade.AmmoTypes += melee_ammo
-    forceblade.FireModes += new FireModeDefinition
+    forceblade.FireModes += new InfiniteFireModeDefinition
     forceblade.FireModes.head.AmmoTypeIndices += 0
     forceblade.FireModes.head.AmmoSlotIndex = 0
     forceblade.FireModes.head.Magazine = 1
-    forceblade.FireModes.head.Chamber = 0
-    forceblade.FireModes += new FireModeDefinition
+    forceblade.FireModes += new InfiniteFireModeDefinition
     forceblade.FireModes(1).AmmoTypeIndices += 0
     forceblade.FireModes(1).AmmoSlotIndex = 0
     forceblade.FireModes(1).Magazine = 1
-    forceblade.FireModes(1).Chamber = 0
 
     katana.Size = EquipmentSize.Melee
     katana.AmmoTypes += melee_ammo
-    katana.FireModes += new FireModeDefinition
+    katana.FireModes += new InfiniteFireModeDefinition
     katana.FireModes.head.AmmoTypeIndices += 0
     katana.FireModes.head.AmmoSlotIndex = 0
     katana.FireModes.head.Magazine = 1
-    katana.FireModes.head.Chamber = 0
-    katana.FireModes += new FireModeDefinition
+    katana.FireModes += new InfiniteFireModeDefinition
     katana.FireModes(1).AmmoTypeIndices += 0
     katana.FireModes(1).AmmoSlotIndex = 0
     katana.FireModes(1).Magazine = 1
-    katana.FireModes(1).Chamber = 0
 
     frag_grenade.Size = EquipmentSize.Pistol
     frag_grenade.AmmoTypes += frag_grenade_ammo
@@ -1123,11 +1119,12 @@ object GlobalDefinitions {
     isp.Size = EquipmentSize.Pistol
     isp.AmmoTypes += shotgun_shell
     isp.AmmoTypes += shotgun_shell_AP
-    isp.FireModes += new FireModeDefinition
+    isp.FireModes += new PelletFireModeDefinition
     isp.FireModes.head.AmmoTypeIndices += 0
     isp.FireModes.head.AmmoTypeIndices += 1
     isp.FireModes.head.AmmoSlotIndex = 0
     isp.FireModes.head.Magazine = 8
+    isp.FireModes.head.Chamber = 6 //8 shells x 6 pellets = 48
     isp.Tile = InventoryTile.Tile33
 
     beamer.Size = EquipmentSize.Pistol
@@ -1186,11 +1183,12 @@ object GlobalDefinitions {
     flechette.Size = EquipmentSize.Rifle
     flechette.AmmoTypes += shotgun_shell
     flechette.AmmoTypes += shotgun_shell_AP
-    flechette.FireModes += new FireModeDefinition
+    flechette.FireModes += new PelletFireModeDefinition
     flechette.FireModes.head.AmmoTypeIndices += 0
     flechette.FireModes.head.AmmoTypeIndices += 1
     flechette.FireModes.head.AmmoSlotIndex = 0
-    flechette.FireModes.head.Magazine = 12 //12 shells * 8 pellets = 96
+    flechette.FireModes.head.Magazine = 12
+    flechette.FireModes.head.Chamber = 8 //12 shells * 8 pellets = 96
     flechette.Tile = InventoryTile.Tile63
 
     cycler.Size = EquipmentSize.Rifle
@@ -1235,7 +1233,6 @@ object GlobalDefinitions {
     anniversary_guna.FireModes(1).AmmoTypeIndices += 0
     anniversary_guna.FireModes(1).AmmoSlotIndex = 0
     anniversary_guna.FireModes(1).Magazine = 6
-    anniversary_guna.FireModes(1).Chamber = 6
     anniversary_guna.Tile = InventoryTile.Tile33
 
     anniversary_gun.Size = EquipmentSize.Pistol
@@ -1248,7 +1245,6 @@ object GlobalDefinitions {
     anniversary_gun.FireModes(1).AmmoTypeIndices += 0
     anniversary_gun.FireModes(1).AmmoSlotIndex = 0
     anniversary_gun.FireModes(1).Magazine = 6
-    anniversary_gun.FireModes(1).Chamber = 6
     anniversary_gun.Tile = InventoryTile.Tile33
 
     anniversary_gunb.Size = EquipmentSize.Pistol
@@ -1261,7 +1257,6 @@ object GlobalDefinitions {
     anniversary_gunb.FireModes(1).AmmoTypeIndices += 0
     anniversary_gunb.FireModes(1).AmmoSlotIndex = 0
     anniversary_gunb.FireModes(1).Magazine = 6
-    anniversary_gunb.FireModes(1).Chamber = 6
     anniversary_gunb.Tile = InventoryTile.Tile33
 
     spiker.Size = EquipmentSize.Pistol
@@ -1271,6 +1266,7 @@ object GlobalDefinitions {
     spiker.FireModes.head.AmmoSlotIndex = 0
     spiker.FireModes.head.Magazine = 25
     spiker.Tile = InventoryTile.Tile33
+    //TODO the spiker is weird
 
     mini_chaingun.Size = EquipmentSize.Rifle
     mini_chaingun.AmmoTypes += bullet_9mm
@@ -1285,17 +1281,18 @@ object GlobalDefinitions {
     r_shotgun.Size = EquipmentSize.Rifle
     r_shotgun.AmmoTypes += shotgun_shell
     r_shotgun.AmmoTypes += shotgun_shell_AP
-    r_shotgun.FireModes += new FireModeDefinition
+    r_shotgun.FireModes += new PelletFireModeDefinition
     r_shotgun.FireModes.head.AmmoTypeIndices += 0
     r_shotgun.FireModes.head.AmmoTypeIndices += 1
     r_shotgun.FireModes.head.AmmoSlotIndex = 0
-    r_shotgun.FireModes.head.Magazine = 16 //16 shells * 8 pellets = 128
-    r_shotgun.FireModes += new FireModeDefinition
+    r_shotgun.FireModes.head.Magazine = 16
+    r_shotgun.FireModes.head.Chamber = 8 //16 shells * 8 pellets = 128
+    r_shotgun.FireModes += new PelletFireModeDefinition
     r_shotgun.FireModes(1).AmmoTypeIndices += 0
     r_shotgun.FireModes(1).AmmoTypeIndices += 1
     r_shotgun.FireModes(1).AmmoSlotIndex = 0
-    r_shotgun.FireModes(1).Magazine = 16 //16 shells * 8 pellets = 128
-    r_shotgun.FireModes(1).Chamber = 3
+    r_shotgun.FireModes(1).Magazine = 16
+    r_shotgun.FireModes(1).Chamber = 8 //16 shells * 8 pellets = 128
     r_shotgun.Tile = InventoryTile.Tile93
 
     lasher.Size = EquipmentSize.Rifle
@@ -1325,6 +1322,7 @@ object GlobalDefinitions {
     maelstrom.FireModes(2).AmmoSlotIndex = 0
     maelstrom.FireModes(2).Magazine = 150
     maelstrom.Tile = InventoryTile.Tile93
+    //TODO the maelstrom is weird
 
     phoenix.Size = EquipmentSize.Rifle
     phoenix.AmmoTypes += phoenix_missile
@@ -1383,7 +1381,6 @@ object GlobalDefinitions {
     rocklet.FireModes(1).AmmoTypeIndices += 1
     rocklet.FireModes(1).AmmoSlotIndex = 0
     rocklet.FireModes(1).Magazine = 6
-    rocklet.FireModes(1).Chamber = 6
     rocklet.Tile = InventoryTile.Tile63
 
     thumper.Size = EquipmentSize.Rifle
@@ -1450,12 +1447,11 @@ object GlobalDefinitions {
     flamethrower.FireModes.head.AmmoTypeIndices += 0
     flamethrower.FireModes.head.AmmoSlotIndex = 0
     flamethrower.FireModes.head.Magazine = 100
-    flamethrower.FireModes.head.Chamber = 5
     flamethrower.FireModes += new FireModeDefinition
     flamethrower.FireModes(1).AmmoTypeIndices += 0
     flamethrower.FireModes(1).AmmoSlotIndex = 0
     flamethrower.FireModes(1).Magazine = 100
-    flamethrower.FireModes(1).Chamber = 50
+    flamethrower.FireModes(1).Rounds = 50
     flamethrower.Tile = InventoryTile.Tile63
 
     trhev_dualcycler.Size = EquipmentSize.Max
@@ -1485,18 +1481,21 @@ object GlobalDefinitions {
 
     nchev_scattercannon.Size = EquipmentSize.Max
     nchev_scattercannon.AmmoTypes += scattercannon_ammo
-    nchev_scattercannon.FireModes += new FireModeDefinition
+    nchev_scattercannon.FireModes += new PelletFireModeDefinition
     nchev_scattercannon.FireModes.head.AmmoTypeIndices += 0
     nchev_scattercannon.FireModes.head.AmmoSlotIndex = 0
     nchev_scattercannon.FireModes.head.Magazine = 40
-    nchev_scattercannon.FireModes += new FireModeDefinition
+    nchev_scattercannon.FireModes.head.Chamber = 10
+    nchev_scattercannon.FireModes += new PelletFireModeDefinition
     nchev_scattercannon.FireModes(1).AmmoTypeIndices += 0
     nchev_scattercannon.FireModes(1).AmmoSlotIndex = 0
     nchev_scattercannon.FireModes(1).Magazine = 40
-    nchev_scattercannon.FireModes += new FireModeDefinition
+    nchev_scattercannon.FireModes(1).Chamber = 10
+    nchev_scattercannon.FireModes += new PelletFireModeDefinition
     nchev_scattercannon.FireModes(2).AmmoTypeIndices += 0
     nchev_scattercannon.FireModes(2).AmmoSlotIndex = 0
     nchev_scattercannon.FireModes(2).Magazine = 40
+    nchev_scattercannon.FireModes(2).Chamber = 10
 
     nchev_falcon.Size = EquipmentSize.Max
     nchev_falcon.AmmoTypes += falcon_ammo
@@ -1580,10 +1579,10 @@ object GlobalDefinitions {
     trek.FireModes.head.AmmoTypeIndices += 0
     trek.FireModes.head.AmmoSlotIndex = 0
     trek.FireModes.head.Magazine = 4
-    trek.FireModes += new FireModeDefinition
+    trek.FireModes += new InfiniteFireModeDefinition
     trek.FireModes(1).AmmoTypeIndices += 0
     trek.FireModes(1).AmmoSlotIndex = 0
-    trek.FireModes(1).Magazine = 0
+    trek.FireModes(1).Magazine = 1
     trek.Tile = InventoryTile.Tile33
 
     flail_targeting_laser.Packet = new CommandDetonaterConverter
@@ -1737,7 +1736,7 @@ object GlobalDefinitions {
     aurora_weapon_systema.FireModes.head.Magazine = 12
     aurora_weapon_systema.FireModes += new FireModeDefinition
     aurora_weapon_systema.FireModes(1).AmmoTypeIndices += 0
-    aurora_weapon_systema.FireModes(1).AmmoSlotIndex = 1
+    aurora_weapon_systema.FireModes(1).AmmoSlotIndex = 0
     aurora_weapon_systema.FireModes(1).Magazine = 12
 
     aurora_weapon_systemb.Size = EquipmentSize.VehicleWeapon
@@ -1748,7 +1747,7 @@ object GlobalDefinitions {
     aurora_weapon_systemb.FireModes.head.Magazine = 12
     aurora_weapon_systemb.FireModes += new FireModeDefinition
     aurora_weapon_systemb.FireModes(1).AmmoTypeIndices += 0
-    aurora_weapon_systemb.FireModes(1).AmmoSlotIndex = 1
+    aurora_weapon_systemb.FireModes(1).AmmoSlotIndex = 0
     aurora_weapon_systemb.FireModes(1).Magazine = 12
 
     apc_weapon_systema.Size = EquipmentSize.VehicleWeapon

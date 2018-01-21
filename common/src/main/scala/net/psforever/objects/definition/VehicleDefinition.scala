@@ -26,7 +26,7 @@ class VehicleDefinition(objectId : Int) extends ObjectDefinition(objectId) {
   private var canCloak : Boolean = false
   private var canBeOwned : Boolean = true
   Name = "vehicle"
-  Packet = new VehicleConverter
+  Packet = VehicleDefinition.converter
 
   def MaxHealth : Int = maxHealth
 
@@ -87,6 +87,8 @@ class VehicleDefinition(objectId : Int) extends ObjectDefinition(objectId) {
 }
 
 object VehicleDefinition {
+  private val converter = new VehicleConverter
+
   def apply(objectId: Int) : VehicleDefinition = {
     new VehicleDefinition(objectId)
   }

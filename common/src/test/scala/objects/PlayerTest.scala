@@ -114,15 +114,15 @@ class PlayerTest extends Specification {
     obj.Slot(1).Size = EquipmentSize.Pistol
     obj.Slot(1).Equipment = wep2
     obj.DrawnSlot mustEqual Player.HandsDownSlot //default value
-    obj.LastDrawnSlot mustEqual 0 //default value
+    obj.LastDrawnSlot mustEqual Player.HandsDownSlot //default value
 
     obj.DrawnSlot = 1
     obj.DrawnSlot mustEqual 1
-    obj.LastDrawnSlot mustEqual 0 //default value; sorry
+    obj.LastDrawnSlot mustEqual 1
 
     obj.DrawnSlot = 0
     obj.DrawnSlot mustEqual 0
-    obj.LastDrawnSlot mustEqual 1
+    obj.LastDrawnSlot mustEqual 0
 
     obj.DrawnSlot = Player.HandsDownSlot
     obj.DrawnSlot mustEqual Player.HandsDownSlot
@@ -130,15 +130,15 @@ class PlayerTest extends Specification {
 
     obj.DrawnSlot = 1
     obj.DrawnSlot mustEqual 1
-    obj.LastDrawnSlot mustEqual 0
+    obj.LastDrawnSlot mustEqual 1
 
     obj.DrawnSlot = 0
     obj.DrawnSlot mustEqual 0
-    obj.LastDrawnSlot mustEqual 1
+    obj.LastDrawnSlot mustEqual 0
 
     obj.DrawnSlot = 1
     obj.DrawnSlot mustEqual 1
-    obj.LastDrawnSlot mustEqual 0
+    obj.LastDrawnSlot mustEqual 1
 
     obj.DrawnSlot = Player.HandsDownSlot
     obj.DrawnSlot mustEqual Player.HandsDownSlot
