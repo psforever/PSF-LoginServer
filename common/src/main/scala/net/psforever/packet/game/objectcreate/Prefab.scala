@@ -106,10 +106,10 @@ object Prefab {
       VehicleData(CommonFieldData(loc, faction, 0), 0, health, false, false, DriveState.State7, true, false, false, None,
         Some(InventoryData(
           InventoryItemData(ObjectClass.aurora_weapon_systema, weapon1_guid, 5,
-            WeaponData(0x6, 0x8, 0, ObjectClass.fluxpod_ammo, ammo11_guid, 0, AmmoBoxData(0x8), ObjectClass.fluxpod_ammo, ammo12_guid, 1, AmmoBoxData(0x8))
+            WeaponData(0x6, 0x8, 0, ObjectClass.fluxpod_ammo, ammo11_guid, 0, AmmoBoxData(0x8))
           ) ::
             InventoryItemData(ObjectClass.aurora_weapon_systemb, weapon2_guid, 6,
-              WeaponData(0x6, 0x8, 0, ObjectClass.fluxpod_ammo, ammo21_guid, 0, AmmoBoxData(0x8), ObjectClass.fluxpod_ammo, ammo22_guid, 1, AmmoBoxData(0x8))
+              WeaponData(0x6, 0x8, 0, ObjectClass.fluxpod_ammo, ammo21_guid, 0, AmmoBoxData(0x8))
             ) :: Nil
         ))
       )(VehicleFormat.Normal)

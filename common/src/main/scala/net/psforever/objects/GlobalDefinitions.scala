@@ -1737,7 +1737,7 @@ object GlobalDefinitions {
     aurora_weapon_systema.FireModes.head.Magazine = 12
     aurora_weapon_systema.FireModes += new FireModeDefinition
     aurora_weapon_systema.FireModes(1).AmmoTypeIndices += 0
-    aurora_weapon_systema.FireModes(1).AmmoSlotIndex = 1
+    aurora_weapon_systema.FireModes(1).AmmoSlotIndex = 0
     aurora_weapon_systema.FireModes(1).Magazine = 12
 
     aurora_weapon_systemb.Size = EquipmentSize.VehicleWeapon
@@ -1748,7 +1748,7 @@ object GlobalDefinitions {
     aurora_weapon_systemb.FireModes.head.Magazine = 12
     aurora_weapon_systemb.FireModes += new FireModeDefinition
     aurora_weapon_systemb.FireModes(1).AmmoTypeIndices += 0
-    aurora_weapon_systemb.FireModes(1).AmmoSlotIndex = 1
+    aurora_weapon_systemb.FireModes(1).AmmoSlotIndex = 0
     aurora_weapon_systemb.FireModes(1).Magazine = 12
 
     apc_weapon_systema.Size = EquipmentSize.VehicleWeapon
