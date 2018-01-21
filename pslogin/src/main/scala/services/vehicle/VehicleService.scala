@@ -86,6 +86,14 @@ class VehicleService extends Actor {
           VehicleEvents.publish(
             VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.VehicleState(vehicle_guid, unk1, pos, ang, vel, unk2, unk3, unk4, wheel_direction, unk5, unk6))
           )
+        case VehicleAction.PlanetsideAttribute(player_guid, vehicle_guid, attribute_type, attribute_value) =>
+          VehicleEvents.publish(
+            VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.PlanetsideAttribute(vehicle_guid, attribute_type, attribute_value))
+          )
+        case VehicleAction.ProximityTerminalUse(player_guid, pad_guid, bool) =>
+          VehicleEvents.publish(
+            VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.ProximityTerminalUse(pad_guid, bool))
+          )
         case _ => ;
     }
 

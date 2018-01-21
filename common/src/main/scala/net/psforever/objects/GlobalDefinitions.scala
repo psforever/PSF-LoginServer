@@ -2005,6 +2005,7 @@ object GlobalDefinitions {
     fury.MountPoints += 2 -> 0
     fury.TrunkSize = InventoryTile.Tile1111
     fury.TrunkOffset = 30
+    fury.MaxHealth = 650
 
     quadassault.Seats += 0 -> new SeatDefinition()
     quadassault.Seats(0).Bailable = true
@@ -2014,6 +2015,7 @@ object GlobalDefinitions {
     quadassault.MountPoints += 2 -> 0
     quadassault.TrunkSize = InventoryTile.Tile1111
     quadassault.TrunkOffset = 30
+    quadassault.MaxHealth = 650
 
     quadstealth.CanCloak = true
     quadstealth.Seats += 0 -> new SeatDefinition()
@@ -2023,6 +2025,7 @@ object GlobalDefinitions {
     quadstealth.MountPoints += 2 -> 0
     quadstealth.TrunkSize = InventoryTile.Tile1111
     quadstealth.TrunkOffset = 30
+    quadstealth.MaxHealth = 650
 
     two_man_assault_buggy.Seats += 0 -> new SeatDefinition()
     two_man_assault_buggy.Seats(0).Bailable = true
@@ -2034,6 +2037,7 @@ object GlobalDefinitions {
     two_man_assault_buggy.MountPoints += 2 -> 1
     two_man_assault_buggy.TrunkSize = InventoryTile.Tile1511
     two_man_assault_buggy.TrunkOffset = 30
+    two_man_assault_buggy.MaxHealth = 1250
 
     skyguard.Seats += 0 -> new SeatDefinition()
     skyguard.Seats(0).Bailable = true
@@ -2046,6 +2050,7 @@ object GlobalDefinitions {
     skyguard.MountPoints += 3 -> 1
     skyguard.TrunkSize = InventoryTile.Tile1511
     skyguard.TrunkOffset = 30
+    skyguard.MaxHealth = 1000
 
     threemanheavybuggy.Seats += 0 -> new SeatDefinition()
     threemanheavybuggy.Seats(0).Bailable = true
@@ -2062,6 +2067,7 @@ object GlobalDefinitions {
     threemanheavybuggy.MountPoints += 3 -> 2
     threemanheavybuggy.TrunkSize = InventoryTile.Tile1511
     threemanheavybuggy.TrunkOffset = 30
+    threemanheavybuggy.MaxHealth = 1700
 
     twomanheavybuggy.Seats += 0 -> new SeatDefinition()
     twomanheavybuggy.Seats(0).Bailable = true
@@ -2073,6 +2079,7 @@ object GlobalDefinitions {
     twomanheavybuggy.MountPoints += 2 -> 1
     twomanheavybuggy.TrunkSize = InventoryTile.Tile1511
     twomanheavybuggy.TrunkOffset = 30
+    twomanheavybuggy.MaxHealth = 1800
 
     twomanhoverbuggy.Seats += 0 -> new SeatDefinition()
     twomanhoverbuggy.Seats(0).Bailable = true
@@ -2084,6 +2091,7 @@ object GlobalDefinitions {
     twomanhoverbuggy.MountPoints += 2 -> 1
     twomanhoverbuggy.TrunkSize = InventoryTile.Tile1511
     twomanhoverbuggy.TrunkOffset = 30
+    twomanhoverbuggy.MaxHealth = 1600
 
     mediumtransport.Seats += 0 -> new SeatDefinition()
     mediumtransport.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
@@ -2102,6 +2110,7 @@ object GlobalDefinitions {
     mediumtransport.MountPoints += 5 -> 4
     mediumtransport.TrunkSize = InventoryTile.Tile1515
     mediumtransport.TrunkOffset = 30
+    mediumtransport.MaxHealth = 2500
 
     battlewagon.Seats += 0 -> new SeatDefinition()
     battlewagon.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
@@ -2124,6 +2133,7 @@ object GlobalDefinitions {
     battlewagon.MountPoints += 5 -> 4
     battlewagon.TrunkSize = InventoryTile.Tile1515
     battlewagon.TrunkOffset = 30
+    battlewagon.MaxHealth = 2500
 
     thunderer.Seats += 0 -> new SeatDefinition()
     thunderer.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
@@ -2142,6 +2152,7 @@ object GlobalDefinitions {
     thunderer.MountPoints += 5 -> 4
     thunderer.TrunkSize = InventoryTile.Tile1515
     thunderer.TrunkOffset = 30
+    thunderer.MaxHealth = 2500
 
     aurora.Seats += 0 -> new SeatDefinition()
     aurora.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
@@ -2160,6 +2171,7 @@ object GlobalDefinitions {
     aurora.MountPoints += 5 -> 4
     aurora.TrunkSize = InventoryTile.Tile1515
     aurora.TrunkOffset = 30
+    aurora.MaxHealth = 2500
 
     apc_tr.Seats += 0 -> new SeatDefinition()
     apc_tr.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
@@ -2201,6 +2213,7 @@ object GlobalDefinitions {
     apc_tr.MountPoints += 12 -> 10
     apc_tr.TrunkSize = InventoryTile.Tile2016
     apc_tr.TrunkOffset = 30
+    apc_tr.MaxHealth = 6000
 
     apc_nc.Seats += 0 -> new SeatDefinition()
     apc_nc.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
@@ -2242,6 +2255,7 @@ object GlobalDefinitions {
     apc_nc.MountPoints += 12 -> 10
     apc_nc.TrunkSize = InventoryTile.Tile2016
     apc_nc.TrunkOffset = 30
+    apc_nc.MaxHealth = 6000
 
     apc_vs.Seats += 0 -> new SeatDefinition()
     apc_vs.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
@@ -2283,6 +2297,7 @@ object GlobalDefinitions {
     apc_vs.MountPoints += 12 -> 10
     apc_vs.TrunkSize = InventoryTile.Tile2016
     apc_vs.TrunkOffset = 30
+    apc_vs.MaxHealth = 6000
 
     lightning.Seats += 0 -> new SeatDefinition()
     lightning.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
@@ -2292,6 +2307,7 @@ object GlobalDefinitions {
     lightning.MountPoints += 2 -> 0
     lightning.TrunkSize = InventoryTile.Tile1511
     lightning.TrunkOffset = 30
+    lightning.MaxHealth = 1500
 
     prowler.Seats += 0 -> new SeatDefinition()
     prowler.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
@@ -2306,6 +2322,7 @@ object GlobalDefinitions {
     prowler.MountPoints += 3 -> 2
     prowler.TrunkSize = InventoryTile.Tile1511
     prowler.TrunkOffset = 30
+    prowler.MaxHealth = 4000
 
     vanguard.Seats += 0 -> new SeatDefinition()
     vanguard.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
@@ -2316,6 +2333,7 @@ object GlobalDefinitions {
     vanguard.MountPoints += 2 -> 1
     vanguard.TrunkSize = InventoryTile.Tile1511
     vanguard.TrunkOffset = 30
+    vanguard.MaxHealth = 4500
 
     magrider.Seats += 0 -> new SeatDefinition()
     magrider.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
@@ -2328,6 +2346,7 @@ object GlobalDefinitions {
     magrider.MountPoints += 2 -> 1
     magrider.TrunkSize = InventoryTile.Tile1511
     magrider.TrunkOffset = 30
+    magrider.MaxHealth = 3500
 
     val utilityConverter = new UtilityVehicleConverter
     ant.Seats += 0 -> new SeatDefinition()
@@ -2335,12 +2354,14 @@ object GlobalDefinitions {
     ant.MountPoints += 1 -> 0
     ant.MountPoints += 2 -> 0
     ant.Packet = utilityConverter
+    ant.MaxHealth = 2000
 
     ams.Seats += 0 -> new SeatDefinition()
     ams.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
     ams.MountPoints += 1 -> 0
     ams.MountPoints += 2 -> 0
     ams.Packet = utilityConverter
+    ams.MaxHealth = 3000
 
     val variantConverter = new VariantVehicleConverter
     router.Seats += 0 -> new SeatDefinition()
@@ -2348,6 +2369,7 @@ object GlobalDefinitions {
     router.TrunkSize = InventoryTile.Tile1511
     router.TrunkOffset = 30
     router.Packet = variantConverter
+    router.MaxHealth = 4000
 
     switchblade.Seats += 0 -> new SeatDefinition()
     switchblade.Seats(0).ControlledWeapon = 1
@@ -2357,6 +2379,7 @@ object GlobalDefinitions {
     switchblade.TrunkSize = InventoryTile.Tile1511
     switchblade.TrunkOffset = 30
     switchblade.Packet = variantConverter
+    switchblade.MaxHealth = 1750
 
     flail.Seats += 0 -> new SeatDefinition()
     flail.Seats(0).ControlledWeapon = 1
@@ -2365,6 +2388,7 @@ object GlobalDefinitions {
     flail.TrunkSize = InventoryTile.Tile1511
     flail.TrunkOffset = 30
     flail.Packet = variantConverter
+    flail.MaxHealth = 2400
 
     mosquito.Seats += 0 -> new SeatDefinition()
     mosquito.Seats(0).Bailable = true
@@ -2375,6 +2399,7 @@ object GlobalDefinitions {
     mosquito.TrunkSize = InventoryTile.Tile1111
     mosquito.TrunkOffset = 30
     mosquito.Packet = variantConverter
+    mosquito.MaxHealth = 665
 
     lightgunship.Seats += 0 -> new SeatDefinition()
     lightgunship.Seats(0).Bailable = true
@@ -2385,6 +2410,7 @@ object GlobalDefinitions {
     lightgunship.TrunkSize = InventoryTile.Tile1511
     lightgunship.TrunkOffset = 30
     lightgunship.Packet = variantConverter
+    lightgunship.MaxHealth = 855
 
     wasp.Seats += 0 -> new SeatDefinition()
     wasp.Seats(0).Bailable = true
@@ -2395,6 +2421,7 @@ object GlobalDefinitions {
     wasp.TrunkSize = InventoryTile.Tile1111
     wasp.TrunkOffset = 30
     wasp.Packet = variantConverter
+    wasp.MaxHealth = 515
 
     liberator.Seats += 0 -> new SeatDefinition()
     liberator.Seats(0).ControlledWeapon = 3
@@ -2412,6 +2439,7 @@ object GlobalDefinitions {
     liberator.TrunkSize = InventoryTile.Tile1515
     liberator.TrunkOffset = 30
     liberator.Packet = variantConverter
+    liberator.MaxHealth = 2500
 
     vulture.Seats += 0 -> new SeatDefinition()
     vulture.Seats(0).ControlledWeapon = 3
@@ -2429,6 +2457,7 @@ object GlobalDefinitions {
     vulture.TrunkSize = InventoryTile.Tile1611
     vulture.TrunkOffset = 30
     vulture.Packet = variantConverter
+    vulture.MaxHealth = 2500
 
     dropship.Seats += 0 -> new SeatDefinition()
     dropship.Seats += 1 -> new SeatDefinition()
@@ -2476,6 +2505,7 @@ object GlobalDefinitions {
     dropship.TrunkSize = InventoryTile.Tile1612
     dropship.TrunkOffset = 30
     dropship.Packet = variantConverter
+    dropship.MaxHealth = 5000
 
     galaxy_gunship.Seats += 0 -> new SeatDefinition()
     galaxy_gunship.Seats += 1 -> new SeatDefinition()
@@ -2502,12 +2532,14 @@ object GlobalDefinitions {
     galaxy_gunship.TrunkSize = InventoryTile.Tile1816
     galaxy_gunship.TrunkOffset = 30
     galaxy_gunship.Packet = variantConverter
+    galaxy_gunship.MaxHealth = 6000
 
     lodestar.Seats += 0 -> new SeatDefinition()
     lodestar.MountPoints += 1 -> 0
     lodestar.TrunkSize = InventoryTile.Tile1612
     lodestar.TrunkOffset = 30
     lodestar.Packet = variantConverter
+    lodestar.MaxHealth = 5000
 
     phantasm.CanCloak = true
     phantasm.Seats += 0 -> new SeatDefinition()
@@ -2527,5 +2559,6 @@ object GlobalDefinitions {
     phantasm.TrunkSize = InventoryTile.Tile1107
     phantasm.TrunkOffset = 30
     phantasm.Packet = variantConverter
+    phantasm.MaxHealth = 2500
   }
 }

@@ -398,6 +398,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
             sendResponse(PacketCoding.CreateGamePacket(0, VehicleStateMessage(vehicle_guid, unk1, pos, ang, vel, unk2, unk3, unk4, wheel_direction, unk5, unk6)))
           }
 
+        case VehicleResponse.PlanetsideAttribute(vehicle_guid, attribute_type, attribute_value) =>
+            sendResponse(PacketCoding.CreateGamePacket(0, PlanetsideAttributeMessage(vehicle_guid, attribute_type, attribute_value)))
+
+        case VehicleResponse.ProximityTerminalUse(pad_guid, bool) =>
+          sendResponse(PacketCoding.CreateGamePacket(0, ProximityTerminalUseMessage(PlanetSideGUID(0), pad_guid, bool)))
+
         case _ => ;
       }
 
@@ -926,6 +932,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
               val vTrunk = vehicle.Trunk
               vTrunk.Clear()
               trunk.foreach(entry => { vTrunk += entry.start -> entry.obj })
+              println(vehicle.MaxHealth, vehicle.Health, pad.Position)
               taskResolver ! RegisterNewVehicle(vehicle, pad)
               sendResponse(PacketCoding.CreateGamePacket(0, ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, true)))
 
@@ -2365,6 +2372,23 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ WarpgateRequest(continent_guid, building_guid, dest_building_guid, dest_continent_guid, unk1, unk2) =>
       log.info("WarpgateRequest: " + msg)
 
+    case msg@ProximityTerminalUseMessage(player_guid, object_guid, unk) =>
+      log.info("ProximityTerminalUseMessage: " + msg)
+      continent.GUID(player_guid) match {
+        case Some(vehicle : Vehicle) =>
+          vehicle.Health = vehicle.Health + 60
+          if (vehicle.Health > vehicle.MaxHealth || vehicle.Health == vehicle.MaxHealth) {
+            vehicle.Health = vehicle.MaxHealth
+            vehicleService ! VehicleServiceMessage(player.Continent, VehicleAction.ProximityTerminalUse(player.GUID, object_guid, true))
+            vehicleService ! VehicleServiceMessage(player.Continent, VehicleAction.ProximityTerminalUse(player.GUID, object_guid, false))
+          } else {
+            vehicleService ! VehicleServiceMessage(player.Continent, VehicleAction.ProximityTerminalUse(player.GUID, object_guid, true))
+          }
+          vehicleService ! VehicleServiceMessage(player.Continent, VehicleAction.PlanetsideAttribute(player.GUID, player_guid, 0, vehicle.Health))
+        case _ =>
+          log.info("ProximityTerminalUseMessage not vehicle ! ")
+      }
+
     case msg @ MountVehicleMsg(player_guid, mountable_guid, unk) =>
       log.info("MountVehicleMsg: "+msg)
       continent.GUID(mountable_guid) match {
@@ -2470,14 +2494,22 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ GenericCollisionMsg(u1, p, t, php, thp, pv, tv, ppos, tpos, u2, u3, u4) =>
       log.info("Ouch! " + msg)
-//      continent.GUID(p) match {
-//        case Some(vehicle : Vehicle) =>
-//          println(vehicle.Health, vehicle.MaxHealth)
-//          vehicle.Health = vehicle.Health - 1
-//          sendResponse(PacketCoding.CreateGamePacket(0,PlanetsideAttributeMessage(p, 0, vehicle.Health)))
-//        case _ =>
-//          log.info("Ouch 2 ! " + msg)
-//      }
+      continent.GUID(p) match {
+        case Some(vehicle : Vehicle) =>
+          vehicle.Health = vehicle.Health - 50
+          if (vehicle.Health < 0) vehicle.Health = 0
+          vehicleService ! VehicleServiceMessage(player.Continent, VehicleAction.PlanetsideAttribute(player.GUID, p, 0, vehicle.Health))
+          continent.GUID(t) match {
+            case Some(vehicle : Vehicle) =>
+              vehicle.Health = vehicle.Health - 50
+              if (vehicle.Health < 0) vehicle.Health = 0
+              vehicleService ! VehicleServiceMessage(player.Continent, VehicleAction.PlanetsideAttribute(player.GUID, t, 0, vehicle.Health))
+            case _ =>
+              log.info("Ouch 3 ! " + msg)
+          }
+        case _ =>
+          log.info("Ouch 2 ! " + msg)
+      }
 
     case msg @ BugReportMessage(version_major,version_minor,version_date,bug_type,repeatable,location,zone,pos,summary,desc) =>
       log.info("BugReportMessage: " + msg)
