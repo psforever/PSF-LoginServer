@@ -36,8 +36,10 @@ object Maps {
   val map12 = new ZoneMap("map12")
 
   val map13 = new ZoneMap("map13") {
-    LocalObject(ServerObjectBuilder(330, Door.Constructor))
-    LocalObject(ServerObjectBuilder(332, Door.Constructor))
+    LocalObject(ServerObjectBuilder(330, Door.Constructor(Vector3(3979.9219f, 2592.0547f, 91.140625f), Vector3(0, 0, 180))))
+    LocalObject(ServerObjectBuilder(331, Door.Constructor(Vector3(3979.9688f, 2608.0625f, 111.140625f), Vector3(0, 0, 180))))
+    LocalObject(ServerObjectBuilder(332, Door.Constructor(Vector3(3979.9688f, 2608.0625f, 91.140625f), Vector3(0, 0, 0))))
+    LocalObject(ServerObjectBuilder(333, Door.Constructor(Vector3(3979.9688f, 2608.0625f, 111.140625f), Vector3(0, 0, 0))))
     LocalObject(ServerObjectBuilder(362, Door.Constructor))
     LocalObject(ServerObjectBuilder(370, Door.Constructor))
     LocalObject(ServerObjectBuilder(371, Door.Constructor))
@@ -62,7 +64,9 @@ object Maps {
     LocalObject(ServerObjectBuilder(528, ImplantTerminalMech.Constructor)) //Hart C
     LocalObject(ServerObjectBuilder(529, ImplantTerminalMech.Constructor)) //Hart C
     LocalObject(ServerObjectBuilder(556, IFFLock.Constructor))
+    LocalObject(ServerObjectBuilder(557, IFFLock.Constructor))
     LocalObject(ServerObjectBuilder(558, IFFLock.Constructor))
+    LocalObject(ServerObjectBuilder(559, IFFLock.Constructor))
     LocalObject(ServerObjectBuilder(686, Locker.Constructor))
     LocalObject(ServerObjectBuilder(687, Locker.Constructor))
     LocalObject(ServerObjectBuilder(688, Locker.Constructor))
@@ -102,7 +106,9 @@ object Maps {
     LocalBases = 30
 
     ObjectToBase(330, 29)
+    ObjectToBase(331, 29)
     ObjectToBase(332, 29)
+    ObjectToBase(333, 29)
     //ObjectToBase(520, 29)
     ObjectToBase(522, 2)
     ObjectToBase(523, 2)
@@ -113,7 +119,9 @@ object Maps {
     ObjectToBase(528, 2)
     ObjectToBase(529, 2)
     ObjectToBase(556, 29)
+    ObjectToBase(557, 29)
     ObjectToBase(558, 29)
+    ObjectToBase(559, 29)
     ObjectToBase(1081, 2)
     ObjectToBase(1063, 2) //TODO unowned courtyard terminal?
     ObjectToBase(500, 2) //TODO unowned courtyard spawnpad?
@@ -121,7 +129,9 @@ object Maps {
     ObjectToBase(501, 2) //TODO unowned courtyard spawnpad?
 
     DoorToLock(330, 558)
+    DoorToLock(331, 559)
     DoorToLock(332, 556)
+    DoorToLock(333, 557)
     TerminalToSpawnPad(1063, 500)
     TerminalToSpawnPad(304, 501)
     TerminalToInterface(520, 1081)

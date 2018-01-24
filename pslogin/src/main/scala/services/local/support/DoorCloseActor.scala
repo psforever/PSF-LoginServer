@@ -6,6 +6,7 @@ import net.psforever.objects.DefaultCancellable
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.PlanetSideGUID
+import net.psforever.types.Vector3
 
 import scala.annotation.tailrec
 import scala.concurrent.duration._
@@ -33,15 +34,23 @@ class DoorCloseActor() extends Actor {
     case DoorCloseActor.TryCloseDoors() =>
       doorCloserTrigger.cancel
       val now : Long = System.nanoTime
-      val (doorsToClose, doorsLeftOpen) = PartitionEntries(openDoors, now)
-      openDoors = doorsLeftOpen
-      doorsToClose.foreach(entry => {
-        entry.door.Open = false //permissible break from synchronization
+      val (doorsToClose1, doorsLeftOpen1) = PartitionEntries(openDoors, now)
+      val (doorsToClose2, doorsLeftOpen2) = doorsToClose1.partition(entry => {
+        entry.door.Open match {
+          case Some(player) =>
+            Vector3.MagnitudeSquared(entry.door.Position - player.Position) > 15
+          case None =>
+            true
+        }
+      })
+      openDoors = (doorsLeftOpen1 ++ doorsLeftOpen2).sortBy(_.time)
+      doorsToClose2.foreach(entry => {
+        entry.door.Open = None //permissible break from synchronization
         context.parent ! DoorCloseActor.CloseTheDoor(entry.door.GUID, entry.zone.Id) //call up to the main event system
       })
 
-      if(doorsLeftOpen.nonEmpty) {
-        val short_timeout : FiniteDuration = math.max(1, DoorCloseActor.timeout_time - (now - doorsLeftOpen.head.time)) nanoseconds
+      if(openDoors.nonEmpty) {
+        val short_timeout : FiniteDuration = math.max(1, DoorCloseActor.timeout_time - (now - openDoors.head.time)) nanoseconds
         import scala.concurrent.ExecutionContext.Implicits.global
         doorCloserTrigger = context.system.scheduler.scheduleOnce(short_timeout, self, DoorCloseActor.TryCloseDoors())
       }

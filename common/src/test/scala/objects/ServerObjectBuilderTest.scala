@@ -9,9 +9,9 @@ import net.psforever.types.Vector3
 
 import scala.concurrent.duration.Duration
 
-class DoorObjectBuilderTest extends ActorTest {
+class DoorObjectBuilderTest1 extends ActorTest {
   import net.psforever.objects.serverobject.doors.Door
-  "DoorObjectBuilder" should {
+  "Door object" should {
     "build" in {
       val hub = ServerObjectBuilderTest.NumberPoolHub
       val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1, Door.Constructor), hub), "door")
@@ -26,9 +26,29 @@ class DoorObjectBuilderTest extends ActorTest {
   }
 }
 
+class DoorObjectBuilderTest2 extends ActorTest {
+  import net.psforever.objects.serverobject.doors.Door
+  "Door object" should {
+    "build" in {
+      val hub = ServerObjectBuilderTest.NumberPoolHub
+      val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1, Door.Constructor(Vector3(1, 2, 3), Vector3(90, 180, 45))), hub), "door")
+      actor ! "!"
+
+      val reply = receiveOne(Duration.create(1000, "ms"))
+      assert(reply.isInstanceOf[Door])
+      assert(reply.asInstanceOf[Door].Position == Vector3(1, 2, 3))
+      assert(reply.asInstanceOf[Door].Orientation == Vector3(90, 180, 45))
+      assert(reply.asInstanceOf[Door].Outwards == Vector3(0.70710677f, 0.70710677f, 0f))
+      assert(reply.asInstanceOf[Door].HasGUID)
+      assert(reply.asInstanceOf[Door].GUID == PlanetSideGUID(1))
+      assert(reply == hub(1).get)
+    }
+  }
+}
+
 class IFFLockObjectBuilderTest extends ActorTest {
   import net.psforever.objects.serverobject.locks.IFFLock
-  "IFFLockObjectBuilder" should {
+  "IFFLock object" should {
     "build" in {
       val hub = ServerObjectBuilderTest.NumberPoolHub
       val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1, IFFLock.Constructor), hub), "lock")
@@ -45,7 +65,7 @@ class IFFLockObjectBuilderTest extends ActorTest {
 
 class ImplantTerminalMechObjectBuilderTest extends ActorTest {
   import net.psforever.objects.serverobject.implantmech.ImplantTerminalMech
-  "IFFLockObjectBuilder" should {
+  "Implant terminal mech object" should {
     "build" in {
       val hub = ServerObjectBuilderTest.NumberPoolHub
       val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1, ImplantTerminalMech.Constructor), hub), "mech")
@@ -63,7 +83,7 @@ class ImplantTerminalMechObjectBuilderTest extends ActorTest {
 class TerminalObjectBuilderTest extends ActorTest {
   import net.psforever.objects.GlobalDefinitions.order_terminal
   import net.psforever.objects.serverobject.terminals.Terminal
-  "TerminalObjectBuilder" should {
+  "Terminal object" should {
     "build" in {
       val hub = ServerObjectBuilderTest.NumberPoolHub
       val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1, Terminal.Constructor(order_terminal)), hub), "term")
@@ -80,7 +100,7 @@ class TerminalObjectBuilderTest extends ActorTest {
 
 class VehicleSpawnPadObjectBuilderTest extends ActorTest {
   import net.psforever.objects.serverobject.pad.VehicleSpawnPad
-  "TerminalObjectBuilder" should {
+  "Vehicle spawn pad object" should {
     "build" in {
       val hub = ServerObjectBuilderTest.NumberPoolHub
       val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1,
@@ -131,4 +151,3 @@ object ServerObjectBuilderTest {
     }
   }
 }
-
