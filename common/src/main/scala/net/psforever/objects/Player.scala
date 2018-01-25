@@ -188,6 +188,8 @@ class Player(private val name : String,
 
   def Inventory : GridInventory = inventory
 
+  def Locker : LockerContainer = fifthSlot.Equipment.get.asInstanceOf[LockerContainer]
+
   def Fit(obj : Equipment) : Option[Int] = {
     recursiveHolsterFit(holsters.iterator, obj.Size) match {
       case Some(index) =>
