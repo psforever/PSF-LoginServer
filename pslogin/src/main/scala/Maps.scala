@@ -5,6 +5,7 @@ import net.psforever.objects.serverobject.ServerObjectBuilder
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.serverobject.implantmech.ImplantTerminalMech
 import net.psforever.objects.serverobject.locks.IFFLock
+import net.psforever.objects.serverobject.mblocker.Locker
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
 import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.types.Vector3
@@ -823,6 +824,14 @@ object Maps {
     LocalObject(ServerObjectBuilder(529, ImplantTerminalMech.Constructor)) //Hart C
     LocalObject(ServerObjectBuilder(556, IFFLock.Constructor))
     LocalObject(ServerObjectBuilder(558, IFFLock.Constructor))
+    LocalObject(ServerObjectBuilder(686, Locker.Constructor))
+    LocalObject(ServerObjectBuilder(687, Locker.Constructor))
+    LocalObject(ServerObjectBuilder(688, Locker.Constructor))
+    LocalObject(ServerObjectBuilder(689, Locker.Constructor))
+    LocalObject(ServerObjectBuilder(690, Locker.Constructor))
+    LocalObject(ServerObjectBuilder(691, Locker.Constructor))
+    LocalObject(ServerObjectBuilder(692, Locker.Constructor))
+    LocalObject(ServerObjectBuilder(693, Locker.Constructor))
     LocalObject(ServerObjectBuilder(186, Terminal.Constructor(cert_terminal)))
     LocalObject(ServerObjectBuilder(187, Terminal.Constructor(cert_terminal)))
     LocalObject(ServerObjectBuilder(188, Terminal.Constructor(cert_terminal)))
@@ -856,17 +865,17 @@ object Maps {
     ObjectToBase(330, 29)
     ObjectToBase(332, 29)
     //ObjectToBase(520, 29)
-    ObjectToBase(522, 29)
-    ObjectToBase(523, 29)
-    ObjectToBase(524, 29)
-    ObjectToBase(525, 29)
-    ObjectToBase(526, 29)
-    ObjectToBase(527, 29)
-    ObjectToBase(528, 29)
-    ObjectToBase(529, 29)
+    ObjectToBase(522, 2)
+    ObjectToBase(523, 2)
+    ObjectToBase(524, 2)
+    ObjectToBase(525, 2)
+    ObjectToBase(526, 2)
+    ObjectToBase(527, 2)
+    ObjectToBase(528, 2)
+    ObjectToBase(529, 2)
     ObjectToBase(556, 29)
     ObjectToBase(558, 29)
-    ObjectToBase(1081, 29)
+    ObjectToBase(1081, 2)
     ObjectToBase(1063, 2) //TODO unowned courtyard terminal?
     ObjectToBase(500, 2) //TODO unowned courtyard spawnpad?
     ObjectToBase(304, 2) //TODO unowned courtyard terminal?

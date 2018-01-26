@@ -500,6 +500,8 @@ object GlobalDefinitions {
 
   val spawn_pad = new ObjectDefinition(800) { Name = "spawn_pad" }
 
+  val mb_locker = new ObjectDefinition(524) { Name = "mb_locker" }
+
   val lock_external = new IFFLockDefinition
 
   val door = new DoorDefinition

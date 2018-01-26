@@ -20,6 +20,7 @@ import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObjec
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.serverobject.implantmech.ImplantTerminalMech
 import net.psforever.objects.serverobject.locks.IFFLock
+import net.psforever.objects.serverobject.mblocker.Locker
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
 import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.vehicles.{AccessPermissionGroup, VehicleLockState}
@@ -52,6 +53,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
   var continent : Zone = null
   var progressBarValue : Option[Float] = None
   var shooting : Option[PlanetSideGUID] = None
+  var accessedContainer : Option[PlanetSideGameObject with Container] = None
 
   var clientKeepAlive : Cancellable = DefaultCancellable.obj
   var progressBarUpdate : Cancellable = DefaultCancellable.obj
@@ -1847,7 +1849,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                     }
                     previousBox.Capacity = capacity
                   }
-                  
+
                   if(previousBox.Capacity > 0) {
                     //TODO split previousBox into AmmoBox objects of appropriate max capacity, e.g., 100 9mm -> 2 x 50 9mm
                     obj.Inventory.Fit(previousBox.Definition.Tile) match {
@@ -2064,13 +2066,24 @@ class WorldSessionActor extends Actor with MDCContextAware {
           }
 
         case Some(obj : Equipment) =>
-          player.Find(object_guid) match { //player should be holding it
-            case Some(slot) =>
-              taskResolver ! RemoveEquipmentFromSlot(player, player.Slot(slot).Equipment.get, slot)
+          val findFunc : PlanetSideGameObject with Container => Option[(PlanetSideGameObject with Container, Option[Int])] = FindInLocalContainer(object_guid)
+
+          findFunc(player)
+            .orElse(findFunc(player.Locker))
+            .orElse(accessedContainer match {
+              case Some(parent) =>
+                findFunc(parent)
+              case None =>
+                None
+            }) match {
+            case Some((parent, Some(slot))) =>
+              taskResolver ! RemoveEquipmentFromSlot(parent, obj, slot)
               log.info(s"RequestDestroy: equipment $object_guid")
-            case None =>
+
+            case _ =>
+              //TODO search for item on ground
               sendResponse(PacketCoding.CreateGamePacket(0, ObjectDeleteMessage(object_guid, 0)))
-              log.warn(s"RequestDestroy: object $object_guid not found in player hands")
+              log.warn(s"RequestDestroy: object $object_guid not found")
           }
 
         case None =>
@@ -2085,6 +2098,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       log.info("ObjectDelete: " + msg)
 
     case msg @ MoveItemMessage(item_guid, source_guid, destination_guid, dest, unk1) =>
+      log.info(s"MoveItem: $msg")
       (continent.GUID(source_guid), continent.GUID(destination_guid), continent.GUID(item_guid)) match {
         case (Some(source : Container), Some(destination : Container), Some(item : Equipment)) =>
           source.Find(item_guid) match {
@@ -2238,6 +2252,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
             case _ => ;
           }
 
+        case Some(obj : Locker) =>
+          val container = player.Locker
+          accessedContainer = Some(container)
+          sendResponse(PacketCoding.CreateGamePacket(0, UseItemMessage(avatar_guid, unk1, container.GUID, unk2, unk3, unk4, unk5, unk6, unk7, unk8, 456)))
+
         case Some(obj : Vehicle) =>
           if(obj.Faction == player.Faction) {
             val equipment = player.Slot(player.DrawnSlot).Equipment
@@ -2252,6 +2271,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
               //access to trunk
               if(obj.AccessingTrunk.isEmpty) {
                 obj.AccessingTrunk = player.GUID
+                accessedContainer = Some(obj)
                 AccessContents(obj)
                 sendResponse(PacketCoding.CreateGamePacket(0, UseItemMessage(avatar_guid, unk1, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType)))
               }
@@ -2306,6 +2326,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
         case _ =>;
       }
+      accessedContainer = None
 
     case msg @ DeployObjectMessage(guid, unk1, pos, roll, pitch, yaw, unk2) =>
       log.info("DeployObject: " + msg)
@@ -3328,6 +3349,24 @@ class WorldSessionActor extends Actor with MDCContextAware {
     val objDef = entry.obj.Definition
     val faction = GlobalDefinitions.isFactionEquipment(objDef)
     GlobalDefinitions.isCavernEquipment(objDef) || (faction != tplayer.Faction && faction != PlanetSideEmpire.NEUTRAL)
+  }
+
+  /**
+    * Given an object globally unique identifier, search in a given location for it.
+    * @param object_guid the object
+    * @param parent a `Container` object wherein to search
+    * @return an optional tuple that contains two values;
+    *         the first value is the container that matched correctly with the object's GUID;
+    *         the second value is the slot position of the object
+    */
+  def FindInLocalContainer(object_guid : PlanetSideGUID)(parent : PlanetSideGameObject with Container) : Option[(PlanetSideGameObject with Container, Option[Int])] = {
+    val slot : Option[Int] = parent.Find(object_guid)
+    slot match {
+      case place @ Some(_) =>
+        Some(parent, slot)
+      case None =>
+        None
+    }
   }
 
   def failWithError(error : String) = {

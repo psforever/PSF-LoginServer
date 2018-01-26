@@ -2,7 +2,6 @@
 package objects
 
 import akka.actor.{Actor, Props}
-import net.psforever.objects.GlobalDefinitions.order_terminal
 import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.objects.serverobject.ServerObjectBuilder
@@ -62,6 +61,7 @@ class ImplantTerminalMechObjectBuilderTest extends ActorTest {
 }
 
 class TerminalObjectBuilderTest extends ActorTest {
+  import net.psforever.objects.GlobalDefinitions.order_terminal
   import net.psforever.objects.serverobject.terminals.Terminal
   "TerminalObjectBuilder" should {
     "build" in {
@@ -94,6 +94,24 @@ class VehicleSpawnPadObjectBuilderTest extends ActorTest {
       assert(reply.asInstanceOf[VehicleSpawnPad].GUID == PlanetSideGUID(1))
       assert(reply.asInstanceOf[VehicleSpawnPad].Position == Vector3(1.1f, 2.2f, 3.3f))
       assert(reply.asInstanceOf[VehicleSpawnPad].Orientation == Vector3(4.4f, 5.5f, 6.6f))
+      assert(reply == hub(1).get)
+    }
+  }
+}
+
+class LockerObjectBuilderTest extends ActorTest {
+  import net.psforever.objects.serverobject.mblocker.Locker
+  "LockerObjectBuilder" should {
+    "build" in {
+      val hub = ServerObjectBuilderTest.NumberPoolHub
+      val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1,
+        Locker.Constructor), hub), "locker")
+      actor ! "!"
+
+      val reply = receiveOne(Duration.create(1000, "ms"))
+      assert(reply.isInstanceOf[Locker])
+      assert(reply.asInstanceOf[Locker].HasGUID)
+      assert(reply.asInstanceOf[Locker].GUID == PlanetSideGUID(1))
       assert(reply == hub(1).get)
     }
   }
