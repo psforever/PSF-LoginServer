@@ -1336,7 +1336,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       player.Certifications += CertificationType.Phantasm
       AwardBattleExperiencePoints(player, 1000000L)
 //      player.ExoSuit = ExoSuitType.MAX //TODO strange issue; divide number above by 10 when uncommenting
-      player.Slot(0).Equipment = Tool(GlobalDefinitions.StandardPistol(player.Faction))
+      player.Slot(0).Equipment = SimpleItem(remote_electronics_kit) //Tool(GlobalDefinitions.StandardPistol(player.Faction))
       player.Slot(2).Equipment = Tool(punisher) //suppressor
       player.Slot(4).Equipment = Tool(GlobalDefinitions.StandardMelee(player.Faction))
       player.Slot(6).Equipment = AmmoBox(bullet_9mm, 20) //bullet_9mm
@@ -1906,14 +1906,15 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ ChangeFireStateMessage_Start(item_guid) =>
       log.info("ChangeFireState_Start: " + msg)
       if(shooting.isEmpty) {
-        FindWeapon match {
+        FindEquipment match {
           case Some(tool : Tool) =>
             if(tool.GUID == item_guid && tool.Magazine > 0) {
               shooting = Some(item_guid)
               avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireState_Start(player.GUID, item_guid))
             }
-          case Some(_) =>
-            log.error(s"ChangeFireState_Start: the object that was found for $item_guid was not a Tool")
+          case Some(_) => //permissible, for now
+            shooting = Some(item_guid)
+            avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireState_Start(player.GUID, item_guid))
           case None =>
             log.error(s"ChangeFireState_Start: can not find $item_guid")
         }
@@ -1924,12 +1925,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
       val weapon : Option[Equipment] = if(shooting.contains(item_guid)) {
         shooting = None
         avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireState_Stop(player.GUID, item_guid))
-        FindWeapon
+        FindEquipment
       }
       else {
         //some weapons, e.g., the decimator, do not send a ChangeFireState_Start on the last shot
-        FindWeapon match {
-          case Some(tool : Tool) =>
+        FindEquipment match {
+          case Some(tool) =>
             if(tool.Definition == GlobalDefinitions.phoenix) {
               avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireState_Start(player.GUID, item_guid))
               avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireState_Stop(player.GUID, item_guid))
@@ -2221,10 +2222,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
           continent.Map.DoorToLock.get(object_guid.guid) match { //check for IFF Lock
             case Some(lock_guid) =>
               val lock_hacked = continent.GUID(lock_guid).get.asInstanceOf[IFFLock].HackedBy match {
-                case Some((tplayer, _, _)) =>
-                  tplayer.Faction == player.Faction
+                case Some(_) =>
+                  true
                 case None =>
-                  false
+                  Vector3.ScalarProjection(door.Outwards, player.Position - door.Position) < 0f
               }
               continent.Map.ObjectToBase.get(lock_guid) match { //check for associated base
                 case Some(base_id) =>
@@ -3125,19 +3126,14 @@ class WorldSessionActor extends Actor with MDCContextAware {
     *         the first value is a `Container` object;
     *         the second value is an `Equipment` object in the former
     */
-  def FindContainedWeapon : (Option[PlanetSideGameObject with Container], Option[Equipment]) = {
+  def FindContainedEquipment : (Option[PlanetSideGameObject with Container], Option[Equipment]) = {
     player.VehicleSeated match {
       case Some(vehicle_guid) => //weapon is vehicle turret?
         continent.GUID(vehicle_guid) match {
           case Some(vehicle : Vehicle) =>
             vehicle.PassengerInSeat(player) match {
               case Some(seat_num) =>
-                vehicle.WeaponControlledFromSeat(seat_num) match {
-                  case Some(item : Tool) =>
-                    (Some(vehicle), Some(item))
-                  case _ => ;
-                    (None, None)
-                }
+                (Some(vehicle), vehicle.WeaponControlledFromSeat(seat_num))
               case None => ;
                 (None, None)
             }
@@ -3145,20 +3141,37 @@ class WorldSessionActor extends Actor with MDCContextAware {
             (None, None)
         }
       case None => //not in vehicle; weapon in hand?
-        player.Slot(player.DrawnSlot).Equipment match {
-          case Some(item : Tool) =>
-            (Some(player), Some(item))
-          case _ => ;
-            (None, None)
-        }
+        (Some(player), player.Slot(player.DrawnSlot).Equipment)
+    }
+  }
+
+  /**
+    * Runs `FindContainedEquipment` but ignores the `Container` object output.
+    * @return an `Equipment` object
+    */
+  def FindEquipment : Option[Equipment] = FindContainedEquipment._2
+
+  /**
+    * Check two locations for a controlled piece of equipment that is associated with the `player`.
+    * Filter for discovered `Tool`-type `Equipment`.
+    * @return a `Tuple` of the returned values;
+    *         the first value is a `Container` object;
+    *         the second value is an `Tool` object in the former
+    */
+  def FindContainedWeapon : (Option[PlanetSideGameObject with Container], Option[Tool]) = {
+    FindContainedEquipment match {
+      case (container, Some(tool : Tool)) =>
+        (container, Some(tool))
+      case _ =>
+        (None, None)
     }
   }
 
   /**
     * Runs `FindContainedWeapon` but ignores the `Container` object output.
-    * @return an `Equipment` object
+    * @return a `Tool` object
     */
-  def FindWeapon : Option[Equipment] = FindContainedWeapon._2
+  def FindWeapon : Option[Tool] = FindContainedWeapon._2
 
   /**
     * Within a specified `Container`, find the smallest number of `AmmoBox` objects of a certain type of `Ammo`

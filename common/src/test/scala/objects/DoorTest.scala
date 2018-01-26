@@ -19,27 +19,55 @@ class DoorTest extends Specification {
 
     "starts as closed (false)" in {
       val door = Door(GlobalDefinitions.door)
-      door.Open mustEqual false
+      door.Open mustEqual None
+      door.isOpen mustEqual false
     }
 
-    "can be opened and closed (1; manual)" in {
+    "be opened and closed (1; manual)" in {
+      val player = Player("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
       val door = Door(GlobalDefinitions.door)
-      door.Open mustEqual false
-      door.Open = true
-      door.Open mustEqual true
-      door.Open = false
-      door.Open mustEqual false
+      door.isOpen mustEqual false
+      door.Open mustEqual None
+
+      door.Open = Some(player)
+      door.isOpen mustEqual true
+      door.Open mustEqual Some(player)
+
+      door.Open = None
+      door.isOpen mustEqual false
+      door.Open mustEqual None
     }
 
-    "can beopened and closed (2; toggle)" in {
+    "be opened and closed (2; toggle)" in {
       val player = Player("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
       val msg = UseItemMessage(PlanetSideGUID(6585), 0, PlanetSideGUID(372), 4294967295L, false, Vector3(5.0f,0.0f,0.0f), Vector3(0.0f,0.0f,0.0f), 11, 25, 0, 364)
       val door = Door(GlobalDefinitions.door)
-      door.Open mustEqual false
+      door.Open mustEqual None
       door.Use(player, msg)
-      door.Open mustEqual true
+      door.Open mustEqual Some(player)
       door.Use(player, msg)
-      door.Open mustEqual false
+      door.Open mustEqual None
+    }
+
+    "keep track of its orientation as a North-corrected vector" in {
+      val ulp = math.ulp(1)
+      val door = Door(GlobalDefinitions.door)
+
+      door.Orientation = Vector3(0, 0, 0) //face North
+      door.Outwards.x < ulp mustEqual true
+      door.Outwards.y mustEqual 1
+
+      door.Orientation = Vector3(0, 0, 90) //face East
+      door.Outwards.x mustEqual 1
+      door.Outwards.y < ulp mustEqual true
+
+      door.Orientation = Vector3(0, 0, 180) //face South
+      door.Outwards.x < ulp mustEqual true
+      door.Outwards.y mustEqual -1
+
+      door.Orientation = Vector3(0, 0, 270) //face West
+      door.Outwards.x mustEqual -1
+      door.Outwards.y < ulp mustEqual true
     }
   }
 }
@@ -61,7 +89,7 @@ class DoorControl2Test extends ActorTest() {
       door.Actor = system.actorOf(Props(classOf[DoorControl], door), "door")
       val player = Player("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
       val msg = UseItemMessage(PlanetSideGUID(1), 0, PlanetSideGUID(2), 0L, false, Vector3(0f,0f,0f),Vector3(0f,0f,0f),0,0,0,0L) //faked
-      assert(!door.Open)
+      assert(door.Open.isEmpty)
 
       door.Actor ! Door.Use(player, msg)
       val reply = receiveOne(Duration.create(500, "ms"))
@@ -70,7 +98,7 @@ class DoorControl2Test extends ActorTest() {
       assert(reply2.player == player)
       assert(reply2.msg == msg)
       assert(reply2.response == Door.OpenEvent())
-      assert(door.Open)
+      assert(door.Open.isDefined)
     }
   }
 }
@@ -80,12 +108,12 @@ class DoorControl3Test extends ActorTest() {
     "do nothing if given garbage" in {
       val door = Door(GlobalDefinitions.door)
       door.Actor = system.actorOf(Props(classOf[DoorControl], door), "door")
-      assert(!door.Open)
+      assert(door.Open.isEmpty)
 
       door.Actor ! "trash"
       val reply = receiveOne(Duration.create(500, "ms"))
       assert(reply.isInstanceOf[Door.NoEvent])
-      assert(!door.Open)
+      assert(door.Open.isEmpty)
     }
   }
 }
