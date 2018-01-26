@@ -3,12 +3,13 @@ package net.psforever.objects.serverobject
 
 import akka.actor.ActorRef
 import net.psforever.objects.PlanetSideGameObject
+import net.psforever.objects.serverobject.affinity.FactionAffinity
 
 /**
   * An object layered on top of the standard game object class that maintains an internal `ActorRef`.
   * A measure of synchronization can be managed using this `Actor`.
   */
-abstract class PlanetSideServerObject extends PlanetSideGameObject {
+abstract class PlanetSideServerObject extends PlanetSideGameObject  with FactionAffinity {
   private var actor = ActorRef.noSender
 
   /**

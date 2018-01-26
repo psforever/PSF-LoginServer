@@ -3,19 +3,20 @@ package net.psforever.objects.zones
 
 import akka.actor.{ActorContext, ActorRef, Props}
 import akka.routing.RandomPool
-import net.psforever.objects.serverobject.doors.Base
 import net.psforever.objects.{PlanetSideGameObject, Player, Vehicle}
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.objects.guid.actor.UniqueNumberSystem
 import net.psforever.objects.guid.selector.RandomSelector
 import net.psforever.objects.guid.source.LimitedNumberSource
+import net.psforever.objects.serverobject.structures.{Amenity, Building}
 import net.psforever.packet.GamePacket
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types.Vector3
 
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
+import scala.collection.immutable.{Map => PairMap}
 
 /**
   * A server object representing the one-landmass planets as well as the individual subterranean caverns.<br>
@@ -55,7 +56,7 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
   /** */
   private var transport : ActorRef = ActorRef.noSender
 
-  private var bases : List[Base] = List()
+  private var buildings : PairMap[Int, Building] = PairMap.empty[Int, Building]
 
   /**
     * Establish the basic accessible conditions necessary for a functional `Zone`.<br>
@@ -79,8 +80,8 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
       Map.LocalObjects.foreach({ builderObject =>
         builderObject.Build
       })
-
-      MakeBases(Map.LocalBases)
+      MakeBuildings(context)
+      AssignAmenities()
     }
   }
 
@@ -217,13 +218,20 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
 
   def Transport : ActorRef = transport
 
-  def MakeBases(num : Int) : List[Base] = {
-    bases = (1 to num).map(id => new Base(id)).toList
-    bases
+  def Building(id : Int) : Option[Building] = {
+    buildings.get(id)
   }
 
-  def Base(id : Int) : Option[Base] = {
-    bases.lift(id)
+  private def MakeBuildings(implicit context : ActorContext) : PairMap[Int, Building] = {
+    val buildingList = Map.LocalBuildings
+    buildings = buildingList.map({case(building_id, constructor) => building_id -> constructor.Build(building_id, this) })
+    buildings
+  }
+
+  private def AssignAmenities() : Unit = {
+    Map.ObjectToBuilding.foreach({ case(object_guid, building_id) =>
+      buildings(building_id).Amenities = guid(object_guid).get.asInstanceOf[Amenity]
+    })
   }
 
   /**
@@ -264,6 +272,8 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
 }
 
 object Zone {
+  final val Nowhere : Zone = new Zone("nowhere", new ZoneMap("nowhere"), 99)
+
   /**
     * Message to initialize the `Zone`.
     * @see `Zone.Init(implicit ActorContext)`

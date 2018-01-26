@@ -1,6 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.zones
 
+import net.psforever.objects.serverobject.structures.FoundationBuilder
 import net.psforever.objects.serverobject.ServerObjectBuilder
 
 /**
@@ -29,7 +30,7 @@ class ZoneMap(private val name : String) {
   private var linkTerminalInterface : Map[Int, Int] = Map()
   private var linkDoorLock : Map[Int, Int] = Map()
   private var linkObjectBase : Map[Int, Int] = Map()
-  private var numBases : Int = 0
+  private var buildings : Map[Int, FoundationBuilder] = Map()
 
   def Name : String = name
 
@@ -49,19 +50,19 @@ class ZoneMap(private val name : String) {
     localObjects = localObjects :+ obj
   }
 
-  def LocalBases : Int = numBases
+  def LocalBuildings : Map[Int, FoundationBuilder] = buildings
 
-  def LocalBases_=(num : Int) : Int = {
-    if(num > 0) {
-      numBases = num
+  def LocalBuilding(building_id : Int, constructor : FoundationBuilder) : Int = {
+    if(building_id > 0) {
+      buildings = buildings ++ Map(building_id -> constructor)
     }
-    LocalBases
+    buildings.size
   }
 
-  def ObjectToBase : Map[Int, Int] = linkObjectBase
+  def ObjectToBuilding : Map[Int, Int] = linkObjectBase
 
-  def ObjectToBase(object_guid : Int, base_id : Int) : Unit = {
-    linkObjectBase = linkObjectBase ++ Map(object_guid -> base_id)
+  def ObjectToBuilding(object_guid : Int, building_id : Int) : Unit = {
+    linkObjectBase = linkObjectBase ++ Map(object_guid -> building_id)
   }
 
   def DoorToLock : Map[Int, Int] = linkDoorLock

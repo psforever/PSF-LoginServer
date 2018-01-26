@@ -1,19 +1,18 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.mblocker
 
-import akka.actor.ActorContext
+import akka.actor.{ActorContext, Props}
 import net.psforever.objects.GlobalDefinitions
-import net.psforever.objects.definition.ObjectDefinition
-import net.psforever.objects.serverobject.PlanetSideServerObject
+import net.psforever.objects.serverobject.structures.Amenity
 
-class Locker extends PlanetSideServerObject {
-  def Definition : ObjectDefinition = GlobalDefinitions.mb_locker
+class Locker extends Amenity {
+  def Definition : LockerDefinition = GlobalDefinitions.mb_locker
 }
 
 object Locker {
   /**
     * Overloaded constructor.
-    * @return a `VehicleSpawnPad` object
+    * @return the `Locker` object
     */
   def apply() : Locker = {
     new Locker()
@@ -28,6 +27,7 @@ object Locker {
     */
   def Constructor(id : Int, context : ActorContext) : Locker = {
     val obj = Locker()
+    obj.Actor = context.actorOf(Props(classOf[LockerControl], obj), s"${obj.Definition.Name}_$id")
     obj
   }
 }

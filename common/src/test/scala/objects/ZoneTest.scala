@@ -1,39 +1,44 @@
 // Copyright (c) 2017 PSForever
 package objects
 
-import akka.actor.ActorRef
+import akka.actor.{ActorContext, ActorRef}
 import net.psforever.objects.entity.IdentifiableEntity
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.objects.guid.source.LimitedNumberSource
+import net.psforever.objects.serverobject.structures.{Building, FoundationBuilder}
 import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.objects.{GlobalDefinitions, Vehicle}
 import org.specs2.mutable.Specification
 
 class ZoneTest extends Specification {
+  def test(a: Int, b : Zone, c : ActorContext) : Building = { Building.NoBuilding }
+
   "ZoneMap" should {
-    //TODO these are temporary tests as the current ZoneMap is a kludge
     "construct" in {
       new ZoneMap("map13")
       ok
     }
 
     "references bases by a positive building id (defaults to 0)" in {
+      def test(a: Int, b : Zone, c : ActorContext) : Building = { Building.NoBuilding }
+
       val map = new ZoneMap("map13")
-      map.LocalBases mustEqual 0
-      map.LocalBases = 10
-      map.LocalBases mustEqual 10
-      map.LocalBases = -1
-      map.LocalBases mustEqual 10
+      map.LocalBuildings mustEqual Map.empty
+      map.LocalBuilding(10, FoundationBuilder(test))
+      map.LocalBuildings.keySet.contains(10) mustEqual true
+      map.LocalBuilding(-1, FoundationBuilder(test))
+      map.LocalBuildings.keySet.contains(10) mustEqual true
+      map.LocalBuildings.keySet.contains(-1) mustEqual false
     }
 
     "associates objects to bases (doesn't check numbers)" in {
       val map = new ZoneMap("map13")
-      map.ObjectToBase mustEqual Nil
-      map.ObjectToBase(1, 2)
-      map.ObjectToBase mustEqual List((1, 2))
-      map.ObjectToBase(3, 4)
-      map.ObjectToBase mustEqual List((1, 2), (3, 4))
+      map.ObjectToBuilding mustEqual Nil
+      map.ObjectToBuilding(1, 2)
+      map.ObjectToBuilding mustEqual Map(1 -> 2)
+      map.ObjectToBuilding(3, 4)
+      map.ObjectToBuilding mustEqual Map(1 -> 2, 3 -> 4)
     }
 
     "associates doors to door locks (doesn't check numbers)" in {
@@ -65,11 +70,10 @@ class ZoneTest extends Specification {
   }
 
   val map13 = new ZoneMap("map13")
-  map13.LocalBases = 10
+  map13.LocalBuilding(10, FoundationBuilder(test))
   class TestObject extends IdentifiableEntity
 
   "Zone" should {
-    //TODO these are temporary tests as the current Zone is a kludge
     "construct" in {
       val zone = new Zone("home3", map13, 13)
       zone.GUID mustEqual ActorRef.noSender

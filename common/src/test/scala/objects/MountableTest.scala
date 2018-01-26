@@ -4,9 +4,10 @@ package objects
 import akka.actor.{Actor, ActorRef, Props}
 import net.psforever.objects.Player
 import net.psforever.objects.definition.{ObjectDefinition, SeatDefinition}
-import net.psforever.objects.mount.{Mountable, MountableBehavior}
+import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior}
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.vehicles.Seat
+import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types.{CharacterGender, PlanetSideEmpire}
 
 import scala.concurrent.duration.Duration
@@ -80,12 +81,15 @@ object MountableTest {
         None
       }
     }
-    def Definition : ObjectDefinition = null //eh whatever
+    GUID = PlanetSideGUID(1)
+    //eh whatever
+    def Faction = PlanetSideEmpire.TR
+    def Definition : ObjectDefinition = null
   }
 
-  class MountableTestControl(obj : Mountable) extends Actor with MountableBehavior {
+  class MountableTestControl(obj : PlanetSideServerObject with Mountable) extends Actor with MountableBehavior.Mount with MountableBehavior.Dismount {
     override def MountableObject = obj
 
-    def receive : Receive = mountableBehavior
+    def receive : Receive = mountBehavior.orElse(dismountBehavior)
   }
 }

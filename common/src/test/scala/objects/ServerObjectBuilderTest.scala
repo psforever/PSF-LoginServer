@@ -5,9 +5,25 @@ import akka.actor.{Actor, Props}
 import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.objects.serverobject.ServerObjectBuilder
+import net.psforever.objects.serverobject.structures.{Building, FoundationBuilder}
+import net.psforever.objects.zones.Zone
 import net.psforever.types.Vector3
 
 import scala.concurrent.duration.Duration
+
+class BuildingBuilderTest extends ActorTest {
+  "Building object" should {
+    "build" in {
+      val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuildingTestActor], 10, Zone.Nowhere), "building")
+      actor ! "!"
+
+      val reply = receiveOne(Duration.create(1000, "ms"))
+      assert(reply.isInstanceOf[Building])
+      assert(reply.asInstanceOf[Building].Id == 10)
+      assert(reply.asInstanceOf[Building].Zone == Zone.Nowhere)
+    }
+  }
+}
 
 class DoorObjectBuilderTest1 extends ActorTest {
   import net.psforever.objects.serverobject.doors.Door
@@ -148,6 +164,13 @@ object ServerObjectBuilderTest {
     def receive : Receive = {
       case _ =>
         sender ! builder.Build(context, hub)
+    }
+  }
+
+  class BuildingTestActor(building_id : Int, zone : Zone) extends Actor {
+    def receive : Receive = {
+      case _ =>
+        sender ! FoundationBuilder(Building.Structure).Build(building_id, zone)(context)
     }
   }
 }

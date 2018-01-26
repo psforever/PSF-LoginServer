@@ -2,8 +2,10 @@
 package objects.terminal
 
 import akka.actor.ActorRef
+import net.psforever.objects.serverobject.structures.Building
 import net.psforever.objects.{GlobalDefinitions, Player}
 import net.psforever.objects.serverobject.terminals.Terminal
+import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.{ItemTransactionMessage, PlanetSideGUID}
 import net.psforever.types.{CharacterGender, PlanetSideEmpire, TransactionType}
 import org.specs2.mutable.Specification
@@ -11,6 +13,9 @@ import org.specs2.mutable.Specification
 class AirVehicleTerminalTest extends Specification {
   "Air_Vehicle_Terminal" should {
     val player = Player("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+    val terminal = Terminal(GlobalDefinitions.air_vehicle_terminal)
+    terminal.Owner = new Building(0, Zone.Nowhere)
+    terminal.Owner.Faction = PlanetSideEmpire.TR
 
     "construct" in {
       val terminal = Terminal(GlobalDefinitions.air_vehicle_terminal)
@@ -18,8 +23,8 @@ class AirVehicleTerminalTest extends Specification {
     }
 
     "player can buy a reaver ('lightgunship')" in {
-      val terminal = Terminal(GlobalDefinitions.air_vehicle_terminal)
       val msg = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Buy, 0, "lightgunship", 0, PlanetSideGUID(0))
+
       val reply = terminal.Request(player, msg)
       reply.isInstanceOf[Terminal.BuyVehicle] mustEqual true
       val reply2 = reply.asInstanceOf[Terminal.BuyVehicle]
@@ -35,7 +40,6 @@ class AirVehicleTerminalTest extends Specification {
     }
 
     "player can not buy a fake vehicle ('reaver')" in {
-      val terminal = Terminal(GlobalDefinitions.ground_vehicle_terminal)
       val msg = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Buy, 0, "reaver", 0, PlanetSideGUID(0))
 
       terminal.Request(player, msg) mustEqual Terminal.NoDeal()

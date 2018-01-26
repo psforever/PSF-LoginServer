@@ -1,12 +1,16 @@
 // Copyright (c) 2017 PSForever
 package objects
 
+import akka.actor.Props
 import net.psforever.objects.{GlobalDefinitions, Player, Vehicle}
 import net.psforever.objects.definition.SeatDefinition
-import net.psforever.objects.vehicles.{AccessPermissionGroup, Seat, SeatArmorRestriction, VehicleLockState}
+import net.psforever.objects.serverobject.mount.Mountable
+import net.psforever.objects.vehicles._
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types.{CharacterGender, ExoSuitType, PlanetSideEmpire}
 import org.specs2.mutable._
+
+import scala.concurrent.duration.Duration
 
 class VehicleTest extends Specification {
 
@@ -251,6 +255,52 @@ class VehicleTest extends Specification {
 
       harasser_vehicle.WeaponControlledFromSeat(0) mustEqual None
       harasser_vehicle.WeaponControlledFromSeat(1) mustEqual chaingun_p
+    }
+  }
+}
+
+class VehicleControl1Test extends ActorTest {
+  "Vehicle Control" should {
+    "deactivate and stop handling mount messages" in {
+      val player1 = Player("test1", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+      player1.GUID = PlanetSideGUID(1)
+      val player2 = Player("test2", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+      val vehicle = Vehicle(GlobalDefinitions.two_man_assault_buggy)
+      vehicle.GUID = PlanetSideGUID(3)
+      vehicle.Actor = system.actorOf(Props(classOf[VehicleControl], vehicle), "vehicle-test")
+
+      vehicle.Actor ! Mountable.TryMount(player1, 0)
+      val reply = receiveOne(Duration.create(100, "ms"))
+      assert(reply.isInstanceOf[Mountable.MountMessages])
+
+      vehicle.Actor ! Vehicle.PrepareForDeletion
+      vehicle.Actor ! Mountable.TryMount(player2, 1)
+      expectNoMsg(Duration.create(200, "ms"))
+    }
+  }
+}
+
+class VehicleControl2Test extends ActorTest {
+  "Vehicle Control" should {
+    "reactivate and resume handling mount messages" in {
+      val player1 = Player("test1", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+      player1.GUID = PlanetSideGUID(1)
+      val player2 = Player("test2", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+      player2.GUID = PlanetSideGUID(2)
+      val vehicle = Vehicle(GlobalDefinitions.two_man_assault_buggy)
+      vehicle.GUID = PlanetSideGUID(3)
+      vehicle.Actor = system.actorOf(Props(classOf[VehicleControl], vehicle), "vehicle-test")
+
+      vehicle.Actor ! Mountable.TryMount(player1, 0)
+      receiveOne(Duration.create(100, "ms")) //discard
+      vehicle.Actor ! Vehicle.PrepareForDeletion
+      vehicle.Actor ! Mountable.TryMount(player2, 1)
+      expectNoMsg(Duration.create(200, "ms"))
+
+      vehicle.Actor ! Vehicle.Reactivate
+      vehicle.Actor ! Mountable.TryMount(player2, 1)
+      val reply = receiveOne(Duration.create(100, "ms"))
+      assert(reply.isInstanceOf[Mountable.MountMessages])
     }
   }
 }
