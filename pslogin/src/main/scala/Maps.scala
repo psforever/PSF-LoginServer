@@ -37,7 +37,7 @@ object Maps {
 
   val map13 = new ZoneMap("map13") {
     LocalObject(ServerObjectBuilder(330, Door.Constructor(Vector3(3979.9219f, 2592.0547f, 91.140625f), Vector3(0, 0, 180))))
-    LocalObject(ServerObjectBuilder(331, Door.Constructor(Vector3(3979.9688f, 2608.0625f, 111.140625f), Vector3(0, 0, 180))))
+    LocalObject(ServerObjectBuilder(331, Door.Constructor(Vector3(3979.9219f, 2592.0547f, 111.140625f), Vector3(0, 0, 180))))
     LocalObject(ServerObjectBuilder(332, Door.Constructor(Vector3(3979.9688f, 2608.0625f, 91.140625f), Vector3(0, 0, 0))))
     LocalObject(ServerObjectBuilder(333, Door.Constructor(Vector3(3979.9688f, 2608.0625f, 111.140625f), Vector3(0, 0, 0))))
     LocalObject(ServerObjectBuilder(362, Door.Constructor))
