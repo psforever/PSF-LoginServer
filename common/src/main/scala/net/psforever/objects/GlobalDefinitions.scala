@@ -2347,8 +2347,14 @@ object GlobalDefinitions {
     ams.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
     ams.MountPoints += 1 -> 0
     ams.MountPoints += 2 -> 0
+<<<<<<< 27d86af015d5a835f7d594aed9ccdd1de4048c53
     ams.Utilities += 3 -> UtilityType.order_terminala
     ams.Utilities += 4 -> UtilityType.order_terminalb
+=======
+    ams.Deployment = true
+    ams.DeployTime = 2000
+    ams.UndeployTime = 2000
+>>>>>>> Deployment:
     ams.Packet = utilityConverter
 
     val variantConverter = new VariantVehicleConverter
@@ -2356,6 +2362,9 @@ object GlobalDefinitions {
     router.MountPoints += 1 -> 0
     router.TrunkSize = InventoryTile.Tile1511
     router.TrunkOffset = 30
+    router.Deployment = true
+    router.DeployTime = 2000
+    router.UndeployTime = 2000
     router.Packet = variantConverter
 
     switchblade.Seats += 0 -> new SeatDefinition()
@@ -2365,6 +2374,9 @@ object GlobalDefinitions {
     switchblade.MountPoints += 2 -> 0
     switchblade.TrunkSize = InventoryTile.Tile1511
     switchblade.TrunkOffset = 30
+    switchblade.Deployment = true
+    switchblade.DeployTime = 2000
+    switchblade.UndeployTime = 2000
     switchblade.Packet = variantConverter
 
     flail.Seats += 0 -> new SeatDefinition()
@@ -2373,6 +2385,9 @@ object GlobalDefinitions {
     flail.MountPoints += 1 -> 0
     flail.TrunkSize = InventoryTile.Tile1511
     flail.TrunkOffset = 30
+    flail.Deployment = true
+    flail.DeployTime = 2000
+    flail.UndeployTime = 2000
     flail.Packet = variantConverter
 
     mosquito.Seats += 0 -> new SeatDefinition()

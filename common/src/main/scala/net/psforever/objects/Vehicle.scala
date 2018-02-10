@@ -7,9 +7,9 @@ import net.psforever.objects.inventory.{Container, GridInventory, InventoryItem,
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.affinity.FactionAffinity
+import net.psforever.objects.serverobject.deploy.Deployment
 import net.psforever.objects.vehicles.{AccessPermissionGroup, Seat, Utility, VehicleLockState}
 import net.psforever.packet.game.PlanetSideGUID
-import net.psforever.packet.game.objectcreate.DriveState
 import net.psforever.types.PlanetSideEmpire
 
 import scala.annotation.tailrec
@@ -22,6 +22,7 @@ import scala.annotation.tailrec
   * Following that are the mounted weapons and other utilities.
   * Trunk space starts being indexed afterwards.<br>
   * <br>
+<<<<<<< 27d86af015d5a835f7d594aed9ccdd1de4048c53
   * To keep it simple, infantry seating, mounted weapons, and utilities are stored separately.<br>
   * <br>
   * Vehicles maintain a `Map` of `Utility` objects in given index positions.
@@ -32,18 +33,22 @@ import scala.annotation.tailrec
   * The value of the negative index does not have a specific meaning.
   * @see `Vehicle.EquipmentUtilities`
   * @param vehicleDef the vehicle's definition entry';
+=======
+  * To keep it simple, infantry seating, mounted weapons, and utilities are stored separately.
+  * @param vehicleDef the vehicle's definition entry;
+>>>>>>> Deployment:
   *                   stores and unloads pertinent information about the `Vehicle`'s configuration;
   *                   used in the initialization process (`loadVehicleDefinition`)
   */
 class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServerObject
   with FactionAffinity
   with Mountable
+  with Deployment
   with Container {
   private var faction : PlanetSideEmpire.Value = PlanetSideEmpire.TR
   private var owner : Option[PlanetSideGUID] = None
   private var health : Int = 1
   private var shields : Int = 0
-  private var deployed : DriveState.Value = DriveState.Mobile
   private var decal : Int = 0
   private var trunkAccess : Option[PlanetSideGUID] = None
   private var jammered : Boolean = false
@@ -123,17 +128,6 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
 
   def MaxShields : Int = {
     Definition.MaxShields
-  }
-
-  def Drive : DriveState.Value = {
-    this.deployed
-  }
-
-  def Drive_=(deploy : DriveState.Value) : DriveState.Value = {
-    if(Definition.Deployment) {
-      this.deployed = deploy
-    }
-    Drive
   }
 
   def Decal : Int = {
@@ -352,6 +346,10 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
       None
     }
   }
+
+  override def DeployTime = Definition.DeployTime
+
+  override def UndeployTime = Definition.UndeployTime
 
   def Inventory : GridInventory = trunk
 

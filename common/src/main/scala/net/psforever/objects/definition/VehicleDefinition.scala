@@ -21,7 +21,13 @@ class VehicleDefinition(objectId : Int) extends ObjectDefinition(objectId) {
   /* key - seat index (where this weapon attaches during object construction), value - the weapon on an EquipmentSlot */
   private val weapons : mutable.HashMap[Int, ToolDefinition] = mutable.HashMap[Int, ToolDefinition]()
   private var deployment : Boolean = false
+<<<<<<< 27d86af015d5a835f7d594aed9ccdd1de4048c53
   private val utilities : mutable.HashMap[Int, UtilityType.Value] = mutable.HashMap()
+=======
+  private var deploymentTime_Deploy : Int = 0 //ms
+  private var deploymentTime_Undeploy : Int = 0 //ms
+  private val utilities : mutable.ArrayBuffer[Int] = mutable.ArrayBuffer[Int]()
+>>>>>>> Deployment:
   private var trunkSize : InventoryTile = InventoryTile.None
   private var trunkOffset : Int = 0
   private var canCloak : Boolean = false
@@ -70,7 +76,25 @@ class VehicleDefinition(objectId : Int) extends ObjectDefinition(objectId) {
     Deployment
   }
 
+<<<<<<< 27d86af015d5a835f7d594aed9ccdd1de4048c53
   def Utilities : mutable.HashMap[Int, UtilityType.Value] = utilities
+=======
+  def DeployTime : Int = deploymentTime_Deploy
+
+  def DeployTime_=(dtime : Int) : Int =  {
+    deploymentTime_Deploy = dtime
+    DeployTime
+  }
+
+  def UndeployTime : Int = deploymentTime_Undeploy
+
+  def UndeployTime_=(dtime : Int) : Int =  {
+    deploymentTime_Undeploy = dtime
+    UndeployTime
+  }
+
+  def Utilities : mutable.ArrayBuffer[Int] = utilities
+>>>>>>> Deployment:
 
   def TrunkSize : InventoryTile = trunkSize
 
