@@ -2,7 +2,7 @@
 package net.psforever.objects.serverobject.terminals
 
 import net.psforever.objects.Player
-import net.psforever.objects.serverobject.PlanetSideServerObject
+import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.packet.game.{ItemTransactionMessage, PlanetSideGUID}
 import net.psforever.types.{TransactionType, Vector3}
 
@@ -10,7 +10,7 @@ import net.psforever.types.{TransactionType, Vector3}
   * A structure-owned server object that is a "terminal" that can be accessed for amenities and services.
   * @param tdef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
   */
-class Terminal(tdef : TerminalDefinition) extends PlanetSideServerObject {
+class Terminal(tdef : TerminalDefinition) extends Amenity {
   /** An entry that maintains a reference to the `Player`, and the player's GUID and location when the message was received. */
   private var hackedBy : Option[(Player, PlanetSideGUID, Vector3)] = None
 
@@ -65,18 +65,23 @@ class Terminal(tdef : TerminalDefinition) extends PlanetSideServerObject {
     * @return an actionable message that explains what resulted from interacting with this `Terminal`
     */
   def Request(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
-    msg.transaction_type match {
-      case TransactionType.Buy | TransactionType.Learn =>
-        tdef.Buy(player, msg)
+    if(Faction == player.Faction || HackedBy.isDefined) {
+      msg.transaction_type match {
+        case TransactionType.Buy | TransactionType.Learn =>
+          tdef.Buy(player, msg)
 
-      case TransactionType.Sell =>
-        tdef.Sell(player, msg)
+        case TransactionType.Sell =>
+          tdef.Sell(player, msg)
 
-      case TransactionType.InfantryLoadout =>
-        tdef.Loadout(player, msg)
+        case TransactionType.InfantryLoadout =>
+          tdef.Loadout(player, msg)
 
-      case _ =>
-        Terminal.NoDeal()
+        case _ =>
+          Terminal.NoDeal()
+      }
+    }
+    else {
+      Terminal.NoDeal()
     }
   }
 

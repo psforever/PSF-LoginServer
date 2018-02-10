@@ -2,6 +2,8 @@
 package net.psforever.objects.zones
 
 import akka.actor.Actor
+import net.psforever.objects.PlanetSideGameObject
+import org.log4s.Logger
 
 /**
   * na
@@ -20,14 +22,16 @@ class ZoneActor(zone : Zone) extends Actor {
   }
 
   def ZoneSetupCheck(): Unit = {
+    import ZoneActor._
     def guid(id : Int) = zone.GUID(id)
     val map = zone.Map
     val slog = org.log4s.getLogger(s"zone/${zone.Id}/sanity")
+    val validateObject : (Int, (PlanetSideGameObject)=>Boolean, String) => Boolean = ValidateObject(guid, slog)
 
     //check base to object associations
-    map.ObjectToBase.foreach({ case((object_guid, base_id)) =>
-      if(zone.Base(base_id).isEmpty) {
-        slog.error(s"expected a base #$base_id")
+    map.ObjectToBuilding.foreach({ case((object_guid, base_id)) =>
+      if(zone.Building(base_id).isEmpty) {
+        slog.error(s"expected a building at id #$base_id")
       }
       if(guid(object_guid).isEmpty) {
         slog.error(s"expected object id $object_guid to exist, but it did not")
@@ -35,74 +39,80 @@ class ZoneActor(zone : Zone) extends Actor {
     })
 
     //check door to lock association
-    import net.psforever.objects.serverobject.doors.Door
-    import net.psforever.objects.serverobject.locks.IFFLock
     map.DoorToLock.foreach({ case((door_guid, lock_guid)) =>
-      try {
-        if(!guid(door_guid).get.isInstanceOf[Door]) {
-          slog.error(s"expected id $door_guid to be a door, but it was not")
-        }
-      }
-      catch {
-        case _ : Exception =>
-          slog.error(s"expected a door at id $door_guid but no object is initialized")
-      }
-      try {
-        if(!guid(lock_guid).get.isInstanceOf[IFFLock]) {
-          slog.error(s"expected id $lock_guid to be an IFF locks but it was not")
-        }
-      }
-      catch {
-        case _ : Exception =>
-          slog.error(s"expected an IFF locks at id $lock_guid but no object is initialized")
-      }
+      validateObject(door_guid, DoorCheck, "door")
+      validateObject(lock_guid, LockCheck, "IFF lock")
     })
 
     //check vehicle terminal to spawn pad association
-    import net.psforever.objects.serverobject.pad.VehicleSpawnPad
-    import net.psforever.objects.serverobject.terminals.Terminal
     map.TerminalToSpawnPad.foreach({ case ((term_guid, pad_guid)) =>
-      try {
-        if(!guid(term_guid).get.isInstanceOf[Terminal]) { //TODO check is vehicle terminal
-          slog.error(s"expected id $term_guid to be a terminal, but it was not")
-        }
-      }
-      catch {
-        case _ : Exception =>
-          slog.error(s"expected a terminal at id $term_guid but no object is initialized")
-      }
-      try {
-        if(!guid(pad_guid).get.isInstanceOf[VehicleSpawnPad]) {
-          slog.error(s"expected id $pad_guid to be a spawn pad, but it was not")
-        }
-      }
-      catch {
-        case _ : Exception =>
-          slog.error(s"expected a spawn pad at id $pad_guid but no object is initialized")
-      }
+      validateObject(term_guid, TerminalCheck, "vehicle terminal")
+      validateObject(pad_guid, VehicleSpawnPadCheck, "vehicle spawn pad")
     })
 
     //check implant terminal mech to implant terminal interface association
-    import net.psforever.objects.serverobject.implantmech.ImplantTerminalMech
     map.TerminalToInterface.foreach({case ((mech_guid, interface_guid)) =>
-      try {
-        if(!guid(mech_guid).get.isInstanceOf[ImplantTerminalMech]) {
-          slog.error(s"expected id $mech_guid to be an implant terminal mech, but it was not")
-        }
-      }
-      catch {
-        case _ : Exception =>
-          slog.error(s"expected a implant terminal mech at id $mech_guid but no object is initialized")
-      }
-      try {
-        if(!guid(interface_guid).get.isInstanceOf[Terminal]) { //TODO check is implant terminal
-          slog.error(s"expected id $interface_guid to be an implant terminal interface, but it was not")
-        }
-      }
-      catch {
-        case _ : Exception =>
-          slog.error(s"expected a implant terminal interface at id $interface_guid but no object is initialized")
-      }
+      validateObject(mech_guid, ImplantMechCheck, "implant terminal mech")
+      validateObject(interface_guid, TerminalCheck, "implant terminal interface")
     })
+  }
+}
+
+object ZoneActor {
+
+  /**
+    * Recover an object from a collection and perform any number of validating tests upon it.
+    * If the object fails any tests, log an error.
+    * @param guid access to an association between unique numbers and objects using some of those unique numbers
+    * @param elog a contraction of "error log;"
+    *             accepts `String` data
+    * @param object_guid the unique indentifier being checked against the `guid` access point
+    * @param test a test for the discovered object;
+    *             expects at least `Type` checking
+    * @param description an explanation of how the object, if not discovered, should be identified
+    * @return `true` if the object was discovered and validates correctly;
+    *        `false` if the object failed any tests
+    */
+  def ValidateObject(guid : (Int)=>Option[PlanetSideGameObject], elog : Logger)
+                    (object_guid : Int, test : (PlanetSideGameObject)=>Boolean, description : String) : Boolean = {
+    try {
+      if(!test(guid(object_guid).get)) {
+        elog.error(s"expected id $object_guid to be a $description, but it was not")
+        false
+      }
+      else {
+        true
+      }
+    }
+    catch {
+      case _ : Exception =>
+        elog.error(s"expected a $description at id $object_guid but no object is initialized")
+        false
+    }
+  }
+
+  def LockCheck(obj : PlanetSideGameObject) : Boolean = {
+    import net.psforever.objects.serverobject.locks.IFFLock
+    obj.isInstanceOf[IFFLock]
+  }
+
+  def DoorCheck(obj : PlanetSideGameObject) : Boolean = {
+    import net.psforever.objects.serverobject.doors.Door
+    obj.isInstanceOf[Door]
+  }
+
+  def TerminalCheck(obj : PlanetSideGameObject) : Boolean = {
+    import net.psforever.objects.serverobject.terminals.Terminal
+    obj.isInstanceOf[Terminal]
+  }
+
+  def ImplantMechCheck(obj : PlanetSideGameObject) : Boolean = {
+    import net.psforever.objects.serverobject.implantmech.ImplantTerminalMech
+    obj.isInstanceOf[ImplantTerminalMech]
+  }
+
+  def VehicleSpawnPadCheck(obj : PlanetSideGameObject) : Boolean = {
+    import net.psforever.objects.serverobject.pad.VehicleSpawnPad
+    obj.isInstanceOf[VehicleSpawnPad]
   }
 }

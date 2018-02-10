@@ -7,6 +7,7 @@ import net.psforever.objects.serverobject.implantmech.ImplantTerminalMech
 import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.mblocker.Locker
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
+import net.psforever.objects.serverobject.structures.{Building, FoundationBuilder}
 import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.types.Vector3
 
@@ -821,7 +822,7 @@ object Maps {
 
   val map13 = new ZoneMap("map13") {
     LocalObject(ServerObjectBuilder(330, Door.Constructor(Vector3(3979.9219f, 2592.0547f, 91.140625f), Vector3(0, 0, 180))))
-    LocalObject(ServerObjectBuilder(331, Door.Constructor(Vector3(3979.9688f, 2608.0625f, 111.140625f), Vector3(0, 0, 180))))
+    LocalObject(ServerObjectBuilder(331, Door.Constructor(Vector3(3979.9219f, 2592.0547f, 111.140625f), Vector3(0, 0, 180))))
     LocalObject(ServerObjectBuilder(332, Door.Constructor(Vector3(3979.9688f, 2608.0625f, 91.140625f), Vector3(0, 0, 0))))
     LocalObject(ServerObjectBuilder(333, Door.Constructor(Vector3(3979.9688f, 2608.0625f, 111.140625f), Vector3(0, 0, 0))))
     LocalObject(ServerObjectBuilder(362, Door.Constructor))
@@ -887,30 +888,46 @@ object Maps {
       VehicleSpawnPad.Constructor(Vector3(3508.9844f, 2895.961f, 92.296875f), Vector3(0f, 0f, 270.0f))
     )) //TODO guid not correct
 
-    LocalBases = 30
+    LocalBuilding(2, FoundationBuilder(Building.Structure))
+    ObjectToBuilding(186, 2)
+    ObjectToBuilding(187, 2)
+    ObjectToBuilding(188, 2)
+    ObjectToBuilding(522, 2)
+    ObjectToBuilding(523, 2)
+    ObjectToBuilding(524, 2)
+    ObjectToBuilding(525, 2)
+    ObjectToBuilding(526, 2)
+    ObjectToBuilding(527, 2)
+    ObjectToBuilding(528, 2)
+    ObjectToBuilding(529, 2)
+    ObjectToBuilding(686, 2)
+    ObjectToBuilding(687, 2)
+    ObjectToBuilding(688, 2)
+    ObjectToBuilding(689, 2)
+    ObjectToBuilding(690, 2)
+    ObjectToBuilding(691, 2)
+    ObjectToBuilding(692, 2)
+    ObjectToBuilding(693, 2)
+    ObjectToBuilding(842, 2)
+    ObjectToBuilding(843, 2)
+    ObjectToBuilding(844, 2)
+    ObjectToBuilding(845, 2)
+    ObjectToBuilding(853, 2) //TODO check building_id
+    ObjectToBuilding(855, 2) //TODO check building_id
+    ObjectToBuilding(860, 2) //TODO check building_id
+    ObjectToBuilding(1063, 2) //TODO unowned courtyard terminal?
+    ObjectToBuilding(500, 2) //TODO unowned courtyard spawnpad?
+    ObjectToBuilding(304, 2) //TODO unowned courtyard terminal?
+    ObjectToBuilding(501, 2) //TODO unowned courtyard spawnpad?
 
-    ObjectToBase(330, 29)
-    ObjectToBase(331, 29)
-    ObjectToBase(332, 29)
-    ObjectToBase(333, 29)
-    //ObjectToBase(520, 29)
-    ObjectToBase(522, 2)
-    ObjectToBase(523, 2)
-    ObjectToBase(524, 2)
-    ObjectToBase(525, 2)
-    ObjectToBase(526, 2)
-    ObjectToBase(527, 2)
-    ObjectToBase(528, 2)
-    ObjectToBase(529, 2)
-    ObjectToBase(556, 29)
-    ObjectToBase(557, 29)
-    ObjectToBase(558, 29)
-    ObjectToBase(559, 29)
-    ObjectToBase(1081, 2)
-    ObjectToBase(1063, 2) //TODO unowned courtyard terminal?
-    ObjectToBase(500, 2) //TODO unowned courtyard spawnpad?
-    ObjectToBase(304, 2) //TODO unowned courtyard terminal?
-    ObjectToBase(501, 2) //TODO unowned courtyard spawnpad?
+    LocalBuilding(29, FoundationBuilder(Building.Structure))
+    ObjectToBuilding(330, 29)
+    ObjectToBuilding(332, 29)
+    ObjectToBuilding(556, 29)
+    ObjectToBuilding(558, 29)
+
+    //ObjectToBuilding(1081, ?)
+    //ObjectToBuilding(520, ?)
 
     DoorToLock(330, 558)
     DoorToLock(331, 559)

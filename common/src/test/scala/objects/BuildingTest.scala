@@ -1,0 +1,169 @@
+// Copyright (c) 2017 PSForever
+package objects
+
+import akka.actor.{ActorRef, Props}
+import net.psforever.objects.GlobalDefinitions
+import net.psforever.objects.definition.ObjectDefinition
+import net.psforever.objects.serverobject.affinity.FactionAffinity
+import net.psforever.objects.serverobject.doors.{Door, DoorControl}
+import net.psforever.objects.serverobject.structures.{Amenity, Building, BuildingControl}
+import net.psforever.objects.zones.Zone
+import net.psforever.packet.game.PlanetSideGUID
+import net.psforever.types.PlanetSideEmpire
+import org.specs2.mutable.Specification
+
+import scala.concurrent.duration.Duration
+
+class AmenityTest extends Specification {
+  class AmenityObject extends Amenity {
+    def Definition : ObjectDefinition = null
+  }
+
+  "Amenity" should {
+    "construct" in {
+      val ao = new AmenityObject()
+      ao.Owner mustEqual Building.NoBuilding
+    }
+
+    "can be owned by a building" in {
+      val ao = new AmenityObject()
+      val bldg = Building(10, Zone.Nowhere)
+
+      ao.Owner = bldg
+      ao.Owner mustEqual bldg
+    }
+
+    "be owned by a vehicle" in {
+      import net.psforever.objects.Vehicle
+      val ao = new AmenityObject()
+      val veh = Vehicle(GlobalDefinitions.quadstealth)
+
+      ao.Owner = veh
+      ao.Owner mustEqual veh
+    }
+
+    "not be owned by an unexpected object" in {
+      val ao = new AmenityObject()
+      //ao.Owner = net.psforever.objects.serverobject.mblocker.Locker() //will not compile
+      ok
+    }
+
+    "confer faction allegiance through ownership" in {
+      //see FactionAffinityTest
+      val ao = new AmenityObject()
+      val bldg = Building(10, Zone.Nowhere)
+      ao.Owner = bldg
+      bldg.Faction mustEqual PlanetSideEmpire.NEUTRAL
+      ao.Faction mustEqual PlanetSideEmpire.NEUTRAL
+
+      bldg.Faction = PlanetSideEmpire.TR
+      bldg.Faction mustEqual PlanetSideEmpire.TR
+      ao.Faction mustEqual PlanetSideEmpire.TR
+    }
+  }
+}
+
+class BuildingTest extends Specification {
+  "Building" should {
+    "construct" in {
+      val bldg = Building(10, Zone.Nowhere)
+      bldg.Id mustEqual 10
+      bldg.Actor mustEqual ActorRef.noSender
+      bldg.Amenities mustEqual Nil
+      bldg.Zone mustEqual Zone.Nowhere
+      bldg.Faction mustEqual PlanetSideEmpire.NEUTRAL
+    }
+
+    "change faction affinity" in {
+      val bldg = Building(10, Zone.Nowhere)
+      bldg.Faction mustEqual PlanetSideEmpire.NEUTRAL
+
+      bldg.Faction = PlanetSideEmpire.TR
+      bldg.Faction mustEqual PlanetSideEmpire.TR
+    }
+
+    "keep track of amenities" in {
+      val bldg = Building(10, Zone.Nowhere)
+      val door1 = Door(GlobalDefinitions.door)
+      val door2 = Door(GlobalDefinitions.door)
+
+      bldg.Amenities mustEqual Nil
+      bldg.Amenities = door2
+      bldg.Amenities mustEqual List(door2)
+      bldg.Amenities = door1
+      bldg.Amenities mustEqual List(door2, door1)
+      door1.Owner mustEqual bldg
+      door2.Owner mustEqual bldg
+    }
+  }
+}
+
+class BuildingControl1Test extends ActorTest {
+  "Building Control" should {
+    "construct" in {
+      val bldg = Building(10, Zone.Nowhere)
+      bldg.Actor = system.actorOf(Props(classOf[BuildingControl], bldg), "test")
+      assert(bldg.Actor != ActorRef.noSender)
+    }
+  }
+}
+
+class BuildingControl2Test extends ActorTest {
+  "Building Control" should {
+    "convert and assert faction affinity on convert request" in {
+      val bldg = Building(10, Zone.Nowhere)
+      bldg.Faction = PlanetSideEmpire.TR
+      bldg.Actor = system.actorOf(Props(classOf[BuildingControl], bldg), "test")
+      assert(bldg.Faction == PlanetSideEmpire.TR)
+
+      bldg.Actor ! FactionAffinity.ConvertFactionAffinity(PlanetSideEmpire.VS)
+      val reply = receiveOne(Duration.create(100, "ms"))
+      assert(reply.isInstanceOf[FactionAffinity.AssertFactionAffinity])
+      assert(reply.asInstanceOf[FactionAffinity.AssertFactionAffinity].obj == bldg)
+      assert(reply.asInstanceOf[FactionAffinity.AssertFactionAffinity].faction == PlanetSideEmpire.VS)
+      assert(bldg.Faction == PlanetSideEmpire.VS)
+    }
+  }
+}
+
+class BuildingControl3Test extends ActorTest {
+  "Building Control" should {
+    "convert and assert faction affinity on convert request, and for each of its amenities" in {
+      val bldg = Building(10, Zone.Nowhere)
+      bldg.Faction = PlanetSideEmpire.TR
+      bldg.Actor = system.actorOf(Props(classOf[BuildingControl], bldg), "building-test")
+      val door1 = Door(GlobalDefinitions.door)
+      door1.GUID = PlanetSideGUID(1)
+      door1.Actor = system.actorOf(Props(classOf[DoorControl], door1), "door1-test")
+      val door2 = Door(GlobalDefinitions.door)
+      door2.GUID = PlanetSideGUID(2)
+      door2.Actor = system.actorOf(Props(classOf[DoorControl], door2), "door2-test")
+      bldg.Amenities = door2
+      bldg.Amenities = door1
+      assert(bldg.Faction == PlanetSideEmpire.TR)
+      assert(bldg.Amenities.length == 2)
+      assert(bldg.Amenities.head == door2)
+      assert(bldg.Amenities(1) == door1)
+
+      bldg.Actor ! FactionAffinity.ConvertFactionAffinity(PlanetSideEmpire.VS)
+      val reply = receiveN(3, Duration.create(500, "ms"))
+      assert(reply.length == 3)
+      var building_count = 0
+      var door_count = 0
+      reply.foreach(item => {
+        assert(item.isInstanceOf[FactionAffinity.AssertFactionAffinity])
+        val item2 = item.asInstanceOf[FactionAffinity.AssertFactionAffinity]
+        item2.obj match {
+          case _ : Building =>
+            building_count += 1
+          case _ : Door =>
+            door_count += 1
+          case _ =>
+            assert(false)
+        }
+        assert(item2.faction == PlanetSideEmpire.VS)
+      })
+      assert(building_count == 1 && door_count == 2)
+    }
+  }
+}

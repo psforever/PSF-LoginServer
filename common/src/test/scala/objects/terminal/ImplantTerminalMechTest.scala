@@ -1,13 +1,13 @@
 // Copyright (c) 2017 PSForever
 package objects.terminal
 
-import akka.actor.{ActorRef, Props}
+import akka.actor.{ActorRef, ActorSystem, Props}
 import net.psforever.objects.definition.SeatDefinition
-import net.psforever.objects.mount.Mountable
+import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.implantmech.{ImplantTerminalMech, ImplantTerminalMechControl}
 import net.psforever.objects.vehicles.Seat
 import net.psforever.objects.{GlobalDefinitions, Player}
-import net.psforever.types.{CharacterGender, PlanetSideEmpire}
+import net.psforever.types.{CharacterGender, PlanetSideEmpire, Vector3}
 import objects.ActorTest
 import org.specs2.mutable.Specification
 
@@ -68,43 +68,101 @@ class ImplantTerminalMechControl1Test extends ActorTest() {
 class ImplantTerminalMechControl2Test extends ActorTest() {
   "ImplantTerminalMechControl" should {
     "let a player mount" in {
-      val player = Player("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
-      val obj = ImplantTerminalMech(GlobalDefinitions.implant_terminal_mech)
-      obj.Actor = system.actorOf(Props(classOf[ImplantTerminalMechControl], obj), "mech")
+      val (player, mech) = ImplantTerminalMechTest.SetUpAgents(PlanetSideEmpire.TR)
       val msg = Mountable.TryMount(player, 0)
 
-      obj.Actor ! msg
-      val reply = receiveOne(Duration.create(100, "ms"))
+      mech.Actor ! msg
+      val reply = receiveOne(Duration.create(200, "ms"))
       assert(reply.isInstanceOf[Mountable.MountMessages])
       val reply2 = reply.asInstanceOf[Mountable.MountMessages]
       assert(reply2.player == player)
       assert(reply2.response.isInstanceOf[Mountable.CanMount])
       val reply3 = reply2.response.asInstanceOf[Mountable.CanMount]
-      assert(reply3.obj == obj)
+      assert(reply3.obj == mech)
       assert(reply3.seat_num == 0)
     }
   }
 }
 
 class ImplantTerminalMechControl3Test extends ActorTest() {
+  import net.psforever.types.CharacterGender
   "ImplantTerminalMechControl" should {
     "block a player from mounting" in {
-      val player1 = Player("test1", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+      val (player1, mech) = ImplantTerminalMechTest.SetUpAgents(PlanetSideEmpire.TR)
       val player2 = Player("test2", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
-      val obj = ImplantTerminalMech(GlobalDefinitions.implant_terminal_mech)
-      obj.Actor = system.actorOf(Props(classOf[ImplantTerminalMechControl], obj), "mech")
-      obj.Actor ! Mountable.TryMount(player1, 0)
+
+      mech.Actor ! Mountable.TryMount(player1, 0)
       receiveOne(Duration.create(100, "ms")) //consume reply
 
-      obj.Actor ! Mountable.TryMount(player2, 0)
+      mech.Actor ! Mountable.TryMount(player2, 0)
       val reply = receiveOne(Duration.create(100, "ms"))
       assert(reply.isInstanceOf[Mountable.MountMessages])
       val reply2 = reply.asInstanceOf[Mountable.MountMessages]
       assert(reply2.player == player2)
       assert(reply2.response.isInstanceOf[Mountable.CanNotMount])
       val reply3 = reply2.response.asInstanceOf[Mountable.CanNotMount]
-      assert(reply3.obj == obj)
+      assert(reply3.obj == mech)
       assert(reply3.seat_num == 0)
     }
+  }
+}
+
+class ImplantTerminalMechControl4Test extends ActorTest() {
+  "ImplantTerminalMechControl" should {
+    "dismount player after mounting" in {
+      val (player, mech) = ImplantTerminalMechTest.SetUpAgents(PlanetSideEmpire.TR)
+      mech.Actor ! Mountable.TryMount(player, 0)
+      receiveOne(Duration.create(100, "ms")) //consume reply
+      assert(mech.Seat(0).get.isOccupied)
+
+      mech.Actor ! Mountable.TryDismount(player, 0)
+      val reply = receiveOne(Duration.create(100, "ms"))
+      assert(reply.isInstanceOf[Mountable.MountMessages])
+      val reply2 = reply.asInstanceOf[Mountable.MountMessages]
+      assert(reply2.player == player)
+      assert(reply2.response.isInstanceOf[Mountable.CanDismount])
+      val reply3 = reply2.response.asInstanceOf[Mountable.CanDismount]
+      assert(reply3.obj == mech)
+      assert(reply3.seat_num == 0)
+      assert(!mech.Seat(0).get.isOccupied)
+    }
+  }
+}
+
+class ImplantTerminalMechControl5Test extends ActorTest() {
+  "ImplantTerminalMechControl" should {
+    "block a player from dismounting" in {
+      val (player, mech) = ImplantTerminalMechTest.SetUpAgents(PlanetSideEmpire.TR)
+      mech.Actor ! Mountable.TryMount(player, 0)
+      receiveOne(Duration.create(100, "ms")) //consume reply
+      assert(mech.Seat(0).get.isOccupied)
+
+      mech.Velocity = Vector3(1,0,0) //makes no sense, but it works as the "seat" is not bailable
+      mech.Actor ! Mountable.TryDismount(player, 0)
+      val reply = receiveOne(Duration.create(100, "ms"))
+      assert(reply.isInstanceOf[Mountable.MountMessages])
+      val reply2 = reply.asInstanceOf[Mountable.MountMessages]
+      assert(reply2.player == player)
+      assert(reply2.response.isInstanceOf[Mountable.CanNotDismount])
+      val reply3 = reply2.response.asInstanceOf[Mountable.CanNotDismount]
+      assert(reply3.obj == mech)
+      assert(reply3.seat_num == 0)
+      assert(mech.Seat(0).get.isOccupied)
+    }
+  }
+}
+
+object ImplantTerminalMechTest {
+  def SetUpAgents(faction : PlanetSideEmpire.Value)(implicit system : ActorSystem) : (Player, ImplantTerminalMech) = {
+    import net.psforever.objects.serverobject.structures.Building
+    import net.psforever.objects.zones.Zone
+    import net.psforever.packet.game.PlanetSideGUID
+
+    val terminal = ImplantTerminalMech(GlobalDefinitions.implant_terminal_mech)
+    terminal.Actor = system.actorOf(Props(classOf[ImplantTerminalMechControl], terminal), "mech")
+    terminal.Owner = new Building(0, Zone.Nowhere)
+    terminal.Owner.Faction = faction
+    terminal.GUID = PlanetSideGUID(1)
+    (Player("test", faction, CharacterGender.Male, 0, 0), terminal)
   }
 }

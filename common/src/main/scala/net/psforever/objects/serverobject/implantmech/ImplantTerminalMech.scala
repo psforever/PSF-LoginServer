@@ -3,8 +3,8 @@ package net.psforever.objects.serverobject.implantmech
 
 import net.psforever.objects.Player
 import net.psforever.objects.definition.ObjectDefinition
-import net.psforever.objects.mount.Mountable
-import net.psforever.objects.serverobject.PlanetSideServerObject
+import net.psforever.objects.serverobject.mount.Mountable
+import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.objects.vehicles.Seat
 
 /**
@@ -12,7 +12,7 @@ import net.psforever.objects.vehicles.Seat
   * For the most part, it merely implements the support data structures indicated by `Mountable`.
   * @param idef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
   */
-class ImplantTerminalMech(private val idef : ImplantTerminalMechDefinition) extends PlanetSideServerObject with Mountable {
+class ImplantTerminalMech(private val idef : ImplantTerminalMechDefinition) extends Amenity with Mountable {
   private val seats : Map[Int, Seat] = Map( 0 -> new Seat(idef.Seats(0)) )
 
   def Seats : Map[Int, Seat] = seats

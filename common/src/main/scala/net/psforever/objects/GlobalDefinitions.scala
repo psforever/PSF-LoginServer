@@ -9,6 +9,8 @@ import net.psforever.objects.equipment._
 import net.psforever.objects.inventory.InventoryTile
 import net.psforever.objects.serverobject.implantmech.ImplantTerminalMechDefinition
 import net.psforever.objects.serverobject.locks.IFFLockDefinition
+import net.psforever.objects.serverobject.mblocker.LockerDefinition
+import net.psforever.objects.serverobject.pad.VehicleSpawnPadDefinition
 import net.psforever.objects.serverobject.terminals._
 import net.psforever.objects.vehicles.SeatArmorRestriction
 import net.psforever.types.PlanetSideEmpire
@@ -504,9 +506,9 @@ object GlobalDefinitions {
 
   val vehicle_terminal_combined = new VehicleTerminalCombinedDefinition
 
-  val spawn_pad = new ObjectDefinition(800) { Name = "spawn_pad" }
+  val spawn_pad = new VehicleSpawnPadDefinition
 
-  val mb_locker = new ObjectDefinition(524) { Name = "mb_locker" }
+  val mb_locker = new LockerDefinition
 
   val lock_external = new IFFLockDefinition
 
@@ -833,10 +835,10 @@ object GlobalDefinitions {
     bullet_9mm_AP.Capacity = 50
     bullet_9mm_AP.Tile = InventoryTile.Tile33
 
-    shotgun_shell.Capacity = 32
+    shotgun_shell.Capacity = 16
     shotgun_shell.Tile = InventoryTile.Tile33
 
-    shotgun_shell_AP.Capacity = 32
+    shotgun_shell_AP.Capacity = 16
     shotgun_shell_AP.Tile = InventoryTile.Tile33
 
     energy_cell.Capacity = 50

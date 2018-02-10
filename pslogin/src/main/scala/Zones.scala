@@ -52,8 +52,8 @@ object Zones {
       super.Init(context)
 
       import net.psforever.types.PlanetSideEmpire
-      Base(2).get.Faction = PlanetSideEmpire.VS //HART building C
-      Base(29).get.Faction = PlanetSideEmpire.NC //South Villa Gun Tower
+      Building(2).get.Faction = PlanetSideEmpire.VS //HART building C
+      Building(29).get.Faction = PlanetSideEmpire.NC //South Villa Gun Tower
     }
   }
 

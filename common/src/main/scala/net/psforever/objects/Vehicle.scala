@@ -4,8 +4,9 @@ package net.psforever.objects
 import net.psforever.objects.definition.VehicleDefinition
 import net.psforever.objects.equipment.{Equipment, EquipmentSize}
 import net.psforever.objects.inventory.{Container, GridInventory, InventoryItem, InventoryTile}
-import net.psforever.objects.mount.Mountable
+import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.PlanetSideServerObject
+import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.vehicles.{AccessPermissionGroup, Seat, Utility, VehicleLockState}
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.packet.game.objectcreate.DriveState
@@ -27,7 +28,10 @@ import scala.collection.mutable
   *                   stores and unloads pertinent information about the `Vehicle`'s configuration;
   *                   used in the initialization process (`loadVehicleDefinition`)
   */
-class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServerObject with Mountable with Container {
+class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServerObject
+  with FactionAffinity
+  with Mountable
+  with Container {
   private var faction : PlanetSideEmpire.Value = PlanetSideEmpire.TR
   private var owner : Option[PlanetSideGUID] = None
   private var health : Int = 1
@@ -63,7 +67,7 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
     this.faction
   }
 
-  def Faction_=(faction : PlanetSideEmpire.Value) : PlanetSideEmpire.Value = {
+  override def Faction_=(faction : PlanetSideEmpire.Value) : PlanetSideEmpire.Value = {
     this.faction = faction
     faction
   }
@@ -465,10 +469,16 @@ object Vehicle {
 
   /**
     * The `Vehicle` will become unresponsive to player activity.
-    * Usually, it does this to await deconstruction and clean-up
+    * Usually, it does this to await deconstruction and clean-up.
     * @see `VehicleControl`
     */
   final case class PrepareForDeletion()
+
+  /**
+    * The `Vehicle` will resume previous unresponsiveness to player activity.
+    * @see `VehicleControl`
+    */
+  final case class Reactivate()
 
   /**
     * Overloaded constructor.

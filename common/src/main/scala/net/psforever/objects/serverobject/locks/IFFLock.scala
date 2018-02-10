@@ -2,7 +2,7 @@
 package net.psforever.objects.serverobject.locks
 
 import net.psforever.objects.Player
-import net.psforever.objects.serverobject.PlanetSideServerObject
+import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types.Vector3
 
@@ -15,7 +15,7 @@ import net.psforever.types.Vector3
   * The `IFFLock` is ideally associated with a server map object - a `Door` - to which it acts as a gatekeeper.
   * @param idef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
   */
-class IFFLock(private val idef : IFFLockDefinition) extends PlanetSideServerObject {
+class IFFLock(private val idef : IFFLockDefinition) extends Amenity {
   /**
     * An entry that maintains a reference to the `Player`, and the player's GUID and location when the message was received.
     */

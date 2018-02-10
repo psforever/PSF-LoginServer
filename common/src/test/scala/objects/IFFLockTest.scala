@@ -1,10 +1,13 @@
 // Copyright (c) 2017 PSForever
 package objects
 
-import akka.actor.{ActorRef, Props}
+import akka.actor.{ActorRef, ActorSystem, Props}
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.{GlobalDefinitions, Player}
 import net.psforever.objects.serverobject.locks.{IFFLock, IFFLockControl}
+import net.psforever.objects.serverobject.structures.Building
+import net.psforever.objects.serverobject.terminals.{Terminal, TerminalControl, TerminalDefinition}
+import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types.{CharacterGender, PlanetSideEmpire}
 import org.specs2.mutable.Specification
@@ -33,9 +36,7 @@ class IFFLockControl1Test extends ActorTest() {
 class IFFLockControl2Test extends ActorTest() {
   "IFFLockControl" should {
     "can hack" in {
-      val lock = IFFLock(GlobalDefinitions.lock_external)
-      lock.Actor = system.actorOf(Props(classOf[IFFLockControl], lock), "lock-control")
-      val player = Player("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+      val (player, lock) = IFFLockControlTest.SetUpAgents(PlanetSideEmpire.TR)
       player.GUID = PlanetSideGUID(1)
       assert(lock.HackedBy.isEmpty)
 
@@ -49,9 +50,7 @@ class IFFLockControl2Test extends ActorTest() {
 class IFFLockControl3Test extends ActorTest() {
   "IFFLockControl" should {
     "can hack" in {
-      val lock = IFFLock(GlobalDefinitions.lock_external)
-      lock.Actor = system.actorOf(Props(classOf[IFFLockControl], lock), "lock-control")
-      val player = Player("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+      val (player, lock) = IFFLockControlTest.SetUpAgents(PlanetSideEmpire.TR)
       player.GUID = PlanetSideGUID(1)
       assert(lock.HackedBy.isEmpty)
 
@@ -62,5 +61,15 @@ class IFFLockControl3Test extends ActorTest() {
       Thread.sleep(500L) //blocking
       assert(lock.HackedBy.isEmpty) //TODO rewrite
     }
+  }
+}
+
+object IFFLockControlTest {
+  def SetUpAgents(faction : PlanetSideEmpire.Value)(implicit system : ActorSystem) : (Player, IFFLock) = {
+    val lock = IFFLock(GlobalDefinitions.lock_external)
+    lock.Actor = system.actorOf(Props(classOf[IFFLockControl], lock), "lock-control")
+    lock.Owner = new Building(0, Zone.Nowhere)
+    lock.Owner.Faction = faction
+    (Player("test", faction, CharacterGender.Male, 0, 0), lock)
   }
 }

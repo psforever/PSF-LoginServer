@@ -1,8 +1,8 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.doors
 
-import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.Player
+import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.packet.game.UseItemMessage
 import net.psforever.types.Vector3
 
@@ -10,7 +10,7 @@ import net.psforever.types.Vector3
   * A structure-owned server object that is a "door" that can open and can close.
   * @param ddef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
   */
-class Door(private val ddef : DoorDefinition) extends PlanetSideServerObject {
+class Door(private val ddef : DoorDefinition) extends Amenity {
   private var openState : Option[Player] = None
   /** a vector in the direction of the "outside" of a room;
     * typically, any locking utility is on that same "outside" */

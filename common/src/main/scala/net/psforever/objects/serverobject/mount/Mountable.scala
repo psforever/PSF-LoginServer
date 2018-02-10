@@ -1,5 +1,5 @@
 // Copyright (c) 2017 PSForever
-package net.psforever.objects.mount
+package net.psforever.objects.serverobject.mount
 
 import akka.actor.ActorRef
 import net.psforever.objects.Player
@@ -62,6 +62,8 @@ object Mountable {
     */
   final case class TryMount(player : Player, seat_num : Int)
 
+  final case class TryDismount(player : Player, seat_num : Int)
+
   /**
     * A basic `Trait` connecting all of the actionable `Mountable` response messages.
     */
@@ -89,4 +91,19 @@ object Mountable {
     * @param seat_num the seat index
     */
   final case class CanNotMount(obj : Mountable, seat_num : Int) extends Exchange
+
+  /**
+    * Message sent in response to the player succeeding to disembark a `Mountable` object.
+    * The player was previously seated at the given index.
+    * @param obj the `Mountable` object
+    * @param seat_num the seat index
+    */
+  final case class CanDismount(obj : Mountable, seat_num : Int) extends Exchange
+  /**
+    * Message sent in response to the player failing to disembark a `Mountable` object.
+    * The player is still seated at the given index.
+    * @param obj the `Mountable` object
+    * @param seat_num the seat index
+    */
+  final case class CanNotDismount(obj : Mountable, seat_num : Int) extends Exchange
 }

@@ -2,8 +2,7 @@
 package net.psforever.objects.serverobject.pad
 
 import net.psforever.objects.{Player, Vehicle}
-import net.psforever.objects.definition.ObjectDefinition
-import net.psforever.objects.serverobject.PlanetSideServerObject
+import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.packet.game.PlanetSideGUID
 
 /**
@@ -16,8 +15,8 @@ import net.psforever.packet.game.PlanetSideGUID
   * @param spDef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
   * @see `VehicleSpawnControl`
   */
-class VehicleSpawnPad(spDef : ObjectDefinition) extends PlanetSideServerObject {
-  def Definition : ObjectDefinition = spDef
+class VehicleSpawnPad(spDef : VehicleSpawnPadDefinition) extends Amenity {
+  def Definition : VehicleSpawnPadDefinition = spDef
 }
 
 object VehicleSpawnPad {
@@ -83,7 +82,7 @@ object VehicleSpawnPad {
     * @param spDef the spawn pad's definition entry
     * @return a `VehicleSpawnPad` object
     */
-  def apply(spDef : ObjectDefinition) : VehicleSpawnPad = {
+  def apply(spDef : VehicleSpawnPadDefinition) : VehicleSpawnPad = {
     new VehicleSpawnPad(spDef)
   }
 
