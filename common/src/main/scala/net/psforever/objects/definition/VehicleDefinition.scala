@@ -3,6 +3,7 @@ package net.psforever.objects.definition
 
 import net.psforever.objects.definition.converter.VehicleConverter
 import net.psforever.objects.inventory.InventoryTile
+import net.psforever.objects.vehicles.UtilityType
 
 import scala.collection.mutable
 
@@ -20,7 +21,7 @@ class VehicleDefinition(objectId : Int) extends ObjectDefinition(objectId) {
   /* key - seat index (where this weapon attaches during object construction), value - the weapon on an EquipmentSlot */
   private val weapons : mutable.HashMap[Int, ToolDefinition] = mutable.HashMap[Int, ToolDefinition]()
   private var deployment : Boolean = false
-  private val utilities : mutable.ArrayBuffer[Int] = mutable.ArrayBuffer[Int]()
+  private val utilities : mutable.HashMap[Int, UtilityType.Value] = mutable.HashMap()
   private var trunkSize : InventoryTile = InventoryTile.None
   private var trunkOffset : Int = 0
   private var canCloak : Boolean = false
@@ -69,7 +70,7 @@ class VehicleDefinition(objectId : Int) extends ObjectDefinition(objectId) {
     Deployment
   }
 
-  def Utilities : mutable.ArrayBuffer[Int] = utilities
+  def Utilities : mutable.HashMap[Int, UtilityType.Value] = utilities
 
   def TrunkSize : InventoryTile = trunkSize
 

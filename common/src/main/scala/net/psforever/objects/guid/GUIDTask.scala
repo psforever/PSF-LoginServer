@@ -1,6 +1,8 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.guid
 
+import net.psforever.objects.vehicles.Utility
+
 /**
   * The basic compiled tasks for assigning (registering) and revoking (unregistering) globally unique identifiers.<br>
   * <br>
@@ -149,8 +151,9 @@ object GUIDTask {
   def RegisterVehicle(vehicle : Vehicle)(implicit guid : ActorRef) : TaskResolver.GiveTask = {
     import net.psforever.objects.inventory.InventoryItem
     val weaponTasks = vehicle.Weapons.map({ case(_ : Int, entry : EquipmentSlot) => RegisterEquipment(entry.Equipment.get)}).toList
+    val utilTasks = vehicle.Utilities.map({case (_ : Int, util : Utility) => RegisterObjectTask(util())}).toList
     val inventoryTasks = vehicle.Trunk.Items.map({ case((_ : Int, entry : InventoryItem)) => RegisterEquipment(entry.obj)})
-    TaskResolver.GiveTask(RegisterObjectTask(vehicle).task, weaponTasks ++ inventoryTasks)
+    TaskResolver.GiveTask(RegisterObjectTask(vehicle).task, weaponTasks ++ utilTasks ++ inventoryTasks)
   }
 
   /**
@@ -252,8 +255,9 @@ object GUIDTask {
   def UnregisterVehicle(vehicle : Vehicle)(implicit guid : ActorRef) : TaskResolver.GiveTask = {
     import net.psforever.objects.inventory.InventoryItem
     val weaponTasks = vehicle.Weapons.map({ case(_ : Int, entry : EquipmentSlot) => UnregisterTool(entry.Equipment.get.asInstanceOf[Tool]) }).toList
+    val utilTasks = vehicle.Utilities.map({case (_ : Int, util : Utility) => UnregisterObjectTask(util())}).toList
     val inventoryTasks = vehicle.Trunk.Items.map({ case((_ : Int, entry : InventoryItem)) => UnregisterEquipment(entry.obj)})
-    TaskResolver.GiveTask(UnregisterObjectTask(vehicle).task, weaponTasks ++ inventoryTasks)
+    TaskResolver.GiveTask(UnregisterObjectTask(vehicle).task, weaponTasks ++ utilTasks ++ inventoryTasks)
   }
 
   /**

@@ -1,18 +1,20 @@
 // Copyright (c) 2017 PSForever
 package objects
 
+import net.psforever.objects.GlobalDefinitions.remote_electronics_kit
 import net.psforever.objects.definition.converter.{ACEConverter, CharacterSelectConverter, REKConverter}
 import net.psforever.objects._
 import net.psforever.objects.definition._
 import net.psforever.objects.equipment.CItem.{DeployedItem, Unit}
 import net.psforever.objects.equipment._
 import net.psforever.objects.inventory.InventoryTile
+import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.packet.game.objectcreate._
 import net.psforever.types.{CharacterGender, PlanetSideEmpire, Vector3}
 import org.specs2.mutable.Specification
 
-import scala.util.Success
+import scala.util.{Failure, Success}
 
 class ConverterTest extends Specification {
   "AmmoBox" should {
@@ -269,6 +271,26 @@ class ConverterTest extends Specification {
       obj.Definition.Packet.ConstructorData(obj) match {
         case Success(pkt) =>
           pkt mustEqual LockerContainerData(InventoryData(InternalSlot(remote_electronics_kit.ObjectId, PlanetSideGUID(1), 0, REKData(8,0)) :: Nil))
+        case _ =>
+          ko
+      }
+    }
+  }
+
+  "Terminal" should {
+    "convert to packet" in {
+      val obj = Terminal(GlobalDefinitions.order_terminala)
+
+      obj.Definition.Packet.DetailedConstructorData(obj) match {
+        case Failure(err) =>
+          err.isInstanceOf[NoSuchMethodException] mustEqual true
+        case _ =>
+          ko
+      }
+
+      obj.Definition.Packet.ConstructorData(obj) match {
+        case Success(pkt) =>
+          pkt mustEqual CommonTerminalData(PlanetSideEmpire.NEUTRAL, 0)
         case _ =>
           ko
       }

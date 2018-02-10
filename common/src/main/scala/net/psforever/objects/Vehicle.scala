@@ -13,7 +13,6 @@ import net.psforever.packet.game.objectcreate.DriveState
 import net.psforever.types.PlanetSideEmpire
 
 import scala.annotation.tailrec
-import scala.collection.mutable
 
 /**
   * The server-side support object that represents a vehicle.<br>
@@ -49,7 +48,7 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
   private val groupPermissions : Array[VehicleLockState.Value] = Array(VehicleLockState.Locked, VehicleLockState.Empire, VehicleLockState.Empire, VehicleLockState.Locked)
   private var seats : Map[Int, Seat] = Map.empty
   private var weapons : Map[Int, EquipmentSlot] = Map.empty
-  private val utilities : mutable.ArrayBuffer[Utility] = mutable.ArrayBuffer()
+  private var utilities : Map[Int, Utility] = Map()
   private val trunk : GridInventory = GridInventory()
 
   //init
@@ -325,16 +324,21 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
     }
   }
 
-  def Utilities : mutable.ArrayBuffer[Utility] = utilities
+  def Utilities : Map[Int, Utility] = utilities
 
   /**
     * Get a referenece ot a certain `Utility` attached to this `Vehicle`.
     * @param utilNumber the attachment number of the `Utility`
     * @return the `Utility` or `None` (if invalid)
     */
-  def Utility(utilNumber : Int) : Option[Utility] = {
+  def Utility(utilNumber : Int) : Option[PlanetSideServerObject] = {
     if(utilNumber >= 0 && utilNumber < this.utilities.size) {
-      Some(this.utilities(utilNumber))
+      this.utilities.get(utilNumber) match {
+        case Some(util) =>
+          Some(util())
+        case None =>
+          None
+      }
     }
     else {
       None
@@ -506,10 +510,8 @@ object Vehicle {
     }).toMap
     //create seats
     vehicle.seats = vdef.Seats.map({ case(num, definition) => num -> Seat(definition)}).toMap
-    for(i <- vdef.Utilities) {
-      //TODO utilies must be loaded and wired on a case-by-case basis?
-      vehicle.Utilities += Utility.Select(i, vehicle)
-    }
+    //create utilities
+    vehicle.utilities = vdef.Utilities.map({ case(num, util) => num -> Utility(util, vehicle) }).toMap
     //trunk
     vdef.TrunkSize match {
       case InventoryTile.None => ;
