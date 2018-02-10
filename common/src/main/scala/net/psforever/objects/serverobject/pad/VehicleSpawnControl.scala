@@ -2,6 +2,7 @@
 package net.psforever.objects.serverobject.pad
 
 import akka.actor.{Actor, ActorRef, Cancellable}
+import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
 import net.psforever.objects.{DefaultCancellable, Player, Vehicle}
 import net.psforever.types.Vector3
 
@@ -29,7 +30,7 @@ import scala.concurrent.duration._
   * 3. a callback location for sending messages.
   * @param pad the `VehicleSpawnPad` object being governed
   */
-class VehicleSpawnControl(pad : VehicleSpawnPad) extends Actor {
+class VehicleSpawnControl(pad : VehicleSpawnPad) extends Actor with FactionAffinityBehavior.Check {
   /** an executor for progressing a vehicle order through the normal spawning logic */
   private var process : Cancellable = DefaultCancellable.obj
   /** a list of vehicle orders that have been submitted for this spawn pad */
@@ -41,8 +42,9 @@ class VehicleSpawnControl(pad : VehicleSpawnPad) extends Actor {
   private[this] val log = org.log4s.getLogger
   private[this] def trace(msg : String) : Unit = log.trace(msg)
 
+  def FactionObject : FactionAffinity = pad
 
-  def receive : Receive = {
+  def receive : Receive = checkBehavior.orElse {
     case VehicleSpawnPad.VehicleOrder(player, vehicle) =>
       trace(s"order from $player for $vehicle received")
       orders = orders :+ VehicleSpawnControl.OrderEntry(player, vehicle, sender)

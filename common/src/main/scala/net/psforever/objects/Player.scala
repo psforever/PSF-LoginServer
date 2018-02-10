@@ -4,6 +4,7 @@ package net.psforever.objects
 import net.psforever.objects.definition.{AvatarDefinition, ImplantDefinition}
 import net.psforever.objects.equipment.{Equipment, EquipmentSize}
 import net.psforever.objects.inventory.{Container, GridInventory, InventoryItem}
+import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types._
 
@@ -16,7 +17,7 @@ class Player(private val name : String,
              private val sex : CharacterGender.Value,
              private val head : Int,
              private val voice : Int
-            ) extends PlanetSideGameObject with Container {
+            ) extends PlanetSideGameObject with FactionAffinity with Container {
   private var alive : Boolean = false
   private var backpack : Boolean = false
   private var health : Int = 0

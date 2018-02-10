@@ -8,6 +8,12 @@ import net.psforever.packet.game.PlanetSideGUID
 
 import scala.annotation.tailrec
 
+/**
+  * The companion of a `Locker` that is carried with a player
+  * masquerading as their sixth `EquipmentSlot` object and a sub-inventory item.
+  * The `Player` class refers to it as the "fifth slot" as its permanent slot number is encoded as `0x85`.
+  * The inventory of this object is accessed using a game world `Locker` object (`mb_locker`).
+  */
 class LockerContainer extends Equipment with Container {
   private val inventory = GridInventory(30, 20)
 

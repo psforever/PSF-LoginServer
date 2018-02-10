@@ -1,9 +1,11 @@
 // Copyright (c) 2017 PSForever
 package objects
 
-import akka.actor.{ActorRef, Props}
+import akka.actor.{ActorRef, ActorSystem, Props}
 import net.psforever.objects.{GlobalDefinitions, Player}
 import net.psforever.objects.serverobject.doors.{Door, DoorControl}
+import net.psforever.objects.serverobject.structures.Building
+import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.{PlanetSideGUID, UseItemMessage}
 import net.psforever.types.{CharacterGender, PlanetSideEmpire, Vector3}
 import org.specs2.mutable.Specification
@@ -11,6 +13,8 @@ import org.specs2.mutable.Specification
 import scala.concurrent.duration.Duration
 
 class DoorTest extends Specification {
+  val player = Player("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+
   "Door" should {
     "construct" in {
       Door(GlobalDefinitions.door)
@@ -24,7 +28,6 @@ class DoorTest extends Specification {
     }
 
     "be opened and closed (1; manual)" in {
-      val player = Player("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
       val door = Door(GlobalDefinitions.door)
       door.isOpen mustEqual false
       door.Open mustEqual None
@@ -39,7 +42,6 @@ class DoorTest extends Specification {
     }
 
     "be opened and closed (2; toggle)" in {
-      val player = Player("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
       val msg = UseItemMessage(PlanetSideGUID(6585), 0, PlanetSideGUID(372), 4294967295L, false, Vector3(5.0f,0.0f,0.0f), Vector3(0.0f,0.0f,0.0f), 11, 25, 0, 364)
       val door = Door(GlobalDefinitions.door)
       door.Open mustEqual None
@@ -85,9 +87,7 @@ class DoorControl1Test extends ActorTest() {
 class DoorControl2Test extends ActorTest() {
   "DoorControl" should {
     "open on use" in {
-      val door = Door(GlobalDefinitions.door)
-      door.Actor = system.actorOf(Props(classOf[DoorControl], door), "door")
-      val player = Player("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+      val (player, door) = DoorControlTest.SetUpAgents(PlanetSideEmpire.TR)
       val msg = UseItemMessage(PlanetSideGUID(1), 0, PlanetSideGUID(2), 0L, false, Vector3(0f,0f,0f),Vector3(0f,0f,0f),0,0,0,0L) //faked
       assert(door.Open.isEmpty)
 
@@ -106,8 +106,7 @@ class DoorControl2Test extends ActorTest() {
 class DoorControl3Test extends ActorTest() {
   "DoorControl" should {
     "do nothing if given garbage" in {
-      val door = Door(GlobalDefinitions.door)
-      door.Actor = system.actorOf(Props(classOf[DoorControl], door), "door")
+      val (_, door) = DoorControlTest.SetUpAgents(PlanetSideEmpire.TR)
       assert(door.Open.isEmpty)
 
       door.Actor ! "trash"
@@ -115,5 +114,15 @@ class DoorControl3Test extends ActorTest() {
       assert(reply.isInstanceOf[Door.NoEvent])
       assert(door.Open.isEmpty)
     }
+  }
+}
+
+object DoorControlTest {
+  def SetUpAgents(faction : PlanetSideEmpire.Value)(implicit system : ActorSystem) : (Player, Door) = {
+    val door = Door(GlobalDefinitions.door)
+    door.Actor = system.actorOf(Props(classOf[DoorControl], door), "door")
+    door.Owner = new Building(0, Zone.Nowhere)
+    door.Owner.Faction = faction
+    (Player("test", faction, CharacterGender.Male, 0, 0), door)
   }
 }

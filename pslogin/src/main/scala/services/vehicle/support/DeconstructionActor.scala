@@ -53,7 +53,7 @@ class DeconstructionActor extends Actor {
     case DeconstructionActor.RequestDeleteVehicle(vehicle, zone, time) =>
       vehicles = vehicles :+ DeconstructionActor.VehicleEntry(vehicle, zone, time)
       vehicle.Actor ! Vehicle.PrepareForDeletion
-      //kick everyone out
+      //kick everyone out; this is a no-blocking manual form of MountableBehavior ! Mountable.TryDismount
       vehicle.Definition.MountPoints.values.foreach(seat_num => {
         val zone_id : String = zone.Id
         val seat : Seat = vehicle.Seat(seat_num).get
