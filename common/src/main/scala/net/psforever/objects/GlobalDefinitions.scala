@@ -200,6 +200,8 @@ object GlobalDefinitions {
   val peregrine_sparrow_ammo = AmmoBoxDefinition(Ammo.peregrine_sparrow_ammo)
 
   val bullet_150mm = AmmoBoxDefinition(Ammo.bullet_150mm)
+
+  val pellet_gun_ammo = AmmoBoxDefinition(Ammo.pellet_gun_ammo)
   init_ammo()
 
   val chainblade = ToolDefinition(ObjectClass.chainblade)
@@ -229,6 +231,8 @@ object GlobalDefinitions {
   val punisher = ToolDefinition(ObjectClass.punisher)
 
   val flechette = ToolDefinition(ObjectClass.flechette) //sweeper
+
+  val pellet_gun = ToolDefinition(ObjectClass.pellet_gun) //Pellet Gun (Wild West Event)
 
   val cycler = ToolDefinition(ObjectClass.cycler)
 
@@ -477,6 +481,8 @@ object GlobalDefinitions {
   val lodestar = VehicleDefinition(ObjectClass.lodestar)
 
   val phantasm = VehicleDefinition(ObjectClass.phantasm)
+
+//  val colossus_gunner = VehicleDefinition(ObjectClass.colossus_gunner)
   init_vehicles()
 
   /*
@@ -1192,6 +1198,15 @@ object GlobalDefinitions {
     flechette.FireModes.head.Magazine = 12
     flechette.FireModes.head.Chamber = 8 //12 shells * 8 pellets = 96
     flechette.Tile = InventoryTile.Tile63
+
+    pellet_gun.Size = EquipmentSize.Rifle
+    pellet_gun.AmmoTypes += pellet_gun_ammo
+    pellet_gun.FireModes += new PelletFireModeDefinition
+    pellet_gun.FireModes.head.AmmoTypeIndices += 0
+    pellet_gun.FireModes.head.AmmoSlotIndex = 0
+    pellet_gun.FireModes.head.Magazine = 1
+    pellet_gun.FireModes.head.Chamber = 8 //1 shells * 8 pellets = 8
+    pellet_gun.Tile = InventoryTile.Tile63
 
     cycler.Size = EquipmentSize.Rifle
     cycler.AmmoTypes += bullet_9mm
@@ -2008,6 +2023,17 @@ object GlobalDefinitions {
     fury.TrunkSize = InventoryTile.Tile1111
     fury.TrunkOffset = 30
     fury.MaxHealth = 650
+
+//    colossus_gunner.Seats += 0 -> new SeatDefinition()
+//    colossus_gunner.Seats(0).Bailable = true
+//    colossus_gunner.Seats(0).ControlledWeapon = 1
+//    colossus_gunner.Seats += 1 -> new SeatDefinition()
+//    colossus_gunner.Seats(1).ControlledWeapon = 3
+//    colossus_gunner.MountPoints += 1 -> 0
+//    colossus_gunner.MountPoints += 2 -> 1
+//    colossus_gunner.TrunkSize = InventoryTile.Tile1511
+//    colossus_gunner.TrunkOffset = 30
+//    colossus_gunner.MaxHealth = 4500
 
     quadassault.Seats += 0 -> new SeatDefinition()
     quadassault.Seats(0).Bailable = true

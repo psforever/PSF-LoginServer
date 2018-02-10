@@ -41,7 +41,8 @@ abstract class VehicleTerminalDefinition(objId : Int) extends TerminalDefinition
     "magrider" -> MakeVehicle(magrider),
     "flail" -> MakeVehicle(flail),
     "switchblade" -> MakeVehicle(switchblade),
-    "router" -> MakeVehicle(router)
+    "router" -> MakeVehicle(router),
+    "colossus_gunner" -> MakeVehicle(colossus_gunner)
   )
 
   /**

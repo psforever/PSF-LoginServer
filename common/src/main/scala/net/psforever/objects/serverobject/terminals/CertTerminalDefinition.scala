@@ -56,7 +56,10 @@ class CertTerminalDefinition extends TerminalDefinition(171) {
     "virus_hacking" -> (CertificationType.DataCorruption, 3),
     "electronics_expert" -> (CertificationType.ElectronicsExpert, 4),
     "Medical" -> (CertificationType.Medical, 3),
-    "advanced_medical" -> (CertificationType.AdvancedMedical, 2)
+    "advanced_medical" -> (CertificationType.AdvancedMedical, 2),
+    "bfr_basic" -> (CertificationType.BattleFrameRobotics, 4),
+    "bfr_aa_gunnery" -> (CertificationType.BFRAntiAircraft, 1),
+    "bfr_ai_gunnery" -> (CertificationType.BFRAntiInfantry, 1)
     //TODO bfr certification entries
   )
 

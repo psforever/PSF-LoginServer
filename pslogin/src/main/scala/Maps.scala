@@ -19,6 +19,23 @@ object Maps {
 
   val map4 = new ZoneMap("map04") {
 
+    // BFR test
+//    LocalObject(ServerObjectBuilder(199, Terminal.Constructor(vehicle_terminal_combined)))
+//    LocalObject(ServerObjectBuilder(505,
+//      VehicleSpawnPad.Constructor(Vector3(3707.0f, 5522.0f, 89.0f), Vector3(0f, 0f, 0f))
+//    )) //TODO guid not correct
+//    ObjectToBase(199, 30)
+//    ObjectToBase(505, 30)
+//    TerminalToSpawnPad(199, 505)
+
+    // For Nick's tests
+    LocalObject(ServerObjectBuilder(320, Door.Constructor))
+    LocalObject(ServerObjectBuilder(324, Door.Constructor))
+    LocalObject(ServerObjectBuilder(672, Door.Constructor))
+    LocalObject(ServerObjectBuilder(318, Door.Constructor))
+    LocalObject(ServerObjectBuilder(669, Door.Constructor))
+
+
     // Hanish
 //    LocalObject(ServerObjectBuilder(2934, Door.Constructor))
 //    LocalObject(ServerObjectBuilder(2937, Door.Constructor))
@@ -396,6 +413,12 @@ object Maps {
     // TODO what's the good number ?
     LocalBases = 100
 
+    // For Nick's tests
+    ObjectToBase(320, 4)
+    ObjectToBase(324, 4)
+    ObjectToBase(672, 4)
+    ObjectToBase(318, 4)
+    ObjectToBase(669, 4)
 
     // Hanish
     ObjectToBase(470, 30)

@@ -22,5 +22,7 @@ object DriveState extends Enumeration {
 
   val State7 = Value(7) //unknown; not encountered on a vehicle that can deploy; functions like Mobile
 
+//  val State240 = Value(240) //BFR ???
+
   implicit val codec = PacketHelpers.createEnumerationCodec(this, uint8L)
 }

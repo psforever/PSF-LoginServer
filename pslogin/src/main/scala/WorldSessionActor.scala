@@ -1406,6 +1406,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
         player.Certifications += CertificationType.AirSupport
         player.Certifications += CertificationType.GalaxyGunship
         player.Certifications += CertificationType.Phantasm
+//        player.Certifications += CertificationType.BattleFrameRobotics
+//        player.Certifications += CertificationType.BFRAntiInfantry
+//        player.Certifications += CertificationType.BFRAntiAircraft
         AwardBattleExperiencePoints(player, 20000000L)
         player.CEP = 600000
         player.Slot(0).Equipment = Tool(GlobalDefinitions.StandardPistol(player.Faction))
@@ -1559,6 +1562,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
 //        PlanetSideEmpire.VS, 0, None, PlanetSideGeneratorState.Normal, true, false, 28, 0, List(), 0, false, 8, None, false, false))) // Kusag VS
 //      sendResponse(PacketCoding.CreateGamePacket(0, BuildingInfoUpdateMessage(PlanetSideGUID(4), PlanetSideGUID(13), 10, false, PlanetSideEmpire.NEUTRAL, 0,
 //        PlanetSideEmpire.VS, 0, None, PlanetSideGeneratorState.Normal, true, false, 28, 0, List(), 0, false, 8, None, false, false))) // Lahar VS
+
+      // Nick test
+      sendResponse(PacketCoding.CreateGamePacket(0, SetEmpireMessage(PlanetSideGUID(4), PlanetSideEmpire.TR)))
 
 
       sendResponse(PacketCoding.CreateGamePacket(0, TimeOfDayMessage(1191182336)))
@@ -1953,6 +1959,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ EmoteMsg(avatar_guid, emote) =>
       log.info("Emote: " + msg)
       sendResponse(PacketCoding.CreateGamePacket(0, EmoteMsg(avatar_guid, emote)))
+
+    case msg @ FrameVehicleStateMessage(_,_,_,_,_,_,_,_,_,_,_) =>
+      log.info("BFR: " + msg)
 
     case msg @ DropItemMessage(item_guid) =>
       log.info("DropItem: " + msg)

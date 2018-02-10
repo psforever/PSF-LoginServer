@@ -309,6 +309,11 @@ object Prefab {
       VehicleData(CommonFieldData(loc, faction, 0), 0, health, false, false, DriveState.State7, false, false, false, None, None)(VehicleFormat.Normal)
     }
 
+    // BFR test
+//    def colossus_gunner(loc : PlacementData, faction : PlanetSideEmpire.Value, health : Int) : VehicleData = {
+//      VehicleData(CommonFieldData(loc, faction, 0), 0, health, false, false, DriveState.State7, false, false, false, None, None)(VehicleFormat.Normal)
+//    }
+
     def router(loc : PlacementData, faction : PlanetSideEmpire.Value, health : Int, terminal_guid : PlanetSideGUID) : VehicleData = {
       VehicleData(CommonFieldData(loc, faction, 2), 0, health, false, false, DriveState.Mobile, false, false, false, Some(VariantVehicleData(0)),
         Some(InventoryData(
