@@ -14,20 +14,20 @@ object Zones {
       super.Init(context)
 
       import net.psforever.types.PlanetSideEmpire
-      Base(21).get.Faction = PlanetSideEmpire.VS //Irkalla
-      Base(27).get.Faction = PlanetSideEmpire.TR //Dagon
-      Base(30).get.Faction = PlanetSideEmpire.TR //Hanish
-      Base(42).get.Faction = PlanetSideEmpire.TR //Baal
-      Base(48).get.Faction = PlanetSideEmpire.NC //Girru
-      Base(56).get.Faction = PlanetSideEmpire.TR //West Hanish Gun Tower
-      Base(60).get.Faction = PlanetSideEmpire.VS //SE Hanish Gun Tower
-      Base(62).get.Faction = PlanetSideEmpire.NC //East Girru Gun Tower
-      Base(69).get.Faction = PlanetSideEmpire.TR //Northeast Akkan Watch tower
-      Base(73).get.Faction = PlanetSideEmpire.NC //Gate Outpost Watch Tower (South of Cyssor Warpgate)
-      Base(74).get.Faction = PlanetSideEmpire.VS //Gate Outpost Watch Tower (North of Forseral Warpgate)
-      Base(82).get.Faction = PlanetSideEmpire.TR //Southwest Hanish Air Tower
-      Base(83).get.Faction = PlanetSideEmpire.NC //West Girru Air Tower
-      Base(86).get.Faction = PlanetSideEmpire.VS //South Irkalla Air Tower
+      Building(21).get.Faction = PlanetSideEmpire.VS //Irkalla
+      Building(27).get.Faction = PlanetSideEmpire.TR //Dagon
+      Building(30).get.Faction = PlanetSideEmpire.TR //Hanish
+      Building(42).get.Faction = PlanetSideEmpire.TR //Baal
+      Building(48).get.Faction = PlanetSideEmpire.NC //Girru
+      Building(56).get.Faction = PlanetSideEmpire.TR //West Hanish Gun Tower
+      Building(60).get.Faction = PlanetSideEmpire.VS //SE Hanish Gun Tower
+      Building(62).get.Faction = PlanetSideEmpire.NC //East Girru Gun Tower
+      Building(69).get.Faction = PlanetSideEmpire.TR //Northeast Akkan Watch tower
+      Building(73).get.Faction = PlanetSideEmpire.NC //Gate Outpost Watch Tower (South of Cyssor Warpgate)
+      Building(74).get.Faction = PlanetSideEmpire.VS //Gate Outpost Watch Tower (North of Forseral Warpgate)
+      Building(82).get.Faction = PlanetSideEmpire.TR //Southwest Hanish Air Tower
+      Building(83).get.Faction = PlanetSideEmpire.NC //West Girru Air Tower
+      Building(86).get.Faction = PlanetSideEmpire.VS //South Irkalla Air Tower
     }
   }
 

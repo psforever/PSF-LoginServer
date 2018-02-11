@@ -1693,6 +1693,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
       player.FacingYawUpper = yaw_upper
       player.Crouching = is_crouching
       player.Jumping = is_jumping
+      if(is_crouching) {
+        sendResponse(PacketCoding.CreateGamePacket(0, ChatMsg(ChatMessageType.CMT_GMOPEN, true, "Server", " X : " + player.Position.x.toString + " Y : " + player.Position.y.toString + " Z : " + player.Position.z.toString + "  Orientation Yaw : " + player.Orientation.z.toInt.toString, None)))
+        println("(Vector3(" + player.Position.x + "f, " + player.Position.y + "f, " + player.Position.z + "f), Vector3(0, 0, " + player.Orientation.z.toInt + "))))")
+      }
 
       val wepInHand : Boolean = player.Slot(player.DrawnSlot).Equipment match {
         case Some(item) => item.Definition == GlobalDefinitions.bolt_driver
