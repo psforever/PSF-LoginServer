@@ -476,6 +476,11 @@ object Maps {
     ObjectToBuilding(1115, 30)
     ObjectToBuilding(1116, 30)
 
+    ObjectToBuilding(1991, 30)
+    ObjectToBuilding(1992, 30)
+    ObjectToBuilding(1993, 30)
+    ObjectToBuilding(1994, 30)
+
     ObjectToBuilding(948, 30)
     ObjectToBuilding(949, 30)
 
@@ -508,6 +513,10 @@ object Maps {
     ObjectToBuilding(1054, 56)
     ObjectToBuilding(1055, 56)
 
+    ObjectToBuilding(1960, 56)
+    ObjectToBuilding(1961, 56)
+    ObjectToBuilding(1962, 56)
+
     DoorToLock(404, 1056)
     DoorToLock(405, 1057)
     DoorToLock(406, 1054)
@@ -525,6 +534,10 @@ object Maps {
     ObjectToBuilding(1102, 82)
     ObjectToBuilding(1103, 82)
     ObjectToBuilding(1104, 82)
+
+    ObjectToBuilding(1988, 82)
+    ObjectToBuilding(1989, 82)
+    ObjectToBuilding(1990, 82)
 
     DoorToLock(466, 1103)
     DoorToLock(467, 1104)
@@ -547,6 +560,10 @@ object Maps {
     ObjectToBuilding(1066, 69)
     ObjectToBuilding(1067, 69)
     ObjectToBuilding(1068, 69)
+
+    ObjectToBuilding(1966, 69)
+    ObjectToBuilding(1967, 69)
+    ObjectToBuilding(1968, 69)
 
     DoorToLock(414, 1066)
     DoorToLock(415, 1067)
@@ -606,6 +623,11 @@ object Maps {
     ObjectToBuilding(1148, 48)
     ObjectToBuilding(1149, 48)
 
+    ObjectToBuilding(2014, 48)
+    ObjectToBuilding(2015, 48)
+    ObjectToBuilding(2016, 48)
+    ObjectToBuilding(2017, 48)
+
     DoorToLock(519, 1142)
     DoorToLock(522, 1144)
     DoorToLock(523, 1146)
@@ -637,6 +659,10 @@ object Maps {
     ObjectToBuilding(1166, 62)
     ObjectToBuilding(1167, 62)
 
+    ObjectToBuilding(2027, 62)
+    ObjectToBuilding(2028, 62)
+    ObjectToBuilding(2029, 62)
+
     DoorToLock(542, 1166)
     DoorToLock(543, 1167)
     DoorToLock(544, 1164)
@@ -656,6 +682,10 @@ object Maps {
     ObjectToBuilding(1110, 83)
     ObjectToBuilding(1111, 83)
     ObjectToBuilding(1112, 83)
+
+    ObjectToBuilding(1995, 83)
+    ObjectToBuilding(1996, 83)
+    ObjectToBuilding(1997, 83)
 
     DoorToLock(477, 1111)
     DoorToLock(478, 1112)
@@ -679,6 +709,10 @@ object Maps {
     ObjectToBuilding(1171, 73)
     ObjectToBuilding(1172, 73)
     ObjectToBuilding(1173, 73)
+
+    ObjectToBuilding(2030, 73)
+    ObjectToBuilding(2031, 73)
+    ObjectToBuilding(2032, 73)
 
     DoorToLock(546, 1171)
     DoorToLock(547, 1172)
@@ -743,6 +777,14 @@ object Maps {
     ObjectToBuilding(1196, 21)
     ObjectToBuilding(975, 21)
 
+    ObjectToBuilding(2037, 21)
+    ObjectToBuilding(2038, 21)
+    ObjectToBuilding(2039, 21)
+    ObjectToBuilding(2040, 21)
+    ObjectToBuilding(2041, 21)
+    ObjectToBuilding(2042, 21)
+    ObjectToBuilding(2043, 21)
+
     DoorToLock(572, 1187)
     DoorToLock(573, 1191)
     DoorToLock(574, 1190)
@@ -773,6 +815,10 @@ object Maps {
     ObjectToBuilding(1150, 60)
     ObjectToBuilding(1151, 60)
 
+    ObjectToBuilding(2018, 60)
+    ObjectToBuilding(2019, 60)
+    ObjectToBuilding(2020, 60)
+
     DoorToLock(525, 1155)
     DoorToLock(526, 1156)
     DoorToLock(527, 1150)
@@ -790,6 +836,11 @@ object Maps {
     ObjectToBuilding(1200, 86)
     ObjectToBuilding(1197, 86)
     ObjectToBuilding(1198, 86)
+
+    ObjectToBuilding(2047, 86)
+    ObjectToBuilding(2048, 86)
+    ObjectToBuilding(2049, 86)
+
     DoorToLock(581, 1199)
     DoorToLock(582, 1200)
     DoorToLock(583, 1197)
@@ -812,6 +863,10 @@ object Maps {
     ObjectToBuilding(1207, 74)
     ObjectToBuilding(1205, 74)
     ObjectToBuilding(1206, 74)
+
+    ObjectToBuilding(2053, 74)
+    ObjectToBuilding(2054, 74)
+    ObjectToBuilding(2055, 74)
 
     DoorToLock(590, 1208)
     DoorToLock(591, 1209)
