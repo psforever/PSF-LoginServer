@@ -151,7 +151,7 @@ object GUIDTask {
   def RegisterVehicle(vehicle : Vehicle)(implicit guid : ActorRef) : TaskResolver.GiveTask = {
     import net.psforever.objects.inventory.InventoryItem
     val weaponTasks = vehicle.Weapons.map({ case(_ : Int, entry : EquipmentSlot) => RegisterEquipment(entry.Equipment.get)}).toList
-    val utilTasks = vehicle.Utilities.map({case (_ : Int, util : Utility) => RegisterObjectTask(util())}).toList
+    val utilTasks = Vehicle.EquipmentUtilities(vehicle.Utilities).map({case (_ : Int, util : Utility) => RegisterObjectTask(util())}).toList
     val inventoryTasks = vehicle.Trunk.Items.map({ case((_ : Int, entry : InventoryItem)) => RegisterEquipment(entry.obj)})
     TaskResolver.GiveTask(RegisterObjectTask(vehicle).task, weaponTasks ++ utilTasks ++ inventoryTasks)
   }
@@ -255,7 +255,7 @@ object GUIDTask {
   def UnregisterVehicle(vehicle : Vehicle)(implicit guid : ActorRef) : TaskResolver.GiveTask = {
     import net.psforever.objects.inventory.InventoryItem
     val weaponTasks = vehicle.Weapons.map({ case(_ : Int, entry : EquipmentSlot) => UnregisterTool(entry.Equipment.get.asInstanceOf[Tool]) }).toList
-    val utilTasks = vehicle.Utilities.map({case (_ : Int, util : Utility) => UnregisterObjectTask(util())}).toList
+    val utilTasks = Vehicle.EquipmentUtilities(vehicle.Utilities).map({case (_ : Int, util : Utility) => UnregisterObjectTask(util())}).toList
     val inventoryTasks = vehicle.Trunk.Items.map({ case((_ : Int, entry : InventoryItem)) => UnregisterEquipment(entry.obj)})
     TaskResolver.GiveTask(UnregisterObjectTask(vehicle).task, weaponTasks ++ utilTasks ++ inventoryTasks)
   }

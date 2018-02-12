@@ -14,6 +14,7 @@ class UtilityTest extends Specification {
   "Utility" should {
     "create an order_terminala object" in {
       val obj = Utility(UtilityType.order_terminala, UtilityTest.vehicle)
+      obj.UtilType mustEqual UtilityType.order_terminala
       obj().isInstanceOf[Terminal] mustEqual true
       obj().asInstanceOf[Terminal].Definition.ObjectId mustEqual 613
       obj().asInstanceOf[Terminal].Actor == ActorRef.noSender
@@ -21,6 +22,7 @@ class UtilityTest extends Specification {
 
     "create an order_terminalb object" in {
       val obj = Utility(UtilityType.order_terminalb, UtilityTest.vehicle)
+      obj.UtilType mustEqual UtilityType.order_terminalb
       obj().isInstanceOf[Terminal] mustEqual true
       obj().asInstanceOf[Terminal].Definition.ObjectId mustEqual 614
       obj().asInstanceOf[Terminal].Actor == ActorRef.noSender

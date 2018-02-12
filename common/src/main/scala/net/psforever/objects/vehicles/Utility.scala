@@ -56,6 +56,12 @@ class Utility(util : UtilityType.Value, vehicle : Vehicle) {
     * @param context an `ActorContext` potentially useful for the function
     */
   def Setup(implicit context : ActorContext) : Unit = setupFunc(obj, context)
+
+  /**
+    * Recover the original value used to initialize this object.
+    * @return the type of the `Amenity` object that was created
+    */
+  def UtilType : UtilityType.Value = util
 }
 
 object Utility {

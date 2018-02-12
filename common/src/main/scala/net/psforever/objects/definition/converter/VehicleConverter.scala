@@ -44,7 +44,7 @@ class VehicleConverter extends ObjectCreateConverter[Vehicle]() {
   }
 
   protected def MakeUtilities(obj : Vehicle) : List[InventoryItemData.InventoryItem] = {
-    obj.Utilities.map({
+    Vehicle.EquipmentUtilities(obj.Utilities).map({
       case(index, utilContainer) =>
         val util = utilContainer()
         val utilDef = util.Definition

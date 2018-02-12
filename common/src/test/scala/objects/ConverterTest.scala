@@ -298,7 +298,7 @@ class ConverterTest extends Specification {
   }
 
   "Vehicle" should {
-    "convert to packet" in {
+    "convert to packet (1)" in {
       val hellfire_ammo = AmmoBoxDefinition(Ammo.hellfire_ammo.id)
 
       val fury_weapon_systema_def = ToolDefinition(ObjectClass.fury_weapon_systema)
@@ -331,6 +331,17 @@ class ConverterTest extends Specification {
           fury.WeaponControlledFromSeat(0).get.asInstanceOf[Tool].AmmoSlots.head.Box = hellfire_ammo_box
 
       fury.Definition.Packet.ConstructorData(fury).isSuccess mustEqual true
+      ok //TODO write more of this test
+    }
+
+    "convert to packet (2)" in {
+      val
+      ams = Vehicle(GlobalDefinitions.ams)
+      ams.GUID = PlanetSideGUID(413)
+      ams.Utilities(3)().GUID = PlanetSideGUID(414)
+      ams.Utilities(4)().GUID = PlanetSideGUID(415)
+
+      ams.Definition.Packet.ConstructorData(ams).isSuccess mustEqual true
       ok //TODO write more of this test
     }
   }
