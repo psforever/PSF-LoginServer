@@ -4,10 +4,27 @@ package net.psforever.objects.serverobject.terminals
 import net.psforever.objects._
 import net.psforever.objects.definition._
 import net.psforever.objects.equipment.Equipment
+import net.psforever.packet.game.ItemTransactionMessage
 import net.psforever.types.ExoSuitType
+
+import scala.annotation.switch
 
 abstract class EquipmentTerminalDefinition(objId : Int) extends TerminalDefinition(objId) {
   Name = "equipment_terminal"
+
+  /**
+    * Process a `TransactionType.Sell` action by the user.
+    * There is no specific tab associated with this action.
+    * It is a common button on the terminal interface window.
+    * Additionally, the equipment to be sold ia almost always in the player's `FreeHand` slot.
+    * Selling `Equipment` is always permitted.
+    * @param player the player
+    * @param msg the original packet carrying the request
+    * @return an actionable message that explains how to process the request
+    */
+  override def Sell(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
+    Terminal.SellEquipment()
+  }
 }
 
 object EquipmentTerminalDefinition {
@@ -22,7 +39,15 @@ object EquipmentTerminalDefinition {
     "standard_issue_armor" -> (ExoSuitType.Standard, 0),
     "lite_armor" -> (ExoSuitType.Agile, 0),
     "med_armor" -> (ExoSuitType.Reinforced, 0),
-    "stealth_armor" -> (ExoSuitType.Infiltration, 0),
+    "stealth_armor" -> (ExoSuitType.Infiltration, 0)
+  )
+
+  /**
+    * A `Map` of information for changing mechanized assault exo-suits.
+    * key - an identification string sent by the client
+    * value - a `Tuple` containing exo-suit specifications
+    */
+  val maxSuits : Map[String, (ExoSuitType.Value, Int)] = Map(
     "trhev_antiaircraft" -> (ExoSuitType.MAX, 3),
     "trhev_antipersonnel" -> (ExoSuitType.MAX, 1),
     "trhev_antivehicular" -> (ExoSuitType.MAX, 2),
@@ -335,6 +360,59 @@ object EquipmentTerminalDefinition {
 
       case obj : ShorthandKit =>
         MakeKit(obj.kdef)
+    }
+  }
+
+  /**
+    * Process a `TransactionType.Buy` action by the user.
+    * Either attempt to purchase equipment or attempt to switch directly to a different exo-suit.
+    * @param page0Stock the `Equipment` items and `AmmoBox` items available on the first tab
+    * @param page2Stock the `Equipment` items and `AmmoBox` items available on the third tab
+    * @param exosuits the exo-suit types (and subtypes) available on the second tab
+    * @param player the player
+    * @param msg the original packet carrying the request
+    * @return an actionable message that explains how to process the request
+    */
+  def Buy(page0Stock : Map[String, ()=>Equipment],
+          page2Stock : Map[String, ()=>Equipment],
+          exosuits : Map[String, (ExoSuitType.Value, Int)])
+         (player : Player, msg : ItemTransactionMessage): Terminal.Exchange = {
+    (msg.item_page : @switch) match {
+      case 0 => //Weapon tab
+        page0Stock.get(msg.item_name) match {
+          case Some(item) =>
+            Terminal.BuyEquipment(item())
+          case None =>
+            Terminal.NoDeal()
+        }
+      case 2 => //Support tab
+        page2Stock.get(msg.item_name) match {
+          case Some(item) =>
+            Terminal.BuyEquipment(item())
+          case None =>
+            Terminal.NoDeal()
+        }
+      case 3 => //Vehicle tab
+        vehicleAmmunition.get(msg.item_name) match {
+          case Some(item) =>
+            Terminal.BuyEquipment(item())
+          case None =>
+            Terminal.NoDeal()
+        }
+      case 1 => //Armor tab
+        exosuits.get(msg.item_name) match {
+          case Some((suit, subtype)) =>
+            Terminal.BuyExosuit(suit, subtype)
+          case None =>
+            maxAmmo.get(msg.item_name) match {
+              case Some(item) =>
+                Terminal.BuyEquipment(item())
+              case None =>
+                Terminal.NoDeal()
+            }
+        }
+      case _ =>
+        Terminal.NoDeal()
     }
   }
 }

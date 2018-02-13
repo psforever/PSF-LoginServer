@@ -29,55 +29,28 @@ class VehicleConverter extends ObjectCreateConverter[Vehicle]() {
         false,
         obj.Cloaked,
         SpecificFormatData(obj),
-        Some(InventoryData(MakeMountings(obj).sortBy(_.parentSlot)))
+        Some(InventoryData((MakeUtilities(obj) ++ MakeMountings(obj)).sortBy(_.parentSlot)))
       )(SpecificFormatModifier)
     )
   }
-
-  /**
-    * na
-    * @param obj the `Player` game object
-    * @return a list of all tools that were in the mounted weapon slots in decoded packet form
-    */
+  
   private def MakeMountings(obj : Vehicle) : List[InventoryItemData.InventoryItem] = {
     obj.Weapons.map({
       case((index, slot)) =>
         val equip : Equipment = slot.Equipment.get
-        InventoryItemData(equip.Definition.ObjectId, equip.GUID, index, equip.Definition.Packet.ConstructorData(equip).get)
+        val equipDef = equip.Definition
+        InventoryItemData(equipDef.ObjectId, equip.GUID, index, equipDef.Packet.ConstructorData(equip).get)
     }).toList
   }
 
-//  /**
-//    * na
-//    * @param obj the `Player` game object
-//    * @return a list of all items that were in the inventory in decoded packet form
-//    */
-//  private def MakeTrunk(obj : Vehicle) : List[InternalSlot] = {
-//    obj.Trunk.Items.map({
-//      case(_, item) =>
-//        val equip : Equipment = item.obj
-//        InventoryItemData(equip.Definition.ObjectId, equip.GUID, item.start, equip.Definition.Packet.ConstructorData(equip).get)
-//    }).toList
-//  }
-
-//  @tailrec private def recursiveMakeSeats(iter : Iterator[(Int, Seat)], list : List[InventoryItemData.InventoryItem] = Nil) : List[InventoryItemData.InventoryItem] = {
-//    if(!iter.hasNext) {
-//      list
-//    }
-//    else {
-//      val (index, seat) = iter.next
-//      seat.Occupant match {
-//        case Some(avatar) =>
-//          val definition = avatar.Definition
-//          recursiveMakeSeats(
-//            iter,
-//            list :+ InventoryItemData(definition.ObjectId, avatar.GUID, index, definition.Packet.ConstructorData(avatar).get)
-//          )
-//        case None =>
-//          recursiveMakeSeats(iter, list)
-//      }
-//    }
-//  }
+  protected def MakeUtilities(obj : Vehicle) : List[InventoryItemData.InventoryItem] = {
+    Vehicle.EquipmentUtilities(obj.Utilities).map({
+      case(index, utilContainer) =>
+        val util = utilContainer()
+        val utilDef = util.Definition
+        InventoryItemData(utilDef.ObjectId, util.GUID, index, utilDef.Packet.ConstructorData(util).get)
+    }).toList
+  }
 
   protected def SpecificFormatModifier : VehicleFormat.Value = VehicleFormat.Normal
 

@@ -12,7 +12,7 @@ import net.psforever.objects.serverobject.locks.IFFLockDefinition
 import net.psforever.objects.serverobject.mblocker.LockerDefinition
 import net.psforever.objects.serverobject.pad.VehicleSpawnPadDefinition
 import net.psforever.objects.serverobject.terminals._
-import net.psforever.objects.vehicles.SeatArmorRestriction
+import net.psforever.objects.vehicles.{SeatArmorRestriction, UtilityType}
 import net.psforever.types.PlanetSideEmpire
 
 object GlobalDefinitions {
@@ -491,6 +491,10 @@ object GlobalDefinitions {
   Miscellaneous
    */
   val order_terminal = new OrderTerminalDefinition
+
+  val order_terminala = new OrderTerminalABDefinition(613)
+
+  val order_terminalb = new OrderTerminalABDefinition(614)
 
   val cert_terminal = new CertTerminalDefinition
 
@@ -2390,6 +2394,8 @@ object GlobalDefinitions {
     ams.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
     ams.MountPoints += 1 -> 0
     ams.MountPoints += 2 -> 0
+    ams.Utilities += 3 -> UtilityType.order_terminala
+    ams.Utilities += 4 -> UtilityType.order_terminalb
     ams.Packet = utilityConverter
     ams.MaxHealth = 3000
 

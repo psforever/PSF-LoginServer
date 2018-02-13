@@ -1,104 +1,103 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.vehicles
 
-import net.psforever.objects.entity.IdentifiableEntity
-import net.psforever.objects.Vehicle
-import net.psforever.packet.game.PlanetSideGUID
-import net.psforever.types.PlanetSideEmpire
-
-import scala.annotation.switch
+import akka.actor.ActorContext
+import net.psforever.objects.{GlobalDefinitions, Vehicle}
+import net.psforever.objects.serverobject.structures.Amenity
+import net.psforever.objects.serverobject.terminals.{OrderTerminalABDefinition, Terminal}
 
 /**
-  * A `Utility` represents an unknown but functional entity that is attached to a `Vehicle` and is not a weapon or a seat.
-  * This is a placeholder solution until a better system is established.
-  * @param objectId the object id that is associated with this sort of `Utility`
-  * @param vehicle the `Vehicle` to which this `Utility` is attached
+  * An `Enumeration` of the available vehicular utilities.<br>
+  * <br>
+  * These values are used to connect `Amenity` objects and their extra logic encapsulated in this class
+  * with information in the `VehicleDefinition` object for that kind of vehicle.
+  * @see `Vehicle.LoadDefinition`
+  * @see `VehicleDefinition.Utilities`
   */
-class Utility(val objectId : Int, vehicle : Vehicle) extends IdentifiableEntity {
-  private var active : Boolean = false
+object UtilityType extends Enumeration {
+  type Type = Value
+  val
+  order_terminala,
+  order_terminalb
+  = Value
+}
+
+/**
+  * Build a specific functional extension that is a component of a certain `Vehicle` object.<br>
+  * <br>
+  * A `Utility` object is a variation of an `Amenity` object that might be found in a `Building` object.
+  * The object itself is stored inside the `Utility` as if it were a container.
+  * `Amenity` objects are required because they are to be owned by the `vehicle` for purposes of faction affinity.
+  * Only specific kinds of objects count for being `Utility` contents/objects.
+  * Additional "setup" logic can be supplied that will be called when the owner vehicle's control `Actor` is created.
+  * Ostensibly, the purpose of the additional logic, when it is called,
+  * is to initialize a control `Actor` for the contained object.
+  * This `Actor` is expected by other logic.
+  * @see `Vehicle.LoadDefinition`
+  * @see `VehicleDefinition.Utilities`
+  * @param util the type of the `Amenity` object to be created
+  * @param vehicle the owner of this object
+  * @see `Amenity.Owner`
+  */
+class Utility(util : UtilityType.Value, vehicle : Vehicle) {
+  private val obj : Amenity = Utility.BuildUtilityFunc(util)
+  obj.Owner = vehicle
+  private val setupFunc : Utility.UtilLogic = Utility.SelectUtilitySetupFunc(util)
 
   /**
-    * The faction association of this `Utility` is tied directly to the connected `Vehicle`.
-    * @return the faction association
+    * Access the contained object in this `Utility`.
+    * @return the contained `Amenity` object
     */
-  def Faction : PlanetSideEmpire.Value = {
-    vehicle.Faction
-  }
+  def apply() : Amenity = obj
 
   /**
-    * An "active" `Utility` can be used by players; an "inactive" one can not be used in its current state.
-    * @return whether this `Utility` is active.
+    * Run the setup code that was provided in the object constructor parameters.
+    * While it is expected to construct an `Actor`, that is not required.
+    * @param context an `ActorContext` potentially useful for the function
     */
-  def ActiveState : Boolean = {
-    this.active
-  }
+  def Setup(implicit context : ActorContext) : Unit = setupFunc(obj, context)
 
   /**
-    * Change the "active" state of this `Utility`.
-    * @param state the new active state
-    * @return the current active state after being changed
+    * Recover the original value used to initialize this object.
+    * @return the type of the `Amenity` object that was created
     */
-  def ActiveState_=(state : Boolean) : Boolean = {
-    this.active = state
-    state
-  }
-
-  /**
-    * Override the string representation to provide additional information.
-    * @return the string output
-    */
-  override def toString : String = {
-    Utility.toString(this)
-  }
+  def UtilType : UtilityType.Value = util
 }
 
 object Utility {
+  type UtilLogic = (Amenity, ActorContext)=>Unit
+
   /**
-    * An overloaded constructor.
-    * @param objectId the object id the is associated with this sort of `Utility`
-    * @param vehicle the `Vehicle` to which this `Utility` is attached
+    * Overloaded constructor.
+    * @param util the type of the `Amenity` object to be created
+    * @param vehicle the owner of this object
     * @return a `Utility` object
     */
-  def apply(objectId : Int, vehicle : Vehicle) : Utility = {
-    new Utility(objectId, vehicle)
+  def apply(util : UtilityType.Value, vehicle : Vehicle) : Utility = {
+    new Utility(util, vehicle)
   }
 
   /**
-    * An overloaded constructor.
-    * @param objectId the object id the is associated with this sort of `Utility`
-    * @param vehicle the `Vehicle` to which this `Utility` is attached
-    * @return a `Utility` object
+    * Create the called-out object.
+    * @param util the type of the `Amenity` object
+    * @return the `Amenity` object
     */
-  def apply(guid : PlanetSideGUID, objectId : Int, vehicle : Vehicle) : Utility = {
-    val obj = new Utility(objectId, vehicle)
-    obj.GUID = guid
-    obj
+  private def BuildUtilityFunc(util : UtilityType.Value) : Amenity = util match {
+    case UtilityType.order_terminala =>
+      Terminal(GlobalDefinitions.order_terminala)
+    case UtilityType.order_terminalb =>
+      Terminal(GlobalDefinitions.order_terminalb)
   }
 
   /**
-    * Create one of a specific type of utilities.
-    * @param objectId the object id that is associated with this sort of `Utility`
-    * @param vehicle the `Vehicle` to which this `Utility` is attached
-    * @return a permitted `Utility` object
+    * Provide the called-out object's logic.
+    * @param util the type of the `Amenity` object
+    * @return the `Amenity` object
     */
-  def Select(objectId : Int, vehicle : Vehicle) : Utility = {
-    (objectId : @switch) match {
-      case 60 => //this is the object id of an ANT
-        ANTResourceUtility(objectId, vehicle)
-
-      case 49 | 519 | 613 | 614 => //ams parts
-        Utility(objectId, vehicle)
-
-      case _ =>
-        throw new IllegalArgumentException(s"the requested objectID #$objectId is not accepted as a valid Utility")
-    }
-  }
-
-  /**
-    * Provide a fixed string representation.
-    * @return the string output
-    */
-  def toString(obj : Utility) : String = {
-    s"{utility-${obj.objectId}}"
+  private def SelectUtilitySetupFunc(util : UtilityType.Value) : UtilLogic = util match {
+    case UtilityType.order_terminala =>
+      OrderTerminalABDefinition.Setup
+    case UtilityType.order_terminalb =>
+      OrderTerminalABDefinition.Setup
   }
 }
