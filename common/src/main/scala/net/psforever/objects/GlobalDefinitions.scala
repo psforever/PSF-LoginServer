@@ -2347,14 +2347,11 @@ object GlobalDefinitions {
     ams.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
     ams.MountPoints += 1 -> 0
     ams.MountPoints += 2 -> 0
-<<<<<<< 27d86af015d5a835f7d594aed9ccdd1de4048c53
     ams.Utilities += 3 -> UtilityType.order_terminala
     ams.Utilities += 4 -> UtilityType.order_terminalb
-=======
     ams.Deployment = true
     ams.DeployTime = 2000
     ams.UndeployTime = 2000
->>>>>>> Deployment:
     ams.Packet = utilityConverter
 
     val variantConverter = new VariantVehicleConverter

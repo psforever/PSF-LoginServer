@@ -20,9 +20,7 @@ import scala.annotation.tailrec
   * All infantry seating, all mounted weapons, and the trunk space are considered part of the same index hierarchy.
   * Generally, all seating is declared first - the driver and passengers and and gunners.
   * Following that are the mounted weapons and other utilities.
-  * Trunk space starts being indexed afterwards.<br>
-  * <br>
-<<<<<<< 27d86af015d5a835f7d594aed9ccdd1de4048c53
+  * Trunk space starts being indexed afterwards.
   * To keep it simple, infantry seating, mounted weapons, and utilities are stored separately.<br>
   * <br>
   * Vehicles maintain a `Map` of `Utility` objects in given index positions.
@@ -33,10 +31,6 @@ import scala.annotation.tailrec
   * The value of the negative index does not have a specific meaning.
   * @see `Vehicle.EquipmentUtilities`
   * @param vehicleDef the vehicle's definition entry';
-=======
-  * To keep it simple, infantry seating, mounted weapons, and utilities are stored separately.
-  * @param vehicleDef the vehicle's definition entry;
->>>>>>> Deployment:
   *                   stores and unloads pertinent information about the `Vehicle`'s configuration;
   *                   used in the initialization process (`loadVehicleDefinition`)
   */

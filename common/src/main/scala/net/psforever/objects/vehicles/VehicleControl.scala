@@ -4,12 +4,8 @@ package net.psforever.objects.vehicles
 import akka.actor.Actor
 import net.psforever.objects.Vehicle
 import net.psforever.objects.serverobject.mount.MountableBehavior
-<<<<<<< 27d86af015d5a835f7d594aed9ccdd1de4048c53
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
-=======
-import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
 import net.psforever.objects.serverobject.deploy.DeploymentBehavior
->>>>>>> Deployment:
 
 /**
   * An `Actor` that handles messages being dispatched to a specific `Vehicle`.<br>
@@ -23,14 +19,10 @@ class VehicleControl(vehicle : Vehicle) extends Actor
   with DeploymentBehavior
   with MountableBehavior.Mount
   with MountableBehavior.Dismount {
-<<<<<<< 27d86af015d5a835f7d594aed9ccdd1de4048c53
   //make control actors belonging to utilities when making control actor belonging to vehicle
   vehicle.Utilities.foreach({case (_, util) => util.Setup })
 
-  def MountableObject = vehicle //do not add type!
-=======
   def MountableObject = vehicle
->>>>>>> Deployment:
 
   def FactionObject = vehicle
 
