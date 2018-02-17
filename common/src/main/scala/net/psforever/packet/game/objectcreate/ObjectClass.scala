@@ -365,6 +365,7 @@ object ObjectClass {
   final val vulture = 986
   final val wasp = 997
   //other
+  final val ams_order_terminal = 48
   final val ams_respawn_tube = 49
   final val avatar = 121
   final val bfr_rearm_terminal = 142
@@ -950,6 +951,7 @@ object ObjectClass {
       //vehicles?
       case ObjectClass.orbital_shuttle => ConstructorData.genericCodec(OrbitalShuttleData.codec, "HART")
       //other
+      case ObjectClass.ams_order_terminal => ConstructorData.genericCodec(CommonTerminalData.codec, "terminal")
       case ObjectClass.ams_respawn_tube => ConstructorData.genericCodec(CommonTerminalData.codec, "terminal")
       case ObjectClass.bfr_rearm_terminal => ConstructorData.genericCodec(CommonTerminalData.codec, "terminal")
       case ObjectClass.implant_terminal_interface => ConstructorData.genericCodec(CommonTerminalData.codec, "implant terminal")

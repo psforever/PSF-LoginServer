@@ -2097,8 +2097,24 @@ class WorldSessionActor extends Actor with MDCContextAware {
       }
 
     case msg @ DeployRequestMessage(player_guid, entity, unk1, unk2, unk3, pos) =>
-      //if you try to deploy, can not undeploy
       log.info("DeployRequest: " + msg)
+      //LOCAL FUNCTIONALITY ONLY FOR THIS BRANCH
+      val player_guid = player.GUID
+      if(unk1 == 2) { // deploy AMS
+        //sendResponse(PacketCoding.CreateGamePacket(0, PlanetsideAttributeMessage(entity,49,1))) // TODO : ANT ? With increment when loading NTU ?
+        sendResponse(PacketCoding.CreateGamePacket(0, DeployRequestMessage(player_guid, entity, unk1, unk2, unk3, Vector3(0f, 0f, 0f))))
+        Thread.sleep(1000) // 2 seconds
+        sendResponse(PacketCoding.CreateGamePacket(0, DeployRequestMessage(player_guid, entity, 3, unk2, unk3, Vector3(0f, 0f, 0f))))
+        sendResponse(PacketCoding.CreateGamePacket(0, PlanetsideAttributeMessage(entity, 10, 1)))
+        sendResponse(PacketCoding.CreateGamePacket(0, PlanetsideAttributeMessage(entity, 11, 1)))
+        sendResponse(PacketCoding.CreateGamePacket(0, PlanetsideAttributeMessage(entity, 12, 1)))
+        sendResponse(PacketCoding.CreateGamePacket(0, PlanetsideAttributeMessage(entity, 13, 1)))
+      }
+      else if(unk1 == 1) { // undeploy AMS
+        sendResponse(PacketCoding.CreateGamePacket(0, DeployRequestMessage(player_guid, entity, unk1, unk2, unk3, Vector3(0f, 0f, 0f))))
+        Thread.sleep(1000) // 2 seconds
+        sendResponse(PacketCoding.CreateGamePacket(0, DeployRequestMessage(player_guid, entity, 0, unk2, unk3, Vector3(0f, 0f, 0f))))
+      }
 
     case msg @ AvatarGrenadeStateMessage(player_guid, state) =>
       log.info("AvatarGrenadeStateMessage: " + msg)

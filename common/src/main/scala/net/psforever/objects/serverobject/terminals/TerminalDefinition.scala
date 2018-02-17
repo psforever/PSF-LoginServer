@@ -2,6 +2,7 @@
 package net.psforever.objects.serverobject.terminals
 
 import net.psforever.objects.Player
+import net.psforever.objects.definition.converter.TerminalConverter
 import net.psforever.packet.game.ItemTransactionMessage
 
 /**
@@ -10,6 +11,7 @@ import net.psforever.packet.game.ItemTransactionMessage
   */
 abstract class TerminalDefinition(objectId : Int) extends net.psforever.objects.definition.ObjectDefinition(objectId) {
   Name = "terminal"
+  Packet = new TerminalConverter
 
   /**
     * The unimplemented functionality for this `Terminal`'s `TransactionType.Buy` and `TransactionType.Learn` activity.

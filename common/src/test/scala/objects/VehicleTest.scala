@@ -3,7 +3,7 @@ package objects
 
 import akka.actor.Props
 import net.psforever.objects.{GlobalDefinitions, Player, Vehicle}
-import net.psforever.objects.definition.SeatDefinition
+import net.psforever.objects.definition.{SeatDefinition, VehicleDefinition}
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.vehicles._
 import net.psforever.packet.game.PlanetSideGUID
@@ -255,6 +255,26 @@ class VehicleTest extends Specification {
 
       harasser_vehicle.WeaponControlledFromSeat(0) mustEqual None
       harasser_vehicle.WeaponControlledFromSeat(1) mustEqual chaingun_p
+    }
+
+    "can filter utilities with indices that are natural numbers" in {
+      val objDef = VehicleDefinition(1)
+      objDef.Utilities += -1 -> UtilityType.order_terminala
+      objDef.Utilities += 0 -> UtilityType.order_terminalb
+      objDef.Utilities += 2 -> UtilityType.order_terminalb
+      val obj = Vehicle(objDef)
+
+      obj.Utilities.size mustEqual 3
+      obj.Utilities(-1).UtilType mustEqual UtilityType.order_terminala
+      obj.Utilities(0).UtilType mustEqual UtilityType.order_terminalb
+      obj.Utilities.get(1) mustEqual None
+      obj.Utilities(2).UtilType mustEqual UtilityType.order_terminalb
+
+      val filteredMap = Vehicle.EquipmentUtilities(obj.Utilities)
+      filteredMap.size mustEqual 2
+      filteredMap.get(-1) mustEqual None
+      filteredMap(0).UtilType mustEqual UtilityType.order_terminalb
+      filteredMap(2).UtilType mustEqual UtilityType.order_terminalb
     }
   }
 }
