@@ -22,6 +22,8 @@ class VehicleDefinition(objectId : Int) extends ObjectDefinition(objectId) {
   private val weapons : mutable.HashMap[Int, ToolDefinition] = mutable.HashMap[Int, ToolDefinition]()
   private var deployment : Boolean = false
   private val utilities : mutable.HashMap[Int, UtilityType.Value] = mutable.HashMap()
+  private var deploymentTime_Deploy : Int = 0 //ms
+  private var deploymentTime_Undeploy : Int = 0 //ms
   private var trunkSize : InventoryTile = InventoryTile.None
   private var trunkOffset : Int = 0
   private var canCloak : Boolean = false
@@ -70,7 +72,22 @@ class VehicleDefinition(objectId : Int) extends ObjectDefinition(objectId) {
     Deployment
   }
 
+
   def Utilities : mutable.HashMap[Int, UtilityType.Value] = utilities
+
+  def DeployTime : Int = deploymentTime_Deploy
+
+  def DeployTime_=(dtime : Int) : Int =  {
+    deploymentTime_Deploy = dtime
+    DeployTime
+  }
+
+  def UndeployTime : Int = deploymentTime_Undeploy
+
+  def UndeployTime_=(dtime : Int) : Int =  {
+    deploymentTime_Undeploy = dtime
+    UndeployTime
+  }
 
   def TrunkSize : InventoryTile = trunkSize
 

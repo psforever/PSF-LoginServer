@@ -4,7 +4,7 @@ package game
 import org.specs2.mutable._
 import net.psforever.packet._
 import net.psforever.packet.game._
-import net.psforever.types.Vector3
+import net.psforever.types.{DriveState, Vector3}
 import scodec.bits._
 
 class DeployRequestMessageTest extends Specification {
@@ -12,10 +12,10 @@ class DeployRequestMessageTest extends Specification {
 
   "decode" in {
     PacketCoding.DecodePacket(string).require match {
-      case DeployRequestMessage(player_guid, vehicle_guid, unk1, unk2, unk3, pos) =>
+      case DeployRequestMessage(player_guid, vehicle_guid, deploy_state, unk2, unk3, pos) =>
         player_guid mustEqual PlanetSideGUID(75)
         vehicle_guid mustEqual PlanetSideGUID(380)
-        unk1 mustEqual 2
+        deploy_state mustEqual DriveState.Deploying
         unk2 mustEqual 0
         unk3 mustEqual false
         pos.x mustEqual 4060.1953f
@@ -30,7 +30,8 @@ class DeployRequestMessageTest extends Specification {
     val msg = DeployRequestMessage(
       PlanetSideGUID(75),
       PlanetSideGUID(380),
-      2, 0, false,
+      DriveState.Deploying,
+      0, false,
       Vector3(4060.1953f, 2218.8281f, 155.32812f)
     )
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector

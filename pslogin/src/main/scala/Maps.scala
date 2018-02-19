@@ -220,6 +220,7 @@ object Maps {
     LocalObject(ServerObjectBuilder(1148, IFFLock.Constructor))
     LocalObject(ServerObjectBuilder(1149, IFFLock.Constructor))
 
+    LocalObject(ServerObjectBuilder(1517, Locker.Constructor))
 
     LocalObject(ServerObjectBuilder(2014, Terminal.Constructor(order_terminal)))
     LocalObject(ServerObjectBuilder(2015, Terminal.Constructor(order_terminal)))
@@ -349,6 +350,7 @@ object Maps {
     LocalObject(ServerObjectBuilder(1195, IFFLock.Constructor))
     LocalObject(ServerObjectBuilder(1196, IFFLock.Constructor))
 
+    LocalObject(ServerObjectBuilder(1597, Locker.Constructor))
 
     LocalObject(ServerObjectBuilder(2037, Terminal.Constructor(order_terminal)))
     LocalObject(ServerObjectBuilder(2038, Terminal.Constructor(order_terminal)))

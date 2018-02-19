@@ -2396,6 +2396,9 @@ object GlobalDefinitions {
     ams.MountPoints += 2 -> 0
     ams.Utilities += 3 -> UtilityType.order_terminala
     ams.Utilities += 4 -> UtilityType.order_terminalb
+    ams.Deployment = true
+    ams.DeployTime = 2000
+    ams.UndeployTime = 2000
     ams.Packet = utilityConverter
     ams.MaxHealth = 3000
 
@@ -2404,6 +2407,9 @@ object GlobalDefinitions {
     router.MountPoints += 1 -> 0
     router.TrunkSize = InventoryTile.Tile1511
     router.TrunkOffset = 30
+    router.Deployment = true
+    router.DeployTime = 2000
+    router.UndeployTime = 2000
     router.Packet = variantConverter
     router.MaxHealth = 4000
 
@@ -2414,6 +2420,9 @@ object GlobalDefinitions {
     switchblade.MountPoints += 2 -> 0
     switchblade.TrunkSize = InventoryTile.Tile1511
     switchblade.TrunkOffset = 30
+    switchblade.Deployment = true
+    switchblade.DeployTime = 2000
+    switchblade.UndeployTime = 2000
     switchblade.Packet = variantConverter
     switchblade.MaxHealth = 1750
 
@@ -2423,6 +2432,9 @@ object GlobalDefinitions {
     flail.MountPoints += 1 -> 0
     flail.TrunkSize = InventoryTile.Tile1511
     flail.TrunkOffset = 30
+    flail.Deployment = true
+    flail.DeployTime = 2000
+    flail.UndeployTime = 2000
     flail.Packet = variantConverter
     flail.MaxHealth = 2400
 

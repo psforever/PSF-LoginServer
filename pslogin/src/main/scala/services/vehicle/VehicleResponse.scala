@@ -4,13 +4,14 @@ package services.vehicle
 import net.psforever.objects.{PlanetSideGameObject, Vehicle}
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.packet.game.objectcreate.ConstructorData
-import net.psforever.types.Vector3
+import net.psforever.types.{DriveState, Vector3}
 
 object VehicleResponse {
   trait Response
 
   final case class Awareness(vehicle_guid : PlanetSideGUID) extends Response
   final case class ChildObjectState(object_guid : PlanetSideGUID, pitch : Float, yaw : Float) extends Response
+  final case class DeployRequest(object_guid : PlanetSideGUID, state : DriveState.Value, unk1 : Int, unk2 : Boolean, pos : Vector3) extends Response
   final case class DismountVehicle(unk1 : Int, unk2 : Boolean) extends Response
   final case class InventoryState(obj : PlanetSideGameObject, parent_guid : PlanetSideGUID, start : Int, con_data : ConstructorData) extends Response
   final case class KickPassenger(unk1 : Int, unk2 : Boolean, vehicle_guid : PlanetSideGUID) extends Response

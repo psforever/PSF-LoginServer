@@ -2,7 +2,7 @@
 package net.psforever.packet.game.objectcreate
 
 import net.psforever.packet.game.PlanetSideGUID
-import net.psforever.types.PlanetSideEmpire
+import net.psforever.types.{DriveState, PlanetSideEmpire}
 
 /**
   * A compilation of the common `*Data` objects that would be used for stock game objects.

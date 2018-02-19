@@ -2,8 +2,6 @@
 package services.vehicle
 
 import akka.actor.{Actor, ActorRef, Props}
-import net.psforever.packet.game.PlanetSideGUID
-import net.psforever.packet.game.objectcreate.ConstructorData
 import services.vehicle.support.{DeconstructionActor, DelayedDeconstructionActor, VehicleContextActor}
 import services.{GenericEventBus, Service}
 
@@ -49,13 +47,17 @@ class VehicleService extends Actor {
           VehicleEvents.publish(
             VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.ChildObjectState(object_guid, pitch, yaw))
           )
-        case VehicleAction.InventoryState(player_guid, obj, parent_guid, start, con_data) =>
+        case VehicleAction.DeployRequest(player_guid, object_guid, state, unk1, unk2, pos) =>
           VehicleEvents.publish(
-            VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.InventoryState(obj, parent_guid, start, con_data))
+            VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.DeployRequest(object_guid, state, unk1, unk2, pos))
           )
         case VehicleAction.DismountVehicle(player_guid, unk1, unk2) =>
           VehicleEvents.publish(
             VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.DismountVehicle(unk1, unk2))
+          )
+        case VehicleAction.InventoryState(player_guid, obj, parent_guid, start, con_data) =>
+          VehicleEvents.publish(
+            VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.InventoryState(obj, parent_guid, start, con_data))
           )
         case VehicleAction.KickPassenger(player_guid, unk1, unk2, vehicle_guid) =>
           VehicleEvents.publish(
