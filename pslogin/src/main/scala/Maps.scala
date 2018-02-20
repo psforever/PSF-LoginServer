@@ -433,6 +433,16 @@ object Maps {
 
     // Hanish
     LocalBuilding(30, FoundationBuilder(Building.Structure))
+
+    ObjectToBuilding(238, 30)
+    ObjectToBuilding(239, 30)
+    ObjectToBuilding(240, 30)
+    ObjectToBuilding(241, 30)
+    ObjectToBuilding(242, 30)
+    ObjectToBuilding(243, 30)
+    ObjectToBuilding(244, 30)
+    ObjectToBuilding(245, 30)
+
     ObjectToBuilding(470, 30)
     ObjectToBuilding(471, 30)
     ObjectToBuilding(472, 30)
