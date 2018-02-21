@@ -181,6 +181,16 @@ object Tool {
       }
     }
 
+    def Damage0 : Int = AmmoDefinition.Damage0
+
+    def Damage1 : Int = if (AmmoDefinition.Damage1==0) {Damage0} else {AmmoDefinition.Damage1}
+
+    def Damage2 : Int = if (AmmoDefinition.Damage2==0) {Damage1} else {AmmoDefinition.Damage2}
+
+    def Damage3 : Int = if (AmmoDefinition.Damage3==0) {Damage2} else {AmmoDefinition.Damage3}
+
+    def Damage4 : Int = if (AmmoDefinition.Damage4==0) {Damage3} else {AmmoDefinition.Damage4}
+
     def Tool : ToolDefinition = tdef
 
     def Definition : FireModeDefinition = fdef

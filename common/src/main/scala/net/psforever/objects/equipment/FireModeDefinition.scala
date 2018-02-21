@@ -18,6 +18,12 @@ class FireModeDefinition {
   /** how many sub-rounds are queued per round fired;
     * the flechette fires 8 pellets per shell and generates 8 fire reports before the ammo count goes down */
   private var chamber : Int = 1
+  /** add (or remove) damages to the bullets */
+  private var addDamage0 : Int = 0
+  private var addDamage1 : Int = 0
+  private var addDamage2 : Int = 0
+  private var addDamage3 : Int = 0
+  private var addDamage4 : Int = 0
 
   //damage modifiers will follow here ... ?
 
@@ -53,6 +59,36 @@ class FireModeDefinition {
   def Chamber_=(inChamber : Int) : Int = {
     chamber = inChamber
     Chamber
+  }
+
+  def AddDamage0 : Int = addDamage0
+  def AddDamage0_=(damage : Int) : Int = {
+    addDamage0 = damage
+    AddDamage0
+  }
+
+  def AddDamage1 : Int = addDamage1
+  def AddDamage1_=(damage : Int) : Int = {
+    addDamage1 = damage
+    AddDamage1
+  }
+
+  def AddDamage2 : Int = addDamage2
+  def AddDamage2_=(damage : Int) : Int = {
+    addDamage2 = damage
+    AddDamage2
+  }
+
+  def AddDamage3 : Int = addDamage3
+  def AddDamage3_=(damage : Int) : Int = {
+    addDamage3 = damage
+    AddDamage3
+  }
+
+  def AddDamage4 : Int = addDamage4
+  def AddDamage4_=(damage : Int) : Int = {
+    addDamage4 = damage
+    AddDamage4
   }
 
   /**

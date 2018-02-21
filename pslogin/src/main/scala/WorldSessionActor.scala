@@ -1017,7 +1017,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
               val vTrunk = vehicle.Trunk
               vTrunk.Clear()
               trunk.foreach(entry => { vTrunk += entry.start -> entry.obj })
-              println(vehicle.MaxHealth, vehicle.Health, pad.Position)
               taskResolver ! RegisterNewVehicle(vehicle, pad)
               sendResponse(PacketCoding.CreateGamePacket(0, ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, true)))
 
@@ -2179,7 +2178,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           }
 
         case None =>
-          log.warn(s"RequestDestroy: object $object_guid not found")
+          log.warn(s"RequestDestroy: object $object_guid not found (not an Equipment or a Vehicle)")
 
         case _ =>
           log.warn(s"RequestDestroy: not allowed to delete object $object_guid")
@@ -2470,6 +2469,15 @@ class WorldSessionActor extends Actor with MDCContextAware {
       log.info("WeaponFire: " + msg)
       FindWeapon match {
         case Some(tool : Tool) =>
+          println(tool.AmmoSlot.Damage0, tool.AmmoSlot.Damage1, tool.AmmoSlot.Damage2, tool.AmmoSlot.Damage3, tool.AmmoSlot.Damage4,
+            tool.FireMode.AddDamage0, tool.FireMode.AddDamage1, tool.FireMode.AddDamage2, tool.FireMode.AddDamage3, tool.FireMode.AddDamage4)
+          val damage0 = tool.AmmoSlot.Damage0 + tool.FireMode.AddDamage0
+          val damage1 = tool.AmmoSlot.Damage1 + tool.FireMode.AddDamage1
+          val damage2 = tool.AmmoSlot.Damage2 + tool.FireMode.AddDamage2
+          sendResponse(PacketCoding.CreateGamePacket(0, ChatMsg(ChatMessageType.CMT_GMOPEN, true, "Server", " this shot can do " + damage0 + " damage on a Soldier, " +
+            damage1 + " on a Ground Vehicle", None)))
+//          sendResponse(PacketCoding.CreateGamePacket(0, ChatMsg(ChatMessageType.CMT_GMOPEN, true, "Server", " this shot can do " + damage0 + " damage on a Soldier, " +
+//            damage1 + " on a Ground Vehicle & " + damage2 + "  on an Aircraft", None)))
           if(tool.Magazine <= 0) { //safety: enforce ammunition depletion
             tool.Magazine = 0
             sendResponse(PacketCoding.CreateGamePacket(0, InventoryStateMessage(tool.AmmoSlot.Box.GUID, weapon_guid, 0)))

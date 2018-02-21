@@ -835,15 +835,23 @@ object GlobalDefinitions {
 
     bullet_9mm.Capacity = 50
     bullet_9mm.Tile = InventoryTile.Tile33
+    bullet_9mm.Damage0 = 18
+    bullet_9mm.Damage1 = 10
 
     bullet_9mm_AP.Capacity = 50
     bullet_9mm_AP.Tile = InventoryTile.Tile33
+    bullet_9mm_AP.Damage0 = 10
+    bullet_9mm_AP.Damage1 = 15
 
     shotgun_shell.Capacity = 16
     shotgun_shell.Tile = InventoryTile.Tile33
+    shotgun_shell.Damage0 = 12
+    shotgun_shell.Damage1 = 5
 
     shotgun_shell_AP.Capacity = 16
     shotgun_shell_AP.Tile = InventoryTile.Tile33
+    shotgun_shell_AP.Damage0 = 5
+    shotgun_shell_AP.Damage1 = 10
 
     energy_cell.Capacity = 50
     energy_cell.Tile = InventoryTile.Tile33
@@ -1232,6 +1240,11 @@ object GlobalDefinitions {
     gauss.FireModes.head.AmmoTypeIndices += 1
     gauss.FireModes.head.AmmoSlotIndex = 0
     gauss.FireModes.head.Magazine = 30
+    gauss.FireModes.head.AddDamage0 = 2
+    gauss.FireModes.head.AddDamage1 = 0
+    gauss.FireModes.head.AddDamage2 = 0
+    gauss.FireModes.head.AddDamage3 = 2
+    gauss.FireModes.head.AddDamage4 = 0
     gauss.Tile = InventoryTile.Tile63
 
     pulsar.Size = EquipmentSize.Rifle
@@ -1310,12 +1323,18 @@ object GlobalDefinitions {
     r_shotgun.FireModes.head.AmmoSlotIndex = 0
     r_shotgun.FireModes.head.Magazine = 16
     r_shotgun.FireModes.head.Chamber = 8 //16 shells * 8 pellets = 128
+    r_shotgun.FireModes.head.AddDamage0 = 1
     r_shotgun.FireModes += new PelletFireModeDefinition
     r_shotgun.FireModes(1).AmmoTypeIndices += 0
     r_shotgun.FireModes(1).AmmoTypeIndices += 1
     r_shotgun.FireModes(1).AmmoSlotIndex = 0
     r_shotgun.FireModes(1).Magazine = 16
     r_shotgun.FireModes(1).Chamber = 8 //16 shells * 8 pellets = 128
+    r_shotgun.FireModes(1).AddDamage0 = -3
+    r_shotgun.FireModes(1).AddDamage1 = 0
+    r_shotgun.FireModes(1).AddDamage2 = 0
+    r_shotgun.FireModes(1).AddDamage3 = 0
+    r_shotgun.FireModes(1).AddDamage4 = 0
     r_shotgun.Tile = InventoryTile.Tile93
 
     lasher.Size = EquipmentSize.Rifle
