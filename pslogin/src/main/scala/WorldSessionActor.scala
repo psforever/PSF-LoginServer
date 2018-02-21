@@ -532,6 +532,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         log.info(s"DeployRequest: $obj has been Deployed")
         sendResponse(PacketCoding.CreateGamePacket(0, DeployRequestMessage(player.GUID, vehicle_guid, state, 0, false, obj.Position)))
         vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.DeployRequest(player.GUID, vehicle_guid, state, 0, false, obj.Position))
+        DeploymentActivities(obj)
         //...
       }
       else {
@@ -3112,12 +3113,18 @@ class WorldSessionActor extends Actor with MDCContextAware {
   /**
     * Temporary function that iterates over vehicle permissions and turns them into `PlanetsideAttributeMessage` packets.<br>
     * <br>
-    * 2 November 2017
+    * 2 November 2017:<br>
     * Unexpected behavior causes seat mount points to become blocked when a new driver claims the vehicle.
     * For the purposes of ensuring that other players are always aware of the proper permission state of the trunk and seats,
     * packets are intentionally dispatched to the current client to update the states.
     * Perform this action just after any instance where the client would initially gain awareness of the vehicle.
-    * The most important examples include either the player or the vehicle itself spawning in for the first time.
+    * The most important examples include either the player or the vehicle itself spawning in for the first time.<br>
+    * <br>
+    * 20 February 2018:<br>
+    * Occasionally, during deployment, local(?) vehicle seat access permissions may change.
+    * This results in players being locked into their own vehicle.
+    * Reloading vehicle permissions supposedly ensures the seats will be properly available.
+    * This is considered a client issue; but, somehow, it also impacts server operation somehow.
     * @param vehicle the `Vehicle`
     */
   def ReloadVehicleAccessPermissions(vehicle : Vehicle) : Unit = {
@@ -3466,6 +3473,19 @@ class WorldSessionActor extends Actor with MDCContextAware {
         Some(parent, slot)
       case None =>
         None
+    }
+  }
+
+  /**
+    * Perform specific operations depending on the target of deployment.
+    * @param obj the object that has deployed
+    */
+  def DeploymentActivities(obj : Deployment.DeploymentObject) : Unit = {
+    obj match {
+      case vehicle : Vehicle =>
+        //TODO we should not have to do this imho
+        ReloadVehicleAccessPermissions(vehicle)
+      case _ => ;
     }
   }
 
