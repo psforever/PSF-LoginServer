@@ -1154,6 +1154,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
       log.info("Load the now-registered player")
       //load the now-registered player
       tplayer.Spawn
+      tplayer.Health = 50
+      tplayer.Armor = 10
       val dcdata = tplayer.Definition.Packet.DetailedConstructorData(tplayer).get
       sendResponse(ObjectCreateDetailedMessage(ObjectClass.avatar, tplayer.GUID, dcdata))
       avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.LoadPlayer(tplayer.GUID, tplayer.Definition.Packet.ConstructorData(tplayer).get))
@@ -2426,15 +2428,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
       log.info("WeaponFire: " + msg)
       FindWeapon match {
         case Some(tool : Tool) =>
-          println(tool.AmmoSlot.Damage0, tool.AmmoSlot.Damage1, tool.AmmoSlot.Damage2, tool.AmmoSlot.Damage3, tool.AmmoSlot.Damage4,
-            tool.FireMode.AddDamage0, tool.FireMode.AddDamage1, tool.FireMode.AddDamage2, tool.FireMode.AddDamage3, tool.FireMode.AddDamage4)
-          val damage0 = tool.AmmoSlot.Damage0 + tool.FireMode.AddDamage0
-          val damage1 = tool.AmmoSlot.Damage1 + tool.FireMode.AddDamage1
-          val damage2 = tool.AmmoSlot.Damage2 + tool.FireMode.AddDamage2
-          sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, true, "Server", " this shot can do " + damage0 + " damage on a Soldier, " +
-            damage1 + " on a Ground Vehicle", None))
-//          sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, true, "Server", " this shot can do " + damage0 + " damage on a Soldier, " +
-//            damage1 + " on a Ground Vehicle & " + damage2 + "  on an Aircraft", None)))
           if(tool.Magazine <= 0) { //safety: enforce ammunition depletion
             tool.Magazine = 0
             sendResponse(InventoryStateMessage(tool.AmmoSlot.Box.GUID, weapon_guid, 0))
@@ -2456,8 +2449,26 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ HitMessage(seq_time, projectile_guid, unk1, hit_info, unk2, unk3, unk4) =>
       log.info("Hit: " + msg)
 
-    case msg @ SplashHitMessage(unk1, unk2, unk3, unk4, unk5, unk6, unk7, unk8) =>
+    case msg @ SplashHitMessage(seq_time, projectile_uid, explosion_pos, direct_victim_uid, unk3, projectile_vel, unk4, targets) =>
       log.info("SplashHitMessage: " + msg)
+//      val otherPlayer: Option[Player] = LivePlayerList.Get(continent.Number, direct_victim_uid)
+//      if (otherPlayer.isDefined) {
+//
+//      }
+//      println(continent.Number, direct_victim_uid, otherPlayer.get.Name)
+//      FindWeapon match {
+//        case Some(tool: Tool) =>
+//          println(tool.AmmoSlot.Damage0, tool.AmmoSlot.Damage1, tool.AmmoSlot.Damage2, tool.AmmoSlot.Damage3, tool.AmmoSlot.Damage4,
+//            tool.FireMode.AddDamage0, tool.FireMode.AddDamage1, tool.FireMode.AddDamage2, tool.FireMode.AddDamage3, tool.FireMode.AddDamage4)
+//          val damage0 = tool.AmmoSlot.Damage0 + tool.FireMode.AddDamage0
+//          val damage1 = tool.AmmoSlot.Damage1 + tool.FireMode.AddDamage1
+//          val damage2 = tool.AmmoSlot.Damage2 + tool.FireMode.AddDamage2
+//          sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, true, "Server", " this shot can do " + damage0 + " damage on a Soldier, " +
+//            damage1 + " on a Ground Vehicle", None))
+//        //          sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, true, "Server", " this shot can do " + damage0 + " damage on a Soldier, " +
+//        //            damage1 + " on a Ground Vehicle & " + damage2 + "  on an Aircraft", None)))
+//      }
+
 
     case msg @ AvatarFirstTimeEventMessage(avatar_guid, object_guid, unk1, event_name) =>
       log.info("AvatarFirstTimeEvent: " + msg)
@@ -2478,8 +2489,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
             vehicleService ! VehicleServiceMessage(player.Continent, VehicleAction.ProximityTerminalUse(player.GUID, object_guid, true))
           }
           vehicleService ! VehicleServiceMessage(player.Continent, VehicleAction.PlanetsideAttribute(player.GUID, player_guid, 0, vehicle.Health))
+        case Some(player : Player) =>
+          log.info("ProximityTerminalUseMessage, something ToDo for player : " + player.Name)
         case _ =>
-          log.info("ProximityTerminalUseMessage not vehicle ! ")
+          log.info("ProximityTerminalUseMessage not vehicle/player, what is : " + player_guid)
       }
 
     case msg @ MountVehicleMsg(player_guid, mountable_guid, unk) =>
@@ -2580,11 +2593,17 @@ class WorldSessionActor extends Actor with MDCContextAware {
               vehicle.Health = vehicle.Health - 50
               if (vehicle.Health < 0) vehicle.Health = 0
               vehicleService ! VehicleServiceMessage(player.Continent, VehicleAction.PlanetsideAttribute(player.GUID, t, 0, vehicle.Health))
+            case Some(player : Player) =>
+              log.info("Something to do for the victim (player) : " + player.Name)
             case _ =>
-              log.info("Ouch 3 ! " + msg)
+              log.info("Dunno who/what is : " + t)
           }
+        case Some(player : Player) =>
+          log.info("Something to do for player : " + player.Name)
+//          player.Health = 10
+//          avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttribute(player.GUID, 0, player.Health))
         case _ =>
-          log.info("Ouch 2 ! " + msg)
+          log.info("Dunno who/what is : " + p)
       }
 
     case msg @ BugReportMessage(version_major,version_minor,version_date,bug_type,repeatable,location,zone,pos,summary,desc) =>

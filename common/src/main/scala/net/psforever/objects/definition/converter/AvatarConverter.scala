@@ -15,8 +15,8 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
     Success(
       CharacterData(
         MakeAppearanceData(obj),
-        obj.Health / obj.MaxHealth * 255, //TODO not precise
-        if(MaxArmor == 0) { 0 } else { obj.Armor / MaxArmor * 255 }, //TODO not precise
+        255 * obj.Health / obj.MaxHealth, //TODO not precise
+        if(MaxArmor == 0) { 0 } else { 255 * obj.Armor / MaxArmor }, //TODO not precise
         DressBattleRank(obj),
         DressCommandRank(obj),
         recursiveMakeImplantEffects(obj.Implants.iterator),
@@ -160,7 +160,6 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
   @tailrec private def recursiveMakeImplantEffects(iter : Iterator[ImplantSlot]) : Option[ImplantEffects.Value] = {
     if(!iter.hasNext) {
       None
-//      Some(ImplantEffects.NoEffects)
     }
     else {
       val slot = iter.next
@@ -175,7 +174,6 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
           case ImplantType.Surge =>
             Some(ImplantEffects.SurgeEffects)
           case _ =>
-//            println(slot.Implant.id,slot.Installed.get.Type,slot.Active,slot.Initialized)
             recursiveMakeImplantEffects(iter)
         }
       }
