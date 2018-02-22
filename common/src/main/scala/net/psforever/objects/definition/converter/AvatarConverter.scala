@@ -15,8 +15,8 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
     Success(
       CharacterData(
         MakeAppearanceData(obj),
-        obj.Health / obj.MaxHealth * 255, //TODO not precise
-        if(MaxArmor == 0) { 0 } else { obj.Armor / MaxArmor * 255 }, //TODO not precise
+        255 * obj.Health / obj.MaxHealth, //TODO not precise
+        if(MaxArmor == 0) { 0 } else { 255 * obj.Armor / MaxArmor }, //TODO not precise
         DressBattleRank(obj),
         DressCommandRank(obj),
         recursiveMakeImplantEffects(obj.Implants.iterator),
