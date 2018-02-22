@@ -1041,6 +1041,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       log.info("Load the now-registered player")
       //load the now-registered player
       tplayer.Spawn
+      tplayer.Health = 50
       val dcdata = tplayer.Definition.Packet.DetailedConstructorData(tplayer).get
       sendResponse(PacketCoding.CreateGamePacket(0, ObjectCreateDetailedMessage(ObjectClass.avatar, tplayer.GUID, dcdata)))
       avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.LoadPlayer(tplayer.GUID, tplayer.Definition.Packet.ConstructorData(tplayer).get))
