@@ -26,7 +26,7 @@ class ImplantSlot {
   def Unlocked : Boolean = unlocked
 
   def Unlocked_=(lock : Boolean) : Boolean = {
-    unlocked = lock || unlocked
+    unlocked = lock || unlocked //do not let re-lock
     Unlocked
   }
 
@@ -45,13 +45,13 @@ class ImplantSlot {
     Active
   }
 
-  def Implant : ImplantType.Value = if(Installed.isDefined) {
-    implant.get.Type
-  }
-  else {
-    Active = false
-    Initialized = false
-    ImplantType.None
+  def Implant : ImplantType.Value = Installed match {
+    case Some(idef) =>
+      idef.Type
+    case None =>
+      Active = false
+      Initialized = false
+      ImplantType.None
   }
 
   def Implant_=(anImplant : ImplantDefinition) : ImplantType.Value = {
@@ -66,6 +66,8 @@ class ImplantSlot {
         case None =>
           implant = None
       }
+      Active = false
+      Initialized = false
     }
     Implant
   }

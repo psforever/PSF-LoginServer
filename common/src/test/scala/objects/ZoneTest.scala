@@ -1,0 +1,126 @@
+// Copyright (c) 2017 PSForever
+package objects
+
+import akka.actor.{ActorContext, ActorRef}
+import net.psforever.objects.entity.IdentifiableEntity
+import net.psforever.objects.equipment.Equipment
+import net.psforever.objects.guid.NumberPoolHub
+import net.psforever.objects.guid.source.LimitedNumberSource
+import net.psforever.objects.serverobject.structures.{Building, FoundationBuilder}
+import net.psforever.objects.zones.{Zone, ZoneMap}
+import net.psforever.objects.{GlobalDefinitions, Vehicle}
+import org.specs2.mutable.Specification
+
+class ZoneTest extends Specification {
+  def test(a: Int, b : Zone, c : ActorContext) : Building = { Building.NoBuilding }
+
+  "ZoneMap" should {
+    "construct" in {
+      new ZoneMap("map13")
+      ok
+    }
+
+    "references bases by a positive building id (defaults to 0)" in {
+      def test(a: Int, b : Zone, c : ActorContext) : Building = { Building.NoBuilding }
+
+      val map = new ZoneMap("map13")
+      map.LocalBuildings mustEqual Map.empty
+      map.LocalBuilding(10, FoundationBuilder(test))
+      map.LocalBuildings.keySet.contains(10) mustEqual true
+      map.LocalBuilding(-1, FoundationBuilder(test))
+      map.LocalBuildings.keySet.contains(10) mustEqual true
+      map.LocalBuildings.keySet.contains(-1) mustEqual false
+    }
+
+    "associates objects to bases (doesn't check numbers)" in {
+      val map = new ZoneMap("map13")
+      map.ObjectToBuilding mustEqual Nil
+      map.ObjectToBuilding(1, 2)
+      map.ObjectToBuilding mustEqual Map(1 -> 2)
+      map.ObjectToBuilding(3, 4)
+      map.ObjectToBuilding mustEqual Map(1 -> 2, 3 -> 4)
+    }
+
+    "associates doors to door locks (doesn't check numbers)" in {
+      val map = new ZoneMap("map13")
+      map.DoorToLock mustEqual Map.empty
+      map.DoorToLock(1, 2)
+      map.DoorToLock mustEqual Map(1 -> 2)
+      map.DoorToLock(3, 4)
+      map.DoorToLock mustEqual Map(1 -> 2, 3 -> 4)
+    }
+
+    "associates terminals to spawn pads (doesn't check numbers)" in {
+      val map = new ZoneMap("map13")
+      map.TerminalToSpawnPad mustEqual Map.empty
+      map.TerminalToSpawnPad(1, 2)
+      map.TerminalToSpawnPad mustEqual Map(1 -> 2)
+      map.TerminalToSpawnPad(3, 4)
+      map.TerminalToSpawnPad mustEqual Map(1 -> 2, 3 -> 4)
+    }
+
+    "associates mechanical components to implant terminals (doesn't check numbers)" in {
+      val map = new ZoneMap("map13")
+      map.TerminalToInterface mustEqual Map.empty
+      map.TerminalToInterface(1, 2)
+      map.TerminalToInterface mustEqual Map(1 -> 2)
+      map.TerminalToInterface(3, 4)
+      map.TerminalToInterface mustEqual Map(1 -> 2, 3 -> 4)
+    }
+  }
+
+  val map13 = new ZoneMap("map13")
+  map13.LocalBuilding(10, FoundationBuilder(test))
+  class TestObject extends IdentifiableEntity
+
+  "Zone" should {
+    "construct" in {
+      val zone = new Zone("home3", map13, 13)
+      zone.GUID mustEqual ActorRef.noSender
+      zone.Ground mustEqual ActorRef.noSender
+      zone.Transport mustEqual ActorRef.noSender
+      //zone also has a unique identifier system but it can't be accessed without its the Actor GUID being initialized
+      zone.EquipmentOnGround mustEqual List.empty[Equipment]
+      zone.Vehicles mustEqual List.empty[Vehicle]
+    }
+
+    "can have its unique identifier system changed if no objects were added to it" in {
+      val zone = new Zone("home3", map13, 13)
+      val guid1 : NumberPoolHub = new NumberPoolHub(new LimitedNumberSource(100))
+      guid1.AddPool("pool1", (0 to 50).toList)
+      guid1.AddPool("pool2", (51 to 75).toList)
+      zone.GUID(guid1) mustEqual true
+
+      val obj = new TestObject()
+      guid1.register(obj, "pool2").isSuccess mustEqual true
+      guid1.WhichPool(obj) mustEqual Some("pool2")
+
+      val guid2 : NumberPoolHub = new NumberPoolHub(new LimitedNumberSource(150))
+      guid2.AddPool("pool3", (0 to 50).toList)
+      guid2.AddPool("pool4", (51 to 75).toList)
+      zone.GUID(guid2) mustEqual false
+    }
+
+    "can keep track of Vehicles" in {
+      val zone = new Zone("home3", map13, 13)
+      val fury = Vehicle(GlobalDefinitions.fury)
+      zone.Vehicles mustEqual List()
+      zone.AddVehicle(fury)
+      zone.Vehicles mustEqual List(fury)
+    }
+
+    "can forget specific vehicles" in {
+      val zone = new Zone("home3", map13, 13)
+      val fury = Vehicle(GlobalDefinitions.fury)
+      val wraith = Vehicle(GlobalDefinitions.quadstealth)
+      val basilisk = Vehicle(GlobalDefinitions.quadassault)
+      zone.AddVehicle(wraith)
+      zone.AddVehicle(fury)
+      zone.AddVehicle(basilisk)
+      zone.Vehicles mustEqual List(wraith, fury, basilisk)
+
+      zone.RemoveVehicle(fury)
+      zone.Vehicles mustEqual List(wraith, basilisk)
+    }
+  }
+}

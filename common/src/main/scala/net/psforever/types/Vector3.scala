@@ -4,13 +4,45 @@ package net.psforever.types
 import net.psforever.newcodecs._
 import scodec.Codec
 import scodec.codecs._
-import shapeless.{::, HNil}
 
 final case class Vector3(x : Float,
                          y : Float,
-                         z : Float)
+                         z : Float) {
+  /**
+    * Operator override for vector addition, treating `Vector3` objects as actual mathematical vectors.
+    * The application of this overload is "vector1 + vector2."
+    * @param vec the other `Vector3` object
+    * @return a new `Vector3` object with the summed values
+    */
+  def +(vec : Vector3) : Vector3 = {
+    Vector3(x + vec.x, y + vec.y, z + vec.z)
+  }
+
+  /**
+    * Operator override for vector subtraction, treating `Vector3` objects as actual mathematical vectors.
+    * The application of this overload is "vector1 - vector2."
+    * @param vec the other `Vector3` object
+    * @return a new `Vector3` object with the difference values
+    */
+  def -(vec : Vector3) : Vector3 = {
+    Vector3(x - vec.x, y - vec.y, z - vec.z)
+  }
+
+  /**
+    * Operator override for vector scaling, treating `Vector3` objects as actual mathematical vectors.
+    * The application of this overload is "vector * scalar" exclusively.
+    * "scalar * vector" is invalid.
+    * @param scalar the value to multiply this vector
+    * @return a new `Vector3` object
+    */
+  def *(scalar : Float) : Vector3 = {
+    Vector3(x*scalar, y*scalar, z*scalar)
+  }
+}
 
 object Vector3 {
+  final val Zero : Vector3 = Vector3(0f, 0f, 0f)
+
   implicit val codec_pos : Codec[Vector3] = (
       ("x" | newcodecs.q_float(0.0, 8192.0, 20)) ::
       ("y" | newcodecs.q_float(0.0, 8192.0, 20)) ::
@@ -28,4 +60,137 @@ object Vector3 {
       ("y" | floatL) ::
       ("z" | floatL)
     ).as[Vector3]
+
+  /**
+    * Calculate the actual distance between two points.
+    * @param pos1 the first point
+    * @param pos2 the second point
+    * @return the distance
+    */
+  def Distance(pos1 : Vector3, pos2 : Vector3) : Float = {
+    math.sqrt(DistanceSquared(pos1, pos2)).toFloat
+  }
+
+  /**
+    * Calculate the squared distance between two points.
+    * Though some time is saved care must be taken that any comparative distance is also squared.
+    * @param pos1 the first point
+    * @param pos2 the second point
+    * @return the distance
+    */
+  def DistanceSquared(pos1 : Vector3, pos2 : Vector3) : Float = {
+    val dvec : Vector3 = pos1 - pos2
+    (dvec.x * dvec.x) + (dvec.y * dvec.y) + (dvec.z * dvec.z)
+  }
+
+  /**
+    * Calculate the actual magnitude of a vector.
+    * @param vec the vector
+    * @return the magnitude
+    */
+  def Magnitude(vec : Vector3) : Float = {
+    math.sqrt(MagnitudeSquared(vec)).toFloat
+  }
+
+  /**
+    * Calculate the squared magnitude of a vector.
+    * Though some time is saved care must be taken that any comparative magnitude is also squared.
+    * @param vec the vector
+    * @return the magnitude
+    */
+  def MagnitudeSquared(vec : Vector3) : Float = {
+    val dx : Float = vec.x
+    val dy : Float = vec.y
+    val dz : Float = vec.z
+    (dx * dx) + (dy * dy) + (dz * dz)
+  }
+
+  /**
+    * Given a vector, find that's vector's unit vector.<br>
+    * <br>
+    * A unit vector is a vector in the direction of the original vector but with a magnitude of 1.
+    * @param vec the original vector
+    * @return the unit vector;
+    *         if the original vector has no magnitude, a zero-vector is returned
+    */
+  def Unit(vec : Vector3) : Vector3 = {
+    val mag : Float = Magnitude(vec)
+    if(mag == 0) {
+      Vector3.Zero
+    }
+    else {
+      Vector3(vec.x / mag, vec.y / mag, vec.z / mag)
+    }
+  }
+
+  /**
+    * Given two vectors, find their dot product.<br>
+    * <br>
+    * The dot product is the sum of the products of the corresponding component parts of two vectors.
+    * It is equal to the product of the Euclidean magnitude of the vectors and cosine of the angle between them.
+    * If the dot product of two vectors of non-zero magnitude is 0, then the vectors are perpendicular to each other.
+    * @param vec1 the first vector
+    * @param vec2 the second vector
+    * @return the dot product
+    */
+  def DotProduct(vec1 : Vector3, vec2 : Vector3) : Float = {
+    vec1.x * vec2.x + vec1.y * vec2.y + vec1.z * vec2.z
+  }
+
+  /**
+    * For two vectors, find a vector that is simultaneously parallel to both vectors.<br>
+    * <br>
+    * The magnitude of the cross product is equal to
+    * the product of the magnitudes of both vectors
+    * and the sine of the angle between them.
+    * If the two original vectors are parallel or antiparallel, the cross product is a zero vector.
+    * Due to handiness rules, two non-zero cross product vectors that are antiparallel to each other can be calculated.
+    * @param vec1 the first vector
+    * @param vec2 the second vector
+    * @return the cross product
+    */
+  def CrossProduct(vec1 : Vector3, vec2 : Vector3) : Vector3 = {
+    Vector3(
+      vec1.y * vec2.z - vec2.y * vec1.z,
+      vec2.x * vec1.z - vec1.x * vec2.z,
+      vec1.x * vec2.y - vec2.x * vec1.y
+    )
+  }
+
+  /**
+    * Given two vectors, find the scalar value of the projection of one vector on the other.<br>
+    * <br>
+    * The value of the resulting scalar is the magnitude of the vector resulting from a vector projection of `vec1` onto `vec2`.
+    * For perpendicular vectors, the scalar projection result will be the same as the dot product result - zero.
+    * A positive value indicates a projected vector in the same direction as `vec2`;
+    * a negative value indicates an antiparallel vector.
+    * @see `VectorProjection`
+    * @param vec1 the vector being projected
+    * @param vec2 the vector projected onto
+    * @return the magnitude of the resulting projected vector
+    */
+  def ScalarProjection(vec1 : Vector3, vec2 : Vector3) : Float = {
+    val mag : Float = Magnitude(vec2)
+    if(mag == 0f) {
+      0f
+    }
+    else {
+      DotProduct(vec1, vec2) / mag
+    }
+  }
+
+  /**
+    * Given two vectors, find the projection of one vector on the other.<br>
+    * <br>
+    * The vector projection of `vec1` on `vec2` produces a vector that is
+    * the direction of (parallel to) `vec2`
+    * with a magnitude equal to the product of `vec1` and the cosine of the angle between the two vectors.
+    * @see `ScalarProjection`
+    * @param vec1 the vector being projected
+    * @param vec2 the vector projected onto
+    * @return the resulting projected vector
+    */
+  def VectorProjection(vec1 : Vector3, vec2 : Vector3) : Vector3 = {
+    Unit(vec2) * ScalarProjection(vec1, vec2)
+  }
 }

@@ -3,14 +3,14 @@ package net.psforever.packet.control
 
 import net.psforever.packet.{ControlPacketOpcode, Marshallable, PlanetSideControlPacket}
 import scodec.Codec
-import scodec.bits.{BitVector, ByteOrdering, ByteVector}
+import scodec.bits.BitVector
 import scodec.codecs._
 
 final case class SlottedMetaAck(slot : Int, subslot : Int)
   extends PlanetSideControlPacket {
   type Packet = SlottedMetaAck
 
-  assert(slot >= 0 && slot <= 7, s"Slot number ($slot) is out of range")
+  assert(slot >= 0 && slot <= 7, s"Slot number ($slot) is out of range") //TODO 7 types of SlottedMeta, 4 types of ResultB?
 
   def opcode = {
     val base = ControlPacketOpcode.RelatedB0.id

@@ -65,7 +65,7 @@ class ExoSuitDefinition(private val suitType : ExoSuitType.Value) {
 object ExoSuitDefinition {
   final val Standard = ExoSuitDefinition(ExoSuitType.Standard)
   Standard.MaxArmor = 50
-  Standard.InventoryScale = new InventoryTile(9,6)
+  Standard.InventoryScale = InventoryTile.Tile96
   Standard.InventoryOffset = 6
   Standard.Holster(0, EquipmentSize.Pistol)
   Standard.Holster(2, EquipmentSize.Rifle)
@@ -73,7 +73,7 @@ object ExoSuitDefinition {
 
   final val Agile = ExoSuitDefinition(ExoSuitType.Agile)
   Agile.MaxArmor = 100
-  Agile.InventoryScale = new InventoryTile(9,9)
+  Agile.InventoryScale = InventoryTile.Tile99
   Agile.InventoryOffset = 6
   Agile.Holster(0, EquipmentSize.Pistol)
   Agile.Holster(1, EquipmentSize.Pistol)
@@ -83,7 +83,7 @@ object ExoSuitDefinition {
   final val Reinforced = ExoSuitDefinition(ExoSuitType.Reinforced)
   Reinforced.permission = 1
   Reinforced.MaxArmor = 200
-  Reinforced.InventoryScale = new InventoryTile(12,9)
+  Reinforced.InventoryScale = InventoryTile.Tile1209
   Reinforced.InventoryOffset = 6
   Reinforced.Holster(0, EquipmentSize.Pistol)
   Reinforced.Holster(1, EquipmentSize.Pistol)
@@ -94,7 +94,7 @@ object ExoSuitDefinition {
   final val Infiltration = ExoSuitDefinition(ExoSuitType.Standard)
   Infiltration.permission = 1
   Infiltration.MaxArmor = 0
-  Infiltration.InventoryScale = new InventoryTile(6,6)
+  Infiltration.InventoryScale = InventoryTile.Tile66
   Infiltration.InventoryOffset = 6
   Infiltration.Holster(0, EquipmentSize.Pistol)
   Infiltration.Holster(4, EquipmentSize.Melee)
@@ -102,7 +102,7 @@ object ExoSuitDefinition {
   final val MAX = ExoSuitDefinition(ExoSuitType.MAX)
   MAX.permission = 1
   MAX.MaxArmor = 650
-  MAX.InventoryScale = new InventoryTile(16,12)
+  MAX.InventoryScale = InventoryTile.Tile1612
   MAX.InventoryOffset = 6
   MAX.Holster(0, EquipmentSize.Max)
   MAX.Holster(4, EquipmentSize.Melee)

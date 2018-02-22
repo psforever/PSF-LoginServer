@@ -10,7 +10,7 @@ class AmmoBoxDefinition(objectId : Int) extends EquipmentDefinition(objectId) {
   private var capacity : Int = 1
   Name = "ammo box"
   Size = EquipmentSize.Inventory
-  Packet = new AmmoBoxConverter()
+  Packet = AmmoBoxDefinition.converter
 
   def AmmoType : Ammo.Value = ammoType
 
@@ -23,6 +23,8 @@ class AmmoBoxDefinition(objectId : Int) extends EquipmentDefinition(objectId) {
 }
 
 object AmmoBoxDefinition {
+  private val converter = new AmmoBoxConverter()
+
   def apply(objectId: Int) : AmmoBoxDefinition = {
     new AmmoBoxDefinition(objectId)
   }

@@ -12,8 +12,12 @@ import scala.collection.mutable.ListBuffer
 import scala.util.Success
 
 class InventoryTest extends Specification {
-  val bullet9mmBox1 = AmmoBox(PlanetSideGUID(1), bullet_9mm)
-  val bullet9mmBox2 = AmmoBox(PlanetSideGUID(2), bullet_9mm)
+  val
+  bullet9mmBox1 = AmmoBox(bullet_9mm)
+  bullet9mmBox1.GUID = PlanetSideGUID(1)
+  val
+  bullet9mmBox2 = AmmoBox(bullet_9mm)
+  bullet9mmBox2.GUID = PlanetSideGUID(2)
 
   "GridInventory" should {
     "construct" in {
@@ -57,8 +61,8 @@ class InventoryTest extends Specification {
       val obj : GridInventory = GridInventory(9, 6)
       obj += 0 -> bullet9mmBox1
       obj.Capacity mustEqual 45
-      val w = bullet9mmBox2.Tile.width
-      val h = bullet9mmBox2.Tile.height
+      val w = bullet9mmBox2.Tile.Width
+      val h = bullet9mmBox2.Tile.Height
       val list0 = obj.CheckCollisionsAsList(0, w, h)
       list0 match {
         case scala.util.Success(list) => list.length mustEqual 1
@@ -91,8 +95,8 @@ class InventoryTest extends Specification {
       val obj : GridInventory = GridInventory(9, 6)
       obj += 3 -> bullet9mmBox1
       obj.Capacity mustEqual 45
-      val w = bullet9mmBox2.Tile.width
-      val h = bullet9mmBox2.Tile.height
+      val w = bullet9mmBox2.Tile.Width
+      val h = bullet9mmBox2.Tile.Height
       val list0 = obj.CheckCollisionsAsList(3, w, h)
       list0 match {
         case scala.util.Success(list) => list.length mustEqual 1
@@ -125,8 +129,8 @@ class InventoryTest extends Specification {
       val obj : GridInventory = GridInventory(9, 6)
       obj += 0 -> bullet9mmBox1
       obj.Capacity mustEqual 45
-      val w = bullet9mmBox2.Tile.width
-      val h = bullet9mmBox2.Tile.height
+      val w = bullet9mmBox2.Tile.Width
+      val h = bullet9mmBox2.Tile.Height
       val list0 = obj.CheckCollisionsAsList(0, w, h)
       list0 match {
         case scala.util.Success(list) => list.length mustEqual 1
@@ -159,8 +163,8 @@ class InventoryTest extends Specification {
       val obj : GridInventory = GridInventory(9, 6)
       obj += 27 -> bullet9mmBox1
       obj.Capacity mustEqual 45
-      val w = bullet9mmBox2.Tile.width
-      val h = bullet9mmBox2.Tile.height
+      val w = bullet9mmBox2.Tile.Width
+      val h = bullet9mmBox2.Tile.Height
       val list0 = obj.CheckCollisionsAsList(27, w, h)
       list0 match {
         case scala.util.Success(list) => list.length mustEqual 1
@@ -205,8 +209,8 @@ class InventoryTest extends Specification {
       val obj : GridInventory = GridInventory(12, 9)
       obj += 39 -> bullet9mmBox1
       obj.Capacity mustEqual 99 //108 - 9
-      val w = bullet9mmBox2.Tile.width
-      val h = bullet9mmBox2.Tile.height
+      val w = bullet9mmBox2.Tile.Width
+      val h = bullet9mmBox2.Tile.Height
       val list0 = obj.CheckCollisionsAsList(0, w, h)
       list0 match {
         case scala.util.Success(list) => list.isEmpty mustEqual true

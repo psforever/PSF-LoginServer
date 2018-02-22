@@ -1,6 +1,9 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.zones
 
+import net.psforever.objects.serverobject.structures.FoundationBuilder
+import net.psforever.objects.serverobject.ServerObjectBuilder
+
 /**
   * The fixed instantiation and relation of a series of server objects.<br>
   * <br>
@@ -12,32 +15,71 @@ package net.psforever.objects.zones
   * Use it as a blueprint.<br>
   * <br>
   * The "training zones" are the best example of the difference between a `ZoneMap` and a `Zone.`
+  * ("Course" will be used as an unofficial location and layout descriptor.)
   * `tzdrtr` is the Terran Republic driving course.
   * `tzdrvs` is the Vanu Sovereignty driving course.
-  * While each course can have different objects and object states (`Zone`),
-  * both courses have the same basic server objects because they are built from the same blueprint (`ZoneMap`).
+  * While each course can have different objects and object states, i.e., a `Zone`,
+  * both of these courses utilize the same basic server object layout because they are built from the same blueprint, i.e., a `ZoneMap`.
   * @param name the privileged name that can be used as the first parameter in the packet `LoadMapMessage`
   * @see `ServerObjectBuilder`<br>
   *      `LoadMapMessage`
   */
 class ZoneMap(private val name : String) {
-  private var localObjects : List[ServerObjectBuilder] = List()
+  private var localObjects : List[ServerObjectBuilder[_]] = List()
+  private var linkTerminalPad : Map[Int, Int] = Map()
+  private var linkTerminalInterface : Map[Int, Int] = Map()
+  private var linkDoorLock : Map[Int, Int] = Map()
+  private var linkObjectBase : Map[Int, Int] = Map()
+  private var buildings : Map[Int, FoundationBuilder] = Map()
 
   def Name : String = name
-
-  /**
-    * Append the builder for a server object to the list of builders known to this `ZoneMap`.
-    * @param obj the builder for a server object
-    */
-  def LocalObject(obj : ServerObjectBuilder) : Unit = {
-    localObjects = localObjects :+ obj
-  }
 
   /**
     * The list of all server object builder wrappers that have been assigned to this `ZoneMap`.
     * @return the `List` of all `ServerObjectBuilders` known to this `ZoneMap`
     */
-  def LocalObjects : List[ServerObjectBuilder] =  {
+  def LocalObjects : List[ServerObjectBuilder[_]] =  {
     localObjects
+  }
+
+  /**
+    * Append the builder for a server object to the list of builders known to this `ZoneMap`.
+    * @param obj the builder for a server object
+    */
+  def LocalObject(obj : ServerObjectBuilder[_]) : Unit = {
+    localObjects = localObjects :+ obj
+  }
+
+  def LocalBuildings : Map[Int, FoundationBuilder] = buildings
+
+  def LocalBuilding(building_id : Int, constructor : FoundationBuilder) : Int = {
+    if(building_id > 0) {
+      buildings = buildings ++ Map(building_id -> constructor)
+    }
+    buildings.size
+  }
+
+  def ObjectToBuilding : Map[Int, Int] = linkObjectBase
+
+  def ObjectToBuilding(object_guid : Int, building_id : Int) : Unit = {
+    linkObjectBase = linkObjectBase ++ Map(object_guid -> building_id)
+  }
+
+  def DoorToLock : Map[Int, Int] = linkDoorLock
+
+  def DoorToLock(door_guid : Int, lock_guid : Int) : Unit = {
+    linkDoorLock = linkDoorLock ++ Map(door_guid -> lock_guid)
+  }
+
+  def TerminalToSpawnPad : Map[Int, Int] = linkTerminalPad
+
+  def TerminalToSpawnPad(terminal_guid : Int, pad_guid : Int) : Unit = {
+    linkTerminalPad = linkTerminalPad ++ Map(terminal_guid -> pad_guid)
+  }
+
+  def TerminalToInterface : Map[Int, Int] = linkTerminalInterface
+
+  def TerminalToInterface(interface_guid : Int, terminal_guid : Int) : Unit = {
+    linkTerminalInterface = linkTerminalInterface ++ Map(interface_guid -> terminal_guid)
   }
 }

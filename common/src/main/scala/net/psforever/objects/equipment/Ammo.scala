@@ -43,7 +43,7 @@ object Ammo extends Enumeration {
   final val fluxpod_ammo = Value(310)
   final val frag_cartridge = Value(327)
   final val frag_grenade_ammo = Value(331)
-  final val gauss_cannon_ammo = Value(345)
+  final val gauss_cannon_ammo = Value(347)
   final val grenade = Value(370)
   final val health_canister = Value(389)
   final val heavy_grenade_mortar = Value(391)

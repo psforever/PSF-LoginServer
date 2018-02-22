@@ -1,9 +1,9 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.definition.converter
 
-import net.psforever.objects.{EquipmentSlot, GlobalDefinitions, ImplantSlot, Player}
+import net.psforever.objects.{EquipmentSlot, ImplantSlot, Player}
 import net.psforever.objects.equipment.Equipment
-import net.psforever.packet.game.objectcreate.{BasicCharacterData, CharacterAppearanceData, CharacterData, DetailedCharacterData, DrawnSlot, ImplantEffects, ImplantEntry, InternalSlot, InventoryData, PlacementData, RibbonBars, UniformStyle}
+import net.psforever.packet.game.objectcreate.{BasicCharacterData, CharacterAppearanceData, CharacterData, Cosmetics, DetailedCharacterData, DrawnSlot, ImplantEffects, ImplantEntry, InternalSlot, InventoryData, PlacementData, RibbonBars, UniformStyle}
 import net.psforever.types.{GrenadeState, ImplantType}
 
 import scala.annotation.tailrec
@@ -11,15 +11,16 @@ import scala.util.{Success, Try}
 
 class AvatarConverter extends ObjectCreateConverter[Player]() {
   override def ConstructorData(obj : Player) : Try[CharacterData] = {
+    val MaxArmor = obj.MaxArmor
     Success(
       CharacterData(
         MakeAppearanceData(obj),
         obj.Health / obj.MaxHealth * 255, //TODO not precise
-        obj.Armor / obj.MaxArmor * 255, //TODO not precise
+        if(MaxArmor == 0) { 0 } else { obj.Armor / MaxArmor * 255 }, //TODO not precise
         DressBattleRank(obj),
         DressCommandRank(obj),
         recursiveMakeImplantEffects(obj.Implants.iterator),
-        None, //TODO cosmetics
+        MakeCosmetics(obj.BEP),
         InventoryData(MakeHolsters(obj, BuildEquipment).sortBy(_.parentSlot)), //TODO is sorting necessary?
         GetDrawnSlot(obj)
       )
@@ -42,6 +43,7 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
         MakeImplantEntries(obj),
         List.empty[String], //TODO fte list
         List.empty[String], //TODO tutorial list
+        MakeCosmetics(obj.BEP),
         InventoryData((MakeHolsters(obj, BuildDetailedEquipment) ++ MakeFifthSlot(obj) ++ MakeInventory(obj)).sortBy(_.parentSlot)),
         GetDrawnSlot(obj)
       )
@@ -56,7 +58,7 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
   private def MakeAppearanceData(obj : Player) : CharacterAppearanceData = {
     CharacterAppearanceData(
       PlacementData(obj.Position, obj.Orientation, obj.Velocity),
-      BasicCharacterData(obj.Name, obj.Faction, obj.Sex, obj.Voice, obj.Head),
+      BasicCharacterData(obj.Name, obj.Faction, obj.Sex, obj.Head, obj.Voice),
       0,
       false,
       false,
@@ -132,14 +134,17 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
     * @see `ImplantEntry` in `DetailedCharacterData`
     */
   private def MakeImplantEntries(obj : Player) : List[ImplantEntry] = {
-    obj.Implants.map(slot => {
+    val numImplants : Int = DetailedCharacterData.numberOfImplantSlots(obj.BEP)
+    val implants = obj.Implants
+    (0 until numImplants).map(index => {
+      val slot = implants(index)
       slot.Installed match {
-        case Some(_) =>
+        case Some(implant) =>
           if(slot.Initialized) {
             ImplantEntry(slot.Implant, None)
           }
           else {
-            ImplantEntry(slot.Implant, Some(slot.Installed.get.Initialization.toInt))
+            ImplantEntry(slot.Implant, Some(implant.Initialization.toInt))
           }
         case None =>
           ImplantEntry(ImplantType.None, None)
@@ -159,22 +164,38 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
     else {
       val slot = iter.next
       if(slot.Active) {
-        import GlobalDefinitions._
-        slot.Installed match {
-          case Some(`advanced_regen`) =>
+        slot.Implant match {
+          case ImplantType.AdvancedRegen =>
             Some(ImplantEffects.RegenEffects)
-          case Some(`darklight_vision`) =>
+          case ImplantType.DarklightVision =>
             Some(ImplantEffects.DarklightEffects)
-          case Some(`personal_shield`) =>
+          case ImplantType.PersonalShield =>
             Some(ImplantEffects.PersonalShieldEffects)
-          case Some(`surge`) =>
+          case ImplantType.Surge =>
             Some(ImplantEffects.SurgeEffects)
-          case _ => ;
+          case _ =>
+            recursiveMakeImplantEffects(iter)
         }
       }
-      recursiveMakeImplantEffects(iter)
+      else {
+        recursiveMakeImplantEffects(iter)
+      }
     }
   }
+
+  /**
+    * Should this player be of battle rank 24 or higher, they will have a mandatory cosmetics object.
+    * @param bep battle experience points
+    * @see `Cosmetics`
+    * @return the `Cosmetics` options
+    */
+  protected def MakeCosmetics(bep : Long) : Option[Cosmetics] =
+    if(DetailedCharacterData.isBR24(bep)) {
+      Some(Cosmetics(false, false, false, false, false))
+    }
+    else {
+      None
+    }
 
   /**
     * Given a player with an inventory, convert the contents of that inventory into converted-decoded packet data.
@@ -236,7 +257,7 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
     * @param equip the game object
     * @return the game object in decoded packet form
     */
-  private def BuildDetailedEquipment(index : Int, equip : Equipment) : InternalSlot = {
+  protected def BuildDetailedEquipment(index : Int, equip : Equipment) : InternalSlot = {
     InternalSlot(equip.Definition.ObjectId, equip.GUID, index, equip.Definition.Packet.DetailedConstructorData(equip).get)
   }
 
@@ -274,7 +295,7 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
     * @param obj the `Player` game object
     * @return the holster's Enumeration value
     */
-  private def GetDrawnSlot(obj : Player) : DrawnSlot.Value = {
+  protected def GetDrawnSlot(obj : Player) : DrawnSlot.Value = {
     try { DrawnSlot(obj.DrawnSlot) } catch { case _ : Exception => DrawnSlot.None }
   }
 }

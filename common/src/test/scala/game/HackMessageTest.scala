@@ -12,13 +12,13 @@ class HackMessageTest extends Specification {
 
   "decode" in {
     PacketCoding.DecodePacket(string).require match {
-      case HackMessage(unk1, unk2, unk3, unk4, unk5, unk6, unk7) =>
+      case HackMessage(unk1, target_guid, player_guid, progress, unk5, hack_state, unk7) =>
         unk1 mustEqual 0
-        unk2 mustEqual 1024
-        unk3 mustEqual 3607
-        unk4 mustEqual 0
+        target_guid mustEqual PlanetSideGUID(1024)
+        player_guid mustEqual PlanetSideGUID(3607)
+        progress mustEqual 0
         unk5 mustEqual 3212836864L
-        unk6 mustEqual 1
+        hack_state mustEqual HackState.Start
         unk7 mustEqual 8L
       case _ =>
         ko
@@ -26,7 +26,7 @@ class HackMessageTest extends Specification {
   }
 
   "encode" in {
-    val msg = HackMessage(0,1024,3607,0,3212836864L,1,8L)
+    val msg = HackMessage(0, PlanetSideGUID(1024), PlanetSideGUID(3607), 0, 3212836864L, HackState.Start, 8L)
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
     pkt mustEqual string
   }

@@ -41,7 +41,7 @@ object CommonTerminalData extends Marshallable[CommonTerminalData] {
     {
       case fac :: 0 :: unk :: 0 :: HNil =>
         Attempt.successful(CommonTerminalData(fac, unk))
-      case _ :: _ :: _ :: _ :: HNil =>
+      case _ =>
         Attempt.failure(Err("invalid terminal data format"))
     },
     {

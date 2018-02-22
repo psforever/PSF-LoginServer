@@ -2,7 +2,7 @@
 package net.psforever.packet.game
 
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PlanetSideGamePacket}
-import net.psforever.types.Vector3
+import net.psforever.types.{DriveState, Vector3}
 import scodec.Codec
 import scodec.codecs._
 
@@ -22,8 +22,7 @@ import scodec.codecs._
   * This packet has nothing to do with ACE deployables.
   * @param player_guid the player requesting the deployment
   * @param vehicle_guid the vehicle to be deployed
-  * @param unk1 na;
-  *             usually 2
+  * @param deploy_state either requests for a specific deployment state or assignment of the requested state
   * @param unk2 na;
   *             usually 0
   * @param unk3 na
@@ -31,7 +30,7 @@ import scodec.codecs._
   */
 final case class DeployRequestMessage(player_guid : PlanetSideGUID,
                                       vehicle_guid : PlanetSideGUID,
-                                      unk1 : Int,
+                                      deploy_state : DriveState.Value,
                                       unk2 : Int,
                                       unk3 : Boolean,
                                       pos : Vector3)
@@ -44,8 +43,8 @@ final case class DeployRequestMessage(player_guid : PlanetSideGUID,
 object DeployRequestMessage extends Marshallable[DeployRequestMessage] {
   implicit val codec : Codec[DeployRequestMessage] = (
     ("player_guid" | PlanetSideGUID.codec) ::
-      ("deploy_guid" | PlanetSideGUID.codec) ::
-      ("unk1" | uint(3)) ::
+      ("vehicle_guid" | PlanetSideGUID.codec) ::
+      ("deploy_state" | DriveState.codec) ::
       ("unk2" | uint(5)) ::
       ("unk3" | bool) ::
       ("pos" | Vector3.codec_pos)

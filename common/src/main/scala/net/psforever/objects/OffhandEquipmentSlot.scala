@@ -18,3 +18,10 @@ class OffhandEquipmentSlot(size : EquipmentSize.Value) extends EquipmentSlot {
     */
   override def Size_=(assignSize : EquipmentSize.Value) : EquipmentSize.Value = Size
 }
+
+object OffhandEquipmentSlot {
+  /**
+    * An `EquipmentSlot` that can not be manipulated because its size is `Blocked` permanently.
+    */
+  final val BlockedSlot = new OffhandEquipmentSlot(EquipmentSize.Blocked)
+}

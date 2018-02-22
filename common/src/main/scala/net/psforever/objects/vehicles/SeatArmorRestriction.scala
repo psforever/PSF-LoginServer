@@ -11,7 +11,8 @@ package net.psforever.objects.vehicles
 object SeatArmorRestriction extends Enumeration {
   type Type = Value
 
-  val MaxOnly,
+  val
+  MaxOnly,
   NoMax,
   NoReinforcedOrMax
   = Value

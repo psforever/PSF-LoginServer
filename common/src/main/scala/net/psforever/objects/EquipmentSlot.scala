@@ -10,7 +10,6 @@ import net.psforever.objects.equipment.{Equipment, EquipmentSize}
 class EquipmentSlot {
   private var size : EquipmentSize.Value = EquipmentSize.Blocked
   private var tool : Option[Equipment] = None
-  //TODO eventually move this object from storing the item directly to just storing its GUID?
 
   def Size : EquipmentSize.Value = size
 

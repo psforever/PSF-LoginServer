@@ -12,11 +12,15 @@ import ch.qos.logback.core.status._
 import ch.qos.logback.core.util.StatusPrinter
 import com.typesafe.config.ConfigFactory
 import net.psforever.crypto.CryptoInterface
-import net.psforever.objects.zones.{InterstellarCluster, TerminalObjectBuilder, Zone, ZoneMap}
+import net.psforever.objects.zones._
 import net.psforever.objects.guid.TaskResolver
 import org.slf4j
 import org.fusesource.jansi.Ansi._
 import org.fusesource.jansi.Ansi.Color._
+import services.ServiceManager
+import services.avatar._
+import services.local._
+import services.vehicle.VehicleService
 
 import scala.collection.JavaConverters._
 import scala.concurrent.Await
@@ -202,6 +206,8 @@ object PsLogin {
     val serviceManager = ServiceManager.boot
     serviceManager ! ServiceManager.Register(RandomPool(50).props(Props[TaskResolver]), "taskResolver")
     serviceManager ! ServiceManager.Register(Props[AvatarService], "avatar")
+    serviceManager ! ServiceManager.Register(Props[LocalService], "local")
+    serviceManager ! ServiceManager.Register(Props[VehicleService], "vehicle")
     serviceManager ! ServiceManager.Register(Props(classOf[InterstellarCluster], createContinents()), "galaxy")
 
     /** Create two actors for handling the login and world server endpoints */
@@ -220,19 +226,15 @@ object PsLogin {
   }
 
   def createContinents() : List[Zone] = {
-    val map13 = new ZoneMap("map13") {
-      import net.psforever.objects.GlobalDefinitions._
-      LocalObject(TerminalObjectBuilder(cert_terminal, 186))
-      LocalObject(TerminalObjectBuilder(cert_terminal, 187))
-      LocalObject(TerminalObjectBuilder(cert_terminal, 188))
-      LocalObject(TerminalObjectBuilder(order_terminal, 853))
-      LocalObject(TerminalObjectBuilder(order_terminal, 855))
-      LocalObject(TerminalObjectBuilder(order_terminal, 860))
-    }
-    val home3 = Zone("home3", map13, 13)
-
-    home3 ::
-      Nil
+    import Zones._
+    List(
+      z1, z2, z3, z4, z5, z6, z7, z8, z9, z10,
+      home1, tzshtr, tzdrtr, tzcotr,
+      home2, tzshnc, tzdrnc, tzconc,
+      home3, tzshvs, tzdrvs, tzcovs,
+      c1, c2, c3, c4, c5, c6,
+      i1, i2, i3, i4
+    )
   }
 
   def main(args : Array[String]) : Unit = {

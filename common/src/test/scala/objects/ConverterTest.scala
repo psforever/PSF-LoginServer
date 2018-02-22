@@ -1,18 +1,20 @@
 // Copyright (c) 2017 PSForever
 package objects
 
-import net.psforever.objects.definition.converter.{ACEConverter, REKConverter}
+import net.psforever.objects.GlobalDefinitions.remote_electronics_kit
+import net.psforever.objects.definition.converter.{ACEConverter, CharacterSelectConverter, REKConverter}
 import net.psforever.objects._
 import net.psforever.objects.definition._
 import net.psforever.objects.equipment.CItem.{DeployedItem, Unit}
 import net.psforever.objects.equipment._
 import net.psforever.objects.inventory.InventoryTile
+import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.packet.game.objectcreate._
 import net.psforever.types.{CharacterGender, PlanetSideEmpire, Vector3}
 import org.specs2.mutable.Specification
 
-import scala.util.Success
+import scala.util.{Failure, Success}
 
 class ConverterTest extends Specification {
   "AmmoBox" should {
@@ -37,29 +39,48 @@ class ConverterTest extends Specification {
   }
 
   "Tool" should {
-    "convert to packet" in {
-      val tdef = ToolDefinition(1076)
-      tdef.Size = EquipmentSize.Rifle
-      tdef.AmmoTypes += Ammo.shotgun_shell
-      tdef.AmmoTypes += Ammo.shotgun_shell_AP
-      tdef.FireModes += new FireModeDefinition
-      tdef.FireModes.head.AmmoTypeIndices += 0
-      tdef.FireModes.head.AmmoTypeIndices += 1
-      tdef.FireModes.head.AmmoSlotIndex = 0
-      val obj : Tool = Tool(tdef)
-      val box = AmmoBox(PlanetSideGUID(90), new AmmoBoxDefinition(Ammo.shotgun_shell.id))
-      obj.AmmoSlots.head.Box = box
-      obj.AmmoSlots.head.Magazine = 30
+    "convert to packet (1 fire mode slot)" in {
+      val obj : Tool = Tool(GlobalDefinitions.flechette)
+      obj.AmmoSlot.Box.GUID = PlanetSideGUID(90)
 
       obj.Definition.Packet.DetailedConstructorData(obj) match {
         case Success(pkt) =>
-          pkt mustEqual DetailedWeaponData(4,8, Ammo.shotgun_shell.id, PlanetSideGUID(90), 0, DetailedAmmoBoxData(8, 30))
+          pkt mustEqual DetailedWeaponData(4,8, Ammo.shotgun_shell.id, PlanetSideGUID(90), 0, DetailedAmmoBoxData(8, 12))
         case _ =>
           ko
       }
       obj.Definition.Packet.ConstructorData(obj) match {
         case Success(pkt) =>
           pkt mustEqual WeaponData(4,8, 0, Ammo.shotgun_shell.id, PlanetSideGUID(90), 0, AmmoBoxData())
+        case _ =>
+          ko
+      }
+    }
+
+    "convert to packet (2 fire mode slots)" in {
+      val obj : Tool = Tool(GlobalDefinitions.punisher)
+      obj.AmmoSlots.head.Box.GUID = PlanetSideGUID(90)
+      obj.AmmoSlots(1).Box.GUID = PlanetSideGUID(91)
+
+      obj.Definition.Packet.DetailedConstructorData(obj) match {
+        case Success(pkt) =>
+          pkt mustEqual DetailedWeaponData(4,8, 0,
+            List(
+              InternalSlot(Ammo.bullet_9mm.id, PlanetSideGUID(90), 0, DetailedAmmoBoxData(8, 30)),
+              InternalSlot(Ammo.rocket.id, PlanetSideGUID(91), 1, DetailedAmmoBoxData(8, 1))
+            )
+          )
+        case _ =>
+          ko
+      }
+      obj.Definition.Packet.ConstructorData(obj) match {
+        case Success(pkt) =>
+          pkt mustEqual WeaponData(4,8, 0,
+            List(
+              InternalSlot(Ammo.bullet_9mm.id, PlanetSideGUID(90), 0, AmmoBoxData()),
+              InternalSlot(Ammo.rocket.id, PlanetSideGUID(91), 1, AmmoBoxData())
+            )
+          )
         case _ =>
           ko
       }
@@ -130,7 +151,7 @@ class ConverterTest extends Specification {
   }
 
   "Player" should {
-    "convert to packet" in {
+    val obj : Player = {
       /*
       Create an AmmoBoxDefinition with which to build two AmmoBoxes
       Create a ToolDefinition with which to create a Tool
@@ -139,27 +160,81 @@ class ConverterTest extends Specification {
       Give the Player's Holster (2) the Tool
       Place the remaining AmmoBox into the Player's inventory in the third slot (8)
        */
-      val bullet_9mm = AmmoBoxDefinition(28)
-      bullet_9mm.Capacity = 50
-      val box1 = AmmoBox(PlanetSideGUID(90), bullet_9mm)
-      val box2 = AmmoBox(PlanetSideGUID(91), bullet_9mm)
       val tdef = ToolDefinition(1076)
       tdef.Name = "sample_weapon"
       tdef.Size = EquipmentSize.Rifle
-      tdef.AmmoTypes += Ammo.bullet_9mm
+      tdef.AmmoTypes += GlobalDefinitions.bullet_9mm
       tdef.FireModes += new FireModeDefinition
       tdef.FireModes.head.AmmoTypeIndices += 0
       tdef.FireModes.head.AmmoSlotIndex = 0
       tdef.FireModes.head.Magazine = 18
-      val tool = Tool(PlanetSideGUID(92), tdef)
-      tool.AmmoSlots.head.Box = box1
-      val obj = Player(PlanetSideGUID(93), "Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
+      val tool = Tool(tdef)
+      tool.GUID = PlanetSideGUID(92)
+      tool.AmmoSlot.Box.GUID = PlanetSideGUID(90)
+      val obj = Player("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
+      obj.GUID = PlanetSideGUID(93)
       obj.Slot(2).Equipment = tool
       obj.Slot(5).Equipment.get.GUID = PlanetSideGUID(94)
-      obj.Inventory += 8 -> box2
+      obj.Inventory += 8 -> AmmoBox(GlobalDefinitions.bullet_9mm)
+      obj.Slot(8).Equipment.get.GUID = PlanetSideGUID(91)
+      obj
+    }
+    val converter = new CharacterSelectConverter
 
-      obj.Definition.Packet.DetailedConstructorData(obj).isSuccess mustEqual true
-      ok //TODO write more of this test
+    "convert to packet (BR < 24)" in {
+      obj.BEP = 0
+      obj.Definition.Packet.DetailedConstructorData(obj) match {
+        case Success(pkt) =>
+          ok
+        case _ =>
+          ko
+      }
+      obj.Definition.Packet.ConstructorData(obj) match {
+        case Success(pkt) =>
+          ok
+        case _ =>
+          ko
+      }
+    }
+
+    "convert to packet (BR >= 24)" in {
+      obj.BEP = 10000000
+      obj.Definition.Packet.DetailedConstructorData(obj) match {
+        case Success(pkt) =>
+          ok
+        case _ =>
+          ko
+      }
+      obj.Definition.Packet.ConstructorData(obj) match {
+        case Success(pkt) =>
+          ok
+        case _ =>
+          ko
+      }
+    }
+
+    "convert to simple packet (BR < 24)" in {
+      obj.BEP = 0
+      converter.DetailedConstructorData(obj) match {
+        case Success(pkt) =>
+          ok
+        case _ =>
+          ko
+      }
+      converter.ConstructorData(obj).isFailure mustEqual true
+      converter.ConstructorData(obj).get must throwA[Exception]
+    }
+
+    "convert to simple packet (BR >= 24)" in {
+      obj.BEP = 10000000
+      converter.DetailedConstructorData(obj) match {
+        case Success(pkt) =>
+          ok
+        case _ =>
+          ko
+      }
+      converter.ConstructorData(obj).isFailure mustEqual true
+      converter.ConstructorData(obj).get must throwA[Exception]
     }
   }
 
@@ -202,13 +277,33 @@ class ConverterTest extends Specification {
     }
   }
 
-  "Vehicle" should {
+  "Terminal" should {
     "convert to packet" in {
+      val obj = Terminal(GlobalDefinitions.order_terminala)
+
+      obj.Definition.Packet.DetailedConstructorData(obj) match {
+        case Failure(err) =>
+          err.isInstanceOf[NoSuchMethodException] mustEqual true
+        case _ =>
+          ko
+      }
+
+      obj.Definition.Packet.ConstructorData(obj) match {
+        case Success(pkt) =>
+          pkt mustEqual CommonTerminalData(PlanetSideEmpire.NEUTRAL, 0)
+        case _ =>
+          ko
+      }
+    }
+  }
+
+  "Vehicle" should {
+    "convert to packet (1)" in {
       val hellfire_ammo = AmmoBoxDefinition(Ammo.hellfire_ammo.id)
 
       val fury_weapon_systema_def = ToolDefinition(ObjectClass.fury_weapon_systema)
           fury_weapon_systema_def.Size = EquipmentSize.VehicleWeapon
-          fury_weapon_systema_def.AmmoTypes += Ammo.hellfire_ammo
+          fury_weapon_systema_def.AmmoTypes += GlobalDefinitions.hellfire_ammo
           fury_weapon_systema_def.FireModes += new FireModeDefinition
           fury_weapon_systema_def.FireModes.head.AmmoTypeIndices += 0
           fury_weapon_systema_def.FireModes.head.AmmoSlotIndex = 0
@@ -224,16 +319,29 @@ class ConverterTest extends Specification {
           fury_def.TrunkSize = InventoryTile(11, 11)
           fury_def.TrunkOffset = 30
 
-      val hellfire_ammo_box = AmmoBox(PlanetSideGUID(432), hellfire_ammo)
+      val hellfire_ammo_box = AmmoBox(hellfire_ammo)
+          hellfire_ammo_box.GUID = PlanetSideGUID(432)
 
-      val fury = Vehicle(PlanetSideGUID(413), fury_def)
+      val fury = Vehicle(fury_def)
+          fury.GUID = PlanetSideGUID(413)
           fury.Faction = PlanetSideEmpire.VS
           fury.Position = Vector3(3674.8438f, 2732f, 91.15625f)
           fury.Orientation = Vector3(0.0f, 0.0f, 90.0f)
           fury.WeaponControlledFromSeat(0).get.GUID = PlanetSideGUID(400)
-          fury.WeaponControlledFromSeat(0).get.AmmoSlots.head.Box = hellfire_ammo_box
+          fury.WeaponControlledFromSeat(0).get.asInstanceOf[Tool].AmmoSlots.head.Box = hellfire_ammo_box
 
       fury.Definition.Packet.ConstructorData(fury).isSuccess mustEqual true
+      ok //TODO write more of this test
+    }
+
+    "convert to packet (2)" in {
+      val
+      ams = Vehicle(GlobalDefinitions.ams)
+      ams.GUID = PlanetSideGUID(413)
+      ams.Utilities(3)().GUID = PlanetSideGUID(414)
+      ams.Utilities(4)().GUID = PlanetSideGUID(415)
+
+      ams.Definition.Packet.ConstructorData(ams).isSuccess mustEqual true
       ok //TODO write more of this test
     }
   }
