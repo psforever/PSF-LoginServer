@@ -1,10 +1,12 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.packet.game.objectcreate
-import net.psforever.packet.Marshallable
+import net.psforever.packet.{Marshallable, PacketHelpers}
 import scodec.Attempt.{Failure, Successful}
 import scodec.{Attempt, Codec, Err}
 import scodec.codecs._
 import shapeless.{::, HNil}
+
+import net.psforever.types.DriveState
 
 /**
   * An `Enumeration` of the various formats that known structures that the stream of bits for `VehicleData` can assume.
@@ -141,6 +143,8 @@ object VehicleData extends Marshallable[VehicleData] {
     new VehicleData(basic, unk1, health, unk2>0, false, driveState, unk3, unk5>0, false, Some(unk4), inventory)(VehicleFormat.Variant)
   }
 
+  private val driveState8u = PacketHelpers.createEnumerationCodec(DriveState, uint8L)
+
   /**
     * `Codec` for the "utility" format.
     */
@@ -192,7 +196,7 @@ object VehicleData extends Marshallable[VehicleData] {
       ("health" | uint8L) ::
       ("unk2" | bool) :: //usually 0
       ("no_mount_points" | bool) ::
-      ("driveState" | DriveState.codec) :: //used for deploy state
+      ("driveState" | driveState8u) :: //used for deploy state
       ("unk3" | bool) :: //unknown but generally false; can cause stream misalignment if set when unexpectedly
       ("unk4" | bool) ::
       ("cloak" | bool) :: //cloak as wraith, phantasm

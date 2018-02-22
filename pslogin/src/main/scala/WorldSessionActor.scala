@@ -16,6 +16,7 @@ import net.psforever.objects.guid.{GUIDTask, Task, TaskResolver}
 import net.psforever.objects.inventory.{Container, GridInventory, InventoryItem}
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.affinity.FactionAffinity
+import net.psforever.objects.serverobject.deploy.Deployment
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.serverobject.implantmech.ImplantTerminalMech
@@ -330,6 +331,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
             sendResponse(PacketCoding.CreateGamePacket(0, DismountVehicleMsg(guid, unk1, unk2)))
           }
 
+        case VehicleResponse.DeployRequest(object_guid, state, unk1, unk2, pos) =>
+          if(player.GUID != guid) {
+            sendResponse(PacketCoding.CreateGamePacket(0, DeployRequestMessage(guid, object_guid, state, unk1, unk2, pos)))
+          }
+
         case VehicleResponse.InventoryState(obj, parent_guid, start, con_data) =>
           if(player.GUID != guid) {
             //TODO prefer ObjectDetachMessage, but how to force ammo pools to update properly?
@@ -398,6 +404,50 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
         case _ => ;
       }
+
+    case Deployment.CanDeploy(obj, state) =>
+      val vehicle_guid = obj.GUID
+      if(state == DriveState.Deploying) {
+        log.info(s"DeployRequest: $obj transitioning to deploy state")
+        sendResponse(PacketCoding.CreateGamePacket(0, DeployRequestMessage(player.GUID, vehicle_guid, state, 0, false, obj.Position)))
+        vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.DeployRequest(player.GUID, vehicle_guid, state, 0, false, obj.Position))
+        import scala.concurrent.duration._
+        import scala.concurrent.ExecutionContext.Implicits.global
+        context.system.scheduler.scheduleOnce(obj.DeployTime milliseconds, obj.Actor, Deployment.TryDeploy(DriveState.Deployed))
+      }
+      else if(state == DriveState.Deployed) {
+        log.info(s"DeployRequest: $obj has been Deployed")
+        sendResponse(PacketCoding.CreateGamePacket(0, DeployRequestMessage(player.GUID, vehicle_guid, state, 0, false, obj.Position)))
+        vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.DeployRequest(player.GUID, vehicle_guid, state, 0, false, obj.Position))
+        DeploymentActivities(obj)
+        //...
+      }
+      else {
+        CanNotChangeDeployment(obj, state, "incorrect deploy state")
+      }
+
+    case Deployment.CanUndeploy(obj, state) =>
+      val vehicle_guid = obj.GUID
+      if(state == DriveState.Undeploying) {
+        log.info(s"DeployRequest: $obj transitioning to undeploy state")
+        sendResponse(PacketCoding.CreateGamePacket(0, DeployRequestMessage(player.GUID, vehicle_guid, state, 0, false, Vector3.Zero)))
+        vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.DeployRequest(player.GUID, vehicle_guid, state, 0, false, Vector3.Zero))
+        import scala.concurrent.duration._
+        import scala.concurrent.ExecutionContext.Implicits.global
+        context.system.scheduler.scheduleOnce(obj.UndeployTime milliseconds, obj.Actor, Deployment.TryUndeploy(DriveState.Mobile))
+      }
+      else if(state == DriveState.Mobile) {
+        log.info(s"DeployRequest: $obj is Mobile")
+        sendResponse(PacketCoding.CreateGamePacket(0, DeployRequestMessage(player.GUID, vehicle_guid, state, 0, false, Vector3.Zero)))
+        vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.DeployRequest(player.GUID, vehicle_guid, state, 0, false, Vector3.Zero))
+        //...
+      }
+      else {
+        CanNotChangeDeployment(obj, state, "incorrect undeploy state")
+      }
+
+    case Deployment.CanNotChangeDeployment(obj, state, reason) =>
+      CanNotChangeDeployment(obj, state, reason)
 
     case Door.DoorMessage(tplayer, msg, order) =>
       val door_guid = msg.object_guid
@@ -2096,24 +2146,20 @@ class WorldSessionActor extends Actor with MDCContextAware {
         }
       }
 
-    case msg @ DeployRequestMessage(player_guid, entity, unk1, unk2, unk3, pos) =>
-      log.info("DeployRequest: " + msg)
-      //LOCAL FUNCTIONALITY ONLY FOR THIS BRANCH
-      val player_guid = player.GUID
-      if(unk1 == 2) { // deploy AMS
-        //sendResponse(PacketCoding.CreateGamePacket(0, PlanetsideAttributeMessage(entity,49,1))) // TODO : ANT ? With increment when loading NTU ?
-        sendResponse(PacketCoding.CreateGamePacket(0, DeployRequestMessage(player_guid, entity, unk1, unk2, unk3, Vector3(0f, 0f, 0f))))
-        Thread.sleep(1000) // 2 seconds
-        sendResponse(PacketCoding.CreateGamePacket(0, DeployRequestMessage(player_guid, entity, 3, unk2, unk3, Vector3(0f, 0f, 0f))))
-        sendResponse(PacketCoding.CreateGamePacket(0, PlanetsideAttributeMessage(entity, 10, 1)))
-        sendResponse(PacketCoding.CreateGamePacket(0, PlanetsideAttributeMessage(entity, 11, 1)))
-        sendResponse(PacketCoding.CreateGamePacket(0, PlanetsideAttributeMessage(entity, 12, 1)))
-        sendResponse(PacketCoding.CreateGamePacket(0, PlanetsideAttributeMessage(entity, 13, 1)))
+    case msg @ DeployRequestMessage(player_guid, vehicle_guid, deploy_state, unk2, unk3, pos) =>
+      log.info(s"DeployRequest: $msg")
+      if(player.VehicleOwned == Some(vehicle_guid) && player.VehicleOwned == player.VehicleSeated) {
+        continent.GUID(vehicle_guid) match {
+          case Some(obj : Vehicle) =>
+            obj.Actor ! Deployment.TryDeploymentChange(deploy_state)
+
+          case _ =>
+            log.error(s"DeployRequest: can not find $vehicle_guid in scope; removing ownership to mitigate confusion")
+            player.VehicleOwned = None
+        }
       }
-      else if(unk1 == 1) { // undeploy AMS
-        sendResponse(PacketCoding.CreateGamePacket(0, DeployRequestMessage(player_guid, entity, unk1, unk2, unk3, Vector3(0f, 0f, 0f))))
-        Thread.sleep(1000) // 2 seconds
-        sendResponse(PacketCoding.CreateGamePacket(0, DeployRequestMessage(player_guid, entity, 0, unk2, unk3, Vector3(0f, 0f, 0f))))
+      else {
+        log.warn(s"DeployRequest: $player does not own the deploying $vehicle_guid object")
       }
 
     case msg @ AvatarGrenadeStateMessage(player_guid, state) =>
@@ -2607,12 +2653,18 @@ class WorldSessionActor extends Actor with MDCContextAware {
   /**
     * Temporary function that iterates over vehicle permissions and turns them into `PlanetsideAttributeMessage` packets.<br>
     * <br>
-    * 2 November 2017
+    * 2 November 2017:<br>
     * Unexpected behavior causes seat mount points to become blocked when a new driver claims the vehicle.
     * For the purposes of ensuring that other players are always aware of the proper permission state of the trunk and seats,
     * packets are intentionally dispatched to the current client to update the states.
     * Perform this action just after any instance where the client would initially gain awareness of the vehicle.
-    * The most important examples include either the player or the vehicle itself spawning in for the first time.
+    * The most important examples include either the player or the vehicle itself spawning in for the first time.<br>
+    * <br>
+    * 20 February 2018:<br>
+    * Occasionally, during deployment, local(?) vehicle seat access permissions may change.
+    * This results in players being locked into their own vehicle.
+    * Reloading vehicle permissions supposedly ensures the seats will be properly available.
+    * This is considered a client issue; but, somehow, it also impacts server operation somehow.
     * @param vehicle the `Vehicle`
     */
   def ReloadVehicleAccessPermissions(vehicle : Vehicle) : Unit = {
@@ -2962,6 +3014,38 @@ class WorldSessionActor extends Actor with MDCContextAware {
       case None =>
         None
     }
+  }
+
+  /**
+    * Perform specific operations depending on the target of deployment.
+    * @param obj the object that has deployed
+    */
+  def DeploymentActivities(obj : Deployment.DeploymentObject) : Unit = {
+    obj match {
+      case vehicle : Vehicle =>
+        //TODO we should not have to do this imho
+        ReloadVehicleAccessPermissions(vehicle)
+      case _ => ;
+    }
+  }
+
+  /**
+    * Common reporting behavior when a `Deployment` object fails to properly transition between states.
+    * @param obj the game object that could not
+    * @param state the `DriveState` that could not be promoted
+    * @param reason a string explaining why the state can not or will not change
+    */
+  def CanNotChangeDeployment(obj : PlanetSideServerObject with Deployment, state : DriveState.Value, reason : String) : Unit = {
+    val mobileShift : String = if(obj.DeploymentState != DriveState.Mobile) {
+      obj.DeploymentState = DriveState.Mobile
+      sendResponse(PacketCoding.CreateGamePacket(0, DeployRequestMessage(player.GUID, obj.GUID, DriveState.Mobile, 0, false, Vector3.Zero)))
+      vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.DeployRequest(player.GUID, obj.GUID, DriveState.Mobile, 0, false, Vector3.Zero))
+      "; enforcing Mobile deployment state"
+    }
+    else {
+      ""
+    }
+    log.error(s"DeployRequest: $obj can not transition to $state - $reason$mobileShift")
   }
 
   def failWithError(error : String) = {

@@ -25,6 +25,7 @@ ignore:
   - "common/src/main/scala/net/psforever/types/Angular.scala"
   - "common/src/main/scala/net/psforever/types/CertificationType.scala"
   - "common/src/main/scala/net/psforever/types/ChatMessageType.scala"
+  - "common/src/main/scala/net/psforever/types/DriveState.scala"
   - "common/src/main/scala/net/psforever/types/EmoteType.scala"
   - "common/src/main/scala/net/psforever/types/ExoSuitType.scala"
   - "common/src/main/scala/net/psforever/types/GrenadeState.scala"

@@ -6,7 +6,7 @@ import net.psforever.types.{CharacterGender, ExoSuitType, PlanetSideEmpire, Vect
 import services.Service
 import services.avatar._
 
-class AvatarService0Test extends ActorTest {
+class AvatarService1Test extends ActorTest {
   "AvatarService" should {
     "construct" in {
       system.actorOf(Props[AvatarService], "service")
@@ -15,7 +15,7 @@ class AvatarService0Test extends ActorTest {
   }
 }
 
-class AvatarService1_1Test extends ActorTest {
+class AvatarService2Test extends ActorTest {
   "AvatarService" should {
     "subscribe" in {
       val service = system.actorOf(Props[AvatarService], "service")
@@ -25,9 +25,9 @@ class AvatarService1_1Test extends ActorTest {
   }
 }
 
-class AvatarService1_2Test extends ActorTest {
+class AvatarService3Test extends ActorTest {
   "AvatarService" should {
-    "subscribe" in {
+    "subscribe to a specific channel" in {
       val service = system.actorOf(Props[AvatarService], "service")
       service ! Service.Join("test")
       service ! Service.Leave()
@@ -36,7 +36,7 @@ class AvatarService1_2Test extends ActorTest {
   }
 }
 
-class AvatarService1_3Test extends ActorTest {
+class AvatarService4Test extends ActorTest {
   "AvatarService" should {
     "subscribe" in {
       val service = system.actorOf(Props[AvatarService], "service")
@@ -47,7 +47,7 @@ class AvatarService1_3Test extends ActorTest {
   }
 }
 
-class AvatarService2Test extends ActorTest {
+class AvatarService5Test extends ActorTest {
   "AvatarService" should {
     "pass an unhandled message" in {
       val service = system.actorOf(Props[AvatarService], "service")
@@ -58,7 +58,7 @@ class AvatarService2Test extends ActorTest {
   }
 }
 
-class AvatarService3Test extends ActorTest {
+class ArmorChangedTest extends ActorTest {
   "AvatarService" should {
     "pass ArmorChanged" in {
       val service = system.actorOf(Props[AvatarService], "service")
@@ -69,7 +69,7 @@ class AvatarService3Test extends ActorTest {
   }
 }
 
-class AvatarService4Test extends ActorTest {
+class ConcealPlayerTest extends ActorTest {
   "AvatarService" should {
     "pass ConcealPlayer" in {
       val service = system.actorOf(Props[AvatarService], "service")
@@ -80,7 +80,7 @@ class AvatarService4Test extends ActorTest {
   }
 }
 
-class AvatarService5Test extends ActorTest {
+class EquipmentInHandTest extends ActorTest {
   val tool = Tool(GlobalDefinitions.beamer)
 
   "AvatarService" should {
@@ -93,21 +93,23 @@ class AvatarService5Test extends ActorTest {
   }
 }
 
-class AvatarService6Test extends ActorTest {
+class EquipmentOnGroundTest extends ActorTest {
   val toolDef = GlobalDefinitions.beamer
   val tool = Tool(toolDef)
+  tool.AmmoSlots.head.Box.GUID = PlanetSideGUID(1)
+  val cdata = toolDef.Packet.ConstructorData(tool).get
 
   "AvatarService" should {
     "pass EquipmentOnGround" in {
       val service = system.actorOf(Props[AvatarService], "service")
       service ! Service.Join("test")
-      service ! AvatarServiceMessage("test", AvatarAction.EquipmentOnGround(PlanetSideGUID(10), Vector3(300f, 200f, 100f), Vector3(450f, 300f, 150f), toolDef.ObjectId, PlanetSideGUID(11), toolDef.Packet.ConstructorData(tool).get))
-      expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarResponse.EquipmentOnGround(Vector3(300f, 200f, 100f), Vector3(450f, 300f, 150f), toolDef.ObjectId, PlanetSideGUID(11), toolDef.Packet.ConstructorData(tool).get)))
+      service ! AvatarServiceMessage("test", AvatarAction.EquipmentOnGround(PlanetSideGUID(10), Vector3(300f, 200f, 100f), Vector3(450f, 300f, 150f), toolDef.ObjectId, PlanetSideGUID(11), cdata))
+      expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarResponse.EquipmentOnGround(Vector3(300f, 200f, 100f), Vector3(450f, 300f, 150f), toolDef.ObjectId, PlanetSideGUID(11), cdata)))
     }
   }
 }
 
-class AvatarService7Test extends ActorTest {
+class LoadPlayerTest extends ActorTest {
   val obj = Player("TestCharacter1", PlanetSideEmpire.VS, CharacterGender.Female, 1, 1)
   obj.GUID = PlanetSideGUID(10)
   obj.Slot(5).Equipment.get.GUID = PlanetSideGUID(11)
@@ -123,7 +125,7 @@ class AvatarService7Test extends ActorTest {
   }
 }
 
-class AvatarService8Test extends ActorTest {
+class ObjectDeleteTest extends ActorTest {
   "AvatarService" should {
     "pass ObjectDelete" in {
       val service = system.actorOf(Props[AvatarService], "service")
@@ -137,7 +139,7 @@ class AvatarService8Test extends ActorTest {
   }
 }
 
-class AvatarService9Test extends ActorTest {
+class ObjectHeldTest extends ActorTest {
   "AvatarService" should {
     "pass ObjectHeld" in {
       val service = system.actorOf(Props[AvatarService], "service")
@@ -148,7 +150,7 @@ class AvatarService9Test extends ActorTest {
   }
 }
 
-class AvatarServiceATest extends ActorTest {
+class PlanetsideAttributeTest extends ActorTest {
   "AvatarService" should {
     "pass PlanetsideAttribute" in {
       val service = system.actorOf(Props[AvatarService], "service")
@@ -159,7 +161,7 @@ class AvatarServiceATest extends ActorTest {
   }
 }
 
-class AvatarServiceBTest extends ActorTest {
+class PlayerStateTest extends ActorTest {
   val msg = PlayerStateMessageUpstream(PlanetSideGUID(75), Vector3(3694.1094f, 2735.4531f, 90.84375f), Some(Vector3(4.375f, 2.59375f, 0.0f)), 61.875f, 351.5625f, 0.0f, 136, 0, false, false, false, false, 112, 0)
 
   "AvatarService" should {
@@ -172,7 +174,7 @@ class AvatarServiceBTest extends ActorTest {
   }
 }
 
-class AvatarServiceCTest extends ActorTest {
+class ReloadTest extends ActorTest {
   "AvatarService" should {
     "pass Reload" in {
       val service = system.actorOf(Props[AvatarService], "service")
@@ -183,7 +185,7 @@ class AvatarServiceCTest extends ActorTest {
   }
 }
 
-class AvatarServiceDTest extends ActorTest {
+class ChangeAmmoTest extends ActorTest {
   val ammoDef = GlobalDefinitions.energy_cell
   val ammoBox = AmmoBox(ammoDef)
 
@@ -197,7 +199,7 @@ class AvatarServiceDTest extends ActorTest {
   }
 }
 
-class AvatarServiceETest extends ActorTest {
+class ChangeFireModeTest extends ActorTest {
   val ammoDef = GlobalDefinitions.energy_cell
   val ammoBox = AmmoBox(ammoDef)
 
@@ -211,7 +213,7 @@ class AvatarServiceETest extends ActorTest {
   }
 }
 
-class AvatarServiceF_1Test extends ActorTest {
+class ChangeFireStateStartTest extends ActorTest {
   "AvatarService" should {
     "pass ChangeFireState_Start" in {
       val service = system.actorOf(Props[AvatarService], "service")
@@ -222,7 +224,7 @@ class AvatarServiceF_1Test extends ActorTest {
   }
 }
 
-class AvatarServiceF_2Test extends ActorTest {
+class ChangeFireStateStopTest extends ActorTest {
   "AvatarService" should {
     "pass ChangeFireState_Stop" in {
       val service = system.actorOf(Props[AvatarService], "service")
@@ -233,7 +235,7 @@ class AvatarServiceF_2Test extends ActorTest {
   }
 }
 
-class AvatarService01Test extends ActorTest {
+class WeaponDryFireTest extends ActorTest {
   "AvatarService" should {
     "pass WeaponDryFire" in {
       val service = system.actorOf(Props[AvatarService], "service")

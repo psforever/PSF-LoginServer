@@ -24,7 +24,7 @@ class VehicleConverter extends ObjectCreateConverter[Vehicle]() {
         0,
         obj.Health / obj.MaxHealth * 255, //TODO not precise
         false, false,
-        obj.Drive,
+        obj.DeploymentState,
         false,
         false,
         obj.Cloaked,

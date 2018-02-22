@@ -6,13 +6,14 @@ import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.packet.game.objectcreate.ConstructorData
-import net.psforever.types.Vector3
+import net.psforever.types.{DriveState, Vector3}
 
 object VehicleAction {
   trait Action
 
   final case class Awareness(player_guid : PlanetSideGUID, vehicle_guid : PlanetSideGUID) extends Action
   final case class ChildObjectState(player_guid : PlanetSideGUID, object_guid : PlanetSideGUID, pitch : Float, yaw : Float) extends Action
+  final case class DeployRequest(player_guid : PlanetSideGUID, object_guid : PlanetSideGUID, state : DriveState.Value, unk1 : Int, unk2 : Boolean, pos : Vector3) extends Action
   final case class DismountVehicle(player_guid : PlanetSideGUID, unk1 : Int, unk2 : Boolean) extends Action
   final case class InventoryState(player_guid : PlanetSideGUID, obj : PlanetSideGameObject, parent_guid : PlanetSideGUID, start : Int, con_data : ConstructorData) extends Action
   final case class KickPassenger(player_guid : PlanetSideGUID, unk1 : Int, unk2 : Boolean, vehicle_guid : PlanetSideGUID) extends Action
