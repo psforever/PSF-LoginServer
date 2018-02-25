@@ -22,7 +22,18 @@ object Maps {
 
   val map5 = new ZoneMap("map05")
 
-  val map6 = new ZoneMap("map06")
+  val map6 = new ZoneMap("map06") {
+    //TODO TEST ceryshen
+    LocalObject(ServerObjectBuilder(3353, Terminal.Constructor(ground_vehicle_terminal)))
+    LocalObject(ServerObjectBuilder(500,
+      VehicleSpawnPad.Constructor(Vector3(3962.0f, 4334.0f, 268.0f), Vector3(0f, 0f, 180.0f))
+    )) //TODO guid not correct
+
+    LocalBuilding(2, FoundationBuilder(Building.Structure))
+    ObjectToBuilding(3353, 2)
+    ObjectToBuilding(500, 2)
+    TerminalToSpawnPad(3353, 500)
+  }
 
   val map7 = new ZoneMap("map07")
 
