@@ -23,7 +23,7 @@ import net.psforever.objects.serverobject.implantmech.ImplantTerminalMech
 import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.mblocker.Locker
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
-import net.psforever.objects.serverobject.terminals.Terminal
+import net.psforever.objects.serverobject.terminals.{MatrixTerminalDefinition, Terminal}
 import net.psforever.objects.serverobject.terminals.Terminal.TerminalMessage
 import net.psforever.objects.vehicles.{AccessPermissionGroup, Utility, VehicleLockState}
 import net.psforever.objects.zones.{InterstellarCluster, Zone}
@@ -988,7 +988,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             PlanetSideEmpire.VS,  //Base owned by VS
             0,                    //!! Field != 0 will cause malformed packet. See class def.
             None,
-            PlanetSideGeneratorState.Critical, //Generator critical
+            PlanetSideGeneratorState.Normal, //Generator critical
             true,                 //Respawn tubes destroyed
             true,                 //Force dome active
             16,                   //Tech plant lattice benefit
@@ -1967,6 +1967,15 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
               case _ => ;
             }
+          }
+
+        case Some(obj : Terminal) =>
+          if(obj.Definition.isInstanceOf[MatrixTerminalDefinition]) {
+            //TODO matrix spawn point; for now, just blindly bind to show work (and hope nothing breaks)
+            sendResponse(PacketCoding.CreateGamePacket(0, BindPlayerMessage(1, "@ams", true, true, 0, 0, 0, obj.Position)))
+          }
+          else {
+            sendResponse(PacketCoding.CreateGamePacket(0, UseItemMessage(avatar_guid, unk1, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType)))
           }
 
         case Some(obj : PlanetSideGameObject) =>

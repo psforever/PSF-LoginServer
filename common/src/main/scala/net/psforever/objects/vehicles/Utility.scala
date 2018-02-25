@@ -4,7 +4,7 @@ package net.psforever.objects.vehicles
 import akka.actor.ActorContext
 import net.psforever.objects.{GlobalDefinitions, Vehicle}
 import net.psforever.objects.serverobject.structures.Amenity
-import net.psforever.objects.serverobject.terminals.{OrderTerminalABDefinition, Terminal}
+import net.psforever.objects.serverobject.terminals.{MatrixTerminalDefinition, OrderTerminalABDefinition, Terminal, TerminalDefinition}
 import net.psforever.objects.serverobject.tube.{SpawnTube, SpawnTubeDefinition}
 
 /**
@@ -19,6 +19,7 @@ object UtilityType extends Enumeration {
   type Type = Value
   val
   ams_respawn_tube,
+  matrix_terminalc,
   order_terminala,
   order_terminalb
   = Value
@@ -86,11 +87,31 @@ object Utility {
     */
   private def BuildUtilityFunc(util : UtilityType.Value) : Amenity = util match {
     case UtilityType.ams_respawn_tube =>
-      SpawnTube(GlobalDefinitions.ams_respawn_tube)
+      new SpawnTubeUtility(GlobalDefinitions.ams_respawn_tube)
+    case UtilityType.matrix_terminalc =>
+      new TerminalUtility(GlobalDefinitions.matrix_terminalc)
     case UtilityType.order_terminala =>
-      Terminal(GlobalDefinitions.order_terminala)
+      new TerminalUtility(GlobalDefinitions.order_terminala)
     case UtilityType.order_terminalb =>
-      Terminal(GlobalDefinitions.order_terminalb)
+      new TerminalUtility(GlobalDefinitions.order_terminalb)
+  }
+
+  /**
+    * Override for `SpawnTube` objects so that they inherit the spatial characteristics of their `Owner`.
+    * @param tubeDef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
+    */
+  private class SpawnTubeUtility(tubeDef : SpawnTubeDefinition) extends SpawnTube(tubeDef) {
+    override def Position = Owner.Position
+    override def Orientation = Owner.Orientation
+  }
+
+  /**
+    * Override for `Terminal` objects so that they inherit the spatial characteristics of their `Owner`.
+    * @param tdef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
+    */
+  private class TerminalUtility(tdef : TerminalDefinition) extends Terminal(tdef) {
+    override def Position = Owner.Position
+    override def Orientation = Owner.Orientation
   }
 
   /**
@@ -101,6 +122,8 @@ object Utility {
   private def SelectUtilitySetupFunc(util : UtilityType.Value) : UtilLogic = util match {
     case UtilityType.ams_respawn_tube =>
       SpawnTubeDefinition.Setup
+    case UtilityType.matrix_terminalc =>
+      MatrixTerminalDefinition.Setup
     case UtilityType.order_terminala =>
       OrderTerminalABDefinition.Setup
     case UtilityType.order_terminalb =>

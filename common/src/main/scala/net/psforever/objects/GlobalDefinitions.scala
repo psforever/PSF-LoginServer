@@ -489,6 +489,8 @@ object GlobalDefinitions {
 
   val ams_respawn_tube = new SpawnTubeDefinition(49) { Name = "ams_respawn_tube" }
 
+  val matrix_terminalc = new MatrixTerminalDefinition(519)
+
   val order_terminala = new OrderTerminalABDefinition(613)
 
   val order_terminalb = new OrderTerminalABDefinition(614)
@@ -2350,6 +2352,7 @@ object GlobalDefinitions {
     ams.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
     ams.MountPoints += 1 -> 0
     ams.MountPoints += 2 -> 0
+    ams.Utilities += 1 -> UtilityType.matrix_terminalc
     ams.Utilities += 2 -> UtilityType.ams_respawn_tube
     ams.Utilities += 3 -> UtilityType.order_terminala
     ams.Utilities += 4 -> UtilityType.order_terminalb
