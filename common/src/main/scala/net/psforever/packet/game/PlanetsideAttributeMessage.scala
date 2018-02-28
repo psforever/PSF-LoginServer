@@ -6,6 +6,31 @@ import scodec.Codec
 import scodec.codecs._
 
 /**
+  * na<br>
+  * Global (GUID=0)<br>
+  * `83 - max boomers`<br>
+  * `84 - max he mines`<br>
+  * `85 - max disruptor mines`<br>
+  * `86 - max spitfire turrets`<br>
+  * `87 - max motion sensors`<br>
+  * `88 - max shadow turrets`<br>
+  * `89 - max cerebus turrets`<br>
+  * `90 - max Aegis shield generators`<br>
+  * `91 - max TRAPs`<br>
+  * `92 - max OMFTs`<br>
+  * `93 - max sensor disruptors`<br>
+  * `94 - boomers`<br>
+  * `95 - he mines`<br>
+  * `96 - disruptor mines`<br>
+  * `97 - spitfire turrets`<br>
+  * `98 - motion sensors`<br>
+  * `99 - shadow turrets`<br>
+  * `100 - cerebus turrets`<br>
+  * `101 - Aegis shield generators`<br>
+  * `102 - TRAPSs`<br>
+  * `103 - OMFTs`<br>
+  * `104 - sensor disruptors`<br>
+  * <br>
   * Players/General:<br>
   * Server to client : <br>
   * `0 - health`<br>
@@ -91,7 +116,6 @@ import scodec.codecs._
   * `106 - Custom Head`<br>
   * <br>
   * `Vehicles:`<br>
-  * `0 - Vehicle base health`<br>
   * `10 - Driver seat permissions (0 = Locked, 1 = Group, 3 = Empire)`<br>
   * `11 - Gunner seat(s) permissions (same)`<br>
   * `12 - Passenger seat(s) permissions (same)`<br>

@@ -403,6 +403,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       val vehicle_guid = obj.GUID
       if(state == DriveState.Deploying) {
         log.info(s"DeployRequest: $obj transitioning to deploy state")
+        obj.Velocity = Some(Vector3.Zero) //no velocity
         sendResponse(DeployRequestMessage(player.GUID, vehicle_guid, state, 0, false, obj.Position))
         vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.DeployRequest(player.GUID, vehicle_guid, state, 0, false, obj.Position))
         import scala.concurrent.duration._
@@ -1026,6 +1027,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
       sendResponse(CreateShortcutMessage(guid, 1, 0, true, Shortcut.MEDKIT))
       sendResponse(ChatMsg(ChatMessageType.CMT_EXPANSIONS, true, "", "1 on", None)) //CC on
 
+      (1 to 73).foreach( i => {
+        sendResponse(PacketCoding.CreateGamePacket(0, PlanetsideAttributeMessage(PlanetSideGUID(i), 43, 0)))
+      })
+
     case Zone.ItemFromGround(tplayer, item) =>
       val obj_guid = item.GUID
       val player_guid = tplayer.GUID
@@ -1211,7 +1216,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       import scala.concurrent.ExecutionContext.Implicits.global
       clientKeepAlive.cancel
       clientKeepAlive = context.system.scheduler.schedule(0 seconds, 500 milliseconds, self, PokeClient())
-
+//log.warn(PacketCoding.DecodePacket(hex"17 6C 00 00 00 03 01 4C  93 70 48 18 00 00 00").toString)
     case msg @ CharacterCreateRequestMessage(name, head, voice, gender, empire) =>
       log.info("Handling " + msg)
       sendResponse(ActionResultMessage(true, None))
@@ -1239,13 +1244,80 @@ class WorldSessionActor extends Actor with MDCContextAware {
       log.info("Reticulating splines ...")
       //map-specific initializations
       //TODO continent.ClientConfiguration()
+      sendResponse(PacketCoding.CreateGamePacket(0, PlanetsideAttributeMessage(PlanetSideGUID(0), 112, 1)))
+
       sendResponse(SetEmpireMessage(PlanetSideGUID(2), PlanetSideEmpire.VS)) //HART building C
       sendResponse(SetEmpireMessage(PlanetSideGUID(29), PlanetSideEmpire.NC)) //South Villa Gun Tower
 
       sendResponse(TimeOfDayMessage(1191182336))
       sendResponse(ReplicationStreamMessage(5, Some(6), Vector(SquadListing()))) //clear squad list
 
-      //render Equipment that was dropped into zone before the player arrived
+      sendResponse(PacketCoding.CreateGamePacket(0,
+        BuildingInfoUpdateMessage(
+          PlanetSideGUID(6),PlanetSideGUID(10),
+          0,false,PlanetSideEmpire.NEUTRAL,0,PlanetSideEmpire.NEUTRAL,0,None,PlanetSideGeneratorState.Normal,true,false,0,0,Nil,0,false,8,None,false,false
+        )
+      ))
+      sendResponse(PacketCoding.CreateGamePacket(0,
+        BroadcastWarpgateUpdateMessage(PlanetSideGUID(6), PlanetSideGUID(10), true, false, false)
+      ))
+      sendResponse(PacketCoding.CreateGamePacket(0,
+        BuildingInfoUpdateMessage(
+          PlanetSideGUID(6),PlanetSideGUID(11),
+          0,false,PlanetSideEmpire.NEUTRAL,0,PlanetSideEmpire.NEUTRAL,0,None,PlanetSideGeneratorState.Normal,true,false,0,0,Nil,0,false,8,None,false,false
+        )
+      ))
+      sendResponse(PacketCoding.CreateGamePacket(0,
+        BroadcastWarpgateUpdateMessage(PlanetSideGUID(6), PlanetSideGUID(11), true, false, false)
+      ))
+      sendResponse(PacketCoding.CreateGamePacket(0,
+        BuildingInfoUpdateMessage(
+          PlanetSideGUID(6),PlanetSideGUID(12),
+          0,false,PlanetSideEmpire.NEUTRAL,0,PlanetSideEmpire.NEUTRAL,0,None,PlanetSideGeneratorState.Normal,true,false,0,0,Nil,0,false,8,None,false,false
+        )
+      ))
+      sendResponse(PacketCoding.CreateGamePacket(0,
+        BroadcastWarpgateUpdateMessage(PlanetSideGUID(6), PlanetSideGUID(12), true, false, false)
+      ))
+      sendResponse(PacketCoding.CreateGamePacket(0,
+        BuildingInfoUpdateMessage(
+          PlanetSideGUID(6),PlanetSideGUID(13),
+          0,false,PlanetSideEmpire.NEUTRAL,0,PlanetSideEmpire.NEUTRAL,0,None,PlanetSideGeneratorState.Normal,true,false,0,0,Nil,0,false,8,None,false,false
+        )
+      ))
+      sendResponse(PacketCoding.CreateGamePacket(0,
+        BroadcastWarpgateUpdateMessage(PlanetSideGUID(6), PlanetSideGUID(13), true, false, false)
+      ))
+      sendResponse(PacketCoding.CreateGamePacket(0,
+        BuildingInfoUpdateMessage(
+          PlanetSideGUID(6),PlanetSideGUID(18657),
+          0,false,PlanetSideEmpire.NEUTRAL,0,PlanetSideEmpire.NEUTRAL,0,None,PlanetSideGeneratorState.Normal,true,false,0,0,Nil,0,false,8,None,false,false
+        )
+      ))
+      sendResponse(PacketCoding.CreateGamePacket(0,
+        BroadcastWarpgateUpdateMessage(PlanetSideGUID(6), PlanetSideGUID(18657), true, false, false)
+      ))
+      sendResponse(PacketCoding.CreateGamePacket(0,
+        BuildingInfoUpdateMessage(
+          PlanetSideGUID(6),PlanetSideGUID(18658),
+          0,false,PlanetSideEmpire.NEUTRAL,0,PlanetSideEmpire.NEUTRAL,0,None,PlanetSideGeneratorState.Normal,true,false,0,0,Nil,0,false,8,None,false,false
+        )
+      ))
+      sendResponse(PacketCoding.CreateGamePacket(0,
+        BroadcastWarpgateUpdateMessage(PlanetSideGUID(6), PlanetSideGUID(18658), true, false, false)
+      ))
+      sendRawResponse(hex"C0060000") //basic CaptureFlagUpdateMessage
+      sendResponse(PacketCoding.CreateGamePacket(0, ZoneInfoMessage(6, true, 0)))
+      sendResponse(PacketCoding.CreateGamePacket(0, ZoneLockInfoMessage(PlanetSideGUID(6), false, true)))
+      sendResponse(PacketCoding.CreateGamePacket(0, ZonePopulationUpdateMessage(PlanetSideGUID(6), 414, 138, 1, 138, 1, 138, 1, 138, 0)))
+      sendResponse(PacketCoding.CreateGamePacket(0, PlanetsideAttributeMessage(PlanetSideGUID(2145), 50, 0)))
+      sendResponse(PacketCoding.CreateGamePacket(0, PlanetsideAttributeMessage(PlanetSideGUID(2145), 51, 0)))
+      sendResponse(PacketCoding.CreateGamePacket(0, PlanetsideAttributeMessage(PlanetSideGUID(2146), 50, 0)))
+      sendResponse(PacketCoding.CreateGamePacket(0, PlanetsideAttributeMessage(PlanetSideGUID(2146), 51, 0)))
+      sendResponse(PacketCoding.CreateGamePacket(0, PlanetsideAttributeMessage(PlanetSideGUID(2147), 50, 0)))
+      sendResponse(PacketCoding.CreateGamePacket(0, PlanetsideAttributeMessage(PlanetSideGUID(2147), 51, 0)))
+
+        //render Equipment that was dropped into zone before the player arrived
       continent.EquipmentOnGround.foreach(item => {
         val definition = item.Definition
         sendResponse(
@@ -1399,8 +1471,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ ReleaseAvatarRequestMessage() =>
       log.info(s"ReleaseAvatarRequest: ${player.GUID} on ${continent.Id} has released")
+      sendResponse(PacketCoding.CreateGamePacket(0, PlanetsideAttributeMessage(player.GUID, 6, 1)))
       sendResponse(PacketCoding.CreateGamePacket(0, AvatarDeadStateMessage(DeadState.Release, 0, 0, player.Position, 2, true)))
-      //sendResponse(PacketCoding.CreateGamePacket(0, PlanetsideAttributeMessage(player.GUID, 6, 1)))
 
     case msg @ SpawnRequestMessage(u1, u2, u3, u4, u5) =>
       log.info(s"SpawnRequestMessage: $msg")
@@ -1412,10 +1484,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
       }
 
       if(messagetype == ChatMessageType.CMT_SUICIDE) {
-        sendResponse(PacketCoding.CreateGamePacket(0, PlanetsideAttributeMessage(player.GUID, 0, 0)))
-        sendResponse(PacketCoding.CreateGamePacket(0, PlanetsideAttributeMessage(player.GUID, 2, 0)))
-        sendResponse(PacketCoding.CreateGamePacket(0, PlanetsideAttributeMessage(player.GUID, 4, 0)))
-        sendResponse(PacketCoding.CreateGamePacket(0, AvatarDeadStateMessage(DeadState.Dead, 300000, 300000, player.Position, 2, true)))
+        val player_guid = player.GUID
+        val pos = player.Position
+        sendResponse(PacketCoding.CreateGamePacket(0, PlanetsideAttributeMessage(player_guid, 0, 0)))
+        sendResponse(PacketCoding.CreateGamePacket(0, PlanetsideAttributeMessage(player_guid, 2, 0)))
+        sendResponse(PacketCoding.CreateGamePacket(0, DestroyMessage(player_guid, player_guid, PlanetSideGUID(0), pos)))
+        sendResponse(PacketCoding.CreateGamePacket(0, AvatarDeadStateMessage(DeadState.Dead, 300000, 300000, pos, 2, true)))
       }
 
       if (messagetype == ChatMessageType.CMT_VOICE) {
