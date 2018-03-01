@@ -8,6 +8,7 @@ import net.psforever.objects.equipment.CItem.{DeployedItem, Unit}
 import net.psforever.objects.equipment._
 import net.psforever.objects.inventory.InventoryTile
 import net.psforever.objects.serverobject.terminals.Terminal
+import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.packet.game.objectcreate._
 import net.psforever.types.{CharacterGender, PlanetSideEmpire, Vector3}
@@ -279,6 +280,26 @@ class ConverterTest extends Specification {
   "Terminal" should {
     "convert to packet" in {
       val obj = Terminal(GlobalDefinitions.order_terminala)
+
+      obj.Definition.Packet.DetailedConstructorData(obj) match {
+        case Failure(err) =>
+          err.isInstanceOf[NoSuchMethodException] mustEqual true
+        case _ =>
+          ko
+      }
+
+      obj.Definition.Packet.ConstructorData(obj) match {
+        case Success(pkt) =>
+          pkt mustEqual CommonTerminalData(PlanetSideEmpire.NEUTRAL)
+        case _ =>
+          ko
+      }
+    }
+  }
+
+  "Spawn Tube" should {
+    "convert to packet" in {
+      val obj = SpawnTube(GlobalDefinitions.ams_respawn_tube)
 
       obj.Definition.Packet.DetailedConstructorData(obj) match {
         case Failure(err) =>
