@@ -404,16 +404,16 @@ class WorldSessionActor extends Actor with MDCContextAware {
       if(state == DriveState.Deploying) {
         log.info(s"DeployRequest: $obj transitioning to deploy state")
         obj.Velocity = Some(Vector3.Zero) //no velocity
-        sendResponse(DeployRequestMessage(player.GUID, vehicle_guid, state, 0, false, obj.Position))
-        vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.DeployRequest(player.GUID, vehicle_guid, state, 0, false, obj.Position))
+        sendResponse(DeployRequestMessage(player.GUID, vehicle_guid, state, 0, false, Vector3.Zero))
+        vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.DeployRequest(player.GUID, vehicle_guid, state, 0, false, Vector3.Zero))
         import scala.concurrent.duration._
         import scala.concurrent.ExecutionContext.Implicits.global
         context.system.scheduler.scheduleOnce(obj.DeployTime milliseconds, obj.Actor, Deployment.TryDeploy(DriveState.Deployed))
       }
       else if(state == DriveState.Deployed) {
         log.info(s"DeployRequest: $obj has been Deployed")
-        sendResponse(DeployRequestMessage(player.GUID, vehicle_guid, state, 0, false, obj.Position))
-        vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.DeployRequest(player.GUID, vehicle_guid, state, 0, false, obj.Position))
+        sendResponse(DeployRequestMessage(player.GUID, vehicle_guid, state, 0, false, Vector3.Zero))
+        vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.DeployRequest(player.GUID, vehicle_guid, state, 0, false, Vector3.Zero))
         DeploymentActivities(obj)
         //...
       }
@@ -904,8 +904,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
       continent.Transport ! Zone.SpawnVehicle(vehicle)
       vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.LoadVehicle(player_guid, vehicle, objedtId, vehicle_guid, vdata))
       sendResponse(PlanetsideAttributeMessage(vehicle_guid, 22, 1L)) //mount points off?
-      //sendResponse(PlanetsideAttributeMessage(vehicle_guid, 21, player_guid.guid))) //fte and ownership?
-      //sendResponse(ObjectAttachMessage(vehicle_guid, player_guid, 0)))
+      sendResponse(PlanetsideAttributeMessage(vehicle_guid, 22, 1L)) //mount points off?
+      sendResponse(PlanetsideAttributeMessage(vehicle_guid, 21, player_guid.guid)) //fte and ownership?
+      //sendResponse(ObjectAttachMessage(vehicle_guid, player_guid, 0))
       vehicleService ! VehicleServiceMessage.UnscheduleDeconstruction(vehicle_guid) //cancel queue timeout delay
       vehicleService ! VehicleServiceMessage.DelayedVehicleDeconstruction(vehicle, continent, 21L) //temporary drive away from pad delay
       vehicle.Actor ! Mountable.TryMount(player, 0)
@@ -978,30 +979,28 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case Zone.ClientInitialization(/*initList*/_) =>
       //TODO iterate over initList; for now, just do this
       sendResponse(
-        PacketCoding.CreateGamePacket(0,
-          BuildingInfoUpdateMessage(
-            PlanetSideGUID(6),    //Ceryshen
-            PlanetSideGUID(2),    //Anguta
-            8,                    //80% NTU
-            false,                 //Base hacked
-            PlanetSideEmpire.VS,  //Base hacked by NC
-            0,               //10 minutes remaining for hack
-            PlanetSideEmpire.VS,  //Base owned by VS
-            0,                    //!! Field != 0 will cause malformed packet. See class def.
-            None,
-            PlanetSideGeneratorState.Normal, //Generator critical
-            true,                 //Respawn tubes destroyed
-            true,                 //Force dome active
-            16,                   //Tech plant lattice benefit
-            0,
-            Nil,                  //!! Field > 0 will cause malformed packet. See class def.
-            0,
-            false,
-            8,                    //!! Field != 8 will cause malformed packet. See class def.
-            None,
-            true,                 //Boosted spawn room pain field
-            true                  //Boosted generator room pain field
-          )
+        BuildingInfoUpdateMessage(
+          PlanetSideGUID(6),    //Ceryshen
+          PlanetSideGUID(2),    //Anguta
+          8,                    //80% NTU
+          false,                 //Base hacked
+          PlanetSideEmpire.NEUTRAL,  //Base hacked by NC
+          0,               //10 minutes remaining for hack
+          PlanetSideEmpire.VS,  //Base owned by VS
+          0,                    //!! Field != 0 will cause malformed packet. See class def.
+          None,
+          PlanetSideGeneratorState.Normal, //Generator critical
+          true,                 //Respawn tubes destroyed
+          true,                 //Force dome active
+          16,                   //Tech plant lattice benefit
+          0,
+          Nil,                  //!! Field > 0 will cause malformed packet. See class def.
+          0,
+          false,
+          8,                    //!! Field != 8 will cause malformed packet. See class def.
+          None,
+          true,                 //Boosted spawn room pain field
+          true                  //Boosted generator room pain field
         )
       )
       sendResponse(ContinentalLockUpdateMessage(PlanetSideGUID(13), PlanetSideEmpire.VS)) // "The VS have captured the VS Sanctuary."
@@ -1026,9 +1025,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
       sendResponse(SetCurrentAvatarMessage(guid,0,0))
       sendResponse(CreateShortcutMessage(guid, 1, 0, true, Shortcut.MEDKIT))
       sendResponse(ChatMsg(ChatMessageType.CMT_EXPANSIONS, true, "", "1 on", None)) //CC on
+      sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 82, 0))
 
       (1 to 73).foreach( i => {
-        sendResponse(PacketCoding.CreateGamePacket(0, PlanetsideAttributeMessage(PlanetSideGUID(i), 43, 0)))
+        sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(i), 67, 0))
       })
 
     case Zone.ItemFromGround(tplayer, item) =>
@@ -1156,7 +1156,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
   }
 
   var player : Player = null
-  var testVehicle : Boolean = false
 
   def handleGamePkt(pkt : PlanetSideGamePacket) = pkt match {
     case ConnectToWorldRequestMessage(server, token, majorVersion, minorVersion, revision, buildDate, unk) =>
@@ -1167,8 +1166,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       player = Player("TestCharacter"+sessionId.toString, PlanetSideEmpire.VS, CharacterGender.Female, 41, 1)
       //player.Position = Vector3(3674.8438f, 2726.789f, 91.15625f)
       //player.Position = Vector3(3523.039f, 2855.5078f, 90.859375f)
-      //player.Position = Vector3(3561.0f, 2854.0f, 90.859375f)
-      player.Position = Vector3(3983.0f, 4344.0f, 266.0f)
+      player.Position = Vector3(3561.0f, 2854.0f, 90.859375f)
       player.Orientation = Vector3(0f, 0f, 90f)
       player.Certifications += CertificationType.StandardAssault
       player.Certifications += CertificationType.MediumAssault
@@ -1216,7 +1214,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       import scala.concurrent.ExecutionContext.Implicits.global
       clientKeepAlive.cancel
       clientKeepAlive = context.system.scheduler.schedule(0 seconds, 500 milliseconds, self, PokeClient())
-//log.warn(PacketCoding.DecodePacket(hex"17 6C 00 00 00 03 01 4C  93 70 48 18 00 00 00").toString)
+
     case msg @ CharacterCreateRequestMessage(name, head, voice, gender, empire) =>
       log.info("Handling " + msg)
       sendResponse(ActionResultMessage(true, None))
@@ -1232,7 +1230,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           //TODO check if can spawn on last continent/location from player?
           //TODO if yes, get continent guid accessors
           //TODO if no, get sanctuary guid accessors and reset the player's expectations
-          galaxy ! InterstellarCluster.GetWorld("z6")
+          galaxy ! InterstellarCluster.GetWorld("home3")
         case default =>
           log.error("Unsupported " + default + " in " + msg)
       }
@@ -1244,7 +1242,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       log.info("Reticulating splines ...")
       //map-specific initializations
       //TODO continent.ClientConfiguration()
-      sendResponse(PacketCoding.CreateGamePacket(0, PlanetsideAttributeMessage(PlanetSideGUID(0), 112, 1)))
+      sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 112, 1))
 
       sendResponse(SetEmpireMessage(PlanetSideGUID(2), PlanetSideEmpire.VS)) //HART building C
       sendResponse(SetEmpireMessage(PlanetSideGUID(29), PlanetSideEmpire.NC)) //South Villa Gun Tower
@@ -1252,70 +1250,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
       sendResponse(TimeOfDayMessage(1191182336))
       sendResponse(ReplicationStreamMessage(5, Some(6), Vector(SquadListing()))) //clear squad list
 
-      sendResponse(PacketCoding.CreateGamePacket(0,
-        BuildingInfoUpdateMessage(
-          PlanetSideGUID(6),PlanetSideGUID(10),
-          0,false,PlanetSideEmpire.NEUTRAL,0,PlanetSideEmpire.NEUTRAL,0,None,PlanetSideGeneratorState.Normal,true,false,0,0,Nil,0,false,8,None,false,false
-        )
-      ))
-      sendResponse(PacketCoding.CreateGamePacket(0,
-        BroadcastWarpgateUpdateMessage(PlanetSideGUID(6), PlanetSideGUID(10), true, false, false)
-      ))
-      sendResponse(PacketCoding.CreateGamePacket(0,
-        BuildingInfoUpdateMessage(
-          PlanetSideGUID(6),PlanetSideGUID(11),
-          0,false,PlanetSideEmpire.NEUTRAL,0,PlanetSideEmpire.NEUTRAL,0,None,PlanetSideGeneratorState.Normal,true,false,0,0,Nil,0,false,8,None,false,false
-        )
-      ))
-      sendResponse(PacketCoding.CreateGamePacket(0,
-        BroadcastWarpgateUpdateMessage(PlanetSideGUID(6), PlanetSideGUID(11), true, false, false)
-      ))
-      sendResponse(PacketCoding.CreateGamePacket(0,
-        BuildingInfoUpdateMessage(
-          PlanetSideGUID(6),PlanetSideGUID(12),
-          0,false,PlanetSideEmpire.NEUTRAL,0,PlanetSideEmpire.NEUTRAL,0,None,PlanetSideGeneratorState.Normal,true,false,0,0,Nil,0,false,8,None,false,false
-        )
-      ))
-      sendResponse(PacketCoding.CreateGamePacket(0,
-        BroadcastWarpgateUpdateMessage(PlanetSideGUID(6), PlanetSideGUID(12), true, false, false)
-      ))
-      sendResponse(PacketCoding.CreateGamePacket(0,
-        BuildingInfoUpdateMessage(
-          PlanetSideGUID(6),PlanetSideGUID(13),
-          0,false,PlanetSideEmpire.NEUTRAL,0,PlanetSideEmpire.NEUTRAL,0,None,PlanetSideGeneratorState.Normal,true,false,0,0,Nil,0,false,8,None,false,false
-        )
-      ))
-      sendResponse(PacketCoding.CreateGamePacket(0,
-        BroadcastWarpgateUpdateMessage(PlanetSideGUID(6), PlanetSideGUID(13), true, false, false)
-      ))
-      sendResponse(PacketCoding.CreateGamePacket(0,
-        BuildingInfoUpdateMessage(
-          PlanetSideGUID(6),PlanetSideGUID(18657),
-          0,false,PlanetSideEmpire.NEUTRAL,0,PlanetSideEmpire.NEUTRAL,0,None,PlanetSideGeneratorState.Normal,true,false,0,0,Nil,0,false,8,None,false,false
-        )
-      ))
-      sendResponse(PacketCoding.CreateGamePacket(0,
-        BroadcastWarpgateUpdateMessage(PlanetSideGUID(6), PlanetSideGUID(18657), true, false, false)
-      ))
-      sendResponse(PacketCoding.CreateGamePacket(0,
-        BuildingInfoUpdateMessage(
-          PlanetSideGUID(6),PlanetSideGUID(18658),
-          0,false,PlanetSideEmpire.NEUTRAL,0,PlanetSideEmpire.NEUTRAL,0,None,PlanetSideGeneratorState.Normal,true,false,0,0,Nil,0,false,8,None,false,false
-        )
-      ))
-      sendResponse(PacketCoding.CreateGamePacket(0,
-        BroadcastWarpgateUpdateMessage(PlanetSideGUID(6), PlanetSideGUID(18658), true, false, false)
-      ))
-      sendRawResponse(hex"C0060000") //basic CaptureFlagUpdateMessage
-      sendResponse(PacketCoding.CreateGamePacket(0, ZoneInfoMessage(6, true, 0)))
-      sendResponse(PacketCoding.CreateGamePacket(0, ZoneLockInfoMessage(PlanetSideGUID(6), false, true)))
-      sendResponse(PacketCoding.CreateGamePacket(0, ZonePopulationUpdateMessage(PlanetSideGUID(6), 414, 138, 1, 138, 1, 138, 1, 138, 0)))
-      sendResponse(PacketCoding.CreateGamePacket(0, PlanetsideAttributeMessage(PlanetSideGUID(2145), 50, 0)))
-      sendResponse(PacketCoding.CreateGamePacket(0, PlanetsideAttributeMessage(PlanetSideGUID(2145), 51, 0)))
-      sendResponse(PacketCoding.CreateGamePacket(0, PlanetsideAttributeMessage(PlanetSideGUID(2146), 50, 0)))
-      sendResponse(PacketCoding.CreateGamePacket(0, PlanetsideAttributeMessage(PlanetSideGUID(2146), 51, 0)))
-      sendResponse(PacketCoding.CreateGamePacket(0, PlanetsideAttributeMessage(PlanetSideGUID(2147), 50, 0)))
-      sendResponse(PacketCoding.CreateGamePacket(0, PlanetsideAttributeMessage(PlanetSideGUID(2147), 51, 0)))
+      sendResponse(ZonePopulationUpdateMessage(PlanetSideGUID(6), 414, 138, 0, 138, 0, 138, 0, 138, 0))
+      (1 to 255).foreach(i => { sendResponse(SetEmpireMessage(PlanetSideGUID(i), PlanetSideEmpire.VS)) })
 
         //render Equipment that was dropped into zone before the player arrived
       continent.EquipmentOnGround.foreach(item => {
@@ -1402,11 +1338,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
       player.Crouching = is_crouching
       player.Jumping = is_jumping
 
-      if(is_crouching && !testVehicle) {
-        testVehicle = true
-        self ! PacketCoding.CreateGamePacket(0, ItemTransactionMessage(PlanetSideGUID(3353), TransactionType.Buy, 0, "ams", 0, PlanetSideGUID(0)))
-      }
-
       val wepInHand : Boolean = player.Slot(player.DrawnSlot).Equipment match {
         case Some(item) => item.Definition == GlobalDefinitions.bolt_driver
         case None => false
@@ -1471,8 +1402,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ ReleaseAvatarRequestMessage() =>
       log.info(s"ReleaseAvatarRequest: ${player.GUID} on ${continent.Id} has released")
-      sendResponse(PacketCoding.CreateGamePacket(0, PlanetsideAttributeMessage(player.GUID, 6, 1)))
-      sendResponse(PacketCoding.CreateGamePacket(0, AvatarDeadStateMessage(DeadState.Release, 0, 0, player.Position, 2, true)))
+      sendResponse(PlanetsideAttributeMessage(player.GUID, 6, 1))
+      sendResponse(AvatarDeadStateMessage(DeadState.Release, 0, 0, player.Position, 2, true))
 
     case msg @ SpawnRequestMessage(u1, u2, u3, u4, u5) =>
       log.info(s"SpawnRequestMessage: $msg")
@@ -1486,14 +1417,14 @@ class WorldSessionActor extends Actor with MDCContextAware {
       if(messagetype == ChatMessageType.CMT_SUICIDE) {
         val player_guid = player.GUID
         val pos = player.Position
-        sendResponse(PacketCoding.CreateGamePacket(0, PlanetsideAttributeMessage(player_guid, 0, 0)))
-        sendResponse(PacketCoding.CreateGamePacket(0, PlanetsideAttributeMessage(player_guid, 2, 0)))
-        sendResponse(PacketCoding.CreateGamePacket(0, DestroyMessage(player_guid, player_guid, PlanetSideGUID(0), pos)))
-        sendResponse(PacketCoding.CreateGamePacket(0, AvatarDeadStateMessage(DeadState.Dead, 300000, 300000, pos, 2, true)))
+        sendResponse(PlanetsideAttributeMessage(player_guid, 0, 0))
+        sendResponse(PlanetsideAttributeMessage(player_guid, 2, 0))
+        sendResponse(DestroyMessage(player_guid, player_guid, PlanetSideGUID(0), pos))
+        sendResponse(AvatarDeadStateMessage(DeadState.Dead, 300000, 300000, pos, 2, true))
       }
 
       if (messagetype == ChatMessageType.CMT_VOICE) {
-        sendResponse(PacketCoding.CreateGamePacket(0, ChatMsg(ChatMessageType.CMT_VOICE, false, player.Name, contents, None)))
+        sendResponse(ChatMsg(ChatMessageType.CMT_VOICE, false, player.Name, contents, None))
       }
 
       // TODO: handle this appropriately
@@ -2046,10 +1977,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case Some(obj : Terminal) =>
           if(obj.Definition.isInstanceOf[MatrixTerminalDefinition]) {
             //TODO matrix spawn point; for now, just blindly bind to show work (and hope nothing breaks)
-            sendResponse(PacketCoding.CreateGamePacket(0, BindPlayerMessage(1, "@ams", true, true, 0, 0, 0, obj.Position)))
+            sendResponse(BindPlayerMessage(1, "@ams", true, true, 0, 0, 0, obj.Position))
           }
           else {
-            sendResponse(PacketCoding.CreateGamePacket(0, UseItemMessage(avatar_guid, unk1, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType)))
+            sendResponse(UseItemMessage(avatar_guid, unk1, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
           }
 
         case Some(obj : PlanetSideGameObject) =>
@@ -3095,7 +3026,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     obj match {
       case vehicle : Vehicle =>
         ReloadVehicleAccessPermissions(vehicle) //TODO we should not have to do this imho
-        sendResponse(PacketCoding.CreateGamePacket(0, PlanetsideAttributeMessage(obj.GUID, 81, 1)))
+        sendResponse(PlanetsideAttributeMessage(obj.GUID, 81, 1))
       case _ => ;
     }
   }

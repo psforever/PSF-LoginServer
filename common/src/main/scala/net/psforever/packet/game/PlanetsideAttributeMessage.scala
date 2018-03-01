@@ -7,7 +7,13 @@ import scodec.codecs._
 
 /**
   * na<br>
+  * Global:<br>
+  * `50 - Common Initialization?`<br>
+  * `51 - Common Initialization?`<br>
+  * `67 - ???`<br>
+  * <br>
   * Global (GUID=0)<br>
+  * `82 - ???`
   * `83 - max boomers`<br>
   * `84 - max he mines`<br>
   * `85 - max disruptor mines`<br>
