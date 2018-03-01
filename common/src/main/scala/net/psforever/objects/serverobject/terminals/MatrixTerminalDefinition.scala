@@ -20,7 +20,7 @@ class MatrixTerminalDefinition(object_id : Int) extends TerminalDefinition(objec
     "matrix_terminalc"
   }
   else {
-    throw new IllegalArgumentException("terminal must be either object id 613 or object id 614")
+    throw new IllegalArgumentException("terminal must be object id 517-519")
   }
 
   override def Buy(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = Terminal.NoDeal()
