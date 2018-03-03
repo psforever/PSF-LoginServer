@@ -10,7 +10,6 @@ import net.psforever.objects.guid.actor.UniqueNumberSystem
 import net.psforever.objects.guid.selector.RandomSelector
 import net.psforever.objects.guid.source.LimitedNumberSource
 import net.psforever.objects.serverobject.structures.{Amenity, Building}
-import net.psforever.packet.GamePacket
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types.Vector3
 
@@ -218,6 +217,8 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
 
   def Transport : ActorRef = transport
 
+  def Buildings : Map[Int, Building] = buildings
+
   def Building(id : Int) : Option[Building] = {
     buildings.get(id)
   }
@@ -250,25 +251,7 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
     * - `ZonePopulationUpdateMessage`
     * @return a `List` of `GamePacket` messages
     */
-  def ClientInitialization() : List[GamePacket] = {
-    //TODO unimplemented
-    List.empty[GamePacket]
-  }
-
-  /**
-    * Provide bulk correspondence on all server objects that can be composed into packet messages and reported to a client.
-    * These messages are sent in this fashion at the time of joining a specific `Zone`:<br>
-    * - `HackMessage`<br>
-    * - `PlanetsideAttributeMessage`<br>
-    * - `SetEmpireMessage`<br>
-    * - `TimeOfDayMessage`<br>
-    * - `WeatherMessage`
-    * @return a `List` of `GamePacket` messages
-    */
-  def ClientConfiguration() : List[GamePacket] = {
-    //TODO unimplemented
-    List.empty[GamePacket]
-  }
+  def ClientInitialization() : Zone = this
 }
 
 object Zone {
@@ -308,11 +291,11 @@ object Zone {
 
   /**
     * Message to report the packet messages that initialize the client.
-    * @param list a `List` of `GamePacket` messages
+    * @param zone a `Zone` to have its buildings and continental parameters turned into packet data
     * @see `Zone.ClientInitialization()`<br>
     *      `InterstallarCluster`
     */
-  final case class ClientInitialization(list : List[GamePacket])
+  final case class ClientInitialization(zone : Zone)
 
   /**
     * Overloaded constructor.

@@ -26,6 +26,9 @@ import net.psforever.objects.serverobject.pad.VehicleSpawnPad
 import net.psforever.objects.serverobject.terminals.{MatrixTerminalDefinition, Terminal}
 import net.psforever.objects.serverobject.terminals.Terminal.TerminalMessage
 import net.psforever.objects.vehicles.{AccessPermissionGroup, Utility, VehicleLockState}
+import net.psforever.objects.serverobject.structures.Building
+import net.psforever.objects.serverobject.terminals.Terminal
+import net.psforever.objects.vehicles.{AccessPermissionGroup, VehicleLockState}
 import net.psforever.objects.zones.{InterstellarCluster, Zone}
 import net.psforever.packet.game.objectcreate._
 import net.psforever.types._
@@ -976,39 +979,23 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case VehicleLoaded(_/*vehicle*/) => ;
       //currently being handled by VehicleSpawnPad.LoadVehicle during testing phase
 
-    case Zone.ClientInitialization(/*initList*/_) =>
-      //TODO iterate over initList; for now, just do this
-      sendResponse(
-        BuildingInfoUpdateMessage(
-          PlanetSideGUID(6),    //Ceryshen
-          PlanetSideGUID(2),    //Anguta
-          8,                    //80% NTU
-          false,                 //Base hacked
-          PlanetSideEmpire.NEUTRAL,  //Base hacked by NC
-          0,               //10 minutes remaining for hack
-          PlanetSideEmpire.VS,  //Base owned by VS
-          0,                    //!! Field != 0 will cause malformed packet. See class def.
-          None,
-          PlanetSideGeneratorState.Normal, //Generator critical
-          true,                 //Respawn tubes destroyed
-          true,                 //Force dome active
-          16,                   //Tech plant lattice benefit
-          0,
-          Nil,                  //!! Field > 0 will cause malformed packet. See class def.
-          0,
-          false,
-          8,                    //!! Field != 8 will cause malformed packet. See class def.
-          None,
-          true,                 //Boosted spawn room pain field
-          true                  //Boosted generator room pain field
-        )
-      )
-      sendResponse(ContinentalLockUpdateMessage(PlanetSideGUID(13), PlanetSideEmpire.VS)) // "The VS have captured the VS Sanctuary."
-      sendResponse(BroadcastWarpgateUpdateMessage(PlanetSideGUID(13), PlanetSideGUID(1), false, false, true)) // VS Sanctuary: Inactive Warpgate -> Broadcast Warpgate
-      sendResponse(ZonePopulationUpdateMessage(PlanetSideGUID(13), 414, 138, 0, 138, 0, 138, 0, 138, 0))
+    case Zone.ClientInitialization(initZone) =>
+      val continentNumber = PlanetSideGUID(initZone.Number)
+      initZone.Buildings.foreach({ case(id, building) => initBuilding(continentNumber, PlanetSideGUID(id), building) })
+      sendResponse(ZonePopulationUpdateMessage(continentNumber, 414, 138, 0, 138, 0, 138, 0, 138, 0))
+      //ContinentLockUpdateMessage()
+      //CaptureFlagUpdateMessage()
+      //VanuModuleUpdateMessage()
+      //ModuleLimitsMessage()
+      //ZoneInfoMessage()
+      //ZoneInfoLockMessage()
+      //ZoneForcedCavernConnectionMessage()
 
     case InterstellarCluster.ClientInitializationComplete(tplayer)=>
       //this will cause the client to send back a BeginZoningMessage packet (see below)
+      sendResponse(ContinentalLockUpdateMessage(PlanetSideGUID(13), PlanetSideEmpire.VS)) // "The VS have captured the VS Sanctuary."
+      sendResponse(BroadcastWarpgateUpdateMessage(PlanetSideGUID(13), PlanetSideGUID(1), false, false, true)) // VS Sanctuary: Inactive Warpgate -> Broadcast Warpgate
+
       sendResponse(LoadMapMessage(continent.Map.Name, continent.Id, 40100,25,true,3770441820L)) //VS Sanctuary
       log.info("Load the now-registered player")
       //load the now-registered player
@@ -1241,12 +1228,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ BeginZoningMessage() =>
       log.info("Reticulating splines ...")
       //map-specific initializations
-      //TODO continent.ClientConfiguration()
-      sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 112, 1))
-
-      sendResponse(SetEmpireMessage(PlanetSideGUID(2), PlanetSideEmpire.VS)) //HART building C
-      sendResponse(SetEmpireMessage(PlanetSideGUID(29), PlanetSideEmpire.NC)) //South Villa Gun Tower
-
+      configZone(continent) //todo density
+      //sendResponse(SetEmpireMessage(PlanetSideGUID(2), PlanetSideEmpire.VS)) //HART building C
+      //sendResponse(SetEmpireMessage(PlanetSideGUID(29), PlanetSideEmpire.NC)) //South Villa Gun Tower
       sendResponse(TimeOfDayMessage(1191182336))
       sendResponse(ReplicationStreamMessage(5, Some(6), Vector(SquadListing()))) //clear squad list
 
@@ -3048,6 +3032,73 @@ class WorldSessionActor extends Actor with MDCContextAware {
       ""
     }
     log.error(s"DeployRequest: $obj can not transition to $state - $reason$mobileShift")
+  }
+
+  def initBuilding(continentNumber : PlanetSideGUID, buildingNumber : PlanetSideGUID, building : Building) : Unit = {
+    sendResponse(
+      BuildingInfoUpdateMessage(
+        continentNumber, buildingNumber,
+        10,
+        false,
+        PlanetSideEmpire.NEUTRAL,
+        0,
+        building.Faction,
+        0,
+        None,
+        PlanetSideGeneratorState.Normal,
+        true,
+        false,
+        0,
+        0,
+        Nil,
+        0,
+        false,
+        8,
+        None,
+        false,
+        false
+      )
+    )
+    //      sendResponse(
+    //        BuildingInfoUpdateMessage(
+    //          PlanetSideGUID(6),    //Ceryshen
+    //          PlanetSideGUID(2),    //Anguta
+    //          8,                    //80% NTU
+    //          true,                 //Base hacked
+    //          PlanetSideEmpire.NC,  //Base hacked by NC
+    //          600000,               //10 minutes remaining for hack
+    //          PlanetSideEmpire.VS,  //Base owned by VS
+    //          0,                    //!! Field != 0 will cause malformed packet. See class def.
+    //          None,
+    //          PlanetSideGeneratorState.Critical, //Generator critical
+    //          true,                 //Respawn tubes destroyed
+    //          true,                 //Force dome active
+    //          16,                   //Tech plant lattice benefit
+    //          0,
+    //          Nil,                  //!! Field > 0 will cause malformed packet. See class def.
+    //          0,
+    //          false,
+    //          8,                    //!! Field != 8 will cause malformed packet. See class def.
+    //          None,
+    //          true,                 //Boosted spawn room pain field
+    //          true                  //Boosted generator room pain field
+    //        )
+    //      )
+    //TODO DensityLevelUpdateMessage()
+    //TODO BroadcastWarpgateUpdateMessage() for warp gates
+  }
+
+  def configZone(zone : Zone) : Unit = {
+    zone.Buildings.foreach({case (id, building) =>
+      sendResponse(SetEmpireMessage(PlanetSideGUID(id), building.Faction))
+      //TODO HackMessage() ?
+      building.Amenities.foreach(amenity => {
+        val amenityId = amenity.GUID
+        //TODO HackMessage() ?
+        sendResponse(PlanetsideAttributeMessage(amenityId, 50, 0))
+        sendResponse(PlanetsideAttributeMessage(amenityId, 51, 0))
+      })
+    })
   }
 
   def failWithError(error : String) = {
