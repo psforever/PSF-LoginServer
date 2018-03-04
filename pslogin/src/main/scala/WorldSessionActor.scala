@@ -3059,6 +3059,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
         false
       )
     )
+    sendResponse(DensityLevelUpdateMessage(continentNumber, buildingNumber, List(0,0, 0,0, 0,0, 0,0))) //TODO what is density?
+    //TODO BroadcastWarpgateUpdateMessage() for warp gates
     //      sendResponse(
     //        BuildingInfoUpdateMessage(
     //          PlanetSideGUID(6),    //Ceryshen
@@ -3084,8 +3086,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
     //          true                  //Boosted generator room pain field
     //        )
     //      )
-    //TODO DensityLevelUpdateMessage()
-    //TODO BroadcastWarpgateUpdateMessage() for warp gates
   }
 
   def configZone(zone : Zone) : Unit = {
