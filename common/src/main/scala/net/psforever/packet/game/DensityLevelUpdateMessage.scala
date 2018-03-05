@@ -12,8 +12,8 @@ import shapeless.{::, HNil}
   * @param building_id the building
   * @param density na
   */
-final case class DensityLevelUpdateMessage(zone_id : PlanetSideGUID,
-                                           building_id : PlanetSideGUID,
+final case class DensityLevelUpdateMessage(zone_id : Int,
+                                           building_id : Int,
                                            density : List[Int])
   extends PlanetSideGamePacket {
   type Packet = DensityLevelUpdateMessage
@@ -23,8 +23,8 @@ final case class DensityLevelUpdateMessage(zone_id : PlanetSideGUID,
 
 object DensityLevelUpdateMessage extends Marshallable[DensityLevelUpdateMessage] {
   implicit val codec : Codec[DensityLevelUpdateMessage] = (
-    ("zone_id" | PlanetSideGUID.codec) ::
-      ("building_id" | PlanetSideGUID.codec) ::
+    ("zone_id" | uint16L) ::
+      ("building_id" | uint16L) ::
       ("density" | PacketHelpers.listOfNSized(8, uint(3)))
     ).exmap[DensityLevelUpdateMessage] (
     {

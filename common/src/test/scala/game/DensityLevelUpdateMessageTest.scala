@@ -12,8 +12,8 @@ class DensityLevelUpdateMessageTest extends Specification {
   "decode" in {
     PacketCoding.DecodePacket(string).require match {
       case DensityLevelUpdateMessage(zone_id, building_id, unk) =>
-        zone_id mustEqual PlanetSideGUID(1)
-        building_id mustEqual PlanetSideGUID(19999)
+        zone_id mustEqual 1
+        building_id mustEqual 19999
         unk.length mustEqual 8
         unk.head mustEqual 0
         unk(1) mustEqual 0
@@ -29,24 +29,24 @@ class DensityLevelUpdateMessageTest extends Specification {
   }
 
   "encode" in {
-    val msg = DensityLevelUpdateMessage(PlanetSideGUID(1), PlanetSideGUID(19999), List(0,0, 0,0, 0,0, 0,0))
+    val msg = DensityLevelUpdateMessage(1, 19999, List(0,0, 0,0, 0,0, 0,0))
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }
 
   "encode (failure; wrong number of list entries)" in {
-    val msg = DensityLevelUpdateMessage(PlanetSideGUID(1), PlanetSideGUID(19999), List(0))
+    val msg = DensityLevelUpdateMessage(1, 19999, List(0))
     PacketCoding.EncodePacket(msg).isSuccessful mustEqual false
   }
 
   "encode (failure; list number too big)" in {
-    val msg1 = DensityLevelUpdateMessage(PlanetSideGUID(1), PlanetSideGUID(19999), List(0,0, 0,0, 0,0, 0,8))
+    val msg1 = DensityLevelUpdateMessage(1, 19999, List(0,0, 0,0, 0,0, 0,8))
     PacketCoding.EncodePacket(msg1).isSuccessful mustEqual false
   }
 
   "encode (failure; list number too small)" in {
-    val msg1 = DensityLevelUpdateMessage(PlanetSideGUID(1), PlanetSideGUID(19999), List(0,0, 0,0, 0,-1, 0,0))
+    val msg1 = DensityLevelUpdateMessage(1, 19999, List(0,0, 0,0, 0,-1, 0,0))
     PacketCoding.EncodePacket(msg1).isSuccessful mustEqual false
   }
 }

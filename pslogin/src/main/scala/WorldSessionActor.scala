@@ -980,15 +980,21 @@ class WorldSessionActor extends Actor with MDCContextAware {
       //currently being handled by VehicleSpawnPad.LoadVehicle during testing phase
 
     case Zone.ClientInitialization(initZone) =>
-      val continentNumber = PlanetSideGUID(initZone.Number)
-      initZone.Buildings.foreach({ case(id, building) => initBuilding(continentNumber, PlanetSideGUID(id), building) })
-      sendResponse(ZonePopulationUpdateMessage(continentNumber, 414, 138, 0, 138, 0, 138, 0, 138, 0))
+      val continentNumber = initZone.Number
+      val poplist = LivePlayerList.ZonePopulation(continentNumber, _ => true)
+      val popTR = poplist.count(_.Faction == PlanetSideEmpire.TR)
+      val popNC = poplist.count(_.Faction == PlanetSideEmpire.NC)
+      val popVS = poplist.count(_.Faction == PlanetSideEmpire.VS)
+      val popBO = poplist.size - popTR - popNC - popVS
+
+      initZone.Buildings.foreach({ case(id, building) => initBuilding(continentNumber, id, building) })
+      sendResponse(ZonePopulationUpdateMessage(continentNumber, 414, 138, popTR, 138, popNC, 138, popVS, 138, popBO))
       //ContinentLockUpdateMessage()
       //CaptureFlagUpdateMessage()
       //VanuModuleUpdateMessage()
       //ModuleLimitsMessage()
-      //ZoneInfoMessage()
-      //ZoneInfoLockMessage()
+      sendResponse(ZoneInfoMessage(continentNumber, true, 0))
+      sendResponse(ZoneLockInfoMessage(continentNumber, false, true))
       //ZoneForcedCavernConnectionMessage()
 
     case InterstellarCluster.ClientInitializationComplete(tplayer)=>
@@ -3034,10 +3040,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
     log.error(s"DeployRequest: $obj can not transition to $state - $reason$mobileShift")
   }
 
-  def initBuilding(continentNumber : PlanetSideGUID, buildingNumber : PlanetSideGUID, building : Building) : Unit = {
+  def initBuilding(continentNumber : Int, buildingNumber : Int, building : Building) : Unit = {
     sendResponse(
       BuildingInfoUpdateMessage(
-        continentNumber, buildingNumber,
+        PlanetSideGUID(continentNumber), PlanetSideGUID(buildingNumber),
         10,
         false,
         PlanetSideEmpire.NEUTRAL,
