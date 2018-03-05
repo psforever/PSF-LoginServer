@@ -21,7 +21,7 @@ class ZoneForcedCavernConnectionsMessageTest extends Specification {
   }
 
   "encode" in {
-    val msg = ZoneForcedCavernConnectionsMessage(PlanetSideGUID(32), 1)
+    val msg = ZoneForcedCavernConnectionsMessage(32, 1)
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string

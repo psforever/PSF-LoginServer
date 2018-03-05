@@ -10,7 +10,7 @@ import scodec.codecs._
   * @param zone the zone
   * @param unk na
   */
-final case class ZoneForcedCavernConnectionsMessage(zone : PlanetSideGUID,
+final case class ZoneForcedCavernConnectionsMessage(zone : Int,
                                                     unk : Int)
   extends PlanetSideGamePacket {
   type Packet = ZoneForcedCavernConnectionsMessage
@@ -20,7 +20,7 @@ final case class ZoneForcedCavernConnectionsMessage(zone : PlanetSideGUID,
 
 object ZoneForcedCavernConnectionsMessage extends Marshallable[ZoneForcedCavernConnectionsMessage] {
   implicit val codec : Codec[ZoneForcedCavernConnectionsMessage] = (
-    ("zone" | PlanetSideGUID.codec) ::
+    ("zone" | uint16L) ::
       ("unk" | uint2L)
     ).as[ZoneForcedCavernConnectionsMessage]
 }

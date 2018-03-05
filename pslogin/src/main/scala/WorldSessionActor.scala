@@ -989,19 +989,20 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
       initZone.Buildings.foreach({ case(id, building) => initBuilding(continentNumber, id, building) })
       sendResponse(ZonePopulationUpdateMessage(continentNumber, 414, 138, popTR, 138, popNC, 138, popVS, 138, popBO))
-      //ContinentLockUpdateMessage()
+      sendResponse(ContinentalLockUpdateMessage(continentNumber, PlanetSideEmpire.NEUTRAL))
       //CaptureFlagUpdateMessage()
       //VanuModuleUpdateMessage()
       //ModuleLimitsMessage()
       sendResponse(ZoneInfoMessage(continentNumber, true, 0))
       sendResponse(ZoneLockInfoMessage(continentNumber, false, true))
-      //ZoneForcedCavernConnectionMessage()
+      sendResponse(ZoneForcedCavernConnectionsMessage(continentNumber, 0))
 
     case InterstellarCluster.ClientInitializationComplete(tplayer)=>
-      //this will cause the client to send back a BeginZoningMessage packet (see below)
-      sendResponse(ContinentalLockUpdateMessage(PlanetSideGUID(13), PlanetSideEmpire.VS)) // "The VS have captured the VS Sanctuary."
+      //custom
+      sendResponse(ContinentalLockUpdateMessage(13, PlanetSideEmpire.VS)) // "The VS have captured the VS Sanctuary."
       sendResponse(BroadcastWarpgateUpdateMessage(PlanetSideGUID(13), PlanetSideGUID(1), false, false, true)) // VS Sanctuary: Inactive Warpgate -> Broadcast Warpgate
 
+      //this will cause the client to send back a BeginZoningMessage packet (see below)
       sendResponse(LoadMapMessage(continent.Map.Name, continent.Id, 40100,25,true,3770441820L)) //VS Sanctuary
       log.info("Load the now-registered player")
       //load the now-registered player

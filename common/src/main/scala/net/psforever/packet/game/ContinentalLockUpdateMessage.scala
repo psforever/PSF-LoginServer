@@ -12,10 +12,10 @@ import scodec.codecs._
   * This generates the event message "The [empire] have captured [continent]."
   * If the continent_guid is not a valid zone, no message is displayed.
   * If empire is not a valid empire, or refers to the neutral or Black Ops forces, no message is displayed.
-  * @param continent_guid identifies the zone (continent)
+  * @param continent_id identifies the zone (continent)
   * @param empire identifies the empire
   */
-final case class ContinentalLockUpdateMessage(continent_guid : PlanetSideGUID,
+final case class ContinentalLockUpdateMessage(continent_id : Int,
                                               empire : PlanetSideEmpire.Value)
   extends PlanetSideGamePacket {
   type Packet = ContinentalLockUpdateMessage
@@ -25,7 +25,7 @@ final case class ContinentalLockUpdateMessage(continent_guid : PlanetSideGUID,
 
 object ContinentalLockUpdateMessage extends Marshallable[ContinentalLockUpdateMessage] {
   implicit val codec : Codec[ContinentalLockUpdateMessage] = (
-    ("continent_guid" | PlanetSideGUID.codec) ::
+    ("continent_id" | uint16L) ::
       ("empire" | PlanetSideEmpire.codec)
     ).as[ContinentalLockUpdateMessage]
 }
