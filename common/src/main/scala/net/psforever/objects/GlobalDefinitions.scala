@@ -12,6 +12,7 @@ import net.psforever.objects.serverobject.locks.IFFLockDefinition
 import net.psforever.objects.serverobject.mblocker.LockerDefinition
 import net.psforever.objects.serverobject.pad.VehicleSpawnPadDefinition
 import net.psforever.objects.serverobject.terminals._
+import net.psforever.objects.serverobject.tube.SpawnTubeDefinition
 import net.psforever.objects.vehicles.{SeatArmorRestriction, UtilityType}
 import net.psforever.types.PlanetSideEmpire
 
@@ -485,6 +486,10 @@ object GlobalDefinitions {
   Miscellaneous
    */
   val order_terminal = new OrderTerminalDefinition
+
+  val ams_respawn_tube = new SpawnTubeDefinition(49) { Name = "ams_respawn_tube" }
+
+  val matrix_terminalc = new MatrixTerminalDefinition(519)
 
   val order_terminala = new OrderTerminalABDefinition(613)
 
@@ -2347,6 +2352,8 @@ object GlobalDefinitions {
     ams.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
     ams.MountPoints += 1 -> 0
     ams.MountPoints += 2 -> 0
+    ams.Utilities += 1 -> UtilityType.matrix_terminalc
+    ams.Utilities += 2 -> UtilityType.ams_respawn_tube
     ams.Utilities += 3 -> UtilityType.order_terminala
     ams.Utilities += 4 -> UtilityType.order_terminalb
     ams.Deployment = true

@@ -23,8 +23,9 @@ import net.psforever.objects.serverobject.implantmech.ImplantTerminalMech
 import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.mblocker.Locker
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
-import net.psforever.objects.serverobject.terminals.Terminal
-import net.psforever.objects.vehicles.{AccessPermissionGroup, VehicleLockState}
+import net.psforever.objects.serverobject.terminals.{MatrixTerminalDefinition, Terminal}
+import net.psforever.objects.serverobject.terminals.Terminal.TerminalMessage
+import net.psforever.objects.vehicles.{AccessPermissionGroup, Utility, VehicleLockState}
 import net.psforever.objects.zones.{InterstellarCluster, Zone}
 import net.psforever.packet.game.objectcreate._
 import net.psforever.types._
@@ -402,16 +403,17 @@ class WorldSessionActor extends Actor with MDCContextAware {
       val vehicle_guid = obj.GUID
       if(state == DriveState.Deploying) {
         log.info(s"DeployRequest: $obj transitioning to deploy state")
-        sendResponse(DeployRequestMessage(player.GUID, vehicle_guid, state, 0, false, obj.Position))
-        vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.DeployRequest(player.GUID, vehicle_guid, state, 0, false, obj.Position))
+        obj.Velocity = Some(Vector3.Zero) //no velocity
+        sendResponse(DeployRequestMessage(player.GUID, vehicle_guid, state, 0, false, Vector3.Zero))
+        vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.DeployRequest(player.GUID, vehicle_guid, state, 0, false, Vector3.Zero))
         import scala.concurrent.duration._
         import scala.concurrent.ExecutionContext.Implicits.global
         context.system.scheduler.scheduleOnce(obj.DeployTime milliseconds, obj.Actor, Deployment.TryDeploy(DriveState.Deployed))
       }
       else if(state == DriveState.Deployed) {
         log.info(s"DeployRequest: $obj has been Deployed")
-        sendResponse(DeployRequestMessage(player.GUID, vehicle_guid, state, 0, false, obj.Position))
-        vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.DeployRequest(player.GUID, vehicle_guid, state, 0, false, obj.Position))
+        sendResponse(DeployRequestMessage(player.GUID, vehicle_guid, state, 0, false, Vector3.Zero))
+        vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.DeployRequest(player.GUID, vehicle_guid, state, 0, false, Vector3.Zero))
         DeploymentActivities(obj)
         //...
       }
@@ -902,8 +904,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
       continent.Transport ! Zone.SpawnVehicle(vehicle)
       vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.LoadVehicle(player_guid, vehicle, objedtId, vehicle_guid, vdata))
       sendResponse(PlanetsideAttributeMessage(vehicle_guid, 22, 1L)) //mount points off?
-      //sendResponse(PlanetsideAttributeMessage(vehicle_guid, 21, player_guid.guid))) //fte and ownership?
-      //sendResponse(ObjectAttachMessage(vehicle_guid, player_guid, 0)))
+      sendResponse(PlanetsideAttributeMessage(vehicle_guid, 22, 1L)) //mount points off?
+      sendResponse(PlanetsideAttributeMessage(vehicle_guid, 21, player_guid.guid)) //fte and ownership?
+      //sendResponse(ObjectAttachMessage(vehicle_guid, player_guid, 0))
       vehicleService ! VehicleServiceMessage.UnscheduleDeconstruction(vehicle_guid) //cancel queue timeout delay
       vehicleService ! VehicleServiceMessage.DelayedVehicleDeconstruction(vehicle, continent, 21L) //temporary drive away from pad delay
       vehicle.Actor ! Mountable.TryMount(player, 0)
@@ -980,13 +983,13 @@ class WorldSessionActor extends Actor with MDCContextAware {
           PlanetSideGUID(6),    //Ceryshen
           PlanetSideGUID(2),    //Anguta
           8,                    //80% NTU
-          true,                 //Base hacked
-          PlanetSideEmpire.NC,  //Base hacked by NC
-          600000,               //10 minutes remaining for hack
+          false,                 //Base hacked
+          PlanetSideEmpire.NEUTRAL,  //Base hacked by NC
+          0,               //10 minutes remaining for hack
           PlanetSideEmpire.VS,  //Base owned by VS
           0,                    //!! Field != 0 will cause malformed packet. See class def.
           None,
-          PlanetSideGeneratorState.Critical, //Generator critical
+          PlanetSideGeneratorState.Normal, //Generator critical
           true,                 //Respawn tubes destroyed
           true,                 //Force dome active
           16,                   //Tech plant lattice benefit
@@ -1022,6 +1025,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
       sendResponse(SetCurrentAvatarMessage(guid,0,0))
       sendResponse(CreateShortcutMessage(guid, 1, 0, true, Shortcut.MEDKIT))
       sendResponse(ChatMsg(ChatMessageType.CMT_EXPANSIONS, true, "", "1 on", None)) //CC on
+      sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 82, 0))
+
+      (1 to 73).foreach( i => {
+        sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(i), 67, 0))
+      })
 
     case Zone.ItemFromGround(tplayer, item) =>
       val obj_guid = item.GUID
@@ -1234,13 +1242,18 @@ class WorldSessionActor extends Actor with MDCContextAware {
       log.info("Reticulating splines ...")
       //map-specific initializations
       //TODO continent.ClientConfiguration()
+      sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 112, 1))
+
       sendResponse(SetEmpireMessage(PlanetSideGUID(2), PlanetSideEmpire.VS)) //HART building C
       sendResponse(SetEmpireMessage(PlanetSideGUID(29), PlanetSideEmpire.NC)) //South Villa Gun Tower
 
       sendResponse(TimeOfDayMessage(1191182336))
       sendResponse(ReplicationStreamMessage(5, Some(6), Vector(SquadListing()))) //clear squad list
 
-      //render Equipment that was dropped into zone before the player arrived
+      sendResponse(ZonePopulationUpdateMessage(PlanetSideGUID(6), 414, 138, 0, 138, 0, 138, 0, 138, 0))
+      (1 to 255).foreach(i => { sendResponse(SetEmpireMessage(PlanetSideGUID(i), PlanetSideEmpire.VS)) })
+
+        //render Equipment that was dropped into zone before the player arrived
       continent.EquipmentOnGround.foreach(item => {
         val definition = item.Definition
         sendResponse(
@@ -1387,14 +1400,31 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ ProjectileStateMessage(projectile_guid, shot_pos, shot_vector, unk1, unk2, unk3, unk4, time_alive) =>
       //log.info("ProjectileState: " + msg)
 
+    case msg @ ReleaseAvatarRequestMessage() =>
+      log.info(s"ReleaseAvatarRequest: ${player.GUID} on ${continent.Id} has released")
+      sendResponse(PlanetsideAttributeMessage(player.GUID, 6, 1))
+      sendResponse(AvatarDeadStateMessage(DeadState.Release, 0, 0, player.Position, 2, true))
+
+    case msg @ SpawnRequestMessage(u1, u2, u3, u4, u5) =>
+      log.info(s"SpawnRequestMessage: $msg")
+
     case msg @ ChatMsg(messagetype, has_wide_contents, recipient, contents, note_contents) =>
       // TODO: Prevents log spam, but should be handled correctly
       if (messagetype != ChatMessageType.CMT_TOGGLE_GM) {
         log.info("Chat: " + msg)
       }
 
+      if(messagetype == ChatMessageType.CMT_SUICIDE) {
+        val player_guid = player.GUID
+        val pos = player.Position
+        sendResponse(PlanetsideAttributeMessage(player_guid, 0, 0))
+        sendResponse(PlanetsideAttributeMessage(player_guid, 2, 0))
+        sendResponse(DestroyMessage(player_guid, player_guid, PlanetSideGUID(0), pos))
+        sendResponse(AvatarDeadStateMessage(DeadState.Dead, 300000, 300000, pos, 2, true))
+      }
+
       if (messagetype == ChatMessageType.CMT_VOICE) {
-        sendResponse(ChatMsg(ChatMessageType.CMT_VOICE, false, "IlllIIIlllIlIllIlllIllI", contents, None))
+        sendResponse(ChatMsg(ChatMessageType.CMT_VOICE, false, player.Name, contents, None))
       }
 
       // TODO: handle this appropriately
@@ -1942,6 +1972,15 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
               case _ => ;
             }
+          }
+
+        case Some(obj : Terminal) =>
+          if(obj.Definition.isInstanceOf[MatrixTerminalDefinition]) {
+            //TODO matrix spawn point; for now, just blindly bind to show work (and hope nothing breaks)
+            sendResponse(BindPlayerMessage(1, "@ams", true, true, 0, 0, 0, obj.Position))
+          }
+          else {
+            sendResponse(UseItemMessage(avatar_guid, unk1, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
           }
 
         case Some(obj : PlanetSideGameObject) =>
@@ -2986,8 +3025,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
   def DeploymentActivities(obj : Deployment.DeploymentObject) : Unit = {
     obj match {
       case vehicle : Vehicle =>
-        //TODO we should not have to do this imho
-        ReloadVehicleAccessPermissions(vehicle)
+        ReloadVehicleAccessPermissions(vehicle) //TODO we should not have to do this imho
+        sendResponse(PlanetsideAttributeMessage(obj.GUID, 81, 1))
       case _ => ;
     }
   }

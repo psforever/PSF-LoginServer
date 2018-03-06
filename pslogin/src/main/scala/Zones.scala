@@ -13,7 +13,14 @@ object Zones {
 
   val z5 = new Zone("z5", Maps.map5, 5)
 
-  val z6 = new Zone("z6", Maps.map6, 6)
+  val z6 = new Zone("z6", Maps.map6, 6) {
+    override def Init(implicit context : ActorContext) : Unit = {
+      super.Init(context)
+
+      import net.psforever.types.PlanetSideEmpire
+      Building(2).get.Faction = PlanetSideEmpire.VS
+    }
+  }
 
   val z7 = new Zone("z7", Maps.map7, 7)
 
