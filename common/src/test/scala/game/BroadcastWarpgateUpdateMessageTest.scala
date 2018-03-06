@@ -12,8 +12,8 @@ class BroadcastWarpgateUpdateMessageTest extends Specification {
   "decode" in {
     PacketCoding.DecodePacket(string).require match {
       case BroadcastWarpgateUpdateMessage(continent_guid, building_guid, state1, state2, state3) =>
-        continent_guid mustEqual PlanetSideGUID(13)
-        building_guid mustEqual PlanetSideGUID(1)
+        continent_guid mustEqual 13
+        building_guid mustEqual 1
         state1 mustEqual false
         state2 mustEqual false
         state3 mustEqual true
@@ -23,7 +23,7 @@ class BroadcastWarpgateUpdateMessageTest extends Specification {
   }
 
   "encode" in {
-    val msg = BroadcastWarpgateUpdateMessage(PlanetSideGUID(13), PlanetSideGUID(1), false, false, true)
+    val msg = BroadcastWarpgateUpdateMessage(13, 1, false, false, true)
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string

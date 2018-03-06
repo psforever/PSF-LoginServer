@@ -7,7 +7,7 @@ import net.psforever.objects.serverobject.implantmech.ImplantTerminalMech
 import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.mblocker.Locker
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
-import net.psforever.objects.serverobject.structures.{Building, FoundationBuilder}
+import net.psforever.objects.serverobject.structures.{Building, FoundationBuilder, WarpGate}
 import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.types.Vector3
 
@@ -48,6 +48,10 @@ object Maps {
   val map12 = new ZoneMap("map12")
 
   val map13 = new ZoneMap("map13") {
+    LocalBuilding(1, FoundationBuilder(WarpGate.Structure))
+    LocalBuilding(2, FoundationBuilder(WarpGate.Structure))
+    LocalBuilding(3, FoundationBuilder(WarpGate.Structure))
+
     LocalObject(ServerObjectBuilder(372, Door.Constructor))
     LocalObject(ServerObjectBuilder(373, Door.Constructor))
 
