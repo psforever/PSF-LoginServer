@@ -979,15 +979,15 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case VehicleLoaded(_/*vehicle*/) => ;
       //currently being handled by VehicleSpawnPad.LoadVehicle during testing phase
 
-    case Zone.ClientInitialization(initZone) =>
-      val continentNumber = initZone.Number
+    case Zone.ClientInitialization(zone) =>
+      val continentNumber = zone.Number
       val poplist = LivePlayerList.ZonePopulation(continentNumber, _ => true)
       val popTR = poplist.count(_.Faction == PlanetSideEmpire.TR)
       val popNC = poplist.count(_.Faction == PlanetSideEmpire.NC)
       val popVS = poplist.count(_.Faction == PlanetSideEmpire.VS)
       val popBO = poplist.size - popTR - popNC - popVS
 
-      initZone.Buildings.foreach({ case(id, building) => initBuilding(continentNumber, id, building) })
+      zone.Buildings.foreach({ case(id, building) => initBuilding(continentNumber, id, building) })
       sendResponse(ZonePopulationUpdateMessage(continentNumber, 414, 138, popTR, 138, popNC, 138, popVS, 138, popBO))
       sendResponse(ContinentalLockUpdateMessage(continentNumber, PlanetSideEmpire.NEUTRAL))
       //CaptureFlagUpdateMessage()
@@ -996,6 +996,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       sendResponse(ZoneInfoMessage(continentNumber, true, 0))
       sendResponse(ZoneLockInfoMessage(continentNumber, false, true))
       sendResponse(ZoneForcedCavernConnectionsMessage(continentNumber, 0))
+      sendResponse(HotSpotUpdateMessage(continentNumber, 1, Nil)) //normally set in bulk; should be fine doing per continent
 
     case InterstellarCluster.ClientInitializationComplete(tplayer)=>
       //custom
