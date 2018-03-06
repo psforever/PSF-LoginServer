@@ -3136,13 +3136,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
   def configZone(zone : Zone) : Unit = {
     zone.Buildings.foreach({case (id, building) =>
       sendResponse(SetEmpireMessage(PlanetSideGUID(id), building.Faction))
-      //TODO HackMessage() ?
       building.Amenities.foreach(amenity => {
         val amenityId = amenity.GUID
-        //TODO HackMessage() ?
         sendResponse(PlanetsideAttributeMessage(amenityId, 50, 0))
         sendResponse(PlanetsideAttributeMessage(amenityId, 51, 0))
       })
+      sendResponse(HackMessage(3, PlanetSideGUID(id), PlanetSideGUID(0), 0, 3212836864L, HackState.HackCleared, 8))
     })
   }
 
