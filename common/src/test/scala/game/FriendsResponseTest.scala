@@ -14,7 +14,7 @@ class FriendsResponseTest extends Specification {
   "decode (one friend)" in {
     PacketCoding.DecodePacket(stringOneFriend).require match {
       case FriendsResponse(action, unk2, unk3, unk4, list) =>
-        action mustEqual 3
+        action mustEqual FriendAction.UpdateFriend
         unk2 mustEqual 0
         unk3 mustEqual true
         unk4 mustEqual true
@@ -29,7 +29,7 @@ class FriendsResponseTest extends Specification {
   "decode (multiple friends)" in {
     PacketCoding.DecodePacket(stringManyFriends).require match {
       case FriendsResponse(action, unk2, unk3, unk4, list) =>
-        action mustEqual 0
+        action mustEqual FriendAction.InitializeFriendList
         unk2 mustEqual 0
         unk3 mustEqual true
         unk4 mustEqual true
@@ -52,7 +52,7 @@ class FriendsResponseTest extends Specification {
   "decode (short)" in {
     PacketCoding.DecodePacket(stringShort).require match {
       case FriendsResponse(action, unk2, unk3, unk4, list) =>
-        action mustEqual 4
+        action mustEqual FriendAction.InitializeIgnoreList
         unk2 mustEqual 0
         unk3 mustEqual true
         unk4 mustEqual true
@@ -63,7 +63,7 @@ class FriendsResponseTest extends Specification {
   }
 
   "encode (one friend)" in {
-    val msg = FriendsResponse(3, 0, true, true,
+    val msg = FriendsResponse(FriendAction.UpdateFriend, 0, true, true,
       Friend("KurtHectic-G", false) ::
         Nil)
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
@@ -72,7 +72,7 @@ class FriendsResponseTest extends Specification {
   }
 
   "encode (multiple friends)" in {
-    val msg = FriendsResponse(0, 0, true, true,
+    val msg = FriendsResponse(FriendAction.InitializeFriendList, 0, true, true,
       Friend("Angello-W", false) ::
         Friend("thephattphrogg", false) ::
         Friend("Kimpossible12", false) ::
@@ -85,7 +85,7 @@ class FriendsResponseTest extends Specification {
   }
 
   "encode (short)" in {
-    val msg = FriendsResponse(4, 0, true, true)
+    val msg = FriendsResponse(FriendAction.InitializeIgnoreList, 0, true, true)
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual stringShort

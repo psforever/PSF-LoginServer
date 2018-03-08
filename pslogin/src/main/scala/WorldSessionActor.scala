@@ -999,11 +999,14 @@ class WorldSessionActor extends Actor with MDCContextAware {
       sendResponse(HotSpotUpdateMessage(continentNumber, 1, Nil)) //normally set in bulk; should be fine doing per continent
 
     case InterstellarCluster.ClientInitializationComplete(tplayer)=>
-      //custom
-      sendResponse(ContinentalLockUpdateMessage(13, PlanetSideEmpire.VS)) // "The VS have captured the VS Sanctuary."
+      //PropertyOverrideMessage
+      sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 112, 1))
+      sendResponse(ReplicationStreamMessage(5, Some(6), Vector(SquadListing()))) //clear squad list
+      sendResponse(FriendsResponse(FriendAction.InitializeFriendList, 0, true, true, Nil))
+      sendResponse(FriendsResponse(FriendAction.InitializeIgnoreList, 0, true, true, Nil))
 
-      //this will cause the client to send back a BeginZoningMessage packet (see below)
-      sendResponse(LoadMapMessage(continent.Map.Name, continent.Id, 40100,25,true,3770441820L)) //VS Sanctuary
+      //LoadMapMessage will cause the client to send back a BeginZoningMessage packet (see below)
+      sendResponse(LoadMapMessage(continent.Map.Name, continent.Id, 40100,25,true,3770441820L))
       log.info("Load the now-registered player")
       //load the now-registered player
       tplayer.Spawn
@@ -1017,13 +1020,23 @@ class WorldSessionActor extends Actor with MDCContextAware {
       val guid = tplayer.GUID
       LivePlayerList.Assign(continent.Number, sessionId, guid)
       sendResponse(SetCurrentAvatarMessage(guid,0,0))
-      sendResponse(CreateShortcutMessage(guid, 1, 0, true, Shortcut.MEDKIT))
-      sendResponse(ChatMsg(ChatMessageType.CMT_EXPANSIONS, true, "", "1 on", None)) //CC on
       sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 82, 0))
-
+      sendResponse(CreateShortcutMessage(guid, 1, 0, true, Shortcut.MEDKIT))
+      sendResponse(ChangeShortcutBankMessage(guid, 0))
+      //FavoritesMessage
+      sendResponse(SetChatFilterMessage(ChatChannel.Local, false, ChatChannel.values.toList)) //TODO will not always be "on"
+      sendResponse(AvatarDeadStateMessage(DeadState.Nothing, 0,0, tplayer.Position, 0, true))
+      sendResponse(PlanetsideAttributeMessage(guid, 53, 1))
+      //AvatarSearchCriteriaMessage
       (1 to 73).foreach( i => {
         sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(i), 67, 0))
       })
+      //AvatarStatisticsMessage
+      //SquadDefinitionActionMessage and SquadDetailDefinitionUpdateMessage
+      //MapObjectStateBlockMessage and ObjectCreateMessage
+      //TacticsMessage
+
+      sendResponse(ChatMsg(ChatMessageType.CMT_EXPANSIONS, true, "", "1 on", None)) //CC on
 
     case Zone.ItemFromGround(tplayer, item) =>
       val obj_guid = item.GUID
@@ -1236,12 +1249,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
       log.info("Reticulating splines ...")
       //map-specific initializations
       configZone(continent) //todo density
-      //sendResponse(SetEmpireMessage(PlanetSideGUID(2), PlanetSideEmpire.VS)) //HART building C
-      //sendResponse(SetEmpireMessage(PlanetSideGUID(29), PlanetSideEmpire.NC)) //South Villa Gun Tower
       sendResponse(TimeOfDayMessage(1191182336))
-      sendResponse(ReplicationStreamMessage(5, Some(6), Vector(SquadListing()))) //clear squad list
-
-      sendResponse(ZonePopulationUpdateMessage(6, 414, 138, 0, 138, 0, 138, 0, 138, 0))
+      //custom
+      sendResponse(ContinentalLockUpdateMessage(13, PlanetSideEmpire.VS)) // "The VS have captured the VS Sanctuary."
       (1 to 255).foreach(i => { sendResponse(SetEmpireMessage(PlanetSideGUID(i), PlanetSideEmpire.VS)) })
 
       //render Equipment that was dropped into zone before the player arrived
@@ -1398,6 +1408,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ SpawnRequestMessage(u1, u2, u3, u4, u5) =>
       log.info(s"SpawnRequestMessage: $msg")
+
+    case msg @ SetChatFilterMessage(send_channel, origin, whitelist) =>
+      log.info("SetChatFilters: " + msg)
 
     case msg @ ChatMsg(messagetype, has_wide_contents, recipient, contents, note_contents) =>
       // TODO: Prevents log spam, but should be handled correctly
