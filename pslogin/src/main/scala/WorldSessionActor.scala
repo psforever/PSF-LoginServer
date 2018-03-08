@@ -1027,7 +1027,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       sendResponse(SetChatFilterMessage(ChatChannel.Local, false, ChatChannel.values.toList)) //TODO will not always be "on"
       sendResponse(AvatarDeadStateMessage(DeadState.Nothing, 0,0, tplayer.Position, 0, true))
       sendResponse(PlanetsideAttributeMessage(guid, 53, 1))
-      //AvatarSearchCriteriaMessage
+      sendResponse(AvatarSearchCriteriaMessage(guid, List(0,0,0,0,0,0)))
       (1 to 73).foreach( i => {
         sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(i), 67, 0))
       })

@@ -41,12 +41,12 @@ class DensityLevelUpdateMessageTest extends Specification {
   }
 
   "encode (failure; list number too big)" in {
-    val msg1 = DensityLevelUpdateMessage(1, 19999, List(0,0, 0,0, 0,0, 0,8))
-    PacketCoding.EncodePacket(msg1).isSuccessful mustEqual false
+    val msg = DensityLevelUpdateMessage(1, 19999, List(0,0, 0,0, 0,0, 0,8))
+    PacketCoding.EncodePacket(msg).isSuccessful mustEqual false
   }
 
   "encode (failure; list number too small)" in {
-    val msg1 = DensityLevelUpdateMessage(1, 19999, List(0,0, 0,0, 0,-1, 0,0))
-    PacketCoding.EncodePacket(msg1).isSuccessful mustEqual false
+    val msg = DensityLevelUpdateMessage(1, 19999, List(0,0, 0,0, 0,-1, 0,0))
+    PacketCoding.EncodePacket(msg).isSuccessful mustEqual false
   }
 }
