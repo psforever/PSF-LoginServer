@@ -801,7 +801,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           if(interface.contains(terminal_guid.guid) && slotNumber.isDefined) {
             val slot = slotNumber.get
             log.info(s"$message - put in slot $slot")
-            sendResponse(AvatarImplantMessage(tplayer.GUID, 0, slot, implant_type.id))
+            sendResponse(AvatarImplantMessage(tplayer.GUID, ImplantAction.Add, slot, implant_type.id))
             sendResponse(ItemTransactionResultMessage(terminal_guid, TransactionType.Learn, true))
           }
           else {
@@ -836,7 +836,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           if(interface.contains(terminal_guid.guid) && slotNumber.isDefined) {
             val slot = slotNumber.get
             log.info(s"$tplayer is selling $implant_type - take from slot $slot")
-            sendResponse(AvatarImplantMessage(tplayer.GUID, 1, slot, 0))
+            sendResponse(AvatarImplantMessage(tplayer.GUID, ImplantAction.Remove, slot, 0))
             sendResponse(ItemTransactionResultMessage(terminal_guid, TransactionType.Sell, true))
           }
           else {
@@ -982,10 +982,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case Zone.ClientInitialization(zone) =>
       val continentNumber = zone.Number
       val poplist = LivePlayerList.ZonePopulation(continentNumber, _ => true)
+      val popBO = 0 //TODO black ops test (partition)
       val popTR = poplist.count(_.Faction == PlanetSideEmpire.TR)
       val popNC = poplist.count(_.Faction == PlanetSideEmpire.NC)
       val popVS = poplist.count(_.Faction == PlanetSideEmpire.VS)
-      val popBO = poplist.size - popTR - popNC - popVS
 
       zone.Buildings.foreach({ case(id, building) => initBuilding(continentNumber, id, building) })
       sendResponse(ZonePopulationUpdateMessage(continentNumber, 414, 138, popTR, 138, popNC, 138, popVS, 138, popBO))
@@ -1020,18 +1020,30 @@ class WorldSessionActor extends Actor with MDCContextAware {
       val guid = tplayer.GUID
       LivePlayerList.Assign(continent.Number, sessionId, guid)
       sendResponse(SetCurrentAvatarMessage(guid,0,0))
+
+      (0 until DetailedCharacterData.numberOfImplantSlots(tplayer.BEP)).foreach(slot => {
+        sendResponse(AvatarImplantMessage(guid, ImplantAction.Initialization, slot, 1)) //init implant slot
+        sendResponse(AvatarImplantMessage(guid, ImplantAction.Activation, slot, 0)) //deactivate implant
+        //TODO: if this implant is Installed but does not have shortcut, add to a free slot or write over slot 61/62/63
+      })
+
       sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 82, 0))
+      //TODO: if Medkit does not have shortcut, add to a free slot or write over slot 64
       sendResponse(CreateShortcutMessage(guid, 1, 0, true, Shortcut.MEDKIT))
       sendResponse(ChangeShortcutBankMessage(guid, 0))
       //FavoritesMessage
-      sendResponse(SetChatFilterMessage(ChatChannel.Local, false, ChatChannel.values.toList)) //TODO will not always be "on"
+      sendResponse(SetChatFilterMessage(ChatChannel.Local, false, ChatChannel.values.toList)) //TODO will not always be "on" like this
       sendResponse(AvatarDeadStateMessage(DeadState.Nothing, 0,0, tplayer.Position, 0, true))
       sendResponse(PlanetsideAttributeMessage(guid, 53, 1))
       sendResponse(AvatarSearchCriteriaMessage(guid, List(0,0,0,0,0,0)))
-      (1 to 73).foreach( i => {
+      (1 to 73).foreach(i => {
         sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(i), 67, 0))
       })
-      //AvatarStatisticsMessage
+      (0 to 30).foreach(i => { //TODO 30 for a new character only?
+        sendResponse(AvatarStatisticsMessage(2, Statistics(0L)))
+      })
+      //AvatarAwardMessage
+      //DisplayAwardMessage
       //SquadDefinitionActionMessage and SquadDetailDefinitionUpdateMessage
       //MapObjectStateBlockMessage and ObjectCreateMessage
       //TacticsMessage
@@ -2023,11 +2035,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
       log.info("ItemTransaction: " + msg)
       continent.GUID(terminal_guid) match {
         case Some(term : Terminal) =>
-          if(player.Faction == term.Faction) {
-            term.Actor ! Terminal.Request(player, msg)
-          }
-        case Some(obj : PlanetSideGameObject) => ;
-        case None => ;
+          log.info(s"ItemTransaction: ${term.Definition.Name} found")
+          term.Actor ! Terminal.Request(player, msg)
+        case Some(obj : PlanetSideGameObject) =>
+          log.error(s"ItemTransaction: $obj is not a terminal")
+        case _ =>
+          log.error(s"ItemTransaction: $terminal_guid does not exist")
       }
 
     case msg @ FavoritesRequest(player_guid, unk, action, line, label) =>

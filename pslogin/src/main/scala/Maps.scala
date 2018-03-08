@@ -56,10 +56,11 @@ object Maps {
     LocalObject(ServerObjectBuilder(373, Door.Constructor))
 
     LocalObject(ServerObjectBuilder(520, ImplantTerminalMech.Constructor)) //Hart B
-    LocalObject(ServerObjectBuilder(1081, Terminal.Constructor(implant_terminal_interface))) //tube 520
     LocalObject(ServerObjectBuilder(853, Terminal.Constructor(order_terminal)))
     LocalObject(ServerObjectBuilder(855, Terminal.Constructor(order_terminal)))
     LocalObject(ServerObjectBuilder(860, Terminal.Constructor(order_terminal)))
+    LocalObject(ServerObjectBuilder(1081, Terminal.Constructor(implant_terminal_interface))) //tube 520
+    TerminalToInterface(520, 1081)
 
     LocalBuilding(2, FoundationBuilder(Building.Structure)) //HART building C
     LocalObject(ServerObjectBuilder(186, Terminal.Constructor(cert_terminal)))
@@ -128,7 +129,14 @@ object Maps {
     ObjectToBuilding(843, 2)
     ObjectToBuilding(844, 2)
     ObjectToBuilding(845, 2)
-    TerminalToInterface(520, 1081)
+    ObjectToBuilding(1082, 2)
+    ObjectToBuilding(1083, 2)
+    ObjectToBuilding(1084, 2)
+    ObjectToBuilding(1085, 2)
+    ObjectToBuilding(1086, 2)
+    ObjectToBuilding(1087, 2)
+    ObjectToBuilding(1088, 2)
+    ObjectToBuilding(1089, 2)
     TerminalToInterface(522, 1082)
     TerminalToInterface(523, 1083)
     TerminalToInterface(524, 1084)
@@ -178,8 +186,6 @@ object Maps {
     ObjectToBuilding(706, 77)
     TerminalToSpawnPad(1063, 706)
 
-    //ObjectToBuilding(1081, ?)
-    //ObjectToBuilding(520, ?)
     ObjectToBuilding(853, 2) //TODO check building_id
     ObjectToBuilding(855, 2) //TODO check building_id
     ObjectToBuilding(860, 2) //TODO check building_id

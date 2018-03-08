@@ -16,7 +16,7 @@ import net.psforever.packet.game.objectcreate.ObjectClass
   */
 class ImplantTerminalInterfaceDefinition extends TerminalDefinition(ObjectClass.implant_terminal_interface) {
   Packet = new ImplantTerminalInterfaceConverter
-  Name = "implante_terminal_interface"
+  Name = "implant_terminal_interface"
 
   private val implants : Map[String, ImplantDefinition] = Map (
     "advanced_regen" -> GlobalDefinitions.advanced_regen,
