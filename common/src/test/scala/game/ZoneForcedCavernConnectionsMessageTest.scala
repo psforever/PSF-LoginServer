@@ -13,7 +13,7 @@ class ZoneForcedCavernConnectionsMessageTest extends Specification {
   "decode" in {
     PacketCoding.DecodePacket(string).require match {
       case ZoneForcedCavernConnectionsMessage(zone, unk) =>
-        zone mustEqual PlanetSideGUID(32)
+        zone mustEqual 32
         unk mustEqual 1
       case _ =>
         ko
