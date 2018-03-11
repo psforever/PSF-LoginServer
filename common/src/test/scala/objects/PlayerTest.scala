@@ -247,13 +247,4 @@ class PlayerTest extends Specification {
     Player.Administrate(obj, false)
     obj.Admin mustEqual false
   }
-
-  "spectate" in {
-    val obj = new Player("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
-    obj.Spectator mustEqual false
-    Player.Spectate(obj, true)
-    obj.Spectator mustEqual true
-    Player.Spectate(obj, false)
-    obj.Spectator mustEqual false
-  }
 }

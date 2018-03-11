@@ -509,6 +509,8 @@ object GlobalDefinitions {
 
   val vehicle_terminal_combined = new VehicleTerminalCombinedDefinition
 
+  val spawn_terminal = new SpawnTerminalDefinition
+
   val spawn_pad = new VehicleSpawnPadDefinition
 
   val mb_locker = new LockerDefinition
@@ -643,7 +645,7 @@ object GlobalDefinitions {
     * @param faction the faction
     * @return the `ToolDefinition` for the launcher
     */
-  def AntiVehicular(faction : PlanetSideEmpire.Value) : ToolDefinition = {
+  def AntiVehicularLauncher(faction : PlanetSideEmpire.Value) : ToolDefinition = {
     faction match {
       case PlanetSideEmpire.TR => striker
       case PlanetSideEmpire.NC => hunterseeker

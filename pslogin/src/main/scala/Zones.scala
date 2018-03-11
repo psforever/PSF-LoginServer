@@ -19,6 +19,11 @@ object Zones {
 
       import net.psforever.types.PlanetSideEmpire
       Building(2).get.Faction = PlanetSideEmpire.VS
+      Building(2).get.ModelId = 20
+      Building(38).get.ModelId = 0
+      Building(42).get.ModelId = 0
+      Building(48).get.Faction = PlanetSideEmpire.VS
+      Building(48).get.ModelId = 59
     }
   }
 
@@ -39,7 +44,7 @@ object Zones {
       super.Init(context)
 
       import net.psforever.types.PlanetSideEmpire
-      Buildings.values.foreach(building => { building.Faction = PlanetSideEmpire.VS })
+      Buildings.values.foreach { _.Faction = PlanetSideEmpire.VS }
       Building(29).get.Faction = PlanetSideEmpire.NC //South Villa Gun Tower
     }
   }

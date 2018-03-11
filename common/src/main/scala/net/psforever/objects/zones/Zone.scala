@@ -44,8 +44,8 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
   private var accessor : ActorRef = ActorRef.noSender
   /** The basic support structure for the globally unique number system used by this `Zone`. */
   private var guid : NumberPoolHub = new NumberPoolHub(new LimitedNumberSource(65536))
-  guid.AddPool("environment", (0 to 2000).toList)
-  guid.AddPool("dynamic", (2001 to 10000).toList).Selector = new RandomSelector //TODO unlump pools later; do not make too big
+  guid.AddPool("environment", (0 to 3000).toList) //TODO tailer ro suit requirements of zone
+  guid.AddPool("dynamic", (3001 to 10000).toList).Selector = new RandomSelector //TODO unlump pools later; do not make too big
   /** A synchronized `List` of items (`Equipment`) dropped by players on the ground and can be collected again. */
   private val equipmentOnGround : ListBuffer[Equipment] = ListBuffer[Equipment]()
   /** Used by the `Zone` to coordinate `Equipment` dropping and collection requests. */
@@ -66,7 +66,12 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
     * First, the `Actor`-driven aspect of the globally unique identifier system for this `Zone` is finalized.
     * Second, all supporting `Actor` agents are created, e.g., `ground`.
     * Third, the `ZoneMap` server objects are loaded and constructed within that aforementioned system.
-    * To avoid being called more than once, there is a test whether the `accessor` for the globally unique identifier system has been changed.
+    * To avoid being called more than once, there is a test whether the `accessor` for the globally unique identifier system has been changed.<br>
+    * <br>
+    * Execution of this operation should be fail-safe.
+    * The chances of failure should be mitigated or skipped.
+    * An testing routine should be run after the fact on the results of the process.
+    * @see `ZoneActor.ZoneSetupCheck`
     * @param context a reference to an `ActorContext` necessary for `Props`
     */
   def Init(implicit context : ActorContext) : Unit = {
@@ -76,9 +81,7 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
       ground = context.actorOf(Props(classOf[ZoneGroundActor], equipmentOnGround), s"$Id-ground")
       transport = context.actorOf(Props(classOf[ZoneVehicleActor], this), s"$Id-vehicles")
 
-      Map.LocalObjects.foreach({ builderObject =>
-        builderObject.Build
-      })
+      Map.LocalObjects.foreach({ builderObject => builderObject.Build })
       MakeBuildings(context)
       AssignAmenities()
     }

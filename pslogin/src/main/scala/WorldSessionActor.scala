@@ -23,7 +23,7 @@ import net.psforever.objects.serverobject.implantmech.ImplantTerminalMech
 import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.mblocker.Locker
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
-import net.psforever.objects.serverobject.terminals.{MatrixTerminalDefinition, Terminal}
+import net.psforever.objects.serverobject.terminals.{MatrixTerminalDefinition, SpawnTerminalDefinition, Terminal}
 import net.psforever.objects.serverobject.terminals.Terminal.TerminalMessage
 import net.psforever.objects.vehicles.{AccessPermissionGroup, Utility, VehicleLockState}
 import net.psforever.objects.serverobject.structures.{Building, WarpGate}
@@ -56,6 +56,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
   var progressBarValue : Option[Float] = None
   var shooting : Option[PlanetSideGUID] = None
   var accessedContainer : Option[PlanetSideGameObject with Container] = None
+  var flying : Boolean = false
+  var speed : Float = 1.0f
+  var spectator : Boolean = false
 
   var clientKeepAlive : Cancellable = DefaultCancellable.obj
   var progressBarUpdate : Cancellable = DefaultCancellable.obj
@@ -1182,39 +1185,39 @@ class WorldSessionActor extends Actor with MDCContextAware {
       log.info(s"New world login to $server with Token:$token. $clientVersion")
       //TODO begin temp player character auto-loading; remove later
       import net.psforever.objects.GlobalDefinitions._
+      import net.psforever.types.CertificationType._
       player = Player("TestCharacter"+sessionId.toString, PlanetSideEmpire.VS, CharacterGender.Female, 41, 1)
-      //player.Position = Vector3(3674.8438f, 2726.789f, 91.15625f)
-      //player.Position = Vector3(3523.039f, 2855.5078f, 90.859375f)
-      player.Position = Vector3(3561.0f, 2854.0f, 90.859375f)
+      //player.Position = Vector3(3561.0f, 2854.0f, 90.859375f) //home3, HART C
+      player.Position = Vector3(3881.9688f, 4432.008f, 267.0f) //z6, Anguta / n.tower
       player.Orientation = Vector3(0f, 0f, 90f)
-      player.Certifications += CertificationType.StandardAssault
-      player.Certifications += CertificationType.MediumAssault
-      player.Certifications += CertificationType.StandardExoSuit
-      player.Certifications += CertificationType.AgileExoSuit
-      player.Certifications += CertificationType.ReinforcedExoSuit
-      player.Certifications += CertificationType.ATV
-      player.Certifications += CertificationType.Harasser
+      player.Certifications += StandardAssault
+      player.Certifications += MediumAssault
+      player.Certifications += StandardExoSuit
+      player.Certifications += AgileExoSuit
+      player.Certifications += ReinforcedExoSuit
+      player.Certifications += ATV
+      player.Certifications += Harasser
       //
-      player.Certifications += CertificationType.InfiltrationSuit
-      player.Certifications += CertificationType.Sniping
-      player.Certifications += CertificationType.AntiVehicular
-      player.Certifications += CertificationType.HeavyAssault
-      player.Certifications += CertificationType.SpecialAssault
-      player.Certifications += CertificationType.EliteAssault
-      player.Certifications += CertificationType.GroundSupport
-      player.Certifications += CertificationType.GroundTransport
-      player.Certifications += CertificationType.Flail
-      player.Certifications += CertificationType.Switchblade
-      player.Certifications += CertificationType.AssaultBuggy
-      player.Certifications += CertificationType.ArmoredAssault1
-      player.Certifications += CertificationType.ArmoredAssault2
-      player.Certifications += CertificationType.AirCavalryScout
-      player.Certifications += CertificationType.AirCavalryAssault
-      player.Certifications += CertificationType.AirCavalryInterceptor
-      player.Certifications += CertificationType.AirSupport
-      player.Certifications += CertificationType.GalaxyGunship
-      player.Certifications += CertificationType.Phantasm
-      player.Certifications += CertificationType.UniMAX
+      player.Certifications += InfiltrationSuit
+      player.Certifications += Sniping
+      player.Certifications += AntiVehicular
+      player.Certifications += HeavyAssault
+      player.Certifications += SpecialAssault
+      player.Certifications += EliteAssault
+      player.Certifications += GroundSupport
+      player.Certifications += GroundTransport
+      player.Certifications += Flail
+      player.Certifications += Switchblade
+      player.Certifications += AssaultBuggy
+      player.Certifications += ArmoredAssault1
+      player.Certifications += ArmoredAssault2
+      player.Certifications += AirCavalryScout
+      player.Certifications += AirCavalryAssault
+      player.Certifications += AirCavalryInterceptor
+      player.Certifications += AirSupport
+      player.Certifications += GalaxyGunship
+      player.Certifications += Phantasm
+      player.Certifications += UniMAX
       AwardBattleExperiencePoints(player, 1000000L)
 //      player.ExoSuit = ExoSuitType.MAX //TODO strange issue; divide number above by 10 when uncommenting
       player.Slot(0).Equipment = SimpleItem(remote_electronics_kit) //Tool(GlobalDefinitions.StandardPistol(player.Faction))
@@ -1226,7 +1229,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       player.Slot(33).Equipment = AmmoBox(bullet_9mm_AP)
       player.Slot(36).Equipment = AmmoBox(GlobalDefinitions.StandardPistolAmmo(player.Faction))
       player.Slot(39).Equipment = AmmoBox(plasma_cartridge) //SimpleItem(remote_electronics_kit)
-      player.Slot(5).Equipment.get.asInstanceOf[LockerContainer].Inventory += 0 -> SimpleItem(remote_electronics_kit)
+      player.Locker.Inventory += 0 -> SimpleItem(remote_electronics_kit)
       //TODO end temp player character auto-loading
       self ! ListAccountCharacters
       import scala.concurrent.duration._
@@ -1249,7 +1252,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           //TODO check if can spawn on last continent/location from player?
           //TODO if yes, get continent guid accessors
           //TODO if no, get sanctuary guid accessors and reset the player's expectations
-          galaxy ! InterstellarCluster.GetWorld("home3")
+          galaxy ! InterstellarCluster.GetWorld("z6")
         case default =>
           log.error("Unsupported " + default + " in " + msg)
       }
@@ -1259,12 +1262,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ BeginZoningMessage() =>
       log.info("Reticulating splines ...")
-      //map-specific initializations
       configZone(continent) //todo density
       sendResponse(TimeOfDayMessage(1191182336))
       //custom
       sendResponse(ContinentalLockUpdateMessage(13, PlanetSideEmpire.VS)) // "The VS have captured the VS Sanctuary."
-      (1 to 255).foreach(i => { sendResponse(SetEmpireMessage(PlanetSideGUID(i), PlanetSideEmpire.VS)) })
+      sendResponse(ReplicationStreamMessage(5, Some(6), Vector(SquadListing()))) //clear squad list
+      sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 112, 1))
 
       //render Equipment that was dropped into zone before the player arrived
       continent.EquipmentOnGround.foreach(item => {
@@ -1355,7 +1358,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case Some(item) => item.Definition == GlobalDefinitions.bolt_driver
         case None => false
       }
-      avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlayerState(avatar_guid, msg, player.Spectator, wepInHand))
+      avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlayerState(avatar_guid, msg, spectator, wepInHand))
 
     case msg @ ChildObjectStateMessage(object_guid, pitch, yaw) =>
       //the majority of the following check retrieves information to determine if we are in control of the child
@@ -1425,6 +1428,37 @@ class WorldSessionActor extends Actor with MDCContextAware {
       log.info("SetChatFilters: " + msg)
 
     case msg @ ChatMsg(messagetype, has_wide_contents, recipient, contents, note_contents) =>
+      var echoContents : String = contents
+      //TODO messy on/off strings may work
+      if(messagetype == ChatMessageType.CMT_FLY) {
+        if(contents.trim.equals("on")) {
+          flying = true
+        }
+        else if(contents.trim.equals("off")) {
+          flying = false
+        }
+      }
+      else if(messagetype == ChatMessageType.CMT_SPEED) {
+        speed = {
+          try {
+            contents.trim.toFloat
+          }
+          catch {
+            case _ : Exception =>
+              echoContents = "1.000"
+              1f
+          }
+        }
+      }
+      else if(messagetype == ChatMessageType.CMT_TOGGLESPECTATORMODE) {
+        if(contents.trim.equals("on")) {
+          spectator = true
+        }
+        else if(contents.trim.equals("off")) {
+          spectator = false
+        }
+      }
+
       // TODO: Prevents log spam, but should be handled correctly
       if (messagetype != ChatMessageType.CMT_TOGGLE_GM) {
         log.info("Chat: " + msg)
@@ -1449,9 +1483,14 @@ class WorldSessionActor extends Actor with MDCContextAware {
         sendResponse(DropSession(sessionId, "user quit"))
       }
 
+      if(contents.trim.equals("!loc")) { //dev hack; consider bang-commands to complement slash-commands
+        echoContents = s"pos=${player.Position.x}, ${player.Position.y}, ${player.Position.z}; ori=${player.Orientation.x}, ${player.Orientation.y}, ${player.Orientation.z}"
+        log.info(echoContents)
+      }
+
       // TODO: Depending on messagetype, may need to prepend sender's name to contents with proper spacing
       // TODO: Just replays the packet straight back to sender; actually needs to be routed to recipients!
-      sendResponse(ChatMsg(messagetype, has_wide_contents, recipient, contents, note_contents))
+      sendResponse(ChatMsg(messagetype, has_wide_contents, recipient, echoContents, note_contents))
 
     case msg @ VoiceHostRequest(unk, PlanetSideGUID(player_guid), data) =>
       log.info("Player "+player_guid+" requested in-game voice chat.")
@@ -1991,7 +2030,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           }
 
         case Some(obj : Terminal) =>
-          if(obj.Definition.isInstanceOf[MatrixTerminalDefinition]) {
+          if(obj.Definition.isInstanceOf[MatrixTerminalDefinition] || obj.Definition.isInstanceOf[SpawnTerminalDefinition]) {
             //TODO matrix spawn point; for now, just blindly bind to show work (and hope nothing breaks)
             sendResponse(BindPlayerMessage(1, "@ams", true, true, 0, 0, 0, obj.Position))
           }
@@ -3161,14 +3200,14 @@ class WorldSessionActor extends Actor with MDCContextAware {
   }
 
   def configZone(zone : Zone) : Unit = {
-    zone.Buildings.foreach({case (id, building) =>
-      sendResponse(SetEmpireMessage(PlanetSideGUID(id), building.Faction))
+    zone.Buildings.values.foreach(building => {
+      sendResponse(SetEmpireMessage(PlanetSideGUID(building.ModelId), building.Faction))
       building.Amenities.foreach(amenity => {
         val amenityId = amenity.GUID
         sendResponse(PlanetsideAttributeMessage(amenityId, 50, 0))
         sendResponse(PlanetsideAttributeMessage(amenityId, 51, 0))
       })
-      sendResponse(HackMessage(3, PlanetSideGUID(id), PlanetSideGUID(0), 0, 3212836864L, HackState.HackCleared, 8))
+      sendResponse(HackMessage(3, PlanetSideGUID(building.ModelId), PlanetSideGUID(0), 0, 3212836864L, HackState.HackCleared, 8))
     })
   }
 

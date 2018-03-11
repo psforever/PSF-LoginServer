@@ -29,9 +29,9 @@ class ZoneActor(zone : Zone) extends Actor {
     val validateObject : (Int, (PlanetSideGameObject)=>Boolean, String) => Boolean = ValidateObject(guid, slog)
 
     //check base to object associations
-    map.ObjectToBuilding.foreach({ case((object_guid, base_id)) =>
-      if(zone.Building(base_id).isEmpty) {
-        slog.error(s"expected a building at id #$base_id")
+    map.ObjectToBuilding.foreach({ case((object_guid, building_id)) =>
+      if(zone.Building(building_id).isEmpty) {
+        slog.error(s"expected a building at id #$building_id")
       }
       if(guid(object_guid).isEmpty) {
         slog.error(s"expected object id $object_guid to exist, but it did not")
@@ -85,8 +85,8 @@ object ZoneActor {
       }
     }
     catch {
-      case _ : Exception =>
-        elog.error(s"expected a $description at id $object_guid but no object is initialized")
+      case e : Exception =>
+        elog.error(s"expected a $description at id $object_guid but no object is initialized - $e")
         false
     }
   }

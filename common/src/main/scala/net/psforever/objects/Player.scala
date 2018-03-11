@@ -62,7 +62,6 @@ class Player(private val name : String,
   private var backpackAccess : Option[PlanetSideGUID] = None
 
   private var admin : Boolean = false
-  private var spectator : Boolean = false
 
   private var vehicleSeated : Option[PlanetSideGUID] = None
   private var vehicleOwned : Option[PlanetSideGUID] = None
@@ -526,8 +525,6 @@ class Player(private val name : String,
 
   def Admin : Boolean = admin
 
-  def Spectator : Boolean = spectator
-
   def VehicleSeated : Option[PlanetSideGUID] = vehicleSeated
 
   def VehicleSeated_=(guid : PlanetSideGUID) : Option[PlanetSideGUID] = VehicleSeated_=(Some(guid))
@@ -613,11 +610,6 @@ object Player {
 
   def Administrate(player : Player, isAdmin : Boolean) : Player = {
     player.admin = isAdmin
-    player
-  }
-
-  def Spectate(player : Player, isSpectator : Boolean) : Player = {
-    player.spectator = isSpectator
     player
   }
 

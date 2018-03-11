@@ -8,12 +8,17 @@ import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types.PlanetSideEmpire
 
-class Building(private val id : Int, private val zone : Zone) extends PlanetSideServerObject {
+class Building(private val mapId : Int, private val zone : Zone) extends PlanetSideServerObject {
+  /**
+    * The mapId is the identifier number used in BuildingInfoUpdateMessage.
+    * The modelId is the identifier number used in SetEmpireMessage.
+    */
+  private var modelId : Option[Int] = None
   private var faction : PlanetSideEmpire.Value = PlanetSideEmpire.NEUTRAL
   private var amenities : List[Amenity] = List.empty
   GUID = PlanetSideGUID(0)
 
-  def Id : Int = id
+  def Id : Int = mapId
 
   def Faction : PlanetSideEmpire.Value = faction
 
@@ -31,6 +36,15 @@ class Building(private val id : Int, private val zone : Zone) extends PlanetSide
   }
 
   def Zone : Zone = zone
+
+  def ModelId : Int = modelId.getOrElse(Id)
+
+  def ModelId_=(id : Int) : Int = ModelId_=(Some(id))
+
+  def ModelId_=(id : Option[Int]) : Int = {
+    modelId = id
+    ModelId
+  }
 
   def Definition: ObjectDefinition = Building.BuildingDefinition
 }
