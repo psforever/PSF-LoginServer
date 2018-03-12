@@ -5,7 +5,7 @@ import scodec.Attempt.{Failure, Successful}
 import scodec.bits._
 import org.log4s.MDC
 import MDCContextAware.Implicits._
-import net.psforever.packet.control.{HandleGamePacket, SlottedMetaPacket}
+import net.psforever.packet.control._
 
 /**
   * In between the network side and the higher functioning side of the simulation:
@@ -30,13 +30,14 @@ import net.psforever.packet.control.{HandleGamePacket, SlottedMetaPacket}
   */
 class PacketCodingActor extends Actor with MDCContextAware {
   private var sessionId : Long = 0
-  private var subslot : Int = 0
+  private var subslotOutbound : Int = 0
+  private var subslotInbound : Int = 0
   private var leftRef : ActorRef = ActorRef.noSender
   private var rightRef : ActorRef = ActorRef.noSender
   private[this] val log = org.log4s.getLogger
 
   override def postStop() = {
-    subslot = 0 //in case this `Actor` restarts
+    subslotOutbound = 0 //in case this `Actor` restarts
     super.postStop()
   }
 
@@ -68,12 +69,13 @@ class PacketCodingActor extends Actor with MDCContextAware {
         mtuLimit(msg)
       }
       else {//from network, to LSA, WSA, etc. - decode
-        PacketCoding.unmarshalPayload(0, msg) match { //TODO is it safe for this to always be 0?
-          case Successful(packet) =>
-            sendResponseRight(packet)
-          case Failure(ex) =>
-            log.info(s"Failed to marshal a packet: $ex")
-        }
+        UnmarshalInnerPacket(msg, "a packet")
+//        PacketCoding.unmarshalPayload(0, msg) match { //TODO is it safe for this to always be 0?
+//          case Successful(packet) =>
+//            handlePacketContainer(packet) //sendResponseRight
+//          case Failure(ex) =>
+//            log.info(s"Failed to marshal a packet: $ex")
+//        }
       }
     //known elevated packet type
     case ctrl @ ControlPacket(_, packet) =>
@@ -88,7 +90,7 @@ class PacketCodingActor extends Actor with MDCContextAware {
       else { //deprecated; ControlPackets should not be coming from this direction
         log.warn(s"DEPRECATED CONTROL PACKET SEND: $ctrl")
         MDC("sessionId") = sessionId.toString
-        sendResponseRight(ctrl)
+        handlePacketContainer(ctrl) //sendResponseRight
       }
     //known elevated packet type
     case game @ GamePacket(_, _, packet) =>
@@ -123,15 +125,15 @@ class PacketCodingActor extends Actor with MDCContextAware {
   /**
     * Retrieve the current subslot number.
     * Increment the `subslot` for the next time it is needed.
-    * @return a 16u number starting at 0
+    * @return a `16u` number starting at 0
     */
   def Subslot : Int = {
-    if(subslot == 65536) { //TODO what is the actual wrap number?
-      subslot = 0
-      subslot
+    if(subslotOutbound == 65536) { //TODO what is the actual wrap number?
+      subslotOutbound = 0
+      subslotOutbound
     } else {
-      val curr = subslot
-      subslot += 1
+      val curr = subslotOutbound
+      subslotOutbound += 1
       curr
     }
   }
@@ -177,7 +179,7 @@ class PacketCodingActor extends Actor with MDCContextAware {
       PacketCoding.EncodePacket(pkt.packet) match {
         case Successful(bdata) =>
           sendResponseLeft(bdata.toByteVector)
-        case f @ Failure(_) =>
+        case f : Failure =>
           log.error(s"$f")
       }
     })
@@ -191,6 +193,72 @@ class PacketCodingActor extends Actor with MDCContextAware {
     log.trace("PACKET SEND, LEFT: " + cont)
     MDC("sessionId") = sessionId.toString
     leftRef !> RawPacket(cont)
+  }
+
+  /**
+    * Transform data into a container packet and re-submit that container to the process that handles the packet.
+    * @param data the packet data
+    * @param description an explanation of the input `data`
+    */
+  def UnmarshalInnerPacket(data : ByteVector, description : String) : Unit = {
+    PacketCoding.unmarshalPayload(0, data) match { //TODO is it safe for this to always be 0?
+      case Successful(packet) =>
+        handlePacketContainer(packet)
+      case Failure(ex) =>
+        log.info(s"Failed to unmarshal $description: $ex")
+    }
+  }
+
+  /**
+    *  Sort and redirect a container packet bound for the server by type of contents.
+    *  `GamePacket` objects can just onwards without issue.
+    *  `ControlPacket` objects may need to be dequeued.
+    *  All other container types are invalid.
+    * @param container the container packet
+    */
+  def handlePacketContainer(container : PlanetSidePacketContainer) : Unit = {
+    container match {
+      case _ : GamePacket =>
+        sendResponseRight(container)
+      case ControlPacket(_, ctrlPkt) =>
+        handleControlPacket(container, ctrlPkt)
+      case default =>
+        log.warn(s"Invalid packet container class received: ${default.getClass.getName}") //do not spill contents in log
+    }
+  }
+
+  /**
+    * Process a control packet or determine that it does not need to be processed at this level.
+    * Primarily, if the packet is of a type that contains another packet that needs be be unmarshalled,
+    * that/those packet must be unwound.<br>
+    * <br>
+    * The subslot information is used to identify these nested packets after arriving at their destination,
+    * to establish order for sequential packets and relation between divided packets.
+    * @param container the original container packet
+    * @param packet the packet that was extracted from the container
+    */
+  def handleControlPacket(container : PlanetSidePacketContainer, packet : PlanetSideControlPacket) = {
+    packet match {
+      case SlottedMetaPacket(slot, subslot, innerPacket) =>
+        subslotInbound = subslot
+        self.tell(PacketCoding.CreateControlPacket(SlottedMetaAck(slot, subslot)), rightRef) //will go towards network
+        UnmarshalInnerPacket(innerPacket, "the inner packet of a SlottedMetaPacket")
+
+      case MultiPacket(packets) =>
+        packets.foreach { UnmarshalInnerPacket(_, "the inner packet of a MultiPacket") }
+
+      case MultiPacketEx(packets) =>
+        packets.foreach { UnmarshalInnerPacket(_, "the inner packet of a MultiPacketEx") }
+
+      case RelatedA0(subslot) =>
+        log.error(s"bad subslot data - $subslot; potential disarray")
+
+      case RelatedB0(subslot) =>
+        log.trace(s"good control packet received - subslot data $subslot")
+
+      case _ =>
+        sendResponseRight(container)
+    }
   }
 
   /**

@@ -10,6 +10,7 @@ import scodec.bits._
 import MDCContextAware.Implicits._
 import com.github.mauricio.async.db.{Connection, QueryResult, RowData}
 import com.github.mauricio.async.db.mysql.exceptions.MySQLException
+import net.psforever.objects.DefaultCancellable
 import net.psforever.types.PlanetSideEmpire
 
 import scala.concurrent.{Await, Future}
@@ -25,7 +26,7 @@ class LoginSessionActor extends Actor with MDCContextAware {
   var leftRef : ActorRef = ActorRef.noSender
   var rightRef : ActorRef = ActorRef.noSender
 
-  var updateServerListTask : Cancellable = LoginSessionActor.DefaultCancellable
+  var updateServerListTask : Cancellable = DefaultCancellable.obj
 
   override def postStop() = {
     if(updateServerListTask != null)
@@ -54,59 +55,22 @@ class LoginSessionActor extends Actor with MDCContextAware {
   def Started : Receive = {
     case UpdateServerList() =>
       updateServerList()
-    case ctrl @ ControlPacket(_, _) =>
-      handlePktContainer(ctrl)
-    case game @ GamePacket(_, _, _) =>
-      handlePktContainer(game)
-    case default => failWithError(s"Invalid packet class received: $default")
-  }
-
-  def handlePkt(pkt : PlanetSidePacket) : Unit = pkt match {
-    case ctrl : PlanetSideControlPacket =>
+    case ControlPacket(_, ctrl) =>
       handleControlPkt(ctrl)
-    case game : PlanetSideGamePacket =>
+    case GamePacket(_, _, game) =>
       handleGamePkt(game)
     case default => failWithError(s"Invalid packet class received: $default")
   }
 
-  def handlePktContainer(pkt : PlanetSidePacketContainer) : Unit = pkt match {
-    case ctrl @ ControlPacket(opcode, ctrlPkt) =>
-      handleControlPkt(ctrlPkt)
-    case game @ GamePacket(opcode, seq, gamePkt) =>
-      handleGamePkt(gamePkt)
-    case default => failWithError(s"Invalid packet container class received: $default")
-  }
-
   def handleControlPkt(pkt : PlanetSideControlPacket) = {
     pkt match {
-      case SlottedMetaPacket(slot, subslot, innerPacket) =>
-        // Meta packets are like TCP packets - then need to be ACKed to the client
-        sendResponse(PacketCoding.CreateControlPacket(SlottedMetaAck(slot, subslot)))
-
-        // Decode the inner packet and handle it or error
-        PacketCoding.DecodePacket(innerPacket).fold({
-          error => log.error(s"Failed to decode inner packet of SlottedMetaPacket: $error")
-        }, {
-          handlePkt(_)
-        })
       /// TODO: figure out what this is what what it does for the PS client
       /// I believe it has something to do with reliable packet transmission and resending
-      case sync @ ControlSync(diff, unk, f1, f2, f3, f4, fa, fb) =>
+      case sync @ ControlSync(diff, _, _, _, _, _, fa, fb) =>
         log.trace(s"SYNC: $sync")
-
         val serverTick = Math.abs(System.nanoTime().toInt) // limit the size to prevent encoding error
-        sendResponse(PacketCoding.CreateControlPacket(ControlSyncResp(diff, serverTick,
-          fa, fb, fb, fa)))
-      case MultiPacket(packets) =>
+        sendResponse(PacketCoding.CreateControlPacket(ControlSyncResp(diff, serverTick, fa, fb, fb, fa)))
 
-        /// Extract out each of the subpackets in the MultiPacket and handle them or raise a packet error
-        packets.foreach { pkt =>
-          PacketCoding.DecodePacket(pkt).fold({ error =>
-            log.error(s"Failed to decode inner packet of MultiPacket: $error")
-          }, {
-            handlePkt(_)
-          })
-        }
       case default =>
         log.error(s"Unhandled ControlPacket $default")
     }
@@ -119,7 +83,6 @@ class LoginSessionActor extends Actor with MDCContextAware {
   // TESTING CODE FOR ACCOUNT LOOKUP
   def accountLookup(username : String, password : String) : Boolean = {
     val connection: Connection = DatabaseConnector.getAccountsConnection
-
     Await.result(connection.connect, 5 seconds)
 
     // create account
@@ -135,13 +98,13 @@ class LoginSessionActor extends Actor with MDCContextAware {
       case Some(resultSet) =>
         val row : RowData = resultSet.head
         row(0)
-      case None => -1
-    }
-    )
+      case None =>
+        -1
+    })
 
     try {
       // XXX: remove awaits
-      val result = Await.result( mapResult, 5 seconds )
+      Await.result( mapResult, 5 seconds )
       return true
     } catch {
       case e : MySQLException =>
@@ -151,7 +114,6 @@ class LoginSessionActor extends Actor with MDCContextAware {
     } finally {
       connection.disconnect
     }
-
     false
   }
 
@@ -190,22 +152,25 @@ class LoginSessionActor extends Actor with MDCContextAware {
           log.info(s"Failed login to account $username")
           sendResponse(PacketCoding.CreateGamePacket(0, response))
         }
+
       case ConnectToWorldRequestMessage(name, _, _, _, _, _, _) =>
         log.info(s"Connect to world request for '$name'")
-
         val response = ConnectToWorldMessage(serverName, serverAddress.getHostString, serverAddress.getPort)
         sendResponse(PacketCoding.CreateGamePacket(0, response))
         sendResponse(DropSession(sessionId, "user transferring to world"))
-      case default => log.debug(s"Unhandled GamePacket $pkt")
+
+      case _ =>
+        log.debug(s"Unhandled GamePacket $pkt")
   }
 
   def updateServerList() = {
     val msg = VNLWorldStatusMessage("Welcome to PlanetSide! ",
       Vector(
-        WorldInformation(serverName, WorldStatus.Up, ServerType.Beta,
-          Vector(WorldConnectionInfo(serverAddress)), PlanetSideEmpire.VS)
-      ))
-
+        WorldInformation(
+          serverName, WorldStatus.Up, ServerType.Beta, Vector(WorldConnectionInfo(serverAddress)), PlanetSideEmpire.VS
+        )
+      )
+    )
     sendResponse(PacketCoding.CreateGamePacket(0, msg))
   }
 
@@ -216,22 +181,13 @@ class LoginSessionActor extends Actor with MDCContextAware {
 
   def sendResponse(cont : Any) = {
     log.trace("LOGIN SEND: " + cont)
-
     MDC("sessionId") = sessionId.toString
     rightRef !> cont
   }
 
   def sendRawResponse(pkt : ByteVector) = {
     log.trace("LOGIN SEND RAW: " + pkt)
-
     MDC("sessionId") = sessionId.toString
     rightRef !> RawPacket(pkt)
-  }
-}
-
-object LoginSessionActor {
-  final val DefaultCancellable = new Cancellable() {
-    def isCancelled : Boolean = true
-    def cancel : Boolean = true
   }
 }
