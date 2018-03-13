@@ -241,7 +241,7 @@ class PacketCodingActor extends Actor with MDCContextAware {
     packet match {
       case SlottedMetaPacket(slot, subslot, innerPacket) =>
         subslotInbound = subslot
-        self.tell(PacketCoding.CreateControlPacket(SlottedMetaAck(slot, subslot)), rightRef) //will go towards network
+        self.tell(PacketCoding.CreateControlPacket(RelatedB(slot, subslot)), rightRef) //will go to the network
         UnmarshalInnerPacket(innerPacket, "the inner packet of a SlottedMetaPacket")
 
       case MultiPacket(packets) =>
@@ -250,11 +250,11 @@ class PacketCodingActor extends Actor with MDCContextAware {
       case MultiPacketEx(packets) =>
         packets.foreach { UnmarshalInnerPacket(_, "the inner packet of a MultiPacketEx") }
 
-      case RelatedA0(subslot) =>
-        log.error(s"bad subslot data - $subslot; potential disarray")
+      case RelatedA(slot, subslot) =>
+        log.error(s"result $slot: subslot $subslot was in error")
 
-      case RelatedB0(subslot) =>
-        log.trace(s"good control packet received - subslot data $subslot")
+      case RelatedB(slot, subslot) =>
+        log.trace(s"result $slot: subslot $subslot accepted")
 
       case _ =>
         sendResponseRight(container)
