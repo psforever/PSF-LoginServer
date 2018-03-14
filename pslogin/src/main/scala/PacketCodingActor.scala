@@ -5,7 +5,7 @@ import scodec.Attempt.{Failure, Successful}
 import scodec.bits._
 import org.log4s.MDC
 import MDCContextAware.Implicits._
-import net.psforever.packet.control._
+import net.psforever.packet.control.{HandleGamePacket, _}
 
 import scala.annotation.tailrec
 import scala.collection.mutable
@@ -73,12 +73,6 @@ class PacketCodingActor extends Actor with MDCContextAware {
       }
       else {//from network, to LSA, WSA, etc. - decode
         UnmarshalInnerPacket(msg, "a packet")
-//        PacketCoding.unmarshalPayload(0, msg) match { //TODO is it safe for this to always be 0?
-//          case Successful(packet) =>
-//            handlePacketContainer(packet) //sendResponseRight
-//          case Failure(ex) =>
-//            log.info(s"Failed to marshal a packet: $ex")
-//        }
       }
     //known elevated packet type
     case ctrl @ ControlPacket(_, packet) =>
@@ -195,17 +189,12 @@ class PacketCodingActor extends Actor with MDCContextAware {
     * <br>
     * The original packets are encoded then paired with their encoding lengths plus extra space to prefix the length.
     * Encodings from these pairs are drawn from the list until into buckets that fit a maximum byte stream length.
-    * The size limitation on any bucket is the mtu limit
+    * The size limitation on any bucket is the MTU limit.
     * less by the base sizes of `MultiPacketEx` (2) and of `SlottedMetaPacket` (4).
     * @param bundle the packets to be bundled
     */
   def handleBundlePacket(bundle : List[PlanetSidePacket]) : Unit = {
-    val packets : List[(ByteVector, Int)] = recursiveEncode(bundle.iterator).map( pkt => {
-      pkt -> {
-        val len = pkt.length.toInt
-        len + (if(len < 256) { 1 } else if(len < 65536) { 2 } else { 4 }) //space for the prefixed length byte(s)
-      }
-    })
+    val packets : List[ByteVector] = recursiveEncode(bundle.iterator)
     recursiveFillPacketBuckets(packets.iterator, PacketCodingActor.MTU_LIMIT_BYTES - 6)
       .foreach( list => {
         handleBundlePacket(list.toVector)
@@ -213,15 +202,30 @@ class PacketCodingActor extends Actor with MDCContextAware {
   }
 
   /**
-    * Accept a `Vector` of encoded packets and re-package them into a `MultiPacketEx`.
+    * Accept a `Vector` of encoded packets and re-package them.
+    * The normal order is to package the elements of the vector into a `MultiPacketEx`.
+    * If the vector only has one element, it will get packaged by itself in a `SlottedMetaPacket`.
+    * If that one element risks being too big for the MTU, however, it will be handled off to be split.
+    * Splitting should preserve `Subslot` ordering with the rest of the bundling.
     * @param vec a specific number of byte streams
     */
   def handleBundlePacket(vec : Vector[ByteVector]) : Unit = {
-    PacketCoding.EncodePacket(MultiPacketEx(vec)) match {
-      case Successful(bdata) =>
-        handleBundlePacket(bdata.toByteVector)
-      case Failure(e) =>
-        log.warn(s"bundling failed on MultiPacketEx creation: - $e")
+    if(vec.size == 1) {
+      val elem = vec.head
+      if(elem.length > PacketCodingActor.MTU_LIMIT_BYTES - 4) {
+        handleSplitPacket(PacketCoding.CreateControlPacket(HandleGamePacket(elem)))
+      }
+      else {
+        handleBundlePacket(elem)
+      }
+    }
+    else {
+      PacketCoding.EncodePacket(MultiPacketEx(vec)) match {
+        case Successful(bdata) =>
+          handleBundlePacket(bdata.toByteVector)
+        case Failure(e) =>
+          log.warn(s"bundling failed on MultiPacketEx creation: - $e")
+      }
     }
   }
 
@@ -325,8 +329,15 @@ class PacketCodingActor extends Actor with MDCContextAware {
     rightRef !> cont
   }
 
-  /** WIP */
-
+  /**
+    * Accept a series of packets and transform it into a series of packet encodings.
+    * Packets that do not encode properly are simply excluded for the product.
+    * This is not treated as an error or exception; a warning will mrely be logged.
+    * @param iter the `Iterator` for a series of packets
+    * @param out updated series of byte stream data produced through successful packet encoding;
+    *            defaults to an empty list
+    * @return a series of byte stream data produced through successful packet encoding
+    */
   @tailrec private def recursiveEncode(iter : Iterator[PlanetSidePacket], out : List[ByteVector] = List()) : List[ByteVector] = {
     if(!iter.hasNext) {
       out
@@ -356,18 +367,29 @@ class PacketCodingActor extends Actor with MDCContextAware {
     }
   }
 
-  @tailrec private def recursiveFillPacketBuckets(iter : Iterator[(ByteVector, Int)], lim : Int, currLen : Int = 0, out : List[mutable.ListBuffer[ByteVector]] = List(mutable.ListBuffer())) : List[mutable.ListBuffer[ByteVector]] = {
+  /**
+    * Accept a series of byte stream data and sort into sequential size-limited buckets of the same byte streams.
+    * Note that elements that exceed `lim` by themselves are always sorted into their own buckets.
+    * @param iter an `Iterator` of a series of byte stream data
+    * @param lim the maximum stream length permitted
+    * @param curr the stream length of the current bucket
+    * @param out updated series of byte stream data stored in buckets
+    * @return a series of byte stream data stored in buckets
+    */
+  @tailrec private def recursiveFillPacketBuckets(iter : Iterator[ByteVector], lim : Int, curr : Int = 0, out : List[mutable.ListBuffer[ByteVector]] = List(mutable.ListBuffer())) : List[mutable.ListBuffer[ByteVector]] = {
     if(!iter.hasNext) {
       out
     }
     else {
-      val (data, len) = iter.next
-      if(currLen + len > lim) {
+      val data = iter.next
+      var len = data.length.toInt
+      len = len + (if(len < 256) { 1 } else if(len < 65536) { 2 } else { 4 }) //space for the prefixed length byte(s)
+      if(curr + len > lim && out.last.nonEmpty) { //bucket must have something in it before swapping
         recursiveFillPacketBuckets(iter, lim, len, out :+ mutable.ListBuffer(data))
       }
       else {
         out.last += data
-        recursiveFillPacketBuckets(iter, lim, currLen + len, out)
+        recursiveFillPacketBuckets(iter, lim, curr + len, out)
       }
     }
   }

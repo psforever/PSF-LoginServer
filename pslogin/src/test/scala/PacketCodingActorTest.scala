@@ -2,10 +2,11 @@
 
 import akka.actor.{ActorRef, Props}
 import akka.testkit.TestProbe
-import net.psforever.packet.control.ControlSync
-import net.psforever.packet.game.objectcreate.ObjectClass
-import net.psforever.packet.{ControlPacket, GamePacket, PacketCoding}
+import net.psforever.packet.control.{ControlSync, MultiPacketBundle, SlottedMetaPacket}
+import net.psforever.packet.{ControlPacket, GamePacket, GamePacketOpcode, PacketCoding}
 import net.psforever.packet.game._
+import net.psforever.packet.game.objectcreate.ObjectClass
+import net.psforever.types._
 import scodec.bits._
 
 import scala.concurrent.duration._
@@ -359,6 +360,398 @@ class PacketCodingActorDTest extends ActorTest {
 
       val msg = ActorTest.MDCGamePacket(PacketCoding.CreateGamePacket(0, string_obj))
       probe2 ! msg
+      receiveN(4)
+    }
+  }
+}
+
+class PacketCodingActorETest extends ActorTest {
+  "PacketCodingActor" should {
+    "unwind l-originating hexadecimal data into multiple r-facing packets (MultiPacket -> 2 PlayerStateMessageUpstream)" in {
+      val string_hex = RawPacket(hex"00 03 18 BD E8 04 5C 02  60 E3 F9 19 0E C1 41 27  00 04 02 60 20 0C 58 0B  20 00 00 18 BD E8 04 86  02 62 13 F9 19 0E D8 40  4D 00 04 02 60 20 0C 78  0A 80 00 00")
+      val string_obj1 = GamePacket(GamePacketOpcode.PlayerStateMessageUpstream, 0, PlayerStateMessageUpstream(PlanetSideGUID(1256),Vector3(3076.7188f,4734.1094f,56.390625f),Some(Vector3(4.0625f,4.59375f,0.0f)),36.5625f,357.1875f,0.0f,866,0,false,false,false,false,178,0))
+      val string_obj2 = GamePacket(GamePacketOpcode.PlayerStateMessageUpstream, 0, PlayerStateMessageUpstream(PlanetSideGUID(1256),Vector3(3077.0469f,4734.258f,56.390625f),Some(Vector3(5.5f,1.1875f,0.0f)),36.5625f,357.1875f,0.0f,867,0,false,false,false,false,168,0))
+
+      val probe1 = TestProbe()
+      val probe2 = system.actorOf(Props(classOf[ActorTest.MDCTestProbe], probe1), "mdc-probe")
+      val pca : ActorRef = system.actorOf(Props[PacketCodingActor], "pca")
+      pca ! HelloFriend(135, List(probe2).iterator)
+      probe1.receiveOne(100 milli) //consume
+
+      pca ! string_hex
+      val reply = probe1.receiveN(2, 200 milli)
+      assert(reply.head == string_obj1)
+      assert(reply(1) == string_obj2)
+      probe1.expectNoMsg(100 milli)
+    }
+  }
+}
+
+class PacketCodingActorFTest extends ActorTest {
+  "PacketCodingActor" should {
+    "unwind l-originating hexadecimal data into an r-facing packet (MultiPacket -> RelatedB + GenericObjectStateMsg)" in {
+      val string_hex = RawPacket(hex"00 03 04 00 15 02 98 0B  00 09 0C 0A 1D F2 00 10 00 00 00")
+      val string_obj = GamePacket(GamePacketOpcode.GenericObjectStateMsg, 0, GenericObjectStateMsg(PlanetSideGUID(242), 16))
+
+      val probe1 = TestProbe()
+      val probe2 = system.actorOf(Props(classOf[ActorTest.MDCTestProbe], probe1), "mdc-probe")
+      val pca : ActorRef = system.actorOf(Props[PacketCodingActor], "pca")
+      pca ! HelloFriend(135, List(probe2).iterator)
+      probe1.receiveOne(100 milli) //consume
+
+      pca ! string_hex
+      val reply = probe1.receiveN(1, 200 milli)
+      assert(reply.head == string_obj)
+      //the RelatedB message - 00 15 02 98 - is consumed by pca
+      probe1.expectNoMsg(100 milli)
+    }
+  }
+}
+
+class PacketCodingActorGTest extends ActorTest {
+  "PacketCodingActor" should {
+    "unwind l-originating hexadecimal data into an r-facing packet (MultiPacketEx -> RelatedA + GenericObjectStateMsg)" in {
+      val string_hex = RawPacket(hex"00 19 04 00 11 02 98 0B  00 09 0C 0A 1D F2 00 10 00 00 00")
+      val string_obj = GamePacket(GamePacketOpcode.GenericObjectStateMsg, 0, GenericObjectStateMsg(PlanetSideGUID(242), 16))
+
+      val probe1 = TestProbe()
+      val probe2 = system.actorOf(Props(classOf[ActorTest.MDCTestProbe], probe1), "mdc-probe")
+      val pca : ActorRef = system.actorOf(Props[PacketCodingActor], "pca")
+      pca ! HelloFriend(135, List(probe2).iterator)
+      probe1.receiveOne(100 milli) //consume
+
+      pca ! string_hex
+      val reply = probe1.receiveN(1, 200 milli)
+      assert(reply.head == string_obj)
+      //the RelatedA message - 00 11 02 98 - is consumed by pca; should see error log message in console
+      probe1.expectNoMsg(100 milli)
+    }
+  }
+}
+
+class PacketCodingActorHTest extends ActorTest {
+  "PacketCodingActor" should {
+    "unwind l-originating hexadecimal data into two r-facing packets (SlottedMetaPacket/MultiPacketEx -> 2 ObjectDeleteMessage)" in {
+      val string_hex = RawPacket(hex"00 09 0A E1 00 19 04 19  4F 04 40 04 19 51 04 40")
+      val string_obj1 = GamePacket(GamePacketOpcode.ObjectDeleteMessage, 0, ObjectDeleteMessage(PlanetSideGUID(1103), 2))
+      val string_obj2 = GamePacket(GamePacketOpcode.ObjectDeleteMessage, 0, ObjectDeleteMessage(PlanetSideGUID(1105), 2))
+
+      val probe1 = TestProbe()
+      val probe2 = system.actorOf(Props(classOf[ActorTest.MDCTestProbe], probe1), "mdc-probe")
+      val pca : ActorRef = system.actorOf(Props[PacketCodingActor], "pca")
+      pca ! HelloFriend(135, List(probe2).iterator)
+      probe1.receiveOne(100 milli) //consume
+
+      pca ! string_hex
+      val reply = probe1.receiveN(2, 200 milli)
+      assert(reply.head == string_obj1)
+      assert(reply(1) == string_obj2)
+      probe1.expectNoMsg(100 milli)
+    }
+  }
+}
+
+class PacketCodingActorITest extends ActorTest {
+  "PacketCodingActor" should {
+    "bundle an r-originating packet into an l-facing SlottedMetaPacket byte stream data (SlottedMetaPacket)" in {
+      import net.psforever.packet.game.objectcreate._
+      val obj = DetailedCharacterData(
+        CharacterAppearanceData(
+          PlacementData(Vector3.Zero, Vector3.Zero),
+          BasicCharacterData("IlllIIIlllIlIllIlllIllI", PlanetSideEmpire.VS, CharacterGender.Female, 41, 1),
+          3,
+          false,
+          false,
+          ExoSuitType.Standard,
+          "",
+          0,
+          false,
+          2.8125f, 210.9375f,
+          true,
+          GrenadeState.None,
+          false,
+          false,
+          false,
+          RibbonBars()
+        ),
+        0,
+        0,
+        100, 100,
+        50,
+        1, 7, 7,
+        100, 100,
+        List(CertificationType.StandardAssault,CertificationType.MediumAssault,CertificationType.ATV,CertificationType.Harasser,CertificationType.StandardExoSuit,CertificationType.AgileExoSuit,CertificationType.ReinforcedExoSuit),
+        List(),
+        List(),
+        List.empty,
+        None,
+        Some(InventoryData(Nil)),
+        DrawnSlot.None
+      )
+      val pkt = MultiPacketBundle(List(ObjectCreateDetailedMessage(0x79, PlanetSideGUID(75), obj)))
+      val string_hex = hex"000900001879060000bc84b000000000000000000002040000097049006c006c006c004900490049006c006c006c0049006c0049006c006c0049006c006c006c0049006c006c0049008452700000000000000000000000000000002000000fe6a703fffffffffffffffffffffffffffffffc00000000000000000000000000000000000000019001900064000001007ec800c80000000000000000000000000000000000000001c00042c54686c7000000000000000000000000000000000000000000000000000000000000000000000000200700"
+
+      val probe1 = TestProbe()
+      val probe2 = system.actorOf(Props(classOf[ActorTest.MDCTestProbe], probe1), "mdc-probe")
+      val pca : ActorRef = system.actorOf(Props[PacketCodingActor], "pca")
+      pca ! HelloFriend(135, List(probe2).iterator)
+      probe1.receiveOne(100 milli) //consume
+
+      probe2 ! pkt
+      val reply1 = receiveN(1, 200 milli) //we get a MdcMsg message back
+      probe1.receiveN(1, 200 milli) //flush contents
+      probe2 ! reply1.head //by feeding the MdcMsg into the actor, we get normal output on the probe
+      probe1.receiveOne(100 milli) match {
+        case RawPacket(data) =>
+          assert(data == string_hex)
+          PacketCoding.DecodePacket(data).require match {
+            case _ : SlottedMetaPacket =>
+              assert(true)
+            case _ =>
+              assert(false)
+          }
+        case e =>
+          assert(false)
+      }
+    }
+  }
+}
+
+class PacketCodingActorJTest extends ActorTest {
+  "PacketCodingActor" should {
+    "bundle r-originating packets into a number of MTU-acceptable l-facing byte streams (1 packets into 1)" in {
+      val pkt = MultiPacketBundle(
+        List(ObjectDeleteMessage(PlanetSideGUID(1103), 2), ObjectDeleteMessage(PlanetSideGUID(1105), 2), ObjectDeleteMessage(PlanetSideGUID(1107), 2))
+      )
+      val string_hex = hex"00090000001904194f044004195104400419530440"
+
+      val probe1 = TestProbe()
+      val probe2 = system.actorOf(Props(classOf[ActorTest.MDCTestProbe], probe1), "mdc-probe")
+      val pca : ActorRef = system.actorOf(Props[PacketCodingActor], "pca")
+      pca ! HelloFriend(135, List(probe2).iterator)
+      probe1.receiveOne(100 milli) //consume
+
+      probe2 ! pkt
+      val reply1 = receiveN(1, 200 milli) //we get a MdcMsg message back
+      probe1.receiveN(1, 200 milli) //flush contents
+      probe2 ! reply1.head //by feeding the MdcMsg into the actor, we get normal output on the probe
+      probe1.receiveOne(100 milli) match {
+        case RawPacket(data) =>
+          assert(data == string_hex)
+        case e =>
+          assert(false)
+      }
+    }
+  }
+}
+
+class PacketCodingActorKTest extends ActorTest {
+  import net.psforever.packet.game.objectcreate._
+  val obj = DetailedCharacterData(
+    CharacterAppearanceData(
+      PlacementData(Vector3.Zero, Vector3.Zero),
+      BasicCharacterData("IlllIIIlllIlIllIlllIllI", PlanetSideEmpire.VS, CharacterGender.Female, 41, 1),
+      3,
+      false,
+      false,
+      ExoSuitType.Standard,
+      "",
+      0,
+      false,
+      2.8125f, 210.9375f,
+      true,
+      GrenadeState.None,
+      false,
+      false,
+      false,
+      RibbonBars()
+    ),
+    0,
+    0,
+    100, 100,
+    50,
+    1, 7, 7,
+    100, 100,
+    List(CertificationType.StandardAssault, CertificationType.MediumAssault, CertificationType.ATV, CertificationType.Harasser, CertificationType.StandardExoSuit, CertificationType.AgileExoSuit, CertificationType.ReinforcedExoSuit),
+    List(),
+    List("xpe_sanctuary_help", "xpe_th_firemodes", "used_beamer", "map13"),
+    List.empty,
+    None,
+    Some(InventoryData(Nil)),
+    DrawnSlot.None
+  )
+  val list = List(
+    ObjectCreateDetailedMessage(0x79, PlanetSideGUID(75), obj),
+    ObjectDeleteMessage(PlanetSideGUID(1103), 2),
+    ObjectDeleteMessage(PlanetSideGUID(1105), 2),
+    ObjectCreateDetailedMessage(0x79, PlanetSideGUID(175), obj),
+    ObjectCreateDetailedMessage(0x79, PlanetSideGUID(275), obj),
+    ObjectDeleteMessage(PlanetSideGUID(1107), 2)
+  )
+
+  "PacketCodingActor" should {
+    "bundle r-originating packets into a number of MTU-acceptable l-facing byte streams (6 packets into 2)" in {
+      val pkt = MultiPacketBundle(list)
+
+      val probe1 = TestProbe()
+      val probe2 = system.actorOf(Props(classOf[ActorTest.MDCTestProbe], probe1), "mdc-probe")
+      val pca : ActorRef = system.actorOf(Props[PacketCodingActor], "pca")
+      pca ! HelloFriend(135, List(probe2).iterator)
+      probe1.receiveOne(100 milli) //consume
+
+      probe2 ! pkt
+      val reply1 = receiveN(2, 200 milli)
+      probe1.receiveN(1, 200 milli) //flush contents
+      probe2 ! reply1.head //by feeding the MdcMsg into the actor, we get normal output on the probe
+      val reply3 = probe1.receiveOne(100 milli).asInstanceOf[RawPacket]
+
+      pca ! reply3 //reconstruct original three packets from the first bundle
+      val reply4 = probe1.receiveN(3, 200 milli)
+      var i = 0
+      reply4.foreach{
+        case GamePacket(_, _, packet) =>
+          assert(packet == list(i))
+          i += 1
+        case _ =>
+          assert(false)
+      }
+    }
+  }
+}
+
+class PacketCodingActorLTest extends ActorTest {
+  val string_obj = PropertyOverrideMessage(
+    List(
+      GamePropertyScope(0,
+        GamePropertyTarget(GamePropertyTarget.game_properties, List(
+          "purchase_exempt_vs" -> "",
+          "purchase_exempt_tr" -> "",
+          "purchase_exempt_nc" -> ""
+        )
+        )),
+      GamePropertyScope(17,
+        GamePropertyTarget(ObjectClass.katana, "allowed" -> "false")
+      ),
+      GamePropertyScope(18,
+        GamePropertyTarget(ObjectClass.katana, "allowed" -> "false")
+      ),
+      GamePropertyScope(19,
+        GamePropertyTarget(ObjectClass.katana, "allowed" -> "false")
+      ),
+      GamePropertyScope(20,
+        GamePropertyTarget(ObjectClass.katana, "allowed" -> "false")
+      ),
+      GamePropertyScope(21,
+        GamePropertyTarget(ObjectClass.katana, "allowed" -> "false")
+      ),
+      GamePropertyScope(22,
+        GamePropertyTarget(ObjectClass.katana, "allowed" -> "false")
+      ),
+      GamePropertyScope(29, List(
+        GamePropertyTarget(ObjectClass.aphelion_flight, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.aphelion_gunner, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.aurora, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.battlewagon, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.colossus_flight, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.colossus_gunner, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.flail, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.galaxy_gunship, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.lasher, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.liberator, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.lightgunship, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.maelstrom, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.magrider, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.mini_chaingun, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.peregrine_flight, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.peregrine_gunner, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.prowler, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.r_shotgun, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.thunderer, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.vanguard, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.vulture, "allowed" -> "false")
+      )),
+      GamePropertyScope(30, List(
+        GamePropertyTarget(ObjectClass.aphelion_flight, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.aphelion_gunner, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.aurora, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.battlewagon, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.colossus_flight, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.colossus_gunner, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.flail, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.galaxy_gunship, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.lasher, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.liberator, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.lightgunship, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.maelstrom, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.magrider, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.mini_chaingun, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.peregrine_flight, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.peregrine_gunner, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.prowler, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.r_shotgun, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.thunderer, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.vanguard, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.vulture, "allowed" -> "false")
+      )),
+      GamePropertyScope(31, List(
+        GamePropertyTarget(ObjectClass.aphelion_flight, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.aphelion_gunner, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.aurora, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.battlewagon, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.colossus_flight, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.colossus_gunner, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.flail, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.galaxy_gunship, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.lasher, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.liberator, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.lightgunship, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.maelstrom, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.magrider, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.mini_chaingun, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.peregrine_flight, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.peregrine_gunner, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.prowler, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.r_shotgun, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.thunderer, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.vanguard, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.vulture, "allowed" -> "false")
+      )),
+      GamePropertyScope(32, List(
+        GamePropertyTarget(ObjectClass.aphelion_flight, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.aphelion_gunner, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.aurora, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.battlewagon, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.colossus_flight, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.colossus_gunner, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.flail, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.galaxy_gunship, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.lasher, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.liberator, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.lightgunship, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.maelstrom, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.magrider, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.mini_chaingun, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.peregrine_flight, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.peregrine_gunner, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.prowler, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.r_shotgun, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.thunderer, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.vanguard, "allowed" -> "false"),
+        GamePropertyTarget(ObjectClass.vulture, "allowed" -> "false")
+      ))
+    )
+  )
+
+  "PacketCodingActor" should {
+    "split, rather than bundle, r-originating packets into a number of MTU-acceptable l-facing byte streams" in {
+      val probe1 = TestProbe()
+      val probe2 = system.actorOf(Props(classOf[ActorTest.MDCTestProbe], probe1), "mdc-probe")
+      val pca : ActorRef = system.actorOf(Props[PacketCodingActor], "pca")
+      pca ! HelloFriend(135, List(probe2).iterator)
+      probe1.receiveOne(100 milli) //consume
+
+      val msg = MultiPacketBundle(List(string_obj))
+      pca ! msg
       receiveN(4)
     }
   }

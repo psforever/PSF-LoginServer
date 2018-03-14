@@ -13,11 +13,18 @@ import net.psforever.packet.PlanetSidePacket
   *                the only way to access these packets is through pattern matching
   */
 final case class MultiPacketBundle(private var packets : List[PlanetSidePacket]) {
-  packets match {
+  MultiPacketBundle.collectValidPackets(packets) match {
     case Nil =>
       throw new IllegalArgumentException("can not create with zero packets")
+    case list =>
+      packets = list
+  }
+
+  def +(t : MultiPacketBundle) : MultiPacketBundle = t match {
+    case MultiPacketBundle(list) =>
+      MultiPacketBundle(packets ++ list)
     case _ =>
-      packets = MultiPacketBundle.collectValidPackets(packets)
+      MultiPacketBundle(packets)
   }
 }
 
@@ -39,19 +46,14 @@ object MultiPacketBundle {
     })
     if(bad.nonEmpty) {
       org.log4s.getLogger("MultiPacketBundle")
-        .warn(s"attempted to include packet types that are on the whitelist; ${bad.size} items have been excluded")
+        .warn(s"attempted to include packet types that are not in the whitelist; ${bad.size} items have been excluded")
     }
     good
   }
 }
 
 /**
-  * Accumulator for packets that will eventually be bundled and submitted for composing a `MultiPacketEx` packet.<br>
-  * <br>
-  * The accumulator is intended to be a disposable convenience class to incrementally construct a `MultiPacketBundle`.
-  * Packets can only be added on top of the existing internal collection and can not be removed.
-  * (Overloaded methods for adding packets from various sources also exist.)
-  * Additionally, retrieving a copy of the collection via a `MultiPacketBundle` does not empty the collection.
+  * Accumulator for packets that will eventually be bundled and submitted for composing a `MultiPacketEx` packet.
   */
 class MultiPacketCollector() {
   private var bundle : List[PlanetSidePacket] = List.empty
@@ -64,14 +66,27 @@ class MultiPacketCollector() {
   }
 
   def Add(t : List[PlanetSidePacket]) : Unit = {
-    bundle = bundle ++ t
+    if(t.nonEmpty) {
+      bundle = bundle ++ t
+    }
   }
 
   /**
     * Retrieve the internal collection of packets.
+    * Reset the internal list of packets by clearing it.
     * @return a loaded `MultiPacketBundle` object
     */
-  def Bundle : MultiPacketBundle = MultiPacketBundle(bundle)
+  def Bundle : MultiPacketBundle =  {
+    try {
+      val out = MultiPacketBundle(bundle)
+      bundle = List.empty
+      out
+    }
+    catch {
+      case _ : Exception => //catch and rethrow the exception
+        throw new RuntimeException("no packets")
+    }
+  }
 
   /**
     * A safer `Bundle` that consumes any` Exceptions` that might be thrown in the process of producing output.
@@ -91,7 +106,18 @@ class MultiPacketCollector() {
 
 object MultiPacketCollector {
   /**
-    * Overload constructor that accepts a initial packets.
+    * Overload constructor that accepts initial packets.
+    * @param bundle previously bundled packets
+    * @return a `MultiPacketCollector` object
+    */
+  def apply(bundle : MultiPacketBundle) : MultiPacketCollector = {
+    val obj = new MultiPacketCollector()
+    obj.Add(bundle)
+    obj
+  }
+
+  /**
+    * Overload constructor that accepts initial packets.
     * @param packets a series of packets
     * @return a `MultiPacketCollector` object
     */
