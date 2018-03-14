@@ -3019,6 +3019,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
     sendResponse(cont.asInstanceOf[Any])
   }
 
+  def sendResponse(cont : MultiPacketBundle) : Unit = {
+    log.trace("WORLD SEND: " + cont)
+    sendResponse(cont.asInstanceOf[Any])
+  }
+
   def sendResponse(msg : Any) : Unit = {
     MDC("sessionId") = sessionId.toString
     rightRef !> msg

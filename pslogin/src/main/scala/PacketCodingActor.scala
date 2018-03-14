@@ -7,6 +7,9 @@ import org.log4s.MDC
 import MDCContextAware.Implicits._
 import net.psforever.packet.control._
 
+import scala.annotation.tailrec
+import scala.collection.mutable
+
 /**
   * In between the network side and the higher functioning side of the simulation:
   * accept packets and transform them into a sequence of data (encoding), and
@@ -107,19 +110,22 @@ class PacketCodingActor extends Actor with MDCContextAware {
         MDC("sessionId") = sessionId.toString
         sendResponseRight(game)
       }
+    //bundling packets into a SlottedMetaPacket0/MultiPacketEx
+    case msg @ MultiPacketBundle(list) =>
+      log.trace(s"BUNDLE PACKET REQUEST SEND, LEFT (always): $msg")
+      handleBundlePacket(list)
     //etc
     case msg =>
-      log.trace(s"PACKET SEND, LEFT: $msg")
       if(sender == rightRef) {
+        log.trace(s"BASE CASE PACKET SEND, LEFT: $msg")
         MDC("sessionId") = sessionId.toString
         leftRef !> msg
       }
       else {
+        log.trace(s"BASE CASE PACKET SEND, RIGHT: $msg")
         MDC("sessionId") = sessionId.toString
         rightRef !> msg
       }
-//    case default =>
-//      failWithError(s"Invalid message '$default' received in state Established")
   }
 
   /**
@@ -175,14 +181,62 @@ class PacketCodingActor extends Actor with MDCContextAware {
   def handleSplitPacket(data : ByteVector) : Unit = {
     val lim = PacketCodingActor.MTU_LIMIT_BYTES - 4 //4 bytes is the base size of SlottedMetaPacket
     data.grouped(lim).foreach(bvec => {
-      val pkt = PacketCoding.CreateControlPacket(SlottedMetaPacket(4, Subslot, bvec))
-      PacketCoding.EncodePacket(pkt.packet) match {
+      PacketCoding.EncodePacket(SlottedMetaPacket(4, Subslot, bvec)) match {
         case Successful(bdata) =>
           sendResponseLeft(bdata.toByteVector)
         case f : Failure =>
           log.error(s"$f")
       }
     })
+  }
+
+  /**
+    * Accept a `List` of packets and sequentially re-package the elements from the list into multiple container packets.<br>
+    * <br>
+    * The original packets are encoded then paired with their encoding lengths plus extra space to prefix the length.
+    * Encodings from these pairs are drawn from the list until into buckets that fit a maximum byte stream length.
+    * The size limitation on any bucket is the mtu limit
+    * less by the base sizes of `MultiPacketEx` (2) and of `SlottedMetaPacket` (4).
+    * @param bundle the packets to be bundled
+    */
+  def handleBundlePacket(bundle : List[PlanetSidePacket]) : Unit = {
+    val packets : List[(ByteVector, Int)] = recursiveEncode(bundle.iterator).map( pkt => {
+      pkt -> {
+        val len = pkt.length.toInt
+        len + (if(len < 256) { 1 } else if(len < 65536) { 2 } else { 4 }) //space for the prefixed length byte(s)
+      }
+    })
+    recursiveFillPacketBuckets(packets.iterator, PacketCodingActor.MTU_LIMIT_BYTES - 6)
+      .foreach( list => {
+        handleBundlePacket(list.toVector)
+      })
+  }
+
+  /**
+    * Accept a `Vector` of encoded packets and re-package them into a `MultiPacketEx`.
+    * @param vec a specific number of byte streams
+    */
+  def handleBundlePacket(vec : Vector[ByteVector]) : Unit = {
+    PacketCoding.EncodePacket(MultiPacketEx(vec)) match {
+      case Successful(bdata) =>
+        handleBundlePacket(bdata.toByteVector)
+      case Failure(e) =>
+        log.warn(s"bundling failed on MultiPacketEx creation: - $e")
+    }
+  }
+
+  /**
+    * Accept `ByteVector` data and package it into a `SlottedMetaPacket`.
+    * Send it (towards the network) upon successful encoding.
+    * @param data an encoded packet
+    */
+  def handleBundlePacket(data : ByteVector) : Unit = {
+    PacketCoding.EncodePacket(SlottedMetaPacket(0, Subslot, data)) match {
+      case Successful(bdata) =>
+        sendResponseLeft(bdata.toByteVector)
+      case Failure(e) =>
+        log.warn(s"bundling failed on SlottedMetaPacket creation: - $e")
+    }
   }
 
   /**
@@ -269,6 +323,53 @@ class PacketCodingActor extends Actor with MDCContextAware {
     log.trace("PACKET SEND, RIGHT: " + cont)
     MDC("sessionId") = sessionId.toString
     rightRef !> cont
+  }
+
+  /** WIP */
+
+  @tailrec private def recursiveEncode(iter : Iterator[PlanetSidePacket], out : List[ByteVector] = List()) : List[ByteVector] = {
+    if(!iter.hasNext) {
+      out
+    }
+    else {
+      import net.psforever.packet.{PlanetSideControlPacket, PlanetSideGamePacket}
+      iter.next match {
+        case msg : PlanetSideGamePacket =>
+          PacketCoding.EncodePacket(msg) match {
+            case Successful(bytecode) =>
+              recursiveEncode(iter, out :+ bytecode.toByteVector)
+            case Failure(e) =>
+              log.warn(s"game packet $msg, part of a bundle, did not encode - $e")
+              recursiveEncode(iter, out)
+          }
+        case msg : PlanetSideControlPacket =>
+          PacketCoding.EncodePacket(msg) match {
+            case Successful(bytecode) =>
+              recursiveEncode(iter, out :+ bytecode.toByteVector)
+            case Failure(e) =>
+              log.warn(s"control packet $msg, part of a bundle, did not encode - $e")
+              recursiveEncode(iter, out)
+          }
+        case _ =>
+          recursiveEncode(iter, out)
+      }
+    }
+  }
+
+  @tailrec private def recursiveFillPacketBuckets(iter : Iterator[(ByteVector, Int)], lim : Int, currLen : Int = 0, out : List[mutable.ListBuffer[ByteVector]] = List(mutable.ListBuffer())) : List[mutable.ListBuffer[ByteVector]] = {
+    if(!iter.hasNext) {
+      out
+    }
+    else {
+      val (data, len) = iter.next
+      if(currLen + len > lim) {
+        recursiveFillPacketBuckets(iter, lim, len, out :+ mutable.ListBuffer(data))
+      }
+      else {
+        out.last += data
+        recursiveFillPacketBuckets(iter, lim, currLen + len, out)
+      }
+    }
   }
 }
 
