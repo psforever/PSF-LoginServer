@@ -87,8 +87,8 @@ final case class Additional3(unk1 : Boolean,
   * 064 - Health Module<br>
   * 128 - Pain Module<br>
   * `
-  * @param continent_guid the continent (zone)
-  * @param building_guid the building
+  * @param continent_id the continent (zone)
+  * @param building_id the building
   * @param ntu_level if the building has a silo, the amount of NTU in that silo;
   *                  NTU is reported in multiples of 10%;
   *                  valid for 0 (0%) to 10 (100%)
@@ -117,8 +117,8 @@ final case class Additional3(unk1 : Boolean,
   * @param boost_spawn_pain if the building has spawn tubes, the (boosted) strength of its enemy pain field
   * @param boost_generator_pain if the building has a generator, the (boosted) strength of its enemy pain field
   */
-final case class BuildingInfoUpdateMessage(continent_guid : PlanetSideGUID,
-                                           building_guid : PlanetSideGUID,
+final case class BuildingInfoUpdateMessage(continent_id : Int,
+                                           building_id : Int,
                                            ntu_level : Int,
                                            is_hacked : Boolean,
                                            empire_hack : PlanetSideEmpire.Value,
@@ -171,8 +171,8 @@ object BuildingInfoUpdateMessage extends Marshallable[BuildingInfoUpdateMessage]
     ).as[Additional3]
 
   implicit val codec : Codec[BuildingInfoUpdateMessage] = (
-      ("continent_guid" | PlanetSideGUID.codec) ::
-      ("building_guid" | PlanetSideGUID.codec) ::
+      ("continent_id" | uint16L) ::
+      ("building_id" | uint16L) ::
       ("ntu_level" | uint4L) ::
       ("is_hacked" | bool ) ::
       ("empire_hack" | PlanetSideEmpire.codec) ::

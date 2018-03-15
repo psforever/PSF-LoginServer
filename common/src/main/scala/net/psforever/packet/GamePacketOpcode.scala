@@ -436,8 +436,8 @@ object GamePacketOpcode extends Enumeration {
     case 0x60 => game.FavoritesMessage.decode
     case 0x61 => game.ObjectDetectedMessage.decode
     case 0x62 => game.SplashHitMessage.decode
-    case 0x63 => noDecoder(SetChatFilterMessage)
-    case 0x64 => noDecoder(AvatarSearchCriteriaMessage)
+    case 0x63 => game.SetChatFilterMessage.decode
+    case 0x64 => game.AvatarSearchCriteriaMessage.decode
     case 0x65 => noDecoder(AvatarSearchResponse)
     case 0x66 => game.WeaponJammedMessage.decode
     case 0x67 => noDecoder(LinkDeadAwarenessMsg)
@@ -468,7 +468,7 @@ object GamePacketOpcode extends Enumeration {
     case 0x7c => game.DismountBuildingMsg.decode
     case 0x7d => noDecoder(UnknownMessage125)
     case 0x7e => noDecoder(UnknownMessage126)
-    case 0x7f => noDecoder(AvatarStatisticsMessage)
+    case 0x7f => game.AvatarStatisticsMessage.decode
 
     // OPCODES 0x80-8f
     case 0x80 => noDecoder(GenericObjectAction2Message)
@@ -561,7 +561,7 @@ object GamePacketOpcode extends Enumeration {
     case 0xca => noDecoder(OutfitBenefitMessage)
     case 0xcb => noDecoder(EmpireChangeTimeMessage)
     case 0xcc => noDecoder(ClockCalibrationMessage)
-    case 0xcd => noDecoder(DensityLevelUpdateMessage)
+    case 0xcd => game.DensityLevelUpdateMessage.decode
     case 0xce => noDecoder(ActOfGodMessage)
     case 0xcf => noDecoder(AvatarAwardMessage)
 

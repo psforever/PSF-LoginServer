@@ -17,17 +17,17 @@ import scodec.codecs._
   * I believe these `Boolean` values actually indicate some measure of warpgate operation.
   * Geowarps, for example, though their appearance does not change, recieve this packet.
   * Moreover, they can operate as a receiving-end broadcast gate.
-  * @param continent_guid identifies the zone (continent)
-  * @param building_guid identifies the warpgate (see `BuildingInfoUpdateMessage`)
+  * @param continent_id the zone
+  * @param building_id the warp gate (see `BuildingInfoUpdateMessage`)
   * @param unk1 na
   * @param unk2 na
-  * @param is_broadcast if true, the gate replaces its destination text with "Broadcast"
+  * @param broadcast if true, the gate replaces its destination text with "Broadcast"
   */
-final case class BroadcastWarpgateUpdateMessage(continent_guid : PlanetSideGUID,
-                                                building_guid : PlanetSideGUID,
+final case class BroadcastWarpgateUpdateMessage(continent_id : Int,
+                                                building_id : Int,
                                                 unk1 : Boolean,
                                                 unk2 : Boolean,
-                                                is_broadcast : Boolean)
+                                                broadcast : Boolean)
   extends PlanetSideGamePacket {
   type Packet = BroadcastWarpgateUpdateMessage
   def opcode = GamePacketOpcode.BroadcastWarpgateUpdateMessage
@@ -36,10 +36,10 @@ final case class BroadcastWarpgateUpdateMessage(continent_guid : PlanetSideGUID,
 
 object BroadcastWarpgateUpdateMessage extends Marshallable[BroadcastWarpgateUpdateMessage] {
   implicit val codec : Codec[BroadcastWarpgateUpdateMessage] = (
-    ("continent_guid" | PlanetSideGUID.codec) ::
-      ("building_guid" | PlanetSideGUID.codec) ::
+    ("continent_id" | uint16L) ::
+      ("building_id" | uint16L) ::
       ("unk1" | bool) ::
       ("unk2" | bool) ::
-      ("is_broadcast" | bool)
+      ("broadcast" | bool)
     ).as[BroadcastWarpgateUpdateMessage]
 }

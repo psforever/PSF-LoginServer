@@ -32,7 +32,7 @@ import scodec.codecs._
   * Sanctuary zones possess strange queue values that are occasionally zero'd.
   * They do not have a lock icon and may not limit populations the same way as normal zones.
   *
-  * @param continent_guid identifies the zone (continent)
+  * @param zone_id the continent
   * @param zone_queue the maximum population of all three (four) empires that can join this zone
   * @param tr_queue the maximum number of TR players that can join this zone
   * @param tr_pop the current TR population in this zone
@@ -43,7 +43,7 @@ import scodec.codecs._
   * @param bo_queue the maximum number of Black OPs players that can join this zone
   * @param bo_pop the current Black OPs population in this zone
   */
-final case class ZonePopulationUpdateMessage(continent_guid : PlanetSideGUID,
+final case class ZonePopulationUpdateMessage(zone_id : Int,
                                              zone_queue : Long,
                                              tr_queue : Long,
                                              tr_pop : Long,
@@ -61,7 +61,7 @@ final case class ZonePopulationUpdateMessage(continent_guid : PlanetSideGUID,
 
 object ZonePopulationUpdateMessage extends Marshallable[ZonePopulationUpdateMessage] {
   implicit val codec : Codec[ZonePopulationUpdateMessage] = (
-    ("continent_guid" | PlanetSideGUID.codec) ::
+    ("zone_id" | uint16L) ::
       ("zone_queue" | uint32L) ::
       ("tr_queue" | uint32L) :: ("tr_pop" | uint32L) ::
       ("nc_queue" | uint32L) :: ("nc_pop" | uint32L) ::

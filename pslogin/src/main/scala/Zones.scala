@@ -39,7 +39,7 @@ object Zones {
       super.Init(context)
 
       import net.psforever.types.PlanetSideEmpire
-      Building(2).get.Faction = PlanetSideEmpire.VS //HART building C
+      Buildings.values.foreach(building => { building.Faction = PlanetSideEmpire.VS })
       Building(29).get.Faction = PlanetSideEmpire.NC //South Villa Gun Tower
     }
   }

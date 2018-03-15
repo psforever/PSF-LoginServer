@@ -12,7 +12,7 @@ class ZonePopulationUpdateMessageTest extends Specification {
   "decode" in {
     PacketCoding.DecodePacket(string).require match {
       case ZonePopulationUpdateMessage(continent_guid, zone_queue, tr_queue, tr_pop, nc_queue, nc_pop, vs_queue, vs_pop, bo_queue, bo_pop) =>
-        continent_guid mustEqual PlanetSideGUID(4)
+        continent_guid mustEqual 4
         zone_queue mustEqual 414
         tr_queue mustEqual 138
         tr_pop mustEqual 37
@@ -28,7 +28,7 @@ class ZonePopulationUpdateMessageTest extends Specification {
   }
 
   "encode" in {
-    val msg = ZonePopulationUpdateMessage(PlanetSideGUID(4), 414, 138, 37, 138, 37, 138, 37, 138, 37)
+    val msg = ZonePopulationUpdateMessage(4, 414, 138, 37, 138, 37, 138, 37, 138, 37)
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string

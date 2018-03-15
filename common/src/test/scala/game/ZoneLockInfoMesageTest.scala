@@ -12,7 +12,7 @@ class ZoneLockInfoMesageTest extends Specification {
   "decode" in {
     PacketCoding.DecodePacket(string).require match {
       case ZoneLockInfoMessage(zone, locked, unk) =>
-        zone mustEqual PlanetSideGUID(27)
+        zone mustEqual 27
         locked mustEqual false
         unk mustEqual true
       case _ =>
@@ -21,7 +21,7 @@ class ZoneLockInfoMesageTest extends Specification {
   }
 
   "encode" in {
-    val msg = ZoneLockInfoMessage(PlanetSideGUID(27), false, true)
+    val msg = ZoneLockInfoMessage(27, false, true)
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string

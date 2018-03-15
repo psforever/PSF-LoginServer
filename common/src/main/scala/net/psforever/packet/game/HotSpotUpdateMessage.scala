@@ -32,13 +32,13 @@ final case class HotSpotInfo(x : Float,
   * <br>
   * Exploration:<br>
   * What does (zone) priority entail?
-  * @param continent_guid the zone (continent)
+  * @param continent_id the zone
   * @param priority na
   * @param spots a List of HotSpotInfo
   */
-final case class HotSpotUpdateMessage(continent_guid : PlanetSideGUID,
+final case class HotSpotUpdateMessage(continent_id : Int,
                                       priority : Int,
-                                      spots : List[HotSpotInfo] = Nil)
+                                      spots : List[HotSpotInfo])
   extends PlanetSideGamePacket {
   type Packet = HotSpotUpdateMessage
   def opcode = GamePacketOpcode.HotSpotUpdateMessage
@@ -47,9 +47,9 @@ final case class HotSpotUpdateMessage(continent_guid : PlanetSideGUID,
 
 object HotSpotInfo extends Marshallable[HotSpotInfo] {
   /*
-  the scale is technically not "correct"
-  the client is looking for a normal 0-8192 value
-  we are trying to enforce a more modest graphic scale at 128.0f
+  the client is looking for a normal 0-8192 value where default is 1.0f
+  we try to enforce a more modest graphic scale where default is 64.0f (arbitrary)
+  personally, I'd like scale to equal the sprite width in map units but the pulsation makes it hard to apply
    */
   implicit val codec : Codec[HotSpotInfo] = {
     ("x" | newcodecs.q_float(0.0, 8192.0, 20)) ::
@@ -60,8 +60,8 @@ object HotSpotInfo extends Marshallable[HotSpotInfo] {
 
 object HotSpotUpdateMessage extends Marshallable[HotSpotUpdateMessage] {
   implicit val codec : Codec[HotSpotUpdateMessage] = (
-    ("continent_guid" | PlanetSideGUID.codec) ::
+    ("continent_guid" | uint16L) ::
       ("priority" | uint4L) ::
-      ("spots" | PacketHelpers.listOfNAligned(longL(8), 4, HotSpotInfo.codec))
+      ("spots" | PacketHelpers.listOfNAligned(longL(12), 0, HotSpotInfo.codec))
     ).as[HotSpotUpdateMessage]
 }
