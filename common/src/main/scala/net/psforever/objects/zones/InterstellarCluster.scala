@@ -49,9 +49,9 @@ class InterstellarCluster(zones : List[Zone]) extends Actor {
           log.error(s"Requested zone $zoneId could not be found")
       }
 
-    case InterstellarCluster.RequestClientInitialization(tplayer) =>
+    case InterstellarCluster.RequestClientInitialization() =>
       zones.foreach(zone => { sender ! Zone.ClientInitialization(zone.ClientInitialization()) })
-      sender ! InterstellarCluster.ClientInitializationComplete(tplayer) //will be processed after all Zones
+      sender ! InterstellarCluster.ClientInitializationComplete() //will be processed after all Zones
 
     case _ => ;
   }
@@ -95,17 +95,13 @@ object InterstellarCluster {
 
   /**
     * Signal to the cluster that a new client needs to be initialized for all listed `Zone` destinations.
-    * @param tplayer the `Player` belonging to the client;
-    *                may be superfluous
     * @see `Zone`
     */
-  final case class RequestClientInitialization(tplayer : Player)
+  final case class RequestClientInitialization()
 
   /**
     * Return signal intended to inform the original sender that all `Zone`s have finished being initialized.
-    * @param tplayer the `Player` belonging to the client;
-    *                may be superfluous
     * @see `WorldSessionActor`
     */
-  final case class ClientInitializationComplete(tplayer : Player)
+  final case class ClientInitializationComplete()
 }

@@ -5,7 +5,14 @@ import net.psforever.packet.{GamePacketOpcode, Marshallable, PlanetSideGamePacke
 import scodec.Codec
 import scodec.codecs._
 
-
+/**
+  *
+  * @param unk1 na
+  * @param unk2 na
+  * @param unk3 na
+  * @param unk4 na
+  * @param unk5 continent?
+  */
 final case class SpawnRequestMessage(unk1 : Int,
                                      unk2 : Long,
                                      unk3 : Int,

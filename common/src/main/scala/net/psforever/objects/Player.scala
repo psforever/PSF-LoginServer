@@ -615,7 +615,7 @@ object Player {
 
   def Release(player : Player) : Player = {
     if(player.Release) {
-      val obj = new Player(player.Name, player.Faction, player.Sex, player.Voice, player.Head)
+      val obj = new Player(player.Name, player.Faction, player.Sex, player.Head, player.Voice)
       obj.VehicleOwned = player.VehicleOwned
       obj.Continent = player.Continent
       //hand over loadouts
@@ -629,11 +629,11 @@ object Player {
         }
       })
       //hand over knife
-      obj.Slot(4).Equipment = player.Slot(4).Equipment
-      player.Slot(4).Equipment = None
-      //hand over ???
-      obj.fifthSlot.Equipment = player.fifthSlot.Equipment
-      player.fifthSlot.Equipment = None
+//      obj.Slot(4).Equipment = player.Slot(4).Equipment
+//      player.Slot(4).Equipment = None
+      //hand over locker contents
+//      obj.fifthSlot.Equipment = player.fifthSlot.Equipment
+//      player.fifthSlot.Equipment = None
       obj
     }
     else {

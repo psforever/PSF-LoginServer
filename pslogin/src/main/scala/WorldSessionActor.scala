@@ -28,6 +28,7 @@ import net.psforever.objects.serverobject.terminals.Terminal.TerminalMessage
 import net.psforever.objects.vehicles.{AccessPermissionGroup, Utility, VehicleLockState}
 import net.psforever.objects.serverobject.structures.{Building, WarpGate}
 import net.psforever.objects.serverobject.terminals.Terminal
+import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.vehicles.{AccessPermissionGroup, VehicleLockState}
 import net.psforever.objects.zones.{InterstellarCluster, Zone}
 import net.psforever.packet.game.objectcreate._
@@ -152,14 +153,15 @@ class WorldSessionActor extends Actor with MDCContextAware {
       sendResponse(KeepAliveMessage())
 
     case AvatarServiceResponse(_, guid, reply) =>
+      val tplayer_guid = if(player.HasGUID) { player.GUID} else { PlanetSideGUID(0) }
       reply match {
         case AvatarResponse.ArmorChanged(suit, subtype) =>
-          if(player.GUID != guid) {
+          if(tplayer_guid != guid) {
             sendResponse(ArmorChangedMessage(guid, suit, subtype))
           }
 
         case AvatarResponse.ChangeAmmo(weapon_guid, weapon_slot, previous_guid, ammo_id, ammo_guid, ammo_data) =>
-          if(player.GUID != guid) {
+          if(tplayer_guid != guid) {
             sendResponse(ObjectDetachMessage(weapon_guid, previous_guid, Vector3(0,0,0), 0f, 0f, 0f))
             sendResponse(
               ObjectCreateMessage(
@@ -173,27 +175,27 @@ class WorldSessionActor extends Actor with MDCContextAware {
           }
 
         case AvatarResponse.ChangeFireMode(item_guid, mode) =>
-          if(player.GUID != guid) {
+          if(tplayer_guid != guid) {
             sendResponse(ChangeFireModeMessage(item_guid, mode))
           }
 
         case AvatarResponse.ChangeFireState_Start(weapon_guid) =>
-          if(player.GUID != guid) {
+          if(tplayer_guid != guid) {
             sendResponse(ChangeFireStateMessage_Start(weapon_guid))
           }
 
         case AvatarResponse.ChangeFireState_Stop(weapon_guid) =>
-          if(player.GUID != guid) {
+          if(tplayer_guid != guid) {
             sendResponse(ChangeFireStateMessage_Stop(weapon_guid))
           }
 
         case AvatarResponse.ConcealPlayer() =>
-          if(player.GUID != guid) {
+          if(tplayer_guid != guid) {
             sendResponse(GenericObjectActionMessage(guid, 36))
           }
 
         case AvatarResponse.EquipmentInHand(slot, item) =>
-          if(player.GUID != guid) {
+          if(tplayer_guid != guid) {
             val definition = item.Definition
             sendResponse(
               ObjectCreateMessage(
@@ -206,7 +208,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           }
 
         case AvatarResponse.EquipmentOnGround(pos, orient, item_id, item_guid, item_data) =>
-          if(player.GUID != guid) {
+          if(tplayer_guid != guid) {
             sendResponse(
               ObjectCreateMessage(
                 item_id,
@@ -217,27 +219,27 @@ class WorldSessionActor extends Actor with MDCContextAware {
           }
 
         case AvatarResponse.LoadPlayer(pdata) =>
-          if(player.GUID != guid) {
+          if(tplayer_guid != guid) {
             sendResponse(ObjectCreateMessage(ObjectClass.avatar, guid, pdata))
           }
 
         case AvatarResponse.ObjectDelete(item_guid, unk) =>
-          if(player.GUID != guid) {
+          if(tplayer_guid != guid) {
             sendResponse(ObjectDeleteMessage(item_guid, unk))
           }
 
         case AvatarResponse.ObjectHeld(slot) =>
-          if(player.GUID != guid) {
+          if(tplayer_guid != guid) {
             sendResponse(ObjectHeldMessage(guid, slot, false))
           }
 
         case AvatarResponse.PlanetsideAttribute(attribute_type, attribute_value) =>
-          if(player.GUID != guid) {
+          if(tplayer_guid != guid) {
             sendResponse(PlanetsideAttributeMessage(guid, attribute_type, attribute_value))
           }
 
         case AvatarResponse.PlayerState(msg, spectating, weaponInHand) =>
-          if(player.GUID != guid) {
+          if(tplayer_guid != guid) {
             val now = System.currentTimeMillis()
 
             val (location, time, distanceSq) : (Vector3, Long, Float) = if(spectating) {
@@ -278,12 +280,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
           }
 
         case AvatarResponse.Reload(item_guid) =>
-          if(player.GUID != guid) {
+          if(tplayer_guid != guid) {
             sendResponse(ReloadMessage(item_guid, 1, 0))
           }
 
         case AvatarResponse.WeaponDryFire(weapon_guid) =>
-          if(player.GUID != guid) {
+          if(tplayer_guid != guid) {
             sendResponse(WeaponDryFireMessage(weapon_guid))
           }
 
@@ -291,9 +293,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
       }
 
     case LocalServiceResponse(_, guid, reply) =>
+      val tplayer_guid = if(player.HasGUID) { player.GUID} else { PlanetSideGUID(0) }
       reply match {
         case LocalResponse.DoorOpens(door_guid) =>
-          if(player.GUID != guid) {
+          if(tplayer_guid != guid) {
             sendResponse(GenericObjectStateMsg(door_guid, 16))
           }
 
@@ -315,28 +318,29 @@ class WorldSessionActor extends Actor with MDCContextAware {
       }
 
     case VehicleServiceResponse(_, guid, reply) =>
+      val tplayer_guid = if(player.HasGUID) { player.GUID} else { PlanetSideGUID(0) }
       reply match {
         case VehicleResponse.Awareness(vehicle_guid) =>
           //resets exclamation point fte marker (once)
           sendResponse(PlanetsideAttributeMessage(guid, 21, vehicle_guid.guid.toLong))
 
         case VehicleResponse.ChildObjectState(object_guid, pitch, yaw) =>
-          if(player.GUID != guid) {
+          if(tplayer_guid != guid) {
             sendResponse(ChildObjectStateMessage(object_guid, pitch, yaw))
           }
 
         case VehicleResponse.DismountVehicle(unk1, unk2) =>
-          if(player.GUID != guid) {
+          if(tplayer_guid != guid) {
             sendResponse(DismountVehicleMsg(guid, unk1, unk2))
           }
 
         case VehicleResponse.DeployRequest(object_guid, state, unk1, unk2, pos) =>
-          if(player.GUID != guid) {
+          if(tplayer_guid != guid) {
             sendResponse(DeployRequestMessage(guid, object_guid, state, unk1, unk2, pos))
           }
 
         case VehicleResponse.InventoryState(obj, parent_guid, start, con_data) =>
-          if(player.GUID != guid) {
+          if(tplayer_guid != guid) {
             //TODO prefer ObjectDetachMessage, but how to force ammo pools to update properly?
             val obj_guid = obj.GUID
             sendResponse(ObjectDeleteMessage(obj_guid, 0))
@@ -352,7 +356,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
         case VehicleResponse.KickPassenger(unk1, unk2, vehicle_guid) =>
           sendResponse(DismountVehicleMsg(guid, unk1, unk2))
-          if(guid == player.GUID) {
+          if(tplayer_guid == guid) {
             continent.GUID(vehicle_guid) match {
               case Some(obj : Vehicle) =>
                 UnAccessContents(obj)
@@ -362,23 +366,23 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
         case VehicleResponse.LoadVehicle(vehicle, vtype, vguid, vdata) =>
           //this is not be suitable for vehicles with people who are seated in it before it spawns (if that is possible)
-          if(player.GUID != guid) {
+          if(tplayer_guid != guid) {
             sendResponse(ObjectCreateMessage(vtype, vguid, vdata))
             ReloadVehicleAccessPermissions(vehicle)
           }
 
         case VehicleResponse.MountVehicle(vehicle_guid, seat) =>
-          if(player.GUID != guid) {
+          if(tplayer_guid != guid) {
             sendResponse(ObjectAttachMessage(vehicle_guid, guid, seat))
           }
 
         case VehicleResponse.SeatPermissions(vehicle_guid, seat_group, permission) =>
-          if(player.GUID != guid) {
+          if(tplayer_guid != guid) {
             sendResponse(PlanetsideAttributeMessage(vehicle_guid, seat_group, permission))
           }
 
         case VehicleResponse.StowEquipment(vehicle_guid, slot, item_type, item_guid, item_data) =>
-          if(player.GUID != guid) {
+          if(tplayer_guid != guid) {
             //TODO prefer ObjectAttachMessage, but how to force ammo pools to update properly?
             sendResponse(
               ObjectCreateDetailedMessage(item_type, item_guid, ObjectCreateMessageParent(vehicle_guid, slot), item_data)
@@ -389,13 +393,13 @@ class WorldSessionActor extends Actor with MDCContextAware {
           sendResponse(ObjectDeleteMessage(vehicle_guid, 0))
 
         case VehicleResponse.UnstowEquipment(item_guid) =>
-          if(player.GUID != guid) {
+          if(tplayer_guid != guid) {
             //TODO prefer ObjectDetachMessage, but how to force ammo pools to update properly?
             sendResponse(ObjectDeleteMessage(item_guid, 0))
           }
 
         case VehicleResponse.VehicleState(vehicle_guid, unk1, pos, ang, vel, unk2, unk3, unk4, wheel_direction, unk5, unk6) =>
-          if(player.GUID != guid) {
+          if(tplayer_guid != guid) {
             sendResponse(VehicleStateMessage(vehicle_guid, unk1, pos, ang, vel, unk2, unk3, unk4, wheel_direction, unk5, unk6))
             if(player.VehicleSeated.contains(vehicle_guid)) {
               player.Position = pos
@@ -962,23 +966,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
       sendResponse(CharacterInfoMessage(0, PlanetSideZoneID(1), 0, PlanetSideGUID(0), true, 0))
 
-    case InterstellarCluster.GiveWorld(zoneId, zone) =>
-      log.info(s"Zone $zoneId has been loaded")
-      player.Continent = zoneId
-      continent = zone
-      taskResolver ! RegisterAvatar(player)
-
-    case PlayerLoaded(tplayer) =>
-      log.info(s"Player $tplayer has been loaded")
-      //init for whole server
-      galaxy ! InterstellarCluster.RequestClientInitialization(tplayer)
-
-    case PlayerFailedToLoad(tplayer) =>
-      player.Continent match {
-        case _ =>
-          failWithError(s"$tplayer failed to load anywhere")
-      }
-
     case VehicleLoaded(_/*vehicle*/) => ;
       //currently being handled by VehicleSpawnPad.LoadVehicle during testing phase
 
@@ -1001,23 +988,36 @@ class WorldSessionActor extends Actor with MDCContextAware {
       sendResponse(ZoneForcedCavernConnectionsMessage(continentNumber, 0))
       sendResponse(HotSpotUpdateMessage(continentNumber, 1, Nil)) //normally set in bulk; should be fine doing per continent
 
-    case InterstellarCluster.ClientInitializationComplete(tplayer)=>
+    case InterstellarCluster.ClientInitializationComplete() =>
       //PropertyOverrideMessage
       sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 112, 1))
       sendResponse(ReplicationStreamMessage(5, Some(6), Vector(SquadListing()))) //clear squad list
       sendResponse(FriendsResponse(FriendAction.InitializeFriendList, 0, true, true, Nil))
       sendResponse(FriendsResponse(FriendAction.InitializeIgnoreList, 0, true, true, Nil))
+      galaxy ! InterstellarCluster.GetWorld("z6")
 
+    case InterstellarCluster.GiveWorld(zoneId, zone) =>
+      log.info(s"Zone $zoneId has been loaded")
+      player.Continent = zoneId
+      continent = zone
+      taskResolver ! RegisterNewAvatar(player)
+
+    case NewPlayerLoaded(tplayer) =>
+      log.info(s"Player $tplayer has been loaded")
       //LoadMapMessage will cause the client to send back a BeginZoningMessage packet (see below)
       sendResponse(LoadMapMessage(continent.Map.Name, continent.Id, 40100,25,true,3770441820L))
-      log.info("Load the now-registered player")
-      //load the now-registered player
-      tplayer.Spawn
-      tplayer.Health = 50
-      val dcdata = tplayer.Definition.Packet.DetailedConstructorData(tplayer).get
-      sendResponse(ObjectCreateDetailedMessage(ObjectClass.avatar, tplayer.GUID, dcdata))
-      avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.LoadPlayer(tplayer.GUID, tplayer.Definition.Packet.ConstructorData(tplayer).get))
-      log.debug(s"ObjectCreateDetailedMessage: $dcdata")
+      AvatarCreate()
+
+    case PlayerLoaded(tplayer) =>
+      log.info(s"Player $tplayer has been loaded")
+      AvatarCreate()
+      self ! SetCurrentAvatar(tplayer)
+
+    case PlayerFailedToLoad(tplayer) =>
+      player.Continent match {
+        case _ =>
+          failWithError(s"$tplayer failed to load anywhere")
+      }
 
     case SetCurrentAvatar(tplayer) =>
       val guid = tplayer.GUID
@@ -1178,6 +1178,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
   }
 
   var player : Player = null
+  var spawnZones : Map[Int, Building] = null
 
   def handleGamePkt(pkt : PlanetSideGamePacket) = pkt match {
     case ConnectToWorldRequestMessage(server, token, majorVersion, minorVersion, revision, buildDate, unk) =>
@@ -1252,7 +1253,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
           //TODO check if can spawn on last continent/location from player?
           //TODO if yes, get continent guid accessors
           //TODO if no, get sanctuary guid accessors and reset the player's expectations
-          galaxy ! InterstellarCluster.GetWorld("z6")
+          //galaxy ! InterstellarCluster.GetWorld("z6")
+          galaxy ! InterstellarCluster.RequestClientInitialization()
         case default =>
           log.error("Unsupported " + default + " in " + msg)
       }
@@ -1264,6 +1266,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
       log.info("Reticulating splines ...")
       configZone(continent) //todo density
       sendResponse(TimeOfDayMessage(1191182336))
+      /** WIP */
+      spawnZones = Map(
+        7 -> continent.Building(2).get,
+        6 -> continent.Building(48).get
+      )
+
       //custom
       sendResponse(ContinentalLockUpdateMessage(13, PlanetSideEmpire.VS)) // "The VS have captured the VS Sanctuary."
       sendResponse(ReplicationStreamMessage(5, Some(6), Vector(SquadListing()))) //clear squad list
@@ -1347,18 +1355,20 @@ class WorldSessionActor extends Actor with MDCContextAware {
       self ! SetCurrentAvatar(player)
 
     case msg @ PlayerStateMessageUpstream(avatar_guid, pos, vel, yaw, pitch, yaw_upper, seq_time, unk3, is_crouching, is_jumping, unk4, is_cloaking, unk5, unk6) =>
-      player.Position = pos
-      player.Velocity = vel
-      player.Orientation = Vector3(player.Orientation.x, pitch, yaw)
-      player.FacingYawUpper = yaw_upper
-      player.Crouching = is_crouching
-      player.Jumping = is_jumping
+      if(player.isAlive && player.GUID == avatar_guid) {
+        player.Position = pos
+        player.Velocity = vel
+        player.Orientation = Vector3(player.Orientation.x, pitch, yaw)
+        player.FacingYawUpper = yaw_upper
+        player.Crouching = is_crouching
+        player.Jumping = is_jumping
 
-      val wepInHand : Boolean = player.Slot(player.DrawnSlot).Equipment match {
-        case Some(item) => item.Definition == GlobalDefinitions.bolt_driver
-        case None => false
+        val wepInHand : Boolean = player.Slot(player.DrawnSlot).Equipment match {
+          case Some(item) => item.Definition == GlobalDefinitions.bolt_driver
+          case None => false
+        }
+        avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlayerState(avatar_guid, msg, spectator, wepInHand))
       }
-      avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlayerState(avatar_guid, msg, spectator, wepInHand))
 
     case msg @ ChildObjectStateMessage(object_guid, pitch, yaw) =>
       //the majority of the following check retrieves information to determine if we are in control of the child
@@ -1418,11 +1428,32 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ ReleaseAvatarRequestMessage() =>
       log.info(s"ReleaseAvatarRequest: ${player.GUID} on ${continent.Id} has released")
+      player.Release
       sendResponse(PlanetsideAttributeMessage(player.GUID, 6, 1))
       sendResponse(AvatarDeadStateMessage(DeadState.Release, 0, 0, player.Position, 2, true))
+      player = Player.Release(player) //swap new player
 
     case msg @ SpawnRequestMessage(u1, u2, u3, u4, u5) =>
       log.info(s"SpawnRequestMessage: $msg")
+      spawnZones.get(u2.toInt) match {
+        case Some(building) =>
+          scala.util.Random.shuffle(building.Amenities.filter(_.isInstanceOf[SpawnTube])).headOption match { //TODO temporary shuffle
+            case Some(tube) =>
+              log.info(s"SpawnRequestMessage: new player was at position ${player.Position}")
+              player.Position = tube.Position
+              player.Orientation = tube.Orientation
+              player.FacingYawUpper = 0
+              log.info(s"SpawnRequestMessage: new player moved to position ${player.Position}")
+              sendResponse(AvatarDeadStateMessage(DeadState.RespawnTime, 10000, 10000, Vector3.Zero, 2, true))
+              import scala.concurrent.duration._
+              import scala.concurrent.ExecutionContext.Implicits.global
+              context.system.scheduler.scheduleOnce(10 seconds, taskResolver, RegisterAvatar(player))
+            case None =>
+              log.warn(s"SpawnRequestMessage: can not find a spawn point in this spawn group - $u2")
+          }
+        case None =>
+          log.warn(s"SpawnRequestMessage: can not find somewhere to spawn in ${continent.Id}")
+      }
 
     case msg @ SetChatFilterMessage(send_channel, origin, whitelist) =>
       log.info("SetChatFilters: " + msg)
@@ -1467,6 +1498,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       if(messagetype == ChatMessageType.CMT_SUICIDE) {
         val player_guid = player.GUID
         val pos = player.Position
+        player.Die
         sendResponse(PlanetsideAttributeMessage(player_guid, 0, 0))
         sendResponse(PlanetsideAttributeMessage(player_guid, 2, 0))
         sendResponse(DestroyMessage(player_guid, player_guid, PlanetSideGUID(0), pos))
@@ -2450,6 +2482,40 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * @param tplayer the avatar `Player`
     * @return a `TaskResolver.GiveTask` message
     */
+  private def RegisterNewAvatar(tplayer : Player) : TaskResolver.GiveTask = {
+    TaskResolver.GiveTask(
+      new Task() {
+        private val localPlayer = tplayer
+        private val localAnnounce = self
+
+        override def isComplete : Task.Resolution.Value = {
+          if(localPlayer.HasGUID) {
+            Task.Resolution.Success
+          }
+          else {
+            Task.Resolution.Incomplete
+          }
+        }
+
+        def Execute(resolver : ActorRef) : Unit = {
+          log.info(s"Player $localPlayer is registered")
+          resolver ! scala.util.Success(this)
+          localAnnounce ! NewPlayerLoaded(localPlayer) //alerts WSA
+        }
+
+        override def onFailure(ex : Throwable) : Unit = {
+          localAnnounce ! PlayerFailedToLoad(localPlayer) //alerts WSA
+        }
+      }, List(GUIDTask.RegisterAvatar(tplayer)(continent.GUID))
+    )
+  }
+
+  /**
+    * Construct tasking that registers all aspects of a `Player` avatar.
+    * `Players` are complex objects that contain a variety of other register-able objects and each of these objects much be handled.
+    * @param tplayer the avatar `Player`
+    * @return a `TaskResolver.GiveTask` message
+    */
   private def RegisterAvatar(tplayer : Player) : TaskResolver.GiveTask = {
     TaskResolver.GiveTask(
       new Task() {
@@ -3211,6 +3277,19 @@ class WorldSessionActor extends Actor with MDCContextAware {
     })
   }
 
+  /**
+    * TODO write
+    */
+  def AvatarCreate() : Unit = {
+    player.Spawn
+    player.Health = 50
+    val packet = player.Definition.Packet
+    val dcdata = packet.DetailedConstructorData(player).get
+    sendResponse(ObjectCreateDetailedMessage(ObjectClass.avatar, player.GUID, dcdata))
+    avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.LoadPlayer(player.GUID, packet.ConstructorData(player).get))
+    log.debug(s"ObjectCreateDetailedMessage: $dcdata")
+  }
+
   def failWithError(error : String) = {
     log.error(error)
     sendResponse(ConnectionClose())
@@ -3245,6 +3324,7 @@ object WorldSessionActor {
 
   private final case class PokeClient()
   private final case class ServerLoaded()
+  private final case class NewPlayerLoaded(tplayer : Player)
   private final case class PlayerLoaded(tplayer : Player)
   private final case class PlayerFailedToLoad(tplayer : Player)
   private final case class ListAccountCharacters()
