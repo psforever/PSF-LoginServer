@@ -5,7 +5,7 @@ import akka.actor.ActorRef
 import net.psforever.objects.serverobject.structures.Building
 import net.psforever.objects.serverobject.terminals.{OrderTerminalABDefinition, Terminal}
 import net.psforever.objects.zones.Zone
-import net.psforever.objects.{GlobalDefinitions, Player}
+import net.psforever.objects.{Avatar, GlobalDefinitions, Player}
 import net.psforever.packet.game.{ItemTransactionMessage, PlanetSideGUID}
 import net.psforever.types._
 import org.specs2.mutable.Specification
@@ -47,14 +47,14 @@ class OrderTerminalABTest extends Specification {
     }
 
     "player can buy different armor ('lite_armor')" in {
-      val player = Player("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+      val player = Player(Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0))
       val msg = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Buy, 1, "lite_armor", 0, PlanetSideGUID(0))
 
       terminal.Request(player, msg) mustEqual Terminal.BuyExosuit(ExoSuitType.Agile)
     }
 
     "player can buy max armor ('trhev_antiaircraft')" in {
-      val player = Player("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+      val player = Player(Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0))
       val msg = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Buy, 1, "trhev_antiaircraft", 0, PlanetSideGUID(0))
 
       terminal.Request(player, msg) mustEqual Terminal.NoDeal()
@@ -62,10 +62,11 @@ class OrderTerminalABTest extends Specification {
     //TODO loudout tests
 
     "player can not load max loadout" in {
-      val player = Player("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
-      player.SaveLoadout("test1", 0)
+      val avatar = Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+      val player = Player(avatar)
+      avatar.SaveLoadout(player, "test1", 0)
       player.ExoSuit = ExoSuitType.MAX
-      player.SaveLoadout("test2", 1)
+      avatar.SaveLoadout(player, "test2", 1)
 
       val msg1 = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.InfantryLoadout, 4, "", 0, PlanetSideGUID(0))
       terminal.Request(player, msg1) mustEqual Terminal.InfantryLoadout(ExoSuitType.Standard, 0, Nil, Nil)

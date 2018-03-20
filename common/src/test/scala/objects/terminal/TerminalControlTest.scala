@@ -5,7 +5,7 @@ import akka.actor.{ActorSystem, Props}
 import net.psforever.objects.serverobject.structures.Building
 import net.psforever.objects.serverobject.terminals.{Terminal, TerminalControl, TerminalDefinition}
 import net.psforever.objects.zones.Zone
-import net.psforever.objects.{GlobalDefinitions, Player}
+import net.psforever.objects.{Avatar, GlobalDefinitions, Player}
 import net.psforever.packet.game.{ItemTransactionMessage, PlanetSideGUID}
 import net.psforever.types._
 import objects.ActorTest
@@ -124,6 +124,6 @@ object TerminalControlTest {
     terminal.Actor = system.actorOf(Props(classOf[TerminalControl], terminal), "test-term")
     terminal.Owner = new Building(0, Zone.Nowhere)
     terminal.Owner.Faction = faction
-    (Player("test", faction, CharacterGender.Male, 0, 0), terminal)
+    (Player(Avatar("test", faction, CharacterGender.Male, 0, 0)), terminal)
   }
 }

@@ -151,6 +151,7 @@ class ConverterTest extends Specification {
   }
 
   "Player" should {
+    val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
     val obj : Player = {
       /*
       Create an AmmoBoxDefinition with which to build two AmmoBoxes
@@ -171,7 +172,7 @@ class ConverterTest extends Specification {
       val tool = Tool(tdef)
       tool.GUID = PlanetSideGUID(92)
       tool.AmmoSlot.Box.GUID = PlanetSideGUID(90)
-      val obj = Player("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
+      val obj = Player(avatar)
       obj.GUID = PlanetSideGUID(93)
       obj.Slot(2).Equipment = tool
       obj.Slot(5).Equipment.get.GUID = PlanetSideGUID(94)
@@ -182,7 +183,7 @@ class ConverterTest extends Specification {
     val converter = new CharacterSelectConverter
 
     "convert to packet (BR < 24)" in {
-      obj.BEP = 0
+      avatar.BEP = 0
       obj.Definition.Packet.DetailedConstructorData(obj) match {
         case Success(_) =>
           ok
@@ -198,7 +199,7 @@ class ConverterTest extends Specification {
     }
 
     "convert to packet (BR >= 24)" in {
-      obj.BEP = 10000000
+      avatar.BEP = 10000000
       obj.Definition.Packet.DetailedConstructorData(obj) match {
         case Success(_) =>
           ok
@@ -214,7 +215,7 @@ class ConverterTest extends Specification {
     }
 
     "convert to simple packet (BR < 24)" in {
-      obj.BEP = 0
+      avatar.BEP = 0
       converter.DetailedConstructorData(obj) match {
         case Success(_) =>
           ok
@@ -226,7 +227,7 @@ class ConverterTest extends Specification {
     }
 
     "convert to simple packet (BR >= 24)" in {
-      obj.BEP = 10000000
+      avatar.BEP = 10000000
       converter.DetailedConstructorData(obj) match {
         case Success(_) =>
           ok

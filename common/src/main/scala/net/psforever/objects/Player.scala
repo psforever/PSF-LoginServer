@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects
 
-import net.psforever.objects.definition.{AvatarDefinition, ImplantDefinition}
+import net.psforever.objects.definition.AvatarDefinition
 import net.psforever.objects.equipment.{Equipment, EquipmentSize}
 import net.psforever.objects.inventory.{Container, GridInventory, InventoryItem}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
@@ -9,15 +9,9 @@ import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types._
 
 import scala.annotation.tailrec
-import scala.collection.mutable
 import scala.util.{Success, Try}
 
-class Player(private val name : String,
-             private val faction : PlanetSideEmpire.Value,
-             private val sex : CharacterGender.Value,
-             private val head : Int,
-             private val voice : Int
-            ) extends PlanetSideGameObject with FactionAffinity with Container {
+class Player(private val core : Avatar) extends PlanetSideGameObject with FactionAffinity with Container {
   private var alive : Boolean = false
   private var backpack : Boolean = false
   private var health : Int = 0
@@ -29,31 +23,9 @@ class Player(private val name : String,
   private var exosuit : ExoSuitType.Value = ExoSuitType.Standard
   private val freeHand : EquipmentSlot = new OffhandEquipmentSlot(EquipmentSize.Inventory)
   private val holsters : Array[EquipmentSlot] = Array.fill[EquipmentSlot](5)(new EquipmentSlot)
-  private val fifthSlot : EquipmentSlot = new OffhandEquipmentSlot(EquipmentSize.Inventory)
   private val inventory : GridInventory = GridInventory()
   private var drawnSlot : Int = Player.HandsDownSlot
   private var lastDrawnSlot : Int = Player.HandsDownSlot
-
-  private val loadouts : Array[Option[Loadout]] = Array.fill[Option[Loadout]](10)(None)
-
-  private var bep : Long = 0
-  private var cep : Long = 0
-  private val certifications : mutable.Set[CertificationType.Value] = mutable.Set[CertificationType.Value]()
-  /**
-    * Unlike other objects, the maximum number of `ImplantSlots` are built into the `Player`.
-    * Additionally, "implants" do not have tightly-coupled "`Definition` objects" that explain a formal implant object.
-    * The `ImplantDefinition` objects themselves are moved around as if they were the implants.
-    * The term internally used for this process is "installed" and "uninstalled."
-    * @see `ImplantSlot`
-    * @see `DetailedCharacterData.implants`
-    * @see `AvatarConverter.MakeImplantEntries`
-    */
-  private val implants : Array[ImplantSlot] = Array.fill[ImplantSlot](3)(new ImplantSlot)
-
-//  private var tosRibbon : MeritCommendation.Value = MeritCommendation.None
-//  private var upperRibbon : MeritCommendation.Value = MeritCommendation.None
-//  private var middleRibbon : MeritCommendation.Value = MeritCommendation.None
-//  private var lowerRibbon : MeritCommendation.Value = MeritCommendation.None
 
   private var facingYawUpper : Float = 0f
   private var crouching : Boolean  = false
@@ -61,13 +33,10 @@ class Player(private val name : String,
   private var cloaked : Boolean = false
   private var backpackAccess : Option[PlanetSideGUID] = None
 
-  private var admin : Boolean = false
-
   private var vehicleSeated : Option[PlanetSideGUID] = None
   private var vehicleOwned : Option[PlanetSideGUID] = None
 
   private var continent : String = "home2" //the zone id
-  private val playerDef : AvatarDefinition = Player.definition //TODO could be a var
 
   //SouNourS things
   /** Last medkituse. */
@@ -75,23 +44,20 @@ class Player(private val name : String,
   var death_by : Int = 0
   var lastSeenStreamMessage : Array[Long] = Array.fill[Long](65535)(0L)
   var lastShotSeq_time : Int = -1
-  /** The player is shooting. */
-  var shooting : Boolean = false
   /** From PlanetsideAttributeMessage */
   var PlanetsideAttribute : Array[Long] = Array.ofDim(120)
 
   Player.SuitSetup(this, ExoSuit)
-  fifthSlot.Equipment = new LockerContainer //the fifth slot is the player's "locker"
 
-  def Name : String = name
+  def Name : String = core.name
 
-  def Faction : PlanetSideEmpire.Value = faction
+  def Faction : PlanetSideEmpire.Value = core.faction
 
-  def Sex : CharacterGender.Value = sex
+  def Sex : CharacterGender.Value = core.sex
 
-  def Voice : Int = voice
+  def Head : Int = core.head
 
-  def Head : Int = head
+  def Voice : Int = core.voice
 
   def isAlive : Boolean = alive
 
@@ -172,9 +138,7 @@ class Player(private val name : String,
       holsters(slot)
     }
     else if(slot == 5) {
-      new OffhandEquipmentSlot(EquipmentSize.Inventory) {
-        Equipment = fifthSlot.Equipment
-      }
+      core.FifthSlot
     }
     else if(slot == Player.FreeHandSlot) {
       freeHand
@@ -188,7 +152,7 @@ class Player(private val name : String,
 
   def Inventory : GridInventory = inventory
 
-  def Locker : LockerContainer = fifthSlot.Equipment.get.asInstanceOf[LockerContainer]
+  def Locker : LockerContainer = core.Locker
 
   def Fit(obj : Equipment) : Option[Int] = {
     recursiveHolsterFit(holsters.iterator, obj.Size) match {
@@ -219,20 +183,6 @@ class Player(private val name : String,
     }
   }
 
-  def Equip(slot : Int, obj : Equipment) : Boolean = {
-    if(-1 < slot && slot < 5) {
-      holsters(slot).Equipment = obj
-      true
-    }
-    else if(slot == Player.FreeHandSlot) {
-      freeHand.Equipment = obj
-      true
-    }
-    else {
-      inventory += slot -> obj
-    }
-  }
-
   def FreeHand = freeHand
 
   def FreeHand_=(item : Option[Equipment]) : Option[Equipment] = {
@@ -242,33 +192,19 @@ class Player(private val name : String,
     FreeHand.Equipment
   }
 
-  def SaveLoadout(label : String, line : Int) : Unit = {
-    loadouts(line) = Some(Loadout.Create(this, label))
-  }
-
-  def LoadLoadout(line : Int) : Option[Loadout] = loadouts(line)
-
-  def DeleteLoadout(line : Int) : Unit = {
-    loadouts(line) = None
-  }
-
   def Find(obj : Equipment) : Option[Int] = Find(obj.GUID)
 
   def Find(guid : PlanetSideGUID) : Option[Int] = {
-    findInHolsters(holsters.iterator, guid) match {
+    findInHolsters(holsters.iterator, guid)
+      .orElse(findInInventory(inventory.Items.values.iterator, guid)) match {
       case Some(index) =>
         Some(index)
       case None =>
-        findInInventory(inventory.Items.values.iterator, guid) match {
-          case Some(index) =>
-            Some(index)
-          case None =>
-            if(freeHand.Equipment.isDefined && freeHand.Equipment.get.GUID == guid) {
-              Some(Player.FreeHandSlot)
-            }
-            else {
-              None
-            }
+        if(freeHand.Equipment.isDefined && freeHand.Equipment.get.GUID == guid) {
+          Some(Player.FreeHandSlot)
+        }
+        else {
+          None
         }
     }
   }
@@ -348,27 +284,13 @@ class Player(private val name : String,
     exosuit = suit
   }
 
-  def BEP : Long = bep
+  def LoadLoadout(line : Int) : Option[Loadout] = core.LoadLoadout(line)
 
-  def BEP_=(battleExperiencePoints : Long) : Long = {
-    bep = math.max(0L, math.min(battleExperiencePoints, 4294967295L))
-    BEP
-  }
+  def BEP : Long = core.BEP
 
-  def CEP : Long = cep
+  def CEP : Long = core.CEP
 
-  def CEP_=(commandExperiencePoints : Long) : Long = {
-    cep = math.max(0L, math.min(commandExperiencePoints, 4294967295L))
-    CEP
-  }
-
-  def Certifications : mutable.Set[CertificationType.Value] = certifications
-
-  /**
-    * Retrieve the three implant slots for this player.
-    * @return an `Array` of `ImplantSlot` objects
-    */
-  def Implants : Array[ImplantSlot] = implants
+  def Certifications : Set[CertificationType.Value] = core.Certifications.toSet
 
   /**
     * What kind of implant is installed into the given slot number?
@@ -376,91 +298,17 @@ class Player(private val name : String,
     * @param slot the slot number
     * @return the tye of implant
     */
-  def Implant(slot : Int) : ImplantType.Value = {
-    if(-1 < slot && slot < implants.length) { implants(slot).Implant } else { ImplantType.None }
-  }
+  def Implant(slot : Int) : ImplantType.Value = core.Implant(slot)
 
   /**
-    * Given a new implant, assign it into a vacant implant slot on this player.<br>
-    * <br>
-    * The implant must be unique in terms of which implants have already been assigned to this player.
-    * Multiple of a type of implant being assigned at once is not supported.
-    * Additionally, the implant is inserted into the earliest yet-unknown but vacant slot.
-    * Implant slots are vacant by just being unlocked or by having their previous implant uninstalled.
-    * @param implant the implant being installed
-    * @return the index of the `ImplantSlot` where the implant was installed
+    * A read-only `Array` of tuples representing important information about all unlocked implant slots.
+    * @return a maximum of three implant types, initialization times, and active flags
     */
-  def InstallImplant(implant : ImplantDefinition) : Option[Int] = {
-    implants.find({p => p.Installed.contains(implant)}) match { //try to find the installed implant
-      case None =>
-        recursiveFindImplantInSlot(implants.iterator, ImplantType.None) match { //install in a free slot
-          case Some(slot) =>
-            implants(slot).Implant = implant
-            Some(slot)
-          case None =>
-            None
-        }
-      case Some(_) =>
-        None
-    }
+  def Implants : Array[(ImplantType.Value, Long, Boolean)] = {
+    core.Implants.takeWhile(_.Unlocked).map( implant => { (implant.Implant, implant.MaxTimer, implant.Active) })
   }
 
-  /**
-    * Remove a specific implant from a player's allocated installed implants.<br>
-    * <br>
-    * Due to the exclusiveness of installed implants,
-    * any implant slot with a matching `Definition` can be uninstalled safely.
-    * (There will never be any doubles.)
-    * This operation can lead to an irregular pattern of installed and uninstalled `ImplantSlot` objects.
-    * Despite that breach of pattern, the logic here is consistent as demonstrated by the client and by packets.
-    * The client also assigns and removes implants based on slot numbers that only express availability of a "slot."
-    * @see `AvatarImplantMessage.implantSlot`
-    * @param implantType the type of implant being uninstalled
-    * @return the index of the `ImplantSlot` where the implant was found and uninstalled
-    */
-  def UninstallImplant(implantType : ImplantType.Value) : Option[Int] = {
-    recursiveFindImplantInSlot(implants.iterator, implantType) match {
-      case Some(slot) =>
-        implants(slot).Implant = None
-        Some(slot)
-      case None =>
-        None
-    }
-  }
-
-  /**
-    * Locate the index of the encountered implant type.
-    * Functional implants may be exclusive in as far as the input `Iterator`'s source is concerned,
-    * but any number of `ImplantType.None` values are alway allowed in the source in any order.
-    * @param iter an `Iterator` of `ImplantSlot` objects
-    * @param implantType the target implant being sought
-    * @param index a defaulted index value representing the structure underlying the `Iterator` param
-    * @return the index where the target implant is installed
-    */
-  @tailrec private def recursiveFindImplantInSlot(iter : Iterator[ImplantSlot], implantType : ImplantType.Value, index : Int = 0) : Option[Int] = {
-    if(!iter.hasNext) {
-      None
-    }
-    else {
-      val slot = iter.next
-      if(slot.Unlocked && slot.Implant == implantType) {
-        Some(index)
-      }
-      else {
-        recursiveFindImplantInSlot(iter, implantType, index + 1)
-      }
-    }
-  }
-
-  def ResetAllImplants() : Unit = {
-    implants.foreach(slot => {
-      slot.Installed match {
-        case Some(_) =>
-          slot.Initialized = false
-        case None => ;
-      }
-    })
-  }
+  def ResetAllImplants() : Unit = core.ResetAllImplants()
 
   def FacingYawUpper : Float = facingYawUpper
 
@@ -523,8 +371,6 @@ class Player(private val name : String,
     isBackpack && (backpackAccess.isEmpty || backpackAccess.contains(player.GUID))
   }
 
-  def Admin : Boolean = admin
-
   def VehicleSeated : Option[PlanetSideGUID] = vehicleSeated
 
   def VehicleSeated_=(guid : PlanetSideGUID) : Option[PlanetSideGUID] = VehicleSeated_=(Some(guid))
@@ -550,51 +396,32 @@ class Player(private val name : String,
     Continent
   }
 
-  def Definition : AvatarDefinition = playerDef
-
-  override def toString : String = {
-    Player.toString(this)
-  }
+  def Definition : AvatarDefinition = core.Definition
 
   def canEqual(other: Any): Boolean = other.isInstanceOf[Player]
 
   override def equals(other : Any) : Boolean = other match {
     case that: Player =>
       (that canEqual this) &&
-        name == that.name &&
-        faction == that.faction &&
-        sex == that.sex &&
-        voice == that.voice &&
-        head == that.head
+        core == that.core
     case _ =>
       false
   }
 
   override def hashCode() : Int = {
-    val state = Seq(name, faction, sex, voice, head)
-    state.map(_.hashCode()).foldLeft(0)((a, b) => 31 * a + b)
+    core.hashCode()
   }
+
+  override def toString : String = Player.toString(this)
 }
 
 object Player {
-  final private val definition : AvatarDefinition = new AvatarDefinition(121)
   final val FreeHandSlot : Int = 250
   final val HandsDownSlot : Int = 255
 
-  def apply(name : String, faction : PlanetSideEmpire.Value, sex : CharacterGender.Value, head : Int, voice : Int) : Player = {
-    new Player(name, faction, sex, head, voice)
+  def apply(core : Avatar) : Player = {
+    new Player(core)
   }
-
-//  /**
-//    * Change the type of `AvatarDefinition` is used to define the player.
-//    * @param player the player
-//    * @param avatarDef the player's new definition entry
-//    * @return the changed player
-//    */
-//  def apply(player : Player, avatarDef : AvatarDefinition) : Player = {
-//    player.playerDef = avatarDef
-//    player
-//  }
 
   def SuitSetup(player : Player, eSuit : ExoSuitType.Value) : Unit = {
     val esuitDef : ExoSuitDefinition = ExoSuitDefinition.Select(eSuit)
@@ -608,32 +435,11 @@ object Player {
     (0 until 5).foreach(index => { player.Slot(index).Size = esuitDef.Holster(index) })
   }
 
-  def Administrate(player : Player, isAdmin : Boolean) : Player = {
-    player.admin = isAdmin
-    player
-  }
-
-  def Release(player : Player) : Player = {
+  def Respawn(player : Player) : Player = {
     if(player.Release) {
-      val obj = new Player(player.Name, player.Faction, player.Sex, player.Head, player.Voice)
+      val obj = new Player(player.core)
       obj.VehicleOwned = player.VehicleOwned
       obj.Continent = player.Continent
-      //hand over loadouts
-      (0 until 10).foreach(index => {
-        obj.loadouts(index) = player.loadouts(index)
-      })
-      //hand over implants
-      (0 until 3).foreach(index => {
-        if(obj.Implants(index).Unlocked = player.Implants(index).Unlocked) {
-          obj.Implants(index).Implant = player.Implants(index).Installed
-        }
-      })
-      //hand over knife
-//      obj.Slot(4).Equipment = player.Slot(4).Equipment
-//      player.Slot(4).Equipment = None
-      //hand over locker contents
-//      obj.fifthSlot.Equipment = player.fifthSlot.Equipment
-//      player.fifthSlot.Equipment = None
       obj
     }
     else {
@@ -641,8 +447,5 @@ object Player {
     }
   }
 
-  def toString(obj : Player) : String = {
-    val name : String = if(obj.VehicleSeated.isDefined) { s"[${obj.name}, ${obj.VehicleSeated.get.guid}]" } else { obj.Name }
-    s"[player $name, ${obj.Faction} (${obj.Health}/${obj.MaxHealth})(${obj.Armor}/${obj.MaxArmor})]"
-  }
+  def toString(obj : Player) : String = s"${obj.core} ${obj.Health}/${obj.MaxHealth} ${obj.Armor}/${obj.MaxArmor}"
 }

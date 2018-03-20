@@ -3,7 +3,7 @@ package objects.terminal
 
 import akka.actor.ActorRef
 import net.psforever.objects.serverobject.terminals.{MatrixTerminalDefinition, Terminal}
-import net.psforever.objects.{GlobalDefinitions, Player, Vehicle}
+import net.psforever.objects.{Avatar, GlobalDefinitions, Player, Vehicle}
 import net.psforever.packet.game.{ItemTransactionMessage, PlanetSideGUID}
 import net.psforever.types._
 import org.specs2.mutable.Specification
@@ -54,7 +54,7 @@ class MatrixTerminalTest extends Specification {
     }
 
     "player can not buy (anything)" in {
-      val player = Player("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+      val player = Player(Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0))
       val msg = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Buy, 1, "lite_armor", 0, PlanetSideGUID(0))
 
       terminal.Request(player, msg) mustEqual Terminal.NoDeal()

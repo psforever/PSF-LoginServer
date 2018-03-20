@@ -9,6 +9,7 @@ import scodec.Attempt.{Failure, Successful}
 import scodec.bits._
 import org.log4s.MDC
 import MDCContextAware.Implicits._
+import net.psforever.objects.GlobalDefinitions._
 import services.ServiceManager.Lookup
 import net.psforever.objects._
 import net.psforever.objects.equipment._
@@ -60,6 +61,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
   var flying : Boolean = false
   var speed : Float = 1.0f
   var spectator : Boolean = false
+  var admin : Boolean = false
 
   var clientKeepAlive : Cancellable = DefaultCancellable.obj
   var progressBarUpdate : Cancellable = DefaultCancellable.obj
@@ -763,9 +765,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
           sendResponse(ItemTransactionResultMessage (msg.terminal_guid, TransactionType.InfantryLoadout, true))
 
         case Terminal.LearnCertification(cert, cost) =>
-          if(!player.Certifications.contains(cert)) {
+          if(!tplayer.Certifications.contains(cert)) {
             log.info(s"$tplayer is learning the $cert certification for $cost points")
-            tplayer.Certifications += cert
+            avatar.Certifications += cert
             sendResponse(PlanetsideAttributeMessage(tplayer.GUID, 24, cert.id.toLong))
             sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Learn, true))
           }
@@ -775,9 +777,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
           }
 
         case Terminal.SellCertification(cert, cost) =>
-          if(player.Certifications.contains(cert)) {
+          if(tplayer.Certifications.contains(cert)) {
             log.info(s"$tplayer is forgetting the $cert certification for $cost points")
-            tplayer.Certifications -= cert
+            avatar.Certifications -= cert
             sendResponse(PlanetsideAttributeMessage(tplayer.GUID, 25, cert.id.toLong))
             sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Sell, true))
           }
@@ -794,8 +796,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
             case Some(mech_guid) =>
               (
                 continent.Map.TerminalToInterface.get(mech_guid.guid),
-                if(!tplayer.Implants.exists({slot => slot.Implant == implant_type})) { //no duplicates
-                  tplayer.InstallImplant(implant)
+                if(!avatar.Implants.exists({slot => slot.Implant == implant_type})) { //no duplicates
+                  avatar.InstallImplant(implant)
                 }
                 else {
                   None
@@ -834,7 +836,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             case Some(mech_guid) =>
               (
                 continent.Map.TerminalToInterface.get(mech_guid.guid),
-                tplayer.UninstallImplant(implant_type)
+                avatar.UninstallImplant(implant_type)
               )
             case None =>
               (None, None)
@@ -1004,12 +1006,14 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case NewPlayerLoaded(tplayer) =>
       log.info(s"Player $tplayer has been loaded")
+      player = tplayer
       //LoadMapMessage will cause the client to send back a BeginZoningMessage packet (see below)
       sendResponse(LoadMapMessage(continent.Map.Name, continent.Id, 40100,25,true,3770441820L))
       AvatarCreate()
 
     case PlayerLoaded(tplayer) =>
       log.info(s"Player $tplayer has been loaded")
+      player = tplayer
       AvatarCreate()
       self ! SetCurrentAvatar(tplayer)
 
@@ -1020,6 +1024,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       }
 
     case SetCurrentAvatar(tplayer) =>
+      player = tplayer
       val guid = tplayer.GUID
       LivePlayerList.Assign(continent.Number, sessionId, guid)
       sendResponse(SetCurrentAvatarMessage(guid,0,0))
@@ -1178,6 +1183,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
   }
 
   var player : Player = null
+  var avatar : Avatar = null
   var spawnZones : Map[Int, Building] = null
 
   def handleGamePkt(pkt : PlanetSideGamePacket) = pkt match {
@@ -1187,39 +1193,40 @@ class WorldSessionActor extends Actor with MDCContextAware {
       //TODO begin temp player character auto-loading; remove later
       import net.psforever.objects.GlobalDefinitions._
       import net.psforever.types.CertificationType._
-      player = Player("TestCharacter"+sessionId.toString, PlanetSideEmpire.VS, CharacterGender.Female, 41, 1)
+      avatar = Avatar("TestCharacter"+sessionId.toString, PlanetSideEmpire.VS, CharacterGender.Female, 41, 1)
+      avatar.Certifications += StandardAssault
+      avatar.Certifications += MediumAssault
+      avatar.Certifications += StandardExoSuit
+      avatar.Certifications += AgileExoSuit
+      avatar.Certifications += ReinforcedExoSuit
+      avatar.Certifications += ATV
+      avatar.Certifications += Harasser
+      //
+      avatar.Certifications += InfiltrationSuit
+      avatar.Certifications += Sniping
+      avatar.Certifications += AntiVehicular
+      avatar.Certifications += HeavyAssault
+      avatar.Certifications += SpecialAssault
+      avatar.Certifications += EliteAssault
+      avatar.Certifications += GroundSupport
+      avatar.Certifications += GroundTransport
+      avatar.Certifications += Flail
+      avatar.Certifications += Switchblade
+      avatar.Certifications += AssaultBuggy
+      avatar.Certifications += ArmoredAssault1
+      avatar.Certifications += ArmoredAssault2
+      avatar.Certifications += AirCavalryScout
+      avatar.Certifications += AirCavalryAssault
+      avatar.Certifications += AirCavalryInterceptor
+      avatar.Certifications += AirSupport
+      avatar.Certifications += GalaxyGunship
+      avatar.Certifications += Phantasm
+      avatar.Certifications += UniMAX
+      AwardBattleExperiencePoints(avatar, 1000000L)
+      player = new Player(avatar)
       //player.Position = Vector3(3561.0f, 2854.0f, 90.859375f) //home3, HART C
       player.Position = Vector3(3881.9688f, 4432.008f, 267.0f) //z6, Anguta / n.tower
       player.Orientation = Vector3(0f, 0f, 90f)
-      player.Certifications += StandardAssault
-      player.Certifications += MediumAssault
-      player.Certifications += StandardExoSuit
-      player.Certifications += AgileExoSuit
-      player.Certifications += ReinforcedExoSuit
-      player.Certifications += ATV
-      player.Certifications += Harasser
-      //
-      player.Certifications += InfiltrationSuit
-      player.Certifications += Sniping
-      player.Certifications += AntiVehicular
-      player.Certifications += HeavyAssault
-      player.Certifications += SpecialAssault
-      player.Certifications += EliteAssault
-      player.Certifications += GroundSupport
-      player.Certifications += GroundTransport
-      player.Certifications += Flail
-      player.Certifications += Switchblade
-      player.Certifications += AssaultBuggy
-      player.Certifications += ArmoredAssault1
-      player.Certifications += ArmoredAssault2
-      player.Certifications += AirCavalryScout
-      player.Certifications += AirCavalryAssault
-      player.Certifications += AirCavalryInterceptor
-      player.Certifications += AirSupport
-      player.Certifications += GalaxyGunship
-      player.Certifications += Phantasm
-      player.Certifications += UniMAX
-      AwardBattleExperiencePoints(player, 1000000L)
 //      player.ExoSuit = ExoSuitType.MAX //TODO strange issue; divide number above by 10 when uncommenting
       player.Slot(0).Equipment = SimpleItem(remote_electronics_kit) //Tool(GlobalDefinitions.StandardPistol(player.Faction))
       player.Slot(2).Equipment = Tool(punisher) //suppressor
@@ -1355,14 +1362,13 @@ class WorldSessionActor extends Actor with MDCContextAware {
       self ! SetCurrentAvatar(player)
 
     case msg @ PlayerStateMessageUpstream(avatar_guid, pos, vel, yaw, pitch, yaw_upper, seq_time, unk3, is_crouching, is_jumping, unk4, is_cloaking, unk5, unk6) =>
-      if(player.isAlive && player.GUID == avatar_guid) {
+      if(!player.isAlive) {
         player.Position = pos
         player.Velocity = vel
         player.Orientation = Vector3(player.Orientation.x, pitch, yaw)
         player.FacingYawUpper = yaw_upper
         player.Crouching = is_crouching
         player.Jumping = is_jumping
-
         val wepInHand : Boolean = player.Slot(player.DrawnSlot).Equipment match {
           case Some(item) => item.Definition == GlobalDefinitions.bolt_driver
           case None => false
@@ -1429,9 +1435,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ ReleaseAvatarRequestMessage() =>
       log.info(s"ReleaseAvatarRequest: ${player.GUID} on ${continent.Id} has released")
       player.Release
+      val knife = player.Slot(4).Equipment.get
+      taskResolver ! RemoveEquipmentFromSlot(player, knife, 4)
       sendResponse(PlanetsideAttributeMessage(player.GUID, 6, 1))
       sendResponse(AvatarDeadStateMessage(DeadState.Release, 0, 0, player.Position, 2, true))
-      player = Player.Release(player) //swap new player
 
     case msg @ SpawnRequestMessage(u1, u2, u3, u4, u5) =>
       log.info(s"SpawnRequestMessage: $msg")
@@ -1439,20 +1446,19 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case Some(building) =>
           scala.util.Random.shuffle(building.Amenities.filter(_.isInstanceOf[SpawnTube])).headOption match { //TODO temporary shuffle
             case Some(tube) =>
-              log.info(s"SpawnRequestMessage: new player was at position ${player.Position}")
-              player.Position = tube.Position
-              player.Orientation = tube.Orientation
-              player.FacingYawUpper = 0
-              log.info(s"SpawnRequestMessage: new player moved to position ${player.Position}")
+              val tplayer = SpawnRequest(player) //new player
+              tplayer.Position = tube.Position
+              tplayer.Orientation = tube.Orientation
+              log.info(s"SpawnRequestMessage: new player will spawn in ${building.Id} @ tube ${tube.GUID.guid}")
               sendResponse(AvatarDeadStateMessage(DeadState.RespawnTime, 10000, 10000, Vector3.Zero, 2, true))
               import scala.concurrent.duration._
               import scala.concurrent.ExecutionContext.Implicits.global
-              context.system.scheduler.scheduleOnce(10 seconds, taskResolver, RegisterAvatar(player))
+              context.system.scheduler.scheduleOnce(10 seconds, taskResolver, RegisterAvatar(tplayer))
             case None =>
               log.warn(s"SpawnRequestMessage: can not find a spawn point in this spawn group - $u2")
           }
         case None =>
-          log.warn(s"SpawnRequestMessage: can not find somewhere to spawn in ${continent.Id}")
+          log.warn(s"SpawnRequestMessage: can not find somewhere to spawn on ${continent.Id}")
       }
 
     case msg @ SetChatFilterMessage(send_channel, origin, whitelist) =>
@@ -2120,10 +2126,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
         action match {
           case FavoritesAction.Unknown => ;
           case FavoritesAction.Save =>
-            player.SaveLoadout(name, line)
+            avatar.SaveLoadout(player, name, line)
             sendResponse(FavoritesMessage(0, player_guid, line, name))
           case FavoritesAction.Delete =>
-            player.DeleteLoadout(line)
+            avatar.DeleteLoadout(line)
             sendResponse(FavoritesMessage(0, player_guid, line, ""))
         }
       }
@@ -2540,8 +2546,30 @@ class WorldSessionActor extends Actor with MDCContextAware {
         override def onFailure(ex : Throwable) : Unit = {
           localAnnounce ! PlayerFailedToLoad(localPlayer) //alerts WSA
         }
-      }, List(GUIDTask.RegisterAvatar(tplayer)(continent.GUID))
+      }, List(RegisterLightweightAvatar(tplayer)(continent.GUID))
     )
+  }
+
+  //TODO temporary function for registering avatar without locker contents
+  def RegisterLightweightAvatar(tplayer : Player)(implicit guid : ActorRef) : TaskResolver.GiveTask = {
+    import net.psforever.objects.LockerContainer
+    import net.psforever.objects.inventory.InventoryItem
+    val holsterTasks = tplayer.Holsters().filter(_.Equipment.isDefined).map(slot =>{
+      GUIDTask.RegisterEquipment(slot.Equipment.get)(guid)
+    }).toList
+    val inventoryTasks = tplayer.Inventory.Items.map({ case((_ : Int, entry : InventoryItem)) => GUIDTask.RegisterEquipment(entry.obj)(guid)})
+    TaskResolver.GiveTask(GUIDTask.RegisterObjectTask(tplayer)(guid).task, holsterTasks ++ inventoryTasks)
+  }
+
+  //TODO temporary function for unregistering avatar without locker contents
+  def UnregisterLightweightAvatar(tplayer : Player)(implicit guid : ActorRef) : TaskResolver.GiveTask = {
+    import net.psforever.objects.LockerContainer
+    import net.psforever.objects.inventory.InventoryItem
+    val holsterTasks = tplayer.Holsters().filter(_.Equipment.isDefined).map(slot =>{
+      GUIDTask.UnregisterEquipment(slot.Equipment.get)(guid)
+    }).toList
+    val inventoryTasks = tplayer.Inventory.Items.map({ case((_ : Int, entry : InventoryItem)) => GUIDTask.UnregisterEquipment(entry.obj)(guid)})
+    TaskResolver.GiveTask(GUIDTask.UnregisterObjectTask(tplayer)(guid).task, holsterTasks ++ inventoryTasks)
   }
 
   /**
@@ -2807,21 +2835,21 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * @param bep the change in experience points, positive by assertion
     * @return the player's current battle experience points
     */
-  def AwardBattleExperiencePoints(tplayer : Player, bep : Long) : Long = {
-    val oldBep = tplayer.BEP
+  def AwardBattleExperiencePoints(avatar : Avatar, bep : Long) : Long = {
+    val oldBep = avatar.BEP
     if(bep <= 0) {
-      log.error(s"trying to set $bep battle experience points on $tplayer; value can not be negative")
+      log.error(s"trying to set $bep battle experience points on $avatar; value can not be negative")
       oldBep
     }
     else {
       val oldSlots = DetailedCharacterData.numberOfImplantSlots(oldBep)
       val newBep = oldBep + bep
       val newSlots = DetailedCharacterData.numberOfImplantSlots(newBep)
-      tplayer.BEP = newBep
+      avatar.BEP = newBep
       if(newSlots > oldSlots) {
         (oldSlots until newSlots).foreach(slotNumber => {
-          tplayer.Implants(slotNumber).Unlocked = true
-          log.info(s"unlocking implant slot $slotNumber for $tplayer")
+          avatar.Implants(slotNumber).Unlocked = true
+          log.info(s"unlocking implant slot $slotNumber for $avatar")
         })
       }
       newBep
@@ -3288,6 +3316,23 @@ class WorldSessionActor extends Actor with MDCContextAware {
     sendResponse(ObjectCreateDetailedMessage(ObjectClass.avatar, player.GUID, dcdata))
     avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.LoadPlayer(player.GUID, packet.ConstructorData(player).get))
     log.debug(s"ObjectCreateDetailedMessage: $dcdata")
+  }
+
+  def SpawnRequest(tplayer : Player) : Player = {
+    val faction = tplayer.Faction
+    val obj = Player.Respawn(tplayer)
+    //obj.VehicleOwned = tplayer.VehicleOwned
+    //obj.Continent = tplayer.Continent
+    obj.Slot(0).Equipment = Tool(StandardPistol(faction))
+    obj.Slot(2).Equipment = Tool(suppressor)
+    obj.Slot(4).Equipment = Tool(StandardMelee(faction))
+    obj.Slot(6).Equipment = AmmoBox(bullet_9mm)
+    obj.Slot(9).Equipment = AmmoBox(bullet_9mm)
+    obj.Slot(12).Equipment = AmmoBox(bullet_9mm)
+    obj.Slot(33).Equipment = AmmoBox(bullet_9mm_AP)
+    obj.Slot(36).Equipment = AmmoBox(StandardPistolAmmo(faction))
+    obj.Slot(39).Equipment = SimpleItem(remote_electronics_kit)
+    obj
   }
 
   def failWithError(error : String) = {

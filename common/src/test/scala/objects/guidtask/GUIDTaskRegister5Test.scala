@@ -10,7 +10,7 @@ import objects.ActorTest
 class GUIDTaskRegister5Test extends ActorTest() {
   "RegisterAvatar" in {
     val (_, uns, taskResolver, probe) = GUIDTaskTest.CommonTestSetup
-    val obj = Player("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+    val obj = Player(Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0))
     val obj_wep = Tool(GlobalDefinitions.beamer)
     obj.Slot(0).Equipment = obj_wep
     val obj_wep_ammo = AmmoBox(GlobalDefinitions.energy_cell)

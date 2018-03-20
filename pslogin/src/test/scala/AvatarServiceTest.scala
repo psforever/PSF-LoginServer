@@ -110,7 +110,7 @@ class EquipmentOnGroundTest extends ActorTest {
 }
 
 class LoadPlayerTest extends ActorTest {
-  val obj = Player("TestCharacter1", PlanetSideEmpire.VS, CharacterGender.Female, 1, 1)
+  val obj = Player(Avatar("TestCharacter1", PlanetSideEmpire.VS, CharacterGender.Female, 1, 1))
   obj.GUID = PlanetSideGUID(10)
   obj.Slot(5).Equipment.get.GUID = PlanetSideGUID(11)
   val pdata = obj.Definition.Packet.DetailedConstructorData(obj).get

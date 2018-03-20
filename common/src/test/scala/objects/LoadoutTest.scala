@@ -4,13 +4,15 @@ package objects
 import net.psforever.objects._
 import net.psforever.types.{CharacterGender, ExoSuitType, PlanetSideEmpire}
 import net.psforever.objects.GlobalDefinitions._
-import net.psforever.objects.equipment.{Equipment, EquipmentSize}
 import org.specs2.mutable._
 
 class LoadoutTest extends Specification {
-  def CreatePlayer() : Player = {
+  val avatar = Avatar("TestCharacter", PlanetSideEmpire.VS, CharacterGender.Female, 41, 1)
+
+  def CreatePlayer() : (Player, Avatar) = {
+    val avatar = Avatar("TestCharacter", PlanetSideEmpire.VS, CharacterGender.Female, 41, 1)
     val
-    player = Player("TestCharacter", PlanetSideEmpire.VS, CharacterGender.Female, 41, 1)
+    player = Player(avatar)
     player.Slot(0).Equipment = Tool(beamer)
     player.Slot(2).Equipment = Tool(suppressor)
     player.Slot(4).Equipment = Tool(forceblade)
@@ -20,12 +22,12 @@ class LoadoutTest extends Specification {
     player.Slot(33).Equipment = AmmoBox(bullet_9mm_AP)
     player.Slot(36).Equipment = AmmoBox(energy_cell)
     player.Slot(39).Equipment = SimpleItem(remote_electronics_kit)
-    player
+    (player, avatar)
   }
 
   "Player Loadout" should {
     "test sample player" in {
-      val obj : Player = CreatePlayer()
+      val (obj, _) = CreatePlayer()
       obj.Holsters()(0).Equipment.get.Definition mustEqual beamer
       obj.Holsters()(2).Equipment.get.Definition mustEqual suppressor
       obj.Holsters()(4).Equipment.get.Definition mustEqual forceblade
@@ -38,23 +40,23 @@ class LoadoutTest extends Specification {
     }
 
     "do not load, if never saved" in {
-      CreatePlayer().LoadLoadout(0) mustEqual None
+      CreatePlayer()._2.LoadLoadout(0) mustEqual None
     }
 
     "save but incorrect load" in {
-      val obj : Player = CreatePlayer()
-      obj.SaveLoadout("test", 0)
+      val (obj, avatar) = CreatePlayer()
+      avatar.SaveLoadout(obj, "test", 0)
 
-      obj.LoadLoadout(1) mustEqual None
+      avatar.LoadLoadout(1) mustEqual None
     }
 
     "save and load" in {
-      val obj : Player = CreatePlayer()
+      val (obj, avatar) = CreatePlayer()
       obj.Slot(0).Equipment.get.asInstanceOf[Tool].Magazine = 1 //non-standard but legal
       obj.Slot(2).Equipment.get.asInstanceOf[Tool].AmmoSlot.Magazine = 100 //non-standard (and out of range, real=25)
-      obj.SaveLoadout("test", 0)
+      avatar.SaveLoadout(obj, "test", 0)
 
-      obj.LoadLoadout(0) match {
+      avatar.LoadLoadout(0) match {
         case Some(items) =>
           items.Label mustEqual "test"
           items.ExoSuit mustEqual obj.ExoSuit
@@ -91,11 +93,11 @@ class LoadoutTest extends Specification {
     }
 
     "save without inventory contents" in {
-      val obj : Player = CreatePlayer()
+      val (obj, avatar) = CreatePlayer()
       obj.Inventory.Clear()
-      obj.SaveLoadout("test", 0)
+      avatar.SaveLoadout(obj, "test", 0)
 
-      obj.LoadLoadout(0) match {
+      avatar.LoadLoadout(0) match {
         case Some(items) =>
           items.Label mustEqual "test"
           items.ExoSuit mustEqual obj.ExoSuit
@@ -108,13 +110,13 @@ class LoadoutTest extends Specification {
     }
 
     "save without visible slot contents" in {
-      val obj : Player = CreatePlayer()
+      val (obj, avatar) = CreatePlayer()
       obj.Slot(0).Equipment = None
       obj.Slot(2).Equipment = None
       obj.Slot(4).Equipment = None
-      obj.SaveLoadout("test", 0)
+      avatar.SaveLoadout(obj, "test", 0)
 
-      obj.LoadLoadout(0) match {
+      avatar.LoadLoadout(0) match {
         case Some(items) =>
           items.Label mustEqual "test"
           items.ExoSuit mustEqual obj.ExoSuit
@@ -127,12 +129,12 @@ class LoadoutTest extends Specification {
     }
 
     "save (a construction item) and load" in {
-      val obj : Player = CreatePlayer()
+      val (obj, avatar) = CreatePlayer()
       obj.Inventory.Clear()
       obj.Slot(6).Equipment = ConstructionItem(advanced_ace)
-      obj.SaveLoadout("test", 0)
+      avatar.SaveLoadout(obj, "test", 0)
 
-      obj.LoadLoadout(0) match {
+      avatar.LoadLoadout(0) match {
         case Some(items) =>
           items.Inventory.length mustEqual 1
           items.Inventory.head.index mustEqual 6
@@ -143,12 +145,12 @@ class LoadoutTest extends Specification {
     }
 
     "save (a kit) and load" in {
-      val obj : Player = CreatePlayer()
+      val (obj, avatar) = CreatePlayer()
       obj.Inventory.Clear()
       obj.Slot(6).Equipment = Kit(medkit)
-      obj.SaveLoadout("test", 0)
+      avatar.SaveLoadout(obj, "test", 0)
 
-      obj.LoadLoadout(0) match {
+      avatar.LoadLoadout(0) match {
         case Some(items) =>
           items.Inventory.length mustEqual 1
           items.Inventory.head.index mustEqual 6
@@ -159,38 +161,38 @@ class LoadoutTest extends Specification {
     }
 
     "save, load, delete" in {
-      val obj : Player = CreatePlayer()
-      obj.SaveLoadout("test", 0)
+      val (obj, avatar) = CreatePlayer()
+      avatar.SaveLoadout(obj, "test", 0)
 
-      obj.LoadLoadout(0) match {
+      avatar.LoadLoadout(0) match {
         case None =>
           ko
         case Some(_) => ; //good; keep going
       }
-      obj.DeleteLoadout(0)
-      obj.LoadLoadout(0) mustEqual None
+      avatar.DeleteLoadout(0)
+      avatar.LoadLoadout(0) mustEqual None
     }
 
     "distinguish MAX subtype information" in {
-      val obj : Player = CreatePlayer()
+      val (obj, avatar) = CreatePlayer()
       val slot = obj.Slot(0)
       slot.Equipment = None //only an unequipped slot can have its Equipment Size changed (Rifle -> Max)
       Player.SuitSetup(obj, ExoSuitType.MAX)
-      obj.SaveLoadout("generic", 0) //weaponless
+      avatar.SaveLoadout(obj, "generic", 0) //weaponless
       slot.Equipment = None
       slot.Equipment = Tool(trhev_dualcycler)
-      obj.SaveLoadout("cycler", 1)
+      avatar.SaveLoadout(obj, "cycler", 1)
       slot.Equipment = None
       slot.Equipment = Tool(trhev_pounder)
-      obj.SaveLoadout("pounder", 2)
+      avatar.SaveLoadout(obj, "pounder", 2)
       slot.Equipment = None
       slot.Equipment = Tool(trhev_burster)
-      obj.SaveLoadout("burster", 3)
+      avatar.SaveLoadout(obj, "burster", 3)
 
-      obj.LoadLoadout(0).get.Subtype mustEqual 0
-      obj.LoadLoadout(1).get.Subtype mustEqual 1
-      obj.LoadLoadout(2).get.Subtype mustEqual 2
-      obj.LoadLoadout(3).get.Subtype mustEqual 3
+      avatar.LoadLoadout(0).get.Subtype mustEqual 0
+      avatar.LoadLoadout(1).get.Subtype mustEqual 1
+      avatar.LoadLoadout(2).get.Subtype mustEqual 2
+      avatar.LoadLoadout(3).get.Subtype mustEqual 3
     }
   }
 }

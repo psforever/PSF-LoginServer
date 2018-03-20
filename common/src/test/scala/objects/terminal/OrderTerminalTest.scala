@@ -5,14 +5,14 @@ import akka.actor.ActorRef
 import net.psforever.objects.serverobject.structures.Building
 import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.zones.Zone
-import net.psforever.objects.{AmmoBox, GlobalDefinitions, Player, Tool}
+import net.psforever.objects.{AmmoBox, Avatar, GlobalDefinitions, Player, Tool}
 import net.psforever.packet.game.{ItemTransactionMessage, PlanetSideGUID}
 import net.psforever.types._
 import org.specs2.mutable.Specification
 
 class OrderTerminalTest extends Specification {
   "Order_Terminal" should {
-    val player = Player("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+    val player = Player(Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0))
     val terminal = Terminal(GlobalDefinitions.order_terminal)
     terminal.Owner = new Building(0, Zone.Nowhere)
     terminal.Owner.Faction = PlanetSideEmpire.TR

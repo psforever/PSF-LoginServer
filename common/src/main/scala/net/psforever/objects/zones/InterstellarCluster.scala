@@ -2,7 +2,6 @@
 package net.psforever.objects.zones
 
 import akka.actor.{Actor, Props}
-import net.psforever.objects.Player
 
 import scala.annotation.tailrec
 

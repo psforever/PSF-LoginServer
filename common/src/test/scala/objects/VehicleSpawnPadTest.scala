@@ -6,7 +6,7 @@ import net.psforever.objects.serverobject.pad.{VehicleSpawnControl, VehicleSpawn
 import net.psforever.objects.serverobject.structures.Building
 import net.psforever.objects.vehicles.VehicleControl
 import net.psforever.objects.zones.Zone
-import net.psforever.objects.{GlobalDefinitions, Player, Vehicle}
+import net.psforever.objects.{Avatar, GlobalDefinitions, Player, Vehicle}
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types.{CharacterGender, PlanetSideEmpire, Vector3}
 import org.specs2.mutable.Specification
@@ -111,6 +111,6 @@ object VehicleSpawnPadControl {
     pad.Actor = system.actorOf(Props(classOf[VehicleSpawnControl], pad), "test-pad")
     pad.Owner = new Building(0, Zone.Nowhere)
     pad.Owner.Faction = faction
-    (Player("test", faction, CharacterGender.Male, 0, 0), pad)
+    (Player(Avatar("test", faction, CharacterGender.Male, 0, 0)), pad)
   }
 }
