@@ -3,7 +3,7 @@ package net.psforever.objects.zones
 
 import akka.actor.{ActorContext, ActorRef, Props}
 import akka.routing.RandomPool
-import net.psforever.objects.{PlanetSideGameObject, Player, Vehicle}
+import net.psforever.objects.{Avatar, PlanetSideGameObject, Player, Vehicle}
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.objects.guid.actor.UniqueNumberSystem
@@ -14,6 +14,7 @@ import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types.Vector3
 
 import scala.annotation.tailrec
+import scala.collection.concurrent.TrieMap
 import scala.collection.mutable.ListBuffer
 import scala.collection.immutable.{Map => PairMap}
 
@@ -54,6 +55,12 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
   private var vehicles : List[Vehicle] = List[Vehicle]()
   /** */
   private var transport : ActorRef = ActorRef.noSender
+  /** */
+  private val players : TrieMap[Avatar, Option[Player]] = TrieMap[Avatar, Option[Player]]()
+  /** */
+  private var corpses : List[Player] = List[Player]()
+  /** */
+  private var population : ActorRef = ActorRef.noSender
 
   private var buildings : PairMap[Int, Building] = PairMap.empty[Int, Building]
 
@@ -80,6 +87,7 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
       accessor = context.actorOf(RandomPool(25).props(Props(classOf[UniqueNumberSystem], guid, UniqueNumberSystem.AllocateNumberPoolActors(guid))), s"$Id-uns")
       ground = context.actorOf(Props(classOf[ZoneGroundActor], equipmentOnGround), s"$Id-ground")
       transport = context.actorOf(Props(classOf[ZoneVehicleActor], this), s"$Id-vehicles")
+      population = context.actorOf(Props(classOf[ZonePopulationActor], this), s"$Id-players")
 
       Map.LocalObjects.foreach({ builderObject => builderObject.Build })
       MakeBuildings(context)
@@ -179,6 +187,12 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
 
   def Vehicles : List[Vehicle] = vehicles
 
+  def Players : List[Avatar] = players.keys.toList
+
+  def LivePlayers : List[Player] = players.values.collect( { case Some(tplayer) => tplayer }).toList
+
+  def Corpses : List[Player] = corpses
+
   def AddVehicle(vehicle : Vehicle) : List[Vehicle] = {
     vehicles = vehicles :+ vehicle
     Vehicles
@@ -208,6 +222,78 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
     }
   }
 
+  def PopulationJoin(avatar : Avatar) : Boolean = {
+    players.get(avatar) match {
+      case Some(_) =>
+        false
+      case None =>
+        players += avatar -> None
+        true
+    }
+  }
+
+  def PopulationLeave(avatar : Avatar) : Option[Player] = {
+    players.remove(avatar) match {
+      case None =>
+        None
+      case Some(tplayer) =>
+        tplayer
+    }
+  }
+
+  def PopulationSpawn(avatar : Avatar, player : Player) : Option[Player] = {
+    players.get(avatar) match {
+      case None =>
+        None
+      case Some(tplayer) =>
+        tplayer match {
+          case Some(aplayer) =>
+            Some(aplayer)
+          case None =>
+            players(avatar) = Some(player)
+            Some(player)
+        }
+    }
+  }
+
+  def PopulationRelease(avatar : Avatar) : Option[Player] = {
+    players.get(avatar) match {
+      case None =>
+        None
+      case Some(tplayer) =>
+        players(avatar) = None
+        tplayer
+    }
+  }
+
+  def CorpseAdd(player : Player) : Unit = {
+    if(player.isBackpack && recursiveFindCorpse(players.values.filter(_.nonEmpty).map(_.get).iterator, player.GUID).isEmpty) {
+      corpses = corpses :+ player
+    }
+  }
+
+  def CorpseRemove(player : Player) : Unit = {
+    recursiveFindCorpse(corpses.iterator, player.GUID) match {
+      case Some(index) =>
+        corpses = corpses.take(index-1) ++ corpses.drop(index)
+      case None => ;
+    }
+  }
+
+  @tailrec final def recursiveFindCorpse(iter : Iterator[Player], guid : PlanetSideGUID, index : Int = 0) : Option[Int] = {
+    if(!iter.hasNext) {
+      None
+    }
+    else {
+      if(iter.next.GUID == guid) {
+        Some(index)
+      }
+      else {
+        recursiveFindCorpse(iter, guid, index + 1)
+      }
+    }
+  }
+
   /**
     * Coordinate `Equipment` that has been dropped on the ground or to-be-dropped on the ground.
     * @return synchronized reference to the ground
@@ -219,6 +305,8 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
   def Ground : ActorRef = ground
 
   def Transport : ActorRef = transport
+
+  def Population : ActorRef = population
 
   def Buildings : Map[Int, Building] = buildings
 
@@ -265,6 +353,21 @@ object Zone {
     * @see `Zone.Init(implicit ActorContext)`
     */
   final case class Init()
+
+  object Population {
+    final case class Join(avatar : Avatar)
+    final case class Leave(avatar : Avatar)
+    final case class Spawn(avatar : Avatar, player : Player)
+    final case class Release(avatar : Avatar)
+    final case class PlayerHasLeft(zone : Zone, player : Option[Player]) //Leave(avatar), but still has a player
+    final case class PlayerAlreadySpawned(player : Player) //Spawn(avatar, player), but avatar already has a player
+    final case class PlayerCanNotSpawn(zone : Zone, player : Player) //Spawn(avatar, player), but avatar did not initially Join(avatar)
+  }
+
+  object Corpse {
+    final case class Add(player : Player)
+    final case class Remove(player : Player)
+  }
 
   /**
     * Message to relinguish an item and place in on the ground.

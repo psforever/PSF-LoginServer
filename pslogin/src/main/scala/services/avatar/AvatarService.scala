@@ -1,11 +1,14 @@
 // Copyright (c) 2017 PSForever
 package services.avatar
 
-import akka.actor.Actor
+import akka.actor.{Actor, ActorRef, Props}
+import services.avatar.support.UndertakerActor
 import services.{GenericEventBus, Service}
 
 class AvatarService extends Actor {
-  //import AvatarServiceResponse._
+  private val undertaker : ActorRef = context.actorOf(Props[UndertakerActor], "corpse-removal-agent")
+  undertaker ! "startup"
+
   private [this] val log = org.log4s.getLogger
 
   override def preStart = {
@@ -86,6 +89,11 @@ class AvatarService extends Actor {
         case AvatarAction.PlayerState(guid, msg, spectator, weapon) =>
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", guid, AvatarResponse.PlayerState(msg, spectator, weapon))
+          )
+        case AvatarAction.Release(player, zone) =>
+          undertaker ! UndertakerActor.AddCorpse(player, zone)
+          AvatarEvents.publish(
+            AvatarServiceResponse(s"/$forChannel/Avatar", player.GUID, AvatarResponse.Release(player))
           )
         case AvatarAction.Reload(player_guid, weapon_guid) =>
           AvatarEvents.publish(
