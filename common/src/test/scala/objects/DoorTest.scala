@@ -4,7 +4,7 @@ package objects
 import akka.actor.{ActorRef, ActorSystem, Props}
 import net.psforever.objects.{Avatar, GlobalDefinitions, Player}
 import net.psforever.objects.serverobject.doors.{Door, DoorControl}
-import net.psforever.objects.serverobject.structures.Building
+import net.psforever.objects.serverobject.structures.{Building, StructureType}
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.{PlanetSideGUID, UseItemMessage}
 import net.psforever.types.{CharacterGender, PlanetSideEmpire, Vector3}
@@ -121,7 +121,7 @@ object DoorControlTest {
   def SetUpAgents(faction : PlanetSideEmpire.Value)(implicit system : ActorSystem) : (Player, Door) = {
     val door = Door(GlobalDefinitions.door)
     door.Actor = system.actorOf(Props(classOf[DoorControl], door), "door")
-    door.Owner = new Building(0, Zone.Nowhere)
+    door.Owner = new Building(0, Zone.Nowhere, StructureType.Building)
     door.Owner.Faction = faction
     (Player(Avatar("test", faction, CharacterGender.Male, 0, 0)), door)
   }

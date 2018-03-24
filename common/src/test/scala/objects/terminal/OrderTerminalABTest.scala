@@ -2,7 +2,7 @@
 package objects.terminal
 
 import akka.actor.ActorRef
-import net.psforever.objects.serverobject.structures.Building
+import net.psforever.objects.serverobject.structures.{Building, StructureType}
 import net.psforever.objects.serverobject.terminals.{OrderTerminalABDefinition, Terminal}
 import net.psforever.objects.zones.Zone
 import net.psforever.objects.{Avatar, GlobalDefinitions, Player}
@@ -39,7 +39,7 @@ class OrderTerminalABTest extends Specification {
 
   "Order_Terminal" should {
     val terminal = Terminal(GlobalDefinitions.order_terminala)
-    terminal.Owner = new Building(0, Zone.Nowhere)
+    terminal.Owner = new Building(0, Zone.Nowhere, StructureType.Building)
     terminal.Owner.Faction = PlanetSideEmpire.TR
 
     "construct" in {

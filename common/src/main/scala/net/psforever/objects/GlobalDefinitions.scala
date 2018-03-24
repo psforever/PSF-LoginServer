@@ -487,7 +487,7 @@ object GlobalDefinitions {
    */
   val order_terminal = new OrderTerminalDefinition
 
-  val ams_respawn_tube = new SpawnTubeDefinition(49) { Name = "ams_respawn_tube" }
+  val ams_respawn_tube = new SpawnTubeDefinition(49)
 
   val matrix_terminalc = new MatrixTerminalDefinition(519)
 
@@ -509,7 +509,11 @@ object GlobalDefinitions {
 
   val vehicle_terminal_combined = new VehicleTerminalCombinedDefinition
 
-  val spawn_terminal = new SpawnTerminalDefinition
+  val spawn_terminal = new MatrixTerminalDefinition(812)
+
+  val respawn_tube = new SpawnTubeDefinition(732)
+
+  val respawn_tube_tower = new SpawnTubeDefinition(733)
 
   val spawn_pad = new VehicleSpawnPadDefinition
 

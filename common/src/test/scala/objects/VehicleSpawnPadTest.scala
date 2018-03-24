@@ -3,7 +3,7 @@ package objects
 
 import akka.actor.{ActorRef, ActorSystem, Props}
 import net.psforever.objects.serverobject.pad.{VehicleSpawnControl, VehicleSpawnPad}
-import net.psforever.objects.serverobject.structures.Building
+import net.psforever.objects.serverobject.structures.{Building, StructureType}
 import net.psforever.objects.vehicles.VehicleControl
 import net.psforever.objects.zones.Zone
 import net.psforever.objects.{Avatar, GlobalDefinitions, Player, Vehicle}
@@ -109,7 +109,7 @@ object VehicleSpawnPadControl {
   def SetUpAgents(faction : PlanetSideEmpire.Value)(implicit system : ActorSystem) : (Player, VehicleSpawnPad) = {
     val pad = VehicleSpawnPad(GlobalDefinitions.spawn_pad)
     pad.Actor = system.actorOf(Props(classOf[VehicleSpawnControl], pad), "test-pad")
-    pad.Owner = new Building(0, Zone.Nowhere)
+    pad.Owner = new Building(0, Zone.Nowhere, StructureType.Building)
     pad.Owner.Faction = faction
     (Player(Avatar("test", faction, CharacterGender.Male, 0, 0)), pad)
   }

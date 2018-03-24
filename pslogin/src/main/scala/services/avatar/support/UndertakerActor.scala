@@ -92,7 +92,7 @@ class UndertakerActor extends Actor {
         override def onFailure(ex : Throwable): Unit = {
           localAnnounce ! UndertakerActor.FailureToWork(localCorpse, localZone, ex)
         }
-      }, List(GUIDTask.UnregisterAvatar(corpse)(zone.GUID))
+      }, List(GUIDTask.UnregisterPlayer(corpse)(zone.GUID))
     )
   }
 

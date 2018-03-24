@@ -5,6 +5,7 @@ import akka.actor.{ActorRef, ActorSystem, Props}
 import net.psforever.objects.definition.SeatDefinition
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.implantmech.{ImplantTerminalMech, ImplantTerminalMechControl}
+import net.psforever.objects.serverobject.structures.StructureType
 import net.psforever.objects.vehicles.Seat
 import net.psforever.objects.{Avatar, GlobalDefinitions, Player}
 import net.psforever.types.{CharacterGender, PlanetSideEmpire, Vector3}
@@ -160,7 +161,7 @@ object ImplantTerminalMechTest {
 
     val terminal = ImplantTerminalMech(GlobalDefinitions.implant_terminal_mech)
     terminal.Actor = system.actorOf(Props(classOf[ImplantTerminalMechControl], terminal), "mech")
-    terminal.Owner = new Building(0, Zone.Nowhere)
+    terminal.Owner = new Building(0, Zone.Nowhere, StructureType.Building)
     terminal.Owner.Faction = faction
     terminal.GUID = PlanetSideGUID(1)
     (Player(Avatar("test", faction, CharacterGender.Male, 0, 0)), terminal)

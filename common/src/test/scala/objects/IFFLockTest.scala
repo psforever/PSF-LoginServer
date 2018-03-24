@@ -5,7 +5,7 @@ import akka.actor.{ActorRef, ActorSystem, Props}
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.{Avatar, GlobalDefinitions, Player}
 import net.psforever.objects.serverobject.locks.{IFFLock, IFFLockControl}
-import net.psforever.objects.serverobject.structures.Building
+import net.psforever.objects.serverobject.structures.{Building, StructureType}
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types.{CharacterGender, PlanetSideEmpire}
@@ -67,7 +67,7 @@ object IFFLockControlTest {
   def SetUpAgents(faction : PlanetSideEmpire.Value)(implicit system : ActorSystem) : (Player, IFFLock) = {
     val lock = IFFLock(GlobalDefinitions.lock_external)
     lock.Actor = system.actorOf(Props(classOf[IFFLockControl], lock), "lock-control")
-    lock.Owner = new Building(0, Zone.Nowhere)
+    lock.Owner = new Building(0, Zone.Nowhere, StructureType.Building)
     lock.Owner.Faction = faction
     (Player(Avatar("test", faction, CharacterGender.Male, 0, 0)), lock)
   }

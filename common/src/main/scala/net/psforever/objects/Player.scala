@@ -200,7 +200,10 @@ class Player(private val core : Avatar) extends PlanetSideGameObject with Factio
       case Some(index) =>
         Some(index)
       case None =>
-        if(freeHand.Equipment.isDefined && freeHand.Equipment.get.GUID == guid) {
+        if(Locker.Find(guid).isDefined) {
+          Some(5)
+        }
+        else if(freeHand.Equipment.isDefined && freeHand.Equipment.get.GUID == guid) {
           Some(Player.FreeHandSlot)
         }
         else {
@@ -416,6 +419,7 @@ class Player(private val core : Avatar) extends PlanetSideGameObject with Factio
 }
 
 object Player {
+  final val LockerSlot : Int = 5
   final val FreeHandSlot : Int = 250
   final val HandsDownSlot : Int = 255
 
@@ -447,5 +451,8 @@ object Player {
     }
   }
 
-  def toString(obj : Player) : String = s"${obj.core} ${obj.Health}/${obj.MaxHealth} ${obj.Armor}/${obj.MaxArmor}"
+  def toString(obj : Player) : String = {
+    val guid = if(obj.HasGUID) { s" ${obj.Continent}-${obj.GUID.guid}" } else { "" }
+    s"${obj.core}$guid ${obj.Health}/${obj.MaxHealth} ${obj.Armor}/${obj.MaxArmor}"
+  }
 }

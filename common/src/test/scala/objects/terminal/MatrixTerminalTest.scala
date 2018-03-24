@@ -22,10 +22,16 @@ class MatrixTerminalTest extends Specification {
       b.Name mustEqual "matrix_terminalb"
     }
 
-    "define (b)" in {
+    "define (c)" in {
       val b = new MatrixTerminalDefinition(519)
       b.ObjectId mustEqual 519
       b.Name mustEqual "matrix_terminalc"
+    }
+
+    "define (d)" in {
+      val b = new MatrixTerminalDefinition(812)
+      b.ObjectId mustEqual 812
+      b.Name mustEqual "spawn_terminal"
     }
 
     "define (invalid)" in {
@@ -36,7 +42,7 @@ class MatrixTerminalTest extends Specification {
       else if(id == 518) {
         id += 2
       }
-      else if(id == 519) {
+      else if(id == 519 | id == 812) {
         id += 1
       }
 

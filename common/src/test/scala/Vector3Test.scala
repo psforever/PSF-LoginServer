@@ -64,6 +64,11 @@ class Vector3Test extends Specification {
       vec * 3f mustEqual Vector3(3.8999999f, -7.7999997f, 11.700001f)
     }
 
+    "separate into x-component and y-component only" in {
+      val obj = Vector3(1.1f, 2.2f, 3.3f)
+      obj.xy mustEqual Vector3(1.1f, 2.2f, 0f)
+    }
+
     "calculate the unit vector (zero)" in {
       Vector3.Unit(Vector3.Zero) mustEqual Vector3(0,0,0)
     }

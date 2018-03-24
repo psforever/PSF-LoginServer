@@ -6,7 +6,7 @@ import net.psforever.objects.serverobject.implantmech.ImplantTerminalMech
 import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.mblocker.Locker
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
-import net.psforever.objects.serverobject.structures.{Building, FoundationBuilder, WarpGate}
+import net.psforever.objects.serverobject.structures.{Building, FoundationBuilder, StructureType, WarpGate}
 import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.types.Vector3
@@ -23,7 +23,7 @@ object Maps {
   val map5 = new ZoneMap("map05")
 
   val map6 = new ZoneMap("map06") {
-    LocalBuilding(2, FoundationBuilder(Building.Structure)) //Anguta
+    LocalBuilding(2, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(3974.2344f, 4287.914f, 0)))) //Anguta
     LocalObject(222, Door.Constructor) //air term building, bay door
     LocalObject(370, Door.Constructor) //courtyard
     LocalObject(371, Door.Constructor) //courtyard
@@ -193,17 +193,17 @@ object Maps {
     TerminalToSpawnPad(224, 501)
     TerminalToSpawnPad(2419, 500)
 
-    LocalBuilding(38, FoundationBuilder(Building.Structure)) //Anguta, West Bunker
+    LocalBuilding(38, FoundationBuilder(Building.Structure(StructureType.Bunker))) //Anguta, West Bunker
     LocalObject(362, Door.Constructor)
     ObjectToBuilding(362, 38)
 
-    LocalBuilding(42, FoundationBuilder(Building.Structure)) //Anguta, East Bunker(s)
+    LocalBuilding(42, FoundationBuilder(Building.Structure(StructureType.Bunker))) //Anguta, East Bunker(s)
     LocalObject(407, Door.Constructor)
     LocalObject(408, Door.Constructor)
     ObjectToBuilding(407, 42)
     ObjectToBuilding(408, 42)
 
-    LocalBuilding(48, FoundationBuilder(Building.Structure)) //North Anguta Watchtower
+    LocalBuilding(48, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3864.2266f, 4518.0234f, 0)))) //North Anguta Watchtower
     LocalObject(364, Door.Constructor(Vector3(3871.9688f, 4509.992f, 269.65625f), Vector3(0f, 0f, 180f))) //s1
     LocalObject(365, Door.Constructor(Vector3(3871.9688f, 4509.992f, 279.57812f), Vector3(0f, 0f, 180f))) //s2
     LocalObject(366, Door.Constructor(Vector3(3871.9688f, 4509.992f, 299.57812f), Vector3(0f, 0f, 180f))) //s3
@@ -227,8 +227,8 @@ object Maps {
     LocalObject(1561, Terminal.Constructor(order_terminal))
     LocalObject(1562, Terminal.Constructor(order_terminal))
     LocalObject(1563, Terminal.Constructor(order_terminal))
-    LocalObject(2138, SpawnTube.Constructor(Vector3(3870.9688f, 4505.7266f, 259.875f), Vector3(0, 0, 90)))
-    LocalObject(2139, SpawnTube.Constructor(Vector3(3870.9688f, 4522.1562f, 259.875f), Vector3(0, 0, 90)))
+    LocalObject(2138, SpawnTube.Constructor(respawn_tube_tower, Vector3(3870.9688f, 4505.7266f, 259.875f), Vector3(0, 0, 90)))
+    LocalObject(2139, SpawnTube.Constructor(respawn_tube_tower, Vector3(3870.9688f, 4522.1562f, 259.875f), Vector3(0, 0, 90)))
     LocalObject(2315, Door.Constructor) //spawn tube door
     LocalObject(2316, Door.Constructor) //spawn tube door
     ObjectToBuilding(364, 48)
@@ -287,15 +287,13 @@ object Maps {
     LocalObject(1081, Terminal.Constructor(implant_terminal_interface)) //tube 520
     TerminalToInterface(520, 1081)
 
-    LocalBuilding(2, FoundationBuilder(Building.Structure)) //HART building C
+    LocalBuilding(2, FoundationBuilder(Building.Structure(StructureType.Building))) //HART building C
     LocalObject(186, Terminal.Constructor(cert_terminal))
     LocalObject(187, Terminal.Constructor(cert_terminal))
     LocalObject(188, Terminal.Constructor(cert_terminal))
     LocalObject(362, Door.Constructor)
     LocalObject(370, Door.Constructor)
     LocalObject(371, Door.Constructor)
-    LocalObject(372, Door.Constructor)
-    LocalObject(373, Door.Constructor)
     LocalObject(374, Door.Constructor)
     LocalObject(375, Door.Constructor)
     LocalObject(394, Door.Constructor)
@@ -303,6 +301,8 @@ object Maps {
     LocalObject(396, Door.Constructor)
     LocalObject(397, Door.Constructor)
     LocalObject(398, Door.Constructor)
+    LocalObject(462, Door.Constructor)
+    LocalObject(463, Door.Constructor)
     LocalObject(522, ImplantTerminalMech.Constructor)
     LocalObject(523, ImplantTerminalMech.Constructor)
     LocalObject(524, ImplantTerminalMech.Constructor)
@@ -337,8 +337,6 @@ object Maps {
     ObjectToBuilding(362, 2)
     ObjectToBuilding(370, 2)
     ObjectToBuilding(371, 2)
-    ObjectToBuilding(372, 2)
-    ObjectToBuilding(373, 2)
     ObjectToBuilding(374, 2)
     ObjectToBuilding(375, 2)
     ObjectToBuilding(394, 2)
@@ -346,6 +344,8 @@ object Maps {
     ObjectToBuilding(396, 2)
     ObjectToBuilding(397, 2)
     ObjectToBuilding(398, 2)
+    ObjectToBuilding(462, 2)
+    ObjectToBuilding(463, 2)
     ObjectToBuilding(522, 2)
     ObjectToBuilding(523, 2)
     ObjectToBuilding(524, 2)
@@ -383,7 +383,7 @@ object Maps {
     TerminalToInterface(528, 1088)
     TerminalToInterface(529, 1089)
 
-    LocalBuilding(29, FoundationBuilder(Building.Structure)) //South Villa Gun Tower
+    LocalBuilding(29, FoundationBuilder(Building.Structure(StructureType.Tower))) //South Villa Gun Tower
     LocalObject(330, Door.Constructor(Vector3(3979.9219f, 2592.0547f, 91.140625f), Vector3(0, 0, 180)))
     LocalObject(331, Door.Constructor(Vector3(3979.9219f, 2592.0547f, 111.140625f), Vector3(0, 0, 180)))
     LocalObject(332, Door.Constructor(Vector3(3979.9688f, 2608.0625f, 91.140625f), Vector3(0, 0, 0)))
@@ -405,7 +405,61 @@ object Maps {
     DoorToLock(332, 556)
     DoorToLock(333, 557)
 
-    LocalBuilding(51, FoundationBuilder(Building.Structure))
+    LocalBuilding(42, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1, 0, 0)))) //spawn building south of HART C
+    LocalObject(258, Door.Constructor) //spawn tube door
+    LocalObject(259, Door.Constructor) //spawn tube door
+    LocalObject(260, Door.Constructor) //spawn tube door
+    LocalObject(261, Door.Constructor) //spawn tube door
+    LocalObject(262, Door.Constructor) //spawn tube door
+    LocalObject(263, Door.Constructor) //spawn tube door
+    LocalObject(372, Door.Constructor) //entrance
+    LocalObject(373, Door.Constructor) //entrance
+    LocalObject(430, Door.Constructor) //vr door
+    LocalObject(431, Door.Constructor) //vr door
+    LocalObject(432, Door.Constructor) //vr door
+    LocalObject(433, Door.Constructor) //vr door
+    LocalObject(434, Door.Constructor) //vr door
+    LocalObject(435, Door.Constructor) //vr door
+    LocalObject(744, SpawnTube.Constructor(Vector3(3684.336f, 2709.0469f, 91.859375f), Vector3(0, 0, 180)))
+    LocalObject(745, SpawnTube.Constructor(Vector3(3684.336f, 2713.2344f, 91.859375f), Vector3(0, 0, 0)))
+    LocalObject(746, SpawnTube.Constructor(Vector3(3691.0703f, 2709.0469f, 91.859375f), Vector3(0, 0, 180)))
+    LocalObject(747, SpawnTube.Constructor(Vector3(3691.0703f, 2713.2344f, 91.859375f), Vector3(0, 0, 0)))
+    LocalObject(748, SpawnTube.Constructor(Vector3(3697.711f, 2709.0469f, 91.859375f), Vector3(0, 0, 180)))
+    LocalObject(749, SpawnTube.Constructor(Vector3(3697.711f, 2713.2344f, 91.859375f), Vector3(0, 0, 0)))
+    LocalObject(852, Terminal.Constructor(order_terminal)) //s. wall
+    LocalObject(853, Terminal.Constructor(order_terminal)) //n. wall
+    LocalObject(854, Terminal.Constructor(order_terminal)) //s. wall
+    LocalObject(855, Terminal.Constructor(order_terminal)) //n. wall
+    LocalObject(859, Terminal.Constructor(order_terminal)) //s. wall
+    LocalObject(860, Terminal.Constructor(order_terminal)) //n. wall
+    ObjectToBuilding(258, 42)
+    ObjectToBuilding(259, 42)
+    ObjectToBuilding(260, 42)
+    ObjectToBuilding(261, 42)
+    ObjectToBuilding(262, 42)
+    ObjectToBuilding(263, 42)
+    ObjectToBuilding(372, 42)
+    ObjectToBuilding(373, 42)
+    ObjectToBuilding(430, 42)
+    ObjectToBuilding(431, 42)
+    ObjectToBuilding(432, 42)
+    ObjectToBuilding(433, 42)
+    ObjectToBuilding(434, 42)
+    ObjectToBuilding(435, 42)
+    ObjectToBuilding(744, 42)
+    ObjectToBuilding(745, 42)
+    ObjectToBuilding(746, 42)
+    ObjectToBuilding(747, 42)
+    ObjectToBuilding(748, 42)
+    ObjectToBuilding(749, 42)
+    ObjectToBuilding(852, 42)
+    ObjectToBuilding(853, 42)
+    ObjectToBuilding(854, 42)
+    ObjectToBuilding(855, 42)
+    ObjectToBuilding(859, 42)
+    ObjectToBuilding(860, 42)
+
+    LocalBuilding(51, FoundationBuilder(Building.Structure(StructureType.Platform))) //air terminal west of HART C
     LocalObject(304, Terminal.Constructor(dropship_vehicle_terminal))
     LocalObject(292,
       VehicleSpawnPad.Constructor(Vector3(3508.9844f, 2895.961f, 92.296875f), Vector3(0f, 0f, 270.0f))
@@ -414,7 +468,7 @@ object Maps {
     ObjectToBuilding(292, 51)
     TerminalToSpawnPad(304, 292)
 
-    LocalBuilding(77, FoundationBuilder(Building.Structure))
+    LocalBuilding(77, FoundationBuilder(Building.Structure(StructureType.Platform))) //ground terminal west of HART C
     LocalObject(1063, Terminal.Constructor(ground_vehicle_terminal))
     LocalObject(706,
       VehicleSpawnPad.Constructor(Vector3(3506.0f, 2820.0f, 92.0f), Vector3(0f, 0f, 270.0f))
@@ -422,18 +476,6 @@ object Maps {
     ObjectToBuilding(1063, 77)
     ObjectToBuilding(706, 77)
     TerminalToSpawnPad(1063, 706)
-
-    //TODO check building id: these belong to a spawn building in HART C campus
-    LocalObject(462, Door.Constructor)
-    LocalObject(463, Door.Constructor)
-    LocalObject(853, Terminal.Constructor(order_terminal))
-    LocalObject(855, Terminal.Constructor(order_terminal))
-    LocalObject(860, Terminal.Constructor(order_terminal))
-    ObjectToBuilding(462, 2)
-    ObjectToBuilding(463, 2)
-    ObjectToBuilding(853, 2)
-    ObjectToBuilding(855, 2)
-    ObjectToBuilding(860, 2)
   }
 
   val map14 = new ZoneMap("map13")

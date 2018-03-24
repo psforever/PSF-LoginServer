@@ -15,14 +15,19 @@ class Avatar(val name : String, val faction : PlanetSideEmpire.Value, val sex : 
   private var cep : Long = 0
   /** Certifications */
   private val certs : mutable.Set[CertificationType.Value] = mutable.Set[CertificationType.Value]()
-  /** Implants */
+  /** Implants<br>
+    * Unlike other objects, the maximum number of `ImplantSlots` are built into the `Avatar`.
+    * Additionally, implants do not have tightly-coupled "`Definition` objects" that explain a formal implant object.
+    * The `ImplantDefinition` objects themselves are moved around as if they were the implants.
+    * The terms externally used for the states of process is "installed" and "uninstalled."
+    * @see `ImplantSlot`
+    * @see `DetailedCharacterData.implants`
+    */
   private val implants : Array[ImplantSlot] = Array.fill[ImplantSlot](3)(new ImplantSlot)
   /** Loadouts */
   private val loadouts : Array[Option[Loadout]] = Array.fill[Option[Loadout]](10)(None)
   /** Locker (fifth inventory slot) */
-  private val locker : EquipmentSlot = new OffhandEquipmentSlot(EquipmentSize.Inventory) {
-    Equipment = new LockerContainer
-  }
+  private val locker : LockerContainer = LockerContainer()
 
   def BEP : Long = bep
 
@@ -67,7 +72,7 @@ class Avatar(val name : String, val faction : PlanetSideEmpire.Value, val sex : 
     * @return the index of the `ImplantSlot` where the implant was installed
     */
   def InstallImplant(implant : ImplantDefinition) : Option[Int] = {
-    implants.find({p => p.Installed.contains(implant)}) match { //try to find the installed implant
+    implants.find({p => p.Installed.contains(implant) || p.Implant == implant.Type}) match { //try to find the installed implant
       case None =>
         recursiveFindImplantInSlot(implants.iterator, ImplantType.None) match { //install in a free slot
           case Some(slot) =>
@@ -138,29 +143,25 @@ class Avatar(val name : String, val faction : PlanetSideEmpire.Value, val sex : 
     })
   }
 
-  /**
-    * Unlike other objects, the maximum number of `ImplantSlots` are built into the `Player`.
-    * Additionally, "implants" do not have tightly-coupled "`Definition` objects" that explain a formal implant object.
-    * The `ImplantDefinition` objects themselves are moved around as if they were the implants.
-    * The term internally used for this process is "installed" and "uninstalled."
-    * @see `ImplantSlot`
-    * @see `DetailedCharacterData.implants`
-    * @see `AvatarConverter.MakeImplantEntries`
-    */
-
   def SaveLoadout(owner : Player, label : String, line : Int) : Unit = {
-    loadouts(line) = Some(Loadout.Create(owner, label))
+    if(line > -1 && line < 10) {
+      loadouts(line) = Some(Loadout.Create(owner, label))
+    }
   }
 
-  def LoadLoadout(line : Int) : Option[Loadout] = loadouts(line)
+  def LoadLoadout(line : Int) : Option[Loadout] = loadouts.lift(line).getOrElse(None)
 
   def DeleteLoadout(line : Int) : Unit = {
     loadouts(line) = None
   }
 
-  def Locker : LockerContainer = locker.Equipment.get.asInstanceOf[LockerContainer]
+  def Locker : LockerContainer = locker
 
-  def FifthSlot : EquipmentSlot = locker
+  def FifthSlot : EquipmentSlot = {
+    new OffhandEquipmentSlot(EquipmentSize.Inventory) {
+      Equipment = locker
+    }
+  }
 
   def Definition : AvatarDefinition = Avatar.definition
 
@@ -191,7 +192,7 @@ class Avatar(val name : String, val faction : PlanetSideEmpire.Value, val sex : 
     state.map(_.hashCode()).foldLeft(0)((a, b) => 31 * a + b)
   }
 
-  override def toString: String = s"$faction $name"
+  override def toString: String = Avatar.toString(this)
 }
 
 object Avatar {
@@ -200,4 +201,6 @@ object Avatar {
   def apply(name : String, faction : PlanetSideEmpire.Value, sex : CharacterGender.Value, head : Int, voice : Int) : Avatar = {
     new Avatar(name, faction, sex, head, voice)
   }
+
+  def toString(avatar : Avatar) : String = s"${avatar.faction} ${avatar.name}"
 }

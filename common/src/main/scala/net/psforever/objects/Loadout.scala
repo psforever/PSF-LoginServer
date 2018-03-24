@@ -8,14 +8,6 @@ import net.psforever.types.ExoSuitType
 
 import scala.annotation.tailrec
 
-//trait Loadout {
-//  def Label : String
-//  def VisibleSlots : List[Loadout.SimplifiedEntry]
-//  def Inventory : List[Loadout.SimplifiedEntry]
-//  def ExoSuit : ExoSuitType.Value
-//  def Subtype : Int
-//}
-
 /**
   * From a `Player` their current exo-suit and their `Equipment`, retain a set of instructions to reconstruct this arrangement.<br>
   * <br>
@@ -113,7 +105,9 @@ object Loadout {
   /**
     * A basic `Trait` connecting all of the `Equipment` blueprints.
     */
-  sealed trait Simplification
+  sealed trait Simplification {
+    def definition : ObjectDefinition
+  }
 
   /**
     * An entry in the `Loadout`, wrapping around a slot index and what is in the slot index.
@@ -125,17 +119,17 @@ object Loadout {
 
   /**
     * The simplified form of an `AmmoBox`.
-    * @param adef the `AmmoBoxDefinition` that describes this future object
+    * @param definition the `AmmoBoxDefinition` that describes this future object
     * @param capacity the amount of ammunition, if any, to initialize;
     *                 if `None`, then the previous `AmmoBoxDefinition` will be referenced for the amount later
     */
-  final case class ShorthandAmmoBox(adef : AmmoBoxDefinition, capacity : Int) extends Simplification
+  final case class ShorthandAmmoBox(definition : AmmoBoxDefinition, capacity : Int) extends Simplification
   /**
     * The simplified form of a `Tool`.
-    * @param tdef the `ToolDefinition` that describes this future object
+    * @param definition the `ToolDefinition` that describes this future object
     * @param ammo the blueprints to construct the correct number of ammunition slots in the `Tool`
     */
-  final case class ShorthandTool(tdef : ToolDefinition, ammo : List[ShorthandAmmoSlot]) extends Simplification
+  final case class ShorthandTool(definition : ToolDefinition, ammo : List[ShorthandAmmoSlot]) extends Simplification
   /**
     * The simplified form of a `Tool` `FireMode`
     * @param ammoIndex the index that points to the type of ammunition this slot currently uses
@@ -144,19 +138,19 @@ object Loadout {
   final case class ShorthandAmmoSlot(ammoIndex : Int, ammo : ShorthandAmmoBox)
   /**
     * The simplified form of a `ConstructionItem`.
-    * @param cdef the `ConstructionItemDefinition` that describes this future object
+    * @param definition the `ConstructionItemDefinition` that describes this future object
     */
-  final case class ShorthandConstructionItem(cdef : ConstructionItemDefinition) extends Simplification
+  final case class ShorthandConstructionItem(definition : ConstructionItemDefinition) extends Simplification
   /**
     * The simplified form of a `SimpleItem`.
-    * @param sdef the `SimpleItemDefinition` that describes this future object
+    * @param definition the `SimpleItemDefinition` that describes this future object
     */
-  final case class ShorthandSimpleItem(sdef : SimpleItemDefinition) extends Simplification
+  final case class ShorthandSimpleItem(definition : SimpleItemDefinition) extends Simplification
   /**
     * The simplified form of a `Kit`.
-    * @param kdef the `KitDefinition` that describes this future object
+    * @param definition the `KitDefinition` that describes this future object
     */
-  final case class ShorthandKit(kdef : KitDefinition) extends Simplification
+  final case class ShorthandKit(definition : KitDefinition) extends Simplification
 
   def DetermineSubtype(player : Player) : Int = {
     if(player.ExoSuit == ExoSuitType.MAX) {

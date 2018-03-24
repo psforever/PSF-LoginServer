@@ -1,6 +1,7 @@
 // Copyright (c) 2017 PSForever
 import akka.actor.ActorContext
 import net.psforever.objects.zones.Zone
+import net.psforever.types.PlanetSideEmpire
 
 object Zones {
   val z1 = new Zone("z1", Maps.map1, 1)
@@ -86,4 +87,32 @@ object Zones {
   val i3 = new Zone("i3", Maps.map98, 31)
 
   val i4 = new Zone("i4", Maps.map99, 32)
+
+  /**
+    * Get the zone identifier name for the sanctuary continent of a given empire.
+    * @param faction the empire
+    * @return the zone id, with a blank string as an invalidating result
+    */
+  def SanctuaryZoneId(faction : PlanetSideEmpire.Value) : String = {
+    faction match {
+      case PlanetSideEmpire.TR => "home1"
+      case PlanetSideEmpire.NC => "home2"
+      case PlanetSideEmpire.VS => "home3"
+      case PlanetSideEmpire.NEUTRAL => "" //invalid, not black ops
+    }
+  }
+
+  /**
+    * Get the zone number for the sanctuary continent of a given empire.
+    * @param faction the empire
+    * @return the zone number, within the sequence 1-32, and with 0 as an invalidating result
+    */
+  def SanctuaryZoneNumber(faction : PlanetSideEmpire.Value) : Int = {
+    faction match {
+      case PlanetSideEmpire.TR => 11
+      case PlanetSideEmpire.NC => 12
+      case PlanetSideEmpire.VS => 13
+      case PlanetSideEmpire.NEUTRAL => 0 //invalid, not black ops
+    }
+  }
 }

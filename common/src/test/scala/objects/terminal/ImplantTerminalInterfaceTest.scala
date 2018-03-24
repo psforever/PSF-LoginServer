@@ -2,7 +2,7 @@
 package objects.terminal
 
 import akka.actor.ActorRef
-import net.psforever.objects.serverobject.structures.Building
+import net.psforever.objects.serverobject.structures.{Building, StructureType}
 import net.psforever.objects.{Avatar, GlobalDefinitions, Player}
 import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.zones.Zone
@@ -14,7 +14,7 @@ class ImplantTerminalInterfaceTest extends Specification {
   "Implant_Terminal_Interface" should {
     val player = Player(Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0))
     val terminal = Terminal(GlobalDefinitions.implant_terminal_interface)
-    terminal.Owner = new Building(0, Zone.Nowhere)
+    terminal.Owner = new Building(0, Zone.Nowhere, StructureType.Building)
     terminal.Owner.Faction = PlanetSideEmpire.TR
 
     "construct" in {
