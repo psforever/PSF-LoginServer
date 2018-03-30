@@ -25,6 +25,8 @@ object Zones {
       Building(42).get.ModelId = 0
       Building(48).get.Faction = PlanetSideEmpire.VS
       Building(48).get.ModelId = 59
+      Building(49).get.Faction = PlanetSideEmpire.VS
+      Building(49).get.ModelId = 69
     }
   }
 

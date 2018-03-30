@@ -26,4 +26,8 @@ class DisconnectMessageTest extends Specification {
 
     pkt mustEqual string
   }
+
+  "comparison" in {
+    DisconnectMessage("First") mustEqual DisconnectMessage("First", "", "")
+  }
 }

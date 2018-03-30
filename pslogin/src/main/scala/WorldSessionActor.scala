@@ -72,8 +72,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
   override def postStop() = {
     clientKeepAlive.cancel
-    progressBarUpdate.cancel
     reviveTimer.cancel
+    PlayerActionsToCancel() //progressBarUpdate.cancel
     localService ! Service.Leave()
     vehicleService ! Service.Leave()
     avatarService ! Service.Leave()
@@ -102,7 +102,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       continent.Population ! Zone.Population.Release(avatar)
       continent.Population ! Zone.Population.Leave(avatar)
       avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.ObjectDelete(player_guid, player_guid))
-      taskResolver ! GUIDTask.UnregisterAvatar(player)(continent.GUID)
+      taskResolver ! GUIDTask.  UnregisterAvatar(player)(continent.GUID)
       //TODO normally, the actual player avatar persists a minute or so after the user disconnects
     }
   }
@@ -1299,8 +1299,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
       AwardBattleExperiencePoints(avatar, 1000000L)
       player = new Player(avatar)
       //player.Position = Vector3(3561.0f, 2854.0f, 90.859375f) //home3, HART C
-      player.Position = Vector3(3881.9688f, 4432.008f, 267.0f) //z6, Anguta / n.tower
-      player.Orientation = Vector3(0f, 0f, 90f)
+      //player.Orientation = Vector3(0f, 0f, 90f)
+      player.Position = Vector3(4266.0547f, 4046.4844f, 250.23438f) //z6, Akna.tower
+      player.Orientation = Vector3(0f, 0f, 320f)
 //      player.ExoSuit = ExoSuitType.MAX //TODO strange issue; divide number above by 10 when uncommenting
       player.Slot(0).Equipment = SimpleItem(remote_electronics_kit) //Tool(GlobalDefinitions.StandardPistol(player.Faction))
       player.Slot(2).Equipment = Tool(punisher) //suppressor
@@ -1350,7 +1351,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       sendResponse(ContinentalLockUpdateMessage(13, PlanetSideEmpire.VS)) // "The VS have captured the VS Sanctuary."
       sendResponse(ReplicationStreamMessage(5, Some(6), Vector(SquadListing()))) //clear squad list
       sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 112, 1)) //common
-      (0 to 255).foreach(i => { sendResponse(SetEmpireMessage(PlanetSideGUID(i), PlanetSideEmpire.VS)) })
+      //(0 to 255).foreach(i => { sendResponse(SetEmpireMessage(PlanetSideGUID(i), PlanetSideEmpire.VS)) })
 
       //render Equipment that was dropped into zone before the player arrived
       continent.EquipmentOnGround.foreach(item => {
@@ -1899,7 +1900,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
       continent.GUID(object_guid) match {
         case Some(vehicle : Vehicle) =>
           if((player.VehicleOwned.contains(object_guid) && vehicle.Owner.contains(player.GUID))
-            || (player.Faction == vehicle.Faction && (vehicle.Owner.isEmpty || vehicle.Health == 0))) {
+            || (player.Faction == vehicle.Faction
+            && ((vehicle.Owner.isEmpty || continent.GUID(vehicle.Owner.get).isEmpty) || vehicle.Health == 0))) {
             vehicleService ! VehicleServiceMessage.UnscheduleDeconstruction(object_guid)
             vehicleService ! VehicleServiceMessage.RequestDeleteVehicle(vehicle, continent)
             log.info(s"RequestDestroy: vehicle $object_guid")
