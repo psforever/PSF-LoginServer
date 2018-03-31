@@ -4,7 +4,7 @@ package net.psforever.objects.definition.converter
 import net.psforever.objects.{EquipmentSlot, Player}
 import net.psforever.objects.equipment.Equipment
 import net.psforever.packet.game.objectcreate.{BasicCharacterData, CharacterAppearanceData, CharacterData, DetailedCharacterData, DrawnSlot, InternalSlot, InventoryData, PlacementData, RibbonBars}
-import net.psforever.types.{CharacterGender, GrenadeState}
+import net.psforever.types.{CharacterGender, GrenadeState, Vector3}
 
 import scala.annotation.tailrec
 import scala.util.{Failure, Success, Try}
@@ -33,7 +33,7 @@ class CorpseConverter extends AvatarConverter {
     */
   private def MakeAppearanceData(obj : Player) : CharacterAppearanceData = {
     CharacterAppearanceData(
-      PlacementData(obj.Position, obj.Orientation),
+      PlacementData(obj.Position, Vector3(0,0, obj.Orientation.z)),
       BasicCharacterData(obj.Name, obj.Faction, CharacterGender.Male, 0, 0),
       0,
       false,

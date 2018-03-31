@@ -12,7 +12,7 @@ import net.psforever.objects.serverobject.structures.{Building, FoundationBuilde
 import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.zones.{Zone, ZoneActor, ZoneMap}
-import net.psforever.objects.{Avatar, GlobalDefinitions, Player, Vehicle}
+import net.psforever.objects._
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types.{CharacterGender, PlanetSideEmpire, Vector3}
 import org.specs2.mutable.Specification
@@ -485,6 +485,60 @@ class ZonePopulationTest extends ActorTest {
       zone.Population ! Zone.Corpse.Add(player)
       expectNoMsg(Duration.create(100, "ms"))
       assert(zone.Corpses.isEmpty)
+    }
+  }
+}
+
+class ZoneGroundTest extends ActorTest {
+  val item = AmmoBox(GlobalDefinitions.bullet_9mm)
+  item.GUID = PlanetSideGUID(10)
+
+  "ZoneGroundActor" should {
+    "drop item on ground" in {
+      val zone = new Zone("test", new ZoneMap(""), 0)
+      system.actorOf(Props(classOf[ZoneTest.ZoneInitActor], zone), "drop-item-test") ! "!"
+      receiveOne(Duration.create(200, "ms")) //consume
+
+      assert(zone.EquipmentOnGround.isEmpty)
+      assert(item.Position == Vector3.Zero)
+      assert(item.Orientation == Vector3.Zero)
+      zone.Ground ! Zone.DropItemOnGround(item, Vector3(1.1f, 2.2f, 3.3f), Vector3(4.4f, 5.5f, 6.6f))
+      expectNoMsg(Duration.create(100, "ms"))
+
+      assert(zone.EquipmentOnGround == List(item))
+      assert(item.Position == Vector3(1.1f, 2.2f, 3.3f))
+      assert(item.Orientation == Vector3(4.4f, 5.5f, 6.6f))
+    }
+
+    "get item from ground (success)" in {
+      val zone = new Zone("test", new ZoneMap(""), 0)
+      val player = Player(Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5))
+      system.actorOf(Props(classOf[ZoneTest.ZoneInitActor], zone), "get-item-test-good") ! "!"
+      receiveOne(Duration.create(200, "ms")) //consume
+      zone.Ground ! Zone.DropItemOnGround(item, Vector3.Zero, Vector3.Zero)
+      expectNoMsg(Duration.create(100, "ms"))
+
+      assert(zone.EquipmentOnGround == List(item))
+      zone.Ground ! Zone.GetItemOnGround(player, PlanetSideGUID(10))
+      val reply = receiveOne(Duration.create(100, "ms"))
+
+      assert(zone.EquipmentOnGround.isEmpty)
+      assert(reply.isInstanceOf[Zone.ItemFromGround])
+      assert(reply.asInstanceOf[Zone.ItemFromGround].player == player)
+      assert(reply.asInstanceOf[Zone.ItemFromGround].item == item)
+    }
+
+    "get item from ground (failure)" in {
+      val zone = new Zone("test", new ZoneMap(""), 0)
+      val player = Player(Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5))
+      system.actorOf(Props(classOf[ZoneTest.ZoneInitActor], zone), "get-item-test-fail") ! "!"
+      receiveOne(Duration.create(200, "ms")) //consume
+      zone.Ground ! Zone.DropItemOnGround(item, Vector3.Zero, Vector3.Zero)
+      expectNoMsg(Duration.create(100, "ms"))
+
+      assert(zone.EquipmentOnGround == List(item))
+      zone.Ground ! Zone.GetItemOnGround(player, PlanetSideGUID(11)) //wrong guid
+      expectNoMsg(Duration.create(500, "ms"))
     }
   }
 }

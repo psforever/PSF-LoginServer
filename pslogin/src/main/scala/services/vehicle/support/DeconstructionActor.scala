@@ -7,6 +7,7 @@ import net.psforever.objects.guid.TaskResolver
 import net.psforever.objects.vehicles.Seat
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.PlanetSideGUID
+import net.psforever.types.Vector3
 import services.ServiceManager
 import services.ServiceManager.Lookup
 import services.vehicle.{VehicleAction, VehicleServiceMessage}
@@ -80,6 +81,7 @@ class DeconstructionActor extends Actor {
       vehiclesToScrap.foreach(entry => {
         val vehicle = entry.vehicle
         val zone = entry.zone
+        vehicle.Position = Vector3.Zero //somewhere it will not disturb anything
         entry.zone.Transport ! Zone.DespawnVehicle(vehicle)
         context.parent ! DeconstructionActor.DeleteVehicle(vehicle.GUID, zone.Id) //call up to the main event system
         context.parent ! VehicleServiceMessage.RevokeActorControl(vehicle) //call up to a sibling manager

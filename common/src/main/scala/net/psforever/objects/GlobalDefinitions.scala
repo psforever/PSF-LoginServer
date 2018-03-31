@@ -689,6 +689,17 @@ object GlobalDefinitions {
     }
   }
 
+  def isMaxArms(tdef : ToolDefinition) : Boolean = {
+    tdef match {
+      case `trhev_dualcycler` | `nchev_scattercannon` | `vshev_quasar`
+           | `trhev_pounder` | `nchev_falcon` | `vshev_comet`
+           | `trhev_burster` | `nchev_sparrow` | `vshev_starfire` =>
+        true
+      case _ =>
+        false
+    }
+  }
+
   def AIMAX(faction : PlanetSideEmpire.Value) : ToolDefinition = {
     faction match {
       case PlanetSideEmpire.TR => trhev_dualcycler

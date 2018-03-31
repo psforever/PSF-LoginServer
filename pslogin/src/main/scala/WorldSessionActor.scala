@@ -12,6 +12,7 @@ import MDCContextAware.Implicits._
 import net.psforever.objects.GlobalDefinitions._
 import services.ServiceManager.Lookup
 import net.psforever.objects._
+import net.psforever.objects.definition.ToolDefinition
 import net.psforever.objects.definition.converter.CorpseConverter
 import net.psforever.objects.equipment._
 import net.psforever.objects.guid.{GUIDTask, Task, TaskResolver}
@@ -101,8 +102,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
       }
       continent.Population ! Zone.Population.Release(avatar)
       continent.Population ! Zone.Population.Leave(avatar)
+      player.Position = Vector3.Zero //save character before doing this
       avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.ObjectDelete(player_guid, player_guid))
-      taskResolver ! GUIDTask.  UnregisterAvatar(player)(continent.GUID)
+      taskResolver ! GUIDTask.UnregisterAvatar(player)(continent.GUID)
       //TODO normally, the actual player avatar persists a minute or so after the user disconnects
     }
   }
@@ -1026,8 +1028,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
       tplayer.Position = spawn_tube.Position
       tplayer.Orientation = spawn_tube.Orientation
-      import scala.concurrent.duration._
-      import scala.concurrent.ExecutionContext.Implicits.global
       val (target, msg) : (ActorRef, Any) = if(sameZone) {
         if(backpack) {
           //respawning from unregistered player
@@ -1052,6 +1052,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
           (taskResolver, TaskBeforeZoneChange(GUIDTask.UnregisterAvatar(original)(continent.GUID), zone_id))
         }
       }
+      import scala.concurrent.duration._
+      import scala.concurrent.ExecutionContext.Implicits.global
       context.system.scheduler.scheduleOnce(respawnTime seconds, target, msg)
 
     case Zone.Lattice.NoValidSpawnPoint(zone_number, None) =>
@@ -1103,6 +1105,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       player = tplayer
       val guid = tplayer.GUID
       sendResponse(SetCurrentAvatarMessage(guid,0,0))
+      sendResponse(PlayerStateShiftMessage(ShiftState(1, tplayer.Position, tplayer.Orientation.z)))
       if(spectator) {
         sendResponse(ChatMsg(ChatMessageType.CMT_TOGGLESPECTATORMODE, false, "", "on", None))
       }
@@ -1300,8 +1303,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
       player = new Player(avatar)
       //player.Position = Vector3(3561.0f, 2854.0f, 90.859375f) //home3, HART C
       //player.Orientation = Vector3(0f, 0f, 90f)
-      player.Position = Vector3(4266.0547f, 4046.4844f, 250.23438f) //z6, Akna.tower
-      player.Orientation = Vector3(0f, 0f, 320f)
+      player.Position = Vector3(4262.211f ,4067.0625f ,262.35938f) //z6, Akna.tower
+      player.Orientation = Vector3(0f, 0f, 132.1875f)
 //      player.ExoSuit = ExoSuitType.MAX //TODO strange issue; divide number above by 10 when uncommenting
       player.Slot(0).Equipment = SimpleItem(remote_electronics_kit) //Tool(GlobalDefinitions.StandardPistol(player.Faction))
       player.Slot(2).Equipment = Tool(punisher) //suppressor
@@ -1502,11 +1505,17 @@ class WorldSessionActor extends Actor with MDCContextAware {
       player.VehicleSeated match {
         case None =>
           continent.Population ! Zone.Corpse.Add(player) //TODO move back out of this match case when changing below issue
-          val knife = player.Slot(4).Equipment.get
-          player.Slot(4).Equipment = None
-          taskResolver ! RemoveEquipmentFromSlot(player, knife, 4)
-          TurnPlayerIntoCorpse(player)
-          avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.Release(player, continent))
+          FriskCorpse(player)
+          if(!WellLootedCorpse(player)) {
+            TurnPlayerIntoCorpse(player)
+            avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.Release(player, continent))
+          }
+          else { //no items in inventory; leave no corpse
+            val player_guid = player.GUID
+            sendResponse(ObjectDeleteMessage(player_guid, 0))
+            avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player_guid, player_guid, 0))
+            taskResolver ! GUIDTask.UnregisterPlayer(player)(continent.GUID)
+          }
 
         case Some(_) =>
           //TODO we do not want to delete the player if he is seated in a vehicle when releasing
@@ -1514,8 +1523,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
           val player_guid = player.GUID
           sendResponse(ObjectDeleteMessage(player_guid, 0))
           avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player_guid, player_guid, 0))
-          self ! PacketCoding.CreateGamePacket(0, DismountVehicleMsg(player_guid, 0, true)) //let vehicle try to clean up its fields
           taskResolver ! GUIDTask.UnregisterPlayer(player)(continent.GUID)
+          self ! PacketCoding.CreateGamePacket(0, DismountVehicleMsg(player_guid, 0, true)) //let vehicle try to clean up its fields
           //sendResponse(ObjectDetachMessage(vehicle_guid, player.GUID, Vector3.Zero, 0, 0, 0))
           //sendResponse(PlayerStateShiftMessage(ShiftState(1, Vector3.Zero, 0)))
       }
@@ -1980,9 +1989,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
                             vehicleService ! VehicleServiceMessage(s"${obj.Actor}", VehicleAction.UnstowEquipment(player_guid, item_guid))
                             vehicleService ! VehicleServiceMessage(s"${obj.Actor}", VehicleAction.StowEquipment(player_guid, source_guid, index, item2))
                           //TODO visible slot verification, in the case of BFR arms
-                          case (_ : Player) =>
+                          case (obj : Player) =>
                             if(source.VisibleSlots.contains(index)) {
-                              avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.EquipmentInHand(source_guid, index, item2))
+                                avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.EquipmentInHand(source_guid, index, item2))
                             }
                           case _ => ;
                             //TODO something?
@@ -2168,6 +2177,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
             obj.AccessingTrunk = None
             UnAccessContents(obj)
           }
+        case Some(obj : Player) =>
+          TryDisposeOfLootedCorpse(obj)
 
         case _ =>;
       }
@@ -2772,13 +2783,19 @@ class WorldSessionActor extends Actor with MDCContextAware {
     )
   }
 
+  /**
+    * Before calling `Interstellar.GetWorld` to change zones, perform the following task (which can be a nesting of subtasks).
+    * @param priorTask the tasks to perform
+    * @param zoneId the zone to load afterwards
+    * @return a `TaskResolver.GiveTask` message
+    */
   def TaskBeforeZoneChange(priorTask : TaskResolver.GiveTask, zoneId : String) : TaskResolver.GiveTask = {
     TaskResolver.GiveTask(
       new Task() {
         private val localService = galaxy
         private val localMsg = InterstellarCluster.GetWorld(zoneId)
 
-        override def isComplete : Task.Resolution.Value = Task.Resolution.Success
+        override def isComplete : Task.Resolution.Value = priorTask.task.isComplete
 
         def Execute(resolver : ActorRef) : Unit = {
           localService ! localMsg
@@ -3494,6 +3511,31 @@ class WorldSessionActor extends Actor with MDCContextAware {
   }
 
   /**
+    * Remove items from a deceased player that is not expected to be found on a corpse.
+    * Most all players have their melee slot knife (which can not be un-equipped normally) removed.
+    * MAX's have their primary weapon in the designated slot removed.
+    * @param obj the player to be turned into a corpse
+    */
+  def FriskCorpse(obj : Player) : Unit = {
+    if(obj.isBackpack) {
+      obj.Slot(4).Equipment match {
+        case None => ;
+        case Some(knife) =>
+          obj.Slot(4).Equipment = None
+          taskResolver ! RemoveEquipmentFromSlot(obj, knife, 4)
+      }
+      obj.Slot(0).Equipment match {
+        case Some(arms : Tool) =>
+          if(GlobalDefinitions.isMaxArms(arms.Definition)) {
+            obj.Slot(0).Equipment = None
+            taskResolver ! RemoveEquipmentFromSlot(obj, arms, 0)
+          }
+        case _ => ;
+      }
+    }
+  }
+
+  /**
     * Creates a player that has the characteristics of a corpse.
     * To the game, that is a backpack (or some pastry, festive graphical modification allowing).
     * @see `CorpseConverter.converter`
@@ -3503,6 +3545,34 @@ class WorldSessionActor extends Actor with MDCContextAware {
     sendResponse(
       ObjectCreateDetailedMessage(ObjectClass.avatar, tplayer.GUID, CorpseConverter.converter.DetailedConstructorData(tplayer).get)
     )
+  }
+
+  /**
+    * If the corpse has been well-looted, it has no items in its primary holsters nor any items in its inventory.
+    * @param obj the corpse
+    * @return `true`, if the `obj` is actually a corpse and has no objects in its holsters or backpack;
+    *        `false`, otherwise
+    */
+  def WellLootedCorpse(obj : Player) : Boolean = {
+    obj.isBackpack && obj.Holsters().count(_.Equipment.nonEmpty) == 0 && obj.Inventory.Size == 0
+  }
+
+  /**
+    * If the corpse has been well-looted, remove it from the ground.
+    * @param obj the corpse
+    * @return `true`, if the `obj` is actually a corpse and has no objects in its holsters or backpack;
+    *        `false`, otherwise
+    */
+  def TryDisposeOfLootedCorpse(obj : Player) : Boolean = {
+    if(WellLootedCorpse(obj)) {
+      import scala.concurrent.duration._
+      import scala.concurrent.ExecutionContext.Implicits.global
+      context.system.scheduler.scheduleOnce(1 second, avatarService, AvatarServiceMessage.RemoveSpecificCorpse(List(obj)))
+      true
+    }
+    else {
+      false
+    }
   }
 
   /**
