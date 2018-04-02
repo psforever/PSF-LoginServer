@@ -140,10 +140,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
       galaxy = endpoint
       log.info("ID: " + sessionId + " Got galaxy service " + endpoint)
 
-    case ctrl @ ControlPacket(_, _) =>
-      handlePktContainer(ctrl)
-    case game @ GamePacket(_, _, _) =>
-      handlePktContainer(game)
+    case ControlPacket(_, ctrl) =>
+      handleControlPkt(ctrl)
+    case GamePacket(_, _, pkt) =>
+      handleGamePkt(pkt)
       // temporary hack to keep the client from disconnecting
     case PokeClient() =>
       sendResponse(KeepAliveMessage())
@@ -1110,61 +1110,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
      log.warn(s"Invalid packet class received: $default")
   }
 
-  def handlePkt(pkt : PlanetSidePacket) : Unit = pkt match {
-    case ctrl : PlanetSideControlPacket =>
-      handleControlPkt(ctrl)
-    case game : PlanetSideGamePacket =>
-      handleGamePkt(game)
-    case default => log.error(s"Invalid packet class received: $default")
-  }
-
-  def handlePktContainer(pkt : PlanetSidePacketContainer) : Unit = pkt match {
-    case ctrl @ ControlPacket(opcode, ctrlPkt) =>
-      handleControlPkt(ctrlPkt)
-    case game @ GamePacket(opcode, seq, gamePkt) =>
-      handleGamePkt(gamePkt)
-    case default => log.warn(s"Invalid packet container class received: $default")
-  }
-
   def handleControlPkt(pkt : PlanetSideControlPacket) = {
     pkt match {
-      case SlottedMetaPacket(slot, subslot, innerPacket) =>
-        sendResponse(SlottedMetaAck(slot, subslot))
-
-        PacketCoding.DecodePacket(innerPacket) match {
-          case Failure(e) =>
-            log.error(s"Failed to decode inner packet of SlottedMetaPacket: $e")
-          case Successful(v) =>
-            handlePkt(v)
-        }
-      case sync @ ControlSync(diff, unk, f1, f2, f3, f4, fa, fb) =>
+      case sync @ ControlSync(diff, _, _, _, _, _, fa, fb) =>
         log.debug(s"SYNC: $sync")
         val serverTick = Math.abs(System.nanoTime().toInt) // limit the size to prevent encoding error
         sendResponse(ControlSyncResp(diff, serverTick, fa, fb, fb, fa))
-      case MultiPacket(packets) =>
-        packets.foreach { pkt =>
-          PacketCoding.DecodePacket(pkt) match {
-            case Failure(e) =>
-              log.error(s"Failed to decode inner packet of MultiPacket: $e")
-            case Successful(v) =>
-              handlePkt(v)
-          }
-        }
-      case MultiPacketEx(packets) =>
-        packets.foreach { pkt =>
-          PacketCoding.DecodePacket(pkt) match {
-            case Failure(e) =>
-              log.error(s"Failed to decode inner packet of MultiPacketEx: $e")
-            case Successful(v) =>
-              handlePkt(v)
-          }
-        }
-
-      case RelatedA0(subslot) =>
-        log.error(s"Client not ready for last control packet with subslot $subslot; potential system disarray")
-
-      case RelatedB0(subslot) =>
-        log.trace(s"Good control packet received $subslot")
 
       case TeardownConnection(_) =>
         log.info("Good bye")
@@ -3186,6 +3137,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
   }
   
   def sendResponse(cont : PlanetSidePacketContainer) : Unit = {
+    log.trace("WORLD SEND: " + cont)
+    sendResponse(cont.asInstanceOf[Any])
+  }
+
+  def sendResponse(cont : MultiPacketBundle) : Unit = {
     log.trace("WORLD SEND: " + cont)
     sendResponse(cont.asInstanceOf[Any])
   }
