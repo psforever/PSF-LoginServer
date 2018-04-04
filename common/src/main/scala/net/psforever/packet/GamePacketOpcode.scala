@@ -410,7 +410,7 @@ object GamePacketOpcode extends Enumeration {
     case 0x4b => game.DeployRequestMessage.decode
     case 0x4c => noDecoder(UnknownMessage76)
     case 0x4d => game.RepairMessage.decode
-    case 0x4e => noDecoder(ServerVehicleOverrideMsg)
+    case 0x4e => game.ServerVehicleOverrideMsg.decode
     case 0x4f => game.LashMessage.decode
 
     // OPCODES 0x50-5f

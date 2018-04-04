@@ -2,11 +2,12 @@
 package services.vehicle
 
 import akka.actor.{Actor, ActorRef, Props}
-import services.vehicle.support.{DeconstructionActor, DelayedDeconstructionActor, VehicleContextActor}
+import net.psforever.objects.serverobject.pad.VehicleSpawnPad
+import net.psforever.objects.zones.Zone
+import services.vehicle.support.{DeconstructionActor, DelayedDeconstructionActor}
 import services.{GenericEventBus, Service}
 
 class VehicleService extends Actor {
-  private val vehicleContext : ActorRef = context.actorOf(Props[VehicleContextActor], "vehicle-context-root")
   private val vehicleDecon : ActorRef = context.actorOf(Props[DeconstructionActor], "vehicle-decon-agent")
   private val vehicleDelayedDecon : ActorRef = context.actorOf(Props[DelayedDeconstructionActor], "vehicle-delayed-decon-agent")
   vehicleDecon ! DeconstructionActor.RequestTaskResolver
@@ -91,14 +92,6 @@ class VehicleService extends Actor {
         case _ => ;
     }
 
-    //message to VehicleContext
-    case VehicleServiceMessage.GiveActorControl(vehicle, actorName) =>
-      vehicleContext ! VehicleServiceMessage.GiveActorControl(vehicle, actorName)
-
-    //message to VehicleContext
-    case VehicleServiceMessage.RevokeActorControl(vehicle) =>
-      vehicleContext ! VehicleServiceMessage.RevokeActorControl(vehicle)
-
     //message to DeconstructionActor
     case VehicleServiceMessage.RequestDeleteVehicle(vehicle, continent) =>
       vehicleDecon ! DeconstructionActor.RequestDeleteVehicle(vehicle, continent)
@@ -116,6 +109,35 @@ class VehicleService extends Actor {
       VehicleEvents.publish(
         VehicleServiceResponse(s"/$zone_id/Vehicle", Service.defaultPlayerGUID, VehicleResponse.UnloadVehicle(vehicle_guid))
       )
+
+    //from VehicleSpawnControl
+    case VehicleSpawnPad.ConcealPlayer(player_guid, zone_id) =>
+      VehicleEvents.publish(
+        VehicleServiceResponse(s"/$zone_id/Vehicle", Service.defaultPlayerGUID, VehicleResponse.ConcealPlayer(player_guid))
+      )
+
+    case VehicleSpawnPad.RevealPlayer(player_guid, zone_id) =>
+      VehicleEvents.publish(
+        VehicleServiceResponse(s"/$zone_id/Vehicle", Service.defaultPlayerGUID, VehicleResponse.RevealPlayer(player_guid))
+      )
+
+    //from VehicleSpawnControl
+    case VehicleSpawnPad.LoadVehicle(vehicle, zone) =>
+      val definition = vehicle.Definition
+      val vtype = definition.ObjectId
+      val vguid = vehicle.GUID
+      val vdata = definition.Packet.ConstructorData(vehicle).get
+      zone.Transport ! Zone.Vehicle.Spawn(vehicle)
+      VehicleEvents.publish(
+        VehicleServiceResponse(s"/${zone.Id}/Vehicle", Service.defaultPlayerGUID, VehicleResponse.LoadVehicle(vehicle, vtype, vguid, vdata))
+      )
+      vehicleDelayedDecon ! DelayedDeconstructionActor.UnscheduleDeconstruction(vguid)
+      vehicleDelayedDecon ! DelayedDeconstructionActor.ScheduleDeconstruction(vehicle, zone, 600L) //10min
+
+    //from VehicleSpawnControl
+    case VehicleSpawnPad.DisposeVehicle(vehicle, zone) =>
+      vehicleDelayedDecon ! DelayedDeconstructionActor.UnscheduleDeconstruction(vehicle.GUID)
+      vehicleDecon ! DeconstructionActor.RequestDeleteVehicle(vehicle, zone)
 
     case msg =>
       log.info(s"Unhandled message $msg from $sender")

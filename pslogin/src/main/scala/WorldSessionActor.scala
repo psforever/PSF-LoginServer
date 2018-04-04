@@ -409,6 +409,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
             sendResponse(ChildObjectStateMessage(object_guid, pitch, yaw))
           }
 
+        case VehicleResponse.ConcealPlayer(player_guid) =>
+          sendResponse(GenericObjectActionMessage(player_guid, 36))
+
         case VehicleResponse.DismountVehicle(unk1, unk2) =>
           if(tplayer_guid != guid) {
             sendResponse(DismountVehicleMsg(guid, unk1, unk2))
@@ -455,6 +458,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
           if(tplayer_guid != guid) {
             sendResponse(ObjectAttachMessage(vehicle_guid, guid, seat))
           }
+
+        case VehicleResponse.RevealPlayer(player_guid) =>
+          //TODO any action will cause the player to appear after the effects of ConcealPlayer
 
         case VehicleResponse.SeatPermissions(vehicle_guid, seat_group, permission) =>
           if(tplayer_guid != guid) {
@@ -1000,46 +1006,30 @@ class WorldSessionActor extends Actor with MDCContextAware {
           sendResponse(ItemTransactionResultMessage(msg.terminal_guid, msg.transaction_type, false))
       }
 
-    case VehicleSpawnPad.ConcealPlayer =>
-      sendResponse(GenericObjectActionMessage(player.GUID, 36))
-      avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ConcealPlayer(player.GUID))
-
-    case VehicleSpawnPad.LoadVehicle(vehicle, _/*pad*/) =>
-      val player_guid = player.GUID
-      val definition = vehicle.Definition
-      val objedtId = definition.ObjectId
+    case VehicleSpawnPad.StartPlayerSeatedInVehicle(vehicle) =>
       val vehicle_guid = vehicle.GUID
-      val vdata = definition.Packet.ConstructorData(vehicle).get
-      sendResponse(ObjectCreateMessage(objedtId, vehicle_guid, vdata))
-      continent.Transport ! Zone.SpawnVehicle(vehicle)
-      vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.LoadVehicle(player_guid, vehicle, objedtId, vehicle_guid, vdata))
       sendResponse(PlanetsideAttributeMessage(vehicle_guid, 22, 1L)) //mount points off?
-      sendResponse(PlanetsideAttributeMessage(vehicle_guid, 21, player_guid.guid)) //fte and ownership?
-      //sendResponse(ObjectAttachMessage(vehicle_guid, player_guid, 0))
-      vehicleService ! VehicleServiceMessage.UnscheduleDeconstruction(vehicle_guid) //cancel queue timeout delay
-      vehicleService ! VehicleServiceMessage.DelayedVehicleDeconstruction(vehicle, continent, 21L) //temporary drive away from pad delay
-      vehicle.Actor ! Mountable.TryMount(player, 0)
+      sendResponse(PlanetsideAttributeMessage(vehicle_guid, 21, player.GUID.guid)) //fte and ownership?
 
     case VehicleSpawnPad.PlayerSeatedInVehicle(vehicle) =>
-      vehicleService ! VehicleServiceMessage.DelayedVehicleDeconstruction(vehicle, continent, 21L) //sitting in the vehicle clears the drive away delay
       val vehicle_guid = vehicle.GUID
+      if(player.VehicleSeated.nonEmpty) {
+        vehicleService ! VehicleServiceMessage.UnscheduleDeconstruction(vehicle_guid)
+      }
       sendResponse(PlanetsideAttributeMessage(vehicle_guid, 22, 0L)) //mount points on?
       //sendResponse(PlanetsideAttributeMessage(vehicle_guid, 0, vehicle.Definition.MaxHealth)))
       sendResponse(PlanetsideAttributeMessage(vehicle_guid, 68, 0L)) //???
       sendResponse(PlanetsideAttributeMessage(vehicle_guid, 113, 0L)) //???
       ReloadVehicleAccessPermissions(vehicle)
 
-    case VehicleSpawnPad.SpawnPadBlockedWarning(vehicle, warning_count) =>
-      if(warning_count > 2) {
-        sendResponse(TriggerSoundMessage(TriggeredSound.Unknown14, vehicle.Position, 20, 1f))
-        sendResponse(
-          ChatMsg(ChatMessageType.CMT_TELL, true, "", "\\#FYour vehicle is blocking the spawn pad, and will be deconstructed if not moved.", None)
-        )
-      }
+    case VehicleSpawnPad.ServerVehicleOverrideStart(speed) =>
+      sendResponse(ServerVehicleOverrideMsg.On(speed))
 
-    case VehicleSpawnPad.SpawnPadUnblocked(vehicle_guid) =>
-      //vehicle has moved away from spawn pad after initial spawn
-      vehicleService ! VehicleServiceMessage.UnscheduleDeconstruction(vehicle_guid) //cancel temporary drive away from pad delay
+    case VehicleSpawnPad.ServerVehicleOverrideEnd(speed) =>
+      sendResponse(ServerVehicleOverrideMsg.Off(speed))
+
+    case VehicleSpawnPad.PeriodicReminder(msg) =>
+      sendResponse(ChatMsg(ChatMessageType.CMT_OPEN, true, "", msg, None))
 
     case ListAccountCharacters =>
       import net.psforever.objects.definition.converter.CharacterSelectConverter
@@ -2753,14 +2743,13 @@ class WorldSessionActor extends Actor with MDCContextAware {
       new Task() {
         private val localVehicle = obj
         private val localPad = pad.Actor
-        private val localAnnounce = vehicleService
         private val localSession : String = sessionId.toString
         private val localPlayer = player
         private val localVehicleService = vehicleService
         private val localZone = continent
 
         override def isComplete : Task.Resolution.Value = {
-          if(localVehicle.Actor != ActorRef.noSender) {
+          if(localVehicle.HasGUID) {
             Task.Resolution.Success
           }
           else {
@@ -2769,9 +2758,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         }
 
         def Execute(resolver : ActorRef) : Unit = {
-          localAnnounce ! VehicleServiceMessage.GiveActorControl(obj, localSession)
           localPad ! VehicleSpawnPad.VehicleOrder(localPlayer, localVehicle)
-          localVehicleService ! VehicleServiceMessage.DelayedVehicleDeconstruction(localVehicle, localZone, 60L)
           resolver ! scala.util.Success(this)
         }
       }, List(RegisterVehicle(obj)))

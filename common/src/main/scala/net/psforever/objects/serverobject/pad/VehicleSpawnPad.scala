@@ -3,6 +3,7 @@ package net.psforever.objects.serverobject.pad
 
 import net.psforever.objects.{Player, Vehicle}
 import net.psforever.objects.serverobject.structures.Amenity
+import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.PlanetSideGUID
 
 /**
@@ -34,7 +35,12 @@ object VehicleSpawnPad {
     * An packet `GenericObjectActionMessage(/player/, 36)`, when used on a player character,
     * will cause that player character's model to fade into transparency.
     */
-  final case class ConcealPlayer()
+  final case class ConcealPlayer(player_guid : PlanetSideGUID, zone_id : String)
+
+  /**
+    * Undoes the above message.
+    */
+  final case class RevealPlayer(player_guid : PlanetSideGUID, zone_id : String)
 
   /**
     * A callback step in spawning the vehicle.
@@ -44,9 +50,10 @@ object VehicleSpawnPad {
     * The primary operation that should occur is a content-appropriate `ObjectCreateMessage` packet and
     * having the player sit down in the driver's seat (seat 0) of the vehicle.
     * @param vehicle the vehicle being spawned
-    * @param pad the pad
     */
-  final case class LoadVehicle(vehicle : Vehicle, pad : VehicleSpawnPad)
+  final case class LoadVehicle(vehicle : Vehicle, zone : Zone)
+
+  final case class StartPlayerSeatedInVehicle(vehicle : Vehicle)
 
   /**
     * A TEMPORARY callback step in spawning the vehicle.
@@ -57,25 +64,13 @@ object VehicleSpawnPad {
     */
   final case class PlayerSeatedInVehicle(vehicle : Vehicle)
 
-  /**
-    * A TEMPORARY callback step in (successfully) spawning the vehicle.
-    * While the vehicle is still occupying the pad just after being spawned and its driver seat mounted,
-    * that vehicle is considered blocking the pad from being used for further spawning operations.
-    * This message allows the user to be made known about this blockage.
-    * @param vehicle the vehicle
-    * @param warning_count the number of times a warning period has occurred
-    */
-  final case class SpawnPadBlockedWarning(vehicle : Vehicle, warning_count : Int)
+  final case class ServerVehicleOverrideStart(speed : Int)
 
-  /**
-    * A TEMPORARY callback step in (successfully) spawning the vehicle.
-    * While the vehicle is still occupying the pad just after being spawned and its driver seat mounted,
-    * that vehicle is considered blocking the pad from being used for further spawning operations.
-    * A timeout will begin counting until the vehicle is despawned automatically for its driver's negligence.
-    * This message is used to clear the deconstruction countdown, primarily.
-    * @param vehicle_guid the vehicle
-    */
-  final case class SpawnPadUnblocked(vehicle_guid : PlanetSideGUID)
+  final case class ServerVehicleOverrideEnd(speed : Int)
+
+  final case class PeriodicReminder(msg : String)
+
+  final case class DisposeVehicle(vehicle : Vehicle, zone : Zone)
 
   /**
     * Overloaded constructor.
