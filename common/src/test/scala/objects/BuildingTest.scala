@@ -6,7 +6,7 @@ import net.psforever.objects.GlobalDefinitions
 import net.psforever.objects.definition.ObjectDefinition
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.doors.{Door, DoorControl}
-import net.psforever.objects.serverobject.structures.{Amenity, Building, BuildingControl}
+import net.psforever.objects.serverobject.structures.{Amenity, Building, BuildingControl, WarpGate}
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types.PlanetSideEmpire
@@ -94,6 +94,19 @@ class BuildingTest extends Specification {
       bldg.Amenities mustEqual List(door2, door1)
       door1.Owner mustEqual bldg
       door2.Owner mustEqual bldg
+    }
+  }
+}
+
+class WarpGateTest extends Specification {
+  "WarpGate" should {
+    "construct" in {
+      val bldg = WarpGate(10, Zone.Nowhere)
+      bldg.Id mustEqual 10
+      bldg.Actor mustEqual ActorRef.noSender
+      bldg.Amenities mustEqual Nil
+      bldg.Zone mustEqual Zone.Nowhere
+      bldg.Faction mustEqual PlanetSideEmpire.NEUTRAL
     }
   }
 }

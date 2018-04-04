@@ -15,9 +15,10 @@ object Zones {
 
       import net.psforever.types.PlanetSideEmpire
       Building(21).get.Faction = PlanetSideEmpire.VS //Irkalla
-      Building(27).get.Faction = PlanetSideEmpire.TR //Dagon
+//      Building(27).get.Faction = PlanetSideEmpire.TR //Dagon
       Building(30).get.Faction = PlanetSideEmpire.TR //Hanish
-      Building(42).get.Faction = PlanetSideEmpire.TR //Baal
+//      Building(36).get.Faction = PlanetSideEmpire.VS //Lahar
+//      Building(42).get.Faction = PlanetSideEmpire.TR //Baal
       Building(48).get.Faction = PlanetSideEmpire.NC //Girru
       Building(56).get.Faction = PlanetSideEmpire.TR //West Hanish Gun Tower
       Building(60).get.Faction = PlanetSideEmpire.VS //SE Hanish Gun Tower
@@ -33,7 +34,14 @@ object Zones {
 
   val z5 = new Zone("z5", Maps.map5, 5)
 
-  val z6 = new Zone("z6", Maps.map6, 6)
+  val z6 = new Zone("z6", Maps.map6, 6) {
+    override def Init(implicit context : ActorContext) : Unit = {
+      super.Init(context)
+
+      import net.psforever.types.PlanetSideEmpire
+      Building(2).get.Faction = PlanetSideEmpire.VS
+    }
+  }
 
   val z7 = new Zone("z7", Maps.map7, 7)
 
@@ -52,7 +60,7 @@ object Zones {
       super.Init(context)
 
       import net.psforever.types.PlanetSideEmpire
-      Building(2).get.Faction = PlanetSideEmpire.VS //HART building C
+      Buildings.values.foreach(building => { building.Faction = PlanetSideEmpire.VS })
       Building(29).get.Faction = PlanetSideEmpire.NC //South Villa Gun Tower
     }
   }

@@ -6,6 +6,37 @@ import scodec.Codec
 import scodec.codecs._
 
 /**
+  * na<br>
+  * Global:<br>
+  * `50 - Common Initialization?`<br>
+  * `51 - Common Initialization?`<br>
+  * `67 - ???`<br>
+  * <br>
+  * Global (GUID=0)<br>
+  * `82 - ???`
+  * `83 - max boomers`<br>
+  * `84 - max he mines`<br>
+  * `85 - max disruptor mines`<br>
+  * `86 - max spitfire turrets`<br>
+  * `87 - max motion sensors`<br>
+  * `88 - max shadow turrets`<br>
+  * `89 - max cerebus turrets`<br>
+  * `90 - max Aegis shield generators`<br>
+  * `91 - max TRAPs`<br>
+  * `92 - max OMFTs`<br>
+  * `93 - max sensor disruptors`<br>
+  * `94 - boomers`<br>
+  * `95 - he mines`<br>
+  * `96 - disruptor mines`<br>
+  * `97 - spitfire turrets`<br>
+  * `98 - motion sensors`<br>
+  * `99 - shadow turrets`<br>
+  * `100 - cerebus turrets`<br>
+  * `101 - Aegis shield generators`<br>
+  * `102 - TRAPSs`<br>
+  * `103 - OMFTs`<br>
+  * `104 - sensor disruptors`<br>
+  * <br>
   * Players/General:<br>
   * Server to client : <br>
   * `0 - health`<br>
@@ -74,31 +105,33 @@ import scodec.codecs._
   * `36 - CR. Value is the CR`<br>
   * `43 - Info on avatar name : 0 = Nothing, 1 = "(LD)" message`<br>
   * `53 - LFS. Value is 1 to flag LFS`<br>
-  * `54 - Player "Aura". Values are : 0 for nothing, 1 for plasma, 2 for ancient, 3 for plasma + ancient,<br>
-  *         4 for LLU?, 5 for plasma + LLU?, 6 for ancient + LLU?, 7 for plasma + ancient + LLU?, 8 for fire,<br>
-  *         9 for plasma + fire, 10 for ancient + fire, 11 for plasma + ancient + fire,<br>
-  *         12 for LLU? + fire, 13 for plasma + LLU? + fire, 14 for ancient + LLU? + fire,<br>
-  *         15 for plasma + ancient + LLU? + fire,`<br>
+  * `54 - Player "Aura". Values can be expressed in the first byte's lower nibble:`<br>
+  * - 0 is nothing<br>
+  * - 1 is plasma<br>
+  * - 2 is ancient<br>
+  * - 4 is LLU (?)<br>
+  * - 8 is fire<br>
+  * -- e.g., 13 = 8 + 4 + 1 = fire and LLU and plasma<br>
   * `55 - "Someone is attempting to Heal you". Value is 1`<br>
   * `56 - "Someone is attempting to Repair you". Value is 1`<br>
   * `73 - "You are locked into the Core Beam. Charging your Module now.". Value is 1 to active`<br>
   * `77 - Cavern Facility Captures. Value is the number of captures`<br>
   * `78 - Cavern Kills. Value is the number of kills`<br>
-  * `106 - Custom Head`
+  * `106 - Custom Head`<br>
   * Client to Server : <br>
   * `106 - Custom Head`<br>
   * <br>
-  * Vehicles:<br>
-  * 0 - Vehicle base health<br>
-  * 10 - Driver seat permissions (0 = Locked, 1 = Group, 3 = Empire)<br>
-  * 11 - Gunner seat(s) permissions (same)<br>
-  * 12 - Passenger seat(s) permissions (same) <br>
-  * 13 - Trunk permissions (same)<br>
-  * 21 - Asserts first time event eligibility / makes owner if no owner is assigned<br>
-  * 22 - Toggles gunner and passenger mount points (1 = hides, 0 = reveals; this also locks their permissions)<br>
-  * 68 - ???<br>
-  * 80 - Damage vehicle (unknown value)<br>
-  * 113 - ???
+  * `Vehicles:`<br>
+  * `10 - Driver seat permissions (0 = Locked, 1 = Group, 3 = Empire)`<br>
+  * `11 - Gunner seat(s) permissions (same)`<br>
+  * `12 - Passenger seat(s) permissions (same)`<br>
+  * `13 - Trunk permissions (same)`<br>
+  * `21 - Asserts first time event eligibility / makes owner if no owner is assigned`<br>
+  * `22 - Toggles gunner and passenger mount points (1 = hides, 0 = reveals; this also locks their permissions)`<br>
+  * `68 - ???`<br>
+  * `80 - Damage vehicle (unknown value)`<br>
+  * `81 - ???`<br>
+  * `113 - ???`
   * @param player_guid the player
   * @param attribute_type na
   * @param attribute_value na

@@ -24,6 +24,10 @@ import net.psforever.objects.serverobject.implantmech.ImplantTerminalMech
 import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.mblocker.Locker
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
+import net.psforever.objects.serverobject.terminals.{MatrixTerminalDefinition, Terminal}
+import net.psforever.objects.serverobject.terminals.Terminal.TerminalMessage
+import net.psforever.objects.vehicles.{AccessPermissionGroup, Utility, VehicleLockState}
+import net.psforever.objects.serverobject.structures.{Building, WarpGate}
 import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.vehicles.{AccessPermissionGroup, VehicleLockState}
 import net.psforever.objects.zones.{InterstellarCluster, Zone}
@@ -515,16 +519,17 @@ class WorldSessionActor extends Actor with MDCContextAware {
       val vehicle_guid = obj.GUID
       if(state == DriveState.Deploying) {
         log.info(s"DeployRequest: $obj transitioning to deploy state")
-        sendResponse(DeployRequestMessage(player.GUID, vehicle_guid, state, 0, false, obj.Position))
-        vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.DeployRequest(player.GUID, vehicle_guid, state, 0, false, obj.Position))
+        obj.Velocity = Some(Vector3.Zero) //no velocity
+        sendResponse(DeployRequestMessage(player.GUID, vehicle_guid, state, 0, false, Vector3.Zero))
+        vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.DeployRequest(player.GUID, vehicle_guid, state, 0, false, Vector3.Zero))
         import scala.concurrent.duration._
         import scala.concurrent.ExecutionContext.Implicits.global
         context.system.scheduler.scheduleOnce(obj.DeployTime milliseconds, obj.Actor, Deployment.TryDeploy(DriveState.Deployed))
       }
       else if(state == DriveState.Deployed) {
         log.info(s"DeployRequest: $obj has been Deployed")
-        sendResponse(DeployRequestMessage(player.GUID, vehicle_guid, state, 0, false, obj.Position))
-        vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.DeployRequest(player.GUID, vehicle_guid, state, 0, false, obj.Position))
+        sendResponse(DeployRequestMessage(player.GUID, vehicle_guid, state, 0, false, Vector3.Zero))
+        vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.DeployRequest(player.GUID, vehicle_guid, state, 0, false, Vector3.Zero))
         DeploymentActivities(obj)
         //...
       }
@@ -909,7 +914,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           if(interface.contains(terminal_guid.guid) && slotNumber.isDefined) {
             val slot = slotNumber.get
             log.info(s"$message - put in slot $slot")
-            sendResponse(AvatarImplantMessage(tplayer.GUID, 0, slot, implant_type.id))
+            sendResponse(AvatarImplantMessage(tplayer.GUID, ImplantAction.Add, slot, implant_type.id))
             sendResponse(ItemTransactionResultMessage(terminal_guid, TransactionType.Learn, true))
           }
           else {
@@ -944,7 +949,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           if(interface.contains(terminal_guid.guid) && slotNumber.isDefined) {
             val slot = slotNumber.get
             log.info(s"$tplayer is selling $implant_type - take from slot $slot")
-            sendResponse(AvatarImplantMessage(tplayer.GUID, 1, slot, 0))
+            sendResponse(AvatarImplantMessage(tplayer.GUID, ImplantAction.Remove, slot, 0))
             sendResponse(ItemTransactionResultMessage(terminal_guid, TransactionType.Sell, true))
           }
           else {
@@ -1015,8 +1020,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
       continent.Transport ! Zone.SpawnVehicle(vehicle)
       vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.LoadVehicle(player_guid, vehicle, objedtId, vehicle_guid, vdata))
       sendResponse(PlanetsideAttributeMessage(vehicle_guid, 22, 1L)) //mount points off?
-      //sendResponse(PlanetsideAttributeMessage(vehicle_guid, 21, player_guid.guid))) //fte and ownership?
-      //sendResponse(ObjectAttachMessage(vehicle_guid, player_guid, 0)))
+      sendResponse(PlanetsideAttributeMessage(vehicle_guid, 22, 1L)) //mount points off?
+      sendResponse(PlanetsideAttributeMessage(vehicle_guid, 21, player_guid.guid)) //fte and ownership?
+      //sendResponse(ObjectAttachMessage(vehicle_guid, player_guid, 0))
       vehicleService ! VehicleServiceMessage.UnscheduleDeconstruction(vehicle_guid) //cancel queue timeout delay
       vehicleService ! VehicleServiceMessage.DelayedVehicleDeconstruction(vehicle, continent, 21L) //temporary drive away from pad delay
       vehicle.Actor ! Mountable.TryMount(player, 0)
@@ -1117,40 +1123,55 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case VehicleLoaded(_/*vehicle*/) => ;
       //currently being handled by VehicleSpawnPad.LoadVehicle during testing phase
 
-    case Zone.ClientInitialization(/*initList*/_) =>
-      //TODO iterate over initList; for now, just do this
-      sendResponse(
-        BuildingInfoUpdateMessage(
-          PlanetSideGUID(6),    //Ceryshen
-          PlanetSideGUID(2),    //Anguta
-          8,                    //80% NTU
-          true,                 //Base hacked
-          PlanetSideEmpire.NC,  //Base hacked by NC
-          600000,               //10 minutes remaining for hack
-          PlanetSideEmpire.VS,  //Base owned by VS
-          0,                    //!! Field != 0 will cause malformed packet. See class def.
-          None,
-          PlanetSideGeneratorState.Critical, //Generator critical
-          true,                 //Respawn tubes destroyed
-          true,                 //Force dome active
-          16,                   //Tech plant lattice benefit
-          0,
-          Nil,                  //!! Field > 0 will cause malformed packet. See class def.
-          0,
-          false,
-          8,                    //!! Field != 8 will cause malformed packet. See class def.
-          None,
-          true,                 //Boosted spawn room pain field
-          true                  //Boosted generator room pain field
-        )
-      )
-      sendResponse(ContinentalLockUpdateMessage(PlanetSideGUID(13), PlanetSideEmpire.VS)) // "The VS have captured the VS Sanctuary."
-      sendResponse(BroadcastWarpgateUpdateMessage(PlanetSideGUID(13), PlanetSideGUID(1), false, false, true)) // VS Sanctuary: Inactive Warpgate -> Broadcast Warpgate
-      sendResponse(ZonePopulationUpdateMessage(PlanetSideGUID(13), 414, 138, 0, 138, 0, 138, 0, 138, 0))
+    case Zone.ClientInitialization(zone) =>
+      val continentNumber = zone.Number
+      val poplist = LivePlayerList.ZonePopulation(continentNumber, _ => true)
+      val popBO = 0 //TODO black ops test (partition)
+      val popTR = poplist.count(_.Faction == PlanetSideEmpire.TR)
+      val popNC = poplist.count(_.Faction == PlanetSideEmpire.NC)
+      val popVS = poplist.count(_.Faction == PlanetSideEmpire.VS)
+
+      zone.Buildings.foreach({ case(id, building) => initBuilding(continentNumber, id, building) })
+
+
+      sendResponse(BuildingInfoUpdateMessage(4, 11, 10, false, PlanetSideEmpire.NEUTRAL, 0,
+        PlanetSideEmpire.VS, 0, None, PlanetSideGeneratorState.Normal, true, false, 30, 188, List(), 0, false, 8, None, false, false)) // Irkalla VS
+      sendResponse(BuildingInfoUpdateMessage(4, 10, 10, false, PlanetSideEmpire.NEUTRAL, 0,
+        PlanetSideEmpire.TR, 0, None, PlanetSideGeneratorState.Normal, true, false, 30, 188, List(), 0, false, 8, None, false, false)) // Hanish TR
+      sendResponse(BuildingInfoUpdateMessage(4, 9, 10, false, PlanetSideEmpire.NEUTRAL, 0,
+        PlanetSideEmpire.NC, 0, None, PlanetSideGeneratorState.Normal, true, false, 30, 188, List(), 0, false, 8, None, false, false)) // Girru NC
+
+      //      sendResponse(BuildingInfoUpdateMessage(PlanetSideGUID(4), PlanetSideGUID(5), 10, false, PlanetSideEmpire.NEUTRAL, 0,
+      //        PlanetSideEmpire.TR, 0, None, PlanetSideGeneratorState.Normal, true, false, 22, 0, List(), 0, false, 8, None, false, false)) // Akkan TR
+      //      sendResponse(BuildingInfoUpdateMessage(PlanetSideGUID(4), PlanetSideGUID(6), 10, false, PlanetSideEmpire.NEUTRAL, 0,
+      //        PlanetSideEmpire.TR, 0, None, PlanetSideGeneratorState.Normal, true, false, 22, 0, List(), 0, false, 8, None, false, false)) // Baal TR
+      //      sendResponse(BuildingInfoUpdateMessage(PlanetSideGUID(4), PlanetSideGUID(7), 10, false, PlanetSideEmpire.NEUTRAL, 0,
+      //        PlanetSideEmpire.NC, 0, None, PlanetSideGeneratorState.Normal, true, false, 4, 0, List(), 0, false, 8, None, false, false)) // Dagon NC
+      //      sendResponse(BuildingInfoUpdateMessage(PlanetSideGUID(4), PlanetSideGUID(12), 10, false, PlanetSideEmpire.NEUTRAL, 0,
+      //        PlanetSideEmpire.VS, 0, None, PlanetSideGeneratorState.Normal, true, false, 28, 0, List(), 0, false, 8, None, false, false)) // Kusag VS
+      //      sendResponse(BuildingInfoUpdateMessage(PlanetSideGUID(4), PlanetSideGUID(13), 10, false, PlanetSideEmpire.NEUTRAL, 0,
+      //        PlanetSideEmpire.VS, 0, None, PlanetSideGeneratorState.Normal, true, false, 28, 0, List(), 0, false, 8, None, false, false)) // Lahar VS
+
+
+      sendResponse(ZonePopulationUpdateMessage(continentNumber, 414, 138, popTR, 138, popNC, 138, popVS, 138, popBO))
+      sendResponse(ContinentalLockUpdateMessage(continentNumber, PlanetSideEmpire.NEUTRAL))
+      //CaptureFlagUpdateMessage()
+      //VanuModuleUpdateMessage()
+      //ModuleLimitsMessage()
+      sendResponse(ZoneInfoMessage(continentNumber, true, 0))
+      sendResponse(ZoneLockInfoMessage(continentNumber, false, true))
+      sendResponse(ZoneForcedCavernConnectionsMessage(continentNumber, 0))
+      sendResponse(HotSpotUpdateMessage(continentNumber, 1, Nil)) //normally set in bulk; should be fine doing per continent
 
     case InterstellarCluster.ClientInitializationComplete(tplayer)=>
-      //this will cause the client to send back a BeginZoningMessage packet (see below)
-      sendResponse(LoadMapMessage(continent.Map.Name, continent.Id, 40100,25,true,3770441820L)) //VS Sanctuary
+      //PropertyOverrideMessage
+      sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 112, 1))
+      sendResponse(ReplicationStreamMessage(5, Some(6), Vector(SquadListing()))) //clear squad list
+      sendResponse(FriendsResponse(FriendAction.InitializeFriendList, 0, true, true, Nil))
+      sendResponse(FriendsResponse(FriendAction.InitializeIgnoreList, 0, true, true, Nil))
+
+      //LoadMapMessage will cause the client to send back a BeginZoningMessage packet (see below)
+      sendResponse(LoadMapMessage(continent.Map.Name, continent.Id, 40100,25,true,3770441820L))
       log.info("Load the now-registered player")
       //load the now-registered player
       tplayer.Spawn
@@ -1165,17 +1186,44 @@ class WorldSessionActor extends Actor with MDCContextAware {
       val guid = tplayer.GUID
       LivePlayerList.Assign(continent.Number, sessionId, guid)
       sendResponse(SetCurrentAvatarMessage(guid,0,0))
+
+      (0 until DetailedCharacterData.numberOfImplantSlots(tplayer.BEP)).foreach(slot => {
+        sendResponse(AvatarImplantMessage(guid, ImplantAction.Initialization, slot, 1)) //init implant slot
+        sendResponse(AvatarImplantMessage(guid, ImplantAction.Activation, slot, 0)) //deactivate implant
+        //TODO: if this implant is Installed but does not have shortcut, add to a free slot or write over slot 61/62/63
+      })
+
+      sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 82, 0))
+      //TODO: if Medkit does not have shortcut, add to a free slot or write over slot 64
       sendResponse(CreateShortcutMessage(guid, 1, 0, true, Shortcut.MEDKIT))
       sendResponse(CreateShortcutMessage(guid, 2, 0, true, Shortcut.SURGE))
       sendResponse(CreateShortcutMessage(guid, 3, 0, true, Shortcut.DARKLIGHT_VISION))
+      sendResponse(ChangeShortcutBankMessage(guid, 0))
+      //FavoritesMessage
+      sendResponse(SetChatFilterMessage(ChatChannel.Local, false, ChatChannel.values.toList)) //TODO will not always be "on" like this
+      sendResponse(AvatarDeadStateMessage(DeadState.Nothing, 0,0, tplayer.Position, 0, true))
+      sendResponse(PlanetsideAttributeMessage(guid, 53, 1))
+      sendResponse(AvatarSearchCriteriaMessage(guid, List(0,0,0,0,0,0)))
+      (1 to 73).foreach(i => {
+        sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(i), 67, 0))
+      })
+      (0 to 30).foreach(i => { //TODO 30 for a new character only?
+        sendResponse(AvatarStatisticsMessage(2, Statistics(0L)))
+      })
+      //AvatarAwardMessage
+      //DisplayAwardMessage
+      //SquadDefinitionActionMessage and SquadDetailDefinitionUpdateMessage
+      //MapObjectStateBlockMessage and ObjectCreateMessage
+      //TacticsMessage
+
       sendResponse(ChatMsg(ChatMessageType.CMT_EXPANSIONS, true, "", "1 on", None)) //CC on
 
       tplayer.Implants(0).Initialized = true
       tplayer.Implants(1).Initialized = true
       tplayer.Implants(2).Initialized = true
-      sendResponse(AvatarImplantMessage(PlanetSideGUID(tplayer.GUID.guid),2,0,1))
-      sendResponse(AvatarImplantMessage(PlanetSideGUID(tplayer.GUID.guid),2,1,1))
-      sendResponse(AvatarImplantMessage(PlanetSideGUID(tplayer.GUID.guid),2,2,1))
+      sendResponse(AvatarImplantMessage(PlanetSideGUID(tplayer.GUID.guid),ImplantAction.Initialization,0,1))
+      sendResponse(AvatarImplantMessage(PlanetSideGUID(tplayer.GUID.guid),ImplantAction.Initialization,1,1))
+      sendResponse(AvatarImplantMessage(PlanetSideGUID(tplayer.GUID.guid),ImplantAction.Initialization,2,1))
 
     case Zone.ItemFromGround(tplayer, item) =>
       val obj_guid = item.GUID
@@ -1566,47 +1614,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ BeginZoningMessage() =>
       log.info("Reticulating splines ...")
       //map-specific initializations
-      //TODO continent.ClientConfiguration()
-      sendResponse(SetEmpireMessage(PlanetSideGUID(21), PlanetSideEmpire.VS)) //Irkalla
-      sendResponse(SetEmpireMessage(PlanetSideGUID(60), PlanetSideEmpire.VS))
-      sendResponse(SetEmpireMessage(PlanetSideGUID(74), PlanetSideEmpire.VS))
-      sendResponse(SetEmpireMessage(PlanetSideGUID(86), PlanetSideEmpire.VS))
-//      sendResponse(SetEmpireMessage(PlanetSideGUID(27), PlanetSideEmpire.NC)) //Dagon
-      sendResponse(SetEmpireMessage(PlanetSideGUID(30), PlanetSideEmpire.TR)) //Hanish
-      sendResponse(SetEmpireMessage(PlanetSideGUID(56), PlanetSideEmpire.TR))
-      sendResponse(SetEmpireMessage(PlanetSideGUID(82), PlanetSideEmpire.TR))
-      sendResponse(SetEmpireMessage(PlanetSideGUID(69), PlanetSideEmpire.TR))
-//      sendResponse(SetEmpireMessage(PlanetSideGUID(36), PlanetSideEmpire.VS)) //Lahar
-//      sendResponse(SetEmpireMessage(PlanetSideGUID(42), PlanetSideEmpire.TR)) //Baal
-      sendResponse(SetEmpireMessage(PlanetSideGUID(48), PlanetSideEmpire.NC)) //Girru
-      sendResponse(SetEmpireMessage(PlanetSideGUID(62), PlanetSideEmpire.NC))
-      sendResponse(SetEmpireMessage(PlanetSideGUID(73), PlanetSideEmpire.NC))
-      sendResponse(SetEmpireMessage(PlanetSideGUID(83), PlanetSideEmpire.NC))
 
-      sendResponse(BuildingInfoUpdateMessage(PlanetSideGUID(4), PlanetSideGUID(11), 10, false, PlanetSideEmpire.NEUTRAL, 0,
-        PlanetSideEmpire.VS, 0, None, PlanetSideGeneratorState.Normal, true, false, 30, 188, List(), 0, false, 8, None, false, false)) // Irkalla VS
-      sendResponse(BuildingInfoUpdateMessage(PlanetSideGUID(4), PlanetSideGUID(10), 10, false, PlanetSideEmpire.NEUTRAL, 0,
-        PlanetSideEmpire.TR, 0, None, PlanetSideGeneratorState.Normal, true, false, 30, 188, List(), 0, false, 8, None, false, false)) // Hanish TR
-      sendResponse(BuildingInfoUpdateMessage(PlanetSideGUID(4), PlanetSideGUID(9), 10, false, PlanetSideEmpire.NEUTRAL, 0,
-        PlanetSideEmpire.NC, 0, None, PlanetSideGeneratorState.Normal, true, false, 30, 188, List(), 0, false, 8, None, false, false)) // Girru NC
-
-//      sendResponse(BuildingInfoUpdateMessage(PlanetSideGUID(4), PlanetSideGUID(5), 10, false, PlanetSideEmpire.NEUTRAL, 0,
-//        PlanetSideEmpire.TR, 0, None, PlanetSideGeneratorState.Normal, true, false, 22, 0, List(), 0, false, 8, None, false, false)) // Akkan TR
-//      sendResponse(BuildingInfoUpdateMessage(PlanetSideGUID(4), PlanetSideGUID(6), 10, false, PlanetSideEmpire.NEUTRAL, 0,
-//        PlanetSideEmpire.TR, 0, None, PlanetSideGeneratorState.Normal, true, false, 22, 0, List(), 0, false, 8, None, false, false)) // Baal TR
-//      sendResponse(BuildingInfoUpdateMessage(PlanetSideGUID(4), PlanetSideGUID(7), 10, false, PlanetSideEmpire.NEUTRAL, 0,
-//        PlanetSideEmpire.NC, 0, None, PlanetSideGeneratorState.Normal, true, false, 4, 0, List(), 0, false, 8, None, false, false)) // Dagon NC
-//      sendResponse(BuildingInfoUpdateMessage(PlanetSideGUID(4), PlanetSideGUID(12), 10, false, PlanetSideEmpire.NEUTRAL, 0,
-//        PlanetSideEmpire.VS, 0, None, PlanetSideGeneratorState.Normal, true, false, 28, 0, List(), 0, false, 8, None, false, false)) // Kusag VS
-//      sendResponse(BuildingInfoUpdateMessage(PlanetSideGUID(4), PlanetSideGUID(13), 10, false, PlanetSideEmpire.NEUTRAL, 0,
-//        PlanetSideEmpire.VS, 0, None, PlanetSideGeneratorState.Normal, true, false, 28, 0, List(), 0, false, 8, None, false, false)) // Lahar VS
-
-      // Nick test
-      sendResponse(SetEmpireMessage(PlanetSideGUID(4), PlanetSideEmpire.TR))
-
-
+      configZone(continent) //todo density
       sendResponse(TimeOfDayMessage(1191182336))
-      sendResponse(ReplicationStreamMessage(5, Some(6), Vector(SquadListing()))) //clear squad list
+      //custom
+      sendResponse(ContinentalLockUpdateMessage(13, PlanetSideEmpire.VS)) // "The VS have captured the VS Sanctuary."
+//      (1 to 255).foreach(i => { sendResponse(SetEmpireMessage(PlanetSideGUID(i), PlanetSideEmpire.VS)) })
 
       //render Equipment that was dropped into zone before the player arrived
       continent.EquipmentOnGround.foreach(item => {
@@ -1765,6 +1778,17 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ ProjectileStateMessage(projectile_guid, shot_pos, shot_vector, unk1, unk2, unk3, unk4, time_alive) =>
     //log.info("ProjectileState: " + msg)
 
+    case msg @ ReleaseAvatarRequestMessage() =>
+      log.info(s"ReleaseAvatarRequest: ${player.GUID} on ${continent.Id} has released")
+      sendResponse(PlanetsideAttributeMessage(player.GUID, 6, 1))
+      sendResponse(AvatarDeadStateMessage(DeadState.Release, 0, 0, player.Position, 2, true))
+
+    case msg @ SpawnRequestMessage(u1, u2, u3, u4, u5) =>
+      log.info(s"SpawnRequestMessage: $msg")
+
+    case msg @ SetChatFilterMessage(send_channel, origin, whitelist) =>
+      log.info("SetChatFilters: " + msg)
+
     case msg @ ChatMsg(messagetype, has_wide_contents, recipient, contents, note_contents) =>
       // TODO: Prevents log spam, but should be handled correctly
       if (messagetype != ChatMessageType.CMT_TOGGLE_GM) {
@@ -1784,6 +1808,15 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
       if (messagetype == ChatMessageType.CMT_VOICE) {
         chatService ! ChatServiceMessage("voice", ChatAction.Voice(player.GUID, player.Name, continent, msg))
+      }
+
+      if(messagetype == ChatMessageType.CMT_SUICIDE) {
+        val player_guid = player.GUID
+        val pos = player.Position
+        sendResponse(PlanetsideAttributeMessage(player_guid, 0, 0))
+        sendResponse(PlanetsideAttributeMessage(player_guid, 2, 0))
+        sendResponse(DestroyMessage(player_guid, player_guid, PlanetSideGUID(0), pos))
+        sendResponse(AvatarDeadStateMessage(DeadState.Dead, 300000, 300000, pos, 2, true))
       }
 
       // TODO: handle this appropriately
@@ -2345,6 +2378,15 @@ class WorldSessionActor extends Actor with MDCContextAware {
             }
           }
 
+        case Some(obj : Terminal) =>
+          if(obj.Definition.isInstanceOf[MatrixTerminalDefinition]) {
+            //TODO matrix spawn point; for now, just blindly bind to show work (and hope nothing breaks)
+            sendResponse(BindPlayerMessage(1, "@ams", true, true, 0, 0, 0, obj.Position))
+          }
+          else {
+            sendResponse(UseItemMessage(avatar_guid, unk1, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
+          }
+
         case Some(obj : PlanetSideGameObject) =>
           if(itemType != 121) {
             sendResponse(UseItemMessage(avatar_guid, unk1, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
@@ -2391,11 +2433,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
       log.info("ItemTransaction: " + msg)
       continent.GUID(terminal_guid) match {
         case Some(term : Terminal) =>
-          if(player.Faction == term.Faction) {
-            term.Actor ! Terminal.Request(player, msg)
-          }
-        case Some(obj : PlanetSideGameObject) => ;
-        case None => ;
+          log.info(s"ItemTransaction: ${term.Definition.Name} found")
+          term.Actor ! Terminal.Request(player, msg)
+        case Some(obj : PlanetSideGameObject) =>
+          log.error(s"ItemTransaction: $obj is not a terminal")
+        case _ =>
+          log.error(s"ItemTransaction: $terminal_guid does not exist")
       }
 
     case msg @ FavoritesRequest(player_guid, unk, action, line, label) =>
@@ -3456,8 +3499,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
   def DeploymentActivities(obj : Deployment.DeploymentObject) : Unit = {
     obj match {
       case vehicle : Vehicle =>
-        //TODO we should not have to do this imho
-        ReloadVehicleAccessPermissions(vehicle)
+        ReloadVehicleAccessPermissions(vehicle) //TODO we should not have to do this imho
+        sendResponse(PlanetsideAttributeMessage(obj.GUID, 81, 1))
       case _ => ;
     }
   }
@@ -3479,6 +3522,114 @@ class WorldSessionActor extends Actor with MDCContextAware {
       ""
     }
     log.error(s"DeployRequest: $obj can not transition to $state - $reason$mobileShift")
+  }
+
+  /**
+    * For a given continental structure, determine the method of generating server-join client configuration packets.
+    * @param continentNumber the zone id
+    * @param buildingNumber the building id
+    * @param building the building object
+    */
+  def initBuilding(continentNumber : Int, buildingNumber : Int, building : Building) : Unit = {
+    building match {
+      case _ : WarpGate =>
+        initGate(continentNumber, buildingNumber, building)
+      case _ : Building =>
+        initFacility(continentNumber, buildingNumber, building)
+    }
+  }
+
+  /**
+    * For a given facility structure, configure a client by dispatching the appropriate packets.
+    * Pay special attention to the details of `BuildingInfoUpdateMessage` when preparing this packet.
+    * @see `BuildingInfoUpdateMessage`
+    * @see `DensityLevelUpdateMessage`
+    * @param continentNumber the zone id
+    * @param buildingNumber the building id
+    * @param building the building object
+    */
+  def initFacility(continentNumber : Int, buildingNumber : Int, building : Building) : Unit = {
+    sendResponse(
+      BuildingInfoUpdateMessage(
+        continentNumber, //Zone
+        buildingNumber, //Facility
+        8, //NTU%
+        false, //Hacked
+        PlanetSideEmpire.NEUTRAL, //Base hacked by
+        0, //Time remaining for hack (ms)
+        building.Faction, //Base owned by
+        0, //!! Field != 0 will cause malformed packet. See class def.
+        None,
+        PlanetSideGeneratorState.Normal, //Generator state
+        true, //Respawn tubes operating state
+        false, //Force dome state
+        0, //Lattice benefits
+        0, //!! Field > 0 will cause malformed packet. See class def.
+        Nil,
+        0,
+        false,
+        8, //!! Field != 8 will cause malformed packet. See class def.
+        None,
+        false, //Boosted spawn room pain field
+        false //Boosted generator room pain field
+      )
+    )
+    sendResponse(DensityLevelUpdateMessage(continentNumber, buildingNumber, List(0,0, 0,0, 0,0, 0,0)))
+  }
+
+  /**
+    * For a given lattice warp gate structure, configure a client by dispatching the appropriate packets.
+    * Unlike other facilities, gates do not have complicated `BuildingInfoUpdateMessage` packets.
+    * Also unlike facilities, gates have an additional packet.
+    * @see `BuildingInfoUpdateMessage`
+    * @see `DensityLevelUpdateMessage`
+    * @see `BroadcastWarpgateUpdateMessage`
+    * @param continentNumber the zone id
+    * @param buildingNumber the building id
+    * @param building the building object
+    */
+  def initGate(continentNumber : Int, buildingNumber : Int, building : Building) : Unit = {
+    sendResponse(
+      BuildingInfoUpdateMessage(
+        continentNumber, buildingNumber,
+        0,
+        false,
+        PlanetSideEmpire.NEUTRAL,
+        0,
+        building.Faction,
+        0,
+        None,
+        PlanetSideGeneratorState.Normal,
+        true,
+        false,
+        0,
+        0,
+        Nil,
+        0,
+        false,
+        8,
+        None,
+        false,
+        false
+      )
+    )
+    sendResponse(DensityLevelUpdateMessage(continentNumber, buildingNumber, List(0,0, 0,0, 0,0, 0,0)))
+    sendResponse(BroadcastWarpgateUpdateMessage(continentNumber, buildingNumber, false, false, true))
+  }
+
+  def configZone(zone : Zone) : Unit = {
+    zone.Buildings.foreach({case (id, building) =>
+      sendResponse(SetEmpireMessage(PlanetSideGUID(id), building.Faction))
+//      println(id,building.Faction,zone.Id)
+      building.Amenities.foreach(amenity => {
+        val amenityId = amenity.GUID
+        sendResponse(PlanetsideAttributeMessage(amenityId, 50, 0))
+        sendResponse(PlanetsideAttributeMessage(amenityId, 51, 0))
+      })
+      sendResponse(HackMessage(3, PlanetSideGUID(id), PlanetSideGUID(0), 0, 3212836864L, HackState.HackCleared, 8))
+    })
+    // Nick test
+    if(zone.Id == "z4") {sendResponse(SetEmpireMessage(PlanetSideGUID(4), PlanetSideEmpire.TR))}
   }
 
   def failWithError(error : String) = {

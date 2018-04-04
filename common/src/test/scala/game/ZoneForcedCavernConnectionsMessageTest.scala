@@ -13,7 +13,7 @@ class ZoneForcedCavernConnectionsMessageTest extends Specification {
   "decode" in {
     PacketCoding.DecodePacket(string).require match {
       case ZoneForcedCavernConnectionsMessage(zone, unk) =>
-        zone mustEqual PlanetSideGUID(32)
+        zone mustEqual 32
         unk mustEqual 1
       case _ =>
         ko
@@ -21,7 +21,7 @@ class ZoneForcedCavernConnectionsMessageTest extends Specification {
   }
 
   "encode" in {
-    val msg = ZoneForcedCavernConnectionsMessage(PlanetSideGUID(32), 1)
+    val msg = ZoneForcedCavernConnectionsMessage(32, 1)
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string

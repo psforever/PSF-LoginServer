@@ -6,6 +6,22 @@ import scodec.Codec
 import scodec.codecs._
 import shapeless.{::, HNil}
 
+object FriendAction extends Enumeration {
+  type Type = Value
+
+  val
+  InitializeFriendList,
+  AddFriend,
+  RemoveFriend,
+  UpdateFriend,
+  InitializeIgnoreList,
+  AddIgnoredPlayer,
+  RemoveIgnoredPlayer
+  = Value
+
+  implicit val codec = PacketHelpers.createEnumerationCodec(this, uint(3))
+}
+
 /**
   * An entry in the list of players known to and tracked by this player.
   * They're called "friends" even though they can be used for a list of ignored players as well.
@@ -37,7 +53,7 @@ final case class Friend(name : String,
   * @param unk3 na; always `true`?
   * @param friends a list of `Friend`s
   */
-final case class FriendsResponse(action : Int,
+final case class FriendsResponse(action : FriendAction.Value,
                                  unk1 : Int,
                                  unk2 : Boolean,
                                  unk3 : Boolean,
@@ -66,7 +82,7 @@ object Friend extends Marshallable[Friend] {
 
 object FriendsResponse extends Marshallable[FriendsResponse] {
   implicit val codec : Codec[FriendsResponse] = (
-    ("action" | uintL(3)) ::
+    ("action" | FriendAction.codec) ::
       ("unk1" | uint4L) ::
       ("unk2" | bool) ::
       ("unk3" | bool) ::
@@ -76,8 +92,8 @@ object FriendsResponse extends Marshallable[FriendsResponse] {
       })
     ).xmap[FriendsResponse] (
     {
-      case act :: u1 :: u2 :: u3 :: num :: friend1 :: friends :: HNil =>
-        val friendList : List[Friend] = if(friend1.isDefined) { friend1.get :: friends } else { friends }
+      case act :: u1 :: u2 :: u3 :: _ :: friend1 :: friends :: HNil =>
+        val friendList : List[Friend] = if(friend1.isDefined) { friend1.get +: friends } else { friends }
         FriendsResponse(act, u1, u2, u3, friendList)
     },
     {
