@@ -74,6 +74,14 @@ class WorldSessionActor extends Actor with MDCContextAware {
   var progressBarUpdate : Cancellable = DefaultCancellable.obj
   var reviveTimer : Cancellable = DefaultCancellable.obj
 
+  /**
+    * Convert a boolean value into an integer value.
+    * Use: `true:Int` or `false:Int`
+    * @param b `true` or `false` (or `null`)
+    * @return 1 for `true`; 0 for `false`
+    */
+  implicit def boolToInt(b : Boolean) : Int = if(b) 1 else 0
+
   override def postStop() = {
     clientKeepAlive.cancel
     reviveTimer.cancel
@@ -404,6 +412,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
           //resets exclamation point fte marker (once)
           sendResponse(PlanetsideAttributeMessage(guid, 21, vehicle_guid.guid.toLong))
 
+        case VehicleResponse.AttachToRails(vehicle_guid, pad_guid) =>
+          sendResponse(ObjectAttachMessage(pad_guid, vehicle_guid, 3))
+
         case VehicleResponse.ChildObjectState(object_guid, pitch, yaw) =>
           if(tplayer_guid != guid) {
             sendResponse(ChildObjectStateMessage(object_guid, pitch, yaw))
@@ -421,6 +432,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
           if(tplayer_guid != guid) {
             sendResponse(DeployRequestMessage(guid, object_guid, state, unk1, unk2, pos))
           }
+
+        case VehicleResponse.DetachFromRails(vehicle_guid, pad_guid, pad_position, pad_orientation_z) =>
+          sendResponse(ObjectDetachMessage(pad_guid, vehicle_guid, pad_position + Vector3(0,0,0.5f), 0, 0, pad_orientation_z))
 
         case VehicleResponse.InventoryState(obj, parent_guid, start, con_data) =>
           if(tplayer_guid != guid) {
@@ -458,6 +472,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
           if(tplayer_guid != guid) {
             sendResponse(ObjectAttachMessage(vehicle_guid, guid, seat))
           }
+
+        case VehicleResponse.ResetSpawnPad(pad_guid) =>
+          sendResponse(GenericObjectActionMessage(pad_guid, 92))
 
         case VehicleResponse.RevealPlayer(player_guid) =>
           //TODO any action will cause the player to appear after the effects of ConcealPlayer
@@ -1006,12 +1023,15 @@ class WorldSessionActor extends Actor with MDCContextAware {
           sendResponse(ItemTransactionResultMessage(msg.terminal_guid, msg.transaction_type, false))
       }
 
-    case VehicleSpawnPad.StartPlayerSeatedInVehicle(vehicle) =>
+    case VehicleSpawnPad.StartPlayerSeatedInVehicle(vehicle, pad) =>
       val vehicle_guid = vehicle.GUID
+      if(pad.Railed) {
+        sendResponse(ObjectAttachMessage(pad.GUID, vehicle_guid, 3))
+      }
       sendResponse(PlanetsideAttributeMessage(vehicle_guid, 22, 1L)) //mount points off?
       sendResponse(PlanetsideAttributeMessage(vehicle_guid, 21, player.GUID.guid)) //fte and ownership?
 
-    case VehicleSpawnPad.PlayerSeatedInVehicle(vehicle) =>
+    case VehicleSpawnPad.PlayerSeatedInVehicle(vehicle, pad) =>
       val vehicle_guid = vehicle.GUID
       if(player.VehicleSeated.nonEmpty) {
         vehicleService ! VehicleServiceMessage.UnscheduleDeconstruction(vehicle_guid)
@@ -1022,11 +1042,16 @@ class WorldSessionActor extends Actor with MDCContextAware {
       sendResponse(PlanetsideAttributeMessage(vehicle_guid, 113, 0L)) //???
       ReloadVehicleAccessPermissions(vehicle)
 
-    case VehicleSpawnPad.ServerVehicleOverrideStart(speed) =>
-      sendResponse(ServerVehicleOverrideMsg.On(speed))
+    case VehicleSpawnPad.ServerVehicleOverrideStart(vehicle, pad) =>
+      val vdef = vehicle.Definition
+      if(vehicle.Seats(0).isOccupied) {
+        sendResponse(ObjectDetachMessage(pad.GUID, vehicle.GUID, pad.Position + Vector3(0, 0, 0.5f), 0, 0, pad.Orientation.z))
+      }
+      sendResponse(ServerVehicleOverrideMsg.Lock(GlobalDefinitions.isFlightVehicle(vdef):Int, vdef.AutoPilotSpeed1))
 
-    case VehicleSpawnPad.ServerVehicleOverrideEnd(speed) =>
-      sendResponse(ServerVehicleOverrideMsg.Off(speed))
+    case VehicleSpawnPad.ServerVehicleOverrideEnd(vehicle, pad) =>
+      sendResponse(GenericObjectActionMessage(pad.GUID, 92)) //reset spawn pad
+      sendResponse(ServerVehicleOverrideMsg.Auto(vehicle.Definition.AutoPilotSpeed2))
 
     case VehicleSpawnPad.PeriodicReminder(msg) =>
       sendResponse(ChatMsg(ChatMessageType.CMT_OPEN, true, "", msg, None))

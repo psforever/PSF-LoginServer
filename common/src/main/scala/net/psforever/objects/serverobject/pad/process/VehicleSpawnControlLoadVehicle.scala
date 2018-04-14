@@ -2,7 +2,9 @@
 package net.psforever.objects.serverobject.pad.process
 
 import akka.actor.Props
+import net.psforever.objects.GlobalDefinitions
 import net.psforever.objects.serverobject.pad.{VehicleSpawnControl, VehicleSpawnPad}
+import net.psforever.types.Vector3
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -28,12 +30,13 @@ class VehicleSpawnControlLoadVehicle(pad : VehicleSpawnPad) extends VehicleSpawn
       val vehicle = entry.vehicle
       if(entry.driver.Continent == Continent.Id) {
         trace(s"loading the ${vehicle.Definition.Name}")
+        vehicle.Position = vehicle.Position - Vector3(0, 0, if(GlobalDefinitions.isFlightVehicle(vehicle.Definition)) 9 else 5)
         Continent.VehicleEvents ! VehicleSpawnPad.LoadVehicle(vehicle, Continent)
         context.system.scheduler.scheduleOnce(100 milliseconds, seatDriver, VehicleSpawnControl.Process.SeatDriver(entry))
       }
       else {
         trace("owner lost; abort order fulfillment")
-        VehicleSpawnControl.DisposeVehicle(vehicle, entry.driver, Continent)
+        VehicleSpawnControl.DisposeVehicle(entry, Continent)
         context.parent ! VehicleSpawnControl.ProcessControl.GetOrder
       }
 

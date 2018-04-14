@@ -34,7 +34,7 @@ class VehicleSpawnControlConcealPlayer(pad : VehicleSpawnPad) extends VehicleSpa
       }
       else {
         trace(s"integral component lost; abort order fulfillment")
-        VehicleSpawnControl.DisposeVehicle(entry.vehicle, driver, Continent)
+        VehicleSpawnControl.DisposeVehicle(entry, Continent)
         context.parent ! VehicleSpawnControl.ProcessControl.GetNewOrder
       }
 

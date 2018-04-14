@@ -116,6 +116,24 @@ class VehicleService extends Actor {
         VehicleServiceResponse(s"/$zone_id/Vehicle", Service.defaultPlayerGUID, VehicleResponse.ConcealPlayer(player_guid))
       )
 
+    //from VehicleSpawnControl
+    case VehicleSpawnPad.AttachToRails(vehicle, pad, zone_id) =>
+      VehicleEvents.publish(
+        VehicleServiceResponse(s"/$zone_id/Vehicle", Service.defaultPlayerGUID, VehicleResponse.AttachToRails(vehicle.GUID, pad.GUID))
+      )
+
+    //from VehicleSpawnControl
+    case VehicleSpawnPad.DetachFromRails(vehicle, pad, zone_id) =>
+      VehicleEvents.publish(
+        VehicleServiceResponse(s"/$zone_id/Vehicle", Service.defaultPlayerGUID, VehicleResponse.DetachFromRails(vehicle.GUID, pad.GUID, pad.Position, pad.Orientation.z))
+      )
+
+    //from VehicleSpawnControl
+    case VehicleSpawnPad.ResetSpawnPad(pad, zone_id) =>
+      VehicleEvents.publish(
+        VehicleServiceResponse(s"/$zone_id/Vehicle", Service.defaultPlayerGUID, VehicleResponse.ResetSpawnPad(pad.GUID))
+      )
+
     case VehicleSpawnPad.RevealPlayer(player_guid, zone_id) =>
       VehicleEvents.publish(
         VehicleServiceResponse(s"/$zone_id/Vehicle", Service.defaultPlayerGUID, VehicleResponse.RevealPlayer(player_guid))

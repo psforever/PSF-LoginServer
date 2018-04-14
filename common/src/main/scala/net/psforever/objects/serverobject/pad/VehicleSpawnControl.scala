@@ -156,7 +156,6 @@ object VehicleSpawnControl {
     final case class AwaitDriverInSeat(entry : VehicleSpawnControl.Order) extends Order(entry)
     final case class DriverInSeat(entry : VehicleSpawnControl.Order) extends Order(entry)
     final case class RailJackAction(entry : VehicleSpawnControl.Order) extends Order(entry)
-    final case class RailJackRelease(entry : VehicleSpawnControl.Order) extends Order(entry)
     final case class ServerVehicleOverride(entry : VehicleSpawnControl.Order) extends Order(entry)
     final case class DriverVehicleControl(entry : VehicleSpawnControl.Order) extends Order(entry)
     final case class FinalClearance(entry : VehicleSpawnControl.Order) extends Order(entry)
@@ -172,12 +171,12 @@ object VehicleSpawnControl {
 
   /**
     * Properly clean up a vehicle that has been registered, but not yet been spawned into the game world.
-    * @param vehicle the vehicle
-    * @param player the driver
+    * @see `VehicleSpawnControl.emergencyResolver`
+    * @param entry the order being cancelled
     * @param zone the continent on which the vehicle was registered
     * @param context an `ActorContext` object for which to create the `TaskResolver` object
     */
-  def DisposeVehicle(vehicle : Vehicle, player : Player, zone: Zone)(implicit context : ActorContext) : Unit = {
+  def DisposeVehicle(entry : VehicleSpawnControl.Order, zone: Zone)(implicit context : ActorContext) : Unit = {
     import net.psforever.objects.guid.GUIDTask
     emergencyResolver.getOrElse({
       import akka.routing.SmallestMailboxPool
@@ -185,18 +184,18 @@ object VehicleSpawnControl {
       val resolver = context.actorOf(SmallestMailboxPool(10).props(Props[TaskResolver]), "vehicle-spawn-control-emergency-decon-resolver")
       emergencyResolver = Some(resolver)
       resolver
-    }) ! GUIDTask.UnregisterVehicle(vehicle)(zone.GUID)
-    zone.VehicleEvents ! VehicleSpawnPad.RevealPlayer(player.GUID, zone.Id)
+    }) ! GUIDTask.UnregisterVehicle(entry.vehicle)(zone.GUID)
+    zone.VehicleEvents ! VehicleSpawnPad.RevealPlayer(entry.driver.GUID, zone.Id)
   }
   /**
     * Properly clean up a vehicle that has been registered and spawned into the game world.
-    * @param vehicle the vehicle
-    * @param player the driver
+    * @param entry the order being cancelled
     * @param zone the continent on which the vehicle was registered
     */
-  def DisposeSpawnedVehicle(vehicle : Vehicle, player : Player, zone: Zone) : Unit = {
-    zone.VehicleEvents ! VehicleSpawnPad.DisposeVehicle(vehicle, zone)
-    zone.VehicleEvents ! VehicleSpawnPad.RevealPlayer(player.GUID, zone.Id)
+  def DisposeSpawnedVehicle(entry : VehicleSpawnControl.Order, zone: Zone) : Unit = {
+    //TODO this cleanup will handle the vehicle; but, the former driver may be thrown into the void
+    zone.VehicleEvents ! VehicleSpawnPad.DisposeVehicle(entry.vehicle, zone)
+    zone.VehicleEvents ! VehicleSpawnPad.RevealPlayer(entry.driver.GUID, zone.Id)
   }
 
   /**

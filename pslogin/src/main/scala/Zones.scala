@@ -1,5 +1,6 @@
 // Copyright (c) 2017 PSForever
 import akka.actor.ActorContext
+import net.psforever.objects.serverobject.pad.VehicleSpawnPad
 import net.psforever.objects.zones.Zone
 import net.psforever.types.PlanetSideEmpire
 
@@ -49,6 +50,9 @@ object Zones {
       import net.psforever.types.PlanetSideEmpire
       Buildings.values.foreach { _.Faction = PlanetSideEmpire.VS }
       Building(29).get.Faction = PlanetSideEmpire.NC //South Villa Gun Tower
+      GUID(293).get.asInstanceOf[VehicleSpawnPad].Railed = false //building 52
+      GUID(710).get.asInstanceOf[VehicleSpawnPad].Railed = false //building 79
+      GUID(712).get.asInstanceOf[VehicleSpawnPad].Railed = false //building 81
     }
   }
 

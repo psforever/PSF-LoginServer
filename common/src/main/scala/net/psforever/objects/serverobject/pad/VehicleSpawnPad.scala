@@ -13,10 +13,28 @@ import net.psforever.packet.game.PlanetSideGUID
   * maintain the operative queue that introduces the vehicle into the game world and applies initial activity to it and
   * maintain a position and a direction where the vehicle will be made to appear (as a `PlanetSideServerObject`).
   * The actual functionality managed by this object is wholly found on its accompanying `Actor`.
-  * @param spDef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
   * @see `VehicleSpawnControl`
+  * @param spDef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
   */
 class VehicleSpawnPad(spDef : VehicleSpawnPadDefinition) extends Amenity {
+  /**
+    * USE THIS BOOLEAN FOR DEVELOPMENT PURPOSES!<br>
+    * Purpose: use the ingame railed platform to lift the spawned vehicle out of the trench.
+    * When set, the client performs the standard vehicle entry procedure, including rail animations.
+    * When unset, the client depicts the player manually boarding the new vehicle within the trench area.
+    * Eventually, the vehicle is then hoisted out into the open.
+    * The main reason to disable this feature is to avoid an `ObjectAttachMessage` that may be dispatched for an incorrect object.
+    * Unset if not guaranteed to have the correct ingame globally unique id of the spawn pad.
+    */
+  private var onRails : Boolean = true
+
+  def Railed : Boolean = onRails
+
+  def Railed_=(useRails : Boolean) : Boolean = {
+    onRails = useRails
+    Railed
+  }
+
   def Definition : VehicleSpawnPadDefinition = spDef
 }
 
@@ -53,7 +71,11 @@ object VehicleSpawnPad {
     */
   final case class LoadVehicle(vehicle : Vehicle, zone : Zone)
 
-  final case class StartPlayerSeatedInVehicle(vehicle : Vehicle)
+  final case class AttachToRails(vehicle : Vehicle, pad : VehicleSpawnPad, zone_id : String)
+
+  final case class DetachFromRails(vehicle : Vehicle, pad : VehicleSpawnPad, zone_id : String)
+
+  final case class StartPlayerSeatedInVehicle(vehicle : Vehicle, pad : VehicleSpawnPad)
 
   /**
     * A TEMPORARY callback step in spawning the vehicle.
@@ -62,11 +84,13 @@ object VehicleSpawnPad {
     * This message is the next step after that.
     * @param vehicle the vehicle being spawned
     */
-  final case class PlayerSeatedInVehicle(vehicle : Vehicle)
+  final case class PlayerSeatedInVehicle(vehicle : Vehicle, pad : VehicleSpawnPad) //TODO while using fake rails
 
-  final case class ServerVehicleOverrideStart(speed : Int)
+  final case class ServerVehicleOverrideStart(vehicle : Vehicle, pad : VehicleSpawnPad)
 
-  final case class ServerVehicleOverrideEnd(speed : Int)
+  final case class ServerVehicleOverrideEnd(vehicle : Vehicle, pad : VehicleSpawnPad)
+
+  final case class ResetSpawnPad(pad : VehicleSpawnPad, zone_id : String)
 
   final case class PeriodicReminder(msg : String)
 

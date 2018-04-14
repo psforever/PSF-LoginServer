@@ -55,7 +55,7 @@ abstract class VehicleSpawnControlBase(pad : VehicleSpawnPad) extends Actor {
     * No important messages should processed by this agent; only consume general vehicle spawn status.
     * @param msg the message
     */
-  def trace(msg : String) : Unit = log.info(msg)
+  def trace(msg : String) : Unit = log.trace(msg)
 
   protected def Pad : VehicleSpawnPad = pad
 

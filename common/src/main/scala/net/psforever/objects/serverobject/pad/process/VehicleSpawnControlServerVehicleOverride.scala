@@ -33,31 +33,35 @@ class VehicleSpawnControlServerVehicleOverride(pad : VehicleSpawnPad) extends Ve
       }
       else if(entry.sendTo != ActorRef.noSender && entry.driver.VehicleSeated.contains(vehicle.GUID)) {
         trace(s"telling ${entry.driver.Name} that the server is assuming control of the ${vehicle.Definition.Name}")
-        entry.sendTo ! VehicleSpawnPad.ServerVehicleOverrideStart(22)
+        entry.sendTo ! VehicleSpawnPad.ServerVehicleOverrideStart(vehicle, pad)
         context.system.scheduler.scheduleOnce(3000 milliseconds, self, VehicleSpawnControl.Process.DriverVehicleControl(entry))
       }
       else {
+        if(pad.Railed) {
+          Continent.VehicleEvents ! VehicleSpawnPad.DetachFromRails(vehicle, pad, Continent.Id)
+        }
         finalClear ! VehicleSpawnControl.Process.FinalClearance(entry)
       }
 
     case VehicleSpawnControl.Process.DriverVehicleControl(entry) =>
       val vehicle = entry.vehicle
+      if(vehicle.Health == 0) {
+        trace(s"vehicle was already destroyed; but, everything is fine")
+      }
       if(entry.sendTo != ActorRef.noSender) {
-        if(vehicle.Health == 0) {
-          trace(s"vehicle was already destroyed; but, everything is fine")
+        val driver = entry.driver
+        entry.sendTo ! VehicleSpawnPad.ServerVehicleOverrideEnd(vehicle, pad)
+        if(driver.VehicleSeated.contains(vehicle.GUID)) {
+          trace(s"returning control of ${vehicle.Definition.Name} to ${driver.Name}")
         }
         else {
-          val driver = entry.driver
-          entry.sendTo ! VehicleSpawnPad.ServerVehicleOverrideEnd(8)
-          if(driver.VehicleSeated.contains(vehicle.GUID)) {
-            trace(s"returning control of ${vehicle.Definition.Name} to ${driver.Name}")
-          }
-          else {
-            trace(s"${driver.Name} is no longer seated in new ${vehicle.Definition.Name}; can not properly return control to driver")
-          }
+          trace(s"${driver.Name} is not seated in ${vehicle.Definition.Name}; can not properly return control to driver")
         }
       }
       else {
+        if(pad.Railed) {
+          Continent.VehicleEvents ! VehicleSpawnPad.ResetSpawnPad(pad, Continent.Id)
+        }
         trace("can not properly return control to driver")
       }
       finalClear ! VehicleSpawnControl.Process.FinalClearance(entry)
