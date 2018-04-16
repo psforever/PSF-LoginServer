@@ -81,11 +81,7 @@ class DeconstructionActor extends Actor {
       vehiclesToScrap.foreach(entry => {
         val vehicle = entry.vehicle
         val zone = entry.zone
-<<<<<<< 18a068c10272376450c412425118c86612af7397
         vehicle.Position = Vector3.Zero //somewhere it will not disturb anything
-=======
-        vehicle.Position = Vector3.Zero
->>>>>>> Splitting single vehicle spawn control process into several subtasks with their own control Actor objects.  Importing SouNourS copy of ServerVehicleOverrideMessage packet and tests.
         entry.zone.Transport ! Zone.Vehicle.Despawn(vehicle)
         context.parent ! DeconstructionActor.DeleteVehicle(vehicle.GUID, zone.Id) //call up to the main event system
         taskResolver ! DeconstructionTask(vehicle, zone)

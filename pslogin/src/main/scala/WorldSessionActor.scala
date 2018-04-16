@@ -1025,9 +1025,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case VehicleSpawnPad.StartPlayerSeatedInVehicle(vehicle, pad) =>
       val vehicle_guid = vehicle.GUID
-      if(pad.Railed) {
-        sendResponse(ObjectAttachMessage(pad.GUID, vehicle_guid, 3))
-      }
       sendResponse(PlanetsideAttributeMessage(vehicle_guid, 22, 1L)) //mount points off?
       sendResponse(PlanetsideAttributeMessage(vehicle_guid, 21, player.GUID.guid)) //fte and ownership?
 
@@ -1053,7 +1050,13 @@ class WorldSessionActor extends Actor with MDCContextAware {
       sendResponse(GenericObjectActionMessage(pad.GUID, 92)) //reset spawn pad
       sendResponse(ServerVehicleOverrideMsg.Auto(vehicle.Definition.AutoPilotSpeed2))
 
-    case VehicleSpawnPad.PeriodicReminder(msg) =>
+    case VehicleSpawnPad.PeriodicReminder(cause, data) =>
+      val msg : String = (cause match {
+        case VehicleSpawnPad.Reminders.Blocked =>
+          s"The vehicle spawn where you placed your order is blocked. ${data.getOrElse("")}"
+        case VehicleSpawnPad.Reminders.Queue =>
+          s"Your position in the vehicle spawn queue is ${data.get}."
+      })
       sendResponse(ChatMsg(ChatMessageType.CMT_OPEN, true, "", msg, None))
 
     case ListAccountCharacters =>

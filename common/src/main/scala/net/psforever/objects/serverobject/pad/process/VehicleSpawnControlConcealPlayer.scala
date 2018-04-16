@@ -27,7 +27,7 @@ class VehicleSpawnControlConcealPlayer(pad : VehicleSpawnPad) extends VehicleSpa
     case VehicleSpawnControl.Process.ConcealPlayer(entry) =>
       val driver = entry.driver
       //TODO how far can the driver get stray from the Terminal before his order is cancelled?
-      if(entry.sendTo != ActorRef.noSender && driver.isAlive && driver.Continent == Continent.Id && driver.VehicleSeated.isEmpty) {
+      if(entry.sendTo != ActorRef.noSender && driver.Continent == Continent.Id && driver.VehicleSeated.isEmpty) {
         trace(s"hiding ${driver.Name}")
         Continent.VehicleEvents ! VehicleSpawnPad.ConcealPlayer(driver.GUID, Continent.Id)
         context.system.scheduler.scheduleOnce(2000 milliseconds, loadVehicle, VehicleSpawnControl.Process.LoadVehicle(entry))

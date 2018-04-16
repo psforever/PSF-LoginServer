@@ -23,7 +23,7 @@ import scala.concurrent.duration._
 class VehicleSpawnControlLoadVehicle(pad : VehicleSpawnPad) extends VehicleSpawnControlBase(pad) {
   def LogId = "-loader"
 
-  val seatDriver = context.actorOf(Props(classOf[VehicleSpawnControlSeatDriver], pad), s"${context.parent.path.name}-seat")
+  val railJack = context.actorOf(Props(classOf[VehicleSpawnControlRailJack], pad), s"${context.parent.path.name}-rails")
 
   def receive : Receive = {
     case VehicleSpawnControl.Process.LoadVehicle(entry) =>
@@ -32,12 +32,12 @@ class VehicleSpawnControlLoadVehicle(pad : VehicleSpawnPad) extends VehicleSpawn
         trace(s"loading the ${vehicle.Definition.Name}")
         vehicle.Position = vehicle.Position - Vector3(0, 0, if(GlobalDefinitions.isFlightVehicle(vehicle.Definition)) 9 else 5)
         Continent.VehicleEvents ! VehicleSpawnPad.LoadVehicle(vehicle, Continent)
-        context.system.scheduler.scheduleOnce(100 milliseconds, seatDriver, VehicleSpawnControl.Process.SeatDriver(entry))
+        context.system.scheduler.scheduleOnce(100 milliseconds, railJack, VehicleSpawnControl.Process.RailJackAction(entry))
       }
       else {
         trace("owner lost; abort order fulfillment")
         VehicleSpawnControl.DisposeVehicle(entry, Continent)
-        context.parent ! VehicleSpawnControl.ProcessControl.GetOrder
+        context.parent ! VehicleSpawnControl.ProcessControl.GetNewOrder
       }
 
     case VehicleSpawnControl.ProcessControl.Reminder =>

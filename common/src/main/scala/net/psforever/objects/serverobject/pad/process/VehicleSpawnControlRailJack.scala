@@ -22,20 +22,25 @@ import scala.concurrent.duration._
 class VehicleSpawnControlRailJack(pad : VehicleSpawnPad) extends VehicleSpawnControlBase(pad) {
   def LogId = "-lifter"
 
-  val vehicleOverride = context.actorOf(Props(classOf[VehicleSpawnControlServerVehicleOverride], pad), s"${context.parent.path.name}-override")
+  val seatDriver = context.actorOf(Props(classOf[VehicleSpawnControlSeatDriver], pad), s"${context.parent.path.name}-seat")
 
   def receive : Receive = {
     case VehicleSpawnControl.Process.RailJackAction(entry) =>
       if(entry.vehicle.Health == 0) {
-        //TODO detach vehicle from pad rails if necessary
-        trace(s"vehicle was already destroyed")
+        trace("vehicle was already destroyed; clean it up")
         VehicleSpawnControl.DisposeSpawnedVehicle(entry, Continent)
         context.parent ! VehicleSpawnControl.ProcessControl.GetNewOrder
       }
       else {
-        trace(s"extending rails with vehicle attached")
+        if(pad.Railed) {
+          trace(s"attaching vehicle to railed platform")
+          Continent.VehicleEvents ! VehicleSpawnPad.AttachToRails(entry.vehicle, pad, Continent.Id)
+        }
+        else {
+          trace(s"railed platform skipped; vehicle positioned temporarily in pad trench")
+        }
         context.parent ! VehicleSpawnControl.ProcessControl.Reminder
-        context.system.scheduler.scheduleOnce(10 milliseconds, vehicleOverride, VehicleSpawnControl.Process.ServerVehicleOverride(entry))
+        context.system.scheduler.scheduleOnce(10 milliseconds, seatDriver, VehicleSpawnControl.Process.SeatDriver(entry))
       }
 
     case VehicleSpawnControl.ProcessControl.GetNewOrder =>
