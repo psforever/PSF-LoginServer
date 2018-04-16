@@ -97,8 +97,8 @@ object Zones {
     */
   def SanctuaryZoneId(faction : PlanetSideEmpire.Value) : String = {
     faction match {
-      case PlanetSideEmpire.TR => "home1"
-      case PlanetSideEmpire.NC => "home2"
+      case PlanetSideEmpire.NC => "home1"
+      case PlanetSideEmpire.TR => "home2"
       case PlanetSideEmpire.VS => "home3"
       case PlanetSideEmpire.NEUTRAL => "" //invalid, not black ops
     }
@@ -111,8 +111,8 @@ object Zones {
     */
   def SanctuaryZoneNumber(faction : PlanetSideEmpire.Value) : Int = {
     faction match {
-      case PlanetSideEmpire.TR => 11
-      case PlanetSideEmpire.NC => 12
+      case PlanetSideEmpire.NC => 11
+      case PlanetSideEmpire.TR => 12
       case PlanetSideEmpire.VS => 13
       case PlanetSideEmpire.NEUTRAL => 0 //invalid, not black ops
     }

@@ -624,11 +624,11 @@ object Maps {
     }
   }
 
-  val map14 = new ZoneMap("map13")
+  val map14 = new ZoneMap("map14")
 
-  val map15 = new ZoneMap("map13")
+  val map15 = new ZoneMap("map15")
 
-  val map16 = new ZoneMap("map13")
+  val map16 = new ZoneMap("map16")
 
   val ugd01 = new ZoneMap("ugd01")
 
@@ -642,7 +642,7 @@ object Maps {
 
   val ugd06 = new ZoneMap("ugd06")
 
-  val map96 = new ZoneMap("ugd06")
+  val map96 = new ZoneMap("map96")
 
   val map97 = new ZoneMap("map97")
 
