@@ -35,7 +35,7 @@ class ChatService extends Actor {
         case ChatAction.Tell(player_guid, player_name, msg) =>
           var good : Boolean = false
           LivePlayerList.WorldPopulation(_ => true).foreach(char => {
-            if (char.Name.equalsIgnoreCase(msg.recipient)) {
+            if (char.name.equalsIgnoreCase(msg.recipient)) {
               good = true
             }
           })

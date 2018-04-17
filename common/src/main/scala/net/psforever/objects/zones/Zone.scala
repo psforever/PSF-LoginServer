@@ -3,17 +3,19 @@ package net.psforever.objects.zones
 
 import akka.actor.{ActorContext, ActorRef, Props}
 import akka.routing.RandomPool
-import net.psforever.objects.{PlanetSideGameObject, Player, Vehicle}
+import net.psforever.objects.{Avatar, PlanetSideGameObject, Player, Vehicle}
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.objects.guid.actor.UniqueNumberSystem
 import net.psforever.objects.guid.selector.RandomSelector
 import net.psforever.objects.guid.source.LimitedNumberSource
 import net.psforever.objects.serverobject.structures.{Amenity, Building}
+import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types.Vector3
 
 import scala.annotation.tailrec
+import scala.collection.concurrent.TrieMap
 import scala.collection.mutable.ListBuffer
 import scala.collection.immutable.{Map => PairMap}
 
@@ -44,8 +46,8 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
   private var accessor : ActorRef = ActorRef.noSender
   /** The basic support structure for the globally unique number system used by this `Zone`. */
   private var guid : NumberPoolHub = new NumberPoolHub(new LimitedNumberSource(65536))
-  guid.AddPool("environment", (0 to 4000).toList)
-  guid.AddPool("dynamic", (4001 to 12000).toList).Selector = new RandomSelector //TODO unlump pools later; do not make too big
+  guid.AddPool("environment", (0 to 3000).toList) //TODO tailer ro suit requirements of zone
+  guid.AddPool("dynamic", (3001 to 12000).toList).Selector = new RandomSelector //TODO unlump pools later; do not make too big
   /** A synchronized `List` of items (`Equipment`) dropped by players on the ground and can be collected again. */
   private val equipmentOnGround : ListBuffer[Equipment] = ListBuffer[Equipment]()
   /** Used by the `Zone` to coordinate `Equipment` dropping and collection requests. */
@@ -54,8 +56,16 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
   private var vehicles : List[Vehicle] = List[Vehicle]()
   /** */
   private var transport : ActorRef = ActorRef.noSender
+  /** */
+  private val players : TrieMap[Avatar, Option[Player]] = TrieMap[Avatar, Option[Player]]()
+  /** */
+  private val corpses : ListBuffer[Player] = ListBuffer[Player]()
+  /** */
+  private var population : ActorRef = ActorRef.noSender
 
   private var buildings : PairMap[Int, Building] = PairMap.empty[Int, Building]
+  /** key - spawn zone id, value - buildings belonging to spawn zone */
+  private var spawnGroups : Map[Building, List[SpawnTube]] = PairMap[Building, List[SpawnTube]]()
 
   /**
     * Establish the basic accessible conditions necessary for a functional `Zone`.<br>
@@ -66,7 +76,12 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
     * First, the `Actor`-driven aspect of the globally unique identifier system for this `Zone` is finalized.
     * Second, all supporting `Actor` agents are created, e.g., `ground`.
     * Third, the `ZoneMap` server objects are loaded and constructed within that aforementioned system.
-    * To avoid being called more than once, there is a test whether the `accessor` for the globally unique identifier system has been changed.
+    * To avoid being called more than once, there is a test whether the `accessor` for the globally unique identifier system has been changed.<br>
+    * <br>
+    * Execution of this operation should be fail-safe.
+    * The chances of failure should be mitigated or skipped.
+    * An testing routine should be run after the fact on the results of the process.
+    * @see `ZoneActor.ZoneSetupCheck`
     * @param context a reference to an `ActorContext` necessary for `Props`
     */
   def Init(implicit context : ActorContext) : Unit = {
@@ -75,12 +90,12 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
       accessor = context.actorOf(RandomPool(25).props(Props(classOf[UniqueNumberSystem], guid, UniqueNumberSystem.AllocateNumberPoolActors(guid))), s"$Id-uns")
       ground = context.actorOf(Props(classOf[ZoneGroundActor], equipmentOnGround), s"$Id-ground")
       transport = context.actorOf(Props(classOf[ZoneVehicleActor], this), s"$Id-vehicles")
+      population = context.actorOf(Props(classOf[ZonePopulationActor], this, players, corpses), s"$Id-players")
 
-      Map.LocalObjects.foreach({ builderObject =>
-        builderObject.Build
-      })
+      Map.LocalObjects.foreach({ builderObject => builderObject.Build })
       MakeBuildings(context)
       AssignAmenities()
+      CreateSpawnGroups()
     }
   }
 
@@ -176,6 +191,12 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
 
   def Vehicles : List[Vehicle] = vehicles
 
+  def Players : List[Avatar] = players.keys.toList
+
+  def LivePlayers : List[Player] = players.values.collect( { case Some(tplayer) => tplayer }).toList
+
+  def Corpses : List[Player] = corpses.toList
+
   def AddVehicle(vehicle : Vehicle) : List[Vehicle] = {
     vehicles = vehicles :+ vehicle
     Vehicles
@@ -217,6 +238,8 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
 
   def Transport : ActorRef = transport
 
+  def Population : ActorRef = population
+
   def Buildings : Map[Int, Building] = buildings
 
   def Building(id : Int) : Option[Building] = {
@@ -235,26 +258,55 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
     })
   }
 
+  private def CreateSpawnGroups() : Unit = {
+    buildings.values
+      .filterNot { _.Position == Vector3.Zero }
+      .map(building => { building -> building.Amenities.collect { case(obj : SpawnTube) => obj } })
+      .filter( { case((_, spawns)) => spawns.nonEmpty })
+      .foreach { SpawnGroups }
+  }
+
+  def SpawnGroups() : Map[Building, List[SpawnTube]] = spawnGroups
+
+  def SpawnGroups(building : Building) : List[SpawnTube] = SpawnGroups(building.Id)
+
+  def SpawnGroups(buildingId : Int) : List[SpawnTube] = {
+    spawnGroups.find({ case((building, _)) => building.Id == buildingId }) match {
+      case Some((_, list)) =>
+        list
+      case None =>
+        List.empty[SpawnTube]
+    }
+  }
+
+  def SpawnGroups(spawns : (Building, List[SpawnTube])) : Map[Building, List[SpawnTube]] = {
+    val (building, tubes) = spawns
+    val entry : Map[Building, List[SpawnTube]] = PairMap(building -> tubes)
+    spawnGroups = spawnGroups ++ entry
+    entry
+  }
+
   /**
     * Provide bulk correspondence on all map entities that can be composed into packet messages and reported to a client.
     * These messages are sent in this fashion at the time of joining the server:<br>
-    * - `BroadcastWarpgateUpdateMessage`<br>
     * - `BuildingInfoUpdateMessage`<br>
+    * - `DensityLevelUpdateMessage`<br>
+    * - `BroadcastWarpgateUpdateMessage`<br>
     * - `CaptureFlagUpdateMessage`<br>
     * - `ContinentalLockUpdateMessage`<br>
-    * - `DensityLevelUpdateMessage`<br>
     * - `ModuleLimitsMessage`<br>
     * - `VanuModuleUpdateMessage`<br>
     * - `ZoneForcedCavernConnectionMessage`<br>
     * - `ZoneInfoMessage`<br>
     * - `ZoneLockInfoMessage`<br>
     * - `ZonePopulationUpdateMessage`
-    * @return a `List` of `GamePacket` messages
+    * @return the `Zone` object
     */
   def ClientInitialization() : Zone = this
 }
 
 object Zone {
+  /** Default value, non-zone area. */
   final val Nowhere : Zone = new Zone("nowhere", new ZoneMap("nowhere"), 99)
 
   /**
@@ -262,6 +314,97 @@ object Zone {
     * @see `Zone.Init(implicit ActorContext)`
     */
   final case class Init()
+
+  object Population {
+    /**
+      * Message that introduces a user, by their `Avatar`, into a `Zone`.
+      * That user will be counted as part of that zone's population.
+      * The `avatar` may associate `Player` objects with itself in the future.
+      * @param avatar the `Avatar` object
+      */
+    final case class Join(avatar : Avatar)
+    /**
+      * Message that excuses a user, by their `Avatar`, into a `Zone`.
+      * That user will not longer be counted as part of that zone's population.
+      * @see `PlayerHasLeft`
+      * @param avatar the `Avatar` object
+      */
+    final case class Leave(avatar : Avatar)
+    /**
+      * Message that instructs the zone to disassociate a `Player` from this `Actor`.
+      * @see `PlayerAlreadySpawned`<br>
+      *       `PlayerCanNotSpawn`
+      * @param avatar the `Avatar` object
+      * @param player the `Player` object
+      */
+    final case class Spawn(avatar : Avatar, player : Player)
+    /**
+      * Message that instructs the zone to disassociate a `Player` from this `Actor`.
+      * @see `PlayerHasLeft`
+      * @param avatar the `Avatar` object
+      */
+    final case class Release(avatar : Avatar)
+    /**
+      * Message that acts in reply to `Leave(avatar)` or `Release(avatar)`.
+      * In the former case, the avatar will have successfully left the zone, and `player` may be defined.
+      * In the latter case, the avatar did not initially `Join` the zone, and `player` is `None`.
+      * This message should not be considered a failure or a success case.
+      * @see `Release`<br>
+      *       `Leave`
+      * @param zone the `Zone` object
+      * @param player the `Player` object
+      */
+    final case class PlayerHasLeft(zone : Zone, player : Option[Player]) //Leave(avatar), but still has a player
+    /**
+      * Message that acts in reply to `Spawn(avatar, player)`, but the avatar already has a player.
+      * @param player the `Player` object
+      */
+    final case class PlayerAlreadySpawned(player : Player)
+    /**
+      * Message that acts in reply to `Spawn(avatar, player)`, but the avatar did not initially `Join` this zone.
+      * @param zone the `Zone` object
+      * @param player the `Player` object
+      */
+    final case class PlayerCanNotSpawn(zone : Zone, player : Player)
+  }
+
+  object Corpse {
+    /**
+      * Message that reports to the zone of a freshly dead player.
+      * @param player the dead `Player`
+      */
+    final case class Add(player : Player)
+    /**
+      * Message that tells the zone to no longer mind the dead player.
+      * @param player the dead `Player`
+      */
+    final case class Remove(player : Player)
+  }
+
+  object Lattice {
+    /**
+      * Message requesting that the current zone determine where a `player` can spawn.
+      * @param zone_number this zone's numeric identifier
+      * @param player the `Player` object
+      * @param spawn_group the category of spawn points the request wants searched
+      */
+    final case class RequestSpawnPoint(zone_number : Int, player : Player, spawn_group : Int)
+    /**
+      * Message that returns a discovered spawn point to a request source.
+      * @param zone_id the zone's text identifier
+      * @param building the `Building` in which the spawnpoint is located
+      * @param spawn_tube the spawn point holding object
+      */
+    final case class SpawnPoint(zone_id : String, building : Building, spawn_tube : SpawnTube)
+    /**
+      * Message that informs a request source that a spawn point could not be discovered with the previous criteria.
+      * @param zone_number this zone's numeric identifier
+      * @param spawn_group the spawn point holding object;
+      *                    if `None`, then the previous `zone_number` could not be found;
+      *                    otherwise, no spawn points could be found in the zone
+      */
+    final case class NoValidSpawnPoint(zone_number : Int, spawn_group : Option[Int])
+  }
 
   /**
     * Message to relinguish an item and place in on the ground.

@@ -3,7 +3,7 @@ package objects.terminal
 
 import akka.actor.ActorRef
 import net.psforever.objects.serverobject.terminals.{MatrixTerminalDefinition, Terminal}
-import net.psforever.objects.{GlobalDefinitions, Player, Vehicle}
+import net.psforever.objects.{Avatar, GlobalDefinitions, Player, Vehicle}
 import net.psforever.packet.game.{ItemTransactionMessage, PlanetSideGUID}
 import net.psforever.types._
 import org.specs2.mutable.Specification
@@ -22,10 +22,16 @@ class MatrixTerminalTest extends Specification {
       b.Name mustEqual "matrix_terminalb"
     }
 
-    "define (b)" in {
+    "define (c)" in {
       val b = new MatrixTerminalDefinition(519)
       b.ObjectId mustEqual 519
       b.Name mustEqual "matrix_terminalc"
+    }
+
+    "define (d)" in {
+      val b = new MatrixTerminalDefinition(812)
+      b.ObjectId mustEqual 812
+      b.Name mustEqual "spawn_terminal"
     }
 
     "define (invalid)" in {
@@ -36,7 +42,7 @@ class MatrixTerminalTest extends Specification {
       else if(id == 518) {
         id += 2
       }
-      else if(id == 519) {
+      else if(id == 519 | id == 812) {
         id += 1
       }
 
@@ -54,7 +60,7 @@ class MatrixTerminalTest extends Specification {
     }
 
     "player can not buy (anything)" in {
-      val player = Player("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+      val player = Player(Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0))
       val msg = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Buy, 1, "lite_armor", 0, PlanetSideGUID(0))
 
       terminal.Request(player, msg) mustEqual Terminal.NoDeal()

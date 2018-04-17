@@ -4,7 +4,7 @@ package net.psforever.objects.serverobject.structures
 import akka.actor.ActorContext
 import net.psforever.objects.zones.Zone
 
-class WarpGate(id : Int, zone : Zone) extends Building(id, zone) {
+class WarpGate(id : Int, zone : Zone) extends Building(id, zone, StructureType.WarpGate) {
   //TODO stuff later
 }
 

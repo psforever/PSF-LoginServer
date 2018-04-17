@@ -5,8 +5,9 @@ import akka.actor.{ActorRef, ActorSystem, Props}
 import net.psforever.objects.definition.SeatDefinition
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.implantmech.{ImplantTerminalMech, ImplantTerminalMechControl}
+import net.psforever.objects.serverobject.structures.StructureType
 import net.psforever.objects.vehicles.Seat
-import net.psforever.objects.{GlobalDefinitions, Player}
+import net.psforever.objects.{Avatar, GlobalDefinitions, Player}
 import net.psforever.types.{CharacterGender, PlanetSideEmpire, Vector3}
 import objects.ActorTest
 import org.specs2.mutable.Specification
@@ -44,7 +45,7 @@ class ImplantTerminalMechTest extends Specification {
     }
 
     "get passenger in a seat" in {
-      val player = Player("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+      val player = Player(Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0))
       val obj = ImplantTerminalMech(GlobalDefinitions.implant_terminal_mech)
       obj.PassengerInSeat(player) mustEqual None
       obj.Seats(0).Occupant = player
@@ -89,7 +90,7 @@ class ImplantTerminalMechControl3Test extends ActorTest() {
   "ImplantTerminalMechControl" should {
     "block a player from mounting" in {
       val (player1, mech) = ImplantTerminalMechTest.SetUpAgents(PlanetSideEmpire.TR)
-      val player2 = Player("test2", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+      val player2 = Player(Avatar("test2", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0))
 
       mech.Actor ! Mountable.TryMount(player1, 0)
       receiveOne(Duration.create(100, "ms")) //consume reply
@@ -160,9 +161,9 @@ object ImplantTerminalMechTest {
 
     val terminal = ImplantTerminalMech(GlobalDefinitions.implant_terminal_mech)
     terminal.Actor = system.actorOf(Props(classOf[ImplantTerminalMechControl], terminal), "mech")
-    terminal.Owner = new Building(0, Zone.Nowhere)
+    terminal.Owner = new Building(0, Zone.Nowhere, StructureType.Building)
     terminal.Owner.Faction = faction
     terminal.GUID = PlanetSideGUID(1)
-    (Player("test", faction, CharacterGender.Male, 0, 0), terminal)
+    (Player(Avatar("test", faction, CharacterGender.Male, 0, 0)), terminal)
   }
 }

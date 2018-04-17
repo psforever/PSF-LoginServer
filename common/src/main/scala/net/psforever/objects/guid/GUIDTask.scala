@@ -1,7 +1,13 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.guid
 
-import net.psforever.objects.vehicles.Utility
+import akka.actor.ActorRef
+import net.psforever.objects.entity.IdentifiableEntity
+import net.psforever.objects.equipment.Equipment
+import net.psforever.objects.{EquipmentSlot, LockerContainer, Player, Tool, Vehicle}
+import net.psforever.objects.inventory.Container
+
+import scala.annotation.tailrec
 
 /**
   * The basic compiled tasks for assigning (registering) and revoking (unregistering) globally unique identifiers.<br>
@@ -14,17 +20,13 @@ import net.psforever.objects.vehicles.Utility
   * It will get passed from the more complicated functions down into the less complicated functions,
   * until it has found the basic number assignment functionality.<br>
   * <br>
-  * All functions produce a `TaskResolver.GiveTask` container object that is expected to be used by a `TaskResolver`.
-  * These "task containers" can also be unpackaged into their tasks, sorted into other containers,
-  * and combined with other "task containers" to enact more complicated sequences of operations.
+  * All functions produce a `TaskResolver.GiveTask` container object
+  * or a list of `TaskResolver.GiveTask` container objects that is expected to be used by a `TaskResolver` `Actor`.
+  * These "task containers" can also be unpackaged into their component tasks, sorted into other containers,
+  * and combined with other tasks to enact more complicated sequences of operations.
+  * Almost all tasks have an explicit registering and an unregistering activity defined for it.
   */
 object GUIDTask {
-  import akka.actor.ActorRef
-  import net.psforever.objects.entity.IdentifiableEntity
-  import net.psforever.objects.equipment.Equipment
-  import net.psforever.objects.{EquipmentSlot, Player, Tool, Vehicle}
-
-  import scala.annotation.tailrec
   /**
     * Construct tasking that registers an object with a globally unique identifier selected from a pool of numbers.<br>
     * <br>
@@ -77,8 +79,33 @@ object GUIDTask {
   }
 
   /**
+    * Construct tasking that registers a `LockerContainer` object
+    * with a globally unique identifier selected from a pool of numbers.
+    * @param obj the object being registered
+    * @param guid implicit reference to a unique number system
+    * @see `GUIDTask.UnregisterLocker`
+    * @return a `TaskResolver.GiveTask` message
+    */
+  def RegisterLocker(obj : LockerContainer)(implicit guid : ActorRef) : TaskResolver.GiveTask = {
+    TaskResolver.GiveTask(RegisterObjectTask(obj).task, RegisterInventory(obj))
+  }
+
+  /**
+    * Construct tasking that registers the objects that are within the given container's inventory
+    * with a globally unique identifier selected from a pool of numbers for each object.
+    * @param container the storage unit in which objects can be found
+    * @param guid implicit reference to a unique number system
+    * @see `GUID.UnregisterInventory`<br>
+    *       `Container`
+    * @return a list of `TaskResolver.GiveTask` messages
+    */
+  def RegisterInventory(container : Container)(implicit guid : ActorRef) : List[TaskResolver.GiveTask] = {
+    container.Inventory.Items.values.map(entry => { RegisterEquipment(entry.obj)}).toList
+  }
+
+  /**
     * Construct tasking that registers an object with a globally unique identifier selected from a pool of numbers,
-    * after determining whether the object is complex (`Tool`) or simple.<br>
+    * after determining whether the object is complex (`Tool` or `Locker`) or is simple.<br>
     * <br>
     * The objects in this case are specifically `Equipment`, a subclass of the basic register-able `IdentifiableEntity`.
     * About five subclasses of `Equipment` exist, but they decompose into two groups - "complex objects" and "simple objects."
@@ -96,6 +123,8 @@ object GUIDTask {
     obj match {
       case tool : Tool =>
         RegisterTool(tool)
+      case locker : LockerContainer =>
+        RegisterLocker(locker)
       case _ =>
         RegisterObjectTask(obj)
     }
@@ -118,17 +147,24 @@ object GUIDTask {
     * @return a `TaskResolver.GiveTask` message
     */
   def RegisterAvatar(tplayer : Player)(implicit guid : ActorRef) : TaskResolver.GiveTask = {
-    import net.psforever.objects.LockerContainer
-    import net.psforever.objects.inventory.InventoryItem
-    val holsterTasks = recursiveHolsterTaskBuilding(tplayer.Holsters().iterator, RegisterEquipment)
-    val fifthHolsterTask = tplayer.Slot(5).Equipment match {
-      case Some(locker) =>
-        RegisterObjectTask(locker) :: locker.asInstanceOf[LockerContainer].Inventory.Items.map({ case((_ : Int, entry : InventoryItem)) => RegisterEquipment(entry.obj)}).toList
-      case None =>
-        List.empty[TaskResolver.GiveTask];
-    }
-    val inventoryTasks = tplayer.Inventory.Items.map({ case((_ : Int, entry : InventoryItem)) => RegisterEquipment(entry.obj)})
-    TaskResolver.GiveTask(RegisterObjectTask(tplayer).task, holsterTasks ++ fifthHolsterTask ++ inventoryTasks)
+    val holsterTasks = VisibleSlotTaskBuilding(tplayer.Holsters(), RegisterEquipment)
+    val lockerTask = List(RegisterLocker(tplayer.Locker))
+    val inventoryTasks = RegisterInventory(tplayer)
+    TaskResolver.GiveTask(RegisterObjectTask(tplayer).task, holsterTasks ++ lockerTask ++ inventoryTasks)
+  }
+
+  /**
+    * Construct tasking that registers an object with a globally unique identifier selected from a pool of numbers, as a `Player`.<br>
+    * <br>
+    * Similar to `RegisterAvatar` but the locker components are skipped.
+    * @param tplayer the `Player` object being registered
+    * @param guid implicit reference to a unique number system
+    * @return a `TaskResolver.GiveTask` message
+    */
+  def RegisterPlayer(tplayer : Player)(implicit guid : ActorRef) : TaskResolver.GiveTask = {
+    val holsterTasks = VisibleSlotTaskBuilding(tplayer.Holsters(), RegisterEquipment)
+    val inventoryTasks = RegisterInventory(tplayer)
+    TaskResolver.GiveTask(GUIDTask.RegisterObjectTask(tplayer)(guid).task, holsterTasks ++ inventoryTasks)
   }
 
   /**
@@ -149,10 +185,9 @@ object GUIDTask {
     * @return a `TaskResolver.GiveTask` message
     */
   def RegisterVehicle(vehicle : Vehicle)(implicit guid : ActorRef) : TaskResolver.GiveTask = {
-    import net.psforever.objects.inventory.InventoryItem
-    val weaponTasks = vehicle.Weapons.map({ case(_ : Int, entry : EquipmentSlot) => RegisterEquipment(entry.Equipment.get)}).toList
-    val utilTasks = Vehicle.EquipmentUtilities(vehicle.Utilities).map({case (_ : Int, util : Utility) => RegisterObjectTask(util())}).toList
-    val inventoryTasks = vehicle.Trunk.Items.map({ case((_ : Int, entry : InventoryItem)) => RegisterEquipment(entry.obj)})
+    val weaponTasks = VisibleSlotTaskBuilding(vehicle.Weapons.values, RegisterEquipment)
+    val utilTasks = Vehicle.EquipmentUtilities(vehicle.Utilities).values.map(util => { RegisterObjectTask(util())}).toList
+    val inventoryTasks = RegisterInventory(vehicle)
     TaskResolver.GiveTask(RegisterObjectTask(vehicle).task, weaponTasks ++ utilTasks ++ inventoryTasks)
   }
 
@@ -202,8 +237,32 @@ object GUIDTask {
   }
 
   /**
+    * Construct tasking that unregisters a `LockerContainer` object from a globally unique identifier system.
+    * @param obj the object being unregistered
+    * @param guid implicit reference to a unique number system
+    * @see `GUIDTask.RegisterLocker`
+    * @return a `TaskResolver.GiveTask` message
+    */
+  def UnregisterLocker(obj : LockerContainer)(implicit guid : ActorRef) : TaskResolver.GiveTask = {
+    TaskResolver.GiveTask(UnregisterObjectTask(obj).task, UnregisterInventory(obj))
+  }
+
+  /**
+    * Construct tasking that unregisters the objects that are within the given container's inventory
+    * from a globally unique identifier system.
+    * @param container the storage unit in which objects can be found
+    * @param guid implicit reference to a unique number system
+    * @see `GUIDTask.RegisterInventory`<br>
+    *       `Container`
+    * @return a list of `TaskResolver.GiveTask` messages
+    */
+  def UnregisterInventory(container : Container)(implicit guid : ActorRef) : List[TaskResolver.GiveTask] = {
+    container.Inventory.Items.values.map(entry => { UnregisterEquipment(entry.obj)}).toList
+  }
+
+  /**
     * Construct tasking that unregisters an object from a globally unique identifier system
-    * after determining whether the object is complex (`Tool`) or simple.<br>
+    * after determining whether the object is complex (`Tool` or `Locker`) or is simple.<br>
     * <br>
     * This task performs an operation that reverses the effect of `RegisterEquipment`.
     * @param obj the `Equipment` object being unregistered
@@ -215,6 +274,8 @@ object GUIDTask {
     obj match {
       case tool : Tool =>
         UnregisterTool(tool)
+      case locker : LockerContainer =>
+        UnregisterLocker(locker)
       case _ =>
         UnregisterObjectTask(obj)
     }
@@ -230,34 +291,56 @@ object GUIDTask {
     * @return a `TaskResolver.GiveTask` message
     */
   def UnregisterAvatar(tplayer : Player)(implicit guid : ActorRef) : TaskResolver.GiveTask = {
-    import net.psforever.objects.LockerContainer
-    import net.psforever.objects.inventory.InventoryItem
-    val holsterTasks = recursiveHolsterTaskBuilding(tplayer.Holsters().iterator, UnregisterEquipment)
-    val inventoryTasks = tplayer.Inventory.Items.map({ case((_ : Int, entry : InventoryItem)) => UnregisterEquipment(entry.obj)})
-    val fifthHolsterTask = tplayer.Slot(5).Equipment match {
-      case Some(locker) =>
-        UnregisterObjectTask(locker) :: locker.asInstanceOf[LockerContainer].Inventory.Items.map({ case((_ : Int, entry : InventoryItem)) => UnregisterEquipment(entry.obj)}).toList
-      case None =>
-        List.empty[TaskResolver.GiveTask];
-    }
-    TaskResolver.GiveTask(UnregisterObjectTask(tplayer).task, holsterTasks ++ fifthHolsterTask ++ inventoryTasks)
+    val holsterTasks = VisibleSlotTaskBuilding(tplayer.Holsters(), UnregisterEquipment)
+    val lockerTask = List(UnregisterLocker(tplayer.Locker))
+    val inventoryTasks = UnregisterInventory(tplayer)
+    TaskResolver.GiveTask(UnregisterObjectTask(tplayer).task, holsterTasks ++ lockerTask ++ inventoryTasks)
   }
 
-/**
-  * Construct tasking that unregisters a `Vehicle` object from a globally unique identifier system.<br>
-  * <br>
-  * This task performs an operation that reverses the effect of `RegisterVehicle`.
-  * @param vehicle the `Vehicle` object being unregistered
-  * @param guid implicit reference to a unique number system
-  * @see `GUIDTask.RegisterVehicle`
-  * @return a `TaskResolver.GiveTask` message
-  */
+  /**
+    * Construct tasking that unregisters a portion of a `Player` object from a globally unique identifier system.<br>
+    * <br>
+    * Similar to `UnregisterAvatar` but the locker components are skipped.
+    * This task performs an operation that reverses the effect of `RegisterPlayer`.
+    * @param tplayer the `Player` object being unregistered
+    * @param guid implicit reference to a unique number system
+    * @see `GUIDTask.RegisterAvatar`
+    * @return a `TaskResolver.GiveTask` message
+    */
+  def UnregisterPlayer(tplayer : Player)(implicit guid : ActorRef) : TaskResolver.GiveTask = {
+    val holsterTasks = VisibleSlotTaskBuilding(tplayer.Holsters(), UnregisterEquipment)
+    val inventoryTasks = UnregisterInventory(tplayer)
+    TaskResolver.GiveTask(GUIDTask.UnregisterObjectTask(tplayer).task, holsterTasks ++ inventoryTasks)
+  }
+
+  /**
+    * Construct tasking that unregisters a `Vehicle` object from a globally unique identifier system.<br>
+    * <br>
+    * This task performs an operation that reverses the effect of `RegisterVehicle`.
+    * @param vehicle the `Vehicle` object being unregistered
+    * @param guid implicit reference to a unique number system
+    * @see `GUIDTask.RegisterVehicle`
+    * @return a `TaskResolver.GiveTask` message
+    */
   def UnregisterVehicle(vehicle : Vehicle)(implicit guid : ActorRef) : TaskResolver.GiveTask = {
-    import net.psforever.objects.inventory.InventoryItem
-    val weaponTasks = vehicle.Weapons.map({ case(_ : Int, entry : EquipmentSlot) => UnregisterTool(entry.Equipment.get.asInstanceOf[Tool]) }).toList
-    val utilTasks = Vehicle.EquipmentUtilities(vehicle.Utilities).map({case (_ : Int, util : Utility) => UnregisterObjectTask(util())}).toList
-    val inventoryTasks = vehicle.Trunk.Items.map({ case((_ : Int, entry : InventoryItem)) => UnregisterEquipment(entry.obj)})
+    val weaponTasks = VisibleSlotTaskBuilding(vehicle.Weapons.values, UnregisterEquipment)
+    val utilTasks = Vehicle.EquipmentUtilities(vehicle.Utilities).values.map(util => { UnregisterObjectTask(util())}).toList
+    val inventoryTasks = UnregisterInventory(vehicle)
     TaskResolver.GiveTask(UnregisterObjectTask(vehicle).task, weaponTasks ++ utilTasks ++ inventoryTasks)
+  }
+
+  /**
+    * Construct tasking that allocates work upon encountered `Equipment` objects
+    * in reference to a globally unique identifier system of a pool of numbers.
+    * "Visible slots" are locations that can be viewed by multiple observers across a number of clients.
+    * @param list an `Iterable` sequence of `EquipmentSlot` objects that may or may not have equipment
+    * @param func the function used to build tasking from any discovered `Equipment`;
+    *             strictly either `RegisterEquipment` or `UnregisterEquipment`
+    * @param guid implicit reference to a unique number system
+    * @return a list of `TaskResolver.GiveTask` messages
+    */
+  def VisibleSlotTaskBuilding(list : Iterable[EquipmentSlot], func : ((Equipment)=>TaskResolver.GiveTask))(implicit guid : ActorRef) : List[TaskResolver.GiveTask] = {
+    recursiveVisibleSlotTaskBuilding(list.iterator, func)
   }
 
   /**
@@ -267,18 +350,19 @@ object GUIDTask {
     * @param func the function used to build tasking from any discovered `Equipment`;
     *             strictly either `RegisterEquipment` or `UnregisterEquipment`
     * @param list a persistent `List` of `Equipment` tasking
+    * @see `VisibleSlotTaskBuilding`
     * @return a `List` of `Equipment` tasking
     */
-  @tailrec private def recursiveHolsterTaskBuilding(iter : Iterator[EquipmentSlot], func : ((Equipment)=>TaskResolver.GiveTask), list : List[TaskResolver.GiveTask] = Nil)(implicit guid : ActorRef) : List[TaskResolver.GiveTask] = {
+  @tailrec private def recursiveVisibleSlotTaskBuilding(iter : Iterator[EquipmentSlot], func : ((Equipment)=>TaskResolver.GiveTask), list : List[TaskResolver.GiveTask] = Nil)(implicit guid : ActorRef) : List[TaskResolver.GiveTask] = {
     if(!iter.hasNext) {
       list
     }
     else {
       iter.next.Equipment match {
         case Some(item) =>
-          recursiveHolsterTaskBuilding(iter, func, list :+ func(item))
+          recursiveVisibleSlotTaskBuilding(iter, func, list :+ func(item))
         case None =>
-          recursiveHolsterTaskBuilding(iter, func, list)
+          recursiveVisibleSlotTaskBuilding(iter, func, list)
       }
     }
   }

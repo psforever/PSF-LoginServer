@@ -275,6 +275,40 @@ class UniqueNumberSystemTest8 extends ActorTest() {
   }
 }
 
+class UniqueNumberSystemTest9 extends ActorTest() {
+  class EntityTestClass extends IdentifiableEntity
+
+  "UniqueNumberSystem" should {
+    "Failures (manually walking the failure cases)" in {
+      val src : LimitedNumberSource = LimitedNumberSource(6000)
+      val guid : NumberPoolHub = new NumberPoolHub(src)
+      guid.AddPool("pool1", (1001 to 2000).toList).Selector = new RandomSelector
+      guid.AddPool("pool2", (3001 to 4000).toList).Selector = new RandomSelector
+      guid.AddPool("pool3", (5001 to 6000).toList).Selector = new RandomSelector
+      val uns = system.actorOf(Props(classOf[UniqueNumberSystem], guid, UniqueNumberSystemTest.AllocateNumberPoolActors(guid)), "uns")
+      val excp = new Exception("EXCEPTION MESSAGE")
+      expectNoMsg(Duration.create(200, "ms"))
+
+      //GiveNumber
+      uns ! NumberPoolActor.GiveNumber(1001, Some("test")) //no task associated with id="test"
+      uns ! NumberPoolActor.GiveNumber(1000, Some("test")) //no task associated with id="test" and number is not pooled
+      uns ! NumberPoolActor.GiveNumber(1000, Some(1)) //the task could theoretically exist, but does not
+      //NoNumber
+      uns ! NumberPoolActor.NoNumber(excp, Some(1))
+      uns ! NumberPoolActor.NoNumber(excp, None)
+      uns ! NumberPoolActor.NoNumber(excp, Some("test"))
+      //ReturnNumberResult A
+      uns ! NumberPoolActor.ReturnNumberResult(1001, None, Some("test"))
+      uns ! NumberPoolActor.ReturnNumberResult(1000, None, Some("test"))
+      uns ! NumberPoolActor.ReturnNumberResult(1001, None, Some(1))
+      uns ! NumberPoolActor.ReturnNumberResult(1000, None, Some(1))
+      //ReturnNumberResult B
+      uns ! NumberPoolActor.ReturnNumberResult(1001, Some(excp), Some("test"))
+      uns ! NumberPoolActor.ReturnNumberResult(1001, Some(excp), Some(1))
+    }
+  }
+}
+
 object UniqueNumberSystemTest {
   /**
     * @see `UniqueNumberSystem.AllocateNumberPoolActors(NumberPoolHub)(implicit ActorContext)`

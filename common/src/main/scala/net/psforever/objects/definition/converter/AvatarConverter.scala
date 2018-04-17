@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.definition.converter
 
-import net.psforever.objects.{EquipmentSlot, ImplantSlot, Player}
+import net.psforever.objects.{EquipmentSlot, Player}
 import net.psforever.objects.equipment.Equipment
 import net.psforever.packet.game.objectcreate.{BasicCharacterData, CharacterAppearanceData, CharacterData, Cosmetics, DetailedCharacterData, DrawnSlot, ImplantEffects, ImplantEntry, InternalSlot, InventoryData, PlacementData, RibbonBars, UniformStyle}
 import net.psforever.types.{GrenadeState, ImplantType}
@@ -136,18 +136,12 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
   private def MakeImplantEntries(obj : Player) : List[ImplantEntry] = {
     val numImplants : Int = DetailedCharacterData.numberOfImplantSlots(obj.BEP)
     val implants = obj.Implants
-    (0 until numImplants).map(index => {
-      val slot = implants(index)
-      slot.Installed match {
-        case Some(implant) =>
-          if(slot.Initialized) {
-            ImplantEntry(slot.Implant, None)
-          }
-          else {
-            ImplantEntry(slot.Implant, Some(implant.Initialization.toInt))
-          }
-        case None =>
-          ImplantEntry(ImplantType.None, None)
+    obj.Implants.map({ case(implant, initialization, active) =>
+      if(initialization == 0) {
+        ImplantEntry(implant, None)
+      }
+      else {
+        ImplantEntry(implant, Some(math.max(0,initialization).toInt))
       }
     }).toList
   }
@@ -157,14 +151,14 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
     * @param iter an `Iterator` of `ImplantSlot` objects
     * @return the effect of an active implant
     */
-  @tailrec private def recursiveMakeImplantEffects(iter : Iterator[ImplantSlot]) : Option[ImplantEffects.Value] = {
+  @tailrec private def recursiveMakeImplantEffects(iter : Iterator[(ImplantType.Value, Long, Boolean)]) : Option[ImplantEffects.Value] = {
     if(!iter.hasNext) {
       None
     }
     else {
-      val slot = iter.next
-      if(slot.Active) {
-        slot.Implant match {
+      val(implant, _, active) = iter.next
+      if(active) {
+        implant match {
           case ImplantType.AdvancedRegen =>
             Some(ImplantEffects.RegenEffects)
           case ImplantType.DarklightVision =>
