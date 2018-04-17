@@ -359,7 +359,7 @@ object Zone {
       * Message that acts in reply to `Spawn(avatar, player)`, but the avatar already has a player.
       * @param player the `Player` object
       */
-    final case class PlayerAlreadySpawned(player : Player)
+    final case class PlayerAlreadySpawned(zone : Zone, player : Player)
     /**
       * Message that acts in reply to `Spawn(avatar, player)`, but the avatar did not initially `Join` this zone.
       * @param zone the `Zone` object

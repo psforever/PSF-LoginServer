@@ -35,7 +35,7 @@ class ZonePopulationActor(zone : Zone, playerMap : TrieMap[Avatar, Option[Player
       PopulationSpawn(avatar, player, playerMap) match {
         case Some(tplayer) =>
           if(tplayer ne player) {
-            sender ! Zone.Population.PlayerAlreadySpawned(player)
+            sender ! Zone.Population.PlayerAlreadySpawned(zone, player)
           }
         case None =>
           sender ! Zone.Population.PlayerCanNotSpawn(zone, player)

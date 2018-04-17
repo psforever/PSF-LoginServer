@@ -4,11 +4,12 @@ package game
 import org.specs2.mutable._
 import net.psforever.packet._
 import net.psforever.packet.game._
-import net.psforever.types.Vector3
+import net.psforever.types.{PlanetSideEmpire, Vector3}
 import scodec.bits._
 
 class AvatarDeadStateMessageTest extends Specification {
   val string = hex"ad3c1260801c12608009f99861fb0741e040000010"
+  val string_invalid = hex"ad3c1260801c12608009f99861fb0741e0400000F0"
 
   "decode" in {
     PacketCoding.DecodePacket(string).require match {
@@ -17,15 +18,19 @@ class AvatarDeadStateMessageTest extends Specification {
         unk2 mustEqual 300000
         unk3 mustEqual 300000
         pos mustEqual Vector3(6552.617f,4602.375f,60.90625f)
-        unk4 mustEqual 2
+        unk4 mustEqual PlanetSideEmpire.VS
         unk5 mustEqual true
       case _ =>
         ko
     }
   }
 
+  "decode (failure)" in {
+    PacketCoding.DecodePacket(string_invalid).isFailure mustEqual true
+  }
+
   "encode" in {
-    val msg = AvatarDeadStateMessage(DeadState.Dead, 300000, 300000, Vector3(6552.617f,4602.375f,60.90625f), 2, true)
+    val msg = AvatarDeadStateMessage(DeadState.Dead, 300000, 300000, Vector3(6552.617f,4602.375f,60.90625f), PlanetSideEmpire.VS, true)
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string
