@@ -2199,7 +2199,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       continent.GUID(object_guid) match {
         case Some(obj : ProximityTerminal) =>
           if(usingProximityTerminal.contains(object_guid)) {
-            SelectProximityTerminal(obj)
+            SelectProximityUnit(obj)
           }
           else {
             //obj.Actor ! ProximityTerminal.Use(player)
@@ -3637,6 +3637,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
     }
   }
 
+  /**
+    * Start using a proximity-base service.
+    * Special note is warranted in the case of a medical terminal or an advanced medical terminal.
+    * @param terminal the proximity-based unit
+    */
   def StartUsingProximityUnit(terminal : ProximityTerminal) : Unit = {
     val term_guid = terminal.GUID
     if(!usingProximityTerminal.contains(term_guid)) {
@@ -3646,10 +3651,15 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case _ => ;
       }
       usingProximityTerminal += term_guid
-      terminal.Actor ! ProximityTerminal.Use(player)
+      terminal.Actor ! CommonMessages.Use(player)
     }
   }
 
+  /**
+    * Stop using a proximity-base service.
+    * Special note is warranted in the case of a medical terminal or an advanced medical terminal.
+    * @param terminal the proximity-based unit
+    */
   def StopUsingProximityUnit(terminal : ProximityTerminal) : Unit = {
     val term_guid = terminal.GUID
     if(usingProximityTerminal.contains(term_guid)) {
@@ -3657,11 +3667,16 @@ class WorldSessionActor extends Actor with MDCContextAware {
         usingMedicalTerminal = None
       }
       usingProximityTerminal -= term_guid
-      terminal.Actor ! ProximityTerminal.Unuse(player)
+      terminal.Actor ! CommonMessages.Unuse(player)
     }
   }
 
-  def SelectProximityTerminal(terminal : ProximityTerminal) : Unit = {
+  /**
+    * Determine which functionality to pursue, by being given a generic proximity-functional unit
+    * and determinig which kind of unit is being utilized.
+    * @param terminal the proximity-based unit
+    */
+  def SelectProximityUnit(terminal : ProximityTerminal) : Unit = {
     terminal.Definition match {
       case GlobalDefinitions.adv_med_terminal | GlobalDefinitions.medical_terminal =>
         ProximityMedicalTerminal(terminal)
@@ -3673,47 +3688,72 @@ class WorldSessionActor extends Actor with MDCContextAware {
     }
   }
 
+  /**
+    * When standing on the platform of a(n advanced) medical terminal,
+    * resotre the player's health and armor points (when they need their health and armor points restored).
+    * If the player is both fully healed and fully repaired, stop using the terminal.
+    * @param unit the medical terminal
+    */
   def ProximityMedicalTerminal(terminal : ProximityTerminal) : Unit = {
-    val object_guid : PlanetSideGUID = terminal.GUID
     val healthUp : Boolean = player.Health < player.MaxHealth
     val armorUp : Boolean = player.Armor < player.MaxArmor
     if(healthUp || armorUp) {
-      val player_guid = player.GUID
-      val fullHealth = ProximityHeal(player_guid, object_guid)
-      val fullArmor = ProximityArmorRepair(player_guid, object_guid)
+      val fullHealth = HealAction(player)
+      val fullArmor = ArmorRepairAction(player)
       if(fullHealth && fullArmor) {
-        log.info(s"ProximityTerminal: ${player.Name} is all healed up")
+        log.info(s"${player.Name} is all healed up")
         StopUsingProximityUnit(terminal)
       }
     }
   }
 
-  def ProximityHealCrystal(terminal : ProximityTerminal) : Unit = {
-    val object_guid : PlanetSideGUID = terminal.GUID
+  /**
+    * When near a red cavern crystal, resotre the player's health (when they need their health restored).
+    * If the player is fully healed, stop using the crystal.
+    * @param unit the healing crystal
+    */
+  def ProximityHealCrystal(unit : ProximityTerminal) : Unit = {
     val healthUp : Boolean = player.Health < player.MaxHealth
     if(healthUp) {
-      val player_guid = player.GUID
-      if(ProximityHeal(object_guid, player.GUID)) {
-        log.info(s"ProximityTerminal: ${player.Name} is all healed up")
-        StopUsingProximityUnit(terminal)
+      if(HealAction(player)) {
+        log.info(s"${player.Name} is all healed up")
+        StopUsingProximityUnit(unit)
       }
     }
   }
 
-  def ProximityHeal(player_guid : PlanetSideGUID, object_guid : PlanetSideGUID, healValue : Int = 10) : Boolean = {
-    log.info(s"ProximityTerminal: dispensing health to ${player.Name} - <3")
-    player.Health = player.Health + healValue
-    sendResponse(PlanetsideAttributeMessage(player_guid, 0, player.Health))
-    avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player.GUID, 0, player.Health))
-    player.Health == player.MaxHealth
+  /**
+    * Restore, at most, a specific amount of health points on a player.
+    * Send messages to connected client and to events system.
+    * @param tplayer the player
+    * @param repairValue the amount to heal;
+    *                    10 by default
+    * @return whether the player can be repaired for any more health points
+    */
+  def HealAction(tplayer : Player, healValue : Int = 10) : Boolean = {
+    log.info(s"Dispensing health to ${tplayer.Name} - <3")
+    val player_guid = tplayer.GUID
+    tplayer.Health = tplayer.Health + healValue
+    sendResponse(PlanetsideAttributeMessage(player_guid, 0, tplayer.Health))
+    avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player_guid, 0, tplayer.Health))
+    tplayer.Health == tplayer.MaxHealth
   }
 
-  def ProximityArmorRepair(player_guid : PlanetSideGUID, object_guid : PlanetSideGUID, repairValue : Int = 10) : Boolean = {
-    log.info(s"ProximityTerminal: dispensing armor to ${player.Name} - c[=")
-    player.Armor = player.Armor + repairValue
-    sendResponse(PlanetsideAttributeMessage(player_guid, 4, player.Armor))
-    avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player.GUID, 4, player.Armor))
-    player.Armor == player.MaxArmor
+  /**
+    * Restore, at most, a specific amount of personal armor points on a player.
+    * Send messages to connected client and to events system.
+    * @param tplayer the player
+    * @param repairValue the amount to repair;
+    *                    10 by default
+    * @return whether the player can be repaired for any more armor points
+    */
+  def ArmorRepairAction(tplayer : Player, repairValue : Int = 10) : Boolean = {
+    log.info(s"Dispensing armor to ${tplayer.Name} - c[=")
+    val player_guid = tplayer.GUID
+    tplayer.Armor = tplayer.Armor + repairValue
+    sendResponse(PlanetsideAttributeMessage(player_guid, 4, tplayer.Armor))
+    avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player_guid, 4, tplayer.Armor))
+    tplayer.Armor == tplayer.MaxArmor
   }
 
   def failWithError(error : String) = {
