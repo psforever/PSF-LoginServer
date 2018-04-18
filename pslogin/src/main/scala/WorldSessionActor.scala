@@ -26,7 +26,7 @@ import net.psforever.objects.serverobject.implantmech.ImplantTerminalMech
 import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.mblocker.Locker
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
-import net.psforever.objects.serverobject.terminals.{MatrixTerminalDefinition, Terminal}
+import net.psforever.objects.serverobject.terminals.{MatrixTerminalDefinition, ProximityTerminal, Terminal}
 import net.psforever.objects.serverobject.terminals.Terminal.TerminalMessage
 import net.psforever.objects.vehicles.{AccessPermissionGroup, Utility, VehicleLockState}
 import net.psforever.objects.serverobject.structures.{Building, StructureType, WarpGate}
@@ -66,6 +66,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
   var speed : Float = 1.0f
   var spectator : Boolean = false
   var admin : Boolean = false
+  var usingMedicalTerminal : Option[PlanetSideGUID] = None
+  var usingProximityTerminal : Set[PlanetSideGUID] = Set.empty
 
   var clientKeepAlive : Cancellable = DefaultCancellable.obj
   var progressBarUpdate : Cancellable = DefaultCancellable.obj
@@ -369,6 +371,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case LocalResponse.HackObject(target_guid, unk1, unk2) =>
           if(player.GUID != guid) {
             sendResponse(HackMessage(0, target_guid, guid, 100, unk1, HackState.Hacked, unk2))
+          }
+
+        case LocalResponse.ProximityTerminalEffect(object_guid, effectState) =>
+          if(player.GUID != guid) {
+            sendResponse(ProximityTerminalUseMessage(PlanetSideGUID(0), object_guid, effectState))
           }
 
         case LocalResponse.TriggerSound(sound, pos, unk, volume) =>
@@ -954,6 +961,20 @@ class WorldSessionActor extends Actor with MDCContextAware {
             case None =>
               log.error(s"$tplayer wanted to spawn a vehicle, but there was no spawn pad associated with terminal ${msg.terminal_guid} to accept it")
           }
+
+        case Terminal.StartProximityEffect(term) =>
+          val player_guid = player.GUID
+          val term_guid = term.GUID
+          StartUsingProximityUnit(term) //redundant but cautious
+          sendResponse(ProximityTerminalUseMessage(player_guid, term_guid, true))
+          localService ! LocalServiceMessage(continent.Id, LocalAction.ProximityTerminalEffect(player_guid, term_guid, true))
+
+        case Terminal.StopProximityEffect(term) =>
+          val player_guid = player.GUID
+          val term_guid = term.GUID
+          StopUsingProximityUnit(term) //redundant but cautious
+          sendResponse(ProximityTerminalUseMessage(player_guid, term_guid, false))
+          localService ! LocalServiceMessage(continent.Id, LocalAction.ProximityTerminalEffect(player_guid, term_guid, false))
 
         case Terminal.NoDeal() =>
           log.warn(s"$tplayer made a request but the terminal rejected the order $msg")
@@ -2171,6 +2192,23 @@ class WorldSessionActor extends Actor with MDCContextAware {
           }
 
         case None => ;
+      }
+
+    case msg @ ProximityTerminalUseMessage(player_guid, object_guid, _) =>
+      log.info(s"ProximityTerminal: $msg")
+      continent.GUID(object_guid) match {
+        case Some(obj : ProximityTerminal) =>
+          if(usingProximityTerminal.contains(object_guid)) {
+            SelectProximityTerminal(obj)
+          }
+          else {
+            //obj.Actor ! ProximityTerminal.Use(player)
+            StartUsingProximityUnit(obj)
+          }
+        case Some(obj) => ;
+          log.warn(s"ProximityTerminal: object is not a terminal - $obj")
+        case None =>
+          log.warn(s"ProximityTerminal: no object with guid $object_guid found")
       }
 
     case msg @ UnuseItemMessage(player_guid, object_guid) =>
@@ -3398,7 +3436,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       sendResponse(HackMessage(3, PlanetSideGUID(building.ModelId), PlanetSideGUID(0), 0, 3212836864L, HackState.HackCleared, 8))
     })
   }
-
+  
   /**
     * The player has lost all his vitality and must be killed.<br>
     * <br>
@@ -3597,6 +3635,85 @@ class WorldSessionActor extends Actor with MDCContextAware {
     else {
       galaxy ! Zone.Lattice.RequestSpawnPoint(sanctNumber, tplayer, 7)
     }
+  }
+
+  def StartUsingProximityUnit(terminal : ProximityTerminal) : Unit = {
+    val term_guid = terminal.GUID
+    if(!usingProximityTerminal.contains(term_guid)) {
+      terminal.Definition match {
+        case GlobalDefinitions.adv_med_terminal | GlobalDefinitions.medical_terminal =>
+          usingMedicalTerminal = Some(term_guid)
+        case _ => ;
+      }
+      usingProximityTerminal += term_guid
+      terminal.Actor ! ProximityTerminal.Use(player)
+    }
+  }
+
+  def StopUsingProximityUnit(terminal : ProximityTerminal) : Unit = {
+    val term_guid = terminal.GUID
+    if(usingProximityTerminal.contains(term_guid)) {
+      if(usingMedicalTerminal.contains(term_guid)) {
+        usingMedicalTerminal = None
+      }
+      usingProximityTerminal -= term_guid
+      terminal.Actor ! ProximityTerminal.Unuse(player)
+    }
+  }
+
+  def SelectProximityTerminal(terminal : ProximityTerminal) : Unit = {
+    terminal.Definition match {
+      case GlobalDefinitions.adv_med_terminal | GlobalDefinitions.medical_terminal =>
+        ProximityMedicalTerminal(terminal)
+
+      case GlobalDefinitions.crystals_health_a | GlobalDefinitions.crystals_health_b =>
+        ProximityHealCrystal(terminal)
+
+      case _ => ;
+    }
+  }
+
+  def ProximityMedicalTerminal(terminal : ProximityTerminal) : Unit = {
+    val object_guid : PlanetSideGUID = terminal.GUID
+    val healthUp : Boolean = player.Health < player.MaxHealth
+    val armorUp : Boolean = player.Armor < player.MaxArmor
+    if(healthUp || armorUp) {
+      val player_guid = player.GUID
+      val fullHealth = ProximityHeal(player_guid, object_guid)
+      val fullArmor = ProximityArmorRepair(player_guid, object_guid)
+      if(fullHealth && fullArmor) {
+        log.info(s"ProximityTerminal: ${player.Name} is all healed up")
+        StopUsingProximityUnit(terminal)
+      }
+    }
+  }
+
+  def ProximityHealCrystal(terminal : ProximityTerminal) : Unit = {
+    val object_guid : PlanetSideGUID = terminal.GUID
+    val healthUp : Boolean = player.Health < player.MaxHealth
+    if(healthUp) {
+      val player_guid = player.GUID
+      if(ProximityHeal(object_guid, player.GUID)) {
+        log.info(s"ProximityTerminal: ${player.Name} is all healed up")
+        StopUsingProximityUnit(terminal)
+      }
+    }
+  }
+
+  def ProximityHeal(player_guid : PlanetSideGUID, object_guid : PlanetSideGUID, healValue : Int = 10) : Boolean = {
+    log.info(s"ProximityTerminal: dispensing health to ${player.Name} - <3")
+    player.Health = player.Health + healValue
+    sendResponse(PlanetsideAttributeMessage(player_guid, 0, player.Health))
+    avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player.GUID, 0, player.Health))
+    player.Health == player.MaxHealth
+  }
+
+  def ProximityArmorRepair(player_guid : PlanetSideGUID, object_guid : PlanetSideGUID, repairValue : Int = 10) : Boolean = {
+    log.info(s"ProximityTerminal: dispensing armor to ${player.Name} - c[=")
+    player.Armor = player.Armor + repairValue
+    sendResponse(PlanetsideAttributeMessage(player_guid, 4, player.Armor))
+    avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player.GUID, 4, player.Armor))
+    player.Armor == player.MaxArmor
   }
 
   def failWithError(error : String) = {

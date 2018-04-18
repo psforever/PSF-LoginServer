@@ -7,7 +7,7 @@ import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.mblocker.Locker
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
 import net.psforever.objects.serverobject.structures.{Building, FoundationBuilder, StructureType, WarpGate}
-import net.psforever.objects.serverobject.terminals.Terminal
+import net.psforever.objects.serverobject.terminals.{ProximityTerminal, Terminal}
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.types.Vector3
 
@@ -452,6 +452,10 @@ object Maps {
       LocalObject(691, Locker.Constructor)
       LocalObject(692, Locker.Constructor)
       LocalObject(693, Locker.Constructor)
+      LocalObject(778, ProximityTerminal.Constructor(medical_terminal))
+      LocalObject(779, ProximityTerminal.Constructor(medical_terminal))
+      LocalObject(780, ProximityTerminal.Constructor(medical_terminal))
+      LocalObject(781, ProximityTerminal.Constructor(medical_terminal))
       LocalObject(842, Terminal.Constructor(order_terminal))
       LocalObject(843, Terminal.Constructor(order_terminal))
       LocalObject(844, Terminal.Constructor(order_terminal))
@@ -495,6 +499,10 @@ object Maps {
       ObjectToBuilding(691, 2)
       ObjectToBuilding(692, 2)
       ObjectToBuilding(693, 2)
+      ObjectToBuilding(778, 2)
+      ObjectToBuilding(779, 2)
+      ObjectToBuilding(780, 2)
+      ObjectToBuilding(781, 2)
       ObjectToBuilding(842, 2)
       ObjectToBuilding(843, 2)
       ObjectToBuilding(844, 2)

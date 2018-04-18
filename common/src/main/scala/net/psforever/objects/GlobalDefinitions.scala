@@ -515,6 +515,14 @@ object GlobalDefinitions {
 
   val respawn_tube_tower = new SpawnTubeDefinition(733)
 
+  val adv_med_terminal = new MedicalTerminalDefinition(38)
+
+  val crystals_health_a = new MedicalTerminalDefinition(225)
+
+  val crystals_health_b = new MedicalTerminalDefinition(226)
+
+  val medical_terminal = new MedicalTerminalDefinition(529)
+
   val spawn_pad = new VehicleSpawnPadDefinition
 
   val mb_locker = new LockerDefinition
