@@ -68,6 +68,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
   var admin : Boolean = false
   var usingMedicalTerminal : Option[PlanetSideGUID] = None
   var usingProximityTerminal : Set[PlanetSideGUID] = Set.empty
+  var delayedProximityTerminalResets : Map[PlanetSideGUID, Cancellable] = Map.empty
 
   var clientKeepAlive : Cancellable = DefaultCancellable.obj
   var progressBarUpdate : Cancellable = DefaultCancellable.obj
@@ -91,6 +92,17 @@ class WorldSessionActor extends Actor with MDCContextAware {
             DismountVehicleOnLogOut(vehicle_guid, player_guid)
           case None => ;
         }
+
+        delayedProximityTerminalResets.foreach({case(_, task) => task.cancel})
+        usingProximityTerminal.foreach(term_guid => {
+          continent.GUID(term_guid) match {
+            case Some(obj : ProximityTerminal) =>
+              if(obj.RemoveUser(player_guid) == 0) { //manual; see ProximityTerminalControl
+                localService ! LocalServiceMessage(continent.Id, LocalAction.ProximityTerminalEffect(player_guid, term_guid, false))
+              }
+            case _ => ;
+          }
+        })
 
         continent.Population ! Zone.Population.Release(avatar)
         player.Position = Vector3.Zero //save character before doing this
@@ -1265,6 +1277,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
         }
       }
 
+    case DelayedProximityUnitStop(terminal) =>
+      StopUsingProximityUnit(terminal)
+
     case ResponseToSelf(pkt) =>
       log.info(s"Received a direct message: $pkt")
       sendResponse(pkt)
@@ -1458,6 +1473,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
         player.FacingYawUpper = yaw_upper
         player.Crouching = is_crouching
         player.Jumping = is_jumping
+
+        if(vel.isDefined && usingMedicalTerminal.isDefined) {
+          StopUsingProximityUnit(continent.GUID(usingMedicalTerminal.get).get.asInstanceOf[ProximityTerminal])
+        }
         val wepInHand : Boolean = player.Slot(player.DrawnSlot).Equipment match {
           case Some(item) => item.Definition == GlobalDefinitions.bolt_driver
           case None => false
@@ -1906,6 +1925,13 @@ class WorldSessionActor extends Actor with MDCContextAware {
       //TODO remove this kludge; explore how to stop BuyExoSuit(Max) sending a tardy ObjectHeldMessage(me, 255)
       if(player.ExoSuit != ExoSuitType.MAX && (player.DrawnSlot = held_holsters) != before) {
         avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.ObjectHeld(player.GUID, player.LastDrawnSlot))
+        if(player.VisibleSlots.contains(held_holsters)) {
+          usingMedicalTerminal match {
+            case Some(term_guid) =>
+              StopUsingProximityUnit(continent.GUID(term_guid).get.asInstanceOf[ProximityTerminal])
+            case None => ;
+          }
+        }
       }
 
     case msg @ AvatarJumpMessage(state) =>
@@ -3651,6 +3677,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case _ => ;
       }
       usingProximityTerminal += term_guid
+      SetDelayedProximityUnitReset(terminal)
       terminal.Actor ! CommonMessages.Use(player)
     }
   }
@@ -3667,7 +3694,38 @@ class WorldSessionActor extends Actor with MDCContextAware {
         usingMedicalTerminal = None
       }
       usingProximityTerminal -= term_guid
+      ClearDelayedProximityUnitReset(term_guid)
       terminal.Actor ! CommonMessages.Unuse(player)
+    }
+  }
+
+  /**
+    * For pure proximity-based units and services, a manual attempt at cutting off the functionality.
+    * First, if an existing timer can be found, cancel it.
+    * Then, create a new timer.
+    * If this timer completes, a message will be sent that will attempt to disassociate from the target proximity unit.
+    * @param terminal the proximity-based unit
+    */
+  def SetDelayedProximityUnitReset(terminal : ProximityTerminal) : Unit = {
+    val terminal_guid = terminal.GUID
+    ClearDelayedProximityUnitReset(terminal_guid)
+    import scala.concurrent.duration._
+    import scala.concurrent.ExecutionContext.Implicits.global
+    delayedProximityTerminalResets += terminal_guid ->
+      context.system.scheduler.scheduleOnce(3000 milliseconds, self, DelayedProximityUnitStop(terminal))
+  }
+
+  /**
+    * For pure proximity-based units and services, disable any manual attempt at cutting off the functionality.
+    * If an existing timer can be found, cancel it.
+    * @param terminal the proximity-based unit
+    */
+  def ClearDelayedProximityUnitReset(terminal_guid : PlanetSideGUID) : Unit = {
+    delayedProximityTerminalResets.get(terminal_guid) match {
+      case Some(task) =>
+        task.cancel
+        delayedProximityTerminalResets -= terminal_guid
+      case None => ;
     }
   }
 
@@ -3677,6 +3735,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * @param terminal the proximity-based unit
     */
   def SelectProximityUnit(terminal : ProximityTerminal) : Unit = {
+    SetDelayedProximityUnitReset(terminal)
     terminal.Definition match {
       case GlobalDefinitions.adv_med_terminal | GlobalDefinitions.medical_terminal =>
         ProximityMedicalTerminal(terminal)
@@ -3694,16 +3753,22 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * If the player is both fully healed and fully repaired, stop using the terminal.
     * @param unit the medical terminal
     */
-  def ProximityMedicalTerminal(terminal : ProximityTerminal) : Unit = {
-    val healthUp : Boolean = player.Health < player.MaxHealth
-    val armorUp : Boolean = player.Armor < player.MaxArmor
-    if(healthUp || armorUp) {
-      val fullHealth = HealAction(player)
-      val fullArmor = ArmorRepairAction(player)
-      if(fullHealth && fullArmor) {
-        log.info(s"${player.Name} is all healed up")
-        StopUsingProximityUnit(terminal)
-      }
+  def ProximityMedicalTerminal(unit : ProximityTerminal) : Unit = {
+    val healthFull : Boolean = if(player.Health < player.MaxHealth) {
+      HealAction(player)
+    }
+    else {
+      true
+    }
+    val armorFull : Boolean = if(player.Armor < player.MaxArmor) {
+      ArmorRepairAction(player)
+    }
+    else {
+      true
+    }
+    if(healthFull && armorFull) {
+      log.info(s"${player.Name} is all fixed up")
+      StopUsingProximityUnit(unit)
     }
   }
 
@@ -3713,12 +3778,15 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * @param unit the healing crystal
     */
   def ProximityHealCrystal(unit : ProximityTerminal) : Unit = {
-    val healthUp : Boolean = player.Health < player.MaxHealth
-    if(healthUp) {
-      if(HealAction(player)) {
-        log.info(s"${player.Name} is all healed up")
-        StopUsingProximityUnit(unit)
-      }
+    val healthFull : Boolean = if(player.Health < player.MaxHealth) {
+      HealAction(player)
+    }
+    else {
+      true
+    }
+    if(healthFull) {
+      log.info(s"${player.Name} is all healed up")
+      StopUsingProximityUnit(unit)
     }
   }
 
@@ -3801,6 +3869,7 @@ object WorldSessionActor {
   private final case class ListAccountCharacters()
   private final case class SetCurrentAvatar(tplayer : Player)
   private final case class VehicleLoaded(vehicle : Vehicle)
+  private final case class DelayedProximityUnitStop(unit : ProximityTerminal)
 
   /**
     * A message that indicates the user is using a remote electronics kit to hack some server object.
