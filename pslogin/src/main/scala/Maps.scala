@@ -100,6 +100,8 @@ object Maps {
       LocalObject(1186, Locker.Constructor)
       LocalObject(1187, Locker.Constructor)
       LocalObject(1188, Locker.Constructor)
+      LocalObject(1492, ProximityTerminal.Constructor(medical_terminal)) //lobby
+      LocalObject(1494, ProximityTerminal.Constructor(medical_terminal)) //kitchen
       LocalObject(1564, Terminal.Constructor(order_terminal))
       LocalObject(1568, Terminal.Constructor(order_terminal))
       LocalObject(1569, Terminal.Constructor(order_terminal))
@@ -200,6 +202,8 @@ object Maps {
       ObjectToBuilding(1186, 2)
       ObjectToBuilding(1187, 2)
       ObjectToBuilding(1188, 2)
+      ObjectToBuilding(1492, 2)
+      ObjectToBuilding(1494, 2)
       ObjectToBuilding(1564, 2)
       ObjectToBuilding(1568, 2)
       ObjectToBuilding(1569, 2)

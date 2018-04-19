@@ -3,7 +3,7 @@ package objects.terminal
 
 import akka.actor.ActorRef
 import net.psforever.objects.serverobject.terminals.{MedicalTerminalDefinition, ProximityTerminal, Terminal}
-import net.psforever.objects.{GlobalDefinitions, Player}
+import net.psforever.objects.{Avatar, GlobalDefinitions, Player}
 import net.psforever.packet.game.{ItemTransactionMessage, PlanetSideGUID}
 import net.psforever.types.{CharacterGender, PlanetSideEmpire, TransactionType}
 import org.specs2.mutable.Specification
@@ -64,14 +64,14 @@ class MedicalTerminalTest extends Specification {
       ProximityTerminal(GlobalDefinitions.medical_terminal).Actor mustEqual ActorRef.noSender
     }
 
-    "can add a a player to a list of users" in {
+    "can add a player to a list of users" in {
       val terminal = ProximityTerminal(GlobalDefinitions.medical_terminal)
       terminal.NumberUsers mustEqual 0
       terminal.AddUser(PlanetSideGUID(10))
       terminal.NumberUsers mustEqual 1
     }
 
-    "can remove a a player to a list of users" in {
+    "can remove a player from a list of users" in {
       val terminal = ProximityTerminal(GlobalDefinitions.medical_terminal)
       terminal.AddUser(PlanetSideGUID(10))
       terminal.NumberUsers mustEqual 1
@@ -81,7 +81,7 @@ class MedicalTerminalTest extends Specification {
 
     "player can not interact with the proximity terminal normally (buy)" in {
       val terminal = ProximityTerminal(GlobalDefinitions.medical_terminal)
-      val player = Player("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+      val player = Player(Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0))
       val msg = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Buy, 1, "lite_armor", 0, PlanetSideGUID(0))
 
       terminal.Request(player, msg) mustEqual Terminal.NoDeal()
