@@ -1,6 +1,7 @@
 // Copyright (c) 2017 PSForever
 import akka.actor.ActorContext
 import net.psforever.objects.zones.Zone
+import net.psforever.types.PlanetSideEmpire
 
 object Zones {
   val z1 = new Zone("z1", Maps.map1, 1)
@@ -19,6 +20,13 @@ object Zones {
 
       import net.psforever.types.PlanetSideEmpire
       Building(2).get.Faction = PlanetSideEmpire.VS
+      Building(2).get.ModelId = 20
+      Building(38).get.ModelId = 0
+      Building(42).get.ModelId = 0
+      Building(48).get.Faction = PlanetSideEmpire.VS
+      Building(48).get.ModelId = 59
+      Building(49).get.Faction = PlanetSideEmpire.VS
+      Building(49).get.ModelId = 69
     }
   }
 
@@ -39,7 +47,7 @@ object Zones {
       super.Init(context)
 
       import net.psforever.types.PlanetSideEmpire
-      Buildings.values.foreach(building => { building.Faction = PlanetSideEmpire.VS })
+      Buildings.values.foreach { _.Faction = PlanetSideEmpire.VS }
       Building(29).get.Faction = PlanetSideEmpire.NC //South Villa Gun Tower
     }
   }
@@ -81,4 +89,32 @@ object Zones {
   val i3 = new Zone("i3", Maps.map98, 31)
 
   val i4 = new Zone("i4", Maps.map99, 32)
+
+  /**
+    * Get the zone identifier name for the sanctuary continent of a given empire.
+    * @param faction the empire
+    * @return the zone id, with a blank string as an invalidating result
+    */
+  def SanctuaryZoneId(faction : PlanetSideEmpire.Value) : String = {
+    faction match {
+      case PlanetSideEmpire.NC => "home1"
+      case PlanetSideEmpire.TR => "home2"
+      case PlanetSideEmpire.VS => "home3"
+      case PlanetSideEmpire.NEUTRAL => "" //invalid, not black ops
+    }
+  }
+
+  /**
+    * Get the zone number for the sanctuary continent of a given empire.
+    * @param faction the empire
+    * @return the zone number, within the sequence 1-32, and with 0 as an invalidating result
+    */
+  def SanctuaryZoneNumber(faction : PlanetSideEmpire.Value) : Int = {
+    faction match {
+      case PlanetSideEmpire.NC => 11
+      case PlanetSideEmpire.TR => 12
+      case PlanetSideEmpire.VS => 13
+      case PlanetSideEmpire.NEUTRAL => 0 //invalid, not black ops
+    }
+  }
 }

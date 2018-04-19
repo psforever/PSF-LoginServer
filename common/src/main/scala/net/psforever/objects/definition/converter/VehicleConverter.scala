@@ -22,7 +22,7 @@ class VehicleConverter extends ObjectCreateConverter[Vehicle]() {
           PlanetSideGUID(0) //if(obj.Owner.isDefined) { obj.Owner.get } else { PlanetSideGUID(0) } //TODO is this really Owner?
         ),
         0,
-        obj.Health / obj.MaxHealth * 255, //TODO not precise
+        255 * obj.Health / obj.MaxHealth, //TODO not precise
         false, false,
         obj.DeploymentState,
         false,

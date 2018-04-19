@@ -5,7 +5,18 @@ import net.psforever.packet.{GamePacketOpcode, Marshallable, PlanetSideGamePacke
 import scodec.Codec
 import scodec.codecs._
 
-
+/**
+  * na
+  * @param unk1 when defined, na;
+  *             non-zero when selecting the sanctuary option from a non-sanctuary continent deployment map
+  * @param unk2 when defined, indicates type of spawn point by destination;
+  *             0 is unknown (may refer to all available spawns regardless of last position);
+  *             6 is towers;
+  *             7 is facilities
+  * @param unk3 na
+  * @param unk4 na
+  * @param unk5 when defined, the continent number
+  */
 final case class SpawnRequestMessage(unk1 : Int,
                                      unk2 : Long,
                                      unk3 : Int,

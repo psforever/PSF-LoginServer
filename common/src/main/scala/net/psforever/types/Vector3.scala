@@ -9,8 +9,8 @@ final case class Vector3(x : Float,
                          y : Float,
                          z : Float) {
   /**
-    * Operator override for vector addition, treating `Vector3` objects as actual mathematical vectors.
-    * The application of this overload is "vector1 + vector2."
+    * Operator for vector addition, treating `Vector3` objects as actual mathematical vectors.
+    * The application of this definition is "vector1 + vector2."
     * @param vec the other `Vector3` object
     * @return a new `Vector3` object with the summed values
     */
@@ -19,8 +19,8 @@ final case class Vector3(x : Float,
   }
 
   /**
-    * Operator override for vector subtraction, treating `Vector3` objects as actual mathematical vectors.
-    * The application of this overload is "vector1 - vector2."
+    * Operator for vector subtraction, treating `Vector3` objects as actual mathematical vectors.
+    * The application of this definition is "vector1 - vector2."
     * @param vec the other `Vector3` object
     * @return a new `Vector3` object with the difference values
     */
@@ -29,7 +29,7 @@ final case class Vector3(x : Float,
   }
 
   /**
-    * Operator override for vector scaling, treating `Vector3` objects as actual mathematical vectors.
+    * Operator for vector scaling, treating `Vector3` objects as actual mathematical vectors.
     * The application of this overload is "vector * scalar" exclusively.
     * "scalar * vector" is invalid.
     * @param scalar the value to multiply this vector
@@ -38,6 +38,14 @@ final case class Vector3(x : Float,
   def *(scalar : Float) : Vector3 = {
     Vector3(x*scalar, y*scalar, z*scalar)
   }
+
+  /**
+    * Operator for returning the ground-planar coordinates
+    * and ignoring the perpendicular distance from the world floor.
+    * The application of this definition is "vector.xy" or "vector xy."
+    * @return a new `Vector3` object with only two of the components of the original
+    */
+  def xy : Vector3 = Vector3(x, y, 0)
 }
 
 object Vector3 {

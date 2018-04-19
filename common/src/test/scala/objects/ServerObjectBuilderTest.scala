@@ -5,7 +5,7 @@ import akka.actor.{Actor, ActorContext, Props}
 import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.objects.serverobject.ServerObjectBuilder
-import net.psforever.objects.serverobject.structures.{Building, FoundationBuilder, WarpGate}
+import net.psforever.objects.serverobject.structures.{Building, FoundationBuilder, StructureType, WarpGate}
 import net.psforever.objects.zones.Zone
 import net.psforever.types.Vector3
 
@@ -14,7 +14,7 @@ import scala.concurrent.duration.Duration
 class BuildingBuilderTest extends ActorTest {
   "Building object" should {
     "build" in {
-      val structure : (Int,Zone,ActorContext)=>Building = Building.Structure
+      val structure : (Int,Zone,ActorContext)=>Building = Building.Structure(StructureType.Building)
       val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuildingTestActor], structure, 10, Zone.Nowhere), "building")
       actor ! "!"
 
@@ -164,6 +164,26 @@ class LockerObjectBuilderTest extends ActorTest {
       assert(reply.isInstanceOf[Locker])
       assert(reply.asInstanceOf[Locker].HasGUID)
       assert(reply.asInstanceOf[Locker].GUID == PlanetSideGUID(1))
+      assert(reply == hub(1).get)
+    }
+  }
+}
+
+class SpawnTubeObjectBuilderTest extends ActorTest {
+  import net.psforever.objects.serverobject.tube.SpawnTube
+  "LockerObjectBuilder" should {
+    "build" in {
+      val hub = ServerObjectBuilderTest.NumberPoolHub
+      val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1,
+        SpawnTube.Constructor(Vector3(3980.4062f, 4267.3047f, 257.5625f), Vector3(0, 0, 90))), hub), "spawn-tube")
+      actor ! "!"
+
+      val reply = receiveOne(Duration.create(1000, "ms"))
+      assert(reply.isInstanceOf[SpawnTube])
+      assert(reply.asInstanceOf[SpawnTube].HasGUID)
+      assert(reply.asInstanceOf[SpawnTube].GUID == PlanetSideGUID(1))
+      assert(reply.asInstanceOf[SpawnTube].Position == Vector3(3980.4062f, 4267.3047f, 257.5625f))
+      assert(reply.asInstanceOf[SpawnTube].Orientation == Vector3(0, 0, 90))
       assert(reply == hub(1).get)
     }
   }

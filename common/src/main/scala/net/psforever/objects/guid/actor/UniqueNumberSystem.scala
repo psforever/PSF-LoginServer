@@ -287,12 +287,7 @@ class UniqueNumberSystem(private val guid : NumberPoolHub, private val poolActor
     * @see `UniqueNumberSystem.UnregistrationProcess(Option[GUIDRequest], Int, Int)`
     */
   private def NoCallbackReturnNumber(number : Int, poolName : String) : Unit = {
-    poolActors.get(poolName) match {
-      case Some(pool) =>
-        pool ! NumberPoolActor.ReturnNumber(number, Some(Long.MinValue))
-      case None =>
-        log.error(s"critical: tried to return number $number but did not find pool $poolName")
-    }
+    poolActors(poolName) ! NumberPoolActor.ReturnNumber(number, Some(Long.MinValue))
   }
 
   /**
@@ -316,12 +311,7 @@ class UniqueNumberSystem(private val guid : NumberPoolHub, private val poolActor
     * @see `UniqueNumberSystem.RegistrationProcess(Option[GUIDRequest], Int, Int)`
     */
   private def NoCallbackGetSpecificNumber(number : Int, poolName : String) : Unit = {
-    poolActors.get(poolName) match {
-      case Some(pool) =>
-        pool ! NumberPoolActor.GetSpecificNumber(number, Some(Long.MinValue))
-      case None =>
-        log.error(s"critical: tried to re-register number $number but did not find pool $poolName")
-    }
+    poolActors(poolName) ! NumberPoolActor.GetSpecificNumber(number, Some(Long.MinValue))
   }
 }
 

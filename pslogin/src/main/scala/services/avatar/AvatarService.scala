@@ -1,11 +1,14 @@
 // Copyright (c) 2017 PSForever
 package services.avatar
 
-import akka.actor.Actor
+import akka.actor.{Actor, ActorRef, Props}
+import services.avatar.support.CorpseRemovalActor
 import services.{GenericEventBus, Service}
 
 class AvatarService extends Actor {
-  //import AvatarServiceResponse._
+  private val undertaker : ActorRef = context.actorOf(Props[CorpseRemovalActor], "corpse-removal-agent")
+  undertaker ! "startup"
+
   private [this] val log = org.log4s.getLogger
 
   override def preStart = {
@@ -87,6 +90,14 @@ class AvatarService extends Actor {
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", guid, AvatarResponse.PlayerState(msg, spectator, weapon))
           )
+        case AvatarAction.Release(player, zone, time) =>
+          undertaker ! (time match {
+            case Some(t) => CorpseRemovalActor.AddCorpse(player, zone, t)
+            case None => CorpseRemovalActor.AddCorpse(player, zone)
+          })
+          AvatarEvents.publish(
+            AvatarServiceResponse(s"/$forChannel/Avatar", player.GUID, AvatarResponse.Release(player))
+          )
         case AvatarAction.Reload(player_guid, weapon_guid) =>
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.Reload(weapon_guid))
@@ -95,8 +106,13 @@ class AvatarService extends Actor {
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.WeaponDryFire(weapon_guid))
           )
+
         case _ => ;
     }
+
+    //message to Undertaker
+    case AvatarServiceMessage.RemoveSpecificCorpse(corpses) =>
+      undertaker ! AvatarServiceMessage.RemoveSpecificCorpse( corpses.filter(corpse => {corpse.HasGUID && corpse.isBackpack}) )
 
       /*
     case AvatarService.PlayerStateMessage(msg) =>

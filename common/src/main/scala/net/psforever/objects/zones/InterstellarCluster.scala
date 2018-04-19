@@ -2,7 +2,6 @@
 package net.psforever.objects.zones
 
 import akka.actor.{Actor, Props}
-import net.psforever.objects.Player
 
 import scala.annotation.tailrec
 
@@ -42,16 +41,25 @@ class InterstellarCluster(zones : List[Zone]) extends Actor {
   def receive : Receive = {
     case InterstellarCluster.GetWorld(zoneId) =>
       log.info(s"Asked to find $zoneId")
-      findWorldInCluster(zones.iterator, zoneId) match {
+      recursiveFindWorldInCluster(zones.iterator, _.Id == zoneId) match {
         case Some(continent) =>
           sender ! InterstellarCluster.GiveWorld(zoneId, continent)
         case None =>
           log.error(s"Requested zone $zoneId could not be found")
       }
 
-    case InterstellarCluster.RequestClientInitialization(tplayer) =>
+    case InterstellarCluster.RequestClientInitialization() =>
       zones.foreach(zone => { sender ! Zone.ClientInitialization(zone.ClientInitialization()) })
-      sender ! InterstellarCluster.ClientInitializationComplete(tplayer) //will be processed after all Zones
+      sender ! InterstellarCluster.ClientInitializationComplete() //will be processed after all Zones
+
+    case msg @ Zone.Lattice.RequestSpawnPoint(zone_number, _, _) =>
+      recursiveFindWorldInCluster(zones.iterator, _.Number == zone_number) match {
+        case Some(zone) =>
+          zone.Actor forward msg
+
+        case None => //zone_number does not exist
+          sender ! Zone.Lattice.NoValidSpawnPoint(zone_number, None)
+      }
 
     case _ => ;
   }
@@ -59,20 +67,20 @@ class InterstellarCluster(zones : List[Zone]) extends Actor {
   /**
     * Search through the `List` of `Zone` entities and find the one with the matching designation.
     * @param iter an `Iterator` of `Zone` entities
-    * @param zoneId the name of the `Zone`
+    * @param predicate a condition to check against to determine when the appropriate `Zone` is discovered
     * @return the discovered `Zone`
     */
-  @tailrec private def findWorldInCluster(iter : Iterator[Zone], zoneId : String) : Option[Zone] = {
+  @tailrec private def recursiveFindWorldInCluster(iter : Iterator[Zone], predicate : Zone=>Boolean) : Option[Zone] = {
     if(!iter.hasNext) {
       None
     }
     else {
       val cont = iter.next
-      if(cont.Id == zoneId) {
+      if(predicate.apply(cont)) {
         Some(cont)
       }
       else {
-        findWorldInCluster(iter, zoneId)
+        recursiveFindWorldInCluster(iter, predicate)
       }
     }
   }
@@ -95,17 +103,41 @@ object InterstellarCluster {
 
   /**
     * Signal to the cluster that a new client needs to be initialized for all listed `Zone` destinations.
-    * @param tplayer the `Player` belonging to the client;
-    *                may be superfluous
     * @see `Zone`
     */
-  final case class RequestClientInitialization(tplayer : Player)
+  final case class RequestClientInitialization()
 
   /**
     * Return signal intended to inform the original sender that all `Zone`s have finished being initialized.
-    * @param tplayer the `Player` belonging to the client;
-    *                may be superfluous
     * @see `WorldSessionActor`
     */
-  final case class ClientInitializationComplete(tplayer : Player)
+  final case class ClientInitializationComplete()
 }
+
+/*
+// List[Building] --> List[List[(Amenity, Building)]] --> List[(SpawnTube*, Building)]
+zone.LocalLattice.Buildings.values
+  .filter(_.Faction == player.Faction)
+  .map(building => { building.Amenities.map { _ -> building } })
+  .flatMap( _.filter({ case(amenity, _) => amenity.isInstanceOf[SpawnTube] }) )
+ */
+
+/*
+zone.Buildings.values.filter(building => {
+  (
+    if(spawn_zone == 6) { Set(StructureType.Tower) }
+    else if(spawn_zone == 7) { Set(StructureType.Facility, StructureType.Building) }
+    else { Set.empty[StructureType.Value] }
+    ).contains(building.BuildingType) &&
+    building.Amenities.exists(_.isInstanceOf[SpawnTube]) &&
+    building.Faction == player.Faction &&
+    building.Position != Vector3.Zero
+})
+  .toSeq
+  .sortBy(building => {
+    Vector3.DistanceSquared(player.Position, building.Position) < Vector3.DistanceSquared(player.Position, building.Position)
+  })
+  .map(building => { building.Amenities.map { _ -> building } })
+  .flatMap( _.filter({ case(amenity, _) => amenity.isInstanceOf[SpawnTube] }) )
+).headOption
+ */

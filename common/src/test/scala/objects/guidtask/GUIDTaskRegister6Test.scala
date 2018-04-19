@@ -6,8 +6,8 @@ import net.psforever.objects.guid.{GUIDTask, TaskResolver}
 import net.psforever.types.{CharacterGender, PlanetSideEmpire}
 import objects.ActorTest
 
-class GUIDTaskRegister5Test extends ActorTest() {
-  "RegisterAvatar" in {
+class GUIDTaskRegister6Test extends ActorTest() {
+  "RegisterPlayer" in {
     val (_, uns, taskResolver, probe) = GUIDTaskTest.CommonTestSetup
     val obj = Player(Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0))
     val obj_wep = Tool(GlobalDefinitions.beamer)
@@ -26,13 +26,13 @@ class GUIDTaskRegister5Test extends ActorTest() {
     assert(!obj_inv_ammo.HasGUID)
     assert(!obj_locker.HasGUID)
     assert(!obj_locker_ammo.HasGUID)
-    taskResolver ! TaskResolver.GiveTask(new GUIDTaskTest.RegisterTestTask(probe.ref), List(GUIDTask.RegisterAvatar(obj)(uns)))
+    taskResolver ! TaskResolver.GiveTask(new GUIDTaskTest.RegisterTestTask(probe.ref), List(GUIDTask.RegisterPlayer(obj)(uns)))
     probe.expectMsg(scala.util.Success)
     assert(obj.HasGUID)
     assert(obj_wep.HasGUID)
     assert(obj_wep_ammo.HasGUID)
     assert(obj_inv_ammo.HasGUID)
-    assert(obj_locker.HasGUID)
-    assert(obj_locker_ammo.HasGUID)
+    assert(!obj_locker.HasGUID)
+    assert(!obj_locker_ammo.HasGUID)
   }
 }

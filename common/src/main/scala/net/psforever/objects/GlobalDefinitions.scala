@@ -487,7 +487,7 @@ object GlobalDefinitions {
    */
   val order_terminal = new OrderTerminalDefinition
 
-  val ams_respawn_tube = new SpawnTubeDefinition(49) { Name = "ams_respawn_tube" }
+  val ams_respawn_tube = new SpawnTubeDefinition(49)
 
   val matrix_terminalc = new MatrixTerminalDefinition(519)
 
@@ -508,6 +508,12 @@ object GlobalDefinitions {
   val dropship_vehicle_terminal = new DropshipVehicleTerminalDefinition
 
   val vehicle_terminal_combined = new VehicleTerminalCombinedDefinition
+
+  val spawn_terminal = new MatrixTerminalDefinition(812)
+
+  val respawn_tube = new SpawnTubeDefinition(732)
+
+  val respawn_tube_tower = new SpawnTubeDefinition(733)
 
   val spawn_pad = new VehicleSpawnPadDefinition
 
@@ -643,7 +649,7 @@ object GlobalDefinitions {
     * @param faction the faction
     * @return the `ToolDefinition` for the launcher
     */
-  def AntiVehicular(faction : PlanetSideEmpire.Value) : ToolDefinition = {
+  def AntiVehicularLauncher(faction : PlanetSideEmpire.Value) : ToolDefinition = {
     faction match {
       case PlanetSideEmpire.TR => striker
       case PlanetSideEmpire.NC => hunterseeker
@@ -680,6 +686,17 @@ object GlobalDefinitions {
     }
     else {
       suppressor //there are no common pool MAX arms
+    }
+  }
+
+  def isMaxArms(tdef : ToolDefinition) : Boolean = {
+    tdef match {
+      case `trhev_dualcycler` | `nchev_scattercannon` | `vshev_quasar`
+           | `trhev_pounder` | `nchev_falcon` | `vshev_comet`
+           | `trhev_burster` | `nchev_sparrow` | `vshev_starfire` =>
+        true
+      case _ =>
+        false
     }
   }
 

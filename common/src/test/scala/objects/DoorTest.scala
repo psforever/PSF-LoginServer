@@ -2,9 +2,9 @@
 package objects
 
 import akka.actor.{ActorRef, ActorSystem, Props}
-import net.psforever.objects.{GlobalDefinitions, Player}
+import net.psforever.objects.{Avatar, GlobalDefinitions, Player}
 import net.psforever.objects.serverobject.doors.{Door, DoorControl}
-import net.psforever.objects.serverobject.structures.Building
+import net.psforever.objects.serverobject.structures.{Building, StructureType}
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.{PlanetSideGUID, UseItemMessage}
 import net.psforever.types.{CharacterGender, PlanetSideEmpire, Vector3}
@@ -13,7 +13,7 @@ import org.specs2.mutable.Specification
 import scala.concurrent.duration.Duration
 
 class DoorTest extends Specification {
-  val player = Player("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+  val player = Player(Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0))
 
   "Door" should {
     "construct" in {
@@ -121,8 +121,8 @@ object DoorControlTest {
   def SetUpAgents(faction : PlanetSideEmpire.Value)(implicit system : ActorSystem) : (Player, Door) = {
     val door = Door(GlobalDefinitions.door)
     door.Actor = system.actorOf(Props(classOf[DoorControl], door), "door")
-    door.Owner = new Building(0, Zone.Nowhere)
+    door.Owner = new Building(0, Zone.Nowhere, StructureType.Building)
     door.Owner.Faction = faction
-    (Player("test", faction, CharacterGender.Male, 0, 0), door)
+    (Player(Avatar("test", faction, CharacterGender.Male, 0, 0)), door)
   }
 }
