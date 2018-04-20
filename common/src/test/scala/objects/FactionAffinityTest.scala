@@ -5,7 +5,7 @@ import akka.actor.{Actor, ActorSystem, Props}
 import net.psforever.objects.{GlobalDefinitions, Vehicle}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.doors.Door
-import net.psforever.objects.serverobject.structures.Building
+import net.psforever.objects.serverobject.structures.{Building, StructureType}
 import net.psforever.objects.zones.Zone
 import net.psforever.types.PlanetSideEmpire
 import org.specs2.mutable.Specification
@@ -42,7 +42,7 @@ class FactionAffinityTest extends Specification {
 
     "inherits affinity from owner 2" in {
       val obj = new Door(GlobalDefinitions.door)
-      val bldg = new Building(1, Zone.Nowhere)
+      val bldg = new Building(1, Zone.Nowhere, StructureType.Building)
       obj.Owner = bldg
       obj.Faction mustEqual PlanetSideEmpire.NEUTRAL
 

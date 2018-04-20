@@ -18,7 +18,7 @@ import net.psforever.objects.guid.NumberPoolHub
   * a closed number space, which is also the `Zone`.
   * It utilizes those qualities of the enclosing region to construct the entity within that region.<br>
   * <br>
-  * Example: `ServerObjectBuilder(n, function)`
+  * Example: `ServerObjectBuilder(n, function)`<br>
   * Example: `new ServerBuilderObject[A](n, function)`, where `function` is a `(Int,Context)=>A`
   * @see `ZoneMap`
   * @see `Zone.Init`
@@ -28,7 +28,7 @@ import net.psforever.objects.guid.NumberPoolHub
   *           can be inferred from the output of `constructor`
   */
 class ServerObjectBuilder[A <: PlanetSideServerObject](private val id : Int,
-                                                       private val constructor : (Int, ActorContext) => A
+                                                       private val constructor : ServerObjectBuilder.ConstructorType[A]
                                                       ) {
   /**
     * Instantiate and configure the given server object.
@@ -49,6 +49,8 @@ class ServerObjectBuilder[A <: PlanetSideServerObject](private val id : Int,
 }
 
 object ServerObjectBuilder {
+  type ConstructorType[A <: PlanetSideServerObject] = (Int, ActorContext)=>A
+
   /**
     * Overloaded constructor.
     * @param id the unqiue id that will be assigned to this entity
@@ -56,7 +58,7 @@ object ServerObjectBuilder {
     * @tparam A any object that extends from PlanetSideServerObject that will be produced by this class
     * @return a `ServerObjectBuilder` object
     */
-  def apply[A <: PlanetSideServerObject](id : Int, constructor : (Int, ActorContext) => A) : ServerObjectBuilder[A] = {
+  def apply[A <: PlanetSideServerObject](id : Int, constructor : ConstructorType[A]) : ServerObjectBuilder[A] = {
     new ServerObjectBuilder[A](id, constructor)
   }
 }

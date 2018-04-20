@@ -2,17 +2,18 @@
 package objects
 
 import akka.actor.Props
-import net.psforever.objects.{GlobalDefinitions, Player, Vehicle}
+import net.psforever.objects._
 import net.psforever.objects.definition.{SeatDefinition, VehicleDefinition}
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.vehicles._
 import net.psforever.packet.game.PlanetSideGUID
-import net.psforever.types.{CharacterGender, ExoSuitType, PlanetSideEmpire}
+import net.psforever.types.ExoSuitType
 import org.specs2.mutable._
 
 import scala.concurrent.duration.Duration
 
 class VehicleTest extends Specification {
+  import VehicleTest._
 
   "SeatDefinition" should {
     val seat = new SeatDefinition
@@ -73,7 +74,7 @@ class VehicleTest extends Specification {
       val seat = new Seat(seat_def)
       seat.Occupant.isDefined mustEqual false
 
-      val player1 = Player("test1", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+      val player1 = Player(avatar1)
       player1.ExoSuit = ExoSuitType.MAX
       seat.Occupant = player1
       seat.Occupant.isDefined mustEqual true
@@ -84,13 +85,13 @@ class VehicleTest extends Specification {
       val seat = new Seat(seat_def)
       seat.Occupant.isDefined mustEqual false
 
-      val player1 = Player("test1", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+      val player1 = Player(avatar1)
       player1.ExoSuit = ExoSuitType.MAX
       seat.Occupant = player1
       seat.Occupant.isDefined mustEqual true
       seat.Occupant.contains(player1) mustEqual true
 
-      val player2 = Player("test2", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+      val player2 = Player(avatar1)
       player2.ExoSuit = ExoSuitType.MAX
       seat.Occupant = player2
       seat.Occupant.isDefined mustEqual true
@@ -101,13 +102,13 @@ class VehicleTest extends Specification {
       val seat = new Seat(seat_def)
       seat.Occupant.isDefined mustEqual false
 
-      val player1 = Player("test1", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+      val player1 = Player(avatar1)
       player1.ExoSuit = ExoSuitType.MAX
       seat.Occupant = player1
       seat.Occupant.isDefined mustEqual true
       seat.Occupant.contains(player1) mustEqual true
 
-      val player2 = Player("test2", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+      val player2 = Player(avatar2)
       player2.ExoSuit = ExoSuitType.MAX
       seat.Occupant = player2
       seat.Occupant.isDefined mustEqual true
@@ -160,7 +161,7 @@ class VehicleTest extends Specification {
       val fury_vehicle = Vehicle(GlobalDefinitions.fury)
       fury_vehicle.Owner.isDefined mustEqual false
 
-      val player1 = Player("test1", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+      val player1 = Player(avatar1)
       player1.GUID = PlanetSideGUID(1)
       fury_vehicle.Owner = player1
       fury_vehicle.Owner.isDefined mustEqual true
@@ -171,13 +172,13 @@ class VehicleTest extends Specification {
       val fury_vehicle = Vehicle(GlobalDefinitions.fury)
       fury_vehicle.Owner.isDefined mustEqual false
 
-      val player1 = Player("test1", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+      val player1 = Player(avatar1)
       player1.GUID = PlanetSideGUID(1)
       fury_vehicle.Owner = player1
       fury_vehicle.Owner.isDefined mustEqual true
       fury_vehicle.Owner.contains(PlanetSideGUID(1)) mustEqual true
 
-      val player2 = Player("test2", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+      val player2 = Player(avatar2)
       player2.GUID = PlanetSideGUID(2)
       fury_vehicle.Owner = player2
       fury_vehicle.Owner.isDefined mustEqual true
@@ -234,9 +235,9 @@ class VehicleTest extends Specification {
 
     "can find a passenger in a seat" in {
       val harasser_vehicle = Vehicle(GlobalDefinitions.two_man_assault_buggy)
-      val player1 = Player("test1", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+      val player1 = Player(avatar1)
       player1.GUID = PlanetSideGUID(1)
-      val player2 = Player("test2", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+      val player2 = Player(avatar2)
       player2.GUID = PlanetSideGUID(2)
       harasser_vehicle.Seat(0).get.Occupant = player1 //don't worry about ownership for now
       harasser_vehicle.Seat(1).get.Occupant = player2
@@ -282,9 +283,9 @@ class VehicleTest extends Specification {
 class VehicleControl1Test extends ActorTest {
   "Vehicle Control" should {
     "deactivate and stop handling mount messages" in {
-      val player1 = Player("test1", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+      val player1 = Player(VehicleTest.avatar1)
       player1.GUID = PlanetSideGUID(1)
-      val player2 = Player("test2", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+      val player2 = Player(VehicleTest.avatar2)
       val vehicle = Vehicle(GlobalDefinitions.two_man_assault_buggy)
       vehicle.GUID = PlanetSideGUID(3)
       vehicle.Actor = system.actorOf(Props(classOf[VehicleControl], vehicle), "vehicle-test")
@@ -303,9 +304,9 @@ class VehicleControl1Test extends ActorTest {
 class VehicleControl2Test extends ActorTest {
   "Vehicle Control" should {
     "reactivate and resume handling mount messages" in {
-      val player1 = Player("test1", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+      val player1 = Player(VehicleTest.avatar1)
       player1.GUID = PlanetSideGUID(1)
-      val player2 = Player("test2", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+      val player2 = Player(VehicleTest.avatar2)
       player2.GUID = PlanetSideGUID(2)
       val vehicle = Vehicle(GlobalDefinitions.two_man_assault_buggy)
       vehicle.GUID = PlanetSideGUID(3)
@@ -323,4 +324,11 @@ class VehicleControl2Test extends ActorTest {
       assert(reply.isInstanceOf[Mountable.MountMessages])
     }
   }
+}
+
+object VehicleTest {
+  import net.psforever.objects.Avatar
+  import net.psforever.types.{CharacterGender, PlanetSideEmpire}
+  val avatar1 = Avatar("test1", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+  val avatar2 = Avatar("test2", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
 }

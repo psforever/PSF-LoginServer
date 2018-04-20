@@ -1,11 +1,11 @@
 // Copyright (c) 2017 PSForever
 package objects
 
-import akka.actor.{Actor, Props}
+import akka.actor.{Actor, ActorContext, Props}
 import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.objects.serverobject.ServerObjectBuilder
-import net.psforever.objects.serverobject.structures.{Building, FoundationBuilder}
+import net.psforever.objects.serverobject.structures.{Building, FoundationBuilder, StructureType, WarpGate}
 import net.psforever.objects.zones.Zone
 import net.psforever.types.Vector3
 
@@ -14,7 +14,23 @@ import scala.concurrent.duration.Duration
 class BuildingBuilderTest extends ActorTest {
   "Building object" should {
     "build" in {
-      val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuildingTestActor], 10, Zone.Nowhere), "building")
+      val structure : (Int,Zone,ActorContext)=>Building = Building.Structure(StructureType.Building)
+      val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuildingTestActor], structure, 10, Zone.Nowhere), "building")
+      actor ! "!"
+
+      val reply = receiveOne(Duration.create(1000, "ms"))
+      assert(reply.isInstanceOf[Building])
+      assert(reply.asInstanceOf[Building].Id == 10)
+      assert(reply.asInstanceOf[Building].Zone == Zone.Nowhere)
+    }
+  }
+}
+
+class WarpGateBuilderTest extends ActorTest {
+  "WarpGate object" should {
+    "build" in {
+      val structure : (Int,Zone,ActorContext)=>Building = WarpGate.Structure
+      val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuildingTestActor], structure, 10, Zone.Nowhere), "wgate")
       actor ! "!"
 
       val reply = receiveOne(Duration.create(1000, "ms"))
@@ -153,6 +169,26 @@ class LockerObjectBuilderTest extends ActorTest {
   }
 }
 
+class SpawnTubeObjectBuilderTest extends ActorTest {
+  import net.psforever.objects.serverobject.tube.SpawnTube
+  "LockerObjectBuilder" should {
+    "build" in {
+      val hub = ServerObjectBuilderTest.NumberPoolHub
+      val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1,
+        SpawnTube.Constructor(Vector3(3980.4062f, 4267.3047f, 257.5625f), Vector3(0, 0, 90))), hub), "spawn-tube")
+      actor ! "!"
+
+      val reply = receiveOne(Duration.create(1000, "ms"))
+      assert(reply.isInstanceOf[SpawnTube])
+      assert(reply.asInstanceOf[SpawnTube].HasGUID)
+      assert(reply.asInstanceOf[SpawnTube].GUID == PlanetSideGUID(1))
+      assert(reply.asInstanceOf[SpawnTube].Position == Vector3(3980.4062f, 4267.3047f, 257.5625f))
+      assert(reply.asInstanceOf[SpawnTube].Orientation == Vector3(0, 0, 90))
+      assert(reply == hub(1).get)
+    }
+  }
+}
+
 object ServerObjectBuilderTest {
   import net.psforever.objects.guid.source.LimitedNumberSource
   def NumberPoolHub : NumberPoolHub = {
@@ -167,10 +203,10 @@ object ServerObjectBuilderTest {
     }
   }
 
-  class BuildingTestActor(building_id : Int, zone : Zone) extends Actor {
+  class BuildingTestActor(structure_con : (Int,Zone,ActorContext)=>Building, building_id : Int, zone : Zone) extends Actor {
     def receive : Receive = {
       case _ =>
-        sender ! FoundationBuilder(Building.Structure).Build(building_id, zone)(context)
+        sender ! FoundationBuilder(structure_con).Build(building_id, zone)(context)
     }
   }
 }

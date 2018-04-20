@@ -2,10 +2,10 @@
 package objects.terminal
 
 import akka.actor.{ActorSystem, Props}
-import net.psforever.objects.serverobject.structures.Building
+import net.psforever.objects.serverobject.structures.{Building, StructureType}
 import net.psforever.objects.serverobject.terminals.{Terminal, TerminalControl, TerminalDefinition}
 import net.psforever.objects.zones.Zone
-import net.psforever.objects.{GlobalDefinitions, Player}
+import net.psforever.objects.{Avatar, GlobalDefinitions, Player}
 import net.psforever.packet.game.{ItemTransactionMessage, PlanetSideGUID}
 import net.psforever.types._
 import objects.ActorTest
@@ -122,8 +122,8 @@ object TerminalControlTest {
   def SetUpAgents(tdef : TerminalDefinition, faction : PlanetSideEmpire.Value)(implicit system : ActorSystem) : (Player, Terminal) = {
     val terminal = Terminal(tdef)
     terminal.Actor = system.actorOf(Props(classOf[TerminalControl], terminal), "test-term")
-    terminal.Owner = new Building(0, Zone.Nowhere)
+    terminal.Owner = new Building(0, Zone.Nowhere, StructureType.Building)
     terminal.Owner.Faction = faction
-    (Player("test", faction, CharacterGender.Male, 0, 0), terminal)
+    (Player(Avatar("test", faction, CharacterGender.Male, 0, 0)), terminal)
   }
 }

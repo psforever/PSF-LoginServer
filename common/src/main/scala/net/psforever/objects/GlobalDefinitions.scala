@@ -12,6 +12,7 @@ import net.psforever.objects.serverobject.locks.IFFLockDefinition
 import net.psforever.objects.serverobject.mblocker.LockerDefinition
 import net.psforever.objects.serverobject.pad.VehicleSpawnPadDefinition
 import net.psforever.objects.serverobject.terminals._
+import net.psforever.objects.serverobject.tube.SpawnTubeDefinition
 import net.psforever.objects.vehicles.{SeatArmorRestriction, UtilityType}
 import net.psforever.types.PlanetSideEmpire
 
@@ -486,6 +487,10 @@ object GlobalDefinitions {
    */
   val order_terminal = new OrderTerminalDefinition
 
+  val ams_respawn_tube = new SpawnTubeDefinition(49)
+
+  val matrix_terminalc = new MatrixTerminalDefinition(519)
+
   val order_terminala = new OrderTerminalABDefinition(613)
 
   val order_terminalb = new OrderTerminalABDefinition(614)
@@ -503,6 +508,12 @@ object GlobalDefinitions {
   val dropship_vehicle_terminal = new DropshipVehicleTerminalDefinition
 
   val vehicle_terminal_combined = new VehicleTerminalCombinedDefinition
+
+  val spawn_terminal = new MatrixTerminalDefinition(812)
+
+  val respawn_tube = new SpawnTubeDefinition(732)
+
+  val respawn_tube_tower = new SpawnTubeDefinition(733)
 
   val spawn_pad = new VehicleSpawnPadDefinition
 
@@ -638,7 +649,7 @@ object GlobalDefinitions {
     * @param faction the faction
     * @return the `ToolDefinition` for the launcher
     */
-  def AntiVehicular(faction : PlanetSideEmpire.Value) : ToolDefinition = {
+  def AntiVehicularLauncher(faction : PlanetSideEmpire.Value) : ToolDefinition = {
     faction match {
       case PlanetSideEmpire.TR => striker
       case PlanetSideEmpire.NC => hunterseeker
@@ -675,6 +686,17 @@ object GlobalDefinitions {
     }
     else {
       suppressor //there are no common pool MAX arms
+    }
+  }
+
+  def isMaxArms(tdef : ToolDefinition) : Boolean = {
+    tdef match {
+      case `trhev_dualcycler` | `nchev_scattercannon` | `vshev_quasar`
+           | `trhev_pounder` | `nchev_falcon` | `vshev_comet`
+           | `trhev_burster` | `nchev_sparrow` | `vshev_starfire` =>
+        true
+      case _ =>
+        false
     }
   }
 
@@ -2347,6 +2369,8 @@ object GlobalDefinitions {
     ams.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
     ams.MountPoints += 1 -> 0
     ams.MountPoints += 2 -> 0
+    ams.Utilities += 1 -> UtilityType.matrix_terminalc
+    ams.Utilities += 2 -> UtilityType.ams_respawn_tube
     ams.Utilities += 3 -> UtilityType.order_terminala
     ams.Utilities += 4 -> UtilityType.order_terminalb
     ams.Deployment = true

@@ -1,7 +1,6 @@
 // Copyright (c) 2017 PSForever
 package objects
 
-import net.psforever.objects.GlobalDefinitions.remote_electronics_kit
 import net.psforever.objects.definition.converter.{ACEConverter, CharacterSelectConverter, REKConverter}
 import net.psforever.objects._
 import net.psforever.objects.definition._
@@ -9,6 +8,7 @@ import net.psforever.objects.equipment.CItem.{DeployedItem, Unit}
 import net.psforever.objects.equipment._
 import net.psforever.objects.inventory.InventoryTile
 import net.psforever.objects.serverobject.terminals.Terminal
+import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.packet.game.objectcreate._
 import net.psforever.types.{CharacterGender, PlanetSideEmpire, Vector3}
@@ -151,6 +151,7 @@ class ConverterTest extends Specification {
   }
 
   "Player" should {
+    val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
     val obj : Player = {
       /*
       Create an AmmoBoxDefinition with which to build two AmmoBoxes
@@ -171,7 +172,7 @@ class ConverterTest extends Specification {
       val tool = Tool(tdef)
       tool.GUID = PlanetSideGUID(92)
       tool.AmmoSlot.Box.GUID = PlanetSideGUID(90)
-      val obj = Player("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
+      val obj = Player(avatar)
       obj.GUID = PlanetSideGUID(93)
       obj.Slot(2).Equipment = tool
       obj.Slot(5).Equipment.get.GUID = PlanetSideGUID(94)
@@ -182,15 +183,15 @@ class ConverterTest extends Specification {
     val converter = new CharacterSelectConverter
 
     "convert to packet (BR < 24)" in {
-      obj.BEP = 0
+      avatar.BEP = 0
       obj.Definition.Packet.DetailedConstructorData(obj) match {
-        case Success(pkt) =>
+        case Success(_) =>
           ok
         case _ =>
           ko
       }
       obj.Definition.Packet.ConstructorData(obj) match {
-        case Success(pkt) =>
+        case Success(_) =>
           ok
         case _ =>
           ko
@@ -198,15 +199,15 @@ class ConverterTest extends Specification {
     }
 
     "convert to packet (BR >= 24)" in {
-      obj.BEP = 10000000
+      avatar.BEP = 10000000
       obj.Definition.Packet.DetailedConstructorData(obj) match {
-        case Success(pkt) =>
+        case Success(_) =>
           ok
         case _ =>
           ko
       }
       obj.Definition.Packet.ConstructorData(obj) match {
-        case Success(pkt) =>
+        case Success(_) =>
           ok
         case _ =>
           ko
@@ -214,9 +215,9 @@ class ConverterTest extends Specification {
     }
 
     "convert to simple packet (BR < 24)" in {
-      obj.BEP = 0
+      avatar.BEP = 0
       converter.DetailedConstructorData(obj) match {
-        case Success(pkt) =>
+        case Success(_) =>
           ok
         case _ =>
           ko
@@ -226,9 +227,9 @@ class ConverterTest extends Specification {
     }
 
     "convert to simple packet (BR >= 24)" in {
-      obj.BEP = 10000000
+      avatar.BEP = 10000000
       converter.DetailedConstructorData(obj) match {
-        case Success(pkt) =>
+        case Success(_) =>
           ok
         case _ =>
           ko
@@ -290,7 +291,27 @@ class ConverterTest extends Specification {
 
       obj.Definition.Packet.ConstructorData(obj) match {
         case Success(pkt) =>
-          pkt mustEqual CommonTerminalData(PlanetSideEmpire.NEUTRAL, 0)
+          pkt mustEqual CommonTerminalData(PlanetSideEmpire.NEUTRAL)
+        case _ =>
+          ko
+      }
+    }
+  }
+
+  "Spawn Tube" should {
+    "convert to packet" in {
+      val obj = SpawnTube(GlobalDefinitions.ams_respawn_tube)
+
+      obj.Definition.Packet.DetailedConstructorData(obj) match {
+        case Failure(err) =>
+          err.isInstanceOf[NoSuchMethodException] mustEqual true
+        case _ =>
+          ko
+      }
+
+      obj.Definition.Packet.ConstructorData(obj) match {
+        case Success(pkt) =>
+          pkt mustEqual CommonTerminalData(PlanetSideEmpire.NEUTRAL)
         case _ =>
           ko
       }
@@ -338,8 +359,10 @@ class ConverterTest extends Specification {
       val
       ams = Vehicle(GlobalDefinitions.ams)
       ams.GUID = PlanetSideGUID(413)
-      ams.Utilities(3)().GUID = PlanetSideGUID(414)
-      ams.Utilities(4)().GUID = PlanetSideGUID(415)
+      ams.Utilities(1)().GUID = PlanetSideGUID(414)
+      ams.Utilities(2)().GUID = PlanetSideGUID(415)
+      ams.Utilities(3)().GUID = PlanetSideGUID(416)
+      ams.Utilities(4)().GUID = PlanetSideGUID(417)
 
       ams.Definition.Packet.ConstructorData(ams).isSuccess mustEqual true
       ok //TODO write more of this test

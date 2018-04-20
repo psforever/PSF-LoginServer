@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.packet
 
-import net.psforever.packet.control.SlottedMetaPacket
+import net.psforever.packet.control.{RelatedA, RelatedB, SlottedMetaPacket}
 import scodec.bits.BitVector
 import scodec.{Attempt, Codec, DecodeResult, Err}
 import scodec.codecs._
@@ -74,15 +74,15 @@ object ControlPacketOpcode extends Enumeration {
 
     // OPCODES 0x10-1e
     case 0x10 => SlottedMetaPacket.decodeWithOpcode(SlottedMetaPacket7)
-    case 0x11 => control.RelatedA0.decode
-    case 0x12 => noDecoder(RelatedA1)
-    case 0x13 => noDecoder(RelatedA2)
-    case 0x14 => noDecoder(RelatedA3)
-    case 0x15 => control.RelatedB0.decode
-    case 0x16 => noDecoder(RelatedB1)
-    case 0x17 => noDecoder(RelatedB2)
+    case 0x11 => RelatedA.decodeWithOpcode(RelatedA0)
+    case 0x12 => RelatedA.decodeWithOpcode(RelatedA1)
+    case 0x13 => RelatedA.decodeWithOpcode(RelatedA2)
+    case 0x14 => RelatedA.decodeWithOpcode(RelatedA3)
+    case 0x15 => RelatedB.decodeWithOpcode(RelatedB0)
+    case 0x16 => RelatedB.decodeWithOpcode(RelatedB1)
+    case 0x17 => RelatedB.decodeWithOpcode(RelatedB2)
     // 0x18
-    case 0x18 => noDecoder(RelatedB3)
+    case 0x18 => RelatedB.decodeWithOpcode(RelatedB3)
     case 0x19 => control.MultiPacketEx.decode
     case 0x1a => noDecoder(Unknown26)
     case 0x1b => noDecoder(Unknown27)

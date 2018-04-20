@@ -47,6 +47,8 @@ object HackState extends Enumeration {
   * Upon the hack's completion, the target on the client will automatically revert back to its original state, if possible.
   * (It will still be necessary to alert this change from the server's perspective.)
   * @param unk1 na;
+  *             0 commonly;
+  *             3 for building objects during login phase;
   *             hack type?
   * @param target_guid the target of the hack
   * @param player_guid the player

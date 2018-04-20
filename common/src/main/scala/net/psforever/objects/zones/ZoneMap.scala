@@ -2,7 +2,7 @@
 package net.psforever.objects.zones
 
 import net.psforever.objects.serverobject.structures.FoundationBuilder
-import net.psforever.objects.serverobject.ServerObjectBuilder
+import net.psforever.objects.serverobject.{PlanetSideServerObject, ServerObjectBuilder}
 
 /**
   * The fixed instantiation and relation of a series of server objects.<br>
@@ -44,10 +44,15 @@ class ZoneMap(private val name : String) {
 
   /**
     * Append the builder for a server object to the list of builders known to this `ZoneMap`.
-    * @param obj the builder for a server object
+    * @param id the unique id that will be assigned to this entity
+    * @param constructor the logic that initializes the emitted entity
+    * @return the current number of builders
     */
-  def LocalObject(obj : ServerObjectBuilder[_]) : Unit = {
-    localObjects = localObjects :+ obj
+  def LocalObject[A <: PlanetSideServerObject](id : Int, constructor : ServerObjectBuilder.ConstructorType[A]) : Int = {
+    if(id > 0) {
+      localObjects = localObjects :+ ServerObjectBuilder[A](id, constructor)
+    }
+    localObjects.size
   }
 
   def LocalBuildings : Map[Int, FoundationBuilder] = buildings

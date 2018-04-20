@@ -6,7 +6,7 @@ import net.psforever.objects.GlobalDefinitions
 import net.psforever.objects.definition.ObjectDefinition
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.doors.{Door, DoorControl}
-import net.psforever.objects.serverobject.structures.{Amenity, Building, BuildingControl}
+import net.psforever.objects.serverobject.structures._
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types.PlanetSideEmpire
@@ -27,7 +27,7 @@ class AmenityTest extends Specification {
 
     "can be owned by a building" in {
       val ao = new AmenityObject()
-      val bldg = Building(10, Zone.Nowhere)
+      val bldg = Building(10, Zone.Nowhere, StructureType.Building)
 
       ao.Owner = bldg
       ao.Owner mustEqual bldg
@@ -51,7 +51,7 @@ class AmenityTest extends Specification {
     "confer faction allegiance through ownership" in {
       //see FactionAffinityTest
       val ao = new AmenityObject()
-      val bldg = Building(10, Zone.Nowhere)
+      val bldg = Building(10, Zone.Nowhere, StructureType.Building)
       ao.Owner = bldg
       bldg.Faction mustEqual PlanetSideEmpire.NEUTRAL
       ao.Faction mustEqual PlanetSideEmpire.NEUTRAL
@@ -66,7 +66,7 @@ class AmenityTest extends Specification {
 class BuildingTest extends Specification {
   "Building" should {
     "construct" in {
-      val bldg = Building(10, Zone.Nowhere)
+      val bldg = Building(10, Zone.Nowhere, StructureType.Building)
       bldg.Id mustEqual 10
       bldg.Actor mustEqual ActorRef.noSender
       bldg.Amenities mustEqual Nil
@@ -75,7 +75,7 @@ class BuildingTest extends Specification {
     }
 
     "change faction affinity" in {
-      val bldg = Building(10, Zone.Nowhere)
+      val bldg = Building(10, Zone.Nowhere, StructureType.Building)
       bldg.Faction mustEqual PlanetSideEmpire.NEUTRAL
 
       bldg.Faction = PlanetSideEmpire.TR
@@ -83,7 +83,7 @@ class BuildingTest extends Specification {
     }
 
     "keep track of amenities" in {
-      val bldg = Building(10, Zone.Nowhere)
+      val bldg = Building(10, Zone.Nowhere, StructureType.Building)
       val door1 = Door(GlobalDefinitions.door)
       val door2 = Door(GlobalDefinitions.door)
 
@@ -98,10 +98,23 @@ class BuildingTest extends Specification {
   }
 }
 
+class WarpGateTest extends Specification {
+  "WarpGate" should {
+    "construct" in {
+      val bldg = WarpGate(10, Zone.Nowhere)
+      bldg.Id mustEqual 10
+      bldg.Actor mustEqual ActorRef.noSender
+      bldg.Amenities mustEqual Nil
+      bldg.Zone mustEqual Zone.Nowhere
+      bldg.Faction mustEqual PlanetSideEmpire.NEUTRAL
+    }
+  }
+}
+
 class BuildingControl1Test extends ActorTest {
   "Building Control" should {
     "construct" in {
-      val bldg = Building(10, Zone.Nowhere)
+      val bldg = Building(10, Zone.Nowhere, StructureType.Building)
       bldg.Actor = system.actorOf(Props(classOf[BuildingControl], bldg), "test")
       assert(bldg.Actor != ActorRef.noSender)
     }
@@ -111,7 +124,7 @@ class BuildingControl1Test extends ActorTest {
 class BuildingControl2Test extends ActorTest {
   "Building Control" should {
     "convert and assert faction affinity on convert request" in {
-      val bldg = Building(10, Zone.Nowhere)
+      val bldg = Building(10, Zone.Nowhere, StructureType.Building)
       bldg.Faction = PlanetSideEmpire.TR
       bldg.Actor = system.actorOf(Props(classOf[BuildingControl], bldg), "test")
       assert(bldg.Faction == PlanetSideEmpire.TR)
@@ -129,7 +142,7 @@ class BuildingControl2Test extends ActorTest {
 class BuildingControl3Test extends ActorTest {
   "Building Control" should {
     "convert and assert faction affinity on convert request, and for each of its amenities" in {
-      val bldg = Building(10, Zone.Nowhere)
+      val bldg = Building(10, Zone.Nowhere, StructureType.Building)
       bldg.Faction = PlanetSideEmpire.TR
       bldg.Actor = system.actorOf(Props(classOf[BuildingControl], bldg), "building-test")
       val door1 = Door(GlobalDefinitions.door)

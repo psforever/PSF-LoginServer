@@ -12,29 +12,29 @@ class BuildingInfoUpdateMessageTest extends Specification {
 
   "decode" in {
     PacketCoding.DecodePacket(string).require match {
-      case BuildingInfoUpdateMessage(continent_guid : PlanetSideGUID,
-      building_guid : PlanetSideGUID,
-      ntu_level : Int,
-      is_hacked : Boolean,
-      empire_hack : PlanetSideEmpire.Value,
-      hack_time_remaining : Long,
-      empire_own : PlanetSideEmpire.Value,
-      unk1 : Long,
-      unk1x : Option[Additional1],
-      generator_state : PlanetSideGeneratorState.Value,
-      spawn_tubes_normal : Boolean,
-      force_dome_active : Boolean,
-      lattice_benefit : Int,
-      unk3 : Int,
-      unk4 : List[Additional2],
-      unk5 : Long,
-      unk6 : Boolean,
-      unk7 : Int,
-      unk7x : Option[Additional3],
-      boost_spawn_pain : Boolean,
-      boost_generator_pain : Boolean) =>
-        continent_guid mustEqual PlanetSideGUID(4)
-        building_guid mustEqual PlanetSideGUID(9)
+      case BuildingInfoUpdateMessage(continent_guid,
+      building_guid,
+      ntu_level,
+      is_hacked,
+      empire_hack,
+      hack_time_remaining,
+      empire_own,
+      unk1,
+      unk1x,
+      generator_state,
+      spawn_tubes_normal,
+      force_dome_active,
+      lattice_benefit,
+      unk3,
+      unk4,
+      unk5,
+      unk6,
+      unk7,
+      unk7x,
+      boost_spawn_pain,
+      boost_generator_pain) =>
+        continent_guid mustEqual 4
+        building_guid mustEqual 9
         ntu_level mustEqual 1
         is_hacked mustEqual false
         empire_hack mustEqual PlanetSideEmpire.NEUTRAL
@@ -61,8 +61,8 @@ class BuildingInfoUpdateMessageTest extends Specification {
   }
 
   "encode" in {
-    val msg = BuildingInfoUpdateMessage(PlanetSideGUID(4),
-      PlanetSideGUID(9),
+    val msg = BuildingInfoUpdateMessage(4,
+      9,
       1,
       false,
       PlanetSideEmpire.NEUTRAL,

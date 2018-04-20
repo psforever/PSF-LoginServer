@@ -339,8 +339,8 @@ object EquipmentTerminalDefinition {
     import net.psforever.objects.Loadout._
     entry match {
       case obj : ShorthandTool =>
-        val ammo : List[AmmoBoxDefinition] = obj.ammo.map(fmode => { fmode.ammo.adef })
-        val tool = Tool(obj.tdef)
+        val ammo : List[AmmoBoxDefinition] = obj.ammo.map(fmode => { fmode.ammo.definition })
+        val tool = Tool(obj.definition)
         //makes Tools where an ammo slot may have one of its alternate ammo types
         (0 until tool.MaxAmmoSlot).foreach(index => {
           val slot = tool.AmmoSlots(index)
@@ -350,16 +350,16 @@ object EquipmentTerminalDefinition {
         tool
 
       case obj : ShorthandAmmoBox =>
-        MakeAmmoBox(obj.adef, Some(obj.capacity))
+        MakeAmmoBox(obj.definition, Some(obj.capacity))
 
       case obj : ShorthandConstructionItem =>
-        MakeConstructionItem(obj.cdef)
+        MakeConstructionItem(obj.definition)
 
       case obj : ShorthandSimpleItem =>
-        MakeSimpleItem(obj.sdef)
+        MakeSimpleItem(obj.definition)
 
       case obj : ShorthandKit =>
-        MakeKit(obj.kdef)
+        MakeKit(obj.definition)
     }
   }
 
