@@ -1,6 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.pad
 
+import net.psforever.objects.serverobject.pad.process.AutoDriveControls
 import net.psforever.objects.{Player, Vehicle}
 import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.objects.zones.Zone
@@ -27,11 +28,20 @@ class VehicleSpawnPad(spDef : VehicleSpawnPadDefinition) extends Amenity {
     */
   private var onRails : Boolean = true
 
+  private var guidedPath : List[AutoDriveControls.Configuration] = Nil
+
   def Railed : Boolean = onRails
 
   def Railed_=(useRails : Boolean) : Boolean = {
     onRails = useRails
     Railed
+  }
+
+  def Guide : List[AutoDriveControls.Configuration] = guidedPath
+
+  def Guide_=(path : List[AutoDriveControls.Configuration]) : List[AutoDriveControls.Configuration] = {
+    guidedPath = path
+    Guide
   }
 
   def Definition : VehicleSpawnPadDefinition = spDef

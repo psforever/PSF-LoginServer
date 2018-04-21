@@ -38,11 +38,8 @@ class VehicleSpawnControlConcealPlayer(pad : VehicleSpawnPad) extends VehicleSpa
         context.parent ! VehicleSpawnControl.ProcessControl.GetNewOrder
       }
 
-    case VehicleSpawnControl.ProcessControl.Reminder =>
-      context.parent ! VehicleSpawnControl.ProcessControl.Reminder
-
-    case VehicleSpawnControl.ProcessControl.GetNewOrder =>
-      context.parent ! VehicleSpawnControl.ProcessControl.GetNewOrder
+    case msg @ (VehicleSpawnControl.ProcessControl.Reminder | VehicleSpawnControl.ProcessControl.GetNewOrder) =>
+      context.parent ! msg
 
     case _ => ;
   }

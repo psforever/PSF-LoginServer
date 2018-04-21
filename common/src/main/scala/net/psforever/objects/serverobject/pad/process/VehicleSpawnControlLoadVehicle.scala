@@ -30,7 +30,10 @@ class VehicleSpawnControlLoadVehicle(pad : VehicleSpawnPad) extends VehicleSpawn
       val vehicle = entry.vehicle
       if(entry.driver.Continent == Continent.Id) {
         trace(s"loading the ${vehicle.Definition.Name}")
-        vehicle.Position = vehicle.Position - Vector3(0, 0, if(GlobalDefinitions.isFlightVehicle(vehicle.Definition)) 9 else 5)
+        if(pad.Railed) {
+          //load the vehicle in the spawn pad trench, underground, initially
+          vehicle.Position = vehicle.Position - Vector3(0, 0, if(GlobalDefinitions.isFlightVehicle(vehicle.Definition)) 9 else 5)
+        }
         Continent.VehicleEvents ! VehicleSpawnPad.LoadVehicle(vehicle, Continent)
         context.system.scheduler.scheduleOnce(100 milliseconds, railJack, VehicleSpawnControl.Process.RailJackAction(entry))
       }
@@ -40,11 +43,8 @@ class VehicleSpawnControlLoadVehicle(pad : VehicleSpawnPad) extends VehicleSpawn
         context.parent ! VehicleSpawnControl.ProcessControl.GetNewOrder
       }
 
-    case VehicleSpawnControl.ProcessControl.Reminder =>
-      context.parent ! VehicleSpawnControl.ProcessControl.Reminder
-
-    case VehicleSpawnControl.ProcessControl.GetNewOrder =>
-      context.parent ! VehicleSpawnControl.ProcessControl.GetNewOrder
+    case msg @ (VehicleSpawnControl.ProcessControl.Reminder | VehicleSpawnControl.ProcessControl.GetNewOrder) =>
+      context.parent ! msg
 
     case _ => ;
   }

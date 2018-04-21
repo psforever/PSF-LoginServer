@@ -14,7 +14,7 @@ import scala.concurrent.duration._
   * Each object performs on (or more than one related) actions upon the vehicle order that was submitted.<br>
   * <br>
   * This object forces the prospective driver to take the driver seat.
-  * Three separate but sequentially significant steps occur within the scope of this object.
+  * Multiple separate but sequentially significant steps occur within the scope of this object.
   * First, this step waits for the vehicle to be completely ready to accept the driver.
   * Second, this step triggers the player to actually be moved into the driver seat.
   * Finally, this step waits until the driver is properly in the driver seat.
@@ -29,84 +29,71 @@ class VehicleSpawnControlSeatDriver(pad : VehicleSpawnPad) extends VehicleSpawnC
 
   def receive : Receive = {
     case VehicleSpawnControl.Process.SeatDriver(entry) =>
-      if(entry.vehicle.Actor == ActorRef.noSender) { //wait for the component of the vehicle needed for seating to be loaded
-        context.system.scheduler.scheduleOnce(50 milliseconds, self, VehicleSpawnControl.Process.SeatDriver(entry))
+      self ! VehicleSpawnControlSeatDriver.AwaitVehicleReadiness(entry)
+
+    case VehicleSpawnControlSeatDriver.AwaitVehicleReadiness(entry) =>
+      if(entry.vehicle.Actor == ActorRef.noSender) { //wait for a necessary vehicle component to be loaded
+        context.system.scheduler.scheduleOnce(50 milliseconds, self, VehicleSpawnControlSeatDriver.AwaitVehicleReadiness(entry))
       }
       else {
-        val driver = entry.driver
-        if(entry.vehicle.Health == 0) {
-          trace("vehicle was already destroyed; clean it up")
-          if(pad.Railed) {
-            Continent.VehicleEvents ! VehicleSpawnPad.ResetSpawnPad(pad, Continent.Id)
-          }
-          VehicleSpawnControl.DisposeSpawnedVehicle(entry, Continent)
-          context.parent ! VehicleSpawnControl.ProcessControl.GetNewOrder
-        }
-        else if(entry.sendTo != ActorRef.noSender && driver.isAlive && driver.Continent == Continent.Id && driver.VehicleSeated.isEmpty) {
-          trace("driver to be made seated in vehicle")
-          entry.sendTo ! VehicleSpawnPad.StartPlayerSeatedInVehicle(entry.vehicle, pad)
-          entry.vehicle.Actor.tell(Mountable.TryMount(driver, 0), entry.sendTo) //entry.sendTo should handle replies to TryMount
-          context.system.scheduler.scheduleOnce(1000 milliseconds, self, VehicleSpawnControl.Process.AwaitDriverInSeat(entry))
-        }
-        else {
-          trace("driver lost; vehicle stranded on pad")
-          context.system.scheduler.scheduleOnce(1000 milliseconds, vehicleOverride, VehicleSpawnControl.Process.ServerVehicleOverride(entry))
-        }
+        trace("vehicle ready")
+        self ! VehicleSpawnControlSeatDriver.BeginDriverInSeat(entry)
       }
 
-    case VehicleSpawnControl.Process.AwaitDriverInSeat(entry) =>
+    case VehicleSpawnControlSeatDriver.BeginDriverInSeat(entry) =>
       val driver = entry.driver
-      if(entry.vehicle.Health == 0) {
-        trace("vehicle was already destroyed; clean it up")
-        if(pad.Railed) {
-          Continent.VehicleEvents ! VehicleSpawnPad.ResetSpawnPad(pad, Continent.Id)
-        }
-        VehicleSpawnControl.DisposeSpawnedVehicle(entry, Continent)
-        context.parent ! VehicleSpawnControl.ProcessControl.GetNewOrder
+      if(entry.sendTo != ActorRef.noSender && entry.vehicle.Health > 0 && driver.isAlive && driver.Continent == Continent.Id && driver.VehicleSeated.isEmpty) {
+        trace("driver to be made seated in vehicle")
+        entry.sendTo ! VehicleSpawnPad.StartPlayerSeatedInVehicle(entry.vehicle, pad)
+        entry.vehicle.Actor.tell(Mountable.TryMount(driver, 0), entry.sendTo) //entry.sendTo should handle replies to TryMount
+        context.system.scheduler.scheduleOnce(1000 milliseconds, self, VehicleSpawnControlSeatDriver.AwaitDriverInSeat(entry))
       }
-      else if(entry.sendTo == ActorRef.noSender || driver.Continent != Continent.Id) {
+      else {
+        trace("driver lost; vehicle stranded on pad")
+        context.system.scheduler.scheduleOnce(1000 milliseconds, vehicleOverride, VehicleSpawnControl.Process.ServerVehicleOverride(entry))
+      }
+
+    case VehicleSpawnControlSeatDriver.AwaitDriverInSeat(entry) =>
+      val driver = entry.driver
+      if(entry.sendTo == ActorRef.noSender || driver.Continent != Continent.Id) {
         trace("driver lost, but operations can continue")
         vehicleOverride ! VehicleSpawnControl.Process.ServerVehicleOverride(entry)
       }
       else if(driver.isAlive && driver.VehicleSeated.isEmpty) {
-        context.system.scheduler.scheduleOnce(100 milliseconds, self, VehicleSpawnControl.Process.AwaitDriverInSeat(entry))
+        context.system.scheduler.scheduleOnce(100 milliseconds, self, VehicleSpawnControlSeatDriver.AwaitDriverInSeat(entry))
       }
       else {
         trace(s"driver is sitting down")
         val time = if(pad.Railed) 1000 else VehicleSpawnControlSeatDriver.RaillessSeatAnimationTimes(entry.vehicle.Definition.Name)
-        context.system.scheduler.scheduleOnce(time milliseconds, self, VehicleSpawnControl.Process.DriverInSeat(entry))
+        context.system.scheduler.scheduleOnce(time milliseconds, self, VehicleSpawnControlSeatDriver.DriverInSeat(entry))
       }
 
-    case VehicleSpawnControl.Process.DriverInSeat(entry) =>
-      if(entry.vehicle.Health == 0) {
-        trace(s"vehicle was already destroyed; clean it up")
-        if(pad.Railed) {
-          Continent.VehicleEvents ! VehicleSpawnPad.ResetSpawnPad(pad, Continent.Id)
-        }
-        VehicleSpawnControl.DisposeSpawnedVehicle(entry, Continent)
-        context.parent ! VehicleSpawnControl.ProcessControl.GetNewOrder
-      }
-      else if(entry.sendTo != ActorRef.noSender || entry.driver.Continent != Continent.Id) {
+    case VehicleSpawnControlSeatDriver.DriverInSeat(entry) =>
+      if(entry.sendTo != ActorRef.noSender || entry.driver.Continent != Continent.Id) {
         trace(s"driver ${entry.driver.Name} has taken the wheel")
         entry.sendTo ! VehicleSpawnPad.PlayerSeatedInVehicle(entry.vehicle, pad)
-        context.system.scheduler.scheduleOnce(10 milliseconds, vehicleOverride, VehicleSpawnControl.Process.ServerVehicleOverride(entry))
       }
       else {
         trace("driver lost, but operations can continue")
-        context.system.scheduler.scheduleOnce(10 milliseconds, vehicleOverride, VehicleSpawnControl.Process.ServerVehicleOverride(entry))
       }
+      context.system.scheduler.scheduleOnce(800 milliseconds, vehicleOverride, VehicleSpawnControl.Process.ServerVehicleOverride(entry))
 
-    case VehicleSpawnControl.ProcessControl.Reminder =>
-      context.parent ! VehicleSpawnControl.ProcessControl.Reminder
-
-    case VehicleSpawnControl.ProcessControl.GetNewOrder =>
-      context.parent ! VehicleSpawnControl.ProcessControl.GetNewOrder
+    case msg @ (VehicleSpawnControl.ProcessControl.Reminder | VehicleSpawnControl.ProcessControl.GetNewOrder) =>
+      context.parent ! msg
 
     case _ => ;
   }
 }
 
 object VehicleSpawnControlSeatDriver {
+  final case class AwaitVehicleReadiness(entry : VehicleSpawnControl.Order)
+
+  final case class BeginDriverInSeat(entry : VehicleSpawnControl.Order)
+
+  final case class AwaitDriverInSeat(entry : VehicleSpawnControl.Order)
+
+  final case class DriverInSeat(entry : VehicleSpawnControl.Order)
+
   /**
     * If the spawn pad associated with this `Actor` chain is not `Railed` -
     * not guaranteed to have the correct ingame globally unique id of the spawn pad -

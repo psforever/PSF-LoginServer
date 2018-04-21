@@ -27,6 +27,8 @@ import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.mblocker.Locker
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
 import net.psforever.objects.serverobject.terminals.{MatrixTerminalDefinition, ProximityTerminal, Terminal}
+import net.psforever.objects.serverobject.pad.process.{AutoDriveControls, VehicleSpawnControlGuided}
+import net.psforever.objects.serverobject.terminals.{MatrixTerminalDefinition, Terminal}
 import net.psforever.objects.serverobject.terminals.Terminal.TerminalMessage
 import net.psforever.objects.vehicles.{AccessPermissionGroup, Utility, VehicleLockState}
 import net.psforever.objects.serverobject.structures.{Building, StructureType, WarpGate}
@@ -478,6 +480,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
         case VehicleResponse.RevealPlayer(player_guid) =>
           //TODO any action will cause the player to appear after the effects of ConcealPlayer
+          if(player.GUID == player_guid) {
+            sendResponse(ChatMsg(ChatMessageType.CMT_OPEN, true, "", "You are in a strange situation.", None))
+            KillPlayer(player)
+          }
 
         case VehicleResponse.SeatPermissions(vehicle_guid, seat_group, permission) =>
           if(tplayer_guid != guid) {
@@ -637,6 +643,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           if(player_guid == player.GUID) {
             //disembarking self
             log.info(s"DismountVehicleMsg: $player_guid dismounts $obj @ $seat_num")
+            TotalDriverVehicleControl(obj)
             sendResponse(DismountVehicleMsg(player_guid, seat_num, false))
             vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.DismountVehicle(player_guid, seat_num, false))
             UnAccessContents(obj)
@@ -1044,11 +1051,32 @@ class WorldSessionActor extends Actor with MDCContextAware {
       if(vehicle.Seats(0).isOccupied) {
         sendResponse(ObjectDetachMessage(pad.GUID, vehicle.GUID, pad.Position + Vector3(0, 0, 0.5f), 0, 0, pad.Orientation.z))
       }
-      sendResponse(ServerVehicleOverrideMsg.Lock(GlobalDefinitions.isFlightVehicle(vdef):Int, vdef.AutoPilotSpeed1))
+      ServerVehicleOverride(vehicle, vdef.AutoPilotSpeed1, GlobalDefinitions.isFlightVehicle(vdef):Int)
+
+    case VehicleSpawnControlGuided.GuidedControl(cmd, vehicle, data) =>
+      cmd match {
+        case AutoDriveControls.State.Drive =>
+          val speed : Int = data.getOrElse({ vehicle.Definition.AutoPilotSpeed1 }).asInstanceOf[Int]
+          ServerVehicleOverride(vehicle, speed)
+
+        case AutoDriveControls.State.Climb =>
+          ServerVehicleOverride(vehicle, vehicle.Controlled.getOrElse(0), GlobalDefinitions.isFlightVehicle(vehicle.Definition):Int)
+
+        case AutoDriveControls.State.Turn =>
+          //TODO how to turn hovering/flying vehicle?
+          val direction = data.getOrElse(15).asInstanceOf[Int]
+          sendResponse(VehicleStateMessage(vehicle.GUID, 0, vehicle.Position, vehicle.Orientation, vehicle.Velocity, None, 0, 0, direction, false, false))
+
+
+        case AutoDriveControls.State.Stop =>
+          ServerVehicleOverride(vehicle, 0)
+
+        case _ => ;
+      }
 
     case VehicleSpawnPad.ServerVehicleOverrideEnd(vehicle, pad) =>
       sendResponse(GenericObjectActionMessage(pad.GUID, 92)) //reset spawn pad
-      sendResponse(ServerVehicleOverrideMsg.Auto(vehicle.Definition.AutoPilotSpeed2))
+      DriverVehicleControl(vehicle, vehicle.Definition.AutoPilotSpeed2)
 
     case VehicleSpawnPad.PeriodicReminder(cause, data) =>
       val msg : String = (cause match {
@@ -1557,7 +1585,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case _ =>
           log.warn(s"VehicleState: no vehicle $vehicle_guid found in zone")
       }
-      //log.info("VehicleState: " + msg)
+      //log.info(s"VehicleState: $msg")
 
     case msg @ VehicleSubStateMessage(vehicle_guid, player_guid, vehicle_pos, vehicle_ang, vel, unk1, unk2) =>
       //log.info(s"VehicleSubState: $vehicle_guid, $player_guid, $vehicle_pos, $vehicle_ang, $vel, $unk1, $unk2")
@@ -3511,6 +3539,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     sendResponse(AvatarDeadStateMessage(DeadState.Dead, respawnTimer, respawnTimer, pos, player.Faction, true))
     if(tplayer.VehicleSeated.nonEmpty) {
       //make player invisible (if not, the cadaver sticks out the side in a seated position)
+      TotalDriverVehicleControl(continent.GUID(tplayer.VehicleSeated.get).get.asInstanceOf[Vehicle])
       sendResponse(PlanetsideAttributeMessage(player_guid, 29, 1))
       avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player_guid, 29, 1))
     }
@@ -3865,6 +3894,25 @@ class WorldSessionActor extends Actor with MDCContextAware {
     sendResponse(PlanetsideAttributeMessage(player_guid, 4, tplayer.Armor))
     avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player_guid, 4, tplayer.Armor))
     tplayer.Armor == tplayer.MaxArmor
+  }
+
+  def ServerVehicleOverride(vehicle : Vehicle, speed : Int = 0, flight : Int = 0) : Unit = {
+    vehicle.Controlled = Some(speed)
+    sendResponse(ServerVehicleOverrideMsg(true, true, false, false, flight, 0, speed, Some(0)))
+  }
+
+  def DriverVehicleControl(vehicle : Vehicle, speed : Int = 0, flight : Int = 0) : Unit = {
+    if(vehicle.Controlled.nonEmpty) {
+      vehicle.Controlled = None
+      sendResponse(ServerVehicleOverrideMsg(false, false, false, true, flight, 0, speed, None))
+    }
+  }
+
+  def TotalDriverVehicleControl(vehicle : Vehicle) : Unit = {
+    if(vehicle.Controlled.nonEmpty) {
+      vehicle.Controlled = None
+      sendResponse(ServerVehicleOverrideMsg(false, false, false, false, 0, 0, 0, None))
+    }
   }
 
   def failWithError(error : String) = {

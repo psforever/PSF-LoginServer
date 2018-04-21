@@ -846,7 +846,7 @@ object GlobalDefinitions {
   }
 
   /**
-    * Using the definition for a piece of `Equipment` determine whether it can fly.
+    * Using the definition for a `Vehicle` determine whether it can fly.
     * @param vdef the `VehicleDefinition` of the vehicle
     * @return `true`, if it is; `false`, otherwise
     */
@@ -856,6 +856,39 @@ object GlobalDefinitions {
         true
       case _ =>
         false
+    }
+  }
+
+  /**
+    * Using the definition for a `Vehicle` determine whether it hovers.
+    * @param vdef the `VehicleDefinition` of the vehicle
+    * @return `true`, if it can; `false`, otherwise
+    */
+  def isHoverVehicle(vdef : VehicleDefinition) : Boolean = {
+    vdef match {
+      case `twomanhoverbuggy` | `magrider` | `router` | `flail` =>
+        true
+      case _ =>
+        false
+    }
+  }
+
+  /**
+    * Using the definition for a `Vehicle` determine whether it can rotate its body without forward acceleration.
+    * @param vdef the `VehicleDefinition` of the vehicle
+    * @return `true`, if it is; `false`, otherwise
+    */
+  def canStationaryRotate(vdef : VehicleDefinition) : Boolean = {
+    if(isFlightVehicle(vdef) || isHoverVehicle(vdef)) {
+      true
+    }
+    else {
+      vdef match {
+        case `lightning` | `prowler` | `vanguard` =>
+          true
+        case _ =>
+          false
+      }
     }
   }
 

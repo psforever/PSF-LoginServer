@@ -56,18 +56,4 @@ class ServerVehicleOverrideMsgTest extends Specification {
 
     pkt mustEqual string2
   }
-
-  "encode (3)" in {
-    val msg = ServerVehicleOverrideMsg.Lock(0, 12)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
-
-    pkt mustEqual string1
-  }
-
-  "encode (4)" in {
-    val msg = ServerVehicleOverrideMsg.Auto(5)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
-
-    pkt mustEqual string2
-  }
 }

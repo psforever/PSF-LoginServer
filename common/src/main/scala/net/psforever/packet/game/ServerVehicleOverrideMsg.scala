@@ -33,7 +33,8 @@ import scodec.codecs._
   * @param lock_accelerator driver has no control over vehicle acceleration
   * @param lock_wheel driver has no control over vehicle turning
   * @param reverse move in reverse
-  * @param unk4 na
+  * @param unk4 na;
+  *             something to do with vehicle bailable speed
   * @param lock_vthrust pilot has no control over vertical thrust;
   *                     asserts a constant positive vertical thrust;
   *                     the only valid setting appears to be 1
@@ -58,26 +59,6 @@ final case class ServerVehicleOverrideMsg(lock_accelerator : Boolean,
 }
 
 object ServerVehicleOverrideMsg extends Marshallable[ServerVehicleOverrideMsg] {
-  /**
-    * Common lock control packet format.
-    * Strafing is always treated as unlocked.
-    * @param flight vehicle flies and should move vertically
-    * @param speed "something like speed"
-    * @return a `ServerVehicleOverrideMsg` packet
-    */
-  def Lock(flight : Int, speed : Int) : ServerVehicleOverrideMsg = {
-    ServerVehicleOverrideMsg(true, true, false, false, flight, 0, speed, Some(0))
-  }
-
-  /**
-    * Common cancellable auto-drive packet format.
-    * @param speed "something like speed"
-    * @return a `ServerVehicleOverrideMsg` packet
-    */
-  def Auto(speed : Int) : ServerVehicleOverrideMsg = {
-    ServerVehicleOverrideMsg(false, false, false, true, 0, 0, speed, None)
-  }
-
   implicit val codec: Codec[ServerVehicleOverrideMsg] = (
     ("lock_accelerator" | bool) ::
       (("lock_wheel" | bool) >>:~ { test =>

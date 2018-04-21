@@ -26,25 +26,17 @@ class VehicleSpawnControlRailJack(pad : VehicleSpawnPad) extends VehicleSpawnCon
 
   def receive : Receive = {
     case VehicleSpawnControl.Process.RailJackAction(entry) =>
-      if(entry.vehicle.Health == 0) {
-        trace("vehicle was already destroyed; clean it up")
-        VehicleSpawnControl.DisposeSpawnedVehicle(entry, Continent)
-        context.parent ! VehicleSpawnControl.ProcessControl.GetNewOrder
+      if(pad.Railed) {
+        trace(s"attaching vehicle to railed platform")
+        Continent.VehicleEvents ! VehicleSpawnPad.AttachToRails(entry.vehicle, pad, Continent.Id)
       }
       else {
-        if(pad.Railed) {
-          trace(s"attaching vehicle to railed platform")
-          Continent.VehicleEvents ! VehicleSpawnPad.AttachToRails(entry.vehicle, pad, Continent.Id)
-        }
-        else {
-          trace(s"railed platform skipped; vehicle positioned temporarily in pad trench")
-        }
-        context.parent ! VehicleSpawnControl.ProcessControl.Reminder
-        context.system.scheduler.scheduleOnce(10 milliseconds, seatDriver, VehicleSpawnControl.Process.SeatDriver(entry))
+        trace(s"railed platform skipped; vehicle positioned in pad trench temporarily")
       }
+      context.system.scheduler.scheduleOnce(10 milliseconds, seatDriver, VehicleSpawnControl.Process.SeatDriver(entry))
 
-    case VehicleSpawnControl.ProcessControl.GetNewOrder =>
-      context.parent ! VehicleSpawnControl.ProcessControl.GetNewOrder
+    case msg @ (VehicleSpawnControl.ProcessControl.Reminder | VehicleSpawnControl.ProcessControl.GetNewOrder) =>
+      context.parent ! msg
 
     case _ => ;
   }

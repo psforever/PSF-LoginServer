@@ -141,10 +141,9 @@ object VehicleSpawnControl {
     final case class ConcealPlayer(entry : VehicleSpawnControl.Order) extends Order(entry)
     final case class LoadVehicle(entry : VehicleSpawnControl.Order) extends Order(entry)
     final case class SeatDriver(entry : VehicleSpawnControl.Order) extends Order(entry)
-    final case class AwaitDriverInSeat(entry : VehicleSpawnControl.Order) extends Order(entry)
-    final case class DriverInSeat(entry : VehicleSpawnControl.Order) extends Order(entry)
     final case class RailJackAction(entry : VehicleSpawnControl.Order) extends Order(entry)
     final case class ServerVehicleOverride(entry : VehicleSpawnControl.Order) extends Order(entry)
+    final case class StartGuided(entry : VehicleSpawnControl.Order) extends Order(entry)
     final case class DriverVehicleControl(entry : VehicleSpawnControl.Order) extends Order(entry)
     final case class FinalClearance(entry : VehicleSpawnControl.Order) extends Order(entry)
   }
@@ -251,9 +250,7 @@ object VehicleSpawnControl {
   @tailrec private final def recursiveBlockedReminder(iter : Iterator[VehicleSpawnControl.Order], cause : Option[Any]) : Unit = {
     if(iter.hasNext) {
       val recipient = iter.next
-      if(recipient.sendTo != ActorRef.noSender) {
-        recipient.sendTo ! VehicleSpawnPad.PeriodicReminder(VehicleSpawnPad.Reminders.Blocked, cause)
-      }
+      recipient.sendTo ! VehicleSpawnPad.PeriodicReminder(VehicleSpawnPad.Reminders.Blocked, cause)
       recursiveBlockedReminder(iter, cause)
     }
   }

@@ -23,14 +23,22 @@ class VehicleSpawnControlFinalClearance(pad : VehicleSpawnPad) extends VehicleSp
 
   def receive : Receive = {
     case VehicleSpawnControl.Process.FinalClearance(entry) =>
-      if(Vector3.DistanceSquared(entry.vehicle.Position, pad.Position) > 100.0f) { //10m away from pad
+      context.parent ! VehicleSpawnControl.ProcessControl.Reminder
+      self ! VehicleSpawnControlFinalClearance.Test(entry)
+
+    case VehicleSpawnControlFinalClearance.Test(entry) =>
+      if(Vector3.DistanceSquared(entry.vehicle.Position.xy, pad.Position.xy) > 100.0f) { //10m away from pad
         trace("pad cleared")
         context.parent ! VehicleSpawnControl.ProcessControl.GetNewOrder
       }
       else {
-        context.system.scheduler.scheduleOnce(2000 milliseconds, self, VehicleSpawnControl.Process.FinalClearance(entry))
+        context.system.scheduler.scheduleOnce(2000 milliseconds, self, VehicleSpawnControlFinalClearance.Test(entry))
       }
 
     case _ => ;
   }
+}
+
+object VehicleSpawnControlFinalClearance {
+  private final case class Test(entry : VehicleSpawnControl.Order)
 }
