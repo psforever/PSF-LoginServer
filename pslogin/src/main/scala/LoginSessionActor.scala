@@ -80,32 +80,66 @@ class LoginSessionActor extends Actor with MDCContextAware {
   val serverName = "PSForever"
   val serverAddress = new InetSocketAddress(LoginConfig.serverIpAddress.getHostAddress, 51001)
 
-  // TESTING CODE FOR ACCOUNT LOOKUP
-  def accountLookup(username : String, password : String) : Boolean = {
+  // A successful account lookup results in a new token to be sent to client
+  // If the lookup fails, a token is not returned
+  def accountLookup(username : String, password : String) : Option[String] = {
     val connection: Connection = DatabaseConnector.getAccountsConnection
-    Await.result(connection.connect, 5 seconds)
+    Await.result(connection.connect, 5 seconds) // TODO remove awaits
 
-    // create account
-    //   username, password, email
-    //   Result: worked or failed
-    // login to account
-    //   username, password
-    //   Result: token (session cookie)
-
-    val future: Future[QueryResult] = connection.sendPreparedStatement("SELECT * FROM accounts where username=?", Array(username))
+    val future: Future[QueryResult] = connection.sendPreparedStatement(
+      "SELECT id, pass FROM accounts where username=?", Array(username))
 
     val mapResult: Future[Any] = future.map(queryResult => queryResult.rows match {
       case Some(resultSet) =>
-        val row : RowData = resultSet.head
-        row(0)
+        if(resultSet.nonEmpty) {
+          val row : RowData = resultSet.head
+          row
+        } else {
+          -2 // Account does not exist
+        }
       case None =>
         -1
     })
 
+    val newToken = Some("HHHGGGGFFFFEEEEDDDDCCCCBBBBAAAA")
+
     try {
-      // XXX: remove awaits
-      Await.result( mapResult, 5 seconds )
-      return true
+      import com.github.mauricio.async.db.general.ArrayRowData
+      val userData = Await.result( mapResult, 5 seconds ) // TODO remove awaits
+
+      userData match {
+        case row : ArrayRowData =>
+          val accountId : Int = row(0).asInstanceOf[Int]
+          val dbPass : String = row(1).asInstanceOf[String]
+          if (dbPass == password) {
+            log.info(s"Account password correct for $username!")
+            // TODO: AccountIntermediary.insert(newToken, accountId)
+            return newToken
+          } else {
+            log.info(s"Account password incorrect for $username")
+          }
+        case errorCode : Int => errorCode match {
+          case -2 =>
+            log.info(s"Account $username does not exist, creating new account...")
+
+            val createNewAccountTransaction : Future[QueryResult] = connection.inTransaction {
+              c => c.sendPreparedStatement("INSERT INTO accounts (username, pass) VALUES(?,?)", Array(username, password))
+            }
+            val insertResult = Await.result(createNewAccountTransaction, 5 seconds) // TODO remove awaits
+
+            insertResult match {
+              case r : QueryResult =>
+                val accountId = r.rows.head(0)
+                // TODO: AccountIntermediary.insert(newToken, accountId)
+                log.info(s"Successfully created new account for $username")
+                return newToken
+              case _ =>
+                log.error(s"Error creating new account for $username")
+            }
+          case _ =>
+            log.error(s"Issue retrieving result set from database for account login")
+        }
+      }
     } catch {
       case e : MySQLException =>
         log.error(s"SQL exception $e")
@@ -114,12 +148,11 @@ class LoginSessionActor extends Actor with MDCContextAware {
     } finally {
       connection.disconnect
     }
-    false
+    None
   }
 
   def handleGamePkt(pkt : PlanetSideGamePacket) = pkt match {
-      case LoginMessage(majorVersion, minorVersion, buildDate, username,
-        password, token, revision) =>
+      case LoginMessage(majorVersion, minorVersion, buildDate, username, password, token, revision) =>
         // TODO: prevent multiple LoginMessages from being processed in a row!! We need a state machine
         import game.LoginRespMessage._
 
@@ -130,19 +163,14 @@ class LoginSessionActor extends Actor with MDCContextAware {
         else
           log.info(s"New login UN:$username PW:$password. $clientVersion")
 
-        // This is temporary until a schema has been developed
-        //val loginSucceeded = accountLookup(username, password.getOrElse(token.get))
+        // TODO: Make this non-blocking
+        val newToken = accountLookup(username, password.get)
 
-        // Allow any one to login for now
-        val loginSucceeded = true
-
-        if(loginSucceeded) {
-          val newToken = token.getOrElse("AAAABBBBCCCCDDDDEEEEFFFFGGGGHHH")
-          val response = LoginRespMessage(newToken, LoginError.Success, StationError.AccountActive,
+        if(newToken.nonEmpty) {
+          val response = LoginRespMessage(newToken.get, LoginError.Success, StationError.AccountActive,
             StationSubscriptionStatus.Active, 0, username, 10001)
 
           sendResponse(PacketCoding.CreateGamePacket(0, response))
-
           updateServerListTask = context.system.scheduler.schedule(0 seconds, 2 seconds, self, UpdateServerList())
         } else {
           val newToken = token.getOrElse("AAAABBBBCCCCDDDDEEEEFFFFGGGGHHH")
@@ -153,8 +181,9 @@ class LoginSessionActor extends Actor with MDCContextAware {
           sendResponse(PacketCoding.CreateGamePacket(0, response))
         }
 
-      case ConnectToWorldRequestMessage(name, _, _, _, _, _, _) =>
+      case ConnectToWorldRequestMessage(name, token, _, _, _, _, _) =>
         log.info(s"Connect to world request for '$name'")
+        log.info(s"----------------THE TOKEN VALUE = $token")
         val response = ConnectToWorldMessage(serverName, serverAddress.getHostString, serverAddress.getPort)
         sendResponse(PacketCoding.CreateGamePacket(0, response))
         sendResponse(DropSession(sessionId, "user transferring to world"))

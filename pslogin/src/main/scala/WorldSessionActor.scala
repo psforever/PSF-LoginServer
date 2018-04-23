@@ -9,6 +9,7 @@ import scodec.Attempt.{Failure, Successful}
 import scodec.bits._
 import org.log4s.MDC
 import MDCContextAware.Implicits._
+import com.github.mauricio.async.db.{Connection, QueryResult}
 import net.psforever.objects.GlobalDefinitions._
 import services.ServiceManager.Lookup
 import net.psforever.objects._
@@ -42,6 +43,7 @@ import services.local.{LocalAction, LocalResponse, LocalServiceMessage, LocalSer
 import services.vehicle.{VehicleAction, VehicleResponse, VehicleServiceMessage, VehicleServiceResponse}
 
 import scala.annotation.tailrec
+import scala.concurrent.{Await, Future}
 import scala.util.Success
 
 class WorldSessionActor extends Actor with MDCContextAware {
@@ -1372,6 +1374,22 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ CharacterCreateRequestMessage(name, head, voice, gender, empire) =>
       log.info("Handling " + msg)
+
+      //import scala.concurrent.duration._
+      //val connection: Connection = DatabaseConnector.getAccountsConnection
+      //Await.result(connection.connect, 5 seconds)
+
+      //val accountId : Int = 1; // TODO get this from login
+      //val createNewCharacterTransaction : Future[QueryResult] = connection.inTransaction {
+      //  c => c.sendPreparedStatement(
+      //    "INSERT INTO players (account_id, faction_id, gender_id, head_id, voice_id, name) VALUES(?,?,?,?,?,?)",
+      //    Array(accountId, empire.id, gender.id, head, voice, name)
+      //  )
+      //}
+
+      //val insertResult = Await.result( createNewCharacterTransaction, 5 seconds ) // TODO remove awaits
+
+
       sendResponse(ActionResultMessage(true, None))
       self ! ListAccountCharacters
 

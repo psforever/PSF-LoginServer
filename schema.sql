@@ -1,0 +1,26 @@
+CREATE DATABASE IF NOT EXISTS psforever;
+
+USE psforever;
+
+DROP TABLE IF EXISTS accounts;
+CREATE TABLE accounts (
+	id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+	username VARCHAR(32) NOT NULL UNIQUE,
+	pass VARCHAR(32) NOT NULL
+) ENGINE=InnoDB CHARACTER SET utf8;
+
+DROP TABLE IF EXISTS players;
+CREATE TABLE players (
+	id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+	account_id INT NOT NULL,
+	faction_id INT NOT NULL,
+	gender_id INT NOT NULL,
+	head_id INT NOT NULL,
+	voice_id INT NOT NULL,
+	name INT NOT NULL UNIQUE,
+	FOREIGN KEY (account_id) REFERENCES accounts(id)
+		ON DELETE CASCADE
+		ON UPDATE CASCADE
+) ENGINE=InnoDB CHARACTER SET utf8;
+
+INSERT INTO accounts (username, pass) VALUES ('admin','password');

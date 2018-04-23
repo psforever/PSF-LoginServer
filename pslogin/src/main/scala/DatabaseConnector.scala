@@ -1,9 +1,13 @@
 // Copyright (c) 2017 PSForever
-import com.github.mauricio.async.db.Connection
 import com.github.mauricio.async.db.mysql.MySQLConnection
-import com.github.mauricio.async.db.mysql.util.URLParser
+import com.github.mauricio.async.db.Configuration
 
 object DatabaseConnector {
-  val accounts_db = URLParser.parse("jdbc:mysql://localhost:3306/psforever-accounts?user=root&password=PSForever")
-  def getAccountsConnection = new MySQLConnection(accounts_db)
+  def getAccountsConnection = new MySQLConnection(Configuration(
+    "root",
+    "localhost",
+    3306,
+    Some("psforever"), // password
+    Some("psforever")  // database
+  ))
 }
