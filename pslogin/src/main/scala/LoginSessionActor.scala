@@ -10,8 +10,12 @@ import scodec.bits._
 import MDCContextAware.Implicits._
 import com.github.mauricio.async.db.{Connection, QueryResult, RowData}
 import com.github.mauricio.async.db.mysql.exceptions.MySQLException
+import net.psforever.objects.Account
 import net.psforever.objects.DefaultCancellable
 import net.psforever.types.PlanetSideEmpire
+import services.ServiceManager
+import services.ServiceManager.Lookup
+import services.account.StoreAccountData
 
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
@@ -25,6 +29,7 @@ class LoginSessionActor extends Actor with MDCContextAware {
   var sessionId : Long = 0
   var leftRef : ActorRef = ActorRef.noSender
   var rightRef : ActorRef = ActorRef.noSender
+  var accountIntermediary : ActorRef = Actor.noSender
 
   var updateServerListTask : Cancellable = DefaultCancellable.obj
 
@@ -46,6 +51,7 @@ class LoginSessionActor extends Actor with MDCContextAware {
         rightRef = sender()
       }
       context.become(Started)
+      ServiceManager.serviceManager ! Lookup("accountIntermediary")
 
     case _ =>
       log.error("Unknown message")
@@ -53,6 +59,8 @@ class LoginSessionActor extends Actor with MDCContextAware {
   }
 
   def Started : Receive = {
+    case ServiceManager.LookupResult("accountIntermediary", endpoint) =>
+      accountIntermediary = endpoint
     case UpdateServerList() =>
       updateServerList()
     case ControlPacket(_, ctrl) =>
@@ -80,8 +88,10 @@ class LoginSessionActor extends Actor with MDCContextAware {
   val serverName = "PSForever"
   val serverAddress = new InetSocketAddress(LoginConfig.serverIpAddress.getHostAddress, 51001)
 
+  // TODO: Comment this properly
   // A successful account lookup results in a new token to be sent to client
   // If the lookup fails, a token is not returned
+  // Account is stored in ServiceManager held actor.....add description
   def accountLookup(username : String, password : String) : Option[String] = {
     val connection: Connection = DatabaseConnector.getAccountsConnection
     Await.result(connection.connect, 5 seconds) // TODO remove awaits
@@ -101,19 +111,20 @@ class LoginSessionActor extends Actor with MDCContextAware {
         -1
     })
 
+    // TODO https://github.com/t3hnar/scala-bcrypt
     val newToken = Some("HHHGGGGFFFFEEEEDDDDCCCCBBBBAAAA")
 
     try {
       import com.github.mauricio.async.db.general.ArrayRowData
-      val userData = Await.result( mapResult, 5 seconds ) // TODO remove awaits
+      val userData = Await.result(mapResult, 5 seconds) // TODO remove awaits
 
       userData match {
         case row : ArrayRowData =>
           val accountId : Int = row(0).asInstanceOf[Int]
-          val dbPass : String = row(1).asInstanceOf[String]
+          val dbPass : String = row(1).asInstanceOf[String] // TODO https://github.com/t3hnar/scala-bcrypt
           if (dbPass == password) {
             log.info(s"Account password correct for $username!")
-            // TODO: AccountIntermediary.insert(newToken, accountId)
+            accountIntermediary ! StoreAccountData(newToken.get, new Account(accountId, username))
             return newToken
           } else {
             log.info(s"Account password incorrect for $username")
@@ -122,17 +133,23 @@ class LoginSessionActor extends Actor with MDCContextAware {
           case -2 =>
             log.info(s"Account $username does not exist, creating new account...")
 
+            // TODO https://github.com/t3hnar/scala-bcrypt
             val createNewAccountTransaction : Future[QueryResult] = connection.inTransaction {
               c => c.sendPreparedStatement("INSERT INTO accounts (username, pass) VALUES(?,?)", Array(username, password))
             }
             val insertResult = Await.result(createNewAccountTransaction, 5 seconds) // TODO remove awaits
 
             insertResult match {
-              case r : QueryResult =>
-                val accountId = r.rows.head(0)
-                // TODO: AccountIntermediary.insert(newToken, accountId)
-                log.info(s"Successfully created new account for $username")
-                return newToken
+              case result : QueryResult =>
+                if(result.rowsAffected == 1 && result.rows.nonEmpty) {
+                  val accountId = result.rows.head(0).asInstanceOf[Int]
+                  accountIntermediary ! StoreAccountData(newToken.get, new Account(accountId, username))
+                  log.info(s"Successfully created new account for $username")
+                  return newToken
+                } else {
+                  log.error(s"No result from account create insert for $username")
+                }
+
               case _ =>
                 log.error(s"Error creating new account for $username")
             }
@@ -181,9 +198,8 @@ class LoginSessionActor extends Actor with MDCContextAware {
           sendResponse(PacketCoding.CreateGamePacket(0, response))
         }
 
-      case ConnectToWorldRequestMessage(name, token, _, _, _, _, _) =>
+      case ConnectToWorldRequestMessage(name, _, _, _, _, _, _) =>
         log.info(s"Connect to world request for '$name'")
-        log.info(s"----------------THE TOKEN VALUE = $token")
         val response = ConnectToWorldMessage(serverName, serverAddress.getHostString, serverAddress.getPort)
         sendResponse(PacketCoding.CreateGamePacket(0, response))
         sendResponse(DropSession(sessionId, "user transferring to world"))

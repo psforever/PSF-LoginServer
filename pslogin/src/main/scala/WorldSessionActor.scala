@@ -13,6 +13,7 @@ import com.github.mauricio.async.db.{Connection, QueryResult}
 import net.psforever.objects.GlobalDefinitions._
 import services.ServiceManager.Lookup
 import net.psforever.objects._
+import net.psforever.objects.Account
 import net.psforever.objects.definition.ToolDefinition
 import net.psforever.objects.definition.converter.CorpseConverter
 import net.psforever.objects.equipment._
@@ -38,6 +39,7 @@ import net.psforever.objects.zones.{InterstellarCluster, Zone}
 import net.psforever.packet.game.objectcreate._
 import net.psforever.types._
 import services._
+import services.account.{RetrieveAccountData, ReceiveAccountData}
 import services.avatar.{AvatarAction, AvatarResponse, AvatarServiceMessage, AvatarServiceResponse}
 import services.local.{LocalAction, LocalResponse, LocalServiceMessage, LocalServiceResponse}
 import services.vehicle.{VehicleAction, VehicleResponse, VehicleServiceMessage, VehicleServiceResponse}
@@ -53,12 +55,14 @@ class WorldSessionActor extends Actor with MDCContextAware {
   var sessionId : Long = 0
   var leftRef : ActorRef = ActorRef.noSender
   var rightRef : ActorRef = ActorRef.noSender
+  var accountIntermediary : ActorRef = ActorRef.noSender
   var avatarService : ActorRef = ActorRef.noSender
   var localService : ActorRef = ActorRef.noSender
   var vehicleService : ActorRef = ActorRef.noSender
   var taskResolver : ActorRef = Actor.noSender
   var galaxy : ActorRef = Actor.noSender
   var continent : Zone = Zone.Nowhere
+  var account : Account = null
   var player : Player = null
   var avatar : Avatar = null
   var progressBarValue : Option[Float] = None
@@ -187,6 +191,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         rightRef = sender()
       }
       context.become(Started)
+      ServiceManager.serviceManager ! Lookup("accountIntermediary")
       ServiceManager.serviceManager ! Lookup("avatar")
       ServiceManager.serviceManager ! Lookup("local")
       ServiceManager.serviceManager ! Lookup("vehicle")
@@ -199,7 +204,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
   }
 
   def Started : Receive = {
+    case ServiceManager.LookupResult("accountIntermediary", endpoint) =>
+      accountIntermediary = endpoint
+      log.info("ID: " + sessionId + " Got account intermediary service " + endpoint)
     case ServiceManager.LookupResult("avatar", endpoint) =>
+      avatarService = endpoint
       avatarService = endpoint
       log.info("ID: " + sessionId + " Got avatar service " + endpoint)
     case ServiceManager.LookupResult("local", endpoint) =>
@@ -1293,29 +1302,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
       log.info(s"Received a direct message: $pkt")
       sendResponse(pkt)
 
-    case default =>
-     log.warn(s"Invalid packet class received: $default")
-  }
+    case ReceiveAccountData(account) =>
+      log.info(s"Retrieved account data for accountId = ${account.AccountId}")
+      this.account = account
 
-  def handleControlPkt(pkt : PlanetSideControlPacket) = {
-    pkt match {
-      case sync @ ControlSync(diff, _, _, _, _, _, fa, fb) =>
-        log.debug(s"SYNC: $sync")
-        val serverTick = Math.abs(System.nanoTime().toInt) // limit the size to prevent encoding error
-        sendResponse(ControlSyncResp(diff, serverTick, fa, fb, fb, fa))
-
-      case TeardownConnection(_) =>
-        log.info("Good bye")
-
-      case default =>
-        log.warn(s"Unhandled ControlPacket $default")
-    }
-  }
-
-  def handleGamePkt(pkt : PlanetSideGamePacket) = pkt match {
-    case ConnectToWorldRequestMessage(server, token, majorVersion, minorVersion, revision, buildDate, unk) =>
-      val clientVersion = s"Client Version: $majorVersion.$minorVersion.$revision, $buildDate"
-      log.info(s"New world login to $server with Token:$token. $clientVersion")
       //TODO begin temp player character auto-loading; remove later
       import net.psforever.objects.GlobalDefinitions._
       import net.psforever.types.CertificationType._
@@ -1354,7 +1344,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       //player.Orientation = Vector3(0f, 0f, 90f)
       player.Position = Vector3(4262.211f ,4067.0625f ,262.35938f) //z6, Akna.tower
       player.Orientation = Vector3(0f, 0f, 132.1875f)
-//      player.ExoSuit = ExoSuitType.MAX //TODO strange issue; divide number above by 10 when uncommenting
+      //      player.ExoSuit = ExoSuitType.MAX //TODO strange issue; divide number above by 10 when uncommenting
       player.Slot(0).Equipment = SimpleItem(remote_electronics_kit) //Tool(GlobalDefinitions.StandardPistol(player.Faction))
       player.Slot(2).Equipment = Tool(punisher) //suppressor
       player.Slot(4).Equipment = Tool(GlobalDefinitions.StandardMelee(player.Faction))
@@ -1366,20 +1356,46 @@ class WorldSessionActor extends Actor with MDCContextAware {
       player.Slot(39).Equipment = AmmoBox(plasma_cartridge) //SimpleItem(remote_electronics_kit)
       player.Locker.Inventory += 0 -> SimpleItem(remote_electronics_kit)
       //TODO end temp player character auto-loading
+
       self ! ListAccountCharacters
       import scala.concurrent.duration._
       import scala.concurrent.ExecutionContext.Implicits.global
       clientKeepAlive.cancel
       clientKeepAlive = context.system.scheduler.schedule(0 seconds, 500 milliseconds, self, PokeClient())
 
+    case default =>
+     log.warn(s"Invalid packet class received: $default")
+  }
+
+  def handleControlPkt(pkt : PlanetSideControlPacket) = {
+    pkt match {
+      case sync @ ControlSync(diff, _, _, _, _, _, fa, fb) =>
+        log.debug(s"SYNC: $sync")
+        val serverTick = Math.abs(System.nanoTime().toInt) // limit the size to prevent encoding error
+        sendResponse(ControlSyncResp(diff, serverTick, fa, fb, fb, fa))
+
+      case TeardownConnection(_) =>
+        log.info("Good bye")
+
+      case default =>
+        log.warn(s"Unhandled ControlPacket $default")
+    }
+  }
+
+  def handleGamePkt(pkt : PlanetSideGamePacket) = pkt match {
+    case ConnectToWorldRequestMessage(server, token, majorVersion, minorVersion, revision, buildDate, unk) =>
+      val clientVersion = s"Client Version: $majorVersion.$minorVersion.$revision, $buildDate"
+      log.info(s"New world login to $server with Token:$token. $clientVersion")
+      accountIntermediary ! RetrieveAccountData(token)
+
     case msg @ CharacterCreateRequestMessage(name, head, voice, gender, empire) =>
       log.info("Handling " + msg)
 
+      // TODO CREATE CHARACTER
       //import scala.concurrent.duration._
       //val connection: Connection = DatabaseConnector.getAccountsConnection
       //Await.result(connection.connect, 5 seconds)
 
-      //val accountId : Int = 1; // TODO get this from login
       //val createNewCharacterTransaction : Future[QueryResult] = connection.inTransaction {
       //  c => c.sendPreparedStatement(
       //    "INSERT INTO players (account_id, faction_id, gender_id, head_id, voice_id, name) VALUES(?,?,?,?,?,?)",
@@ -1388,7 +1404,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
       //}
 
       //val insertResult = Await.result( createNewCharacterTransaction, 5 seconds ) // TODO remove awaits
-
 
       sendResponse(ActionResultMessage(true, None))
       self ! ListAccountCharacters
