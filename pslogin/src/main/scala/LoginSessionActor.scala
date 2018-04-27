@@ -91,11 +91,19 @@ class LoginSessionActor extends Actor with MDCContextAware {
   val serverName = "PSForever"
   val serverAddress = new InetSocketAddress(LoginConfig.serverIpAddress.getHostAddress, 51001)
 
-  // TODO: Comment this properly
-  // A successful account lookup results in a new token to be sent to client
-  // If the lookup fails, a token is not returned
-  // Account is stored in ServiceManager held actor.....add description
-  def accountLookup(username : String, password : String) : Option[String] = {
+  /**
+    * Queries the database for the given account username and authenticates with the
+    * given password. If the account does not exist, a new account is automatically
+    * created.
+    *
+    * @param username The typed username sent by the player login request
+    * @param password The typed password sent by the player login request
+    * @return (
+    *         successful True if the account login/creation was successful
+    *         newToken The token key to send back to the client
+    * )
+    */
+  def accountLookup(username : String, password : String) : (Boolean, Option[String]) = {
     val connection: Connection = DatabaseConnector.getAccountsConnection
     Await.result(connection.connect, 5 seconds) // TODO remove awaits
 
@@ -127,7 +135,7 @@ class LoginSessionActor extends Actor with MDCContextAware {
           if (password.isBcrypted(dbPassword)) {
             log.info(s"Account password correct for $username!")
             accountIntermediary ! StoreAccountData(newToken.get, new Account(accountId, username))
-            return newToken
+            return (true, newToken)
           } else {
             log.info(s"Account password incorrect for $username")
           }
@@ -148,7 +156,7 @@ class LoginSessionActor extends Actor with MDCContextAware {
                   val accountId = result.rows.head(0).asInstanceOf[Int]
                   accountIntermediary ! StoreAccountData(newToken.get, new Account(accountId, username))
                   log.info(s"Successfully created new account for $username")
-                  return newToken
+                  return (true, newToken)
                 } else {
                   log.error(s"No result from account create insert for $username")
                 }
@@ -169,7 +177,7 @@ class LoginSessionActor extends Actor with MDCContextAware {
     } finally {
       connection.disconnect
     }
-    None
+    (false, newToken)
   }
 
   def handleGamePkt(pkt : PlanetSideGamePacket) = pkt match {
@@ -185,17 +193,16 @@ class LoginSessionActor extends Actor with MDCContextAware {
           log.info(s"New login UN:$username PW:$password. $clientVersion")
 
         // TODO: Make this non-blocking
-        val newToken = accountLookup(username, password.get)
+        val (successfulLookup, newToken) = accountLookup(username, password.get)
 
-        if(newToken.nonEmpty) {
+        if(successfulLookup) {
           val response = LoginRespMessage(newToken.get, LoginError.Success, StationError.AccountActive,
             StationSubscriptionStatus.Active, 0, username, 10001)
 
           sendResponse(PacketCoding.CreateGamePacket(0, response))
           updateServerListTask = context.system.scheduler.schedule(0 seconds, 2 seconds, self, UpdateServerList())
         } else {
-          val newToken = token.getOrElse(this.generateToken())
-          val response = LoginRespMessage(newToken, LoginError.BadUsernameOrPassword, StationError.AccountActive,
+          val response = LoginRespMessage(newToken.get, LoginError.BadUsernameOrPassword, StationError.AccountActive,
             StationSubscriptionStatus.Active, 685276011, username, 10001)
 
           log.info(s"Failed login to account $username")
