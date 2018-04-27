@@ -114,8 +114,7 @@ class LoginSessionActor extends Actor with MDCContextAware {
         -1
     })
 
-    // TODO https://github.com/t3hnar/scala-bcrypt
-    val newToken = Some("HHHGGGGFFFFEEEEDDDDCCCCBBBBAAAA")
+    val newToken = Some(this.generateToken())
 
     try {
       import com.github.mauricio.async.db.general.ArrayRowData
@@ -195,7 +194,7 @@ class LoginSessionActor extends Actor with MDCContextAware {
           sendResponse(PacketCoding.CreateGamePacket(0, response))
           updateServerListTask = context.system.scheduler.schedule(0 seconds, 2 seconds, self, UpdateServerList())
         } else {
-          val newToken = token.getOrElse("AAAABBBBCCCCDDDDEEEEFFFFGGGGHHH")
+          val newToken = token.getOrElse(this.generateToken())
           val response = LoginRespMessage(newToken, LoginError.BadUsernameOrPassword, StationError.AccountActive,
             StationSubscriptionStatus.Active, 685276011, username, 10001)
 
@@ -211,6 +210,15 @@ class LoginSessionActor extends Actor with MDCContextAware {
 
       case _ =>
         log.debug(s"Unhandled GamePacket $pkt")
+  }
+
+  def generateToken() = {
+    val r = new scala.util.Random
+    val sb = new StringBuilder
+    for (i <- 1 to 31) {
+      sb.append(r.nextPrintableChar)
+    }
+    sb.toString
   }
 
   def updateServerList() = {
