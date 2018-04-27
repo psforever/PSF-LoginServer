@@ -16,6 +16,7 @@ import net.psforever.types.PlanetSideEmpire
 import services.ServiceManager
 import services.ServiceManager.Lookup
 import services.account.StoreAccountData
+import com.github.t3hnar.bcrypt._
 
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
@@ -32,6 +33,8 @@ class LoginSessionActor extends Actor with MDCContextAware {
   var accountIntermediary : ActorRef = Actor.noSender
 
   var updateServerListTask : Cancellable = DefaultCancellable.obj
+
+  private val numBcryptPasses = 4
 
   override def postStop() = {
     if(updateServerListTask != null)
@@ -121,21 +124,22 @@ class LoginSessionActor extends Actor with MDCContextAware {
       userData match {
         case row : ArrayRowData =>
           val accountId : Int = row(0).asInstanceOf[Int]
-          val dbPass : String = row(1).asInstanceOf[String] // TODO https://github.com/t3hnar/scala-bcrypt
-          if (dbPass == password) {
+          val dbPassword : String = row(1).asInstanceOf[String]
+          if (password.isBcrypted(dbPassword)) {
             log.info(s"Account password correct for $username!")
             accountIntermediary ! StoreAccountData(newToken.get, new Account(accountId, username))
             return newToken
           } else {
             log.info(s"Account password incorrect for $username")
           }
+
         case errorCode : Int => errorCode match {
           case -2 =>
             log.info(s"Account $username does not exist, creating new account...")
 
-            // TODO https://github.com/t3hnar/scala-bcrypt
+            val bcryptPassword : String = password.bcrypt(numBcryptPasses)
             val createNewAccountTransaction : Future[QueryResult] = connection.inTransaction {
-              c => c.sendPreparedStatement("INSERT INTO accounts (username, pass) VALUES(?,?)", Array(username, password))
+              c => c.sendPreparedStatement("INSERT INTO accounts (username, pass) VALUES(?,?)", Array(username, bcryptPassword))
             }
             val insertResult = Await.result(createNewAccountTransaction, 5 seconds) // TODO remove awaits
 
@@ -153,6 +157,7 @@ class LoginSessionActor extends Actor with MDCContextAware {
               case _ =>
                 log.error(s"Error creating new account for $username")
             }
+
           case _ =>
             log.error(s"Issue retrieving result set from database for account login")
         }
