@@ -1390,21 +1390,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ CharacterCreateRequestMessage(name, head, voice, gender, empire) =>
       log.info("Handling " + msg)
-
-      // TODO CREATE CHARACTER
-      //import scala.concurrent.duration._
-      //val connection: Connection = DatabaseConnector.getAccountsConnection
-      //Await.result(connection.connect, 5 seconds)
-
-      //val createNewCharacterTransaction : Future[QueryResult] = connection.inTransaction {
-      //  c => c.sendPreparedStatement(
-      //    "INSERT INTO players (account_id, faction_id, gender_id, head_id, voice_id, name) VALUES(?,?,?,?,?,?)",
-      //    Array(accountId, empire.id, gender.id, head, voice, name)
-      //  )
-      //}
-
-      //val insertResult = Await.result( createNewCharacterTransaction, 5 seconds ) // TODO remove awaits
-
       sendResponse(ActionResultMessage(true, None))
       self ! ListAccountCharacters
 

@@ -8,6 +8,7 @@ import net.psforever.packet.game._
 import org.log4s.MDC
 import scodec.bits._
 import MDCContextAware.Implicits._
+import com.github.mauricio.async.db.general.ArrayRowData
 import com.github.mauricio.async.db.{Connection, QueryResult, RowData}
 import com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException
 import net.psforever.objects.Account
@@ -103,72 +104,24 @@ class LoginSessionActor extends Actor with MDCContextAware {
     *         newToken The token key to send back to the client
     * )
     */
-  def accountLookup(username : String, password : String) : (Boolean, Option[String]) = {
-    val connection: Connection = DatabaseConnector.getAccountsConnection
+  def accountLogin(username : String, password : String) : (Boolean, Option[String]) = {
+    val connection: Connection = Database.getConnection
     Await.result(connection.connect, 5 seconds) // TODO remove awaits
 
-    val future: Future[QueryResult] = connection.sendPreparedStatement(
+    val accountLookupQuery: Future[QueryResult] = connection.sendPreparedStatement(
       "SELECT id, passhash FROM accounts where username=?", Array(username))
 
-    val mapResult: Future[Any] = future.map(queryResult => queryResult.rows match {
-      case Some(resultSet) =>
-        if(resultSet.nonEmpty) {
-          val row : RowData = resultSet.head
-          row
-        } else {
-          -2 // Account does not exist
-        }
-      case None =>
-        -1
-    })
-
+    val queryResult: Future[Any] = Database.query(accountLookupQuery)
     val newToken = Some(this.generateToken())
 
     try {
-      import com.github.mauricio.async.db.general.ArrayRowData
-      val userData = Await.result(mapResult, 5 seconds) // TODO remove awaits
+      val userData = Await.result(queryResult, 5 seconds) // TODO remove awaits
 
       userData match {
-        case row : ArrayRowData =>
-          val accountId : Int = row(0).asInstanceOf[Int]
-          val dbPassHash : String = row(1).asInstanceOf[String]
-          if (password.isBcrypted(dbPassHash)) {
-            log.info(s"Account password correct for $username!")
-            accountIntermediary ! StoreAccountData(newToken.get, new Account(accountId, username))
-            return (true, newToken)
-          } else {
-            log.info(s"Account password incorrect for $username")
-          }
-
+        case row : ArrayRowData => return handleExistingAccount(connection, username, password, newToken, row)
         case errorCode : Int => errorCode match {
-          case -2 =>
-            log.info(s"Account $username does not exist, creating new account...")
-
-            val bcryptPassword : String = password.bcrypt(numBcryptPasses)
-            val createNewAccountTransaction : Future[QueryResult] = connection.inTransaction {
-              c => c.sendPreparedStatement(
-                "INSERT INTO accounts (username, passhash) VALUES(?,?) RETURNING id",
-                Array(username, bcryptPassword))
-            }
-            val insertResult = Await.result(createNewAccountTransaction, 5 seconds) // TODO remove awaits
-
-            insertResult match {
-              case result : QueryResult =>
-                if(result.rows.nonEmpty) {
-                  val accountId = result.rows.get.head(0).asInstanceOf[Int]
-                  accountIntermediary ! StoreAccountData(newToken.get, new Account(accountId, username))
-                  log.info(s"Successfully created new account for $username")
-                  return (true, newToken)
-                } else {
-                  log.error(s"No result from account create insert for $username")
-                }
-
-              case _ =>
-                log.error(s"Error creating new account for $username")
-            }
-
-          case _ =>
-            log.error(s"Issue retrieving result set from database for account login")
+          case Database.EMPTY_RESULT => return handleNewAccount(connection, username, password, newToken)
+          case _ => log.error(s"Issue retrieving result set from database for account login")
         }
       }
     } catch {
@@ -178,6 +131,53 @@ class LoginSessionActor extends Actor with MDCContextAware {
         log.error(s"Unknown exception when executing SQL statement: $e")
     } finally {
       connection.disconnect
+    }
+    (false, newToken)
+  }
+
+  def handleExistingAccount(
+      connection: Connection, username: String, password: String, newToken: Option[String], row: ArrayRowData
+  ) : (Boolean, Option[String]) = {
+    val accountId : Int = row(0).asInstanceOf[Int]
+    val dbPassHash : String = row(1).asInstanceOf[String]
+
+    if (password.isBcrypted(dbPassHash)) {
+      log.info(s"Account password correct for $username!")
+      accountIntermediary ! StoreAccountData(newToken.get, new Account(accountId, username))
+      return (true, newToken)
+    } else {
+      log.info(s"Account password incorrect for $username")
+    }
+
+    (false, newToken)
+  }
+
+  def handleNewAccount(
+      connection: Connection, username: String, password: String, newToken: Option[String]
+  ) : (Boolean, Option[String]) = {
+    log.info(s"Account $username does not exist, creating new account...")
+
+    val bcryptPassword : String = password.bcrypt(numBcryptPasses)
+    val createNewAccountTransaction : Future[QueryResult] = connection.inTransaction {
+      c => c.sendPreparedStatement(
+        "INSERT INTO accounts (username, passhash) VALUES(?,?) RETURNING id",
+        Array(username, bcryptPassword))
+    }
+    val insertResult = Await.result(createNewAccountTransaction, 5 seconds) // TODO remove awaits
+
+    insertResult match {
+      case result : QueryResult =>
+        if(result.rows.nonEmpty) {
+          val accountId = result.rows.get.head(0).asInstanceOf[Int]
+          accountIntermediary ! StoreAccountData(newToken.get, new Account(accountId, username))
+          log.info(s"Successfully created new account for $username")
+          return (true, newToken)
+        } else {
+          log.error(s"No result from account create insert for $username")
+        }
+
+      case _ =>
+        log.error(s"Error creating new account for $username")
     }
     (false, newToken)
   }
@@ -195,9 +195,9 @@ class LoginSessionActor extends Actor with MDCContextAware {
           log.info(s"New login UN:$username PW:$password. $clientVersion")
 
         // TODO: Make this non-blocking
-        val (successfulLookup, newToken) = accountLookup(username, password.get)
+        val (successfulLogin, newToken) = accountLogin(username, password.get)
 
-        if(successfulLookup) {
+        if(successfulLogin) {
           val response = LoginRespMessage(newToken.get, LoginError.Success, StationError.AccountActive,
             StationSubscriptionStatus.Active, 0, username, 10001)
 
