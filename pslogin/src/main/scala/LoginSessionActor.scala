@@ -21,6 +21,7 @@ import com.github.t3hnar.bcrypt._
 
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
+import scala.util.{Success, Failure}
 
 class LoginSessionActor extends Actor with MDCContextAware {
   private[this] val log = org.log4s.getLogger
@@ -104,35 +105,36 @@ class LoginSessionActor extends Actor with MDCContextAware {
     *         newToken The token key to send back to the client
     * )
     */
-  def accountLogin(username : String, password : String) : (Boolean, Option[String]) = {
-    val connection: Connection = Database.getConnection
-    Await.result(connection.connect, 5 seconds) // TODO remove awaits
-
-    val accountLookupQuery: Future[QueryResult] = connection.sendPreparedStatement(
-      "SELECT id, passhash FROM accounts where username=?", Array(username))
-
-    val queryResult: Future[Any] = Database.query(accountLookupQuery)
+  def accountLogin(username: String, password: String) : Future[(Boolean, Option[String])] = {
     val newToken = Some(this.generateToken())
 
-    try {
-      val userData = Await.result(queryResult, 5 seconds) // TODO remove awaits
+    // TODO: Need error handling with this sequential future code so we can always disconnect from database
+    // https://stackoverflow.com/questions/24081646/scala-way-to-handle-conditions-in-for-comprehensions
 
-      userData match {
-        case row : ArrayRowData => return handleExistingAccount(connection, username, password, newToken, row)
-        case errorCode : Int => errorCode match {
-          case Database.EMPTY_RESULT => return handleNewAccount(connection, username, password, newToken)
-          case _ => log.error(s"Issue retrieving result set from database for account login")
+    // https://stackoverflow.com/questions/30542526/multiple-futures-in-a-sequence-in-scala
+    val serialFuture = for {
+      connection <- Database.getConnection.connect
+      queryResult <- Database.query(connection.sendPreparedStatement(
+        "SELECT id, passhash FROM accounts where username=?", Array(username)
+      ))
+    } yield {
+      val loginResultTuple: (Boolean, Option[String]) = queryResult match {
+        case row: ArrayRowData =>
+          handleExistingAccount(connection, username, password, newToken, row)
+
+        case errorCode: Int => errorCode match {
+          case Database.EMPTY_RESULT =>
+            handleNewAccount(connection, username, password, newToken)
+
+          case _ =>
+            log.error(s"Issue retrieving result set from database for account login")
+            (false, newToken)
         }
       }
-    } catch {
-      case e : GenericDatabaseException =>
-        log.error(s"SQL exception $e")
-      case e: Exception =>
-        log.error(s"Unknown exception when executing SQL statement: $e")
-    } finally {
-      connection.disconnect
+      connection.disconnect // TODO Probably need a try/catch so we can always disconnect in case of error
+      loginResultTuple
     }
-    (false, newToken)
+    serialFuture
   }
 
   def handleExistingAccount(
@@ -179,6 +181,7 @@ class LoginSessionActor extends Actor with MDCContextAware {
       case _ =>
         log.error(s"Error creating new account for $username")
     }
+
     (false, newToken)
   }
 
@@ -194,21 +197,27 @@ class LoginSessionActor extends Actor with MDCContextAware {
         else
           log.info(s"New login UN:$username PW:$password. $clientVersion")
 
-        // TODO: Make this non-blocking
-        val (successfulLogin, newToken) = accountLogin(username, password.get)
+        accountLogin(username, password.get).onComplete {
+          case Failure(e) => println(s"Unknown failure logging into account $username, error=$e")
+          case Success(login: (Boolean, Option[String])) =>
+            val wasSuccessfulLogin = login._1
+            val newToken = login._2
 
-        if(successfulLogin) {
-          val response = LoginRespMessage(newToken.get, LoginError.Success, StationError.AccountActive,
-            StationSubscriptionStatus.Active, 0, username, 10001)
-
-          sendResponse(PacketCoding.CreateGamePacket(0, response))
-          updateServerListTask = context.system.scheduler.schedule(0 seconds, 2 seconds, self, UpdateServerList())
-        } else {
-          val response = LoginRespMessage(newToken.get, LoginError.BadUsernameOrPassword, StationError.AccountActive,
-            StationSubscriptionStatus.Active, 685276011, username, 10001)
-
-          log.info(s"Failed login to account $username")
-          sendResponse(PacketCoding.CreateGamePacket(0, response))
+            if(wasSuccessfulLogin) {
+              sendResponse(PacketCoding.CreateGamePacket(0, LoginRespMessage(
+                newToken.get, LoginError.Success, StationError.AccountActive,
+                StationSubscriptionStatus.Active, 0, username, 10001
+              )))
+              updateServerListTask = context.system.scheduler.schedule(
+                0 seconds, 2 seconds, self, UpdateServerList()
+              )
+            } else {
+              log.info(s"Failed login to account $username")
+              sendResponse(PacketCoding.CreateGamePacket(0, LoginRespMessage(
+                newToken.get, LoginError.BadUsernameOrPassword, StationError.AccountActive,
+                StationSubscriptionStatus.Active, 685276011, username, 10001
+              )))
+            }
         }
 
       case ConnectToWorldRequestMessage(name, _, _, _, _, _, _) =>
