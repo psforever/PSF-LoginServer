@@ -26,15 +26,13 @@ import net.psforever.objects.serverobject.implantmech.ImplantTerminalMech
 import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.mblocker.Locker
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
-import net.psforever.objects.serverobject.terminals.{MatrixTerminalDefinition, ProximityTerminal, Terminal}
 import net.psforever.objects.serverobject.pad.process.{AutoDriveControls, VehicleSpawnControlGuided}
-import net.psforever.objects.serverobject.terminals.{MatrixTerminalDefinition, Terminal}
-import net.psforever.objects.serverobject.terminals.Terminal.TerminalMessage
-import net.psforever.objects.vehicles.{AccessPermissionGroup, Utility, VehicleLockState}
 import net.psforever.objects.serverobject.structures.{Building, StructureType, WarpGate}
+import net.psforever.objects.serverobject.terminals.{MatrixTerminalDefinition, ProximityTerminal, Terminal}
 import net.psforever.objects.serverobject.terminals.Terminal
+import net.psforever.objects.serverobject.terminals.Terminal.TerminalMessage
 import net.psforever.objects.serverobject.tube.SpawnTube
-import net.psforever.objects.vehicles.{AccessPermissionGroup, VehicleLockState}
+import net.psforever.objects.vehicles.{AccessPermissionGroup, Utility, VehicleLockState}
 import net.psforever.objects.zones.{InterstellarCluster, Zone}
 import net.psforever.packet.game.objectcreate._
 import net.psforever.types._

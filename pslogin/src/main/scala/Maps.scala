@@ -619,7 +619,7 @@ object Maps {
       LocalBuilding(51, FoundationBuilder(Building.Structure(StructureType.Platform)))
       LocalObject(304, Terminal.Constructor(dropship_vehicle_terminal))
       LocalObject(292,
-        VehicleSpawnPad.Constructor(Vector3(3508.9844f, 2895.961f, 92.296875f), Vector3(0f, 0f, 270.0f))
+        VehicleSpawnPad.Constructor(Vector3(3508.9844f, 2895.961f, 92.296875f), Vector3(0f, 0f, 90.0f))
       )
       ObjectToBuilding(304, 51)
       ObjectToBuilding(292, 51)
@@ -631,7 +631,7 @@ object Maps {
       LocalBuilding(52, FoundationBuilder(Building.Structure(StructureType.Platform)))
       LocalObject(305, Terminal.Constructor(dropship_vehicle_terminal))
       LocalObject(293,
-        VehicleSpawnPad.Constructor(Vector3(3575.0781f, 2654.9766f, 92.296875f), Vector3(0f, 0f, 225.0f))
+        VehicleSpawnPad.Constructor(Vector3(3575.0781f, 2654.9766f, 92.296875f), Vector3(0f, 0f, 45.0f))
       )
       ObjectToBuilding(305, 52)
       ObjectToBuilding(293, 52)

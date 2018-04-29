@@ -27,7 +27,7 @@ class VehicleSpawnControlFinalClearance(pad : VehicleSpawnPad) extends VehicleSp
       self ! VehicleSpawnControlFinalClearance.Test(entry)
 
     case VehicleSpawnControlFinalClearance.Test(entry) =>
-      if(Vector3.DistanceSquared(entry.vehicle.Position.xy, pad.Position.xy) > 100.0f) { //10m away from pad
+      if(Vector3.DistanceSquared(entry.vehicle.Position, pad.Position) > 100.0f) { //10m away from pad
         trace("pad cleared")
         context.parent ! VehicleSpawnControl.ProcessControl.GetNewOrder
       }
