@@ -5,6 +5,8 @@ import net.psforever.objects.Player
 
 //temporary location for these messages
 object CommonMessages {
+  final case class Use(player : Player)
+  final case class Unuse(player : Player)
   final case class Hack(player : Player)
   final case class ClearHack()
 }

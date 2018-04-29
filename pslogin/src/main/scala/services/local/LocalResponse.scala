@@ -11,5 +11,6 @@ object LocalResponse {
   final case class DoorCloses(door_guid : PlanetSideGUID) extends Response
   final case class HackClear(target_guid : PlanetSideGUID, unk1 : Long, unk2 : Long) extends Response
   final case class HackObject(target_guid : PlanetSideGUID, unk1 : Long, unk2 : Long) extends Response
+  final case class ProximityTerminalEffect(object_guid : PlanetSideGUID, effectState : Boolean) extends Response
   final case class TriggerSound(sound : TriggeredSound.Value, pos : Vector3, unk : Int, volume : Float) extends Response
 }
