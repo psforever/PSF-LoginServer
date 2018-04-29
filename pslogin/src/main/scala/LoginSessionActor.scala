@@ -9,7 +9,7 @@ import org.log4s.MDC
 import scodec.bits._
 import MDCContextAware.Implicits._
 import com.github.mauricio.async.db.{Connection, QueryResult, RowData}
-import com.github.mauricio.async.db.mysql.exceptions.MySQLException
+import com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException
 import net.psforever.objects.Account
 import net.psforever.objects.DefaultCancellable
 import net.psforever.types.PlanetSideEmpire
@@ -108,7 +108,7 @@ class LoginSessionActor extends Actor with MDCContextAware {
     Await.result(connection.connect, 5 seconds) // TODO remove awaits
 
     val future: Future[QueryResult] = connection.sendPreparedStatement(
-      "SELECT id, pass FROM accounts where username=?", Array(username))
+      "SELECT id, passhash FROM accounts where username=?", Array(username))
 
     val mapResult: Future[Any] = future.map(queryResult => queryResult.rows match {
       case Some(resultSet) =>
@@ -131,8 +131,8 @@ class LoginSessionActor extends Actor with MDCContextAware {
       userData match {
         case row : ArrayRowData =>
           val accountId : Int = row(0).asInstanceOf[Int]
-          val dbPassword : String = row(1).asInstanceOf[String]
-          if (password.isBcrypted(dbPassword)) {
+          val dbPassHash : String = row(1).asInstanceOf[String]
+          if (password.isBcrypted(dbPassHash)) {
             log.info(s"Account password correct for $username!")
             accountIntermediary ! StoreAccountData(newToken.get, new Account(accountId, username))
             return (true, newToken)
@@ -146,14 +146,16 @@ class LoginSessionActor extends Actor with MDCContextAware {
 
             val bcryptPassword : String = password.bcrypt(numBcryptPasses)
             val createNewAccountTransaction : Future[QueryResult] = connection.inTransaction {
-              c => c.sendPreparedStatement("INSERT INTO accounts (username, pass) VALUES(?,?)", Array(username, bcryptPassword))
+              c => c.sendPreparedStatement(
+                "INSERT INTO accounts (username, passhash) VALUES(?,?) RETURNING id",
+                Array(username, bcryptPassword))
             }
             val insertResult = Await.result(createNewAccountTransaction, 5 seconds) // TODO remove awaits
 
             insertResult match {
               case result : QueryResult =>
-                if(result.rowsAffected == 1 && result.rows.nonEmpty) {
-                  val accountId = result.rows.head(0).asInstanceOf[Int]
+                if(result.rows.nonEmpty) {
+                  val accountId = result.rows.get.head(0).asInstanceOf[Int]
                   accountIntermediary ! StoreAccountData(newToken.get, new Account(accountId, username))
                   log.info(s"Successfully created new account for $username")
                   return (true, newToken)
@@ -170,7 +172,7 @@ class LoginSessionActor extends Actor with MDCContextAware {
         }
       }
     } catch {
-      case e : MySQLException =>
+      case e : GenericDatabaseException =>
         log.error(s"SQL exception $e")
       case e: Exception =>
         log.error(s"Unknown exception when executing SQL statement: $e")
