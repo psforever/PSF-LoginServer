@@ -667,7 +667,7 @@ object Maps {
       LocalBuilding(81, FoundationBuilder(Building.Structure(StructureType.Platform)))
       LocalObject(1067, Terminal.Constructor(ground_vehicle_terminal))
       LocalObject(712,
-        VehicleSpawnPad.Constructor(Vector3(3659.836f, 2589.875f, 92.0625f), Vector3(0f, 0f, 270.0f))
+        VehicleSpawnPad.Constructor(Vector3(3724.0156f, 2589.875f, 92.0625f), Vector3(0f, 0f, 180.0f))
       )
       ObjectToBuilding(1067, 81)
       ObjectToBuilding(712, 81)

@@ -76,7 +76,7 @@ class VehicleSpawnControlSeatDriver(pad : VehicleSpawnPad) extends VehicleSpawnC
       else {
         trace("driver lost, but operations can continue")
       }
-      context.system.scheduler.scheduleOnce(800 milliseconds, vehicleOverride, VehicleSpawnControl.Process.ServerVehicleOverride(entry))
+      context.system.scheduler.scheduleOnce(250 milliseconds, vehicleOverride, VehicleSpawnControl.Process.ServerVehicleOverride(entry))
 
     case msg @ (VehicleSpawnControl.ProcessControl.Reminder | VehicleSpawnControl.ProcessControl.GetNewOrder) =>
       context.parent ! msg

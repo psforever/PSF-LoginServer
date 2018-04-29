@@ -1045,6 +1045,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       sendResponse(PlanetsideAttributeMessage(vehicle_guid, 68, 0L)) //???
       sendResponse(PlanetsideAttributeMessage(vehicle_guid, 113, 0L)) //???
       ReloadVehicleAccessPermissions(vehicle)
+      ServerVehicleLock(vehicle)
 
     case VehicleSpawnPad.ServerVehicleOverrideStart(vehicle, pad) =>
       val vdef = vehicle.Definition
@@ -3896,11 +3897,34 @@ class WorldSessionActor extends Actor with MDCContextAware {
     tplayer.Armor == tplayer.MaxArmor
   }
 
+  /**
+    * Lock all applicable controls of the current vehicle.
+    * This includes forward motion, turning, and, if applicable, strafing.
+    * @param vehicle the vehicle being controlled
+    */
+  def ServerVehicleLock(vehicle : Vehicle) : Unit = {
+    vehicle.Controlled = Some(0)
+    sendResponse(ServerVehicleOverrideMsg(true, true, false, false, 0, 1, 0, Some(0)))
+  }
+
+  /**
+    * Place the current vehicle under the control of the server's commands.
+    * @param vehicle the vehicle
+    * @param speed how fast the vehicle is moving forward
+    * @param flight whether the vehicle is ascending or not, if the vehicle is an applicable type
+    */
   def ServerVehicleOverride(vehicle : Vehicle, speed : Int = 0, flight : Int = 0) : Unit = {
     vehicle.Controlled = Some(speed)
     sendResponse(ServerVehicleOverrideMsg(true, true, false, false, flight, 0, speed, Some(0)))
   }
 
+  /**
+    * Place the current vehicle under the control of the driver's commands,
+    * but leave it in a cancellable auto-drive.
+    * @param vehicle the vehicle
+    * @param speed how fast the vehicle is moving forward
+    * @param flight whether the vehicle is ascending or not, if the vehicle is an applicable type
+    */
   def DriverVehicleControl(vehicle : Vehicle, speed : Int = 0, flight : Int = 0) : Unit = {
     if(vehicle.Controlled.nonEmpty) {
       vehicle.Controlled = None
@@ -3908,6 +3932,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
     }
   }
 
+  /**
+    * Place the current vehicle under the control of the driver's commands,
+    * but leave it in a cancellable auto-drive.
+    * Stop all movement entirely.
+    * @param vehicle the vehicle
+    */
   def TotalDriverVehicleControl(vehicle : Vehicle) : Unit = {
     if(vehicle.Controlled.nonEmpty) {
       vehicle.Controlled = None
