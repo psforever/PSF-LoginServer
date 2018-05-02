@@ -18,10 +18,11 @@ import services.ServiceManager
 import services.ServiceManager.Lookup
 import services.account.StoreAccountData
 import com.github.t3hnar.bcrypt._
+import net.psforever.packet.game.LoginRespMessage.{LoginError, StationError, StationSubscriptionStatus}
 
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
-import scala.util.{Success, Failure}
+import scala.util.{Failure, Success}
 
 class LoginSessionActor extends Actor with MDCContextAware {
   private[this] val log = org.log4s.getLogger
@@ -105,58 +106,60 @@ class LoginSessionActor extends Actor with MDCContextAware {
     *         newToken The token key to send back to the client
     * )
     */
-  def accountLogin(username: String, password: String) : Future[(Boolean, Option[String])] = {
-    val newToken = Some(this.generateToken())
+  def accountLogin(username: String, password: String) = {
+    val newToken = this.generateToken()
 
-    // TODO: Need error handling with this sequential future code so we can always disconnect from database
-    // https://stackoverflow.com/questions/24081646/scala-way-to-handle-conditions-in-for-comprehensions
+    Database.getConnection.connect.onComplete {
+      case Success(connection) =>
+        Database.query(connection.sendPreparedStatement(
+          "SELECT id, passhash FROM accounts where username=?", Array(username)
+        )).onComplete {
+          case Success(queryResult) =>
+            val successfulLogin: Boolean = queryResult match {
+              case row: ArrayRowData =>
+                handleExistingAccount(connection, username, password, newToken, row)
+              case errorCode: Int => errorCode match {
+                case Database.EMPTY_RESULT =>
+                  handleNewAccount(connection, username, password, newToken)
+                case _ =>
+                  log.error(s"Issue retrieving result set from database for account $username")
+                  false
+              }
+            }
+            connection.disconnect
 
-    // https://stackoverflow.com/questions/30542526/multiple-futures-in-a-sequence-in-scala
-    val serialFuture = for {
-      connection <- Database.getConnection.connect
-      queryResult <- Database.query(connection.sendPreparedStatement(
-        "SELECT id, passhash FROM accounts where username=?", Array(username)
-      ))
-    } yield {
-      val loginResultTuple: (Boolean, Option[String]) = queryResult match {
-        case row: ArrayRowData =>
-          handleExistingAccount(connection, username, password, newToken, row)
-
-        case errorCode: Int => errorCode match {
-          case Database.EMPTY_RESULT =>
-            handleNewAccount(connection, username, password, newToken)
-
-          case _ =>
-            log.error(s"Issue retrieving result set from database for account login")
-            (false, newToken)
+            if(successfulLogin) {
+              loginSuccessfulResponse(username, newToken)
+              updateServerListTask = context.system.scheduler.schedule(0 seconds, 2 seconds, self, UpdateServerList())
+            } else {
+              loginFailureResponse(username, newToken)
+            }
+          case Failure(e) =>
+            println("Failed account lookup query " + e.getMessage)
+            connection.disconnect
         }
-      }
-      connection.disconnect // TODO Probably need a try/catch so we can always disconnect in case of error
-      loginResultTuple
+      case Failure(e) =>
+        println("Failed connecting to database for account lookup " + e.getMessage)
+        loginFailureResponse(username, newToken)
     }
-    serialFuture
   }
 
-  def handleExistingAccount(
-      connection: Connection, username: String, password: String, newToken: Option[String], row: ArrayRowData
-  ) : (Boolean, Option[String]) = {
+  def handleExistingAccount(connection: Connection, username: String, password: String, newToken: String, row: ArrayRowData) : Boolean = {
     val accountId : Int = row(0).asInstanceOf[Int]
     val dbPassHash : String = row(1).asInstanceOf[String]
 
     if (password.isBcrypted(dbPassHash)) {
       log.info(s"Account password correct for $username!")
-      accountIntermediary ! StoreAccountData(newToken.get, new Account(accountId, username))
-      return (true, newToken)
+      accountIntermediary ! StoreAccountData(newToken, new Account(accountId, username))
+      return true
     } else {
       log.info(s"Account password incorrect for $username")
     }
 
-    (false, newToken)
+    false
   }
 
-  def handleNewAccount(
-      connection: Connection, username: String, password: String, newToken: Option[String]
-  ) : (Boolean, Option[String]) = {
+  def handleNewAccount( connection: Connection, username: String, password: String, newToken: String) : Boolean = {
     log.info(s"Account $username does not exist, creating new account...")
 
     val bcryptPassword : String = password.bcrypt(numBcryptPasses)
@@ -171,9 +174,9 @@ class LoginSessionActor extends Actor with MDCContextAware {
       case result : QueryResult =>
         if(result.rows.nonEmpty) {
           val accountId = result.rows.get.head(0).asInstanceOf[Int]
-          accountIntermediary ! StoreAccountData(newToken.get, new Account(accountId, username))
+          accountIntermediary ! StoreAccountData(newToken, new Account(accountId, username))
           log.info(s"Successfully created new account for $username")
-          return (true, newToken)
+          return true
         } else {
           log.error(s"No result from account create insert for $username")
         }
@@ -181,14 +184,12 @@ class LoginSessionActor extends Actor with MDCContextAware {
       case _ =>
         log.error(s"Error creating new account for $username")
     }
-
-    (false, newToken)
+    false
   }
 
   def handleGamePkt(pkt : PlanetSideGamePacket) = pkt match {
       case LoginMessage(majorVersion, minorVersion, buildDate, username, password, token, revision) =>
         // TODO: prevent multiple LoginMessages from being processed in a row!! We need a state machine
-        import game.LoginRespMessage._
 
         val clientVersion = s"Client Version: $majorVersion.$minorVersion.$revision, $buildDate"
 
@@ -197,28 +198,7 @@ class LoginSessionActor extends Actor with MDCContextAware {
         else
           log.info(s"New login UN:$username PW:$password. $clientVersion")
 
-        accountLogin(username, password.get).onComplete {
-          case Failure(e) => println(s"Unknown failure logging into account $username, error=$e")
-          case Success(login: (Boolean, Option[String])) =>
-            val wasSuccessfulLogin = login._1
-            val newToken = login._2
-
-            if(wasSuccessfulLogin) {
-              sendResponse(PacketCoding.CreateGamePacket(0, LoginRespMessage(
-                newToken.get, LoginError.Success, StationError.AccountActive,
-                StationSubscriptionStatus.Active, 0, username, 10001
-              )))
-              updateServerListTask = context.system.scheduler.schedule(
-                0 seconds, 2 seconds, self, UpdateServerList()
-              )
-            } else {
-              log.info(s"Failed login to account $username")
-              sendResponse(PacketCoding.CreateGamePacket(0, LoginRespMessage(
-                newToken.get, LoginError.BadUsernameOrPassword, StationError.AccountActive,
-                StationSubscriptionStatus.Active, 685276011, username, 10001
-              )))
-            }
-        }
+        accountLogin(username, password.get)
 
       case ConnectToWorldRequestMessage(name, _, _, _, _, _, _) =>
         log.info(s"Connect to world request for '$name'")
@@ -228,6 +208,21 @@ class LoginSessionActor extends Actor with MDCContextAware {
 
       case _ =>
         log.debug(s"Unhandled GamePacket $pkt")
+  }
+
+  def loginSuccessfulResponse(username: String, newToken: String) = {
+    sendResponse(PacketCoding.CreateGamePacket(0, LoginRespMessage(
+      newToken, LoginError.Success, StationError.AccountActive,
+      StationSubscriptionStatus.Active, 0, username, 10001
+    )))
+  }
+
+  def loginFailureResponse(username: String, newToken: String) = {
+    log.info(s"Failed login to account $username")
+    sendResponse(PacketCoding.CreateGamePacket(0, LoginRespMessage(
+      newToken, LoginError.BadUsernameOrPassword, StationError.AccountActive,
+      StationSubscriptionStatus.Active, 685276011, username, 10001
+    )))
   }
 
   def generateToken() = {
