@@ -76,6 +76,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
   var deadState : DeadState.Value = DeadState.Dead
   var whenUsedLastKit : Long = 0
 
+  var amsSpawnPoint : Option[SpawnTube] = None
+
   var clientKeepAlive : Cancellable = DefaultCancellable.obj
   var progressBarUpdate : Cancellable = DefaultCancellable.obj
   var reviveTimer : Cancellable = DefaultCancellable.obj
@@ -545,6 +547,27 @@ class WorldSessionActor extends Actor with MDCContextAware {
               player.Position = pos
             }
           }
+
+        case VehicleResponse.UpdateAmsSpawnPoint(list) =>
+          //if(player.isBackpack) {
+            //dismiss old ams spawn point
+            ClearCurrentAmsSpawnPoint()
+            //draw new ams spawn point
+            list
+              .filter(tube => tube.Faction == player.Faction)
+              .sortBy(tube => Vector3.DistanceSquared(tube.Position, player.Position))
+              .headOption match {
+              case Some(tube) =>
+                sendResponse(
+                  DeployableObjectsInfoMessage(
+                    DeploymentAction.Build,
+                    DeployableInfo(tube.GUID, DeployableIcon.AegisShieldGenerator, tube.Position, player.GUID)
+                  )
+                )
+                amsSpawnPoint = Some(tube)
+              case None => ;
+            }
+          //}
 
         case _ => ;
       }
@@ -1251,6 +1274,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       log.info(s"Zone.Lattice.SpawnPoint: spawn point on $zone_id in ${building.Id} @ ${spawn_tube.GUID.guid} selected")
       respawnTimer.cancel
       reviveTimer.cancel
+      ClearCurrentAmsSpawnPoint()
       val sameZone = zone_id == continent.Id
       val backpack = player.isBackpack
       val respawnTime : Long = if(sameZone) { 10 } else { 0 } //s
@@ -1730,6 +1754,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       deadState = DeadState.Release
       sendResponse(AvatarDeadStateMessage(DeadState.Release, 0, 0, player.Position, player.Faction, true))
       continent.Population ! Zone.Population.Release(avatar)
+      vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.UpdateAmsSpawnPoint(continent))
       player.VehicleSeated match {
         case None =>
           FriskCorpse(player)
@@ -3989,7 +4014,18 @@ class WorldSessionActor extends Actor with MDCContextAware {
     obj match {
       case vehicle : Vehicle =>
         ReloadVehicleAccessPermissions(vehicle) //TODO we should not have to do this imho
-        sendResponse(PlanetsideAttributeMessage(obj.GUID, 81, 1))
+        //
+        if(obj.Definition == GlobalDefinitions.ams) {
+          obj.DeploymentState match {
+            case DriveState.Deployed =>
+              vehicleService ! VehicleServiceMessage.AMSDeploymentChange(continent)
+              sendResponse(PlanetsideAttributeMessage(obj.GUID, 81, 1))
+            case DriveState.Undeploying =>
+              vehicleService ! VehicleServiceMessage.AMSDeploymentChange(continent)
+              sendResponse(PlanetsideAttributeMessage(obj.GUID, 81, 0))
+            case _ => ;
+          }
+        }
       case _ => ;
     }
   }
@@ -4011,6 +4047,20 @@ class WorldSessionActor extends Actor with MDCContextAware {
       ""
     }
     log.error(s"DeployRequest: $obj can not transition to $state - $reason$mobileShift")
+  }
+
+  def ClearCurrentAmsSpawnPoint() : Unit = {
+    amsSpawnPoint match {
+      case Some(tube) =>
+        sendResponse(
+          DeployableObjectsInfoMessage(
+            DeploymentAction.Dismiss,
+            DeployableInfo(tube.GUID, DeployableIcon.AegisShieldGenerator, tube.Position, player.GUID)
+          )
+        )
+        amsSpawnPoint = None
+      case None => ;
+    }
   }
 
   /**

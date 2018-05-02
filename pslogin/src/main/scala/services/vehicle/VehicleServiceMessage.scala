@@ -13,4 +13,6 @@ object VehicleServiceMessage {
   final case class RevokeActorControl(vehicle : Vehicle)
   final case class RequestDeleteVehicle(vehicle : Vehicle, continent : Zone)
   final case class UnscheduleDeconstruction(vehicle_guid : PlanetSideGUID)
+
+  final case class AMSDeploymentChange(zone : Zone)
 }
