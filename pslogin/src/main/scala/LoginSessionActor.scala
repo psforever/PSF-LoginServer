@@ -9,8 +9,7 @@ import org.log4s.MDC
 import scodec.bits._
 import MDCContextAware.Implicits._
 import com.github.mauricio.async.db.general.ArrayRowData
-import com.github.mauricio.async.db.{Connection, QueryResult, RowData}
-import com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException
+import com.github.mauricio.async.db.{Connection, QueryResult}
 import net.psforever.objects.Account
 import net.psforever.objects.DefaultCancellable
 import net.psforever.types.PlanetSideEmpire
@@ -19,10 +18,12 @@ import services.ServiceManager.Lookup
 import services.account.StoreAccountData
 import com.github.t3hnar.bcrypt._
 import net.psforever.packet.game.LoginRespMessage.{LoginError, StationError, StationSubscriptionStatus}
-
-import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
+
+case class StartAccountAuthentication(connection: Option[Connection], username: String, password: String, newToken: String, queryResult: Any)
+case class FinishAccountLogin(connection: Option[Connection], username: String, newToken: String, isSuccessfulLogin: Boolean)
+case class CreateNewAccount(connection: Option[Connection], username: String, password: String, newToken: String)
 
 class LoginSessionActor extends Actor with MDCContextAware {
   private[this] val log = org.log4s.getLogger
@@ -94,57 +95,130 @@ class LoginSessionActor extends Actor with MDCContextAware {
   val serverName = "PSForever"
   val serverAddress = new InetSocketAddress(LoginConfig.serverIpAddress.getHostAddress, 51001)
 
-  /**
-    * Queries the database for the given account username and authenticates with the
-    * given password. If the account does not exist, a new account is automatically
-    * created.
-    *
-    * @param username The typed username sent by the player login request
-    * @param password The typed password sent by the player login request
-    * @return (
-    *         successful True if the account login/creation was successful
-    *         newToken The token key to send back to the client
-    * )
-    */
-  def accountLogin(username: String, password: String) = {
-    val newToken = this.generateToken()
+  def handleGamePkt(pkt : PlanetSideGamePacket) = pkt match {
+    case LoginMessage(majorVersion, minorVersion, buildDate, username, password, token, revision) =>
+      // TODO: prevent multiple LoginMessages from being processed in a row!! We need a state machine
 
+      val clientVersion = s"Client Version: $majorVersion.$minorVersion.$revision, $buildDate"
+
+      if(token.isDefined)
+        log.info(s"New login UN:$username Token:${token.get}. $clientVersion")
+      else
+        log.info(s"New login UN:$username PW:$password. $clientVersion")
+
+      startAccountLogin(username, password.get)
+
+    case ConnectToWorldRequestMessage(name, _, _, _, _, _, _) =>
+      log.info(s"Connect to world request for '$name'")
+      val response = ConnectToWorldMessage(serverName, serverAddress.getHostString, serverAddress.getPort)
+      sendResponse(PacketCoding.CreateGamePacket(0, response))
+      sendResponse(DropSession(sessionId, "user transferring to world"))
+
+    case _ =>
+      log.debug(s"Unhandled GamePacket $pkt")
+  }
+
+  def startAccountLogin(username: String, password: String) = {
+    val newToken = this.generateToken()
     Database.getConnection.connect.onComplete {
       case Success(connection) =>
         Database.query(connection.sendPreparedStatement(
           "SELECT id, passhash FROM accounts where username=?", Array(username)
         )).onComplete {
           case Success(queryResult) =>
-            val successfulLogin: Boolean = queryResult match {
-              case row: ArrayRowData =>
-                handleExistingAccount(connection, username, password, newToken, row)
-              case errorCode: Int => errorCode match {
-                case Database.EMPTY_RESULT =>
-                  handleNewAccount(connection, username, password, newToken)
-                case _ =>
-                  log.error(s"Issue retrieving result set from database for account $username")
-                  false
-              }
-            }
-            connection.disconnect
-
-            if(successfulLogin) {
-              loginSuccessfulResponse(username, newToken)
-              updateServerListTask = context.system.scheduler.schedule(0 seconds, 2 seconds, self, UpdateServerList())
-            } else {
-              loginFailureResponse(username, newToken)
-            }
+            context.become(startAccountAuthentication)
+            self ! StartAccountAuthentication(Some(connection), username, password, newToken, queryResult)
           case Failure(e) =>
             println("Failed account lookup query " + e.getMessage)
             connection.disconnect
+            context.become(finishAccountLogin)
+            self ! FinishAccountLogin(Some(connection), username, newToken, false)
         }
       case Failure(e) =>
         println("Failed connecting to database for account lookup " + e.getMessage)
-        loginFailureResponse(username, newToken)
+        context.become(finishAccountLogin)
+        self ! FinishAccountLogin(None, username, newToken, false)
     }
   }
 
-  def handleExistingAccount(connection: Connection, username: String, password: String, newToken: String, row: ArrayRowData) : Boolean = {
+  def startAccountAuthentication() : Receive = {
+    case StartAccountAuthentication(connection, username, password, newToken, queryResult) =>
+      queryResult match {
+
+        // If we got a row from the database
+        case row: ArrayRowData =>
+          val isSuccessfulLogin = authenticateExistingAccount(connection.get, username, password, newToken, row)
+          context.become(finishAccountLogin)
+          self ! FinishAccountLogin(connection, username, newToken, isSuccessfulLogin)
+
+        // If the account didn't exist in the database
+        case errorCode: Int => errorCode match {
+          case Database.EMPTY_RESULT =>
+            self ! CreateNewAccount(connection, username, password, newToken)
+            context.become(createNewAccount)
+
+          case _ =>
+            log.error(s"Issue retrieving result set from database for account $username")
+            context.become(finishAccountLogin)
+            self ! FinishAccountLogin(connection, username, newToken, false)
+        }
+      }
+    case default => failWithError(s"Invalid message '$default' received in startAccountAuthentication")
+  }
+
+  def createNewAccount() : Receive = {
+    case CreateNewAccount(connection, username, password, newToken) =>
+      log.info(s"Account $username does not exist, creating new account...")
+      val bcryptPassword : String = password.bcrypt(numBcryptPasses)
+
+      connection.get.inTransaction {
+        c => c.sendPreparedStatement(
+          "INSERT INTO accounts (username, passhash) VALUES(?,?) RETURNING id",
+          Array(username, bcryptPassword)
+        )
+      }.onComplete {
+        case Success(insertResult) =>
+          var isSuccessfulLogin = true
+          insertResult match {
+            case result: QueryResult =>
+              if (result.rows.nonEmpty) {
+                val accountId = result.rows.get.head(0).asInstanceOf[Int]
+                accountIntermediary ! StoreAccountData(newToken, new Account(accountId, username))
+                log.info(s"Successfully created new account for $username")
+              } else {
+                log.error(s"No result from account create insert for $username")
+                isSuccessfulLogin = false
+              }
+              context.become(finishAccountLogin)
+              self ! FinishAccountLogin(connection, username, newToken, isSuccessfulLogin)
+            case _ =>
+              log.error(s"Error creating new account for $username")
+              context.become(finishAccountLogin)
+              self ! FinishAccountLogin(connection, username, newToken, false)
+          }
+      }
+    case default => failWithError(s"Invalid message '$default' received in createNewAccount")
+  }
+
+  def finishAccountLogin() : Receive = {
+    case FinishAccountLogin(connection, username, newToken, isSuccessfulLogin) =>
+      if(isSuccessfulLogin) {
+        loginSuccessfulResponse(username, newToken)
+        updateServerListTask = context.system.scheduler.schedule(0 seconds, 2 seconds, self, UpdateServerList())
+      } else {
+        loginFailureResponse(username, newToken)
+      }
+      if(connection.nonEmpty) {
+        connection.get.disconnect
+      }
+      context.become(Started)
+    case default =>
+      failWithError(s"Invalid message '$default' received in finishAccountLogin")
+  }
+
+  def authenticateExistingAccount(
+    connection: Connection, username: String, password: String, newToken: String, row: ArrayRowData
+  ) : Boolean = {
     val accountId : Int = row(0).asInstanceOf[Int]
     val dbPassHash : String = row(1).asInstanceOf[String]
 
@@ -157,57 +231,6 @@ class LoginSessionActor extends Actor with MDCContextAware {
     }
 
     false
-  }
-
-  def handleNewAccount( connection: Connection, username: String, password: String, newToken: String) : Boolean = {
-    log.info(s"Account $username does not exist, creating new account...")
-
-    val bcryptPassword : String = password.bcrypt(numBcryptPasses)
-    val createNewAccountTransaction : Future[QueryResult] = connection.inTransaction {
-      c => c.sendPreparedStatement(
-        "INSERT INTO accounts (username, passhash) VALUES(?,?) RETURNING id",
-        Array(username, bcryptPassword))
-    }
-    val insertResult = Await.result(createNewAccountTransaction, 5 seconds) // TODO remove awaits
-
-    insertResult match {
-      case result : QueryResult =>
-        if(result.rows.nonEmpty) {
-          val accountId = result.rows.get.head(0).asInstanceOf[Int]
-          accountIntermediary ! StoreAccountData(newToken, new Account(accountId, username))
-          log.info(s"Successfully created new account for $username")
-          return true
-        } else {
-          log.error(s"No result from account create insert for $username")
-        }
-
-      case _ =>
-        log.error(s"Error creating new account for $username")
-    }
-    false
-  }
-
-  def handleGamePkt(pkt : PlanetSideGamePacket) = pkt match {
-      case LoginMessage(majorVersion, minorVersion, buildDate, username, password, token, revision) =>
-        // TODO: prevent multiple LoginMessages from being processed in a row!! We need a state machine
-
-        val clientVersion = s"Client Version: $majorVersion.$minorVersion.$revision, $buildDate"
-
-        if(token.isDefined)
-          log.info(s"New login UN:$username Token:${token.get}. $clientVersion")
-        else
-          log.info(s"New login UN:$username PW:$password. $clientVersion")
-
-        accountLogin(username, password.get)
-
-      case ConnectToWorldRequestMessage(name, _, _, _, _, _, _) =>
-        log.info(s"Connect to world request for '$name'")
-        val response = ConnectToWorldMessage(serverName, serverAddress.getHostString, serverAddress.getPort)
-        sendResponse(PacketCoding.CreateGamePacket(0, response))
-        sendResponse(DropSession(sessionId, "user transferring to world"))
-
-      case _ =>
-        log.debug(s"Unhandled GamePacket $pkt")
   }
 
   def loginSuccessfulResponse(username: String, newToken: String) = {
