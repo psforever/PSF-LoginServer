@@ -24,6 +24,7 @@ import scala.util.{Failure, Success}
 case class StartAccountAuthentication(connection: Option[Connection], username: String, password: String, newToken: String, queryResult: Any)
 case class FinishAccountLogin(connection: Option[Connection], username: String, newToken: String, isSuccessfulLogin: Boolean)
 case class CreateNewAccount(connection: Option[Connection], username: String, password: String, newToken: String)
+case class LogTheLoginOccurrence(connection: Option[Connection], username: String, newToken: String, isSuccessfulLogin: Boolean, accountId: Int)
 
 class LoginSessionActor extends Actor with MDCContextAware {
   private[this] val log = org.log4s.getLogger
@@ -147,9 +148,14 @@ class LoginSessionActor extends Actor with MDCContextAware {
 
         // If we got a row from the database
         case row: ArrayRowData =>
-          val isSuccessfulLogin = authenticateExistingAccount(connection.get, username, password, newToken, row)
-          context.become(finishAccountLogin)
-          self ! FinishAccountLogin(connection, username, newToken, isSuccessfulLogin)
+          val (isSuccessfulLogin, accountId) = authenticateExistingAccount(connection.get, username, password, newToken, row)
+          if(isSuccessfulLogin) {
+            context.become(logTheLoginOccurrence)
+            self ! LogTheLoginOccurrence(connection, username, newToken, isSuccessfulLogin, accountId)
+          } else {
+            context.become(finishAccountLogin)
+            self ! FinishAccountLogin(connection, username, newToken, isSuccessfulLogin)
+          }
 
         // If the account didn't exist in the database
         case errorCode: Int => errorCode match {
@@ -178,19 +184,19 @@ class LoginSessionActor extends Actor with MDCContextAware {
         )
       }.onComplete {
         case Success(insertResult) =>
-          var isSuccessfulLogin = true
           insertResult match {
             case result: QueryResult =>
               if (result.rows.nonEmpty) {
                 val accountId = result.rows.get.head(0).asInstanceOf[Int]
                 accountIntermediary ! StoreAccountData(newToken, new Account(accountId, username))
                 log.info(s"Successfully created new account for $username")
+                context.become(logTheLoginOccurrence)
+                self ! LogTheLoginOccurrence(connection, username, newToken, true, accountId)
               } else {
                 log.error(s"No result from account create insert for $username")
-                isSuccessfulLogin = false
+                context.become(finishAccountLogin)
+                self ! FinishAccountLogin(connection, username, newToken, false)
               }
-              context.become(finishAccountLogin)
-              self ! FinishAccountLogin(connection, username, newToken, isSuccessfulLogin)
             case _ =>
               log.error(s"Error creating new account for $username")
               context.become(finishAccountLogin)
@@ -198,6 +204,22 @@ class LoginSessionActor extends Actor with MDCContextAware {
           }
       }
     case default => failWithError(s"Invalid message '$default' received in createNewAccount")
+  }
+
+  // Essentially keeps a record of this individual login occurrence
+  def logTheLoginOccurrence() : Receive = {
+    case LogTheLoginOccurrence(connection, username, newToken, isSuccessfulLogin, accountId) =>
+      connection.get.inTransaction {
+        c => c.sendPreparedStatement(
+          "INSERT INTO logins (account_id, login_time) VALUES(?,?)",
+          Array(accountId, new java.sql.Timestamp(System.currentTimeMillis))
+        )
+      }.onComplete {
+        case _ =>
+          context.become(finishAccountLogin)
+          self ! FinishAccountLogin(connection, username, newToken, isSuccessfulLogin)
+      }
+    case default => failWithError(s"Invalid message '$default' received in logTheLoginOccurrence")
   }
 
   def finishAccountLogin() : Receive = {
@@ -218,19 +240,19 @@ class LoginSessionActor extends Actor with MDCContextAware {
 
   def authenticateExistingAccount(
     connection: Connection, username: String, password: String, newToken: String, row: ArrayRowData
-  ) : Boolean = {
+  ) : (Boolean, Int) = {
     val accountId : Int = row(0).asInstanceOf[Int]
     val dbPassHash : String = row(1).asInstanceOf[String]
 
     if (password.isBcrypted(dbPassHash)) {
       log.info(s"Account password correct for $username!")
       accountIntermediary ! StoreAccountData(newToken, new Account(accountId, username))
-      return true
+      return (true, accountId)
     } else {
       log.info(s"Account password incorrect for $username")
     }
 
-    false
+    (false, 0)
   }
 
   def loginSuccessfulResponse(username: String, newToken: String) = {
