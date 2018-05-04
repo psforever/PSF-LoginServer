@@ -119,7 +119,7 @@ class VehicleService extends Actor {
       VehicleEvents.publish(
         VehicleServiceResponse(s"/$zone_id/Vehicle", Service.defaultPlayerGUID, VehicleResponse.UnloadVehicle(vehicle_guid))
       )
-      
+
     //from VehicleSpawnControl
     case VehicleSpawnPad.ConcealPlayer(player_guid, zone_id) =>
       VehicleEvents.publish(

@@ -549,7 +549,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           }
 
         case VehicleResponse.UpdateAmsSpawnPoint(list) =>
-          //if(player.isBackpack) {
+          if(player.isBackpack) {
             //dismiss old ams spawn point
             ClearCurrentAmsSpawnPoint()
             //draw new ams spawn point
@@ -567,7 +567,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                 amsSpawnPoint = Some(tube)
               case None => ;
             }
-          //}
+          }
 
         case _ => ;
       }
@@ -1270,8 +1270,15 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case Zone.Population.PlayerAlreadySpawned(zone, tplayer) =>
       log.warn(s"$tplayer is already spawned on zone ${zone.Id}; a clerical error?")
 
-    case Zone.Lattice.SpawnPoint(zone_id, building, spawn_tube) =>
-      log.info(s"Zone.Lattice.SpawnPoint: spawn point on $zone_id in ${building.Id} @ ${spawn_tube.GUID.guid} selected")
+    case Zone.Lattice.SpawnPoint(zone_id, spawn_tube) =>
+      spawn_tube.Owner match {
+        case building : Building =>
+          log.info(s"Zone.Lattice.SpawnPoint: spawn point on $zone_id in ${building.Id} selected")
+        case vehicle : Vehicle =>
+          log.info(s"Zone.Lattice.SpawnPoint: ams spawn point on $zone_id at ${spawn_tube.Position} selected")
+        case owner =>
+          log.warn(s"Zone.Lattice.SpawnPoint: spawn point on $zone_id at ${spawn_tube.Position} has unexpected owner $owner")
+      }
       respawnTimer.cancel
       reviveTimer.cancel
       ClearCurrentAmsSpawnPoint()
@@ -1329,7 +1336,13 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case Zone.Lattice.NoValidSpawnPoint(zone_number, Some(spawn_group)) =>
       log.warn(s"Zone.Lattice.SpawnPoint: zone $zone_number has no available ${player.Faction} targets in spawn group $spawn_group")
       reviveTimer.cancel
-      RequestSanctuaryZoneSpawn(player, zone_number)
+      if(spawn_group == 2) {
+        sendResponse(ChatMsg(ChatMessageType.CMT_OPEN, false, "", "No friendly AMS is deployed in this region.", None))
+        galaxy ! Zone.Lattice.RequestSpawnPoint(zone_number, player, 0)
+      }
+      else {
+        RequestSanctuaryZoneSpawn(player, zone_number)
+      }
 
     case InterstellarCluster.ClientInitializationComplete() =>
       StopBundlingPackets()
@@ -1510,7 +1523,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       //TODO begin temp player character auto-loading; remove later
       import net.psforever.objects.GlobalDefinitions._
       import net.psforever.types.CertificationType._
-      avatar = Avatar("TestCharacter"+sessionId.toString, PlanetSideEmpire.VS, CharacterGender.Female, 41, 1)
+      avatar = Avatar("TestCharacter" + sessionId.toString, PlanetSideEmpire.VS, CharacterGender.Female, 41, 1)
       avatar.Certifications += StandardAssault
       avatar.Certifications += MediumAssault
       avatar.Certifications += StandardExoSuit
@@ -1563,6 +1576,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       import scala.concurrent.ExecutionContext.Implicits.global
       clientKeepAlive.cancel
       clientKeepAlive = context.system.scheduler.schedule(0 seconds, 500 milliseconds, self, PokeClient())
+      //log.warn(PacketCoding.DecodePacket(hex"ad00000000000000001d56f0531374426020000010").toString)
 
     case msg @ CharacterCreateRequestMessage(name, head, voice, gender, empire) =>
       log.info("Handling " + msg)
@@ -1595,7 +1609,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
       vehicleService ! Service.Join(continent.Id)
       configZone(continent)
       sendResponse(TimeOfDayMessage(1191182336))
-
       //custom
       sendResponse(ContinentalLockUpdateMessage(13, PlanetSideEmpire.VS)) // "The VS have captured the VS Sanctuary."
       sendResponse(ReplicationStreamMessage(5, Some(6), Vector(SquadListing()))) //clear squad list
@@ -1621,7 +1634,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
         }
       })
       //load corpses in zone
-      continent.Corpses.foreach { TurnPlayerIntoCorpse }
+      continent.Corpses.foreach {
+        TurnPlayerIntoCorpse
+      }
       //load active vehicles in zone
       continent.Vehicles.foreach(vehicle => {
         val definition = vehicle.Definition
@@ -1639,7 +1654,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         ReloadVehicleAccessPermissions(vehicle)
       })
       //implant terminals
-      continent.Map.TerminalToInterface.foreach({ case((terminal_guid, interface_guid)) =>
+      continent.Map.TerminalToInterface.foreach({ case ((terminal_guid, interface_guid)) =>
         val parent_guid = PlanetSideGUID(terminal_guid)
         continent.GUID(interface_guid) match {
           case Some(obj : Terminal) =>
@@ -1657,7 +1672,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         //seat terminal occupants
         continent.GUID(terminal_guid) match {
           case Some(obj : Mountable) =>
-            obj.MountPoints.foreach({ case((_, seat_num)) =>
+            obj.MountPoints.foreach({ case ((_, seat_num)) =>
               obj.Seat(seat_num).get.Occupant match {
                 case Some(tplayer) =>
                   if(tplayer.HasGUID) {
@@ -1680,7 +1695,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
         player.FacingYawUpper = yaw_upper
         player.Crouching = is_crouching
         player.Jumping = is_jumping
-
         if(vel.isDefined && usingMedicalTerminal.isDefined) {
           StopUsingProximityUnit(continent.GUID(usingMedicalTerminal.get).get.asInstanceOf[ProximityTerminal])
         }
@@ -1716,16 +1730,17 @@ class WorldSessionActor extends Actor with MDCContextAware {
               log.warn(s"ChildObjectState: player $player's controllable agent not available in scope")
           }
         case None =>
-          //TODO status condition of "playing getting out of vehicle to allow for late packets without warning
-          //log.warn(s"ChildObjectState: player $player not related to anything with a controllable agent")
+        //TODO status condition of "playing getting out of vehicle to allow for late packets without warning
+        //log.warn(s"ChildObjectState: player $player not related to anything with a controllable agent")
       }
-      //log.info("ChildObjectState: " + msg)
+    //log.info("ChildObjectState: " + msg)
 
     case msg @ VehicleStateMessage(vehicle_guid, unk1, pos, ang, vel, unk5, unk6, unk7, wheels, unk9, unkA) =>
       continent.GUID(vehicle_guid) match {
         case Some(obj : Vehicle) =>
           val seat = obj.Seat(0).get
-          if(seat.Occupant.contains(player)) { //we're driving the vehicle
+          if(seat.Occupant.contains(player)) {
+            //we're driving the vehicle
             player.Position = pos //convenient
             if(seat.ControlledWeapon.isEmpty) {
               player.Orientation = Vector3(0f, 0f, ang.z) //convenient
@@ -1735,17 +1750,17 @@ class WorldSessionActor extends Actor with MDCContextAware {
             obj.Velocity = vel
             vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.VehicleState(player.GUID, vehicle_guid, unk1, pos, ang, vel, unk5, unk6, unk7, wheels, unk9, unkA))
           }
-          //TODO placing a "not driving" warning here may trigger as we are disembarking the vehicle
+        //TODO placing a "not driving" warning here may trigger as we are disembarking the vehicle
         case _ =>
           log.warn(s"VehicleState: no vehicle $vehicle_guid found in zone")
       }
       //log.info(s"VehicleState: $msg")
 
     case msg @ VehicleSubStateMessage(vehicle_guid, player_guid, vehicle_pos, vehicle_ang, vel, unk1, unk2) =>
-      //log.info(s"VehicleSubState: $vehicle_guid, $player_guid, $vehicle_pos, $vehicle_ang, $vel, $unk1, $unk2")
+    //log.info(s"VehicleSubState: $vehicle_guid, $player_guid, $vehicle_pos, $vehicle_ang, $vel, $unk1, $unk2")
 
     case msg @ ProjectileStateMessage(projectile_guid, shot_pos, shot_vector, unk1, unk2, unk3, unk4, time_alive) =>
-      //log.info("ProjectileState: " + msg)
+    //log.info("ProjectileState: " + msg)
 
     case msg @ ReleaseAvatarRequestMessage() =>
       log.info(s"ReleaseAvatarRequest: ${player.GUID} on ${continent.Id} has released")
@@ -1763,7 +1778,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
             continent.Population ! Zone.Corpse.Add(player) //TODO move back out of this match case when changing below issue
             avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.Release(player, continent))
           }
-          else { //no items in inventory; leave no corpse
+          else {
+            //no items in inventory; leave no corpse
             val player_guid = player.GUID
             sendResponse(ObjectDeleteMessage(player_guid, 0))
             avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player_guid, player_guid, 0))
@@ -1794,20 +1810,22 @@ class WorldSessionActor extends Actor with MDCContextAware {
       log.info("SetChatFilters: " + msg)
 
     case msg @ ChatMsg(messagetype, has_wide_contents, recipient, contents, note_contents) =>
+      var makeReply : Boolean = true
       var echoContents : String = contents
+      val trimContents = contents.trim
       //TODO messy on/off strings may work
       if(messagetype == ChatMessageType.CMT_FLY) {
-        if(contents.trim.equals("on")) {
+        if(trimContents.equals("on")) {
           flying = true
         }
-        else if(contents.trim.equals("off")) {
+        else if(trimContents.equals("off")) {
           flying = false
         }
       }
       else if(messagetype == ChatMessageType.CMT_SPEED) {
         speed = {
           try {
-            contents.trim.toFloat
+            trimContents.toFloat
           }
           catch {
             case _ : Exception =>
@@ -1817,7 +1835,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         }
       }
       else if(messagetype == ChatMessageType.CMT_TOGGLESPECTATORMODE) {
-        if(contents.trim.equals("on")) {
+        if(trimContents.equals("on")) {
           spectator = true
         }
         else if(contents.trim.equals("off")) {
@@ -1851,18 +1869,19 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
         case (false, _) => ;
       }
-
+      
       // TODO: Prevents log spam, but should be handled correctly
-      if (messagetype != ChatMessageType.CMT_TOGGLE_GM) {
+      if(messagetype != ChatMessageType.CMT_TOGGLE_GM) {
         log.info("Chat: " + msg)
       }
-
+      else {
+        makeReply = false
+      }
       if(messagetype == ChatMessageType.CMT_SUICIDE) {
         if(player.isAlive && deadState != DeadState.Release) {
           KillPlayer(player)
         }
       }
-
       if(messagetype == ChatMessageType.CMT_DESTROY) {
         val guid = contents.toInt
         continent.Map.TerminalToSpawnPad.get(guid) match {
@@ -1872,25 +1891,30 @@ class WorldSessionActor extends Actor with MDCContextAware {
             self ! PacketCoding.CreateGamePacket(0, RequestDestroyMessage(PlanetSideGUID(guid)))
         }
       }
-
-      if (messagetype == ChatMessageType.CMT_VOICE) {
+      if(messagetype == ChatMessageType.CMT_VOICE) {
         sendResponse(ChatMsg(ChatMessageType.CMT_VOICE, false, player.Name, contents, None))
       }
-
       // TODO: handle this appropriately
       if(messagetype == ChatMessageType.CMT_QUIT) {
         sendResponse(DropCryptoSession())
         sendResponse(DropSession(sessionId, "user quit"))
       }
-
-      if(contents.trim.equals("!loc")) { //dev hack; consider bang-commands to complement slash-commands in future
+      //dev hack; consider bang-commands to complement slash-commands in future
+      if(trimContents.equals("!loc")) {
         echoContents = s"zone=${continent.Id} pos=${player.Position.x},${player.Position.y},${player.Position.z}; ori=${player.Orientation.x},${player.Orientation.y},${player.Orientation.z}"
         log.info(echoContents)
       }
-
+      else if(trimContents.equals("!ams")) {
+        makeReply = false
+        if(player.isBackpack) { //player is on deployment screen (either dead or deconstructed)
+          galaxy ! Zone.Lattice.RequestSpawnPoint(continent.Number, player, 2)
+        }
+      }
       // TODO: Depending on messagetype, may need to prepend sender's name to contents with proper spacing
       // TODO: Just replays the packet straight back to sender; actually needs to be routed to recipients!
-      sendResponse(ChatMsg(messagetype, has_wide_contents, recipient, echoContents, note_contents))
+      if(makeReply) {
+        sendResponse(ChatMsg(messagetype, has_wide_contents, recipient, echoContents, note_contents))
+      }
 
     case msg @ VoiceHostRequest(unk, PlanetSideGUID(player_guid), data) =>
       log.info("Player "+player_guid+" requested in-game voice chat.")

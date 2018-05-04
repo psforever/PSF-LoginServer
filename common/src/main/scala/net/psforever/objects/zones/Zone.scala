@@ -373,10 +373,9 @@ object Zone {
     /**
       * Message that returns a discovered spawn point to a request source.
       * @param zone_id the zone's text identifier
-      * @param building the `Building` in which the spawnpoint is located
       * @param spawn_tube the spawn point holding object
       */
-    final case class SpawnPoint(zone_id : String, building : Building, spawn_tube : SpawnTube)
+    final case class SpawnPoint(zone_id : String, spawn_tube : SpawnTube)
     /**
       * Message that informs a request source that a spawn point could not be discovered with the previous criteria.
       * @param zone_number this zone's numeric identifier
