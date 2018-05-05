@@ -1204,7 +1204,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
       val popNC = poplist.count(_.faction == PlanetSideEmpire.NC)
       val popVS = poplist.count(_.faction == PlanetSideEmpire.VS)
 
-      zone.Buildings.foreach({ case(id, building) => initBuilding(continentNumber, id, building) })
+      zone.Buildings.foreach({ case(id, building) => 
+        Thread.sleep(10)
+        initBuilding(continentNumber, id, building) })
 
 
 //      sendResponse(BuildingInfoUpdateMessage(4, 11, 10, false, PlanetSideEmpire.NEUTRAL, 0,
@@ -2669,13 +2671,13 @@ class WorldSessionActor extends Actor with MDCContextAware {
                           player.Armor = player.MaxArmor
                           //              sendResponse(PacketCoding.CreateGamePacket(0, QuantityUpdateMessage(PlanetSideGUID(8214),ammo_quantity_left)))
                           sendResponse(PacketCoding.CreateGamePacket(0, RepairMessage(object_guid, player.Armor)))
-                          avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.PlanetsideAttribute(player.GUID, 4, player.Armor))
+                          avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttribute(player.GUID, 4, player.Armor))
                         }
                         if (player.MaxArmor - player.Armor > 15) {
                           player.Armor += 15
                           //              sendResponse(PacketCoding.CreateGamePacket(0, QuantityUpdateMessage(PlanetSideGUID(8214),ammo_quantity_left)))
                           sendResponse(PacketCoding.CreateGamePacket(0, RepairMessage(object_guid, player.Armor)))
-                          avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.PlanetsideAttribute(player.GUID, 4, player.Armor))
+                          avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttribute(player.GUID, 4, player.Armor))
                         }
                       }
                     case _ => ;
@@ -2684,22 +2686,23 @@ class WorldSessionActor extends Actor with MDCContextAware {
                   // TODO : med app ?
                   continent.GUID(object_guid) match {
                     case Some(tplayer : Player) =>
-                    if (player.GUID != tplayer.GUID && player.Velocity.isEmpty && Vector3.Distance(player.Position, tplayer.Position) < 5 && player.Faction == tplayer.Faction && tplayer.death_by == 0) {
-                      if (tplayer.MaxHealth - tplayer.Health <= 5) {
-                        tplayer.Health = tplayer.MaxHealth
-                        //                sendResponse(PacketCoding.CreateGamePacket(0, QuantityUpdateMessage(PlanetSideGUID(8214),ammo_quantity_left)))
-                        val RepairPercent: Int = tplayer.Health * 100 / tplayer.MaxHealth
-                        sendResponse(PacketCoding.CreateGamePacket(0, RepairMessage(object_guid, RepairPercent)))
-                        avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.PlanetsideAttribute(tplayer.GUID, 0, tplayer.Health))
+                      if (player.GUID != tplayer.GUID && player.Velocity.isEmpty && Vector3.Distance(player.Position, tplayer.Position) < 5 && player.Faction == tplayer.Faction && tplayer.death_by == 0) {
+                        if (tplayer.MaxHealth - tplayer.Health <= 5) {
+                          tplayer.Health = tplayer.MaxHealth
+                          //                sendResponse(PacketCoding.CreateGamePacket(0, QuantityUpdateMessage(PlanetSideGUID(8214),ammo_quantity_left)))
+                          val RepairPercent: Int = tplayer.Health * 100 / tplayer.MaxHealth
+                          sendResponse(PacketCoding.CreateGamePacket(0, RepairMessage(object_guid, RepairPercent)))
+                          avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.PlanetsideAttribute(tplayer.GUID, 0, tplayer.Health))
+                        }
+                        if (tplayer.MaxHealth - tplayer.Health > 5) {
+                          tplayer.Health += 5
+                          //                sendResponse(PacketCoding.CreateGamePacket(0, QuantityUpdateMessage(PlanetSideGUID(8214),ammo_quantity_left)))
+                          val RepairPercent: Int = tplayer.Health * 100 / tplayer.MaxHealth
+                          sendResponse(PacketCoding.CreateGamePacket(0, RepairMessage(object_guid, RepairPercent)))
+                          avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.PlanetsideAttribute(tplayer.GUID, 0, tplayer.Health))
+                        }
                       }
-                      if (tplayer.MaxHealth - tplayer.Health > 5) {
-                        tplayer.Health += 5
-                        //                sendResponse(PacketCoding.CreateGamePacket(0, QuantityUpdateMessage(PlanetSideGUID(8214),ammo_quantity_left)))
-                        val RepairPercent: Int = tplayer.Health * 100 / tplayer.MaxHealth
-                        sendResponse(PacketCoding.CreateGamePacket(0, RepairMessage(object_guid, RepairPercent)))
-                        avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.PlanetsideAttribute(tplayer.GUID, 0, tplayer.Health))
-                      }
-                    }
+                    case _ => ;
                   }
                   if (player.GUID == object_guid && player.Velocity.isEmpty) {
                     if (player.MaxHealth - player.Health <= 5) {
@@ -2717,11 +2720,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
                   }
 
                 }
+              case None => ;
             }
           }
-        case _ => ;
-
-
+        case None => ;
+          sendResponse(UseItemMessage(avatar_guid, unk1, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
         case None => ;
       }
 
