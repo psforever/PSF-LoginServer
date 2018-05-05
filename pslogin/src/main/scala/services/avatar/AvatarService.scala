@@ -86,6 +86,10 @@ class AvatarService extends Actor {
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", guid, AvatarResponse.PlanetsideAttribute(attribute_type, attribute_value))
           )
+        case AvatarAction.PlanetsideAttributeSelf(guid, attribute_type, attribute_value) =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(s"/$forChannel/Avatar", guid, AvatarResponse.PlanetsideAttributeSelf(attribute_type, attribute_value))
+          )
         case AvatarAction.PlayerState(guid, msg, spectator, weapon) =>
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", guid, AvatarResponse.PlayerState(msg, spectator, weapon))
@@ -105,6 +109,14 @@ class AvatarService extends Actor {
         case AvatarAction.WeaponDryFire(player_guid, weapon_guid) =>
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.WeaponDryFire(weapon_guid))
+          )
+        case AvatarAction.DestroyDisplay(killer, victim) =>
+            AvatarEvents.publish(
+              AvatarServiceResponse(s"/$forChannel/Avatar", victim.GUID, AvatarResponse.DestroyDisplay(killer,victim))
+            )
+        case AvatarAction.Destroy(victim, killer, weapon, pos) =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(s"/$forChannel/Avatar", victim, AvatarResponse.Destroy(victim, killer, weapon, pos))
           )
 
         case _ => ;

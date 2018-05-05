@@ -2,7 +2,7 @@
 package net.psforever.objects
 
 import net.psforever.objects.definition.AvatarDefinition
-import net.psforever.objects.equipment.{Equipment, EquipmentSize}
+import net.psforever.objects.equipment.{Ammo, DamageType, Equipment, EquipmentSize}
 import net.psforever.objects.inventory.{Container, GridInventory, InventoryItem}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.packet.game.PlanetSideGUID
@@ -35,6 +35,9 @@ class Player(private val core : Avatar) extends PlanetSideGameObject with Factio
 
   private var vehicleSeated : Option[PlanetSideGUID] = None
   private var vehicleOwned : Option[PlanetSideGUID] = None
+
+  // 40100 to 40124
+  private val projectile : Array[Option[Projectile]] = Array.fill[Option[Projectile]](25)(None)
 
   private var continent : String = "home2" //the zone id
 
@@ -190,6 +193,27 @@ class Player(private val core : Avatar) extends PlanetSideGameObject with Factio
       freeHand.Equipment = item
     }
     FreeHand.Equipment
+  }
+
+  def SaveProjectile(id : PlanetSideGUID, from : Int, damage0 : Int, damage1 : Int, damage2 : Int, damage3 : Int, damage4 : Int,
+                     addDamage0 : Int, addDamage1 : Int, addDamage2 : Int, addDamage3 : Int, addDamage4 : Int,
+                     damageAtEdge : Float, damageRadius : Float, damageType : DamageType.Value, degradeDelay : Float,
+                     degradeMultiplier : Float, initialVelocity : Int, lifespan : Float) : Unit = {
+    val temp = id.guid - 40100
+    projectile(temp) = Some(Projectile(this, from, damage0, damage1, damage2, damage3, damage4,
+      addDamage0, addDamage1, addDamage2, addDamage3, addDamage4,
+      damageAtEdge, damageRadius, damageType, degradeDelay,
+      degradeMultiplier, initialVelocity, lifespan))
+  }
+
+  def LoadProjectile(proj : PlanetSideGUID) : Option[Projectile] = {
+    val temp = proj.guid - 40100
+    projectile(temp)
+  }
+
+  def DeleteProjectile(proj : PlanetSideGUID) : Unit = {
+    val temp = proj.guid - 40100
+    projectile(temp) = None
   }
 
   def Find(obj : Equipment) : Option[Int] = Find(obj.GUID)

@@ -13,6 +13,10 @@ import net.psforever.types.ExoSuitType
 class ExoSuitDefinition(private val suitType : ExoSuitType.Value) {
   private var permission : Int = 0 //TODO certification type?
   private var maxArmor : Int = 0
+  private var damageRadiationShielding : Float = 0f
+  private var damageResistanceAggravated : Int = 0
+  private var damageResistanceDirectHit : Int = 0
+  private var damageResistanceSplash : Int = 0
   private val holsters : Array[EquipmentSize.Value] = Array.fill[EquipmentSize.Value](5)(EquipmentSize.Blocked)
   private var inventoryScale : InventoryTile = InventoryTile.Tile11 //override with custom InventoryTile
   private var inventoryOffset : Int = 0
@@ -24,6 +28,30 @@ class ExoSuitDefinition(private val suitType : ExoSuitType.Value) {
   def MaxArmor_=(armor : Int) : Int = {
     maxArmor = math.min(math.max(0, armor), 65535)
     MaxArmor
+  }
+
+  def DamageRadiationShielding : Float = damageRadiationShielding
+  def DamageRadiationShielding_=(resist : Float) : Float = {
+    damageRadiationShielding = resist
+    DamageRadiationShielding
+  }
+
+  def DamageResistanceAggravated : Int = damageResistanceAggravated
+  def DamageResistanceAggravated_=(resist : Int) : Int = {
+    damageResistanceAggravated = resist
+    DamageResistanceAggravated
+  }
+
+  def DamageResistanceDirectHit : Int = damageResistanceDirectHit
+  def DamageResistanceDirectHit_=(resist : Int) : Int = {
+    damageResistanceDirectHit = resist
+    DamageResistanceDirectHit
+  }
+
+  def DamageResistanceSplash : Int = damageResistanceSplash
+  def DamageResistanceSplash_=(resist : Int) : Int = {
+    damageResistanceSplash = resist
+    DamageResistanceSplash
   }
 
   def InventoryScale : InventoryTile = inventoryScale
@@ -70,6 +98,10 @@ object ExoSuitDefinition {
   Standard.Holster(0, EquipmentSize.Pistol)
   Standard.Holster(2, EquipmentSize.Rifle)
   Standard.Holster(4, EquipmentSize.Melee)
+  Standard.DamageRadiationShielding = 0f
+  Standard.DamageResistanceAggravated = 8
+  Standard.DamageResistanceDirectHit = 4
+  Standard.DamageResistanceSplash = 15
 
   final val Agile = ExoSuitDefinition(ExoSuitType.Agile)
   Agile.MaxArmor = 100
@@ -79,6 +111,10 @@ object ExoSuitDefinition {
   Agile.Holster(1, EquipmentSize.Pistol)
   Agile.Holster(2, EquipmentSize.Rifle)
   Agile.Holster(4, EquipmentSize.Melee)
+  Agile.DamageRadiationShielding = 0f
+  Agile.DamageResistanceAggravated = 10
+  Agile.DamageResistanceDirectHit = 6
+  Agile.DamageResistanceSplash = 25
 
   final val Reinforced = ExoSuitDefinition(ExoSuitType.Reinforced)
   Reinforced.permission = 1
@@ -90,6 +126,10 @@ object ExoSuitDefinition {
   Reinforced.Holster(2, EquipmentSize.Rifle)
   Reinforced.Holster(3, EquipmentSize.Rifle)
   Reinforced.Holster(4, EquipmentSize.Melee)
+  Reinforced.DamageRadiationShielding = 0f
+  Reinforced.DamageResistanceAggravated = 12
+  Reinforced.DamageResistanceDirectHit = 10
+  Reinforced.DamageResistanceSplash = 35
 
   final val Infiltration = ExoSuitDefinition(ExoSuitType.Standard)
   Infiltration.permission = 1
@@ -106,6 +146,9 @@ object ExoSuitDefinition {
   MAX.InventoryOffset = 6
   MAX.Holster(0, EquipmentSize.Max)
   MAX.Holster(4, EquipmentSize.Melee)
+  MAX.DamageResistanceAggravated = 10
+  MAX.DamageResistanceDirectHit = 6
+  MAX.DamageResistanceSplash = 35
 
   def apply(suitType : ExoSuitType.Value) : ExoSuitDefinition = {
     new ExoSuitDefinition(suitType)

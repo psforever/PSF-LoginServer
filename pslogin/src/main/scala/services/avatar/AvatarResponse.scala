@@ -24,12 +24,14 @@ object AvatarResponse {
   final case class ObjectDelete(item_guid : PlanetSideGUID, unk : Int) extends Response
   final case class ObjectHeld(slot : Int) extends Response
   final case class PlanetsideAttribute(attribute_type : Int, attribute_value : Long) extends Response
+  final case class PlanetsideAttributeSelf(attribute_type : Int, attribute_value : Long) extends Response
   final case class PlayerState(msg : PlayerStateMessageUpstream, spectator : Boolean, weaponInHand : Boolean) extends Response
   final case class Release(player : Player) extends Response
   final case class Reload(weapon_guid : PlanetSideGUID) extends Response
   final case class WeaponDryFire(weapon_guid : PlanetSideGUID) extends Response
   //  final case class PlayerStateShift(itemID : PlanetSideGUID) extends Response
-  //  final case class DestroyDisplay(itemID : PlanetSideGUID) extends Response
+  final case class DestroyDisplay(killer : Player, victim : Player) extends Response
+  final case class Destroy(victim : PlanetSideGUID, killer : PlanetSideGUID, weapon : PlanetSideGUID, pos : Vector3) extends Response
   //  final case class HitHintReturn(itemID : PlanetSideGUID) extends Response
   //  final case class ChangeWeapon(facingYaw : Int) extends Response
 }

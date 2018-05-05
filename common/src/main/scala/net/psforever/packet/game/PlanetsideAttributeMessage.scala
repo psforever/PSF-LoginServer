@@ -46,6 +46,8 @@ import scodec.codecs._
   * `4 - armor`<br>
   * `5 - armorMax`<br>
   * `6 - transform the (other) avatar in backpack on ground`<br>
+  * `7 - MAX capacitor level`<br>
+  * `8 - MAX capacitor activation`<br>
   * `14 - Something with grief`<br>
   * `15 - Weapon Lock. Value exemple : 600 to have 1 min lock. Max possible is 30min lock`<br>
   * `17 - BEP. Value seems to be the same as BattleExperienceMessage`<br>

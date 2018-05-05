@@ -6,10 +6,10 @@ import net.psforever.types.Vector3
 import scodec.Codec
 import scodec.codecs._
 
-final case class DestroyMessage(unk1 : PlanetSideGUID,
-                                unk2 : PlanetSideGUID,
-                                unk3 : PlanetSideGUID,
-                                pos : Vector3)
+final case class DestroyMessage(unk1 : PlanetSideGUID, // victim (player or vehicle) guid
+                                unk2 : PlanetSideGUID, // killer guid
+                                unk3 : PlanetSideGUID, // weapon guid
+                                pos : Vector3) // death position
   extends PlanetSideGamePacket {
   type Packet = DestroyMessage
   def opcode = GamePacketOpcode.DestroyMessage

@@ -43,8 +43,7 @@ final case class SplashedTarget(uid : PlanetSideGUID,
   * @param unk1 na
   * @param projectile_uid the grenade's object
   * @param projectile_pos the position where the grenade landed (where it is)
-  * @param unk2 na;
-  *             frequently 42
+  * @param direct_victim_uid victim GUID
   * @param unk3 na;
   *             frequently 0
   * @param projectile_vel the velocity of the grenade when it landed
@@ -54,7 +53,7 @@ final case class SplashedTarget(uid : PlanetSideGUID,
 final case class SplashHitMessage(unk1 : Int,
                                   projectile_uid : PlanetSideGUID,
                                   projectile_pos : Vector3,
-                                  unk2 : Int,
+                                  direct_victim_uid : PlanetSideGUID,
                                   unk3 : Int,
                                   projectile_vel : Option[Vector3],
                                   unk4 : Option[Int],
@@ -79,7 +78,7 @@ object SplashHitMessage extends Marshallable[SplashHitMessage] {
     ("unk1" | uintL(10)) ::
       ("projectile_uid" | PlanetSideGUID.codec) ::
       ("projectile_pos" | Vector3.codec_pos) ::
-      ("unk2" | uint16L) ::
+      ("direct_victim_uid" | PlanetSideGUID.codec) ::
       ("unk3" | uintL(3)) ::
       optional(bool, "projectile_vel" | Vector3.codec_vel) ::
       optional(bool, "unk4" | uint16L) ::

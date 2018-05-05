@@ -1,8 +1,8 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects
 
-import net.psforever.objects.definition.{AmmoBoxDefinition, ToolDefinition}
-import net.psforever.objects.equipment.{Ammo, Equipment, FireModeDefinition, FireModeSwitch}
+import net.psforever.objects.definition.{AmmoBoxDefinition, ProjectileDefinition, ToolDefinition}
+import net.psforever.objects.equipment._
 
 import scala.annotation.tailrec
 
@@ -21,6 +21,7 @@ class Tool(private val toolDef : ToolDefinition) extends Equipment with FireMode
   private var fireModeIndex : Int = 0
   /** current ammunition slot being used by this fire mode */
   private val ammoSlots : List[Tool.FireModeSlot] = Tool.LoadDefinition(this)
+//  private val projectileSlots : List[Tool.FireModeSlot] = Tool.LoadDefinition(this)
 
   def FireModeIndex : Int = fireModeIndex
 
@@ -51,6 +52,25 @@ class Tool(private val toolDef : ToolDefinition) extends Equipment with FireMode
     AmmoType
   }
 
+  def ProjectileType : Projectiles.Value = toolDef.ProjectileTypes(AmmoTypeIndex).ProjectileType
+
+  def Damage0 : Int = toolDef.ProjectileTypes(AmmoTypeIndex).Damage0
+  def Damage1 : Int = if (toolDef.ProjectileTypes(AmmoTypeIndex).Damage1 == -1) {Damage0} else {toolDef.ProjectileTypes(AmmoTypeIndex).Damage1}
+  def Damage2 : Int = if (toolDef.ProjectileTypes(AmmoTypeIndex).Damage2 == -1) {Damage1} else {toolDef.ProjectileTypes(AmmoTypeIndex).Damage2}
+  def Damage3 : Int = if (toolDef.ProjectileTypes(AmmoTypeIndex).Damage3 == -1) {Damage2} else {toolDef.ProjectileTypes(AmmoTypeIndex).Damage3}
+  def Damage4 : Int = if (toolDef.ProjectileTypes(AmmoTypeIndex).Damage4 == -1) {Damage3} else {toolDef.ProjectileTypes(AmmoTypeIndex).Damage4}
+
+  def DamageAtEdge : Float = toolDef.ProjectileTypes(AmmoTypeIndex).DamageAtEdge
+
+  def DamageRadius : Float = toolDef.ProjectileTypes(AmmoTypeIndex).DamageRadius
+
+  def DamageType = toolDef.ProjectileTypes(AmmoTypeIndex).ProjectileDamageType
+
+  def DegradeDelay : Float = toolDef.ProjectileTypes(AmmoTypeIndex).DegradeDelay
+  def DegradeMultiplier : Float = toolDef.ProjectileTypes(AmmoTypeIndex).DegradeMultiplier
+  def InitialVelocity : Int = toolDef.ProjectileTypes(AmmoTypeIndex).InitialVelocity
+  def Lifespan : Float = toolDef.ProjectileTypes(AmmoTypeIndex).Lifespan
+
   def Magazine : Int = AmmoSlot.Magazine
 
   def Magazine_=(mag : Int) : Int = {
@@ -65,6 +85,8 @@ class Tool(private val toolDef : ToolDefinition) extends Equipment with FireMode
   }
 
   def AmmoSlot : Tool.FireModeSlot = ammoSlots(FireMode.AmmoSlotIndex)
+
+//  def ProjectileSlot : Tool.FireModeSlot = projectileSlots(FireMode.AmmoSlotIndex)
 
   def AmmoSlots : List[Tool.FireModeSlot] = ammoSlots
 
@@ -143,6 +165,10 @@ object Tool {
       tdef.AmmoTypes(fdef.AmmoTypeIndices(ammoTypeIndex))
     }
 
+//    private def ProjectileDefinition : ProjectileDefinition = {
+//      tdef.ProjectileTypes(fdef.AmmoTypeIndices(ammoTypeIndex))
+//    }
+
     /**
       * This is a reference to the `Ammo.Value` whose `AmmoBoxDefinition` should be loaded into `box`.
       * It may not be the correct `Ammo.Value` whose `AmmoBoxDefinition` is loaded into `box` such as is the case during ammunition swaps.
@@ -181,15 +207,20 @@ object Tool {
       }
     }
 
-    def Damage0 : Int = AmmoDefinition.Damage0
+//    def Damage0 : Int = ProjectileDefinition.Damage0
+//    def Damage1 : Int = if (ProjectileDefinition.Damage1==0) {Damage0} else {ProjectileDefinition.Damage1}
+//    def Damage2 : Int = if (ProjectileDefinition.Damage2==0) {Damage1} else {ProjectileDefinition.Damage2}
+//    def Damage3 : Int = if (ProjectileDefinition.Damage3==0) {Damage2} else {ProjectileDefinition.Damage3}
+//    def Damage4 : Int = if (ProjectileDefinition.Damage4==0) {Damage3} else {ProjectileDefinition.Damage4}
 
-    def Damage1 : Int = if (AmmoDefinition.Damage1==0) {Damage0} else {AmmoDefinition.Damage1}
+//    def DamageType : DamageType.Value = ProjectileDefinition.AmmoDamageType
 
-    def Damage2 : Int = if (AmmoDefinition.Damage2==0) {Damage1} else {AmmoDefinition.Damage2}
+//    def DegradeDelay : Float = ProjectileDefinition.DegradeDelay
+//    def DegradeMultiplier : Float = ProjectileDefinition.DegradeMultiplier
+//    def InitialVelocity : Int = ProjectileDefinition.InitialVelocity
+//    def Lifespan : Float = ProjectileDefinition.Lifespan
 
-    def Damage3 : Int = if (AmmoDefinition.Damage3==0) {Damage2} else {AmmoDefinition.Damage3}
 
-    def Damage4 : Int = if (AmmoDefinition.Damage4==0) {Damage3} else {AmmoDefinition.Damage4}
 
     def Tool : ToolDefinition = tdef
 

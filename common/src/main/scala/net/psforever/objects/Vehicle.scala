@@ -48,6 +48,8 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
   private var jammered : Boolean = false
   private var cloaked : Boolean = false
 
+  var death_by : Int = 0
+
   /**
     * Permissions control who gets to access different parts of the vehicle;
     * the groups are Driver (seat), Gunner (seats), Passenger (seats), and the Trunk
