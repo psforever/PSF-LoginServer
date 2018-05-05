@@ -1762,7 +1762,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       //render Equipment that was dropped into zone before the player arrived
       continent.EquipmentOnGround.foreach(item => {
         val definition = item.Definition
-        Thread.sleep(5)
+        Thread.sleep(10)
         sendResponse(
           ObjectCreateMessage(
             definition.ObjectId,
@@ -1773,17 +1773,17 @@ class WorldSessionActor extends Actor with MDCContextAware {
       })
       //load active players in zone
       continent.LivePlayers.filterNot(_.GUID == player.GUID).foreach(char => {
-        Thread.sleep(5)
+        Thread.sleep(10)
         sendResponse(ObjectCreateMessage(ObjectClass.avatar, char.GUID, char.Definition.Packet.ConstructorData(char).get))
       })
       //load corpses in zone
       continent.Corpses.foreach {
-        Thread.sleep(5)
+        Thread.sleep(10)
         TurnPlayerIntoCorpse
       }
       //load active vehicles in zone
       continent.Vehicles.foreach(vehicle => {
-        Thread.sleep(5)
+        Thread.sleep(10)
         val definition = vehicle.Definition
         sendResponse(ObjectCreateMessage(definition.ObjectId, vehicle.GUID, definition.Packet.ConstructorData(vehicle).get))
         //seat vehicle occupants
@@ -1850,7 +1850,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         player.Jumping = is_jumping
 
         if(is_crouching) {
-          sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, true, "Server", " X : " + player.Position.x.toString + " Y : " + player.Position.y.toString + " Z : " + player.Position.z.toString + "  Orientation Yaw : " + player.Orientation.z.toInt.toString, None))
+//          sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, true, "Server", " X : " + player.Position.x.toString + " Y : " + player.Position.y.toString + " Z : " + player.Position.z.toString + "  Orientation Yaw : " + player.Orientation.z.toInt.toString, None))
           println("(Vector3(" + player.Position.x + "f, " + player.Position.y + "f, " + player.Position.z + "f), Vector3(0, 0, " + player.Orientation.z.toInt + "))))")
         }
 
@@ -4237,10 +4237,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
     */
   def configZone(zone : Zone) : Unit = {
     zone.Buildings.values.foreach(building => {
-      Thread.sleep(10)
       sendResponse(SetEmpireMessage(PlanetSideGUID(building.ModelId), building.Faction))
       building.Amenities.foreach(amenity => {
-        Thread.sleep(10)
+        Thread.sleep(15)
         val amenityId = amenity.GUID
         sendResponse(PlanetsideAttributeMessage(amenityId, 50, 0))
         sendResponse(PlanetsideAttributeMessage(amenityId, 51, 0))
@@ -4327,7 +4326,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     */
   def AvatarCreate() : Unit = {
     player.Spawn
-    player.Health = 50 //TODO temp
+//    player.Health = 50 //TODO temp
     val packet = player.Definition.Packet
     val dcdata = packet.DetailedConstructorData(player).get
     sendResponse(ObjectCreateDetailedMessage(ObjectClass.avatar, player.GUID, dcdata))
