@@ -1087,13 +1087,13 @@ object GlobalDefinitions {
     starfire_ammo.Tile = InventoryTile.Tile44
 
     health_canister.Capacity = 100
-    health_canister.Tile = InventoryTile.Tile33
+    health_canister.Tile = InventoryTile.Tile23
 
     armor_canister.Capacity = 100
-    armor_canister.Tile = InventoryTile.Tile33
+    armor_canister.Tile = InventoryTile.Tile23
 
     upgrade_canister.Capacity = 100
-    upgrade_canister.Tile = InventoryTile.Tile33
+    upgrade_canister.Tile = InventoryTile.Tile23
 
     trek_ammo.Size = EquipmentSize.Blocked
 

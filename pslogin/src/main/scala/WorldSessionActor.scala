@@ -540,6 +540,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case VehicleResponse.ProximityTerminalUse(pad_guid, bool) =>
           sendResponse(ProximityTerminalUseMessage(PlanetSideGUID(0), pad_guid, bool))
 
+        case VehicleResponse.ObjectDelete(item_guid, unk) =>
+          sendResponse(ObjectDeleteMessage(item_guid, unk))
+
         case _ => ;
       }
 
@@ -1261,7 +1264,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       val continentNumber = zone.Number
       val poplist = zone.Players
       val popBO = 0 //TODO black ops test (partition)
-    val popTR = poplist.count(_.faction == PlanetSideEmpire.TR)
+      val popTR = poplist.count(_.faction == PlanetSideEmpire.TR)
       val popNC = poplist.count(_.faction == PlanetSideEmpire.NC)
       val popVS = poplist.count(_.faction == PlanetSideEmpire.VS)
 
@@ -2666,7 +2669,22 @@ class WorldSessionActor extends Actor with MDCContextAware {
               equipment.get.Definition match {
                 case GlobalDefinitions.nano_dispenser =>
                 //TODO repairing behavior
-
+                  if (player.GUID != obj.GUID && player.Velocity.isEmpty && Vector3.Distance(player.Position, obj.Position) < 5 && player.Faction == obj.Faction) {
+                    if (obj.MaxHealth - obj.Health <= 15) {
+                      obj.Health = obj.MaxHealth
+                      //                sendResponse(PacketCoding.CreateGamePacket(0, QuantityUpdateMessage(PlanetSideGUID(8214),ammo_quantity_left)))
+                      val RepairPercent: Int = obj.Health * 100 / obj.MaxHealth
+                      sendResponse(PacketCoding.CreateGamePacket(0, RepairMessage(object_guid, RepairPercent)))
+                      vehicleService ! VehicleServiceMessage(player.Continent, VehicleAction.PlanetsideAttribute(player.GUID, obj.GUID, 0, obj.Health))
+                    }
+                    if (obj.MaxHealth - obj.Health > 15) {
+                      obj.Health += 15
+                      //                sendResponse(PacketCoding.CreateGamePacket(0, QuantityUpdateMessage(PlanetSideGUID(8214),ammo_quantity_left)))
+                      val RepairPercent: Int = obj.Health * 100 / obj.MaxHealth
+                      sendResponse(PacketCoding.CreateGamePacket(0, RepairMessage(object_guid, RepairPercent)))
+                      vehicleService ! VehicleServiceMessage(player.Continent, VehicleAction.PlanetsideAttribute(player.GUID, obj.GUID, 0, obj.Health))
+                    }
+                  }
                 case _ => ;
               }
             }
@@ -2735,7 +2753,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           else if (itemType == 121 && unk3) {
             FindWeapon match {
               case Some(tool: Tool) =>
-                if (tool.Definition.ObjectId == 139) {
+                if (tool.Definition.ObjectId == 132) {
                   // TODO : bank ?
                   continent.GUID(object_guid) match {
                     case Some(tplayer: Player) =>
@@ -2813,7 +2831,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
           }
         case None => ;
           sendResponse(UseItemMessage(avatar_guid, unk1, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
-        case None => ;
       }
 
     case msg@ProximityTerminalUseMessage(player_guid, object_guid, _) =>
@@ -2830,6 +2847,22 @@ class WorldSessionActor extends Actor with MDCContextAware {
           log.warn(s"ProximityTerminal: object is not a terminal - $obj")
         case None =>
           log.warn(s"ProximityTerminal: no object with guid $object_guid found")
+      }
+      continent.GUID(player_guid) match {
+        case Some(vehicle: Vehicle) =>
+          vehicle.Health = vehicle.Health + 60
+          if (vehicle.Health > vehicle.MaxHealth || vehicle.Health == vehicle.MaxHealth) {
+            vehicle.Health = vehicle.MaxHealth
+            vehicleService ! VehicleServiceMessage(player.Continent, VehicleAction.ProximityTerminalUse(player.GUID, object_guid, true))
+            vehicleService ! VehicleServiceMessage(player.Continent, VehicleAction.ProximityTerminalUse(player.GUID, object_guid, false))
+          } else {
+            vehicleService ! VehicleServiceMessage(player.Continent, VehicleAction.ProximityTerminalUse(player.GUID, object_guid, true))
+          }
+          vehicleService ! VehicleServiceMessage(player.Continent, VehicleAction.PlanetsideAttribute(player.GUID, player_guid, 0, vehicle.Health))
+        case Some(player: Player) =>
+          log.info("ProximityTerminalUseMessage, something ToDo for player : " + player.Name)
+        case _ =>
+          log.info("ProximityTerminalUseMessage not vehicle/player, what is : " + player_guid)
       }
 
     case msg@UnuseItemMessage(player_guid, object_guid) =>
@@ -2955,8 +2988,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
                   currentDamage = damages(projectile.InitialVelocity, projectile.Lifespan, projectile.DegradeDelay, projectile.DegradeMultiplier,
                     projectile.Damage1 + projectile.AddDamage1, distance)
                   obj.Health = obj.Health - currentDamage
+                  if (obj.Health < 0) obj.Health = 0
+                  println(obj.Health)
                   if (obj.Health != 0) {
-                    avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttribute(obj.GUID, 0, obj.Health))
+                    vehicleService ! VehicleServiceMessage(player.Continent, VehicleAction.PlanetsideAttribute(player.GUID, obj.GUID, 0, obj.Health))
                   }
                   else {
                     //                    println(obj.Seats.values.count(_.isOccupied)) for later
@@ -2975,15 +3010,15 @@ class WorldSessionActor extends Actor with MDCContextAware {
                         case Some(weapon: Tool) =>
                           weapon.AmmoSlots.foreach(slot => {
                             val magazine = slot.Box
-                            sendResponse(InventoryStateMessage(magazine.GUID, weapon.GUID, 1))
+                            sendResponse(InventoryStateMessage(magazine.GUID, weapon.GUID, 1)) // Todo, who need that ?
                           })
-                          sendResponse(ObjectDeleteMessage(weapon.GUID, 0))
+                          vehicleService ! VehicleServiceMessage(player.Continent, VehicleAction.ObjectDelete(player.GUID, obj.GUID))
                         case _ => ;
                       }
                     })
                     avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.Destroy(obj.GUID, player.GUID, PlanetSideGUID(obj.death_by), obj.Position)) //how many players get this message?
-                    avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(obj.GUID, 10, 3))
-                    avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(obj.GUID, 13, 3))
+                    vehicleService ! VehicleServiceMessage(player.Continent, VehicleAction.PlanetsideAttribute(player.GUID, obj.GUID, 10, 3))
+                    vehicleService ! VehicleServiceMessage(player.Continent, VehicleAction.PlanetsideAttribute(player.GUID, obj.GUID, 13, 3))
                   }
                 case None =>
                   log.info("no projectile saved")
@@ -2998,6 +3033,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
                     projectile.Damage0 + projectile.AddDamage0, distanceBetweenPlayers)
                   obj.Health = damagesAfterResist(currentDamage, currentResistance, obj.Health, obj.Health)._1
                   obj.Armor = damagesAfterResist(currentDamage, currentResistance, obj.Armor, obj.Armor)._2
+//                  sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN,true,"server","damages: "+currentDamage+" hp: "+obj.Health+" armor: "+obj.Armor,None))
+                  if (obj.Health < 0) obj.Health = 0
                   if (obj.Health != 0) {
                     avatarService ! AvatarServiceMessage(obj.Continent, AvatarAction.PlanetsideAttribute(obj.GUID, 0, obj.Health))
                     avatarService ! AvatarServiceMessage(obj.Continent, AvatarAction.PlanetsideAttribute(obj.GUID, 4, obj.Armor))
@@ -3028,8 +3065,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
               currentDamage = damages(projectile.InitialVelocity, projectile.Lifespan, projectile.DegradeDelay, projectile.DegradeMultiplier,
                 projectile.Damage1 + projectile.AddDamage1, distance)
               obj.Health = obj.Health - currentDamage
+              if (obj.Health < 0) obj.Health = 0
+              println(obj.Health)
               if (obj.Health != 0) {
-                avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttribute(obj.GUID, 0, obj.Health))
+                vehicleService ! VehicleServiceMessage(player.Continent, VehicleAction.PlanetsideAttribute(player.GUID, obj.GUID, 0, obj.Health))
               }
               else {
                 //                    println(obj.Seats.values.count(_.isOccupied)) for later
@@ -3048,15 +3087,15 @@ class WorldSessionActor extends Actor with MDCContextAware {
                     case Some(weapon: Tool) =>
                       weapon.AmmoSlots.foreach(slot => {
                         val magazine = slot.Box
-                        sendResponse(InventoryStateMessage(magazine.GUID, weapon.GUID, 1))
+                        sendResponse(InventoryStateMessage(magazine.GUID, weapon.GUID, 1)) // Todo, who need that ?
                       })
-                      sendResponse(ObjectDeleteMessage(weapon.GUID, 0))
+                      vehicleService ! VehicleServiceMessage(player.Continent, VehicleAction.ObjectDelete(player.GUID, obj.GUID))
                     case _ => ;
                   }
                 })
                 avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.Destroy(obj.GUID, player.GUID, PlanetSideGUID(obj.death_by), obj.Position)) //how many players get this message?
-                avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(obj.GUID, 10, 3))
-                avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(obj.GUID, 13, 3))
+                vehicleService ! VehicleServiceMessage(player.Continent, VehicleAction.PlanetsideAttribute(player.GUID, obj.GUID, 10, 3))
+                vehicleService ! VehicleServiceMessage(player.Continent, VehicleAction.PlanetsideAttribute(player.GUID, obj.GUID, 13, 3))
               }
             case None =>
               log.info("no projectile saved")
@@ -3071,6 +3110,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
                 projectile.Damage0 + projectile.AddDamage0, distanceBetweenPlayers)
               obj.Health = damagesAfterResist(currentDamage, currentResistance, obj.Health, obj.Health)._1
               obj.Armor = damagesAfterResist(currentDamage, currentResistance, obj.Armor, obj.Armor)._2
+//              sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN,true,"server","damages: "+currentDamage+" hp: "+obj.Health+" armor: "+obj.Armor,None))
+              if (obj.Health < 0) obj.Health = 0
               if (obj.Health != 0) {
                 avatarService ! AvatarServiceMessage(obj.Continent, AvatarAction.PlanetsideAttribute(obj.GUID, 0, obj.Health))
                 avatarService ! AvatarServiceMessage(obj.Continent, AvatarAction.PlanetsideAttribute(obj.GUID, 4, obj.Armor))
@@ -3096,8 +3137,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
                 currentDamage = damages(projectile.InitialVelocity, projectile.Lifespan, projectile.DegradeDelay, projectile.DegradeMultiplier,
                   projectile.Damage1 + projectile.AddDamage1, distance)
                 obj.Health = obj.Health - currentDamage
+                if (obj.Health < 0) obj.Health = 0
+                println(obj.Health)
                 if (obj.Health != 0) {
-                  avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttribute(obj.GUID, 0, obj.Health))
+                  vehicleService ! VehicleServiceMessage(player.Continent, VehicleAction.PlanetsideAttribute(player.GUID, obj.GUID, 0, obj.Health))
                 }
                 else {
                   //                    println(obj.Seats.values.count(_.isOccupied)) for later
@@ -3116,15 +3159,15 @@ class WorldSessionActor extends Actor with MDCContextAware {
                       case Some(weapon: Tool) =>
                         weapon.AmmoSlots.foreach(slot => {
                           val magazine = slot.Box
-                          sendResponse(InventoryStateMessage(magazine.GUID, weapon.GUID, 1))
+                          sendResponse(InventoryStateMessage(magazine.GUID, weapon.GUID, 1)) // Todo, who need that ?
                         })
-                        sendResponse(ObjectDeleteMessage(weapon.GUID, 0))
+                        vehicleService ! VehicleServiceMessage(player.Continent, VehicleAction.ObjectDelete(player.GUID, obj.GUID))
                       case _ => ;
                     }
                   })
                   avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.Destroy(obj.GUID, player.GUID, PlanetSideGUID(obj.death_by), obj.Position)) //how many players get this message?
-                  avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(obj.GUID, 10, 3))
-                  avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(obj.GUID, 13, 3))
+                  vehicleService ! VehicleServiceMessage(player.Continent, VehicleAction.PlanetsideAttribute(player.GUID, obj.GUID, 10, 3))
+                  vehicleService ! VehicleServiceMessage(player.Continent, VehicleAction.PlanetsideAttribute(player.GUID, obj.GUID, 13, 3))
                 }
               case None =>
                 log.info("no projectile saved")
@@ -3139,6 +3182,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
                   projectile.Damage0 + projectile.AddDamage0, distanceBetweenPlayers)
                 obj.Health = damagesAfterResist((projectile.damageAtEdge * currentDamage).toInt, currentResistance, obj.Health, obj.Health)._1
                 obj.Armor = damagesAfterResist((projectile.damageAtEdge * currentDamage).toInt, currentResistance, obj.Armor, obj.Armor)._2
+//                sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN,true,"server","damages: "+currentDamage+" hp: "+obj.Health+" armor: "+obj.Armor,None))
+                if (obj.Health < 0) obj.Health = 0
                 if (obj.Health != 0) {
                   avatarService ! AvatarServiceMessage(obj.Continent, AvatarAction.PlanetsideAttribute(obj.GUID, 0, obj.Health))
                   avatarService ! AvatarServiceMessage(obj.Continent, AvatarAction.PlanetsideAttribute(obj.GUID, 4, obj.Armor))
@@ -3179,25 +3224,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg@WarpgateRequest(continent_guid, building_guid, dest_building_guid, dest_continent_guid, unk1, unk2) =>
       log.info("WarpgateRequest: " + msg)
-
-    case msg@ProximityTerminalUseMessage(player_guid, object_guid, unk) =>
-      log.info("ProximityTerminalUseMessage: " + msg)
-      continent.GUID(player_guid) match {
-        case Some(vehicle: Vehicle) =>
-          vehicle.Health = vehicle.Health + 60
-          if (vehicle.Health > vehicle.MaxHealth || vehicle.Health == vehicle.MaxHealth) {
-            vehicle.Health = vehicle.MaxHealth
-            vehicleService ! VehicleServiceMessage(player.Continent, VehicleAction.ProximityTerminalUse(player.GUID, object_guid, true))
-            vehicleService ! VehicleServiceMessage(player.Continent, VehicleAction.ProximityTerminalUse(player.GUID, object_guid, false))
-          } else {
-            vehicleService ! VehicleServiceMessage(player.Continent, VehicleAction.ProximityTerminalUse(player.GUID, object_guid, true))
-          }
-          vehicleService ! VehicleServiceMessage(player.Continent, VehicleAction.PlanetsideAttribute(player.GUID, player_guid, 0, vehicle.Health))
-        case Some(player: Player) =>
-          log.info("ProximityTerminalUseMessage, something ToDo for player : " + player.Name)
-        case _ =>
-          log.info("ProximityTerminalUseMessage not vehicle/player, what is : " + player_guid)
-      }
 
     case msg@MountVehicleMsg(player_guid, mountable_guid, unk) =>
       log.info("MountVehicleMsg: " + msg)
@@ -4395,7 +4421,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     zone.Buildings.values.foreach(building => {
       sendResponse(SetEmpireMessage(PlanetSideGUID(building.ModelId), building.Faction))
       building.Amenities.foreach(amenity => {
-        Thread.sleep(15)
+        Thread.sleep(10)
         val amenityId = amenity.GUID
         sendResponse(PlanetsideAttributeMessage(amenityId, 50, 0))
         sendResponse(PlanetsideAttributeMessage(amenityId, 51, 0))
@@ -4421,7 +4447,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * A maximum revive waiting timer is started.
     * When this timer reaches zero, the avatar will attempt to spawn back on its faction-specific sanctuary continent.
     *
-    * @pararm tplayer the player to be killed
+    * @param tplayer the player to be killed
     */
   def KillPlayer(tplayer: Player): Unit = {
     val player_guid = tplayer.GUID
@@ -4705,7 +4731,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       * For pure proximity-based units and services, disable any manual attempt at cutting off the functionality.
       * If an existing timer can be found, cancel it.
       *
-      * @param terminal the proximity-based unit
+      * @param terminal_guid the proximity-based unit
       */
     def ClearDelayedProximityUnitReset(terminal_guid: PlanetSideGUID): Unit = {
       delayedProximityTerminalResets.get(terminal_guid) match {

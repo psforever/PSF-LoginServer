@@ -96,6 +96,10 @@ class VehicleService extends Actor {
           VehicleEvents.publish(
             VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.ProximityTerminalUse(pad_guid, bool))
           )
+        case VehicleAction.ObjectDelete(player_guid, item_guid, unk) =>
+          VehicleEvents.publish(
+            VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.ObjectDelete(item_guid, unk))
+          )
         case _ => ;
     }
 

@@ -189,8 +189,8 @@ object PsLogin {
       SessionPipeline("world-session-", Props[WorldSessionActor])
     )
 
-    val loginServerPort = 51000
-    val worldServerPort = 51001
+    val loginServerPort = 51200
+    val worldServerPort = 51201
 
 
     // Uncomment for network simulation

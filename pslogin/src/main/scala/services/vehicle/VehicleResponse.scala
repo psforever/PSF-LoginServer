@@ -24,4 +24,5 @@ object VehicleResponse {
   final case class VehicleState(vehicle_guid : PlanetSideGUID, unk1 : Int, pos : Vector3, ang : Vector3, vel : Option[Vector3], unk2 : Option[Int], unk3 : Int, unk4 : Int, wheel_direction : Int, unk5 : Boolean, unk6 : Boolean) extends Response
   final case class PlanetsideAttribute(vehicle_guid : PlanetSideGUID, attribute_type : Int, attribute_value : Long) extends Response
   final case class ProximityTerminalUse(pad_guid : PlanetSideGUID, bool : Boolean) extends Response
+  final case class ObjectDelete(item_guid : PlanetSideGUID, unk : Int) extends Response
 }
