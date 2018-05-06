@@ -127,6 +127,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             continent.Population ! Zone.Corpse.Add(player)
             FriskCorpse(player) //TODO eliminate dead letters
             if (!WellLootedCorpse(player)) {
+              continent.Population ! Zone.Corpse.Add(player)
               avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.Release(player, continent))
               taskResolver ! GUIDTask.UnregisterLocker(player.Locker)(continent.GUID) //rest of player will be cleaned up with corpses
             }
@@ -2002,9 +2003,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
       continent.Population ! Zone.Population.Release(avatar)
       player.VehicleSeated match {
         case None =>
-          continent.Population ! Zone.Corpse.Add(player) //TODO move back out of this match case when changing below issue
           FriskCorpse(player)
           if (!WellLootedCorpse(player)) {
+            continent.Population ! Zone.Corpse.Add(player) //TODO move back out of this match case when changing below issue
             TurnPlayerIntoCorpse(player)
             avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.Release(player, continent))
           }
@@ -2475,8 +2476,13 @@ class WorldSessionActor extends Actor with MDCContextAware {
           }
 
         case None =>
-          log.warn(s"RequestDestroy: object $object_guid not found (not an Equipment or a Vehicle)")
-          player.DeleteProjectile(object_guid)
+          player.LoadProjectile(object_guid) match {
+            case Some(projectile) =>
+              player.DeleteProjectile(object_guid)
+              log.info(s"RequestDestroy: object $object_guid found a projectile")
+            case None =>
+              log.warn(s"RequestDestroy: object $object_guid not found (not an Equipment or a Vehicle)")
+          }
 
         case _ =>
           log.warn(s"RequestDestroy: not allowed to delete object $object_guid")
@@ -3012,7 +3018,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                             val magazine = slot.Box
                             sendResponse(InventoryStateMessage(magazine.GUID, weapon.GUID, 1)) // Todo, who need that ?
                           })
-                          vehicleService ! VehicleServiceMessage(player.Continent, VehicleAction.ObjectDelete(player.GUID, obj.GUID))
+                          vehicleService ! VehicleServiceMessage(player.Continent, VehicleAction.ObjectDelete(player.GUID, weapon.GUID))
                         case _ => ;
                       }
                     })
@@ -3020,6 +3026,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                     vehicleService ! VehicleServiceMessage(player.Continent, VehicleAction.PlanetsideAttribute(player.GUID, obj.GUID, 10, 3))
                     vehicleService ! VehicleServiceMessage(player.Continent, VehicleAction.PlanetsideAttribute(player.GUID, obj.GUID, 13, 3))
                   }
+                  player.DeleteProjectile(projectile_guid)
                 case None =>
                   log.info("no projectile saved")
               }
@@ -3042,11 +3049,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
                     obj.death_by = projectile.FromWeaponId
                     KillPlayer(obj)
                   }
+                  player.DeleteProjectile(projectile_guid)
                 //                  avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player_guid, 0, 0))
                 case None =>
                   log.info("no projectile saved")
               }
-              player.DeleteProjectile(projectile_guid)
             case _ => ;
               println("rien")
           }
@@ -3089,7 +3096,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                         val magazine = slot.Box
                         sendResponse(InventoryStateMessage(magazine.GUID, weapon.GUID, 1)) // Todo, who need that ?
                       })
-                      vehicleService ! VehicleServiceMessage(player.Continent, VehicleAction.ObjectDelete(player.GUID, obj.GUID))
+                      vehicleService ! VehicleServiceMessage(player.Continent, VehicleAction.ObjectDelete(player.GUID, weapon.GUID))
                     case _ => ;
                   }
                 })
@@ -3097,6 +3104,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                 vehicleService ! VehicleServiceMessage(player.Continent, VehicleAction.PlanetsideAttribute(player.GUID, obj.GUID, 10, 3))
                 vehicleService ! VehicleServiceMessage(player.Continent, VehicleAction.PlanetsideAttribute(player.GUID, obj.GUID, 13, 3))
               }
+              player.DeleteProjectile(projectile_guid)
             case None =>
               log.info("no projectile saved")
           }
@@ -3119,10 +3127,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
                 obj.death_by = projectile.FromWeaponId
                 KillPlayer(obj)
               }
+              player.DeleteProjectile(projectile_guid)
             case None =>
               log.info("no projectile saved")
           }
-          player.DeleteProjectile(projectile_guid)
         case _ => ;
           println("rien")
       }
@@ -3161,7 +3169,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                           val magazine = slot.Box
                           sendResponse(InventoryStateMessage(magazine.GUID, weapon.GUID, 1)) // Todo, who need that ?
                         })
-                        vehicleService ! VehicleServiceMessage(player.Continent, VehicleAction.ObjectDelete(player.GUID, obj.GUID))
+                        vehicleService ! VehicleServiceMessage(player.Continent, VehicleAction.ObjectDelete(player.GUID, weapon.GUID))
                       case _ => ;
                     }
                   })
@@ -3169,6 +3177,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                   vehicleService ! VehicleServiceMessage(player.Continent, VehicleAction.PlanetsideAttribute(player.GUID, obj.GUID, 10, 3))
                   vehicleService ! VehicleServiceMessage(player.Continent, VehicleAction.PlanetsideAttribute(player.GUID, obj.GUID, 13, 3))
                 }
+                player.DeleteProjectile(projectile_guid)
               case None =>
                 log.info("no projectile saved")
             }
@@ -3191,10 +3200,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
                   obj.death_by = projectile.FromWeaponId
                   KillPlayer(obj)
                 }
+                player.DeleteProjectile(projectile_guid)
               case None =>
                 log.info("no projectile saved")
             }
-            player.DeleteProjectile(projectile_guid)
           case _ => ;
             println("rien")
         }

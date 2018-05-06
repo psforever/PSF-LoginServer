@@ -2777,6 +2777,8 @@ object GlobalDefinitions {
     isp.Size = EquipmentSize.Pistol
     isp.AmmoTypes += shotgun_shell
     isp.AmmoTypes += shotgun_shell_AP
+    isp.ProjectileTypes += shotgun_shell_projectile
+    isp.ProjectileTypes += shotgun_shell_AP_projectile
     isp.FireModes += new PelletFireModeDefinition
     isp.FireModes.head.AmmoTypeIndices += 0
     isp.FireModes.head.AmmoTypeIndices += 1
@@ -2787,24 +2789,43 @@ object GlobalDefinitions {
 
     beamer.Size = EquipmentSize.Pistol
     beamer.AmmoTypes += energy_cell
+    beamer.ProjectileTypes += energy_cell_projectile
+    beamer.ProjectileTypes += enhanced_energy_cell_projectile
     beamer.FireModes += new FireModeDefinition
     beamer.FireModes.head.AmmoTypeIndices += 0
     beamer.FireModes.head.AmmoSlotIndex = 0
     beamer.FireModes.head.Magazine = 16
+    beamer.FireModes.head.AddDamage0 = 4
+    beamer.FireModes.head.AddDamage1 = -1
+    beamer.FireModes.head.AddDamage2 = -1
+    beamer.FireModes.head.AddDamage3 = -1
+    beamer.FireModes.head.AddDamage4 = -1
     beamer.FireModes += new FireModeDefinition
     beamer.FireModes(1).AmmoTypeIndices += 0
     beamer.FireModes(1).AmmoSlotIndex = 0
     beamer.FireModes(1).Magazine = 16
+    beamer.FireModes(1).AddDamage0 = -3
+    beamer.FireModes(1).AddDamage1 = -3
+    beamer.FireModes(1).AddDamage2 = -3
+    beamer.FireModes(1).AddDamage3 = -3
+    beamer.FireModes(1).AddDamage4 = -3
     beamer.Tile = InventoryTile.Tile33
 
     ilc9.Size = EquipmentSize.Pistol
     ilc9.AmmoTypes += bullet_9mm
     ilc9.AmmoTypes += bullet_9mm_AP
+    ilc9.ProjectileTypes += bullet_9mm_projectile
+    ilc9.ProjectileTypes += bullet_9mm_AP_projectile
     ilc9.FireModes += new FireModeDefinition
     ilc9.FireModes.head.AmmoTypeIndices += 0
     ilc9.FireModes.head.AmmoTypeIndices += 1
     ilc9.FireModes.head.AmmoSlotIndex = 0
     ilc9.FireModes.head.Magazine = 30
+    ilc9.FireModes.head.AddDamage0 = 0
+    ilc9.FireModes.head.AddDamage1 = -3
+    ilc9.FireModes.head.AddDamage2 = 0
+    ilc9.FireModes.head.AddDamage3 = 0
+    ilc9.FireModes.head.AddDamage4 = -3
     ilc9.Tile = InventoryTile.Tile33
 
     suppressor.Size = EquipmentSize.Rifle
