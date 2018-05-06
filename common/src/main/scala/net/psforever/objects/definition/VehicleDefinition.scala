@@ -28,6 +28,7 @@ class VehicleDefinition(objectId : Int) extends ObjectDefinition(objectId) {
   private var trunkOffset : Int = 0
   private var canCloak : Boolean = false
   private var canBeOwned : Boolean = true
+  private var serverVehicleOverrideSpeeds : (Int, Int) = (0, 0)
   Name = "vehicle"
   Packet = VehicleDefinition.converter
 
@@ -102,6 +103,17 @@ class VehicleDefinition(objectId : Int) extends ObjectDefinition(objectId) {
     trunkOffset = offset
     TrunkOffset
   }
+
+  def AutoPilotSpeeds : (Int, Int) = serverVehicleOverrideSpeeds
+
+  def AutoPilotSpeeds_=(speeds : (Int, Int)) : (Int, Int) = {
+    serverVehicleOverrideSpeeds = speeds
+    AutoPilotSpeeds
+  }
+
+  def AutoPilotSpeed1 : Int = serverVehicleOverrideSpeeds._1
+
+  def AutoPilotSpeed2 : Int = serverVehicleOverrideSpeeds._2
 }
 
 object VehicleDefinition {

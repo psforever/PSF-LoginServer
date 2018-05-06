@@ -26,13 +26,13 @@ import net.psforever.objects.serverobject.implantmech.ImplantTerminalMech
 import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.mblocker.Locker
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
-import net.psforever.objects.serverobject.terminals.{MatrixTerminalDefinition, ProximityTerminal, Terminal}
-import net.psforever.objects.serverobject.terminals.Terminal.TerminalMessage
-import net.psforever.objects.vehicles.{AccessPermissionGroup, Utility, VehicleLockState}
+import net.psforever.objects.serverobject.pad.process.{AutoDriveControls, VehicleSpawnControlGuided}
 import net.psforever.objects.serverobject.structures.{Building, StructureType, WarpGate}
+import net.psforever.objects.serverobject.terminals.{MatrixTerminalDefinition, ProximityTerminal, Terminal}
 import net.psforever.objects.serverobject.terminals.Terminal
+import net.psforever.objects.serverobject.terminals.Terminal.TerminalMessage
 import net.psforever.objects.serverobject.tube.SpawnTube
-import net.psforever.objects.vehicles.{AccessPermissionGroup, VehicleLockState}
+import net.psforever.objects.vehicles.{AccessPermissionGroup, Utility, VehicleLockState}
 import net.psforever.objects.zones.{InterstellarCluster, Zone}
 import net.psforever.packet.game.objectcreate._
 import net.psforever.types._
@@ -47,37 +47,44 @@ import scala.annotation.tailrec
 import scala.util.Success
 
 class WorldSessionActor extends Actor with MDCContextAware {
-
   import WorldSessionActor._
-
   private[this] val log = org.log4s.getLogger
 
-  var sessionId: Long = 0
-  var leftRef: ActorRef = ActorRef.noSender
-  var rightRef: ActorRef = ActorRef.noSender
-  var avatarService: ActorRef = ActorRef.noSender
-  var localService: ActorRef = ActorRef.noSender
-  var vehicleService: ActorRef = ActorRef.noSender
+  var sessionId : Long = 0
+  var leftRef : ActorRef = ActorRef.noSender
+  var rightRef : ActorRef = ActorRef.noSender
+  var avatarService : ActorRef = ActorRef.noSender
+  var localService : ActorRef = ActorRef.noSender
+  var vehicleService : ActorRef = ActorRef.noSender
   var chatService: ActorRef = ActorRef.noSender
-  var taskResolver: ActorRef = Actor.noSender
-  var galaxy: ActorRef = Actor.noSender
-  var continent: Zone = Zone.Nowhere
-  var player: Player = null
-  var avatar: Avatar = null
-  var progressBarValue: Option[Float] = None
-  var shooting: Option[PlanetSideGUID] = None
-  var accessedContainer: Option[PlanetSideGameObject with Container] = None
-  var flying: Boolean = false
-  var speed: Float = 1.0f
-  var spectator: Boolean = false
-  var admin: Boolean = false
-  var usingMedicalTerminal: Option[PlanetSideGUID] = None
-  var usingProximityTerminal: Set[PlanetSideGUID] = Set.empty
-  var delayedProximityTerminalResets: Map[PlanetSideGUID, Cancellable] = Map.empty
+  var taskResolver : ActorRef = Actor.noSender
+  var galaxy : ActorRef = Actor.noSender
+  var continent : Zone = Zone.Nowhere
+  var player : Player = null
+  var avatar : Avatar = null
+  var progressBarValue : Option[Float] = None
+  var shooting : Option[PlanetSideGUID] = None
+  var accessedContainer : Option[PlanetSideGameObject with Container] = None
+  var flying : Boolean = false
+  var speed : Float = 1.0f
+  var spectator : Boolean = false
+  var admin : Boolean = false
+  var usingMedicalTerminal : Option[PlanetSideGUID] = None
+  var usingProximityTerminal : Set[PlanetSideGUID] = Set.empty
+  var delayedProximityTerminalResets : Map[PlanetSideGUID, Cancellable] = Map.empty
+  var controlled : Option[Int] = None //keep track of avatar's ServerVehicleOverride state
 
-  var clientKeepAlive: Cancellable = DefaultCancellable.obj
-  var progressBarUpdate: Cancellable = DefaultCancellable.obj
-  var reviveTimer: Cancellable = DefaultCancellable.obj
+  var clientKeepAlive : Cancellable = DefaultCancellable.obj
+  var progressBarUpdate : Cancellable = DefaultCancellable.obj
+  var reviveTimer : Cancellable = DefaultCancellable.obj
+
+  /**
+    * Convert a boolean value into an integer value.
+    * Use: `true:Int` or `false:Int`
+    * @param b `true` or `false` (or `null`)
+    * @return 1 for `true`; 0 for `false`
+    */
+  implicit def boolToInt(b : Boolean) : Int = if(b) 1 else 0
 
   override def postStop() = {
     clientKeepAlive.cancel
@@ -396,9 +403,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
             PlayerActionsToCancel()
             CancelAllProximityUnits()
 
-            import scala.concurrent.duration._
-            import scala.concurrent.ExecutionContext.Implicits.global
-            reviveTimer = context.system.scheduler.scheduleOnce(30000 milliseconds, galaxy, Zone.Lattice.RequestSpawnPoint(Zones.SanctuaryZoneNumber(player.Faction), player, 7))
+//            import scala.concurrent.duration._
+//            import scala.concurrent.ExecutionContext.Implicits.global
+//            reviveTimer = context.system.scheduler.scheduleOnce(30000 milliseconds, galaxy, Zone.Lattice.RequestSpawnPoint(Zones.SanctuaryZoneNumber(player.Faction), player, 7))
           }
 
         case AvatarResponse.Destroy(victim, killer, weapon, pos) =>
@@ -453,10 +460,16 @@ class WorldSessionActor extends Actor with MDCContextAware {
           //resets exclamation point fte marker (once)
           sendResponse(PlanetsideAttributeMessage(guid, 21, vehicle_guid.guid.toLong))
 
+        case VehicleResponse.AttachToRails(vehicle_guid, pad_guid) =>
+          sendResponse(ObjectAttachMessage(pad_guid, vehicle_guid, 3))
+
         case VehicleResponse.ChildObjectState(object_guid, pitch, yaw) =>
           if (tplayer_guid != guid) {
             sendResponse(ChildObjectStateMessage(object_guid, pitch, yaw))
           }
+
+        case VehicleResponse.ConcealPlayer(player_guid) =>
+          sendResponse(GenericObjectActionMessage(player_guid, 36))
 
         case VehicleResponse.DismountVehicle(unk1, unk2) =>
           if (tplayer_guid != guid) {
@@ -467,6 +480,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
           if (tplayer_guid != guid) {
             sendResponse(DeployRequestMessage(guid, object_guid, state, unk1, unk2, pos))
           }
+
+        case VehicleResponse.DetachFromRails(vehicle_guid, pad_guid, pad_position, pad_orientation_z) =>
+          sendResponse(ObjectDetachMessage(pad_guid, vehicle_guid, pad_position + Vector3(0,0,0.5f), 0, 0, pad_orientation_z))
 
         case VehicleResponse.InventoryState(obj, parent_guid, start, con_data) =>
           if (tplayer_guid != guid) {
@@ -503,6 +519,16 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case VehicleResponse.MountVehicle(vehicle_guid, seat) =>
           if (tplayer_guid != guid) {
             sendResponse(ObjectAttachMessage(vehicle_guid, guid, seat))
+          }
+
+        case VehicleResponse.ResetSpawnPad(pad_guid) =>
+          sendResponse(GenericObjectActionMessage(pad_guid, 92))
+
+        case VehicleResponse.RevealPlayer(player_guid) =>
+          //TODO any action will cause the player to appear after the effects of ConcealPlayer
+          if(player.GUID == player_guid) {
+            sendResponse(ChatMsg(ChatMessageType.CMT_OPEN, true, "", "You are in a strange situation.", None))
+            KillPlayer(player)
           }
 
         case VehicleResponse.SeatPermissions(vehicle_guid, seat_group, permission) =>
@@ -770,6 +796,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           if (player_guid == player.GUID) {
             //disembarking self
             log.info(s"DismountVehicleMsg: $player_guid dismounts $obj @ $seat_num")
+            TotalDriverVehicleControl(obj)
             sendResponse(DismountVehicleMsg(player_guid, seat_num, false))
             vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.DismountVehicle(player_guid, seat_num, false))
             UnAccessContents(obj)
@@ -1159,46 +1186,56 @@ class WorldSessionActor extends Actor with MDCContextAware {
           sendResponse(ItemTransactionResultMessage(msg.terminal_guid, msg.transaction_type, false))
       }
 
-    case VehicleSpawnPad.ConcealPlayer =>
-      sendResponse(GenericObjectActionMessage(player.GUID, 36))
-      avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ConcealPlayer(player.GUID))
-
-    case VehicleSpawnPad.LoadVehicle(vehicle, _ /*pad*/) =>
-      val player_guid = player.GUID
-      val definition = vehicle.Definition
-      val objedtId = definition.ObjectId
+    case VehicleSpawnPad.StartPlayerSeatedInVehicle(vehicle, pad) =>
       val vehicle_guid = vehicle.GUID
-      val vdata = definition.Packet.ConstructorData(vehicle).get
-      sendResponse(ObjectCreateMessage(objedtId, vehicle_guid, vdata))
-      continent.Transport ! Zone.SpawnVehicle(vehicle)
-      vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.LoadVehicle(player_guid, vehicle, objedtId, vehicle_guid, vdata))
       sendResponse(PlanetsideAttributeMessage(vehicle_guid, 22, 1L)) //mount points off?
-      sendResponse(PlanetsideAttributeMessage(vehicle_guid, 21, player_guid.guid)) //fte and ownership?
-      //sendResponse(ObjectAttachMessage(vehicle_guid, player_guid, 0))
-      vehicleService ! VehicleServiceMessage.UnscheduleDeconstruction(vehicle_guid) //cancel queue timeout delay
-      vehicleService ! VehicleServiceMessage.DelayedVehicleDeconstruction(vehicle, continent, 21L) //temporary drive away from pad delay
-      vehicle.Actor ! Mountable.TryMount(player, 0)
+      sendResponse(PlanetsideAttributeMessage(vehicle_guid, 21, player.GUID.guid)) //fte and ownership?
 
-    case VehicleSpawnPad.PlayerSeatedInVehicle(vehicle) =>
-      vehicleService ! VehicleServiceMessage.DelayedVehicleDeconstruction(vehicle, continent, 21L) //sitting in the vehicle clears the drive away delay
-    val vehicle_guid = vehicle.GUID
+    case VehicleSpawnPad.PlayerSeatedInVehicle(vehicle, pad) =>
+      val vehicle_guid = vehicle.GUID
+      if(player.VehicleSeated.nonEmpty) {
+        vehicleService ! VehicleServiceMessage.UnscheduleDeconstruction(vehicle_guid)
+      }
       sendResponse(PlanetsideAttributeMessage(vehicle_guid, 22, 0L)) //mount points on?
       //sendResponse(PlanetsideAttributeMessage(vehicle_guid, 0, vehicle.Definition.MaxHealth)))
       sendResponse(PlanetsideAttributeMessage(vehicle_guid, 68, 0L)) //???
       sendResponse(PlanetsideAttributeMessage(vehicle_guid, 113, 0L)) //???
       ReloadVehicleAccessPermissions(vehicle)
+      ServerVehicleLock(vehicle)
 
-    case VehicleSpawnPad.SpawnPadBlockedWarning(vehicle, warning_count) =>
-      if (warning_count > 2) {
-        sendResponse(TriggerSoundMessage(TriggeredSound.Unknown14, vehicle.Position, 20, 1f))
-        sendResponse(
-          ChatMsg(ChatMessageType.CMT_TELL, true, "", "\\#FYour vehicle is blocking the spawn pad, and will be deconstructed if not moved.", None)
-        )
+    case VehicleSpawnControlGuided.GuidedControl(cmd, vehicle, data) =>
+      cmd match {
+        case AutoDriveControls.State.Drive =>
+          val speed : Int = data.getOrElse({ vehicle.Definition.AutoPilotSpeed1 }).asInstanceOf[Int]
+          ServerVehicleOverride(vehicle, speed)
+
+        case AutoDriveControls.State.Climb =>
+          ServerVehicleOverride(vehicle, controlled.getOrElse(0), GlobalDefinitions.isFlightVehicle(vehicle.Definition):Int)
+
+        case AutoDriveControls.State.Turn =>
+          //TODO how to turn hovering/flying vehicle?
+          val direction = data.getOrElse(15).asInstanceOf[Int]
+          sendResponse(VehicleStateMessage(vehicle.GUID, 0, vehicle.Position, vehicle.Orientation, vehicle.Velocity, None, 0, 0, direction, false, false))
+
+
+        case AutoDriveControls.State.Stop =>
+          ServerVehicleOverride(vehicle, 0)
+
+        case _ => ;
       }
 
-    case VehicleSpawnPad.SpawnPadUnblocked(vehicle_guid) =>
-      //vehicle has moved away from spawn pad after initial spawn
-      vehicleService ! VehicleServiceMessage.UnscheduleDeconstruction(vehicle_guid) //cancel temporary drive away from pad delay
+    case VehicleSpawnPad.ServerVehicleOverrideEnd(vehicle, pad) =>
+      sendResponse(GenericObjectActionMessage(pad.GUID, 92)) //reset spawn pad
+      DriverVehicleControl(vehicle, vehicle.Definition.AutoPilotSpeed2)
+
+    case VehicleSpawnPad.PeriodicReminder(cause, data) =>
+      val msg : String = (cause match {
+        case VehicleSpawnPad.Reminders.Blocked =>
+          s"The vehicle spawn where you placed your order is blocked. ${data.getOrElse("")}"
+        case VehicleSpawnPad.Reminders.Queue =>
+          s"Your position in the vehicle spawn queue is ${data.get}."
+      })
+      sendResponse(ChatMsg(ChatMessageType.CMT_OPEN, true, "", msg, None))
 
     case ListAccountCharacters =>
       val
@@ -1265,12 +1302,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
       val continentNumber = zone.Number
       val poplist = zone.Players
       val popBO = 0 //TODO black ops test (partition)
-      val popTR = poplist.count(_.faction == PlanetSideEmpire.TR)
+    val popTR = poplist.count(_.faction == PlanetSideEmpire.TR)
       val popNC = poplist.count(_.faction == PlanetSideEmpire.NC)
       val popVS = poplist.count(_.faction == PlanetSideEmpire.VS)
 
       zone.Buildings.foreach({ case (id, building) =>
-        Thread.sleep(10)
+        Thread.sleep(15)
         initBuilding(continentNumber, id, building)
       })
 
@@ -1987,7 +2024,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case _ =>
           log.warn(s"VehicleState: no vehicle $vehicle_guid found in zone")
       }
-    //log.info("VehicleState: " + msg)
+    //log.info(s"VehicleState: $msg")
 
     case msg@VehicleSubStateMessage(vehicle_guid, player_guid, vehicle_pos, vehicle_ang, vel, unk1, unk2) =>
     //log.info(s"VehicleSubState: $vehicle_guid, $player_guid, $vehicle_pos, $vehicle_ang, $vel, $unk1, $unk2")
@@ -2674,7 +2711,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             else if (equipment.isDefined) {
               equipment.get.Definition match {
                 case GlobalDefinitions.nano_dispenser =>
-                //TODO repairing behavior
+                  //TODO repairing behavior
                   if (player.GUID != obj.GUID && player.Velocity.isEmpty && Vector3.Distance(player.Position, obj.Position) < 5 && player.Faction == obj.Faction) {
                     if (obj.MaxHealth - obj.Health <= 15) {
                       obj.Health = obj.MaxHealth
@@ -2752,7 +2789,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
                   player.lastMedkit = System.currentTimeMillis()
                 }
               case None =>
-                sendResponse(ObjectDeleteMessage(PlanetSideGUID(unk1), 0))
+//                sendResponse(ObjectDeleteMessage(PlanetSideGUID(unk1), 0))
+                sendResponse(UseItemMessage(avatar_guid, unk1, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
                 log.warn(s"RequestDestroy: object $unk1 not found")
             }
           }
@@ -3040,7 +3078,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                     projectile.Damage0 + projectile.AddDamage0, distanceBetweenPlayers)
                   obj.Health = damagesAfterResist(currentDamage, currentResistance, obj.Health, obj.Health)._1
                   obj.Armor = damagesAfterResist(currentDamage, currentResistance, obj.Armor, obj.Armor)._2
-//                  sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN,true,"server","damages: "+currentDamage+" hp: "+obj.Health+" armor: "+obj.Armor,None))
+                  //                  sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN,true,"server","damages: "+currentDamage+" hp: "+obj.Health+" armor: "+obj.Armor,None))
                   if (obj.Health < 0) obj.Health = 0
                   if (obj.Health != 0) {
                     avatarService ! AvatarServiceMessage(obj.Continent, AvatarAction.PlanetsideAttribute(obj.GUID, 0, obj.Health))
@@ -3118,7 +3156,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                 projectile.Damage0 + projectile.AddDamage0, distanceBetweenPlayers)
               obj.Health = damagesAfterResist(currentDamage, currentResistance, obj.Health, obj.Health)._1
               obj.Armor = damagesAfterResist(currentDamage, currentResistance, obj.Armor, obj.Armor)._2
-//              sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN,true,"server","damages: "+currentDamage+" hp: "+obj.Health+" armor: "+obj.Armor,None))
+              //              sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN,true,"server","damages: "+currentDamage+" hp: "+obj.Health+" armor: "+obj.Armor,None))
               if (obj.Health < 0) obj.Health = 0
               if (obj.Health != 0) {
                 avatarService ! AvatarServiceMessage(obj.Continent, AvatarAction.PlanetsideAttribute(obj.GUID, 0, obj.Health))
@@ -3191,7 +3229,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                   projectile.Damage0 + projectile.AddDamage0, distanceBetweenPlayers)
                 obj.Health = damagesAfterResist((projectile.damageAtEdge * currentDamage).toInt, currentResistance, obj.Health, obj.Health)._1
                 obj.Armor = damagesAfterResist((projectile.damageAtEdge * currentDamage).toInt, currentResistance, obj.Armor, obj.Armor)._2
-//                sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN,true,"server","damages: "+currentDamage+" hp: "+obj.Health+" armor: "+obj.Armor,None))
+                //                sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN,true,"server","damages: "+currentDamage+" hp: "+obj.Health+" armor: "+obj.Armor,None))
                 if (obj.Health < 0) obj.Health = 0
                 if (obj.Health != 0) {
                   avatarService ! AvatarServiceMessage(obj.Continent, AvatarAction.PlanetsideAttribute(obj.GUID, 0, obj.Health))
@@ -3684,13 +3722,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
         private val localVehicle = obj
         private val localPad = pad.Actor
         private val localAnnounce = vehicleService
-        private val localSession: String = sessionId.toString
         private val localPlayer = player
         private val localVehicleService = vehicleService
         private val localZone = continent
 
-        override def isComplete: Task.Resolution.Value = {
-          if (localVehicle.Actor != ActorRef.noSender) {
+        override def isComplete : Task.Resolution.Value = {
+          if(localVehicle.HasGUID) {
             Task.Resolution.Success
           }
           else {
@@ -3698,10 +3735,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
           }
         }
 
-        def Execute(resolver: ActorRef): Unit = {
-          localAnnounce ! VehicleServiceMessage.GiveActorControl(obj, localSession)
+        def Execute(resolver : ActorRef) : Unit = {
           localPad ! VehicleSpawnPad.VehicleOrder(localPlayer, localVehicle)
-          localVehicleService ! VehicleServiceMessage.DelayedVehicleDeconstruction(localVehicle, localZone, 60L)
           resolver ! scala.util.Success(this)
         }
       }, List(RegisterVehicle(obj)))
@@ -4430,7 +4465,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     zone.Buildings.values.foreach(building => {
       sendResponse(SetEmpireMessage(PlanetSideGUID(building.ModelId), building.Faction))
       building.Amenities.foreach(amenity => {
-        Thread.sleep(10)
+        Thread.sleep(15)
         val amenityId = amenity.GUID
         sendResponse(PlanetsideAttributeMessage(amenityId, 50, 0))
         sendResponse(PlanetsideAttributeMessage(amenityId, 51, 0))
@@ -4468,6 +4503,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.DestroyDisplay(player, tplayer))
 
     if (tplayer.VehicleSeated.nonEmpty) {
+      TotalDriverVehicleControl(continent.GUID(tplayer.VehicleSeated.get).get.asInstanceOf[Vehicle])
       avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player_guid, 29, 1)) //make player invisible (if not, the cadaver sticks out the side in a seated position)
     }
   }
@@ -4679,269 +4715,309 @@ class WorldSessionActor extends Actor with MDCContextAware {
     (newHP, newArmor)
   }
 
-    /**
-      * Start using a proximity-base service.
-      * Special note is warranted in the case of a medical terminal or an advanced medical terminal.
-      *
-      * @param terminal the proximity-based unit
-      */
-    def StartUsingProximityUnit(terminal: ProximityTerminal): Unit = {
-      val term_guid = terminal.GUID
-      if (!usingProximityTerminal.contains(term_guid)) {
-        usingProximityTerminal += term_guid
-        terminal.Definition match {
-          case GlobalDefinitions.adv_med_terminal | GlobalDefinitions.medical_terminal =>
-            usingMedicalTerminal = Some(term_guid)
-          case _ =>
-            SetDelayedProximityUnitReset(terminal)
-        }
-        terminal.Actor ! CommonMessages.Use(player)
-      }
-    }
-
-    /**
-      * Stop using a proximity-base service.
-      * Special note is warranted when determining the identity of the proximity terminal.
-      * Medical terminals of both varieties can be cancelled by movement.
-      * Other sorts of proximity-based units are put on a timer.
-      *
-      * @param terminal the proximity-based unit
-      */
-    def StopUsingProximityUnit(terminal: ProximityTerminal): Unit = {
-      val term_guid = terminal.GUID
-      if (usingProximityTerminal.contains(term_guid)) {
-        usingProximityTerminal -= term_guid
-        ClearDelayedProximityUnitReset(term_guid)
-        if (usingMedicalTerminal.contains(term_guid)) {
-          usingMedicalTerminal = None
-        }
-        terminal.Actor ! CommonMessages.Unuse(player)
-      }
-    }
-
-    /**
-      * For pure proximity-based units and services, a manual attempt at cutting off the functionality.
-      * First, if an existing timer can be found, cancel it.
-      * Then, create a new timer.
-      * If this timer completes, a message will be sent that will attempt to disassociate from the target proximity unit.
-      *
-      * @param terminal the proximity-based unit
-      */
-    def SetDelayedProximityUnitReset(terminal: ProximityTerminal): Unit = {
-      val terminal_guid = terminal.GUID
-      ClearDelayedProximityUnitReset(terminal_guid)
-      import scala.concurrent.duration._
-      import scala.concurrent.ExecutionContext.Implicits.global
-      delayedProximityTerminalResets += terminal_guid ->
-        context.system.scheduler.scheduleOnce(3000 milliseconds, self, DelayedProximityUnitStop(terminal))
-    }
-
-    /**
-      * For pure proximity-based units and services, disable any manual attempt at cutting off the functionality.
-      * If an existing timer can be found, cancel it.
-      *
-      * @param terminal_guid the proximity-based unit
-      */
-    def ClearDelayedProximityUnitReset(terminal_guid: PlanetSideGUID): Unit = {
-      delayedProximityTerminalResets.get(terminal_guid) match {
-        case Some(task) =>
-          task.cancel
-          delayedProximityTerminalResets -= terminal_guid
-        case None => ;
-      }
-    }
-
-    /**
-      * Cease all current interactions with proximity-based units.
-      * Pair with `PlayerActionsToCancel`, except when logging out (stopping).
-      * This operations may invoke callback messages.
-      *
-      * @see `postStop`<br>
-      *      `Terminal.StopProximityEffects`
-      */
-    def CancelAllProximityUnits(): Unit = {
-      delayedProximityTerminalResets.foreach({ case (term_guid, task) =>
-        task.cancel
-        delayedProximityTerminalResets -= term_guid
-      })
-      usingProximityTerminal.foreach(term_guid => {
-        StopUsingProximityUnit(continent.GUID(term_guid).get.asInstanceOf[ProximityTerminal])
-      })
-    }
-
-    /**
-      * Determine which functionality to pursue, by being given a generic proximity-functional unit
-      * and determinig which kind of unit is being utilized.
-      *
-      * @param terminal the proximity-based unit
-      */
-    def SelectProximityUnit(terminal: ProximityTerminal): Unit = {
+  /**
+    * Start using a proximity-base service.
+    * Special note is warranted in the case of a medical terminal or an advanced medical terminal.
+    *
+    * @param terminal the proximity-based unit
+    */
+  def StartUsingProximityUnit(terminal: ProximityTerminal): Unit = {
+    val term_guid = terminal.GUID
+    if (!usingProximityTerminal.contains(term_guid)) {
+      usingProximityTerminal += term_guid
       terminal.Definition match {
         case GlobalDefinitions.adv_med_terminal | GlobalDefinitions.medical_terminal =>
-          ProximityMedicalTerminal(terminal)
-
-        case GlobalDefinitions.crystals_health_a | GlobalDefinitions.crystals_health_b =>
+          usingMedicalTerminal = Some(term_guid)
+        case _ =>
           SetDelayedProximityUnitReset(terminal)
-          ProximityHealCrystal(terminal)
-
-        case _ => ;
       }
-    }
-
-    /**
-      * When standing on the platform of a(n advanced) medical terminal,
-      * resotre the player's health and armor points (when they need their health and armor points restored).
-      * If the player is both fully healed and fully repaired, stop using the terminal.
-      *
-      * @param unit the medical terminal
-      */
-    def ProximityMedicalTerminal(unit: ProximityTerminal): Unit = {
-      val healthFull: Boolean = if (player.Health < player.MaxHealth) {
-        HealAction(player)
-      }
-      else {
-        true
-      }
-      val armorFull: Boolean = if (player.Armor < player.MaxArmor) {
-        ArmorRepairAction(player)
-      }
-      else {
-        true
-      }
-      if (healthFull && armorFull) {
-        log.info(s"${player.Name} is all fixed up")
-        StopUsingProximityUnit(unit)
-      }
-    }
-
-    /**
-      * When near a red cavern crystal, resotre the player's health (when they need their health restored).
-      * If the player is fully healed, stop using the crystal.
-      *
-      * @param unit the healing crystal
-      */
-    def ProximityHealCrystal(unit: ProximityTerminal): Unit = {
-      val healthFull: Boolean = if (player.Health < player.MaxHealth) {
-        HealAction(player)
-      }
-      else {
-        true
-      }
-      if (healthFull) {
-        log.info(s"${player.Name} is all healed up")
-        StopUsingProximityUnit(unit)
-      }
-    }
-
-    /**
-      * Restore, at most, a specific amount of health points on a player.
-      * Send messages to connected client and to events system.
-      *
-      * @param tplayer   the player
-      * @param healValue the amount to heal;
-      *                  10 by default
-      * @return whether the player can be repaired for any more health points
-      */
-    def HealAction(tplayer: Player, healValue: Int = 10): Boolean = {
-      log.info(s"Dispensing health to ${tplayer.Name} - <3")
-      val player_guid = tplayer.GUID
-      tplayer.Health = tplayer.Health + healValue
-      avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player_guid, 0, tplayer.Health))
-      tplayer.Health == tplayer.MaxHealth
-    }
-
-    /**
-      * Restore, at most, a specific amount of personal armor points on a player.
-      * Send messages to connected client and to events system.
-      *
-      * @param tplayer     the player
-      * @param repairValue the amount to repair;
-      *                    10 by default
-      * @return whether the player can be repaired for any more armor points
-      */
-    def ArmorRepairAction(tplayer: Player, repairValue: Int = 10): Boolean = {
-      log.info(s"Dispensing armor to ${tplayer.Name} - c[=")
-      val player_guid = tplayer.GUID
-      tplayer.Armor = tplayer.Armor + repairValue
-      avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player_guid, 4, tplayer.Armor))
-      tplayer.Armor == tplayer.MaxArmor
-    }
-
-    def failWithError(error: String) = {
-      log.error(error)
-      sendResponse(ConnectionClose())
-    }
-
-    def sendResponse(cont: PlanetSideControlPacket): Unit = {
-      sendResponse(PacketCoding.CreateControlPacket(cont))
-    }
-
-    def sendResponse(cont: PlanetSideGamePacket): Unit = {
-      //    if (cont.opcode.id != 186)  log.info("SEND: " + cont)
-      sendResponse(PacketCoding.CreateGamePacket(0, cont))
-    }
-
-    def sendResponse(cont: PlanetSidePacketContainer): Unit = {
-      log.trace("WORLD SEND: " + cont)
-      sendResponse(cont.asInstanceOf[Any])
-    }
-
-    def sendResponse(cont: MultiPacketBundle): Unit = {
-      log.trace("WORLD SEND: " + cont)
-      sendResponse(cont.asInstanceOf[Any])
-    }
-
-    def sendResponse(msg: Any): Unit = {
-      MDC("sessionId") = sessionId.toString
-      rightRef !> msg
-    }
-
-    def sendRawResponse(pkt: ByteVector) = {
-      log.trace("WORLD SEND RAW: " + pkt)
-      sendResponse(RawPacket(pkt))
+      terminal.Actor ! CommonMessages.Use(player)
     }
   }
 
-
-  object WorldSessionActor {
-
-    final case class ResponseToSelf(pkt: PlanetSideGamePacket)
-
-    private final case class PokeClient()
-
-    private final case class ServerLoaded()
-
-    private final case class NewPlayerLoaded(tplayer: Player)
-
-    private final case class PlayerLoaded(tplayer: Player)
-
-    private final case class PlayerFailedToLoad(tplayer: Player)
-
-    private final case class ListAccountCharacters()
-
-    private final case class SetCurrentAvatar(tplayer: Player)
-
-    private final case class VehicleLoaded(vehicle: Vehicle)
-
-    private final case class DelayedProximityUnitStop(unit: ProximityTerminal)
-
-    /**
-      * A message that indicates the user is using a remote electronics kit to hack some server object.
-      * Each time this message is sent for a given hack attempt counts as a single "tick" of progress.
-      * The process of "making progress" with a hack involves sending this message repeatedly until the progress is 100 or more.
-      *
-      * @param tplayer        the player
-      * @param target         the object being hacked
-      * @param tool_guid      the REK
-      * @param delta          how much the progress bar value changes each tick
-      * @param completeAction a custom action performed once the hack is completed
-      * @param tickAction     an optional action is is performed for each tick of progress
-      */
-    private final case class ItemHacking(tplayer: Player,
-                                         target: PlanetSideServerObject,
-                                         tool_guid: PlanetSideGUID,
-                                         delta: Float,
-                                         completeAction: () => Unit,
-                                         tickAction: Option[() => Unit] = None)
-
+  /**
+    * Stop using a proximity-base service.
+    * Special note is warranted when determining the identity of the proximity terminal.
+    * Medical terminals of both varieties can be cancelled by movement.
+    * Other sorts of proximity-based units are put on a timer.
+    *
+    * @param terminal the proximity-based unit
+    */
+  def StopUsingProximityUnit(terminal: ProximityTerminal): Unit = {
+    val term_guid = terminal.GUID
+    if (usingProximityTerminal.contains(term_guid)) {
+      usingProximityTerminal -= term_guid
+      ClearDelayedProximityUnitReset(term_guid)
+      if (usingMedicalTerminal.contains(term_guid)) {
+        usingMedicalTerminal = None
+      }
+      terminal.Actor ! CommonMessages.Unuse(player)
+    }
   }
+
+  /**
+    * For pure proximity-based units and services, a manual attempt at cutting off the functionality.
+    * First, if an existing timer can be found, cancel it.
+    * Then, create a new timer.
+    * If this timer completes, a message will be sent that will attempt to disassociate from the target proximity unit.
+    *
+    * @param terminal the proximity-based unit
+    */
+  def SetDelayedProximityUnitReset(terminal: ProximityTerminal): Unit = {
+    val terminal_guid = terminal.GUID
+    ClearDelayedProximityUnitReset(terminal_guid)
+    import scala.concurrent.duration._
+    import scala.concurrent.ExecutionContext.Implicits.global
+    delayedProximityTerminalResets += terminal_guid ->
+      context.system.scheduler.scheduleOnce(3000 milliseconds, self, DelayedProximityUnitStop(terminal))
+  }
+
+  /**
+    * For pure proximity-based units and services, disable any manual attempt at cutting off the functionality.
+    * If an existing timer can be found, cancel it.
+    *
+    * @param terminal_guid the proximity-based unit
+    */
+  def ClearDelayedProximityUnitReset(terminal_guid: PlanetSideGUID): Unit = {
+    delayedProximityTerminalResets.get(terminal_guid) match {
+      case Some(task) =>
+        task.cancel
+        delayedProximityTerminalResets -= terminal_guid
+      case None => ;
+    }
+  }
+
+  /**
+    * Cease all current interactions with proximity-based units.
+    * Pair with `PlayerActionsToCancel`, except when logging out (stopping).
+    * This operations may invoke callback messages.
+    *
+    * @see `postStop`<br>
+    *      `Terminal.StopProximityEffects`
+    */
+  def CancelAllProximityUnits(): Unit = {
+    delayedProximityTerminalResets.foreach({ case (term_guid, task) =>
+      task.cancel
+      delayedProximityTerminalResets -= term_guid
+    })
+    usingProximityTerminal.foreach(term_guid => {
+      StopUsingProximityUnit(continent.GUID(term_guid).get.asInstanceOf[ProximityTerminal])
+    })
+  }
+
+  /**
+    * Determine which functionality to pursue, by being given a generic proximity-functional unit
+    * and determinig which kind of unit is being utilized.
+    *
+    * @param terminal the proximity-based unit
+    */
+  def SelectProximityUnit(terminal: ProximityTerminal): Unit = {
+    terminal.Definition match {
+      case GlobalDefinitions.adv_med_terminal | GlobalDefinitions.medical_terminal =>
+        ProximityMedicalTerminal(terminal)
+
+      case GlobalDefinitions.crystals_health_a | GlobalDefinitions.crystals_health_b =>
+        SetDelayedProximityUnitReset(terminal)
+        ProximityHealCrystal(terminal)
+
+      case _ => ;
+    }
+  }
+
+  /**
+    * When standing on the platform of a(n advanced) medical terminal,
+    * resotre the player's health and armor points (when they need their health and armor points restored).
+    * If the player is both fully healed and fully repaired, stop using the terminal.
+    *
+    * @param unit the medical terminal
+    */
+  def ProximityMedicalTerminal(unit: ProximityTerminal): Unit = {
+    val healthFull: Boolean = if (player.Health < player.MaxHealth) {
+      HealAction(player)
+    }
+    else {
+      true
+    }
+    val armorFull: Boolean = if (player.Armor < player.MaxArmor) {
+      ArmorRepairAction(player)
+    }
+    else {
+      true
+    }
+    if (healthFull && armorFull) {
+      log.info(s"${player.Name} is all fixed up")
+      StopUsingProximityUnit(unit)
+    }
+  }
+
+  /**
+    * When near a red cavern crystal, resotre the player's health (when they need their health restored).
+    * If the player is fully healed, stop using the crystal.
+    *
+    * @param unit the healing crystal
+    */
+  def ProximityHealCrystal(unit: ProximityTerminal): Unit = {
+    val healthFull: Boolean = if (player.Health < player.MaxHealth) {
+      HealAction(player)
+    }
+    else {
+      true
+    }
+    if (healthFull) {
+      log.info(s"${player.Name} is all healed up")
+      StopUsingProximityUnit(unit)
+    }
+  }
+
+  /**
+    * Restore, at most, a specific amount of health points on a player.
+    * Send messages to connected client and to events system.
+    *
+    * @param tplayer   the player
+    * @param healValue the amount to heal;
+    *                  10 by default
+    * @return whether the player can be repaired for any more health points
+    */
+  def HealAction(tplayer: Player, healValue: Int = 10): Boolean = {
+    log.info(s"Dispensing health to ${tplayer.Name} - <3")
+    val player_guid = tplayer.GUID
+    tplayer.Health = tplayer.Health + healValue
+    avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player_guid, 0, tplayer.Health))
+    tplayer.Health == tplayer.MaxHealth
+  }
+
+  /**
+    * Restore, at most, a specific amount of personal armor points on a player.
+    * Send messages to connected client and to events system.
+    *
+    * @param tplayer     the player
+    * @param repairValue the amount to repair;
+    *                    10 by default
+    * @return whether the player can be repaired for any more armor points
+    */
+  def ArmorRepairAction(tplayer: Player, repairValue: Int = 10): Boolean = {
+    log.info(s"Dispensing armor to ${tplayer.Name} - c[=")
+    val player_guid = tplayer.GUID
+    tplayer.Armor = tplayer.Armor + repairValue
+    avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player_guid, 4, tplayer.Armor))
+    tplayer.Armor == tplayer.MaxArmor
+  }
+
+
+  /**
+    * Lock all applicable controls of the current vehicle.
+    * This includes forward motion, turning, and, if applicable, strafing.
+    * @param vehicle the vehicle being controlled
+    */
+  def ServerVehicleLock(vehicle : Vehicle) : Unit = {
+    controlled = Some(0)
+    sendResponse(ServerVehicleOverrideMsg(true, true, false, false, 0, 1, 0, Some(0)))
+  }
+
+  /**
+    * Place the current vehicle under the control of the server's commands.
+    * @param vehicle the vehicle
+    * @param speed how fast the vehicle is moving forward
+    * @param flight whether the vehicle is ascending or not, if the vehicle is an applicable type
+    */
+  def ServerVehicleOverride(vehicle : Vehicle, speed : Int = 0, flight : Int = 0) : Unit = {
+    controlled = Some(speed)
+    sendResponse(ServerVehicleOverrideMsg(true, true, false, false, flight, 0, speed, Some(0)))
+  }
+
+  /**
+    * Place the current vehicle under the control of the driver's commands,
+    * but leave it in a cancellable auto-drive.
+    * @param vehicle the vehicle
+    * @param speed how fast the vehicle is moving forward
+    * @param flight whether the vehicle is ascending or not, if the vehicle is an applicable type
+    */
+  def DriverVehicleControl(vehicle : Vehicle, speed : Int = 0, flight : Int = 0) : Unit = {
+    if(controlled.nonEmpty) {
+      controlled = None
+      sendResponse(ServerVehicleOverrideMsg(false, false, false, true, flight, 0, speed, None))
+    }
+  }
+
+  /**
+    * Place the current vehicle under the control of the driver's commands,
+    * but leave it in a cancellable auto-drive.
+    * Stop all movement entirely.
+    * @param vehicle the vehicle
+    */
+  def TotalDriverVehicleControl(vehicle : Vehicle) : Unit = {
+    if(controlled.nonEmpty) {
+      controlled = None
+      sendResponse(ServerVehicleOverrideMsg(false, false, false, false, 0, 0, 0, None))
+    }
+  }
+
+  def failWithError(error: String) = {
+    log.error(error)
+    sendResponse(ConnectionClose())
+  }
+
+  def sendResponse(cont: PlanetSideControlPacket): Unit = {
+    sendResponse(PacketCoding.CreateControlPacket(cont))
+  }
+
+  def sendResponse(cont: PlanetSideGamePacket): Unit = {
+    //    if (cont.opcode.id != 186)  log.info("SEND: " + cont)
+    sendResponse(PacketCoding.CreateGamePacket(0, cont))
+  }
+
+  def sendResponse(cont: PlanetSidePacketContainer): Unit = {
+    log.trace("WORLD SEND: " + cont)
+    sendResponse(cont.asInstanceOf[Any])
+  }
+
+  def sendResponse(cont: MultiPacketBundle): Unit = {
+    log.trace("WORLD SEND: " + cont)
+    sendResponse(cont.asInstanceOf[Any])
+  }
+
+  def sendResponse(msg: Any): Unit = {
+    MDC("sessionId") = sessionId.toString
+    rightRef !> msg
+  }
+
+  def sendRawResponse(pkt: ByteVector) = {
+    log.trace("WORLD SEND RAW: " + pkt)
+    sendResponse(RawPacket(pkt))
+  }
+}
+
+object WorldSessionActor {
+
+  final case class ResponseToSelf(pkt: PlanetSideGamePacket)
+
+  private final case class PokeClient()
+  private final case class ServerLoaded()
+  private final case class NewPlayerLoaded(tplayer: Player)
+  private final case class PlayerLoaded(tplayer: Player)
+  private final case class PlayerFailedToLoad(tplayer: Player)
+  private final case class ListAccountCharacters()
+  private final case class SetCurrentAvatar(tplayer: Player)
+  private final case class VehicleLoaded(vehicle: Vehicle)
+  private final case class DelayedProximityUnitStop(unit: ProximityTerminal)
+
+  /**
+    * A message that indicates the user is using a remote electronics kit to hack some server object.
+    * Each time this message is sent for a given hack attempt counts as a single "tick" of progress.
+    * The process of "making progress" with a hack involves sending this message repeatedly until the progress is 100 or more.
+    *
+    * @param tplayer        the player
+    * @param target         the object being hacked
+    * @param tool_guid      the REK
+    * @param delta          how much the progress bar value changes each tick
+    * @param completeAction a custom action performed once the hack is completed
+    * @param tickAction     an optional action is is performed for each tick of progress
+    */
+  private final case class ItemHacking(tplayer: Player,
+                                       target: PlanetSideServerObject,
+                                       tool_guid: PlanetSideGUID,
+                                       delta: Float,
+                                       completeAction: () => Unit,
+                                       tickAction: Option[() => Unit] = None)
+
+}

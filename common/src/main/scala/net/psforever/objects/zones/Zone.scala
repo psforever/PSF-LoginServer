@@ -14,7 +14,6 @@ import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types.Vector3
 
-import scala.annotation.tailrec
 import scala.collection.concurrent.TrieMap
 import scala.collection.mutable.ListBuffer
 import scala.collection.immutable.{Map => PairMap}
@@ -50,10 +49,10 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
   guid.AddPool("dynamic", (3001 to 12000).toList).Selector = new RandomSelector //TODO unlump pools later; do not make too big
   /** A synchronized `List` of items (`Equipment`) dropped by players on the ground and can be collected again. */
   private val equipmentOnGround : ListBuffer[Equipment] = ListBuffer[Equipment]()
+  /** */
+  private val vehicles : ListBuffer[Vehicle] = ListBuffer[Vehicle]()
   /** Used by the `Zone` to coordinate `Equipment` dropping and collection requests. */
   private var ground : ActorRef = ActorRef.noSender
-  /** */
-  private var vehicles : List[Vehicle] = List[Vehicle]()
   /** */
   private var transport : ActorRef = ActorRef.noSender
   /** */
@@ -66,6 +65,8 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
   private var buildings : PairMap[Int, Building] = PairMap.empty[Int, Building]
   /** key - spawn zone id, value - buildings belonging to spawn zone */
   private var spawnGroups : Map[Building, List[SpawnTube]] = PairMap[Building, List[SpawnTube]]()
+  /** */
+  private var vehicleEvents : ActorRef = ActorRef.noSender
 
   /**
     * Establish the basic accessible conditions necessary for a functional `Zone`.<br>
@@ -89,7 +90,7 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
       implicit val guid : NumberPoolHub = this.guid //passed into builderObject.Build implicitly
       accessor = context.actorOf(RandomPool(25).props(Props(classOf[UniqueNumberSystem], guid, UniqueNumberSystem.AllocateNumberPoolActors(guid))), s"$Id-uns")
       ground = context.actorOf(Props(classOf[ZoneGroundActor], equipmentOnGround), s"$Id-ground")
-      transport = context.actorOf(Props(classOf[ZoneVehicleActor], this), s"$Id-vehicles")
+      transport = context.actorOf(Props(classOf[ZoneVehicleActor], this, vehicles), s"$Id-vehicles")
       population = context.actorOf(Props(classOf[ZonePopulationActor], this, players, corpses), s"$Id-players")
 
       Map.LocalObjects.foreach({ builderObject => builderObject.Build })
@@ -189,42 +190,13 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
     */
   def EquipmentOnGround : List[Equipment] = equipmentOnGround.toList
 
-  def Vehicles : List[Vehicle] = vehicles
+  def Vehicles : List[Vehicle] = vehicles.toList
 
   def Players : List[Avatar] = players.keys.toList
 
   def LivePlayers : List[Player] = players.values.collect( { case Some(tplayer) => tplayer }).toList
 
   def Corpses : List[Player] = corpses.toList
-
-  def AddVehicle(vehicle : Vehicle) : List[Vehicle] = {
-    vehicles = vehicles :+ vehicle
-    Vehicles
-  }
-
-  def RemoveVehicle(vehicle : Vehicle) : List[Vehicle] = {
-    vehicles = recursiveFindVehicle(vehicles.iterator, vehicle) match {
-      case Some(index) =>
-        vehicles.take(index) ++ vehicles.drop(index + 1)
-      case None => ;
-        vehicles
-    }
-    Vehicles
-  }
-
-  @tailrec private def recursiveFindVehicle(iter : Iterator[Vehicle], target : Vehicle, index : Int = 0) : Option[Int] = {
-    if(!iter.hasNext) {
-      None
-    }
-    else {
-      if(iter.next.equals(target)) {
-        Some(index)
-      }
-      else {
-        recursiveFindVehicle(iter, target, index + 1)
-      }
-    }
-  }
 
   /**
     * Coordinate `Equipment` that has been dropped on the ground or to-be-dropped on the ground.
@@ -303,6 +275,15 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
     * @return the `Zone` object
     */
   def ClientInitialization() : Zone = this
+
+  def VehicleEvents : ActorRef = vehicleEvents
+
+  def VehicleEvents_=(bus : ActorRef) : ActorRef = {
+    if(vehicleEvents == ActorRef.noSender) {
+      vehicleEvents = bus
+    }
+    VehicleEvents
+  }
 }
 
 object Zone {
@@ -428,9 +409,15 @@ object Zone {
     */
   final case class ItemFromGround(player : Player, item : Equipment)
 
-  final case class SpawnVehicle(vehicle : Vehicle)
+  object Vehicle {
+    final case class Spawn(vehicle : Vehicle)
 
-  final case class DespawnVehicle(vehicle : Vehicle)
+    final case class Despawn(vehicle : Vehicle)
+
+    final case class CanNotSpawn(zone : Zone, vehicle : Vehicle, reason : String)
+
+    final case class CanNotDespawn(zone : Zone, vehicle : Vehicle, reason : String)
+  }
 
   /**
     * Message to report the packet messages that initialize the client.

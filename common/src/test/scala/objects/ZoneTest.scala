@@ -8,13 +8,14 @@ import net.psforever.objects.entity.IdentifiableEntity
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.objects.guid.source.LimitedNumberSource
-import net.psforever.objects.serverobject.structures.{Building, FoundationBuilder, StructureType}
 import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.serverobject.tube.SpawnTube
-import net.psforever.objects.zones.{Zone, ZoneActor, ZoneMap}
 import net.psforever.objects._
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types.{CharacterGender, PlanetSideEmpire, Vector3}
+import net.psforever.objects.serverobject.structures.{Building, FoundationBuilder, StructureType}
+import net.psforever.objects.zones.{Zone, ZoneActor, ZoneMap}
+import net.psforever.objects.Vehicle
 import org.specs2.mutable.Specification
 
 import scala.concurrent.duration.Duration
@@ -29,8 +30,6 @@ class ZoneTest extends Specification {
     }
 
     "references bases by a positive building id (defaults to 0)" in {
-      def test(a: Int, b : Zone, c : ActorContext) : Building = { Building.NoBuilding }
-
       val map = new ZoneMap("map13")
       map.LocalBuildings mustEqual Map.empty
       map.LocalBuilding(10, FoundationBuilder(test))
@@ -109,28 +108,6 @@ class ZoneTest extends Specification {
       guid2.AddPool("pool3", (0 to 50).toList)
       guid2.AddPool("pool4", (51 to 75).toList)
       zone.GUID(guid2) mustEqual false
-    }
-
-    "can keep track of Vehicles" in {
-      val zone = new Zone("home3", map13, 13)
-      val fury = Vehicle(GlobalDefinitions.fury)
-      zone.Vehicles mustEqual List()
-      zone.AddVehicle(fury)
-      zone.Vehicles mustEqual List(fury)
-    }
-
-    "can forget specific vehicles" in {
-      val zone = new Zone("home3", map13, 13)
-      val fury = Vehicle(GlobalDefinitions.fury)
-      val wraith = Vehicle(GlobalDefinitions.quadstealth)
-      val basilisk = Vehicle(GlobalDefinitions.quadassault)
-      zone.AddVehicle(wraith)
-      zone.AddVehicle(fury)
-      zone.AddVehicle(basilisk)
-      zone.Vehicles mustEqual List(wraith, fury, basilisk)
-
-      zone.RemoveVehicle(fury)
-      zone.Vehicles mustEqual List(wraith, basilisk)
     }
   }
 }
