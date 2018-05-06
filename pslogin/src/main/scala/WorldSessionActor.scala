@@ -1300,7 +1300,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           else {
             Vector3(0, 0, (z - 90) % 360)
           }
-          pos = if(x >= 330) {
+          pos = if(x >= 330) { //leaning to the left
             pos + Vector3(0, 0, xsin)
           }
           else {
