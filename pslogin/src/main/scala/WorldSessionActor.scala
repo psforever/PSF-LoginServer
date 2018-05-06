@@ -4,7 +4,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import akka.actor.{Actor, ActorRef, Cancellable, MDCContextAware}
 import net.psforever.packet._
 import net.psforever.packet.control._
-import net.psforever.packet.game._
+import net.psforever.packet.game.{BattleDiagramAction, _}
 import scodec.Attempt.{Failure, Successful}
 import scodec.bits._
 import org.log4s.MDC
@@ -559,10 +559,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
               .headOption match {
               case Some(tube) =>
                 sendResponse(
-                  DeployableObjectsInfoMessage(
-                    DeploymentAction.Build,
-                    DeployableInfo(tube.GUID, DeployableIcon.AegisShieldGenerator, tube.Position, player.GUID)
-                  )
+                  BattleplanMessage(41378949, "ams", continent.Number, List(BattleDiagramAction(DiagramActionCode.StartDrawing)))
+                )
+                sendResponse(
+                  BattleplanMessage(41378949, "ams", continent.Number, List(BattleDiagramAction.drawString(tube.Position.x, tube.Position.y, 3, 0, "AMS")))
                 )
                 amsSpawnPoint = Some(tube)
               case None => ;
@@ -574,11 +574,17 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case Deployment.CanDeploy(obj, state) =>
       val vehicle_guid = obj.GUID
-      if(state == DriveState.Deploying) {
+      //TODO remove this arbitrary allowance angle when no longer helpful
+      if(obj.Orientation.x > 30 && obj.Orientation.x < 330) {
+        obj.DeploymentState = DriveState.Mobile
+        CanNotChangeDeployment(obj, state, "ground too steep")
+      }
+      else if(state == DriveState.Deploying) {
         log.info(s"DeployRequest: $obj transitioning to deploy state")
         obj.Velocity = Some(Vector3.Zero) //no velocity
         sendResponse(DeployRequestMessage(player.GUID, vehicle_guid, state, 0, false, Vector3.Zero))
         vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.DeployRequest(player.GUID, vehicle_guid, state, 0, false, Vector3.Zero))
+        DeploymentActivities(obj)
         import scala.concurrent.duration._
         import scala.concurrent.ExecutionContext.Implicits.global
         context.system.scheduler.scheduleOnce(obj.DeployTime milliseconds, obj.Actor, Deployment.TryDeploy(DriveState.Deployed))
@@ -600,6 +606,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         log.info(s"DeployRequest: $obj transitioning to undeploy state")
         sendResponse(DeployRequestMessage(player.GUID, vehicle_guid, state, 0, false, Vector3.Zero))
         vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.DeployRequest(player.GUID, vehicle_guid, state, 0, false, Vector3.Zero))
+        DeploymentActivities(obj)
         import scala.concurrent.duration._
         import scala.concurrent.ExecutionContext.Implicits.global
         context.system.scheduler.scheduleOnce(obj.UndeployTime milliseconds, obj.Actor, Deployment.TryUndeploy(DriveState.Mobile))
@@ -608,6 +615,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         log.info(s"DeployRequest: $obj is Mobile")
         sendResponse(DeployRequestMessage(player.GUID, vehicle_guid, state, 0, false, Vector3.Zero))
         vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.DeployRequest(player.GUID, vehicle_guid, state, 0, false, Vector3.Zero))
+        DeploymentActivities(obj)
         //...
       }
       else {
@@ -1271,11 +1279,34 @@ class WorldSessionActor extends Actor with MDCContextAware {
       log.warn(s"$tplayer is already spawned on zone ${zone.Id}; a clerical error?")
 
     case Zone.Lattice.SpawnPoint(zone_id, spawn_tube) =>
+      var pos = spawn_tube.Position
+      var ori = spawn_tube.Orientation
       spawn_tube.Owner match {
         case building : Building =>
-          log.info(s"Zone.Lattice.SpawnPoint: spawn point on $zone_id in ${building.Id} selected")
+          log.info(s"Zone.Lattice.SpawnPoint: spawn point on $zone_id in building ${building.Id} selected")
         case vehicle : Vehicle =>
-          log.info(s"Zone.Lattice.SpawnPoint: ams spawn point on $zone_id at ${spawn_tube.Position} selected")
+          //TODO replace this bad math with good math or no math
+          //position the player alongside either of the AMS's terminals, facing away from it
+          val side = if(System.currentTimeMillis() % 2 == 0) 1 else -1 //right | left
+          val z = spawn_tube.Orientation.z
+          val zrot = (z + 90) % 360
+          val x = spawn_tube.Orientation.x
+          val xsin = 3 * side * math.abs(math.sin(math.toRadians(x))).toFloat + 0.5f //sin because 0-degrees is up
+          val zrad = math.toRadians(zrot)
+          pos = pos + (Vector3(math.sin(zrad).toFloat, math.cos(zrad).toFloat, 0) * (3 * side)) //x=sin, y=cos because compass-0 is East, not North
+          ori = if(side == 1) {
+            Vector3(0, 0, zrot)
+          }
+          else {
+            Vector3(0, 0, (z - 90) % 360)
+          }
+          pos = if(x >= 330) {
+            pos + Vector3(0, 0, xsin)
+          }
+          else {
+            pos - Vector3(0, 0, xsin)
+          }
+          log.info(s"Zone.Lattice.SpawnPoint: spawn point on $zone_id at ams ${vehicle.GUID.guid} selected")
         case owner =>
           log.warn(s"Zone.Lattice.SpawnPoint: spawn point on $zone_id at ${spawn_tube.Position} has unexpected owner $owner")
       }
@@ -1298,8 +1329,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
         player //player is deconstructing self
       }
 
-      tplayer.Position = spawn_tube.Position
-      tplayer.Orientation = spawn_tube.Orientation
+      tplayer.Position = pos
+      tplayer.Orientation = ori
       val (target, msg) : (ActorRef, Any) = if(sameZone) {
         if(backpack) {
           //respawning from unregistered player
@@ -1576,7 +1607,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       import scala.concurrent.ExecutionContext.Implicits.global
       clientKeepAlive.cancel
       clientKeepAlive = context.system.scheduler.schedule(0 seconds, 500 milliseconds, self, PokeClient())
-      //log.warn(PacketCoding.DecodePacket(hex"ad00000000000000001d56f0531374426020000010").toString)
+      log.warn(PacketCoding.DecodePacket(hex"d2327e7b8a972b95113881003710").toString)
 
     case msg @ CharacterCreateRequestMessage(name, head, voice, gender, empire) =>
       log.info("Handling " + msg)
@@ -4047,6 +4078,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             case DriveState.Undeploying =>
               vehicleService ! VehicleServiceMessage.AMSDeploymentChange(continent)
               sendResponse(PlanetsideAttributeMessage(obj.GUID, 81, 0))
+            case DriveState.Mobile | DriveState.State7 =>
             case _ => ;
           }
         }
@@ -4075,12 +4107,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
   def ClearCurrentAmsSpawnPoint() : Unit = {
     amsSpawnPoint match {
-      case Some(tube) =>
+      case Some(_) =>
         sendResponse(
-          DeployableObjectsInfoMessage(
-            DeploymentAction.Dismiss,
-            DeployableInfo(tube.GUID, DeployableIcon.AegisShieldGenerator, tube.Position, player.GUID)
-          )
+          BattleplanMessage(41378949, "ams", continent.Number, List(BattleDiagramAction(DiagramActionCode.StopDrawing)))
         )
         amsSpawnPoint = None
       case None => ;

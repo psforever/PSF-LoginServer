@@ -19,7 +19,7 @@ class BattleplanMessageTest extends Specification {
       case BattleplanMessage(char_id, player_name, zone_id, diagrams) =>
         char_id mustEqual 41490746
         player_name mustEqual "YetAnotherFailureAlt"
-        zone_id mustEqual PlanetSideGUID(0)
+        zone_id mustEqual 0
         diagrams.size mustEqual 1
         //0
         diagrams.head.action mustEqual DiagramActionCode.StartDrawing
@@ -34,7 +34,7 @@ class BattleplanMessageTest extends Specification {
       case BattleplanMessage(char_id, player_name, zone_id, diagrams) =>
         char_id mustEqual 41490746
         player_name mustEqual "YetAnotherFailureAlt"
-        zone_id mustEqual PlanetSideGUID(0)
+        zone_id mustEqual 0
         diagrams.size mustEqual 1
         //0
         diagrams.head.action mustEqual DiagramActionCode.StopDrawing
@@ -49,7 +49,7 @@ class BattleplanMessageTest extends Specification {
       case BattleplanMessage(char_id, player_name, zone_id, diagrams) =>
         char_id mustEqual 41378949
         player_name mustEqual "Outstabulous"
-        zone_id mustEqual PlanetSideGUID(10)
+        zone_id mustEqual 10
         diagrams.size mustEqual 32
         //0
         diagrams.head.action mustEqual DiagramActionCode.Vertex
@@ -191,7 +191,7 @@ class BattleplanMessageTest extends Specification {
       case BattleplanMessage(char_id, player_name, zone_id, diagrams) =>
         char_id mustEqual 41378949
         player_name mustEqual "Outstabulous"
-        zone_id mustEqual PlanetSideGUID(10)
+        zone_id mustEqual 10
         diagrams.size mustEqual 3
         //0
         diagrams.head.action mustEqual DiagramActionCode.Style
@@ -217,7 +217,7 @@ class BattleplanMessageTest extends Specification {
       case BattleplanMessage(char_id, player_name, zone_id, diagrams) =>
         char_id mustEqual 41378949
         player_name mustEqual "Outstabulous"
-        zone_id mustEqual PlanetSideGUID(10)
+        zone_id mustEqual 10
         diagrams.size mustEqual 1
         //0
         diagrams.head.action mustEqual DiagramActionCode.DrawString
@@ -237,7 +237,7 @@ class BattleplanMessageTest extends Specification {
     val msg = BattleplanMessage(
       41490746,
       "YetAnotherFailureAlt",
-      PlanetSideGUID(0),
+      0,
       BattleDiagramAction(DiagramActionCode.StartDrawing) ::
         Nil
     )
@@ -250,7 +250,7 @@ class BattleplanMessageTest extends Specification {
     val msg = BattleplanMessage(
       41490746,
       "YetAnotherFailureAlt",
-      PlanetSideGUID(0),
+      0,
       BattleDiagramAction(DiagramActionCode.StopDrawing) ::
         Nil
     )
@@ -263,7 +263,7 @@ class BattleplanMessageTest extends Specification {
     val msg = BattleplanMessage(
       41378949,
       "Outstabulous",
-      PlanetSideGUID(10),
+      10,
       BattleDiagramAction.vertex(7512.0f, 6312.0f) ::
         BattleDiagramAction.vertex(7512.0f, 6328.0f) ::
         BattleDiagramAction.vertex(7512.0f, 6344.0f) ::
@@ -307,7 +307,7 @@ class BattleplanMessageTest extends Specification {
     val msg = BattleplanMessage(
       41378949,
       "Outstabulous",
-      PlanetSideGUID(10),
+      10,
       BattleDiagramAction.style(3.0f, 2) ::
         BattleDiagramAction.vertex(7512.0f, 6328.0f) ::
         BattleDiagramAction.vertex(7512.0f, 6344.0f) ::
@@ -322,7 +322,7 @@ class BattleplanMessageTest extends Specification {
     val msg = BattleplanMessage(
       41378949,
       "Outstabulous",
-      PlanetSideGUID(10),
+      10,
       BattleDiagramAction.drawString(7512.0f, 6312.0f, 2, 0, "Hello Auraxis!") :: Nil
     )
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
