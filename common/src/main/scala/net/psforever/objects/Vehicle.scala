@@ -47,7 +47,6 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
   private var trunkAccess : Option[PlanetSideGUID] = None
   private var jammered : Boolean = false
   private var cloaked : Boolean = false
-  private var controlled : Option[Int] = None
 
   /**
     * Permissions control who gets to access different parts of the vehicle;
@@ -443,15 +442,6 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
     * @return the current access value for the `Vehicle` `Trunk`
     */
   def TrunkLockState :  VehicleLockState.Value = groupPermissions(3)
-
-  def Controlled : Option[Int] = controlled
-
-  def Controlled_=(speed : Int) : Option[Int] = Controlled_=(Some(speed))
-
-  def Controlled_=(speed : Option[Int]) : Option[Int] = {
-    controlled = speed
-    Controlled
-  }
 
   /**
     * This is the definition entry that is used to store and unload pertinent information about the `Vehicle`.

@@ -69,6 +69,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
   var usingMedicalTerminal : Option[PlanetSideGUID] = None
   var usingProximityTerminal : Set[PlanetSideGUID] = Set.empty
   var delayedProximityTerminalResets : Map[PlanetSideGUID, Cancellable] = Map.empty
+  var controlled : Option[Int] = None //keep track of avatar's ServerVehicleOverride state
 
   var clientKeepAlive : Cancellable = DefaultCancellable.obj
   var progressBarUpdate : Cancellable = DefaultCancellable.obj
@@ -1059,7 +1060,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           ServerVehicleOverride(vehicle, speed)
 
         case AutoDriveControls.State.Climb =>
-          ServerVehicleOverride(vehicle, vehicle.Controlled.getOrElse(0), GlobalDefinitions.isFlightVehicle(vehicle.Definition):Int)
+          ServerVehicleOverride(vehicle, controlled.getOrElse(0), GlobalDefinitions.isFlightVehicle(vehicle.Definition):Int)
 
         case AutoDriveControls.State.Turn =>
           //TODO how to turn hovering/flying vehicle?
@@ -3901,7 +3902,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * @param vehicle the vehicle being controlled
     */
   def ServerVehicleLock(vehicle : Vehicle) : Unit = {
-    vehicle.Controlled = Some(0)
+    controlled = Some(0)
     sendResponse(ServerVehicleOverrideMsg(true, true, false, false, 0, 1, 0, Some(0)))
   }
 
@@ -3912,7 +3913,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * @param flight whether the vehicle is ascending or not, if the vehicle is an applicable type
     */
   def ServerVehicleOverride(vehicle : Vehicle, speed : Int = 0, flight : Int = 0) : Unit = {
-    vehicle.Controlled = Some(speed)
+   controlled = Some(speed)
     sendResponse(ServerVehicleOverrideMsg(true, true, false, false, flight, 0, speed, Some(0)))
   }
 
@@ -3924,8 +3925,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * @param flight whether the vehicle is ascending or not, if the vehicle is an applicable type
     */
   def DriverVehicleControl(vehicle : Vehicle, speed : Int = 0, flight : Int = 0) : Unit = {
-    if(vehicle.Controlled.nonEmpty) {
-      vehicle.Controlled = None
+    if(controlled.nonEmpty) {
+      controlled = None
       sendResponse(ServerVehicleOverrideMsg(false, false, false, true, flight, 0, speed, None))
     }
   }
@@ -3937,8 +3938,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * @param vehicle the vehicle
     */
   def TotalDriverVehicleControl(vehicle : Vehicle) : Unit = {
-    if(vehicle.Controlled.nonEmpty) {
-      vehicle.Controlled = None
+    if(controlled.nonEmpty) {
+      controlled = None
       sendResponse(ServerVehicleOverrideMsg(false, false, false, false, 0, 0, 0, None))
     }
   }
