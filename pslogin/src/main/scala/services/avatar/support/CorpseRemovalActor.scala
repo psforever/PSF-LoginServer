@@ -26,6 +26,7 @@ class CorpseRemovalActor extends Actor {
 
   override def postStop() = {
     //Cart Master: See you on Thursday.
+    super.postStop()
     burial.cancel
     decomposition.cancel
 
@@ -80,45 +81,41 @@ class CorpseRemovalActor extends Actor {
           CorpseRemovalActor.recursiveFindCorpse(corpses.iterator, targets.head) match {
             case None => ;
             case Some(index) =>
-              if(index == 0) {
-                burial.cancel
-              }
               decomposition.cancel
+              BurialTask(corpses(index))
               buriedCorpses = buriedCorpses :+ corpses(index)
               corpses = corpses.take(index) ++ corpses.drop(index+1)
-              if(index == 0) {
-                RetimeFirstTask()
-              }
               import scala.concurrent.ExecutionContext.Implicits.global
               decomposition = context.system.scheduler.scheduleOnce(500 milliseconds, self, CorpseRemovalActor.TryDelete())
           }
         }
         else {
           log.debug(s"multiple target corpses submitted for early cleanup: $targets")
-          burial.cancel
           decomposition.cancel
           //cumbersome partition
           //a - find targets from corpses
-          buriedCorpses = buriedCorpses ++ (for {
+          val locatedTargets = for {
             a <- targets
             b <- corpses
             if b.corpse == a &&
               b.corpse.Continent.equals(a.Continent) &&
               b.corpse.HasGUID && a.HasGUID && b.corpse.GUID == a.GUID
-          } yield b)
+          } yield b
+          locatedTargets.foreach { BurialTask }
+          buriedCorpses = locatedTargets ++ buriedCorpses
           //b - corpses after the found targets are removed (note: cull any non-GUID entries while at it)
           corpses = (for {
-            a <- targets
+            a <- locatedTargets.map { _.corpse }
             b <- corpses
             if b.corpse.HasGUID && a.HasGUID &&
               (b.corpse != a ||
                 !b.corpse.Continent.equals(a.Continent) ||
                 !b.corpse.HasGUID || !a.HasGUID || b.corpse.GUID != a.GUID)
           } yield b).sortBy(_.timeAlive)
+          import scala.concurrent.ExecutionContext.Implicits.global
+          decomposition = context.system.scheduler.scheduleOnce(500 milliseconds, self, CorpseRemovalActor.TryDelete())
         }
         RetimeFirstTask()
-        import scala.concurrent.ExecutionContext.Implicits.global
-        decomposition = context.system.scheduler.scheduleOnce(500 milliseconds, self, CorpseRemovalActor.TryDelete())
       }
 
     case CorpseRemovalActor.StartDelete() =>

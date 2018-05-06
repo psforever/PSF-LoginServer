@@ -42,6 +42,12 @@ class DeconstructionActor extends Actor {
     super.postStop()
     scrappingProcess.cancel
     heapEmptyProcess.cancel
+
+    vehicles.foreach(entry => {
+      RetirementTask(entry)
+      DestructionTask(entry)
+    })
+    vehicleScrapHeap.foreach { DestructionTask }
   }
 
   def receive : Receive = {
@@ -89,12 +95,7 @@ class DeconstructionActor extends Actor {
       val (vehiclesToScrap, vehiclesRemain) = PartitionEntries(vehicles, now)
       vehicles = vehiclesRemain //entries from original list before partition
       vehicleScrapHeap = vehicleScrapHeap ++ vehiclesToScrap //may include existing entries
-      vehiclesToScrap.foreach(entry => {
-        val vehicle = entry.vehicle
-        val zone = entry.zone
-        zone.Transport ! Zone.Vehicle.Despawn(vehicle)
-        context.parent ! DeconstructionActor.DeleteVehicle(vehicle.GUID, zone.Id) //call up to the main event system
-      })
+      vehiclesToScrap.foreach { RetirementTask }
       if(vehiclesRemain.nonEmpty) {
         val short_timeout : FiniteDuration = math.max(1, DeconstructionActor.timeout_time - (now - vehiclesRemain.head.time)) nanoseconds
         import scala.concurrent.ExecutionContext.Implicits.global
@@ -109,13 +110,7 @@ class DeconstructionActor extends Actor {
       heapEmptyProcess.cancel
       val (vehiclesToScrap, vehiclesRemain) = vehicleScrapHeap.partition(entry => !entry.zone.Vehicles.contains(entry.vehicle))
       vehicleScrapHeap = vehiclesRemain
-      vehiclesToScrap.foreach(entry => {
-        val vehicle = entry.vehicle
-        val zone = entry.zone
-        vehicle.Position = Vector3.Zero //somewhere it will not disturb anything
-        taskResolver ! DeconstructionTask(vehicle, zone)
-      })
-
+      vehiclesToScrap.foreach { DestructionTask }
       if(vehiclesRemain.nonEmpty) {
         import scala.concurrent.ExecutionContext.Implicits.global
         heapEmptyProcess = context.system.scheduler.scheduleOnce(500 milliseconds, self, DeconstructionActor.TryDeleteVehicle())
@@ -125,6 +120,20 @@ class DeconstructionActor extends Actor {
       org.log4s.getLogger.error(s"vehicle deconstruction: $localVehicle failed to be properly cleaned up from zone $localZone - $ex")
 
     case _ => ;
+  }
+
+  def RetirementTask(entry : DeconstructionActor.VehicleEntry) : Unit = {
+    val vehicle = entry.vehicle
+    val zone = entry.zone
+    zone.Transport ! Zone.Vehicle.Despawn(vehicle)
+    context.parent ! DeconstructionActor.DeleteVehicle(vehicle.GUID, zone.Id) //call up to the main event system
+  }
+
+  def DestructionTask(entry : DeconstructionActor.VehicleEntry) : Unit = {
+    val vehicle = entry.vehicle
+    val zone = entry.zone
+    vehicle.Position = Vector3.Zero //somewhere it will not disturb anything
+    taskResolver ! DeconstructionTask(vehicle, zone)
   }
 
   /**
