@@ -82,9 +82,8 @@ class DeconstructionActor extends Actor {
         val vehicle = entry.vehicle
         val zone = entry.zone
         vehicle.Position = Vector3.Zero //somewhere it will not disturb anything
-        entry.zone.Transport ! Zone.DespawnVehicle(vehicle)
+        entry.zone.Transport ! Zone.Vehicle.Despawn(vehicle)
         context.parent ! DeconstructionActor.DeleteVehicle(vehicle.GUID, zone.Id) //call up to the main event system
-        context.parent ! VehicleServiceMessage.RevokeActorControl(vehicle) //call up to a sibling manager
         taskResolver ! DeconstructionTask(vehicle, zone)
       })
 

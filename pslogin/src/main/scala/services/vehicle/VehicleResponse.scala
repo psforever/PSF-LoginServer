@@ -9,14 +9,19 @@ import net.psforever.types.{DriveState, Vector3}
 object VehicleResponse {
   trait Response
 
+  final case class AttachToRails(vehicle_guid : PlanetSideGUID, rails_guid : PlanetSideGUID) extends Response
   final case class Awareness(vehicle_guid : PlanetSideGUID) extends Response
   final case class ChildObjectState(object_guid : PlanetSideGUID, pitch : Float, yaw : Float) extends Response
+  final case class ConcealPlayer(player_guid : PlanetSideGUID) extends Response
   final case class DeployRequest(object_guid : PlanetSideGUID, state : DriveState.Value, unk1 : Int, unk2 : Boolean, pos : Vector3) extends Response
+  final case class DetachFromRails(vehicle_guid : PlanetSideGUID, rails_guid : PlanetSideGUID, rails_pos : Vector3, rails_rot : Float) extends Response
   final case class DismountVehicle(unk1 : Int, unk2 : Boolean) extends Response
   final case class InventoryState(obj : PlanetSideGameObject, parent_guid : PlanetSideGUID, start : Int, con_data : ConstructorData) extends Response
   final case class KickPassenger(unk1 : Int, unk2 : Boolean, vehicle_guid : PlanetSideGUID) extends Response
   final case class LoadVehicle(vehicle : Vehicle, vtype : Int, vguid : PlanetSideGUID, vdata : ConstructorData) extends Response
   final case class MountVehicle(object_guid : PlanetSideGUID, seat : Int) extends Response
+  final case class ResetSpawnPad(pad_guid : PlanetSideGUID) extends Response
+  final case class RevealPlayer(player_guid : PlanetSideGUID) extends Response
   final case class SeatPermissions(vehicle_guid : PlanetSideGUID, seat_group : Int, permission : Long) extends Response
   final case class StowEquipment(vehicle_guid : PlanetSideGUID, slot : Int, itype : Int, iguid : PlanetSideGUID, idata : ConstructorData) extends Response
   final case class UnloadVehicle(vehicle_guid : PlanetSideGUID) extends Response

@@ -55,10 +55,10 @@ class ZoneActor(zone : Zone) extends Actor {
       zone.Ground forward msg
 
     //frwd to Vehicle Actor
-    case msg @ Zone.SpawnVehicle =>
+    case msg @ Zone.Vehicle.Spawn =>
       zone.Transport forward msg
 
-    case msg @ Zone.DespawnVehicle =>
+    case msg @ Zone.Vehicle.Despawn =>
       zone.Transport forward msg
 
     //own

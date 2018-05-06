@@ -26,13 +26,13 @@ import net.psforever.objects.serverobject.implantmech.ImplantTerminalMech
 import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.mblocker.Locker
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
-import net.psforever.objects.serverobject.terminals.{MatrixTerminalDefinition, ProximityTerminal, Terminal}
-import net.psforever.objects.serverobject.terminals.Terminal.TerminalMessage
-import net.psforever.objects.vehicles.{AccessPermissionGroup, Utility, VehicleLockState}
+import net.psforever.objects.serverobject.pad.process.{AutoDriveControls, VehicleSpawnControlGuided}
 import net.psforever.objects.serverobject.structures.{Building, StructureType, WarpGate}
+import net.psforever.objects.serverobject.terminals.{MatrixTerminalDefinition, ProximityTerminal, Terminal}
 import net.psforever.objects.serverobject.terminals.Terminal
+import net.psforever.objects.serverobject.terminals.Terminal.TerminalMessage
 import net.psforever.objects.serverobject.tube.SpawnTube
-import net.psforever.objects.vehicles.{AccessPermissionGroup, VehicleLockState}
+import net.psforever.objects.vehicles.{AccessPermissionGroup, Utility, VehicleLockState}
 import net.psforever.objects.zones.{InterstellarCluster, Zone}
 import net.psforever.packet.game.objectcreate._
 import net.psforever.types._
@@ -69,10 +69,19 @@ class WorldSessionActor extends Actor with MDCContextAware {
   var usingMedicalTerminal : Option[PlanetSideGUID] = None
   var usingProximityTerminal : Set[PlanetSideGUID] = Set.empty
   var delayedProximityTerminalResets : Map[PlanetSideGUID, Cancellable] = Map.empty
+  var controlled : Option[Int] = None //keep track of avatar's ServerVehicleOverride state
 
   var clientKeepAlive : Cancellable = DefaultCancellable.obj
   var progressBarUpdate : Cancellable = DefaultCancellable.obj
   var reviveTimer : Cancellable = DefaultCancellable.obj
+
+  /**
+    * Convert a boolean value into an integer value.
+    * Use: `true:Int` or `false:Int`
+    * @param b `true` or `false` (or `null`)
+    * @return 1 for `true`; 0 for `false`
+    */
+  implicit def boolToInt(b : Boolean) : Int = if(b) 1 else 0
 
   override def postStop() = {
     clientKeepAlive.cancel
@@ -404,10 +413,16 @@ class WorldSessionActor extends Actor with MDCContextAware {
           //resets exclamation point fte marker (once)
           sendResponse(PlanetsideAttributeMessage(guid, 21, vehicle_guid.guid.toLong))
 
+        case VehicleResponse.AttachToRails(vehicle_guid, pad_guid) =>
+          sendResponse(ObjectAttachMessage(pad_guid, vehicle_guid, 3))
+
         case VehicleResponse.ChildObjectState(object_guid, pitch, yaw) =>
           if(tplayer_guid != guid) {
             sendResponse(ChildObjectStateMessage(object_guid, pitch, yaw))
           }
+
+        case VehicleResponse.ConcealPlayer(player_guid) =>
+          sendResponse(GenericObjectActionMessage(player_guid, 36))
 
         case VehicleResponse.DismountVehicle(unk1, unk2) =>
           if(tplayer_guid != guid) {
@@ -418,6 +433,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
           if(tplayer_guid != guid) {
             sendResponse(DeployRequestMessage(guid, object_guid, state, unk1, unk2, pos))
           }
+
+        case VehicleResponse.DetachFromRails(vehicle_guid, pad_guid, pad_position, pad_orientation_z) =>
+          sendResponse(ObjectDetachMessage(pad_guid, vehicle_guid, pad_position + Vector3(0,0,0.5f), 0, 0, pad_orientation_z))
 
         case VehicleResponse.InventoryState(obj, parent_guid, start, con_data) =>
           if(tplayer_guid != guid) {
@@ -454,6 +472,16 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case VehicleResponse.MountVehicle(vehicle_guid, seat) =>
           if(tplayer_guid != guid) {
             sendResponse(ObjectAttachMessage(vehicle_guid, guid, seat))
+          }
+
+        case VehicleResponse.ResetSpawnPad(pad_guid) =>
+          sendResponse(GenericObjectActionMessage(pad_guid, 92))
+
+        case VehicleResponse.RevealPlayer(player_guid) =>
+          //TODO any action will cause the player to appear after the effects of ConcealPlayer
+          if(player.GUID == player_guid) {
+            sendResponse(ChatMsg(ChatMessageType.CMT_OPEN, true, "", "You are in a strange situation.", None))
+            KillPlayer(player)
           }
 
         case VehicleResponse.SeatPermissions(vehicle_guid, seat_group, permission) =>
@@ -614,6 +642,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           if(player_guid == player.GUID) {
             //disembarking self
             log.info(s"DismountVehicleMsg: $player_guid dismounts $obj @ $seat_num")
+            TotalDriverVehicleControl(obj)
             sendResponse(DismountVehicleMsg(player_guid, seat_num, false))
             vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.DismountVehicle(player_guid, seat_num, false))
             UnAccessContents(obj)
@@ -1000,46 +1029,63 @@ class WorldSessionActor extends Actor with MDCContextAware {
           sendResponse(ItemTransactionResultMessage(msg.terminal_guid, msg.transaction_type, false))
       }
 
-    case VehicleSpawnPad.ConcealPlayer =>
-      sendResponse(GenericObjectActionMessage(player.GUID, 36))
-      avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ConcealPlayer(player.GUID))
-
-    case VehicleSpawnPad.LoadVehicle(vehicle, _/*pad*/) =>
-      val player_guid = player.GUID
-      val definition = vehicle.Definition
-      val objedtId = definition.ObjectId
+    case VehicleSpawnPad.StartPlayerSeatedInVehicle(vehicle, pad) =>
       val vehicle_guid = vehicle.GUID
-      val vdata = definition.Packet.ConstructorData(vehicle).get
-      sendResponse(ObjectCreateMessage(objedtId, vehicle_guid, vdata))
-      continent.Transport ! Zone.SpawnVehicle(vehicle)
-      vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.LoadVehicle(player_guid, vehicle, objedtId, vehicle_guid, vdata))
       sendResponse(PlanetsideAttributeMessage(vehicle_guid, 22, 1L)) //mount points off?
-      sendResponse(PlanetsideAttributeMessage(vehicle_guid, 21, player_guid.guid)) //fte and ownership?
-      //sendResponse(ObjectAttachMessage(vehicle_guid, player_guid, 0))
-      vehicleService ! VehicleServiceMessage.UnscheduleDeconstruction(vehicle_guid) //cancel queue timeout delay
-      vehicleService ! VehicleServiceMessage.DelayedVehicleDeconstruction(vehicle, continent, 21L) //temporary drive away from pad delay
-      vehicle.Actor ! Mountable.TryMount(player, 0)
+      sendResponse(PlanetsideAttributeMessage(vehicle_guid, 21, player.GUID.guid)) //fte and ownership?
 
-    case VehicleSpawnPad.PlayerSeatedInVehicle(vehicle) =>
-      vehicleService ! VehicleServiceMessage.DelayedVehicleDeconstruction(vehicle, continent, 21L) //sitting in the vehicle clears the drive away delay
+    case VehicleSpawnPad.PlayerSeatedInVehicle(vehicle, pad) =>
       val vehicle_guid = vehicle.GUID
+      if(player.VehicleSeated.nonEmpty) {
+        vehicleService ! VehicleServiceMessage.UnscheduleDeconstruction(vehicle_guid)
+      }
       sendResponse(PlanetsideAttributeMessage(vehicle_guid, 22, 0L)) //mount points on?
       //sendResponse(PlanetsideAttributeMessage(vehicle_guid, 0, vehicle.Definition.MaxHealth)))
       sendResponse(PlanetsideAttributeMessage(vehicle_guid, 68, 0L)) //???
       sendResponse(PlanetsideAttributeMessage(vehicle_guid, 113, 0L)) //???
       ReloadVehicleAccessPermissions(vehicle)
+      ServerVehicleLock(vehicle)
 
-    case VehicleSpawnPad.SpawnPadBlockedWarning(vehicle, warning_count) =>
-      if(warning_count > 2) {
-        sendResponse(TriggerSoundMessage(TriggeredSound.Unknown14, vehicle.Position, 20, 1f))
-        sendResponse(
-          ChatMsg(ChatMessageType.CMT_TELL, true, "", "\\#FYour vehicle is blocking the spawn pad, and will be deconstructed if not moved.", None)
-        )
+    case VehicleSpawnPad.ServerVehicleOverrideStart(vehicle, pad) =>
+      val vdef = vehicle.Definition
+      if(vehicle.Seats(0).isOccupied) {
+        sendResponse(ObjectDetachMessage(pad.GUID, vehicle.GUID, pad.Position + Vector3(0, 0, 0.5f), 0, 0, pad.Orientation.z))
+      }
+      ServerVehicleOverride(vehicle, vdef.AutoPilotSpeed1, GlobalDefinitions.isFlightVehicle(vdef):Int)
+
+    case VehicleSpawnControlGuided.GuidedControl(cmd, vehicle, data) =>
+      cmd match {
+        case AutoDriveControls.State.Drive =>
+          val speed : Int = data.getOrElse({ vehicle.Definition.AutoPilotSpeed1 }).asInstanceOf[Int]
+          ServerVehicleOverride(vehicle, speed)
+
+        case AutoDriveControls.State.Climb =>
+          ServerVehicleOverride(vehicle, controlled.getOrElse(0), GlobalDefinitions.isFlightVehicle(vehicle.Definition):Int)
+
+        case AutoDriveControls.State.Turn =>
+          //TODO how to turn hovering/flying vehicle?
+          val direction = data.getOrElse(15).asInstanceOf[Int]
+          sendResponse(VehicleStateMessage(vehicle.GUID, 0, vehicle.Position, vehicle.Orientation, vehicle.Velocity, None, 0, 0, direction, false, false))
+
+
+        case AutoDriveControls.State.Stop =>
+          ServerVehicleOverride(vehicle, 0)
+
+        case _ => ;
       }
 
-    case VehicleSpawnPad.SpawnPadUnblocked(vehicle_guid) =>
-      //vehicle has moved away from spawn pad after initial spawn
-      vehicleService ! VehicleServiceMessage.UnscheduleDeconstruction(vehicle_guid) //cancel temporary drive away from pad delay
+    case VehicleSpawnPad.ServerVehicleOverrideEnd(vehicle, pad) =>
+      sendResponse(GenericObjectActionMessage(pad.GUID, 92)) //reset spawn pad
+      DriverVehicleControl(vehicle, vehicle.Definition.AutoPilotSpeed2)
+
+    case VehicleSpawnPad.PeriodicReminder(cause, data) =>
+      val msg : String = (cause match {
+        case VehicleSpawnPad.Reminders.Blocked =>
+          s"The vehicle spawn where you placed your order is blocked. ${data.getOrElse("")}"
+        case VehicleSpawnPad.Reminders.Queue =>
+          s"Your position in the vehicle spawn queue is ${data.get}."
+      })
+      sendResponse(ChatMsg(ChatMessageType.CMT_OPEN, true, "", msg, None))
 
     case ListAccountCharacters =>
       import net.psforever.objects.definition.converter.CharacterSelectConverter
@@ -1539,7 +1585,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case _ =>
           log.warn(s"VehicleState: no vehicle $vehicle_guid found in zone")
       }
-      //log.info("VehicleState: " + msg)
+      //log.info(s"VehicleState: $msg")
 
     case msg @ VehicleSubStateMessage(vehicle_guid, player_guid, vehicle_pos, vehicle_ang, vel, unk1, unk2) =>
       //log.info(s"VehicleSubState: $vehicle_guid, $player_guid, $vehicle_pos, $vehicle_ang, $vel, $unk1, $unk2")
@@ -2753,14 +2799,13 @@ class WorldSessionActor extends Actor with MDCContextAware {
       new Task() {
         private val localVehicle = obj
         private val localPad = pad.Actor
-        private val localAnnounce = vehicleService
         private val localSession : String = sessionId.toString
         private val localPlayer = player
         private val localVehicleService = vehicleService
         private val localZone = continent
 
         override def isComplete : Task.Resolution.Value = {
-          if(localVehicle.Actor != ActorRef.noSender) {
+          if(localVehicle.HasGUID) {
             Task.Resolution.Success
           }
           else {
@@ -2769,9 +2814,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         }
 
         def Execute(resolver : ActorRef) : Unit = {
-          localAnnounce ! VehicleServiceMessage.GiveActorControl(obj, localSession)
           localPad ! VehicleSpawnPad.VehicleOrder(localPlayer, localVehicle)
-          localVehicleService ! VehicleServiceMessage.DelayedVehicleDeconstruction(localVehicle, localZone, 60L)
           resolver ! scala.util.Success(this)
         }
       }, List(RegisterVehicle(obj)))
@@ -3496,6 +3539,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     sendResponse(AvatarDeadStateMessage(DeadState.Dead, respawnTimer, respawnTimer, pos, player.Faction, true))
     if(tplayer.VehicleSeated.nonEmpty) {
       //make player invisible (if not, the cadaver sticks out the side in a seated position)
+      TotalDriverVehicleControl(continent.GUID(tplayer.VehicleSeated.get).get.asInstanceOf[Vehicle])
       sendResponse(PlanetsideAttributeMessage(player_guid, 29, 1))
       avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player_guid, 29, 1))
     }
@@ -3850,6 +3894,54 @@ class WorldSessionActor extends Actor with MDCContextAware {
     sendResponse(PlanetsideAttributeMessage(player_guid, 4, tplayer.Armor))
     avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player_guid, 4, tplayer.Armor))
     tplayer.Armor == tplayer.MaxArmor
+  }
+
+  /**
+    * Lock all applicable controls of the current vehicle.
+    * This includes forward motion, turning, and, if applicable, strafing.
+    * @param vehicle the vehicle being controlled
+    */
+  def ServerVehicleLock(vehicle : Vehicle) : Unit = {
+    controlled = Some(0)
+    sendResponse(ServerVehicleOverrideMsg(true, true, false, false, 0, 1, 0, Some(0)))
+  }
+
+  /**
+    * Place the current vehicle under the control of the server's commands.
+    * @param vehicle the vehicle
+    * @param speed how fast the vehicle is moving forward
+    * @param flight whether the vehicle is ascending or not, if the vehicle is an applicable type
+    */
+  def ServerVehicleOverride(vehicle : Vehicle, speed : Int = 0, flight : Int = 0) : Unit = {
+   controlled = Some(speed)
+    sendResponse(ServerVehicleOverrideMsg(true, true, false, false, flight, 0, speed, Some(0)))
+  }
+
+  /**
+    * Place the current vehicle under the control of the driver's commands,
+    * but leave it in a cancellable auto-drive.
+    * @param vehicle the vehicle
+    * @param speed how fast the vehicle is moving forward
+    * @param flight whether the vehicle is ascending or not, if the vehicle is an applicable type
+    */
+  def DriverVehicleControl(vehicle : Vehicle, speed : Int = 0, flight : Int = 0) : Unit = {
+    if(controlled.nonEmpty) {
+      controlled = None
+      sendResponse(ServerVehicleOverrideMsg(false, false, false, true, flight, 0, speed, None))
+    }
+  }
+
+  /**
+    * Place the current vehicle under the control of the driver's commands,
+    * but leave it in a cancellable auto-drive.
+    * Stop all movement entirely.
+    * @param vehicle the vehicle
+    */
+  def TotalDriverVehicleControl(vehicle : Vehicle) : Unit = {
+    if(controlled.nonEmpty) {
+      controlled = None
+      sendResponse(ServerVehicleOverrideMsg(false, false, false, false, 0, 0, 0, None))
+    }
   }
 
   def failWithError(error : String) = {
