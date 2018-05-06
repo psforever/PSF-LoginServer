@@ -15,8 +15,10 @@ import scala.concurrent.duration._
 
 class CorpseRemovalActor extends Actor {
   private var burial : Cancellable = DefaultCancellable.obj
-
   private var corpses : List[CorpseRemovalActor.Entry] = List()
+
+  private var decomposition : Cancellable = DefaultCancellable.obj
+  private var buriedCorpses : List[CorpseRemovalActor.Entry] = List()
 
   private var taskResolver : ActorRef = Actor.noSender
 
@@ -24,8 +26,14 @@ class CorpseRemovalActor extends Actor {
 
   override def postStop() = {
     //Cart Master: See you on Thursday.
-    corpses.foreach { BurialTask }
-    corpses = Nil
+    burial.cancel
+    decomposition.cancel
+
+    corpses.foreach(corpse => {
+      BurialTask(corpse)
+      LastRitesTask(corpse)
+    })
+    buriedCorpses.foreach { LastRitesTask }
   }
 
   def receive : Receive = {
@@ -72,23 +80,33 @@ class CorpseRemovalActor extends Actor {
           CorpseRemovalActor.recursiveFindCorpse(corpses.iterator, targets.head) match {
             case None => ;
             case Some(index) =>
-              BurialTask(corpses(index))
+              if(index == 0) {
+                burial.cancel
+              }
+              decomposition.cancel
+              buriedCorpses = buriedCorpses :+ corpses(index)
               corpses = corpses.take(index) ++ corpses.drop(index+1)
+              if(index == 0) {
+                RetimeFirstTask()
+              }
+              import scala.concurrent.ExecutionContext.Implicits.global
+              decomposition = context.system.scheduler.scheduleOnce(500 milliseconds, self, CorpseRemovalActor.TryDelete())
           }
         }
         else {
           log.debug(s"multiple target corpses submitted for early cleanup: $targets")
+          burial.cancel
+          decomposition.cancel
           //cumbersome partition
           //a - find targets from corpses
-          (for {
+          buriedCorpses = buriedCorpses ++ (for {
             a <- targets
             b <- corpses
             if b.corpse == a &&
               b.corpse.Continent.equals(a.Continent) &&
               b.corpse.HasGUID && a.HasGUID && b.corpse.GUID == a.GUID
-          } yield b).foreach { BurialTask }
-          //b - corpses after the found targets are
-          //removed (note: cull any non-GUID entries while at it)
+          } yield b)
+          //b - corpses after the found targets are removed (note: cull any non-GUID entries while at it)
           corpses = (for {
             a <- targets
             b <- corpses
@@ -99,15 +117,33 @@ class CorpseRemovalActor extends Actor {
           } yield b).sortBy(_.timeAlive)
         }
         RetimeFirstTask()
+        import scala.concurrent.ExecutionContext.Implicits.global
+        decomposition = context.system.scheduler.scheduleOnce(500 milliseconds, self, CorpseRemovalActor.TryDelete())
       }
 
-    case CorpseRemovalActor.Dispose() =>
+    case CorpseRemovalActor.StartDelete() =>
       burial.cancel
+      decomposition.cancel
       val now : Long = System.nanoTime
       val (buried, rotting) = corpses.partition(entry => { now - entry.time >= entry.timeAlive })
       corpses = rotting
+      buriedCorpses = buriedCorpses ++ buried
       buried.foreach { BurialTask }
       RetimeFirstTask()
+      if(buriedCorpses.nonEmpty) {
+        import scala.concurrent.ExecutionContext.Implicits.global
+        burial = context.system.scheduler.scheduleOnce(500 milliseconds, self, CorpseRemovalActor.TryDelete())
+      }
+
+    case CorpseRemovalActor.TryDelete() =>
+      decomposition.cancel
+      val (decomposed, rotting) = buriedCorpses.partition(entry => { !entry.zone.Corpses.contains(entry.corpse) })
+      buriedCorpses = rotting
+      decomposed.foreach { LastRitesTask }
+      if(rotting.nonEmpty) {
+        import scala.concurrent.ExecutionContext.Implicits.global
+        decomposition = context.system.scheduler.scheduleOnce(500 milliseconds, self, CorpseRemovalActor.TryDelete())
+      }
 
     case CorpseRemovalActor.FailureToWork(target, zone, ex) =>
       //Cart Master: Oh, I can't take him like that. It's against regulations.
@@ -122,21 +158,24 @@ class CorpseRemovalActor extends Actor {
     if(corpses.nonEmpty) {
       val short_timeout : FiniteDuration = math.max(1, corpses.head.timeAlive - (now - corpses.head.time)) nanoseconds
       import scala.concurrent.ExecutionContext.Implicits.global
-      burial = context.system.scheduler.scheduleOnce(short_timeout, self, CorpseRemovalActor.Dispose())
+      burial = context.system.scheduler.scheduleOnce(short_timeout, self, CorpseRemovalActor.StartDelete())
     }
   }
 
   def BurialTask(entry : CorpseRemovalActor.Entry) : Unit = {
-    //Cart master: Nine pence.
     val target = entry.corpse
-    val zone = entry.zone
-    target.Position = Vector3.Zero //somewhere it will not disturb anything
     entry.zone.Population ! Zone.Corpse.Remove(target)
-    context.parent ! AvatarServiceMessage(zone.Id, AvatarAction.ObjectDelete(Service.defaultPlayerGUID, target.GUID))
-    taskResolver ! BurialTask(target, zone)
+    context.parent ! AvatarServiceMessage(entry.zone.Id, AvatarAction.ObjectDelete(Service.defaultPlayerGUID, target.GUID))
   }
 
-  def BurialTask(corpse : Player, zone : Zone) : TaskResolver.GiveTask = {
+  def LastRitesTask(entry : CorpseRemovalActor.Entry) : Unit = {
+    //Cart master: Nine pence.
+    val target = entry.corpse
+    target.Position = Vector3.Zero //somewhere it will not disturb anything
+    taskResolver ! LastRitesTask(target, entry.zone)
+  }
+
+  def LastRitesTask(corpse : Player, zone : Zone) : TaskResolver.GiveTask = {
     import net.psforever.objects.guid.{GUIDTask, Task}
     TaskResolver.GiveTask (
       new Task() {
@@ -170,9 +209,11 @@ object CorpseRemovalActor {
 
   final case class Entry(corpse : Player, zone : Zone, timeAlive : Long = CorpseRemovalActor.time, time : Long = System.nanoTime())
 
-  final case class FailureToWork(corpse : Player, zone : Zone, ex : Throwable)
+  private final case class FailureToWork(corpse : Player, zone : Zone, ex : Throwable)
 
-  final case class Dispose()
+  private final case class StartDelete()
+
+  private final case class TryDelete()
 
   /**
     * A recursive function that finds and removes a specific player from a list of players.

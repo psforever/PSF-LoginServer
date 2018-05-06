@@ -30,10 +30,19 @@ class DeconstructionActor extends Actor {
   private var scrappingProcess : Cancellable = DefaultCancellable.obj
   /** A `List` of currently doomed vehicles */
   private var vehicles : List[DeconstructionActor.VehicleEntry] = Nil
+  /** The periodic `Executor` that cleans up the next vehicle on the list */
+  private var heapEmptyProcess : Cancellable = DefaultCancellable.obj
+  /** A `List` of vehicles that have been removed from the game world and are awaiting deconstruction. */
+  private var vehicleScrapHeap : List[DeconstructionActor.VehicleEntry] = Nil
   /** The manager that helps unregister the vehicle from its current GUID scope */
   private var taskResolver : ActorRef = Actor.noSender
   //private[this] val log = org.log4s.getLogger
 
+  override def postStop() : Unit = {
+    super.postStop()
+    scrappingProcess.cancel
+    heapEmptyProcess.cancel
+  }
 
   def receive : Receive = {
     /*
@@ -70,27 +79,46 @@ class DeconstructionActor extends Actor {
       })
       if(vehicles.size == 1) { //we were the only entry so the event must be started from scratch
         import scala.concurrent.ExecutionContext.Implicits.global
-        scrappingProcess = context.system.scheduler.scheduleOnce(DeconstructionActor.timeout, self, DeconstructionActor.TryDeleteVehicle())
+        scrappingProcess = context.system.scheduler.scheduleOnce(DeconstructionActor.timeout, self, DeconstructionActor.StartDeleteVehicle())
+      }
+
+    case DeconstructionActor.StartDeleteVehicle() =>
+      scrappingProcess.cancel
+      heapEmptyProcess.cancel
+      val now : Long = System.nanoTime
+      val (vehiclesToScrap, vehiclesRemain) = PartitionEntries(vehicles, now)
+      vehicles = vehiclesRemain //entries from original list before partition
+      vehicleScrapHeap = vehicleScrapHeap ++ vehiclesToScrap //may include existing entries
+      vehiclesToScrap.foreach(entry => {
+        val vehicle = entry.vehicle
+        val zone = entry.zone
+        zone.Transport ! Zone.Vehicle.Despawn(vehicle)
+        context.parent ! DeconstructionActor.DeleteVehicle(vehicle.GUID, zone.Id) //call up to the main event system
+      })
+      if(vehiclesRemain.nonEmpty) {
+        val short_timeout : FiniteDuration = math.max(1, DeconstructionActor.timeout_time - (now - vehiclesRemain.head.time)) nanoseconds
+        import scala.concurrent.ExecutionContext.Implicits.global
+        scrappingProcess = context.system.scheduler.scheduleOnce(short_timeout, self, DeconstructionActor.StartDeleteVehicle())
+      }
+      if(vehicleScrapHeap.nonEmpty) {
+        import scala.concurrent.ExecutionContext.Implicits.global
+        heapEmptyProcess = context.system.scheduler.scheduleOnce(500 milliseconds, self, DeconstructionActor.TryDeleteVehicle())
       }
 
     case DeconstructionActor.TryDeleteVehicle() =>
-      scrappingProcess.cancel
-      val now : Long = System.nanoTime
-      val (vehiclesToScrap, vehiclesRemain) = PartitionEntries(vehicles, now)
-      vehicles = vehiclesRemain
+      heapEmptyProcess.cancel
+      val (vehiclesToScrap, vehiclesRemain) = vehicleScrapHeap.partition(entry => !entry.zone.Vehicles.contains(entry.vehicle))
+      vehicleScrapHeap = vehiclesRemain
       vehiclesToScrap.foreach(entry => {
         val vehicle = entry.vehicle
         val zone = entry.zone
         vehicle.Position = Vector3.Zero //somewhere it will not disturb anything
-        entry.zone.Transport ! Zone.Vehicle.Despawn(vehicle)
-        context.parent ! DeconstructionActor.DeleteVehicle(vehicle.GUID, zone.Id) //call up to the main event system
         taskResolver ! DeconstructionTask(vehicle, zone)
       })
 
       if(vehiclesRemain.nonEmpty) {
-        val short_timeout : FiniteDuration = math.max(1, DeconstructionActor.timeout_time - (now - vehiclesRemain.head.time)) nanoseconds
         import scala.concurrent.ExecutionContext.Implicits.global
-        scrappingProcess = context.system.scheduler.scheduleOnce(short_timeout, self, DeconstructionActor.TryDeleteVehicle())
+        heapEmptyProcess = context.system.scheduler.scheduleOnce(500 milliseconds, self, DeconstructionActor.TryDeleteVehicle())
       }
 
     case DeconstructionActor.FailureToDeleteVehicle(localVehicle, localZone, ex) =>
@@ -195,6 +223,12 @@ object DeconstructionActor {
   final case class DeleteVehicle(vehicle_guid : PlanetSideGUID, zone_id : String)
   /**
     * Internal message used to signal a test of the queued vehicle information.
+    * Remove all deconstructing vehicles from the game world.
+    */
+  private final case class StartDeleteVehicle()
+  /**
+    * Internal message used to signal a test of the queued vehicle information.
+    * Remove all deconstructing vehicles from the zone's globally unique identifier system.
     */
   private final case class TryDeleteVehicle()
 
