@@ -304,6 +304,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
         case AvatarResponse.ObjectDelete(item_guid, unk) =>
           if(tplayer_guid != guid) {
+            log.info(s"Made to delete item $item_guid")
             sendResponse(ObjectDeleteMessage(item_guid, unk))
           }
 
@@ -2118,7 +2119,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                         vehicleService ! VehicleServiceMessage(s"${obj.Actor}", VehicleAction.UnstowEquipment(player.GUID, item_guid))
                         //TODO visible slot verification, in the case of BFR arms
                       case _ => ;
-                        //TODO something?
+                      //TODO something?
                     }
 
                 }
@@ -2130,9 +2131,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
                   case (_ : Player) =>
                     if(destination.VisibleSlots.contains(dest)) {
                       avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.EquipmentInHand(destination_guid, dest, item))
-                    }
-                    else {
-                      avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player.GUID, item.GUID))
                     }
                   case _ => ;
                     //TODO something?

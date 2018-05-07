@@ -51,7 +51,7 @@ class CorpseRemovalActor extends Actor {
 
   def Processing : Receive = {
     case CorpseRemovalActor.AddCorpse(corpse, zone, time) =>
-      if(corpse.isBackpack) {
+      if(corpse.isBackpack && !buriedCorpses.exists(_.corpse == corpse)) {
         if(corpses.isEmpty) {
           //we were the only entry so the event must be started from scratch
           corpses = List(CorpseRemovalActor.Entry(corpse, zone, time))
@@ -60,9 +60,11 @@ class CorpseRemovalActor extends Actor {
         else {
           //unknown number of entries; append, sort, then re-time tasking
           val oldHead = corpses.head
-          corpses = (corpses :+ CorpseRemovalActor.Entry(corpse, zone, time)).sortBy(_.timeAlive)
-          if(oldHead != corpses.head) {
-            RetimeFirstTask()
+          if(!corpses.exists(_.corpse == corpse)) {
+            corpses = (corpses :+ CorpseRemovalActor.Entry(corpse, zone, time)).sortBy(_.timeAlive)
+            if(oldHead != corpses.head) {
+              RetimeFirstTask()
+            }
           }
         }
       }
@@ -103,7 +105,7 @@ class CorpseRemovalActor extends Actor {
           } yield b
           locatedTargets.foreach { BurialTask }
           buriedCorpses = locatedTargets ++ buriedCorpses
-          //b - corpses after the found targets are removed (note: cull any non-GUID entries while at it)
+          //b - corpses, after the found targets are removed (cull any non-GUID entries while at it)
           corpses = (for {
             a <- locatedTargets.map { _.corpse }
             b <- corpses
