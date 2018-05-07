@@ -329,7 +329,7 @@ class AvatarReleaseTest extends ActorTest {
       assert(reply2msg.replyMessage.isInstanceOf[AvatarResponse.ObjectDelete])
       assert(reply2msg.replyMessage.asInstanceOf[AvatarResponse.ObjectDelete].item_guid == guid)
 
-      expectNoMsg(200 milliseconds)
+      expectNoMsg(1000 milliseconds)
       assert(zone.Corpses.isEmpty)
       assert(!obj.HasGUID)
     }
@@ -379,7 +379,7 @@ class AvatarReleaseEarly1Test extends ActorTest {
       assert(reply2msg.replyMessage.isInstanceOf[AvatarResponse.ObjectDelete])
       assert(reply2msg.replyMessage.asInstanceOf[AvatarResponse.ObjectDelete].item_guid == guid)
 
-      expectNoMsg(200 milliseconds)
+      expectNoMsg(600 milliseconds)
       assert(zone.Corpses.isEmpty)
       assert(!obj.HasGUID)
     }
@@ -430,7 +430,7 @@ class AvatarReleaseEarly2Test extends ActorTest {
       assert(reply2msg.replyMessage.isInstanceOf[AvatarResponse.ObjectDelete])
       assert(reply2msg.replyMessage.asInstanceOf[AvatarResponse.ObjectDelete].item_guid == guid)
 
-      expectNoMsg(200 milliseconds)
+      expectNoMsg(600 milliseconds)
       assert(zone.Corpses.isEmpty)
       assert(!obj.HasGUID)
     }
