@@ -16,7 +16,7 @@ object AvatarResponse {
   final case class ChangeFireState_Start(weapon_guid : PlanetSideGUID) extends Response
   final case class ChangeFireState_Stop(weapon_guid : PlanetSideGUID) extends Response
   final case class ConcealPlayer() extends Response
-  final case class EquipmentInHand(slot : Int, item : Equipment) extends Response
+  final case class EquipmentInHand(target_guid : PlanetSideGUID, slot : Int, item : Equipment) extends Response
   final case class EquipmentOnGround(pos : Vector3, orient : Vector3, item_id : Int, item_guid : PlanetSideGUID, item_data : ConstructorData) extends Response
   final case class LoadPlayer(pdata : ConstructorData) extends Response
   //  final case class unLoadMap() extends Response
@@ -28,6 +28,7 @@ object AvatarResponse {
   final case class PlayerState(msg : PlayerStateMessageUpstream, spectator : Boolean, weaponInHand : Boolean) extends Response
   final case class Release(player : Player) extends Response
   final case class Reload(weapon_guid : PlanetSideGUID) extends Response
+  final case class StowEquipment(target_guid : PlanetSideGUID, slot : Int, item : Equipment) extends Response
   final case class WeaponDryFire(weapon_guid : PlanetSideGUID) extends Response
   //  final case class PlayerStateShift(itemID : PlanetSideGUID) extends Response
   final case class DestroyDisplay(killer : Player, victim : Player) extends Response

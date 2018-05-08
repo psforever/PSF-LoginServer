@@ -4238,7 +4238,7 @@ object GlobalDefinitions {
     lightning.MountPoints += 2 -> 0
     lightning.TrunkSize = InventoryTile.Tile1511
     lightning.TrunkOffset = 30
-    lightning.MaxHealth = 1500
+    lightning.MaxHealth = 2000
     lightning.AutoPilotSpeeds = (20, 8)
 
     prowler.Name = "prowler"
@@ -4255,7 +4255,7 @@ object GlobalDefinitions {
     prowler.MountPoints += 3 -> 2
     prowler.TrunkSize = InventoryTile.Tile1511
     prowler.TrunkOffset = 30
-    prowler.MaxHealth = 4000
+    prowler.MaxHealth = 4800
     prowler.AutoPilotSpeeds = (14, 6)
 
     vanguard.Name = "vanguard"
@@ -4268,7 +4268,7 @@ object GlobalDefinitions {
     vanguard.MountPoints += 2 -> 1
     vanguard.TrunkSize = InventoryTile.Tile1511
     vanguard.TrunkOffset = 30
-    vanguard.MaxHealth = 4500
+    vanguard.MaxHealth = 5400
     vanguard.AutoPilotSpeeds = (16, 6)
 
     magrider.Name = "magrider"
@@ -4283,7 +4283,7 @@ object GlobalDefinitions {
     magrider.MountPoints += 2 -> 1
     magrider.TrunkSize = InventoryTile.Tile1511
     magrider.TrunkOffset = 30
-    magrider.MaxHealth = 3500
+    magrider.MaxHealth = 4200
     magrider.AutoPilotSpeeds = (18, 6)
 
     val utilityConverter = new UtilityVehicleConverter
@@ -4378,7 +4378,7 @@ object GlobalDefinitions {
     lightgunship.TrunkOffset = 30
     lightgunship.AutoPilotSpeeds = (0, 4)
     lightgunship.Packet = variantConverter
-    lightgunship.MaxHealth = 855
+    lightgunship.MaxHealth = 1000
 
     wasp.Name = "wasp"
     wasp.Seats += 0 -> new SeatDefinition()

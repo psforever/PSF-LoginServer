@@ -62,9 +62,9 @@ class AvatarService extends Actor {
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.ConcealPlayer())
           )
-        case AvatarAction.EquipmentInHand(player_guid, slot, obj) =>
+        case AvatarAction.EquipmentInHand(player_guid, target_guid, slot, obj) =>
           AvatarEvents.publish(
-            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.EquipmentInHand(slot, obj))
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.EquipmentInHand(target_guid, slot, obj))
           )
         case AvatarAction.EquipmentOnGround(player_guid, pos, orient, item_id, item_guid, item_data) =>
           AvatarEvents.publish(
@@ -105,6 +105,10 @@ class AvatarService extends Actor {
         case AvatarAction.Reload(player_guid, weapon_guid) =>
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.Reload(weapon_guid))
+          )
+        case AvatarAction.StowEquipment(player_guid, target_guid, slot, obj) =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.StowEquipment(target_guid, slot, obj))
           )
         case AvatarAction.WeaponDryFire(player_guid, weapon_guid) =>
           AvatarEvents.publish(

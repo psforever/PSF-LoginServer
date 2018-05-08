@@ -20,4 +20,8 @@ object InventoryItem {
   def apply(obj : Equipment, start : Int) : InventoryItem = {
     new InventoryItem(obj, start)
   }
+
+  def unapply(entry : InventoryItem) : Option[(Equipment, Int)] = {
+    Some((entry.obj, entry.start))
+  }
 }
