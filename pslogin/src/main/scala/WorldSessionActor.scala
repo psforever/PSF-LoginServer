@@ -2507,8 +2507,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case Some(obj: Equipment) =>
           val findFunc: PlanetSideGameObject with Container => Option[(PlanetSideGameObject with Container, Option[Int])] = FindInLocalContainer(object_guid)
 
-          findFunc(player)
-            .orElse(findFunc(player.Locker))
+          findFunc(player.Locker)
+            .orElse(findFunc(player))
             .orElse(accessedContainer match {
               case Some(parent) =>
                 findFunc(parent)

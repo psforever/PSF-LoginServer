@@ -271,6 +271,20 @@ class WeaponDryFireTest extends ActorTest {
   }
 }
 
+class AvatarStowEquipmentTest extends ActorTest {
+  val tool = Tool(GlobalDefinitions.beamer)
+
+  "AvatarService" should {
+    "pass StowEquipment" in {
+      ServiceManager.boot(system)
+      val service = system.actorOf(Props[AvatarService], AvatarServiceTest.TestName)
+      service ! Service.Join("test")
+      service ! AvatarServiceMessage("test", AvatarAction.StowEquipment(PlanetSideGUID(10), PlanetSideGUID(11), 2, tool))
+      expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarResponse.StowEquipment(PlanetSideGUID(11), 2, tool)))
+    }
+  }
+}
+
 /*
 Preparation for these three Release tests is involved.
 The ServiceManager must not only be set up correctly, but must be given a TaskResolver.
