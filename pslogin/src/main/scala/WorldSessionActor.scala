@@ -2166,7 +2166,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
       // TODO: Depending on messagetype, may need to prepend sender's name to contents with proper spacing
       // TODO: Just replays the packet straight back to sender; actually needs to be routed to recipients!
-      if (messagetype != ChatMessageType.CMT_TOGGLE_GM) sendResponse(ChatMsg(messagetype, has_wide_contents, recipient, echoContents, note_contents))
+//      if (messagetype != ChatMessageType.CMT_TOGGLE_GM) sendResponse(ChatMsg(messagetype, has_wide_contents, recipient, echoContents, note_contents))
 
     case msg@VoiceHostRequest(unk, PlanetSideGUID(player_guid), data) =>
       log.info("Player " + player_guid + " requested in-game voice chat.")
