@@ -30,10 +30,25 @@ class DeconstructionActor extends Actor {
   private var scrappingProcess : Cancellable = DefaultCancellable.obj
   /** A `List` of currently doomed vehicles */
   private var vehicles : List[DeconstructionActor.VehicleEntry] = Nil
+  /** The periodic `Executor` that cleans up the next vehicle on the list */
+  private var heapEmptyProcess : Cancellable = DefaultCancellable.obj
+  /** A `List` of vehicles that have been removed from the game world and are awaiting deconstruction. */
+  private var vehicleScrapHeap : List[DeconstructionActor.VehicleEntry] = Nil
   /** The manager that helps unregister the vehicle from its current GUID scope */
   private var taskResolver : ActorRef = Actor.noSender
   //private[this] val log = org.log4s.getLogger
 
+  override def postStop() : Unit = {
+    super.postStop()
+    scrappingProcess.cancel
+    heapEmptyProcess.cancel
+
+    vehicles.foreach(entry => {
+      RetirementTask(entry)
+      DestructionTask(entry)
+    })
+    vehicleScrapHeap.foreach { DestructionTask }
+  }
 
   def receive : Receive = {
     /*
@@ -52,51 +67,76 @@ class DeconstructionActor extends Actor {
 
   def Processing : Receive = {
     case DeconstructionActor.RequestDeleteVehicle(vehicle, zone, time) =>
-      vehicles = vehicles :+ DeconstructionActor.VehicleEntry(vehicle, zone, time)
-      vehicle.Actor ! Vehicle.PrepareForDeletion
-      //kick everyone out; this is a no-blocking manual form of MountableBehavior ! Mountable.TryDismount
-      vehicle.Definition.MountPoints.values.foreach(seat_num => {
-        val zone_id : String = zone.Id
-        val seat : Seat = vehicle.Seat(seat_num).get
-        seat.Occupant match {
-          case Some(tplayer) =>
-            seat.Occupant = None
-            tplayer.VehicleSeated = None
-            if(tplayer.HasGUID) {
-              context.parent ! VehicleServiceMessage(zone_id, VehicleAction.KickPassenger(tplayer.GUID, 4, false, vehicle.GUID))
-            }
-          case None => ;
+      if(!vehicles.exists(_.vehicle == vehicle) && !vehicleScrapHeap.exists(_.vehicle == vehicle)) {
+        vehicles = vehicles :+ DeconstructionActor.VehicleEntry(vehicle, zone, time)
+        vehicle.Actor ! Vehicle.PrepareForDeletion
+        //kick everyone out; this is a no-blocking manual form of MountableBehavior ! Mountable.TryDismount
+        vehicle.Definition.MountPoints.values.foreach(seat_num => {
+          val zone_id : String = zone.Id
+          val seat : Seat = vehicle.Seat(seat_num).get
+          seat.Occupant match {
+            case Some(tplayer) =>
+              seat.Occupant = None
+              tplayer.VehicleSeated = None
+              if(tplayer.HasGUID) {
+                context.parent ! VehicleServiceMessage(zone_id, VehicleAction.KickPassenger(tplayer.GUID, 4, false, vehicle.GUID))
+              }
+            case None => ;
+          }
+        })
+        if(vehicles.size == 1) {
+          //we were the only entry so the event must be started from scratch
+          import scala.concurrent.ExecutionContext.Implicits.global
+          scrappingProcess = context.system.scheduler.scheduleOnce(DeconstructionActor.timeout, self, DeconstructionActor.StartDeleteVehicle())
         }
-      })
-      if(vehicles.size == 1) { //we were the only entry so the event must be started from scratch
-        import scala.concurrent.ExecutionContext.Implicits.global
-        scrappingProcess = context.system.scheduler.scheduleOnce(DeconstructionActor.timeout, self, DeconstructionActor.TryDeleteVehicle())
       }
 
-    case DeconstructionActor.TryDeleteVehicle() =>
+    case DeconstructionActor.StartDeleteVehicle() =>
       scrappingProcess.cancel
+      heapEmptyProcess.cancel
       val now : Long = System.nanoTime
       val (vehiclesToScrap, vehiclesRemain) = PartitionEntries(vehicles, now)
-      vehicles = vehiclesRemain
-      vehiclesToScrap.foreach(entry => {
-        val vehicle = entry.vehicle
-        val zone = entry.zone
-        vehicle.Position = Vector3.Zero //somewhere it will not disturb anything
-        entry.zone.Transport ! Zone.Vehicle.Despawn(vehicle)
-        context.parent ! DeconstructionActor.DeleteVehicle(vehicle.GUID, zone.Id) //call up to the main event system
-        taskResolver ! DeconstructionTask(vehicle, zone)
-      })
-
+      vehicles = vehiclesRemain //entries from original list before partition
+      vehicleScrapHeap = vehicleScrapHeap ++ vehiclesToScrap //may include existing entries
+      vehiclesToScrap.foreach { RetirementTask }
       if(vehiclesRemain.nonEmpty) {
         val short_timeout : FiniteDuration = math.max(1, DeconstructionActor.timeout_time - (now - vehiclesRemain.head.time)) nanoseconds
         import scala.concurrent.ExecutionContext.Implicits.global
-        scrappingProcess = context.system.scheduler.scheduleOnce(short_timeout, self, DeconstructionActor.TryDeleteVehicle())
+        scrappingProcess = context.system.scheduler.scheduleOnce(short_timeout, self, DeconstructionActor.StartDeleteVehicle())
+      }
+      if(vehicleScrapHeap.nonEmpty) {
+        import scala.concurrent.ExecutionContext.Implicits.global
+        heapEmptyProcess = context.system.scheduler.scheduleOnce(500 milliseconds, self, DeconstructionActor.TryDeleteVehicle())
+      }
+
+    case DeconstructionActor.TryDeleteVehicle() =>
+      heapEmptyProcess.cancel
+      val (vehiclesToScrap, vehiclesRemain) = vehicleScrapHeap.partition(entry => !entry.zone.Vehicles.contains(entry.vehicle))
+      vehicleScrapHeap = vehiclesRemain
+      vehiclesToScrap.foreach { DestructionTask }
+      if(vehiclesRemain.nonEmpty) {
+        import scala.concurrent.ExecutionContext.Implicits.global
+        heapEmptyProcess = context.system.scheduler.scheduleOnce(500 milliseconds, self, DeconstructionActor.TryDeleteVehicle())
       }
 
     case DeconstructionActor.FailureToDeleteVehicle(localVehicle, localZone, ex) =>
       org.log4s.getLogger.error(s"vehicle deconstruction: $localVehicle failed to be properly cleaned up from zone $localZone - $ex")
 
     case _ => ;
+  }
+
+  def RetirementTask(entry : DeconstructionActor.VehicleEntry) : Unit = {
+    val vehicle = entry.vehicle
+    val zone = entry.zone
+    zone.Transport ! Zone.Vehicle.Despawn(vehicle)
+    context.parent ! DeconstructionActor.DeleteVehicle(vehicle.GUID, zone.Id) //call up to the main event system
+  }
+
+  def DestructionTask(entry : DeconstructionActor.VehicleEntry) : Unit = {
+    val vehicle = entry.vehicle
+    val zone = entry.zone
+    vehicle.Position = Vector3.Zero //somewhere it will not disturb anything
+    taskResolver ! DeconstructionTask(vehicle, zone)
   }
 
   /**
@@ -195,6 +235,12 @@ object DeconstructionActor {
   final case class DeleteVehicle(vehicle_guid : PlanetSideGUID, zone_id : String)
   /**
     * Internal message used to signal a test of the queued vehicle information.
+    * Remove all deconstructing vehicles from the game world.
+    */
+  private final case class StartDeleteVehicle()
+  /**
+    * Internal message used to signal a test of the queued vehicle information.
+    * Remove all deconstructing vehicles from the zone's globally unique identifier system.
     */
   private final case class TryDeleteVehicle()
 

@@ -127,9 +127,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
         continent.Population ! Zone.Population.Release(avatar)
         player.VehicleSeated match {
           case None =>
-            continent.Population ! Zone.Corpse.Add(player)
             FriskCorpse(player) //TODO eliminate dead letters
             if(!WellLootedCorpse(player)) {
+              continent.Population ! Zone.Corpse.Add(player)
               avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.Release(player, continent))
               taskResolver ! GUIDTask.UnregisterLocker(player.Locker)(continent.GUID) //rest of player will be cleaned up with corpses
             }
@@ -304,6 +304,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
         case AvatarResponse.ObjectDelete(item_guid, unk) =>
           if(tplayer_guid != guid) {
+            log.info(s"Made to delete item $item_guid")
             sendResponse(ObjectDeleteMessage(item_guid, unk))
           }
 
@@ -1601,10 +1602,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
       continent.Population ! Zone.Population.Release(avatar)
       player.VehicleSeated match {
         case None =>
-          continent.Population ! Zone.Corpse.Add(player) //TODO move back out of this match case when changing below issue
           FriskCorpse(player)
           if(!WellLootedCorpse(player)) {
             TurnPlayerIntoCorpse(player)
+            continent.Population ! Zone.Corpse.Add(player) //TODO move back out of this match case when changing below issue
             avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.Release(player, continent))
           }
           else { //no items in inventory; leave no corpse
