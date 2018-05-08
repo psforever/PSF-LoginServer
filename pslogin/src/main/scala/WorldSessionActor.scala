@@ -2089,27 +2089,27 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg@ChatMsg(messagetype, has_wide_contents, recipient, contents, note_contents) =>
       var echoContents: String = contents
       //TODO messy on/off strings may work
-      if (messagetype == ChatMessageType.CMT_FLY) {
-        if (contents.trim.equals("on")) {
-          flying = true
-        }
-        else if (contents.trim.equals("off")) {
-          flying = false
-        }
-      }
-      else if (messagetype == ChatMessageType.CMT_SPEED) {
-        speed = {
-          try {
-            contents.trim.toFloat
-          }
-          catch {
-            case _: Exception =>
-              echoContents = "1.000"
-              1f
-          }
-        }
-      }
-      else if (messagetype == ChatMessageType.CMT_TOGGLESPECTATORMODE) {
+//      if (messagetype == ChatMessageType.CMT_FLY) {
+//        if (contents.trim.equals("on")) {
+//          flying = true
+//        }
+//        else if (contents.trim.equals("off")) {
+//          flying = false
+//        }
+//      }
+//      else if (messagetype == ChatMessageType.CMT_SPEED) {
+//        speed = {
+//          try {
+//            contents.trim.toFloat
+//          }
+//          catch {
+//            case _: Exception =>
+//              echoContents = "1.000"
+//              1f
+//          }
+//        }
+//      }
+      if (messagetype == ChatMessageType.CMT_TOGGLESPECTATORMODE) {
         if (contents.trim.equals("on")) {
           spectator = true
         }
