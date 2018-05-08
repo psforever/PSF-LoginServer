@@ -3135,6 +3135,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
                     avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.Destroy(obj.GUID, player.GUID, PlanetSideGUID(obj.death_by), obj.Position)) //how many players get this message?
                     vehicleService ! VehicleServiceMessage(player.Continent, VehicleAction.PlanetsideAttribute(player.GUID, obj.GUID, 10, 3))
                     vehicleService ! VehicleServiceMessage(player.Continent, VehicleAction.PlanetsideAttribute(player.GUID, obj.GUID, 13, 3))
+                    import scala.concurrent.duration._
+                    import scala.concurrent.ExecutionContext.Implicits.global
+                    context.system.scheduler.scheduleOnce(30000 milliseconds, vehicleService,  VehicleServiceMessage(player.Continent, VehicleAction.ObjectDelete(player.GUID, obj.GUID)))
                   }
                   player.DeleteProjectile(projectile_guid)
                 case None =>
@@ -3213,6 +3216,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
                 avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.Destroy(obj.GUID, player.GUID, PlanetSideGUID(obj.death_by), obj.Position)) //how many players get this message?
                 vehicleService ! VehicleServiceMessage(player.Continent, VehicleAction.PlanetsideAttribute(player.GUID, obj.GUID, 10, 3))
                 vehicleService ! VehicleServiceMessage(player.Continent, VehicleAction.PlanetsideAttribute(player.GUID, obj.GUID, 13, 3))
+                import scala.concurrent.duration._
+                import scala.concurrent.ExecutionContext.Implicits.global
+                context.system.scheduler.scheduleOnce(30000 milliseconds, vehicleService,  VehicleServiceMessage(player.Continent, VehicleAction.ObjectDelete(player.GUID, obj.GUID)))
               }
               player.DeleteProjectile(projectile_guid)
             case None =>
@@ -3286,6 +3292,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
                   avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.Destroy(obj.GUID, player.GUID, PlanetSideGUID(obj.death_by), obj.Position)) //how many players get this message?
                   vehicleService ! VehicleServiceMessage(player.Continent, VehicleAction.PlanetsideAttribute(player.GUID, obj.GUID, 10, 3))
                   vehicleService ! VehicleServiceMessage(player.Continent, VehicleAction.PlanetsideAttribute(player.GUID, obj.GUID, 13, 3))
+                  import scala.concurrent.duration._
+                  import scala.concurrent.ExecutionContext.Implicits.global
+                  context.system.scheduler.scheduleOnce(30000 milliseconds, vehicleService,  VehicleServiceMessage(player.Continent, VehicleAction.ObjectDelete(player.GUID, obj.GUID)))
                 }
                 player.DeleteProjectile(projectile_guid)
               case None =>
