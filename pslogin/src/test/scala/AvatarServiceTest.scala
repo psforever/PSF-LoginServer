@@ -271,7 +271,7 @@ class WeaponDryFireTest extends ActorTest {
   }
 }
 
-class StowEquipmentTest extends ActorTest {
+class AvatarStowEquipmentTest extends ActorTest {
   val tool = Tool(GlobalDefinitions.beamer)
 
   "AvatarService" should {
