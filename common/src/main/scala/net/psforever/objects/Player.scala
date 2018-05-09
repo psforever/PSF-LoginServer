@@ -200,10 +200,7 @@ class Player(private val core : Avatar) extends PlanetSideGameObject with Factio
       case Some(index) =>
         Some(index)
       case None =>
-        if(Locker.Find(guid).isDefined) {
-          Some(5)
-        }
-        else if(freeHand.Equipment.isDefined && freeHand.Equipment.get.GUID == guid) {
+        if(freeHand.Equipment.isDefined && freeHand.Equipment.get.GUID == guid) {
           Some(Player.FreeHandSlot)
         }
         else {

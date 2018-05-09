@@ -3263,6 +3263,29 @@ class WorldSessionActor extends Actor with MDCContextAware {
         previousAmount < desiredAmount
       })
   }
+  def FindRestock(obj : Container, filterTest : (Equipment)=>Boolean, desiredAmount : Int) : List[InventoryItem] = {
+    var currentAmount : Int = 0
+    obj.Inventory.Items
+      .map({ case ((_, item)) => item })
+      .filter(obj => filterTest(obj.obj))
+      .toList
+      .sortBy(_.start)
+      .takeWhile(entry => {
+        val previousAmount = currentAmount
+        currentAmount += (entry.obj match {
+          case obj : AmmoBox =>
+            obj.Capacity
+          case obj : Tool =>
+            if(GlobalDefinitions.isGrenade(obj.Definition)) {
+              obj.Magazine
+            }
+            else {
+              1
+            }
+        })
+        previousAmount < desiredAmount
+      })
+  }
 
   /**
     * Given an object that contains a box of amunition in its `Inventory` at a certain location,
@@ -3404,10 +3427,40 @@ class WorldSessionActor extends Actor with MDCContextAware {
     //TODO this is temporary and will be replaced by more appropriate functionality in the future.
     val tdef = tool.Definition
     if(GlobalDefinitions.isGrenade(tdef)) {
-      taskResolver ! RemoveEquipmentFromSlot(player, tool, player.Find(tool).get)
+      val findGrenades : (Equipment)=>Boolean = FindGrenadesLike(tool.AmmoType)
+      FindRestock(player, findGrenades, 3) match {
+        case Nil =>
+          taskResolver ! RemoveEquipmentFromSlot(player, tool, player.Find(tool).get)
+
+        case x :: xs => //this is similar to ReloadMessage
+          val box = x.obj.asInstanceOf[Tool]
+          val tailReloadValue : Int = if(xs.isEmpty) { 0 } else { xs.map(_.obj.asInstanceOf[Tool].Magazine).reduce(_ + _) }
+          val sumReloadValue : Int = box.Magazine + tailReloadValue
+          val actualReloadValue = (if(sumReloadValue <= 3) {
+            taskResolver ! RemoveEquipmentFromSlot(player, x.obj, x.start)
+            sumReloadValue
+          }
+          else {
+            ModifyAmmunition(player)(box.AmmoSlot.Box, 3 - tailReloadValue)
+            3
+          })
+          ModifyAmmunition(player)(tool.AmmoSlot.Box, -actualReloadValue) //grenades already in holster (negative because empty)
+          xs.foreach(item => {
+            taskResolver ! RemoveEquipmentFromSlot(player, item.obj, item.start)
+          })
+      }
     }
     else if(tdef == GlobalDefinitions.phoenix) {
       taskResolver ! RemoveEquipmentFromSlot(player, tool, player.Find(tool).get)
+    }
+  }
+
+  def FindGrenadesLike(grenadeType : Ammo.Value)(e : Equipment) : Boolean = {
+    e match {
+      case t : Tool =>
+        t.AmmoType == grenadeType
+      case _ =>
+        false
     }
   }
 
