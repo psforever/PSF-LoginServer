@@ -304,7 +304,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
         case AvatarResponse.ObjectDelete(item_guid, unk) =>
           if(tplayer_guid != guid) {
-            log.info(s"Made to delete item $item_guid")
             sendResponse(ObjectDeleteMessage(item_guid, unk))
           }
 
@@ -1241,6 +1240,18 @@ class WorldSessionActor extends Actor with MDCContextAware {
           failWithError(s"${tplayer.Name} failed to load anywhere")
       }
 
+    case UnregisterCorpseOnVehicleDisembark(corpse) =>
+      if(!corpse.isAlive && corpse.HasGUID) {
+        corpse.VehicleSeated match {
+          case Some(_) =>
+            import scala.concurrent.duration._
+            import scala.concurrent.ExecutionContext.Implicits.global
+            context.system.scheduler.scheduleOnce(50 milliseconds, self, UnregisterCorpseOnVehicleDisembark(corpse))
+          case None =>
+            taskResolver ! GUIDTask.UnregisterPlayer(corpse)(continent.GUID)
+        }
+      }
+
     case SetCurrentAvatar(tplayer) =>
       player = tplayer
       val guid = tplayer.GUID
@@ -1621,8 +1632,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
           val player_guid = player.GUID
           sendResponse(ObjectDeleteMessage(player_guid, 0))
           avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player_guid, player_guid, 0))
-          taskResolver ! GUIDTask.UnregisterPlayer(player)(continent.GUID)
           self ! PacketCoding.CreateGamePacket(0, DismountVehicleMsg(player_guid, 0, true)) //let vehicle try to clean up its fields
+
+          import scala.concurrent.duration._
+          import scala.concurrent.ExecutionContext.Implicits.global
+          context.system.scheduler.scheduleOnce(50 milliseconds, self, UnregisterCorpseOnVehicleDisembark(player))
           //sendResponse(ObjectDetachMessage(vehicle_guid, player.GUID, Vector3.Zero, 0, 0, 0))
           //sendResponse(PlayerStateShiftMessage(ShiftState(1, Vector3.Zero, 0)))
       }
@@ -3991,6 +4005,7 @@ object WorldSessionActor {
   private final case class SetCurrentAvatar(tplayer : Player)
   private final case class VehicleLoaded(vehicle : Vehicle)
   private final case class DelayedProximityUnitStop(unit : ProximityTerminal)
+  private final case class UnregisterCorpseOnVehicleDisembark(corpse : Player)
 
   /**
     * A message that indicates the user is using a remote electronics kit to hack some server object.
