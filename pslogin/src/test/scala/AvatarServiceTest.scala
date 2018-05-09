@@ -100,8 +100,8 @@ class EquipmentInHandTest extends ActorTest {
       ServiceManager.boot(system)
       val service = system.actorOf(Props[AvatarService], AvatarServiceTest.TestName)
       service ! Service.Join("test")
-      service ! AvatarServiceMessage("test", AvatarAction.EquipmentInHand(PlanetSideGUID(10), 2, tool))
-      expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarResponse.EquipmentInHand(2, tool)))
+      service ! AvatarServiceMessage("test", AvatarAction.EquipmentInHand(PlanetSideGUID(10), PlanetSideGUID(11), 2, tool))
+      expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarResponse.EquipmentInHand(PlanetSideGUID(11), 2, tool)))
     }
   }
 }
@@ -267,6 +267,20 @@ class WeaponDryFireTest extends ActorTest {
       service ! Service.Join("test")
       service ! AvatarServiceMessage("test", AvatarAction.WeaponDryFire(PlanetSideGUID(10), PlanetSideGUID(40)))
       expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarResponse.WeaponDryFire(PlanetSideGUID(40))))
+    }
+  }
+}
+
+class AvatarStowEquipmentTest extends ActorTest {
+  val tool = Tool(GlobalDefinitions.beamer)
+
+  "AvatarService" should {
+    "pass StowEquipment" in {
+      ServiceManager.boot(system)
+      val service = system.actorOf(Props[AvatarService], AvatarServiceTest.TestName)
+      service ! Service.Join("test")
+      service ! AvatarServiceMessage("test", AvatarAction.StowEquipment(PlanetSideGUID(10), PlanetSideGUID(11), 2, tool))
+      expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarResponse.StowEquipment(PlanetSideGUID(11), 2, tool)))
     }
   }
 }

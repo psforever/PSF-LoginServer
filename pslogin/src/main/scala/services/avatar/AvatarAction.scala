@@ -17,7 +17,7 @@ object AvatarAction {
   final case class ChangeFireState_Start(player_guid : PlanetSideGUID, weapon_guid : PlanetSideGUID) extends Action
   final case class ChangeFireState_Stop(player_guid : PlanetSideGUID, weapon_guid : PlanetSideGUID) extends Action
   final case class ConcealPlayer(player_guid : PlanetSideGUID) extends Action
-  final case class EquipmentInHand(player_guid : PlanetSideGUID, slot : Int, item : Equipment) extends Action
+  final case class EquipmentInHand(player_guid : PlanetSideGUID, target_guid : PlanetSideGUID, slot : Int, item : Equipment) extends Action
   final case class EquipmentOnGround(player_guid : PlanetSideGUID, pos : Vector3, orient : Vector3, item_id : Int, item_guid : PlanetSideGUID, item_data : ConstructorData) extends Action
   final case class LoadPlayer(player_guid : PlanetSideGUID, pdata : ConstructorData) extends Action
 //  final case class LoadMap(msg : PlanetSideGUID) extends Action
@@ -28,6 +28,7 @@ object AvatarAction {
   final case class PlayerState(player_guid : PlanetSideGUID, msg : PlayerStateMessageUpstream, spectator : Boolean, weaponInHand : Boolean) extends Action
   final case class Release(player : Player, zone : Zone, time : Option[Long] = None) extends Action
   final case class Reload(player_guid : PlanetSideGUID, weapon_guid : PlanetSideGUID) extends Action
+  final case class StowEquipment(player_guid : PlanetSideGUID, target_guid : PlanetSideGUID, slot : Int, item : Equipment) extends Action
   final case class WeaponDryFire(player_guid : PlanetSideGUID, weapon_guid : PlanetSideGUID) extends Action
 //  final case class PlayerStateShift(killer : PlanetSideGUID, victim : PlanetSideGUID) extends Action
 //  final case class DestroyDisplay(killer : PlanetSideGUID, victim : PlanetSideGUID) extends Action

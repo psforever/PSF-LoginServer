@@ -273,14 +273,14 @@ class WorldSessionActor extends Actor with MDCContextAware {
             sendResponse(GenericObjectActionMessage(guid, 36))
           }
 
-        case AvatarResponse.EquipmentInHand(slot, item) =>
+        case AvatarResponse.EquipmentInHand(target, slot, item) =>
           if(tplayer_guid != guid) {
             val definition = item.Definition
             sendResponse(
               ObjectCreateMessage(
                 definition.ObjectId,
                 item.GUID,
-                ObjectCreateMessageParent(guid, slot),
+                ObjectCreateMessageParent(target, slot),
                 definition.Packet.ConstructorData(item).get
               )
             )
@@ -367,6 +367,19 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case AvatarResponse.Reload(item_guid) =>
           if(tplayer_guid != guid) {
             sendResponse(ReloadMessage(item_guid, 1, 0))
+          }
+
+        case AvatarResponse.StowEquipment(target, slot, item) =>
+          if(tplayer_guid != guid) {
+            val definition = item.Definition
+            sendResponse(
+              ObjectCreateDetailedMessage(
+                definition.ObjectId,
+                item.GUID,
+                ObjectCreateMessageParent(target, slot),
+                definition.Packet.DetailedConstructorData(item).get
+              )
+            )
           }
 
         case AvatarResponse.WeaponDryFire(weapon_guid) =>
@@ -589,7 +602,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           val player_guid : PlanetSideGUID = tplayer.GUID
           val obj_guid : PlanetSideGUID = obj.GUID
           log.info(s"MountVehicleMsg: $player_guid mounts $obj @ $seat_num")
-          //tplayer.VehicleSeated = Some(obj_guid)
+          PlayerActionsToCancel()
           sendResponse(PlanetsideAttributeMessage(obj_guid, 0, 1000L)) //health of mech
           sendResponse(ObjectAttachMessage(obj_guid, player_guid, seat_num))
           vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.MountVehicle(player_guid, obj_guid, seat_num))
@@ -599,7 +612,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           val player_guid : PlanetSideGUID = tplayer.GUID
           log.info(s"MountVehicleMsg: $player_guid mounts $obj_guid @ $seat_num")
           vehicleService ! VehicleServiceMessage.UnscheduleDeconstruction(obj_guid) //clear all deconstruction timers
-          //tplayer.VehicleSeated = Some(obj_guid)
+          PlayerActionsToCancel()
           if(seat_num == 0) { //simplistic vehicle ownership management
             obj.Owner match {
               case Some(owner_guid) =>
@@ -739,7 +752,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                       definition.Packet.DetailedConstructorData(obj).get
                     )
                   )
-                  avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.EquipmentInHand(player.GUID, index, obj))
+                  avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.EquipmentInHand(player.GUID, player.GUID, index, obj))
                 case None => ;
               }
             })
@@ -1296,7 +1309,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             )
           )
           if(tplayer.VisibleSlots.contains(slot)) {
-            avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.EquipmentInHand(player_guid, slot, item))
+            avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.EquipmentInHand(player_guid, player_guid, slot, item))
           }
         case None =>
           continent.Ground ! Zone.DropItemOnGround(item, item.Position, item.Orientation) //restore
@@ -2027,8 +2040,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case Some(obj : Equipment) =>
           val findFunc : PlanetSideGameObject with Container => Option[(PlanetSideGameObject with Container, Option[Int])] = FindInLocalContainer(object_guid)
 
-          findFunc(player)
-            .orElse(findFunc(player.Locker))
+          findFunc(player.Locker)
+            .orElse(findFunc(player))
             .orElse(accessedContainer match {
               case Some(parent) =>
                 findFunc(parent)
@@ -2056,100 +2069,159 @@ class WorldSessionActor extends Actor with MDCContextAware {
       sendResponse(ObjectDeleteMessage(object_guid, 0))
       log.info("ObjectDelete: " + msg)
 
-    case msg @ MoveItemMessage(item_guid, source_guid, destination_guid, dest, unk1) =>
+    case msg @ MoveItemMessage(item_guid, source_guid, destination_guid, dest, _) =>
       log.info(s"MoveItem: $msg")
       (continent.GUID(source_guid), continent.GUID(destination_guid), continent.GUID(item_guid)) match {
         case (Some(source : Container), Some(destination : Container), Some(item : Equipment)) =>
           source.Find(item_guid) match {
             case Some(index) =>
               val indexSlot = source.Slot(index)
-              val destSlot = destination.Slot(dest)
-              val destItem = destSlot.Equipment
+              val tile = item.Definition.Tile
+              val destinationCollisionTest = destination.Collisions(dest, tile.Width, tile.Height)
+              val destItemEntry = destinationCollisionTest match {
+                case Success(entry :: Nil) =>
+                  Some(entry)
+                case _ =>
+                  None
+              }
               if( {
-                val tile = item.Definition.Tile
-                destination.Collisions(dest, tile.Width, tile.Height) match {
-                  case Success(Nil) =>
-                    destItem.isEmpty //no item swap; abort if encountering an unexpected item
-                  case Success(entry :: Nil) =>
-                    destItem.contains(entry.obj) //one item to swap; abort if destination item is missing or is wrong
-                  case Success(_) | scala.util.Failure(_) =>
+                destinationCollisionTest match {
+                  case Success(Nil) | Success(_ :: Nil) =>
+                    true //no item or one item to swap
+                  case _ =>
                     false //abort when too many items at destination or other failure case
                 }
               } && indexSlot.Equipment.contains(item)) {
                 log.info(s"MoveItem: $item_guid moved from $source_guid @ $index to $destination_guid @ $dest")
+                val player_guid = player.GUID
+                val sourceIsNotDestination : Boolean = source != destination //if source is destination, OCDM style is not required
+                //remove item from source
                 indexSlot.Equipment = None
-                destItem match { //do we have a swap item?
-                  case Some(item2) => //yes, swap
-                    destSlot.Equipment = None //remove item2 to make room for item
-                    destSlot.Equipment = item
+                source match {
+                  case obj : Vehicle =>
+                    vehicleService ! VehicleServiceMessage(s"${obj.Actor}", VehicleAction.UnstowEquipment(player_guid, item_guid))
+                  case obj : Player =>
+                    if(obj.isBackpack || source.VisibleSlots.contains(index)) { //corpse being looted, or item was in hands
+                      avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player_guid, item_guid))
+                    }
+                  case _ => ;
+                }
+
+                destItemEntry match { //do we have a swap item in the destination slot?
+                  case Some(InventoryItem(item2, destIndex)) => //yes, swap
+                    //cleanly shuffle items around to avoid losing icons
+                    //the next ObjectDetachMessage is necessary to avoid icons being lost, but only as part of this swap
+                    sendResponse(ObjectDetachMessage(source_guid, item_guid, Vector3.Zero, 0f, 0f, 0f))
+                    val item2_guid = item2.GUID
+                    destination.Slot(destIndex).Equipment = None //remove the swap item from destination
                     (indexSlot.Equipment = item2) match {
                       case Some(_) => //item and item2 swapped places successfully
-                        log.info(s"MoveItem: ${item2.GUID} swapped to $source_guid @ $index")
-                        //cleanly shuffle items around to avoid losing icons
-                        sendResponse(ObjectDetachMessage(source_guid, item_guid, Vector3(0f, 0f, 0f), 0f, 0f, 0f)) //ground; A -> C
-                        sendResponse(ObjectAttachMessage(source_guid, item2.GUID, index)) //B -> A
-                        source match {
-                          case (obj : Vehicle) =>
-                            val player_guid = player.GUID
-                            vehicleService ! VehicleServiceMessage(s"${obj.Actor}", VehicleAction.UnstowEquipment(player_guid, item_guid))
-                            vehicleService ! VehicleServiceMessage(s"${obj.Actor}", VehicleAction.StowEquipment(player_guid, source_guid, index, item2))
-                          //TODO visible slot verification, in the case of BFR arms
-                          case (obj : Player) =>
-                            if(source.VisibleSlots.contains(index)) {
-                                avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.EquipmentInHand(source_guid, index, item2))
+                        log.info(s"MoveItem: $item2_guid swapped to $source_guid @ $index")
+                        //remove item2 from destination
+                        sendResponse(ObjectDetachMessage(destination_guid, item2_guid, Vector3.Zero, 0f, 0f, 0f))
+                        destination match {
+                          case obj : Vehicle =>
+                            vehicleService ! VehicleServiceMessage(s"${obj.Actor}", VehicleAction.UnstowEquipment(player_guid, item2_guid))
+                          case obj : Player =>
+                            if(obj.isBackpack || destination.VisibleSlots.contains(dest)) { //corpse being looted, or item was in hands
+                              avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player_guid, item2_guid))
                             }
                           case _ => ;
-                            //TODO something?
+                        }
+                        //display item2 in source
+                        if(sourceIsNotDestination && player == source) {
+                          val objDef = item2.Definition
+                          sendResponse(
+                            ObjectCreateDetailedMessage(
+                              objDef.ObjectId,
+                              item2_guid,
+                              ObjectCreateMessageParent(source_guid, index),
+                              objDef.Packet.DetailedConstructorData(item2).get
+                            )
+                          )
+                        }
+                        else {
+                          sendResponse(ObjectAttachMessage(source_guid, item2_guid, index))
+                        }
+                        source match {
+                          case obj : Vehicle =>
+                            vehicleService ! VehicleServiceMessage(s"${obj.Actor}", VehicleAction.StowEquipment(player_guid, source_guid, index, item2))
+                          case obj : Player =>
+                            if(source.VisibleSlots.contains(index)) { //item is put in hands
+                              avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.EquipmentInHand(player_guid, source_guid, index, item2))
+                            }
+                            else if(obj.isBackpack) { //corpse being given item
+                              avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.StowEquipment(player_guid, source_guid, index, item2))
+                            }
+                          case _ => ;
                         }
 
                       case None => //item2 does not fit; drop on ground
+                        log.info(s"MoveItem: $item2_guid can not fit in swap location; dropping on ground @ ${source.Position}")
                         val pos = source.Position
                         val sourceOrientZ = source.Orientation.z
                         val orient : Vector3 = Vector3(0f, 0f, sourceOrientZ)
                         continent.Actor ! Zone.DropItemOnGround(item2, pos, orient)
-                        sendResponse(ObjectDetachMessage(source_guid, item2.GUID, pos, 0f, 0f, sourceOrientZ)) //ground
+                        sendResponse(ObjectDetachMessage(destination_guid, item2_guid, pos, 0f, 0f, sourceOrientZ)) //ground
                         val objDef = item2.Definition
-                        avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.EquipmentOnGround(player.GUID, pos, orient, objDef.ObjectId, item2.GUID, objDef.Packet.ConstructorData(item2).get))
+                        destination match {
+                          case obj : Vehicle =>
+                            vehicleService ! VehicleServiceMessage(s"${obj.Actor}", VehicleAction.UnstowEquipment(player_guid, item2_guid))
+                          case _ => ;
+                            //Player does not require special case; the act of dropping forces the item and icon to change
+                        }
+                        avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.EquipmentOnGround(player_guid, pos, orient, objDef.ObjectId, item2_guid, objDef.Packet.ConstructorData(item2).get))
                     }
 
-                  case None => //just move item over
-                    destSlot.Equipment = item
-                    source match {
-                      case (obj : Vehicle) =>
-                        vehicleService ! VehicleServiceMessage(s"${obj.Actor}", VehicleAction.UnstowEquipment(player.GUID, item_guid))
-                        //TODO visible slot verification, in the case of BFR arms
-                      case _ => ;
-                      //TODO something?
-                    }
-
+                  case None => ;
                 }
-                sendResponse(ObjectAttachMessage(destination_guid, item_guid, dest))
+                //move item into destination slot
+                destination.Slot(dest).Equipment = item
+                if(sourceIsNotDestination && player == destination) {
+                  val objDef = item.Definition
+                  sendResponse(
+                    ObjectCreateDetailedMessage(
+                      objDef.ObjectId,
+                      item_guid,
+                      ObjectCreateMessageParent(destination_guid, dest),
+                      objDef.Packet.DetailedConstructorData(item).get
+                    )
+                  )
+                }
+                else {
+                  sendResponse(ObjectAttachMessage(destination_guid, item_guid, dest))
+                }
                 destination match {
-                  case (obj : Vehicle) =>
-                    vehicleService ! VehicleServiceMessage(s"${obj.Actor}", VehicleAction.StowEquipment(player.GUID, destination_guid, dest, item))
-                  //TODO visible slot verification, in the case of BFR arms
-                  case (_ : Player) =>
-                    if(destination.VisibleSlots.contains(dest)) {
-                      avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.EquipmentInHand(destination_guid, dest, item))
+                  case obj : Vehicle =>
+                    vehicleService ! VehicleServiceMessage(s"${obj.Actor}", VehicleAction.StowEquipment(player_guid, destination_guid, dest, item))
+                  case obj : Player =>
+                    if(destination.VisibleSlots.contains(dest)) { //item is put in hands
+                      avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.EquipmentInHand(player_guid, destination_guid, dest, item))
+                    }
+                    else if(obj.isBackpack) { //corpse being given item
+                      avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.StowEquipment(player_guid, destination_guid, dest, item))
                     }
                   case _ => ;
-                    //TODO something?
                 }
               }
-              else if(indexSlot.Equipment.nonEmpty) {
-                log.error(s"MoveItem: wanted to move $item_guid, but unexpected item ${indexSlot.Equipment.get} at origin")
+              else if(!indexSlot.Equipment.contains(item)) {
+                log.error(s"MoveItem: wanted to move $item_guid, but found unexpected ${indexSlot.Equipment.get} at source location")
               }
               else {
-                log.error(s"MoveItem: wanted to move $item_guid, but unexpected item(s) at destination")
+                destinationCollisionTest match {
+                  case Success(_) =>
+                    log.error(s"MoveItem: wanted to move $item_guid, but multiple unexpected items at destination blocked progress")
+                  case scala.util.Failure(err) =>
+                    log.error(s"MoveItem: wanted to move $item_guid, but $err")
+                }
               }
             case _ =>
               log.error(s"MoveItem: wanted to move $item_guid, but could not find it")
           }
-
         case (None, _, _) =>
-          log.error(s"MoveItem: wanted to move $item_guid from $source_guid, but could not find source")
+          log.error(s"MoveItem: wanted to move $item_guid from $source_guid, but could not find source object")
         case (_, None, _) =>
-          log.error(s"MoveItem: wanted to move $item_guid from $source_guid to $destination_guid, but could not find destination")
+          log.error(s"MoveItem: wanted to move $item_guid to $destination_guid, but could not find destination object")
         case (_, _, None) =>
           log.error(s"MoveItem: wanted to move $item_guid, but could not find it")
         case _ =>
@@ -2680,7 +2752,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             )
           )
           if(localTarget.VisibleSlots.contains(localIndex)) {
-            localService ! AvatarServiceMessage(continent.Id, AvatarAction.EquipmentInHand(localTarget.GUID, localIndex, localObject))
+            localService ! AvatarServiceMessage(continent.Id, AvatarAction.EquipmentInHand(localTarget.GUID, localTarget.GUID, localIndex, localObject))
           }
         }
       })
@@ -3554,7 +3626,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
   /**
     * An event has occurred that would cause the player character to stop certain stateful activities.
-    * These activities include shooting, hacking, accessing (a container), flying, and running.
+    * These activities include shooting, weapon drawing, hacking, accessing (a container), flying, and running.
     * Other players in the same zone must be made aware that the player has stopped as well.<br>
     * <br>
     * Things whose configuration should not be changed:<br>
@@ -3582,6 +3654,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
         avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireState_Stop(player.GUID, guid))
         shooting = None
       case None => ;
+    }
+    if(player != null && player.isAlive && player.VisibleSlots.contains(player.DrawnSlot)) {
+      player.DrawnSlot = Player.HandsDownSlot
+      sendResponse(ObjectHeldMessage(player.GUID, Player.HandsDownSlot, true))
+      avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectHeld(player.GUID, player.LastDrawnSlot))
     }
     if(flying) {
       sendResponse(ChatMsg(ChatMessageType.CMT_FLY, false, "", "off", None))
