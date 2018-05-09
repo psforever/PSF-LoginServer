@@ -105,7 +105,9 @@ object Maps {
       LocalObject(177, Terminal.Constructor(air_vehicle_terminal))
       LocalObject(503, VehicleSpawnPad.Constructor(Vector3(4407.0f, 5927.0f, 93.0f), Vector3(0f, 0f, 0f))) //TODO guid not correct
 
-
+      LocalObject(1909, ProximityTerminal.Constructor(medical_terminal))
+      LocalObject(1910, ProximityTerminal.Constructor(medical_terminal))
+      
       ObjectToBuilding(513, 9)
       ObjectToBuilding(514, 9)
       ObjectToBuilding(515, 9)
@@ -154,6 +156,8 @@ object Maps {
       ObjectToBuilding(1148, 9)
       ObjectToBuilding(1149, 9)
       ObjectToBuilding(1517, 9)
+      ObjectToBuilding(1909, 9)
+      ObjectToBuilding(1910, 9)
       ObjectToBuilding(2014, 9)
       ObjectToBuilding(2015, 9)
       ObjectToBuilding(2016, 9)
@@ -192,6 +196,7 @@ object Maps {
 
     def Building10() : Unit = { // Hanish
       LocalBuilding(10, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(3749f, 5477f, 0)))) // Todo change pos
+      LocalObject(464, Door.Constructor)
       LocalObject(470, Door.Constructor(Vector3(3645.3984f, 5451.9688f, 88.890625f), Vector3(0, 0, 182)))
       LocalObject(471, Door.Constructor)
       LocalObject(472, Door.Constructor)
@@ -270,6 +275,12 @@ object Maps {
       LocalObject(3070, Terminal.Constructor(vehicle_terminal_combined))
       LocalObject(1886, VehicleSpawnPad.Constructor(Vector3(3675.0f, 5458.0f, 89.0f), Vector3(0f, 0f, 0f))) //TODO guid not correct
 
+      LocalObject(169, ProximityTerminal.Constructor(adv_med_terminal))
+      LocalObject(1906, ProximityTerminal.Constructor(medical_terminal))
+      
+      ObjectToBuilding(169, 10)
+      ObjectToBuilding(1906, 10)
+      ObjectToBuilding(464, 10)
       ObjectToBuilding(470, 10)
       ObjectToBuilding(471, 10)
       ObjectToBuilding(472, 10)
@@ -439,6 +450,9 @@ object Maps {
       LocalObject(3074, Terminal.Constructor(vehicle_terminal_combined))
       LocalObject(504, VehicleSpawnPad.Constructor(Vector3(4834.0f, 5185.0f, 67.0f), Vector3(0f, 0f, 45.0f))) //TODO guid not correct
 
+      ObjectToBuilding(1912, 11)
+      ObjectToBuilding(1913, 11)
+      
       ObjectToBuilding(562, 11)
       ObjectToBuilding(563, 11)
       ObjectToBuilding(566, 11)
@@ -526,7 +540,131 @@ object Maps {
 
       TerminalToSpawnPad(3074, 504)
     }
+    def Building24() : Unit = { // Akkan Dropship Center, Ishundar (ID: 24)
+      LocalBuilding(24, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(2698.6406f, 4336.914f, 52.046875f)))) //todo ? change ?
+      
+      //Akkan IDs for courtyard/lobby/dish/bunkers, no access to tower or basement with exception of stairs and backdoor areas only, can't proceed past it into basement)
+      
+      //Akkan Doors
+      LocalObject(281, Door.Constructor)
+      LocalObject(378, Door.Constructor)
+      LocalObject(379, Door.Constructor)
+      LocalObject(380, Door.Constructor)
+      LocalObject(381, Door.Constructor)
+      LocalObject(382, Door.Constructor)
+      LocalObject(383, Door.Constructor(Vector3(2674.0938f, 4317.367f, 44.59375f), Vector3(0.0f, 0.0f, 180.0f)))
+      LocalObject(384, Door.Constructor(Vector3(2674.086f, 4321.6953f, 44.59375f), Vector3(0.0f, 357.1875f, 357.1875f)))
+      LocalObject(385, Door.Constructor)
+      LocalObject(386, Door.Constructor(Vector3(2692.086f, 4316.5703f, 52.03125f), Vector3(0.0f, 2.8125f, 270.0f)))
+      LocalObject(387, Door.Constructor)
+      LocalObject(388, Door.Constructor(Vector3(2704.7969f, 4344.0625f, 44.59375f), Vector3(0.0f, 354.375f, 272.8125f)))
+      LocalObject(393, Door.Constructor)
+      LocalObject(394, Door.Constructor(Vector3(2748.039f, 4426.25f, 44.609375f), Vector3(0.0f, 0.0f, 0.0f)))
+      LocalObject(395, Door.Constructor(Vector3(2752.5234f, 4398.297f, 39.609375f), Vector3(0.0f, 2.8125f, 272.8125f)))
+      LocalObject(396, Door.Constructor)
+      LocalObject(397, Door.Constructor)
+      LocalObject(398, Door.Constructor)
+      LocalObject(399, Door.Constructor)
+      LocalObject(400, Door.Constructor)
+      LocalObject(401, Door.Constructor(Vector3(2809.9844f, 4401.164f, 39.3125f), Vector3(0.0f, 8.4375f, 0.0f)))
+      LocalObject(402, Door.Constructor)
+      LocalObject(403, Door.Constructor)
+      LocalObject(701, Door.Constructor)
+      LocalObject(703, Door.Constructor)
+      LocalObject(716, Door.Constructor)
+      LocalObject(920, Door.Constructor(Vector3(2708.1953f, 4319.9766f, 39.59375f), Vector3(0.0f, 0.0f, 92.8125f)))
+      
+      //Akkan Locks
+      LocalObject(968, IFFLock.Constructor)
+      LocalObject(1036, IFFLock.Constructor)
+      LocalObject(1037, IFFLock.Constructor)
+      LocalObject(1038, IFFLock.Constructor)
+      LocalObject(1039, IFFLock.Constructor)
+      LocalObject(1047, IFFLock.Constructor)
+      LocalObject(1049, IFFLock.Constructor)
+      LocalObject(1053, IFFLock.Constructor)
+      
+      //Akkan DoorToLock
+      DoorToLock(383, 1037)
+      DoorToLock(384, 1036)
+      DoorToLock(386, 1038)
+      DoorToLock(388, 1039)
+      DoorToLock(394, 1047)
+      DoorToLock(395, 1049)
+      DoorToLock(401, 1053)
+      DoorToLock(920, 968)
 
+      //Akkan Order Terminals
+      LocalObject(1949, Terminal.Constructor(order_terminal))
+      LocalObject(1950, Terminal.Constructor(order_terminal))
+      LocalObject(1951, Terminal.Constructor(order_terminal))
+      LocalObject(1952, Terminal.Constructor(order_terminal))
+      LocalObject(1953, Terminal.Constructor(order_terminal))
+      
+      //Akkan Vehicle Terminals
+      LocalObject(3067, Terminal.Constructor(ground_vehicle_terminal))
+      LocalObject(1881,
+        VehicleSpawnPad.Constructor(Vector3(2711.3438f, 4418.4062f, 40.609375f), Vector3(0.0f, 351.5625f, 182.8125f))
+      )
+      LocalObject(283, Terminal.Constructor(dropship_vehicle_terminal))
+      LocalObject(282,
+        VehicleSpawnPad.Constructor(Vector3(2762.414f, 4448.828f, 44.75f), Vector3(0.0f, 2.8125f, 0.0f))
+      )
+    
+      //Akkan Medical Terminals
+      LocalObject(1900, ProximityTerminal.Constructor(medical_terminal))
+      LocalObject(1901, ProximityTerminal.Constructor(medical_terminal))
+      
+      //Akkan ObjectToBuilding
+      ObjectToBuilding(281, 24)
+      ObjectToBuilding(282, 24)
+      ObjectToBuilding(283, 24)
+      ObjectToBuilding(378, 24)
+      ObjectToBuilding(379, 24)
+      ObjectToBuilding(380, 24)
+      ObjectToBuilding(381, 24)
+      ObjectToBuilding(382, 24)
+      ObjectToBuilding(383, 24)
+      ObjectToBuilding(384, 24)
+      ObjectToBuilding(385, 24)
+      ObjectToBuilding(386, 24)
+      ObjectToBuilding(387, 24)
+      ObjectToBuilding(388, 24)
+      ObjectToBuilding(393, 24)
+      ObjectToBuilding(394, 24)
+      ObjectToBuilding(395, 24)
+      ObjectToBuilding(396, 24)
+      ObjectToBuilding(397, 24)
+      ObjectToBuilding(398, 24)
+      ObjectToBuilding(399, 24)
+      ObjectToBuilding(400, 24)
+      ObjectToBuilding(401, 24)
+      ObjectToBuilding(402, 24)
+      ObjectToBuilding(403, 24)
+      ObjectToBuilding(701, 24)
+      ObjectToBuilding(703, 24)
+      ObjectToBuilding(716, 24)
+      ObjectToBuilding(920, 24)
+      ObjectToBuilding(968, 24)
+      ObjectToBuilding(1036, 24)
+      ObjectToBuilding(1037, 24)
+      ObjectToBuilding(1038, 24)
+      ObjectToBuilding(1039, 24)
+      ObjectToBuilding(1047, 24)
+      ObjectToBuilding(1049, 24)
+      ObjectToBuilding(1053, 24)
+      ObjectToBuilding(1881, 24)
+      ObjectToBuilding(1900, 24)
+      ObjectToBuilding(1901, 24)
+      ObjectToBuilding(1949, 24)
+      ObjectToBuilding(1950, 24)
+      ObjectToBuilding(1951, 24)
+      ObjectToBuilding(1952, 24)
+      ObjectToBuilding(1953, 24)
+      ObjectToBuilding(3067, 24)
+      
+    }
+      
     def Building25() : Unit = { // Gate Outpost Watch Tower (North of Forseral Warpgate), Ishundar (ID: 74)
       LocalBuilding(25, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(5404f, 4222f, 0)))) // TODO loc
       LocalObject(2973, Door.Constructor)
