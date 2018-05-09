@@ -28,7 +28,7 @@ import scala.util.{Failure, Success, Try}
   * The `Array` of spatial GUIDs is used for quick collision lookup.
   * Use of the `Array` only is hitherto referred as "using the inventory as a grid."
   */
-class GridInventory {
+class GridInventory extends Container {
   private var width : Int = 1
   private var height : Int = 1
   private var offset : Int = 0 //the effective index of the first cell in the inventory where offset >= 0
@@ -83,12 +83,21 @@ class GridInventory {
     */
   def LastIndex : Int = Offset + TotalCapacity - 1
 
+  override def Find(guid : PlanetSideGUID) : Option[Int] = {
+    items.values.find({ case InventoryItem(obj, _) => obj.HasGUID && obj.GUID == guid}) match {
+      case Some(InventoryItem(_, index)) =>
+        Some(index)
+      case None =>
+        None
+    }
+  }
+
   /**
     * Get whatever is stowed in the inventory at the given index.
     * @param slot the cell index
     * @return an `EquipmentSlot` that contains whatever `Equipment` was stored in `slot`
     */
-  def Slot(slot : Int) : EquipmentSlot = {
+  override def Slot(slot : Int) : EquipmentSlot = {
     val actualSlot = slot - offset
     if(actualSlot < 0 || actualSlot > grid.length) {
       throw new IndexOutOfBoundsException(s"requested indices not in bounds of grid inventory - $actualSlot")
@@ -426,6 +435,10 @@ class GridInventory {
     height = h
     grid = Array.fill[Int](w * h)(-1)
   }
+
+  def VisibleSlots : Set[Int] = Set.empty[Int]
+
+  def Inventory = this
 }
 
 object GridInventory {

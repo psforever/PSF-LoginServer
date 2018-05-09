@@ -1728,7 +1728,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           do {
             val requestedAmmoType = tool.NextAmmoType
             if(requestedAmmoType != tool.AmmoSlot.Box.AmmoType) {
-              FindReloadAmmunition(obj, requestedAmmoType, fullMagazine).reverse match {
+              FindEquipmentStock(obj, FindAmmoBoxThatUses(requestedAmmoType), fullMagazine, CountAmmunition).reverse match {
                 case Nil => ;
                 case x :: xs =>
                   val (deleteFunc, modifyFunc) : ((Int, AmmoBox)=>Unit, (AmmoBox, Int)=>Unit) = obj match {
@@ -1947,10 +1947,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
           val magazineSize : Int = tool.MaxMagazine
           val reloadValue : Int = magazineSize - currentMagazine
           if(magazineSize > 0 && reloadValue > 0) {
-            FindReloadAmmunition(obj, tool.AmmoType, reloadValue).reverse match {
+            FindEquipmentStock(obj, FindAmmoBoxThatUses(tool.AmmoType), reloadValue, CountAmmunition).reverse match {
               case Nil =>
                 log.warn(s"ReloadMessage: no ammunition could be found for $item_guid")
-              case list @ x :: xs =>
+              case x :: xs =>
                 val (deleteFunc, modifyFunc) : ((Int, AmmoBox)=>Unit, (AmmoBox, Int)=>Unit) = obj match {
                   case (veh : Vehicle) =>
                     (DeleteAmmunitionInVehicle(veh), ModifyAmmunitionInVehicle(veh))
@@ -3233,58 +3233,103 @@ class WorldSessionActor extends Actor with MDCContextAware {
   def FindWeapon : Option[Tool] = FindContainedWeapon._2
 
   /**
-    * Within a specified `Container`, find the smallest number of `AmmoBox` objects of a certain type of `Ammo`
-    * whose sum capacities is greater than, or equal to, a `desiredAmount`.<br>
+    * Within a specified `Container`, find the smallest number of `Equipment` objects of a certain qualifying type
+    * whose sum count is greater than, or equal to, a `desiredAmount` based on an accumulator method.<br>
     * <br>
-    * In an occupied `List` of returned `Inventory` entries, all but the last entry is considered emptied.
-    * The last entry may require having its `Capacity` be set to a non-zero number.
+    * In an occupied `List` of returned `Inventory` entries, all but the last entry is typically considered "emptied."
+    * For objects with contained quantities, the last entry may require having that quantity be set to a non-zero number.
     * @param obj the `Container` to search
-    * @param ammoType the type of `Ammo` to search for
-    * @param desiredAmount how much ammunition is requested to be found
-    * @return a `List` of all discovered entries totaling approximately the amount of the requested `Ammo`
+    * @param filterTest test used to determine inclusivity of `Equipment` collection
+    * @param desiredAmount how much is requested
+    * @param counting test used to determine value of found `Equipment`;
+    *                 defaults to one per entry
+    * @return a `List` of all discovered entries totaling approximately the amount requested
     */
-  def FindReloadAmmunition(obj : Container, ammoType : Ammo.Value, desiredAmount : Int) : List[InventoryItem] = {
+  def FindEquipmentStock(obj : Container,
+                         filterTest : (Equipment)=>Boolean,
+                         desiredAmount : Int,
+                         counting : (Equipment)=>Int = DefaultCount) : List[InventoryItem] = {
     var currentAmount : Int = 0
     obj.Inventory.Items
       .map({ case ((_, item)) => item })
-      .filter(obj => {
-        obj.obj match {
-          case (box : AmmoBox) =>
-            box.AmmoType == ammoType
-          case _ =>
-            false
-        }
-      })
+      .filter(item => filterTest(item.obj))
       .toList
       .sortBy(_.start)
       .takeWhile(entry => {
         val previousAmount = currentAmount
-        currentAmount += entry.obj.asInstanceOf[AmmoBox].Capacity
+        currentAmount += counting(entry.obj)
         previousAmount < desiredAmount
       })
   }
-  def FindRestock(obj : Container, filterTest : (Equipment)=>Boolean, desiredAmount : Int) : List[InventoryItem] = {
-    var currentAmount : Int = 0
-    obj.Inventory.Items
-      .map({ case ((_, item)) => item })
-      .filter(obj => filterTest(obj.obj))
-      .toList
-      .sortBy(_.start)
-      .takeWhile(entry => {
-        val previousAmount = currentAmount
-        currentAmount += (entry.obj match {
-          case obj : AmmoBox =>
-            obj.Capacity
-          case obj : Tool =>
-            if(GlobalDefinitions.isGrenade(obj.Definition)) {
-              obj.Magazine
-            }
-            else {
-              1
-            }
-        })
-        previousAmount < desiredAmount
-      })
+
+  /**
+    * The default counting function for an item.
+    * Counts the number of item(s).
+    * @param e the `Equipment` object
+    * @return the quantity;
+    *         always one
+    */
+  def DefaultCount(e : Equipment) : Int = 1
+
+  /**
+    * The counting function for an item of `AmmoBox`.
+    * Counts the `Capacity` of the ammunition.
+    * @param e the `Equipment` object
+    * @return the quantity
+    */
+  def CountAmmunition(e : Equipment) : Int = {
+    e match {
+      case a : AmmoBox =>
+        a.Capacity
+      case _ =>
+        0
+    }
+  }
+
+  /**
+    * The counting function for an item of `Tool` where the item is also a grenade.
+    * Counts the number of grenades.
+    * @see `GlobalDefinitions.isGrenade`
+    * @param e the `Equipment` object
+    * @return the quantity
+    */
+  def CountGrenades(e : Equipment) : Int = {
+    e match {
+      case t : Tool =>
+        (GlobalDefinitions.isGrenade(t.Definition):Int) * t.Magazine
+      case _ =>
+        0
+    }
+  }
+
+  /**
+    * Flag an `AmmoBox` object that matches for the given ammunition type.
+    * @param ammo the type of `Ammo` to check
+    * @param e the `Equipment` object
+    * @return `true`, if the object is an `AmmoBox` of the correct ammunition type; `false`, otherwise
+    */
+  def FindAmmoBoxThatUses(ammo : Ammo.Value)(e : Equipment) : Boolean = {
+    e match {
+      case t : AmmoBox =>
+        t.AmmoType == ammo
+      case _ =>
+        false
+    }
+  }
+
+  /**
+    * Flag a `Tool` object that matches for loading the given ammunition type.
+    * @param ammo the type of `Ammo` to check
+    * @param e the `Equipment` object
+    * @return `true`, if the object is a `Tool` that loads the correct ammunition type; `false`, otherwise
+    */
+  def FindToolThatUses(ammo : Ammo.Value)(e : Equipment) : Boolean = {
+    e match {
+      case t : Tool =>
+        t.Definition.AmmoTypes.map { _.AmmoType }.contains(ammo)
+      case _ =>
+        false
+    }
   }
 
   /**
@@ -3427,9 +3472,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
     //TODO this is temporary and will be replaced by more appropriate functionality in the future.
     val tdef = tool.Definition
     if(GlobalDefinitions.isGrenade(tdef)) {
-      val findGrenades : (Equipment)=>Boolean = FindGrenadesLike(tool.AmmoType)
-      FindRestock(player, findGrenades, 3) match {
+      val ammoType = tool.AmmoType
+      FindEquipmentStock(player, FindToolThatUses(ammoType), 3, CountGrenades).reverse match { //do not search sidearm holsters
         case Nil =>
+          log.info(s"no more $ammoType grenades")
           taskResolver ! RemoveEquipmentFromSlot(player, tool, player.Find(tool).get)
 
         case x :: xs => //this is similar to ReloadMessage
@@ -3444,7 +3490,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
             ModifyAmmunition(player)(box.AmmoSlot.Box, 3 - tailReloadValue)
             3
           })
-          ModifyAmmunition(player)(tool.AmmoSlot.Box, -actualReloadValue) //grenades already in holster (negative because empty)
+          log.info(s"found $actualReloadValue more $ammoType grenades to throw")
+          ModifyAmmunition(player)(tool.AmmoSlot.Box, -actualReloadValue) //grenade item already in holster (negative because empty)
           xs.foreach(item => {
             taskResolver ! RemoveEquipmentFromSlot(player, item.obj, item.start)
           })
@@ -3452,15 +3499,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
     }
     else if(tdef == GlobalDefinitions.phoenix) {
       taskResolver ! RemoveEquipmentFromSlot(player, tool, player.Find(tool).get)
-    }
-  }
-
-  def FindGrenadesLike(grenadeType : Ammo.Value)(e : Equipment) : Boolean = {
-    e match {
-      case t : Tool =>
-        t.AmmoType == grenadeType
-      case _ =>
-        false
     }
   }
 
@@ -3679,7 +3717,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
   /**
     * An event has occurred that would cause the player character to stop certain stateful activities.
-    * These activities include shooting, weapon drawing, hacking, accessing (a container), flying, and running.
+    * These activities include shooting, the weapon being drawn, hacking, accessing (a container), flying, and running.
     * Other players in the same zone must be made aware that the player has stopped as well.<br>
     * <br>
     * Things whose configuration should not be changed:<br>
