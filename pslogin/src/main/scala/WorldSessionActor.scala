@@ -25,7 +25,7 @@ import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.serverobject.implantmech.ImplantTerminalMech
 import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.mblocker.Locker
-import net.psforever.objects.serverobject.pad.VehicleSpawnPad
+import net.psforever.objects.serverobject.pad.{VehicleSpawnControl, VehicleSpawnPad}
 import net.psforever.objects.serverobject.pad.process.{AutoDriveControls, VehicleSpawnControlGuided}
 import net.psforever.objects.serverobject.structures.{Building, StructureType, WarpGate}
 import net.psforever.objects.serverobject.terminals.{MatrixTerminalDefinition, ProximityTerminal, Terminal}
@@ -435,7 +435,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
           }
 
         case VehicleResponse.ConcealPlayer(player_guid) =>
-          sendResponse(GenericObjectActionMessage(player_guid, 36))
+          //TODO this is the correct message; but, I don't know how to undo the effects of it
+          //sendResponse(GenericObjectActionMessage(player_guid, 36))
+          sendResponse(PlanetsideAttributeMessage(player_guid, 29, 1))
 
         case VehicleResponse.DismountVehicle(unk1, unk2) =>
           if(tplayer_guid != guid) {
@@ -491,11 +493,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
           sendResponse(GenericObjectActionMessage(pad_guid, 92))
 
         case VehicleResponse.RevealPlayer(player_guid) =>
-          //TODO any action will cause the player to appear after the effects of ConcealPlayer
-          if(player.GUID == player_guid) {
-            sendResponse(ChatMsg(ChatMessageType.CMT_OPEN, true, "", "You are in a strange situation.", None))
-            KillPlayer(player)
-          }
+          //TODO see note in ConcealPlayer
+          sendResponse(PlanetsideAttributeMessage(player_guid, 29, 0))
 
         case VehicleResponse.SeatPermissions(vehicle_guid, seat_group, permission) =>
           if(tplayer_guid != guid) {
@@ -1096,7 +1095,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case VehicleSpawnPad.Reminders.Blocked =>
           s"The vehicle spawn where you placed your order is blocked. ${data.getOrElse("")}"
         case VehicleSpawnPad.Reminders.Queue =>
-          s"Your position in the vehicle spawn queue is ${data.get}."
+          s"Your position in the vehicle spawn queue is ${data.getOrElse("last")}."
+        case VehicleSpawnPad.Reminders.Cancelled =>
+          "Your vehicle order has been cancelled."
       })
       sendResponse(ChatMsg(ChatMessageType.CMT_OPEN, true, "", msg, None))
 
@@ -1704,7 +1705,13 @@ class WorldSessionActor extends Actor with MDCContextAware {
       }
 
       if(messagetype == ChatMessageType.CMT_DESTROY) {
-        self ! PacketCoding.CreateGamePacket(0, RequestDestroyMessage(PlanetSideGUID(contents.toInt)))
+        val guid = contents.toInt
+        continent.Map.TerminalToSpawnPad.get(guid) match {
+          case Some(padGUID) =>
+            continent.GUID(padGUID).get.asInstanceOf[VehicleSpawnPad].Actor ! VehicleSpawnControl.ProcessControl.Flush
+          case None =>
+            self ! PacketCoding.CreateGamePacket(0, RequestDestroyMessage(PlanetSideGUID(guid)))
+        }
       }
 
       if (messagetype == ChatMessageType.CMT_VOICE) {
