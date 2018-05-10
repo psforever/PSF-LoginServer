@@ -303,7 +303,7 @@ class PlayerTest extends Specification {
     obj.Find(PlanetSideGUID(1)) mustEqual Some(0) //holsters
     obj.Find(PlanetSideGUID(2)) mustEqual Some(4) //holsters, melee
     obj.Find(PlanetSideGUID(3)) mustEqual Some(6) //inventory
-    obj.Find(PlanetSideGUID(4)) mustEqual Some(Player.LockerSlot) //locker-space
+    obj.Find(PlanetSideGUID(4)) mustEqual None //can not find in locker-space
     obj.Find(PlanetSideGUID(5)) mustEqual Some(Player.FreeHandSlot) //free hand
     obj.Find(PlanetSideGUID(6)) mustEqual None //not here
   }

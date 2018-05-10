@@ -192,18 +192,13 @@ class Player(private val core : Avatar) extends PlanetSideGameObject with Factio
     FreeHand.Equipment
   }
 
-  def Find(obj : Equipment) : Option[Int] = Find(obj.GUID)
-
-  def Find(guid : PlanetSideGUID) : Option[Int] = {
+  override def Find(guid : PlanetSideGUID) : Option[Int] = {
     findInHolsters(holsters.iterator, guid)
-      .orElse(findInInventory(inventory.Items.values.iterator, guid)) match {
+      .orElse(inventory.Find(guid)) match {
       case Some(index) =>
         Some(index)
       case None =>
-        if(Locker.Find(guid).isDefined) {
-          Some(5)
-        }
-        else if(freeHand.Equipment.isDefined && freeHand.Equipment.get.GUID == guid) {
+        if(freeHand.Equipment.isDefined && freeHand.Equipment.get.GUID == guid) {
           Some(Player.FreeHandSlot)
         }
         else {
@@ -223,21 +218,6 @@ class Player(private val core : Avatar) extends PlanetSideGameObject with Factio
       }
       else {
         findInHolsters(iter, guid, index + 1)
-      }
-    }
-  }
-
-  @tailrec private def findInInventory(iter : Iterator[InventoryItem], guid : PlanetSideGUID) : Option[Int] = {
-    if(!iter.hasNext) {
-      None
-    }
-    else {
-      val item = iter.next
-      if(item.obj.GUID == guid) {
-        Some(item.start)
-      }
-      else {
-        findInInventory(iter, guid)
       }
     }
   }

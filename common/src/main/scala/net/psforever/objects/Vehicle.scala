@@ -3,7 +3,7 @@ package net.psforever.objects
 
 import net.psforever.objects.definition.VehicleDefinition
 import net.psforever.objects.equipment.{Equipment, EquipmentSize}
-import net.psforever.objects.inventory.{Container, GridInventory, InventoryItem, InventoryTile}
+import net.psforever.objects.inventory.{Container, GridInventory, InventoryTile}
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.affinity.FactionAffinity
@@ -347,42 +347,7 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
 
   def Inventory : GridInventory = trunk
 
-  def Find(obj : Equipment) : Option[Int] = Find(obj.GUID)
-
-  def Find(guid : PlanetSideGUID) : Option[Int] = {
-    findInInventory(Inventory.Items.values.iterator, guid) match {
-      case Some(index) =>
-        Some(index)
-      case None =>
-        None
-    }
-  }
-
-  @tailrec private def findInInventory(iter : Iterator[InventoryItem], guid : PlanetSideGUID) : Option[Int] = {
-    if(!iter.hasNext) {
-      None
-    }
-    else {
-      val item = iter.next
-      if(item.obj.GUID == guid) {
-        Some(item.start)
-      }
-      else {
-        findInInventory(iter, guid)
-      }
-    }
-  }
-
   def VisibleSlots : Set[Int] = weapons.keySet
-
-  override def Slot(slot : Int) : EquipmentSlot = {
-    if(Inventory.Offset <= slot && slot <= Inventory.LastIndex) {
-      Inventory.Slot(slot)
-    }
-    else {
-      OffhandEquipmentSlot.BlockedSlot
-    }
-  }
 
   /**
     * A reference to the `Vehicle` `Trunk` space.
