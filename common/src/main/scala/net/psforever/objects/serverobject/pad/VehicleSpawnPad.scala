@@ -163,7 +163,8 @@ object VehicleSpawnPad {
   object Reminders extends Enumeration {
     val
     Queue, //optional data is the numeric position in the queue
-    Blocked //optional data is a message regarding the blockage
+    Blocked, //optional data is a message regarding the blockage
+    Cancelled
     = Value
   }
 

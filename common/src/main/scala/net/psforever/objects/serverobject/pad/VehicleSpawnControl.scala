@@ -44,6 +44,15 @@ class VehicleSpawnControl(pad : VehicleSpawnPad) extends VehicleSpawnControlBase
 
   def FactionObject : FactionAffinity = pad
 
+  import akka.actor.SupervisorStrategy._
+  override val supervisorStrategy = {
+    import akka.actor.OneForOneStrategy
+    OneForOneStrategy(maxNrOfRetries = 10, withinTimeRange = 10 seconds) {
+      case _ : akka.actor.ActorKilledException => Restart
+      case _ => Resume
+    }
+  }
+
   def receive : Receive = checkBehavior.orElse {
     case VehicleSpawnPad.VehicleOrder(player, vehicle) =>
       trace(s"order from $player for $vehicle received")
@@ -84,6 +93,20 @@ class VehicleSpawnControl(pad : VehicleSpawnPad) extends VehicleSpawnControlBase
           }
         case None => ;
           periodicReminder.cancel
+      }
+
+    case VehicleSpawnControl.ProcessControl.Flush =>
+      if(!periodicReminder.isCancelled) {
+        periodicReminder.cancel
+        orders.foreach { VehicleSpawnControl.CancelOrder(_, Continent) }
+        orders = Nil
+        trackedOrder match {
+          case Some(entry) =>
+            VehicleSpawnControl.CancelOrder(entry, Continent)
+          case None => ;
+        }
+        trackedOrder = None
+        concealPlayer ! akka.actor.Kill //will cause the actor to restart, which will abort any trapped messages
       }
 
     case _ => ;
@@ -127,7 +150,8 @@ object VehicleSpawnControl {
   object ProcessControl extends Enumeration {
     val
     Reminder,
-    GetNewOrder
+    GetNewOrder,
+    Flush
     = Value
   }
   /**
@@ -230,6 +254,27 @@ object VehicleSpawnControl {
         None
       }
       VehicleSpawnControl.recursiveBlockedReminder(recipients.iterator, wrecked)
+  }
+
+  /**
+    * Cancel this vehicle order and inform the person who made it, if possible.
+    * @param entry the order being cancelled
+    * @param zone the continent on which the vehicle was registered
+    * @param context an `ActorContext` object for which to create the `TaskResolver` object
+    */
+  def CancelOrder(entry : VehicleSpawnControl.Order, zone : Zone)(implicit context : ActorContext) : Unit = {
+    val vehicle = entry.vehicle
+    if(vehicle.Seats.values.count(_.isOccupied) == 0) {
+      if(vehicle.Actor != ActorRef.noSender) {
+        VehicleSpawnControl.DisposeSpawnedVehicle(entry, zone)
+      }
+      else {
+        VehicleSpawnControl.DisposeVehicle(entry, zone)
+      }
+      if(entry.sendTo != ActorRef.noSender) {
+        entry.sendTo ! VehicleSpawnPad.PeriodicReminder(VehicleSpawnPad.Reminders.Cancelled)
+      }
+    }
   }
 
 //  @tailrec private final def recursiveFindOrder(iter : Iterator[VehicleSpawnControl.Order], target : ActorRef, index : Int = 0) : Option[Int] = {
