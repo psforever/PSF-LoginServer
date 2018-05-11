@@ -3440,9 +3440,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
     val item_guid = item.GUID
     val source_guid = source.GUID
     val destination_guid = destination.GUID
-    val indexSlot = source.Slot(index)
     val player_guid = player.GUID
-    val sourceIsNotDestination : Boolean = source != destination //if source is destination, OCDM style is not required
+    val indexSlot = source.Slot(index)
+    val sourceIsNotDestination : Boolean = source != destination //if source is destination, explicit OCDM is not required
     if(sourceIsNotDestination) {
       log.info(s"MoveItem: $item moved from $source @ $index to $destination @ $dest")
     }

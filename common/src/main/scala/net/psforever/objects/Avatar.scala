@@ -26,8 +26,12 @@ class Avatar(val name : String, val faction : PlanetSideEmpire.Value, val sex : 
   private val implants : Array[ImplantSlot] = Array.fill[ImplantSlot](3)(new ImplantSlot)
   /** Loadouts */
   private val loadouts : Array[Option[Loadout]] = Array.fill[Option[Loadout]](10)(None)
-  /** Locker (fifth inventory slot) */
-  private val locker : LockerContainer = LockerContainer()
+  /** Locker (inventory slot number five) */
+  private val locker : LockerContainer = new LockerContainer() {
+    override def toString : String = {
+      s"$name's ${Definition.Name}"
+    }
+  }
 
   def BEP : Long = bep
 

@@ -18,4 +18,14 @@ abstract class Equipment extends PlanetSideGameObject {
   def Tile : InventoryTile = Definition.Tile
 
   def Definition : EquipmentDefinition
+
+  override def toString : String = {
+    Equipment.toString(this)
+  }
+}
+
+object Equipment {
+  def toString(obj : Equipment) : String = {
+    obj.Definition.Name
+  }
 }

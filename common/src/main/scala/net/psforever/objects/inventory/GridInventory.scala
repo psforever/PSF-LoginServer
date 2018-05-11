@@ -245,7 +245,7 @@ class GridInventory extends Container {
     * @param tile the dimensions of the blank space
     * @return the grid index of the upper left corner where equipment to which the `tile` belongs should be placed
     */
-  def Fit(tile : InventoryTile) : Option[Int] = {
+  override def Fit(tile : InventoryTile) : Option[Int] = {
     val tWidth = tile.Width
     val tHeight = tile.Height
     val gridIter = (0 until (grid.length - (tHeight - 1) * width))
