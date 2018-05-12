@@ -2113,117 +2113,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                     false //abort when too many items at destination or other failure case
                 }
               } && indexSlot.Equipment.contains(item)) {
-                log.info(s"MoveItem: $item_guid moved from $source_guid @ $index to $destination_guid @ $dest")
-                val player_guid = player.GUID
-                val sourceIsNotDestination : Boolean = source != destination //if source is destination, OCDM style is not required
-                //remove item from source
-                indexSlot.Equipment = None
-                source match {
-                  case obj : Vehicle =>
-                    vehicleService ! VehicleServiceMessage(s"${obj.Actor}", VehicleAction.UnstowEquipment(player_guid, item_guid))
-                  case obj : Player =>
-                    if(obj.isBackpack || source.VisibleSlots.contains(index)) { //corpse being looted, or item was in hands
-                      avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player_guid, item_guid))
-                    }
-                  case _ => ;
-                }
-
-                destItemEntry match { //do we have a swap item in the destination slot?
-                  case Some(InventoryItem(item2, destIndex)) => //yes, swap
-                    //cleanly shuffle items around to avoid losing icons
-                    //the next ObjectDetachMessage is necessary to avoid icons being lost, but only as part of this swap
-                    sendResponse(ObjectDetachMessage(source_guid, item_guid, Vector3.Zero, 0f, 0f, 0f))
-                    val item2_guid = item2.GUID
-                    destination.Slot(destIndex).Equipment = None //remove the swap item from destination
-                    (indexSlot.Equipment = item2) match {
-                      case Some(_) => //item and item2 swapped places successfully
-                        log.info(s"MoveItem: $item2_guid swapped to $source_guid @ $index")
-                        //remove item2 from destination
-                        sendResponse(ObjectDetachMessage(destination_guid, item2_guid, Vector3.Zero, 0f, 0f, 0f))
-                        destination match {
-                          case obj : Vehicle =>
-                            vehicleService ! VehicleServiceMessage(s"${obj.Actor}", VehicleAction.UnstowEquipment(player_guid, item2_guid))
-                          case obj : Player =>
-                            if(obj.isBackpack || destination.VisibleSlots.contains(dest)) { //corpse being looted, or item was in hands
-                              avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player_guid, item2_guid))
-                            }
-                          case _ => ;
-                        }
-                        //display item2 in source
-                        if(sourceIsNotDestination && player == source) {
-                          val objDef = item2.Definition
-                          sendResponse(
-                            ObjectCreateDetailedMessage(
-                              objDef.ObjectId,
-                              item2_guid,
-                              ObjectCreateMessageParent(source_guid, index),
-                              objDef.Packet.DetailedConstructorData(item2).get
-                            )
-                          )
-                        }
-                        else {
-                          sendResponse(ObjectAttachMessage(source_guid, item2_guid, index))
-                        }
-                        source match {
-                          case obj : Vehicle =>
-                            vehicleService ! VehicleServiceMessage(s"${obj.Actor}", VehicleAction.StowEquipment(player_guid, source_guid, index, item2))
-                          case obj : Player =>
-                            if(source.VisibleSlots.contains(index)) { //item is put in hands
-                              avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.EquipmentInHand(player_guid, source_guid, index, item2))
-                            }
-                            else if(obj.isBackpack) { //corpse being given item
-                              avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.StowEquipment(player_guid, source_guid, index, item2))
-                            }
-                          case _ => ;
-                        }
-
-                      case None => //item2 does not fit; drop on ground
-                        log.info(s"MoveItem: $item2_guid can not fit in swap location; dropping on ground @ ${source.Position}")
-                        val pos = source.Position
-                        val sourceOrientZ = source.Orientation.z
-                        val orient : Vector3 = Vector3(0f, 0f, sourceOrientZ)
-                        continent.Actor ! Zone.DropItemOnGround(item2, pos, orient)
-                        sendResponse(ObjectDetachMessage(destination_guid, item2_guid, pos, 0f, 0f, sourceOrientZ)) //ground
-                        val objDef = item2.Definition
-                        destination match {
-                          case obj : Vehicle =>
-                            vehicleService ! VehicleServiceMessage(s"${obj.Actor}", VehicleAction.UnstowEquipment(player_guid, item2_guid))
-                          case _ => ;
-                            //Player does not require special case; the act of dropping forces the item and icon to change
-                        }
-                        avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.EquipmentOnGround(player_guid, pos, orient, objDef.ObjectId, item2_guid, objDef.Packet.ConstructorData(item2).get))
-                    }
-
-                  case None => ;
-                }
-                //move item into destination slot
-                destination.Slot(dest).Equipment = item
-                if(sourceIsNotDestination && player == destination) {
-                  val objDef = item.Definition
-                  sendResponse(
-                    ObjectCreateDetailedMessage(
-                      objDef.ObjectId,
-                      item_guid,
-                      ObjectCreateMessageParent(destination_guid, dest),
-                      objDef.Packet.DetailedConstructorData(item).get
-                    )
-                  )
-                }
-                else {
-                  sendResponse(ObjectAttachMessage(destination_guid, item_guid, dest))
-                }
-                destination match {
-                  case obj : Vehicle =>
-                    vehicleService ! VehicleServiceMessage(s"${obj.Actor}", VehicleAction.StowEquipment(player_guid, destination_guid, dest, item))
-                  case obj : Player =>
-                    if(destination.VisibleSlots.contains(dest)) { //item is put in hands
-                      avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.EquipmentInHand(player_guid, destination_guid, dest, item))
-                    }
-                    else if(obj.isBackpack) { //corpse being given item
-                      avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.StowEquipment(player_guid, destination_guid, dest, item))
-                    }
-                  case _ => ;
-                }
+                PerformMoveItem(item, source, index, destination, dest, destItemEntry)
               }
               else if(!indexSlot.Equipment.contains(item)) {
                 log.error(s"MoveItem: wanted to move $item_guid, but found unexpected ${indexSlot.Equipment.get} at source location")
@@ -2250,7 +2140,39 @@ class WorldSessionActor extends Actor with MDCContextAware {
       }
 
     case msg @ LootItemMessage(item_guid, target_guid) =>
-      log.info("LootItem: " + msg)
+      log.info(s"LootItem: $msg")
+      (continent.GUID(item_guid), continent.GUID(target_guid)) match {
+        case (Some(item : Equipment), Some(target : Container)) =>
+          //figure out the source
+          (
+            {
+              val findFunc : PlanetSideGameObject with Container => Option[(PlanetSideGameObject with Container, Option[Int])] = FindInLocalContainer(item_guid)
+              findFunc(player.Locker)
+                .orElse(findFunc(player))
+                .orElse(accessedContainer match {
+                  case Some(parent) =>
+                    findFunc(parent)
+                  case None =>
+                    None
+                }
+              )
+            }, target.Fit(item)) match {
+            case (Some((source, Some(index))), Some(dest)) =>
+              PerformMoveItem(item, source, index, target, dest, None)
+            case (None, _) =>
+              log.error(s"LootItem: can not find where $item is put currently")
+            case (_, None) =>
+              log.error(s"LootItem: can not find somwhere to put $item in $target")
+            case _ =>
+              log.error(s"LootItem: wanted to move $item_guid to $target_guid, but multiple problems were encountered")
+          }
+        case (Some(obj), _) =>
+          log.warn(s"LootItem: item $obj is (probably) not lootable")
+        case (None, _) =>
+          log.warn(s"LootItem: can not find $item_guid")
+        case (_, None) =>
+          log.warn(s"LootItem: can not find where to put $item_guid")
+      }
 
     case msg @ AvatarImplantMessage(_, _, _, _) => //(player_guid, unk1, unk2, implant) =>
       log.info("AvatarImplantMessage: " + msg)
@@ -2284,6 +2206,13 @@ class WorldSessionActor extends Actor with MDCContextAware {
                 }
               case _ => ;
             }
+          }
+
+        case Some(obj : Player) =>
+          if(obj.isBackpack) {
+            log.info(s"UseItem: $player looting the corpse of $obj")
+            sendResponse(UseItemMessage(avatar_guid, unk1, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
+            accessedContainer = Some(obj)
           }
 
         case Some(obj : Locker) =>
@@ -2385,7 +2314,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
       }
 
     case msg @ UnuseItemMessage(player_guid, object_guid) =>
-      log.info("UnuseItem: " + msg)
+      log.info(s"UnuseItem: $msg")
+      //TODO check for existing accessedContainer value?
       continent.GUID(object_guid) match {
         case Some(obj : Vehicle) =>
           if(obj.AccessingTrunk.contains(player.GUID)) {
@@ -3483,6 +3413,150 @@ class WorldSessionActor extends Actor with MDCContextAware {
       },
       List(StowNewAmmunition(obj)(index, item))
     )
+  }
+
+  /**
+    * Given an item, and two places, one where the item currently is and one where the item will be moved,
+    * perform a controlled transfer of the item.
+    * If something exists at the `destination` side of the transfer in the position that `item` will occupy,
+    * resolve its location as well by swapping it with where `item` originally was positioned.<br>
+    * <br>
+    * Parameter checks will not be performed.
+    * Do perform checks before sending data to this function.
+    * Do not call with incorrect or unverified data, e.g., `item` not actually being at `source` @ `index`.
+    * @param item the item being moved
+    * @param source the container in which `item` is currently located
+    * @param index the index position in `source` where `item` is currently located
+    * @param destination the container where `item` is being moved
+    * @param dest the index position in `destination` where `item` is being moved
+    * @param destinationCollisionEntry information about the contents in an area of `destination` starting at index `dest`
+    */
+  private def PerformMoveItem(item : Equipment,
+                              source : PlanetSideGameObject with Container,
+                              index : Int,
+                              destination : PlanetSideGameObject with Container,
+                              dest : Int,
+                              destinationCollisionEntry : Option[InventoryItem]) : Unit = {
+    val item_guid = item.GUID
+    val source_guid = source.GUID
+    val destination_guid = destination.GUID
+    val player_guid = player.GUID
+    val indexSlot = source.Slot(index)
+    val sourceIsNotDestination : Boolean = source != destination //if source is destination, explicit OCDM is not required
+    if(sourceIsNotDestination) {
+      log.info(s"MoveItem: $item moved from $source @ $index to $destination @ $dest")
+    }
+    else {
+      log.info(s"MoveItem: $item moved from $index to $dest in $source")
+    }
+    //remove item from source
+    indexSlot.Equipment = None
+    source match {
+      case obj : Vehicle =>
+        vehicleService ! VehicleServiceMessage(s"${obj.Actor}", VehicleAction.UnstowEquipment(player_guid, item_guid))
+      case obj : Player =>
+        if(obj.isBackpack || source.VisibleSlots.contains(index)) { //corpse being looted, or item was in hands
+          avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player_guid, item_guid))
+        }
+      case _ => ;
+    }
+
+    destinationCollisionEntry match { //do we have a swap item in the destination slot?
+      case Some(InventoryItem(item2, destIndex)) => //yes, swap
+        //cleanly shuffle items around to avoid losing icons
+        //the next ObjectDetachMessage is necessary to avoid icons being lost, but only as part of this swap
+        sendResponse(ObjectDetachMessage(source_guid, item_guid, Vector3.Zero, 0f, 0f, 0f))
+        val item2_guid = item2.GUID
+        destination.Slot(destIndex).Equipment = None //remove the swap item from destination
+        (indexSlot.Equipment = item2) match {
+          case Some(_) => //item and item2 swapped places successfully
+            log.info(s"MoveItem: $item2 swapped to $source @ $index")
+            //remove item2 from destination
+            sendResponse(ObjectDetachMessage(destination_guid, item2_guid, Vector3.Zero, 0f, 0f, 0f))
+            destination match {
+              case obj : Vehicle =>
+                vehicleService ! VehicleServiceMessage(s"${obj.Actor}", VehicleAction.UnstowEquipment(player_guid, item2_guid))
+              case obj : Player =>
+                if(obj.isBackpack || destination.VisibleSlots.contains(dest)) { //corpse being looted, or item was in hands
+                  avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player_guid, item2_guid))
+                }
+              case _ => ;
+            }
+            //display item2 in source
+            if(sourceIsNotDestination && player == source) {
+              val objDef = item2.Definition
+              sendResponse(
+                ObjectCreateDetailedMessage(
+                  objDef.ObjectId,
+                  item2_guid,
+                  ObjectCreateMessageParent(source_guid, index),
+                  objDef.Packet.DetailedConstructorData(item2).get
+                )
+              )
+            }
+            else {
+              sendResponse(ObjectAttachMessage(source_guid, item2_guid, index))
+            }
+            source match {
+              case obj : Vehicle =>
+                vehicleService ! VehicleServiceMessage(s"${obj.Actor}", VehicleAction.StowEquipment(player_guid, source_guid, index, item2))
+              case obj : Player =>
+                if(source.VisibleSlots.contains(index)) { //item is put in hands
+                  avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.EquipmentInHand(player_guid, source_guid, index, item2))
+                }
+                else if(obj.isBackpack) { //corpse being given item
+                  avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.StowEquipment(player_guid, source_guid, index, item2))
+                }
+              case _ => ;
+            }
+
+          case None => //item2 does not fit; drop on ground
+            log.info(s"MoveItem: $item2 can not fit in swap location; dropping on ground @ ${source.Position}")
+            val pos = source.Position
+            val sourceOrientZ = source.Orientation.z
+            val orient : Vector3 = Vector3(0f, 0f, sourceOrientZ)
+            continent.Actor ! Zone.DropItemOnGround(item2, pos, orient)
+            sendResponse(ObjectDetachMessage(destination_guid, item2_guid, pos, 0f, 0f, sourceOrientZ)) //ground
+          val objDef = item2.Definition
+            destination match {
+              case obj : Vehicle =>
+                vehicleService ! VehicleServiceMessage(s"${obj.Actor}", VehicleAction.UnstowEquipment(player_guid, item2_guid))
+              case _ => ;
+              //Player does not require special case; the act of dropping forces the item and icon to change
+            }
+            avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.EquipmentOnGround(player_guid, pos, orient, objDef.ObjectId, item2_guid, objDef.Packet.ConstructorData(item2).get))
+        }
+
+      case None => ;
+    }
+    //move item into destination slot
+    destination.Slot(dest).Equipment = item
+    if(sourceIsNotDestination && player == destination) {
+      val objDef = item.Definition
+      sendResponse(
+        ObjectCreateDetailedMessage(
+          objDef.ObjectId,
+          item_guid,
+          ObjectCreateMessageParent(destination_guid, dest),
+          objDef.Packet.DetailedConstructorData(item).get
+        )
+      )
+    }
+    else {
+      sendResponse(ObjectAttachMessage(destination_guid, item_guid, dest))
+    }
+    destination match {
+      case obj : Vehicle =>
+        vehicleService ! VehicleServiceMessage(s"${obj.Actor}", VehicleAction.StowEquipment(player_guid, destination_guid, dest, item))
+      case obj : Player =>
+        if(destination.VisibleSlots.contains(dest)) { //item is put in hands
+          avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.EquipmentInHand(player_guid, destination_guid, dest, item))
+        }
+        else if(obj.isBackpack) { //corpse being given item
+          avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.StowEquipment(player_guid, destination_guid, dest, item))
+        }
+      case _ => ;
+    }
   }
 
   /**

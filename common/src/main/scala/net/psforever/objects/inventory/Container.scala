@@ -42,6 +42,10 @@ trait Container {
     */
   def Find(guid : PlanetSideGUID) : Option[Int] = Inventory.Find(guid)
 
+  def Fit(obj : Equipment) : Option[Int] = Fit(obj.Definition.Tile)
+
+  def Fit(tile : InventoryTile) : Option[Int] = Inventory.Fit(tile)
+
   /**
     * A(n imperfect) reference to a generalized pool of the contained objects.<br>
     * <br>

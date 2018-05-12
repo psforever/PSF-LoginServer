@@ -12,11 +12,4 @@ object SimpleItem {
   def apply(simpDef : SimpleItemDefinition) : SimpleItem = {
     new SimpleItem(simpDef)
   }
-
-  import net.psforever.packet.game.PlanetSideGUID
-  def apply(guid : PlanetSideGUID, simpDef : SimpleItemDefinition) : SimpleItem = {
-    val obj = new SimpleItem(simpDef)
-    obj.GUID = guid
-    obj
-  }
 }

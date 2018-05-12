@@ -40,7 +40,7 @@ abstract class PlanetSideGameObject extends IdentifiableEntity with WorldEntity 
 
 object PlanetSideGameObject {
   def toString(obj : PlanetSideGameObject) : String = {
-    val guid : String = try { obj.GUID.guid.toString } catch { case _ : Exception => "NOGUID" }
+    val guid : String = if(obj.HasGUID) { obj.GUID.toString } else { "NOGUID" }
     val P = obj.Position
     s"[$guid](x,y,z=${P.x%.3f},${P.y%.3f},${P.z%.3f})"
   }

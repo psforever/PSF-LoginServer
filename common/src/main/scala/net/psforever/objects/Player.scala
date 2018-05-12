@@ -154,7 +154,7 @@ class Player(private val core : Avatar) extends PlanetSideGameObject with Factio
 
   def Locker : LockerContainer = core.Locker
 
-  def Fit(obj : Equipment) : Option[Int] = {
+  override def Fit(obj : Equipment) : Option[Int] = {
     recursiveHolsterFit(holsters.iterator, obj.Size) match {
       case Some(index) =>
         Some(index)

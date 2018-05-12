@@ -16,11 +16,4 @@ object Kit {
   def apply(kitDef : KitDefinition) : Kit = {
     new Kit(kitDef)
   }
-
-  import net.psforever.packet.game.PlanetSideGUID
-  def apply(guid : PlanetSideGUID, kitDef : KitDefinition) : Kit = {
-    val obj = new Kit(kitDef)
-    obj.GUID = guid
-    obj
-  }
 }

@@ -18,8 +18,6 @@ class LockerContainer extends Equipment with Container {
 
   def VisibleSlots : Set[Int] = Set.empty[Int]
 
-  def Fit(obj : Equipment) : Option[Int] = inventory.Fit(obj.Definition.Tile)
-
   def Definition : EquipmentDefinition = GlobalDefinitions.locker_container
 }
 

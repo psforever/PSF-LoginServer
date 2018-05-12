@@ -90,7 +90,8 @@ class ConverterTest extends Specification {
   "Kit" should {
     "convert to packet" in {
       val kdef = KitDefinition(Kits.medkit)
-      val obj = Kit(PlanetSideGUID(90), kdef)
+      val obj = Kit(kdef)
+      obj.GUID = PlanetSideGUID(90)
       obj.Definition.Packet.DetailedConstructorData(obj) match {
         case Success(pkt) =>
           pkt mustEqual DetailedAmmoBoxData(0, 1)
@@ -113,7 +114,8 @@ class ConverterTest extends Specification {
         cdef.Modes += DeployedItem.deployable_shield_generator
         cdef.Tile = InventoryTile.Tile63
         cdef.Packet = new ACEConverter()
-        val obj = ConstructionItem(PlanetSideGUID(90), cdef)
+        val obj = ConstructionItem(cdef)
+        obj.GUID = PlanetSideGUID(90)
         obj.Definition.Packet.DetailedConstructorData(obj) match {
           case Success(pkt) =>
             pkt mustEqual DetailedACEData(0)
@@ -134,7 +136,8 @@ class ConverterTest extends Specification {
     "convert to packet" in {
       val sdef = SimpleItemDefinition(SItem.remote_electronics_kit)
       sdef.Packet = new REKConverter()
-      val obj = SimpleItem(PlanetSideGUID(90), sdef)
+      val obj = SimpleItem(sdef)
+      obj.GUID = PlanetSideGUID(90)
       obj.Definition.Packet.DetailedConstructorData(obj) match {
         case Success(pkt) =>
           pkt mustEqual DetailedREKData(8)

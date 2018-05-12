@@ -45,7 +45,7 @@ object AmmoBox {
     */
   def Split(box : AmmoBox) : List[AmmoBox] = {
     val ammoDef = box.Definition
-    var boxCap : Int = box.Capacity
+    val boxCap : Int = box.Capacity
     val maxCap : Int = ammoDef.Capacity
     val splitCap : Int = boxCap / maxCap
     val list : List[AmmoBox] = List.fill(splitCap)(new AmmoBox(ammoDef))
