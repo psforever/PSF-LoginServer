@@ -190,17 +190,19 @@ object Terminal {
     */
   final case class InfantryLoadout(exosuit : ExoSuitType.Value, subtype : Int = 0, holsters : List[InventoryItem], inventory : List[InventoryItem]) extends Exchange
 
+  final case class VehicleLoadout(weapons : List[InventoryItem], inventory : List[InventoryItem]) extends Exchange
+
   /**
     * Start the special effects caused by a proximity-base service.
     * @param terminal the proximity-based unit
     */
-  final case class StartProximityEffect(terminal : ProximityTerminal) extends Exchange
+  final case class StartProximityEffect(terminal : Terminal with ProximityUnit) extends Exchange
 
   /**
     * Stop the special effects caused by a proximity-base service.
     * @param terminal the proximity-based unit
     */
-  final case class StopProximityEffect(terminal : ProximityTerminal) extends Exchange
+  final case class StopProximityEffect(terminal : Terminal with ProximityUnit) extends Exchange
 
   /**
     * Overloaded constructor.

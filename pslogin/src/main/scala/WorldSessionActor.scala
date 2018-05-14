@@ -28,8 +28,7 @@ import net.psforever.objects.serverobject.mblocker.Locker
 import net.psforever.objects.serverobject.pad.{VehicleSpawnControl, VehicleSpawnPad}
 import net.psforever.objects.serverobject.pad.process.{AutoDriveControls, VehicleSpawnControlGuided}
 import net.psforever.objects.serverobject.structures.{Building, StructureType, WarpGate}
-import net.psforever.objects.serverobject.terminals.{MatrixTerminalDefinition, ProximityTerminal, Terminal}
-import net.psforever.objects.serverobject.terminals.Terminal
+import net.psforever.objects.serverobject.terminals._
 import net.psforever.objects.serverobject.terminals.Terminal.TerminalMessage
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.vehicles.{AccessPermissionGroup, Utility, VehicleLockState}
@@ -894,6 +893,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
             log.warn(s"$tplayer already knows the $cert certification, so he can't learn it")
             sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Learn, false))
           }
+
+        case Terminal.VehicleLoadout(weapons, inventory) =>
+          log.info(s"$tplayer wants to change their vehicle equipment loadout to their option #${msg.unk1 + 1}")
 
         case Terminal.SellCertification(cert, cost) =>
           if(tplayer.Certifications.contains(cert)) {
@@ -2267,6 +2269,16 @@ class WorldSessionActor extends Actor with MDCContextAware {
             }
           }
 
+        case Some(obj : RepairRearmSilo) =>
+          player.VehicleSeated match {
+            case Some(vehicle_guid) =>
+              val vehicle = continent.GUID(vehicle_guid).get.asInstanceOf[Vehicle]
+              sendResponse(UseItemMessage(avatar_guid, unk1, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
+              sendResponse(UseItemMessage(avatar_guid, unk1, vehicle_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, vehicle.Definition.ObjectId))
+            case None =>
+              log.error("UseItem: expected seated vehicle, but found none")
+          }
+
         case Some(obj : Terminal) =>
           if(obj.Definition.isInstanceOf[MatrixTerminalDefinition]) {
             //TODO matrix spawn point; for now, just blindly bind to show work (and hope nothing breaks)
@@ -2300,7 +2312,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ ProximityTerminalUseMessage(player_guid, object_guid, _) =>
       log.info(s"ProximityTerminal: $msg")
       continent.GUID(object_guid) match {
-        case Some(obj : ProximityTerminal) =>
+        case Some(obj : Terminal with ProximityUnit) =>
           if(usingProximityTerminal.contains(object_guid)) {
             SelectProximityUnit(obj)
           }
@@ -2308,9 +2320,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
             StartUsingProximityUnit(obj)
           }
         case Some(obj) => ;
-          log.warn(s"ProximityTerminal: object is not a terminal - $obj")
+          log.warn(s"ProximityTerminalUse: object is not a proximity terminal - $obj")
         case None =>
-          log.warn(s"ProximityTerminal: no object with guid $object_guid found")
+          log.warn(s"ProximityTerminalUse: no object with guid $object_guid found")
       }
 
     case msg @ UnuseItemMessage(player_guid, object_guid) =>
@@ -3985,7 +3997,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * Special note is warranted in the case of a medical terminal or an advanced medical terminal.
     * @param terminal the proximity-based unit
     */
-  def StartUsingProximityUnit(terminal : ProximityTerminal) : Unit = {
+  def StartUsingProximityUnit(terminal : Terminal with ProximityUnit) : Unit = {
     val term_guid = terminal.GUID
     if(!usingProximityTerminal.contains(term_guid)) {
       usingProximityTerminal += term_guid
@@ -4006,7 +4018,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * Other sorts of proximity-based units are put on a timer.
     * @param terminal the proximity-based unit
     */
-  def StopUsingProximityUnit(terminal : ProximityTerminal) : Unit = {
+  def StopUsingProximityUnit(terminal : Terminal with ProximityUnit) : Unit = {
     val term_guid = terminal.GUID
     if(usingProximityTerminal.contains(term_guid)) {
       usingProximityTerminal -= term_guid
@@ -4025,7 +4037,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * If this timer completes, a message will be sent that will attempt to disassociate from the target proximity unit.
     * @param terminal the proximity-based unit
     */
-  def SetDelayedProximityUnitReset(terminal : ProximityTerminal) : Unit = {
+  def SetDelayedProximityUnitReset(terminal : Terminal with ProximityUnit) : Unit = {
     val terminal_guid = terminal.GUID
     ClearDelayedProximityUnitReset(terminal_guid)
     import scala.concurrent.duration._
@@ -4070,7 +4082,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * and determinig which kind of unit is being utilized.
     * @param terminal the proximity-based unit
     */
-  def SelectProximityUnit(terminal : ProximityTerminal) : Unit = {
+  def SelectProximityUnit(terminal : Terminal with ProximityUnit) : Unit = {
     terminal.Definition match {
       case GlobalDefinitions.adv_med_terminal | GlobalDefinitions.medical_terminal =>
         ProximityMedicalTerminal(terminal)
@@ -4089,7 +4101,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * If the player is both fully healed and fully repaired, stop using the terminal.
     * @param unit the medical terminal
     */
-  def ProximityMedicalTerminal(unit : ProximityTerminal) : Unit = {
+  def ProximityMedicalTerminal(unit : Terminal with ProximityUnit) : Unit = {
     val healthFull : Boolean = if(player.Health < player.MaxHealth) {
       HealAction(player)
     }
@@ -4113,7 +4125,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * If the player is fully healed, stop using the crystal.
     * @param unit the healing crystal
     */
-  def ProximityHealCrystal(unit : ProximityTerminal) : Unit = {
+  def ProximityHealCrystal(unit : Terminal with ProximityUnit) : Unit = {
     val healthFull : Boolean = if(player.Health < player.MaxHealth) {
       HealAction(player)
     }
@@ -4253,7 +4265,7 @@ object WorldSessionActor {
   private final case class ListAccountCharacters()
   private final case class SetCurrentAvatar(tplayer : Player)
   private final case class VehicleLoaded(vehicle : Vehicle)
-  private final case class DelayedProximityUnitStop(unit : ProximityTerminal)
+  private final case class DelayedProximityUnitStop(unit : Terminal with ProximityUnit)
   private final case class UnregisterCorpseOnVehicleDisembark(corpse : Player)
 
   /**

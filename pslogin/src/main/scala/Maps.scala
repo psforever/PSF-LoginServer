@@ -7,7 +7,7 @@ import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.mblocker.Locker
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
 import net.psforever.objects.serverobject.structures.{Building, FoundationBuilder, StructureType, WarpGate}
-import net.psforever.objects.serverobject.terminals.{ProximityTerminal, Terminal}
+import net.psforever.objects.serverobject.terminals.{ProximityTerminal, RepairRearmSilo, Terminal}
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.types.Vector3
 
@@ -113,6 +113,8 @@ object Maps {
       LocalObject(2145, SpawnTube.Constructor(Vector3(3980.4062f, 4252.7656f, 257.5625f), Vector3(0, 0, 90)))
       LocalObject(2146, SpawnTube.Constructor(Vector3(3980.4062f, 4259.992f, 257.5625f), Vector3(0, 0, 90)))
       LocalObject(2147, SpawnTube.Constructor(Vector3(3980.4062f, 4267.3047f, 257.5625f), Vector3(0, 0, 90)))
+      LocalObject(2050, RepairRearmSilo.Constructor(repair_silo))
+      LocalObject(2062, RepairRearmSilo.Constructor(repair_silo))
       LocalObject(2239, Terminal.Constructor(spawn_terminal))
       LocalObject(2244, Terminal.Constructor(spawn_terminal))
       LocalObject(2245, Terminal.Constructor(spawn_terminal))
@@ -214,6 +216,8 @@ object Maps {
       ObjectToBuilding(1576, 2)
       ObjectToBuilding(1577, 2)
       ObjectToBuilding(1578, 2)
+      ObjectToBuilding(2050, 2)
+      ObjectToBuilding(2062, 2)
       ObjectToBuilding(2145, 2)
       ObjectToBuilding(2146, 2)
       ObjectToBuilding(2147, 2)
