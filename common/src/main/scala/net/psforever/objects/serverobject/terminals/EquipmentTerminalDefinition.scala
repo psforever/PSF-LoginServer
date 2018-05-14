@@ -4,6 +4,7 @@ package net.psforever.objects.serverobject.terminals
 import net.psforever.objects._
 import net.psforever.objects.definition._
 import net.psforever.objects.equipment.Equipment
+import net.psforever.objects.loadouts.Loadout
 import net.psforever.packet.game.ItemTransactionMessage
 import net.psforever.types.ExoSuitType
 
@@ -336,7 +337,7 @@ object EquipmentTerminalDefinition {
     *       `TerminalDefinition.MakeKit`
     */
   def BuildSimplifiedPattern(entry : Loadout.Simplification) : Equipment = {
-    import net.psforever.objects.Loadout._
+    import net.psforever.objects.loadouts.Loadout._
     entry match {
       case obj : ShorthandTool =>
         val ammo : List[AmmoBoxDefinition] = obj.ammo.map(fmode => { fmode.ammo.definition })

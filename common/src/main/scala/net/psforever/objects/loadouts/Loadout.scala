@@ -1,6 +1,7 @@
 // Copyright (c) 2017 PSForever
-package net.psforever.objects
+package net.psforever.objects.loadouts
 
+import net.psforever.objects._
 import net.psforever.objects.definition._
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.inventory.InventoryItem
@@ -34,37 +35,15 @@ import scala.annotation.tailrec
   * @param label the name by which this inventory will be known when displayed in a Favorites list
   * @param visible_slots simplified representation of the `Equipment` that can see "seen" on the target
   * @param inventory simplified representation of the `Equipment` in the target's inventory or trunk
-  * @param exosuit na
-  * @param subtype na
   */
-final case class Loadout(private val label : String,
-                         private val visible_slots : List[Loadout.SimplifiedEntry],
-                         private val inventory : List[Loadout.SimplifiedEntry],
-                         private val exosuit : ExoSuitType.Value,
-                         private val subtype : Int) {
+abstract class Loadout(label : String,
+                       visible_slots : List[Loadout.SimplifiedEntry],
+                       inventory : List[Loadout.SimplifiedEntry]) {
   /**
     * The label by which this `Loadout` is called.
     * @return the label
     */
   def Label : String = label
-
-  /**
-    * The exo-suit in which the avatar will be dressed.
-    * Might be restricted and, thus, restrict the rest of the `Equipment` from being constructed and given.
-    * @return the exo-suit
-    */
-  def ExoSuit : ExoSuitType.Value = exosuit
-
-  /**
-    * The mechanized assault exo-suit specialization number that indicates whether the MAX performs:
-    * anti-infantry (1),
-    * anti-vehicular (2),
-    * or anti-air work (3).
-    * The major distinction is the type of arm weapons that MAX is equipped.
-    * When the blueprint doesn't call for a MAX, the number will be 0.
-    * @return the specialization number
-    */
-  def Subtype : Int = subtype
 
   /**
     * The `Equipment` in the `Player`'s holster slots when this `Loadout` is created.
@@ -80,12 +59,8 @@ final case class Loadout(private val label : String,
 }
 
 object Loadout {
-  def apply(label : String, visible : List[SimplifiedEntry], inventory : List[SimplifiedEntry]) : Loadout = {
-    new Loadout(label, visible, inventory, ExoSuitType.Standard, 0)
-  }
-
   def Create(player : Player, label : String) : Loadout = {
-    new Loadout(
+    InfantryLoadout(
       label,
       packageSimplifications(player.Holsters()),
       packageSimplifications(player.Inventory.Items.values.toList),
@@ -95,10 +70,11 @@ object Loadout {
   }
 
   def Create(vehicle : Vehicle, label : String) : Loadout = {
-    Loadout(
+    VehicleLoadout(
       label,
       packageSimplifications(vehicle.Weapons.map({ case ((index, weapon)) => InventoryItem(weapon.Equipment.get, index) }).toList),
-      packageSimplifications(vehicle.Trunk.Items.values.toList)
+      packageSimplifications(vehicle.Trunk.Items.values.toList),
+      vehicle.Definition
     )
   }
 
@@ -153,8 +129,12 @@ object Loadout {
   final case class ShorthandKit(definition : KitDefinition) extends Simplification
 
   def DetermineSubtype(player : Player) : Int = {
-    if(player.ExoSuit == ExoSuitType.MAX) {
-      player.Slot(0).Equipment match {
+    DetermineSubtype(player.ExoSuit, player.Slot(0).Equipment)
+  }
+
+  def DetermineSubtype(suit : ExoSuitType.Value, weapon : Option[Equipment]) : Int = {
+    if(suit == ExoSuitType.MAX) {
+      weapon match {
         case Some(item) =>
           item.Definition match {
             case GlobalDefinitions.trhev_dualcycler | GlobalDefinitions.nchev_scattercannon | GlobalDefinitions.vshev_quasar =>
@@ -180,7 +160,7 @@ object Loadout {
     * @param equipment the holster slots
     * @return a `List` of simplified `Equipment`
     */
-  private def packageSimplifications(equipment : Array[EquipmentSlot]) : List[SimplifiedEntry] = {
+  protected def packageSimplifications(equipment : Array[EquipmentSlot]) : List[SimplifiedEntry] = {
     recursiveHolsterSimplifications(equipment.iterator)
   }
 
@@ -189,7 +169,7 @@ object Loadout {
     * @param equipment the enumerated contents of the inventory
     * @return a `List` of simplified `Equipment`
     */
-  private def packageSimplifications(equipment : List[InventoryItem]) : List[SimplifiedEntry] = {
+  protected def packageSimplifications(equipment : List[InventoryItem]) : List[SimplifiedEntry] = {
     equipment.map(entry => { SimplifiedEntry(buildSimplification(entry.obj), entry.start) })
   }
 

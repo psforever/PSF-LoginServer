@@ -4,6 +4,7 @@ package net.psforever.objects
 import net.psforever.objects.definition.AvatarDefinition
 import net.psforever.objects.equipment.{Equipment, EquipmentSize}
 import net.psforever.objects.inventory.{Container, GridInventory, InventoryItem}
+import net.psforever.objects.loadouts.Loadout
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types._

@@ -2,6 +2,7 @@
 package objects
 
 import net.psforever.objects._
+import net.psforever.objects.loadouts._
 import net.psforever.types.{CharacterGender, ExoSuitType, PlanetSideEmpire}
 import net.psforever.objects.GlobalDefinitions._
 import org.specs2.mutable._
@@ -36,7 +37,7 @@ class LoadoutTest extends Specification {
 
   "create a loadout that contains a player's inventory" in {
     val player = CreatePlayer()
-    val obj = Loadout.Create(player, "test")
+    val obj = Loadout.Create(player, "test").asInstanceOf[InfantryLoadout]
 
     obj.Label mustEqual "test"
     obj.ExoSuit mustEqual obj.ExoSuit
@@ -71,16 +72,16 @@ class LoadoutTest extends Specification {
     slot.Equipment = None //only an unequipped slot can have its Equipment Size changed (Rifle -> Max)
     Player.SuitSetup(player, ExoSuitType.MAX)
 
-    val ldout1 = Loadout.Create(player, "weaponless")
+    val ldout1 = Loadout.Create(player, "weaponless").asInstanceOf[InfantryLoadout]
     slot.Equipment = None
     slot.Equipment = Tool(trhev_dualcycler)
-    val ldout2 = Loadout.Create(player, "cycler")
+    val ldout2 = Loadout.Create(player, "cycler").asInstanceOf[InfantryLoadout]
     slot.Equipment = None
     slot.Equipment = Tool(trhev_pounder)
-    val ldout3 = Loadout.Create(player, "pounder")
+    val ldout3 = Loadout.Create(player, "pounder").asInstanceOf[InfantryLoadout]
     slot.Equipment = None
     slot.Equipment = Tool(trhev_burster)
-    val ldout4 = Loadout.Create(player, "burster")
+    val ldout4 = Loadout.Create(player, "burster").asInstanceOf[InfantryLoadout]
 
     ldout1.Subtype mustEqual 0
     ldout2.Subtype mustEqual 1

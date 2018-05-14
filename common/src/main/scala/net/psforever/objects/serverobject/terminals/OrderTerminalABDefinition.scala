@@ -3,6 +3,7 @@ package net.psforever.objects.serverobject.terminals
 
 import akka.actor.ActorContext
 import net.psforever.objects.Player
+import net.psforever.objects.loadouts.InfantryLoadout
 import net.psforever.objects.inventory.InventoryItem
 import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.packet.game.ItemTransactionMessage
@@ -52,7 +53,7 @@ class OrderTerminalABDefinition(object_id : Int) extends EquipmentTerminalDefini
   override def Loadout(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
     if(msg.item_page == 4) { //Favorites tab
       player.LoadLoadout(msg.unk1) match {
-        case Some(loadout) =>
+        case Some(loadout : InfantryLoadout) =>
           if(loadout.ExoSuit != ExoSuitType.MAX) {
             val holsters = loadout.VisibleSlots.map(entry => { InventoryItem(BuildSimplifiedPattern(entry.item), entry.index) })
             val inventory = loadout.Inventory.map(entry => { InventoryItem(BuildSimplifiedPattern(entry.item), entry.index) })
@@ -61,7 +62,7 @@ class OrderTerminalABDefinition(object_id : Int) extends EquipmentTerminalDefini
           else {
             Terminal.NoDeal()
           }
-        case None =>
+        case Some(_) | None =>
           Terminal.NoDeal()
       }
     }

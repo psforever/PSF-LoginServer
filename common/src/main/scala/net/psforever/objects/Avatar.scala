@@ -3,6 +3,7 @@ package net.psforever.objects
 
 import net.psforever.objects.definition.{AvatarDefinition, ImplantDefinition}
 import net.psforever.objects.equipment.EquipmentSize
+import net.psforever.objects.loadouts.Loadout
 import net.psforever.types.{CertificationType, CharacterGender, ImplantType, PlanetSideEmpire}
 
 import scala.annotation.tailrec

@@ -3,6 +3,7 @@ package net.psforever.objects.serverobject.terminals
 
 import net.psforever.objects.definition.VehicleDefinition
 import net.psforever.objects.{Player, Vehicle}
+import net.psforever.objects.loadouts.VehicleLoadout
 import net.psforever.objects.inventory.InventoryItem
 import net.psforever.packet.game.ItemTransactionMessage
 
@@ -83,7 +84,7 @@ abstract class VehicleTerminalDefinition(objId : Int) extends TerminalDefinition
     //    "aphelion_flight" -> (()=>Unit)
   )
 
-  import net.psforever.objects.{Loadout => _Loadout} //distinguish from Terminal.Loadout message
+  import net.psforever.objects.loadouts.{Loadout => _Loadout} //distinguish from Terminal.Loadout message
   import _Loadout._
   /**
     * A `Map` of the default contents of a `Vehicle` inventory, called the trunk.
@@ -101,29 +102,31 @@ abstract class VehicleTerminalDefinition(objId : Int) extends TerminalDefinition
     val ammo_flux = ShorthandAmmoBox(flux_cannon_thresher_battery, flux_cannon_thresher_battery.Capacity)
     val ammo_bomb = ShorthandAmmoBox(liberator_bomb, liberator_bomb.Capacity)
     Map(
-      //"quadstealth" -> _Loadout("default_quadstealth", List(), List()),
-      "quadassault" -> _Loadout("default_quadassault", List(),
+      //"quadstealth" -> VehicleLoadout("default_quadstealth", List(), List(), quadstealth),
+      "quadassault" -> VehicleLoadout("default_quadassault", List(),
         List(
           SimplifiedEntry(ammo_12mm, 30),
           SimplifiedEntry(ammo_12mm, 34),
           SimplifiedEntry(ammo_12mm, 74),
           SimplifiedEntry(ammo_12mm, 78)
-        )
+        ),
+        quadassault
       ),
       {
         val ammo = ShorthandAmmoBox(hellfire_ammo, hellfire_ammo.Capacity)
-        "fury" -> _Loadout("default_fury", List(),
+        "fury" -> VehicleLoadout("default_fury", List(),
           List(
             SimplifiedEntry(ammo, 30),
             SimplifiedEntry(ammo, 34),
             SimplifiedEntry(ammo, 74),
             SimplifiedEntry(ammo, 78)
-          )
+          ),
+          fury
         )
       },
-      //"ant" -> _Loadout("default_ant", List(), List()),
-      //"ams" -> _Loadout("default_ams", List(), List()),
-      "two_man_assault_buggy" -> _Loadout("default_two_man_assault_buggy", List(),
+      //"ant" -> VehicleLoadout("default_ant", List(), List(), ant),
+      //"ams" -> VehicleLoadout("default_ams", List(), List(), ams),
+      "two_man_assault_buggy" -> VehicleLoadout("default_two_man_assault_buggy", List(),
         List(
           SimplifiedEntry(ammo_12mm, 30),
           SimplifiedEntry(ammo_12mm, 34),
@@ -131,11 +134,12 @@ abstract class VehicleTerminalDefinition(objId : Int) extends TerminalDefinition
           SimplifiedEntry(ammo_12mm, 90),
           SimplifiedEntry(ammo_12mm, 94),
           SimplifiedEntry(ammo_12mm, 98)
-        )
+        ),
+        two_man_assault_buggy
       ),
       {
         val ammo = ShorthandAmmoBox(skyguard_flak_cannon_ammo, skyguard_flak_cannon_ammo.Capacity)
-        "skyguard" -> _Loadout("default_skyguard", List(),
+        "skyguard" -> VehicleLoadout("default_skyguard", List(),
           List(
             SimplifiedEntry(ammo_12mm, 30),
             SimplifiedEntry(ammo_12mm, 34),
@@ -143,10 +147,11 @@ abstract class VehicleTerminalDefinition(objId : Int) extends TerminalDefinition
             SimplifiedEntry(ammo, 90),
             SimplifiedEntry(ammo, 94),
             SimplifiedEntry(ammo, 98)
-          )
+          ),
+          skyguard
         )
       },
-      "threemanheavybuggy" -> _Loadout("default_threemanheavybuggy", List(),
+      "threemanheavybuggy" -> VehicleLoadout("default_threemanheavybuggy", List(),
         List(
           SimplifiedEntry(ammo_12mm, 30),
           SimplifiedEntry(ammo_12mm, 34),
@@ -154,11 +159,12 @@ abstract class VehicleTerminalDefinition(objId : Int) extends TerminalDefinition
           SimplifiedEntry(ammo_mortar, 90),
           SimplifiedEntry(ammo_mortar, 94),
           SimplifiedEntry(ammo_mortar, 98)
-        )
+        ),
+        threemanheavybuggy
       ),
       {
         val ammo = ShorthandAmmoBox(firebird_missile, firebird_missile.Capacity)
-        "twomanheavybuggy" -> _Loadout("default_twomanheavybuggy", List(),
+        "twomanheavybuggy" -> VehicleLoadout("default_twomanheavybuggy", List(),
           List(
             SimplifiedEntry(ammo, 30),
             SimplifiedEntry(ammo, 34),
@@ -166,10 +172,11 @@ abstract class VehicleTerminalDefinition(objId : Int) extends TerminalDefinition
             SimplifiedEntry(ammo, 90),
             SimplifiedEntry(ammo, 94),
             SimplifiedEntry(ammo, 98)
-          )
+          ),
+          twomanheavybuggy
         )
       },
-      "twomanhoverbuggy" -> _Loadout("default_twomanhoverbuggy", List(),
+      "twomanhoverbuggy" -> VehicleLoadout("default_twomanhoverbuggy", List(),
         List(
           SimplifiedEntry(ammo_flux, 30),
           SimplifiedEntry(ammo_flux, 34),
@@ -177,9 +184,10 @@ abstract class VehicleTerminalDefinition(objId : Int) extends TerminalDefinition
           SimplifiedEntry(ammo_flux, 90),
           SimplifiedEntry(ammo_flux, 94),
           SimplifiedEntry(ammo_flux, 98)
-        )
+        ),
+        twomanhoverbuggy
       ),
-      "mediumtransport" -> _Loadout("default_mediumtransport", List(),
+      "mediumtransport" -> VehicleLoadout("default_mediumtransport", List(),
         List(
           SimplifiedEntry(ammo_20mm, 30),
           SimplifiedEntry(ammo_20mm, 34),
@@ -190,9 +198,10 @@ abstract class VehicleTerminalDefinition(objId : Int) extends TerminalDefinition
           SimplifiedEntry(ammo_20mm, 150),
           SimplifiedEntry(ammo_20mm, 154),
           SimplifiedEntry(ammo_20mm, 158)
-        )
+        ),
+        mediumtransport
       ),
-      "battlewagon" -> _Loadout("default_battlewagon", List(),
+      "battlewagon" -> VehicleLoadout("default_battlewagon", List(),
         List(
           SimplifiedEntry(ammo_15mm, 30),
           SimplifiedEntry(ammo_15mm, 34),
@@ -203,11 +212,12 @@ abstract class VehicleTerminalDefinition(objId : Int) extends TerminalDefinition
           SimplifiedEntry(ammo_15mm, 150),
           SimplifiedEntry(ammo_15mm, 154),
           SimplifiedEntry(ammo_15mm, 158)
-        )
+        ),
+        battlewagon
       ),
       {
         val ammo = ShorthandAmmoBox(gauss_cannon_ammo, gauss_cannon_ammo.Capacity)
-        "thunderer" -> _Loadout("default_thunderer", List(),
+        "thunderer" -> VehicleLoadout("default_thunderer", List(),
           List(
             SimplifiedEntry(ammo, 30),
             SimplifiedEntry(ammo, 34),
@@ -218,12 +228,13 @@ abstract class VehicleTerminalDefinition(objId : Int) extends TerminalDefinition
             SimplifiedEntry(ammo, 150),
             SimplifiedEntry(ammo, 154),
             SimplifiedEntry(ammo, 158)
-          )
+          ),
+          thunderer
         )
       },
       {
         val ammo = ShorthandAmmoBox(fluxpod_ammo, fluxpod_ammo.Capacity)
-        "aurora" -> _Loadout("default_aurora", List(),
+        "aurora" -> VehicleLoadout("default_aurora", List(),
           List(
             SimplifiedEntry(ammo, 30),
             SimplifiedEntry(ammo, 34),
@@ -234,10 +245,11 @@ abstract class VehicleTerminalDefinition(objId : Int) extends TerminalDefinition
             SimplifiedEntry(ammo, 150),
             SimplifiedEntry(ammo, 154),
             SimplifiedEntry(ammo, 158)
-          )
+          ),
+          aurora
         )
       },
-      "apc_tr" -> _Loadout("default_apc_tr", List(),
+      "apc_tr" -> VehicleLoadout("default_apc_tr", List(),
         List(
           SimplifiedEntry(ammo_75mm, 30),
           SimplifiedEntry(ammo_75mm, 34),
@@ -259,9 +271,10 @@ abstract class VehicleTerminalDefinition(objId : Int) extends TerminalDefinition
           SimplifiedEntry(ammo_15mm, 278),
           SimplifiedEntry(ammo_15mm, 282),
           SimplifiedEntry(ammo_15mm, 286)
-        )
+        ),
+        apc_tr
       ),
-      "apc_nc" -> _Loadout("default_apc_nc", List(),
+      "apc_nc" -> VehicleLoadout("default_apc_nc", List(),
         List(
           SimplifiedEntry(ammo_75mm, 30),
           SimplifiedEntry(ammo_75mm, 34),
@@ -283,9 +296,10 @@ abstract class VehicleTerminalDefinition(objId : Int) extends TerminalDefinition
           SimplifiedEntry(ammo_20mm, 278),
           SimplifiedEntry(ammo_20mm, 282),
           SimplifiedEntry(ammo_20mm, 286)
-        )
+        ),
+        apc_nc
       ),
-      "apc_vs" -> _Loadout("default_apc_vs", List(),
+      "apc_vs" -> VehicleLoadout("default_apc_vs", List(),
         List(
           SimplifiedEntry(ammo_75mm, 30),
           SimplifiedEntry(ammo_75mm, 34),
@@ -307,9 +321,10 @@ abstract class VehicleTerminalDefinition(objId : Int) extends TerminalDefinition
           SimplifiedEntry(ammo_flux, 278),
           SimplifiedEntry(ammo_flux, 282),
           SimplifiedEntry(ammo_flux, 286)
-        )
+        ),
+        apc_vs
       ),
-      "lightning" -> _Loadout("default_lightning", List(),
+      "lightning" -> VehicleLoadout("default_lightning", List(),
         List(
           SimplifiedEntry(ammo_25mm, 30),
           SimplifiedEntry(ammo_25mm, 34),
@@ -317,11 +332,12 @@ abstract class VehicleTerminalDefinition(objId : Int) extends TerminalDefinition
           SimplifiedEntry(ammo_75mm, 90),
           SimplifiedEntry(ammo_75mm, 94),
           SimplifiedEntry(ammo_75mm, 98)
-        )
+        ),
+        lightning
       ),
       {
         val ammo = ShorthandAmmoBox(bullet_105mm, bullet_105mm.Capacity)
-        "prowler" -> _Loadout("default_prowler", List(),
+        "prowler" -> VehicleLoadout("default_prowler", List(),
           List(
             SimplifiedEntry(ammo_15mm, 30),
             SimplifiedEntry(ammo_15mm, 34),
@@ -329,12 +345,13 @@ abstract class VehicleTerminalDefinition(objId : Int) extends TerminalDefinition
             SimplifiedEntry(ammo, 90),
             SimplifiedEntry(ammo, 94),
             SimplifiedEntry(ammo, 98)
-          )
+          ),
+          prowler
         )
       },
       {
         val ammo = ShorthandAmmoBox(bullet_150mm, bullet_150mm.Capacity)
-        "vanguard" -> _Loadout("default_vanguard", List(),
+        "vanguard" -> VehicleLoadout("default_vanguard", List(),
           List(
             SimplifiedEntry(ammo_20mm, 30),
             SimplifiedEntry(ammo_20mm, 34),
@@ -342,13 +359,14 @@ abstract class VehicleTerminalDefinition(objId : Int) extends TerminalDefinition
             SimplifiedEntry(ammo, 90),
             SimplifiedEntry(ammo, 94),
             SimplifiedEntry(ammo, 98)
-          )
+          ),
+          vanguard
         )
       },
       {
         val ammo1 = ShorthandAmmoBox(pulse_battery, pulse_battery.Capacity)
         val ammo2 = ShorthandAmmoBox(heavy_rail_beam_battery, heavy_rail_beam_battery.Capacity)
-        "magrider" -> _Loadout("default_magrider", List(),
+        "magrider" -> VehicleLoadout("default_magrider", List(),
           List(
             SimplifiedEntry(ammo1, 30),
             SimplifiedEntry(ammo1, 34),
@@ -356,23 +374,25 @@ abstract class VehicleTerminalDefinition(objId : Int) extends TerminalDefinition
             SimplifiedEntry(ammo2, 90),
             SimplifiedEntry(ammo2, 94),
             SimplifiedEntry(ammo2, 98)
-          )
+          ),
+          magrider
         )
       },
-      //"flail" -> _Loadout("default_flail", List(), List()),
-      //"switchblade" -> _Loadout("default_switchblade", List(), List()),
-      //"router" -> _Loadout("default_router", List(), List()),
-      "mosquito" -> _Loadout("default_mosquito", List(),
+      //"flail" -> VehicleLoadout("default_flail", List(), List(), flail),
+      //"switchblade" -> VehicleLoadout("default_switchblade", List(), List(), switchblade),
+      //"router" -> VehicleLoadout("default_router", List(), List(), router),
+      "mosquito" -> VehicleLoadout("default_mosquito", List(),
         List(
           SimplifiedEntry(ammo_12mm, 30),
           SimplifiedEntry(ammo_12mm, 34),
           SimplifiedEntry(ammo_12mm, 74),
           SimplifiedEntry(ammo_12mm, 78)
-        )
+        ),
+        mosquito
       ),
       {
         val ammo = ShorthandAmmoBox(reaver_rocket, reaver_rocket.Capacity)
-        "lightgunship" -> _Loadout("default_lightgunship", List(),
+        "lightgunship" -> VehicleLoadout("default_lightgunship", List(),
           List(
             SimplifiedEntry(ammo, 30),
             SimplifiedEntry(ammo, 34),
@@ -380,22 +400,24 @@ abstract class VehicleTerminalDefinition(objId : Int) extends TerminalDefinition
             SimplifiedEntry(ammo, 90),
             SimplifiedEntry(ammo_20mm, 94),
             SimplifiedEntry(ammo_20mm, 98)
-          )
+          ),
+          lightgunship
         )
       },
       {
         val ammo1 = ShorthandAmmoBox(wasp_rocket_ammo, wasp_rocket_ammo.Capacity)
         val ammo2 = ShorthandAmmoBox(wasp_gun_ammo, wasp_gun_ammo.Capacity)
-        "wasp" -> _Loadout("default_wasp", List(),
+        "wasp" -> VehicleLoadout("default_wasp", List(),
           List(
             SimplifiedEntry(ammo1, 30),
             SimplifiedEntry(ammo1, 34),
             SimplifiedEntry(ammo2, 74),
             SimplifiedEntry(ammo2, 78)
-          )
+          ),
+          wasp
         )
       },
-      "liberator" -> _Loadout("default_liberator", List(),
+      "liberator" -> VehicleLoadout("default_liberator", List(),
         List(
           SimplifiedEntry(ammo_35mm, 30),
           SimplifiedEntry(ammo_35mm, 34),
@@ -406,9 +428,10 @@ abstract class VehicleTerminalDefinition(objId : Int) extends TerminalDefinition
           SimplifiedEntry(ammo_bomb, 150),
           SimplifiedEntry(ammo_bomb, 154),
           SimplifiedEntry(ammo_bomb, 158)
-        )
+        ),
+        liberator
       ),
-      "vulture" -> _Loadout("default_vulture", List(),
+      "vulture" -> VehicleLoadout("default_vulture", List(),
         List(
           SimplifiedEntry(ammo_35mm, 30),
           SimplifiedEntry(ammo_35mm, 34),
@@ -418,9 +441,10 @@ abstract class VehicleTerminalDefinition(objId : Int) extends TerminalDefinition
           SimplifiedEntry(ammo_bomb, 98),
           SimplifiedEntry(ammo_bomb, 102),
           SimplifiedEntry(ammo_bomb, 106)
-        ) //TODO confirm
+        ), //TODO confirm
+        vulture
       ),
-      "dropship" -> _Loadout("default_dropship", List(),
+      "dropship" -> VehicleLoadout("default_dropship", List(),
         List(
           SimplifiedEntry(ammo_20mm, 30),
           SimplifiedEntry(ammo_20mm, 34),
@@ -434,9 +458,10 @@ abstract class VehicleTerminalDefinition(objId : Int) extends TerminalDefinition
           SimplifiedEntry(ammo_20mm, 162),
           SimplifiedEntry(ammo_20mm, 166),
           SimplifiedEntry(ammo_20mm, 170)
-        )
+        ),
+        dropship
       ),
-      "galaxy_gunship" -> _Loadout("galaxy_gunship", List(),
+      "galaxy_gunship" -> VehicleLoadout("galaxy_gunship", List(),
         List(
           SimplifiedEntry(ammo_35mm, 30),
           SimplifiedEntry(ammo_35mm, 34),
@@ -450,10 +475,11 @@ abstract class VehicleTerminalDefinition(objId : Int) extends TerminalDefinition
           SimplifiedEntry(ammo_mortar, 178),
           SimplifiedEntry(ammo_mortar, 182),
           SimplifiedEntry(ammo_mortar, 186)
-        )
+        ),
+        galaxy_gunship
       )
-      //"phantasm" -> _Loadout("default_phantasm", List(), List()),
-      //"lodestar" -> _Loadout("default_lodestar", List(), List()),
+      //"phantasm" -> VehicleLoadout("default_phantasm", List(), List(), phantasm),
+      //"lodestar" -> VehicleLoadout("default_lodestar", List(), List(), lodestar),
     )
   }
 

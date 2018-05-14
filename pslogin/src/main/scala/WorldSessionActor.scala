@@ -15,6 +15,7 @@ import net.psforever.objects._
 import net.psforever.objects.definition.ToolDefinition
 import net.psforever.objects.definition.converter.CorpseConverter
 import net.psforever.objects.equipment._
+import net.psforever.objects.loadouts._
 import net.psforever.objects.guid.{GUIDTask, Task, TaskResolver}
 import net.psforever.objects.inventory.{Container, GridInventory, InventoryItem}
 import net.psforever.objects.serverobject.mount.Mountable
@@ -2360,6 +2361,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       }
 
     case msg @ FavoritesRequest(player_guid, unk, action, line, label) =>
+      log.info(s"FavoritesRequest: $msg")
       if(player.GUID == player_guid) {
         val name = label.getOrElse("missing_loadout_name")
         action match {
@@ -2372,7 +2374,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
             sendResponse(FavoritesMessage(0, player_guid, line, ""))
         }
       }
-      log.info("FavoritesRequest: " + msg)
 
     case msg @ WeaponDelayFireMessage(seq_time, weapon_guid) =>
       log.info("WeaponDelayFire: " + msg)

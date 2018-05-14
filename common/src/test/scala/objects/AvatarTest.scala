@@ -3,6 +3,7 @@ package objects
 
 import net.psforever.objects.GlobalDefinitions._
 import net.psforever.objects._
+import net.psforever.objects.loadouts._
 import net.psforever.objects.definition.ImplantDefinition
 import net.psforever.types.{CharacterGender, ImplantType, PlanetSideEmpire}
 import org.specs2.mutable._
@@ -291,7 +292,7 @@ class AvatarTest extends Specification {
     avatar.SaveLoadout(obj, "test", 0)
 
     avatar.LoadLoadout(0) match {
-      case Some(items) =>
+      case Some(items : InfantryLoadout) =>
         items.Label mustEqual "test"
         items.ExoSuit mustEqual obj.ExoSuit
         items.Subtype mustEqual 0
@@ -321,7 +322,7 @@ class AvatarTest extends Specification {
         inventory(4).item.asInstanceOf[Loadout.ShorthandAmmoBox].definition mustEqual energy_cell
         inventory(5).index mustEqual 39
         inventory(5).item.asInstanceOf[Loadout.ShorthandSimpleItem].definition mustEqual remote_electronics_kit
-      case None =>
+      case _ =>
         ko
     }
   }
@@ -347,13 +348,13 @@ class AvatarTest extends Specification {
     avatar.SaveLoadout(obj, "test", 0)
 
     avatar.LoadLoadout(0) match {
-      case Some(items) =>
+      case Some(items : InfantryLoadout) =>
         items.Label mustEqual "test"
         items.ExoSuit mustEqual obj.ExoSuit
         items.Subtype mustEqual 0
         items.VisibleSlots.length mustEqual 3
         items.Inventory.length mustEqual 0 //empty
-      case None =>
+      case _ =>
         ko
     }
   }
@@ -366,13 +367,13 @@ class AvatarTest extends Specification {
     avatar.SaveLoadout(obj, "test", 0)
 
     avatar.LoadLoadout(0) match {
-      case Some(items) =>
+      case Some(items : InfantryLoadout) =>
         items.Label mustEqual "test"
         items.ExoSuit mustEqual obj.ExoSuit
         items.Subtype mustEqual 0
         items.VisibleSlots.length mustEqual 0 //empty
         items.Inventory.length mustEqual 6
-      case None =>
+      case _ =>
         ko
     }
   }
