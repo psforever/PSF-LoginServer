@@ -42,7 +42,7 @@ class OrderTerminalABDefinition(object_id : Int) extends EquipmentTerminalDefini
   override def Buy(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = buyFunc(player, msg)
 
   /**
-    * Process a `TransactionType.InfantryLoadout` action by the user.
+    * Process a `TransactionType.Loadout` action by the user.
     * `Loadout` objects are blueprints composed of exo-suit specifications and simplified `Equipment`-to-slot mappings.
     * If a valid loadout is found, its data is transformed back into actual `Equipment` for return to the user.
     * Loadouts that would suit the player into a mechanized assault exo-suit are not permitted.

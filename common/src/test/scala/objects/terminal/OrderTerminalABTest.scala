@@ -68,10 +68,10 @@ class OrderTerminalABTest extends Specification {
       player.ExoSuit = ExoSuitType.MAX
       avatar.SaveLoadout(player, "test2", 1)
 
-      val msg1 = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.InfantryLoadout, 4, "", 0, PlanetSideGUID(0))
+      val msg1 = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Loadout, 4, "", 0, PlanetSideGUID(0))
       terminal.Request(player, msg1) mustEqual Terminal.InfantryLoadout(ExoSuitType.Standard, 0, Nil, Nil)
 
-      val msg2 = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.InfantryLoadout, 4, "", 1, PlanetSideGUID(0))
+      val msg2 = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Loadout, 4, "", 1, PlanetSideGUID(0))
       terminal.Request(player, msg2) mustEqual Terminal.NoDeal()
     }
   }

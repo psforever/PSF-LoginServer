@@ -39,6 +39,7 @@ import net.psforever.types._
 import services._
 import services.avatar.{AvatarAction, AvatarResponse, AvatarServiceMessage, AvatarServiceResponse}
 import services.local.{LocalAction, LocalResponse, LocalServiceMessage, LocalServiceResponse}
+import services.vehicle.VehicleAction.UnstowEquipment
 import services.vehicle.{VehicleAction, VehicleResponse, VehicleServiceMessage, VehicleServiceResponse}
 
 import scala.annotation.tailrec
@@ -818,7 +819,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case Terminal.InfantryLoadout(exosuit, subtype, holsters, inventory) =>
           //TODO optimizations against replacing Equipment with the exact same Equipment and potentially for recycling existing Equipment
           log.info(s"$tplayer wants to change equipment loadout to their option #${msg.unk1 + 1}")
-          sendResponse(ItemTransactionResultMessage (msg.terminal_guid, TransactionType.InfantryLoadout, true))
+          sendResponse(ItemTransactionResultMessage (msg.terminal_guid, TransactionType.Loadout, true))
           val dropPred = DropPredicate(tplayer)
           val (dropHolsters, beforeHolsters) = clearHolsters(tplayer.Holsters().iterator).partition(dropPred)
           val (dropInventory, beforeInventory) = tplayer.Inventory.Clear().partition(dropPred)
@@ -881,7 +882,59 @@ class WorldSessionActor extends Actor with MDCContextAware {
             val objDef = obj.Definition
             avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.EquipmentOnGround(tplayer.GUID, pos, orient, objDef.ObjectId, obj.GUID, objDef.Packet.ConstructorData(obj).get))
           })
-          sendResponse(ItemTransactionResultMessage (msg.terminal_guid, TransactionType.InfantryLoadout, true))
+          sendResponse(ItemTransactionResultMessage (msg.terminal_guid, TransactionType.Loadout, true))
+
+        case Terminal.VehicleLoadout(definition, weapons, inventory) =>
+          log.info(s"$tplayer wants to change their vehicle equipment loadout to their option #${msg.unk1 + 1}")
+          log.info(s"Vehicle: $definition")
+          log.info(s"Weapons (${weapons.size}): $weapons")
+          log.info(s"Inventory (${inventory.size}): $inventory")
+          LocalVehicle match {
+            case Some(vehicle) =>
+              sendResponse(ItemTransactionResultMessage (msg.terminal_guid, TransactionType.Loadout, true))
+              val (_, afterInventory) = inventory.partition( DropPredicate(tplayer) ) //dropped items are lost
+              //common action - remove old inventory
+              val deleteEquipment : (Int,Equipment)=>Unit = DeleteEquipmentFromVehicle(vehicle)
+              vehicle.Inventory.Clear().foreach({ case InventoryItem(obj, index) =>
+                deleteEquipment(index, obj)
+                taskResolver ! GUIDTask.UnregisterEquipment(obj)(continent.GUID)
+              })
+              val stowEquipment : (Int,Equipment)=>TaskResolver.GiveTask = StowNewEquipmentInVehicle(vehicle)
+              (if(vehicle.Definition == definition) {
+                //vehicles are the same type; transfer over weapons
+                vehicle.Weapons
+                  .filter({ case (_, slot) => slot.Equipment.nonEmpty })
+                  .foreach({ case (_, slot) =>
+                    val equipment = slot.Equipment.get
+                    slot.Equipment = None
+                    val equipment_guid = equipment.GUID
+                    sendResponse(ObjectDeleteMessage(equipment_guid, 0))
+                    avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player.GUID, equipment_guid))
+                    taskResolver ! GUIDTask.UnregisterEquipment(equipment)(continent.GUID)
+                  })
+                weapons.foreach({ case InventoryItem(obj, index) =>
+                  //create weapons and share with everyone
+                  taskResolver ! PutNewWeaponInVehicleSlot(vehicle, obj.asInstanceOf[Tool], index)
+                })
+                afterInventory
+              }
+              else {
+                //do not transfer over weapons
+                if(vehicle.Definition.TrunkSize == definition.TrunkSize && vehicle.Definition.TrunkOffset == definition.TrunkOffset) {
+                  afterInventory
+                }
+                else {
+                  //accommodate as much of inventory as possible
+                  //TODO map x,y -> x,y rather than reorganize items
+                  val (stow, _) = GridInventory.recoverInventory(afterInventory, vehicle.Inventory) //dropped items can be forgotten
+                  stow
+                }
+              }).foreach({ case InventoryItem(obj, index) =>
+                taskResolver ! stowEquipment(index, obj)
+              })
+            case None =>
+              log.error(s"can not apply the loadout - can not find a vehicle")
+          }
 
         case Terminal.LearnCertification(cert, cost) =>
           if(!tplayer.Certifications.contains(cert)) {
@@ -894,9 +947,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
             log.warn(s"$tplayer already knows the $cert certification, so he can't learn it")
             sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Learn, false))
           }
-
-        case Terminal.VehicleLoadout(weapons, inventory) =>
-          log.info(s"$tplayer wants to change their vehicle equipment loadout to their option #${msg.unk1 + 1}")
 
         case Terminal.SellCertification(cert, cost) =>
           if(tplayer.Certifications.contains(cert)) {
@@ -1424,9 +1474,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
       AwardBattleExperiencePoints(avatar, 1000000L)
       player = new Player(avatar)
       //player.Position = Vector3(3561.0f, 2854.0f, 90.859375f) //home3, HART C
-      //player.Orientation = Vector3(0f, 0f, 90f)
-      player.Position = Vector3(4262.211f ,4067.0625f ,262.35938f) //z6, Akna.tower
-      player.Orientation = Vector3(0f, 0f, 132.1875f)
+      player.Position = Vector3(3940.3984f, 4343.625f, 266.45312f)
+      player.Orientation = Vector3(0f, 0f, 90f)
+      //player.Position = Vector3(4262.211f ,4067.0625f ,262.35938f) //z6, Akna.tower
+      //player.Orientation = Vector3(0f, 0f, 132.1875f)
 //      player.ExoSuit = ExoSuitType.MAX //TODO strange issue; divide number above by 10 when uncommenting
       player.Slot(0).Equipment = SimpleItem(remote_electronics_kit) //Tool(GlobalDefinitions.StandardPistol(player.Faction))
       player.Slot(2).Equipment = Tool(punisher) //suppressor
@@ -1757,15 +1808,15 @@ class WorldSessionActor extends Actor with MDCContextAware {
                 case x :: xs =>
                   val (deleteFunc, modifyFunc) : ((Int, AmmoBox)=>Unit, (AmmoBox, Int)=>Unit) = obj match {
                     case (veh : Vehicle) =>
-                      (DeleteAmmunitionInVehicle(veh), ModifyAmmunitionInVehicle(veh))
+                      (DeleteEquipmentFromVehicle(veh), ModifyAmmunitionInVehicle(veh))
                     case _ =>
-                      (DeleteAmmunition(obj), ModifyAmmunition(obj))
+                      (DeleteEquipment(obj), ModifyAmmunition(obj))
                   }
                   val (stowFuncTask, stowFunc) : ((Int, AmmoBox)=>TaskResolver.GiveTask, (Int, AmmoBox)=>Unit) = obj match {
                     case (veh : Vehicle) =>
-                      (StowNewAmmunitionInVehicles(veh), StowAmmunitionInVehicles(veh))
+                      (StowNewEquipmentInVehicle(veh), StowEquipmentInVehicles(veh))
                     case _ =>
-                      (StowNewAmmunition(obj), StowAmmunition(obj))
+                      (StowNewEquipment(obj), StowEquipment(obj))
                   }
                   xs.foreach(item => {
                     obj.Inventory -= x.start
@@ -1977,9 +2028,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
               case x :: xs =>
                 val (deleteFunc, modifyFunc) : ((Int, AmmoBox)=>Unit, (AmmoBox, Int)=>Unit) = obj match {
                   case (veh : Vehicle) =>
-                    (DeleteAmmunitionInVehicle(veh), ModifyAmmunitionInVehicle(veh))
+                    (DeleteEquipmentFromVehicle(veh), ModifyAmmunitionInVehicle(veh))
                   case _ =>
-                    (DeleteAmmunition(obj), ModifyAmmunition(obj))
+                    (DeleteEquipment(obj), ModifyAmmunition(obj))
                 }
                 xs.foreach(item => {
                   deleteFunc(item.start, item.obj.asInstanceOf[AmmoBox])
@@ -2071,7 +2122,14 @@ class WorldSessionActor extends Actor with MDCContextAware {
                 findFunc(parent)
               case None =>
                 None
-            }) match {
+            })
+            .orElse(LocalVehicle match {
+              case Some(parent) =>
+                findFunc(parent)
+              case None =>
+                None
+            })
+          match {
             case Some((parent, Some(slot))) =>
               taskResolver ! RemoveEquipmentFromSlot(parent, obj, slot)
               log.info(s"RequestDestroy: equipment $object_guid")
@@ -2360,18 +2418,42 @@ class WorldSessionActor extends Actor with MDCContextAware {
           log.error(s"ItemTransaction: $terminal_guid does not exist")
       }
 
-    case msg @ FavoritesRequest(player_guid, unk, action, line, label) =>
+    case msg @ FavoritesRequest(player_guid, list, action, line, label) =>
       log.info(s"FavoritesRequest: $msg")
       if(player.GUID == player_guid) {
-        val name = label.getOrElse("missing_loadout_name")
+        val lineno = if(list == LoadoutType.Vehicle) { line + 10 } else { line }
+        val name = label.getOrElse(s"missing_loadout_${line+1}")
         action match {
-          case FavoritesAction.Unknown => ;
           case FavoritesAction.Save =>
-            avatar.SaveLoadout(player, name, line)
-            sendResponse(FavoritesMessage(0, player_guid, line, name))
+            (if(list == LoadoutType.Infantry) {
+              Some(player)
+            }
+            else if(list == LoadoutType.Vehicle) {
+              player.VehicleSeated match {
+                case Some(vehicle_guid) =>
+                  continent.GUID(vehicle_guid)
+                case None =>
+                  None
+              }
+            }
+            else {
+              None
+            }) match {
+              case Some(owner : Player) =>
+                avatar.SaveLoadout(owner, name, lineno)
+              case Some(owner : Vehicle) =>
+                avatar.SaveLoadout(owner, name, lineno)
+              case Some(_) | None =>
+                log.error("FavoritesRequest: unexpected owner for favorites")
+            }
+            sendResponse(FavoritesMessage(list, player_guid, line, name))
+
           case FavoritesAction.Delete =>
-            avatar.DeleteLoadout(line)
-            sendResponse(FavoritesMessage(0, player_guid, line, ""))
+            avatar.DeleteLoadout(lineno)
+            sendResponse(FavoritesMessage(list, player_guid, line, ""))
+
+          case FavoritesAction.Unknown =>
+            log.warn("FavoritesRequest: unknown favorites action")
         }
       }
 
@@ -2651,6 +2733,46 @@ class WorldSessionActor extends Actor with MDCContextAware {
       case _ =>
         TaskResolver.GiveTask(PutInSlot(target, obj, index).task, List(regTask))
     }
+  }
+
+  def PutNewWeaponInVehicleSlot(target : Vehicle, obj : Tool, index : Int) : TaskResolver.GiveTask = {
+    TaskResolver.GiveTask(
+      new Task() {
+        private val localTarget = target
+        private val localIndex = index
+        private val localObject = obj
+        private val localAnnounce = self
+        private val localAvatarService = avatarService
+        private val localVehicleService = vehicleService
+
+        override def isComplete : Task.Resolution.Value = {
+          if(localTarget.Slot(localIndex).Equipment.contains(localObject)) {
+            Task.Resolution.Success
+          }
+          else {
+            Task.Resolution.Incomplete
+          }
+        }
+
+        def Execute(resolver : ActorRef) : Unit = {
+          localTarget.Slot(localIndex).Equipment = localObject
+          resolver ! scala.util.Success(this)
+        }
+
+        override def onSuccess() : Unit = {
+          val definition = localObject.Definition
+          if(localTarget.VisibleSlots.contains(localIndex)) {
+            localAvatarService ! AvatarServiceMessage(continent.Id, AvatarAction.EquipmentInHand(localTarget.GUID, localTarget.GUID, localIndex, localObject))
+          }
+          val channel = s"${localTarget.Actor}"
+          (0 until localObject.MaxAmmoSlot).foreach({ index =>
+            val box = localObject.AmmoSlots(index).Box
+            val boxDef = box.Definition
+            val boxdata = boxDef.Packet.DetailedConstructorData(box).get
+            localVehicleService ! VehicleServiceMessage(channel, VehicleAction.InventoryState(PlanetSideGUID(0), box, localObject.GUID, index, boxdata))
+          })
+        }
+      }, List(GUIDTask.RegisterTool(obj)(continent.GUID)))
   }
 
   /**
@@ -3297,14 +3419,14 @@ class WorldSessionActor extends Actor with MDCContextAware {
   }
 
   /**
-    * Given an object that contains a box of amunition in its `Inventory` at a certain location,
+    * Given an object that contains an item (`Equipment`) in its `Inventory` at a certain location,
     * remove it permanently.
     * @param obj the `Container`
-    * @param start where the ammunition can be found
-    * @param item an object to unregister (should have been the ammunition that was removed);
+    * @param start where the item can be found
+    * @param item an object to unregister;
     *             not explicitly checked
     */
-  private def DeleteAmmunition(obj : PlanetSideGameObject with Container)(start : Int, item : AmmoBox) : Unit = {
+  private def DeleteEquipment(obj : PlanetSideGameObject with Container)(start : Int, item : Equipment) : Unit = {
     val item_guid = item.GUID
     obj.Inventory -= start
     taskResolver ! GUIDTask.UnregisterEquipment(item)(continent.GUID)
@@ -3312,17 +3434,17 @@ class WorldSessionActor extends Actor with MDCContextAware {
   }
 
   /**
-    * Given a vehicle that contains a box of amunition in its `Trunk` at a certain location,
+    * Given a vehicle that contains an item (`Equipment`) in its `Trunk` at a certain location,
     * remove it permanently.
-    * @see `DeleteAmmunition`
+    * @see `DeleteEquipment`
     * @param obj the `Vehicle`
-    * @param start where the ammunition can be found
-    * @param item an object to unregister (should have been the ammunition that was removed);
+    * @param start where the item can be found
+    * @param item an object to unregister;
     *             not explicitly checked
     */
-  private def DeleteAmmunitionInVehicle(obj : Vehicle)(start : Int, item : AmmoBox) : Unit = {
+  private def DeleteEquipmentFromVehicle(obj : Vehicle)(start : Int, item : Equipment) : Unit = {
     val item_guid = item.GUID
-    DeleteAmmunition(obj)(start, item)
+    DeleteEquipment(obj)(start, item)
     vehicleService ! VehicleServiceMessage(s"${obj.Actor}", VehicleAction.UnstowEquipment(player.GUID, item_guid))
   }
 
@@ -3355,27 +3477,27 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
   /**
     * Announce that an already-registered `AmmoBox` object exists in a given position in some `Container` object's inventory.
-    * @see `StowAmmunitionInVehicles`
+    * @see `StowEquipmentInVehicles`
     * @see `ChangeAmmoMessage`
     * @param obj the `Container` object
     * @param index an index in `obj`'s inventory
     * @param item an `AmmoBox`
     */
-  def StowAmmunition(obj : PlanetSideGameObject with Container)(index : Int, item : AmmoBox) : Unit = {
+  def StowEquipment(obj : PlanetSideGameObject with Container)(index : Int, item : AmmoBox) : Unit = {
     obj.Inventory += index -> item
     sendResponse(ObjectAttachMessage(obj.GUID, item.GUID, index))
   }
 
   /**
     * Announce that an already-registered `AmmoBox` object exists in a given position in some vehicle's inventory.
-    * @see `StowAmmunition`
+    * @see `StowEquipment`
     * @see `ChangeAmmoMessage`
     * @param obj the `Vehicle` object
     * @param index an index in `obj`'s inventory
     * @param item an `AmmoBox`
     */
-  def StowAmmunitionInVehicles(obj : Vehicle)(index : Int, item : AmmoBox) : Unit = {
-    StowAmmunition(obj)(index, item)
+  def StowEquipmentInVehicles(obj : Vehicle)(index : Int, item : AmmoBox) : Unit = {
+    StowEquipment(obj)(index, item)
     vehicleService ! VehicleServiceMessage(s"${obj.Actor}", VehicleAction.StowEquipment(player.GUID, obj.GUID, index, item))
   }
 
@@ -3383,14 +3505,14 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * Prepare tasking that registers an `AmmoBox` object
     * and announces that it exists in a given position in some `Container` object's inventory.
     * `PutEquipmentInSlot` is the fastest way to achieve these goals.
-    * @see `StowNewAmmunitionInVehicles`
+    * @see `StowNewEquipmentInVehicle`
     * @see `ChangeAmmoMessage`
     * @param obj the `Container` object
     * @param index an index in `obj`'s inventory
     * @param item an `AmmoBox`
     * @return a `TaskResolver.GiveTask` chain that executes the action
     */
-  def StowNewAmmunition(obj : PlanetSideGameObject with Container)(index : Int, item : AmmoBox) : TaskResolver.GiveTask = {
+  def StowNewEquipment(obj : PlanetSideGameObject with Container)(index : Int, item : Equipment) : TaskResolver.GiveTask = {
     PutEquipmentInSlot(obj, item, index)
   }
 
@@ -3398,14 +3520,14 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * Prepare tasking that registers an `AmmoBox` object
     * and announces that it exists in a given position in some vehicle's inventory.
     * `PutEquipmentInSlot` is the fastest way to achieve these goals.
-    * @see `StowNewAmmunition`
+    * @see `StowNewEquipment`
     * @see `ChangeAmmoMessage`
     * @param obj the `Container` object
     * @param index an index in `obj`'s inventory
     * @param item an `AmmoBox`
     * @return a `TaskResolver.GiveTask` chain that executes the action
     */
-  def StowNewAmmunitionInVehicles(obj : Vehicle)(index : Int, item : AmmoBox) : TaskResolver.GiveTask = {
+  def StowNewEquipmentInVehicle(obj : Vehicle)(index : Int, item : Equipment) : TaskResolver.GiveTask = {
     TaskResolver.GiveTask(
       new Task() {
         private val localService = vehicleService
@@ -3424,7 +3546,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           resolver ! scala.util.Success(this)
         }
       },
-      List(StowNewAmmunition(obj)(index, item))
+      List(StowNewEquipment(obj)(index, item))
     )
   }
 
@@ -3635,6 +3757,20 @@ class WorldSessionActor extends Actor with MDCContextAware {
     slot match {
       case place @ Some(_) =>
         Some(parent, slot)
+      case None =>
+        None
+    }
+  }
+
+  def LocalVehicle : Option[Vehicle] = {
+    player.VehicleSeated match {
+      case Some(vehicle_guid) =>
+        continent.GUID(vehicle_guid) match {
+          case Some(obj : Vehicle) =>
+            Some(obj)
+          case _ =>
+            None
+        }
       case None =>
         None
     }

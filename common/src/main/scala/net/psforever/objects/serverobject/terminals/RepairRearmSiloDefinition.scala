@@ -2,6 +2,9 @@
 package net.psforever.objects.serverobject.terminals
 
 import net.psforever.objects.Player
+import net.psforever.objects.inventory.InventoryItem
+import net.psforever.objects.loadouts.VehicleLoadout
+import net.psforever.objects.serverobject.terminals.EquipmentTerminalDefinition.BuildSimplifiedPattern
 import net.psforever.packet.game.ItemTransactionMessage
 
 class RepairRearmSiloDefinition(objectId : Int) extends EquipmentTerminalDefinition(objectId) {
@@ -13,10 +16,12 @@ class RepairRearmSiloDefinition(objectId : Int) extends EquipmentTerminalDefinit
 
   override def Loadout(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
     if(msg.item_page == 4) { //Favorites tab
-      player.LoadLoadout(msg.unk1) match {
-        case Some(loadout) =>
-          Terminal.VehicleLoadout(Nil, Nil)
-        case None =>
+      player.LoadLoadout(msg.unk1 + 10) match {
+        case Some(loadout : VehicleLoadout) =>
+          val weapons = loadout.VisibleSlots.map(entry => { InventoryItem(BuildSimplifiedPattern(entry.item), entry.index) })
+          val inventory = loadout.Inventory.map(entry => { InventoryItem(BuildSimplifiedPattern(entry.item), entry.index) })
+          Terminal.VehicleLoadout(loadout.vehicle_definition, weapons, inventory)
+        case _ =>
           Terminal.NoDeal()
       }
     }
