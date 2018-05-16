@@ -29,3 +29,74 @@ final case class InfantryLoadout(label : String,
                                  inventory : List[Loadout.SimplifiedEntry],
                                  exosuit : ExoSuitType.Value,
                                  subtype : Int) extends Loadout(label, visible_slots, inventory)
+
+object InfantryLoadout {
+  import net.psforever.objects.Player
+  import net.psforever.objects.GlobalDefinitions
+  import net.psforever.objects.equipment.Equipment
+
+  /**
+    * The sub-type of the player's uniform.
+    * Applicable to mechanized assault units, mainly.
+    * The subtype is reported as a number but indicates the specialization - anti-infantry, ani-vehicular, anti-air - of the suit
+    * as indicated by the arm weapon(s).
+    * @param player the player
+    * @return the numeric subtype
+    */
+  def DetermineSubtype(player : Player) : Int = {
+    DetermineSubtypeA(player.ExoSuit, player.Slot(0).Equipment)
+  }
+
+  /**
+    * The sub-type of the player's uniform.
+    * Applicable to mechanized assault units, mainly.
+    * The subtype is reported as a number but indicates the specialization - anti-infantry, ani-vehicular, anti-air - of the suit
+    * as indicated by the arm weapon(s).
+    * @param suit the player's uniform;
+    *             the target is for MAX armors
+    * @param weapon any weapon the player may have it his "first pistol slot;"
+    *               to a MAX, that is its "primary weapon slot"
+    * @return the numeric subtype
+    */
+  def DetermineSubtypeA(suit : ExoSuitType.Value, weapon : Option[Equipment]) : Int = {
+    if(suit == ExoSuitType.MAX) {
+      weapon match {
+        case Some(item) =>
+          item.Definition match {
+            case GlobalDefinitions.trhev_dualcycler | GlobalDefinitions.nchev_scattercannon | GlobalDefinitions.vshev_quasar =>
+              1
+            case GlobalDefinitions.trhev_pounder | GlobalDefinitions.nchev_falcon | GlobalDefinitions.vshev_comet =>
+              2
+            case GlobalDefinitions.trhev_burster | GlobalDefinitions.nchev_sparrow | GlobalDefinitions.vshev_starfire =>
+              3
+            case _ =>
+              0
+          }
+        case None =>
+          0
+      }
+    }
+    else {
+      0
+    }
+  }
+
+  /**
+    * The sub-type of the player's uniform, as used in `FavoritesMessage`.<br>
+    * <br>
+    * The values for `Standard`, `Infiltration`, and the generic `MAX` are not perfectly known.
+    * The latter-most exo-suit option is presumed.
+    * @param suit the player's uniform
+    * @param subtype the mechanized assault exo-suit subtype as determined by their arm weapons
+    * @return the numeric subtype
+    */
+  def DetermineSubtypeB(suit : ExoSuitType.Value, subtype : Int) : Int = {
+    suit match {
+      case ExoSuitType.Standard => 0
+      case ExoSuitType.Agile => 1
+      case ExoSuitType.Reinforced => 2
+      case ExoSuitType.MAX => 3 + subtype //4, 5, 6
+      case ExoSuitType.Infiltration => 7
+    }
+  }
+}

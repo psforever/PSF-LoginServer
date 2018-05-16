@@ -7,7 +7,7 @@ import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.mblocker.Locker
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
 import net.psforever.objects.serverobject.structures.{Building, FoundationBuilder, StructureType, WarpGate}
-import net.psforever.objects.serverobject.terminals.{ProximityTerminal, RepairRearmSilo, Terminal}
+import net.psforever.objects.serverobject.terminals.{ProximityTerminal, Terminal}
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.types.Vector3
 
@@ -113,8 +113,10 @@ object Maps {
       LocalObject(2145, SpawnTube.Constructor(Vector3(3980.4062f, 4252.7656f, 257.5625f), Vector3(0, 0, 90)))
       LocalObject(2146, SpawnTube.Constructor(Vector3(3980.4062f, 4259.992f, 257.5625f), Vector3(0, 0, 90)))
       LocalObject(2147, SpawnTube.Constructor(Vector3(3980.4062f, 4267.3047f, 257.5625f), Vector3(0, 0, 90)))
-      LocalObject(2050, RepairRearmSilo.Constructor(repair_silo))
-      LocalObject(2062, RepairRearmSilo.Constructor(repair_silo))
+      LocalObject(2049, ProximityTerminal.Constructor(repair_silo)) //repair terminal A
+      LocalObject(2050, Terminal.Constructor(repair_silo)) //rearm terminal A
+      LocalObject(2061, ProximityTerminal.Constructor(repair_silo)) //repair terminal B
+      LocalObject(2062, Terminal.Constructor(repair_silo)) //rearm terminal B
       LocalObject(2239, Terminal.Constructor(spawn_terminal))
       LocalObject(2244, Terminal.Constructor(spawn_terminal))
       LocalObject(2245, Terminal.Constructor(spawn_terminal))
@@ -216,7 +218,9 @@ object Maps {
       ObjectToBuilding(1576, 2)
       ObjectToBuilding(1577, 2)
       ObjectToBuilding(1578, 2)
+      ObjectToBuilding(2049, 2)
       ObjectToBuilding(2050, 2)
+      ObjectToBuilding(2061, 2)
       ObjectToBuilding(2062, 2)
       ObjectToBuilding(2145, 2)
       ObjectToBuilding(2146, 2)
@@ -432,6 +436,8 @@ object Maps {
     def Building2() : Unit = {
       //HART building C
       LocalBuilding(2, FoundationBuilder(Building.Structure(StructureType.Building)))
+      LocalObject(12, ProximityTerminal.Constructor(repair_silo)) //repair terminal A
+      LocalObject(13, Terminal.Constructor(repair_silo)) //rearm terminal A //ItemTransaction: ItemTransactionMessage(PlanetSideGUID(2050),Buy,3,25mmbullet,0,PlanetSideGUID(0))
       LocalObject(186, Terminal.Constructor(cert_terminal))
       LocalObject(187, Terminal.Constructor(cert_terminal))
       LocalObject(188, Terminal.Constructor(cert_terminal))
@@ -479,6 +485,8 @@ object Maps {
       LocalObject(1087, Terminal.Constructor(implant_terminal_interface)) //TODO guid not correct
       LocalObject(1088, Terminal.Constructor(implant_terminal_interface)) //TODO guid not correct
       LocalObject(1089, Terminal.Constructor(implant_terminal_interface)) //TODO guid not correct
+      ObjectToBuilding(12, 2)
+      ObjectToBuilding(13, 2)
       ObjectToBuilding(186, 2)
       ObjectToBuilding(187, 2)
       ObjectToBuilding(188, 2)

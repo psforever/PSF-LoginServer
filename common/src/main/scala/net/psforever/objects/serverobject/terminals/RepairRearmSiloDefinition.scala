@@ -11,7 +11,7 @@ import net.psforever.packet.game.ItemTransactionMessage
   * The `Definition` for any `Terminal` that is of a type "repair_silo."
   * Has both proximity-based operation and direct access purchasing power.
   */
-class RepairRearmSiloDefinition(objectId : Int) extends EquipmentTerminalDefinition(objectId) {
+class RepairRearmSiloDefinition(objectId : Int) extends EquipmentTerminalDefinition(objectId) with ProximityDefinition {
   Name = "repair_silo"
 
   private val buyFunc : (Player, ItemTransactionMessage)=>Terminal.Exchange = EquipmentTerminalDefinition.Buy(Map.empty, Map.empty, Map.empty)

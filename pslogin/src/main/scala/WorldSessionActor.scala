@@ -1104,7 +1104,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         vehicleService ! VehicleServiceMessage.UnscheduleDeconstruction(vehicle_guid)
       }
       sendResponse(PlanetsideAttributeMessage(vehicle_guid, 22, 0L)) //mount points on?
-      //sendResponse(PlanetsideAttributeMessage(vehicle_guid, 0, vehicle.Definition.MaxHealth)))
+      sendResponse(PlanetsideAttributeMessage(vehicle_guid, 0, 10))//vehicle.Definition.MaxHealth))
       sendResponse(PlanetsideAttributeMessage(vehicle_guid, 68, 0L)) //???
       sendResponse(PlanetsideAttributeMessage(vehicle_guid, 113, 0L)) //???
       ReloadVehicleAccessPermissions(vehicle)
@@ -2327,20 +2327,19 @@ class WorldSessionActor extends Actor with MDCContextAware {
             }
           }
 
-        case Some(obj : RepairRearmSilo) =>
-          player.VehicleSeated match {
-            case Some(vehicle_guid) =>
-              val vehicle = continent.GUID(vehicle_guid).get.asInstanceOf[Vehicle]
-              sendResponse(UseItemMessage(avatar_guid, unk1, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
-              sendResponse(UseItemMessage(avatar_guid, unk1, vehicle_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, vehicle.Definition.ObjectId))
-            case None =>
-              log.error("UseItem: expected seated vehicle, but found none")
-          }
-
         case Some(obj : Terminal) =>
           if(obj.Definition.isInstanceOf[MatrixTerminalDefinition]) {
             //TODO matrix spawn point; for now, just blindly bind to show work (and hope nothing breaks)
             sendResponse(BindPlayerMessage(1, "@ams", true, true, 0, 0, 0, obj.Position))
+          }
+          else if(obj.Definition == GlobalDefinitions.repair_silo) {
+            FindLocalVehicle match {
+              case Some(vehicle) =>
+                sendResponse(UseItemMessage(avatar_guid, unk1, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
+                sendResponse(UseItemMessage(avatar_guid, unk1, vehicle.GUID, unk2, unk3, unk4, unk5, unk6, unk7, unk8, vehicle.Definition.ObjectId))
+              case None =>
+                log.error("UseItem: expected seated vehicle, but found none")
+            }
           }
           else {
             sendResponse(UseItemMessage(avatar_guid, unk1, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
@@ -2368,7 +2367,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       }
 
     case msg @ ProximityTerminalUseMessage(player_guid, object_guid, _) =>
-      log.info(s"ProximityTerminal: $msg")
+      log.info(s"ProximityTerminalUse: $msg")
       continent.GUID(object_guid) match {
         case Some(obj : Terminal with ProximityUnit) =>
           if(usingProximityTerminal.contains(object_guid)) {
@@ -2378,7 +2377,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             StartUsingProximityUnit(obj)
           }
         case Some(obj) => ;
-          log.warn(s"ProximityTerminalUse: object is not a proximity terminal - $obj")
+          log.warn(s"ProximityTerminalUse: object does not have proximity effects - $obj")
         case None =>
           log.warn(s"ProximityTerminalUse: no object with guid $object_guid found")
       }
@@ -2438,14 +2437,16 @@ class WorldSessionActor extends Actor with MDCContextAware {
             else {
               None
             }) match {
-              case Some(owner : Player) =>
+              case Some(owner : Player) => //InfantryLoadout
                 avatar.SaveLoadout(owner, name, lineno)
-              case Some(owner : Vehicle) =>
+                import InfantryLoadout._
+                sendResponse(FavoritesMessage(list, player_guid, line, name, DetermineSubtypeB(player.ExoSuit, DetermineSubtype(player))))
+              case Some(owner : Vehicle) => //VehicleLoadout
                 avatar.SaveLoadout(owner, name, lineno)
+                sendResponse(FavoritesMessage(list, player_guid, line, name))
               case Some(_) | None =>
                 log.error("FavoritesRequest: unexpected owner for favorites")
             }
-            sendResponse(FavoritesMessage(list, player_guid, line, name))
 
           case FavoritesAction.Delete =>
             avatar.DeleteLoadout(lineno)
@@ -2636,6 +2637,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
           log.warn(s"echo unknown attributes behavior")
           sendResponse(PlanetsideAttributeMessage(object_guid, attribute_type, attribute_value))
       }
+
+    case msg @ FacilityBenefitShieldChargeRequestMessage(guid) =>
+      //log.info(s"ShieldChargeRequest: $msg")
 
     case msg @ BattleplanMessage(char_id, player_name, zonr_id, diagrams) =>
       log.info("Battleplan: "+msg)
@@ -4192,6 +4196,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
       case GlobalDefinitions.crystals_health_a | GlobalDefinitions.crystals_health_b =>
         SetDelayedProximityUnitReset(terminal)
         ProximityHealCrystal(terminal)
+
+      case GlobalDefinitions.repair_silo =>
+        SetDelayedProximityUnitReset(terminal)
+        //TODO insert vehicle repair here; see ProximityMedicalTerminal for example
 
       case _ => ;
     }

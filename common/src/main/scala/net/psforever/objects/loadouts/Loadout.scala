@@ -5,7 +5,6 @@ import net.psforever.objects._
 import net.psforever.objects.definition._
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.inventory.InventoryItem
-import net.psforever.types.ExoSuitType
 
 import scala.annotation.tailrec
 
@@ -120,42 +119,16 @@ object Loadout {
     * @return the numeric subtype
     */
   def DetermineSubtype(player : Player) : Int = {
-    DetermineSubtype(player.ExoSuit, player.Slot(0).Equipment)
+    InfantryLoadout.DetermineSubtype(player)
   }
 
   /**
-    * The sub-type of the player's uniform.
-    * Applicable to mechanized assault units, mainly.
-    * The subtype is reported as a number but indicates the specialization - anti-infantry, ani-vehicular, anti-air - of the suit
-    * as indicated by the arm weapon(s).
-    * @param suit the player's uniform;
-    *             the target is for MAX armors
-    * @param weapon any weapon the player may have it his "first pistol slot;"
-    *               to a MAX, that is its "primary weapon slot"
-    * @return the numeric subtype
+    * The sub-type of the vehicle.
+    * Vehicle's have no subtype.
+    * @param vehicle the vehicle
+    * @return the numeric subtype, always 0
     */
-  def DetermineSubtype(suit : ExoSuitType.Value, weapon : Option[Equipment]) : Int = {
-    if(suit == ExoSuitType.MAX) {
-      weapon match {
-        case Some(item) =>
-          item.Definition match {
-            case GlobalDefinitions.trhev_dualcycler | GlobalDefinitions.nchev_scattercannon | GlobalDefinitions.vshev_quasar =>
-              1
-            case GlobalDefinitions.trhev_pounder | GlobalDefinitions.nchev_falcon | GlobalDefinitions.vshev_comet =>
-              2
-            case GlobalDefinitions.trhev_burster | GlobalDefinitions.nchev_sparrow | GlobalDefinitions.vshev_starfire =>
-              3
-            case _ =>
-              0
-          }
-        case None =>
-          0
-      }
-    }
-    else {
-      0
-    }
-  }
+  def DetermineSubtype(vehicle : Vehicle) : Int = 0
 
   /**
     * Overloaded entry point for constructing simplified blueprints from holster slot equipment.

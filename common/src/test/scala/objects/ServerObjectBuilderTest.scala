@@ -208,25 +208,6 @@ class SpawnTubeObjectBuilderTest extends ActorTest {
   }
 }
 
-class RepairRearmSiloObjectBuilderTest extends ActorTest {
-  import net.psforever.objects.GlobalDefinitions.repair_silo
-  import net.psforever.objects.serverobject.terminals.RepairRearmSilo
-  "LockerObjectBuilder" should {
-    "build" in {
-      val hub = ServerObjectBuilderTest.NumberPoolHub
-      val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1,
-        RepairRearmSilo.Constructor(repair_silo)), hub), "silo")
-      actor ! "!"
-
-      val reply = receiveOne(Duration.create(1000, "ms"))
-      assert(reply.isInstanceOf[RepairRearmSilo])
-      assert(reply.asInstanceOf[RepairRearmSilo].HasGUID)
-      assert(reply.asInstanceOf[RepairRearmSilo].GUID == PlanetSideGUID(1))
-      assert(reply == hub(1).get)
-    }
-  }
-}
-
 object ServerObjectBuilderTest {
   import net.psforever.objects.guid.source.LimitedNumberSource
   def NumberPoolHub : NumberPoolHub = {

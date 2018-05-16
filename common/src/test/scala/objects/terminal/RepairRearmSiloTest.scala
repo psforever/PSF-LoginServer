@@ -4,7 +4,7 @@ package objects.terminal
 import akka.actor.ActorRef
 import net.psforever.objects.serverobject.structures.{Building, StructureType}
 import net.psforever.objects._
-import net.psforever.objects.serverobject.terminals.{RepairRearmSilo, Terminal}
+import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.{ItemTransactionMessage, PlanetSideGUID}
 import net.psforever.types.{CharacterGender, PlanetSideEmpire, TransactionType}
@@ -13,7 +13,7 @@ import org.specs2.mutable.Specification
 class RepairRearmSiloTest extends Specification {
   "RepairRearmSilo" should {
     val player = Player(Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0))
-    val silo = RepairRearmSilo(GlobalDefinitions.repair_silo)
+    val silo = Terminal(GlobalDefinitions.repair_silo)
     silo.Owner = new Building(0, Zone.Nowhere, StructureType.Building)
     silo.Owner.Faction = PlanetSideEmpire.TR
 
@@ -22,7 +22,7 @@ class RepairRearmSiloTest extends Specification {
     }
 
     "construct" in {
-      val obj = RepairRearmSilo(GlobalDefinitions.repair_silo)
+      val obj = Terminal(GlobalDefinitions.repair_silo)
       obj.Actor mustEqual ActorRef.noSender
     }
 

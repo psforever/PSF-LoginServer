@@ -26,7 +26,7 @@ class FavoritesMessageTest extends Specification {
   }
 
   "encode (for infantry)" in {
-    val msg = FavoritesMessage(LoadoutType.Infantry, PlanetSideGUID(3760), 0, "Agile (basic)", Option(1))
+    val msg = FavoritesMessage(LoadoutType.Infantry, PlanetSideGUID(3760), 0, "Agile (basic)", 1)
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual stringInfantry

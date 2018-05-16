@@ -51,11 +51,31 @@ final case class FavoritesMessage(list : LoadoutType.Value,
 }
 
 object FavoritesMessage extends Marshallable[FavoritesMessage] {
+  /**
+    * Overloaded constructor, for infantry loadouts specifically.
+    * @param list the destination list
+    * @param player_guid the player
+    * @param line the zero-indexed line number of this entry in its list
+    * @param label the identifier for this entry
+    * @param armor the type of exo-suit, if an Infantry loadout
+    * @return a `FavoritesMessage` object
+    */
+  def apply(list : LoadoutType.Value, player_guid : PlanetSideGUID, line : Int, label : String, armor : Int) : FavoritesMessage = {
+    FavoritesMessage(list, player_guid, line, label, Some(armor))
+  }
+
+  /**
+    * Overloaded constructor, for vehicle loadouts specifically.
+    * @param list the destination list
+    * @param player_guid the player
+    * @param line the zero-indexed line number of this entry in its list
+    * @param label the identifier for this entry
+    * @return a `FavoritesMessage` object
+    */
   def apply(list : LoadoutType.Value, player_guid : PlanetSideGUID, line : Int, label : String) : FavoritesMessage = {
     FavoritesMessage(list, player_guid, line, label, None)
   }
-
-  implicit val codec : Codec[FavoritesMessage] = (
+implicit val codec : Codec[FavoritesMessage] = (
     ("list" | LoadoutType.codec) >>:~ { value =>
       ("player_guid" | PlanetSideGUID.codec) ::
         ("line" | uint4L) ::

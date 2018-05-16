@@ -110,6 +110,42 @@ class LoadoutTest extends Specification {
     ldout1.subtype mustEqual 0
     ldout2.subtype mustEqual 1
     ldout3.subtype mustEqual 2
-    ldout4.subtype mustEqual 3
+    ldout4.subtype mustEqual InfantryLoadout.DetermineSubtype(player) //example
+  }
+
+  "players have additional uniform subtype" in {
+    val player = CreatePlayer()
+    val slot = player.Slot(0)
+    slot.Equipment = None //only an unequipped slot can have its Equipment Size changed (Rifle -> Max)
+
+    player.ExoSuit = ExoSuitType.Standard
+    val ldout0 = Loadout.Create(player, "standard").asInstanceOf[InfantryLoadout]
+    player.ExoSuit = ExoSuitType.Agile
+    val ldout1 = Loadout.Create(player, "agile").asInstanceOf[InfantryLoadout]
+    player.ExoSuit = ExoSuitType.Reinforced
+    val ldout2 = Loadout.Create(player, "rein").asInstanceOf[InfantryLoadout]
+    player.ExoSuit = ExoSuitType.Infiltration
+    val ldout7 = Loadout.Create(player, "inf").asInstanceOf[InfantryLoadout]
+
+    Player.SuitSetup(player, ExoSuitType.MAX)
+    val ldout3 = Loadout.Create(player, "weaponless").asInstanceOf[InfantryLoadout]
+    slot.Equipment = None
+    slot.Equipment = Tool(trhev_dualcycler)
+    val ldout4 = Loadout.Create(player, "cycler").asInstanceOf[InfantryLoadout]
+    slot.Equipment = None
+    slot.Equipment = Tool(trhev_pounder)
+    val ldout5 = Loadout.Create(player, "pounder").asInstanceOf[InfantryLoadout]
+    slot.Equipment = None
+    slot.Equipment = Tool(trhev_burster)
+    val ldout6 = Loadout.Create(player, "burster").asInstanceOf[InfantryLoadout]
+
+    InfantryLoadout.DetermineSubtypeB(ldout0.exosuit, ldout0.subtype) mustEqual 0
+    InfantryLoadout.DetermineSubtypeB(ldout1.exosuit, ldout1.subtype) mustEqual 1
+    InfantryLoadout.DetermineSubtypeB(ldout2.exosuit, ldout2.subtype) mustEqual 2
+    InfantryLoadout.DetermineSubtypeB(ldout3.exosuit, ldout3.subtype) mustEqual 3
+    InfantryLoadout.DetermineSubtypeB(ldout4.exosuit, ldout4.subtype) mustEqual 4
+    InfantryLoadout.DetermineSubtypeB(ldout5.exosuit, ldout5.subtype) mustEqual 5
+    InfantryLoadout.DetermineSubtypeB(ldout6.exosuit, ldout6.subtype) mustEqual 6
+    InfantryLoadout.DetermineSubtypeB(ldout7.exosuit, ldout7.subtype) mustEqual 7
   }
 }
