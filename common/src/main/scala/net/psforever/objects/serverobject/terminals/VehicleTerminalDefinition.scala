@@ -487,12 +487,12 @@ abstract class VehicleTerminalDefinition(objId : Int) extends TerminalDefinition
     vehicles.get(msg.item_name) match {
       case Some(vehicle) =>
         val (weapons, inventory) = trunk.get(msg.item_name) match {
-          case Some(loadout) =>
+          case Some(loadout : VehicleLoadout) =>
             (
-              loadout.VisibleSlots.map(entry => { InventoryItem(EquipmentTerminalDefinition.BuildSimplifiedPattern(entry.item), entry.index) }),
-              loadout.Inventory.map(entry => { InventoryItem(EquipmentTerminalDefinition.BuildSimplifiedPattern(entry.item), entry.index) })
+              loadout.visible_slots.map(entry => { InventoryItem(EquipmentTerminalDefinition.BuildSimplifiedPattern(entry.item), entry.index) }),
+              loadout.inventory.map(entry => { InventoryItem(EquipmentTerminalDefinition.BuildSimplifiedPattern(entry.item), entry.index) })
             )
-          case None =>
+          case _ =>
             (List.empty, List.empty)
         }
         Terminal.BuyVehicle(vehicle(), weapons, inventory)

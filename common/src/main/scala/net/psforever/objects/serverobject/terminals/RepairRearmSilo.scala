@@ -2,6 +2,9 @@
 package net.psforever.objects.serverobject.terminals
 
 /**
+  * A structure-owned server object for preserving vehicle loadouts,
+  * obtaining vehicle weapon ammunition,
+  * and, with proper perks, automatically repairing damage doen to allied vehicles.
   * A server object that is a "terminal" that can be accessed for amenities and services,
   * triggered when a certain distance from the unit itself (proximity-based).<br>
   * <br>

@@ -7,6 +7,10 @@ import net.psforever.objects.loadouts.VehicleLoadout
 import net.psforever.objects.serverobject.terminals.EquipmentTerminalDefinition.BuildSimplifiedPattern
 import net.psforever.packet.game.ItemTransactionMessage
 
+/**
+  * The `Definition` for any `Terminal` that is of a type "repair_silo."
+  * Has both proximity-based operation and direct access purchasing power.
+  */
 class RepairRearmSiloDefinition(objectId : Int) extends EquipmentTerminalDefinition(objectId) {
   Name = "repair_silo"
 
@@ -18,8 +22,8 @@ class RepairRearmSiloDefinition(objectId : Int) extends EquipmentTerminalDefinit
     if(msg.item_page == 4) { //Favorites tab
       player.LoadLoadout(msg.unk1 + 10) match {
         case Some(loadout : VehicleLoadout) =>
-          val weapons = loadout.VisibleSlots.map(entry => { InventoryItem(BuildSimplifiedPattern(entry.item), entry.index) })
-          val inventory = loadout.Inventory.map(entry => { InventoryItem(BuildSimplifiedPattern(entry.item), entry.index) })
+          val weapons = loadout.visible_slots.map(entry => { InventoryItem(BuildSimplifiedPattern(entry.item), entry.index) })
+          val inventory = loadout.inventory.map(entry => { InventoryItem(BuildSimplifiedPattern(entry.item), entry.index) })
           Terminal.VehicleLoadout(loadout.vehicle_definition, weapons, inventory)
         case _ =>
           Terminal.NoDeal()

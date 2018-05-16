@@ -6,26 +6,27 @@ import net.psforever.objects.serverobject.terminals.Terminal.TerminalMessage
 import net.psforever.packet.game.PlanetSideGUID
 
 /**
-  * A server object that is a "terminal" that can be accessed for amenities and services,
-  * triggered when a certain distance from the unit itself (proximity-based).<br>
-  * <br>
-  * Unlike conventional terminals, this structure is not necessarily structure-owned.
+  * A server object that provides a service, triggered when a certain distance from the unit itself (proximity-based).
+  * Unlike conventional terminals, this one is not necessarily structure-owned.
   * For example, the cavern crystals are considered owner-neutral elements that are not attached to a `Building` object.
   */
 trait ProximityUnit {
   this : Terminal =>
 
-  private var users : Set[PlanetSideGUID] = Set.empty
+  /**
+    * A list of targets that are currently affected by this proximity unit.
+    */
+  private var targets : Set[PlanetSideGUID] = Set.empty
 
-  def NumberUsers : Int = users.size
+  def NumberUsers : Int = targets.size
 
   def AddUser(player_guid : PlanetSideGUID) : Int = {
-    users += player_guid
+    targets += player_guid
     NumberUsers
   }
 
   def RemoveUser(player_guid : PlanetSideGUID) : Int = {
-    users -= player_guid
+    targets -= player_guid
     NumberUsers
   }
 }
@@ -33,11 +34,15 @@ trait ProximityUnit {
 object ProximityUnit {
   import akka.actor.Actor
 
+  /**
+    * A mixin `trait` for an `Actor`'s `PartialFunction` that handles messages,
+    * in this case handling messages that controls the telegraphed state of the `ProximityUnit` object as the number of users changes.
+    */
   trait Use {
     this : Actor =>
 
     def TerminalObject : Terminal with ProximityUnit
-    
+
     val proximityBehavior : Receive = {
       case CommonMessages.Use(player) =>
         val hadNoUsers = TerminalObject.NumberUsers == 0

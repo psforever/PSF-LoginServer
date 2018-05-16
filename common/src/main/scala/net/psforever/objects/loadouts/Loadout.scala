@@ -10,27 +10,16 @@ import net.psforever.types.ExoSuitType
 import scala.annotation.tailrec
 
 /**
-  * From a `Player` their current exo-suit and their `Equipment`, retain a set of instructions to reconstruct this arrangement.<br>
+  * The base of all specific kinds of blueprint containers.
+  * This previous state can be restored on any appropriate template from which the loadout was copied
+  * by reconstructing the items (if permitted).
+  * The three fields are the name assigned to the loadout,
+  * the visible items that are created (which obey different rules depending on the source),
+  * and the concealed items that are created and added to the source's `Inventory`.<br>
+  * For example, the `visible_slots` on a `Player`-borne loadout will transform into the form `Array[EquipmentSlot]`;
+  * `Vehicle`-originating loadouts transform into the form `Map[Int, Equipment]`.
   * <br>
-  * `Loadout` objects are composed of the following information, as if a blueprint:<br>
-  * - the avatar's current exo-suit<br>
-  * - the type of specialization, called a "subtype" (mechanized assault exo-suits only)<br>
-  * - the contents of the avatar's occupied holster slots<br>
-  * - the contents of the avatar's occupied inventory<br>
-  * `Equipment` contents of the holsters and of the formal inventory region will be condensed into a simplified form.
-  * These are also "blueprints."
-  * At its most basic, this simplification will merely comprise the former object's `EquipmentDefinition`.
-  * For items that are already simple - `Kit` objects and `SimpleItem` objects - this form will not be too far removed.
-  * For more complicated affairs like `Tool` objects and `AmmoBox` objects, only essential information will be retained.<br>
-  * <br>
-  * The deconstructed blueprint can be applied to any avatar.
-  * They are, however, typically tied to unique users and unique characters.
-  * For reasons of certifications, however, permissions on that avatar may affect what `Equipment` can be distributed.
-  * Even a whole blueprint can be denied if the user lacks the necessary exo-suit certification.
-  * A completely new piece of `Equipment` is constructed when the `Loadout` is regurgitated.<br>
-  * <br>
-  * The fifth tab on an `order_terminal` window is for "Favorite" blueprints for `Loadout` entries.
-  * The ten-long list is initialized with `FavoritesMessage` packets.
+  * The lists of user-specific loadouts are initialized with `FavoritesMessage` packets.
   * Specific entries are loaded or removed using `FavoritesRequest` packets.
   * @param label the name by which this inventory will be known when displayed in a Favorites list
   * @param visible_slots simplified representation of the `Equipment` that can see "seen" on the target
@@ -38,27 +27,15 @@ import scala.annotation.tailrec
   */
 abstract class Loadout(label : String,
                        visible_slots : List[Loadout.SimplifiedEntry],
-                       inventory : List[Loadout.SimplifiedEntry]) {
-  /**
-    * The label by which this `Loadout` is called.
-    * @return the label
-    */
-  def Label : String = label
-
-  /**
-    * The `Equipment` in the `Player`'s holster slots when this `Loadout` is created.
-    * @return a `List` of the holster item blueprints
-    */
-  def VisibleSlots : List[Loadout.SimplifiedEntry] = visible_slots
-
-  /**
-    * The `Equipment` in the `Player`'s inventory region when this `Loadout` is created.
-    * @return a `List` of the inventory item blueprints
-    */
-  def Inventory : List[Loadout.SimplifiedEntry] = inventory
-}
+                       inventory : List[Loadout.SimplifiedEntry])
 
 object Loadout {
+  /**
+    * Produce the blueprint on a player.
+    * @param player the player
+    * @param label the name of this loadout
+    * @return an `InfantryLoadout` object populated with appropriate information about the current state of the player
+    */
   def Create(player : Player, label : String) : Loadout = {
     InfantryLoadout(
       label,
@@ -69,6 +46,12 @@ object Loadout {
     )
   }
 
+  /**
+    * Produce the blueprint of a vehicle.
+    * @param vehicle the vehicle
+    * @param label the name of this loadout
+    * @return a `VehicleLoadout` object populated with appropriate information about the current state of the vehicle
+    */
   def Create(vehicle : Vehicle, label : String) : Loadout = {
     VehicleLoadout(
       label,
@@ -128,10 +111,29 @@ object Loadout {
     */
   final case class ShorthandKit(definition : KitDefinition) extends Simplification
 
+  /**
+    * The sub-type of the player's uniform.
+    * Applicable to mechanized assault units, mainly.
+    * The subtype is reported as a number but indicates the specialization - anti-infantry, ani-vehicular, anti-air - of the suit
+    * as indicated by the arm weapon(s).
+    * @param player the player
+    * @return the numeric subtype
+    */
   def DetermineSubtype(player : Player) : Int = {
     DetermineSubtype(player.ExoSuit, player.Slot(0).Equipment)
   }
 
+  /**
+    * The sub-type of the player's uniform.
+    * Applicable to mechanized assault units, mainly.
+    * The subtype is reported as a number but indicates the specialization - anti-infantry, ani-vehicular, anti-air - of the suit
+    * as indicated by the arm weapon(s).
+    * @param suit the player's uniform;
+    *             the target is for MAX armors
+    * @param weapon any weapon the player may have it his "first pistol slot;"
+    *               to a MAX, that is its "primary weapon slot"
+    * @return the numeric subtype
+    */
   def DetermineSubtype(suit : ExoSuitType.Value, weapon : Option[Equipment]) : Int = {
     if(suit == ExoSuitType.MAX) {
       weapon match {

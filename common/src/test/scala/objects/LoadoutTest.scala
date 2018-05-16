@@ -39,12 +39,12 @@ class LoadoutTest extends Specification {
     val player = CreatePlayer()
     val obj = Loadout.Create(player, "test").asInstanceOf[InfantryLoadout]
 
-    obj.Label mustEqual "test"
-    obj.ExoSuit mustEqual obj.ExoSuit
-    obj.Subtype mustEqual 0
+    obj.label mustEqual "test"
+    obj.exosuit mustEqual ExoSuitType.Standard
+    obj.subtype mustEqual 0
 
-    obj.VisibleSlots.length mustEqual 3
-    val holsters = obj.VisibleSlots.sortBy(_.index)
+    obj.visible_slots.length mustEqual 3
+    val holsters = obj.visible_slots.sortBy(_.index)
     holsters.head.index mustEqual 0
     holsters.head.item.asInstanceOf[Loadout.ShorthandTool].definition mustEqual beamer
     holsters(1).index mustEqual 2
@@ -52,8 +52,8 @@ class LoadoutTest extends Specification {
     holsters(2).index mustEqual 4
     holsters(2).item.asInstanceOf[Loadout.ShorthandTool].definition mustEqual forceblade
 
-    obj.Inventory.length mustEqual 5
-    val inventory = obj.Inventory.sortBy(_.index)
+    obj.inventory.length mustEqual 5
+    val inventory = obj.inventory.sortBy(_.index)
     inventory.head.index mustEqual 6
     inventory.head.item.asInstanceOf[Loadout.ShorthandConstructionItem].definition mustEqual ace
     inventory(1).index mustEqual 9
@@ -64,6 +64,30 @@ class LoadoutTest extends Specification {
     inventory(3).item.asInstanceOf[Loadout.ShorthandKit].definition mustEqual medkit
     inventory(4).index mustEqual 39
     inventory(4).item.asInstanceOf[Loadout.ShorthandSimpleItem].definition mustEqual remote_electronics_kit
+  }
+
+  "create a loadout that contains a vehicle's inventory" in {
+    val vehicle = Vehicle(mediumtransport)
+    vehicle.Inventory += 30 -> AmmoBox(bullet_9mm)
+    vehicle.Inventory += 33 -> AmmoBox(bullet_9mm_AP)
+    val obj = Loadout.Create(vehicle, "test").asInstanceOf[VehicleLoadout]
+
+    obj.label mustEqual "test"
+    obj.vehicle_definition mustEqual mediumtransport
+
+    obj.visible_slots.length mustEqual 2
+    val holsters = obj.visible_slots.sortBy(_.index)
+    holsters.head.index mustEqual 5
+    holsters.head.item.asInstanceOf[Loadout.ShorthandTool].definition mustEqual mediumtransport_weapon_systemA
+    holsters(1).index mustEqual 6
+    holsters(1).item.asInstanceOf[Loadout.ShorthandTool].definition mustEqual mediumtransport_weapon_systemB
+
+    obj.inventory.length mustEqual 2
+    val inventory = obj.inventory.sortBy(_.index)
+    inventory.head.index mustEqual 30
+    inventory.head.item.asInstanceOf[Loadout.ShorthandAmmoBox].definition mustEqual bullet_9mm
+    inventory(1).index mustEqual 33
+    inventory(1).item.asInstanceOf[Loadout.ShorthandAmmoBox].definition mustEqual bullet_9mm_AP
   }
 
   "distinguish MAX subtype information" in {
@@ -83,9 +107,9 @@ class LoadoutTest extends Specification {
     slot.Equipment = Tool(trhev_burster)
     val ldout4 = Loadout.Create(player, "burster").asInstanceOf[InfantryLoadout]
 
-    ldout1.Subtype mustEqual 0
-    ldout2.Subtype mustEqual 1
-    ldout3.Subtype mustEqual 2
-    ldout4.Subtype mustEqual 3
+    ldout1.subtype mustEqual 0
+    ldout2.subtype mustEqual 1
+    ldout3.subtype mustEqual 2
+    ldout4.subtype mustEqual 3
   }
 }

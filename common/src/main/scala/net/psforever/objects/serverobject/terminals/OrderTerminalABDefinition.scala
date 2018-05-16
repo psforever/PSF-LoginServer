@@ -54,10 +54,10 @@ class OrderTerminalABDefinition(object_id : Int) extends EquipmentTerminalDefini
     if(msg.item_page == 4) { //Favorites tab
       player.LoadLoadout(msg.unk1) match {
         case Some(loadout : InfantryLoadout) =>
-          if(loadout.ExoSuit != ExoSuitType.MAX) {
-            val holsters = loadout.VisibleSlots.map(entry => { InventoryItem(BuildSimplifiedPattern(entry.item), entry.index) })
-            val inventory = loadout.Inventory.map(entry => { InventoryItem(BuildSimplifiedPattern(entry.item), entry.index) })
-            Terminal.InfantryLoadout(loadout.ExoSuit, loadout.Subtype, holsters, inventory)
+          if(loadout.exosuit != ExoSuitType.MAX) {
+            val holsters = loadout.visible_slots.map(entry => { InventoryItem(BuildSimplifiedPattern(entry.item), entry.index) })
+            val inventory = loadout.inventory.map(entry => { InventoryItem(BuildSimplifiedPattern(entry.item), entry.index) })
+            Terminal.InfantryLoadout(loadout.exosuit, loadout.subtype, holsters, inventory)
           }
           else {
             Terminal.NoDeal()
