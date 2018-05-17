@@ -1104,7 +1104,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         vehicleService ! VehicleServiceMessage.UnscheduleDeconstruction(vehicle_guid)
       }
       sendResponse(PlanetsideAttributeMessage(vehicle_guid, 22, 0L)) //mount points on?
-      sendResponse(PlanetsideAttributeMessage(vehicle_guid, 0, 10))//vehicle.Definition.MaxHealth))
+      //sendResponse(PlanetsideAttributeMessage(vehicle_guid, 0, 10))//vehicle.Definition.MaxHealth))
       sendResponse(PlanetsideAttributeMessage(vehicle_guid, 68, 0L)) //???
       sendResponse(PlanetsideAttributeMessage(vehicle_guid, 113, 0L)) //???
       ReloadVehicleAccessPermissions(vehicle)
@@ -2332,7 +2332,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             //TODO matrix spawn point; for now, just blindly bind to show work (and hope nothing breaks)
             sendResponse(BindPlayerMessage(1, "@ams", true, true, 0, 0, 0, obj.Position))
           }
-          else if(obj.Definition == GlobalDefinitions.repair_silo) {
+          else if(obj.Definition.isInstanceOf[RepairRearmSiloDefinition]) {
             FindLocalVehicle match {
               case Some(vehicle) =>
                 sendResponse(UseItemMessage(avatar_guid, unk1, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
@@ -2363,7 +2363,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
             sendResponse(ObjectDeleteMessage(PlanetSideGUID(unk1), 2))
           }
 
-        case None => ;
+        case None =>
+          log.error(s"UseItem: can not find object $object_guid")
       }
 
     case msg @ ProximityTerminalUseMessage(player_guid, object_guid, _) =>

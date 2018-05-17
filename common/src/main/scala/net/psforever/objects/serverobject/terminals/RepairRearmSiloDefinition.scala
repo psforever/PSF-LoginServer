@@ -12,7 +12,15 @@ import net.psforever.packet.game.ItemTransactionMessage
   * Has both proximity-based operation and direct access purchasing power.
   */
 class RepairRearmSiloDefinition(objectId : Int) extends EquipmentTerminalDefinition(objectId) with ProximityDefinition {
-  Name = "repair_silo"
+  Name = if(objectId == 719) {
+    "pad_landing"
+  }
+  else if(objectId == 729) {
+    "repair_silo"
+  }
+  else  {
+    throw new IllegalArgumentException("repair re-arm terminal must be either object id 719 or 729")
+  }
 
   private val buyFunc : (Player, ItemTransactionMessage)=>Terminal.Exchange = EquipmentTerminalDefinition.Buy(Map.empty, Map.empty, Map.empty)
 
