@@ -33,36 +33,46 @@ class DelayedDeconstructionActor extends Actor {
   def receive : Receive = {
     case DelayedDeconstructionActor.ScheduleDeconstruction(vehicle, zone, timeAlive) =>
       trace(s"delayed deconstruction order for $vehicle in $timeAlive")
-      vehicles = vehicles :+ DelayedDeconstructionActor.VehicleEntry(vehicle, zone, timeAlive * 1000000000L)
-      if(vehicles.size == 1) { //we were the only entry so the event must be started from scratch
-        import scala.concurrent.ExecutionContext.Implicits.global
-        monitor = context.system.scheduler.scheduleOnce(DelayedDeconstructionActor.periodicTest, self, DelayedDeconstructionActor.PeriodicTaskCulling)
+      val oldHead = vehicles.headOption
+      val now : Long = System.nanoTime
+      vehicles = (vehicles :+ DelayedDeconstructionActor.VehicleEntry(vehicle, zone, timeAlive * 1000000000L))
+        .sortBy(entry => entry.survivalTime - (now - entry.logTime))
+      if(vehicles.size == 1 || oldHead != vehicles.headOption) { //we were the only entry so the event must be started from scratch
+        RetimePeriodicTest()
       }
 
     case DelayedDeconstructionActor.UnscheduleDeconstruction(vehicle_guid) =>
       //all tasks for this vehicle are cleared from the queue
       //clear any task that is no longer valid by determination of unregistered GUID
       val before = vehicles.length
-      vehicles = vehicles.filter(entry => { !entry.vehicle.HasGUID || entry.vehicle.GUID != vehicle_guid })
+      val now : Long = System.nanoTime
+      vehicles = vehicles.filter(entry => { entry.vehicle.HasGUID && entry.vehicle.GUID != vehicle_guid })
+        .sortBy(entry => entry.survivalTime - (now - entry.logTime))
       trace(s"attempting to clear deconstruction order for vehicle $vehicle_guid, found ${before - vehicles.length}")
-      if(vehicles.isEmpty) {
-        monitor.cancel
-      }
+      RetimePeriodicTest()
 
     case DelayedDeconstructionActor.PeriodicTaskCulling =>
       //filter the list of deconstruction tasks for any that are need to be triggered
       monitor.cancel
       val now : Long = System.nanoTime
       val (vehiclesToDecon, vehiclesRemain) = vehicles.partition(entry => { now - entry.logTime >= entry.survivalTime })
-      vehicles = vehiclesRemain
-      trace(s"vehicle culling - ${vehiclesToDecon.length} deconstruction tasks found")
+      vehicles = vehiclesRemain.sortBy(_.survivalTime)
+      trace(s"vehicle culling - ${vehiclesToDecon.length} deconstruction tasks found; ${vehiclesRemain.length} tasks remain")
       vehiclesToDecon.foreach(entry => { context.parent ! VehicleServiceMessage.RequestDeleteVehicle(entry.vehicle, entry.zone) })
-      if(vehiclesRemain.nonEmpty) {
-        import scala.concurrent.ExecutionContext.Implicits.global
-        monitor = context.system.scheduler.scheduleOnce(DelayedDeconstructionActor.periodicTest, self, DelayedDeconstructionActor.PeriodicTaskCulling)
-      }
+      RetimePeriodicTest()
 
     case _ => ;
+  }
+
+  def RetimePeriodicTest() : Unit = {
+    monitor.cancel
+    vehicles.headOption match {
+      case None => ;
+      case Some(entry) =>
+        val retime = math.max(1, entry.survivalTime - (System.nanoTime - entry.logTime)) nanoseconds
+        import scala.concurrent.ExecutionContext.Implicits.global
+        monitor = context.system.scheduler.scheduleOnce(retime, self, DelayedDeconstructionActor.PeriodicTaskCulling)
+    }
   }
 }
 

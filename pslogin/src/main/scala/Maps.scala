@@ -460,8 +460,6 @@ object Maps {
     def Building2() : Unit = {
       //HART building C
       LocalBuilding(2, FoundationBuilder(Building.Structure(StructureType.Building)))
-      LocalObject(12, ProximityTerminal.Constructor(repair_silo)) //repair terminal A
-      LocalObject(13, Terminal.Constructor(repair_silo)) //rearm terminal A //ItemTransaction: ItemTransactionMessage(PlanetSideGUID(2050),Buy,3,25mmbullet,0,PlanetSideGUID(0))
       LocalObject(186, Terminal.Constructor(cert_terminal))
       LocalObject(187, Terminal.Constructor(cert_terminal))
       LocalObject(188, Terminal.Constructor(cert_terminal))
@@ -509,8 +507,6 @@ object Maps {
       LocalObject(1087, Terminal.Constructor(implant_terminal_interface)) //TODO guid not correct
       LocalObject(1088, Terminal.Constructor(implant_terminal_interface)) //TODO guid not correct
       LocalObject(1089, Terminal.Constructor(implant_terminal_interface)) //TODO guid not correct
-      ObjectToBuilding(12, 2)
-      ObjectToBuilding(13, 2)
       ObjectToBuilding(186, 2)
       ObjectToBuilding(187, 2)
       ObjectToBuilding(188, 2)
@@ -652,11 +648,15 @@ object Maps {
 
     def Building51() : Unit = {
       //air terminal west of HART C
+      LocalObject(12, ProximityTerminal.Constructor(repair_silo)) //repair terminal
+      LocalObject(13, Terminal.Constructor(repair_silo)) //rearm terminal
       LocalBuilding(51, FoundationBuilder(Building.Structure(StructureType.Platform)))
       LocalObject(304, Terminal.Constructor(dropship_vehicle_terminal))
       LocalObject(292,
         VehicleSpawnPad.Constructor(Vector3(3508.9844f, 2895.961f, 92.296875f), Vector3(0f, 0f, 90.0f))
       )
+      ObjectToBuilding(12, 51)
+      ObjectToBuilding(13, 51)
       ObjectToBuilding(304, 51)
       ObjectToBuilding(292, 51)
       TerminalToSpawnPad(304, 292)

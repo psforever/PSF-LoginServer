@@ -73,10 +73,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
   var delayedProximityTerminalResets : Map[PlanetSideGUID, Cancellable] = Map.empty
   var controlled : Option[Int] = None //keep track of avatar's ServerVehicleOverride state
   var traveler : Traveler = null
+  var deadState : DeadState.Value = DeadState.Dead
 
   var clientKeepAlive : Cancellable = DefaultCancellable.obj
   var progressBarUpdate : Cancellable = DefaultCancellable.obj
   var reviveTimer : Cancellable = DefaultCancellable.obj
+  var respawnTimer : Cancellable = DefaultCancellable.obj
 
   /**
     * Convert a boolean value into an integer value.
@@ -89,6 +91,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
   override def postStop() = {
     clientKeepAlive.cancel
     reviveTimer.cancel
+    respawnTimer.cancel
     PlayerActionsToCancel()
     localService ! Service.Leave()
     vehicleService ! Service.Leave()
@@ -111,12 +114,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
       if(player.isAlive) {
         //actually being alive or manually deconstructing
-        player.VehicleSeated match {
-          case Some(vehicle_guid) =>
-            DismountVehicleOnLogOut(vehicle_guid, player_guid)
-          case None => ;
-        }
-
+        DismountVehicleOnLogOut()
         continent.Population ! Zone.Population.Release(avatar)
         player.Position = Vector3.Zero //save character before doing this
         avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.ObjectDelete(player_guid, player_guid))
@@ -148,7 +146,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             player.Position = Vector3.Zero //save character before doing this
             avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player_guid, player_guid, 0))
             taskResolver ! GUIDTask.UnregisterAvatar(player)(continent.GUID)
-            DismountVehicleOnLogOut(vehicle_guid, player_guid)
+            DismountVehicleOnLogOut()
         }
       }
 
@@ -170,26 +168,27 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
   /**
     * Vehicle cleanup that is specific to log out behavior.
-    * @param vehicle_guid the vehicle being occupied
-    * @param player_guid the player
     */
-  def DismountVehicleOnLogOut(vehicle_guid : PlanetSideGUID, player_guid : PlanetSideGUID) : Unit = {
-    // Use mountable type instead of Vehicle type to ensure mountables such as implant terminals are correctly dismounted on logout
-    val mountable = continent.GUID(vehicle_guid).get.asInstanceOf[Mountable]
-    mountable.Seat(mountable.PassengerInSeat(player).get).get.Occupant = None
-
-    // If this is a player constructed vehicle then start deconstruction timer
-    // todo: Will base guns implement Vehicle type? Don't want those to deconstruct
-    continent.GUID(vehicle_guid) match {
+  def DismountVehicleOnLogOut() : Unit = {
+    //TODO Will base guns implement Vehicle type? Don't want those to deconstruct
+    (player.VehicleSeated match {
+      case Some(vehicle_guid) =>
+        continent.GUID(vehicle_guid)
+      case None =>
+        None
+    }) match {
       case Some(vehicle : Vehicle) =>
-    if(vehicle.Seats.values.count(_.isOccupied) == 0) {
-      vehicleService ! VehicleServiceMessage.DelayedVehicleDeconstruction(vehicle, continent, 600L) //start vehicle decay (10m)
-    }
+        vehicle.Seat(vehicle.PassengerInSeat(player).get).get.Occupant = None
+        if(vehicle.Seats.values.count(_.isOccupied) == 0) {
+          vehicleService ! VehicleServiceMessage.DelayedVehicleDeconstruction(vehicle, continent, 600L) //start vehicle decay (10m)
+        }
+        vehicleService ! Service.Leave(Some(s"${vehicle.Actor}"))
+
+      case Some(mobj : Mountable) =>
+        mobj.Seat(mobj.PassengerInSeat(player).get).get.Occupant = None
+
       case _ => ;
     }
-
-    vehicleService ! Service.Leave(Some(s"${mountable.Actor}"))
-    vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.KickPassenger(player_guid, 0, true, vehicle_guid))
   }
 
   def receive = Initializing
@@ -1235,11 +1234,13 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case Zone.Lattice.SpawnPoint(zone_id, building, spawn_tube) =>
       log.info(s"Zone.Lattice.SpawnPoint: spawn point on $zone_id in ${building.Id} @ ${spawn_tube.GUID.guid} selected")
+      respawnTimer.cancel
       reviveTimer.cancel
       val sameZone = zone_id == continent.Id
       val backpack = player.isBackpack
       val respawnTime : Long = if(sameZone) { 10 } else { 0 } //s
       val respawnTimeMillis = respawnTime * 1000 //ms
+      deadState = DeadState.RespawnTime
       sendResponse(AvatarDeadStateMessage(DeadState.RespawnTime, respawnTimeMillis, respawnTimeMillis, Vector3.Zero, player.Faction, true))
       val tplayer = if(backpack) {
         RespawnClone(player) //new player
@@ -1279,7 +1280,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       }
       import scala.concurrent.duration._
       import scala.concurrent.ExecutionContext.Implicits.global
-      context.system.scheduler.scheduleOnce(respawnTime seconds, target, msg)
+      respawnTimer = context.system.scheduler.scheduleOnce(respawnTime seconds, target, msg)
 
     case Zone.Lattice.NoValidSpawnPoint(zone_number, None) =>
       log.warn(s"Zone.Lattice.SpawnPoint: zone $zone_number could not be accessed as requested")
@@ -1304,6 +1305,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case InterstellarCluster.GiveWorld(zoneId, zone) =>
       log.info(s"Zone $zoneId will now load")
+      avatarService ! Service.Leave(Some(continent.Id))
+      localService ! Service.Leave(Some(continent.Id))
+      vehicleService ! Service.Leave(Some(continent.Id))
       player.Continent = zoneId
       continent = zone
       continent.Population ! Zone.Population.Join(avatar)
@@ -1362,6 +1366,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       sendResponse(ChangeShortcutBankMessage(guid, 0))
       //FavoritesMessage
       sendResponse(SetChatFilterMessage(ChatChannel.Local, false, ChatChannel.values.toList)) //TODO will not always be "on" like this
+      deadState = DeadState.Alive
       sendResponse(AvatarDeadStateMessage(DeadState.Alive, 0,0, tplayer.Position, player.Faction, true))
       sendResponse(PlanetsideAttributeMessage(guid, 53, 1))
       sendResponse(AvatarSearchCriteriaMessage(guid, List(0,0,0,0,0,0)))
@@ -1545,6 +1550,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
       log.info("Reticulating splines ...")
       traveler.zone = continent.Id
       StartBundlingPackets()
+      avatarService ! Service.Join(continent.Id)
+      localService ! Service.Join(continent.Id)
+      vehicleService ! Service.Join(continent.Id)
       configZone(continent)
       sendResponse(TimeOfDayMessage(1191182336))
 
@@ -1619,9 +1627,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
         }
       })
       StopBundlingPackets()
-      avatarService ! Service.Join(player.Continent)
-      localService ! Service.Join(player.Continent)
-      vehicleService ! Service.Join(player.Continent)
       self ! SetCurrentAvatar(player)
 
     case msg @ PlayerStateMessageUpstream(avatar_guid, pos, vel, yaw, pitch, yaw_upper, seq_time, unk3, is_crouching, is_jumping, unk4, is_cloaking, unk5, unk6) =>
@@ -1703,6 +1708,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       log.info(s"ReleaseAvatarRequest: ${player.GUID} on ${continent.Id} has released")
       reviveTimer.cancel
       player.Release
+      deadState = DeadState.Release
       sendResponse(AvatarDeadStateMessage(DeadState.Release, 0, 0, player.Position, player.Faction, true))
       continent.Population ! Zone.Population.Release(avatar)
       player.VehicleSeated match {
@@ -1808,7 +1814,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
       }
 
       if(messagetype == ChatMessageType.CMT_SUICIDE) {
-        KillPlayer(player)
+        if(player.isAlive && deadState != DeadState.Release) {
+          KillPlayer(player)
+        }
       }
 
       if(messagetype == ChatMessageType.CMT_DESTROY) {
@@ -2404,6 +2412,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           PlayerActionsToCancel()
           CancelAllProximityUnits()
           player.Release
+          deadState = DeadState.Release
           sendResponse(AvatarDeadStateMessage(DeadState.Release, 0, 0, player.Position, player.Faction, true))
           continent.Population ! Zone.Population.Release(avatar)
 
@@ -3972,14 +3981,19 @@ class WorldSessionActor extends Actor with MDCContextAware {
     val pos = tplayer.Position
     val respawnTimer = 300000 //milliseconds
     tplayer.Die
+    deadState = DeadState.Dead
     sendResponse(PlanetsideAttributeMessage(player_guid, 0, 0))
     sendResponse(PlanetsideAttributeMessage(player_guid, 2, 0))
     avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player_guid, 0, 0))
     sendResponse(DestroyMessage(player_guid, player_guid, PlanetSideGUID(0), pos)) //how many players get this message?
     sendResponse(AvatarDeadStateMessage(DeadState.Dead, respawnTimer, respawnTimer, pos, player.Faction, true))
     if(tplayer.VehicleSeated.nonEmpty) {
+      continent.GUID(tplayer.VehicleSeated.get) match {
+        case Some(obj : Vehicle) =>
+          TotalDriverVehicleControl(obj)
+        case _ => ;
+      }
       //make player invisible (if not, the cadaver sticks out the side in a seated position)
-      TotalDriverVehicleControl(continent.GUID(tplayer.VehicleSeated.get).get.asInstanceOf[Vehicle])
       sendResponse(PlanetsideAttributeMessage(player_guid, 29, 1))
       avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player_guid, 29, 1))
     }
