@@ -244,7 +244,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       sendResponse(KeepAliveMessage())
 
     case AvatarServiceResponse(_, guid, reply) =>
-      val tplayer_guid = if(player.HasGUID) { player.GUID} else { PlanetSideGUID(0) }
+      val tplayer_guid = if(player.HasGUID) { player.GUID} else { PlanetSideGUID(-1) }
       reply match {
         case AvatarResponse.ArmorChanged(suit, subtype) =>
           if(tplayer_guid != guid) {
@@ -298,8 +298,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
             )
           }
 
-        case AvatarResponse.EquipmentOnGround(pos, orient, item_id, item_guid, item_data) =>
+        case msg @ AvatarResponse.EquipmentOnGround(pos, orient, item_id, item_guid, item_data) =>
           if(tplayer_guid != guid) {
+            log.info(s"now dropping a $msg")
             sendResponse(
               ObjectCreateMessage(
                 item_id,
@@ -1509,7 +1510,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       //player.Orientation = Vector3(0f, 0f, 132.1875f)
 //      player.ExoSuit = ExoSuitType.MAX //TODO strange issue; divide number above by 10 when uncommenting
       player.Slot(0).Equipment = SimpleItem(remote_electronics_kit) //Tool(GlobalDefinitions.StandardPistol(player.Faction))
-      player.Slot(2).Equipment = Tool(punisher) //suppressor
+      player.Slot(2).Equipment = Tool(mini_chaingun) //punisher //suppressor
       player.Slot(4).Equipment = Tool(GlobalDefinitions.StandardMelee(player.Faction))
       player.Slot(6).Equipment = AmmoBox(bullet_9mm, 20) //bullet_9mm
       player.Slot(9).Equipment = AmmoBox(rocket, 11) //bullet_9mm
@@ -1948,21 +1949,27 @@ class WorldSessionActor extends Actor with MDCContextAware {
                   }
 
                   if(previousBox.Capacity > 0) {
-                    //TODO split previousBox into AmmoBox objects of appropriate max capacity, e.g., 100 9mm -> 2 x 50 9mm
-                    obj.Inventory.Fit(previousBox.Definition.Tile) match {
-                      case Some(index) => //put retained magazine in inventory
+                    //split previousBox into AmmoBox objects of appropriate max capacity, e.g., 100 9mm -> 2 x 50 9mm
+                    obj.Inventory.Fit(previousBox) match {
+                      case Some(index) =>
                         stowFunc(index, previousBox)
-                      case None => //drop
-                        log.info(s"ChangeAmmo: dropping ammo box $previousBox")
-                        val pos = player.Position
-                        val orient = player.Orientation
-                        sendResponse(
-                          ObjectDetachMessage(Service.defaultPlayerGUID, previous_box_guid, pos, 0f, 0f, orient.z)
-                        )
-                        val orient2 = Vector3(0f, 0f, orient.z)
-                        continent.Ground ! Zone.DropItemOnGround(previousBox, pos, orient2)
-                        val objDef = previousBox.Definition
-                        avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.EquipmentOnGround(player.GUID, pos, orient2, objDef.ObjectId, previousBox.GUID, objDef.Packet.ConstructorData(previousBox).get))
+                      case None =>
+                        NormalItemDrop(player, continent, avatarService)(previousBox)
+                    }
+                    val dropFunc : (Equipment)=>Unit = NewItemDrop(player, continent, avatarService)
+                    AmmoBox.Split(previousBox) match {
+                      case Nil  | _ :: Nil => ; //done (the former case is technically not possible)
+                      case _ :: xs =>
+                        modifyFunc(previousBox, 0) //update to changed capacity value
+                        xs.foreach(box => {
+                          obj.Inventory.Fit(box) match {
+                            case Some(index) =>
+                              obj.Inventory += index -> box //block early, for purposes of Fit
+                              taskResolver ! stowFuncTask(index, box)
+                            case None =>
+                              dropFunc(box)
+                          }
+                        })
                     }
                   }
                   else {
@@ -2370,7 +2377,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
                       log.warn(s"UseItem: $kit behavior not supported")
                     }
 
-                  case None => ;
+                  case None =>
+                    log.error(s"UseItem: anticipated a $kit, but can't find it")
                 }
               case Some(item) =>
                 log.warn(s"UseItem: looking for Kit to use, but found $item instead")
@@ -3783,6 +3791,58 @@ class WorldSessionActor extends Actor with MDCContextAware {
         }
       case _ => ;
     }
+  }
+
+  /**
+    * Drop an `Equipment` item onto the ground.
+    * Specifically, instruct the item where it will appear,
+    * add it to the list of items that are visible to multiple users,
+    * and then inform others that the item has been dropped.
+    * @param obj a `Container` object that represents where the item will be dropped;
+    *            curried for callback
+    * @param zone the continent in which the item is being dropped;
+    *             curried for callback
+    * @param service a reference to the event system that announces that the item has been dropped on the ground;
+    *                "AvatarService";
+    *                curried for callback
+    * @param item the item
+    */
+  def NormalItemDrop(obj : PlanetSideGameObject with Container, zone : Zone, service : ActorRef)(item : Equipment) : Unit = {
+    val itemGUID = item.GUID
+    val ang = obj.Orientation.z
+    val pos = obj.Position
+    val orient = Vector3(0f, 0f, ang)
+    item.Position = pos
+    item.Orientation = orient
+    zone.Ground ! Zone.DropItemOnGround(item, pos, orient)
+    val itemDef = item.Definition
+    service ! AvatarServiceMessage(zone.Id, AvatarAction.EquipmentOnGround(Service.defaultPlayerGUID, pos, orient, itemDef.ObjectId, itemGUID, itemDef.Packet.ConstructorData(item).get))
+  }
+
+  /**
+    * Register an `Equipment` item and then drop it on the ground.
+    * @see `NormalItemDrop`
+    * @param obj a `Container` object that represents where the item will be dropped;
+    *            curried for callback
+    * @param zone the continent in which the item is being dropped;
+    *             curried for callback
+    * @param service a reference to the event system that announces that the item has been dropped on the ground;
+    *                "AvatarService";
+    *                curried for callback
+    * @param item the item
+    */
+  def NewItemDrop(obj : PlanetSideGameObject with Container, zone : Zone, service : ActorRef)(item : Equipment) : Unit = {
+    taskResolver ! TaskResolver.GiveTask(
+      new Task() {
+        private val localItem = item
+        private val localFunc : (Equipment)=>Unit = NormalItemDrop(obj, zone, service)
+
+        def Execute(resolver : ActorRef) : Unit = {
+          localFunc(localItem)
+          resolver ! scala.util.Success(this)
+        }
+      }, List(GUIDTask.RegisterEquipment(item)(zone.GUID))
+    )
   }
 
   /**
