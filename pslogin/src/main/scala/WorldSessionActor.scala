@@ -74,6 +74,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
   var controlled : Option[Int] = None //keep track of avatar's ServerVehicleOverride state
   var traveler : Traveler = null
   var deadState : DeadState.Value = DeadState.Dead
+  var whenUsedLastKit : Long = 0
 
   var clientKeepAlive : Cancellable = DefaultCancellable.obj
   var progressBarUpdate : Cancellable = DefaultCancellable.obj
@@ -1297,6 +1298,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       LivePlayerList.Add(sessionId, avatar)
       traveler = new Traveler(self, continent.Id)
       //PropertyOverrideMessage
+      sendResponse(ChatMsg(ChatMessageType.CMT_EXPANSIONS, true, "", "1 on", None)) //CC on
       sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 112, 1))
       sendResponse(ReplicationStreamMessage(5, Some(6), Vector(SquadListing()))) //clear squad list
       sendResponse(FriendsResponse(FriendAction.InitializeFriendList, 0, true, true, Nil))
@@ -1383,7 +1385,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
       //TacticsMessage
       StopBundlingPackets()
 
-      sendResponse(ChatMsg(ChatMessageType.CMT_EXPANSIONS, true, "", "1 on", None)) //CC on
 
     case Zone.ItemFromGround(tplayer, item) =>
       val obj_guid = item.GUID
@@ -2336,6 +2337,47 @@ class WorldSessionActor extends Actor with MDCContextAware {
             sendResponse(UseItemMessage(avatar_guid, unk1, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
             accessedContainer = Some(obj)
           }
+          else if(!unk3) { //potential kit use
+            continent.GUID(unk1) match {
+              case Some(kit : Kit) =>
+                player.Find(kit) match {
+                  case Some(index) =>
+                    if(kit.Definition == GlobalDefinitions.medkit) {
+                      if(player.Health == player.MaxHealth) {
+                        sendResponse(ChatMsg(ChatMessageType.UNK_225, false, "", "@HealComplete", None))
+                      }
+                      else if(System.currentTimeMillis - whenUsedLastKit < 5000) {
+                        sendResponse(ChatMsg(ChatMessageType.UNK_225, false, "", s"@TimeUntilNextUse^${5 - (System.currentTimeMillis - whenUsedLastKit) / 1000}~", None))
+                      }
+                      else {
+                        player.Find(kit) match {
+                          case Some(index) =>
+                            whenUsedLastKit = System.currentTimeMillis
+                            player.Slot(index).Equipment = None //remove from slot immediately; must exist on client for next packet
+                            sendResponse(UseItemMessage(avatar_guid, unk1, object_guid, 0, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
+                            sendResponse(ObjectDeleteMessage(kit.GUID, 0))
+                            taskResolver ! GUIDTask.UnregisterEquipment(kit)(continent.GUID)
+                            //TODO better health/damage control workflow
+                            player.Health = player.Health + 25
+                            sendResponse(PlanetsideAttributeMessage(avatar_guid, 0, player.Health))
+                            avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(avatar_guid, 0, player.Health))
+                          case None =>
+                            log.error(s"UseItem: anticipated a $kit, but can't find it")
+                        }
+                      }
+                    }
+                    else {
+                      log.warn(s"UseItem: $kit behavior not supported")
+                    }
+
+                  case None => ;
+                }
+              case Some(item) =>
+                log.warn(s"UseItem: looking for Kit to use, but found $item instead")
+              case None =>
+                log.warn(s"UseItem: anticipated a Kit $unk1, but can't find it")
+            }
+          }
 
         case Some(obj : Locker) =>
           if(player.Faction == obj.Faction) {
@@ -2416,15 +2458,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
           sendResponse(AvatarDeadStateMessage(DeadState.Release, 0, 0, player.Position, player.Faction, true))
           continent.Population ! Zone.Population.Release(avatar)
 
-        case Some(obj : PlanetSideGameObject) =>
-          if(itemType != 121) {
-            sendResponse(UseItemMessage(avatar_guid, unk1, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
-          }
-          else if(itemType == 121 && !unk3) { // TODO : medkit use ?!
-            sendResponse(UseItemMessage(avatar_guid, unk1, object_guid, 0, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
-            sendResponse(PlanetsideAttributeMessage(avatar_guid, 0, 100)) // avatar with 100 hp
-            sendResponse(ObjectDeleteMessage(PlanetSideGUID(unk1), 2))
-          }
+        case Some(obj) =>
+          log.warn(s"UseItem: don't know how to handle $obj; taking a shot in the dark")
+          sendResponse(UseItemMessage(avatar_guid, unk1, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
 
         case None =>
           log.error(s"UseItem: can not find object $object_guid")
