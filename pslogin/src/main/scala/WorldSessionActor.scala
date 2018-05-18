@@ -700,13 +700,18 @@ class WorldSessionActor extends Actor with MDCContextAware {
       order match {
         case Terminal.BuyExosuit(exosuit, subtype) => //refresh armor points
           if(tplayer.ExoSuit == exosuit) {
-            if(Loadout.DetermineSubtype(tplayer) != subtype) {
-              //special case: MAX suit switching to a different MAX suit; we need to change the main weapon
-              sendResponse(ArmorChangedMessage(tplayer.GUID, exosuit, subtype))
-              avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.ArmorChanged(tplayer.GUID, exosuit, subtype))
-              val arms = tplayer.Slot(0).Equipment.get
-              val putTask = PutEquipmentInSlot(tplayer, Tool(GlobalDefinitions.MAXArms(subtype, tplayer.Faction)), 0)
-              taskResolver ! DelayedObjectHeld(tplayer, 0, List(TaskResolver.GiveTask(putTask.task, putTask.subs :+ RemoveEquipmentFromSlot(tplayer, arms, 0))))
+            if(exosuit == ExoSuitType.MAX) {
+              //special MAX case - clear any special state
+              player.UsingSpecial = SpecialExoSuitDefinition.Mode.Normal
+              player.ExoSuit = exosuit
+              if(Loadout.DetermineSubtype(tplayer) != subtype) {
+                //special MAX case - suit switching to a different MAX suit; we need to change the main weapon
+                sendResponse(ArmorChangedMessage(tplayer.GUID, exosuit, subtype))
+                avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.ArmorChanged(tplayer.GUID, exosuit, subtype))
+                val arms = tplayer.Slot(0).Equipment.get
+                val putTask = PutEquipmentInSlot(tplayer, Tool(GlobalDefinitions.MAXArms(subtype, tplayer.Faction)), 0)
+                taskResolver ! DelayedObjectHeld(tplayer, 0, List(TaskResolver.GiveTask(putTask.task, putTask.subs :+ RemoveEquipmentFromSlot(tplayer, arms, 0))))
+              }
             }
             //outside of the MAX condition above, we should seldom reach this point through conventional methods
             tplayer.Armor = tplayer.MaxArmor
@@ -714,7 +719,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
             avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.PlanetsideAttribute(tplayer.GUID, 4, tplayer.Armor))
             sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, true))
           }
-          else { //load a complete new exo-suit and shuffle the inventory around
+          else {
+            //load a complete new exo-suit and shuffle the inventory around
             val originalSuit = tplayer.ExoSuit
             //save inventory before it gets cleared (empty holsters)
             val dropPred = DropPredicate(tplayer)
@@ -749,6 +755,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
                 normalWeapons
               }
               else {
+                tplayer.DrawnSlot = Player.HandsDownSlot
+                sendResponse(ObjectHeldMessage(tplayer.GUID, Player.HandsDownSlot, true))
                 avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.ObjectHeld(tplayer.GUID, Player.HandsDownSlot))
                 beforeHolsters
               }
@@ -839,6 +847,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
           //TODO optimizations against replacing Equipment with the exact same Equipment and potentially for recycling existing Equipment
           log.info(s"$tplayer wants to change equipment loadout to their option #${msg.unk1 + 1}")
           sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Loadout, true))
+          //ensure arm is down
+          tplayer.DrawnSlot = Player.HandsDownSlot
+          sendResponse(ObjectHeldMessage(tplayer.GUID, Player.HandsDownSlot, true))
+          avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.ObjectHeld(tplayer.GUID, Player.HandsDownSlot))
+          //load
           val dropPred = DropPredicate(tplayer)
           val (dropHolsters, beforeHolsters) = clearHolsters(tplayer.Holsters().iterator).partition(dropPred)
           val (dropInventory, beforeInventory) = tplayer.Inventory.Clear().partition(dropPred)
@@ -1473,7 +1486,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       //TODO begin temp player character auto-loading; remove later
       import net.psforever.objects.GlobalDefinitions._
       import net.psforever.types.CertificationType._
-      avatar = Avatar("TestCharacter"+sessionId.toString, PlanetSideEmpire.VS, CharacterGender.Female, 41, 1)
+      avatar = Avatar("TestCharacter"+sessionId.toString, PlanetSideEmpire.TR, CharacterGender.Female, 41, 1)
       avatar.Certifications += StandardAssault
       avatar.Certifications += MediumAssault
       avatar.Certifications += StandardExoSuit
@@ -1579,6 +1592,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
       //load active players in zone
       continent.LivePlayers.filterNot(_.GUID == player.GUID).foreach(char => {
         sendResponse(ObjectCreateMessage(ObjectClass.avatar, char.GUID, char.Definition.Packet.ConstructorData(char).get))
+        if(char.UsingSpecial == SpecialExoSuitDefinition.Mode.Anchored) {
+          sendResponse(PlanetsideAttributeMessage(char.GUID, 19, 1))
+        }
       })
       //load corpses in zone
       continent.Corpses.foreach { TurnPlayerIntoCorpse }
@@ -2132,16 +2148,22 @@ class WorldSessionActor extends Actor with MDCContextAware {
       }
 
     case msg @ ObjectHeldMessage(avatar_guid, held_holsters, unk1) =>
-      log.info("ObjectHeld: " + msg)
+      log.info(s"ObjectHeld: $msg")
       val before = player.DrawnSlot
-      //TODO remove this kludge; explore how to stop BuyExoSuit(Max) sending a tardy ObjectHeldMessage(me, 255)
-      if(player.ExoSuit != ExoSuitType.MAX && (player.DrawnSlot = held_holsters) != before) {
-        avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.ObjectHeld(player.GUID, player.LastDrawnSlot))
-        if(player.VisibleSlots.contains(held_holsters)) {
-          usingMedicalTerminal match {
-            case Some(term_guid) =>
-              StopUsingProximityUnit(continent.GUID(term_guid).get.asInstanceOf[ProximityTerminal])
-            case None => ;
+      if(before != held_holsters) {
+        if(player.ExoSuit == ExoSuitType.MAX && held_holsters != 0) {
+          log.info(s"ObjectHeld: $player is denied changing hands to $held_holsters as a MAX")
+          player.DrawnSlot = 0
+          sendResponse(ObjectHeldMessage(avatar_guid, 0, true))
+        }
+        else if((player.DrawnSlot = held_holsters) != before) {
+          avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.ObjectHeld(player.GUID, player.LastDrawnSlot))
+          if(player.VisibleSlots.contains(held_holsters)) {
+            usingMedicalTerminal match {
+              case Some(term_guid) =>
+                StopUsingProximityUnit(continent.GUID(term_guid).get.asInstanceOf[ProximityTerminal])
+              case None => ;
+            }
           }
         }
       }
@@ -2512,6 +2534,51 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ GenericObjectStateMsg(object_guid, unk1) =>
       log.info("GenericObjectState: " + msg)
+
+    case msg @ GenericActionMessage(action) =>
+      log.info(s"GenericAction: $msg")
+      val (toolOpt, definition) = player.Slot(0).Equipment match {
+        case Some(tool : Tool) =>
+          (Some(tool), tool.Definition)
+        case _ =>
+          (None, GlobalDefinitions.bullet_9mm)
+      }
+      if(action == 15) { //max deployment
+        log.info(s"GenericObject: $player is anchored")
+        player.UsingSpecial = SpecialExoSuitDefinition.Mode.Anchored
+        avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player.GUID, 19, 1))
+        definition match {
+          case GlobalDefinitions.trhev_dualcycler | GlobalDefinitions.trhev_burster =>
+            val tool = toolOpt.get
+            tool.ToFireMode = 1
+            sendResponse(ChangeFireModeMessage(tool.GUID, 1))
+          case GlobalDefinitions.trhev_pounder =>
+            val tool = toolOpt.get
+            val convertFireModeIndex = if(tool.FireModeIndex == 0) { 1 } else { 4 }
+            tool.ToFireMode = convertFireModeIndex
+            sendResponse(ChangeFireModeMessage(tool.GUID, convertFireModeIndex))
+          case _ =>
+            log.info(s"GenericObject: $player is MAS with an unexpected weapon - ${definition.Name}")
+        }
+      }
+      else if(action == 16) {
+        log.info(s"GenericObject: $player has released the anchors")
+        player.UsingSpecial = SpecialExoSuitDefinition.Mode.Normal
+        avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player.GUID, 19, 0))
+        definition match {
+          case GlobalDefinitions.trhev_dualcycler | GlobalDefinitions.trhev_burster =>
+            val tool = toolOpt.get
+            tool.ToFireMode = 0
+            sendResponse(ChangeFireModeMessage(tool.GUID, 0))
+          case GlobalDefinitions.trhev_pounder =>
+            val tool = toolOpt.get
+            val convertFireModeIndex = if(tool.FireModeIndex == 1) { 0 } else { 3 }
+            tool.ToFireMode = convertFireModeIndex
+            sendResponse(ChangeFireModeMessage(tool.GUID, convertFireModeIndex))
+          case _ =>
+            log.info(s"GenericObject: $player is MAS with an unexpected weapon - ${definition.Name}")
+        }
+      }
 
     case msg @ ItemTransactionMessage(terminal_guid, _, _, _, _, _) =>
       log.info("ItemTransaction: " + msg)
@@ -4108,7 +4175,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * Other players in the same zone must be made aware that the player has stopped as well.<br>
     * <br>
     * Things whose configuration should not be changed:<br>
-    * - if the player is seated
+    * - if the player is seated<br>
+    * - if anchored
     */
   def PlayerActionsToCancel() : Unit = {
     progressBarUpdate.cancel

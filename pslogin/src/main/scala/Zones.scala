@@ -21,7 +21,7 @@ object Zones {
       super.Init(context)
 
       import net.psforever.types.PlanetSideEmpire
-      Building(2).get.Faction = PlanetSideEmpire.VS
+      Building(2).get.Faction = PlanetSideEmpire.TR
       Building(2).get.ModelId = 20
       Building(38).get.ModelId = 0
       Building(42).get.ModelId = 0
