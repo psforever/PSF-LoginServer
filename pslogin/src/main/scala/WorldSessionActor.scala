@@ -1767,11 +1767,13 @@ class WorldSessionActor extends Actor with MDCContextAware {
       CSRZone.read(traveler, msg) match {
         case (true, zone, pos) =>
           if(player.isAlive) {
-            player.Die //die to suspend position client-driven change updates
+            player.Die //die to suspend client-driven position change updates
+            PlayerActionsToCancel()
             player.Position = pos
             traveler.zone = zone
             continent.Population ! Zone.Population.Release(avatar)
             continent.Population ! Zone.Population.Leave(avatar)
+            avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player.GUID, player.GUID))
             taskResolver ! TaskBeforeZoneChange(GUIDTask.UnregisterAvatar(player)(continent.GUID), zone)
           }
 
@@ -1781,6 +1783,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       CSRWarp.read(traveler, msg) match {
         case (true, pos) =>
           if(player.isAlive) {
+            PlayerActionsToCancel()
             sendResponse(PlayerStateShiftMessage(ShiftState(0, pos, player.Orientation.z, None)))
             player.Position = pos
           }
