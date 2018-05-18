@@ -1403,6 +1403,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
               definition.Packet.DetailedConstructorData(item).get
             )
           )
+          sendResponse(ActionResultMessage())
           if(tplayer.VisibleSlots.contains(slot)) {
             avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.EquipmentInHand(player_guid, player_guid, slot, item))
           }
