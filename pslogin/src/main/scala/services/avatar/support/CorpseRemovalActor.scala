@@ -51,7 +51,8 @@ class CorpseRemovalActor extends Actor {
 
   def Processing : Receive = {
     case CorpseRemovalActor.AddCorpse(corpse, zone, time) =>
-      if(corpse.isBackpack && !buriedCorpses.exists(_.corpse == corpse)) {
+      import CorpseRemovalActor.SimilarCorpses
+      if(corpse.isBackpack && !buriedCorpses.exists(entry => SimilarCorpses(entry.corpse, corpse) )) {
         if(corpses.isEmpty) {
           //we were the only entry so the event must be started from scratch
           corpses = List(CorpseRemovalActor.Entry(corpse, zone, time))
@@ -60,7 +61,7 @@ class CorpseRemovalActor extends Actor {
         else {
           //unknown number of entries; append, sort, then re-time tasking
           val oldHead = corpses.head
-          if(!corpses.exists(_.corpse == corpse)) {
+          if(!corpses.exists(entry => SimilarCorpses(entry.corpse, corpse))) {
             corpses = (corpses :+ CorpseRemovalActor.Entry(corpse, zone, time)).sortBy(_.timeAlive)
             if(oldHead != corpses.head) {
               RetimeFirstTask()
@@ -80,45 +81,44 @@ class CorpseRemovalActor extends Actor {
         if(targets.size == 1) {
           log.debug(s"a target corpse submitted for early cleanup: ${targets.head}")
           //simple selection
-          CorpseRemovalActor.recursiveFindCorpse(corpses.iterator, targets.head) match {
+          CorpseRemovalActor.recursiveFindCorpse(corpses.iterator,  targets.head) match {
             case None => ;
             case Some(index) =>
               decomposition.cancel
               BurialTask(corpses(index))
               buriedCorpses = buriedCorpses :+ corpses(index)
-              corpses = corpses.take(index) ++ corpses.drop(index+1)
+              corpses = (corpses.take(index) ++ corpses.drop(index + 1)).sortBy(_.timeAlive)
               import scala.concurrent.ExecutionContext.Implicits.global
               decomposition = context.system.scheduler.scheduleOnce(500 milliseconds, self, CorpseRemovalActor.TryDelete())
           }
         }
         else {
           log.debug(s"multiple target corpses submitted for early cleanup: $targets")
+          import CorpseRemovalActor.SimilarCorpses
           decomposition.cancel
           //cumbersome partition
           //a - find targets from corpses
           val locatedTargets = for {
             a <- targets
             b <- corpses
-            if b.corpse == a &&
-              b.corpse.Continent.equals(a.Continent) &&
-              b.corpse.HasGUID && a.HasGUID && b.corpse.GUID == a.GUID
+            if b.corpse.HasGUID && a.HasGUID && SimilarCorpses(b.corpse, a)
           } yield b
-          locatedTargets.foreach { BurialTask }
-          buriedCorpses = locatedTargets ++ buriedCorpses
-          //b - corpses, after the found targets are removed (cull any non-GUID entries while at it)
-          corpses = (for {
-            a <- locatedTargets.map { _.corpse }
-            b <- corpses
-            if b.corpse.HasGUID && a.HasGUID &&
-              (b.corpse != a ||
-                !b.corpse.Continent.equals(a.Continent) ||
-                !b.corpse.HasGUID || !a.HasGUID || b.corpse.GUID != a.GUID)
-          } yield b).sortBy(_.timeAlive)
-          import scala.concurrent.ExecutionContext.Implicits.global
-          decomposition = context.system.scheduler.scheduleOnce(500 milliseconds, self, CorpseRemovalActor.TryDelete())
-        }
-        RetimeFirstTask()
+          if(locatedTargets.nonEmpty) {
+            decomposition.cancel
+            locatedTargets.foreach { BurialTask }
+            buriedCorpses = locatedTargets ++ buriedCorpses
+            import scala.concurrent.ExecutionContext.Implicits.global
+            decomposition = context.system.scheduler.scheduleOnce(500 milliseconds, self, CorpseRemovalActor.TryDelete())
+            //b - corpses, after the found targets are removed (cull any non-GUID entries while at it)
+            corpses = (for {
+              a <- locatedTargets
+              b <- corpses
+              if b.corpse.HasGUID && a.corpse.HasGUID && !SimilarCorpses(b.corpse, a.corpse)
+            } yield b).sortBy(_.timeAlive)
+          }
       }
+      RetimeFirstTask()
+    }
 
     case CorpseRemovalActor.StartDelete() =>
       burial.cancel
@@ -136,7 +136,9 @@ class CorpseRemovalActor extends Actor {
 
     case CorpseRemovalActor.TryDelete() =>
       decomposition.cancel
-      val (decomposed, rotting) = buriedCorpses.partition(entry => { !entry.zone.Corpses.contains(entry.corpse) })
+      val (decomposed, rotting) = buriedCorpses.partition(entry => {
+        !entry.zone.Corpses.contains(entry.corpse)
+      })
       buriedCorpses = rotting
       decomposed.foreach { LastRitesTask }
       if(rotting.nonEmpty) {
@@ -214,6 +216,10 @@ object CorpseRemovalActor {
 
   private final case class TryDelete()
 
+  private def SimilarCorpses(obj1 : Player, obj2 : Player) : Boolean = {
+    obj1 == obj2 && obj1.Continent.equals(obj2.Continent) && obj1.GUID == obj2.GUID
+  }
+
   /**
     * A recursive function that finds and removes a specific player from a list of players.
     * @param iter an `Iterator` of `CorpseRemovalActor.Entry` objects
@@ -228,7 +234,7 @@ object CorpseRemovalActor {
     }
     else {
       val corpse = iter.next.corpse
-      if(corpse == player && corpse.Continent.equals(player.Continent) && corpse.GUID == player.GUID) {
+      if(corpse.HasGUID && player.HasGUID && SimilarCorpses(corpse, player)) {
         Some(index)
       }
       else {
