@@ -1486,7 +1486,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       //TODO begin temp player character auto-loading; remove later
       import net.psforever.objects.GlobalDefinitions._
       import net.psforever.types.CertificationType._
-      avatar = Avatar("TestCharacter"+sessionId.toString, PlanetSideEmpire.TR, CharacterGender.Female, 41, 1)
+      avatar = Avatar("TestCharacter"+sessionId.toString, PlanetSideEmpire.VS, CharacterGender.Female, 41, 1)
       avatar.Certifications += StandardAssault
       avatar.Certifications += MediumAssault
       avatar.Certifications += StandardExoSuit
@@ -2558,7 +2558,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             tool.ToFireMode = convertFireModeIndex
             sendResponse(ChangeFireModeMessage(tool.GUID, convertFireModeIndex))
           case _ =>
-            log.info(s"GenericObject: $player is MAS with an unexpected weapon - ${definition.Name}")
+            log.info(s"GenericObject: $player is MAX with an unexpected weapon - ${definition.Name}")
         }
       }
       else if(action == 16) {
@@ -2576,7 +2576,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             tool.ToFireMode = convertFireModeIndex
             sendResponse(ChangeFireModeMessage(tool.GUID, convertFireModeIndex))
           case _ =>
-            log.info(s"GenericObject: $player is MAS with an unexpected weapon - ${definition.Name}")
+            log.info(s"GenericObject: $player is MAX with an unexpected weapon - ${definition.Name}")
         }
       }
 

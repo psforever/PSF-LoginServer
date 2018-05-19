@@ -36,7 +36,7 @@ class ExoSuitDefinition(private val suitType : ExoSuitType.Value) {
   def InventoryOffset : Int = inventoryOffset
 
   def InventoryOffset_=(offset : Int) : Int = {
-    inventoryOffset = offset
+    inventoryOffset = math.min(math.max(0, offset), 65535)
     InventoryOffset
   }
 
@@ -138,7 +138,7 @@ object ExoSuitDefinition {
   Infiltration.Holster(0, EquipmentSize.Pistol)
   Infiltration.Holster(4, EquipmentSize.Melee)
 
-  final val MAX = new SpecialExoSuitDefinition(ExoSuitType.MAX)
+  final val MAX = SpecialExoSuitDefinition(ExoSuitType.MAX)
   MAX.permission = 1
   MAX.MaxArmor = 650
   MAX.InventoryScale = InventoryTile.Tile1612

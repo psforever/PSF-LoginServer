@@ -349,31 +349,43 @@ class Player(private val core : Avatar) extends PlanetSideGameObject with Factio
   private def DefaultUsingSpecial(state : SpecialExoSuitDefinition.Mode.Value) : SpecialExoSuitDefinition.Mode.Value = SpecialExoSuitDefinition.Mode.Normal
 
   private def UsingAnchorsOrOverdrive(state : SpecialExoSuitDefinition.Mode.Value) : SpecialExoSuitDefinition.Mode.Value = {
-    if(ExoSuit == ExoSuitType.MAX && Faction == PlanetSideEmpire.TR) {
-      val curr = UsingSpecial
-      val next = if(curr != SpecialExoSuitDefinition.Mode.Normal) {
-        SpecialExoSuitDefinition.Mode.Normal
-      }
-      else if(curr == SpecialExoSuitDefinition.Mode.Normal) {
+    import SpecialExoSuitDefinition.Mode._
+    val curr = UsingSpecial
+    val next = if(curr == Normal) {
+      if(state == Anchored || state == Overdrive) {
         state
       }
       else {
-        SpecialExoSuitDefinition.Mode.Normal
+        Normal
       }
-      MAXUsingSpecial(next)
+    }
+    else if(state == Normal) {
+      Normal
     }
     else {
-      SpecialExoSuitDefinition.Mode.Normal
+      curr
     }
+    MAXUsingSpecial(next)
   }
 
   private def UsingShield(state : SpecialExoSuitDefinition.Mode.Value) : SpecialExoSuitDefinition.Mode.Value = {
-    if(ExoSuit == ExoSuitType.MAX && Faction == PlanetSideEmpire.NC) {
-      MAXUsingSpecial(state)
+    import SpecialExoSuitDefinition.Mode._
+    val curr = UsingSpecial
+    val next = if(curr == Normal) {
+      if(state == Shielded) {
+        state
+      }
+      else {
+        Normal
+      }
+    }
+    else if(state == Normal) {
+      Normal
     }
     else {
-      SpecialExoSuitDefinition.Mode.Normal
+      curr
     }
+    MAXUsingSpecial(next)
   }
 
   private def DefaultGettingSpecial() : SpecialExoSuitDefinition.Mode.Value = SpecialExoSuitDefinition.Mode.Normal

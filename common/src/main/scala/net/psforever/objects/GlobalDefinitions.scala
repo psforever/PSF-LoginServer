@@ -2131,7 +2131,7 @@ object GlobalDefinitions {
     lightning_weapon_system.Name = "lightning_weapon_system"
     lightning_weapon_system.Size = EquipmentSize.VehicleWeapon
     lightning_weapon_system.AmmoTypes += bullet_75mm
-    lightning_weapon_system.AmmoTypes += bullet_25mm
+    lightning_weapon_system.AmmoTypes += bullet_12mm
     lightning_weapon_system.FireModes += new FireModeDefinition
     lightning_weapon_system.FireModes.head.AmmoTypeIndices += 0
     lightning_weapon_system.FireModes.head.AmmoSlotIndex = 0

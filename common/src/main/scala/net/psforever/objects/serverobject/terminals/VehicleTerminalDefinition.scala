@@ -326,9 +326,9 @@ abstract class VehicleTerminalDefinition(objId : Int) extends TerminalDefinition
       ),
       "lightning" -> VehicleLoadout("default_lightning", List(),
         List(
-          SimplifiedEntry(ammo_25mm, 30),
-          SimplifiedEntry(ammo_25mm, 34),
-          SimplifiedEntry(ammo_25mm, 38),
+          SimplifiedEntry(ammo_12mm, 30),
+          SimplifiedEntry(ammo_12mm, 34),
+          SimplifiedEntry(ammo_12mm, 38),
           SimplifiedEntry(ammo_75mm, 90),
           SimplifiedEntry(ammo_75mm, 94),
           SimplifiedEntry(ammo_75mm, 98)
