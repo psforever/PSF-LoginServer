@@ -727,7 +727,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             val (dropHolsters, beforeHolsters) = clearHolsters(tplayer.Holsters().iterator).partition(dropPred)
             val (dropInventory, beforeInventory) = tplayer.Inventory.Clear().partition(dropPred)
             //change suit (clear inventory and change holster sizes; note: holsters must be empty before this point)
-            Player.SuitSetup(tplayer, exosuit)
+            tplayer.ExoSuit = exosuit
             tplayer.Armor = tplayer.MaxArmor
             //delete everything not dropped
             (beforeHolsters ++ beforeInventory).foreach({ elem =>
@@ -859,7 +859,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           val (_, afterInventory) = inventory.partition(dropPred) //dropped items are lost
           val beforeFreeHand = tplayer.FreeHand.Equipment
           //change suit (clear inventory and change holster sizes; note: holsters must be empty before this point)
-          Player.SuitSetup(tplayer, exosuit)
+          tplayer.ExoSuit = exosuit
           tplayer.Armor = tplayer.MaxArmor
           //delete everything (not dropped)
           beforeHolsters.foreach({ elem =>

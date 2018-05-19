@@ -94,7 +94,7 @@ class LoadoutTest extends Specification {
     val player = CreatePlayer()
     val slot = player.Slot(0)
     slot.Equipment = None //only an unequipped slot can have its Equipment Size changed (Rifle -> Max)
-    Player.SuitSetup(player, ExoSuitType.MAX)
+    player.ExoSuit = ExoSuitType.MAX
 
     val ldout1 = Loadout.Create(player, "weaponless").asInstanceOf[InfantryLoadout]
     slot.Equipment = None

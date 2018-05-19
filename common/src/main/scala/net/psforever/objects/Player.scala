@@ -48,7 +48,7 @@ class Player(private val core : Avatar) extends PlanetSideGameObject with Factio
   /** From PlanetsideAttributeMessage */
   var PlanetsideAttribute : Array[Long] = Array.ofDim(120)
 
-  Player.SuitSetup(this, ExoSuit)
+  Player.SuitSetup(this, exosuit)
 
   def Name : String = core.name
 
@@ -265,7 +265,9 @@ class Player(private val core : Avatar) extends PlanetSideGameObject with Factio
   def ExoSuit : ExoSuitType.Value = exosuit.SuitType
 
   def ExoSuit_=(suit : ExoSuitType.Value) : Unit = {
-    exosuit = ExoSuitDefinition.Select(suit)
+    val eSuit = ExoSuitDefinition.Select(suit)
+    exosuit = eSuit
+    Player.SuitSetup(this, eSuit)
     ChangeSpecialAbility()
   }
 
@@ -496,16 +498,13 @@ object Player {
     new Player(core)
   }
 
-  def SuitSetup(player : Player, eSuit : ExoSuitType.Value) : Unit = {
-    val esuitDef : ExoSuitDefinition = ExoSuitDefinition.Select(eSuit)
-    //exosuit
-    player.ExoSuit = eSuit
+  private def SuitSetup(player : Player, eSuit : ExoSuitDefinition) : Unit = {
     //inventory
     player.Inventory.Clear()
-    player.Inventory.Resize(esuitDef.InventoryScale.Width, esuitDef.InventoryScale.Height)
-    player.Inventory.Offset = esuitDef.InventoryOffset
+    player.Inventory.Resize(eSuit.InventoryScale.Width, eSuit.InventoryScale.Height)
+    player.Inventory.Offset = eSuit.InventoryOffset
     //holsters
-    (0 until 5).foreach(index => { player.Slot(index).Size = esuitDef.Holster(index) })
+    (0 until 5).foreach(index => { player.Slot(index).Size = eSuit.Holster(index) })
   }
 
   def Respawn(player : Player) : Player = {
