@@ -7,6 +7,8 @@ import scodec.{Attempt, Codec, Err}
 import scodec.codecs._
 import shapeless.{::, HNil}
 
+import scala.annotation.tailrec
+
 /**
   * A `Codec` for the actions that each layer of the diagram performs.
   * `Style`, `Vertex`, `Action5`, `DrawString`, and `Action7` have additional `DiagramStroke` input data.
@@ -152,7 +154,7 @@ final case class BattleDiagramAction(action : DiagramActionCode.Value,
   */
 final case class BattleplanMessage(char_id : Long,
                                    player_name : String,
-                                   zone_id : PlanetSideGUID,
+                                   zone_id : Int,
                                    diagrams : List[BattleDiagramAction])
   extends PlanetSideGamePacket {
   type Packet = BattleplanMessage
@@ -365,11 +367,11 @@ object BattleplanMessage extends Marshallable[BattleplanMessage] {
     * @param list a `List` of extracted `BattleDiagrams`;
     *             technically, the output
     */
-  private def rollDiagramLayers(element : Option[BattleDiagramChain], list : ListBuffer[BattleDiagramAction]) : Unit = {
-    if(element.isEmpty)
-      return
-    list += element.get.diagram
-    rollDiagramLayers(element.get.next, list) //tail call optimization
+  @tailrec private def rollDiagramLayers(element : Option[BattleDiagramChain], list : ListBuffer[BattleDiagramAction]) : Unit = {
+    if(element.nonEmpty) {
+      list += element.get.diagram
+      rollDiagramLayers(element.get.next, list)
+    }
   }
 
   /**
@@ -380,17 +382,20 @@ object BattleplanMessage extends Marshallable[BattleplanMessage] {
     *               technically, the output
     * @return a linked list of `BattleDiagramChain` objects
     */
-  private def unrollDiagramLayers(revIter : Iterator[BattleDiagramAction], layers : Option[BattleDiagramChain] = None) : Option[BattleDiagramChain] = {
-    if(!revIter.hasNext)
-      return layers
-    val elem : BattleDiagramAction = revIter.next
-    unrollDiagramLayers(revIter, Some(BattleDiagramChain(elem, layers))) //tail call optimization
+  @tailrec private def unrollDiagramLayers(revIter : Iterator[BattleDiagramAction], layers : Option[BattleDiagramChain] = None) : Option[BattleDiagramChain] = {
+    if(!revIter.hasNext) {
+      layers
+    }
+    else {
+      val elem : BattleDiagramAction = revIter.next
+      unrollDiagramLayers(revIter, Some(BattleDiagramChain(elem, layers)))
+    }
   }
 
   implicit val codec : Codec[BattleplanMessage] = (
     ("char_id" | uint32L) ::
       ("player_name" | PacketHelpers.encodedWideString) ::
-      ("zone_id" | PlanetSideGUID.codec) ::
+      ("zone_id" | uint16L) ::
       (uint8L >>:~ { count =>
         conditional(count > 0, "diagrams" | parse_diagrams_codec(count)).hlist
       })

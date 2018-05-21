@@ -475,7 +475,7 @@ object GamePacketOpcode extends Enumeration {
     case 0x81 => game.DestroyDisplayMessage.decode
     case 0x82 => noDecoder(TriggerBotAction)
     case 0x83 => noDecoder(SquadWaypointRequest)
-    case 0x84 => noDecoder(SquadWaypointEvent)
+    case 0x84 => game.SquadWaypointEvent.decode
     case 0x85 => noDecoder(OffshoreVehicleMessage)
     case 0x86 => game.ObjectDeployedMessage.decode
     case 0x87 => noDecoder(ObjectDeployedCountMessage)
@@ -568,7 +568,7 @@ object GamePacketOpcode extends Enumeration {
     // OPCODES 0xd0-df
     case 0xd0 => noDecoder(UnknownMessage208)
     case 0xd1 => game.DisplayedAwardMessage.decode
-    case 0xd2 => noDecoder(RespawnAMSInfoMessage)
+    case 0xd2 => game.RespawnAMSInfoMessage.decode
     case 0xd3 => noDecoder(ComponentDamageMessage)
     case 0xd4 => noDecoder(GenericObjectActionAtPositionMessage)
     case 0xd5 => game.PropertyOverrideMessage.decode

@@ -4,9 +4,11 @@ package net.psforever.objects.zones
 import java.util.concurrent.atomic.AtomicInteger
 
 import akka.actor.Actor
-import net.psforever.objects.PlanetSideGameObject
+import net.psforever.objects.{GlobalDefinitions, PlanetSideGameObject}
 import net.psforever.objects.serverobject.structures.StructureType
-import net.psforever.types.Vector3
+import net.psforever.objects.serverobject.tube.SpawnTube
+import net.psforever.objects.vehicles.UtilityType
+import net.psforever.types.{DriveState, Vector3}
 import org.log4s.Logger
 
 /**
@@ -64,30 +66,61 @@ class ZoneActor(zone : Zone) extends Actor {
     //own
     case Zone.Lattice.RequestSpawnPoint(zone_number, player, spawn_group) =>
       if(zone_number == zone.Number) {
-        val buildingTypeSet = if(spawn_group == 6) {
-          Set(StructureType.Tower)
-        }
-        else if(spawn_group == 7) {
-          Set(StructureType.Facility, StructureType.Building)
-        }
-        else {
-          Set.empty[StructureType.Value]
-        }
         val playerPosition = player.Position.xy
-        zone.SpawnGroups()
-          .filter({ case((building, _)) =>
-            building.Faction == player.Faction && buildingTypeSet.contains(building.BuildingType)
-          })
-          .toSeq
-          .sortBy({ case ((building, _)) =>
-            Vector3.DistanceSquared(playerPosition, building.Position.xy)
-          })
-          .headOption match {
-          case Some((building, List(tube))) =>
-            sender ! Zone.Lattice.SpawnPoint(zone.Id, building, tube)
+        (
+          if(spawn_group == 2) {
+            //ams
+            zone.Vehicles
+              .filter(veh =>
+                veh.DeploymentState == DriveState.Deployed &&
+                  veh.Definition == GlobalDefinitions.ams &&
+                  veh.Faction == player.Faction
+              )
+              .sortBy(veh => Vector3.DistanceSquared(playerPosition, veh.Position.xy))
+              .flatMap(veh => veh.Utilities.values.filter(util => util.UtilType == UtilityType.ams_respawn_tube))
+              .headOption match {
+              case None =>
+                None
+              case Some(util) =>
+                Some(List(util().asInstanceOf[SpawnTube]))
+            }
+          }
+          else {
+            //facilities, towers, and buildings
+            val buildingTypeSet = if(spawn_group == 0) {
+              Set(StructureType.Facility, StructureType.Tower, StructureType.Building)
+            }
+            else if(spawn_group == 6) {
+              Set(StructureType.Tower)
+            }
+            else if(spawn_group == 7) {
+              Set(StructureType.Facility, StructureType.Building)
+            }
+            else {
+              Set.empty[StructureType.Value]
+            }
+            zone.SpawnGroups()
+              .filter({ case ((building, _)) =>
+                building.Faction == player.Faction &&
+                  buildingTypeSet.contains(building.BuildingType)
+              })
+              .toSeq
+              .sortBy({ case ((building, _)) =>
+                Vector3.DistanceSquared(playerPosition, building.Position.xy)
+              })
+              .headOption match {
+              case None | Some((_, Nil)) =>
+                None
+              case Some((_, tubes)) =>
+                Some(tubes)
+            }
+          }
+          ) match {
+          case Some(List(tube)) =>
+            sender ! Zone.Lattice.SpawnPoint(zone.Id, tube)
 
-          case Some((building, tubes)) =>
-            sender ! Zone.Lattice.SpawnPoint(zone.Id, building, scala.util.Random.shuffle(tubes).head)
+          case Some(tubes) =>
+            sender ! Zone.Lattice.SpawnPoint(zone.Id, scala.util.Random.shuffle(tubes).head)
 
           case None =>
             sender ! Zone.Lattice.NoValidSpawnPoint(zone_number, Some(spawn_group))
@@ -143,6 +176,68 @@ class ZoneActor(zone : Zone) extends Actor {
 }
 
 object ZoneActor {
+//  import net.psforever.types.PlanetSideEmpire
+//  import net.psforever.objects.Vehicle
+//  import net.psforever.objects.serverobject.structures.Building
+//  def AllSpawnGroup(zone : Zone, targetPosition : Vector3, targetFaction : PlanetSideEmpire.Value) : Option[List[SpawnTube]] = {
+//    ClosestOwnedSpawnTube(AmsSpawnGroup(zone) ++ BuildingSpawnGroup(zone, 0), targetPosition, targetFaction)
+//  }
+//
+//  def AmsSpawnGroup(vehicles : List[Vehicle]) : Iterable[(Vector3, PlanetSideEmpire.Value, Iterable[SpawnTube])] = {
+//    vehicles
+//      .filter(veh => veh.DeploymentState == DriveState.Deployed && veh.Definition == GlobalDefinitions.ams)
+//      .map(veh =>
+//        (veh.Position, veh.Faction,
+//          veh.Utilities
+//            .values
+//            .filter(util => util.UtilType == UtilityType.ams_respawn_tube)
+//            .map { _().asInstanceOf[SpawnTube] }
+//        )
+//      )
+//  }
+//
+//  def AmsSpawnGroup(zone : Zone, spawn_group : Int = 2) : Iterable[(Vector3, PlanetSideEmpire.Value, Iterable[SpawnTube])] = {
+//    if(spawn_group == 2) {
+//      AmsSpawnGroup(zone.Vehicles)
+//    }
+//    else {
+//      Nil
+//    }
+//  }
+//
+//  def BuildingSpawnGroup(spawnGroups : Map[Building, List[SpawnTube]]) : Iterable[(Vector3, PlanetSideEmpire.Value, Iterable[SpawnTube])] = {
+//    spawnGroups
+//      .map({ case ((building, tubes)) => (building.Position.xy, building.Faction, tubes) })
+//  }
+//
+//  def BuildingSpawnGroup(zone : Zone, spawn_group : Int) : Iterable[(Vector3, PlanetSideEmpire.Value, Iterable[SpawnTube])] = {
+//    val buildingTypeSet = if(spawn_group == 0) {
+//      Set(StructureType.Facility, StructureType.Tower, StructureType.Building)
+//    }
+//    else if(spawn_group == 6) {
+//      Set(StructureType.Tower)
+//    }
+//    else if(spawn_group == 7) {
+//      Set(StructureType.Facility, StructureType.Building)
+//    }
+//    else {
+//      Set.empty[StructureType.Value]
+//    }
+//    BuildingSpawnGroup(
+//      zone.SpawnGroups().filter({ case((building, _)) => buildingTypeSet.contains(building.BuildingType) })
+//    )
+//  }
+//
+//  def ClosestOwnedSpawnTube(tubes : Iterable[(Vector3, PlanetSideEmpire.Value, Iterable[SpawnTube])], targetPosition : Vector3, targetFaction : PlanetSideEmpire.Value) : Option[List[SpawnTube]] = {
+//    tubes
+//      .toSeq
+//      .filter({ case (_, faction, _) => faction == targetFaction })
+//      .sortBy({ case (pos, _, _) => Vector3.DistanceSquared(pos, targetPosition) })
+//      .take(1)
+//      .map({ case (_, _, tubes : List[SpawnTube]) => tubes })
+//      .headOption
+//  }
+
   /**
     * Recover an object from a collection and perform any number of validating tests upon it.
     * If the object fails any tests, log an error.

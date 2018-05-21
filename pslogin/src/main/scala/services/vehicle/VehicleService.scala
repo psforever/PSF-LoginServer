@@ -5,6 +5,8 @@ import akka.actor.{Actor, ActorRef, Props}
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
 import net.psforever.objects.zones.Zone
 import services.vehicle.support.{DeconstructionActor, DelayedDeconstructionActor}
+import net.psforever.types.DriveState
+
 import services.{GenericEventBus, Service}
 
 class VehicleService extends Actor {
@@ -93,6 +95,10 @@ class VehicleService extends Actor {
           VehicleEvents.publish(
             VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.VehicleState(vehicle_guid, unk1, pos, ang, vel, unk2, unk3, unk4, wheel_direction, unk5, unk6))
           )
+
+        //unlike other messages, just return to sender, don't publish
+        case VehicleAction.UpdateAmsSpawnPoint(zone : Zone) =>
+          sender ! VehicleServiceResponse(s"/$forChannel/Vehicle", Service.defaultPlayerGUID, VehicleResponse.UpdateAmsSpawnPoint(AmsSpawnPoints(zone)))
         case _ => ;
     }
 
@@ -161,7 +167,23 @@ class VehicleService extends Actor {
       vehicleDelayedDecon ! DelayedDeconstructionActor.UnscheduleDeconstruction(vehicle.GUID)
       vehicleDecon ! DeconstructionActor.RequestDeleteVehicle(vehicle, zone)
 
+    //correspondence from WorldSessionActor
+    case VehicleServiceMessage.AMSDeploymentChange(zone) =>
+      VehicleEvents.publish(
+        VehicleServiceResponse(s"/${zone.Id}/Vehicle", Service.defaultPlayerGUID, VehicleResponse.UpdateAmsSpawnPoint(AmsSpawnPoints(zone)))
+      )
+
     case msg =>
       log.info(s"Unhandled message $msg from $sender")
+  }
+
+  import net.psforever.objects.serverobject.tube.SpawnTube
+  def AmsSpawnPoints(zone : Zone) : List[SpawnTube] = {
+    import net.psforever.objects.vehicles.UtilityType
+    import net.psforever.objects.GlobalDefinitions
+    zone.Vehicles
+      .filter(veh => veh.Definition == GlobalDefinitions.ams && veh.DeploymentState == DriveState.Deployed)
+      .flatMap(veh => veh.Utilities.values.filter(util => util.UtilType == UtilityType.ams_respawn_tube) )
+      .map(util => util().asInstanceOf[SpawnTube])
   }
 }

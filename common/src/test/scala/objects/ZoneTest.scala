@@ -194,7 +194,6 @@ class ZoneActorTest extends ActorTest {
       val reply1 = receiveOne(Duration.create(200, "ms"))
       assert(reply1.isInstanceOf[Zone.Lattice.SpawnPoint])
       assert(reply1.asInstanceOf[Zone.Lattice.SpawnPoint].zone_id == "test")
-      assert(reply1.asInstanceOf[Zone.Lattice.SpawnPoint].building == bldg1)
       assert(reply1.asInstanceOf[Zone.Lattice.SpawnPoint].spawn_tube.Owner == bldg1)
 
       player.Position = Vector3(3,3,3) //closer to bldg3
@@ -202,7 +201,6 @@ class ZoneActorTest extends ActorTest {
       val reply3 = receiveOne(Duration.create(200, "ms"))
       assert(reply3.isInstanceOf[Zone.Lattice.SpawnPoint])
       assert(reply3.asInstanceOf[Zone.Lattice.SpawnPoint].zone_id == "test")
-      assert(reply3.asInstanceOf[Zone.Lattice.SpawnPoint].building == bldg3)
       assert(reply3.asInstanceOf[Zone.Lattice.SpawnPoint].spawn_tube.Owner == bldg3)
     }
 
