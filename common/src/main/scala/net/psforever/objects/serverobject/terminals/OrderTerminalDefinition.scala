@@ -2,6 +2,7 @@
 package net.psforever.objects.serverobject.terminals
 
 import net.psforever.objects.Player
+import net.psforever.objects.loadouts.InfantryLoadout
 import net.psforever.objects.inventory.InventoryItem
 import net.psforever.packet.game.ItemTransactionMessage
 import net.psforever.objects.serverobject.terminals.EquipmentTerminalDefinition._
@@ -27,7 +28,7 @@ class OrderTerminalDefinition extends EquipmentTerminalDefinition(612) {
   override def Buy(player: Player, msg : ItemTransactionMessage) : Terminal.Exchange = buyFunc(player, msg)
 
   /**
-    * Process a `TransactionType.InfantryLoadout` action by the user.
+    * Process a `TransactionType.Loadout` action by the user.
     * `Loadout` objects are blueprints composed of exo-suit specifications and simplified `Equipment`-to-slot mappings.
     * If a valid loadout is found, its data is transformed back into actual `Equipment` for return to the user.
     * @param player the player
@@ -37,11 +38,11 @@ class OrderTerminalDefinition extends EquipmentTerminalDefinition(612) {
   override def Loadout(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
     if(msg.item_page == 4) { //Favorites tab
       player.LoadLoadout(msg.unk1) match {
-        case Some(loadout) =>
-          val holsters = loadout.VisibleSlots.map(entry => { InventoryItem(BuildSimplifiedPattern(entry.item), entry.index) })
-          val inventory = loadout.Inventory.map(entry => { InventoryItem(BuildSimplifiedPattern(entry.item), entry.index) })
-          Terminal.InfantryLoadout(loadout.ExoSuit, loadout.Subtype, holsters, inventory)
-        case None =>
+        case Some(loadout : InfantryLoadout) =>
+          val holsters = loadout.visible_slots.map(entry => { InventoryItem(BuildSimplifiedPattern(entry.item), entry.index) })
+          val inventory = loadout.inventory.map(entry => { InventoryItem(BuildSimplifiedPattern(entry.item), entry.index) })
+          Terminal.InfantryLoadout(loadout.exosuit, loadout.subtype, holsters, inventory)
+        case Some(_) | None =>
           Terminal.NoDeal()
       }
     }

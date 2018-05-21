@@ -12,7 +12,7 @@ object TransactionType extends Enumeration {
       Sell, // or forget on certif term
       Unk4,
       Unk5,
-      InfantryLoadout,
+      Loadout,
       Unk7
       = Value
 

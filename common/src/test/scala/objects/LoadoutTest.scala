@@ -2,6 +2,7 @@
 package objects
 
 import net.psforever.objects._
+import net.psforever.objects.loadouts._
 import net.psforever.types.{CharacterGender, ExoSuitType, PlanetSideEmpire}
 import net.psforever.objects.GlobalDefinitions._
 import org.specs2.mutable._
@@ -36,14 +37,14 @@ class LoadoutTest extends Specification {
 
   "create a loadout that contains a player's inventory" in {
     val player = CreatePlayer()
-    val obj = Loadout.Create(player, "test")
+    val obj = Loadout.Create(player, "test").asInstanceOf[InfantryLoadout]
 
-    obj.Label mustEqual "test"
-    obj.ExoSuit mustEqual obj.ExoSuit
-    obj.Subtype mustEqual 0
+    obj.label mustEqual "test"
+    obj.exosuit mustEqual ExoSuitType.Standard
+    obj.subtype mustEqual 0
 
-    obj.VisibleSlots.length mustEqual 3
-    val holsters = obj.VisibleSlots.sortBy(_.index)
+    obj.visible_slots.length mustEqual 3
+    val holsters = obj.visible_slots.sortBy(_.index)
     holsters.head.index mustEqual 0
     holsters.head.item.asInstanceOf[Loadout.ShorthandTool].definition mustEqual beamer
     holsters(1).index mustEqual 2
@@ -51,8 +52,8 @@ class LoadoutTest extends Specification {
     holsters(2).index mustEqual 4
     holsters(2).item.asInstanceOf[Loadout.ShorthandTool].definition mustEqual forceblade
 
-    obj.Inventory.length mustEqual 5
-    val inventory = obj.Inventory.sortBy(_.index)
+    obj.inventory.length mustEqual 5
+    val inventory = obj.inventory.sortBy(_.index)
     inventory.head.index mustEqual 6
     inventory.head.item.asInstanceOf[Loadout.ShorthandConstructionItem].definition mustEqual ace
     inventory(1).index mustEqual 9
@@ -65,26 +66,86 @@ class LoadoutTest extends Specification {
     inventory(4).item.asInstanceOf[Loadout.ShorthandSimpleItem].definition mustEqual remote_electronics_kit
   }
 
+  "create a loadout that contains a vehicle's inventory" in {
+    val vehicle = Vehicle(mediumtransport)
+    vehicle.Inventory += 30 -> AmmoBox(bullet_9mm)
+    vehicle.Inventory += 33 -> AmmoBox(bullet_9mm_AP)
+    val obj = Loadout.Create(vehicle, "test").asInstanceOf[VehicleLoadout]
+
+    obj.label mustEqual "test"
+    obj.vehicle_definition mustEqual mediumtransport
+
+    obj.visible_slots.length mustEqual 2
+    val holsters = obj.visible_slots.sortBy(_.index)
+    holsters.head.index mustEqual 5
+    holsters.head.item.asInstanceOf[Loadout.ShorthandTool].definition mustEqual mediumtransport_weapon_systemA
+    holsters(1).index mustEqual 6
+    holsters(1).item.asInstanceOf[Loadout.ShorthandTool].definition mustEqual mediumtransport_weapon_systemB
+
+    obj.inventory.length mustEqual 2
+    val inventory = obj.inventory.sortBy(_.index)
+    inventory.head.index mustEqual 30
+    inventory.head.item.asInstanceOf[Loadout.ShorthandAmmoBox].definition mustEqual bullet_9mm
+    inventory(1).index mustEqual 33
+    inventory(1).item.asInstanceOf[Loadout.ShorthandAmmoBox].definition mustEqual bullet_9mm_AP
+  }
+
   "distinguish MAX subtype information" in {
     val player = CreatePlayer()
     val slot = player.Slot(0)
     slot.Equipment = None //only an unequipped slot can have its Equipment Size changed (Rifle -> Max)
     Player.SuitSetup(player, ExoSuitType.MAX)
 
-    val ldout1 = Loadout.Create(player, "weaponless")
+    val ldout1 = Loadout.Create(player, "weaponless").asInstanceOf[InfantryLoadout]
     slot.Equipment = None
     slot.Equipment = Tool(trhev_dualcycler)
-    val ldout2 = Loadout.Create(player, "cycler")
+    val ldout2 = Loadout.Create(player, "cycler").asInstanceOf[InfantryLoadout]
     slot.Equipment = None
     slot.Equipment = Tool(trhev_pounder)
-    val ldout3 = Loadout.Create(player, "pounder")
+    val ldout3 = Loadout.Create(player, "pounder").asInstanceOf[InfantryLoadout]
     slot.Equipment = None
     slot.Equipment = Tool(trhev_burster)
-    val ldout4 = Loadout.Create(player, "burster")
+    val ldout4 = Loadout.Create(player, "burster").asInstanceOf[InfantryLoadout]
 
-    ldout1.Subtype mustEqual 0
-    ldout2.Subtype mustEqual 1
-    ldout3.Subtype mustEqual 2
-    ldout4.Subtype mustEqual 3
+    ldout1.subtype mustEqual 0
+    ldout2.subtype mustEqual 1
+    ldout3.subtype mustEqual 2
+    ldout4.subtype mustEqual InfantryLoadout.DetermineSubtype(player) //example
+  }
+
+  "players have additional uniform subtype" in {
+    val player = CreatePlayer()
+    val slot = player.Slot(0)
+    slot.Equipment = None //only an unequipped slot can have its Equipment Size changed (Rifle -> Max)
+
+    player.ExoSuit = ExoSuitType.Standard
+    val ldout0 = Loadout.Create(player, "standard").asInstanceOf[InfantryLoadout]
+    player.ExoSuit = ExoSuitType.Agile
+    val ldout1 = Loadout.Create(player, "agile").asInstanceOf[InfantryLoadout]
+    player.ExoSuit = ExoSuitType.Reinforced
+    val ldout2 = Loadout.Create(player, "rein").asInstanceOf[InfantryLoadout]
+    player.ExoSuit = ExoSuitType.Infiltration
+    val ldout7 = Loadout.Create(player, "inf").asInstanceOf[InfantryLoadout]
+
+    Player.SuitSetup(player, ExoSuitType.MAX)
+    val ldout3 = Loadout.Create(player, "weaponless").asInstanceOf[InfantryLoadout]
+    slot.Equipment = None
+    slot.Equipment = Tool(trhev_dualcycler)
+    val ldout4 = Loadout.Create(player, "cycler").asInstanceOf[InfantryLoadout]
+    slot.Equipment = None
+    slot.Equipment = Tool(trhev_pounder)
+    val ldout5 = Loadout.Create(player, "pounder").asInstanceOf[InfantryLoadout]
+    slot.Equipment = None
+    slot.Equipment = Tool(trhev_burster)
+    val ldout6 = Loadout.Create(player, "burster").asInstanceOf[InfantryLoadout]
+
+    InfantryLoadout.DetermineSubtypeB(ldout0.exosuit, ldout0.subtype) mustEqual 0
+    InfantryLoadout.DetermineSubtypeB(ldout1.exosuit, ldout1.subtype) mustEqual 1
+    InfantryLoadout.DetermineSubtypeB(ldout2.exosuit, ldout2.subtype) mustEqual 2
+    InfantryLoadout.DetermineSubtypeB(ldout3.exosuit, ldout3.subtype) mustEqual 3
+    InfantryLoadout.DetermineSubtypeB(ldout4.exosuit, ldout4.subtype) mustEqual 4
+    InfantryLoadout.DetermineSubtypeB(ldout5.exosuit, ldout5.subtype) mustEqual 5
+    InfantryLoadout.DetermineSubtypeB(ldout6.exosuit, ldout6.subtype) mustEqual 6
+    InfantryLoadout.DetermineSubtypeB(ldout7.exosuit, ldout7.subtype) mustEqual 7
   }
 }

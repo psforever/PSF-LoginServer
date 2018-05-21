@@ -4,6 +4,7 @@ package game
 import org.specs2.mutable._
 import net.psforever.packet._
 import net.psforever.packet.game._
+import net.psforever.types.LoadoutType
 import scodec.bits._
 
 class FavoritesRequestTest extends Specification {
@@ -11,9 +12,9 @@ class FavoritesRequestTest extends Specification {
 
   "decode (for infantry)" in {
     PacketCoding.DecodePacket(stringInfantry).require match {
-      case FavoritesRequest(player_guid, unk, action, line, label) =>
+      case FavoritesRequest(player_guid, list, action, line, label) =>
         player_guid mustEqual PlanetSideGUID(75)
-        unk mustEqual 0
+        list mustEqual LoadoutType.Infantry
         action mustEqual FavoritesAction.Save
         line mustEqual 1
         label.isDefined mustEqual true
@@ -24,7 +25,7 @@ class FavoritesRequestTest extends Specification {
   }
 
   "encode (for infantry)" in {
-    val msg = FavoritesRequest(PlanetSideGUID(75), 0, FavoritesAction.Save, 1, Some("Example"))
+    val msg = FavoritesRequest(PlanetSideGUID(75), LoadoutType.Infantry, FavoritesAction.Save, 1, Some("Example"))
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual stringInfantry

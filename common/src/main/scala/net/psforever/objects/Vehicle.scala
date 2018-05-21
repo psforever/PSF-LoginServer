@@ -349,6 +349,39 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
 
   def VisibleSlots : Set[Int] = weapons.keySet
 
+  override def Slot(slotNum : Int) : EquipmentSlot = {
+    weapons.get(slotNum)
+//      .orElse(utilities.get(slotNum) match {
+//        case Some(_) =>
+//          //TODO what do now?
+//          None
+//        case None => ;
+//          None
+//      })
+      .orElse(Some(Inventory.Slot(slotNum))).get
+  }
+
+  override def Find(guid : PlanetSideGUID) : Option[Int] = {
+    weapons.find({ case (_, obj) =>
+      obj.Equipment match {
+        case Some(item) =>
+          if(item.HasGUID && item.GUID == guid) {
+            true
+          }
+          else {
+            false
+          }
+        case None =>
+          false
+      }
+    }) match {
+      case Some((index, _)) =>
+        Some(index)
+      case None =>
+        Inventory.Find(guid)
+    }
+  }
+
   /**
     * A reference to the `Vehicle` `Trunk` space.
     * @return this `Vehicle` `Trunk`

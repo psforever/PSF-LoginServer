@@ -524,6 +524,10 @@ object GlobalDefinitions {
 
   val medical_terminal = new MedicalTerminalDefinition(529)
 
+  val pad_landing = new RepairRearmSiloDefinition(719)
+
+  val repair_silo = new RepairRearmSiloDefinition(729)
+
   val spawn_pad = new VehicleSpawnPadDefinition
 
   val mb_locker = new LockerDefinition

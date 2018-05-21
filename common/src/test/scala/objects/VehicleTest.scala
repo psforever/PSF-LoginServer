@@ -277,6 +277,38 @@ class VehicleTest extends Specification {
       filteredMap(0).UtilType mustEqual UtilityType.order_terminalb
       filteredMap(2).UtilType mustEqual UtilityType.order_terminalb
     }
+
+    "access its mounted weapons by Slot" in {
+      val harasser_vehicle = Vehicle(GlobalDefinitions.two_man_assault_buggy)
+      harasser_vehicle.Weapons(2).Equipment.get.GUID = PlanetSideGUID(10)
+
+      harasser_vehicle.Slot(2).Equipment.get.GUID mustEqual PlanetSideGUID(10)
+    }
+
+    "access its trunk by Slot" in {
+      val harasser_vehicle = Vehicle(GlobalDefinitions.two_man_assault_buggy)
+      val ammobox = AmmoBox(GlobalDefinitions.armor_canister)
+      ammobox.GUID = PlanetSideGUID(10)
+      harasser_vehicle.Inventory += 30 -> ammobox
+
+      harasser_vehicle.Slot(30).Equipment.get.GUID mustEqual PlanetSideGUID(10)
+    }
+
+    "find its mounted weapons by GUID" in {
+      val harasser_vehicle = Vehicle(GlobalDefinitions.two_man_assault_buggy)
+      harasser_vehicle.Weapons(2).Equipment.get.GUID = PlanetSideGUID(10)
+
+      harasser_vehicle.Find(PlanetSideGUID(10)) mustEqual Some(2)
+    }
+
+    "find items in its trunk by GUID" in {
+      val harasser_vehicle = Vehicle(GlobalDefinitions.two_man_assault_buggy)
+      val ammobox = AmmoBox(GlobalDefinitions.armor_canister)
+      ammobox.GUID = PlanetSideGUID(10)
+      harasser_vehicle.Inventory += 30 -> ammobox
+
+      harasser_vehicle.Find(PlanetSideGUID(10)) mustEqual Some(30)
+    }
   }
 }
 

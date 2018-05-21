@@ -312,7 +312,7 @@ object GamePacketOpcode extends Enumeration {
   = Value
 
   private def noDecoder(opcode : GamePacketOpcode.Type) = (a : BitVector) =>
-    Attempt.failure(Err(s"Could not find a marshaller for game packet ${opcode}"))
+    Attempt.failure(Err(s"Could not find a marshaller for game packet $opcode"))
 
   /// Mapping of packet IDs to decoders. Notice that we are using the @switch annotation which ensures that the Scala
   /// compiler will be able to optimize this as a lookup table (switch statement). Microbenchmarks show a nearly 400x
@@ -549,7 +549,7 @@ object GamePacketOpcode extends Enumeration {
     // OPCODES 0xc0-cf
     case 0xc0 => noDecoder(CaptureFlagUpdateMessage)
     case 0xc1 => noDecoder(VanuModuleUpdateMessage)
-    case 0xc2 => noDecoder(FacilityBenefitShieldChargeRequestMessage)
+    case 0xc2 => game.FacilityBenefitShieldChargeRequestMessage.decode
     case 0xc3 => game.ProximityTerminalUseMessage.decode
     case 0xc4 => game.QuantityDeltaUpdateMessage.decode
     case 0xc5 => noDecoder(ChainLashMessage)
@@ -608,7 +608,7 @@ object GamePacketOpcode extends Enumeration {
     case 0xf1 => game.MailMessage.decode
     case 0xf2 => noDecoder(GameVarUpdate)
     case 0xf3 => noDecoder(ClientCheatedMessage)
-    case default => noDecoder(opcode)
+    case _ => noDecoder(opcode)
   }
 
   implicit val codec: Codec[this.Value] = PacketHelpers.createEnumerationCodec(this, uint8L)

@@ -72,12 +72,54 @@ class OrderTerminalTest extends Specification {
       terminal.Request(player, msg) mustEqual Terminal.NoDeal()
     }
 
-    //TODO loudout tests
-
     "player can not buy equipment from the wrong page ('9mmbullet_AP', page 1)" in {
       val msg = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Buy, 1, "9mmbullet_AP", 0, PlanetSideGUID(0))
 
       terminal.Request(player, msg) mustEqual Terminal.NoDeal()
+    }
+
+    "player can retrieve an infantry loadout" in {
+      val avatar = Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+      val player2 = Player(avatar)
+      player2.ExoSuit = ExoSuitType.Agile
+      player2.Slot(0).Equipment = Tool(GlobalDefinitions.beamer)
+      player2.Slot(6).Equipment = Tool(GlobalDefinitions.beamer)
+      avatar.SaveLoadout(player2, "test", 0)
+
+      val msg = terminal.Request(player2, ItemTransactionMessage(PlanetSideGUID(10), TransactionType.Loadout, 4, "", 0, PlanetSideGUID(0)))
+      msg.isInstanceOf[Terminal.InfantryLoadout] mustEqual true
+      val loadout = msg.asInstanceOf[Terminal.InfantryLoadout]
+      loadout.exosuit mustEqual ExoSuitType.Agile
+      loadout.subtype mustEqual 0
+      loadout.holsters.size mustEqual 1
+      loadout.holsters.head.obj.Definition mustEqual GlobalDefinitions.beamer
+      loadout.holsters.head.start mustEqual 0
+      loadout.inventory.head.obj.Definition mustEqual GlobalDefinitions.beamer
+      loadout.inventory.head.start mustEqual 6
+    }
+
+    "player can not retrieve an infantry loadout from the wrong page" in {
+      val avatar = Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+      val player2 = Player(avatar)
+      player2.ExoSuit = ExoSuitType.Agile
+      player2.Slot(0).Equipment = Tool(GlobalDefinitions.beamer)
+      player2.Slot(6).Equipment = Tool(GlobalDefinitions.beamer)
+      avatar.SaveLoadout(player2, "test", 0)
+
+      val msg = terminal.Request(player2, ItemTransactionMessage(PlanetSideGUID(10), TransactionType.Loadout, 3, "", 0, PlanetSideGUID(0))) //page 3
+      msg.isInstanceOf[Terminal.NoDeal] mustEqual true
+    }
+
+    "player can not retrieve an infantry loadout from the wrong line" in {
+      val avatar = Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+      val player2 = Player(avatar)
+      player2.ExoSuit = ExoSuitType.Agile
+      player2.Slot(0).Equipment = Tool(GlobalDefinitions.beamer)
+      player2.Slot(6).Equipment = Tool(GlobalDefinitions.beamer)
+      avatar.SaveLoadout(player2, "test", 0)
+
+      val msg = terminal.Request(player2, ItemTransactionMessage(PlanetSideGUID(10), TransactionType.Loadout, 4, "", 1, PlanetSideGUID(0)))
+      msg.isInstanceOf[Terminal.NoDeal] mustEqual true
     }
   }
 }
