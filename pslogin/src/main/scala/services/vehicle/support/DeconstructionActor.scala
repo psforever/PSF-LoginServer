@@ -109,7 +109,7 @@ class DeconstructionActor extends Actor {
         }
         taskResolver ! DeconstructionTask(vehicle, zone)
       })
-      
+
       if(vehiclesRemain.nonEmpty) {
         val short_timeout : FiniteDuration = math.max(1, DeconstructionActor.timeout_time - (now - vehiclesRemain.head.time)) nanoseconds
         import scala.concurrent.ExecutionContext.Implicits.global
