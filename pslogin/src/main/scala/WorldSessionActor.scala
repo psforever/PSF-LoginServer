@@ -1136,6 +1136,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       val popNC = poplist.count(_.faction == PlanetSideEmpire.NC)
       val popVS = poplist.count(_.faction == PlanetSideEmpire.VS)
 
+      StartBundlingPackets()
       zone.Buildings.foreach({ case(id, building) => initBuilding(continentNumber, id, building) })
       sendResponse(ZonePopulationUpdateMessage(continentNumber, 414, 138, popTR, 138, popNC, 138, popVS, 138, popBO))
       sendResponse(ContinentalLockUpdateMessage(continentNumber, PlanetSideEmpire.NEUTRAL))
@@ -1220,6 +1221,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       RequestSanctuaryZoneSpawn(player, zone_number)
 
     case InterstellarCluster.ClientInitializationComplete() =>
+      StopBundlingPackets()
       LivePlayerList.Add(sessionId, avatar)
       //PropertyOverrideMessage
       sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 112, 1))
@@ -1269,6 +1271,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case SetCurrentAvatar(tplayer) =>
       player = tplayer
       val guid = tplayer.GUID
+      StartBundlingPackets()
       sendResponse(SetCurrentAvatarMessage(guid,0,0))
       sendResponse(PlayerStateShiftMessage(ShiftState(1, tplayer.Position, tplayer.Orientation.z)))
       if(spectator) {
@@ -1301,6 +1304,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       //SquadDefinitionActionMessage and SquadDetailDefinitionUpdateMessage
       //MapObjectStateBlockMessage and ObjectCreateMessage
       //TacticsMessage
+      StopBundlingPackets()
 
       sendResponse(ChatMsg(ChatMessageType.CMT_EXPANSIONS, true, "", "1 on", None)) //CC on
 
@@ -1466,6 +1470,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ BeginZoningMessage() =>
       log.info("Reticulating splines ...")
+      StartBundlingPackets()
       configZone(continent)
       sendResponse(TimeOfDayMessage(1191182336))
 
@@ -1539,6 +1544,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           case _ => ;
         }
       })
+      StopBundlingPackets()
       avatarService ! Service.Join(player.Continent)
       localService ! Service.Join(player.Continent)
       vehicleService ! Service.Join(player.Continent)
@@ -4213,12 +4219,95 @@ class WorldSessionActor extends Actor with MDCContextAware {
     sendResponse(ConnectionClose())
   }
 
-  def sendResponse(cont : PlanetSideControlPacket) : Unit = {
-    sendResponse(PacketCoding.CreateControlPacket(cont))
+  /**
+    * Persistent collector that intercepts `GamePacket` and `ControlPacket` messages that are being sent towards the network.
+    */
+  private val packetBundlingCollector : MultiPacketCollector = new MultiPacketCollector()
+  /**
+    * Re-assigned function used to direct/intercept packets being sent towards the network.
+    * Defaults to directing the packets.
+    */
+  private var packetBundlingFunc : (PlanetSidePacket)=>Option[PlanetSidePacket] = NoBundlingAction
+
+  /**
+    * Start packet bundling by assigning the appropriate function.
+    * @see `sendResponse(PlanetSidePacket) : Unit`
+    */
+  def StartBundlingPackets() : Unit = {
+    log.trace("WORLD SEND: STARTED BUNDLING PACKETS")
+    packetBundlingFunc = PerformBundlingAction
   }
 
-  def sendResponse(cont : PlanetSideGamePacket) : Unit = {
+  /**
+    * Stop packet bundling by assigning the appropriate function.
+    * If any bundles are in the collector's buffer, push that bundle out towards the network.
+    * @see `sendResponse(PlanetSidePacket) : Unit`
+    */
+  def StopBundlingPackets() : Unit = {
+    log.trace("WORLD SEND: PACKET BUNDLING SUSPENDED")
+    packetBundlingFunc = NoBundlingAction
+    packetBundlingCollector.BundleOption match {
+      case Some(bundle) =>
+        sendResponse(bundle)
+      case None => ;
+    }
+  }
+
+  /**
+    * Transform the packet into either a `PlanetSideGamePacket` or a `PlanetSideControlPacket` and push it towards the network.
+    * @param cont the packet
+    * @return the same packet, to indicate it was sent
+    */
+  private def NoBundlingAction(cont : PlanetSidePacket) : Option[PlanetSidePacket] = {
+    cont match {
+      case game : PlanetSideGamePacket =>
+        sendResponse(PacketCoding.CreateGamePacket(0, game))
+      case control : PlanetSideControlPacket =>
+        sendResponse(PacketCoding.CreateControlPacket(control))
+      case _ => ;
+    }
+    Some(cont)
+  }
+
+  /**
+    * Intercept the packet being sent towards the network and
+    * add it to a bundle that will eventually be sent to the network itself.
+    * @param cont the packet
+    * @return always `None`, to indicate the packet was not sent
+    */
+  private def PerformBundlingAction(cont : PlanetSidePacket) : Option[PlanetSidePacket] = {
+    log.trace("WORLD SEND, BUNDLED: " + cont)
+    packetBundlingCollector.Add(cont)
+    None
+  }
+
+  /**
+    * Common entry point for transmitting packets to the network.
+    * Alternately, catch those packets and retain them to send out a bundled message.
+    * @param cont the packet
+    */
+  def sendResponse(cont : PlanetSidePacket) : Unit = packetBundlingFunc(cont)
+
+  /**
+    * `KeepAliveMessage` is a special `PlanetSideGamePacket` that is excluded from being bundled when it is sent to the network.<br>
+    * <br>
+    * The risk of the server getting caught in a state where the packets dispatched to the client are alwaysd bundled is posible.
+    * Starting the bundling functionality but forgetting to transition into a state where it is deactivated can lead to this problem.
+    * No packets except for `KeepAliveMessage` will ever be sent until the ever-accumulating packets overflow.
+    * To avoid this state, whenever a `KeepAliveMessage` is sent, the packet collector empties its current contents to the network.
+    * @see `StartBundlingPackets`<br>
+    *       `StopBundlingPackets`<br>
+  *         `clientKeepAlive`
+    * @param cont a `KeepAliveMessage` packet
+    */
+  def sendResponse(cont : KeepAliveMessage) : Unit = {
     sendResponse(PacketCoding.CreateGamePacket(0, cont))
+    packetBundlingCollector.BundleOption match {
+      case Some(bundle) =>
+        log.trace("WORLD SEND: INTERMITTENT PACKET BUNDLE")
+        sendResponse(bundle)
+      case None => ;
+    }
   }
   
   def sendResponse(cont : PlanetSidePacketContainer) : Unit = {
@@ -4227,7 +4316,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
   }
 
   def sendResponse(cont : MultiPacketBundle) : Unit = {
-    log.trace("WORLD SEND: " + cont)
     sendResponse(cont.asInstanceOf[Any])
   }
 
