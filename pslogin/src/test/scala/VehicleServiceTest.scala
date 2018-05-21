@@ -114,8 +114,8 @@ class DismountVehicleTest extends ActorTest {
     "pass DismountVehicle" in {
       val service = system.actorOf(Props[VehicleService], "v-service")
       service ! Service.Join("test")
-      service ! VehicleServiceMessage("test", VehicleAction.DismountVehicle(PlanetSideGUID(10), 0, false))
-      expectMsg(VehicleServiceResponse("/test/Vehicle", PlanetSideGUID(10), VehicleResponse.DismountVehicle(0, false)))
+      service ! VehicleServiceMessage("test", VehicleAction.DismountVehicle(PlanetSideGUID(10), BailType.Normal, false))
+      expectMsg(VehicleServiceResponse("/test/Vehicle", PlanetSideGUID(10), VehicleResponse.DismountVehicle(BailType.Normal, false)))
     }
   }
 }

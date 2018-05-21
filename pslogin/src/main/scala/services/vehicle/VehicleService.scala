@@ -52,9 +52,9 @@ class VehicleService extends Actor {
           VehicleEvents.publish(
             VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.DeployRequest(object_guid, state, unk1, unk2, pos))
           )
-        case VehicleAction.DismountVehicle(player_guid, unk1, unk2) =>
+        case VehicleAction.DismountVehicle(player_guid, bailType, unk2) =>
           VehicleEvents.publish(
-            VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.DismountVehicle(unk1, unk2))
+            VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.DismountVehicle(bailType, unk2))
           )
         case VehicleAction.InventoryState(player_guid, obj, parent_guid, start, con_data) =>
           VehicleEvents.publish(
@@ -64,9 +64,9 @@ class VehicleService extends Actor {
           VehicleEvents.publish(
             VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.InventoryState2(obj_guid, parent_guid, value))
           )
-        case VehicleAction.KickPassenger(player_guid, unk1, unk2, vehicle_guid) =>
+        case VehicleAction.KickPassenger(player_guid, seat_num, kickedByDriver, vehicle_guid) =>
           VehicleEvents.publish(
-            VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.KickPassenger(unk1, unk2, vehicle_guid))
+            VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.KickPassenger(seat_num, kickedByDriver, vehicle_guid))
           )
         case VehicleAction.LoadVehicle(player_guid, vehicle, vtype, vguid, vdata) =>
           VehicleEvents.publish(
