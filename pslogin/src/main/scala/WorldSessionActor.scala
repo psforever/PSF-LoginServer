@@ -2448,6 +2448,14 @@ class WorldSessionActor extends Actor with MDCContextAware {
                 obj.PassengerInSeat(player) match {
                   case Some(seat_num : Int) =>
                     obj.Actor ! Mountable.TryDismount(player, seat_num)
+
+                    // Deconstruct the vehicle if the driver has bailed out and the vehicle is capable of flight
+                    //todo: implement auto landing procedure if the pilot bails but passengers are still present instead of deconstructing the vehicle
+                    //todo: continue flight path until aircraft crashes if no passengers present (or no passenger seats), then deconstruct.
+                    if(bailType == BailType.Bailed && seat_num == 0 && GlobalDefinitions.isFlightVehicle(obj.asInstanceOf[Vehicle].Definition)) {
+                      vehicleService ! VehicleServiceMessage.DelayedVehicleDeconstruction(obj.asInstanceOf[Vehicle], continent, 0L) // Immediately deconstruct vehicle
+                    }
+
                   case None =>
                     dismountWarning(s"DismountVehicleMsg: can not find where player $player_guid is seated in mountable $obj_guid")
                 }
