@@ -4,16 +4,17 @@ package net.psforever.packet.game
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PlanetSideGamePacket}
 import scodec.Codec
 import scodec.codecs._
+import net.psforever.types.BailType
 
 /**
   * Dispatched by the client when the player wishes to get out of a vehicle.
   * @param player_guid the player
-  * @param unk1 na
+  * @param bailType The dismount action e.g. normal dismount, kicked by owner, bailed
   * @param unk2 na
   */
 final case class DismountVehicleMsg(player_guid : PlanetSideGUID,
-                                    unk1 : Int, //maybe, seat number?
-                                    unk2 : Boolean) //maybe, bailing?
+                                    bailType : BailType.Value,
+                                    wasKickedByDriver : Boolean) // Seems to be true if a passenger was manually kicked by the vehicle owner
   extends PlanetSideGamePacket {
   type Packet = DismountVehicleMsg
   def opcode = GamePacketOpcode.DismountVehicleMsg
@@ -23,7 +24,7 @@ final case class DismountVehicleMsg(player_guid : PlanetSideGUID,
 object DismountVehicleMsg extends Marshallable[DismountVehicleMsg] {
   implicit val codec : Codec[DismountVehicleMsg] = (
     ("player_guid" | PlanetSideGUID.codec) ::
-      ("unk1" | uint4L) ::
-      ("unk2" | bool)
+      ("bailType" | BailType.codec) ::
+      ("wasKickedByDriver" | bool)
     ).as[DismountVehicleMsg]
 }

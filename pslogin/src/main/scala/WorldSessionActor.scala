@@ -448,9 +448,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
           //sendResponse(GenericObjectActionMessage(player_guid, 36))
           sendResponse(PlanetsideAttributeMessage(player_guid, 29, 1))
 
-        case VehicleResponse.DismountVehicle(unk1, unk2) =>
+        case VehicleResponse.DismountVehicle(bailType, wasKickedByDriver) =>
           if(tplayer_guid != guid) {
-            sendResponse(DismountVehicleMsg(guid, unk1, unk2))
+            sendResponse(DismountVehicleMsg(guid, bailType, wasKickedByDriver))
           }
 
         case VehicleResponse.DeployRequest(object_guid, state, unk1, unk2, pos) =>
@@ -476,8 +476,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
             )
           }
 
-        case VehicleResponse.KickPassenger(unk1, unk2, vehicle_guid) =>
-          sendResponse(DismountVehicleMsg(guid, unk1, unk2))
+        case msg @ VehicleResponse.KickPassenger(seat_num, wasKickedByDriver, vehicle_guid) =>
+          // seat_num seems to be correct if passenger is kicked manually by driver, but always seems to return 4 if user is kicked by seat permissions
+          log.info(s"$msg")
+          sendResponse(DismountVehicleMsg(guid, BailType.Kicked, wasKickedByDriver))
           if(tplayer_guid == guid) {
             continent.GUID(vehicle_guid) match {
               case Some(obj : Vehicle) =>
@@ -655,8 +657,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
           val obj_guid : PlanetSideGUID = obj.GUID
           val player_guid : PlanetSideGUID = tplayer.GUID
           log.info(s"DismountVehicleMsg: $player_guid dismounts $obj @ $seat_num")
-          sendResponse(DismountVehicleMsg(player_guid, seat_num, false))
-          vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.DismountVehicle(player_guid, seat_num, false))
+          sendResponse(DismountVehicleMsg(player_guid, BailType.Normal, false))
+          vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.DismountVehicle(player_guid, BailType.Normal, false))
 
         case Mountable.CanDismount(obj : Vehicle, seat_num) =>
           val player_guid : PlanetSideGUID = tplayer.GUID
@@ -664,8 +666,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
             //disembarking self
             log.info(s"DismountVehicleMsg: $player_guid dismounts $obj @ $seat_num")
             TotalDriverVehicleControl(obj)
-            sendResponse(DismountVehicleMsg(player_guid, seat_num, false))
-            vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.DismountVehicle(player_guid, seat_num, false))
+            sendResponse(DismountVehicleMsg(player_guid, BailType.Normal, false))
+            vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.DismountVehicle(player_guid, BailType.Normal, false))
             UnAccessContents(obj)
           }
           else {
@@ -1655,7 +1657,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           val player_guid = player.GUID
           sendResponse(ObjectDeleteMessage(player_guid, 0))
           avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player_guid, player_guid, 0))
-          self ! PacketCoding.CreateGamePacket(0, DismountVehicleMsg(player_guid, 0, true)) //let vehicle try to clean up its fields
+          self ! PacketCoding.CreateGamePacket(0, DismountVehicleMsg(player_guid, BailType.Normal, true)) //let vehicle try to clean up its fields
 
           import scala.concurrent.duration._
           import scala.concurrent.ExecutionContext.Implicits.global
@@ -2416,21 +2418,21 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ WarpgateRequest(continent_guid, building_guid, dest_building_guid, dest_continent_guid, unk1, unk2) =>
       log.info("WarpgateRequest: " + msg)
 
-    case msg @ MountVehicleMsg(player_guid, mountable_guid, unk) =>
+    case msg @ MountVehicleMsg(player_guid, mountable_guid, entry_point) =>
       log.info("MountVehicleMsg: "+msg)
       continent.GUID(mountable_guid) match {
         case Some(obj : Mountable) =>
-          obj.GetSeatFromMountPoint(unk) match {
+          obj.GetSeatFromMountPoint(entry_point) match {
             case Some(seat_num) =>
               obj.Actor ! Mountable.TryMount(player, seat_num)
             case None =>
-              log.warn(s"MountVehicleMsg: attempted to board mountable $mountable_guid's seat $unk, but no seat exists there")
+              log.warn(s"MountVehicleMsg: attempted to board mountable $mountable_guid's seat $entry_point, but no seat exists there")
           }
         case None | Some(_) =>
           log.warn(s"MountVehicleMsg: not a mountable thing")
       }
 
-    case msg @ DismountVehicleMsg(player_guid, unk1, unk2) =>
+    case msg @ DismountVehicleMsg(player_guid, bailType, wasKickedByDriver) =>
       //TODO optimize this later
       log.info(s"DismountVehicleMsg: $msg")
       //common warning for this section

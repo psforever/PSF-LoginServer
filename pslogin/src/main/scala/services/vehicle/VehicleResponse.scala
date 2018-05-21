@@ -4,7 +4,7 @@ package services.vehicle
 import net.psforever.objects.{PlanetSideGameObject, Vehicle}
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.packet.game.objectcreate.ConstructorData
-import net.psforever.types.{DriveState, Vector3}
+import net.psforever.types.{DriveState, Vector3, BailType}
 
 object VehicleResponse {
   trait Response
@@ -15,9 +15,9 @@ object VehicleResponse {
   final case class ConcealPlayer(player_guid : PlanetSideGUID) extends Response
   final case class DeployRequest(object_guid : PlanetSideGUID, state : DriveState.Value, unk1 : Int, unk2 : Boolean, pos : Vector3) extends Response
   final case class DetachFromRails(vehicle_guid : PlanetSideGUID, rails_guid : PlanetSideGUID, rails_pos : Vector3, rails_rot : Float) extends Response
-  final case class DismountVehicle(unk1 : Int, unk2 : Boolean) extends Response
+  final case class DismountVehicle(bailType : BailType.Value , unk2 : Boolean) extends Response
   final case class InventoryState(obj : PlanetSideGameObject, parent_guid : PlanetSideGUID, start : Int, con_data : ConstructorData) extends Response
-  final case class KickPassenger(unk1 : Int, unk2 : Boolean, vehicle_guid : PlanetSideGUID) extends Response
+  final case class KickPassenger(seat_num : Int, kickedByDriver : Boolean, vehicle_guid : PlanetSideGUID) extends Response
   final case class LoadVehicle(vehicle : Vehicle, vtype : Int, vguid : PlanetSideGUID, vdata : ConstructorData) extends Response
   final case class MountVehicle(object_guid : PlanetSideGUID, seat : Int) extends Response
   final case class ResetSpawnPad(pad_guid : PlanetSideGUID) extends Response
