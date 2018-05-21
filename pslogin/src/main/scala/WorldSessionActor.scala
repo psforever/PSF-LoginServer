@@ -171,12 +171,21 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * @param player_guid the player
     */
   def DismountVehicleOnLogOut(vehicle_guid : PlanetSideGUID, player_guid : PlanetSideGUID) : Unit = {
-    val vehicle = continent.GUID(vehicle_guid).get.asInstanceOf[Vehicle]
-    vehicle.Seat(vehicle.PassengerInSeat(player).get).get.Occupant = None
+    // Use mountable type instead of Vehicle type to ensure mountables such as implant terminals are correctly dismounted on logout
+    val mountable = continent.GUID(vehicle_guid).get.asInstanceOf[Mountable]
+    mountable.Seat(mountable.PassengerInSeat(player).get).get.Occupant = None
+
+    // If this is a player constructed vehicle then start deconstruction timer
+    // todo: Will base guns implement Vehicle type? Don't want those to deconstruct
+    continent.GUID(vehicle_guid) match {
+      case Some(vehicle : Vehicle) =>
     if(vehicle.Seats.values.count(_.isOccupied) == 0) {
       vehicleService ! VehicleServiceMessage.DelayedVehicleDeconstruction(vehicle, continent, 600L) //start vehicle decay (10m)
     }
-    vehicleService ! Service.Leave(Some(s"${vehicle.Actor}"))
+      case _ => ;
+    }
+
+    vehicleService ! Service.Leave(Some(s"${mountable.Actor}"))
     vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.KickPassenger(player_guid, 0, true, vehicle_guid))
   }
 
