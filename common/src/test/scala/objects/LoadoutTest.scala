@@ -127,7 +127,7 @@ class LoadoutTest extends Specification {
     player.ExoSuit = ExoSuitType.Infiltration
     val ldout7 = Loadout.Create(player, "inf").asInstanceOf[InfantryLoadout]
 
-    Player.SuitSetup(player, ExoSuitType.MAX)
+    player.ExoSuit = ExoSuitType.MAX
     val ldout3 = Loadout.Create(player, "weaponless").asInstanceOf[InfantryLoadout]
     slot.Equipment = None
     slot.Equipment = Tool(trhev_dualcycler)
