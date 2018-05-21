@@ -7,7 +7,7 @@ import scodec.codecs._
 
 /**
   * Dispatched by the client when driving a vehicle in the sphere of influence of an allied base
-  * that is a dropship center or that possesses the lattice-connected benefit of a dropship center.
+  * that is an amp station facility or that possesses the lattice-connected benefit of an amp station.
   * The vehicle that is being driven will not have perfect fully-charged shields at the time.
   * @param vehicle_guid the vehicle whose shield is being charged
   */
