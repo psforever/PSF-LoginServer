@@ -4,6 +4,7 @@ package game
 import org.specs2.mutable._
 import net.psforever.packet._
 import net.psforever.packet.game._
+import net.psforever.types.LoadoutType
 import scodec.bits._
 
 class FavoritesMessageTest extends Specification {
@@ -13,7 +14,7 @@ class FavoritesMessageTest extends Specification {
   "decode (for infantry)" in {
     PacketCoding.DecodePacket(stringInfantry).require match {
       case FavoritesMessage(list, player_guid, line, label, armor) =>
-        list mustEqual 0
+        list mustEqual LoadoutType.Infantry
         player_guid mustEqual PlanetSideGUID(3760)
         line mustEqual 0
         label mustEqual "Agile (basic)"
@@ -25,7 +26,7 @@ class FavoritesMessageTest extends Specification {
   }
 
   "encode (for infantry)" in {
-    val msg = FavoritesMessage(0, PlanetSideGUID(3760), 0, "Agile (basic)", Option(1))
+    val msg = FavoritesMessage(LoadoutType.Infantry, PlanetSideGUID(3760), 0, "Agile (basic)", 1)
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual stringInfantry
@@ -34,7 +35,7 @@ class FavoritesMessageTest extends Specification {
   "decode (for vehicles)" in {
     PacketCoding.DecodePacket(stringVehicles).require match {
       case FavoritesMessage(list, player_guid, line, label, armor) =>
-        list mustEqual 1
+        list mustEqual LoadoutType.Vehicle
         player_guid mustEqual PlanetSideGUID(4210)
         line mustEqual 0
         label mustEqual "Skyguard"
@@ -45,7 +46,7 @@ class FavoritesMessageTest extends Specification {
   }
 
   "encode (for vehicles)" in {
-    val msg = FavoritesMessage(1, PlanetSideGUID(4210), 0, "Skyguard")
+    val msg = FavoritesMessage(LoadoutType.Vehicle, PlanetSideGUID(4210), 0, "Skyguard")
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual stringVehicles

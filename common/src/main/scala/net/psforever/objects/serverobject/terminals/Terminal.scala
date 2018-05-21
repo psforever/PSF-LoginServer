@@ -2,6 +2,7 @@
 package net.psforever.objects.serverobject.terminals
 
 import net.psforever.objects.Player
+import net.psforever.objects.definition.VehicleDefinition
 import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.packet.game.{ItemTransactionMessage, PlanetSideGUID}
 import net.psforever.types.{TransactionType, Vector3}
@@ -73,7 +74,7 @@ class Terminal(tdef : TerminalDefinition) extends Amenity {
         case TransactionType.Sell =>
           tdef.Sell(player, msg)
 
-        case TransactionType.InfantryLoadout =>
+        case TransactionType.Loadout =>
           tdef.Loadout(player, msg)
 
         case _ =>
@@ -190,17 +191,19 @@ object Terminal {
     */
   final case class InfantryLoadout(exosuit : ExoSuitType.Value, subtype : Int = 0, holsters : List[InventoryItem], inventory : List[InventoryItem]) extends Exchange
 
+  final case class VehicleLoadout(vehicle_definition : VehicleDefinition, weapons : List[InventoryItem], inventory : List[InventoryItem]) extends Exchange
+
   /**
     * Start the special effects caused by a proximity-base service.
     * @param terminal the proximity-based unit
     */
-  final case class StartProximityEffect(terminal : ProximityTerminal) extends Exchange
+  final case class StartProximityEffect(terminal : Terminal with ProximityUnit) extends Exchange
 
   /**
     * Stop the special effects caused by a proximity-base service.
     * @param terminal the proximity-based unit
     */
-  final case class StopProximityEffect(terminal : ProximityTerminal) extends Exchange
+  final case class StopProximityEffect(terminal : Terminal with ProximityUnit) extends Exchange
 
   /**
     * Overloaded constructor.

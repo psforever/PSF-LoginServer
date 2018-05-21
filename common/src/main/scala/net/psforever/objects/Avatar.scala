@@ -3,6 +3,7 @@ package net.psforever.objects
 
 import net.psforever.objects.definition.{AvatarDefinition, ImplantDefinition}
 import net.psforever.objects.equipment.EquipmentSize
+import net.psforever.objects.loadouts.Loadout
 import net.psforever.types.{CertificationType, CharacterGender, ImplantType, PlanetSideEmpire}
 
 import scala.annotation.tailrec
@@ -16,7 +17,7 @@ class Avatar(val name : String, val faction : PlanetSideEmpire.Value, val sex : 
   /** Certifications */
   private val certs : mutable.Set[CertificationType.Value] = mutable.Set[CertificationType.Value]()
   /** Implants<br>
-    * Unlike other objects, the maximum number of `ImplantSlots` are built into the `Avatar`.
+    * Unlike other objects, all `ImplantSlot` objects are already built into the `Avatar`.
     * Additionally, implants do not have tightly-coupled "`Definition` objects" that explain a formal implant object.
     * The `ImplantDefinition` objects themselves are moved around as if they were the implants.
     * The terms externally used for the states of process is "installed" and "uninstalled."
@@ -24,9 +25,12 @@ class Avatar(val name : String, val faction : PlanetSideEmpire.Value, val sex : 
     * @see `DetailedCharacterData.implants`
     */
   private val implants : Array[ImplantSlot] = Array.fill[ImplantSlot](3)(new ImplantSlot)
-  /** Loadouts */
-  private val loadouts : Array[Option[Loadout]] = Array.fill[Option[Loadout]](10)(None)
-  /** Locker (inventory slot number five) */
+  /** Loadouts<br>
+    * 0-9 are Infantry loadouts
+    * 10-14 are Vehicle loadouts
+    */
+  private val loadouts : Array[Option[Loadout]] = Array.fill[Option[Loadout]](15)(None)
+  /** Locker */
   private val locker : LockerContainer = new LockerContainer() {
     override def toString : String = {
       s"$name's ${Definition.Name}"
@@ -149,6 +153,12 @@ class Avatar(val name : String, val faction : PlanetSideEmpire.Value, val sex : 
 
   def SaveLoadout(owner : Player, label : String, line : Int) : Unit = {
     if(line > -1 && line < 10) {
+      loadouts(line) = Some(Loadout.Create(owner, label))
+    }
+  }
+
+  def SaveLoadout(owner : Vehicle, label : String, line : Int) : Unit = {
+    if(line > 9 && line < loadouts.length) {
       loadouts(line) = Some(Loadout.Create(owner, label))
     }
   }

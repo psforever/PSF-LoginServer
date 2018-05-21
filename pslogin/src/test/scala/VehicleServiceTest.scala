@@ -136,6 +136,22 @@ class InventoryStateTest extends ActorTest {
   }
 }
 
+class InventoryState2Test extends ActorTest {
+  ServiceManager.boot(system)
+  val tool = Tool(GlobalDefinitions.beamer)
+  tool.AmmoSlots.head.Box.GUID = PlanetSideGUID(13)
+  val cdata = tool.Definition.Packet.ConstructorData(tool).get
+
+  "VehicleService" should {
+    "pass InventoryState2" in {
+      val service = system.actorOf(Props[VehicleService], "v-service")
+      service ! Service.Join("test")
+      service ! VehicleServiceMessage("test", VehicleAction.InventoryState2(PlanetSideGUID(10), PlanetSideGUID(11), PlanetSideGUID(12), 13))
+      expectMsg(VehicleServiceResponse("/test/Vehicle", PlanetSideGUID(10), VehicleResponse.InventoryState2(PlanetSideGUID(11), PlanetSideGUID(12), 13)))
+    }
+  }
+}
+
 class KickPassengerTest extends ActorTest {
   ServiceManager.boot(system)
 

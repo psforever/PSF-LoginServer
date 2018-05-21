@@ -60,6 +60,10 @@ class VehicleService extends Actor {
           VehicleEvents.publish(
             VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.InventoryState(obj, parent_guid, start, con_data))
           )
+        case VehicleAction.InventoryState2(player_guid, obj_guid, parent_guid, value) =>
+          VehicleEvents.publish(
+            VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.InventoryState2(obj_guid, parent_guid, value))
+          )
         case VehicleAction.KickPassenger(player_guid, unk1, unk2, vehicle_guid) =>
           VehicleEvents.publish(
             VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.KickPassenger(unk1, unk2, vehicle_guid))

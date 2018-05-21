@@ -24,7 +24,7 @@ abstract class TerminalDefinition(objectId : Int) extends net.psforever.objects.
   def Sell(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = Terminal.NoDeal()
 
   /**
-    * The unimplemented functionality for this `Terminal`'s `TransactionType.InfantryLoadout` activity.
+    * The unimplemented functionality for this `Terminal`'s `TransactionType.Loadout` activity.
     */
   def Loadout(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = Terminal.NoDeal()
 }

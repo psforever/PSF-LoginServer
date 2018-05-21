@@ -17,6 +17,7 @@ object VehicleResponse {
   final case class DetachFromRails(vehicle_guid : PlanetSideGUID, rails_guid : PlanetSideGUID, rails_pos : Vector3, rails_rot : Float) extends Response
   final case class DismountVehicle(unk1 : Int, unk2 : Boolean) extends Response
   final case class InventoryState(obj : PlanetSideGameObject, parent_guid : PlanetSideGUID, start : Int, con_data : ConstructorData) extends Response
+  final case class InventoryState2(obj_guid : PlanetSideGUID, parent_guid : PlanetSideGUID, value : Int) extends Response
   final case class KickPassenger(unk1 : Int, unk2 : Boolean, vehicle_guid : PlanetSideGUID) extends Response
   final case class LoadVehicle(vehicle : Vehicle, vtype : Int, vguid : PlanetSideGUID, vdata : ConstructorData) extends Response
   final case class MountVehicle(object_guid : PlanetSideGUID, seat : Int) extends Response
