@@ -14,7 +14,7 @@ class DismountVehicleMsgTest extends Specification {
     PacketCoding.DecodePacket(string).require match {
       case DismountVehicleMsg(player_guid, bailType, wasKickedByDriver) =>
         player_guid mustEqual PlanetSideGUID(2502)
-        bailType mustEqual 0
+        bailType mustEqual BailType.Normal
         wasKickedByDriver mustEqual false
       case _ =>
         ko
