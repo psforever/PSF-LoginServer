@@ -1043,6 +1043,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case VehicleSpawnPad.StartPlayerSeatedInVehicle(vehicle, pad) =>
       val vehicle_guid = vehicle.GUID
+      PlayerActionsToCancel()
+      if(player.VisibleSlots.contains(player.DrawnSlot)) {
+        player.DrawnSlot = Player.HandsDownSlot
+        sendResponse(ObjectHeldMessage(player.GUID, Player.HandsDownSlot, true))
+        avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectHeld(player.GUID, player.LastDrawnSlot))
+      }
       sendResponse(PlanetsideAttributeMessage(vehicle_guid, 22, 1L)) //mount points off?
       sendResponse(PlanetsideAttributeMessage(vehicle_guid, 21, player.GUID.guid)) //fte and ownership?
 
@@ -3846,11 +3852,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
         avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireState_Stop(player.GUID, guid))
         shooting = None
       case None => ;
-    }
-    if(player != null && player.isAlive && player.VisibleSlots.contains(player.DrawnSlot)) {
-      player.DrawnSlot = Player.HandsDownSlot
-      sendResponse(ObjectHeldMessage(player.GUID, Player.HandsDownSlot, true))
-      avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectHeld(player.GUID, player.LastDrawnSlot))
     }
     if(flying) {
       sendResponse(ChatMsg(ChatMessageType.CMT_FLY, false, "", "off", None))
