@@ -278,11 +278,38 @@ object GlobalDefinitions {
 
   val flamethrower = ToolDefinition(ObjectClass.flamethrower)
 
-  val trhev_dualcycler = ToolDefinition(ObjectClass.trhev_dualcycler)
+  val trhev_dualcycler = new ToolDefinition(ObjectClass.trhev_dualcycler) {
+    override def NextFireModeIndex(index : Int) : Int = index
+  }
 
-  val trhev_pounder = ToolDefinition(ObjectClass.trhev_pounder)
+  val trhev_pounder = new ToolDefinition(ObjectClass.trhev_pounder) {
+    override def NextFireModeIndex(index : Int) : Int = {
+      //TODO other modes
+      if(index == 0 || index == 3) {
+        if(index == 0) {
+          3 //3-second fuse
+        }
+        else {
+          0 //explode on contact
+        }
+      }
+      else if(index == 1 || index == 4) {
+        if(index == 1) {
+          4 //3-second fuse, anchored
+        }
+        else {
+          1 //explode on contact, anchored
+        }
+      }
+      else {
+        index
+      }
+    }
+  }
 
-  val trhev_burster = ToolDefinition(ObjectClass.trhev_burster)
+  val trhev_burster = new ToolDefinition(ObjectClass.trhev_burster) {
+    override def NextFireModeIndex(index : Int) : Int = index
+  }
 
   val nchev_scattercannon = ToolDefinition(ObjectClass.nchev_scattercannon)
 
@@ -1672,18 +1699,42 @@ object GlobalDefinitions {
     trhev_dualcycler.FireModes.head.AmmoTypeIndices += 0
     trhev_dualcycler.FireModes.head.AmmoSlotIndex = 0
     trhev_dualcycler.FireModes.head.Magazine = 200
+    trhev_dualcycler.FireModes += new FireModeDefinition //anchored
+    trhev_dualcycler.FireModes(1).AmmoTypeIndices += 0
+    trhev_dualcycler.FireModes(1).AmmoSlotIndex = 0
+    trhev_dualcycler.FireModes(1).Magazine = 200
+    trhev_dualcycler.FireModes += new FireModeDefinition //overdrive?
+    trhev_dualcycler.FireModes(2).AmmoTypeIndices += 0
+    trhev_dualcycler.FireModes(2).AmmoSlotIndex = 0
+    trhev_dualcycler.FireModes(2).Magazine = 200
 
     trhev_pounder.Name = "trhev_pounder"
     trhev_pounder.Size = EquipmentSize.Max
     trhev_pounder.AmmoTypes += pounder_ammo
     trhev_pounder.FireModes += new FireModeDefinition
-    trhev_pounder.FireModes.head.AmmoTypeIndices += 0
+    trhev_pounder.FireModes.head.AmmoTypeIndices += 0 //explode on contact
     trhev_pounder.FireModes.head.AmmoSlotIndex = 0
     trhev_pounder.FireModes.head.Magazine = 30
-    trhev_pounder.FireModes += new FireModeDefinition
+    trhev_pounder.FireModes += new FireModeDefinition //explode on contact, anchored
     trhev_pounder.FireModes(1).AmmoTypeIndices += 0
     trhev_pounder.FireModes(1).AmmoSlotIndex = 0
     trhev_pounder.FireModes(1).Magazine = 30
+    trhev_pounder.FireModes += new FireModeDefinition //explode on contact, overdrive?
+    trhev_pounder.FireModes(2).AmmoTypeIndices += 0
+    trhev_pounder.FireModes(2).AmmoSlotIndex = 0
+    trhev_pounder.FireModes(2).Magazine = 30
+    trhev_pounder.FireModes += new FireModeDefinition //3-second fuse
+    trhev_pounder.FireModes(3).AmmoTypeIndices += 0
+    trhev_pounder.FireModes(3).AmmoSlotIndex = 0
+    trhev_pounder.FireModes(3).Magazine = 30
+    trhev_pounder.FireModes += new FireModeDefinition //3-second fuse, anchored
+    trhev_pounder.FireModes(4).AmmoTypeIndices += 0
+    trhev_pounder.FireModes(4).AmmoSlotIndex = 0
+    trhev_pounder.FireModes(4).Magazine = 30
+    trhev_pounder.FireModes += new FireModeDefinition //3-second fuse, overdrive?
+    trhev_pounder.FireModes(5).AmmoTypeIndices += 0
+    trhev_pounder.FireModes(5).AmmoSlotIndex = 0
+    trhev_pounder.FireModes(5).Magazine = 30
 
     trhev_burster.Name = "trhev_burster"
     trhev_burster.Size = EquipmentSize.Max
@@ -2080,7 +2131,7 @@ object GlobalDefinitions {
     lightning_weapon_system.Name = "lightning_weapon_system"
     lightning_weapon_system.Size = EquipmentSize.VehicleWeapon
     lightning_weapon_system.AmmoTypes += bullet_75mm
-    lightning_weapon_system.AmmoTypes += bullet_25mm
+    lightning_weapon_system.AmmoTypes += bullet_12mm
     lightning_weapon_system.FireModes += new FireModeDefinition
     lightning_weapon_system.FireModes.head.AmmoTypeIndices += 0
     lightning_weapon_system.FireModes.head.AmmoSlotIndex = 0

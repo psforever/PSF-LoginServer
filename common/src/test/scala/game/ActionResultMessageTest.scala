@@ -7,27 +7,54 @@ import net.psforever.packet.game._
 import scodec.bits._
 
 class ActionResultMessageTest extends Specification {
-  "decode" in {
-    PacketCoding.DecodePacket(hex"1f 80").require match {
-      case ActionResultMessage(okay, code) =>
-        okay === true
-        code === None
-      case _ =>
-        ko
-    }
+  val string_pass = hex"1f 80"
+  val string_fail = hex"1f 0080000000"
 
-    PacketCoding.DecodePacket((hex"1f".bits ++ bin"0" ++ hex"01000000".bits).toByteVector).require match {
+  "decode (pass)" in {
+    PacketCoding.DecodePacket(string_pass).require match {
       case ActionResultMessage(okay, code) =>
-        okay === false
-        code === Some(1)
+        okay mustEqual true
+        code mustEqual None
       case _ =>
         ko
     }
   }
 
-  "encode" in {
-    PacketCoding.EncodePacket(ActionResultMessage(true, None)).require.toByteVector === hex"1f 80"
-    PacketCoding.EncodePacket(ActionResultMessage(false, Some(1))).require.toByteVector ===
-      (hex"1f".bits ++ bin"0" ++ hex"01000000".bits).toByteVector
+  "decode (fail)" in {
+    PacketCoding.DecodePacket(string_fail).require match {
+      case ActionResultMessage(okay, code) =>
+        okay mustEqual false
+        code mustEqual Some(1)
+      case _ =>
+        ko
+    }
+  }
+
+  "encode (pass, full)" in {
+    val msg = ActionResultMessage(true, None)
+    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+    pkt mustEqual string_pass
+  }
+
+  "encode (pass, minimal)" in {
+    val msg = ActionResultMessage()
+    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+    pkt mustEqual string_pass
+  }
+
+  "encode (fail, full)" in {
+    val msg = ActionResultMessage(false, Some(1))
+    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+    pkt mustEqual string_fail
+  }
+
+  "encode (fail, minimal)" in {
+    val msg = ActionResultMessage(1)
+    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+    pkt mustEqual string_fail
   }
 }

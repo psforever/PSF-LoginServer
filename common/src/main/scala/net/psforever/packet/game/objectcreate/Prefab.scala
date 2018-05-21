@@ -223,7 +223,7 @@ object Prefab {
       VehicleData(CommonFieldData(loc, faction, 0), 0, health, false, false, DriveState.State7, true, false, false, None,
         Some(InventoryData(
           InventoryItemData(ObjectClass.lightning_weapon_system, weapon_guid, 1,
-            WeaponData(0x4, 0x8, 0, ObjectClass.bullet_75mm, ammo1_guid, 0, AmmoBoxData(0x0), ObjectClass.bullet_25mm, ammo2_guid, 1, AmmoBoxData(0x0))
+            WeaponData(0x4, 0x8, 0, ObjectClass.bullet_75mm, ammo1_guid, 0, AmmoBoxData(0x0), ObjectClass.bullet_12mm, ammo2_guid, 1, AmmoBoxData(0x0))
           ) :: Nil)
         )
       )(VehicleFormat.Normal)

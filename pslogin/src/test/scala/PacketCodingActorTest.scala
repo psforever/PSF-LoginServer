@@ -63,7 +63,7 @@ class PacketCodingActor4Test extends ActorTest {
 
       val msg = ActorTest.MDCGamePacket(PacketCoding.CreateGamePacket(0, string_obj))
       probe2 ! msg
-      val reply1 = receiveOne(100 milli) //we get a MdcMsg message back
+      val reply1 = receiveOne(300 milli) //we get a MdcMsg message back
       probe2 ! reply1 //by feeding the MdcMsg into the actor, we get normal output on the probe
       probe1.expectMsg(string_hex)
     }
@@ -83,7 +83,7 @@ class PacketCodingActor5Test extends ActorTest {
       probe1.receiveOne(100 milli) //consume
 
       pca ! string_hex
-      val reply = probe1.receiveOne(100 milli)
+      val reply = probe1.receiveOne(300 milli)
       reply match {
         case GamePacket(_, _, msg) => ;
           assert(msg == string_obj)
@@ -126,7 +126,7 @@ class PacketCodingActor7Test extends ActorTest {
 
       val msg = ActorTest.MDCControlPacket(PacketCoding.CreateControlPacket(string_obj))
       probe2 ! msg
-      val reply1 = receiveOne(100 milli) //we get a MdcMsg message back
+      val reply1 = receiveOne(300 milli) //we get a MdcMsg message back
       probe2 ! reply1 //by feeding the MdcMsg into the actor, we get normal output on the probe
       probe1.expectMsg(string_hex)
     }
@@ -146,7 +146,7 @@ class PacketCodingActor8Test extends ActorTest {
       probe1.receiveOne(100 milli) //consume
 
       pca ! string_hex
-      val reply = probe1.receiveOne(100 milli)
+      val reply = probe1.receiveOne(300 milli)
       reply match {
         case ControlPacket(_, msg) => ;
           assert(msg == string_obj)
@@ -200,7 +200,7 @@ class PacketCodingActorBTest extends ActorTest {
       probe1.receiveOne(100 milli) //consume
 
       probe2 ! "unhandled message"
-      val reply1 = receiveOne(100 milli) //we get a MdcMsg message back
+      val reply1 = receiveOne(300 milli) //we get a MdcMsg message back
       probe2 ! reply1 //by feeding the MdcMsg into the actor, we get normal output on the probe
       probe1.expectMsg("unhandled message")
     }
@@ -379,10 +379,10 @@ class PacketCodingActorETest extends ActorTest {
       probe1.receiveOne(100 milli) //consume
 
       pca ! string_hex
-      val reply = probe1.receiveN(2, 200 milli)
+      val reply = probe1.receiveN(2, 400 milli)
       assert(reply.head == string_obj1)
       assert(reply(1) == string_obj2)
-      probe1.expectNoMsg(100 milli)
+      probe1.expectNoMsg(300 milli)
     }
   }
 }
@@ -400,10 +400,10 @@ class PacketCodingActorFTest extends ActorTest {
       probe1.receiveOne(100 milli) //consume
 
       pca ! string_hex
-      val reply = probe1.receiveN(1, 200 milli)
+      val reply = probe1.receiveN(1, 400 milli)
       assert(reply.head == string_obj)
       //the RelatedB message - 00 15 02 98 - is consumed by pca
-      probe1.expectNoMsg(100 milli)
+      probe1.expectNoMsg(300 milli)
     }
   }
 }
@@ -421,10 +421,10 @@ class PacketCodingActorGTest extends ActorTest {
       probe1.receiveOne(100 milli) //consume
 
       pca ! string_hex
-      val reply = probe1.receiveN(1, 200 milli)
+      val reply = probe1.receiveN(1, 400 milli)
       assert(reply.head == string_obj)
       //the RelatedA message - 00 11 02 98 - is consumed by pca; should see error log message in console
-      probe1.expectNoMsg(100 milli)
+      probe1.expectNoMsg(300 milli)
     }
   }
 }
@@ -443,10 +443,10 @@ class PacketCodingActorHTest extends ActorTest {
       probe1.receiveOne(100 milli) //consume
 
       pca ! string_hex
-      val reply = probe1.receiveN(2, 200 milli)
+      val reply = probe1.receiveN(2, 400 milli)
       assert(reply.head == string_obj1)
       assert(reply(1) == string_obj2)
-      probe1.expectNoMsg(100 milli)
+      probe1.expectNoMsg(300 milli)
     }
   }
 }
@@ -498,10 +498,10 @@ class PacketCodingActorITest extends ActorTest {
       probe1.receiveOne(100 milli) //consume
 
       probe2 ! pkt
-      val reply1 = receiveN(1, 200 milli) //we get a MdcMsg message back
+      val reply1 = receiveN(1, 400 milli) //we get a MdcMsg message back
       probe1.receiveN(1, 200 milli) //flush contents
       probe2 ! reply1.head //by feeding the MdcMsg into the actor, we get normal output on the probe
-      probe1.receiveOne(100 milli) match {
+      probe1.receiveOne(300 milli) match {
         case RawPacket(data) =>
           assert(data == string_hex)
           PacketCoding.DecodePacket(data).require match {
@@ -532,10 +532,10 @@ class PacketCodingActorJTest extends ActorTest {
       probe1.receiveOne(100 milli) //consume
 
       probe2 ! pkt
-      val reply1 = receiveN(1, 200 milli) //we get a MdcMsg message back
+      val reply1 = receiveN(1, 400 milli) //we get a MdcMsg message back
       probe1.receiveN(1, 200 milli) //flush contents
       probe2 ! reply1.head //by feeding the MdcMsg into the actor, we get normal output on the probe
-      probe1.receiveOne(100 milli) match {
+      probe1.receiveOne(300 milli) match {
         case RawPacket(data) =>
           assert(data == string_hex)
         case e =>
@@ -600,13 +600,13 @@ class PacketCodingActorKTest extends ActorTest {
       probe1.receiveOne(100 milli) //consume
 
       probe2 ! pkt
-      val reply1 = receiveN(2, 200 milli)
+      val reply1 = receiveN(2, 400 milli)
       probe1.receiveN(1, 200 milli) //flush contents
       probe2 ! reply1.head //by feeding the MdcMsg into the actor, we get normal output on the probe
-      val reply3 = probe1.receiveOne(100 milli).asInstanceOf[RawPacket]
+      val reply3 = probe1.receiveOne(300 milli).asInstanceOf[RawPacket]
 
       pca ! reply3 //reconstruct original three packets from the first bundle
-      val reply4 = probe1.receiveN(3, 200 milli)
+      val reply4 = probe1.receiveN(3, 400 milli)
       var i = 0
       reply4.foreach{
         case GamePacket(_, _, packet) =>
