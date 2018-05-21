@@ -25,8 +25,10 @@ In order to use scala, you need the compiler `scalac`. This is equivalent to Jav
 Install this on to your system and the compiler and Scala REPL will be added to your PATH.
 
 ### Downloading PSCrypto
-The server requires PSCrypto in order to run. [Download the latest release](https://github.com/psforever/PSCrypto/releases/download/v1.1/pscrypto-lib-1.1.zip) and extract the ZIP in to the top level of your source directory. SBT, IDEA, and Java will automatically find the required libraries when running the server.
+The server requires PSCrypto in order to run. [Download the latest release](https://github.com/psforever/PSCrypto/releases/download/v1.1/pscrypto-lib-1.1.zip) and extract the the approprate dll for your operating system to the top level of your source directory (the root directory, not /pslogin/src/main/scala). SBT, IDEA, and Java will automatically find the required libraries when running the server.
 If you are not comfortable with compiled binaries, you can [build the libraries yourself](https://github.com/psforever/PSCrypto).
+
+If you have any issues with PSCrypto being detected when trying to run the server try adding `-Djava.library.path=` (no path necessary) to your preferred IDE's build configuration, for example with IDEA: Run -> Edit Configuration -> VM Options
 
 ### Using an IDE
 Scala code can be fairly complex and a good IDE helps you understand the code and what methods are available for certain types.
