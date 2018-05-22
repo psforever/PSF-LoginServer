@@ -2,6 +2,7 @@
 package services.local
 
 import akka.actor.{Actor, Props}
+import net.psforever.packet.game.objectcreate.{DroppedItemData, PlacementData}
 import services.local.support.{DoorCloseActor, HackClearActor}
 import services.{GenericEventBus, Service}
 
@@ -45,6 +46,17 @@ class LocalService extends Actor {
         case LocalAction.DoorCloses(player_guid, door_guid) =>
           LocalEvents.publish(
             LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.DoorCloses(door_guid))
+          )
+        case LocalAction.DropItem(player_guid, item) =>
+          val definition = item.Definition
+          val objectData = DroppedItemData(
+            PlacementData(item.Position, item.Orientation),
+            definition.Packet.ConstructorData(item).get
+          )
+          LocalEvents.publish(
+            LocalServiceResponse(s"/$forChannel/Local", player_guid,
+              LocalResponse.DropItem(definition.ObjectId, item.GUID, objectData)
+            )
           )
         case LocalAction.HackClear(player_guid, target, unk1, unk2) =>
           LocalEvents.publish(

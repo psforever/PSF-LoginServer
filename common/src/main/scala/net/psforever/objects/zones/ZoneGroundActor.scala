@@ -16,18 +16,22 @@ class ZoneGroundActor(equipmentOnGround : ListBuffer[Equipment]) extends Actor {
   //private[this] val log = org.log4s.getLogger
 
   def receive : Receive = {
-    case Zone.DropItemOnGround(item, pos, orient) =>
-      item.Position = pos
-      item.Orientation = orient
-      equipmentOnGround += item
-
-    case Zone.GetItemOnGround(player, item_guid) =>
-      FindItemOnGround(item_guid) match {
-        case Some(item) =>
-          sender ! Zone.ItemFromGround(player, item)
+    case Zone.Ground.DropItem(item, pos, orient) =>
+      sender ! (FindItemOnGround(item.GUID) match {
         case None =>
-          org.log4s.getLogger.warn(s"item on ground $item_guid was requested by $player for pickup but was not found")
-      }
+          equipmentOnGround += item
+          Zone.Ground.ItemOnGround(item, pos, orient)
+        case Some(_) =>
+          Zone.Ground.CanNotDropItem(item)
+      })
+
+    case Zone.Ground.PickupItem(item_guid) =>
+      sender ! (FindItemOnGround(item_guid) match {
+        case Some(item) =>
+          Zone.Ground.ItemInHand(item)
+        case None =>
+          Zone.Ground.CanNotPickupItem(item_guid)
+      })
 
     case _ => ;
   }

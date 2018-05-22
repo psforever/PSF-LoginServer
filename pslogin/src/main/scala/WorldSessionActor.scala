@@ -255,7 +255,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
         case AvatarResponse.ChangeAmmo(weapon_guid, weapon_slot, previous_guid, ammo_id, ammo_guid, ammo_data) =>
           if(tplayer_guid != guid) {
-            sendResponse(ObjectDetachMessage(weapon_guid, previous_guid, Vector3(0,0,0), 0f, 0f, 0f))
+            sendResponse(ObjectDetachMessage(weapon_guid, previous_guid, Vector3.Zero, 0))
             sendResponse(
               ObjectCreateMessage(
                 ammo_id,
@@ -405,7 +405,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       }
 
     case LocalServiceResponse(_, guid, reply) =>
-      val tplayer_guid = if(player.HasGUID) { player.GUID} else { PlanetSideGUID(0) }
+      val tplayer_guid = if(player.HasGUID) { player.GUID} else { PlanetSideGUID(-1) }
       reply match {
         case LocalResponse.DoorOpens(door_guid) =>
           if(tplayer_guid != guid) {
@@ -415,16 +415,21 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case LocalResponse.DoorCloses(door_guid) => //door closes for everyone
           sendResponse(GenericObjectStateMsg(door_guid, 17))
 
+        case LocalResponse.DropItem(id, item_guid, data) =>
+          if(tplayer_guid != guid) {
+            sendResponse(ObjectCreateMessage(id, item_guid, data))
+          }
+
         case LocalResponse.HackClear(target_guid, unk1, unk2) =>
           sendResponse(HackMessage(0, target_guid, guid, 0, unk1, HackState.HackCleared, unk2))
 
         case LocalResponse.HackObject(target_guid, unk1, unk2) =>
-          if(player.GUID != guid) {
+          if(tplayer_guid != guid) {
             sendResponse(HackMessage(0, target_guid, guid, 100, unk1, HackState.Hacked, unk2))
           }
 
         case LocalResponse.ProximityTerminalEffect(object_guid, effectState) =>
-          if(player.GUID != guid) {
+          if(tplayer_guid != guid) {
             sendResponse(ProximityTerminalUseMessage(PlanetSideGUID(0), object_guid, effectState))
           }
 
@@ -465,7 +470,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           }
 
         case VehicleResponse.DetachFromRails(vehicle_guid, pad_guid, pad_position, pad_orientation_z) =>
-          sendResponse(ObjectDetachMessage(pad_guid, vehicle_guid, pad_position + Vector3(0,0,0.5f), 0, 0, pad_orientation_z))
+          sendResponse(ObjectDetachMessage(pad_guid, vehicle_guid, pad_position + Vector3(0,0,0.5f), pad_orientation_z))
 
         case VehicleResponse.InventoryState(obj, parent_guid, start, con_data) =>
           if(tplayer_guid != guid) {
@@ -844,12 +849,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
             })
             //drop items on ground
             val pos = tplayer.Position
-            val orient = tplayer.Orientation
+            val orient = Vector3(0,0, tplayer.Orientation.z)
             ((dropHolsters ++ dropInventory).map(_.obj) ++ drop).foreach(obj => {
-              continent.Ground ! Zone.DropItemOnGround(obj, pos, Vector3(0f, 0f, orient.z))
-              sendResponse(ObjectDetachMessage(tplayer.GUID, obj.GUID, pos, 0f, 0f, orient.z))
-              val objDef = obj.Definition
-              avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.EquipmentOnGround(tplayer.GUID, pos, orient, objDef.ObjectId, obj.GUID, objDef.Packet.ConstructorData(obj).get))
+              //TODO make a sound when dropping stuff
+              continent.Ground ! Zone.Ground.DropItem(obj, pos, orient)
             })
             sendResponse(ItemTransactionResultMessage (msg.terminal_guid, TransactionType.Buy, true))
           }
@@ -938,12 +941,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
           })
           //drop stuff on ground
           val pos = tplayer.Position
-          val orient = tplayer.Orientation
+          val orient = Vector3(0,0, tplayer.Orientation.z)
           ((dropHolsters ++ dropInventory).map(_.obj)).foreach(obj => {
-            continent.Ground ! Zone.DropItemOnGround(obj, pos, Vector3(0f, 0f, orient.z))
-            sendResponse(ObjectDetachMessage(tplayer.GUID, obj.GUID, pos, 0f, 0f, orient.z))
-            val objDef = obj.Definition
-            avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.EquipmentOnGround(tplayer.GUID, pos, orient, objDef.ObjectId, obj.GUID, objDef.Packet.ConstructorData(obj).get))
+            continent.Ground ! Zone.Ground.DropItem(obj, pos, orient)
           })
 
         case Terminal.VehicleLoadout(definition, weapons, inventory) =>
@@ -1177,7 +1177,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case VehicleSpawnPad.ServerVehicleOverrideStart(vehicle, pad) =>
       val vdef = vehicle.Definition
       if(vehicle.Seats(0).isOccupied) {
-        sendResponse(ObjectDetachMessage(pad.GUID, vehicle.GUID, pad.Position + Vector3(0, 0, 0.5f), 0, 0, pad.Orientation.z))
+        sendResponse(ObjectDetachMessage(pad.GUID, vehicle.GUID, pad.Position + Vector3(0, 0, 0.5f), pad.Orientation.z))
       }
       ServerVehicleOverride(vehicle, vdef.AutoPilotSpeed1, GlobalDefinitions.isFlightVehicle(vdef):Int)
 
@@ -1375,6 +1375,62 @@ class WorldSessionActor extends Actor with MDCContextAware {
         RequestSanctuaryZoneSpawn(player, zone_number)
       }
 
+    case Zone.Ground.ItemOnGround(item, pos, orient) =>
+      item.Position = pos
+      item.Orientation = Vector3(0,0, orient.z) //only one kind of rotation is important
+      val exclusionId = player.Find(item) match {
+        case Some(slotNum) =>
+          player.Slot(slotNum).Equipment = None
+          sendResponse(ObjectDetachMessage(player.GUID, item.GUID, pos, orient.z))
+          sendResponse(ActionResultMessage.Pass)
+          player.GUID //we're dropping it; don't need to see it dropped again
+        case None =>
+          PlanetSideGUID(0) //object is being introduced into the world upon drop
+      }
+      localService ! LocalServiceMessage(continent.Id, LocalAction.DropItem(exclusionId, item))
+
+    case Zone.Ground.CanNotDropItem(item) =>
+      log.warn(s"DropItem: $player tried to drop a $item on the ground, but he missed")
+      player.Find(item) match {
+        case None => //item in limbo
+          taskResolver ! GUIDTask.UnregisterEquipment(item)(continent.GUID)
+        case Some(_) => ;
+      }
+
+    case Zone.Ground.ItemInHand(item) =>
+      player.Fit(item) match {
+        case Some(slotNum) =>
+          val item_guid = item.GUID
+          val player_guid = player.GUID
+          player.Slot(slotNum).Equipment = item
+          val definition = item.Definition
+          sendResponse(
+            ObjectCreateDetailedMessage(
+              definition.ObjectId,
+              item_guid,
+              ObjectCreateMessageParent(player_guid, slotNum),
+              definition.Packet.DetailedConstructorData(item).get
+            )
+          )
+          avatarService ! AvatarServiceMessage(continent.Id, if(player.VisibleSlots.contains(slotNum)) {
+            AvatarAction.EquipmentInHand(player_guid, player_guid, slotNum, item)
+          }
+          else {
+            AvatarAction.ObjectDelete(player_guid, item_guid)
+          })
+          sendResponse(ActionResultMessage.Pass)
+        case None =>
+          continent.Ground ! Zone.Ground.DropItem(item, item.Position, item.Orientation) //restore previous state
+      }
+
+    case Zone.Ground.CanNotPickupItem(item_guid) =>
+      continent.GUID(item_guid) match {
+        case Some(item) =>
+          log.warn(s"DropItem: finding a $item on the ground was suggested, but $player can not reach it")
+        case None =>
+          log.warn(s"DropItem: finding an item ($item_guid) on the ground was suggested, but $player can not see it")
+      }
+
     case InterstellarCluster.ClientInitializationComplete() =>
       StopBundlingPackets()
       LivePlayerList.Add(sessionId, avatar)
@@ -1466,31 +1522,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
       //MapObjectStateBlockMessage and ObjectCreateMessage
       //TacticsMessage
       StopBundlingPackets()
-
-
-    case Zone.ItemFromGround(tplayer, item) =>
-      val obj_guid = item.GUID
-      val player_guid = tplayer.GUID
-      tplayer.Fit(item) match {
-        case Some(slot) =>
-          tplayer.Slot(slot).Equipment = item
-          avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.ObjectDelete(player_guid, obj_guid))
-          val definition = item.Definition
-          sendResponse(
-            ObjectCreateDetailedMessage(
-              definition.ObjectId,
-              obj_guid,
-              ObjectCreateMessageParent(player_guid, slot),
-              definition.Packet.DetailedConstructorData(item).get
-            )
-          )
-          sendResponse(ActionResultMessage())
-          if(tplayer.VisibleSlots.contains(slot)) {
-            avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.EquipmentInHand(player_guid, player_guid, slot, item))
-          }
-        case None =>
-          continent.Ground ! Zone.DropItemOnGround(item, item.Position, item.Orientation) //restore
-      }
 
     case ItemHacking(tplayer, target, tool_guid, delta, completeAction, tickAction) =>
       progressBarUpdate.cancel
@@ -1607,18 +1638,17 @@ class WorldSessionActor extends Actor with MDCContextAware {
       import scala.concurrent.ExecutionContext.Implicits.global
       clientKeepAlive.cancel
       clientKeepAlive = context.system.scheduler.schedule(0 seconds, 500 milliseconds, self, PokeClient())
-      log.warn(PacketCoding.DecodePacket(hex"d2327e7b8a972b95113881003710").toString)
 
     case msg @ CharacterCreateRequestMessage(name, head, voice, gender, empire) =>
       log.info("Handling " + msg)
-      sendResponse(ActionResultMessage(true, None))
+      sendResponse(ActionResultMessage.Pass)
       self ! ListAccountCharacters
 
     case msg @ CharacterRequestMessage(charId, action) =>
       log.info("Handling " + msg)
       action match {
         case CharacterRequestAction.Delete =>
-          sendResponse(ActionResultMessage(false, Some(1)))
+          sendResponse(ActionResultMessage.Fail(1))
         case CharacterRequestAction.Select =>
           //TODO check if can spawn on last continent/location from player?
           //TODO if yes, get continent guid accessors
@@ -1828,7 +1858,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           import scala.concurrent.duration._
           import scala.concurrent.ExecutionContext.Implicits.global
           context.system.scheduler.scheduleOnce(50 milliseconds, self, UnregisterCorpseOnVehicleDisembark(player))
-          //sendResponse(ObjectDetachMessage(vehicle_guid, player.GUID, Vector3.Zero, 0, 0, 0))
+          //sendResponse(ObjectDetachMessage(vehicle_guid, player.GUID, Vector3.Zero, 0))
           //sendResponse(PlayerStateShiftMessage(ShiftState(1, Vector3.Zero, 0)))
       }
 
@@ -1989,8 +2019,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
                   val tailReloadValue : Int = if(xs.isEmpty) { 0 } else { xs.map(_.obj.asInstanceOf[AmmoBox].Capacity).reduceLeft(_ + _) }
                   val sumReloadValue : Int = originalBoxCapacity + tailReloadValue
                   val previousBox = tool.AmmoSlot.Box //current magazine in tool
-                  sendResponse(ObjectDetachMessage(tool.GUID, previousBox.GUID, Vector3(0f, 0f, 0f), 0f, 0f, 0f))
-                  sendResponse(ObjectDetachMessage(player.GUID, box.GUID, Vector3(0f, 0f, 0f), 0f, 0f, 0f))
+                  sendResponse(ObjectDetachMessage(tool.GUID, previousBox.GUID, Vector3.Zero, 0f))
+                  sendResponse(ObjectDetachMessage(player.GUID, box.GUID, Vector3.Zero, 0f))
                   obj.Inventory -= x.start //remove replacement ammo from inventory
                   val ammoSlotIndex = tool.FireMode.AmmoSlotIndex
                   tool.AmmoSlots(ammoSlotIndex).Box = box //put replacement ammo in tool
@@ -2158,27 +2188,37 @@ class WorldSessionActor extends Actor with MDCContextAware {
       sendResponse(EmoteMsg(avatar_guid, emote))
 
     case msg @ DropItemMessage(item_guid) =>
-      log.info("DropItem: " + msg)
-      player.FreeHand.Equipment match {
-        case Some(item) =>
-          if(item.GUID == item_guid) {
-            val orient : Vector3 = Vector3(0f, 0f, player.Orientation.z)
-            player.FreeHand.Equipment = None
-            continent.Ground ! Zone.DropItemOnGround(item, player.Position, orient)
-            sendResponse(ObjectDetachMessage(player.GUID, item.GUID, player.Position, 0f, 0f, player.Orientation.z))
-            val objDef = item.Definition
-            avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.EquipmentOnGround(player.GUID, player.Position, orient, objDef.ObjectId, item.GUID, objDef.Packet.ConstructorData(item).get))
+      log.info(s"DropItem: $msg")
+      continent.GUID(item_guid) match {
+        case Some(item : Equipment) =>
+          player.FreeHand.Equipment match {
+            case Some(_) =>
+              if(item.GUID == item_guid) {
+                continent.Ground ! Zone.Ground.DropItem(item, player.Position, player.Orientation)
+              }
+            case None =>
+              log.warn(s"DropItem: $player wanted to drop a $item, but it wasn't at hand")
           }
-          else {
-            log.warn(s"item in hand was ${item.GUID} but trying to drop $item_guid; nothing will be dropped")
-          }
+        case Some(obj) => //TODO LLU
+          log.warn(s"DropItem: $player wanted to drop a $obj, but that isn't possible")
         case None =>
-          log.error(s"$player wanted to drop an item, but it was not in hand")
+          log.warn(s"DropItem: $player wanted to drop an item ($item_guid), but it was nowhere to be found")
       }
 
     case msg @ PickupItemMessage(item_guid, player_guid, unk1, unk2) =>
-      log.info("PickupItem: " + msg)
-      continent.Ground ! Zone.GetItemOnGround(player, item_guid)
+      log.info(s"PickupItem: $msg")
+      continent.GUID(item_guid) match {
+        case Some(item : Equipment) =>
+          player.Fit(item) match {
+            case Some(_) =>
+              continent.Ground ! Zone.Ground.PickupItem(item_guid)
+            case None => //skip
+              sendResponse(ActionResultMessage.Fail(16)) //error code?
+          }
+        case _ =>
+          log.warn(s"PickupItem: $player requested an item that doesn't exist in this zone; assume client-side garbage data")
+          sendResponse(ObjectDeleteMessage(item_guid, 0))
+      }
 
     case msg @ ReloadMessage(item_guid, ammo_clip, unk1) =>
       log.info("Reload: " + msg)
@@ -3847,14 +3887,14 @@ class WorldSessionActor extends Actor with MDCContextAware {
       case Some(InventoryItem(item2, destIndex)) => //yes, swap
         //cleanly shuffle items around to avoid losing icons
         //the next ObjectDetachMessage is necessary to avoid icons being lost, but only as part of this swap
-        sendResponse(ObjectDetachMessage(source_guid, item_guid, Vector3.Zero, 0f, 0f, 0f))
+        sendResponse(ObjectDetachMessage(source_guid, item_guid, Vector3.Zero, 0f))
         val item2_guid = item2.GUID
         destination.Slot(destIndex).Equipment = None //remove the swap item from destination
         (indexSlot.Equipment = item2) match {
           case Some(_) => //item and item2 swapped places successfully
             log.info(s"MoveItem: $item2 swapped to $source @ $index")
             //remove item2 from destination
-            sendResponse(ObjectDetachMessage(destination_guid, item2_guid, Vector3.Zero, 0f, 0f, 0f))
+            sendResponse(ObjectDetachMessage(destination_guid, item2_guid, Vector3.Zero, 0f))
             destination match {
               case obj : Vehicle =>
                 vehicleService ! VehicleServiceMessage(s"${obj.Actor}", VehicleAction.UnstowEquipment(player_guid, item2_guid))
@@ -3897,8 +3937,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
             val pos = source.Position
             val sourceOrientZ = source.Orientation.z
             val orient : Vector3 = Vector3(0f, 0f, sourceOrientZ)
-            continent.Actor ! Zone.DropItemOnGround(item2, pos, orient)
-            sendResponse(ObjectDetachMessage(destination_guid, item2_guid, pos, 0f, 0f, sourceOrientZ)) //ground
+            continent.Ground ! Zone.Ground.DropItem(item2, pos, orient)
+            sendResponse(ObjectDetachMessage(destination_guid, item2_guid, pos, sourceOrientZ)) //ground
           val objDef = item2.Definition
             destination match {
               case obj : Vehicle =>
@@ -3956,15 +3996,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * @param item the item
     */
   def NormalItemDrop(obj : PlanetSideGameObject with Container, zone : Zone, service : ActorRef)(item : Equipment) : Unit = {
-    val itemGUID = item.GUID
-    val ang = obj.Orientation.z
-    val pos = obj.Position
-    val orient = Vector3(0f, 0f, ang)
-    item.Position = pos
-    item.Orientation = orient
-    zone.Ground ! Zone.DropItemOnGround(item, pos, orient)
-    val itemDef = item.Definition
-    service ! AvatarServiceMessage(zone.Id, AvatarAction.EquipmentOnGround(Service.defaultPlayerGUID, pos, orient, itemDef.ObjectId, itemGUID, itemDef.Packet.ConstructorData(item).get))
+    continent.Ground ! Zone.Ground.DropItem(item, obj.Position, Vector3(0f, 0f, obj.Orientation.z))
   }
 
   /**

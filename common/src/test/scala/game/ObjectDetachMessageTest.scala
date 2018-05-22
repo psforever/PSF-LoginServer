@@ -26,8 +26,22 @@ class ObjectDetachMessageTest extends Specification {
     }
   }
 
-  "encode" in {
+  "encode (1)" in {
     val msg = ObjectDetachMessage(PlanetSideGUID(2916), PlanetSideGUID(2502), Vector3(3567.1406f, 2988.0078f, 71.84375f), 0f, 0f, 270f)
+    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+    pkt mustEqual string
+  }
+
+  "encode (2)" in {
+    val msg = ObjectDetachMessage(PlanetSideGUID(2916), PlanetSideGUID(2502), Vector3(3567.1406f, 2988.0078f, 71.84375f), Vector3(0f, 0f, 270f))
+    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+    pkt mustEqual string
+  }
+
+  "encode (3)" in {
+    val msg = ObjectDetachMessage(PlanetSideGUID(2916), PlanetSideGUID(2502), Vector3(3567.1406f, 2988.0078f, 71.84375f), 270f)
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string

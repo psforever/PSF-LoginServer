@@ -477,7 +477,7 @@ class ZoneGroundTest extends ActorTest {
       assert(zone.EquipmentOnGround.isEmpty)
       assert(item.Position == Vector3.Zero)
       assert(item.Orientation == Vector3.Zero)
-      zone.Ground ! Zone.DropItemOnGround(item, Vector3(1.1f, 2.2f, 3.3f), Vector3(4.4f, 5.5f, 6.6f))
+      zone.Ground ! Zone.Ground.DropItem(item, Vector3(1.1f, 2.2f, 3.3f), Vector3(4.4f, 5.5f, 6.6f))
       expectNoMsg(Duration.create(100, "ms"))
 
       assert(zone.EquipmentOnGround == List(item))
@@ -490,17 +490,16 @@ class ZoneGroundTest extends ActorTest {
       val player = Player(Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5))
       system.actorOf(Props(classOf[ZoneTest.ZoneInitActor], zone), "get-item-test-good") ! "!"
       receiveOne(Duration.create(200, "ms")) //consume
-      zone.Ground ! Zone.DropItemOnGround(item, Vector3.Zero, Vector3.Zero)
+      zone.Ground ! Zone.Ground.DropItem(item, Vector3.Zero, Vector3.Zero)
       expectNoMsg(Duration.create(100, "ms"))
 
       assert(zone.EquipmentOnGround == List(item))
-      zone.Ground ! Zone.GetItemOnGround(player, PlanetSideGUID(10))
+      zone.Ground ! Zone.Ground.PickupItem(PlanetSideGUID(10))
       val reply = receiveOne(Duration.create(100, "ms"))
 
       assert(zone.EquipmentOnGround.isEmpty)
-      assert(reply.isInstanceOf[Zone.ItemFromGround])
-      assert(reply.asInstanceOf[Zone.ItemFromGround].player == player)
-      assert(reply.asInstanceOf[Zone.ItemFromGround].item == item)
+      assert(reply.isInstanceOf[Zone.Ground.ItemInHand])
+      assert(reply.asInstanceOf[Zone.Ground.ItemInHand].item == item)
     }
 
     "get item from ground (failure)" in {
@@ -508,11 +507,11 @@ class ZoneGroundTest extends ActorTest {
       val player = Player(Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5))
       system.actorOf(Props(classOf[ZoneTest.ZoneInitActor], zone), "get-item-test-fail") ! "!"
       receiveOne(Duration.create(200, "ms")) //consume
-      zone.Ground ! Zone.DropItemOnGround(item, Vector3.Zero, Vector3.Zero)
+      zone.Ground ! Zone.Ground.DropItem(item, Vector3.Zero, Vector3.Zero)
       expectNoMsg(Duration.create(100, "ms"))
 
       assert(zone.EquipmentOnGround == List(item))
-      zone.Ground ! Zone.GetItemOnGround(player, PlanetSideGUID(11)) //wrong guid
+      zone.Ground ! Zone.Ground.PickupItem(PlanetSideGUID(11)) //wrong guid
       expectNoMsg(Duration.create(500, "ms"))
     }
   }

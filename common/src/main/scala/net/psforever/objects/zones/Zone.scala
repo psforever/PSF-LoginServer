@@ -386,27 +386,15 @@ object Zone {
     final case class NoValidSpawnPoint(zone_number : Int, spawn_group : Option[Int])
   }
 
-  /**
-    * Message to relinguish an item and place in on the ground.
-    * @param item the piece of `Equipment`
-    * @param pos where it is dropped
-    * @param orient in which direction it is facing when dropped
-    */
-  final case class DropItemOnGround(item : Equipment, pos : Vector3, orient : Vector3)
+  object Ground {
+    final case class DropItem(item : Equipment, pos : Vector3, orient : Vector3)
+    final case class ItemOnGround(item : Equipment, pos : Vector3, orient : Vector3)
+    final case class CanNotDropItem(item : Equipment)
 
-  /**
-    * Message to attempt to acquire an item from the ground (before somoene else?).
-    * @param player who wants the piece of `Equipment`
-    * @param item_guid the unique identifier of the piece of `Equipment`
-    */
-  final case class GetItemOnGround(player : Player, item_guid : PlanetSideGUID)
-
-  /**
-    * Message to give an item from the ground to a specific user.
-    * @param player who wants the piece of `Equipment`
-    * @param item the piece of `Equipment`
-    */
-  final case class ItemFromGround(player : Player, item : Equipment)
+    final case class PickupItem(item_guid : PlanetSideGUID)
+    final case class ItemInHand(item : Equipment)
+    final case class CanNotPickupItem(item_guid : PlanetSideGUID)
+  }
 
   object Vehicle {
     final case class Spawn(vehicle : Vehicle)
