@@ -37,13 +37,14 @@ import net.psforever.objects.vehicles.{AccessPermissionGroup, Utility, VehicleLo
 import net.psforever.objects.zones.{InterstellarCluster, Zone}
 import net.psforever.packet.game.objectcreate._
 import net.psforever.types._
-import services._
+import services.{RemoverActor, _}
 import services.avatar.{AvatarAction, AvatarResponse, AvatarServiceMessage, AvatarServiceResponse}
 import services.local.{LocalAction, LocalResponse, LocalServiceMessage, LocalServiceResponse}
 import services.vehicle.VehicleAction.UnstowEquipment
 import services.vehicle.{VehicleAction, VehicleResponse, VehicleServiceMessage, VehicleServiceResponse}
 
 import scala.annotation.tailrec
+import scala.concurrent.duration._
 import scala.util.Success
 
 class WorldSessionActor extends Actor with MDCContextAware {
@@ -428,6 +429,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
             sendResponse(HackMessage(0, target_guid, guid, 100, unk1, HackState.Hacked, unk2))
           }
 
+        case LocalResponse.ObjectDelete(item_guid, unk) =>
+          if(tplayer_guid != guid) {
+            sendResponse(ObjectDeleteMessage(item_guid, unk))
+          }
+
         case LocalResponse.ProximityTerminalEffect(object_guid, effectState) =>
           if(tplayer_guid != guid) {
             sendResponse(ProximityTerminalUseMessage(PlanetSideGUID(0), object_guid, effectState))
@@ -590,7 +596,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
         sendResponse(DeployRequestMessage(player.GUID, vehicle_guid, state, 0, false, Vector3.Zero))
         vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.DeployRequest(player.GUID, vehicle_guid, state, 0, false, Vector3.Zero))
         DeploymentActivities(obj)
-        import scala.concurrent.duration._
         import scala.concurrent.ExecutionContext.Implicits.global
         context.system.scheduler.scheduleOnce(obj.DeployTime milliseconds, obj.Actor, Deployment.TryDeploy(DriveState.Deployed))
       }
@@ -612,7 +617,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
         sendResponse(DeployRequestMessage(player.GUID, vehicle_guid, state, 0, false, Vector3.Zero))
         vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.DeployRequest(player.GUID, vehicle_guid, state, 0, false, Vector3.Zero))
         DeploymentActivities(obj)
-        import scala.concurrent.duration._
         import scala.concurrent.ExecutionContext.Implicits.global
         context.system.scheduler.scheduleOnce(obj.UndeployTime milliseconds, obj.Actor, Deployment.TryUndeploy(DriveState.Mobile))
       }
@@ -1355,7 +1359,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
           (taskResolver, TaskBeforeZoneChange(GUIDTask.UnregisterAvatar(original)(continent.GUID), zone_id))
         }
       }
-      import scala.concurrent.duration._
       import scala.concurrent.ExecutionContext.Implicits.global
       respawnTimer = context.system.scheduler.scheduleOnce(respawnTime seconds, target, msg)
 
@@ -1387,6 +1390,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case None =>
           PlanetSideGUID(0) //object is being introduced into the world upon drop
       }
+      localService ! RemoverActor.AddTask(item, continent, Some(20 seconds))
       localService ! LocalServiceMessage(continent.Id, LocalAction.DropItem(exclusionId, item))
 
     case Zone.Ground.CanNotDropItem(item) =>
@@ -1400,6 +1404,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case Zone.Ground.ItemInHand(item) =>
       player.Fit(item) match {
         case Some(slotNum) =>
+          localService ! RemoverActor.ClearSpecific(List(item), continent)
           val item_guid = item.GUID
           val player_guid = player.GUID
           player.Slot(slotNum).Equipment = item
@@ -1476,7 +1481,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
       if(!corpse.isAlive && corpse.HasGUID) {
         corpse.VehicleSeated match {
           case Some(_) =>
-            import scala.concurrent.duration._
             import scala.concurrent.ExecutionContext.Implicits.global
             context.system.scheduler.scheduleOnce(50 milliseconds, self, UnregisterCorpseOnVehicleDisembark(corpse))
           case None =>
@@ -1546,7 +1550,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
         else { //continue next tick
           tickAction.getOrElse(() => Unit)()
           progressBarValue = Some(progressBarVal)
-          import scala.concurrent.duration._
           import scala.concurrent.ExecutionContext.Implicits.global
           progressBarUpdate = context.system.scheduler.scheduleOnce(250 milliseconds, self, ItemHacking(tplayer, target, tool_guid, delta, completeAction))
         }
@@ -1634,7 +1637,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
       player.Locker.Inventory += 0 -> SimpleItem(remote_electronics_kit)
       //TODO end temp player character auto-loading
       self ! ListAccountCharacters
-      import scala.concurrent.duration._
       import scala.concurrent.ExecutionContext.Implicits.global
       clientKeepAlive.cancel
       clientKeepAlive = context.system.scheduler.schedule(0 seconds, 500 milliseconds, self, PokeClient())
@@ -1855,7 +1857,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
           avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player_guid, player_guid, 0))
           self ! PacketCoding.CreateGamePacket(0, DismountVehicleMsg(player_guid, BailType.Normal, true)) //let vehicle try to clean up its fields
 
-          import scala.concurrent.duration._
           import scala.concurrent.ExecutionContext.Implicits.global
           context.system.scheduler.scheduleOnce(50 milliseconds, self, UnregisterCorpseOnVehicleDisembark(player))
           //sendResponse(ObjectDetachMessage(vehicle_guid, player.GUID, Vector3.Zero, 0))
@@ -4299,7 +4300,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
     PlayerActionsToCancel()
     CancelAllProximityUnits()
 
-    import scala.concurrent.duration._
     import scala.concurrent.ExecutionContext.Implicits.global
     reviveTimer = context.system.scheduler.scheduleOnce(respawnTimer milliseconds, galaxy, Zone.Lattice.RequestSpawnPoint(Zones.SanctuaryZoneNumber(tplayer.Faction), tplayer, 7))
   }
@@ -4440,7 +4440,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
     */
   def TryDisposeOfLootedCorpse(obj : Player) : Boolean = {
     if(WellLootedCorpse(obj)) {
-      import scala.concurrent.duration._
       import scala.concurrent.ExecutionContext.Implicits.global
       context.system.scheduler.scheduleOnce(1 second, avatarService, AvatarServiceMessage.RemoveSpecificCorpse(List(obj)))
       true
@@ -4518,7 +4517,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
   def SetDelayedProximityUnitReset(terminal : Terminal with ProximityUnit) : Unit = {
     val terminal_guid = terminal.GUID
     ClearDelayedProximityUnitReset(terminal_guid)
-    import scala.concurrent.duration._
     import scala.concurrent.ExecutionContext.Implicits.global
     delayedProximityTerminalResets += terminal_guid ->
       context.system.scheduler.scheduleOnce(3000 milliseconds, self, DelayedProximityUnitStop(terminal))

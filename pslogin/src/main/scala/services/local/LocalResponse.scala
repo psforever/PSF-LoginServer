@@ -13,6 +13,7 @@ object LocalResponse {
   final case class DropItem(item_id : Int, item_guid : PlanetSideGUID, item_data : ConstructorData) extends Response
   final case class HackClear(target_guid : PlanetSideGUID, unk1 : Long, unk2 : Long) extends Response
   final case class HackObject(target_guid : PlanetSideGUID, unk1 : Long, unk2 : Long) extends Response
+  final case class ObjectDelete(item_guid : PlanetSideGUID, unk : Int) extends Response
   final case class ProximityTerminalEffect(object_guid : PlanetSideGUID, effectState : Boolean) extends Response
   final case class TriggerSound(sound : TriggeredSound.Value, pos : Vector3, unk : Int, volume : Float) extends Response
 }
