@@ -4380,8 +4380,13 @@ class WorldSessionActor extends Actor with MDCContextAware {
         amenity.Definition match {
           case GlobalDefinitions.resource_silo =>
             // Synchronise warning light & silo capacity
-            sendResponse(PlanetsideAttributeMessage(amenityId, 45, amenity.asInstanceOf[ResourceSilo].CapacitorDisplay))
-            sendResponse(PlanetsideAttributeMessage(amenityId, 47, amenity.asInstanceOf[ResourceSilo].LowNtuWarningOn))
+            var silo = amenity.asInstanceOf[ResourceSilo]
+            sendResponse(PlanetsideAttributeMessage(amenityId, 45, silo.CapacitorDisplay))
+            sendResponse(PlanetsideAttributeMessage(amenityId, 47, silo.LowNtuWarningOn))
+
+            if(silo.ChargeLevel == 0) {
+              sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(silo.Owner.asInstanceOf[Building].ModelId), 48, 1))
+            }
           case _ => ;
         }
       })

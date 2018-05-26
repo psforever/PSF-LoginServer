@@ -38,7 +38,6 @@ class GalaxyService extends Actor {
     case GalaxyServiceMessage(action) =>
       action match {
         case GalaxyAction.MapUpdate(msg: BuildingInfoUpdateMessage) =>
-          log.warn(s"Publishing msg ${msg}")
           GalaxyEvents.publish(
             GalaxyServiceResponse(s"/Galaxy", GalaxyResponse.MapUpdate(msg))
           )

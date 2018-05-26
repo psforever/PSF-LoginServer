@@ -46,13 +46,14 @@ class ResourceSiloControl(resourceSilo : ResourceSilo) extends Actor with Factio
       avatarService ! AvatarServiceMessage(resourceSilo.Owner.asInstanceOf[Building].Zone.Id, AvatarAction.PlanetsideAttribute(PlanetSideGUID(resourceSilo.Owner.asInstanceOf[Building].ModelId), 47, resourceSilo.LowNtuWarningOn))
 
     case ResourceSilo.UpdateChargeLevel(amount: Int) =>
+      val siloChargeBeforeChange = resourceSilo.ChargeLevel
+
       // Increase if positive passed in or decrease charge level if negative number is passed in
       resourceSilo.ChargeLevel += amount
       if(resourceSilo.ChargeLevel > 0) {
         log.trace(s"UpdateChargeLevel: Silo ${resourceSilo.GUID} set to ${resourceSilo.ChargeLevel}")
       }
 
-      val ntuIsLow = resourceSilo.ChargeLevel.toFloat / resourceSilo.MaximumCharge.toFloat < 0.2f
 
       val ntuBarLevel = scala.math.round((resourceSilo.ChargeLevel.toFloat / resourceSilo.MaximumCharge.toFloat) * 10).toInt
       // Only send updated capacitor display value to all clients if it has actually changed
@@ -63,13 +64,23 @@ class ResourceSiloControl(resourceSilo : ResourceSilo) extends Actor with Factio
         avatarService ! AvatarServiceMessage(resourceSilo.Owner.asInstanceOf[Building].Zone.Id, AvatarAction.PlanetsideAttribute(resourceSilo.GUID, 45, resourceSilo.CapacitorDisplay))
       }
 
+      val ntuIsLow = resourceSilo.ChargeLevel.toFloat / resourceSilo.MaximumCharge.toFloat < 0.2f
       if(resourceSilo.LowNtuWarningOn == 1 && !ntuIsLow){
           self ! ResourceSilo.LowNtuWarning(0)
         } else if (resourceSilo.LowNtuWarningOn == 0 && ntuIsLow) {
         self ! ResourceSilo.LowNtuWarning(1)
       }
 
-      //todo: Shut down base power and make base neutral if silo hits zero NTU
+
+      if(resourceSilo.ChargeLevel == 0 && siloChargeBeforeChange > 0) {
+        // Oops, someone let the base run out of power. Shut it all down.
+        //todo: Make base neutral if silo hits zero NTU
+        avatarService ! AvatarServiceMessage(resourceSilo.Owner.asInstanceOf[Building].Zone.Id, AvatarAction.PlanetsideAttribute(PlanetSideGUID(resourceSilo.Owner.asInstanceOf[Building].ModelId), 48, 1))
+      } else if (siloChargeBeforeChange == 0 && resourceSilo.ChargeLevel > 0) {
+        // Power restored. Reactor Online. Sensors Online. Weapons Online. All systems nominal.
+        //todo: Check generator is online before starting up
+        avatarService ! AvatarServiceMessage(resourceSilo.Owner.asInstanceOf[Building].Zone.Id, AvatarAction.PlanetsideAttribute(PlanetSideGUID(resourceSilo.Owner.asInstanceOf[Building].ModelId), 48, 0))
+      }
     case _ => ;
   }
 
