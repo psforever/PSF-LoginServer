@@ -2,14 +2,12 @@
 package services.local
 
 import akka.actor.{Actor, Props}
-import net.psforever.packet.game.objectcreate.{DroppedItemData, PlacementData}
-import services.local.support.{DoorCloseActor, DroppedItemRemover, HackClearActor}
-import services.{GenericEventBus, RemoverActor, Service}
+import services.local.support.{DoorCloseActor, HackClearActor}
+import services.{GenericEventBus, Service}
 
 class LocalService extends Actor {
   private val doorCloser = context.actorOf(Props[DoorCloseActor], "local-door-closer")
   private val hackClearer = context.actorOf(Props[HackClearActor], "local-hack-clearer")
-  private val janitor = context.actorOf(Props[DroppedItemRemover], "local-item-remover")
   private [this] val log = org.log4s.getLogger
 
   override def preStart = {
@@ -48,21 +46,6 @@ class LocalService extends Actor {
           LocalEvents.publish(
             LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.DoorCloses(door_guid))
           )
-        case LocalAction.DropItem(player_guid, item) =>
-          val definition = item.Definition
-          val objectData = DroppedItemData(
-            PlacementData(item.Position, item.Orientation),
-            definition.Packet.ConstructorData(item).get
-          )
-          LocalEvents.publish(
-            LocalServiceResponse(s"/$forChannel/Local", player_guid,
-              LocalResponse.DropItem(definition.ObjectId, item.GUID, objectData)
-            )
-          )
-        case LocalAction.ObjectDelete(player_guid, item_guid, unk) =>
-          LocalEvents.publish(
-            LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.ObjectDelete(item_guid, unk))
-          )
         case LocalAction.HackClear(player_guid, target, unk1, unk2) =>
           LocalEvents.publish(
             LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.HackClear(target.GUID, unk1, unk2))
@@ -82,12 +65,6 @@ class LocalService extends Actor {
           )
         case _ => ;
       }
-
-    //messages to DroppedItemRemover
-    case msg @ (RemoverActor.AddTask |
-                RemoverActor.HurrySpecific | RemoverActor.HurryAll |
-                RemoverActor.ClearSpecific | RemoverActor.ClearAll) =>
-      janitor ! msg
 
     //response from DoorCloseActor
     case DoorCloseActor.CloseTheDoor(door_guid, zone_id) =>

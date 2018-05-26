@@ -141,14 +141,14 @@ class WorldSessionActor extends Actor with MDCContextAware {
             else { //no items in inventory; leave no corpse
               val player_guid = player.GUID
               player.Position = Vector3.Zero //save character before doing this
-              avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player_guid, player_guid, 0))
+              avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player_guid, player_guid))
               taskResolver ! GUIDTask.UnregisterAvatar(player)(continent.GUID)
             }
 
           case Some(vehicle_guid) =>
             val player_guid = player.GUID
             player.Position = Vector3.Zero //save character before doing this
-            avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player_guid, player_guid, 0))
+            avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player_guid, player_guid))
             taskResolver ! GUIDTask.UnregisterAvatar(player)(continent.GUID)
             DismountVehicleOnLogOut()
         }
@@ -288,29 +288,14 @@ class WorldSessionActor extends Actor with MDCContextAware {
             sendResponse(GenericObjectActionMessage(guid, 36))
           }
 
-        case AvatarResponse.EquipmentInHand(target, slot, item) =>
+        case msg @ AvatarResponse.DropItem(pkt) =>
           if(tplayer_guid != guid) {
-            val definition = item.Definition
-            sendResponse(
-              ObjectCreateMessage(
-                definition.ObjectId,
-                item.GUID,
-                ObjectCreateMessageParent(target, slot),
-                definition.Packet.ConstructorData(item).get
-              )
-            )
+            sendResponse(pkt)
           }
 
-        case msg @ AvatarResponse.EquipmentOnGround(pos, orient, item_id, item_guid, item_data) =>
+        case AvatarResponse.EquipmentInHand(pkt) =>
           if(tplayer_guid != guid) {
-            log.info(s"now dropping a $msg")
-            sendResponse(
-              ObjectCreateMessage(
-                item_id,
-                item_guid,
-                DroppedItemData(PlacementData(pos, Vector3(0f, 0f, orient.z)), item_data)
-              )
-            )
+            sendResponse(pkt)
           }
 
         case AvatarResponse.LoadPlayer(pdata) =>
@@ -416,22 +401,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case LocalResponse.DoorCloses(door_guid) => //door closes for everyone
           sendResponse(GenericObjectStateMsg(door_guid, 17))
 
-        case LocalResponse.DropItem(id, item_guid, data) =>
-          if(tplayer_guid != guid) {
-            sendResponse(ObjectCreateMessage(id, item_guid, data))
-          }
-
         case LocalResponse.HackClear(target_guid, unk1, unk2) =>
           sendResponse(HackMessage(0, target_guid, guid, 0, unk1, HackState.HackCleared, unk2))
 
         case LocalResponse.HackObject(target_guid, unk1, unk2) =>
           if(tplayer_guid != guid) {
             sendResponse(HackMessage(0, target_guid, guid, 100, unk1, HackState.Hacked, unk2))
-          }
-
-        case LocalResponse.ObjectDelete(item_guid, unk) =>
-          if(tplayer_guid != guid) {
-            sendResponse(ObjectDeleteMessage(item_guid, unk))
           }
 
         case LocalResponse.ProximityTerminalEffect(object_guid, effectState) =>
@@ -1390,8 +1365,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case None =>
           PlanetSideGUID(0) //object is being introduced into the world upon drop
       }
-      localService ! RemoverActor.AddTask(item, continent, Some(20 seconds))
-      localService ! LocalServiceMessage(continent.Id, LocalAction.DropItem(exclusionId, item))
+      avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.DropItem(exclusionId, item, continent))
 
     case Zone.Ground.CanNotDropItem(item) =>
       log.warn(s"DropItem: $player tried to drop a $item on the ground, but he missed")
@@ -1404,7 +1378,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case Zone.Ground.ItemInHand(item) =>
       player.Fit(item) match {
         case Some(slotNum) =>
-          localService ! RemoverActor.ClearSpecific(List(item), continent)
           val item_guid = item.GUID
           val player_guid = player.GUID
           player.Slot(slotNum).Equipment = item
@@ -1417,13 +1390,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
               definition.Packet.DetailedConstructorData(item).get
             )
           )
-          avatarService ! AvatarServiceMessage(continent.Id, if(player.VisibleSlots.contains(slotNum)) {
-            AvatarAction.EquipmentInHand(player_guid, player_guid, slotNum, item)
-          }
-          else {
-            AvatarAction.ObjectDelete(player_guid, item_guid)
-          })
-          sendResponse(ActionResultMessage.Pass)
+          avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PickupItem(player_guid, continent, player, slotNum, item))
         case None =>
           continent.Ground ! Zone.Ground.DropItem(item, item.Position, item.Orientation) //restore previous state
       }
@@ -3947,7 +3914,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
               case _ => ;
               //Player does not require special case; the act of dropping forces the item and icon to change
             }
-            avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.EquipmentOnGround(player_guid, pos, orient, objDef.ObjectId, item2_guid, objDef.Packet.ConstructorData(item2).get))
+            avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.DropItem(player_guid, item2, continent))
         }
 
       case None => ;
@@ -4440,8 +4407,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     */
   def TryDisposeOfLootedCorpse(obj : Player) : Boolean = {
     if(WellLootedCorpse(obj)) {
-      import scala.concurrent.ExecutionContext.Implicits.global
-      context.system.scheduler.scheduleOnce(1 second, avatarService, AvatarServiceMessage.RemoveSpecificCorpse(List(obj)))
+      avatarService ! AvatarServiceMessage.Corpse(RemoverActor.HurrySpecific(List(obj), continent))
       true
     }
     else {
