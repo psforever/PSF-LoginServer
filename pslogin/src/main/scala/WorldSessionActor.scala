@@ -43,6 +43,8 @@ import services.local.{LocalAction, LocalResponse, LocalServiceMessage, LocalSer
 import services.vehicle.VehicleAction.UnstowEquipment
 import services.vehicle.{VehicleAction, VehicleResponse, VehicleServiceMessage, VehicleServiceResponse}
 
+import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.annotation.tailrec
 import scala.util.Success
 
@@ -82,6 +84,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
   var progressBarUpdate : Cancellable = DefaultCancellable.obj
   var reviveTimer : Cancellable = DefaultCancellable.obj
   var respawnTimer : Cancellable = DefaultCancellable.obj
+  var antChargingTick : Cancellable = DefaultCancellable.obj
 
   /**
     * Convert a boolean value into an integer value.
@@ -1490,6 +1493,26 @@ class WorldSessionActor extends Actor with MDCContextAware {
           }
         case None =>
           continent.Ground ! Zone.DropItemOnGround(item, item.Position, item.Orientation) //restore
+      }
+
+    case NtuCharging(tplayer, vehicle) =>
+      log.trace(s"NtuCharging: Vehicle ${vehicle.GUID} is charging NTU capacitor.")
+
+      if(vehicle.Capacitor < vehicle.Definition.MaximumCapacitor) {
+        // Charging
+        vehicle.Capacitor += 100
+
+        sendResponse(PlanetsideAttributeMessage(vehicle.GUID, 45, scala.math.round((vehicle.Capacitor.toFloat / vehicle.Definition.MaximumCapacitor.toFloat) * 10) )) // set ntu on vehicle UI
+        avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(vehicle.GUID, 52, 1L)) // panel glow on
+        avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(vehicle.GUID, 49, 1L)) // orb particle effect on
+
+        antChargingTick = context.system.scheduler.scheduleOnce(1000 milliseconds, self, NtuCharging(player, vehicle)) // Repeat until fully charged
+      } else {
+        // Fully charged
+        sendResponse(PlanetsideAttributeMessage(vehicle.GUID, 45, scala.math.round((vehicle.Capacitor.toFloat / vehicle.Definition.MaximumCapacitor.toFloat) * 10).toInt)) // set ntu on vehicle UI
+
+        // Turning off glow/orb effects on ANT doesn't seem to work when deployed. Try to undeploy ANT from server side
+        context.system.scheduler.scheduleOnce(vehicle.UndeployTime milliseconds, vehicle.Actor, Deployment.TryUndeploy(DriveState.Undeploying))
       }
 
     case ItemHacking(tplayer, target, tool_guid, delta, completeAction, tickAction) =>
@@ -4082,6 +4105,27 @@ class WorldSessionActor extends Actor with MDCContextAware {
             case _ => ;
           }
         }
+        if(obj.Definition == GlobalDefinitions.ant) {
+            obj.DeploymentState match {
+              case DriveState.Deployed =>
+                // We only want this WSA (not other player's WSA) to manage timers
+                if(vehicle.Seat(0).get.Occupant.contains(player)){
+                  // Start ntu regeneration
+                  // If vehicle sends UseItemMessage with silo as target NTU regeneration will be disabled and orb particles will be disabled
+                  antChargingTick = context.system.scheduler.scheduleOnce(1000 milliseconds, self, NtuCharging(player, vehicle))
+                }
+              case DriveState.Undeploying =>
+                // We only want this WSA (not other player's WSA) to manage timers
+                if(vehicle.Seat(0).get.Occupant.contains(player)){
+                  antChargingTick.cancel() // Stop charging NTU if charging
+                }
+
+                avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(obj.GUID, 52, 0L)) // panel glow off
+                avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(obj.GUID, 49, 0L)) // orb particles off
+              case DriveState.Mobile | DriveState.State7 | DriveState.Deploying =>
+              case _ => ;
+            }
+          }
       case _ => ;
     }
   }
@@ -4817,4 +4861,7 @@ object WorldSessionActor {
                                        delta : Float,
                                        completeAction : () => Unit,
                                        tickAction : Option[() => Unit] = None)
+
+  private final case class NtuCharging(tplayer: Player,
+                                       vehicle: Vehicle)
 }
