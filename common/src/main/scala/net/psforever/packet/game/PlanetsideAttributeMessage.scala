@@ -39,7 +39,7 @@ import scodec.codecs._
   * <br>
   * Players/General:<br>
   * Server to client : <br>
-  * `0 - health`<br>
+  * `0 - health (setting to zero on vehicles/terminals will destroy them)`<br>
   * `1 - healthMax`<br>
   * `2 - stamina`<br>
   * `3 - staminaMax`<br>
@@ -104,6 +104,11 @@ import scodec.codecs._
   * `35 - BR. Value is the BR`<br>
   * `36 - CR. Value is the CR`<br>
   * `43 - Info on avatar name : 0 = Nothing, 1 = "(LD)" message`<br>
+  * `45 - NTU charge bar 0-10, 5 = 50% full. Seems to apply to both ANT and NTU Silo (possibly siphons?)`<br>
+  *  47 - Sets base NTU level to CRITICAL. MUST use base modelId not base GUID
+  *  48 - Send base power loss message & turns on red warning lights throughout base. MUST use base modelId not base GUID
+  * 49 - Vehicle texture effects state? (>0 turns on ANT panel glow or ntu silo panel glow + orbs) (bit?)
+  * `52 - Vehicle particle effects? (>0 turns on orbs going towards ANT. Doesn't affect silo) (bit?)
   * `53 - LFS. Value is 1 to flag LFS`<br>
   * `54 - Player "Aura". Values can be expressed in the first byte's lower nibble:`<br>
   * - 0 is nothing<br>
@@ -114,6 +119,7 @@ import scodec.codecs._
   * -- e.g., 13 = 8 + 4 + 1 = fire and LLU and plasma<br>
   * `55 - "Someone is attempting to Heal you". Value is 1`<br>
   * `56 - "Someone is attempting to Repair you". Value is 1`<br>
+  * `67 - Enables base shields (from cavern module/lock). MUST use base modelId not GUID`<br>
   * `73 - "You are locked into the Core Beam. Charging your Module now.". Value is 1 to active`<br>
   * `77 - Cavern Facility Captures. Value is the number of captures`<br>
   * `78 - Cavern Kills. Value is the number of kills`<br>
@@ -128,10 +134,12 @@ import scodec.codecs._
   * `13 - Trunk permissions (same)`<br>
   * `21 - Asserts first time event eligibility / makes owner if no owner is assigned`<br>
   * `22 - Toggles gunner and passenger mount points (1 = hides, 0 = reveals; this also locks their permissions)`<br>
-  * `68 - ???`<br>
+  * `54 -  Vehicle EMP? Plays sound as if vehicle had been hit by EMP`<br>
+  * `68 - Vehicle shield health`<br>
   * `80 - Damage vehicle (unknown value)`<br>
   * `81 - ???`<br>
-  * `113 - ???`
+  * `113 - `Vehicle capacitor - e.g. Leviathan EMP charge`
+  *
   * @param player_guid the player
   * @param attribute_type na
   * @param attribute_value na

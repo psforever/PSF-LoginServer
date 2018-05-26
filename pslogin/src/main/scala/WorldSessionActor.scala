@@ -1169,8 +1169,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
       }
       sendResponse(PlanetsideAttributeMessage(vehicle_guid, 22, 0L)) //mount points on?
       //sendResponse(PlanetsideAttributeMessage(vehicle_guid, 0, 10))//vehicle.Definition.MaxHealth))
-      sendResponse(PlanetsideAttributeMessage(vehicle_guid, 68, 0L)) //???
-      sendResponse(PlanetsideAttributeMessage(vehicle_guid, 113, 0L)) //???
+      sendResponse(PlanetsideAttributeMessage(vehicle_guid, 68, 0L)) // Shield health
+      sendResponse(PlanetsideAttributeMessage(vehicle_guid, 113, 0L)) // Capacitor (EMP)
       ReloadVehicleAccessPermissions(vehicle)
       ServerVehicleLock(vehicle)
 
@@ -3417,7 +3417,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
   /**
     * Gives a target player positive battle experience points only.
     * If the player has access to more implant slots as a result of changing battle experience points, unlock those slots.
-    * @param tplayer the player
+    * @param avatar the player
     * @param bep the change in experience points, positive by assertion
     * @return the player's current battle experience points
     */
@@ -4069,7 +4069,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     obj match {
       case vehicle : Vehicle =>
         ReloadVehicleAccessPermissions(vehicle) //TODO we should not have to do this imho
-        //
+
         if(obj.Definition == GlobalDefinitions.ams) {
           obj.DeploymentState match {
             case DriveState.Deployed =>
@@ -4241,7 +4241,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * <br>
     * A maximum revive waiting timer is started.
     * When this timer reaches zero, the avatar will attempt to spawn back on its faction-specific sanctuary continent.
-    * @pararm tplayer the player to be killed
+    * @param tplayer the player to be killed
     */
   def KillPlayer(tplayer : Player) : Unit = {
     val player_guid = tplayer.GUID
@@ -4495,7 +4495,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
   /**
     * For pure proximity-based units and services, disable any manual attempt at cutting off the functionality.
     * If an existing timer can be found, cancel it.
-    * @param terminal the proximity-based unit
+    * @param terminal_guid the proximity-based unit
     */
   def ClearDelayedProximityUnitReset(terminal_guid : PlanetSideGUID) : Unit = {
     delayedProximityTerminalResets.get(terminal_guid) match {
@@ -4592,7 +4592,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * Restore, at most, a specific amount of health points on a player.
     * Send messages to connected client and to events system.
     * @param tplayer the player
-    * @param repairValue the amount to heal;
+    * @param healValue the amount to heal;
     *                    10 by default
     * @return whether the player can be repaired for any more health points
     */

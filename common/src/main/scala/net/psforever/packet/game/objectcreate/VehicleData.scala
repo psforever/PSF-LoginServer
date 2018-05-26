@@ -57,7 +57,7 @@ final case class VariantVehicleData(unk : Int) extends SpecificVehicleData {
   * For very complicated vehicles, the packets `FrameVehicleStateMessage` and `VehicleSubStateMessage` will also be employed.
   * The tasks that these packets perform are different based on the vehicle that responds or generates them.
   * @param basic data common to objects
-  * @param unk1 na
+  * @param unk1 na. Valid values seem to be 0-3. Anything higher spawns a completely broken NC vehicle with no guns that can't move
   * @param health the amount of health the vehicle has, as a percentage of a filled bar (255)
   * @param unk2 na
   * @param no_mount_points do not display entry points for the seats

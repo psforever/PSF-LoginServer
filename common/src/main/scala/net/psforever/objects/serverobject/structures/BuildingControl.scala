@@ -14,7 +14,6 @@ class BuildingControl(building : Building) extends Actor with FactionAffinityBeh
         building.Amenities.foreach(_.Actor forward FactionAffinity.ConfirmFactionAffinity())
       }
       sender ! FactionAffinity.AssertFactionAffinity(building, faction)
-
     case _ => ;
   }
 }
