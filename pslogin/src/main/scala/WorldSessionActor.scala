@@ -29,6 +29,7 @@ import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.mblocker.Locker
 import net.psforever.objects.serverobject.pad.{VehicleSpawnControl, VehicleSpawnPad}
 import net.psforever.objects.serverobject.pad.process.{AutoDriveControls, VehicleSpawnControlGuided}
+import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.objects.serverobject.structures.{Building, StructureType, WarpGate}
 import net.psforever.objects.serverobject.terminals._
 import net.psforever.objects.serverobject.terminals.Terminal.TerminalMessage
@@ -85,6 +86,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
   var reviveTimer : Cancellable = DefaultCancellable.obj
   var respawnTimer : Cancellable = DefaultCancellable.obj
   var antChargingTick : Cancellable = DefaultCancellable.obj
+  var antDischargingTick : Cancellable = DefaultCancellable.obj
 
   /**
     * Convert a boolean value into an integer value.
@@ -627,6 +629,17 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case Deployment.CanNotChangeDeployment(obj, state, reason) =>
       CanNotChangeDeployment(obj, state, reason)
+
+    case ResourceSilo.ResourceSiloMessage(tplayer, msg, order) =>
+      val vehicle_guid = msg.avatar_guid
+      val silo_guid = msg.object_guid
+      order match {
+        case ResourceSilo.ChargeEvent() =>
+          antChargingTick.cancel() // If an ANT is refilling a NTU silo it isn't in a warpgate, so disable NTU regeneration
+          antDischargingTick.cancel()
+
+          antDischargingTick = context.system.scheduler.scheduleOnce(1000 milliseconds, self, NtuDischarging(player, continent.GUID(vehicle_guid).get.asInstanceOf[Vehicle], silo_guid))
+      }
 
     case Door.DoorMessage(tplayer, msg, order) =>
       val door_guid = msg.object_guid
@@ -1514,6 +1527,70 @@ class WorldSessionActor extends Actor with MDCContextAware {
         // Turning off glow/orb effects on ANT doesn't seem to work when deployed. Try to undeploy ANT from server side
         context.system.scheduler.scheduleOnce(vehicle.UndeployTime milliseconds, vehicle.Actor, Deployment.TryUndeploy(DriveState.Undeploying))
       }
+
+    case NtuDischarging(tplayer, vehicle, silo_guid) =>
+      log.trace(s"NtuDischarging: Vehicle ${vehicle.GUID} is discharging NTU into silo $silo_guid")
+      avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(vehicle.GUID, 49, 0L)) // orb particle effect off
+      avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(vehicle.GUID, 52, 1L)) // panel glow on
+
+      var silo = continent.GUID(silo_guid).get.asInstanceOf[ResourceSilo]
+
+      // Check vehicle is still deployed before continuing. User can undeploy manually or vehicle may not longer be present.
+      if(vehicle.DeploymentState == DriveState.Deployed) {
+        if(vehicle.Capacitor > 0 && silo.ChargeLevel < silo.MaximumCharge) {
+
+          // Make sure we don't exceed the silo maximum charge or remove much NTU from ANT if maximum is reached, or try to make ANT go below 0 NTU
+          var chargeToDeposit = Math.min(Math.min(vehicle.Capacitor, 100), (silo.MaximumCharge - silo.ChargeLevel))
+          vehicle.Capacitor -= chargeToDeposit
+          silo.Actor ! ResourceSilo.UpdateChargeLevel(chargeToDeposit)
+
+          log.warn(AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(silo_guid, 45, 1L)).toString)
+//          avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(silo_guid, 45, 1L)) // set silo ntu level
+          avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(silo_guid, 49, 1L)) // panel glow on & orb particles on
+
+          sendResponse(PlanetsideAttributeMessage(vehicle.GUID, 45, scala.math.round((vehicle.Capacitor.toFloat / vehicle.Definition.MaximumCapacitor.toFloat) * 10))) // set ntu on vehicle UI
+//          avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(silo_guid, 45, scala.math.round((silo.ChargeLevel.toFloat / silo.MaximumCharge.toFloat) * 10))) // set ntu on silo bar
+
+          //todo: grant BEP to user
+          //todo: grant BEP to squad in range
+          //todo: notify map service to update ntu % on map for all users
+
+          //todo: handle silo orb / panel glow properly if more than one person is refilling silo and one player stops. effects should stay on until all players stop
+
+          if(vehicle.Capacitor > 0 && silo.ChargeLevel < silo.MaximumCharge) {
+            log.trace(s"NtuDischarging: ANT not empty and Silo not full. Scheduling another discharge")
+            // Silo still not full and ant still has charge left - keep rescheduling ticks
+            antDischargingTick = context.system.scheduler.scheduleOnce(1000 milliseconds, self, NtuDischarging(player, vehicle, silo_guid))
+          } else {
+            log.trace(s"NtuDischarging: ANT NTU empty or Silo NTU full.")
+
+            // Turning off glow/orb effects on ANT doesn't seem to work when deployed. Try to undeploy ANT from server side
+            context.system.scheduler.scheduleOnce(vehicle.UndeployTime milliseconds, vehicle.Actor, Deployment.TryUndeploy(DriveState.Undeploying))
+
+            avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(silo_guid, 49, 0L)) // panel glow off & orb particles off
+            antDischargingTick.cancel()
+          }
+        } else {
+          // This shouldn't normally be run, only if the client thinks the ANT has capacitor charge when it doesn't, or thinks the silo isn't full when it is.
+          log.warn(s"NtuDischarging: Invalid discharge state. ANT Capacitor: ${vehicle.Capacitor} Silo Capacitor: ${silo.ChargeLevel}")
+
+          // Turning off glow/orb effects on ANT doesn't seem to work when deployed. Try to undeploy ANT from server side
+          context.system.scheduler.scheduleOnce(vehicle.UndeployTime milliseconds, vehicle.Actor, Deployment.TryUndeploy(DriveState.Undeploying))
+
+          avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(silo_guid, 49, 0L)) // panel glow off & orb particles off
+          antDischargingTick.cancel()
+        }
+      } else {
+        log.trace(s"NtuDischarging: Vehicle is no longer deployed. Removing effects")
+        // Vehicle has changed from deployed and this should be the last timer tick sent
+        avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(vehicle.GUID, 52, 0L)) // panel glow off
+        avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(silo_guid, 49, 0L)) // panel glow off & orb particles off
+        antDischargingTick.cancel()
+      }
+
+
+
+
 
     case ItemHacking(tplayer, target, tool_guid, delta, completeAction, tickAction) =>
       progressBarUpdate.cancel
@@ -2449,6 +2526,20 @@ class WorldSessionActor extends Actor with MDCContextAware {
             //the door is open globally ... except on our screen
             sendResponse(GenericObjectStateMsg(object_guid, 16))
           }
+
+        case Some(resourceSilo : ResourceSilo) =>
+          log.info(s"UseItem: Vehicle $avatar_guid is refilling resource silo $object_guid")
+          val vehicle = continent.GUID(avatar_guid).get.asInstanceOf[Vehicle]
+
+          if(resourceSilo.Faction == PlanetSideEmpire.NEUTRAL || player.Faction == resourceSilo.Faction) {
+            if(vehicle.Seat(0).get.Occupant.contains(player)) {
+              log.trace("UseItem: Player matches vehicle driver. Calling ResourceSilo.Use")
+              resourceSilo.Actor ! ResourceSilo.Use(player, msg)
+            }
+          } else {
+            log.warn(s"Player ${player.GUID} - ${player.Faction} tried to refill silo ${resourceSilo.GUID} - ${resourceSilo.Faction} belonging to another empire")
+          }
+
 
         case Some(panel : IFFLock) =>
           if(panel.Faction != player.Faction && panel.HackedBy.isEmpty) {
@@ -4864,4 +4955,5 @@ object WorldSessionActor {
 
   private final case class NtuCharging(tplayer: Player,
                                        vehicle: Vehicle)
+  private final case class NtuDischarging(tplayer: Player, vehicle: Vehicle, silo_guid: PlanetSideGUID)
 }
