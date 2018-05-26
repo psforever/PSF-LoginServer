@@ -2701,6 +2701,9 @@ object GlobalDefinitions {
     ant.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
     ant.MountPoints += 1 -> 0
     ant.MountPoints += 2 -> 0
+    ant.Deployment = true
+    ant.DeployTime = 1500
+    ant.UndeployTime = 1500
     ant.AutoPilotSpeeds = (18, 6)
     ant.Packet = utilityConverter
 
