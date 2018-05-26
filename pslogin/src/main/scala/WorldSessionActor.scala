@@ -4276,29 +4276,35 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * @param building the building object
     */
   def initFacility(continentNumber : Int, buildingNumber : Int, building : Building) : Unit = {
+    var ntuLevel = 0
+    building.Amenities.filter(x => (x.Definition == GlobalDefinitions.resource_silo)).headOption.asInstanceOf[Option[ResourceSilo]] match {
+      case Some(obj: ResourceSilo) => ntuLevel = obj.CapacitorDisplay.toInt
+      case _ => ;
+    }
+
     sendResponse(
       BuildingInfoUpdateMessage(
-        continentNumber, //Zone
-        buildingNumber, //Facility
-        8, //NTU%
-        false, //Hacked
+        continent_id = continentNumber, //Zone
+        building_id = buildingNumber, //Facility
+        ntu_level = ntuLevel,
+        is_hacked = false, //Hacked
         PlanetSideEmpire.NEUTRAL, //Base hacked by
-        0, //Time remaining for hack (ms)
-        building.Faction, //Base owned by
-        0, //!! Field != 0 will cause malformed packet. See class def.
-        None,
-        PlanetSideGeneratorState.Normal, //Generator state
-        true, //Respawn tubes operating state
-        false, //Force dome state
-        0, //Lattice benefits
-        0, //!! Field > 0 will cause malformed packet. See class def.
-        Nil,
-        0,
-        false,
-        8, //!! Field != 8 will cause malformed packet. See class def.
-        None,
-        false, //Boosted spawn room pain field
-        false //Boosted generator room pain field
+        hack_time_remaining = 0, //Time remaining for hack (ms)
+        empire_own = building.Faction, //Base owned by
+        unk1 = 0, //!! Field != 0 will cause malformed packet. See class def.
+        unk1x = None,
+        generator_state = PlanetSideGeneratorState.Normal, //Generator state
+        spawn_tubes_normal = true, //Respawn tubes operating state
+        force_dome_active = false, //Force dome state
+        lattice_benefit = 0, //Lattice benefits
+        cavern_benefit = 0, //!! Field > 0 will cause malformed packet. See class def.
+        unk4 = Nil,
+        unk5 = 0,
+        unk6 = false,
+        unk7 = 8, //!! Field != 8 will cause malformed packet. See class def.
+        unk7x = None,
+        boost_spawn_pain = false, //Boosted spawn room pain field
+        boost_generator_pain = false //Boosted generator room pain field
       )
     )
     sendResponse(DensityLevelUpdateMessage(continentNumber, buildingNumber, List(0,0, 0,0, 0,0, 0,0)))
