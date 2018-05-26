@@ -18,12 +18,11 @@ class BuildingControl(building : Building) extends Actor with FactionAffinityBeh
 
   def receive : Receive = {
     case "startup" =>
-      log.warn(s"Building ${building.GUID} / ${building.ModelId} / ${building.Id} in startup")
       ServiceManager.serviceManager ! Lookup("galaxy") //ask for a resolver to deal with the GUID system
 
     case ServiceManager.LookupResult("galaxy", endpoint) =>
       galaxyService = endpoint
-      log.info("BuildingControl: Building " + building.ModelId + " Got galaxy service " + endpoint)
+      log.trace("BuildingControl: Building " + building.ModelId + " Got galaxy service " + endpoint)
 
       // todo: This is just a temporary solution to drain NTU over time. When base object destruction is properly implemented NTU should be deducted when base objects repair themselves
       context.become(Processing)
@@ -39,7 +38,7 @@ class BuildingControl(building : Building) extends Actor with FactionAffinityBeh
       }
       sender ! FactionAffinity.AssertFactionAffinity(building, faction)
     case Building.SendMapUpdateToAllClients() =>
-      log.info(s"Sending facility map update to all clients. Zone: ${building.Zone.Number} - Building: ${building.ModelId}")
+      log.info(s"Sending BuildingInfoUpdateMessage update to all clients. Zone: ${building.Zone.Number} - Building: ${building.ModelId}")
       var ntuLevel = 0
       building.Amenities.filter(x => (x.Definition == GlobalDefinitions.resource_silo)).headOption.asInstanceOf[Option[ResourceSilo]] match {
         case Some(obj: ResourceSilo) =>
@@ -70,10 +69,7 @@ class BuildingControl(building : Building) extends Actor with FactionAffinityBeh
         boost_spawn_pain = false, //Boosted spawn room pain field
         boost_generator_pain = false //Boosted generator room pain field
       )))
-    case _ =>
-      log.warn(s"BuildingControl: Unknown message received from ${sender().path}")
-//    case default =>
-//      log.warn(s"BuildingControl: Unknown message ${default} received from ${sender().path}")
-
+    case default =>
+      log.warn(s"BuildingControl: Unknown message ${default} received from ${sender().path}")
   }
 }

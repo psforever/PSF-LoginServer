@@ -419,7 +419,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case GalaxyServiceResponse(_, reply) =>
       reply match {
         case GalaxyResponse.MapUpdate(msg) =>
-          log.warn(s"Client ${player.GUID} Updating map ${msg}")
           sendResponse(msg)
       }
 
