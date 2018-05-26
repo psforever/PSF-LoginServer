@@ -40,6 +40,7 @@ import net.psforever.packet.game.objectcreate._
 import net.psforever.types._
 import services._
 import services.avatar.{AvatarAction, AvatarResponse, AvatarServiceMessage, AvatarServiceResponse}
+import services.galaxy.{GalaxyResponse, GalaxyServiceResponse}
 import services.local.{LocalAction, LocalResponse, LocalServiceMessage, LocalServiceResponse}
 import services.vehicle.VehicleAction.UnstowEquipment
 import services.vehicle.{VehicleAction, VehicleResponse, VehicleServiceMessage, VehicleServiceResponse}
@@ -59,8 +60,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
   var avatarService : ActorRef = ActorRef.noSender
   var localService : ActorRef = ActorRef.noSender
   var vehicleService : ActorRef = ActorRef.noSender
+  var galaxyService : ActorRef = ActorRef.noSender
   var taskResolver : ActorRef = Actor.noSender
-  var galaxy : ActorRef = Actor.noSender
+  var cluster : ActorRef = Actor.noSender
   var continent : Zone = Zone.Nowhere
   var player : Player = null
   var avatar : Avatar = null
@@ -104,6 +106,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     localService ! Service.Leave()
     vehicleService ! Service.Leave()
     avatarService ! Service.Leave()
+    galaxyService ! Service.Leave()
 
     LivePlayerList.Remove(sessionId)
     if(player != null && player.HasGUID) {
@@ -217,6 +220,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       ServiceManager.serviceManager ! Lookup("local")
       ServiceManager.serviceManager ! Lookup("vehicle")
       ServiceManager.serviceManager ! Lookup("taskResolver")
+      ServiceManager.serviceManager ! Lookup("cluster")
       ServiceManager.serviceManager ! Lookup("galaxy")
 
     case _ =>
@@ -238,8 +242,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
       taskResolver = endpoint
       log.info("ID: " + sessionId + " Got task resolver service " + endpoint)
     case ServiceManager.LookupResult("galaxy", endpoint) =>
-      galaxy = endpoint
+      galaxyService = endpoint
       log.info("ID: " + sessionId + " Got galaxy service " + endpoint)
+    case ServiceManager.LookupResult("cluster", endpoint) =>
+      cluster = endpoint
+      log.info("ID: " + sessionId + " Got cluster service " + endpoint)
 
     case ControlPacket(_, ctrl) =>
       handleControlPkt(ctrl)
@@ -407,6 +414,13 @@ class WorldSessionActor extends Actor with MDCContextAware {
           }
 
         case _ => ;
+      }
+
+    case GalaxyServiceResponse(_, reply) =>
+      reply match {
+        case GalaxyResponse.MapUpdate(msg) =>
+          log.warn(s"Client ${player.GUID} Updating map ${msg}")
+          sendResponse(msg)
       }
 
     case LocalServiceResponse(_, guid, reply) =>
@@ -1385,7 +1399,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       reviveTimer.cancel
       if(spawn_group == 2) {
         sendResponse(ChatMsg(ChatMessageType.CMT_OPEN, false, "", "No friendly AMS is deployed in this region.", None))
-        galaxy ! Zone.Lattice.RequestSpawnPoint(zone_number, player, 0)
+        cluster ! Zone.Lattice.RequestSpawnPoint(zone_number, player, 0)
       }
       else {
         RequestSanctuaryZoneSpawn(player, zone_number)
@@ -1401,7 +1415,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       sendResponse(ReplicationStreamMessage(5, Some(6), Vector(SquadListing()))) //clear squad list
       sendResponse(FriendsResponse(FriendAction.InitializeFriendList, 0, true, true, Nil))
       sendResponse(FriendsResponse(FriendAction.InitializeIgnoreList, 0, true, true, Nil))
-      galaxy ! InterstellarCluster.GetWorld("z6")
+      cluster ! InterstellarCluster.GetWorld("z6")
 
     case InterstellarCluster.GiveWorld(zoneId, zone) =>
       log.info(s"Zone $zoneId will now load")
@@ -1544,12 +1558,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
           vehicle.Capacitor -= chargeToDeposit
           silo.Actor ! ResourceSilo.UpdateChargeLevel(chargeToDeposit)
 
-          log.warn(AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(silo_guid, 45, 1L)).toString)
-//          avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(silo_guid, 45, 1L)) // set silo ntu level
           avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(silo_guid, 49, 1L)) // panel glow on & orb particles on
-
           sendResponse(PlanetsideAttributeMessage(vehicle.GUID, 45, scala.math.round((vehicle.Capacitor.toFloat / vehicle.Definition.MaximumCapacitor.toFloat) * 10))) // set ntu on vehicle UI
-//          avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(silo_guid, 45, scala.math.round((silo.ChargeLevel.toFloat / silo.MaximumCharge.toFloat) * 10))) // set ntu on silo bar
 
           //todo: grant BEP to user
           //todo: grant BEP to squad in range
@@ -1723,7 +1733,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           //TODO check if can spawn on last continent/location from player?
           //TODO if yes, get continent guid accessors
           //TODO if no, get sanctuary guid accessors and reset the player's expectations
-          galaxy ! InterstellarCluster.RequestClientInitialization()
+          cluster ! InterstellarCluster.RequestClientInitialization()
         case default =>
           log.error("Unsupported " + default + " in " + msg)
       }
@@ -1738,6 +1748,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       avatarService ! Service.Join(continent.Id)
       localService ! Service.Join(continent.Id)
       vehicleService ! Service.Join(continent.Id)
+      galaxyService ! Service.Join("galaxy")
       configZone(continent)
       sendResponse(TimeOfDayMessage(1191182336))
       //custom
@@ -1935,7 +1946,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ SpawnRequestMessage(u1, u2, u3, u4, u5) =>
       log.info(s"SpawnRequestMessage: $msg")
       //TODO just focus on u5 and u2 for now
-      galaxy ! Zone.Lattice.RequestSpawnPoint(u5.toInt, player, u2.toInt)
+      cluster ! Zone.Lattice.RequestSpawnPoint(u5.toInt, player, u2.toInt)
 
     case msg @ SetChatFilterMessage(send_channel, origin, whitelist) =>
       log.info("SetChatFilters: " + msg)
@@ -2038,7 +2049,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       else if(trimContents.equals("!ams")) {
         makeReply = false
         if(player.isBackpack) { //player is on deployment screen (either dead or deconstructed)
-          galaxy ! Zone.Lattice.RequestSpawnPoint(continent.Number, player, 2)
+          cluster ! Zone.Lattice.RequestSpawnPoint(continent.Number, player, 2)
         }
       }
       // TODO: Depending on messagetype, may need to prepend sender's name to contents with proper spacing
@@ -3410,7 +3421,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
   def TaskBeforeZoneChange(priorTask : TaskResolver.GiveTask, zoneId : String) : TaskResolver.GiveTask = {
     TaskResolver.GiveTask(
       new Task() {
-        private val localService = galaxy
+        private val localService = cluster
         private val localMsg = InterstellarCluster.GetWorld(zoneId)
 
         override def isComplete : Task.Resolution.Value = priorTask.task.isComplete
@@ -4278,7 +4289,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
   def initFacility(continentNumber : Int, buildingNumber : Int, building : Building) : Unit = {
     var ntuLevel = 0
     building.Amenities.filter(x => (x.Definition == GlobalDefinitions.resource_silo)).headOption.asInstanceOf[Option[ResourceSilo]] match {
-      case Some(obj: ResourceSilo) => ntuLevel = obj.CapacitorDisplay.toInt
+      case Some(obj: ResourceSilo) =>
+        ntuLevel = obj.CapacitorDisplay.toInt
       case _ => ;
     }
 
@@ -4410,7 +4422,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     import scala.concurrent.duration._
     import scala.concurrent.ExecutionContext.Implicits.global
-    reviveTimer = context.system.scheduler.scheduleOnce(respawnTimer milliseconds, galaxy, Zone.Lattice.RequestSpawnPoint(Zones.SanctuaryZoneNumber(tplayer.Faction), tplayer, 7))
+    reviveTimer = context.system.scheduler.scheduleOnce(respawnTimer milliseconds, cluster, Zone.Lattice.RequestSpawnPoint(Zones.SanctuaryZoneNumber(tplayer.Faction), tplayer, 7))
   }
 
   /**
@@ -4575,7 +4587,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       sendResponse(DisconnectMessage("Player failed to load on faction's sanctuary continent.  Please relog."))
     }
     else {
-      galaxy ! Zone.Lattice.RequestSpawnPoint(sanctNumber, tplayer, 7)
+      cluster ! Zone.Lattice.RequestSpawnPoint(sanctNumber, tplayer, 7)
     }
   }
 

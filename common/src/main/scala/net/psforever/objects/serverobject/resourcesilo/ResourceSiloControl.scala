@@ -24,7 +24,7 @@ class ResourceSiloControl(resourceSilo : ResourceSilo) extends Actor with Factio
 
   def receive : Receive = {
     case "startup" =>
-      ServiceManager.serviceManager ! Lookup("avatar") //ask for a resolver to deal with the GUID system
+      ServiceManager.serviceManager ! Lookup("avatar")
 
     case ServiceManager.LookupResult("avatar", endpoint) =>
       avatarService = endpoint
@@ -69,10 +69,6 @@ class ResourceSiloControl(resourceSilo : ResourceSilo) extends Actor with Factio
       }
 
       //todo: Shut down base power and make base neutral if silo hits zero NTU
-    case ResourceSilo.SyncStateWithClient() =>
-      avatarService ! AvatarServiceMessage(resourceSilo.Owner.asInstanceOf[Building].Zone.Id, AvatarAction.PlanetsideAttribute(PlanetSideGUID(resourceSilo.Owner.asInstanceOf[Building].ModelId), 47, resourceSilo.LowNtuWarningOn))
-      avatarService ! AvatarServiceMessage(resourceSilo.Owner.asInstanceOf[Building].Zone.Id, AvatarAction.PlanetsideAttribute(resourceSilo.GUID, 45, resourceSilo.CapacitorDisplay))
-
     case _ => ;
   }
 

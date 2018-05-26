@@ -19,6 +19,7 @@ import org.fusesource.jansi.Ansi._
 import org.fusesource.jansi.Ansi.Color._
 import services.ServiceManager
 import services.avatar._
+import services.galaxy.GalaxyService
 import services.local._
 import services.vehicle.VehicleService
 
@@ -209,7 +210,8 @@ object PsLogin {
     serviceManager ! ServiceManager.Register(Props[AvatarService], "avatar")
     serviceManager ! ServiceManager.Register(Props[LocalService], "local")
     serviceManager ! ServiceManager.Register(Props[VehicleService], "vehicle")
-    serviceManager ! ServiceManager.Register(Props(classOf[InterstellarCluster], continentList), "galaxy")
+    serviceManager ! ServiceManager.Register(Props[GalaxyService], "galaxy")
+    serviceManager ! ServiceManager.Register(Props(classOf[InterstellarCluster], continentList), "cluster")
 
     //attach event bus entry point to each zone
     import akka.pattern.ask
