@@ -4,10 +4,9 @@ package services.vehicle
 import akka.actor.{Actor, ActorRef, Props}
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
 import net.psforever.objects.zones.Zone
-import services.vehicle.support.{DeconstructionActor, DelayedDeconstructionActor}
 import net.psforever.types.DriveState
-
 import services.{GenericEventBus, Service}
+import services.vehicle.support.{DeconstructionActor, DelayedDeconstructionActor}
 
 class VehicleService extends Actor {
   private val vehicleDecon : ActorRef = context.actorOf(Props[DeconstructionActor], "vehicle-decon-agent")

@@ -2,8 +2,8 @@
 package services.avatar
 
 import akka.actor.{Actor, ActorRef, Props}
-import services.avatar.support.CorpseRemovalActor
 import services.{GenericEventBus, Service}
+import services.avatar.support.CorpseRemovalActor
 
 class AvatarService extends Actor {
   private val undertaker : ActorRef = context.actorOf(Props[CorpseRemovalActor], "corpse-removal-agent")
