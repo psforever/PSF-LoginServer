@@ -51,6 +51,8 @@ abstract class RemoverActor extends Actor {
   private var taskResolver : ActorRef = Actor.noSender
 
   private[this] val log = org.log4s.getLogger
+  def trace(msg : String) : Unit = log.trace(msg)
+  def debug(msg : String) : Unit = log.debug(msg)
 
   /**
     * Send the initial message that requests a task resolver for assisting in the removal process.
@@ -99,6 +101,7 @@ abstract class RemoverActor extends Actor {
         if(firstHeap.isEmpty) {
           //we were the only entry so the event must be started from scratch
           firstHeap = List(entry)
+          trace(s"a remover task has been added: $entry")
           RetimeFirstTask()
         }
         else {
@@ -106,17 +109,18 @@ abstract class RemoverActor extends Actor {
           val oldHead = firstHeap.head
           if(!firstHeap.exists(test => RemoverActor.Similarity(test, entry))) {
             firstHeap = (firstHeap :+ entry).sortBy(_.duration)
+            trace(s"a remover task has been added: $entry")
             if(oldHead != firstHeap.head) {
               RetimeFirstTask()
             }
           }
           else {
-            log.trace(s"$obj is already queued for removal")
+            trace(s"$obj is already queued for removal")
           }
         }
       }
       else {
-        log.trace(s"$obj either does not qualify for this Remover or is already queued")
+        trace(s"$obj either does not qualify for this Remover or is already queued")
       }
 
     case RemoverActor.HurrySpecific(targets, zone) =>
@@ -145,7 +149,7 @@ abstract class RemoverActor extends Actor {
         import scala.concurrent.ExecutionContext.Implicits.global
         secondTask = context.system.scheduler.scheduleOnce(SecondStandardDuration, self, RemoverActor.TryDelete())
       }
-      log.trace(s"item removal task has found ${in.size} items to remove")
+      trace(s"item removal task has found ${in.size} items to remove")
 
     case RemoverActor.TryDelete() =>
       secondTask.cancel
@@ -156,7 +160,7 @@ abstract class RemoverActor extends Actor {
         import scala.concurrent.ExecutionContext.Implicits.global
         secondTask = context.system.scheduler.scheduleOnce(SecondStandardDuration, self, RemoverActor.TryDelete())
       }
-      log.trace(s"item removal task has removed ${in.size} items")
+      trace(s"item removal task has removed ${in.size} items")
 
     case RemoverActor.FailureToWork(entry, ex) =>
       log.error(s"${entry.obj} from ${entry.zone} not properly unregistered - $ex")
@@ -172,11 +176,13 @@ abstract class RemoverActor extends Actor {
     */
   def HurrySpecific(targets : List[PlanetSideGameObject], zone : Zone) : Unit = {
     CullTargetsFromFirstHeap(targets, zone) match {
-      case Nil => ;
+      case Nil =>
+        debug(s"no tasks matching the targets $targets have been hurried")
       case list =>
+        debug(s"the following tasks have been hurried: $list")
         secondTask.cancel
         list.foreach { FirstJob }
-        secondHeap =  secondHeap ++ list.map { RepackageEntry }
+        secondHeap = secondHeap ++ list.map { RepackageEntry }
         import scala.concurrent.ExecutionContext.Implicits.global
         secondTask = context.system.scheduler.scheduleOnce(SecondStandardDuration, self, RemoverActor.TryDelete())
     }
@@ -186,6 +192,7 @@ abstract class RemoverActor extends Actor {
     * Expedite all entries from the first pool into the second.
     */
   def HurryAll() : Unit = {
+    trace("all tasks have been hurried")
     firstTask.cancel
     firstHeap.foreach { FirstJob }
     secondHeap = secondHeap ++ firstHeap.map { RepackageEntry }
@@ -199,7 +206,12 @@ abstract class RemoverActor extends Actor {
     * Remove specific entries from the first pool.
     */
   def ClearSpecific(targets : List[PlanetSideGameObject], zone : Zone) : Unit = {
-    CullTargetsFromFirstHeap(targets, zone)
+    CullTargetsFromFirstHeap(targets, zone) match {
+      case Nil =>
+        debug(s"no tasks matching the targets $targets have been cleared")
+      case list =>
+        debug(s"the following tasks have been cleared: $list")
+    }
   }
 
   /**
@@ -232,7 +244,7 @@ abstract class RemoverActor extends Actor {
   private def CullTargetsFromFirstHeap(targets : List[PlanetSideGameObject], zone : Zone) : List[RemoverActor.Entry] = {
     val culledEntries = if(targets.nonEmpty) {
       if(targets.size == 1) {
-        log.debug(s"a target submitted: ${targets.head}")
+        debug(s"a target submitted: ${targets.head}")
         //simple selection
         RemoverActor.recursiveFind(firstHeap.iterator, RemoverActor.Entry(targets.head, zone, 0)) match {
           case None => ;
@@ -244,7 +256,7 @@ abstract class RemoverActor extends Actor {
         }
       }
       else {
-        log.trace(s"multiple targets submitted: $targets")
+        debug(s"multiple targets submitted: $targets")
         //cumbersome partition
         //a - find targets from entries
         val locatedTargets = for {
@@ -267,7 +279,7 @@ abstract class RemoverActor extends Actor {
       }
     }
     else {
-      log.trace(s"all targets within the specified zone $zone will be submitted")
+      debug(s"all targets within the specified zone $zone will be submitted")
       //no specific targets; split on all targets in the given zone instead
       val (in, out) = firstHeap.partition(entry => entry.zone == zone)
       firstHeap = out.sortBy(_.duration)

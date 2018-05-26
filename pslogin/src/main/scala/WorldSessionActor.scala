@@ -184,7 +184,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       case Some(vehicle : Vehicle) =>
         vehicle.Seat(vehicle.PassengerInSeat(player).get).get.Occupant = None
         if(vehicle.Seats.values.count(_.isOccupied) == 0) {
-          vehicleService ! VehicleServiceMessage.DelayedVehicleDeconstruction(vehicle, continent, 600L) //start vehicle decay (10m)
+          vehicleService ! VehicleServiceMessage.Decon(RemoverActor.AddTask(vehicle, continent)) //start vehicle decay
         }
         vehicleService ! Service.Leave(Some(s"${vehicle.Actor}"))
 
@@ -644,7 +644,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           val obj_guid : PlanetSideGUID = obj.GUID
           val player_guid : PlanetSideGUID = tplayer.GUID
           log.info(s"MountVehicleMsg: $player_guid mounts $obj_guid @ $seat_num")
-          vehicleService ! VehicleServiceMessage.UnscheduleDeconstruction(obj_guid) //clear all deconstruction timers
+          vehicleService ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(obj), continent)) //clear timer
           PlayerActionsToCancel()
           if(seat_num == 0) { //simplistic vehicle ownership management
             obj.Owner match {
@@ -698,7 +698,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.KickPassenger(player_guid, seat_num, true, obj.GUID))
           }
           if(obj.Seats.values.count(_.isOccupied) == 0) {
-            vehicleService ! VehicleServiceMessage.DelayedVehicleDeconstruction(obj, continent, 600L) //start vehicle decay (10m)
+            vehicleService ! VehicleServiceMessage.Decon(RemoverActor.AddTask(obj, continent)) //start vehicle decay
           }
 
         case Mountable.CanDismount(obj : Mountable, _) =>
@@ -1143,9 +1143,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case VehicleSpawnPad.PlayerSeatedInVehicle(vehicle, pad) =>
       val vehicle_guid = vehicle.GUID
-      if(player.VehicleSeated.nonEmpty) {
-        vehicleService ! VehicleServiceMessage.UnscheduleDeconstruction(vehicle_guid)
-      }
       sendResponse(PlanetsideAttributeMessage(vehicle_guid, 22, 0L)) //mount points on?
       //sendResponse(PlanetsideAttributeMessage(vehicle_guid, 0, 10))//vehicle.Definition.MaxHealth))
       sendResponse(PlanetsideAttributeMessage(vehicle_guid, 68, 0L)) //???
@@ -1408,7 +1405,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
       LivePlayerList.Add(sessionId, avatar)
       traveler = new Traveler(self, continent.Id)
       //PropertyOverrideMessage
-      sendResponse(ChatMsg(ChatMessageType.CMT_EXPANSIONS, true, "", "1 on", None)) //CC on
       sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 112, 1))
       sendResponse(ReplicationStreamMessage(5, Some(6), Vector(SquadListing()))) //clear squad list
       sendResponse(FriendsResponse(FriendAction.InitializeFriendList, 0, true, true, Nil))
@@ -1460,6 +1456,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       val guid = tplayer.GUID
       StartBundlingPackets()
       sendResponse(SetCurrentAvatarMessage(guid,0,0))
+      sendResponse(ChatMsg(ChatMessageType.CMT_EXPANSIONS, true, "", "1 on", None)) //CC on //TODO once per respawn?
       sendResponse(PlayerStateShiftMessage(ShiftState(1, tplayer.Position, tplayer.Orientation.z)))
       if(spectator) {
         sendResponse(ChatMsg(ChatMessageType.CMT_TOGGLESPECTATORMODE, false, "", "on", None))
@@ -2284,8 +2281,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
           if((player.VehicleOwned.contains(object_guid) && vehicle.Owner.contains(player.GUID))
             || (player.Faction == vehicle.Faction
             && ((vehicle.Owner.isEmpty || continent.GUID(vehicle.Owner.get).isEmpty) || vehicle.Health == 0))) {
-            vehicleService ! VehicleServiceMessage.UnscheduleDeconstruction(object_guid)
-            vehicleService ! VehicleServiceMessage.RequestDeleteVehicle(vehicle, continent)
+            vehicleService ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(vehicle), continent))
+            vehicleService ! VehicleServiceMessage.Decon(RemoverActor.AddTask(vehicle, continent, Some(0 seconds)))
             log.info(s"RequestDestroy: vehicle $object_guid")
           }
           else {
@@ -2801,7 +2798,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                     //todo: implement auto landing procedure if the pilot bails but passengers are still present instead of deconstructing the vehicle
                     //todo: continue flight path until aircraft crashes if no passengers present (or no passenger seats), then deconstruct.
                     if(bailType == BailType.Bailed && seat_num == 0 && GlobalDefinitions.isFlightVehicle(obj.asInstanceOf[Vehicle].Definition)) {
-                      vehicleService ! VehicleServiceMessage.DelayedVehicleDeconstruction(obj.asInstanceOf[Vehicle], continent, 0L) // Immediately deconstruct vehicle
+                      vehicleService ! VehicleServiceMessage.Decon(RemoverActor.AddTask(obj, continent, Some(0 seconds))) // Immediately deconstruct vehicle
                     }
 
                   case None =>

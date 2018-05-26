@@ -25,7 +25,7 @@ class DroppedItemRemover extends RemoverActor {
     context.parent ! AvatarServiceMessage(entry.zone.Id, AvatarAction.ObjectDelete(Service.defaultPlayerGUID, entry.obj.GUID))
   }
 
-  def ClearanceTest(entry : RemoverActor.Entry) : Boolean = true
+  def ClearanceTest(entry : RemoverActor.Entry) : Boolean = !entry.zone.EquipmentOnGround.contains(entry.obj)
 
   def DeletionTask(entry : RemoverActor.Entry) : TaskResolver.GiveTask = {
     GUIDTask.UnregisterEquipment(entry.obj.asInstanceOf[Equipment])(entry.zone.GUID)

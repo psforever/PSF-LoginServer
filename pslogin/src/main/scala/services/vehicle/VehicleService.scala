@@ -4,15 +4,12 @@ package services.vehicle
 import akka.actor.{Actor, ActorRef, Props}
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
 import net.psforever.objects.zones.Zone
-import services.vehicle.support.{DeconstructionActor, DelayedDeconstructionActor}
+import services.vehicle.support.VehicleRemover
 import net.psforever.types.DriveState
-
-import services.{GenericEventBus, Service}
+import services.{GenericEventBus, RemoverActor, Service}
 
 class VehicleService extends Actor {
-  private val vehicleDecon : ActorRef = context.actorOf(Props[DeconstructionActor], "vehicle-decon-agent")
-  private val vehicleDelayedDecon : ActorRef = context.actorOf(Props[DelayedDeconstructionActor], "vehicle-delayed-decon-agent")
-  vehicleDecon ! DeconstructionActor.RequestTaskResolver
+  private val vehicleDecon : ActorRef = context.actorOf(Props[VehicleRemover], "vehicle-decon-agent")
   private [this] val log = org.log4s.getLogger
 
   override def preStart = {
@@ -87,6 +84,11 @@ class VehicleService extends Actor {
           VehicleEvents.publish(
             VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.StowEquipment(vehicle_guid, slot, definition.ObjectId, item.GUID, definition.Packet.DetailedConstructorData(item).get))
           )
+        case VehicleAction.UnloadVehicle(player_guid, continent, vehicle) =>
+          vehicleDecon ! RemoverActor.ClearSpecific(List(vehicle), continent) //precaution
+          VehicleEvents.publish(
+            VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.UnloadVehicle(vehicle.GUID))
+          )
         case VehicleAction.UnstowEquipment(player_guid, item_guid) =>
           VehicleEvents.publish(
             VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.UnstowEquipment(item_guid))
@@ -102,23 +104,9 @@ class VehicleService extends Actor {
         case _ => ;
     }
 
-    //message to DeconstructionActor
-    case VehicleServiceMessage.RequestDeleteVehicle(vehicle, continent) =>
-      vehicleDecon ! DeconstructionActor.RequestDeleteVehicle(vehicle, continent)
-
-    //message to DelayedDeconstructionActor
-    case VehicleServiceMessage.DelayedVehicleDeconstruction(vehicle, zone, timeAlive) =>
-      vehicleDelayedDecon ! DelayedDeconstructionActor.ScheduleDeconstruction(vehicle, zone, timeAlive)
-
-    //message to DelayedDeconstructionActor
-    case VehicleServiceMessage.UnscheduleDeconstruction(vehicle_guid) =>
-      vehicleDelayedDecon ! DelayedDeconstructionActor.UnscheduleDeconstruction(vehicle_guid)
-
-    //response from DeconstructionActor
-    case DeconstructionActor.DeleteVehicle(vehicle_guid, zone_id) =>
-      VehicleEvents.publish(
-        VehicleServiceResponse(s"/$zone_id/Vehicle", Service.defaultPlayerGUID, VehicleResponse.UnloadVehicle(vehicle_guid))
-      )
+    //message to VehicleRemover
+    case VehicleServiceMessage.Decon(msg) =>
+      vehicleDecon forward msg
 
     //from VehicleSpawnControl
     case VehicleSpawnPad.ConcealPlayer(player_guid, zone_id) =>
@@ -159,13 +147,11 @@ class VehicleService extends Actor {
       VehicleEvents.publish(
         VehicleServiceResponse(s"/${zone.Id}/Vehicle", Service.defaultPlayerGUID, VehicleResponse.LoadVehicle(vehicle, vtype, vguid, vdata))
       )
-      vehicleDelayedDecon ! DelayedDeconstructionActor.UnscheduleDeconstruction(vguid)
-      vehicleDelayedDecon ! DelayedDeconstructionActor.ScheduleDeconstruction(vehicle, zone, 600L) //10min
+      vehicleDecon forward RemoverActor.AddTask(vehicle, zone)
 
     //from VehicleSpawnControl
     case VehicleSpawnPad.DisposeVehicle(vehicle, zone) =>
-      vehicleDelayedDecon ! DelayedDeconstructionActor.UnscheduleDeconstruction(vehicle.GUID)
-      vehicleDecon ! DeconstructionActor.RequestDeleteVehicle(vehicle, zone)
+      vehicleDecon forward RemoverActor.HurrySpecific(List(vehicle), zone)
 
     //correspondence from WorldSessionActor
     case VehicleServiceMessage.AMSDeploymentChange(zone) =>

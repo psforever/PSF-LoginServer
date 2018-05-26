@@ -25,9 +25,7 @@ class CorpseRemovalActor extends RemoverActor {
     context.parent ! AvatarServiceMessage(entry.zone.Id, AvatarAction.ObjectDelete(Service.defaultPlayerGUID, entry.obj.GUID))
   }
 
-  def ClearanceTest(entry : RemoverActor.Entry) : Boolean = {
-    !entry.zone.Corpses.contains(entry.obj.asInstanceOf[Player])
-  }
+  def ClearanceTest(entry : RemoverActor.Entry) : Boolean = !entry.zone.Corpses.contains(entry.obj)
 
   def DeletionTask(entry : RemoverActor.Entry) : TaskResolver.GiveTask = {
     GUIDTask.UnregisterPlayer(entry.obj.asInstanceOf[Player])(entry.zone.GUID)
