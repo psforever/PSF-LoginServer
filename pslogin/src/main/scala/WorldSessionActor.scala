@@ -4377,6 +4377,14 @@ class WorldSessionActor extends Actor with MDCContextAware {
         val amenityId = amenity.GUID
         sendResponse(PlanetsideAttributeMessage(amenityId, 50, 0))
         sendResponse(PlanetsideAttributeMessage(amenityId, 51, 0))
+
+        amenity.Definition match {
+          case GlobalDefinitions.resource_silo =>
+            // Synchronise warning light & silo capacity
+            sendResponse(PlanetsideAttributeMessage(amenityId, 45, amenity.asInstanceOf[ResourceSilo].CapacitorDisplay))
+            sendResponse(PlanetsideAttributeMessage(amenityId, 47, amenity.asInstanceOf[ResourceSilo].LowNtuWarningOn))
+          case _ => ;
+        }
       })
       sendResponse(HackMessage(3, PlanetSideGUID(building.ModelId), PlanetSideGUID(0), 0, 3212836864L, HackState.HackCleared, 8))
     })
