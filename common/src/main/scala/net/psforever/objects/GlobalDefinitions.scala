@@ -2705,6 +2705,7 @@ object GlobalDefinitions {
     ant.DeployTime = 1500
     ant.UndeployTime = 1500
     ant.AutoPilotSpeeds = (18, 6)
+    ant.MaximumCapacitor = 1500
     ant.Packet = utilityConverter
 
     ams.Name = "ams"

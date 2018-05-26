@@ -29,6 +29,7 @@ class VehicleDefinition(objectId : Int) extends ObjectDefinition(objectId) {
   private var canCloak : Boolean = false
   private var canBeOwned : Boolean = true
   private var serverVehicleOverrideSpeeds : (Int, Int) = (0, 0)
+  private var maximumCapacitor : Int = 0
   Name = "vehicle"
   Packet = VehicleDefinition.converter
 
@@ -114,6 +115,13 @@ class VehicleDefinition(objectId : Int) extends ObjectDefinition(objectId) {
   def AutoPilotSpeed1 : Int = serverVehicleOverrideSpeeds._1
 
   def AutoPilotSpeed2 : Int = serverVehicleOverrideSpeeds._2
+
+  def MaximumCapacitor : Int = maximumCapacitor
+
+  def MaximumCapacitor_=(maxCapacitor: Int) : Int = {
+    maximumCapacitor = maxCapacitor
+    MaximumCapacitor
+  }
 }
 
 object VehicleDefinition {

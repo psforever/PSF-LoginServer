@@ -12,7 +12,7 @@ class Building(private val mapId : Int, private val zone : Zone, private val bui
   /**
     * The mapId is the identifier number used in BuildingInfoUpdateMessage.
     * The modelId is the identifier number used in SetEmpireMessage / Facility hacking / PlanetSideAttributeMessage.
-    */
+  */
   private var modelId : Option[Int] = None
   private var faction : PlanetSideEmpire.Value = PlanetSideEmpire.NEUTRAL
   private var amenities : List[Amenity] = List.empty
