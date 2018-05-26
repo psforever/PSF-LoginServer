@@ -13,6 +13,7 @@ import net.psforever.objects.serverobject.mblocker.LockerDefinition
 import net.psforever.objects.serverobject.pad.VehicleSpawnPadDefinition
 import net.psforever.objects.serverobject.terminals._
 import net.psforever.objects.serverobject.tube.SpawnTubeDefinition
+import net.psforever.objects.serverobject.resourcesilo.ResourceSiloDefinition
 import net.psforever.objects.vehicles.{SeatArmorRestriction, UtilityType}
 import net.psforever.types.PlanetSideEmpire
 
@@ -562,6 +563,8 @@ object GlobalDefinitions {
   val lock_external = new IFFLockDefinition
 
   val door = new DoorDefinition
+
+  val resource_silo = new ResourceSiloDefinition
 
   /**
     * Given a faction, provide the standard assault melee weapon.
