@@ -163,7 +163,7 @@ abstract class RemoverActor extends Actor {
       trace(s"item removal task has removed ${in.size} items")
 
     case RemoverActor.FailureToWork(entry, ex) =>
-      log.error(s"${entry.obj} from ${entry.zone} not properly unregistered - $ex")
+      log.error(s"${entry.obj} from ${entry.zone} not properly deleted - $ex")
 
     case _ => ;
   }

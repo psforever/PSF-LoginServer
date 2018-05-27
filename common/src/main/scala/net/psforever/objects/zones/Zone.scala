@@ -89,7 +89,7 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
     if(accessor == ActorRef.noSender) {
       implicit val guid : NumberPoolHub = this.guid //passed into builderObject.Build implicitly
       accessor = context.actorOf(RandomPool(25).props(Props(classOf[UniqueNumberSystem], guid, UniqueNumberSystem.AllocateNumberPoolActors(guid))), s"$Id-uns")
-      ground = context.actorOf(Props(classOf[ZoneGroundActor], equipmentOnGround), s"$Id-ground")
+      ground = context.actorOf(Props(classOf[ZoneGroundActor], this, equipmentOnGround), s"$Id-ground")
       transport = context.actorOf(Props(classOf[ZoneVehicleActor], this, vehicles), s"$Id-vehicles")
       population = context.actorOf(Props(classOf[ZonePopulationActor], this, players, corpses), s"$Id-players")
 
@@ -389,11 +389,13 @@ object Zone {
   object Ground {
     final case class DropItem(item : Equipment, pos : Vector3, orient : Vector3)
     final case class ItemOnGround(item : Equipment, pos : Vector3, orient : Vector3)
-    final case class CanNotDropItem(item : Equipment)
+    final case class CanNotDropItem(zone : Zone, item : Equipment, reason : String)
 
     final case class PickupItem(item_guid : PlanetSideGUID)
     final case class ItemInHand(item : Equipment)
-    final case class CanNotPickupItem(item_guid : PlanetSideGUID)
+    final case class CanNotPickupItem(zone : Zone, item_guid : PlanetSideGUID, reason : String)
+
+    final case class RemoveItem(item_guid : PlanetSideGUID)
   }
 
   object Vehicle {

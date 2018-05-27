@@ -18,7 +18,7 @@ import net.psforever.objects.zones.{Zone, ZoneActor, ZoneMap}
 import net.psforever.objects.Vehicle
 import org.specs2.mutable.Specification
 
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration._
 
 class ZoneTest extends Specification {
   def test(a: Int, b : Zone, c : ActorContext) : Building = { Building.NoBuilding }
@@ -464,55 +464,184 @@ class ZonePopulationTest extends ActorTest {
   }
 }
 
-class ZoneGroundTest extends ActorTest {
+class ZoneGroundDropItemTest extends ActorTest {
   val item = AmmoBox(GlobalDefinitions.bullet_9mm)
-  item.GUID = PlanetSideGUID(10)
+  val hub = new NumberPoolHub(new LimitedNumberSource(20))
+  hub.register(item, 10)
+  val zone = new Zone("test", new ZoneMap("test-map"), 0)
+  zone.GUID(hub)
+  zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "drop-test-zone")
+  zone.Actor ! Zone.Init()
+  receiveOne(200 milliseconds) //consume
 
-  "ZoneGroundActor" should {
+  "DropItem" should {
     "drop item on ground" in {
-      val zone = new Zone("test", new ZoneMap(""), 0)
-      system.actorOf(Props(classOf[ZoneTest.ZoneInitActor], zone), "drop-item-test") ! "!"
-      receiveOne(Duration.create(200, "ms")) //consume
-
-      assert(zone.EquipmentOnGround.isEmpty)
-      assert(item.Position == Vector3.Zero)
-      assert(item.Orientation == Vector3.Zero)
+      assert(!zone.EquipmentOnGround.contains(item))
       zone.Ground ! Zone.Ground.DropItem(item, Vector3(1.1f, 2.2f, 3.3f), Vector3(4.4f, 5.5f, 6.6f))
-      expectNoMsg(Duration.create(100, "ms"))
 
-      assert(zone.EquipmentOnGround == List(item))
-      assert(item.Position == Vector3(1.1f, 2.2f, 3.3f))
-      assert(item.Orientation == Vector3(4.4f, 5.5f, 6.6f))
+      val reply = receiveOne(200 milliseconds)
+      assert(reply.isInstanceOf[Zone.Ground.ItemOnGround])
+      assert(reply.asInstanceOf[Zone.Ground.ItemOnGround].item == item)
+      assert(reply.asInstanceOf[Zone.Ground.ItemOnGround].pos == Vector3(1.1f, 2.2f, 3.3f))
+      assert(reply.asInstanceOf[Zone.Ground.ItemOnGround].orient == Vector3(4.4f, 5.5f, 6.6f))
+      assert(zone.EquipmentOnGround.contains(item))
     }
+  }
+}
 
-    "get item from ground (success)" in {
-      val zone = new Zone("test", new ZoneMap(""), 0)
-      val player = Player(Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5))
-      system.actorOf(Props(classOf[ZoneTest.ZoneInitActor], zone), "get-item-test-good") ! "!"
-      receiveOne(Duration.create(200, "ms")) //consume
+class ZoneGroundCanNotDropItem1Test extends ActorTest {
+  val item = AmmoBox(GlobalDefinitions.bullet_9mm)
+  val hub = new NumberPoolHub(new LimitedNumberSource(20))
+  //hub.register(item, 10) //!important
+  val zone = new Zone("test", new ZoneMap("test-map"), 0)
+  zone.GUID(hub)
+  zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "drop-test-zone")
+  zone.Actor ! Zone.Init()
+
+  "DropItem" should {
+    "not drop an item that is not registered" in {
+      assert(!zone.EquipmentOnGround.contains(item))
       zone.Ground ! Zone.Ground.DropItem(item, Vector3.Zero, Vector3.Zero)
-      expectNoMsg(Duration.create(100, "ms"))
 
-      assert(zone.EquipmentOnGround == List(item))
-      zone.Ground ! Zone.Ground.PickupItem(PlanetSideGUID(10))
-      val reply = receiveOne(Duration.create(100, "ms"))
+      val reply = receiveOne(300 milliseconds)
+      assert(reply.isInstanceOf[Zone.Ground.CanNotDropItem])
+      assert(reply.asInstanceOf[Zone.Ground.CanNotDropItem].item == item)
+      assert(reply.asInstanceOf[Zone.Ground.CanNotDropItem].zone == zone)
+      assert(reply.asInstanceOf[Zone.Ground.CanNotDropItem].reason == "not registered yet")
+      assert(!zone.EquipmentOnGround.contains(item))
+    }
+  }
+}
 
+class ZoneGroundCanNotDropItem2Test extends ActorTest {
+  val item = AmmoBox(GlobalDefinitions.bullet_9mm)
+  val hub = new NumberPoolHub(new LimitedNumberSource(20))
+  hub.register(item, 10) //!important
+  val zone = new Zone("test", new ZoneMap("test-map"), 0)
+  //zone.GUID(hub) //!important
+  zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "drop-test-zone")
+  zone.Actor ! Zone.Init()
+
+  "DropItem" should {
+    "not drop an item that is not registered to the zone" in {
+      assert(!zone.EquipmentOnGround.contains(item))
+      zone.Ground ! Zone.Ground.DropItem(item, Vector3.Zero, Vector3.Zero)
+
+      val reply = receiveOne(300 milliseconds)
+      assert(reply.isInstanceOf[Zone.Ground.CanNotDropItem])
+      assert(reply.asInstanceOf[Zone.Ground.CanNotDropItem].item == item)
+      assert(reply.asInstanceOf[Zone.Ground.CanNotDropItem].zone == zone)
+      assert(reply.asInstanceOf[Zone.Ground.CanNotDropItem].reason == "registered to some other zone")
+      assert(!zone.EquipmentOnGround.contains(item))
+    }
+  }
+}
+
+class ZoneGroundCanNotDropItem3Test extends ActorTest {
+  val item = AmmoBox(GlobalDefinitions.bullet_9mm)
+  val hub = new NumberPoolHub(new LimitedNumberSource(20))
+  hub.register(item, 10) //!important
+  val zone = new Zone("test", new ZoneMap("test-map"), 0)
+  zone.GUID(hub) //!important
+  zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "drop-test-zone")
+  zone.Actor ! Zone.Init()
+
+  "DropItem" should {
+    "not drop an item that has already been dropped" in {
+      assert(!zone.EquipmentOnGround.contains(item))
       assert(zone.EquipmentOnGround.isEmpty)
-      assert(reply.isInstanceOf[Zone.Ground.ItemInHand])
-      assert(reply.asInstanceOf[Zone.Ground.ItemInHand].item == item)
-    }
-
-    "get item from ground (failure)" in {
-      val zone = new Zone("test", new ZoneMap(""), 0)
-      val player = Player(Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5))
-      system.actorOf(Props(classOf[ZoneTest.ZoneInitActor], zone), "get-item-test-fail") ! "!"
-      receiveOne(Duration.create(200, "ms")) //consume
       zone.Ground ! Zone.Ground.DropItem(item, Vector3.Zero, Vector3.Zero)
-      expectNoMsg(Duration.create(100, "ms"))
 
-      assert(zone.EquipmentOnGround == List(item))
-      zone.Ground ! Zone.Ground.PickupItem(PlanetSideGUID(11)) //wrong guid
-      expectNoMsg(Duration.create(500, "ms"))
+      val reply1 = receiveOne(300 milliseconds)
+      assert(reply1.isInstanceOf[Zone.Ground.ItemOnGround])
+      assert(reply1.asInstanceOf[Zone.Ground.ItemOnGround].item == item)
+      assert(zone.EquipmentOnGround.contains(item))
+      assert(zone.EquipmentOnGround.size == 1)
+      zone.Ground ! Zone.Ground.DropItem(item, Vector3.Zero, Vector3.Zero)
+
+      val reply2 = receiveOne(300 milliseconds)
+      assert(reply2.isInstanceOf[Zone.Ground.CanNotDropItem])
+      assert(reply2.asInstanceOf[Zone.Ground.CanNotDropItem].item == item)
+      assert(reply2.asInstanceOf[Zone.Ground.CanNotDropItem].zone == zone)
+      assert(reply2.asInstanceOf[Zone.Ground.CanNotDropItem].reason == "already dropped")
+      assert(zone.EquipmentOnGround.size == 1)
+    }
+  }
+}
+
+class ZoneGroundPickupItemTest extends ActorTest {
+  val item = AmmoBox(GlobalDefinitions.bullet_9mm)
+  val hub = new NumberPoolHub(new LimitedNumberSource(20))
+  hub.register(item, 10)
+  val zone = new Zone("test", new ZoneMap("test-map"), 0)
+  zone.GUID(hub)
+  zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "drop-test-zone")
+  zone.Actor ! Zone.Init()
+
+  "PickupItem" should {
+    "pickup an item from ground" in {
+      assert(!zone.EquipmentOnGround.contains(item))
+      zone.Ground ! Zone.Ground.DropItem(item, Vector3.Zero, Vector3.Zero)
+
+      val reply1 = receiveOne(200 milliseconds)
+      assert(reply1.isInstanceOf[Zone.Ground.ItemOnGround])
+      assert(zone.EquipmentOnGround.contains(item))
+      zone.Ground ! Zone.Ground.PickupItem(item.GUID)
+
+      val reply2 = receiveOne(200 milliseconds)
+      assert(reply2.isInstanceOf[Zone.Ground.ItemInHand])
+      assert(reply2.asInstanceOf[Zone.Ground.ItemInHand].item == item)
+      assert(!zone.EquipmentOnGround.contains(item))
+    }
+  }
+}
+
+class ZoneGroundCanNotPickupItemTest extends ActorTest {
+  val item = AmmoBox(GlobalDefinitions.bullet_9mm)
+  val hub = new NumberPoolHub(new LimitedNumberSource(20))
+  hub.register(item, 10)
+  val zone = new Zone("test", new ZoneMap("test-map"), 0)
+  zone.GUID(hub) //still registered to this zone
+  zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "drop-test-zone")
+  zone.Actor ! Zone.Init()
+
+  "PickupItem" should {
+    "not pickup an item if it can not be found" in {
+      assert(!zone.EquipmentOnGround.contains(item))
+      zone.Ground ! Zone.Ground.PickupItem(item.GUID)
+
+      val reply2 = receiveOne(200 milliseconds)
+      assert(reply2.isInstanceOf[Zone.Ground.CanNotPickupItem])
+      assert(reply2.asInstanceOf[Zone.Ground.CanNotPickupItem].item_guid == item.GUID)
+      assert(reply2.asInstanceOf[Zone.Ground.CanNotPickupItem].zone == zone)
+      assert(reply2.asInstanceOf[Zone.Ground.CanNotPickupItem].reason == "can not find")
+    }
+  }
+}
+
+class ZoneGroundRemoveItemTest extends ActorTest {
+  val item = AmmoBox(GlobalDefinitions.bullet_9mm)
+  val hub = new NumberPoolHub(new LimitedNumberSource(20))
+  hub.register(item, 10)
+  val zone = new Zone("test", new ZoneMap("test-map"), 0)
+  zone.GUID(hub) //still registered to this zone
+  zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "drop-test-zone")
+  zone.Actor ! Zone.Init()
+
+  "RemoveItem" should {
+    "remove an item from the ground without callback (even if the item is not found)" in {
+      assert(!zone.EquipmentOnGround.contains(item))
+      zone.Ground ! Zone.Ground.DropItem(item, Vector3.Zero, Vector3.Zero)
+      receiveOne(200 milliseconds)
+      assert(zone.EquipmentOnGround.contains(item)) //dropped
+
+      zone.Ground ! Zone.Ground.RemoveItem(item.GUID)
+      expectNoMsg(500 milliseconds)
+      assert(!zone.EquipmentOnGround.contains(item))
+
+      zone.Ground ! Zone.Ground.RemoveItem(item.GUID) //repeat
+      expectNoMsg(500 milliseconds)
+      assert(!zone.EquipmentOnGround.contains(item))
     }
   }
 }

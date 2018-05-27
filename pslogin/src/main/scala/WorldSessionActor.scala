@@ -1364,13 +1364,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
       }
       avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.DropItem(exclusionId, item, continent))
 
-    case Zone.Ground.CanNotDropItem(item) =>
-      log.warn(s"DropItem: $player tried to drop a $item on the ground, but he missed")
-      player.Find(item) match {
-        case None => //item in limbo
-          taskResolver ! GUIDTask.UnregisterEquipment(item)(continent.GUID)
-        case Some(_) => ;
-      }
+    case Zone.Ground.CanNotDropItem(zone, item, reason) =>
+      log.warn(s"DropItem: $player tried to drop a $item on the ground, but $reason")
 
     case Zone.Ground.ItemInHand(item) =>
       player.Fit(item) match {
@@ -1392,8 +1387,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
           continent.Ground ! Zone.Ground.DropItem(item, item.Position, item.Orientation) //restore previous state
       }
 
-    case Zone.Ground.CanNotPickupItem(item_guid) =>
-      continent.GUID(item_guid) match {
+    case Zone.Ground.CanNotPickupItem(zone, item_guid, _) =>
+      zone.GUID(item_guid) match {
         case Some(item) =>
           log.warn(s"DropItem: finding a $item on the ground was suggested, but $player can not reach it")
         case None =>
@@ -2283,10 +2278,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
             && ((vehicle.Owner.isEmpty || continent.GUID(vehicle.Owner.get).isEmpty) || vehicle.Health == 0))) {
             vehicleService ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(vehicle), continent))
             vehicleService ! VehicleServiceMessage.Decon(RemoverActor.AddTask(vehicle, continent, Some(0 seconds)))
-            log.info(s"RequestDestroy: vehicle $object_guid")
+            log.info(s"RequestDestroy: vehicle $vehicle")
           }
           else {
-            log.info(s"RequestDestroy: must own vehicle $object_guid in order to deconstruct it")
+            log.info(s"RequestDestroy: must own vehicle in order to deconstruct it")
           }
 
         case Some(obj : Equipment) =>
@@ -2308,20 +2303,28 @@ class WorldSessionActor extends Actor with MDCContextAware {
             })
           match {
             case Some((parent, Some(slot))) =>
+              obj.Position = Vector3.Zero
               taskResolver ! RemoveEquipmentFromSlot(parent, obj, slot)
-              log.info(s"RequestDestroy: equipment $object_guid")
+              log.info(s"RequestDestroy: equipment $obj")
 
             case _ =>
-              //TODO search for item on ground
-              sendResponse(ObjectDeleteMessage(object_guid, 0))
-              log.warn(s"RequestDestroy: object $object_guid not found")
+              if(continent.EquipmentOnGround.contains(obj)) {
+                obj.Position = Vector3.Zero
+                continent.Ground ! Zone.Ground.RemoveItem(object_guid)
+                avatarService ! AvatarServiceMessage.Ground(RemoverActor.ClearSpecific(List(obj), continent))
+                avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(PlanetSideGUID(0), object_guid))
+                log.info(s"RequestDestroy: equipment $obj on ground")
+              }
+              else {
+                log.warn(s"RequestDestroy: equipment $obj exists, but can not be reached")
+              }
           }
+
+        case Some(thing) =>
+          log.warn(s"RequestDestroy: not allowed to delete object $thing")
 
         case None =>
           log.warn(s"RequestDestroy: object $object_guid not found")
-
-        case _ =>
-          log.warn(s"RequestDestroy: not allowed to delete object $object_guid")
       }
 
     case msg @ ObjectDeleteMessage(object_guid, unk1) =>

@@ -12,17 +12,23 @@ import scala.collection.mutable.ListBuffer
   * na
   * @param equipmentOnGround a `List` of items (`Equipment`) dropped by players on the ground and can be collected again
   */
-class ZoneGroundActor(equipmentOnGround : ListBuffer[Equipment]) extends Actor {
+class ZoneGroundActor(zone : Zone, equipmentOnGround : ListBuffer[Equipment]) extends Actor {
   //private[this] val log = org.log4s.getLogger
 
   def receive : Receive = {
     case Zone.Ground.DropItem(item, pos, orient) =>
-      sender ! (FindItemOnGround(item.GUID) match {
-        case None =>
-          equipmentOnGround += item
-          Zone.Ground.ItemOnGround(item, pos, orient)
-        case Some(_) =>
-          Zone.Ground.CanNotDropItem(item)
+      sender ! (if(!item.HasGUID) {
+        Zone.Ground.CanNotDropItem(zone, item, "not registered yet")
+      }
+      else if(zone.GUID(item.GUID).isEmpty) {
+        Zone.Ground.CanNotDropItem(zone, item, "registered to some other zone")
+      }
+      else if(equipmentOnGround.contains(item)) {
+        Zone.Ground.CanNotDropItem(zone, item, "already dropped")
+      }
+      else {
+        equipmentOnGround += item
+        Zone.Ground.ItemOnGround(item, pos, orient)
       })
 
     case Zone.Ground.PickupItem(item_guid) =>
@@ -30,8 +36,11 @@ class ZoneGroundActor(equipmentOnGround : ListBuffer[Equipment]) extends Actor {
         case Some(item) =>
           Zone.Ground.ItemInHand(item)
         case None =>
-          Zone.Ground.CanNotPickupItem(item_guid)
+          Zone.Ground.CanNotPickupItem(zone, item_guid, "can not find")
       })
+
+    case Zone.Ground.RemoveItem(item_guid) =>
+      FindItemOnGround(item_guid) //intentionally no callback
 
     case _ => ;
   }
