@@ -8,6 +8,8 @@ import services.vehicle.support.VehicleRemover
 import net.psforever.types.DriveState
 import services.{GenericEventBus, RemoverActor, Service}
 
+import scala.concurrent.duration._
+
 class VehicleService extends Actor {
   private val vehicleDecon : ActorRef = context.actorOf(Props[VehicleRemover], "vehicle-decon-agent")
   private [this] val log = org.log4s.getLogger
@@ -147,7 +149,7 @@ class VehicleService extends Actor {
       VehicleEvents.publish(
         VehicleServiceResponse(s"/${zone.Id}/Vehicle", Service.defaultPlayerGUID, VehicleResponse.LoadVehicle(vehicle, vtype, vguid, vdata))
       )
-      vehicleDecon forward RemoverActor.AddTask(vehicle, zone)
+      vehicleDecon forward RemoverActor.AddTask(vehicle, zone, Some(30 seconds))
 
     //from VehicleSpawnControl
     case VehicleSpawnPad.DisposeVehicle(vehicle, zone) =>

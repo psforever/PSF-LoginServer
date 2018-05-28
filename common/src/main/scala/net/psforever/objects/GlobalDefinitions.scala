@@ -16,6 +16,8 @@ import net.psforever.objects.serverobject.tube.SpawnTubeDefinition
 import net.psforever.objects.vehicles.{SeatArmorRestriction, UtilityType}
 import net.psforever.types.PlanetSideEmpire
 
+import scala.concurrent.duration._
+
 object GlobalDefinitions {
   /*
   Implants
@@ -2716,6 +2718,7 @@ object GlobalDefinitions {
     ams.Deployment = true
     ams.DeployTime = 2000
     ams.UndeployTime = 2000
+    ams.DeconstructionTime = Some(20 minutes)
     ams.AutoPilotSpeeds = (18, 6)
     ams.Packet = utilityConverter
 
@@ -2728,6 +2731,7 @@ object GlobalDefinitions {
     router.Deployment = true
     router.DeployTime = 2000
     router.UndeployTime = 2000
+    router.DeconstructionTime = Duration(20, "minutes")
     router.AutoPilotSpeeds = (16, 6)
     router.Packet = variantConverter
 
