@@ -22,9 +22,9 @@ class StandardRemoverActorTest extends ActorTest {
       val remover = system.actorOf(Props(classOf[RemoverActorTest.TestRemover], probe), "test-remover")
       remover ! RemoverActor.AddTask(RemoverActorTest.TestObject, Zone.Nowhere)
 
-      val reply1 = probe.receiveOne(100 milliseconds)
+      val reply1 = probe.receiveOne(200 milliseconds)
       assert(reply1.isInstanceOf[RemoverActorTest.InclusionTestAlert])
-      val reply2 = probe.receiveOne(100 milliseconds)
+      val reply2 = probe.receiveOne(200 milliseconds)
       assert(reply2.isInstanceOf[RemoverActorTest.InitialJobAlert])
       probe.expectNoMsg(1 seconds) //delay
       val reply3 = probe.receiveOne(300 milliseconds)
@@ -33,9 +33,9 @@ class StandardRemoverActorTest extends ActorTest {
       assert(reply4.isInstanceOf[RemoverActorTest.ClearanceTestAlert])
       val reply5 = probe.receiveOne(300 milliseconds)
       assert(reply5.isInstanceOf[RemoverActorTest.SecondJobAlert])
-      val reply6 = probe.receiveOne(300 milliseconds)
+      val reply6 = probe.receiveOne(500 milliseconds)
       assert(reply6.isInstanceOf[RemoverActorTest.DeletionTaskAlert])
-      val reply7 = probe.receiveOne(300 milliseconds)
+      val reply7 = probe.receiveOne(500 milliseconds)
       assert(reply7.isInstanceOf[RemoverActorTest.DeletionTaskRunAlert])
     }
   }
@@ -51,9 +51,9 @@ class DelayedRemoverActorTest extends ActorTest {
       val remover = system.actorOf(Props(classOf[RemoverActorTest.TestRemover], probe), "test-remover")
       remover ! RemoverActor.AddTask(RemoverActorTest.TestObject, Zone.Nowhere, Some(100 milliseconds))
 
-      val reply1 = probe.receiveOne(100 milliseconds)
+      val reply1 = probe.receiveOne(200 milliseconds)
       assert(reply1.isInstanceOf[RemoverActorTest.InclusionTestAlert])
-      val reply2 = probe.receiveOne(100 milliseconds)
+      val reply2 = probe.receiveOne(200 milliseconds)
       assert(reply2.isInstanceOf[RemoverActorTest.InitialJobAlert])
       //no delay
       val reply3 = probe.receiveOne(300 milliseconds)
@@ -81,7 +81,7 @@ class ExcludedRemoverActorTest extends ActorTest {
       val remover = system.actorOf(Props(classOf[RemoverActorTest.TestRemover], probe), "test-remover")
       remover ! RemoverActor.AddTask(AlternateTestObject, Zone.Nowhere)
 
-      val reply1 = probe.receiveOne(100 milliseconds)
+      val reply1 = probe.receiveOne(200 milliseconds)
       assert(reply1.isInstanceOf[RemoverActorTest.InclusionTestAlert])
       expectNoMsg(2 seconds)
       //RemoverActor is stalled because it received an object that it was not allowed to act upon
@@ -101,7 +101,7 @@ class MultipleRemoverActorTest extends ActorTest {
       remover ! RemoverActor.AddTask(RemoverActorTest.TestObject, Zone.Nowhere)
       remover ! RemoverActor.AddTask(TestObject2, Zone.Nowhere)
 
-      val replies = probe.receiveN(14, 3 seconds)
+      val replies = probe.receiveN(14, 5 seconds)
       var ita : Int = 0
       var ija : Int = 0
       var fja : Int = 0
@@ -134,9 +134,9 @@ class HurrySpecificRemoverActorTest extends ActorTest {
       val remover = system.actorOf(Props(classOf[RemoverActorTest.TestRemover], probe), "test-remover")
       remover ! RemoverActor.AddTask(RemoverActorTest.TestObject, Zone.Nowhere, Some(10 minutes)) //TEN MINUTE WAIT
 
-      val reply1 = probe.receiveOne(100 milliseconds)
+      val reply1 = probe.receiveOne(200 milliseconds)
       assert(reply1.isInstanceOf[RemoverActorTest.InclusionTestAlert])
-      val reply2 = probe.receiveOne(100 milliseconds)
+      val reply2 = probe.receiveOne(200 milliseconds)
       assert(reply2.isInstanceOf[RemoverActorTest.InitialJobAlert])
       probe.expectNoMsg(3 seconds) //long delay, longer than standard but not yet 10 minutes
       remover ! RemoverActor.HurrySpecific(List(RemoverActorTest.TestObject), Zone.Nowhere) //hurried
@@ -146,9 +146,9 @@ class HurrySpecificRemoverActorTest extends ActorTest {
       assert(reply4.isInstanceOf[RemoverActorTest.ClearanceTestAlert])
       val reply5 = probe.receiveOne(300 milliseconds)
       assert(reply5.isInstanceOf[RemoverActorTest.SecondJobAlert])
-      val reply6 = probe.receiveOne(300 milliseconds)
+      val reply6 = probe.receiveOne(500 milliseconds)
       assert(reply6.isInstanceOf[RemoverActorTest.DeletionTaskAlert])
-      val reply7 = probe.receiveOne(300 milliseconds)
+      val reply7 = probe.receiveOne(500 milliseconds)
       assert(reply7.isInstanceOf[RemoverActorTest.DeletionTaskRunAlert])
     }
   }
@@ -159,14 +159,14 @@ class HurrySelectionRemoverActorTest extends ActorTest {
   final val TestObject2 = new Equipment() { def Definition = new EquipmentDefinition(0) { GUID = PlanetSideGUID(2) } }
 
   "RemoverActor" should {
-    "be able to hurry certain tasks" in {
+    "be able to hurry certain tasks, but let others finish normally" in {
       expectNoMsg(200 milliseconds)
       val probe = TestProbe()
       val remover = system.actorOf(Props(classOf[RemoverActorTest.TestRemover], probe), "test-remover")
       remover ! RemoverActor.AddTask(RemoverActorTest.TestObject, Zone.Nowhere, Some(5 seconds))
       remover ! RemoverActor.AddTask(TestObject2, Zone.Nowhere, Some(10 seconds))
 
-      val replies = probe.receiveN(4, 3 seconds)
+      val replies = probe.receiveN(4, 5 seconds)
       var ita : Int = 0
       var ija : Int = 0
       replies.collect {
@@ -184,9 +184,9 @@ class HurrySelectionRemoverActorTest extends ActorTest {
       assert(reply4a.isInstanceOf[RemoverActorTest.ClearanceTestAlert])
       val reply5a = probe.receiveOne(300 milliseconds)
       assert(reply5a.isInstanceOf[RemoverActorTest.SecondJobAlert])
-      val reply6a = probe.receiveOne(300 milliseconds)
+      val reply6a = probe.receiveOne(500 milliseconds)
       assert(reply6a.isInstanceOf[RemoverActorTest.DeletionTaskAlert])
-      val reply7a = probe.receiveOne(300 milliseconds)
+      val reply7a = probe.receiveOne(500 milliseconds)
       assert(reply7a.isInstanceOf[RemoverActorTest.DeletionTaskRunAlert])
       //second
       remover ! RemoverActor.HurrySpecific(List(TestObject2), Zone.Nowhere) //hurried
@@ -196,9 +196,9 @@ class HurrySelectionRemoverActorTest extends ActorTest {
       assert(reply4b.isInstanceOf[RemoverActorTest.ClearanceTestAlert])
       val reply5b = probe.receiveOne(300 milliseconds)
       assert(reply5b.isInstanceOf[RemoverActorTest.SecondJobAlert])
-      val reply6b = probe.receiveOne(300 milliseconds)
+      val reply6b = probe.receiveOne(500 milliseconds)
       assert(reply6b.isInstanceOf[RemoverActorTest.DeletionTaskAlert])
-      val reply7b = probe.receiveOne(300 milliseconds)
+      val reply7b = probe.receiveOne(500 milliseconds)
       assert(reply7b.isInstanceOf[RemoverActorTest.DeletionTaskRunAlert])
     }
   }
@@ -217,7 +217,7 @@ class HurryMultipleRemoverActorTest extends ActorTest {
       remover ! RemoverActor.AddTask(RemoverActorTest.TestObject, Zone.Nowhere, Some(5 seconds))
       remover ! RemoverActor.AddTask(TestObject2, Zone.Nowhere, Some(5 seconds))
 
-      val replies = probe.receiveN(4, 3 seconds)
+      val replies = probe.receiveN(4, 5 seconds)
       var ita : Int = 0
       var ija : Int = 0
       replies.collect {
@@ -235,9 +235,9 @@ class HurryMultipleRemoverActorTest extends ActorTest {
       assert(reply4a.isInstanceOf[RemoverActorTest.ClearanceTestAlert])
       val reply5a = probe.receiveOne(300 milliseconds)
       assert(reply5a.isInstanceOf[RemoverActorTest.SecondJobAlert])
-      val reply6a = probe.receiveOne(300 milliseconds)
+      val reply6a = probe.receiveOne(500 milliseconds)
       assert(reply6a.isInstanceOf[RemoverActorTest.DeletionTaskAlert])
-      val reply7a = probe.receiveOne(300 milliseconds)
+      val reply7a = probe.receiveOne(500 milliseconds)
       assert(reply7a.isInstanceOf[RemoverActorTest.DeletionTaskRunAlert])
       //second
       remover ! RemoverActor.HurrySpecific(List(TestObject2), Zone.Nowhere) //hurried
@@ -247,9 +247,9 @@ class HurryMultipleRemoverActorTest extends ActorTest {
       assert(reply4b.isInstanceOf[RemoverActorTest.ClearanceTestAlert])
       val reply5b = probe.receiveOne(300 milliseconds)
       assert(reply5b.isInstanceOf[RemoverActorTest.SecondJobAlert])
-      val reply6b = probe.receiveOne(300 milliseconds)
+      val reply6b = probe.receiveOne(500 milliseconds)
       assert(reply6b.isInstanceOf[RemoverActorTest.DeletionTaskAlert])
-      val reply7b = probe.receiveOne(300 milliseconds)
+      val reply7b = probe.receiveOne(500 milliseconds)
       assert(reply7b.isInstanceOf[RemoverActorTest.DeletionTaskRunAlert])
     }
   }
@@ -270,7 +270,7 @@ class HurryByZoneRemoverActorTest extends ActorTest {
       remover ! RemoverActor.AddTask(TestObject2, zone, Some(5 seconds))
       remover ! RemoverActor.AddTask(TestObject3, Zone.Nowhere, Some(5 seconds))
 
-      val replies1 = probe.receiveN(6, 3 seconds)
+      val replies1 = probe.receiveN(6, 5 seconds)
       var ita : Int = 0
       var ija : Int = 0
       replies1.collect {
@@ -282,7 +282,7 @@ class HurryByZoneRemoverActorTest extends ActorTest {
       probe.expectNoMsg(3 seconds) //long delay, longer than standard but not yet 5 seconds
       remover ! RemoverActor.HurrySpecific(List(), Zone.Nowhere) //multiple hurried, only the two entries with Zone.Nowhere
       //
-      val replies2 = probe.receiveN(10, 3 seconds)
+      val replies2 = probe.receiveN(10, 5 seconds)
       var fja : Int = 0
       var cta : Int = 0
       var sja : Int = 0
@@ -307,9 +307,9 @@ class HurryByZoneRemoverActorTest extends ActorTest {
       assert(reply4b.isInstanceOf[RemoverActorTest.ClearanceTestAlert])
       val reply5b = probe.receiveOne(300 milliseconds)
       assert(reply5b.isInstanceOf[RemoverActorTest.SecondJobAlert])
-      val reply6b = probe.receiveOne(300 milliseconds)
+      val reply6b = probe.receiveOne(500 milliseconds)
       assert(reply6b.isInstanceOf[RemoverActorTest.DeletionTaskAlert])
-      val reply7b = probe.receiveOne(300 milliseconds)
+      val reply7b = probe.receiveOne(500 milliseconds)
       assert(reply7b.isInstanceOf[RemoverActorTest.DeletionTaskRunAlert])
     }
   }
@@ -329,7 +329,7 @@ class HurryAllRemoverActorTest extends ActorTest {
       remover ! RemoverActor.AddTask(TestObject2, Zone.Nowhere, Some(15 seconds))
       remover ! RemoverActor.AddTask(TestObject3, Zone.Nowhere, Some(10 seconds))
 
-      val replies1 = probe.receiveN(6, 3 seconds)
+      val replies1 = probe.receiveN(6, 5 seconds)
       var ita : Int = 0
       var ija : Int = 0
       replies1.collect {
@@ -341,7 +341,7 @@ class HurryAllRemoverActorTest extends ActorTest {
       probe.expectNoMsg(3 seconds) //long delay, longer than standard but not yet longer than any of the tasks
       remover ! RemoverActor.HurryAll() //all hurried
       //
-      val replies2 = probe.receiveN(15, 3 seconds)
+      val replies2 = probe.receiveN(15, 5 seconds)
       var fja : Int = 0
       var cta : Int = 0
       var sja : Int = 0
@@ -374,7 +374,7 @@ class ClearSelectionRemoverActorTest extends ActorTest {
       remover ! RemoverActor.AddTask(RemoverActorTest.TestObject, Zone.Nowhere, Some(5 seconds))
       remover ! RemoverActor.AddTask(TestObject2, Zone.Nowhere, Some(5 seconds))
 
-      val replies = probe.receiveN(4, 3 seconds)
+      val replies = probe.receiveN(4, 5 seconds)
       var ita : Int = 0
       var ija : Int = 0
       replies.collect {
@@ -392,9 +392,9 @@ class ClearSelectionRemoverActorTest extends ActorTest {
       assert(reply4.isInstanceOf[RemoverActorTest.ClearanceTestAlert])
       val reply5 = probe.receiveOne(300 milliseconds)
       assert(reply5.isInstanceOf[RemoverActorTest.SecondJobAlert])
-      val reply6 = probe.receiveOne(300 milliseconds)
+      val reply6 = probe.receiveOne(500 milliseconds)
       assert(reply6.isInstanceOf[RemoverActorTest.DeletionTaskAlert])
-      val reply7 = probe.receiveOne(300 milliseconds)
+      val reply7 = probe.receiveOne(500 milliseconds)
       assert(reply7.isInstanceOf[RemoverActorTest.DeletionTaskRunAlert])
       //wait
       probe.expectNoMsg(2 seconds) //nothing more to do
@@ -414,7 +414,7 @@ class ClearAllRemoverActorTest extends ActorTest {
       remover ! RemoverActor.AddTask(RemoverActorTest.TestObject, Zone.Nowhere, Some(5 seconds))
       remover ! RemoverActor.AddTask(TestObject2, Zone.Nowhere, Some(5 seconds))
 
-      val replies = probe.receiveN(4, 3 seconds)
+      val replies = probe.receiveN(4, 5 seconds)
       var ita : Int = 0
       var ija : Int = 0
       replies.collect {
@@ -443,7 +443,7 @@ class EarlyDeathRemoverActorTest extends ActorTest {
       remover ! RemoverActor.AddTask(RemoverActorTest.TestObject, Zone.Nowhere, Some(5 seconds))
       remover ! RemoverActor.AddTask(TestObject2, Zone.Nowhere, Some(5 seconds))
 
-      val replies = probe.receiveN(4, 3 seconds)
+      val replies = probe.receiveN(4, 5 seconds)
       var ita : Int = 0
       var ija : Int = 0
       replies.collect {
@@ -455,7 +455,7 @@ class EarlyDeathRemoverActorTest extends ActorTest {
       probe.expectNoMsg(2 seconds)
       remover ! akka.actor.PoisonPill
       //
-      val replies2 = probe.receiveN(8, 2 seconds)
+      val replies2 = probe.receiveN(8, 5 seconds)
       var fja : Int = 0
       var cta : Int = 0
       var sja : Int = 0

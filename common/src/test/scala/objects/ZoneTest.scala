@@ -476,6 +476,7 @@ class ZoneGroundDropItemTest extends ActorTest {
 
   "DropItem" should {
     "drop item on ground" in {
+      expectNoMsg(100 milliseconds)
       assert(!zone.EquipmentOnGround.contains(item))
       zone.Ground ! Zone.Ground.DropItem(item, Vector3(1.1f, 2.2f, 3.3f), Vector3(4.4f, 5.5f, 6.6f))
 
@@ -500,6 +501,7 @@ class ZoneGroundCanNotDropItem1Test extends ActorTest {
 
   "DropItem" should {
     "not drop an item that is not registered" in {
+      expectNoMsg(100 milliseconds)
       assert(!zone.EquipmentOnGround.contains(item))
       zone.Ground ! Zone.Ground.DropItem(item, Vector3.Zero, Vector3.Zero)
 
@@ -524,6 +526,7 @@ class ZoneGroundCanNotDropItem2Test extends ActorTest {
 
   "DropItem" should {
     "not drop an item that is not registered to the zone" in {
+      expectNoMsg(100 milliseconds)
       assert(!zone.EquipmentOnGround.contains(item))
       zone.Ground ! Zone.Ground.DropItem(item, Vector3.Zero, Vector3.Zero)
 
@@ -548,6 +551,7 @@ class ZoneGroundCanNotDropItem3Test extends ActorTest {
 
   "DropItem" should {
     "not drop an item that has already been dropped" in {
+      expectNoMsg(100 milliseconds)
       assert(!zone.EquipmentOnGround.contains(item))
       assert(zone.EquipmentOnGround.isEmpty)
       zone.Ground ! Zone.Ground.DropItem(item, Vector3.Zero, Vector3.Zero)
