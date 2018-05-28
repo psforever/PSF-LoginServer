@@ -17,7 +17,7 @@ class StandardRemoverActorTest extends ActorTest {
 
   "RemoverActor" should {
     "handle a simple task" in {
-      expectNoMsg(200 milliseconds)
+      expectNoMsg(500 milliseconds)
       val probe = TestProbe()
       val remover = system.actorOf(Props(classOf[RemoverActorTest.TestRemover], probe), "test-remover")
       remover ! RemoverActor.AddTask(RemoverActorTest.TestObject, Zone.Nowhere)
@@ -46,7 +46,7 @@ class DelayedRemoverActorTest extends ActorTest {
 
   "RemoverActor" should {
     "handle a simple task (timed)" in {
-      expectNoMsg(200 milliseconds)
+      expectNoMsg(500 milliseconds)
       val probe = TestProbe()
       val remover = system.actorOf(Props(classOf[RemoverActorTest.TestRemover], probe), "test-remover")
       remover ! RemoverActor.AddTask(RemoverActorTest.TestObject, Zone.Nowhere, Some(100 milliseconds))
@@ -76,7 +76,7 @@ class ExcludedRemoverActorTest extends ActorTest {
 
   "RemoverActor" should {
     "allow only specific objects" in {
-      expectNoMsg(200 milliseconds)
+      expectNoMsg(500 milliseconds)
       val probe = TestProbe()
       val remover = system.actorOf(Props(classOf[RemoverActorTest.TestRemover], probe), "test-remover")
       remover ! RemoverActor.AddTask(AlternateTestObject, Zone.Nowhere)
@@ -95,7 +95,7 @@ class MultipleRemoverActorTest extends ActorTest {
 
   "RemoverActor" should {
     "work on parallel tasks" in {
-      expectNoMsg(200 milliseconds)
+      expectNoMsg(500 milliseconds)
       val probe = TestProbe()
       val remover = system.actorOf(Props(classOf[RemoverActorTest.TestRemover], probe), "test-remover")
       remover ! RemoverActor.AddTask(RemoverActorTest.TestObject, Zone.Nowhere)
@@ -129,7 +129,7 @@ class HurrySpecificRemoverActorTest extends ActorTest {
 
   "RemoverActor" should {
     "be able to hurry certain tasks" in {
-      expectNoMsg(200 milliseconds)
+      expectNoMsg(500 milliseconds)
       val probe = TestProbe()
       val remover = system.actorOf(Props(classOf[RemoverActorTest.TestRemover], probe), "test-remover")
       remover ! RemoverActor.AddTask(RemoverActorTest.TestObject, Zone.Nowhere, Some(10 minutes)) //TEN MINUTE WAIT
@@ -160,7 +160,7 @@ class HurrySelectionRemoverActorTest extends ActorTest {
 
   "RemoverActor" should {
     "be able to hurry certain tasks, but let others finish normally" in {
-      expectNoMsg(200 milliseconds)
+      expectNoMsg(500 milliseconds)
       val probe = TestProbe()
       val remover = system.actorOf(Props(classOf[RemoverActorTest.TestRemover], probe), "test-remover")
       remover ! RemoverActor.AddTask(RemoverActorTest.TestObject, Zone.Nowhere, Some(5 seconds))
@@ -211,7 +211,7 @@ class HurryMultipleRemoverActorTest extends ActorTest {
 
   "RemoverActor" should {
     "be able to hurry certain tasks, but only valid ones" in {
-      expectNoMsg(200 milliseconds)
+      expectNoMsg(500 milliseconds)
       val probe = TestProbe()
       val remover = system.actorOf(Props(classOf[RemoverActorTest.TestRemover], probe), "test-remover")
       remover ! RemoverActor.AddTask(RemoverActorTest.TestObject, Zone.Nowhere, Some(5 seconds))
@@ -263,7 +263,7 @@ class HurryByZoneRemoverActorTest extends ActorTest {
 
   "RemoverActor" should {
     "be able to hurry certain tasks by their zone" in {
-      expectNoMsg(200 milliseconds)
+      expectNoMsg(500 milliseconds)
       val probe = TestProbe()
       val remover = system.actorOf(Props(classOf[RemoverActorTest.TestRemover], probe), "test-remover")
       remover ! RemoverActor.AddTask(RemoverActorTest.TestObject, Zone.Nowhere, Some(5 seconds))
@@ -322,7 +322,7 @@ class HurryAllRemoverActorTest extends ActorTest {
 
   "RemoverActor" should {
     "be able to hurry all tasks to completion" in {
-      expectNoMsg(200 milliseconds)
+      expectNoMsg(500 milliseconds)
       val probe = TestProbe()
       val remover = system.actorOf(Props(classOf[RemoverActorTest.TestRemover], probe), "test-remover")
       remover ! RemoverActor.AddTask(RemoverActorTest.TestObject, Zone.Nowhere, Some(20 seconds))
@@ -368,7 +368,7 @@ class ClearSelectionRemoverActorTest extends ActorTest {
 
   "RemoverActor" should {
     "be able to clear certain tasks" in {
-      expectNoMsg(200 milliseconds)
+      expectNoMsg(500 milliseconds)
       val probe = TestProbe()
       val remover = system.actorOf(Props(classOf[RemoverActorTest.TestRemover], probe), "test-remover")
       remover ! RemoverActor.AddTask(RemoverActorTest.TestObject, Zone.Nowhere, Some(5 seconds))
@@ -408,7 +408,7 @@ class ClearAllRemoverActorTest extends ActorTest {
 
   "RemoverActor" should {
     "be able to clear all tasks, with no more work on them" in {
-      expectNoMsg(200 milliseconds)
+      expectNoMsg(500 milliseconds)
       val probe = TestProbe()
       val remover = system.actorOf(Props(classOf[RemoverActorTest.TestRemover], probe), "test-remover")
       remover ! RemoverActor.AddTask(RemoverActorTest.TestObject, Zone.Nowhere, Some(5 seconds))
@@ -437,7 +437,7 @@ class EarlyDeathRemoverActorTest extends ActorTest {
 
   "RemoverActor" should {
     "be able to hurry certain tasks" in {
-      expectNoMsg(200 milliseconds)
+      expectNoMsg(500 milliseconds)
       val probe = TestProbe()
       val remover = system.actorOf(Props(classOf[RemoverActorTest.TestRemover], probe), "test-remover")
       remover ! RemoverActor.AddTask(RemoverActorTest.TestObject, Zone.Nowhere, Some(5 seconds))

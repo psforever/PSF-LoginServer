@@ -470,13 +470,11 @@ class ZoneGroundDropItemTest extends ActorTest {
   hub.register(item, 10)
   val zone = new Zone("test", new ZoneMap("test-map"), 0)
   zone.GUID(hub)
-  zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "drop-test-zone")
-  zone.Actor ! Zone.Init()
-  receiveOne(200 milliseconds) //consume
+  system.actorOf(Props(classOf[ZoneTest.ZoneInitActor], zone), "drop-test-zone") ! "!"
 
   "DropItem" should {
     "drop item on ground" in {
-      expectNoMsg(100 milliseconds)
+      receiveOne(1 second) //consume
       assert(!zone.EquipmentOnGround.contains(item))
       zone.Ground ! Zone.Ground.DropItem(item, Vector3(1.1f, 2.2f, 3.3f), Vector3(4.4f, 5.5f, 6.6f))
 
@@ -496,12 +494,11 @@ class ZoneGroundCanNotDropItem1Test extends ActorTest {
   //hub.register(item, 10) //!important
   val zone = new Zone("test", new ZoneMap("test-map"), 0)
   zone.GUID(hub)
-  zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "drop-test-zone")
-  zone.Actor ! Zone.Init()
+  system.actorOf(Props(classOf[ZoneTest.ZoneInitActor], zone), "drop-test-zone") ! "!"
 
   "DropItem" should {
     "not drop an item that is not registered" in {
-      expectNoMsg(100 milliseconds)
+      receiveOne(1 second) //consume
       assert(!zone.EquipmentOnGround.contains(item))
       zone.Ground ! Zone.Ground.DropItem(item, Vector3.Zero, Vector3.Zero)
 
@@ -521,12 +518,11 @@ class ZoneGroundCanNotDropItem2Test extends ActorTest {
   hub.register(item, 10) //!important
   val zone = new Zone("test", new ZoneMap("test-map"), 0)
   //zone.GUID(hub) //!important
-  zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "drop-test-zone")
-  zone.Actor ! Zone.Init()
+  system.actorOf(Props(classOf[ZoneTest.ZoneInitActor], zone), "drop-test-zone") ! "!"
 
   "DropItem" should {
     "not drop an item that is not registered to the zone" in {
-      expectNoMsg(100 milliseconds)
+      receiveOne(1 second) //consume
       assert(!zone.EquipmentOnGround.contains(item))
       zone.Ground ! Zone.Ground.DropItem(item, Vector3.Zero, Vector3.Zero)
 
@@ -546,12 +542,11 @@ class ZoneGroundCanNotDropItem3Test extends ActorTest {
   hub.register(item, 10) //!important
   val zone = new Zone("test", new ZoneMap("test-map"), 0)
   zone.GUID(hub) //!important
-  zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "drop-test-zone")
-  zone.Actor ! Zone.Init()
+  system.actorOf(Props(classOf[ZoneTest.ZoneInitActor], zone), "drop-test-zone") ! "!"
 
   "DropItem" should {
     "not drop an item that has already been dropped" in {
-      expectNoMsg(100 milliseconds)
+      receiveOne(1 second) //consume
       assert(!zone.EquipmentOnGround.contains(item))
       assert(zone.EquipmentOnGround.isEmpty)
       zone.Ground ! Zone.Ground.DropItem(item, Vector3.Zero, Vector3.Zero)
@@ -579,11 +574,11 @@ class ZoneGroundPickupItemTest extends ActorTest {
   hub.register(item, 10)
   val zone = new Zone("test", new ZoneMap("test-map"), 0)
   zone.GUID(hub)
-  zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "drop-test-zone")
-  zone.Actor ! Zone.Init()
+  system.actorOf(Props(classOf[ZoneTest.ZoneInitActor], zone), "drop-test-zone") ! "!"
 
   "PickupItem" should {
     "pickup an item from ground" in {
+      receiveOne(1 second) //consume
       assert(!zone.EquipmentOnGround.contains(item))
       zone.Ground ! Zone.Ground.DropItem(item, Vector3.Zero, Vector3.Zero)
 
@@ -606,11 +601,11 @@ class ZoneGroundCanNotPickupItemTest extends ActorTest {
   hub.register(item, 10)
   val zone = new Zone("test", new ZoneMap("test-map"), 0)
   zone.GUID(hub) //still registered to this zone
-  zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "drop-test-zone")
-  zone.Actor ! Zone.Init()
+  system.actorOf(Props(classOf[ZoneTest.ZoneInitActor], zone), "drop-test-zone") ! "!"
 
   "PickupItem" should {
     "not pickup an item if it can not be found" in {
+      receiveOne(1 second) //consume
       assert(!zone.EquipmentOnGround.contains(item))
       zone.Ground ! Zone.Ground.PickupItem(item.GUID)
 
@@ -629,11 +624,11 @@ class ZoneGroundRemoveItemTest extends ActorTest {
   hub.register(item, 10)
   val zone = new Zone("test", new ZoneMap("test-map"), 0)
   zone.GUID(hub) //still registered to this zone
-  zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "drop-test-zone")
-  zone.Actor ! Zone.Init()
+  system.actorOf(Props(classOf[ZoneTest.ZoneInitActor], zone), "drop-test-zone") ! "!"
 
   "RemoveItem" should {
     "remove an item from the ground without callback (even if the item is not found)" in {
+      receiveOne(1 second)
       assert(!zone.EquipmentOnGround.contains(item))
       zone.Ground ! Zone.Ground.DropItem(item, Vector3.Zero, Vector3.Zero)
       receiveOne(200 milliseconds)
