@@ -3,47 +3,52 @@ package net.psforever.objects.definition.converter
 
 import net.psforever.objects.{EquipmentSlot, Player}
 import net.psforever.objects.equipment.Equipment
-import net.psforever.packet.game.objectcreate.{BasicCharacterData, CharacterAppearanceData, CharacterData, Cosmetics, DetailedCharacterData, DrawnSlot, ImplantEffects, ImplantEntry, InternalSlot, InventoryData, PlacementData, RibbonBars, UniformStyle}
+import net.psforever.packet.game.objectcreate._
 import net.psforever.types.{GrenadeState, ImplantType}
 
 import scala.annotation.tailrec
 import scala.util.{Success, Try}
 
 class AvatarConverter extends ObjectCreateConverter[Player]() {
-  override def ConstructorData(obj : Player) : Try[CharacterData] = {
+  override def ConstructorData(obj : Player) : Try[PlayerData] = {
     val MaxArmor = obj.MaxArmor
-    Success(
-      CharacterData(
+      Success(
+      PlayerData.apply(
+        PlacementData(obj.Position, obj.Orientation, obj.Velocity),
         MakeAppearanceData(obj),
-        255 * obj.Health / obj.MaxHealth, //TODO not precise
-        if(MaxArmor == 0) { 0 } else { 255 * obj.Armor / MaxArmor }, //TODO not precise
-        DressBattleRank(obj),
-        DressCommandRank(obj),
-        recursiveMakeImplantEffects(obj.Implants.iterator),
-        MakeCosmetics(obj.BEP),
+        CharacterData(
+          255 * obj.Health / obj.MaxHealth, //TODO not precise
+          if(MaxArmor == 0) { 0 } else { 255 * obj.Armor / MaxArmor }, //TODO not precise
+          DressBattleRank(obj),
+          DressCommandRank(obj),
+          recursiveMakeImplantEffects(obj.Implants.iterator),
+          MakeCosmetics(obj.BEP)
+        ),
         InventoryData(MakeHolsters(obj, BuildEquipment).sortBy(_.parentSlot)), //TODO is sorting necessary?
         GetDrawnSlot(obj)
       )
     )
-    //TODO tidy this mess up
   }
 
-  override def DetailedConstructorData(obj : Player) : Try[DetailedCharacterData] = {
+  override def DetailedConstructorData(obj : Player) : Try[DetailedPlayerData] = {
     Success(
-      DetailedCharacterData(
+      DetailedPlayerData.apply(
+        PlacementData(obj.Position, obj.Orientation, obj.Velocity),
         MakeAppearanceData(obj),
-        obj.BEP,
-        obj.CEP,
-        obj.MaxHealth,
-        obj.Health,
-        obj.Armor,
-        obj.MaxStamina,
-        obj.Stamina,
-        obj.Certifications.toList.sortBy(_.id), //TODO is sorting necessary?
-        MakeImplantEntries(obj),
-        List.empty[String], //TODO fte list
-        List.empty[String], //TODO tutorial list
-        MakeCosmetics(obj.BEP),
+        DetailedCharacterData(
+          obj.BEP,
+          obj.CEP,
+          obj.MaxHealth,
+          obj.Health,
+          obj.Armor,
+          obj.MaxStamina,
+          obj.Stamina,
+          obj.Certifications.toList.sortBy(_.id), //TODO is sorting necessary?
+          MakeImplantEntries(obj),
+          List.empty[String], //TODO fte list
+          List.empty[String], //TODO tutorial list
+          MakeCosmetics(obj.BEP)
+        ),
         InventoryData((MakeHolsters(obj, BuildDetailedEquipment) ++ MakeFifthSlot(obj) ++ MakeInventory(obj)).sortBy(_.parentSlot)),
         GetDrawnSlot(obj)
       )
@@ -55,9 +60,8 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
     * @param obj the `Player` game object
     * @return the resulting `CharacterAppearanceData`
     */
-  private def MakeAppearanceData(obj : Player) : CharacterAppearanceData = {
+  private def MakeAppearanceData(obj : Player) : (Int)=>CharacterAppearanceData = {
     CharacterAppearanceData(
-      PlacementData(obj.Position, obj.Orientation, obj.Velocity),
       BasicCharacterData(obj.Name, obj.Faction, obj.Sex, obj.Head, obj.Voice),
       0,
       false,

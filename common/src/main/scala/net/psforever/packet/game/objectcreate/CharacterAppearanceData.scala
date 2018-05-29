@@ -23,6 +23,8 @@ import shapeless.{::, HNil}
   * `5 - male_5 &nbsp;&nbsp; female_5`<br>
   * `6 - female_1 &nbsp;no voice`<br>
   * `7 - female_2 &nbsp;no voice`
+  * @see `PlanetSideEmpire`<br>
+  *        `CharacaterGender`
   * @param name the unique name of the avatar;
   *             minimum of two characters
   * @param faction the empire to which the avatar belongs
@@ -30,8 +32,6 @@ import shapeless.{::, HNil}
   * @param head the avatar's face and hair;
   *             by row and column on the character creation screen, the high nibble is the row and the low nibble is the column
   * @param voice the avatar's voice selection
-  * @see `PlanetSideEmpire`
-  * @see `CharacaterGender`
   */
 final case class BasicCharacterData(name : String,
                                     faction : PlanetSideEmpire.Value,
@@ -60,8 +60,12 @@ final case class BasicCharacterData(name : String,
   * <br>
   * Exploration:<br>
   * How do I crouch?
-  * @param pos the position of the character in the world environment (in three coordinates)
-  * @param basic_appearance the player's cardinal appearance settings
+  * @see `CharacterData`<br>
+  *        `DetailedCharacterData`<br>
+  *        `ExoSuitType`<br>
+  *        `GrenadeState`<br>
+  *        `RibbonBars`
+  * @param app the player's cardinal appearance settings
   * @param voice2 na;
   *               affects the frequency by which the character's voice is heard (somehow);
   *               commonly 3 for best results
@@ -86,16 +90,8 @@ final case class BasicCharacterData(name : String,
   * @param charging_pose animation pose for both charging modules and BFR imprinting
   * @param on_zipline player's model is changed into a faction-color ball of energy, as if on a zip line
   * @param ribbons the four merit commendation ribbon medals
-  * @see `CharacterData`
-  * @see `DetailedCharacterData`
-  * @see `PlacementData`
-  * @see `ExoSuitType`
-  * @see `GrenadeState`
-  * @see `RibbonBars`
-  * @see `http://wiki.planetsidesyndicate.com/index.php?title=Outfit_Logo` for a list of outfit decals
   */
-final case class CharacterAppearanceData(pos : PlacementData,
-                                         basic_appearance : BasicCharacterData,
+final case class CharacterAppearanceData(app : BasicCharacterData,
                                          voice2 : Int,
                                          black_ops : Boolean,
                                          jammered : Boolean,
@@ -110,22 +106,29 @@ final case class CharacterAppearanceData(pos : PlacementData,
                                          is_cloaking : Boolean,
                                          charging_pose : Boolean,
                                          on_zipline : Boolean,
-                                         ribbons : RibbonBars) extends StreamBitSize {
+                                         ribbons : RibbonBars)
+                                        (name_padding : Int) extends StreamBitSize {
 
   override def bitsize : Long = {
     //factor guard bool values into the base size, not its corresponding optional field
-    val placementSize : Long = pos.bitsize
-    val nameStringSize : Long = StreamBitSize.stringBitSize(basic_appearance.name, 16) + CharacterAppearanceData.namePadding(pos.vel)
+    val nameStringSize : Long = StreamBitSize.stringBitSize(app.name, 16) + CharacterAppearanceData.namePaddingRule(name_padding)
     val outfitStringSize : Long = StreamBitSize.stringBitSize(outfit_name, 16) + CharacterAppearanceData.outfitNamePadding
     val altModelSize = CharacterAppearanceData.altModelBit(this).getOrElse(0)
-    335L + placementSize + nameStringSize + outfitStringSize + altModelSize
+    335L + nameStringSize + outfitStringSize + altModelSize
   }
+
+
+  /**
+    * When a player is released-dead or attached to a zipline, their basic infantry model is replaced with a different one.
+    * @return the length of the variable field that exists when using alternate models
+    */
+  def altModelBit : Option[Int] = CharacterAppearanceData.altModelBit(this)
 }
 
 object CharacterAppearanceData extends Marshallable[CharacterAppearanceData] {
   /**
     * When a player is released-dead or attached to a zipline, their basic infantry model is replaced with a different one.
-    * In the former casde, a backpack.
+    * In the former case, a backpack.
     * In the latter case, a ball of colored energy.
     * In this state, the length of the stream of data is modified.
     * @param app the appearance
@@ -143,14 +146,13 @@ object CharacterAppearanceData extends Marshallable[CharacterAppearanceData] {
     * The padding will always be a number 0-7.
     * @return the pad length in bits
     */
-  def namePadding(move : Option[_]) : Int = {
-    if(move.isDefined) {
-      2
+  def namePaddingRule(pad : Int) : Int =
+    if(pad == 0) {
+      1 //normal alignment padding for the string
     }
     else {
-      4
+      pad //custom padding value
     }
-  }
 
   /**
     * Get the padding of the outfit's name.
@@ -161,77 +163,78 @@ object CharacterAppearanceData extends Marshallable[CharacterAppearanceData] {
     6
   }
 
-  implicit val codec : Codec[CharacterAppearanceData] = (
-    ("pos" | PlacementData.codec) >>:~ { pos =>
-      ("faction" | PlanetSideEmpire.codec) ::
-        ("black_ops" | bool) ::
-        (("alt_model" | bool) >>:~ { alt_model => //modifies stream format (to display alternate player models)
+  def codec(name_padding : Int) : Codec[CharacterAppearanceData] = (
+    ("faction" | PlanetSideEmpire.codec) ::
+      ("black_ops" | bool) ::
+      (("alt_model" | bool) >>:~ { alt_model => //modifies stream format (to display alternate player models)
+        ignore(1) :: //unknown
+          ("jammered" | bool) ::
+          bool :: //crashes client
+          uint(16) :: //unknown, but usually 0
+          ("name" | PacketHelpers.encodedWideStringAligned( namePaddingRule(name_padding) )) ::
+          ("exosuit" | ExoSuitType.codec) ::
+          ignore(2) :: //unknown
+          ("sex" | CharacterGender.codec) ::
+          ("head" | uint8L) ::
+          ("voice" | uint(3)) ::
+          ("voice2" | uint2L) ::
+          ignore(78) :: //unknown
+          uint16L :: //usually either 0 or 65535
+          uint32L :: //for outfit_name (below) to be visible in-game, this value should be non-zero
+          ("outfit_name" | PacketHelpers.encodedWideStringAligned( outfitNamePadding )) ::
+          ("outfit_logo" | uint8L) ::
           ignore(1) :: //unknown
-            ("jammered" | bool) ::
-            bool :: //crashes client
-            uint(16) :: //unknown, but usually 0
-            ("name" | PacketHelpers.encodedWideStringAligned( namePadding(pos.vel) )) ::
-            ("exosuit" | ExoSuitType.codec) ::
-            ignore(2) :: //unknown
-            ("sex" | CharacterGender.codec) ::
-            ("head" | uint8L) ::
-            ("voice" | uint(3)) ::
-            ("voice2" | uint2L) ::
-            ignore(78) :: //unknown
-            uint16L :: //usually either 0 or 65535
-            uint32L :: //for outfit_name (below) to be visible in-game, this value should be non-zero
-            ("outfit_name" | PacketHelpers.encodedWideStringAligned( outfitNamePadding )) ::
-            ("outfit_logo" | uint8L) ::
-            ignore(1) :: //unknown
-            ("backpack" | bool) :: //requires alt_model flag (does NOT require health == 0)
-            bool :: //stream misalignment when set
-            ("facingPitch" | Angular.codec_pitch) ::
-            ("facingYawUpper" | Angular.codec_yaw(0f)) ::
-            ignore(1) :: //unknown
-            conditional(alt_model, bool) :: //alt_model flag adds a bit before lfs
-            ignore(1) :: //an alternate lfs?
-            ("lfs" | bool) ::
-            ("grenade_state" | GrenadeState.codec_2u) :: //note: bin10 and bin11 are neutral (bin00 is not defined)
-            ("is_cloaking" | bool) ::
-            ignore(1) :: //unknown
-            bool :: //stream misalignment when set
-            ("charging_pose" | bool) ::
-            ignore(1) :: //alternate charging pose?
-            ("on_zipline" | bool) :: //requires alt_model flag
-            ("ribbons" | RibbonBars.codec)
-        })
-    }).exmap[CharacterAppearanceData] (
+          ("backpack" | bool) :: //requires alt_model flag (does NOT require health == 0)
+          bool :: //stream misalignment when set
+          ("facingPitch" | Angular.codec_pitch) ::
+          ("facingYawUpper" | Angular.codec_yaw(0f)) ::
+          ignore(1) :: //unknown
+          conditional(alt_model, bool) :: //alt_model flag adds a bit before lfs
+          ignore(1) :: //an alternate lfs?
+          ("lfs" | bool) ::
+          ("grenade_state" | GrenadeState.codec_2u) :: //note: bin10 and bin11 are neutral (bin00 is not defined)
+          ("is_cloaking" | bool) ::
+          ignore(1) :: //unknown
+          bool :: //stream misalignment when set
+          ("charging_pose" | bool) ::
+          ignore(1) :: //alternate charging pose?
+          ("on_zipline" | bool) :: //requires alt_model flag
+          ("ribbons" | RibbonBars.codec)
+      })
+    ).exmap[CharacterAppearanceData] (
     {
-      case _ :: _ :: _ :: false :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: true :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: HNil |
-           _ :: _ :: _ :: false :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: true :: _ :: HNil =>
+      case _ :: _ :: false :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: true :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: HNil |
+           _ :: _ :: false :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: true :: _ :: HNil =>
         Attempt.Failure(Err("invalid character appearance data; can not encode alternate model without required bit set"))
 
-      case pos :: faction :: bops :: _ :: _ :: jamd :: false :: 0 :: name :: suit :: _ :: sex :: head :: v1 :: v2 :: _ :: _ :: _/*has_outfit_name*/ :: outfit :: logo :: _ :: bpack :: false :: facingPitch :: facingYawUpper :: _ :: _ :: _ :: lfs :: gstate :: cloaking :: _ :: false :: charging :: _ :: zipline :: ribbons :: HNil =>
+      case faction :: bops :: _ :: _ :: jamd :: false :: 0 :: name :: suit :: _ :: sex :: head :: v1 :: v2 :: _ :: _ :: _/*has_outfit_name*/ :: outfit :: logo :: _ :: bpack :: false :: facingPitch :: facingYawUpper :: _ :: _ :: _ :: lfs :: gstate :: cloaking :: _ :: false :: charging :: _ :: zipline :: ribbons :: HNil =>
         Attempt.successful(
-          CharacterAppearanceData(pos, BasicCharacterData(name, faction, sex, head, v1), v2, bops, jamd, suit, outfit, logo, bpack, facingPitch, facingYawUpper, lfs, gstate, cloaking, charging, zipline, ribbons)
+          CharacterAppearanceData(BasicCharacterData(name, faction, sex, head, v1), v2, bops, jamd, suit, outfit, logo, bpack, facingPitch, facingYawUpper, lfs, gstate, cloaking, charging, zipline, ribbons)(name_padding)
         )
 
       case _ =>
         Attempt.Failure(Err("invalid character appearance data; can not encode"))
     },
     {
-      case CharacterAppearanceData(_, BasicCharacterData(name, PlanetSideEmpire.NEUTRAL, _, _, _), _, _, _, _, _, _, _, _, _, _, _, _, _, _, _) =>
+      case CharacterAppearanceData(BasicCharacterData(name, PlanetSideEmpire.NEUTRAL, _, _, _), _, _, _, _, _, _, _, _, _, _, _, _, _, _, _) =>
         Attempt.failure(Err(s"character $name's faction can not declare as neutral"))
 
-      case CharacterAppearanceData(pos, BasicCharacterData(name, faction, sex, head, v1), v2, bops, jamd, suit, outfit, logo, bpack, facingPitch, facingYawUpper, lfs, gstate, cloaking, charging, zipline, ribbons) =>
+      case CharacterAppearanceData(BasicCharacterData(name, faction, sex, head, v1), v2, bops, jamd, suit, outfit, logo, bpack, facingPitch, facingYawUpper, lfs, gstate, cloaking, charging, zipline, ribbons) =>
         val has_outfit_name : Long = outfit.length.toLong //TODO this is a kludge
-        var alt_model : Boolean = false
+      var alt_model : Boolean = false
         var alt_model_extrabit : Option[Boolean] = None
         if(zipline || bpack) {
           alt_model = true
           alt_model_extrabit = Some(false)
         }
         Attempt.successful(
-          pos :: faction :: bops :: alt_model :: () :: jamd :: false :: 0 :: name :: suit :: () :: sex :: head :: v1 :: v2 :: () :: 0 :: has_outfit_name :: outfit :: logo :: () :: bpack :: false :: facingPitch :: facingYawUpper :: () :: alt_model_extrabit :: () :: lfs :: gstate :: cloaking :: () :: false :: charging :: () :: zipline :: ribbons :: HNil
+          faction :: bops :: alt_model :: () :: jamd :: false :: 0 :: name :: suit :: () :: sex :: head :: v1 :: v2 :: () :: 0 :: has_outfit_name :: outfit :: logo :: () :: bpack :: false :: facingPitch :: facingYawUpper :: () :: alt_model_extrabit :: () :: lfs :: gstate :: cloaking :: () :: false :: charging :: () :: zipline :: ribbons :: HNil
         )
 
       case _ =>
         Attempt.Failure(Err("invalid character appearance data; can not decode"))
     }
   )
+
+  implicit val codec : Codec[CharacterAppearanceData] = codec(0)
 }

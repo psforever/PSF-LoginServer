@@ -3,7 +3,7 @@ package net.psforever.objects.definition.converter
 
 import net.psforever.objects.{EquipmentSlot, Player}
 import net.psforever.objects.equipment.Equipment
-import net.psforever.packet.game.objectcreate.{BasicCharacterData, CharacterAppearanceData, CharacterData, DetailedCharacterData, ImplantEntry, InternalSlot, InventoryData, PlacementData, RibbonBars}
+import net.psforever.packet.game.objectcreate._
 import net.psforever.types.{GrenadeState, ImplantType}
 
 import scala.annotation.tailrec
@@ -15,19 +15,22 @@ import scala.util.{Failure, Success, Try}
   * Details that would not be apparent on that screen such as implants or certifications are ignored.
   */
 class CharacterSelectConverter extends AvatarConverter {
-  override def ConstructorData(obj : Player) : Try[CharacterData] = Failure(new Exception("CharacterSelectConverter should not be used to generate CharacterData"))
+  override def ConstructorData(obj : Player) : Try[PlayerData] = Failure(new Exception("CharacterSelectConverter should not be used to generate CharacterData"))
 
-  override def DetailedConstructorData(obj : Player) : Try[DetailedCharacterData] = {
+  override def DetailedConstructorData(obj : Player) : Try[DetailedPlayerData] = {
     Success(
-      DetailedCharacterData(
+      DetailedPlayerData.apply(
+        PlacementData(0, 0, 0),
         MakeAppearanceData(obj),
-        obj.BEP,
-        obj.CEP,
-        1, 1, 0, 1, 1,
-        Nil,
-        MakeImplantEntries(obj), //necessary for correct stream length
-        Nil, Nil,
-        MakeCosmetics(obj.BEP),
+        DetailedCharacterData(
+          obj.BEP,
+          obj.CEP,
+          1, 1, 0, 1, 1,
+          Nil,
+          MakeImplantEntries(obj), //necessary for correct stream length
+          Nil, Nil,
+          MakeCosmetics(obj.BEP)
+        ),
         InventoryData(recursiveMakeHolsters(obj.Holsters().iterator)),
         GetDrawnSlot(obj)
       )
@@ -40,9 +43,8 @@ class CharacterSelectConverter extends AvatarConverter {
     * @see `AvatarConverter.MakeAppearanceData`
     * @return the resulting `CharacterAppearanceData`
     */
-  private def MakeAppearanceData(obj : Player) : CharacterAppearanceData = {
+  private def MakeAppearanceData(obj : Player) : (Int)=>CharacterAppearanceData = {
     CharacterAppearanceData(
-      PlacementData(0f, 0f, 0f),
       BasicCharacterData(obj.Name, obj.Faction, obj.Sex, obj.Head, 1),
       0,
       false,

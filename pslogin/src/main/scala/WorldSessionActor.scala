@@ -1828,7 +1828,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       galaxy ! Zone.Lattice.RequestSpawnPoint(u5.toInt, player, u2.toInt)
 
     case msg @ SetChatFilterMessage(send_channel, origin, whitelist) =>
-      log.info("SetChatFilters: " + msg)
+      //log.info("SetChatFilters: " + msg)
 
     case msg @ ChatMsg(messagetype, has_wide_contents, recipient, contents, note_contents) =>
       var makeReply : Boolean = true
