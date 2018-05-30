@@ -148,7 +148,8 @@ object CharacterAppearanceData extends Marshallable[CharacterAppearanceData] {
     */
   def namePaddingRule(pad : Int) : Int =
     if(pad == 0) {
-      1 //normal alignment padding for the string
+      //note that this counts as 1 (local) + 4 (inherited from PlayerData OCM with parent)
+      5 //normal alignment padding
     }
     else {
       pad //custom padding value
@@ -171,7 +172,7 @@ object CharacterAppearanceData extends Marshallable[CharacterAppearanceData] {
           ("jammered" | bool) ::
           bool :: //crashes client
           uint(16) :: //unknown, but usually 0
-          ("name" | PacketHelpers.encodedWideStringAligned( namePaddingRule(name_padding) )) ::
+          ("name" | PacketHelpers.encodedWideStringAligned(name_padding)) ::
           ("exosuit" | ExoSuitType.codec) ::
           ignore(2) :: //unknown
           ("sex" | CharacterGender.codec) ::

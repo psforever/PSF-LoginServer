@@ -666,11 +666,19 @@ object ObjectClass {
       case ObjectClass.advanced_ace => ConstructorData.genericCodec(DetailedACEData.codec, "advanced ace")
       case ObjectClass.boomer_trigger => ConstructorData.genericCodec(DetailedBoomerTriggerData.codec, "boomer trigger")
       //other
-      case ObjectClass.avatar => ConstructorData.genericCodec(DetailedPlayerData.codec(true), "avatar")
+      case ObjectClass.avatar => ConstructorData.genericCodec(DetailedPlayerData.codec(false), "avatar")
       case ObjectClass.locker_container => ConstructorData.genericCodec(DetailedLockerContainerData.codec, "locker container")
 
       //failure case
       case _ => defaultFailureCodec(objClass)
+    }
+
+  def selectDataDroppedDetailedCodec(objClass : Int) : Codec[ConstructorData.genericPattern] =
+    (objClass : @switch) match {
+      //special cases
+      case ObjectClass.avatar => ConstructorData.genericCodec(DetailedPlayerData.codec(true), "avatar")
+      //defer to other codec selection
+      case _ => selectDataDetailedCodec(objClass)
     }
 
   /**

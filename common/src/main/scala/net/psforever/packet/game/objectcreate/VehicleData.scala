@@ -1,12 +1,15 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.packet.game.objectcreate
+
+import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.packet.{Marshallable, PacketHelpers}
 import scodec.Attempt.{Failure, Successful}
 import scodec.{Attempt, Codec, Err}
+import shapeless.HNil
 import scodec.codecs._
-import shapeless.{::, HNil}
-
 import net.psforever.types.DriveState
+
+import scala.collection.mutable.ListBuffer
 
 /**
   * An `Enumeration` of the various formats that known structures that the stream of bits for `VehicleData` can assume.
@@ -148,33 +151,39 @@ object VehicleData extends Marshallable[VehicleData] {
   /**
     * `Codec` for the "utility" format.
     */
-  private val utility_data_codec : Codec[SpecificVehicleData] = uintL(6).hlist.exmap[SpecificVehicleData] (
-    {
-      case n :: HNil =>
-        Successful(UtilityVehicleData(n).asInstanceOf[SpecificVehicleData])
-    },
-    {
-      case UtilityVehicleData(n) =>
-        Successful(n :: HNil)
-      case _ =>
-        Failure(Err("wrong kind of vehicle data object (wants 'Utility')"))
-    }
-  )
+  private val utility_data_codec : Codec[SpecificVehicleData] = {
+    import shapeless.::
+    uintL(6).hlist.exmap[SpecificVehicleData] (
+      {
+        case n :: HNil =>
+          Successful(UtilityVehicleData(n).asInstanceOf[SpecificVehicleData])
+      },
+      {
+        case UtilityVehicleData(n) =>
+          Successful(n :: HNil)
+        case _ =>
+          Failure(Err("wrong kind of vehicle data object (wants 'Utility')"))
+      }
+    )
+  }
   /**
     * `Codec` for the "variant" format.
     */
-  private val variant_data_codec : Codec[SpecificVehicleData] = uint8L.hlist.exmap[SpecificVehicleData] (
-    {
-      case n :: HNil =>
-        Successful(VariantVehicleData(n).asInstanceOf[SpecificVehicleData])
-    },
-    {
-      case VariantVehicleData(n) =>
-        Successful(n :: HNil)
-      case _ =>
-        Failure(Err("wrong kind of vehicle data object (wants 'Variant')"))
-    }
-  )
+  private val variant_data_codec : Codec[SpecificVehicleData] = {
+    import shapeless.::
+    uint8L.hlist.exmap[SpecificVehicleData] (
+      {
+        case n :: HNil =>
+          Successful(VariantVehicleData(n).asInstanceOf[SpecificVehicleData])
+      },
+      {
+        case VariantVehicleData(n) =>
+          Successful(n :: HNil)
+        case _ =>
+          Failure(Err("wrong kind of vehicle data object (wants 'Variant')"))
+      }
+    )
+  }
 
   /**
     * Select an appropriate `Codec` in response to the requested stream format
@@ -190,47 +199,202 @@ object VehicleData extends Marshallable[VehicleData] {
       Failure(Err(s"$vehicleFormat is not a valid vehicle format for parsing data")).asInstanceOf[Codec[SpecificVehicleData]]
   }
 
-  def codec(vehicle_type : VehicleFormat.Value) : Codec[VehicleData] = (
-    ("basic" | CommonFieldData.codec) ::
-      ("unk1" | uint2L) ::
-      ("health" | uint8L) ::
-      ("unk2" | bool) :: //usually 0
-      ("no_mount_points" | bool) ::
-      ("driveState" | driveState8u) :: //used for deploy state
-      ("unk3" | bool) :: //unknown but generally false; can cause stream misalignment if set when unexpectedly
-      ("unk4" | bool) ::
-      ("cloak" | bool) :: //cloak as wraith, phantasm
-      conditional(vehicle_type != VehicleFormat.Normal, "unk5" | selectFormatReader(vehicle_type)) :: //padding?
-      optional(bool, "inventory" | InventoryData.codec)
-    ).exmap[VehicleData] (
-    {
-      case basic :: u1 :: health :: u2 :: no_mount :: driveState :: u3 :: u4 :: u5 :: cloak :: inv :: HNil =>
-        Attempt.successful(new VehicleData(basic, u1, health, u2, no_mount, driveState, u3, u4, u5, cloak, inv)(vehicle_type))
+  def codec(vehicle_type : VehicleFormat.Value) : Codec[VehicleData] = {
+    import shapeless.::
+    (
+      ("basic" | CommonFieldData.codec) >>:~ { com =>
+        ("unk1" | uint2L) ::
+          ("health" | uint8L) ::
+          ("unk2" | bool) :: //usually 0
+          ("no_mount_points" | bool) ::
+          ("driveState" | driveState8u) :: //used for deploy state
+          ("unk3" | bool) :: //unknown but generally false; can cause stream misalignment if set when unexpectedly
+          ("unk4" | bool) ::
+          ("cloak" | bool) :: //cloak as wraith, phantasm
+          conditional(vehicle_type != VehicleFormat.Normal, "unk5" | selectFormatReader(vehicle_type)) :: //padding?
+          optional(bool, "inventory" | custom_inventory_codec(InitialStreamLengthToSeatEntries(com, vehicle_type)))
+      }
+      ).exmap[VehicleData] (
+      {
+        case basic :: u1 :: health :: u2 :: no_mount :: driveState :: u3 :: u4 :: u5 :: cloak :: inv :: HNil =>
+          Attempt.successful(new VehicleData(basic, u1, health, u2, no_mount, driveState, u3, u4, u5, cloak, inv)(vehicle_type))
 
-      case _ =>
-        Attempt.failure(Err("invalid vehicle data format"))
-    },
-    {
-      case obj @ VehicleData(basic, u1, health, u2, no_mount, driveState, u3, u4, cloak, Some(u5), inv) =>
-        if(obj.vehicle_type == VehicleFormat.Normal) {
-          Attempt.failure(Err("invalid vehicle data format; variable bits not expected; will ignore ..."))
-        }
-        else {
-          Attempt.successful(basic :: u1 :: health :: u2 :: no_mount :: driveState :: u3 :: u4 :: cloak :: Some(u5) :: inv :: HNil)
-        }
+        case _ =>
+          Attempt.failure(Err("invalid vehicle data format"))
+      },
+      {
+        case obj @ VehicleData(basic, u1, health, u2, no_mount, driveState, u3, u4, cloak, Some(u5), inv) =>
+          if(obj.vehicle_type == VehicleFormat.Normal) {
+            Attempt.failure(Err("invalid vehicle data format; variable bits not expected; will ignore ..."))
+          }
+          else {
+            Attempt.successful(basic :: u1 :: health :: u2 :: no_mount :: driveState :: u3 :: u4 :: cloak :: Some(u5) :: inv :: HNil)
+          }
 
-      case obj @ VehicleData(basic, u1, health, u2, no_mount, driveState, u3, u4, cloak, None, inv) =>
-        if(obj.vehicle_type != VehicleFormat.Normal) {
-          Attempt.failure(Err("invalid vehicle data format; variable bits expected"))
-        }
-        else {
-          Attempt.successful(basic :: u1 :: health :: u2 :: no_mount :: driveState :: u3 :: u4 :: cloak :: None :: inv :: HNil)
-        }
+        case obj @ VehicleData(basic, u1, health, u2, no_mount, driveState, u3, u4, cloak, None, inv) =>
+          if(obj.vehicle_type != VehicleFormat.Normal) {
+            Attempt.failure(Err("invalid vehicle data format; variable bits expected"))
+          }
+          else {
+            Attempt.successful(basic :: u1 :: health :: u2 :: no_mount :: driveState :: u3 :: u4 :: cloak :: None :: inv :: HNil)
+          }
 
-      case _ =>
-        Attempt.failure(Err("invalid vehicle data format"))
+        case _ =>
+          Attempt.failure(Err("invalid vehicle data format"))
+      }
+    )
+  }
+
+  private def InitialStreamLengthToSeatEntries(com : CommonFieldData, format : VehicleFormat.Type) : Long = {
+    198 +
+      (if(com.pos.vel.isDefined) { 42 } else { 0 }) +
+      (format match {
+        case VehicleFormat.Utility => 6
+        case VehicleFormat.Variant => 8
+        case _ => 0
+      })
+  }
+
+  private def custom_inventory_codec(length : Long) : Codec[InventoryData] = {
+    import shapeless.::
+    (
+      uint8 >>:~ { size =>
+        uint2 ::
+          (inventory_seat_codec(
+            length, //length of stream until current seat
+            { //calculated offset of name field in next seat
+              val next = length + 23 + 35 //in bits: InternalSlot lead + length of CharacterAppearanceData~>name
+              val pad =((next - math.floor(next / 8) * 8) % 8).toInt
+              if(pad > 0) {
+                8 - pad
+              }
+              else {
+                0
+              }
+            }
+          ) >>:~ { seats =>
+            PacketHelpers.listOfNSized(size - countSeats(seats), InternalSlot.codec).hlist
+          })
+      }
+      ).xmap[InventoryData] (
+      {
+        case _ :: _ :: None :: inv :: HNil =>
+          InventoryData(inv)
+
+        case _ :: _ :: seats :: inv :: HNil =>
+          InventoryData(unlinkSeats(seats) ++ inv)
+      },
+      {
+        case InventoryData(inv) =>
+          val (seats, slots) = inv.partition(entry => entry.objectClass == ObjectClass.avatar)
+          inv.size :: 0 :: chainSeats(seats) :: slots :: HNil
+      }
+    )
+  }
+
+  private case class InventorySeat(seat : Option[InternalSlot], next : Option[InventorySeat])
+
+  private def inventory_seat_codec(length : Long, offset : Int) : Codec[Option[InventorySeat]] = {
+    import shapeless.::
+    (
+      PacketHelpers.peek(uintL(11)) >>:~ { objClass =>
+        conditional(objClass == ObjectClass.avatar, seat_codec(offset)) >>:~ { seat =>
+          conditional(objClass == ObjectClass.avatar, inventory_seat_codec(
+          { //length of stream until next seat
+            length + (seat match {
+              case Some(o) => o.bitsize
+              case None => 0
+            })
+          },
+          { //calculated offset of name field in next seat
+            val next = length + 23 + 35 + (seat match {
+              case Some(o) => o.bitsize
+              case None => 0
+            })
+            val pad =((next - math.floor(next / 8) * 8) % 8).toInt
+            if(pad > 0) {
+              8 - pad
+            }
+            else {
+              0
+            }
+          })).hlist
+      }
+      }
+      ).exmap[Option[InventorySeat]] (
+      {
+        case _ :: None :: None :: HNil =>
+          Successful(None)
+
+        case _ :: slot :: Some(next) :: HNil =>
+          Successful(Some(InventorySeat(slot, next)))
+      },
+      {
+        case None =>
+          Successful(0 :: None :: None :: HNil)
+
+        case Some(InventorySeat(slot, None)) =>
+          Successful(ObjectClass.avatar :: slot :: None :: HNil)
+
+        case Some(InventorySeat(slot, next)) =>
+          Successful(ObjectClass.avatar :: slot :: Some(next) :: HNil)
+      }
+    )
+  }
+
+  private def seat_codec(pad : Int) : Codec[InternalSlot] = {
+    import shapeless.::
+    (
+      ("objectClass" | uintL(11)) ::
+        ("guid" | PlanetSideGUID.codec) ::
+        ("parentSlot" | PacketHelpers.encodedStringSize) ::
+        ("obj" | PlayerData.codec(false, pad))
+      ).xmap[InternalSlot] (
+      {
+        case objectClass :: guid :: parentSlot :: obj :: HNil =>
+          InternalSlot(objectClass, guid, parentSlot, obj)
+      },
+      {
+        case InternalSlot(objectClass, guid, parentSlot, obj) =>
+          objectClass :: guid :: parentSlot :: obj.asInstanceOf[PlayerData] :: HNil
+      }
+    )
+  }
+
+  private def countSeats(chain : Option[InventorySeat]) : Int = {
+    chain match {
+      case None =>
+        0
+      case Some(link) =>
+        if(link.seat.isDefined) { 1 } else { 0 } + countSeats(link.next)
     }
-  )
+  }
+
+  private def unlinkSeats(chain : Option[InventorySeat]) : List[InternalSlot] = {
+    var curr = chain
+    val out = new ListBuffer[InternalSlot]
+    while(curr.isDefined) {
+      curr.get.seat match {
+        case None =>
+          curr = None
+        case Some(seat) =>
+          out += seat
+          curr = curr.get.next
+      }
+    }
+    out.toList
+  }
+
+  private def chainSeats(list : List[InternalSlot]) : Option[InventorySeat] = {
+    list match {
+      case Nil =>
+        None
+      case x :: Nil =>
+        Some(InventorySeat(Some(x), None))
+      case x :: xs =>
+        Some(InventorySeat(Some(x), chainSeats(xs)))
+    }
+  }
 
   implicit val codec : Codec[VehicleData] = codec(VehicleFormat.Normal)
 }

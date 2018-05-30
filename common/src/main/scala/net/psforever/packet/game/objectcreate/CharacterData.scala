@@ -115,7 +115,7 @@ object CharacterData extends Marshallable[CharacterData] {
     {
       case health :: armor :: uniform :: _ :: cr :: false :: implant_effects :: cosmetics :: HNil =>
         val newHealth = if(is_backpack) { 0 } else { health }
-        Attempt.Successful(new CharacterData(newHealth, armor, uniform, 0, cr, implant_effects, cosmetics)(is_backpack))
+        Attempt.Successful(CharacterData(newHealth, armor, uniform, 0, cr, implant_effects, cosmetics)(is_backpack))
 
       case _ =>
         Attempt.Failure(Err("invalid character data; can not encode"))
@@ -124,6 +124,31 @@ object CharacterData extends Marshallable[CharacterData] {
       case CharacterData(health, armor, uniform, _, cr, implant_effects, cosmetics) =>
         val newHealth = if(is_backpack) { 0 } else { health }
         Attempt.Successful(newHealth :: armor :: uniform :: () :: cr :: false :: implant_effects :: cosmetics :: HNil)
+
+      case _ =>
+        Attempt.Failure(Err("invalid character data; can not decode"))
+    }
+  )
+
+  def codec_seated(is_backpack : Boolean) : Codec[CharacterData] = (
+    ("uniform_upgrade" | UniformStyle.codec) >>:~ { style =>
+      ignore(3) :: //unknown
+        ("command_rank" | uintL(3)) ::
+        bool :: //stream misalignment when != 1
+        optional(bool, "implant_effects" | ImplantEffects.codec) ::
+        conditional(style == UniformStyle.ThirdUpgrade, "cosmetics" | Cosmetics.codec)
+    }
+    ).exmap[CharacterData] (
+    {
+      case uniform :: _ :: cr :: false :: implant_effects :: cosmetics :: HNil =>
+        Attempt.Successful(new CharacterData(100, 0, uniform, 0, cr, implant_effects, cosmetics)(is_backpack))
+
+      case _ =>
+        Attempt.Failure(Err("invalid character data; can not encode"))
+    },
+    {
+      case CharacterData(_, _, uniform, _, cr, implant_effects, cosmetics) =>
+        Attempt.Successful(uniform :: () :: cr :: false :: implant_effects :: cosmetics :: HNil)
 
       case _ =>
         Attempt.Failure(Err("invalid character data; can not decode"))

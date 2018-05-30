@@ -1,6 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.packet.game.objectcreate
 
+import net.psforever.newcodecs._
 import net.psforever.packet.Marshallable
 import scodec.codecs._
 import scodec.Codec
@@ -94,21 +95,43 @@ object PlayerData extends Marshallable[PlayerData] {
     * @return the pad length in bits
     */
   def placementOffset(pos : Option[PlacementData]) : Int = {
-    if(pos.isEmpty) {
-      0
-    }
-    else if(pos.get.vel.isDefined) {
-      2
-    }
-    else {
-      4
+    pos match {
+      case Some(place) =>
+        if(place.vel.isDefined) { 2 } else { 4 }
+      case None =>
+        0
     }
   }
 
   def codec(position_defined : Boolean) : Codec[PlayerData] = (
     conditional(position_defined, "pos" | PlacementData.codec) >>:~ { pos =>
       ("basic_appearance" | CharacterAppearanceData.codec(placementOffset(pos))) >>:~ { app =>
-        ("character_data" | CharacterData.codec(app.backpack)) ::
+        ("character_data" | newcodecs.binary_choice(position_defined,
+          CharacterData.codec(app.backpack),
+          CharacterData.codec_seated(app.backpack))) ::
+          optional(bool, "inventory" | InventoryData.codec) ::
+          ("drawn_slot" | DrawnSlot.codec) ::
+          bool //usually false
+      }
+    }).xmap[PlayerData] (
+    {
+      case pos :: app :: data :: inv :: hand :: _ :: HNil =>
+        PlayerData(pos, app, data, inv, hand)(pos.isDefined)
+    },
+    {
+      case PlayerData(pos, app, data, inv, hand) =>
+        pos :: app :: data :: inv :: hand :: false :: HNil
+    }
+  )
+
+
+
+  def codec(position_defined : Boolean, offset : Int) : Codec[PlayerData] = (
+    conditional(position_defined, "pos" | PlacementData.codec) >>:~ { pos =>
+      ("basic_appearance" | CharacterAppearanceData.codec(offset)) >>:~ { app =>
+        ("character_data" | newcodecs.binary_choice(position_defined,
+          CharacterData.codec(app.backpack),
+          CharacterData.codec_seated(app.backpack))) ::
           optional(bool, "inventory" | InventoryData.codec) ::
           ("drawn_slot" | DrawnSlot.codec) ::
           bool //usually false
