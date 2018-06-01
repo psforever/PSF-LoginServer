@@ -55,9 +55,12 @@ object UniformStyle extends Enumeration {
   * any user would find this character ill-equipped.
   * @param health the amount of health the player has, as a percentage of a filled bar;
   *               the bar has 85 states, with 3 points for each state;
-  *               when 0% (less than 3 of 255), the player will collapse into a death pose on the ground
+  *               when 0% (less than 3 of 255), the player will collapse into a death pose on the ground;
+  *               while `is_corpse == true`, `health` will always report as 0;
+  *               while `is_seated == true`, `health` will (try to) report as 100
   * @param armor the amount of armor the player has, as a percentage of a filled bar;
-  *              the bar has 85 states, with 3 points for each state
+  *              the bar has 85 states, with 3 points for each state;
+  *              while `is_seated == true`, `armor` will always report as 0
   * @param uniform_upgrade the level of upgrade to apply to the player's base uniform
   * @param command_rank the player's command rank as a number from 0 to 5;
   *                     cosmetic armor associated with the command rank will be applied automatically
@@ -66,7 +69,13 @@ object UniformStyle extends Enumeration {
   * @param cosmetics optional decorative features that are added to the player's head model by console/chat commands;
   *                  they become available at battle rank 24, but here they require the third uniform upgrade (rank 25);
   *                  these flags do not exist if they are not applicable
-  * @see `DetailedCharacterData`
+  * @param is_backpack this player character should be depicted as a corpse;
+  *                    corpses are either coffins (defunct), backpacks (normal), or a pastry (festive);
+  *                    the alternate model bit should be flipped
+  * @param is_seated this player character is seated in a vehicle or mounted to some other object;
+  *                  alternate format for data parsing applies
+  * @see `DetailedCharacterData`<br>
+  *       `CharacterAppearanceData`
   */
 final case class CharacterData(health : Int,
                                armor : Int,
@@ -75,13 +84,15 @@ final case class CharacterData(health : Int,
                                command_rank : Int,
                                implant_effects : Option[ImplantEffects.Value],
                                cosmetics : Option[Cosmetics])
-                              (is_backpack : Boolean) extends ConstructorData {
+                              (is_backpack : Boolean,
+                               is_seated : Boolean) extends ConstructorData {
 
   override def bitsize : Long = {
     //factor guard bool values into the base size, not its corresponding optional field
+    val seatedSize = if(is_seated) { 0 } else { 16 }
     val effectsSize : Long = if(implant_effects.isDefined) { 4L } else { 0L }
     val cosmeticsSize : Long = if(cosmetics.isDefined) { cosmetics.get.bitsize } else { 0L }
-    27L + effectsSize + cosmeticsSize
+    11L + seatedSize + effectsSize + cosmeticsSize
   }
 }
 
@@ -94,11 +105,9 @@ object CharacterData extends Marshallable[CharacterData] {
     * @param cr the player's command rank as a number from 0 to 5
     * @param implant_effects the effects of implants that can be seen on a player's character
     * @param cosmetics optional decorative features that are added to the player's head model by console/chat commands
-    * //@param inv the avatar's inventory
-    * //@param drawn_slot the holster that is initially drawn
     * @return a `CharacterData` object
     */
-  def apply(health : Int, armor : Int, uniform : UniformStyle.Value, cr : Int, implant_effects : Option[ImplantEffects.Value], cosmetics : Option[Cosmetics]) : (Boolean)=>CharacterData =
+  def apply(health : Int, armor : Int, uniform : UniformStyle.Value, cr : Int, implant_effects : Option[ImplantEffects.Value], cosmetics : Option[Cosmetics]) : (Boolean,Boolean)=>CharacterData =
     CharacterData(health, armor, uniform, 0, cr, implant_effects, cosmetics)
 
   def codec(is_backpack : Boolean) : Codec[CharacterData] = (
@@ -107,7 +116,7 @@ object CharacterData extends Marshallable[CharacterData] {
       (("uniform_upgrade" | UniformStyle.codec) >>:~ { style =>
         ignore(3) :: //unknown
           ("command_rank" | uintL(3)) ::
-          bool :: //stream misalignment when != 1
+          bool :: //misalignment when == 1
           optional(bool, "implant_effects" | ImplantEffects.codec) ::
           conditional(style == UniformStyle.ThirdUpgrade, "cosmetics" | Cosmetics.codec)
       })
@@ -115,7 +124,7 @@ object CharacterData extends Marshallable[CharacterData] {
     {
       case health :: armor :: uniform :: _ :: cr :: false :: implant_effects :: cosmetics :: HNil =>
         val newHealth = if(is_backpack) { 0 } else { health }
-        Attempt.Successful(CharacterData(newHealth, armor, uniform, 0, cr, implant_effects, cosmetics)(is_backpack))
+        Attempt.Successful(CharacterData(newHealth, armor, uniform, 0, cr, implant_effects, cosmetics)(is_backpack, false))
 
       case _ =>
         Attempt.Failure(Err("invalid character data; can not encode"))
@@ -141,13 +150,13 @@ object CharacterData extends Marshallable[CharacterData] {
     ).exmap[CharacterData] (
     {
       case uniform :: _ :: cr :: false :: implant_effects :: cosmetics :: HNil =>
-        Attempt.Successful(new CharacterData(100, 0, uniform, 0, cr, implant_effects, cosmetics)(is_backpack))
+        Attempt.Successful(new CharacterData(100, 0, uniform, 0, cr, implant_effects, cosmetics)(is_backpack, true))
 
       case _ =>
         Attempt.Failure(Err("invalid character data; can not encode"))
     },
     {
-      case CharacterData(_, _, uniform, _, cr, implant_effects, cosmetics) =>
+      case obj @ CharacterData(_, _, uniform, _, cr, implant_effects, cosmetics) =>
         Attempt.Successful(uniform :: () :: cr :: false :: implant_effects :: cosmetics :: HNil)
 
       case _ =>

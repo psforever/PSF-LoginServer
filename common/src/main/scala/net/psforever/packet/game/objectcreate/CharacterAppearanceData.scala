@@ -8,23 +8,35 @@ import scodec.codecs._
 import shapeless.{::, HNil}
 
 /**
+  * The voice used by the player character, from a selection of ten divided between five male voices and five female voices.
+  * The first entry (0) is no voice.
+  * While it is technically not valid to have a wrong-gendered voice,
+  * unlisted sixth and seventh entries would give a male character a female voice;
+  * a female character with either entry would become mute.
+  * @see `CharacterGender`
+  */
+object CharacterVoice extends Enumeration {
+  type Type = Value
+
+  val
+  Mute,
+  Voice1, //grizzled, tough
+  Voice2, //greenhorn, clueless
+  Voice3, //roughneck, gruff
+  Voice4, //stalwart, smooth
+  Voice5 //daredevil, calculating
+  = Value
+
+  implicit val codec = PacketHelpers.createEnumerationCodec(this, uint(3))
+}
+
+/**
   * A part of a representation of the avatar portion of `ObjectCreateMessage` packet data.<br>
   * <br>
   * This partition of the data stream contains information used to represent how the player's avatar is presented.
-  * This appearance coincides with the data available from the `CharacterCreateRequestMessage` packet.<br>
-  * <br>
-  * Voice:<br>
-  * `&nbsp;&nbsp;&nbsp;&nbsp;MALE&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FEMALE`<br>
-  * `0 - no voice &nbsp;no voice`<br>
-  * `1 - male_1 &nbsp;&nbsp; female_1`<br>
-  * `2 - male_2 &nbsp;&nbsp; female_2`<br>
-  * `3 - male_3 &nbsp;&nbsp; female_3`<br>
-  * `4 - male_4 &nbsp;&nbsp; female_4`<br>
-  * `5 - male_5 &nbsp;&nbsp; female_5`<br>
-  * `6 - female_1 &nbsp;no voice`<br>
-  * `7 - female_2 &nbsp;no voice`
+  * This appearance coincides with the data available from the `CharacterCreateRequestMessage` packet.
   * @see `PlanetSideEmpire`<br>
-  *        `CharacaterGender`
+  *        `CharacterGender`
   * @param name the unique name of the avatar;
   *             minimum of two characters
   * @param faction the empire to which the avatar belongs
@@ -111,7 +123,7 @@ final case class CharacterAppearanceData(app : BasicCharacterData,
 
   override def bitsize : Long = {
     //factor guard bool values into the base size, not its corresponding optional field
-    val nameStringSize : Long = StreamBitSize.stringBitSize(app.name, 16) + CharacterAppearanceData.namePaddingRule(name_padding)
+    val nameStringSize : Long = StreamBitSize.stringBitSize(app.name, 16) + name_padding
     val outfitStringSize : Long = StreamBitSize.stringBitSize(outfit_name, 16) + CharacterAppearanceData.outfitNamePadding
     val altModelSize = CharacterAppearanceData.altModelBit(this).getOrElse(0)
     335L + nameStringSize + outfitStringSize + altModelSize

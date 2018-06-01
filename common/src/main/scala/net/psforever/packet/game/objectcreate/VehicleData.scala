@@ -212,7 +212,7 @@ object VehicleData extends Marshallable[VehicleData] {
           ("unk4" | bool) ::
           ("cloak" | bool) :: //cloak as wraith, phantasm
           conditional(vehicle_type != VehicleFormat.Normal, "unk5" | selectFormatReader(vehicle_type)) :: //padding?
-          optional(bool, "inventory" | custom_inventory_codec(InitialStreamLengthToSeatEntries(com, vehicle_type)))
+          optional(bool, "inventory" | custom_inventory_codec(InitialStreamLengthToSeatEntries(com.pos.vel.isDefined, vehicle_type)))
       }
       ).exmap[VehicleData] (
       {
@@ -245,9 +245,19 @@ object VehicleData extends Marshallable[VehicleData] {
     )
   }
 
-  private def InitialStreamLengthToSeatEntries(com : CommonFieldData, format : VehicleFormat.Type) : Long = {
+  /**
+    * Distance from the length field of a vehicle creation packet up until the start of the vehicle's inventory data.
+    * The only field excluded belongs to the original opcode for the packet.
+    * The parameters outline reasons why the length of the stream would be different
+    * and are used to determine the exact difference value.
+    * @see `ObjectCreateMessage`
+    * @param hasVelocity the presence of a velocity field - `vel` - in the `PlacementData` object for this vehicle
+    * @param format the `Codec` subtype for this vehicle
+    * @return the length of the bitstream
+    */
+  def InitialStreamLengthToSeatEntries(hasVelocity : Boolean, format : VehicleFormat.Type) : Long = {
     198 +
-      (if(com.pos.vel.isDefined) { 42 } else { 0 }) +
+      (if(hasVelocity) { 42 } else { 0 }) +
       (format match {
         case VehicleFormat.Utility => 6
         case VehicleFormat.Variant => 8
@@ -255,6 +265,33 @@ object VehicleData extends Marshallable[VehicleData] {
       })
   }
 
+  /**
+    * Increment the distance to the next mounted player's `name` field with the length of the previous entry,
+    * then calculate the new padding value for that next entry's `name` field.
+    * @param base the original distance to the last entry
+    * @param next the length of the last entry, if one was parsed
+    * @return the padding value, 0-7 bits
+    */
+  def CumulativeSeatedPlayerNamePadding(base : Long, next : Option[StreamBitSize]) : Int = {
+    PlayerData.CumulativeSeatedPlayerNamePadding(base + (next match {
+      case Some(o) => o.bitsize
+      case None => 0
+    }))
+  }
+
+  /**
+    * A special method of handling mounted players within the same inventory space as normal `Equipment` can be encountered.
+    * Due to variable-length fields within `PlayerData` extracted from the input,
+    * the distance of the bit(stream) vector to the initial inventory entry is calculated
+    * to produce the initial value for padding the `PlayerData` object's name field.
+    * After player-related entries have been extracted and processed in isolation,
+    * the remainder of the inventory must be handled as standard inventory
+    * and finally both groups must be repackaged into a single standard `InventoryData` object.
+    * Due to the unique value for the mounted players that must be updated for each entry processed,
+    * the entries are temporarily formatted into a linked list before being put back into a normal `List`.
+    * @param length the distance in bits to the first inventory entry
+    * @return a `Codec` that translates `InventoryData`
+    */
   private def custom_inventory_codec(length : Long) : Codec[InventoryData] = {
     import shapeless.::
     (
@@ -262,16 +299,7 @@ object VehicleData extends Marshallable[VehicleData] {
         uint2 ::
           (inventory_seat_codec(
             length, //length of stream until current seat
-            { //calculated offset of name field in next seat
-              val next = length + 23 + 35 //in bits: InternalSlot lead + length of CharacterAppearanceData~>name
-              val pad =((next - math.floor(next / 8) * 8) % 8).toInt
-              if(pad > 0) {
-                8 - pad
-              }
-              else {
-                0
-              }
-            }
+              PlayerData.CumulativeSeatedPlayerNamePadding(length) //calculated offset of name field in next seat
           ) >>:~ { seats =>
             PacketHelpers.listOfNSized(size - countSeats(seats), InternalSlot.codec).hlist
           })
@@ -292,8 +320,22 @@ object VehicleData extends Marshallable[VehicleData] {
     )
   }
 
+  /**
+    * The format for the linked list of extracted mounted `PlayerData`.
+    * @param seat data for this entry extracted via `PlayerData`
+    * @param next the next entry
+    */
   private case class InventorySeat(seat : Option[InternalSlot], next : Option[InventorySeat])
 
+  /**
+    * Look ahead at the next value to determine if it is an example of a player character
+    * and would be processed as a `PlayerData` object.
+    * Update the stream read position with each extraction.
+    * Continue to process values so long as they represent player character data.
+    * @param length the distance in bits to the current inventory entry
+    * @param offset the padding value for this entry's player character's `name` field
+    * @return a recursive `Codec` that translates subsequent `PlayerData` entries until exhausted
+    */
   private def inventory_seat_codec(length : Long, offset : Int) : Codec[Option[InventorySeat]] = {
     import shapeless.::
     (
@@ -306,20 +348,9 @@ object VehicleData extends Marshallable[VehicleData] {
               case None => 0
             })
           },
-          { //calculated offset of name field in next seat
-            val next = length + 23 + 35 + (seat match {
-              case Some(o) => o.bitsize
-              case None => 0
-            })
-            val pad =((next - math.floor(next / 8) * 8) % 8).toInt
-            if(pad > 0) {
-              8 - pad
-            }
-            else {
-              0
-            }
-          })).hlist
-      }
+            VehicleData.CumulativeSeatedPlayerNamePadding(length, seat) //calculated offset of name field in next seat
+          )).hlist
+        }
       }
       ).exmap[Option[InventorySeat]] (
       {
@@ -342,13 +373,24 @@ object VehicleData extends Marshallable[VehicleData] {
     )
   }
 
+  /**
+    * Translate data the is verified to involve a player who is seated (mounted) to the parent object at a given slot.
+    * The operation performed by this `Codec` is very similar to `InternalSlot.codec`.
+    * @param pad the padding offset for the player's name;
+    *            0-7 bits;
+    *            this padding value must recalculate for each represented seat
+    * @see `CharacterAppearanceData`<br>
+    *       `VehicleData.InitialStreamLengthToSeatEntries`<br>
+    *       `PlayerData.CumulativeSeatedPlayerNamePadding`
+    * @return a `Codec` that translates `PlayerData`
+    */
   private def seat_codec(pad : Int) : Codec[InternalSlot] = {
     import shapeless.::
     (
       ("objectClass" | uintL(11)) ::
         ("guid" | PlanetSideGUID.codec) ::
         ("parentSlot" | PacketHelpers.encodedStringSize) ::
-        ("obj" | PlayerData.codec(false, pad))
+        ("obj" | PlayerData.codec(pad))
       ).xmap[InternalSlot] (
       {
         case objectClass :: guid :: parentSlot :: obj :: HNil =>
@@ -361,38 +403,67 @@ object VehicleData extends Marshallable[VehicleData] {
     )
   }
 
+  /**
+    * Count the number of entries in a linked list.
+    * @param chain the head of the linked list
+    * @return the number of entries
+    */
   private def countSeats(chain : Option[InventorySeat]) : Int = {
     chain match {
+      case Some(_) =>
+        var curr = chain
+        var count = 0
+        do {
+          val link = curr.get
+          count += (if(link.seat.nonEmpty) { 1 } else { 0 })
+          curr = link.next
+        }
+        while(curr.nonEmpty)
+        count
+
       case None =>
         0
-      case Some(link) =>
-        if(link.seat.isDefined) { 1 } else { 0 } + countSeats(link.next)
     }
   }
 
+  /**
+    * Transform a linked list of `InventorySlot` slot objects into a formal list of `InternalSlot` objects.
+    * @param chain the head of the linked list
+    * @return a proper list of the contents of the input linked list
+    */
   private def unlinkSeats(chain : Option[InventorySeat]) : List[InternalSlot] = {
     var curr = chain
     val out = new ListBuffer[InternalSlot]
     while(curr.isDefined) {
-      curr.get.seat match {
+      val link = curr.get
+      link.seat match {
         case None =>
           curr = None
         case Some(seat) =>
           out += seat
-          curr = curr.get.next
+          curr = link.next
       }
     }
     out.toList
   }
 
+  /**
+    * Transform a formal list of `InternalSlot` objects into a linked list of `InventorySlot` slot objects.
+    * @param list a proper list of objects
+    * @return a linked list composed of the contents of the input list
+    */
   private def chainSeats(list : List[InternalSlot]) : Option[InventorySeat] = {
     list match {
       case Nil =>
         None
       case x :: Nil =>
         Some(InventorySeat(Some(x), None))
-      case x :: xs =>
-        Some(InventorySeat(Some(x), chainSeats(xs)))
+      case _ :: _ =>
+        var link = InventorySeat(Some(list.last), None)
+        list.reverse.drop(1).foreach(seat => {
+          link = InventorySeat(Some(seat), Some(link))
+        })
+        Some(link)
     }
   }
 

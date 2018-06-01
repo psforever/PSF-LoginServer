@@ -200,7 +200,7 @@ class CharacterDataTest extends Specification {
           MeritCommendation.SixYearTR
         )
       )
-      val char : (Boolean)=>CharacterData = CharacterData(
+      val char : (Boolean,Boolean)=>CharacterData = CharacterData(
         255, 253,
         UniformStyle.ThirdUpgrade,
         5,
@@ -215,7 +215,7 @@ class CharacterDataTest extends Specification {
           InventoryItemData(ObjectClass.chainblade, PlanetSideGUID(4088), 4, WeaponData(0, 0, 1, ObjectClass.melee_ammo, PlanetSideGUID(3279), 0, AmmoBoxData())) ::
           Nil
       )
-      val obj = PlayerData.apply(pos, app, char, inv, DrawnSlot.Rifle1)
+      val obj = PlayerData(pos, app, char, inv, DrawnSlot.Rifle1)
 
       val msg = ObjectCreateMessage(ObjectClass.avatar, PlanetSideGUID(3902), obj)
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
@@ -260,14 +260,14 @@ class CharacterDataTest extends Specification {
           MeritCommendation.SixYearVS
         )
       )
-      val char : (Boolean)=>CharacterData = CharacterData(
+      val char : (Boolean,Boolean)=>CharacterData = CharacterData(
         0, 0,
         UniformStyle.ThirdUpgrade,
         2,
         None,
         Some(Cosmetics(true, true, true, true, false))
       )
-      val obj = PlayerData.apply(pos, app, char, DrawnSlot.Pistol1)
+      val obj = PlayerData(pos, app, char, DrawnSlot.Pistol1)
 
       val msg = ObjectCreateMessage(ObjectClass.avatar, PlanetSideGUID(3380), obj)
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
