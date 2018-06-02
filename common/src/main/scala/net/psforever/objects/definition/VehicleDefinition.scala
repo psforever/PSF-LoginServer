@@ -16,6 +16,7 @@ class VehicleDefinition(objectId : Int) extends ObjectDefinition(objectId) {
   private var maxShields : Int = 0
   /* key - seat index, value - seat object */
   private val seats : mutable.HashMap[Int, SeatDefinition] = mutable.HashMap[Int, SeatDefinition]()
+  private val cargo : mutable.HashMap[Int, CargoDefinition] = mutable.HashMap[Int, CargoDefinition]()
   /* key - entry point index, value - seat index */
   private val mountPoints : mutable.HashMap[Int, Int] = mutable.HashMap()
   /* key - seat index (where this weapon attaches during object construction), value - the weapon on an EquipmentSlot */
@@ -47,6 +48,7 @@ class VehicleDefinition(objectId : Int) extends ObjectDefinition(objectId) {
   }
 
   def Seats : mutable.HashMap[Int, SeatDefinition] = seats
+  def Cargo : mutable.HashMap[Int, CargoDefinition] = cargo
 
   def MountPoints : mutable.HashMap[Int, Int] = mountPoints
 

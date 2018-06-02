@@ -6,7 +6,7 @@ import net.psforever.objects.{DefaultCancellable, GlobalDefinitions, Vehicle}
 import net.psforever.objects.guid.TaskResolver
 import net.psforever.objects.vehicles.Seat
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.PlanetSideGUID
+import net.psforever.packet.game.{DismountVehicleCargoMsg, PlanetSideGUID}
 import net.psforever.types.Vector3
 import services.ServiceManager
 import services.ServiceManager.Lookup
@@ -73,16 +73,32 @@ class DeconstructionActor extends Actor {
         //kick everyone out; this is a no-blocking manual form of MountableBehavior ! Mountable.TryDismount
         vehicle.Definition.MountPoints.values.foreach(seat_num => {
           val zone_id : String = zone.Id
-          val seat : Seat = vehicle.Seat(seat_num).get
-          seat.Occupant match {
-            case Some(tplayer) =>
-              seat.Occupant = None
-              tplayer.VehicleSeated = None
-              if(tplayer.HasGUID) {
-                context.parent ! VehicleServiceMessage(zone_id, VehicleAction.KickPassenger(tplayer.GUID, 4, false, vehicle.GUID))
+          vehicle.Seat(seat_num) match {
+            case Some(seat) =>
+              seat.Occupant match {
+                case Some(tplayer) =>
+                  seat.Occupant = None
+                  tplayer.VehicleSeated = None
+                  if(tplayer.HasGUID) {
+                    context.parent ! VehicleServiceMessage(zone_id, VehicleAction.KickPassenger(tplayer.GUID, 4, false, vehicle.GUID))
+                  }
+                case None => ; // No player seated
               }
-            case None => ;
+            case None => ; // Not a seat mount point
           }
+          vehicle.CargoHold(seat_num) match {
+            case Some(cargo) =>
+              cargo.Occupant match {
+                case Some(vehicle) =>
+                  //todo: this probably doesn't work for passengers within the cargo vehicle
+                  // Instruct client to start bail dismount procedure
+                  // player_num set to 0 as it's not easily available in the context and currently isn't used by DismountVehicleCargoMsg
+                  context.parent ! DismountVehicleCargoMsg(PlanetSideGUID(0), vehicle.GUID, true, false, false)
+                case None => ; // No vehicle in cargo
+              }
+            case None => ; // Not a cargo mounting point
+          }
+
         })
         if(vehicles.size == 1) {
           //we were the only entry so the event must be started from scratch

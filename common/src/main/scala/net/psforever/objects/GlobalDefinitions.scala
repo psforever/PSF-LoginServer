@@ -2864,6 +2864,7 @@ object GlobalDefinitions {
     dropship.Weapons += 12 -> cannon_dropship_20mm
     dropship.Weapons += 13 -> cannon_dropship_20mm
     dropship.Weapons += 14 -> dropship_rear_turret
+    dropship.Cargo += 15 -> new CargoDefinition()
     dropship.MountPoints += 1 -> 0
     dropship.MountPoints += 2 -> 11
     dropship.MountPoints += 3 -> 1
@@ -2876,6 +2877,7 @@ object GlobalDefinitions {
     dropship.MountPoints += 10 -> 8
     dropship.MountPoints += 11 -> 9
     dropship.MountPoints += 12 -> 10
+    dropship.MountPoints += 13 -> 15
     dropship.TrunkSize = InventoryTile.Tile1612
     dropship.TrunkOffset = 30
     dropship.AutoPilotSpeeds = (0, 4)
@@ -2912,6 +2914,8 @@ object GlobalDefinitions {
     lodestar.Name = "lodestar"
     lodestar.Seats += 0 -> new SeatDefinition()
     lodestar.MountPoints += 1 -> 0
+    lodestar.MountPoints += 2 -> 1
+    lodestar.Cargo += 1 -> new CargoDefinition()
     lodestar.TrunkSize = InventoryTile.Tile1612
     lodestar.TrunkOffset = 30
     lodestar.AutoPilotSpeeds = (0, 4)
