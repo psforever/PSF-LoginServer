@@ -12,6 +12,10 @@ import shapeless.{::, HNil}
   * (Write more some other time.)
   * @param object_guid the target object
   * @param code the action code
+  *             96, 97, 98, 99 - Makes the vehicle bounce slightly. Have seen this in packet captures after taking a vehicle through a warpgate
+  *             200, 201, 202, 203 - For aircraft - client shows "THe bailing mechanism failed! To fix the mechanism, land and repair the vehicle!"
+  *             224 - Sets vehicle or player to be black ops
+  *             228 - Reverts player from black ops
   */
 final case class GenericObjectActionMessage(object_guid : PlanetSideGUID,
                                             code : Int)

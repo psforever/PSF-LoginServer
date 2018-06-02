@@ -129,6 +129,7 @@ import scodec.codecs._
   * `21 - Asserts first time event eligibility / makes owner if no owner is assigned`<br>
   * `22 - Toggles gunner and passenger mount points (1 = hides, 0 = reveals; this also locks their permissions)`<br>
   * `68 - ???`<br>
+  * `79 - ???`<br>
   * `80 - Damage vehicle (unknown value)`<br>
   * `81 - ???`<br>
   * `113 - ???`
