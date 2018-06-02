@@ -95,6 +95,10 @@ class VehicleService extends Actor {
           VehicleEvents.publish(
             VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.VehicleState(vehicle_guid, unk1, pos, ang, vel, unk2, unk3, unk4, wheel_direction, unk5, unk6))
           )
+        case VehicleAction.SendResponse(player_guid, msg) =>
+          VehicleEvents.publish(
+            VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.SendResponse(msg))
+          )
 
         //unlike other messages, just return to sender, don't publish
         case VehicleAction.UpdateAmsSpawnPoint(zone : Zone) =>

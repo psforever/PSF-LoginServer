@@ -4,7 +4,8 @@ package services.avatar
 import net.psforever.objects.Player
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.{PlanetSideGUID, PlayerStateMessageUpstream}
+import net.psforever.packet.PlanetSideGamePacket
+import net.psforever.packet.game.{CargoMountPointStatusMessage, PlanetSideGUID, PlayerStateMessageUpstream}
 import net.psforever.packet.game.objectcreate.ConstructorData
 import net.psforever.types.{ExoSuitType, Vector3}
 
@@ -30,7 +31,10 @@ object AvatarAction {
   final case class Reload(player_guid : PlanetSideGUID, weapon_guid : PlanetSideGUID) extends Action
   final case class StowEquipment(player_guid : PlanetSideGUID, target_guid : PlanetSideGUID, slot : Int, item : Equipment) extends Action
   final case class WeaponDryFire(player_guid : PlanetSideGUID, weapon_guid : PlanetSideGUID) extends Action
-//  final case class PlayerStateShift(killer : PlanetSideGUID, victim : PlanetSideGUID) extends Action
+
+  final case class SendResponse(player_guid: PlanetSideGUID, msg: PlanetSideGamePacket) extends Action
+
+  //  final case class PlayerStateShift(killer : PlanetSideGUID, victim : PlanetSideGUID) extends Action
 //  final case class DestroyDisplay(killer : PlanetSideGUID, victim : PlanetSideGUID) extends Action
 //  final case class HitHintReturn(killer : PlanetSideGUID, victim : PlanetSideGUID) extends Action
 //  final case class ChangeWeapon(unk1 : Int, sessionId : Long) extends Action

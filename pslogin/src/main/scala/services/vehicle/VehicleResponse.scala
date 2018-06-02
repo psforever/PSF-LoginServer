@@ -3,9 +3,10 @@ package services.vehicle
 
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.{PlanetSideGameObject, Vehicle}
+import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.packet.game.objectcreate.ConstructorData
-import net.psforever.types.{DriveState, Vector3, BailType}
+import net.psforever.types.{BailType, DriveState, Vector3}
 
 object VehicleResponse {
   trait Response
@@ -29,6 +30,6 @@ object VehicleResponse {
   final case class UnloadVehicle(vehicle_guid : PlanetSideGUID) extends Response
   final case class UnstowEquipment(item_guid : PlanetSideGUID) extends Response
   final case class VehicleState(vehicle_guid : PlanetSideGUID, unk1 : Int, pos : Vector3, ang : Vector3, vel : Option[Vector3], unk2 : Option[Int], unk3 : Int, unk4 : Int, wheel_direction : Int, unk5 : Boolean, unk6 : Boolean) extends Response
-
+  final case class SendResponse(msg: PlanetSideGamePacket) extends Response
   final case class UpdateAmsSpawnPoint(list : List[SpawnTube]) extends Response
 }
