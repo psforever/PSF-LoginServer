@@ -10,7 +10,7 @@ import scala.util.{Failure, Success, Try}
 
 class VehicleConverter extends ObjectCreateConverter[Vehicle]() {
   override def DetailedConstructorData(obj : Vehicle) : Try[VehicleData] =
-    Failure(new Exception("VehicleConverter should not be used to generate detailed VehicleData"))
+    Failure(new Exception("VehicleConverter should not be used to generate detailed VehicleData (nothing should)"))
 
   override def ConstructorData(obj : Vehicle) : Try[VehicleData] = {
     Success(
@@ -29,9 +29,29 @@ class VehicleConverter extends ObjectCreateConverter[Vehicle]() {
         false,
         obj.Cloaked,
         SpecificFormatData(obj),
-        Some(InventoryData((MakeUtilities(obj) ++ MakeMountings(obj)).sortBy(_.parentSlot)))
+        Some(InventoryData((MakeSeats(obj) ++ MakeUtilities(obj) ++ MakeMountings(obj)).sortBy(_.parentSlot)))
       )(SpecificFormatModifier)
     )
+  }
+
+  private def MakeSeats(obj : Vehicle) : List[InventoryItemData.InventoryItem] = {
+    var offset : Long = VehicleData.InitialStreamLengthToSeatEntries(true, SpecificFormatModifier)
+    obj.Seats
+      .filter({ case(_, seat) => seat.isOccupied })
+      .map({ case(index, seat) =>
+        val player = seat.Occupant.get
+        val mountedPlayer = VehicleData.PlayerData(
+          AvatarConverter.MakeAppearanceData(player),
+          AvatarConverter.MakeCharacterData(player),
+          AvatarConverter.MakeInventoryData(player),
+          AvatarConverter.GetDrawnSlot(player),
+          offset
+        )
+        val entry = InventoryItemData(ObjectClass.avatar, player.GUID, index, mountedPlayer)
+        println(s"seat $index offset: $offset, size: ${entry.bitsize}")
+        offset += entry.bitsize
+        entry
+    }).toList
   }
   
   private def MakeMountings(obj : Vehicle) : List[InventoryItemData.InventoryItem] = {

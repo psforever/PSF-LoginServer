@@ -124,7 +124,8 @@ final case class CharacterAppearanceData(app : BasicCharacterData,
   override def bitsize : Long = {
     //factor guard bool values into the base size, not its corresponding optional field
     val nameStringSize : Long = StreamBitSize.stringBitSize(app.name, 16) + name_padding
-    val outfitStringSize : Long = StreamBitSize.stringBitSize(outfit_name, 16) + CharacterAppearanceData.outfitNamePadding
+    val outfitStringSize : Long = StreamBitSize.stringBitSize(outfit_name, 16) +
+      (if(outfit_name.nonEmpty) { CharacterAppearanceData.outfitNamePadding } else { 0 })
     val altModelSize = CharacterAppearanceData.altModelBit(this).getOrElse(0)
     335L + nameStringSize + outfitStringSize + altModelSize
   }
@@ -151,20 +152,6 @@ object CharacterAppearanceData extends Marshallable[CharacterAppearanceData] {
     }
     else {
       None
-    }
-
-  /**
-    * Get the padding of the player's name.
-    * The padding will always be a number 0-7.
-    * @return the pad length in bits
-    */
-  def namePaddingRule(pad : Int) : Int =
-    if(pad == 0) {
-      //note that this counts as 1 (local) + 4 (inherited from PlayerData OCM with parent)
-      5 //normal alignment padding
-    }
-    else {
-      pad //custom padding value
     }
 
   /**
@@ -234,7 +221,7 @@ object CharacterAppearanceData extends Marshallable[CharacterAppearanceData] {
 
       case CharacterAppearanceData(BasicCharacterData(name, faction, sex, head, v1), v2, bops, jamd, suit, outfit, logo, bpack, facingPitch, facingYawUpper, lfs, gstate, cloaking, charging, zipline, ribbons) =>
         val has_outfit_name : Long = outfit.length.toLong //TODO this is a kludge
-      var alt_model : Boolean = false
+        var alt_model : Boolean = false
         var alt_model_extrabit : Option[Boolean] = None
         if(zipline || bpack) {
           alt_model = true

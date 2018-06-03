@@ -1649,30 +1649,23 @@ class WorldSessionActor extends Actor with MDCContextAware {
         )
       })
       //load active players in zone
-      continent.LivePlayers.filterNot(_.GUID == player.GUID).foreach(char => {
-        sendResponse(ObjectCreateMessage(ObjectClass.avatar, char.GUID, char.Definition.Packet.ConstructorData(char).get))
-        if(char.UsingSpecial == SpecialExoSuitDefinition.Mode.Anchored) {
-          sendResponse(PlanetsideAttributeMessage(char.GUID, 19, 1))
-        }
-      })
+      continent.LivePlayers
+        .filterNot(tplayer => { tplayer.GUID == player.GUID || tplayer.VehicleSeated.nonEmpty })
+        .foreach(char => {
+          sendResponse(ObjectCreateMessage(ObjectClass.avatar, char.GUID, char.Definition.Packet.ConstructorData(char).get))
+          if(char.UsingSpecial == SpecialExoSuitDefinition.Mode.Anchored) {
+            sendResponse(PlanetsideAttributeMessage(char.GUID, 19, 1))
+          }
+        })
       //load corpses in zone
       continent.Corpses.foreach {
         TurnPlayerIntoCorpse
       }
+      var mountedPlayers : Set[Player] = Set.empty //players in vehicles
       //load active vehicles in zone
       continent.Vehicles.foreach(vehicle => {
         val definition = vehicle.Definition
         sendResponse(ObjectCreateMessage(definition.ObjectId, vehicle.GUID, definition.Packet.ConstructorData(vehicle).get))
-        //seat vehicle occupants
-        definition.MountPoints.values.foreach(seat_num => {
-          vehicle.Seat(seat_num).get.Occupant match {
-            case Some(tplayer) =>
-              if(tplayer.HasGUID) {
-                sendResponse(ObjectAttachMessage(vehicle.GUID, tplayer.GUID, seat_num))
-              }
-            case None => ;
-          }
-        })
         ReloadVehicleAccessPermissions(vehicle)
       })
       //implant terminals
@@ -1692,8 +1685,28 @@ class WorldSessionActor extends Actor with MDCContextAware {
           case _ => ;
         }
         //seat terminal occupants
+        import net.psforever.objects.definition.converter.AvatarConverter
         continent.GUID(terminal_guid) match {
           case Some(obj : Mountable) =>
+            obj.Seats
+              .filter({ case(_, seat) => seat.isOccupied })
+              .foreach({ case(index, seat) =>
+                val tplayer = seat.Occupant.get
+                val tdefintion = tplayer.Definition
+                sendResponse(ObjectCreateMessage(
+                  tdefintion.ObjectId,
+                  tplayer.GUID,
+                  ObjectCreateMessageParent(parent_guid, index),
+                  PlayerData(
+                    AvatarConverter.MakeAppearanceData(tplayer),
+                    AvatarConverter.MakeCharacterData(tplayer),
+                    AvatarConverter.MakeInventoryData(tplayer),
+                    AvatarConverter.GetDrawnSlot(tplayer),
+                    0
+                  )
+                ))
+              })
+
             obj.MountPoints.foreach({ case ((_, seat_num)) =>
               obj.Seat(seat_num).get.Occupant match {
                 case Some(tplayer) =>

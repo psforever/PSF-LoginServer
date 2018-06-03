@@ -11,26 +11,21 @@ import scala.util.{Success, Try}
 
 class AvatarConverter extends ObjectCreateConverter[Player]() {
   override def ConstructorData(obj : Player) : Try[PlayerData] = {
+    import AvatarConverter._
     val MaxArmor = obj.MaxArmor
-      Success(
+    Success(
       PlayerData.apply(
         PlacementData(obj.Position, obj.Orientation, obj.Velocity),
         MakeAppearanceData(obj),
-        CharacterData(
-          255 * obj.Health / obj.MaxHealth, //TODO not precise
-          if(MaxArmor == 0) { 0 } else { 255 * obj.Armor / MaxArmor }, //TODO not precise
-          DressBattleRank(obj),
-          DressCommandRank(obj),
-          recursiveMakeImplantEffects(obj.Implants.iterator),
-          MakeCosmetics(obj.BEP)
-        ),
-        InventoryData(MakeHolsters(obj, BuildEquipment).sortBy(_.parentSlot)), //TODO is sorting necessary?
+        MakeCharacterData(obj),
+        MakeInventoryData(obj),
         GetDrawnSlot(obj)
       )
     )
   }
 
   override def DetailedConstructorData(obj : Player) : Try[DetailedPlayerData] = {
+    import AvatarConverter._
     Success(
       DetailedPlayerData.apply(
         PlacementData(obj.Position, obj.Orientation, obj.Velocity),
@@ -54,13 +49,15 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
       )
     )
   }
+}
 
+object AvatarConverter {
   /**
     * Compose some data from a `Player` into a representation common to both `CharacterData` and `DetailedCharacterData`.
     * @param obj the `Player` game object
     * @return the resulting `CharacterAppearanceData`
     */
-  private def MakeAppearanceData(obj : Player) : (Int)=>CharacterAppearanceData = {
+  def MakeAppearanceData(obj : Player) : (Int)=>CharacterAppearanceData = {
     CharacterAppearanceData(
       BasicCharacterData(obj.Name, obj.Faction, obj.Sex, obj.Head, obj.Voice),
       0,
@@ -79,6 +76,27 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
       false,
       RibbonBars()
     )
+  }
+
+  def MakeCharacterData(obj : Player) : (Boolean,Boolean)=>CharacterData = {
+    val MaxArmor = obj.MaxArmor
+    CharacterData(
+      255 * obj.Health / obj.MaxHealth, //TODO not precise
+      if(MaxArmor == 0) {
+        0
+      }
+      else {
+        255 * obj.Armor / MaxArmor
+      }, //TODO not precise
+      DressBattleRank(obj),
+      DressCommandRank(obj),
+      recursiveMakeImplantEffects(obj.Implants.iterator),
+      MakeCosmetics(obj.BEP)
+    )
+  }
+
+  def MakeInventoryData(obj : Player) : InventoryData = {
+    InventoryData(MakeHolsters(obj, BuildEquipment).sortBy(_.parentSlot)) //TODO is sorting necessary?
   }
 
   /**
@@ -187,7 +205,7 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
     * @see `Cosmetics`
     * @return the `Cosmetics` options
     */
-  protected def MakeCosmetics(bep : Long) : Option[Cosmetics] =
+  def MakeCosmetics(bep : Long) : Option[Cosmetics] =
     if(DetailedCharacterData.isBR24(bep)) {
       Some(Cosmetics(false, false, false, false, false))
     }
@@ -210,6 +228,7 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
           InternalSlot(equip.Definition.ObjectId, equip.GUID, item.start, equip.Definition.Packet.DetailedConstructorData(equip).get)
       }).toList
   }
+
   /**
     * Given a player with equipment holsters, convert the contents of those holsters into converted-decoded packet data.
     * The decoded packet form is determined by the function in the parameters as both `0x17` and `0x18` conversions are available,
@@ -255,7 +274,7 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
     * @param equip the game object
     * @return the game object in decoded packet form
     */
-  protected def BuildDetailedEquipment(index : Int, equip : Equipment) : InternalSlot = {
+  def BuildDetailedEquipment(index : Int, equip : Equipment) : InternalSlot = {
     InternalSlot(equip.Definition.ObjectId, equip.GUID, index, equip.Definition.Packet.DetailedConstructorData(equip).get)
   }
 
@@ -293,7 +312,7 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
     * @param obj the `Player` game object
     * @return the holster's Enumeration value
     */
-  protected def GetDrawnSlot(obj : Player) : DrawnSlot.Value = {
+  def GetDrawnSlot(obj : Player) : DrawnSlot.Value = {
     try { DrawnSlot(obj.DrawnSlot) } catch { case _ : Exception => DrawnSlot.None }
   }
 }

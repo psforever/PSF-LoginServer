@@ -9,12 +9,18 @@ import org.specs2.mutable._
 import scodec.bits._
 
 class CharacterDataTest extends Specification {
-  val string_character = hex"17 73070000 BC8 3E0F 6C2D7 65535 CA16 00 00 09 9741E4F804000000 234530063007200610077006E00790052006F006E006E0069006500 220B7 E67B540404001000000000022B50100 268042006C00610063006B002000420065007200650074002000410072006D006F007500720065006400200043006F00720070007300 1700E0030050040003BC00000234040001A004000 3FFF67A8F A0A5424E0E800000000080952A9C3A03000001081103E040000000A023782F1080C0000016244108200000000808382403A030000014284C3A0C0000000202512F00B80C00000578F80F840000000280838B3C320300000080"
-  val string_character_backpack = hex"17 9C030000 BC8 340D F20A9 3956C AF0D 00 00 73 480000 87041006E00670065006C006C006F00 4A148 0000000000000000000000005C54200 24404F0072006900670069006E0061006C00200044006900730074007200690063007400 1740180181E8000000C202000042000000D202000000010A3C00"
+  val string = hex"17 73070000 BC8 3E0F 6C2D7 65535 CA16 00 00 09 9741E4F804000000 234530063007200610077006E00790052006F006E006E0069006500 220B7 E67B540404001000000000022B50100 268042006C00610063006B002000420065007200650074002000410072006D006F007500720065006400200043006F00720070007300 1700E0030050040003BC00000234040001A004000 3FFF67A8F A0A5424E0E800000000080952A9C3A03000001081103E040000000A023782F1080C0000016244108200000000808382403A030000014284C3A0C0000000202512F00B80C00000578F80F840000000280838B3C320300000080"
+  //string seated was intentionally-produced test data
+  val string_seated =
+    hex"17ff06000069023c83e0f800000011a530063007200610077006e00790052006f006e006e0069006500220b7000000000000000000000000" ++
+    hex"6800000268042006c00610063006b002000420065007200650074002000410072006d006f007500720065006400200043006f00720070007" ++
+    hex"3001700e0030050040003bc00000234040001a00400020a8fa0a5424e0e800000000080952a9c3a03000001081103e040000000a023782f1" ++
+    hex"080c0000016244108200000000808382403a030000014284c3a0c0000000202512f00b80c00000578f80f840000000280838b3c32030000008"
+  val string_backpack = hex"17 9C030000 BC8 340D F20A9 3956C AF0D 00 00 73 480000 87041006E00670065006C006C006F00 4A148 0000000000000000000000005C54200 24404F0072006900670069006E0061006C00200044006900730074007200690063007400 1740180181E8000000C202000042000000D202000000010A3C00"
 
   "CharacterData" should {
     "decode" in {
-      PacketCoding.DecodePacket(string_character).require match {
+      PacketCoding.DecodePacket(string).require match {
         case ObjectCreateMessage(len, cls, guid, parent, data) =>
           len mustEqual 1907
           cls mustEqual ObjectClass.avatar
@@ -111,8 +117,48 @@ class CharacterDataTest extends Specification {
       }
     }
 
+    "decode (seated)" in {
+      PacketCoding.DecodePacket(string_seated).require match {
+        case ObjectCreateMessage(len, cls, guid, parent, data) =>
+          len mustEqual 1791
+          cls mustEqual ObjectClass.avatar
+          guid mustEqual PlanetSideGUID(3902)
+          parent mustEqual Some(ObjectCreateMessageParent(PlanetSideGUID(1234), 0))
+          data match {
+            case Some(PlayerData(None, basic, char, inv, hand)) =>
+              basic.app.name mustEqual "ScrawnyRonnie"
+              basic.app.faction mustEqual PlanetSideEmpire.TR
+              basic.app.sex mustEqual CharacterGender.Male
+              basic.app.head mustEqual 5
+              basic.app.voice mustEqual 5
+              basic.voice2 mustEqual 3
+              basic.black_ops mustEqual false
+              basic.jammered mustEqual false
+              basic.exosuit mustEqual ExoSuitType.Reinforced
+              basic.outfit_name mustEqual "Black Beret Armoured Corps"
+              basic.outfit_logo mustEqual 23
+              basic.facingPitch mustEqual 340.3125f
+              basic.facingYawUpper mustEqual 0
+              basic.lfs mustEqual false
+              basic.grenade_state mustEqual GrenadeState.None
+              basic.is_cloaking mustEqual false
+              basic.charging_pose mustEqual false
+              basic.on_zipline mustEqual false
+              basic.ribbons.upper mustEqual MeritCommendation.MarkovVeteran
+              basic.ribbons.middle mustEqual MeritCommendation.HeavyInfantry4
+              basic.ribbons.lower mustEqual MeritCommendation.TankBuster7
+              basic.ribbons.tos mustEqual MeritCommendation.SixYearTR
+              //etc..
+            case _ =>
+              ko
+          }
+        case _ =>
+          ko
+      }
+    }
+
     "decode (backpack)" in {
-      PacketCoding.DecodePacket(string_character_backpack).require match {
+      PacketCoding.DecodePacket(string_backpack).require match {
         case ObjectCreateMessage(len, cls, guid, parent, data) =>
           len mustEqual 924L
           cls mustEqual ObjectClass.avatar
@@ -220,13 +266,67 @@ class CharacterDataTest extends Specification {
       val msg = ObjectCreateMessage(ObjectClass.avatar, PlanetSideGUID(3902), obj)
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
       val pkt_bitv = pkt.toBitVector
-      val ori_bitv = string_character.toBitVector
+      val ori_bitv = string.toBitVector
       pkt_bitv.take(452) mustEqual ori_bitv.take(452) //skip 126
       pkt_bitv.drop(578).take(438) mustEqual ori_bitv.drop(578).take(438) //skip 2
       pkt_bitv.drop(1018).take(17) mustEqual ori_bitv.drop(1018).take(17) //skip 11
       pkt_bitv.drop(1046).take(147) mustEqual ori_bitv.drop(1046).take(147) //skip 3
       pkt_bitv.drop(1196) mustEqual ori_bitv.drop(1196)
       //TODO work on CharacterData to make this pass as a single stream
+    }
+
+    "encode (seated)" in {
+      val pos : PlacementData = PlacementData(
+        Vector3(3674.8438f, 2726.789f, 91.15625f),
+        Vector3(0f, 0f, 64.6875f),
+        Some(Vector3(1.4375f, -0.4375f, 0f))
+      )
+      val app : (Int)=>CharacterAppearanceData = CharacterAppearanceData(
+        BasicCharacterData(
+          "ScrawnyRonnie",
+          PlanetSideEmpire.TR,
+          CharacterGender.Male,
+          5,
+          5
+        ),
+        3,
+        false,
+        false,
+        ExoSuitType.Reinforced,
+        "Black Beret Armoured Corps",
+        23,
+        false,
+        340.3125f, 0f,
+        false,
+        GrenadeState.None,
+        false, false, false,
+        RibbonBars(
+          MeritCommendation.MarkovVeteran,
+          MeritCommendation.HeavyInfantry4,
+          MeritCommendation.TankBuster7,
+          MeritCommendation.SixYearTR
+        )
+      )
+      val char : (Boolean,Boolean)=>CharacterData = CharacterData(
+        255, 253,
+        UniformStyle.ThirdUpgrade,
+        5,
+        Some(ImplantEffects.NoEffects),
+        Some(Cosmetics(true, true, true, true, false))
+      )
+      val inv = InventoryData(
+        InventoryItemData(ObjectClass.plasma_grenade, PlanetSideGUID(3662), 0, WeaponData(0, 0, ObjectClass.plasma_grenade_ammo, PlanetSideGUID(3751), 0, AmmoBoxData())) ::
+          InventoryItemData(ObjectClass.bank, PlanetSideGUID(3908), 1, WeaponData(0, 0, 1, ObjectClass.armor_canister, PlanetSideGUID(4143), 0, AmmoBoxData())) ::
+          InventoryItemData(ObjectClass.mini_chaingun, PlanetSideGUID(4164), 2, WeaponData(0, 0, ObjectClass.bullet_9mm, PlanetSideGUID(3728), 0, AmmoBoxData())) ::
+          InventoryItemData(ObjectClass.phoenix, PlanetSideGUID(3603), 3, WeaponData(0, 0, ObjectClass.phoenix_missile, PlanetSideGUID(3056), 0, AmmoBoxData())) ::
+          InventoryItemData(ObjectClass.chainblade, PlanetSideGUID(4088), 4, WeaponData(0, 0, 1, ObjectClass.melee_ammo, PlanetSideGUID(3279), 0, AmmoBoxData())) ::
+          Nil
+      )
+      val obj = PlayerData(app, char, inv, DrawnSlot.Rifle1, 0)
+
+      val msg = ObjectCreateMessage(ObjectClass.avatar, PlanetSideGUID(3902), ObjectCreateMessageParent(PlanetSideGUID(1234), 0), obj)
+      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      pkt mustEqual string_seated
     }
 
     "encode (backpack)" in {
@@ -272,7 +372,7 @@ class CharacterDataTest extends Specification {
       val msg = ObjectCreateMessage(ObjectClass.avatar, PlanetSideGUID(3380), obj)
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
       val pkt_bitv = pkt.toBitVector
-      val ori_bitv = string_character_backpack.toBitVector
+      val ori_bitv = string_backpack.toBitVector
       pkt_bitv.take(300) mustEqual ori_bitv.take(300) //skip 2
       pkt_bitv.drop(302).take(14) mustEqual ori_bitv.drop(302).take(14) //skip 126
       pkt_bitv.drop(442).take(305) mustEqual ori_bitv.drop(442).take(305) //skip 1

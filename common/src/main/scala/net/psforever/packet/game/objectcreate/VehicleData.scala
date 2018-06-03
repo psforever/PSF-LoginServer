@@ -146,6 +146,41 @@ object VehicleData extends Marshallable[VehicleData] {
     new VehicleData(basic, unk1, health, unk2>0, false, driveState, unk3, unk5>0, false, Some(unk4), inventory)(VehicleFormat.Variant)
   }
 
+  import net.psforever.packet.game.objectcreate.{PlayerData => Player_Data}
+  /**
+    * Constructor that ignores the coordinate information
+    * and performs a vehicle-unique calculation of the padding value.
+    * It passes information between the three major divisions for the purposes of offset calculations.
+    * This constructor should be used for players that are mounted.
+    * @param basic_appearance a curried function for the common fields regarding the the character's appearance
+    * @param character_data a curried function for the class-specific data that explains about the character
+    * @param inventory the player's inventory
+    * @param drawn_slot the holster that is initially drawn
+    * @param accumulative the input position for the stream up to which this entry;
+    *                     used to calculate the padding value for the player's name in `CharacterAppearanceData`
+    * @return a `PlayerData` object
+    */
+  def PlayerData(basic_appearance : (Int)=>CharacterAppearanceData, character_data : (Boolean,Boolean)=>CharacterData, inventory : InventoryData, drawn_slot : DrawnSlot.Type, accumulative : Long) : Player_Data = {
+    val appearance = basic_appearance(CumulativeSeatedPlayerNamePadding(accumulative))
+    Player_Data(None, appearance, character_data(appearance.backpack, true), Some(inventory), drawn_slot)(false)
+  }
+  /**
+    * Constructor for `PlayerData` that ignores the coordinate information and the inventory
+    * and performs a vehicle-unique calculation of the padding value.
+    * It passes information between the three major divisions for the purposes of offset calculations.
+    * This constructor should be used for players that are mounted.
+    * @param basic_appearance a curried function for the common fields regarding the the character's appearance
+    * @param character_data a curried function for the class-specific data that explains about the character
+    * @param drawn_slot the holster that is initially drawn
+    * @param accumulative the input position for the stream up to which this entry;
+    *                     used to calculate the padding value for the player's name in `CharacterAppearanceData`
+    * @return a `PlayerData` object
+    */
+  def PlayerData(basic_appearance : (Int)=>CharacterAppearanceData, character_data : (Boolean,Boolean)=>CharacterData, drawn_slot : DrawnSlot.Type, accumulative : Long) : Player_Data = {
+    val appearance = basic_appearance(CumulativeSeatedPlayerNamePadding(accumulative))
+    Player_Data.apply(None, appearance, character_data(appearance.backpack, true), None, drawn_slot)(false)
+  }
+
   private val driveState8u = PacketHelpers.createEnumerationCodec(DriveState, uint8L)
 
   /**
@@ -273,10 +308,35 @@ object VehicleData extends Marshallable[VehicleData] {
     * @return the padding value, 0-7 bits
     */
   def CumulativeSeatedPlayerNamePadding(base : Long, next : Option[StreamBitSize]) : Int = {
-    PlayerData.CumulativeSeatedPlayerNamePadding(base + (next match {
+    CumulativeSeatedPlayerNamePadding(base + (next match {
       case Some(o) => o.bitsize
       case None => 0
     }))
+  }
+
+  /**
+    * Calculate the padding value for the next mounted player character's name `String`.
+    * Due to the depth of seated player characters, the `name` field can have a variable amount of padding
+    * between the string size field and the first character.
+    * Specifically, the padding value is the number of bits after the size field
+    * that would cause the first character of the name to be aligned to the first bit of the next byte.
+    * The 35 counts the object class, unique identifier, and slot fields of the enclosing `InternalSlot`.
+    * The 23 counts all of the fields before the player's `name` field in `CharacterAppearanceData`.
+    * @see `InternalSlot`<br>
+    *       `CharacterAppearanceData.name`<br>
+    *       `VehicleData.InitialStreamLengthToSeatEntries`
+    * @param accumulative current entry stream offset (start of this player's entry)
+    * @return the padding value, 0-7 bits
+    */
+  private def CumulativeSeatedPlayerNamePadding(accumulative : Long) : Int = {
+    val offset = accumulative + 23 + 35
+    val pad = ((offset - math.floor(offset / 8) * 8) % 8).toInt
+    if(pad > 0) {
+      8 - pad
+    }
+    else {
+      0
+    }
   }
 
   /**
@@ -299,7 +359,7 @@ object VehicleData extends Marshallable[VehicleData] {
         uint2 ::
           (inventory_seat_codec(
             length, //length of stream until current seat
-              PlayerData.CumulativeSeatedPlayerNamePadding(length) //calculated offset of name field in next seat
+              CumulativeSeatedPlayerNamePadding(length) //calculated offset of name field in next seat
           ) >>:~ { seats =>
             PacketHelpers.listOfNSized(size - countSeats(seats), InternalSlot.codec).hlist
           })
@@ -348,7 +408,7 @@ object VehicleData extends Marshallable[VehicleData] {
               case None => 0
             })
           },
-            VehicleData.CumulativeSeatedPlayerNamePadding(length, seat) //calculated offset of name field in next seat
+            CumulativeSeatedPlayerNamePadding(length, seat) //calculated offset of name field in next seat
           )).hlist
         }
       }
@@ -381,7 +441,7 @@ object VehicleData extends Marshallable[VehicleData] {
     *            this padding value must recalculate for each represented seat
     * @see `CharacterAppearanceData`<br>
     *       `VehicleData.InitialStreamLengthToSeatEntries`<br>
-    *       `PlayerData.CumulativeSeatedPlayerNamePadding`
+    *       `CumulativeSeatedPlayerNamePadding`
     * @return a `Codec` that translates `PlayerData`
     */
   private def seat_codec(pad : Int) : Codec[InternalSlot] = {
@@ -390,7 +450,7 @@ object VehicleData extends Marshallable[VehicleData] {
       ("objectClass" | uintL(11)) ::
         ("guid" | PlanetSideGUID.codec) ::
         ("parentSlot" | PacketHelpers.encodedStringSize) ::
-        ("obj" | PlayerData.codec(pad))
+        ("obj" | Player_Data.codec(pad))
       ).xmap[InternalSlot] (
       {
         case objectClass :: guid :: parentSlot :: obj :: HNil =>

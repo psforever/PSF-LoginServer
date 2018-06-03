@@ -65,7 +65,7 @@ object PlayerData extends Marshallable[PlayerData] {
     * @return a `PlayerData` object
     */
   def apply(basic_appearance : (Int)=>CharacterAppearanceData, character_data : (Boolean,Boolean)=>CharacterData, inventory : InventoryData, drawn_slot : DrawnSlot.Type, accumulative : Long) : PlayerData = {
-    val appearance = basic_appearance(CumulativeSeatedPlayerNamePadding(accumulative))
+    val appearance = basic_appearance(1)
     PlayerData(None, appearance, character_data(appearance.backpack, true), Some(inventory), drawn_slot)(false)
   }
   /**
@@ -80,7 +80,7 @@ object PlayerData extends Marshallable[PlayerData] {
     * @return a `PlayerData` object
     */
   def apply(basic_appearance : (Int)=>CharacterAppearanceData, character_data : (Boolean,Boolean)=>CharacterData, drawn_slot : DrawnSlot.Type, accumulative : Long) : PlayerData = {
-    val appearance = basic_appearance(CumulativeSeatedPlayerNamePadding(accumulative))
+    val appearance = basic_appearance(1)
     PlayerData(None, appearance, character_data(appearance.backpack, true), None, drawn_slot)(false)
   }
 
@@ -115,31 +115,6 @@ object PlayerData extends Marshallable[PlayerData] {
   }
 
   /**
-    * Calculate the padding value for the next mounted player character's name `String`.
-    * Due to the depth of seated player characters, the `name` field can have a variable amount of padding
-    * between the string size field and the first character.
-    * Specifically, the padding value is the number of bits after the size field
-    * that would cause the first character of the name to be aligned to the first bit of the next byte.
-    * The 35 counts the object class, unique identifier, and slot fields of the enclosing `InternalSlot`.
-    * The 23 counts all of the fields before the player's `name` field in `CharacterAppearanceData`.
-    * @see `InternalSlot`<br>
-    *       `CharacterAppearanceData.name`<br>
-    *       `VehicleData.InitialStreamLengthToSeatEntries`
-    * @param accumulative current entry stream offset (start of this player's entry)
-    * @return the padding value, 0-7 bits
-    */
-  def CumulativeSeatedPlayerNamePadding(accumulative : Long) : Int = {
-    val offset = accumulative + 23 + 35
-    val pad = ((offset - math.floor(offset / 8) * 8) % 8).toInt
-    if(pad > 0) {
-      8 - pad
-    }
-    else {
-      0
-    }
-  }
-
-  /**
     * Determine the padding offset for a subsequent field given the existence of `PlacementData`.
     * The padding will always be a number 0-7.
     * @see `PlacementData`
@@ -151,7 +126,7 @@ object PlayerData extends Marshallable[PlayerData] {
       case Some(place) =>
         if(place.vel.isDefined) { 2 } else { 4 }
       case None =>
-        0
+        1
     }
   }
 

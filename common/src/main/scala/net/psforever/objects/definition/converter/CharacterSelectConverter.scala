@@ -29,10 +29,10 @@ class CharacterSelectConverter extends AvatarConverter {
           Nil,
           MakeImplantEntries(obj), //necessary for correct stream length
           Nil, Nil,
-          MakeCosmetics(obj.BEP)
+          AvatarConverter.MakeCosmetics(obj.BEP)
         ),
         InventoryData(recursiveMakeHolsters(obj.Holsters().iterator)),
-        GetDrawnSlot(obj)
+        AvatarConverter.GetDrawnSlot(obj)
       )
     )
   }
@@ -92,7 +92,7 @@ class CharacterSelectConverter extends AvatarConverter {
         val equip : Equipment = slot.Equipment.get
         recursiveMakeHolsters(
           iter,
-          list :+ BuildDetailedEquipment(index, equip),
+          list :+ AvatarConverter.BuildDetailedEquipment(index, equip),
           index + 1
         )
       }
