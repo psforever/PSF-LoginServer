@@ -38,7 +38,8 @@ final case class DetailedPlayerData(pos : Option[PlacementData],
                                     drawn_slot : DrawnSlot.Value)
                                    (position_defined : Boolean) extends ConstructorData {
   override def bitsize : Long = {
-    val posSize : Long = if(pos.isDefined) { pos.get.bitsize } else { 0 }
+    //factor guard bool values into the base size, not its corresponding optional field
+    val posSize : Long = if(pos.isDefined) { pos.get.bitsize } else { 0L }
     val appSize : Long = basic_appearance.bitsize
     val charSize = character_data.bitsize
     val inventorySize : Long = if(inventory.isDefined) { inventory.get.bitsize } else { 0L }
