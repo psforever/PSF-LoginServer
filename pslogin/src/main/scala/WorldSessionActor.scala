@@ -1352,7 +1352,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case Zone.Ground.ItemOnGround(item, pos, orient) =>
       item.Position = pos
-      item.Orientation = Vector3(0,0, orient.z) //only one kind of rotation is important
+      item.Orientation = Vector3(0,0, orient.z) //dropped items rotate towards the user's standing direction
       val exclusionId = player.Find(item) match {
         case Some(slotNum) =>
           player.Slot(slotNum).Equipment = None

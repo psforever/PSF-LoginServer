@@ -149,6 +149,7 @@ class VehicleService extends Actor {
       VehicleEvents.publish(
         VehicleServiceResponse(s"/${zone.Id}/Vehicle", Service.defaultPlayerGUID, VehicleResponse.LoadVehicle(vehicle, vtype, vguid, vdata))
       )
+      //avoid unattended vehicle spawning blocking the pad; user should mount (and does so normally) to reset decon timer
       vehicleDecon forward RemoverActor.AddTask(vehicle, zone, Some(30 seconds))
 
     //from VehicleSpawnControl
