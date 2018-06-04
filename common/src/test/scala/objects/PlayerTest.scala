@@ -155,7 +155,13 @@ class PlayerTest extends Specification {
 
     "has visible slots" in {
       val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
+      obj.VisibleSlots mustEqual Set(0,2,4) //Standard
+      obj.ExoSuit = ExoSuitType.Agile
+      obj.VisibleSlots mustEqual Set(0,1,2,4)
+      obj.ExoSuit = ExoSuitType.Reinforced
       obj.VisibleSlots mustEqual Set(0,1,2,3,4)
+      obj.ExoSuit = ExoSuitType.Infiltration
+      obj.VisibleSlots mustEqual Set(0,4)
       obj.ExoSuit = ExoSuitType.MAX
       obj.VisibleSlots mustEqual Set(0)
     }
