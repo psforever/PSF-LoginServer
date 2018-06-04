@@ -60,12 +60,10 @@ object PlayerData extends Marshallable[PlayerData] {
     * @param character_data a curried function for the class-specific data that explains about the character
     * @param inventory the player's inventory
     * @param drawn_slot the holster that is initially drawn
-    * @param accumulative the input position for the stream up to which this entry;
-    *                     used to calculate the padding value for the player's name in `CharacterAppearanceData`
     * @return a `PlayerData` object
     */
-  def apply(basic_appearance : (Int)=>CharacterAppearanceData, character_data : (Boolean,Boolean)=>CharacterData, inventory : InventoryData, drawn_slot : DrawnSlot.Type, accumulative : Long) : PlayerData = {
-    val appearance = basic_appearance(1)
+  def apply(basic_appearance : (Int)=>CharacterAppearanceData, character_data : (Boolean,Boolean)=>CharacterData, inventory : InventoryData, drawn_slot : DrawnSlot.Type) : PlayerData = {
+    val appearance = basic_appearance(5)
     PlayerData(None, appearance, character_data(appearance.backpack, true), Some(inventory), drawn_slot)(false)
   }
   /**
@@ -75,12 +73,10 @@ object PlayerData extends Marshallable[PlayerData] {
     * @param basic_appearance a curried function for the common fields regarding the the character's appearance
     * @param character_data a curried function for the class-specific data that explains about the character
     * @param drawn_slot the holster that is initially drawn
-    * @param accumulative the input position for the stream up to which this entry;
-    *                     used to calculate the padding value for the player's name in `CharacterAppearanceData`
     * @return a `PlayerData` object
     */
-  def apply(basic_appearance : (Int)=>CharacterAppearanceData, character_data : (Boolean,Boolean)=>CharacterData, drawn_slot : DrawnSlot.Type, accumulative : Long) : PlayerData = {
-    val appearance = basic_appearance(1)
+  def apply(basic_appearance : (Int)=>CharacterAppearanceData, character_data : (Boolean,Boolean)=>CharacterData, drawn_slot : DrawnSlot.Type) : PlayerData = {
+    val appearance = basic_appearance(5)
     PlayerData(None, appearance, character_data(appearance.backpack, true), None, drawn_slot)(false)
   }
 
@@ -96,7 +92,7 @@ object PlayerData extends Marshallable[PlayerData] {
     * @return a `PlayerData` object
     */
   def apply(pos : PlacementData, basic_appearance : (Int)=>CharacterAppearanceData, character_data : (Boolean,Boolean)=>CharacterData, inventory : InventoryData, drawn_slot : DrawnSlot.Type) : PlayerData = {
-    val appearance = basic_appearance( placementOffset(Some(pos)) )
+    val appearance = basic_appearance( PaddingOffset(Some(pos)) )
     PlayerData(Some(pos), appearance, character_data(appearance.backpack, false), Some(inventory), drawn_slot)(true)
   }
   /**
@@ -110,24 +106,50 @@ object PlayerData extends Marshallable[PlayerData] {
     * @return a `PlayerData` object
     */
   def apply(pos : PlacementData, basic_appearance : (Int)=>CharacterAppearanceData, character_data : (Boolean,Boolean)=>CharacterData, drawn_slot : DrawnSlot.Type) : PlayerData = {
-    val appearance = basic_appearance( placementOffset(Some(pos)) )
+    val appearance = basic_appearance( PaddingOffset(Some(pos)) )
     PlayerData(Some(pos), appearance, character_data(appearance.backpack, false), None, drawn_slot)(true)
   }
 
   /**
     * Determine the padding offset for a subsequent field given the existence of `PlacementData`.
+    * With the `PlacementData` objects, a question of the optional velocity field also exists.<br>
+    * <br>
+    * With just `PlacementData`, the bit distance to the name field is 164 (padding: 4 bits).
+    * With `PlacementData` with velocity, the bit distance to the name field is 206 (padding: 2 bits).
+    * Without `PlacementData`, the distance to the name field is either 107 or 115 (padding: 5 bits).
     * The padding will always be a number 0-7.
     * @see `PlacementData`
     * @param pos the optional `PlacementData` object that creates the shift in bits
     * @return the pad length in bits
     */
-  def placementOffset(pos : Option[PlacementData]) : Int = {
+  def PaddingOffset(pos : Option[PlacementData]) : Int = {
+    /*
+    The `ObjectCreateMessage` length is either 32 + 12 + 16 + 81 - 141 - with `PlacementData`,
+    with an additional +42 - 183 - with the optional velocity field,
+    or 32 + 12 + 16 + 16 + 8/16 - 84/92 - without any `PlacementData`.
+    23 is the distance of all the fields before the player's `name` field in `CharacterAppearanceData`.
+     */
     pos match {
       case Some(place) =>
         if(place.vel.isDefined) { 2 } else { 4 }
       case None =>
-        1
+        5 //with ObjectCreateMessageParent data
     }
+  }
+
+  /**
+    * Find the number of trailing bits that need to be added to make the current value perfectly divisible by eight.
+    * @param length the current length of a stream
+    * @return the number of bits needed to pad it
+    */
+  def ByteAlignmentPadding(length : Long) : Int = {
+    val pad = (length - math.floor(length / 8) * 8).toInt
+      if(pad > 0) {
+        8 - pad
+      }
+      else {
+        0
+      }
   }
 
   /**
@@ -140,7 +162,7 @@ object PlayerData extends Marshallable[PlayerData] {
     */
   def codec(position_defined : Boolean) : Codec[PlayerData] = (
     conditional(position_defined, "pos" | PlacementData.codec) >>:~ { pos =>
-      ("basic_appearance" | CharacterAppearanceData.codec(placementOffset(pos))) >>:~ { app =>
+      ("basic_appearance" | CharacterAppearanceData.codec(PaddingOffset(pos))) >>:~ { app =>
         ("character_data" | newcodecs.binary_choice(position_defined,
           CharacterData.codec(app.backpack),
           CharacterData.codec_seated(app.backpack))) ::

@@ -13,15 +13,27 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
   override def ConstructorData(obj : Player) : Try[PlayerData] = {
     import AvatarConverter._
     val MaxArmor = obj.MaxArmor
-    Success(
-      PlayerData.apply(
-        PlacementData(obj.Position, obj.Orientation, obj.Velocity),
-        MakeAppearanceData(obj),
-        MakeCharacterData(obj),
-        MakeInventoryData(obj),
-        GetDrawnSlot(obj)
+    if(obj.VehicleSeated.isEmpty) {
+      Success(
+        PlayerData(
+          PlacementData(obj.Position, obj.Orientation, obj.Velocity),
+          MakeAppearanceData(obj),
+          MakeCharacterData(obj),
+          MakeInventoryData(obj),
+          GetDrawnSlot(obj)
+        )
       )
-    )
+    }
+    else {
+      Success(
+        PlayerData(
+          MakeAppearanceData(obj),
+          MakeCharacterData(obj),
+          MakeInventoryData(obj),
+          GetDrawnSlot(obj)
+        )
+      )
+    }
   }
 
   override def DetailedConstructorData(obj : Player) : Try[DetailedPlayerData] = {

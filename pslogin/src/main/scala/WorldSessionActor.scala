@@ -1661,7 +1661,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
       continent.Corpses.foreach {
         TurnPlayerIntoCorpse
       }
-      var mountedPlayers : Set[Player] = Set.empty //players in vehicles
       //load active vehicles in zone
       continent.Vehicles.foreach(vehicle => {
         val definition = vehicle.Definition
@@ -1685,7 +1684,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
           case _ => ;
         }
         //seat terminal occupants
-        import net.psforever.objects.definition.converter.AvatarConverter
         continent.GUID(terminal_guid) match {
           case Some(obj : Mountable) =>
             obj.Seats
@@ -1697,25 +1695,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
                   tdefintion.ObjectId,
                   tplayer.GUID,
                   ObjectCreateMessageParent(parent_guid, index),
-                  PlayerData(
-                    AvatarConverter.MakeAppearanceData(tplayer),
-                    AvatarConverter.MakeCharacterData(tplayer),
-                    AvatarConverter.MakeInventoryData(tplayer),
-                    AvatarConverter.GetDrawnSlot(tplayer),
-                    0
-                  )
+                  tdefintion.Packet.ConstructorData(tplayer).get
                 ))
               })
-
-            obj.MountPoints.foreach({ case ((_, seat_num)) =>
-              obj.Seat(seat_num).get.Occupant match {
-                case Some(tplayer) =>
-                  if(tplayer.HasGUID) {
-                    sendResponse(ObjectAttachMessage(parent_guid, tplayer.GUID, seat_num))
-                  }
-                case None => ;
-              }
-            })
           case _ => ;
         }
       })

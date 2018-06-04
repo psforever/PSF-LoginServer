@@ -329,14 +329,7 @@ object VehicleData extends Marshallable[VehicleData] {
     * @return the padding value, 0-7 bits
     */
   private def CumulativeSeatedPlayerNamePadding(accumulative : Long) : Int = {
-    val offset = accumulative + 23 + 35
-    val pad = ((offset - math.floor(offset / 8) * 8) % 8).toInt
-    if(pad > 0) {
-      8 - pad
-    }
-    else {
-      0
-    }
+    Player_Data.ByteAlignmentPadding(accumulative + 23 + 35)
   }
 
   /**

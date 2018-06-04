@@ -55,12 +55,12 @@ object DetailedPlayerData extends Marshallable[DetailedPlayerData] {
     * @return a `DetailedPlayerData` object
     */
   def apply(basic_appearance : (Int)=>CharacterAppearanceData, character_data : (Option[Int])=>DetailedCharacterData, inventory : InventoryData, drawn_slot : DrawnSlot.Value) : DetailedPlayerData = {
-    val appearance = basic_appearance(0)
+    val appearance = basic_appearance(5)
     DetailedPlayerData(None, appearance, character_data(appearance.altModelBit), Some(inventory), drawn_slot)(false)
   }
   /** */
   def apply(basic_appearance : (Int)=>CharacterAppearanceData, character_data : (Option[Int])=>DetailedCharacterData, drawn_slot : DrawnSlot.Value) : DetailedPlayerData = {
-    val appearance = basic_appearance(0)
+    val appearance = basic_appearance(5)
     DetailedPlayerData(None, appearance, character_data(appearance.altModelBit), None, drawn_slot)(false)
   }
   /**
@@ -71,18 +71,18 @@ object DetailedPlayerData extends Marshallable[DetailedPlayerData] {
     * @return a `DetailedPlayerData` object
     */
   def apply(pos : PlacementData, basic_appearance : (Int)=>CharacterAppearanceData, character_data : (Option[Int])=>DetailedCharacterData, inventory : InventoryData, drawn_slot : DrawnSlot.Value) : DetailedPlayerData = {
-    val appearance = basic_appearance(PlayerData.placementOffset(Some(pos)))
+    val appearance = basic_appearance(PlayerData.PaddingOffset(Some(pos)))
     DetailedPlayerData(Some(pos), appearance, character_data(appearance.altModelBit), Some(inventory), drawn_slot)(true)
   }
   /** */
   def apply(pos : PlacementData, basic_appearance : (Int)=>CharacterAppearanceData, character_data : (Option[Int])=>DetailedCharacterData, drawn_slot : DrawnSlot.Value) : DetailedPlayerData = {
-    val appearance = basic_appearance(PlayerData.placementOffset(Some(pos)))
+    val appearance = basic_appearance(PlayerData.PaddingOffset(Some(pos)))
     DetailedPlayerData(Some(pos), appearance, character_data(appearance.altModelBit), None, drawn_slot)(true)
   }
 
   def codec(position_defined : Boolean) : Codec[DetailedPlayerData] = (
     conditional(position_defined, "pos" | PlacementData.codec) >>:~ { pos =>
-      ("basic_appearance" | CharacterAppearanceData.codec(PlayerData.placementOffset(pos))) >>:~ { app =>
+      ("basic_appearance" | CharacterAppearanceData.codec(PlayerData.PaddingOffset(pos))) >>:~ { app =>
         ("character_data" | DetailedCharacterData.codec(app.altModelBit)) ::
           optional(bool, "inventory" | InventoryData.codec_detailed) ::
           ("drawn_slot" | DrawnSlot.codec) ::
