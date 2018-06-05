@@ -24,6 +24,7 @@ import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.deploy.Deployment
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.serverobject.doors.Door
+import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.implantmech.ImplantTerminalMech
 import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.mblocker.Locker
@@ -416,11 +417,21 @@ class WorldSessionActor extends Actor with MDCContextAware {
           sendResponse(GenericObjectStateMsg(door_guid, 17))
 
         case LocalResponse.HackClear(target_guid, unk1, unk2) =>
+          // Reset hack state for all players
           sendResponse(HackMessage(0, target_guid, guid, 0, unk1, HackState.HackCleared, unk2))
+          // Set the object faction displayed back to it's original owner faction
+          sendResponse(SetEmpireMessage(target_guid, continent.GUID(target_guid).get.asInstanceOf[FactionAffinity].Faction))
 
         case LocalResponse.HackObject(target_guid, unk1, unk2) =>
-          if(player.GUID != guid) {
+          if(player.GUID != guid && continent.GUID(target_guid).get.asInstanceOf[Hackable].HackedBy.get._1.Faction != player.Faction) {
+            // If the player is not in the faction that hacked this object then send the packet that it's been hacked, so they can either unhack it or use the hacked object
+            // Don't send this to the faction that hacked the object, otherwise it will interfere with the new SetEmpireMessage QoL change that changes the object colour to their faction (but only visible to that faction)
             sendResponse(HackMessage(0, target_guid, guid, 100, unk1, HackState.Hacked, unk2))
+          }
+
+          if(continent.GUID(target_guid).get.asInstanceOf[Hackable].HackedBy.get._1.Faction == player.Faction){
+            // Make the hacked object look like it belongs to the hacking empire, but only for that empire's players (so that infiltrators on stealth missions won't be given away to opposing factions)
+            sendResponse(SetEmpireMessage(target_guid, player.Faction))
           }
 
         case LocalResponse.ProximityTerminalEffect(object_guid, effectState) =>
@@ -1509,7 +1520,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         if(progressBarVal > 100) { //done
           progressBarValue = None
           log.info(s"Hacked a $target")
-          sendResponse(HackMessage(0, target.GUID, player.GUID, 100, 1114636288L, HackState.Hacked, 8L))
+//          sendResponse(HackMessage(0, target.GUID, player.GUID, 100, 1114636288L, HackState.Hacked, 8L))
           completeAction()
         }
         else { //continue next tick
@@ -2238,6 +2249,23 @@ class WorldSessionActor extends Actor with MDCContextAware {
         }
         else if((player.DrawnSlot = held_holsters) != before) {
           avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.ObjectHeld(player.GUID, player.LastDrawnSlot))
+
+
+          // Ignore non-equipment holsters
+          //todo: check current suit holster slots?
+          if(held_holsters >= 0 && held_holsters < 5) {
+            player.Holsters()(held_holsters).Equipment match {
+              case Some(unholsteredItem : Equipment) =>
+                if(unholsteredItem.Definition == GlobalDefinitions.remote_electronics_kit) {
+                  // Player has ulholstered a REK - we need to set an atttribute on the REK itself to change the beam/icon colour to the correct one for the player's hack level
+                  avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttribute(unholsteredItem.GUID, 116, GetPlayerHackData().hackLevel))
+                }
+              case None => ;
+            }
+
+          }
+
+          // Stop using proximity terminals if player unholsters a weapon (which should re-trigger the proximity effect and re-holster the weapon)
           if(player.VisibleSlots.contains(held_holsters)) {
             usingMedicalTerminal match {
               case Some(term_guid) =>
@@ -2432,9 +2460,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
             player.Slot(player.DrawnSlot).Equipment match {
               case Some(tool : SimpleItem) =>
                 if(tool.Definition == GlobalDefinitions.remote_electronics_kit) {
-                  //TODO get player hack level (for now, presume 15s in intervals of 4/s)
-                  progressBarValue = Some(-2.66f)
-                  self ! WorldSessionActor.ItemHacking(player, panel, tool.GUID, 2.66f, FinishHackingDoor(panel, 1114636288L))
+                  progressBarValue = Some(-GetPlayerHackSpeed())
+                  self ! WorldSessionActor.ItemHacking(player, panel, tool.GUID, GetPlayerHackSpeed(), FinishHackingDoor(panel, 1114636288L))
                   log.info("Hacking a door~")
                 }
               case _ => ;
@@ -2491,7 +2518,17 @@ class WorldSessionActor extends Actor with MDCContextAware {
           }
 
         case Some(obj : Locker) =>
-          if(player.Faction == obj.Faction) {
+          if(obj.Faction != player.Faction && obj.HackedBy.isEmpty) {
+            player.Slot(player.DrawnSlot).Equipment match {
+              case Some(tool: SimpleItem) =>
+                if (tool.Definition == GlobalDefinitions.remote_electronics_kit) {
+                  progressBarValue = Some(-GetPlayerHackSpeed())
+                  self ! WorldSessionActor.ItemHacking(player, obj, tool.GUID, GetPlayerHackSpeed(), FinishHackingLocker(obj, 3212836864L))
+                  log.info("Hacking a locker")
+                }
+              case _ => ;
+            }
+          } else if(player.Faction == obj.Faction || !obj.HackedBy.isEmpty) {
             log.info(s"UseItem: $player accessing a locker")
             val container = player.Locker
             accessedContainer = Some(container)
@@ -2558,11 +2595,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
           }
           else {
             if(obj.Faction != player.Faction && obj.HackedBy.isEmpty) {
-              log.warn(s"${obj.Faction} ${player.Faction} ${obj.HackedBy}")
               player.Slot(player.DrawnSlot).Equipment match {
                 case Some(tool: SimpleItem) =>
                   if (tool.Definition == GlobalDefinitions.remote_electronics_kit) {
-                    //TODO get player hack level (for now, presume 15s in intervals of 4/s)
                     progressBarValue = Some(-GetPlayerHackSpeed())
                     self ! WorldSessionActor.ItemHacking(player, obj, tool.GUID, GetPlayerHackSpeed(), FinishHackingTerminal(obj, 3212836864L))
                     log.info("Hacking a terminal")
@@ -3398,12 +3433,41 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * @see `HackMessage`
     */
   //TODO add params here depending on which params in HackMessage are important
-  //TODO sound should be centered on IFFLock, not on player
   private def FinishHackingDoor(target : IFFLock, unk : Long)() : Unit = {
     target.Actor ! CommonMessages.Hack(player)
     localService ! LocalServiceMessage(continent.Id, LocalAction.TriggerSound(player.GUID, TriggeredSound.HackDoor, player.Position, 30, 0.49803925f))
     localService ! LocalServiceMessage(continent.Id, LocalAction.HackTemporarily(player.GUID, continent, target, unk))
   }
+
+  /**
+    * The process of hacking a terminal
+    * Pass the message onto the terminal and onto the local events system.
+    * @param target the `terminal` being hacked
+    * @param unk na;
+    *            used by `HackingMessage` as `unk5`
+    * @see `HackMessage`
+    */
+  //TODO add params here depending on which params in HackMessage are important
+  private def FinishHackingTerminal(target : Terminal, unk : Long)() : Unit = {
+    target.Actor ! CommonMessages.Hack(player)
+    localService ! LocalServiceMessage(continent.Id, LocalAction.TriggerSound(player.GUID, TriggeredSound.HackDoor, player.Position, 30, 0.49803925f))
+    localService ! LocalServiceMessage(continent.Id, LocalAction.HackTemporarily(player.GUID, continent, target, unk))
+  }
+
+  /**
+    * The process of hacking a locker
+    * Pass the message onto the locker and onto the local events system.
+    * @param target the `locker` being hacked
+    * @param unk na;
+    *            used by `HackingMessage` as `unk5`
+    * @see `HackMessage`
+    */
+  private def FinishHackingLocker(target : Locker, unk : Long)() : Unit = {
+    target.Actor ! CommonMessages.Hack(player)
+    localService ! LocalServiceMessage(continent.Id, LocalAction.TriggerSound(player.GUID, TriggeredSound.HackDoor, player.Position, 30, 0.49803925f))
+    localService ! LocalServiceMessage(continent.Id, LocalAction.HackTemporarily(player.GUID, continent, target, unk))
+  }
+
 
   /**
     * Temporary function that iterates over vehicle permissions and turns them into `PlanetsideAttributeMessage` packets.<br>
@@ -4801,6 +4865,30 @@ class WorldSessionActor extends Actor with MDCContextAware {
     log.trace("WORLD SEND RAW: " + pkt)
     sendResponse(RawPacket(pkt))
   }
+
+  def GetPlayerHackSpeed(): Float = {
+    if(player.Certifications.contains(CertificationType.ExpertHacking) || player.Certifications.contains(CertificationType.ElectronicsExpert)) {
+      10.64f
+    } else if(player.Certifications.contains(CertificationType.AdvancedHacking)) {
+      5.32f
+    } else {
+      2.66f
+    }
+  }
+
+  def GetPlayerHackData(): PlayerHackData = {
+    if(player.Certifications.contains(CertificationType.ExpertHacking) || player.Certifications.contains(CertificationType.ElectronicsExpert)) {
+      PlayerHackData(3, 10.64f)
+    } else if(player.Certifications.contains(CertificationType.AdvancedHacking)) {
+      PlayerHackData(2, 7.98f)
+    } else if (player.Certifications.contains(CertificationType.Hacking)) {
+      PlayerHackData(1, 5.32f)
+    } else {
+      PlayerHackData(0, 2.66f)
+    }
+  }
+
+  case class PlayerHackData(hackLevel: Int, hackSpeed: Float)
 }
 
 object WorldSessionActor {
