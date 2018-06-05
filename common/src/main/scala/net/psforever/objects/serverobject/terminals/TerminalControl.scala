@@ -2,6 +2,7 @@
 package net.psforever.objects.serverobject.terminals
 
 import akka.actor.Actor
+import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
 
 /**
@@ -14,6 +15,12 @@ class TerminalControl(term : Terminal) extends Actor with FactionAffinityBehavio
   def receive : Receive = checkBehavior.orElse {
     case Terminal.Request(player, msg) =>
       sender ! Terminal.TerminalMessage(player, msg, term.Request(player, msg))
+
+    case CommonMessages.Hack(player) =>
+      term.HackedBy = player
+
+    case CommonMessages.ClearHack() =>
+      term.HackedBy = None
 
     case _ => ;
   }
