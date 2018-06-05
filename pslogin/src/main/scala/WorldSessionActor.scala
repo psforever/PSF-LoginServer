@@ -2410,7 +2410,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ AvatarImplantMessage(_, _, _, _) => //(player_guid, unk1, unk2, implant) =>
       log.info("AvatarImplantMessage: " + msg)
 
-    case msg @ UseItemMessage(avatar_guid, unk1, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType) =>
+    case msg @ UseItemMessage(avatar_guid, item_used_guid, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType) =>
       log.info("UseItem: " + msg)
       // TODO: Not all fields in the response are identical to source in real packet logs (but seems to be ok)
       // TODO: Not all incoming UseItemMessage's respond with another UseItemMessage (i.e. doors only send out GenericObjectStateMsg)
@@ -2444,11 +2444,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case Some(obj : Player) =>
           if(obj.isBackpack) {
             log.info(s"UseItem: $player looting the corpse of $obj")
-            sendResponse(UseItemMessage(avatar_guid, unk1, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
+            sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
             accessedContainer = Some(obj)
           }
           else if(!unk3) { //potential kit use
-            continent.GUID(unk1) match {
+            continent.GUID(item_used_guid) match {
               case Some(kit : Kit) =>
                 player.Find(kit) match {
                   case Some(index) =>
@@ -2464,7 +2464,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                           case Some(index) =>
                             whenUsedLastKit = System.currentTimeMillis
                             player.Slot(index).Equipment = None //remove from slot immediately; must exist on client for next packet
-                            sendResponse(UseItemMessage(avatar_guid, unk1, object_guid, 0, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
+                            sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, 0, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
                             sendResponse(ObjectDeleteMessage(kit.GUID, 0))
                             taskResolver ! GUIDTask.UnregisterEquipment(kit)(continent.GUID)
                             //TODO better health/damage control workflow
@@ -2486,7 +2486,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
               case Some(item) =>
                 log.warn(s"UseItem: looking for Kit to use, but found $item instead")
               case None =>
-                log.warn(s"UseItem: anticipated a Kit $unk1, but can't find it")
+                log.warn(s"UseItem: anticipated a Kit $item_used_guid, but can't find it")
             }
           }
 
@@ -2495,7 +2495,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             log.info(s"UseItem: $player accessing a locker")
             val container = player.Locker
             accessedContainer = Some(container)
-            sendResponse(UseItemMessage(avatar_guid, unk1, container.GUID, unk2, unk3, unk4, unk5, unk6, unk7, unk8, 456))
+            sendResponse(UseItemMessage(avatar_guid, item_used_guid, container.GUID, unk2, unk3, unk4, unk5, unk6, unk7, unk8, 456))
           }
           else {
             log.info(s"UseItem: not $player's locker")
@@ -2517,7 +2517,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                 obj.AccessingTrunk = player.GUID
                 accessedContainer = Some(obj)
                 AccessContents(obj)
-                sendResponse(UseItemMessage(avatar_guid, unk1, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
+                sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
               }
               else {
                 log.info(s"UseItem: $player can not cut in line while player ${obj.AccessingTrunk.get} is using $obj's trunk")
@@ -2550,14 +2550,31 @@ class WorldSessionActor extends Actor with MDCContextAware {
           else if(obj.Definition.isInstanceOf[RepairRearmSiloDefinition]) {
             FindLocalVehicle match {
               case Some(vehicle) =>
-                sendResponse(UseItemMessage(avatar_guid, unk1, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
-                sendResponse(UseItemMessage(avatar_guid, unk1, vehicle.GUID, unk2, unk3, unk4, unk5, unk6, unk7, unk8, vehicle.Definition.ObjectId))
+                sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
+                sendResponse(UseItemMessage(avatar_guid, item_used_guid, vehicle.GUID, unk2, unk3, unk4, unk5, unk6, unk7, unk8, vehicle.Definition.ObjectId))
               case None =>
                 log.error("UseItem: expected seated vehicle, but found none")
             }
           }
           else {
-            sendResponse(UseItemMessage(avatar_guid, unk1, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
+            if(obj.Faction != player.Faction && obj.HackedBy.isEmpty) {
+              log.warn(s"${obj.Faction} ${player.Faction} ${obj.HackedBy}")
+              player.Slot(player.DrawnSlot).Equipment match {
+                case Some(tool: SimpleItem) =>
+                  if (tool.Definition == GlobalDefinitions.remote_electronics_kit) {
+                    //TODO get player hack level (for now, presume 15s in intervals of 4/s)
+                    progressBarValue = Some(-GetPlayerHackSpeed())
+                    self ! WorldSessionActor.ItemHacking(player, obj, tool.GUID, GetPlayerHackSpeed(), FinishHackingTerminal(obj, 3212836864L))
+                    log.info("Hacking a terminal")
+                  }
+                case _ => ;
+              }
+            } else if (obj.Faction == player.Faction || !obj.HackedBy.isEmpty) {
+              // If hacked only allow access to the faction that hacked it
+              // Otherwise allow the faction that owns the terminal to use it
+              sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
+            }
+
           }
 
         case Some(obj : SpawnTube) =>
@@ -2571,7 +2588,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
         case Some(obj) =>
           log.warn(s"UseItem: don't know how to handle $obj; taking a shot in the dark")
-          sendResponse(UseItemMessage(avatar_guid, unk1, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
+          sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
 
         case None =>
           log.error(s"UseItem: can not find object $object_guid")

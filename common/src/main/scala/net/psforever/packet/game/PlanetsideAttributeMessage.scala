@@ -118,6 +118,7 @@ import scodec.codecs._
   * `77 - Cavern Facility Captures. Value is the number of captures`<br>
   * `78 - Cavern Kills. Value is the number of kills`<br>
   * `106 - Custom Head`<br>
+  * `116 - Apply colour to REK beam and REK icon above players (0 = yellow, 1 = red, 2 = purple, 3 = blue)`<br>
   * Client to Server : <br>
   * `106 - Custom Head`<br>
   * <br>
