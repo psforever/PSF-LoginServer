@@ -41,10 +41,6 @@ class VehicleService extends Actor {
 
     case VehicleServiceMessage(forChannel, action) =>
       action match {
-        case VehicleAction.Awareness(player_guid, vehicle_guid) =>
-          VehicleEvents.publish(
-            VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.Awareness(vehicle_guid))
-          )
         case VehicleAction.ChildObjectState(player_guid, object_guid, pitch, yaw) =>
           VehicleEvents.publish(
             VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.ChildObjectState(object_guid, pitch, yaw))
@@ -76,6 +72,10 @@ class VehicleService extends Actor {
         case VehicleAction.MountVehicle(player_guid, vehicle_guid, seat) =>
           VehicleEvents.publish(
             VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.MountVehicle(vehicle_guid, seat))
+          )
+        case VehicleAction.Ownership(player_guid, vehicle_guid) =>
+          VehicleEvents.publish(
+            VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.Ownership(vehicle_guid))
           )
         case VehicleAction.SeatPermissions(player_guid, vehicle_guid, seat_group, permission) =>
           VehicleEvents.publish(

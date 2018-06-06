@@ -49,7 +49,7 @@ class VehicleSpawnControl1Test extends ActorTest() {
 }
 
 class VehicleSpawnControl2aTest extends ActorTest() {
-  // This long runs for a long time.
+  // This runs for a long time.
   "VehicleSpawnControl" should {
     "complete on a vehicle order (block a second one until the first is done and the spawn pad is cleared)" in {
       val (vehicle, player, pad, zone) = VehicleSpawnPadControlTest.SetUpAgents(PlanetSideEmpire.TR)
@@ -102,18 +102,18 @@ class VehicleSpawnControl2aTest extends ActorTest() {
 
       //if we move the vehicle more than 25m away from the pad, we should receive a ResetSpawnPad, and a second ConcealPlayer message
       //that means that the first order has cleared and the spawn pad is now working on the second order successfully
-      vehicle.Position = Vector3(11,0,0)
       player.VehicleSeated = None //since shared between orders, is necessary
+      vehicle.Position = Vector3(12,0,0)
       val probe3Msg5 = probe3.receiveOne(4 seconds)
       assert(probe3Msg5.isInstanceOf[VehicleSpawnPad.ResetSpawnPad])
-      val probe3Msg6 = probe3.receiveOne(5 seconds)
+      val probe3Msg6 = probe3.receiveOne(4 seconds)
       assert(probe3Msg6.isInstanceOf[VehicleSpawnPad.ConcealPlayer])
     }
   }
 }
 
 class VehicleSpawnControl2bTest extends ActorTest() {
-  // This long runs for a long time.
+  // This runs for a long time.
   "VehicleSpawnControl" should {
     "complete on a vehicle order (railless)" in {
       val (vehicle, player, pad, zone) = VehicleSpawnPadControlTest.SetUpAgents(PlanetSideEmpire.TR)
@@ -144,7 +144,7 @@ class VehicleSpawnControl2bTest extends ActorTest() {
       assert(probe1Msg2.isInstanceOf[Mountable.MountMessages])
       val probe1Msg2Contents = probe1Msg2.asInstanceOf[Mountable.MountMessages]
       assert(probe1Msg2Contents.response.isInstanceOf[Mountable.CanMount])
-      val probe1Msg3 = probe1.receiveOne(3 seconds)
+      val probe1Msg3 = probe1.receiveOne(4 seconds)
       assert(probe1Msg3.isInstanceOf[VehicleSpawnPad.PlayerSeatedInVehicle])
 
       val probe1Msg4 = probe1.receiveOne(1 seconds)
@@ -161,9 +161,9 @@ class VehicleSpawnControl2bTest extends ActorTest() {
 
       //if we move the vehicle more than 10m away from the pad, we should receive a second ConcealPlayer message
       //that means that the first order has cleared and the spawn pad is now working on the second order successfully
-      vehicle.Position = Vector3(11,0,0)
       player.VehicleSeated = None //since shared between orders, is necessary
-      val probe3Msg6 = probe3.receiveOne(4 seconds)
+      vehicle.Position = Vector3(12,0,0)
+      val probe3Msg6 = probe3.receiveOne(10 seconds)
       assert(probe3Msg6.isInstanceOf[VehicleSpawnPad.ConcealPlayer])
     }
   }
@@ -263,9 +263,12 @@ class VehicleSpawnControl5Test extends ActorTest() {
       val probe3Msg4 = probe3.receiveOne(3 seconds)
       assert(probe3Msg4.isInstanceOf[VehicleSpawnPad.DetachFromRails])
 
-      val probe1Msg = probe1.receiveOne(12 seconds)
-      assert(probe1Msg.isInstanceOf[VehicleSpawnPad.PeriodicReminder])
-      assert(probe1Msg.asInstanceOf[VehicleSpawnPad.PeriodicReminder].reason == VehicleSpawnPad.Reminders.Blocked)
+      val probe1Msg1 = probe1.receiveOne(1 seconds)
+      assert(probe1Msg1.isInstanceOf[VehicleSpawnPad.RevealPlayer])
+
+      val probe1Msg2 = probe1.receiveOne(12 seconds)
+      assert(probe1Msg2.isInstanceOf[VehicleSpawnPad.PeriodicReminder])
+      assert(probe1Msg2.asInstanceOf[VehicleSpawnPad.PeriodicReminder].reason == VehicleSpawnPad.Reminders.Blocked)
     }
   }
 }
@@ -292,59 +295,17 @@ class VehicleSpawnControl6Test extends ActorTest() {
 
       val probe1Msg1 = probe1.receiveOne(200 milliseconds)
       assert(probe1Msg1.isInstanceOf[VehicleSpawnPad.StartPlayerSeatedInVehicle])
-      player.Continent = "problem" //problem 1
+      player.Continent = "problem" //problem
       probe1.receiveOne(200 milliseconds) //Mountable.MountMessage
 
       val probe3Msg4 = probe3.receiveOne(3 seconds)
       assert(probe3Msg4.isInstanceOf[VehicleSpawnPad.DetachFromRails])
-      val probe3Msg5 = probe3.receiveOne(3 seconds)
-      assert(probe3Msg5.isInstanceOf[VehicleSpawnPad.ResetSpawnPad])
+      val probe1Msg2 = probe1.receiveOne(3 seconds)
+      assert(probe1Msg2.isInstanceOf[VehicleSpawnPad.RevealPlayer])
 
-      val probe1Msg2 = probe1.receiveOne(12 seconds)
-      assert(probe1Msg2.isInstanceOf[VehicleSpawnPad.PeriodicReminder])
-      assert(probe1Msg2.asInstanceOf[VehicleSpawnPad.PeriodicReminder].reason == VehicleSpawnPad.Reminders.Blocked)
-    }
-  }
-}
-
-class VehicleSpawnControl7Test extends ActorTest() {
-  "VehicleSpawnControl" should {
-    "player dies after getting in driver seat; the vehicle blocks the pad" in {
-      val (vehicle, player, pad, zone) = VehicleSpawnPadControlTest.SetUpAgents(PlanetSideEmpire.TR)
-      //we can recycle the vehicle and the player for each order
-      val probe1 = new TestProbe(system, "first-order")
-      val probe3 = new TestProbe(system, "zone-events")
-      zone.VehicleEvents = probe3.ref
-
-      pad.Actor.tell(VehicleSpawnPad.VehicleOrder(player, vehicle), probe1.ref)
-
-      val probe3Msg1 = probe3.receiveOne(3 seconds)
-      assert(probe3Msg1.isInstanceOf[VehicleSpawnPad.ConcealPlayer])
-
-      val probe3Msg2 = probe3.receiveOne(3 seconds)
-      assert(probe3Msg2.isInstanceOf[VehicleSpawnPad.LoadVehicle])
-
-      val probe3Msg3 = probe3.receiveOne(3 seconds)
-      assert(probe3Msg3.isInstanceOf[VehicleSpawnPad.AttachToRails])
-
-      val probe1Msg1 = probe1.receiveOne(200 milliseconds)
-      assert(probe1Msg1.isInstanceOf[VehicleSpawnPad.StartPlayerSeatedInVehicle])
-      val probe1Msg2 = probe1.receiveOne(200 milliseconds)
-      assert(probe1Msg2.isInstanceOf[Mountable.MountMessages])
-      val probe1Msg2Contents = probe1Msg2.asInstanceOf[Mountable.MountMessages]
-      assert(probe1Msg2Contents.response.isInstanceOf[Mountable.CanMount])
-      val probe1Msg3 = probe1.receiveOne(3 seconds)
-      assert(probe1Msg3.isInstanceOf[VehicleSpawnPad.PlayerSeatedInVehicle])
-      player.Die //problem
-
-      val probe3Msg4 = probe3.receiveOne(3 seconds)
-      assert(probe3Msg4.isInstanceOf[VehicleSpawnPad.DetachFromRails])
-      val probe3Msg5 = probe3.receiveOne(100 milliseconds)
-      assert(probe3Msg5.isInstanceOf[VehicleSpawnPad.ResetSpawnPad])
-
-      val probe1Msg4 = probe1.receiveOne(12 seconds)
-      assert(probe1Msg4.isInstanceOf[VehicleSpawnPad.PeriodicReminder])
-      assert(probe1Msg4.asInstanceOf[VehicleSpawnPad.PeriodicReminder].reason == VehicleSpawnPad.Reminders.Blocked)
+      val probe1Msg3 = probe1.receiveOne(12 seconds)
+      assert(probe1Msg3.isInstanceOf[VehicleSpawnPad.PeriodicReminder])
+      assert(probe1Msg3.asInstanceOf[VehicleSpawnPad.PeriodicReminder].reason == VehicleSpawnPad.Reminders.Blocked)
     }
   }
 }
@@ -383,7 +344,9 @@ object VehicleSpawnPadControlTest {
     player.GUID = PlanetSideGUID(10)
     player.Continent = zone.Id
     player.Spawn
-    //note: pad and vehicle are both at Vector3(0,0,0) so they count as blocking
+    //note: pad and vehicle are both at Vector3(1,0,0) so they count as blocking
+    pad.Position = Vector3(1,0,0)
+    vehicle.Position = Vector3(1,0,0)
     (vehicle, player, pad, zone)
   }
 }

@@ -125,11 +125,17 @@ final case class CharacterAppearanceData(app : BasicCharacterData,
     //factor guard bool values into the base size, not its corresponding optional field
     val nameStringSize : Long = StreamBitSize.stringBitSize(app.name, 16) + name_padding
     val outfitStringSize : Long = StreamBitSize.stringBitSize(outfit_name, 16) +
-      CharacterAppearanceData.outfitNamePadding //even if the outfit_name is blank, string always padded
+      (if(outfit_name.nonEmpty) { CharacterAppearanceData.outfitNamePadding } else { 0L }) //even if the outfit_name is blank, string always padded
     val altModelSize = CharacterAppearanceData.altModelBit(this).getOrElse(0)
     335L + nameStringSize + outfitStringSize + altModelSize
   }
 
+  /**
+    * External access to the value padding on the name field.
+    * The padding will always be a number 0-7.
+    * @return the pad length in bits
+    */
+  def NamePadding : Int = name_padding
 
   /**
     * When a player is released-dead or attached to a zipline, their basic infantry model is replaced with a different one.

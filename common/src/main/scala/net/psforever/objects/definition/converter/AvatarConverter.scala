@@ -12,9 +12,8 @@ import scala.util.{Success, Try}
 class AvatarConverter extends ObjectCreateConverter[Player]() {
   override def ConstructorData(obj : Player) : Try[PlayerData] = {
     import AvatarConverter._
-    val MaxArmor = obj.MaxArmor
-    if(obj.VehicleSeated.isEmpty) {
-      Success(
+    Success(
+      if(obj.VehicleSeated.isEmpty) {
         PlayerData(
           PlacementData(obj.Position, obj.Orientation, obj.Velocity),
           MakeAppearanceData(obj),
@@ -22,43 +21,38 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
           MakeInventoryData(obj),
           GetDrawnSlot(obj)
         )
-      )
-    }
-    else {
-      Success(
+      }
+      else {
         PlayerData(
           MakeAppearanceData(obj),
           MakeCharacterData(obj),
           MakeInventoryData(obj),
-          GetDrawnSlot(obj)
+          DrawnSlot.None
         )
-      )
-    }
+      }
+    )
   }
 
   override def DetailedConstructorData(obj : Player) : Try[DetailedPlayerData] = {
     import AvatarConverter._
     Success(
-      DetailedPlayerData.apply(
-        PlacementData(obj.Position, obj.Orientation, obj.Velocity),
-        MakeAppearanceData(obj),
-        DetailedCharacterData(
-          obj.BEP,
-          obj.CEP,
-          obj.MaxHealth,
-          obj.Health,
-          obj.Armor,
-          obj.MaxStamina,
-          obj.Stamina,
-          obj.Certifications.toList.sortBy(_.id), //TODO is sorting necessary?
-          MakeImplantEntries(obj),
-          List.empty[String], //TODO fte list
-          List.empty[String], //TODO tutorial list
-          MakeCosmetics(obj.BEP)
-        ),
-        InventoryData((MakeHolsters(obj, BuildDetailedEquipment) ++ MakeFifthSlot(obj) ++ MakeInventory(obj)).sortBy(_.parentSlot)),
-        GetDrawnSlot(obj)
-      )
+      if(obj.VehicleSeated.isEmpty) {
+        DetailedPlayerData.apply(
+          PlacementData(obj.Position, obj.Orientation, obj.Velocity),
+          MakeAppearanceData(obj),
+          MakeDetailedCharacterData(obj),
+          MakeDetailedInventoryData(obj),
+          GetDrawnSlot(obj)
+        )
+      }
+      else {
+        DetailedPlayerData.apply(
+          MakeAppearanceData(obj),
+          MakeDetailedCharacterData(obj),
+          MakeDetailedInventoryData(obj),
+          DrawnSlot.None
+        )
+      }
     )
   }
 }
@@ -107,8 +101,29 @@ object AvatarConverter {
     )
   }
 
+  def MakeDetailedCharacterData(obj : Player) : (Option[Int])=>DetailedCharacterData = {
+    DetailedCharacterData(
+      obj.BEP,
+      obj.CEP,
+      obj.MaxHealth,
+      obj.Health,
+      obj.Armor,
+      obj.MaxStamina,
+      obj.Stamina,
+      obj.Certifications.toList.sortBy(_.id), //TODO is sorting necessary?
+      MakeImplantEntries(obj),
+      List.empty[String], //TODO fte list
+      List.empty[String], //TODO tutorial list
+      MakeCosmetics(obj.BEP)
+    )
+  }
+
   def MakeInventoryData(obj : Player) : InventoryData = {
-    InventoryData(MakeHolsters(obj, BuildEquipment).sortBy(_.parentSlot)) //TODO is sorting necessary?
+    InventoryData(MakeHolsters(obj, BuildEquipment).sortBy(_.parentSlot))
+  }
+
+  def MakeDetailedInventoryData(obj : Player) : InventoryData = {
+    InventoryData((MakeHolsters(obj, BuildDetailedEquipment) ++ MakeFifthSlot(obj) ++ MakeInventory(obj)).sortBy(_.parentSlot))
   }
 
   /**

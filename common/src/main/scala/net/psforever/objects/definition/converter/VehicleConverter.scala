@@ -13,16 +13,22 @@ class VehicleConverter extends ObjectCreateConverter[Vehicle]() {
     Failure(new Exception("VehicleConverter should not be used to generate detailed VehicleData (nothing should)"))
 
   override def ConstructorData(obj : Vehicle) : Try[VehicleData] = {
+    val health = 255 * obj.Health / obj.MaxHealth //TODO not precise
     Success(
       VehicleData(
-        CommonFieldData(
-          PlacementData(obj.Position, obj.Orientation, obj.Velocity),
-          obj.Faction,
-          0,
-          PlanetSideGUID(0) //if(obj.Owner.isDefined) { obj.Owner.get } else { PlanetSideGUID(0) } //TODO is this really Owner?
-        ),
+        PlacementData(obj.Position, obj.Orientation, obj.Velocity),
+        obj.Faction,
+        false, //bops
+        health < 3, //destroyed
         0,
-        255 * obj.Health / obj.MaxHealth, //TODO not precise
+        obj.Jammered, //jammered
+        false,
+        obj.Owner match {
+          case Some(owner) => owner
+          case None => PlanetSideGUID(0)
+        },
+        false,
+        health,
         false, false,
         obj.DeploymentState,
         false,
@@ -35,11 +41,9 @@ class VehicleConverter extends ObjectCreateConverter[Vehicle]() {
   }
 
   private def MakeSeats(obj : Vehicle) : List[InventoryItemData.InventoryItem] = {
-    var offset : Long = VehicleData.InitialStreamLengthToSeatEntries(true, SpecificFormatModifier)
-    obj.Seats
-      .filter({ case(_, seat) => seat.isOccupied })
-      .map({ case(index, seat) =>
-        val player = seat.Occupant.get
+    val offset : Long = VehicleData.InitialStreamLengthToSeatEntries(true, SpecificFormatModifier)
+    obj.Seats(0).Occupant match { //TODO just the driver for now to avoid issues with seat permissions
+      case Some(player) =>
         val mountedPlayer = VehicleData.PlayerData(
           AvatarConverter.MakeAppearanceData(player),
           AvatarConverter.MakeCharacterData(player),
@@ -47,11 +51,13 @@ class VehicleConverter extends ObjectCreateConverter[Vehicle]() {
           AvatarConverter.GetDrawnSlot(player),
           offset
         )
-        val entry = InventoryItemData(ObjectClass.avatar, player.GUID, index, mountedPlayer)
-        println(s"seat $index offset: $offset, size: ${entry.bitsize}")
-        offset += entry.bitsize
-        entry
-    }).toList
+        val entry = InventoryItemData(ObjectClass.avatar, player.GUID, 0, mountedPlayer)
+        //println(s"seat 0 offset: $offset, size: ${entry.bitsize}, pad: ${mountedPlayer.basic_appearance.NamePadding}")
+        //offset += entry.bitsize
+        List(entry)
+      case None =>
+        Nil
+    }
   }
   
   private def MakeMountings(obj : Vehicle) : List[InventoryItemData.InventoryItem] = {

@@ -126,7 +126,7 @@ import scodec.codecs._
   * `11 - Gunner seat(s) permissions (same)`<br>
   * `12 - Passenger seat(s) permissions (same)`<br>
   * `13 - Trunk permissions (same)`<br>
-  * `21 - Asserts first time event eligibility / makes owner if no owner is assigned`<br>
+  * `21 - Declare a player the vehicle's owner, by globally unique identifier`<br>
   * `22 - Toggles gunner and passenger mount points (1 = hides, 0 = reveals; this also locks their permissions)`<br>
   * `68 - ???`<br>
   * `80 - Damage vehicle (unknown value)`<br>

@@ -49,33 +49,62 @@ final case class DetailedPlayerData(pos : Option[PlacementData],
 
 object DetailedPlayerData extends Marshallable[DetailedPlayerData] {
   /**
-    * Overloaded constructor that ignores the coordinate information.
+    * Overloaded constructor that ignores the coordinate information but includes the inventory.
     * It passes information between the three major divisions for the purposes of offset calculations.
+    * This constructor should be used for players that are mounted.
     * @param basic_appearance a curried function for the common fields regarding the the character's appearance
     * @param character_data a curried function for the class-specific data that explains about the character
+    * @param inventory the player's inventory
+    * @param drawn_slot the holster that is initially drawn;
+    *                   technically, always `DrawnSlot.None`, but the field is preserved to maintain similarity
     * @return a `DetailedPlayerData` object
     */
   def apply(basic_appearance : (Int)=>CharacterAppearanceData, character_data : (Option[Int])=>DetailedCharacterData, inventory : InventoryData, drawn_slot : DrawnSlot.Value) : DetailedPlayerData = {
     val appearance = basic_appearance(5)
     DetailedPlayerData(None, appearance, character_data(appearance.altModelBit), Some(inventory), drawn_slot)(false)
   }
-  /** */
+
+  /**
+    * Overloaded constructor that ignores the coordinate information and the inventory.
+    * It passes information between the three major divisions for the purposes of offset calculations.
+    * This constructor should be used for players that are mounted.
+    * @param basic_appearance a curried function for the common fields regarding the the character's appearance
+    * @param character_data a curried function for the class-specific data that explains about the character
+    * @param drawn_slot the holster that is initially drawn;
+    *                   technically, always `DrawnSlot.None`, but the field is preserved to maintain similarity
+    * @return a `DetailedPlayerData` object
+    */
   def apply(basic_appearance : (Int)=>CharacterAppearanceData, character_data : (Option[Int])=>DetailedCharacterData, drawn_slot : DrawnSlot.Value) : DetailedPlayerData = {
     val appearance = basic_appearance(5)
     DetailedPlayerData(None, appearance, character_data(appearance.altModelBit), None, drawn_slot)(false)
   }
+
   /**
-    * Overloaded constructor that includes the coordinate information.
+    * Overloaded constructor that includes the coordinate information and the inventory.
     * It passes information between the three major divisions for the purposes of offset calculations.
+    * This constructor should be used for players that are standing apart from other containers.
+    * @param pos the optional position of the character in the world environment
     * @param basic_appearance a curried function for the common fields regarding the the character's appearance
     * @param character_data a curried function for the class-specific data that explains about the character
+    * @param inventory the player's inventory
+    * @param drawn_slot the holster that is initially drawn
     * @return a `DetailedPlayerData` object
     */
   def apply(pos : PlacementData, basic_appearance : (Int)=>CharacterAppearanceData, character_data : (Option[Int])=>DetailedCharacterData, inventory : InventoryData, drawn_slot : DrawnSlot.Value) : DetailedPlayerData = {
     val appearance = basic_appearance(PlayerData.PaddingOffset(Some(pos)))
     DetailedPlayerData(Some(pos), appearance, character_data(appearance.altModelBit), Some(inventory), drawn_slot)(true)
   }
-  /** */
+
+  /**
+    * Overloaded constructor that includes the coordinate information but ignores the inventory.
+    * It passes information between the three major divisions for the purposes of offset calculations.
+    * This constructor should be used for players that are standing apart from other containers.
+    * @param pos the optional position of the character in the world environment
+    * @param basic_appearance a curried function for the common fields regarding the the character's appearance
+    * @param character_data a curried function for the class-specific data that explains about the character
+    * @param drawn_slot the holster that is initially drawn
+    * @return a `DetailedPlayerData` object
+    */
   def apply(pos : PlacementData, basic_appearance : (Int)=>CharacterAppearanceData, character_data : (Option[Int])=>DetailedCharacterData, drawn_slot : DrawnSlot.Value) : DetailedPlayerData = {
     val appearance = basic_appearance(PlayerData.PaddingOffset(Some(pos)))
     DetailedPlayerData(Some(pos), appearance, character_data(appearance.altModelBit), None, drawn_slot)(true)

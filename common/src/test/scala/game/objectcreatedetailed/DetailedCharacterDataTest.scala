@@ -503,18 +503,12 @@ class DetailedCharacterDataTest extends Specification {
           Nil
       )
       val obj = DetailedPlayerData.apply(app, char, inv, DrawnSlot.Pistol1)
+      //it shouldn't be Pistol1 if he's seated but it's fine for the test
 
       val msg = ObjectCreateDetailedMessage(0x79, PlanetSideGUID(75), ObjectCreateMessageParent(PlanetSideGUID(43981), 0), obj)
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
       val pkt_bitv = pkt.toBitVector
       val ori_bitv = string_seated.toBitVector
-//      var test = pkt_bitv
-//      while(test.nonEmpty) {
-//        val (printHex, save) = test.splitAt(512)
-//        test = save
-//        println(printHex)
-//      }
-      pkt_bitv.take(16) mustEqual ori_bitv.take(16)
       pkt_bitv mustEqual ori_bitv
     }
 

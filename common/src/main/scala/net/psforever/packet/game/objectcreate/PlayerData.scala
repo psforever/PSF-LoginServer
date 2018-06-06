@@ -53,13 +53,14 @@ final case class PlayerData(pos : Option[PlacementData],
 
 object PlayerData extends Marshallable[PlayerData] {
   /**
-    * Overloaded constructor that ignores the coordinate information.
+    * Overloaded constructor that ignores the coordinate information but includes the inventory.
     * It passes information between the three major divisions for the purposes of offset calculations.
     * This constructor should be used for players that are mounted.
     * @param basic_appearance a curried function for the common fields regarding the the character's appearance
     * @param character_data a curried function for the class-specific data that explains about the character
     * @param inventory the player's inventory
-    * @param drawn_slot the holster that is initially drawn
+    * @param drawn_slot the holster that is initially drawn;
+    *                   technically, always `DrawnSlot.None`, but the field is preserved to maintain similarity
     * @return a `PlayerData` object
     */
   def apply(basic_appearance : (Int)=>CharacterAppearanceData, character_data : (Boolean,Boolean)=>CharacterData, inventory : InventoryData, drawn_slot : DrawnSlot.Type) : PlayerData = {
@@ -72,7 +73,8 @@ object PlayerData extends Marshallable[PlayerData] {
     * This constructor should be used for players that are mounted.
     * @param basic_appearance a curried function for the common fields regarding the the character's appearance
     * @param character_data a curried function for the class-specific data that explains about the character
-    * @param drawn_slot the holster that is initially drawn
+    * @param drawn_slot the holster that is initially drawn;
+    *                   technically, always `DrawnSlot.None`, but the field is preserved to maintain similarity
     * @return a `PlayerData` object
     */
   def apply(basic_appearance : (Int)=>CharacterAppearanceData, character_data : (Boolean,Boolean)=>CharacterData, drawn_slot : DrawnSlot.Type) : PlayerData = {
@@ -81,7 +83,7 @@ object PlayerData extends Marshallable[PlayerData] {
   }
 
   /**
-    * Overloaded constructor.
+    * Overloaded constructor that includes the coordinate information and the inventory.
     * It passes information between the three major divisions for the purposes of offset calculations.
     * This constructor should be used for players that are standing apart from other containers.
     * @param pos the optional position of the character in the world environment
@@ -96,7 +98,7 @@ object PlayerData extends Marshallable[PlayerData] {
     PlayerData(Some(pos), appearance, character_data(appearance.backpack, false), Some(inventory), drawn_slot)(true)
   }
   /**
-    * Overloaded constructor that ignores the inventory.
+    * Overloaded constructor that includes the coordinate information but ignores the inventory.
     * It passes information between the three major divisions for the purposes of offset calculations.
     * This constructor should be used for players that are standing apart from other containers.
     * @param pos the optional position of the character in the world environment

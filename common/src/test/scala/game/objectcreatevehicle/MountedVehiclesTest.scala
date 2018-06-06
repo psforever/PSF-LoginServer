@@ -25,23 +25,25 @@ class MountedVehiclesTest extends Specification {
         parent mustEqual None
         data match {
           case Some(vdata : VehicleData) =>
-            vdata.basic.pos.coord mustEqual Vector3(4571.6875f, 5602.1875f, 93)
-            vdata.basic.pos.orient mustEqual Vector3(11.25f, 2.8125f, 92.8125f)
-            vdata.basic.pos.vel mustEqual Some(Vector3(31.71875f, 8.875f, -0.03125f))
-            vdata.basic.faction mustEqual PlanetSideEmpire.TR
-            vdata.basic.bops mustEqual false
-            vdata.basic.destroyed mustEqual false
-            vdata.basic.jammered mustEqual false
-            vdata.basic.player_guid mustEqual PlanetSideGUID(1888)
-            vdata.unk1 mustEqual 0
+            vdata.pos.coord mustEqual Vector3(4571.6875f, 5602.1875f, 93)
+            vdata.pos.orient mustEqual Vector3(11.25f, 2.8125f, 92.8125f)
+            vdata.pos.vel mustEqual Some(Vector3(31.71875f, 8.875f, -0.03125f))
+            vdata.faction mustEqual PlanetSideEmpire.TR
+            vdata.bops mustEqual false
+            vdata.destroyed mustEqual false
+            vdata.jammered mustEqual false
+            vdata.owner_guid mustEqual PlanetSideGUID(3776)
             vdata.health mustEqual 255
-            vdata.unk2 mustEqual false
             vdata.no_mount_points mustEqual false
             vdata.driveState mustEqual DriveState.Mobile
-            vdata.unk3 mustEqual false
-            vdata.unk5 mustEqual false
             vdata.cloak mustEqual false
-            vdata.unk4 mustEqual Some(VariantVehicleData(7))
+            vdata.unk1 mustEqual 0
+            vdata.unk2 mustEqual false
+            vdata.unk3 mustEqual false
+            vdata.unk4 mustEqual false
+            vdata.unk5 mustEqual false
+            vdata.unk6 mustEqual false
+            vdata.vehicle_format_data mustEqual Some(VariantVehicleData(7))
             vdata.inventory match {
               case Some(InventoryData(list)) =>
                 list.head.objectClass mustEqual ObjectClass.avatar
@@ -147,17 +149,18 @@ class MountedVehiclesTest extends Specification {
     )
     val player = VehicleData.PlayerData(app, char, inv, DrawnSlot.None, VehicleData.InitialStreamLengthToSeatEntries(true, VehicleFormat.Variant))
     val obj = VehicleData(
-      CommonFieldData(
-        PlacementData(
-          Vector3(4571.6875f, 5602.1875f, 93),
-          Vector3(11.25f, 2.8125f, 92.8125f),
-          Some(Vector3(31.71875f, 8.875f, -0.03125f))
-        ),
-        PlanetSideEmpire.TR,
-        false, false, 0, false,
-        PlanetSideGUID(1888)
+      PlacementData(
+        Vector3(4571.6875f, 5602.1875f, 93),
+        Vector3(11.25f, 2.8125f, 92.8125f),
+        Some(Vector3(31.71875f, 8.875f, -0.03125f))
       ),
-      0, 255,
+      PlanetSideEmpire.TR,
+      false, false,
+      0,
+      false, false,
+      PlanetSideGUID(3776),
+      false,
+      255,
       false, false,
       DriveState.Mobile,
       false, false, false,
