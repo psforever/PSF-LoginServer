@@ -71,29 +71,6 @@ object ObjectCreateDetailedMessage extends Marshallable[ObjectCreateDetailedMess
     ObjectCreateDetailedMessage(ObjectCreateBase.streamLen(None, data), objectClass, guid, None, Some(data))
   }
 
-//  /**
-//    * Take the important information of a game piece and transform it into bit data.
-//    * This function is fail-safe because it catches errors involving bad parsing of the object data.
-//    * Generally, the `Exception` messages themselves are not useful here.
-//    * @param objClass the code for the type of object being deconstructed
-//    * @param obj the object data
-//    * @return the bitstream data
-//    * @see ObjectClass.selectDataCodec
-//    */
-//  def encodeData(objClass : Int, obj : ConstructorData, getCodecFunc : (Int) => Codec[ConstructorData.genericPattern]) : BitVector = {
-//    var out = BitVector.empty
-//    try {
-//      val outOpt : Option[BitVector] = getCodecFunc(objClass).encode(Some(obj.asInstanceOf[ConstructorData])).toOption
-//      if(outOpt.isDefined)
-//        out = outOpt.get
-//    }
-//    catch {
-//      case _ : Exception =>
-//        //catch and release, any sort of parse error
-//    }
-//    out
-//  }
-
   implicit val codec : Codec[ObjectCreateDetailedMessage] = ObjectCreateBase.baseCodec.exmap[ObjectCreateDetailedMessage] (
     {
       case _ :: _ :: _ :: _ :: BitVector.empty :: HNil =>

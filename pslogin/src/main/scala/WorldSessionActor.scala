@@ -694,7 +694,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
         case Mountable.CanNotMount(obj : Vehicle, seat_num) =>
           log.warn(s"MountVehicleMsg: $tplayer attempted to mount $obj's seat $seat_num, but was not allowed")
-          if(obj.SeatPermissionGroup(seat_num) == Some(AccessPermissionGroup.Driver)) {
+          if(obj.SeatPermissionGroup(seat_num).contains(AccessPermissionGroup.Driver)) {
             sendResponse(ChatMsg(ChatMessageType.CMT_OPEN, false, "", "You are not the driver of this vehicle.", None))
           }
 
@@ -1132,12 +1132,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
         sendResponse(ObjectHeldMessage(player.GUID, Player.HandsDownSlot, true))
         avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectHeld(player.GUID, player.LastDrawnSlot))
       }
-      sendResponse(PlanetsideAttributeMessage(vehicle_guid, 22, 1L)) //mount points off?
-      sendResponse(PlanetsideAttributeMessage(vehicle_guid, 21, player.GUID.guid))
+      sendResponse(PlanetsideAttributeMessage(vehicle_guid, 22, 1L)) //mount points off
+      sendResponse(PlanetsideAttributeMessage(vehicle_guid, 21, player.GUID.guid)) //ownership
 
     case VehicleSpawnPad.PlayerSeatedInVehicle(vehicle, pad) =>
       val vehicle_guid = vehicle.GUID
-      sendResponse(PlanetsideAttributeMessage(vehicle_guid, 22, 0L)) //mount points on?
+      sendResponse(PlanetsideAttributeMessage(vehicle_guid, 22, 0L)) //mount points on
       //sendResponse(PlanetsideAttributeMessage(vehicle_guid, 0, 10))//vehicle.Definition.MaxHealth))
       sendResponse(PlanetsideAttributeMessage(vehicle_guid, 68, 0L)) //???
       sendResponse(PlanetsideAttributeMessage(vehicle_guid, 113, 0L)) //???
@@ -3483,11 +3483,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
       case Some(vehicle_guid) =>
         continent.GUID(vehicle_guid) match {
           case Some(vehicle : Vehicle) =>
-            tplayer.VehicleOwned = None
             DisownVehicle(tplayer, vehicle)
-          case _ =>
-            tplayer.VehicleOwned = None
+          case _ => ;
         }
+        tplayer.VehicleOwned = None
       case None => ;
     }
   }
@@ -3503,8 +3502,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
   private def DisownVehicle(tplayer : Player, vehicle : Vehicle) : Unit = {
     if(vehicle.Owner.contains(tplayer.GUID)) {
       vehicle.Owner = None
-//      vehicle.PermissionGroup(10, VehicleLockState.Empire.id)
-//      vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.SeatPermissions(tplayer.GUID, vehicle.GUID, 10, VehicleLockState.Empire.id))
     }
   }
 

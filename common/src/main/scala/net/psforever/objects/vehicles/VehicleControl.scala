@@ -49,8 +49,8 @@ class VehicleControl(vehicle : Vehicle) extends Actor
             }) &&
             (exosuit match {
               case ExoSuitType.MAX => restriction == SeatArmorRestriction.MaxOnly
-              case ExoSuitType.Reinforced => restriction != SeatArmorRestriction.NoReinforcedOrMax
-              case _ => true
+              case ExoSuitType.Reinforced => restriction == SeatArmorRestriction.NoMax
+              case _ => restriction != SeatArmorRestriction.MaxOnly
             })
         ) {
           mountBehavior.apply(Mountable.TryMount(user, seat_num))

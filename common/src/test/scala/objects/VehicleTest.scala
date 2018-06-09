@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package objects
 
-import akka.actor.Props
+import akka.actor.{ActorSystem, Props}
 import net.psforever.objects._
 import net.psforever.objects.definition.{SeatDefinition, VehicleDefinition}
 import net.psforever.objects.serverobject.mount.Mountable
@@ -312,7 +312,7 @@ class VehicleTest extends Specification {
   }
 }
 
-class VehicleControl1Test extends ActorTest {
+class VehicleControlStopMountingTest extends ActorTest {
   "Vehicle Control" should {
     "deactivate and stop handling mount messages" in {
       val player1 = Player(VehicleTest.avatar1)
@@ -333,7 +333,7 @@ class VehicleControl1Test extends ActorTest {
   }
 }
 
-class VehicleControl2Test extends ActorTest {
+class VehicleControlRestartMountingTest extends ActorTest {
   "Vehicle Control" should {
     "reactivate and resume handling mount messages" in {
       val player1 = Player(VehicleTest.avatar1)
@@ -354,6 +354,258 @@ class VehicleControl2Test extends ActorTest {
       vehicle.Actor ! Mountable.TryMount(player2, 1)
       val reply = receiveOne(Duration.create(100, "ms"))
       assert(reply.isInstanceOf[Mountable.MountMessages])
+    }
+  }
+}
+
+class VehicleControlAlwaysDismountTest extends ActorTest {
+  "Vehicle Control" should {
+    "always allow dismount messages" in {
+      val player1 = Player(VehicleTest.avatar1)
+      player1.GUID = PlanetSideGUID(1)
+      val player2 = Player(VehicleTest.avatar2)
+      player2.GUID = PlanetSideGUID(2)
+      val vehicle = Vehicle(GlobalDefinitions.two_man_assault_buggy)
+      vehicle.GUID = PlanetSideGUID(3)
+      vehicle.Actor = system.actorOf(Props(classOf[VehicleControl], vehicle), "vehicle-test")
+      vehicle.Actor ! Mountable.TryMount(player1, 0)
+      receiveOne(Duration.create(100, "ms")) //discard
+      vehicle.Actor ! Mountable.TryMount(player2, 1)
+      receiveOne(Duration.create(100, "ms")) //discard
+
+      vehicle.Actor ! Mountable.TryDismount(player2, 1) //player2 requests dismount
+      val reply1 = receiveOne(Duration.create(100, "ms"))
+      assert(reply1.isInstanceOf[Mountable.MountMessages])
+      assert(reply1.asInstanceOf[Mountable.MountMessages].response.isInstanceOf[Mountable.CanDismount]) //player2 dismounts
+      vehicle.Actor ! Vehicle.PrepareForDeletion
+
+      vehicle.Actor ! Mountable.TryDismount(player1, 0) //player1 requests dismount
+      val reply2 = receiveOne(Duration.create(100, "ms"))
+      assert(reply2.isInstanceOf[Mountable.MountMessages])
+      assert(reply2.asInstanceOf[Mountable.MountMessages].response.isInstanceOf[Mountable.CanDismount]) //player1 dismounts
+    }
+  }
+}
+
+class VehicleControlMountingBlockedExosuitTest extends ActorTest {
+  def checkCanNotMount() : Unit = {
+    val reply = receiveOne(Duration.create(100, "ms"))
+    reply match {
+      case msg : Mountable.MountMessages =>
+        assert(msg.response.isInstanceOf[Mountable.CanNotMount])
+      case _ =>
+        assert(false)
+    }
+  }
+
+  def checkCanMount() : Unit = {
+    val reply = receiveOne(Duration.create(100, "ms"))
+    reply match {
+      case msg : Mountable.MountMessages =>
+        assert(msg.response.isInstanceOf[Mountable.CanMount])
+      case _ =>
+        assert(false)
+    }
+  }
+
+  "Vehicle Control" should {
+    "block players from sitting if their exo-suit is not allowed by the seat" in {
+      val vehicle = Vehicle(GlobalDefinitions.apc_tr)
+      vehicle.GUID = PlanetSideGUID(10)
+      vehicle.Actor = system.actorOf(Props(classOf[VehicleControl], vehicle), "vehicle-test")
+
+      val player1 = Player(VehicleTest.avatar1)
+      player1.ExoSuit = ExoSuitType.Reinforced
+      player1.GUID = PlanetSideGUID(1)
+      val player2 = Player(VehicleTest.avatar1)
+      player2.ExoSuit = ExoSuitType.MAX
+      player2.GUID = PlanetSideGUID(2)
+      val player3 = Player(VehicleTest.avatar1)
+      player3.ExoSuit = ExoSuitType.Agile
+      player3.GUID = PlanetSideGUID(3)
+
+      //disallow
+      vehicle.Actor ! Mountable.TryMount(player1, 0) //Reinforced in non-MAX seat
+      checkCanNotMount()
+      vehicle.Actor ! Mountable.TryMount(player2, 0) //MAX in non-Reinforced seat
+      checkCanNotMount()
+      vehicle.Actor ! Mountable.TryMount(player2, 1) //MAX in non-MAX seat
+      checkCanNotMount()
+      vehicle.Actor ! Mountable.TryMount(player1, 9) //Reinforced in MAX-only seat
+      checkCanNotMount()
+      vehicle.Actor ! Mountable.TryMount(player3, 9) //Agile in MAX-only seat
+      checkCanNotMount()
+
+      //allow
+      vehicle.Actor ! Mountable.TryMount(player1, 1)
+      checkCanMount()
+      vehicle.Actor ! Mountable.TryMount(player2, 9)
+      checkCanMount()
+      vehicle.Actor ! Mountable.TryMount(player3, 0)
+      checkCanMount()
+    }
+  }
+}
+
+class VehicleControlMountingBlockedSeatPermissionTest extends ActorTest {
+  def checkCanNotMount() : Unit = {
+    val reply = receiveOne(Duration.create(100, "ms"))
+    reply match {
+      case msg : Mountable.MountMessages =>
+        assert(msg.response.isInstanceOf[Mountable.CanNotMount])
+      case _ =>
+        assert(false)
+    }
+  }
+
+  def checkCanMount() : Unit = {
+    val reply = receiveOne(Duration.create(100, "ms"))
+    reply match {
+      case msg : Mountable.MountMessages =>
+        assert(msg.response.isInstanceOf[Mountable.CanMount])
+      case _ =>
+        assert(false)
+    }
+  }
+
+  "Vehicle Control" should {
+    //11 June 2018: Group is not supported yet so do not bother testing it
+    "block players from sitting if the seat does not allow it" in {
+      val vehicle = Vehicle(GlobalDefinitions.apc_tr)
+      vehicle.GUID = PlanetSideGUID(10)
+      vehicle.Actor = system.actorOf(Props(classOf[VehicleControl], vehicle), "vehicle-test")
+
+      val player1 = Player(VehicleTest.avatar1)
+      player1.GUID = PlanetSideGUID(1)
+      val player2 = Player(VehicleTest.avatar1)
+      player2.GUID = PlanetSideGUID(2)
+
+      vehicle.PermissionGroup(2,3) //passenger group -> empire
+      vehicle.Actor ! Mountable.TryMount(player1, 3) //passenger seat
+      checkCanMount()
+      vehicle.PermissionGroup(2,0) //passenger group -> locked
+      vehicle.Actor ! Mountable.TryMount(player2, 4) //passenger seat
+      checkCanNotMount()
+    }
+  }
+}
+
+class VehicleControlMountingDriverSeatTest extends ActorTest {
+  def checkCanMount() : Unit = {
+    val reply = receiveOne(Duration.create(100, "ms"))
+    reply match {
+      case msg : Mountable.MountMessages =>
+        assert(msg.response.isInstanceOf[Mountable.CanMount])
+      case _ =>
+        assert(false)
+    }
+  }
+
+  "Vehicle Control" should {
+    "allow players to sit in the driver seat, even if it is locked, if the vehicle is unowned" in {
+      val vehicle = Vehicle(GlobalDefinitions.apc_tr)
+      vehicle.GUID = PlanetSideGUID(10)
+      vehicle.Actor = system.actorOf(Props(classOf[VehicleControl], vehicle), "vehicle-test")
+      val player1 = Player(VehicleTest.avatar1)
+      player1.GUID = PlanetSideGUID(1)
+
+      assert(vehicle.PermissionGroup(0).contains(VehicleLockState.Locked)) //driver group -> locked
+      assert(vehicle.Seats(0).Occupant.isEmpty)
+      assert(vehicle.Owner.isEmpty)
+      vehicle.Actor ! Mountable.TryMount(player1, 0)
+      checkCanMount()
+      assert(vehicle.Seats(0).Occupant.nonEmpty)
+    }
+  }
+}
+
+class VehicleControlMountingOwnedLockedDriverSeatTest extends ActorTest {
+  def checkCanNotMount() : Unit = {
+    val reply = receiveOne(Duration.create(100, "ms"))
+    reply match {
+      case msg : Mountable.MountMessages =>
+        assert(msg.response.isInstanceOf[Mountable.CanNotMount])
+      case _ =>
+        assert(false)
+    }
+  }
+
+  def checkCanMount() : Unit = {
+    val reply = receiveOne(Duration.create(100, "ms"))
+    reply match {
+      case msg : Mountable.MountMessages =>
+        assert(msg.response.isInstanceOf[Mountable.CanMount])
+      case _ =>
+        assert(false)
+    }
+  }
+
+  "Vehicle Control" should {
+    "block players that are not the current owner from sitting in the driver seat (locked)" in {
+      val vehicle = Vehicle(GlobalDefinitions.apc_tr)
+      vehicle.GUID = PlanetSideGUID(10)
+      vehicle.Actor = system.actorOf(Props(classOf[VehicleControl], vehicle), "vehicle-test")
+
+      val player1 = Player(VehicleTest.avatar1)
+      player1.GUID = PlanetSideGUID(1)
+      val player2 = Player(VehicleTest.avatar1)
+      player2.GUID = PlanetSideGUID(2)
+
+      assert(vehicle.PermissionGroup(0).contains(VehicleLockState.Locked)) //driver group -> locked
+      assert(vehicle.Seats(0).Occupant.isEmpty)
+      vehicle.Owner = player1.GUID
+
+      vehicle.Actor ! Mountable.TryMount(player1, 0)
+      checkCanMount()
+      assert(vehicle.Seats(0).Occupant.nonEmpty)
+      vehicle.Actor ! Mountable.TryDismount(player1, 0)
+      receiveOne(Duration.create(100, "ms")) //discard
+      assert(vehicle.Seats(0).Occupant.isEmpty)
+
+      vehicle.Actor ! Mountable.TryMount(player2, 0)
+      checkCanNotMount()
+      assert(vehicle.Seats(0).Occupant.isEmpty)
+    }
+  }
+}
+
+class VehicleControlMountingOwnedUnlockedDriverSeatTest extends ActorTest {
+  def checkCanMount() : Unit = {
+    val reply = receiveOne(Duration.create(100, "ms"))
+    reply match {
+      case msg : Mountable.MountMessages =>
+        assert(msg.response.isInstanceOf[Mountable.CanMount])
+      case _ =>
+        assert(false)
+    }
+  }
+
+  "Vehicle Control" should {
+    "allow players that are not the current owner to sit in the driver seat (empire)" in {
+      val vehicle = Vehicle(GlobalDefinitions.apc_tr)
+      vehicle.GUID = PlanetSideGUID(10)
+      vehicle.Actor = system.actorOf(Props(classOf[VehicleControl], vehicle), "vehicle-test")
+
+      val player1 = Player(VehicleTest.avatar1)
+      player1.GUID = PlanetSideGUID(1)
+      val player2 = Player(VehicleTest.avatar1)
+      player2.GUID = PlanetSideGUID(2)
+
+      vehicle.PermissionGroup(0,3) //passenger group -> empire
+      assert(vehicle.PermissionGroup(0).contains(VehicleLockState.Empire)) //driver group -> empire
+      assert(vehicle.Seats(0).Occupant.isEmpty)
+      vehicle.Owner = player1.GUID //owner set
+
+      vehicle.Actor ! Mountable.TryMount(player1, 0)
+      checkCanMount()
+      assert(vehicle.Seats(0).Occupant.nonEmpty)
+      vehicle.Actor ! Mountable.TryDismount(player1, 0)
+      receiveOne(Duration.create(100, "ms")) //discard
+      assert(vehicle.Seats(0).Occupant.isEmpty)
+
+      vehicle.Actor ! Mountable.TryMount(player2, 0)
+      checkCanMount()
+      assert(vehicle.Seats(0).Occupant.nonEmpty)
     }
   }
 }

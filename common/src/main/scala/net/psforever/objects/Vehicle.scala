@@ -31,7 +31,7 @@ import scala.annotation.tailrec
   * <br>
   * The importance of a vehicle's owner can not be overlooked.
   * The owner is someone who can control who can sit in the vehicle's seats
-  * either through broad categorization or discriminating sleection ("kicking")
+  * either through broad categorization or discriminating selection ("kicking")
   * and who has access to and can allow access to the vehicle's trunk capacity.
   * The driver is the only player that can access a vehicle's saved loadouts through a repair/rearm silo
   * and can procure equipment from the said silo.
@@ -58,7 +58,7 @@ import scala.annotation.tailrec
   * and may also use their lack of visibility to express state.
   * In terms of individual access, each seat can have its current occupant ejected, save for the driver's seat.
   * @see `Vehicle.EquipmentUtilities`
-  * @param vehicleDef the vehicle's definition entry';
+  * @param vehicleDef the vehicle's definition entry;
   *                   stores and unloads pertinent information about the `Vehicle`'s configuration;
   *                   used in the initialization process (`loadVehicleDefinition`)
   */
