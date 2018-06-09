@@ -12,7 +12,7 @@ import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects._
 import net.psforever.packet.game.PlanetSideGUID
-import net.psforever.types.{CharacterGender, PlanetSideEmpire, Vector3}
+import net.psforever.types.{CharacterGender, CharacterVoice, PlanetSideEmpire, Vector3}
 import net.psforever.objects.serverobject.structures.{Building, FoundationBuilder, StructureType}
 import net.psforever.objects.zones.{Zone, ZoneActor, ZoneMap}
 import net.psforever.objects.Vehicle
@@ -185,7 +185,7 @@ class ZoneActorTest extends ActorTest {
       zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "test-spawn")
       zone.Actor ! Zone.Init()
       expectNoMsg(Duration.create(300, "ms"))
-      val player = Player(Avatar("Chord", PlanetSideEmpire.NEUTRAL, CharacterGender.Male, 0, 5))
+      val player = Player(Avatar("Chord", PlanetSideEmpire.NEUTRAL, CharacterGender.Male, 0, CharacterVoice.Voice5))
 
       val bldg1 = zone.Building(1).get
       val bldg3 = zone.Building(3).get
@@ -216,7 +216,7 @@ class ZoneActorTest extends ActorTest {
       zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "test-no-spawn")
       zone.Actor ! Zone.Init()
       expectNoMsg(Duration.create(300, "ms"))
-      val player = Player(Avatar("Chord", PlanetSideEmpire.NEUTRAL, CharacterGender.Male, 0, 5))
+      val player = Player(Avatar("Chord", PlanetSideEmpire.NEUTRAL, CharacterGender.Male, 0, CharacterVoice.Voice5))
 
       zone.Actor ! Zone.Lattice.RequestSpawnPoint(1, player, 7)
       val reply = receiveOne(Duration.create(200, "ms"))
@@ -234,7 +234,7 @@ class ZonePopulationTest extends ActorTest {
   "ZonePopulationActor" should {
     "add new user to zones" in {
       val zone = new Zone("test", new ZoneMap(""), 0)
-      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
+      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       system.actorOf(Props(classOf[ZoneTest.ZoneInitActor], zone), TestName) ! "!"
       receiveOne(Duration.create(200, "ms")) //consume
 
@@ -249,7 +249,7 @@ class ZonePopulationTest extends ActorTest {
 
     "remove user from zones" in {
       val zone = new Zone("test", new ZoneMap(""), 0)
-      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
+      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       system.actorOf(Props(classOf[ZoneTest.ZoneInitActor], zone), TestName) ! "!"
       receiveOne(Duration.create(200, "ms")) //consume
       zone.Population ! Zone.Population.Join(avatar)
@@ -264,7 +264,7 @@ class ZonePopulationTest extends ActorTest {
 
     "associate user with a character" in {
       val zone = new Zone("test", new ZoneMap(""), 0)
-      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
+      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       val player = Player(avatar)
       system.actorOf(Props(classOf[ZoneTest.ZoneInitActor], zone), TestName) ! "!"
       receiveOne(Duration.create(200, "ms")) //consume
@@ -284,7 +284,7 @@ class ZonePopulationTest extends ActorTest {
 
     "disassociate character from a user" in {
       val zone = new Zone("test", new ZoneMap(""), 0)
-      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
+      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       val player = Player(avatar)
       system.actorOf(Props(classOf[ZoneTest.ZoneInitActor], zone), TestName) ! "!"
       receiveOne(Duration.create(200, "ms")) //consume
@@ -306,7 +306,7 @@ class ZonePopulationTest extends ActorTest {
 
     "user tries to Leave, but still has an associated character" in {
       val zone = new Zone("test", new ZoneMap(""), 0)
-      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
+      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       val player = Player(avatar)
       system.actorOf(Props(classOf[ZoneTest.ZoneInitActor], zone), TestName) ! "!"
       receiveOne(Duration.create(500, "ms")) //consume
@@ -330,7 +330,7 @@ class ZonePopulationTest extends ActorTest {
 
     "user tries to Spawn a character, but an associated character already exists" in {
       val zone = new Zone("test", new ZoneMap(""), 0)
-      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
+      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       val player1 = Player(avatar)
       val player2 = Player(avatar)
       system.actorOf(Props(classOf[ZoneTest.ZoneInitActor], zone), TestName) ! "!"
@@ -356,7 +356,7 @@ class ZonePopulationTest extends ActorTest {
 
     "user tries to Spawn a character, but did not Join first" in {
       val zone = new Zone("test", new ZoneMap(""), 0)
-      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
+      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       val player = Player(avatar)
       system.actorOf(Props(classOf[ZoneTest.ZoneInitActor], zone), TestName) ! "!"
       receiveOne(Duration.create(200, "ms")) //consume
@@ -374,7 +374,7 @@ class ZonePopulationTest extends ActorTest {
 
     "user tries to Release a character, but did not Spawn a character first" in {
       val zone = new Zone("test", new ZoneMap(""), 0)
-      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
+      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       system.actorOf(Props(classOf[ZoneTest.ZoneInitActor], zone), TestName) ! "!"
       receiveOne(Duration.create(200, "ms")) //consume
       zone.Population ! Zone.Population.Join(avatar)
@@ -395,7 +395,7 @@ class ZonePopulationTest extends ActorTest {
 
     "user adds character to list of retired characters" in {
       val zone = new Zone("test", new ZoneMap(""), 0)
-      val player = Player(Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5))
+      val player = Player(Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5))
       player.Release
       system.actorOf(Props(classOf[ZoneTest.ZoneInitActor], zone), TestName) ! "!"
       receiveOne(Duration.create(200, "ms")) //consume
@@ -409,7 +409,7 @@ class ZonePopulationTest extends ActorTest {
 
     "user removes character from the list of retired characters" in {
       val zone = new Zone("test", new ZoneMap(""), 0)
-      val player = Player(Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5))
+      val player = Player(Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5))
       player.Release
       system.actorOf(Props(classOf[ZoneTest.ZoneInitActor], zone), TestName) ! "!"
       receiveOne(Duration.create(200, "ms")) //consume
@@ -425,11 +425,11 @@ class ZonePopulationTest extends ActorTest {
 
     "user removes THE CORRECT character from the list of retired characters" in {
       val zone = new Zone("test", new ZoneMap(""), 0)
-      val player1 = Player(Avatar("Chord1", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5))
+      val player1 = Player(Avatar("Chord1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5))
       player1.Release
-      val player2 = Player(Avatar("Chord2", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5))
+      val player2 = Player(Avatar("Chord2", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5))
       player2.Release
-      val player3 = Player(Avatar("Chord3", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5))
+      val player3 = Player(Avatar("Chord3", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5))
       player3.Release
       system.actorOf(Props(classOf[ZoneTest.ZoneInitActor], zone), TestName) ! "!"
       receiveOne(Duration.create(200, "ms")) //consume
@@ -451,7 +451,7 @@ class ZonePopulationTest extends ActorTest {
 
     "user tries to add character to list of retired characters, but is not in correct state" in {
       val zone = new Zone("test", new ZoneMap(""), 0)
-      val player = Player(Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5))
+      val player = Player(Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5))
       //player.Release !!important
       system.actorOf(Props(classOf[ZoneTest.ZoneInitActor], zone), "testC") ! "!"
       receiveOne(Duration.create(500, "ms")) //consume

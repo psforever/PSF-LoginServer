@@ -8,50 +8,6 @@ import scodec.codecs._
 import shapeless.{::, HNil}
 
 /**
-  * The voice used by the player character, from a selection of ten divided between five male voices and five female voices.
-  * The first entry (0) is no voice.
-  * While it is technically not valid to have a wrong-gendered voice,
-  * unlisted sixth and seventh entries would give a male character a female voice;
-  * a female character with either entry would become mute.
-  * @see `CharacterGender`
-  */
-object CharacterVoice extends Enumeration {
-  type Type = Value
-
-  val
-  Mute,
-  Voice1, //grizzled, tough
-  Voice2, //greenhorn, clueless
-  Voice3, //roughneck, gruff
-  Voice4, //stalwart, smooth
-  Voice5 //daredevil, calculating
-  = Value
-
-  implicit val codec = PacketHelpers.createEnumerationCodec(this, uint(3))
-}
-
-/**
-  * A part of a representation of the avatar portion of `ObjectCreateMessage` packet data.<br>
-  * <br>
-  * This partition of the data stream contains information used to represent how the player's avatar is presented.
-  * This appearance coincides with the data available from the `CharacterCreateRequestMessage` packet.
-  * @see `PlanetSideEmpire`<br>
-  *        `CharacterGender`
-  * @param name the unique name of the avatar;
-  *             minimum of two characters
-  * @param faction the empire to which the avatar belongs
-  * @param sex whether the avatar is `Male` or `Female`
-  * @param head the avatar's face and hair;
-  *             by row and column on the character creation screen, the high nibble is the row and the low nibble is the column
-  * @param voice the avatar's voice selection
-  */
-final case class BasicCharacterData(name : String,
-                                    faction : PlanetSideEmpire.Value,
-                                    sex : CharacterGender.Value,
-                                    head : Int,
-                                    voice : Int)
-
-/**
   * A part of a representation of the avatar portion of `ObjectCreateDetailedMessage` packet data.<br>
   * <br>
   * This is a shared partition of the data used to represent how the player's avatar is presented.
@@ -77,6 +33,7 @@ final case class BasicCharacterData(name : String,
   *        `ExoSuitType`<br>
   *        `GrenadeState`<br>
   *        `RibbonBars`
+  * @see `http://www.planetside-universe.com/p-outfit-decals-31.htm`
   * @param app the player's cardinal appearance settings
   * @param voice2 na;
   *               affects the frequency by which the character's voice is heard (somehow);
@@ -125,9 +82,9 @@ final case class CharacterAppearanceData(app : BasicCharacterData,
     //factor guard bool values into the base size, not its corresponding optional field
     val nameStringSize : Long = StreamBitSize.stringBitSize(app.name, 16) + name_padding
     val outfitStringSize : Long = StreamBitSize.stringBitSize(outfit_name, 16) +
-      (if(outfit_name.nonEmpty) { CharacterAppearanceData.outfitNamePadding } else { 0L }) //even if the outfit_name is blank, string always padded
+      CharacterAppearanceData.outfitNamePadding //even if the outfit_name is blank, string is always padded
     val altModelSize = CharacterAppearanceData.altModelBit(this).getOrElse(0)
-    335L + nameStringSize + outfitStringSize + altModelSize
+    335L + nameStringSize + outfitStringSize + altModelSize //base value includes the ribbons
   }
 
   /**
@@ -182,7 +139,7 @@ object CharacterAppearanceData extends Marshallable[CharacterAppearanceData] {
           ignore(2) :: //unknown
           ("sex" | CharacterGender.codec) ::
           ("head" | uint8L) ::
-          ("voice" | uint(3)) ::
+          ("voice" | CharacterVoice.codec) ::
           ("voice2" | uint2L) ::
           ignore(78) :: //unknown
           uint16L :: //usually either 0 or 65535

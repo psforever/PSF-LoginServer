@@ -9,7 +9,7 @@ import net.psforever.objects.serverobject.structures.StructureType
 import net.psforever.objects.{Avatar, GlobalDefinitions, Player, Vehicle}
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.PlanetSideGUID
-import net.psforever.types.{PlanetSideEmpire, Vector3}
+import net.psforever.types.{CharacterVoice, PlanetSideEmpire, Vector3}
 import org.specs2.mutable.Specification
 
 import scala.concurrent.duration._
@@ -263,12 +263,12 @@ class VehicleSpawnControl5Test extends ActorTest() {
       val probe3Msg4 = probe3.receiveOne(3 seconds)
       assert(probe3Msg4.isInstanceOf[VehicleSpawnPad.DetachFromRails])
 
-      val probe1Msg1 = probe1.receiveOne(1 seconds)
-      assert(probe1Msg1.isInstanceOf[VehicleSpawnPad.RevealPlayer])
+      val probe3Msg5 = probe3.receiveOne(1 seconds)
+      assert(probe3Msg5.isInstanceOf[VehicleSpawnPad.RevealPlayer])
 
-      val probe1Msg2 = probe1.receiveOne(12 seconds)
-      assert(probe1Msg2.isInstanceOf[VehicleSpawnPad.PeriodicReminder])
-      assert(probe1Msg2.asInstanceOf[VehicleSpawnPad.PeriodicReminder].reason == VehicleSpawnPad.Reminders.Blocked)
+      val probe1Msg = probe1.receiveOne(12 seconds)
+      assert(probe1Msg.isInstanceOf[VehicleSpawnPad.PeriodicReminder])
+      assert(probe1Msg.asInstanceOf[VehicleSpawnPad.PeriodicReminder].reason == VehicleSpawnPad.Reminders.Blocked)
     }
   }
 }
@@ -300,8 +300,8 @@ class VehicleSpawnControl6Test extends ActorTest() {
 
       val probe3Msg4 = probe3.receiveOne(3 seconds)
       assert(probe3Msg4.isInstanceOf[VehicleSpawnPad.DetachFromRails])
-      val probe1Msg2 = probe1.receiveOne(3 seconds)
-      assert(probe1Msg2.isInstanceOf[VehicleSpawnPad.RevealPlayer])
+      val probe3Msg5 = probe3.receiveOne(3 seconds)
+      assert(probe3Msg5.isInstanceOf[VehicleSpawnPad.RevealPlayer])
 
       val probe1Msg3 = probe1.receiveOne(12 seconds)
       assert(probe1Msg3.isInstanceOf[VehicleSpawnPad.PeriodicReminder])
@@ -340,7 +340,7 @@ object VehicleSpawnPadControlTest {
     pad.Actor = system.actorOf(Props(classOf[VehicleSpawnControl], pad), s"test-pad-${System.nanoTime()}")
     pad.Owner = new Building(0, zone, StructureType.Building)
     pad.Owner.Faction = faction
-    val player = Player(Avatar("test", faction, CharacterGender.Male, 0, 0))
+    val player = Player(Avatar("test", faction, CharacterGender.Male, 0, CharacterVoice.Mute))
     player.GUID = PlanetSideGUID(10)
     player.Continent = zone.Id
     player.Spawn

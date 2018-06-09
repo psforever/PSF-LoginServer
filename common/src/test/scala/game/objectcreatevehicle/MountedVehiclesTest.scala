@@ -56,7 +56,7 @@ class MountedVehiclesTest extends Specification {
                     app.app.faction mustEqual PlanetSideEmpire.TR
                     app.app.sex mustEqual CharacterGender.Male
                     app.app.head mustEqual 5
-                    app.app.voice mustEqual 5
+                    app.app.voice mustEqual CharacterVoice.Voice5
                     app.voice2 mustEqual 3
                     app.black_ops mustEqual false
                     app.lfs mustEqual false
@@ -106,7 +106,7 @@ class MountedVehiclesTest extends Specification {
 
   "encode (Scrawny Ronnie's mosquito)" in {
     val app : (Int)=>CharacterAppearanceData = CharacterAppearanceData(
-      BasicCharacterData("ScrawnyRonnie", PlanetSideEmpire.TR, CharacterGender.Male, 5, 5),
+      BasicCharacterData("ScrawnyRonnie", PlanetSideEmpire.TR, CharacterGender.Male, 5, CharacterVoice.Voice5),
       3,
       false, false,
       ExoSuitType.Agile,

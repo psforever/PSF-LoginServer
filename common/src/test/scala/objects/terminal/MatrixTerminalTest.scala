@@ -60,7 +60,7 @@ class MatrixTerminalTest extends Specification {
     }
 
     "player can not buy (anything)" in {
-      val player = Player(Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0))
+      val player = Player(Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
       val msg = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Buy, 1, "lite_armor", 0, PlanetSideGUID(0))
 
       terminal.Request(player, msg) mustEqual Terminal.NoDeal()

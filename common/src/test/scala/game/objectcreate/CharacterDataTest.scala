@@ -37,7 +37,7 @@ class CharacterDataTest extends Specification {
               basic.app.faction mustEqual PlanetSideEmpire.TR
               basic.app.sex mustEqual CharacterGender.Male
               basic.app.head mustEqual 5
-              basic.app.voice mustEqual 5
+              basic.app.voice mustEqual CharacterVoice.Voice5
               basic.voice2 mustEqual 3
               basic.black_ops mustEqual false
               basic.jammered mustEqual false
@@ -130,7 +130,7 @@ class CharacterDataTest extends Specification {
               basic.app.faction mustEqual PlanetSideEmpire.TR
               basic.app.sex mustEqual CharacterGender.Male
               basic.app.head mustEqual 5
-              basic.app.voice mustEqual 5
+              basic.app.voice mustEqual CharacterVoice.Voice5
               basic.voice2 mustEqual 3
               basic.black_ops mustEqual false
               basic.jammered mustEqual false
@@ -174,7 +174,7 @@ class CharacterDataTest extends Specification {
               basic.app.faction mustEqual PlanetSideEmpire.VS
               basic.app.sex mustEqual CharacterGender.Male
               basic.app.head mustEqual 10
-              basic.app.voice mustEqual 2
+              basic.app.voice mustEqual CharacterVoice.Voice2
               basic.voice2 mustEqual 0
               basic.black_ops mustEqual false
               basic.jammered mustEqual false
@@ -226,7 +226,7 @@ class CharacterDataTest extends Specification {
           PlanetSideEmpire.TR,
           CharacterGender.Male,
           5,
-          5
+          CharacterVoice.Voice5
         ),
         3,
         false,
@@ -282,7 +282,7 @@ class CharacterDataTest extends Specification {
           PlanetSideEmpire.TR,
           CharacterGender.Male,
           5,
-          5
+          CharacterVoice.Voice5
         ),
         3,
         false,
@@ -335,7 +335,7 @@ class CharacterDataTest extends Specification {
           PlanetSideEmpire.VS,
           CharacterGender.Male,
           10,
-          2
+          CharacterVoice.Voice2
         ),
         0,
         false,

@@ -5,7 +5,7 @@ import akka.actor.ActorRef
 import net.psforever.objects.serverobject.terminals.{MedicalTerminalDefinition, ProximityTerminal, Terminal}
 import net.psforever.objects.{Avatar, GlobalDefinitions, Player}
 import net.psforever.packet.game.{ItemTransactionMessage, PlanetSideGUID}
-import net.psforever.types.{CharacterGender, PlanetSideEmpire, TransactionType}
+import net.psforever.types.{CharacterGender, CharacterVoice, PlanetSideEmpire, TransactionType}
 import org.specs2.mutable.Specification
 
 class MedicalTerminalTest extends Specification {
@@ -81,7 +81,7 @@ class MedicalTerminalTest extends Specification {
 
     "player can not interact with the proximity terminal normally (buy)" in {
       val terminal = ProximityTerminal(GlobalDefinitions.medical_terminal)
-      val player = Player(Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0))
+      val player = Player(Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
       val msg = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Buy, 1, "lite_armor", 0, PlanetSideGUID(0))
 
       terminal.Request(player, msg) mustEqual Terminal.NoDeal()

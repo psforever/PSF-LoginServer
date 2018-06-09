@@ -455,7 +455,7 @@ class PacketCodingActorITest extends ActorTest {
   import net.psforever.packet.game.objectcreate._
   val pos : PlacementData = PlacementData(Vector3.Zero, Vector3.Zero)
   val app : (Int)=>CharacterAppearanceData = CharacterAppearanceData(
-    BasicCharacterData("IlllIIIlllIlIllIlllIllI", PlanetSideEmpire.VS, CharacterGender.Female, 41, 1),
+    BasicCharacterData("IlllIIIlllIlIllIlllIllI", PlanetSideEmpire.VS, CharacterGender.Female, 41, CharacterVoice.Voice1),
     3,
     false,
     false,
@@ -548,7 +548,7 @@ class PacketCodingActorKTest extends ActorTest {
   import net.psforever.packet.game.objectcreate._
   val pos : PlacementData = PlacementData(Vector3.Zero, Vector3.Zero)
   val app : (Int)=>CharacterAppearanceData = CharacterAppearanceData(
-    BasicCharacterData("IlllIIIlllIlIllIlllIllI", PlanetSideEmpire.VS, CharacterGender.Female, 41, 1),
+    BasicCharacterData("IlllIIIlllIlIllIlllIllI", PlanetSideEmpire.VS, CharacterGender.Female, 41, CharacterVoice.Voice1),
     3,
     false,
     false,

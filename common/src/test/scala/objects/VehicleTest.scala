@@ -7,7 +7,7 @@ import net.psforever.objects.definition.{SeatDefinition, VehicleDefinition}
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.vehicles._
 import net.psforever.packet.game.PlanetSideGUID
-import net.psforever.types.ExoSuitType
+import net.psforever.types.{CharacterVoice, ExoSuitType}
 import org.specs2.mutable._
 
 import scala.concurrent.duration.Duration
@@ -361,6 +361,6 @@ class VehicleControl2Test extends ActorTest {
 object VehicleTest {
   import net.psforever.objects.Avatar
   import net.psforever.types.{CharacterGender, PlanetSideEmpire}
-  val avatar1 = Avatar("test1", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
-  val avatar2 = Avatar("test2", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+  val avatar1 = Avatar("test1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)
+  val avatar2 = Avatar("test2", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)
 }

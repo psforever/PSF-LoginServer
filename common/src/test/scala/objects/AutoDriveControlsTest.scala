@@ -7,7 +7,7 @@ import net.psforever.objects.serverobject.pad.{VehicleSpawnControl, VehicleSpawn
 import net.psforever.objects.{Avatar, GlobalDefinitions, Player, Vehicle}
 import net.psforever.objects.serverobject.pad.process.{AutoDriveControls, VehicleSpawnControlGuided}
 import net.psforever.packet.game.PlanetSideGUID
-import net.psforever.types.{CharacterGender, PlanetSideEmpire, Vector3}
+import net.psforever.types.{CharacterGender, CharacterVoice, PlanetSideEmpire, Vector3}
 import org.specs2.mutable.Specification
 
 import scala.concurrent.duration._
@@ -389,7 +389,7 @@ class GuidedControlTest1 extends ActorTest {
     "unguided" in {
       val vehicle = Vehicle(GlobalDefinitions.mediumtransport)
       vehicle.GUID = PlanetSideGUID(1)
-      val driver = Player(Avatar("", PlanetSideEmpire.TR, CharacterGender.Male, 0,0))
+      val driver = Player(Avatar("", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
       driver.VehicleSeated = vehicle.GUID
       val sendTo = TestProbe()
       val order = VehicleSpawnControl.Order(driver, vehicle, sendTo.ref)
@@ -411,7 +411,7 @@ class GuidedControlTest2 extends ActorTest {
       val vehicle = Vehicle(GlobalDefinitions.mediumtransport)
       vehicle.GUID = PlanetSideGUID(1)
       vehicle.Velocity = Vector3(1,1,1)
-      val driver = Player(Avatar("", PlanetSideEmpire.TR, CharacterGender.Male, 0,0))
+      val driver = Player(Avatar("", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
       driver.VehicleSeated = vehicle.GUID
       val sendTo = TestProbe()
       val order = VehicleSpawnControl.Order(driver, vehicle, sendTo.ref)
@@ -436,7 +436,7 @@ class GuidedControlTest3 extends ActorTest {
       val vehicle = Vehicle(GlobalDefinitions.mediumtransport)
       vehicle.GUID = PlanetSideGUID(1)
       vehicle.Velocity = Vector3(1,1,1)
-      val driver = Player(Avatar("", PlanetSideEmpire.TR, CharacterGender.Male, 0,0))
+      val driver = Player(Avatar("", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
       driver.VehicleSeated = vehicle.GUID
       val sendTo = TestProbe()
       val order = VehicleSpawnControl.Order(driver, vehicle, sendTo.ref)
@@ -457,7 +457,7 @@ class GuidedControlTest3 extends ActorTest {
       assert(msg2.isInstanceOf[VehicleSpawnControlGuided.GuidedControl])
       assert(msg2.asInstanceOf[VehicleSpawnControlGuided.GuidedControl].command == AutoDriveControls.State.Wait)
       sendTo.expectNoMsg(1000 milliseconds)
-      val msg3 = sendTo.receiveOne(100 milliseconds)
+      val msg3 = sendTo.receiveOne(300 milliseconds)
       assert(msg3.isInstanceOf[VehicleSpawnControlGuided.GuidedControl])
       assert(msg3.asInstanceOf[VehicleSpawnControlGuided.GuidedControl].command == AutoDriveControls.State.Drive)
       val msg4 = sendTo.receiveOne(200 milliseconds)
@@ -474,7 +474,7 @@ class GuidedControlTest4 extends ActorTest {
       val vehicle = Vehicle(GlobalDefinitions.mediumtransport)
       vehicle.GUID = PlanetSideGUID(1)
       vehicle.Velocity = Vector3(1,1,1)
-      val driver = Player(Avatar("", PlanetSideEmpire.TR, CharacterGender.Male, 0,0))
+      val driver = Player(Avatar("", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
       driver.VehicleSeated = vehicle.GUID
       val sendTo = TestProbe()
       val order = VehicleSpawnControl.Order(driver, vehicle, sendTo.ref)

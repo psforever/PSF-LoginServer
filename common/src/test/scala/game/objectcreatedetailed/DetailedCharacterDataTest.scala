@@ -38,7 +38,7 @@ class DetailedCharacterDataTest extends Specification {
               basic.app.faction mustEqual PlanetSideEmpire.VS
               basic.app.sex mustEqual CharacterGender.Female
               basic.app.head mustEqual 41
-              basic.app.voice mustEqual 1 //female 1
+              basic.app.voice mustEqual CharacterVoice.Voice1
               basic.voice2 mustEqual 3
               basic.black_ops mustEqual false
               basic.jammered mustEqual false
@@ -174,7 +174,7 @@ class DetailedCharacterDataTest extends Specification {
               basic.app.faction mustEqual PlanetSideEmpire.VS
               basic.app.sex mustEqual CharacterGender.Female
               basic.app.head mustEqual 41
-              basic.app.voice mustEqual 1 //female 1
+              basic.app.voice mustEqual CharacterVoice.Voice1
               basic.voice2 mustEqual 3
               basic.black_ops mustEqual false
               basic.jammered mustEqual false
@@ -380,7 +380,7 @@ class DetailedCharacterDataTest extends Specification {
           PlanetSideEmpire.VS,
           CharacterGender.Female,
           41,
-          1
+          CharacterVoice.Voice1
         ),
         3,
         false,
@@ -451,7 +451,7 @@ class DetailedCharacterDataTest extends Specification {
           PlanetSideEmpire.VS,
           CharacterGender.Female,
           41,
-          1
+          CharacterVoice.Voice1
         ),
         3,
         false,
@@ -519,7 +519,7 @@ class DetailedCharacterDataTest extends Specification {
         None
       )
       val app : (Int)=>CharacterAppearanceData = CharacterAppearanceData(
-        BasicCharacterData("KiCkJr", PlanetSideEmpire.NC, CharacterGender.Male, 24, 4),
+        BasicCharacterData("KiCkJr", PlanetSideEmpire.NC, CharacterGender.Male, 24, CharacterVoice.Voice4),
         3,
         false, false,
         ExoSuitType.Agile,

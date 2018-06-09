@@ -4,12 +4,12 @@ package net.psforever.objects
 import net.psforever.objects.definition.{AvatarDefinition, ImplantDefinition}
 import net.psforever.objects.equipment.EquipmentSize
 import net.psforever.objects.loadouts.Loadout
-import net.psforever.types.{CertificationType, CharacterGender, ImplantType, PlanetSideEmpire}
+import net.psforever.types._
 
 import scala.annotation.tailrec
 import scala.collection.mutable
 
-class Avatar(val name : String, val faction : PlanetSideEmpire.Value, val sex : CharacterGender.Value, val head : Int, val voice : Int) {
+class Avatar(val name : String, val faction : PlanetSideEmpire.Value, val sex : CharacterGender.Value, val head : Int, val voice : CharacterVoice.Value) {
   /** Battle Experience Points */
   private var bep : Long = 0
   /** Command Experience Points */
@@ -212,7 +212,7 @@ class Avatar(val name : String, val faction : PlanetSideEmpire.Value, val sex : 
 object Avatar {
   final private val definition : AvatarDefinition = new AvatarDefinition(121)
 
-  def apply(name : String, faction : PlanetSideEmpire.Value, sex : CharacterGender.Value, head : Int, voice : Int) : Avatar = {
+  def apply(name : String, faction : PlanetSideEmpire.Value, sex : CharacterGender.Value, head : Int, voice : CharacterVoice.Value) : Avatar = {
     new Avatar(name, faction, sex, head, voice)
   }
 

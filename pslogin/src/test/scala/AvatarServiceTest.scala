@@ -6,7 +6,7 @@ import net.psforever.objects.guid.{GUIDTask, TaskResolver}
 import net.psforever.objects.zones.{Zone, ZoneActor, ZoneMap}
 import net.psforever.packet.game.objectcreate.{DroppedItemData, ObjectClass, ObjectCreateMessageParent, PlacementData}
 import net.psforever.packet.game.{ObjectCreateMessage, PlanetSideGUID, PlayerStateMessageUpstream}
-import net.psforever.types.{CharacterGender, ExoSuitType, PlanetSideEmpire, Vector3}
+import net.psforever.types._
 import services.{RemoverActor, Service, ServiceManager}
 import services.avatar._
 
@@ -152,7 +152,7 @@ class DroptItemTest extends ActorTest {
 }
 
 class LoadPlayerTest extends ActorTest {
-  val obj = Player(Avatar("TestCharacter1", PlanetSideEmpire.VS, CharacterGender.Female, 1, 1))
+  val obj = Player(Avatar("TestCharacter1", PlanetSideEmpire.VS, CharacterGender.Female, 1, CharacterVoice.Voice1))
   obj.GUID = PlanetSideGUID(10)
   obj.Slot(5).Equipment.get.GUID = PlanetSideGUID(11)
   val c1data = obj.Definition.Packet.DetailedConstructorData(obj).get
@@ -235,7 +235,7 @@ class PlayerStateTest extends ActorTest {
 }
 
 class PickupItemATest extends ActorTest {
-  val obj = Player(Avatar("TestCharacter", PlanetSideEmpire.VS, CharacterGender.Female, 1, 1))
+  val obj = Player(Avatar("TestCharacter", PlanetSideEmpire.VS, CharacterGender.Female, 1, CharacterVoice.Voice1))
   obj.GUID = PlanetSideGUID(10)
   obj.Slot(5).Equipment.get.GUID = PlanetSideGUID(11)
 
@@ -260,7 +260,7 @@ class PickupItemATest extends ActorTest {
 }
 
 class PickupItemBTest extends ActorTest {
-  val obj = Player(Avatar("TestCharacter", PlanetSideEmpire.VS, CharacterGender.Female, 1, 1))
+  val obj = Player(Avatar("TestCharacter", PlanetSideEmpire.VS, CharacterGender.Female, 1, CharacterVoice.Voice1))
   val tool = Tool(GlobalDefinitions.beamer)
   tool.GUID = PlanetSideGUID(40)
 
@@ -388,7 +388,7 @@ class AvatarReleaseTest extends ActorTest {
   val taskResolver = system.actorOf(Props[TaskResolver], "release-test-resolver")
   zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "release-test-zone")
   zone.Actor ! Zone.Init()
-  val obj = Player(Avatar("TestCharacter", PlanetSideEmpire.VS, CharacterGender.Female, 1, 1))
+  val obj = Player(Avatar("TestCharacter", PlanetSideEmpire.VS, CharacterGender.Female, 1, CharacterVoice.Voice1))
   obj.Continent = "test"
   obj.Release
 
@@ -437,7 +437,7 @@ class AvatarReleaseEarly1Test extends ActorTest {
   val taskResolver = system.actorOf(Props[TaskResolver], "release-test-resolver")
   zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "release-test-zone")
   zone.Actor ! Zone.Init()
-  val obj = Player(Avatar("TestCharacter1", PlanetSideEmpire.VS, CharacterGender.Female, 1, 1))
+  val obj = Player(Avatar("TestCharacter1", PlanetSideEmpire.VS, CharacterGender.Female, 1, CharacterVoice.Voice1))
   obj.Continent = "test"
   obj.Release
 
@@ -487,8 +487,8 @@ class AvatarReleaseEarly2Test extends ActorTest {
   val taskResolver = system.actorOf(Props[TaskResolver], "release-test-resolver")
   zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "release-test-zone")
   zone.Actor ! Zone.Init()
-  val objAlt = Player(Avatar("TestCharacter2", PlanetSideEmpire.NC, CharacterGender.Male, 1, 1)) //necessary clutter
-  val obj = Player(Avatar("TestCharacter1", PlanetSideEmpire.VS, CharacterGender.Female, 1, 1))
+  val objAlt = Player(Avatar("TestCharacter2", PlanetSideEmpire.NC, CharacterGender.Male, 1, CharacterVoice.Voice1)) //necessary clutter
+  val obj = Player(Avatar("TestCharacter1", PlanetSideEmpire.VS, CharacterGender.Female, 1, CharacterVoice.Voice1))
   obj.Continent = "test"
   obj.Release
 

@@ -1554,7 +1554,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       //TODO begin temp player character auto-loading; remove later
       import net.psforever.objects.GlobalDefinitions._
       import net.psforever.types.CertificationType._
-      avatar = Avatar("TestCharacter" + sessionId.toString, PlanetSideEmpire.VS, CharacterGender.Female, 41, 1)
+      avatar = Avatar("TestCharacter" + sessionId.toString, PlanetSideEmpire.VS, CharacterGender.Female, 41, CharacterVoice.Voice1)
       avatar.Certifications += StandardAssault
       avatar.Certifications += MediumAssault
       avatar.Certifications += StandardExoSuit
@@ -3232,6 +3232,29 @@ class WorldSessionActor extends Actor with MDCContextAware {
           resolver ! scala.util.Success(this)
         }
       }, List(RegisterVehicle(obj)))
+  }
+
+  //TODO this may be useful for vehicle gating
+  def RegisterDrivenVehicle(obj : Vehicle, driver : Player) : TaskResolver.GiveTask = {
+    TaskResolver.GiveTask(
+      new Task() {
+        private val localVehicle = obj
+        private val localDriver = driver
+
+        override def isComplete : Task.Resolution.Value = {
+          if(localVehicle.HasGUID && localDriver.HasGUID) {
+            Task.Resolution.Success
+          }
+          else {
+            Task.Resolution.Incomplete
+          }
+        }
+
+        def Execute(resolver : ActorRef) : Unit = {
+          //TODO some kind of callback ...
+          resolver ! scala.util.Success(this)
+        }
+      }, List(RegisterAvatar(driver), RegisterVehicle(obj)))
   }
 
   /**

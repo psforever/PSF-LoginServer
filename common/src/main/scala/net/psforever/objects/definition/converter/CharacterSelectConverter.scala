@@ -4,7 +4,7 @@ package net.psforever.objects.definition.converter
 import net.psforever.objects.{EquipmentSlot, Player}
 import net.psforever.objects.equipment.Equipment
 import net.psforever.packet.game.objectcreate._
-import net.psforever.types.{GrenadeState, ImplantType}
+import net.psforever.types.{CharacterVoice, GrenadeState, ImplantType}
 
 import scala.annotation.tailrec
 import scala.util.{Failure, Success, Try}
@@ -45,7 +45,7 @@ class CharacterSelectConverter extends AvatarConverter {
     */
   private def MakeAppearanceData(obj : Player) : (Int)=>CharacterAppearanceData = {
     CharacterAppearanceData(
-      BasicCharacterData(obj.Name, obj.Faction, obj.Sex, obj.Head, 1),
+      BasicCharacterData(obj.Name, obj.Faction, obj.Sex, obj.Head, CharacterVoice.Mute),
       0,
       false,
       false,
