@@ -342,7 +342,7 @@ class GridInventory extends Container {
     val card = InventoryItem(obj, start)
     items += key -> card
     val tile = obj.Tile
-    SetCellsOffset(start, tile.Width, tile.Height, key)
+    SetCells(start, tile.Width, tile.Height, key)
     true
   }
 
