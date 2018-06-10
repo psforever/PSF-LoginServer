@@ -66,20 +66,20 @@ object AvatarConverter {
   def MakeAppearanceData(obj : Player) : (Int)=>CharacterAppearanceData = {
     CharacterAppearanceData(
       BasicCharacterData(obj.Name, obj.Faction, obj.Sex, obj.Head, obj.Voice),
-      0,
-      false,
-      false,
+      voice2 = 0,
+      black_ops = false,
+      jammered = false,
       obj.ExoSuit,
-      "",
-      0,
+      outfit_name = "",
+      outfit_logo = 0,
       obj.isBackpack,
-      obj.Orientation.y,
-      obj.FacingYawUpper,
-      true,
+      facingPitch = obj.Orientation.y,
+      facingYawUpper = obj.FacingYawUpper,
+      lfs = true,
       GrenadeState.None,
-      false,
-      false,
-      false,
+      is_cloaking = false,
+      charging_pose = false,
+      on_zipline = false,
       RibbonBars()
     )
   }
@@ -112,8 +112,8 @@ object AvatarConverter {
       obj.Stamina,
       obj.Certifications.toList.sortBy(_.id), //TODO is sorting necessary?
       MakeImplantEntries(obj),
-      List.empty[String], //TODO fte list
-      List.empty[String], //TODO tutorial list
+      firstTimeEvents = List.empty[String], //TODO fte list
+      tutorials = List.empty[String], //TODO tutorial list
       MakeCosmetics(obj.BEP)
     )
   }

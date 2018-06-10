@@ -19,9 +19,18 @@ class CorpseConverter extends AvatarConverter {
         PlacementData(obj.Position, Vector3(0,0, obj.Orientation.z)),
         MakeAppearanceData(obj),
         DetailedCharacterData(
-          0, 0, 0, 0, 0, 0, 0,
-          Nil, Nil, Nil, Nil,
-          None
+          bep = 0,
+          cep = 0,
+          healthMax = 0,
+          health = 0,
+          armor = 0,
+          staminaMax = 0,
+          stamina = 0,
+          certs = Nil,
+          implants = Nil,
+          firstTimeEvents = Nil,
+          tutorials = Nil,
+          cosmetics = None
         ),
         InventoryData((MakeHolsters(obj) ++ MakeInventory(obj)).sortBy(_.parentSlot)),
         DrawnSlot.None
@@ -37,20 +46,20 @@ class CorpseConverter extends AvatarConverter {
   private def MakeAppearanceData(obj : Player) : (Int)=>CharacterAppearanceData = {
     CharacterAppearanceData(
       BasicCharacterData(obj.Name, obj.Faction, CharacterGender.Male, 0, CharacterVoice.Mute),
-      0,
-      false,
-      false,
+      voice2 = 0,
+      black_ops = false,
+      jammered = false,
       obj.ExoSuit,
-      "",
-      0,
-      true,
-      obj.Orientation.y, //TODO is this important?
-      0,
-      true,
+      outfit_name = "",
+      outfit_logo = 0,
+      backpack = true,
+      facingPitch = obj.Orientation.y, //TODO is this important?
+      facingYawUpper = 0,
+      lfs = true,
       GrenadeState.None,
-      false,
-      false,
-      false,
+      is_cloaking = false,
+      charging_pose = false,
+      on_zipline = false,
       RibbonBars()
     )
   }

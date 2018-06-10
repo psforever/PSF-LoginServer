@@ -337,7 +337,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                   msg.facingYaw,
                   msg.facingPitch,
                   msg.facingYawUpper,
-                  0,
+                  unk1 = 0,
                   msg.is_crouching,
                   msg.is_jumping,
                   msg.jump_thrust,
@@ -4226,27 +4226,27 @@ class WorldSessionActor extends Actor with MDCContextAware {
   def initFacility(continentNumber : Int, buildingNumber : Int, building : Building) : Unit = {
     sendResponse(
       BuildingInfoUpdateMessage(
-        continentNumber, //Zone
-        buildingNumber, //Facility
-        8, //NTU%
-        false, //Hacked
-        PlanetSideEmpire.NEUTRAL, //Base hacked by
-        0, //Time remaining for hack (ms)
-        building.Faction, //Base owned by
-        0, //!! Field != 0 will cause malformed packet. See class def.
-        None,
-        PlanetSideGeneratorState.Normal, //Generator state
-        true, //Respawn tubes operating state
-        false, //Force dome state
-        0, //Lattice benefits
-        0, //!! Field > 0 will cause malformed packet. See class def.
-        Nil,
-        0,
-        false,
-        8, //!! Field != 8 will cause malformed packet. See class def.
-        None,
-        false, //Boosted spawn room pain field
-        false //Boosted generator room pain field
+        continentNumber,
+        buildingNumber,
+        ntu_level = 8,
+        is_hacked = false,
+        empire_hack = PlanetSideEmpire.NEUTRAL,
+        hack_time_remaining = 0,
+        building.Faction,
+        unk1 = 0, //!! Field != 0 will cause malformed packet. See class def.
+        unk1x = None,
+        PlanetSideGeneratorState.Normal,
+        spawn_tubes_normal = true,
+        force_dome_active = false,
+        lattice_benefit = 0,
+        cavern_benefit = 0, //!! Field > 0 will cause malformed packet. See class def.
+        unk4 = Nil,
+        unk5 = 0,
+        unk6 = false,
+        unk7 = 8, //!! Field != 8 will cause malformed packet. See class def.
+        unk7x = None,
+        boost_spawn_pain = false,
+        boost_generator_pain = false
       )
     )
     sendResponse(DensityLevelUpdateMessage(continentNumber, buildingNumber, List(0,0, 0,0, 0,0, 0,0)))
@@ -4266,26 +4266,27 @@ class WorldSessionActor extends Actor with MDCContextAware {
   def initGate(continentNumber : Int, buildingNumber : Int, building : Building) : Unit = {
     sendResponse(
       BuildingInfoUpdateMessage(
-        continentNumber, buildingNumber,
-        0,
-        false,
-        PlanetSideEmpire.NEUTRAL,
-        0,
+        continentNumber,
+        buildingNumber,
+        ntu_level = 0,
+        is_hacked = false,
+        empire_hack = PlanetSideEmpire.NEUTRAL,
+        hack_time_remaining = 0,
         building.Faction,
-        0,
-        None,
+        unk1 = 0,
+        unk1x = None,
         PlanetSideGeneratorState.Normal,
-        true,
-        false,
-        0,
-        0,
-        Nil,
-        0,
-        false,
-        8,
-        None,
-        false,
-        false
+        spawn_tubes_normal = true,
+        force_dome_active = false,
+        lattice_benefit = 0,
+        cavern_benefit = 0,
+        unk4 = Nil,
+        unk5 = 0,
+        unk6 = false,
+        unk7 = 8,
+        unk7x = None,
+        boost_spawn_pain = false,
+        boost_generator_pain = false
       )
     )
     sendResponse(DensityLevelUpdateMessage(continentNumber, buildingNumber, List(0,0, 0,0, 0,0, 0,0)))

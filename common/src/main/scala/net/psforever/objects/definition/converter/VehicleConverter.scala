@@ -18,21 +18,22 @@ class VehicleConverter extends ObjectCreateConverter[Vehicle]() {
       VehicleData(
         PlacementData(obj.Position, obj.Orientation, obj.Velocity),
         obj.Faction,
-        false, //bops
-        health < 3, //destroyed
-        0,
-        obj.Jammered, //jammered
-        false,
+        bops = false,
+        destroyed = health < 3,
+        unk1 = 0,
+        obj.Jammered,
+        unk2 = false,
         obj.Owner match {
           case Some(owner) => owner
           case None => PlanetSideGUID(0)
         },
-        false,
+        unk3 = false,
         health,
-        false, false,
+        unk4 = false,
+        no_mount_points = false,
         obj.DeploymentState,
-        false,
-        false,
+        unk5 = false,
+        unk6 = false,
         obj.Cloaked,
         SpecificFormatData(obj),
         Some(InventoryData(MakeDriverSeat(obj) ++ MakeUtilities(obj) ++ MakeMountings(obj)))

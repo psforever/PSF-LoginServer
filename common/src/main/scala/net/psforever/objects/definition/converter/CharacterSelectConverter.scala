@@ -25,10 +25,15 @@ class CharacterSelectConverter extends AvatarConverter {
         DetailedCharacterData(
           obj.BEP,
           obj.CEP,
-          1, 1, 0, 1, 1,
-          Nil,
+          healthMax = 1,
+          health = 1,
+          armor = 0,
+          staminaMax = 1,
+          stamina = 1,
+          certs = Nil,
           MakeImplantEntries(obj), //necessary for correct stream length
-          Nil, Nil,
+          firstTimeEvents = Nil,
+          tutorials = Nil,
           AvatarConverter.MakeCosmetics(obj.BEP)
         ),
         InventoryData(recursiveMakeHolsters(obj.Holsters().iterator)),
@@ -46,20 +51,20 @@ class CharacterSelectConverter extends AvatarConverter {
   private def MakeAppearanceData(obj : Player) : (Int)=>CharacterAppearanceData = {
     CharacterAppearanceData(
       BasicCharacterData(obj.Name, obj.Faction, obj.Sex, obj.Head, CharacterVoice.Mute),
-      0,
-      false,
-      false,
+      voice2 = 0,
+      black_ops = false,
+      jammered = false,
       obj.ExoSuit,
-      "",
-      0,
-      false,
-      0f,
-      0f,
-      true,
+      outfit_name = "",
+      outfit_logo = 0,
+      backpack = false,
+      facingPitch = 0,
+      facingYawUpper = 0,
+      lfs = true,
       GrenadeState.None,
-      false,
-      false,
-      false,
+      is_cloaking = false,
+      charging_pose = false,
+      on_zipline = false,
       RibbonBars()
     )
   }
