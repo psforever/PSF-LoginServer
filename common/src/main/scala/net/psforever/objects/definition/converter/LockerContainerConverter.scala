@@ -30,11 +30,10 @@ class LockerContainerConverter extends ObjectCreateConverter[LockerContainer]() 
     */
   private def MakeInventory(inv : GridInventory) : List[InternalSlot] = {
     inv.Items
-      .map({
-        case(_, item) =>
+      .map(item => {
           val equip : Equipment = item.obj
           InternalSlot(equip.Definition.ObjectId, equip.GUID, item.start, equip.Definition.Packet.ConstructorData(equip).get)
-      }).toList
+      })
     }
 
   /**
@@ -45,10 +44,9 @@ class LockerContainerConverter extends ObjectCreateConverter[LockerContainer]() 
     */
   private def MakeDetailedInventory(inv : GridInventory) : List[InternalSlot] = {
     inv.Items
-      .map({
-        case(_, item) =>
+      .map(item => {
           val equip : Equipment = item.obj
           InternalSlot(equip.Definition.ObjectId, equip.GUID, item.start, equip.Definition.Packet.DetailedConstructorData(equip).get)
-      }).toList
+      })
   }
 }

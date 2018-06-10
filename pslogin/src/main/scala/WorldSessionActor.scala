@@ -2012,7 +2012,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
                     //divide capacity across other existing and not full boxes of that ammo type
                     var capacity = previousBox.Capacity
                     val iter = obj.Inventory.Items
-                        .map({case(_, entry) => entry })
                         .filter(entry => {
                           entry.obj match {
                             case (item : AmmoBox) =>
@@ -3459,18 +3458,17 @@ class WorldSessionActor extends Actor with MDCContextAware {
   def AccessContents(vehicle : Vehicle) : Unit = {
     vehicleService ! Service.Join(s"${vehicle.Actor}")
     val parent_guid = vehicle.GUID
-    vehicle.Trunk.Items.foreach({
-      case ((_, entry)) =>
-        val obj = entry.obj
-        val objDef = obj.Definition
-        sendResponse(
-          ObjectCreateDetailedMessage(
-            objDef.ObjectId,
-            obj.GUID,
-            ObjectCreateMessageParent(parent_guid, entry.start),
-            objDef.Packet.DetailedConstructorData(obj).get
-          )
+    vehicle.Trunk.Items.foreach(entry => {
+      val obj = entry.obj
+      val objDef = obj.Definition
+      sendResponse(
+        ObjectCreateDetailedMessage(
+          objDef.ObjectId,
+          obj.GUID,
+          ObjectCreateMessageParent(parent_guid, entry.start),
+          objDef.Packet.DetailedConstructorData(obj).get
         )
+      )
     })
   }
 
@@ -3482,8 +3480,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     */
   def UnAccessContents(vehicle : Vehicle) : Unit = {
     vehicleService ! Service.Leave(Some(s"${vehicle.Actor}"))
-    vehicle.Trunk.Items.foreach({
-      case ((_, entry)) =>
+    vehicle.Trunk.Items.foreach(entry =>{
         sendResponse(ObjectDeleteMessage(entry.obj.GUID, 0))
     })
   }
@@ -3572,7 +3569,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
                          counting : (Equipment)=>Int = DefaultCount) : List[InventoryItem] = {
     var currentAmount : Int = 0
     obj.Inventory.Items
-      .map({ case ((_, item)) => item })
       .filter(item => filterTest(item.obj))
       .toList
       .sortBy(_.start)

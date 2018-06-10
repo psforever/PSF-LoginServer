@@ -8,7 +8,6 @@ import net.psforever.objects.EquipmentSlot
 import net.psforever.packet.game.PlanetSideGUID
 
 import scala.annotation.tailrec
-import scala.collection.immutable.Map
 import scala.collection.mutable
 import scala.util.{Failure, Success, Try}
 
@@ -38,7 +37,7 @@ class GridInventory extends Container {
   private val entryIndex : AtomicInteger = new AtomicInteger(0)
   private var grid : Array[Int] = Array.fill[Int](1)(-1)
 
-  def Items : Map[Int, InventoryItem] = items.toMap[Int, InventoryItem]
+  def Items : List[InventoryItem] = items.values.toList
 
   def Width : Int = width
 
@@ -331,26 +330,23 @@ class GridInventory extends Container {
   def Insertion_CheckCollisions(start : Int, obj : Equipment, key : Int) : Boolean = {
     CheckCollisions(start, obj) match {
       case Success(Nil) =>
-        val card = InventoryItem(obj, start)
-        items += key -> card
-        val tile = obj.Tile
-        SetCells(start, tile.Width, tile.Height, key)
-        true
+        InsertQuickly(start, obj, key)
       case _ =>
         false
     }
   }
 
-  def +=(kv : (Int, Equipment)) : Boolean = Insert(kv._1, kv._2)
+  def InsertQuickly(start : Int, obj : Equipment) : Boolean = InsertQuickly(start, obj, entryIndex.getAndIncrement())
 
-//  def InsertQuickly(start : Int, obj : Equipment) : Boolean = {
-//    val guid : Int = obj.GUID.guid
-//    val card = InventoryItemData(obj, start)
-//    items += guid -> card
-//    val tile = obj.Tile
-//    SetCellsOffset(start, tile.width, tile.height, guid)
-//    true
-//  }
+  private def InsertQuickly(start : Int, obj : Equipment, key : Int) : Boolean = {
+    val card = InventoryItem(obj, start)
+    items += key -> card
+    val tile = obj.Tile
+    SetCellsOffset(start, tile.Width, tile.Height, key)
+    true
+  }
+
+  def +=(kv : (Int, Equipment)) : Boolean = Insert(kv._1, kv._2)
 
   def Remove(index : Int) : Boolean = {
     val key = grid(index - Offset)
