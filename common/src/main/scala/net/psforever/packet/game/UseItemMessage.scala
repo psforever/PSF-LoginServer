@@ -9,7 +9,7 @@ import scodec.codecs._
 /**
   * (Where the child object was before it was moved is not specified or important.)<br>
   * @param avatar_guid  the player.
-  * @param unk1         dont know how call that. It's the "item" ID when use a rek to hack or a medkit to heal.
+  * @param item_used_guid  The "item" GUID used e.g. a rek to hack or a medkit to heal.
   * @param object_guid  can be : Door, Terminal, Avatar (medkit).
   * @param unk2         ???
   * @param unk3         ??? true when use a rek (false when door, medkit or open equip term)
@@ -21,7 +21,7 @@ import scodec.codecs._
   * @param itemType     object ID from game_objects.adb (ex 612 is an equipment terminal, for medkit we have 121 (avatar))
   */
 final case class UseItemMessage(avatar_guid : PlanetSideGUID,
-                                unk1 : Int,
+                                item_used_guid : Int,
                                 object_guid : PlanetSideGUID,
                                 unk2 : Long,
                                 unk3 : Boolean,
@@ -40,7 +40,7 @@ final case class UseItemMessage(avatar_guid : PlanetSideGUID,
 object UseItemMessage extends Marshallable[UseItemMessage] {
   implicit val codec : Codec[UseItemMessage] = (
     ("avatar_guid" | PlanetSideGUID.codec) ::
-      ("unk1" | uint16L) ::
+      ("item_used_guid" | uint16L) ::
       ("object_guid" | PlanetSideGUID.codec) ::
       ("unk2" | uint32L) ::
       ("unk3" | bool) ::

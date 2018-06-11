@@ -3,48 +3,17 @@ package net.psforever.objects.serverobject.terminals
 
 import net.psforever.objects.Player
 import net.psforever.objects.definition.VehicleDefinition
+import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.structures.Amenity
-import net.psforever.packet.game.{ItemTransactionMessage, PlanetSideGUID}
-import net.psforever.types.{TransactionType, Vector3}
+import net.psforever.packet.game.{ItemTransactionMessage, TriggeredSound}
+import net.psforever.types.TransactionType
 
 /**
   * A structure-owned server object that is a "terminal" that can be accessed for amenities and services.
   * @param tdef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
   */
-class Terminal(tdef : TerminalDefinition) extends Amenity {
-  /** An entry that maintains a reference to the `Player`, and the player's GUID and location when the message was received. */
-  private var hackedBy : Option[(Player, PlanetSideGUID, Vector3)] = None
-
-  def HackedBy : Option[(Player, PlanetSideGUID, Vector3)] = hackedBy
-
-  def HackedBy_=(agent : Player) : Option[(Player, PlanetSideGUID, Vector3)] = HackedBy_=(Some(agent))
-
-  /**
-    * Set the hack state of this object by recording important information about the player that caused it.
-    * Set the hack state if there is no current hack state.
-    * Override the hack state with a new hack state if the new user has different faction affiliation.
-    * @param agent a `Player`, or no player
-    * @return the player hack entry
-    */
-  def HackedBy_=(agent : Option[Player]) : Option[(Player, PlanetSideGUID, Vector3)] = {
-    hackedBy match {
-      case None =>
-        //set the hack state if there is no current hack state
-        if(agent.isDefined) {
-          hackedBy = Some(agent.get, agent.get.GUID, agent.get.Position)
-        }
-      case Some(_) =>
-        //clear the hack state
-        if(agent.isEmpty) {
-          hackedBy = None
-        }
-        //override the hack state with a new hack state if the new user has different faction affiliation
-        else if(agent.get.Faction != hackedBy.get._1.Faction) {
-          hackedBy = Some(agent.get, agent.get.GUID, agent.get.Position)
-        }
-    }
-    HackedBy
-  }
+class Terminal(tdef : TerminalDefinition) extends Amenity with Hackable {
+  HackSound = TriggeredSound.HackTerminal
 
   //the following fields and related methods are neither finalized nor integrated; GOTO Request
   private var health : Int = 100 //TODO not real health value

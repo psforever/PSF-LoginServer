@@ -16,8 +16,8 @@ object TriggeredSound extends Enumeration {
 
   val
   SpawnInTube,
-  Unknown1,
-  Hack,
+  HackTerminal,
+  HackVehicle,
   HackDoor,
   Unknown4,
   LockedOut,

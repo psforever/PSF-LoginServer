@@ -2,6 +2,7 @@
 package net.psforever.objects.serverobject.terminals
 
 import akka.actor.Actor
+import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
 
 /**
@@ -18,6 +19,11 @@ class ProximityTerminalControl(term : Terminal with ProximityUnit) extends Actor
   def receive : Receive = checkBehavior
     .orElse(proximityBehavior)
     .orElse {
+      case CommonMessages.Hack(player) =>
+        term.HackedBy = player
+        sender ! true
+      case CommonMessages.ClearHack() =>
+        term.HackedBy = None
       case _ => ;
     }
 
