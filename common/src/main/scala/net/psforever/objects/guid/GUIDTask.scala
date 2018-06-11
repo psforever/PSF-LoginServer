@@ -100,7 +100,7 @@ object GUIDTask {
     * @return a list of `TaskResolver.GiveTask` messages
     */
   def RegisterInventory(container : Container)(implicit guid : ActorRef) : List[TaskResolver.GiveTask] = {
-    container.Inventory.Items.values.map(entry => { RegisterEquipment(entry.obj)}).toList
+    container.Inventory.Items.map(entry => { RegisterEquipment(entry.obj)})
   }
 
   /**
@@ -257,7 +257,7 @@ object GUIDTask {
     * @return a list of `TaskResolver.GiveTask` messages
     */
   def UnregisterInventory(container : Container)(implicit guid : ActorRef) : List[TaskResolver.GiveTask] = {
-    container.Inventory.Items.values.map(entry => { UnregisterEquipment(entry.obj)}).toList
+    container.Inventory.Items.map(entry => { UnregisterEquipment(entry.obj)})
   }
 
   /**

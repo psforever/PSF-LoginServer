@@ -349,5 +349,42 @@ class InventoryTest extends Specification {
       out(1).Definition.Tile mustEqual InventoryTile.Tile22 //did not fit
       ok
     }
+
+    "insert items quickly (risk overwriting entries)" in {
+      val obj : GridInventory = GridInventory(6, 6)
+      (obj += 0 -> bullet9mmBox1) mustEqual true
+      val collision1 = obj.CheckCollisions(0,1,1)
+      obj.CheckCollisions(1,1,1) mustEqual collision1
+      obj.CheckCollisions(2,1,1) mustEqual collision1
+      obj.CheckCollisions(6,1,1) mustEqual collision1
+      obj.CheckCollisions(7,1,1) mustEqual collision1
+      obj.CheckCollisions(8,1,1) mustEqual collision1
+      obj.CheckCollisions(12,1,1) mustEqual collision1
+      obj.CheckCollisions(13,1,1) mustEqual collision1
+      obj.CheckCollisions(14,1,1) mustEqual collision1
+
+      (obj += 7 -> bullet9mmBox2) mustEqual false //can not insert overlapping object
+      obj.CheckCollisions(0,1,1) mustEqual collision1
+      obj.CheckCollisions(1,1,1) mustEqual collision1
+      obj.CheckCollisions(2,1,1) mustEqual collision1
+      obj.CheckCollisions(6,1,1) mustEqual collision1
+      obj.CheckCollisions(7,1,1) mustEqual collision1
+      obj.CheckCollisions(8,1,1) mustEqual collision1
+      obj.CheckCollisions(12,1,1) mustEqual collision1
+      obj.CheckCollisions(13,1,1) mustEqual collision1
+      obj.CheckCollisions(14,1,1) mustEqual collision1
+
+      obj.InsertQuickly(7, bullet9mmBox2) mustEqual true //overwrite
+      val collision2 = obj.CheckCollisions(7,1,1)
+      obj.CheckCollisions(0,1,1) mustEqual collision1
+      obj.CheckCollisions(1,1,1) mustEqual collision1
+      obj.CheckCollisions(2,1,1) mustEqual collision1
+      obj.CheckCollisions(6,1,1) mustEqual collision1
+      obj.CheckCollisions(7,1,1) mustEqual collision2
+      obj.CheckCollisions(8,1,1) mustEqual collision2
+      obj.CheckCollisions(12,1,1) mustEqual collision1
+      obj.CheckCollisions(13,1,1) mustEqual collision2
+      obj.CheckCollisions(14,1,1) mustEqual collision2
+    }
   }
 }

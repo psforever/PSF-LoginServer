@@ -39,7 +39,7 @@ object Loadout {
     InfantryLoadout(
       label,
       packageSimplifications(player.Holsters()),
-      packageSimplifications(player.Inventory.Items.values.toList),
+      packageSimplifications(player.Inventory.Items),
       player.ExoSuit,
       DetermineSubtype(player)
     )
@@ -55,7 +55,7 @@ object Loadout {
     VehicleLoadout(
       label,
       packageSimplifications(vehicle.Weapons.map({ case ((index, weapon)) => InventoryItem(weapon.Equipment.get, index) }).toList),
-      packageSimplifications(vehicle.Trunk.Items.values.toList),
+      packageSimplifications(vehicle.Trunk.Items),
       vehicle.Definition
     )
   }

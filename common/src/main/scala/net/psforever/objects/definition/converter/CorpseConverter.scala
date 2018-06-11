@@ -73,11 +73,10 @@ class CorpseConverter extends AvatarConverter {
     */
   private def MakeInventory(obj : Player) : List[InternalSlot] = {
     obj.Inventory.Items
-      .map({
-        case(_, item) =>
+      .map(item => {
           val equip : Equipment = item.obj
           BuildEquipment(item.start, equip)
-      }).toList
+      })
   }
 
   /**

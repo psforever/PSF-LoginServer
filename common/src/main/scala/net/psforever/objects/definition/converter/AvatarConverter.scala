@@ -249,11 +249,10 @@ object AvatarConverter {
     */
   private def MakeInventory(obj : Player) : List[InternalSlot] = {
     obj.Inventory.Items
-      .map({
-        case(_, item) =>
+      .map(item => {
           val equip : Equipment = item.obj
           InternalSlot(equip.Definition.ObjectId, equip.GUID, item.start, equip.Definition.Packet.DetailedConstructorData(equip).get)
-      }).toList
+      })
   }
 
   /**
