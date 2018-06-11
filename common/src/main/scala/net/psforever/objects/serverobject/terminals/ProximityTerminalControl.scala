@@ -21,7 +21,7 @@ class ProximityTerminalControl(term : Terminal with ProximityUnit) extends Actor
     .orElse {
       case CommonMessages.Hack(player) =>
         term.HackedBy = player
-
+        sender ! true
       case CommonMessages.ClearHack() =>
         term.HackedBy = None
       case _ => ;

@@ -3,6 +3,7 @@ package net.psforever.objects.serverobject.locks
 
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.structures.Amenity
+import net.psforever.packet.game.TriggeredSound
 
 /**
   * A structure-owned server object that is a "door lock."<br>
@@ -15,6 +16,7 @@ import net.psforever.objects.serverobject.structures.Amenity
   */
 class IFFLock(private val idef : IFFLockDefinition) extends Amenity with Hackable {
   def Definition : IFFLockDefinition = idef
+  HackSound = TriggeredSound.HackDoor
 }
 
 object IFFLock {

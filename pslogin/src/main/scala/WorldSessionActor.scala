@@ -45,8 +45,10 @@ import services.vehicle.VehicleAction.UnstowEquipment
 import services.vehicle.{VehicleAction, VehicleResponse, VehicleServiceMessage, VehicleServiceResponse}
 
 import scala.annotation.tailrec
+import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.Success
+import akka.pattern.ask
 
 class WorldSessionActor extends Actor with MDCContextAware {
   import WorldSessionActor._
@@ -2469,7 +2471,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
               case Some(tool : SimpleItem) =>
                 if(tool.Definition == GlobalDefinitions.remote_electronics_kit) {
                   progressBarValue = Some(-GetPlayerHackSpeed())
-                  self ! WorldSessionActor.ItemHacking(player, panel, tool.GUID, GetPlayerHackSpeed(), FinishHackingDoor(panel, 1114636288L))
+                  self ! WorldSessionActor.ItemHacking(player, panel, tool.GUID, GetPlayerHackSpeed(), FinishHacking(panel, 1114636288L))
                   log.info("Hacking a door~")
                 }
               case _ => ;
@@ -2531,7 +2533,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
               case Some(tool: SimpleItem) =>
                 if (tool.Definition == GlobalDefinitions.remote_electronics_kit) {
                   progressBarValue = Some(-GetPlayerHackSpeed())
-                  self ! WorldSessionActor.ItemHacking(player, obj, tool.GUID, GetPlayerHackSpeed(), FinishHackingLocker(obj, 3212836864L))
+                  self ! WorldSessionActor.ItemHacking(player, obj, tool.GUID, GetPlayerHackSpeed(), FinishHacking(obj, 3212836864L))
                   log.info("Hacking a locker")
                 }
               case _ => ;
@@ -2607,7 +2609,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                 case Some(tool: SimpleItem) =>
                   if (tool.Definition == GlobalDefinitions.remote_electronics_kit) {
                     progressBarValue = Some(-GetPlayerHackSpeed())
-                    self ! WorldSessionActor.ItemHacking(player, obj, tool.GUID, GetPlayerHackSpeed(), FinishHackingTerminal(obj, 3212836864L))
+                    self ! WorldSessionActor.ItemHacking(player, obj, tool.GUID, GetPlayerHackSpeed(), FinishHacking(obj, 3212836864L))
                     log.info("Hacking a terminal")
                   }
                 case _ => ;
@@ -3433,47 +3435,23 @@ class WorldSessionActor extends Actor with MDCContextAware {
   }
 
   /**
-    * The process of hacking the `Door` `IFFLock` is completed.
-    * Pass the message onto the lock and onto the local events system.
-    * @param target the `IFFLock` belonging to the door that is being hacked
+    * The process of hacking an object is completed
+    * Pass the message onto the hackable object and onto the local events system.
+    * @param target the `Hackable` object that has been hacked
     * @param unk na;
-    *            used by `HackingMessage` as `unk5`
+    *            used by `HackMessage` as `unk5`
     * @see `HackMessage`
     */
   //TODO add params here depending on which params in HackMessage are important
-  private def FinishHackingDoor(target : IFFLock, unk : Long)() : Unit = {
-    target.Actor ! CommonMessages.Hack(player)
-    localService ! LocalServiceMessage(continent.Id, LocalAction.TriggerSound(player.GUID, TriggeredSound.HackDoor, player.Position, 30, 0.49803925f))
+  private def FinishHacking(target : PlanetSideServerObject with Hackable, unk : Long)() : Unit = {
+    // Wait for the target actor to set the HackedBy property, otherwise LocalAction.HackTemporarily will not complete properly
+    import scala.concurrent.ExecutionContext.Implicits.global
+    ask(target.Actor, CommonMessages.Hack(player))(1 second).mapTo[Boolean].onComplete {
+      case Success(_) =>
+        localService ! LocalServiceMessage(continent.Id, LocalAction.TriggerSound(player.GUID, target.HackSound, player.Position, 30, 0.49803925f))
     localService ! LocalServiceMessage(continent.Id, LocalAction.HackTemporarily(player.GUID, continent, target, unk))
+      case scala.util.Failure(_) => log.warn(s"Hack message failed on target guid: ${target.GUID}")
   }
-
-  /**
-    * The process of hacking a terminal
-    * Pass the message onto the terminal and onto the local events system.
-    * @param target the `terminal` being hacked
-    * @param unk na;
-    *            used by `HackingMessage` as `unk5`
-    * @see `HackMessage`
-    */
-  //TODO add params here depending on which params in HackMessage are important
-  private def FinishHackingTerminal(target : Terminal, unk : Long)() : Unit = {
-    target.Actor ! CommonMessages.Hack(player)
-    localService ! LocalServiceMessage(continent.Id, LocalAction.TriggerSound(player.GUID, TriggeredSound.HackDoor, player.Position, 30, 0.49803925f))
-    localService ! LocalServiceMessage(continent.Id, LocalAction.HackTemporarily(player.GUID, continent, target, unk))
-  }
-
-  /**
-    * The process of hacking a locker
-    * Pass the message onto the locker and onto the local events system.
-    * @param target the `locker` being hacked
-    * @param unk na;
-    *            used by `HackingMessage` as `unk5`
-    * @see `HackMessage`
-    */
-  private def FinishHackingLocker(target : Locker, unk : Long)() : Unit = {
-    target.Actor ! CommonMessages.Hack(player)
-    localService ! LocalServiceMessage(continent.Id, LocalAction.TriggerSound(player.GUID, TriggeredSound.HackDoor, player.Position, 30, 0.49803925f))
-    localService ! LocalServiceMessage(continent.Id, LocalAction.HackTemporarily(player.GUID, continent, target, unk))
   }
 
 

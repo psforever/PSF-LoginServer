@@ -5,15 +5,15 @@ import net.psforever.objects.Player
 import net.psforever.objects.definition.VehicleDefinition
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.structures.Amenity
-import net.psforever.packet.game.{ItemTransactionMessage}
-import net.psforever.types.{TransactionType}
+import net.psforever.packet.game.{ItemTransactionMessage, TriggeredSound}
+import net.psforever.types.TransactionType
 
 /**
   * A structure-owned server object that is a "terminal" that can be accessed for amenities and services.
   * @param tdef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
   */
 class Terminal(tdef : TerminalDefinition) extends Amenity with Hackable {
-
+  HackSound = TriggeredSound.HackTerminal
 
   //the following fields and related methods are neither finalized nor integrated; GOTO Request
   private var health : Int = 100 //TODO not real health value

@@ -1,12 +1,14 @@
 package net.psforever.objects.serverobject.hackable
 
 import net.psforever.objects.Player
-import net.psforever.packet.game.PlanetSideGUID
+import net.psforever.packet.game.{PlanetSideGUID, TriggeredSound}
 import net.psforever.types.Vector3
 
 trait Hackable {
   /** An entry that maintains a reference to the `Player`, and the player's GUID and location when the message was received. */
   private var hackedBy : Option[(Player, PlanetSideGUID, Vector3)] = None
+
+  private var hackSound : TriggeredSound.Value = TriggeredSound.HackDoor
 
   def HackedBy : Option[(Player, PlanetSideGUID, Vector3)] = hackedBy
 
@@ -37,5 +39,11 @@ trait Hackable {
         }
     }
     HackedBy
+  }
+
+  def HackSound : TriggeredSound.Value = hackSound
+  def HackSound_=(sound : TriggeredSound.Value) : TriggeredSound.Value = {
+    hackSound = sound
+    hackSound
   }
 }

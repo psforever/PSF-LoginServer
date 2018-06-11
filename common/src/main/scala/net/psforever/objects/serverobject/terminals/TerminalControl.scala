@@ -18,7 +18,7 @@ class TerminalControl(term : Terminal) extends Actor with FactionAffinityBehavio
 
     case CommonMessages.Hack(player) =>
       term.HackedBy = player
-
+      sender ! true
     case CommonMessages.ClearHack() =>
       term.HackedBy = None
 

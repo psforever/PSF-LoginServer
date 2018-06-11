@@ -15,7 +15,7 @@ class LockerControl(locker : Locker) extends Actor with FactionAffinityBehavior.
   def receive : Receive = checkBehavior.orElse {
     case CommonMessages.Hack(player) =>
       locker.HackedBy = player
-
+      sender ! true
     case CommonMessages.ClearHack() =>
       locker.HackedBy = None
     case _ => ;
