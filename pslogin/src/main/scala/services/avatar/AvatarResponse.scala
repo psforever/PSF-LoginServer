@@ -18,7 +18,7 @@ object AvatarResponse {
   final case class ConcealPlayer() extends Response
   final case class EquipmentInHand(pkt : ObjectCreateMessage) extends Response
   final case class DropItem(pkt : ObjectCreateMessage) extends Response
-  final case class LoadPlayer(pdata : ConstructorData) extends Response
+  final case class LoadPlayer(pkt : ObjectCreateMessage) extends Response
   final case class ObjectDelete(item_guid : PlanetSideGUID, unk : Int) extends Response
   final case class ObjectHeld(slot : Int) extends Response
   final case class PlanetsideAttribute(attribute_type : Int, attribute_value : Long) extends Response

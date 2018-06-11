@@ -6,7 +6,7 @@ import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.{Avatar, GlobalDefinitions, Player}
 import net.psforever.objects.serverobject.terminals._
 import net.psforever.packet.game.PlanetSideGUID
-import net.psforever.types.{CharacterGender, PlanetSideEmpire}
+import net.psforever.types.{CharacterGender, CharacterVoice, PlanetSideEmpire}
 import objects.ActorTest
 
 import scala.concurrent.duration.Duration
@@ -34,7 +34,7 @@ class MedicalTerminalControl1Test extends ActorTest() {
   "ProximityTerminalControl sends a message to the first new user only" in {
     val (player, terminal) = ProximityTerminalControlTest.SetUpAgents(GlobalDefinitions.medical_terminal, PlanetSideEmpire.TR)
     player.GUID = PlanetSideGUID(10)
-    val player2 = Player(Avatar("someothertest", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0))
+    val player2 = Player(Avatar("someothertest", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
     player2.GUID = PlanetSideGUID(11)
 
     terminal.Actor ! CommonMessages.Use(player)
@@ -57,7 +57,7 @@ class MedicalTerminalControl2Test extends ActorTest() {
   "ProximityTerminalControl sends a message to the last user only" in {
     val (player, terminal) : (Player, ProximityTerminal) = ProximityTerminalControlTest.SetUpAgents(GlobalDefinitions.medical_terminal, PlanetSideEmpire.TR)
     player.GUID = PlanetSideGUID(10)
-    val player2 = Player(Avatar("someothertest", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0))
+    val player2 = Player(Avatar("someothertest", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
     player2.GUID = PlanetSideGUID(11)
 
     terminal.Actor ! CommonMessages.Use(player)
@@ -86,7 +86,7 @@ class MedicalTerminalControl3Test extends ActorTest() {
   "ProximityTerminalControl sends a message to the last user only (confirmation of test #2)" in {
     val (player, terminal) : (Player, ProximityTerminal) = ProximityTerminalControlTest.SetUpAgents(GlobalDefinitions.medical_terminal, PlanetSideEmpire.TR)
     player.GUID = PlanetSideGUID(10)
-    val player2 = Player(Avatar("someothertest", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0))
+    val player2 = Player(Avatar("someothertest", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
     player2.GUID = PlanetSideGUID(11)
 
     terminal.Actor ! CommonMessages.Use(player)
@@ -115,6 +115,6 @@ object ProximityTerminalControlTest {
   def SetUpAgents(tdef : MedicalTerminalDefinition, faction : PlanetSideEmpire.Value)(implicit system : ActorSystem) : (Player, ProximityTerminal) = {
     val terminal = ProximityTerminal(tdef)
     terminal.Actor = system.actorOf(Props(classOf[ProximityTerminalControl], terminal), "test-term")
-    (Player(Avatar("test", faction, CharacterGender.Male, 0, 0)), terminal)
+    (Player(Avatar("test", faction, CharacterGender.Male, 0, CharacterVoice.Mute)), terminal)
   }
 }

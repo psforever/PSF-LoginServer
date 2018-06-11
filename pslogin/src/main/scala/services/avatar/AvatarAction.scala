@@ -6,7 +6,7 @@ import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.inventory.Container
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.{PlanetSideGUID, PlayerStateMessageUpstream}
-import net.psforever.packet.game.objectcreate.ConstructorData
+import net.psforever.packet.game.objectcreate.{ConstructorData, ObjectCreateMessageParent}
 import net.psforever.types.ExoSuitType
 
 import scala.concurrent.duration.FiniteDuration
@@ -22,7 +22,7 @@ object AvatarAction {
   final case class ConcealPlayer(player_guid : PlanetSideGUID) extends Action
   final case class DropItem(player_guid : PlanetSideGUID, item : Equipment, zone : Zone) extends Action
   final case class EquipmentInHand(player_guid : PlanetSideGUID, target_guid : PlanetSideGUID, slot : Int, item : Equipment) extends Action
-  final case class LoadPlayer(player_guid : PlanetSideGUID, pdata : ConstructorData) extends Action
+  final case class LoadPlayer(player_guid : PlanetSideGUID, object_id : Int, target_guid : PlanetSideGUID, cdata : ConstructorData, pdata : Option[ObjectCreateMessageParent]) extends Action
   final case class ObjectDelete(player_guid : PlanetSideGUID, item_guid : PlanetSideGUID, unk : Int = 0) extends Action
   final case class ObjectHeld(player_guid : PlanetSideGUID, slot : Int) extends Action
   final case class PlanetsideAttribute(player_guid : PlanetSideGUID, attribute_type : Int, attribute_value : Long) extends Action

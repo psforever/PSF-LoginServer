@@ -21,16 +21,44 @@ import scala.annotation.tailrec
   * Generally, all seating is declared first - the driver and passengers and and gunners.
   * Following that are the mounted weapons and other utilities.
   * Trunk space starts being indexed afterwards.
-  * To keep it simple, infantry seating, mounted weapons, and utilities are stored separately.<br>
-  * <br>
-  * Vehicles maintain a `Map` of `Utility` objects in given index positions.
+  * To keep it simple, infantry seating, mounted weapons, and utilities are stored separately herein.
+  * The `Map` of `Utility` objects is given using the same inventory index positions.
   * Positive indices and zero are considered "represented" and must be assigned a globally unique identifier
   * and must be present in the containing vehicle's `ObjectCreateMessage` packet.
   * The index is the seat position, reflecting the position in the zero-index inventory.
   * Negative indices are expected to be excluded from this conversion.
-  * The value of the negative index does not have a specific meaning.
+  * The value of the negative index does not have a specific meaning.<br>
+  * <br>
+  * The importance of a vehicle's owner can not be overlooked.
+  * The owner is someone who can control who can sit in the vehicle's seats
+  * either through broad categorization or discriminating selection ("kicking")
+  * and who has access to and can allow access to the vehicle's trunk capacity.
+  * The driver is the only player that can access a vehicle's saved loadouts through a repair/rearm silo
+  * and can procure equipment from the said silo.
+  * The owner of a vehicle and the driver of a vehicle as mostly interchangeable terms for this reason
+  * and it can be summarized that the player who has access to the driver seat meets the qualifications for the "owner"
+  * so long as that player is the last person to have sat in that seat.
+  * All previous ownership information is replaced just as soon as someone else sits in the driver's seat.
+  * Ownership is also transferred as players die and respawn (from and to the same client)
+  * and when they leave a continent without taking the vehicle they currently own with them.
+  * (They also lose ownership when they leave the game, of course.)<br>
+  * <br>
+  * All seats have vehicle-level properties on top of their own internal properties.
+  * A seat has a glyph projected onto the ground when the vehicle is not moving
+  * that is used to mark where the seat can be accessed, as well as broadcasting the current access condition of the seat.
+  * As indicated previously, seats are composed into categories and the categories used to control access.
+  * The "driver" group has already been mentioned and is usually composed of a single seat, the "first" one.
+  * The driver seat is typically locked to the person who can sit in it - the owner - unless manually unlocked.
+  * Any seat besides the "driver" that has a weapon controlled from the seat is called a "gunner" seats.
+  * Any other seat besides the "driver" seat and "gunner" seats is called a "passenger" seat.
+  * All of these seats are typically unlocked normally.
+  * The "trunk" also counts as an access group even though it is not directly attached to a seat and starts as "locked."
+  * The categories all have their own glyphs,
+  * sharing a red cross glyph as a "can not access" state,
+  * and may also use their lack of visibility to express state.
+  * In terms of individual access, each seat can have its current occupant ejected, save for the driver's seat.
   * @see `Vehicle.EquipmentUtilities`
-  * @param vehicleDef the vehicle's definition entry';
+  * @param vehicleDef the vehicle's definition entry;
   *                   stores and unloads pertinent information about the `Vehicle`'s configuration;
   *                   used in the initialization process (`loadVehicleDefinition`)
   */

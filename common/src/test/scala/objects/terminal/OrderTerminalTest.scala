@@ -12,7 +12,7 @@ import org.specs2.mutable.Specification
 
 class OrderTerminalTest extends Specification {
   "Order_Terminal" should {
-    val player = Player(Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0))
+    val player = Player(Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
     val terminal = Terminal(GlobalDefinitions.order_terminal)
     terminal.Owner = new Building(0, Zone.Nowhere, StructureType.Building)
     terminal.Owner.Faction = PlanetSideEmpire.TR
@@ -79,7 +79,7 @@ class OrderTerminalTest extends Specification {
     }
 
     "player can retrieve an infantry loadout" in {
-      val avatar = Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+      val avatar = Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)
       val player2 = Player(avatar)
       player2.ExoSuit = ExoSuitType.Agile
       player2.Slot(0).Equipment = Tool(GlobalDefinitions.beamer)
@@ -99,7 +99,7 @@ class OrderTerminalTest extends Specification {
     }
 
     "player can not retrieve an infantry loadout from the wrong page" in {
-      val avatar = Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+      val avatar = Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)
       val player2 = Player(avatar)
       player2.ExoSuit = ExoSuitType.Agile
       player2.Slot(0).Equipment = Tool(GlobalDefinitions.beamer)
@@ -111,7 +111,7 @@ class OrderTerminalTest extends Specification {
     }
 
     "player can not retrieve an infantry loadout from the wrong line" in {
-      val avatar = Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+      val avatar = Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)
       val player2 = Player(avatar)
       player2.ExoSuit = ExoSuitType.Agile
       player2.Slot(0).Equipment = Tool(GlobalDefinitions.beamer)

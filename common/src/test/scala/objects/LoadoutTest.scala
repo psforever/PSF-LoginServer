@@ -3,12 +3,12 @@ package objects
 
 import net.psforever.objects._
 import net.psforever.objects.loadouts._
-import net.psforever.types.{CharacterGender, ExoSuitType, PlanetSideEmpire}
+import net.psforever.types.{CharacterGender, CharacterVoice, ExoSuitType, PlanetSideEmpire}
 import net.psforever.objects.GlobalDefinitions._
 import org.specs2.mutable._
 
 class LoadoutTest extends Specification {
-  val avatar = Avatar("TestCharacter", PlanetSideEmpire.VS, CharacterGender.Female, 41, 1)
+  val avatar = Avatar("TestCharacter", PlanetSideEmpire.VS, CharacterGender.Female, 41, CharacterVoice.Voice1)
 
   def CreatePlayer() : Player = {
     new Player(avatar) {

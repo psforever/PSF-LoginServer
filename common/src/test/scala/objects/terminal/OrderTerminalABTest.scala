@@ -47,14 +47,14 @@ class OrderTerminalABTest extends Specification {
     }
 
     "player can buy different armor ('lite_armor')" in {
-      val player = Player(Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0))
+      val player = Player(Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
       val msg = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Buy, 1, "lite_armor", 0, PlanetSideGUID(0))
 
       terminal.Request(player, msg) mustEqual Terminal.BuyExosuit(ExoSuitType.Agile)
     }
 
     "player can buy max armor ('trhev_antiaircraft')" in {
-      val player = Player(Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0))
+      val player = Player(Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
       val msg = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Buy, 1, "trhev_antiaircraft", 0, PlanetSideGUID(0))
 
       terminal.Request(player, msg) mustEqual Terminal.NoDeal()
@@ -62,7 +62,7 @@ class OrderTerminalABTest extends Specification {
     //TODO loudout tests
 
     "player can not load max loadout" in {
-      val avatar = Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+      val avatar = Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)
       val player = Player(avatar)
       avatar.SaveLoadout(player, "test1", 0)
       player.ExoSuit = ExoSuitType.MAX

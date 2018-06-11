@@ -68,15 +68,15 @@ class VehicleService5Test extends ActorTest {
   }
 }
 
-class AwarenessTest extends ActorTest {
+class OwnershipTest extends ActorTest {
   ServiceManager.boot(system)
 
   "VehicleService" should {
     "pass Awareness" in {
       val service = system.actorOf(Props[VehicleService], "v-service")
       service ! Service.Join("test")
-      service ! VehicleServiceMessage("test", VehicleAction.Awareness(PlanetSideGUID(10), PlanetSideGUID(11)))
-      expectMsg(VehicleServiceResponse("/test/Vehicle", PlanetSideGUID(10), VehicleResponse.Awareness(PlanetSideGUID(11))))
+      service ! VehicleServiceMessage("test", VehicleAction.Ownership(PlanetSideGUID(10), PlanetSideGUID(11)))
+      expectMsg(VehicleServiceResponse("/test/Vehicle", PlanetSideGUID(10), VehicleResponse.Ownership(PlanetSideGUID(11))))
     }
   }
 }

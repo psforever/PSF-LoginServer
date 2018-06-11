@@ -2,7 +2,7 @@
 package net.psforever.packet.game
 
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
-import net.psforever.types.{CharacterGender, PlanetSideEmpire}
+import net.psforever.types.{CharacterGender, CharacterVoice, PlanetSideEmpire}
 import scodec.{Attempt, Codec, Err}
 import scodec.codecs._
 import shapeless.{::, HNil}
@@ -12,7 +12,7 @@ import shapeless.{::, HNil}
   */
 final case class CharacterCreateRequestMessage(name : String,
                                                headId : Int,
-                                               voiceId : Int,
+                                               voiceId : CharacterVoice.Value,
                                                gender : CharacterGender.Value,
                                                empire : PlanetSideEmpire.Value)
   extends PlanetSideGamePacket {
@@ -22,10 +22,12 @@ final case class CharacterCreateRequestMessage(name : String,
 }
 
 object CharacterCreateRequestMessage extends Marshallable[CharacterCreateRequestMessage] {
+  private val character_voice_codec = PacketHelpers.createEnumerationCodec(CharacterVoice, uint8)
+
   implicit val codec : Codec[CharacterCreateRequestMessage] = (
     ("name" | PacketHelpers.encodedWideString) ::
       ("headId" | uint8L) ::
-      ("voiceId" | uint8L) ::
+      ("voiceId" | character_voice_codec) ::
       ("gender" | CharacterGender.codec) ::
       ("empire" | PlanetSideEmpire.codec)
     ).exmap[CharacterCreateRequestMessage] (

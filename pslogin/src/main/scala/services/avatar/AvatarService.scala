@@ -86,9 +86,15 @@ class AvatarService extends Actor {
               AvatarResponse.EquipmentInHand(ObjectCreateMessage(definition.ObjectId, item.GUID, containerData, objectData))
             )
           )
-        case AvatarAction.LoadPlayer(player_guid, pdata) =>
+        case AvatarAction.LoadPlayer(player_guid, object_id, target_guid, cdata, pdata) =>
+          val pkt = pdata match {
+            case Some(data) =>
+              ObjectCreateMessage(object_id, target_guid, data, cdata)
+            case None =>
+              ObjectCreateMessage(object_id, target_guid, cdata)
+          }
           AvatarEvents.publish(
-            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.LoadPlayer(pdata))
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.LoadPlayer(pkt))
           )
         case AvatarAction.ObjectDelete(player_guid, item_guid, unk) =>
           AvatarEvents.publish(

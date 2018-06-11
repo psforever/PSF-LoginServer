@@ -58,7 +58,7 @@ class Player(private val core : Avatar) extends PlanetSideGameObject with Factio
 
   def Head : Int = core.head
 
-  def Voice : Int = core.voice
+  def Voice : CharacterVoice.Value = core.voice
 
   def isAlive : Boolean = alive
 

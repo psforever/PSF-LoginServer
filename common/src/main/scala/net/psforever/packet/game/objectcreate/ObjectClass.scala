@@ -666,11 +666,19 @@ object ObjectClass {
       case ObjectClass.advanced_ace => ConstructorData.genericCodec(DetailedACEData.codec, "advanced ace")
       case ObjectClass.boomer_trigger => ConstructorData.genericCodec(DetailedBoomerTriggerData.codec, "boomer trigger")
       //other
-      case ObjectClass.avatar => ConstructorData.genericCodec(DetailedCharacterData.codec, "avatar")
+      case ObjectClass.avatar => ConstructorData.genericCodec(DetailedPlayerData.codec(false), "avatar")
       case ObjectClass.locker_container => ConstructorData.genericCodec(DetailedLockerContainerData.codec, "locker container")
 
       //failure case
       case _ => defaultFailureCodec(objClass)
+    }
+
+  def selectDataDroppedDetailedCodec(objClass : Int) : Codec[ConstructorData.genericPattern] =
+    (objClass : @switch) match {
+      //special cases
+      case ObjectClass.avatar => ConstructorData.genericCodec(DetailedPlayerData.codec(true), "avatar")
+      //defer to other codec selection
+      case _ => selectDataDetailedCodec(objClass)
     }
 
   /**
@@ -953,6 +961,7 @@ object ObjectClass {
       //other
       case ObjectClass.ams_order_terminal => ConstructorData.genericCodec(CommonTerminalData.codec, "terminal")
       case ObjectClass.ams_respawn_tube => ConstructorData.genericCodec(CommonTerminalData.codec, "terminal")
+      case ObjectClass.avatar => ConstructorData.genericCodec(PlayerData.codec(false), "avatar")
       case ObjectClass.bfr_rearm_terminal => ConstructorData.genericCodec(CommonTerminalData.codec, "terminal")
       case ObjectClass.implant_terminal_interface => ConstructorData.genericCodec(CommonTerminalData.codec, "implant terminal")
       case ObjectClass.lodestar_repair_terminal => ConstructorData.genericCodec(CommonTerminalData.codec, "terminal")
@@ -1268,7 +1277,7 @@ object ObjectClass {
       case ObjectClass.wasp => ConstructorData.genericCodec(VehicleData.codec(VehicleFormat.Variant), "vehicle")
       //other
       case ObjectClass.ams_respawn_tube => DroppedItemData.genericCodec(CommonTerminalData.codec, "terminal")
-      case ObjectClass.avatar => ConstructorData.genericCodec(CharacterData.codec, "avatar")
+      case ObjectClass.avatar => ConstructorData.genericCodec(PlayerData.codec(true), "avatar")
       case ObjectClass.capture_flag => ConstructorData.genericCodec(CaptureFlagData.codec, "capture flag")
       case ObjectClass.implant_terminal_interface => ConstructorData.genericCodec(CommonTerminalData.codec, "implant terminal")
       case ObjectClass.locker_container => ConstructorData.genericCodec(LockerContainerData.codec, "locker container")

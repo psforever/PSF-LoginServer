@@ -12,7 +12,7 @@ import org.specs2.mutable.Specification
 
 class CertTerminalTest extends Specification {
   "Cert_Terminal" should {
-    val player = Player(Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0))
+    val player = Player(Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
     val terminal = Terminal(GlobalDefinitions.cert_terminal)
     terminal.Owner = new Building(0, Zone.Nowhere, StructureType.Building)
     terminal.Owner.Faction = PlanetSideEmpire.TR

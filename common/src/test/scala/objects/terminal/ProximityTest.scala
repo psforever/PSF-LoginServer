@@ -7,7 +7,7 @@ import net.psforever.objects.serverobject.terminals.Terminal.TerminalMessage
 import net.psforever.objects.serverobject.terminals.{ProximityTerminal, ProximityTerminalControl, ProximityUnit, Terminal}
 import net.psforever.objects.{Avatar, GlobalDefinitions, Player}
 import net.psforever.packet.game.PlanetSideGUID
-import net.psforever.types.{CharacterGender, PlanetSideEmpire}
+import net.psforever.types.{CharacterGender, CharacterVoice, PlanetSideEmpire}
 import objects.ActorTest
 import org.specs2.mutable.Specification
 
@@ -70,7 +70,7 @@ class ProximityTerminalControl1bTest extends ActorTest {
     "send out a start message" in {
       val obj = ProximityTerminal(GlobalDefinitions.medical_terminal)
       obj.Actor = system.actorOf(Props(classOf[ProximityTerminalControl], obj), "prox-ctrl")
-      val player = Player(Avatar("TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0))
+      val player = Player(Avatar("TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
       player.GUID = PlanetSideGUID(10)
 
       assert(obj.NumberUsers == 0)
@@ -91,9 +91,9 @@ class ProximityTerminalControl2bTest extends ActorTest {
     "will not send out one start message unless first user" in {
       val obj = ProximityTerminal(GlobalDefinitions.medical_terminal)
       obj.Actor = system.actorOf(Props(classOf[ProximityTerminalControl], obj), "prox-ctrl")
-      val player1 = Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0))
+      val player1 = Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
       player1.GUID = PlanetSideGUID(10)
-      val player2 = Player(Avatar("TestCharacter2", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0))
+      val player2 = Player(Avatar("TestCharacter2", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
       player2.GUID = PlanetSideGUID(11)
       assert(obj.NumberUsers == 0)
 
@@ -114,7 +114,7 @@ class ProximityTerminalControl3bTest extends ActorTest {
     "send out a stop message" in {
       val obj = ProximityTerminal(GlobalDefinitions.medical_terminal)
       obj.Actor = system.actorOf(Props(classOf[ProximityTerminalControl], obj), "prox-ctrl")
-      val player = Player(Avatar("TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0))
+      val player = Player(Avatar("TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
       player.GUID = PlanetSideGUID(10)
 
       assert(obj.NumberUsers == 0)
@@ -138,9 +138,9 @@ class ProximityTerminalControl4bTest extends ActorTest {
     "will not send out one stop message until last user" in {
       val obj = ProximityTerminal(GlobalDefinitions.medical_terminal)
       obj.Actor = system.actorOf(Props(classOf[ProximityTerminalControl], obj), "prox-ctrl")
-      val player1 = Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0))
+      val player1 = Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
       player1.GUID = PlanetSideGUID(10)
-      val player2 = Player(Avatar("TestCharacter2", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0))
+      val player2 = Player(Avatar("TestCharacter2", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
       player2.GUID = PlanetSideGUID(11)
       assert(obj.NumberUsers == 0)
 

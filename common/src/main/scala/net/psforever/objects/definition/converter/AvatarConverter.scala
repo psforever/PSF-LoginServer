@@ -3,78 +3,127 @@ package net.psforever.objects.definition.converter
 
 import net.psforever.objects.{EquipmentSlot, Player}
 import net.psforever.objects.equipment.Equipment
-import net.psforever.packet.game.objectcreate.{BasicCharacterData, CharacterAppearanceData, CharacterData, Cosmetics, DetailedCharacterData, DrawnSlot, ImplantEffects, ImplantEntry, InternalSlot, InventoryData, PlacementData, RibbonBars, UniformStyle}
+import net.psforever.packet.game.objectcreate._
 import net.psforever.types.{GrenadeState, ImplantType}
 
 import scala.annotation.tailrec
 import scala.util.{Success, Try}
 
 class AvatarConverter extends ObjectCreateConverter[Player]() {
-  override def ConstructorData(obj : Player) : Try[CharacterData] = {
-    val MaxArmor = obj.MaxArmor
+  override def ConstructorData(obj : Player) : Try[PlayerData] = {
+    import AvatarConverter._
     Success(
-      CharacterData(
-        MakeAppearanceData(obj),
-        255 * obj.Health / obj.MaxHealth, //TODO not precise
-        if(MaxArmor == 0) { 0 } else { 255 * obj.Armor / MaxArmor }, //TODO not precise
-        DressBattleRank(obj),
-        DressCommandRank(obj),
-        recursiveMakeImplantEffects(obj.Implants.iterator),
-        MakeCosmetics(obj.BEP),
-        InventoryData(MakeHolsters(obj, BuildEquipment).sortBy(_.parentSlot)), //TODO is sorting necessary?
-        GetDrawnSlot(obj)
-      )
-    )
-    //TODO tidy this mess up
-  }
-
-  override def DetailedConstructorData(obj : Player) : Try[DetailedCharacterData] = {
-    Success(
-      DetailedCharacterData(
-        MakeAppearanceData(obj),
-        obj.BEP,
-        obj.CEP,
-        obj.MaxHealth,
-        obj.Health,
-        obj.Armor,
-        obj.MaxStamina,
-        obj.Stamina,
-        obj.Certifications.toList.sortBy(_.id), //TODO is sorting necessary?
-        MakeImplantEntries(obj),
-        List.empty[String], //TODO fte list
-        List.empty[String], //TODO tutorial list
-        MakeCosmetics(obj.BEP),
-        InventoryData((MakeHolsters(obj, BuildDetailedEquipment) ++ MakeFifthSlot(obj) ++ MakeInventory(obj)).sortBy(_.parentSlot)),
-        GetDrawnSlot(obj)
-      )
+      if(obj.VehicleSeated.isEmpty) {
+        PlayerData(
+          PlacementData(obj.Position, obj.Orientation, obj.Velocity),
+          MakeAppearanceData(obj),
+          MakeCharacterData(obj),
+          MakeInventoryData(obj),
+          GetDrawnSlot(obj)
+        )
+      }
+      else {
+        PlayerData(
+          MakeAppearanceData(obj),
+          MakeCharacterData(obj),
+          MakeInventoryData(obj),
+          DrawnSlot.None
+        )
+      }
     )
   }
 
+  override def DetailedConstructorData(obj : Player) : Try[DetailedPlayerData] = {
+    import AvatarConverter._
+    Success(
+      if(obj.VehicleSeated.isEmpty) {
+        DetailedPlayerData.apply(
+          PlacementData(obj.Position, obj.Orientation, obj.Velocity),
+          MakeAppearanceData(obj),
+          MakeDetailedCharacterData(obj),
+          MakeDetailedInventoryData(obj),
+          GetDrawnSlot(obj)
+        )
+      }
+      else {
+        DetailedPlayerData.apply(
+          MakeAppearanceData(obj),
+          MakeDetailedCharacterData(obj),
+          MakeDetailedInventoryData(obj),
+          DrawnSlot.None
+        )
+      }
+    )
+  }
+}
+
+object AvatarConverter {
   /**
     * Compose some data from a `Player` into a representation common to both `CharacterData` and `DetailedCharacterData`.
     * @param obj the `Player` game object
     * @return the resulting `CharacterAppearanceData`
     */
-  private def MakeAppearanceData(obj : Player) : CharacterAppearanceData = {
+  def MakeAppearanceData(obj : Player) : (Int)=>CharacterAppearanceData = {
     CharacterAppearanceData(
-      PlacementData(obj.Position, obj.Orientation, obj.Velocity),
       BasicCharacterData(obj.Name, obj.Faction, obj.Sex, obj.Head, obj.Voice),
-      0,
-      false,
-      false,
+      voice2 = 0,
+      black_ops = false,
+      jammered = false,
       obj.ExoSuit,
-      "",
-      0,
+      outfit_name = "",
+      outfit_logo = 0,
       obj.isBackpack,
-      obj.Orientation.y,
-      obj.FacingYawUpper,
-      true,
+      facingPitch = obj.Orientation.y,
+      facingYawUpper = obj.FacingYawUpper,
+      lfs = true,
       GrenadeState.None,
-      false,
-      false,
-      false,
+      is_cloaking = false,
+      charging_pose = false,
+      on_zipline = false,
       RibbonBars()
     )
+  }
+
+  def MakeCharacterData(obj : Player) : (Boolean,Boolean)=>CharacterData = {
+    val MaxArmor = obj.MaxArmor
+    CharacterData(
+      255 * obj.Health / obj.MaxHealth, //TODO not precise
+      if(MaxArmor == 0) {
+        0
+      }
+      else {
+        255 * obj.Armor / MaxArmor
+      }, //TODO not precise
+      DressBattleRank(obj),
+      DressCommandRank(obj),
+      recursiveMakeImplantEffects(obj.Implants.iterator),
+      MakeCosmetics(obj.BEP)
+    )
+  }
+
+  def MakeDetailedCharacterData(obj : Player) : (Option[Int])=>DetailedCharacterData = {
+    DetailedCharacterData(
+      obj.BEP,
+      obj.CEP,
+      obj.MaxHealth,
+      obj.Health,
+      obj.Armor,
+      obj.MaxStamina,
+      obj.Stamina,
+      obj.Certifications.toList.sortBy(_.id), //TODO is sorting necessary?
+      MakeImplantEntries(obj),
+      firstTimeEvents = List.empty[String], //TODO fte list
+      tutorials = List.empty[String], //TODO tutorial list
+      MakeCosmetics(obj.BEP)
+    )
+  }
+
+  def MakeInventoryData(obj : Player) : InventoryData = {
+    InventoryData(MakeHolsters(obj, BuildEquipment).sortBy(_.parentSlot))
+  }
+
+  def MakeDetailedInventoryData(obj : Player) : InventoryData = {
+    InventoryData((MakeHolsters(obj, BuildDetailedEquipment) ++ MakeFifthSlot(obj) ++ MakeInventory(obj)).sortBy(_.parentSlot))
   }
 
   /**
@@ -183,7 +232,7 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
     * @see `Cosmetics`
     * @return the `Cosmetics` options
     */
-  protected def MakeCosmetics(bep : Long) : Option[Cosmetics] =
+  def MakeCosmetics(bep : Long) : Option[Cosmetics] =
     if(DetailedCharacterData.isBR24(bep)) {
       Some(Cosmetics(false, false, false, false, false))
     }
@@ -206,6 +255,7 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
           InternalSlot(equip.Definition.ObjectId, equip.GUID, item.start, equip.Definition.Packet.DetailedConstructorData(equip).get)
       }).toList
   }
+
   /**
     * Given a player with equipment holsters, convert the contents of those holsters into converted-decoded packet data.
     * The decoded packet form is determined by the function in the parameters as both `0x17` and `0x18` conversions are available,
@@ -251,7 +301,7 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
     * @param equip the game object
     * @return the game object in decoded packet form
     */
-  protected def BuildDetailedEquipment(index : Int, equip : Equipment) : InternalSlot = {
+  def BuildDetailedEquipment(index : Int, equip : Equipment) : InternalSlot = {
     InternalSlot(equip.Definition.ObjectId, equip.GUID, index, equip.Definition.Packet.DetailedConstructorData(equip).get)
   }
 
@@ -289,7 +339,7 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
     * @param obj the `Player` game object
     * @return the holster's Enumeration value
     */
-  protected def GetDrawnSlot(obj : Player) : DrawnSlot.Value = {
+  def GetDrawnSlot(obj : Player) : DrawnSlot.Value = {
     try { DrawnSlot(obj.DrawnSlot) } catch { case _ : Exception => DrawnSlot.None }
   }
 }

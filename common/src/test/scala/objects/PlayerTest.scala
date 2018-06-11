@@ -6,19 +6,19 @@ import net.psforever.objects._
 import net.psforever.objects.definition.{ImplantDefinition, SimpleItemDefinition}
 import net.psforever.objects.equipment.EquipmentSize
 import net.psforever.packet.game.PlanetSideGUID
-import net.psforever.types.{CharacterGender, ExoSuitType, ImplantType, PlanetSideEmpire}
+import net.psforever.types._
 import org.specs2.mutable._
 
 import scala.util.Success
 
 class PlayerTest extends Specification {
-  def TestPlayer(name : String, faction : PlanetSideEmpire.Value, sex : CharacterGender.Value, head : Int, voice : Int) : Player = {
+  def TestPlayer(name : String, faction : PlanetSideEmpire.Value, sex : CharacterGender.Value, head : Int, voice : CharacterVoice.Value) : Player = {
     new Player(Avatar(name, faction, sex, head, voice))
   }
 
   "Player" should {
     "construct" in {
-      val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
+      val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       obj.isAlive mustEqual false
       obj.FacingYawUpper mustEqual 0
       obj.Jumping mustEqual false
@@ -36,27 +36,27 @@ class PlayerTest extends Specification {
     }
 
     "different players" in {
-      (TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5) ==
-        TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)) mustEqual true
+      (TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5) ==
+        TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)) mustEqual true
 
-      (TestPlayer("Chord1", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5) ==
-        TestPlayer("Chord2", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)) mustEqual false
+      (TestPlayer("Chord1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5) ==
+        TestPlayer("Chord2", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)) mustEqual false
 
-      (TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5) ==
-        TestPlayer("Chord", PlanetSideEmpire.NC, CharacterGender.Male, 0, 5)) mustEqual false
+      (TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5) ==
+        TestPlayer("Chord", PlanetSideEmpire.NC, CharacterGender.Male, 0, CharacterVoice.Voice5)) mustEqual false
 
-      (TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5) ==
-        TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Female, 0, 5)) mustEqual false
+      (TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5) ==
+        TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Female, 0, CharacterVoice.Voice5)) mustEqual false
 
-      (TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5) ==
-        TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 1, 5)) mustEqual false
+      (TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5) ==
+        TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 1, CharacterVoice.Voice5)) mustEqual false
 
-      (TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5) ==
-        TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 6)) mustEqual false
+      (TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5) ==
+        TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice4)) mustEqual false
     }
 
     "(re)spawn" in {
-      val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
+      val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       obj.isAlive mustEqual false
       obj.Health mustEqual 0
       obj.Stamina mustEqual 0
@@ -72,7 +72,7 @@ class PlayerTest extends Specification {
     }
 
     "will not (re)spawn if not dead" in {
-      val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
+      val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       obj.Spawn
       obj.Health mustEqual 100
       obj.Armor mustEqual 50
@@ -88,7 +88,7 @@ class PlayerTest extends Specification {
     }
 
     "can die" in {
-      val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
+      val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       obj.Spawn
       obj.Armor = 35 //50 -> 35
       obj.isAlive mustEqual true
@@ -103,7 +103,7 @@ class PlayerTest extends Specification {
     }
 
     "can not become a backpack if alive" in {
-      val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
+      val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       obj.Spawn
       obj.isAlive mustEqual true
       obj.isBackpack mustEqual false
@@ -113,7 +113,7 @@ class PlayerTest extends Specification {
     }
 
     "can become a backpack" in {
-      val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
+      val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       obj.isAlive mustEqual false
       obj.isBackpack mustEqual false
       obj.Release
@@ -122,7 +122,7 @@ class PlayerTest extends Specification {
     }
 
     "set new maximum values (health, stamina)" in {
-      val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
+      val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       obj.MaxHealth mustEqual 100
       obj.MaxStamina mustEqual 100
       obj.MaxHealth = 123
@@ -133,7 +133,7 @@ class PlayerTest extends Specification {
     }
 
     "set new values (health, armor, stamina) but only when alive" in {
-      val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
+      val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       obj.Health = 23
       obj.Armor = 34
       obj.Stamina = 45
@@ -154,7 +154,7 @@ class PlayerTest extends Specification {
     }
 
     "has visible slots" in {
-      val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
+      val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       obj.VisibleSlots mustEqual Set(0,2,4) //Standard
       obj.ExoSuit = ExoSuitType.Agile
       obj.VisibleSlots mustEqual Set(0,1,2,4)
@@ -167,7 +167,7 @@ class PlayerTest extends Specification {
     }
 
     "init (Standard Exo-Suit)" in {
-      val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
+      val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       obj.ExoSuit mustEqual ExoSuitType.Standard
       obj.Slot(0).Size mustEqual EquipmentSize.Pistol
       obj.Slot(1).Size mustEqual EquipmentSize.Blocked
@@ -181,7 +181,7 @@ class PlayerTest extends Specification {
 
     "draw equipped holsters only" in {
       val wep = SimpleItem(SimpleItemDefinition(149))
-      val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
+      val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       obj.Slot(1).Size = EquipmentSize.Pistol
       obj.Slot(1).Equipment = wep
       obj.DrawnSlot mustEqual Player.HandsDownSlot
@@ -194,7 +194,7 @@ class PlayerTest extends Specification {
     "remember the last drawn holster" in {
       val wep1 = SimpleItem(SimpleItemDefinition(149))
       val wep2 = SimpleItem(SimpleItemDefinition(149))
-      val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
+      val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       obj.Slot(0).Size = EquipmentSize.Pistol
       obj.Slot(0).Equipment = wep1
       obj.Slot(1).Size = EquipmentSize.Pistol
@@ -233,7 +233,7 @@ class PlayerTest extends Specification {
 
     "hold something in their free hand" in {
       val wep = SimpleItem(SimpleItemDefinition(149))
-      val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
+      val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       obj.Slot(Player.FreeHandSlot).Equipment = wep
 
       obj.Slot(Player.FreeHandSlot).Equipment.get.Definition.ObjectId mustEqual 149
@@ -241,14 +241,14 @@ class PlayerTest extends Specification {
 
     "provide an invalid hand that can not hold anything" in {
       val wep = SimpleItem(SimpleItemDefinition(149))
-      val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
+      val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       obj.Slot(-1).Equipment = wep
 
       obj.Slot(-1).Equipment mustEqual None
     }
 
     "search for the smallest available slot in which to store equipment" in {
-      val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
+      val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       obj.Inventory.Resize(3,3) //fits one item
 
       obj.Fit(Tool(GlobalDefinitions.beamer)) mustEqual Some(0)
@@ -266,7 +266,7 @@ class PlayerTest extends Specification {
     }
 
     "can use their free hand to hold things" in {
-      val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
+      val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       val ammo = AmmoBox(GlobalDefinitions.bullet_9mm)
       obj.FreeHand.Equipment mustEqual None
 
@@ -275,12 +275,12 @@ class PlayerTest extends Specification {
     }
 
     "can access the player's locker-space" in {
-      val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
+      val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       obj.Slot(5).Equipment.get.isInstanceOf[LockerContainer] mustEqual true
     }
 
     "can find equipment" in {
-      val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
+      val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       obj.Slot(0).Equipment = {
         val item = Tool(beamer)
         item.GUID = PlanetSideGUID(1)
@@ -316,7 +316,7 @@ class PlayerTest extends Specification {
     }
 
     "does equipment collision checking (are we already holding something there?)" in {
-      val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
+      val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       val item1 = Tool(beamer)
       val item2 = Kit(medkit)
       val item3 = AmmoBox(GlobalDefinitions.bullet_9mm)
@@ -356,7 +356,7 @@ class PlayerTest extends Specification {
     }
 
     "battle experience point values of the avatar" in {
-      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
+      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       val player = Player(avatar)
 
       player.BEP mustEqual avatar.BEP
@@ -365,7 +365,7 @@ class PlayerTest extends Specification {
     }
 
     "command experience point values of the avatar" in {
-      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
+      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       val player = Player(avatar)
 
       player.CEP mustEqual avatar.CEP
@@ -374,14 +374,14 @@ class PlayerTest extends Specification {
     }
 
     "can get a quick summary of implant slots (default)" in {
-      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
+      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       val player = Player(avatar)
 
       player.Implants mustEqual Array.empty
     }
 
     "can get a quick summary of implant slots (two unlocked, one installed)" in {
-      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
+      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       val player = Player(avatar)
       val temp = new ImplantDefinition(1)
       avatar.Implants(0).Unlocked = true
@@ -404,7 +404,7 @@ class PlayerTest extends Specification {
     }
 
     "can get a quick summary of implant slots (all unlocked, first two installed)" in {
-      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
+      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       val player = Player(avatar)
       avatar.Implants(0).Unlocked = true
       avatar.InstallImplant(new ImplantDefinition(1))
@@ -435,7 +435,7 @@ class PlayerTest extends Specification {
     }
 
     "seat in a vehicle" in {
-      val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
+      val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       obj.VehicleSeated mustEqual None
       obj.VehicleSeated = PlanetSideGUID(65)
       obj.VehicleSeated mustEqual Some(PlanetSideGUID(65))
@@ -444,7 +444,7 @@ class PlayerTest extends Specification {
     }
 
     "own in a vehicle" in {
-      val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
+      val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       obj.VehicleOwned mustEqual None
       obj.VehicleOwned = PlanetSideGUID(65)
       obj.VehicleOwned mustEqual Some(PlanetSideGUID(65))
@@ -453,21 +453,21 @@ class PlayerTest extends Specification {
     }
 
     "remember what zone he is in" in {
-      val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
+      val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       obj.Continent mustEqual "home2"
       obj.Continent = "ugd01"
       obj.Continent mustEqual "ugd01"
     }
 
     "special is typically normal and can not be changed from normal" in {
-      val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
+      val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       obj.UsingSpecial mustEqual SpecialExoSuitDefinition.Mode.Normal
       obj.UsingSpecial = SpecialExoSuitDefinition.Mode.Shielded
       obj.UsingSpecial mustEqual SpecialExoSuitDefinition.Mode.Normal
     }
 
     "a TR MAX can change its special to Overdrive or Anchored" in {
-      val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
+      val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       obj.ExoSuit = ExoSuitType.MAX
       obj.UsingSpecial mustEqual SpecialExoSuitDefinition.Mode.Normal
       obj.UsingSpecial = SpecialExoSuitDefinition.Mode.Anchored
@@ -482,7 +482,7 @@ class PlayerTest extends Specification {
     }
 
     "an NC MAX can change its special to Shielded" in {
-      val obj = TestPlayer("Chord", PlanetSideEmpire.NC, CharacterGender.Male, 0, 5)
+      val obj = TestPlayer("Chord", PlanetSideEmpire.NC, CharacterGender.Male, 0, CharacterVoice.Voice5)
       obj.ExoSuit = ExoSuitType.MAX
       obj.UsingSpecial mustEqual SpecialExoSuitDefinition.Mode.Normal
       obj.UsingSpecial = SpecialExoSuitDefinition.Mode.Shielded
@@ -492,13 +492,13 @@ class PlayerTest extends Specification {
     }
 
     "one faction can not use the other's specials" in {
-      val objtr = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
+      val objtr = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       objtr.ExoSuit = ExoSuitType.MAX
       objtr.UsingSpecial mustEqual SpecialExoSuitDefinition.Mode.Normal
       objtr.UsingSpecial = SpecialExoSuitDefinition.Mode.Shielded
       objtr.UsingSpecial mustEqual SpecialExoSuitDefinition.Mode.Normal
 
-      val objnc = TestPlayer("Chord", PlanetSideEmpire.NC, CharacterGender.Male, 0, 5)
+      val objnc = TestPlayer("Chord", PlanetSideEmpire.NC, CharacterGender.Male, 0, CharacterVoice.Voice5)
       objnc.ExoSuit = ExoSuitType.MAX
       objnc.UsingSpecial mustEqual SpecialExoSuitDefinition.Mode.Normal
       objnc.UsingSpecial = SpecialExoSuitDefinition.Mode.Overdrive
@@ -508,7 +508,7 @@ class PlayerTest extends Specification {
     }
 
     "changing exo-suit type resets the special to Normal (and changing back does not revert it again)" in {
-      val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
+      val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       obj.ExoSuit = ExoSuitType.MAX
       obj.UsingSpecial mustEqual SpecialExoSuitDefinition.Mode.Normal
       obj.UsingSpecial = SpecialExoSuitDefinition.Mode.Anchored
@@ -522,7 +522,7 @@ class PlayerTest extends Specification {
     }
 
     "toString" in {
-      val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
+      val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       obj.toString mustEqual "TR Chord 0/100 0/50"
 
       obj.GUID = PlanetSideGUID(455)

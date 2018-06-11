@@ -3,6 +3,7 @@ package net.psforever.objects.serverobject.pad.process
 
 import akka.actor.{ActorRef, Props}
 import net.psforever.objects.serverobject.pad.{VehicleSpawnControl, VehicleSpawnPad}
+import net.psforever.types.Vector3
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -26,27 +27,33 @@ class VehicleSpawnControlServerVehicleOverride(pad : VehicleSpawnPad) extends Ve
   def receive : Receive = {
     case VehicleSpawnControl.Process.ServerVehicleOverride(entry) =>
       val vehicle = entry.vehicle
-      val pad_railed = pad.Railed
-      if(pad_railed) {
-        Continent.VehicleEvents ! VehicleSpawnPad.DetachFromRails(vehicle, pad, Continent.Id)
-      }
-      if(vehicle.Health == 0) {
-        trace(s"vehicle was already destroyed; but, everything is fine")
-        if(pad_railed) {
-          Continent.VehicleEvents ! VehicleSpawnPad.ResetSpawnPad(pad, Continent.Id)
+      val vehicleFailState = vehicle.Health == 0 || vehicle.Position == Vector3.Zero
+      val driverFailState = !entry.driver.isAlive || entry.driver.Continent != Continent.Id || (if(vehicle.HasGUID) { !entry.driver.VehicleSeated.contains(vehicle.GUID) } else { true })
+      if(vehicleFailState || driverFailState) {
+        if(vehicleFailState) {
+          trace(s"vehicle was already destroyed")
+          if(pad.Railed) {
+            Continent.VehicleEvents ! VehicleSpawnPad.ResetSpawnPad(pad, Continent.Id)
+          }
         }
+        else {
+          trace(s"driver is not ready")
+          if(pad.Railed) {
+            Continent.VehicleEvents ! VehicleSpawnPad.DetachFromRails(vehicle, pad, Continent.Id)
+          }
+        }
+        Continent.VehicleEvents ! VehicleSpawnPad.RevealPlayer(entry.driver.GUID, Continent.Id)
         vehicleGuide ! VehicleSpawnControl.Process.FinalClearance(entry)
-      }
-      else if(entry.sendTo != ActorRef.noSender && entry.driver.isAlive && entry.driver.Continent == Continent.Id && entry.driver.VehicleSeated.contains(vehicle.GUID)) {
-        trace(s"telling ${entry.driver.Name} that the server is assuming control of the ${vehicle.Definition.Name}")
-        entry.sendTo ! VehicleSpawnPad.ServerVehicleOverrideStart(vehicle, pad)
-        context.system.scheduler.scheduleOnce(3000 milliseconds, vehicleGuide, VehicleSpawnControl.Process.StartGuided(entry))
       }
       else {
-        if(pad_railed) {
-          Continent.VehicleEvents ! VehicleSpawnPad.ResetSpawnPad(pad, Continent.Id)
+        if(pad.Railed) {
+          Continent.VehicleEvents ! VehicleSpawnPad.DetachFromRails(vehicle, pad, Continent.Id)
         }
-        vehicleGuide ! VehicleSpawnControl.Process.FinalClearance(entry)
+        if(entry.sendTo != ActorRef.noSender) {
+          trace(s"telling ${entry.driver.Name} that the server is assuming control of the ${vehicle.Definition.Name}")
+          entry.sendTo ! VehicleSpawnPad.ServerVehicleOverrideStart(vehicle, pad)
+          context.system.scheduler.scheduleOnce(3000 milliseconds, vehicleGuide, VehicleSpawnControl.Process.StartGuided(entry))
+        }
       }
 
     case msg @ (VehicleSpawnControl.ProcessControl.Reminder | VehicleSpawnControl.ProcessControl.GetNewOrder) =>

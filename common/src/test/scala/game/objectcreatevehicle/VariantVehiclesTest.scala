@@ -22,14 +22,14 @@ class VariantVehiclesTest extends Specification {
           data.isDefined mustEqual true
           data.get.isInstanceOf[VehicleData] mustEqual true
           val switchblade = data.get.asInstanceOf[VehicleData]
-          switchblade.basic.pos.coord.x mustEqual 6531.961f
-          switchblade.basic.pos.coord.y mustEqual 1872.1406f
-          switchblade.basic.pos.coord.z mustEqual 24.734375f
-          switchblade.basic.pos.orient.x mustEqual 0f
-          switchblade.basic.pos.orient.y mustEqual 0f
-          switchblade.basic.pos.orient.z mustEqual 357.1875f
-          switchblade.basic.faction mustEqual PlanetSideEmpire.VS
-          switchblade.basic.unk mustEqual 2
+          switchblade.pos.coord.x mustEqual 6531.961f
+          switchblade.pos.coord.y mustEqual 1872.1406f
+          switchblade.pos.coord.z mustEqual 24.734375f
+          switchblade.pos.orient.x mustEqual 0f
+          switchblade.pos.orient.y mustEqual 0f
+          switchblade.pos.orient.z mustEqual 357.1875f
+          switchblade.faction mustEqual PlanetSideEmpire.VS
+          switchblade.unk1 mustEqual 2
           switchblade.health mustEqual 255
           switchblade.driveState mustEqual DriveState.Mobile
           switchblade.inventory.isDefined mustEqual true
@@ -61,12 +61,13 @@ class VariantVehiclesTest extends Specification {
 
     "encode (switchblade)" in {
       val obj = VehicleData(
-        CommonFieldData(
-          PlacementData(6531.961f, 1872.1406f, 24.734375f, 0f, 0f, 357.1875f),
-          PlanetSideEmpire.VS,
-          2
-        ),
-        0,
+        PlacementData(6531.961f, 1872.1406f, 24.734375f, 0f, 0f, 357.1875f),
+        PlanetSideEmpire.VS,
+        false, false,
+        2,
+        false, false,
+        PlanetSideGUID(0),
+        false,
         255,
         false, false,
         DriveState.Mobile,
