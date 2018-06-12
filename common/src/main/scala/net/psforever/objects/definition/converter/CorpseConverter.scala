@@ -3,23 +3,35 @@ package net.psforever.objects.definition.converter
 
 import net.psforever.objects.{EquipmentSlot, Player}
 import net.psforever.objects.equipment.Equipment
-import net.psforever.packet.game.objectcreate.{BasicCharacterData, CharacterAppearanceData, CharacterData, DetailedCharacterData, DrawnSlot, InternalSlot, InventoryData, PlacementData, RibbonBars}
-import net.psforever.types.{CharacterGender, GrenadeState, Vector3}
+import net.psforever.packet.game.objectcreate._
+import net.psforever.types.{CharacterGender, CharacterVoice, GrenadeState, Vector3}
 
 import scala.annotation.tailrec
 import scala.util.{Failure, Success, Try}
 
 class CorpseConverter extends AvatarConverter {
-  override def ConstructorData(obj : Player) : Try[CharacterData] =
+  override def ConstructorData(obj : Player) : Try[PlayerData] =
     Failure(new Exception("CorpseConverter should not be used to generate CharacterData"))
 
-  override def DetailedConstructorData(obj : Player) : Try[DetailedCharacterData] = {
+  override def DetailedConstructorData(obj : Player) : Try[DetailedPlayerData] = {
     Success(
-      DetailedCharacterData(
+      DetailedPlayerData.apply(
+        PlacementData(obj.Position, Vector3(0,0, obj.Orientation.z)),
         MakeAppearanceData(obj),
-        0, 0, 0, 0, 0, 0, 0,
-        Nil, Nil, Nil, Nil,
-        None,
+        DetailedCharacterData(
+          bep = 0,
+          cep = 0,
+          healthMax = 0,
+          health = 0,
+          armor = 0,
+          staminaMax = 0,
+          stamina = 0,
+          certs = Nil,
+          implants = Nil,
+          firstTimeEvents = Nil,
+          tutorials = Nil,
+          cosmetics = None
+        ),
         InventoryData((MakeHolsters(obj) ++ MakeInventory(obj)).sortBy(_.parentSlot)),
         DrawnSlot.None
       )
@@ -31,24 +43,23 @@ class CorpseConverter extends AvatarConverter {
     * @param obj the `Player` game object
     * @return the resulting `CharacterAppearanceData`
     */
-  private def MakeAppearanceData(obj : Player) : CharacterAppearanceData = {
+  private def MakeAppearanceData(obj : Player) : (Int)=>CharacterAppearanceData = {
     CharacterAppearanceData(
-      PlacementData(obj.Position, Vector3(0,0, obj.Orientation.z)),
-      BasicCharacterData(obj.Name, obj.Faction, CharacterGender.Male, 0, 0),
-      0,
-      false,
-      false,
+      BasicCharacterData(obj.Name, obj.Faction, CharacterGender.Male, 0, CharacterVoice.Mute),
+      voice2 = 0,
+      black_ops = false,
+      jammered = false,
       obj.ExoSuit,
-      "",
-      0,
-      true,
-      obj.Orientation.y, //TODO is this important?
-      0,
-      true,
+      outfit_name = "",
+      outfit_logo = 0,
+      backpack = true,
+      facingPitch = obj.Orientation.y, //TODO is this important?
+      facingYawUpper = 0,
+      lfs = true,
       GrenadeState.None,
-      false,
-      false,
-      false,
+      is_cloaking = false,
+      charging_pose = false,
+      on_zipline = false,
       RibbonBars()
     )
   }
@@ -62,11 +73,10 @@ class CorpseConverter extends AvatarConverter {
     */
   private def MakeInventory(obj : Player) : List[InternalSlot] = {
     obj.Inventory.Items
-      .map({
-        case(_, item) =>
+      .map(item => {
           val equip : Equipment = item.obj
           BuildEquipment(item.start, equip)
-      }).toList
+      })
   }
 
   /**

@@ -19,13 +19,18 @@ final case class ActionResultMessage(successful : Boolean,
 }
 
 object ActionResultMessage extends Marshallable[ActionResultMessage] {
-  def apply() : ActionResultMessage = {
-    ActionResultMessage(true, None)
-  }
+  /**
+    * A message where the result is always a pass.
+    * @return an `ActionResultMessage` object
+    */
+  def Pass : ActionResultMessage = ActionResultMessage(true, None)
 
-  def apply(error : Long) : ActionResultMessage = {
-    ActionResultMessage(false, Some(error))
-  }
+  /**
+    * A message where the result is always a failure.
+    * @param error the error code
+    * @return an `ActionResultMessage` object
+    */
+  def Fail(error : Long) : ActionResultMessage = ActionResultMessage(false, Some(error))
 
   implicit val codec : Codec[ActionResultMessage] = (
     ("successful" | bool) >>:~ { res =>

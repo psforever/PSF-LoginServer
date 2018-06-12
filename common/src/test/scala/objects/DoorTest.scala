@@ -7,13 +7,13 @@ import net.psforever.objects.serverobject.doors.{Door, DoorControl}
 import net.psforever.objects.serverobject.structures.{Building, StructureType}
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.{PlanetSideGUID, UseItemMessage}
-import net.psforever.types.{CharacterGender, PlanetSideEmpire, Vector3}
+import net.psforever.types.{CharacterGender, CharacterVoice, PlanetSideEmpire, Vector3}
 import org.specs2.mutable.Specification
 
 import scala.concurrent.duration.Duration
 
 class DoorTest extends Specification {
-  val player = Player(Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0))
+  val player = Player(Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
 
   "Door" should {
     "construct" in {
@@ -123,6 +123,6 @@ object DoorControlTest {
     door.Actor = system.actorOf(Props(classOf[DoorControl], door), "door")
     door.Owner = new Building(0, Zone.Nowhere, StructureType.Building)
     door.Owner.Faction = faction
-    (Player(Avatar("test", faction, CharacterGender.Male, 0, 0)), door)
+    (Player(Avatar("test", faction, CharacterGender.Male, 0, CharacterVoice.Mute)), door)
   }
 }

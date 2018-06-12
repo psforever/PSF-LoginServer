@@ -50,10 +50,10 @@ class ZoneActor(zone : Zone) extends Actor {
       zone.Population forward msg
 
     //frwd to Ground Actor
-    case msg @ Zone.DropItemOnGround =>
+    case msg @ Zone.Ground.DropItem =>
       zone.Ground forward msg
 
-    case msg @ Zone.GetItemOnGround =>
+    case msg @ Zone.Ground.PickupItem =>
       zone.Ground forward msg
 
     //frwd to Vehicle Actor

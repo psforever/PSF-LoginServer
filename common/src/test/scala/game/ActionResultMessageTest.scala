@@ -38,7 +38,7 @@ class ActionResultMessageTest extends Specification {
   }
 
   "encode (pass, minimal)" in {
-    val msg = ActionResultMessage()
+    val msg = ActionResultMessage.Pass
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string_pass
@@ -52,7 +52,7 @@ class ActionResultMessageTest extends Specification {
   }
 
   "encode (fail, minimal)" in {
-    val msg = ActionResultMessage(1)
+    val msg = ActionResultMessage.Fail(1)
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string_fail

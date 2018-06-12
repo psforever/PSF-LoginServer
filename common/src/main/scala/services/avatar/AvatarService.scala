@@ -2,12 +2,15 @@
 package services.avatar
 
 import akka.actor.{Actor, ActorRef, Props}
-import services.{GenericEventBus, Service}
-import services.avatar.support.CorpseRemovalActor
+import net.psforever.packet.game.ObjectCreateMessage
+import net.psforever.packet.game.objectcreate.{DroppedItemData, ObjectCreateMessageParent, PlacementData}
+import services.avatar.support.{CorpseRemovalActor, DroppedItemRemover}
+import services.{GenericEventBus, RemoverActor, Service}
 
 class AvatarService extends Actor {
   private val undertaker : ActorRef = context.actorOf(Props[CorpseRemovalActor], "corpse-removal-agent")
-  undertaker ! "startup"
+  private val janitor = context.actorOf(Props[DroppedItemRemover], "item-remover-agent")
+  //undertaker ! "startup"
 
   private [this] val log = org.log4s.getLogger
 
@@ -62,17 +65,36 @@ class AvatarService extends Actor {
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.ConcealPlayer())
           )
-        case AvatarAction.EquipmentInHand(player_guid, target_guid, slot, obj) =>
-          AvatarEvents.publish(
-            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.EquipmentInHand(target_guid, slot, obj))
+        case AvatarAction.DropItem(player_guid, item, zone) =>
+          val definition = item.Definition
+          val objectData = DroppedItemData(
+            PlacementData(item.Position, item.Orientation),
+            definition.Packet.ConstructorData(item).get
           )
-        case AvatarAction.EquipmentOnGround(player_guid, pos, orient, item_id, item_guid, item_data) =>
+          janitor forward RemoverActor.AddTask(item, zone)
           AvatarEvents.publish(
-            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.EquipmentOnGround(pos, orient, item_id, item_guid, item_data))
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid,
+              AvatarResponse.DropItem(ObjectCreateMessage(definition.ObjectId, item.GUID, objectData))
+            )
           )
-        case AvatarAction.LoadPlayer(player_guid, pdata) =>
+        case AvatarAction.EquipmentInHand(player_guid, target_guid, slot, item) =>
+          val definition = item.Definition
+          val containerData = ObjectCreateMessageParent(target_guid, slot)
+          val objectData = definition.Packet.ConstructorData(item).get
           AvatarEvents.publish(
-            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.LoadPlayer(pdata))
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid,
+              AvatarResponse.EquipmentInHand(ObjectCreateMessage(definition.ObjectId, item.GUID, containerData, objectData))
+            )
+          )
+        case AvatarAction.LoadPlayer(player_guid, object_id, target_guid, cdata, pdata) =>
+          val pkt = pdata match {
+            case Some(data) =>
+              ObjectCreateMessage(object_id, target_guid, data, cdata)
+            case None =>
+              ObjectCreateMessage(object_id, target_guid, cdata)
+          }
+          AvatarEvents.publish(
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.LoadPlayer(pkt))
           )
         case AvatarAction.ObjectDelete(player_guid, item_guid, unk) =>
           AvatarEvents.publish(
@@ -90,11 +112,24 @@ class AvatarService extends Actor {
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", guid, AvatarResponse.PlayerState(msg, spectator, weapon))
           )
+        case AvatarAction.PickupItem(player_guid, zone, target, slot, item, unk) =>
+          janitor forward RemoverActor.ClearSpecific(List(item), zone)
+          AvatarEvents.publish(
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, {
+              val itemGUID = item.GUID
+              if(target.VisibleSlots.contains(slot)) {
+                val definition = item.Definition
+                val containerData = ObjectCreateMessageParent(target.GUID, slot)
+                val objectData = definition.Packet.ConstructorData(item).get
+                AvatarResponse.EquipmentInHand(ObjectCreateMessage(definition.ObjectId, itemGUID, containerData, objectData))
+              }
+              else {
+                AvatarResponse.ObjectDelete(itemGUID, unk)
+              }
+            })
+          )
         case AvatarAction.Release(player, zone, time) =>
-          undertaker ! (time match {
-            case Some(t) => CorpseRemovalActor.AddCorpse(player, zone, t)
-            case None => CorpseRemovalActor.AddCorpse(player, zone)
-          })
+          undertaker forward RemoverActor.AddTask(player, zone, time)
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", player.GUID, AvatarResponse.Release(player))
           )
@@ -115,52 +150,13 @@ class AvatarService extends Actor {
     }
 
     //message to Undertaker
-    case AvatarServiceMessage.RemoveSpecificCorpse(corpses) =>
-      undertaker ! AvatarServiceMessage.RemoveSpecificCorpse( corpses.filter(corpse => {corpse.HasGUID && corpse.isBackpack}) )
+    case AvatarServiceMessage.Corpse(msg) =>
+      undertaker forward msg
+
+    case AvatarServiceMessage.Ground(msg) =>
+      janitor forward msg
 
       /*
-    case AvatarService.PlayerStateMessage(msg) =>
-      //      log.info(s"NEW: ${m}")
-      val playerOpt: Option[PlayerAvatar] = PlayerMasterList.getPlayer(msg.avatar_guid)
-      if (playerOpt.isDefined) {
-        val player: PlayerAvatar = playerOpt.get
-        AvatarEvents.publish(AvatarMessage("/Avatar/" + player.continent, msg.avatar_guid,
-          AvatarServiceReply.PlayerStateMessage(msg.pos, msg.vel, msg.facingYaw, msg.facingPitch, msg.facingYawUpper, msg.is_crouching, msg.is_jumping, msg.jump_thrust, msg.is_cloaked)
-        ))
-
-      }
-    case AvatarService.LoadMap(msg) =>
-      val playerOpt: Option[PlayerAvatar] = PlayerMasterList.getPlayer(msg.guid)
-      if (playerOpt.isDefined) {
-        val player: PlayerAvatar = playerOpt.get
-        AvatarEvents.publish(AvatarMessage("/Avatar/" + player.continent, PlanetSideGUID(msg.guid),
-          AvatarServiceReply.LoadMap()
-        ))
-      }
-    case AvatarService.unLoadMap(msg) =>
-      val playerOpt: Option[PlayerAvatar] = PlayerMasterList.getPlayer(msg.guid)
-      if (playerOpt.isDefined) {
-        val player: PlayerAvatar = playerOpt.get
-        AvatarEvents.publish(AvatarMessage("/Avatar/" + player.continent, PlanetSideGUID(msg.guid),
-          AvatarServiceReply.unLoadMap()
-        ))
-      }
-    case AvatarService.ObjectHeld(msg) =>
-      val playerOpt: Option[PlayerAvatar] = PlayerMasterList.getPlayer(msg.guid)
-      if (playerOpt.isDefined) {
-        val player: PlayerAvatar = playerOpt.get
-        AvatarEvents.publish(AvatarMessage("/Avatar/" + player.continent, PlanetSideGUID(msg.guid),
-          AvatarServiceReply.ObjectHeld()
-        ))
-      }
-    case AvatarService.PlanetsideAttribute(guid, attribute_type, attribute_value) =>
-      val playerOpt: Option[PlayerAvatar] = PlayerMasterList.getPlayer(guid)
-      if (playerOpt.isDefined) {
-        val player: PlayerAvatar = playerOpt.get
-        AvatarEvents.publish(AvatarMessage("/Avatar/" + player.continent, guid,
-          AvatarServiceReply.PlanetSideAttribute(attribute_type, attribute_value)
-        ))
-      }
     case AvatarService.PlayerStateShift(killer, guid) =>
       val playerOpt: Option[PlayerAvatar] = PlayerMasterList.getPlayer(guid)
       if (playerOpt.isDefined) {
@@ -185,16 +181,8 @@ class AvatarService extends Actor {
           AvatarServiceReply.DestroyDisplay(source_guid)
         ))
       }
-    case AvatarService.ChangeWeapon(unk1, sessionId) =>
-      val playerOpt: Option[PlayerAvatar] = PlayerMasterList.getPlayer(sessionId)
-      if (playerOpt.isDefined) {
-        val player: PlayerAvatar = playerOpt.get
-        AvatarEvents.publish(AvatarMessage("/Avatar/" + player.continent, PlanetSideGUID(player.guid),
-          AvatarServiceReply.ChangeWeapon(unk1)
-        ))
-      }
       */
     case msg =>
-      log.info(s"Unhandled message $msg from $sender")
+      log.warn(s"Unhandled message $msg from $sender")
   }
 }

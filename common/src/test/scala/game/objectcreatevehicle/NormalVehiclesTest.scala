@@ -24,16 +24,12 @@ class NormalVehiclesTest extends Specification {
           data.isDefined mustEqual true
           data.get.isInstanceOf[VehicleData] mustEqual true
           val fury = data.get.asInstanceOf[VehicleData]
-          fury.basic.pos.coord.x mustEqual 6531.961f
-          fury.basic.pos.coord.y mustEqual 1872.1406f
-          fury.basic.pos.coord.z mustEqual 24.734375f
-          fury.basic.pos.orient.x mustEqual 0f
-          fury.basic.pos.orient.y mustEqual 0f
-          fury.basic.pos.orient.z mustEqual 357.1875f
-          fury.basic.pos.vel.isDefined mustEqual false
-          fury.basic.faction mustEqual PlanetSideEmpire.VS
-          fury.basic.unk mustEqual 2
-          fury.basic.player_guid mustEqual PlanetSideGUID(0)
+          fury.pos.coord mustEqual Vector3(6531.961f, 1872.1406f,24.734375f)
+          fury.pos.orient mustEqual Vector3(0, 0, 357.1875f)
+          fury.pos.vel mustEqual None
+          fury.faction mustEqual PlanetSideEmpire.VS
+          fury.unk1 mustEqual 2
+          fury.owner_guid mustEqual PlanetSideGUID(0)
           fury.health mustEqual 255
           //
           fury.inventory.isDefined mustEqual true
@@ -69,16 +65,14 @@ class NormalVehiclesTest extends Specification {
           data.isDefined mustEqual true
           data.get.isInstanceOf[VehicleData] mustEqual true
           val lightning = data.get.asInstanceOf[VehicleData]
-          lightning.basic.pos.coord.x mustEqual 3674.8438f
-          lightning.basic.pos.coord.y mustEqual 2726.789f
-          lightning.basic.pos.coord.z mustEqual 91.15625f
-          lightning.basic.pos.orient.x mustEqual 0f
-          lightning.basic.pos.orient.y mustEqual 0f
-          lightning.basic.pos.orient.z mustEqual 90.0f
-          lightning.basic.faction mustEqual PlanetSideEmpire.VS
-          lightning.basic.unk mustEqual 2
-          lightning.basic.player_guid mustEqual PlanetSideGUID(0)
+          lightning.pos.coord mustEqual Vector3(3674.8438f, 2726.789f, 91.15625f)
+          lightning.pos.orient mustEqual Vector3(0, 0, 90)
+          lightning.pos.vel mustEqual None
+          lightning.faction mustEqual PlanetSideEmpire.VS
+          lightning.unk1 mustEqual 2
+          lightning.owner_guid mustEqual PlanetSideGUID(0)
           lightning.health mustEqual 255
+
           lightning.inventory.isDefined mustEqual true
           lightning.inventory.get.contents.size mustEqual 1
           val mounting = lightning.inventory.get.contents.head
@@ -120,22 +114,23 @@ class NormalVehiclesTest extends Specification {
           data.isDefined mustEqual true
           data.get.isInstanceOf[VehicleData] mustEqual true
           val deliverer = data.get.asInstanceOf[VehicleData]
-          deliverer.basic.pos.coord.x mustEqual 6531.961f
-          deliverer.basic.pos.coord.y mustEqual 1872.1406f
-          deliverer.basic.pos.coord.z mustEqual 24.734375f
-          deliverer.basic.pos.orient.x mustEqual 0f
-          deliverer.basic.pos.orient.y mustEqual 0f
-          deliverer.basic.pos.orient.z mustEqual 357.1875f
-          deliverer.basic.faction mustEqual PlanetSideEmpire.NC
-          deliverer.basic.unk mustEqual 2
-          deliverer.basic.player_guid mustEqual PlanetSideGUID(0)
-          deliverer.unk1 mustEqual 0
+          deliverer.pos.coord mustEqual Vector3(6531.961f, 1872.1406f, 24.734375f)
+          deliverer.pos.orient mustEqual Vector3(0, 0, 357.1875f)
+          deliverer.pos.vel mustEqual None
+          deliverer.faction mustEqual PlanetSideEmpire.NC
+          deliverer.owner_guid mustEqual PlanetSideGUID(0)
           deliverer.health mustEqual 255
-          deliverer.unk2 mustEqual false
           deliverer.driveState mustEqual DriveState.State7
-          deliverer.unk3 mustEqual true
-          deliverer.unk4 mustEqual None
-          deliverer.unk5 mustEqual false
+          deliverer.jammered mustEqual false
+          deliverer.destroyed mustEqual false
+          deliverer.cloak mustEqual false
+          deliverer.unk1 mustEqual 2
+          deliverer.unk2 mustEqual false
+          deliverer.unk3 mustEqual false
+          deliverer.unk4 mustEqual false
+          deliverer.unk5 mustEqual true
+          deliverer.unk6 mustEqual false
+          deliverer.vehicle_format_data mustEqual None
           deliverer.inventory.isDefined mustEqual true
           deliverer.inventory.get.contents.size mustEqual 2
           //0
@@ -179,11 +174,13 @@ class NormalVehiclesTest extends Specification {
 
     "encode (fury)" in {
       val obj = VehicleData(
-        CommonFieldData(
-          PlacementData(6531.961f, 1872.1406f, 24.734375f, 0f, 0f, 357.1875f),
-          PlanetSideEmpire.VS, 2
-        ),
-        0,
+        PlacementData(6531.961f, 1872.1406f, 24.734375f, 0f, 0f, 357.1875f),
+        PlanetSideEmpire.VS,
+        false, false,
+        2,
+        false, false,
+        PlanetSideGUID(0),
+        false,
         255,
         false, false,
         DriveState.Mobile,
@@ -203,11 +200,13 @@ class NormalVehiclesTest extends Specification {
 
     "encode (lightning)" in {
       val obj = VehicleData(
-        CommonFieldData(
-          PlacementData(3674.8438f, 2726.789f, 91.15625f, 0f, 0f, 90.0f),
-          PlanetSideEmpire.VS, 2
-        ),
-        0,
+        PlacementData(3674.8438f, 2726.789f, 91.15625f, 0f, 0f, 90.0f),
+        PlanetSideEmpire.VS,
+        false, false,
+        2,
+        false, false,
+        PlanetSideGUID(0),
+        false,
         255,
         false, false,
         DriveState.Mobile,
@@ -227,11 +226,13 @@ class NormalVehiclesTest extends Specification {
 
     "encode (medium transport)" in {
       val obj = VehicleData(
-        CommonFieldData(
-          PlacementData(6531.961f, 1872.1406f, 24.734375f, 0f, 0f, 357.1875f),
-          PlanetSideEmpire.NC, 2
-        ),
-        0,
+        PlacementData(6531.961f, 1872.1406f, 24.734375f, 0f, 0f, 357.1875f),
+        PlanetSideEmpire.NC,
+        false, false,
+        2,
+        false, false,
+        PlanetSideGUID(0),
+        false,
         255,
         false, false,
         DriveState.State7,

@@ -6,6 +6,7 @@ import net.psforever.objects.inventory.InventoryTile
 import net.psforever.objects.vehicles.UtilityType
 
 import scala.collection.mutable
+import scala.concurrent.duration._
 
 /**
   * An object definition system used to construct and retain the parameters of various vehicles.
@@ -29,6 +30,7 @@ class VehicleDefinition(objectId : Int) extends ObjectDefinition(objectId) {
   private var canCloak : Boolean = false
   private var canBeOwned : Boolean = true
   private var serverVehicleOverrideSpeeds : (Int, Int) = (0, 0)
+  private var deconTime : Option[FiniteDuration] = None
   private var maximumCapacitor : Int = 0
   Name = "vehicle"
   Packet = VehicleDefinition.converter
@@ -82,6 +84,18 @@ class VehicleDefinition(objectId : Int) extends ObjectDefinition(objectId) {
   def DeployTime_=(dtime : Int) : Int =  {
     deploymentTime_Deploy = dtime
     DeployTime
+  }
+
+  def DeconstructionTime : Option[FiniteDuration] = deconTime
+
+  def DeconstructionTime_=(time : FiniteDuration) : Option[FiniteDuration] = {
+    deconTime_=(Some(time))
+    DeconstructionTime
+  }
+
+  def DeconstructionTime_=(time : Option[FiniteDuration]) : Option[FiniteDuration] = {
+    deconTime = time
+    DeconstructionTime
   }
 
   def UndeployTime : Int = deploymentTime_Undeploy

@@ -4,6 +4,7 @@ package net.psforever.objects.serverobject.pad.process
 import akka.actor.{ActorRef, Props}
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.pad.{VehicleSpawnControl, VehicleSpawnPad}
+import net.psforever.types.Vector3
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -46,7 +47,7 @@ class VehicleSpawnControlSeatDriver(pad : VehicleSpawnPad) extends VehicleSpawnC
         trace("driver to be made seated in vehicle")
         entry.sendTo ! VehicleSpawnPad.StartPlayerSeatedInVehicle(entry.vehicle, pad)
         entry.vehicle.Actor.tell(Mountable.TryMount(driver, 0), entry.sendTo) //entry.sendTo should handle replies to TryMount
-        context.system.scheduler.scheduleOnce(1000 milliseconds, self, VehicleSpawnControlSeatDriver.AwaitDriverInSeat(entry))
+        context.system.scheduler.scheduleOnce(1500 milliseconds, self, VehicleSpawnControlSeatDriver.AwaitDriverInSeat(entry))
       }
       else {
         trace("driver lost; vehicle stranded on pad")
@@ -55,11 +56,18 @@ class VehicleSpawnControlSeatDriver(pad : VehicleSpawnPad) extends VehicleSpawnC
 
     case VehicleSpawnControlSeatDriver.AwaitDriverInSeat(entry) =>
       val driver = entry.driver
-      if(entry.sendTo == ActorRef.noSender || driver.Continent != Continent.Id) {
+      if(entry.sendTo == ActorRef.noSender || !driver.isAlive || driver.Continent != Continent.Id) {
         trace("driver lost, but operations can continue")
         vehicleOverride ! VehicleSpawnControl.Process.ServerVehicleOverride(entry)
       }
+      else if(entry.vehicle.Health == 0 || entry.vehicle.Position == Vector3.Zero) {
+        //skip ahead for cleanup
+        vehicleOverride ! VehicleSpawnControl.Process.ServerVehicleOverride(entry)
+      }
       else if(driver.isAlive && driver.VehicleSeated.isEmpty) {
+        if(pad.Railed) {
+          Continent.VehicleEvents ! VehicleSpawnPad.DetachFromRails(entry.vehicle, pad, Continent.Id)
+        }
         context.system.scheduler.scheduleOnce(100 milliseconds, self, VehicleSpawnControlSeatDriver.AwaitDriverInSeat(entry))
       }
       else {

@@ -2,6 +2,7 @@
 package net.psforever.objects.serverobject.mblocker
 
 import akka.actor.Actor
+import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
 
 /**
@@ -12,6 +13,11 @@ class LockerControl(locker : Locker) extends Actor with FactionAffinityBehavior.
   def FactionObject : FactionAffinity = locker
 
   def receive : Receive = checkBehavior.orElse {
+    case CommonMessages.Hack(player) =>
+      locker.HackedBy = player
+      sender ! true
+    case CommonMessages.ClearHack() =>
+      locker.HackedBy = None
     case _ => ;
   }
 }

@@ -58,7 +58,7 @@ class Player(private val core : Avatar) extends PlanetSideGameObject with Factio
 
   def Head : Int = core.head
 
-  def Voice : Int = core.voice
+  def Voice : CharacterVoice.Value = core.voice
 
   def isAlive : Boolean = alive
 
@@ -129,7 +129,12 @@ class Player(private val core : Avatar) extends PlanetSideGameObject with Factio
 
   def MaxArmor : Int = exosuit.MaxArmor
 
-  def VisibleSlots : Set[Int] = if(exosuit.SuitType == ExoSuitType.MAX) { Set(0) } else { Set(0,1,2,3,4) }
+  def VisibleSlots : Set[Int] = if(exosuit.SuitType == ExoSuitType.MAX) {
+    Set(0)
+  }
+  else {
+    (0 to 4).filterNot(index => holsters(index).Size == EquipmentSize.Blocked).toSet
+  }
 
   override def Slot(slot : Int) : EquipmentSlot = {
     if(inventory.Offset <= slot && slot <= inventory.LastIndex) {

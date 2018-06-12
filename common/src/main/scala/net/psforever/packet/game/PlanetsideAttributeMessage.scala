@@ -124,6 +124,7 @@ import scodec.codecs._
   * `77 - Cavern Facility Captures. Value is the number of captures`<br>
   * `78 - Cavern Kills. Value is the number of kills`<br>
   * `106 - Custom Head`<br>
+  * `116 - Apply colour to REK beam and REK icon above players (0 = yellow, 1 = red, 2 = purple, 3 = blue)`<br>
   * Client to Server : <br>
   * `106 - Custom Head`<br>
   * <br>
@@ -132,7 +133,7 @@ import scodec.codecs._
   * `11 - Gunner seat(s) permissions (same)`<br>
   * `12 - Passenger seat(s) permissions (same)`<br>
   * `13 - Trunk permissions (same)`<br>
-  * `21 - Asserts first time event eligibility / makes owner if no owner is assigned`<br>
+  * `21 - Declare a player the vehicle's owner, by globally unique identifier`<br>
   * `22 - Toggles gunner and passenger mount points (1 = hides, 0 = reveals; this also locks their permissions)`<br>
   * `54 -  Vehicle EMP? Plays sound as if vehicle had been hit by EMP`<br>
   * `68 - Vehicle shield health`<br>
