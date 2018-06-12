@@ -4,8 +4,8 @@ package services.vehicle.support
 import net.psforever.objects.Vehicle
 import net.psforever.objects.guid.{GUIDTask, TaskResolver}
 import net.psforever.objects.zones.Zone
-import services.vehicle.{VehicleAction, VehicleServiceMessage}
 import services.{RemoverActor, Service}
+import services.vehicle.{VehicleAction, VehicleServiceMessage}
 
 import scala.concurrent.duration._
 
