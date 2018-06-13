@@ -128,7 +128,7 @@ class LoginSessionActor extends Actor with MDCContextAware {
         if(token.isDefined)
           log.info(s"New login UN:$username Token:${token.get}. $clientVersion")
         else
-          log.info(s"New login UN:$username PW:$password. $clientVersion")
+          log.info(s"New login UN:$username. $clientVersion")
 
         // This is temporary until a schema has been developed
         //val loginSucceeded = accountLookup(username, password.getOrElse(token.get))

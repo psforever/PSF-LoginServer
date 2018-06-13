@@ -7,8 +7,9 @@ import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.mblocker.Locker
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
 import net.psforever.objects.serverobject.structures.{Building, FoundationBuilder, StructureType, WarpGate}
-import net.psforever.objects.serverobject.terminals.Terminal
+import net.psforever.objects.serverobject.terminals.{ProximityTerminal, Terminal}
 import net.psforever.objects.serverobject.tube.SpawnTube
+import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.types.Vector3
 
 object Maps {
@@ -100,6 +101,8 @@ object Maps {
       LocalObject(1186, Locker.Constructor)
       LocalObject(1187, Locker.Constructor)
       LocalObject(1188, Locker.Constructor)
+      LocalObject(1492, ProximityTerminal.Constructor(medical_terminal)) //lobby
+      LocalObject(1494, ProximityTerminal.Constructor(medical_terminal)) //kitchen
       LocalObject(1564, Terminal.Constructor(order_terminal))
       LocalObject(1568, Terminal.Constructor(order_terminal))
       LocalObject(1569, Terminal.Constructor(order_terminal))
@@ -108,9 +111,22 @@ object Maps {
       LocalObject(1576, Terminal.Constructor(order_terminal))
       LocalObject(1577, Terminal.Constructor(order_terminal))
       LocalObject(1578, Terminal.Constructor(order_terminal))
+      LocalObject(1744, ProximityTerminal.Constructor(pad_landing)) //air pad A
+      LocalObject(1745, Terminal.Constructor(pad_landing)) //air pad A
+      LocalObject(1747, ProximityTerminal.Constructor(pad_landing)) //air pad B
+      LocalObject(1748, Terminal.Constructor(pad_landing)) //air pad B
+      LocalObject(1756, ProximityTerminal.Constructor(pad_landing)) //air pad C
+      LocalObject(1757, Terminal.Constructor(pad_landing)) //air pad C
+      LocalObject(1765, ProximityTerminal.Constructor(pad_landing)) //air pad D
+      LocalObject(1766, Terminal.Constructor(pad_landing)) //air pad D
       LocalObject(2145, SpawnTube.Constructor(Vector3(3980.4062f, 4252.7656f, 257.5625f), Vector3(0, 0, 90)))
       LocalObject(2146, SpawnTube.Constructor(Vector3(3980.4062f, 4259.992f, 257.5625f), Vector3(0, 0, 90)))
       LocalObject(2147, SpawnTube.Constructor(Vector3(3980.4062f, 4267.3047f, 257.5625f), Vector3(0, 0, 90)))
+      LocalObject(2049, ProximityTerminal.Constructor(repair_silo)) //repair terminal A
+      LocalObject(2050, Terminal.Constructor(repair_silo)) //rearm terminal A
+      LocalObject(2061, ProximityTerminal.Constructor(repair_silo)) //repair terminal B
+      LocalObject(2062, Terminal.Constructor(repair_silo)) //rearm terminal B
+      LocalObject(2094, ResourceSilo.Constructor) // NTU Silo
       LocalObject(2239, Terminal.Constructor(spawn_terminal))
       LocalObject(2244, Terminal.Constructor(spawn_terminal))
       LocalObject(2245, Terminal.Constructor(spawn_terminal))
@@ -124,14 +140,15 @@ object Maps {
       LocalObject(2323, Door.Constructor) //spawn tube door
       LocalObject(2324, Door.Constructor) //spawn tube door
       LocalObject(2419, Terminal.Constructor(ground_vehicle_terminal))
-      LocalObject(500,
+      LocalObject(1479,
         VehicleSpawnPad.Constructor(Vector3(3962.0f, 4334.0f, 267.75f), Vector3(0f, 0f, 180.0f))
-      ) //TODO guid not correct
+      )
       LocalObject(224, Terminal.Constructor(dropship_vehicle_terminal))
-      LocalObject(501,
-        VehicleSpawnPad.Constructor(Vector3(4012.3594f, 4364.8047f, 271.90625f), Vector3(0f, 0f, 180.0f))
-      ) //TODO guid not correct
+      LocalObject(223,
+        VehicleSpawnPad.Constructor(Vector3(4012.3594f, 4364.8047f, 271.90625f), Vector3(0f, 0f, 0f))
+      )
       ObjectToBuilding(222, 2)
+      ObjectToBuilding(223, 2)
       ObjectToBuilding(224, 2)
       ObjectToBuilding(370, 2)
       ObjectToBuilding(371, 2)
@@ -200,6 +217,9 @@ object Maps {
       ObjectToBuilding(1186, 2)
       ObjectToBuilding(1187, 2)
       ObjectToBuilding(1188, 2)
+      ObjectToBuilding(1492, 2)
+      ObjectToBuilding(1494, 2)
+      ObjectToBuilding(1479, 2)
       ObjectToBuilding(1564, 2)
       ObjectToBuilding(1568, 2)
       ObjectToBuilding(1569, 2)
@@ -208,6 +228,19 @@ object Maps {
       ObjectToBuilding(1576, 2)
       ObjectToBuilding(1577, 2)
       ObjectToBuilding(1578, 2)
+      ObjectToBuilding(1744, 2)
+      ObjectToBuilding(1745, 2)
+      ObjectToBuilding(1747, 2)
+      ObjectToBuilding(1748, 2)
+      ObjectToBuilding(1756, 2)
+      ObjectToBuilding(1757, 2)
+      ObjectToBuilding(1765, 2)
+      ObjectToBuilding(1766, 2)
+      ObjectToBuilding(2049, 2)
+      ObjectToBuilding(2050, 2)
+      ObjectToBuilding(2061, 2)
+      ObjectToBuilding(2062, 2)
+      ObjectToBuilding(2094, 2)
       ObjectToBuilding(2145, 2)
       ObjectToBuilding(2146, 2)
       ObjectToBuilding(2147, 2)
@@ -224,8 +257,6 @@ object Maps {
       ObjectToBuilding(2323, 2)
       ObjectToBuilding(2324, 2)
       ObjectToBuilding(2419, 2)
-      ObjectToBuilding(500, 2)
-      ObjectToBuilding(501, 2)
       DoorToLock(375, 863)
       DoorToLock(376, 860)
       DoorToLock(384, 866)
@@ -240,8 +271,8 @@ object Maps {
       DoorToLock(638, 882)
       DoorToLock(642, 884)
       DoorToLock(715, 751)
-      TerminalToSpawnPad(224, 501)
-      TerminalToSpawnPad(2419, 500)
+      TerminalToSpawnPad(224, 223)
+      TerminalToSpawnPad(2419, 1479)
     }
 
     def Building38() : Unit = {
@@ -347,6 +378,10 @@ object Maps {
       LocalObject(1591, Terminal.Constructor(order_terminal))
       LocalObject(1592, Terminal.Constructor(order_terminal))
       LocalObject(1593, Terminal.Constructor(order_terminal))
+      LocalObject(1846, ProximityTerminal.Constructor(pad_landing)) //air pad S
+      LocalObject(1847, Terminal.Constructor(pad_landing)) //air pad S
+      LocalObject(1849, ProximityTerminal.Constructor(pad_landing)) //air pad N
+      LocalObject(1850, Terminal.Constructor(pad_landing)) //air pad N
       LocalObject(2156, SpawnTube.Constructor(respawn_tube_tower, Vector3(4364.633f, 3994.125f, 228.1875f), Vector3(0, 0, 90)))
       LocalObject(2157, SpawnTube.Constructor(respawn_tube_tower, Vector3(4364.633f, 3977.7266f, 228.1875f), Vector3(0, 0, 90)))
       LocalObject(2333, Door.Constructor) //spawn tube door
@@ -370,6 +405,10 @@ object Maps {
       ObjectToBuilding(1591, 49)
       ObjectToBuilding(1592, 49)
       ObjectToBuilding(1593, 49)
+      ObjectToBuilding(1846, 49)
+      ObjectToBuilding(1847, 49)
+      ObjectToBuilding(1849, 49)
+      ObjectToBuilding(1850, 49)
       ObjectToBuilding(2156, 49)
       ObjectToBuilding(2157, 49)
       ObjectToBuilding(2333, 49)
@@ -400,19 +439,22 @@ object Maps {
     Building29()
     Building42()
     Building51()
+    Building52()
     Building77()
+    Building79()
+    Building81()
 
     def Building1() : Unit = {
       //warpgate?
       LocalBuilding(1, FoundationBuilder(WarpGate.Structure))
     }
 
+    //    LocalBuilding(2, FoundationBuilder(WarpGate.Structure)) //TODO might be wrong?
+
     def Building3() : Unit = {
       //warpgate?
       LocalBuilding(3, FoundationBuilder(WarpGate.Structure))
     }
-
-//    LocalBuilding(2, FoundationBuilder(WarpGate.Structure)) //TODO might be wrong?
 
 //    LocalObject(520, ImplantTerminalMech.Constructor) //Hart B
 //    LocalObject(1081, Terminal.Constructor(implant_terminal_interface)) //tube 520
@@ -434,6 +476,7 @@ object Maps {
       LocalObject(396, Door.Constructor)
       LocalObject(397, Door.Constructor)
       LocalObject(398, Door.Constructor)
+      LocalObject(399, Door.Constructor)
       LocalObject(462, Door.Constructor)
       LocalObject(463, Door.Constructor)
       LocalObject(522, ImplantTerminalMech.Constructor)
@@ -452,6 +495,10 @@ object Maps {
       LocalObject(691, Locker.Constructor)
       LocalObject(692, Locker.Constructor)
       LocalObject(693, Locker.Constructor)
+      LocalObject(778, ProximityTerminal.Constructor(medical_terminal))
+      LocalObject(779, ProximityTerminal.Constructor(medical_terminal))
+      LocalObject(780, ProximityTerminal.Constructor(medical_terminal))
+      LocalObject(781, ProximityTerminal.Constructor(medical_terminal))
       LocalObject(842, Terminal.Constructor(order_terminal))
       LocalObject(843, Terminal.Constructor(order_terminal))
       LocalObject(844, Terminal.Constructor(order_terminal))
@@ -477,6 +524,7 @@ object Maps {
       ObjectToBuilding(396, 2)
       ObjectToBuilding(397, 2)
       ObjectToBuilding(398, 2)
+      ObjectToBuilding(399, 2)
       ObjectToBuilding(462, 2)
       ObjectToBuilding(463, 2)
       ObjectToBuilding(522, 2)
@@ -495,6 +543,10 @@ object Maps {
       ObjectToBuilding(691, 2)
       ObjectToBuilding(692, 2)
       ObjectToBuilding(693, 2)
+      ObjectToBuilding(778, 2)
+      ObjectToBuilding(779, 2)
+      ObjectToBuilding(780, 2)
+      ObjectToBuilding(781, 2)
       ObjectToBuilding(842, 2)
       ObjectToBuilding(843, 2)
       ObjectToBuilding(844, 2)
@@ -601,14 +653,30 @@ object Maps {
 
     def Building51() : Unit = {
       //air terminal west of HART C
+      LocalObject(12, ProximityTerminal.Constructor(repair_silo)) //repair terminal
+      LocalObject(13, Terminal.Constructor(repair_silo)) //rearm terminal
       LocalBuilding(51, FoundationBuilder(Building.Structure(StructureType.Platform)))
       LocalObject(304, Terminal.Constructor(dropship_vehicle_terminal))
       LocalObject(292,
-        VehicleSpawnPad.Constructor(Vector3(3508.9844f, 2895.961f, 92.296875f), Vector3(0f, 0f, 270.0f))
+        VehicleSpawnPad.Constructor(Vector3(3508.9844f, 2895.961f, 92.296875f), Vector3(0f, 0f, 90.0f))
       )
+      ObjectToBuilding(12, 51)
+      ObjectToBuilding(13, 51)
       ObjectToBuilding(304, 51)
       ObjectToBuilding(292, 51)
       TerminalToSpawnPad(304, 292)
+    }
+
+    def Building52() : Unit = {
+      //air terminal southwest of HART C
+      LocalBuilding(52, FoundationBuilder(Building.Structure(StructureType.Platform)))
+      LocalObject(305, Terminal.Constructor(dropship_vehicle_terminal))
+      LocalObject(293,
+        VehicleSpawnPad.Constructor(Vector3(3575.0781f, 2654.9766f, 92.296875f), Vector3(0f, 0f, 45.0f))
+      )
+      ObjectToBuilding(305, 52)
+      ObjectToBuilding(293, 52)
+      TerminalToSpawnPad(305, 293)
     }
 
     def Building77() : Unit = {
@@ -616,11 +684,35 @@ object Maps {
       LocalBuilding(77, FoundationBuilder(Building.Structure(StructureType.Platform)))
       LocalObject(1063, Terminal.Constructor(ground_vehicle_terminal))
       LocalObject(706,
-        VehicleSpawnPad.Constructor(Vector3(3506.0f, 2820.0f, 92.0f), Vector3(0f, 0f, 270.0f))
+        VehicleSpawnPad.Constructor(Vector3(3506.0f, 2820.0f, 92.0625f), Vector3(0f, 0f, 270.0f))
       )
       ObjectToBuilding(1063, 77)
       ObjectToBuilding(706, 77)
       TerminalToSpawnPad(1063, 706)
+    }
+
+    def Building79() : Unit = {
+      //ground terminal south of HART C
+      LocalBuilding(79, FoundationBuilder(Building.Structure(StructureType.Platform)))
+      LocalObject(1065, Terminal.Constructor(ground_vehicle_terminal))
+      LocalObject(710,
+        VehicleSpawnPad.Constructor(Vector3(3659.836f, 2589.875f, 92.0625f), Vector3(0f, 0f, 180.0f))
+      )
+      ObjectToBuilding(1065, 79)
+      ObjectToBuilding(710, 79)
+      TerminalToSpawnPad(1065, 710)
+    }
+
+    def Building81() : Unit = {
+      //ground terminal south of HART C
+      LocalBuilding(81, FoundationBuilder(Building.Structure(StructureType.Platform)))
+      LocalObject(1067, Terminal.Constructor(ground_vehicle_terminal))
+      LocalObject(712,
+        VehicleSpawnPad.Constructor(Vector3(3724.0156f, 2589.875f, 92.0625f), Vector3(0f, 0f, 180.0f))
+      )
+      ObjectToBuilding(1067, 81)
+      ObjectToBuilding(712, 81)
+      TerminalToSpawnPad(1067, 712)
     }
   }
 

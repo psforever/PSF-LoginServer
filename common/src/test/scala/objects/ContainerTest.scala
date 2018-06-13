@@ -1,8 +1,9 @@
 // Copyright (c) 2017 PSForever
 package objects
 
-import net.psforever.objects.inventory.{Container, GridInventory, InventoryItem}
-import net.psforever.objects.{GlobalDefinitions, OffhandEquipmentSlot, Tool}
+import net.psforever.objects.equipment.EquipmentSize
+import net.psforever.objects.inventory.{Container, GridInventory, InventoryEquipmentSlot}
+import net.psforever.objects.{EquipmentSlot, GlobalDefinitions, OffhandEquipmentSlot, Tool}
 import net.psforever.packet.game.PlanetSideGUID
 import org.specs2.mutable._
 
@@ -16,7 +17,11 @@ class ContainerTest extends Specification {
       obj.Inventory.Size mustEqual 0
       obj.Inventory.Capacity mustEqual 9
       obj.Find(PlanetSideGUID(0)) mustEqual None
-      obj.Slot(0) mustEqual OffhandEquipmentSlot.BlockedSlot
+      obj.Slot(0).isInstanceOf[OffhandEquipmentSlot] mustEqual true
+      obj.Slot(0).isInstanceOf[InventoryEquipmentSlot] mustEqual true
+      obj.Slot(0).isInstanceOf[EquipmentSlot] mustEqual true
+      obj.Slot(0).Size mustEqual EquipmentSize.Inventory
+      obj.Slot(0).Equipment mustEqual None
       obj.Collisions(0, 2, 2) mustEqual Success(List())
     }
 
@@ -48,23 +53,6 @@ object ContainerTest {
     private val inv = GridInventory(3, 3)
 
     def Inventory : GridInventory = inv
-
-    def Find(guid : PlanetSideGUID) : Option[Int] =  {
-      Inventory.Items.find({
-        case((_, item)) =>
-          if(item.obj.HasGUID) {
-            item.obj.GUID == guid
-          }
-          else {
-            false
-          }
-      }) match {
-        case Some((index, _)) =>
-          Some(index)
-        case None =>
-          None
-      }
-    }
 
     def VisibleSlots :Set[Int] = Set[Int](0,1,2, 3,4,5, 6,7,8)
   }

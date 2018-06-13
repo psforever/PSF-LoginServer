@@ -6,6 +6,7 @@ import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.objects.serverobject.ServerObjectBuilder
 import net.psforever.objects.serverobject.structures.{Building, FoundationBuilder, StructureType, WarpGate}
+import net.psforever.objects.serverobject.terminals.ProximityTerminal
 import net.psforever.objects.zones.Zone
 import net.psforever.types.Vector3
 
@@ -119,6 +120,24 @@ class TerminalObjectBuilderTest extends ActorTest {
     "build" in {
       val hub = ServerObjectBuilderTest.NumberPoolHub
       val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1, Terminal.Constructor(order_terminal)), hub), "term")
+      actor ! "!"
+
+      val reply = receiveOne(Duration.create(1000, "ms"))
+      assert(reply.isInstanceOf[Terminal])
+      assert(reply.asInstanceOf[Terminal].HasGUID)
+      assert(reply.asInstanceOf[Terminal].GUID == PlanetSideGUID(1))
+      assert(reply == hub(1).get)
+    }
+  }
+}
+
+class ProximityTerminalObjectBuilderTest extends ActorTest {
+  import net.psforever.objects.GlobalDefinitions.medical_terminal
+  import net.psforever.objects.serverobject.terminals.Terminal
+  "Terminal object" should {
+    "build" in {
+      val hub = ServerObjectBuilderTest.NumberPoolHub
+      val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1, ProximityTerminal.Constructor(medical_terminal)), hub), "term")
       actor ! "!"
 
       val reply = receiveOne(Duration.create(1000, "ms"))

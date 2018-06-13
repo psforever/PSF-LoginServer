@@ -312,7 +312,7 @@ object GamePacketOpcode extends Enumeration {
   = Value
 
   private def noDecoder(opcode : GamePacketOpcode.Type) = (a : BitVector) =>
-    Attempt.failure(Err(s"Could not find a marshaller for game packet ${opcode}"))
+    Attempt.failure(Err(s"Could not find a marshaller for game packet $opcode"))
 
   /// Mapping of packet IDs to decoders. Notice that we are using the @switch annotation which ensures that the Scala
   /// compiler will be able to optimize this as a lookup table (switch statement). Microbenchmarks show a nearly 400x
@@ -410,7 +410,7 @@ object GamePacketOpcode extends Enumeration {
     case 0x4b => game.DeployRequestMessage.decode
     case 0x4c => noDecoder(UnknownMessage76)
     case 0x4d => game.RepairMessage.decode
-    case 0x4e => noDecoder(ServerVehicleOverrideMsg)
+    case 0x4e => game.ServerVehicleOverrideMsg.decode
     case 0x4f => game.LashMessage.decode
 
     // OPCODES 0x50-5f
@@ -475,7 +475,7 @@ object GamePacketOpcode extends Enumeration {
     case 0x81 => game.DestroyDisplayMessage.decode
     case 0x82 => noDecoder(TriggerBotAction)
     case 0x83 => noDecoder(SquadWaypointRequest)
-    case 0x84 => noDecoder(SquadWaypointEvent)
+    case 0x84 => game.SquadWaypointEvent.decode
     case 0x85 => noDecoder(OffshoreVehicleMessage)
     case 0x86 => game.ObjectDeployedMessage.decode
     case 0x87 => noDecoder(ObjectDeployedCountMessage)
@@ -549,7 +549,7 @@ object GamePacketOpcode extends Enumeration {
     // OPCODES 0xc0-cf
     case 0xc0 => noDecoder(CaptureFlagUpdateMessage)
     case 0xc1 => noDecoder(VanuModuleUpdateMessage)
-    case 0xc2 => noDecoder(FacilityBenefitShieldChargeRequestMessage)
+    case 0xc2 => game.FacilityBenefitShieldChargeRequestMessage.decode
     case 0xc3 => game.ProximityTerminalUseMessage.decode
     case 0xc4 => game.QuantityDeltaUpdateMessage.decode
     case 0xc5 => noDecoder(ChainLashMessage)
@@ -568,7 +568,7 @@ object GamePacketOpcode extends Enumeration {
     // OPCODES 0xd0-df
     case 0xd0 => noDecoder(UnknownMessage208)
     case 0xd1 => game.DisplayedAwardMessage.decode
-    case 0xd2 => noDecoder(RespawnAMSInfoMessage)
+    case 0xd2 => game.RespawnAMSInfoMessage.decode
     case 0xd3 => noDecoder(ComponentDamageMessage)
     case 0xd4 => noDecoder(GenericObjectActionAtPositionMessage)
     case 0xd5 => game.PropertyOverrideMessage.decode
@@ -608,7 +608,7 @@ object GamePacketOpcode extends Enumeration {
     case 0xf1 => game.MailMessage.decode
     case 0xf2 => noDecoder(GameVarUpdate)
     case 0xf3 => noDecoder(ClientCheatedMessage)
-    case default => noDecoder(opcode)
+    case _ => noDecoder(opcode)
   }
 
   implicit val codec: Codec[this.Value] = PacketHelpers.createEnumerationCodec(this, uint8L)

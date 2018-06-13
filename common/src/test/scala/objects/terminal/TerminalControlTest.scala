@@ -26,8 +26,7 @@ class TerminalControl2Test extends ActorTest() {
     val (_, terminal) = TerminalControlTest.SetUpAgents(GlobalDefinitions.cert_terminal, PlanetSideEmpire.TR)
 
     terminal.Actor !"hello"
-    val reply = receiveOne(Duration.create(500, "ms"))
-    assert(reply.isInstanceOf[Terminal.NoDeal])
+    expectNoMsg(Duration.create(500, "ms"))
   }
 }
 
@@ -124,6 +123,6 @@ object TerminalControlTest {
     terminal.Actor = system.actorOf(Props(classOf[TerminalControl], terminal), "test-term")
     terminal.Owner = new Building(0, Zone.Nowhere, StructureType.Building)
     terminal.Owner.Faction = faction
-    (Player(Avatar("test", faction, CharacterGender.Male, 0, 0)), terminal)
+    (Player(Avatar("test", faction, CharacterGender.Male, 0, CharacterVoice.Mute)), terminal)
   }
 }

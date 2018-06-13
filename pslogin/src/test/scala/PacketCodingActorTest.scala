@@ -63,7 +63,7 @@ class PacketCodingActor4Test extends ActorTest {
 
       val msg = ActorTest.MDCGamePacket(PacketCoding.CreateGamePacket(0, string_obj))
       probe2 ! msg
-      val reply1 = receiveOne(100 milli) //we get a MdcMsg message back
+      val reply1 = receiveOne(300 milli) //we get a MdcMsg message back
       probe2 ! reply1 //by feeding the MdcMsg into the actor, we get normal output on the probe
       probe1.expectMsg(string_hex)
     }
@@ -83,7 +83,7 @@ class PacketCodingActor5Test extends ActorTest {
       probe1.receiveOne(100 milli) //consume
 
       pca ! string_hex
-      val reply = probe1.receiveOne(100 milli)
+      val reply = probe1.receiveOne(300 milli)
       reply match {
         case GamePacket(_, _, msg) => ;
           assert(msg == string_obj)
@@ -126,7 +126,7 @@ class PacketCodingActor7Test extends ActorTest {
 
       val msg = ActorTest.MDCControlPacket(PacketCoding.CreateControlPacket(string_obj))
       probe2 ! msg
-      val reply1 = receiveOne(100 milli) //we get a MdcMsg message back
+      val reply1 = receiveOne(300 milli) //we get a MdcMsg message back
       probe2 ! reply1 //by feeding the MdcMsg into the actor, we get normal output on the probe
       probe1.expectMsg(string_hex)
     }
@@ -146,7 +146,7 @@ class PacketCodingActor8Test extends ActorTest {
       probe1.receiveOne(100 milli) //consume
 
       pca ! string_hex
-      val reply = probe1.receiveOne(100 milli)
+      val reply = probe1.receiveOne(300 milli)
       reply match {
         case ControlPacket(_, msg) => ;
           assert(msg == string_obj)
@@ -200,7 +200,7 @@ class PacketCodingActorBTest extends ActorTest {
       probe1.receiveOne(100 milli) //consume
 
       probe2 ! "unhandled message"
-      val reply1 = receiveOne(100 milli) //we get a MdcMsg message back
+      val reply1 = receiveOne(300 milli) //we get a MdcMsg message back
       probe2 ! reply1 //by feeding the MdcMsg into the actor, we get normal output on the probe
       probe1.expectMsg("unhandled message")
     }
@@ -379,10 +379,10 @@ class PacketCodingActorETest extends ActorTest {
       probe1.receiveOne(100 milli) //consume
 
       pca ! string_hex
-      val reply = probe1.receiveN(2, 200 milli)
+      val reply = probe1.receiveN(2, 400 milli)
       assert(reply.head == string_obj1)
       assert(reply(1) == string_obj2)
-      probe1.expectNoMsg(100 milli)
+      probe1.expectNoMsg(300 milli)
     }
   }
 }
@@ -400,10 +400,10 @@ class PacketCodingActorFTest extends ActorTest {
       probe1.receiveOne(100 milli) //consume
 
       pca ! string_hex
-      val reply = probe1.receiveN(1, 200 milli)
+      val reply = probe1.receiveN(1, 400 milli)
       assert(reply.head == string_obj)
       //the RelatedB message - 00 15 02 98 - is consumed by pca
-      probe1.expectNoMsg(100 milli)
+      probe1.expectNoMsg(300 milli)
     }
   }
 }
@@ -421,10 +421,10 @@ class PacketCodingActorGTest extends ActorTest {
       probe1.receiveOne(100 milli) //consume
 
       pca ! string_hex
-      val reply = probe1.receiveN(1, 200 milli)
+      val reply = probe1.receiveN(1, 400 milli)
       assert(reply.head == string_obj)
       //the RelatedA message - 00 11 02 98 - is consumed by pca; should see error log message in console
-      probe1.expectNoMsg(100 milli)
+      probe1.expectNoMsg(300 milli)
     }
   }
 }
@@ -443,54 +443,53 @@ class PacketCodingActorHTest extends ActorTest {
       probe1.receiveOne(100 milli) //consume
 
       pca ! string_hex
-      val reply = probe1.receiveN(2, 200 milli)
+      val reply = probe1.receiveN(2, 400 milli)
       assert(reply.head == string_obj1)
       assert(reply(1) == string_obj2)
-      probe1.expectNoMsg(100 milli)
+      probe1.expectNoMsg(300 milli)
     }
   }
 }
 
 class PacketCodingActorITest extends ActorTest {
+  import net.psforever.packet.game.objectcreate._
+  val pos : PlacementData = PlacementData(Vector3.Zero, Vector3.Zero)
+  val app : (Int)=>CharacterAppearanceData = CharacterAppearanceData(
+    BasicCharacterData("IlllIIIlllIlIllIlllIllI", PlanetSideEmpire.VS, CharacterGender.Female, 41, CharacterVoice.Voice1),
+    3,
+    false,
+    false,
+    ExoSuitType.Standard,
+    "",
+    0,
+    false,
+    2.8125f, 210.9375f,
+    true,
+    GrenadeState.None,
+    false,
+    false,
+    false,
+    RibbonBars()
+  )
+  var char : (Option[Int])=>DetailedCharacterData = DetailedCharacterData(
+    0,
+    0,
+    100, 100,
+    50,
+    1, 7, 7,
+    100, 100,
+    List(CertificationType.StandardAssault, CertificationType.MediumAssault, CertificationType.ATV, CertificationType.Harasser, CertificationType.StandardExoSuit, CertificationType.AgileExoSuit, CertificationType.ReinforcedExoSuit),
+    List(),
+    List(),
+    List.empty,
+    None
+  )
+  val obj = DetailedPlayerData(pos, app, char, InventoryData(Nil), DrawnSlot.None)
+  val pkt = MultiPacketBundle(List(ObjectCreateDetailedMessage(0x79, PlanetSideGUID(75), obj)))
+  val string_hex = hex"000900001879060000bc84b000000000000000000002040000097049006c006c006c004900490049006c006c006c0049006c0049006c006c0049006c006c006c0049006c006c0049008452700000000000000000000000000000002000000fe6a703fffffffffffffffffffffffffffffffc00000000000000000000000000000000000000019001900064000001007ec800c80000000000000000000000000000000000000001c00042c54686c7000000000000000000000000000000000000000000000000000000000000000000000000200700"
+
   "PacketCodingActor" should {
     "bundle an r-originating packet into an l-facing SlottedMetaPacket byte stream data (SlottedMetaPacket)" in {
-      import net.psforever.packet.game.objectcreate._
-      val obj = DetailedCharacterData(
-        CharacterAppearanceData(
-          PlacementData(Vector3.Zero, Vector3.Zero),
-          BasicCharacterData("IlllIIIlllIlIllIlllIllI", PlanetSideEmpire.VS, CharacterGender.Female, 41, 1),
-          3,
-          false,
-          false,
-          ExoSuitType.Standard,
-          "",
-          0,
-          false,
-          2.8125f, 210.9375f,
-          true,
-          GrenadeState.None,
-          false,
-          false,
-          false,
-          RibbonBars()
-        ),
-        0,
-        0,
-        100, 100,
-        50,
-        1, 7, 7,
-        100, 100,
-        List(CertificationType.StandardAssault,CertificationType.MediumAssault,CertificationType.ATV,CertificationType.Harasser,CertificationType.StandardExoSuit,CertificationType.AgileExoSuit,CertificationType.ReinforcedExoSuit),
-        List(),
-        List(),
-        List.empty,
-        None,
-        Some(InventoryData(Nil)),
-        DrawnSlot.None
-      )
-      val pkt = MultiPacketBundle(List(ObjectCreateDetailedMessage(0x79, PlanetSideGUID(75), obj)))
-      val string_hex = hex"000900001879060000bc84b000000000000000000002040000097049006c006c006c004900490049006c006c006c0049006c0049006c006c0049006c006c006c0049006c006c0049008452700000000000000000000000000000002000000fe6a703fffffffffffffffffffffffffffffffc00000000000000000000000000000000000000019001900064000001007ec800c80000000000000000000000000000000000000001c00042c54686c7000000000000000000000000000000000000000000000000000000000000000000000000200700"
-
       val probe1 = TestProbe()
       val probe2 = system.actorOf(Props(classOf[ActorTest.MDCTestProbe], probe1), "mdc-probe")
       val pca : ActorRef = system.actorOf(Props[PacketCodingActor], "pca")
@@ -498,10 +497,10 @@ class PacketCodingActorITest extends ActorTest {
       probe1.receiveOne(100 milli) //consume
 
       probe2 ! pkt
-      val reply1 = receiveN(1, 200 milli) //we get a MdcMsg message back
+      val reply1 = receiveN(1, 400 milli) //we get a MdcMsg message back
       probe1.receiveN(1, 200 milli) //flush contents
       probe2 ! reply1.head //by feeding the MdcMsg into the actor, we get normal output on the probe
-      probe1.receiveOne(100 milli) match {
+      probe1.receiveOne(300 milli) match {
         case RawPacket(data) =>
           assert(data == string_hex)
           PacketCoding.DecodePacket(data).require match {
@@ -532,10 +531,10 @@ class PacketCodingActorJTest extends ActorTest {
       probe1.receiveOne(100 milli) //consume
 
       probe2 ! pkt
-      val reply1 = receiveN(1, 200 milli) //we get a MdcMsg message back
+      val reply1 = receiveN(1, 400 milli) //we get a MdcMsg message back
       probe1.receiveN(1, 200 milli) //flush contents
       probe2 ! reply1.head //by feeding the MdcMsg into the actor, we get normal output on the probe
-      probe1.receiveOne(100 milli) match {
+      probe1.receiveOne(300 milli) match {
         case RawPacket(data) =>
           assert(data == string_hex)
         case e =>
@@ -547,25 +546,25 @@ class PacketCodingActorJTest extends ActorTest {
 
 class PacketCodingActorKTest extends ActorTest {
   import net.psforever.packet.game.objectcreate._
-  val obj = DetailedCharacterData(
-    CharacterAppearanceData(
-      PlacementData(Vector3.Zero, Vector3.Zero),
-      BasicCharacterData("IlllIIIlllIlIllIlllIllI", PlanetSideEmpire.VS, CharacterGender.Female, 41, 1),
-      3,
-      false,
-      false,
-      ExoSuitType.Standard,
-      "",
-      0,
-      false,
-      2.8125f, 210.9375f,
-      true,
-      GrenadeState.None,
-      false,
-      false,
-      false,
-      RibbonBars()
-    ),
+  val pos : PlacementData = PlacementData(Vector3.Zero, Vector3.Zero)
+  val app : (Int)=>CharacterAppearanceData = CharacterAppearanceData(
+    BasicCharacterData("IlllIIIlllIlIllIlllIllI", PlanetSideEmpire.VS, CharacterGender.Female, 41, CharacterVoice.Voice1),
+    3,
+    false,
+    false,
+    ExoSuitType.Standard,
+    "",
+    0,
+    false,
+    2.8125f, 210.9375f,
+    true,
+    GrenadeState.None,
+    false,
+    false,
+    false,
+    RibbonBars()
+  )
+  var char : (Option[Int])=>DetailedCharacterData = DetailedCharacterData(
     0,
     0,
     100, 100,
@@ -576,10 +575,9 @@ class PacketCodingActorKTest extends ActorTest {
     List(),
     List("xpe_sanctuary_help", "xpe_th_firemodes", "used_beamer", "map13"),
     List.empty,
-    None,
-    Some(InventoryData(Nil)),
-    DrawnSlot.None
+    None
   )
+  val obj = DetailedPlayerData(pos, app, char, InventoryData(Nil), DrawnSlot.None)
   val list = List(
     ObjectCreateDetailedMessage(0x79, PlanetSideGUID(75), obj),
     ObjectDeleteMessage(PlanetSideGUID(1103), 2),
@@ -600,13 +598,13 @@ class PacketCodingActorKTest extends ActorTest {
       probe1.receiveOne(100 milli) //consume
 
       probe2 ! pkt
-      val reply1 = receiveN(2, 200 milli)
+      val reply1 = receiveN(2, 400 milli)
       probe1.receiveN(1, 200 milli) //flush contents
       probe2 ! reply1.head //by feeding the MdcMsg into the actor, we get normal output on the probe
-      val reply3 = probe1.receiveOne(100 milli).asInstanceOf[RawPacket]
+      val reply3 = probe1.receiveOne(300 milli).asInstanceOf[RawPacket]
 
       pca ! reply3 //reconstruct original three packets from the first bundle
-      val reply4 = probe1.receiveN(3, 200 milli)
+      val reply4 = probe1.receiveN(3, 400 milli)
       var i = 0
       reply4.foreach{
         case GamePacket(_, _, packet) =>

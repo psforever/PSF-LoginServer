@@ -8,7 +8,7 @@ import net.psforever.objects.serverobject.locks.{IFFLock, IFFLockControl}
 import net.psforever.objects.serverobject.structures.{Building, StructureType}
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.PlanetSideGUID
-import net.psforever.types.{CharacterGender, PlanetSideEmpire}
+import net.psforever.types.{CharacterGender, CharacterVoice, PlanetSideEmpire}
 import org.specs2.mutable.Specification
 
 class IFFLockTest extends Specification {
@@ -69,6 +69,6 @@ object IFFLockControlTest {
     lock.Actor = system.actorOf(Props(classOf[IFFLockControl], lock), "lock-control")
     lock.Owner = new Building(0, Zone.Nowhere, StructureType.Building)
     lock.Owner.Faction = faction
-    (Player(Avatar("test", faction, CharacterGender.Male, 0, 0)), lock)
+    (Player(Avatar("test", faction, CharacterGender.Male, 0, CharacterVoice.Mute)), lock)
   }
 }

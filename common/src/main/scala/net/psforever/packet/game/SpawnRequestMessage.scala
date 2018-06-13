@@ -10,7 +10,8 @@ import scodec.codecs._
   * @param unk1 when defined, na;
   *             non-zero when selecting the sanctuary option from a non-sanctuary continent deployment map
   * @param unk2 when defined, indicates type of spawn point by destination;
-  *             0 is unknown (may refer to all available spawns regardless of last position);
+  *             0 is nothing;
+  *             2 is ams;
   *             6 is towers;
   *             7 is facilities
   * @param unk3 na

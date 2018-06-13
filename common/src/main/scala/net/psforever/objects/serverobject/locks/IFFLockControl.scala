@@ -16,7 +16,7 @@ class IFFLockControl(lock : IFFLock) extends Actor with FactionAffinityBehavior.
   def receive : Receive = checkBehavior.orElse {
     case CommonMessages.Hack(player) =>
       lock.HackedBy = player
-
+      sender ! true
     case CommonMessages.ClearHack() =>
       lock.HackedBy = None
 

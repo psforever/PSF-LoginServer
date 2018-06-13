@@ -4,6 +4,7 @@ package net.psforever.objects
 import net.psforever.objects.definition.AvatarDefinition
 import net.psforever.objects.equipment.{Equipment, EquipmentSize}
 import net.psforever.objects.inventory.{Container, GridInventory, InventoryItem}
+import net.psforever.objects.loadouts.Loadout
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types._
@@ -20,7 +21,7 @@ class Player(private val core : Avatar) extends PlanetSideGameObject with Factio
   private var maxHealth : Int = 100 //TODO affected by empire benefits, territory benefits, and bops
   private var maxStamina : Int = 100 //does anything affect this?
 
-  private var exosuit : ExoSuitType.Value = ExoSuitType.Standard
+  private var exosuit : ExoSuitDefinition = ExoSuitDefinition.Standard
   private val freeHand : EquipmentSlot = new OffhandEquipmentSlot(EquipmentSize.Inventory)
   private val holsters : Array[EquipmentSlot] = Array.fill[EquipmentSlot](5)(new EquipmentSlot)
   private val inventory : GridInventory = GridInventory()
@@ -47,7 +48,7 @@ class Player(private val core : Avatar) extends PlanetSideGameObject with Factio
   /** From PlanetsideAttributeMessage */
   var PlanetsideAttribute : Array[Long] = Array.ofDim(120)
 
-  Player.SuitSetup(this, ExoSuit)
+  Player.SuitSetup(this, exosuit)
 
   def Name : String = core.name
 
@@ -57,7 +58,7 @@ class Player(private val core : Avatar) extends PlanetSideGameObject with Factio
 
   def Head : Int = core.head
 
-  def Voice : Int = core.voice
+  def Voice : CharacterVoice.Value = core.voice
 
   def isAlive : Boolean = alive
 
@@ -126,9 +127,14 @@ class Player(private val core : Avatar) extends PlanetSideGameObject with Factio
     Armor
   }
 
-  def MaxArmor : Int = ExoSuitDefinition.Select(exosuit).MaxArmor
+  def MaxArmor : Int = exosuit.MaxArmor
 
-  def VisibleSlots : Set[Int] = if(exosuit == ExoSuitType.MAX) { Set(0) } else { Set(0,1,2,3,4) }
+  def VisibleSlots : Set[Int] = if(exosuit.SuitType == ExoSuitType.MAX) {
+    Set(0)
+  }
+  else {
+    (0 to 4).filterNot(index => holsters(index).Size == EquipmentSize.Blocked).toSet
+  }
 
   override def Slot(slot : Int) : EquipmentSlot = {
     if(inventory.Offset <= slot && slot <= inventory.LastIndex) {
@@ -154,7 +160,7 @@ class Player(private val core : Avatar) extends PlanetSideGameObject with Factio
 
   def Locker : LockerContainer = core.Locker
 
-  def Fit(obj : Equipment) : Option[Int] = {
+  override def Fit(obj : Equipment) : Option[Int] = {
     recursiveHolsterFit(holsters.iterator, obj.Size) match {
       case Some(index) =>
         Some(index)
@@ -192,18 +198,13 @@ class Player(private val core : Avatar) extends PlanetSideGameObject with Factio
     FreeHand.Equipment
   }
 
-  def Find(obj : Equipment) : Option[Int] = Find(obj.GUID)
-
-  def Find(guid : PlanetSideGUID) : Option[Int] = {
+  override def Find(guid : PlanetSideGUID) : Option[Int] = {
     findInHolsters(holsters.iterator, guid)
-      .orElse(findInInventory(inventory.Items.values.iterator, guid)) match {
+      .orElse(inventory.Find(guid)) match {
       case Some(index) =>
         Some(index)
       case None =>
-        if(Locker.Find(guid).isDefined) {
-          Some(5)
-        }
-        else if(freeHand.Equipment.isDefined && freeHand.Equipment.get.GUID == guid) {
+        if(freeHand.Equipment.isDefined && freeHand.Equipment.get.GUID == guid) {
           Some(Player.FreeHandSlot)
         }
         else {
@@ -223,21 +224,6 @@ class Player(private val core : Avatar) extends PlanetSideGameObject with Factio
       }
       else {
         findInHolsters(iter, guid, index + 1)
-      }
-    }
-  }
-
-  @tailrec private def findInInventory(iter : Iterator[InventoryItem], guid : PlanetSideGUID) : Option[Int] = {
-    if(!iter.hasNext) {
-      None
-    }
-    else {
-      val item = iter.next
-      if(item.obj.GUID == guid) {
-        Some(item.start)
-      }
-      else {
-        findInInventory(iter, guid)
       }
     }
   }
@@ -281,10 +267,13 @@ class Player(private val core : Avatar) extends PlanetSideGameObject with Factio
 
   def LastDrawnSlot : Int = lastDrawnSlot
 
-  def ExoSuit : ExoSuitType.Value = exosuit
+  def ExoSuit : ExoSuitType.Value = exosuit.SuitType
 
   def ExoSuit_=(suit : ExoSuitType.Value) : Unit = {
-    exosuit = suit
+    val eSuit = ExoSuitDefinition.Select(suit)
+    exosuit = eSuit
+    Player.SuitSetup(this, eSuit)
+    ChangeSpecialAbility()
   }
 
   def LoadLoadout(line : Int) : Option[Loadout] = core.LoadLoadout(line)
@@ -340,6 +329,93 @@ class Player(private val core : Avatar) extends PlanetSideGameObject with Factio
     cloaked = isCloaked
     Cloaked
   }
+
+  private var usingSpecial : (SpecialExoSuitDefinition.Mode.Value)=>SpecialExoSuitDefinition.Mode.Value = DefaultUsingSpecial
+
+  private var gettingSpecial : ()=>SpecialExoSuitDefinition.Mode.Value = DefaultGettingSpecial
+
+  private def ChangeSpecialAbility() : Unit = {
+    if(ExoSuit == ExoSuitType.MAX) {
+      gettingSpecial = MAXGettingSpecial
+      usingSpecial = Faction match {
+        case PlanetSideEmpire.TR => UsingAnchorsOrOverdrive
+        case PlanetSideEmpire.NC => UsingShield
+        case _ => DefaultUsingSpecial
+      }
+    }
+    else {
+      usingSpecial = DefaultUsingSpecial
+      gettingSpecial = DefaultGettingSpecial
+    }
+  }
+
+  def UsingSpecial : SpecialExoSuitDefinition.Mode.Value = { gettingSpecial() }
+
+  def UsingSpecial_=(state : SpecialExoSuitDefinition.Mode.Value) : SpecialExoSuitDefinition.Mode.Value = usingSpecial(state)
+
+  private def DefaultUsingSpecial(state : SpecialExoSuitDefinition.Mode.Value) : SpecialExoSuitDefinition.Mode.Value = SpecialExoSuitDefinition.Mode.Normal
+
+  private def UsingAnchorsOrOverdrive(state : SpecialExoSuitDefinition.Mode.Value) : SpecialExoSuitDefinition.Mode.Value = {
+    import SpecialExoSuitDefinition.Mode._
+    val curr = UsingSpecial
+    val next = if(curr == Normal) {
+      if(state == Anchored || state == Overdrive) {
+        state
+      }
+      else {
+        Normal
+      }
+    }
+    else if(state == Normal) {
+      Normal
+    }
+    else {
+      curr
+    }
+    MAXUsingSpecial(next)
+  }
+
+  private def UsingShield(state : SpecialExoSuitDefinition.Mode.Value) : SpecialExoSuitDefinition.Mode.Value = {
+    import SpecialExoSuitDefinition.Mode._
+    val curr = UsingSpecial
+    val next = if(curr == Normal) {
+      if(state == Shielded) {
+        state
+      }
+      else {
+        Normal
+      }
+    }
+    else if(state == Normal) {
+      Normal
+    }
+    else {
+      curr
+    }
+    MAXUsingSpecial(next)
+  }
+
+  private def DefaultGettingSpecial() : SpecialExoSuitDefinition.Mode.Value = SpecialExoSuitDefinition.Mode.Normal
+
+  private def MAXUsingSpecial(state : SpecialExoSuitDefinition.Mode.Value) : SpecialExoSuitDefinition.Mode.Value = exosuit match {
+    case obj : SpecialExoSuitDefinition =>
+      obj.UsingSpecial = state
+    case _ =>
+      SpecialExoSuitDefinition.Mode.Normal
+  }
+
+  private def MAXGettingSpecial() : SpecialExoSuitDefinition.Mode.Value = exosuit match {
+    case obj : SpecialExoSuitDefinition =>
+      obj.UsingSpecial
+    case _ =>
+      SpecialExoSuitDefinition.Mode.Normal
+  }
+
+  def isAnchored : Boolean = ExoSuit == ExoSuitType.MAX && Faction == PlanetSideEmpire.NC && UsingSpecial == SpecialExoSuitDefinition.Mode.Anchored
+
+  def isOverdrived : Boolean = ExoSuit == ExoSuitType.MAX && Faction == PlanetSideEmpire.NC && UsingSpecial == SpecialExoSuitDefinition.Mode.Overdrive
+
+  def isShielded : Boolean = ExoSuit == ExoSuitType.MAX && Faction == PlanetSideEmpire.NC && UsingSpecial == SpecialExoSuitDefinition.Mode.Shielded
 
   def AccessingBackpack : Option[PlanetSideGUID] = backpackAccess
 
@@ -427,16 +503,13 @@ object Player {
     new Player(core)
   }
 
-  def SuitSetup(player : Player, eSuit : ExoSuitType.Value) : Unit = {
-    val esuitDef : ExoSuitDefinition = ExoSuitDefinition.Select(eSuit)
-    //exosuit
-    player.ExoSuit = eSuit
+  private def SuitSetup(player : Player, eSuit : ExoSuitDefinition) : Unit = {
     //inventory
     player.Inventory.Clear()
-    player.Inventory.Resize(esuitDef.InventoryScale.Width, esuitDef.InventoryScale.Height)
-    player.Inventory.Offset = esuitDef.InventoryOffset
+    player.Inventory.Resize(eSuit.InventoryScale.Width, eSuit.InventoryScale.Height)
+    player.Inventory.Offset = eSuit.InventoryOffset
     //holsters
-    (0 until 5).foreach(index => { player.Slot(index).Size = esuitDef.Holster(index) })
+    (0 until 5).foreach(index => { player.Slot(index).Size = eSuit.Holster(index) })
   }
 
   def Respawn(player : Player) : Player = {

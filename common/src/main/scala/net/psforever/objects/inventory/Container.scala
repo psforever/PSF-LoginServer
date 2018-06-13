@@ -1,6 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.inventory
 
+import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.{EquipmentSlot, OffhandEquipmentSlot}
 import net.psforever.packet.game.PlanetSideGUID
 
@@ -20,9 +21,18 @@ trait Container {
     * A(n imperfect) reference to a generalized pool of the contained objects.
     * Having access to all of the available positions is not required.
     * The entries in this reference should definitely include all unseen positions.
+    * The `GridInventory` returned by this accessor is also an implementation of `Container`.
     * @see `VisibleSlots`
     */
   def Inventory : GridInventory
+
+  /**
+    * Given an object, attempt to locate its slot.
+    * All positions, `VisibleSlot` and `Inventory`, and wherever else, should be searchable.
+    * @param obj the `Equipment` object
+    * @return the index of the `EquipmentSlot`, or `None`
+    */
+  def Find(obj : Equipment) : Option[Int] = Find(obj.GUID)
 
   /**
     * Given globally unique identifier, if the object using it is stowed, attempt to locate its slot.
@@ -30,7 +40,11 @@ trait Container {
     * @param guid the GUID of the `Equipment`
     * @return the index of the `EquipmentSlot`, or `None`
     */
-  def Find(guid : PlanetSideGUID) : Option[Int]
+  def Find(guid : PlanetSideGUID) : Option[Int] = Inventory.Find(guid)
+
+  def Fit(obj : Equipment) : Option[Int] = Fit(obj.Definition.Tile)
+
+  def Fit(tile : InventoryTile) : Option[Int] = Inventory.Fit(tile)
 
   /**
     * A(n imperfect) reference to a generalized pool of the contained objects.<br>
@@ -53,7 +67,14 @@ trait Container {
     * @param slotNum an index
     * @return the searchable position identified by that index
     */
-  def Slot(slotNum : Int) : EquipmentSlot = OffhandEquipmentSlot.BlockedSlot
+  def Slot(slotNum : Int) : EquipmentSlot = {
+    if(Inventory.Offset <= slotNum && slotNum <= Inventory.LastIndex) {
+      Inventory.Slot(slotNum)
+    }
+    else {
+      OffhandEquipmentSlot.BlockedSlot
+    }
+  }
 
   /**
     * Given a region of "searchable unit positions" considered as stowable,

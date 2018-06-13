@@ -71,36 +71,20 @@ object ObjectCreateDetailedMessage extends Marshallable[ObjectCreateDetailedMess
     ObjectCreateDetailedMessage(ObjectCreateBase.streamLen(None, data), objectClass, guid, None, Some(data))
   }
 
-  /**
-    * Take the important information of a game piece and transform it into bit data.
-    * This function is fail-safe because it catches errors involving bad parsing of the object data.
-    * Generally, the `Exception` messages themselves are not useful here.
-    * @param objClass the code for the type of object being deconstructed
-    * @param obj the object data
-    * @return the bitstream data
-    * @see ObjectClass.selectDataCodec
-    */
-  def encodeData(objClass : Int, obj : ConstructorData, getCodecFunc : (Int) => Codec[ConstructorData.genericPattern]) : BitVector = {
-    var out = BitVector.empty
-    try {
-      val outOpt : Option[BitVector] = getCodecFunc(objClass).encode(Some(obj.asInstanceOf[ConstructorData])).toOption
-      if(outOpt.isDefined)
-        out = outOpt.get
-    }
-    catch {
-      case _ : Exception =>
-        //catch and release, any sort of parse error
-    }
-    out
-  }
-
   implicit val codec : Codec[ObjectCreateDetailedMessage] = ObjectCreateBase.baseCodec.exmap[ObjectCreateDetailedMessage] (
     {
       case _ :: _ :: _ :: _ :: BitVector.empty :: HNil =>
         Attempt.failure(Err("no data to decode"))
 
       case len :: cls :: guid :: par :: data :: HNil =>
-        val obj = ObjectCreateBase.decodeData(cls, data, ObjectClass.selectDataDetailedCodec)
+        val obj = ObjectCreateBase.decodeData(cls, data,
+          if(par.isDefined) {
+            ObjectClass.selectDataDetailedCodec
+          }
+          else {
+            ObjectClass.selectDataDroppedDetailedCodec
+          }
+        )
         Attempt.successful(ObjectCreateDetailedMessage(len, cls, guid, par, obj))
     },
     {
@@ -109,7 +93,14 @@ object ObjectCreateDetailedMessage extends Marshallable[ObjectCreateDetailedMess
 
       case ObjectCreateDetailedMessage(_, cls, guid, par, Some(obj)) =>
         val len = ObjectCreateBase.streamLen(par, obj) //even if a stream length has been assigned, it can not be trusted during encoding
-        val bitvec = ObjectCreateBase.encodeData(cls, obj, ObjectClass.selectDataDetailedCodec)
+        val bitvec = ObjectCreateBase.encodeData(cls, obj,
+          if(par.isDefined) {
+            ObjectClass.selectDataDetailedCodec
+          }
+          else {
+            ObjectClass.selectDataDroppedDetailedCodec
+          }
+        )
         Attempt.successful(len :: cls :: guid :: par :: bitvec :: HNil)
     }
   )

@@ -3,10 +3,7 @@ package net.psforever.objects
 
 import net.psforever.objects.definition.EquipmentDefinition
 import net.psforever.objects.equipment.Equipment
-import net.psforever.objects.inventory.{Container, GridInventory, InventoryItem}
-import net.psforever.packet.game.PlanetSideGUID
-
-import scala.annotation.tailrec
+import net.psforever.objects.inventory.{Container, GridInventory}
 
 /**
   * The companion of a `Locker` that is carried with a player
@@ -20,42 +17,6 @@ class LockerContainer extends Equipment with Container {
   def Inventory : GridInventory = inventory
 
   def VisibleSlots : Set[Int] = Set.empty[Int]
-
-  override def Slot(slot : Int) : EquipmentSlot = {
-    if(inventory.Offset <= slot && slot <= inventory.LastIndex) {
-      inventory.Slot(slot)
-    }
-    else {
-      OffhandEquipmentSlot.BlockedSlot
-    }
-  }
-
-
-  def Fit(obj : Equipment) : Option[Int] = inventory.Fit(obj.Definition.Tile)
-
-  def Find(guid : PlanetSideGUID) : Option[Int] = {
-    findInInventory(inventory.Items.values.iterator, guid) match {
-      case Some(index) =>
-        Some(index)
-      case None =>
-        None
-    }
-  }
-
-  @tailrec private def findInInventory(iter : Iterator[InventoryItem], guid : PlanetSideGUID) : Option[Int] = {
-    if(!iter.hasNext) {
-      None
-    }
-    else {
-      val item = iter.next
-      if(item.obj.GUID == guid) {
-        Some(item.start)
-      }
-      else {
-        findInInventory(iter, guid)
-      }
-    }
-  }
 
   def Definition : EquipmentDefinition = GlobalDefinitions.locker_container
 }

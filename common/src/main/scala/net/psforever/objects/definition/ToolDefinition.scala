@@ -15,6 +15,8 @@ class ToolDefinition(objectId : Int) extends EquipmentDefinition(objectId) {
   def AmmoTypes : mutable.ListBuffer[AmmoBoxDefinition] = ammoTypes
 
   def FireModes : mutable.ListBuffer[FireModeDefinition] = fireModes
+
+  def NextFireModeIndex(index : Int) : Int = index + 1
 }
 
 object ToolDefinition {

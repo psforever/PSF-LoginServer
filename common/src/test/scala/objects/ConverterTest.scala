@@ -11,7 +11,7 @@ import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.packet.game.objectcreate._
-import net.psforever.types.{CharacterGender, PlanetSideEmpire, Vector3}
+import net.psforever.types.{CharacterGender, CharacterVoice, PlanetSideEmpire, Vector3}
 import org.specs2.mutable.Specification
 
 import scala.util.{Failure, Success}
@@ -90,7 +90,8 @@ class ConverterTest extends Specification {
   "Kit" should {
     "convert to packet" in {
       val kdef = KitDefinition(Kits.medkit)
-      val obj = Kit(PlanetSideGUID(90), kdef)
+      val obj = Kit(kdef)
+      obj.GUID = PlanetSideGUID(90)
       obj.Definition.Packet.DetailedConstructorData(obj) match {
         case Success(pkt) =>
           pkt mustEqual DetailedAmmoBoxData(0, 1)
@@ -113,7 +114,8 @@ class ConverterTest extends Specification {
         cdef.Modes += DeployedItem.deployable_shield_generator
         cdef.Tile = InventoryTile.Tile63
         cdef.Packet = new ACEConverter()
-        val obj = ConstructionItem(PlanetSideGUID(90), cdef)
+        val obj = ConstructionItem(cdef)
+        obj.GUID = PlanetSideGUID(90)
         obj.Definition.Packet.DetailedConstructorData(obj) match {
           case Success(pkt) =>
             pkt mustEqual DetailedACEData(0)
@@ -134,7 +136,8 @@ class ConverterTest extends Specification {
     "convert to packet" in {
       val sdef = SimpleItemDefinition(SItem.remote_electronics_kit)
       sdef.Packet = new REKConverter()
-      val obj = SimpleItem(PlanetSideGUID(90), sdef)
+      val obj = SimpleItem(sdef)
+      obj.GUID = PlanetSideGUID(90)
       obj.Definition.Packet.DetailedConstructorData(obj) match {
         case Success(pkt) =>
           pkt mustEqual DetailedREKData(8)
@@ -151,7 +154,7 @@ class ConverterTest extends Specification {
   }
 
   "Player" should {
-    val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
+    val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
     val obj : Player = {
       /*
       Create an AmmoBoxDefinition with which to build two AmmoBoxes

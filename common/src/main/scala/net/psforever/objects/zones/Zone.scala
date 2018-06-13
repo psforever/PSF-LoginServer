@@ -14,7 +14,6 @@ import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types.Vector3
 
-import scala.annotation.tailrec
 import scala.collection.concurrent.TrieMap
 import scala.collection.mutable.ListBuffer
 import scala.collection.immutable.{Map => PairMap}
@@ -50,10 +49,10 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
   guid.AddPool("dynamic", (3001 to 10000).toList).Selector = new RandomSelector //TODO unlump pools later; do not make too big
   /** A synchronized `List` of items (`Equipment`) dropped by players on the ground and can be collected again. */
   private val equipmentOnGround : ListBuffer[Equipment] = ListBuffer[Equipment]()
+  /** */
+  private val vehicles : ListBuffer[Vehicle] = ListBuffer[Vehicle]()
   /** Used by the `Zone` to coordinate `Equipment` dropping and collection requests. */
   private var ground : ActorRef = ActorRef.noSender
-  /** */
-  private var vehicles : List[Vehicle] = List[Vehicle]()
   /** */
   private var transport : ActorRef = ActorRef.noSender
   /** */
@@ -66,6 +65,8 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
   private var buildings : PairMap[Int, Building] = PairMap.empty[Int, Building]
   /** key - spawn zone id, value - buildings belonging to spawn zone */
   private var spawnGroups : Map[Building, List[SpawnTube]] = PairMap[Building, List[SpawnTube]]()
+  /** */
+  private var vehicleEvents : ActorRef = ActorRef.noSender
 
   /**
     * Establish the basic accessible conditions necessary for a functional `Zone`.<br>
@@ -88,8 +89,8 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
     if(accessor == ActorRef.noSender) {
       implicit val guid : NumberPoolHub = this.guid //passed into builderObject.Build implicitly
       accessor = context.actorOf(RandomPool(25).props(Props(classOf[UniqueNumberSystem], guid, UniqueNumberSystem.AllocateNumberPoolActors(guid))), s"$Id-uns")
-      ground = context.actorOf(Props(classOf[ZoneGroundActor], equipmentOnGround), s"$Id-ground")
-      transport = context.actorOf(Props(classOf[ZoneVehicleActor], this), s"$Id-vehicles")
+      ground = context.actorOf(Props(classOf[ZoneGroundActor], this, equipmentOnGround), s"$Id-ground")
+      transport = context.actorOf(Props(classOf[ZoneVehicleActor], this, vehicles), s"$Id-vehicles")
       population = context.actorOf(Props(classOf[ZonePopulationActor], this, players, corpses), s"$Id-players")
 
       Map.LocalObjects.foreach({ builderObject => builderObject.Build })
@@ -189,42 +190,13 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
     */
   def EquipmentOnGround : List[Equipment] = equipmentOnGround.toList
 
-  def Vehicles : List[Vehicle] = vehicles
+  def Vehicles : List[Vehicle] = vehicles.toList
 
   def Players : List[Avatar] = players.keys.toList
 
   def LivePlayers : List[Player] = players.values.collect( { case Some(tplayer) => tplayer }).toList
 
   def Corpses : List[Player] = corpses.toList
-
-  def AddVehicle(vehicle : Vehicle) : List[Vehicle] = {
-    vehicles = vehicles :+ vehicle
-    Vehicles
-  }
-
-  def RemoveVehicle(vehicle : Vehicle) : List[Vehicle] = {
-    vehicles = recursiveFindVehicle(vehicles.iterator, vehicle) match {
-      case Some(index) =>
-        vehicles.take(index) ++ vehicles.drop(index + 1)
-      case None => ;
-        vehicles
-    }
-    Vehicles
-  }
-
-  @tailrec private def recursiveFindVehicle(iter : Iterator[Vehicle], target : Vehicle, index : Int = 0) : Option[Int] = {
-    if(!iter.hasNext) {
-      None
-    }
-    else {
-      if(iter.next.equals(target)) {
-        Some(index)
-      }
-      else {
-        recursiveFindVehicle(iter, target, index + 1)
-      }
-    }
-  }
 
   /**
     * Coordinate `Equipment` that has been dropped on the ground or to-be-dropped on the ground.
@@ -303,6 +275,15 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
     * @return the `Zone` object
     */
   def ClientInitialization() : Zone = this
+
+  def VehicleEvents : ActorRef = vehicleEvents
+
+  def VehicleEvents_=(bus : ActorRef) : ActorRef = {
+    if(vehicleEvents == ActorRef.noSender) {
+      vehicleEvents = bus
+    }
+    VehicleEvents
+  }
 }
 
 object Zone {
@@ -392,10 +373,9 @@ object Zone {
     /**
       * Message that returns a discovered spawn point to a request source.
       * @param zone_id the zone's text identifier
-      * @param building the `Building` in which the spawnpoint is located
       * @param spawn_tube the spawn point holding object
       */
-    final case class SpawnPoint(zone_id : String, building : Building, spawn_tube : SpawnTube)
+    final case class SpawnPoint(zone_id : String, spawn_tube : SpawnTube)
     /**
       * Message that informs a request source that a spawn point could not be discovered with the previous criteria.
       * @param zone_number this zone's numeric identifier
@@ -406,31 +386,27 @@ object Zone {
     final case class NoValidSpawnPoint(zone_number : Int, spawn_group : Option[Int])
   }
 
-  /**
-    * Message to relinguish an item and place in on the ground.
-    * @param item the piece of `Equipment`
-    * @param pos where it is dropped
-    * @param orient in which direction it is facing when dropped
-    */
-  final case class DropItemOnGround(item : Equipment, pos : Vector3, orient : Vector3)
+  object Ground {
+    final case class DropItem(item : Equipment, pos : Vector3, orient : Vector3)
+    final case class ItemOnGround(item : Equipment, pos : Vector3, orient : Vector3)
+    final case class CanNotDropItem(zone : Zone, item : Equipment, reason : String)
 
-  /**
-    * Message to attempt to acquire an item from the ground (before somoene else?).
-    * @param player who wants the piece of `Equipment`
-    * @param item_guid the unique identifier of the piece of `Equipment`
-    */
-  final case class GetItemOnGround(player : Player, item_guid : PlanetSideGUID)
+    final case class PickupItem(item_guid : PlanetSideGUID)
+    final case class ItemInHand(item : Equipment)
+    final case class CanNotPickupItem(zone : Zone, item_guid : PlanetSideGUID, reason : String)
 
-  /**
-    * Message to give an item from the ground to a specific user.
-    * @param player who wants the piece of `Equipment`
-    * @param item the piece of `Equipment`
-    */
-  final case class ItemFromGround(player : Player, item : Equipment)
+    final case class RemoveItem(item_guid : PlanetSideGUID)
+  }
 
-  final case class SpawnVehicle(vehicle : Vehicle)
+  object Vehicle {
+    final case class Spawn(vehicle : Vehicle)
 
-  final case class DespawnVehicle(vehicle : Vehicle)
+    final case class Despawn(vehicle : Vehicle)
+
+    final case class CanNotSpawn(zone : Zone, vehicle : Vehicle, reason : String)
+
+    final case class CanNotDespawn(zone : Zone, vehicle : Vehicle, reason : String)
+  }
 
   /**
     * Message to report the packet messages that initialize the client.

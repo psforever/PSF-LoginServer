@@ -1,5 +1,7 @@
 // Copyright (c) 2017 PSForever
 import akka.actor.ActorContext
+import net.psforever.objects.serverobject.pad.VehicleSpawnPad
+import net.psforever.objects.serverobject.pad.process._
 import net.psforever.objects.zones.Zone
 import net.psforever.types.PlanetSideEmpire
 
@@ -49,6 +51,10 @@ object Zones {
       import net.psforever.types.PlanetSideEmpire
       Buildings.values.foreach { _.Faction = PlanetSideEmpire.VS }
       Building(29).get.Faction = PlanetSideEmpire.NC //South Villa Gun Tower
+      GUID(293).get.asInstanceOf[VehicleSpawnPad].Railed = false //building 52
+      GUID(706).get.asInstanceOf[VehicleSpawnPad].Guide = List(AutoDriveControls.DistanceFromHere(50f)) //building 77
+      GUID(710).get.asInstanceOf[VehicleSpawnPad].Railed = false //building 79
+      GUID(712).get.asInstanceOf[VehicleSpawnPad].Railed = false //building 81
     }
   }
 
@@ -82,13 +88,13 @@ object Zones {
 
   val c6 = new Zone("c6", Maps.ugd06, 28)
 
-  val i1 = new Zone("i1", Maps.map96, 29)
+  val i1 = new Zone("i1", Maps.map99, 29)
 
-  val i2 = new Zone("i2", Maps.map97, 30)
+  val i2 = new Zone("i2", Maps.map98, 30)
 
-  val i3 = new Zone("i3", Maps.map98, 31)
+  val i3 = new Zone("i3", Maps.map97, 31)
 
-  val i4 = new Zone("i4", Maps.map99, 32)
+  val i4 = new Zone("i4", Maps.map96, 32)
 
   /**
     * Get the zone identifier name for the sanctuary continent of a given empire.

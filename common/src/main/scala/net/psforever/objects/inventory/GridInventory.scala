@@ -8,7 +8,6 @@ import net.psforever.objects.EquipmentSlot
 import net.psforever.packet.game.PlanetSideGUID
 
 import scala.annotation.tailrec
-import scala.collection.immutable.Map
 import scala.collection.mutable
 import scala.util.{Failure, Success, Try}
 
@@ -28,7 +27,7 @@ import scala.util.{Failure, Success, Try}
   * The `Array` of spatial GUIDs is used for quick collision lookup.
   * Use of the `Array` only is hitherto referred as "using the inventory as a grid."
   */
-class GridInventory {
+class GridInventory extends Container {
   private var width : Int = 1
   private var height : Int = 1
   private var offset : Int = 0 //the effective index of the first cell in the inventory where offset >= 0
@@ -38,7 +37,7 @@ class GridInventory {
   private val entryIndex : AtomicInteger = new AtomicInteger(0)
   private var grid : Array[Int] = Array.fill[Int](1)(-1)
 
-  def Items : Map[Int, InventoryItem] = items.toMap[Int, InventoryItem]
+  def Items : List[InventoryItem] = items.values.toList
 
   def Width : Int = width
 
@@ -83,12 +82,21 @@ class GridInventory {
     */
   def LastIndex : Int = Offset + TotalCapacity - 1
 
+  override def Find(guid : PlanetSideGUID) : Option[Int] = {
+    items.values.find({ case InventoryItem(obj, _) => obj.HasGUID && obj.GUID == guid}) match {
+      case Some(InventoryItem(_, index)) =>
+        Some(index)
+      case None =>
+        None
+    }
+  }
+
   /**
     * Get whatever is stowed in the inventory at the given index.
     * @param slot the cell index
     * @return an `EquipmentSlot` that contains whatever `Equipment` was stored in `slot`
     */
-  def Slot(slot : Int) : EquipmentSlot = {
+  override def Slot(slot : Int) : EquipmentSlot = {
     val actualSlot = slot - offset
     if(actualSlot < 0 || actualSlot > grid.length) {
       throw new IndexOutOfBoundsException(s"requested indices not in bounds of grid inventory - $actualSlot")
@@ -236,7 +244,7 @@ class GridInventory {
     * @param tile the dimensions of the blank space
     * @return the grid index of the upper left corner where equipment to which the `tile` belongs should be placed
     */
-  def Fit(tile : InventoryTile) : Option[Int] = {
+  override def Fit(tile : InventoryTile) : Option[Int] = {
     val tWidth = tile.Width
     val tHeight = tile.Height
     val gridIter = (0 until (grid.length - (tHeight - 1) * width))
@@ -322,26 +330,23 @@ class GridInventory {
   def Insertion_CheckCollisions(start : Int, obj : Equipment, key : Int) : Boolean = {
     CheckCollisions(start, obj) match {
       case Success(Nil) =>
-        val card = InventoryItem(obj, start)
-        items += key -> card
-        val tile = obj.Tile
-        SetCells(start, tile.Width, tile.Height, key)
-        true
+        InsertQuickly(start, obj, key)
       case _ =>
         false
     }
   }
 
-  def +=(kv : (Int, Equipment)) : Boolean = Insert(kv._1, kv._2)
+  def InsertQuickly(start : Int, obj : Equipment) : Boolean = InsertQuickly(start, obj, entryIndex.getAndIncrement())
 
-//  def InsertQuickly(start : Int, obj : Equipment) : Boolean = {
-//    val guid : Int = obj.GUID.guid
-//    val card = InventoryItemData(obj, start)
-//    items += guid -> card
-//    val tile = obj.Tile
-//    SetCellsOffset(start, tile.width, tile.height, guid)
-//    true
-//  }
+  private def InsertQuickly(start : Int, obj : Equipment, key : Int) : Boolean = {
+    val card = InventoryItem(obj, start)
+    items += key -> card
+    val tile = obj.Tile
+    SetCells(start, tile.Width, tile.Height, key)
+    true
+  }
+
+  def +=(kv : (Int, Equipment)) : Boolean = Insert(kv._1, kv._2)
 
   def Remove(index : Int) : Boolean = {
     val key = grid(index - Offset)
@@ -426,6 +431,10 @@ class GridInventory {
     height = h
     grid = Array.fill[Int](w * h)(-1)
   }
+
+  def VisibleSlots : Set[Int] = Set.empty[Int]
+
+  def Inventory = this
 }
 
 object GridInventory {

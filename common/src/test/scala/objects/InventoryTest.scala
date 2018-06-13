@@ -306,9 +306,9 @@ class InventoryTest extends Specification {
       sampleDef63.Tile = InventoryTile.Tile63
 
       val obj : GridInventory = GridInventory(9, 9)
-      obj += 0 -> SimpleItem(PlanetSideGUID(0), sampleDef22)
-      obj += 20 -> SimpleItem(PlanetSideGUID(1), sampleDef63)
-      obj += 56 -> SimpleItem(PlanetSideGUID(2), sampleDef33)
+      obj += 0 -> SimpleItem(sampleDef22)
+      obj += 20 -> SimpleItem(sampleDef63)
+      obj += 56 -> SimpleItem(sampleDef33)
       obj.Fit(InventoryTile.Tile33) match {
         case Some(x) =>
           x mustEqual 50
@@ -329,14 +329,14 @@ class InventoryTest extends Specification {
       sampleDef4.Tile = InventoryTile.Tile63
 
       val list : ListBuffer[InventoryItem] = ListBuffer()
-      list += new InventoryItem(SimpleItem(PlanetSideGUID(0), sampleDef2), -1)
-      list += new InventoryItem(SimpleItem(PlanetSideGUID(1), sampleDef3), -1)
-      list += new InventoryItem(SimpleItem(PlanetSideGUID(2), sampleDef1), -1)
-      list += new InventoryItem(SimpleItem(PlanetSideGUID(3), sampleDef4), -1)
-      list += new InventoryItem(SimpleItem(PlanetSideGUID(4), sampleDef1), -1)
-      list += new InventoryItem(SimpleItem(PlanetSideGUID(5), sampleDef4), -1)
-      list += new InventoryItem(SimpleItem(PlanetSideGUID(6), sampleDef2), -1)
-      list += new InventoryItem(SimpleItem(PlanetSideGUID(7), sampleDef3), -1)
+      list += new InventoryItem(SimpleItem(sampleDef2), -1)
+      list += new InventoryItem(SimpleItem(sampleDef3), -1)
+      list += new InventoryItem(SimpleItem(sampleDef1), -1)
+      list += new InventoryItem(SimpleItem(sampleDef4), -1)
+      list += new InventoryItem(SimpleItem(sampleDef1), -1)
+      list += new InventoryItem(SimpleItem(sampleDef4), -1)
+      list += new InventoryItem(SimpleItem(sampleDef2), -1)
+      list += new InventoryItem(SimpleItem(sampleDef3), -1)
       val obj : GridInventory = GridInventory(9, 9)
 
       val (elements, out) = GridInventory.recoverInventory(list.toList, obj)
@@ -348,6 +348,43 @@ class InventoryTest extends Specification {
       out.head.Definition.Tile mustEqual InventoryTile.Tile22 //did not fit
       out(1).Definition.Tile mustEqual InventoryTile.Tile22 //did not fit
       ok
+    }
+
+    "insert items quickly (risk overwriting entries)" in {
+      val obj : GridInventory = GridInventory(6, 6)
+      (obj += 0 -> bullet9mmBox1) mustEqual true
+      val collision1 = obj.CheckCollisions(0,1,1)
+      obj.CheckCollisions(1,1,1) mustEqual collision1
+      obj.CheckCollisions(2,1,1) mustEqual collision1
+      obj.CheckCollisions(6,1,1) mustEqual collision1
+      obj.CheckCollisions(7,1,1) mustEqual collision1
+      obj.CheckCollisions(8,1,1) mustEqual collision1
+      obj.CheckCollisions(12,1,1) mustEqual collision1
+      obj.CheckCollisions(13,1,1) mustEqual collision1
+      obj.CheckCollisions(14,1,1) mustEqual collision1
+
+      (obj += 7 -> bullet9mmBox2) mustEqual false //can not insert overlapping object
+      obj.CheckCollisions(0,1,1) mustEqual collision1
+      obj.CheckCollisions(1,1,1) mustEqual collision1
+      obj.CheckCollisions(2,1,1) mustEqual collision1
+      obj.CheckCollisions(6,1,1) mustEqual collision1
+      obj.CheckCollisions(7,1,1) mustEqual collision1
+      obj.CheckCollisions(8,1,1) mustEqual collision1
+      obj.CheckCollisions(12,1,1) mustEqual collision1
+      obj.CheckCollisions(13,1,1) mustEqual collision1
+      obj.CheckCollisions(14,1,1) mustEqual collision1
+
+      obj.InsertQuickly(7, bullet9mmBox2) mustEqual true //overwrite
+      val collision2 = obj.CheckCollisions(7,1,1)
+      obj.CheckCollisions(0,1,1) mustEqual collision1
+      obj.CheckCollisions(1,1,1) mustEqual collision1
+      obj.CheckCollisions(2,1,1) mustEqual collision1
+      obj.CheckCollisions(6,1,1) mustEqual collision1
+      obj.CheckCollisions(7,1,1) mustEqual collision2
+      obj.CheckCollisions(8,1,1) mustEqual collision2
+      obj.CheckCollisions(12,1,1) mustEqual collision1
+      obj.CheckCollisions(13,1,1) mustEqual collision2
+      obj.CheckCollisions(14,1,1) mustEqual collision2
     }
   }
 }

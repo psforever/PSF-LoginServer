@@ -2,6 +2,7 @@
 package net.psforever.objects.serverobject.terminals
 
 import akka.actor.Actor
+import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
 
 /**
@@ -15,8 +16,13 @@ class TerminalControl(term : Terminal) extends Actor with FactionAffinityBehavio
     case Terminal.Request(player, msg) =>
       sender ! Terminal.TerminalMessage(player, msg, term.Request(player, msg))
 
-    case _ =>
-      sender ! Terminal.NoDeal()
+    case CommonMessages.Hack(player) =>
+      term.HackedBy = player
+      sender ! true
+    case CommonMessages.ClearHack() =>
+      term.HackedBy = None
+
+    case _ => ;
   }
 
   override def toString : String = term.Definition.Name

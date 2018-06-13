@@ -3,6 +3,7 @@ package net.psforever.objects.serverobject.terminals
 
 import akka.actor.ActorContext
 import net.psforever.objects.Player
+import net.psforever.objects.loadouts.InfantryLoadout
 import net.psforever.objects.inventory.InventoryItem
 import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.packet.game.ItemTransactionMessage
@@ -41,7 +42,7 @@ class OrderTerminalABDefinition(object_id : Int) extends EquipmentTerminalDefini
   override def Buy(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = buyFunc(player, msg)
 
   /**
-    * Process a `TransactionType.InfantryLoadout` action by the user.
+    * Process a `TransactionType.Loadout` action by the user.
     * `Loadout` objects are blueprints composed of exo-suit specifications and simplified `Equipment`-to-slot mappings.
     * If a valid loadout is found, its data is transformed back into actual `Equipment` for return to the user.
     * Loadouts that would suit the player into a mechanized assault exo-suit are not permitted.
@@ -52,16 +53,16 @@ class OrderTerminalABDefinition(object_id : Int) extends EquipmentTerminalDefini
   override def Loadout(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
     if(msg.item_page == 4) { //Favorites tab
       player.LoadLoadout(msg.unk1) match {
-        case Some(loadout) =>
-          if(loadout.ExoSuit != ExoSuitType.MAX) {
-            val holsters = loadout.VisibleSlots.map(entry => { InventoryItem(BuildSimplifiedPattern(entry.item), entry.index) })
-            val inventory = loadout.Inventory.map(entry => { InventoryItem(BuildSimplifiedPattern(entry.item), entry.index) })
-            Terminal.InfantryLoadout(loadout.ExoSuit, loadout.Subtype, holsters, inventory)
+        case Some(loadout : InfantryLoadout) =>
+          if(loadout.exosuit != ExoSuitType.MAX) {
+            val holsters = loadout.visible_slots.map(entry => { InventoryItem(BuildSimplifiedPattern(entry.item), entry.index) })
+            val inventory = loadout.inventory.map(entry => { InventoryItem(BuildSimplifiedPattern(entry.item), entry.index) })
+            Terminal.InfantryLoadout(loadout.exosuit, loadout.subtype, holsters, inventory)
           }
           else {
             Terminal.NoDeal()
           }
-        case None =>
+        case Some(_) | None =>
           Terminal.NoDeal()
       }
     }

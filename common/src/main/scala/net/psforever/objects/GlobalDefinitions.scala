@@ -13,8 +13,11 @@ import net.psforever.objects.serverobject.mblocker.LockerDefinition
 import net.psforever.objects.serverobject.pad.VehicleSpawnPadDefinition
 import net.psforever.objects.serverobject.terminals._
 import net.psforever.objects.serverobject.tube.SpawnTubeDefinition
+import net.psforever.objects.serverobject.resourcesilo.ResourceSiloDefinition
 import net.psforever.objects.vehicles.{SeatArmorRestriction, UtilityType}
 import net.psforever.types.PlanetSideEmpire
+
+import scala.concurrent.duration._
 
 object GlobalDefinitions {
   /*
@@ -45,7 +48,7 @@ object GlobalDefinitions {
    */
   import net.psforever.packet.game.objectcreate.ObjectClass
   val locker_container = new EquipmentDefinition(456) {
-    Name = "locker container"
+    Name = "locker_container"
     Size = EquipmentSize.Inventory
     Packet = new LockerContainerConverter()
   }
@@ -57,6 +60,7 @@ object GlobalDefinitions {
   val super_armorkit = KitDefinition(Kits.super_armorkit)
 
   val super_staminakit = KitDefinition(Kits.super_staminakit) //super stimpak
+  init_kit()
 
   val melee_ammo = AmmoBoxDefinition(Ammo.melee_ammo)
 
@@ -277,11 +281,38 @@ object GlobalDefinitions {
 
   val flamethrower = ToolDefinition(ObjectClass.flamethrower)
 
-  val trhev_dualcycler = ToolDefinition(ObjectClass.trhev_dualcycler)
+  val trhev_dualcycler = new ToolDefinition(ObjectClass.trhev_dualcycler) {
+    override def NextFireModeIndex(index : Int) : Int = index
+  }
 
-  val trhev_pounder = ToolDefinition(ObjectClass.trhev_pounder)
+  val trhev_pounder = new ToolDefinition(ObjectClass.trhev_pounder) {
+    override def NextFireModeIndex(index : Int) : Int = {
+      //TODO other modes
+      if(index == 0 || index == 3) {
+        if(index == 0) {
+          3 //3-second fuse
+        }
+        else {
+          0 //explode on contact
+        }
+      }
+      else if(index == 1 || index == 4) {
+        if(index == 1) {
+          4 //3-second fuse, anchored
+        }
+        else {
+          1 //explode on contact, anchored
+        }
+      }
+      else {
+        index
+      }
+    }
+  }
 
-  val trhev_burster = ToolDefinition(ObjectClass.trhev_burster)
+  val trhev_burster = new ToolDefinition(ObjectClass.trhev_burster) {
+    override def NextFireModeIndex(index : Int) : Int = index
+  }
 
   val nchev_scattercannon = ToolDefinition(ObjectClass.nchev_scattercannon)
 
@@ -515,6 +546,18 @@ object GlobalDefinitions {
 
   val respawn_tube_tower = new SpawnTubeDefinition(733)
 
+  val adv_med_terminal = new MedicalTerminalDefinition(38)
+
+  val crystals_health_a = new MedicalTerminalDefinition(225)
+
+  val crystals_health_b = new MedicalTerminalDefinition(226)
+
+  val medical_terminal = new MedicalTerminalDefinition(529)
+
+  val pad_landing = new RepairRearmSiloDefinition(719)
+
+  val repair_silo = new RepairRearmSiloDefinition(729)
+
   val spawn_pad = new VehicleSpawnPadDefinition
 
   val mb_locker = new LockerDefinition
@@ -522,6 +565,8 @@ object GlobalDefinitions {
   val lock_external = new IFFLockDefinition
 
   val door = new DoorDefinition
+
+  val resource_silo = new ResourceSiloDefinition
 
   /**
     * Given a faction, provide the standard assault melee weapon.
@@ -838,216 +883,348 @@ object GlobalDefinitions {
   }
 
   /**
+    * Using the definition for a `Vehicle` determine whether it can fly.
+    * @param vdef the `VehicleDefinition` of the vehicle
+    * @return `true`, if it is; `false`, otherwise
+    */
+  def isFlightVehicle(vdef : VehicleDefinition) : Boolean = {
+    vdef match {
+      case `mosquito` | `lightgunship` | `wasp` | `liberator` | `vulture` | `phantasm` | `lodestar` | `dropship` | `galaxy_gunship` =>
+        true
+      case _ =>
+        false
+    }
+  }
+
+  /**
+    * Using the definition for a `Vehicle` determine whether it hovers.
+    * @param vdef the `VehicleDefinition` of the vehicle
+    * @return `true`, if it can; `false`, otherwise
+    */
+  def isHoverVehicle(vdef : VehicleDefinition) : Boolean = {
+    vdef match {
+      case `twomanhoverbuggy` | `magrider` | `router` | `flail` =>
+        true
+      case _ =>
+        false
+    }
+  }
+
+  /**
+    * Using the definition for a `Vehicle` determine whether it can rotate its body without forward acceleration.
+    * @param vdef the `VehicleDefinition` of the vehicle
+    * @return `true`, if it is; `false`, otherwise
+    */
+  def canStationaryRotate(vdef : VehicleDefinition) : Boolean = {
+    if(isFlightVehicle(vdef) || isHoverVehicle(vdef)) {
+      true
+    }
+    else {
+      vdef match {
+        case `lightning` | `prowler` | `vanguard` =>
+          true
+        case _ =>
+          false
+      }
+    }
+  }
+
+  /**
+    * Initialize `KitDefinition` globals.
+    */
+  private def init_kit() : Unit = {
+    medkit.Name = "medkit"
+
+    super_medkit.Name = "super_medkit"
+
+    super_armorkit.Name = "super_armorkit"
+
+    super_staminakit.Name = "super_staminakit"
+  }
+
+  /**
     * Initialize `AmmoBoxDefinition` globals.
     */
   private def init_ammo() : Unit = {
+    melee_ammo.Name = "melee_ammo"
     melee_ammo.Size = EquipmentSize.Blocked
 
+    frag_grenade_ammo.Name = "frag_grenade_ammo"
     frag_grenade_ammo.Size = EquipmentSize.Blocked
 
+    jammer_grenade_ammo.Name = "jammer_grenade_ammo"
     jammer_grenade_ammo.Size = EquipmentSize.Blocked
 
+    plasma_grenade_ammo.Name = "plasma_grenade_ammo"
     plasma_grenade_ammo.Size = EquipmentSize.Blocked
 
+    bullet_9mm.Name = "bullet_9mm"
     bullet_9mm.Capacity = 50
     bullet_9mm.Tile = InventoryTile.Tile33
 
+    bullet_9mm_AP.Name="bullet_9mm_AP"
     bullet_9mm_AP.Capacity = 50
     bullet_9mm_AP.Tile = InventoryTile.Tile33
 
+    shotgun_shell.Name ="shotgun_shell"
     shotgun_shell.Capacity = 16
     shotgun_shell.Tile = InventoryTile.Tile33
 
+    shotgun_shell_AP.Name = "shotgun_shell_AP"
     shotgun_shell_AP.Capacity = 16
     shotgun_shell_AP.Tile = InventoryTile.Tile33
 
+    energy_cell.Name = "energy_cell"
     energy_cell.Capacity = 50
     energy_cell.Tile = InventoryTile.Tile33
 
+    anniversary_ammo.Name = "anniversary_ammo"
     anniversary_ammo.Capacity = 30
     anniversary_ammo.Tile = InventoryTile.Tile33
 
+    ancient_ammo_combo.Name = "ancient_ammo_combo"
     ancient_ammo_combo.Capacity = 30
     ancient_ammo_combo.Tile = InventoryTile.Tile33
 
+    maelstrom_ammo.Name = "maelstrom_ammo"
     maelstrom_ammo.Capacity = 50
     maelstrom_ammo.Tile = InventoryTile.Tile33
 
+    phoenix_missile.Name = "phoenix_missile"
     phoenix_missile.Size = EquipmentSize.Blocked
 
+    striker_missile_ammo.Name = "striker_missile_ammo"
     striker_missile_ammo.Capacity = 15
     striker_missile_ammo.Tile = InventoryTile.Tile44
 
+    hunter_seeker_missile.Name = "hunter_seeker_missile"
     hunter_seeker_missile.Capacity = 9
     hunter_seeker_missile.Tile = InventoryTile.Tile44
 
+    lancer_cartridge.Name = "lancer_cartridge"
     lancer_cartridge.Capacity = 18
     lancer_cartridge.Tile = InventoryTile.Tile44
 
+    rocket.Name = "rocket"
     rocket.Capacity = 15
     rocket.Tile = InventoryTile.Tile33
 
+    frag_cartridge.Name = "frag_cartridge"
     frag_cartridge.Capacity = 12
     frag_cartridge.Tile = InventoryTile.Tile33
 
+    plasma_cartridge.Name = "plasma_cartridge"
     plasma_cartridge.Capacity = 12
     plasma_cartridge.Tile = InventoryTile.Tile33
 
+    jammer_cartridge.Name = "jammer_cartridge"
     jammer_cartridge.Capacity = 12
     jammer_cartridge.Tile = InventoryTile.Tile33
 
+    bolt.Name = "bolt"
     bolt.Capacity = 10
     bolt.Tile = InventoryTile.Tile33
 
+    oicw_ammo.Name = "oicw_ammo"
     oicw_ammo.Capacity = 10
     oicw_ammo.Tile = InventoryTile.Tile44
 
+    flamethrower_ammo.Name = "flamethrower_ammo"
     flamethrower_ammo.Capacity = 100
     flamethrower_ammo.Tile = InventoryTile.Tile44
 
+    dualcycler_ammo.Name = "dualcycler_ammo"
     dualcycler_ammo.Capacity = 100
     dualcycler_ammo.Tile = InventoryTile.Tile44
 
+    pounder_ammo.Name = "pounder_ammo"
     pounder_ammo.Capacity = 50
     pounder_ammo.Tile = InventoryTile.Tile44
 
+    burster_ammo.Name = "burster_ammo"
     burster_ammo.Capacity = 100
     burster_ammo.Tile = InventoryTile.Tile44
 
+    scattercannon_ammo.Name = "scattercannon_ammo"
     scattercannon_ammo.Capacity = 50
     scattercannon_ammo.Tile = InventoryTile.Tile44
 
+    falcon_ammo.Name = "falcon_ammo"
     falcon_ammo.Capacity = 50
     falcon_ammo.Tile = InventoryTile.Tile44
 
+    sparrow_ammo.Name = "sparrow_ammo"
     sparrow_ammo.Capacity = 50
     sparrow_ammo.Tile = InventoryTile.Tile44
 
+    quasar_ammo.Name = "quasar_ammo"
     quasar_ammo.Capacity = 60
     quasar_ammo.Tile = InventoryTile.Tile44
 
+    comet_ammo.Name = "comet_ammo"
     comet_ammo.Capacity = 50
     comet_ammo.Tile = InventoryTile.Tile44
 
+    starfire_ammo.Name = "starfire_ammo"
     starfire_ammo.Capacity = 50
     starfire_ammo.Tile = InventoryTile.Tile44
 
+    health_canister.Name = "health_canister"
     health_canister.Capacity = 100
     health_canister.Tile = InventoryTile.Tile33
 
+    armor_canister.Name = "armor_canister"
     armor_canister.Capacity = 100
     armor_canister.Tile = InventoryTile.Tile33
 
+    upgrade_canister.Name = "upgrade_canister"
     upgrade_canister.Capacity = 100
     upgrade_canister.Tile = InventoryTile.Tile33
 
+    trek_ammo.Name = "trek_ammo"
     trek_ammo.Size = EquipmentSize.Blocked
 
+    bullet_35mm.Name = "bullet_35mm"
     bullet_35mm.Capacity = 100
     bullet_35mm.Tile = InventoryTile.Tile44
 
+    aphelion_laser_ammo.Name = "aphelion_laser_ammo"
     aphelion_laser_ammo.Capacity = 165
     aphelion_laser_ammo.Tile = InventoryTile.Tile44
 
+    aphelion_immolation_cannon_ammo.Name = "aphelion_immolation_cannon_ammo"
     aphelion_immolation_cannon_ammo.Capacity = 100
     aphelion_immolation_cannon_ammo.Tile = InventoryTile.Tile55
 
+    aphelion_plasma_rocket_ammo.Name = "aphelion_plasma_rocket_ammo"
     aphelion_plasma_rocket_ammo.Capacity = 195
     aphelion_plasma_rocket_ammo.Tile = InventoryTile.Tile55
 
+    aphelion_ppa_ammo.Name = "aphelion_ppa_ammo"
     aphelion_ppa_ammo.Capacity = 110
     aphelion_ppa_ammo.Tile = InventoryTile.Tile44
 
+    aphelion_starfire_ammo.Name = "aphelion_starfire_ammo"
     aphelion_starfire_ammo.Capacity = 132
     aphelion_starfire_ammo.Tile = InventoryTile.Tile44
 
+    skyguard_flak_cannon_ammo.Name = "skyguard_flak_cannon_ammo"
     skyguard_flak_cannon_ammo.Capacity = 200
     skyguard_flak_cannon_ammo.Tile = InventoryTile.Tile44
 
+    firebird_missile.Name = "firebird_missile"
     firebird_missile.Capacity = 50
     firebird_missile.Tile = InventoryTile.Tile44
 
+    flux_cannon_thresher_battery.Name = "flux_cannon_thresher_battery"
     flux_cannon_thresher_battery.Capacity = 150
     flux_cannon_thresher_battery.Tile = InventoryTile.Tile44
 
+    fluxpod_ammo.Name = "fluxpod_ammo"
     fluxpod_ammo.Capacity = 80
     fluxpod_ammo.Tile = InventoryTile.Tile44
 
+    hellfire_ammo.Name = "hellfire_ammo"
     hellfire_ammo.Capacity = 24
     hellfire_ammo.Tile = InventoryTile.Tile44
 
+    liberator_bomb.Name = "liberator_bomb"
     liberator_bomb.Capacity = 20
     liberator_bomb.Tile = InventoryTile.Tile44
 
+    bullet_25mm.Name = "bullet_25mm"
     bullet_25mm.Capacity = 150
     bullet_25mm.Tile = InventoryTile.Tile44
 
+    bullet_75mm.Name = "bullet_75mm"
     bullet_75mm.Capacity = 100
     bullet_75mm.Tile = InventoryTile.Tile44
 
+    heavy_grenade_mortar.Name = "heavy_grenade_mortar"
     heavy_grenade_mortar.Capacity = 100
     heavy_grenade_mortar.Tile = InventoryTile.Tile44
 
+    pulse_battery.Name = "pulse_battery"
     pulse_battery.Capacity = 100
     pulse_battery.Tile = InventoryTile.Tile44
 
+    heavy_rail_beam_battery.Name = "heavy_rail_beam_battery"
     heavy_rail_beam_battery.Capacity = 100
     heavy_rail_beam_battery.Tile = InventoryTile.Tile44
 
+    reaver_rocket.Name = "reaver_rocket"
     reaver_rocket.Capacity = 12
     reaver_rocket.Tile = InventoryTile.Tile44
 
+    bullet_20mm.Name = "bullet_20mm"
     bullet_20mm.Capacity = 200
     bullet_20mm.Tile = InventoryTile.Tile44
 
+    bullet_12mm.Name = "bullet_12mm"
     bullet_12mm.Capacity = 300
     bullet_12mm.Tile = InventoryTile.Tile44
 
+    wasp_rocket_ammo.Name = "wasp_rocket_ammo"
     wasp_rocket_ammo.Capacity = 6
     wasp_rocket_ammo.Tile = InventoryTile.Tile44
 
+    wasp_gun_ammo.Name = "wasp_gun_ammo"
     wasp_gun_ammo.Capacity = 150
     wasp_gun_ammo.Tile = InventoryTile.Tile44
 
+    bullet_15mm.Name = "bullet_15mm"
     bullet_15mm.Capacity = 360
     bullet_15mm.Tile = InventoryTile.Tile44
 
+    colossus_100mm_cannon_ammo.Name = "colossus_100mm_cannon_ammo"
     colossus_100mm_cannon_ammo.Capacity = 90
     colossus_100mm_cannon_ammo.Tile = InventoryTile.Tile55
 
+    colossus_burster_ammo.Name = "colossus_burster_ammo"
     colossus_burster_ammo.Capacity = 235
     colossus_burster_ammo.Tile = InventoryTile.Tile44
 
+    colossus_cluster_bomb_ammo.Name = "colossus_cluster_bomb_ammo"
     colossus_cluster_bomb_ammo.Capacity = 150
     colossus_cluster_bomb_ammo.Tile = InventoryTile.Tile55
 
+    colossus_chaingun_ammo.Name = "colossus_chaingun_ammo"
     colossus_chaingun_ammo.Capacity = 600
     colossus_chaingun_ammo.Tile = InventoryTile.Tile44
 
+    colossus_tank_cannon_ammo.Name = "colossus_tank_cannon_ammo"
     colossus_tank_cannon_ammo.Capacity = 110
     colossus_tank_cannon_ammo.Tile = InventoryTile.Tile44
 
+    bullet_105mm.Name = "bullet_105mm"
     bullet_105mm.Capacity = 100
     bullet_105mm.Tile = InventoryTile.Tile44
 
+    gauss_cannon_ammo.Name = "gauss_cannon_ammo"
     gauss_cannon_ammo.Capacity = 15
     gauss_cannon_ammo.Tile = InventoryTile.Tile44
 
+    peregrine_dual_machine_gun_ammo.Name = "peregrine_dual_machine_gun_ammo"
     peregrine_dual_machine_gun_ammo.Capacity = 240
     peregrine_dual_machine_gun_ammo.Tile = InventoryTile.Tile44
 
+    peregrine_mechhammer_ammo.Name = "peregrine_mechhammer_ammo"
     peregrine_mechhammer_ammo.Capacity = 30
     peregrine_mechhammer_ammo.Tile = InventoryTile.Tile44
 
+    peregrine_particle_cannon_ammo.Name = "peregrine_particle_cannon_ammo"
     peregrine_particle_cannon_ammo.Capacity = 40
     peregrine_particle_cannon_ammo.Tile = InventoryTile.Tile55
 
+    peregrine_rocket_pod_ammo.Name = "peregrine_rocket_pod_ammo"
     peregrine_rocket_pod_ammo.Capacity = 275
     peregrine_rocket_pod_ammo.Tile = InventoryTile.Tile55
 
+    peregrine_sparrow_ammo.Name = "peregrine_sparrow_ammo"
     peregrine_sparrow_ammo.Capacity = 150
     peregrine_sparrow_ammo.Tile = InventoryTile.Tile44
 
+    bullet_150mm.Name = "bullet_150mm"
     bullet_150mm.Capacity = 50
     bullet_150mm.Tile = InventoryTile.Tile44
   }
@@ -1056,6 +1233,7 @@ object GlobalDefinitions {
     * Initialize `ToolDefinition` globals.
     */
   private def init_tools() : Unit = {
+    chainblade.Name = "chainblade"
     chainblade.Size = EquipmentSize.Melee
     chainblade.AmmoTypes += melee_ammo
     chainblade.FireModes += new InfiniteFireModeDefinition
@@ -1067,6 +1245,7 @@ object GlobalDefinitions {
     chainblade.FireModes(1).AmmoSlotIndex = 0
     chainblade.FireModes(1).Magazine = 1
 
+    magcutter.Name = "magcutter"
     magcutter.Size = EquipmentSize.Melee
     magcutter.AmmoTypes += melee_ammo
     magcutter.FireModes += new InfiniteFireModeDefinition
@@ -1078,6 +1257,7 @@ object GlobalDefinitions {
     magcutter.FireModes(1).AmmoSlotIndex = 0
     magcutter.FireModes(1).Magazine = 1
 
+    forceblade.Name = "forceblade"
     forceblade.Size = EquipmentSize.Melee
     forceblade.AmmoTypes += melee_ammo
     forceblade.FireModes += new InfiniteFireModeDefinition
@@ -1089,6 +1269,7 @@ object GlobalDefinitions {
     forceblade.FireModes(1).AmmoSlotIndex = 0
     forceblade.FireModes(1).Magazine = 1
 
+    katana.Name = "katana"
     katana.Size = EquipmentSize.Melee
     katana.AmmoTypes += melee_ammo
     katana.FireModes += new InfiniteFireModeDefinition
@@ -1100,6 +1281,7 @@ object GlobalDefinitions {
     katana.FireModes(1).AmmoSlotIndex = 0
     katana.FireModes(1).Magazine = 1
 
+    frag_grenade.Name = "frag_grenade"
     frag_grenade.Size = EquipmentSize.Pistol
     frag_grenade.AmmoTypes += frag_grenade_ammo
     frag_grenade.FireModes += new FireModeDefinition
@@ -1112,6 +1294,7 @@ object GlobalDefinitions {
     frag_grenade.FireModes(1).Magazine = 3
     frag_grenade.Tile = InventoryTile.Tile22
 
+    plasma_grenade.Name = "plasma_grenade"
     plasma_grenade.Size = EquipmentSize.Pistol
     plasma_grenade.AmmoTypes += plasma_grenade_ammo
     plasma_grenade.FireModes += new FireModeDefinition
@@ -1124,6 +1307,7 @@ object GlobalDefinitions {
     plasma_grenade.FireModes(1).Magazine = 3
     plasma_grenade.Tile = InventoryTile.Tile22
 
+    jammer_grenade.Name = "jammer_grenade"
     jammer_grenade.Size = EquipmentSize.Pistol
     jammer_grenade.AmmoTypes += jammer_grenade_ammo
     jammer_grenade.FireModes += new FireModeDefinition
@@ -1136,6 +1320,7 @@ object GlobalDefinitions {
     jammer_grenade.FireModes(1).Magazine = 3
     jammer_grenade.Tile = InventoryTile.Tile22
 
+    repeater.Name = "repeater"
     repeater.Size = EquipmentSize.Pistol
     repeater.AmmoTypes += bullet_9mm
     repeater.AmmoTypes += bullet_9mm_AP
@@ -1146,6 +1331,7 @@ object GlobalDefinitions {
     repeater.FireModes.head.Magazine = 20
     repeater.Tile = InventoryTile.Tile33
 
+    isp.Name = "isp"
     isp.Size = EquipmentSize.Pistol
     isp.AmmoTypes += shotgun_shell
     isp.AmmoTypes += shotgun_shell_AP
@@ -1157,6 +1343,7 @@ object GlobalDefinitions {
     isp.FireModes.head.Chamber = 6 //8 shells x 6 pellets = 48
     isp.Tile = InventoryTile.Tile33
 
+    beamer.Name = "beamer"
     beamer.Size = EquipmentSize.Pistol
     beamer.AmmoTypes += energy_cell
     beamer.FireModes += new FireModeDefinition
@@ -1169,6 +1356,7 @@ object GlobalDefinitions {
     beamer.FireModes(1).Magazine = 16
     beamer.Tile = InventoryTile.Tile33
 
+    ilc9.Name = "ilc9"
     ilc9.Size = EquipmentSize.Pistol
     ilc9.AmmoTypes += bullet_9mm
     ilc9.AmmoTypes += bullet_9mm_AP
@@ -1179,6 +1367,7 @@ object GlobalDefinitions {
     ilc9.FireModes.head.Magazine = 30
     ilc9.Tile = InventoryTile.Tile33
 
+    suppressor.Name = "suppressor"
     suppressor.Size = EquipmentSize.Rifle
     suppressor.AmmoTypes += bullet_9mm
     suppressor.AmmoTypes += bullet_9mm_AP
@@ -1189,6 +1378,7 @@ object GlobalDefinitions {
     suppressor.FireModes.head.Magazine = 25
     suppressor.Tile = InventoryTile.Tile63
 
+    punisher.Name = "punisher"
     punisher.Size = EquipmentSize.Rifle
     punisher.AmmoTypes += bullet_9mm
     punisher.AmmoTypes += bullet_9mm_AP
@@ -1210,6 +1400,7 @@ object GlobalDefinitions {
     punisher.FireModes(1).Magazine = 1
     punisher.Tile = InventoryTile.Tile63
 
+    flechette.Name = "flechette"
     flechette.Size = EquipmentSize.Rifle
     flechette.AmmoTypes += shotgun_shell
     flechette.AmmoTypes += shotgun_shell_AP
@@ -1221,6 +1412,7 @@ object GlobalDefinitions {
     flechette.FireModes.head.Chamber = 8 //12 shells * 8 pellets = 96
     flechette.Tile = InventoryTile.Tile63
 
+    cycler.Name = "cycler"
     cycler.Size = EquipmentSize.Rifle
     cycler.AmmoTypes += bullet_9mm
     cycler.AmmoTypes += bullet_9mm_AP
@@ -1231,6 +1423,7 @@ object GlobalDefinitions {
     cycler.FireModes.head.Magazine = 50
     cycler.Tile = InventoryTile.Tile63
 
+    gauss.Name = "gauss"
     gauss.Size = EquipmentSize.Rifle
     gauss.AmmoTypes += bullet_9mm
     gauss.AmmoTypes += bullet_9mm_AP
@@ -1241,6 +1434,7 @@ object GlobalDefinitions {
     gauss.FireModes.head.Magazine = 30
     gauss.Tile = InventoryTile.Tile63
 
+    pulsar.Name = "pulsar"
     pulsar.Size = EquipmentSize.Rifle
     pulsar.AmmoTypes += energy_cell
     pulsar.FireModes += new FireModeDefinition
@@ -1253,6 +1447,7 @@ object GlobalDefinitions {
     pulsar.FireModes(1).Magazine = 40
     pulsar.Tile = InventoryTile.Tile63
 
+    anniversary_guna.Name = "anniversary_guna"
     anniversary_guna.Size = EquipmentSize.Pistol
     anniversary_guna.AmmoTypes += anniversary_ammo
     anniversary_guna.FireModes += new FireModeDefinition
@@ -1265,6 +1460,7 @@ object GlobalDefinitions {
     anniversary_guna.FireModes(1).Magazine = 6
     anniversary_guna.Tile = InventoryTile.Tile33
 
+    anniversary_gun.Name = "anniversary_gun"
     anniversary_gun.Size = EquipmentSize.Pistol
     anniversary_gun.AmmoTypes += anniversary_ammo
     anniversary_gun.FireModes += new FireModeDefinition
@@ -1277,6 +1473,7 @@ object GlobalDefinitions {
     anniversary_gun.FireModes(1).Magazine = 6
     anniversary_gun.Tile = InventoryTile.Tile33
 
+    anniversary_gunb.Name = "anniversary_gunb"
     anniversary_gunb.Size = EquipmentSize.Pistol
     anniversary_gunb.AmmoTypes += anniversary_ammo
     anniversary_gunb.FireModes += new FireModeDefinition
@@ -1289,6 +1486,7 @@ object GlobalDefinitions {
     anniversary_gunb.FireModes(1).Magazine = 6
     anniversary_gunb.Tile = InventoryTile.Tile33
 
+    spiker.Name = "spiker"
     spiker.Size = EquipmentSize.Pistol
     spiker.AmmoTypes += ancient_ammo_combo
     spiker.FireModes += new FireModeDefinition
@@ -1298,6 +1496,7 @@ object GlobalDefinitions {
     spiker.Tile = InventoryTile.Tile33
     //TODO the spiker is weird
 
+    mini_chaingun.Name = "mini_chaingun"
     mini_chaingun.Size = EquipmentSize.Rifle
     mini_chaingun.AmmoTypes += bullet_9mm
     mini_chaingun.AmmoTypes += bullet_9mm_AP
@@ -1308,6 +1507,7 @@ object GlobalDefinitions {
     mini_chaingun.FireModes.head.Magazine = 100
     mini_chaingun.Tile = InventoryTile.Tile93
 
+    r_shotgun.Name = "r_shotgun"
     r_shotgun.Size = EquipmentSize.Rifle
     r_shotgun.AmmoTypes += shotgun_shell
     r_shotgun.AmmoTypes += shotgun_shell_AP
@@ -1325,6 +1525,7 @@ object GlobalDefinitions {
     r_shotgun.FireModes(1).Chamber = 8 //16 shells * 8 pellets = 128
     r_shotgun.Tile = InventoryTile.Tile93
 
+    lasher.Name = "lasher"
     lasher.Size = EquipmentSize.Rifle
     lasher.AmmoTypes += energy_cell
     lasher.FireModes += new FireModeDefinition
@@ -1337,6 +1538,7 @@ object GlobalDefinitions {
     lasher.FireModes(1).Magazine = 35
     lasher.Tile = InventoryTile.Tile93
 
+    maelstrom.Name = "maelstrom"
     maelstrom.Size = EquipmentSize.Rifle
     maelstrom.AmmoTypes += maelstrom_ammo
     maelstrom.FireModes += new FireModeDefinition
@@ -1354,6 +1556,7 @@ object GlobalDefinitions {
     maelstrom.Tile = InventoryTile.Tile93
     //TODO the maelstrom is weird
 
+    phoenix.Name = "phoenix"
     phoenix.Size = EquipmentSize.Rifle
     phoenix.AmmoTypes += phoenix_missile
     phoenix.FireModes += new FireModeDefinition
@@ -1366,6 +1569,7 @@ object GlobalDefinitions {
     phoenix.FireModes(1).Magazine = 3
     phoenix.Tile = InventoryTile.Tile93
 
+    striker.Name = "striker"
     striker.Size = EquipmentSize.Rifle
     striker.AmmoTypes += striker_missile_ammo
     striker.FireModes += new FireModeDefinition
@@ -1378,6 +1582,7 @@ object GlobalDefinitions {
     striker.FireModes(1).Magazine = 5
     striker.Tile = InventoryTile.Tile93
 
+    hunterseeker.Name = "hunterseeker"
     hunterseeker.Size = EquipmentSize.Rifle
     hunterseeker.AmmoTypes += hunter_seeker_missile
     hunterseeker.FireModes += new FireModeDefinition
@@ -1390,6 +1595,7 @@ object GlobalDefinitions {
     hunterseeker.FireModes(1).Magazine = 1
     hunterseeker.Tile = InventoryTile.Tile93
 
+    lancer.Name = "lancer"
     lancer.Size = EquipmentSize.Rifle
     lancer.AmmoTypes += lancer_cartridge
     lancer.FireModes += new FireModeDefinition
@@ -1398,6 +1604,7 @@ object GlobalDefinitions {
     lancer.FireModes.head.Magazine = 6
     lancer.Tile = InventoryTile.Tile93
 
+    rocklet.Name = "rocklet"
     rocklet.Size = EquipmentSize.Rifle
     rocklet.AmmoTypes += rocket
     rocklet.AmmoTypes += frag_cartridge
@@ -1413,6 +1620,7 @@ object GlobalDefinitions {
     rocklet.FireModes(1).Magazine = 6
     rocklet.Tile = InventoryTile.Tile63
 
+    thumper.Name = "thumper"
     thumper.Size = EquipmentSize.Rifle
     thumper.AmmoTypes += frag_cartridge
     thumper.AmmoTypes += plasma_cartridge
@@ -1431,6 +1639,7 @@ object GlobalDefinitions {
     thumper.FireModes(1).Magazine = 6
     thumper.Tile = InventoryTile.Tile63
 
+    radiator.Name = "radiator"
     radiator.Size = EquipmentSize.Rifle
     radiator.AmmoTypes += ancient_ammo_combo
     radiator.FireModes += new FireModeDefinition
@@ -1443,6 +1652,7 @@ object GlobalDefinitions {
     radiator.FireModes(1).Magazine = 25
     radiator.Tile = InventoryTile.Tile63
 
+    heavy_sniper.Name = "heavy_sniper"
     heavy_sniper.Size = EquipmentSize.Rifle
     heavy_sniper.AmmoTypes += bolt
     heavy_sniper.FireModes += new FireModeDefinition
@@ -1451,6 +1661,7 @@ object GlobalDefinitions {
     heavy_sniper.FireModes.head.Magazine = 10
     heavy_sniper.Tile = InventoryTile.Tile93
 
+    bolt_driver.Name = "bolt_driver"
     bolt_driver.Size = EquipmentSize.Rifle
     bolt_driver.AmmoTypes += bolt
     bolt_driver.FireModes += new FireModeDefinition
@@ -1459,6 +1670,7 @@ object GlobalDefinitions {
     bolt_driver.FireModes.head.Magazine = 1
     bolt_driver.Tile = InventoryTile.Tile93
 
+    oicw.Name = "oicw"
     oicw.Size = EquipmentSize.Rifle
     oicw.AmmoTypes += oicw_ammo
     oicw.FireModes += new FireModeDefinition
@@ -1471,6 +1683,7 @@ object GlobalDefinitions {
     oicw.FireModes(1).Magazine = 1
     oicw.Tile = InventoryTile.Tile93
 
+    flamethrower.Name = "flamethrower"
     flamethrower.Size = EquipmentSize.Rifle
     flamethrower.AmmoTypes += flamethrower_ammo
     flamethrower.FireModes += new FireModeDefinition
@@ -1484,24 +1697,51 @@ object GlobalDefinitions {
     flamethrower.FireModes(1).Rounds = 50
     flamethrower.Tile = InventoryTile.Tile63
 
+    trhev_dualcycler.Name = "trhev_dualcycler"
     trhev_dualcycler.Size = EquipmentSize.Max
     trhev_dualcycler.AmmoTypes += dualcycler_ammo
     trhev_dualcycler.FireModes += new FireModeDefinition
     trhev_dualcycler.FireModes.head.AmmoTypeIndices += 0
     trhev_dualcycler.FireModes.head.AmmoSlotIndex = 0
     trhev_dualcycler.FireModes.head.Magazine = 200
+    trhev_dualcycler.FireModes += new FireModeDefinition //anchored
+    trhev_dualcycler.FireModes(1).AmmoTypeIndices += 0
+    trhev_dualcycler.FireModes(1).AmmoSlotIndex = 0
+    trhev_dualcycler.FireModes(1).Magazine = 200
+    trhev_dualcycler.FireModes += new FireModeDefinition //overdrive?
+    trhev_dualcycler.FireModes(2).AmmoTypeIndices += 0
+    trhev_dualcycler.FireModes(2).AmmoSlotIndex = 0
+    trhev_dualcycler.FireModes(2).Magazine = 200
 
+    trhev_pounder.Name = "trhev_pounder"
     trhev_pounder.Size = EquipmentSize.Max
     trhev_pounder.AmmoTypes += pounder_ammo
     trhev_pounder.FireModes += new FireModeDefinition
-    trhev_pounder.FireModes.head.AmmoTypeIndices += 0
+    trhev_pounder.FireModes.head.AmmoTypeIndices += 0 //explode on contact
     trhev_pounder.FireModes.head.AmmoSlotIndex = 0
     trhev_pounder.FireModes.head.Magazine = 30
-    trhev_pounder.FireModes += new FireModeDefinition
+    trhev_pounder.FireModes += new FireModeDefinition //explode on contact, anchored
     trhev_pounder.FireModes(1).AmmoTypeIndices += 0
     trhev_pounder.FireModes(1).AmmoSlotIndex = 0
     trhev_pounder.FireModes(1).Magazine = 30
+    trhev_pounder.FireModes += new FireModeDefinition //explode on contact, overdrive?
+    trhev_pounder.FireModes(2).AmmoTypeIndices += 0
+    trhev_pounder.FireModes(2).AmmoSlotIndex = 0
+    trhev_pounder.FireModes(2).Magazine = 30
+    trhev_pounder.FireModes += new FireModeDefinition //3-second fuse
+    trhev_pounder.FireModes(3).AmmoTypeIndices += 0
+    trhev_pounder.FireModes(3).AmmoSlotIndex = 0
+    trhev_pounder.FireModes(3).Magazine = 30
+    trhev_pounder.FireModes += new FireModeDefinition //3-second fuse, anchored
+    trhev_pounder.FireModes(4).AmmoTypeIndices += 0
+    trhev_pounder.FireModes(4).AmmoSlotIndex = 0
+    trhev_pounder.FireModes(4).Magazine = 30
+    trhev_pounder.FireModes += new FireModeDefinition //3-second fuse, overdrive?
+    trhev_pounder.FireModes(5).AmmoTypeIndices += 0
+    trhev_pounder.FireModes(5).AmmoSlotIndex = 0
+    trhev_pounder.FireModes(5).Magazine = 30
 
+    trhev_burster.Name = "trhev_burster"
     trhev_burster.Size = EquipmentSize.Max
     trhev_burster.AmmoTypes += burster_ammo
     trhev_burster.FireModes += new FireModeDefinition
@@ -1509,6 +1749,7 @@ object GlobalDefinitions {
     trhev_burster.FireModes.head.AmmoSlotIndex = 0
     trhev_burster.FireModes.head.Magazine = 40
 
+    nchev_scattercannon.Name = "nchev_scattercannon"
     nchev_scattercannon.Size = EquipmentSize.Max
     nchev_scattercannon.AmmoTypes += scattercannon_ammo
     nchev_scattercannon.FireModes += new PelletFireModeDefinition
@@ -1527,6 +1768,7 @@ object GlobalDefinitions {
     nchev_scattercannon.FireModes(2).Magazine = 40
     nchev_scattercannon.FireModes(2).Chamber = 10
 
+    nchev_falcon.Name = "nchev_falcon"
     nchev_falcon.Size = EquipmentSize.Max
     nchev_falcon.AmmoTypes += falcon_ammo
     nchev_falcon.FireModes += new FireModeDefinition
@@ -1534,6 +1776,7 @@ object GlobalDefinitions {
     nchev_falcon.FireModes.head.AmmoSlotIndex = 0
     nchev_falcon.FireModes.head.Magazine = 20
 
+    nchev_sparrow.Name = "nchev_sparrow"
     nchev_sparrow.Size = EquipmentSize.Max
     nchev_sparrow.AmmoTypes += sparrow_ammo
     nchev_sparrow.FireModes += new FireModeDefinition
@@ -1541,6 +1784,7 @@ object GlobalDefinitions {
     nchev_sparrow.FireModes.head.AmmoSlotIndex = 0
     nchev_sparrow.FireModes.head.Magazine = 12
 
+    vshev_quasar.Name = "vshev_quasar"
     vshev_quasar.Size = EquipmentSize.Max
     vshev_quasar.AmmoTypes += quasar_ammo
     vshev_quasar.FireModes += new FireModeDefinition
@@ -1552,6 +1796,7 @@ object GlobalDefinitions {
     vshev_quasar.FireModes(1).AmmoSlotIndex = 0
     vshev_quasar.FireModes(1).Magazine = 120
 
+    vshev_comet.Name = "vshev_comet"
     vshev_comet.Size = EquipmentSize.Max
     vshev_comet.AmmoTypes += comet_ammo
     vshev_comet.FireModes += new FireModeDefinition
@@ -1559,6 +1804,7 @@ object GlobalDefinitions {
     vshev_comet.FireModes.head.AmmoSlotIndex = 0
     vshev_comet.FireModes.head.Magazine = 10
 
+    vshev_starfire.Name = "vshev_starfire"
     vshev_starfire.Size = EquipmentSize.Max
     vshev_starfire.AmmoTypes += starfire_ammo
     vshev_starfire.FireModes += new FireModeDefinition
@@ -1566,6 +1812,7 @@ object GlobalDefinitions {
     vshev_starfire.FireModes.head.AmmoSlotIndex = 0
     vshev_starfire.FireModes.head.Magazine = 8
 
+    medicalapplicator.Name = "medicalapplicator"
     medicalapplicator.Size = EquipmentSize.Pistol
     medicalapplicator.AmmoTypes += health_canister
     medicalapplicator.FireModes += new FireModeDefinition
@@ -1578,6 +1825,7 @@ object GlobalDefinitions {
     medicalapplicator.FireModes(1).Magazine = 100
     medicalapplicator.Tile = InventoryTile.Tile33
 
+    nano_dispenser.Name = "nano_dispenser"
     nano_dispenser.Size = EquipmentSize.Rifle
     nano_dispenser.AmmoTypes += armor_canister
     nano_dispenser.AmmoTypes += upgrade_canister
@@ -1588,6 +1836,7 @@ object GlobalDefinitions {
     nano_dispenser.FireModes.head.Magazine = 100
     nano_dispenser.Tile = InventoryTile.Tile63
 
+    bank.Name = "bank"
     bank.Size = EquipmentSize.Pistol
     bank.AmmoTypes += armor_canister
     bank.FireModes += new FireModeDefinition
@@ -1600,9 +1849,11 @@ object GlobalDefinitions {
     bank.FireModes(1).Magazine = 100
     bank.Tile = InventoryTile.Tile33
 
+    remote_electronics_kit.Name = "remote_electronics_kit"
     remote_electronics_kit.Packet = new REKConverter
     remote_electronics_kit.Tile = InventoryTile.Tile33
 
+    trek.Name = "trek"
     trek.Size = EquipmentSize.Pistol
     trek.AmmoTypes += trek_ammo
     trek.FireModes += new FireModeDefinition
@@ -1615,12 +1866,15 @@ object GlobalDefinitions {
     trek.FireModes(1).Magazine = 1
     trek.Tile = InventoryTile.Tile33
 
+    flail_targeting_laser.Name = "flail_targeting_laser"
     flail_targeting_laser.Packet = new CommandDetonaterConverter
     flail_targeting_laser.Tile = InventoryTile.Tile33
 
+    command_detonater.Name = "command_detonater"
     command_detonater.Packet = new CommandDetonaterConverter
     command_detonater.Tile = InventoryTile.Tile33
 
+    ace.Name = "ace"
     ace.Modes += DeployedItem.boomer
     ace.Modes += DeployedItem.he_mine
     ace.Modes += DeployedItem.jammer_mine
@@ -1631,11 +1885,13 @@ object GlobalDefinitions {
     ace.Modes += DeployedItem.sensor_shield
     ace.Tile = InventoryTile.Tile33
 
+    advanced_ace.Name = "advanced_ace"
     advanced_ace.Modes += DeployedItem.tank_traps
     advanced_ace.Modes += DeployedItem.portable_manned_turret
     advanced_ace.Modes += DeployedItem.deployable_shield_generator
     advanced_ace.Tile = InventoryTile.Tile63
 
+    fury_weapon_systema.Name = "fury_weapon_systema"
     fury_weapon_systema.Size = EquipmentSize.VehicleWeapon
     fury_weapon_systema.AmmoTypes += hellfire_ammo
     fury_weapon_systema.FireModes += new FireModeDefinition
@@ -1643,6 +1899,7 @@ object GlobalDefinitions {
     fury_weapon_systema.FireModes.head.AmmoSlotIndex = 0
     fury_weapon_systema.FireModes.head.Magazine = 2
 
+    quadassault_weapon_system.Name = "quadassault_weapon_system"
     quadassault_weapon_system.Size = EquipmentSize.VehicleWeapon
     quadassault_weapon_system.AmmoTypes += bullet_12mm
     quadassault_weapon_system.FireModes += new FireModeDefinition
@@ -1650,6 +1907,7 @@ object GlobalDefinitions {
     quadassault_weapon_system.FireModes.head.AmmoSlotIndex = 0
     quadassault_weapon_system.FireModes.head.Magazine = 150
 
+    scythe.Name = "scythe"
     scythe.Size = EquipmentSize.VehicleWeapon
     scythe.AmmoTypes += ancient_ammo_vehicle
     scythe.AmmoTypes += ancient_ammo_vehicle
@@ -1662,6 +1920,7 @@ object GlobalDefinitions {
     scythe.FireModes(1).AmmoSlotIndex = 1 //note: the scythe has two magazines using a single pool; however, it can not ammo-switch or mode-switch
     scythe.FireModes(1).Magazine = 250
 
+    chaingun_p.Name = "chaingun_p"
     chaingun_p.Size = EquipmentSize.VehicleWeapon
     chaingun_p.AmmoTypes += bullet_12mm
     chaingun_p.FireModes += new FireModeDefinition
@@ -1669,6 +1928,7 @@ object GlobalDefinitions {
     chaingun_p.FireModes.head.AmmoSlotIndex = 0
     chaingun_p.FireModes.head.Magazine = 150
 
+    skyguard_weapon_system.Name = "skyguard_weapon_system"
     skyguard_weapon_system.Size = EquipmentSize.VehicleWeapon
     skyguard_weapon_system.AmmoTypes += skyguard_flak_cannon_ammo
     skyguard_weapon_system.AmmoTypes += bullet_12mm
@@ -1681,6 +1941,7 @@ object GlobalDefinitions {
     skyguard_weapon_system.FireModes(1).AmmoSlotIndex = 1
     skyguard_weapon_system.FireModes(1).Magazine = 250
 
+    grenade_launcher_marauder.Name = "grenade_launcher_marauder"
     grenade_launcher_marauder.Size = EquipmentSize.VehicleWeapon
     grenade_launcher_marauder.AmmoTypes += heavy_grenade_mortar
     grenade_launcher_marauder.FireModes += new FireModeDefinition
@@ -1688,6 +1949,7 @@ object GlobalDefinitions {
     grenade_launcher_marauder.FireModes.head.AmmoSlotIndex = 0
     grenade_launcher_marauder.FireModes.head.Magazine = 50
 
+    advanced_missile_launcher_t.Name = "advanced_missile_launcher_t"
     advanced_missile_launcher_t.Size = EquipmentSize.VehicleWeapon
     advanced_missile_launcher_t.AmmoTypes += firebird_missile
     advanced_missile_launcher_t.FireModes += new FireModeDefinition
@@ -1695,6 +1957,7 @@ object GlobalDefinitions {
     advanced_missile_launcher_t.FireModes.head.AmmoSlotIndex = 0
     advanced_missile_launcher_t.FireModes.head.Magazine = 40
 
+    flux_cannon_thresher.Name = "flux_cannon_thresher"
     flux_cannon_thresher.Size = EquipmentSize.VehicleWeapon
     flux_cannon_thresher.AmmoTypes += flux_cannon_thresher_battery
     flux_cannon_thresher.FireModes += new FireModeDefinition
@@ -1702,6 +1965,7 @@ object GlobalDefinitions {
     flux_cannon_thresher.FireModes.head.AmmoSlotIndex = 0
     flux_cannon_thresher.FireModes.head.Magazine = 100
 
+    mediumtransport_weapon_systemA.Name = "mediumtransport_weapon_systemA"
     mediumtransport_weapon_systemA.Size = EquipmentSize.VehicleWeapon
     mediumtransport_weapon_systemA.AmmoTypes += bullet_20mm
     mediumtransport_weapon_systemA.FireModes += new FireModeDefinition
@@ -1709,6 +1973,7 @@ object GlobalDefinitions {
     mediumtransport_weapon_systemA.FireModes.head.AmmoSlotIndex = 0
     mediumtransport_weapon_systemA.FireModes.head.Magazine = 150
 
+    mediumtransport_weapon_systemB.Name = "mediumtransport_weapon_systemB"
     mediumtransport_weapon_systemB.Size = EquipmentSize.VehicleWeapon
     mediumtransport_weapon_systemB.AmmoTypes += bullet_20mm
     mediumtransport_weapon_systemB.FireModes += new FireModeDefinition
@@ -1716,6 +1981,7 @@ object GlobalDefinitions {
     mediumtransport_weapon_systemB.FireModes.head.AmmoSlotIndex = 0
     mediumtransport_weapon_systemB.FireModes.head.Magazine = 150
 
+    battlewagon_weapon_systema.Name = "battlewagon_weapon_systema"
     battlewagon_weapon_systema.Size = EquipmentSize.VehicleWeapon
     battlewagon_weapon_systema.AmmoTypes += bullet_15mm
     battlewagon_weapon_systema.FireModes += new FireModeDefinition
@@ -1723,6 +1989,7 @@ object GlobalDefinitions {
     battlewagon_weapon_systema.FireModes.head.AmmoSlotIndex = 0
     battlewagon_weapon_systema.FireModes.head.Magazine = 240
 
+    battlewagon_weapon_systemb.Name = "battlewagon_weapon_systemb"
     battlewagon_weapon_systemb.Size = EquipmentSize.VehicleWeapon
     battlewagon_weapon_systemb.AmmoTypes += bullet_15mm
     battlewagon_weapon_systemb.FireModes += new FireModeDefinition
@@ -1730,6 +1997,7 @@ object GlobalDefinitions {
     battlewagon_weapon_systemb.FireModes.head.AmmoSlotIndex = 0
     battlewagon_weapon_systemb.FireModes.head.Magazine = 240
 
+    battlewagon_weapon_systemc.Name = "battlewagon_weapon_systemc"
     battlewagon_weapon_systemc.Size = EquipmentSize.VehicleWeapon
     battlewagon_weapon_systemc.AmmoTypes += bullet_15mm
     battlewagon_weapon_systemc.FireModes += new FireModeDefinition
@@ -1737,6 +2005,7 @@ object GlobalDefinitions {
     battlewagon_weapon_systemc.FireModes.head.AmmoSlotIndex = 0
     battlewagon_weapon_systemc.FireModes.head.Magazine = 240
 
+    battlewagon_weapon_systemd.Name = "battlewagon_weapon_systemd"
     battlewagon_weapon_systemd.Size = EquipmentSize.VehicleWeapon
     battlewagon_weapon_systemd.AmmoTypes += bullet_15mm
     battlewagon_weapon_systemd.FireModes += new FireModeDefinition
@@ -1744,6 +2013,7 @@ object GlobalDefinitions {
     battlewagon_weapon_systemd.FireModes.head.AmmoSlotIndex = 0
     battlewagon_weapon_systemd.FireModes.head.Magazine = 240
 
+    thunderer_weapon_systema.Name = "thunderer_weapon_systema"
     thunderer_weapon_systema.Size = EquipmentSize.VehicleWeapon
     thunderer_weapon_systema.AmmoTypes += gauss_cannon_ammo
     thunderer_weapon_systema.FireModes += new FireModeDefinition
@@ -1751,6 +2021,7 @@ object GlobalDefinitions {
     thunderer_weapon_systema.FireModes.head.AmmoSlotIndex = 0
     thunderer_weapon_systema.FireModes.head.Magazine = 15
 
+    thunderer_weapon_systemb.Name = "thunderer_weapon_systemb"
     thunderer_weapon_systemb.Size = EquipmentSize.VehicleWeapon
     thunderer_weapon_systemb.AmmoTypes += gauss_cannon_ammo
     thunderer_weapon_systemb.FireModes += new FireModeDefinition
@@ -1758,6 +2029,7 @@ object GlobalDefinitions {
     thunderer_weapon_systemb.FireModes.head.AmmoSlotIndex = 0
     thunderer_weapon_systemb.FireModes.head.Magazine = 15
 
+    aurora_weapon_systema.Name = "aurora_weapon_systema"
     aurora_weapon_systema.Size = EquipmentSize.VehicleWeapon
     aurora_weapon_systema.AmmoTypes += fluxpod_ammo
     aurora_weapon_systema.FireModes += new FireModeDefinition
@@ -1769,6 +2041,7 @@ object GlobalDefinitions {
     aurora_weapon_systema.FireModes(1).AmmoSlotIndex = 0
     aurora_weapon_systema.FireModes(1).Magazine = 12
 
+    aurora_weapon_systemb.Name = "aurora_weapon_systemb"
     aurora_weapon_systemb.Size = EquipmentSize.VehicleWeapon
     aurora_weapon_systemb.AmmoTypes += fluxpod_ammo
     aurora_weapon_systemb.FireModes += new FireModeDefinition
@@ -1780,6 +2053,7 @@ object GlobalDefinitions {
     aurora_weapon_systemb.FireModes(1).AmmoSlotIndex = 0
     aurora_weapon_systemb.FireModes(1).Magazine = 12
 
+    apc_weapon_systema.Name = "apc_weapon_systema"
     apc_weapon_systema.Size = EquipmentSize.VehicleWeapon
     apc_weapon_systema.AmmoTypes += bullet_75mm
     apc_weapon_systema.FireModes += new FireModeDefinition
@@ -1787,6 +2061,7 @@ object GlobalDefinitions {
     apc_weapon_systema.FireModes.head.AmmoSlotIndex = 0
     apc_weapon_systema.FireModes.head.Magazine = 50
 
+    apc_weapon_systemb.Name = "apc_weapon_systemb"
     apc_weapon_systemb.Size = EquipmentSize.VehicleWeapon
     apc_weapon_systemb.AmmoTypes += bullet_75mm
     apc_weapon_systemb.FireModes += new FireModeDefinition
@@ -1794,6 +2069,7 @@ object GlobalDefinitions {
     apc_weapon_systemb.FireModes.head.AmmoSlotIndex = 0
     apc_weapon_systemb.FireModes.head.Magazine = 50
 
+    apc_ballgun_r.Name = "apc_ballgun_r"
     apc_ballgun_r.Size = EquipmentSize.VehicleWeapon
     apc_ballgun_r.AmmoTypes += bullet_12mm
     apc_ballgun_r.FireModes += new FireModeDefinition
@@ -1801,6 +2077,7 @@ object GlobalDefinitions {
     apc_ballgun_r.FireModes.head.AmmoSlotIndex = 0
     apc_ballgun_r.FireModes.head.Magazine = 150
 
+    apc_ballgun_l.Name = "apc_ballgun_l"
     apc_ballgun_l.Size = EquipmentSize.VehicleWeapon
     apc_ballgun_l.AmmoTypes += bullet_12mm
     apc_ballgun_l.FireModes += new FireModeDefinition
@@ -1808,6 +2085,7 @@ object GlobalDefinitions {
     apc_ballgun_l.FireModes.head.AmmoSlotIndex = 0
     apc_ballgun_l.FireModes.head.Magazine = 150
 
+    apc_weapon_systemc_tr.Name = "apc_weapon_systemc_tr"
     apc_weapon_systemc_tr.Size = EquipmentSize.VehicleWeapon
     apc_weapon_systemc_tr.AmmoTypes += bullet_15mm
     apc_weapon_systemc_tr.FireModes += new FireModeDefinition
@@ -1815,6 +2093,7 @@ object GlobalDefinitions {
     apc_weapon_systemc_tr.FireModes.head.AmmoSlotIndex = 0
     apc_weapon_systemc_tr.FireModes.head.Magazine = 150
 
+    apc_weapon_systemd_tr.Name = "apc_weapon_systemd_tr"
     apc_weapon_systemd_tr.Size = EquipmentSize.VehicleWeapon
     apc_weapon_systemd_tr.AmmoTypes += bullet_15mm
     apc_weapon_systemd_tr.FireModes += new FireModeDefinition
@@ -1822,6 +2101,7 @@ object GlobalDefinitions {
     apc_weapon_systemd_tr.FireModes.head.AmmoSlotIndex = 0
     apc_weapon_systemd_tr.FireModes.head.Magazine = 150
 
+    apc_weapon_systemc_nc.Name = "apc_weapon_systemc_nc"
     apc_weapon_systemc_nc.Size = EquipmentSize.VehicleWeapon
     apc_weapon_systemc_nc.AmmoTypes += bullet_20mm
     apc_weapon_systemc_nc.FireModes += new FireModeDefinition
@@ -1829,6 +2109,7 @@ object GlobalDefinitions {
     apc_weapon_systemc_nc.FireModes.head.AmmoSlotIndex = 0
     apc_weapon_systemc_nc.FireModes.head.Magazine = 150
 
+    apc_weapon_systemd_nc.Name = "apc_weapon_systemd_nc"
     apc_weapon_systemd_nc.Size = EquipmentSize.VehicleWeapon
     apc_weapon_systemd_nc.AmmoTypes += bullet_20mm
     apc_weapon_systemd_nc.FireModes += new FireModeDefinition
@@ -1836,6 +2117,7 @@ object GlobalDefinitions {
     apc_weapon_systemd_nc.FireModes.head.AmmoSlotIndex = 0
     apc_weapon_systemd_nc.FireModes.head.Magazine = 150
 
+    apc_weapon_systemc_vs.Name = "apc_weapon_systemc_vs"
     apc_weapon_systemc_vs.Size = EquipmentSize.VehicleWeapon
     apc_weapon_systemc_vs.AmmoTypes += flux_cannon_thresher_battery
     apc_weapon_systemc_vs.FireModes += new FireModeDefinition
@@ -1843,6 +2125,7 @@ object GlobalDefinitions {
     apc_weapon_systemc_vs.FireModes.head.AmmoSlotIndex = 0
     apc_weapon_systemc_vs.FireModes.head.Magazine = 100
 
+    apc_weapon_systemd_vs.Name = "apc_weapon_systemd_vs"
     apc_weapon_systemd_vs.Size = EquipmentSize.VehicleWeapon
     apc_weapon_systemd_vs.AmmoTypes += flux_cannon_thresher_battery
     apc_weapon_systemd_vs.FireModes += new FireModeDefinition
@@ -1850,9 +2133,10 @@ object GlobalDefinitions {
     apc_weapon_systemd_vs.FireModes.head.AmmoSlotIndex = 0
     apc_weapon_systemd_vs.FireModes.head.Magazine = 100
 
+    lightning_weapon_system.Name = "lightning_weapon_system"
     lightning_weapon_system.Size = EquipmentSize.VehicleWeapon
     lightning_weapon_system.AmmoTypes += bullet_75mm
-    lightning_weapon_system.AmmoTypes += bullet_25mm
+    lightning_weapon_system.AmmoTypes += bullet_12mm
     lightning_weapon_system.FireModes += new FireModeDefinition
     lightning_weapon_system.FireModes.head.AmmoTypeIndices += 0
     lightning_weapon_system.FireModes.head.AmmoSlotIndex = 0
@@ -1862,6 +2146,7 @@ object GlobalDefinitions {
     lightning_weapon_system.FireModes(1).AmmoSlotIndex = 1
     lightning_weapon_system.FireModes(1).Magazine = 150
 
+    prowler_weapon_systemA.Name = "prowler_weapon_systemA"
     prowler_weapon_systemA.Size = EquipmentSize.VehicleWeapon
     prowler_weapon_systemA.AmmoTypes += bullet_105mm
     prowler_weapon_systemA.FireModes += new FireModeDefinition
@@ -1869,6 +2154,7 @@ object GlobalDefinitions {
     prowler_weapon_systemA.FireModes.head.AmmoSlotIndex = 0
     prowler_weapon_systemA.FireModes.head.Magazine = 20
 
+    prowler_weapon_systemB.Name = "prowler_weapon_systemB"
     prowler_weapon_systemB.Size = EquipmentSize.VehicleWeapon
     prowler_weapon_systemB.AmmoTypes += bullet_15mm
     prowler_weapon_systemB.FireModes += new FireModeDefinition
@@ -1876,6 +2162,7 @@ object GlobalDefinitions {
     prowler_weapon_systemB.FireModes.head.AmmoSlotIndex = 0
     prowler_weapon_systemB.FireModes.head.Magazine = 240
 
+    vanguard_weapon_system.Name = "vanguard_weapon_system"
     vanguard_weapon_system.Size = EquipmentSize.VehicleWeapon
     vanguard_weapon_system.AmmoTypes += bullet_150mm
     vanguard_weapon_system.AmmoTypes += bullet_20mm
@@ -1888,6 +2175,7 @@ object GlobalDefinitions {
     vanguard_weapon_system.FireModes(1).AmmoSlotIndex = 1
     vanguard_weapon_system.FireModes(1).Magazine = 200
 
+    particle_beam_magrider.Name = "particle_beam_magrider"
     particle_beam_magrider.Size = EquipmentSize.VehicleWeapon
     particle_beam_magrider.AmmoTypes += pulse_battery
     particle_beam_magrider.FireModes += new FireModeDefinition
@@ -1895,6 +2183,7 @@ object GlobalDefinitions {
     particle_beam_magrider.FireModes.head.AmmoSlotIndex = 0
     particle_beam_magrider.FireModes.head.Magazine = 150
 
+    heavy_rail_beam_magrider.Name = "heavy_rail_beam_magrider"
     heavy_rail_beam_magrider.Size = EquipmentSize.VehicleWeapon
     heavy_rail_beam_magrider.AmmoTypes += heavy_rail_beam_battery
     heavy_rail_beam_magrider.FireModes += new FireModeDefinition
@@ -1902,6 +2191,7 @@ object GlobalDefinitions {
     heavy_rail_beam_magrider.FireModes.head.AmmoSlotIndex = 0
     heavy_rail_beam_magrider.FireModes.head.Magazine = 25
 
+    flail_weapon.Name = "flail_weapon"
     flail_weapon.Size = EquipmentSize.VehicleWeapon
     flail_weapon.AmmoTypes += ancient_ammo_vehicle
     flail_weapon.FireModes += new FireModeDefinition
@@ -1909,6 +2199,7 @@ object GlobalDefinitions {
     flail_weapon.FireModes.head.AmmoSlotIndex = 0
     flail_weapon.FireModes.head.Magazine = 100
 
+    rotarychaingun_mosquito.Name = "rotarychaingun_mosquito"
     rotarychaingun_mosquito.Size = EquipmentSize.VehicleWeapon
     rotarychaingun_mosquito.AmmoTypes += bullet_12mm
     rotarychaingun_mosquito.FireModes += new FireModeDefinition
@@ -1916,6 +2207,7 @@ object GlobalDefinitions {
     rotarychaingun_mosquito.FireModes.head.AmmoSlotIndex = 0
     rotarychaingun_mosquito.FireModes.head.Magazine = 150
 
+    lightgunship_weapon_system.Name = "lightgunship_weapon_system"
     lightgunship_weapon_system.Size = EquipmentSize.VehicleWeapon
     lightgunship_weapon_system.AmmoTypes += bullet_20mm
     lightgunship_weapon_system.AmmoTypes += reaver_rocket
@@ -1928,6 +2220,7 @@ object GlobalDefinitions {
     lightgunship_weapon_system.FireModes(1).AmmoSlotIndex = 1
     lightgunship_weapon_system.FireModes(1).Magazine = 16
 
+    wasp_weapon_system.Name = "wasp_weapon_system"
     wasp_weapon_system.Size = EquipmentSize.VehicleWeapon
     wasp_weapon_system.AmmoTypes += wasp_gun_ammo
     wasp_weapon_system.AmmoTypes += wasp_rocket_ammo
@@ -1940,6 +2233,7 @@ object GlobalDefinitions {
     wasp_weapon_system.FireModes(1).AmmoSlotIndex = 1
     wasp_weapon_system.FireModes(1).Magazine = 2
 
+    liberator_weapon_system.Name = "liberator_weapon_system"
     liberator_weapon_system.Size = EquipmentSize.VehicleWeapon
     liberator_weapon_system.AmmoTypes += bullet_35mm
     liberator_weapon_system.FireModes += new FireModeDefinition
@@ -1947,6 +2241,7 @@ object GlobalDefinitions {
     liberator_weapon_system.FireModes.head.AmmoSlotIndex = 0
     liberator_weapon_system.FireModes.head.Magazine = 100
 
+    liberator_bomb_bay.Name = "liberator_bomb_bay"
     liberator_bomb_bay.Size = EquipmentSize.VehicleWeapon
     liberator_bomb_bay.AmmoTypes += liberator_bomb
     liberator_bomb_bay.FireModes += new FireModeDefinition
@@ -1958,6 +2253,7 @@ object GlobalDefinitions {
     liberator_bomb_bay.FireModes(1).AmmoSlotIndex = 0
     liberator_bomb_bay.FireModes(1).Magazine = 10
 
+    liberator_25mm_cannon.Name = "liberator_25mm_cannon"
     liberator_25mm_cannon.Size = EquipmentSize.VehicleWeapon
     liberator_25mm_cannon.AmmoTypes += bullet_25mm
     liberator_25mm_cannon.FireModes += new FireModeDefinition
@@ -1965,6 +2261,7 @@ object GlobalDefinitions {
     liberator_25mm_cannon.FireModes.head.AmmoSlotIndex = 0
     liberator_25mm_cannon.FireModes.head.Magazine = 150
 
+    vulture_nose_weapon_system.Name = "vulture_nose_weapon_system"
     vulture_nose_weapon_system.Size = EquipmentSize.VehicleWeapon
     vulture_nose_weapon_system.AmmoTypes += bullet_35mm
     vulture_nose_weapon_system.FireModes += new FireModeDefinition
@@ -1972,6 +2269,7 @@ object GlobalDefinitions {
     vulture_nose_weapon_system.FireModes.head.AmmoSlotIndex = 0
     vulture_nose_weapon_system.FireModes.head.Magazine = 75
 
+    vulture_bomb_bay.Name = "vulture_bomb_bay"
     vulture_bomb_bay.Size = EquipmentSize.VehicleWeapon
     vulture_bomb_bay.AmmoTypes += liberator_bomb
     vulture_bomb_bay.FireModes += new FireModeDefinition
@@ -1979,6 +2277,7 @@ object GlobalDefinitions {
     vulture_bomb_bay.FireModes.head.AmmoSlotIndex = 0
     vulture_bomb_bay.FireModes.head.Magazine = 10
 
+    vulture_tail_cannon.Name = "vulture_tail_cannon"
     vulture_tail_cannon.Size = EquipmentSize.VehicleWeapon
     vulture_tail_cannon.AmmoTypes += bullet_25mm
     vulture_tail_cannon.FireModes += new FireModeDefinition
@@ -1986,6 +2285,7 @@ object GlobalDefinitions {
     vulture_tail_cannon.FireModes.head.AmmoSlotIndex = 0
     vulture_tail_cannon.FireModes.head.Magazine = 100
 
+    cannon_dropship_20mm.Name = "cannon_dropship_20mm"
     cannon_dropship_20mm.Size = EquipmentSize.VehicleWeapon
     cannon_dropship_20mm.AmmoTypes += bullet_20mm
     cannon_dropship_20mm.FireModes += new FireModeDefinition
@@ -1993,6 +2293,7 @@ object GlobalDefinitions {
     cannon_dropship_20mm.FireModes.head.AmmoSlotIndex = 0
     cannon_dropship_20mm.FireModes.head.Magazine = 250
 
+    dropship_rear_turret.Name = "dropship_rear_turret"
     dropship_rear_turret.Size = EquipmentSize.VehicleWeapon
     dropship_rear_turret.AmmoTypes += bullet_20mm
     dropship_rear_turret.FireModes += new FireModeDefinition
@@ -2000,6 +2301,7 @@ object GlobalDefinitions {
     dropship_rear_turret.FireModes.head.AmmoSlotIndex = 0
     dropship_rear_turret.FireModes.head.Magazine = 250
 
+    galaxy_gunship_cannon.Name = "galaxy_gunship_cannon"
     galaxy_gunship_cannon.Size = EquipmentSize.VehicleWeapon
     galaxy_gunship_cannon.AmmoTypes += heavy_grenade_mortar
     galaxy_gunship_cannon.FireModes += new FireModeDefinition
@@ -2007,6 +2309,7 @@ object GlobalDefinitions {
     galaxy_gunship_cannon.FireModes.head.AmmoSlotIndex = 0
     galaxy_gunship_cannon.FireModes.head.Magazine = 50
 
+    galaxy_gunship_tailgun.Name = "galaxy_gunship_tailgun"
     galaxy_gunship_tailgun.Size = EquipmentSize.VehicleWeapon
     galaxy_gunship_tailgun.AmmoTypes += bullet_35mm
     galaxy_gunship_tailgun.FireModes += new FireModeDefinition
@@ -2014,6 +2317,7 @@ object GlobalDefinitions {
     galaxy_gunship_tailgun.FireModes.head.AmmoSlotIndex = 0
     galaxy_gunship_tailgun.FireModes.head.Magazine = 200
 
+    galaxy_gunship_gun.Name = "galaxy_gunship_gun"
     galaxy_gunship_gun.Size = EquipmentSize.VehicleWeapon
     galaxy_gunship_gun.AmmoTypes += bullet_35mm
     galaxy_gunship_gun.FireModes += new FireModeDefinition
@@ -2026,6 +2330,7 @@ object GlobalDefinitions {
     * Initialize `VehicleDefinition` globals.
     */
   private def init_vehicles() : Unit = {
+    fury.Name = "fury"
     fury.Seats += 0 -> new SeatDefinition()
     fury.Seats(0).Bailable = true
     fury.Seats(0).ControlledWeapon = 1
@@ -2034,7 +2339,9 @@ object GlobalDefinitions {
     fury.MountPoints += 2 -> 0
     fury.TrunkSize = InventoryTile.Tile1111
     fury.TrunkOffset = 30
+    fury.AutoPilotSpeeds = (24, 10)
 
+    quadassault.Name = "quadassault"
     quadassault.Seats += 0 -> new SeatDefinition()
     quadassault.Seats(0).Bailable = true
     quadassault.Seats(0).ControlledWeapon = 1
@@ -2043,7 +2350,9 @@ object GlobalDefinitions {
     quadassault.MountPoints += 2 -> 0
     quadassault.TrunkSize = InventoryTile.Tile1111
     quadassault.TrunkOffset = 30
+    quadassault.AutoPilotSpeeds = (24, 10)
 
+    quadstealth.Name = "quadstealth"
     quadstealth.CanCloak = true
     quadstealth.Seats += 0 -> new SeatDefinition()
     quadstealth.Seats(0).Bailable = true
@@ -2052,7 +2361,9 @@ object GlobalDefinitions {
     quadstealth.MountPoints += 2 -> 0
     quadstealth.TrunkSize = InventoryTile.Tile1111
     quadstealth.TrunkOffset = 30
+    quadstealth.AutoPilotSpeeds = (24, 10)
 
+    two_man_assault_buggy.Name = "two_man_assault_buggy"
     two_man_assault_buggy.Seats += 0 -> new SeatDefinition()
     two_man_assault_buggy.Seats(0).Bailable = true
     two_man_assault_buggy.Seats += 1 -> new SeatDefinition()
@@ -2063,7 +2374,9 @@ object GlobalDefinitions {
     two_man_assault_buggy.MountPoints += 2 -> 1
     two_man_assault_buggy.TrunkSize = InventoryTile.Tile1511
     two_man_assault_buggy.TrunkOffset = 30
+    two_man_assault_buggy.AutoPilotSpeeds = (22, 8)
 
+    skyguard.Name = "skyguard"
     skyguard.Seats += 0 -> new SeatDefinition()
     skyguard.Seats(0).Bailable = true
     skyguard.Seats += 1 -> new SeatDefinition()
@@ -2075,7 +2388,9 @@ object GlobalDefinitions {
     skyguard.MountPoints += 3 -> 1
     skyguard.TrunkSize = InventoryTile.Tile1511
     skyguard.TrunkOffset = 30
+    skyguard.AutoPilotSpeeds = (22, 8)
 
+    threemanheavybuggy.Name = "threemanheavybuggy"
     threemanheavybuggy.Seats += 0 -> new SeatDefinition()
     threemanheavybuggy.Seats(0).Bailable = true
     threemanheavybuggy.Seats += 1 -> new SeatDefinition()
@@ -2091,7 +2406,9 @@ object GlobalDefinitions {
     threemanheavybuggy.MountPoints += 3 -> 2
     threemanheavybuggy.TrunkSize = InventoryTile.Tile1511
     threemanheavybuggy.TrunkOffset = 30
+    threemanheavybuggy.AutoPilotSpeeds = (22, 8)
 
+    twomanheavybuggy.Name = "twomanheavybuggy"
     twomanheavybuggy.Seats += 0 -> new SeatDefinition()
     twomanheavybuggy.Seats(0).Bailable = true
     twomanheavybuggy.Seats += 1 -> new SeatDefinition()
@@ -2102,7 +2419,9 @@ object GlobalDefinitions {
     twomanheavybuggy.MountPoints += 2 -> 1
     twomanheavybuggy.TrunkSize = InventoryTile.Tile1511
     twomanheavybuggy.TrunkOffset = 30
+    twomanheavybuggy.AutoPilotSpeeds = (22, 8)
 
+    twomanhoverbuggy.Name = "twomanhoverbuggy"
     twomanhoverbuggy.Seats += 0 -> new SeatDefinition()
     twomanhoverbuggy.Seats(0).Bailable = true
     twomanhoverbuggy.Seats += 1 -> new SeatDefinition()
@@ -2113,7 +2432,9 @@ object GlobalDefinitions {
     twomanhoverbuggy.MountPoints += 2 -> 1
     twomanhoverbuggy.TrunkSize = InventoryTile.Tile1511
     twomanhoverbuggy.TrunkOffset = 30
+    twomanhoverbuggy.AutoPilotSpeeds = (22, 10)
 
+    mediumtransport.Name = "mediumtransport"
     mediumtransport.Seats += 0 -> new SeatDefinition()
     mediumtransport.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
     mediumtransport.Seats += 1 -> new SeatDefinition()
@@ -2131,7 +2452,9 @@ object GlobalDefinitions {
     mediumtransport.MountPoints += 5 -> 4
     mediumtransport.TrunkSize = InventoryTile.Tile1515
     mediumtransport.TrunkOffset = 30
+    mediumtransport.AutoPilotSpeeds = (18, 6)
 
+    battlewagon.Name = "battlewagon"
     battlewagon.Seats += 0 -> new SeatDefinition()
     battlewagon.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
     battlewagon.Seats += 1 -> new SeatDefinition()
@@ -2153,7 +2476,9 @@ object GlobalDefinitions {
     battlewagon.MountPoints += 5 -> 4
     battlewagon.TrunkSize = InventoryTile.Tile1515
     battlewagon.TrunkOffset = 30
+    battlewagon.AutoPilotSpeeds = (18, 6)
 
+    thunderer.Name = "thunderer"
     thunderer.Seats += 0 -> new SeatDefinition()
     thunderer.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
     thunderer.Seats += 1 -> new SeatDefinition()
@@ -2171,7 +2496,9 @@ object GlobalDefinitions {
     thunderer.MountPoints += 5 -> 4
     thunderer.TrunkSize = InventoryTile.Tile1515
     thunderer.TrunkOffset = 30
+    thunderer.AutoPilotSpeeds = (18, 6)
 
+    aurora.Name = "aurora"
     aurora.Seats += 0 -> new SeatDefinition()
     aurora.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
     aurora.Seats += 1 -> new SeatDefinition()
@@ -2189,7 +2516,9 @@ object GlobalDefinitions {
     aurora.MountPoints += 5 -> 4
     aurora.TrunkSize = InventoryTile.Tile1515
     aurora.TrunkOffset = 30
+    aurora.AutoPilotSpeeds = (18, 6)
 
+    apc_tr.Name = "apc_tr"
     apc_tr.Seats += 0 -> new SeatDefinition()
     apc_tr.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
     apc_tr.Seats += 1 -> new SeatDefinition()
@@ -2230,7 +2559,9 @@ object GlobalDefinitions {
     apc_tr.MountPoints += 12 -> 10
     apc_tr.TrunkSize = InventoryTile.Tile2016
     apc_tr.TrunkOffset = 30
+    apc_tr.AutoPilotSpeeds = (16, 6)
 
+    apc_nc.Name = "apc_nc"
     apc_nc.Seats += 0 -> new SeatDefinition()
     apc_nc.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
     apc_nc.Seats += 1 -> new SeatDefinition()
@@ -2271,7 +2602,9 @@ object GlobalDefinitions {
     apc_nc.MountPoints += 12 -> 10
     apc_nc.TrunkSize = InventoryTile.Tile2016
     apc_nc.TrunkOffset = 30
+    apc_nc.AutoPilotSpeeds = (16, 6)
 
+    apc_vs.Name = "apc_vs"
     apc_vs.Seats += 0 -> new SeatDefinition()
     apc_vs.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
     apc_vs.Seats += 1 -> new SeatDefinition()
@@ -2312,7 +2645,9 @@ object GlobalDefinitions {
     apc_vs.MountPoints += 12 -> 10
     apc_vs.TrunkSize = InventoryTile.Tile2016
     apc_vs.TrunkOffset = 30
+    apc_vs.AutoPilotSpeeds = (16, 6)
 
+    lightning.Name = "lightning"
     lightning.Seats += 0 -> new SeatDefinition()
     lightning.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
     lightning.Seats(0).ControlledWeapon = 1
@@ -2321,7 +2656,9 @@ object GlobalDefinitions {
     lightning.MountPoints += 2 -> 0
     lightning.TrunkSize = InventoryTile.Tile1511
     lightning.TrunkOffset = 30
+    lightning.AutoPilotSpeeds = (20, 8)
 
+    prowler.Name = "prowler"
     prowler.Seats += 0 -> new SeatDefinition()
     prowler.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
     prowler.Seats += 1 -> new SeatDefinition()
@@ -2335,7 +2672,9 @@ object GlobalDefinitions {
     prowler.MountPoints += 3 -> 2
     prowler.TrunkSize = InventoryTile.Tile1511
     prowler.TrunkOffset = 30
+    prowler.AutoPilotSpeeds = (14, 6)
 
+    vanguard.Name = "vanguard"
     vanguard.Seats += 0 -> new SeatDefinition()
     vanguard.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
     vanguard.Seats += 1 -> new SeatDefinition()
@@ -2345,7 +2684,9 @@ object GlobalDefinitions {
     vanguard.MountPoints += 2 -> 1
     vanguard.TrunkSize = InventoryTile.Tile1511
     vanguard.TrunkOffset = 30
+    vanguard.AutoPilotSpeeds = (16, 6)
 
+    magrider.Name = "magrider"
     magrider.Seats += 0 -> new SeatDefinition()
     magrider.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
     magrider.Seats(0).ControlledWeapon = 2
@@ -2357,14 +2698,22 @@ object GlobalDefinitions {
     magrider.MountPoints += 2 -> 1
     magrider.TrunkSize = InventoryTile.Tile1511
     magrider.TrunkOffset = 30
+    magrider.AutoPilotSpeeds = (18, 6)
 
     val utilityConverter = new UtilityVehicleConverter
+    ant.Name = "ant"
     ant.Seats += 0 -> new SeatDefinition()
     ant.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
     ant.MountPoints += 1 -> 0
     ant.MountPoints += 2 -> 0
+    ant.Deployment = true
+    ant.DeployTime = 1500
+    ant.UndeployTime = 1500
+    ant.AutoPilotSpeeds = (18, 6)
+    ant.MaximumCapacitor = 1500
     ant.Packet = utilityConverter
 
+    ams.Name = "ams"
     ams.Seats += 0 -> new SeatDefinition()
     ams.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
     ams.MountPoints += 1 -> 0
@@ -2376,9 +2725,12 @@ object GlobalDefinitions {
     ams.Deployment = true
     ams.DeployTime = 2000
     ams.UndeployTime = 2000
+    ams.DeconstructionTime = Some(20 minutes)
+    ams.AutoPilotSpeeds = (18, 6)
     ams.Packet = utilityConverter
 
     val variantConverter = new VariantVehicleConverter
+    router.Name = "router"
     router.Seats += 0 -> new SeatDefinition()
     router.MountPoints += 1 -> 0
     router.TrunkSize = InventoryTile.Tile1511
@@ -2386,8 +2738,11 @@ object GlobalDefinitions {
     router.Deployment = true
     router.DeployTime = 2000
     router.UndeployTime = 2000
+    router.DeconstructionTime = Duration(20, "minutes")
+    router.AutoPilotSpeeds = (16, 6)
     router.Packet = variantConverter
 
+    switchblade.Name = "switchblade"
     switchblade.Seats += 0 -> new SeatDefinition()
     switchblade.Seats(0).ControlledWeapon = 1
     switchblade.Weapons += 1 -> scythe
@@ -2398,8 +2753,10 @@ object GlobalDefinitions {
     switchblade.Deployment = true
     switchblade.DeployTime = 2000
     switchblade.UndeployTime = 2000
+    switchblade.AutoPilotSpeeds = (22, 8)
     switchblade.Packet = variantConverter
 
+    flail.Name = "flail"
     flail.Seats += 0 -> new SeatDefinition()
     flail.Seats(0).ControlledWeapon = 1
     flail.Weapons += 1 -> flail_weapon
@@ -2409,8 +2766,10 @@ object GlobalDefinitions {
     flail.Deployment = true
     flail.DeployTime = 2000
     flail.UndeployTime = 2000
+    flail.AutoPilotSpeeds = (14, 6)
     flail.Packet = variantConverter
 
+    mosquito.Name = "mosquito"
     mosquito.Seats += 0 -> new SeatDefinition()
     mosquito.Seats(0).Bailable = true
     mosquito.Seats(0).ControlledWeapon = 1
@@ -2419,8 +2778,10 @@ object GlobalDefinitions {
     mosquito.MountPoints += 2 -> 0
     mosquito.TrunkSize = InventoryTile.Tile1111
     mosquito.TrunkOffset = 30
+    mosquito.AutoPilotSpeeds = (0, 6)
     mosquito.Packet = variantConverter
 
+    lightgunship.Name = "lightgunship"
     lightgunship.Seats += 0 -> new SeatDefinition()
     lightgunship.Seats(0).Bailable = true
     lightgunship.Seats(0).ControlledWeapon = 1
@@ -2429,8 +2790,10 @@ object GlobalDefinitions {
     lightgunship.MountPoints += 2 -> 0
     lightgunship.TrunkSize = InventoryTile.Tile1511
     lightgunship.TrunkOffset = 30
+    lightgunship.AutoPilotSpeeds = (0, 4)
     lightgunship.Packet = variantConverter
 
+    wasp.Name = "wasp"
     wasp.Seats += 0 -> new SeatDefinition()
     wasp.Seats(0).Bailable = true
     wasp.Seats(0).ControlledWeapon = 1
@@ -2439,8 +2802,10 @@ object GlobalDefinitions {
     wasp.MountPoints += 2 -> 0
     wasp.TrunkSize = InventoryTile.Tile1111
     wasp.TrunkOffset = 30
+    wasp.AutoPilotSpeeds = (0, 6)
     wasp.Packet = variantConverter
 
+    liberator.Name = "liberator"
     liberator.Seats += 0 -> new SeatDefinition()
     liberator.Seats(0).ControlledWeapon = 3
     liberator.Seats += 1 -> new SeatDefinition()
@@ -2456,8 +2821,10 @@ object GlobalDefinitions {
     liberator.MountPoints += 4 -> 2
     liberator.TrunkSize = InventoryTile.Tile1515
     liberator.TrunkOffset = 30
+    liberator.AutoPilotSpeeds = (0, 4)
     liberator.Packet = variantConverter
 
+    vulture.Name = "vulture"
     vulture.Seats += 0 -> new SeatDefinition()
     vulture.Seats(0).ControlledWeapon = 3
     vulture.Seats += 1 -> new SeatDefinition()
@@ -2473,8 +2840,10 @@ object GlobalDefinitions {
     vulture.MountPoints += 4 -> 2
     vulture.TrunkSize = InventoryTile.Tile1611
     vulture.TrunkOffset = 30
+    vulture.AutoPilotSpeeds = (0, 4)
     vulture.Packet = variantConverter
 
+    dropship.Name = "dropship"
     dropship.Seats += 0 -> new SeatDefinition()
     dropship.Seats += 1 -> new SeatDefinition()
     dropship.Seats(1).Bailable = true
@@ -2520,8 +2889,10 @@ object GlobalDefinitions {
     dropship.MountPoints += 12 -> 10
     dropship.TrunkSize = InventoryTile.Tile1612
     dropship.TrunkOffset = 30
+    dropship.AutoPilotSpeeds = (0, 4)
     dropship.Packet = variantConverter
 
+    galaxy_gunship.Name = "galaxy_gunship"
     galaxy_gunship.Seats += 0 -> new SeatDefinition()
     galaxy_gunship.Seats += 1 -> new SeatDefinition()
     galaxy_gunship.Seats(1).ControlledWeapon = 6
@@ -2546,14 +2917,18 @@ object GlobalDefinitions {
     galaxy_gunship.MountPoints += 6 -> 5
     galaxy_gunship.TrunkSize = InventoryTile.Tile1816
     galaxy_gunship.TrunkOffset = 30
+    galaxy_gunship.AutoPilotSpeeds = (0, 4)
     galaxy_gunship.Packet = variantConverter
 
+    lodestar.Name = "lodestar"
     lodestar.Seats += 0 -> new SeatDefinition()
     lodestar.MountPoints += 1 -> 0
     lodestar.TrunkSize = InventoryTile.Tile1612
     lodestar.TrunkOffset = 30
+    lodestar.AutoPilotSpeeds = (0, 4)
     lodestar.Packet = variantConverter
 
+    phantasm.Name = "phantasm"
     phantasm.CanCloak = true
     phantasm.Seats += 0 -> new SeatDefinition()
     phantasm.Seats += 1 -> new SeatDefinition()
@@ -2571,6 +2946,7 @@ object GlobalDefinitions {
     phantasm.MountPoints += 5 -> 4
     phantasm.TrunkSize = InventoryTile.Tile1107
     phantasm.TrunkOffset = 30
+    phantasm.AutoPilotSpeeds = (0, 6)
     phantasm.Packet = variantConverter
   }
 }

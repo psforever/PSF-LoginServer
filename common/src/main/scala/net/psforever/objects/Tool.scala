@@ -32,7 +32,15 @@ class Tool(private val toolDef : ToolDefinition) extends Equipment with FireMode
   def FireMode : FireModeDefinition = toolDef.FireModes(fireModeIndex)
 
   def NextFireMode : FireModeDefinition = {
-    FireModeIndex = FireModeIndex + 1
+    FireModeIndex = toolDef.NextFireModeIndex(FireModeIndex)
+    AmmoSlot.Chamber = FireMode.Chamber
+    FireMode
+  }
+
+  def ToFireMode : Int = toolDef.NextFireModeIndex(FireModeIndex)
+
+  def ToFireMode_=(index : Int) : FireModeDefinition = {
+    FireModeIndex = index
     AmmoSlot.Chamber = FireMode.Chamber
     FireMode
   }

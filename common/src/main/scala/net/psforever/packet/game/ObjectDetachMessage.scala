@@ -40,6 +40,14 @@ final case class ObjectDetachMessage(parent_guid : PlanetSideGUID,
 }
 
 object ObjectDetachMessage extends Marshallable[ObjectDetachMessage] {
+  def apply(parent_guid : PlanetSideGUID, child_guid : PlanetSideGUID, pos : Vector3, orient : Vector3) : ObjectDetachMessage = {
+    ObjectDetachMessage(parent_guid, child_guid, pos, orient.x, orient.y, orient.z)
+  }
+
+  def apply(parent_guid : PlanetSideGUID, child_guid : PlanetSideGUID, pos : Vector3, orient_z : Float) : ObjectDetachMessage = {
+    ObjectDetachMessage(parent_guid, child_guid, pos, 0, 0, orient_z)
+  }
+
   implicit val codec : Codec[ObjectDetachMessage] = (
     ("parent_guid" | PlanetSideGUID.codec) ::
       ("child_guid" | PlanetSideGUID.codec) ::

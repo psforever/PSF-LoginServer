@@ -68,15 +68,15 @@ class VehicleService5Test extends ActorTest {
   }
 }
 
-class AwarenessTest extends ActorTest {
+class OwnershipTest extends ActorTest {
   ServiceManager.boot(system)
 
   "VehicleService" should {
     "pass Awareness" in {
       val service = system.actorOf(Props[VehicleService], "v-service")
       service ! Service.Join("test")
-      service ! VehicleServiceMessage("test", VehicleAction.Awareness(PlanetSideGUID(10), PlanetSideGUID(11)))
-      expectMsg(VehicleServiceResponse("/test/Vehicle", PlanetSideGUID(10), VehicleResponse.Awareness(PlanetSideGUID(11))))
+      service ! VehicleServiceMessage("test", VehicleAction.Ownership(PlanetSideGUID(10), PlanetSideGUID(11)))
+      expectMsg(VehicleServiceResponse("/test/Vehicle", PlanetSideGUID(10), VehicleResponse.Ownership(PlanetSideGUID(11))))
     }
   }
 }
@@ -114,8 +114,8 @@ class DismountVehicleTest extends ActorTest {
     "pass DismountVehicle" in {
       val service = system.actorOf(Props[VehicleService], "v-service")
       service ! Service.Join("test")
-      service ! VehicleServiceMessage("test", VehicleAction.DismountVehicle(PlanetSideGUID(10), 0, false))
-      expectMsg(VehicleServiceResponse("/test/Vehicle", PlanetSideGUID(10), VehicleResponse.DismountVehicle(0, false)))
+      service ! VehicleServiceMessage("test", VehicleAction.DismountVehicle(PlanetSideGUID(10), BailType.Normal, false))
+      expectMsg(VehicleServiceResponse("/test/Vehicle", PlanetSideGUID(10), VehicleResponse.DismountVehicle(BailType.Normal, false)))
     }
   }
 }
@@ -132,6 +132,22 @@ class InventoryStateTest extends ActorTest {
       service ! Service.Join("test")
       service ! VehicleServiceMessage("test", VehicleAction.InventoryState(PlanetSideGUID(10), tool, PlanetSideGUID(11), 0, cdata))
       expectMsg(VehicleServiceResponse("/test/Vehicle", PlanetSideGUID(10), VehicleResponse.InventoryState(tool, PlanetSideGUID(11), 0, cdata)))
+    }
+  }
+}
+
+class InventoryState2Test extends ActorTest {
+  ServiceManager.boot(system)
+  val tool = Tool(GlobalDefinitions.beamer)
+  tool.AmmoSlots.head.Box.GUID = PlanetSideGUID(13)
+  val cdata = tool.Definition.Packet.ConstructorData(tool).get
+
+  "VehicleService" should {
+    "pass InventoryState2" in {
+      val service = system.actorOf(Props[VehicleService], "v-service")
+      service ! Service.Join("test")
+      service ! VehicleServiceMessage("test", VehicleAction.InventoryState2(PlanetSideGUID(10), PlanetSideGUID(11), PlanetSideGUID(12), 13))
+      expectMsg(VehicleServiceResponse("/test/Vehicle", PlanetSideGUID(10), VehicleResponse.InventoryState2(PlanetSideGUID(11), PlanetSideGUID(12), 13)))
     }
   }
 }

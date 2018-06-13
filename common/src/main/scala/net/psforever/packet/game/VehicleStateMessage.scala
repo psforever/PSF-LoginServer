@@ -19,8 +19,8 @@ import scodec.codecs._
   * @param unk4 na
   * @param wheel_direction for ground vehicles, whether the wheels are being turned;
   *                        15 for straight;
-  *                        0 for hard left;
-  *                        30 for hard right
+  *                        0 for hard right;
+  *                        30 for hard left
   * @param unk5 na
   * @param unk6 na
   * @see `PlacementData`
