@@ -236,6 +236,50 @@ class EquipmentTest extends Specification {
       obj.AmmoType mustEqual Ammo.rocket
     }
 
+    "projectile types and ammo types" in {
+      val suppressor_wep = Tool(suppressor)
+      suppressor_wep.ProjectileType mustEqual bullet_9mm_projectile.ProjectileType
+      suppressor_wep.NextAmmoType
+      suppressor_wep.ProjectileType mustEqual bullet_9mm_AP_projectile.ProjectileType
+      suppressor_wep.NextAmmoType
+      suppressor_wep.ProjectileType mustEqual bullet_9mm_projectile.ProjectileType
+    }
+
+    "projectile types and fire modes" in {
+      val pulsar_wep = Tool(pulsar)
+      pulsar_wep.ProjectileType mustEqual pulsar_projectile.ProjectileType
+      pulsar_wep.NextFireMode
+      pulsar_wep.ProjectileType mustEqual pulsar_ap_projectile.ProjectileType
+      pulsar_wep.NextFireMode
+      pulsar_wep.ProjectileType mustEqual pulsar_projectile.ProjectileType
+    }
+
+    "projectile types and fire modes / ammo types" in {
+      val punisher_wep = Tool(punisher)
+      punisher_wep.ProjectileType mustEqual bullet_9mm_projectile.ProjectileType
+      punisher_wep.NextAmmoType
+      punisher_wep.ProjectileType mustEqual bullet_9mm_AP_projectile.ProjectileType
+
+      punisher_wep.NextFireMode
+      punisher_wep.ProjectileType mustEqual rocket_projectile.ProjectileType
+      punisher_wep.NextAmmoType
+      punisher_wep.ProjectileType mustEqual frag_cartridge_projectile.ProjectileType
+      punisher_wep.NextAmmoType
+      punisher_wep.ProjectileType mustEqual jammer_cartridge_projectile.ProjectileType
+
+      punisher_wep.NextFireMode
+      punisher_wep.ProjectileType mustEqual bullet_9mm_AP_projectile.ProjectileType
+      punisher_wep.NextAmmoType
+      punisher_wep.ProjectileType mustEqual bullet_9mm_projectile.ProjectileType
+
+      punisher_wep.NextFireMode
+      punisher_wep.ProjectileType mustEqual jammer_cartridge_projectile.ProjectileType
+      punisher_wep.NextAmmoType
+      punisher_wep.ProjectileType mustEqual plasma_cartridge_projectile.ProjectileType
+      punisher_wep.NextAmmoType
+      punisher_wep.ProjectileType mustEqual rocket_projectile.ProjectileType
+    }
+
     "discharge (1)" in {
       val obj = Tool(GlobalDefinitions.punisher)
       obj.Magazine mustEqual 30
