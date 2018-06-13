@@ -15,7 +15,7 @@ class Seat(private val seatDef : SeatDefinition) {
 
   /**
     * Is this seat occupied?
-    * @return the GUID of the player sitting in this seat, or `None` if it is left vacant
+    * @return the Player object of the player sitting in this seat, or `None` if it is left vacant
     */
   def Occupant : Option[Player] = {
     this.occupant
@@ -25,7 +25,7 @@ class Seat(private val seatDef : SeatDefinition) {
     * The player is trying to sit down.
     * Seats are exclusive positions that can only hold one occupant at a time.
     * @param player the player who wants to sit, or `None` if the occupant is getting up
-    * @return the GUID of the player sitting in this seat, or `None` if it is left vacant
+    * @return the Player object of the player sitting in this seat, or `None` if it is left vacant
     */
   def Occupant_=(player : Player) : Option[Player] = Occupant_=(Some(player))
 

@@ -2,8 +2,8 @@
 package services.local
 
 import akka.actor.{Actor, Props}
-import services.local.support.{DoorCloseActor, HackClearActor}
 import services.{GenericEventBus, Service}
+import services.local.support.{DoorCloseActor, HackClearActor}
 
 class LocalService extends Actor {
   private val doorCloser = context.actorOf(Props[DoorCloseActor], "local-door-closer")

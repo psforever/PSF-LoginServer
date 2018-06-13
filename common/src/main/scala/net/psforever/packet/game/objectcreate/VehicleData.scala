@@ -57,7 +57,7 @@ final case class VariantVehicleData(unk : Int) extends SpecificVehicleData {
   *             activates the green camo and adjusts permissions
   * @param destroyed this vehicle has ben destroyed;
   *                  it's health should be less than 3/255, or 0%
-  * @param unk1 na
+  * @param unk1 na. Valid values seem to be 0-3. Anything higher spawns a completely broken NC vehicle with no guns that can't move
   * @param jammered this vehicle is under the influence of a jammer grenade
   * @param unk2 na
   * @param owner_guid the vehicle's (official) owner;

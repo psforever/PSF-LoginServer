@@ -11,8 +11,8 @@ import net.psforever.types.{PlanetSideEmpire, Vector3}
 class Building(private val mapId : Int, private val zone : Zone, private val buildingType : StructureType.Value) extends PlanetSideServerObject {
   /**
     * The mapId is the identifier number used in BuildingInfoUpdateMessage.
-    * The modelId is the identifier number used in SetEmpireMessage.
-    */
+    * The modelId is the identifier number used in SetEmpireMessage / Facility hacking / PlanetSideAttributeMessage.
+  */
   private var modelId : Option[Int] = None
   private var faction : PlanetSideEmpire.Value = PlanetSideEmpire.NEUTRAL
   private var amenities : List[Amenity] = List.empty
@@ -68,6 +68,7 @@ object Building {
     val obj = new Building(id, zone, buildingType)
     obj.Position = location
     obj.Actor = context.actorOf(Props(classOf[BuildingControl], obj), s"$id-$buildingType-building")
+    obj.Actor ! "startup"
     obj
   }
 
@@ -75,6 +76,9 @@ object Building {
     import akka.actor.Props
     val obj = new Building(id, zone, buildingType)
     obj.Actor = context.actorOf(Props(classOf[BuildingControl], obj), s"$id-$buildingType-building")
+    obj.Actor ! "startup"
     obj
   }
+
+  final case class SendMapUpdateToAllClients()
 }

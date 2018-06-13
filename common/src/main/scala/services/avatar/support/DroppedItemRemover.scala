@@ -3,8 +3,8 @@ package services.avatar.support
 
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.guid.{GUIDTask, TaskResolver}
-import services.avatar.{AvatarAction, AvatarServiceMessage}
 import services.{RemoverActor, Service}
+import services.avatar.{AvatarAction, AvatarServiceMessage}
 
 import scala.concurrent.duration._
 

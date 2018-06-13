@@ -30,6 +30,7 @@ import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.mblocker.Locker
 import net.psforever.objects.serverobject.pad.{VehicleSpawnControl, VehicleSpawnPad}
 import net.psforever.objects.serverobject.pad.process.{AutoDriveControls, VehicleSpawnControlGuided}
+import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.objects.serverobject.structures.{Building, StructureType, WarpGate}
 import net.psforever.objects.serverobject.terminals._
 import net.psforever.objects.serverobject.terminals.Terminal.TerminalMessage
@@ -40,10 +41,13 @@ import net.psforever.packet.game.objectcreate._
 import net.psforever.types._
 import services.{RemoverActor, _}
 import services.avatar.{AvatarAction, AvatarResponse, AvatarServiceMessage, AvatarServiceResponse}
+import services.galaxy.{GalaxyResponse, GalaxyServiceResponse}
 import services.local.{LocalAction, LocalResponse, LocalServiceMessage, LocalServiceResponse}
 import services.vehicle.VehicleAction.UnstowEquipment
 import services.vehicle.{VehicleAction, VehicleResponse, VehicleServiceMessage, VehicleServiceResponse}
 
+import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.annotation.tailrec
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -60,8 +64,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
   var avatarService : ActorRef = ActorRef.noSender
   var localService : ActorRef = ActorRef.noSender
   var vehicleService : ActorRef = ActorRef.noSender
+  var galaxyService : ActorRef = ActorRef.noSender
   var taskResolver : ActorRef = Actor.noSender
-  var galaxy : ActorRef = Actor.noSender
+  var cluster : ActorRef = Actor.noSender
   var continent : Zone = Zone.Nowhere
   var player : Player = null
   var avatar : Avatar = null
@@ -86,6 +91,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
   var progressBarUpdate : Cancellable = DefaultCancellable.obj
   var reviveTimer : Cancellable = DefaultCancellable.obj
   var respawnTimer : Cancellable = DefaultCancellable.obj
+  var antChargingTick : Cancellable = DefaultCancellable.obj
+  var antDischargingTick : Cancellable = DefaultCancellable.obj
 
   /**
     * Convert a boolean value into an integer value.
@@ -103,6 +110,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     localService ! Service.Leave()
     vehicleService ! Service.Leave()
     avatarService ! Service.Leave()
+    galaxyService ! Service.Leave()
 
     LivePlayerList.Remove(sessionId)
     if(player != null && player.HasGUID) {
@@ -205,6 +213,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       ServiceManager.serviceManager ! Lookup("local")
       ServiceManager.serviceManager ! Lookup("vehicle")
       ServiceManager.serviceManager ! Lookup("taskResolver")
+      ServiceManager.serviceManager ! Lookup("cluster")
       ServiceManager.serviceManager ! Lookup("galaxy")
 
     case _ =>
@@ -226,8 +235,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
       taskResolver = endpoint
       log.info("ID: " + sessionId + " Got task resolver service " + endpoint)
     case ServiceManager.LookupResult("galaxy", endpoint) =>
-      galaxy = endpoint
+      galaxyService = endpoint
       log.info("ID: " + sessionId + " Got galaxy service " + endpoint)
+    case ServiceManager.LookupResult("cluster", endpoint) =>
+      cluster = endpoint
+      log.info("ID: " + sessionId + " Got cluster service " + endpoint)
 
     case ControlPacket(_, ctrl) =>
       handleControlPkt(ctrl)
@@ -380,6 +392,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
           }
 
         case _ => ;
+      }
+
+    case GalaxyServiceResponse(_, reply) =>
+      reply match {
+        case GalaxyResponse.MapUpdate(msg) =>
+          sendResponse(msg)
       }
 
     case LocalServiceResponse(_, guid, reply) =>
@@ -609,6 +627,17 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case Deployment.CanNotChangeDeployment(obj, state, reason) =>
       CanNotChangeDeployment(obj, state, reason)
+
+    case ResourceSilo.ResourceSiloMessage(tplayer, msg, order) =>
+      val vehicle_guid = msg.avatar_guid
+      val silo_guid = msg.object_guid
+      order match {
+        case ResourceSilo.ChargeEvent() =>
+          antChargingTick.cancel() // If an ANT is refilling a NTU silo it isn't in a warpgate, so disable NTU regeneration
+          antDischargingTick.cancel()
+
+          antDischargingTick = context.system.scheduler.scheduleOnce(1000 milliseconds, self, NtuDischarging(player, continent.GUID(vehicle_guid).get.asInstanceOf[Vehicle], silo_guid))
+      }
 
     case Door.DoorMessage(tplayer, msg, order) =>
       val door_guid = msg.object_guid
@@ -1152,8 +1181,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
       val vehicle_guid = vehicle.GUID
       sendResponse(PlanetsideAttributeMessage(vehicle_guid, 22, 0L)) //mount points on
       //sendResponse(PlanetsideAttributeMessage(vehicle_guid, 0, 10))//vehicle.Definition.MaxHealth))
-      sendResponse(PlanetsideAttributeMessage(vehicle_guid, 68, 0L)) //???
-      sendResponse(PlanetsideAttributeMessage(vehicle_guid, 113, 0L)) //???
+      sendResponse(PlanetsideAttributeMessage(vehicle_guid, 68, 0L)) // Shield health
+      sendResponse(PlanetsideAttributeMessage(vehicle_guid, 113, 0L)) // Capacitor (EMP)
       ReloadVehicleAccessPermissions(vehicle)
       ServerVehicleLock(vehicle)
 
@@ -1353,7 +1382,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       reviveTimer.cancel
       if(spawn_group == 2) {
         sendResponse(ChatMsg(ChatMessageType.CMT_OPEN, false, "", "No friendly AMS is deployed in this region.", None))
-        galaxy ! Zone.Lattice.RequestSpawnPoint(zone_number, player, 0)
+        cluster ! Zone.Lattice.RequestSpawnPoint(zone_number, player, 0)
       }
       else {
         RequestSanctuaryZoneSpawn(player, zone_number)
@@ -1413,7 +1442,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       sendResponse(ReplicationStreamMessage(5, Some(6), Vector(SquadListing()))) //clear squad list
       sendResponse(FriendsResponse(FriendAction.InitializeFriendList, 0, true, true, Nil))
       sendResponse(FriendsResponse(FriendAction.InitializeIgnoreList, 0, true, true, Nil))
-      galaxy ! InterstellarCluster.GetWorld("z6")
+      cluster ! InterstellarCluster.GetWorld("z6")
 
     case InterstellarCluster.GiveWorld(zoneId, zone) =>
       log.info(s"Zone $zoneId will now load")
@@ -1505,6 +1534,82 @@ class WorldSessionActor extends Actor with MDCContextAware {
       //MapObjectStateBlockMessage and ObjectCreateMessage?
       //TacticsMessage?
       StopBundlingPackets()
+
+    case NtuCharging(tplayer, vehicle) =>
+      log.trace(s"NtuCharging: Vehicle ${vehicle.GUID} is charging NTU capacitor.")
+
+      if(vehicle.Capacitor < vehicle.Definition.MaximumCapacitor) {
+        // Charging
+        vehicle.Capacitor += 100
+
+        sendResponse(PlanetsideAttributeMessage(vehicle.GUID, 45, scala.math.round((vehicle.Capacitor.toFloat / vehicle.Definition.MaximumCapacitor.toFloat) * 10) )) // set ntu on vehicle UI
+        avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(vehicle.GUID, 52, 1L)) // panel glow on
+        avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(vehicle.GUID, 49, 1L)) // orb particle effect on
+
+        antChargingTick = context.system.scheduler.scheduleOnce(1000 milliseconds, self, NtuCharging(player, vehicle)) // Repeat until fully charged
+      } else {
+        // Fully charged
+        sendResponse(PlanetsideAttributeMessage(vehicle.GUID, 45, scala.math.round((vehicle.Capacitor.toFloat / vehicle.Definition.MaximumCapacitor.toFloat) * 10).toInt)) // set ntu on vehicle UI
+
+        // Turning off glow/orb effects on ANT doesn't seem to work when deployed. Try to undeploy ANT from server side
+        context.system.scheduler.scheduleOnce(vehicle.UndeployTime milliseconds, vehicle.Actor, Deployment.TryUndeploy(DriveState.Undeploying))
+      }
+
+    case NtuDischarging(tplayer, vehicle, silo_guid) =>
+      log.trace(s"NtuDischarging: Vehicle ${vehicle.GUID} is discharging NTU into silo $silo_guid")
+      avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(vehicle.GUID, 49, 0L)) // orb particle effect off
+      avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(vehicle.GUID, 52, 1L)) // panel glow on
+
+      var silo = continent.GUID(silo_guid).get.asInstanceOf[ResourceSilo]
+
+      // Check vehicle is still deployed before continuing. User can undeploy manually or vehicle may not longer be present.
+      if(vehicle.DeploymentState == DriveState.Deployed) {
+        if(vehicle.Capacitor > 0 && silo.ChargeLevel < silo.MaximumCharge) {
+
+          // Make sure we don't exceed the silo maximum charge or remove much NTU from ANT if maximum is reached, or try to make ANT go below 0 NTU
+          var chargeToDeposit = Math.min(Math.min(vehicle.Capacitor, 100), (silo.MaximumCharge - silo.ChargeLevel))
+          vehicle.Capacitor -= chargeToDeposit
+          silo.Actor ! ResourceSilo.UpdateChargeLevel(chargeToDeposit)
+
+          avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(silo_guid, 49, 1L)) // panel glow on & orb particles on
+          sendResponse(PlanetsideAttributeMessage(vehicle.GUID, 45, scala.math.round((vehicle.Capacitor.toFloat / vehicle.Definition.MaximumCapacitor.toFloat) * 10))) // set ntu on vehicle UI
+
+          //todo: grant BEP to user
+          //todo: grant BEP to squad in range
+          //todo: notify map service to update ntu % on map for all users
+
+          //todo: handle silo orb / panel glow properly if more than one person is refilling silo and one player stops. effects should stay on until all players stop
+
+          if(vehicle.Capacitor > 0 && silo.ChargeLevel < silo.MaximumCharge) {
+            log.trace(s"NtuDischarging: ANT not empty and Silo not full. Scheduling another discharge")
+            // Silo still not full and ant still has charge left - keep rescheduling ticks
+            antDischargingTick = context.system.scheduler.scheduleOnce(1000 milliseconds, self, NtuDischarging(player, vehicle, silo_guid))
+          } else {
+            log.trace(s"NtuDischarging: ANT NTU empty or Silo NTU full.")
+
+            // Turning off glow/orb effects on ANT doesn't seem to work when deployed. Try to undeploy ANT from server side
+            context.system.scheduler.scheduleOnce(vehicle.UndeployTime milliseconds, vehicle.Actor, Deployment.TryUndeploy(DriveState.Undeploying))
+
+            avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(silo_guid, 49, 0L)) // panel glow off & orb particles off
+            antDischargingTick.cancel()
+          }
+        } else {
+          // This shouldn't normally be run, only if the client thinks the ANT has capacitor charge when it doesn't, or thinks the silo isn't full when it is.
+          log.warn(s"NtuDischarging: Invalid discharge state. ANT Capacitor: ${vehicle.Capacitor} Silo Capacitor: ${silo.ChargeLevel}")
+
+          // Turning off glow/orb effects on ANT doesn't seem to work when deployed. Try to undeploy ANT from server side
+          context.system.scheduler.scheduleOnce(vehicle.UndeployTime milliseconds, vehicle.Actor, Deployment.TryUndeploy(DriveState.Undeploying))
+
+          avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(silo_guid, 49, 0L)) // panel glow off & orb particles off
+          antDischargingTick.cancel()
+        }
+      } else {
+        log.trace(s"NtuDischarging: Vehicle is no longer deployed. Removing effects")
+        // Vehicle has changed from deployed and this should be the last timer tick sent
+        avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(vehicle.GUID, 52, 0L)) // panel glow off
+        avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(silo_guid, 49, 0L)) // panel glow off & orb particles off
+        antDischargingTick.cancel()
+      }
 
     case ItemHacking(tplayer, target, tool_guid, delta, completeAction, tickAction) =>
       progressBarUpdate.cancel
@@ -1634,7 +1739,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           //TODO check if can spawn on last continent/location from player?
           //TODO if yes, get continent guid accessors
           //TODO if no, get sanctuary guid accessors and reset the player's expectations
-          galaxy ! InterstellarCluster.RequestClientInitialization()
+          cluster ! InterstellarCluster.RequestClientInitialization()
         case default =>
           log.error("Unsupported " + default + " in " + msg)
       }
@@ -1649,6 +1754,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       avatarService ! Service.Join(continent.Id)
       localService ! Service.Join(continent.Id)
       vehicleService ! Service.Join(continent.Id)
+      galaxyService ! Service.Join("galaxy")
       configZone(continent)
       sendResponse(TimeOfDayMessage(1191182336))
       //custom
@@ -1858,7 +1964,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ SpawnRequestMessage(u1, u2, u3, u4, u5) =>
       log.info(s"SpawnRequestMessage: $msg")
       //TODO just focus on u5 and u2 for now
-      galaxy ! Zone.Lattice.RequestSpawnPoint(u5.toInt, player, u2.toInt)
+      cluster ! Zone.Lattice.RequestSpawnPoint(u5.toInt, player, u2.toInt)
 
     case msg @ SetChatFilterMessage(send_channel, origin, whitelist) =>
       //log.info("SetChatFilters: " + msg)
@@ -1961,7 +2067,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       else if(trimContents.equals("!ams")) {
         makeReply = false
         if(player.isBackpack) { //player is on deployment screen (either dead or deconstructed)
-          galaxy ! Zone.Lattice.RequestSpawnPoint(continent.Number, player, 2)
+          cluster ! Zone.Lattice.RequestSpawnPoint(continent.Number, player, 2)
         }
       }
       // TODO: Depending on messagetype, may need to prepend sender's name to contents with proper spacing
@@ -2483,6 +2589,20 @@ class WorldSessionActor extends Actor with MDCContextAware {
             //the door is open globally ... except on our screen
             sendResponse(GenericObjectStateMsg(object_guid, 16))
           }
+
+        case Some(resourceSilo : ResourceSilo) =>
+          log.info(s"UseItem: Vehicle $avatar_guid is refilling resource silo $object_guid")
+          val vehicle = continent.GUID(avatar_guid).get.asInstanceOf[Vehicle]
+
+          if(resourceSilo.Faction == PlanetSideEmpire.NEUTRAL || player.Faction == resourceSilo.Faction) {
+            if(vehicle.Seat(0).get.Occupant.contains(player)) {
+              log.trace("UseItem: Player matches vehicle driver. Calling ResourceSilo.Use")
+              resourceSilo.Actor ! ResourceSilo.Use(player, msg)
+            }
+          } else {
+            log.warn(s"Player ${player.GUID} - ${player.Faction} tried to refill silo ${resourceSilo.GUID} - ${resourceSilo.Faction} belonging to another empire")
+          }
+
 
         case Some(panel : IFFLock) =>
           if(panel.Faction != player.Faction && panel.HackedBy.isEmpty) {
@@ -3400,7 +3520,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
   def TaskBeforeZoneChange(priorTask : TaskResolver.GiveTask, zoneId : String) : TaskResolver.GiveTask = {
     TaskResolver.GiveTask(
       new Task() {
-        private val localService = galaxy
+        private val localService = cluster
         private val localMsg = InterstellarCluster.GetWorld(zoneId)
 
         override def isComplete : Task.Resolution.Value = priorTask.task.isComplete
@@ -3566,7 +3686,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
   /**
     * Gives a target player positive battle experience points only.
     * If the player has access to more implant slots as a result of changing battle experience points, unlock those slots.
-    * @param tplayer the player
+    * @param avatar the player
     * @param bep the change in experience points, positive by assertion
     * @return the player's current battle experience points
     */
@@ -4207,7 +4327,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     obj match {
       case vehicle : Vehicle =>
         ReloadVehicleAccessPermissions(vehicle) //TODO we should not have to do this imho
-        //
+
         if(obj.Definition == GlobalDefinitions.ams) {
           obj.DeploymentState match {
             case DriveState.Deployed =>
@@ -4220,6 +4340,27 @@ class WorldSessionActor extends Actor with MDCContextAware {
             case _ => ;
           }
         }
+        if(obj.Definition == GlobalDefinitions.ant) {
+            obj.DeploymentState match {
+              case DriveState.Deployed =>
+                // We only want this WSA (not other player's WSA) to manage timers
+                if(vehicle.Seat(0).get.Occupant.contains(player)){
+                  // Start ntu regeneration
+                  // If vehicle sends UseItemMessage with silo as target NTU regeneration will be disabled and orb particles will be disabled
+                  antChargingTick = context.system.scheduler.scheduleOnce(1000 milliseconds, self, NtuCharging(player, vehicle))
+                }
+              case DriveState.Undeploying =>
+                // We only want this WSA (not other player's WSA) to manage timers
+                if(vehicle.Seat(0).get.Occupant.contains(player)){
+                  antChargingTick.cancel() // Stop charging NTU if charging
+                }
+
+                avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(obj.GUID, 52, 0L)) // panel glow off
+                avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(obj.GUID, 49, 0L)) // orb particles off
+              case DriveState.Mobile | DriveState.State7 | DriveState.Deploying =>
+              case _ => ;
+            }
+          }
       case _ => ;
     }
   }
@@ -4279,18 +4420,25 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * @param building the building object
     */
   def initFacility(continentNumber : Int, buildingNumber : Int, building : Building) : Unit = {
+    var ntuLevel = 0
+    building.Amenities.filter(x => (x.Definition == GlobalDefinitions.resource_silo)).headOption.asInstanceOf[Option[ResourceSilo]] match {
+      case Some(obj: ResourceSilo) =>
+        ntuLevel = obj.CapacitorDisplay.toInt
+      case _ => ;
+    }
+
     sendResponse(
       BuildingInfoUpdateMessage(
-        continentNumber,
-        buildingNumber,
-        ntu_level = 8,
+        continent_id = continentNumber,
+        building_id = buildingNumber,
+        ntu_level = ntuLevel,
         is_hacked = false,
         empire_hack = PlanetSideEmpire.NEUTRAL,
-        hack_time_remaining = 0,
-        building.Faction,
+        hack_time_remaining = 0, // milliseconds
+        empire_own = building.Faction,
         unk1 = 0, //!! Field != 0 will cause malformed packet. See class def.
         unk1x = None,
-        PlanetSideGeneratorState.Normal,
+        generator_state = PlanetSideGeneratorState.Normal,
         spawn_tubes_normal = true,
         force_dome_active = false,
         lattice_benefit = 0,
@@ -4363,6 +4511,20 @@ class WorldSessionActor extends Actor with MDCContextAware {
         val amenityId = amenity.GUID
         sendResponse(PlanetsideAttributeMessage(amenityId, 50, 0))
         sendResponse(PlanetsideAttributeMessage(amenityId, 51, 0))
+
+        amenity.Definition match {
+          case GlobalDefinitions.resource_silo =>
+            // Synchronise warning light & silo capacity
+            var silo = amenity.asInstanceOf[ResourceSilo]
+            sendResponse(PlanetsideAttributeMessage(amenityId, 45, silo.CapacitorDisplay))
+            sendResponse(PlanetsideAttributeMessage(amenityId, 47, silo.LowNtuWarningOn))
+
+            if(silo.ChargeLevel == 0) {
+              // temporarily disabled until warpgates can bring ANTs from sanctuary, otherwise we'd be stuck in a situation with an unpowered base and no way to get an ANT to refill it.
+              //              sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(silo.Owner.asInstanceOf[Building].ModelId), 48, 1))
+            }
+          case _ => ;
+        }
       })
       sendResponse(HackMessage(3, PlanetSideGUID(building.ModelId), PlanetSideGUID(0), 0, 3212836864L, HackState.HackCleared, 8))
     })
@@ -4380,7 +4542,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * <br>
     * A maximum revive waiting timer is started.
     * When this timer reaches zero, the avatar will attempt to spawn back on its faction-specific sanctuary continent.
-    * @pararm tplayer the player to be killed
+    * @param tplayer the player to be killed
     */
   def KillPlayer(tplayer : Player) : Unit = {
     val player_guid = tplayer.GUID
@@ -4407,7 +4569,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     CancelAllProximityUnits()
 
     import scala.concurrent.ExecutionContext.Implicits.global
-    reviveTimer = context.system.scheduler.scheduleOnce(respawnTimer milliseconds, galaxy, Zone.Lattice.RequestSpawnPoint(Zones.SanctuaryZoneNumber(tplayer.Faction), tplayer, 7))
+    reviveTimer = context.system.scheduler.scheduleOnce(respawnTimer milliseconds, cluster, Zone.Lattice.RequestSpawnPoint(Zones.SanctuaryZoneNumber(tplayer.Faction), tplayer, 7))
   }
 
   /**
@@ -4573,7 +4735,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       sendResponse(DisconnectMessage("Player failed to load on faction's sanctuary continent.  Please relog."))
     }
     else {
-      galaxy ! Zone.Lattice.RequestSpawnPoint(sanctNumber, tplayer, 7)
+      cluster ! Zone.Lattice.RequestSpawnPoint(sanctNumber, tplayer, 7)
     }
   }
 
@@ -4633,7 +4795,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
   /**
     * For pure proximity-based units and services, disable any manual attempt at cutting off the functionality.
     * If an existing timer can be found, cancel it.
-    * @param terminal the proximity-based unit
+    * @param terminal_guid the proximity-based unit
     */
   def ClearDelayedProximityUnitReset(terminal_guid : PlanetSideGUID) : Unit = {
     delayedProximityTerminalResets.get(terminal_guid) match {
@@ -4730,7 +4892,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * Restore, at most, a specific amount of health points on a player.
     * Send messages to connected client and to events system.
     * @param tplayer the player
-    * @param repairValue the amount to heal;
+    * @param healValue the amount to heal;
     *                    10 by default
     * @return whether the player can be repaired for any more health points
     */
@@ -4979,4 +5141,8 @@ object WorldSessionActor {
                                        delta : Float,
                                        completeAction : () => Unit,
                                        tickAction : Option[() => Unit] = None)
+
+  private final case class NtuCharging(tplayer: Player,
+                                       vehicle: Vehicle)
+  private final case class NtuDischarging(tplayer: Player, vehicle: Vehicle, silo_guid: PlanetSideGUID)
 }

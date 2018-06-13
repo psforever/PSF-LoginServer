@@ -75,6 +75,7 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
   private var trunkAccess : Option[PlanetSideGUID] = None
   private var jammered : Boolean = false
   private var cloaked : Boolean = false
+  private var capacitor : Int = 0
 
   /**
     * Permissions control who gets to access different parts of the vehicle;
@@ -173,6 +174,19 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
   def Cloaked_=(isCloaked : Boolean) : Boolean = {
     cloaked = isCloaked
     Cloaked
+  }
+
+  def Capacitor : Int = capacitor
+
+  def Capacitor_=(value: Int) : Int = {
+    if(value > Definition.MaximumCapacitor) {
+      capacitor = Definition.MaximumCapacitor
+    } else if (value < 0) {
+      capacitor = 0
+    } else {
+      capacitor = value
+    }
+    Capacitor
   }
 
   /**

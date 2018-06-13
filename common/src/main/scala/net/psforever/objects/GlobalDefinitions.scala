@@ -13,6 +13,7 @@ import net.psforever.objects.serverobject.mblocker.LockerDefinition
 import net.psforever.objects.serverobject.pad.VehicleSpawnPadDefinition
 import net.psforever.objects.serverobject.terminals._
 import net.psforever.objects.serverobject.tube.SpawnTubeDefinition
+import net.psforever.objects.serverobject.resourcesilo.ResourceSiloDefinition
 import net.psforever.objects.vehicles.{SeatArmorRestriction, UtilityType}
 import net.psforever.types.PlanetSideEmpire
 
@@ -564,6 +565,8 @@ object GlobalDefinitions {
   val lock_external = new IFFLockDefinition
 
   val door = new DoorDefinition
+
+  val resource_silo = new ResourceSiloDefinition
 
   /**
     * Given a faction, provide the standard assault melee weapon.
@@ -2703,7 +2706,11 @@ object GlobalDefinitions {
     ant.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
     ant.MountPoints += 1 -> 0
     ant.MountPoints += 2 -> 0
+    ant.Deployment = true
+    ant.DeployTime = 1500
+    ant.UndeployTime = 1500
     ant.AutoPilotSpeeds = (18, 6)
+    ant.MaximumCapacitor = 1500
     ant.Packet = utilityConverter
 
     ams.Name = "ams"
