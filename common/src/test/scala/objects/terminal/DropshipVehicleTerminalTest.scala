@@ -7,12 +7,12 @@ import net.psforever.objects.{Avatar, GlobalDefinitions, Player}
 import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.{ItemTransactionMessage, PlanetSideGUID}
-import net.psforever.types.{CharacterGender, PlanetSideEmpire, TransactionType}
+import net.psforever.types.{CharacterGender, CharacterVoice, PlanetSideEmpire, TransactionType}
 import org.specs2.mutable.Specification
 
 class DropshipVehicleTerminalTest extends Specification {
   "Dropship_Vehicle_Terminal" should {
-    val player = Player(Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0))
+    val player = Player(Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
     val terminal = Terminal(GlobalDefinitions.dropship_vehicle_terminal)
     terminal.Owner = new Building(0, Zone.Nowhere, StructureType.Building)
     terminal.Owner.Faction = PlanetSideEmpire.TR

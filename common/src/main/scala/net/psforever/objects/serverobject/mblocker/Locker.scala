@@ -3,10 +3,13 @@ package net.psforever.objects.serverobject.mblocker
 
 import akka.actor.{ActorContext, Props}
 import net.psforever.objects.GlobalDefinitions
+import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.structures.Amenity
+import net.psforever.packet.game.TriggeredSound
 
-class Locker extends Amenity {
+class Locker extends Amenity with Hackable {
   def Definition : LockerDefinition = GlobalDefinitions.mb_locker
+  HackSound = TriggeredSound.HackTerminal
 }
 
 object Locker {

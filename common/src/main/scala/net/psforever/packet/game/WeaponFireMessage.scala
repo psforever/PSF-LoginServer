@@ -6,10 +6,25 @@ import net.psforever.types.Vector3
 import scodec.Codec
 import scodec.codecs._
 
-/** WeaponFireMessage seems to be sent each time a weapon actually shoots.
+/**
+  *  WeaponFireMessage seems to be sent each time a weapon actually shoots.
   *
-  * See [[PlayerStateMessageUpstream]] for explanation of seq_time.
-  */
+  *
+  * @param seq_time See [[PlayerStateMessageUpstream]] for explanation of seq_time.
+  * @param weapon_guid
+  * @param projectile_guid
+  * @param shot_origin
+  * @param unk1 Always zero from testing so far
+  * @param unk2 Seems semi-random
+  * @param unk3 Seems semi-random
+  * @param unk4 Maximum travel distance in meters - seems to be zero for decimator rockets
+  * @param unk5 Possibly always 255 from testing
+  * @param unk6 0 for bullet
+  *             1 for possibly delayed explosion (thumper alt fire) or thresher/leviathan flux cannon
+  *             2 for vs starfire (lockon type?)
+  *             3 for thrown (e.g. grenades)
+  * @param unk7 Seems to be thrown weapon velocity/direction
+*/
 final case class WeaponFireMessage(seq_time : Int,
                                    weapon_guid : PlanetSideGUID,
                                    projectile_guid : PlanetSideGUID,

@@ -331,8 +331,8 @@ class PacketCodingActor extends Actor with MDCContextAware {
 
   /**
     * Accept a series of packets and transform it into a series of packet encodings.
-    * Packets that do not encode properly are simply excluded for the product.
-    * This is not treated as an error or exception; a warning will mrely be logged.
+    * Packets that do not encode properly are simply excluded from the product.
+    * This is not treated as an error or exception; a warning will merely be logged.
     * @param iter the `Iterator` for a series of packets
     * @param out updated series of byte stream data produced through successful packet encoding;
     *            defaults to an empty list

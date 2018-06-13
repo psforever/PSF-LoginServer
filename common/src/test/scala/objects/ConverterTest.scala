@@ -11,7 +11,7 @@ import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.packet.game.objectcreate._
-import net.psforever.types.{CharacterGender, PlanetSideEmpire, Vector3}
+import net.psforever.types.{CharacterGender, CharacterVoice, PlanetSideEmpire, Vector3}
 import org.specs2.mutable.Specification
 
 import scala.util.{Failure, Success}
@@ -154,7 +154,7 @@ class ConverterTest extends Specification {
   }
 
   "Player" should {
-    val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
+    val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
     val obj : Player = {
       /*
       Create an AmmoBoxDefinition with which to build two AmmoBoxes

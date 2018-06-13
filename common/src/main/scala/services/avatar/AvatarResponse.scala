@@ -4,9 +4,9 @@ package services.avatar
 import net.psforever.objects.Player
 import net.psforever.objects.equipment.Equipment
 import net.psforever.packet.PlanetSideGamePacket
-import net.psforever.packet.game.{PlanetSideGUID, PlayerStateMessageUpstream}
+import net.psforever.packet.game.{ObjectCreateMessage, PlanetSideGUID, PlayerStateMessageUpstream}
 import net.psforever.packet.game.objectcreate.ConstructorData
-import net.psforever.types.{ExoSuitType, Vector3}
+import net.psforever.types.ExoSuitType
 
 object AvatarResponse {
   trait Response
@@ -17,11 +17,9 @@ object AvatarResponse {
   final case class ChangeFireState_Start(weapon_guid : PlanetSideGUID) extends Response
   final case class ChangeFireState_Stop(weapon_guid : PlanetSideGUID) extends Response
   final case class ConcealPlayer() extends Response
-  final case class EquipmentInHand(target_guid : PlanetSideGUID, slot : Int, item : Equipment) extends Response
-  final case class EquipmentOnGround(pos : Vector3, orient : Vector3, item_id : Int, item_guid : PlanetSideGUID, item_data : ConstructorData) extends Response
-  final case class LoadPlayer(pdata : ConstructorData) extends Response
-  //  final case class unLoadMap() extends Response
-  //  final case class LoadMap() extends Response
+  final case class EquipmentInHand(pkt : ObjectCreateMessage) extends Response
+  final case class DropItem(pkt : ObjectCreateMessage) extends Response
+  final case class LoadPlayer(pkt : ObjectCreateMessage) extends Response
   final case class ObjectDelete(item_guid : PlanetSideGUID, unk : Int) extends Response
   final case class ObjectHeld(slot : Int) extends Response
   final case class PlanetsideAttribute(attribute_type : Int, attribute_value : Long) extends Response
@@ -35,5 +33,4 @@ object AvatarResponse {
   //  final case class PlayerStateShift(itemID : PlanetSideGUID) extends Response
   //  final case class DestroyDisplay(itemID : PlanetSideGUID) extends Response
   //  final case class HitHintReturn(itemID : PlanetSideGUID) extends Response
-  //  final case class ChangeWeapon(facingYaw : Int) extends Response
 }

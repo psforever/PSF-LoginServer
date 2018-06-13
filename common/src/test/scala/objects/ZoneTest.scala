@@ -12,13 +12,13 @@ import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects._
 import net.psforever.packet.game.PlanetSideGUID
-import net.psforever.types.{CharacterGender, PlanetSideEmpire, Vector3}
+import net.psforever.types.{CharacterGender, CharacterVoice, PlanetSideEmpire, Vector3}
 import net.psforever.objects.serverobject.structures.{Building, FoundationBuilder, StructureType}
 import net.psforever.objects.zones.{Zone, ZoneActor, ZoneMap}
 import net.psforever.objects.Vehicle
 import org.specs2.mutable.Specification
 
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration._
 
 class ZoneTest extends Specification {
   def test(a: Int, b : Zone, c : ActorContext) : Building = { Building.NoBuilding }
@@ -185,7 +185,7 @@ class ZoneActorTest extends ActorTest {
       zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "test-spawn")
       zone.Actor ! Zone.Init()
       expectNoMsg(Duration.create(300, "ms"))
-      val player = Player(Avatar("Chord", PlanetSideEmpire.NEUTRAL, CharacterGender.Male, 0, 5))
+      val player = Player(Avatar("Chord", PlanetSideEmpire.NEUTRAL, CharacterGender.Male, 0, CharacterVoice.Voice5))
 
       val bldg1 = zone.Building(1).get
       val bldg3 = zone.Building(3).get
@@ -216,7 +216,7 @@ class ZoneActorTest extends ActorTest {
       zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "test-no-spawn")
       zone.Actor ! Zone.Init()
       expectNoMsg(Duration.create(300, "ms"))
-      val player = Player(Avatar("Chord", PlanetSideEmpire.NEUTRAL, CharacterGender.Male, 0, 5))
+      val player = Player(Avatar("Chord", PlanetSideEmpire.NEUTRAL, CharacterGender.Male, 0, CharacterVoice.Voice5))
 
       zone.Actor ! Zone.Lattice.RequestSpawnPoint(1, player, 7)
       val reply = receiveOne(Duration.create(200, "ms"))
@@ -234,7 +234,7 @@ class ZonePopulationTest extends ActorTest {
   "ZonePopulationActor" should {
     "add new user to zones" in {
       val zone = new Zone("test", new ZoneMap(""), 0)
-      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
+      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       system.actorOf(Props(classOf[ZoneTest.ZoneInitActor], zone), TestName) ! "!"
       receiveOne(Duration.create(200, "ms")) //consume
 
@@ -249,7 +249,7 @@ class ZonePopulationTest extends ActorTest {
 
     "remove user from zones" in {
       val zone = new Zone("test", new ZoneMap(""), 0)
-      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
+      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       system.actorOf(Props(classOf[ZoneTest.ZoneInitActor], zone), TestName) ! "!"
       receiveOne(Duration.create(200, "ms")) //consume
       zone.Population ! Zone.Population.Join(avatar)
@@ -264,7 +264,7 @@ class ZonePopulationTest extends ActorTest {
 
     "associate user with a character" in {
       val zone = new Zone("test", new ZoneMap(""), 0)
-      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
+      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       val player = Player(avatar)
       system.actorOf(Props(classOf[ZoneTest.ZoneInitActor], zone), TestName) ! "!"
       receiveOne(Duration.create(200, "ms")) //consume
@@ -284,7 +284,7 @@ class ZonePopulationTest extends ActorTest {
 
     "disassociate character from a user" in {
       val zone = new Zone("test", new ZoneMap(""), 0)
-      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
+      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       val player = Player(avatar)
       system.actorOf(Props(classOf[ZoneTest.ZoneInitActor], zone), TestName) ! "!"
       receiveOne(Duration.create(200, "ms")) //consume
@@ -306,7 +306,7 @@ class ZonePopulationTest extends ActorTest {
 
     "user tries to Leave, but still has an associated character" in {
       val zone = new Zone("test", new ZoneMap(""), 0)
-      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
+      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       val player = Player(avatar)
       system.actorOf(Props(classOf[ZoneTest.ZoneInitActor], zone), TestName) ! "!"
       receiveOne(Duration.create(500, "ms")) //consume
@@ -330,7 +330,7 @@ class ZonePopulationTest extends ActorTest {
 
     "user tries to Spawn a character, but an associated character already exists" in {
       val zone = new Zone("test", new ZoneMap(""), 0)
-      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
+      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       val player1 = Player(avatar)
       val player2 = Player(avatar)
       system.actorOf(Props(classOf[ZoneTest.ZoneInitActor], zone), TestName) ! "!"
@@ -356,7 +356,7 @@ class ZonePopulationTest extends ActorTest {
 
     "user tries to Spawn a character, but did not Join first" in {
       val zone = new Zone("test", new ZoneMap(""), 0)
-      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
+      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       val player = Player(avatar)
       system.actorOf(Props(classOf[ZoneTest.ZoneInitActor], zone), TestName) ! "!"
       receiveOne(Duration.create(200, "ms")) //consume
@@ -374,7 +374,7 @@ class ZonePopulationTest extends ActorTest {
 
     "user tries to Release a character, but did not Spawn a character first" in {
       val zone = new Zone("test", new ZoneMap(""), 0)
-      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5)
+      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       system.actorOf(Props(classOf[ZoneTest.ZoneInitActor], zone), TestName) ! "!"
       receiveOne(Duration.create(200, "ms")) //consume
       zone.Population ! Zone.Population.Join(avatar)
@@ -395,7 +395,7 @@ class ZonePopulationTest extends ActorTest {
 
     "user adds character to list of retired characters" in {
       val zone = new Zone("test", new ZoneMap(""), 0)
-      val player = Player(Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5))
+      val player = Player(Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5))
       player.Release
       system.actorOf(Props(classOf[ZoneTest.ZoneInitActor], zone), TestName) ! "!"
       receiveOne(Duration.create(200, "ms")) //consume
@@ -409,7 +409,7 @@ class ZonePopulationTest extends ActorTest {
 
     "user removes character from the list of retired characters" in {
       val zone = new Zone("test", new ZoneMap(""), 0)
-      val player = Player(Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5))
+      val player = Player(Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5))
       player.Release
       system.actorOf(Props(classOf[ZoneTest.ZoneInitActor], zone), TestName) ! "!"
       receiveOne(Duration.create(200, "ms")) //consume
@@ -425,11 +425,11 @@ class ZonePopulationTest extends ActorTest {
 
     "user removes THE CORRECT character from the list of retired characters" in {
       val zone = new Zone("test", new ZoneMap(""), 0)
-      val player1 = Player(Avatar("Chord1", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5))
+      val player1 = Player(Avatar("Chord1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5))
       player1.Release
-      val player2 = Player(Avatar("Chord2", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5))
+      val player2 = Player(Avatar("Chord2", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5))
       player2.Release
-      val player3 = Player(Avatar("Chord3", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5))
+      val player3 = Player(Avatar("Chord3", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5))
       player3.Release
       system.actorOf(Props(classOf[ZoneTest.ZoneInitActor], zone), TestName) ! "!"
       receiveOne(Duration.create(200, "ms")) //consume
@@ -451,7 +451,7 @@ class ZonePopulationTest extends ActorTest {
 
     "user tries to add character to list of retired characters, but is not in correct state" in {
       val zone = new Zone("test", new ZoneMap(""), 0)
-      val player = Player(Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5))
+      val player = Player(Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5))
       //player.Release !!important
       system.actorOf(Props(classOf[ZoneTest.ZoneInitActor], zone), "testC") ! "!"
       receiveOne(Duration.create(500, "ms")) //consume
@@ -464,56 +464,183 @@ class ZonePopulationTest extends ActorTest {
   }
 }
 
-class ZoneGroundTest extends ActorTest {
+class ZoneGroundDropItemTest extends ActorTest {
   val item = AmmoBox(GlobalDefinitions.bullet_9mm)
-  item.GUID = PlanetSideGUID(10)
+  val hub = new NumberPoolHub(new LimitedNumberSource(20))
+  hub.register(item, 10)
+  val zone = new Zone("test", new ZoneMap("test-map"), 0)
+  zone.GUID(hub)
+  system.actorOf(Props(classOf[ZoneTest.ZoneInitActor], zone), "drop-test-zone") ! "!"
 
-  "ZoneGroundActor" should {
+  "DropItem" should {
     "drop item on ground" in {
-      val zone = new Zone("test", new ZoneMap(""), 0)
-      system.actorOf(Props(classOf[ZoneTest.ZoneInitActor], zone), "drop-item-test") ! "!"
-      receiveOne(Duration.create(200, "ms")) //consume
+      receiveOne(1 second) //consume
+      assert(!zone.EquipmentOnGround.contains(item))
+      zone.Ground ! Zone.Ground.DropItem(item, Vector3(1.1f, 2.2f, 3.3f), Vector3(4.4f, 5.5f, 6.6f))
 
-      assert(zone.EquipmentOnGround.isEmpty)
-      assert(item.Position == Vector3.Zero)
-      assert(item.Orientation == Vector3.Zero)
-      zone.Ground ! Zone.DropItemOnGround(item, Vector3(1.1f, 2.2f, 3.3f), Vector3(4.4f, 5.5f, 6.6f))
-      expectNoMsg(Duration.create(100, "ms"))
-
-      assert(zone.EquipmentOnGround == List(item))
-      assert(item.Position == Vector3(1.1f, 2.2f, 3.3f))
-      assert(item.Orientation == Vector3(4.4f, 5.5f, 6.6f))
+      val reply = receiveOne(200 milliseconds)
+      assert(reply.isInstanceOf[Zone.Ground.ItemOnGround])
+      assert(reply.asInstanceOf[Zone.Ground.ItemOnGround].item == item)
+      assert(reply.asInstanceOf[Zone.Ground.ItemOnGround].pos == Vector3(1.1f, 2.2f, 3.3f))
+      assert(reply.asInstanceOf[Zone.Ground.ItemOnGround].orient == Vector3(4.4f, 5.5f, 6.6f))
+      assert(zone.EquipmentOnGround.contains(item))
     }
+  }
+}
 
-    "get item from ground (success)" in {
-      val zone = new Zone("test", new ZoneMap(""), 0)
-      val player = Player(Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5))
-      system.actorOf(Props(classOf[ZoneTest.ZoneInitActor], zone), "get-item-test-good") ! "!"
-      receiveOne(Duration.create(200, "ms")) //consume
-      zone.Ground ! Zone.DropItemOnGround(item, Vector3.Zero, Vector3.Zero)
-      expectNoMsg(Duration.create(100, "ms"))
+class ZoneGroundCanNotDropItem1Test extends ActorTest {
+  val item = AmmoBox(GlobalDefinitions.bullet_9mm)
+  val hub = new NumberPoolHub(new LimitedNumberSource(20))
+  //hub.register(item, 10) //!important
+  val zone = new Zone("test", new ZoneMap("test-map"), 0)
+  zone.GUID(hub)
+  system.actorOf(Props(classOf[ZoneTest.ZoneInitActor], zone), "drop-test-zone") ! "!"
 
-      assert(zone.EquipmentOnGround == List(item))
-      zone.Ground ! Zone.GetItemOnGround(player, PlanetSideGUID(10))
-      val reply = receiveOne(Duration.create(100, "ms"))
+  "DropItem" should {
+    "not drop an item that is not registered" in {
+      receiveOne(1 second) //consume
+      assert(!zone.EquipmentOnGround.contains(item))
+      zone.Ground ! Zone.Ground.DropItem(item, Vector3.Zero, Vector3.Zero)
 
-      assert(zone.EquipmentOnGround.isEmpty)
-      assert(reply.isInstanceOf[Zone.ItemFromGround])
-      assert(reply.asInstanceOf[Zone.ItemFromGround].player == player)
-      assert(reply.asInstanceOf[Zone.ItemFromGround].item == item)
+      val reply = receiveOne(300 milliseconds)
+      assert(reply.isInstanceOf[Zone.Ground.CanNotDropItem])
+      assert(reply.asInstanceOf[Zone.Ground.CanNotDropItem].item == item)
+      assert(reply.asInstanceOf[Zone.Ground.CanNotDropItem].zone == zone)
+      assert(reply.asInstanceOf[Zone.Ground.CanNotDropItem].reason == "not registered yet")
+      assert(!zone.EquipmentOnGround.contains(item))
     }
+  }
+}
 
-    "get item from ground (failure)" in {
-      val zone = new Zone("test", new ZoneMap(""), 0)
-      val player = Player(Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, 5))
-      system.actorOf(Props(classOf[ZoneTest.ZoneInitActor], zone), "get-item-test-fail") ! "!"
-      receiveOne(Duration.create(200, "ms")) //consume
-      zone.Ground ! Zone.DropItemOnGround(item, Vector3.Zero, Vector3.Zero)
-      expectNoMsg(Duration.create(100, "ms"))
+class ZoneGroundCanNotDropItem2Test extends ActorTest {
+  val item = AmmoBox(GlobalDefinitions.bullet_9mm)
+  val hub = new NumberPoolHub(new LimitedNumberSource(20))
+  hub.register(item, 10) //!important
+  val zone = new Zone("test", new ZoneMap("test-map"), 0)
+  //zone.GUID(hub) //!important
+  system.actorOf(Props(classOf[ZoneTest.ZoneInitActor], zone), "drop-test-zone") ! "!"
 
-      assert(zone.EquipmentOnGround == List(item))
-      zone.Ground ! Zone.GetItemOnGround(player, PlanetSideGUID(11)) //wrong guid
-      expectNoMsg(Duration.create(500, "ms"))
+  "DropItem" should {
+    "not drop an item that is not registered to the zone" in {
+      receiveOne(1 second) //consume
+      assert(!zone.EquipmentOnGround.contains(item))
+      zone.Ground ! Zone.Ground.DropItem(item, Vector3.Zero, Vector3.Zero)
+
+      val reply = receiveOne(300 milliseconds)
+      assert(reply.isInstanceOf[Zone.Ground.CanNotDropItem])
+      assert(reply.asInstanceOf[Zone.Ground.CanNotDropItem].item == item)
+      assert(reply.asInstanceOf[Zone.Ground.CanNotDropItem].zone == zone)
+      assert(reply.asInstanceOf[Zone.Ground.CanNotDropItem].reason == "registered to some other zone")
+      assert(!zone.EquipmentOnGround.contains(item))
+    }
+  }
+}
+
+class ZoneGroundCanNotDropItem3Test extends ActorTest {
+  val item = AmmoBox(GlobalDefinitions.bullet_9mm)
+  val hub = new NumberPoolHub(new LimitedNumberSource(20))
+  hub.register(item, 10) //!important
+  val zone = new Zone("test", new ZoneMap("test-map"), 0)
+  zone.GUID(hub) //!important
+  system.actorOf(Props(classOf[ZoneTest.ZoneInitActor], zone), "drop-test-zone") ! "!"
+
+  "DropItem" should {
+    "not drop an item that has already been dropped" in {
+      receiveOne(1 second) //consume
+      assert(!zone.EquipmentOnGround.contains(item))
+      assert(zone.EquipmentOnGround.isEmpty)
+      zone.Ground ! Zone.Ground.DropItem(item, Vector3.Zero, Vector3.Zero)
+
+      val reply1 = receiveOne(300 milliseconds)
+      assert(reply1.isInstanceOf[Zone.Ground.ItemOnGround])
+      assert(reply1.asInstanceOf[Zone.Ground.ItemOnGround].item == item)
+      assert(zone.EquipmentOnGround.contains(item))
+      assert(zone.EquipmentOnGround.size == 1)
+      zone.Ground ! Zone.Ground.DropItem(item, Vector3.Zero, Vector3.Zero)
+
+      val reply2 = receiveOne(300 milliseconds)
+      assert(reply2.isInstanceOf[Zone.Ground.CanNotDropItem])
+      assert(reply2.asInstanceOf[Zone.Ground.CanNotDropItem].item == item)
+      assert(reply2.asInstanceOf[Zone.Ground.CanNotDropItem].zone == zone)
+      assert(reply2.asInstanceOf[Zone.Ground.CanNotDropItem].reason == "already dropped")
+      assert(zone.EquipmentOnGround.size == 1)
+    }
+  }
+}
+
+class ZoneGroundPickupItemTest extends ActorTest {
+  val item = AmmoBox(GlobalDefinitions.bullet_9mm)
+  val hub = new NumberPoolHub(new LimitedNumberSource(20))
+  hub.register(item, 10)
+  val zone = new Zone("test", new ZoneMap("test-map"), 0)
+  zone.GUID(hub)
+  system.actorOf(Props(classOf[ZoneTest.ZoneInitActor], zone), "drop-test-zone") ! "!"
+
+  "PickupItem" should {
+    "pickup an item from ground" in {
+      receiveOne(1 second) //consume
+      assert(!zone.EquipmentOnGround.contains(item))
+      zone.Ground ! Zone.Ground.DropItem(item, Vector3.Zero, Vector3.Zero)
+
+      val reply1 = receiveOne(200 milliseconds)
+      assert(reply1.isInstanceOf[Zone.Ground.ItemOnGround])
+      assert(zone.EquipmentOnGround.contains(item))
+      zone.Ground ! Zone.Ground.PickupItem(item.GUID)
+
+      val reply2 = receiveOne(200 milliseconds)
+      assert(reply2.isInstanceOf[Zone.Ground.ItemInHand])
+      assert(reply2.asInstanceOf[Zone.Ground.ItemInHand].item == item)
+      assert(!zone.EquipmentOnGround.contains(item))
+    }
+  }
+}
+
+class ZoneGroundCanNotPickupItemTest extends ActorTest {
+  val item = AmmoBox(GlobalDefinitions.bullet_9mm)
+  val hub = new NumberPoolHub(new LimitedNumberSource(20))
+  hub.register(item, 10)
+  val zone = new Zone("test", new ZoneMap("test-map"), 0)
+  zone.GUID(hub) //still registered to this zone
+  system.actorOf(Props(classOf[ZoneTest.ZoneInitActor], zone), "drop-test-zone") ! "!"
+
+  "PickupItem" should {
+    "not pickup an item if it can not be found" in {
+      receiveOne(1 second) //consume
+      assert(!zone.EquipmentOnGround.contains(item))
+      zone.Ground ! Zone.Ground.PickupItem(item.GUID)
+
+      val reply2 = receiveOne(200 milliseconds)
+      assert(reply2.isInstanceOf[Zone.Ground.CanNotPickupItem])
+      assert(reply2.asInstanceOf[Zone.Ground.CanNotPickupItem].item_guid == item.GUID)
+      assert(reply2.asInstanceOf[Zone.Ground.CanNotPickupItem].zone == zone)
+      assert(reply2.asInstanceOf[Zone.Ground.CanNotPickupItem].reason == "can not find")
+    }
+  }
+}
+
+class ZoneGroundRemoveItemTest extends ActorTest {
+  val item = AmmoBox(GlobalDefinitions.bullet_9mm)
+  val hub = new NumberPoolHub(new LimitedNumberSource(20))
+  hub.register(item, 10)
+  val zone = new Zone("test", new ZoneMap("test-map"), 0)
+  zone.GUID(hub) //still registered to this zone
+  system.actorOf(Props(classOf[ZoneTest.ZoneInitActor], zone), "drop-test-zone") ! "!"
+
+  "RemoveItem" should {
+    "remove an item from the ground without callback (even if the item is not found)" in {
+      receiveOne(1 second)
+      assert(!zone.EquipmentOnGround.contains(item))
+      zone.Ground ! Zone.Ground.DropItem(item, Vector3.Zero, Vector3.Zero)
+      receiveOne(200 milliseconds)
+      assert(zone.EquipmentOnGround.contains(item)) //dropped
+
+      zone.Ground ! Zone.Ground.RemoveItem(item.GUID)
+      expectNoMsg(500 milliseconds)
+      assert(!zone.EquipmentOnGround.contains(item))
+
+      zone.Ground ! Zone.Ground.RemoveItem(item.GUID) //repeat
+      expectNoMsg(500 milliseconds)
+      assert(!zone.EquipmentOnGround.contains(item))
     }
   }
 }

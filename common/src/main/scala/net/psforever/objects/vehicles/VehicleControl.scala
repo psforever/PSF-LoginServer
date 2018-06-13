@@ -3,9 +3,10 @@ package net.psforever.objects.vehicles
 
 import akka.actor.Actor
 import net.psforever.objects.Vehicle
-import net.psforever.objects.serverobject.mount.MountableBehavior
+import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior}
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
 import net.psforever.objects.serverobject.deploy.DeploymentBehavior
+import net.psforever.types.ExoSuitType
 
 /**
   * An `Actor` that handles messages being dispatched to a specific `Vehicle`.<br>
@@ -32,9 +33,32 @@ class VehicleControl(vehicle : Vehicle) extends Actor
 
   def Enabled : Receive = checkBehavior
     .orElse(deployBehavior)
-    .orElse(mountBehavior)
     .orElse(dismountBehavior)
     .orElse {
+      case Mountable.TryMount(user, seat_num) =>
+        val exosuit = user.ExoSuit
+        val restriction = vehicle.Seats(seat_num).ArmorRestriction
+        val seatGroup = vehicle.SeatPermissionGroup(seat_num).getOrElse(AccessPermissionGroup.Passenger)
+        val permission = vehicle.PermissionGroup(seatGroup.id).getOrElse(VehicleLockState.Empire)
+        if(
+          (if(seatGroup == AccessPermissionGroup.Driver) {
+              vehicle.Owner.contains(user.GUID) || vehicle.Owner.isEmpty || permission != VehicleLockState.Locked
+            }
+            else {
+              permission != VehicleLockState.Locked
+            }) &&
+            (exosuit match {
+              case ExoSuitType.MAX => restriction == SeatArmorRestriction.MaxOnly
+              case ExoSuitType.Reinforced => restriction == SeatArmorRestriction.NoMax
+              case _ => restriction != SeatArmorRestriction.MaxOnly
+            })
+        ) {
+          mountBehavior.apply(Mountable.TryMount(user, seat_num))
+        }
+        else {
+          sender ! Mountable.MountMessages(user, Mountable.CanNotMount(vehicle, seat_num))
+        }
+
       case FactionAffinity.ConvertFactionAffinity(faction) =>
         val originalAffinity = vehicle.Faction
         if(originalAffinity != (vehicle.Faction = faction)) {

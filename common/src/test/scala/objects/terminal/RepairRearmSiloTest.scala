@@ -7,12 +7,12 @@ import net.psforever.objects._
 import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.{ItemTransactionMessage, PlanetSideGUID}
-import net.psforever.types.{CharacterGender, PlanetSideEmpire, TransactionType}
+import net.psforever.types.{CharacterGender, CharacterVoice, PlanetSideEmpire, TransactionType}
 import org.specs2.mutable.Specification
 
 class RepairRearmSiloTest extends Specification {
   "RepairRearmSilo" should {
-    val player = Player(Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0))
+    val player = Player(Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
     val silo = Terminal(GlobalDefinitions.repair_silo)
     silo.Owner = new Building(0, Zone.Nowhere, StructureType.Building)
     silo.Owner.Faction = PlanetSideEmpire.TR
@@ -49,7 +49,7 @@ class RepairRearmSiloTest extends Specification {
     }
 
     "player can retrieve a vehicle loadout" in {
-      val avatar = Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+      val avatar = Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)
       val player2 = Player(avatar)
       val vehicle = Vehicle(GlobalDefinitions.fury)
       vehicle.Slot(30).Equipment = AmmoBox(GlobalDefinitions.bullet_9mm)
@@ -67,7 +67,7 @@ class RepairRearmSiloTest extends Specification {
     }
 
     "player can not retrieve a vehicle loadout from the wrong line" in {
-      val avatar = Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+      val avatar = Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)
       val player2 = Player(avatar)
       val vehicle = Vehicle(GlobalDefinitions.fury)
       vehicle.Slot(30).Equipment = AmmoBox(GlobalDefinitions.bullet_9mm)
@@ -78,7 +78,7 @@ class RepairRearmSiloTest extends Specification {
     }
 
     "player can not retrieve a vehicle loadout from the wrong line" in {
-      val avatar = Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, 0)
+      val avatar = Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)
       val player2 = Player(avatar)
       val vehicle = Vehicle(GlobalDefinitions.fury)
       vehicle.Slot(30).Equipment = AmmoBox(GlobalDefinitions.bullet_9mm)

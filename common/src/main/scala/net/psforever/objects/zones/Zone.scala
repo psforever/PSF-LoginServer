@@ -89,7 +89,7 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
     if(accessor == ActorRef.noSender) {
       implicit val guid : NumberPoolHub = this.guid //passed into builderObject.Build implicitly
       accessor = context.actorOf(RandomPool(25).props(Props(classOf[UniqueNumberSystem], guid, UniqueNumberSystem.AllocateNumberPoolActors(guid))), s"$Id-uns")
-      ground = context.actorOf(Props(classOf[ZoneGroundActor], equipmentOnGround), s"$Id-ground")
+      ground = context.actorOf(Props(classOf[ZoneGroundActor], this, equipmentOnGround), s"$Id-ground")
       transport = context.actorOf(Props(classOf[ZoneVehicleActor], this, vehicles), s"$Id-vehicles")
       population = context.actorOf(Props(classOf[ZonePopulationActor], this, players, corpses), s"$Id-players")
 
@@ -386,27 +386,17 @@ object Zone {
     final case class NoValidSpawnPoint(zone_number : Int, spawn_group : Option[Int])
   }
 
-  /**
-    * Message to relinguish an item and place in on the ground.
-    * @param item the piece of `Equipment`
-    * @param pos where it is dropped
-    * @param orient in which direction it is facing when dropped
-    */
-  final case class DropItemOnGround(item : Equipment, pos : Vector3, orient : Vector3)
+  object Ground {
+    final case class DropItem(item : Equipment, pos : Vector3, orient : Vector3)
+    final case class ItemOnGround(item : Equipment, pos : Vector3, orient : Vector3)
+    final case class CanNotDropItem(zone : Zone, item : Equipment, reason : String)
 
-  /**
-    * Message to attempt to acquire an item from the ground (before somoene else?).
-    * @param player who wants the piece of `Equipment`
-    * @param item_guid the unique identifier of the piece of `Equipment`
-    */
-  final case class GetItemOnGround(player : Player, item_guid : PlanetSideGUID)
+    final case class PickupItem(item_guid : PlanetSideGUID)
+    final case class ItemInHand(item : Equipment)
+    final case class CanNotPickupItem(zone : Zone, item_guid : PlanetSideGUID, reason : String)
 
-  /**
-    * Message to give an item from the ground to a specific user.
-    * @param player who wants the piece of `Equipment`
-    * @param item the piece of `Equipment`
-    */
-  final case class ItemFromGround(player : Player, item : Equipment)
+    final case class RemoveItem(item_guid : PlanetSideGUID)
+  }
 
   object Vehicle {
     final case class Spawn(vehicle : Vehicle)

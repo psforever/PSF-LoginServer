@@ -12,7 +12,6 @@ object VehicleResponse {
   trait Response
 
   final case class AttachToRails(vehicle_guid : PlanetSideGUID, rails_guid : PlanetSideGUID) extends Response
-  final case class Awareness(vehicle_guid : PlanetSideGUID) extends Response
   final case class ChildObjectState(object_guid : PlanetSideGUID, pitch : Float, yaw : Float) extends Response
   final case class ConcealPlayer(player_guid : PlanetSideGUID) extends Response
   final case class DeployRequest(object_guid : PlanetSideGUID, state : DriveState.Value, unk1 : Int, unk2 : Boolean, pos : Vector3) extends Response
@@ -23,6 +22,7 @@ object VehicleResponse {
   final case class KickPassenger(seat_num : Int, kickedByDriver : Boolean, vehicle_guid : PlanetSideGUID) extends Response
   final case class LoadVehicle(vehicle : Vehicle, vtype : Int, vguid : PlanetSideGUID, vdata : ConstructorData) extends Response
   final case class MountVehicle(object_guid : PlanetSideGUID, seat : Int) extends Response
+  final case class Ownership(vehicle_guid : PlanetSideGUID) extends Response
   final case class ResetSpawnPad(pad_guid : PlanetSideGUID) extends Response
   final case class RevealPlayer(player_guid : PlanetSideGUID) extends Response
   final case class SeatPermissions(vehicle_guid : PlanetSideGUID, seat_group : Int, permission : Long) extends Response

@@ -10,29 +10,74 @@ import scala.util.{Failure, Success, Try}
 
 class VehicleConverter extends ObjectCreateConverter[Vehicle]() {
   override def DetailedConstructorData(obj : Vehicle) : Try[VehicleData] =
-    Failure(new Exception("VehicleConverter should not be used to generate detailed VehicleData"))
+    Failure(new Exception("VehicleConverter should not be used to generate detailed VehicleData (nothing should)"))
 
   override def ConstructorData(obj : Vehicle) : Try[VehicleData] = {
+    val health = 255 * obj.Health / obj.MaxHealth //TODO not precise
     Success(
       VehicleData(
-        CommonFieldData(
-          PlacementData(obj.Position, obj.Orientation, obj.Velocity),
-          obj.Faction,
-          0,
-          PlanetSideGUID(0) //if(obj.Owner.isDefined) { obj.Owner.get } else { PlanetSideGUID(0) } //TODO is this really Owner?
-        ),
-        0,
-        255 * obj.Health / obj.MaxHealth, //TODO not precise
-        false, false,
+        PlacementData(obj.Position, obj.Orientation, obj.Velocity),
+        obj.Faction,
+        bops = false,
+        destroyed = health < 3,
+        unk1 = 0,
+        obj.Jammered,
+        unk2 = false,
+        obj.Owner match {
+          case Some(owner) => owner
+          case None => PlanetSideGUID(0)
+        },
+        unk3 = false,
+        health,
+        unk4 = false,
+        no_mount_points = false,
         obj.DeploymentState,
-        false,
-        false,
+        unk5 = false,
+        unk6 = false,
         obj.Cloaked,
         SpecificFormatData(obj),
-        Some(InventoryData((MakeUtilities(obj) ++ MakeMountings(obj)).sortBy(_.parentSlot)))
+        Some(InventoryData(MakeDriverSeat(obj) ++ MakeUtilities(obj) ++ MakeMountings(obj)))
       )(SpecificFormatModifier)
     )
   }
+
+  private def MakeDriverSeat(obj : Vehicle) : List[InventoryItemData.InventoryItem] = {
+    val offset : Long = VehicleData.InitialStreamLengthToSeatEntries(obj.Velocity.nonEmpty, SpecificFormatModifier)
+    obj.Seats(0).Occupant match {
+      case Some(player) =>
+        val mountedPlayer = VehicleData.PlayerData(
+          AvatarConverter.MakeAppearanceData(player),
+          AvatarConverter.MakeCharacterData(player),
+          AvatarConverter.MakeInventoryData(player),
+          AvatarConverter.GetDrawnSlot(player),
+          offset
+        )
+        List(InventoryItemData(ObjectClass.avatar, player.GUID, 0, mountedPlayer))
+      case None =>
+        Nil
+    }
+  }
+
+  //TODO do not use for now; causes vehicle access permission issues; may not mesh with workflows; player GUID requirements
+//  private def MakeSeats(obj : Vehicle) : List[InventoryItemData.InventoryItem] = {
+//    var offset : Long = VehicleData.InitialStreamLengthToSeatEntries(obj.Velocity.nonEmpty, SpecificFormatModifier)
+//    obj.Seats
+//      .filter({ case (_, seat) => seat.isOccupied })
+//      .map({case (index, seat) =>
+//        val player = seat.Occupant.get
+//        val mountedPlayer = VehicleData.PlayerData(
+//          AvatarConverter.MakeAppearanceData(player),
+//          AvatarConverter.MakeCharacterData(player),
+//          AvatarConverter.MakeInventoryData(player),
+//          AvatarConverter.GetDrawnSlot(player),
+//          offset
+//        )
+//        val entry = InventoryItemData(ObjectClass.avatar, player.GUID, index, mountedPlayer)
+//        //println(s"seat 0 offset: $offset, size: ${entry.bitsize}, pad: ${mountedPlayer.basic_appearance.NamePadding}")
+//        offset += entry.bitsize
+//        entry
+//      }).toList
+//  }
   
   private def MakeMountings(obj : Vehicle) : List[InventoryItemData.InventoryItem] = {
     obj.Weapons.map({

@@ -11,6 +11,8 @@ import scodec.bits._
 class UtilityVehiclesTest extends Specification {
   val string_ant =  hex"17 C2000000 9E0 7C01 6C2D7 65535 CA16 00 00 00 4400003FC000000"
   val string_ams = hex"17 B8010000 970 3D10 002D765535CA16000000 402285BB0037E4100749E1D03000000620D83A0A00000195798741C00000332E40D84800000"
+//  val string_ams_seated =
+//    hex"17ec060000970fe0f030898abda28127f007ff9c1f2f80c0001e18ff00001051e40786400000008c50004c0041006d0069006e006700790075006500540052007c00000304217c859e8080000000000000002503420022c02a002a002a002a0050004c0041002a002a002a002a00010027e300940000016c0400023c040002285a086c2f00c80000000000300210288740800000004046f17423018000002c4d6190400000001010704a86406000002bc770842000000004041c5f21d01800000e075821902000000623e84208000001950588c1800000332ea0f840000000"
 
   "Utility vehicles" should {
     "decode (ant)" in {
@@ -23,17 +25,21 @@ class UtilityVehiclesTest extends Specification {
           data.isDefined mustEqual true
           data.get.isInstanceOf[VehicleData] mustEqual true
           val ant = data.get.asInstanceOf[VehicleData]
-          ant.basic.pos.coord.x mustEqual 3674.8438f
-          ant.basic.pos.coord.y mustEqual 2726.789f
-          ant.basic.pos.coord.z mustEqual 91.15625f
-          ant.basic.pos.orient.x mustEqual 0f
-          ant.basic.pos.orient.y mustEqual 0f
-          ant.basic.pos.orient.z mustEqual 90.0f
-          ant.basic.faction mustEqual PlanetSideEmpire.VS
-          ant.basic.unk mustEqual 2
-          ant.basic.player_guid mustEqual PlanetSideGUID(0)
-          ant.health mustEqual 255
+          ant.pos.coord mustEqual Vector3(3674.8438f, 2726.789f, 91.15625f)
+          ant.pos.orient mustEqual Vector3(0, 0, 90)
+          ant.faction mustEqual PlanetSideEmpire.VS
+          ant.owner_guid mustEqual PlanetSideGUID(0)
           ant.driveState mustEqual DriveState.Mobile
+          ant.health mustEqual 255
+          ant.jammered mustEqual false
+          ant.destroyed mustEqual false
+          ant.cloak mustEqual false
+          ant.unk1 mustEqual 2
+          ant.unk2 mustEqual false
+          ant.unk3 mustEqual false
+          ant.unk4 mustEqual false
+          ant.unk5 mustEqual false
+          ant.unk6 mustEqual false
         case _ =>
           ko
       }
@@ -49,19 +55,23 @@ class UtilityVehiclesTest extends Specification {
           data.isDefined mustEqual true
           data.get.isInstanceOf[VehicleData] mustEqual true
           val ams = data.get.asInstanceOf[VehicleData]
-          ams.basic.pos.coord.x mustEqual 3674.0f
-          ams.basic.pos.coord.y mustEqual 2726.789f
-          ams.basic.pos.coord.z mustEqual 91.15625f
-          ams.basic.pos.orient.x mustEqual 0f
-          ams.basic.pos.orient.y mustEqual 0f
-          ams.basic.pos.orient.z mustEqual 90.0f
-          ams.basic.faction mustEqual PlanetSideEmpire.VS
-          ams.basic.unk mustEqual 0
-          ams.basic.player_guid mustEqual PlanetSideGUID(34082)
-          ams.unk1 mustEqual 2
-          ams.health mustEqual 236
-          ams.unk2 mustEqual false
+          ams.pos.coord mustEqual Vector3(3674, 2726.789f, 91.15625f)
+          ams.pos.orient mustEqual Vector3(0, 0, 90)
+          ams.pos.vel mustEqual None
+          ams.faction mustEqual PlanetSideEmpire.VS
+          ams.owner_guid mustEqual PlanetSideGUID(2885)
           ams.driveState mustEqual DriveState.Deployed
+          ams.vehicle_format_data mustEqual Some(UtilityVehicleData(60))
+          ams.health mustEqual 236
+          ams.jammered mustEqual false
+          ams.destroyed mustEqual false
+          ams.cloak mustEqual true
+          ams.unk1 mustEqual 0
+          ams.unk2 mustEqual false
+          ams.unk3 mustEqual false
+          ams.unk4 mustEqual false
+          ams.unk5 mustEqual false
+          ams.unk6 mustEqual true
 
           ams.inventory.isDefined mustEqual true
           val inv = ams.inventory.get.contents
@@ -88,11 +98,13 @@ class UtilityVehiclesTest extends Specification {
 
     "encode (ant)" in {
       val obj = VehicleData(
-        CommonFieldData(
-          PlacementData(3674.8438f, 2726.789f, 91.15625f, 0f, 0f, 90.0f),
-          PlanetSideEmpire.VS, 2
-        ),
-        0,
+        PlacementData(3674.8438f, 2726.789f, 91.15625f, 0f, 0f, 90.0f),
+        PlanetSideEmpire.VS,
+        false, false,
+        2,
+        false, false,
+        PlanetSideGUID(0),
+        false,
         255,
         false, false,
         DriveState.Mobile,
@@ -108,12 +120,13 @@ class UtilityVehiclesTest extends Specification {
 
     "encode (ams)" in {
       val obj =  VehicleData(
-        CommonFieldData(
-          PlacementData(3674.0f, 2726.789f, 91.15625f, 0f, 0f, 90.0f),
-          PlanetSideEmpire.VS, 0,
-          PlanetSideGUID(34082)
-        ),
-        2,
+        PlacementData(3674.0f, 2726.789f, 91.15625f, 0f, 0f, 90.0f),
+        PlanetSideEmpire.VS,
+        false, false,
+        0,
+        false, false,
+        PlanetSideGUID(2885),
+        false,
         236,
         false, false,
         DriveState.Deployed,
