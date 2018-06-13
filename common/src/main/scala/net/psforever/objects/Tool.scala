@@ -3,6 +3,7 @@ package net.psforever.objects
 
 import net.psforever.objects.definition.{AmmoBoxDefinition, ProjectileDefinition, ToolDefinition}
 import net.psforever.objects.equipment._
+import net.psforever.objects.ballistics.Projectiles
 
 import scala.annotation.tailrec
 

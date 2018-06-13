@@ -14,6 +14,7 @@ import net.psforever.objects.serverobject.pad.VehicleSpawnPadDefinition
 import net.psforever.objects.serverobject.terminals._
 import net.psforever.objects.serverobject.tube.SpawnTubeDefinition
 import net.psforever.objects.serverobject.resourcesilo.ResourceSiloDefinition
+import net.psforever.objects.ballistics.{DamageType, Projectiles}
 import net.psforever.objects.vehicles.{SeatArmorRestriction, UtilityType}
 import net.psforever.types.PlanetSideEmpire
 

@@ -1,5 +1,5 @@
 // Copyright (c) 2017 PSForever
-package net.psforever.objects.equipment
+package net.psforever.objects.ballistics
 
 /**
   * An `Enumeration` of all the projectile types in the game, paired with their object id as the `Value`.

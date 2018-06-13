@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.definition
 
-import net.psforever.objects.equipment.{DamageProfile, DamageType, Projectiles}
+import net.psforever.objects.ballistics.{DamageProfile, DamageType, Projectiles}
 
 class ProjectileDefinition(objectId : Int) extends ObjectDefinition(objectId) with DamageProfile {
   private val projectileType : Projectiles.Value = Projectiles(objectId) //let throw NoSuchElementException

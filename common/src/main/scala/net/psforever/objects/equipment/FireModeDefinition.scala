@@ -2,6 +2,7 @@
 package net.psforever.objects.equipment
 
 import net.psforever.objects.Tool
+import net.psforever.objects.ballistics.DamageProfile
 
 import scala.collection.mutable
 
