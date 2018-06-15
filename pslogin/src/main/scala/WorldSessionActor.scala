@@ -53,7 +53,7 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.Success
 import akka.pattern.ask
-import net.psforever.objects.ballistics.ProjectileResolution
+import net.psforever.objects.ballistics.{Projectile, ProjectileResolution}
 
 class WorldSessionActor extends Actor with MDCContextAware {
   import WorldSessionActor._
@@ -85,9 +85,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
   var traveler : Traveler = null
   var deadState : DeadState.Value = DeadState.Dead
   var whenUsedLastKit : Long = 0
-  /** the client rotates between 40100 -- 40124 for projectiles normally, skipping only for long-lived projectiles
-    * 40125 -- 40149 is being reserved as a (potential) guard against overflow */
-  val projectiles : Array[Option[Projectile]] = Array.fill[Option[Projectile]](50)(None)
+  val projectiles : Array[Option[Projectile]] = Array.fill[Option[Projectile]](Projectile.RangeUID - Projectile.BaseUID)(None)
 
   var amsSpawnPoint : Option[SpawnTube] = None
 
@@ -2686,13 +2684,22 @@ class WorldSessionActor extends Actor with MDCContextAware {
               }
           }
 
+        case Some(_ : LocalProjectile) =>
+          FindProjectileEntry(object_guid) match {
+            case Some(projectile) =>
+              if(projectile.resolution != ProjectileResolution.Unresolved) {
+                log.warn(s"RequestDestroy: tried to clean up missed projectile ${object_guid.guid} but it was already resolved")
+              }
+              ResolveProjectileEntry(object_guid, ProjectileResolution.MissedShot)
+            case None =>
+              log.warn(s"RequestDestroy: projectile ${object_guid.guid} has never been fired")
+          }
+
         case Some(thing) =>
           log.warn(s"RequestDestroy: not allowed to delete object $thing")
 
         case None =>
-          if(ResolveProjectileEntry(object_guid.guid - Projectile.BaseUID, ProjectileResolution.MissedShot).isEmpty) {
-            log.warn(s"RequestDestroy: object $object_guid not found")
-          }
+          log.warn(s"RequestDestroy: object ${object_guid.guid} not found")
       }
 
     case msg @ ObjectDeleteMessage(object_guid, unk1) =>
@@ -3173,15 +3180,15 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ HitMessage(seq_time, projectile_guid, unk1, hit_info, unk2, unk3, unk4) =>
       log.info(s"Hit: $msg")
-      ResolveProjectileEntry(projectile_guid.guid - Projectile.BaseUID, ProjectileResolution.Target)
+      ResolveProjectileEntry(projectile_guid, ProjectileResolution.Hit)
 
     case msg @ SplashHitMessage(seq_time, projectile_guid, explosion_pos, direct_victim_uid, unk3, projectile_vel, unk4, targets) =>
       log.info(s"Splash: $msg")
-      ResolveProjectileEntry(projectile_guid.guid - Projectile.BaseUID, ProjectileResolution.Target)
+      ResolveProjectileEntry(projectile_guid, ProjectileResolution.Splash)
 
     case msg @ LashMessage(seq_time, killer_guid, victim_guid, projectile_guid, pos, unk1) =>
       log.info(s"Lash: $msg")
-      ResolveProjectileEntry(projectile_guid.guid - Projectile.BaseUID, ProjectileResolution.Target)
+      ResolveProjectileEntry(projectile_guid, ProjectileResolution.Lash)
 
     case msg @ AvatarFirstTimeEventMessage(avatar_guid, object_guid, unk1, event_name) =>
       log.info("AvatarFirstTimeEvent: " + msg)
@@ -5249,22 +5256,32 @@ class WorldSessionActor extends Actor with MDCContextAware {
     }
   }
 
-  def ResolveProjectileEntry(index : Int, resolution : ProjectileResolution.Value) : Option[Projectile] = {
+  def FindProjectileEntry(projectile_guid : PlanetSideGUID) : Option[Projectile] = {
+    val index = projectile_guid.guid - Projectile.BaseUID
     if(0 <= index && index < projectiles.length) {
-      val entry = projectiles(index)
-      entry match {
-        case None =>
-          log.warn(s"ResolveProjectile: expected projectile, but ${Projectile.BaseUID + index} not found")
-          None
-        case Some(projectile) =>
-          projectile.resolution match {
-            case ProjectileResolution.Unresolved => ;
-            case _ =>
-              log.warn(s"ResolveProjectileEntry: ${projectile.profile.ProjectileType} projectile found but reports to already be resolved")
-          }
-          projectiles(index) = Some(projectile.Resolve(resolution))
-          projectiles(index)
-      }
+      projectiles(index)
+    }
+    else {
+      log.warn(s"ResolveProjectile: expected projectile, but ${projectile_guid.guid} not found")
+      None
+    }
+  }
+
+  def ResolveProjectileEntry(projectile_guid : PlanetSideGUID, resolution : ProjectileResolution.Value) : Option[Projectile] = {
+    FindProjectileEntry(projectile_guid) match {
+      case Some(projectile) =>
+        val index =  projectile_guid.guid - Projectile.BaseUID
+        ResolveProjectileEntry(projectile, index, resolution)
+      case None =>
+        log.warn(s"ResolveProjectile: expected projectile, but ${projectile_guid.guid} not found")
+        None
+    }
+  }
+
+  def ResolveProjectileEntry(projectile : Projectile, index : Int, resolution : ProjectileResolution.Value) : Option[Projectile] = {
+    if(projectiles(index).contains(projectile)) {
+      projectiles(index) = Some(projectile.Resolve(ProjectileResolution.Resolved))
+      Some(projectile.Resolve(resolution))
     }
     else {
       None

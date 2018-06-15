@@ -3,7 +3,8 @@ package net.psforever.objects.zones
 
 import akka.actor.{ActorContext, ActorRef, Props}
 import akka.routing.RandomPool
-import net.psforever.objects.{Avatar, PlanetSideGameObject, Player, Vehicle}
+import net.psforever.objects.ballistics.Projectile
+import net.psforever.objects._
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.objects.guid.actor.UniqueNumberSystem
@@ -47,6 +48,7 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
   private var guid : NumberPoolHub = new NumberPoolHub(new LimitedNumberSource(65536))
   guid.AddPool("environment", (0 to 3000).toList) //TODO tailer ro suit requirements of zone
   guid.AddPool("dynamic", (3001 to 10000).toList).Selector = new RandomSelector //TODO unlump pools later; do not make too big
+  guid.AddPool("projectiles", (Projectile.BaseUID until Projectile.RangeUID).toList) //TODO unlump pools later; do not make too big
   /** A synchronized `List` of items (`Equipment`) dropped by players on the ground and can be collected again. */
   private val equipmentOnGround : ListBuffer[Equipment] = ListBuffer[Equipment]()
   /** */
@@ -97,6 +99,7 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
       MakeBuildings(context)
       AssignAmenities()
       CreateSpawnGroups()
+      MakeLocalProjectiles()
     }
   }
 
@@ -150,11 +153,53 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
   /**
     * Replace the current globally unique identifier system with a new one.
     * The replacement will not occur if the current system is populated or if its synchronized reference has been created.
+    * The primary use of this function should be testing.
+    * A warning will be issued.
     * @return synchronized reference to the globally unique identifier system
     */
   def GUID(hub : NumberPoolHub) : Boolean = {
     if(actor == ActorRef.noSender && guid.Pools.map({case ((_, pool)) => pool.Count}).sum == 0) {
+      import org.fusesource.jansi.Ansi.Color.RED
+      import org.fusesource.jansi.Ansi.ansi
+      println(ansi().fgBright(RED).a(s"""Caution: replacement of the number pool system for zone $Id; function is for testing purposes only""").reset())
       guid = hub
+      true
+    }
+    else {
+      false
+    }
+  }
+
+  /**
+    * Wraps around the globally unique identifier system to insert a new number pool.
+    * Throws exceptions for specific reasons if the pool can not be populated before the system has been started.
+    * @see `NumberPoolHub.AddPool`
+    * @param name the name of the pool
+    * @param pool the numbers that will belong to the pool
+    * @return `true`, if the new pool is created;
+    *        `false`, if the new pool can not be created because the system has already been started
+    */
+  def AddPool(name : String, pool : Seq[Int]) : Boolean = {
+    if(accessor == ActorRef.noSender) {
+      guid.AddPool(name, pool.toList)
+      true
+    }
+    else {
+      false
+    }
+  }
+
+  /**
+    * Wraps around the globally unique identifier system to remove an existing number pool.
+    * Throws exceptions for specific reasons if the pool can not be removed before the system has been started.
+    * @see `NumberPoolHub.RemovePool`
+    * @param name the name of the pool
+    * @return `true`, if the new pool is un-made;
+    *        `false`, if the new pool can not be removed because the system has already been started
+    */
+  def RemovePool(name : String) : Boolean = {
+    if(accessor == ActorRef.noSender) {
+      guid.RemovePool(name)
       true
     }
     else {
@@ -256,6 +301,10 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
     val entry : Map[Building, List[SpawnTube]] = PairMap(building -> tubes)
     spawnGroups = spawnGroups ++ entry
     entry
+  }
+
+  def MakeLocalProjectiles() : Unit = {
+    (Projectile.BaseUID until Projectile.RangeUID) foreach { guid.register(new LocalProjectile(), _) }
   }
 
   /**

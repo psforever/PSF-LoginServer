@@ -3,6 +3,7 @@ package objects
 
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.testkit.TestProbe
+import net.psforever.objects.ballistics.Projectile
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.pad.{VehicleSpawnControl, VehicleSpawnPad}
 import net.psforever.objects.serverobject.structures.StructureType
@@ -326,7 +327,7 @@ object VehicleSpawnPadControlTest {
     val zone = new Zone("test-zone", map, 0)
     val vehicle = Vehicle(GlobalDefinitions.two_man_assault_buggy)
     val weapon = vehicle.WeaponControlledFromSeat(1).get.asInstanceOf[Tool]
-    val guid : NumberPoolHub = new NumberPoolHub(LimitedNumberSource(3))
+    val guid : NumberPoolHub = new NumberPoolHub(LimitedNumberSource(40150))
     guid.AddPool("test-pool", (0 to 2).toList)
     guid.register(vehicle, "test-pool")
     guid.register(weapon, "test-pool")

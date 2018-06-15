@@ -16,6 +16,7 @@ import net.psforever.types.{CharacterGender, CharacterVoice, PlanetSideEmpire, V
 import net.psforever.objects.serverobject.structures.{Building, FoundationBuilder, StructureType}
 import net.psforever.objects.zones.{Zone, ZoneActor, ZoneMap}
 import net.psforever.objects.Vehicle
+import net.psforever.objects.ballistics.Projectile
 import org.specs2.mutable.Specification
 
 import scala.concurrent.duration._
@@ -96,18 +97,15 @@ class ZoneTest extends Specification {
     "can have its unique identifier system changed if no objects were added to it" in {
       val zone = new Zone("home3", map13, 13)
       val guid1 : NumberPoolHub = new NumberPoolHub(new LimitedNumberSource(100))
-      guid1.AddPool("pool1", (0 to 50).toList)
-      guid1.AddPool("pool2", (51 to 75).toList)
       zone.GUID(guid1) mustEqual true
+      zone.AddPool("pool1", (0 to 50).toList)
+      zone.AddPool("pool2", (51 to 75).toList)
 
       val obj = new TestObject()
       guid1.register(obj, "pool2").isSuccess mustEqual true
       guid1.WhichPool(obj) mustEqual Some("pool2")
 
-      val guid2 : NumberPoolHub = new NumberPoolHub(new LimitedNumberSource(150))
-      guid2.AddPool("pool3", (0 to 50).toList)
-      guid2.AddPool("pool4", (51 to 75).toList)
-      zone.GUID(guid2) mustEqual false
+      zone.GUID(new NumberPoolHub(new LimitedNumberSource(150))) mustEqual false
     }
   }
 }
@@ -119,6 +117,48 @@ class ZoneActorTest extends ActorTest {
       zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "test-actor")
       expectNoMsg(Duration.create(100, "ms"))
       assert(zone.Actor != ActorRef.noSender)
+    }
+
+    "create new number pools before the Actor is started" in {
+      val zone = new Zone("test", new ZoneMap("map6"), 1)
+      zone.GUID(new NumberPoolHub(new LimitedNumberSource(10)))
+      assert( zone.AddPool("test1", 1 to 2) )
+
+      zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "test-add-pool-actor") //note: not Init'd yet
+      assert( zone.AddPool("test2", 3 to 4) )
+    }
+
+    "remove existing number pools before the Actor is started" in {
+      val zone = new Zone("test", new ZoneMap("map6"), 1)
+      zone.GUID(new NumberPoolHub(new LimitedNumberSource(10)))
+      assert( zone.AddPool("test1", 1 to 2) )
+      assert( zone.RemovePool("test1") )
+
+      zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "test-remove-pool-actor") //note: not Init'd yet
+      assert( zone.AddPool("test2", 3 to 4) )
+      assert( zone.RemovePool("test2") )
+    }
+
+    "refuse new number pools after the Actor is started" in {
+      val zone = new Zone("test", new ZoneMap("map6"), 1)
+      zone.GUID(new NumberPoolHub(new LimitedNumberSource(40150)))
+      zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "test-add-pool-actor-init")
+      zone.Actor ! Zone.Init()
+      expectNoMsg(Duration.create(300, "ms"))
+
+      assert( !zone.AddPool("test1", 1 to 2) )
+    }
+
+    "refuse to remove number pools after the Actor is started" in {
+      val zone = new Zone("test", new ZoneMap("map6"), 1)
+
+      zone.GUID(new NumberPoolHub(new LimitedNumberSource(40150)))
+      zone.AddPool("test", 1 to 2)
+      zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "test-remove-pool-actor-init")
+      zone.Actor ! Zone.Init()
+      expectNoMsg(Duration.create(300, "ms"))
+
+      assert( !zone.RemovePool("test") )
     }
 
     "set up spawn groups based on buildings" in {
@@ -224,6 +264,20 @@ class ZoneActorTest extends ActorTest {
       assert(reply.asInstanceOf[Zone.Lattice.NoValidSpawnPoint].zone_number == 1)
       assert(reply.asInstanceOf[Zone.Lattice.NoValidSpawnPoint].spawn_group.contains(7))
     }
+  }
+
+  "populate a series of reference projectiles" in {
+    val zone = new Zone("test", new ZoneMap("map6"), 1)
+    zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "test-projectiles")
+    zone.Actor ! Zone.Init()
+    expectNoMsg(Duration.create(300, "ms"))
+
+    (Projectile.BaseUID until Projectile.RangeUID)
+      .map { zone.GUID }
+      .collect {
+        case Some(_ : LocalProjectile) => ; //pass
+        case _ => assert(false)
+      }
   }
 }
 
@@ -466,7 +520,7 @@ class ZonePopulationTest extends ActorTest {
 
 class ZoneGroundDropItemTest extends ActorTest {
   val item = AmmoBox(GlobalDefinitions.bullet_9mm)
-  val hub = new NumberPoolHub(new LimitedNumberSource(20))
+  val hub = new NumberPoolHub(new LimitedNumberSource(40150))
   hub.register(item, 10)
   val zone = new Zone("test", new ZoneMap("test-map"), 0)
   zone.GUID(hub)
@@ -490,7 +544,7 @@ class ZoneGroundDropItemTest extends ActorTest {
 
 class ZoneGroundCanNotDropItem1Test extends ActorTest {
   val item = AmmoBox(GlobalDefinitions.bullet_9mm)
-  val hub = new NumberPoolHub(new LimitedNumberSource(20))
+  val hub = new NumberPoolHub(new LimitedNumberSource(40150))
   //hub.register(item, 10) //!important
   val zone = new Zone("test", new ZoneMap("test-map"), 0)
   zone.GUID(hub)
@@ -538,7 +592,7 @@ class ZoneGroundCanNotDropItem2Test extends ActorTest {
 
 class ZoneGroundCanNotDropItem3Test extends ActorTest {
   val item = AmmoBox(GlobalDefinitions.bullet_9mm)
-  val hub = new NumberPoolHub(new LimitedNumberSource(20))
+  val hub = new NumberPoolHub(new LimitedNumberSource(40150))
   hub.register(item, 10) //!important
   val zone = new Zone("test", new ZoneMap("test-map"), 0)
   zone.GUID(hub) //!important
@@ -570,7 +624,7 @@ class ZoneGroundCanNotDropItem3Test extends ActorTest {
 
 class ZoneGroundPickupItemTest extends ActorTest {
   val item = AmmoBox(GlobalDefinitions.bullet_9mm)
-  val hub = new NumberPoolHub(new LimitedNumberSource(20))
+  val hub = new NumberPoolHub(new LimitedNumberSource(40150))
   hub.register(item, 10)
   val zone = new Zone("test", new ZoneMap("test-map"), 0)
   zone.GUID(hub)
@@ -597,7 +651,7 @@ class ZoneGroundPickupItemTest extends ActorTest {
 
 class ZoneGroundCanNotPickupItemTest extends ActorTest {
   val item = AmmoBox(GlobalDefinitions.bullet_9mm)
-  val hub = new NumberPoolHub(new LimitedNumberSource(20))
+  val hub = new NumberPoolHub(new LimitedNumberSource(40150))
   hub.register(item, 10)
   val zone = new Zone("test", new ZoneMap("test-map"), 0)
   zone.GUID(hub) //still registered to this zone
@@ -620,7 +674,7 @@ class ZoneGroundCanNotPickupItemTest extends ActorTest {
 
 class ZoneGroundRemoveItemTest extends ActorTest {
   val item = AmmoBox(GlobalDefinitions.bullet_9mm)
-  val hub = new NumberPoolHub(new LimitedNumberSource(20))
+  val hub = new NumberPoolHub(new LimitedNumberSource(40150))
   hub.register(item, 10)
   val zone = new Zone("test", new ZoneMap("test-map"), 0)
   zone.GUID(hub) //still registered to this zone

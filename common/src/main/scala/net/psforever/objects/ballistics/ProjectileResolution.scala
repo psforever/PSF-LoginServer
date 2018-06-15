@@ -6,8 +6,10 @@ object ProjectileResolution extends Enumeration {
 
   val
   Unresolved,
+  Resolved,
   MissedShot,
-  Target,
-  Obstacle
+  Hit,
+  Splash,
+  Lash
   = Value
 }

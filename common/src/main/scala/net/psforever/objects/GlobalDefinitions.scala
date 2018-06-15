@@ -1514,7 +1514,7 @@ object GlobalDefinitions {
     * Initialize `ProjectileDefinition` globals.
     */
   private def init_projectile() : Unit = {
-    // 105mmbullet_projectile
+    bullet_105mm_projectile.Name = "105mmbullet_projectile"
     bullet_105mm_projectile.Damage0 = 150
     bullet_105mm_projectile.Damage1 = 300
     bullet_105mm_projectile.Damage2 = 300
@@ -1526,7 +1526,7 @@ object GlobalDefinitions {
     bullet_105mm_projectile.InitialVelocity = 100
     bullet_105mm_projectile.Lifespan = 4f
 
-    // 12mmbullet_projectile
+    bullet_12mm_projectile.Name= "12mmbullet_projectile"
     bullet_12mm_projectile.Damage0 = 25
     bullet_12mm_projectile.Damage1 = 10
     bullet_12mm_projectile.Damage2 = 25
@@ -1538,7 +1538,7 @@ object GlobalDefinitions {
     bullet_12mm_projectile.InitialVelocity = 500
     bullet_12mm_projectile.Lifespan = 0.5f
 
-    // 12mmbullet_projectileb
+    bullet_12mm_projectileb.Name = "12mmbullet_projectileb"
     // TODO for later, maybe : set_resource_parent 12mmbullet_projectileb game_objects 12mmbullet_projectile
     bullet_12mm_projectileb.Damage0 = 25
     bullet_12mm_projectileb.Damage1 = 10
@@ -1551,7 +1551,7 @@ object GlobalDefinitions {
     bullet_12mm_projectileb.InitialVelocity = 500
     bullet_12mm_projectileb.Lifespan = 0.5f
 
-    // 150mmbullet_projectile
+    bullet_150mm_projectile.Name = "150mmbullet_projectile"
     bullet_150mm_projectile.Damage0 = 150
     bullet_150mm_projectile.Damage1 = 450
     bullet_150mm_projectile.Damage2 = 450
@@ -1563,7 +1563,7 @@ object GlobalDefinitions {
     bullet_150mm_projectile.InitialVelocity = 100
     bullet_150mm_projectile.Lifespan = 4f
 
-    // 15mmbullet_apc_projectile
+    bullet_15mm_apc_projectile.Name = "15mmbullet_apc_projectile"
     // TODO for later, maybe : set_resource_parent 15mmbullet_apc_projectile game_objects 15mmbullet_projectile
     bullet_15mm_apc_projectile.Damage0 = 12
     bullet_15mm_apc_projectile.Damage1 = 20
@@ -1576,7 +1576,7 @@ object GlobalDefinitions {
     bullet_15mm_apc_projectile.InitialVelocity = 500
     bullet_15mm_apc_projectile.Lifespan = 0.5f
 
-    // 15mmbullet_projectile
+    bullet_15mm_projectile.Name = "15mmbullet_projectile"
     bullet_15mm_projectile.Damage0 = 21
     bullet_15mm_projectile.Damage1 = 18
     bullet_15mm_projectile.Damage2 = 25
@@ -1588,7 +1588,7 @@ object GlobalDefinitions {
     bullet_15mm_projectile.InitialVelocity = 500
     bullet_15mm_projectile.Lifespan = 0.5f
 
-    // 20mmbullet_apc_projectile
+    bullet_20mm_apc_projectile.Name = "20mmbullet_apc_projectile"
     // TODO for later, maybe : set_resource_parent 20mmbullet_apc_projectile game_objects 20mmbullet_projectile
     bullet_20mm_apc_projectile.Damage0 = 24
     bullet_20mm_apc_projectile.Damage1 = 40
@@ -1601,7 +1601,7 @@ object GlobalDefinitions {
     bullet_20mm_apc_projectile.InitialVelocity = 500
     bullet_20mm_apc_projectile.Lifespan = 0.5f
 
-    // 20mmbullet_projectile
+    bullet_20mm_projectile.Name = "20mmbullet_projectile"
     bullet_20mm_projectile.Damage0 = 20
     bullet_20mm_projectile.Damage1 = 20
     bullet_20mm_projectile.Damage2 = 40
@@ -1613,7 +1613,7 @@ object GlobalDefinitions {
     bullet_20mm_projectile.InitialVelocity = 500
     bullet_20mm_projectile.Lifespan = 0.5f
 
-    // 25mmbullet_projectile
+    bullet_25mm_projectile.Name = "25mmbullet_projectile"
     bullet_25mm_projectile.Damage0 = 25
     bullet_25mm_projectile.Damage1 = 35
     bullet_25mm_projectile.Damage2 = 50
@@ -1623,7 +1623,7 @@ object GlobalDefinitions {
     bullet_25mm_projectile.InitialVelocity = 500
     bullet_25mm_projectile.Lifespan = 0.6f
 
-    // 35mmbullet_projectile
+    bullet_35mm_projectile.Name = "35mmbullet_projectile"
     bullet_35mm_projectile.Damage0 = 40
     bullet_35mm_projectile.Damage1 = 50
     bullet_35mm_projectile.Damage2 = 60
@@ -1633,7 +1633,7 @@ object GlobalDefinitions {
     bullet_35mm_projectile.InitialVelocity = 200
     bullet_35mm_projectile.Lifespan = 1.5f
 
-    // 75mmbullet_apc_projectile
+    bullet_75mm_apc_projectile.Name = "75mmbullet_apc_projectile"
     // TODO for later, maybe : set_resource_parent 75mmbullet_apc_projectile game_objects 75mmbullet_projectile
     bullet_75mm_apc_projectile.Damage0 = 85
     bullet_75mm_apc_projectile.Damage1 = 155
@@ -1643,7 +1643,7 @@ object GlobalDefinitions {
     bullet_75mm_apc_projectile.InitialVelocity = 100
     bullet_75mm_apc_projectile.Lifespan = 4f
 
-    // 75mmbullet_projectile
+    bullet_75mm_projectile.Name = "75mmbullet_projectile"
     bullet_75mm_projectile.Damage0 = 75
     bullet_75mm_projectile.Damage1 = 125
     bullet_75mm_projectile.DamageAtEdge = 0.1f
@@ -1652,7 +1652,7 @@ object GlobalDefinitions {
     bullet_75mm_projectile.InitialVelocity = 100
     bullet_75mm_projectile.Lifespan = 4f
 
-    // 9mmbullet_AP_projectile
+    bullet_9mm_AP_projectile.Name = "9mmbullet_AP_projectile"
     // TODO for later, maybe : set_resource_parent 9mmbullet_AP_projectile game_objects 9mmbullet_projectile
     bullet_9mm_AP_projectile.Damage0 = 10
     bullet_9mm_AP_projectile.Damage1 = 15
@@ -1663,7 +1663,7 @@ object GlobalDefinitions {
     bullet_9mm_AP_projectile.Lifespan = 0.4f
     bullet_9mm_AP_projectile.UseDamage1Subtract = true
 
-    // 9mmbullet_projectile
+    bullet_9mm_projectile.Name = "9mmbullet_projectile"
     bullet_9mm_projectile.Damage0 = 18
     bullet_9mm_projectile.Damage1 = 10
     bullet_9mm_projectile.ProjectileDamageType = DamageType.Direct
@@ -1673,7 +1673,7 @@ object GlobalDefinitions {
     bullet_9mm_projectile.Lifespan = 0.4f
     bullet_9mm_projectile.UseDamage1Subtract = true
 
-    // anniversary_projectilea
+    anniversary_projectilea.Name = "anniversary_projectilea"
     anniversary_projectilea.Damage0 = 30
     anniversary_projectilea.Damage1 = 15
     anniversary_projectilea.Damage2 = 15
@@ -1685,7 +1685,7 @@ object GlobalDefinitions {
     anniversary_projectilea.InitialVelocity = 500
     anniversary_projectilea.Lifespan = 0.5f
 
-    // anniversary_projectileb
+    anniversary_projectileb.Name = "anniversary_projectileb"
     // TODO for later, maybe : set_resource_parent anniversary_projectileb game_objects anniversary_projectilea
     anniversary_projectileb.Damage0 = 30
     anniversary_projectileb.Damage1 = 15
@@ -1698,7 +1698,7 @@ object GlobalDefinitions {
     anniversary_projectileb.InitialVelocity = 500
     anniversary_projectileb.Lifespan = 0.5f
 
-    // aphelion_immolation_cannon_projectile
+    aphelion_immolation_cannon_projectile.Name = "aphelion_immolation_cannon_projectile"
     aphelion_immolation_cannon_projectile.Damage0 = 55
     aphelion_immolation_cannon_projectile.Damage1 = 225
     aphelion_immolation_cannon_projectile.Damage2 = 210
@@ -1710,7 +1710,7 @@ object GlobalDefinitions {
     aphelion_immolation_cannon_projectile.InitialVelocity = 250
     aphelion_immolation_cannon_projectile.Lifespan = 1.4f
 
-    // aphelion_laser_projectile
+    aphelion_laser_projectile.Name = "aphelion_laser_projectile"
     aphelion_laser_projectile.Damage0 = 3
     aphelion_laser_projectile.Damage1 = 5
     aphelion_laser_projectile.Damage2 = 5
@@ -1722,7 +1722,7 @@ object GlobalDefinitions {
     aphelion_laser_projectile.InitialVelocity = 500
     aphelion_laser_projectile.Lifespan = 0.35f
 
-    // aphelion_plasma_rocket_projectile
+    aphelion_plasma_rocket_projectile.Name = "aphelion_plasma_rocket_projectile"
     aphelion_plasma_rocket_projectile.Damage0 = 38
     aphelion_plasma_rocket_projectile.Damage1 = 70
     aphelion_plasma_rocket_projectile.Damage2 = 95
@@ -1736,7 +1736,7 @@ object GlobalDefinitions {
     aphelion_plasma_rocket_projectile.InitialVelocity = 75
     aphelion_plasma_rocket_projectile.Lifespan = 5f
 
-    // aphelion_ppa_projectile
+    aphelion_ppa_projectile.Name = "aphelion_ppa_projectile"
     // TODO for later, maybe : set_resource_parent aphelion_ppa_projectile game_objects ppa_projectile
     aphelion_ppa_projectile.Damage0 = 31
     aphelion_ppa_projectile.Damage1 = 84
@@ -1751,7 +1751,7 @@ object GlobalDefinitions {
     aphelion_ppa_projectile.InitialVelocity = 350
     aphelion_ppa_projectile.Lifespan = .7f
 
-    // aphelion_starfire_projectile
+    aphelion_starfire_projectile.Name = "aphelion_starfire_projectile"
     // TODO for later, maybe : set_resource_parent aphelion_starfire_projectile game_objects starfire_projectile
     aphelion_starfire_projectile.Damage0 = 12
     aphelion_starfire_projectile.Damage1 = 20
@@ -1764,7 +1764,7 @@ object GlobalDefinitions {
     aphelion_starfire_projectile.Lifespan = 7f
     aphelion_starfire_projectile.ProjectileDamageType = DamageType.Aggravated
 
-    // bolt_projectile
+    bolt_projectile.Name = "bolt_projectile"
     bolt_projectile.Damage0 = 100
     bolt_projectile.Damage1 = 50
     bolt_projectile.Damage2 = 50
@@ -1774,7 +1774,7 @@ object GlobalDefinitions {
     bolt_projectile.InitialVelocity = 500
     bolt_projectile.Lifespan = 1.0f
 
-    // burster_projectile
+    burster_projectile.Name = "burster_projectile"
     burster_projectile.Damage0 = 18
     burster_projectile.Damage1 = 25
     burster_projectile.Damage2 = 50
@@ -1785,7 +1785,7 @@ object GlobalDefinitions {
     burster_projectile.InitialVelocity = 125
     burster_projectile.Lifespan = 4f
 
-    // chainblade_projectile
+    chainblade_projectile.Name = "chainblade_projectile"
     // TODO for later, maybe : set_resource_parent chainblade_projectile game_objects melee_ammo_projectile
     chainblade_projectile.Damage0 = 50
     chainblade_projectile.Damage1 = 0
@@ -1793,7 +1793,7 @@ object GlobalDefinitions {
     chainblade_projectile.InitialVelocity = 100
     chainblade_projectile.Lifespan = .02f
 
-    // colossus_100mm_projectile
+    colossus_100mm_projectile.Name = "colossus_100mm_projectile"
     colossus_100mm_projectile.Damage0 = 58
     colossus_100mm_projectile.Damage1 = 330
     colossus_100mm_projectile.Damage2 = 300
@@ -1805,7 +1805,7 @@ object GlobalDefinitions {
     colossus_100mm_projectile.InitialVelocity = 100
     colossus_100mm_projectile.Lifespan = 4f
 
-    // colossus_burster_projectile
+    colossus_burster_projectile.Name = "colossus_burster_projectile"
     // TODO for later, maybe : set_resource_parent colossus_burster_projectile game_objects burster_projectile
     colossus_burster_projectile.Damage0 = 18
     colossus_burster_projectile.Damage1 = 26
@@ -1819,7 +1819,7 @@ object GlobalDefinitions {
     colossus_burster_projectile.InitialVelocity = 175
     colossus_burster_projectile.Lifespan = 2.5f
 
-    // colossus_chaingun_projectile
+    colossus_chaingun_projectile.Name = "colossus_chaingun_projectile"
     // TODO for later, maybe : set_resource_parent colossus_chaingun_projectile game_objects 35mmbullet_projectile
     colossus_chaingun_projectile.Damage0 = 15
     colossus_chaingun_projectile.Damage1 = 14
@@ -1832,7 +1832,7 @@ object GlobalDefinitions {
     colossus_chaingun_projectile.InitialVelocity = 500
     colossus_chaingun_projectile.Lifespan = .50f
 
-    // colossus_cluster_bomb_projectile
+    colossus_cluster_bomb_projectile.Name = "colossus_cluster_bomb_projectile"
     colossus_cluster_bomb_projectile.Damage0 = 40
     colossus_cluster_bomb_projectile.Damage1 = 88
     colossus_cluster_bomb_projectile.Damage2 = 100
@@ -1844,7 +1844,7 @@ object GlobalDefinitions {
     colossus_cluster_bomb_projectile.InitialVelocity = 75
     colossus_cluster_bomb_projectile.Lifespan = 5f
 
-    // colossus_tank_cannon_projectile
+    colossus_tank_cannon_projectile.Name = "colossus_tank_cannon_projectile"
     // TODO for later, maybe : set_resource_parent colossus_tank_cannon_projectile game_objects 75mmbullet_projectile
     colossus_tank_cannon_projectile.Damage0 = 33
     colossus_tank_cannon_projectile.Damage1 = 90
@@ -1857,7 +1857,7 @@ object GlobalDefinitions {
     colossus_tank_cannon_projectile.InitialVelocity = 165
     colossus_tank_cannon_projectile.Lifespan = 2f
 
-    // comet_projectile
+    comet_projectile.Name = "comet_projectile"
     comet_projectile.Damage0 = 15
     comet_projectile.Damage1 = 60
     comet_projectile.Damage2 = 60
@@ -1871,7 +1871,7 @@ object GlobalDefinitions {
     comet_projectile.InitialVelocity = 80
     comet_projectile.Lifespan = 3.1f
 
-    // dualcycler_projectile
+    dualcycler_projectile.Name = "dualcycler_projectile"
     dualcycler_projectile.Damage0 = 18
     dualcycler_projectile.Damage1 = 10
     dualcycler_projectile.ProjectileDamageType = DamageType.Direct
@@ -1880,7 +1880,7 @@ object GlobalDefinitions {
     dualcycler_projectile.InitialVelocity = 500
     dualcycler_projectile.Lifespan = 0.5f
 
-    // dynomite_projectile
+    dynomite_projectile.Name = "dynomite_projectile"
     // TODO for later, maybe : set_resource_parent dynomite_projectile game_objects frag_grenade_projectile_enh
     dynomite_projectile.Damage0 = 75
     dynomite_projectile.Damage1 = 175
@@ -1890,7 +1890,7 @@ object GlobalDefinitions {
     dynomite_projectile.InitialVelocity = 30
     dynomite_projectile.Lifespan = 3f
 
-    // energy_cell_projectile
+    energy_cell_projectile.Name = "energy_cell_projectile"
     energy_cell_projectile.Damage0 = 18
     energy_cell_projectile.Damage1 = 10
     energy_cell_projectile.ProjectileDamageType = DamageType.Direct
@@ -1900,14 +1900,14 @@ object GlobalDefinitions {
     energy_cell_projectile.Lifespan = .4f
     energy_cell_projectile.UseDamage1Subtract = true
 
-    // energy_gun_nc_projectile
+    energy_gun_nc_projectile.Name = "energy_gun_nc_projectile"
     energy_gun_nc_projectile.Damage0 = 10
     energy_gun_nc_projectile.Damage1 = 13
     energy_gun_nc_projectile.ProjectileDamageType = DamageType.Direct
     energy_gun_nc_projectile.InitialVelocity = 500
     energy_gun_nc_projectile.Lifespan = 0.5f
 
-    // energy_gun_tr_projectile
+    energy_gun_tr_projectile.Name = "energy_gun_tr_projectile"
     energy_gun_tr_projectile.Damage0 = 14
     energy_gun_tr_projectile.Damage1 = 18
     energy_gun_tr_projectile.ProjectileDamageType = DamageType.Direct
@@ -1916,7 +1916,7 @@ object GlobalDefinitions {
     energy_gun_tr_projectile.InitialVelocity = 500
     energy_gun_tr_projectile.Lifespan = 0.5f
 
-    // energy_gun_vs_projectile
+    energy_gun_vs_projectile.Name = "energy_gun_vs_projectile"
     energy_gun_vs_projectile.Damage0 = 25
     energy_gun_vs_projectile.Damage1 = 35
     energy_gun_vs_projectile.ProjectileDamageType = DamageType.Direct
@@ -1925,7 +1925,7 @@ object GlobalDefinitions {
     energy_gun_vs_projectile.InitialVelocity = 500
     energy_gun_vs_projectile.Lifespan = .5f
 
-    // enhanced_energy_cell_projectile
+    enhanced_energy_cell_projectile.Name = "enhanced_energy_cell_projectile"
     // TODO for later, maybe : set_resource_parent enhanced_energy_cell_projectile game_objects energy_cell_projectile
     enhanced_energy_cell_projectile.Damage0 = 7
     enhanced_energy_cell_projectile.Damage1 = 15
@@ -1936,7 +1936,7 @@ object GlobalDefinitions {
     enhanced_energy_cell_projectile.Lifespan = .4f
     enhanced_energy_cell_projectile.UseDamage1Subtract = true
 
-    // enhanced_quasar_projectile
+    enhanced_quasar_projectile.Name = "enhanced_quasar_projectile"
     // TODO for later, maybe : set_resource_parent enhanced_quasar_projectile game_objects quasar_projectile
     enhanced_quasar_projectile.Damage1 = 12
     enhanced_quasar_projectile.Damage0 = 10
@@ -1946,7 +1946,7 @@ object GlobalDefinitions {
     enhanced_quasar_projectile.InitialVelocity = 500
     enhanced_quasar_projectile.Lifespan = .4f
 
-    // falcon_projectile
+    falcon_projectile.Name = "falcon_projectile"
     falcon_projectile.Damage0 = 35
     falcon_projectile.Damage1 = 132
     falcon_projectile.Damage2 = 132
@@ -1960,7 +1960,7 @@ object GlobalDefinitions {
     falcon_projectile.InitialVelocity = 120
     falcon_projectile.Lifespan = 2.1f
 
-    // firebird_missile_projectile
+    firebird_missile_projectile.Name = "firebird_missile_projectile"
     firebird_missile_projectile.Damage0 = 125
     firebird_missile_projectile.Damage1 = 220
     firebird_missile_projectile.Damage2 = 220
@@ -1974,7 +1974,7 @@ object GlobalDefinitions {
     firebird_missile_projectile.InitialVelocity = 75
     firebird_missile_projectile.Lifespan = 5f
 
-    // flail_projectile
+    flail_projectile.Name = "flail_projectile"
     flail_projectile.Damage0 = 75
     flail_projectile.Damage1 = 200
     flail_projectile.Damage2 = 200
@@ -1988,7 +1988,7 @@ object GlobalDefinitions {
     flail_projectile.InitialVelocity = 75
     flail_projectile.Lifespan = 40f
 
-    // flamethrower_fireball
+    flamethrower_fireball.Name = "flamethrower_fireball"
     flamethrower_fireball.Damage0 = 30
     flamethrower_fireball.Damage1 = 0
     flamethrower_fireball.Damage2 = 0
@@ -2000,7 +2000,7 @@ object GlobalDefinitions {
     flamethrower_fireball.InitialVelocity = 15
     flamethrower_fireball.Lifespan = 1.2f
 
-    // flamethrower_projectile
+    flamethrower_projectile.Name = "flamethrower_projectile"
     flamethrower_projectile.Damage0 = 10
     flamethrower_projectile.Damage1 = 0
     flamethrower_projectile.Damage2 = 0
@@ -2014,7 +2014,7 @@ object GlobalDefinitions {
     flamethrower_projectile.InitialVelocity = 10
     flamethrower_projectile.Lifespan = 2.0f
 
-    // flux_cannon_apc_projectile
+    flux_cannon_apc_projectile.Name = "flux_cannon_apc_projectile"
     // TODO for later, maybe : set_resource_parent flux_cannon_apc_projectile game_objects flux_cannon_thresher_projectile
     flux_cannon_apc_projectile.Damage0 = 14
     flux_cannon_apc_projectile.Damage1 = 23
@@ -2027,7 +2027,7 @@ object GlobalDefinitions {
     flux_cannon_apc_projectile.InitialVelocity = 300
     flux_cannon_apc_projectile.Lifespan = 1f
 
-    // flux_cannon_thresher_projectile
+    flux_cannon_thresher_projectile.Name = "flux_cannon_thresher_projectile"
     flux_cannon_thresher_projectile.Damage0 = 30
     flux_cannon_thresher_projectile.Damage1 = 44
     flux_cannon_thresher_projectile.Damage2 = 44
@@ -2039,7 +2039,7 @@ object GlobalDefinitions {
     flux_cannon_thresher_projectile.InitialVelocity = 75
     flux_cannon_thresher_projectile.Lifespan = 3f
 
-    // fluxpod_projectile
+    fluxpod_projectile.Name = "fluxpod_projectile"
     fluxpod_projectile.Damage0 = 110
     fluxpod_projectile.Damage1 = 80
     fluxpod_projectile.Damage2 = 125
@@ -2051,7 +2051,7 @@ object GlobalDefinitions {
     fluxpod_projectile.InitialVelocity = 80
     fluxpod_projectile.Lifespan = 4f
 
-    // forceblade_projectile
+    forceblade_projectile.Name = "forceblade_projectile"
     // TODO for later, maybe : set_resource_parent forceblade_projectile game_objects melee_ammo_projectile
     forceblade_projectile.Damage0 = 50
     forceblade_projectile.Damage1 = 0
@@ -2059,7 +2059,7 @@ object GlobalDefinitions {
     forceblade_projectile.InitialVelocity = 100
     forceblade_projectile.Lifespan = .02f
 
-    // frag_cartridge_projectile
+    frag_cartridge_projectile.Name = "frag_cartridge_projectile"
     // TODO for later, maybe : set_resource_parent frag_cartridge_projectile game_objects frag_grenade_projectile
     frag_cartridge_projectile.Damage0 = 75
     frag_cartridge_projectile.Damage1 = 100
@@ -2069,7 +2069,7 @@ object GlobalDefinitions {
     frag_cartridge_projectile.InitialVelocity = 30
     frag_cartridge_projectile.Lifespan = 15f
 
-    // frag_cartridge_projectile_b
+    frag_cartridge_projectile_b.Name = "frag_cartridge_projectile_b"
     // TODO for later, maybe : set_resource_parent frag_cartridge_projectile_b game_objects frag_grenade_projectile_enh
     frag_cartridge_projectile_b.Damage0 = 75
     frag_cartridge_projectile_b.Damage1 = 100
@@ -2079,7 +2079,7 @@ object GlobalDefinitions {
     frag_cartridge_projectile_b.InitialVelocity = 30
     frag_cartridge_projectile_b.Lifespan = 2f
 
-    // frag_grenade_projectile
+    frag_grenade_projectile.Name = "frag_grenade_projectile"
     frag_grenade_projectile.Damage0 = 75
     frag_grenade_projectile.Damage1 = 100
     frag_grenade_projectile.DamageAtEdge = 0.1f
@@ -2088,7 +2088,7 @@ object GlobalDefinitions {
     frag_grenade_projectile.InitialVelocity = 30
     frag_grenade_projectile.Lifespan = 15f
 
-    // frag_grenade_projectile_enh
+    frag_grenade_projectile_enh.Name = "frag_grenade_projectile_enh"
     // TODO for later, maybe : set_resource_parent frag_grenade_projectile_enh game_objects frag_grenade_projectile
     frag_grenade_projectile_enh.Damage0 = 75
     frag_grenade_projectile_enh.Damage1 = 100
@@ -2098,7 +2098,7 @@ object GlobalDefinitions {
     frag_grenade_projectile_enh.InitialVelocity = 30
     frag_grenade_projectile_enh.Lifespan = 2f
 
-    // galaxy_gunship_gun_projectile
+    galaxy_gunship_gun_projectile.Name = "galaxy_gunship_gun_projectile"
     // TODO for later, maybe : set_resource_parent galaxy_gunship_gun_projectile game_objects 35mmbullet_projectile
     galaxy_gunship_gun_projectile.Damage0 = 40
     galaxy_gunship_gun_projectile.Damage1 = 50
@@ -2109,7 +2109,7 @@ object GlobalDefinitions {
     galaxy_gunship_gun_projectile.InitialVelocity = 400
     galaxy_gunship_gun_projectile.Lifespan = 0.8f
 
-    // gauss_cannon_projectile
+    gauss_cannon_projectile.Name = "gauss_cannon_projectile"
     gauss_cannon_projectile.Damage0 = 190
     gauss_cannon_projectile.Damage1 = 370
     gauss_cannon_projectile.Damage2 = 370
@@ -2121,7 +2121,7 @@ object GlobalDefinitions {
     gauss_cannon_projectile.InitialVelocity = 150
     gauss_cannon_projectile.Lifespan = 2.67f
 
-    // grenade_projectile
+    grenade_projectile.Name = "grenade_projectile"
     grenade_projectile.Damage0 = 50
     grenade_projectile.DamageAtEdge = 0.2f
     grenade_projectile.DamageRadius = 100f
@@ -2129,7 +2129,7 @@ object GlobalDefinitions {
     grenade_projectile.InitialVelocity = 15
     grenade_projectile.Lifespan = 15f
 
-    // heavy_grenade_projectile
+    heavy_grenade_projectile.Name = "heavy_grenade_projectile"
     heavy_grenade_projectile.Damage0 = 50
     heavy_grenade_projectile.Damage1 = 82
     heavy_grenade_projectile.Damage2 = 82
@@ -2141,7 +2141,7 @@ object GlobalDefinitions {
     heavy_grenade_projectile.InitialVelocity = 75
     heavy_grenade_projectile.Lifespan = 5f
 
-    // heavy_rail_beam_projectile
+    heavy_rail_beam_projectile.Name = "heavy_rail_beam_projectile"
     heavy_rail_beam_projectile.Damage0 = 75
     heavy_rail_beam_projectile.Damage1 = 215
     heavy_rail_beam_projectile.Damage2 = 215
@@ -2153,7 +2153,7 @@ object GlobalDefinitions {
     heavy_rail_beam_projectile.InitialVelocity = 600
     heavy_rail_beam_projectile.Lifespan = .5f
 
-    // heavy_sniper_projectile
+    heavy_sniper_projectile.Name = "heavy_sniper_projectile"
     heavy_sniper_projectile.Damage0 = 55
     heavy_sniper_projectile.Damage1 = 28
     heavy_sniper_projectile.Damage2 = 28
@@ -2163,7 +2163,7 @@ object GlobalDefinitions {
     heavy_sniper_projectile.InitialVelocity = 500
     heavy_sniper_projectile.Lifespan = 1.0f
 
-    // hellfire_projectile
+    hellfire_projectile.Name = "hellfire_projectile"
     hellfire_projectile.Damage0 = 50
     hellfire_projectile.Damage1 = 250
     hellfire_projectile.Damage2 = 250
@@ -2177,7 +2177,7 @@ object GlobalDefinitions {
     hellfire_projectile.InitialVelocity = 125
     hellfire_projectile.Lifespan = 1.5f
 
-    // hunter_seeker_missile_dumbfire
+    hunter_seeker_missile_dumbfire.Name = "hunter_seeker_missile_dumbfire"
     hunter_seeker_missile_dumbfire.Damage0 = 50
     hunter_seeker_missile_dumbfire.Damage1 = 350
     hunter_seeker_missile_dumbfire.Damage2 = 250
@@ -2189,7 +2189,7 @@ object GlobalDefinitions {
     hunter_seeker_missile_dumbfire.InitialVelocity = 40
     hunter_seeker_missile_dumbfire.Lifespan = 6.3f
 
-    // hunter_seeker_missile_projectile
+    hunter_seeker_missile_projectile.Name = "hunter_seeker_missile_projectile"
     hunter_seeker_missile_projectile.Damage0 = 50
     hunter_seeker_missile_projectile.Damage1 = 350
     hunter_seeker_missile_projectile.Damage2 = 250
@@ -2201,7 +2201,7 @@ object GlobalDefinitions {
     hunter_seeker_missile_projectile.InitialVelocity = 40
     hunter_seeker_missile_projectile.Lifespan = 6.3f
 
-    // jammer_cartridge_projectile
+    jammer_cartridge_projectile.Name = "jammer_cartridge_projectile"
     // TODO for later, maybe : set_resource_parent jammer_cartridge_projectile game_objects jammer_grenade_projectile
     jammer_cartridge_projectile.Damage0 = 0
     jammer_cartridge_projectile.Damage1 = 0
@@ -2211,7 +2211,7 @@ object GlobalDefinitions {
     jammer_cartridge_projectile.InitialVelocity = 30
     jammer_cartridge_projectile.Lifespan = 15f
 
-    // jammer_cartridge_projectile_b
+    jammer_cartridge_projectile_b.Name = "jammer_cartridge_projectile_b"
     // TODO for later, maybe : set_resource_parent jammer_cartridge_projectile_b game_objects jammer_grenade_projectile_enh
     jammer_cartridge_projectile_b.Damage0 = 0
     jammer_cartridge_projectile_b.Damage1 = 0
@@ -2221,7 +2221,7 @@ object GlobalDefinitions {
     jammer_cartridge_projectile_b.InitialVelocity = 30
     jammer_cartridge_projectile_b.Lifespan = 2f
 
-    // jammer_grenade_projectile
+    jammer_grenade_projectile.Name = "jammer_grenade_projectile"
     jammer_grenade_projectile.Damage0 = 0
     jammer_grenade_projectile.Damage1 = 0
     jammer_grenade_projectile.DamageAtEdge = 1.0f
@@ -2230,7 +2230,7 @@ object GlobalDefinitions {
     jammer_grenade_projectile.InitialVelocity = 30
     jammer_grenade_projectile.Lifespan = 15f
 
-    // jammer_grenade_projectile_enh
+    jammer_grenade_projectile_enh.Name = "jammer_grenade_projectile_enh"
     // TODO for later, maybe : set_resource_parent jammer_grenade_projectile_enh game_objects jammer_grenade_projectile
     jammer_grenade_projectile_enh.Damage0 = 0
     jammer_grenade_projectile_enh.Damage1 = 0
@@ -2240,14 +2240,14 @@ object GlobalDefinitions {
     jammer_grenade_projectile_enh.InitialVelocity = 30
     jammer_grenade_projectile_enh.Lifespan = 3f
 
-    // katana_projectile
+    katana_projectile.Name = "katana_projectile"
     katana_projectile.Damage0 = 25
     katana_projectile.Damage1 = 0
     katana_projectile.ProjectileDamageType = DamageType.Direct
     katana_projectile.InitialVelocity = 100
     katana_projectile.Lifespan = .03f
 
-    // katana_projectileb
+    katana_projectileb.Name = "katana_projectileb"
     // TODO for later, maybe : set_resource_parent katana_projectileb game_objects katana_projectile
     katana_projectileb.Damage0 = 25
     katana_projectileb.Damage1 = 0
@@ -2255,7 +2255,7 @@ object GlobalDefinitions {
     katana_projectileb.InitialVelocity = 100
     katana_projectileb.Lifespan = .03f
 
-    // lancer_projectile
+    lancer_projectile.Name = "lancer_projectile"
     lancer_projectile.Damage0 = 25
     lancer_projectile.Damage1 = 175
     lancer_projectile.Damage2 = 125
@@ -2265,7 +2265,7 @@ object GlobalDefinitions {
     lancer_projectile.InitialVelocity = 500
     lancer_projectile.Lifespan = 0.6f
 
-    // lasher_projectile
+    lasher_projectile.Name = "lasher_projectile"
     lasher_projectile.Damage0 = 30
     lasher_projectile.Damage1 = 15
     lasher_projectile.Damage2 = 15
@@ -2277,7 +2277,7 @@ object GlobalDefinitions {
     lasher_projectile.InitialVelocity = 120
     lasher_projectile.Lifespan = 0.75f
 
-    // lasher_projectile_ap
+    lasher_projectile_ap.Name = "lasher_projectile_ap"
     lasher_projectile_ap.Damage0 = 12
     lasher_projectile_ap.Damage1 = 25
     lasher_projectile_ap.Damage2 = 25
@@ -2289,7 +2289,7 @@ object GlobalDefinitions {
     lasher_projectile_ap.InitialVelocity = 120
     lasher_projectile_ap.Lifespan = 0.75f
 
-    // liberator_bomb_cluster_bomblet_projectile
+    liberator_bomb_cluster_bomblet_projectile.Name = "liberator_bomb_cluster_bomblet_projectile"
     liberator_bomb_cluster_bomblet_projectile.Damage0 = 75
     liberator_bomb_cluster_bomblet_projectile.Damage1 = 100
     liberator_bomb_cluster_bomblet_projectile.DamageAtEdge = 0.25f
@@ -2298,7 +2298,7 @@ object GlobalDefinitions {
     liberator_bomb_cluster_bomblet_projectile.InitialVelocity = 0
     liberator_bomb_cluster_bomblet_projectile.Lifespan = 30f
 
-    // liberator_bomb_cluster_projectile
+    liberator_bomb_cluster_projectile.Name = "liberator_bomb_cluster_projectile"
     liberator_bomb_cluster_projectile.Damage0 = 75
     liberator_bomb_cluster_projectile.Damage1 = 100
     liberator_bomb_cluster_projectile.DamageAtEdge = 0.25f
@@ -2307,7 +2307,7 @@ object GlobalDefinitions {
     liberator_bomb_cluster_projectile.InitialVelocity = 0
     liberator_bomb_cluster_projectile.Lifespan = 30f
 
-    // liberator_bomb_projectile
+    liberator_bomb_projectile.Name = "liberator_bomb_projectile"
     liberator_bomb_projectile.Damage0 = 250
     liberator_bomb_projectile.Damage1 = 1000
     liberator_bomb_projectile.Damage2 = 1000
@@ -2319,7 +2319,7 @@ object GlobalDefinitions {
     liberator_bomb_projectile.InitialVelocity = 0
     liberator_bomb_projectile.Lifespan = 30f
 
-    // maelstrom_grenade_projectile
+    maelstrom_grenade_projectile.Name = "maelstrom_grenade_projectile"
     maelstrom_grenade_projectile.Damage0 = 32
     maelstrom_grenade_projectile.Damage1 = 60
     maelstrom_grenade_projectile.DamageRadius = 20.0f
@@ -2327,7 +2327,7 @@ object GlobalDefinitions {
     maelstrom_grenade_projectile.InitialVelocity = 30
     maelstrom_grenade_projectile.Lifespan = 2f
 
-    // maelstrom_grenade_projectile_contact
+    maelstrom_grenade_projectile_contact.Name = "maelstrom_grenade_projectile_contact"
     // TODO for later, maybe : set_resource_parent maelstrom_grenade_projectile_contact game_objects maelstrom_grenade_projectile
     maelstrom_grenade_projectile_contact.Damage0 = 32
     maelstrom_grenade_projectile_contact.Damage1 = 60
@@ -2336,7 +2336,7 @@ object GlobalDefinitions {
     maelstrom_grenade_projectile_contact.InitialVelocity = 30
     maelstrom_grenade_projectile_contact.Lifespan = 15f
 
-    // maelstrom_stream_projectile
+    maelstrom_stream_projectile.Name = "maelstrom_stream_projectile"
     maelstrom_stream_projectile.Damage0 = 15
     maelstrom_stream_projectile.Damage1 = 6
     maelstrom_stream_projectile.ProjectileDamageType = DamageType.Direct
@@ -2345,7 +2345,7 @@ object GlobalDefinitions {
     maelstrom_stream_projectile.InitialVelocity = 200
     maelstrom_stream_projectile.Lifespan = 0.2f
 
-    // magcutter_projectile
+    magcutter_projectile.Name = "magcutter_projectile"
     // TODO for later, maybe : set_resource_parent magcutter_projectile game_objects melee_ammo_projectile
     magcutter_projectile.Damage0 = 50
     magcutter_projectile.Damage1 = 0
@@ -2353,20 +2353,20 @@ object GlobalDefinitions {
     magcutter_projectile.InitialVelocity = 100
     magcutter_projectile.Lifespan = .02f
 
-    // melee_ammo_projectile
+    melee_ammo_projectile.Name = "melee_ammo_projectile"
     melee_ammo_projectile.Damage0 = 25
     melee_ammo_projectile.Damage1 = 0
     melee_ammo_projectile.ProjectileDamageType = DamageType.Direct
     melee_ammo_projectile.InitialVelocity = 100
     melee_ammo_projectile.Lifespan = .02f
 
-    // meteor_common
+    meteor_common.Name = "meteor_common"
     meteor_common.DamageAtEdge = .1f
     meteor_common.ProjectileDamageType = DamageType.Splash
     meteor_common.InitialVelocity = 0
     meteor_common.Lifespan = 40
 
-    // meteor_projectile_b_large
+    meteor_projectile_b_large.Name = "meteor_projectile_b_large"
     // TODO for later, maybe : set_resource_parent meteor_projectile_b_large game_objects meteor_common
     meteor_projectile_b_large.Damage0 = 2500
     meteor_projectile_b_large.Damage1 = 5000
@@ -2376,7 +2376,7 @@ object GlobalDefinitions {
     meteor_projectile_b_large.InitialVelocity = 0
     meteor_projectile_b_large.Lifespan = 40
 
-    // meteor_projectile_b_medium
+    meteor_projectile_b_medium.Name = "meteor_projectile_b_medium"
     // TODO for later, maybe : set_resource_parent meteor_projectile_b_medium game_objects meteor_common
     meteor_projectile_b_medium.Damage0 = 1250
     meteor_projectile_b_medium.Damage1 = 2500
@@ -2386,7 +2386,7 @@ object GlobalDefinitions {
     meteor_projectile_b_medium.InitialVelocity = 0
     meteor_projectile_b_medium.Lifespan = 40
 
-    // meteor_projectile_b_small
+    meteor_projectile_b_small.Name = "meteor_projectile_b_small"
     // TODO for later, maybe : set_resource_parent meteor_projectile_b_small game_objects meteor_common
     meteor_projectile_b_small.Damage0 = 625
     meteor_projectile_b_small.Damage1 = 1250
@@ -2396,7 +2396,7 @@ object GlobalDefinitions {
     meteor_projectile_b_small.InitialVelocity = 0
     meteor_projectile_b_small.Lifespan = 40
 
-    // meteor_projectile_large
+    meteor_projectile_large.Name = "meteor_projectile_large"
     // TODO for later, maybe : set_resource_parent meteor_projectile_large game_objects meteor_common
     meteor_projectile_large.Damage0 = 2500
     meteor_projectile_large.Damage1 = 5000
@@ -2406,7 +2406,7 @@ object GlobalDefinitions {
     meteor_projectile_large.InitialVelocity = 0
     meteor_projectile_large.Lifespan = 40
 
-    // meteor_projectile_medium
+    meteor_projectile_medium.Name = "meteor_projectile_medium"
     // TODO for later, maybe : set_resource_parent meteor_projectile_medium game_objects meteor_common
     meteor_projectile_medium.Damage0 = 1250
     meteor_projectile_medium.Damage1 = 2500
@@ -2416,7 +2416,7 @@ object GlobalDefinitions {
     meteor_projectile_medium.InitialVelocity = 0
     meteor_projectile_medium.Lifespan = 40
 
-    // meteor_projectile_small
+    meteor_projectile_small.Name = "meteor_projectile_small"
     // TODO for later, maybe : set_resource_parent meteor_projectile_small game_objects meteor_common
     meteor_projectile_small.Damage0 = 625
     meteor_projectile_small.Damage1 = 1250
@@ -2426,11 +2426,11 @@ object GlobalDefinitions {
     meteor_projectile_small.InitialVelocity = 0
     meteor_projectile_small.Lifespan = 40
 
-    // mine_projectile
+    mine_projectile.Name = "mine_projectile"
     mine_projectile.Lifespan = 0.01f
     mine_projectile.InitialVelocity = 300
 
-    // mine_sweeper_projectile
+    mine_sweeper_projectile.Name = "mine_sweeper_projectile"
     mine_sweeper_projectile.Damage0 = 0
     mine_sweeper_projectile.Damage1 = 0
     mine_sweeper_projectile.DamageAtEdge = .33f
@@ -2439,7 +2439,7 @@ object GlobalDefinitions {
     mine_sweeper_projectile.InitialVelocity = 30
     mine_sweeper_projectile.Lifespan = 15f
 
-    // mine_sweeper_projectile_enh
+    mine_sweeper_projectile_enh.Name = "mine_sweeper_projectile_enh"
     mine_sweeper_projectile_enh.Damage0 = 0
     mine_sweeper_projectile_enh.Damage1 = 0
     mine_sweeper_projectile_enh.DamageAtEdge = 0.33f
@@ -2447,7 +2447,7 @@ object GlobalDefinitions {
     mine_sweeper_projectile_enh.InitialVelocity = 30
     mine_sweeper_projectile_enh.Lifespan = 3f
 
-    // oicw_projectile
+    oicw_projectile.Name = "oicw_projectile"
     oicw_projectile.Damage0 = 50
     oicw_projectile.Damage1 = 50
     oicw_projectile.Acceleration = 15
@@ -2458,7 +2458,7 @@ object GlobalDefinitions {
     oicw_projectile.InitialVelocity = 5
     oicw_projectile.Lifespan = 6.1f
 
-    // pellet_gun_projectile
+    pellet_gun_projectile.Name = "pellet_gun_projectile"
     // TODO for later, maybe : set_resource_parent pellet_gun_projectile game_objects shotgun_shell_projectile
     pellet_gun_projectile.Damage0 = 12
     pellet_gun_projectile.Damage1 = 8
@@ -2467,7 +2467,7 @@ object GlobalDefinitions {
     pellet_gun_projectile.Lifespan = 0.1875f
     pellet_gun_projectile.UseDamage1Subtract = false
 
-    // peregrine_dual_machine_gun_projectile
+    peregrine_dual_machine_gun_projectile.Name = "peregrine_dual_machine_gun_projectile"
     // TODO for later, maybe : set_resource_parent peregrine_dual_machine_gun_projectile game_objects 35mmbullet_projectile
     peregrine_dual_machine_gun_projectile.Damage0 = 16
     peregrine_dual_machine_gun_projectile.Damage1 = 44
@@ -2480,7 +2480,7 @@ object GlobalDefinitions {
     peregrine_dual_machine_gun_projectile.InitialVelocity = 250
     peregrine_dual_machine_gun_projectile.Lifespan = 1.1f
 
-    // peregrine_mechhammer_projectile
+    peregrine_mechhammer_projectile.Name = "peregrine_mechhammer_projectile"
     peregrine_mechhammer_projectile.Damage0 = 5
     peregrine_mechhammer_projectile.Damage1 = 4
     peregrine_mechhammer_projectile.Damage2 = 4
@@ -2490,7 +2490,7 @@ object GlobalDefinitions {
     peregrine_mechhammer_projectile.InitialVelocity = 500
     peregrine_mechhammer_projectile.Lifespan = 0.4f
 
-    // peregrine_particle_cannon_projectile
+    peregrine_particle_cannon_projectile.Name = "peregrine_particle_cannon_projectile"
     peregrine_particle_cannon_projectile.Damage0 = 70
     peregrine_particle_cannon_projectile.Damage1 = 525
     peregrine_particle_cannon_projectile.Damage2 = 350
@@ -2502,7 +2502,7 @@ object GlobalDefinitions {
     peregrine_particle_cannon_projectile.InitialVelocity = 500
     peregrine_particle_cannon_projectile.Lifespan = .6f
 
-    // peregrine_rocket_pod_projectile
+    peregrine_rocket_pod_projectile.Name = "peregrine_rocket_pod_projectile"
     peregrine_rocket_pod_projectile.Damage0 = 30
     peregrine_rocket_pod_projectile.Damage1 = 50
     peregrine_rocket_pod_projectile.Damage2 = 50
@@ -2516,7 +2516,7 @@ object GlobalDefinitions {
     peregrine_rocket_pod_projectile.InitialVelocity = 200
     peregrine_rocket_pod_projectile.Lifespan = 1.85f
 
-    // peregrine_sparrow_projectile
+    peregrine_sparrow_projectile.Name = "peregrine_sparrow_projectile"
     // TODO for later, maybe : set_resource_parent peregrine_sparrow_projectile game_objects sparrow_projectile
     peregrine_sparrow_projectile.Damage0 = 20
     peregrine_sparrow_projectile.Damage1 = 40
@@ -2531,7 +2531,7 @@ object GlobalDefinitions {
     peregrine_sparrow_projectile.InitialVelocity = 45
     peregrine_sparrow_projectile.Lifespan = 7.5f
 
-    // phalanx_av_projectile
+    phalanx_av_projectile.Name = "phalanx_av_projectile"
     phalanx_av_projectile.Damage0 = 60
     phalanx_av_projectile.Damage1 = 140
     phalanx_av_projectile.DamageAtEdge = 0.1f
@@ -2540,7 +2540,7 @@ object GlobalDefinitions {
     phalanx_av_projectile.InitialVelocity = 100
     phalanx_av_projectile.Lifespan = 4f
 
-    // phalanx_flak_projectile
+    phalanx_flak_projectile.Name = "phalanx_flak_projectile"
     phalanx_flak_projectile.Damage0 = 15
     phalanx_flak_projectile.Damage1 = 25
     phalanx_flak_projectile.Damage2 = 70
@@ -2551,7 +2551,7 @@ object GlobalDefinitions {
     phalanx_flak_projectile.InitialVelocity = 100
     phalanx_flak_projectile.Lifespan = 5f
 
-    // phalanx_projectile
+    phalanx_projectile.Name = "phalanx_projectile"
     phalanx_projectile.Damage0 = 20
     phalanx_projectile.Damage1 = 30
     phalanx_projectile.Damage2 = 30
@@ -2563,7 +2563,7 @@ object GlobalDefinitions {
     phalanx_projectile.InitialVelocity = 400
     phalanx_projectile.Lifespan = 1f
 
-    // phoenix_missile_guided_projectile
+    phoenix_missile_guided_projectile.Name = "phoenix_missile_guided_projectile"
     // TODO for later, maybe : set_resource_parent phoenix_missile_guided_projectile game_objects phoenix_missile_projectile
     phoenix_missile_guided_projectile.Damage0 = 80
     phoenix_missile_guided_projectile.Damage1 = 400
@@ -2578,7 +2578,7 @@ object GlobalDefinitions {
     phoenix_missile_guided_projectile.InitialVelocity = 0
     phoenix_missile_guided_projectile.Lifespan = 3f
 
-    // phoenix_missile_projectile
+    phoenix_missile_projectile.Name = "phoenix_missile_projectile"
     phoenix_missile_projectile.Damage0 = 80
     phoenix_missile_projectile.Damage1 = 400
     phoenix_missile_projectile.Damage2 = 400
@@ -2592,7 +2592,7 @@ object GlobalDefinitions {
     phoenix_missile_projectile.InitialVelocity = 0
     phoenix_missile_projectile.Lifespan = 3f
 
-    // plasma_cartridge_projectile
+    plasma_cartridge_projectile.Name = "plasma_cartridge_projectile"
     // TODO for later, maybe : set_resource_parent plasma_cartridge_projectile game_objects plasma_grenade_projectile
     plasma_cartridge_projectile.Damage0 = 20
     plasma_cartridge_projectile.Damage1 = 15
@@ -2602,7 +2602,7 @@ object GlobalDefinitions {
     plasma_cartridge_projectile.InitialVelocity = 30
     plasma_cartridge_projectile.Lifespan = 15f
 
-    // plasma_cartridge_projectile_b
+    plasma_cartridge_projectile_b.Name = "plasma_cartridge_projectile_b"
     // TODO for later, maybe : set_resource_parent plasma_cartridge_projectile_b game_objects plasma_grenade_projectile_B
     plasma_cartridge_projectile_b.Damage0 = 20
     plasma_cartridge_projectile_b.Damage1 = 15
@@ -2612,7 +2612,7 @@ object GlobalDefinitions {
     plasma_cartridge_projectile_b.InitialVelocity = 30
     plasma_cartridge_projectile_b.Lifespan = 2f
 
-    // plasma_grenade_projectile
+    plasma_grenade_projectile.Name = "plasma_grenade_projectile"
     plasma_grenade_projectile.Damage0 = 40
     plasma_grenade_projectile.Damage1 = 30
     plasma_grenade_projectile.DamageAtEdge = 0.1f
@@ -2621,7 +2621,7 @@ object GlobalDefinitions {
     plasma_grenade_projectile.InitialVelocity = 30
     plasma_grenade_projectile.Lifespan = 15f
 
-    // plasma_grenade_projectile_B
+    plasma_grenade_projectile_B.Name = "plasma_grenade_projectile_B"
     // TODO for later, maybe : set_resource_parent plasma_grenade_projectile_B game_objects plasma_grenade_projectile
     plasma_grenade_projectile_B.Damage0 = 40
     plasma_grenade_projectile_B.Damage1 = 30
@@ -2631,7 +2631,7 @@ object GlobalDefinitions {
     plasma_grenade_projectile_B.InitialVelocity = 30
     plasma_grenade_projectile_B.Lifespan = 3f
 
-    // pounder_projectile
+    pounder_projectile.Name = "pounder_projectile"
     pounder_projectile.Damage0 = 31
     pounder_projectile.Damage1 = 120
     pounder_projectile.Damage2 = 120
@@ -2643,7 +2643,7 @@ object GlobalDefinitions {
     pounder_projectile.InitialVelocity = 120
     pounder_projectile.Lifespan = 2.5f
 
-    // pounder_projectile_enh
+    pounder_projectile_enh.Name = "pounder_projectile_enh"
     // TODO for later, maybe : set_resource_parent pounder_projectile_enh game_objects pounder_projectile
     pounder_projectile_enh.Damage0 = 31
     pounder_projectile_enh.Damage1 = 120
@@ -2656,7 +2656,7 @@ object GlobalDefinitions {
     pounder_projectile_enh.InitialVelocity = 120
     pounder_projectile_enh.Lifespan = 3.2f
 
-    // ppa_projectile
+    ppa_projectile.Name = "ppa_projectile"
     ppa_projectile.Damage0 = 20
     ppa_projectile.Damage1 = 20
     ppa_projectile.Damage2 = 40
@@ -2666,7 +2666,7 @@ object GlobalDefinitions {
     ppa_projectile.InitialVelocity = 400
     ppa_projectile.Lifespan = .5f
 
-    // pulsar_ap_projectile
+    pulsar_ap_projectile.Name = "pulsar_ap_projectile"
     // TODO for later, maybe : set_resource_parent pulsar_ap_projectile game_objects pulsar_projectile
     pulsar_ap_projectile.Damage0 = 7
     pulsar_ap_projectile.Damage1 = 15
@@ -2677,7 +2677,7 @@ object GlobalDefinitions {
     pulsar_ap_projectile.Lifespan = .4f
     pulsar_ap_projectile.UseDamage1Subtract = true
 
-    // pulsar_projectile
+    pulsar_projectile.Name = "pulsar_projectile"
     pulsar_projectile.Damage0 = 20
     pulsar_projectile.Damage1 = 10
     pulsar_projectile.ProjectileDamageType = DamageType.Direct
@@ -2687,7 +2687,7 @@ object GlobalDefinitions {
     pulsar_projectile.Lifespan = .4f
     pulsar_projectile.UseDamage1Subtract = true
 
-    // quasar_projectile
+    quasar_projectile.Name = "quasar_projectile"
     quasar_projectile.Damage0 = 18
     quasar_projectile.Damage1 = 8
     quasar_projectile.ProjectileDamageType = DamageType.Direct
@@ -2696,18 +2696,18 @@ object GlobalDefinitions {
     quasar_projectile.InitialVelocity = 500
     quasar_projectile.Lifespan = .4f
 
-    // radiator_grenade_projectile // Todo : Radiator damages ?
+    radiator_grenade_projectile.Name = "radiator_grenade_projectile" // Todo : Radiator damages ?
     radiator_grenade_projectile.ProjectileDamageType = DamageType.Direct
     radiator_grenade_projectile.InitialVelocity = 30
     radiator_grenade_projectile.Lifespan = 3f
 
-    // radiator_sticky_projectile
+    radiator_sticky_projectile.Name = "radiator_sticky_projectile"
     // TODO for later, maybe : set_resource_parent radiator_sticky_projectile game_objects radiator_grenade_projectile
     radiator_sticky_projectile.ProjectileDamageType = DamageType.Direct
     radiator_sticky_projectile.InitialVelocity = 30
     radiator_sticky_projectile.Lifespan = 4f
 
-    // reaver_rocket_projectile
+    reaver_rocket_projectile.Name = "reaver_rocket_projectile"
     reaver_rocket_projectile.Damage0 = 25
     reaver_rocket_projectile.Damage1 = 88
     reaver_rocket_projectile.Damage2 = 75
@@ -2721,7 +2721,7 @@ object GlobalDefinitions {
     reaver_rocket_projectile.InitialVelocity = 100
     reaver_rocket_projectile.Lifespan = 2.1f
 
-    // rocket_projectile
+    rocket_projectile.Name = "rocket_projectile"
     rocket_projectile.Damage0 = 50
     rocket_projectile.Damage1 = 105
     rocket_projectile.Damage2 = 75
@@ -2735,7 +2735,7 @@ object GlobalDefinitions {
     rocket_projectile.InitialVelocity = 50
     rocket_projectile.Lifespan = 8f
 
-    // rocklet_flak_projectile
+    rocklet_flak_projectile.Name = "rocklet_flak_projectile"
     rocklet_flak_projectile.Damage0 = 20
     rocklet_flak_projectile.Damage1 = 30
     rocklet_flak_projectile.Damage2 = 57
@@ -2748,7 +2748,7 @@ object GlobalDefinitions {
     rocklet_flak_projectile.InitialVelocity = 60
     rocklet_flak_projectile.Lifespan = 3.2f
 
-    // rocklet_jammer_projectile
+    rocklet_jammer_projectile.Name = "rocklet_jammer_projectile"
     rocklet_jammer_projectile.Damage0 = 0
     rocklet_jammer_projectile.Acceleration = 10
     rocklet_jammer_projectile.AccelerationUntil = 2f
@@ -2758,14 +2758,14 @@ object GlobalDefinitions {
     rocklet_jammer_projectile.InitialVelocity = 50
     rocklet_jammer_projectile.Lifespan = 8f
 
-    // scattercannon_projectile
+    scattercannon_projectile.Name = "scattercannon_projectile"
     scattercannon_projectile.Damage0 = 11
     scattercannon_projectile.Damage1 = 5
     scattercannon_projectile.ProjectileDamageType = DamageType.Direct
     scattercannon_projectile.InitialVelocity = 400
     scattercannon_projectile.Lifespan = 0.25f
 
-    // scythe_projectile
+    scythe_projectile.Name = "scythe_projectile"
     scythe_projectile.Damage0 = 30
     scythe_projectile.Damage1 = 20
     scythe_projectile.ProjectileDamageType = DamageType.Direct
@@ -2774,11 +2774,11 @@ object GlobalDefinitions {
     scythe_projectile.InitialVelocity = 60
     scythe_projectile.Lifespan = 3f
 
-    // scythe_projectile_slave // Todo how does it work ?
+    scythe_projectile_slave.Name = "scythe_projectile_slave" // Todo how does it work ?
     scythe_projectile_slave.InitialVelocity = 30
     scythe_projectile_slave.Lifespan = 3f
 
-    // shotgun_shell_AP_projectile
+    shotgun_shell_AP_projectile.Name = "shotgun_shell_AP_projectile"
     // TODO for later, maybe : set_resource_parent shotgun_shell_AP_projectile game_objects shotgun_shell_projectile
     shotgun_shell_AP_projectile.Damage0 = 5
     shotgun_shell_AP_projectile.Damage1 = 10
@@ -2787,7 +2787,7 @@ object GlobalDefinitions {
     shotgun_shell_AP_projectile.Lifespan = 0.25f
     shotgun_shell_AP_projectile.UseDamage1Subtract = true
 
-    // shotgun_shell_projectile
+    shotgun_shell_projectile.Name = "shotgun_shell_projectile"
     shotgun_shell_projectile.Damage0 = 12
     shotgun_shell_projectile.Damage1 = 5
     shotgun_shell_projectile.ProjectileDamageType = DamageType.Direct
@@ -2795,7 +2795,7 @@ object GlobalDefinitions {
     shotgun_shell_projectile.Lifespan = 0.25f
     shotgun_shell_projectile.UseDamage1Subtract = true
 
-    // six_shooter_projectile
+    six_shooter_projectile.Name = "six_shooter_projectile"
     // TODO for later, maybe : set_resource_parent six_shooter_projectile game_objects 9mmbullet_projectile
     six_shooter_projectile.Damage0 = 22
     six_shooter_projectile.Damage1 = 20
@@ -2806,7 +2806,7 @@ object GlobalDefinitions {
     six_shooter_projectile.Lifespan = 0.4f
     six_shooter_projectile.UseDamage1Subtract = false
 
-    // skyguard_flak_cannon_projectile
+    skyguard_flak_cannon_projectile.Name = "skyguard_flak_cannon_projectile"
     skyguard_flak_cannon_projectile.Damage0 = 15
     skyguard_flak_cannon_projectile.Damage1 = 25
     skyguard_flak_cannon_projectile.Damage2 = 50
@@ -2817,7 +2817,7 @@ object GlobalDefinitions {
     skyguard_flak_cannon_projectile.InitialVelocity = 100
     skyguard_flak_cannon_projectile.Lifespan = 5f
 
-    // sparrow_projectile
+    sparrow_projectile.Name = "sparrow_projectile"
     sparrow_projectile.Damage0 = 35
     sparrow_projectile.Damage1 = 50
     sparrow_projectile.Damage2 = 125
@@ -2829,7 +2829,7 @@ object GlobalDefinitions {
     sparrow_projectile.InitialVelocity = 60
     sparrow_projectile.Lifespan = 5.85f
 
-    // sparrow_secondary_projectile
+    sparrow_secondary_projectile.Name = "sparrow_secondary_projectile"
     // TODO for later, maybe : set_resource_parent sparrow_secondary_projectile game_objects sparrow_projectile
     sparrow_secondary_projectile.Damage0 = 35
     sparrow_secondary_projectile.Damage1 = 50
@@ -2842,7 +2842,7 @@ object GlobalDefinitions {
     sparrow_secondary_projectile.InitialVelocity = 60
     sparrow_secondary_projectile.Lifespan = 5.85f
 
-    // spiker_projectile
+    spiker_projectile.Name = "spiker_projectile"
     //    spiker_projectile.Damage0 = 75
     spiker_projectile.Damage0 = 20
     //    spiker_projectile.Damage0_min = 20
@@ -2856,7 +2856,7 @@ object GlobalDefinitions {
     spiker_projectile.InitialVelocity = 40
     spiker_projectile.Lifespan = 5f
 
-    // spitfire_aa_ammo_projectile
+    spitfire_aa_ammo_projectile.Name = "spitfire_aa_ammo_projectile"
     spitfire_aa_ammo_projectile.Damage0 = 5
     spitfire_aa_ammo_projectile.Damage1 = 15
     spitfire_aa_ammo_projectile.Damage2 = 12
@@ -2869,7 +2869,7 @@ object GlobalDefinitions {
     spitfire_aa_ammo_projectile.InitialVelocity = 100
     spitfire_aa_ammo_projectile.Lifespan = 5f
 
-    // spitfire_ammo_projectile
+    spitfire_ammo_projectile.Name = "spitfire_ammo_projectile"
     spitfire_ammo_projectile.Damage0 = 15
     spitfire_ammo_projectile.Damage1 = 10
     spitfire_ammo_projectile.ProjectileDamageType = DamageType.Direct
@@ -2878,7 +2878,7 @@ object GlobalDefinitions {
     spitfire_ammo_projectile.InitialVelocity = 100
     spitfire_ammo_projectile.Lifespan = .5f
 
-    // starfire_projectile
+    starfire_projectile.Name = "starfire_projectile"
     starfire_projectile.Damage0 = 16
     starfire_projectile.Damage1 = 20
     starfire_projectile.Damage2 = 58
@@ -2888,7 +2888,7 @@ object GlobalDefinitions {
     starfire_projectile.InitialVelocity = 45
     starfire_projectile.Lifespan = 7.8f
 
-    // striker_missile_projectile
+    striker_missile_projectile.Name = "striker_missile_projectile"
     striker_missile_projectile.Damage0 = 35
     striker_missile_projectile.Damage1 = 175
     striker_missile_projectile.Damage2 = 125
@@ -2902,7 +2902,7 @@ object GlobalDefinitions {
     striker_missile_projectile.InitialVelocity = 30
     striker_missile_projectile.Lifespan = 4.2f
 
-    // striker_missile_targeting_projectile
+    striker_missile_targeting_projectile.Name = "striker_missile_targeting_projectile"
     // TODO for later, maybe : set_resource_parent striker_missile_targeting_projectile game_objects striker_missile_projectile
     striker_missile_targeting_projectile.Damage0 = 35
     striker_missile_targeting_projectile.Damage1 = 175
@@ -2917,7 +2917,7 @@ object GlobalDefinitions {
     striker_missile_targeting_projectile.InitialVelocity = 30
     striker_missile_targeting_projectile.Lifespan = 4.2f
 
-    // trek_projectile
+    trek_projectile.Name = "trek_projectile"
     trek_projectile.Damage0 = 0
     trek_projectile.Damage1 = 0
     trek_projectile.Damage2 = 0
@@ -2929,7 +2929,7 @@ object GlobalDefinitions {
     trek_projectile.InitialVelocity = 40
     trek_projectile.Lifespan = 7f
 
-    // vanu_sentry_turret_projectile
+    vanu_sentry_turret_projectile.Name = "vanu_sentry_turret_projectile"
     vanu_sentry_turret_projectile.Damage0 = 25
     vanu_sentry_turret_projectile.Damage1 = 35
     vanu_sentry_turret_projectile.Damage2 = 100
@@ -2939,7 +2939,7 @@ object GlobalDefinitions {
     vanu_sentry_turret_projectile.InitialVelocity = 240
     vanu_sentry_turret_projectile.Lifespan = 1.3f
 
-    // vulture_bomb_projectile
+    vulture_bomb_projectile.Name = "vulture_bomb_projectile"
     vulture_bomb_projectile.Damage0 = 175
     vulture_bomb_projectile.Damage1 = 1750
     vulture_bomb_projectile.Damage2 = 1000
@@ -2951,7 +2951,7 @@ object GlobalDefinitions {
     vulture_bomb_projectile.InitialVelocity = 0
     vulture_bomb_projectile.Lifespan = 30f
 
-    // vulture_nose_bullet_projectile
+    vulture_nose_bullet_projectile.Name = "vulture_nose_bullet_projectile"
     vulture_nose_bullet_projectile.Damage0 = 12
     vulture_nose_bullet_projectile.Damage1 = 15
     vulture_nose_bullet_projectile.Damage2 = 10
@@ -2963,7 +2963,7 @@ object GlobalDefinitions {
     vulture_nose_bullet_projectile.InitialVelocity = 500
     vulture_nose_bullet_projectile.Lifespan = 0.46f
 
-    // vulture_tail_bullet_projectile
+    vulture_tail_bullet_projectile.Name = "vulture_tail_bullet_projectile"
     vulture_tail_bullet_projectile.Damage0 = 25
     vulture_tail_bullet_projectile.Damage1 = 35
     vulture_tail_bullet_projectile.Damage2 = 50
@@ -2973,7 +2973,7 @@ object GlobalDefinitions {
     vulture_tail_bullet_projectile.InitialVelocity = 500
     vulture_tail_bullet_projectile.Lifespan = 0.6f
 
-    // wasp_gun_projectile
+    wasp_gun_projectile.Name = "wasp_gun_projectile"
     wasp_gun_projectile.Damage0 = 10
     wasp_gun_projectile.Damage1 = 15
     wasp_gun_projectile.Damage2 = 25
@@ -2985,7 +2985,7 @@ object GlobalDefinitions {
     wasp_gun_projectile.InitialVelocity = 500
     wasp_gun_projectile.Lifespan = 0.5f
 
-    // wasp_rocket_projectile
+    wasp_rocket_projectile.Name = "wasp_rocket_projectile"
     wasp_rocket_projectile.Damage0 = 35
     wasp_rocket_projectile.Damage1 = 50
     wasp_rocket_projectile.Damage2 = 300
@@ -2997,7 +2997,7 @@ object GlobalDefinitions {
     wasp_rocket_projectile.InitialVelocity = 60
     wasp_rocket_projectile.Lifespan = 6.5f
 
-    // winchester_projectile
+    winchester_projectile.Name = "winchester_projectile"
     // TODO for later, maybe : set_resource_parent winchester_projectile game_objects bolt_projectile
     winchester_projectile.Damage0 = 80
     winchester_projectile.Damage1 = 40
@@ -3008,7 +3008,6 @@ object GlobalDefinitions {
     winchester_projectile.InitialVelocity = 500
     winchester_projectile.Lifespan = 0.6f
   }
-
 
   /**
     * Initialize `ToolDefinition` globals.
