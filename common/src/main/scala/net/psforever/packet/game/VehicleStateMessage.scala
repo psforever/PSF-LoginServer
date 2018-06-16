@@ -21,7 +21,7 @@ import scodec.codecs._
   *                        15 for straight;
   *                        0 for hard right;
   *                        30 for hard left
-  * @param unk5 na
+  * @param unk5 na - Possibly a flag to indicate the vehicle is attached to something else e.g. is in a galaxy/lodestar cargo bay
   * @param unk6 na
   * @see `PlacementData`
   */

@@ -3,6 +3,7 @@ package services.avatar
 
 import net.psforever.objects.Player
 import net.psforever.objects.equipment.Equipment
+import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game.{ObjectCreateMessage, PlanetSideGUID, PlayerStateMessageUpstream}
 import net.psforever.packet.game.objectcreate.ConstructorData
 import net.psforever.types.ExoSuitType
@@ -27,6 +28,8 @@ object AvatarResponse {
   final case class Reload(weapon_guid : PlanetSideGUID) extends Response
   final case class StowEquipment(target_guid : PlanetSideGUID, slot : Int, item : Equipment) extends Response
   final case class WeaponDryFire(weapon_guid : PlanetSideGUID) extends Response
+
+  final case class SendResponse(msg: PlanetSideGamePacket) extends Response
   //  final case class PlayerStateShift(itemID : PlanetSideGUID) extends Response
   //  final case class DestroyDisplay(itemID : PlanetSideGUID) extends Response
   //  final case class HitHintReturn(itemID : PlanetSideGUID) extends Response

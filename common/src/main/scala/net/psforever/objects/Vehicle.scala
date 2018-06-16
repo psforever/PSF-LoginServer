@@ -8,7 +8,7 @@ import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.deploy.Deployment
-import net.psforever.objects.vehicles.{AccessPermissionGroup, Seat, Utility, VehicleLockState}
+import net.psforever.objects.vehicles._
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types.PlanetSideEmpire
 
@@ -83,9 +83,16 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
     */
   private val groupPermissions : Array[VehicleLockState.Value] = Array(VehicleLockState.Locked, VehicleLockState.Empire, VehicleLockState.Empire, VehicleLockState.Locked)
   private var seats : Map[Int, Seat] = Map.empty
+  private var cargoHolds : Map[Int, Cargo] = Map.empty
   private var weapons : Map[Int, EquipmentSlot] = Map.empty
   private var utilities : Map[Int, Utility] = Map()
   private val trunk : GridInventory = GridInventory()
+
+  /**
+    * Records the GUID of the cargo vehicle (galaxy/lodestar) this vehicle is stored in for DismountVehicleCargoMsg use
+    * DismountVehicleCargoMsg only passes the player_guid and this vehicle's guid
+    */
+  private var mountedIn : Option[PlanetSideGUID] = None
 
   //init
   LoadDefinition()
@@ -105,6 +112,22 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
   override def Faction_=(faction : PlanetSideEmpire.Value) : PlanetSideEmpire.Value = {
     this.faction = faction
     faction
+  }
+
+  def MountedIn : Option[PlanetSideGUID] = {
+    this.mountedIn
+  }
+
+  def MountedIn_=(cargo_vehicle_guid : PlanetSideGUID) : Option[PlanetSideGUID] = MountedIn_=(Some(cargo_vehicle_guid))
+
+  def MountedIn_=(cargo_vehicle_guid : Option[PlanetSideGUID]) : Option[PlanetSideGUID] = {
+    cargo_vehicle_guid match {
+      case Some(_) =>
+        this.mountedIn = cargo_vehicle_guid
+      case None =>
+        this.mountedIn = None
+    }
+    MountedIn
   }
 
   def Owner : Option[PlanetSideGUID] = {
@@ -273,6 +296,19 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
     seats
   }
 
+  def CargoHold(cargoNumber : Int) : Option[Cargo] = {
+    if(cargoNumber >= 0) {
+      this.cargoHolds.get(cargoNumber)
+    }
+    else {
+      None
+    }
+  }
+
+  def CargoHolds : Map[Int, Cargo] = {
+    cargoHolds
+  }
+
   def SeatPermissionGroup(seatNumber : Int) : Option[AccessPermissionGroup.Value] = {
     if(seatNumber == 0) {
       Some(AccessPermissionGroup.Driver)
@@ -286,6 +322,12 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
             case None =>
               Some(AccessPermissionGroup.Passenger)
           }
+        case None =>
+          None
+      }
+      CargoHold(seatNumber) match {
+        case Some(_) =>
+          Some(AccessPermissionGroup.Passenger)
         case None =>
           None
       }
@@ -558,6 +600,9 @@ object Vehicle {
     }).toMap
     //create seats
     vehicle.seats = vdef.Seats.map({ case(num, definition) => num -> Seat(definition)}).toMap
+    // create cargo holds
+    vehicle.cargoHolds = vdef.Cargo.map({ case(num, definition) => num -> Cargo(definition)}).toMap
+
     //create utilities
     vehicle.utilities = vdef.Utilities.map({ case(num, util) => num -> Utility(util, vehicle) }).toMap
     //trunk
