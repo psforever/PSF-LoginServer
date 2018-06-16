@@ -17,8 +17,10 @@ abstract class ActorTest(sys : ActorSystem = ActorSystem("system", ConfigFactory
 object ActorTest {
   import scala.collection.JavaConverters._
   private val LoggingConfig = Map(
-    "akka.loglevel" -> ConfigValueFactory.fromAnyRef("OFF"),
-    "akka.stdout-loglevel" -> ConfigValueFactory.fromAnyRef("OFF")
+    "akka.loggers" -> List("akka.testkit.TestEventListener").asJava,
+    "akka.loglevel" -> "OFF",
+    "akka.stdout-loglevel" -> "OFF",
+    "akka.log-dead-letters" -> "OFF"
   ).asJava
 
   final case class MDCGamePacket(packet : GamePacket)

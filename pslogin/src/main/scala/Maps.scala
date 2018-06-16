@@ -1,6 +1,8 @@
 // Copyright (c) 2017 PSForever
 import net.psforever.objects.zones.ZoneMap
 import net.psforever.objects.GlobalDefinitions._
+import net.psforever.objects.LocalProjectile
+import net.psforever.objects.ballistics.Projectile
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.serverobject.implantmech.ImplantTerminalMech
 import net.psforever.objects.serverobject.locks.IFFLock
@@ -13,15 +15,25 @@ import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.types.Vector3
 
 object Maps {
-  val map1 = new ZoneMap("map01")
+  val map1 = new ZoneMap("map01") {
+    Projectiles(this)
+  }
 
-  val map2 = new ZoneMap("map02")
+  val map2 = new ZoneMap("map02") {
+    Projectiles(this)
+  }
 
-  val map3 = new ZoneMap("map03")
+  val map3 = new ZoneMap("map03") {
+    Projectiles(this)
+  }
 
-  val map4 = new ZoneMap("map04")
+  val map4 = new ZoneMap("map04") {
+    Projectiles(this)
+  }
 
-  val map5 = new ZoneMap("map05")
+  val map5 = new ZoneMap("map05") {
+    Projectiles(this)
+  }
 
   val map6 = new ZoneMap("map06") {
     Building2()
@@ -29,6 +41,7 @@ object Maps {
     Building42()
     Building48()
     Building49()
+    Projectiles(this)
 
     def Building2() : Unit = {
       //Anguta
@@ -420,17 +433,29 @@ object Maps {
     }
   }
 
-  val map7 = new ZoneMap("map07")
+  val map7 = new ZoneMap("map07") {
+    Projectiles(this)
+  }
 
-  val map8 = new ZoneMap("map08")
+  val map8 = new ZoneMap("map08") {
+    Projectiles(this)
+  }
 
-  val map9 = new ZoneMap("map09")
+  val map9 = new ZoneMap("map09") {
+    Projectiles(this)
+  }
 
-  val map10 = new ZoneMap("map10")
+  val map10 = new ZoneMap("map10") {
+    Projectiles(this)
+  }
 
-  val map11 = new ZoneMap("map11")
+  val map11 = new ZoneMap("map11") {
+    Projectiles(this)
+  }
 
-  val map12 = new ZoneMap("map12")
+  val map12 = new ZoneMap("map12") {
+    Projectiles(this)
+  }
 
   val map13 = new ZoneMap("map13") {
     Building1()
@@ -443,6 +468,7 @@ object Maps {
     Building77()
     Building79()
     Building81()
+    Projectiles(this)
 
     def Building1() : Unit = {
       //warpgate?
@@ -716,29 +742,59 @@ object Maps {
     }
   }
 
-  val map14 = new ZoneMap("map14")
+  val map14 = new ZoneMap("map14") {
+    Projectiles(this)
+  }
 
-  val map15 = new ZoneMap("map15")
+  val map15 = new ZoneMap("map15") {
+    Projectiles(this)
+  }
 
-  val map16 = new ZoneMap("map16")
+  val map16 = new ZoneMap("map16") {
+    Projectiles(this)
+  }
 
-  val ugd01 = new ZoneMap("ugd01")
+  val ugd01 = new ZoneMap("ugd01") {
+    Projectiles(this)
+  }
 
-  val ugd02 = new ZoneMap("ugd02")
+  val ugd02 = new ZoneMap("ugd02") {
+    Projectiles(this)
+  }
 
-  val ugd03 = new ZoneMap("ugd03")
+  val ugd03 = new ZoneMap("ugd03") {
+    Projectiles(this)
+  }
 
-  val ugd04 = new ZoneMap("ugd04")
+  val ugd04 = new ZoneMap("ugd04") {
+    Projectiles(this)
+  }
 
-  val ugd05 = new ZoneMap("ugd05")
+  val ugd05 = new ZoneMap("ugd05") {
+    Projectiles(this)
+  }
 
-  val ugd06 = new ZoneMap("ugd06")
+  val ugd06 = new ZoneMap("ugd06") {
+    Projectiles(this)
+  }
 
-  val map96 = new ZoneMap("map96")
+  val map96 = new ZoneMap("map96") {
+    Projectiles(this)
+  }
 
-  val map97 = new ZoneMap("map97")
+  val map97 = new ZoneMap("map97") {
+    Projectiles(this)
+  }
 
-  val map98 = new ZoneMap("map98")
+  val map98 = new ZoneMap("map98") {
+    Projectiles(this)
+  }
 
-  val map99 = new ZoneMap("map99")
+  val map99 = new ZoneMap("map99") {
+    Projectiles(this)
+  }
+
+  private def Projectiles(zmap : ZoneMap) : Unit = {
+    (Projectile.BaseUID until Projectile.RangeUID) foreach { zmap.LocalObject(_, LocalProjectile.Constructor) }
+  }
 }

@@ -1,6 +1,10 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.ballistics
 
+/**
+  * The different values for five common types of damage that can be dealt, based on target and application.
+  * In the same way, the five damage modifiers that are applied to the same kind of damage.
+  */
 trait DamageProfile {
   def Damage0 : Int
 

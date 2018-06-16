@@ -46,9 +46,6 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
   private var accessor : ActorRef = ActorRef.noSender
   /** The basic support structure for the globally unique number system used by this `Zone`. */
   private var guid : NumberPoolHub = new NumberPoolHub(new LimitedNumberSource(65536))
-  guid.AddPool("environment", (0 to 3000).toList) //TODO tailer ro suit requirements of zone
-  guid.AddPool("dynamic", (3001 to 10000).toList).Selector = new RandomSelector //TODO unlump pools later; do not make too big
-  guid.AddPool("projectiles", (Projectile.BaseUID until Projectile.RangeUID).toList) //TODO unlump pools later; do not make too big
   /** A synchronized `List` of items (`Equipment`) dropped by players on the ground and can be collected again. */
   private val equipmentOnGround : ListBuffer[Equipment] = ListBuffer[Equipment]()
   /** */
@@ -90,6 +87,7 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
   def Init(implicit context : ActorContext) : Unit = {
     if(accessor == ActorRef.noSender) {
       implicit val guid : NumberPoolHub = this.guid //passed into builderObject.Build implicitly
+      SetupNumberPools()
       accessor = context.actorOf(RandomPool(25).props(Props(classOf[UniqueNumberSystem], guid, UniqueNumberSystem.AllocateNumberPoolActors(guid))), s"$Id-uns")
       ground = context.actorOf(Props(classOf[ZoneGroundActor], this, equipmentOnGround), s"$Id-ground")
       transport = context.actorOf(Props(classOf[ZoneVehicleActor], this, vehicles), s"$Id-vehicles")
@@ -99,8 +97,26 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
       MakeBuildings(context)
       AssignAmenities()
       CreateSpawnGroups()
-      MakeLocalProjectiles()
     }
+  }
+
+  def SetupNumberPools() : Unit = {
+    guid.AddPool("environment", (0 to 3000).toList) //TODO tailor to suit requirements of zone
+    //TODO unlump pools later; do not make any single pool too big
+    guid.AddPool("dynamic", (3001 to 10000).toList).Selector = new RandomSelector //TODO all things will be registered here, for now
+    guid.AddPool("b", (10001 to 15000).toList).Selector = new RandomSelector
+    guid.AddPool("c", (15001 to 20000).toList).Selector = new RandomSelector
+    guid.AddPool("d", (20001 to 25000).toList).Selector = new RandomSelector
+    guid.AddPool("e", (25001 to 30000).toList).Selector = new RandomSelector
+    guid.AddPool("f", (30001 to 35000).toList).Selector = new RandomSelector
+    guid.AddPool("g", (35001 to 40100).toList).Selector = new RandomSelector
+    guid.AddPool("projectiles", (Projectile.BaseUID until Projectile.RangeUID).toList)
+    //TODO disabled temporarily to lighten load times
+    //guid.AddPool("h", (40150 to 45000).toList).Selector = new RandomSelector
+    //guid.AddPool("i", (45001 to 50000).toList).Selector = new RandomSelector
+    //guid.AddPool("j", (50001 to 55000).toList).Selector = new RandomSelector
+    //guid.AddPool("k", (55001 to 60000).toList).Selector = new RandomSelector
+    //guid.AddPool("l", (60001 to 65535).toList).Selector = new RandomSelector
   }
 
   /**
@@ -301,10 +317,6 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
     val entry : Map[Building, List[SpawnTube]] = PairMap(building -> tubes)
     spawnGroups = spawnGroups ++ entry
     entry
-  }
-
-  def MakeLocalProjectiles() : Unit = {
-    (Projectile.BaseUID until Projectile.RangeUID) foreach { guid.register(new LocalProjectile(), _) }
   }
 
   /**

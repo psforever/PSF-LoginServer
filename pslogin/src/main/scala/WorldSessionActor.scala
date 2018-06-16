@@ -5256,6 +5256,13 @@ class WorldSessionActor extends Actor with MDCContextAware {
     }
   }
 
+  /**
+    * Given a globally unique identifier in the 40100 to 40124 range
+    * (with an optional 25 as buffer),
+    * find a projectile.
+    * @param projectile_guid the projectile's GUID
+    * @return the discovered projectile
+    */
   def FindProjectileEntry(projectile_guid : PlanetSideGUID) : Option[Projectile] = {
     val index = projectile_guid.guid - Projectile.BaseUID
     if(0 <= index && index < projectiles.length) {
@@ -5267,6 +5274,13 @@ class WorldSessionActor extends Actor with MDCContextAware {
     }
   }
 
+  /**
+    * Find a projectile with the given globally unique identifier and mark it as a resolved shot.
+    * A `Resolved` shot has either encountered an obstacle or is being cleaned up for not finding an obstacle.
+    * @param projectile_guid the projectile GUID
+    * @param resolution the resolution status to promote the projectile
+    * @return the projectile
+    */
   def ResolveProjectileEntry(projectile_guid : PlanetSideGUID, resolution : ProjectileResolution.Value) : Option[Projectile] = {
     FindProjectileEntry(projectile_guid) match {
       case Some(projectile) =>
@@ -5278,6 +5292,16 @@ class WorldSessionActor extends Actor with MDCContextAware {
     }
   }
 
+  /**
+    * Find a projectile with the given globally unique identifier and mark it as a resolved shot.
+    * A `Resolved` shot has either encountered an obstacle or is being cleaned up for not finding an obstacle.
+    * The internal copy of the projectile is retained as merely `Resolved`
+    * while the observed projectile is promoted to the suggested resolution status.
+    * @param projectile the projectile object
+    * @param index where the projectile was found
+    * @param resolution the resolution status to promote the projectile
+    * @return a copy of the projectile
+    */
   def ResolveProjectileEntry(projectile : Projectile, index : Int, resolution : ProjectileResolution.Value) : Option[Projectile] = {
     if(projectiles(index).contains(projectile)) {
       projectiles(index) = Some(projectile.Resolve(ProjectileResolution.Resolved))

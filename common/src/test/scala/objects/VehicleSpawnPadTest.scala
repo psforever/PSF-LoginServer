@@ -324,10 +324,10 @@ object VehicleSpawnPadControlTest {
     import net.psforever.objects.Tool
     import net.psforever.types.CharacterGender
 
-    val zone = new Zone("test-zone", map, 0)
+    val zone = new Zone("test-zone", map, 0)  { override def SetupNumberPools() = { } }
     val vehicle = Vehicle(GlobalDefinitions.two_man_assault_buggy)
     val weapon = vehicle.WeaponControlledFromSeat(1).get.asInstanceOf[Tool]
-    val guid : NumberPoolHub = new NumberPoolHub(LimitedNumberSource(40150))
+    val guid : NumberPoolHub = new NumberPoolHub(LimitedNumberSource(5))
     guid.AddPool("test-pool", (0 to 2).toList)
     guid.register(vehicle, "test-pool")
     guid.register(weapon, "test-pool")
