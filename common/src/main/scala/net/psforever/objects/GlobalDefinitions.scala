@@ -568,6 +568,10 @@ object GlobalDefinitions {
 
   val resource_silo = new ResourceSiloDefinition
 
+  val capture_terminal = new CaptureTerminalDefinition(158)
+
+  val secondary_capture = new CaptureTerminalDefinition(751)
+
   /**
     * Given a faction, provide the standard assault melee weapon.
     * @param faction the faction
