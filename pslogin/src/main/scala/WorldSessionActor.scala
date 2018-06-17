@@ -2608,9 +2608,21 @@ class WorldSessionActor extends Actor with MDCContextAware {
       continent.GUID(object_guid) match {
         case Some(door : Door) =>
           if(player.Faction == door.Faction || ((continent.Map.DoorToLock.get(object_guid.guid) match {
-            case Some(lock_guid) => continent.GUID(lock_guid).get.asInstanceOf[IFFLock].HackedBy.isDefined
+            case Some(lock_guid) =>
+              val lock = continent.GUID(lock_guid).get.asInstanceOf[IFFLock]
+
+              var baseIsHacked = false
+              lock.Owner.asInstanceOf[Building].Amenities.filter(x => x.Definition == GlobalDefinitions.capture_terminal).headOption.asInstanceOf[Option[CaptureTerminal]] match {
+                case Some(obj: CaptureTerminal) =>
+                  baseIsHacked = obj.HackedBy.isDefined
+                case None => ;
+              }
+
+              // If the IFF lock has been hacked or the base it is linked to has been hacked then open the door
+              lock.HackedBy.isDefined || baseIsHacked
             case None => !door.isOpen
           }) || Vector3.ScalarProjection(door.Outwards, player.Position - door.Position) < 0f)) {
+            // We're on the inside of the door - open the door
             door.Actor ! Door.Use(player, msg)
           }
           else if(door.isOpen) {
