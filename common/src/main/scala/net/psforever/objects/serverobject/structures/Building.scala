@@ -68,7 +68,6 @@ object Building {
     val obj = new Building(id, zone, buildingType)
     obj.Position = location
     obj.Actor = context.actorOf(Props(classOf[BuildingControl], obj), s"$id-$buildingType-building")
-    obj.Actor ! "startup"
     obj
   }
 
@@ -76,7 +75,6 @@ object Building {
     import akka.actor.Props
     val obj = new Building(id, zone, buildingType)
     obj.Actor = context.actorOf(Props(classOf[BuildingControl], obj), s"$id-$buildingType-building")
-    obj.Actor ! "startup"
     obj
   }
 
