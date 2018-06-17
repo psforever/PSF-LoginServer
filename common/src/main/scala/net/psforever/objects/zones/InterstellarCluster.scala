@@ -61,7 +61,8 @@ class InterstellarCluster(zones : List[Zone]) extends Actor {
           sender ! Zone.Lattice.NoValidSpawnPoint(zone_number, None)
       }
 
-    case _ => ;
+    case _ =>
+      log.warn(s"InterstellarCluster received unknown message");
   }
 
   /**

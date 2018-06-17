@@ -50,6 +50,7 @@ object HackState extends Enumeration {
   *             0 commonly;
   *             3 for building objects during login phase;
   *             hack type?
+  *             possibly player hacking level 0-3?
   * @param target_guid the target of the hack
   * @param player_guid the player
   * @param progress the amount of progress visible;
@@ -59,6 +60,7 @@ object HackState extends Enumeration {
   *             doesn't seem to be `char_id`?
   * @param hack_state hack state
   * @param unk7 na;
+  *             5 - boost pain field at matrixing terminal?
   *             usually, 8?
   */
 final case class HackMessage(unk1 : Int,

@@ -13,7 +13,12 @@ import scodec.codecs._
   * @param object_guid  can be : Door, Terminal, Avatar (medkit).
   * @param unk2         ???
   * @param unk3         ??? true when use a rek (false when door, medkit or open equip term)
-  * @param unk4         ???
+  * @param unk4         ??? seems to be related to T-REK viruses.
+  *                     0 - unlock all doors
+  *                     1 - disable linked benefits
+  *                     2 - double ntu drain
+  *                     3 - disable enemy radar
+  *                     4 - access equipment terminals
   * @param unk5         ???
   * @param unk6         ???
   * @param unk7         ??? 25 when door 223 when terminal
