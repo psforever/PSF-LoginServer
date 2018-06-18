@@ -373,6 +373,7 @@ object ObjectClass {
   final val implant_terminal_interface = 409
   final val locker_container = 456
   final val lodestar_repair_terminal = 461
+  final val manned_turret = 480
   final val matrix_terminala = 517
   final val matrix_terminalb = 518
   final val matrix_terminalc = 519
@@ -1281,6 +1282,7 @@ object ObjectClass {
       case ObjectClass.capture_flag => ConstructorData.genericCodec(CaptureFlagData.codec, "capture flag")
       case ObjectClass.implant_terminal_interface => ConstructorData.genericCodec(CommonTerminalData.codec, "implant terminal")
       case ObjectClass.locker_container => ConstructorData.genericCodec(LockerContainerData.codec, "locker container")
+      //TODO case ObjectClass.manned_turret ...
       case ObjectClass.matrix_terminala => DroppedItemData.genericCodec(CommonTerminalData.codec, "terminal")
       case ObjectClass.matrix_terminalb => DroppedItemData.genericCodec(CommonTerminalData.codec, "terminal")
       case ObjectClass.matrix_terminalc => DroppedItemData.genericCodec(CommonTerminalData.codec, "terminal")
