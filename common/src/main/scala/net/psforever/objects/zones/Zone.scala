@@ -109,7 +109,7 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
     guid.AddPool("d", (20001 to 25000).toList).Selector = new RandomSelector
     guid.AddPool("e", (25001 to 30000).toList).Selector = new RandomSelector
     guid.AddPool("f", (30001 to 35000).toList).Selector = new RandomSelector
-    guid.AddPool("g", (35001 to 40100).toList).Selector = new RandomSelector
+    guid.AddPool("g", (35001 until 40100).toList).Selector = new RandomSelector
     guid.AddPool("projectiles", (Projectile.BaseUID until Projectile.RangeUID).toList)
     //TODO disabled temporarily to lighten load times
     //guid.AddPool("h", (40150 to 45000).toList).Selector = new RandomSelector
