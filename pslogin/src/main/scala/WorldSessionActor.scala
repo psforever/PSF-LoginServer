@@ -3687,7 +3687,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             val isResecured = player.Faction == target.Faction
             localService ! LocalServiceMessage(continent.Id, LocalAction.HackCaptureTerminal(player.GUID, continent, target.asInstanceOf[CaptureTerminal], unk, 8L, isResecured))
           case _ =>
-    localService ! LocalServiceMessage(continent.Id, LocalAction.HackTemporarily(player.GUID, continent, target, unk))
+            localService ! LocalServiceMessage(continent.Id, LocalAction.HackTemporarily(player.GUID, continent, target, unk, target.HackEffectDuration(GetPlayerHackLevel())))
         }
 
       case scala.util.Failure(_) => log.warn(s"Hack message failed on target guid: ${target.GUID}")
