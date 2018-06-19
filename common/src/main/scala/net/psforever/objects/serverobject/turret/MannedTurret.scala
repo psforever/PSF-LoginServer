@@ -9,11 +9,12 @@ import net.psforever.objects.inventory.{Container, GridInventory}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.structures.Amenity
-import net.psforever.objects.vehicles.{Seat => Chair}
+import net.psforever.objects.vehicles.{MountedWeapons, Seat => Chair}
 
 class MannedTurret(tDef : MannedTurretDefinition) extends Amenity
   with FactionAffinity
   with Mountable
+  with MountedWeapons
   with Container {
   private var health : Int = 1
   private val seats : Map[Int, Chair] = Map(0 -> Chair(new SeatDefinition() { ControlledWeapon = Some(1) }))
@@ -117,14 +118,16 @@ object MannedTurret {
       num -> slot
     }).toMap
     //special inventory ammunition object(s)
-    val allAmmunitionTypes = tdef.Weapons.values.flatMap { _.AmmoTypes }.toSet
-    if(allAmmunitionTypes.nonEmpty) {
-      turret.inventory.Resize(allAmmunitionTypes.size, 1)
-      var i : Int = 0
-      allAmmunitionTypes.foreach(ammotype => {
-        turret.inventory.InsertQuickly(i, new TurretAmmoBox(ammotype))
-        i += 1
-      })
+    if(tdef.ReserveAmmunition) {
+      val allAmmunitionTypes = tdef.Weapons.values.flatMap { _.AmmoTypes }.toSet
+      if(allAmmunitionTypes.nonEmpty) {
+        turret.inventory.Resize(allAmmunitionTypes.size, 1)
+        var i : Int = 0
+        allAmmunitionTypes.foreach(ammotype => {
+          turret.inventory.InsertQuickly(i, new TurretAmmoBox(ammotype))
+          i += 1
+        })
+      }
     }
     turret
   }

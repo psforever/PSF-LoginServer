@@ -35,7 +35,7 @@ import net.psforever.objects.serverobject.structures.{Building, StructureType, W
 import net.psforever.objects.serverobject.terminals._
 import net.psforever.objects.serverobject.terminals.Terminal.TerminalMessage
 import net.psforever.objects.serverobject.tube.SpawnTube
-import net.psforever.objects.vehicles.{AccessPermissionGroup, Cargo, Utility, VehicleLockState}
+import net.psforever.objects.vehicles._
 import net.psforever.objects.zones.{InterstellarCluster, Zone}
 import net.psforever.packet.game.objectcreate._
 import net.psforever.types._
@@ -54,6 +54,7 @@ import scala.concurrent.duration._
 import scala.util.Success
 import akka.pattern.ask
 import net.psforever.objects.ballistics.{Projectile, ProjectileResolution}
+import net.psforever.objects.serverobject.turret.MannedTurret
 
 class WorldSessionActor extends Actor with MDCContextAware {
   import WorldSessionActor._
@@ -772,6 +773,23 @@ class WorldSessionActor extends Actor with MDCContextAware {
           sendResponse(ObjectAttachMessage(obj_guid, player_guid, seat_num))
           vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.MountVehicle(player_guid, obj_guid, seat_num))
 
+        case Mountable.CanMount(obj : MannedTurret, seat_num) =>
+          val obj_guid : PlanetSideGUID = obj.GUID
+          val player_guid : PlanetSideGUID = tplayer.GUID
+          log.info(s"MountVehicleMsg: $player_guid mounts $obj_guid @ $seat_num")
+          PlayerActionsToCancel()
+          obj.WeaponControlledFromSeat(seat_num) match {
+            case Some(weapon : Tool) =>
+              //update mounted weapon belonging to seat
+              weapon.AmmoSlots.foreach(slot => { //update the magazine(s) in the weapon, specifically
+              val magazine = slot.Box
+                sendResponse(InventoryStateMessage(magazine.GUID, weapon.GUID, magazine.Capacity.toLong))
+              })
+            case _ => ; //no weapons to update
+          }
+          sendResponse(ObjectAttachMessage(obj_guid, player_guid, seat_num))
+          vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.MountVehicle(player_guid, obj_guid, seat_num))
+
         case Mountable.CanMount(obj : Vehicle, seat_num) =>
           val obj_guid : PlanetSideGUID = obj.GUID
           val player_guid : PlanetSideGUID = tplayer.GUID
@@ -810,7 +828,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
           log.warn(s"MountVehicleMsg: $obj is some generic mountable object and nothing will happen")
 
         case Mountable.CanDismount(obj : ImplantTerminalMech, seat_num) =>
-          val obj_guid : PlanetSideGUID = obj.GUID
+          val player_guid : PlanetSideGUID = tplayer.GUID
+          log.info(s"DismountVehicleMsg: $player_guid dismounts $obj @ $seat_num")
+          sendResponse(DismountVehicleMsg(player_guid, BailType.Normal, false))
+          vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.DismountVehicle(player_guid, BailType.Normal, false))
+
+        case Mountable.CanDismount(obj : MannedTurret, seat_num) =>
           val player_guid : PlanetSideGUID = tplayer.GUID
           log.info(s"DismountVehicleMsg: $player_guid dismounts $obj @ $seat_num")
           sendResponse(DismountVehicleMsg(player_guid, BailType.Normal, false))
@@ -2056,6 +2079,44 @@ class WorldSessionActor extends Actor with MDCContextAware {
           case _ => ;
         }
       })
+
+      //base turrets
+      continent.Map.TurretToWeapon.foreach({ case((turret_guid, weapon_guid)) =>
+        val parent_guid = PlanetSideGUID(turret_guid)
+        continent.GUID(weapon_guid) match {
+          case Some(obj : Tool) =>
+            val objDef = obj.Definition
+            sendResponse(
+              ObjectCreateMessage(
+                objDef.ObjectId,
+                obj.GUID,
+                ObjectCreateMessageParent(parent_guid, 1),
+                objDef.Packet.ConstructorData(obj).get
+              )
+            )
+          case _ => ;
+        }
+        //reserved ammunition?
+        //TODO need to register if it exists
+        //seat turret occupants
+        continent.GUID(turret_guid) match {
+          case Some(obj : Mountable) =>
+            obj.Seats(0).Occupant match {
+              case Some(tplayer) =>
+                val tdefintion = tplayer.Definition
+                sendResponse(
+                  ObjectCreateMessage(
+                    tdefintion.ObjectId,
+                    tplayer.GUID,
+                    ObjectCreateMessageParent(parent_guid, 0),
+                    tdefintion.Packet.ConstructorData(tplayer).get
+                  )
+                )
+              case None => ;
+            }
+          case _ => ;
+        }
+      })
       StopBundlingPackets()
       self ! SetCurrentAvatar(player)
 
@@ -2079,33 +2140,50 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ ChildObjectStateMessage(object_guid, pitch, yaw) =>
       //the majority of the following check retrieves information to determine if we are in control of the child
-      player.VehicleSeated match {
-        case Some(vehicle_guid) =>
-          continent.GUID(vehicle_guid) match {
-            case Some(obj : Vehicle) =>
-              obj.PassengerInSeat(player) match {
-                case Some(seat_num) =>
-                  obj.WeaponControlledFromSeat(seat_num) match {
-                    case Some(tool) =>
-                      if(tool.GUID == object_guid) {
-                        //TODO set tool orientation?
-                        player.Orientation = Vector3(0f, pitch, yaw)
-                        vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.ChildObjectState(player.GUID, object_guid, pitch, yaw))
-                      }
-                    case None =>
-                      log.warn(s"ChildObjectState: player $player is not using stated controllable agent")
-                  }
-                case None =>
-                  log.warn(s"ChildObjectState: player ${player.GUID} is not in a position to use controllable agent")
-              }
-            case _ =>
-              log.warn(s"ChildObjectState: player $player's controllable agent not available in scope")
+      FindContainedWeapon match {
+        case (Some(_), Some(tool)) =>
+          if(tool.GUID == object_guid) {
+            //TODO set tool orientation?
+            player.Orientation = Vector3(0f, pitch, yaw)
+            vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.ChildObjectState(player.GUID, object_guid, pitch, yaw))
           }
-        case None =>
-        //TODO status condition of "playing getting out of vehicle to allow for late packets without warning
-        //log.warn(s"ChildObjectState: player $player not related to anything with a controllable agent")
+          else {
+            log.warn(s"ChildObjectState: ${player.Name} is using a different controllable agent than #${object_guid.guid}")
+          }
+        case (Some(obj), None) =>
+          log.warn(s"ChildObjectState: ${player.Name} can not find any controllable agent, let alone #${object_guid.guid}")
+        case (None, _) => ;
+          //TODO status condition of "playing getting out of vehicle to allow for late packets without warning
+          //log.warn(s"ChildObjectState: player $player not related to anything with a controllable agent")
       }
-    //log.info("ChildObjectState: " + msg)
+
+//      player.VehicleSeated match {
+//        case Some(vehicle_guid) =>
+//          continent.GUID(vehicle_guid) match {
+//            case Some(obj : Mountable with MountedWeapons) =>
+//              obj.PassengerInSeat(player) match {
+//                case Some(seat_num) =>
+//                  obj.WeaponControlledFromSeat(seat_num) match {
+//                    case Some(tool) =>
+//                      if(tool.GUID == object_guid) {
+//                        //TODO set tool orientation?
+//                        player.Orientation = Vector3(0f, pitch, yaw)
+//                        vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.ChildObjectState(player.GUID, object_guid, pitch, yaw))
+//                      }
+//                    case None =>
+//                      log.warn(s"ChildObjectState: player $player is not using stated controllable agent")
+//                  }
+//                case None =>
+//                  log.warn(s"ChildObjectState: player ${player.GUID} is not in a position to use controllable agent")
+//              }
+//            case _ =>
+//              log.warn(s"ChildObjectState: player $player's controllable agent not available in scope")
+//          }
+//        case None =>
+//        //TODO status condition of "playing getting out of vehicle to allow for late packets without warning
+//        //log.warn(s"ChildObjectState: player $player not related to anything with a controllable agent")
+//      }
+//    //log.info("ChildObjectState: " + msg)
 
     case msg @ VehicleStateMessage(vehicle_guid, unk1, pos, ang, vel, unk5, unk6, unk7, wheels, unk9, unkA) =>
       continent.GUID(vehicle_guid) match {
@@ -4025,7 +4103,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     player.VehicleSeated match {
       case Some(vehicle_guid) => //weapon is vehicle turret?
         continent.GUID(vehicle_guid) match {
-          case Some(vehicle : Vehicle) =>
+          case Some(vehicle : Mountable with MountedWeapons with Container) =>
             vehicle.PassengerInSeat(player) match {
               case Some(seat_num) =>
                 (Some(vehicle), vehicle.WeaponControlledFromSeat(seat_num))

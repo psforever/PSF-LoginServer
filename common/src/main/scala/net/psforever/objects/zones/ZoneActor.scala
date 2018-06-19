@@ -171,6 +171,14 @@ class ZoneActor(zone : Zone) extends Actor {
       validateObject(mech_guid, ImplantMechCheck, "implant terminal mech")
       validateObject(interface_guid, TerminalCheck, "implant terminal interface")
     })
+
+    //check manned turret to weapon association, and check that the former has the latter in slot 1
+    map.TurretToWeapon.foreach({ case ((turret_guid, weapon_guid)) =>
+      validateObject(turret_guid, MannedTurretCheck, "manned turret mount")
+      validateObject(weapon_guid, WeaponCheck, "manned turret weapon")
+    })
+
+    //output number of errors
     errors.intValue()
   }
 }
@@ -294,5 +302,15 @@ object ZoneActor {
   def VehicleSpawnPadCheck(obj : PlanetSideGameObject) : Boolean = {
     import net.psforever.objects.serverobject.pad.VehicleSpawnPad
     obj.isInstanceOf[VehicleSpawnPad]
+  }
+
+  def MannedTurretCheck(obj : PlanetSideGameObject) : Boolean = {
+    import net.psforever.objects.serverobject.turret.MannedTurret
+    obj.isInstanceOf[MannedTurret]
+  }
+
+  def WeaponCheck(obj : PlanetSideGameObject) : Boolean = {
+    import net.psforever.objects.Tool
+    obj.isInstanceOf[Tool]
   }
 }

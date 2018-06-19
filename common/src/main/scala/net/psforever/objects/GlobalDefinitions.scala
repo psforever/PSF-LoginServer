@@ -865,8 +865,9 @@ object GlobalDefinitions {
     Weapons += 3 -> phalanx_flakcombo
     UpgradeStates += TurretUpgrade.AVCombo -> 1
     UpgradeStates += TurretUpgrade.FlakCombo -> 2
-    MountPoints += 0 -> 0
+    MountPoints += 1 -> 0
     FactionLocked = true
+    ReserveAmmunition = false
   }
 
   /**
@@ -4326,7 +4327,7 @@ object GlobalDefinitions {
     phalanx_sgl_hevgatcan.Size = EquipmentSize.BaseTurretWeapon
     phalanx_sgl_hevgatcan.AmmoTypes += phalanx_ammo
     phalanx_sgl_hevgatcan.ProjectileTypes += phalanx_projectile
-    phalanx_sgl_hevgatcan.FireModes += new FireModeDefinition
+    phalanx_sgl_hevgatcan.FireModes += new InfiniteFireModeDefinition
     phalanx_sgl_hevgatcan.FireModes.head.AmmoTypeIndices += 0
     phalanx_sgl_hevgatcan.FireModes.head.AmmoSlotIndex = 0
     phalanx_sgl_hevgatcan.FireModes.head.Magazine = 4000
@@ -4336,11 +4337,11 @@ object GlobalDefinitions {
     phalanx_avcombo.AmmoTypes += phalanx_ammo
     phalanx_avcombo.ProjectileTypes += phalanx_projectile
     phalanx_avcombo.ProjectileTypes += phalanx_av_projectile
-    phalanx_avcombo.FireModes += new FireModeDefinition
+    phalanx_avcombo.FireModes += new InfiniteFireModeDefinition
     phalanx_avcombo.FireModes.head.AmmoTypeIndices += 0
     phalanx_avcombo.FireModes.head.AmmoSlotIndex = 0
     phalanx_avcombo.FireModes.head.Magazine = 4000
-    phalanx_avcombo.FireModes += new FireModeDefinition
+    phalanx_avcombo.FireModes += new InfiniteFireModeDefinition
     phalanx_avcombo.FireModes(1).AmmoTypeIndices += 0
     phalanx_avcombo.FireModes(1).ProjectileTypeIndices += 1
     phalanx_avcombo.FireModes(1).AmmoSlotIndex = 1
@@ -4351,11 +4352,11 @@ object GlobalDefinitions {
     phalanx_flakcombo.AmmoTypes += phalanx_ammo
     phalanx_flakcombo.ProjectileTypes += phalanx_projectile
     phalanx_flakcombo.ProjectileTypes += phalanx_flak_projectile
-    phalanx_flakcombo.FireModes += new FireModeDefinition
+    phalanx_flakcombo.FireModes += new InfiniteFireModeDefinition
     phalanx_flakcombo.FireModes.head.AmmoTypeIndices += 0
     phalanx_flakcombo.FireModes.head.AmmoSlotIndex = 0
     phalanx_flakcombo.FireModes.head.Magazine = 4000
-    phalanx_flakcombo.FireModes += new FireModeDefinition
+    phalanx_flakcombo.FireModes += new InfiniteFireModeDefinition
     phalanx_flakcombo.FireModes(1).AmmoTypeIndices += 0
     phalanx_flakcombo.FireModes(1).ProjectileTypeIndices += 1
     phalanx_flakcombo.FireModes(1).AmmoSlotIndex = 1

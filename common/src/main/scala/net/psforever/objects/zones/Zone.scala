@@ -12,6 +12,7 @@ import net.psforever.objects.guid.selector.RandomSelector
 import net.psforever.objects.guid.source.LimitedNumberSource
 import net.psforever.objects.serverobject.structures.{Amenity, Building}
 import net.psforever.objects.serverobject.tube.SpawnTube
+import net.psforever.objects.serverobject.turret.MannedTurret
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types.Vector3
 
@@ -93,7 +94,8 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
       transport = context.actorOf(Props(classOf[ZoneVehicleActor], this, vehicles), s"$Id-vehicles")
       population = context.actorOf(Props(classOf[ZonePopulationActor], this, players, corpses), s"$Id-players")
 
-      Map.LocalObjects.foreach({ builderObject => builderObject.Build })
+      BuildLocalObjects(context, guid)
+      BuildSupportObjects()
       MakeBuildings(context)
       AssignAmenities()
       CreateSpawnGroups()
@@ -277,6 +279,39 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
 
   def Building(id : Int) : Option[Building] = {
     buildings.get(id)
+  }
+
+  private def BuildLocalObjects(implicit context : ActorContext, guid : NumberPoolHub) : Unit = {
+    Map.LocalObjects.foreach({ builderObject => builderObject.Build })
+  }
+
+  private def BuildSupportObjects() : Unit = {
+    //guard against errors here, but don't worry about specifics; let ZoneActor.ZoneSetupCheck complain about problems
+    //turret to weapon
+    Map.TurretToWeapon.foreach({ case ((turret_guid, weapon_guid)) =>
+      ((GUID(turret_guid) match {
+        case Some(obj : MannedTurret) =>
+          Some(obj)
+        case _ => ;
+          None
+      }) match {
+        case Some(obj) =>
+          obj.Weapons.get(1) match {
+            case Some(slot) =>
+              Some(obj, slot.Equipment)
+            case None =>
+              None
+          }
+        case None =>
+          None
+      }) match {
+        case Some((obj, Some(weapon : Tool))) =>
+          guid.register(weapon, weapon_guid)
+          weapon.AmmoSlots.foreach(slot => guid.register(slot.Box))
+          obj.Inventory.Items.foreach(item => guid.register(item.obj)) //internal ammunition reserves, if any
+        case _ => ;
+      }
+    })
   }
 
   private def MakeBuildings(implicit context : ActorContext) : PairMap[Int, Building] = {

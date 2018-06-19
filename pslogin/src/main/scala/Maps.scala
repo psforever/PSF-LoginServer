@@ -12,6 +12,7 @@ import net.psforever.objects.serverobject.structures.{Building, FoundationBuilde
 import net.psforever.objects.serverobject.terminals.{ProximityTerminal, Terminal}
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
+import net.psforever.objects.serverobject.turret.MannedTurret
 import net.psforever.types.Vector3
 
 object Maps {
@@ -114,6 +115,7 @@ object Maps {
       LocalObject(1186, Locker.Constructor)
       LocalObject(1187, Locker.Constructor)
       LocalObject(1188, Locker.Constructor)
+      LocalObject(1427, MannedTurret.Constructor(manned_turret))
       LocalObject(1492, ProximityTerminal.Constructor(medical_terminal)) //lobby
       LocalObject(1494, ProximityTerminal.Constructor(medical_terminal)) //kitchen
       LocalObject(1564, Terminal.Constructor(order_terminal))
@@ -230,6 +232,7 @@ object Maps {
       ObjectToBuilding(1186, 2)
       ObjectToBuilding(1187, 2)
       ObjectToBuilding(1188, 2)
+      ObjectToBuilding(1427, 2)
       ObjectToBuilding(1492, 2)
       ObjectToBuilding(1494, 2)
       ObjectToBuilding(1479, 2)
@@ -286,6 +289,7 @@ object Maps {
       DoorToLock(715, 751)
       TerminalToSpawnPad(224, 223)
       TerminalToSpawnPad(2419, 1479)
+      TurretToWeapon(1427, 5000) //TODO guid not correct
     }
 
     def Building38() : Unit = {
