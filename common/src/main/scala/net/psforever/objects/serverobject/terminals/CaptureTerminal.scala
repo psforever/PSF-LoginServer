@@ -3,9 +3,12 @@ package net.psforever.objects.serverobject.terminals
 
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.structures.Amenity
+import net.psforever.packet.game.TriggeredSound
 
 class CaptureTerminal(private val idef : CaptureTerminalDefinition) extends Amenity with Hackable {
   def Definition : CaptureTerminalDefinition = idef
+  HackDuration = Array(60, 40, 20, 15)
+  HackSound = TriggeredSound.HackTerminal
 }
 
 object CaptureTerminal {

@@ -14,6 +14,8 @@ import net.psforever.types.TransactionType
   */
 class Terminal(tdef : TerminalDefinition) extends Amenity with Hackable {
   HackSound = TriggeredSound.HackTerminal
+  HackEffectDuration = Array(0, 30, 60, 90)
+  HackDuration = Array(0, 10, 5, 3)
 
   //the following fields and related methods are neither finalized nor integrated; GOTO Request
   private var health : Int = 100 //TODO not real health value

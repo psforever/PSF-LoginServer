@@ -2413,7 +2413,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
               case Some(unholsteredItem : Equipment) =>
                 if(unholsteredItem.Definition == GlobalDefinitions.remote_electronics_kit) {
                   // Player has ulholstered a REK - we need to set an atttribute on the REK itself to change the beam/icon colour to the correct one for the player's hack level
-                  avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttribute(unholsteredItem.GUID, 116, GetPlayerHackData().hackLevel))
+                  avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttribute(unholsteredItem.GUID, 116, GetPlayerHackLevel()))
                 }
               case None => ;
             }
@@ -2649,9 +2649,13 @@ class WorldSessionActor extends Actor with MDCContextAware {
             player.Slot(player.DrawnSlot).Equipment match {
               case Some(tool : SimpleItem) =>
                 if(tool.Definition == GlobalDefinitions.remote_electronics_kit) {
-                  progressBarValue = Some(-GetPlayerHackSpeed())
-                  self ! WorldSessionActor.ItemHacking(player, panel, tool.GUID, GetPlayerHackSpeed(), FinishHacking(panel, 1114636288L))
+                  val hackSpeed = GetPlayerHackSpeed(panel)
+
+                  if(hackSpeed > 0) {
+                    progressBarValue = Some(-hackSpeed)
+                    self ! WorldSessionActor.ItemHacking(player, panel, tool.GUID, hackSpeed, FinishHacking(panel, 1114636288L))
                   log.info("Hacking a door")
+                }
                 }
               case _ => ;
             }
@@ -2706,18 +2710,22 @@ class WorldSessionActor extends Actor with MDCContextAware {
             }
           }
 
-        case Some(obj : Locker) =>
-          if(obj.Faction != player.Faction && obj.HackedBy.isEmpty) {
+        case Some(locker : Locker) =>
+          if(locker.Faction != player.Faction && locker.HackedBy.isEmpty) {
             player.Slot(player.DrawnSlot).Equipment match {
               case Some(tool: SimpleItem) =>
                 if (tool.Definition == GlobalDefinitions.remote_electronics_kit) {
-                  progressBarValue = Some(-GetPlayerHackSpeed())
-                  self ! WorldSessionActor.ItemHacking(player, obj, tool.GUID, GetPlayerHackSpeed(), FinishHacking(obj, 3212836864L))
+                  val hackSpeed = GetPlayerHackSpeed(locker)
+
+                  if(hackSpeed > 0)  {
+                    progressBarValue = Some(-hackSpeed)
+                    self ! WorldSessionActor.ItemHacking(player, locker, tool.GUID, hackSpeed, FinishHacking(locker, 3212836864L))
                   log.info("Hacking a locker")
+                }
                 }
               case _ => ;
             }
-          } else if(player.Faction == obj.Faction || !obj.HackedBy.isEmpty) {
+          } else if(player.Faction == locker.Faction || !locker.HackedBy.isEmpty) {
             log.info(s"UseItem: $player accessing a locker")
             val container = player.Locker
             accessedContainer = Some(container)
@@ -2727,16 +2735,20 @@ class WorldSessionActor extends Actor with MDCContextAware {
             log.info(s"UseItem: not $player's locker")
           }
 
-        case Some(obj : CaptureTerminal) =>
-          val hackedByCurrentFaction = (obj.Faction != player.Faction && !obj.HackedBy.isEmpty && obj.HackedBy.head._1.Faction == player.Faction)
-          val ownedByPlayerFactionAndHackedByEnemyFaction = (obj.Faction == player.Faction && !obj.HackedBy.isEmpty)
+        case Some(captureTerminal : CaptureTerminal) =>
+          val hackedByCurrentFaction = (captureTerminal.Faction != player.Faction && !captureTerminal.HackedBy.isEmpty && captureTerminal.HackedBy.head._1.Faction == player.Faction)
+          val ownedByPlayerFactionAndHackedByEnemyFaction = (captureTerminal.Faction == player.Faction && !captureTerminal.HackedBy.isEmpty)
           if(!hackedByCurrentFaction || ownedByPlayerFactionAndHackedByEnemyFaction) {
             player.Slot(player.DrawnSlot).Equipment match {
               case Some(tool: SimpleItem) =>
                 if (tool.Definition == GlobalDefinitions.remote_electronics_kit) {
-                  progressBarValue = Some(-GetPlayerHackSpeed())
-                  self ! WorldSessionActor.ItemHacking(player, obj, tool.GUID, GetPlayerHackSpeed(), FinishHacking(obj, 3212836864L))
+                  val hackSpeed = GetPlayerHackSpeed(captureTerminal)
+
+                  if(hackSpeed > 0) {
+                    progressBarValue = Some(-hackSpeed)
+                    self ! WorldSessionActor.ItemHacking(player, captureTerminal, tool.GUID, hackSpeed, FinishHacking(captureTerminal, 3212836864L))
                   log.info("Hacking a capture terminal")
+                }
                 }
               case _ => ;
             }
@@ -2784,12 +2796,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
             }
           }
 
-        case Some(obj : Terminal) =>
-          if(obj.Definition.isInstanceOf[MatrixTerminalDefinition]) {
+        case Some(terminal : Terminal) =>
+          if(terminal.Definition.isInstanceOf[MatrixTerminalDefinition]) {
             //TODO matrix spawn point; for now, just blindly bind to show work (and hope nothing breaks)
-            sendResponse(BindPlayerMessage(1, "@ams", true, true, 0, 0, 0, obj.Position))
+            sendResponse(BindPlayerMessage(1, "@ams", true, true, 0, 0, 0, terminal.Position))
           }
-          else if(obj.Definition.isInstanceOf[RepairRearmSiloDefinition]) {
+          else if(terminal.Definition.isInstanceOf[RepairRearmSiloDefinition]) {
             FindLocalVehicle match {
               case Some(vehicle) =>
                 sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
@@ -2799,17 +2811,21 @@ class WorldSessionActor extends Actor with MDCContextAware {
             }
           }
           else {
-            if(obj.Faction != player.Faction && obj.HackedBy.isEmpty) {
+            if(terminal.Faction != player.Faction && terminal.HackedBy.isEmpty) {
               player.Slot(player.DrawnSlot).Equipment match {
                 case Some(tool: SimpleItem) =>
                   if (tool.Definition == GlobalDefinitions.remote_electronics_kit) {
-                    progressBarValue = Some(-GetPlayerHackSpeed())
-                    self ! WorldSessionActor.ItemHacking(player, obj, tool.GUID, GetPlayerHackSpeed(), FinishHacking(obj, 3212836864L))
+                    val hackSpeed = GetPlayerHackSpeed(terminal)
+
+                    if(hackSpeed > 0) {
+                      progressBarValue = Some(-hackSpeed)
+                      self ! WorldSessionActor.ItemHacking(player, terminal, tool.GUID, hackSpeed, FinishHacking(terminal, 3212836864L))
                     log.info("Hacking a terminal")
+                  }
                   }
                 case _ => ;
               }
-            } else if (obj.Faction == player.Faction || !obj.HackedBy.isEmpty) {
+            } else if (terminal.Faction == player.Faction || !terminal.HackedBy.isEmpty) {
               // If hacked only allow access to the faction that hacked it
               // Otherwise allow the faction that owns the terminal to use it
               sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
@@ -5147,29 +5163,31 @@ class WorldSessionActor extends Actor with MDCContextAware {
     sendResponse(RawPacket(pkt))
   }
 
-  def GetPlayerHackSpeed(): Float = {
-    if(player.Certifications.contains(CertificationType.ExpertHacking) || player.Certifications.contains(CertificationType.ElectronicsExpert)) {
-      10.64f
-    } else if(player.Certifications.contains(CertificationType.AdvancedHacking)) {
-      5.32f
-    } else {
-      2.66f
+  def GetPlayerHackSpeed(obj: PlanetSideServerObject with Hackable): Float = {
+    val playerHackLevel = GetPlayerHackLevel()
+    val timeToHack = obj.HackDuration(playerHackLevel)
+
+    if(timeToHack == 0) {
+      log.warn(s"Player ${player.GUID} tried to hack an object ${obj.GUID} - ${obj.Definition.Name} that they don't have the correct hacking level for")
+      0f
     }
+
+    // 250 ms per tick on the hacking progress bar
+    val ticks = (timeToHack * 1000) / 250
+    100f / ticks
   }
 
-  def GetPlayerHackData(): PlayerHackData = {
+  def GetPlayerHackLevel(): Int = {
     if(player.Certifications.contains(CertificationType.ExpertHacking) || player.Certifications.contains(CertificationType.ElectronicsExpert)) {
-      PlayerHackData(3, 10.64f)
+      3
     } else if(player.Certifications.contains(CertificationType.AdvancedHacking)) {
-      PlayerHackData(2, 7.98f)
+      2
     } else if (player.Certifications.contains(CertificationType.Hacking)) {
-      PlayerHackData(1, 5.32f)
+      1
     } else {
-      PlayerHackData(0, 2.66f)
+      0
     }
   }
-
-  case class PlayerHackData(hackLevel: Int, hackSpeed: Float)
 }
 
 object WorldSessionActor {
