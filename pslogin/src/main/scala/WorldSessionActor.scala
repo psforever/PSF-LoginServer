@@ -1299,6 +1299,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       val popNC = poplist.count(_.faction == PlanetSideEmpire.NC)
       val popVS = poplist.count(_.faction == PlanetSideEmpire.VS)
 
+      // StopBundlingPackets() is called on ClientInitializationComplete
       StartBundlingPackets()
       zone.Buildings.foreach({ case(id, building) => initBuilding(continentNumber, id, building) })
       sendResponse(ZonePopulationUpdateMessage(continentNumber, 414, 138, popTR, 138, popNC, 138, popVS, 138, popBO))
@@ -2660,8 +2661,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
                   if(hackSpeed > 0) {
                     progressBarValue = Some(-hackSpeed)
                     self ! WorldSessionActor.ItemHacking(player, panel, tool.GUID, hackSpeed, FinishHacking(panel, 1114636288L))
-                  log.info("Hacking a door")
-                }
+                    log.info("Hacking a door")
+                  }
                 }
               case _ => ;
             }
@@ -2726,8 +2727,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
                   if(hackSpeed > 0)  {
                     progressBarValue = Some(-hackSpeed)
                     self ! WorldSessionActor.ItemHacking(player, locker, tool.GUID, hackSpeed, FinishHacking(locker, 3212836864L))
-                  log.info("Hacking a locker")
-                }
+                    log.info("Hacking a locker")
+                  }
                 }
               case _ => ;
             }
@@ -2753,8 +2754,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
                   if(hackSpeed > 0) {
                     progressBarValue = Some(-hackSpeed)
                     self ! WorldSessionActor.ItemHacking(player, captureTerminal, tool.GUID, hackSpeed, FinishHacking(captureTerminal, 3212836864L))
-                  log.info("Hacking a capture terminal")
-                }
+                    log.info("Hacking a capture terminal")
+                  }
                 }
               case _ => ;
             }
@@ -2826,8 +2827,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
                     if(hackSpeed > 0) {
                       progressBarValue = Some(-hackSpeed)
                       self ! WorldSessionActor.ItemHacking(player, terminal, tool.GUID, hackSpeed, FinishHacking(terminal, 3212836864L))
-                    log.info("Hacking a terminal")
-                  }
+                      log.info("Hacking a terminal")
+                    }
                   }
                 case _ => ;
               }
@@ -3697,7 +3698,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         }
 
       case scala.util.Failure(_) => log.warn(s"Hack message failed on target guid: ${target.GUID}")
-  }
+    }
   }
 
 
@@ -4568,13 +4569,13 @@ class WorldSessionActor extends Actor with MDCContextAware {
         amenity.Definition match {
           case GlobalDefinitions.resource_silo =>
             // Synchronise warning light & silo capacity
-            var silo = amenity.asInstanceOf[ResourceSilo]
+            val silo = amenity.asInstanceOf[ResourceSilo]
             sendResponse(PlanetsideAttributeMessage(amenityId, 45, silo.CapacitorDisplay))
             sendResponse(PlanetsideAttributeMessage(amenityId, 47, silo.LowNtuWarningOn))
 
             if(silo.ChargeLevel == 0) {
-              // temporarily disabled until warpgates can bring ANTs from sanctuary, otherwise we'd be stuck in a situation with an unpowered base and no way to get an ANT to refill it.
-              //              sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(silo.Owner.asInstanceOf[Building].ModelId), 48, 1))
+              //todo: temporarily disabled until warpgates can bring ANTs from sanctuary, otherwise we'd be stuck in a situation with an unpowered base and no way to get an ANT to refill it.
+              //sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(silo.Owner.asInstanceOf[Building].ModelId), 48, 1))
             }
           case _ => ;
         }
