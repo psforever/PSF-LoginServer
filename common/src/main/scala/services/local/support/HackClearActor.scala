@@ -5,6 +5,7 @@ import java.util.concurrent.TimeUnit
 
 import akka.actor.{Actor, Cancellable}
 import net.psforever.objects.DefaultCancellable
+import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.PlanetSideGUID
@@ -28,12 +29,9 @@ class HackClearActor() extends Actor {
     case HackClearActor.ObjectIsHacked(target, zone, unk1, unk2, duration, time) =>
       val durationNanos = TimeUnit.NANOSECONDS.convert(duration, TimeUnit.SECONDS)
       hackedObjects = hackedObjects :+ HackClearActor.HackEntry(target, zone, unk1, unk2, time, durationNanos)
-      if(hackedObjects.size == 1) { //we were the only entry so the event must be started from scratch
-        import scala.concurrent.ExecutionContext.Implicits.global
-        log.warn(duration.toString)
-        log.warn(durationNanos.toString)
-        clearTrigger = context.system.scheduler.scheduleOnce(durationNanos nanoseconds, self, HackClearActor.TryClearHacks())
-      }
+
+      // Restart the timer, in case this is the first object in the hacked objects list
+      RestartTimer()
 
     case HackClearActor.TryClearHacks() =>
       clearTrigger.cancel
@@ -46,13 +44,34 @@ class HackClearActor() extends Actor {
         context.parent ! HackClearActor.ClearTheHack(entry.target.GUID, entry.zone.Id, entry.unk1, entry.unk2) //call up to the main event system
       })
 
-      if(stillHackedObjects.nonEmpty) {
-        val short_timeout : FiniteDuration = math.max(1, stillHackedObjects.head.duration - (now - stillHackedObjects.head.time)) nanoseconds
-        import scala.concurrent.ExecutionContext.Implicits.global
-        clearTrigger = context.system.scheduler.scheduleOnce(short_timeout, self, HackClearActor.TryClearHacks())
+      RestartTimer()
+
+    case HackClearActor.ObjectIsResecured(target) =>
+      val obj = hackedObjects.filter(x => x.target == target).headOption
+      obj match {
+        case Some(entry: HackClearActor.HackEntry) =>
+          hackedObjects = hackedObjects.filterNot(x => x.target == target)
+          entry.target.Actor ! CommonMessages.ClearHack()
+          context.parent ! HackClearActor.ClearTheHack(entry.target.GUID, entry.zone.Id, entry.unk1, entry.unk2) //call up to the main event system
+
+          // Restart the timer in case the object we just removed was the next one scheduled
+          RestartTimer()
+        case None => ;
       }
 
     case _ => ;
+  }
+
+  private def RestartTimer(): Unit = {
+    if(hackedObjects.length != 0) {
+      val now = System.nanoTime()
+      val (unhackObjects, stillHackedObjects) = PartitionEntries(hackedObjects, now)
+      val short_timeout : FiniteDuration = math.max(1, stillHackedObjects.head.duration - (now - stillHackedObjects.head.time)) nanoseconds
+
+      log.warn(s"Still items left in hacked objects list. Checking again in ${short_timeout}")
+      import scala.concurrent.ExecutionContext.Implicits.global
+      clearTrigger = context.system.scheduler.scheduleOnce(short_timeout, self, HackClearActor.TryClearHacks())
+    }
   }
 
   /**
@@ -109,13 +128,22 @@ object HackClearActor {
     * @see `HackEntry`
     */
   final case class ObjectIsHacked(target : PlanetSideServerObject, zone : Zone, unk1 : Long, unk2 : Long, duration: Int, time : Long = System.nanoTime())
+
+  /**
+    * Message used to request that a hack is cleared from the hacked objects list and the unhacked status returned to all clients
+    *
+    */
+  final case class ObjectIsResecured(target: PlanetSideServerObject with Hackable)
+
   /**
     * Message that carries information about a server object that needs its functionality restored.
     * Prompting, as compared to `ObjectIsHacked` which is reactionary.
-    * @param door_guid the server object
+    * @param obj the server object
     * @param zone_id the zone in which the object resides
     */
-  final case class ClearTheHack(door_guid : PlanetSideGUID, zone_id : String, unk1 : Long, unk2 : Long)
+  final case class ClearTheHack(obj : PlanetSideGUID, zone_id : String, unk1 : Long, unk2 : Long)
+
+
   /**
     * Internal message used to signal a test of the queued door information.
     */

@@ -77,6 +77,8 @@ class LocalService extends Actor {
           LocalEvents.publish(
             LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.HackObject(target.GUID, unk1, unk2))
           )
+        case LocalAction.ClearTemporaryHack(player_guid, target) =>
+          hackClearer ! HackClearActor.ObjectIsResecured(target)
         case LocalAction.HackCaptureTerminal(player_guid, zone, target, unk1, unk2, isResecured) =>
 
           if(isResecured){

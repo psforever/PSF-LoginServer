@@ -2652,7 +2652,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
 
         case Some(panel : IFFLock) =>
-          if(panel.Faction != player.Faction && panel.HackedBy.isEmpty) {
+          if((panel.Faction != player.Faction && panel.HackedBy.isEmpty) || (panel.Faction == player.Faction && panel.HackedBy.isDefined)) {
             player.Slot(player.DrawnSlot).Equipment match {
               case Some(tool : SimpleItem) =>
                 if(tool.Definition == GlobalDefinitions.remote_electronics_kit) {
@@ -2660,8 +2660,16 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
                   if(hackSpeed > 0) {
                     progressBarValue = Some(-hackSpeed)
-                    self ! WorldSessionActor.ItemHacking(player, panel, tool.GUID, hackSpeed, FinishHacking(panel, 1114636288L))
-                    log.info("Hacking a door")
+                    if(panel.Faction != player.Faction) {
+                      // Enemy faction is hacking this IFF lock
+                      self ! WorldSessionActor.ItemHacking(player, panel, tool.GUID, hackSpeed, FinishHacking(panel, 1114636288L))
+                      log.info("Hacking an IFF lock")
+                    } else {
+                      // IFF Lock is being resecured by it's owner faction
+                      self ! WorldSessionActor.ItemHacking(player, panel, tool.GUID, hackSpeed, FinishResecuringIFFLock(panel))
+                      log.info("Resecuring an IFF lock")
+                    }
+
                   }
                 }
               case _ => ;
@@ -3699,6 +3707,15 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
       case scala.util.Failure(_) => log.warn(s"Hack message failed on target guid: ${target.GUID}")
     }
+  }
+
+  /**
+    * The process of resecuring an IFF lock is finished
+    * Clear the hack state and send to clients
+    * @param lock the `IFFLock` object that has been resecured
+    */
+  private def FinishResecuringIFFLock(lock: IFFLock)() : Unit = {
+    localService ! LocalServiceMessage(continent.Id, LocalAction.ClearTemporaryHack(player.GUID, lock))
   }
 
 
