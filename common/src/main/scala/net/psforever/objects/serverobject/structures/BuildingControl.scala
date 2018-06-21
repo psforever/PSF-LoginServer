@@ -13,7 +13,7 @@ import net.psforever.packet.game.{BuildingInfoUpdateMessage, PlanetSideGenerator
 import net.psforever.types.PlanetSideEmpire
 import services.ServiceManager
 import services.ServiceManager.Lookup
-import services.galaxy.{GalaxyAction, GalaxyServiceMessage}
+import services.galaxy.{GalaxyAction, GalaxyResponse, GalaxyServiceMessage, GalaxyServiceResponse}
 import services.local.support.HackCaptureActor
 
 import scala.util.Success
@@ -47,8 +47,8 @@ class BuildingControl(building : Building) extends Actor with FactionAffinityBeh
         building.Amenities.foreach(_.Actor forward FactionAffinity.ConfirmFactionAffinity())
       }
       sender ! FactionAffinity.AssertFactionAffinity(building, faction)
-    case Building.SendMapUpdateToAllClients() =>
-      log.info(s"Sending BuildingInfoUpdateMessage update to all clients. Zone: ${building.Zone.Number} - Building: ${building.ModelId}")
+    case Building.SendMapUpdate(all_clients: Boolean) =>
+      log.info(s"Sending BuildingInfoUpdateMessage update. Zone: ${building.Zone.Number} - Building: ${building.ModelId}")
       var ntuLevel = 0
       var is_hacked = false
       var hack_time_remaining_ms = 0L;
@@ -78,30 +78,36 @@ class BuildingControl(building : Building) extends Actor with FactionAffinityBeh
         case _ => ;
       }
 
-      galaxyService ! GalaxyServiceMessage(GalaxyAction.MapUpdate(
-        BuildingInfoUpdateMessage(
-          continent_id = building.Zone.Number, //Zone
-          building_id = building.Id, //Facility
-          ntu_level = ntuLevel,
-          is_hacked,
-          hacked_by_faction,
-          hack_time_remaining_ms,
-          empire_own = building.Faction,
-          unk1 = 0, //!! Field != 0 will cause malformed packet. See class def.
-          unk1x = None,
-          generator_state = PlanetSideGeneratorState.Normal,
-          spawn_tubes_normal = true,
-          force_dome_active = false,
-          lattice_benefit = 0,
-          cavern_benefit = 0, //!! Field > 0 will cause malformed packet. See class def.
-          unk4 = Nil,
-          unk5 = 0,
-          unk6 = false,
-          unk7 = 8, //!! Field != 8 will cause malformed packet. See class def.
-          unk7x = None,
-          boost_spawn_pain = false,
-          boost_generator_pain = false
-        )))
+      val msg = BuildingInfoUpdateMessage(
+        continent_id = building.Zone.Number, //Zone
+        building_id = building.Id, //Facility
+        ntu_level = ntuLevel,
+        is_hacked,
+        hacked_by_faction,
+        hack_time_remaining_ms,
+        empire_own = building.Faction,
+        unk1 = 0, //!! Field != 0 will cause malformed packet. See class def.
+        unk1x = None,
+        generator_state = PlanetSideGeneratorState.Normal,
+        spawn_tubes_normal = true,
+        force_dome_active = false,
+        lattice_benefit = 0,
+        cavern_benefit = 0, //!! Field > 0 will cause malformed packet. See class def.
+        unk4 = Nil,
+        unk5 = 0,
+        unk6 = false,
+        unk7 = 8, //!! Field != 8 will cause malformed packet. See class def.
+        unk7x = None,
+        boost_spawn_pain = false,
+        boost_generator_pain = false
+      )
+
+      if(all_clients) {
+        galaxyService ! GalaxyServiceMessage(GalaxyAction.MapUpdate(msg))
+      } else {
+        // Fake a GalaxyServiceResponse response back to just the sender
+        sender ! GalaxyServiceResponse("", GalaxyResponse.MapUpdate(msg))
+      }
 
     case default =>
       log.warn(s"BuildingControl: Unknown message ${default} received from ${sender().path}")

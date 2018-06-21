@@ -78,5 +78,5 @@ object Building {
     obj
   }
 
-  final case class SendMapUpdateToAllClients()
+  final case class SendMapUpdate(all_clients: Boolean)
 }

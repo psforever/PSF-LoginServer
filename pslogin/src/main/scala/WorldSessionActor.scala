@@ -1,4 +1,5 @@
 // Copyright (c) 2017 PSForever
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 
 import akka.actor.{Actor, ActorRef, Cancellable, MDCContextAware}
@@ -49,10 +50,11 @@ import services.vehicle.{VehicleAction, VehicleResponse, VehicleServiceMessage, 
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.annotation.tailrec
-import scala.concurrent.Future
+import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.util.Success
 import akka.pattern.ask
+import services.local.support.HackCaptureActor
 
 class WorldSessionActor extends Actor with MDCContextAware {
   import WorldSessionActor._
@@ -440,7 +442,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
           if(isResecured) {
             value = 17039360L
           } else {
-            val deciseconds = 9000L //(15 minutes)
+            import scala.concurrent.ExecutionContext.Implicits.global
+            val future = ask(localService, HackCaptureActor.GetHackTimeRemainingNanos(target_guid))(1 second)
+            val time = Await.result(future, 1 second).asInstanceOf[Long] // todo: blocking call. Not good.
+            val hack_time_remaining_ms = TimeUnit.MILLISECONDS.convert(time, TimeUnit.NANOSECONDS)
+            val deciseconds_remaining = (hack_time_remaining_ms / 100)
 
             val hacking_faction = continent.GUID(target_guid).get.asInstanceOf[Hackable].HackedBy.get._1.Faction
 
@@ -451,7 +457,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
               case PlanetSideEmpire.VS => 196608L
             }
 
-            value = start_num + deciseconds
+            value = start_num + deciseconds_remaining
           }
 
           sendResponse(PlanetsideAttributeMessage(target_guid, 20, value))
@@ -4498,38 +4504,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * @param building the building object
     */
   def initFacility(continentNumber : Int, buildingNumber : Int, building : Building) : Unit = {
-    var ntuLevel = 0
-    building.Amenities.filter(x => (x.Definition == GlobalDefinitions.resource_silo)).headOption.asInstanceOf[Option[ResourceSilo]] match {
-      case Some(obj: ResourceSilo) =>
-        ntuLevel = obj.CapacitorDisplay.toInt
-      case _ => ;
-    }
-
-    sendResponse(
-      BuildingInfoUpdateMessage(
-        continent_id = continentNumber,
-        building_id = buildingNumber,
-        ntu_level = ntuLevel,
-        is_hacked = false,
-        empire_hack = PlanetSideEmpire.NEUTRAL,
-        hack_time_remaining = 0, // milliseconds
-        empire_own = building.Faction,
-        unk1 = 0, //!! Field != 0 will cause malformed packet. See class def.
-        unk1x = None,
-        generator_state = PlanetSideGeneratorState.Normal,
-        spawn_tubes_normal = true,
-        force_dome_active = false,
-        lattice_benefit = 0,
-        cavern_benefit = 0, //!! Field > 0 will cause malformed packet. See class def.
-        unk4 = Nil,
-        unk5 = 0,
-        unk6 = false,
-        unk7 = 8, //!! Field != 8 will cause malformed packet. See class def.
-        unk7x = None,
-        boost_spawn_pain = false,
-        boost_generator_pain = false
-      )
-    )
+    building.Actor ! Building.SendMapUpdate(all_clients = false)
     sendResponse(DensityLevelUpdateMessage(continentNumber, buildingNumber, List(0,0, 0,0, 0,0, 0,0)))
   }
 
@@ -4603,8 +4578,25 @@ class WorldSessionActor extends Actor with MDCContextAware {
             }
           case _ => ;
         }
+
+        // Synchronise hack states to clients joining the zone.
+        // We'll have to fake LocalServiceResponse messages to self, otherwise it means duplicating the same hack handling code twice
+        if(amenity.isInstanceOf[Hackable]) {
+          val hackable = amenity.asInstanceOf[Hackable]
+
+          if(hackable.HackedBy.isDefined) {
+            amenity.Definition match {
+              case GlobalDefinitions.capture_terminal =>
+                self ! LocalServiceResponse("", PlanetSideGUID(0), LocalResponse.HackCaptureTerminal(amenity.GUID, 0L, 0L, false))
+              case _ =>
+                // Generic hackable object
+                self ! LocalServiceResponse("", PlanetSideGUID(0), LocalResponse.HackObject(amenity.GUID, 1114636288L, 8L))
+            }
+          }
+        }
       })
-      sendResponse(HackMessage(3, PlanetSideGUID(building.ModelId), PlanetSideGUID(0), 0, 3212836864L, HackState.HackCleared, 8))
+
+//      sendResponse(HackMessage(3, PlanetSideGUID(building.ModelId), PlanetSideGUID(0), 0, 3212836864L, HackState.HackCleared, 8))
     })
   }
 
