@@ -574,7 +574,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
           sendResponse(ObjectDetachMessage(pad_guid, vehicle_guid, pad_position + Vector3(0,0,0.5f), pad_orientation_z))
 
         case VehicleResponse.EquipmentInSlot(pkt) =>
-          sendResponse(pkt)
+          if(tplayer_guid != guid) {
+            sendResponse(pkt)
+          }
 
         case VehicleResponse.InventoryState(obj, parent_guid, start, con_data) =>
           if(tplayer_guid != guid) {
@@ -2977,7 +2979,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                     obj,
                     tool.GUID,
                     0.83f,
-                    FinishUpgradeMannedTurretAmmo(obj, TurretUpgrade(unk2.toInt))
+                    FinishUpgradingMannedTurret(obj, tool, TurretUpgrade(unk2.toInt))
                   )
                 }
                 else if(ammo == Ammo.armor_canister && obj.Health < obj.MaxHealth) {
@@ -3963,68 +3965,14 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * the original ammunition that must be un-registered,
     * and the new boxes that must be registered so the weapon may be introduced into the game world properly.
     * @param target the turret
+    * @param tool the nano-dispenser that was used to perform this upgrade
     * @param upgrade the new upgrade state
     */
-  private def FinishUpgradeMannedTurretAmmo(target : MannedTurret, upgrade : TurretUpgrade.Value)() : Unit = {
+  private def FinishUpgradingMannedTurret(target : MannedTurret, tool : Tool, upgrade : TurretUpgrade.Value)() : Unit = {
     log.info(s"Converting manned wall turret weapon to $upgrade")
-    val oldBoxesTask = AllMountedWeaponMagaxines(target)
-      .map(box => GUIDTask.UnregisterEquipment(box)(continent.GUID))
-      .toList
-    target.Upgrade = upgrade //perform upgrade
-
-    player.Slot(player.DrawnSlot).Equipment match {
-      case Some(tool : Tool) => //anticipate nano-dispenser
-        val prev : Long = tool.Magazine
-        tool.Magazine = 0
-        sendResponse(InventoryStateMessage(tool.AmmoSlot.Box.GUID, tool.GUID, 0))
-      case _ => ;
-    }
-
-    val newBoxesTask = TaskResolver.GiveTask(
-      new Task() {
-        private val localFunc : ()=>Unit = FinishUpgradeMannedTurret(target)
-
-        override def isComplete = Task.Resolution.Success
-
-        def Execute(resolver : ActorRef) : Unit = {
-          localFunc()
-          resolver ! scala.util.Success(this)
-        }
-      }, AllMountedWeaponMagaxines(target).map(box => GUIDTask.RegisterEquipment(box)(continent.GUID)).toList
-    )
-    taskResolver ! TaskResolver.GiveTask(
-      new Task() {
-        def Execute(resolver : ActorRef) : Unit = {
-          resolver ! scala.util.Success(this)
-        }
-      }, (oldBoxesTask :+ newBoxesTask).toList
-    )
-  }
-
-  /**
-    * From an object that has mounted weapons, parse all of the internal ammunition loaded into all of the weapons.
-    * @param target the object with mounted weaponry
-    * @return all of the internal ammunition objects
-    */
-  def AllMountedWeaponMagaxines(target : MountedWeapons) : Iterable[AmmoBox] = {
-    target.Weapons
-      .values
-      .map { _.Equipment }
-      .collect { case Some(tool : Tool) => tool.AmmoSlots }
-      .flatMap { _.map { _.Box } }
-  }
-
-  private def FinishUpgradeMannedTurret(target : MannedTurret)() : Unit = {
-    log.info(s"Wall turret finished ${target.Upgrade} upgrade")
-    val targetGUID = target.GUID
-    target.Weapons
-      .map({ case (index, slot) =>  (index, slot.Equipment) })
-      .collect { case (index, Some(tool : Tool)) =>
-        vehicleService ! VehicleServiceMessage(
-          continent.Id,
-          VehicleAction.EquipmentInSlot(PlanetSideGUID(0), targetGUID, index, tool)
-        )
-      }
+    tool.Magazine = 0
+    sendResponse(InventoryStateMessage(tool.AmmoSlot.Box.GUID, tool.GUID, 0))
+    vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.UpgradeTurret(target, continent, upgrade, Some(1 minute)))
   }
 
   /**
