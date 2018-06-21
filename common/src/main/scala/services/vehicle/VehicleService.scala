@@ -4,6 +4,8 @@ package services.vehicle
 import akka.actor.{Actor, ActorRef, Props}
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
 import net.psforever.objects.zones.Zone
+import net.psforever.packet.game.ObjectCreateMessage
+import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import services.vehicle.support.VehicleRemover
 import net.psforever.types.DriveState
 import services.{GenericEventBus, RemoverActor, Service}
@@ -52,6 +54,18 @@ class VehicleService extends Actor {
         case VehicleAction.DismountVehicle(player_guid, bailType, unk2) =>
           VehicleEvents.publish(
             VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.DismountVehicle(bailType, unk2))
+          )
+        case VehicleAction.EquipmentInSlot(player_guid, target_guid, slot, equipment) =>
+          val definition = equipment.Definition
+          val pkt = ObjectCreateMessage(
+            definition.ObjectId,
+            equipment.GUID,
+            ObjectCreateMessageParent(target_guid, slot),
+            definition.Packet.ConstructorData(equipment).get
+          )
+          ObjectCreateMessageParent(target_guid, slot)
+          VehicleEvents.publish(
+            VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.EquipmentInSlot(pkt))
           )
         case VehicleAction.InventoryState(player_guid, obj, parent_guid, start, con_data) =>
           VehicleEvents.publish(

@@ -21,24 +21,26 @@ class Tool(private val toolDef : ToolDefinition) extends Equipment with FireMode
   /** index of the current fire mode on the `ToolDefinition`'s list of fire modes */
   private var fireModeIndex : Int = 0
   /** current ammunition slot being used by this fire mode */
-  private val ammoSlots : List[Tool.FireModeSlot] = Tool.LoadDefinition(this)
+  private var ammoSlots : List[Tool.FireModeSlot] = List.empty
+
+  Tool.LoadDefinition(this)
 
   def FireModeIndex : Int = fireModeIndex
 
   def FireModeIndex_=(index : Int) : Int = {
-    fireModeIndex = index % toolDef.FireModes.length
+    fireModeIndex = index % Definition.FireModes.length
     FireModeIndex
   }
 
-  def FireMode : FireModeDefinition = toolDef.FireModes(fireModeIndex)
+  def FireMode : FireModeDefinition = Definition.FireModes(fireModeIndex)
 
   def NextFireMode : FireModeDefinition = {
-    FireModeIndex = toolDef.NextFireModeIndex(FireModeIndex)
+    FireModeIndex = Definition.NextFireModeIndex(FireModeIndex)
     AmmoSlot.Chamber = FireMode.Chamber
     FireMode
   }
 
-  def ToFireMode : Int = toolDef.NextFireModeIndex(FireModeIndex)
+  def ToFireMode : Int = Definition.NextFireModeIndex(FireModeIndex)
 
   def ToFireMode_=(index : Int) : FireModeDefinition = {
     FireModeIndex = index
@@ -53,7 +55,7 @@ class Tool(private val toolDef : ToolDefinition) extends Equipment with FireMode
     AmmoTypeIndex
   }
 
-  def AmmoType : Ammo.Value = toolDef.AmmoTypes(AmmoTypeIndex).AmmoType
+  def AmmoType : Ammo.Value = Definition.AmmoTypes(AmmoTypeIndex).AmmoType
 
   def NextAmmoType : Ammo.Value = {
     AmmoSlot.AmmoTypeIndex = AmmoSlot.AmmoTypeIndex + 1
@@ -61,7 +63,7 @@ class Tool(private val toolDef : ToolDefinition) extends Equipment with FireMode
   }
 
   def Projectile : ProjectileDefinition = {
-    toolDef.ProjectileTypes({
+    Definition.ProjectileTypes({
       val projIndices = FireMode.ProjectileTypeIndices
       if(projIndices.isEmpty) {
         AmmoTypeIndex //e.g., bullet_9mm -> bullet_9mm_projectile, bullet_9mm_AP -> bullet_9mm_AP_projectile
@@ -107,10 +109,10 @@ object Tool {
     * Use the `*Definition` that was provided to this object to initialize its fields and settings.
     * @param tool the `Tool` being initialized
     */
-  def LoadDefinition(tool : Tool) : List[FireModeSlot] = {
+  def LoadDefinition(tool : Tool) : Unit = {
     val tdef : ToolDefinition = tool.Definition
     val maxSlot = tdef.FireModes.maxBy(fmode => fmode.AmmoSlotIndex).AmmoSlotIndex
-    buildFireModes(tdef, (0 to maxSlot).iterator, tdef.FireModes.toList)
+    tool.ammoSlots = buildFireModes(tdef, (0 to maxSlot).iterator, tdef.FireModes.toList)
   }
 
   @tailrec private def buildFireModes(tdef : ToolDefinition, iter : Iterator[Int], fmodes : List[FireModeDefinition], list : List[FireModeSlot] = Nil) : List[FireModeSlot] = {

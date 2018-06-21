@@ -9,8 +9,8 @@ class MannedTurretDefinition(private val objectId : Int) extends ObjectDefinitio
   private var maxHealth : Int = 100
   /* key - entry point index, value - seat index */
   private val mountPoints : mutable.HashMap[Int, Int] = mutable.HashMap()
-  private val weapons : mutable.HashMap[Int, ToolDefinition] = mutable.HashMap[Int, ToolDefinition]()
-  private val upgradeStates : mutable.HashMap[TurretUpgrade.Value, Int] = mutable.HashMap(TurretUpgrade.None -> 0)
+  private val weapons : mutable.HashMap[Int, mutable.HashMap[TurretUpgrade.Value, ToolDefinition]] =
+    mutable.HashMap[Int, mutable.HashMap[TurretUpgrade.Value, ToolDefinition]]()
   private var factionLocked : Boolean = true
   private var hasReserveAmmunition : Boolean = true
   Name = "manned_turret"
@@ -24,9 +24,7 @@ class MannedTurretDefinition(private val objectId : Int) extends ObjectDefinitio
 
   def MountPoints : mutable.HashMap[Int, Int] = mountPoints
 
-  def Weapons : mutable.HashMap[Int, ToolDefinition] = weapons
-
-  def UpgradeStates : mutable.HashMap[TurretUpgrade.Value, Int] = upgradeStates
+  def Weapons : mutable.HashMap[Int, mutable.HashMap[TurretUpgrade.Value, ToolDefinition]] = weapons
 
   def FactionLocked : Boolean = factionLocked
 

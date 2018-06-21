@@ -54,7 +54,7 @@ import scala.concurrent.duration._
 import scala.util.Success
 import akka.pattern.ask
 import net.psforever.objects.ballistics.{Projectile, ProjectileResolution}
-import net.psforever.objects.serverobject.turret.MannedTurret
+import net.psforever.objects.serverobject.turret.{MannedTurret, TurretUpgrade}
 
 class WorldSessionActor extends Actor with MDCContextAware {
   import WorldSessionActor._
@@ -572,6 +572,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
         case VehicleResponse.DetachFromRails(vehicle_guid, pad_guid, pad_position, pad_orientation_z) =>
           sendResponse(ObjectDetachMessage(pad_guid, vehicle_guid, pad_position + Vector3(0,0,0.5f), pad_orientation_z))
+
+        case VehicleResponse.EquipmentInSlot(pkt) =>
+          sendResponse(pkt)
 
         case VehicleResponse.InventoryState(obj, parent_guid, start, con_data) =>
           if(tplayer_guid != guid) {
@@ -1736,7 +1739,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         antDischargingTick.cancel()
       }
 
-    case ItemHacking(tplayer, target, tool_guid, delta, completeAction, tickAction) =>
+    case HackingProgress(progressType, tplayer, target, tool_guid, delta, completeAction, tickAction) =>
       progressBarUpdate.cancel
       if(progressBarValue.isDefined) {
         val progressBarVal : Float = progressBarValue.get + delta
@@ -1749,10 +1752,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
         else {
           HackState.Ongoing
         }
-        sendResponse(HackMessage(1, target.GUID, player.GUID, progressBarVal.toInt, 0L, vis, 8L))
+        sendResponse(HackMessage(progressType, target.GUID, player.GUID, progressBarVal.toInt, 0L, vis, 8L))
         if(progressBarVal > 100) { //done
           progressBarValue = None
-          log.info(s"Hacked a $target")
 //          sendResponse(HackMessage(0, target.GUID, player.GUID, 100, 1114636288L, HackState.Hacked, 8L))
           completeAction()
         }
@@ -1760,7 +1762,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           tickAction.getOrElse(() => Unit)()
           progressBarValue = Some(progressBarVal)
           import scala.concurrent.ExecutionContext.Implicits.global
-          progressBarUpdate = context.system.scheduler.scheduleOnce(250 milliseconds, self, ItemHacking(tplayer, target, tool_guid, delta, completeAction))
+          progressBarUpdate = context.system.scheduler.scheduleOnce(250 milliseconds, self, HackingProgress(progressType, tplayer, target, tool_guid, delta, completeAction))
         }
       }
 
@@ -1826,6 +1828,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
       avatar.Certifications += GalaxyGunship
       avatar.Certifications += Phantasm
       avatar.Certifications += UniMAX
+      avatar.Certifications += Engineering
+      avatar.Certifications += CombatEngineering
+      avatar.Certifications += AdvancedEngineering
+      avatar.Certifications += FortificationEngineering
+      avatar.Certifications += AssaultEngineering
       AwardBattleExperiencePoints(avatar, 1000000L)
       player = new Player(avatar)
       //player.Position = Vector3(3561.0f, 2854.0f, 90.859375f) //home3, HART C
@@ -1835,9 +1842,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
       //player.Orientation = Vector3(0f, 0f, 132.1875f)
 //      player.ExoSuit = ExoSuitType.MAX //TODO strange issue; divide number above by 10 when uncommenting
       player.Slot(0).Equipment = SimpleItem(remote_electronics_kit) //Tool(GlobalDefinitions.StandardPistol(player.Faction))
-      player.Slot(2).Equipment = Tool(mini_chaingun) //punisher //suppressor
+      player.Slot(2).Equipment = Tool(nano_dispenser) //punisher //suppressor
       player.Slot(4).Equipment = Tool(GlobalDefinitions.StandardMelee(player.Faction))
-      player.Slot(6).Equipment = AmmoBox(bullet_9mm, 20) //bullet_9mm
+      player.Slot(6).Equipment = AmmoBox(upgrade_canister) //bullet_9mm
       player.Slot(9).Equipment = AmmoBox(rocket, 11) //bullet_9mm
       player.Slot(12).Equipment = AmmoBox(frag_cartridge) //bullet_9mm
       player.Slot(33).Equipment = AmmoBox(bullet_9mm_AP)
@@ -2083,25 +2090,26 @@ class WorldSessionActor extends Actor with MDCContextAware {
       //base turrets
       continent.Map.TurretToWeapon.foreach({ case((turret_guid, weapon_guid)) =>
         val parent_guid = PlanetSideGUID(turret_guid)
-        continent.GUID(weapon_guid) match {
-          case Some(obj : Tool) =>
-            val objDef = obj.Definition
-            sendResponse(
-              ObjectCreateMessage(
-                objDef.ObjectId,
-                obj.GUID,
-                ObjectCreateMessageParent(parent_guid, 1),
-                objDef.Packet.ConstructorData(obj).get
-              )
-            )
-          case _ => ;
-        }
-        //reserved ammunition?
-        //TODO need to register if it exists
-        //seat turret occupants
         continent.GUID(turret_guid) match {
-          case Some(obj : Mountable) =>
-            obj.Seats(0).Occupant match {
+          case Some(turret : MannedTurret) =>
+            //attached weapon
+            turret.ControlledWeapon(1) match {
+              case Some(obj : Tool) =>
+                val objDef = obj.Definition
+                sendResponse(
+                  ObjectCreateMessage(
+                    objDef.ObjectId,
+                    obj.GUID,
+                    ObjectCreateMessageParent(parent_guid, 1),
+                    objDef.Packet.ConstructorData(obj).get
+                  )
+                )
+              case _ => ;
+            }
+            //reserved ammunition?
+            //TODO need to register if it exists
+            //seat turret occupant
+            turret.Seats(0).Occupant match {
               case Some(tplayer) =>
                 val tdefintion = tplayer.Definition
                 sendResponse(
@@ -2156,34 +2164,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
           //TODO status condition of "playing getting out of vehicle to allow for late packets without warning
           //log.warn(s"ChildObjectState: player $player not related to anything with a controllable agent")
       }
-
-//      player.VehicleSeated match {
-//        case Some(vehicle_guid) =>
-//          continent.GUID(vehicle_guid) match {
-//            case Some(obj : Mountable with MountedWeapons) =>
-//              obj.PassengerInSeat(player) match {
-//                case Some(seat_num) =>
-//                  obj.WeaponControlledFromSeat(seat_num) match {
-//                    case Some(tool) =>
-//                      if(tool.GUID == object_guid) {
-//                        //TODO set tool orientation?
-//                        player.Orientation = Vector3(0f, pitch, yaw)
-//                        vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.ChildObjectState(player.GUID, object_guid, pitch, yaw))
-//                      }
-//                    case None =>
-//                      log.warn(s"ChildObjectState: player $player is not using stated controllable agent")
-//                  }
-//                case None =>
-//                  log.warn(s"ChildObjectState: player ${player.GUID} is not in a position to use controllable agent")
-//              }
-//            case _ =>
-//              log.warn(s"ChildObjectState: player $player's controllable agent not available in scope")
-//          }
-//        case None =>
-//        //TODO status condition of "playing getting out of vehicle to allow for late packets without warning
-//        //log.warn(s"ChildObjectState: player $player not related to anything with a controllable agent")
-//      }
-//    //log.info("ChildObjectState: " + msg)
 
     case msg @ VehicleStateMessage(vehicle_guid, unk1, pos, ang, vel, unk5, unk6, unk7, wheels, unk9, unkA) =>
       continent.GUID(vehicle_guid) match {
@@ -2901,14 +2881,13 @@ class WorldSessionActor extends Actor with MDCContextAware {
             log.warn(s"Player ${player.GUID} - ${player.Faction} tried to refill silo ${resourceSilo.GUID} - ${resourceSilo.Faction} belonging to another empire")
           }
 
-
         case Some(panel : IFFLock) =>
           if(panel.Faction != player.Faction && panel.HackedBy.isEmpty) {
             player.Slot(player.DrawnSlot).Equipment match {
               case Some(tool : SimpleItem) =>
                 if(tool.Definition == GlobalDefinitions.remote_electronics_kit) {
                   progressBarValue = Some(-GetPlayerHackSpeed())
-                  self ! WorldSessionActor.ItemHacking(player, panel, tool.GUID, GetPlayerHackSpeed(), FinishHacking(panel, 1114636288L))
+                  self ! WorldSessionActor.HackingProgress(1, player, panel, tool.GUID, GetPlayerHackSpeed(), FinishHacking(panel, 1114636288L))
                   log.info("Hacking a door~")
                 }
               case _ => ;
@@ -2970,7 +2949,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
               case Some(tool: SimpleItem) =>
                 if (tool.Definition == GlobalDefinitions.remote_electronics_kit) {
                   progressBarValue = Some(-GetPlayerHackSpeed())
-                  self ! WorldSessionActor.ItemHacking(player, obj, tool.GUID, GetPlayerHackSpeed(), FinishHacking(obj, 3212836864L))
+                  self ! WorldSessionActor.HackingProgress(1, player, obj, tool.GUID, GetPlayerHackSpeed(), FinishHacking(obj, 3212836864L))
                   log.info("Hacking a locker")
                 }
               case _ => ;
@@ -2983,6 +2962,32 @@ class WorldSessionActor extends Actor with MDCContextAware {
           }
           else {
             log.info(s"UseItem: not $player's locker")
+          }
+
+        case Some(obj : MannedTurret) =>
+          player.Slot(player.DrawnSlot).Equipment match {
+            case Some(tool : Tool) =>
+              if(tool.Definition == GlobalDefinitions.nano_dispenser) {
+                val ammo = tool.AmmoType
+                if(ammo == Ammo.upgrade_canister && obj.Seats.values.count(_.isOccupied) == 0) {
+                  progressBarValue = Some(-0.83f)
+                  self ! WorldSessionActor.HackingProgress(
+                    2,
+                    player,
+                    obj,
+                    tool.GUID,
+                    0.83f,
+                    FinishUpgradeMannedTurretAmmo(obj, TurretUpgrade(unk2.toInt))
+                  )
+                }
+                else if(ammo == Ammo.armor_canister && obj.Health < obj.MaxHealth) {
+                  //repair turret
+                }
+              }
+              else if(tool.Definition == GlobalDefinitions.trek) {
+                //infect turret with virus
+              }
+            case _ => ;
           }
 
         case Some(obj : Vehicle) =>
@@ -3047,7 +3052,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                 case Some(tool: SimpleItem) =>
                   if (tool.Definition == GlobalDefinitions.remote_electronics_kit) {
                     progressBarValue = Some(-GetPlayerHackSpeed())
-                    self ! WorldSessionActor.ItemHacking(player, obj, tool.GUID, GetPlayerHackSpeed(), FinishHacking(obj, 3212836864L))
+                    self ! WorldSessionActor.HackingProgress(1, player, obj, tool.GUID, GetPlayerHackSpeed(), FinishHacking(obj, 3212836864L))
                     log.info("Hacking a terminal")
                   }
                 case _ => ;
@@ -3057,7 +3062,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
               // Otherwise allow the faction that owns the terminal to use it
               sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
             }
-
           }
 
         case Some(obj : SpawnTube) =>
@@ -3940,16 +3944,88 @@ class WorldSessionActor extends Actor with MDCContextAware {
     */
   //TODO add params here depending on which params in HackMessage are important
   private def FinishHacking(target : PlanetSideServerObject with Hackable, unk : Long)() : Unit = {
+    log.info(s"Hacked a $target")
     // Wait for the target actor to set the HackedBy property, otherwise LocalAction.HackTemporarily will not complete properly
     import scala.concurrent.ExecutionContext.Implicits.global
     ask(target.Actor, CommonMessages.Hack(player))(1 second).mapTo[Boolean].onComplete {
       case Success(_) =>
         localService ! LocalServiceMessage(continent.Id, LocalAction.TriggerSound(player.GUID, target.HackSound, player.Position, 30, 0.49803925f))
-    localService ! LocalServiceMessage(continent.Id, LocalAction.HackTemporarily(player.GUID, continent, target, unk))
-      case scala.util.Failure(_) => log.warn(s"Hack message failed on target guid: ${target.GUID}")
-  }
+        localService ! LocalServiceMessage(continent.Id, LocalAction.HackTemporarily(player.GUID, continent, target, unk))
+      case scala.util.Failure(_) =>
+        log.warn(s"Hack message failed on target guid: ${target.GUID}")
+    }
   }
 
+  /**
+    * The process of upgrading a turret is nearly complete.
+    * After the upgrade status is changed, the internal structure of the turret's weapons change to suit the configuration.
+    * Of special importance are internal ammo supplies of the changing weapon,
+    * the original ammunition that must be un-registered,
+    * and the new boxes that must be registered so the weapon may be introduced into the game world properly.
+    * @param target the turret
+    * @param upgrade the new upgrade state
+    */
+  private def FinishUpgradeMannedTurretAmmo(target : MannedTurret, upgrade : TurretUpgrade.Value)() : Unit = {
+    log.info(s"Converting manned wall turret weapon to $upgrade")
+    val oldBoxesTask = AllMountedWeaponMagaxines(target)
+      .map(box => GUIDTask.UnregisterEquipment(box)(continent.GUID))
+      .toList
+    target.Upgrade = upgrade //perform upgrade
+
+    player.Slot(player.DrawnSlot).Equipment match {
+      case Some(tool : Tool) => //anticipate nano-dispenser
+        val prev : Long = tool.Magazine
+        tool.Magazine = 0
+        sendResponse(InventoryStateMessage(tool.AmmoSlot.Box.GUID, tool.GUID, 0))
+      case _ => ;
+    }
+
+    val newBoxesTask = TaskResolver.GiveTask(
+      new Task() {
+        private val localFunc : ()=>Unit = FinishUpgradeMannedTurret(target)
+
+        override def isComplete = Task.Resolution.Success
+
+        def Execute(resolver : ActorRef) : Unit = {
+          localFunc()
+          resolver ! scala.util.Success(this)
+        }
+      }, AllMountedWeaponMagaxines(target).map(box => GUIDTask.RegisterEquipment(box)(continent.GUID)).toList
+    )
+    taskResolver ! TaskResolver.GiveTask(
+      new Task() {
+        def Execute(resolver : ActorRef) : Unit = {
+          resolver ! scala.util.Success(this)
+        }
+      }, (oldBoxesTask :+ newBoxesTask).toList
+    )
+  }
+
+  /**
+    * From an object that has mounted weapons, parse all of the internal ammunition loaded into all of the weapons.
+    * @param target the object with mounted weaponry
+    * @return all of the internal ammunition objects
+    */
+  def AllMountedWeaponMagaxines(target : MountedWeapons) : Iterable[AmmoBox] = {
+    target.Weapons
+      .values
+      .map { _.Equipment }
+      .collect { case Some(tool : Tool) => tool.AmmoSlots }
+      .flatMap { _.map { _.Box } }
+  }
+
+  private def FinishUpgradeMannedTurret(target : MannedTurret)() : Unit = {
+    log.info(s"Wall turret finished ${target.Upgrade} upgrade")
+    val targetGUID = target.GUID
+    target.Weapons
+      .map({ case (index, slot) =>  (index, slot.Equipment) })
+      .collect { case (index, Some(tool : Tool)) =>
+        vehicleService ! VehicleServiceMessage(
+          continent.Id,
+          VehicleAction.EquipmentInSlot(PlanetSideGUID(0), targetGUID, index, tool)
+        )
+      }
+  }
 
   /**
     * Temporary function that iterates over vehicle permissions and turns them into `PlanetsideAttributeMessage` packets.<br>
@@ -5548,9 +5624,12 @@ object WorldSessionActor {
 
 
   /**
-    * A message that indicates the user is using a remote electronics kit to hack some server object.
+    * A message that indicates the user is using a remote electronics kit to hack some server object.<br>
+    * <br>
     * Each time this message is sent for a given hack attempt counts as a single "tick" of progress.
     * The process of "making progress" with a hack involves sending this message repeatedly until the progress is 100 or more.
+    * To calculate the actual amount of change in the progress `delta`,
+    * start with 100, divide by the length of time in seconds, then divide once more by 4.
     * @param tplayer the player
     * @param target the object being hacked
     * @param tool_guid the REK
@@ -5558,12 +5637,13 @@ object WorldSessionActor {
     * @param completeAction a custom action performed once the hack is completed
     * @param tickAction an optional action is is performed for each tick of progress
     */
-  private final case class ItemHacking(tplayer : Player,
-                                       target : PlanetSideServerObject,
-                                       tool_guid : PlanetSideGUID,
-                                       delta : Float,
-                                       completeAction : () => Unit,
-                                       tickAction : Option[() => Unit] = None)
+  private final case class HackingProgress(progressType : Int,
+                                           tplayer : Player,
+                                           target : PlanetSideServerObject,
+                                           tool_guid : PlanetSideGUID,
+                                           delta : Float,
+                                           completeAction : () => Unit,
+                                           tickAction : Option[() => Unit] = None)
 
   private final case class NtuCharging(tplayer: Player,
                                        vehicle: Vehicle)

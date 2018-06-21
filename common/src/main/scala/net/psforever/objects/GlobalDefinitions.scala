@@ -19,6 +19,7 @@ import net.psforever.objects.serverobject.turret.{MannedTurretDefinition, Turret
 import net.psforever.objects.vehicles.{SeatArmorRestriction, UtilityType}
 import net.psforever.types.PlanetSideEmpire
 
+import scala.collection.mutable
 import scala.concurrent.duration._
 
 object GlobalDefinitions {
@@ -860,11 +861,10 @@ object GlobalDefinitions {
 
   val manned_turret = new MannedTurretDefinition(480) {
     MaxHealth = 3600
-    Weapons += 1 -> phalanx_sgl_hevgatcan
-    Weapons += 2 -> phalanx_avcombo
-    Weapons += 3 -> phalanx_flakcombo
-    UpgradeStates += TurretUpgrade.AVCombo -> 1
-    UpgradeStates += TurretUpgrade.FlakCombo -> 2
+    Weapons += 1 -> new mutable.HashMap()
+    Weapons(1) += TurretUpgrade.None -> phalanx_sgl_hevgatcan
+    Weapons(1) += TurretUpgrade.AVCombo -> phalanx_avcombo
+    Weapons(1) += TurretUpgrade.FlakCombo -> phalanx_flakcombo
     MountPoints += 1 -> 0
     FactionLocked = true
     ReserveAmmunition = false
@@ -4344,7 +4344,7 @@ object GlobalDefinitions {
     phalanx_avcombo.FireModes += new InfiniteFireModeDefinition
     phalanx_avcombo.FireModes(1).AmmoTypeIndices += 0
     phalanx_avcombo.FireModes(1).ProjectileTypeIndices += 1
-    phalanx_avcombo.FireModes(1).AmmoSlotIndex = 1
+    phalanx_avcombo.FireModes(1).AmmoSlotIndex = 0
     phalanx_avcombo.FireModes(1).Magazine = 4000
 
     phalanx_flakcombo.Name = "phalanx_flakcombo"
@@ -4359,7 +4359,7 @@ object GlobalDefinitions {
     phalanx_flakcombo.FireModes += new InfiniteFireModeDefinition
     phalanx_flakcombo.FireModes(1).AmmoTypeIndices += 0
     phalanx_flakcombo.FireModes(1).ProjectileTypeIndices += 1
-    phalanx_flakcombo.FireModes(1).AmmoSlotIndex = 1
+    phalanx_flakcombo.FireModes(1).AmmoSlotIndex = 0
     phalanx_flakcombo.FireModes(1).Magazine = 4000
   }
 

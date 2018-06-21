@@ -3,12 +3,13 @@ package net.psforever.objects.serverobject.turret
 
 import akka.actor.ActorContext
 import net.psforever.objects._
-import net.psforever.objects.definition.SeatDefinition
+import net.psforever.objects.definition.{SeatDefinition, ToolDefinition}
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.inventory.{Container, GridInventory}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.structures.Amenity
+import net.psforever.objects.serverobject.turret.MannedTurret.MannedTurretWeapon
 import net.psforever.objects.vehicles.{MountedWeapons, Seat => Chair}
 
 class MannedTurret(tDef : MannedTurretDefinition) extends Amenity
@@ -66,7 +67,7 @@ class MannedTurret(tDef : MannedTurretDefinition) extends Amenity
 
   def ControlledWeapon(wepNumber : Int) : Option[Equipment] = {
     if(VisibleSlots.contains(wepNumber)) {
-      weapons(wepNumber + Definition.UpgradeStates(Upgrade)).Equipment
+      weapons(wepNumber).Equipment
     }
     else {
       None
@@ -80,9 +81,12 @@ class MannedTurret(tDef : MannedTurretDefinition) extends Amenity
   def Upgrade : TurretUpgrade.Value = upgradePath
 
   def Upgrade_=(upgrade : TurretUpgrade.Value) : TurretUpgrade.Value = {
-    if(Definition.UpgradeStates.contains(upgrade)) {
-      upgradePath = upgrade
-    }
+    upgradePath = upgrade
+    Definition.Weapons.foreach({ case(index , upgradePaths) =>
+      if(upgradePaths.contains(upgrade)) {
+        weapons(index).Equipment.get.asInstanceOf[MannedTurretWeapon].Upgrade = upgrade
+      }
+    })
     Upgrade
   }
 
@@ -112,14 +116,14 @@ object MannedTurret {
     //general stuff
     turret.Health = tdef.MaxHealth
     //create weapons
-    turret.weapons = tdef.Weapons.map({case (num, definition) =>
+    turret.weapons = tdef.Weapons.map({case (num, upgradePaths) =>
       val slot = EquipmentSlot(EquipmentSize.BaseTurretWeapon)
-      slot.Equipment = Tool(definition)
+      slot.Equipment = new MannedTurretWeapon(tdef, upgradePaths.toMap)
       num -> slot
     }).toMap
     //special inventory ammunition object(s)
     if(tdef.ReserveAmmunition) {
-      val allAmmunitionTypes = tdef.Weapons.values.flatMap { _.AmmoTypes }.toSet
+      val allAmmunitionTypes = tdef.Weapons.values.flatMap{ _.values.flatMap { _.AmmoTypes } }.toSet
       if(allAmmunitionTypes.nonEmpty) {
         turret.inventory.Resize(allAmmunitionTypes.size, 1)
         var i : Int = 0
@@ -132,8 +136,34 @@ object MannedTurret {
     turret
   }
 
+  private class MannedTurretWeapon(mdef : MannedTurretDefinition, udefs : Map[TurretUpgrade.Value, ToolDefinition], default : TurretUpgrade.Value = TurretUpgrade.None)
+    extends Tool(udefs(default)) {
+    private var upgradePath : TurretUpgrade.Value = default
+
+    def Upgrade : TurretUpgrade.Value = {
+      /*
+      Must check `not null` due to how this object's `Definition` will be called during `Tool`'s constructor
+      before the internal value can be set to default value `None`
+       */
+      if(upgradePath == null) { default } else { upgradePath }
+    }
+
+    def Upgrade_=(upgrade : TurretUpgrade.Value) : TurretUpgrade.Value = {
+      if(udefs.contains(upgrade)) {
+        val beforeUpgrade = upgradePath
+        upgradePath = upgrade
+        if(beforeUpgrade != upgradePath) {
+          Tool.LoadDefinition(this) //rebuild weapon internal structure
+        }
+      }
+      Upgrade
+    }
+
+    override def Definition = udefs(Upgrade)
+  }
+
   import net.psforever.objects.definition.AmmoBoxDefinition
-  class TurretAmmoBox(private val adef : AmmoBoxDefinition) extends AmmoBox(adef, Some(65535)) {
+  private class TurretAmmoBox(private val adef : AmmoBoxDefinition) extends AmmoBox(adef, Some(65535)) {
     import net.psforever.objects.inventory.InventoryTile
     override def Tile = InventoryTile.Tile11
 
