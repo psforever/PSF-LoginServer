@@ -131,7 +131,9 @@ class LocalService extends Actor {
             building.Amenities.filter(x => (x.Definition == GlobalDefinitions.resource_silo)).headOption.asInstanceOf[Option[ResourceSilo]] match {
               case Some(obj: ResourceSilo) =>
                 ntuLevel = obj.CapacitorDisplay.toInt
-              case _ => ;
+              case _ =>
+                // Base has no NTU silo - likely a tower / cavern CC
+                ntuLevel = 1
             }
 
             if(ntuLevel > 0) {
