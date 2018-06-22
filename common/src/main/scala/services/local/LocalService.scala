@@ -84,13 +84,19 @@ class LocalService extends Actor {
           if(isResecured){
             hackCapturer ! HackCaptureActor.ClearHack(target, zone)
           } else {
-            hackCapturer ! HackCaptureActor.ObjectIsHacked(target, zone, unk1, unk2)
+            target.Definition match {
+              case GlobalDefinitions.capture_terminal =>
+                // Base CC
+                hackCapturer ! HackCaptureActor.ObjectIsHacked(target, zone, unk1, unk2, duration = 15 minutes)
+              case GlobalDefinitions.secondary_capture =>
+                // Tower CC
+                hackCapturer ! HackCaptureActor.ObjectIsHacked(target, zone, unk1, unk2, duration = 1 nanosecond)
+            }
           }
 
           LocalEvents.publish(
             LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.HackCaptureTerminal(target.GUID, unk1, unk2, isResecured))
           )
-          //todo: publish to galaxy service for map update
         case LocalAction.ProximityTerminalEffect(player_guid, object_guid, effectState) =>
           LocalEvents.publish(
             LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.ProximityTerminalEffect(object_guid, effectState))
