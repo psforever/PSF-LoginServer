@@ -141,13 +141,14 @@ class LocalService extends Actor {
 
               building.Faction = hackedByFaction
               self ! LocalServiceMessage(zone.Id, LocalAction.SetEmpire(PlanetSideGUID(building.ModelId), hackedByFaction))
-
-              self ! LocalServiceMessage(zone.Id, LocalAction.HackCaptureTerminal(PlanetSideGUID(-1), zone, terminal, 0, 8L, isResecured = true))
-              //todo: this appears to be the way to reset the base warning lights after the hack finishes but it doesn't seem to work. The attribute above is a workaround
-              self ! HackClearActor.ClearTheHack(PlanetSideGUID(building.ModelId), zone.Id, 3212836864L, 8L)
             } else {
               log.info("Base hack completed, but base was out of NTU.")
             }
+
+            // Reset CC back to normal operation
+            self ! LocalServiceMessage(zone.Id, LocalAction.HackCaptureTerminal(PlanetSideGUID(-1), zone, terminal, 0, 8L, isResecured = true))
+            //todo: this appears to be the way to reset the base warning lights after the hack finishes but it doesn't seem to work. The attribute above is a workaround
+            self ! HackClearActor.ClearTheHack(PlanetSideGUID(building.ModelId), zone.Id, 3212836864L, 8L)
           case Success(_) =>
             log.warn("Got success from InterstellarCluster.GetWorld but didn't know how to handle it")
 
