@@ -2,13 +2,13 @@
 package objects.terminal
 
 import akka.actor.Props
+import base.ActorTest
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.terminals.Terminal.TerminalMessage
 import net.psforever.objects.serverobject.terminals.{ProximityTerminal, ProximityTerminalControl, ProximityUnit, Terminal}
 import net.psforever.objects.{Avatar, GlobalDefinitions, Player}
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types.{CharacterGender, CharacterVoice, PlanetSideEmpire}
-import objects.ActorTest
 import org.specs2.mutable.Specification
 
 import scala.concurrent.duration._

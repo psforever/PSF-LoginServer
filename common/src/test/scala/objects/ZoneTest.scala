@@ -4,6 +4,7 @@ package objects
 import java.util.concurrent.atomic.AtomicInteger
 
 import akka.actor.{ActorContext, ActorRef, Props}
+import base.ActorTest
 import net.psforever.objects.entity.IdentifiableEntity
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.guid.NumberPoolHub

@@ -1,9 +1,9 @@
-// Copyright (c) 2017 PSForever
-package objects
+package base
 
+// Copyright (c) 2017 PSForever
 import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestKit}
-import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
+import com.typesafe.config.ConfigFactory
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 import org.specs2.specification.Scope
 

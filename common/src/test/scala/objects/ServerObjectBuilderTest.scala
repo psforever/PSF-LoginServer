@@ -2,6 +2,7 @@
 package objects
 
 import akka.actor.{Actor, ActorContext, Props}
+import base.ActorTest
 import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.objects.serverobject.ServerObjectBuilder
@@ -137,7 +138,8 @@ class ProximityTerminalObjectBuilderTest extends ActorTest {
   "Terminal object" should {
     "build" in {
       val hub = ServerObjectBuilderTest.NumberPoolHub
-      val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1, ProximityTerminal.Constructor(medical_terminal)), hub), "term")
+      val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1,
+        ProximityTerminal.Constructor(medical_terminal)), hub), "term")
       actor ! "!"
 
       val reply = receiveOne(Duration.create(1000, "ms"))
@@ -221,6 +223,25 @@ class SpawnTubeObjectBuilderTest extends ActorTest {
       assert(reply.asInstanceOf[SpawnTube].GUID == PlanetSideGUID(1))
       assert(reply.asInstanceOf[SpawnTube].Position == Vector3(3980.4062f, 4267.3047f, 257.5625f))
       assert(reply.asInstanceOf[SpawnTube].Orientation == Vector3(0, 0, 90))
+      assert(reply == hub(1).get)
+    }
+  }
+}
+
+class MannedTurretObjectBuilderTest extends ActorTest {
+  import net.psforever.objects.GlobalDefinitions.manned_turret
+  import net.psforever.objects.serverobject.turret.MannedTurret
+  "MannedTurretObjectBuilder" should {
+    "build" in {
+      val hub = ServerObjectBuilderTest.NumberPoolHub
+      val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1,
+        MannedTurret.Constructor(manned_turret)), hub), "spawn-tube")
+      actor ! "!"
+
+      val reply = receiveOne(Duration.create(1000, "ms"))
+      assert(reply.isInstanceOf[MannedTurret])
+      assert(reply.asInstanceOf[MannedTurret].HasGUID)
+      assert(reply.asInstanceOf[MannedTurret].GUID == PlanetSideGUID(1))
       assert(reply == hub(1).get)
     }
   }

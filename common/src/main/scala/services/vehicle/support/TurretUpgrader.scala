@@ -50,8 +50,7 @@ class TurretUpgrader extends SupportActor[TurretUpgrader.Entry] {
 
   def CreateEntry(obj : PlanetSideGameObject, zone : Zone, upgrade : TurretUpgrade.Value, duration : Long) = TurretUpgrader.Entry(obj, zone, upgrade, duration)
 
-  def InclusionTest(entry : TurretUpgrader.Entry) : Boolean =
-    entry.obj.isInstanceOf[MannedTurret]
+  def InclusionTest(entry : TurretUpgrader.Entry) : Boolean = entry.obj.isInstanceOf[MannedTurret]
 
   def receive : Receive = {
     case Service.Startup() =>
@@ -81,7 +80,7 @@ class TurretUpgrader extends SupportActor[TurretUpgrader.Entry] {
           else{
             val oldHead = list.head
             if(!list.exists(test => TurretUpgrader.Similarity(test, entry))) {
-              list = (list :+ entry).sortBy(_.duration)
+              list = (list :+ entry).sortBy(entry => entry.time + entry.duration)
               trace(s"a task has been added: $entry")
               if(oldHead != list.head) {
                 RetimeFirstTask()
@@ -116,7 +115,8 @@ class TurretUpgrader extends SupportActor[TurretUpgrader.Entry] {
         debug(s"no tasks matching the targets $targets have been hurried")
       case (in, out) =>
         debug(s"the following tasks have been hurried: $in")
-        list = out.sortBy(_.duration)
+        in.foreach { UpgradeTurretAmmo }
+        list = out //.sortBy(entry => entry.time + entry.duration)
         if(out.nonEmpty) {
           RetimeFirstTask()
         }
@@ -136,7 +136,7 @@ class TurretUpgrader extends SupportActor[TurretUpgrader.Entry] {
         debug(s"no tasks matching the targets $targets have been cleared")
       case (in, out) =>
         debug(s"the following tasks have been cleared: $in")
-        list = out.sortBy(_.duration)
+        list = out //.sortBy(entry => entry.time + entry.duration)
         if(out.nonEmpty) {
           RetimeFirstTask()
         }

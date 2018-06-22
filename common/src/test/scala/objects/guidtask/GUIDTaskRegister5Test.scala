@@ -1,12 +1,12 @@
 // Copyright (c) 2017 PSForever
 package objects.guidtask
 
+import base.ActorTest
 import net.psforever.objects._
 import net.psforever.objects.guid.{GUIDTask, TaskResolver}
 import net.psforever.types.{CharacterGender, CharacterVoice, PlanetSideEmpire}
-import objects.ActorTest
 
-class GUIDTaskRegister5Test extends ActorTest() {
+class GUIDTaskRegister5Test extends ActorTest {
   "RegisterAvatar" in {
     val (_, uns, taskResolver, probe) = GUIDTaskTest.CommonTestSetup
     val obj = Player(Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))

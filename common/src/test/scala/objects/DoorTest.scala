@@ -2,6 +2,7 @@
 package objects
 
 import akka.actor.{ActorRef, ActorSystem, Props}
+import base.ActorTest
 import net.psforever.objects.{Avatar, GlobalDefinitions, Player}
 import net.psforever.objects.serverobject.doors.{Door, DoorControl}
 import net.psforever.objects.serverobject.structures.{Building, StructureType}
@@ -74,7 +75,7 @@ class DoorTest extends Specification {
   }
 }
 
-class DoorControl1Test extends ActorTest() {
+class DoorControl1Test extends ActorTest {
   "DoorControl" should {
     "construct" in {
       val door = Door(GlobalDefinitions.door)
@@ -84,7 +85,7 @@ class DoorControl1Test extends ActorTest() {
   }
 }
 
-class DoorControl2Test extends ActorTest() {
+class DoorControl2Test extends ActorTest {
   "DoorControl" should {
     "open on use" in {
       val (player, door) = DoorControlTest.SetUpAgents(PlanetSideEmpire.TR)
@@ -103,7 +104,7 @@ class DoorControl2Test extends ActorTest() {
   }
 }
 
-class DoorControl3Test extends ActorTest() {
+class DoorControl3Test extends ActorTest {
   "DoorControl" should {
     "do nothing if given garbage" in {
       val (_, door) = DoorControlTest.SetUpAgents(PlanetSideEmpire.TR)

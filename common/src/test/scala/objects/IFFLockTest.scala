@@ -2,6 +2,7 @@
 package objects
 
 import akka.actor.{ActorRef, ActorSystem, Props}
+import base.ActorTest
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.{Avatar, GlobalDefinitions, Player}
 import net.psforever.objects.serverobject.locks.{IFFLock, IFFLockControl}
@@ -22,7 +23,7 @@ class IFFLockTest extends Specification {
   }
 }
 
-class IFFLockControl1Test extends ActorTest() {
+class IFFLockControl1Test extends ActorTest {
   "IFFLockControl" should {
     "construct" in {
       val lock = IFFLock(GlobalDefinitions.lock_external)
@@ -32,7 +33,7 @@ class IFFLockControl1Test extends ActorTest() {
   }
 }
 
-class IFFLockControl2Test extends ActorTest() {
+class IFFLockControl2Test extends ActorTest {
   "IFFLockControl" should {
     "can hack" in {
       val (player, lock) = IFFLockControlTest.SetUpAgents(PlanetSideEmpire.TR)
@@ -46,7 +47,7 @@ class IFFLockControl2Test extends ActorTest() {
   }
 }
 
-class IFFLockControl3Test extends ActorTest() {
+class IFFLockControl3Test extends ActorTest {
   "IFFLockControl" should {
     "can hack" in {
       val (player, lock) = IFFLockControlTest.SetUpAgents(PlanetSideEmpire.TR)

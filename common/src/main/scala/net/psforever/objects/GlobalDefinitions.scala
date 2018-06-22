@@ -860,6 +860,7 @@ object GlobalDefinitions {
   val resource_silo = new ResourceSiloDefinition
 
   val manned_turret = new MannedTurretDefinition(480) {
+    Name = "manned_turret"
     MaxHealth = 3600
     Weapons += 1 -> new mutable.HashMap()
     Weapons(1) += TurretUpgrade.None -> phalanx_sgl_hevgatcan

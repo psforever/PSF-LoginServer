@@ -111,7 +111,7 @@ abstract class RemoverActor extends SupportActor[RemoverActor.Entry] {
             //unknown number of entries; append, sort, then re-time tasking
             val oldHead = firstHeap.head
             if(!firstHeap.exists(test => sameEntryComparator.Test(test, entry))) {
-              firstHeap = (firstHeap :+ entry).sortBy(_.duration)
+              firstHeap = (firstHeap :+ entry).sortBy(entry => entry.time + entry.duration)
               trace(s"a remover task has been added: $entry")
               if(oldHead != firstHeap.head) {
                 RetimeFirstTask()
@@ -171,7 +171,7 @@ abstract class RemoverActor extends SupportActor[RemoverActor.Entry] {
         debug(s"no tasks matching the targets $targets have been hurried")
       case (in, out) =>
         debug(s"the following tasks have been hurried: $in")
-        firstHeap = out.sortBy(_.duration)
+        firstHeap = out //.sortBy(entry => entry.time + entry.duration)
         if(out.nonEmpty) {
           RetimeFirstTask()
         }
@@ -206,7 +206,7 @@ abstract class RemoverActor extends SupportActor[RemoverActor.Entry] {
         debug(s"no tasks matching the targets $targets have been cleared")
       case (in, out) =>
         debug(s"the following tasks have been cleared: $in")
-        firstHeap = out.sortBy(_.duration)
+        firstHeap = out //.sortBy(entry => entry.time + entry.duration)
         if(out.nonEmpty) {
           RetimeFirstTask()
         }

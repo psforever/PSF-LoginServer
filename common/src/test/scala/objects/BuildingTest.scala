@@ -2,6 +2,7 @@
 package objects
 
 import akka.actor.{ActorRef, Props}
+import base.ActorTest
 import net.psforever.objects.GlobalDefinitions
 import net.psforever.objects.definition.ObjectDefinition
 import net.psforever.objects.serverobject.affinity.FactionAffinity
@@ -172,7 +173,7 @@ class BuildingControl3Test extends ActorTest {
       assert(bldg.Amenities(1) == door1)
 
       bldg.Actor ! FactionAffinity.ConvertFactionAffinity(PlanetSideEmpire.VS)
-      val reply = receiveN(3, Duration.create(500, "ms"))
+      val reply = receiveN(3, Duration.create(5000, "ms"))
       assert(reply.length == 3)
       var building_count = 0
       var door_count = 0
