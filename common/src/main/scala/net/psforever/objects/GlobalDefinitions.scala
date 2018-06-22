@@ -1373,15 +1373,15 @@ object GlobalDefinitions {
 
     health_canister.Name = "health_canister"
     health_canister.Capacity = 100
-    health_canister.Tile = InventoryTile.Tile33
+    health_canister.Tile = InventoryTile.Tile23
 
     armor_canister.Name = "armor_canister"
     armor_canister.Capacity = 100
-    armor_canister.Tile = InventoryTile.Tile33
+    armor_canister.Tile = InventoryTile.Tile23
 
     upgrade_canister.Name = "upgrade_canister"
-    upgrade_canister.Capacity = 100
-    upgrade_canister.Tile = InventoryTile.Tile33
+    upgrade_canister.Capacity = 1 //do not change this; nano-dispenser erroneously expects 100 units during reload
+    upgrade_canister.Tile = InventoryTile.Tile23
 
     trek_ammo.Name = "trek_ammo"
     trek_ammo.Size = EquipmentSize.Blocked
@@ -3768,6 +3768,7 @@ object GlobalDefinitions {
     nano_dispenser.FireModes.head.AmmoTypeIndices += 1
     nano_dispenser.FireModes.head.AmmoSlotIndex = 0
     nano_dispenser.FireModes.head.Magazine = 100
+    nano_dispenser.FireModes.head.CustomMagazine = Ammo.upgrade_canister -> 1
     nano_dispenser.FireModes.head.Modifiers.Damage1 = 20
     nano_dispenser.FireModes.head.Modifiers.Damage4 = 20
     nano_dispenser.Tile = InventoryTile.Tile63

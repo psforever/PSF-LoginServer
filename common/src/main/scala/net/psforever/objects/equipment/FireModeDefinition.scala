@@ -18,6 +18,9 @@ class FireModeDefinition {
   private var ammoSlotIndex : Int = 0
   /** how many rounds are replenished each reload cycle */
   private var magazine : Int = 1
+  /** how many rounds are replenished each reload cycle, per type of ammunition loaded
+    * key - ammo type index, value - magazine capacity*/
+  private val customAmmoMagazine : mutable.HashMap[Ammo.Value, Int] = mutable.HashMap[Ammo.Value, Int]()
   /** how much is subtracted from the magazine each fire cycle;
     * most weapons will only fire 1 round per fire cycle; the flamethrower in fire mode 1 fires 50 */
   private var rounds : Int = 1
@@ -51,6 +54,14 @@ class FireModeDefinition {
   def Magazine_=(inMagazine : Int) : Int = {
     magazine = inMagazine
     Magazine
+  }
+
+  def CustomMagazine : mutable.HashMap[Ammo.Value, Int] = customAmmoMagazine
+
+  def CustomMagazine_=(kv : (Ammo.Value, Int)) : mutable.HashMap[Ammo.Value, Int] = {
+    val (ammoTypeIndex, cap) = kv
+    customAmmoMagazine += ammoTypeIndex -> cap
+    CustomMagazine
   }
 
   def Rounds : Int = rounds
@@ -119,6 +130,25 @@ class InfiniteFireModeDefinition extends FireModeDefinition {
     */
   override def Discharge(weapon : Tool) : Int = 1
 }
+
+//class VariableMagazineFireModeDefinition extends FireModeDefinition {
+//  /** key - index of ammunition
+//    *
+//    */
+//  private val customAmmoCapacity : mutable.HashMap[Int, Int] = new mutable.HashMap()
+//
+//  def CustomMagazine : mutable.HashMap[Int, Int] = customAmmoCapacity
+//
+//  def CustomMagazine_=(kv : (Int, Int)) : mutable.HashMap[Int, Int] = {
+//    val (ammoTypeIndex, cap) = kv
+//    customAmmoCapacity += ammoTypeIndex -> cap
+//    CustomMagazine
+//  }
+//
+//  override def Magazine : Int = {
+//    customAmmoCapacity.getOrElse(AmmoTypeIndices(Ammo), Magazine)
+//  }
+//}
 
 class DamageModifiers extends DamageProfile {
   private var damage0 : Int = 0

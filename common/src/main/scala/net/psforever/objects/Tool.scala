@@ -79,11 +79,20 @@ class Tool(private val toolDef : ToolDefinition) extends Equipment with FireMode
   def Magazine : Int = AmmoSlot.Magazine
 
   def Magazine_=(mag : Int) : Int = {
-    AmmoSlot.Magazine = Math.min(Math.max(0, mag), MaxMagazine)
+    //AmmoSlot.Magazine = Math.min(Math.max(0, mag), MaxMagazine)
+    AmmoSlot.Magazine = Math.max(0, mag)
     Magazine
   }
 
-  def MaxMagazine : Int = FireMode.Magazine
+  def MaxMagazine : Int = {
+    val fmode = FireMode
+    fmode.CustomMagazine.get(AmmoType) match {
+      case Some(magSize) =>
+        magSize
+      case None =>
+        fmode.Magazine
+    }
+  }
 
   def Discharge : Int = {
     Magazine = FireMode.Discharge(this)
@@ -99,6 +108,8 @@ class Tool(private val toolDef : ToolDefinition) extends Equipment with FireMode
 
   override def toString : String = Tool.toString(this)
 }
+
+//AmmoType = Definition.AmmoTypes( (Definition.FireModes(fireModeIndex)).AmmoTypeIndices( (ammoSlots((Definition.FireModes(fireModeIndex)).AmmoSlotIndex)).AmmoTypeIndex) ).AmmoType
 
 object Tool {
   def apply(toolDef : ToolDefinition) : Tool = {

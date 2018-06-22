@@ -6,8 +6,8 @@ import net.psforever.objects.guid.TaskResolver
 import net.psforever.objects.zones.Zone
 import net.psforever.objects.{DefaultCancellable, PlanetSideGameObject}
 import net.psforever.types.Vector3
+import services.support.{SimilarityComparator, SupportActor, SupportActorCaseConversions}
 
-import scala.annotation.tailrec
 import scala.concurrent.duration._
 
 /**
@@ -29,7 +29,7 @@ import scala.concurrent.duration._
   * and finally unregistering it.
   * Some types of object have (de-)implementation variations which should be made explicit through the overrides.
   */
-abstract class RemoverActor extends Actor {
+abstract class RemoverActor extends SupportActor[RemoverActor.Entry] {
   /**
     * The timer that checks whether entries in the first pool are still eligible for that pool.
     */
@@ -50,16 +50,18 @@ abstract class RemoverActor extends Actor {
 
   private var taskResolver : ActorRef = Actor.noSender
 
-  private[this] val log = org.log4s.getLogger
-  def trace(msg : String) : Unit = log.trace(msg)
-  def debug(msg : String) : Unit = log.debug(msg)
+  val sameEntryComparator = new SimilarityComparator[RemoverActor.Entry]() {
+    def Test(entry1 : RemoverActor.Entry, entry2 : RemoverActor.Entry) : Boolean = {
+      entry1.obj == entry2.obj && entry1.zone == entry2.zone && entry1.obj.GUID == entry2.obj.GUID
+    }
+  }
 
   /**
     * Send the initial message that requests a task resolver for assisting in the removal process.
     */
   override def preStart() : Unit = {
     super.preStart()
-    self ! RemoverActor.Startup()
+    self ! Service.Startup()
   }
 
   /**
@@ -82,7 +84,7 @@ abstract class RemoverActor extends Actor {
   }
 
   def receive : Receive = {
-    case RemoverActor.Startup() =>
+    case Service.Startup() =>
       ServiceManager.serviceManager ! ServiceManager.Lookup("taskResolver") //ask for a resolver to deal with the GUID system
 
     case ServiceManager.LookupResult("taskResolver", endpoint) =>
@@ -90,83 +92,72 @@ abstract class RemoverActor extends Actor {
       context.become(Processing)
 
     case msg =>
-      log.error(s"received message $msg before being properly initialized")
+      debug(s"received message $msg before being properly initialized")
   }
 
-  def Processing : Receive = {
-    case RemoverActor.AddTask(obj, zone, duration) =>
-      val entry = RemoverActor.Entry(obj, zone, duration.getOrElse(FirstStandardDuration).toNanos)
-      if(InclusionTest(entry) && !secondHeap.exists(test => RemoverActor.Similarity(test, entry) )) {
-        InitialJob(entry)
-        if(firstHeap.isEmpty) {
-          //we were the only entry so the event must be started from scratch
-          firstHeap = List(entry)
-          trace(s"a remover task has been added: $entry")
-          RetimeFirstTask()
-        }
-        else {
-          //unknown number of entries; append, sort, then re-time tasking
-          val oldHead = firstHeap.head
-          if(!firstHeap.exists(test => RemoverActor.Similarity(test, entry))) {
-            firstHeap = (firstHeap :+ entry).sortBy(_.duration)
+  def Processing : Receive = entryManagementBehaviors
+    .orElse {
+      case RemoverActor.AddTask(obj, zone, duration) =>
+        val entry = RemoverActor.Entry(obj, zone, duration.getOrElse(FirstStandardDuration).toNanos)
+        if(InclusionTest(entry) && !secondHeap.exists(test => sameEntryComparator.Test(test, entry) )) {
+          InitialJob(entry)
+          if(firstHeap.isEmpty) {
+            //we were the only entry so the event must be started from scratch
+            firstHeap = List(entry)
             trace(s"a remover task has been added: $entry")
-            if(oldHead != firstHeap.head) {
-              RetimeFirstTask()
-            }
+            RetimeFirstTask()
           }
           else {
-            trace(s"$obj is already queued for removal")
+            //unknown number of entries; append, sort, then re-time tasking
+            val oldHead = firstHeap.head
+            if(!firstHeap.exists(test => sameEntryComparator.Test(test, entry))) {
+              firstHeap = (firstHeap :+ entry).sortBy(_.duration)
+              trace(s"a remover task has been added: $entry")
+              if(oldHead != firstHeap.head) {
+                RetimeFirstTask()
+              }
+            }
+            else {
+              trace(s"$obj is already queued for removal")
+            }
           }
         }
-      }
-      else {
-        trace(s"$obj either does not qualify for this Remover or is already queued")
-      }
+        else {
+          trace(s"$obj either does not qualify for this Remover or is already queued")
+        }
 
-    case RemoverActor.HurrySpecific(targets, zone) =>
-      HurrySpecific(targets, zone)
+      //private messages from RemoverActor to RemoverActor
+      case RemoverActor.StartDelete() =>
+        firstTask.cancel
+        secondTask.cancel
+        val now : Long = System.nanoTime
+        val (in, out) = firstHeap.partition(entry => { now - entry.time >= entry.duration })
+        firstHeap = out
+        secondHeap = secondHeap ++ in.map { RepackageEntry }
+        in.foreach { FirstJob }
+        RetimeFirstTask()
+        if(secondHeap.nonEmpty) {
+          import scala.concurrent.ExecutionContext.Implicits.global
+          secondTask = context.system.scheduler.scheduleOnce(SecondStandardDuration, self, RemoverActor.TryDelete())
+        }
+        trace(s"item removal task has found ${in.size} items to remove")
 
-    case RemoverActor.HurryAll() =>
-      HurryAll()
+      case RemoverActor.TryDelete() =>
+        secondTask.cancel
+        val (in, out) = secondHeap.partition { ClearanceTest }
+        secondHeap = out
+        in.foreach { SecondJob }
+        if(out.nonEmpty) {
+          import scala.concurrent.ExecutionContext.Implicits.global
+          secondTask = context.system.scheduler.scheduleOnce(SecondStandardDuration, self, RemoverActor.TryDelete())
+        }
+        trace(s"item removal task has removed ${in.size} items")
 
-    case RemoverActor.ClearSpecific(targets, zone) =>
-      ClearSpecific(targets, zone)
+      case RemoverActor.FailureToWork(entry, ex) =>
+        debug(s"${entry.obj} from ${entry.zone} not properly deleted - $ex")
 
-    case RemoverActor.ClearAll() =>
-      ClearAll()
-
-    //private messages from RemoverActor to RemoverActor
-    case RemoverActor.StartDelete() =>
-      firstTask.cancel
-      secondTask.cancel
-      val now : Long = System.nanoTime
-      val (in, out) = firstHeap.partition(entry => { now - entry.time >= entry.duration })
-      firstHeap = out
-      secondHeap = secondHeap ++ in.map { RepackageEntry }
-      in.foreach { FirstJob }
-      RetimeFirstTask()
-      if(secondHeap.nonEmpty) {
-        import scala.concurrent.ExecutionContext.Implicits.global
-        secondTask = context.system.scheduler.scheduleOnce(SecondStandardDuration, self, RemoverActor.TryDelete())
-      }
-      trace(s"item removal task has found ${in.size} items to remove")
-
-    case RemoverActor.TryDelete() =>
-      secondTask.cancel
-      val (in, out) = secondHeap.partition { ClearanceTest }
-      secondHeap = out
-      in.foreach { SecondJob }
-      if(out.nonEmpty) {
-        import scala.concurrent.ExecutionContext.Implicits.global
-        secondTask = context.system.scheduler.scheduleOnce(SecondStandardDuration, self, RemoverActor.TryDelete())
-      }
-      trace(s"item removal task has removed ${in.size} items")
-
-    case RemoverActor.FailureToWork(entry, ex) =>
-      log.error(s"${entry.obj} from ${entry.zone} not properly deleted - $ex")
-
-    case _ => ;
-  }
+      case _ => ;
+    }
 
   /**
     * Expedite some entries from the first pool into the second.
@@ -175,14 +166,18 @@ abstract class RemoverActor extends Actor {
     *             all targets must be in this zone, with the assumption that this is the zone where they were registered
     */
   def HurrySpecific(targets : List[PlanetSideGameObject], zone : Zone) : Unit = {
-    CullTargetsFromFirstHeap(targets, zone) match {
-      case Nil =>
+    PartitionTargetsFromList(firstHeap, targets.map { RemoverActor.Entry(_, zone, 0) }, zone) match {
+      case (Nil, _) =>
         debug(s"no tasks matching the targets $targets have been hurried")
-      case list =>
-        debug(s"the following tasks have been hurried: $list")
+      case (in, out) =>
+        debug(s"the following tasks have been hurried: $in")
+        firstHeap = out.sortBy(_.duration)
+        if(out.nonEmpty) {
+          RetimeFirstTask()
+        }
         secondTask.cancel
-        list.foreach { FirstJob }
-        secondHeap = secondHeap ++ list.map { RepackageEntry }
+        in.foreach { FirstJob }
+        secondHeap = secondHeap ++ in.map { RepackageEntry }
         import scala.concurrent.ExecutionContext.Implicits.global
         secondTask = context.system.scheduler.scheduleOnce(SecondStandardDuration, self, RemoverActor.TryDelete())
     }
@@ -206,11 +201,15 @@ abstract class RemoverActor extends Actor {
     * Remove specific entries from the first pool.
     */
   def ClearSpecific(targets : List[PlanetSideGameObject], zone : Zone) : Unit = {
-    CullTargetsFromFirstHeap(targets, zone) match {
-      case Nil =>
+    PartitionTargetsFromList(firstHeap, targets.map { RemoverActor.Entry(_, zone, 0) }, zone) match {
+      case (Nil, _) =>
         debug(s"no tasks matching the targets $targets have been cleared")
-      case list =>
-        debug(s"the following tasks have been cleared: $list")
+      case (in, out) =>
+        debug(s"the following tasks have been cleared: $in")
+        firstHeap = out.sortBy(_.duration)
+        if(out.nonEmpty) {
+          RetimeFirstTask()
+        }
     }
   }
 
@@ -230,68 +229,6 @@ abstract class RemoverActor extends Actor {
     */
   private def RepackageEntry(entry : RemoverActor.Entry) : RemoverActor.Entry = {
     RemoverActor.Entry(entry.obj, entry.zone, SecondStandardDuration.toNanos)
-  }
-
-  /**
-    * Search the first pool of entries awaiting removal processing.
-    * If any entry has the same object as one of the targets and belongs to the same zone, remove it from the first pool.
-    * If no targets are selected (an empty list), all discovered targets within the appropriate zone are removed.
-    * @param targets a list of objects to pick
-    * @param zone the zone in which these objects must be discovered;
-    *             all targets must be in this zone, with the assumption that this is the zone where they were registered
-    * @return all of the discovered entries
-    */
-  private def CullTargetsFromFirstHeap(targets : List[PlanetSideGameObject], zone : Zone) : List[RemoverActor.Entry] = {
-    val culledEntries = if(targets.nonEmpty) {
-      if(targets.size == 1) {
-        debug(s"a target submitted: ${targets.head}")
-        //simple selection
-        RemoverActor.recursiveFind(firstHeap.iterator, RemoverActor.Entry(targets.head, zone, 0)) match {
-          case None => ;
-            Nil
-          case Some(index) =>
-            val entry = firstHeap(index)
-            firstHeap = (firstHeap.take(index) ++ firstHeap.drop(index + 1)).sortBy(_.duration)
-            List(entry)
-        }
-      }
-      else {
-        debug(s"multiple targets submitted: $targets")
-        //cumbersome partition
-        //a - find targets from entries
-        val locatedTargets = for {
-          a <- targets.map(RemoverActor.Entry(_, zone, 0))
-          b <- firstHeap//.filter(entry => entry.zone == zone)
-          if b.obj.HasGUID && a.obj.HasGUID && RemoverActor.Similarity(b, a)
-        } yield b
-        if(locatedTargets.nonEmpty) {
-          //b - entries, after the found targets are removed (cull any non-GUID entries while at it)
-          firstHeap = (for {
-            a <- locatedTargets
-            b <- firstHeap
-            if b.obj.HasGUID && a.obj.HasGUID && !RemoverActor.Similarity(b, a)
-          } yield b).sortBy(_.duration)
-          locatedTargets
-        }
-        else {
-          Nil
-        }
-      }
-    }
-    else {
-      debug(s"all targets within the specified zone $zone will be submitted")
-      //no specific targets; split on all targets in the given zone instead
-      val (in, out) = firstHeap.partition(entry => entry.zone == zone)
-      firstHeap = out.sortBy(_.duration)
-      in
-    }
-    if(culledEntries.nonEmpty) {
-      RetimeFirstTask()
-      culledEntries
-    }
-    else {
-      Nil
-    }
   }
 
   /**
@@ -354,15 +291,6 @@ abstract class RemoverActor extends Actor {
   def SecondStandardDuration : FiniteDuration
 
   /**
-    * Determine whether or not the resulting entry is valid for this removal process.
-    * The primary purpose of this function should be to determine if the appropriate type of object is being submitted.
-    * Override.
-    * @param entry the entry
-    * @return `true`, if it can be processed; `false`, otherwise
-    */
-  def InclusionTest(entry : RemoverActor.Entry) : Boolean
-
-  /**
     * Performed when the entry is initially added to the first list.
     * Override.
     * @param entry the entry
@@ -392,23 +320,15 @@ abstract class RemoverActor extends Actor {
   def DeletionTask(entry : RemoverActor.Entry) : TaskResolver.GiveTask
 }
 
-object RemoverActor {
+object RemoverActor extends SupportActorCaseConversions {
   /**
     * All information necessary to apply to the removal process to produce an effect.
     * Internally, all entries have a "time created" field.
-    * @param obj the target
-    * @param zone the zone in which this target is registered
-    * @param duration how much longer the target will exist in its current state (in nanoseconds)
+    * @param _obj the target
+    * @param _zone the zone in which this target is registered
+    * @param _duration how much longer the target will exist in its current state (in nanoseconds)
     */
-  case class Entry(obj : PlanetSideGameObject, zone : Zone, duration : Long) {
-    /** The time when this entry was created (in nanoseconds) */
-    val time : Long = System.nanoTime
-  }
-
-  /**
-    * A message that prompts the retrieval of a `TaskResolver` for us in the removal process.
-    */
-  case class Startup()
+  case class Entry(_obj : PlanetSideGameObject, _zone : Zone, _duration : Long) extends SupportActor.Entry(_obj, _zone, _duration)
 
   /**
     * Message to submit an object to the removal process.
@@ -419,36 +339,6 @@ object RemoverActor {
     *                 a default time duration is provided by implementation
     */
   case class AddTask(obj : PlanetSideGameObject, zone : Zone, duration : Option[FiniteDuration] = None)
-
-  /**
-    * "Hurrying" shifts entries with the discovered objects (in the same `zone`)
-    * through their first task and into the second pool.
-    * If the list of targets is empty, all discovered objects in the given zone will be considered targets.
-    * @param targets a list of objects to match
-    * @param zone the zone in which these objects exist;
-    *             the assumption is that all these target objects are registered to this zone
-    */
-  case class HurrySpecific(targets : List[PlanetSideGameObject], zone : Zone)
-  /**
-    * "Hurrying" shifts all entries through their first task and into the second pool.
-    */
-  case class HurryAll()
-
-  /**
-    * "Clearing" cancels entries with the discovered objects (in the same `zone`)
-    * if they are discovered in the first pool of objects.
-    * Those entries will no longer be affected by any actions performed by the removal process until re-submitted.
-    * If the list of targets is empty, all discovered objects in the given zone will be considered targets.
-    * @param targets a list of objects to match
-    * @param zone the zone in which these objects exist;
-    *             the assumption is that all these target objects are registered to this zone
-    */
-  case class ClearSpecific(targets : List[PlanetSideGameObject], zone : Zone)
-  /**
-    * "Clearing" cancels all entries if they are discovered in the first pool of objects.
-    * Those entries will no longer be affected by any actions performed by the removal process until re-submitted.
-    */
-  case class ClearAll()
 
   /**
     * Message that indicates that the final stage of the remover process has failed.
@@ -467,36 +357,4 @@ object RemoverActor {
     * Internal message to flag operations by data in the second list if it has been in that list long enough.
     */
   private final case class TryDelete()
-
-  /**
-    * Match two entries by object and by zone information.
-    * @param entry1 the first entry
-    * @param entry2 the second entry
-    * @return if they match
-    */
-  private def Similarity(entry1 : RemoverActor.Entry, entry2 : RemoverActor.Entry) : Boolean = {
-    entry1.obj == entry2.obj && entry1.zone == entry2.zone && entry1.obj.GUID == entry2.obj.GUID
-  }
-
-  /**
-    * Get the index of an entry in the list of entries.
-    * @param iter an `Iterator` of entries
-    * @param target the specific entry to be found
-    * @param index the incrementing index value
-    * @return the index of the entry in the list, if a match to the target is found
-    */
-  @tailrec private def recursiveFind(iter : Iterator[RemoverActor.Entry], target : RemoverActor.Entry, index : Int = 0) : Option[Int] = {
-    if(!iter.hasNext) {
-      None
-    }
-    else {
-      val entry = iter.next
-      if(entry.obj.HasGUID && target.obj.HasGUID && Similarity(entry, target)) {
-        Some(index)
-      }
-      else {
-        recursiveFind(iter, target, index + 1)
-      }
-    }
-  }
 }

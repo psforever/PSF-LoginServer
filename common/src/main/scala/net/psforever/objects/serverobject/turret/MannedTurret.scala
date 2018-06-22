@@ -154,6 +154,7 @@ object MannedTurret {
         upgradePath = upgrade
         if(beforeUpgrade != upgradePath) {
           Tool.LoadDefinition(this) //rebuild weapon internal structure
+          FireModeIndex = 0
         }
       }
       Upgrade

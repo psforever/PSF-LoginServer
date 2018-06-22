@@ -6,7 +6,7 @@ import net.psforever.objects.serverobject.pad.VehicleSpawnPad
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.ObjectCreateMessage
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
-import services.vehicle.support.{TurretUpgradeMinder, VehicleRemover}
+import services.vehicle.support.{TurretUpgrader, VehicleRemover}
 import net.psforever.types.DriveState
 import services.{GenericEventBus, RemoverActor, Service}
 
@@ -14,7 +14,7 @@ import scala.concurrent.duration._
 
 class VehicleService extends Actor {
   private val vehicleDecon : ActorRef = context.actorOf(Props[VehicleRemover], "vehicle-decon-agent")
-  private val turretUpgrade : ActorRef = context.actorOf(Props[TurretUpgradeMinder], "turret-upgrade-agent")
+  private val turretUpgrade : ActorRef = context.actorOf(Props[TurretUpgrader], "turret-upgrade-agent")
   private [this] val log = org.log4s.getLogger
 
   override def preStart = {
@@ -114,8 +114,6 @@ class VehicleService extends Actor {
           VehicleEvents.publish(
             VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.VehicleState(vehicle_guid, unk1, pos, ang, vel, unk2, unk3, unk4, wheel_direction, unk5, unk6))
           )
-        case VehicleAction.UpgradeTurret(turret, zone, upgrade, duration) =>
-          turretUpgrade ! TurretUpgradeMinder.AddTask(turret, zone, upgrade, duration)
         case VehicleAction.SendResponse(player_guid, msg) =>
           VehicleEvents.publish(
             VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.SendResponse(msg))
@@ -130,6 +128,10 @@ class VehicleService extends Actor {
     //message to VehicleRemover
     case VehicleServiceMessage.Decon(msg) =>
       vehicleDecon forward msg
+
+    //message to TurretUpgrader
+    case VehicleServiceMessage.TurretUpgrade(msg) =>
+      turretUpgrade forward msg
 
     //from VehicleSpawnControl
     case VehicleSpawnPad.ConcealPlayer(player_guid, zone_id) =>

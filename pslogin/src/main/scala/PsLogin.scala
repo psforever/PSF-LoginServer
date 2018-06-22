@@ -219,7 +219,7 @@ object PsLogin {
     import scala.concurrent.ExecutionContext.Implicits.global
     import scala.concurrent.Future
     import scala.util.{Failure, Success}
-    implicit val timeout = Timeout(500 milliseconds)
+    implicit val timeout = Timeout(5 seconds)
     val requestVehicleEventBus : Future[ServiceManager.LookupResult] =
       (ServiceManager.serviceManager ask ServiceManager.Lookup("vehicle")).mapTo[ServiceManager.LookupResult]
     requestVehicleEventBus.onComplete {

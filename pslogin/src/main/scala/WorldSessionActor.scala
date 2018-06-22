@@ -43,7 +43,7 @@ import services.{RemoverActor, _}
 import services.avatar.{AvatarAction, AvatarResponse, AvatarServiceMessage, AvatarServiceResponse}
 import services.galaxy.{GalaxyResponse, GalaxyServiceResponse}
 import services.local.{LocalAction, LocalResponse, LocalServiceMessage, LocalServiceResponse}
-import services.vehicle.VehicleAction.UnstowEquipment
+import services.vehicle.support.TurretUpgrader
 import services.vehicle.{VehicleAction, VehicleResponse, VehicleServiceMessage, VehicleServiceResponse}
 
 import scala.concurrent.duration._
@@ -2359,9 +2359,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
       FindContainedWeapon match {
         case (Some(obj), Some(tool : Tool)) =>
           val originalAmmoType = tool.AmmoType
-          val fullMagazine = tool.MaxMagazine
           do {
             val requestedAmmoType = tool.NextAmmoType
+            val fullMagazine = tool.MaxMagazine
             if(requestedAmmoType != tool.AmmoSlot.Box.AmmoType) {
               FindEquipmentStock(obj, FindAmmoBoxThatUses(requestedAmmoType), fullMagazine, CountAmmunition).reverse match {
                 case Nil => ;
@@ -2969,16 +2969,16 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case Some(obj : MannedTurret) =>
           player.Slot(player.DrawnSlot).Equipment match {
             case Some(tool : Tool) =>
-              if(tool.Definition == GlobalDefinitions.nano_dispenser) {
+              if(tool.Definition == GlobalDefinitions.nano_dispenser && tool.Magazine > 0) {
                 val ammo = tool.AmmoType
                 if(ammo == Ammo.upgrade_canister && obj.Seats.values.count(_.isOccupied) == 0) {
-                  progressBarValue = Some(-0.83f)
+                  progressBarValue = Some(-1.25f)
                   self ! WorldSessionActor.HackingProgress(
                     2,
                     player,
                     obj,
                     tool.GUID,
-                    0.83f,
+                    1.25f,
                     FinishUpgradingMannedTurret(obj, tool, TurretUpgrade(unk2.toInt))
                   )
                 }
@@ -3937,7 +3937,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
   }
 
   /**
-    * The process of hacking an object is completed
+    * The process of hacking an object is completed.
     * Pass the message onto the hackable object and onto the local events system.
     * @param target the `Hackable` object that has been hacked
     * @param unk na;
@@ -3959,11 +3959,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
   }
 
   /**
-    * The process of upgrading a turret is nearly complete.
-    * After the upgrade status is changed, the internal structure of the turret's weapons change to suit the configuration.
-    * Of special importance are internal ammo supplies of the changing weapon,
-    * the original ammunition that must be un-registered,
-    * and the new boxes that must be registered so the weapon may be introduced into the game world properly.
+    * The process of upgrading a turret's weapon(s) is completed.
+    * Pass the message onto the turret and onto the vehicle events system.
+    * Additionally, force-deplete the ammunition count of the nano-dispenser used to perform the upgrade.
     * @param target the turret
     * @param tool the nano-dispenser that was used to perform this upgrade
     * @param upgrade the new upgrade state
@@ -3972,7 +3970,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
     log.info(s"Converting manned wall turret weapon to $upgrade")
     tool.Magazine = 0
     sendResponse(InventoryStateMessage(tool.AmmoSlot.Box.GUID, tool.GUID, 0))
-    vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.UpgradeTurret(target, continent, upgrade, Some(1 minute)))
+    vehicleService ! VehicleServiceMessage.TurretUpgrade(TurretUpgrader.ClearSpecific(List(target), continent))
+    vehicleService ! VehicleServiceMessage.TurretUpgrade(TurretUpgrader.AddTask(target, continent, upgrade))
   }
 
   /**
@@ -3989,7 +3988,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * Occasionally, during deployment, local(?) vehicle seat access permissions may change.
     * This results in players being locked into their own vehicle.
     * Reloading vehicle permissions supposedly ensures the seats will be properly available.
-    * This is considered a client issue; but, somehow, it also impacts server operation somehow.
+    * This is considered a client issue; but, somehow, it also impacts server operation somehow.<br>
+    * <br>
+    * 22 June 2018:<br>
+    * I think vehicle ownership works properly now.
     * @param vehicle the `Vehicle`
     */
   def ReloadVehicleAccessPermissions(vehicle : Vehicle) : Unit = {
