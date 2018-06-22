@@ -2625,8 +2625,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
                 case None => ;
               }
 
-              // If the IFF lock has been hacked or the base it is linked to has been hacked then open the door
-              lock.HackedBy.isDefined || baseIsHacked
+              // If the IFF lock has been hacked OR the base is neutral OR the base linked to the lock is hacked then open the door
+              lock.HackedBy.isDefined || baseIsHacked || lock.Faction == PlanetSideEmpire.NEUTRAL
             case None => !door.isOpen
           }) || Vector3.ScalarProjection(door.Outwards, player.Position - door.Position) < 0f)) {
             // We're on the inside of the door - open the door
@@ -3700,7 +3700,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         target match {
           case term : CaptureTerminal =>
             val isResecured = player.Faction == target.Faction
-            localService ! LocalServiceMessage(continent.Id, LocalAction.HackCaptureTerminal(player.GUID, continent, target.asInstanceOf[CaptureTerminal], unk, 8L, isResecured))
+            localService ! LocalServiceMessage(continent.Id, LocalAction.HackCaptureTerminal(player.GUID, continent, term, unk, 8L, isResecured))
           case _ =>
             localService ! LocalServiceMessage(continent.Id, LocalAction.HackTemporarily(player.GUID, continent, target, unk, target.HackEffectDuration(GetPlayerHackLevel())))
         }
