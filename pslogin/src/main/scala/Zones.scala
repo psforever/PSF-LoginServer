@@ -17,8 +17,8 @@ object Zones {
       super.Init(context)
 
       import net.psforever.types.PlanetSideEmpire
-//      Building(5).get.Faction = PlanetSideEmpire.NEUTRAL //Akkan
-//      Building(5).get.ModelId = 24
+      Building(5).get.Faction = PlanetSideEmpire.NEUTRAL //Akkan
+      Building(5).get.ModelId = 24
       Building(9).get.Faction = PlanetSideEmpire.NC //Girru
       Building(9).get.ModelId = 48
       Building(10).get.Faction = PlanetSideEmpire.TR //Hanish

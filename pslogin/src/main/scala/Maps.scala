@@ -20,6 +20,7 @@ object Maps {
   val map3 = new ZoneMap("map03")
 
   val map4 = new ZoneMap("map04") {
+    Building5()
     Building9()
     Building10()
     Building11()
@@ -32,6 +33,130 @@ object Maps {
     Building56()
     Building59()
     Building65()
+
+    def Building5() : Unit = { // Akkan Dropship Center, Ishundar (ID: 24)
+      LocalBuilding(5, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(2698.6406f, 4336.914f, 52.046875f)))) //todo ? change ?
+
+      //Akkan IDs for courtyard/lobby/dish/bunkers, no access to tower or basement with exception of stairs and backdoor areas only, can't proceed past it into basement)
+
+      //Akkan Doors
+      LocalObject(281, Door.Constructor)
+      LocalObject(378, Door.Constructor)
+      LocalObject(379, Door.Constructor)
+      LocalObject(380, Door.Constructor)
+      LocalObject(381, Door.Constructor)
+      LocalObject(382, Door.Constructor)
+      LocalObject(383, Door.Constructor(Vector3(2674.0938f, 4317.367f, 44.59375f), Vector3(0.0f, 0.0f, 180.0f)))
+      LocalObject(384, Door.Constructor(Vector3(2674.086f, 4321.6953f, 44.59375f), Vector3(0.0f, 357.1875f, 357.1875f)))
+      LocalObject(385, Door.Constructor)
+      LocalObject(386, Door.Constructor(Vector3(2692.086f, 4316.5703f, 52.03125f), Vector3(0.0f, 2.8125f, 270.0f)))
+      LocalObject(387, Door.Constructor)
+      LocalObject(388, Door.Constructor(Vector3(2704.7969f, 4344.0625f, 44.59375f), Vector3(0.0f, 354.375f, 272.8125f)))
+      LocalObject(393, Door.Constructor)
+      LocalObject(394, Door.Constructor(Vector3(2748.039f, 4426.25f, 44.609375f), Vector3(0.0f, 0.0f, 0.0f)))
+      LocalObject(395, Door.Constructor(Vector3(2752.5234f, 4398.297f, 39.609375f), Vector3(0.0f, 2.8125f, 272.8125f)))
+      LocalObject(396, Door.Constructor)
+      LocalObject(397, Door.Constructor)
+      LocalObject(398, Door.Constructor)
+      LocalObject(399, Door.Constructor)
+      LocalObject(400, Door.Constructor)
+      LocalObject(401, Door.Constructor(Vector3(2809.9844f, 4401.164f, 39.3125f), Vector3(0.0f, 8.4375f, 0.0f)))
+      LocalObject(402, Door.Constructor)
+      LocalObject(403, Door.Constructor)
+      LocalObject(701, Door.Constructor)
+      LocalObject(703, Door.Constructor)
+      LocalObject(716, Door.Constructor)
+      LocalObject(920, Door.Constructor(Vector3(2708.1953f, 4319.9766f, 39.59375f), Vector3(0.0f, 0.0f, 92.8125f)))
+
+      //Akkan Locks
+      LocalObject(968, IFFLock.Constructor)
+      LocalObject(1036, IFFLock.Constructor)
+      LocalObject(1037, IFFLock.Constructor)
+      LocalObject(1038, IFFLock.Constructor)
+      LocalObject(1039, IFFLock.Constructor)
+      LocalObject(1047, IFFLock.Constructor)
+      LocalObject(1049, IFFLock.Constructor)
+      LocalObject(1053, IFFLock.Constructor)
+
+      //Akkan DoorToLock
+      DoorToLock(383, 1037)
+      DoorToLock(384, 1036)
+      DoorToLock(386, 1038)
+      DoorToLock(388, 1039)
+      DoorToLock(394, 1047)
+      DoorToLock(395, 1049)
+      DoorToLock(401, 1053)
+      DoorToLock(920, 968)
+
+      //Akkan Order Terminals
+      LocalObject(1949, Terminal.Constructor(order_terminal))
+      LocalObject(1950, Terminal.Constructor(order_terminal))
+      LocalObject(1951, Terminal.Constructor(order_terminal))
+      LocalObject(1952, Terminal.Constructor(order_terminal))
+      LocalObject(1953, Terminal.Constructor(order_terminal))
+
+      //Akkan Vehicle Terminals
+      LocalObject(3067, Terminal.Constructor(ground_vehicle_terminal))
+      LocalObject(1881,
+        VehicleSpawnPad.Constructor(Vector3(2711.3438f, 4418.4062f, 40.609375f), Vector3(0.0f, 351.5625f, 182.8125f))
+      )
+      LocalObject(283, Terminal.Constructor(dropship_vehicle_terminal))
+      LocalObject(282,
+        VehicleSpawnPad.Constructor(Vector3(2762.414f, 4448.828f, 44.75f), Vector3(0.0f, 2.8125f, 0.0f))
+      )
+
+      //Akkan Medical Terminals
+      LocalObject(1900, ProximityTerminal.Constructor(medical_terminal))
+      LocalObject(1901, ProximityTerminal.Constructor(medical_terminal))
+
+      //Akkan ObjectToBuilding
+      ObjectToBuilding(281, 5)
+      ObjectToBuilding(282, 5)
+      ObjectToBuilding(283, 5)
+      ObjectToBuilding(378, 5)
+      ObjectToBuilding(379, 5)
+      ObjectToBuilding(380, 5)
+      ObjectToBuilding(381, 5)
+      ObjectToBuilding(382, 5)
+      ObjectToBuilding(383, 5)
+      ObjectToBuilding(384, 5)
+      ObjectToBuilding(385, 5)
+      ObjectToBuilding(386, 5)
+      ObjectToBuilding(387, 5)
+      ObjectToBuilding(388, 5)
+      ObjectToBuilding(393, 5)
+      ObjectToBuilding(394, 5)
+      ObjectToBuilding(395, 5)
+      ObjectToBuilding(396, 5)
+      ObjectToBuilding(397, 5)
+      ObjectToBuilding(398, 5)
+      ObjectToBuilding(399, 5)
+      ObjectToBuilding(400, 5)
+      ObjectToBuilding(401, 5)
+      ObjectToBuilding(402, 5)
+      ObjectToBuilding(403, 5)
+      ObjectToBuilding(701, 5)
+      ObjectToBuilding(703, 5)
+      ObjectToBuilding(716, 5)
+      ObjectToBuilding(920, 5)
+      ObjectToBuilding(968, 5)
+      ObjectToBuilding(1036, 5)
+      ObjectToBuilding(1037, 5)
+      ObjectToBuilding(1038, 5)
+      ObjectToBuilding(1039, 5)
+      ObjectToBuilding(1047, 5)
+      ObjectToBuilding(1049, 5)
+      ObjectToBuilding(1053, 5)
+      ObjectToBuilding(1881, 5)
+      ObjectToBuilding(1900, 5)
+      ObjectToBuilding(1901, 5)
+      ObjectToBuilding(1949, 5)
+      ObjectToBuilding(1950, 5)
+      ObjectToBuilding(1951, 5)
+      ObjectToBuilding(1952, 5)
+      ObjectToBuilding(1953, 5)
+      ObjectToBuilding(3067, 5)
+    }
 
     def Building9() : Unit = { // Girru
       LocalBuilding(9, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(4397f, 5895f, 0)))) // Todo change pos
