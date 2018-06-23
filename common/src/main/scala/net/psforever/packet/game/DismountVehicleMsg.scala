@@ -10,11 +10,11 @@ import net.psforever.types.BailType
   * Dispatched by the client when the player wishes to get out of a vehicle.
   * @param player_guid the player
   * @param bailType The dismount action e.g. normal dismount, kicked by owner, bailed
-  * @param unk2 na
+  * @param wasKickedByDriver Seems to be true if a passenger was manually kicked by the vehicle owner
   */
 final case class DismountVehicleMsg(player_guid : PlanetSideGUID,
                                     bailType : BailType.Value,
-                                    wasKickedByDriver : Boolean) // Seems to be true if a passenger was manually kicked by the vehicle owner
+                                    wasKickedByDriver : Boolean)
   extends PlanetSideGamePacket {
   type Packet = DismountVehicleMsg
   def opcode = GamePacketOpcode.DismountVehicleMsg

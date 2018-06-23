@@ -145,6 +145,10 @@ class AvatarService extends Actor {
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.WeaponDryFire(weapon_guid))
           )
+        case AvatarAction.SendResponse(player_guid, msg) =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.SendResponse(msg))
+          )
 
         case _ => ;
     }

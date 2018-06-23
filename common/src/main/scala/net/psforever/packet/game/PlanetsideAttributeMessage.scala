@@ -137,6 +137,7 @@ import scodec.codecs._
   * `22 - Toggles gunner and passenger mount points (1 = hides, 0 = reveals; this also locks their permissions)`<br>
   * `54 -  Vehicle EMP? Plays sound as if vehicle had been hit by EMP`<br>
   * `68 - Vehicle shield health`<br>
+  * `79 - ???`<br>
   * `80 - Damage vehicle (unknown value)`<br>
   * `81 - ???`<br>
   * `113 - `Vehicle capacitor - e.g. Leviathan EMP charge`
