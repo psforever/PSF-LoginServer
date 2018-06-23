@@ -12,7 +12,39 @@ object Zones {
 
   val z3 = new Zone("z3", Maps.map3, 3)
 
-  val z4 = new Zone("z4", Maps.map4, 4)
+  val z4 = new Zone("z4", Maps.map4, 4) {
+    override def Init(implicit context : ActorContext) : Unit = {
+      super.Init(context)
+
+      import net.psforever.types.PlanetSideEmpire
+//      Building(5).get.Faction = PlanetSideEmpire.NEUTRAL //Akkan
+//      Building(5).get.ModelId = 24
+      Building(9).get.Faction = PlanetSideEmpire.NC //Girru
+      Building(9).get.ModelId = 48
+      Building(10).get.Faction = PlanetSideEmpire.TR //Hanish
+      Building(10).get.ModelId = 30
+      Building(11).get.Faction = PlanetSideEmpire.VS //Irkalla
+      Building(11).get.ModelId = 21
+      Building(25).get.Faction = PlanetSideEmpire.VS //Gate Outpost Watch Tower (North of Forseral Warpgate)
+      Building(25).get.ModelId = 74
+      Building(33).get.Faction = PlanetSideEmpire.TR //East Girru Gun Tower
+      Building(33).get.ModelId = 62
+      Building(34).get.Faction = PlanetSideEmpire.VS //SE Hanish Gun Tower
+      Building(34).get.ModelId = 60
+      Building(35).get.Faction = PlanetSideEmpire.TR //Northeast Akkan Watch tower
+      Building(35).get.ModelId = 69
+      Building(36).get.Faction = PlanetSideEmpire.VS //West Girru Air Tower
+      Building(36).get.ModelId = 83
+      Building(55).get.Faction = PlanetSideEmpire.VS //South Irkalla Air Tower
+      Building(55).get.ModelId = 86
+      Building(56).get.Faction = PlanetSideEmpire.NC //Southwest Hanish Air Tower
+      Building(56).get.ModelId = 82
+      Building(59).get.Faction = PlanetSideEmpire.NC //Gate Outpost Watch Tower (South of Cyssor Warpgate)
+      Building(59).get.ModelId = 73
+      Building(65).get.Faction = PlanetSideEmpire.TR //West Hanish Gun Tower
+      Building(65).get.ModelId = 56
+    }
+  }
 
   val z5 = new Zone("z5", Maps.map5, 5)
 
@@ -40,9 +72,23 @@ object Zones {
 
   val z10 = new Zone("z10", Maps.map10, 10)
 
-  val home1 = new Zone("home1", Maps.map11, 11)
+  val home1 = new Zone("home1", Maps.map11, 11){
+    override def Init(implicit context : ActorContext) : Unit = {
+      super.Init(context)
 
-  val home2 = new Zone("home2", Maps.map12, 12)
+      import net.psforever.types.PlanetSideEmpire
+      Buildings.values.foreach { _.Faction = PlanetSideEmpire.NC }
+    }
+  }
+
+  val home2 = new Zone("home2", Maps.map12, 12){
+    override def Init(implicit context : ActorContext) : Unit = {
+      super.Init(context)
+
+      import net.psforever.types.PlanetSideEmpire
+      Buildings.values.foreach { _.Faction = PlanetSideEmpire.TR }
+    }
+  }
 
   val home3 = new Zone("home3", Maps.map13, 13) {
     override def Init(implicit context : ActorContext) : Unit = {
