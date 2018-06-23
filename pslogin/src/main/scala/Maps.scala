@@ -9,7 +9,6 @@ import net.psforever.objects.serverobject.pad.VehicleSpawnPad
 import net.psforever.objects.serverobject.structures.{Building, FoundationBuilder, StructureType, WarpGate}
 import net.psforever.objects.serverobject.terminals.{ProximityTerminal, Terminal}
 import net.psforever.objects.serverobject.tube.SpawnTube
-import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.types.Vector3
 
 object Maps {
@@ -20,6 +19,7 @@ object Maps {
   val map3 = new ZoneMap("map03")
 
   val map4 = new ZoneMap("map04") {
+
     Building5()
     Building9()
     Building10()
@@ -53,8 +53,10 @@ object Maps {
       LocalObject(387, Door.Constructor)
       LocalObject(388, Door.Constructor(Vector3(2704.7969f, 4344.0625f, 44.59375f), Vector3(0.0f, 354.375f, 272.8125f)))
       LocalObject(393, Door.Constructor)
-      LocalObject(394, Door.Constructor(Vector3(2748.039f, 4426.25f, 44.609375f), Vector3(0.0f, 0.0f, 0.0f)))
-      LocalObject(395, Door.Constructor(Vector3(2752.5234f, 4398.297f, 39.609375f), Vector3(0.0f, 2.8125f, 272.8125f)))
+      //      LocalObject(394, Door.Constructor(Vector3(2748.039f, 4426.25f, 44.609375f), Vector3(0.0f, 0.0f, 0.0f)))
+      //      LocalObject(395, Door.Constructor(Vector3(2752.5234f, 4398.297f, 39.609375f), Vector3(0.0f, 2.8125f, 272.8125f)))
+      LocalObject(394, Door.Constructor)
+      LocalObject(395, Door.Constructor)
       LocalObject(396, Door.Constructor)
       LocalObject(397, Door.Constructor)
       LocalObject(398, Door.Constructor)
@@ -83,8 +85,8 @@ object Maps {
       DoorToLock(384, 1036)
       DoorToLock(386, 1038)
       DoorToLock(388, 1039)
-      DoorToLock(394, 1047)
-      DoorToLock(395, 1049)
+      //      DoorToLock(394, 1047)
+      //      DoorToLock(395, 1049)
       DoorToLock(401, 1053)
       DoorToLock(920, 968)
 
@@ -97,17 +99,18 @@ object Maps {
 
       //Akkan Vehicle Terminals
       LocalObject(3067, Terminal.Constructor(ground_vehicle_terminal))
-      LocalObject(1881,
-        VehicleSpawnPad.Constructor(Vector3(2711.3438f, 4418.4062f, 40.609375f), Vector3(0.0f, 351.5625f, 182.8125f))
+      LocalObject(1881, VehicleSpawnPad.Constructor(Vector3(2711.3438f, 4418.4062f, 40.609375f), Vector3(0.0f, 351.5625f, 182.8125f))
       )
       LocalObject(283, Terminal.Constructor(dropship_vehicle_terminal))
-      LocalObject(282,
-        VehicleSpawnPad.Constructor(Vector3(2762.414f, 4448.828f, 44.75f), Vector3(0.0f, 2.8125f, 0.0f))
+      LocalObject(282, VehicleSpawnPad.Constructor(Vector3(2762.414f, 4448.828f, 44.75f), Vector3(0.0f, 2.8125f, 0.0f))
       )
 
+      TerminalToSpawnPad(3067, 1881)
+      TerminalToSpawnPad(283, 282)
+
       //Akkan Medical Terminals
-      LocalObject(1900, ProximityTerminal.Constructor(medical_terminal))
-      LocalObject(1901, ProximityTerminal.Constructor(medical_terminal))
+      //      LocalObject(1900, ProximityTerminal.Constructor(medical_terminal))
+      //      LocalObject(1901, ProximityTerminal.Constructor(medical_terminal))
 
       //Akkan ObjectToBuilding
       ObjectToBuilding(281, 5)
@@ -148,14 +151,15 @@ object Maps {
       ObjectToBuilding(1049, 5)
       ObjectToBuilding(1053, 5)
       ObjectToBuilding(1881, 5)
-      ObjectToBuilding(1900, 5)
-      ObjectToBuilding(1901, 5)
+      //      ObjectToBuilding(1900, 5)
+      //      ObjectToBuilding(1901, 5)
       ObjectToBuilding(1949, 5)
       ObjectToBuilding(1950, 5)
       ObjectToBuilding(1951, 5)
       ObjectToBuilding(1952, 5)
       ObjectToBuilding(1953, 5)
       ObjectToBuilding(3067, 5)
+
     }
 
     def Building9() : Unit = { // Girru
@@ -222,16 +226,14 @@ object Maps {
       LocalObject(2854, Terminal.Constructor(spawn_terminal))
       LocalObject(2859, Terminal.Constructor(spawn_terminal))
       LocalObject(3072, Terminal.Constructor(ground_vehicle_terminal))
-      LocalObject(501,
-        //      VehicleSpawnPad.Constructor(Vector3(4337.0f, 5903.0f, 58.0f), Vector3(0f, 0f, 0f))
-        VehicleSpawnPad.Constructor(Vector3(4340.0f, 5985.0f, 78.0f), Vector3(0f, 0f, 0f))) //TODO guid & position not correct
+      LocalObject(1888, VehicleSpawnPad.Constructor(Vector3(4337.0f, 5903.0f, 58.0f), Vector3(0f, 0f, 0f)))
       LocalObject(176, Terminal.Constructor(air_vehicle_terminal))
-      LocalObject(502, VehicleSpawnPad.Constructor(Vector3(4386.0f, 5928.0f, 93.0f), Vector3(0f, 0f, 0f))) //TODO guid not correct
+      LocalObject(1889, VehicleSpawnPad.Constructor(Vector3(4386.0f, 5928.0f, 93.0f), Vector3(0f, 0f, 0f)))
       LocalObject(177, Terminal.Constructor(air_vehicle_terminal))
-      LocalObject(503, VehicleSpawnPad.Constructor(Vector3(4407.0f, 5927.0f, 93.0f), Vector3(0f, 0f, 0f))) //TODO guid not correct
+      LocalObject(1890, VehicleSpawnPad.Constructor(Vector3(4407.0f, 5927.0f, 93.0f), Vector3(0f, 0f, 0f)))
 
-      LocalObject(1909, ProximityTerminal.Constructor(medical_terminal))
-      LocalObject(1910, ProximityTerminal.Constructor(medical_terminal))
+      //      LocalObject(1909, ProximityTerminal.Constructor(medical_terminal))
+      //      LocalObject(1910, ProximityTerminal.Constructor(medical_terminal))
 
       ObjectToBuilding(513, 9)
       ObjectToBuilding(514, 9)
@@ -281,8 +283,8 @@ object Maps {
       ObjectToBuilding(1148, 9)
       ObjectToBuilding(1149, 9)
       ObjectToBuilding(1517, 9)
-      ObjectToBuilding(1909, 9)
-      ObjectToBuilding(1910, 9)
+      //      ObjectToBuilding(1909, 9)
+      //      ObjectToBuilding(1910, 9)
       ObjectToBuilding(2014, 9)
       ObjectToBuilding(2015, 9)
       ObjectToBuilding(2016, 9)
@@ -297,11 +299,11 @@ object Maps {
       ObjectToBuilding(2854, 9)
       ObjectToBuilding(2859, 9)
       ObjectToBuilding(3072, 9)
-      ObjectToBuilding(501, 9)
+      ObjectToBuilding(1888, 9)
       ObjectToBuilding(176, 9)
-      ObjectToBuilding(502, 9)
+      ObjectToBuilding(1889, 9)
       ObjectToBuilding(177, 9)
-      ObjectToBuilding(503, 9)
+      ObjectToBuilding(1890, 9)
 
       DoorToLock(519, 1142)
       DoorToLock(522, 1144)
@@ -313,9 +315,9 @@ object Maps {
       DoorToLock(826, 1148)
       DoorToLock(827, 1149)
       DoorToLock(925, 973)
-      TerminalToSpawnPad(3072, 501)
-      TerminalToSpawnPad(176, 502)
-      TerminalToSpawnPad(177, 503)
+      TerminalToSpawnPad(3072, 1888)
+      TerminalToSpawnPad(176, 1889)
+      TerminalToSpawnPad(177, 1890)
 
     }
 
@@ -380,11 +382,11 @@ object Maps {
       LocalObject(244, Terminal.Constructor(cert_terminal))
       LocalObject(245, Terminal.Constructor(cert_terminal))
 
-      LocalObject(948, ImplantTerminalMech.Constructor)
-      LocalObject(949, ImplantTerminalMech.Constructor)
-
-      LocalObject(10000, Terminal.Constructor(implant_terminal_interface))
-      LocalObject(10001, Terminal.Constructor(implant_terminal_interface))
+      //      LocalObject(948, ImplantTerminalMech.Constructor)
+      //      LocalObject(949, ImplantTerminalMech.Constructor)
+      //
+      //      LocalObject(10000, Terminal.Constructor(implant_terminal_interface))
+      //      LocalObject(10001, Terminal.Constructor(implant_terminal_interface))
 
       LocalObject(1991, Terminal.Constructor(order_terminal))
       LocalObject(1992, Terminal.Constructor(order_terminal))
@@ -397,14 +399,29 @@ object Maps {
       LocalObject(2937, Door.Constructor) //spawn tube door
       LocalObject(2938, Door.Constructor) //spawn tube door
 
+      LocalObject(2228, ProximityTerminal.Constructor(pad_landing))
+      LocalObject(2229, Terminal.Constructor(pad_landing))
+      LocalObject(2231, ProximityTerminal.Constructor(pad_landing))
+      LocalObject(2232, Terminal.Constructor(pad_landing))
+      LocalObject(2234, ProximityTerminal.Constructor(pad_landing))
+      LocalObject(2235, Terminal.Constructor(pad_landing))
+      LocalObject(2237, ProximityTerminal.Constructor(pad_landing))
+      LocalObject(2238, Terminal.Constructor(pad_landing))
+
+      LocalObject(2595, ProximityTerminal.Constructor(repair_silo))
+      LocalObject(2596, Terminal.Constructor(repair_silo))
+
+      LocalObject(2599, ProximityTerminal.Constructor(repair_silo))
+      LocalObject(2600, Terminal.Constructor(repair_silo))
+
       LocalObject(3070, Terminal.Constructor(vehicle_terminal_combined))
-      LocalObject(1886, VehicleSpawnPad.Constructor(Vector3(3675.0f, 5458.0f, 89.0f), Vector3(0f, 0f, 0f))) //TODO guid not correct
+      LocalObject(1886, VehicleSpawnPad.Constructor(Vector3(3675.0f, 5458.0f, 89.0f), Vector3(0f, 0f, 0f)))
 
-      LocalObject(169, ProximityTerminal.Constructor(adv_med_terminal))
-      LocalObject(1906, ProximityTerminal.Constructor(medical_terminal))
+      //      LocalObject(169, ProximityTerminal.Constructor(adv_med_terminal))
+      //      LocalObject(1906, ProximityTerminal.Constructor(medical_terminal))
 
-      ObjectToBuilding(169, 10)
-      ObjectToBuilding(1906, 10)
+      //      ObjectToBuilding(169, 10)
+      //      ObjectToBuilding(1906, 10)
       ObjectToBuilding(464, 10)
       ObjectToBuilding(470, 10)
       ObjectToBuilding(471, 10)
@@ -464,11 +481,11 @@ object Maps {
       ObjectToBuilding(244, 10)
       ObjectToBuilding(245, 10)
 
-      ObjectToBuilding(948, 10)
-      ObjectToBuilding(949, 10)
+      //      ObjectToBuilding(948, 10)
+      //      ObjectToBuilding(949, 10)
 
-      ObjectToBuilding(10000, 10)
-      ObjectToBuilding(10001, 10)
+      //      ObjectToBuilding(10000, 10)
+      //      ObjectToBuilding(10001, 10)
 
       ObjectToBuilding(1991, 10)
       ObjectToBuilding(1992, 10)
@@ -480,6 +497,20 @@ object Maps {
       ObjectToBuilding(2934, 10)
       ObjectToBuilding(2937, 10)
       ObjectToBuilding(2938, 10)
+
+      ObjectToBuilding(2228, 10)
+      ObjectToBuilding(2229, 10)
+      ObjectToBuilding(2231, 10)
+      ObjectToBuilding(2232, 10)
+      ObjectToBuilding(2234, 10)
+      ObjectToBuilding(2235, 10)
+      ObjectToBuilding(2237, 10)
+      ObjectToBuilding(2238, 10)
+
+      ObjectToBuilding(2595, 10)
+      ObjectToBuilding(2596, 10)
+      ObjectToBuilding(2599, 10)
+      ObjectToBuilding(2600, 10)
 
       ObjectToBuilding(3070, 10)
       ObjectToBuilding(1886, 10)
@@ -493,8 +524,8 @@ object Maps {
       DoorToLock(785, 1115)
       DoorToLock(923, 971)
 
-      TerminalToInterface(948, 10000)
-      TerminalToInterface(949, 10001)
+      //      TerminalToInterface(948, 10000)
+      //      TerminalToInterface(949, 10001)
 
       TerminalToSpawnPad(3070, 1886)
 
@@ -573,10 +604,13 @@ object Maps {
       LocalObject(2966, Door.Constructor) //spawn tube door
 
       LocalObject(3074, Terminal.Constructor(vehicle_terminal_combined))
-      LocalObject(504, VehicleSpawnPad.Constructor(Vector3(4834.0f, 5185.0f, 67.0f), Vector3(0f, 0f, 45.0f))) //TODO guid not correct
+      LocalObject(1892, VehicleSpawnPad.Constructor(Vector3(4834.0f, 5185.0f, 67.0f), Vector3(0f, 0f, 45.0f)))
 
-//      ObjectToBuilding(1912, 11)
-//      ObjectToBuilding(1913, 11)
+      //      LocalObject(1912, ProximityTerminal.Constructor(medical_terminal))
+      //      LocalObject(1913, ProximityTerminal.Constructor(medical_terminal))
+
+      //      ObjectToBuilding(1912, 11)
+      //      ObjectToBuilding(1913, 11)
 
       ObjectToBuilding(562, 11)
       ObjectToBuilding(563, 11)
@@ -648,7 +682,7 @@ object Maps {
       ObjectToBuilding(2966, 11)
 
       ObjectToBuilding(3074, 11)
-      ObjectToBuilding(504, 11)
+      ObjectToBuilding(1892, 11)
 
       DoorToLock(572, 1187)
       DoorToLock(573, 1191)
@@ -663,7 +697,7 @@ object Maps {
       DoorToLock(872, 1196)
       DoorToLock(927, 975)
 
-      TerminalToSpawnPad(3074, 504)
+      TerminalToSpawnPad(3074, 1892)
     }
 
     def Building25() : Unit = { // Gate Outpost Watch Tower (North of Forseral Warpgate), Ishundar (ID: 74)
@@ -1025,8 +1059,8 @@ object Maps {
       LocalObject(1960, Terminal.Constructor(order_terminal))
       LocalObject(1961, Terminal.Constructor(order_terminal))
       LocalObject(1962, Terminal.Constructor(order_terminal))
-      LocalObject(2690, SpawnTube.Constructor(respawn_tube_tower, Vector3(3022.711f, 5701.758f, 46.5625f), Vector3(0, 0, 90)))
-      LocalObject(2691, SpawnTube.Constructor(respawn_tube_tower, Vector3(3002.7188f, 5718.1562f, 46.5625f), Vector3(0, 0, 90)))
+      LocalObject(2690, SpawnTube.Constructor(respawn_tube_tower, Vector3(3022.711f, 5701.758f, 47f), Vector3(0, 0, 90)))
+      LocalObject(2691, SpawnTube.Constructor(respawn_tube_tower, Vector3(3002.7188f, 5718.1562f, 47f), Vector3(0, 0, 90)))
 
       ObjectToBuilding(2914, 65)
       ObjectToBuilding(2915, 65)
@@ -1049,6 +1083,45 @@ object Maps {
       DoorToLock(406, 1054)
       DoorToLock(407, 1055)
     }
+
+
+
+    //    // BFR test
+    ////    LocalObject(199, Terminal.Constructor(vehicle_terminal_combined)))
+    ////    LocalObject(505,
+    ////      VehicleSpawnPad.Constructor(Vector3(3707.0f, 5522.0f, 89.0f), Vector3(0f, 0f, 0f))
+    ////    )) //TODO guid not correct
+    ////    ObjectToBuilding(199, 30)
+    ////    ObjectToBuilding(505, 30)
+    ////    TerminalToSpawnPad(199, 505)
+    //
+    //    // For Nick's tests
+    //    LocalObject(320, Door.Constructor))
+    //    LocalObject(324, Door.Constructor))
+    //    LocalObject(672, Door.Constructor))
+    //    LocalObject(318, Door.Constructor))
+    //    LocalObject(669, Door.Constructor))
+    //
+    //
+    //
+    //
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //
+    //    // Dagon
+    //    LocalBuilding(27, FoundationBuilder(Building.Structure))
+    //
+    //    // Baal
+    //    LocalBuilding(42, FoundationBuilder(Building.Structure))
+    //
+    //    // For Nick's tests
+    //    LocalBuilding(4, FoundationBuilder(Building.Structure))
+    //    ObjectToBuilding(320, 4)
+    //    ObjectToBuilding(324, 4)
+    //    ObjectToBuilding(672, 4)
+    //    ObjectToBuilding(318, 4)
+    //    ObjectToBuilding(669, 4)
+
   }
 
   val map5 = new ZoneMap("map05")
@@ -1156,7 +1229,6 @@ object Maps {
       LocalObject(2050, Terminal.Constructor(repair_silo)) //rearm terminal A
       LocalObject(2061, ProximityTerminal.Constructor(repair_silo)) //repair terminal B
       LocalObject(2062, Terminal.Constructor(repair_silo)) //rearm terminal B
-      LocalObject(2094, ResourceSilo.Constructor) // NTU Silo
       LocalObject(2239, Terminal.Constructor(spawn_terminal))
       LocalObject(2244, Terminal.Constructor(spawn_terminal))
       LocalObject(2245, Terminal.Constructor(spawn_terminal))
@@ -1270,7 +1342,6 @@ object Maps {
       ObjectToBuilding(2050, 2)
       ObjectToBuilding(2061, 2)
       ObjectToBuilding(2062, 2)
-      ObjectToBuilding(2094, 2)
       ObjectToBuilding(2145, 2)
       ObjectToBuilding(2146, 2)
       ObjectToBuilding(2147, 2)
@@ -1548,9 +1619,9 @@ object Maps {
       LocalBuilding(3, FoundationBuilder(WarpGate.Structure))
     }
 
-//    LocalObject(520, ImplantTerminalMech.Constructor) //Hart B
-//    LocalObject(1081, Terminal.Constructor(implant_terminal_interface)) //tube 520
-//    TerminalToInterface(520, 1081)
+    //    LocalObject(520, ImplantTerminalMech.Constructor) //Hart B
+    //    LocalObject(1081, Terminal.Constructor(implant_terminal_interface)) //tube 520
+    //    TerminalToInterface(520, 1081)
 
     def Building2() : Unit = {
       //HART building C
@@ -1568,7 +1639,6 @@ object Maps {
       LocalObject(396, Door.Constructor)
       LocalObject(397, Door.Constructor)
       LocalObject(398, Door.Constructor)
-      LocalObject(399, Door.Constructor)
       LocalObject(462, Door.Constructor)
       LocalObject(463, Door.Constructor)
       LocalObject(522, ImplantTerminalMech.Constructor)
@@ -1616,7 +1686,6 @@ object Maps {
       ObjectToBuilding(396, 2)
       ObjectToBuilding(397, 2)
       ObjectToBuilding(398, 2)
-      ObjectToBuilding(399, 2)
       ObjectToBuilding(462, 2)
       ObjectToBuilding(463, 2)
       ObjectToBuilding(522, 2)
