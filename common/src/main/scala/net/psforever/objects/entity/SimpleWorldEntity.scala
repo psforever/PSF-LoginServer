@@ -4,8 +4,8 @@ package net.psforever.objects.entity
 import net.psforever.types.Vector3
 
 class SimpleWorldEntity extends WorldEntity {
-  private var coords : Vector3 = Vector3(0f, 0f, 0f)
-  private var orient : Vector3 = Vector3(0f, 0f, 0f)
+  private var coords : Vector3 = Vector3.Zero
+  private var orient : Vector3 = Vector3.Zero
   private var vel : Option[Vector3] = None
 
   def Position : Vector3 = coords

@@ -323,13 +323,12 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
               Some(AccessPermissionGroup.Passenger)
           }
         case None =>
-          None
-      }
-      CargoHold(seatNumber) match {
-        case Some(_) =>
-          Some(AccessPermissionGroup.Passenger)
-        case None =>
-          None
+          CargoHold(seatNumber) match {
+            case Some(_) =>
+              Some(AccessPermissionGroup.Passenger)
+            case None =>
+              None
+          }
       }
     }
   }
