@@ -1381,7 +1381,7 @@ object GlobalDefinitions {
     armor_canister.Tile = InventoryTile.Tile23
 
     upgrade_canister.Name = "upgrade_canister"
-    upgrade_canister.Capacity = 1 //do not change this; nano-dispenser erroneously expects 100 units during reload
+    upgrade_canister.Capacity = 1
     upgrade_canister.Tile = InventoryTile.Tile23
 
     trek_ammo.Name = "trek_ammo"
