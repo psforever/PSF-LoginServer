@@ -372,38 +372,6 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
     }
   }
 
-//  /**
-//    * Given a valid seat number, retrieve an index where the weapon controlled from this seat is mounted.
-//    * @param seatNumber the seat number
-//    * @return a mounted weapon by index, or `None` if either the seat doesn't exist or there is no controlled weapon
-//    */
-//  def WeaponControlledFromSeat(seatNumber : Int) : Option[Equipment] = {
-//    Seat(seatNumber) match {
-//      case Some(seat) =>
-//        wepFromSeat(seat)
-//      case None =>
-//        None
-//    }
-//  }
-//
-//  private def wepFromSeat(seat : Seat) : Option[Equipment] = {
-//    seat.ControlledWeapon match {
-//      case Some(index) =>
-//        wepFromSeat(index)
-//      case None =>
-//        None
-//    }
-//  }
-//
-//  private def wepFromSeat(wepIndex : Int) : Option[Equipment] = {
-//    weapons.get(wepIndex) match {
-//      case Some(wep) =>
-//        wep.Equipment
-//      case None =>
-//        None
-//    }
-//  }
-
   def Utilities : Map[Int, Utility] = utilities
 
   /**

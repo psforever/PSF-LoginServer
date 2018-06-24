@@ -131,25 +131,6 @@ class InfiniteFireModeDefinition extends FireModeDefinition {
   override def Discharge(weapon : Tool) : Int = 1
 }
 
-//class VariableMagazineFireModeDefinition extends FireModeDefinition {
-//  /** key - index of ammunition
-//    *
-//    */
-//  private val customAmmoCapacity : mutable.HashMap[Int, Int] = new mutable.HashMap()
-//
-//  def CustomMagazine : mutable.HashMap[Int, Int] = customAmmoCapacity
-//
-//  def CustomMagazine_=(kv : (Int, Int)) : mutable.HashMap[Int, Int] = {
-//    val (ammoTypeIndex, cap) = kv
-//    customAmmoCapacity += ammoTypeIndex -> cap
-//    CustomMagazine
-//  }
-//
-//  override def Magazine : Int = {
-//    customAmmoCapacity.getOrElse(AmmoTypeIndices(Ammo), Magazine)
-//  }
-//}
-
 class DamageModifiers extends DamageProfile {
   private var damage0 : Int = 0
   private var damage1 : Int = 0

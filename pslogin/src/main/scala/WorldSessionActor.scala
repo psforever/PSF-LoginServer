@@ -770,19 +770,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case Mountable.MountMessages(tplayer, reply) =>
       reply match {
         case Mountable.CanMount(obj : ImplantTerminalMech, seat_num) =>
-          val player_guid : PlanetSideGUID = tplayer.GUID
-          val obj_guid : PlanetSideGUID = obj.GUID
-          log.info(s"MountVehicleMsg: $player_guid mounts $obj @ $seat_num")
-          PlayerActionsToCancel()
-          sendResponse(PlanetsideAttributeMessage(obj_guid, 0, 1000L)) //health of mech
-          sendResponse(ObjectAttachMessage(obj_guid, player_guid, seat_num))
-          vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.MountVehicle(player_guid, obj_guid, seat_num))
+          MountingAction(tplayer, obj, seat_num)
+          sendResponse(PlanetsideAttributeMessage(obj.GUID, 0, 1000L)) //health of mech
 
         case Mountable.CanMount(obj : MannedTurret, seat_num) =>
-          val obj_guid : PlanetSideGUID = obj.GUID
-          val player_guid : PlanetSideGUID = tplayer.GUID
-          log.info(s"MountVehicleMsg: $player_guid mounts $obj_guid @ $seat_num")
-          PlayerActionsToCancel()
           obj.WeaponControlledFromSeat(seat_num) match {
             case Some(weapon : Tool) =>
               //update mounted weapon belonging to seat
@@ -792,15 +783,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
               })
             case _ => ; //no weapons to update
           }
-          sendResponse(ObjectAttachMessage(obj_guid, player_guid, seat_num))
-          vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.MountVehicle(player_guid, obj_guid, seat_num))
+          sendResponse(PlanetsideAttributeMessage(obj.GUID, 0, obj.Health))
+          MountingAction(tplayer, obj, seat_num)
 
         case Mountable.CanMount(obj : Vehicle, seat_num) =>
           val obj_guid : PlanetSideGUID = obj.GUID
-          val player_guid : PlanetSideGUID = tplayer.GUID
-          log.info(s"MountVehicleMsg: $player_guid mounts $obj_guid @ $seat_num")
-          vehicleService ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(obj), continent)) //clear timer
-          PlayerActionsToCancel()
           if(seat_num == 0) { //simplistic vehicle ownership management
             obj.Owner match {
               case Some(owner_guid) =>
@@ -814,7 +801,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
               case None => ;
             }
             tplayer.VehicleOwned = Some(obj_guid)
-            obj.Owner = Some(player_guid)
+            obj.Owner = Some(tplayer.GUID)
           }
           obj.WeaponControlledFromSeat(seat_num) match {
             case Some(weapon : Tool) =>
@@ -825,34 +812,27 @@ class WorldSessionActor extends Actor with MDCContextAware {
               })
             case _ => ; //no weapons to update
           }
-          sendResponse(ObjectAttachMessage(obj_guid, player_guid, seat_num))
+          //sendResponse(PlanetsideAttributeMessage(obj.GUID, 0, obj.Health)) //TODO vehicle max health in definition
+          vehicleService ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(obj), continent)) //clear timer
           AccessContents(obj)
-          vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.MountVehicle(player_guid, obj_guid, seat_num))
+          MountingAction(tplayer, obj, seat_num)
 
         case Mountable.CanMount(obj : Mountable, _) =>
           log.warn(s"MountVehicleMsg: $obj is some generic mountable object and nothing will happen")
 
         case Mountable.CanDismount(obj : ImplantTerminalMech, seat_num) =>
-          val player_guid : PlanetSideGUID = tplayer.GUID
-          log.info(s"DismountVehicleMsg: $player_guid dismounts $obj @ $seat_num")
-          sendResponse(DismountVehicleMsg(player_guid, BailType.Normal, false))
-          vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.DismountVehicle(player_guid, BailType.Normal, false))
+          DismountAction(tplayer, obj, seat_num)
 
         case Mountable.CanDismount(obj : MannedTurret, seat_num) =>
-          val player_guid : PlanetSideGUID = tplayer.GUID
-          log.info(s"DismountVehicleMsg: $player_guid dismounts $obj @ $seat_num")
-          sendResponse(DismountVehicleMsg(player_guid, BailType.Normal, false))
-          vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.DismountVehicle(player_guid, BailType.Normal, false))
+          DismountAction(tplayer, obj, seat_num)
 
         case Mountable.CanDismount(obj : Vehicle, seat_num) =>
           val player_guid : PlanetSideGUID = tplayer.GUID
           if(player_guid == player.GUID) {
             //disembarking self
-            log.info(s"DismountVehicleMsg: $player_guid dismounts $obj @ $seat_num")
             TotalDriverVehicleControl(obj)
-            sendResponse(DismountVehicleMsg(player_guid, BailType.Normal, false))
-            vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.DismountVehicle(player_guid, BailType.Normal, false))
             UnAccessContents(obj)
+            DismountAction(tplayer, obj, seat_num)
           }
           else {
             vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.KickPassenger(player_guid, seat_num, true, obj.GUID))
@@ -5414,6 +5394,34 @@ class WorldSessionActor extends Actor with MDCContextAware {
     else {
       None
     }
+  }
+
+  /**
+    * Common activities/procedure when a player mounts a valid object.
+    * @param tplayer the player
+    * @param obj the mountable object
+    * @param seatNum the seat into which the player is mounting
+    */
+  def MountingAction(tplayer : Player, obj : PlanetSideGameObject with Mountable, seatNum : Int) : Unit = {
+    val player_guid : PlanetSideGUID = tplayer.GUID
+    val obj_guid : PlanetSideGUID = obj.GUID
+    PlayerActionsToCancel()
+    log.info(s"MountVehicleMsg: $player_guid mounts $obj @ $seatNum")
+    sendResponse(ObjectAttachMessage(obj_guid, player_guid, seatNum))
+    vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.MountVehicle(player_guid, obj_guid, seatNum))
+  }
+
+  /**
+    * Common activities/procedure when a player dismounts a valid object.
+    * @param tplayer the player
+    * @param obj the mountable object
+    * @param seatNum the seat out of which which the player is disembarking
+    */
+  def DismountAction(tplayer : Player, obj : PlanetSideGameObject with Mountable, seatNum : Int) : Unit = {
+    val player_guid : PlanetSideGUID = tplayer.GUID
+    log.info(s"DismountVehicleMsg: ${tplayer.Name} dismounts $obj from $seatNum")
+    sendResponse(DismountVehicleMsg(player_guid, BailType.Normal, false))
+    vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.DismountVehicle(player_guid, BailType.Normal, false))
   }
 
   def failWithError(error : String) = {
