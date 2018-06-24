@@ -1,6 +1,6 @@
+// Copyright (c) 2017 PSForever
 package service
 
-// Copyright (c) 2017 PSForever
 import akka.actor.Props
 import base.ActorTest
 import net.psforever.objects._

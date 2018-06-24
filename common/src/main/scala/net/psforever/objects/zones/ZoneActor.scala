@@ -4,7 +4,7 @@ package net.psforever.objects.zones
 import java.util.concurrent.atomic.AtomicInteger
 
 import akka.actor.Actor
-import net.psforever.objects.{GlobalDefinitions, PlanetSideGameObject}
+import net.psforever.objects.{GlobalDefinitions, PlanetSideGameObject, Tool}
 import net.psforever.objects.serverobject.structures.StructureType
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.vehicles.UtilityType
@@ -172,10 +172,15 @@ class ZoneActor(zone : Zone) extends Actor {
       validateObject(interface_guid, TerminalCheck, "implant terminal interface")
     })
 
-    //check manned turret to weapon association, and check that the former has the latter in slot 1
+    //check manned turret to weapon association
     map.TurretToWeapon.foreach({ case ((turret_guid, weapon_guid)) =>
       validateObject(turret_guid, MannedTurretCheck, "manned turret mount")
-      validateObject(weapon_guid, WeaponCheck, "manned turret weapon")
+      if(validateObject(weapon_guid, WeaponCheck, "manned turret weapon")) {
+        if(guid(weapon_guid).get.asInstanceOf[Tool].AmmoSlots.count(!_.Box.HasGUID) > 0) {
+          slog.error(s"expected weapon $weapon_guid has an unregistered ammunition unit")
+          errors.incrementAndGet()
+        }
+      }
     })
 
     //output number of errors
@@ -184,68 +189,6 @@ class ZoneActor(zone : Zone) extends Actor {
 }
 
 object ZoneActor {
-//  import net.psforever.types.PlanetSideEmpire
-//  import net.psforever.objects.Vehicle
-//  import net.psforever.objects.serverobject.structures.Building
-//  def AllSpawnGroup(zone : Zone, targetPosition : Vector3, targetFaction : PlanetSideEmpire.Value) : Option[List[SpawnTube]] = {
-//    ClosestOwnedSpawnTube(AmsSpawnGroup(zone) ++ BuildingSpawnGroup(zone, 0), targetPosition, targetFaction)
-//  }
-//
-//  def AmsSpawnGroup(vehicles : List[Vehicle]) : Iterable[(Vector3, PlanetSideEmpire.Value, Iterable[SpawnTube])] = {
-//    vehicles
-//      .filter(veh => veh.DeploymentState == DriveState.Deployed && veh.Definition == GlobalDefinitions.ams)
-//      .map(veh =>
-//        (veh.Position, veh.Faction,
-//          veh.Utilities
-//            .values
-//            .filter(util => util.UtilType == UtilityType.ams_respawn_tube)
-//            .map { _().asInstanceOf[SpawnTube] }
-//        )
-//      )
-//  }
-//
-//  def AmsSpawnGroup(zone : Zone, spawn_group : Int = 2) : Iterable[(Vector3, PlanetSideEmpire.Value, Iterable[SpawnTube])] = {
-//    if(spawn_group == 2) {
-//      AmsSpawnGroup(zone.Vehicles)
-//    }
-//    else {
-//      Nil
-//    }
-//  }
-//
-//  def BuildingSpawnGroup(spawnGroups : Map[Building, List[SpawnTube]]) : Iterable[(Vector3, PlanetSideEmpire.Value, Iterable[SpawnTube])] = {
-//    spawnGroups
-//      .map({ case ((building, tubes)) => (building.Position.xy, building.Faction, tubes) })
-//  }
-//
-//  def BuildingSpawnGroup(zone : Zone, spawn_group : Int) : Iterable[(Vector3, PlanetSideEmpire.Value, Iterable[SpawnTube])] = {
-//    val buildingTypeSet = if(spawn_group == 0) {
-//      Set(StructureType.Facility, StructureType.Tower, StructureType.Building)
-//    }
-//    else if(spawn_group == 6) {
-//      Set(StructureType.Tower)
-//    }
-//    else if(spawn_group == 7) {
-//      Set(StructureType.Facility, StructureType.Building)
-//    }
-//    else {
-//      Set.empty[StructureType.Value]
-//    }
-//    BuildingSpawnGroup(
-//      zone.SpawnGroups().filter({ case((building, _)) => buildingTypeSet.contains(building.BuildingType) })
-//    )
-//  }
-//
-//  def ClosestOwnedSpawnTube(tubes : Iterable[(Vector3, PlanetSideEmpire.Value, Iterable[SpawnTube])], targetPosition : Vector3, targetFaction : PlanetSideEmpire.Value) : Option[List[SpawnTube]] = {
-//    tubes
-//      .toSeq
-//      .filter({ case (_, faction, _) => faction == targetFaction })
-//      .sortBy({ case (pos, _, _) => Vector3.DistanceSquared(pos, targetPosition) })
-//      .take(1)
-//      .map({ case (_, _, tubes : List[SpawnTube]) => tubes })
-//      .headOption
-//  }
-
   /**
     * Recover an object from a collection and perform any number of validating tests upon it.
     * If the object fails any tests, log an error.

@@ -115,7 +115,14 @@ object Maps {
       LocalObject(1186, Locker.Constructor)
       LocalObject(1187, Locker.Constructor)
       LocalObject(1188, Locker.Constructor)
+      LocalObject(1418, MannedTurret.Constructor(manned_turret))
+      LocalObject(1419, MannedTurret.Constructor(manned_turret))
+      LocalObject(1421, MannedTurret.Constructor(manned_turret))
+      LocalObject(1426, MannedTurret.Constructor(manned_turret))
       LocalObject(1427, MannedTurret.Constructor(manned_turret))
+      LocalObject(1428, MannedTurret.Constructor(manned_turret))
+      LocalObject(1431, MannedTurret.Constructor(manned_turret))
+      LocalObject(1432, MannedTurret.Constructor(manned_turret))
       LocalObject(1492, ProximityTerminal.Constructor(medical_terminal)) //lobby
       LocalObject(1494, ProximityTerminal.Constructor(medical_terminal)) //kitchen
       LocalObject(1564, Terminal.Constructor(order_terminal))
@@ -232,7 +239,14 @@ object Maps {
       ObjectToBuilding(1186, 2)
       ObjectToBuilding(1187, 2)
       ObjectToBuilding(1188, 2)
+      ObjectToBuilding(1418, 2)
+      ObjectToBuilding(1419, 2)
+      ObjectToBuilding(1421, 2)
+      ObjectToBuilding(1426, 2)
       ObjectToBuilding(1427, 2)
+      ObjectToBuilding(1428, 2)
+      ObjectToBuilding(1431, 2)
+      ObjectToBuilding(1432, 2)
       ObjectToBuilding(1492, 2)
       ObjectToBuilding(1494, 2)
       ObjectToBuilding(1479, 2)
@@ -289,7 +303,14 @@ object Maps {
       DoorToLock(715, 751)
       TerminalToSpawnPad(224, 223)
       TerminalToSpawnPad(2419, 1479)
-      TurretToWeapon(1427, 5000) //TODO guid not correct
+      TurretToWeapon(1418, 5000)
+      TurretToWeapon(1419, 5001)
+      TurretToWeapon(1421, 5002)
+      TurretToWeapon(1426, 5003)
+      TurretToWeapon(1427, 5004)
+      TurretToWeapon(1428, 5005)
+      TurretToWeapon(1431, 5006)
+      TurretToWeapon(1432, 5007)
     }
 
     def Building38() : Unit = {
@@ -392,6 +413,8 @@ object Maps {
       LocalObject(1226, Locker.Constructor)
       LocalObject(1227, Locker.Constructor)
       LocalObject(1228, Locker.Constructor)
+      LocalObject(1440, MannedTurret.Constructor(manned_turret))
+      LocalObject(1442, MannedTurret.Constructor(manned_turret))
       LocalObject(1591, Terminal.Constructor(order_terminal))
       LocalObject(1592, Terminal.Constructor(order_terminal))
       LocalObject(1593, Terminal.Constructor(order_terminal))
@@ -419,6 +442,8 @@ object Maps {
       ObjectToBuilding(1226, 49)
       ObjectToBuilding(1227, 49)
       ObjectToBuilding(1228, 49)
+      ObjectToBuilding(1440, 49)
+      ObjectToBuilding(1442, 49)
       ObjectToBuilding(1591, 49)
       ObjectToBuilding(1592, 49)
       ObjectToBuilding(1593, 49)
@@ -434,6 +459,8 @@ object Maps {
       DoorToLock(431, 907)
       DoorToLock(432, 902)
       DoorToLock(433, 903)
+      TurretToWeapon(1440, 5008)
+      TurretToWeapon(1442, 5009)
     }
   }
 
@@ -610,6 +637,8 @@ object Maps {
       LocalObject(557, IFFLock.Constructor)
       LocalObject(558, IFFLock.Constructor)
       LocalObject(559, IFFLock.Constructor)
+      LocalObject(670, MannedTurret.Constructor(manned_turret))
+      LocalObject(671, MannedTurret.Constructor(manned_turret))
       ObjectToBuilding(330, 29)
       ObjectToBuilding(331, 29)
       ObjectToBuilding(332, 29)
@@ -618,10 +647,14 @@ object Maps {
       ObjectToBuilding(557, 29)
       ObjectToBuilding(558, 29)
       ObjectToBuilding(559, 29)
+      ObjectToBuilding(670, 29)
+      ObjectToBuilding(671, 29)
       DoorToLock(330, 558)
       DoorToLock(331, 559)
       DoorToLock(332, 556)
       DoorToLock(333, 557)
+      TurretToWeapon(670, 5000)
+      TurretToWeapon(671, 5001)
     }
 
     def Building42() : Unit = {

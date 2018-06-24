@@ -307,8 +307,8 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
       }) match {
         case Some((obj, Some(weapon : Tool))) =>
           guid.register(weapon, weapon_guid)
-          weapon.AmmoSlots.foreach(slot => guid.register(slot.Box))
-          obj.Inventory.Items.foreach(item => guid.register(item.obj)) //internal ammunition reserves, if any
+          weapon.AmmoSlots.foreach(slot => guid.register(slot.Box, "dynamic"))
+          obj.Inventory.Items.foreach(item => guid.register(item.obj, "dynamic")) //internal ammunition reserves, if any
         case _ => ;
       }
     })

@@ -129,12 +129,11 @@ class BuildingControl2Test extends ActorTest {
   val bldg = Building(10, Zone.Nowhere, StructureType.Building)
   bldg.Faction = PlanetSideEmpire.TR
   bldg.Actor = system.actorOf(Props(classOf[BuildingControl], bldg), "test")
+  bldg.Actor ! "startup"
 
   "Building Control" should {
     "convert and assert faction affinity on convert request" in {
-      expectNoMsg(250 milliseconds)
-      bldg.Actor ! "startup"
-      expectNoMsg(250 milliseconds)
+      expectNoMsg(500 milliseconds)
 
       assert(bldg.Faction == PlanetSideEmpire.TR)
       bldg.Actor ! FactionAffinity.ConvertFactionAffinity(PlanetSideEmpire.VS)
@@ -160,12 +159,11 @@ class BuildingControl3Test extends ActorTest {
   door2.Actor = system.actorOf(Props(classOf[DoorControl], door2), "door2-test")
   bldg.Amenities = door2
   bldg.Amenities = door1
+  bldg.Actor ! "startup"
 
   "Building Control" should {
     "convert and assert faction affinity on convert request, and for each of its amenities" in {
-      expectNoMsg(250 milliseconds)
-      bldg.Actor ! "startup"
-      expectNoMsg(250 milliseconds)
+      expectNoMsg(500 milliseconds)
 
       assert(bldg.Faction == PlanetSideEmpire.TR)
       assert(bldg.Amenities.length == 2)
@@ -173,7 +171,8 @@ class BuildingControl3Test extends ActorTest {
       assert(bldg.Amenities(1) == door1)
 
       bldg.Actor ! FactionAffinity.ConvertFactionAffinity(PlanetSideEmpire.VS)
-      val reply = receiveN(3, Duration.create(5000, "ms"))
+      val reply = ActorTest.receiveMultiple(3, 500 milliseconds, this)
+      //val reply = receiveN(3, Duration.create(5000, "ms"))
       assert(reply.length == 3)
       var building_count = 0
       var door_count = 0
