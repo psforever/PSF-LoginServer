@@ -75,6 +75,15 @@ class ZoneTest extends Specification {
       map.TerminalToInterface(3, 4)
       map.TerminalToInterface mustEqual Map(1 -> 2, 3 -> 4)
     }
+
+    "associate turrets to weapons" in {
+      val map = new ZoneMap("map13")
+      map.TurretToWeapon mustEqual Map.empty
+      map.TurretToWeapon(1, 2)
+      map.TurretToWeapon mustEqual Map(1 -> 2)
+      map.TurretToWeapon(3, 4)
+      map.TurretToWeapon mustEqual Map(1 -> 2, 3 -> 4)
+    }
   }
 
   val map13 = new ZoneMap("map13")

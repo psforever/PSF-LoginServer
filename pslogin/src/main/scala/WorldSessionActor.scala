@@ -180,7 +180,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * Vehicle cleanup that is specific to log out behavior.
     */
   def DismountVehicleOnLogOut() : Unit = {
-    //TODO Will base guns implement Vehicle type? Don't want those to deconstruct
     (player.VehicleSeated match {
       case Some(vehicle_guid) =>
         continent.GUID(vehicle_guid)

@@ -174,7 +174,7 @@ class VehicleSpawnPadObjectBuilderTest extends ActorTest {
 
 class LocalProjectileBuilderTest extends ActorTest {
   import net.psforever.objects.LocalProjectile
-  "Local ProjectileBuilder" should {
+  "Local projectile object" should {
     "build" in {
       val hub = ServerObjectBuilderTest.NumberPoolHub
       val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1,
@@ -192,7 +192,7 @@ class LocalProjectileBuilderTest extends ActorTest {
 
 class LockerObjectBuilderTest extends ActorTest {
   import net.psforever.objects.serverobject.mblocker.Locker
-  "LockerObjectBuilder" should {
+  "Locker object" should {
     "build" in {
       val hub = ServerObjectBuilderTest.NumberPoolHub
       val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1,
@@ -208,9 +208,27 @@ class LockerObjectBuilderTest extends ActorTest {
   }
 }
 
+class ResourceSiloObjectBuilderTest extends ActorTest {
+  import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
+  "Resource silo object" should {
+    "build" in {
+      val hub = ServerObjectBuilderTest.NumberPoolHub
+      val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1,
+        ResourceSilo.Constructor), hub), "spawn-tube")
+      actor ! "startup"
+
+      val reply = receiveOne(Duration.create(1000, "ms"))
+      assert(reply.isInstanceOf[ResourceSilo])
+      assert(reply.asInstanceOf[ResourceSilo].HasGUID)
+      assert(reply.asInstanceOf[ResourceSilo].GUID == PlanetSideGUID(1))
+      assert(reply == hub(1).get)
+    }
+  }
+}
+
 class SpawnTubeObjectBuilderTest extends ActorTest {
   import net.psforever.objects.serverobject.tube.SpawnTube
-  "LockerObjectBuilder" should {
+  "Spawn tube object" should {
     "build" in {
       val hub = ServerObjectBuilderTest.NumberPoolHub
       val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1,
