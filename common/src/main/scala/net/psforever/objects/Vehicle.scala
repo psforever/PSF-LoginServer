@@ -152,11 +152,11 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
   }
 
   def Health : Int = {
-    this.health
+    health
   }
 
-  def Health_=(health : Int) : Int = {
-    this.health = health
+  def Health_=(assignHealth : Int) : Int = {
+    health = math.min(math.max(0, assignHealth), MaxHealth)
     health
   }
 

@@ -155,10 +155,11 @@ class ProjectileTest extends Specification {
     "construct" in {
       val beamer_wep = Tool(GlobalDefinitions.beamer)
       val projectile = beamer_wep.Projectile
-      val obj = Projectile(projectile, beamer_wep.Definition, Vector3(1.2f, 3.4f, 5.6f), Vector3(0.2f, 0.4f, 0.6f))
+      val obj = Projectile(projectile, beamer_wep.Definition, beamer_wep.FireMode, Vector3(1.2f, 3.4f, 5.6f), Vector3(0.2f, 0.4f, 0.6f))
 
       obj.profile mustEqual beamer_wep.Projectile
       obj.tool_def mustEqual GlobalDefinitions.beamer
+      obj.fire_mode mustEqual beamer_wep.FireMode
       obj.shot_origin mustEqual Vector3(1.2f, 3.4f, 5.6f)
       obj.shot_angle mustEqual Vector3(0.2f, 0.4f, 0.6f)
       obj.resolution mustEqual ProjectileResolution.Unresolved
@@ -169,7 +170,7 @@ class ProjectileTest extends Specification {
     "resolve" in {
       val beamer_wep = Tool(GlobalDefinitions.beamer)
       val projectile = beamer_wep.Projectile
-      val obj = Projectile(projectile, beamer_wep.Definition, Vector3(1.2f, 3.4f, 5.6f), Vector3(0.2f, 0.4f, 0.6f))
+      val obj = Projectile(projectile, beamer_wep.Definition, beamer_wep.FireMode, Vector3(1.2f, 3.4f, 5.6f), Vector3(0.2f, 0.4f, 0.6f))
       val obj2 = obj.Resolve(ProjectileResolution.MissedShot)
 
       obj.resolution mustEqual ProjectileResolution.Unresolved
@@ -184,7 +185,7 @@ class ProjectileTest extends Specification {
     "resolve, with coordinates" in {
       val beamer_wep = Tool(GlobalDefinitions.beamer)
       val projectile = beamer_wep.Projectile
-      val obj = Projectile(projectile, beamer_wep.Definition, Vector3(1.2f, 3.4f, 5.6f), Vector3(0.2f, 0.4f, 0.6f))
+      val obj = Projectile(projectile, beamer_wep.Definition, beamer_wep.FireMode, Vector3(1.2f, 3.4f, 5.6f), Vector3(0.2f, 0.4f, 0.6f))
       val obj2 = obj.Resolve(Vector3(7.2f, 8.4f, 9.6f), Vector3(1.2f, 1.4f, 1.6f), ProjectileResolution.Resolved)
 
       obj.resolution mustEqual ProjectileResolution.Unresolved

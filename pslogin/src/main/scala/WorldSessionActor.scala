@@ -1551,6 +1551,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       sendResponse(ReplicationStreamMessage(5, Some(6), Vector(SquadListing()))) //clear squad list
       sendResponse(FriendsResponse(FriendAction.InitializeFriendList, 0, true, true, Nil))
       sendResponse(FriendsResponse(FriendAction.InitializeIgnoreList, 0, true, true, Nil))
+      avatarService ! Service.Join(avatar.name) //will be same as player.Name
       cluster ! InterstellarCluster.GetWorld("z6")
 
     case InterstellarCluster.GiveWorld(zoneId, zone) =>
@@ -3233,7 +3234,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                 Vector3.Zero
             }
             projectiles(projectileIndex) =
-              Some(Projectile(tool.Projectile, tool.Definition, shot_origin, ang))
+              Some(Projectile(tool.Projectile, tool.Definition, tool.FireMode, shot_origin, ang))
           }
         case _ => ;
       }
@@ -3243,15 +3244,71 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ HitMessage(seq_time, projectile_guid, unk1, hit_info, unk2, unk3, unk4) =>
       log.info(s"Hit: $msg")
-      ResolveProjectileEntry(projectile_guid, ProjectileResolution.Hit)
+      (hit_info match {
+        case Some(hitInfo) =>
+          continent.GUID(hitInfo.hitobject_guid.get) match {
+            case Some(obj : Player) =>
+              Some((obj, hitInfo.shot_origin, hitInfo.hit_pos))
+            case Some(obj : Vehicle) =>
+              Some((obj, hitInfo.shot_origin, hitInfo.hit_pos))
+            case _ =>
+              None
+          }
+        case None => ;
+          None
+      }) match {
+        case Some((target, shotOrigin, hitPos)) =>
+          ResolveProjectileEntry(projectile_guid, ProjectileResolution.Hit) match {
+            case Some(projectile) =>
+              val (a, b) = CalculateHitDamage(target, projectile, Vector3.Distance(player.Position, target.Position))
+              ApplyDamage(target, a, b)
+              DamageResolution(target, projectile)
+            case None => ;
+          }
+        case None => ;
+      }
 
     case msg @ SplashHitMessage(seq_time, projectile_guid, explosion_pos, direct_victim_uid, unk3, projectile_vel, unk4, targets) =>
       log.info(s"Splash: $msg")
-      ResolveProjectileEntry(projectile_guid, ProjectileResolution.Splash)
+      continent.GUID(direct_victim_uid) match {
+        case Some(target) =>
+          ResolveProjectileEntry(projectile_guid, ProjectileResolution.Hit) match {
+            case Some(projectile) =>
+              val (a, b) = CalculateHitDamage(target, projectile, Vector3.Distance(explosion_pos, target.Position))
+              ApplyDamage(target, a, b)
+              DamageResolution(target, projectile)
+            case None => ;
+          }
+        case _ =>
+          None
+      }
+      targets.foreach(elem => {
+        continent.GUID(elem.uid) match {
+          case Some(target) =>
+            ResolveProjectileEntry(projectile_guid, ProjectileResolution.Splash) match {
+              case Some(projectile) =>
+                val (a, b) = CalculateSplashDamage(target, projectile, Vector3.Distance(explosion_pos, target.Position))
+                ApplyDamage(target, a, b)
+                DamageResolution(target, projectile)
+              case None => ;
+            }
+          case None => ;
+        }
+      })
 
     case msg @ LashMessage(seq_time, killer_guid, victim_guid, projectile_guid, pos, unk1) =>
       log.info(s"Lash: $msg")
-      ResolveProjectileEntry(projectile_guid, ProjectileResolution.Lash)
+      continent.GUID(victim_guid) match {
+        case Some(target) =>
+          ResolveProjectileEntry(projectile_guid, ProjectileResolution.Lash) match {
+            case Some(projectile) =>
+              val (a, b) = CalculateHitDamage(target, projectile, 0)
+              ApplyDamage(target, (a * 0.2f).toInt, (b * 0.2f).toInt)
+              DamageResolution(target, projectile)
+            case None => ;
+          }
+        case None => ;
+      }
 
     case msg @ AvatarFirstTimeEventMessage(avatar_guid, object_guid, unk1, event_name) =>
       log.info("AvatarFirstTimeEvent: " + msg)
@@ -5421,6 +5478,259 @@ class WorldSessionActor extends Actor with MDCContextAware {
     log.info(s"DismountVehicleMsg: ${tplayer.Name} dismounts $obj from $seatNum")
     sendResponse(DismountVehicleMsg(player_guid, BailType.Normal, false))
     vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.DismountVehicle(player_guid, BailType.Normal, false))
+  }
+
+  def CalculateHitDamage(target : Player, projectile : Projectile, distance : Float) : (Int, Int) = {
+    val currentResistance = HitResistance(target)
+    val rawDamage = RawDamageAgainst(target, projectile)
+    val currentDamage = damages(projectile, rawDamage, distance)
+    ResistanceFunc(target)(currentDamage, currentResistance, target.Health, target.Armor)
+  }
+
+  def HitResistance(target : Player) : Int = {
+    ExoSuitDefinition.Select(target.ExoSuit).DamageResistanceDirectHit
+  }
+
+  def ResistanceFunc(target : Player) : (Int,Int,Int,Int)=>(Int,Int) = {
+    target.ExoSuit match {
+      case ExoSuitType.MAX => damagesAfterResistMAX
+      case _ => damagesAfterResist
+    }
+  }
+
+  def CalculateHitDamage(target : Vehicle, projectile : Projectile, distance : Float) : (Int, Int) = {
+    val rawDamage = RawDamageAgainst(target, projectile)
+    (damages(projectile, rawDamage, distance), 0)
+  }
+
+  def CalculateHitDamage(target : PlanetSideGameObject, projectile : Projectile, distance : Float) : (Int, Int) = {
+    target match {
+      case obj : Player =>
+        CalculateHitDamage(obj, projectile, distance)
+      case obj : Vehicle =>
+        CalculateHitDamage(obj, projectile, distance)
+      case _ =>
+        (0, 0)
+    }
+  }
+
+  def CalculateSplashDamage(target : Player, projectile : Projectile, explosionPosition : Vector3, distance : Float) : (Int, Int) = {
+    val currentResistance = SplashResistance(target)
+    val rawDamage = RawDamageAgainst(target, projectile)
+    if(distance <= projectile.profile.DamageRadius) {
+      val currentDamage = rawDamage + ((rawDamage - (projectile.profile.DamageAtEdge * rawDamage)) * distance / projectile.profile.DamageRadius).toInt
+      ResistanceFunc(target)(currentDamage, currentResistance, target.Health, target.Armor)
+    }
+    else {
+      (0,0)
+    }
+  }
+
+  def CalculateSplashDamage(target : Vehicle, projectile : Projectile, distance : Float) : (Int, Int) = {
+    (0,0)
+  }
+
+  def CalculateSplashDamage(target : PlanetSideGameObject, projectile : Projectile, distance : Float) : (Int, Int) = {
+    target match {
+      case obj : Player =>
+        CalculateSplashDamage(obj, projectile, distance)
+      case obj : Vehicle =>
+        CalculateSplashDamage(obj, projectile, distance)
+      case _ =>
+        (0,0)
+    }
+  }
+
+  def SplashResistance(target : Player) : Int = {
+    ExoSuitDefinition.Select(target.ExoSuit).DamageResistanceSplash
+  }
+
+  def RawDamageAgainst(target : Player, projectile : Projectile) : Int = {
+    if(target.ExoSuit == ExoSuitType.MAX) {
+      projectile.profile.Damage3 + projectile.fire_mode.Modifiers.Damage3
+    }
+    else {
+      projectile.profile.Damage0 + projectile.fire_mode.Modifiers.Damage0
+    }
+  }
+
+  def RawDamageAgainst(target : Vehicle, projectile : Projectile) : Int = {
+    if(GlobalDefinitions.isFlightVehicle(target.Definition)) {
+      projectile.profile.Damage2 + projectile.fire_mode.Modifiers.Damage2
+    }
+    else {
+      projectile.profile.Damage1 + projectile.fire_mode.Modifiers.Damage1
+    }
+  }
+
+  def RawDamageAgainst(target : PlanetSideGameObject, projectile : Projectile) : Int = {
+    target match {
+      case obj : Player =>
+        RawDamageAgainst(obj, projectile)
+      case obj : Vehicle =>
+        RawDamageAgainst(obj, projectile)
+      case _ =>
+        0
+    }
+  }
+
+  def damages(projectile : Projectile, rawDamage: Int, distance: Float): Int = {
+    val profile = projectile.profile
+    if(distance <= profile.DistanceMax) {
+      if(profile.DistanceNoDegrade == profile.DistanceMax || distance <= profile.DistanceNoDegrade) {
+        rawDamage
+      }
+      else {
+        rawDamage - ((rawDamage - profile.DegradeMultiplier * rawDamage) * ((distance - profile.DistanceNoDegrade) / (profile.DistanceMax - profile.DistanceNoDegrade))).toInt
+      }
+    }
+    else {
+      0
+    }
+  }
+
+  def damagesAfterResist(damages: Int, resistance: Int, currentHP: Int, currentArmor: Int): (Int, Int) = {
+    if(damages > 0) {
+      if(currentArmor >= resistance) {
+        val newHP = if(damages < resistance) {
+          currentHP
+        }
+        else {
+          currentHP - damages + resistance
+        }
+        (newHP, currentArmor - resistance)
+      }
+      else if(currentArmor < resistance && currentArmor >= 0) {
+        (math.max(0, currentHP - damages + currentArmor), 0)
+      }
+      else {
+        (currentHP, currentArmor)
+      }
+    }
+    else {
+      (currentHP, currentArmor)
+    }
+  }
+
+  def damagesAfterResistMAX(damages: Int, resistance: Int, currentHP: Int, currentArmor: Int): (Int, Int) = {
+    var newHP: Int = currentHP
+    var newArmor: Int = currentArmor
+    if (damages != 0) {
+      if (damages <= currentArmor) {
+        newArmor = currentArmor + resistance - damages
+      }
+      else {
+        if (currentArmor != 0) {newHP = currentHP - damages + currentArmor + resistance}
+        else {newHP = currentHP - damages}
+        newArmor = 0
+      }
+      if (newHP < 0) newHP = 0
+    }
+    (newHP, newArmor)
+  }
+
+  def damagesAfterResistMAX1(damages: Int, resistance: Int, currentHP: Int, currentArmor: Int): (Int, Int) = {
+    if(damages > 0) {
+      val armorResist : Int = currentArmor + resistance * math.min(1, currentArmor)
+      val damageToHealth = damages - armorResist
+      if(damageToHealth > 0) {
+        (math.max(0, currentHP - damageToHealth), 0)
+      }
+      else {
+        (currentHP, armorResist - damages)
+      }
+    }
+    else {
+      (currentHP, currentArmor)
+    }
+  }
+
+  def ApplyDamage(target : Player, a : Int, b : Int) : Unit = {
+    target.Health = a
+    target.Armor = b
+  }
+
+  def ApplyDamage(target : Vehicle, a : Int, b : Int) : Unit = {
+    target.Health = a
+  }
+
+  def ApplyDamage(target : PlanetSideGameObject, a : Int, b : Int) : Unit = {
+    target match {
+      case obj : Player =>
+        ApplyDamage(obj, a, b)
+      case obj : Vehicle =>
+        ApplyDamage(obj, a, 0)
+      case _ => ;
+    }
+  }
+
+  def DamageResolution(obj : Player, projectile : Projectile) : Unit = {
+//    sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN,true,"server","damages: "+currentDamage+" hp: "+obj.Health+" armor: "+obj.Armor,None))
+    if(obj.Health != 0) {
+      avatarService ! AvatarServiceMessage(obj.Continent, AvatarAction.PlanetsideAttribute(obj.GUID, 0, obj.Health))
+      avatarService ! AvatarServiceMessage(obj.Continent, AvatarAction.PlanetsideAttribute(obj.GUID, 4, obj.Armor))
+    }
+    else if (obj.Health == 0 && obj.isAlive) {
+      obj.death_by = projectile.tool_def.ObjectId
+      KillPlayer(obj)
+    }
+  }
+
+  def DamageResolution(obj : Vehicle, projectile : Projectile) : Unit = {
+    if(obj.Health > 0) {
+      vehicleService ! VehicleServiceMessage(player.Continent, VehicleAction.PlanetsideAttribute(player.GUID, obj.GUID, 0, obj.Health.toLong))
+      obj.Seats.values.foreach(seat => {
+        seat.Occupant match {
+          case Some(tplayer) =>
+            if(tplayer.HasGUID && tplayer.isAlive) {
+//              avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.HitHintReturn(player.GUID, tplayer.GUID)) // todo find real job to do in captures files
+            }
+          case None => ;
+        }
+      })
+    }
+    else {
+      obj.Seats.foreach({ case ((seatNum, seat)) =>
+        seat.Occupant match {
+          case Some(tplayer) =>
+            if(tplayer.HasGUID && tplayer.isAlive) {
+              tplayer.death_by = projectile.tool_def.ObjectId
+//              avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.PlanetsideAttributeSelf(tplayer.GUID, 4, tplayer.Armor))
+              KillPlayer(tplayer)
+              sendResponse(ObjectDetachMessage(obj.GUID, tplayer.GUID, obj.Position, 0f, 0f, 0f)) //Todo the 3 last parameters
+            }
+          case None => ;
+        }
+        obj.WeaponControlledFromSeat(seatNum) match {
+          case Some(weapon: Tool) =>
+            weapon.AmmoSlots.foreach(slot => {
+              val magazine = slot.Box
+              sendResponse(InventoryStateMessage(magazine.GUID, weapon.GUID, 1)) // Todo, who need that ?
+            })
+            vehicleService ! VehicleServiceMessage(player.Continent, VehicleAction.ObjectDelete(player.GUID, weapon.GUID))
+          case _ => ;
+        }
+      })
+//      avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.Destroy(obj.GUID, player.GUID, PlanetSideGUID(obj.death_by), obj.Position)) //how many players get this message?
+      vehicleService ! VehicleServiceMessage(player.Continent, VehicleAction.PlanetsideAttribute(player.GUID, obj.GUID, 10, 3))
+      vehicleService ! VehicleServiceMessage(player.Continent, VehicleAction.PlanetsideAttribute(player.GUID, obj.GUID, 13, 3))
+      if(obj.Definition == GlobalDefinitions.ams) {
+        obj.Actor ! Deployment.TryDeploymentChange(DriveState.Undeploying)
+        ClearCurrentAmsSpawnPoint()
+      }
+      vehicleService ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(obj), continent))
+      vehicleService ! VehicleServiceMessage.Decon(RemoverActor.AddTask(obj, continent, Some(1 minute)))
+    }
+  }
+
+  def DamageResolution(target : PlanetSideGameObject, projectile : Projectile) : Unit = {
+    target match {
+      case obj : Player =>
+        DamageResolution(obj, projectile)
+      case obj : Vehicle =>
+        DamageResolution(obj, projectile)
+      case _ => ;
+    }
   }
 
   def failWithError(error : String) = {

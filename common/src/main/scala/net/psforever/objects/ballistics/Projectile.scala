@@ -3,6 +3,7 @@ package net.psforever.objects.ballistics
 
 import net.psforever.objects.definition.{ProjectileDefinition, ToolDefinition}
 import net.psforever.objects.entity.SimpleWorldEntity
+import net.psforever.objects.equipment.FireModeDefinition
 import net.psforever.types.Vector3
 
 /**
@@ -19,6 +20,7 @@ import net.psforever.types.Vector3
   */
 final case class Projectile(profile : ProjectileDefinition,
                             tool_def : ToolDefinition,
+                            fire_mode : FireModeDefinition,
                             shot_origin : Vector3,
                             shot_angle : Vector3,
                             resolution : ProjectileResolution.Value,
@@ -52,7 +54,7 @@ final case class Projectile(profile : ProjectileDefinition,
       case ProjectileResolution.Unresolved =>
         this
       case _ =>
-        Projectile(profile, tool_def, shot_origin, shot_angle, resolution, fire_time, System.nanoTime)
+        Projectile(profile, tool_def, fire_mode, shot_origin, shot_angle, resolution, fire_time, System.nanoTime)
     }
   }
 }
@@ -72,7 +74,7 @@ object Projectile {
     * @param shot_angle in which direction the projectile was aimed when it was discharged
     * @return the `Projectile` object
     */
-  def apply(profile : ProjectileDefinition, tool_def : ToolDefinition, shot_origin : Vector3, shot_angle : Vector3) : Projectile = {
-    Projectile(profile, tool_def, shot_origin, shot_angle, ProjectileResolution.Unresolved)
+  def apply(profile : ProjectileDefinition, tool_def : ToolDefinition, fire_mode : FireModeDefinition, shot_origin : Vector3, shot_angle : Vector3) : Projectile = {
+    Projectile(profile, tool_def, fire_mode, shot_origin, shot_angle, ProjectileResolution.Unresolved)
   }
 }

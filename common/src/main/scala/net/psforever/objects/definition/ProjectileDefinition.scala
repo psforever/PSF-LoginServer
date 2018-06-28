@@ -26,6 +26,11 @@ class ProjectileDefinition(objectId : Int) extends ObjectDefinition(objectId) wi
   private var damageAtEdge : Float = 1f
   private var damageRadius : Float = 1f
   private var useDamage1Subtract : Boolean = false
+  //derived calculations
+  private var distanceMax : Float = 0f
+  private var distanceFromAcceleration : Float = 0f
+  private var distanceNoDegrade : Float = 0f
+  private var finalVelocity : Float = 0f
   Name = "projectile"
 
   def ProjectileType : Projectiles.Value = projectileType
@@ -157,10 +162,40 @@ class ProjectileDefinition(objectId : Int) extends ObjectDefinition(objectId) wi
     this.damageRadius = damageRadius
     DamageRadius
   }
+
+  def DistanceMax : Float = distanceMax //accessor only
+
+  def DistanceFromAcceleration : Float = distanceFromAcceleration //accessor only
+
+  def DistanceNoDegrade : Float = distanceNoDegrade //accessor only
+
+  def FinalVelocity : Float = finalVelocity //accessor only
 }
 
 object ProjectileDefinition {
   def apply(projectileType : Projectiles.Value) : ProjectileDefinition = {
     new ProjectileDefinition(projectileType.id)
+  }
+
+  def CalculateDerivedFields(pdef : ProjectileDefinition) : Unit = {
+    (pdef.distanceMax, pdef.distanceFromAcceleration, pdef.finalVelocity) = if(pdef.Acceleration == 0f) {
+      (pdef.InitialVelocity * pdef.Lifespan, 0, pdef.InitialVelocity)
+    }
+    else {
+      val distanceFromAcceleration = (pdef.AccelerationUntil * pdef.InitialVelocity) + (0.5f * pdef.Acceleration * pdef.AccelerationUntil * pdef.AccelerationUntil)
+      val finalVelocity = pdef.InitialVelocity + pdef.Acceleration * pdef.AccelerationUntil
+      val distanceAfterAcceleration = finalVelocity * (pdef.Lifespan - pdef.AccelerationUntil)
+      (distanceFromAcceleration + distanceAfterAcceleration, distanceFromAcceleration, finalVelocity)
+    }
+
+    pdef.distanceNoDegrade = if(pdef.DegradeDelay == 0f) {
+      pdef.distanceMax
+    }
+    else if(pdef.DegradeDelay < pdef.AccelerationUntil) {
+      (pdef.DegradeDelay * pdef.InitialVelocity) + (0.5f * pdef.Acceleration * pdef.DegradeDelay * pdef.DegradeDelay)
+    }
+    else {
+      pdef.distanceFromAcceleration + pdef.finalVelocity * (pdef.DegradeDelay - pdef.AccelerationUntil)
+    }
   }
 }
