@@ -392,6 +392,30 @@ class WorldSessionActor extends Actor with MDCContextAware {
             sendResponse(GenericObjectActionMessage(guid, 36))
           }
 
+        case msg @ AvatarResponse.Damage(a, b) =>
+          if(player.isAlive) {
+            if(player.Armor - b < 0) {
+              val originalArmor = player.Armor
+              player.Armor = 0
+              player.Health = player.Health - a - (player.Armor - b) //spill over
+            }
+            else {
+              player.Armor = player.Armor - b
+              player.Health = player.Health - a
+            }
+            val health = player.Health
+            val armor = player.Armor
+            val playerGUID = player.GUID
+            sendResponse(PlanetsideAttributeMessage(playerGUID, 0, health))
+            sendResponse(PlanetsideAttributeMessage(playerGUID, 4, armor))
+            avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(playerGUID, 0, health))
+            avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(playerGUID, 4, armor))
+            //sendResponse(HitHint(guid, playerGUID))
+            if(health == 0 && player.isAlive) {
+              KillPlayer(player)
+            }
+          }
+
         case msg @ AvatarResponse.DropItem(pkt) =>
           if(tplayer_guid != guid) {
             sendResponse(pkt)
@@ -401,6 +425,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
           if(tplayer_guid != guid) {
             sendResponse(pkt)
           }
+
+        case AvatarResponse.HitHint(source_guid) =>
+          sendResponse(HitHint(source_guid, guid))
 
         case AvatarResponse.LoadPlayer(pkt) =>
           if(tplayer_guid != guid) {
@@ -544,7 +571,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       val tplayer_guid = if(player.HasGUID) { player.GUID} else { PlanetSideGUID(0) }
       reply match {
         case VehicleResponse.Ownership(vehicle_guid) =>
-          sendResponse(PlanetsideAttributeMessage(guid, 21, vehicle_guid.guid.toLong))
+          sendResponse(PlanetsideAttributeMessage(guid, 21, vehicle_guid.guid))
 
         case VehicleResponse.AttachToRails(vehicle_guid, pad_guid) =>
           sendResponse(ObjectAttachMessage(pad_guid, vehicle_guid, 3))
@@ -807,7 +834,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
               //update mounted weapon belonging to seat
               weapon.AmmoSlots.foreach(slot => { //update the magazine(s) in the weapon, specifically
                 val magazine = slot.Box
-                sendResponse(InventoryStateMessage(magazine.GUID, weapon.GUID, magazine.Capacity.toLong))
+                sendResponse(InventoryStateMessage(magazine.GUID, weapon.GUID, magazine.Capacity))
               })
             case _ => ; //no weapons to update
           }
@@ -1121,7 +1148,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           if(!tplayer.Certifications.contains(cert)) {
             log.info(s"$tplayer is learning the $cert certification for $cost points")
             avatar.Certifications += cert
-            sendResponse(PlanetsideAttributeMessage(tplayer.GUID, 24, cert.id.toLong))
+            sendResponse(PlanetsideAttributeMessage(tplayer.GUID, 24, cert.id))
             sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Learn, true))
           }
           else {
@@ -1133,7 +1160,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           if(tplayer.Certifications.contains(cert)) {
             log.info(s"$tplayer is forgetting the $cert certification for $cost points")
             avatar.Certifications -= cert
-            sendResponse(PlanetsideAttributeMessage(tplayer.GUID, 25, cert.id.toLong))
+            sendResponse(PlanetsideAttributeMessage(tplayer.GUID, 25, cert.id))
             sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Sell, true))
           }
           else {
@@ -3262,7 +3289,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
             case Some(projectile) =>
               val (a, b) = CalculateHitDamage(target, projectile, Vector3.Distance(player.Position, target.Position))
               ApplyDamage(target, a, b)
-              DamageResolution(target, projectile)
             case None => ;
           }
         case None => ;
@@ -3276,7 +3302,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
             case Some(projectile) =>
               val (a, b) = CalculateHitDamage(target, projectile, Vector3.Distance(explosion_pos, target.Position))
               ApplyDamage(target, a, b)
-              DamageResolution(target, projectile)
             case None => ;
           }
         case _ =>
@@ -3289,7 +3314,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
               case Some(projectile) =>
                 val (a, b) = CalculateSplashDamage(target, projectile, Vector3.Distance(explosion_pos, target.Position))
                 ApplyDamage(target, a, b)
-                DamageResolution(target, projectile)
               case None => ;
             }
           case None => ;
@@ -3304,7 +3328,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
             case Some(projectile) =>
               val (a, b) = CalculateHitDamage(target, projectile, 0)
               ApplyDamage(target, (a * 0.2f).toInt, (b * 0.2f).toInt)
-              DamageResolution(target, projectile)
             case None => ;
           }
         case None => ;
@@ -3490,8 +3513,14 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ FriendsRequest(action, friend) =>
       log.info("FriendsRequest: "+msg)
 
-    case msg @ HitHint(source, player_guid) =>
-      log.info("HitHint: "+msg)
+    case msg @ HitHint(source_guid, player_guid) =>
+      log.info(s"HitHint: $msg")
+      continent.GUID(player_guid) match {
+        case Some(obj : Player) =>
+          avatarService ! AvatarServiceMessage(obj.Name, AvatarAction.HitHint(source_guid, player_guid))
+        case _ => ;
+      }
+
 
     case msg @ TargetingImplantRequest(list) =>
       log.info("TargetingImplantRequest: "+msg)
@@ -4034,7 +4063,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     val vehicle_guid = vehicle.GUID
     (0 to 3).foreach(group => {
       sendResponse(
-        PlanetsideAttributeMessage(vehicle_guid, group + 10, vehicle.PermissionGroup(group).get.id.toLong)
+        PlanetsideAttributeMessage(vehicle_guid, group + 10, vehicle.PermissionGroup(group).get.id)
       )
     })
   }
@@ -5493,8 +5522,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
   def ResistanceFunc(target : Player) : (Int,Int,Int,Int)=>(Int,Int) = {
     target.ExoSuit match {
-      case ExoSuitType.MAX => damagesAfterResistMAX
-      case _ => damagesAfterResist
+      case ExoSuitType.MAX => DamagesAfterResistMAX
+      case _ => DamagesAfterResist
     }
   }
 
@@ -5589,69 +5618,53 @@ class WorldSessionActor extends Actor with MDCContextAware {
     }
   }
 
-  def damagesAfterResist(damages: Int, resistance: Int, currentHP: Int, currentArmor: Int): (Int, Int) = {
+  def DamagesAfterResist(damages: Int, resistance: Int, currentHP: Int, currentArmor: Int): (Int, Int) = {
     if(damages > 0) {
-      if(currentArmor >= resistance) {
-        val newHP = if(damages < resistance) {
-          currentHP
+      if(currentArmor <= 0) {
+        (damages, 0)
+      }
+      else if(damages > resistance) {
+        val resistedDam = damages - resistance
+        if(resistedDam >= currentArmor) {
+          (resistedDam - currentArmor, currentArmor)
         }
         else {
-          currentHP - damages + resistance
+          (0, resistedDam)
         }
-        (newHP, currentArmor - resistance)
-      }
-      else if(currentArmor < resistance && currentArmor >= 0) {
-        (math.max(0, currentHP - damages + currentArmor), 0)
       }
       else {
-        (currentHP, currentArmor)
+        (0, 0)
       }
     }
     else {
-      (currentHP, currentArmor)
+      (0, 0)
     }
   }
 
-  def damagesAfterResistMAX(damages: Int, resistance: Int, currentHP: Int, currentArmor: Int): (Int, Int) = {
-    var newHP: Int = currentHP
-    var newArmor: Int = currentArmor
-    if (damages != 0) {
-      if (damages <= currentArmor) {
-        newArmor = currentArmor + resistance - damages
+  def DamagesAfterResistMAX(damages: Int, resistance: Int, currentHP: Int, currentArmor: Int): (Int, Int) = {
+    val resistedDam = damages - resistance
+    if(resistedDam > 0) {
+      if(currentArmor <= 0) {
+        (resistedDam, 0)
+      }
+      else if(resistedDam >= currentArmor) {
+        (resistedDam - currentArmor, currentArmor)
       }
       else {
-        if (currentArmor != 0) {newHP = currentHP - damages + currentArmor + resistance}
-        else {newHP = currentHP - damages}
-        newArmor = 0
-      }
-      if (newHP < 0) newHP = 0
-    }
-    (newHP, newArmor)
-  }
-
-  def damagesAfterResistMAX1(damages: Int, resistance: Int, currentHP: Int, currentArmor: Int): (Int, Int) = {
-    if(damages > 0) {
-      val armorResist : Int = currentArmor + resistance * math.min(1, currentArmor)
-      val damageToHealth = damages - armorResist
-      if(damageToHealth > 0) {
-        (math.max(0, currentHP - damageToHealth), 0)
-      }
-      else {
-        (currentHP, armorResist - damages)
+        (0, resistedDam)
       }
     }
     else {
-      (currentHP, currentArmor)
+      (0, 0)
     }
   }
 
   def ApplyDamage(target : Player, a : Int, b : Int) : Unit = {
-    target.Health = a
-    target.Armor = b
+    avatarService ! AvatarServiceMessage(target.Name, AvatarAction.Damage(player.GUID, a, b))
   }
 
   def ApplyDamage(target : Vehicle, a : Int, b : Int) : Unit = {
-    target.Health = a
+    target.Health = target.Health - a
   }
 
   def ApplyDamage(target : PlanetSideGameObject, a : Int, b : Int) : Unit = {
@@ -5678,7 +5691,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
   def DamageResolution(obj : Vehicle, projectile : Projectile) : Unit = {
     if(obj.Health > 0) {
-      vehicleService ! VehicleServiceMessage(player.Continent, VehicleAction.PlanetsideAttribute(player.GUID, obj.GUID, 0, obj.Health.toLong))
+      vehicleService ! VehicleServiceMessage(player.Continent, VehicleAction.PlanetsideAttribute(player.GUID, obj.GUID, 0, obj.Health))
       obj.Seats.values.foreach(seat => {
         seat.Occupant match {
           case Some(tplayer) =>

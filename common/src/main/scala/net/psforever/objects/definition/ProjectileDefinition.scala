@@ -178,7 +178,7 @@ object ProjectileDefinition {
   }
 
   def CalculateDerivedFields(pdef : ProjectileDefinition) : Unit = {
-    (pdef.distanceMax, pdef.distanceFromAcceleration, pdef.finalVelocity) = if(pdef.Acceleration == 0f) {
+    val (distanceMax, distanceFromAcceleration, finalVelocity) : (Float, Float, Float) = if(pdef.Acceleration == 0f) {
       (pdef.InitialVelocity * pdef.Lifespan, 0, pdef.InitialVelocity)
     }
     else {
@@ -187,6 +187,9 @@ object ProjectileDefinition {
       val distanceAfterAcceleration = finalVelocity * (pdef.Lifespan - pdef.AccelerationUntil)
       (distanceFromAcceleration + distanceAfterAcceleration, distanceFromAcceleration, finalVelocity)
     }
+    pdef.distanceMax = distanceMax
+    pdef.distanceFromAcceleration = distanceFromAcceleration
+    pdef.finalVelocity = finalVelocity
 
     pdef.distanceNoDegrade = if(pdef.DegradeDelay == 0f) {
       pdef.distanceMax

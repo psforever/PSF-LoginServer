@@ -21,8 +21,10 @@ object AvatarAction {
   final case class ChangeFireState_Start(player_guid : PlanetSideGUID, weapon_guid : PlanetSideGUID) extends Action
   final case class ChangeFireState_Stop(player_guid : PlanetSideGUID, weapon_guid : PlanetSideGUID) extends Action
   final case class ConcealPlayer(player_guid : PlanetSideGUID) extends Action
+  final case class Damage(player_guid : PlanetSideGUID, a : Int, b : Int) extends Action
   final case class DropItem(player_guid : PlanetSideGUID, item : Equipment, zone : Zone) extends Action
   final case class EquipmentInHand(player_guid : PlanetSideGUID, target_guid : PlanetSideGUID, slot : Int, item : Equipment) extends Action
+  final case class HitHint(source_guid : PlanetSideGUID, player_guid : PlanetSideGUID) extends Action
   final case class LoadPlayer(player_guid : PlanetSideGUID, object_id : Int, target_guid : PlanetSideGUID, cdata : ConstructorData, pdata : Option[ObjectCreateMessageParent]) extends Action
   final case class ObjectDelete(player_guid : PlanetSideGUID, item_guid : PlanetSideGUID, unk : Int = 0) extends Action
   final case class ObjectHeld(player_guid : PlanetSideGUID, slot : Int) extends Action

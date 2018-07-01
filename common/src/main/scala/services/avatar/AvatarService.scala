@@ -65,6 +65,10 @@ class AvatarService extends Actor {
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.ConcealPlayer())
           )
+        case AvatarAction.Damage(player_guid, a, b) =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.Damage(a, b))
+          )
         case AvatarAction.DropItem(player_guid, item, zone) =>
           val definition = item.Definition
           val objectData = DroppedItemData(
@@ -85,6 +89,10 @@ class AvatarService extends Actor {
             AvatarServiceResponse(s"/$forChannel/Avatar", player_guid,
               AvatarResponse.EquipmentInHand(ObjectCreateMessage(definition.ObjectId, item.GUID, containerData, objectData))
             )
+          )
+        case AvatarAction.HitHint(source_guid, player_guid) =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.HitHint(source_guid))
           )
         case AvatarAction.LoadPlayer(player_guid, object_id, target_guid, cdata, pdata) =>
           val pkt = pdata match {

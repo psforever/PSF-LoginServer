@@ -17,7 +17,9 @@ object AvatarResponse {
   final case class ChangeFireState_Start(weapon_guid : PlanetSideGUID) extends Response
   final case class ChangeFireState_Stop(weapon_guid : PlanetSideGUID) extends Response
   final case class ConcealPlayer() extends Response
+  final case class Damage(a : Int, b : Int) extends Response
   final case class EquipmentInHand(pkt : ObjectCreateMessage) extends Response
+  final case class HitHint(source_guid : PlanetSideGUID) extends Response
   final case class DropItem(pkt : ObjectCreateMessage) extends Response
   final case class LoadPlayer(pkt : ObjectCreateMessage) extends Response
   final case class ObjectDelete(item_guid : PlanetSideGUID, unk : Int) extends Response
