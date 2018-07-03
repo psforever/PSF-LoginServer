@@ -3,7 +3,7 @@ package net.psforever.objects.definition
 
 import net.psforever.objects.definition.converter.VehicleConverter
 import net.psforever.objects.inventory.InventoryTile
-import net.psforever.objects.vehicles.UtilityType
+import net.psforever.objects.vehicles.{DestroyedVehicle, UtilityType}
 
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -33,6 +33,7 @@ class VehicleDefinition(objectId : Int) extends ObjectDefinition(objectId) {
   private var serverVehicleOverrideSpeeds : (Int, Int) = (0, 0)
   private var deconTime : Option[FiniteDuration] = None
   private var maximumCapacitor : Int = 0
+  private var destroyedModel : Option[DestroyedVehicle.Value] = None
   Name = "vehicle"
   Packet = VehicleDefinition.converter
 
@@ -137,6 +138,13 @@ class VehicleDefinition(objectId : Int) extends ObjectDefinition(objectId) {
   def MaximumCapacitor_=(maxCapacitor: Int) : Int = {
     maximumCapacitor = maxCapacitor
     MaximumCapacitor
+  }
+
+  def DestroyedModel : Option[DestroyedVehicle.Value] = destroyedModel
+
+  def DestroyedModel_=(model : Option[DestroyedVehicle.Value]) : Option[DestroyedVehicle.Value] = {
+    destroyedModel = model
+    DestroyedModel
   }
 }
 

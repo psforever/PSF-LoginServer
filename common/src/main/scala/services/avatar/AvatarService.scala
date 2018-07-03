@@ -69,6 +69,10 @@ class AvatarService extends Actor {
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.Damage(a, b))
           )
+        case AvatarAction.Destroy(victim, killer, weapon, pos) =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(s"/$forChannel/Avatar", victim, AvatarResponse.Destroy(victim, killer, weapon, pos))
+          )
         case AvatarAction.DropItem(player_guid, item, zone) =>
           val definition = item.Definition
           val objectData = DroppedItemData(
@@ -183,14 +187,6 @@ class AvatarService extends Actor {
         val player: PlayerAvatar = playerOpt.get
         AvatarEvents.publish(AvatarMessage("/Avatar/" + player.continent, victim,
           AvatarServiceReply.DestroyDisplay(killer)
-        ))
-      }
-    case AvatarService.HitHintReturn(source_guid,victim_guid) =>
-      val playerOpt: Option[PlayerAvatar] = PlayerMasterList.getPlayer(source_guid)
-      if (playerOpt.isDefined) {
-        val player: PlayerAvatar = playerOpt.get
-        AvatarEvents.publish(AvatarMessage("/Avatar/" + player.continent, victim_guid,
-          AvatarServiceReply.DestroyDisplay(source_guid)
         ))
       }
       */

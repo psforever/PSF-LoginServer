@@ -8,6 +8,7 @@ import net.psforever.packet.game.ObjectCreateMessage
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import services.vehicle.support.{TurretUpgrader, VehicleRemover}
 import net.psforever.types.DriveState
+import services.avatar.{AvatarAction, AvatarResponse, AvatarServiceResponse}
 import services.{GenericEventBus, RemoverActor, Service}
 
 import scala.concurrent.duration._
@@ -76,6 +77,10 @@ class VehicleService extends Actor {
           VehicleEvents.publish(
             VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.InventoryState2(obj_guid, parent_guid, value))
           )
+        case VehicleAction.HitHint(source_guid) =>
+          VehicleEvents.publish(
+            VehicleServiceResponse(s"/$forChannel/Vehicle", Service.defaultPlayerGUID, VehicleResponse.HitHint(source_guid))
+          )
         case VehicleAction.KickPassenger(player_guid, seat_num, kickedByDriver, vehicle_guid) =>
           VehicleEvents.publish(
             VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.KickPassenger(seat_num, kickedByDriver, vehicle_guid))
@@ -91,6 +96,10 @@ class VehicleService extends Actor {
         case VehicleAction.Ownership(player_guid, vehicle_guid) =>
           VehicleEvents.publish(
             VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.Ownership(vehicle_guid))
+          )
+        case VehicleAction.PlanetsideAttribute(exclude_guid, target_guid, attribute_type, attribute_value) =>
+          VehicleEvents.publish(
+            VehicleServiceResponse(s"/$forChannel/Avatar", exclude_guid, VehicleResponse.PlanetsideAttribute(target_guid, attribute_type, attribute_value))
           )
         case VehicleAction.SeatPermissions(player_guid, vehicle_guid, seat_group, permission) =>
           VehicleEvents.publish(

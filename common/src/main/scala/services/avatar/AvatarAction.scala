@@ -8,7 +8,7 @@ import net.psforever.objects.zones.Zone
 import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game.{CargoMountPointStatusMessage, PlanetSideGUID, PlayerStateMessageUpstream}
 import net.psforever.packet.game.objectcreate.{ConstructorData, ObjectCreateMessageParent}
-import net.psforever.types.ExoSuitType
+import net.psforever.types.{ExoSuitType, Vector3}
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -22,6 +22,7 @@ object AvatarAction {
   final case class ChangeFireState_Stop(player_guid : PlanetSideGUID, weapon_guid : PlanetSideGUID) extends Action
   final case class ConcealPlayer(player_guid : PlanetSideGUID) extends Action
   final case class Damage(player_guid : PlanetSideGUID, a : Int, b : Int) extends Action
+  final case class Destroy(victim : PlanetSideGUID, killer : PlanetSideGUID, weapon : PlanetSideGUID, pos : Vector3) extends Action
   final case class DropItem(player_guid : PlanetSideGUID, item : Equipment, zone : Zone) extends Action
   final case class EquipmentInHand(player_guid : PlanetSideGUID, target_guid : PlanetSideGUID, slot : Int, item : Equipment) extends Action
   final case class HitHint(source_guid : PlanetSideGUID, player_guid : PlanetSideGUID) extends Action
@@ -40,5 +41,4 @@ object AvatarAction {
 
   //  final case class PlayerStateShift(killer : PlanetSideGUID, victim : PlanetSideGUID) extends Action
 //  final case class DestroyDisplay(killer : PlanetSideGUID, victim : PlanetSideGUID) extends Action
-//  final case class HitHintReturn(killer : PlanetSideGUID, victim : PlanetSideGUID) extends Action
 }
