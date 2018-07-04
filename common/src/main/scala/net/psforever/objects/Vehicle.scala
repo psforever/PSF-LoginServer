@@ -165,11 +165,11 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
   }
 
   def Shields : Int = {
-    this.shields
+    shields
   }
 
   def Shields_=(strength : Int) : Int = {
-    this.shields = strength
+    shields = math.min(math.max(0, strength), MaxShields)
     Shields
   }
 
@@ -178,12 +178,12 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
   }
 
   def Decal : Int = {
-    this.decal
+    decal
   }
 
-  def Decal_=(decal : Int) : Int = {
-    this.decal = decal
-    decal
+  def Decal_=(logo : Int) : Int = {
+    decal = logo
+    Decal
   }
 
   def Jammered : Boolean = jammered

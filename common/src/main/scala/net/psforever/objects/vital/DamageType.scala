@@ -1,5 +1,5 @@
 // Copyright (c) 2017 PSForever
-package net.psforever.objects.ballistics
+package net.psforever.objects.vital
 
 /**
   * An `Enumeration` of the damage type.

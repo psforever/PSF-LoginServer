@@ -6,13 +6,18 @@ import net.psforever.objects.equipment.{Equipment, EquipmentSize}
 import net.psforever.objects.inventory.{Container, GridInventory, InventoryItem}
 import net.psforever.objects.loadouts.Loadout
 import net.psforever.objects.serverobject.affinity.FactionAffinity
+import net.psforever.objects.vital.{VitalsHistory, ResistanceProfile}
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types._
 
 import scala.annotation.tailrec
 import scala.util.{Success, Try}
 
-class Player(private val core : Avatar) extends PlanetSideGameObject with FactionAffinity with Container {
+class Player(private val core : Avatar) extends PlanetSideGameObject
+  with FactionAffinity
+  with VitalsHistory
+  with ResistanceProfile
+  with Container {
   private var alive : Boolean = false
   private var backpack : Boolean = false
   private var health : Int = 0
@@ -275,6 +280,14 @@ class Player(private val core : Avatar) extends PlanetSideGameObject with Factio
     Player.SuitSetup(this, eSuit)
     ChangeSpecialAbility()
   }
+
+  def ResistanceDirectHit = exosuit.ResistanceDirectHit
+
+  def ResistanceSplash = exosuit.ResistanceSplash
+
+  def ResistanceAggravated = exosuit.ResistanceAggravated
+
+  def RadiationShielding = exosuit.RadiationShielding
 
   def LoadLoadout(line : Int) : Option[Loadout] = core.LoadLoadout(line)
 

@@ -10,10 +10,11 @@ import scala.concurrent.duration._
 
 /**
   * An object definition system used to construct and retain the parameters of various vehicles.
-  * @param objectId the object id the is associated with this sort of `Vehicle`
+  * @param objectId the object id that is associated with this sort of `Vehicle`
   */
 class VehicleDefinition(objectId : Int) extends ObjectDefinition(objectId) {
   private var maxHealth : Int = 100
+  /** vehicle shields offered through amp station facility benefits (generally: 20% of health + 1) */
   private var maxShields : Int = 0
   /* key - seat index, value - seat object */
   private val seats : mutable.HashMap[Int, SeatDefinition] = mutable.HashMap[Int, SeatDefinition]()

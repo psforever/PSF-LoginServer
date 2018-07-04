@@ -1,7 +1,8 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.definition
 
-import net.psforever.objects.ballistics.{DamageProfile, DamageType, Projectiles}
+import net.psforever.objects.ballistics.Projectiles
+import net.psforever.objects.vital.{DamageProfile, DamageType}
 
 /**
   * The definition that outlines the damage-dealing characteristics of any projectile.

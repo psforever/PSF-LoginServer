@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects
 
-import net.psforever.objects.ballistics.{DamageType, Projectiles}
+import net.psforever.objects.ballistics.Projectiles
 import net.psforever.objects.definition._
 import net.psforever.objects.definition.converter._
 import net.psforever.objects.equipment.CItem.DeployedItem
@@ -16,7 +16,8 @@ import net.psforever.objects.serverobject.terminals._
 import net.psforever.objects.serverobject.tube.SpawnTubeDefinition
 import net.psforever.objects.serverobject.resourcesilo.ResourceSiloDefinition
 import net.psforever.objects.serverobject.turret.{MannedTurretDefinition, TurretUpgrade}
-import net.psforever.objects.vehicles.{SeatArmorRestriction, UtilityType, DestroyedVehicle}
+import net.psforever.objects.vehicles.{DestroyedVehicle, SeatArmorRestriction, UtilityType}
+import net.psforever.objects.vital.DamageType
 import net.psforever.types.PlanetSideEmpire
 
 import scala.collection.mutable
@@ -4509,6 +4510,7 @@ object GlobalDefinitions {
   private def init_vehicles() : Unit = {
     fury.Name = "fury"
     fury.MaxHealth = 650
+    fury.MaxShields = 130 + 1
     fury.Seats += 0 -> new SeatDefinition()
     fury.Seats(0).Bailable = true
     fury.Seats(0).ControlledWeapon = 1
@@ -4522,6 +4524,7 @@ object GlobalDefinitions {
 
     quadassault.Name = "quadassault"
     quadassault.MaxHealth = 650
+    quadassault.MaxShields = 130 + 1
     quadassault.Seats += 0 -> new SeatDefinition()
     quadassault.Seats(0).Bailable = true
     quadassault.Seats(0).ControlledWeapon = 1
@@ -4535,6 +4538,7 @@ object GlobalDefinitions {
 
     quadstealth.Name = "quadstealth"
     quadstealth.MaxHealth = 650
+    quadstealth.MaxShields = 130 + 1
     quadstealth.CanCloak = true
     quadstealth.Seats += 0 -> new SeatDefinition()
     quadstealth.Seats(0).Bailable = true
@@ -4548,6 +4552,7 @@ object GlobalDefinitions {
 
     two_man_assault_buggy.Name = "two_man_assault_buggy"
     two_man_assault_buggy.MaxHealth = 1250
+    two_man_assault_buggy.MaxShields = 250 + 1
     two_man_assault_buggy.Seats += 0 -> new SeatDefinition()
     two_man_assault_buggy.Seats(0).Bailable = true
     two_man_assault_buggy.Seats += 1 -> new SeatDefinition()
@@ -4563,6 +4568,7 @@ object GlobalDefinitions {
 
     skyguard.Name = "skyguard"
     skyguard.MaxHealth = 1000
+    skyguard.MaxShields = 200 + 1
     skyguard.Seats += 0 -> new SeatDefinition()
     skyguard.Seats(0).Bailable = true
     skyguard.Seats += 1 -> new SeatDefinition()
@@ -4579,6 +4585,7 @@ object GlobalDefinitions {
 
     threemanheavybuggy.Name = "threemanheavybuggy"
     threemanheavybuggy.MaxHealth = 1700
+    threemanheavybuggy.MaxShields = 340 + 1
     threemanheavybuggy.Seats += 0 -> new SeatDefinition()
     threemanheavybuggy.Seats(0).Bailable = true
     threemanheavybuggy.Seats += 1 -> new SeatDefinition()
@@ -4599,6 +4606,7 @@ object GlobalDefinitions {
 
     twomanheavybuggy.Name = "twomanheavybuggy"
     twomanheavybuggy.MaxHealth = 1800
+    twomanheavybuggy.MaxShields = 360 + 1
     twomanheavybuggy.Seats += 0 -> new SeatDefinition()
     twomanheavybuggy.Seats(0).Bailable = true
     twomanheavybuggy.Seats += 1 -> new SeatDefinition()
@@ -4614,6 +4622,7 @@ object GlobalDefinitions {
 
     twomanhoverbuggy.Name = "twomanhoverbuggy"
     twomanhoverbuggy.MaxHealth = 1600
+    twomanhoverbuggy.MaxShields = 320 + 1
     twomanhoverbuggy.Seats += 0 -> new SeatDefinition()
     twomanhoverbuggy.Seats(0).Bailable = true
     twomanhoverbuggy.Seats += 1 -> new SeatDefinition()
@@ -4629,6 +4638,7 @@ object GlobalDefinitions {
 
     mediumtransport.Name = "mediumtransport"
     mediumtransport.MaxHealth = 2500
+    mediumtransport.MaxShields = 500 + 1
     mediumtransport.Seats += 0 -> new SeatDefinition()
     mediumtransport.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
     mediumtransport.Seats += 1 -> new SeatDefinition()
@@ -4651,6 +4661,7 @@ object GlobalDefinitions {
 
     battlewagon.Name = "battlewagon"
     battlewagon.MaxHealth = 2500
+    battlewagon.MaxShields = 500 + 1
     battlewagon.Seats += 0 -> new SeatDefinition()
     battlewagon.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
     battlewagon.Seats += 1 -> new SeatDefinition()
@@ -4677,6 +4688,7 @@ object GlobalDefinitions {
 
     thunderer.Name = "thunderer"
     thunderer.MaxHealth = 2500
+    thunderer.MaxShields = 500 + 1
     thunderer.Seats += 0 -> new SeatDefinition()
     thunderer.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
     thunderer.Seats += 1 -> new SeatDefinition()
@@ -4699,6 +4711,7 @@ object GlobalDefinitions {
 
     aurora.Name = "aurora"
     aurora.MaxHealth = 2500
+    aurora.MaxShields = 500 + 1
     aurora.Seats += 0 -> new SeatDefinition()
     aurora.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
     aurora.Seats += 1 -> new SeatDefinition()
@@ -4721,6 +4734,7 @@ object GlobalDefinitions {
 
     apc_tr.Name = "apc_tr"
     apc_tr.MaxHealth = 6000
+    apc_tr.MaxShields = 1200 + 1
     apc_tr.Seats += 0 -> new SeatDefinition()
     apc_tr.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
     apc_tr.Seats += 1 -> new SeatDefinition()
@@ -4766,6 +4780,7 @@ object GlobalDefinitions {
 
     apc_nc.Name = "apc_nc"
     apc_nc.MaxHealth = 6000
+    apc_nc.MaxShields = 1200 + 1
     apc_nc.Seats += 0 -> new SeatDefinition()
     apc_nc.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
     apc_nc.Seats += 1 -> new SeatDefinition()
@@ -4811,6 +4826,7 @@ object GlobalDefinitions {
 
     apc_vs.Name = "apc_vs"
     apc_vs.MaxHealth = 6000
+    apc_vs.MaxShields = 1200 + 1
     apc_vs.Seats += 0 -> new SeatDefinition()
     apc_vs.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
     apc_vs.Seats += 1 -> new SeatDefinition()
@@ -4856,6 +4872,7 @@ object GlobalDefinitions {
 
     lightning.Name = "lightning"
     lightning.MaxHealth = 2000
+    lightning.MaxShields = 400 + 1
     lightning.Seats += 0 -> new SeatDefinition()
     lightning.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
     lightning.Seats(0).ControlledWeapon = 1
@@ -4869,6 +4886,7 @@ object GlobalDefinitions {
 
     prowler.Name = "prowler"
     prowler.MaxHealth = 4800
+    prowler.MaxShields = 960 + 1
     prowler.Seats += 0 -> new SeatDefinition()
     prowler.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
     prowler.Seats += 1 -> new SeatDefinition()
@@ -4887,6 +4905,7 @@ object GlobalDefinitions {
 
     vanguard.Name = "vanguard"
     vanguard.MaxHealth = 5400
+    vanguard.MaxShields = 1080 + 1
     vanguard.Seats += 0 -> new SeatDefinition()
     vanguard.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
     vanguard.Seats += 1 -> new SeatDefinition()
@@ -4901,6 +4920,7 @@ object GlobalDefinitions {
 
     magrider.Name = "magrider"
     magrider.MaxHealth = 4200
+    magrider.MaxShields = 840 + 1
     magrider.Seats += 0 -> new SeatDefinition()
     magrider.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
     magrider.Seats(0).ControlledWeapon = 2
@@ -4918,6 +4938,7 @@ object GlobalDefinitions {
     val utilityConverter = new UtilityVehicleConverter
     ant.Name = "ant"
     ant.MaxHealth = 2000
+    ant.MaxShields = 400 + 1
     ant.Seats += 0 -> new SeatDefinition()
     ant.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
     ant.MountPoints += 1 -> 0
@@ -4932,6 +4953,7 @@ object GlobalDefinitions {
 
     ams.Name = "ams"
     ams.MaxHealth = 3000
+    ams.MaxShields = 600 + 1
     ams.Seats += 0 -> new SeatDefinition()
     ams.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
     ams.MountPoints += 1 -> 0
@@ -4951,6 +4973,7 @@ object GlobalDefinitions {
     val variantConverter = new VariantVehicleConverter
     router.Name = "router"
     router.MaxHealth = 4000
+    router.MaxShields = 800 + 1
     router.Seats += 0 -> new SeatDefinition()
     router.MountPoints += 1 -> 0
     router.TrunkSize = InventoryTile.Tile1511
@@ -4965,6 +4988,7 @@ object GlobalDefinitions {
 
     switchblade.Name = "switchblade"
     switchblade.MaxHealth = 1750
+    switchblade.MaxShields = 350 + 1
     switchblade.Seats += 0 -> new SeatDefinition()
     switchblade.Seats(0).ControlledWeapon = 1
     switchblade.Weapons += 1 -> scythe
@@ -4981,6 +5005,7 @@ object GlobalDefinitions {
 
     flail.Name = "flail"
     flail.MaxHealth = 2400
+    flail.MaxShields = 480 + 1
     flail.Seats += 0 -> new SeatDefinition()
     flail.Seats(0).ControlledWeapon = 1
     flail.Weapons += 1 -> flail_weapon
@@ -4996,6 +5021,7 @@ object GlobalDefinitions {
 
     mosquito.Name = "mosquito"
     mosquito.MaxHealth = 665
+    mosquito.MaxShields = 133 + 1
     mosquito.Seats += 0 -> new SeatDefinition()
     mosquito.Seats(0).Bailable = true
     mosquito.Seats(0).ControlledWeapon = 1
@@ -5010,6 +5036,7 @@ object GlobalDefinitions {
 
     lightgunship.Name = "lightgunship"
     lightgunship.MaxHealth = 1000
+    lightgunship.MaxShields = 200 + 1
     lightgunship.Seats += 0 -> new SeatDefinition()
     lightgunship.Seats(0).Bailable = true
     lightgunship.Seats(0).ControlledWeapon = 1
@@ -5024,6 +5051,7 @@ object GlobalDefinitions {
 
     wasp.Name = "wasp"
     wasp.MaxHealth = 515
+    wasp.MaxShields = 103 + 1
     wasp.Seats += 0 -> new SeatDefinition()
     wasp.Seats(0).Bailable = true
     wasp.Seats(0).ControlledWeapon = 1
@@ -5038,6 +5066,7 @@ object GlobalDefinitions {
 
     liberator.Name = "liberator"
     liberator.MaxHealth = 2500
+    liberator.MaxShields = 500 + 1
     liberator.Seats += 0 -> new SeatDefinition()
     liberator.Seats(0).ControlledWeapon = 3
     liberator.Seats += 1 -> new SeatDefinition()
@@ -5059,6 +5088,7 @@ object GlobalDefinitions {
 
     vulture.Name = "vulture"
     vulture.MaxHealth = 2500
+    vulture.MaxShields = 500 + 1
     vulture.Seats += 0 -> new SeatDefinition()
     vulture.Seats(0).ControlledWeapon = 3
     vulture.Seats += 1 -> new SeatDefinition()
@@ -5080,6 +5110,7 @@ object GlobalDefinitions {
 
     dropship.Name = "dropship"
     dropship.MaxHealth = 5000
+    dropship.MaxShields = 1000 + 1
     dropship.Seats += 0 -> new SeatDefinition()
     dropship.Seats += 1 -> new SeatDefinition()
     dropship.Seats(1).Bailable = true
@@ -5133,6 +5164,7 @@ object GlobalDefinitions {
 
     galaxy_gunship.Name = "galaxy_gunship"
     galaxy_gunship.MaxHealth = 6000
+    galaxy_gunship.MaxShields = 1200 + 1
     galaxy_gunship.Seats += 0 -> new SeatDefinition()
     galaxy_gunship.Seats += 1 -> new SeatDefinition()
     galaxy_gunship.Seats(1).ControlledWeapon = 6
@@ -5163,6 +5195,7 @@ object GlobalDefinitions {
 
     lodestar.Name = "lodestar"
     lodestar.MaxHealth = 5000
+    lodestar.MaxShields = 1000 + 1
     lodestar.Seats += 0 -> new SeatDefinition()
     lodestar.MountPoints += 1 -> 0
     lodestar.MountPoints += 2 -> 1
@@ -5175,6 +5208,7 @@ object GlobalDefinitions {
 
     phantasm.Name = "phantasm"
     phantasm.MaxHealth = 2500
+    phantasm.MaxShields = 500 + 1
     phantasm.CanCloak = true
     phantasm.Seats += 0 -> new SeatDefinition()
     phantasm.Seats += 1 -> new SeatDefinition()

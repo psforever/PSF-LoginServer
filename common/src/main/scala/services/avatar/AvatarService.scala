@@ -65,13 +65,17 @@ class AvatarService extends Actor {
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.ConcealPlayer())
           )
-        case AvatarAction.Damage(player_guid, a, b) =>
+        case AvatarAction.Damage(player_guid, projectile, a, b) =>
           AvatarEvents.publish(
-            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.Damage(a, b))
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.Damage(projectile, a, b))
           )
         case AvatarAction.Destroy(victim, killer, weapon, pos) =>
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", victim, AvatarResponse.Destroy(victim, killer, weapon, pos))
+          )
+        case AvatarAction.DestroyDisplay(killer, victim, method, unk) =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(s"/$forChannel/Avatar", Service.defaultPlayerGUID, AvatarResponse.DestroyDisplay(killer, victim, method, unk))
           )
         case AvatarAction.DropItem(player_guid, item, zone) =>
           val definition = item.Definition

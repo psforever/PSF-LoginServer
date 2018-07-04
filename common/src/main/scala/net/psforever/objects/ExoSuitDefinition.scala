@@ -3,6 +3,7 @@ package net.psforever.objects
 
 import net.psforever.objects.equipment.EquipmentSize
 import net.psforever.objects.inventory.InventoryTile
+import net.psforever.objects.vital.ResistanceProfileMutators
 import net.psforever.types.ExoSuitType
 
 /**
@@ -10,7 +11,7 @@ import net.psforever.types.ExoSuitType
   * Players are influenced by the exo-suit they wear in a variety of ways, with speed and available equipment slots being major differences.
   * @param suitType the `Enumeration` corresponding to this exo-suit
   */
-class ExoSuitDefinition(private val suitType : ExoSuitType.Value) {
+class ExoSuitDefinition(private val suitType : ExoSuitType.Value) extends ResistanceProfileMutators {
   protected var permission : Int = 0 //TODO certification type?
   protected var maxArmor : Int = 0
   protected var damageResistanceDirectHit : Int = 0
@@ -65,32 +66,32 @@ class ExoSuitDefinition(private val suitType : ExoSuitType.Value) {
     }
   }
 
-  def DamageResistanceDirectHit : Int = damageResistanceDirectHit
+  def ResistanceDirectHit : Int = damageResistanceDirectHit
 
-  def DamageResistanceDirectHit_=(resist : Int) : Int = {
+  def ResistanceDirectHit_=(resist : Int) : Int = {
     damageResistanceDirectHit = resist
-    DamageResistanceDirectHit
+    ResistanceDirectHit
   }
 
-  def DamageResistanceSplash : Int = damageResistanceSplash
+  def ResistanceSplash : Int = damageResistanceSplash
 
-  def DamageResistanceSplash_=(resist : Int) : Int = {
+  def ResistanceSplash_=(resist : Int) : Int = {
     damageResistanceSplash = resist
-    DamageResistanceSplash
+    ResistanceSplash
   }
 
-  def DamageResistanceAggravated : Int = damageResistanceAggravated
+  def ResistanceAggravated : Int = damageResistanceAggravated
 
-  def DamageResistanceAggravated_=(resist : Int) : Int = {
+  def ResistanceAggravated_=(resist : Int) : Int = {
     damageResistanceAggravated = resist
-    DamageResistanceAggravated
+    ResistanceAggravated
   }
 
-  def DamageRadiationShielding : Float = damageRadiationShielding
+  def RadiationShielding : Float = damageRadiationShielding
 
-  def DamageRadiationShielding_=(resist : Float) : Float = {
+  def RadiationShielding_=(resist : Float) : Float = {
     damageRadiationShielding = resist
-    DamageRadiationShielding
+    RadiationShielding
   }
 
   def Use : ExoSuitDefinition = this
@@ -141,9 +142,9 @@ object ExoSuitDefinition {
   Standard.Holster(0, EquipmentSize.Pistol)
   Standard.Holster(2, EquipmentSize.Rifle)
   Standard.Holster(4, EquipmentSize.Melee)
-  Standard.DamageResistanceDirectHit = 4
-  Standard.DamageResistanceSplash = 15
-  Standard.DamageResistanceAggravated = 8
+  Standard.ResistanceDirectHit = 4
+  Standard.ResistanceSplash = 15
+  Standard.ResistanceAggravated = 8
 
   final val Agile = ExoSuitDefinition(ExoSuitType.Agile)
   Agile.MaxArmor = 100
@@ -153,9 +154,9 @@ object ExoSuitDefinition {
   Agile.Holster(1, EquipmentSize.Pistol)
   Agile.Holster(2, EquipmentSize.Rifle)
   Agile.Holster(4, EquipmentSize.Melee)
-  Agile.DamageResistanceDirectHit = 6
-  Agile.DamageResistanceSplash = 25
-  Agile.DamageResistanceAggravated = 10
+  Agile.ResistanceDirectHit = 6
+  Agile.ResistanceSplash = 25
+  Agile.ResistanceAggravated = 10
 
   final val Reinforced = ExoSuitDefinition(ExoSuitType.Reinforced)
   Reinforced.permission = 1
@@ -167,9 +168,9 @@ object ExoSuitDefinition {
   Reinforced.Holster(2, EquipmentSize.Rifle)
   Reinforced.Holster(3, EquipmentSize.Rifle)
   Reinforced.Holster(4, EquipmentSize.Melee)
-  Reinforced.DamageResistanceDirectHit = 10
-  Reinforced.DamageResistanceSplash = 35
-  Reinforced.DamageResistanceAggravated = 12
+  Reinforced.ResistanceDirectHit = 10
+  Reinforced.ResistanceSplash = 35
+  Reinforced.ResistanceAggravated = 12
 
   final val Infiltration = ExoSuitDefinition(ExoSuitType.Infiltration)
   Infiltration.permission = 1
@@ -186,9 +187,9 @@ object ExoSuitDefinition {
   MAX.InventoryOffset = 6
   MAX.Holster(0, EquipmentSize.Max)
   MAX.Holster(4, EquipmentSize.Melee)
-  MAX.DamageResistanceDirectHit = 6
-  MAX.DamageResistanceSplash = 35
-  MAX.DamageResistanceAggravated = 10
+  MAX.ResistanceDirectHit = 6
+  MAX.ResistanceSplash = 35
+  MAX.ResistanceAggravated = 10
 
   def apply(suitType : ExoSuitType.Value) : ExoSuitDefinition = {
     new ExoSuitDefinition(suitType)
