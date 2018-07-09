@@ -177,7 +177,7 @@ class Avatar(val name : String, val faction : PlanetSideEmpire.Value, val sex : 
     }
   }
 
-  def Definition : AvatarDefinition = Avatar.definition
+  def Definition : AvatarDefinition = GlobalDefinitions.avatar
 
   /*
   Merit Commendations and Ribbons
@@ -210,8 +210,6 @@ class Avatar(val name : String, val faction : PlanetSideEmpire.Value, val sex : 
 }
 
 object Avatar {
-  final private val definition : AvatarDefinition = new AvatarDefinition(121)
-
   def apply(name : String, faction : PlanetSideEmpire.Value, sex : CharacterGender.Value, head : Int, voice : CharacterVoice.Value) : Avatar = {
     new Avatar(name, faction, sex, head, voice)
   }

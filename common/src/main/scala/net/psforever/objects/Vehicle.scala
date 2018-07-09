@@ -9,6 +9,7 @@ import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.deploy.Deployment
 import net.psforever.objects.vehicles._
+import net.psforever.objects.vital.{StandardResistanceProfile, VitalsHistory}
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types.PlanetSideEmpire
 
@@ -67,6 +68,8 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
   with Mountable
   with MountedWeapons
   with Deployment
+  with VitalsHistory
+  with StandardResistanceProfile
   with Container {
   private var faction : PlanetSideEmpire.Value = PlanetSideEmpire.TR
   private var owner : Option[PlanetSideGUID] = None

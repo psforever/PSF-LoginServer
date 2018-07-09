@@ -1,155 +1,127 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.vital
 
-import net.psforever.objects._
-import net.psforever.objects.ballistics.{Projectile, ResolvedProjectile}
-import net.psforever.types.{ExoSuitType, Vector3}
+import net.psforever.types.Vector3
+import net.psforever.objects.ballistics.{Projectile, ProjectileResolution, ResolvedProjectile}
+import DamageCalculations._
 
-trait DamageCalculator {
+trait ProjectileCalculations {
   def Calculate(data : ResolvedProjectile) : Int
 }
 
-class VanillaInfantryHitDamage extends DamageCalculator {
+object ProjectileCalculations {
+  type Form = (ResolvedProjectile)=>Int
+}
+
+abstract class DamageCalculations(damages : DamagesType,
+                                  extractor : DamageWithModifiersType,
+                                  distanceFunc : DistanceType) extends ProjectileCalculations {
   def Calculate(data : ResolvedProjectile) : Int = {
     val projectile = data.projectile
     damages(
       projectile,
-      DamageCalculations.RawDamage(DamageCalculations.DamageAgainstExoSuit, projectile.profile, List(projectile.fire_mode.Modifiers)),
-      Vector3.Distance(data.target.Position, projectile.owner.Position)
+      extractor(projectile.profile, List(projectile.fire_mode.Modifiers)),
+      distanceFunc(data)
     )
-  }
-
-  //calculators
-  def damages(projectile : Projectile, rawDamage: Int, distance: Float): Int = {
-    val profile = projectile.profile
-    if(distance <= profile.DistanceMax) {
-      if(profile.DistanceNoDegrade == profile.DistanceMax || distance <= profile.DistanceNoDegrade) {
-        rawDamage
-      }
-      else {
-        rawDamage - ((rawDamage - profile.DegradeMultiplier * rawDamage) * ((distance - profile.DistanceNoDegrade) / (profile.DistanceMax - profile.DistanceNoDegrade))).toInt
-      }
-    }
-    else {
-      0
-    }
   }
 }
 
+object NoDamage extends DamageCalculations(
+  DamageCalculations.NoDamage,
+  DamageWithModifiers(NoDamageAgainst),
+  TooFar
+)
+
+object InfantryHitDamage extends DamageCalculations(
+  DirectHitDamageWithDegrade,
+  DamageWithModifiers(DamageAgainstExoSuit),
+  DistanceBetweenTargetandSource
+)
+
+object MaxHitDamage extends DamageCalculations(
+  DirectHitDamageWithDegrade,
+  DamageWithModifiers(DamageAgainstMaxSuit),
+  DistanceBetweenTargetandSource
+)
+
+object VehicleHitDamage extends DamageCalculations(
+  DirectHitDamageWithDegrade,
+  DamageWithModifiers(DamageAgainstVehicle),
+  DistanceBetweenTargetandSource
+)
+
+object AircraftHitDamage extends DamageCalculations(
+  DirectHitDamageWithDegrade,
+  DamageWithModifiers(DamageAgainstAircraft),
+  DistanceBetweenTargetandSource
+)
+
+object InfantrySplashDamage extends DamageCalculations(
+  SplashDamageWithRadialDegrade,
+  DamageWithModifiers(DamageAgainstExoSuit),
+  DistanceFromExplosionToTarget
+)
+
+object MaxSplashDamage extends DamageCalculations(
+  SplashDamageWithRadialDegrade,
+  DamageWithModifiers(DamageAgainstMaxSuit),
+  DistanceFromExplosionToTarget
+)
+
+object VehicleSplashDamage extends DamageCalculations(
+  SplashDamageWithRadialDegrade,
+  DamageWithModifiers(DamageAgainstVehicle),
+  DistanceFromExplosionToTarget
+)
+
+object AircraftSplashDamage extends DamageCalculations(
+  SplashDamageWithRadialDegrade,
+  DamageWithModifiers(DamageAgainstAircraft),
+  DistanceFromExplosionToTarget
+)
+
+object InfantryLashDamage {
+  def Calculate(data : ResolvedProjectile) : Int = (InfantryHitDamage.Calculate(data) * 0.2f).toInt
+}
+
+object MaxLashDamage {
+  def Calculate(data : ResolvedProjectile) : Int = (MaxHitDamage.Calculate(data) * 0.2f).toInt
+}
+
+object VehicleLashDamage {
+  def Calculate(data : ResolvedProjectile) : Int = (VehicleHitDamage.Calculate(data) * 0.2f).toInt
+}
+
+object AircraftLashDamage {
+  def Calculate(data : ResolvedProjectile) : Int = (AircraftHitDamage.Calculate(data) * 0.2f).toInt
+}
+
 object DamageCalculations {
-  //damage profile extractors
+  //types
+  type DamagesType = (Projectile, Int, Float)=>Int
+  type DamageWithModifiersType = (DamageProfile, List[DamageProfile])=>Int
+  type DistanceType = (ResolvedProjectile)=>Float
+
+  //raw damage selectors
   def NoDamageAgainst(profile : DamageProfile) : Int = 0
 
   def DamageAgainstExoSuit(profile : DamageProfile) : Int = profile.Damage0
 
   def DamageAgainstVehicle(profile : DamageProfile) : Int = profile.Damage1
 
-  def DamageAgainstFlyingVehicle(profile : DamageProfile) : Int = profile.Damage2
+  def DamageAgainstAircraft(profile : DamageProfile) : Int = profile.Damage2
 
   def DamageAgainstMaxSuit(profile : DamageProfile) : Int = profile.Damage3
 
-  def RawDamageAgainst(target : Player) : (DamageProfile)=>Int = target.ExoSuit match {
-    case ExoSuitType.MAX =>
-      DamageAgainstMaxSuit
-    case _ =>
-      DamageAgainstExoSuit
-  }
-
-  def RawDamageAgainst(target : Vehicle) : (DamageProfile)=>Int = {
-    if(GlobalDefinitions.isFlightVehicle(target.Definition)) {
-      DamageAgainstFlyingVehicle
-    }
-    else {
-      DamageAgainstVehicle
-    }
-  }
-
-  def RawDamageAgainst(target : PlanetSideGameObject) : (DamageProfile)=>Int = {
-    target match {
-      case obj : Player =>
-        RawDamageAgainst(obj)
-      case obj : Vehicle =>
-        RawDamageAgainst(obj)
-      case _ =>
-        NoDamageAgainst
-    }
-  }
-
-  def RawDamage(extractor : (DamageProfile)=>Int, base : DamageProfile, modifiers : List[DamageProfile]) : Int = {
+  //raw damage selection functions
+  def DamageWithModifiers(extractor : (DamageProfile)=>Int)(base : DamageProfile, modifiers : List[DamageProfile]) : Int = {
     extractor(base) + modifiers.foldLeft(0)(_ + extractor(_))
   }
 
-  def RawDamage(target : Player, projectile : Projectile) : Int = {
-    RawDamage(RawDamageAgainst(target), projectile.profile, List(projectile.fire_mode.Modifiers))
-  }
+  //damage calculation functions
+  def NoDamage(projectile : Projectile, rawDamage : Int, distance : Float) : Int = 0
 
-  def RawDamage(target : Vehicle, projectile : Projectile) : Int = {
-    RawDamage(RawDamageAgainst(target), projectile.profile, List(projectile.fire_mode.Modifiers))
-  }
-
-  def RawDamage(target : PlanetSideGameObject, projectile : Projectile) : Int = {
-    RawDamage(RawDamageAgainst(target), projectile.profile, List(projectile.fire_mode.Modifiers))
-  }
-
-  //resistance extractors
-  def HitResistance(target : ResistanceProfile) : Int = {
-    target.ResistanceDirectHit
-  }
-
-  def DamagesAfterResist(damages : Int, resistance : Int, currentHP : Int, currentArmor : Int) : (Int, Int) = {
-    if(damages > 0) {
-      if(currentArmor <= 0) {
-        (damages, 0)
-      }
-      else if(damages > resistance) {
-        val resistedDam = damages - resistance
-        if(resistedDam >= currentArmor) {
-          (resistedDam - currentArmor, currentArmor)
-        }
-        else {
-          (0, resistedDam)
-        }
-      }
-      else {
-        (0, 0)
-      }
-    }
-    else {
-      (0, 0)
-    }
-  }
-
-  def DamagesAfterResistMAX(damages : Int, resistance : Int, currentHP : Int, currentArmor : Int) : (Int, Int) = {
-    val resistedDam = damages - resistance
-    if(resistedDam > 0) {
-      if(currentArmor <= 0) {
-        (resistedDam, 0)
-      }
-      else if(resistedDam >= currentArmor) {
-        (resistedDam - currentArmor, currentArmor)
-      }
-      else {
-        (0, resistedDam)
-      }
-    }
-    else {
-      (0, 0)
-    }
-  }
-
-  def ResistanceFunc(target : Player) : (Int,Int,Int,Int)=>(Int,Int) = {
-    target.ExoSuit match {
-      case ExoSuitType.MAX => DamagesAfterResistMAX
-      case _ => DamagesAfterResist
-    }
-  }
-
-  def SplashResistance(target : Player) : Int = {
-    ExoSuitDefinition.Select(target.ExoSuit).ResistanceSplash
-  }
-
-  //calculators
-  def damages(projectile : Projectile, rawDamage: Int, distance: Float): Int = {
+  def DirectHitDamageWithDegrade(projectile : Projectile, rawDamage: Int, distance: Float): Int = {
     val profile = projectile.profile
     if(distance <= profile.DistanceMax) {
       if(profile.DistanceNoDegrade == profile.DistanceMax || distance <= profile.DistanceNoDegrade) {
@@ -164,56 +136,94 @@ object DamageCalculations {
     }
   }
 
-  //entries
-  def CalculateHitDamage(target : Player, res : ResolvedProjectile, distance : Float) : (Int, Int, Int) = {
-    val currentResistance = HitResistance(target)
-    val rawDamage = RawDamage(target, res.projectile)
-    val currentDamage = damages(res.projectile, rawDamage, distance)
-    val (a, b) = ResistanceFunc(target)(currentDamage, currentResistance, target.Health, target.Armor)
-    (rawDamage, a, b)
-  }
-
-  def CalculateHitDamage(target : Vehicle, res : ResolvedProjectile, distance : Float) : (Int, Int, Int) = {
-    val rawDamage = RawDamage(target, res.projectile)
-    (rawDamage, damages(res.projectile, rawDamage, distance), 0)
-  }
-
-  def CalculateHitDamage(target : PlanetSideGameObject, res : ResolvedProjectile, distance : Float) : (Int, Int, Int) = {
-    target match {
-      case obj : Player =>
-        CalculateHitDamage(obj, res, distance)
-      case obj : Vehicle =>
-        CalculateHitDamage(obj, res, distance)
-      case _ =>
-        (0, 0, 0)
-    }
-  }
-
-  def CalculateSplashDamage(target : Player, projectile : Projectile, distance : Float) : (Int, Int, Int) = {
-    val currentResistance = SplashResistance(target)
-    val rawDamage = RawDamage(target, projectile)
+  def SplashDamageWithRadialDegrade(projectile : Projectile, rawDamage : Int, distance : Float) : Int = {
     if(distance <= projectile.profile.DamageRadius) {
-      val currentDamage = rawDamage + ((rawDamage - (projectile.profile.DamageAtEdge * rawDamage)) * distance / projectile.profile.DamageRadius).toInt
-      val (a, b) = ResistanceFunc(target)(currentDamage, currentResistance, target.Health, target.Armor)
-      (rawDamage, a, b)
+      rawDamage + ((rawDamage - (projectile.profile.DamageAtEdge * rawDamage)) * distance / projectile.profile.DamageRadius).toInt
     }
     else {
-      (0,0,0)
+      0
     }
   }
 
-  def CalculateSplashDamage(target : Vehicle, projectile : Projectile, distance : Float) : (Int, Int, Int) = {
-    (0,0,0)
+  //distance functions
+  def NoDistance(data : ResolvedProjectile) : Float = 0
+
+  def TooFar(data : ResolvedProjectile) : Float = Float.MaxValue
+
+  def DistanceBetweenTargetandSource(data : ResolvedProjectile) : Float = {
+    Vector3.Distance(data.target.Position, data.projectile.owner.Position)
   }
 
-  def CalculateSplashDamage(target : PlanetSideGameObject, projectile : ResolvedProjectile, distance : Float) : (Int, Int, Int) = {
-    target match {
-      case obj : Player =>
-        CalculateSplashDamage(obj, projectile.projectile, distance)
-      case obj : Vehicle =>
-        CalculateSplashDamage(obj, projectile.projectile, distance)
+  def DistanceFromExplosionToTarget(data : ResolvedProjectile) : Float = {
+    Vector3.Distance(data.target.Position, data.hit_pos)
+  }
+}
+
+trait DamageSelection {
+  final def None : ProjectileCalculations.Form = NoDamage.Calculate
+
+  def Direct : ProjectileCalculations.Form
+  def Splash : ProjectileCalculations.Form
+  def Lash : ProjectileCalculations.Form
+
+  def apply(data : ResolvedProjectile) : ProjectileCalculations.Form = {
+    data.resolution match {
+      case ProjectileResolution.Hit => Direct
+      case ProjectileResolution.Splash => Splash
+      case ProjectileResolution.Lash => Lash
+      case _ => None
+    }
+  }
+}
+
+object StandardInfantryDamage extends DamageSelection {
+  def Direct = InfantryHitDamage.Calculate
+  def Splash = InfantrySplashDamage.Calculate
+  def Lash = InfantryLashDamage.Calculate
+}
+
+object StandardMaxDamage extends DamageSelection {
+  def Direct = MaxHitDamage.Calculate
+  def Splash = MaxSplashDamage.Calculate
+  def Lash = MaxLashDamage.Calculate
+}
+
+object StandardVehicleDamage extends DamageSelection {
+  def Direct = VehicleHitDamage.Calculate
+  def Splash = VehicleSplashDamage.Calculate
+  def Lash = VehicleLashDamage.Calculate
+}
+
+object StandardAircraftDamage extends DamageSelection {
+  def Direct = AircraftHitDamage.Calculate
+  def Splash = AircraftSplashDamage.Calculate
+  def Lash = AircraftLashDamage.Calculate
+}
+
+//TODO temporary workaround?
+object DamageSelectionByTarget {
+  import net.psforever.types.ExoSuitType
+  import net.psforever.objects.GlobalDefinitions
+  import net.psforever.objects.ballistics.{PlayerSource, VehicleSource}
+
+  def apply(data : ResolvedProjectile) : ProjectileCalculations.Form = {
+    (data.target match {
+      case target : PlayerSource =>
+        if(target.ExoSuit == ExoSuitType.MAX) {
+          StandardMaxDamage
+        }
+        else {
+          StandardInfantryDamage
+        }
+      case target : VehicleSource =>
+        if(GlobalDefinitions.isFlightVehicle(target.Definition)) {
+          StandardAircraftDamage
+        }
+        else {
+          StandardVehicleDamage
+        }
       case _ =>
-        (0,0,0)
-    }
+        StandardVehicleDamage
+    })(data)
   }
 }

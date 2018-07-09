@@ -2,19 +2,17 @@
 package net.psforever.objects.ballistics
 
 import net.psforever.objects.PlanetSideGameObject
-import net.psforever.objects.definition.ObjectDefinition
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.types.{PlanetSideEmpire, Vector3}
 
-final case class ObjectSource(name : String,
-                              obj_def : ObjectDefinition,
+final case class ObjectSource(obj : PlanetSideGameObject with FactionAffinity,
                               faction : PlanetSideEmpire.Value,
                               position : Vector3,
                               orientation : Vector3,
                               velocity : Option[Vector3] = None) extends SourceEntry {
-  override def Name = name
+  override def Name = SourceEntry.NameFormat(obj.Definition.Name)
   override def Faction = faction
-  def Definition = obj_def
+  def Definition = obj.Definition
   def Position = position
   def Orientation = orientation
   def Velocity = velocity
@@ -23,12 +21,7 @@ final case class ObjectSource(name : String,
 object ObjectSource {
   def apply(obj : PlanetSideGameObject with FactionAffinity) : ObjectSource = {
     ObjectSource(
-      obj.Definition.Name
-        .replace("_", " ")
-        .split(" ")
-        .map(_.capitalize)
-        .mkString(" "),
-      obj.Definition,
+      obj,
       obj.Faction,
       obj.Position,
       obj.Orientation,

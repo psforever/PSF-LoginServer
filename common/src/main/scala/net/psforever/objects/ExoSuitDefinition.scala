@@ -14,10 +14,6 @@ import net.psforever.types.ExoSuitType
 class ExoSuitDefinition(private val suitType : ExoSuitType.Value) extends ResistanceProfileMutators {
   protected var permission : Int = 0 //TODO certification type?
   protected var maxArmor : Int = 0
-  protected var damageResistanceDirectHit : Int = 0
-  protected var damageResistanceSplash : Int = 0
-  protected var damageResistanceAggravated : Int = 0
-  protected var damageRadiationShielding : Float = 0f
   protected val holsters : Array[EquipmentSize.Value] = Array.fill[EquipmentSize.Value](5)(EquipmentSize.Blocked)
   protected var inventoryScale : InventoryTile = InventoryTile.Tile11 //override with custom InventoryTile
   protected var inventoryOffset : Int = 0
@@ -64,34 +60,6 @@ class ExoSuitDefinition(private val suitType : ExoSuitType.Value) extends Resist
     else {
       EquipmentSize.Blocked
     }
-  }
-
-  def ResistanceDirectHit : Int = damageResistanceDirectHit
-
-  def ResistanceDirectHit_=(resist : Int) : Int = {
-    damageResistanceDirectHit = resist
-    ResistanceDirectHit
-  }
-
-  def ResistanceSplash : Int = damageResistanceSplash
-
-  def ResistanceSplash_=(resist : Int) : Int = {
-    damageResistanceSplash = resist
-    ResistanceSplash
-  }
-
-  def ResistanceAggravated : Int = damageResistanceAggravated
-
-  def ResistanceAggravated_=(resist : Int) : Int = {
-    damageResistanceAggravated = resist
-    ResistanceAggravated
-  }
-
-  def RadiationShielding : Float = damageRadiationShielding
-
-  def RadiationShielding_=(resist : Float) : Float = {
-    damageRadiationShielding = resist
-    RadiationShielding
   }
 
   def Use : ExoSuitDefinition = this

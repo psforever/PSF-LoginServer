@@ -2,7 +2,7 @@
 package net.psforever.objects.ballistics
 
 import net.psforever.objects.definition.ObjectDefinition
-import net.psforever.objects.{PlanetSideGameObject, Player}
+import net.psforever.objects.{PlanetSideGameObject, Player, Vehicle}
 import net.psforever.objects.entity.WorldEntity
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.types.{PlanetSideEmpire, Vector3}
@@ -29,7 +29,15 @@ object SourceEntry {
   def apply(target : PlanetSideGameObject with FactionAffinity) : SourceEntry = {
     target match {
       case obj : Player => PlayerSource(obj)
+      case obj : Vehicle => VehicleSource(obj)
       case _ => ObjectSource(target)
     }
+  }
+
+  def NameFormat(name : String) : String = {
+    name.replace("_", " ")
+      .split(" ")
+      .map(_.capitalize)
+      .mkString(" ")
   }
 }

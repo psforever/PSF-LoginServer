@@ -25,6 +25,10 @@ import scala.concurrent.duration._
 
 object GlobalDefinitions {
   /*
+  characters
+   */
+  val avatar = new AvatarDefinition(121)
+  /*
   Implants
    */
   val advanced_regen = ImplantDefinition(0)

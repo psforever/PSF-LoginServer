@@ -37,8 +37,8 @@ import net.psforever.objects.serverobject.terminals._
 import net.psforever.objects.serverobject.terminals.Terminal.TerminalMessage
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.serverobject.turret.{MannedTurret, TurretUpgrade}
-import net.psforever.objects.vehicles._
-import net.psforever.objects.vital.DamageProfile
+import net.psforever.objects.vehicles.{AccessPermissionGroup, Cargo, Utility, VehicleLockState, _}
+import net.psforever.objects.vital._
 import net.psforever.objects.zones.{InterstellarCluster, Zone}
 import net.psforever.packet.game.objectcreate._
 import net.psforever.types._
@@ -56,7 +56,6 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.Success
 import akka.pattern.ask
-
 
 class WorldSessionActor extends Actor with MDCContextAware {
   import WorldSessionActor._
@@ -403,7 +402,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             if(player.Armor - b < 0) {
               val originalArmor = player.Armor
               player.Armor = 0
-              player.Health = player.Health - a - (player.Armor - b) //spill over
+              player.Health = player.Health - a - (originalArmor - b) //spill over
             }
             else {
               player.Armor = player.Armor - b
@@ -1842,7 +1841,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       //TODO begin temp player character auto-loading; remove later
       import net.psforever.objects.GlobalDefinitions._
       import net.psforever.types.CertificationType._
-      avatar = Avatar("TestCharacter" + sessionId.toString, PlanetSideEmpire.VS, CharacterGender.Female, 41, CharacterVoice.Voice1)
+      val avatar = Avatar("TestCharacter" + sessionId.toString, PlanetSideEmpire.VS, CharacterGender.Female, 41, CharacterVoice.Voice1)
       avatar.Certifications += StandardAssault
       avatar.Certifications += MediumAssault
       avatar.Certifications += StandardExoSuit
@@ -1876,6 +1875,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       avatar.Certifications += AdvancedEngineering
       avatar.Certifications += FortificationEngineering
       avatar.Certifications += AssaultEngineering
+      this.avatar = avatar
       AwardBattleExperiencePoints(avatar, 1000000L)
       player = new Player(avatar)
       //player.Position = Vector3(3561.0f, 2854.0f, 90.859375f) //home3, HART C
@@ -3375,8 +3375,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case Some(target : PlanetSideGameObject with FactionAffinity) =>
           ResolveProjectileEntry(projectile_guid, ProjectileResolution.Lash, target, pos) match {
             case Some(projectile) =>
-              val (damage0, damage1, damage2) = CalculateHitDamage(target, projectile, 0)
-              ApplyDamage(target, projectile, damage0, (damage1 * 0.2f).toInt, (damage2 * 0.2f).toInt)
+              val (damage0, damage1, damage2) = CalculateLashDamage(target, projectile, 0)
+              ApplyDamage(target, projectile, damage0, damage1, damage2)
             case None => ;
           }
         case _ => ;
@@ -5583,27 +5583,22 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
 
   def CalculateHitDamage(target : Player, res : ResolvedProjectile, distance : Float) : (Int, Int, Int) = {
-    val currentResistance = HitResistance(target)
-    val rawDamage = RawDamageAgainst(target, res.projectile)
-    val currentDamage = damages(res.projectile, rawDamage, distance)
+//    val func = StandardResolutions.Infantry(
+//      DamageSelectionByTarget(res),
+//      ResistanceSelectionByTarget(res),
+//      res
+//    )
+//    func(target)
+
+    val currentResistance = ResistanceSelectionByTarget(res)(res)
+    val currentDamage = DamageSelectionByTarget(res)(res)
     val (a, b) = ResistanceFunc(target)(currentDamage, currentResistance, target.Health, target.Armor)
-    (rawDamage, a, b)
-  }
-
-  def HitResistance(target : Player) : Int = {
-    ExoSuitDefinition.Select(target.ExoSuit).ResistanceDirectHit
-  }
-
-  def ResistanceFunc(target : Player) : (Int,Int,Int,Int)=>(Int,Int) = {
-    target.ExoSuit match {
-      case ExoSuitType.MAX => DamagesAfterResistMAX
-      case _ => DamagesAfterResist
-    }
+    (currentDamage, a, b)
   }
 
   def CalculateHitDamage(target : Vehicle, res : ResolvedProjectile, distance : Float) : (Int, Int, Int) = {
-    val rawDamage = RawDamageAgainst(target, res.projectile)
-    (rawDamage, damages(res.projectile, rawDamage, distance), 0)
+    val currentDamage = DamageSelectionByTarget(res)(res)
+    (currentDamage, currentDamage, 0)
   }
 
   def CalculateHitDamage(target : PlanetSideGameObject, res : ResolvedProjectile, distance : Float) : (Int, Int, Int) = {
@@ -5617,29 +5612,39 @@ class WorldSessionActor extends Actor with MDCContextAware {
     }
   }
 
-  def CalculateSplashDamage(target : Player, projectile : Projectile, distance : Float) : (Int, Int, Int) = {
-    val currentResistance = SplashResistance(target)
-    val rawDamage = RawDamageAgainst(target, projectile)
-    if(distance <= projectile.profile.DamageRadius) {
-      val currentDamage = rawDamage + ((rawDamage - (projectile.profile.DamageAtEdge * rawDamage)) * distance / projectile.profile.DamageRadius).toInt
+  def HitResistance(target : Player) : Int = {
+    ExoSuitDefinition.Select(target.ExoSuit).ResistanceDirectHit
+  }
+
+  def ResistanceFunc(target : Player) : (Int,Int,Int,Int)=>(Int,Int) = {
+    target.ExoSuit match {
+      case ExoSuitType.MAX => DamagesAfterResistMAX
+      case _ => DamagesAfterResist
+    }
+  }
+
+  def CalculateSplashDamage(target : Player, res : ResolvedProjectile, distance : Float) : (Int, Int, Int) = {
+    val currentResistance = ResistanceSelectionByTarget(res)(res)
+    val currentDamage = DamageSelectionByTarget(res)(res)
+    if(currentDamage > 0) {
       val (a, b) = ResistanceFunc(target)(currentDamage, currentResistance, target.Health, target.Armor)
-      (rawDamage, a, b)
+      (currentDamage, a, b)
     }
     else {
       (0,0,0)
     }
   }
 
-  def CalculateSplashDamage(target : Vehicle, projectile : Projectile, distance : Float) : (Int, Int, Int) = {
+  def CalculateSplashDamage(target : Vehicle, res: ResolvedProjectile, distance : Float) : (Int, Int, Int) = {
     (0,0,0)
   }
 
-  def CalculateSplashDamage(target : PlanetSideGameObject, projectile : ResolvedProjectile, distance : Float) : (Int, Int, Int) = {
+  def CalculateSplashDamage(target : PlanetSideGameObject, res : ResolvedProjectile, distance : Float) : (Int, Int, Int) = {
     target match {
       case obj : Player =>
-        CalculateSplashDamage(obj, projectile.projectile, distance)
+        CalculateSplashDamage(obj, res, distance)
       case obj : Vehicle =>
-        CalculateSplashDamage(obj, projectile.projectile, distance)
+        CalculateSplashDamage(obj, res, distance)
       case _ =>
         (0,0,0)
     }
@@ -5649,59 +5654,16 @@ class WorldSessionActor extends Actor with MDCContextAware {
     ExoSuitDefinition.Select(target.ExoSuit).ResistanceSplash
   }
 
-  def RawDamageAgainst(extractor : (DamageProfile)=>Int, base : DamageProfile, modifiers : List[DamageProfile]) : Int = {
-    extractor(base) + modifiers.foldLeft(0)(_ + extractor(_))
-  }
-
-  def DamageAgainstExoSuit(profile : DamageProfile) : Int = profile.Damage0
-
-  def DamageAgainstVehicle(profile : DamageProfile) : Int = profile.Damage1
-
-  def DamageAgainstFlyingVehicle(profile : DamageProfile) : Int = profile.Damage2
-
-  def DamageAgainstMaxSuit(profile : DamageProfile) : Int = profile.Damage3
-
-  def RawDamageAgainst(target : Player, projectile : Projectile) : Int = {
-    if(target.ExoSuit == ExoSuitType.MAX) {
-      RawDamageAgainst(DamageAgainstMaxSuit, projectile.profile, List(projectile.fire_mode.Modifiers))
-    }
-    else {
-      RawDamageAgainst(DamageAgainstExoSuit, projectile.profile, List(projectile.fire_mode.Modifiers))
-    }
-  }
-
-  def RawDamageAgainst(target : Vehicle, projectile : Projectile) : Int = {
-    if(GlobalDefinitions.isFlightVehicle(target.Definition)) {
-      projectile.profile.Damage2 + projectile.fire_mode.Modifiers.Damage2
-    }
-    else {
-      projectile.profile.Damage1 + projectile.fire_mode.Modifiers.Damage1
-    }
-  }
-
-  def RawDamageAgainst(target : PlanetSideGameObject, projectile : Projectile) : Int = {
+  def CalculateLashDamage(target : PlanetSideGameObject, res : ResolvedProjectile, distance : Float) : (Int, Int, Int) = {
+    val currentDamage = DamageSelectionByTarget(res)(res)
     target match {
       case obj : Player =>
-        RawDamageAgainst(obj, projectile)
+        val (a, b) = ResistanceFunc(obj)(currentDamage, 0, obj.Health, obj.Armor)
+        (currentDamage, a, b)
       case obj : Vehicle =>
-        RawDamageAgainst(obj, projectile)
+        (currentDamage, currentDamage, 0)
       case _ =>
-        0
-    }
-  }
-
-  def damages(projectile : Projectile, rawDamage: Int, distance: Float): Int = {
-    val profile = projectile.profile
-    if(distance <= profile.DistanceMax) {
-      if(profile.DistanceNoDegrade == profile.DistanceMax || distance <= profile.DistanceNoDegrade) {
-        rawDamage
-      }
-      else {
-        rawDamage - ((rawDamage - profile.DegradeMultiplier * rawDamage) * ((distance - profile.DistanceNoDegrade) / (profile.DistanceMax - profile.DistanceNoDegrade))).toInt
-      }
-    }
-    else {
-      0
+        (0,0,0)
     }
   }
 

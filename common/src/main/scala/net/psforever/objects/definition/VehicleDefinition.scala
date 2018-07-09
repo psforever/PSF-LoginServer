@@ -4,6 +4,7 @@ package net.psforever.objects.definition
 import net.psforever.objects.definition.converter.VehicleConverter
 import net.psforever.objects.inventory.InventoryTile
 import net.psforever.objects.vehicles.{DestroyedVehicle, UtilityType}
+import net.psforever.objects.vital.ResistanceProfileMutators
 
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -12,7 +13,8 @@ import scala.concurrent.duration._
   * An object definition system used to construct and retain the parameters of various vehicles.
   * @param objectId the object id that is associated with this sort of `Vehicle`
   */
-class VehicleDefinition(objectId : Int) extends ObjectDefinition(objectId) {
+class VehicleDefinition(objectId : Int) extends ObjectDefinition(objectId)
+  with ResistanceProfileMutators {
   private var maxHealth : Int = 100
   /** vehicle shields offered through amp station facility benefits (generally: 20% of health + 1) */
   private var maxShields : Int = 0

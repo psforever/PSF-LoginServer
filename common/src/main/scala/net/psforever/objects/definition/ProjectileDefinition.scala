@@ -9,7 +9,8 @@ import net.psforever.objects.vital.{DamageProfile, DamageType}
   * `Tool` objects emit `ProjectileDefinition` objects and that is later wrapped into a `Projectile` object.
   * @param objectId the object's identifier number
   */
-class ProjectileDefinition(objectId : Int) extends ObjectDefinition(objectId) with DamageProfile {
+class ProjectileDefinition(objectId : Int) extends ObjectDefinition(objectId)
+  with DamageProfile {
   private val projectileType : Projectiles.Value = Projectiles(objectId) //let throw NoSuchElementException
   private var damage0 : Int = 0
   private var damage1 : Option[Int] = None
