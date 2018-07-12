@@ -3,7 +3,8 @@ package net.psforever.objects
 
 import net.psforever.objects.equipment.EquipmentSize
 import net.psforever.objects.inventory.InventoryTile
-import net.psforever.objects.vital.ResistanceProfileMutators
+import net.psforever.objects.vital._
+import net.psforever.objects.vital.resistance.ResistanceProfileMutators
 import net.psforever.types.ExoSuitType
 
 /**
@@ -11,12 +12,16 @@ import net.psforever.types.ExoSuitType
   * Players are influenced by the exo-suit they wear in a variety of ways, with speed and available equipment slots being major differences.
   * @param suitType the `Enumeration` corresponding to this exo-suit
   */
-class ExoSuitDefinition(private val suitType : ExoSuitType.Value) extends ResistanceProfileMutators {
+class ExoSuitDefinition(private val suitType : ExoSuitType.Value) extends ResistanceProfileMutators
+  with DamageResistanceModel {
   protected var permission : Int = 0 //TODO certification type?
   protected var maxArmor : Int = 0
   protected val holsters : Array[EquipmentSize.Value] = Array.fill[EquipmentSize.Value](5)(EquipmentSize.Blocked)
   protected var inventoryScale : InventoryTile = InventoryTile.Tile11 //override with custom InventoryTile
   protected var inventoryOffset : Int = 0
+  Damage = StandardInfantryDamage
+  Resistance = StandardInfantryResistance
+  Model = StandardResolutions.Infantry
 
   def SuitType : ExoSuitType.Value = suitType
 
@@ -80,6 +85,12 @@ class SpecialExoSuitDefinition(private val suitType : ExoSuitType.Value) extends
     obj.MaxArmor = MaxArmor
     obj.InventoryScale = InventoryScale
     obj.InventoryOffset = InventoryOffset
+    obj.ResistanceDirectHit = ResistanceDirectHit
+    obj.ResistanceSplash = ResistanceSplash
+    obj.ResistanceAggravated = ResistanceAggravated
+    obj.Damage = Damage
+    obj.Resistance = Resistance
+    obj.Model = Model
     (0 until 5).foreach(index => { obj.Holster(index, Holster(index)) })
     obj
   }
@@ -158,6 +169,8 @@ object ExoSuitDefinition {
   MAX.ResistanceDirectHit = 6
   MAX.ResistanceSplash = 35
   MAX.ResistanceAggravated = 10
+  MAX.Damage = StandardMaxDamage
+  MAX.Model = StandardResolutions.Max
 
   def apply(suitType : ExoSuitType.Value) : ExoSuitDefinition = {
     new ExoSuitDefinition(suitType)

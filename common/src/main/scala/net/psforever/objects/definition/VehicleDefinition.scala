@@ -4,7 +4,8 @@ package net.psforever.objects.definition
 import net.psforever.objects.definition.converter.VehicleConverter
 import net.psforever.objects.inventory.InventoryTile
 import net.psforever.objects.vehicles.{DestroyedVehicle, UtilityType}
-import net.psforever.objects.vital.ResistanceProfileMutators
+import net.psforever.objects.vital._
+import net.psforever.objects.vital.resistance.ResistanceProfileMutators
 
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -14,7 +15,8 @@ import scala.concurrent.duration._
   * @param objectId the object id that is associated with this sort of `Vehicle`
   */
 class VehicleDefinition(objectId : Int) extends ObjectDefinition(objectId)
-  with ResistanceProfileMutators {
+  with ResistanceProfileMutators
+  with DamageResistanceModel {
   private var maxHealth : Int = 100
   /** vehicle shields offered through amp station facility benefits (generally: 20% of health + 1) */
   private var maxShields : Int = 0
@@ -39,6 +41,9 @@ class VehicleDefinition(objectId : Int) extends ObjectDefinition(objectId)
   private var destroyedModel : Option[DestroyedVehicle.Value] = None
   Name = "vehicle"
   Packet = VehicleDefinition.converter
+  Damage = StandardVehicleDamage
+  Resistance = StandardVehicleResistance
+  Model = StandardResolutions.Vehicle
 
   def MaxHealth : Int = maxHealth
 

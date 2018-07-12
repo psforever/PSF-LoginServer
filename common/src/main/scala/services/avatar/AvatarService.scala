@@ -65,9 +65,9 @@ class AvatarService extends Actor {
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.ConcealPlayer())
           )
-        case AvatarAction.Damage(player_guid, projectile, a, b) =>
+        case AvatarAction.Damage(player_guid, target, resolution_function) =>
           AvatarEvents.publish(
-            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.Damage(projectile, a, b))
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.DamageResolution(target, resolution_function))
           )
         case AvatarAction.Destroy(victim, killer, weapon, pos) =>
           AvatarEvents.publish(
@@ -101,6 +101,10 @@ class AvatarService extends Actor {
         case AvatarAction.HitHint(source_guid, player_guid) =>
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.HitHint(source_guid))
+          )
+        case AvatarAction.KilledWhileInVehicle(player_guid) =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.KilledWhileInVehicle())
           )
         case AvatarAction.LoadPlayer(player_guid, object_id, target_guid, cdata, pdata) =>
           val pkt = pdata match {
@@ -183,14 +187,6 @@ class AvatarService extends Actor {
         val player: PlayerAvatar = playerOpt.get
         AvatarEvents.publish(AvatarMessage("/Avatar/" + player.continent, guid,
           AvatarServiceReply.PlayerStateShift(killer)
-        ))
-      }
-    case AvatarService.DestroyDisplay(killer, victim) =>
-      val playerOpt: Option[PlayerAvatar] = PlayerMasterList.getPlayer(victim)
-      if (playerOpt.isDefined) {
-        val player: PlayerAvatar = playerOpt.get
-        AvatarEvents.publish(AvatarMessage("/Avatar/" + player.continent, victim,
-          AvatarServiceReply.DestroyDisplay(killer)
         ))
       }
       */

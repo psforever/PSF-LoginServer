@@ -7,6 +7,8 @@ import net.psforever.types.{PlanetSideEmpire, Vector3}
 
 final case class VehicleSource(obj_def : VehicleDefinition,
                                faction : PlanetSideEmpire.Value,
+                               health : Int,
+                               shields : Int,
                                position : Vector3,
                                orientation : Vector3,
                                velocity : Option[Vector3] = None) extends SourceEntry {
@@ -23,6 +25,8 @@ object VehicleSource {
     VehicleSource(
       obj.Definition,
       obj.Faction,
+      obj.Health,
+      obj.Shields,
       obj.Position,
       obj.Orientation,
       obj.Velocity

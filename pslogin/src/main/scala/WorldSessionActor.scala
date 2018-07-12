@@ -397,18 +397,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
             sendResponse(GenericObjectActionMessage(guid, 36))
           }
 
-        case AvatarResponse.Damage(projectile, a, b) =>
+        case AvatarResponse.DamageResolution(target, resolution_function) =>
           if(player.isAlive) {
-            if(player.Armor - b < 0) {
-              val originalArmor = player.Armor
-              player.Armor = 0
-              player.Health = player.Health - a - (originalArmor - b) //spill over
-            }
-            else {
-              player.Armor = player.Armor - b
-              player.Health = player.Health - a
-            }
-            player.History(projectile)
+            resolution_function(target)
+
             val health = player.Health
             val armor = player.Armor
             val playerGUID = player.GUID
@@ -440,6 +432,22 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
         case AvatarResponse.HitHint(source_guid) =>
           sendResponse(HitHint(source_guid, guid))
+
+        case AvatarResponse.KilledWhileInVehicle() =>
+          if(player.isAlive && player.VehicleSeated.nonEmpty) {
+            continent.GUID(player.VehicleSeated.get) match {
+              case Some(vehicle : Vehicle) =>
+                if(vehicle.Health == 0) {
+                  vehicle.LastShot match {
+                    case Some(cause) =>
+                      player.History(cause)
+                    case None => ;
+                  }
+                  KillPlayer(player)
+                }
+              case _ => ;
+            }
+          }
 
         case AvatarResponse.LoadPlayer(pkt) =>
           if(tplayer_guid != guid) {
@@ -1810,6 +1818,50 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case DelayedProximityUnitStop(terminal) =>
       StopUsingProximityUnit(terminal)
+
+    case Vitality.DamageResolution(target : Vehicle) =>
+      val targetGUID = target.GUID
+      val playerGUID = player.GUID
+      val continentId = continent.Id
+      val players = target.Seats.values.filter(seat => { seat.isOccupied && seat.Occupant.get.isAlive })
+      if(target.Health > 0) {
+        //alert occupants to damage source
+        players.foreach(seat => {
+          val tplayer = seat.Occupant.get
+          avatarService ! AvatarServiceMessage(tplayer.Name, AvatarAction.HitHint(playerGUID, tplayer.GUID))
+        })
+      }
+      else {
+        //alert to vehicle death (hence, occupants' deaths)
+        players.foreach(seat => {
+          val tplayer = seat.Occupant.get
+          val tplayerGUID = tplayer.GUID
+          avatarService ! AvatarServiceMessage(tplayer.Name, AvatarAction.KilledWhileInVehicle(tplayerGUID))
+          avatarService ! AvatarServiceMessage(continentId, AvatarAction.ObjectDelete(tplayerGUID, tplayerGUID)) //dead player still sees self
+        })
+        //vehicle wreckage has no weapons
+        target.Weapons.values
+          .filter { _.Equipment.nonEmpty }
+          .foreach(slot => {
+            val wep = slot.Equipment.get
+            avatarService ! AvatarServiceMessage(continentId, AvatarAction.ObjectDelete(Service.defaultPlayerGUID, wep.GUID))
+          })
+        if(target.Definition == GlobalDefinitions.ams) {
+          target.Actor ! Deployment.TryDeploymentChange(DriveState.Undeploying)
+          ClearCurrentAmsSpawnPoint()
+        }
+        avatarService ! AvatarServiceMessage(continentId, AvatarAction.Destroy(targetGUID, playerGUID, playerGUID, target.Position))
+        vehicleService ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(target), continent))
+        vehicleService ! VehicleServiceMessage.Decon(RemoverActor.AddTask(target, continent, Some(1 minute)))
+      }
+      vehicleService ! VehicleServiceMessage(continentId, VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, targetGUID, 0, target.Health))
+      vehicleService ! VehicleServiceMessage(s"${target.Actor}", VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, targetGUID, 68, target.Shields))
+
+    case Vitality.DamageResolution(target : PlanetSideGameObject) =>
+      log.warn(s"Vital target ${target.Definition.Name} damage resolution not supported using this method")
+
+    case Vehicle.UpdateShieldsCharge(vehicle) =>
+      vehicleService ! VehicleServiceMessage(s"${vehicle.Actor}", VehicleAction.PlanetsideAttribute(PlanetSideGUID(0), vehicle.GUID, 68, vehicle.Shields))
 
     case ResponseToSelf(pkt) =>
       log.info(s"Received a direct message: $pkt")
@@ -3337,8 +3389,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case Some((target, shotOrigin, hitPos)) =>
           ResolveProjectileEntry(projectile_guid, ProjectileResolution.Hit, target, hitPos) match {
             case Some(projectile) =>
-              val (damage0, damage1, damage2) = CalculateHitDamage(target, projectile, Vector3.Distance(player.Position, target.Position))
-              ApplyDamage(target, projectile, damage0, damage1, damage2)
+              HandleDealingDamage(target, projectile)
             case None => ;
           }
         case None => ;
@@ -3347,22 +3398,20 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ SplashHitMessage(seq_time, projectile_guid, explosion_pos, direct_victim_uid, unk3, projectile_vel, unk4, targets) =>
       log.info(s"Splash: $msg")
       continent.GUID(direct_victim_uid) match {
-        case Some(target : PlanetSideGameObject with FactionAffinity) =>
+        case Some(target : PlanetSideGameObject with FactionAffinity with Vitality) =>
           ResolveProjectileEntry(projectile_guid, ProjectileResolution.Hit, target, explosion_pos) match {
             case Some(projectile) =>
-              val (damage0, damage1, damage2) = CalculateHitDamage(target, projectile, Vector3.Distance(explosion_pos, target.Position))
-              ApplyDamage(target, projectile, damage0, damage1, damage2)
+              HandleDealingDamage(target, projectile)
             case None => ;
           }
         case _ => ;
       }
       targets.foreach(elem => {
         continent.GUID(elem.uid) match {
-          case Some(target : PlanetSideGameObject with FactionAffinity) =>
+          case Some(target : PlanetSideGameObject with FactionAffinity with Vitality) =>
             ResolveProjectileEntry(projectile_guid, ProjectileResolution.Splash, target, target.Position) match {
               case Some(projectile) =>
-                val (damage0, damage1, damage2) = CalculateSplashDamage(target, projectile, Vector3.Distance(explosion_pos, target.Position))
-                ApplyDamage(target, projectile, damage0, damage1, damage2)
+                HandleDealingDamage(target, projectile)
               case None => ;
             }
           case _ => ;
@@ -3372,11 +3421,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ LashMessage(seq_time, killer_guid, victim_guid, projectile_guid, pos, unk1) =>
       log.info(s"Lash: $msg")
       continent.GUID(victim_guid) match {
-        case Some(target : PlanetSideGameObject with FactionAffinity) =>
+        case Some(target : PlanetSideGameObject with FactionAffinity with Vitality) =>
           ResolveProjectileEntry(projectile_guid, ProjectileResolution.Lash, target, pos) match {
             case Some(projectile) =>
-              val (damage0, damage1, damage2) = CalculateLashDamage(target, projectile, 0)
-              ApplyDamage(target, projectile, damage0, damage1, damage2)
+              HandleDealingDamage(target, projectile)
             case None => ;
           }
         case _ => ;
@@ -3551,20 +3599,21 @@ class WorldSessionActor extends Actor with MDCContextAware {
       }
 
     case msg @ FacilityBenefitShieldChargeRequestMessage(guid) =>
-      //log.info(s"ShieldChargeRequest: $msg")
       player.VehicleSeated match {
         case Some(vehicleGUID) =>
           continent.GUID(vehicleGUID) match {
             case Some(obj : Vehicle) =>
-              obj.Shields += 25
-              sendResponse(PlanetsideAttributeMessage(vehicleGUID, 68, obj.Shields))
-              log.info(s"Charging ${obj.Definition.Name} to ${obj.Shields} shields")
-            case _ => ;
+              if(obj.Health > 0) { //vehicle will try to charge even if destroyed
+                obj.Actor ! Vehicle.ChargeShields(15)
+              }
+            case _ =>
+              log.warn(s"FacilityBenefitShieldChargeRequest: can not find vehicle ${vehicleGUID.guid} in zone ${continent.Id}")
           }
-        case None => ;
+        case None =>
+          log.warn(s"FacilityBenefitShieldChargeRequest: player ${player.Name} is not seated in a vehicle")
       }
 
-    case msg @ BattleplanMessage(char_id, player_name, zonr_id, diagrams) =>
+    case msg @ BattleplanMessage(char_id, player_name, zone_id, diagrams) =>
       log.info("Battleplan: "+msg)
 
     case msg @ CreateShortcutMessage(player_guid, slot, unk, add, shortcut) =>
@@ -4926,7 +4975,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         generator_state = PlanetSideGeneratorState.Normal,
         spawn_tubes_normal = true,
         force_dome_active = false,
-        lattice_benefit = 31,
+        lattice_benefit = 0,
         cavern_benefit = 0, //!! Field > 0 will cause malformed packet. See class def.
         unk4 = Nil,
         unk5 = 0,
@@ -5044,6 +5093,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       continent.GUID(tplayer.VehicleSeated.get) match {
         case Some(obj : Vehicle) =>
           TotalDriverVehicleControl(obj)
+          UnAccessContents(obj)
         case _ => ;
       }
       //make player invisible (if not, the cadaver sticks out the side in a seated position)
@@ -5517,7 +5567,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * @param resolution the resolution status to promote the projectile
     * @return the projectile
     */
-  def ResolveProjectileEntry(projectile_guid : PlanetSideGUID, resolution : ProjectileResolution.Value, target : PlanetSideGameObject with FactionAffinity, pos : Vector3) : Option[ResolvedProjectile] = {
+  def ResolveProjectileEntry(projectile_guid : PlanetSideGUID, resolution : ProjectileResolution.Value, target : PlanetSideGameObject with FactionAffinity with Vitality, pos : Vector3) : Option[ResolvedProjectile] = {
     FindProjectileEntry(projectile_guid) match {
       case Some(projectile) =>
         val index =  projectile_guid.guid - Projectile.BaseUID
@@ -5538,7 +5588,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * @param resolution the resolution status to promote the projectile
     * @return a copy of the projectile
     */
-  def ResolveProjectileEntry(projectile : Projectile, index : Int, resolution : ProjectileResolution.Value, target : PlanetSideGameObject with FactionAffinity, pos : Vector3) : Option[ResolvedProjectile] = {
+  def ResolveProjectileEntry(projectile : Projectile, index : Int, resolution : ProjectileResolution.Value, target : PlanetSideGameObject with FactionAffinity with Vitality, pos : Vector3) : Option[ResolvedProjectile] = {
     if(!projectiles(index).contains(projectile)) {
       log.error(s"expected projectile could not be found at $index; can not resolve")
       None
@@ -5549,7 +5599,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     }
     else {
       projectile.Resolve()
-      Some(ResolvedProjectile(resolution, projectile, SourceEntry(target), pos))
+      Some(ResolvedProjectile(resolution, projectile, SourceEntry(target), target.DamageModel, pos))
     }
   }
 
@@ -5581,204 +5631,49 @@ class WorldSessionActor extends Actor with MDCContextAware {
     vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.DismountVehicle(player_guid, BailType.Normal, false))
   }
 
-
-  def CalculateHitDamage(target : Player, res : ResolvedProjectile, distance : Float) : (Int, Int, Int) = {
-//    val func = StandardResolutions.Infantry(
-//      DamageSelectionByTarget(res),
-//      ResistanceSelectionByTarget(res),
-//      res
-//    )
-//    func(target)
-
-    val currentResistance = ResistanceSelectionByTarget(res)(res)
-    val currentDamage = DamageSelectionByTarget(res)(res)
-    val (a, b) = ResistanceFunc(target)(currentDamage, currentResistance, target.Health, target.Armor)
-    (currentDamage, a, b)
-  }
-
-  def CalculateHitDamage(target : Vehicle, res : ResolvedProjectile, distance : Float) : (Int, Int, Int) = {
-    val currentDamage = DamageSelectionByTarget(res)(res)
-    (currentDamage, currentDamage, 0)
-  }
-
-  def CalculateHitDamage(target : PlanetSideGameObject, res : ResolvedProjectile, distance : Float) : (Int, Int, Int) = {
+  /**
+    * Calculate the amount of damage to be dealt to an active `target`
+    * using the information reconstructed from a `Resolvedprojectile`
+    * and affect the `target` in a synchronized manner.
+    * The active `target` and the target of the `ResolvedProjectile` do not have be the same.
+    * @see `DamageResistanceModel`<br>
+    *       `Vitality`
+    * @param target a valid game object that is known to the server
+    * @param data a projectile that will affect the target
+    */
+  def HandleDealingDamage(target : PlanetSideGameObject with Vitality, data : ResolvedProjectile) : Unit = {
+    val func = data.damage_model.Calculate(data)
     target match {
       case obj : Player =>
-        CalculateHitDamage(obj, res, distance)
+        //damage is synchronized on the target player's `WSA` (results distributed from there)
+        avatarService ! AvatarServiceMessage(obj.Name, AvatarAction.Damage(player.GUID, obj, func))
       case obj : Vehicle =>
-        CalculateHitDamage(obj, res, distance)
-      case _ =>
-        (0, 0, 0)
-    }
-  }
-
-  def HitResistance(target : Player) : Int = {
-    ExoSuitDefinition.Select(target.ExoSuit).ResistanceDirectHit
-  }
-
-  def ResistanceFunc(target : Player) : (Int,Int,Int,Int)=>(Int,Int) = {
-    target.ExoSuit match {
-      case ExoSuitType.MAX => DamagesAfterResistMAX
-      case _ => DamagesAfterResist
-    }
-  }
-
-  def CalculateSplashDamage(target : Player, res : ResolvedProjectile, distance : Float) : (Int, Int, Int) = {
-    val currentResistance = ResistanceSelectionByTarget(res)(res)
-    val currentDamage = DamageSelectionByTarget(res)(res)
-    if(currentDamage > 0) {
-      val (a, b) = ResistanceFunc(target)(currentDamage, currentResistance, target.Health, target.Armor)
-      (currentDamage, a, b)
-    }
-    else {
-      (0,0,0)
-    }
-  }
-
-  def CalculateSplashDamage(target : Vehicle, res: ResolvedProjectile, distance : Float) : (Int, Int, Int) = {
-    (0,0,0)
-  }
-
-  def CalculateSplashDamage(target : PlanetSideGameObject, res : ResolvedProjectile, distance : Float) : (Int, Int, Int) = {
-    target match {
-      case obj : Player =>
-        CalculateSplashDamage(obj, res, distance)
-      case obj : Vehicle =>
-        CalculateSplashDamage(obj, res, distance)
-      case _ =>
-        (0,0,0)
-    }
-  }
-
-  def SplashResistance(target : Player) : Int = {
-    ExoSuitDefinition.Select(target.ExoSuit).ResistanceSplash
-  }
-
-  def CalculateLashDamage(target : PlanetSideGameObject, res : ResolvedProjectile, distance : Float) : (Int, Int, Int) = {
-    val currentDamage = DamageSelectionByTarget(res)(res)
-    target match {
-      case obj : Player =>
-        val (a, b) = ResistanceFunc(obj)(currentDamage, 0, obj.Health, obj.Armor)
-        (currentDamage, a, b)
-      case obj : Vehicle =>
-        (currentDamage, currentDamage, 0)
-      case _ =>
-        (0,0,0)
-    }
-  }
-
-  def DamagesAfterResist(damages: Int, resistance: Int, currentHP: Int, currentArmor: Int): (Int, Int) = {
-    if(damages > 0) {
-      if(currentArmor <= 0) {
-        (damages, 0)
-      }
-      else if(damages > resistance) {
-        val resistedDam = damages - resistance
-        if(resistedDam >= currentArmor) {
-          (resistedDam - currentArmor, currentArmor)
-        }
-        else {
-          (0, resistedDam)
-        }
-      }
-      else {
-        (0, 0)
-      }
-    }
-    else {
-      (0, 0)
-    }
-  }
-
-  def DamagesAfterResistMAX(damages: Int, resistance: Int, currentHP: Int, currentArmor: Int): (Int, Int) = {
-    val resistedDam = damages - resistance
-    if(resistedDam > 0) {
-      if(currentArmor <= 0) {
-        (resistedDam, 0)
-      }
-      else if(resistedDam >= currentArmor) {
-        (resistedDam - currentArmor, currentArmor)
-      }
-      else {
-        (0, resistedDam)
-      }
-    }
-    else {
-      (0, 0)
-    }
-  }
-
-  def ApplyDamage(target : Player, projectile : ResolvedProjectile, rawDamage : Int, damagea : Int, damageb : Int) : Unit = {
-    avatarService ! AvatarServiceMessage(target.Name, AvatarAction.Damage(player.GUID, projectile, damagea, damageb))
-  }
-
-  def ApplyDamage(target : Vehicle, projectile : ResolvedProjectile, rawDamage : Int, damagea : Int, damageb : Int) : Unit = {
-    if(target.Health > 0) {
-      if(target.Shields > damagea) {
-        target.Shields = target.Shields - damagea
-        vehicleService ! VehicleServiceMessage(s"${target.Actor}", VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, target.GUID, 68, target.Shields))
-      }
-      else if(target.Shields > 0) {
-        val damageToHealth = damagea - target.Shields
-        target.Shields = 0
-        target.Health = target.Health - damageToHealth
-        vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, target.GUID, 0, target.Health))
-        vehicleService ! VehicleServiceMessage(s"${target.Actor}", VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, target.GUID, 68, target.Shields))
-      }
-      else {
-        target.Health = target.Health - damagea
-        vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, target.GUID, 0, target.Health))
-      }
-
-      val players = target.Seats.values.filter(seat => { seat.isOccupied && seat.Occupant.get.isAlive })
-      if(target.Health > 0) {
-        //alert to damage source
-        players.foreach(seat => {
-          val tplayer = seat.Occupant.get
-          avatarService ! AvatarServiceMessage(tplayer.Name, AvatarAction.HitHint(player.GUID, tplayer.GUID))
-        })
-      }
-      else {
-        //alert to vehicle death (hence, player's own death)
-        players.foreach(seat => {
-          val tplayer = seat.Occupant.get
-          val tplayerGUID = tplayer.GUID
-          avatarService ! AvatarServiceMessage(tplayer.Name, AvatarAction.Damage(tplayerGUID, projectile, tplayer.Health, tplayer.Armor))
-          avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(tplayerGUID, tplayerGUID)) //don't delete self
-        })
-        target.Weapons.values
-          .filter { _.Equipment.nonEmpty }
-          .foreach(slot => {
-            val wep = slot.Equipment.get
-            avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(Service.defaultPlayerGUID, wep.GUID))
-          })
-        if(target.Definition == GlobalDefinitions.ams) {
-          target.Actor ! Deployment.TryDeploymentChange(DriveState.Undeploying)
-          ClearCurrentAmsSpawnPoint()
-        }
-        avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.Destroy(target.GUID, player.GUID, player.GUID, target.Position))
-        vehicleService ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(target), continent))
-        vehicleService ! VehicleServiceMessage.Decon(RemoverActor.AddTask(target, continent, Some(1 minute)))
-      }
-    }
-  }
-
-  def ApplyDamage(target : PlanetSideGameObject, projectile : ResolvedProjectile, rawDamage : Int, damagea : Int, damageb : Int) : Unit = {
-    target match {
-      case obj : Player =>
-        ApplyDamage(obj, projectile, rawDamage, damagea, damageb)
-      case obj : Vehicle =>
-        ApplyDamage(obj, projectile, rawDamage, damagea, 0)
+        //damage is synchronized on the vehicle actor (results returned to and distributed from this `WSA`)
+        obj.Actor ! Vitality.Damage(func)
       case _ => ;
     }
   }
 
+  /**
+    * Properly format a `DestroyDisplayMessage` packet
+    * given sufficient information about a target (victim) and an actor (killer).
+    * For the packet, the `*_charId` field is most important to determining distinction between players.
+    * The "char id" is not a currently supported field for different players so a name hash is used instead.
+    * The virtually negligent chance of a name hash collision is covered.
+    * @param killer the killer's entry
+    * @param victim the victim's entry
+    * @param method the manner of death
+    * @param unk na;
+    *            defaults to 121, the object id of `avatar`
+    * @return a `DestroyDisplayMessage` packet that is properly formatted
+    */
   def DestroyDisplayMessage(killer : SourceEntry, victim : SourceEntry, method : Int, unk : Int = 121) : DestroyDisplayMessage = {
     //TODO charId should reflect the player more properly
     val killerCharId = math.abs(killer.Name.hashCode)
     var victimCharId = math.abs(victim.Name.hashCode)
     if(killerCharId == victimCharId && killer.Name != victim.Name) {
-      victimCharId = victimCharId/2 + 1
+      //odds of hash collision in a populated zone should be close to odds of being struck by lightning
+      victimCharId = Int.MaxValue - victimCharId + 1
     }
     new DestroyDisplayMessage(
       killer.Name, killerCharId, killer.Faction, killer.Seated,

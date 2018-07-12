@@ -1,8 +1,13 @@
 // Copyright (c) 2017 PSForever
-package net.psforever.objects.vital
+package net.psforever.objects.vital.resistance
 
-import net.psforever.objects.PlanetSideGameObject
+import net.psforever.objects.vital.DamageType
 
+/**
+  * The different values for four common methods of modifying incoming damage.
+  * Two of the four resistances are directly paired with forms of incoming damage.
+  * This is for defining pure accessor functions.
+  */
 trait ResistanceProfile {
   def ResistanceDirectHit : Int
 
@@ -23,23 +28,12 @@ trait ResistanceProfile {
   }
 }
 
-trait StandardResistanceProfile extends ResistanceProfile {
-  this : PlanetSideGameObject =>
-  assert(Definition.isInstanceOf[ResistanceProfile], s"$this object definition must extend ResistanceProfile")
-  private val resistDef = Definition.asInstanceOf[ResistanceProfile] //cast only once
-
-  def ResistanceDirectHit : Int = resistDef.ResistanceDirectHit
-
-  def ResistanceSplash : Int = resistDef.ResistanceDirectHit
-
-  def ResistanceAggravated : Int = resistDef.ResistanceDirectHit
-
-  def RadiationShielding : Float = resistDef.ResistanceDirectHit
-}
-
+/**
+  * The different values for four common methods of modifying incoming damage.
+  * Two of the four resistances are directly paired with forms of incoming damage.
+  * This is for defining both accessor and mutator functions.
+  */
 trait ResistanceProfileMutators extends ResistanceProfile {
-  this : Any =>
-
   private var resistanceDirectHit : Int = 0
   private var resistanceSplash : Int = 0
   private var resistanceAggravated : Int = 0

@@ -9,7 +9,7 @@ import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.deploy.Deployment
 import net.psforever.objects.vehicles._
-import net.psforever.objects.vital.{StandardResistanceProfile, VitalsHistory}
+import net.psforever.objects.vital.{DamageResistanceModel, StandardResistanceProfile, Vitality}
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types.PlanetSideEmpire
 
@@ -68,7 +68,7 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
   with Mountable
   with MountedWeapons
   with Deployment
-  with VitalsHistory
+  with Vitality
   with StandardResistanceProfile
   with Container {
   private var faction : PlanetSideEmpire.Value = PlanetSideEmpire.TR
@@ -145,7 +145,7 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
   def Owner_=(owner : Option[PlanetSideGUID]) : Option[PlanetSideGUID] = {
     owner match {
       case Some(_) =>
-        if(Definition.CanBeOwned) { //e.g., base turrets
+        if(Definition.CanBeOwned) {
           this.owner = owner
         }
       case None =>
@@ -496,6 +496,8 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
     */
   def TrunkLockState :  VehicleLockState.Value = groupPermissions(3)
 
+  def DamageModel = Definition.asInstanceOf[DamageResistanceModel]
+
   /**
     * This is the definition entry that is used to store and unload pertinent information about the `Vehicle`.
     * @return the vehicle's definition entry
@@ -536,6 +538,20 @@ object Vehicle {
     * @see `VehicleControl`
     */
   final case class Reactivate()
+
+  /**
+    * A request has been made to charge this vehicle's shields.
+    * @see `FacilityBenefitShieldChargeRequestMessage`
+    * @param amount the number of points to charge
+    */
+  final case class ChargeShields(amount : Int)
+
+  /**
+    * Following a successful shield charge tick, display the results of the update.
+    * @see `FacilityBenefitShieldChargeRequestMessage`
+    * @param vehicle the updated vehicle
+    */
+  final case class UpdateShieldsCharge(vehicle : Vehicle)
 
   /**
     * Overloaded constructor.

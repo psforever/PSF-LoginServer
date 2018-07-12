@@ -18,7 +18,6 @@ object VehicleAction {
   final case class EquipmentInSlot(player_guid : PlanetSideGUID, target_guid : PlanetSideGUID, slot : Int, equipment : Equipment) extends Action
   final case class InventoryState(player_guid : PlanetSideGUID, obj : PlanetSideGameObject, parent_guid : PlanetSideGUID, start : Int, con_data : ConstructorData) extends Action
   final case class InventoryState2(player_guid : PlanetSideGUID, obj_guid : PlanetSideGUID, parent_guid : PlanetSideGUID, value : Int) extends Action
-  final case class HitHint(source_guid : PlanetSideGUID) extends Action
   final case class KickPassenger(player_guid : PlanetSideGUID, unk1 : Int, unk2 : Boolean, vehicle_guid : PlanetSideGUID) extends Action
   final case class LoadVehicle(player_guid : PlanetSideGUID, vehicle : Vehicle, vtype : Int, vguid : PlanetSideGUID, vdata : ConstructorData) extends Action
   final case class MountVehicle(player_guid : PlanetSideGUID, object_guid : PlanetSideGUID, seat : Int) extends Action

@@ -6,6 +6,7 @@ import net.psforever.objects.Vehicle
 import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior}
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
 import net.psforever.objects.serverobject.deploy.DeploymentBehavior
+import net.psforever.objects.vital.{VehicleShieldCharge, Vitality}
 import net.psforever.types.ExoSuitType
 
 /**
@@ -59,6 +60,22 @@ class VehicleControl(vehicle : Vehicle) extends Actor
           sender ! Mountable.MountMessages(user, Mountable.CanNotMount(vehicle, seat_num))
         }
 
+      case Vitality.Damage(damage_func) =>
+        if(vehicle.Health > 0) {
+          damage_func(vehicle)
+          sender ! Vitality.DamageResolution(vehicle)
+        }
+
+      case Vehicle.ChargeShields(amount) =>
+        val now : Long = System.nanoTime
+        //make certain vehicle doesn't charge shields too quickly
+        if(vehicle.Health > 0 && vehicle.Shields < vehicle.MaxShields &&
+          vehicle.LastVitalsActivity(VehicleControl.LastShieldChargeOrDamage(now)).isEmpty) {
+          vehicle.Shields = vehicle.Shields + amount
+          vehicle.History(VehicleShieldCharge(amount, now))
+          sender ! Vehicle.UpdateShieldsCharge(vehicle)
+        }
+
       case FactionAffinity.ConvertFactionAffinity(faction) =>
         val originalAffinity = vehicle.Faction
         if(originalAffinity != (vehicle.Faction = faction)) {
@@ -80,4 +97,25 @@ class VehicleControl(vehicle : Vehicle) extends Actor
 
       case _ => ;
     }
+}
+
+object VehicleControl {
+  import net.psforever.objects.vital.{ProjectileDamage, VehicleShieldCharge, VitalsActivity}
+  import scala.concurrent.duration._
+
+  /**
+    * Determine if a given activity entry would invalidate the act of charging vehicle shields this tick.
+    * @param now the current time (in nanoseconds)
+    * @param act a `VitalsActivity` entry to test
+    * @return `true`, if the vehicle took damage in the last five seconds or
+    *        charged shields in the last second;
+    *        `false`, otherwise
+    */
+  def LastShieldChargeOrDamage(now : Long)(act : VitalsActivity) : Boolean = {
+    act match {
+      case ProjectileDamage(data) => now - data.hit_time < (5 seconds).toNanos //damage delays next charge by 5s
+      case VehicleShieldCharge(_, time) => now - time < (1 seconds).toNanos //previous charge delays next by 1s
+      case _ => false
+    }
+  }
 }

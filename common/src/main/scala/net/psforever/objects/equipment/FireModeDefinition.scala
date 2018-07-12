@@ -2,7 +2,7 @@
 package net.psforever.objects.equipment
 
 import net.psforever.objects.Tool
-import net.psforever.objects.vital.DamageProfile
+import net.psforever.objects.vital.damage.DamageProfile
 
 import scala.collection.mutable
 
