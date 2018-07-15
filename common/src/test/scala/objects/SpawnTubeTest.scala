@@ -2,6 +2,7 @@
 package objects
 
 import akka.actor.{ActorRef, Props}
+import base.ActorTest
 import net.psforever.objects.GlobalDefinitions
 import net.psforever.objects.serverobject.tube.{SpawnTube, SpawnTubeControl, SpawnTubeDefinition}
 import org.specs2.mutable.Specification
@@ -48,7 +49,7 @@ class SpawnTubeTest extends Specification {
   }
 }
 
-class SpawnTubeControlTest extends ActorTest() {
+class SpawnTubeControlTest extends ActorTest {
   "SpawnTubeControl" should {
     "construct" in {
       val obj = SpawnTube(GlobalDefinitions.ams_respawn_tube)

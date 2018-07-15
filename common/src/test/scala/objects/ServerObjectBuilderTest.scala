@@ -2,6 +2,7 @@
 package objects
 
 import akka.actor.{Actor, ActorContext, Props}
+import base.ActorTest
 import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.objects.serverobject.ServerObjectBuilder
@@ -137,7 +138,8 @@ class ProximityTerminalObjectBuilderTest extends ActorTest {
   "Terminal object" should {
     "build" in {
       val hub = ServerObjectBuilderTest.NumberPoolHub
-      val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1, ProximityTerminal.Constructor(medical_terminal)), hub), "term")
+      val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1,
+        ProximityTerminal.Constructor(medical_terminal)), hub), "term")
       actor ! "!"
 
       val reply = receiveOne(Duration.create(1000, "ms"))
@@ -172,7 +174,7 @@ class VehicleSpawnPadObjectBuilderTest extends ActorTest {
 
 class LocalProjectileBuilderTest extends ActorTest {
   import net.psforever.objects.LocalProjectile
-  "Local ProjectileBuilder" should {
+  "Local projectile object" should {
     "build" in {
       val hub = ServerObjectBuilderTest.NumberPoolHub
       val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1,
@@ -190,7 +192,7 @@ class LocalProjectileBuilderTest extends ActorTest {
 
 class LockerObjectBuilderTest extends ActorTest {
   import net.psforever.objects.serverobject.mblocker.Locker
-  "LockerObjectBuilder" should {
+  "Locker object" should {
     "build" in {
       val hub = ServerObjectBuilderTest.NumberPoolHub
       val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1,
@@ -206,9 +208,27 @@ class LockerObjectBuilderTest extends ActorTest {
   }
 }
 
+class ResourceSiloObjectBuilderTest extends ActorTest {
+  import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
+  "Resource silo object" should {
+    "build" in {
+      val hub = ServerObjectBuilderTest.NumberPoolHub
+      val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1,
+        ResourceSilo.Constructor), hub), "spawn-tube")
+      actor ! "startup"
+
+      val reply = receiveOne(Duration.create(1000, "ms"))
+      assert(reply.isInstanceOf[ResourceSilo])
+      assert(reply.asInstanceOf[ResourceSilo].HasGUID)
+      assert(reply.asInstanceOf[ResourceSilo].GUID == PlanetSideGUID(1))
+      assert(reply == hub(1).get)
+    }
+  }
+}
+
 class SpawnTubeObjectBuilderTest extends ActorTest {
   import net.psforever.objects.serverobject.tube.SpawnTube
-  "LockerObjectBuilder" should {
+  "Spawn tube object" should {
     "build" in {
       val hub = ServerObjectBuilderTest.NumberPoolHub
       val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1,
@@ -221,6 +241,25 @@ class SpawnTubeObjectBuilderTest extends ActorTest {
       assert(reply.asInstanceOf[SpawnTube].GUID == PlanetSideGUID(1))
       assert(reply.asInstanceOf[SpawnTube].Position == Vector3(3980.4062f, 4267.3047f, 257.5625f))
       assert(reply.asInstanceOf[SpawnTube].Orientation == Vector3(0, 0, 90))
+      assert(reply == hub(1).get)
+    }
+  }
+}
+
+class MannedTurretObjectBuilderTest extends ActorTest {
+  import net.psforever.objects.GlobalDefinitions.manned_turret
+  import net.psforever.objects.serverobject.turret.MannedTurret
+  "MannedTurretObjectBuilder" should {
+    "build" in {
+      val hub = ServerObjectBuilderTest.NumberPoolHub
+      val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1,
+        MannedTurret.Constructor(manned_turret)), hub), "spawn-tube")
+      actor ! "!"
+
+      val reply = receiveOne(Duration.create(1000, "ms"))
+      assert(reply.isInstanceOf[MannedTurret])
+      assert(reply.asInstanceOf[MannedTurret].HasGUID)
+      assert(reply.asInstanceOf[MannedTurret].GUID == PlanetSideGUID(1))
       assert(reply == hub(1).get)
     }
   }

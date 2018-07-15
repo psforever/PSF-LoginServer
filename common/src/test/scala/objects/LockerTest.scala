@@ -2,6 +2,7 @@
 package objects
 
 import akka.actor.{ActorRef, Props}
+import base.ActorTest
 import net.psforever.objects.GlobalDefinitions
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.mblocker.{Locker, LockerControl}

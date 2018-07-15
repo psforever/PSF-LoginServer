@@ -1,10 +1,11 @@
 // Copyright (c) 2017 PSForever
 package services.vehicle
 
+import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.{PlanetSideGameObject, Vehicle}
 import net.psforever.packet.PlanetSideGamePacket
-import net.psforever.packet.game.PlanetSideGUID
+import net.psforever.packet.game.{ObjectCreateMessage, PlanetSideGUID}
 import net.psforever.packet.game.objectcreate.ConstructorData
 import net.psforever.types.{BailType, DriveState, Vector3}
 
@@ -17,6 +18,7 @@ object VehicleResponse {
   final case class DeployRequest(object_guid : PlanetSideGUID, state : DriveState.Value, unk1 : Int, unk2 : Boolean, pos : Vector3) extends Response
   final case class DetachFromRails(vehicle_guid : PlanetSideGUID, rails_guid : PlanetSideGUID, rails_pos : Vector3, rails_rot : Float) extends Response
   final case class DismountVehicle(bailType : BailType.Value , unk2 : Boolean) extends Response
+  final case class EquipmentInSlot(pkt : ObjectCreateMessage) extends Response
   final case class InventoryState(obj : PlanetSideGameObject, parent_guid : PlanetSideGUID, start : Int, con_data : ConstructorData) extends Response
   final case class InventoryState2(obj_guid : PlanetSideGUID, parent_guid : PlanetSideGUID, value : Int) extends Response
   final case class KickPassenger(seat_num : Int, kickedByDriver : Boolean, vehicle_guid : PlanetSideGUID) extends Response

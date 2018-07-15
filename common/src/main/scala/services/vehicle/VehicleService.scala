@@ -4,7 +4,9 @@ package services.vehicle
 import akka.actor.{Actor, ActorRef, Props}
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
 import net.psforever.objects.zones.Zone
-import services.vehicle.support.VehicleRemover
+import net.psforever.packet.game.ObjectCreateMessage
+import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
+import services.vehicle.support.{TurretUpgrader, VehicleRemover}
 import net.psforever.types.DriveState
 import services.{GenericEventBus, RemoverActor, Service}
 
@@ -12,6 +14,7 @@ import scala.concurrent.duration._
 
 class VehicleService extends Actor {
   private val vehicleDecon : ActorRef = context.actorOf(Props[VehicleRemover], "vehicle-decon-agent")
+  private val turretUpgrade : ActorRef = context.actorOf(Props[TurretUpgrader], "turret-upgrade-agent")
   private [this] val log = org.log4s.getLogger
 
   override def preStart = {
@@ -52,6 +55,18 @@ class VehicleService extends Actor {
         case VehicleAction.DismountVehicle(player_guid, bailType, unk2) =>
           VehicleEvents.publish(
             VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.DismountVehicle(bailType, unk2))
+          )
+        case VehicleAction.EquipmentInSlot(player_guid, target_guid, slot, equipment) =>
+          val definition = equipment.Definition
+          val pkt = ObjectCreateMessage(
+            definition.ObjectId,
+            equipment.GUID,
+            ObjectCreateMessageParent(target_guid, slot),
+            definition.Packet.ConstructorData(equipment).get
+          )
+          ObjectCreateMessageParent(target_guid, slot)
+          VehicleEvents.publish(
+            VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.EquipmentInSlot(pkt))
           )
         case VehicleAction.InventoryState(player_guid, obj, parent_guid, start, con_data) =>
           VehicleEvents.publish(
@@ -113,6 +128,10 @@ class VehicleService extends Actor {
     //message to VehicleRemover
     case VehicleServiceMessage.Decon(msg) =>
       vehicleDecon forward msg
+
+    //message to TurretUpgrader
+    case VehicleServiceMessage.TurretUpgrade(msg) =>
+      turretUpgrade forward msg
 
     //from VehicleSpawnControl
     case VehicleSpawnPad.ConcealPlayer(player_guid, zone_id) =>

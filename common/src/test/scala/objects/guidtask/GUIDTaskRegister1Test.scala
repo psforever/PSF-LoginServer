@@ -1,8 +1,8 @@
 // Copyright (c) 2017 PSForever
 package objects.guidtask
 
+import base.ActorTest
 import net.psforever.objects.guid.{GUIDTask, TaskResolver}
-import objects.ActorTest
 
 class GUIDTaskRegister1Test extends ActorTest {
   "RegisterObjectTask" in {

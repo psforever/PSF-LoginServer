@@ -15,9 +15,11 @@ import net.psforever.objects.serverobject.terminals._
 import net.psforever.objects.serverobject.tube.SpawnTubeDefinition
 import net.psforever.objects.serverobject.resourcesilo.ResourceSiloDefinition
 import net.psforever.objects.ballistics.{DamageType, Projectiles}
+import net.psforever.objects.serverobject.turret.{MannedTurretDefinition, TurretUpgrade}
 import net.psforever.objects.vehicles.{SeatArmorRestriction, UtilityType}
 import net.psforever.types.PlanetSideEmpire
 
+import scala.collection.mutable
 import scala.concurrent.duration._
 
 object GlobalDefinitions {
@@ -414,11 +416,11 @@ object GlobalDefinitions {
   val upgrade_canister = AmmoBoxDefinition(Ammo.upgrade_canister)
 
   val trek_ammo = AmmoBoxDefinition(Ammo.trek_ammo)
-  //
+
   val bullet_35mm = AmmoBoxDefinition(Ammo.bullet_35mm) //liberator nosegun
 
   val ancient_ammo_vehicle = AmmoBoxDefinition(Ammo.ancient_ammo_vehicle)
-  //
+
   val aphelion_laser_ammo = AmmoBoxDefinition(Ammo.aphelion_laser_ammo)
 
   val aphelion_immolation_cannon_ammo = AmmoBoxDefinition(Ammo.aphelion_immolation_cannon_ammo)
@@ -488,6 +490,8 @@ object GlobalDefinitions {
   val peregrine_sparrow_ammo = AmmoBoxDefinition(Ammo.peregrine_sparrow_ammo)
 
   val bullet_150mm = AmmoBoxDefinition(Ammo.bullet_150mm)
+
+  val phalanx_ammo = AmmoBoxDefinition(Ammo.phalanx_ammo)
   init_ammo()
 
   val chainblade = ToolDefinition(ObjectClass.chainblade)
@@ -722,6 +726,12 @@ object GlobalDefinitions {
   val galaxy_gunship_tailgun = ToolDefinition(ObjectClass.galaxy_gunship_tailgun)
 
   val galaxy_gunship_gun = ToolDefinition(ObjectClass.galaxy_gunship_gun)
+
+  val phalanx_sgl_hevgatcan = ToolDefinition(ObjectClass.phalanx_sgl_hevgatcan)
+
+  val phalanx_avcombo = ToolDefinition(ObjectClass.phalanx_avcombo)
+
+  val phalanx_flakcombo = ToolDefinition(ObjectClass.phalanx_flakcombo)
   init_tools()
 
   /*
@@ -848,6 +858,18 @@ object GlobalDefinitions {
   val door = new DoorDefinition
 
   val resource_silo = new ResourceSiloDefinition
+
+  val manned_turret = new MannedTurretDefinition(480) {
+    Name = "manned_turret"
+    MaxHealth = 3600
+    Weapons += 1 -> new mutable.HashMap()
+    Weapons(1) += TurretUpgrade.None -> phalanx_sgl_hevgatcan
+    Weapons(1) += TurretUpgrade.AVCombo -> phalanx_avcombo
+    Weapons(1) += TurretUpgrade.FlakCombo -> phalanx_flakcombo
+    MountPoints += 1 -> 0
+    FactionLocked = true
+    ReserveAmmunition = false
+  }
 
   /**
     * Given a faction, provide the standard assault melee weapon.
@@ -1352,15 +1374,15 @@ object GlobalDefinitions {
 
     health_canister.Name = "health_canister"
     health_canister.Capacity = 100
-    health_canister.Tile = InventoryTile.Tile33
+    health_canister.Tile = InventoryTile.Tile23
 
     armor_canister.Name = "armor_canister"
     armor_canister.Capacity = 100
-    armor_canister.Tile = InventoryTile.Tile33
+    armor_canister.Tile = InventoryTile.Tile23
 
     upgrade_canister.Name = "upgrade_canister"
-    upgrade_canister.Capacity = 100
-    upgrade_canister.Tile = InventoryTile.Tile33
+    upgrade_canister.Capacity = 1
+    upgrade_canister.Tile = InventoryTile.Tile23
 
     trek_ammo.Name = "trek_ammo"
     trek_ammo.Size = EquipmentSize.Blocked
@@ -1508,6 +1530,10 @@ object GlobalDefinitions {
     bullet_150mm.Name = "bullet_150mm"
     bullet_150mm.Capacity = 50
     bullet_150mm.Tile = InventoryTile.Tile44
+
+    phalanx_ammo.Name = "phalanx_ammo"
+    phalanx_ammo.Capacity = 4000 //sufficient for a reload
+    phalanx_ammo.Size = EquipmentSize.Inventory
   }
 
   /**
@@ -3743,6 +3769,7 @@ object GlobalDefinitions {
     nano_dispenser.FireModes.head.AmmoTypeIndices += 1
     nano_dispenser.FireModes.head.AmmoSlotIndex = 0
     nano_dispenser.FireModes.head.Magazine = 100
+    nano_dispenser.FireModes.head.CustomMagazine = Ammo.upgrade_canister -> 1
     nano_dispenser.FireModes.head.Modifiers.Damage1 = 20
     nano_dispenser.FireModes.head.Modifiers.Damage4 = 20
     nano_dispenser.Tile = InventoryTile.Tile63
@@ -4297,6 +4324,45 @@ object GlobalDefinitions {
     galaxy_gunship_gun.FireModes.head.AmmoTypeIndices += 0
     galaxy_gunship_gun.FireModes.head.AmmoSlotIndex = 0
     galaxy_gunship_gun.FireModes.head.Magazine = 200
+
+    phalanx_sgl_hevgatcan.Name = "phalanx_sgl_hevgatcan"
+    phalanx_sgl_hevgatcan.Size = EquipmentSize.BaseTurretWeapon
+    phalanx_sgl_hevgatcan.AmmoTypes += phalanx_ammo
+    phalanx_sgl_hevgatcan.ProjectileTypes += phalanx_projectile
+    phalanx_sgl_hevgatcan.FireModes += new InfiniteFireModeDefinition
+    phalanx_sgl_hevgatcan.FireModes.head.AmmoTypeIndices += 0
+    phalanx_sgl_hevgatcan.FireModes.head.AmmoSlotIndex = 0
+    phalanx_sgl_hevgatcan.FireModes.head.Magazine = 4000
+
+    phalanx_avcombo.Name = "phalanx_avcombo"
+    phalanx_avcombo.Size = EquipmentSize.BaseTurretWeapon
+    phalanx_avcombo.AmmoTypes += phalanx_ammo
+    phalanx_avcombo.ProjectileTypes += phalanx_projectile
+    phalanx_avcombo.ProjectileTypes += phalanx_av_projectile
+    phalanx_avcombo.FireModes += new InfiniteFireModeDefinition
+    phalanx_avcombo.FireModes.head.AmmoTypeIndices += 0
+    phalanx_avcombo.FireModes.head.AmmoSlotIndex = 0
+    phalanx_avcombo.FireModes.head.Magazine = 4000
+    phalanx_avcombo.FireModes += new InfiniteFireModeDefinition
+    phalanx_avcombo.FireModes(1).AmmoTypeIndices += 0
+    phalanx_avcombo.FireModes(1).ProjectileTypeIndices += 1
+    phalanx_avcombo.FireModes(1).AmmoSlotIndex = 0
+    phalanx_avcombo.FireModes(1).Magazine = 4000
+
+    phalanx_flakcombo.Name = "phalanx_flakcombo"
+    phalanx_flakcombo.Size = EquipmentSize.BaseTurretWeapon
+    phalanx_flakcombo.AmmoTypes += phalanx_ammo
+    phalanx_flakcombo.ProjectileTypes += phalanx_projectile
+    phalanx_flakcombo.ProjectileTypes += phalanx_flak_projectile
+    phalanx_flakcombo.FireModes += new InfiniteFireModeDefinition
+    phalanx_flakcombo.FireModes.head.AmmoTypeIndices += 0
+    phalanx_flakcombo.FireModes.head.AmmoSlotIndex = 0
+    phalanx_flakcombo.FireModes.head.Magazine = 4000
+    phalanx_flakcombo.FireModes += new InfiniteFireModeDefinition
+    phalanx_flakcombo.FireModes(1).AmmoTypeIndices += 0
+    phalanx_flakcombo.FireModes(1).ProjectileTypeIndices += 1
+    phalanx_flakcombo.FireModes(1).AmmoSlotIndex = 0
+    phalanx_flakcombo.FireModes(1).Magazine = 4000
   }
 
   /**

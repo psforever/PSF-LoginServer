@@ -2,6 +2,7 @@
 package objects
 
 import akka.actor.Props
+import base.ActorTest
 import net.psforever.objects._
 import net.psforever.objects.definition.{SeatDefinition, VehicleDefinition}
 import net.psforever.objects.serverobject.mount.Mountable

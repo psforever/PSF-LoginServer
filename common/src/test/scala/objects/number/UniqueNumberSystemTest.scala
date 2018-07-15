@@ -2,17 +2,17 @@
 package objects.number
 
 import akka.actor.{ActorRef, ActorSystem, Props}
+import base.ActorTest
 import net.psforever.objects.entity.IdentifiableEntity
 import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.objects.guid.actor.{NumberPoolActor, Register, UniqueNumberSystem, Unregister}
 import net.psforever.objects.guid.selector.RandomSelector
 import net.psforever.objects.guid.source.LimitedNumberSource
-import objects.ActorTest
 
 import scala.concurrent.duration.Duration
 import scala.util.{Failure, Success}
 
-class AllocateNumberPoolActors extends ActorTest() {
+class AllocateNumberPoolActors extends ActorTest {
   "AllocateNumberPoolActors" in {
     val src : LimitedNumberSource = LimitedNumberSource(6000)
     val guid : NumberPoolHub = new NumberPoolHub(src)

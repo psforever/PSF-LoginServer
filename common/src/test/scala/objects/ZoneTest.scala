@@ -4,6 +4,7 @@ package objects
 import java.util.concurrent.atomic.AtomicInteger
 
 import akka.actor.{ActorContext, ActorRef, Props}
+import base.ActorTest
 import net.psforever.objects.entity.IdentifiableEntity
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.guid.NumberPoolHub
@@ -73,6 +74,15 @@ class ZoneTest extends Specification {
       map.TerminalToInterface mustEqual Map(1 -> 2)
       map.TerminalToInterface(3, 4)
       map.TerminalToInterface mustEqual Map(1 -> 2, 3 -> 4)
+    }
+
+    "associate turrets to weapons" in {
+      val map = new ZoneMap("map13")
+      map.TurretToWeapon mustEqual Map.empty
+      map.TurretToWeapon(1, 2)
+      map.TurretToWeapon mustEqual Map(1 -> 2)
+      map.TurretToWeapon(3, 4)
+      map.TurretToWeapon mustEqual Map(1 -> 2, 3 -> 4)
     }
   }
 

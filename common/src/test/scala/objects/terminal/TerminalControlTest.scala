@@ -2,17 +2,17 @@
 package objects.terminal
 
 import akka.actor.{ActorSystem, Props}
+import base.ActorTest
 import net.psforever.objects.serverobject.structures.{Building, StructureType}
 import net.psforever.objects.serverobject.terminals.{Terminal, TerminalControl, TerminalDefinition}
 import net.psforever.objects.zones.Zone
 import net.psforever.objects.{Avatar, GlobalDefinitions, Player}
 import net.psforever.packet.game.{ItemTransactionMessage, PlanetSideGUID}
 import net.psforever.types._
-import objects.ActorTest
 
 import scala.concurrent.duration.Duration
 
-class TerminalControl1Test extends ActorTest() {
+class TerminalControl1Test extends ActorTest {
   "TerminalControl" should {
     "construct (cert terminal)" in {
       val terminal = Terminal(GlobalDefinitions.cert_terminal)
@@ -21,7 +21,7 @@ class TerminalControl1Test extends ActorTest() {
   }
 }
 
-class TerminalControl2Test extends ActorTest() {
+class TerminalControl2Test extends ActorTest {
   "TerminalControl can not process wrong messages" in {
     val (_, terminal) = TerminalControlTest.SetUpAgents(GlobalDefinitions.cert_terminal, PlanetSideEmpire.TR)
 
@@ -32,7 +32,7 @@ class TerminalControl2Test extends ActorTest() {
 
 //terminal control is mostly a pass-through actor for Terminal.Exchange messages, wrapped in Terminal.TerminalMessage protocol
 //test for Cert_Terminal messages (see CertTerminalTest)
-class CertTerminalControl1Test extends ActorTest() {
+class CertTerminalControl1Test extends ActorTest {
   "TerminalControl can be used to learn a certification ('medium_assault')" in {
     val (player, terminal) = TerminalControlTest.SetUpAgents(GlobalDefinitions.cert_terminal, PlanetSideEmpire.TR)
     val msg = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Learn, 0, "medium_assault", 0, PlanetSideGUID(0))
@@ -47,7 +47,7 @@ class CertTerminalControl1Test extends ActorTest() {
   }
 }
 
-class CertTerminalControl2Test extends ActorTest() {
+class CertTerminalControl2Test extends ActorTest {
   "TerminalControl can be used to warn about not learning a fake certification ('juggling')" in {
     val (player, terminal) = TerminalControlTest.SetUpAgents(GlobalDefinitions.cert_terminal, PlanetSideEmpire.TR)
     val msg = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Learn, 0, "juggling", 0, PlanetSideGUID(0))
@@ -62,7 +62,7 @@ class CertTerminalControl2Test extends ActorTest() {
   }
 }
 
-class CertTerminalControl3Test extends ActorTest() {
+class CertTerminalControl3Test extends ActorTest {
   "TerminalControl can be used to forget a certification ('medium_assault')" in {
     val (player, terminal) = TerminalControlTest.SetUpAgents(GlobalDefinitions.cert_terminal, PlanetSideEmpire.TR)
     val msg = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Sell, 0, "medium_assault", 0, PlanetSideGUID(0))
@@ -77,7 +77,7 @@ class CertTerminalControl3Test extends ActorTest() {
   }
 }
 
-class VehicleTerminalControl1Test extends ActorTest() {
+class VehicleTerminalControl1Test extends ActorTest {
   "TerminalControl can be used to buy a vehicle ('two_man_assault_buggy')" in {
     val (player, terminal) = TerminalControlTest.SetUpAgents(GlobalDefinitions.ground_vehicle_terminal, PlanetSideEmpire.TR)
     val msg = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Buy, 0, "two_man_assault_buggy", 0, PlanetSideGUID(0))
@@ -102,7 +102,7 @@ class VehicleTerminalControl1Test extends ActorTest() {
   }
 }
 
-class VehicleTerminalControl2Test extends ActorTest() {
+class VehicleTerminalControl2Test extends ActorTest {
   "TerminalControl can be used to warn about not buy a vehicle ('harasser')" in {
     val (player, terminal) = TerminalControlTest.SetUpAgents(GlobalDefinitions.ground_vehicle_terminal, PlanetSideEmpire.TR)
     val msg = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Buy, 0, "harasser", 0, PlanetSideGUID(0))
