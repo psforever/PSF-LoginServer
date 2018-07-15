@@ -53,6 +53,7 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.Success
 import akka.pattern.ask
+import net.psforever.objects.ballistics.{Projectile, ProjectileResolution}
 
 class WorldSessionActor extends Actor with MDCContextAware {
   import WorldSessionActor._
@@ -84,6 +85,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
   var traveler : Traveler = null
   var deadState : DeadState.Value = DeadState.Dead
   var whenUsedLastKit : Long = 0
+  val projectiles : Array[Option[Projectile]] = Array.fill[Option[Projectile]](Projectile.RangeUID - Projectile.BaseUID)(None)
 
   var amsSpawnPoint : Option[SpawnTube] = None
 
@@ -2586,7 +2588,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
         else if((player.DrawnSlot = held_holsters) != before) {
           avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.ObjectHeld(player.GUID, player.LastDrawnSlot))
 
-
           // Ignore non-equipment holsters
           //todo: check current suit holster slots?
           if(held_holsters >= 0 && held_holsters < 5) {
@@ -2598,7 +2599,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
                 }
               case None => ;
             }
-
           }
 
           // Stop using proximity terminals if player unholsters a weapon (which should re-trigger the proximity effect and re-holster the weapon)
@@ -2684,11 +2684,22 @@ class WorldSessionActor extends Actor with MDCContextAware {
               }
           }
 
+        case Some(_ : LocalProjectile) =>
+          FindProjectileEntry(object_guid) match {
+            case Some(projectile) =>
+              if(projectile.resolution != ProjectileResolution.Unresolved) {
+                log.warn(s"RequestDestroy: tried to clean up missed projectile ${object_guid.guid} but it was already resolved")
+              }
+              ResolveProjectileEntry(object_guid, ProjectileResolution.MissedShot)
+            case None =>
+              log.warn(s"RequestDestroy: projectile ${object_guid.guid} has never been fired")
+          }
+
         case Some(thing) =>
           log.warn(s"RequestDestroy: not allowed to delete object $thing")
 
         case None =>
-          log.warn(s"RequestDestroy: object $object_guid not found")
+          log.warn(s"RequestDestroy: object ${object_guid.guid} not found")
       }
 
     case msg @ ObjectDeleteMessage(object_guid, unk1) =>
@@ -3137,8 +3148,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ WeaponFireMessage(seq_time, weapon_guid, projectile_guid, shot_origin, unk1, unk2, unk3, unk4, unk5, unk6, unk7) =>
       log.info("WeaponFire: " + msg)
-      FindWeapon match {
-        case Some(tool : Tool) =>
+      FindContainedWeapon match {
+        case (Some(obj), Some(tool : Tool)) =>
           if(tool.Magazine <= 0) { //safety: enforce ammunition depletion
             tool.Magazine = 0
             sendResponse(InventoryStateMessage(tool.AmmoSlot.Box.GUID, weapon_guid, 0))
@@ -3149,7 +3160,17 @@ class WorldSessionActor extends Actor with MDCContextAware {
           }
           else { //shooting
             tool.Discharge
-            //TODO other stuff?
+            val projectileIndex = projectile_guid.guid - Projectile.BaseUID
+            val ang = obj match {
+              case _ : Player =>
+                obj.Orientation //TODO upper body facing
+              case _ : Vehicle =>
+                tool.Orientation //TODO this is too simplistic
+              case _ =>
+                Vector3.Zero
+            }
+            projectiles(projectileIndex) =
+              Some(Projectile(tool.Projectile, tool.Definition, shot_origin, ang))
           }
         case _ => ;
       }
@@ -3158,10 +3179,16 @@ class WorldSessionActor extends Actor with MDCContextAware {
       log.info("Lazing position: " + pos2.toString)
 
     case msg @ HitMessage(seq_time, projectile_guid, unk1, hit_info, unk2, unk3, unk4) =>
-      log.info("Hit: " + msg)
+      log.info(s"Hit: $msg")
+      ResolveProjectileEntry(projectile_guid, ProjectileResolution.Hit)
 
-    case msg @ SplashHitMessage(unk1, unk2, unk3, unk4, unk5, unk6, unk7, unk8) =>
-      log.info("SplashHitMessage: " + msg)
+    case msg @ SplashHitMessage(seq_time, projectile_guid, explosion_pos, direct_victim_uid, unk3, projectile_vel, unk4, targets) =>
+      log.info(s"Splash: $msg")
+      ResolveProjectileEntry(projectile_guid, ProjectileResolution.Splash)
+
+    case msg @ LashMessage(seq_time, killer_guid, victim_guid, projectile_guid, pos, unk1) =>
+      log.info(s"Lash: $msg")
+      ResolveProjectileEntry(projectile_guid, ProjectileResolution.Lash)
 
     case msg @ AvatarFirstTimeEventMessage(avatar_guid, object_guid, unk1, event_name) =>
       log.info("AvatarFirstTimeEvent: " + msg)
@@ -5226,6 +5253,62 @@ class WorldSessionActor extends Actor with MDCContextAware {
     if(controlled.nonEmpty) {
       controlled = None
       sendResponse(ServerVehicleOverrideMsg(false, false, false, false, 0, 0, 0, None))
+    }
+  }
+
+  /**
+    * Given a globally unique identifier in the 40100 to 40124 range
+    * (with an optional 25 as buffer),
+    * find a projectile.
+    * @param projectile_guid the projectile's GUID
+    * @return the discovered projectile
+    */
+  def FindProjectileEntry(projectile_guid : PlanetSideGUID) : Option[Projectile] = {
+    val index = projectile_guid.guid - Projectile.BaseUID
+    if(0 <= index && index < projectiles.length) {
+      projectiles(index)
+    }
+    else {
+      log.warn(s"ResolveProjectile: expected projectile, but ${projectile_guid.guid} not found")
+      None
+    }
+  }
+
+  /**
+    * Find a projectile with the given globally unique identifier and mark it as a resolved shot.
+    * A `Resolved` shot has either encountered an obstacle or is being cleaned up for not finding an obstacle.
+    * @param projectile_guid the projectile GUID
+    * @param resolution the resolution status to promote the projectile
+    * @return the projectile
+    */
+  def ResolveProjectileEntry(projectile_guid : PlanetSideGUID, resolution : ProjectileResolution.Value) : Option[Projectile] = {
+    FindProjectileEntry(projectile_guid) match {
+      case Some(projectile) =>
+        val index =  projectile_guid.guid - Projectile.BaseUID
+        ResolveProjectileEntry(projectile, index, resolution)
+      case None =>
+        log.warn(s"ResolveProjectile: expected projectile, but ${projectile_guid.guid} not found")
+        None
+    }
+  }
+
+  /**
+    * Find a projectile with the given globally unique identifier and mark it as a resolved shot.
+    * A `Resolved` shot has either encountered an obstacle or is being cleaned up for not finding an obstacle.
+    * The internal copy of the projectile is retained as merely `Resolved`
+    * while the observed projectile is promoted to the suggested resolution status.
+    * @param projectile the projectile object
+    * @param index where the projectile was found
+    * @param resolution the resolution status to promote the projectile
+    * @return a copy of the projectile
+    */
+  def ResolveProjectileEntry(projectile : Projectile, index : Int, resolution : ProjectileResolution.Value) : Option[Projectile] = {
+    if(projectiles(index).contains(projectile)) {
+      projectiles(index) = Some(projectile.Resolve(ProjectileResolution.Resolved))
+      Some(projectile.Resolve(resolution))
+    }
+    else {
+      None
     }
   }
 

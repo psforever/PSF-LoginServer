@@ -170,6 +170,24 @@ class VehicleSpawnPadObjectBuilderTest extends ActorTest {
   }
 }
 
+class LocalProjectileBuilderTest extends ActorTest {
+  import net.psforever.objects.LocalProjectile
+  "Local ProjectileBuilder" should {
+    "build" in {
+      val hub = ServerObjectBuilderTest.NumberPoolHub
+      val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1,
+        LocalProjectile.Constructor), hub), "locker")
+      actor ! "!"
+
+      val reply = receiveOne(Duration.create(1000, "ms"))
+      assert(reply.isInstanceOf[LocalProjectile])
+      assert(reply.asInstanceOf[LocalProjectile].HasGUID)
+      assert(reply.asInstanceOf[LocalProjectile].GUID == PlanetSideGUID(1))
+      assert(reply == hub(1).get)
+    }
+  }
+}
+
 class LockerObjectBuilderTest extends ActorTest {
   import net.psforever.objects.serverobject.mblocker.Locker
   "LockerObjectBuilder" should {

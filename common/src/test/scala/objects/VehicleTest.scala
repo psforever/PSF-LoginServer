@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package objects
 
-import akka.actor.{ActorSystem, Props}
+import akka.actor.Props
 import net.psforever.objects._
 import net.psforever.objects.definition.{SeatDefinition, VehicleDefinition}
 import net.psforever.objects.serverobject.mount.Mountable

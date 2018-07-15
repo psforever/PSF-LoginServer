@@ -11,8 +11,10 @@ import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types.PlanetSideEmpire
 import org.specs2.mutable.Specification
+import services.ServiceManager
+import services.galaxy.GalaxyService
 
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration._
 
 class AmenityTest extends Specification {
   class AmenityObject extends Amenity {
@@ -122,15 +124,20 @@ class BuildingControl1Test extends ActorTest {
 }
 
 class BuildingControl2Test extends ActorTest {
+  ServiceManager.boot(system) ! ServiceManager.Register(Props[GalaxyService], "galaxy")
+  val bldg = Building(10, Zone.Nowhere, StructureType.Building)
+  bldg.Faction = PlanetSideEmpire.TR
+  bldg.Actor = system.actorOf(Props(classOf[BuildingControl], bldg), "test")
+
   "Building Control" should {
     "convert and assert faction affinity on convert request" in {
-      val bldg = Building(10, Zone.Nowhere, StructureType.Building)
-      bldg.Faction = PlanetSideEmpire.TR
-      bldg.Actor = system.actorOf(Props(classOf[BuildingControl], bldg), "test")
-      assert(bldg.Faction == PlanetSideEmpire.TR)
+      expectNoMsg(250 milliseconds)
+      bldg.Actor ! "startup"
+      expectNoMsg(250 milliseconds)
 
+      assert(bldg.Faction == PlanetSideEmpire.TR)
       bldg.Actor ! FactionAffinity.ConvertFactionAffinity(PlanetSideEmpire.VS)
-      val reply = receiveOne(Duration.create(100, "ms"))
+      val reply = receiveOne(500 milliseconds)
       assert(reply.isInstanceOf[FactionAffinity.AssertFactionAffinity])
       assert(reply.asInstanceOf[FactionAffinity.AssertFactionAffinity].obj == bldg)
       assert(reply.asInstanceOf[FactionAffinity.AssertFactionAffinity].faction == PlanetSideEmpire.VS)
@@ -140,19 +147,25 @@ class BuildingControl2Test extends ActorTest {
 }
 
 class BuildingControl3Test extends ActorTest {
+  ServiceManager.boot(system) ! ServiceManager.Register(Props[GalaxyService], "galaxy")
+  val bldg = Building(10, Zone.Nowhere, StructureType.Building)
+  bldg.Faction = PlanetSideEmpire.TR
+  bldg.Actor = system.actorOf(Props(classOf[BuildingControl], bldg), "test")
+  val door1 = Door(GlobalDefinitions.door)
+  door1.GUID = PlanetSideGUID(1)
+  door1.Actor = system.actorOf(Props(classOf[DoorControl], door1), "door1-test")
+  val door2 = Door(GlobalDefinitions.door)
+  door2.GUID = PlanetSideGUID(2)
+  door2.Actor = system.actorOf(Props(classOf[DoorControl], door2), "door2-test")
+  bldg.Amenities = door2
+  bldg.Amenities = door1
+
   "Building Control" should {
     "convert and assert faction affinity on convert request, and for each of its amenities" in {
-      val bldg = Building(10, Zone.Nowhere, StructureType.Building)
-      bldg.Faction = PlanetSideEmpire.TR
-      bldg.Actor = system.actorOf(Props(classOf[BuildingControl], bldg), "building-test")
-      val door1 = Door(GlobalDefinitions.door)
-      door1.GUID = PlanetSideGUID(1)
-      door1.Actor = system.actorOf(Props(classOf[DoorControl], door1), "door1-test")
-      val door2 = Door(GlobalDefinitions.door)
-      door2.GUID = PlanetSideGUID(2)
-      door2.Actor = system.actorOf(Props(classOf[DoorControl], door2), "door2-test")
-      bldg.Amenities = door2
-      bldg.Amenities = door1
+      expectNoMsg(250 milliseconds)
+      bldg.Actor ! "startup"
+      expectNoMsg(250 milliseconds)
+
       assert(bldg.Faction == PlanetSideEmpire.TR)
       assert(bldg.Amenities.length == 2)
       assert(bldg.Amenities.head == door2)

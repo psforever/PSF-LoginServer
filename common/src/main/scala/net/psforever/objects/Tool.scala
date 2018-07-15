@@ -1,8 +1,9 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects
 
-import net.psforever.objects.definition.{AmmoBoxDefinition, ToolDefinition}
-import net.psforever.objects.equipment.{Ammo, Equipment, FireModeDefinition, FireModeSwitch}
+import net.psforever.objects.definition.{AmmoBoxDefinition, ProjectileDefinition, ToolDefinition}
+import net.psforever.objects.equipment._
+import net.psforever.objects.ballistics.Projectiles
 
 import scala.annotation.tailrec
 
@@ -58,6 +59,20 @@ class Tool(private val toolDef : ToolDefinition) extends Equipment with FireMode
     AmmoSlot.AmmoTypeIndex = AmmoSlot.AmmoTypeIndex + 1
     AmmoType
   }
+
+  def Projectile : ProjectileDefinition = {
+    toolDef.ProjectileTypes({
+      val projIndices = FireMode.ProjectileTypeIndices
+      if(projIndices.isEmpty) {
+        AmmoTypeIndex //e.g., bullet_9mm -> bullet_9mm_projectile, bullet_9mm_AP -> bullet_9mm_AP_projectile
+      }
+      else {
+        projIndices(AmmoSlot.AmmoTypeIndex) //e.g., pulsar: f.mode1 -> pulsar_projectile, f.mode2 = pulsar_ap_projectile
+      }
+    })
+  }
+
+  def ProjectileType : Projectiles.Value = Projectile.ProjectileType
 
   def Magazine : Int = AmmoSlot.Magazine
 
