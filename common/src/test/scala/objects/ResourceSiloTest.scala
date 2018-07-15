@@ -30,14 +30,14 @@ class ResourceSiloTest extends Specification {
       obj.Definition mustEqual GlobalDefinitions.resource_silo
       obj.MaximumCharge mustEqual 1000
       obj.ChargeLevel mustEqual 0
-      obj.LowNtuWarningOn mustEqual 0
+      obj.LowNtuWarningOn mustEqual true
       obj.CapacitorDisplay mustEqual 0
       //
       obj.ChargeLevel = 50
-      obj.LowNtuWarningOn = 25
+      obj.LowNtuWarningOn = false
       obj.CapacitorDisplay = 75
       obj.ChargeLevel mustEqual 50
-      obj.LowNtuWarningOn mustEqual 25
+      obj.LowNtuWarningOn mustEqual false
       obj.CapacitorDisplay mustEqual 75
     }
 
@@ -116,13 +116,13 @@ class ResourceSiloControlNtuWarningTest extends ActorTest {
   }
 
   "Resource silo" should {
-    "announce low ntu" in {
+    "announce high ntu" in {
       expectNoMsg(1 seconds)
-      assert(obj.LowNtuWarningOn == 0)
-      obj.Actor ! ResourceSilo.LowNtuWarning(10)
+      assert(obj.LowNtuWarningOn == true)
+      obj.Actor ! ResourceSilo.LowNtuWarning(false)
 
       val reply = probe.receiveOne(500 milliseconds)
-      assert(obj.LowNtuWarningOn == 10)
+      assert(obj.LowNtuWarningOn == false)
       assert(reply.isInstanceOf[AvatarServiceMessage])
       assert(reply.asInstanceOf[AvatarServiceMessage].forChannel == "nowhere")
       assert(reply.asInstanceOf[AvatarServiceMessage]
@@ -132,7 +132,7 @@ class ResourceSiloControlNtuWarningTest extends ActorTest {
       assert(reply.asInstanceOf[AvatarServiceMessage]
         .actionMessage.asInstanceOf[AvatarAction.PlanetsideAttribute].attribute_type == 47)
       assert(reply.asInstanceOf[AvatarServiceMessage]
-        .actionMessage.asInstanceOf[AvatarAction.PlanetsideAttribute].attribute_value == 10)
+        .actionMessage.asInstanceOf[AvatarAction.PlanetsideAttribute].attribute_value == 0)
     }
   }
 }
@@ -154,17 +154,17 @@ class ResourceSiloControlUpdate1Test extends ActorTest {
   obj.Owner = bldg
 
   "Resource silo" should {
-    "update the charge level and capacitor display (report low ntu, power restored)" in {
+    "update the charge level and capacitor display (report high ntu, power restored)" in {
       expectNoMsg(1 seconds)
 
       assert(obj.ChargeLevel == 0)
       assert(obj.CapacitorDisplay == 0)
-      obj.Actor ! ResourceSilo.UpdateChargeLevel(105)
+      obj.Actor ! ResourceSilo.UpdateChargeLevel(305)
 
       val reply1 = probe1.receiveOne(500 milliseconds)
       val reply2 = probe2.receiveOne(500 milliseconds)
-      assert(obj.ChargeLevel == 105)
-      assert(obj.CapacitorDisplay == 1)
+      assert(obj.ChargeLevel == 305)
+      assert(obj.CapacitorDisplay == 3)
       assert(reply1.isInstanceOf[AvatarServiceMessage])
       assert(reply1.asInstanceOf[AvatarServiceMessage].forChannel == "nowhere")
       assert(reply1.asInstanceOf[AvatarServiceMessage]
@@ -174,7 +174,7 @@ class ResourceSiloControlUpdate1Test extends ActorTest {
       assert(reply1.asInstanceOf[AvatarServiceMessage]
         .actionMessage.asInstanceOf[AvatarAction.PlanetsideAttribute].attribute_type == 45)
       assert(reply1.asInstanceOf[AvatarServiceMessage]
-        .actionMessage.asInstanceOf[AvatarAction.PlanetsideAttribute].attribute_value == 1)
+        .actionMessage.asInstanceOf[AvatarAction.PlanetsideAttribute].attribute_value == 3)
 
       assert(reply2.isInstanceOf[Building.SendMapUpdateToAllClients])
 
@@ -191,7 +191,7 @@ class ResourceSiloControlUpdate1Test extends ActorTest {
         .actionMessage.asInstanceOf[AvatarAction.PlanetsideAttribute].attribute_value == 0)
 
       val reply4 = probe1.receiveOne(500 milliseconds)
-      assert(obj.LowNtuWarningOn == 1)
+      assert(obj.LowNtuWarningOn == false)
       assert(reply4.isInstanceOf[AvatarServiceMessage])
       assert(reply4.asInstanceOf[AvatarServiceMessage].forChannel == "nowhere")
       assert(reply4.asInstanceOf[AvatarServiceMessage]
@@ -201,7 +201,7 @@ class ResourceSiloControlUpdate1Test extends ActorTest {
       assert(reply4.asInstanceOf[AvatarServiceMessage]
         .actionMessage.asInstanceOf[AvatarAction.PlanetsideAttribute].attribute_type == 47)
       assert(reply4.asInstanceOf[AvatarServiceMessage]
-        .actionMessage.asInstanceOf[AvatarAction.PlanetsideAttribute].attribute_value == 1)
+        .actionMessage.asInstanceOf[AvatarAction.PlanetsideAttribute].attribute_value == 0)
     }
   }
 }
@@ -228,10 +228,10 @@ class ResourceSiloControlUpdate2Test extends ActorTest {
 
       obj.ChargeLevel = 100
       obj.CapacitorDisplay = 1
-      obj.LowNtuWarningOn = 1
+      obj.LowNtuWarningOn = true
       assert(obj.ChargeLevel == 100)
       assert(obj.CapacitorDisplay == 1)
-      assert(obj.LowNtuWarningOn == 1)
+      assert(obj.LowNtuWarningOn == true)
       obj.Actor ! ResourceSilo.UpdateChargeLevel(105)
 
       val reply1 = probe1.receiveOne(500 milliseconds)
@@ -252,7 +252,7 @@ class ResourceSiloControlUpdate2Test extends ActorTest {
       assert(reply2.isInstanceOf[Building.SendMapUpdateToAllClients])
 
       val reply3 = probe1.receiveOne(500 milliseconds)
-      assert(obj.LowNtuWarningOn == 0)
+      assert(obj.LowNtuWarningOn == false)
       assert(reply3.isInstanceOf[AvatarServiceMessage])
       assert(reply3.asInstanceOf[AvatarServiceMessage].forChannel == "nowhere")
       assert(reply3.asInstanceOf[AvatarServiceMessage]
@@ -289,10 +289,10 @@ class ResourceSiloControlNoUpdateTest extends ActorTest {
 
       obj.ChargeLevel = 250
       obj.CapacitorDisplay = 3
-      obj.LowNtuWarningOn = 0
+      obj.LowNtuWarningOn = false
       assert(obj.ChargeLevel == 250)
       assert(obj.CapacitorDisplay == 3)
-      assert(obj.LowNtuWarningOn == 0)
+      assert(obj.LowNtuWarningOn == false)
       obj.Actor ! ResourceSilo.UpdateChargeLevel(50)
 
       expectNoMsg(500 milliseconds)
@@ -300,7 +300,7 @@ class ResourceSiloControlNoUpdateTest extends ActorTest {
       probe2.expectNoMsg(500 milliseconds)
       assert(obj.ChargeLevel == 300)
       assert(obj.CapacitorDisplay == 3)
-      assert(obj.LowNtuWarningOn == 0)
+      assert(obj.LowNtuWarningOn == false)
     }
   }
 }
