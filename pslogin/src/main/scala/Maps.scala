@@ -1647,10 +1647,6 @@ object Maps {
     Projectiles(this)
   }
 
-  val map12 = new ZoneMap("map12") {
-    Projectiles(this)
-  }
-
   val map13 = new ZoneMap("map13") {
     Building1()
     Building2()
