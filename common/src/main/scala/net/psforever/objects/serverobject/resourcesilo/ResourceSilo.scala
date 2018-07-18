@@ -9,8 +9,9 @@ import net.psforever.packet.game.UseItemMessage
 class ResourceSilo extends Amenity {
   private var chargeLevel : Int = 0
   private val maximumCharge : Int = 1000
-  // For the flashing red light on top of the NTU silo on
-  private var lowNtuWarningOn : Int = 0
+  // For the flashing red light on top of the NTU silo on.
+  // Default to true until charge level can be persisted across restarts as default charge level is 0
+  private var lowNtuWarningOn : Boolean = true
 
   // For the NTU display bar
   private var capacitorDisplay : Long = 0
@@ -31,8 +32,8 @@ class ResourceSilo extends Amenity {
 
   def MaximumCharge : Int = maximumCharge
 
-  def LowNtuWarningOn : Int = lowNtuWarningOn
-  def LowNtuWarningOn_=(enabled: Int) : Int = {
+  def LowNtuWarningOn : Boolean = lowNtuWarningOn
+  def LowNtuWarningOn_=(enabled: Boolean) : Boolean = {
     lowNtuWarningOn = enabled
     LowNtuWarningOn
   }
@@ -55,7 +56,7 @@ object ResourceSilo {
 
   final case class Use(player: Player, msg : UseItemMessage)
   final case class UpdateChargeLevel(amount: Int)
-  final case class LowNtuWarning(enabled: Int)
+  final case class LowNtuWarning(enabled: Boolean)
   sealed trait Exchange
   final case class ChargeEvent() extends Exchange
   final case class ResourceSiloMessage(player: Player, msg : UseItemMessage, response : Exchange)
