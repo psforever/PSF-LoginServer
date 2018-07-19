@@ -12,7 +12,6 @@ trait SourceEntry extends WorldEntity {
   def Definition : ObjectDefinition
   def CharId : Long = 0L
   def Faction : PlanetSideEmpire.Value = PlanetSideEmpire.NEUTRAL
-  def Seated : Boolean = false
   def Position_=(pos : Vector3) = Position
   def Orientation_=(pos : Vector3) = Position
   def Velocity_=(pos : Option[Vector3]) = Velocity

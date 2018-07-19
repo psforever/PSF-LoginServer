@@ -676,15 +676,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
             sendResponse(PlanetsideAttributeMessage(vehicle_guid, attribute_type, attribute_value))
           }
 
-        case VehicleResponse.PlayerDiedInVehicle(target) =>
-          player.VehicleSeated match {
-            case Some(vehicle_guid) =>
-              if(target.GUID == vehicle_guid && target.Health == 0 && player.isAlive) {
-                KillPlayer(player)
-              }
-            case None => ;
-          }
-
         case VehicleResponse.ResetSpawnPad(pad_guid) =>
           sendResponse(GenericObjectActionMessage(pad_guid, 92))
 
@@ -930,6 +921,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case Terminal.TerminalMessage(tplayer, msg, order) =>
       order match {
         case Terminal.BuyExosuit(exosuit, subtype) => //refresh armor points
+          tplayer.History(HealFromExoSuitChange(PlayerSource(tplayer), exosuit))
           if(tplayer.ExoSuit == exosuit) {
             if(exosuit == ExoSuitType.MAX) {
               //special MAX case - clear any special state
@@ -1076,6 +1068,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           //TODO optimizations against replacing Equipment with the exact same Equipment and potentially for recycling existing Equipment
           log.info(s"$tplayer wants to change equipment loadout to their option #${msg.unk1 + 1}")
           sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Loadout, true))
+          tplayer.History(HealFromExoSuitChange(PlayerSource(tplayer), exosuit))
           //ensure arm is down
           tplayer.DrawnSlot = Player.HandsDownSlot
           sendResponse(ObjectHeldMessage(tplayer.GUID, Player.HandsDownSlot, true))
@@ -1176,7 +1169,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
                 }
                 else {
                   //accommodate as much of inventory as possible
-                  //TODO map x,y -> x,y rather than reorganize items
                   val (stow, _) = GridInventory.recoverInventory(afterInventory, vehicle.Inventory) //dropped items can be forgotten
                   stow
                 }
@@ -2410,7 +2402,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       }
       if(messagetype == ChatMessageType.CMT_SUICIDE) {
         if(player.isAlive && deadState != DeadState.Release) {
-          KillPlayer(player)
+          Suicide(player)
         }
       }
       if(messagetype == ChatMessageType.CMT_DESTROY) {
@@ -3024,7 +3016,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                             sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, 0, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
                             sendResponse(ObjectDeleteMessage(kit.GUID, 0))
                             taskResolver ! GUIDTask.UnregisterEquipment(kit)(continent.GUID)
-                            //TODO better health/damage control workflow
+                            player.History(HealFromKit(PlayerSource(player), 25, kit.Definition))
                             player.Health = player.Health + 25
                             sendResponse(PlanetsideAttributeMessage(avatar_guid, 0, player.Health))
                             avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(avatar_guid, 0, player.Health))
@@ -5065,6 +5057,17 @@ class WorldSessionActor extends Actor with MDCContextAware {
   }
 
   /**
+    * The player has lost the will to live and must be killed.
+    * @see `Vitality`<br>
+    *       `PlayerSuicide`
+    * @param tplayer the player to be killed
+    */
+  def Suicide(tplayer : Player) : Unit = {
+    tplayer.History(PlayerSuicide(PlayerSource(tplayer)))
+    KillPlayer(tplayer)
+  }
+
+  /**
     * The player has lost all his vitality and must be killed.<br>
     * <br>
     * Shift directly into a state of being dead on the client by setting health to zero points,
@@ -5102,8 +5105,24 @@ class WorldSessionActor extends Actor with MDCContextAware {
     }
     PlayerActionsToCancel()
     CancelAllProximityUnits()
+    //TODO other methods of death?
     val pentry = PlayerSource(tplayer)
-    tplayer.LastShot match {
+    (tplayer.History.find({p => p.isInstanceOf[PlayerSuicide]}) match {
+      case Some(PlayerSuicide(_)) =>
+        None
+      case None =>
+        tplayer.LastShot match {
+          case Some(shot) =>
+            if(System.nanoTime - shot.hit_time < (10 seconds).toNanos) {
+              Some(shot)
+            }
+            else {
+              None //suicide
+            }
+          case None =>
+            None //suicide
+        }
+    }) match {
       case Some(shot) =>
         avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.DestroyDisplay(shot.projectile.owner, pentry, shot.projectile.tool_def.ObjectId))
       case None =>
@@ -5395,12 +5414,14 @@ class WorldSessionActor extends Actor with MDCContextAware {
     */
   def ProximityMedicalTerminal(unit : Terminal with ProximityUnit) : Unit = {
     val healthFull : Boolean = if(player.Health < player.MaxHealth) {
+      player.History(HealFromTerm(PlayerSource(player), 10, 0, unit.Definition))
       HealAction(player)
     }
     else {
       true
     }
     val armorFull : Boolean = if(player.Armor < player.MaxArmor) {
+      player.History(HealFromTerm(PlayerSource(player), 0, 10, unit.Definition))
       ArmorRepairAction(player)
     }
     else {
@@ -5419,6 +5440,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     */
   def ProximityHealCrystal(unit : Terminal with ProximityUnit) : Unit = {
     val healthFull : Boolean = if(player.Health < player.MaxHealth) {
+      player.History(HealFromTerm(PlayerSource(player), 10, 0, unit.Definition))
       HealAction(player)
     }
     else {
@@ -5675,10 +5697,18 @@ class WorldSessionActor extends Actor with MDCContextAware {
       //odds of hash collision in a populated zone should be close to odds of being struck by lightning
       victimCharId = Int.MaxValue - victimCharId + 1
     }
+    val killer_seated = killer match {
+      case obj : PlayerSource => obj.Seated
+      case _ => false
+    }
+    val victim_seated = victim match {
+      case obj : PlayerSource => obj.Seated
+      case _ => false
+    }
     new DestroyDisplayMessage(
-      killer.Name, killerCharId, killer.Faction, killer.Seated,
+      killer.Name, killerCharId, killer.Faction, killer_seated,
       unk, method,
-      victim.Name, victimCharId, victim.Faction, victim.Seated
+      victim.Name, victimCharId, victim.Faction, victim_seated
     )
   }
 

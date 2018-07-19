@@ -26,7 +26,6 @@ object VehicleResponse {
   final case class MountVehicle(object_guid : PlanetSideGUID, seat : Int) extends Response
   final case class Ownership(vehicle_guid : PlanetSideGUID) extends Response
   final case class PlanetsideAttribute(vehicle_guid : PlanetSideGUID, attribute_type : Int, attribute_value : Long) extends Response
-  final case class PlayerDiedInVehicle(vehicle : Vehicle) extends Response
   final case class ResetSpawnPad(pad_guid : PlanetSideGUID) extends Response
   final case class RevealPlayer(player_guid : PlanetSideGUID) extends Response
   final case class SeatPermissions(vehicle_guid : PlanetSideGUID, seat_group : Int, permission : Long) extends Response

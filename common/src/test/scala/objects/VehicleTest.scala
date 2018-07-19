@@ -4,14 +4,16 @@ package objects
 import akka.actor.Props
 import base.ActorTest
 import net.psforever.objects._
+import net.psforever.objects.ballistics.{PlayerSource, Projectile, ProjectileResolution, ResolvedProjectile}
 import net.psforever.objects.definition.{SeatDefinition, VehicleDefinition}
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.vehicles._
+import net.psforever.objects.vital.{VehicleShieldCharge, Vitality}
 import net.psforever.packet.game.PlanetSideGUID
-import net.psforever.types.{CharacterVoice, ExoSuitType}
+import net.psforever.types._
 import org.specs2.mutable._
 
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration._
 
 class VehicleTest extends Specification {
   import VehicleTest._
@@ -608,6 +610,103 @@ class VehicleControlMountingOwnedUnlockedDriverSeatTest extends ActorTest {
       checkCanMount()
       assert(vehicle.Seats(0).Occupant.nonEmpty)
     }
+  }
+}
+
+class VehicleControlShieldsChargingTest extends ActorTest {
+  val vehicle = Vehicle(GlobalDefinitions.fury)
+  vehicle.GUID = PlanetSideGUID(10)
+  vehicle.Actor = system.actorOf(Props(classOf[VehicleControl], vehicle), "vehicle-test")
+
+  "charge vehicle shields" in {
+    assert(vehicle.Shields == 0)
+    assert(!vehicle.History.exists({p => p.isInstanceOf[VehicleShieldCharge]}))
+    vehicle.Actor ! Vehicle.ChargeShields(15)
+
+    val msg = receiveOne(500 milliseconds)
+    assert(msg.isInstanceOf[Vehicle.UpdateShieldsCharge])
+    assert(vehicle.Shields == 15)
+    assert(vehicle.History.exists({p => p.isInstanceOf[VehicleShieldCharge]}))
+  }
+}
+
+class VehicleControlShieldsNotChargingVehicleDeadTest extends ActorTest {
+  val vehicle = Vehicle(GlobalDefinitions.fury)
+  vehicle.GUID = PlanetSideGUID(10)
+  vehicle.Actor = system.actorOf(Props(classOf[VehicleControl], vehicle), "vehicle-test")
+
+  "not charge vehicle shields if the vehicle is destroyed" in {
+    assert(vehicle.Health > 0)
+    vehicle.Health = 0
+    assert(vehicle.Health == 0)
+    assert(vehicle.Shields == 0)
+    assert(!vehicle.History.exists({p => p.isInstanceOf[VehicleShieldCharge]}))
+    vehicle.Actor ! Vehicle.ChargeShields(15)
+
+    expectNoMsg(1 seconds)
+    assert(vehicle.Shields == 0)
+    assert(!vehicle.History.exists({p => p.isInstanceOf[VehicleShieldCharge]}))
+  }
+}
+
+class VehicleControlShieldsNotChargingVehicleShieldsFullTest extends ActorTest {
+  val vehicle = Vehicle(GlobalDefinitions.fury)
+  vehicle.GUID = PlanetSideGUID(10)
+  vehicle.Actor = system.actorOf(Props(classOf[VehicleControl], vehicle), "vehicle-test")
+
+  "not charge vehicle shields if the vehicle is destroyed" in {
+    assert(vehicle.Shields == 0)
+    vehicle.Shields = vehicle.MaxShields
+    assert(vehicle.Shields == vehicle.MaxShields)
+    assert(!vehicle.History.exists({p => p.isInstanceOf[VehicleShieldCharge]}))
+    vehicle.Actor ! Vehicle.ChargeShields(15)
+
+    expectNoMsg(1 seconds)
+    assert(!vehicle.History.exists({p => p.isInstanceOf[VehicleShieldCharge]}))
+  }
+}
+
+class VehicleControlShieldsNotChargingTooEarlyTest extends ActorTest {
+  val vehicle = Vehicle(GlobalDefinitions.fury)
+  vehicle.GUID = PlanetSideGUID(10)
+  vehicle.Actor = system.actorOf(Props(classOf[VehicleControl], vehicle), "vehicle-test")
+
+  "charge vehicle shields" in {
+    assert(vehicle.Shields == 0)
+    vehicle.Actor ! Vehicle.ChargeShields(15)
+
+    val msg = receiveOne(200 milliseconds)
+    assert(msg.isInstanceOf[Vehicle.UpdateShieldsCharge])
+    assert(vehicle.Shields == 15)
+    vehicle.Actor ! Vehicle.ChargeShields(15)
+
+    expectNoMsg(200 milliseconds)
+    assert(vehicle.Shields == 15)
+  }
+}
+
+class VehicleControlShieldsNotChargingDamagedTest extends ActorTest {
+  val vehicle = Vehicle(GlobalDefinitions.fury)
+  vehicle.GUID = PlanetSideGUID(10)
+  vehicle.Actor = system.actorOf(Props(classOf[VehicleControl], vehicle), "vehicle-test")
+  //
+  val beamer_wep = Tool(GlobalDefinitions.beamer)
+  val p_source = PlayerSource( Player(Avatar("TestTarget", PlanetSideEmpire.NC, CharacterGender.Female, 1, CharacterVoice.Mute)) )
+  val projectile = Projectile(beamer_wep.Projectile, GlobalDefinitions.beamer, beamer_wep.FireMode, p_source, Vector3.Zero, Vector3.Zero)
+  val fury_dm = Vehicle(GlobalDefinitions.fury).DamageModel
+  val obj = ResolvedProjectile(ProjectileResolution.Hit, projectile, p_source, fury_dm, Vector3(1.2f, 3.4f, 5.6f), System.nanoTime)
+
+  "charge vehicle shields" in {
+    assert(vehicle.Shields == 0)
+    vehicle.Actor ! Vitality.Damage({case v : Vehicle => v.History(obj)})
+
+    val msg = receiveOne(200 milliseconds)
+    assert(msg.isInstanceOf[Vitality.DamageResolution])
+    assert(vehicle.Shields == 0)
+    vehicle.Actor ! Vehicle.ChargeShields(15)
+
+    expectNoMsg(200 milliseconds)
+    assert(vehicle.Shields == 0)
   }
 }
 

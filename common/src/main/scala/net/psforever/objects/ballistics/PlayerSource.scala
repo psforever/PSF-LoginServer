@@ -17,9 +17,11 @@ final case class PlayerSource(name : String,
                               velocity : Option[Vector3] = None) extends SourceEntry {
   override def Name = name
   override def Faction = faction
-  override def Seated = seated
-  def ExoSuit = exosuit
   def Definition = obj_def
+  def ExoSuit = exosuit
+  def Seated = seated
+  def Health = health
+  def Armor = armor
   def Position = position
   def Orientation = orientation
   def Velocity = velocity

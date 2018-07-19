@@ -3,6 +3,7 @@ package net.psforever.objects.vehicles
 
 import akka.actor.Actor
 import net.psforever.objects.Vehicle
+import net.psforever.objects.ballistics.VehicleSource
 import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior}
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
 import net.psforever.objects.serverobject.deploy.DeploymentBehavior
@@ -70,9 +71,9 @@ class VehicleControl(vehicle : Vehicle) extends Actor
         val now : Long = System.nanoTime
         //make certain vehicle doesn't charge shields too quickly
         if(vehicle.Health > 0 && vehicle.Shields < vehicle.MaxShields &&
-          vehicle.LastVitalsActivity(VehicleControl.LastShieldChargeOrDamage(now)).isEmpty) {
+          !vehicle.History.exists(VehicleControl.LastShieldChargeOrDamage(now))) {
+          vehicle.History(VehicleShieldCharge(VehicleSource(vehicle), amount))
           vehicle.Shields = vehicle.Shields + amount
-          vehicle.History(VehicleShieldCharge(amount, now))
           sender ! Vehicle.UpdateShieldsCharge(vehicle)
         }
 
@@ -100,7 +101,7 @@ class VehicleControl(vehicle : Vehicle) extends Actor
 }
 
 object VehicleControl {
-  import net.psforever.objects.vital.{ProjectileDamage, VehicleShieldCharge, VitalsActivity}
+  import net.psforever.objects.vital.{DamageFromProjectile, VehicleShieldCharge, VitalsActivity}
   import scala.concurrent.duration._
 
   /**
@@ -113,8 +114,8 @@ object VehicleControl {
     */
   def LastShieldChargeOrDamage(now : Long)(act : VitalsActivity) : Boolean = {
     act match {
-      case ProjectileDamage(data) => now - data.hit_time < (5 seconds).toNanos //damage delays next charge by 5s
-      case VehicleShieldCharge(_, time) => now - time < (1 seconds).toNanos //previous charge delays next by 1s
+      case DamageFromProjectile(data) => now - data.hit_time < (5 seconds).toNanos //damage delays next charge by 5s
+      case vsc : VehicleShieldCharge => now - vsc.time < (1 seconds).toNanos //previous charge delays next by 1s
       case _ => false
     }
   }

@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.vital
 
-import net.psforever.objects.ballistics.ResolvedProjectile
+import net.psforever.objects.ballistics.{ProjectileResolution, ResolvedProjectile}
 import net.psforever.objects.vital.damage.DamageSelection
 import net.psforever.objects.vital.projectile.ProjectileCalculations
 import net.psforever.objects.vital.resistance.ResistanceSelection
@@ -63,6 +63,18 @@ trait DamageResistanceModel {
   def Calculate(data : ResolvedProjectile) : ResolutionCalculations.Output = {
     val dam : ProjectileCalculations.Form = Damage(data)
     val res : ProjectileCalculations.Form = Resistance(data)
+    Model(dam, res, data)
+  }
+
+  /**
+    * Magic stuff.
+    * @param data the historical `ResolvedProjectile` information
+    * @param resolution an explicit damage resolution overriding the one in the `ResolvedProjectile` object
+    * @return a function literal that encapsulates delayed modification instructions for certain objects
+    */
+  def Calculate(data : ResolvedProjectile, resolution : ProjectileResolution.Value) : ResolutionCalculations.Output = {
+    val dam : ProjectileCalculations.Form = Damage(resolution)
+    val res : ProjectileCalculations.Form = Resistance(resolution)
     Model(dam, res, data)
   }
 }

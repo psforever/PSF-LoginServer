@@ -43,6 +43,7 @@ abstract class ResistanceCalculations[TargetType](validate : (ResolvedProjectile
 object ResistanceCalculations {
   private def failure(typeName : String) = Failure(new Exception(s"can not match expected target $typeName"))
 
+  //target identification
   def InvalidTarget(data : ResolvedProjectile) : Try[SourceEntry] = failure(s"invalid ${data.target.Definition.Name}")
 
   def ValidInfantryTarget(data : ResolvedProjectile) : Try[PlayerSource] = {
@@ -101,6 +102,7 @@ object ResistanceCalculations {
     }
   }
 
+  //extractors
   def NoResistExtractor(target : SourceEntry) : Int = 0
 
   def ExoSuitDirectExtractor(target : PlayerSource) : Int = ExoSuitDefinition.Select(target.ExoSuit).ResistanceDirectHit

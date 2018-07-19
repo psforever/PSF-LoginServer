@@ -15,6 +15,8 @@ final case class VehicleSource(obj_def : VehicleDefinition,
   override def Name = SourceEntry.NameFormat(obj_def.Name)
   override def Faction = faction
   def Definition : VehicleDefinition = obj_def
+  def Health = health
+  def Shields = shields
   def Position = position
   def Orientation = orientation
   def Velocity = velocity

@@ -35,7 +35,7 @@ object ResolutionCalculations {
   }
 
   def InfantryDamageAfterResist(currentHP : Int, currentArmor : Int)(damages : Int, resistance : Int) : (Int, Int) = {
-    if(damages > 0) {
+    if(damages > 0 && currentHP > 0) {
       if(currentArmor <= 0) {
         (damages, 0) //no armor; health damage
       }
@@ -69,7 +69,7 @@ object ResolutionCalculations {
 
   def MaxDamageAfterResist(currentHP : Int, currentArmor : Int)(damages : Int, resistance : Int) : (Int, Int) = {
     val resistedDam = damages - resistance
-    if(resistedDam > 0) {
+    if(resistedDam > 0 && currentHP > 0) {
       if(currentArmor <= 0) {
         (resistedDam, 0) //no armor; health damage
       }
@@ -121,7 +121,7 @@ object ResolutionCalculations {
       if(player.isAlive && !(a == 0 && b == 0)) {
         player.History(data)
         if(player.Armor - b < 0) {
-          player.Health = player.Health - a - (player.Armor - b) //spill over
+          player.Health = player.Health - a - (b - player.Armor)
           player.Armor = 0
         }
         else {

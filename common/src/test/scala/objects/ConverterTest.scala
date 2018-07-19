@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package objects
 
-import net.psforever.objects.definition.converter.{ACEConverter, CharacterSelectConverter, REKConverter}
+import net.psforever.objects.definition.converter.{ACEConverter, CharacterSelectConverter, DestroyedVehicleConverter, REKConverter}
 import net.psforever.objects._
 import net.psforever.objects.definition._
 import net.psforever.objects.equipment.CItem.{DeployedItem, Unit}
@@ -9,6 +9,7 @@ import net.psforever.objects.equipment._
 import net.psforever.objects.inventory.InventoryTile
 import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.serverobject.tube.SpawnTube
+import net.psforever.objects.vehicles.DestroyedVehicle
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.packet.game.objectcreate._
 import net.psforever.types.{CharacterGender, CharacterVoice, PlanetSideEmpire, Vector3}
@@ -368,7 +369,40 @@ class ConverterTest extends Specification {
       ams.Utilities(4)().GUID = PlanetSideGUID(417)
 
       ams.Definition.Packet.ConstructorData(ams).isSuccess mustEqual true
-      ok //TODO write more of this test
+    }
+
+    "convert to packet (3)" in {
+      val
+      ams = Vehicle(GlobalDefinitions.ams)
+      ams.GUID = PlanetSideGUID(413)
+      ams.Health = 0 //destroyed vehicle
+
+      ams.Definition.Packet.ConstructorData(ams).isSuccess mustEqual true
+      //did not initialize the utilities, but the converter did not fail
+    }
+  }
+
+  "DestroyedVehicle" should {
+    "not convert a working vehicle" in {
+      val ams = Vehicle(GlobalDefinitions.ams)
+      ams.GUID = PlanetSideGUID(413)
+      ams.Health mustEqual 3000 //not destroyed vehicle
+      DestroyedVehicleConverter.converter.ConstructorData(ams).isFailure mustEqual true
+    }
+
+    "convert to packet" in {
+      val ams = Vehicle(GlobalDefinitions.ams)
+      ams.GUID = PlanetSideGUID(413)
+      ams.Health = 0
+      DestroyedVehicleConverter.converter.ConstructorData(ams).isSuccess mustEqual true
+      //did not initialize the utilities, but the converter did not fail
+    }
+
+    "not convert into a detailed packet" in {
+      val ams = Vehicle(GlobalDefinitions.ams)
+      ams.GUID = PlanetSideGUID(413)
+      ams.Health = 0
+      DestroyedVehicleConverter.converter.DetailedConstructorData(ams).isFailure mustEqual true
     }
   }
 }

@@ -52,6 +52,8 @@ object DamageCalculations {
 
   def DamageAgainstMaxSuit(profile : DamageProfile) : Int = profile.Damage3
 
+  def DamageAgainstUnknown(profile : DamageProfile) : Int = profile.Damage4
+
   //raw damage selection functions
   /**
     * Get damage information from a series of profiles related to the weapon discharge.
@@ -101,8 +103,11 @@ object DamageCalculations {
     * @return the modified damage value
     */
   def SplashDamageWithRadialDegrade(projectile : Projectile, rawDamage : Int, distance : Float) : Int = {
-    if(distance <= projectile.profile.DamageRadius) {
-      rawDamage + ((rawDamage - (projectile.profile.DamageAtEdge * rawDamage)) * distance / projectile.profile.DamageRadius).toInt
+    val radius = projectile.profile.DamageRadius
+    if(distance <= radius) {
+      val base : Float = projectile.profile.DamageAtEdge
+      val degrade : Float = (1 - base) * ((radius - distance) / radius) + base
+      rawDamage + (rawDamage * degrade).toInt
     }
     else {
       0
