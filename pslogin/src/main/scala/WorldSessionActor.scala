@@ -53,6 +53,7 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.Success
 import akka.pattern.ask
+import net.psforever.objects.avatar.Certification
 import net.psforever.objects.ballistics.{Projectile, ProjectileResolution}
 import net.psforever.objects.serverobject.turret.{MannedTurret, TurretUpgrade}
 
@@ -1117,27 +1118,43 @@ class WorldSessionActor extends Actor with MDCContextAware {
               sendResponse(ItemTransactionResultMessage (msg.terminal_guid, TransactionType.Loadout, false))
           }
 
-        case Terminal.LearnCertification(cert, cost) =>
+        case Terminal.LearnCertification(cert) =>
+          val name = tplayer.Name
           if(!tplayer.Certifications.contains(cert)) {
-            log.info(s"$tplayer is learning the $cert certification for $cost points")
+            val guid = tplayer.GUID
+            log.info(s"$name is learning the $cert certification for ${Certification.Cost.Of(cert)} points")
             avatar.Certifications += cert
-            sendResponse(PlanetsideAttributeMessage(tplayer.GUID, 24, cert.id.toLong))
+            sendResponse(PlanetsideAttributeMessage(guid, 24, cert.id.toLong))
+
+            tplayer.Certifications.intersect(Certification.Dependencies.Like(cert)).foreach(entry => {
+              log.info(s"$cert replaces the learned certification $entry that cost ${Certification.Cost.Of(entry)} points")
+              avatar.Certifications -= entry
+              sendResponse(PlanetsideAttributeMessage(guid, 25, entry.id.toLong))
+            })
             sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Learn, true))
           }
           else {
-            log.warn(s"$tplayer already knows the $cert certification, so he can't learn it")
+            log.warn(s"$name already knows the $cert certification, so he can't learn it")
             sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Learn, false))
           }
 
-        case Terminal.SellCertification(cert, cost) =>
+        case Terminal.SellCertification(cert) =>
+          val name = tplayer.Name
           if(tplayer.Certifications.contains(cert)) {
-            log.info(s"$tplayer is forgetting the $cert certification for $cost points")
+            val guid = tplayer.GUID
+            log.info(s"$name is forgetting the $cert certification for ${Certification.Cost.Of(cert)} points")
             avatar.Certifications -= cert
-            sendResponse(PlanetsideAttributeMessage(tplayer.GUID, 25, cert.id.toLong))
+            sendResponse(PlanetsideAttributeMessage(guid, 25, cert.id.toLong))
+
+            tplayer.Certifications.intersect(Certification.Dependencies.FromAll(cert)).foreach(entry => {
+              log.info(s"$name is also forgetting the ${Certification.Cost.Of(entry)}-point $entry certification which depends on $cert")
+              avatar.Certifications -= entry
+              sendResponse(PlanetsideAttributeMessage(guid, 25, entry.id.toLong))
+            })
             sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Sell, true))
           }
           else {
-            log.warn(s"$tplayer doesn't know what a $cert certification is, so he can't forget it")
+            log.warn(s"$name doesn't know what a $cert certification is, so he can't forget it")
             sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Learn, false))
           }
 
