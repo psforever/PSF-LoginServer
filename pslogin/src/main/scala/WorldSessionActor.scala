@@ -1221,7 +1221,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
             val guid = tplayer.GUID
             log.info(s"$name is learning the $cert certification for ${Certification.Cost.Of(cert)} points")
             avatar.Certifications += cert
-            AddToDeployableQuantities(player.Certifications, cert)
+            StartBundlingPackets()
+            AddToDeployableQuantities(cert, player.Certifications)
             sendResponse(PlanetsideAttributeMessage(guid, 24, cert.id.toLong))
 
             tplayer.Certifications.intersect(Certification.Dependencies.Like(cert)).foreach(entry => {
@@ -1229,6 +1230,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
               avatar.Certifications -= entry
               sendResponse(PlanetsideAttributeMessage(guid, 25, entry.id.toLong))
             })
+            StopBundlingPackets()
             sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Learn, true))
           }
           else {
@@ -1242,7 +1244,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
             val guid = tplayer.GUID
             log.info(s"$name is forgetting the $cert certification for ${Certification.Cost.Of(cert)} points")
             avatar.Certifications -= cert
-            RemoveFromDeployablesQuantities(player.Certifications, cert)
+            StartBundlingPackets()
+            RemoveFromDeployablesQuantities(cert, player.Certifications)
             sendResponse(PlanetsideAttributeMessage(guid, 25, cert.id.toLong))
 
             tplayer.Certifications.intersect(Certification.Dependencies.FromAll(cert)).foreach(entry => {
@@ -1250,6 +1253,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
               avatar.Certifications -= entry
               sendResponse(PlanetsideAttributeMessage(guid, 25, entry.id.toLong))
             })
+            StopBundlingPackets()
             sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Sell, true))
           }
           else {
@@ -1712,6 +1716,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
       player = tplayer
       val guid = tplayer.GUID
       StartBundlingPackets()
+      InitialDeployableQuantities(tplayer) //max deployables ui elements
+//    (70 until 80).foreach( i => sendResponse(PlanetsideAttributeMessage(guid, i, i)) ) //region test bit (russ)
       sendResponse(SetCurrentAvatarMessage(guid, 0, 0))
       sendResponse(ChatMsg(ChatMessageType.CMT_EXPANSIONS, true, "", "1 on", None)) //CC on //TODO once per respawn?
       sendResponse(PlayerStateShiftMessage(ShiftState(1, tplayer.Position, tplayer.Orientation.z)))
@@ -1736,7 +1742,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
         //TODO if this implant is Installed but does not have shortcut, add to a free slot or write over slot 61/62/63
       })
       sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 82, 0))
-      InitialDeployableQuantities(tplayer) //max deployables ui elements
       //TODO if Medkit does not have shortcut, add to a free slot or write over slot 64
       sendResponse(CreateShortcutMessage(guid, 1, 0, true, Shortcut.MEDKIT))
       sendResponse(ChangeShortcutBankMessage(guid, 0))
@@ -1974,6 +1979,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 //      avatar.Certifications += FortificationEngineering
 //      avatar.Certifications += AssaultEngineering
       this.avatar = avatar
+
       AwardBattleExperiencePoints(avatar, 1000000L)
       player = new Player(avatar)
       //player.Position = Vector3(3561.0f, 2854.0f, 90.859375f) //home3, HART C
@@ -5816,55 +5822,100 @@ class WorldSessionActor extends Actor with MDCContextAware {
     )
   }
 
+
+  /**
+    * Initialize the deployables user interface elements.
+    * @param tplayer the player
+    */
   def InitialDeployableQuantities(tplayer : Player) : Unit = {
+    import scala.collection.mutable.ListBuffer
     log.info("Setting up default Engineering UI ...")
-    val certifications = tplayer.Certifications
+    InitialDeployableQuantities(tplayer.Certifications)
+  }
+
+  /**
+    * Initialize the deployables user interface elements.<br>
+    * <br>
+    * All element initializations require both the maximum deployable amount and the current deployables active counts.
+    * Until initialized, all elements will be RED 0/0 as if the cooresponding certification were not `learn`ed.
+    * The respective element will become a pair of numbers, the second always being non-zero, when properly initialized.
+    * The numbers will appear GREEN numbers when more deployables of that kind can be placed.
+    * The numbers will appear RED if the player can not place any more of that kind of deployable.
+    * The numbers will appear YELLOW if the current deployable count is greater than the active deployable count
+    * such as may be the case when a player `forget`s a certification.
+    * @param certifications the certifications to poll
+    */
+  def InitialDeployableQuantities(certifications : Set[CertificationType.Value]) : Unit = {
+    import scala.collection.mutable.ListBuffer
     val deployables : Array[Int] = Array.fill[Int](11)(0)
 
     import CertificationType._
     if(certifications contains CombatEngineering) {
-      deployables(0) = 20 //max boomers
-      deployables(1) = 20 //max he mines
-      deployables(3) = 10 //max spitfires
-      deployables(4) = 20 //max motion sensors
       if(certifications contains AdvancedHacking) {
         deployables(10) = 20 //max motion sensors
       }
       if(certifications contains AdvancedEngineering) {
-        deployables(2) = 20 //max disruptor mine
-        deployables(7) = 1 //max aegis
-        deployables(9) = 1 //max omft
-
-        deployables(0) = 25 //max boomers
-        deployables(1) = 25 //max he mines
-        deployables(3) = 15 //max spitfires
-        deployables(4) = 25 //max motion sensors
-        deployables(5) = 10 //max shadow turret
-        deployables(6) = 10 //max cerebus turret
-        deployables(8) = 2 //max traps
+        InitialDeployableQuantitiesAssault(deployables)
+        InitialDeployableQuantitiesFortification(deployables)
       }
       else {
         if(certifications contains AssaultEngineering) {
-          deployables(2) = 20 //max disruptor mine
-          deployables(7) = 1 //max aegis
-          deployables(9) = 1 //max omft
+          InitialDeployableQuantitiesAssault(deployables)
         }
         if(certifications contains FortificationEngineering) {
-          deployables(0) = 25 //max boomers
-          deployables(1) = 25 //max he mines
-          deployables(3) = 15 //max spitfires
-          deployables(4) = 25 //max motion sensors
-          deployables(5) = 10 //max shadow turret
-          deployables(6) = 10 //max cerebus turret
-          deployables(8) = 2 //max traps
+          InitialDeployableQuantitiesFortification(deployables)
+        }
+        else {
+          deployables(0) = 20 //max boomers
+          deployables(1) = 20 //max he mines
+          deployables(3) = 10 //max spitfires
+          deployables(4) = 20 //max motion sensors
         }
       }
     }
     val guid = PlanetSideGUID(0)
-    (0 to 10).foreach( i => sendResponse(PlanetsideAttributeMessage(guid, i + 83, deployables(i))) )
+    (0 to 10).foreach( i => sendResponse(PlanetsideAttributeMessage(guid, (i + 83), deployables(i))) ) //max deployables
+    //TODO count active on (re)log
+    (0 to 10).foreach( i => sendResponse(PlanetsideAttributeMessage(guid, (i + 94), 0)) ) //active deployed objects
   }
 
-  def AddToDeployableQuantities(certifictionSet : Set[CertificationType.Value], certification : CertificationType.Value) : Unit = {
+  /**
+    * Initialize the deployables user interface elements for the `AssaultEngineering` certification.
+    * @param deployables an array of the maximum number of deployables
+    * @return the index numbers affected (indicating which deployables)
+    */
+  def InitialDeployableQuantitiesAssault(deployables : Array[Int]) : List[Int] = {
+    deployables(2) = 20 //max disruptor mine
+    deployables(7) = 1 //max aegis
+    deployables(9) = 1 //max omft
+    List(2,7,9)
+  }
+
+  /**
+    * Initialize the deployables user interface elements for the `FortificationEngineering` certification.
+    * @param deployables an array of the maximum number of deployables
+    * @return the index numbers affected (indicating which deployables)
+    */
+  def InitialDeployableQuantitiesFortification(deployables : Array[Int]) : List[Int] = {
+    deployables(0) = 25 //max boomers
+    deployables(1) = 25 //max he mines
+    deployables(3) = 15 //max spitfires
+    deployables(4) = 25 //max motion sensors
+    deployables(5) = 5 //max shadow turret
+    deployables(6) = 5 //max cerebus turret
+    deployables(8) = 2 //max traps
+    List(0,1,3,4,5,6,8)
+  }
+
+  /**
+    * The player learned a new certification.
+    * Update the deployables user interface elements if it was an "Engineering" certification.
+    * The certification "Advanced Hacking" also relates to an element.
+    * @param certification the certification that was added
+    * @param certifictionSet all applicable certifications
+    */
+  def AddToDeployableQuantities(certification : CertificationType.Value, certifictionSet : Set[CertificationType.Value]) : Unit = {
+    //TODO count active
     import CertificationType._
     val guid = PlanetSideGUID(0)
     if(certifictionSet contains certification) {
@@ -5872,6 +5923,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case AdvancedHacking =>
           if(certifictionSet contains CombatEngineering) {
             sendResponse(PlanetsideAttributeMessage(guid, 93, 20)) //max sensor disruptors
+            sendResponse(PlanetsideAttributeMessage(guid, 104, 0)) //#sensor disruptors
           }
 
         case CombatEngineering =>
@@ -5879,30 +5931,45 @@ class WorldSessionActor extends Actor with MDCContextAware {
           sendResponse(PlanetsideAttributeMessage(guid, 84, 20)) //max he mines
           sendResponse(PlanetsideAttributeMessage(guid, 86, 10)) //max spitfires
           sendResponse(PlanetsideAttributeMessage(guid, 87, 20)) //max motion sensors
+          sendResponse(PlanetsideAttributeMessage(guid, 94, 0)) //#boomers
+          sendResponse(PlanetsideAttributeMessage(guid, 95, 0)) //#he mines
+          sendResponse(PlanetsideAttributeMessage(guid, 97, 0)) //#spitfires
+          sendResponse(PlanetsideAttributeMessage(guid, 98, 0)) //#motion sensors
           if(certifictionSet contains AdvancedHacking) {
             sendResponse(PlanetsideAttributeMessage(guid, 93, 20)) //max sensor disruptors
+            sendResponse(PlanetsideAttributeMessage(guid, 104, 0)) //#sensor disruptors
           }
 
         case AssaultEngineering =>
           sendResponse(PlanetsideAttributeMessage(guid, 85, 20)) //max disruptor mine
           sendResponse(PlanetsideAttributeMessage(guid, 90, 1)) //max aegis
           sendResponse(PlanetsideAttributeMessage(guid, 92, 1)) //max omft
+          sendResponse(PlanetsideAttributeMessage(guid, 96, 0)) //#disruptor mine
+          sendResponse(PlanetsideAttributeMessage(guid, 101, 0)) //#aegis
+          sendResponse(PlanetsideAttributeMessage(guid, 103, 0)) //#omft
 
         case FortificationEngineering =>
-          sendResponse(PlanetsideAttributeMessage(guid, 88, 10)) //max shadow turret
-          sendResponse(PlanetsideAttributeMessage(guid, 89, 10)) //max cerebus turret
+          sendResponse(PlanetsideAttributeMessage(guid, 88, 5)) //max shadow turret
+          sendResponse(PlanetsideAttributeMessage(guid, 89, 5)) //max cerebus turret
           sendResponse(PlanetsideAttributeMessage(guid, 91, 2)) //max traps
           sendResponse(PlanetsideAttributeMessage(guid, 83, 25)) //max boomers
           sendResponse(PlanetsideAttributeMessage(guid, 84, 25)) //max he mines
           sendResponse(PlanetsideAttributeMessage(guid, 86, 15)) //max spitfires
           sendResponse(PlanetsideAttributeMessage(guid, 87, 25)) //max motion sensors
+          sendResponse(PlanetsideAttributeMessage(guid, 99, 0)) //#shadow turret
+          sendResponse(PlanetsideAttributeMessage(guid, 100, 0)) //#cerebus turret
+          sendResponse(PlanetsideAttributeMessage(guid, 102, 0)) //#traps
+          sendResponse(PlanetsideAttributeMessage(guid, 94, 0)) //#boomers
+          sendResponse(PlanetsideAttributeMessage(guid, 95, 0)) //#he mines
+          sendResponse(PlanetsideAttributeMessage(guid, 97, 0)) //#spitfires
+          sendResponse(PlanetsideAttributeMessage(guid, 98, 0)) //#motion sensors
 
         case AdvancedEngineering =>
           if(!certifictionSet.contains(AssaultEngineering)) {
-            AddToDeployableQuantities(certifictionSet ++ Set(AssaultEngineering), AssaultEngineering)
+            AddToDeployableQuantities(AssaultEngineering, certifictionSet ++ Set(AssaultEngineering))
           }
           if(!certifictionSet.contains(FortificationEngineering)) {
-            AddToDeployableQuantities(certifictionSet ++ Set(FortificationEngineering), FortificationEngineering)
+            AddToDeployableQuantities(FortificationEngineering, certifictionSet ++ Set(FortificationEngineering))
           }
 
         case _ => ;
@@ -5910,14 +5977,23 @@ class WorldSessionActor extends Actor with MDCContextAware {
     }
   }
 
-  def RemoveFromDeployablesQuantities(certifictionSet : Set[CertificationType.Value], certification : CertificationType.Value) : Unit = {
+  /**
+    * The player forgot a certification he previously knew.
+    * Update the deployables user interface elements if it was an "Engineering" certification.
+    * The certification "Advanced Hacking" also relates to an element.
+    * @param certification the certification that was added
+    * @param certifictionSet all applicable certifications
+    */
+  def RemoveFromDeployablesQuantities(certification : CertificationType.Value, certifictionSet : Set[CertificationType.Value]) : Unit = {
+    //TODO count active
     import CertificationType._
     val guid = PlanetSideGUID(0)
     if(!certifictionSet.contains(certification)) {
       certification match {
         case AdvancedHacking =>
-          if(certifictionSet contains CombatEngineering) { //only send if found
+          if(certifictionSet contains CombatEngineering) {
             sendResponse(PlanetsideAttributeMessage(guid, 93, 0)) //max sensor disruptors
+            sendResponse(PlanetsideAttributeMessage(guid, 104, 0)) //#sensor disruptors
           }
 
         case CombatEngineering =>
@@ -5925,31 +6001,46 @@ class WorldSessionActor extends Actor with MDCContextAware {
           sendResponse(PlanetsideAttributeMessage(guid, 84, 0)) //max he mines
           sendResponse(PlanetsideAttributeMessage(guid, 86, 0)) //max spitfires
           sendResponse(PlanetsideAttributeMessage(guid, 87, 0)) //max motion sensors
-          if(certifictionSet contains AdvancedHacking) { //only send if found
+          sendResponse(PlanetsideAttributeMessage(guid, 94, 0)) //#boomers
+          sendResponse(PlanetsideAttributeMessage(guid, 95, 0)) //#he mines
+          sendResponse(PlanetsideAttributeMessage(guid, 97, 0)) //#spitfires
+          sendResponse(PlanetsideAttributeMessage(guid, 98, 0)) //#motion sensors
+          if(certifictionSet contains AdvancedHacking) {
             sendResponse(PlanetsideAttributeMessage(guid, 93, 0)) //max sensor disruptors
+            sendResponse(PlanetsideAttributeMessage(guid, 104, 0)) //#sensor disruptors
           }
 
         case AssaultEngineering =>
           sendResponse(PlanetsideAttributeMessage(guid, 85, 0)) //max disruptor mine
           sendResponse(PlanetsideAttributeMessage(guid, 90, 0)) //max aegis
           sendResponse(PlanetsideAttributeMessage(guid, 92, 0)) //max omft
+          sendResponse(PlanetsideAttributeMessage(guid, 96, 0)) //#disruptor mine
+          sendResponse(PlanetsideAttributeMessage(guid, 101, 0)) //#aegis
+          sendResponse(PlanetsideAttributeMessage(guid, 103, 0)) //#omft
 
         case FortificationEngineering =>
+          val ce : Int = certifictionSet contains CombatEngineering //implicit: true = 1, false = 0
           sendResponse(PlanetsideAttributeMessage(guid, 88, 0)) //max shadow turret
           sendResponse(PlanetsideAttributeMessage(guid, 89, 0)) //max cerebus turret
           sendResponse(PlanetsideAttributeMessage(guid, 91, 0)) //max traps
-          val ce : Int = certifictionSet contains CombatEngineering //implicit: true = 1, false = 0
           sendResponse(PlanetsideAttributeMessage(guid, 83, ce * 20)) //max boomers
           sendResponse(PlanetsideAttributeMessage(guid, 84, ce * 20)) //max he mines
           sendResponse(PlanetsideAttributeMessage(guid, 86, ce * 10)) //max spitfires
           sendResponse(PlanetsideAttributeMessage(guid, 87, ce * 20)) //max motion sensors
+          sendResponse(PlanetsideAttributeMessage(guid, 99, 0)) //#shadow turret
+          sendResponse(PlanetsideAttributeMessage(guid, 100, 0)) //#cerebus turret
+          sendResponse(PlanetsideAttributeMessage(guid, 102, 0)) //#traps
+          sendResponse(PlanetsideAttributeMessage(guid, 94, 0)) //#boomers
+          sendResponse(PlanetsideAttributeMessage(guid, 95, 0)) //#he mines
+          sendResponse(PlanetsideAttributeMessage(guid, 97, 0)) //#spitfires
+          sendResponse(PlanetsideAttributeMessage(guid, 98, 0)) //#motion sensors
 
         case AdvancedEngineering =>
           if(!certifictionSet.contains(AssaultEngineering)) {
-            RemoveFromDeployablesQuantities(certifictionSet, AssaultEngineering)
+            RemoveFromDeployablesQuantities(AssaultEngineering, certifictionSet)
           }
           if(!certifictionSet.contains(FortificationEngineering)) {
-            RemoveFromDeployablesQuantities(certifictionSet, FortificationEngineering)
+            RemoveFromDeployablesQuantities(FortificationEngineering, certifictionSet)
           }
 
         case _ => ;
