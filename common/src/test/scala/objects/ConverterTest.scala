@@ -107,30 +107,30 @@ class ConverterTest extends Specification {
       }
     }
 
-    "ConstructionItem" should {
-      "convert to packet" in {
-        val cdef = ConstructionItemDefinition(Unit.advanced_ace)
-        cdef.Modes += DeployedItem.tank_traps
-        cdef.Modes += DeployedItem.portable_manned_turret_tr
-        cdef.Modes += DeployedItem.deployable_shield_generator
-        cdef.Tile = InventoryTile.Tile63
-        cdef.Packet = new ACEConverter()
-        val obj = ConstructionItem(cdef)
-        obj.GUID = PlanetSideGUID(90)
-        obj.Definition.Packet.DetailedConstructorData(obj) match {
-          case Success(pkt) =>
-            pkt mustEqual DetailedACEData(0)
-          case _ =>
-            ko
-        }
-        obj.Definition.Packet.ConstructorData(obj) match {
-          case Success(pkt) =>
-            pkt mustEqual ACEData(0,0)
-          case _ =>
-            ko
-        }
-      }
-    }
+//    "ConstructionItem" should {
+//      "convert to packet" in {
+//        val cdef = ConstructionItemDefinition(Unit.advanced_ace)
+//        cdef.Modes += DeployedItem.tank_traps
+//        cdef.Modes += DeployedItem.portable_manned_turret_tr
+//        cdef.Modes += DeployedItem.deployable_shield_generator
+//        cdef.Tile = InventoryTile.Tile63
+//        cdef.Packet = new ACEConverter()
+//        val obj = ConstructionItem(cdef)
+//        obj.GUID = PlanetSideGUID(90)
+//        obj.Definition.Packet.DetailedConstructorData(obj) match {
+//          case Success(pkt) =>
+//            pkt mustEqual DetailedACEData(0)
+//          case _ =>
+//            ko
+//        }
+//        obj.Definition.Packet.ConstructorData(obj) match {
+//          case Success(pkt) =>
+//            pkt mustEqual ACEData(0,0)
+//          case _ =>
+//            ko
+//        }
+//      }
+//    }
   }
 
   "SimpleItem" should {

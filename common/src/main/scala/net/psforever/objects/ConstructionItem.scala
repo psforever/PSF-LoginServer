@@ -1,25 +1,59 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects
 
-import net.psforever.objects.definition.ConstructionItemDefinition
+import net.psforever.objects.definition.{ConstructionFireMode, ConstructionItemDefinition}
 import net.psforever.objects.equipment.{CItem, Equipment, FireModeSwitch}
+import net.psforever.types.CertificationType
 
-class ConstructionItem(private val cItemDef : ConstructionItemDefinition) extends Equipment with FireModeSwitch[CItem.DeployedItem.Value] {
+/**
+  * A type of `Equipment` that can be wielded and applied to the game world to produce other game objects.<br>
+  * <br>
+  * Functionally, `ConstructionItem` objects resemble `Tool` objects that have fire mode state and alternate "ammunition."
+  * Very much unlike `Tool` object counterparts, however,
+  * the alternate "ammunition" is also a type of fire mode state
+  * maintained in a two-dimensional grid of related states.
+  * These states represent output products called deployables or, in the common vernacular, CE.
+  * Also unlike `Tool` objects, whose ammunition is always available even when drawing the weapon is not permitted,
+  * the different states are not all available if just the equipment itself is available.
+  * Parameters along with these CE states
+  * indicate whether the current output product is something the player is permitted to utilize.
+  * @param cItemDef the `ObjectDefinition` that constructs this item and maintains some of its immutable fields
+  */
+class ConstructionItem(private val cItemDef : ConstructionItemDefinition) extends Equipment
+  with FireModeSwitch[ConstructionFireMode] {
   private var fireModeIndex : Int = 0
+  private var ammoTypeIndex : Int = 0
 
   def FireModeIndex : Int = fireModeIndex
 
   def FireModeIndex_=(index : Int) : Int = {
-    fireModeIndex = index % cItemDef.Modes.length
+    fireModeIndex = index % Definition.Modes.length
     FireModeIndex
   }
 
-  def FireMode : CItem.DeployedItem.Value = cItemDef.Modes(fireModeIndex)
+  def FireMode : ConstructionFireMode = Definition.Modes(fireModeIndex)
 
-  def NextFireMode : CItem.DeployedItem.Value = {
+  def NextFireMode : ConstructionFireMode = {
     FireModeIndex = FireModeIndex + 1
+    ammoTypeIndex = 0
     FireMode
   }
+
+  def AmmoTypeIndex : Int = ammoTypeIndex
+
+  def AmmoTypeIndex_=(index : Int) : Int =  {
+    ammoTypeIndex = index % FireMode.Deployables.length
+    AmmoTypeIndex
+  }
+
+  def AmmoType : CItem.DeployedItem.Value = FireMode.Deployables(ammoTypeIndex)
+
+  def NextAmmoType : CItem.DeployedItem.Value = {
+    AmmoTypeIndex = AmmoTypeIndex + 1
+    FireMode.Deployables(ammoTypeIndex)
+  }
+
+  def Permissions : Set[CertificationType.Value] = FireMode.Permissions(ammoTypeIndex)
 
   def Definition : ConstructionItemDefinition = cItemDef
 }

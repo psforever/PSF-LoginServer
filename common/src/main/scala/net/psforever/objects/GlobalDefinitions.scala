@@ -18,7 +18,7 @@ import net.psforever.objects.serverobject.resourcesilo.ResourceSiloDefinition
 import net.psforever.objects.serverobject.turret.{MannedTurretDefinition, TurretUpgrade}
 import net.psforever.objects.vehicles.{DestroyedVehicle, SeatArmorRestriction, UtilityType}
 import net.psforever.objects.vital.DamageType
-import net.psforever.types.PlanetSideEmpire
+import net.psforever.types.{CertificationType, PlanetSideEmpire}
 
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -3961,20 +3961,29 @@ object GlobalDefinitions {
     command_detonater.Tile = InventoryTile.Tile33
 
     ace.Name = "ace"
-    ace.Modes += DeployedItem.boomer
-    ace.Modes += DeployedItem.he_mine
-    ace.Modes += DeployedItem.jammer_mine
-    ace.Modes += DeployedItem.spitfire_turret
-    ace.Modes += DeployedItem.spitfire_cloaked
-    ace.Modes += DeployedItem.spitfire_aa
-    ace.Modes += DeployedItem.motionalarmsensor
-    ace.Modes += DeployedItem.sensor_shield
+    ace.Size = EquipmentSize.Pistol
+    ace.Modes += new ConstructionFireMode
+    ace.Modes.head.Item(DeployedItem.boomer -> Set(CertificationType.CombatEngineering))
+    ace.Modes += new ConstructionFireMode
+    ace.Modes(1).Item(DeployedItem.he_mine -> Set(CertificationType.CombatEngineering))
+    ace.Modes(1).Item(DeployedItem.jammer_mine -> Set(CertificationType.AssaultEngineering))
+    ace.Modes += new ConstructionFireMode
+    ace.Modes(2).Item(DeployedItem.spitfire_turret -> Set(CertificationType.CombatEngineering))
+    ace.Modes(2).Item(DeployedItem.spitfire_cloaked -> Set(CertificationType.FortificationEngineering))
+    ace.Modes(2).Item(DeployedItem.spitfire_aa -> Set(CertificationType.FortificationEngineering))
+    ace.Modes += new ConstructionFireMode
+    ace.Modes(3).Item(DeployedItem.motionalarmsensor -> Set(CertificationType.CombatEngineering))
+    ace.Modes(3).Item(DeployedItem.sensor_shield -> Set(CertificationType.AdvancedHacking, CertificationType.FortificationEngineering))
     ace.Tile = InventoryTile.Tile33
 
     advanced_ace.Name = "advanced_ace"
-    advanced_ace.Modes += DeployedItem.tank_traps
-    advanced_ace.Modes += DeployedItem.portable_manned_turret
-    advanced_ace.Modes += DeployedItem.deployable_shield_generator
+    advanced_ace.Size = EquipmentSize.Rifle
+    advanced_ace.Modes += new ConstructionFireMode
+    advanced_ace.Modes.head.Item(DeployedItem.tank_traps -> Set(CertificationType.FortificationEngineering))
+    advanced_ace.Modes += new ConstructionFireMode
+    advanced_ace.Modes(1).Item(DeployedItem.portable_manned_turret -> Set(CertificationType.AssaultEngineering))
+    advanced_ace.Modes += new ConstructionFireMode
+    advanced_ace.Modes(2).Item(DeployedItem.deployable_shield_generator -> Set(CertificationType.AssaultEngineering))
     advanced_ace.Tile = InventoryTile.Tile63
 
     fury_weapon_systema.Name = "fury_weapon_systema"

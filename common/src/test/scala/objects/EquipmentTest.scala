@@ -328,65 +328,65 @@ class EquipmentTest extends Specification {
     }
   }
 
-  "ConstructionItem" should {
-    val advanced_ace_tr = ConstructionItemDefinition(39)
-        advanced_ace_tr.Modes += DeployedItem.tank_traps
-        advanced_ace_tr.Modes += DeployedItem.portable_manned_turret_tr
-        advanced_ace_tr.Modes += DeployedItem.deployable_shield_generator
-        advanced_ace_tr.Tile = InventoryTile.Tile63
-
-    "define" in {
-      val sample = ConstructionItemDefinition(Unit.advanced_ace)
-      sample.Modes += DeployedItem.tank_traps
-      sample.Modes += DeployedItem.portable_manned_turret_tr
-      sample.Modes += DeployedItem.deployable_shield_generator
-      sample.Tile = InventoryTile.Tile63
-      sample.Modes.head mustEqual DeployedItem.tank_traps
-      sample.Modes(1) mustEqual DeployedItem.portable_manned_turret_tr
-      sample.Modes(2) mustEqual DeployedItem.deployable_shield_generator
-      sample.Tile.Width mustEqual InventoryTile.Tile63.Width
-      sample.Tile.Height mustEqual InventoryTile.Tile63.Height
-    }
-
-    "construct" in {
-      val obj : ConstructionItem = ConstructionItem(advanced_ace_tr)
-      obj.Definition.ObjectId mustEqual advanced_ace_tr.ObjectId
-    }
-
-    "fire mode" in {
-      //explanation: router_telepad has one fire mode and that fire mode is our only option
-      val router_telepad : ConstructionItemDefinition = ConstructionItemDefinition(Unit.router_telepad)
-      router_telepad.Modes += DeployedItem.router_telepad_deployable
-      val obj : ConstructionItem = ConstructionItem(router_telepad)
-      //fmode = 0
-      obj.FireModeIndex mustEqual 0
-      obj.FireMode mustEqual DeployedItem.router_telepad_deployable
-      //fmode -> 1 (0)
-      obj.FireModeIndex = 1
-      obj.FireModeIndex mustEqual 0
-      obj.FireMode mustEqual DeployedItem.router_telepad_deployable
-    }
-
-    "multiple fire modes" in {
-      //explanation: advanced_ace_tr has three fire modes; adjusting the FireMode changes between them
-      val obj : ConstructionItem = ConstructionItem(advanced_ace_tr)
-      //fmode = 0
-      obj.FireModeIndex mustEqual 0
-      obj.FireMode mustEqual DeployedItem.tank_traps
-      //fmode -> 1
-      obj.NextFireMode
-      obj.FireModeIndex mustEqual 1
-      obj.FireMode mustEqual DeployedItem.portable_manned_turret_tr
-      //fmode -> 2
-      obj.NextFireMode
-      obj.FireModeIndex mustEqual 2
-      obj.FireMode mustEqual DeployedItem.deployable_shield_generator
-      //fmode -> 0
-      obj.NextFireMode
-      obj.FireModeIndex mustEqual 0
-      obj.FireMode mustEqual DeployedItem.tank_traps
-    }
-  }
+//  "ConstructionItem" should {
+//    val advanced_ace_tr = ConstructionItemDefinition(39)
+//        advanced_ace_tr.Modes += DeployedItem.tank_traps
+//        advanced_ace_tr.Modes += DeployedItem.portable_manned_turret_tr
+//        advanced_ace_tr.Modes += DeployedItem.deployable_shield_generator
+//        advanced_ace_tr.Tile = InventoryTile.Tile63
+//
+//    "define" in {
+//      val sample = ConstructionItemDefinition(Unit.advanced_ace)
+//      sample.Modes += DeployedItem.tank_traps
+//      sample.Modes += DeployedItem.portable_manned_turret_tr
+//      sample.Modes += DeployedItem.deployable_shield_generator
+//      sample.Tile = InventoryTile.Tile63
+//      sample.Modes.head mustEqual DeployedItem.tank_traps
+//      sample.Modes(1) mustEqual DeployedItem.portable_manned_turret_tr
+//      sample.Modes(2) mustEqual DeployedItem.deployable_shield_generator
+//      sample.Tile.Width mustEqual InventoryTile.Tile63.Width
+//      sample.Tile.Height mustEqual InventoryTile.Tile63.Height
+//    }
+//
+//    "construct" in {
+//      val obj : ConstructionItem = ConstructionItem(advanced_ace_tr)
+//      obj.Definition.ObjectId mustEqual advanced_ace_tr.ObjectId
+//    }
+//
+//    "fire mode" in {
+//      //explanation: router_telepad has one fire mode and that fire mode is our only option
+//      val router_telepad : ConstructionItemDefinition = ConstructionItemDefinition(Unit.router_telepad)
+//      router_telepad.Modes += DeployedItem.router_telepad_deployable
+//      val obj : ConstructionItem = ConstructionItem(router_telepad)
+//      //fmode = 0
+//      obj.FireModeIndex mustEqual 0
+//      obj.FireMode mustEqual DeployedItem.router_telepad_deployable
+//      //fmode -> 1 (0)
+//      obj.FireModeIndex = 1
+//      obj.FireModeIndex mustEqual 0
+//      obj.FireMode mustEqual DeployedItem.router_telepad_deployable
+//    }
+//
+//    "multiple fire modes" in {
+//      //explanation: advanced_ace_tr has three fire modes; adjusting the FireMode changes between them
+//      val obj : ConstructionItem = ConstructionItem(advanced_ace_tr)
+//      //fmode = 0
+//      obj.FireModeIndex mustEqual 0
+//      obj.FireMode mustEqual DeployedItem.tank_traps
+//      //fmode -> 1
+//      obj.NextFireMode
+//      obj.FireModeIndex mustEqual 1
+//      obj.FireMode mustEqual DeployedItem.portable_manned_turret_tr
+//      //fmode -> 2
+//      obj.NextFireMode
+//      obj.FireModeIndex mustEqual 2
+//      obj.FireMode mustEqual DeployedItem.deployable_shield_generator
+//      //fmode -> 0
+//      obj.NextFireMode
+//      obj.FireModeIndex mustEqual 0
+//      obj.FireMode mustEqual DeployedItem.tank_traps
+//    }
+//  }
 
   "SimpleItem" should {
     "define" in {

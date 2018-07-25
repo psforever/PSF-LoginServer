@@ -1716,8 +1716,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
       player = tplayer
       val guid = tplayer.GUID
       StartBundlingPackets()
+      sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 75, 0))
       InitialDeployableQuantities(tplayer) //max deployables ui elements
-//    (70 until 80).foreach( i => sendResponse(PlanetsideAttributeMessage(guid, i, i)) ) //region test bit (russ)
       sendResponse(SetCurrentAvatarMessage(guid, 0, 0))
       sendResponse(ChatMsg(ChatMessageType.CMT_EXPANSIONS, true, "", "1 on", None)) //CC on //TODO once per respawn?
       sendResponse(PlayerStateShiftMessage(ShiftState(1, tplayer.Position, tplayer.Orientation.z)))
@@ -1979,7 +1979,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 //      avatar.Certifications += FortificationEngineering
 //      avatar.Certifications += AssaultEngineering
       this.avatar = avatar
-
+      
       AwardBattleExperiencePoints(avatar, 1000000L)
       player = new Player(avatar)
       //player.Position = Vector3(3561.0f, 2854.0f, 90.859375f) //home3, HART C

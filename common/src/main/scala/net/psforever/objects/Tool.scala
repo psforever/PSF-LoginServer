@@ -8,7 +8,7 @@ import net.psforever.objects.ballistics.Projectiles
 import scala.annotation.tailrec
 
 /**
-  * A type of utility that can be wielded and loaded with certain other game elements.<br>
+  * A type of `Equipment` that can be wielded and loaded with certain other game elements.<br>
   * <br>
   * "Tool" is a very mechanical name while this class is intended for various weapons and support items.
   * The primary trait of a `Tool` is that it has something that counts as an "ammunition,"
@@ -17,7 +17,8 @@ import scala.annotation.tailrec
   * Some weapons Chainblade have ammunition but do not consume it.
   * @param toolDef the `ObjectDefinition` that constructs this item and maintains some of its immutable fields
   */
-class Tool(private val toolDef : ToolDefinition) extends Equipment with FireModeSwitch[FireModeDefinition] {
+class Tool(private val toolDef : ToolDefinition) extends Equipment
+  with FireModeSwitch[FireModeDefinition] {
   /** index of the current fire mode on the `ToolDefinition`'s list of fire modes */
   private var fireModeIndex : Int = 0
   /** current ammunition slot being used by this fire mode */
