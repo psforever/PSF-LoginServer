@@ -53,7 +53,7 @@ class ConstructionItem(private val cItemDef : ConstructionItemDefinition) extend
     FireMode.Deployables(ammoTypeIndex)
   }
 
-  def Permissions : Set[CertificationType.Value] = FireMode.Permissions(ammoTypeIndex)
+  def ModePermissions : Set[CertificationType.Value] = FireMode.Permissions(ammoTypeIndex)
 
   def Definition : ConstructionItemDefinition = cItemDef
 }
