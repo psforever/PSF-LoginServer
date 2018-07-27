@@ -3346,16 +3346,16 @@ class WorldSessionActor extends Actor with MDCContextAware {
             }) {
               log.warn(s"WeaponFireMessage: former projectile ${projectile_guid.guid} was not resolved properly; overwriting anyway")
             }
-            val ang = obj match {
-              case _ : Player =>
-                obj.Orientation //TODO upper body facing
+            val (angle, attribution) = obj match {
+              case p : Player =>
+                (p.Orientation, tool.Definition.ObjectId) //TODO upper body facing
               case _ : Vehicle =>
-                tool.Orientation //TODO this is too simplistic
+                (tool.Orientation, obj.Definition.ObjectId) //TODO this is too simplistic to find proper angle
               case _ =>
-                Vector3.Zero
+                (obj.Orientation, obj.Definition.ObjectId)
             }
             projectiles(projectileIndex) =
-              Some(Projectile(tool.Projectile, tool.Definition, tool.FireMode, player, shot_origin, ang))
+              Some(Projectile(tool.Projectile, tool.Definition, tool.FireMode, player, attribution, shot_origin, angle))
           }
         case _ => ;
       }
@@ -5110,7 +5110,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     (tplayer.History.find({p => p.isInstanceOf[PlayerSuicide]}) match {
       case Some(PlayerSuicide(_)) =>
         None
-      case None =>
+      case _ =>
         tplayer.LastShot match {
           case Some(shot) =>
             if(System.nanoTime - shot.hit_time < (10 seconds).toNanos) {
@@ -5124,7 +5124,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         }
     }) match {
       case Some(shot) =>
-        avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.DestroyDisplay(shot.projectile.owner, pentry, shot.projectile.tool_def.ObjectId))
+        avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.DestroyDisplay(shot.projectile.owner, pentry, shot.projectile.attribute_to))
       case None =>
         avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.DestroyDisplay(pentry, pentry, 0))
     }

@@ -248,7 +248,7 @@ class ProjectileTest extends Specification {
     val projectile = beamer_wep.Projectile
 
     "construct" in {
-      val obj = Projectile(beamer_wep.Projectile, beamer_wep.Definition, beamer_wep.FireMode, PlayerSource(player), Vector3(1.2f, 3.4f, 5.6f), Vector3(0.2f, 0.4f, 0.6f))
+      val obj = Projectile(beamer_wep.Projectile, beamer_wep.Definition, beamer_wep.FireMode, PlayerSource(player), beamer_def.ObjectId, Vector3(1.2f, 3.4f, 5.6f), Vector3(0.2f, 0.4f, 0.6f))
       obj.profile mustEqual projectile
       obj.tool_def mustEqual beamer_def
       obj.fire_mode mustEqual firemode
@@ -258,14 +258,24 @@ class ProjectileTest extends Specification {
         case _ =>
           ko
       }
+      obj.attribute_to mustEqual obj.tool_def.ObjectId
       obj.shot_origin mustEqual Vector3(1.2f, 3.4f, 5.6f)
       obj.shot_angle mustEqual Vector3(0.2f, 0.4f, 0.6f)
       obj.fire_time <= System.nanoTime mustEqual true
       obj.isResolved mustEqual false
     }
 
+    "construct (different attribute)" in {
+      val obj1 = Projectile(beamer_wep.Projectile, beamer_wep.Definition, beamer_wep.FireMode, player, Vector3(1.2f, 3.4f, 5.6f), Vector3(0.2f, 0.4f, 0.6f))
+      obj1.attribute_to mustEqual obj1.tool_def.ObjectId
+
+      val obj2 = Projectile(beamer_wep.Projectile, beamer_wep.Definition, beamer_wep.FireMode, PlayerSource(player), 65, Vector3(1.2f, 3.4f, 5.6f), Vector3(0.2f, 0.4f, 0.6f))
+      obj2.attribute_to == obj2.tool_def.ObjectId mustEqual false
+      obj2.attribute_to mustEqual 65
+    }
+
     "resolve" in {
-      val obj = Projectile(projectile, beamer_def, firemode, PlayerSource(player), Vector3.Zero, Vector3.Zero)
+      val obj = Projectile(projectile, beamer_def, firemode, PlayerSource(player), beamer_def.ObjectId, Vector3.Zero, Vector3.Zero)
       obj.isResolved mustEqual false
       obj.isMiss mustEqual false
 
@@ -275,7 +285,7 @@ class ProjectileTest extends Specification {
     }
 
     "missed" in {
-      val obj = Projectile(projectile, beamer_def, firemode, PlayerSource(player), Vector3.Zero, Vector3.Zero)
+      val obj = Projectile(projectile, beamer_def, firemode, PlayerSource(player), beamer_def.ObjectId, Vector3.Zero, Vector3.Zero)
       obj.isResolved mustEqual false
       obj.isMiss mustEqual false
 
@@ -290,7 +300,7 @@ class ProjectileTest extends Specification {
     val p_source = PlayerSource(player)
     val player2 = Player(Avatar("TestTarget", PlanetSideEmpire.NC, CharacterGender.Female, 1, CharacterVoice.Mute))
     val p2_source = PlayerSource(player2)
-    val projectile = Projectile(beamer_wep.Projectile, GlobalDefinitions.beamer, beamer_wep.FireMode, p_source, Vector3.Zero, Vector3.Zero)
+    val projectile = Projectile(beamer_wep.Projectile, GlobalDefinitions.beamer, beamer_wep.FireMode, p_source, GlobalDefinitions.beamer.ObjectId, Vector3.Zero, Vector3.Zero)
     val fury_dm = fury.DamageModel
 
     "construct" in {

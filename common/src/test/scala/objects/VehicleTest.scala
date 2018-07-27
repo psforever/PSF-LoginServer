@@ -692,7 +692,7 @@ class VehicleControlShieldsNotChargingDamagedTest extends ActorTest {
   //
   val beamer_wep = Tool(GlobalDefinitions.beamer)
   val p_source = PlayerSource( Player(Avatar("TestTarget", PlanetSideEmpire.NC, CharacterGender.Female, 1, CharacterVoice.Mute)) )
-  val projectile = Projectile(beamer_wep.Projectile, GlobalDefinitions.beamer, beamer_wep.FireMode, p_source, Vector3.Zero, Vector3.Zero)
+  val projectile = Projectile(beamer_wep.Projectile, GlobalDefinitions.beamer, beamer_wep.FireMode, p_source, GlobalDefinitions.beamer.ObjectId, Vector3.Zero, Vector3.Zero)
   val fury_dm = Vehicle(GlobalDefinitions.fury).DamageModel
   val obj = ResolvedProjectile(ProjectileResolution.Hit, projectile, p_source, fury_dm, Vector3(1.2f, 3.4f, 5.6f), System.nanoTime)
 
