@@ -810,6 +810,22 @@ object GlobalDefinitions {
   init_vehicles()
 
   /*
+  combat engineering deployables
+   */
+  val deployableConverter = new SmallDeployableConverter
+  val boomer = DeployableDefinition(CItem.DeployedItem.boomer)
+  boomer.Name = "boomer"
+  boomer.Packet = deployableConverter
+
+  val he_mine = DeployableDefinition(CItem.DeployedItem.he_mine)
+  he_mine.Name = "he_mine"
+  he_mine.Packet = deployableConverter
+
+  val jammer_mine = DeployableDefinition(CItem.DeployedItem.jammer_mine)
+  jammer_mine.Name = "jammer_mine"
+  jammer_mine.Packet = deployableConverter
+
+  /*
   Miscellaneous
    */
   val order_terminal = new OrderTerminalDefinition

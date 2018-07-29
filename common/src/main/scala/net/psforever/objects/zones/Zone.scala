@@ -54,6 +54,10 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
   /** Used by the `Zone` to coordinate `Equipment` dropping and collection requests. */
   private var ground : ActorRef = ActorRef.noSender
   /** */
+  private val constructions : ListBuffer[PlanetSideGameObject with Deployable] = ListBuffer[PlanetSideGameObject with Deployable]()
+  /** */
+  private var deployables : ActorRef = ActorRef.noSender
+  /** */
   private var transport : ActorRef = ActorRef.noSender
   /** */
   private val players : TrieMap[Avatar, Option[Player]] = TrieMap[Avatar, Option[Player]]()
@@ -91,6 +95,7 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
       SetupNumberPools()
       accessor = context.actorOf(RandomPool(25).props(Props(classOf[UniqueNumberSystem], guid, UniqueNumberSystem.AllocateNumberPoolActors(guid))), s"$Id-uns")
       ground = context.actorOf(Props(classOf[ZoneGroundActor], this, equipmentOnGround), s"$Id-ground")
+      deployables = context.actorOf(Props(classOf[ZoneDeployableActor], this, constructions), s"$Id-deployables")
       transport = context.actorOf(Props(classOf[ZoneVehicleActor], this, vehicles), s"$Id-vehicles")
       population = context.actorOf(Props(classOf[ZonePopulationActor], this, players, corpses), s"$Id-players")
 
@@ -253,6 +258,8 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
     */
   def EquipmentOnGround : List[Equipment] = equipmentOnGround.toList
 
+  def DeployableList : List[PlanetSideGameObject with Deployable] = constructions.toList
+
   def Vehicles : List[Vehicle] = vehicles.toList
 
   def Players : List[Avatar] = players.keys.toList
@@ -270,6 +277,8 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
     *      `Zone.ItemFromGround`
     */
   def Ground : ActorRef = ground
+
+  def Deployables : ActorRef = deployables
 
   def Transport : ActorRef = transport
 
@@ -492,6 +501,14 @@ object Zone {
     final case class CanNotPickupItem(zone : Zone, item_guid : PlanetSideGUID, reason : String)
 
     final case class RemoveItem(item_guid : PlanetSideGUID)
+  }
+
+  object Deployable {
+    final case class Build(obj : PlanetSideGameObject with Deployable)
+    final case class DeployableIsBuilt(obj : PlanetSideGameObject with Deployable)
+
+    final case class Dismiss(obj : PlanetSideGameObject with Deployable)
+    final case class DeployableIsDismissed(obj : PlanetSideGameObject with Deployable)
   }
 
   object Vehicle {

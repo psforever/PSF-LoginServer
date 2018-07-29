@@ -2,9 +2,10 @@
 package net.psforever.packet.game
 
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PlanetSideGamePacket}
-import net.psforever.types.Vector3
+import net.psforever.types.{Angular, Vector3}
 import scodec.Codec
 import scodec.codecs._
+import shapeless.{::, HNil}
 
 /**
   * Dispatched from the client to request that an object be deployed.<br>
@@ -15,17 +16,13 @@ import scodec.codecs._
   * @param object_guid the object
   * @param unk1 na
   * @param pos the location where the object is to be deployed
-  * @param roll the amount of roll that affects orientation
-  * @param pitch the amount of pitch that affects orientation
-  * @param yaw the amount of yaw that affects orientation
+  * @param orient the angle of orientation
   * @param unk2 na
   */
 final case class DeployObjectMessage(object_guid : PlanetSideGUID,
                                      unk1 : Long,
                                      pos : Vector3,
-                                     roll : Int,
-                                     pitch : Int,
-                                     yaw : Int,
+                                     orient : Vector3,
                                      unk2 : Long)
   extends PlanetSideGamePacket {
   type Packet = DeployObjectMessage
@@ -38,9 +35,19 @@ object DeployObjectMessage extends Marshallable[DeployObjectMessage] {
     ("object_guid" | PlanetSideGUID.codec) ::
       ("unk1" | uint32L) ::
       ("pos" | Vector3.codec_pos) ::
-      ("roll" | uint8L) ::
-      ("pitch" | uint8L) ::
-      ("yaw" | uint8L) ::
+      (("roll" | Angular.codec_roll) ::
+        ("pitch" | Angular.codec_pitch) ::
+        ("yaw" | Angular.codec_yaw())
+        ).xmap[Vector3] (
+        {
+          case x :: y :: z :: HNil =>
+            Vector3(x, y, z)
+        },
+        {
+          case Vector3(x, y, z) =>
+            x :: y :: z :: HNil
+        }
+        ) ::
       ("unk2" | uint32L)
     ).as[DeployObjectMessage]
 }

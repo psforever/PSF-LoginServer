@@ -12,6 +12,14 @@ class Vector3Test extends Specification {
       vec.z mustEqual 3.9f
     }
 
+    "isolate x,y components" in {
+      vec.xy mustEqual Vector3(1.3f, -2.6f, 0)
+    }
+
+    "promote float values into a specific z-format" in {
+      Vector3.z(3.9f) mustEqual Vector3(0, 0, 3.9f)
+    }
+
     "calculate magnitude (like a vector) 1" in {
       val obj = Vector3(2.0f, 0.0f, 0.0f)
       Vector3.Magnitude(obj) mustEqual 2.0f

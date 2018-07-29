@@ -56,6 +56,13 @@ class ZoneActor(zone : Zone) extends Actor {
     case msg @ Zone.Ground.PickupItem =>
       zone.Ground forward msg
 
+    //frwd to Deployable Actor
+    case msg @ Zone.Deployable.Build =>
+      zone.Deployables forward msg
+
+    case msg @ Zone.Deployable.Dismiss =>
+      zone.Deployables forward msg
+
     //frwd to Vehicle Actor
     case msg @ Zone.Vehicle.Spawn =>
       zone.Transport forward msg

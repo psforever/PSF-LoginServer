@@ -32,12 +32,8 @@ class TriggerEffectMessageTest extends Specification {
         effect mustEqual "spawn_object_effect"
         unk.isDefined mustEqual false
         location.isDefined mustEqual true
-        location.get.pos.x mustEqual 3567.0156f
-        location.get.pos.y mustEqual 3278.6953f
-        location.get.pos.z mustEqual 114.484375f
-        location.get.roll mustEqual 0
-        location.get.pitch mustEqual 0
-        location.get.yaw mustEqual 0
+        location.get.pos mustEqual Vector3(3567.0156f, 3278.6953f, 114.484375f)
+        location.get.orient mustEqual Vector3(0, 0, 90)
       case _ =>
         ko
     }
@@ -47,8 +43,7 @@ class TriggerEffectMessageTest extends Specification {
     val msg = TriggerEffectMessage(
       PlanetSideGUID(2967),
       "on",
-      Some(TriggeredEffect(true, 1000L)),
-      None
+      TriggeredEffect(true, 1000L)
     )
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
@@ -57,13 +52,8 @@ class TriggerEffectMessageTest extends Specification {
 
   "encode (boomer)" in {
     val msg = TriggerEffectMessage(
-      PlanetSideGUID(0),
       "spawn_object_effect",
-      None,
-      Some(TriggeredEffectLocation(
-        Vector3(3567.0156f, 3278.6953f, 114.484375f),
-        0, 0, 0
-      ))
+      TriggeredEffectLocation(Vector3(3567.0156f, 3278.6953f, 114.484375f), Vector3(0, 0, 90))
     )
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 

@@ -9,7 +9,7 @@ import shapeless.{::, HNil}
 /**
   * An `Enumeration` for the forms of the event chat message produced by this packet.
   */
-object DeploymentOutcome extends Enumeration(1) {
+object DeployOutcome extends Enumeration(1) {
   type Type = Value
 
   val Failure = Value(2)
@@ -47,7 +47,7 @@ object DeploymentOutcome extends Enumeration(1) {
   */
 final case class ObjectDeployedMessage(unk : Int,
                                        desc : String,
-                                       action : DeploymentOutcome.Value,
+                                       action : DeployOutcome.Value,
                                        count : Long,
                                        max : Long)
   extends PlanetSideGamePacket {
@@ -65,13 +65,13 @@ object ObjectDeployedMessage extends Marshallable[ObjectDeployedMessage] {
     * @param max the maximum number of this type of object that can be deployed
     * @return an `ObjectDeployedMessage` object
     */
-  def apply(desc : String, action : DeploymentOutcome.Value, count : Long, max : Long) : ObjectDeployedMessage =
+  def apply(desc : String, action : DeployOutcome.Value, count : Long, max : Long) : ObjectDeployedMessage =
     new ObjectDeployedMessage(0, desc, action, count, max)
 
   implicit val codec : Codec[ObjectDeployedMessage] = (
     ("unk" | uint16L) ::
       ("desc" | PacketHelpers.encodedString) ::
-      ("action" | DeploymentOutcome.codec) ::
+      ("action" | DeployOutcome.codec) ::
       ("count" | uint32L) ::
       ("max" | uint32L)
     ).xmap[ObjectDeployedMessage] (
