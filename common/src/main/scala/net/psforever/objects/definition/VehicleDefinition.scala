@@ -3,17 +3,22 @@ package net.psforever.objects.definition
 
 import net.psforever.objects.definition.converter.VehicleConverter
 import net.psforever.objects.inventory.InventoryTile
-import net.psforever.objects.vehicles.UtilityType
+import net.psforever.objects.vehicles.{DestroyedVehicle, UtilityType}
+import net.psforever.objects.vital._
+import net.psforever.objects.vital.resistance.ResistanceProfileMutators
 
 import scala.collection.mutable
 import scala.concurrent.duration._
 
 /**
   * An object definition system used to construct and retain the parameters of various vehicles.
-  * @param objectId the object id the is associated with this sort of `Vehicle`
+  * @param objectId the object id that is associated with this sort of `Vehicle`
   */
-class VehicleDefinition(objectId : Int) extends ObjectDefinition(objectId) {
+class VehicleDefinition(objectId : Int) extends ObjectDefinition(objectId)
+  with ResistanceProfileMutators
+  with DamageResistanceModel {
   private var maxHealth : Int = 100
+  /** vehicle shields offered through amp station facility benefits (generally: 20% of health + 1) */
   private var maxShields : Int = 0
   /* key - seat index, value - seat object */
   private val seats : mutable.HashMap[Int, SeatDefinition] = mutable.HashMap[Int, SeatDefinition]()
@@ -33,8 +38,12 @@ class VehicleDefinition(objectId : Int) extends ObjectDefinition(objectId) {
   private var serverVehicleOverrideSpeeds : (Int, Int) = (0, 0)
   private var deconTime : Option[FiniteDuration] = None
   private var maximumCapacitor : Int = 0
+  private var destroyedModel : Option[DestroyedVehicle.Value] = None
   Name = "vehicle"
   Packet = VehicleDefinition.converter
+  Damage = StandardVehicleDamage
+  Resistance = StandardVehicleResistance
+  Model = StandardResolutions.Vehicle
 
   def MaxHealth : Int = maxHealth
 
@@ -137,6 +146,13 @@ class VehicleDefinition(objectId : Int) extends ObjectDefinition(objectId) {
   def MaximumCapacitor_=(maxCapacitor: Int) : Int = {
     maximumCapacitor = maxCapacitor
     MaximumCapacitor
+  }
+
+  def DestroyedModel : Option[DestroyedVehicle.Value] = destroyedModel
+
+  def DestroyedModel_=(model : Option[DestroyedVehicle.Value]) : Option[DestroyedVehicle.Value] = {
+    destroyedModel = model
+    DestroyedModel
   }
 }
 

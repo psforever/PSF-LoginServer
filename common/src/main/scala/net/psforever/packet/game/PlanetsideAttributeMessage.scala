@@ -156,6 +156,10 @@ final case class PlanetsideAttributeMessage(player_guid : PlanetSideGUID,
 }
 
 object PlanetsideAttributeMessage extends Marshallable[PlanetsideAttributeMessage] {
+  def apply(player_guid : PlanetSideGUID, attribute_type : Int, attribute_value : Int) : PlanetsideAttributeMessage = {
+    PlanetsideAttributeMessage(player_guid, attribute_type, attribute_value.toLong)
+  }
+
   implicit val codec : Codec[PlanetsideAttributeMessage] = (
     ("player_guid" | PlanetSideGUID.codec) ::
       ("attribute_type" | uint8L) ::

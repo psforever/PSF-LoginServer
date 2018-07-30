@@ -1250,6 +1250,7 @@ object Maps {
       LocalObject(2050, Terminal.Constructor(repair_silo)) //rearm terminal A
       LocalObject(2061, ProximityTerminal.Constructor(repair_silo)) //repair terminal B
       LocalObject(2062, Terminal.Constructor(repair_silo)) //rearm terminal B
+      LocalObject(2094, ResourceSilo.Constructor)
       LocalObject(2239, Terminal.Constructor(spawn_terminal))
       LocalObject(2244, Terminal.Constructor(spawn_terminal))
       LocalObject(2245, Terminal.Constructor(spawn_terminal))
@@ -1371,6 +1372,7 @@ object Maps {
       ObjectToBuilding(2050, 2)
       ObjectToBuilding(2061, 2)
       ObjectToBuilding(2062, 2)
+      ObjectToBuilding(2094, 2)
       ObjectToBuilding(2145, 2)
       ObjectToBuilding(2146, 2)
       ObjectToBuilding(2147, 2)

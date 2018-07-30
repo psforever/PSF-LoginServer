@@ -21,7 +21,9 @@ object VehicleAction {
   final case class KickPassenger(player_guid : PlanetSideGUID, unk1 : Int, unk2 : Boolean, vehicle_guid : PlanetSideGUID) extends Action
   final case class LoadVehicle(player_guid : PlanetSideGUID, vehicle : Vehicle, vtype : Int, vguid : PlanetSideGUID, vdata : ConstructorData) extends Action
   final case class MountVehicle(player_guid : PlanetSideGUID, object_guid : PlanetSideGUID, seat : Int) extends Action
+  final case class ObjectDelete(player_guid : PlanetSideGUID, weapon_guid : PlanetSideGUID) extends Action
   final case class Ownership(player_guid : PlanetSideGUID, vehicle_guid : PlanetSideGUID) extends Action
+  final case class PlanetsideAttribute(player_guid : PlanetSideGUID, target_guid : PlanetSideGUID, attribute_type : Int, attribute_value : Long) extends Action
   final case class SeatPermissions(player_guid : PlanetSideGUID, vehicle_guid : PlanetSideGUID, seat_group : Int, permission : Long) extends Action
   final case class StowEquipment(player_guid : PlanetSideGUID, vehicle_guid : PlanetSideGUID, slot : Int, item : Equipment) extends Action
   final case class UnloadVehicle(player_guid : PlanetSideGUID, continent : Zone, vehicle : Vehicle) extends Action

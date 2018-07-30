@@ -151,8 +151,13 @@ object PsLogin {
         sys.exit(1)
     }
 
-    // TODO: pluralize "processors"
-    logger.info(s"Detected ${Runtime.getRuntime.availableProcessors()} available logical processors")
+    val procNum = Runtime.getRuntime.availableProcessors()
+    logger.info(if(procNum == 1) {
+      "Detected 1 available logical processor"
+    }
+    else {
+      s"Detected $procNum available logical processors"
+    })
     logger.info("Starting actor subsystems...")
 
     /** Make sure we capture Akka messages (but only INFO and above)
