@@ -9,6 +9,7 @@ import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.deploy.Deployment
 import net.psforever.objects.vehicles._
+import net.psforever.objects.vital.{DamageResistanceModel, StandardResistanceProfile, Vitality}
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types.PlanetSideEmpire
 
@@ -67,6 +68,8 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
   with Mountable
   with MountedWeapons
   with Deployment
+  with Vitality
+  with StandardResistanceProfile
   with Container {
   private var faction : PlanetSideEmpire.Value = PlanetSideEmpire.TR
   private var owner : Option[PlanetSideGUID] = None
@@ -142,7 +145,7 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
   def Owner_=(owner : Option[PlanetSideGUID]) : Option[PlanetSideGUID] = {
     owner match {
       case Some(_) =>
-        if(Definition.CanBeOwned) { //e.g., base turrets
+        if(Definition.CanBeOwned) {
           this.owner = owner
         }
       case None =>
@@ -152,11 +155,11 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
   }
 
   def Health : Int = {
-    this.health
+    health
   }
 
-  def Health_=(health : Int) : Int = {
-    this.health = health
+  def Health_=(assignHealth : Int) : Int = {
+    health = math.min(math.max(0, assignHealth), MaxHealth)
     health
   }
 
@@ -165,11 +168,11 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
   }
 
   def Shields : Int = {
-    this.shields
+    shields
   }
 
   def Shields_=(strength : Int) : Int = {
-    this.shields = strength
+    shields = math.min(math.max(0, strength), MaxShields)
     Shields
   }
 
@@ -178,12 +181,12 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
   }
 
   def Decal : Int = {
-    this.decal
+    decal
   }
 
-  def Decal_=(decal : Int) : Int = {
-    this.decal = decal
-    decal
+  def Decal_=(logo : Int) : Int = {
+    decal = logo
+    Decal
   }
 
   def Jammered : Boolean = jammered
@@ -493,6 +496,8 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
     */
   def TrunkLockState :  VehicleLockState.Value = groupPermissions(3)
 
+  def DamageModel = Definition.asInstanceOf[DamageResistanceModel]
+
   /**
     * This is the definition entry that is used to store and unload pertinent information about the `Vehicle`.
     * @return the vehicle's definition entry
@@ -533,6 +538,20 @@ object Vehicle {
     * @see `VehicleControl`
     */
   final case class Reactivate()
+
+  /**
+    * A request has been made to charge this vehicle's shields.
+    * @see `FacilityBenefitShieldChargeRequestMessage`
+    * @param amount the number of points to charge
+    */
+  final case class ChargeShields(amount : Int)
+
+  /**
+    * Following a successful shield charge tick, display the results of the update.
+    * @see `FacilityBenefitShieldChargeRequestMessage`
+    * @param vehicle the updated vehicle
+    */
+  final case class UpdateShieldsCharge(vehicle : Vehicle)
 
   /**
     * Overloaded constructor.

@@ -6,13 +6,19 @@ import net.psforever.objects.equipment.{Equipment, EquipmentSize}
 import net.psforever.objects.inventory.{Container, GridInventory, InventoryItem}
 import net.psforever.objects.loadouts.Loadout
 import net.psforever.objects.serverobject.affinity.FactionAffinity
+import net.psforever.objects.vital.resistance.ResistanceProfile
+import net.psforever.objects.vital.{DamageResistanceModel, Vitality}
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types._
 
 import scala.annotation.tailrec
 import scala.util.{Success, Try}
 
-class Player(private val core : Avatar) extends PlanetSideGameObject with FactionAffinity with Container {
+class Player(private val core : Avatar) extends PlanetSideGameObject
+  with FactionAffinity
+  with Vitality
+  with ResistanceProfile
+  with Container {
   private var alive : Boolean = false
   private var backpack : Boolean = false
   private var health : Int = 0
@@ -42,7 +48,6 @@ class Player(private val core : Avatar) extends PlanetSideGameObject with Factio
   //SouNourS things
   /** Last medkituse. */
   var lastMedkit : Long = 0
-  var death_by : Int = 0
   var lastSeenStreamMessage : Array[Long] = Array.fill[Long](65535)(0L)
   var lastShotSeq_time : Int = -1
   /** From PlanetsideAttributeMessage */
@@ -276,6 +281,14 @@ class Player(private val core : Avatar) extends PlanetSideGameObject with Factio
     ChangeSpecialAbility()
   }
 
+  def ResistanceDirectHit = exosuit.ResistanceDirectHit
+
+  def ResistanceSplash = exosuit.ResistanceSplash
+
+  def ResistanceAggravated = exosuit.ResistanceAggravated
+
+  def RadiationShielding = exosuit.RadiationShielding
+
   def LoadLoadout(line : Int) : Option[Loadout] = core.LoadLoadout(line)
 
   def BEP : Long = core.BEP
@@ -474,6 +487,8 @@ class Player(private val core : Avatar) extends PlanetSideGameObject with Factio
     continent = zoneId
     Continent
   }
+
+  def DamageModel = exosuit.asInstanceOf[DamageResistanceModel]
 
   def Definition : AvatarDefinition = core.Definition
 

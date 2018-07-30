@@ -92,6 +92,10 @@ class VehicleService extends Actor {
           VehicleEvents.publish(
             VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.Ownership(vehicle_guid))
           )
+        case VehicleAction.PlanetsideAttribute(exclude_guid, target_guid, attribute_type, attribute_value) =>
+          VehicleEvents.publish(
+            VehicleServiceResponse(s"/$forChannel/Vehicle", exclude_guid, VehicleResponse.PlanetsideAttribute(target_guid, attribute_type, attribute_value))
+          )
         case VehicleAction.SeatPermissions(player_guid, vehicle_guid, seat_group, permission) =>
           VehicleEvents.publish(
             VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.SeatPermissions(vehicle_guid, seat_group, permission))

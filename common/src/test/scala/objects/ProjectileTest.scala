@@ -1,18 +1,28 @@
 // Copyright (c) 2017 PSForever
 package objects
 
-import net.psforever.objects.{GlobalDefinitions, LocalProjectile, Tool}
-import net.psforever.objects.ballistics.{DamageType, Projectile, ProjectileResolution, Projectiles}
+import net.psforever.objects._
+import net.psforever.objects.ballistics._
 import net.psforever.objects.definition.ProjectileDefinition
-import net.psforever.types.Vector3
+import net.psforever.objects.serverobject.mblocker.Locker
+import net.psforever.objects.vital.DamageType
+import net.psforever.packet.game.PlanetSideGUID
+import net.psforever.types._
 import org.specs2.mutable.Specification
 
 class ProjectileTest extends Specification {
+  val player = Player(Avatar("TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+  val fury = Vehicle(GlobalDefinitions.fury)
+
   "LocalProjectile" should {
     "construct" in {
       val obj = new LocalProjectile() //since they're just placeholders, they only need to construct
       obj.Definition.ObjectId mustEqual 0
       obj.Definition.Name mustEqual "projectile"
+    }
+
+    "local projectile range" in {
+      Projectile.BaseUID < Projectile.RangeUID mustEqual true
     }
   }
 
@@ -151,48 +161,156 @@ class ProjectileTest extends Specification {
     }
   }
 
-  "Projectile" should {
-    "construct" in {
-      val beamer_wep = Tool(GlobalDefinitions.beamer)
-      val projectile = beamer_wep.Projectile
-      val obj = Projectile(projectile, beamer_wep.Definition, Vector3(1.2f, 3.4f, 5.6f), Vector3(0.2f, 0.4f, 0.6f))
+  "SourceEntry" should {
+    "construct for players" in {
+      SourceEntry(player) match {
+        case o : PlayerSource =>
+          o.Name mustEqual "TestCharacter"
+          o.Faction mustEqual PlanetSideEmpire.TR
+          o.Seated mustEqual false
+          o.ExoSuit mustEqual ExoSuitType.Standard
+          o.Health mustEqual 0
+          o.Armor mustEqual 0
+          o.Definition mustEqual GlobalDefinitions.avatar
+          o.Position mustEqual Vector3.Zero
+          o.Orientation mustEqual Vector3.Zero
+          o.Velocity mustEqual None
+        case _ =>
+          ko
+      }
+    }
 
-      obj.profile mustEqual beamer_wep.Projectile
-      obj.tool_def mustEqual GlobalDefinitions.beamer
+    "construct for vehicles" in {
+      SourceEntry(fury) match {
+        case o : VehicleSource =>
+          o.Name mustEqual "Fury"
+          o.Faction mustEqual PlanetSideEmpire.TR
+          o.Definition mustEqual GlobalDefinitions.fury
+          o.Health mustEqual 650
+          o.Shields mustEqual 0
+          o.Position mustEqual Vector3.Zero
+          o.Orientation mustEqual Vector3.Zero
+          o.Velocity mustEqual None
+        case _ =>
+          ko
+      }
+    }
+
+    "construct for generic object" in {
+      val obj = Locker()
+      SourceEntry(obj) match {
+        case o : ObjectSource =>
+          o.obj mustEqual obj
+          o.Name mustEqual "Mb Locker"
+          o.Faction mustEqual PlanetSideEmpire.NEUTRAL
+          o.Definition mustEqual GlobalDefinitions.mb_locker
+          o.Position mustEqual Vector3.Zero
+          o.Orientation mustEqual Vector3.Zero
+          o.Velocity mustEqual None
+        case _ =>
+          ko
+      }
+    }
+
+    "contain timely information" in {
+      val obj = Player(Avatar("TestCharacter-alt", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+      obj.VehicleSeated = Some(PlanetSideGUID(1))
+      obj.Position = Vector3(1.2f, 3.4f, 5.6f)
+      obj.Orientation = Vector3(2.1f, 4.3f, 6.5f)
+      obj.Velocity = Some(Vector3(1.1f, 2.2f, 3.3f))
+      val sobj = SourceEntry(obj)
+      obj.VehicleSeated = None
+      obj.Position = Vector3.Zero
+      obj.Orientation = Vector3.Zero
+      obj.Velocity = None
+      obj.ExoSuit = ExoSuitType.Agile
+
+      sobj match {
+        case o : PlayerSource =>
+          o.Name mustEqual "TestCharacter-alt"
+          o.Faction mustEqual PlanetSideEmpire.TR
+          o.Seated mustEqual true
+          o.ExoSuit mustEqual ExoSuitType.Standard
+          o.Definition mustEqual GlobalDefinitions.avatar
+          o.Position mustEqual Vector3(1.2f, 3.4f, 5.6f)
+          o.Orientation mustEqual Vector3(2.1f, 4.3f, 6.5f)
+          o.Velocity mustEqual Some(Vector3(1.1f, 2.2f, 3.3f))
+        case _ =>
+          ko
+      }
+    }
+  }
+
+  "Projectile" should {
+    val beamer_def = GlobalDefinitions.beamer
+    val beamer_wep = Tool(beamer_def)
+    val firemode = beamer_wep.FireMode
+    val projectile = beamer_wep.Projectile
+
+    "construct" in {
+      val obj = Projectile(beamer_wep.Projectile, beamer_wep.Definition, beamer_wep.FireMode, PlayerSource(player), beamer_def.ObjectId, Vector3(1.2f, 3.4f, 5.6f), Vector3(0.2f, 0.4f, 0.6f))
+      obj.profile mustEqual projectile
+      obj.tool_def mustEqual beamer_def
+      obj.fire_mode mustEqual firemode
+      obj.owner match {
+        case _ : PlayerSource =>
+          ok
+        case _ =>
+          ko
+      }
+      obj.attribute_to mustEqual obj.tool_def.ObjectId
       obj.shot_origin mustEqual Vector3(1.2f, 3.4f, 5.6f)
       obj.shot_angle mustEqual Vector3(0.2f, 0.4f, 0.6f)
-      obj.resolution mustEqual ProjectileResolution.Unresolved
       obj.fire_time <= System.nanoTime mustEqual true
-      obj.hit_time mustEqual 0
+      obj.isResolved mustEqual false
+    }
+
+    "construct (different attribute)" in {
+      val obj1 = Projectile(beamer_wep.Projectile, beamer_wep.Definition, beamer_wep.FireMode, player, Vector3(1.2f, 3.4f, 5.6f), Vector3(0.2f, 0.4f, 0.6f))
+      obj1.attribute_to mustEqual obj1.tool_def.ObjectId
+
+      val obj2 = Projectile(beamer_wep.Projectile, beamer_wep.Definition, beamer_wep.FireMode, PlayerSource(player), 65, Vector3(1.2f, 3.4f, 5.6f), Vector3(0.2f, 0.4f, 0.6f))
+      obj2.attribute_to == obj2.tool_def.ObjectId mustEqual false
+      obj2.attribute_to mustEqual 65
     }
 
     "resolve" in {
-      val beamer_wep = Tool(GlobalDefinitions.beamer)
-      val projectile = beamer_wep.Projectile
-      val obj = Projectile(projectile, beamer_wep.Definition, Vector3(1.2f, 3.4f, 5.6f), Vector3(0.2f, 0.4f, 0.6f))
-      val obj2 = obj.Resolve(ProjectileResolution.MissedShot)
+      val obj = Projectile(projectile, beamer_def, firemode, PlayerSource(player), beamer_def.ObjectId, Vector3.Zero, Vector3.Zero)
+      obj.isResolved mustEqual false
+      obj.isMiss mustEqual false
 
-      obj.resolution mustEqual ProjectileResolution.Unresolved
-      obj.fire_time <= System.nanoTime mustEqual true
-      obj.hit_time mustEqual 0
-      obj2.resolution mustEqual ProjectileResolution.MissedShot
-      obj2.fire_time == obj.fire_time mustEqual true
-      obj2.hit_time <= System.nanoTime mustEqual true
-      obj2.fire_time <= obj2.hit_time mustEqual true
+      obj.Resolve()
+      obj.isResolved mustEqual true
+      obj.isMiss mustEqual false
     }
 
-    "resolve, with coordinates" in {
-      val beamer_wep = Tool(GlobalDefinitions.beamer)
-      val projectile = beamer_wep.Projectile
-      val obj = Projectile(projectile, beamer_wep.Definition, Vector3(1.2f, 3.4f, 5.6f), Vector3(0.2f, 0.4f, 0.6f))
-      val obj2 = obj.Resolve(Vector3(7.2f, 8.4f, 9.6f), Vector3(1.2f, 1.4f, 1.6f), ProjectileResolution.Resolved)
+    "missed" in {
+      val obj = Projectile(projectile, beamer_def, firemode, PlayerSource(player), beamer_def.ObjectId, Vector3.Zero, Vector3.Zero)
+      obj.isResolved mustEqual false
+      obj.isMiss mustEqual false
 
-      obj.resolution mustEqual ProjectileResolution.Unresolved
-      obj.current.Position mustEqual Vector3.Zero
-      obj.current.Orientation mustEqual Vector3.Zero
-      obj2.resolution mustEqual ProjectileResolution.Resolved
-      obj2.current.Position mustEqual Vector3(7.2f, 8.4f, 9.6f)
-      obj2.current.Orientation mustEqual Vector3(1.2f, 1.4f, 1.6f)
+      obj.Miss()
+      obj.isResolved mustEqual true
+      obj.isMiss mustEqual true
+    }
+  }
+
+  "ResolvedProjectile" should {
+    val beamer_wep = Tool(GlobalDefinitions.beamer)
+    val p_source = PlayerSource(player)
+    val player2 = Player(Avatar("TestTarget", PlanetSideEmpire.NC, CharacterGender.Female, 1, CharacterVoice.Mute))
+    val p2_source = PlayerSource(player2)
+    val projectile = Projectile(beamer_wep.Projectile, GlobalDefinitions.beamer, beamer_wep.FireMode, p_source, GlobalDefinitions.beamer.ObjectId, Vector3.Zero, Vector3.Zero)
+    val fury_dm = fury.DamageModel
+
+    "construct" in {
+      val obj = ResolvedProjectile(ProjectileResolution.Hit, projectile, PlayerSource(player2), fury_dm, Vector3(1.2f, 3.4f, 5.6f), 123456L)
+      obj.resolution mustEqual ProjectileResolution.Hit
+      obj.projectile mustEqual projectile
+      obj.target mustEqual p2_source
+      obj.damage_model mustEqual fury.DamageModel
+      obj.hit_pos mustEqual Vector3(1.2f, 3.4f, 5.6f)
+      obj.hit_time mustEqual 123456L
     }
   }
 }

@@ -1,60 +1,59 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.ballistics
 
+import net.psforever.objects.PlanetSideGameObject
 import net.psforever.objects.definition.{ProjectileDefinition, ToolDefinition}
 import net.psforever.objects.entity.SimpleWorldEntity
+import net.psforever.objects.equipment.FireModeDefinition
+import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.types.Vector3
 
 /**
   * A summation of weapon (`Tool`) discharge.
+  * @see `ProjectileDefinition`<br>
+  *       `ToolDefinition`<br>
+  *       `FireModeDefinition`<br>
+  *       `SourceEntry`<br>
+  *       `PlayerSource`
   * @param profile an explanation of the damage that can be performed by this discharge
   * @param tool_def the weapon that caused this discharge
+  * @param fire_mode the current fire mode of the tool used
+  * @param owner the agency that caused the weapon to produce this projectile;
+  *              most often a player (`PlayerSource`)
+  * @param attribute_to an object ID that refers to the method of death that would be reported;
+  *                     usually the same as `tool_def.ObjectId`;
+  *                     if not, then it is a type of vehicle (and owner should have a positive `seated` field)
   * @param shot_origin where the projectile started
   * @param shot_angle in which direction the projectile was aimed when it was discharged
-  * @param resolution whether this projectile has encountered a target or wall;
-  *                   defaults to `Unresolved`
   * @param fire_time when the weapon discharged was recorded;
   *                  defaults to `System.nanoTime`
-  * @param hit_time when the discharge had its resolution status updated
   */
 final case class Projectile(profile : ProjectileDefinition,
                             tool_def : ToolDefinition,
+                            fire_mode : FireModeDefinition,
+                            owner : SourceEntry,
+                            attribute_to : Int,
                             shot_origin : Vector3,
                             shot_angle : Vector3,
-                            resolution : ProjectileResolution.Value,
-                            fire_time : Long = System.nanoTime,
-                            hit_time : Long = 0) {
+                            fire_time: Long = System.nanoTime) {
   /** Information about the current world coordinates and orientation of the projectile */
   val current : SimpleWorldEntity = new SimpleWorldEntity()
+  private var resolved : ProjectileResolution.Value = ProjectileResolution.Unresolved
 
   /**
-    * Give the projectile the suggested resolution status.
-    * Update the world coordinates and orientation.
-    * @param pos the current position
-    * @param ang the current orientation
-    * @param resolution the resolution status
-    * @return a new projectile with the suggested resolution status, or the original projectile
+    * Mark the projectile as being "encountered" or "managed" at least once.
     */
-  def Resolve(pos : Vector3, ang : Vector3, resolution : ProjectileResolution.Value) : Projectile = {
-    val obj = Resolve(resolution)
-    obj.current.Position = pos
-    obj.current.Orientation = ang
-    obj
+  def Resolve() : Unit = {
+    resolved = ProjectileResolution.Resolved
   }
 
-  /**
-    * Give the projectile the suggested resolution status.
-    * @param resolution the resolution status
-    * @return a new projectile with the suggested resolution status, or the original projectile
-    */
-  def Resolve(resolution : ProjectileResolution.Value) : Projectile = {
-    resolution match {
-      case ProjectileResolution.Unresolved =>
-        this
-      case _ =>
-        Projectile(profile, tool_def, shot_origin, shot_angle, resolution, fire_time, System.nanoTime)
-    }
+  def Miss() : Unit = {
+    resolved = ProjectileResolution.MissedShot
   }
+
+  def isResolved : Boolean = resolved == ProjectileResolution.Resolved || resolved == ProjectileResolution.MissedShot
+
+  def isMiss : Boolean = resolved == ProjectileResolution.MissedShot
 }
 
 object Projectile {
@@ -68,11 +67,28 @@ object Projectile {
     * Overloaded constructor for an `Unresolved` projectile.
     * @param profile an explanation of the damage that can be performed by this discharge
     * @param tool_def the weapon that caused this discharge
+    * @param fire_mode the current fire mode of the tool used
+    * @param owner the agency that caused the weapon to produce this projectile
     * @param shot_origin where the projectile started
     * @param shot_angle in which direction the projectile was aimed when it was discharged
     * @return the `Projectile` object
     */
-  def apply(profile : ProjectileDefinition, tool_def : ToolDefinition, shot_origin : Vector3, shot_angle : Vector3) : Projectile = {
-    Projectile(profile, tool_def, shot_origin, shot_angle, ProjectileResolution.Unresolved)
+  def apply(profile : ProjectileDefinition, tool_def : ToolDefinition, fire_mode : FireModeDefinition, owner : PlanetSideGameObject with FactionAffinity, shot_origin : Vector3, shot_angle : Vector3) : Projectile = {
+    Projectile(profile, tool_def, fire_mode, SourceEntry(owner), tool_def.ObjectId, shot_origin, shot_angle)
+  }
+
+  /**
+    * Overloaded constructor for an `Unresolved` projectile.
+    * @param profile an explanation of the damage that can be performed by this discharge
+    * @param tool_def the weapon that caused this discharge
+    * @param fire_mode the current fire mode of the tool used
+    * @param owner the agency that caused the weapon to produce this projectile
+    * @param attribute_to an object ID that refers to the method of death that would be reported
+    * @param shot_origin where the projectile started
+    * @param shot_angle in which direction the projectile was aimed when it was discharged
+    * @return the `Projectile` object
+    */
+  def apply(profile : ProjectileDefinition, tool_def : ToolDefinition, fire_mode : FireModeDefinition, owner : PlanetSideGameObject with FactionAffinity, attribute_to : Int, shot_origin : Vector3, shot_angle : Vector3) : Projectile = {
+    Projectile(profile, tool_def, fire_mode, SourceEntry(owner), attribute_to, shot_origin, shot_angle)
   }
 }
