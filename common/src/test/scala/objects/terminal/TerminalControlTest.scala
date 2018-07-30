@@ -43,7 +43,7 @@ class CertTerminalControl1Test extends ActorTest {
     val reply2 = reply.asInstanceOf[Terminal.TerminalMessage]
     assert(reply2.player == player)
     assert(reply2.msg == msg)
-    assert(reply2.response == Terminal.LearnCertification(CertificationType.MediumAssault, 2))
+    assert(reply2.response == Terminal.LearnCertification(CertificationType.MediumAssault))
   }
 }
 
@@ -73,7 +73,7 @@ class CertTerminalControl3Test extends ActorTest {
     val reply2 = reply.asInstanceOf[Terminal.TerminalMessage]
     assert(reply2.player == player)
     assert(reply2.msg == msg)
-    assert(reply2.response == Terminal.SellCertification(CertificationType.MediumAssault, 2))
+    assert(reply2.response == Terminal.SellCertification(CertificationType.MediumAssault))
   }
 }
 

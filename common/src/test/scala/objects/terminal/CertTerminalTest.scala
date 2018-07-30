@@ -24,7 +24,7 @@ class CertTerminalTest extends Specification {
 
     "player can learn a certification ('medium_assault')" in {
       val msg = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Learn, 0, "medium_assault", 0, PlanetSideGUID(0))
-      terminal.Request(player, msg) mustEqual Terminal.LearnCertification(CertificationType.MediumAssault, 2)
+      terminal.Request(player, msg) mustEqual Terminal.LearnCertification(CertificationType.MediumAssault)
     }
 
     "player can not learn a fake certification ('juggling')" in {
@@ -36,7 +36,7 @@ class CertTerminalTest extends Specification {
     "player can forget a certification ('medium_assault')" in {
       val msg = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Sell, 0, "medium_assault", 0, PlanetSideGUID(0))
 
-      terminal.Request(player, msg) mustEqual Terminal.SellCertification(CertificationType.MediumAssault, 2)
+      terminal.Request(player, msg) mustEqual Terminal.SellCertification(CertificationType.MediumAssault)
     }
 
     "player can not forget a fake certification ('juggling')" in {

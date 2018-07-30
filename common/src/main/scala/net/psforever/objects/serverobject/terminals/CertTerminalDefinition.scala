@@ -16,47 +16,47 @@ class CertTerminalDefinition extends TerminalDefinition(171) {
     * The certifications available.
     * All entries are listed on page (tab) number 0.
     */
-  private val certificationList : Map[String, (CertificationType.Value, Int)] = Map(
-    "medium_assault" -> (CertificationType.MediumAssault, 2),
-    "reinforced_armor" -> (CertificationType.ReinforcedExoSuit, 3),
-    "quad_all" -> (CertificationType.ATV, 1),
-    "switchblade" -> (CertificationType.Switchblade, 1),
-    "harasser" -> (CertificationType.Harasser, 1),
-    "anti_vehicular" -> (CertificationType.AntiVehicular, 3),
-    "heavy_assault" -> (CertificationType.HeavyAssault, 4),
-    "sniper" -> (CertificationType.Sniping, 3),
-    "special_assault" -> (CertificationType.SpecialAssault, 3),
-    "special_assault_2" -> (CertificationType.EliteAssault, 1),
-    "infiltration_suit" -> (CertificationType.InfiltrationSuit, 2),
-    "max_anti_personnel" -> (CertificationType.AIMAX, 3),
-    "max_anti_vehicular" -> (CertificationType.AVMAX, 3),
-    "max_anti_aircraft" -> (CertificationType.AAMAX, 2),
-    "max_all" -> (CertificationType.UniMAX, 6),
-    "air_cavalry_scout" -> (CertificationType.AirCavalryScout, 3),
-    "air_cavalry_assault" -> (CertificationType.AirCavalryAssault, 2),
-    "air_cavalry_interceptor" -> (CertificationType.AirCavalryInterceptor, 2),
-    "air_support" -> (CertificationType.AirSupport, 3),
-    "gunship" -> (CertificationType.GalaxyGunship, 2),
-    "phantasm" -> (CertificationType.Phantasm, 3),
-    "armored_assault1" -> (CertificationType.ArmoredAssault1, 2),
-    "armored_assault2" -> (CertificationType.ArmoredAssault2, 1),
-    "flail" -> (CertificationType.Flail, 1),
-    "assault_buggy" -> (CertificationType.AssaultBuggy, 3),
-    "ground_support" -> (CertificationType.GroundSupport, 2),
-    "ground_transport" -> (CertificationType.GroundTransport, 2),
-    "light_scout" -> (CertificationType.LightScout, 5),
-    "Repair" -> (CertificationType.Engineering, 3),
-    "combat_engineering" -> (CertificationType.CombatEngineering, 2),
-    "ce_offense" -> (CertificationType.AssaultEngineering, 3),
-    "ce_defense" -> (CertificationType.FortificationEngineering, 3),
-    "ce_advanced" -> (CertificationType.AdvancedEngineering, 5),
-    "Hacking" -> (CertificationType.Hacking, 3),
-    "advanced_hacking" -> (CertificationType.AdvancedHacking, 2),
-    "expert_hacking" -> (CertificationType.ExpertHacking, 2),
-    "virus_hacking" -> (CertificationType.DataCorruption, 3),
-    "electronics_expert" -> (CertificationType.ElectronicsExpert, 4),
-    "Medical" -> (CertificationType.Medical, 3),
-    "advanced_medical" -> (CertificationType.AdvancedMedical, 2)
+  private val certificationList : Map[String, CertificationType.Value] = Map(
+    "medium_assault" -> CertificationType.MediumAssault,
+    "reinforced_armor" -> CertificationType.ReinforcedExoSuit,
+    "quad_all" -> CertificationType.ATV,
+    "switchblade" -> CertificationType.Switchblade,
+    "harasser" -> CertificationType.Harasser,
+    "anti_vehicular" -> CertificationType.AntiVehicular,
+    "heavy_assault" -> CertificationType.HeavyAssault,
+    "sniper" -> CertificationType.Sniping,
+    "special_assault" -> CertificationType.SpecialAssault,
+    "special_assault_2" -> CertificationType.EliteAssault,
+    "infiltration_suit" -> CertificationType.InfiltrationSuit,
+    "max_anti_personnel" -> CertificationType.AIMAX,
+    "max_anti_vehicular" -> CertificationType.AVMAX,
+    "max_anti_aircraft" -> CertificationType.AAMAX,
+    "max_all" -> CertificationType.UniMAX,
+    "air_cavalry_scout" -> CertificationType.AirCavalryScout,
+    "air_cavalry_assault" -> CertificationType.AirCavalryAssault,
+    "air_cavalry_interceptor" -> CertificationType.AirCavalryInterceptor,
+    "air_support" -> CertificationType.AirSupport,
+    "gunship" -> CertificationType.GalaxyGunship,
+    "phantasm" -> CertificationType.Phantasm,
+    "armored_assault1" -> CertificationType.ArmoredAssault1,
+    "armored_assault2" -> CertificationType.ArmoredAssault2,
+    "flail" -> CertificationType.Flail,
+    "assault_buggy" -> CertificationType.AssaultBuggy,
+    "ground_support" -> CertificationType.GroundSupport,
+    "ground_transport" -> CertificationType.GroundTransport,
+    "light_scout" -> CertificationType.LightScout,
+    "Repair" -> CertificationType.Engineering,
+    "combat_engineering" -> CertificationType.CombatEngineering,
+    "ce_offense" -> CertificationType.AssaultEngineering,
+    "ce_defense" -> CertificationType.FortificationEngineering,
+    "ce_advanced" -> CertificationType.AdvancedEngineering,
+    "Hacking" -> CertificationType.Hacking,
+    "advanced_hacking" -> CertificationType.AdvancedHacking,
+    "expert_hacking" -> CertificationType.ExpertHacking,
+    "virus_hacking" -> CertificationType.DataCorruption,
+    "electronics_expert" -> CertificationType.ElectronicsExpert,
+    "Medical" -> CertificationType.Medical,
+    "advanced_medical" -> CertificationType.AdvancedMedical
     //TODO bfr certification entries
   )
 
@@ -68,8 +68,8 @@ class CertTerminalDefinition extends TerminalDefinition(171) {
     */
   def Buy(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = { //Learn
     certificationList.get(msg.item_name) match {
-      case Some((cert, cost)) =>
-        Terminal.LearnCertification(cert, cost)
+      case Some(cert) =>
+        Terminal.LearnCertification(cert)
       case None =>
         Terminal.NoDeal()
     }
@@ -83,8 +83,8 @@ class CertTerminalDefinition extends TerminalDefinition(171) {
     */
   override def Sell(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
     certificationList.get(msg.item_name) match {
-      case Some((cert, cost)) =>
-        Terminal.SellCertification(cert, cost)
+      case Some(cert) =>
+        Terminal.SellCertification(cert)
       case None =>
         Terminal.NoDeal()
     }
