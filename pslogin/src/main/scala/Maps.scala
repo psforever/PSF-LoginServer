@@ -13,7 +13,7 @@ import net.psforever.objects.serverobject.terminals.{ProximityTerminal, Terminal
 import net.psforever.objects.serverobject.terminals.{CaptureTerminal, ProximityTerminal, Terminal}
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
-import net.psforever.objects.serverobject.turret.MannedTurret
+import net.psforever.objects.serverobject.turret.FacilityTurret
 import net.psforever.types.Vector3
 
 object Maps {
@@ -1230,14 +1230,14 @@ object Maps {
       LocalObject(1186, Locker.Constructor)
       LocalObject(1187, Locker.Constructor)
       LocalObject(1188, Locker.Constructor)
-      LocalObject(1418, MannedTurret.Constructor(manned_turret))
-      LocalObject(1419, MannedTurret.Constructor(manned_turret))
-      LocalObject(1421, MannedTurret.Constructor(manned_turret))
-      LocalObject(1426, MannedTurret.Constructor(manned_turret))
-      LocalObject(1427, MannedTurret.Constructor(manned_turret))
-      LocalObject(1428, MannedTurret.Constructor(manned_turret))
-      LocalObject(1431, MannedTurret.Constructor(manned_turret))
-      LocalObject(1432, MannedTurret.Constructor(manned_turret))
+      LocalObject(1418, FacilityTurret.Constructor(manned_turret))
+      LocalObject(1419, FacilityTurret.Constructor(manned_turret))
+      LocalObject(1421, FacilityTurret.Constructor(manned_turret))
+      LocalObject(1426, FacilityTurret.Constructor(manned_turret))
+      LocalObject(1427, FacilityTurret.Constructor(manned_turret))
+      LocalObject(1428, FacilityTurret.Constructor(manned_turret))
+      LocalObject(1431, FacilityTurret.Constructor(manned_turret))
+      LocalObject(1432, FacilityTurret.Constructor(manned_turret))
       LocalObject(1492, ProximityTerminal.Constructor(medical_terminal)) //lobby
       LocalObject(1494, ProximityTerminal.Constructor(medical_terminal)) //kitchen
       LocalObject(1564, Terminal.Constructor(order_terminal))
@@ -1528,8 +1528,8 @@ object Maps {
       LocalObject(1226, Locker.Constructor)
       LocalObject(1227, Locker.Constructor)
       LocalObject(1228, Locker.Constructor)
-      LocalObject(1440, MannedTurret.Constructor(manned_turret))
-      LocalObject(1442, MannedTurret.Constructor(manned_turret))
+      LocalObject(1440, FacilityTurret.Constructor(manned_turret))
+      LocalObject(1442, FacilityTurret.Constructor(manned_turret))
       LocalObject(1591, Terminal.Constructor(order_terminal))
       LocalObject(1592, Terminal.Constructor(order_terminal))
       LocalObject(1593, Terminal.Constructor(order_terminal))
@@ -1811,8 +1811,8 @@ object Maps {
       LocalObject(557, IFFLock.Constructor)
       LocalObject(558, IFFLock.Constructor)
       LocalObject(559, IFFLock.Constructor)
-      LocalObject(670, MannedTurret.Constructor(manned_turret))
-      LocalObject(671, MannedTurret.Constructor(manned_turret))
+      LocalObject(670, FacilityTurret.Constructor(manned_turret))
+      LocalObject(671, FacilityTurret.Constructor(manned_turret))
       ObjectToBuilding(330, 29)
       ObjectToBuilding(331, 29)
       ObjectToBuilding(332, 29)

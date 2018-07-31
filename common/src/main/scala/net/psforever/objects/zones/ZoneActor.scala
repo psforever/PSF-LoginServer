@@ -181,8 +181,8 @@ class ZoneActor(zone : Zone) extends Actor {
 
     //check manned turret to weapon association
     map.TurretToWeapon.foreach({ case ((turret_guid, weapon_guid)) =>
-      validateObject(turret_guid, MannedTurretCheck, "manned turret mount")
-      if(validateObject(weapon_guid, WeaponCheck, "manned turret weapon")) {
+      validateObject(turret_guid, FacilityTurretCheck, "facility turret mount")
+      if(validateObject(weapon_guid, WeaponCheck, "facility turret weapon")) {
         if(guid(weapon_guid).get.asInstanceOf[Tool].AmmoSlots.count(!_.Box.HasGUID) > 0) {
           slog.error(s"expected weapon $weapon_guid has an unregistered ammunition unit")
           errors.incrementAndGet()
@@ -254,9 +254,9 @@ object ZoneActor {
     obj.isInstanceOf[VehicleSpawnPad]
   }
 
-  def MannedTurretCheck(obj : PlanetSideGameObject) : Boolean = {
-    import net.psforever.objects.serverobject.turret.MannedTurret
-    obj.isInstanceOf[MannedTurret]
+  def FacilityTurretCheck(obj : PlanetSideGameObject) : Boolean = {
+    import net.psforever.objects.serverobject.turret.FacilityTurret
+    obj.isInstanceOf[FacilityTurret]
   }
 
   def WeaponCheck(obj : PlanetSideGameObject) : Boolean = {

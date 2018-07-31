@@ -16,7 +16,7 @@ import services.ServiceManager.Lookup
 import net.psforever.objects._
 import net.psforever.objects.avatar.Certification
 import net.psforever.objects.ballistics._
-import net.psforever.objects.definition.{ConstructionFireMode, DeployableDefinition, ToolDefinition}
+import net.psforever.objects.definition.{ConstructionFireMode, ToolDefinition}
 import net.psforever.objects.definition.converter.{CorpseConverter, DestroyedVehicleConverter}
 import net.psforever.objects.equipment.{CItem, _}
 import net.psforever.objects.loadouts._
@@ -38,7 +38,7 @@ import net.psforever.objects.serverobject.structures.{Building, StructureType, W
 import net.psforever.objects.serverobject.terminals._
 import net.psforever.objects.serverobject.terminals.Terminal.TerminalMessage
 import net.psforever.objects.serverobject.tube.SpawnTube
-import net.psforever.objects.serverobject.turret.{MannedTurret, TurretUpgrade}
+import net.psforever.objects.serverobject.turret.{FacilityTurret, TurretUpgrade}
 import net.psforever.objects.vehicles.{AccessPermissionGroup, Cargo, Utility, VehicleLockState, _}
 import net.psforever.objects.vital._
 import net.psforever.objects.zones.{InterstellarCluster, Zone}
@@ -864,7 +864,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           MountingAction(tplayer, obj, seat_num)
           sendResponse(PlanetsideAttributeMessage(obj.GUID, 0, 1000L)) //health of mech
 
-        case Mountable.CanMount(obj : MannedTurret, seat_num) =>
+        case Mountable.CanMount(obj : FacilityTurret, seat_num) =>
           obj.WeaponControlledFromSeat(seat_num) match {
             case Some(weapon : Tool) =>
               //update mounted weapon belonging to seat
@@ -921,7 +921,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case Mountable.CanDismount(obj : ImplantTerminalMech, seat_num) =>
           DismountAction(tplayer, obj, seat_num)
 
-        case Mountable.CanDismount(obj : MannedTurret, seat_num) =>
+        case Mountable.CanDismount(obj : FacilityTurret, seat_num) =>
           DismountAction(tplayer, obj, seat_num)
 
         case Mountable.CanDismount(obj : Vehicle, seat_num) =>
@@ -1230,6 +1230,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             tplayer.Certifications.intersect(Certification.Dependencies.Like(cert)).foreach(entry => {
               log.info(s"$cert replaces the learned certification $entry that cost ${Certification.Cost.Of(entry)} points")
               avatar.Certifications -= entry
+              RemoveFromDeployablesQuantities(entry, player.Certifications)
               sendResponse(PlanetsideAttributeMessage(guid, 25, entry.id.toLong))
             })
             StopBundlingPackets()
@@ -1253,6 +1254,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             tplayer.Certifications.intersect(Certification.Dependencies.FromAll(cert)).foreach(entry => {
               log.info(s"$name is also forgetting the ${Certification.Cost.Of(entry)}-point $entry certification which depends on $cert")
               avatar.Certifications -= entry
+              RemoveFromDeployablesQuantities(entry, player.Certifications)
               sendResponse(PlanetsideAttributeMessage(guid, 25, entry.id.toLong))
             })
             StopBundlingPackets()
@@ -1654,22 +1656,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
           continent.Ground ! Zone.Ground.DropItem(item, item.Position, item.Orientation) //restore previous state
       }
 
-    case Zone.Deployable.DeployableIsBuilt(obj) =>
-      val guid = obj.GUID
-      val definition = obj.Definition.asInstanceOf[DeployableDefinition]
-      sendResponse(GenericObjectActionMessage(guid, 84)) //reset build cooldown on object build
-      sendResponse(ObjectCreateMessage(definition.ObjectId, guid, definition.Packet.ConstructorData(obj).get))
-      sendResponse(DeployableObjectsInfoMessage(DeploymentAction.Build, DeployableInfo(guid, ceicon(definition.Item.id), obj.Position, player.GUID)))
-
-    case Zone.Deployable.DeployableIsDismissed(obj) =>
-      val guid = obj.GUID
-      val definition = obj.Definition.asInstanceOf[DeployableDefinition]
-      sendResponse(TriggerEffectMessage("spawn_object_failed_effect", TriggeredEffectLocation(obj.Position, Vector3.Zero)))
-      sendResponse(PlanetsideAttributeMessage(guid, 29, 1))
-      sendResponse(ObjectDeleteMessage(guid, 4))
-      sendResponse(DeployableObjectsInfoMessage(DeploymentAction.Dismiss, DeployableInfo(guid, ceicon(definition.Item.id), obj.Position, player.GUID)))
-      taskResolver ! GUIDTask.UnregisterObjectTask(obj)(continent.GUID)
-
     case Zone.Ground.CanNotPickupItem(zone, item_guid, _) =>
       zone.GUID(item_guid) match {
         case Some(item) =>
@@ -1677,6 +1663,217 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case None =>
           log.warn(s"DropItem: finding an item ($item_guid) on the ground was suggested, but $player can not see it")
       }
+
+    case Zone.Deployable.DeployableIsBuilt(obj, tool) =>
+      val index = player.Find(tool) match {
+        case Some(x) =>
+          x
+        case None =>
+          player.LastDrawnSlot
+      }
+      val toolOpt : Option[(ConstructionItem, Int)] = tool.Definition match {
+        case GlobalDefinitions.ace =>
+          sendResponse(TriggerEffectMessage("spawn_object_effect", TriggeredEffectLocation(obj.Position, obj.Orientation)))
+          //remove an ace if the deployable is not a boomer; if it is a boomer, it will be handled in the next step
+          obj.Definition match {
+            case GlobalDefinitions.boomer =>
+              Some((tool, index))
+            case _ =>
+              FindEquipmentStock(player, { (e)=> e.Definition == GlobalDefinitions.ace }, 1) match {
+                case x :: _ => //rather than swapping holstered equipment, just delete a free ACE from the player's inventory
+                  player.Inventory -= x.start
+                  sendResponse(ObjectDeleteMessage(x.obj.GUID, 0))
+                  Some(x.obj.asInstanceOf[ConstructionItem], index)
+                case Nil => //no substitute; we have to delete the holstered equipment
+                  player.Slot(index).Equipment = None
+                  sendResponse(ObjectDeleteMessage(tool.GUID, 0))
+                  Some(tool, Player.HandsDownSlot)
+              }
+          }
+        case GlobalDefinitions.advanced_ace =>
+          sendResponse(GenericObjectActionMessage(player.GUID, 212)) //put fdu down; it will be removed from the client's holster
+          player.Slot(index).Equipment = None
+          Some(tool, Player.HandsDownSlot)
+        case _ =>
+          log.warn(s"Zone.Deployable.DeployableIsBuilt: unknown construction object ${tool.Definition.ObjectId}")
+          None
+      }
+      import scala.concurrent.ExecutionContext.Implicits.global
+      context.system.scheduler.scheduleOnce(2 seconds, self, WorldSessionActor.FinalizeDeployable(obj, toolOpt))
+
+    case WorldSessionActor.FinalizeDeployable(obj : TurretDeployable, toolInSlot) =>
+      //spitfires and deployable field turrets
+      val guid = obj.GUID
+      val definition = obj.Definition
+      log.info(s"FinalizeDeployable: ${definition.Name}")
+      sendResponse(GenericObjectActionMessage(obj.GUID, 84)) //reset cooldown on object build
+      sendResponse(ObjectCreateMessage(definition.ObjectId, guid, definition.Packet.ConstructorData(obj).get))
+      sendResponse(DeployableObjectsInfoMessage(DeploymentAction.Build, DeployableInfo(guid, ceicon(definition.Item.id), obj.Position, obj.Owner.getOrElse(PlanetSideGUID(0)))))
+      //
+      toolInSlot match {
+        case Some((tool, slot)) =>
+          if(tool.Definition == GlobalDefinitions.advanced_ace) {
+            sendResponse(ObjectDeleteMessage(tool.GUID, 0)) //delete the fdu, now on the ground
+          }
+          else {
+            //small turret; nothing special
+            //TODO drawing a holstered ace results in it eventually being deleted on the client's side; why?
+//            if(player.DrawnSlot == Player.HandsDownSlot) {
+//              player.DrawnSlot = slot
+//              sendResponse(ObjectHeldMessage(player.GUID, slot, false))
+//            }
+          }
+          taskResolver ! GUIDTask.UnregisterEquipment(tool)(continent.GUID)
+        case None => ;
+      }
+
+    case WorldSessionActor.FinalizeDeployable(obj : ComplexDeployable, toolInSlot) =>
+      //tank_traps and the deployable_shield_generator
+      val guid = obj.GUID
+      val definition = obj.Definition
+      log.info(s"FinalizeDeployable: ${definition.Name}")
+      sendResponse(GenericObjectActionMessage(obj.GUID, 84)) //reset cooldown on object build
+      sendResponse(ObjectCreateMessage(definition.ObjectId, guid, definition.Packet.ConstructorData(obj).get))
+      sendResponse(DeployableObjectsInfoMessage(DeploymentAction.Build, DeployableInfo(guid, ceicon(definition.Item.id), obj.Position, obj.Owner.getOrElse(PlanetSideGUID(0)))))
+      //
+      toolInSlot match {
+        case Some((tool, _)) =>
+          sendResponse(ObjectDeleteMessage(tool.GUID, 0)) //delete the fdu, now on the ground
+          taskResolver ! GUIDTask.UnregisterEquipment(tool)(continent.GUID)
+        case None => ;
+      }
+
+    case WorldSessionActor.FinalizeDeployable(obj : BoomerDeployable, toolInSlot) =>
+      //boomers
+      val guid = obj.GUID
+      val definition = obj.Definition
+      log.info(s"FinalizeDeployable: ${definition.Name}")
+      sendResponse(ObjectCreateMessage(definition.ObjectId, guid, definition.Packet.ConstructorData(obj).get))
+      sendResponse(DeployableObjectsInfoMessage(DeploymentAction.Build, DeployableInfo(guid, ceicon(definition.Item.id), obj.Position, obj.Owner.getOrElse(PlanetSideGUID(0)))))
+      //
+      val trigger = new BoomerTrigger
+      trigger.Companion = guid
+      toolInSlot match {
+        case Some((tool, slot)) =>
+          player.Slot(slot).Equipment = None
+          sendResponse(ObjectDeleteMessage(tool.GUID, 0))
+          //put boomer trigger in same slot, then draw slot
+          taskResolver ! DelayedObjectHeld(player, slot, List(PutEquipmentInSlot(player, trigger, slot)))
+          taskResolver ! GUIDTask.UnregisterEquipment(tool)(continent.GUID)
+        case None =>
+          //don't know where boomer trigger should go; drop on ground
+          taskResolver ! NewItemDrop(player, continent, avatarService)(trigger)
+      }
+
+    case WorldSessionActor.FinalizeDeployable(obj : ExplosiveDeployable, toolInSlot) =>
+      //mines
+      val guid = obj.GUID
+      val definition = obj.Definition
+      log.info(s"FinalizeDeployable: ${definition.Name}")
+      sendResponse(GenericObjectActionMessage(obj.GUID, 84)) //reset cooldown on object build
+      sendResponse(ObjectCreateMessage(definition.ObjectId, guid, definition.Packet.ConstructorData(obj).get))
+      sendResponse(DeployableObjectsInfoMessage(DeploymentAction.Build, DeployableInfo(guid, ceicon(definition.Item.id), obj.Position, obj.Owner.getOrElse(PlanetSideGUID(0)))))
+      //
+      toolInSlot match {
+        case Some((tool, slot)) =>
+          if(player.DrawnSlot == Player.HandsDownSlot) {
+            player.DrawnSlot = slot
+            sendResponse(ObjectHeldMessage(player.GUID, slot, false))
+          }
+          taskResolver ! GUIDTask.UnregisterEquipment(tool)(continent.GUID)
+        case None => ;
+      }
+
+    case WorldSessionActor.FinalizeDeployable(obj : SensorDeployable, toolInSlot) =>
+      //motion alarm sensor and sensor disruptor
+      val guid = obj.GUID
+      val definition = obj.Definition
+      log.info(s"FinalizeDeployable: ${definition.Name}")
+      sendResponse(GenericObjectActionMessage(obj.GUID, 84)) //reset cooldown on object build
+      sendResponse(ObjectCreateMessage(definition.ObjectId, guid, definition.Packet.ConstructorData(obj).get))
+      sendResponse(DeployableObjectsInfoMessage(DeploymentAction.Build, DeployableInfo(guid, ceicon(definition.Item.id), obj.Position, obj.Owner.getOrElse(PlanetSideGUID(0)))))
+      sendResponse(TriggerEffectMessage(guid, "on", TriggeredEffect(true, 1000))) //sensor effect
+      //
+      toolInSlot match {
+        case Some((tool, slot)) =>
+          taskResolver ! GUIDTask.UnregisterEquipment(tool)(continent.GUID) //unregister the ace
+          //draw slot?
+          if(player.DrawnSlot == Player.HandsDownSlot) {
+            player.DrawnSlot = slot
+            sendResponse(ObjectHeldMessage(player.GUID, slot, false))
+          }
+        case None => ;
+      }
+
+    case WorldSessionActor.FinalizeDeployable(obj : PlanetSideGameObject with Deployable, toolInSlot) =>
+      log.warn(s"FinalizeDeployable: deployable ${obj.Definition.asInstanceOf[DeployableDefinition].Item}@${obj.GUID} not handled by specific case")
+      log.warn(s"FinalizeDeployable: deployable will be cleaned up, but may not get unregistered properly")
+      sendResponse(GenericObjectActionMessage(obj.GUID, 84)) //reset cooldown on object build?
+      continent.Deployables ! Zone.Deployable.Dismiss(obj)
+      //
+      toolInSlot match {
+        case Some((tool, slot)) =>
+          if(player.Slot(slot).Equipment.contains(tool)) {
+            player.Slot(slot).Equipment = None
+          }
+          sendResponse(ObjectDeleteMessage(tool.GUID, 0))
+          taskResolver ! GUIDTask.UnregisterEquipment(tool)(continent.GUID)
+        case None => ;
+      }
+
+    case Zone.Deployable.DeployableIsDismissed(obj : TurretDeployable) =>
+      val guid = obj.GUID
+      val definition = obj.Definition.asInstanceOf[DeployableDefinition]
+      sendResponse(TriggerEffectMessage("spawn_object_failed_effect", TriggeredEffectLocation(obj.Position, Vector3.Zero)))
+      sendResponse(PlanetsideAttributeMessage(guid, 29, 1)) //???
+      if(obj.MountPoints.isEmpty) { //the spitfire-variant deployables have no mounting points
+        sendResponse(ObjectDeleteMessage(guid, 2))
+      }
+      else {
+        sendResponse(ObjectDeleteMessage(guid, 1))
+      }
+      sendResponse(DeployableObjectsInfoMessage(DeploymentAction.Dismiss, DeployableInfo(guid, ceicon(definition.Item.id), obj.Position, PlanetSideGUID(0))))
+      taskResolver ! GUIDTask.UnregisterDeployableTurret(obj)(continent.GUID)
+
+    case Zone.Deployable.DeployableIsDismissed(obj : ComplexDeployable) =>
+      val guid = obj.GUID
+      val definition = obj.Definition.asInstanceOf[DeployableDefinition]
+      sendResponse(TriggerEffectMessage("spawn_object_failed_effect", TriggeredEffectLocation(obj.Position, Vector3.Zero)))
+      sendResponse(PlanetsideAttributeMessage(guid, 29, 1)) //???
+      sendResponse(ObjectDeleteMessage(guid, 1))
+      sendResponse(DeployableObjectsInfoMessage(DeploymentAction.Dismiss, DeployableInfo(guid, ceicon(definition.Item.id), obj.Position, PlanetSideGUID(0))))
+      taskResolver ! GUIDTask.UnregisterObjectTask(obj)(continent.GUID)
+
+    case Zone.Deployable.DeployableIsDismissed(obj : BoomerDeployable) =>
+      val guid = obj.GUID
+      val definition = obj.Definition.asInstanceOf[DeployableDefinition]
+      sendResponse(TriggerEffectMessage("spawn_object_failed_effect", TriggeredEffectLocation(obj.Position, Vector3.Zero)))
+      sendResponse(PlanetsideAttributeMessage(guid, 29, 1)) //???
+      sendResponse(ObjectDeleteMessage(guid, 2))
+      sendResponse(DeployableObjectsInfoMessage(DeploymentAction.Dismiss, DeployableInfo(guid, ceicon(definition.Item.id), obj.Position, PlanetSideGUID(0))))
+      taskResolver ! GUIDTask.UnregisterObjectTask(obj)(continent.GUID)
+      //destroy the boomer trigger
+      obj.Trigger match {
+        case Some(trigger) =>
+          //TODO find where the boomer trigger really is and delete it properly
+          player.Find(trigger) match {
+            case Some(index) =>
+              player.Slot(index).Equipment = None
+            case None => ;
+          }
+          sendResponse(ObjectDeleteMessage(trigger.GUID, 2))
+          taskResolver ! GUIDTask.UnregisterObjectTask(trigger)(continent.GUID)
+        case None => ;
+      }
+
+    case Zone.Deployable.DeployableIsDismissed(obj : PlanetSideGameObject with Deployable) =>
+      val guid = obj.GUID
+      val definition = obj.Definition.asInstanceOf[DeployableDefinition]
+      sendResponse(TriggerEffectMessage("spawn_object_failed_effect", TriggeredEffectLocation(obj.Position, Vector3.Zero)))
+      sendResponse(PlanetsideAttributeMessage(guid, 29, 1)) //???
+      sendResponse(ObjectDeleteMessage(guid, 2))
+      sendResponse(DeployableObjectsInfoMessage(DeploymentAction.Dismiss, DeployableInfo(guid, ceicon(definition.Item.id), obj.Position, PlanetSideGUID(0))))
+      taskResolver ! GUIDTask.UnregisterObjectTask(obj)(continent.GUID)
 
     case InterstellarCluster.ClientInitializationComplete() =>
       StopBundlingPackets()
@@ -1933,18 +2130,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case Vehicle.UpdateShieldsCharge(vehicle) =>
       vehicleService ! VehicleServiceMessage(s"${vehicle.Actor}", VehicleAction.PlanetsideAttribute(PlanetSideGUID(0), vehicle.GUID, 68, vehicle.Shields))
 
-    case Deployable.DeployableBuilt(dObj) =>
-      val guid = dObj.GUID
-      val definition = dObj.Definition
-      sendResponse(GenericObjectActionMessage(guid, 84))
-      sendResponse(ObjectCreateMessage(definition.ObjectId, guid, definition.Packet.ConstructorData(dObj).get))
-
     case ResponseToSelf(pkt) =>
       log.info(s"Received a direct message: $pkt")
       sendResponse(pkt)
 
     case default =>
-     log.warn(s"Invalid packet class received: $default")
+     log.warn(s"Invalid packet class received: $default from $sender")
   }
 
   def handleControlPkt(pkt : PlanetSideControlPacket) = {
@@ -2000,23 +2191,24 @@ class WorldSessionActor extends Actor with MDCContextAware {
       avatar.Certifications += UniMAX
       avatar.Certifications += Engineering
       avatar.Certifications += CombatEngineering
-//      avatar.Certifications += FortificationEngineering
-//      avatar.Certifications += AssaultEngineering
+      avatar.Certifications += FortificationEngineering
+      avatar.Certifications += AssaultEngineering
       this.avatar = avatar
       
       AwardBattleExperiencePoints(avatar, 1000000L)
       player = new Player(avatar)
       //player.Position = Vector3(3561.0f, 2854.0f, 90.859375f) //home3, HART C
-      player.Position = Vector3(3940.3984f, 4343.625f, 266.45312f)
+      player.Position = Vector3(3940.3984f, 4343.625f, 266.45312f) //z6, Anguta
+//      player.Position = Vector3(3571.2266f, 3278.0938f, 119.0f) //ce test
       player.Orientation = Vector3(0f, 0f, 90f)
       //player.Position = Vector3(4262.211f ,4067.0625f ,262.35938f) //z6, Akna.tower
       //player.Orientation = Vector3(0f, 0f, 132.1875f)
 //      player.ExoSuit = ExoSuitType.MAX //TODO strange issue; divide number above by 10 when uncommenting
       player.Slot(0).Equipment = ConstructionItem(ace) //Tool(GlobalDefinitions.StandardPistol(player.Faction))
-      player.Slot(2).Equipment = Tool(nano_dispenser) //punisher //suppressor
+      player.Slot(2).Equipment = ConstructionItem(advanced_ace) //punisher //suppressor
       player.Slot(4).Equipment = Tool(GlobalDefinitions.StandardMelee(player.Faction))
-      player.Slot(6).Equipment = AmmoBox(upgrade_canister) //bullet_9mm
-      player.Slot(9).Equipment = AmmoBox(rocket, 11) //bullet_9mm
+      player.Slot(6).Equipment = ConstructionItem(ace) //bullet_9mm
+      player.Slot(9).Equipment = ConstructionItem(ace) //bullet_9mm
       player.Slot(12).Equipment = AmmoBox(frag_cartridge) //bullet_9mm
       player.Slot(33).Equipment = AmmoBox(bullet_9mm_AP)
       player.Slot(36).Equipment = AmmoBox(GlobalDefinitions.StandardPistolAmmo(player.Faction))
@@ -2273,7 +2465,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       continent.Map.TurretToWeapon.foreach({ case((turret_guid, weapon_guid)) =>
         val parent_guid = PlanetSideGUID(turret_guid)
         continent.GUID(turret_guid) match {
-          case Some(turret : MannedTurret) =>
+          case Some(turret : FacilityTurret) =>
             //attached weapon
             turret.ControlledWeapon(1) match {
               case Some(obj : Tool) =>
@@ -3085,7 +3277,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             }
           }
 
-        case Some(obj : MannedTurret) =>
+        case Some(obj : FacilityTurret) =>
           player.Slot(player.DrawnSlot).Equipment match {
             case Some(tool : Tool) =>
               if(tool.Definition == GlobalDefinitions.nano_dispenser && tool.Magazine > 0) {
@@ -3249,21 +3441,28 @@ class WorldSessionActor extends Actor with MDCContextAware {
           None
       }) match {
         case Some(obj : ConstructionItem) =>
-          obj.Definition match {
-            case GlobalDefinitions.ace =>
-              sendResponse(TriggerEffectMessage("spawn_object_effect", TriggeredEffectLocation(pos, orient)))
-            case GlobalDefinitions.advanced_ace =>
-              sendResponse(GenericObjectActionMessage(player.GUID, 212))
-            case _ =>
-              log.warn(s"DeployObject: unknown construction object ${obj.Definition.ObjectId}")
+          val ammoType = obj.AmmoType match {
+            case CItem.DeployedItem.portable_manned_turret =>
+              GlobalDefinitions.PortableMannedTurret(player.Faction).Item //faction-specific turret
+            case turret =>
+              turret
           }
-          val dObj : PlanetSideGameObject with Deployable = cemap(obj.AmmoType)()
+          log.info(s"Constructing a ${ammoType}")
+          val dObj : PlanetSideGameObject with Deployable = cemap(ammoType)()
           dObj.Position = pos
           dObj.Orientation = orient
-          taskResolver ! CallBackForTask(GUIDTask.RegisterObjectTask(dObj)(continent.GUID), continent.Deployables, Zone.Deployable.Build(dObj))
+          dObj.Faction = player.Faction
+          dObj.Owner = player.GUID
+          val tasking : TaskResolver.GiveTask = dObj match {
+            case turret : TurretDeployable =>
+              GUIDTask.RegisterDeployableTurret(turret)(continent.GUID)
+            case _ =>
+              GUIDTask.RegisterObjectTask(dObj)(continent.GUID)
+          }
+          taskResolver ! CallBackForTask(tasking, continent.Deployables, Zone.Deployable.Build(dObj, obj))
 
         case Some(obj) =>
-          log.warn(s"something? $obj")
+          log.warn(s"$obj is something?")
         case None =>
           log.warn("nothing?")
 
@@ -4216,7 +4415,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * @param tool the nano-dispenser that was used to perform this upgrade
     * @param upgrade the new upgrade state
     */
-  private def FinishUpgradingMannedTurret(target : MannedTurret, tool : Tool, upgrade : TurretUpgrade.Value)() : Unit = {
+  private def FinishUpgradingMannedTurret(target : FacilityTurret, tool : Tool, upgrade : TurretUpgrade.Value)() : Unit = {
     log.info(s"Converting manned wall turret weapon to $upgrade")
     tool.Magazine = 0
     sendResponse(InventoryStateMessage(tool.AmmoSlot.Box.GUID, tool.GUID, 0))
@@ -4912,7 +5111,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                 case None =>
                   NormalItemDrop(player, continent, avatarService)(previousBox)
               }
-              val dropFunc : (Equipment)=>Unit = NewItemDrop(player, continent, avatarService)
+              val dropFunc : (Equipment)=>TaskResolver.GiveTask = NewItemDrop(player, continent, avatarService)
               AmmoBox.Split(previousBox) match {
                 case Nil  | _ :: Nil => ; //done (the former case is technically not possible)
                 case _ :: xs =>
@@ -4923,7 +5122,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                         obj.Inventory += index -> box //block early, for purposes of Fit
                         taskResolver ! stowFuncTask(index, box)
                       case None =>
-                        dropFunc(box)
+                        taskResolver ! dropFunc(box)
                     }
                   })
               }
@@ -4952,7 +5151,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * @param item the item
     */
   def NormalItemDrop(obj : PlanetSideGameObject with Container, zone : Zone, service : ActorRef)(item : Equipment) : Unit = {
-    continent.Ground ! Zone.Ground.DropItem(item, obj.Position, Vector3(0f, 0f, obj.Orientation.z))
+    continent.Ground ! Zone.Ground.DropItem(item, obj.Position, Vector3.z(obj.Orientation.z))
   }
 
   /**
@@ -4967,8 +5166,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
     *                curried for callback
     * @param item the item
     */
-  def NewItemDrop(obj : PlanetSideGameObject with Container, zone : Zone, service : ActorRef)(item : Equipment) : Unit = {
-    taskResolver ! TaskResolver.GiveTask(
+  def NewItemDrop(obj : PlanetSideGameObject with Container, zone : Zone, service : ActorRef)(item : Equipment) : TaskResolver.GiveTask = {
+    TaskResolver.GiveTask(
       new Task() {
         private val localItem = item
         private val localFunc : (Equipment)=>Unit = NormalItemDrop(obj, zone, service)
@@ -5983,7 +6182,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     deployables(4) = 25 //max motion sensors
     deployables(5) = 5 //max shadow turret
     deployables(6) = 5 //max cerebus turret
-    deployables(8) = 2 //max traps
+    deployables(8) = 5 //max traps
     List(0,1,3,4,5,6,8)
   }
 
@@ -6031,7 +6230,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case FortificationEngineering =>
           sendResponse(PlanetsideAttributeMessage(guid, 88, 5)) //max shadow turret
           sendResponse(PlanetsideAttributeMessage(guid, 89, 5)) //max cerebus turret
-          sendResponse(PlanetsideAttributeMessage(guid, 91, 2)) //max traps
+          sendResponse(PlanetsideAttributeMessage(guid, 91, 5)) //max traps
           sendResponse(PlanetsideAttributeMessage(guid, 83, 25)) //max boomers
           sendResponse(PlanetsideAttributeMessage(guid, 84, 25)) //max he mines
           sendResponse(PlanetsideAttributeMessage(guid, 86, 15)) //max spitfires
@@ -6147,7 +6346,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       if(!ConstructionItemPermissionComparison(certifications, obj.ModePermissions)) {
         PerformConstructionItemAmmoChange(obj, obj.AmmoTypeIndex)
       }
-      sendResponse(ChangeAmmoMessage(obj.GUID, obj.AmmoTypeIndex))
+      sendResponse(ChangeFireModeMessage(obj.GUID, obj.AmmoTypeIndex))
     }
     while(!ConstructionItemPermissionComparison(certifications, obj.ModePermissions) || originalModeIndex != obj.FireModeIndex)
     obj.FireMode
@@ -6168,8 +6367,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
       obj.NextAmmoType
     }
     while(!ConstructionItemPermissionComparison(certifications, obj.ModePermissions) && originalAmmoIndex != obj.AmmoTypeIndex)
-    log.info(s"ChangeAmmo: construction object ${obj.Definition.Name} changed to ${obj.AmmoType} (mode ${obj.FireModeIndex})")
-    sendResponse(ChangeAmmoMessage(obj.GUID, obj.AmmoTypeIndex))
+    log.info(s"ChangeFireMode: construction object ${obj.Definition.Name} changed to ${obj.AmmoType} (mode ${obj.FireModeIndex})")
+    sendResponse(ChangeFireModeMessage(obj.GUID, obj.AmmoTypeIndex))
   }
 
   /**
@@ -6387,16 +6586,40 @@ object WorldSessionActor {
                                        vehicle: Vehicle)
   private final case class NtuDischarging(tplayer: Player, vehicle: Vehicle, silo_guid: PlanetSideGUID)
 
+  private final case class FinalizeDeployable(obj : PlanetSideGameObject with Deployable, tool : Option[(ConstructionItem, Int)])
+
   //TODO temporary location
   val cemap : Map[CItem.DeployedItem.Value, ()=>PlanetSideGameObject with Deployable] = Map(
-    CItem.DeployedItem.boomer -> { ()=> new ExplosiveDeployable(GlobalDefinitions.boomer) },
+    CItem.DeployedItem.boomer -> { ()=> new BoomerDeployable(GlobalDefinitions.boomer) },
     CItem.DeployedItem.he_mine -> { ()=> new ExplosiveDeployable(GlobalDefinitions.he_mine) },
-    CItem.DeployedItem.jammer_mine -> { ()=> new ExplosiveDeployable(GlobalDefinitions.jammer_mine) }
+    CItem.DeployedItem.jammer_mine -> { ()=> new ExplosiveDeployable(GlobalDefinitions.jammer_mine) },
+    CItem.DeployedItem.spitfire_turret -> { ()=> new TurretDeployable(GlobalDefinitions.spitfire_turret) },
+    CItem.DeployedItem.spitfire_cloaked -> { ()=> new TurretDeployable(GlobalDefinitions.spitfire_cloaked) },
+    CItem.DeployedItem.spitfire_aa -> { ()=> new TurretDeployable(GlobalDefinitions.spitfire_aa) },
+    CItem.DeployedItem.motionalarmsensor -> { ()=> new SensorDeployable(GlobalDefinitions.motionalarmsensor) },
+    CItem.DeployedItem.tank_traps -> { ()=> new TrapDeployable(GlobalDefinitions.tank_traps) },
+    CItem.DeployedItem.portable_manned_turret -> { ()=> new TurretDeployable(GlobalDefinitions.portable_manned_turret) },
+    CItem.DeployedItem.portable_manned_turret -> { ()=> new TurretDeployable(GlobalDefinitions.portable_manned_turret) },
+    CItem.DeployedItem.portable_manned_turret_nc -> { ()=> new TurretDeployable(GlobalDefinitions.portable_manned_turret_nc) },
+    CItem.DeployedItem.portable_manned_turret_tr -> { ()=> new TurretDeployable(GlobalDefinitions.portable_manned_turret_tr) },
+    CItem.DeployedItem.portable_manned_turret_vs -> { ()=> new TurretDeployable(GlobalDefinitions.portable_manned_turret_vs) },
+    CItem.DeployedItem.deployable_shield_generator -> { ()=> new ShieldGeneratorDeployable(GlobalDefinitions.deployable_shield_generator) }
   ).withDefaultValue( { ()=> new ExplosiveDeployable(GlobalDefinitions.boomer) } )
 
-  val ceicon : Map[Int, DeployableIcon.Value] = Map (
+  val ceicon : Map[Int, DeployableIcon.Value] = Map(
     CItem.DeployedItem.boomer.id -> DeployableIcon.Boomer,
     CItem.DeployedItem.he_mine.id -> DeployableIcon.HEMine,
-    CItem.DeployedItem.jammer_mine.id -> DeployableIcon.DisruptorMine
+    CItem.DeployedItem.jammer_mine.id -> DeployableIcon.DisruptorMine,
+    CItem.DeployedItem.spitfire_turret.id -> DeployableIcon.SpitfireTurret,
+    CItem.DeployedItem.spitfire_cloaked.id -> DeployableIcon.ShadowTurret,
+    CItem.DeployedItem.spitfire_aa.id -> DeployableIcon.CerebusTurret,
+    CItem.DeployedItem.motionalarmsensor.id -> DeployableIcon.MotionAlarmSensor,
+    CItem.DeployedItem.sensor_shield.id -> DeployableIcon.SensorDisruptor,
+    CItem.DeployedItem.tank_traps.id -> DeployableIcon.TRAP,
+    CItem.DeployedItem.portable_manned_turret.id -> DeployableIcon.FieldTurret,
+    CItem.DeployedItem.portable_manned_turret_tr.id -> DeployableIcon.FieldTurret,
+    CItem.DeployedItem.portable_manned_turret_nc.id -> DeployableIcon.FieldTurret,
+    CItem.DeployedItem.portable_manned_turret_vs.id -> DeployableIcon.FieldTurret,
+    CItem.DeployedItem.deployable_shield_generator.id -> DeployableIcon.AegisShieldGenerator
   ).withDefaultValue(DeployableIcon.Boomer)
 }

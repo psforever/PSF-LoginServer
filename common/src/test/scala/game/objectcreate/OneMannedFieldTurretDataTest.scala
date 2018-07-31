@@ -4,7 +4,7 @@ package game.objectcreate
 import net.psforever.packet.PacketCoding
 import net.psforever.packet.game.{ObjectCreateMessage, PlanetSideGUID}
 import net.psforever.packet.game.objectcreate._
-import net.psforever.types.PlanetSideEmpire
+import net.psforever.types.{PlanetSideEmpire, Vector3}
 import org.specs2.mutable._
 import scodec.bits._
 
@@ -22,23 +22,19 @@ class OneMannedFieldTurretDataTest extends Specification {
           data.isDefined mustEqual true
           data.get.isInstanceOf[OneMannedFieldTurretData] mustEqual true
           val omft = data.get.asInstanceOf[OneMannedFieldTurretData]
-          omft.deploy.pos.coord.x mustEqual 3567.1406f
-          omft.deploy.pos.coord.y mustEqual 2988.0078f
-          omft.deploy.pos.coord.z mustEqual 71.84375f
-          omft.deploy.pos.orient.x mustEqual 0f
-          omft.deploy.pos.orient.y mustEqual 0f
-          omft.deploy.pos.orient.z mustEqual 185.625f
+          omft.deploy.pos.coord mustEqual Vector3(3567.1406f, 2988.0078f, 71.84375f)
+          omft.deploy.pos.orient mustEqual Vector3(0, 0, 185.625f)
           omft.deploy.faction mustEqual PlanetSideEmpire.VS
-          omft.deploy.unk mustEqual 2
-          omft.deploy.player_guid mustEqual PlanetSideGUID(2502)
+          omft.deploy.unk1 mustEqual 2
+          omft.deploy.owner_guid mustEqual PlanetSideGUID(2502)
           omft.health mustEqual 255
           omft.internals.isDefined mustEqual true
-          val internals = omft.internals.get
-          internals.objectClass mustEqual ObjectClass.energy_gun_vs
-          internals.guid mustEqual PlanetSideGUID(2615)
-          internals.parentSlot mustEqual 1
-          internals.obj.isInstanceOf[WeaponData] mustEqual true
-          val wep = internals.obj.asInstanceOf[WeaponData]
+          val internals = omft.internals.get.contents
+          internals.head.objectClass mustEqual ObjectClass.energy_gun_vs
+          internals.head.guid mustEqual PlanetSideGUID(2615)
+          internals.head.parentSlot mustEqual 1
+          internals.head.obj.isInstanceOf[WeaponData] mustEqual true
+          val wep = internals.head.obj.asInstanceOf[WeaponData]
           wep.unk1 mustEqual 0x6
           wep.unk2 mustEqual 0x8
           wep.fire_mode mustEqual 0
@@ -55,20 +51,16 @@ class OneMannedFieldTurretDataTest extends Specification {
 
     "encode (orion)" in {
       val obj = OneMannedFieldTurretData(
-        CommonFieldData(
-          PlacementData(3567.1406f, 2988.0078f, 71.84375f, 0f, 0f, 185.625f),
-          PlanetSideEmpire.VS, 2, PlanetSideGUID(2502)
+        SmallDeployableData(
+          PlacementData(Vector3(3567.1406f, 2988.0078f, 71.84375f), Vector3(0, 0, 185.625f)),
+          PlanetSideEmpire.VS, false, false, 2, false, false, PlanetSideGUID(2502)
         ),
         255,
-        OneMannedFieldTurretData.orion(PlanetSideGUID(2615), 0x6, 0x8, PlanetSideGUID(2510), 8)
+        InventoryData(List(OneMannedFieldTurretData.orion(PlanetSideGUID(2615), 0x6, 0x8, PlanetSideGUID(2510), 8)))
       )
       val msg = ObjectCreateMessage(ObjectClass.portable_manned_turret_vs, PlanetSideGUID(2916), obj)
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
-      val pkt_bitv = pkt.toBitVector
-      val ori_bitv = string_orion.toBitVector
-      pkt_bitv.take(189) mustEqual ori_bitv.take(189)
-      pkt_bitv.drop(200) mustEqual ori_bitv.drop(200)
-      //TODO work on OneMannedFieldTurretData to make this pass as a single stream
+      pkt mustEqual string_orion
     }
 
     "avenger" in {

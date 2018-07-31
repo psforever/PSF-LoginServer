@@ -12,7 +12,7 @@ import net.psforever.objects.guid.selector.RandomSelector
 import net.psforever.objects.guid.source.LimitedNumberSource
 import net.psforever.objects.serverobject.structures.{Amenity, Building}
 import net.psforever.objects.serverobject.tube.SpawnTube
-import net.psforever.objects.serverobject.turret.MannedTurret
+import net.psforever.objects.serverobject.turret.FacilityTurret
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types.Vector3
 
@@ -299,7 +299,7 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
     //turret to weapon
     Map.TurretToWeapon.foreach({ case ((turret_guid, weapon_guid)) =>
       ((GUID(turret_guid) match {
-        case Some(obj : MannedTurret) =>
+        case Some(obj : FacilityTurret) =>
           Some(obj)
         case _ => ;
           None
@@ -504,8 +504,8 @@ object Zone {
   }
 
   object Deployable {
-    final case class Build(obj : PlanetSideGameObject with Deployable)
-    final case class DeployableIsBuilt(obj : PlanetSideGameObject with Deployable)
+    final case class Build(obj : PlanetSideGameObject with Deployable, withTool : ConstructionItem)
+    final case class DeployableIsBuilt(obj : PlanetSideGameObject with Deployable, withTool : ConstructionItem)
 
     final case class Dismiss(obj : PlanetSideGameObject with Deployable)
     final case class DeployableIsDismissed(obj : PlanetSideGameObject with Deployable)

@@ -72,39 +72,11 @@ class VehicleConverter extends ObjectCreateConverter[Vehicle]() {
     val offset : Long = VehicleData.InitialStreamLengthToSeatEntries(obj.Velocity.nonEmpty, SpecificFormatModifier)
     obj.Seats(0).Occupant match {
       case Some(player) =>
-        val mountedPlayer = VehicleData.PlayerData(
-          AvatarConverter.MakeAppearanceData(player),
-          AvatarConverter.MakeCharacterData(player),
-          AvatarConverter.MakeInventoryData(player),
-          AvatarConverter.GetDrawnSlot(player),
-          offset
-        )
-        List(InventoryItemData(ObjectClass.avatar, player.GUID, 0, mountedPlayer))
+        List(InventoryItemData(ObjectClass.avatar, player.GUID, 0, SeatConverter.MakeSeat(player, offset)))
       case None =>
         Nil
     }
   }
-
-  //TODO do not use for now; causes vehicle access permission issues; may not mesh with workflows; player GUID requirements
-//  private def MakeSeats(obj : Vehicle) : List[InventoryItemData.InventoryItem] = {
-//    var offset : Long = VehicleData.InitialStreamLengthToSeatEntries(obj.Velocity.nonEmpty, SpecificFormatModifier)
-//    obj.Seats
-//      .filter({ case (_, seat) => seat.isOccupied })
-//      .map({case (index, seat) =>
-//        val player = seat.Occupant.get
-//        val mountedPlayer = VehicleData.PlayerData(
-//          AvatarConverter.MakeAppearanceData(player),
-//          AvatarConverter.MakeCharacterData(player),
-//          AvatarConverter.MakeInventoryData(player),
-//          AvatarConverter.GetDrawnSlot(player),
-//          offset
-//        )
-//        val entry = InventoryItemData(ObjectClass.avatar, player.GUID, index, mountedPlayer)
-//        //println(s"seat 0 offset: $offset, size: ${entry.bitsize}, pad: ${mountedPlayer.basic_appearance.NamePadding}")
-//        offset += entry.bitsize
-//        entry
-//      }).toList
-//  }
   
   private def MakeMountings(obj : Vehicle) : List[InventoryItemData.InventoryItem] = {
     obj.Weapons.map({

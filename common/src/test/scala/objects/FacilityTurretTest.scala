@@ -7,7 +7,7 @@ import net.psforever.objects.{Avatar, GlobalDefinitions, Player, Tool}
 import net.psforever.objects.definition.ToolDefinition
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.structures.{Building, StructureType}
-import net.psforever.objects.serverobject.turret.{MannedTurret, MannedTurretControl, MannedTurretDefinition, TurretUpgrade}
+import net.psforever.objects.serverobject.turret._
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types.{CharacterGender, CharacterVoice, PlanetSideEmpire}
@@ -16,10 +16,10 @@ import org.specs2.mutable.Specification
 import scala.collection.mutable
 import scala.concurrent.duration._
 
-class MannedTurretTest extends Specification {
-  "MannedTurretTest" should {
+class FacilityTurretTest extends Specification {
+  "FacilityTurretTest" should {
     "define" in {
-      val obj = new MannedTurretDefinition(480)
+      val obj = new TurretDefinition(480)
       obj.Weapons mustEqual mutable.HashMap.empty[TurretUpgrade.Value, ToolDefinition]
       obj.ReserveAmmunition mustEqual false
       obj.FactionLocked mustEqual true
@@ -28,7 +28,7 @@ class MannedTurretTest extends Specification {
     }
 
     "construct" in {
-      val obj = MannedTurret(GlobalDefinitions.manned_turret)
+      val obj = FacilityTurret(GlobalDefinitions.manned_turret)
       obj.Weapons.size mustEqual 1
       obj.Weapons(1).Equipment match {
         case Some(tool : Tool) =>
@@ -51,7 +51,7 @@ class MannedTurretTest extends Specification {
     }
 
     "upgrade to a different weapon" in {
-      val obj = MannedTurret(GlobalDefinitions.manned_turret)
+      val obj = FacilityTurret(GlobalDefinitions.manned_turret)
       obj.Upgrade = TurretUpgrade.None
       obj.Weapons(1).Equipment match {
         case Some(tool : Tool) =>
@@ -87,26 +87,26 @@ class MannedTurretTest extends Specification {
   }
 }
 
-class MannedTurretControl1Test extends ActorTest {
-  "MannedTurretControl" should {
+class FacilityTurretControl1Test extends ActorTest {
+  "FacilityTurretControl" should {
     "construct" in {
-      val obj = MannedTurret(GlobalDefinitions.manned_turret)
-      obj.Actor = system.actorOf(Props(classOf[MannedTurretControl], obj), "turret-control")
+      val obj = FacilityTurret(GlobalDefinitions.manned_turret)
+      obj.Actor = system.actorOf(Props(classOf[FacilityTurretControl], obj), "turret-control")
       assert(obj.Actor != ActorRef.noSender)
     }
   }
 }
 
-class MannedTurretControl2Test extends ActorTest {
+class FacilityTurretControl2Test extends ActorTest {
   val player = Player(Avatar("", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
-  val obj = MannedTurret(GlobalDefinitions.manned_turret)
+  val obj = FacilityTurret(GlobalDefinitions.manned_turret)
   obj.GUID = PlanetSideGUID(1)
-  obj.Actor = system.actorOf(Props(classOf[MannedTurretControl], obj), "turret-control")
+  obj.Actor = system.actorOf(Props(classOf[FacilityTurretControl], obj), "turret-control")
   val bldg = Building(0, Zone.Nowhere, StructureType.Building)
   bldg.Amenities = obj
   bldg.Faction = PlanetSideEmpire.TR
 
-  "MannedTurretControl" should {
+  "FacilityTurretControl" should {
     "seat on faction affiliation when FactionLock is true" in {
       assert(player.Faction == PlanetSideEmpire.TR)
       assert(obj.Faction == PlanetSideEmpire.TR)
@@ -124,15 +124,15 @@ class MannedTurretControl2Test extends ActorTest {
   }
 }
 
-class MannedTurretControl3Test extends ActorTest {
+class FacilityTurretControl3Test extends ActorTest {
   val player = Player(Avatar("", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
-  val obj = MannedTurret(GlobalDefinitions.manned_turret)
+  val obj = FacilityTurret(GlobalDefinitions.manned_turret)
   obj.GUID = PlanetSideGUID(1)
-  obj.Actor = system.actorOf(Props(classOf[MannedTurretControl], obj), "turret-control")
+  obj.Actor = system.actorOf(Props(classOf[FacilityTurretControl], obj), "turret-control")
   val bldg = Building(0, Zone.Nowhere, StructureType.Building)
   bldg.Amenities = obj
 
-  "MannedTurretControl" should {
+  "FacilityTurretControl" should {
     "block seating on mismatched faction affiliation when FactionLock is true" in {
       assert(player.Faction == PlanetSideEmpire.TR)
       assert(obj.Faction == PlanetSideEmpire.NEUTRAL)
@@ -150,17 +150,17 @@ class MannedTurretControl3Test extends ActorTest {
   }
 }
 
-class MannedTurretControl4Test extends ActorTest {
+class FacilityTurretControl4Test extends ActorTest {
   val player = Player(Avatar("", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
-  val objDef = new MannedTurretDefinition(480)
+  val objDef = new TurretDefinition(480)
   objDef.FactionLocked = false
-  val obj = MannedTurret(objDef)
+  val obj = FacilityTurret(objDef)
   obj.GUID = PlanetSideGUID(1)
-  obj.Actor = system.actorOf(Props(classOf[MannedTurretControl], obj), "turret-control")
+  obj.Actor = system.actorOf(Props(classOf[FacilityTurretControl], obj), "turret-control")
   val bldg = Building(0, Zone.Nowhere, StructureType.Building)
   bldg.Amenities = obj
 
-  "MannedTurretControl" should {
+  "FacilityTurretControl" should {
     "seating even with mismatched faction affiliation when FactionLock is false" in {
       assert(player.Faction == PlanetSideEmpire.TR)
       assert(obj.Faction == PlanetSideEmpire.NEUTRAL)

@@ -2,7 +2,7 @@
 package net.psforever.objects.zones
 
 import akka.actor.Actor
-import net.psforever.objects.{Avatar, Deployable, PlanetSideGameObject}
+import net.psforever.objects.{Deployable, PlanetSideGameObject}
 
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
@@ -15,9 +15,9 @@ class ZoneDeployableActor(zone : Zone, deployableList : ListBuffer[PlanetSideGam
   import ZoneDeployableActor._
 
   def receive : Receive = {
-    case Zone.Deployable.Build(obj) =>
+    case Zone.Deployable.Build(obj, tool) =>
       if(DeployableBuild(obj, deployableList)) {
-        sender ! Zone.Deployable.DeployableIsBuilt(obj)
+        sender ! Zone.Deployable.DeployableIsBuilt(obj, tool)
       }
 
     case Zone.Deployable.Dismiss(obj) =>

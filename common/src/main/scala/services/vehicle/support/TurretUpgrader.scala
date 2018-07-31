@@ -4,7 +4,7 @@ package services.vehicle.support
 import akka.actor.{Actor, ActorRef, Cancellable}
 import net.psforever.objects.{AmmoBox, DefaultCancellable, PlanetSideGameObject, Tool}
 import net.psforever.objects.guid.{GUIDTask, Task, TaskResolver}
-import net.psforever.objects.serverobject.turret.{MannedTurret, TurretUpgrade}
+import net.psforever.objects.serverobject.turret.{FacilityTurret, TurretUpgrade}
 import net.psforever.objects.vehicles.MountedWeapons
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.PlanetSideGUID
@@ -50,7 +50,7 @@ class TurretUpgrader extends SupportActor[TurretUpgrader.Entry] {
 
   def CreateEntry(obj : PlanetSideGameObject, zone : Zone, upgrade : TurretUpgrade.Value, duration : Long) = TurretUpgrader.Entry(obj, zone, upgrade, duration)
 
-  def InclusionTest(entry : TurretUpgrader.Entry) : Boolean = entry.obj.isInstanceOf[MannedTurret]
+  def InclusionTest(entry : TurretUpgrader.Entry) : Boolean = entry.obj.isInstanceOf[FacilityTurret]
 
   def receive : Receive = {
     case Service.Startup() =>
@@ -157,7 +157,7 @@ class TurretUpgrader extends SupportActor[TurretUpgrader.Entry] {
     * @param entry na
     */
   def UpgradeTurretAmmo(entry : TurretUpgrader.Entry) : Unit = {
-    val target = entry.obj.asInstanceOf[MannedTurret]
+    val target = entry.obj.asInstanceOf[FacilityTurret]
     val zone = entry.zone
     val zoneId = zone.Id
     val upgrade = entry.upgrade
@@ -222,7 +222,7 @@ class TurretUpgrader extends SupportActor[TurretUpgrader.Entry] {
     * @param entry na
     */
   def FinishUpgradingTurret(entry : TurretUpgrader.Entry)() : Unit = {
-    val target = entry.obj.asInstanceOf[MannedTurret]
+    val target = entry.obj.asInstanceOf[FacilityTurret]
     val zone = entry.zone
     info(s"Wall turret finished ${target.Upgrade} upgrade")
     val targetGUID = target.GUID
@@ -250,7 +250,7 @@ object TurretUpgrader extends SupportActorCaseConversions {
     */
   case class Entry(_obj : PlanetSideGameObject, _zone : Zone, upgrade : TurretUpgrade.Value, _duration : Long) extends SupportActor.Entry(_obj, _zone, _duration)
 
-  final case class AddTask(turret : MannedTurret, zone : Zone, upgrade : TurretUpgrade.Value, duration : Option[FiniteDuration] = None)
+  final case class AddTask(turret : FacilityTurret, zone : Zone, upgrade : TurretUpgrade.Value, duration : Option[FiniteDuration] = None)
 
   final case class Downgrade()
 
