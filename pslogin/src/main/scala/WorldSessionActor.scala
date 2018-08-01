@@ -3052,11 +3052,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
                     progressBarValue = Some(-hackSpeed)
                     if(panel.Faction != player.Faction) {
                       // Enemy faction is hacking this IFF lock
-                      self ! WorldSessionActor.HackingProgress(1, player, panel, tool.GUID, hackSpeed, FinishHacking(panel, 1114636288L))
+                      self ! WorldSessionActor.HackingProgress(progressType = 1, player, panel, tool.GUID, hackSpeed, FinishHacking(panel, 1114636288L))
                       log.info("Hacking an IFF lock")
                     } else {
                       // IFF Lock is being resecured by it's owner faction
-                      self ! WorldSessionActor.ItemHacking(player, panel, tool.GUID, hackSpeed, FinishResecuringIFFLock(panel))
+                      self ! WorldSessionActor.HackingProgress(progressType = 1, player, panel, tool.GUID, hackSpeed, FinishResecuringIFFLock(panel))
                       log.info("Resecuring an IFF lock")
                     }
 
@@ -3124,7 +3124,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
                   if(hackSpeed > 0)  {
                     progressBarValue = Some(-hackSpeed)
-                    self ! WorldSessionActor.HackingProgress(1, player, locker, tool.GUID, hackSpeed, FinishHacking(locker, 3212836864L))
+                    self ! WorldSessionActor.HackingProgress(progressType = 1, player, locker, tool.GUID, hackSpeed, FinishHacking(locker, 3212836864L))
                     log.info("Hacking a locker")
                   }
                 }
@@ -3151,7 +3151,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
                   if(hackSpeed > 0) {
                     progressBarValue = Some(-hackSpeed)
-                    self ! WorldSessionActor.ItemHacking(player, captureTerminal, tool.GUID, hackSpeed, FinishHacking(captureTerminal, 3212836864L))
+                    self ! WorldSessionActor.HackingProgress(progressType = 1, player, captureTerminal, tool.GUID, hackSpeed, FinishHacking(captureTerminal, 3212836864L))
                     log.info("Hacking a capture terminal")
                   }
                 }
@@ -3167,11 +3167,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
                 if(ammo == Ammo.upgrade_canister && obj.Seats.values.count(_.isOccupied) == 0) {
                   progressBarValue = Some(-1.25f)
                   self ! WorldSessionActor.HackingProgress(
-                    2,
+                    progressType = 2,
                     player,
                     obj,
                     tool.GUID,
-                    1.25f,
+                    delta = 1.25f,
                     FinishUpgradingMannedTurret(obj, tool, TurretUpgrade(unk2.toInt))
                   )
                 }
@@ -3250,7 +3250,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
                     if(hackSpeed > 0) {
                       progressBarValue = Some(-hackSpeed)
-                      self ! WorldSessionActor.HackingProgress(1, player, terminal, tool.GUID, hackSpeed, FinishHacking(terminal, 3212836864L))
+                      self ! WorldSessionActor.HackingProgress(progressType = 1, player, terminal, tool.GUID, hackSpeed, FinishHacking(terminal, 3212836864L))
                       log.info("Hacking a terminal")
                     }
                   }
@@ -5980,6 +5980,8 @@ object WorldSessionActor {
     * The process of "making progress" with a hack involves sending this message repeatedly until the progress is 100 or more.
     * To calculate the actual amount of change in the progress `delta`,
     * start with 100, divide by the length of time in seconds, then divide once more by 4.
+    * @param progressType 1 - REK hack
+    *                     2 - Turret upgrade with glue gun + upgrade cannister
     * @param tplayer the player
     * @param target the object being hacked
     * @param tool_guid the REK

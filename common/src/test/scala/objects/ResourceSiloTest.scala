@@ -176,7 +176,7 @@ class ResourceSiloControlUpdate1Test extends ActorTest {
       assert(reply1.asInstanceOf[AvatarServiceMessage]
         .actionMessage.asInstanceOf[AvatarAction.PlanetsideAttribute].attribute_value == 3)
 
-      assert(reply2.isInstanceOf[Building.SendMapUpdateToAllClients])
+      assert(reply2.isInstanceOf[Building.SendMapUpdate])
 
       val reply3 = probe1.receiveOne(500 milliseconds)
       assert(reply3.isInstanceOf[AvatarServiceMessage])
@@ -249,7 +249,7 @@ class ResourceSiloControlUpdate2Test extends ActorTest {
       assert(reply1.asInstanceOf[AvatarServiceMessage]
         .actionMessage.asInstanceOf[AvatarAction.PlanetsideAttribute].attribute_value == 2)
 
-      assert(reply2.isInstanceOf[Building.SendMapUpdateToAllClients])
+      assert(reply2.isInstanceOf[Building.SendMapUpdate])
 
       val reply3 = probe1.receiveOne(500 milliseconds)
       assert(obj.LowNtuWarningOn == false)
