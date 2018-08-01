@@ -3,6 +3,7 @@ package objects
 
 import akka.actor.Props
 import akka.testkit.TestProbe
+import base.ActorTest
 import net.psforever.objects.serverobject.pad.{VehicleSpawnControl, VehicleSpawnPad}
 import net.psforever.objects.{Avatar, GlobalDefinitions, Player, Vehicle}
 import net.psforever.objects.serverobject.pad.process.{AutoDriveControls, VehicleSpawnControlGuided}

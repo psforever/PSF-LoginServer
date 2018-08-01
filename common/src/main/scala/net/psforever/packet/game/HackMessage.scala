@@ -33,21 +33,27 @@ object HackState extends Enumeration {
 }
 
 /**
-  * Dispatched by the server to control the process of hacking.<br>
+  * Dispatched by the server to control the progress of hacking.
+  * While "hacking" is typically performed against enemy targets,
+  * some actions that involve ally on ally hacking can occur.
+  * In this sense, hacking can be consider change progress.<br>
   * <br>
-  * Part of the hacking process is regulated by the server while another part of it is automatically reset by the client.
-  * The visibility, update, and closing of the hacking progress bar must be handled manually, for each tick.
-  * When hacking is complete, using the appropriate `HackState` will cue the target to be affected by the hack.
-  * Terminals and door IFF panels will temporarily expose their functionality;
-  * the faction association of vehicles will be converted permanently;
-  * a protracted process of a base conversion will be enacted; etc..
-  * This transfer of faction association occurs to align the target with the faction of the hacking player (as indicated).
-  * The client will select the faction without needing to be explicitly told
-  * and will select the appropriate action to enact upon the target.
-  * Upon the hack's completion, the target on the client will automatically revert back to its original state, if possible.
-  * (It will still be necessary to alert this change from the server's perspective.)
+  * In general, the act of hacking is maintained by the server but the conclusion is managed by the client.
+  * Hacking typically locks the player into a cancellable firing animation and works as all-or-nothing.
+  * The progress bar window is displayed and updated each tick by the server; but, the client can cancel it on its own.
+  * When hacking is complete as indicated by the appropriate `HackState`,
+  * the client performs the intended action upon the target.
+  * Facility amenities will temporarily ignore IFF requirements;
+  * vehicles will permanently transfer control over to the hack-starter's empire;
+  * facility turret weapons will temporarily convert to their anti-vehicle or anti-aircraft configurations;
+  * facilities will be compromised and begin the long process of converting to the hack-starter's empire;
+  * and, so forth.<br>
+  * <br>
+  * As mentioned, one of the unexpected uses of this message
+  * will assist the conversion of allied facility turreted weapons to their upgraded armaments.
   * @param unk1 na;
   *             0 commonly;
+  *             2 when performing (phalanx) upgrades;
   *             3 for building objects during login phase;
   *             hack type?
   *             possibly player hacking level 0-3?

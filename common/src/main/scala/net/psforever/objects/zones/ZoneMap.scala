@@ -26,6 +26,7 @@ import net.psforever.objects.serverobject.{PlanetSideServerObject, ServerObjectB
   */
 class ZoneMap(private val name : String) {
   private var localObjects : List[ServerObjectBuilder[_]] = List()
+  private var linkTurretWeapon : Map[Int, Int] = Map()
   private var linkTerminalPad : Map[Int, Int] = Map()
   private var linkTerminalInterface : Map[Int, Int] = Map()
   private var linkDoorLock : Map[Int, Int] = Map()
@@ -86,5 +87,11 @@ class ZoneMap(private val name : String) {
 
   def TerminalToInterface(interface_guid : Int, terminal_guid : Int) : Unit = {
     linkTerminalInterface = linkTerminalInterface ++ Map(interface_guid -> terminal_guid)
+  }
+
+  def TurretToWeapon : Map[Int, Int] = linkTurretWeapon
+
+  def TurretToWeapon(turret_guid : Int, weapon_guid : Int) : Unit = {
+    linkTurretWeapon = linkTurretWeapon ++ Map(turret_guid -> weapon_guid)
   }
 }

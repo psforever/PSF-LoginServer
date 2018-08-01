@@ -1,5 +1,8 @@
+package service
+
 // Copyright (c) 2017 PSForever
 import akka.actor.Props
+import base.ActorTest
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types.{PlanetSideEmpire, Vector3}

@@ -1,13 +1,15 @@
 // Copyright (c) 2017 PSForever
 package services.avatar
 
+import net.psforever.objects.ballistics.SourceEntry
 import net.psforever.objects.{PlanetSideGameObject, Player}
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.inventory.Container
 import net.psforever.objects.zones.Zone
+import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game.{PlanetSideGUID, PlayerStateMessageUpstream}
 import net.psforever.packet.game.objectcreate.{ConstructorData, ObjectCreateMessageParent}
-import net.psforever.types.ExoSuitType
+import net.psforever.types.{ExoSuitType, Vector3}
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -20,9 +22,14 @@ object AvatarAction {
   final case class ChangeFireState_Start(player_guid : PlanetSideGUID, weapon_guid : PlanetSideGUID) extends Action
   final case class ChangeFireState_Stop(player_guid : PlanetSideGUID, weapon_guid : PlanetSideGUID) extends Action
   final case class ConcealPlayer(player_guid : PlanetSideGUID) extends Action
+  final case class Damage(player_guid : PlanetSideGUID, target : Player, resolution_function : (Any)=>Unit) extends Action
+  final case class Destroy(victim : PlanetSideGUID, killer : PlanetSideGUID, weapon : PlanetSideGUID, pos : Vector3) extends Action
+  final case class DestroyDisplay(killer : SourceEntry, victim : SourceEntry, method : Int, unk : Int = 121) extends Action
   final case class DropItem(player_guid : PlanetSideGUID, item : Equipment, zone : Zone) extends Action
   final case class EquipmentInHand(player_guid : PlanetSideGUID, target_guid : PlanetSideGUID, slot : Int, item : Equipment) extends Action
+  final case class HitHint(source_guid : PlanetSideGUID, player_guid : PlanetSideGUID) extends Action
   final case class LoadPlayer(player_guid : PlanetSideGUID, object_id : Int, target_guid : PlanetSideGUID, cdata : ConstructorData, pdata : Option[ObjectCreateMessageParent]) extends Action
+  final case class KilledWhileInVehicle(player_guid : PlanetSideGUID) extends Action
   final case class ObjectDelete(player_guid : PlanetSideGUID, item_guid : PlanetSideGUID, unk : Int = 0) extends Action
   final case class ObjectHeld(player_guid : PlanetSideGUID, slot : Int) extends Action
   final case class PlanetsideAttribute(player_guid : PlanetSideGUID, attribute_type : Int, attribute_value : Long) extends Action
@@ -32,7 +39,9 @@ object AvatarAction {
   final case class Reload(player_guid : PlanetSideGUID, weapon_guid : PlanetSideGUID) extends Action
   final case class StowEquipment(player_guid : PlanetSideGUID, target_guid : PlanetSideGUID, slot : Int, item : Equipment) extends Action
   final case class WeaponDryFire(player_guid : PlanetSideGUID, weapon_guid : PlanetSideGUID) extends Action
-//  final case class PlayerStateShift(killer : PlanetSideGUID, victim : PlanetSideGUID) extends Action
+
+  final case class SendResponse(player_guid: PlanetSideGUID, msg: PlanetSideGamePacket) extends Action
+
+  //  final case class PlayerStateShift(killer : PlanetSideGUID, victim : PlanetSideGUID) extends Action
 //  final case class DestroyDisplay(killer : PlanetSideGUID, victim : PlanetSideGUID) extends Action
-//  final case class HitHintReturn(killer : PlanetSideGUID, victim : PlanetSideGUID) extends Action
 }

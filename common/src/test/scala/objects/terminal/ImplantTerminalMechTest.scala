@@ -2,6 +2,7 @@
 package objects.terminal
 
 import akka.actor.{ActorRef, ActorSystem, Props}
+import base.ActorTest
 import net.psforever.objects.definition.SeatDefinition
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.implantmech.{ImplantTerminalMech, ImplantTerminalMechControl}
@@ -9,7 +10,6 @@ import net.psforever.objects.serverobject.structures.StructureType
 import net.psforever.objects.vehicles.Seat
 import net.psforever.objects.{Avatar, GlobalDefinitions, Player}
 import net.psforever.types.{CharacterGender, CharacterVoice, PlanetSideEmpire, Vector3}
-import objects.ActorTest
 import org.specs2.mutable.Specification
 
 import scala.concurrent.duration.Duration
@@ -56,7 +56,7 @@ class ImplantTerminalMechTest extends Specification {
   }
 }
 
-class ImplantTerminalMechControl1Test extends ActorTest() {
+class ImplantTerminalMechControl1Test extends ActorTest {
   "ImplantTerminalMechControl" should {
     "construct" in {
       val obj = ImplantTerminalMech(GlobalDefinitions.implant_terminal_mech)
@@ -66,7 +66,7 @@ class ImplantTerminalMechControl1Test extends ActorTest() {
   }
 }
 
-class ImplantTerminalMechControl2Test extends ActorTest() {
+class ImplantTerminalMechControl2Test extends ActorTest {
   "ImplantTerminalMechControl" should {
     "let a player mount" in {
       val (player, mech) = ImplantTerminalMechTest.SetUpAgents(PlanetSideEmpire.TR)
@@ -85,7 +85,7 @@ class ImplantTerminalMechControl2Test extends ActorTest() {
   }
 }
 
-class ImplantTerminalMechControl3Test extends ActorTest() {
+class ImplantTerminalMechControl3Test extends ActorTest {
   import net.psforever.types.CharacterGender
   "ImplantTerminalMechControl" should {
     "block a player from mounting" in {
@@ -108,7 +108,7 @@ class ImplantTerminalMechControl3Test extends ActorTest() {
   }
 }
 
-class ImplantTerminalMechControl4Test extends ActorTest() {
+class ImplantTerminalMechControl4Test extends ActorTest {
   "ImplantTerminalMechControl" should {
     "dismount player after mounting" in {
       val (player, mech) = ImplantTerminalMechTest.SetUpAgents(PlanetSideEmpire.TR)
@@ -130,7 +130,7 @@ class ImplantTerminalMechControl4Test extends ActorTest() {
   }
 }
 
-class ImplantTerminalMechControl5Test extends ActorTest() {
+class ImplantTerminalMechControl5Test extends ActorTest {
   "ImplantTerminalMechControl" should {
     "block a player from dismounting" in {
       val (player, mech) = ImplantTerminalMechTest.SetUpAgents(PlanetSideEmpire.TR)

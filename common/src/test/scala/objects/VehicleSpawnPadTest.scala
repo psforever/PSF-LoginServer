@@ -3,6 +3,7 @@ package objects
 
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.testkit.TestProbe
+import base.ActorTest
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.pad.{VehicleSpawnControl, VehicleSpawnPad}
 import net.psforever.objects.serverobject.structures.StructureType
@@ -38,7 +39,7 @@ class VehicleSpawnPadTest extends Specification {
   }
 }
 
-class VehicleSpawnControl1Test extends ActorTest() {
+class VehicleSpawnControl1Test extends ActorTest {
   "VehicleSpawnControl" should {
     "construct" in {
       val obj = VehicleSpawnPad(GlobalDefinitions.spawn_pad)
@@ -48,7 +49,7 @@ class VehicleSpawnControl1Test extends ActorTest() {
   }
 }
 
-class VehicleSpawnControl2aTest extends ActorTest() {
+class VehicleSpawnControl2aTest extends ActorTest {
   // This runs for a long time.
   "VehicleSpawnControl" should {
     "complete on a vehicle order (block a second one until the first is done and the spawn pad is cleared)" in {
@@ -112,7 +113,7 @@ class VehicleSpawnControl2aTest extends ActorTest() {
   }
 }
 
-class VehicleSpawnControl2bTest extends ActorTest() {
+class VehicleSpawnControl2bTest extends ActorTest {
   // This runs for a long time.
   "VehicleSpawnControl" should {
     "complete on a vehicle order (railless)" in {
@@ -169,7 +170,7 @@ class VehicleSpawnControl2bTest extends ActorTest() {
   }
 }
 
-class VehicleSpawnControl3Test extends ActorTest() {
+class VehicleSpawnControl3Test extends ActorTest {
   "VehicleSpawnControl" should {
     "player is on wrong continent before vehicle can partially load; vehicle is cleaned up" in {
       val (vehicle, player, pad, zone) = VehicleSpawnPadControlTest.SetUpAgents(PlanetSideEmpire.TR)
@@ -240,7 +241,7 @@ class VehicleSpawnControl4Test extends ActorTest() {
 //  }
 //}
 
-class VehicleSpawnControl5Test extends ActorTest() {
+class VehicleSpawnControl5Test extends ActorTest {
   "VehicleSpawnControl" should {
     "player dies right after vehicle partially loads; the vehicle spawns and blocks the pad" in {
       val (vehicle, player, pad, zone) = VehicleSpawnPadControlTest.SetUpAgents(PlanetSideEmpire.TR)
@@ -273,7 +274,7 @@ class VehicleSpawnControl5Test extends ActorTest() {
   }
 }
 
-class VehicleSpawnControl6Test extends ActorTest() {
+class VehicleSpawnControl6Test extends ActorTest {
   "VehicleSpawnControl" should {
     "the player can not sit in vehicle; vehicle spawns and blocks the pad" in {
       val (vehicle, player, pad, zone) = VehicleSpawnPadControlTest.SetUpAgents(PlanetSideEmpire.TR)
@@ -323,10 +324,10 @@ object VehicleSpawnPadControlTest {
     import net.psforever.objects.Tool
     import net.psforever.types.CharacterGender
 
-    val zone = new Zone("test-zone", map, 0)
+    val zone = new Zone("test-zone", map, 0)  { override def SetupNumberPools() = { } }
     val vehicle = Vehicle(GlobalDefinitions.two_man_assault_buggy)
     val weapon = vehicle.WeaponControlledFromSeat(1).get.asInstanceOf[Tool]
-    val guid : NumberPoolHub = new NumberPoolHub(LimitedNumberSource(3))
+    val guid : NumberPoolHub = new NumberPoolHub(LimitedNumberSource(5))
     guid.AddPool("test-pool", (0 to 2).toList)
     guid.register(vehicle, "test-pool")
     guid.register(weapon, "test-pool")

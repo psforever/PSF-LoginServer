@@ -1,6 +1,9 @@
 // Copyright (c) 2017 PSForever
+package service
+
 import akka.actor.Props
 import akka.routing.RandomPool
+import base.ActorTest
 import net.psforever.objects._
 import net.psforever.objects.guid.{GUIDTask, TaskResolver}
 import net.psforever.objects.zones.{Zone, ZoneActor, ZoneMap}
@@ -384,7 +387,7 @@ Even with all this work, the tests have a high chance of failure just due to bei
 class AvatarReleaseTest extends ActorTest {
   ServiceManager.boot(system) ! ServiceManager.Register(RandomPool(1).props(Props[TaskResolver]), "taskResolver")
   val service = system.actorOf(Props[AvatarService], "release-test-service")
-  val zone = new Zone("test", new ZoneMap("test-map"), 0)
+  val zone = new Zone("test", new ZoneMap("test-map"), 0) { override def SetupNumberPools() = { AddPool("dynamic", 1 to 10) } }
   val taskResolver = system.actorOf(Props[TaskResolver], "release-test-resolver")
   zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "release-test-zone")
   zone.Actor ! Zone.Init()
@@ -433,7 +436,7 @@ class AvatarReleaseTest extends ActorTest {
 class AvatarReleaseEarly1Test extends ActorTest {
   ServiceManager.boot(system) ! ServiceManager.Register(RandomPool(1).props(Props[TaskResolver]), "taskResolver")
   val service = system.actorOf(Props[AvatarService], "release-test-service")
-  val zone = new Zone("test", new ZoneMap("test-map"), 0)
+  val zone = new Zone("test", new ZoneMap("test-map"), 0) { override def SetupNumberPools() = { AddPool("dynamic", 1 to 10) } }
   val taskResolver = system.actorOf(Props[TaskResolver], "release-test-resolver")
   zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "release-test-zone")
   zone.Actor ! Zone.Init()
@@ -483,7 +486,7 @@ class AvatarReleaseEarly1Test extends ActorTest {
 class AvatarReleaseEarly2Test extends ActorTest {
   ServiceManager.boot(system) ! ServiceManager.Register(RandomPool(1).props(Props[TaskResolver]), "taskResolver")
   val service = system.actorOf(Props[AvatarService], "release-test-service")
-  val zone = new Zone("test", new ZoneMap("test-map"), 0)
+  val zone = new Zone("test", new ZoneMap("test-map"), 0) { override def SetupNumberPools() = { AddPool("dynamic", 1 to 10) } }
   val taskResolver = system.actorOf(Props[TaskResolver], "release-test-resolver")
   zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "release-test-zone")
   zone.Actor ! Zone.Init()

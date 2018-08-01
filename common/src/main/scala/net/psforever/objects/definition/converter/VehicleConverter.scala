@@ -4,7 +4,8 @@ package net.psforever.objects.definition.converter
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.Vehicle
 import net.psforever.packet.game.PlanetSideGUID
-import net.psforever.packet.game.objectcreate.{InventoryItemData, _}
+import net.psforever.packet.game.objectcreate.{InventoryData, InventoryItemData, ObjectClass, PlacementData, SpecificVehicleData, VehicleData, VehicleFormat}
+import net.psforever.types.DriveState
 
 import scala.util.{Failure, Success, Try}
 
@@ -14,31 +15,57 @@ class VehicleConverter extends ObjectCreateConverter[Vehicle]() {
 
   override def ConstructorData(obj : Vehicle) : Try[VehicleData] = {
     val health = 255 * obj.Health / obj.MaxHealth //TODO not precise
-    Success(
-      VehicleData(
-        PlacementData(obj.Position, obj.Orientation, obj.Velocity),
-        obj.Faction,
-        bops = false,
-        destroyed = health < 3,
-        unk1 = 0,
-        obj.Jammered,
-        unk2 = false,
-        obj.Owner match {
-          case Some(owner) => owner
-          case None => PlanetSideGUID(0)
-        },
-        unk3 = false,
-        health,
-        unk4 = false,
-        no_mount_points = false,
-        obj.DeploymentState,
-        unk5 = false,
-        unk6 = false,
-        obj.Cloaked,
-        SpecificFormatData(obj),
-        Some(InventoryData(MakeDriverSeat(obj) ++ MakeUtilities(obj) ++ MakeMountings(obj)))
-      )(SpecificFormatModifier)
-    )
+    if(health > 3) { //active
+      Success(
+        VehicleData(
+          PlacementData(obj.Position, obj.Orientation, obj.Velocity),
+          obj.Faction,
+          bops = false,
+          destroyed = false,
+          unk1 = 0,
+          obj.Jammered,
+          unk2 = false,
+          obj.Owner match {
+            case Some(owner) => owner
+            case None => PlanetSideGUID(0)
+          },
+          unk3 = false,
+          health,
+          unk4 = false,
+          no_mount_points = false,
+          obj.DeploymentState,
+          unk5 = false,
+          unk6 = false,
+          obj.Cloaked,
+          SpecificFormatData(obj),
+          Some(InventoryData(MakeDriverSeat(obj) ++ MakeUtilities(obj) ++ MakeMountings(obj)))
+        )(SpecificFormatModifier)
+      )
+    }
+    else { //destroyed
+      Success(
+        VehicleData(
+          PlacementData(obj.Position, obj.Orientation),
+          obj.Faction,
+          bops = false,
+          destroyed = true,
+          unk1 = 0,
+          jammered = false,
+          unk2 = false,
+          owner_guid = PlanetSideGUID(0),
+          unk3 = false,
+          health = 0,
+          unk4 = false,
+          no_mount_points = true,
+          driveState = DriveState.Mobile,
+          unk5 = false,
+          unk6 = false,
+          cloak = false,
+          SpecificFormatData(obj),
+          inventory = None
+        )(SpecificFormatModifier)
+      )
+    }
   }
 
   private def MakeDriverSeat(obj : Vehicle) : List[InventoryItemData.InventoryItem] = {

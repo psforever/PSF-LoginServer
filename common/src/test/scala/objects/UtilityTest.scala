@@ -2,6 +2,7 @@
 package objects
 
 import akka.actor.{Actor, ActorRef, Props}
+import base.ActorTest
 import net.psforever.objects.{GlobalDefinitions, Vehicle}
 import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.vehicles._
@@ -73,7 +74,7 @@ class UtilityTest extends Specification {
   }
 }
 
-class Utility1Test extends ActorTest() {
+class Utility1Test extends ActorTest {
   "Utility" should {
     "wire an order_terminala Actor" in {
       val obj = Utility(UtilityType.order_terminala, UtilityTest.vehicle)
@@ -87,7 +88,7 @@ class Utility1Test extends ActorTest() {
   }
 }
 
-class Utility2Test extends ActorTest() {
+class Utility2Test extends ActorTest {
   "Utility" should {
     "wire an order_terminalb Actor" in {
       val obj = Utility(UtilityType.order_terminalb, UtilityTest.vehicle)
@@ -101,7 +102,7 @@ class Utility2Test extends ActorTest() {
   }
 }
 
-class Utility3Test extends ActorTest() {
+class Utility3Test extends ActorTest {
   "Utility" should {
     "wire a matrix_terminalc Actor" in {
       val obj = Utility(UtilityType.matrix_terminalc, UtilityTest.vehicle)
@@ -115,7 +116,7 @@ class Utility3Test extends ActorTest() {
   }
 }
 
-class Utility4Test extends ActorTest() {
+class Utility4Test extends ActorTest {
   "Utility" should {
     "wire an ams_respawn_tube Actor" in {
       val obj = Utility(UtilityType.ams_respawn_tube, UtilityTest.vehicle)

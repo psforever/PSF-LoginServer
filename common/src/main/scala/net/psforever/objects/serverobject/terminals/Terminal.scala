@@ -118,16 +118,14 @@ object Terminal {
   /**
     * Provide the certification type unlocked by the player.
     * @param cert the certification unlocked
-    * @param cost the certification point cost
     */
-  final case class LearnCertification(cert : CertificationType.Value, cost : Int) extends Exchange
+  final case class LearnCertification(cert : CertificationType.Value) extends Exchange
 
   /**
     * Provide the certification type freed-up by the player.
     * @param cert the certification returned
-    * @param cost the certification point cost
     */
-  final case class SellCertification(cert : CertificationType.Value, cost : Int) extends Exchange
+  final case class SellCertification(cert : CertificationType.Value) extends Exchange
 
   import net.psforever.objects.definition.ImplantDefinition
   /**

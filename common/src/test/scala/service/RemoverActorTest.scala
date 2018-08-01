@@ -1,17 +1,20 @@
-//// Copyright (c) 2017 PSForever
-//import akka.actor.{ActorRef, Props}
-//import akka.routing.RandomPool
-//import akka.testkit.TestProbe
-//import net.psforever.objects.PlanetSideGameObject
-//import net.psforever.objects.definition.{EquipmentDefinition, ObjectDefinition}
-//import net.psforever.objects.equipment.Equipment
-//import net.psforever.objects.guid.TaskResolver
-//import net.psforever.objects.zones.{Zone, ZoneMap}
-//import net.psforever.packet.game.PlanetSideGUID
-//import services.{RemoverActor, ServiceManager}
-//
-//import scala.concurrent.duration._
-//
+// Copyright (c) 2017 PSForever
+package service
+
+import akka.actor.{ActorRef, Props}
+import akka.routing.RandomPool
+import akka.testkit.TestProbe
+import base.ActorTest
+import net.psforever.objects.PlanetSideGameObject
+import net.psforever.objects.definition.{EquipmentDefinition, ObjectDefinition}
+import net.psforever.objects.equipment.Equipment
+import net.psforever.objects.guid.TaskResolver
+import net.psforever.objects.zones.{Zone, ZoneMap}
+import net.psforever.packet.game.PlanetSideGUID
+import services.{RemoverActor, ServiceManager}
+
+import scala.concurrent.duration._
+
 //class StandardRemoverActorTest extends ActorTest {
 //  ServiceManager.boot ! ServiceManager.Register(RandomPool(2).props(Props[TaskResolver]), "taskResolver")
 //
@@ -40,7 +43,7 @@
 //    }
 //  }
 //}
-//
+
 //class DelayedRemoverActorTest extends ActorTest {
 //  ServiceManager.boot ! ServiceManager.Register(RandomPool(2).props(Props[TaskResolver]), "taskResolver")
 //
@@ -473,65 +476,65 @@
 //    }
 //  }
 //}
-//
-//object RemoverActorTest {
-//  final val TestObject = new Equipment() { def Definition = new EquipmentDefinition(0) { GUID = PlanetSideGUID(1) } }
-//
-//  final case class InclusionTestAlert()
-//
-//  final case class InitialJobAlert()
-//
-//  final case class FirstJobAlert()
-//
-//  final case class SecondJobAlert()
-//
-//  final case class ClearanceTestAlert()
-//
-//  final case class DeletionTaskAlert()
-//
-//  final case class DeletionTaskRunAlert()
-//
-//  class TestRemover(probe : TestProbe) extends RemoverActor {
-//    import net.psforever.objects.guid.{Task, TaskResolver}
-//    val FirstStandardDuration = 1 seconds
-//
-//    val SecondStandardDuration = 100 milliseconds
-//
-//    def InclusionTest(entry : RemoverActor.Entry) : Boolean = {
-//      probe.ref ! InclusionTestAlert()
-//      entry.obj.isInstanceOf[Equipment]
-//    }
-//
-//    def InitialJob(entry : RemoverActor.Entry) : Unit = {
-//      probe.ref ! InitialJobAlert()
-//    }
-//
-//    def FirstJob(entry : RemoverActor.Entry) : Unit = {
-//      probe.ref ! FirstJobAlert()
-//    }
-//
-//    override def SecondJob(entry : RemoverActor.Entry) : Unit = {
-//      probe.ref ! SecondJobAlert()
-//      super.SecondJob(entry)
-//    }
-//
-//    def ClearanceTest(entry : RemoverActor.Entry) : Boolean = {
-//      probe.ref ! ClearanceTestAlert()
-//      true
-//    }
-//
-//    def DeletionTask(entry : RemoverActor.Entry) : TaskResolver.GiveTask = {
-//      probe.ref ! DeletionTaskAlert()
-//      TaskResolver.GiveTask(new Task() {
-//        private val localProbe = probe
-//
-//        override def isComplete = Task.Resolution.Success
-//
-//        def Execute(resolver : ActorRef) : Unit = {
-//          localProbe.ref ! DeletionTaskRunAlert()
-//          resolver ! scala.util.Success(this)
-//        }
-//      })
-//    }
-//  }
-//}
+
+object RemoverActorTest {
+  final val TestObject = new Equipment() { def Definition = new EquipmentDefinition(0) { GUID = PlanetSideGUID(1) } }
+
+  final case class InclusionTestAlert()
+
+  final case class InitialJobAlert()
+
+  final case class FirstJobAlert()
+
+  final case class SecondJobAlert()
+
+  final case class ClearanceTestAlert()
+
+  final case class DeletionTaskAlert()
+
+  final case class DeletionTaskRunAlert()
+
+  class TestRemover(probe : TestProbe) extends RemoverActor {
+    import net.psforever.objects.guid.{Task, TaskResolver}
+    val FirstStandardDuration = 1 seconds
+
+    val SecondStandardDuration = 100 milliseconds
+
+    def InclusionTest(entry : RemoverActor.Entry) : Boolean = {
+      probe.ref ! InclusionTestAlert()
+      entry.obj.isInstanceOf[Equipment]
+    }
+
+    def InitialJob(entry : RemoverActor.Entry) : Unit = {
+      probe.ref ! InitialJobAlert()
+    }
+
+    def FirstJob(entry : RemoverActor.Entry) : Unit = {
+      probe.ref ! FirstJobAlert()
+    }
+
+    override def SecondJob(entry : RemoverActor.Entry) : Unit = {
+      probe.ref ! SecondJobAlert()
+      super.SecondJob(entry)
+    }
+
+    def ClearanceTest(entry : RemoverActor.Entry) : Boolean = {
+      probe.ref ! ClearanceTestAlert()
+      true
+    }
+
+    def DeletionTask(entry : RemoverActor.Entry) : TaskResolver.GiveTask = {
+      probe.ref ! DeletionTaskAlert()
+      TaskResolver.GiveTask(new Task() {
+        private val localProbe = probe
+
+        override def isComplete = Task.Resolution.Success
+
+        def Execute(resolver : ActorRef) : Unit = {
+          localProbe.ref ! DeletionTaskRunAlert()
+          resolver ! scala.util.Success(this)
+        }
+      })
+    }
+  }
+}

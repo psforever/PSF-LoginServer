@@ -2,6 +2,7 @@
 package objects
 
 import akka.actor.{Actor, ActorSystem, Props}
+import base.ActorTest
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.{GlobalDefinitions, Vehicle}
 import net.psforever.objects.serverobject.deploy.{Deployment, DeploymentBehavior}

@@ -395,9 +395,9 @@ object GamePacketOpcode extends Enumeration {
     case 0x3f => game.ProjectileStateMessage.decode
 
     // OPCODES 0x40-4f
-    case 0x40 => noDecoder(MountVehicleCargoMsg)
-    case 0x41 => noDecoder(DismountVehicleCargoMsg)
-    case 0x42 => noDecoder(CargoMountPointStatusMessage)
+    case 0x40 => game.MountVehicleCargoMsg.decode
+    case 0x41 => game.DismountVehicleCargoMsg.decode
+    case 0x42 => game.CargoMountPointStatusMessage.decode
     case 0x43 => game.BeginZoningMessage.decode
     case 0x44 => game.ItemTransactionMessage.decode
     case 0x45 => game.ItemTransactionResultMessage.decode

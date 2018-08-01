@@ -1,5 +1,8 @@
 // Copyright (c) 2017 PSForever
+package service
+
 import akka.actor.Props
+import base.ActorTest
 import net.psforever.objects._
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types._

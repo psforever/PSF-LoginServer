@@ -1,12 +1,13 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects
 
+import net.psforever.objects.ballistics.Projectiles
 import net.psforever.objects.definition._
 import net.psforever.objects.definition.converter._
-import net.psforever.objects.serverobject.doors.DoorDefinition
 import net.psforever.objects.equipment.CItem.DeployedItem
 import net.psforever.objects.equipment._
 import net.psforever.objects.inventory.InventoryTile
+import net.psforever.objects.serverobject.doors.DoorDefinition
 import net.psforever.objects.serverobject.implantmech.ImplantTerminalMechDefinition
 import net.psforever.objects.serverobject.locks.IFFLockDefinition
 import net.psforever.objects.serverobject.mblocker.LockerDefinition
@@ -14,12 +15,19 @@ import net.psforever.objects.serverobject.pad.VehicleSpawnPadDefinition
 import net.psforever.objects.serverobject.terminals._
 import net.psforever.objects.serverobject.tube.SpawnTubeDefinition
 import net.psforever.objects.serverobject.resourcesilo.ResourceSiloDefinition
-import net.psforever.objects.vehicles.{SeatArmorRestriction, UtilityType}
+import net.psforever.objects.serverobject.turret.{MannedTurretDefinition, TurretUpgrade}
+import net.psforever.objects.vehicles.{DestroyedVehicle, SeatArmorRestriction, UtilityType}
+import net.psforever.objects.vital.DamageType
 import net.psforever.types.PlanetSideEmpire
 
+import scala.collection.mutable
 import scala.concurrent.duration._
 
 object GlobalDefinitions {
+  /*
+  characters
+   */
+  val avatar = new AvatarDefinition(121)
   /*
   Implants
    */
@@ -42,6 +50,286 @@ object GlobalDefinitions {
   val silent_run = ImplantDefinition(8)
 
   val surge = ImplantDefinition(9)
+
+  /*
+  Projectiles
+   */
+  val bullet_105mm_projectile = ProjectileDefinition(Projectiles.bullet_105mm_projectile)
+
+  val bullet_12mm_projectile = ProjectileDefinition(Projectiles.bullet_12mm_projectile)
+
+  val bullet_12mm_projectileb = ProjectileDefinition(Projectiles.bullet_12mm_projectileb)
+
+  val bullet_150mm_projectile = ProjectileDefinition(Projectiles.bullet_150mm_projectile)
+
+  val bullet_15mm_apc_projectile = ProjectileDefinition(Projectiles.bullet_15mm_apc_projectile)
+
+  val bullet_15mm_projectile = ProjectileDefinition(Projectiles.bullet_15mm_projectile)
+
+  val bullet_20mm_apc_projectile = ProjectileDefinition(Projectiles.bullet_20mm_apc_projectile)
+
+  val bullet_20mm_projectile = ProjectileDefinition(Projectiles.bullet_20mm_projectile)
+
+  val bullet_25mm_projectile = ProjectileDefinition(Projectiles.bullet_25mm_projectile)
+
+  val bullet_35mm_projectile = ProjectileDefinition(Projectiles.bullet_35mm_projectile)
+
+  val bullet_75mm_apc_projectile = ProjectileDefinition(Projectiles.bullet_75mm_apc_projectile)
+
+  val bullet_75mm_projectile = ProjectileDefinition(Projectiles.bullet_75mm_projectile)
+
+  val bullet_9mm_AP_projectile = ProjectileDefinition(Projectiles.bullet_9mm_AP_projectile)
+
+  val bullet_9mm_projectile = ProjectileDefinition(Projectiles.bullet_9mm_projectile)
+
+  val anniversary_projectilea = ProjectileDefinition(Projectiles.anniversary_projectilea)
+
+  val anniversary_projectileb = ProjectileDefinition(Projectiles.anniversary_projectileb)
+
+  val aphelion_immolation_cannon_projectile = ProjectileDefinition(Projectiles.aphelion_immolation_cannon_projectile)
+
+  val aphelion_laser_projectile = ProjectileDefinition(Projectiles.aphelion_laser_projectile)
+
+  val aphelion_plasma_rocket_projectile = ProjectileDefinition(Projectiles.aphelion_plasma_rocket_projectile)
+
+  val aphelion_ppa_projectile = ProjectileDefinition(Projectiles.aphelion_ppa_projectile)
+
+  val aphelion_starfire_projectile = ProjectileDefinition(Projectiles.aphelion_starfire_projectile)
+
+  val bolt_projectile = ProjectileDefinition(Projectiles.bolt_projectile)
+
+  val burster_projectile = ProjectileDefinition(Projectiles.burster_projectile)
+
+  val chainblade_projectile = ProjectileDefinition(Projectiles.chainblade_projectile)
+
+  val colossus_100mm_projectile = ProjectileDefinition(Projectiles.colossus_100mm_projectile)
+
+  val colossus_burster_projectile = ProjectileDefinition(Projectiles.colossus_burster_projectile)
+
+  val colossus_chaingun_projectile = ProjectileDefinition(Projectiles.colossus_chaingun_projectile)
+
+  val colossus_cluster_bomb_projectile = ProjectileDefinition(Projectiles.colossus_cluster_bomb_projectile)
+
+  val colossus_tank_cannon_projectile = ProjectileDefinition(Projectiles.colossus_tank_cannon_projectile)
+
+  val comet_projectile = ProjectileDefinition(Projectiles.comet_projectile)
+
+  val dualcycler_projectile = ProjectileDefinition(Projectiles.dualcycler_projectile)
+
+  val dynomite_projectile = ProjectileDefinition(Projectiles.dynomite_projectile)
+
+  val energy_cell_projectile = ProjectileDefinition(Projectiles.energy_cell_projectile)
+
+  val energy_gun_nc_projectile = ProjectileDefinition(Projectiles.energy_gun_nc_projectile)
+
+  val energy_gun_tr_projectile = ProjectileDefinition(Projectiles.energy_gun_tr_projectile)
+
+  val energy_gun_vs_projectile = ProjectileDefinition(Projectiles.energy_gun_vs_projectile)
+
+  val enhanced_energy_cell_projectile = ProjectileDefinition(Projectiles.enhanced_energy_cell_projectile)
+
+  val enhanced_quasar_projectile = ProjectileDefinition(Projectiles.enhanced_quasar_projectile)
+
+  val falcon_projectile = ProjectileDefinition(Projectiles.falcon_projectile)
+
+  val firebird_missile_projectile = ProjectileDefinition(Projectiles.firebird_missile_projectile)
+
+  val flail_projectile = ProjectileDefinition(Projectiles.flail_projectile)
+
+  val flamethrower_fireball = ProjectileDefinition(Projectiles.flamethrower_fireball)
+
+  val flamethrower_projectile = ProjectileDefinition(Projectiles.flamethrower_projectile)
+
+  val flux_cannon_apc_projectile = ProjectileDefinition(Projectiles.flux_cannon_apc_projectile)
+
+  val flux_cannon_thresher_projectile = ProjectileDefinition(Projectiles.flux_cannon_thresher_projectile)
+
+  val fluxpod_projectile = ProjectileDefinition(Projectiles.fluxpod_projectile)
+
+  val forceblade_projectile = ProjectileDefinition(Projectiles.forceblade_projectile)
+
+  val frag_cartridge_projectile = ProjectileDefinition(Projectiles.frag_cartridge_projectile)
+
+  val frag_cartridge_projectile_b = ProjectileDefinition(Projectiles.frag_cartridge_projectile_b)
+
+  val frag_grenade_projectile = ProjectileDefinition(Projectiles.frag_grenade_projectile)
+
+  val frag_grenade_projectile_enh = ProjectileDefinition(Projectiles.frag_grenade_projectile_enh)
+
+  val galaxy_gunship_gun_projectile = ProjectileDefinition(Projectiles.galaxy_gunship_gun_projectile)
+
+  val gauss_cannon_projectile = ProjectileDefinition(Projectiles.gauss_cannon_projectile)
+
+  val grenade_projectile = ProjectileDefinition(Projectiles.grenade_projectile)
+
+  val heavy_grenade_projectile = ProjectileDefinition(Projectiles.heavy_grenade_projectile)
+
+  val heavy_rail_beam_projectile = ProjectileDefinition(Projectiles.heavy_rail_beam_projectile)
+
+  val heavy_sniper_projectile = ProjectileDefinition(Projectiles.heavy_sniper_projectile)
+
+  val hellfire_projectile = ProjectileDefinition(Projectiles.hellfire_projectile)
+
+  val hunter_seeker_missile_dumbfire = ProjectileDefinition(Projectiles.hunter_seeker_missile_dumbfire)
+
+  val hunter_seeker_missile_projectile = ProjectileDefinition(Projectiles.hunter_seeker_missile_projectile)
+
+  val jammer_cartridge_projectile = ProjectileDefinition(Projectiles.jammer_cartridge_projectile)
+
+  val jammer_cartridge_projectile_b = ProjectileDefinition(Projectiles.jammer_cartridge_projectile_b)
+
+  val jammer_grenade_projectile = ProjectileDefinition(Projectiles.jammer_grenade_projectile)
+
+  val jammer_grenade_projectile_enh = ProjectileDefinition(Projectiles.jammer_grenade_projectile_enh)
+
+  val katana_projectile = ProjectileDefinition(Projectiles.katana_projectile)
+
+  val katana_projectileb = ProjectileDefinition(Projectiles.katana_projectileb)
+
+  val lancer_projectile = ProjectileDefinition(Projectiles.lancer_projectile)
+
+  val lasher_projectile = ProjectileDefinition(Projectiles.lasher_projectile)
+
+  val lasher_projectile_ap = ProjectileDefinition(Projectiles.lasher_projectile_ap)
+
+  val liberator_bomb_cluster_bomblet_projectile = ProjectileDefinition(Projectiles.liberator_bomb_cluster_bomblet_projectile)
+
+  val liberator_bomb_cluster_projectile = ProjectileDefinition(Projectiles.liberator_bomb_cluster_projectile)
+
+  val liberator_bomb_projectile = ProjectileDefinition(Projectiles.liberator_bomb_projectile)
+
+  val maelstrom_grenade_projectile = ProjectileDefinition(Projectiles.maelstrom_grenade_projectile)
+
+  val maelstrom_grenade_projectile_contact = ProjectileDefinition(Projectiles.maelstrom_grenade_projectile_contact)
+
+  val maelstrom_stream_projectile = ProjectileDefinition(Projectiles.maelstrom_stream_projectile)
+
+  val magcutter_projectile = ProjectileDefinition(Projectiles.magcutter_projectile)
+
+  val melee_ammo_projectile = ProjectileDefinition(Projectiles.melee_ammo_projectile)
+
+  val meteor_common = ProjectileDefinition(Projectiles.meteor_common)
+
+  val meteor_projectile_b_large = ProjectileDefinition(Projectiles.meteor_projectile_b_large)
+
+  val meteor_projectile_b_medium = ProjectileDefinition(Projectiles.meteor_projectile_b_medium)
+
+  val meteor_projectile_b_small = ProjectileDefinition(Projectiles.meteor_projectile_b_small)
+
+  val meteor_projectile_large = ProjectileDefinition(Projectiles.meteor_projectile_large)
+
+  val meteor_projectile_medium = ProjectileDefinition(Projectiles.meteor_projectile_medium)
+
+  val meteor_projectile_small = ProjectileDefinition(Projectiles.meteor_projectile_small)
+
+  val mine_projectile = ProjectileDefinition(Projectiles.mine_projectile)
+
+  val mine_sweeper_projectile = ProjectileDefinition(Projectiles.mine_sweeper_projectile)
+
+  val mine_sweeper_projectile_enh = ProjectileDefinition(Projectiles.mine_sweeper_projectile_enh)
+
+  val oicw_projectile = ProjectileDefinition(Projectiles.oicw_projectile)
+
+  val pellet_gun_projectile = ProjectileDefinition(Projectiles.pellet_gun_projectile)
+
+  val peregrine_dual_machine_gun_projectile = ProjectileDefinition(Projectiles.peregrine_dual_machine_gun_projectile)
+
+  val peregrine_mechhammer_projectile = ProjectileDefinition(Projectiles.peregrine_mechhammer_projectile)
+
+  val peregrine_particle_cannon_projectile = ProjectileDefinition(Projectiles.peregrine_particle_cannon_projectile)
+
+  val peregrine_rocket_pod_projectile = ProjectileDefinition(Projectiles.peregrine_rocket_pod_projectile)
+
+  val peregrine_sparrow_projectile = ProjectileDefinition(Projectiles.peregrine_sparrow_projectile)
+
+  val phalanx_av_projectile = ProjectileDefinition(Projectiles.phalanx_av_projectile)
+
+  val phalanx_flak_projectile = ProjectileDefinition(Projectiles.phalanx_flak_projectile)
+
+  val phalanx_projectile = ProjectileDefinition(Projectiles.phalanx_projectile)
+
+  val phoenix_missile_guided_projectile = ProjectileDefinition(Projectiles.phoenix_missile_guided_projectile)
+
+  val phoenix_missile_projectile = ProjectileDefinition(Projectiles.phoenix_missile_projectile)
+
+  val plasma_cartridge_projectile = ProjectileDefinition(Projectiles.plasma_cartridge_projectile)
+
+  val plasma_cartridge_projectile_b = ProjectileDefinition(Projectiles.plasma_cartridge_projectile_b)
+
+  val plasma_grenade_projectile = ProjectileDefinition(Projectiles.plasma_grenade_projectile)
+
+  val plasma_grenade_projectile_B = ProjectileDefinition(Projectiles.plasma_grenade_projectile_B)
+
+  val pounder_projectile = ProjectileDefinition(Projectiles.pounder_projectile)
+
+  val pounder_projectile_enh = ProjectileDefinition(Projectiles.pounder_projectile_enh)
+
+  val ppa_projectile = ProjectileDefinition(Projectiles.ppa_projectile)
+
+  val pulsar_ap_projectile = ProjectileDefinition(Projectiles.pulsar_ap_projectile)
+
+  val pulsar_projectile = ProjectileDefinition(Projectiles.pulsar_projectile)
+
+  val quasar_projectile = ProjectileDefinition(Projectiles.quasar_projectile)
+
+  val radiator_grenade_projectile = ProjectileDefinition(Projectiles.radiator_grenade_projectile)
+
+  val radiator_sticky_projectile = ProjectileDefinition(Projectiles.radiator_sticky_projectile)
+
+  val reaver_rocket_projectile = ProjectileDefinition(Projectiles.reaver_rocket_projectile)
+
+  val rocket_projectile = ProjectileDefinition(Projectiles.rocket_projectile)
+
+  val rocklet_flak_projectile = ProjectileDefinition(Projectiles.rocklet_flak_projectile)
+
+  val rocklet_jammer_projectile = ProjectileDefinition(Projectiles.rocklet_jammer_projectile)
+
+  val scattercannon_projectile = ProjectileDefinition(Projectiles.scattercannon_projectile)
+
+  val scythe_projectile = ProjectileDefinition(Projectiles.scythe_projectile)
+
+  val scythe_projectile_slave = ProjectileDefinition(Projectiles.scythe_projectile_slave)
+
+  val shotgun_shell_AP_projectile = ProjectileDefinition(Projectiles.shotgun_shell_AP_projectile)
+
+  val shotgun_shell_projectile = ProjectileDefinition(Projectiles.shotgun_shell_projectile)
+
+  val six_shooter_projectile = ProjectileDefinition(Projectiles.six_shooter_projectile)
+
+  val skyguard_flak_cannon_projectile = ProjectileDefinition(Projectiles.skyguard_flak_cannon_projectile)
+
+  val sparrow_projectile = ProjectileDefinition(Projectiles.sparrow_projectile)
+
+  val sparrow_secondary_projectile = ProjectileDefinition(Projectiles.sparrow_secondary_projectile)
+
+  val spiker_projectile = ProjectileDefinition(Projectiles.spiker_projectile)
+
+  val spitfire_aa_ammo_projectile = ProjectileDefinition(Projectiles.spitfire_aa_ammo_projectile)
+
+  val spitfire_ammo_projectile = ProjectileDefinition(Projectiles.spitfire_ammo_projectile)
+
+  val starfire_projectile = ProjectileDefinition(Projectiles.starfire_projectile)
+
+  val striker_missile_projectile = ProjectileDefinition(Projectiles.striker_missile_projectile)
+
+  val striker_missile_targeting_projectile = ProjectileDefinition(Projectiles.striker_missile_targeting_projectile)
+
+  val trek_projectile = ProjectileDefinition(Projectiles.trek_projectile)
+
+  val vanu_sentry_turret_projectile = ProjectileDefinition(Projectiles.vanu_sentry_turret_projectile)
+
+  val vulture_bomb_projectile = ProjectileDefinition(Projectiles.vulture_bomb_projectile)
+
+  val vulture_nose_bullet_projectile = ProjectileDefinition(Projectiles.vulture_nose_bullet_projectile)
+
+  val vulture_tail_bullet_projectile = ProjectileDefinition(Projectiles.vulture_tail_bullet_projectile)
+
+  val wasp_gun_projectile = ProjectileDefinition(Projectiles.wasp_gun_projectile)
+
+  val wasp_rocket_projectile = ProjectileDefinition(Projectiles.wasp_rocket_projectile)
+
+  val winchester_projectile = ProjectileDefinition(Projectiles.winchester_projectile)
+  init_projectile()
 
   /*
   Equipment (locker_container, kits, ammunition, weapons)
@@ -133,11 +421,11 @@ object GlobalDefinitions {
   val upgrade_canister = AmmoBoxDefinition(Ammo.upgrade_canister)
 
   val trek_ammo = AmmoBoxDefinition(Ammo.trek_ammo)
-  //
+
   val bullet_35mm = AmmoBoxDefinition(Ammo.bullet_35mm) //liberator nosegun
 
   val ancient_ammo_vehicle = AmmoBoxDefinition(Ammo.ancient_ammo_vehicle)
-  //
+
   val aphelion_laser_ammo = AmmoBoxDefinition(Ammo.aphelion_laser_ammo)
 
   val aphelion_immolation_cannon_ammo = AmmoBoxDefinition(Ammo.aphelion_immolation_cannon_ammo)
@@ -207,6 +495,8 @@ object GlobalDefinitions {
   val peregrine_sparrow_ammo = AmmoBoxDefinition(Ammo.peregrine_sparrow_ammo)
 
   val bullet_150mm = AmmoBoxDefinition(Ammo.bullet_150mm)
+
+  val phalanx_ammo = AmmoBoxDefinition(Ammo.phalanx_ammo)
   init_ammo()
 
   val chainblade = ToolDefinition(ObjectClass.chainblade)
@@ -441,6 +731,12 @@ object GlobalDefinitions {
   val galaxy_gunship_tailgun = ToolDefinition(ObjectClass.galaxy_gunship_tailgun)
 
   val galaxy_gunship_gun = ToolDefinition(ObjectClass.galaxy_gunship_gun)
+
+  val phalanx_sgl_hevgatcan = ToolDefinition(ObjectClass.phalanx_sgl_hevgatcan)
+
+  val phalanx_avcombo = ToolDefinition(ObjectClass.phalanx_avcombo)
+
+  val phalanx_flakcombo = ToolDefinition(ObjectClass.phalanx_flakcombo)
   init_tools()
 
   /*
@@ -571,6 +867,18 @@ object GlobalDefinitions {
   val capture_terminal = new CaptureTerminalDefinition(158) // Base CC
 
   val secondary_capture = new CaptureTerminalDefinition(751) // Tower CC
+
+  val manned_turret = new MannedTurretDefinition(480) {
+    Name = "manned_turret"
+    MaxHealth = 3600
+    Weapons += 1 -> new mutable.HashMap()
+    Weapons(1) += TurretUpgrade.None -> phalanx_sgl_hevgatcan
+    Weapons(1) += TurretUpgrade.AVCombo -> phalanx_avcombo
+    Weapons(1) += TurretUpgrade.FlakCombo -> phalanx_flakcombo
+    MountPoints += 1 -> 0
+    FactionLocked = true
+    ReserveAmmunition = false
+  }
 
   /**
     * Given a faction, provide the standard assault melee weapon.
@@ -1075,15 +1383,15 @@ object GlobalDefinitions {
 
     health_canister.Name = "health_canister"
     health_canister.Capacity = 100
-    health_canister.Tile = InventoryTile.Tile33
+    health_canister.Tile = InventoryTile.Tile23
 
     armor_canister.Name = "armor_canister"
     armor_canister.Capacity = 100
-    armor_canister.Tile = InventoryTile.Tile33
+    armor_canister.Tile = InventoryTile.Tile23
 
     upgrade_canister.Name = "upgrade_canister"
-    upgrade_canister.Capacity = 100
-    upgrade_canister.Tile = InventoryTile.Tile33
+    upgrade_canister.Capacity = 1
+    upgrade_canister.Tile = InventoryTile.Tile23
 
     trek_ammo.Name = "trek_ammo"
     trek_ammo.Size = EquipmentSize.Blocked
@@ -1231,6 +1539,1647 @@ object GlobalDefinitions {
     bullet_150mm.Name = "bullet_150mm"
     bullet_150mm.Capacity = 50
     bullet_150mm.Tile = InventoryTile.Tile44
+
+    phalanx_ammo.Name = "phalanx_ammo"
+    phalanx_ammo.Capacity = 4000 //sufficient for a reload
+    phalanx_ammo.Size = EquipmentSize.Inventory
+  }
+
+  /**
+    * Initialize `ProjectileDefinition` globals.
+    */
+  private def init_projectile() : Unit = {
+    bullet_105mm_projectile.Name = "105mmbullet_projectile"
+    bullet_105mm_projectile.Damage0 = 150
+    bullet_105mm_projectile.Damage1 = 300
+    bullet_105mm_projectile.Damage2 = 300
+    bullet_105mm_projectile.Damage3 = 300
+    bullet_105mm_projectile.Damage4 = 180
+    bullet_105mm_projectile.DamageAtEdge = 0.1f
+    bullet_105mm_projectile.DamageRadius = 7f
+    bullet_105mm_projectile.ProjectileDamageType = DamageType.Splash
+    bullet_105mm_projectile.InitialVelocity = 100
+    bullet_105mm_projectile.Lifespan = 4f
+    ProjectileDefinition.CalculateDerivedFields(bullet_105mm_projectile)
+
+    bullet_12mm_projectile.Name= "12mmbullet_projectile"
+    bullet_12mm_projectile.Damage0 = 25
+    bullet_12mm_projectile.Damage1 = 10
+    bullet_12mm_projectile.Damage2 = 25
+    bullet_12mm_projectile.Damage3 = 10
+    bullet_12mm_projectile.Damage4 = 7
+    bullet_12mm_projectile.ProjectileDamageType = DamageType.Direct
+    bullet_12mm_projectile.DegradeDelay = .015f
+    bullet_12mm_projectile.DegradeMultiplier = 0.5f
+    bullet_12mm_projectile.InitialVelocity = 500
+    bullet_12mm_projectile.Lifespan = 0.5f
+    ProjectileDefinition.CalculateDerivedFields(bullet_12mm_projectile)
+
+    bullet_12mm_projectileb.Name = "12mmbullet_projectileb"
+    // TODO for later, maybe : set_resource_parent 12mmbullet_projectileb game_objects 12mmbullet_projectile
+    bullet_12mm_projectileb.Damage0 = 25
+    bullet_12mm_projectileb.Damage1 = 10
+    bullet_12mm_projectileb.Damage2 = 25
+    bullet_12mm_projectileb.Damage3 = 10
+    bullet_12mm_projectileb.Damage4 = 7
+    bullet_12mm_projectileb.ProjectileDamageType = DamageType.Direct
+    bullet_12mm_projectileb.DegradeDelay = .015f
+    bullet_12mm_projectileb.DegradeMultiplier = 0.5f
+    bullet_12mm_projectileb.InitialVelocity = 500
+    bullet_12mm_projectileb.Lifespan = 0.5f
+    ProjectileDefinition.CalculateDerivedFields(bullet_12mm_projectileb)
+
+    bullet_150mm_projectile.Name = "150mmbullet_projectile"
+    bullet_150mm_projectile.Damage0 = 150
+    bullet_150mm_projectile.Damage1 = 450
+    bullet_150mm_projectile.Damage2 = 450
+    bullet_150mm_projectile.Damage3 = 450
+    bullet_150mm_projectile.Damage4 = 400
+    bullet_150mm_projectile.DamageAtEdge = 0.10f
+    bullet_150mm_projectile.DamageRadius = 8f
+    bullet_150mm_projectile.ProjectileDamageType = DamageType.Splash
+    bullet_150mm_projectile.InitialVelocity = 100
+    bullet_150mm_projectile.Lifespan = 4f
+    ProjectileDefinition.CalculateDerivedFields(bullet_150mm_projectile)
+
+    bullet_15mm_apc_projectile.Name = "15mmbullet_apc_projectile"
+    // TODO for later, maybe : set_resource_parent 15mmbullet_apc_projectile game_objects 15mmbullet_projectile
+    bullet_15mm_apc_projectile.Damage0 = 12
+    bullet_15mm_apc_projectile.Damage1 = 20
+    bullet_15mm_apc_projectile.Damage2 = 30
+    bullet_15mm_apc_projectile.Damage3 = 20
+    bullet_15mm_apc_projectile.Damage4 = 16
+    bullet_15mm_apc_projectile.ProjectileDamageType = DamageType.Direct
+    bullet_15mm_apc_projectile.DegradeDelay = .015f
+    bullet_15mm_apc_projectile.DegradeMultiplier = 0.5f
+    bullet_15mm_apc_projectile.InitialVelocity = 500
+    bullet_15mm_apc_projectile.Lifespan = 0.5f
+    ProjectileDefinition.CalculateDerivedFields(bullet_15mm_apc_projectile)
+
+    bullet_15mm_projectile.Name = "15mmbullet_projectile"
+    bullet_15mm_projectile.Damage0 = 21
+    bullet_15mm_projectile.Damage1 = 18
+    bullet_15mm_projectile.Damage2 = 25
+    bullet_15mm_projectile.Damage3 = 18
+    bullet_15mm_projectile.Damage4 = 11
+    bullet_15mm_projectile.ProjectileDamageType = DamageType.Direct
+    bullet_15mm_projectile.DegradeDelay = .015f
+    bullet_15mm_projectile.DegradeMultiplier = 0.5f
+    bullet_15mm_projectile.InitialVelocity = 500
+    bullet_15mm_projectile.Lifespan = 0.5f
+    ProjectileDefinition.CalculateDerivedFields(bullet_15mm_projectile)
+
+    bullet_20mm_apc_projectile.Name = "20mmbullet_apc_projectile"
+    // TODO for later, maybe : set_resource_parent 20mmbullet_apc_projectile game_objects 20mmbullet_projectile
+    bullet_20mm_apc_projectile.Damage0 = 24
+    bullet_20mm_apc_projectile.Damage1 = 40
+    bullet_20mm_apc_projectile.Damage2 = 60
+    bullet_20mm_apc_projectile.Damage3 = 40
+    bullet_20mm_apc_projectile.Damage4 = 32
+    bullet_20mm_apc_projectile.ProjectileDamageType = DamageType.Direct
+    bullet_20mm_apc_projectile.DegradeDelay = .015f
+    bullet_20mm_apc_projectile.DegradeMultiplier = 0.5f
+    bullet_20mm_apc_projectile.InitialVelocity = 500
+    bullet_20mm_apc_projectile.Lifespan = 0.5f
+    ProjectileDefinition.CalculateDerivedFields(bullet_20mm_apc_projectile)
+
+    bullet_20mm_projectile.Name = "20mmbullet_projectile"
+    bullet_20mm_projectile.Damage0 = 20
+    bullet_20mm_projectile.Damage1 = 20
+    bullet_20mm_projectile.Damage2 = 40
+    bullet_20mm_projectile.Damage3 = 20
+    bullet_20mm_projectile.Damage4 = 16
+    bullet_20mm_projectile.ProjectileDamageType = DamageType.Direct
+    bullet_20mm_projectile.DegradeDelay = .015f
+    bullet_20mm_projectile.DegradeMultiplier = 0.5f
+    bullet_20mm_projectile.InitialVelocity = 500
+    bullet_20mm_projectile.Lifespan = 0.5f
+    ProjectileDefinition.CalculateDerivedFields(bullet_20mm_projectile)
+
+    bullet_25mm_projectile.Name = "25mmbullet_projectile"
+    bullet_25mm_projectile.Damage0 = 25
+    bullet_25mm_projectile.Damage1 = 35
+    bullet_25mm_projectile.Damage2 = 50
+    bullet_25mm_projectile.ProjectileDamageType = DamageType.Direct
+    bullet_25mm_projectile.DegradeDelay = .02f
+    bullet_25mm_projectile.DegradeMultiplier = 0.5f
+    bullet_25mm_projectile.InitialVelocity = 500
+    bullet_25mm_projectile.Lifespan = 0.6f
+    ProjectileDefinition.CalculateDerivedFields(bullet_25mm_projectile)
+
+    bullet_35mm_projectile.Name = "35mmbullet_projectile"
+    bullet_35mm_projectile.Damage0 = 40
+    bullet_35mm_projectile.Damage1 = 50
+    bullet_35mm_projectile.Damage2 = 60
+    bullet_35mm_projectile.ProjectileDamageType = DamageType.Direct
+    bullet_35mm_projectile.DegradeDelay = .015f
+    bullet_35mm_projectile.DegradeMultiplier = 0.5f
+    bullet_35mm_projectile.InitialVelocity = 200
+    bullet_35mm_projectile.Lifespan = 1.5f
+    ProjectileDefinition.CalculateDerivedFields(bullet_35mm_projectile)
+
+    bullet_75mm_apc_projectile.Name = "75mmbullet_apc_projectile"
+    // TODO for later, maybe : set_resource_parent 75mmbullet_apc_projectile game_objects 75mmbullet_projectile
+    bullet_75mm_apc_projectile.Damage0 = 85
+    bullet_75mm_apc_projectile.Damage1 = 155
+    bullet_75mm_apc_projectile.DamageAtEdge = 0.1f
+    bullet_75mm_apc_projectile.DamageRadius = 5f
+    bullet_75mm_apc_projectile.ProjectileDamageType = DamageType.Splash
+    bullet_75mm_apc_projectile.InitialVelocity = 100
+    bullet_75mm_apc_projectile.Lifespan = 4f
+    ProjectileDefinition.CalculateDerivedFields(bullet_75mm_apc_projectile)
+
+    bullet_75mm_projectile.Name = "75mmbullet_projectile"
+    bullet_75mm_projectile.Damage0 = 75
+    bullet_75mm_projectile.Damage1 = 125
+    bullet_75mm_projectile.DamageAtEdge = 0.1f
+    bullet_75mm_projectile.DamageRadius = 5f
+    bullet_75mm_projectile.ProjectileDamageType = DamageType.Splash
+    bullet_75mm_projectile.InitialVelocity = 100
+    bullet_75mm_projectile.Lifespan = 4f
+    ProjectileDefinition.CalculateDerivedFields(bullet_75mm_projectile)
+
+    bullet_9mm_AP_projectile.Name = "9mmbullet_AP_projectile"
+    // TODO for later, maybe : set_resource_parent 9mmbullet_AP_projectile game_objects 9mmbullet_projectile
+    bullet_9mm_AP_projectile.Damage0 = 10
+    bullet_9mm_AP_projectile.Damage1 = 15
+    bullet_9mm_AP_projectile.ProjectileDamageType = DamageType.Direct
+    bullet_9mm_AP_projectile.DegradeDelay = 0.15f
+    bullet_9mm_AP_projectile.DegradeMultiplier = 0.25f
+    bullet_9mm_AP_projectile.InitialVelocity = 500
+    bullet_9mm_AP_projectile.Lifespan = 0.4f
+    bullet_9mm_AP_projectile.UseDamage1Subtract = true
+    ProjectileDefinition.CalculateDerivedFields(bullet_9mm_AP_projectile)
+
+    bullet_9mm_projectile.Name = "9mmbullet_projectile"
+    bullet_9mm_projectile.Damage0 = 18
+    bullet_9mm_projectile.Damage1 = 10
+    bullet_9mm_projectile.ProjectileDamageType = DamageType.Direct
+    bullet_9mm_projectile.DegradeDelay = 0.15f
+    bullet_9mm_projectile.DegradeMultiplier = 0.25f
+    bullet_9mm_projectile.InitialVelocity = 500
+    bullet_9mm_projectile.Lifespan = 0.4f
+    bullet_9mm_projectile.UseDamage1Subtract = true
+    ProjectileDefinition.CalculateDerivedFields(bullet_9mm_projectile)
+
+    anniversary_projectilea.Name = "anniversary_projectilea"
+    anniversary_projectilea.Damage0 = 30
+    anniversary_projectilea.Damage1 = 15
+    anniversary_projectilea.Damage2 = 15
+    anniversary_projectilea.Damage3 = 45
+    anniversary_projectilea.Damage4 = 15
+    anniversary_projectilea.ProjectileDamageType = DamageType.Direct
+    anniversary_projectilea.DegradeDelay = 0.04f
+    anniversary_projectilea.DegradeMultiplier = 0.2f
+    anniversary_projectilea.InitialVelocity = 500
+    anniversary_projectilea.Lifespan = 0.5f
+    ProjectileDefinition.CalculateDerivedFields(anniversary_projectilea)
+
+    anniversary_projectileb.Name = "anniversary_projectileb"
+    // TODO for later, maybe : set_resource_parent anniversary_projectileb game_objects anniversary_projectilea
+    anniversary_projectileb.Damage0 = 30
+    anniversary_projectileb.Damage1 = 15
+    anniversary_projectileb.Damage2 = 15
+    anniversary_projectileb.Damage3 = 45
+    anniversary_projectileb.Damage4 = 15
+    anniversary_projectileb.ProjectileDamageType = DamageType.Direct
+    anniversary_projectileb.DegradeDelay = 0.04f
+    anniversary_projectileb.DegradeMultiplier = 0.2f
+    anniversary_projectileb.InitialVelocity = 500
+    anniversary_projectileb.Lifespan = 0.5f
+    ProjectileDefinition.CalculateDerivedFields(anniversary_projectileb)
+
+    aphelion_immolation_cannon_projectile.Name = "aphelion_immolation_cannon_projectile"
+    aphelion_immolation_cannon_projectile.Damage0 = 55
+    aphelion_immolation_cannon_projectile.Damage1 = 225
+    aphelion_immolation_cannon_projectile.Damage2 = 210
+    aphelion_immolation_cannon_projectile.Damage3 = 135
+    aphelion_immolation_cannon_projectile.Damage4 = 140
+    aphelion_immolation_cannon_projectile.DamageAtEdge = 0.1f
+    aphelion_immolation_cannon_projectile.DamageRadius = 2.0f
+    aphelion_immolation_cannon_projectile.ProjectileDamageType = DamageType.Splash
+    aphelion_immolation_cannon_projectile.InitialVelocity = 250
+    aphelion_immolation_cannon_projectile.Lifespan = 1.4f
+    ProjectileDefinition.CalculateDerivedFields(aphelion_immolation_cannon_projectile)
+
+    aphelion_laser_projectile.Name = "aphelion_laser_projectile"
+    aphelion_laser_projectile.Damage0 = 3
+    aphelion_laser_projectile.Damage1 = 5
+    aphelion_laser_projectile.Damage2 = 5
+    aphelion_laser_projectile.Damage3 = 4
+    aphelion_laser_projectile.Damage4 = 5
+    aphelion_laser_projectile.ProjectileDamageType = DamageType.Direct
+    aphelion_laser_projectile.DegradeDelay = .05f
+    aphelion_laser_projectile.DegradeMultiplier = 0.5f
+    aphelion_laser_projectile.InitialVelocity = 500
+    aphelion_laser_projectile.Lifespan = 0.35f
+    ProjectileDefinition.CalculateDerivedFields(aphelion_laser_projectile)
+
+    aphelion_plasma_rocket_projectile.Name = "aphelion_plasma_rocket_projectile"
+    aphelion_plasma_rocket_projectile.Damage0 = 38
+    aphelion_plasma_rocket_projectile.Damage1 = 70
+    aphelion_plasma_rocket_projectile.Damage2 = 95
+    aphelion_plasma_rocket_projectile.Damage3 = 55
+    aphelion_plasma_rocket_projectile.Damage4 = 60
+    aphelion_plasma_rocket_projectile.Acceleration = 20
+    aphelion_plasma_rocket_projectile.AccelerationUntil = 2f
+    aphelion_plasma_rocket_projectile.DamageAtEdge = .1f
+    aphelion_plasma_rocket_projectile.DamageRadius = 3f
+    aphelion_plasma_rocket_projectile.ProjectileDamageType = DamageType.Splash
+    aphelion_plasma_rocket_projectile.InitialVelocity = 75
+    aphelion_plasma_rocket_projectile.Lifespan = 5f
+    ProjectileDefinition.CalculateDerivedFields(aphelion_plasma_rocket_projectile)
+
+    aphelion_ppa_projectile.Name = "aphelion_ppa_projectile"
+    // TODO for later, maybe : set_resource_parent aphelion_ppa_projectile game_objects ppa_projectile
+    aphelion_ppa_projectile.Damage0 = 31
+    aphelion_ppa_projectile.Damage1 = 84
+    aphelion_ppa_projectile.Damage2 = 58
+    aphelion_ppa_projectile.Damage3 = 57
+    aphelion_ppa_projectile.Damage4 = 60
+    aphelion_ppa_projectile.DamageAtEdge = 0.10f
+    aphelion_ppa_projectile.DamageRadius = 1f
+    aphelion_ppa_projectile.ProjectileDamageType = DamageType.Splash
+    aphelion_ppa_projectile.DegradeDelay = .5f
+    aphelion_ppa_projectile.DegradeMultiplier = 0.55f
+    aphelion_ppa_projectile.InitialVelocity = 350
+    aphelion_ppa_projectile.Lifespan = .7f
+    ProjectileDefinition.CalculateDerivedFields(aphelion_ppa_projectile)
+
+    aphelion_starfire_projectile.Name = "aphelion_starfire_projectile"
+    // TODO for later, maybe : set_resource_parent aphelion_starfire_projectile game_objects starfire_projectile
+    aphelion_starfire_projectile.Damage0 = 12
+    aphelion_starfire_projectile.Damage1 = 20
+    aphelion_starfire_projectile.Damage2 = 15
+    aphelion_starfire_projectile.Damage3 = 19
+    aphelion_starfire_projectile.Damage4 = 17
+    aphelion_starfire_projectile.Acceleration = 11
+    aphelion_starfire_projectile.AccelerationUntil = 5f
+    aphelion_starfire_projectile.InitialVelocity = 45
+    aphelion_starfire_projectile.Lifespan = 7f
+    aphelion_starfire_projectile.ProjectileDamageType = DamageType.Aggravated
+    ProjectileDefinition.CalculateDerivedFields(aphelion_starfire_projectile)
+
+    bolt_projectile.Name = "bolt_projectile"
+    bolt_projectile.Damage0 = 100
+    bolt_projectile.Damage1 = 50
+    bolt_projectile.Damage2 = 50
+    bolt_projectile.Damage3 = 50
+    bolt_projectile.Damage4 = 75
+    bolt_projectile.ProjectileDamageType = DamageType.Splash
+    bolt_projectile.InitialVelocity = 500
+    bolt_projectile.Lifespan = 1.0f
+    ProjectileDefinition.CalculateDerivedFields(bolt_projectile)
+
+    burster_projectile.Name = "burster_projectile"
+    burster_projectile.Damage0 = 18
+    burster_projectile.Damage1 = 25
+    burster_projectile.Damage2 = 50
+    burster_projectile.DamageAtEdge = 0.25f
+    burster_projectile.DamageRadius = 10f
+    burster_projectile.ProjectileDamageType = DamageType.Direct
+    burster_projectile.ProjectileDamageTypeSecondary = DamageType.Splash
+    burster_projectile.InitialVelocity = 125
+    burster_projectile.Lifespan = 4f
+    ProjectileDefinition.CalculateDerivedFields(burster_projectile)
+
+    chainblade_projectile.Name = "chainblade_projectile"
+    // TODO for later, maybe : set_resource_parent chainblade_projectile game_objects melee_ammo_projectile
+    chainblade_projectile.Damage0 = 50
+    chainblade_projectile.Damage1 = 0
+    chainblade_projectile.ProjectileDamageType = DamageType.Direct
+    chainblade_projectile.InitialVelocity = 100
+    chainblade_projectile.Lifespan = .02f
+    ProjectileDefinition.CalculateDerivedFields(chainblade_projectile)
+
+    colossus_100mm_projectile.Name = "colossus_100mm_projectile"
+    colossus_100mm_projectile.Damage0 = 58
+    colossus_100mm_projectile.Damage1 = 330
+    colossus_100mm_projectile.Damage2 = 300
+    colossus_100mm_projectile.Damage3 = 165
+    colossus_100mm_projectile.Damage4 = 190
+    colossus_100mm_projectile.DamageAtEdge = 0.1f
+    colossus_100mm_projectile.DamageRadius = 5f
+    colossus_100mm_projectile.ProjectileDamageType = DamageType.Splash
+    colossus_100mm_projectile.InitialVelocity = 100
+    colossus_100mm_projectile.Lifespan = 4f
+    ProjectileDefinition.CalculateDerivedFields(colossus_100mm_projectile)
+
+    colossus_burster_projectile.Name = "colossus_burster_projectile"
+    // TODO for later, maybe : set_resource_parent colossus_burster_projectile game_objects burster_projectile
+    colossus_burster_projectile.Damage0 = 18
+    colossus_burster_projectile.Damage1 = 26
+    colossus_burster_projectile.Damage2 = 18
+    colossus_burster_projectile.Damage3 = 22
+    colossus_burster_projectile.Damage4 = 20
+    colossus_burster_projectile.DamageAtEdge = 0.1f
+    colossus_burster_projectile.DamageRadius = 7f
+    colossus_burster_projectile.ProjectileDamageType = DamageType.Direct
+    colossus_burster_projectile.ProjectileDamageTypeSecondary = DamageType.Splash
+    colossus_burster_projectile.InitialVelocity = 175
+    colossus_burster_projectile.Lifespan = 2.5f
+    ProjectileDefinition.CalculateDerivedFields(colossus_burster_projectile)
+
+    colossus_chaingun_projectile.Name = "colossus_chaingun_projectile"
+    // TODO for later, maybe : set_resource_parent colossus_chaingun_projectile game_objects 35mmbullet_projectile
+    colossus_chaingun_projectile.Damage0 = 15
+    colossus_chaingun_projectile.Damage1 = 14
+    colossus_chaingun_projectile.Damage2 = 15
+    colossus_chaingun_projectile.Damage3 = 13
+    colossus_chaingun_projectile.Damage4 = 11
+    colossus_chaingun_projectile.ProjectileDamageType = DamageType.Direct
+    colossus_chaingun_projectile.DegradeDelay = .100f
+    colossus_chaingun_projectile.DegradeMultiplier = 0.44f
+    colossus_chaingun_projectile.InitialVelocity = 500
+    colossus_chaingun_projectile.Lifespan = .50f
+    ProjectileDefinition.CalculateDerivedFields(colossus_chaingun_projectile)
+
+    colossus_cluster_bomb_projectile.Name = "colossus_cluster_bomb_projectile"
+    colossus_cluster_bomb_projectile.Damage0 = 40
+    colossus_cluster_bomb_projectile.Damage1 = 88
+    colossus_cluster_bomb_projectile.Damage2 = 100
+    colossus_cluster_bomb_projectile.Damage3 = 83
+    colossus_cluster_bomb_projectile.Damage4 = 88
+    colossus_cluster_bomb_projectile.DamageAtEdge = 0.1f
+    colossus_cluster_bomb_projectile.DamageRadius = 8f
+    colossus_cluster_bomb_projectile.ProjectileDamageType = DamageType.Splash
+    colossus_cluster_bomb_projectile.InitialVelocity = 75
+    colossus_cluster_bomb_projectile.Lifespan = 5f
+    ProjectileDefinition.CalculateDerivedFields(colossus_cluster_bomb_projectile)
+
+    colossus_tank_cannon_projectile.Name = "colossus_tank_cannon_projectile"
+    // TODO for later, maybe : set_resource_parent colossus_tank_cannon_projectile game_objects 75mmbullet_projectile
+    colossus_tank_cannon_projectile.Damage0 = 33
+    colossus_tank_cannon_projectile.Damage1 = 90
+    colossus_tank_cannon_projectile.Damage2 = 95
+    colossus_tank_cannon_projectile.Damage3 = 71
+    colossus_tank_cannon_projectile.Damage4 = 66
+    colossus_tank_cannon_projectile.DamageAtEdge = 0.1f
+    colossus_tank_cannon_projectile.DamageRadius = 2f
+    colossus_tank_cannon_projectile.ProjectileDamageType = DamageType.Splash
+    colossus_tank_cannon_projectile.InitialVelocity = 165
+    colossus_tank_cannon_projectile.Lifespan = 2f
+    ProjectileDefinition.CalculateDerivedFields(colossus_tank_cannon_projectile)
+
+    comet_projectile.Name = "comet_projectile"
+    comet_projectile.Damage0 = 15
+    comet_projectile.Damage1 = 60
+    comet_projectile.Damage2 = 60
+    comet_projectile.Damage3 = 38
+    comet_projectile.Damage4 = 64
+    comet_projectile.Acceleration = 10
+    comet_projectile.AccelerationUntil = 2f
+    comet_projectile.DamageAtEdge = 0.45f
+    comet_projectile.DamageRadius = 1.0f
+    comet_projectile.ProjectileDamageType = DamageType.Aggravated
+    comet_projectile.InitialVelocity = 80
+    comet_projectile.Lifespan = 3.1f
+    ProjectileDefinition.CalculateDerivedFields(comet_projectile)
+
+    dualcycler_projectile.Name = "dualcycler_projectile"
+    dualcycler_projectile.Damage0 = 18
+    dualcycler_projectile.Damage1 = 10
+    dualcycler_projectile.ProjectileDamageType = DamageType.Direct
+    dualcycler_projectile.DegradeDelay = .025f
+    dualcycler_projectile.DegradeMultiplier = .5f
+    dualcycler_projectile.InitialVelocity = 500
+    dualcycler_projectile.Lifespan = 0.5f
+    ProjectileDefinition.CalculateDerivedFields(dualcycler_projectile)
+
+    dynomite_projectile.Name = "dynomite_projectile"
+    // TODO for later, maybe : set_resource_parent dynomite_projectile game_objects frag_grenade_projectile_enh
+    dynomite_projectile.Damage0 = 75
+    dynomite_projectile.Damage1 = 175
+    dynomite_projectile.DamageAtEdge = 0.1f
+    dynomite_projectile.DamageRadius = 10f
+    dynomite_projectile.ProjectileDamageType = DamageType.Splash
+    dynomite_projectile.InitialVelocity = 30
+    dynomite_projectile.Lifespan = 3f
+    ProjectileDefinition.CalculateDerivedFields(dynomite_projectile)
+
+    energy_cell_projectile.Name = "energy_cell_projectile"
+    energy_cell_projectile.Damage0 = 18
+    energy_cell_projectile.Damage1 = 10
+    energy_cell_projectile.ProjectileDamageType = DamageType.Direct
+    energy_cell_projectile.DegradeDelay = 0.05f
+    energy_cell_projectile.DegradeMultiplier = 0.4f
+    energy_cell_projectile.InitialVelocity = 500
+    energy_cell_projectile.Lifespan = .4f
+    energy_cell_projectile.UseDamage1Subtract = true
+    ProjectileDefinition.CalculateDerivedFields(energy_cell_projectile)
+
+    energy_gun_nc_projectile.Name = "energy_gun_nc_projectile"
+    energy_gun_nc_projectile.Damage0 = 10
+    energy_gun_nc_projectile.Damage1 = 13
+    energy_gun_nc_projectile.ProjectileDamageType = DamageType.Direct
+    energy_gun_nc_projectile.InitialVelocity = 500
+    energy_gun_nc_projectile.Lifespan = 0.5f
+    ProjectileDefinition.CalculateDerivedFields(energy_gun_nc_projectile)
+
+    energy_gun_tr_projectile.Name = "energy_gun_tr_projectile"
+    energy_gun_tr_projectile.Damage0 = 14
+    energy_gun_tr_projectile.Damage1 = 18
+    energy_gun_tr_projectile.ProjectileDamageType = DamageType.Direct
+    energy_gun_tr_projectile.DegradeDelay = .025f
+    energy_gun_tr_projectile.DegradeMultiplier = .5f
+    energy_gun_tr_projectile.InitialVelocity = 500
+    energy_gun_tr_projectile.Lifespan = 0.5f
+    ProjectileDefinition.CalculateDerivedFields(energy_gun_tr_projectile)
+
+    energy_gun_vs_projectile.Name = "energy_gun_vs_projectile"
+    energy_gun_vs_projectile.Damage0 = 25
+    energy_gun_vs_projectile.Damage1 = 35
+    energy_gun_vs_projectile.ProjectileDamageType = DamageType.Direct
+    energy_gun_vs_projectile.DegradeDelay = 0.045f
+    energy_gun_vs_projectile.DegradeMultiplier = 0.5f
+    energy_gun_vs_projectile.InitialVelocity = 500
+    energy_gun_vs_projectile.Lifespan = .5f
+    ProjectileDefinition.CalculateDerivedFields(energy_gun_vs_projectile)
+
+    enhanced_energy_cell_projectile.Name = "enhanced_energy_cell_projectile"
+    // TODO for later, maybe : set_resource_parent enhanced_energy_cell_projectile game_objects energy_cell_projectile
+    enhanced_energy_cell_projectile.Damage0 = 7
+    enhanced_energy_cell_projectile.Damage1 = 15
+    enhanced_energy_cell_projectile.ProjectileDamageType = DamageType.Direct
+    enhanced_energy_cell_projectile.DegradeDelay = 0.05f
+    enhanced_energy_cell_projectile.DegradeMultiplier = 0.4f
+    enhanced_energy_cell_projectile.InitialVelocity = 500
+    enhanced_energy_cell_projectile.Lifespan = .4f
+    enhanced_energy_cell_projectile.UseDamage1Subtract = true
+    ProjectileDefinition.CalculateDerivedFields(enhanced_energy_cell_projectile)
+
+    enhanced_quasar_projectile.Name = "enhanced_quasar_projectile"
+    // TODO for later, maybe : set_resource_parent enhanced_quasar_projectile game_objects quasar_projectile
+    enhanced_quasar_projectile.Damage1 = 12
+    enhanced_quasar_projectile.Damage0 = 10
+    enhanced_quasar_projectile.ProjectileDamageType = DamageType.Direct
+    enhanced_quasar_projectile.DegradeDelay = 0.045f
+    enhanced_quasar_projectile.DegradeMultiplier = 0.5f
+    enhanced_quasar_projectile.InitialVelocity = 500
+    enhanced_quasar_projectile.Lifespan = .4f
+    ProjectileDefinition.CalculateDerivedFields(enhanced_quasar_projectile)
+
+    falcon_projectile.Name = "falcon_projectile"
+    falcon_projectile.Damage0 = 35
+    falcon_projectile.Damage1 = 132
+    falcon_projectile.Damage2 = 132
+    falcon_projectile.Damage3 = 83
+    falcon_projectile.Damage4 = 144
+    falcon_projectile.Acceleration = 10
+    falcon_projectile.AccelerationUntil = 2f
+    falcon_projectile.DamageAtEdge = 0.2f
+    falcon_projectile.DamageRadius = 1f
+    falcon_projectile.ProjectileDamageType = DamageType.Splash
+    falcon_projectile.InitialVelocity = 120
+    falcon_projectile.Lifespan = 2.1f
+    ProjectileDefinition.CalculateDerivedFields(falcon_projectile)
+
+    firebird_missile_projectile.Name = "firebird_missile_projectile"
+    firebird_missile_projectile.Damage0 = 125
+    firebird_missile_projectile.Damage1 = 220
+    firebird_missile_projectile.Damage2 = 220
+    firebird_missile_projectile.Damage3 = 200
+    firebird_missile_projectile.Damage4 = 181
+    firebird_missile_projectile.Acceleration = 20
+    firebird_missile_projectile.AccelerationUntil = 2f
+    firebird_missile_projectile.DamageAtEdge = .1f
+    firebird_missile_projectile.DamageRadius = 5f
+    firebird_missile_projectile.ProjectileDamageType = DamageType.Splash
+    firebird_missile_projectile.InitialVelocity = 75
+    firebird_missile_projectile.Lifespan = 5f
+    ProjectileDefinition.CalculateDerivedFields(firebird_missile_projectile)
+
+    flail_projectile.Name = "flail_projectile"
+    flail_projectile.Damage0 = 75
+    flail_projectile.Damage1 = 200
+    flail_projectile.Damage2 = 200
+    flail_projectile.Damage3 = 200
+    flail_projectile.Damage4 = 300
+    flail_projectile.DamageAtEdge = 0.1f
+    flail_projectile.DamageRadius = 15f
+    flail_projectile.ProjectileDamageType = DamageType.Splash
+    flail_projectile.DegradeDelay = 1.5f
+    flail_projectile.DegradeMultiplier = 5f
+    flail_projectile.InitialVelocity = 75
+    flail_projectile.Lifespan = 40f
+    ProjectileDefinition.CalculateDerivedFields(flail_projectile)
+
+    flamethrower_fireball.Name = "flamethrower_fireball"
+    flamethrower_fireball.Damage0 = 30
+    flamethrower_fireball.Damage1 = 0
+    flamethrower_fireball.Damage2 = 0
+    flamethrower_fireball.Damage3 = 20
+    flamethrower_fireball.Damage4 = 0
+    flamethrower_fireball.DamageAtEdge = 0.15f
+    flamethrower_fireball.DamageRadius = 5f
+    flamethrower_fireball.ProjectileDamageType = DamageType.Aggravated
+    flamethrower_fireball.InitialVelocity = 15
+    flamethrower_fireball.Lifespan = 1.2f
+    ProjectileDefinition.CalculateDerivedFields(flamethrower_fireball)
+
+    flamethrower_projectile.Name = "flamethrower_projectile"
+    flamethrower_projectile.Damage0 = 10
+    flamethrower_projectile.Damage1 = 0
+    flamethrower_projectile.Damage2 = 0
+    flamethrower_projectile.Damage3 = 4
+    flamethrower_projectile.Damage4 = 0
+    flamethrower_projectile.Acceleration = -5
+    flamethrower_projectile.AccelerationUntil = 2f
+    flamethrower_projectile.ProjectileDamageType = DamageType.Aggravated
+    flamethrower_projectile.DegradeDelay = 1.0f
+    flamethrower_projectile.DegradeMultiplier = 0.5f
+    flamethrower_projectile.InitialVelocity = 10
+    flamethrower_projectile.Lifespan = 2.0f
+    ProjectileDefinition.CalculateDerivedFields(flamethrower_projectile)
+
+    flux_cannon_apc_projectile.Name = "flux_cannon_apc_projectile"
+    // TODO for later, maybe : set_resource_parent flux_cannon_apc_projectile game_objects flux_cannon_thresher_projectile
+    flux_cannon_apc_projectile.Damage0 = 14
+    flux_cannon_apc_projectile.Damage1 = 23
+    flux_cannon_apc_projectile.Damage2 = 35
+    flux_cannon_apc_projectile.Damage3 = 23
+    flux_cannon_apc_projectile.Damage4 = 18
+    flux_cannon_apc_projectile.DamageAtEdge = .5f
+    flux_cannon_apc_projectile.DamageRadius = 4f
+    flux_cannon_apc_projectile.ProjectileDamageType = DamageType.Direct
+    flux_cannon_apc_projectile.InitialVelocity = 300
+    flux_cannon_apc_projectile.Lifespan = 1f
+    ProjectileDefinition.CalculateDerivedFields(flux_cannon_apc_projectile)
+
+    flux_cannon_thresher_projectile.Name = "flux_cannon_thresher_projectile"
+    flux_cannon_thresher_projectile.Damage0 = 30
+    flux_cannon_thresher_projectile.Damage1 = 44
+    flux_cannon_thresher_projectile.Damage2 = 44
+    flux_cannon_thresher_projectile.Damage3 = 40
+    flux_cannon_thresher_projectile.Damage4 = 37
+    flux_cannon_thresher_projectile.DamageAtEdge = .5f
+    flux_cannon_thresher_projectile.DamageRadius = 4f
+    flux_cannon_thresher_projectile.ProjectileDamageType = DamageType.Splash
+    flux_cannon_thresher_projectile.InitialVelocity = 75
+    flux_cannon_thresher_projectile.Lifespan = 3f
+    ProjectileDefinition.CalculateDerivedFields(flux_cannon_thresher_projectile)
+
+    fluxpod_projectile.Name = "fluxpod_projectile"
+    fluxpod_projectile.Damage0 = 110
+    fluxpod_projectile.Damage1 = 80
+    fluxpod_projectile.Damage2 = 125
+    fluxpod_projectile.Damage3 = 80
+    fluxpod_projectile.Damage4 = 52
+    fluxpod_projectile.DamageAtEdge = .3f
+    fluxpod_projectile.DamageRadius = 3f
+    fluxpod_projectile.ProjectileDamageType = DamageType.Splash
+    fluxpod_projectile.InitialVelocity = 80
+    fluxpod_projectile.Lifespan = 4f
+    ProjectileDefinition.CalculateDerivedFields(fluxpod_projectile)
+
+    forceblade_projectile.Name = "forceblade_projectile"
+    // TODO for later, maybe : set_resource_parent forceblade_projectile game_objects melee_ammo_projectile
+    forceblade_projectile.Damage0 = 50
+    forceblade_projectile.Damage1 = 0
+    forceblade_projectile.ProjectileDamageType = DamageType.Direct
+    forceblade_projectile.InitialVelocity = 100
+    forceblade_projectile.Lifespan = .02f
+    ProjectileDefinition.CalculateDerivedFields(forceblade_projectile)
+
+    frag_cartridge_projectile.Name = "frag_cartridge_projectile"
+    // TODO for later, maybe : set_resource_parent frag_cartridge_projectile game_objects frag_grenade_projectile
+    frag_cartridge_projectile.Damage0 = 75
+    frag_cartridge_projectile.Damage1 = 100
+    frag_cartridge_projectile.DamageAtEdge = 0.1f
+    frag_cartridge_projectile.DamageRadius = 7f
+    frag_cartridge_projectile.ProjectileDamageType = DamageType.Splash
+    frag_cartridge_projectile.InitialVelocity = 30
+    frag_cartridge_projectile.Lifespan = 15f
+    ProjectileDefinition.CalculateDerivedFields(frag_cartridge_projectile)
+
+    frag_cartridge_projectile_b.Name = "frag_cartridge_projectile_b"
+    // TODO for later, maybe : set_resource_parent frag_cartridge_projectile_b game_objects frag_grenade_projectile_enh
+    frag_cartridge_projectile_b.Damage0 = 75
+    frag_cartridge_projectile_b.Damage1 = 100
+    frag_cartridge_projectile_b.DamageAtEdge = 0.1f
+    frag_cartridge_projectile_b.DamageRadius = 5f
+    frag_cartridge_projectile_b.ProjectileDamageType = DamageType.Splash
+    frag_cartridge_projectile_b.InitialVelocity = 30
+    frag_cartridge_projectile_b.Lifespan = 2f
+    ProjectileDefinition.CalculateDerivedFields(frag_cartridge_projectile_b)
+
+    frag_grenade_projectile.Name = "frag_grenade_projectile"
+    frag_grenade_projectile.Damage0 = 75
+    frag_grenade_projectile.Damage1 = 100
+    frag_grenade_projectile.DamageAtEdge = 0.1f
+    frag_grenade_projectile.DamageRadius = 7f
+    frag_grenade_projectile.ProjectileDamageType = DamageType.Splash
+    frag_grenade_projectile.InitialVelocity = 30
+    frag_grenade_projectile.Lifespan = 15f
+    ProjectileDefinition.CalculateDerivedFields(frag_grenade_projectile)
+
+    frag_grenade_projectile_enh.Name = "frag_grenade_projectile_enh"
+    // TODO for later, maybe : set_resource_parent frag_grenade_projectile_enh game_objects frag_grenade_projectile
+    frag_grenade_projectile_enh.Damage0 = 75
+    frag_grenade_projectile_enh.Damage1 = 100
+    frag_grenade_projectile_enh.DamageAtEdge = 0.1f
+    frag_grenade_projectile_enh.DamageRadius = 7f
+    frag_grenade_projectile_enh.ProjectileDamageType = DamageType.Splash
+    frag_grenade_projectile_enh.InitialVelocity = 30
+    frag_grenade_projectile_enh.Lifespan = 2f
+    ProjectileDefinition.CalculateDerivedFields(frag_grenade_projectile_enh)
+
+    galaxy_gunship_gun_projectile.Name = "galaxy_gunship_gun_projectile"
+    // TODO for later, maybe : set_resource_parent galaxy_gunship_gun_projectile game_objects 35mmbullet_projectile
+    galaxy_gunship_gun_projectile.Damage0 = 40
+    galaxy_gunship_gun_projectile.Damage1 = 50
+    galaxy_gunship_gun_projectile.Damage2 = 80
+    galaxy_gunship_gun_projectile.ProjectileDamageType = DamageType.Direct
+    galaxy_gunship_gun_projectile.DegradeDelay = 0.4f
+    galaxy_gunship_gun_projectile.DegradeMultiplier = 0.6f
+    galaxy_gunship_gun_projectile.InitialVelocity = 400
+    galaxy_gunship_gun_projectile.Lifespan = 0.8f
+    ProjectileDefinition.CalculateDerivedFields(galaxy_gunship_gun_projectile)
+
+    gauss_cannon_projectile.Name = "gauss_cannon_projectile"
+    gauss_cannon_projectile.Damage0 = 190
+    gauss_cannon_projectile.Damage1 = 370
+    gauss_cannon_projectile.Damage2 = 370
+    gauss_cannon_projectile.Damage3 = 370
+    gauss_cannon_projectile.Damage4 = 240
+    gauss_cannon_projectile.DamageAtEdge = 0.3f
+    gauss_cannon_projectile.DamageRadius = 1.5f
+    gauss_cannon_projectile.ProjectileDamageType = DamageType.Splash
+    gauss_cannon_projectile.InitialVelocity = 150
+    gauss_cannon_projectile.Lifespan = 2.67f
+    ProjectileDefinition.CalculateDerivedFields(gauss_cannon_projectile)
+
+    grenade_projectile.Name = "grenade_projectile"
+    grenade_projectile.Damage0 = 50
+    grenade_projectile.DamageAtEdge = 0.2f
+    grenade_projectile.DamageRadius = 100f
+    grenade_projectile.ProjectileDamageType = DamageType.Splash
+    grenade_projectile.InitialVelocity = 15
+    grenade_projectile.Lifespan = 15f
+    ProjectileDefinition.CalculateDerivedFields(grenade_projectile)
+
+    heavy_grenade_projectile.Name = "heavy_grenade_projectile"
+    heavy_grenade_projectile.Damage0 = 50
+    heavy_grenade_projectile.Damage1 = 82
+    heavy_grenade_projectile.Damage2 = 82
+    heavy_grenade_projectile.Damage3 = 75
+    heavy_grenade_projectile.Damage4 = 66
+    heavy_grenade_projectile.DamageAtEdge = 0.1f
+    heavy_grenade_projectile.DamageRadius = 5f
+    heavy_grenade_projectile.ProjectileDamageType = DamageType.Splash
+    heavy_grenade_projectile.InitialVelocity = 75
+    heavy_grenade_projectile.Lifespan = 5f
+    ProjectileDefinition.CalculateDerivedFields(heavy_grenade_projectile)
+
+    heavy_rail_beam_projectile.Name = "heavy_rail_beam_projectile"
+    heavy_rail_beam_projectile.Damage0 = 75
+    heavy_rail_beam_projectile.Damage1 = 215
+    heavy_rail_beam_projectile.Damage2 = 215
+    heavy_rail_beam_projectile.Damage3 = 215
+    heavy_rail_beam_projectile.Damage4 = 120
+    heavy_rail_beam_projectile.DamageAtEdge = 0.30f
+    heavy_rail_beam_projectile.DamageRadius = 5f
+    heavy_rail_beam_projectile.ProjectileDamageType = DamageType.Splash
+    heavy_rail_beam_projectile.InitialVelocity = 600
+    heavy_rail_beam_projectile.Lifespan = .5f
+    ProjectileDefinition.CalculateDerivedFields(heavy_rail_beam_projectile)
+
+    heavy_sniper_projectile.Name = "heavy_sniper_projectile"
+    heavy_sniper_projectile.Damage0 = 55
+    heavy_sniper_projectile.Damage1 = 28
+    heavy_sniper_projectile.Damage2 = 28
+    heavy_sniper_projectile.Damage3 = 28
+    heavy_sniper_projectile.Damage4 = 42
+    heavy_sniper_projectile.ProjectileDamageType = DamageType.Splash
+    heavy_sniper_projectile.InitialVelocity = 500
+    heavy_sniper_projectile.Lifespan = 1.0f
+    ProjectileDefinition.CalculateDerivedFields(heavy_sniper_projectile)
+
+    hellfire_projectile.Name = "hellfire_projectile"
+    hellfire_projectile.Damage0 = 50
+    hellfire_projectile.Damage1 = 250
+    hellfire_projectile.Damage2 = 250
+    hellfire_projectile.Damage3 = 125
+    hellfire_projectile.Damage4 = 250
+    hellfire_projectile.Acceleration = 10
+    hellfire_projectile.AccelerationUntil = 2f
+    hellfire_projectile.DamageAtEdge = .25f
+    hellfire_projectile.DamageRadius = 3f
+    hellfire_projectile.ProjectileDamageType = DamageType.Splash
+    hellfire_projectile.InitialVelocity = 125
+    hellfire_projectile.Lifespan = 1.5f
+    ProjectileDefinition.CalculateDerivedFields(hellfire_projectile)
+
+    hunter_seeker_missile_dumbfire.Name = "hunter_seeker_missile_dumbfire"
+    hunter_seeker_missile_dumbfire.Damage0 = 50
+    hunter_seeker_missile_dumbfire.Damage1 = 350
+    hunter_seeker_missile_dumbfire.Damage2 = 250
+    hunter_seeker_missile_dumbfire.Damage3 = 250
+    hunter_seeker_missile_dumbfire.Damage4 = 525
+    hunter_seeker_missile_dumbfire.DamageAtEdge = 0.1f
+    hunter_seeker_missile_dumbfire.DamageRadius = 1.5f
+    hunter_seeker_missile_dumbfire.ProjectileDamageType = DamageType.Splash
+    hunter_seeker_missile_dumbfire.InitialVelocity = 40
+    hunter_seeker_missile_dumbfire.Lifespan = 6.3f
+    ProjectileDefinition.CalculateDerivedFields(hunter_seeker_missile_dumbfire)
+
+    hunter_seeker_missile_projectile.Name = "hunter_seeker_missile_projectile"
+    hunter_seeker_missile_projectile.Damage0 = 50
+    hunter_seeker_missile_projectile.Damage1 = 350
+    hunter_seeker_missile_projectile.Damage2 = 250
+    hunter_seeker_missile_projectile.Damage3 = 250
+    hunter_seeker_missile_projectile.Damage4 = 525
+    hunter_seeker_missile_projectile.DamageAtEdge = 0.1f
+    hunter_seeker_missile_projectile.DamageRadius = 1.5f
+    hunter_seeker_missile_projectile.ProjectileDamageType = DamageType.Splash
+    hunter_seeker_missile_projectile.InitialVelocity = 40
+    hunter_seeker_missile_projectile.Lifespan = 6.3f
+    ProjectileDefinition.CalculateDerivedFields(hunter_seeker_missile_projectile)
+
+    jammer_cartridge_projectile.Name = "jammer_cartridge_projectile"
+    // TODO for later, maybe : set_resource_parent jammer_cartridge_projectile game_objects jammer_grenade_projectile
+    jammer_cartridge_projectile.Damage0 = 0
+    jammer_cartridge_projectile.Damage1 = 0
+    jammer_cartridge_projectile.DamageAtEdge = 1.0f
+    jammer_cartridge_projectile.DamageRadius = 10f
+    jammer_cartridge_projectile.ProjectileDamageType = DamageType.Splash
+    jammer_cartridge_projectile.InitialVelocity = 30
+    jammer_cartridge_projectile.Lifespan = 15f
+    ProjectileDefinition.CalculateDerivedFields(jammer_cartridge_projectile)
+
+    jammer_cartridge_projectile_b.Name = "jammer_cartridge_projectile_b"
+    // TODO for later, maybe : set_resource_parent jammer_cartridge_projectile_b game_objects jammer_grenade_projectile_enh
+    jammer_cartridge_projectile_b.Damage0 = 0
+    jammer_cartridge_projectile_b.Damage1 = 0
+    jammer_cartridge_projectile_b.DamageAtEdge = 1.0f
+    jammer_cartridge_projectile_b.DamageRadius = 10f
+    jammer_cartridge_projectile_b.ProjectileDamageType = DamageType.Splash
+    jammer_cartridge_projectile_b.InitialVelocity = 30
+    jammer_cartridge_projectile_b.Lifespan = 2f
+    ProjectileDefinition.CalculateDerivedFields(jammer_cartridge_projectile_b)
+
+    jammer_grenade_projectile.Name = "jammer_grenade_projectile"
+    jammer_grenade_projectile.Damage0 = 0
+    jammer_grenade_projectile.Damage1 = 0
+    jammer_grenade_projectile.DamageAtEdge = 1.0f
+    jammer_grenade_projectile.DamageRadius = 10f
+    jammer_grenade_projectile.ProjectileDamageType = DamageType.Splash
+    jammer_grenade_projectile.InitialVelocity = 30
+    jammer_grenade_projectile.Lifespan = 15f
+    ProjectileDefinition.CalculateDerivedFields(jammer_grenade_projectile)
+
+    jammer_grenade_projectile_enh.Name = "jammer_grenade_projectile_enh"
+    // TODO for later, maybe : set_resource_parent jammer_grenade_projectile_enh game_objects jammer_grenade_projectile
+    jammer_grenade_projectile_enh.Damage0 = 0
+    jammer_grenade_projectile_enh.Damage1 = 0
+    jammer_grenade_projectile_enh.DamageAtEdge = 1.0f
+    jammer_grenade_projectile_enh.DamageRadius = 10f
+    jammer_grenade_projectile_enh.ProjectileDamageType = DamageType.Splash
+    jammer_grenade_projectile_enh.InitialVelocity = 30
+    jammer_grenade_projectile_enh.Lifespan = 3f
+    ProjectileDefinition.CalculateDerivedFields(jammer_grenade_projectile_enh)
+
+    katana_projectile.Name = "katana_projectile"
+    katana_projectile.Damage0 = 25
+    katana_projectile.Damage1 = 0
+    katana_projectile.ProjectileDamageType = DamageType.Direct
+    katana_projectile.InitialVelocity = 100
+    katana_projectile.Lifespan = .03f
+    ProjectileDefinition.CalculateDerivedFields(katana_projectile)
+
+    katana_projectileb.Name = "katana_projectileb"
+    // TODO for later, maybe : set_resource_parent katana_projectileb game_objects katana_projectile
+    katana_projectileb.Damage0 = 25
+    katana_projectileb.Damage1 = 0
+    katana_projectileb.ProjectileDamageType = DamageType.Direct
+    katana_projectileb.InitialVelocity = 100
+    katana_projectileb.Lifespan = .03f
+    ProjectileDefinition.CalculateDerivedFields(katana_projectileb)
+
+    lancer_projectile.Name = "lancer_projectile"
+    lancer_projectile.Damage0 = 25
+    lancer_projectile.Damage1 = 175
+    lancer_projectile.Damage2 = 125
+    lancer_projectile.Damage3 = 125
+    lancer_projectile.Damage4 = 263
+    lancer_projectile.ProjectileDamageType = DamageType.Direct
+    lancer_projectile.InitialVelocity = 500
+    lancer_projectile.Lifespan = 0.6f
+    ProjectileDefinition.CalculateDerivedFields(lancer_projectile)
+
+    lasher_projectile.Name = "lasher_projectile"
+    lasher_projectile.Damage0 = 30
+    lasher_projectile.Damage1 = 15
+    lasher_projectile.Damage2 = 15
+    lasher_projectile.Damage3 = 12
+    lasher_projectile.Damage4 = 12
+    lasher_projectile.ProjectileDamageType = DamageType.Direct
+    lasher_projectile.DegradeDelay = 0.012f
+    lasher_projectile.DegradeMultiplier = 0.3f
+    lasher_projectile.InitialVelocity = 120
+    lasher_projectile.Lifespan = 0.75f
+    ProjectileDefinition.CalculateDerivedFields(lasher_projectile)
+
+    lasher_projectile_ap.Name = "lasher_projectile_ap"
+    lasher_projectile_ap.Damage0 = 12
+    lasher_projectile_ap.Damage1 = 25
+    lasher_projectile_ap.Damage2 = 25
+    lasher_projectile_ap.Damage3 = 28
+    lasher_projectile_ap.Damage4 = 28
+    lasher_projectile_ap.ProjectileDamageType = DamageType.Direct
+    lasher_projectile_ap.DegradeDelay = 0.012f
+    lasher_projectile_ap.DegradeMultiplier = 0.3f
+    lasher_projectile_ap.InitialVelocity = 120
+    lasher_projectile_ap.Lifespan = 0.75f
+    ProjectileDefinition.CalculateDerivedFields(lasher_projectile_ap)
+
+    liberator_bomb_cluster_bomblet_projectile.Name = "liberator_bomb_cluster_bomblet_projectile"
+    liberator_bomb_cluster_bomblet_projectile.Damage0 = 75
+    liberator_bomb_cluster_bomblet_projectile.Damage1 = 100
+    liberator_bomb_cluster_bomblet_projectile.DamageAtEdge = 0.25f
+    liberator_bomb_cluster_bomblet_projectile.DamageRadius = 3f
+    liberator_bomb_cluster_bomblet_projectile.ProjectileDamageType = DamageType.Splash
+    liberator_bomb_cluster_bomblet_projectile.InitialVelocity = 0
+    liberator_bomb_cluster_bomblet_projectile.Lifespan = 30f
+    ProjectileDefinition.CalculateDerivedFields(liberator_bomb_cluster_bomblet_projectile)
+
+    liberator_bomb_cluster_projectile.Name = "liberator_bomb_cluster_projectile"
+    liberator_bomb_cluster_projectile.Damage0 = 75
+    liberator_bomb_cluster_projectile.Damage1 = 100
+    liberator_bomb_cluster_projectile.DamageAtEdge = 0.25f
+    liberator_bomb_cluster_projectile.DamageRadius = 3f
+    liberator_bomb_cluster_projectile.ProjectileDamageType = DamageType.Direct
+    liberator_bomb_cluster_projectile.InitialVelocity = 0
+    liberator_bomb_cluster_projectile.Lifespan = 30f
+    ProjectileDefinition.CalculateDerivedFields(liberator_bomb_cluster_projectile)
+
+    liberator_bomb_projectile.Name = "liberator_bomb_projectile"
+    liberator_bomb_projectile.Damage0 = 250
+    liberator_bomb_projectile.Damage1 = 1000
+    liberator_bomb_projectile.Damage2 = 1000
+    liberator_bomb_projectile.Damage3 = 1000
+    liberator_bomb_projectile.Damage4 = 600
+    liberator_bomb_projectile.DamageAtEdge = 0.1f
+    liberator_bomb_projectile.DamageRadius = 10f
+    liberator_bomb_projectile.ProjectileDamageType = DamageType.Splash
+    liberator_bomb_projectile.InitialVelocity = 0
+    liberator_bomb_projectile.Lifespan = 30f
+    ProjectileDefinition.CalculateDerivedFields(liberator_bomb_projectile)
+
+    maelstrom_grenade_projectile.Name = "maelstrom_grenade_projectile"
+    maelstrom_grenade_projectile.Damage0 = 32
+    maelstrom_grenade_projectile.Damage1 = 60
+    maelstrom_grenade_projectile.DamageRadius = 20.0f
+    maelstrom_grenade_projectile.ProjectileDamageType = DamageType.Direct
+    maelstrom_grenade_projectile.InitialVelocity = 30
+    maelstrom_grenade_projectile.Lifespan = 2f
+    ProjectileDefinition.CalculateDerivedFields(maelstrom_grenade_projectile)
+
+    maelstrom_grenade_projectile_contact.Name = "maelstrom_grenade_projectile_contact"
+    // TODO for later, maybe : set_resource_parent maelstrom_grenade_projectile_contact game_objects maelstrom_grenade_projectile
+    maelstrom_grenade_projectile_contact.Damage0 = 32
+    maelstrom_grenade_projectile_contact.Damage1 = 60
+    maelstrom_grenade_projectile_contact.DamageRadius = 20.0f
+    maelstrom_grenade_projectile_contact.ProjectileDamageType = DamageType.Direct
+    maelstrom_grenade_projectile_contact.InitialVelocity = 30
+    maelstrom_grenade_projectile_contact.Lifespan = 15f
+    ProjectileDefinition.CalculateDerivedFields(maelstrom_grenade_projectile_contact)
+
+    maelstrom_stream_projectile.Name = "maelstrom_stream_projectile"
+    maelstrom_stream_projectile.Damage0 = 15
+    maelstrom_stream_projectile.Damage1 = 6
+    maelstrom_stream_projectile.ProjectileDamageType = DamageType.Direct
+    maelstrom_stream_projectile.DegradeDelay = .075f
+    maelstrom_stream_projectile.DegradeMultiplier = 0.5f
+    maelstrom_stream_projectile.InitialVelocity = 200
+    maelstrom_stream_projectile.Lifespan = 0.2f
+    ProjectileDefinition.CalculateDerivedFields(maelstrom_stream_projectile)
+
+    magcutter_projectile.Name = "magcutter_projectile"
+    // TODO for later, maybe : set_resource_parent magcutter_projectile game_objects melee_ammo_projectile
+    magcutter_projectile.Damage0 = 50
+    magcutter_projectile.Damage1 = 0
+    magcutter_projectile.ProjectileDamageType = DamageType.Direct
+    magcutter_projectile.InitialVelocity = 100
+    magcutter_projectile.Lifespan = .02f
+    ProjectileDefinition.CalculateDerivedFields(magcutter_projectile)
+
+    melee_ammo_projectile.Name = "melee_ammo_projectile"
+    melee_ammo_projectile.Damage0 = 25
+    melee_ammo_projectile.Damage1 = 0
+    melee_ammo_projectile.ProjectileDamageType = DamageType.Direct
+    melee_ammo_projectile.InitialVelocity = 100
+    melee_ammo_projectile.Lifespan = .02f
+    ProjectileDefinition.CalculateDerivedFields(melee_ammo_projectile)
+
+    meteor_common.Name = "meteor_common"
+    meteor_common.DamageAtEdge = .1f
+    meteor_common.ProjectileDamageType = DamageType.Splash
+    meteor_common.InitialVelocity = 0
+    meteor_common.Lifespan = 40
+    ProjectileDefinition.CalculateDerivedFields(meteor_common)
+
+    meteor_projectile_b_large.Name = "meteor_projectile_b_large"
+    // TODO for later, maybe : set_resource_parent meteor_projectile_b_large game_objects meteor_common
+    meteor_projectile_b_large.Damage0 = 2500
+    meteor_projectile_b_large.Damage1 = 5000
+    meteor_projectile_b_large.DamageRadius = 15f
+    meteor_projectile_b_large.DamageAtEdge = .1f
+    meteor_projectile_b_large.ProjectileDamageType = DamageType.Splash
+    meteor_projectile_b_large.InitialVelocity = 0
+    meteor_projectile_b_large.Lifespan = 40
+    ProjectileDefinition.CalculateDerivedFields(meteor_projectile_b_large)
+
+    meteor_projectile_b_medium.Name = "meteor_projectile_b_medium"
+    // TODO for later, maybe : set_resource_parent meteor_projectile_b_medium game_objects meteor_common
+    meteor_projectile_b_medium.Damage0 = 1250
+    meteor_projectile_b_medium.Damage1 = 2500
+    meteor_projectile_b_medium.DamageRadius = 10f
+    meteor_projectile_b_medium.DamageAtEdge = .1f
+    meteor_projectile_b_medium.ProjectileDamageType = DamageType.Splash
+    meteor_projectile_b_medium.InitialVelocity = 0
+    meteor_projectile_b_medium.Lifespan = 40
+    ProjectileDefinition.CalculateDerivedFields(meteor_projectile_b_medium)
+
+    meteor_projectile_b_small.Name = "meteor_projectile_b_small"
+    // TODO for later, maybe : set_resource_parent meteor_projectile_b_small game_objects meteor_common
+    meteor_projectile_b_small.Damage0 = 625
+    meteor_projectile_b_small.Damage1 = 1250
+    meteor_projectile_b_small.DamageRadius = 5f
+    meteor_projectile_b_small.DamageAtEdge = .1f
+    meteor_projectile_b_small.ProjectileDamageType = DamageType.Splash
+    meteor_projectile_b_small.InitialVelocity = 0
+    meteor_projectile_b_small.Lifespan = 40
+    ProjectileDefinition.CalculateDerivedFields(meteor_projectile_b_small)
+
+    meteor_projectile_large.Name = "meteor_projectile_large"
+    // TODO for later, maybe : set_resource_parent meteor_projectile_large game_objects meteor_common
+    meteor_projectile_large.Damage0 = 2500
+    meteor_projectile_large.Damage1 = 5000
+    meteor_projectile_large.DamageRadius = 15f
+    meteor_projectile_large.DamageAtEdge = .1f
+    meteor_projectile_large.ProjectileDamageType = DamageType.Splash
+    meteor_projectile_large.InitialVelocity = 0
+    meteor_projectile_large.Lifespan = 40
+    ProjectileDefinition.CalculateDerivedFields(meteor_projectile_large)
+
+    meteor_projectile_medium.Name = "meteor_projectile_medium"
+    // TODO for later, maybe : set_resource_parent meteor_projectile_medium game_objects meteor_common
+    meteor_projectile_medium.Damage0 = 1250
+    meteor_projectile_medium.Damage1 = 2500
+    meteor_projectile_medium.DamageRadius = 10f
+    meteor_projectile_medium.DamageAtEdge = .1f
+    meteor_projectile_medium.ProjectileDamageType = DamageType.Splash
+    meteor_projectile_medium.InitialVelocity = 0
+    meteor_projectile_medium.Lifespan = 40
+    ProjectileDefinition.CalculateDerivedFields(meteor_projectile_medium)
+
+    meteor_projectile_small.Name = "meteor_projectile_small"
+    // TODO for later, maybe : set_resource_parent meteor_projectile_small game_objects meteor_common
+    meteor_projectile_small.Damage0 = 625
+    meteor_projectile_small.Damage1 = 1250
+    meteor_projectile_small.DamageRadius = 5f
+    meteor_projectile_small.DamageAtEdge = .1f
+    meteor_projectile_small.ProjectileDamageType = DamageType.Splash
+    meteor_projectile_small.InitialVelocity = 0
+    meteor_projectile_small.Lifespan = 40
+    ProjectileDefinition.CalculateDerivedFields(meteor_projectile_small)
+
+    mine_projectile.Name = "mine_projectile"
+    mine_projectile.Lifespan = 0.01f
+    mine_projectile.InitialVelocity = 300
+    ProjectileDefinition.CalculateDerivedFields(mine_projectile)
+
+    mine_sweeper_projectile.Name = "mine_sweeper_projectile"
+    mine_sweeper_projectile.Damage0 = 0
+    mine_sweeper_projectile.Damage1 = 0
+    mine_sweeper_projectile.DamageAtEdge = .33f
+    mine_sweeper_projectile.DamageRadius = 25f
+    mine_sweeper_projectile.ProjectileDamageType = DamageType.Splash
+    mine_sweeper_projectile.InitialVelocity = 30
+    mine_sweeper_projectile.Lifespan = 15f
+    ProjectileDefinition.CalculateDerivedFields(mine_sweeper_projectile)
+
+    mine_sweeper_projectile_enh.Name = "mine_sweeper_projectile_enh"
+    mine_sweeper_projectile_enh.Damage0 = 0
+    mine_sweeper_projectile_enh.Damage1 = 0
+    mine_sweeper_projectile_enh.DamageAtEdge = 0.33f
+    mine_sweeper_projectile_enh.DamageRadius = 25f
+    mine_sweeper_projectile_enh.InitialVelocity = 30
+    mine_sweeper_projectile_enh.Lifespan = 3f
+    ProjectileDefinition.CalculateDerivedFields(mine_sweeper_projectile_enh)
+
+    oicw_projectile.Name = "oicw_projectile"
+    oicw_projectile.Damage0 = 50
+    oicw_projectile.Damage1 = 50
+    oicw_projectile.Acceleration = 15
+    oicw_projectile.AccelerationUntil = 5f
+    oicw_projectile.DamageAtEdge = 0.1f
+    oicw_projectile.DamageRadius = 10f
+    oicw_projectile.ProjectileDamageType = DamageType.Splash
+    oicw_projectile.InitialVelocity = 5
+    oicw_projectile.Lifespan = 6.1f
+    ProjectileDefinition.CalculateDerivedFields(oicw_projectile)
+
+    pellet_gun_projectile.Name = "pellet_gun_projectile"
+    // TODO for later, maybe : set_resource_parent pellet_gun_projectile game_objects shotgun_shell_projectile
+    pellet_gun_projectile.Damage0 = 12
+    pellet_gun_projectile.Damage1 = 8
+    pellet_gun_projectile.ProjectileDamageType = DamageType.Direct
+    pellet_gun_projectile.InitialVelocity = 400
+    pellet_gun_projectile.Lifespan = 0.1875f
+    pellet_gun_projectile.UseDamage1Subtract = false
+    ProjectileDefinition.CalculateDerivedFields(pellet_gun_projectile)
+
+    peregrine_dual_machine_gun_projectile.Name = "peregrine_dual_machine_gun_projectile"
+    // TODO for later, maybe : set_resource_parent peregrine_dual_machine_gun_projectile game_objects 35mmbullet_projectile
+    peregrine_dual_machine_gun_projectile.Damage0 = 16
+    peregrine_dual_machine_gun_projectile.Damage1 = 44
+    peregrine_dual_machine_gun_projectile.Damage2 = 30
+    peregrine_dual_machine_gun_projectile.Damage3 = 27
+    peregrine_dual_machine_gun_projectile.Damage4 = 32
+    peregrine_dual_machine_gun_projectile.ProjectileDamageType = DamageType.Direct
+    peregrine_dual_machine_gun_projectile.DegradeDelay = .25f
+    peregrine_dual_machine_gun_projectile.DegradeMultiplier = 0.65f
+    peregrine_dual_machine_gun_projectile.InitialVelocity = 250
+    peregrine_dual_machine_gun_projectile.Lifespan = 1.1f
+    ProjectileDefinition.CalculateDerivedFields(peregrine_dual_machine_gun_projectile)
+
+    peregrine_mechhammer_projectile.Name = "peregrine_mechhammer_projectile"
+    peregrine_mechhammer_projectile.Damage0 = 5
+    peregrine_mechhammer_projectile.Damage1 = 4
+    peregrine_mechhammer_projectile.Damage2 = 4
+    peregrine_mechhammer_projectile.Damage3 = 5
+    peregrine_mechhammer_projectile.Damage4 = 3
+    peregrine_mechhammer_projectile.ProjectileDamageType = DamageType.Direct
+    peregrine_mechhammer_projectile.InitialVelocity = 500
+    peregrine_mechhammer_projectile.Lifespan = 0.4f
+    ProjectileDefinition.CalculateDerivedFields(peregrine_mechhammer_projectile)
+
+    peregrine_particle_cannon_projectile.Name = "peregrine_particle_cannon_projectile"
+    peregrine_particle_cannon_projectile.Damage0 = 70
+    peregrine_particle_cannon_projectile.Damage1 = 525
+    peregrine_particle_cannon_projectile.Damage2 = 350
+    peregrine_particle_cannon_projectile.Damage3 = 318
+    peregrine_particle_cannon_projectile.Damage4 = 310
+    peregrine_particle_cannon_projectile.DamageAtEdge = 0.1f
+    peregrine_particle_cannon_projectile.DamageRadius = 3f
+    peregrine_particle_cannon_projectile.ProjectileDamageType = DamageType.Splash
+    peregrine_particle_cannon_projectile.InitialVelocity = 500
+    peregrine_particle_cannon_projectile.Lifespan = .6f
+    ProjectileDefinition.CalculateDerivedFields(peregrine_particle_cannon_projectile)
+
+    peregrine_rocket_pod_projectile.Name = "peregrine_rocket_pod_projectile"
+    peregrine_rocket_pod_projectile.Damage0 = 30
+    peregrine_rocket_pod_projectile.Damage1 = 50
+    peregrine_rocket_pod_projectile.Damage2 = 50
+    peregrine_rocket_pod_projectile.Damage3 = 45
+    peregrine_rocket_pod_projectile.Damage4 = 40
+    peregrine_rocket_pod_projectile.Acceleration = 10
+    peregrine_rocket_pod_projectile.AccelerationUntil = 2f
+    peregrine_rocket_pod_projectile.DamageAtEdge = 0.1f
+    peregrine_rocket_pod_projectile.DamageRadius = 3f
+    peregrine_rocket_pod_projectile.ProjectileDamageType = DamageType.Splash
+    peregrine_rocket_pod_projectile.InitialVelocity = 200
+    peregrine_rocket_pod_projectile.Lifespan = 1.85f
+    ProjectileDefinition.CalculateDerivedFields(peregrine_rocket_pod_projectile)
+
+    peregrine_sparrow_projectile.Name = "peregrine_sparrow_projectile"
+    // TODO for later, maybe : set_resource_parent peregrine_sparrow_projectile game_objects sparrow_projectile
+    peregrine_sparrow_projectile.Damage0 = 20
+    peregrine_sparrow_projectile.Damage1 = 40
+    peregrine_sparrow_projectile.Damage2 = 30
+    peregrine_sparrow_projectile.Damage3 = 30
+    peregrine_sparrow_projectile.Damage4 = 31
+    peregrine_sparrow_projectile.Acceleration = 12
+    peregrine_sparrow_projectile.AccelerationUntil = 5f
+    peregrine_sparrow_projectile.DamageAtEdge = 0.1f
+    peregrine_sparrow_projectile.DamageRadius = 2f
+    peregrine_sparrow_projectile.ProjectileDamageType = DamageType.Splash
+    peregrine_sparrow_projectile.InitialVelocity = 45
+    peregrine_sparrow_projectile.Lifespan = 7.5f
+    ProjectileDefinition.CalculateDerivedFields(peregrine_sparrow_projectile)
+
+    phalanx_av_projectile.Name = "phalanx_av_projectile"
+    phalanx_av_projectile.Damage0 = 60
+    phalanx_av_projectile.Damage1 = 140
+    phalanx_av_projectile.DamageAtEdge = 0.1f
+    phalanx_av_projectile.DamageRadius = 5f
+    phalanx_av_projectile.ProjectileDamageType = DamageType.Splash
+    phalanx_av_projectile.InitialVelocity = 100
+    phalanx_av_projectile.Lifespan = 4f
+    ProjectileDefinition.CalculateDerivedFields(phalanx_av_projectile)
+
+    phalanx_flak_projectile.Name = "phalanx_flak_projectile"
+    phalanx_flak_projectile.Damage0 = 15
+    phalanx_flak_projectile.Damage1 = 25
+    phalanx_flak_projectile.Damage2 = 70
+    phalanx_flak_projectile.DamageAtEdge = 1f
+    phalanx_flak_projectile.DamageRadius = 10f
+    phalanx_flak_projectile.ProjectileDamageType = DamageType.Direct
+    phalanx_flak_projectile.ProjectileDamageTypeSecondary = DamageType.Splash
+    phalanx_flak_projectile.InitialVelocity = 100
+    phalanx_flak_projectile.Lifespan = 5f
+    ProjectileDefinition.CalculateDerivedFields(phalanx_flak_projectile)
+
+    phalanx_projectile.Name = "phalanx_projectile"
+    phalanx_projectile.Damage0 = 20
+    phalanx_projectile.Damage1 = 30
+    phalanx_projectile.Damage2 = 30
+    phalanx_projectile.Damage3 = 30
+    phalanx_projectile.Damage4 = 18
+    phalanx_projectile.ProjectileDamageType = DamageType.Direct
+    phalanx_projectile.DegradeDelay = 0f
+    phalanx_projectile.DegradeMultiplier = 0.25f
+    phalanx_projectile.InitialVelocity = 400
+    phalanx_projectile.Lifespan = 1f
+    ProjectileDefinition.CalculateDerivedFields(phalanx_projectile)
+
+    phoenix_missile_guided_projectile.Name = "phoenix_missile_guided_projectile"
+    // TODO for later, maybe : set_resource_parent phoenix_missile_guided_projectile game_objects phoenix_missile_projectile
+    phoenix_missile_guided_projectile.Damage0 = 80
+    phoenix_missile_guided_projectile.Damage1 = 400
+    phoenix_missile_guided_projectile.Damage2 = 400
+    phoenix_missile_guided_projectile.Damage3 = 300
+    phoenix_missile_guided_projectile.Damage4 = 600
+    phoenix_missile_guided_projectile.Acceleration = 60
+    phoenix_missile_guided_projectile.AccelerationUntil = 2.5f
+    phoenix_missile_guided_projectile.DamageAtEdge = 0.3f
+    phoenix_missile_guided_projectile.DamageRadius = 1.5f
+    phoenix_missile_guided_projectile.ProjectileDamageType = DamageType.Splash
+    phoenix_missile_guided_projectile.InitialVelocity = 0
+    phoenix_missile_guided_projectile.Lifespan = 3f
+    ProjectileDefinition.CalculateDerivedFields(phoenix_missile_guided_projectile)
+
+    phoenix_missile_projectile.Name = "phoenix_missile_projectile"
+    phoenix_missile_projectile.Damage0 = 80
+    phoenix_missile_projectile.Damage1 = 400
+    phoenix_missile_projectile.Damage2 = 400
+    phoenix_missile_projectile.Damage3 = 300
+    phoenix_missile_projectile.Damage4 = 600
+    phoenix_missile_projectile.Acceleration = 60
+    phoenix_missile_projectile.AccelerationUntil = 2.5f
+    phoenix_missile_projectile.DamageAtEdge = 0.3f
+    phoenix_missile_projectile.DamageRadius = 1.5f
+    phoenix_missile_projectile.ProjectileDamageType = DamageType.Splash
+    phoenix_missile_projectile.InitialVelocity = 0
+    phoenix_missile_projectile.Lifespan = 3f
+    ProjectileDefinition.CalculateDerivedFields(phoenix_missile_projectile)
+
+    plasma_cartridge_projectile.Name = "plasma_cartridge_projectile"
+    // TODO for later, maybe : set_resource_parent plasma_cartridge_projectile game_objects plasma_grenade_projectile
+    plasma_cartridge_projectile.Damage0 = 20
+    plasma_cartridge_projectile.Damage1 = 15
+    plasma_cartridge_projectile.DamageAtEdge = 0.2f
+    plasma_cartridge_projectile.DamageRadius = 7f
+    plasma_cartridge_projectile.ProjectileDamageType = DamageType.Aggravated
+    plasma_cartridge_projectile.InitialVelocity = 30
+    plasma_cartridge_projectile.Lifespan = 15f
+    ProjectileDefinition.CalculateDerivedFields(plasma_cartridge_projectile)
+
+    plasma_cartridge_projectile_b.Name = "plasma_cartridge_projectile_b"
+    // TODO for later, maybe : set_resource_parent plasma_cartridge_projectile_b game_objects plasma_grenade_projectile_B
+    plasma_cartridge_projectile_b.Damage0 = 20
+    plasma_cartridge_projectile_b.Damage1 = 15
+    plasma_cartridge_projectile_b.DamageAtEdge = 0.2f
+    plasma_cartridge_projectile_b.DamageRadius = 7f
+    plasma_cartridge_projectile_b.ProjectileDamageType = DamageType.Aggravated
+    plasma_cartridge_projectile_b.InitialVelocity = 30
+    plasma_cartridge_projectile_b.Lifespan = 2f
+    ProjectileDefinition.CalculateDerivedFields(plasma_cartridge_projectile_b)
+
+    plasma_grenade_projectile.Name = "plasma_grenade_projectile"
+    plasma_grenade_projectile.Damage0 = 40
+    plasma_grenade_projectile.Damage1 = 30
+    plasma_grenade_projectile.DamageAtEdge = 0.1f
+    plasma_grenade_projectile.DamageRadius = 7f
+    plasma_grenade_projectile.ProjectileDamageType = DamageType.Aggravated
+    plasma_grenade_projectile.InitialVelocity = 30
+    plasma_grenade_projectile.Lifespan = 15f
+    ProjectileDefinition.CalculateDerivedFields(plasma_grenade_projectile)
+
+    plasma_grenade_projectile_B.Name = "plasma_grenade_projectile_B"
+    // TODO for later, maybe : set_resource_parent plasma_grenade_projectile_B game_objects plasma_grenade_projectile
+    plasma_grenade_projectile_B.Damage0 = 40
+    plasma_grenade_projectile_B.Damage1 = 30
+    plasma_grenade_projectile_B.DamageAtEdge = 0.1f
+    plasma_grenade_projectile_B.DamageRadius = 7f
+    plasma_grenade_projectile_B.ProjectileDamageType = DamageType.Aggravated
+    plasma_grenade_projectile_B.InitialVelocity = 30
+    plasma_grenade_projectile_B.Lifespan = 3f
+    ProjectileDefinition.CalculateDerivedFields(plasma_grenade_projectile_B)
+
+    pounder_projectile.Name = "pounder_projectile"
+    pounder_projectile.Damage0 = 31
+    pounder_projectile.Damage1 = 120
+    pounder_projectile.Damage2 = 120
+    pounder_projectile.Damage3 = 75
+    pounder_projectile.Damage4 = 132
+    pounder_projectile.DamageAtEdge = 0.1f
+    pounder_projectile.DamageRadius = 1f
+    pounder_projectile.ProjectileDamageType = DamageType.Splash
+    pounder_projectile.InitialVelocity = 120
+    pounder_projectile.Lifespan = 2.5f
+    ProjectileDefinition.CalculateDerivedFields(pounder_projectile)
+
+    pounder_projectile_enh.Name = "pounder_projectile_enh"
+    // TODO for later, maybe : set_resource_parent pounder_projectile_enh game_objects pounder_projectile
+    pounder_projectile_enh.Damage0 = 31
+    pounder_projectile_enh.Damage1 = 120
+    pounder_projectile_enh.Damage2 = 120
+    pounder_projectile_enh.Damage3 = 75
+    pounder_projectile_enh.Damage4 = 132
+    pounder_projectile_enh.DamageAtEdge = 0.1f
+    pounder_projectile_enh.DamageRadius = 1f
+    pounder_projectile_enh.ProjectileDamageType = DamageType.Splash
+    pounder_projectile_enh.InitialVelocity = 120
+    pounder_projectile_enh.Lifespan = 3.2f
+    ProjectileDefinition.CalculateDerivedFields(pounder_projectile_enh)
+
+    ppa_projectile.Name = "ppa_projectile"
+    ppa_projectile.Damage0 = 20
+    ppa_projectile.Damage1 = 20
+    ppa_projectile.Damage2 = 40
+    ppa_projectile.Damage3 = 20
+    ppa_projectile.Damage4 = 13
+    ppa_projectile.ProjectileDamageType = DamageType.Direct
+    ppa_projectile.InitialVelocity = 400
+    ppa_projectile.Lifespan = .5f
+    ProjectileDefinition.CalculateDerivedFields(ppa_projectile)
+
+    pulsar_ap_projectile.Name = "pulsar_ap_projectile"
+    // TODO for later, maybe : set_resource_parent pulsar_ap_projectile game_objects pulsar_projectile
+    pulsar_ap_projectile.Damage0 = 7
+    pulsar_ap_projectile.Damage1 = 15
+    pulsar_ap_projectile.ProjectileDamageType = DamageType.Direct
+    pulsar_ap_projectile.DegradeDelay = 0.1f
+    pulsar_ap_projectile.DegradeMultiplier = 0.5f
+    pulsar_ap_projectile.InitialVelocity = 500
+    pulsar_ap_projectile.Lifespan = .4f
+    pulsar_ap_projectile.UseDamage1Subtract = true
+    ProjectileDefinition.CalculateDerivedFields(pulsar_ap_projectile)
+
+    pulsar_projectile.Name = "pulsar_projectile"
+    pulsar_projectile.Damage0 = 20
+    pulsar_projectile.Damage1 = 10
+    pulsar_projectile.ProjectileDamageType = DamageType.Direct
+    pulsar_projectile.DegradeDelay = 0.1f
+    pulsar_projectile.DegradeMultiplier = 0.4f
+    pulsar_projectile.InitialVelocity = 500
+    pulsar_projectile.Lifespan = .4f
+    pulsar_projectile.UseDamage1Subtract = true
+    ProjectileDefinition.CalculateDerivedFields(pulsar_projectile)
+
+    quasar_projectile.Name = "quasar_projectile"
+    quasar_projectile.Damage0 = 18
+    quasar_projectile.Damage1 = 8
+    quasar_projectile.ProjectileDamageType = DamageType.Direct
+    quasar_projectile.DegradeDelay = 0.045f
+    quasar_projectile.DegradeMultiplier = 0.5f
+    quasar_projectile.InitialVelocity = 500
+    quasar_projectile.Lifespan = .4f
+    ProjectileDefinition.CalculateDerivedFields(quasar_projectile)
+
+    radiator_grenade_projectile.Name = "radiator_grenade_projectile" // Todo : Radiator damages ?
+    radiator_grenade_projectile.ProjectileDamageType = DamageType.Direct
+    radiator_grenade_projectile.InitialVelocity = 30
+    radiator_grenade_projectile.Lifespan = 3f
+    ProjectileDefinition.CalculateDerivedFields(radiator_grenade_projectile)
+
+    radiator_sticky_projectile.Name = "radiator_sticky_projectile"
+    // TODO for later, maybe : set_resource_parent radiator_sticky_projectile game_objects radiator_grenade_projectile
+    radiator_sticky_projectile.ProjectileDamageType = DamageType.Direct
+    radiator_sticky_projectile.InitialVelocity = 30
+    radiator_sticky_projectile.Lifespan = 4f
+    ProjectileDefinition.CalculateDerivedFields(radiator_sticky_projectile)
+
+    reaver_rocket_projectile.Name = "reaver_rocket_projectile"
+    reaver_rocket_projectile.Damage0 = 25
+    reaver_rocket_projectile.Damage1 = 88
+    reaver_rocket_projectile.Damage2 = 75
+    reaver_rocket_projectile.Damage3 = 75
+    reaver_rocket_projectile.Damage4 = 88
+    reaver_rocket_projectile.Acceleration = 50
+    reaver_rocket_projectile.AccelerationUntil = 1f
+    reaver_rocket_projectile.DamageAtEdge = 0.1f
+    reaver_rocket_projectile.DamageRadius = 3f
+    reaver_rocket_projectile.ProjectileDamageType = DamageType.Splash
+    reaver_rocket_projectile.InitialVelocity = 100
+    reaver_rocket_projectile.Lifespan = 2.1f
+    ProjectileDefinition.CalculateDerivedFields(reaver_rocket_projectile)
+
+    rocket_projectile.Name = "rocket_projectile"
+    rocket_projectile.Damage0 = 50
+    rocket_projectile.Damage1 = 105
+    rocket_projectile.Damage2 = 75
+    rocket_projectile.Damage3 = 75
+    rocket_projectile.Damage4 = 75
+    rocket_projectile.Acceleration = 10
+    rocket_projectile.AccelerationUntil = 2f
+    rocket_projectile.DamageAtEdge = .5f
+    rocket_projectile.DamageRadius = 3f
+    rocket_projectile.ProjectileDamageType = DamageType.Splash
+    rocket_projectile.InitialVelocity = 50
+    rocket_projectile.Lifespan = 8f
+    ProjectileDefinition.CalculateDerivedFields(rocket_projectile)
+
+    rocklet_flak_projectile.Name = "rocklet_flak_projectile"
+    rocklet_flak_projectile.Damage0 = 20
+    rocklet_flak_projectile.Damage1 = 30
+    rocklet_flak_projectile.Damage2 = 57
+    rocklet_flak_projectile.Damage3 = 30
+    rocklet_flak_projectile.Damage4 = 50
+    rocklet_flak_projectile.DamageAtEdge = 0.25f
+    rocklet_flak_projectile.DamageRadius = 8f
+    rocklet_flak_projectile.ProjectileDamageType = DamageType.Direct
+    rocklet_flak_projectile.ProjectileDamageTypeSecondary = DamageType.Splash
+    rocklet_flak_projectile.InitialVelocity = 60
+    rocklet_flak_projectile.Lifespan = 3.2f
+    ProjectileDefinition.CalculateDerivedFields(rocklet_flak_projectile)
+
+    rocklet_jammer_projectile.Name = "rocklet_jammer_projectile"
+    rocklet_jammer_projectile.Damage0 = 0
+    rocklet_jammer_projectile.Acceleration = 10
+    rocklet_jammer_projectile.AccelerationUntil = 2f
+    rocklet_jammer_projectile.DamageAtEdge = 1.0f
+    rocklet_jammer_projectile.DamageRadius = 10f
+    rocklet_jammer_projectile.ProjectileDamageType = DamageType.Splash
+    rocklet_jammer_projectile.InitialVelocity = 50
+    rocklet_jammer_projectile.Lifespan = 8f
+    ProjectileDefinition.CalculateDerivedFields(rocklet_jammer_projectile)
+
+    scattercannon_projectile.Name = "scattercannon_projectile"
+    scattercannon_projectile.Damage0 = 11
+    scattercannon_projectile.Damage1 = 5
+    scattercannon_projectile.ProjectileDamageType = DamageType.Direct
+    scattercannon_projectile.InitialVelocity = 400
+    scattercannon_projectile.Lifespan = 0.25f
+    ProjectileDefinition.CalculateDerivedFields(scattercannon_projectile)
+
+    scythe_projectile.Name = "scythe_projectile"
+    scythe_projectile.Damage0 = 30
+    scythe_projectile.Damage1 = 20
+    scythe_projectile.ProjectileDamageType = DamageType.Direct
+    scythe_projectile.DegradeDelay = .015f
+    scythe_projectile.DegradeMultiplier = 0.35f
+    scythe_projectile.InitialVelocity = 60
+    scythe_projectile.Lifespan = 3f
+    ProjectileDefinition.CalculateDerivedFields(scythe_projectile)
+
+    scythe_projectile_slave.Name = "scythe_projectile_slave" // Todo how does it work ?
+    scythe_projectile_slave.InitialVelocity = 30
+    scythe_projectile_slave.Lifespan = 3f
+    ProjectileDefinition.CalculateDerivedFields(scythe_projectile_slave)
+
+    shotgun_shell_AP_projectile.Name = "shotgun_shell_AP_projectile"
+    // TODO for later, maybe : set_resource_parent shotgun_shell_AP_projectile game_objects shotgun_shell_projectile
+    shotgun_shell_AP_projectile.Damage0 = 5
+    shotgun_shell_AP_projectile.Damage1 = 10
+    shotgun_shell_AP_projectile.ProjectileDamageType = DamageType.Direct
+    shotgun_shell_AP_projectile.InitialVelocity = 400
+    shotgun_shell_AP_projectile.Lifespan = 0.25f
+    shotgun_shell_AP_projectile.UseDamage1Subtract = true
+    ProjectileDefinition.CalculateDerivedFields(shotgun_shell_AP_projectile)
+
+    shotgun_shell_projectile.Name = "shotgun_shell_projectile"
+    shotgun_shell_projectile.Damage0 = 12
+    shotgun_shell_projectile.Damage1 = 5
+    shotgun_shell_projectile.ProjectileDamageType = DamageType.Direct
+    shotgun_shell_projectile.InitialVelocity = 400
+    shotgun_shell_projectile.Lifespan = 0.25f
+    shotgun_shell_projectile.UseDamage1Subtract = true
+    ProjectileDefinition.CalculateDerivedFields(shotgun_shell_projectile)
+
+    six_shooter_projectile.Name = "six_shooter_projectile"
+    // TODO for later, maybe : set_resource_parent six_shooter_projectile game_objects 9mmbullet_projectile
+    six_shooter_projectile.Damage0 = 22
+    six_shooter_projectile.Damage1 = 20
+    six_shooter_projectile.ProjectileDamageType = DamageType.Direct
+    six_shooter_projectile.DegradeDelay = 0.15f
+    six_shooter_projectile.DegradeMultiplier = 0.25f
+    six_shooter_projectile.InitialVelocity = 500
+    six_shooter_projectile.Lifespan = 0.4f
+    six_shooter_projectile.UseDamage1Subtract = false
+    ProjectileDefinition.CalculateDerivedFields(six_shooter_projectile)
+
+    skyguard_flak_cannon_projectile.Name = "skyguard_flak_cannon_projectile"
+    skyguard_flak_cannon_projectile.Damage0 = 15
+    skyguard_flak_cannon_projectile.Damage1 = 25
+    skyguard_flak_cannon_projectile.Damage2 = 50
+    skyguard_flak_cannon_projectile.DamageAtEdge = 1f
+    skyguard_flak_cannon_projectile.DamageRadius = 10f
+    skyguard_flak_cannon_projectile.ProjectileDamageType = DamageType.Direct
+    skyguard_flak_cannon_projectile.ProjectileDamageTypeSecondary = DamageType.Splash
+    skyguard_flak_cannon_projectile.InitialVelocity = 100
+    skyguard_flak_cannon_projectile.Lifespan = 5f
+    ProjectileDefinition.CalculateDerivedFields(skyguard_flak_cannon_projectile)
+
+    sparrow_projectile.Name = "sparrow_projectile"
+    sparrow_projectile.Damage0 = 35
+    sparrow_projectile.Damage1 = 50
+    sparrow_projectile.Damage2 = 125
+    sparrow_projectile.Acceleration = 12
+    sparrow_projectile.AccelerationUntil = 5f
+    sparrow_projectile.DamageAtEdge = 0.1f
+    sparrow_projectile.DamageRadius = 3f
+    sparrow_projectile.ProjectileDamageType = DamageType.Splash
+    sparrow_projectile.InitialVelocity = 60
+    sparrow_projectile.Lifespan = 5.85f
+    ProjectileDefinition.CalculateDerivedFields(sparrow_projectile)
+
+    sparrow_secondary_projectile.Name = "sparrow_secondary_projectile"
+    // TODO for later, maybe : set_resource_parent sparrow_secondary_projectile game_objects sparrow_projectile
+    sparrow_secondary_projectile.Damage0 = 35
+    sparrow_secondary_projectile.Damage1 = 50
+    sparrow_secondary_projectile.Damage2 = 125
+    sparrow_secondary_projectile.Acceleration = 12
+    sparrow_secondary_projectile.AccelerationUntil = 5f
+    sparrow_secondary_projectile.DamageAtEdge = 0.1f
+    sparrow_secondary_projectile.DamageRadius = 3f
+    sparrow_secondary_projectile.ProjectileDamageType = DamageType.Splash
+    sparrow_secondary_projectile.InitialVelocity = 60
+    sparrow_secondary_projectile.Lifespan = 5.85f
+    ProjectileDefinition.CalculateDerivedFields(sparrow_secondary_projectile)
+
+    spiker_projectile.Name = "spiker_projectile"
+    //    spiker_projectile.Damage0 = 75
+    spiker_projectile.Damage0 = 20
+    //    spiker_projectile.Damage0_min = 20
+    //    spiker_projectile.Damage1 = 75
+    spiker_projectile.Damage1 = 20
+    //    spiker_projectile.Damage1_min = 20
+    spiker_projectile.DamageAtEdge = 0.1f
+    spiker_projectile.DamageRadius = 5f
+    spiker_projectile.DamageRadius = 1f
+    spiker_projectile.ProjectileDamageType = DamageType.Splash
+    spiker_projectile.InitialVelocity = 40
+    spiker_projectile.Lifespan = 5f
+    ProjectileDefinition.CalculateDerivedFields(spiker_projectile)
+
+    spitfire_aa_ammo_projectile.Name = "spitfire_aa_ammo_projectile"
+    spitfire_aa_ammo_projectile.Damage0 = 5
+    spitfire_aa_ammo_projectile.Damage1 = 15
+    spitfire_aa_ammo_projectile.Damage2 = 12
+    spitfire_aa_ammo_projectile.Damage3 = 5
+    spitfire_aa_ammo_projectile.Damage4 = 15
+    spitfire_aa_ammo_projectile.DamageAtEdge = 1f
+    spitfire_aa_ammo_projectile.DamageRadius = 10f
+    spitfire_aa_ammo_projectile.ProjectileDamageType = DamageType.Direct
+    spitfire_aa_ammo_projectile.ProjectileDamageTypeSecondary = DamageType.Splash
+    spitfire_aa_ammo_projectile.InitialVelocity = 100
+    spitfire_aa_ammo_projectile.Lifespan = 5f
+    ProjectileDefinition.CalculateDerivedFields(spitfire_aa_ammo_projectile)
+
+    spitfire_ammo_projectile.Name = "spitfire_ammo_projectile"
+    spitfire_ammo_projectile.Damage0 = 15
+    spitfire_ammo_projectile.Damage1 = 10
+    spitfire_ammo_projectile.ProjectileDamageType = DamageType.Direct
+    spitfire_ammo_projectile.DegradeDelay = .01f
+    spitfire_ammo_projectile.DegradeMultiplier = 0.5f
+    spitfire_ammo_projectile.InitialVelocity = 100
+    spitfire_ammo_projectile.Lifespan = .5f
+    ProjectileDefinition.CalculateDerivedFields(spitfire_ammo_projectile)
+
+    starfire_projectile.Name = "starfire_projectile"
+    starfire_projectile.Damage0 = 16
+    starfire_projectile.Damage1 = 20
+    starfire_projectile.Damage2 = 58
+    starfire_projectile.Acceleration = 12
+    starfire_projectile.AccelerationUntil = 5f
+    starfire_projectile.ProjectileDamageType = DamageType.Aggravated
+    starfire_projectile.InitialVelocity = 45
+    starfire_projectile.Lifespan = 7.8f
+    ProjectileDefinition.CalculateDerivedFields(starfire_projectile)
+
+    striker_missile_projectile.Name = "striker_missile_projectile"
+    striker_missile_projectile.Damage0 = 35
+    striker_missile_projectile.Damage1 = 175
+    striker_missile_projectile.Damage2 = 125
+    striker_missile_projectile.Damage3 = 125
+    striker_missile_projectile.Damage4 = 263
+    striker_missile_projectile.Acceleration = 20
+    striker_missile_projectile.AccelerationUntil = 2f
+    striker_missile_projectile.DamageAtEdge = 0.1f
+    striker_missile_projectile.DamageRadius = 1.5f
+    striker_missile_projectile.ProjectileDamageType = DamageType.Splash
+    striker_missile_projectile.InitialVelocity = 30
+    striker_missile_projectile.Lifespan = 4.2f
+    ProjectileDefinition.CalculateDerivedFields(striker_missile_projectile)
+
+    striker_missile_targeting_projectile.Name = "striker_missile_targeting_projectile"
+    // TODO for later, maybe : set_resource_parent striker_missile_targeting_projectile game_objects striker_missile_projectile
+    striker_missile_targeting_projectile.Damage0 = 35
+    striker_missile_targeting_projectile.Damage1 = 175
+    striker_missile_targeting_projectile.Damage2 = 125
+    striker_missile_targeting_projectile.Damage3 = 125
+    striker_missile_targeting_projectile.Damage4 = 263
+    striker_missile_targeting_projectile.Acceleration = 20
+    striker_missile_targeting_projectile.AccelerationUntil = 2f
+    striker_missile_targeting_projectile.DamageAtEdge = 0.1f
+    striker_missile_targeting_projectile.DamageRadius = 1.5f
+    striker_missile_targeting_projectile.ProjectileDamageType = DamageType.Splash
+    striker_missile_targeting_projectile.InitialVelocity = 30
+    striker_missile_targeting_projectile.Lifespan = 4.2f
+    ProjectileDefinition.CalculateDerivedFields(striker_missile_targeting_projectile)
+
+    trek_projectile.Name = "trek_projectile"
+    trek_projectile.Damage0 = 0
+    trek_projectile.Damage1 = 0
+    trek_projectile.Damage2 = 0
+    trek_projectile.Damage3 = 0
+    trek_projectile.Damage4 = 0
+    trek_projectile.Acceleration = -20
+    trek_projectile.AccelerationUntil = 1f
+    trek_projectile.ProjectileDamageType = DamageType.Direct
+    trek_projectile.InitialVelocity = 40
+    trek_projectile.Lifespan = 7f
+    ProjectileDefinition.CalculateDerivedFields(trek_projectile)
+
+    vanu_sentry_turret_projectile.Name = "vanu_sentry_turret_projectile"
+    vanu_sentry_turret_projectile.Damage0 = 25
+    vanu_sentry_turret_projectile.Damage1 = 35
+    vanu_sentry_turret_projectile.Damage2 = 100
+    vanu_sentry_turret_projectile.DamageAtEdge = 0.1f
+    vanu_sentry_turret_projectile.DamageRadius = 3f
+    vanu_sentry_turret_projectile.ProjectileDamageType = DamageType.Splash
+    vanu_sentry_turret_projectile.InitialVelocity = 240
+    vanu_sentry_turret_projectile.Lifespan = 1.3f
+    ProjectileDefinition.CalculateDerivedFields(vanu_sentry_turret_projectile)
+
+    vulture_bomb_projectile.Name = "vulture_bomb_projectile"
+    vulture_bomb_projectile.Damage0 = 175
+    vulture_bomb_projectile.Damage1 = 1750
+    vulture_bomb_projectile.Damage2 = 1000
+    vulture_bomb_projectile.Damage3 = 400
+    vulture_bomb_projectile.Damage4 = 1500
+    vulture_bomb_projectile.DamageAtEdge = 0.1f
+    vulture_bomb_projectile.DamageRadius = 10f
+    vulture_bomb_projectile.ProjectileDamageType = DamageType.Splash
+    vulture_bomb_projectile.InitialVelocity = 0
+    vulture_bomb_projectile.Lifespan = 30f
+    ProjectileDefinition.CalculateDerivedFields(vulture_bomb_projectile)
+
+    vulture_nose_bullet_projectile.Name = "vulture_nose_bullet_projectile"
+    vulture_nose_bullet_projectile.Damage0 = 12
+    vulture_nose_bullet_projectile.Damage1 = 15
+    vulture_nose_bullet_projectile.Damage2 = 10
+    vulture_nose_bullet_projectile.Damage3 = 10
+    vulture_nose_bullet_projectile.Damage4 = 15
+    vulture_nose_bullet_projectile.ProjectileDamageType = DamageType.Direct
+    vulture_nose_bullet_projectile.DegradeDelay = .4f
+    vulture_nose_bullet_projectile.DegradeMultiplier = 0.7f
+    vulture_nose_bullet_projectile.InitialVelocity = 500
+    vulture_nose_bullet_projectile.Lifespan = 0.46f
+    ProjectileDefinition.CalculateDerivedFields(vulture_nose_bullet_projectile)
+
+    vulture_tail_bullet_projectile.Name = "vulture_tail_bullet_projectile"
+    vulture_tail_bullet_projectile.Damage0 = 25
+    vulture_tail_bullet_projectile.Damage1 = 35
+    vulture_tail_bullet_projectile.Damage2 = 50
+    vulture_tail_bullet_projectile.ProjectileDamageType = DamageType.Direct
+    vulture_tail_bullet_projectile.DegradeDelay = .02f
+    vulture_tail_bullet_projectile.DegradeMultiplier = 0.5f
+    vulture_tail_bullet_projectile.InitialVelocity = 500
+    vulture_tail_bullet_projectile.Lifespan = 0.6f
+    ProjectileDefinition.CalculateDerivedFields(vulture_tail_bullet_projectile)
+
+    wasp_gun_projectile.Name = "wasp_gun_projectile"
+    wasp_gun_projectile.Damage0 = 10
+    wasp_gun_projectile.Damage1 = 15
+    wasp_gun_projectile.Damage2 = 25
+    wasp_gun_projectile.Damage3 = 17
+    wasp_gun_projectile.Damage4 = 7
+    wasp_gun_projectile.ProjectileDamageType = DamageType.Direct
+    wasp_gun_projectile.DegradeDelay = .015f
+    wasp_gun_projectile.DegradeMultiplier = 0.5f
+    wasp_gun_projectile.InitialVelocity = 500
+    wasp_gun_projectile.Lifespan = 0.5f
+    ProjectileDefinition.CalculateDerivedFields(wasp_gun_projectile)
+
+    wasp_rocket_projectile.Name = "wasp_rocket_projectile"
+    wasp_rocket_projectile.Damage0 = 35
+    wasp_rocket_projectile.Damage1 = 50
+    wasp_rocket_projectile.Damage2 = 300
+    wasp_rocket_projectile.Acceleration = 10
+    wasp_rocket_projectile.AccelerationUntil = 5f
+    wasp_rocket_projectile.DamageAtEdge = 0.1f
+    wasp_rocket_projectile.DamageRadius = 3f
+    wasp_rocket_projectile.ProjectileDamageType = DamageType.Splash
+    wasp_rocket_projectile.InitialVelocity = 60
+    wasp_rocket_projectile.Lifespan = 6.5f
+    ProjectileDefinition.CalculateDerivedFields(wasp_rocket_projectile)
+
+    winchester_projectile.Name = "winchester_projectile"
+    // TODO for later, maybe : set_resource_parent winchester_projectile game_objects bolt_projectile
+    winchester_projectile.Damage0 = 80
+    winchester_projectile.Damage1 = 40
+    winchester_projectile.Damage2 = 50
+    winchester_projectile.Damage3 = 50
+    winchester_projectile.Damage4 = 75
+    winchester_projectile.ProjectileDamageType = DamageType.Direct
+    winchester_projectile.InitialVelocity = 500
+    winchester_projectile.Lifespan = 0.6f
+    ProjectileDefinition.CalculateDerivedFields(winchester_projectile)
   }
 
   /**
@@ -1240,54 +3189,67 @@ object GlobalDefinitions {
     chainblade.Name = "chainblade"
     chainblade.Size = EquipmentSize.Melee
     chainblade.AmmoTypes += melee_ammo
+    chainblade.ProjectileTypes += melee_ammo_projectile
+    chainblade.ProjectileTypes += chainblade_projectile
     chainblade.FireModes += new InfiniteFireModeDefinition
     chainblade.FireModes.head.AmmoTypeIndices += 0
     chainblade.FireModes.head.AmmoSlotIndex = 0
     chainblade.FireModes.head.Magazine = 1
     chainblade.FireModes += new InfiniteFireModeDefinition
     chainblade.FireModes(1).AmmoTypeIndices += 0
+    chainblade.FireModes(1).ProjectileTypeIndices += 1
     chainblade.FireModes(1).AmmoSlotIndex = 0
     chainblade.FireModes(1).Magazine = 1
 
     magcutter.Name = "magcutter"
     magcutter.Size = EquipmentSize.Melee
     magcutter.AmmoTypes += melee_ammo
+    magcutter.ProjectileTypes += melee_ammo_projectile
+    magcutter.ProjectileTypes += magcutter_projectile
     magcutter.FireModes += new InfiniteFireModeDefinition
     magcutter.FireModes.head.AmmoTypeIndices += 0
     magcutter.FireModes.head.AmmoSlotIndex = 0
     magcutter.FireModes.head.Magazine = 1
     magcutter.FireModes += new InfiniteFireModeDefinition
     magcutter.FireModes(1).AmmoTypeIndices += 0
+    magcutter.FireModes(1).ProjectileTypeIndices += 1
     magcutter.FireModes(1).AmmoSlotIndex = 0
     magcutter.FireModes(1).Magazine = 1
 
     forceblade.Name = "forceblade"
     forceblade.Size = EquipmentSize.Melee
     forceblade.AmmoTypes += melee_ammo
+    forceblade.ProjectileTypes += melee_ammo_projectile
+    forceblade.ProjectileTypes += forceblade_projectile
     forceblade.FireModes += new InfiniteFireModeDefinition
     forceblade.FireModes.head.AmmoTypeIndices += 0
     forceblade.FireModes.head.AmmoSlotIndex = 0
     forceblade.FireModes.head.Magazine = 1
     forceblade.FireModes += new InfiniteFireModeDefinition
     forceblade.FireModes(1).AmmoTypeIndices += 0
+    forceblade.FireModes(1).ProjectileTypeIndices += 1
     forceblade.FireModes(1).AmmoSlotIndex = 0
     forceblade.FireModes(1).Magazine = 1
 
     katana.Name = "katana"
     katana.Size = EquipmentSize.Melee
     katana.AmmoTypes += melee_ammo
+    katana.ProjectileTypes += katana_projectile
+    katana.ProjectileTypes += katana_projectileb
     katana.FireModes += new InfiniteFireModeDefinition
     katana.FireModes.head.AmmoTypeIndices += 0
     katana.FireModes.head.AmmoSlotIndex = 0
     katana.FireModes.head.Magazine = 1
     katana.FireModes += new InfiniteFireModeDefinition
     katana.FireModes(1).AmmoTypeIndices += 0
+    katana.FireModes(1).ProjectileTypeIndices += 1
     katana.FireModes(1).AmmoSlotIndex = 0
     katana.FireModes(1).Magazine = 1
 
     frag_grenade.Name = "frag_grenade"
     frag_grenade.Size = EquipmentSize.Pistol
     frag_grenade.AmmoTypes += frag_grenade_ammo
+    frag_grenade.ProjectileTypes += frag_grenade_projectile
     frag_grenade.FireModes += new FireModeDefinition
     frag_grenade.FireModes.head.AmmoTypeIndices += 0
     frag_grenade.FireModes.head.AmmoSlotIndex = 0
@@ -1301,6 +3263,7 @@ object GlobalDefinitions {
     plasma_grenade.Name = "plasma_grenade"
     plasma_grenade.Size = EquipmentSize.Pistol
     plasma_grenade.AmmoTypes += plasma_grenade_ammo
+    plasma_grenade.ProjectileTypes += plasma_grenade_projectile
     plasma_grenade.FireModes += new FireModeDefinition
     plasma_grenade.FireModes.head.AmmoTypeIndices += 0
     plasma_grenade.FireModes.head.AmmoSlotIndex = 0
@@ -1314,6 +3277,7 @@ object GlobalDefinitions {
     jammer_grenade.Name = "jammer_grenade"
     jammer_grenade.Size = EquipmentSize.Pistol
     jammer_grenade.AmmoTypes += jammer_grenade_ammo
+    jammer_grenade.ProjectileTypes += jammer_grenade_projectile
     jammer_grenade.FireModes += new FireModeDefinition
     jammer_grenade.FireModes.head.AmmoTypeIndices += 0
     jammer_grenade.FireModes.head.AmmoSlotIndex = 0
@@ -1328,58 +3292,91 @@ object GlobalDefinitions {
     repeater.Size = EquipmentSize.Pistol
     repeater.AmmoTypes += bullet_9mm
     repeater.AmmoTypes += bullet_9mm_AP
+    repeater.ProjectileTypes += bullet_9mm_projectile
+    repeater.ProjectileTypes += bullet_9mm_AP_projectile
     repeater.FireModes += new FireModeDefinition
     repeater.FireModes.head.AmmoTypeIndices += 0
     repeater.FireModes.head.AmmoTypeIndices += 1
     repeater.FireModes.head.AmmoSlotIndex = 0
     repeater.FireModes.head.Magazine = 20
+    repeater.FireModes.head.Modifiers.Damage0 = 2
+    repeater.FireModes.head.Modifiers.Damage1 = -3
+    repeater.FireModes.head.Modifiers.Damage2 = -3
+    repeater.FireModes.head.Modifiers.Damage3 = -3
+    repeater.FireModes.head.Modifiers.Damage4 = -3
     repeater.Tile = InventoryTile.Tile33
 
     isp.Name = "isp"
     isp.Size = EquipmentSize.Pistol
     isp.AmmoTypes += shotgun_shell
     isp.AmmoTypes += shotgun_shell_AP
+    isp.ProjectileTypes += shotgun_shell_projectile
+    isp.ProjectileTypes += shotgun_shell_AP_projectile
     isp.FireModes += new PelletFireModeDefinition
     isp.FireModes.head.AmmoTypeIndices += 0
     isp.FireModes.head.AmmoTypeIndices += 1
     isp.FireModes.head.AmmoSlotIndex = 0
     isp.FireModes.head.Magazine = 8
     isp.FireModes.head.Chamber = 6 //8 shells x 6 pellets = 48
+    isp.FireModes.head.Modifiers.Damage0 = 1
+    isp.FireModes.head.Modifiers.Damage2 = 1
+    isp.FireModes.head.Modifiers.Damage3 = 1
     isp.Tile = InventoryTile.Tile33
 
     beamer.Name = "beamer"
     beamer.Size = EquipmentSize.Pistol
     beamer.AmmoTypes += energy_cell
+    beamer.ProjectileTypes += energy_cell_projectile
+    beamer.ProjectileTypes += enhanced_energy_cell_projectile
     beamer.FireModes += new FireModeDefinition
     beamer.FireModes.head.AmmoTypeIndices += 0
     beamer.FireModes.head.AmmoSlotIndex = 0
     beamer.FireModes.head.Magazine = 16
+    beamer.FireModes.head.Modifiers.Damage0 = 4
+    beamer.FireModes.head.Modifiers.Damage1 = -1
+    beamer.FireModes.head.Modifiers.Damage2 = -1
+    beamer.FireModes.head.Modifiers.Damage3 = -1
+    beamer.FireModes.head.Modifiers.Damage4 = -1
     beamer.FireModes += new FireModeDefinition
     beamer.FireModes(1).AmmoTypeIndices += 0
+    beamer.FireModes(1).ProjectileTypeIndices += 1
     beamer.FireModes(1).AmmoSlotIndex = 0
     beamer.FireModes(1).Magazine = 16
+    beamer.FireModes(1).Modifiers.Damage0 = -3
+    beamer.FireModes(1).Modifiers.Damage1 = -3
+    beamer.FireModes(1).Modifiers.Damage2 = -3
+    beamer.FireModes(1).Modifiers.Damage3 = -3
+    beamer.FireModes(1).Modifiers.Damage4 = -3
     beamer.Tile = InventoryTile.Tile33
 
     ilc9.Name = "ilc9"
     ilc9.Size = EquipmentSize.Pistol
     ilc9.AmmoTypes += bullet_9mm
     ilc9.AmmoTypes += bullet_9mm_AP
+    ilc9.ProjectileTypes += bullet_9mm_projectile
+    ilc9.ProjectileTypes += bullet_9mm_AP_projectile
     ilc9.FireModes += new FireModeDefinition
     ilc9.FireModes.head.AmmoTypeIndices += 0
     ilc9.FireModes.head.AmmoTypeIndices += 1
     ilc9.FireModes.head.AmmoSlotIndex = 0
     ilc9.FireModes.head.Magazine = 30
+    ilc9.FireModes.head.Modifiers.Damage1 = -3
+    ilc9.FireModes.head.Modifiers.Damage4 = -3
     ilc9.Tile = InventoryTile.Tile33
 
     suppressor.Name = "suppressor"
     suppressor.Size = EquipmentSize.Rifle
     suppressor.AmmoTypes += bullet_9mm
     suppressor.AmmoTypes += bullet_9mm_AP
+    suppressor.ProjectileTypes += bullet_9mm_projectile
+    suppressor.ProjectileTypes += bullet_9mm_AP_projectile
     suppressor.FireModes += new FireModeDefinition
     suppressor.FireModes.head.AmmoTypeIndices += 0
     suppressor.FireModes.head.AmmoTypeIndices += 1
     suppressor.FireModes.head.AmmoSlotIndex = 0
     suppressor.FireModes.head.Magazine = 25
+    suppressor.FireModes.head.Modifiers.Damage0 = -1
+    suppressor.FireModes.head.Modifiers.Damage1 = -1
     suppressor.Tile = InventoryTile.Tile63
 
     punisher.Name = "punisher"
@@ -1390,11 +3387,19 @@ object GlobalDefinitions {
     punisher.AmmoTypes += frag_cartridge
     punisher.AmmoTypes += jammer_cartridge
     punisher.AmmoTypes += plasma_cartridge
+    punisher.ProjectileTypes += bullet_9mm_projectile
+    punisher.ProjectileTypes += bullet_9mm_AP_projectile
+    punisher.ProjectileTypes += rocket_projectile
+    punisher.ProjectileTypes += frag_cartridge_projectile
+    punisher.ProjectileTypes += jammer_cartridge_projectile
+    punisher.ProjectileTypes += plasma_cartridge_projectile
     punisher.FireModes += new FireModeDefinition
     punisher.FireModes.head.AmmoTypeIndices += 0
     punisher.FireModes.head.AmmoTypeIndices += 1
     punisher.FireModes.head.AmmoSlotIndex = 0
     punisher.FireModes.head.Magazine = 30
+    punisher.FireModes.head.Modifiers.Damage0 = 1
+    punisher.FireModes.head.Modifiers.Damage3 = 1
     punisher.FireModes += new FireModeDefinition
     punisher.FireModes(1).AmmoTypeIndices += 2
     punisher.FireModes(1).AmmoTypeIndices += 3
@@ -1408,6 +3413,8 @@ object GlobalDefinitions {
     flechette.Size = EquipmentSize.Rifle
     flechette.AmmoTypes += shotgun_shell
     flechette.AmmoTypes += shotgun_shell_AP
+    flechette.ProjectileTypes += shotgun_shell_projectile
+    flechette.ProjectileTypes += shotgun_shell_AP_projectile
     flechette.FireModes += new PelletFireModeDefinition
     flechette.FireModes.head.AmmoTypeIndices += 0
     flechette.FireModes.head.AmmoTypeIndices += 1
@@ -1420,6 +3427,8 @@ object GlobalDefinitions {
     cycler.Size = EquipmentSize.Rifle
     cycler.AmmoTypes += bullet_9mm
     cycler.AmmoTypes += bullet_9mm_AP
+    cycler.ProjectileTypes += bullet_9mm_projectile
+    cycler.ProjectileTypes += bullet_9mm_AP_projectile
     cycler.FireModes += new FireModeDefinition
     cycler.FireModes.head.AmmoTypeIndices += 0
     cycler.FireModes.head.AmmoTypeIndices += 1
@@ -1431,22 +3440,29 @@ object GlobalDefinitions {
     gauss.Size = EquipmentSize.Rifle
     gauss.AmmoTypes += bullet_9mm
     gauss.AmmoTypes += bullet_9mm_AP
+    gauss.ProjectileTypes += bullet_9mm_projectile
+    gauss.ProjectileTypes += bullet_9mm_AP_projectile
     gauss.FireModes += new FireModeDefinition
     gauss.FireModes.head.AmmoTypeIndices += 0
     gauss.FireModes.head.AmmoTypeIndices += 1
     gauss.FireModes.head.AmmoSlotIndex = 0
     gauss.FireModes.head.Magazine = 30
+    gauss.FireModes.head.Modifiers.Damage0 = 2
+    gauss.FireModes.head.Modifiers.Damage3 = 2
     gauss.Tile = InventoryTile.Tile63
 
     pulsar.Name = "pulsar"
     pulsar.Size = EquipmentSize.Rifle
     pulsar.AmmoTypes += energy_cell
+    pulsar.ProjectileTypes += pulsar_projectile
+    pulsar.ProjectileTypes += pulsar_ap_projectile
     pulsar.FireModes += new FireModeDefinition
     pulsar.FireModes.head.AmmoTypeIndices += 0
     pulsar.FireModes.head.AmmoSlotIndex = 0
     pulsar.FireModes.head.Magazine = 40
     pulsar.FireModes += new FireModeDefinition
     pulsar.FireModes(1).AmmoTypeIndices += 0
+    pulsar.FireModes(1).ProjectileTypeIndices += 1
     pulsar.FireModes(1).AmmoSlotIndex = 0
     pulsar.FireModes(1).Magazine = 40
     pulsar.Tile = InventoryTile.Tile63
@@ -1454,12 +3470,15 @@ object GlobalDefinitions {
     anniversary_guna.Name = "anniversary_guna"
     anniversary_guna.Size = EquipmentSize.Pistol
     anniversary_guna.AmmoTypes += anniversary_ammo
+    anniversary_guna.ProjectileTypes += anniversary_projectilea
+    anniversary_guna.ProjectileTypes += anniversary_projectileb
     anniversary_guna.FireModes += new FireModeDefinition
     anniversary_guna.FireModes.head.AmmoTypeIndices += 0
     anniversary_guna.FireModes.head.AmmoSlotIndex = 0
     anniversary_guna.FireModes.head.Magazine = 6
     anniversary_guna.FireModes += new FireModeDefinition
     anniversary_guna.FireModes(1).AmmoTypeIndices += 0
+    anniversary_guna.FireModes(1).ProjectileTypeIndices += 1
     anniversary_guna.FireModes(1).AmmoSlotIndex = 0
     anniversary_guna.FireModes(1).Magazine = 6
     anniversary_guna.Tile = InventoryTile.Tile33
@@ -1467,12 +3486,15 @@ object GlobalDefinitions {
     anniversary_gun.Name = "anniversary_gun"
     anniversary_gun.Size = EquipmentSize.Pistol
     anniversary_gun.AmmoTypes += anniversary_ammo
+    anniversary_gun.ProjectileTypes += anniversary_projectilea
+    anniversary_gun.ProjectileTypes += anniversary_projectileb
     anniversary_gun.FireModes += new FireModeDefinition
     anniversary_gun.FireModes.head.AmmoTypeIndices += 0
     anniversary_gun.FireModes.head.AmmoSlotIndex = 0
     anniversary_gun.FireModes.head.Magazine = 6
     anniversary_gun.FireModes += new FireModeDefinition
     anniversary_gun.FireModes(1).AmmoTypeIndices += 0
+    anniversary_gun.FireModes(1).ProjectileTypeIndices += 1
     anniversary_gun.FireModes(1).AmmoSlotIndex = 0
     anniversary_gun.FireModes(1).Magazine = 6
     anniversary_gun.Tile = InventoryTile.Tile33
@@ -1480,12 +3502,15 @@ object GlobalDefinitions {
     anniversary_gunb.Name = "anniversary_gunb"
     anniversary_gunb.Size = EquipmentSize.Pistol
     anniversary_gunb.AmmoTypes += anniversary_ammo
+    anniversary_gunb.ProjectileTypes += anniversary_projectilea
+    anniversary_gunb.ProjectileTypes += anniversary_projectileb
     anniversary_gunb.FireModes += new FireModeDefinition
     anniversary_gunb.FireModes.head.AmmoTypeIndices += 0
     anniversary_gunb.FireModes.head.AmmoSlotIndex = 0
     anniversary_gunb.FireModes.head.Magazine = 6
     anniversary_gunb.FireModes += new FireModeDefinition
     anniversary_gunb.FireModes(1).AmmoTypeIndices += 0
+    anniversary_gunb.FireModes(1).ProjectileTypeIndices += 1
     anniversary_gunb.FireModes(1).AmmoSlotIndex = 0
     anniversary_gunb.FireModes(1).Magazine = 6
     anniversary_gunb.Tile = InventoryTile.Tile33
@@ -1493,6 +3518,7 @@ object GlobalDefinitions {
     spiker.Name = "spiker"
     spiker.Size = EquipmentSize.Pistol
     spiker.AmmoTypes += ancient_ammo_combo
+    spiker.ProjectileTypes += spiker_projectile
     spiker.FireModes += new FireModeDefinition
     spiker.FireModes.head.AmmoTypeIndices += 0
     spiker.FireModes.head.AmmoSlotIndex = 0
@@ -1504,6 +3530,8 @@ object GlobalDefinitions {
     mini_chaingun.Size = EquipmentSize.Rifle
     mini_chaingun.AmmoTypes += bullet_9mm
     mini_chaingun.AmmoTypes += bullet_9mm_AP
+    mini_chaingun.ProjectileTypes += bullet_9mm_projectile
+    mini_chaingun.ProjectileTypes += bullet_9mm_AP_projectile
     mini_chaingun.FireModes += new FireModeDefinition
     mini_chaingun.FireModes.head.AmmoTypeIndices += 0
     mini_chaingun.FireModes.head.AmmoTypeIndices += 1
@@ -1515,29 +3543,36 @@ object GlobalDefinitions {
     r_shotgun.Size = EquipmentSize.Rifle
     r_shotgun.AmmoTypes += shotgun_shell
     r_shotgun.AmmoTypes += shotgun_shell_AP
+    r_shotgun.ProjectileTypes += shotgun_shell_projectile
+    r_shotgun.ProjectileTypes += shotgun_shell_AP_projectile
     r_shotgun.FireModes += new PelletFireModeDefinition
     r_shotgun.FireModes.head.AmmoTypeIndices += 0
     r_shotgun.FireModes.head.AmmoTypeIndices += 1
     r_shotgun.FireModes.head.AmmoSlotIndex = 0
     r_shotgun.FireModes.head.Magazine = 16
     r_shotgun.FireModes.head.Chamber = 8 //16 shells * 8 pellets = 128
+    r_shotgun.FireModes.head.Modifiers.Damage0 = 1
     r_shotgun.FireModes += new PelletFireModeDefinition
     r_shotgun.FireModes(1).AmmoTypeIndices += 0
     r_shotgun.FireModes(1).AmmoTypeIndices += 1
     r_shotgun.FireModes(1).AmmoSlotIndex = 0
     r_shotgun.FireModes(1).Magazine = 16
     r_shotgun.FireModes(1).Chamber = 8 //16 shells * 8 pellets = 128
+    r_shotgun.FireModes(1).Modifiers.Damage0 = -3
     r_shotgun.Tile = InventoryTile.Tile93
 
     lasher.Name = "lasher"
     lasher.Size = EquipmentSize.Rifle
     lasher.AmmoTypes += energy_cell
+    lasher.ProjectileTypes += lasher_projectile
+    lasher.ProjectileTypes += lasher_projectile_ap
     lasher.FireModes += new FireModeDefinition
     lasher.FireModes.head.AmmoTypeIndices += 0
     lasher.FireModes.head.AmmoSlotIndex = 0
     lasher.FireModes.head.Magazine = 35
     lasher.FireModes += new FireModeDefinition
     lasher.FireModes(1).AmmoTypeIndices += 0
+    lasher.FireModes(1).ProjectileTypeIndices += 1
     lasher.FireModes(1).AmmoSlotIndex = 0
     lasher.FireModes(1).Magazine = 35
     lasher.Tile = InventoryTile.Tile93
@@ -1545,16 +3580,21 @@ object GlobalDefinitions {
     maelstrom.Name = "maelstrom"
     maelstrom.Size = EquipmentSize.Rifle
     maelstrom.AmmoTypes += maelstrom_ammo
+    maelstrom.ProjectileTypes += maelstrom_stream_projectile
+    maelstrom.ProjectileTypes += maelstrom_grenade_projectile_contact
+    maelstrom.ProjectileTypes += maelstrom_grenade_projectile
     maelstrom.FireModes += new FireModeDefinition
     maelstrom.FireModes.head.AmmoTypeIndices += 0
     maelstrom.FireModes.head.AmmoSlotIndex = 0
     maelstrom.FireModes.head.Magazine = 150
     maelstrom.FireModes += new FireModeDefinition
     maelstrom.FireModes(1).AmmoTypeIndices += 0
+    maelstrom.FireModes(1).ProjectileTypeIndices += 1
     maelstrom.FireModes(1).AmmoSlotIndex = 0
     maelstrom.FireModes(1).Magazine = 150
     maelstrom.FireModes += new FireModeDefinition
     maelstrom.FireModes(2).AmmoTypeIndices += 0
+    maelstrom.FireModes(2).ProjectileTypeIndices += 2
     maelstrom.FireModes(2).AmmoSlotIndex = 0
     maelstrom.FireModes(2).Magazine = 150
     maelstrom.Tile = InventoryTile.Tile93
@@ -1563,12 +3603,15 @@ object GlobalDefinitions {
     phoenix.Name = "phoenix"
     phoenix.Size = EquipmentSize.Rifle
     phoenix.AmmoTypes += phoenix_missile
+    phoenix.ProjectileTypes += phoenix_missile_projectile
+    phoenix.ProjectileTypes += phoenix_missile_guided_projectile
     phoenix.FireModes += new FireModeDefinition
     phoenix.FireModes.head.AmmoTypeIndices += 0
     phoenix.FireModes.head.AmmoSlotIndex = 0
     phoenix.FireModes.head.Magazine = 3
     phoenix.FireModes += new FireModeDefinition
     phoenix.FireModes(1).AmmoTypeIndices += 0
+    phoenix.FireModes(1).ProjectileTypeIndices += 1
     phoenix.FireModes(1).AmmoSlotIndex = 0
     phoenix.FireModes(1).Magazine = 3
     phoenix.Tile = InventoryTile.Tile93
@@ -1576,12 +3619,15 @@ object GlobalDefinitions {
     striker.Name = "striker"
     striker.Size = EquipmentSize.Rifle
     striker.AmmoTypes += striker_missile_ammo
+    striker.ProjectileTypes += striker_missile_targeting_projectile
+    striker.ProjectileTypes += striker_missile_projectile
     striker.FireModes += new FireModeDefinition
     striker.FireModes.head.AmmoTypeIndices += 0
     striker.FireModes.head.AmmoSlotIndex = 0
     striker.FireModes.head.Magazine = 5
     striker.FireModes += new FireModeDefinition
     striker.FireModes(1).AmmoTypeIndices += 0
+    striker.FireModes(1).ProjectileTypeIndices += 1
     striker.FireModes(1).AmmoSlotIndex = 0
     striker.FireModes(1).Magazine = 5
     striker.Tile = InventoryTile.Tile93
@@ -1589,12 +3635,15 @@ object GlobalDefinitions {
     hunterseeker.Name = "hunterseeker"
     hunterseeker.Size = EquipmentSize.Rifle
     hunterseeker.AmmoTypes += hunter_seeker_missile
+    hunterseeker.ProjectileTypes += hunter_seeker_missile_projectile
+    hunterseeker.ProjectileTypes += hunter_seeker_missile_dumbfire
     hunterseeker.FireModes += new FireModeDefinition
     hunterseeker.FireModes.head.AmmoTypeIndices += 0
     hunterseeker.FireModes.head.AmmoSlotIndex = 0
     hunterseeker.FireModes.head.Magazine = 1
     hunterseeker.FireModes += new FireModeDefinition
     hunterseeker.FireModes(1).AmmoTypeIndices += 0
+    hunterseeker.FireModes(1).ProjectileTypeIndices += 1
     hunterseeker.FireModes(1).AmmoSlotIndex = 0
     hunterseeker.FireModes(1).Magazine = 1
     hunterseeker.Tile = InventoryTile.Tile93
@@ -1602,6 +3651,7 @@ object GlobalDefinitions {
     lancer.Name = "lancer"
     lancer.Size = EquipmentSize.Rifle
     lancer.AmmoTypes += lancer_cartridge
+    lancer.ProjectileTypes += lancer_projectile
     lancer.FireModes += new FireModeDefinition
     lancer.FireModes.head.AmmoTypeIndices += 0
     lancer.FireModes.head.AmmoSlotIndex = 0
@@ -1612,6 +3662,8 @@ object GlobalDefinitions {
     rocklet.Size = EquipmentSize.Rifle
     rocklet.AmmoTypes += rocket
     rocklet.AmmoTypes += frag_cartridge
+    rocklet.ProjectileTypes += rocket_projectile
+    rocklet.ProjectileTypes += rocklet_flak_projectile
     rocklet.FireModes += new FireModeDefinition
     rocklet.FireModes.head.AmmoTypeIndices += 0
     rocklet.FireModes.head.AmmoTypeIndices += 1
@@ -1629,6 +3681,9 @@ object GlobalDefinitions {
     thumper.AmmoTypes += frag_cartridge
     thumper.AmmoTypes += plasma_cartridge
     thumper.AmmoTypes += jammer_cartridge
+    thumper.ProjectileTypes += frag_cartridge_projectile_b
+    thumper.ProjectileTypes += plasma_cartridge_projectile_b
+    thumper.ProjectileTypes += jammer_cartridge_projectile_b
     thumper.FireModes += new FireModeDefinition
     thumper.FireModes.head.AmmoTypeIndices += 0
     thumper.FireModes.head.AmmoTypeIndices += 1
@@ -1646,12 +3701,15 @@ object GlobalDefinitions {
     radiator.Name = "radiator"
     radiator.Size = EquipmentSize.Rifle
     radiator.AmmoTypes += ancient_ammo_combo
+    radiator.ProjectileTypes += radiator_grenade_projectile
+    radiator.ProjectileTypes += radiator_sticky_projectile
     radiator.FireModes += new FireModeDefinition
     radiator.FireModes.head.AmmoTypeIndices += 0
     radiator.FireModes.head.AmmoSlotIndex = 0
     radiator.FireModes.head.Magazine = 25
     radiator.FireModes += new FireModeDefinition
     radiator.FireModes(1).AmmoTypeIndices += 0
+    radiator.FireModes(1).ProjectileTypeIndices += 1
     radiator.FireModes(1).AmmoSlotIndex = 0
     radiator.FireModes(1).Magazine = 25
     radiator.Tile = InventoryTile.Tile63
@@ -1659,6 +3717,7 @@ object GlobalDefinitions {
     heavy_sniper.Name = "heavy_sniper"
     heavy_sniper.Size = EquipmentSize.Rifle
     heavy_sniper.AmmoTypes += bolt
+    heavy_sniper.ProjectileTypes += heavy_sniper_projectile
     heavy_sniper.FireModes += new FireModeDefinition
     heavy_sniper.FireModes.head.AmmoTypeIndices += 0
     heavy_sniper.FireModes.head.AmmoSlotIndex = 0
@@ -1668,6 +3727,7 @@ object GlobalDefinitions {
     bolt_driver.Name = "bolt_driver"
     bolt_driver.Size = EquipmentSize.Rifle
     bolt_driver.AmmoTypes += bolt
+    bolt_driver.ProjectileTypes += bolt_projectile
     bolt_driver.FireModes += new FireModeDefinition
     bolt_driver.FireModes.head.AmmoTypeIndices += 0
     bolt_driver.FireModes.head.AmmoSlotIndex = 0
@@ -1677,6 +3737,7 @@ object GlobalDefinitions {
     oicw.Name = "oicw"
     oicw.Size = EquipmentSize.Rifle
     oicw.AmmoTypes += oicw_ammo
+    oicw.ProjectileTypes += oicw_projectile
     oicw.FireModes += new FireModeDefinition
     oicw.FireModes.head.AmmoTypeIndices += 0
     oicw.FireModes.head.AmmoSlotIndex = 0
@@ -1690,12 +3751,15 @@ object GlobalDefinitions {
     flamethrower.Name = "flamethrower"
     flamethrower.Size = EquipmentSize.Rifle
     flamethrower.AmmoTypes += flamethrower_ammo
+    flamethrower.ProjectileTypes += flamethrower_projectile
+    flamethrower.ProjectileTypes += flamethrower_fireball
     flamethrower.FireModes += new FireModeDefinition
     flamethrower.FireModes.head.AmmoTypeIndices += 0
     flamethrower.FireModes.head.AmmoSlotIndex = 0
     flamethrower.FireModes.head.Magazine = 100
     flamethrower.FireModes += new FireModeDefinition
     flamethrower.FireModes(1).AmmoTypeIndices += 0
+    flamethrower.FireModes(1).ProjectileTypeIndices += 1
     flamethrower.FireModes(1).AmmoSlotIndex = 0
     flamethrower.FireModes(1).Magazine = 100
     flamethrower.FireModes(1).Rounds = 50
@@ -1704,6 +3768,7 @@ object GlobalDefinitions {
     trhev_dualcycler.Name = "trhev_dualcycler"
     trhev_dualcycler.Size = EquipmentSize.Max
     trhev_dualcycler.AmmoTypes += dualcycler_ammo
+    trhev_dualcycler.ProjectileTypes += dualcycler_projectile
     trhev_dualcycler.FireModes += new FireModeDefinition
     trhev_dualcycler.FireModes.head.AmmoTypeIndices += 0
     trhev_dualcycler.FireModes.head.AmmoSlotIndex = 0
@@ -1720,6 +3785,8 @@ object GlobalDefinitions {
     trhev_pounder.Name = "trhev_pounder"
     trhev_pounder.Size = EquipmentSize.Max
     trhev_pounder.AmmoTypes += pounder_ammo
+    trhev_pounder.ProjectileTypes += pounder_projectile
+    trhev_pounder.ProjectileTypes += pounder_projectile_enh
     trhev_pounder.FireModes += new FireModeDefinition
     trhev_pounder.FireModes.head.AmmoTypeIndices += 0 //explode on contact
     trhev_pounder.FireModes.head.AmmoSlotIndex = 0
@@ -1734,20 +3801,24 @@ object GlobalDefinitions {
     trhev_pounder.FireModes(2).Magazine = 30
     trhev_pounder.FireModes += new FireModeDefinition //3-second fuse
     trhev_pounder.FireModes(3).AmmoTypeIndices += 0
+    trhev_pounder.FireModes(3).ProjectileTypeIndices += 1
     trhev_pounder.FireModes(3).AmmoSlotIndex = 0
     trhev_pounder.FireModes(3).Magazine = 30
     trhev_pounder.FireModes += new FireModeDefinition //3-second fuse, anchored
     trhev_pounder.FireModes(4).AmmoTypeIndices += 0
+    trhev_pounder.FireModes(4).ProjectileTypeIndices += 1
     trhev_pounder.FireModes(4).AmmoSlotIndex = 0
     trhev_pounder.FireModes(4).Magazine = 30
     trhev_pounder.FireModes += new FireModeDefinition //3-second fuse, overdrive?
     trhev_pounder.FireModes(5).AmmoTypeIndices += 0
+    trhev_pounder.FireModes(5).ProjectileTypeIndices += 1
     trhev_pounder.FireModes(5).AmmoSlotIndex = 0
     trhev_pounder.FireModes(5).Magazine = 30
 
     trhev_burster.Name = "trhev_burster"
     trhev_burster.Size = EquipmentSize.Max
     trhev_burster.AmmoTypes += burster_ammo
+    trhev_burster.ProjectileTypes += burster_projectile
     trhev_burster.FireModes += new FireModeDefinition
     trhev_burster.FireModes.head.AmmoTypeIndices += 0
     trhev_burster.FireModes.head.AmmoSlotIndex = 0
@@ -1756,6 +3827,7 @@ object GlobalDefinitions {
     nchev_scattercannon.Name = "nchev_scattercannon"
     nchev_scattercannon.Size = EquipmentSize.Max
     nchev_scattercannon.AmmoTypes += scattercannon_ammo
+    nchev_scattercannon.ProjectileTypes += scattercannon_projectile
     nchev_scattercannon.FireModes += new PelletFireModeDefinition
     nchev_scattercannon.FireModes.head.AmmoTypeIndices += 0
     nchev_scattercannon.FireModes.head.AmmoSlotIndex = 0
@@ -1783,6 +3855,7 @@ object GlobalDefinitions {
     nchev_sparrow.Name = "nchev_sparrow"
     nchev_sparrow.Size = EquipmentSize.Max
     nchev_sparrow.AmmoTypes += sparrow_ammo
+    nchev_sparrow.ProjectileTypes += sparrow_projectile
     nchev_sparrow.FireModes += new FireModeDefinition
     nchev_sparrow.FireModes.head.AmmoTypeIndices += 0
     nchev_sparrow.FireModes.head.AmmoSlotIndex = 0
@@ -1791,18 +3864,22 @@ object GlobalDefinitions {
     vshev_quasar.Name = "vshev_quasar"
     vshev_quasar.Size = EquipmentSize.Max
     vshev_quasar.AmmoTypes += quasar_ammo
+    vshev_quasar.ProjectileTypes += quasar_projectile
+    vshev_quasar.ProjectileTypes += enhanced_quasar_projectile
     vshev_quasar.FireModes += new FireModeDefinition
     vshev_quasar.FireModes.head.AmmoTypeIndices += 0
     vshev_quasar.FireModes.head.AmmoSlotIndex = 0
     vshev_quasar.FireModes.head.Magazine = 120
     vshev_quasar.FireModes += new FireModeDefinition
     vshev_quasar.FireModes(1).AmmoTypeIndices += 0
+    vshev_quasar.FireModes(1).ProjectileTypeIndices += 1
     vshev_quasar.FireModes(1).AmmoSlotIndex = 0
     vshev_quasar.FireModes(1).Magazine = 120
 
     vshev_comet.Name = "vshev_comet"
     vshev_comet.Size = EquipmentSize.Max
     vshev_comet.AmmoTypes += comet_ammo
+    vshev_comet.ProjectileTypes += comet_projectile
     vshev_comet.FireModes += new FireModeDefinition
     vshev_comet.FireModes.head.AmmoTypeIndices += 0
     vshev_comet.FireModes.head.AmmoSlotIndex = 0
@@ -1811,6 +3888,7 @@ object GlobalDefinitions {
     vshev_starfire.Name = "vshev_starfire"
     vshev_starfire.Size = EquipmentSize.Max
     vshev_starfire.AmmoTypes += starfire_ammo
+    vshev_starfire.ProjectileTypes += starfire_projectile
     vshev_starfire.FireModes += new FireModeDefinition
     vshev_starfire.FireModes.head.AmmoTypeIndices += 0
     vshev_starfire.FireModes.head.AmmoSlotIndex = 0
@@ -1838,6 +3916,9 @@ object GlobalDefinitions {
     nano_dispenser.FireModes.head.AmmoTypeIndices += 1
     nano_dispenser.FireModes.head.AmmoSlotIndex = 0
     nano_dispenser.FireModes.head.Magazine = 100
+    nano_dispenser.FireModes.head.CustomMagazine = Ammo.upgrade_canister -> 1
+    nano_dispenser.FireModes.head.Modifiers.Damage1 = 20
+    nano_dispenser.FireModes.head.Modifiers.Damage4 = 20
     nano_dispenser.Tile = InventoryTile.Tile63
 
     bank.Name = "bank"
@@ -1860,6 +3941,7 @@ object GlobalDefinitions {
     trek.Name = "trek"
     trek.Size = EquipmentSize.Pistol
     trek.AmmoTypes += trek_ammo
+    trek.ProjectileTypes += trek_projectile
     trek.FireModes += new FireModeDefinition
     trek.FireModes.head.AmmoTypeIndices += 0
     trek.FireModes.head.AmmoSlotIndex = 0
@@ -1898,6 +3980,7 @@ object GlobalDefinitions {
     fury_weapon_systema.Name = "fury_weapon_systema"
     fury_weapon_systema.Size = EquipmentSize.VehicleWeapon
     fury_weapon_systema.AmmoTypes += hellfire_ammo
+    fury_weapon_systema.ProjectileTypes += hellfire_projectile
     fury_weapon_systema.FireModes += new FireModeDefinition
     fury_weapon_systema.FireModes.head.AmmoTypeIndices += 0
     fury_weapon_systema.FireModes.head.AmmoSlotIndex = 0
@@ -1906,6 +3989,7 @@ object GlobalDefinitions {
     quadassault_weapon_system.Name = "quadassault_weapon_system"
     quadassault_weapon_system.Size = EquipmentSize.VehicleWeapon
     quadassault_weapon_system.AmmoTypes += bullet_12mm
+    quadassault_weapon_system.ProjectileTypes += bullet_12mm_projectile
     quadassault_weapon_system.FireModes += new FireModeDefinition
     quadassault_weapon_system.FireModes.head.AmmoTypeIndices += 0
     quadassault_weapon_system.FireModes.head.AmmoSlotIndex = 0
@@ -1915,18 +3999,21 @@ object GlobalDefinitions {
     scythe.Size = EquipmentSize.VehicleWeapon
     scythe.AmmoTypes += ancient_ammo_vehicle
     scythe.AmmoTypes += ancient_ammo_vehicle
+    scythe.ProjectileTypes += scythe_projectile
     scythe.FireModes += new FireModeDefinition
     scythe.FireModes.head.AmmoTypeIndices += 0
     scythe.FireModes.head.AmmoSlotIndex = 0
     scythe.FireModes.head.Magazine = 250
     scythe.FireModes += new FireModeDefinition
     scythe.FireModes(1).AmmoTypeIndices += 0
+    scythe.FireModes(1).ProjectileTypeIndices += 0
     scythe.FireModes(1).AmmoSlotIndex = 1 //note: the scythe has two magazines using a single pool; however, it can not ammo-switch or mode-switch
     scythe.FireModes(1).Magazine = 250
 
     chaingun_p.Name = "chaingun_p"
     chaingun_p.Size = EquipmentSize.VehicleWeapon
     chaingun_p.AmmoTypes += bullet_12mm
+    chaingun_p.ProjectileTypes += bullet_12mm_projectile
     chaingun_p.FireModes += new FireModeDefinition
     chaingun_p.FireModes.head.AmmoTypeIndices += 0
     chaingun_p.FireModes.head.AmmoSlotIndex = 0
@@ -1936,6 +4023,8 @@ object GlobalDefinitions {
     skyguard_weapon_system.Size = EquipmentSize.VehicleWeapon
     skyguard_weapon_system.AmmoTypes += skyguard_flak_cannon_ammo
     skyguard_weapon_system.AmmoTypes += bullet_12mm
+    skyguard_weapon_system.ProjectileTypes += skyguard_flak_cannon_projectile
+    skyguard_weapon_system.ProjectileTypes += bullet_12mm_projectile
     skyguard_weapon_system.FireModes += new FireModeDefinition
     skyguard_weapon_system.FireModes.head.AmmoTypeIndices += 0
     skyguard_weapon_system.FireModes.head.AmmoSlotIndex = 0
@@ -1948,6 +4037,7 @@ object GlobalDefinitions {
     grenade_launcher_marauder.Name = "grenade_launcher_marauder"
     grenade_launcher_marauder.Size = EquipmentSize.VehicleWeapon
     grenade_launcher_marauder.AmmoTypes += heavy_grenade_mortar
+    grenade_launcher_marauder.ProjectileTypes += heavy_grenade_projectile
     grenade_launcher_marauder.FireModes += new FireModeDefinition
     grenade_launcher_marauder.FireModes.head.AmmoTypeIndices += 0
     grenade_launcher_marauder.FireModes.head.AmmoSlotIndex = 0
@@ -1956,6 +4046,7 @@ object GlobalDefinitions {
     advanced_missile_launcher_t.Name = "advanced_missile_launcher_t"
     advanced_missile_launcher_t.Size = EquipmentSize.VehicleWeapon
     advanced_missile_launcher_t.AmmoTypes += firebird_missile
+    advanced_missile_launcher_t.ProjectileTypes += firebird_missile_projectile
     advanced_missile_launcher_t.FireModes += new FireModeDefinition
     advanced_missile_launcher_t.FireModes.head.AmmoTypeIndices += 0
     advanced_missile_launcher_t.FireModes.head.AmmoSlotIndex = 0
@@ -1964,6 +4055,7 @@ object GlobalDefinitions {
     flux_cannon_thresher.Name = "flux_cannon_thresher"
     flux_cannon_thresher.Size = EquipmentSize.VehicleWeapon
     flux_cannon_thresher.AmmoTypes += flux_cannon_thresher_battery
+    flux_cannon_thresher.ProjectileTypes += flux_cannon_thresher_projectile
     flux_cannon_thresher.FireModes += new FireModeDefinition
     flux_cannon_thresher.FireModes.head.AmmoTypeIndices += 0
     flux_cannon_thresher.FireModes.head.AmmoSlotIndex = 0
@@ -1972,6 +4064,7 @@ object GlobalDefinitions {
     mediumtransport_weapon_systemA.Name = "mediumtransport_weapon_systemA"
     mediumtransport_weapon_systemA.Size = EquipmentSize.VehicleWeapon
     mediumtransport_weapon_systemA.AmmoTypes += bullet_20mm
+    mediumtransport_weapon_systemA.ProjectileTypes += bullet_20mm_projectile
     mediumtransport_weapon_systemA.FireModes += new FireModeDefinition
     mediumtransport_weapon_systemA.FireModes.head.AmmoTypeIndices += 0
     mediumtransport_weapon_systemA.FireModes.head.AmmoSlotIndex = 0
@@ -1980,6 +4073,7 @@ object GlobalDefinitions {
     mediumtransport_weapon_systemB.Name = "mediumtransport_weapon_systemB"
     mediumtransport_weapon_systemB.Size = EquipmentSize.VehicleWeapon
     mediumtransport_weapon_systemB.AmmoTypes += bullet_20mm
+    mediumtransport_weapon_systemB.ProjectileTypes += bullet_20mm_projectile
     mediumtransport_weapon_systemB.FireModes += new FireModeDefinition
     mediumtransport_weapon_systemB.FireModes.head.AmmoTypeIndices += 0
     mediumtransport_weapon_systemB.FireModes.head.AmmoSlotIndex = 0
@@ -1988,6 +4082,7 @@ object GlobalDefinitions {
     battlewagon_weapon_systema.Name = "battlewagon_weapon_systema"
     battlewagon_weapon_systema.Size = EquipmentSize.VehicleWeapon
     battlewagon_weapon_systema.AmmoTypes += bullet_15mm
+    battlewagon_weapon_systema.ProjectileTypes += bullet_15mm_projectile
     battlewagon_weapon_systema.FireModes += new FireModeDefinition
     battlewagon_weapon_systema.FireModes.head.AmmoTypeIndices += 0
     battlewagon_weapon_systema.FireModes.head.AmmoSlotIndex = 0
@@ -1996,6 +4091,7 @@ object GlobalDefinitions {
     battlewagon_weapon_systemb.Name = "battlewagon_weapon_systemb"
     battlewagon_weapon_systemb.Size = EquipmentSize.VehicleWeapon
     battlewagon_weapon_systemb.AmmoTypes += bullet_15mm
+    battlewagon_weapon_systemb.ProjectileTypes += bullet_15mm_projectile
     battlewagon_weapon_systemb.FireModes += new FireModeDefinition
     battlewagon_weapon_systemb.FireModes.head.AmmoTypeIndices += 0
     battlewagon_weapon_systemb.FireModes.head.AmmoSlotIndex = 0
@@ -2004,6 +4100,7 @@ object GlobalDefinitions {
     battlewagon_weapon_systemc.Name = "battlewagon_weapon_systemc"
     battlewagon_weapon_systemc.Size = EquipmentSize.VehicleWeapon
     battlewagon_weapon_systemc.AmmoTypes += bullet_15mm
+    battlewagon_weapon_systemc.ProjectileTypes += bullet_15mm_projectile
     battlewagon_weapon_systemc.FireModes += new FireModeDefinition
     battlewagon_weapon_systemc.FireModes.head.AmmoTypeIndices += 0
     battlewagon_weapon_systemc.FireModes.head.AmmoSlotIndex = 0
@@ -2012,6 +4109,7 @@ object GlobalDefinitions {
     battlewagon_weapon_systemd.Name = "battlewagon_weapon_systemd"
     battlewagon_weapon_systemd.Size = EquipmentSize.VehicleWeapon
     battlewagon_weapon_systemd.AmmoTypes += bullet_15mm
+    battlewagon_weapon_systemd.ProjectileTypes += bullet_15mm_projectile
     battlewagon_weapon_systemd.FireModes += new FireModeDefinition
     battlewagon_weapon_systemd.FireModes.head.AmmoTypeIndices += 0
     battlewagon_weapon_systemd.FireModes.head.AmmoSlotIndex = 0
@@ -2020,6 +4118,7 @@ object GlobalDefinitions {
     thunderer_weapon_systema.Name = "thunderer_weapon_systema"
     thunderer_weapon_systema.Size = EquipmentSize.VehicleWeapon
     thunderer_weapon_systema.AmmoTypes += gauss_cannon_ammo
+    thunderer_weapon_systema.ProjectileTypes += gauss_cannon_projectile
     thunderer_weapon_systema.FireModes += new FireModeDefinition
     thunderer_weapon_systema.FireModes.head.AmmoTypeIndices += 0
     thunderer_weapon_systema.FireModes.head.AmmoSlotIndex = 0
@@ -2028,6 +4127,7 @@ object GlobalDefinitions {
     thunderer_weapon_systemb.Name = "thunderer_weapon_systemb"
     thunderer_weapon_systemb.Size = EquipmentSize.VehicleWeapon
     thunderer_weapon_systemb.AmmoTypes += gauss_cannon_ammo
+    thunderer_weapon_systemb.ProjectileTypes += gauss_cannon_projectile
     thunderer_weapon_systemb.FireModes += new FireModeDefinition
     thunderer_weapon_systemb.FireModes.head.AmmoTypeIndices += 0
     thunderer_weapon_systemb.FireModes.head.AmmoSlotIndex = 0
@@ -2036,6 +4136,7 @@ object GlobalDefinitions {
     aurora_weapon_systema.Name = "aurora_weapon_systema"
     aurora_weapon_systema.Size = EquipmentSize.VehicleWeapon
     aurora_weapon_systema.AmmoTypes += fluxpod_ammo
+    aurora_weapon_systema.ProjectileTypes += fluxpod_projectile
     aurora_weapon_systema.FireModes += new FireModeDefinition
     aurora_weapon_systema.FireModes.head.AmmoTypeIndices += 0
     aurora_weapon_systema.FireModes.head.AmmoSlotIndex = 0
@@ -2048,6 +4149,7 @@ object GlobalDefinitions {
     aurora_weapon_systemb.Name = "aurora_weapon_systemb"
     aurora_weapon_systemb.Size = EquipmentSize.VehicleWeapon
     aurora_weapon_systemb.AmmoTypes += fluxpod_ammo
+    aurora_weapon_systemb.ProjectileTypes += fluxpod_projectile
     aurora_weapon_systemb.FireModes += new FireModeDefinition
     aurora_weapon_systemb.FireModes.head.AmmoTypeIndices += 0
     aurora_weapon_systemb.FireModes.head.AmmoSlotIndex = 0
@@ -2060,6 +4162,7 @@ object GlobalDefinitions {
     apc_weapon_systema.Name = "apc_weapon_systema"
     apc_weapon_systema.Size = EquipmentSize.VehicleWeapon
     apc_weapon_systema.AmmoTypes += bullet_75mm
+    apc_weapon_systema.ProjectileTypes += bullet_75mm_apc_projectile
     apc_weapon_systema.FireModes += new FireModeDefinition
     apc_weapon_systema.FireModes.head.AmmoTypeIndices += 0
     apc_weapon_systema.FireModes.head.AmmoSlotIndex = 0
@@ -2068,6 +4171,7 @@ object GlobalDefinitions {
     apc_weapon_systemb.Name = "apc_weapon_systemb"
     apc_weapon_systemb.Size = EquipmentSize.VehicleWeapon
     apc_weapon_systemb.AmmoTypes += bullet_75mm
+    apc_weapon_systemb.ProjectileTypes += bullet_75mm_apc_projectile
     apc_weapon_systemb.FireModes += new FireModeDefinition
     apc_weapon_systemb.FireModes.head.AmmoTypeIndices += 0
     apc_weapon_systemb.FireModes.head.AmmoSlotIndex = 0
@@ -2076,6 +4180,7 @@ object GlobalDefinitions {
     apc_ballgun_r.Name = "apc_ballgun_r"
     apc_ballgun_r.Size = EquipmentSize.VehicleWeapon
     apc_ballgun_r.AmmoTypes += bullet_12mm
+    apc_ballgun_r.ProjectileTypes += bullet_12mm_projectile
     apc_ballgun_r.FireModes += new FireModeDefinition
     apc_ballgun_r.FireModes.head.AmmoTypeIndices += 0
     apc_ballgun_r.FireModes.head.AmmoSlotIndex = 0
@@ -2084,6 +4189,7 @@ object GlobalDefinitions {
     apc_ballgun_l.Name = "apc_ballgun_l"
     apc_ballgun_l.Size = EquipmentSize.VehicleWeapon
     apc_ballgun_l.AmmoTypes += bullet_12mm
+    apc_ballgun_l.ProjectileTypes += bullet_12mm_projectile
     apc_ballgun_l.FireModes += new FireModeDefinition
     apc_ballgun_l.FireModes.head.AmmoTypeIndices += 0
     apc_ballgun_l.FireModes.head.AmmoSlotIndex = 0
@@ -2092,6 +4198,7 @@ object GlobalDefinitions {
     apc_weapon_systemc_tr.Name = "apc_weapon_systemc_tr"
     apc_weapon_systemc_tr.Size = EquipmentSize.VehicleWeapon
     apc_weapon_systemc_tr.AmmoTypes += bullet_15mm
+    apc_weapon_systemc_tr.ProjectileTypes += bullet_15mm_apc_projectile
     apc_weapon_systemc_tr.FireModes += new FireModeDefinition
     apc_weapon_systemc_tr.FireModes.head.AmmoTypeIndices += 0
     apc_weapon_systemc_tr.FireModes.head.AmmoSlotIndex = 0
@@ -2100,6 +4207,7 @@ object GlobalDefinitions {
     apc_weapon_systemd_tr.Name = "apc_weapon_systemd_tr"
     apc_weapon_systemd_tr.Size = EquipmentSize.VehicleWeapon
     apc_weapon_systemd_tr.AmmoTypes += bullet_15mm
+    apc_weapon_systemd_tr.ProjectileTypes += bullet_15mm_apc_projectile
     apc_weapon_systemd_tr.FireModes += new FireModeDefinition
     apc_weapon_systemd_tr.FireModes.head.AmmoTypeIndices += 0
     apc_weapon_systemd_tr.FireModes.head.AmmoSlotIndex = 0
@@ -2108,6 +4216,7 @@ object GlobalDefinitions {
     apc_weapon_systemc_nc.Name = "apc_weapon_systemc_nc"
     apc_weapon_systemc_nc.Size = EquipmentSize.VehicleWeapon
     apc_weapon_systemc_nc.AmmoTypes += bullet_20mm
+    apc_weapon_systemc_nc.ProjectileTypes += bullet_20mm_apc_projectile
     apc_weapon_systemc_nc.FireModes += new FireModeDefinition
     apc_weapon_systemc_nc.FireModes.head.AmmoTypeIndices += 0
     apc_weapon_systemc_nc.FireModes.head.AmmoSlotIndex = 0
@@ -2116,6 +4225,7 @@ object GlobalDefinitions {
     apc_weapon_systemd_nc.Name = "apc_weapon_systemd_nc"
     apc_weapon_systemd_nc.Size = EquipmentSize.VehicleWeapon
     apc_weapon_systemd_nc.AmmoTypes += bullet_20mm
+    apc_weapon_systemd_nc.ProjectileTypes += bullet_20mm_apc_projectile
     apc_weapon_systemd_nc.FireModes += new FireModeDefinition
     apc_weapon_systemd_nc.FireModes.head.AmmoTypeIndices += 0
     apc_weapon_systemd_nc.FireModes.head.AmmoSlotIndex = 0
@@ -2124,6 +4234,7 @@ object GlobalDefinitions {
     apc_weapon_systemc_vs.Name = "apc_weapon_systemc_vs"
     apc_weapon_systemc_vs.Size = EquipmentSize.VehicleWeapon
     apc_weapon_systemc_vs.AmmoTypes += flux_cannon_thresher_battery
+    apc_weapon_systemc_vs.ProjectileTypes += flux_cannon_apc_projectile
     apc_weapon_systemc_vs.FireModes += new FireModeDefinition
     apc_weapon_systemc_vs.FireModes.head.AmmoTypeIndices += 0
     apc_weapon_systemc_vs.FireModes.head.AmmoSlotIndex = 0
@@ -2132,6 +4243,7 @@ object GlobalDefinitions {
     apc_weapon_systemd_vs.Name = "apc_weapon_systemd_vs"
     apc_weapon_systemd_vs.Size = EquipmentSize.VehicleWeapon
     apc_weapon_systemd_vs.AmmoTypes += flux_cannon_thresher_battery
+    apc_weapon_systemd_vs.ProjectileTypes += flux_cannon_apc_projectile
     apc_weapon_systemd_vs.FireModes += new FireModeDefinition
     apc_weapon_systemd_vs.FireModes.head.AmmoTypeIndices += 0
     apc_weapon_systemd_vs.FireModes.head.AmmoSlotIndex = 0
@@ -2141,6 +4253,8 @@ object GlobalDefinitions {
     lightning_weapon_system.Size = EquipmentSize.VehicleWeapon
     lightning_weapon_system.AmmoTypes += bullet_75mm
     lightning_weapon_system.AmmoTypes += bullet_12mm
+    lightning_weapon_system.ProjectileTypes += bullet_75mm_projectile
+    lightning_weapon_system.ProjectileTypes += bullet_12mm_projectile
     lightning_weapon_system.FireModes += new FireModeDefinition
     lightning_weapon_system.FireModes.head.AmmoTypeIndices += 0
     lightning_weapon_system.FireModes.head.AmmoSlotIndex = 0
@@ -2153,6 +4267,7 @@ object GlobalDefinitions {
     prowler_weapon_systemA.Name = "prowler_weapon_systemA"
     prowler_weapon_systemA.Size = EquipmentSize.VehicleWeapon
     prowler_weapon_systemA.AmmoTypes += bullet_105mm
+    prowler_weapon_systemA.ProjectileTypes += bullet_105mm_projectile
     prowler_weapon_systemA.FireModes += new FireModeDefinition
     prowler_weapon_systemA.FireModes.head.AmmoTypeIndices += 0
     prowler_weapon_systemA.FireModes.head.AmmoSlotIndex = 0
@@ -2161,6 +4276,7 @@ object GlobalDefinitions {
     prowler_weapon_systemB.Name = "prowler_weapon_systemB"
     prowler_weapon_systemB.Size = EquipmentSize.VehicleWeapon
     prowler_weapon_systemB.AmmoTypes += bullet_15mm
+    prowler_weapon_systemB.ProjectileTypes += bullet_15mm_projectile
     prowler_weapon_systemB.FireModes += new FireModeDefinition
     prowler_weapon_systemB.FireModes.head.AmmoTypeIndices += 0
     prowler_weapon_systemB.FireModes.head.AmmoSlotIndex = 0
@@ -2170,6 +4286,8 @@ object GlobalDefinitions {
     vanguard_weapon_system.Size = EquipmentSize.VehicleWeapon
     vanguard_weapon_system.AmmoTypes += bullet_150mm
     vanguard_weapon_system.AmmoTypes += bullet_20mm
+    vanguard_weapon_system.ProjectileTypes += bullet_105mm_projectile
+    vanguard_weapon_system.ProjectileTypes += bullet_20mm_projectile
     vanguard_weapon_system.FireModes += new FireModeDefinition
     vanguard_weapon_system.FireModes.head.AmmoTypeIndices += 0
     vanguard_weapon_system.FireModes.head.AmmoSlotIndex = 0
@@ -2182,6 +4300,7 @@ object GlobalDefinitions {
     particle_beam_magrider.Name = "particle_beam_magrider"
     particle_beam_magrider.Size = EquipmentSize.VehicleWeapon
     particle_beam_magrider.AmmoTypes += pulse_battery
+    particle_beam_magrider.ProjectileTypes += ppa_projectile
     particle_beam_magrider.FireModes += new FireModeDefinition
     particle_beam_magrider.FireModes.head.AmmoTypeIndices += 0
     particle_beam_magrider.FireModes.head.AmmoSlotIndex = 0
@@ -2190,6 +4309,7 @@ object GlobalDefinitions {
     heavy_rail_beam_magrider.Name = "heavy_rail_beam_magrider"
     heavy_rail_beam_magrider.Size = EquipmentSize.VehicleWeapon
     heavy_rail_beam_magrider.AmmoTypes += heavy_rail_beam_battery
+    heavy_rail_beam_magrider.ProjectileTypes += heavy_rail_beam_projectile
     heavy_rail_beam_magrider.FireModes += new FireModeDefinition
     heavy_rail_beam_magrider.FireModes.head.AmmoTypeIndices += 0
     heavy_rail_beam_magrider.FireModes.head.AmmoSlotIndex = 0
@@ -2198,6 +4318,7 @@ object GlobalDefinitions {
     flail_weapon.Name = "flail_weapon"
     flail_weapon.Size = EquipmentSize.VehicleWeapon
     flail_weapon.AmmoTypes += ancient_ammo_vehicle
+    flail_weapon.ProjectileTypes += flail_projectile
     flail_weapon.FireModes += new FireModeDefinition
     flail_weapon.FireModes.head.AmmoTypeIndices += 0
     flail_weapon.FireModes.head.AmmoSlotIndex = 0
@@ -2206,6 +4327,7 @@ object GlobalDefinitions {
     rotarychaingun_mosquito.Name = "rotarychaingun_mosquito"
     rotarychaingun_mosquito.Size = EquipmentSize.VehicleWeapon
     rotarychaingun_mosquito.AmmoTypes += bullet_12mm
+    rotarychaingun_mosquito.ProjectileTypes += bullet_12mm_projectile
     rotarychaingun_mosquito.FireModes += new FireModeDefinition
     rotarychaingun_mosquito.FireModes.head.AmmoTypeIndices += 0
     rotarychaingun_mosquito.FireModes.head.AmmoSlotIndex = 0
@@ -2215,6 +4337,8 @@ object GlobalDefinitions {
     lightgunship_weapon_system.Size = EquipmentSize.VehicleWeapon
     lightgunship_weapon_system.AmmoTypes += bullet_20mm
     lightgunship_weapon_system.AmmoTypes += reaver_rocket
+    lightgunship_weapon_system.ProjectileTypes += bullet_20mm_projectile
+    lightgunship_weapon_system.ProjectileTypes += reaver_rocket_projectile
     lightgunship_weapon_system.FireModes += new FireModeDefinition
     lightgunship_weapon_system.FireModes.head.AmmoTypeIndices += 0
     lightgunship_weapon_system.FireModes.head.AmmoSlotIndex = 0
@@ -2228,6 +4352,8 @@ object GlobalDefinitions {
     wasp_weapon_system.Size = EquipmentSize.VehicleWeapon
     wasp_weapon_system.AmmoTypes += wasp_gun_ammo
     wasp_weapon_system.AmmoTypes += wasp_rocket_ammo
+    wasp_weapon_system.ProjectileTypes += wasp_gun_projectile
+    wasp_weapon_system.ProjectileTypes += wasp_rocket_projectile
     wasp_weapon_system.FireModes += new FireModeDefinition
     wasp_weapon_system.FireModes.head.AmmoTypeIndices += 0
     wasp_weapon_system.FireModes.head.AmmoSlotIndex = 0
@@ -2240,6 +4366,7 @@ object GlobalDefinitions {
     liberator_weapon_system.Name = "liberator_weapon_system"
     liberator_weapon_system.Size = EquipmentSize.VehicleWeapon
     liberator_weapon_system.AmmoTypes += bullet_35mm
+    liberator_weapon_system.ProjectileTypes += bullet_35mm_projectile
     liberator_weapon_system.FireModes += new FireModeDefinition
     liberator_weapon_system.FireModes.head.AmmoTypeIndices += 0
     liberator_weapon_system.FireModes.head.AmmoSlotIndex = 0
@@ -2248,18 +4375,22 @@ object GlobalDefinitions {
     liberator_bomb_bay.Name = "liberator_bomb_bay"
     liberator_bomb_bay.Size = EquipmentSize.VehicleWeapon
     liberator_bomb_bay.AmmoTypes += liberator_bomb
+    liberator_bomb_bay.ProjectileTypes += liberator_bomb_projectile
+    liberator_bomb_bay.ProjectileTypes += liberator_bomb_cluster_projectile
     liberator_bomb_bay.FireModes += new FireModeDefinition
     liberator_bomb_bay.FireModes.head.AmmoTypeIndices += 0
     liberator_bomb_bay.FireModes.head.AmmoSlotIndex = 0
     liberator_bomb_bay.FireModes.head.Magazine = 10
     liberator_bomb_bay.FireModes += new FireModeDefinition
     liberator_bomb_bay.FireModes(1).AmmoTypeIndices += 0
+    liberator_bomb_bay.FireModes(1).ProjectileTypeIndices += 1
     liberator_bomb_bay.FireModes(1).AmmoSlotIndex = 0
     liberator_bomb_bay.FireModes(1).Magazine = 10
 
     liberator_25mm_cannon.Name = "liberator_25mm_cannon"
     liberator_25mm_cannon.Size = EquipmentSize.VehicleWeapon
     liberator_25mm_cannon.AmmoTypes += bullet_25mm
+    liberator_25mm_cannon.ProjectileTypes += bullet_25mm_projectile
     liberator_25mm_cannon.FireModes += new FireModeDefinition
     liberator_25mm_cannon.FireModes.head.AmmoTypeIndices += 0
     liberator_25mm_cannon.FireModes.head.AmmoSlotIndex = 0
@@ -2268,6 +4399,7 @@ object GlobalDefinitions {
     vulture_nose_weapon_system.Name = "vulture_nose_weapon_system"
     vulture_nose_weapon_system.Size = EquipmentSize.VehicleWeapon
     vulture_nose_weapon_system.AmmoTypes += bullet_35mm
+    vulture_nose_weapon_system.ProjectileTypes += vulture_nose_bullet_projectile
     vulture_nose_weapon_system.FireModes += new FireModeDefinition
     vulture_nose_weapon_system.FireModes.head.AmmoTypeIndices += 0
     vulture_nose_weapon_system.FireModes.head.AmmoSlotIndex = 0
@@ -2276,6 +4408,7 @@ object GlobalDefinitions {
     vulture_bomb_bay.Name = "vulture_bomb_bay"
     vulture_bomb_bay.Size = EquipmentSize.VehicleWeapon
     vulture_bomb_bay.AmmoTypes += liberator_bomb
+    vulture_bomb_bay.ProjectileTypes += vulture_bomb_projectile
     vulture_bomb_bay.FireModes += new FireModeDefinition
     vulture_bomb_bay.FireModes.head.AmmoTypeIndices += 0
     vulture_bomb_bay.FireModes.head.AmmoSlotIndex = 0
@@ -2284,6 +4417,7 @@ object GlobalDefinitions {
     vulture_tail_cannon.Name = "vulture_tail_cannon"
     vulture_tail_cannon.Size = EquipmentSize.VehicleWeapon
     vulture_tail_cannon.AmmoTypes += bullet_25mm
+    vulture_tail_cannon.ProjectileTypes += vulture_tail_bullet_projectile
     vulture_tail_cannon.FireModes += new FireModeDefinition
     vulture_tail_cannon.FireModes.head.AmmoTypeIndices += 0
     vulture_tail_cannon.FireModes.head.AmmoSlotIndex = 0
@@ -2292,6 +4426,7 @@ object GlobalDefinitions {
     cannon_dropship_20mm.Name = "cannon_dropship_20mm"
     cannon_dropship_20mm.Size = EquipmentSize.VehicleWeapon
     cannon_dropship_20mm.AmmoTypes += bullet_20mm
+    cannon_dropship_20mm.ProjectileTypes += bullet_20mm_projectile
     cannon_dropship_20mm.FireModes += new FireModeDefinition
     cannon_dropship_20mm.FireModes.head.AmmoTypeIndices += 0
     cannon_dropship_20mm.FireModes.head.AmmoSlotIndex = 0
@@ -2300,6 +4435,7 @@ object GlobalDefinitions {
     dropship_rear_turret.Name = "dropship_rear_turret"
     dropship_rear_turret.Size = EquipmentSize.VehicleWeapon
     dropship_rear_turret.AmmoTypes += bullet_20mm
+    dropship_rear_turret.ProjectileTypes += bullet_20mm_projectile
     dropship_rear_turret.FireModes += new FireModeDefinition
     dropship_rear_turret.FireModes.head.AmmoTypeIndices += 0
     dropship_rear_turret.FireModes.head.AmmoSlotIndex = 0
@@ -2308,14 +4444,20 @@ object GlobalDefinitions {
     galaxy_gunship_cannon.Name = "galaxy_gunship_cannon"
     galaxy_gunship_cannon.Size = EquipmentSize.VehicleWeapon
     galaxy_gunship_cannon.AmmoTypes += heavy_grenade_mortar
+    galaxy_gunship_cannon.ProjectileTypes += heavy_grenade_projectile
     galaxy_gunship_cannon.FireModes += new FireModeDefinition
     galaxy_gunship_cannon.FireModes.head.AmmoTypeIndices += 0
     galaxy_gunship_cannon.FireModes.head.AmmoSlotIndex = 0
     galaxy_gunship_cannon.FireModes.head.Magazine = 50
+    galaxy_gunship_cannon.FireModes.head.Modifiers.Damage1 = 50
+    galaxy_gunship_cannon.FireModes.head.Modifiers.Damage2 = 50
+    galaxy_gunship_cannon.FireModes.head.Modifiers.Damage3 = 10
+    galaxy_gunship_cannon.FireModes.head.Modifiers.Damage4 = 50
 
     galaxy_gunship_tailgun.Name = "galaxy_gunship_tailgun"
     galaxy_gunship_tailgun.Size = EquipmentSize.VehicleWeapon
     galaxy_gunship_tailgun.AmmoTypes += bullet_35mm
+    galaxy_gunship_tailgun.ProjectileTypes += galaxy_gunship_gun_projectile
     galaxy_gunship_tailgun.FireModes += new FireModeDefinition
     galaxy_gunship_tailgun.FireModes.head.AmmoTypeIndices += 0
     galaxy_gunship_tailgun.FireModes.head.AmmoSlotIndex = 0
@@ -2324,10 +4466,50 @@ object GlobalDefinitions {
     galaxy_gunship_gun.Name = "galaxy_gunship_gun"
     galaxy_gunship_gun.Size = EquipmentSize.VehicleWeapon
     galaxy_gunship_gun.AmmoTypes += bullet_35mm
+    galaxy_gunship_gun.ProjectileTypes += galaxy_gunship_gun_projectile
     galaxy_gunship_gun.FireModes += new FireModeDefinition
     galaxy_gunship_gun.FireModes.head.AmmoTypeIndices += 0
     galaxy_gunship_gun.FireModes.head.AmmoSlotIndex = 0
     galaxy_gunship_gun.FireModes.head.Magazine = 200
+
+    phalanx_sgl_hevgatcan.Name = "phalanx_sgl_hevgatcan"
+    phalanx_sgl_hevgatcan.Size = EquipmentSize.BaseTurretWeapon
+    phalanx_sgl_hevgatcan.AmmoTypes += phalanx_ammo
+    phalanx_sgl_hevgatcan.ProjectileTypes += phalanx_projectile
+    phalanx_sgl_hevgatcan.FireModes += new InfiniteFireModeDefinition
+    phalanx_sgl_hevgatcan.FireModes.head.AmmoTypeIndices += 0
+    phalanx_sgl_hevgatcan.FireModes.head.AmmoSlotIndex = 0
+    phalanx_sgl_hevgatcan.FireModes.head.Magazine = 4000
+
+    phalanx_avcombo.Name = "phalanx_avcombo"
+    phalanx_avcombo.Size = EquipmentSize.BaseTurretWeapon
+    phalanx_avcombo.AmmoTypes += phalanx_ammo
+    phalanx_avcombo.ProjectileTypes += phalanx_projectile
+    phalanx_avcombo.ProjectileTypes += phalanx_av_projectile
+    phalanx_avcombo.FireModes += new InfiniteFireModeDefinition
+    phalanx_avcombo.FireModes.head.AmmoTypeIndices += 0
+    phalanx_avcombo.FireModes.head.AmmoSlotIndex = 0
+    phalanx_avcombo.FireModes.head.Magazine = 4000
+    phalanx_avcombo.FireModes += new InfiniteFireModeDefinition
+    phalanx_avcombo.FireModes(1).AmmoTypeIndices += 0
+    phalanx_avcombo.FireModes(1).ProjectileTypeIndices += 1
+    phalanx_avcombo.FireModes(1).AmmoSlotIndex = 0
+    phalanx_avcombo.FireModes(1).Magazine = 4000
+
+    phalanx_flakcombo.Name = "phalanx_flakcombo"
+    phalanx_flakcombo.Size = EquipmentSize.BaseTurretWeapon
+    phalanx_flakcombo.AmmoTypes += phalanx_ammo
+    phalanx_flakcombo.ProjectileTypes += phalanx_projectile
+    phalanx_flakcombo.ProjectileTypes += phalanx_flak_projectile
+    phalanx_flakcombo.FireModes += new InfiniteFireModeDefinition
+    phalanx_flakcombo.FireModes.head.AmmoTypeIndices += 0
+    phalanx_flakcombo.FireModes.head.AmmoSlotIndex = 0
+    phalanx_flakcombo.FireModes.head.Magazine = 4000
+    phalanx_flakcombo.FireModes += new InfiniteFireModeDefinition
+    phalanx_flakcombo.FireModes(1).AmmoTypeIndices += 0
+    phalanx_flakcombo.FireModes(1).ProjectileTypeIndices += 1
+    phalanx_flakcombo.FireModes(1).AmmoSlotIndex = 0
+    phalanx_flakcombo.FireModes(1).Magazine = 4000
   }
 
   /**
@@ -2335,6 +4517,8 @@ object GlobalDefinitions {
     */
   private def init_vehicles() : Unit = {
     fury.Name = "fury"
+    fury.MaxHealth = 650
+    fury.MaxShields = 130 + 1
     fury.Seats += 0 -> new SeatDefinition()
     fury.Seats(0).Bailable = true
     fury.Seats(0).ControlledWeapon = 1
@@ -2344,8 +4528,11 @@ object GlobalDefinitions {
     fury.TrunkSize = InventoryTile.Tile1111
     fury.TrunkOffset = 30
     fury.AutoPilotSpeeds = (24, 10)
+    fury.DestroyedModel = Some(DestroyedVehicle.QuadAssault)
 
     quadassault.Name = "quadassault"
+    quadassault.MaxHealth = 650
+    quadassault.MaxShields = 130 + 1
     quadassault.Seats += 0 -> new SeatDefinition()
     quadassault.Seats(0).Bailable = true
     quadassault.Seats(0).ControlledWeapon = 1
@@ -2355,8 +4542,11 @@ object GlobalDefinitions {
     quadassault.TrunkSize = InventoryTile.Tile1111
     quadassault.TrunkOffset = 30
     quadassault.AutoPilotSpeeds = (24, 10)
+    quadassault.DestroyedModel = Some(DestroyedVehicle.QuadAssault)
 
     quadstealth.Name = "quadstealth"
+    quadstealth.MaxHealth = 650
+    quadstealth.MaxShields = 130 + 1
     quadstealth.CanCloak = true
     quadstealth.Seats += 0 -> new SeatDefinition()
     quadstealth.Seats(0).Bailable = true
@@ -2366,8 +4556,11 @@ object GlobalDefinitions {
     quadstealth.TrunkSize = InventoryTile.Tile1111
     quadstealth.TrunkOffset = 30
     quadstealth.AutoPilotSpeeds = (24, 10)
+    quadstealth.DestroyedModel = Some(DestroyedVehicle.QuadStealth)
 
     two_man_assault_buggy.Name = "two_man_assault_buggy"
+    two_man_assault_buggy.MaxHealth = 1250
+    two_man_assault_buggy.MaxShields = 250 + 1
     two_man_assault_buggy.Seats += 0 -> new SeatDefinition()
     two_man_assault_buggy.Seats(0).Bailable = true
     two_man_assault_buggy.Seats += 1 -> new SeatDefinition()
@@ -2379,8 +4572,11 @@ object GlobalDefinitions {
     two_man_assault_buggy.TrunkSize = InventoryTile.Tile1511
     two_man_assault_buggy.TrunkOffset = 30
     two_man_assault_buggy.AutoPilotSpeeds = (22, 8)
+    two_man_assault_buggy.DestroyedModel = Some(DestroyedVehicle.TwoManAssaultBuggy)
 
     skyguard.Name = "skyguard"
+    skyguard.MaxHealth = 1000
+    skyguard.MaxShields = 200 + 1
     skyguard.Seats += 0 -> new SeatDefinition()
     skyguard.Seats(0).Bailable = true
     skyguard.Seats += 1 -> new SeatDefinition()
@@ -2393,8 +4589,11 @@ object GlobalDefinitions {
     skyguard.TrunkSize = InventoryTile.Tile1511
     skyguard.TrunkOffset = 30
     skyguard.AutoPilotSpeeds = (22, 8)
+    skyguard.DestroyedModel = Some(DestroyedVehicle.Skyguard)
 
     threemanheavybuggy.Name = "threemanheavybuggy"
+    threemanheavybuggy.MaxHealth = 1700
+    threemanheavybuggy.MaxShields = 340 + 1
     threemanheavybuggy.Seats += 0 -> new SeatDefinition()
     threemanheavybuggy.Seats(0).Bailable = true
     threemanheavybuggy.Seats += 1 -> new SeatDefinition()
@@ -2411,8 +4610,11 @@ object GlobalDefinitions {
     threemanheavybuggy.TrunkSize = InventoryTile.Tile1511
     threemanheavybuggy.TrunkOffset = 30
     threemanheavybuggy.AutoPilotSpeeds = (22, 8)
+    threemanheavybuggy.DestroyedModel = Some(DestroyedVehicle.ThreeManHeavyBuggy)
 
     twomanheavybuggy.Name = "twomanheavybuggy"
+    twomanheavybuggy.MaxHealth = 1800
+    twomanheavybuggy.MaxShields = 360 + 1
     twomanheavybuggy.Seats += 0 -> new SeatDefinition()
     twomanheavybuggy.Seats(0).Bailable = true
     twomanheavybuggy.Seats += 1 -> new SeatDefinition()
@@ -2424,8 +4626,11 @@ object GlobalDefinitions {
     twomanheavybuggy.TrunkSize = InventoryTile.Tile1511
     twomanheavybuggy.TrunkOffset = 30
     twomanheavybuggy.AutoPilotSpeeds = (22, 8)
+    twomanheavybuggy.DestroyedModel = Some(DestroyedVehicle.TwoManHeavyBuggy)
 
     twomanhoverbuggy.Name = "twomanhoverbuggy"
+    twomanhoverbuggy.MaxHealth = 1600
+    twomanhoverbuggy.MaxShields = 320 + 1
     twomanhoverbuggy.Seats += 0 -> new SeatDefinition()
     twomanhoverbuggy.Seats(0).Bailable = true
     twomanhoverbuggy.Seats += 1 -> new SeatDefinition()
@@ -2437,8 +4642,11 @@ object GlobalDefinitions {
     twomanhoverbuggy.TrunkSize = InventoryTile.Tile1511
     twomanhoverbuggy.TrunkOffset = 30
     twomanhoverbuggy.AutoPilotSpeeds = (22, 10)
+    twomanhoverbuggy.DestroyedModel = Some(DestroyedVehicle.TwoManHoverBuggy)
 
     mediumtransport.Name = "mediumtransport"
+    mediumtransport.MaxHealth = 2500
+    mediumtransport.MaxShields = 500 + 1
     mediumtransport.Seats += 0 -> new SeatDefinition()
     mediumtransport.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
     mediumtransport.Seats += 1 -> new SeatDefinition()
@@ -2457,8 +4665,11 @@ object GlobalDefinitions {
     mediumtransport.TrunkSize = InventoryTile.Tile1515
     mediumtransport.TrunkOffset = 30
     mediumtransport.AutoPilotSpeeds = (18, 6)
+    mediumtransport.DestroyedModel = Some(DestroyedVehicle.MediumTransport)
 
     battlewagon.Name = "battlewagon"
+    battlewagon.MaxHealth = 2500
+    battlewagon.MaxShields = 500 + 1
     battlewagon.Seats += 0 -> new SeatDefinition()
     battlewagon.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
     battlewagon.Seats += 1 -> new SeatDefinition()
@@ -2481,8 +4692,11 @@ object GlobalDefinitions {
     battlewagon.TrunkSize = InventoryTile.Tile1515
     battlewagon.TrunkOffset = 30
     battlewagon.AutoPilotSpeeds = (18, 6)
+    battlewagon.DestroyedModel = Some(DestroyedVehicle.MediumTransport)
 
     thunderer.Name = "thunderer"
+    thunderer.MaxHealth = 2500
+    thunderer.MaxShields = 500 + 1
     thunderer.Seats += 0 -> new SeatDefinition()
     thunderer.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
     thunderer.Seats += 1 -> new SeatDefinition()
@@ -2501,8 +4715,11 @@ object GlobalDefinitions {
     thunderer.TrunkSize = InventoryTile.Tile1515
     thunderer.TrunkOffset = 30
     thunderer.AutoPilotSpeeds = (18, 6)
+    thunderer.DestroyedModel = Some(DestroyedVehicle.MediumTransport)
 
     aurora.Name = "aurora"
+    aurora.MaxHealth = 2500
+    aurora.MaxShields = 500 + 1
     aurora.Seats += 0 -> new SeatDefinition()
     aurora.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
     aurora.Seats += 1 -> new SeatDefinition()
@@ -2521,8 +4738,11 @@ object GlobalDefinitions {
     aurora.TrunkSize = InventoryTile.Tile1515
     aurora.TrunkOffset = 30
     aurora.AutoPilotSpeeds = (18, 6)
+    aurora.DestroyedModel = Some(DestroyedVehicle.MediumTransport)
 
     apc_tr.Name = "apc_tr"
+    apc_tr.MaxHealth = 6000
+    apc_tr.MaxShields = 1200 + 1
     apc_tr.Seats += 0 -> new SeatDefinition()
     apc_tr.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
     apc_tr.Seats += 1 -> new SeatDefinition()
@@ -2564,8 +4784,11 @@ object GlobalDefinitions {
     apc_tr.TrunkSize = InventoryTile.Tile2016
     apc_tr.TrunkOffset = 30
     apc_tr.AutoPilotSpeeds = (16, 6)
+    apc_tr.DestroyedModel = Some(DestroyedVehicle.Apc)
 
     apc_nc.Name = "apc_nc"
+    apc_nc.MaxHealth = 6000
+    apc_nc.MaxShields = 1200 + 1
     apc_nc.Seats += 0 -> new SeatDefinition()
     apc_nc.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
     apc_nc.Seats += 1 -> new SeatDefinition()
@@ -2607,8 +4830,11 @@ object GlobalDefinitions {
     apc_nc.TrunkSize = InventoryTile.Tile2016
     apc_nc.TrunkOffset = 30
     apc_nc.AutoPilotSpeeds = (16, 6)
+    apc_nc.DestroyedModel = Some(DestroyedVehicle.Apc)
 
     apc_vs.Name = "apc_vs"
+    apc_vs.MaxHealth = 6000
+    apc_vs.MaxShields = 1200 + 1
     apc_vs.Seats += 0 -> new SeatDefinition()
     apc_vs.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
     apc_vs.Seats += 1 -> new SeatDefinition()
@@ -2650,8 +4876,11 @@ object GlobalDefinitions {
     apc_vs.TrunkSize = InventoryTile.Tile2016
     apc_vs.TrunkOffset = 30
     apc_vs.AutoPilotSpeeds = (16, 6)
+    apc_vs.DestroyedModel = Some(DestroyedVehicle.Apc)
 
     lightning.Name = "lightning"
+    lightning.MaxHealth = 2000
+    lightning.MaxShields = 400 + 1
     lightning.Seats += 0 -> new SeatDefinition()
     lightning.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
     lightning.Seats(0).ControlledWeapon = 1
@@ -2661,8 +4890,11 @@ object GlobalDefinitions {
     lightning.TrunkSize = InventoryTile.Tile1511
     lightning.TrunkOffset = 30
     lightning.AutoPilotSpeeds = (20, 8)
+    lightning.DestroyedModel = Some(DestroyedVehicle.Lightning)
 
     prowler.Name = "prowler"
+    prowler.MaxHealth = 4800
+    prowler.MaxShields = 960 + 1
     prowler.Seats += 0 -> new SeatDefinition()
     prowler.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
     prowler.Seats += 1 -> new SeatDefinition()
@@ -2677,8 +4909,11 @@ object GlobalDefinitions {
     prowler.TrunkSize = InventoryTile.Tile1511
     prowler.TrunkOffset = 30
     prowler.AutoPilotSpeeds = (14, 6)
+    prowler.DestroyedModel = Some(DestroyedVehicle.Prowler)
 
     vanguard.Name = "vanguard"
+    vanguard.MaxHealth = 5400
+    vanguard.MaxShields = 1080 + 1
     vanguard.Seats += 0 -> new SeatDefinition()
     vanguard.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
     vanguard.Seats += 1 -> new SeatDefinition()
@@ -2689,8 +4924,11 @@ object GlobalDefinitions {
     vanguard.TrunkSize = InventoryTile.Tile1511
     vanguard.TrunkOffset = 30
     vanguard.AutoPilotSpeeds = (16, 6)
+    vanguard.DestroyedModel = Some(DestroyedVehicle.Vanguard)
 
     magrider.Name = "magrider"
+    magrider.MaxHealth = 4200
+    magrider.MaxShields = 840 + 1
     magrider.Seats += 0 -> new SeatDefinition()
     magrider.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
     magrider.Seats(0).ControlledWeapon = 2
@@ -2703,9 +4941,12 @@ object GlobalDefinitions {
     magrider.TrunkSize = InventoryTile.Tile1511
     magrider.TrunkOffset = 30
     magrider.AutoPilotSpeeds = (18, 6)
+    magrider.DestroyedModel = Some(DestroyedVehicle.Magrider)
 
     val utilityConverter = new UtilityVehicleConverter
     ant.Name = "ant"
+    ant.MaxHealth = 2000
+    ant.MaxShields = 400 + 1
     ant.Seats += 0 -> new SeatDefinition()
     ant.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
     ant.MountPoints += 1 -> 0
@@ -2716,8 +4957,11 @@ object GlobalDefinitions {
     ant.AutoPilotSpeeds = (18, 6)
     ant.MaximumCapacitor = 1500
     ant.Packet = utilityConverter
+    ant.DestroyedModel = Some(DestroyedVehicle.Ant)
 
     ams.Name = "ams"
+    ams.MaxHealth = 3000
+    ams.MaxShields = 600 + 1
     ams.Seats += 0 -> new SeatDefinition()
     ams.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
     ams.MountPoints += 1 -> 0
@@ -2732,9 +4976,12 @@ object GlobalDefinitions {
     ams.DeconstructionTime = Some(20 minutes)
     ams.AutoPilotSpeeds = (18, 6)
     ams.Packet = utilityConverter
+    ams.DestroyedModel = Some(DestroyedVehicle.Ams)
 
     val variantConverter = new VariantVehicleConverter
     router.Name = "router"
+    router.MaxHealth = 4000
+    router.MaxShields = 800 + 1
     router.Seats += 0 -> new SeatDefinition()
     router.MountPoints += 1 -> 0
     router.TrunkSize = InventoryTile.Tile1511
@@ -2745,8 +4992,11 @@ object GlobalDefinitions {
     router.DeconstructionTime = Duration(20, "minutes")
     router.AutoPilotSpeeds = (16, 6)
     router.Packet = variantConverter
+    router.DestroyedModel = Some(DestroyedVehicle.Router)
 
     switchblade.Name = "switchblade"
+    switchblade.MaxHealth = 1750
+    switchblade.MaxShields = 350 + 1
     switchblade.Seats += 0 -> new SeatDefinition()
     switchblade.Seats(0).ControlledWeapon = 1
     switchblade.Weapons += 1 -> scythe
@@ -2759,8 +5009,11 @@ object GlobalDefinitions {
     switchblade.UndeployTime = 2000
     switchblade.AutoPilotSpeeds = (22, 8)
     switchblade.Packet = variantConverter
+    switchblade.DestroyedModel = Some(DestroyedVehicle.Switchblade)
 
     flail.Name = "flail"
+    flail.MaxHealth = 2400
+    flail.MaxShields = 480 + 1
     flail.Seats += 0 -> new SeatDefinition()
     flail.Seats(0).ControlledWeapon = 1
     flail.Weapons += 1 -> flail_weapon
@@ -2772,8 +5025,11 @@ object GlobalDefinitions {
     flail.UndeployTime = 2000
     flail.AutoPilotSpeeds = (14, 6)
     flail.Packet = variantConverter
+    flail.DestroyedModel = Some(DestroyedVehicle.Flail)
 
     mosquito.Name = "mosquito"
+    mosquito.MaxHealth = 665
+    mosquito.MaxShields = 133 + 1
     mosquito.Seats += 0 -> new SeatDefinition()
     mosquito.Seats(0).Bailable = true
     mosquito.Seats(0).ControlledWeapon = 1
@@ -2784,8 +5040,11 @@ object GlobalDefinitions {
     mosquito.TrunkOffset = 30
     mosquito.AutoPilotSpeeds = (0, 6)
     mosquito.Packet = variantConverter
+    mosquito.DestroyedModel = Some(DestroyedVehicle.Mosquito)
 
     lightgunship.Name = "lightgunship"
+    lightgunship.MaxHealth = 1000
+    lightgunship.MaxShields = 200 + 1
     lightgunship.Seats += 0 -> new SeatDefinition()
     lightgunship.Seats(0).Bailable = true
     lightgunship.Seats(0).ControlledWeapon = 1
@@ -2796,8 +5055,11 @@ object GlobalDefinitions {
     lightgunship.TrunkOffset = 30
     lightgunship.AutoPilotSpeeds = (0, 4)
     lightgunship.Packet = variantConverter
+    lightgunship.DestroyedModel = Some(DestroyedVehicle.LightGunship)
 
     wasp.Name = "wasp"
+    wasp.MaxHealth = 515
+    wasp.MaxShields = 103 + 1
     wasp.Seats += 0 -> new SeatDefinition()
     wasp.Seats(0).Bailable = true
     wasp.Seats(0).ControlledWeapon = 1
@@ -2808,8 +5070,11 @@ object GlobalDefinitions {
     wasp.TrunkOffset = 30
     wasp.AutoPilotSpeeds = (0, 6)
     wasp.Packet = variantConverter
+    wasp.DestroyedModel = Some(DestroyedVehicle.Mosquito) //set_resource_parent wasp game_objects mosquito
 
     liberator.Name = "liberator"
+    liberator.MaxHealth = 2500
+    liberator.MaxShields = 500 + 1
     liberator.Seats += 0 -> new SeatDefinition()
     liberator.Seats(0).ControlledWeapon = 3
     liberator.Seats += 1 -> new SeatDefinition()
@@ -2827,8 +5092,11 @@ object GlobalDefinitions {
     liberator.TrunkOffset = 30
     liberator.AutoPilotSpeeds = (0, 4)
     liberator.Packet = variantConverter
+    liberator.DestroyedModel = Some(DestroyedVehicle.Liberator)
 
     vulture.Name = "vulture"
+    vulture.MaxHealth = 2500
+    vulture.MaxShields = 500 + 1
     vulture.Seats += 0 -> new SeatDefinition()
     vulture.Seats(0).ControlledWeapon = 3
     vulture.Seats += 1 -> new SeatDefinition()
@@ -2846,8 +5114,11 @@ object GlobalDefinitions {
     vulture.TrunkOffset = 30
     vulture.AutoPilotSpeeds = (0, 4)
     vulture.Packet = variantConverter
+    vulture.DestroyedModel = Some(DestroyedVehicle.Liberator) //add_property vulture destroyedphysics liberator_destroyed
 
     dropship.Name = "dropship"
+    dropship.MaxHealth = 5000
+    dropship.MaxShields = 1000 + 1
     dropship.Seats += 0 -> new SeatDefinition()
     dropship.Seats += 1 -> new SeatDefinition()
     dropship.Seats(1).Bailable = true
@@ -2879,6 +5150,7 @@ object GlobalDefinitions {
     dropship.Weapons += 12 -> cannon_dropship_20mm
     dropship.Weapons += 13 -> cannon_dropship_20mm
     dropship.Weapons += 14 -> dropship_rear_turret
+    dropship.Cargo += 15 -> new CargoDefinition()
     dropship.MountPoints += 1 -> 0
     dropship.MountPoints += 2 -> 11
     dropship.MountPoints += 3 -> 1
@@ -2891,12 +5163,16 @@ object GlobalDefinitions {
     dropship.MountPoints += 10 -> 8
     dropship.MountPoints += 11 -> 9
     dropship.MountPoints += 12 -> 10
+    dropship.MountPoints += 13 -> 15
     dropship.TrunkSize = InventoryTile.Tile1612
     dropship.TrunkOffset = 30
     dropship.AutoPilotSpeeds = (0, 4)
     dropship.Packet = variantConverter
+    dropship.DestroyedModel = Some(DestroyedVehicle.Dropship)
 
     galaxy_gunship.Name = "galaxy_gunship"
+    galaxy_gunship.MaxHealth = 6000
+    galaxy_gunship.MaxShields = 1200 + 1
     galaxy_gunship.Seats += 0 -> new SeatDefinition()
     galaxy_gunship.Seats += 1 -> new SeatDefinition()
     galaxy_gunship.Seats(1).ControlledWeapon = 6
@@ -2923,16 +5199,24 @@ object GlobalDefinitions {
     galaxy_gunship.TrunkOffset = 30
     galaxy_gunship.AutoPilotSpeeds = (0, 4)
     galaxy_gunship.Packet = variantConverter
+    galaxy_gunship.DestroyedModel = Some(DestroyedVehicle.Dropship) //the adb calls out a galaxy_gunship_destroyed but no such asset exists
 
     lodestar.Name = "lodestar"
+    lodestar.MaxHealth = 5000
+    lodestar.MaxShields = 1000 + 1
     lodestar.Seats += 0 -> new SeatDefinition()
     lodestar.MountPoints += 1 -> 0
+    lodestar.MountPoints += 2 -> 1
+    lodestar.Cargo += 1 -> new CargoDefinition()
     lodestar.TrunkSize = InventoryTile.Tile1612
     lodestar.TrunkOffset = 30
     lodestar.AutoPilotSpeeds = (0, 4)
     lodestar.Packet = variantConverter
+    lodestar.DestroyedModel = Some(DestroyedVehicle.Lodestar)
 
     phantasm.Name = "phantasm"
+    phantasm.MaxHealth = 2500
+    phantasm.MaxShields = 500 + 1
     phantasm.CanCloak = true
     phantasm.Seats += 0 -> new SeatDefinition()
     phantasm.Seats += 1 -> new SeatDefinition()
@@ -2952,5 +5236,6 @@ object GlobalDefinitions {
     phantasm.TrunkOffset = 30
     phantasm.AutoPilotSpeeds = (0, 6)
     phantasm.Packet = variantConverter
+    phantasm.DestroyedModel = None //the adb calls out a phantasm_destroyed but no such asset exists
   }
 }

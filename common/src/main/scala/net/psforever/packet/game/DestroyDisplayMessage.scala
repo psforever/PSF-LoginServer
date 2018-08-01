@@ -1,6 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.packet.game
 
+import net.psforever.objects.ballistics.SourceEntry
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
 import net.psforever.types.PlanetSideEmpire
 import scodec.Codec
@@ -15,47 +16,43 @@ import scodec.codecs._
   * 3) victim information<br>
   * In the case of a player kill, the player's name will be attributed directly.
   * In the case of an absentee kill, a description of the method of death will be attributed.
-  * In the case of a suicide, the player attributed is the player who was killed (message format displays only the victim).
-  * The victim's name is byte-aligned with a 5-bit buffer.<br>
+  * In the case of a suicide, the player attributed is the player who was killed (message format displays only the victim).<br>
   * <br>
   * The four bytes that follow each name seems to be important to the identification of the associated player.
-  * The same value will be seen in every `DestroyDisplayMessage` that includes the player, with respect to whether they are listed as the "killer" or as the "victim."
-  * This holds true for every entry within thie same login session, at least.
-  * Blanking these values out does not change anything about the format of the event message.
-  * In the case of absentee kills, for example, where there is no killer listed, this field has been zero'd (`00000000`).<br>
+  * The same value will be seen in every `DestroyDisplayMessage` that includes that player,
+  * with respect to whether they are listed as the "killer" or as the "victim."
+  * This holds true for every entry within the same login session, at least.
+  * Blanking either of these values out does not change anything about the format of the event message.
+  * If the two ids match, the packet will interpreted as the "suicide" format, even if the names do not match.
+  * In the case of absentee kills where there is no killer listed, this field is zero'd.<br>
   * <br>
-  * The faction affiliation is different from the normal way `PlanetSideEmpire` values are recorded.
-  * The higher nibble will reflect the first part of the `PlanetSideEmpire` value.
-  * An extra `20` will be added if the player is in a vehicle or turret at the time.
-  * When marked as being in a vehicle or turret, the player's name will be enclosed within square brackets.
-  * The length of the player's name found at the start of the wide character string does not reflect whether or not there will be square brackets (fortunately).<br>
-  * <br>
-  * The two bytes in between the killer section and the victim section are the method of homicide or suicide.
-  * The color of the resulting icon is borrowed from the attributed killer's faction affiliation if it can be determined.
-  * An unidentified method defaults to a skull and crossbones icon.
-  * The exact range of unique and valid icon values for this parameter is currently unknown.
-  * It is also unknown what the two bytes preceding `method` specify, as changing them does nothing to the displayed message.
+  * When marked as being in a vehicle or a turret, the player's name will be enclosed within square brackets.
+  * The length of the player's name found at the start of the character string does not reflect
+  * whether or not there will be square brackets (fortunately).
+  * The color of the resulting icon is borrowed from the attributed killer's faction affiliation if it can be determined
+  * and the type of icon is the same as an object id.
+  * An unidentified method or a missing icon defaults to a skull and crossbones.
   * @param killer the name of the player who did the killing
-  * @param killer_charId Same as CharacterInfoMessage
+  * @param killer_charId same as CharacterInfoMessage
   * @param killer_empire the empire affiliation of the killer
-  * @param killer_inVehicle true, if the killer was in a vehicle at the time of the kill; false, otherwise
+  * @param killer_in_vehicle true, if the killer was in a vehicle at the time of the kill; false, otherwise
   * @param unk na; but does not like being set to 0
   * @param method modifies the icon in the message, related to the way the victim was killed
   * @param victim the name of the player who was killed
-  * @param victim_charId Same as CharacterInfoMessage
+  * @param victim_charId same as CharacterInfoMessage
   * @param victim_empire the empire affiliation of the victim
-  * @param victim_inVehicle true, if the victim was in a vehicle when he was killed; false, otherwise
+  * @param victim_in_vehicle true, if the victim was in a vehicle when he was killed; false, otherwise
   */
 final case class DestroyDisplayMessage(killer : String,
                                        killer_charId : Long,
                                        killer_empire : PlanetSideEmpire.Value,
-                                       killer_inVehicle : Boolean,
+                                       killer_in_vehicle : Boolean,
                                        unk : Int,
                                        method : Int,
                                        victim : String,
                                        victim_charId : Long,
                                        victim_empire : PlanetSideEmpire.Value,
-                                       victim_inVehicle : Boolean
+                                       victim_in_vehicle : Boolean
 )
   extends PlanetSideGamePacket {
   type Packet = DestroyDisplayMessage
@@ -68,12 +65,12 @@ object DestroyDisplayMessage extends Marshallable[DestroyDisplayMessage] {
     ("killer" | PacketHelpers.encodedWideString) ::
       ("killer_charId" | ulongL(32)) ::
       ("killer_empire" | PlanetSideEmpire.codec) ::
-      ("killer_inVehicle" | bool) ::
+      ("killer_in_vehicle" | bool) ::
       ("unk" | uint16L) ::
       ("method" | uint16L) ::
       ("victim" | PacketHelpers.encodedWideStringAligned(5)) ::
       ("victim_charId" | ulongL(32)) ::
       ("victim_empire" | PlanetSideEmpire.codec) ::
-      ("victim_inVehicle" | bool)
+      ("victim_in_vehicle" | bool)
     ).as[DestroyDisplayMessage]
 }

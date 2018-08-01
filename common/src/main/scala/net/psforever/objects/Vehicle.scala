@@ -8,7 +8,8 @@ import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.deploy.Deployment
-import net.psforever.objects.vehicles.{AccessPermissionGroup, Seat, Utility, VehicleLockState}
+import net.psforever.objects.vehicles._
+import net.psforever.objects.vital.{DamageResistanceModel, StandardResistanceProfile, Vitality}
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types.PlanetSideEmpire
 
@@ -65,7 +66,10 @@ import scala.annotation.tailrec
 class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServerObject
   with FactionAffinity
   with Mountable
+  with MountedWeapons
   with Deployment
+  with Vitality
+  with StandardResistanceProfile
   with Container {
   private var faction : PlanetSideEmpire.Value = PlanetSideEmpire.TR
   private var owner : Option[PlanetSideGUID] = None
@@ -83,9 +87,16 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
     */
   private val groupPermissions : Array[VehicleLockState.Value] = Array(VehicleLockState.Locked, VehicleLockState.Empire, VehicleLockState.Empire, VehicleLockState.Locked)
   private var seats : Map[Int, Seat] = Map.empty
+  private var cargoHolds : Map[Int, Cargo] = Map.empty
   private var weapons : Map[Int, EquipmentSlot] = Map.empty
   private var utilities : Map[Int, Utility] = Map()
   private val trunk : GridInventory = GridInventory()
+
+  /**
+    * Records the GUID of the cargo vehicle (galaxy/lodestar) this vehicle is stored in for DismountVehicleCargoMsg use
+    * DismountVehicleCargoMsg only passes the player_guid and this vehicle's guid
+    */
+  private var mountedIn : Option[PlanetSideGUID] = None
 
   //init
   LoadDefinition()
@@ -107,6 +118,22 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
     faction
   }
 
+  def MountedIn : Option[PlanetSideGUID] = {
+    this.mountedIn
+  }
+
+  def MountedIn_=(cargo_vehicle_guid : PlanetSideGUID) : Option[PlanetSideGUID] = MountedIn_=(Some(cargo_vehicle_guid))
+
+  def MountedIn_=(cargo_vehicle_guid : Option[PlanetSideGUID]) : Option[PlanetSideGUID] = {
+    cargo_vehicle_guid match {
+      case Some(_) =>
+        this.mountedIn = cargo_vehicle_guid
+      case None =>
+        this.mountedIn = None
+    }
+    MountedIn
+  }
+
   def Owner : Option[PlanetSideGUID] = {
     this.owner
   }
@@ -118,7 +145,7 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
   def Owner_=(owner : Option[PlanetSideGUID]) : Option[PlanetSideGUID] = {
     owner match {
       case Some(_) =>
-        if(Definition.CanBeOwned) { //e.g., base turrets
+        if(Definition.CanBeOwned) {
           this.owner = owner
         }
       case None =>
@@ -128,11 +155,11 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
   }
 
   def Health : Int = {
-    this.health
+    health
   }
 
-  def Health_=(health : Int) : Int = {
-    this.health = health
+  def Health_=(assignHealth : Int) : Int = {
+    health = math.min(math.max(0, assignHealth), MaxHealth)
     health
   }
 
@@ -141,11 +168,11 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
   }
 
   def Shields : Int = {
-    this.shields
+    shields
   }
 
   def Shields_=(strength : Int) : Int = {
-    this.shields = strength
+    shields = math.min(math.max(0, strength), MaxShields)
     Shields
   }
 
@@ -154,12 +181,12 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
   }
 
   def Decal : Int = {
-    this.decal
+    decal
   }
 
-  def Decal_=(decal : Int) : Int = {
-    this.decal = decal
-    decal
+  def Decal_=(logo : Int) : Int = {
+    decal = logo
+    Decal
   }
 
   def Jammered : Boolean = jammered
@@ -273,6 +300,19 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
     seats
   }
 
+  def CargoHold(cargoNumber : Int) : Option[Cargo] = {
+    if(cargoNumber >= 0) {
+      this.cargoHolds.get(cargoNumber)
+    }
+    else {
+      None
+    }
+  }
+
+  def CargoHolds : Map[Int, Cargo] = {
+    cargoHolds
+  }
+
   def SeatPermissionGroup(seatNumber : Int) : Option[AccessPermissionGroup.Value] = {
     if(seatNumber == 0) {
       Some(AccessPermissionGroup.Driver)
@@ -287,7 +327,12 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
               Some(AccessPermissionGroup.Passenger)
           }
         case None =>
-          None
+          CargoHold(seatNumber) match {
+            case Some(_) =>
+              Some(AccessPermissionGroup.Passenger)
+            case None =>
+              None
+          }
       }
     }
   }
@@ -327,38 +372,6 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
       else {
         recursivePassengerInSeat(iter, player)
       }
-    }
-  }
-
-  /**
-    * Given a valid seat number, retrieve an index where the weapon controlled from this seat is mounted.
-    * @param seatNumber the seat number
-    * @return a mounted weapon by index, or `None` if either the seat doesn't exist or there is no controlled weapon
-    */
-  def WeaponControlledFromSeat(seatNumber : Int) : Option[Equipment] = {
-    Seat(seatNumber) match {
-      case Some(seat) =>
-        wepFromSeat(seat)
-      case None =>
-        None
-    }
-  }
-
-  private def wepFromSeat(seat : Seat) : Option[Equipment] = {
-    seat.ControlledWeapon match {
-      case Some(index) =>
-        wepFromSeat(index)
-      case None =>
-        None
-    }
-  }
-
-  private def wepFromSeat(wepIndex : Int) : Option[Equipment] = {
-    weapons.get(wepIndex) match {
-      case Some(wep) =>
-        wep.Equipment
-      case None =>
-        None
     }
   }
 
@@ -483,6 +496,8 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
     */
   def TrunkLockState :  VehicleLockState.Value = groupPermissions(3)
 
+  def DamageModel = Definition.asInstanceOf[DamageResistanceModel]
+
   /**
     * This is the definition entry that is used to store and unload pertinent information about the `Vehicle`.
     * @return the vehicle's definition entry
@@ -525,6 +540,20 @@ object Vehicle {
   final case class Reactivate()
 
   /**
+    * A request has been made to charge this vehicle's shields.
+    * @see `FacilityBenefitShieldChargeRequestMessage`
+    * @param amount the number of points to charge
+    */
+  final case class ChargeShields(amount : Int)
+
+  /**
+    * Following a successful shield charge tick, display the results of the update.
+    * @see `FacilityBenefitShieldChargeRequestMessage`
+    * @param vehicle the updated vehicle
+    */
+  final case class UpdateShieldsCharge(vehicle : Vehicle)
+
+  /**
     * Overloaded constructor.
     * @param vehicleDef the vehicle's definition entry
     * @return a `Vehicle` object
@@ -558,6 +587,9 @@ object Vehicle {
     }).toMap
     //create seats
     vehicle.seats = vdef.Seats.map({ case(num, definition) => num -> Seat(definition)}).toMap
+    // create cargo holds
+    vehicle.cargoHolds = vdef.Cargo.map({ case(num, definition) => num -> Cargo(definition)}).toMap
+
     //create utilities
     vehicle.utilities = vdef.Utilities.map({ case(num, util) => num -> Utility(util, vehicle) }).toMap
     //trunk

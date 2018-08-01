@@ -1,11 +1,11 @@
 // Copyright (c) 2017 PSForever
 package objects.guidtask
 
+import base.ActorTest
 import net.psforever.objects._
 import net.psforever.objects.guid.{GUIDTask, TaskResolver}
-import objects.ActorTest
 
-class GUIDTaskRegister4Test extends ActorTest() {
+class GUIDTaskRegister4Test extends ActorTest {
   "RegisterVehicle" in {
     val (_, uns, taskResolver, probe) = GUIDTaskTest.CommonTestSetup
     val obj = Vehicle(GlobalDefinitions.fury)

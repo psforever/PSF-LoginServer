@@ -2,16 +2,16 @@
 package objects.terminal
 
 import akka.actor.{ActorSystem, Props}
+import base.ActorTest
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.{Avatar, GlobalDefinitions, Player}
 import net.psforever.objects.serverobject.terminals._
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types.{CharacterGender, CharacterVoice, PlanetSideEmpire}
-import objects.ActorTest
 
 import scala.concurrent.duration.Duration
 
-class ProximityTerminalControl1Test extends ActorTest() {
+class ProximityTerminalControl1Test extends ActorTest {
   "ProximityTerminalControl" should {
     "construct (medical terminal)" in {
       val terminal = ProximityTerminal(GlobalDefinitions.medical_terminal)
@@ -20,7 +20,7 @@ class ProximityTerminalControl1Test extends ActorTest() {
   }
 }
 
-class ProximityTerminalControl2Test extends ActorTest() {
+class ProximityTerminalControl2Test extends ActorTest {
   "ProximityTerminalControl can not process wrong messages" in {
     val (_, terminal) = TerminalControlTest.SetUpAgents(GlobalDefinitions.medical_terminal, PlanetSideEmpire.TR)
 
@@ -30,7 +30,7 @@ class ProximityTerminalControl2Test extends ActorTest() {
 }
 
 //terminal control is mostly a pass-through actor for Terminal.Exchange messages, wrapped in Terminal.TerminalMessage protocol
-class MedicalTerminalControl1Test extends ActorTest() {
+class MedicalTerminalControl1Test extends ActorTest {
   "ProximityTerminalControl sends a message to the first new user only" in {
     val (player, terminal) = ProximityTerminalControlTest.SetUpAgents(GlobalDefinitions.medical_terminal, PlanetSideEmpire.TR)
     player.GUID = PlanetSideGUID(10)
@@ -53,7 +53,7 @@ class MedicalTerminalControl1Test extends ActorTest() {
   }
 }
 
-class MedicalTerminalControl2Test extends ActorTest() {
+class MedicalTerminalControl2Test extends ActorTest {
   "ProximityTerminalControl sends a message to the last user only" in {
     val (player, terminal) : (Player, ProximityTerminal) = ProximityTerminalControlTest.SetUpAgents(GlobalDefinitions.medical_terminal, PlanetSideEmpire.TR)
     player.GUID = PlanetSideGUID(10)
@@ -82,7 +82,7 @@ class MedicalTerminalControl2Test extends ActorTest() {
   }
 }
 
-class MedicalTerminalControl3Test extends ActorTest() {
+class MedicalTerminalControl3Test extends ActorTest {
   "ProximityTerminalControl sends a message to the last user only (confirmation of test #2)" in {
     val (player, terminal) : (Player, ProximityTerminal) = ProximityTerminalControlTest.SetUpAgents(GlobalDefinitions.medical_terminal, PlanetSideEmpire.TR)
     player.GUID = PlanetSideGUID(10)

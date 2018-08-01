@@ -2,6 +2,7 @@
 package objects
 
 import akka.actor.{ActorRef, ActorSystem, Props}
+import base.ActorTest
 import net.psforever.objects.{Avatar, GlobalDefinitions, Player}
 import net.psforever.objects.serverobject.doors.{Door, DoorControl}
 import net.psforever.objects.serverobject.structures.{Building, StructureType}
@@ -42,7 +43,7 @@ class DoorTest extends Specification {
     }
 
     "be opened and closed (2; toggle)" in {
-      val msg = UseItemMessage(PlanetSideGUID(6585), 0, PlanetSideGUID(372), 4294967295L, false, Vector3(5.0f,0.0f,0.0f), Vector3(0.0f,0.0f,0.0f), 11, 25, 0, 364)
+      val msg = UseItemMessage(PlanetSideGUID(6585), PlanetSideGUID(0), PlanetSideGUID(372), 4294967295L, false, Vector3(5.0f,0.0f,0.0f), Vector3(0.0f,0.0f,0.0f), 11, 25, 0, 364)
       val door = Door(GlobalDefinitions.door)
       door.Open mustEqual None
       door.Use(player, msg)
@@ -74,7 +75,7 @@ class DoorTest extends Specification {
   }
 }
 
-class DoorControl1Test extends ActorTest() {
+class DoorControl1Test extends ActorTest {
   "DoorControl" should {
     "construct" in {
       val door = Door(GlobalDefinitions.door)
@@ -84,11 +85,11 @@ class DoorControl1Test extends ActorTest() {
   }
 }
 
-class DoorControl2Test extends ActorTest() {
+class DoorControl2Test extends ActorTest {
   "DoorControl" should {
     "open on use" in {
       val (player, door) = DoorControlTest.SetUpAgents(PlanetSideEmpire.TR)
-      val msg = UseItemMessage(PlanetSideGUID(1), 0, PlanetSideGUID(2), 0L, false, Vector3(0f,0f,0f),Vector3(0f,0f,0f),0,0,0,0L) //faked
+      val msg = UseItemMessage(PlanetSideGUID(1), PlanetSideGUID(0), PlanetSideGUID(2), 0L, false, Vector3(0f,0f,0f),Vector3(0f,0f,0f),0,0,0,0L) //faked
       assert(door.Open.isEmpty)
 
       door.Actor ! Door.Use(player, msg)
@@ -103,7 +104,7 @@ class DoorControl2Test extends ActorTest() {
   }
 }
 
-class DoorControl3Test extends ActorTest() {
+class DoorControl3Test extends ActorTest {
   "DoorControl" should {
     "do nothing if given garbage" in {
       val (_, door) = DoorControlTest.SetUpAgents(PlanetSideEmpire.TR)

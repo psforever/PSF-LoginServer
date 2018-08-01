@@ -1,11 +1,11 @@
 // Copyright (c) 2017 PSForever
 package objects.guidtask
 
+import base.ActorTest
 import net.psforever.objects._
 import net.psforever.objects.guid.{GUIDTask, TaskResolver}
-import objects.ActorTest
 
-class GUIDTaskUnregister3Test extends ActorTest() {
+class GUIDTaskUnregister3Test extends ActorTest {
   "UnregisterEquipment -> UnregisterTool" in {
     val (guid, uns, taskResolver, probe) = GUIDTaskTest.CommonTestSetup
     val obj = Tool(GlobalDefinitions.beamer)

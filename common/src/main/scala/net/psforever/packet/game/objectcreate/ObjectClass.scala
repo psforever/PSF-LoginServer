@@ -373,6 +373,7 @@ object ObjectClass {
   final val implant_terminal_interface = 409
   final val locker_container = 456
   final val lodestar_repair_terminal = 461
+  final val manned_turret = 480
   final val matrix_terminala = 517
   final val matrix_terminalb = 518
   final val matrix_terminalc = 519
