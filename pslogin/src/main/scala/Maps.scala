@@ -10,6 +10,7 @@ import net.psforever.objects.serverobject.mblocker.Locker
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
 import net.psforever.objects.serverobject.structures.{Building, FoundationBuilder, StructureType, WarpGate}
 import net.psforever.objects.serverobject.terminals.{ProximityTerminal, Terminal}
+import net.psforever.objects.serverobject.terminals.{CaptureTerminal, ProximityTerminal, Terminal}
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.objects.serverobject.turret.MannedTurret
@@ -94,8 +95,8 @@ object Maps {
       DoorToLock(384, 1036)
       DoorToLock(386, 1038)
       DoorToLock(388, 1039)
-      //      DoorToLock(394, 1047)
-      //      DoorToLock(395, 1049)
+      DoorToLock(394, 1047)
+      DoorToLock(395, 1049)
       DoorToLock(401, 1053)
       DoorToLock(920, 968)
 
@@ -173,6 +174,7 @@ object Maps {
 
     def Building9() : Unit = { // Girru
       LocalBuilding(9, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(4397f, 5895f, 0)))) // Todo change pos
+      LocalObject(225, CaptureTerminal.Constructor(capture_terminal))
       LocalObject(513, Door.Constructor)
       LocalObject(514, Door.Constructor)
       LocalObject(515, Door.Constructor)
@@ -225,6 +227,7 @@ object Maps {
       LocalObject(2015, Terminal.Constructor(order_terminal))
       LocalObject(2016, Terminal.Constructor(order_terminal))
       LocalObject(2017, Terminal.Constructor(order_terminal))
+      LocalObject(2658, ResourceSilo.Constructor)
       LocalObject(2724, SpawnTube.Constructor(Vector3(4396.7656f, 5888.258f, 71.15625f), Vector3(0, 0, 92)))
       LocalObject(2725, SpawnTube.Constructor(Vector3(4397.211f, 5895.547f, 71.15625f), Vector3(0, 0, 92)))
       LocalObject(2726, SpawnTube.Constructor(Vector3(4397.2344f, 5902.8203f, 71.15625f), Vector3(0, 0, 92)))
@@ -244,6 +247,7 @@ object Maps {
       //      LocalObject(1909, ProximityTerminal.Constructor(medical_terminal))
       //      LocalObject(1910, ProximityTerminal.Constructor(medical_terminal))
 
+      ObjectToBuilding(225, 9)
       ObjectToBuilding(513, 9)
       ObjectToBuilding(514, 9)
       ObjectToBuilding(515, 9)
@@ -298,6 +302,7 @@ object Maps {
       ObjectToBuilding(2015, 9)
       ObjectToBuilding(2016, 9)
       ObjectToBuilding(2017, 9)
+      ObjectToBuilding(2658, 9)
       ObjectToBuilding(2724, 9)
       ObjectToBuilding(2725, 9)
       ObjectToBuilding(2726, 9)
@@ -332,6 +337,7 @@ object Maps {
 
     def Building10() : Unit = { // Hanish
       LocalBuilding(10, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(3749f, 5477f, 0)))) // Todo change pos
+      LocalObject(223, CaptureTerminal.Constructor(capture_terminal))
       LocalObject(464, Door.Constructor)
       LocalObject(470, Door.Constructor(Vector3(3645.3984f, 5451.9688f, 88.890625f), Vector3(0, 0, 182)))
       LocalObject(471, Door.Constructor)
@@ -374,6 +380,7 @@ object Maps {
       LocalObject(971, IFFLock.Constructor)
       LocalObject(1105, IFFLock.Constructor)
       LocalObject(1106, IFFLock.Constructor)
+      LocalObject(1107, IFFLock.Constructor)
       LocalObject(1108, IFFLock.Constructor)
       LocalObject(1113, IFFLock.Constructor)
       LocalObject(1114, IFFLock.Constructor)
@@ -431,6 +438,7 @@ object Maps {
 
       //      ObjectToBuilding(169, 10)
       //      ObjectToBuilding(1906, 10)
+      ObjectToBuilding(223, 10)
       ObjectToBuilding(464, 10)
       ObjectToBuilding(470, 10)
       ObjectToBuilding(471, 10)
@@ -469,10 +477,12 @@ object Maps {
       ObjectToBuilding(923, 10)
       ObjectToBuilding(932, 10)
       ObjectToBuilding(933, 10)
+      ObjectToBuilding(959, 10)
 
       ObjectToBuilding(971, 10)
       ObjectToBuilding(1105, 10)
       ObjectToBuilding(1106, 10)
+      ObjectToBuilding(1107, 10)
       ObjectToBuilding(1108, 10)
       ObjectToBuilding(1113, 10)
       ObjectToBuilding(1114, 10)
@@ -528,6 +538,7 @@ object Maps {
       DoorToLock(475, 1108)
       DoorToLock(481, 1113)
       DoorToLock(771, 1106)
+      DoorToLock(774, 1107)
       DoorToLock(779, 1114)
       DoorToLock(784, 1116)
       DoorToLock(785, 1115)
@@ -761,6 +772,7 @@ object Maps {
     }
     def Building33() : Unit = { // East Girru Gun Tower, Ishundar (ID: 62)
       LocalBuilding(33, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(4624f, 5915f, 0)))) // TODO loc
+      LocalObject(2792, CaptureTerminal.Constructor(secondary_capture))
       LocalObject(2957, Door.Constructor)
       LocalObject(2958, Door.Constructor)
       LocalObject(542, Door.Constructor(Vector3(4625.9844f, 5910.211f, 55.75f), Vector3(0, 0, 180)))
@@ -777,6 +789,7 @@ object Maps {
       LocalObject(2733, SpawnTube.Constructor(respawn_tube_tower, Vector3(4624.758f, 5905.7344f, 45.984375f), Vector3(0, 0, 90)))
       LocalObject(2734, SpawnTube.Constructor(respawn_tube_tower, Vector3(4624.7266f, 5922.1484f, 45.984375f), Vector3(0, 0, 90)))
 
+      ObjectToBuilding(2792, 33)
       ObjectToBuilding(2957, 33)
       ObjectToBuilding(2958, 33)
       ObjectToBuilding(542, 33)
@@ -1694,6 +1707,7 @@ object Maps {
       LocalObject(396, Door.Constructor)
       LocalObject(397, Door.Constructor)
       LocalObject(398, Door.Constructor)
+      LocalObject(399, Door.Constructor)
       LocalObject(462, Door.Constructor)
       LocalObject(463, Door.Constructor)
       LocalObject(522, ImplantTerminalMech.Constructor)
@@ -1741,6 +1755,7 @@ object Maps {
       ObjectToBuilding(396, 2)
       ObjectToBuilding(397, 2)
       ObjectToBuilding(398, 2)
+      ObjectToBuilding(399, 2)
       ObjectToBuilding(462, 2)
       ObjectToBuilding(463, 2)
       ObjectToBuilding(522, 2)
