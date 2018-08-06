@@ -13,6 +13,21 @@ import net.psforever.types.PlanetSideEmpire
 
 /** super classes */
 
+object DeployableCategory extends Enumeration {
+  type Type = Value
+
+  val
+  Boomers,
+  Mines,
+  SmallTurrets,
+  Sensors,
+  TankTraps,
+  FieldTurrets,
+  ShieldGenerators,
+  Telepads
+    = Value
+}
+
 trait Deployable extends FactionAffinity {
   private var faction : PlanetSideEmpire.Value = PlanetSideEmpire.NEUTRAL
   private var owner : Option[PlanetSideGUID] = None
@@ -39,6 +54,8 @@ trait Deployable extends FactionAffinity {
     }
     Owner
   }
+
+  def Definition : DeployableDefinition
 }
 
 trait LargeDeployable extends Deployable {
@@ -49,7 +66,7 @@ trait LargeDeployable extends Deployable {
 abstract class SimpleDeployable(cdef : SimpleDeployableDefinition) extends PlanetSideGameObject
   with Deployable {
 
-  def Definition : SimpleDeployableDefinition = cdef
+  def Definition = cdef
 }
 
 abstract class ComplexDeployable(cdef : ObjectDefinition with LargeDeployableDefinition) extends PlanetSideServerObject
@@ -66,20 +83,25 @@ abstract class ComplexDeployable(cdef : ObjectDefinition with LargeDeployableDef
 
   def MaxHealth : Int = Definition.MaxHealth
 
-  def Definition : ObjectDefinition with LargeDeployableDefinition = cdef
+  def Definition = cdef
 }
 
 /** definitions */
 
 trait DeployableDefinition {
-  this : ObjectDefinition=>
-  Name = "deployable"
+  private var category : DeployableCategory.Value = DeployableCategory.Boomers
 
   def Item : CItem.DeployedItem.Value
+
+  def DeployCategory : DeployableCategory.Value = category
+
+  def DeployCategory_=(cat : DeployableCategory.Value) : DeployableCategory.Value = {
+    category = cat
+    DeployCategory
+  }
 }
 
 trait LargeDeployableDefinition extends DeployableDefinition {
-  this : ObjectDefinition=>
   private var maxHealth : Int = 1
 
   def MaxHealth : Int = maxHealth
@@ -119,6 +141,7 @@ object ComplexDeployableDefinition {
 
 class ShieldGeneratorDefinition extends ComplexDeployableDefinition(240) {
   Packet = new ShieldGeneratorConverter
+  DeployCategory = DeployableCategory.ShieldGenerators
 }
 
 class TurretDeployableDefinition(private val objectId : Int) extends TurretDefinition(objectId)

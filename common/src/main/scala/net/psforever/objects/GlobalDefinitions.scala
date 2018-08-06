@@ -4046,7 +4046,7 @@ object GlobalDefinitions {
     ace.Modes(2).Item(DeployedItem.spitfire_aa -> Set(CertificationType.FortificationEngineering))
     ace.Modes += new ConstructionFireMode
     ace.Modes(3).Item(DeployedItem.motionalarmsensor -> Set(CertificationType.CombatEngineering))
-    ace.Modes(3).Item(DeployedItem.sensor_shield -> Set(CertificationType.AdvancedHacking, CertificationType.FortificationEngineering))
+    ace.Modes(3).Item(DeployedItem.sensor_shield -> Set(CertificationType.AdvancedHacking, CertificationType.CombatEngineering))
     ace.Tile = InventoryTile.Tile33
 
     advanced_ace.Name = "advanced_ace"
@@ -5381,36 +5381,45 @@ object GlobalDefinitions {
     */
   private def init_deployables() : Unit = {
     boomer.Name = "boomer"
+    boomer.DeployCategory = DeployableCategory.Boomers
 
     he_mine.Name = "he_mine"
+    he_mine.DeployCategory = DeployableCategory.Mines
 
     jammer_mine.Name = "jammer_mine"
+    jammer_mine.DeployCategory = DeployableCategory.Mines
 
     spitfire_turret.Name = "spitfire_turret"
     spitfire_turret.MaxHealth = 100
     spitfire_turret.Weapons += 1 -> new mutable.HashMap()
     spitfire_turret.Weapons(1) += TurretUpgrade.None -> spitfire_weapon
     spitfire_turret.ReserveAmmunition = false
+    spitfire_turret.DeployCategory = DeployableCategory.SmallTurrets
 
     spitfire_cloaked.Name = "spitfire_cloaked"
     spitfire_cloaked.MaxHealth = 100
     spitfire_cloaked.Weapons += 1 -> new mutable.HashMap()
     spitfire_cloaked.Weapons(1) += TurretUpgrade.None -> spitfire_weapon
     spitfire_cloaked.ReserveAmmunition = false
+    spitfire_cloaked.DeployCategory = DeployableCategory.SmallTurrets
 
     spitfire_aa.Name = "spitfire_aa"
     spitfire_aa.MaxHealth = 100
     spitfire_aa.Weapons += 1 -> new mutable.HashMap()
     spitfire_aa.Weapons(1) += TurretUpgrade.None -> spitfire_aa_weapon
     spitfire_aa.ReserveAmmunition = false
+    spitfire_aa.DeployCategory = DeployableCategory.SmallTurrets
 
     motionalarmsensor.Name = "motionalarmsensor"
+    motionalarmsensor.DeployCategory = DeployableCategory.Sensors
 
     sensor_shield.Name = "sensor_shield"
+    sensor_shield.DeployCategory = DeployableCategory.Sensors
 
     tank_traps.Name = "tank_traps"
     tank_traps.MaxHealth = 5000
     tank_traps.Packet = new TRAPConverter
+    tank_traps.DeployCategory = DeployableCategory.TankTraps
 
     val fieldTurretConverter = new FieldTurretConverter
     portable_manned_turret.Name = "portable_manned_turret"
@@ -5420,6 +5429,7 @@ object GlobalDefinitions {
     portable_manned_turret.Weapons(1) += TurretUpgrade.None -> energy_gun
     portable_manned_turret.ReserveAmmunition = true
     portable_manned_turret.Packet = fieldTurretConverter
+    portable_manned_turret.DeployCategory = DeployableCategory.FieldTurrets
 
     portable_manned_turret_nc.Name = "portable_manned_turret_nc"
     portable_manned_turret_nc.MaxHealth = 1000
@@ -5428,6 +5438,7 @@ object GlobalDefinitions {
     portable_manned_turret_nc.Weapons(1) += TurretUpgrade.None -> energy_gun_nc
     portable_manned_turret_nc.ReserveAmmunition = true
     portable_manned_turret_nc.Packet = fieldTurretConverter
+    portable_manned_turret_nc.DeployCategory = DeployableCategory.FieldTurrets
 
     portable_manned_turret_tr.Name = "portable_manned_turret_tr"
     portable_manned_turret_tr.MaxHealth = 1000
@@ -5436,6 +5447,7 @@ object GlobalDefinitions {
     portable_manned_turret_tr.Weapons(1) += TurretUpgrade.None -> energy_gun_tr
     portable_manned_turret_tr.ReserveAmmunition = true
     portable_manned_turret_tr.Packet = fieldTurretConverter
+    portable_manned_turret_tr.DeployCategory = DeployableCategory.FieldTurrets
 
     portable_manned_turret_vs.Name = "portable_manned_turret_vs"
     portable_manned_turret_vs.MaxHealth = 1000
@@ -5444,6 +5456,7 @@ object GlobalDefinitions {
     portable_manned_turret_vs.Weapons(1) += TurretUpgrade.None -> energy_gun_vs
     portable_manned_turret_vs.ReserveAmmunition = true
     portable_manned_turret_vs.Packet = fieldTurretConverter
+    portable_manned_turret_vs.DeployCategory = DeployableCategory.FieldTurrets
 
     deployable_shield_generator.Name = "deployable_shield_generator"
     deployable_shield_generator.MaxHealth = 1700

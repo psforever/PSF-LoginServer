@@ -1,6 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects
 
+import net.psforever.objects.avatar.DeployableToolbox
 import net.psforever.objects.definition.{AvatarDefinition, ImplantDefinition}
 import net.psforever.objects.equipment.EquipmentSize
 import net.psforever.objects.loadouts.Loadout
@@ -36,6 +37,8 @@ class Avatar(val name : String, val faction : PlanetSideEmpire.Value, val sex : 
       s"$name's ${Definition.Name}"
     }
   }
+
+  private val deployables : DeployableToolbox = new DeployableToolbox
 
   def BEP : Long = bep
 
@@ -176,6 +179,8 @@ class Avatar(val name : String, val faction : PlanetSideEmpire.Value, val sex : 
       Equipment = locker
     }
   }
+
+  def Deployables : DeployableToolbox = deployables
 
   def Definition : AvatarDefinition = GlobalDefinitions.avatar
 
