@@ -2,6 +2,7 @@
 package net.psforever.objects.zones
 
 import akka.actor.Actor
+import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.{Deployable, PlanetSideGameObject}
 
 import scala.annotation.tailrec
@@ -17,11 +18,23 @@ class ZoneDeployableActor(zone : Zone, deployableList : ListBuffer[PlanetSideGam
   def receive : Receive = {
     case Zone.Deployable.Build(obj, tool) =>
       if(DeployableBuild(obj, deployableList)) {
+        obj match {
+          case o : PlanetSideServerObject =>
+            obj.Definition.Initialize(o, context)
+          case _ =>
+            obj.Definition.Initialize(obj, context)
+        }
         sender ! Zone.Deployable.DeployableIsBuilt(obj, tool)
       }
 
     case Zone.Deployable.Dismiss(obj) =>
       if(DeployableDismiss(obj, deployableList)) {
+        obj match {
+          case o : PlanetSideServerObject =>
+            obj.Definition.Uninitialize(o, context)
+          case _ =>
+            obj.Definition.Uninitialize(obj, context)
+        }
         sender ! Zone.Deployable.DeployableIsDismissed(obj)
       }
 

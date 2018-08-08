@@ -68,6 +68,24 @@ object ObjectDeployedMessage extends Marshallable[ObjectDeployedMessage] {
   def apply(desc : String, action : DeployOutcome.Value, count : Long, max : Long) : ObjectDeployedMessage =
     new ObjectDeployedMessage(0, desc, action, count, max)
 
+  /**
+    * na
+    * @param desc descriptive text of what kind of object is being deployed
+    * @param count the number of this type of object deployed
+    * @param max the maximum number of this type of object that can be deployed
+    * @return an `ObjectDeployedMessage` object
+    */
+  def Success(desc : String, count : Int, max : Int) : ObjectDeployedMessage =
+    new ObjectDeployedMessage(0, desc, DeployOutcome.Success, count, max)
+
+  /**
+    * na
+    * @param desc descriptive text of what kind of object failed to be deployed
+    * @return an `ObjectDeployedMessage` object
+    */
+  def Failure(desc : String) : ObjectDeployedMessage =
+    new ObjectDeployedMessage(0, desc, DeployOutcome.Failure, 0, 0)
+
   implicit val codec : Codec[ObjectDeployedMessage] = (
     ("unk" | uint16L) ::
       ("desc" | PacketHelpers.encodedString) ::

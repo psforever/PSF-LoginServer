@@ -69,6 +69,18 @@ class AvatarService extends Actor {
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.DamageResolution(target, resolution_function))
           )
+        case AvatarAction.DeployableDestroyed(player_guid, obj) =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.DeployableDestroyed(obj))
+          )
+        case AvatarAction.DeployItem(player_guid, item) =>
+          val definition = item.Definition
+          val objectData = definition.Packet.ConstructorData(item).get
+          AvatarEvents.publish(
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid,
+              AvatarResponse.DropItem(ObjectCreateMessage(definition.ObjectId, item.GUID, objectData))
+            )
+          )
         case AvatarAction.Destroy(victim, killer, weapon, pos) =>
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", victim, AvatarResponse.Destroy(victim, killer, weapon, pos))
@@ -148,6 +160,10 @@ class AvatarService extends Actor {
               }
             })
           )
+        case AvatarAction.PutDownFDU(player_guid) =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.PutDownFDU(player_guid))
+          )
         case AvatarAction.Release(player, zone, time) =>
           undertaker forward RemoverActor.AddTask(player, zone, time)
           AvatarEvents.publish(
@@ -156,6 +172,10 @@ class AvatarService extends Actor {
         case AvatarAction.Reload(player_guid, weapon_guid) =>
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.Reload(weapon_guid))
+          )
+        case AvatarAction.SetEmpire(player_guid, target_guid, faction) =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.SetEmpire(target_guid, faction))
           )
         case AvatarAction.StowEquipment(player_guid, target_guid, slot, obj) =>
           AvatarEvents.publish(

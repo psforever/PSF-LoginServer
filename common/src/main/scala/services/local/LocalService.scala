@@ -59,6 +59,11 @@ class LocalService extends Actor {
 
     case LocalServiceMessage(forChannel, action) =>
       action match {
+        case LocalAction.DeployableMapIcon(player_guid, behavior, deployInfo) =>
+          LocalEvents.publish(
+            LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.DeployableMapIcon(behavior, deployInfo))
+          )
+
         case LocalAction.DoorOpens(player_guid, zone, door) =>
           doorCloser ! DoorCloseActor.DoorIsOpen(door, zone)
           LocalEvents.publish(
@@ -100,6 +105,14 @@ class LocalService extends Actor {
         case LocalAction.ProximityTerminalEffect(player_guid, object_guid, effectState) =>
           LocalEvents.publish(
             LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.ProximityTerminalEffect(object_guid, effectState))
+          )
+        case LocalAction.TriggerEffect1(player_guid, effect, pos, orient) =>
+          LocalEvents.publish(
+            LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.TriggerEffect1(effect, pos, orient))
+          )
+        case LocalAction.TriggerEffect2(player_guid, effect, target, info) =>
+          LocalEvents.publish(
+            LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.TriggerEffect2(effect, target, info))
           )
         case LocalAction.TriggerSound(player_guid, sound, pos, unk, volume) =>
           LocalEvents.publish(

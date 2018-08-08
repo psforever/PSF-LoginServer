@@ -4057,7 +4057,7 @@ object GlobalDefinitions {
     advanced_ace.Modes(1).Item(DeployedItem.portable_manned_turret -> Set(CertificationType.AssaultEngineering))
     advanced_ace.Modes += new ConstructionFireMode
     advanced_ace.Modes(2).Item(DeployedItem.deployable_shield_generator -> Set(CertificationType.AssaultEngineering))
-    advanced_ace.Tile = InventoryTile.Tile63
+    advanced_ace.Tile = InventoryTile.Tile93
 
     fury_weapon_systema.Name = "fury_weapon_systema"
     fury_weapon_systema.Size = EquipmentSize.VehicleWeapon
@@ -5381,84 +5381,119 @@ object GlobalDefinitions {
     */
   private def init_deployables() : Unit = {
     boomer.Name = "boomer"
+    boomer.Descriptor = "Boomers"
     boomer.DeployCategory = DeployableCategory.Boomers
+    boomer.DeployTime = 1000 milliseconds
 
     he_mine.Name = "he_mine"
+    he_mine.Descriptor = "Mines"
     he_mine.DeployCategory = DeployableCategory.Mines
+    he_mine.DeployTime = 1000 milliseconds
 
     jammer_mine.Name = "jammer_mine"
+    jammer_mine.Descriptor = "JammerMines"
     jammer_mine.DeployCategory = DeployableCategory.Mines
+    jammer_mine.DeployTime = 1000 milliseconds
 
     spitfire_turret.Name = "spitfire_turret"
+    spitfire_turret.Descriptor= "Spitfires"
     spitfire_turret.MaxHealth = 100
     spitfire_turret.Weapons += 1 -> new mutable.HashMap()
     spitfire_turret.Weapons(1) += TurretUpgrade.None -> spitfire_weapon
     spitfire_turret.ReserveAmmunition = false
     spitfire_turret.DeployCategory = DeployableCategory.SmallTurrets
+    spitfire_turret.DeployTime = 5000 milliseconds
 
     spitfire_cloaked.Name = "spitfire_cloaked"
+    spitfire_cloaked.Descriptor= "CloakingSpitfires"
     spitfire_cloaked.MaxHealth = 100
     spitfire_cloaked.Weapons += 1 -> new mutable.HashMap()
     spitfire_cloaked.Weapons(1) += TurretUpgrade.None -> spitfire_weapon
     spitfire_cloaked.ReserveAmmunition = false
     spitfire_cloaked.DeployCategory = DeployableCategory.SmallTurrets
+    spitfire_cloaked.DeployTime = 5000 milliseconds
 
     spitfire_aa.Name = "spitfire_aa"
+    spitfire_aa.Descriptor= "FlakSpitfires"
     spitfire_aa.MaxHealth = 100
     spitfire_aa.Weapons += 1 -> new mutable.HashMap()
     spitfire_aa.Weapons(1) += TurretUpgrade.None -> spitfire_aa_weapon
     spitfire_aa.ReserveAmmunition = false
     spitfire_aa.DeployCategory = DeployableCategory.SmallTurrets
+    spitfire_aa.DeployTime = 5000 milliseconds
 
     motionalarmsensor.Name = "motionalarmsensor"
+    motionalarmsensor.Descriptor = "MotionSensors"
     motionalarmsensor.DeployCategory = DeployableCategory.Sensors
+    motionalarmsensor.DeployTime = 1000 milliseconds
 
     sensor_shield.Name = "sensor_shield"
     sensor_shield.DeployCategory = DeployableCategory.Sensors
+    sensor_shield.DeployTime = 1000 milliseconds
 
     tank_traps.Name = "tank_traps"
+    tank_traps.Descriptor = "TankTraps"
     tank_traps.MaxHealth = 5000
     tank_traps.Packet = new TRAPConverter
     tank_traps.DeployCategory = DeployableCategory.TankTraps
+    tank_traps.DeployTime = 6000 milliseconds
 
     val fieldTurretConverter = new FieldTurretConverter
     portable_manned_turret.Name = "portable_manned_turret"
+    portable_manned_turret.Descriptor = "FieldTurrets"
     portable_manned_turret.MaxHealth = 1000
     portable_manned_turret.MountPoints += 1 -> 0
+    portable_manned_turret.MountPoints += 2 -> 0
     portable_manned_turret.Weapons += 1 -> new mutable.HashMap()
     portable_manned_turret.Weapons(1) += TurretUpgrade.None -> energy_gun
     portable_manned_turret.ReserveAmmunition = true
+    portable_manned_turret.FactionLocked = true
     portable_manned_turret.Packet = fieldTurretConverter
     portable_manned_turret.DeployCategory = DeployableCategory.FieldTurrets
+    portable_manned_turret.DeployTime = 6000 milliseconds
 
     portable_manned_turret_nc.Name = "portable_manned_turret_nc"
+    portable_manned_turret_nc.Descriptor = "FieldTurrets"
     portable_manned_turret_nc.MaxHealth = 1000
     portable_manned_turret_nc.MountPoints += 1 -> 0
+    portable_manned_turret_nc.MountPoints += 2 -> 0
     portable_manned_turret_nc.Weapons += 1 -> new mutable.HashMap()
     portable_manned_turret_nc.Weapons(1) += TurretUpgrade.None -> energy_gun_nc
     portable_manned_turret_nc.ReserveAmmunition = true
+    portable_manned_turret_nc.FactionLocked = true
     portable_manned_turret_nc.Packet = fieldTurretConverter
     portable_manned_turret_nc.DeployCategory = DeployableCategory.FieldTurrets
+    portable_manned_turret_nc.DeployTime = 6000 milliseconds
 
     portable_manned_turret_tr.Name = "portable_manned_turret_tr"
+    portable_manned_turret_tr.Descriptor = "FieldTurrets"
     portable_manned_turret_tr.MaxHealth = 1000
     portable_manned_turret_tr.MountPoints += 1 -> 0
+    portable_manned_turret_tr.MountPoints += 2 -> 0
     portable_manned_turret_tr.Weapons += 1 -> new mutable.HashMap()
     portable_manned_turret_tr.Weapons(1) += TurretUpgrade.None -> energy_gun_tr
     portable_manned_turret_tr.ReserveAmmunition = true
+    portable_manned_turret_tr.FactionLocked = true
     portable_manned_turret_tr.Packet = fieldTurretConverter
     portable_manned_turret_tr.DeployCategory = DeployableCategory.FieldTurrets
+    portable_manned_turret_tr.DeployTime = 6000 milliseconds
 
     portable_manned_turret_vs.Name = "portable_manned_turret_vs"
+    portable_manned_turret_vs.Descriptor = "FieldTurrets"
     portable_manned_turret_vs.MaxHealth = 1000
     portable_manned_turret_vs.MountPoints += 1 -> 0
+    portable_manned_turret_vs.MountPoints += 2 -> 0
     portable_manned_turret_vs.Weapons += 1 -> new mutable.HashMap()
     portable_manned_turret_vs.Weapons(1) += TurretUpgrade.None -> energy_gun_vs
     portable_manned_turret_vs.ReserveAmmunition = true
+    portable_manned_turret_vs.FactionLocked = true
     portable_manned_turret_vs.Packet = fieldTurretConverter
     portable_manned_turret_vs.DeployCategory = DeployableCategory.FieldTurrets
+    portable_manned_turret_vs.DeployTime = 6000 milliseconds
 
     deployable_shield_generator.Name = "deployable_shield_generator"
+    deployable_shield_generator.Descriptor = "ShieldGenerators"
     deployable_shield_generator.MaxHealth = 1700
+    deployable_shield_generator.DeployTime = 6000 milliseconds
   }
 }

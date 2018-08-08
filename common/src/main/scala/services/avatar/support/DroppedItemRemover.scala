@@ -21,7 +21,7 @@ class DroppedItemRemover extends RemoverActor {
 
   def FirstJob(entry : RemoverActor.Entry) : Unit = {
     import net.psforever.objects.zones.Zone
-    entry.zone.Ground ! Zone.Ground.PickupItem(entry.obj.GUID)
+    entry.zone.Ground ! Zone.Ground.RemoveItem(entry.obj.GUID)
     context.parent ! AvatarServiceMessage(entry.zone.Id, AvatarAction.ObjectDelete(Service.defaultPlayerGUID, entry.obj.GUID))
   }
 

@@ -14,4 +14,11 @@ trait RemoteUnit {
     }
     Companion
   }
+
+  def Companion_=(guid : Option[Any]) : Option[PlanetSideGUID] = {
+    if(guid.isEmpty) {
+      companion = None
+    }
+    Companion
+  }
 }

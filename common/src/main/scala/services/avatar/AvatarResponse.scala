@@ -1,13 +1,13 @@
 // Copyright (c) 2017 PSForever
 package services.avatar
 
-import net.psforever.objects.Player
+import net.psforever.objects.{Deployable, PlanetSideGameObject, Player}
 import net.psforever.objects.ballistics.SourceEntry
 import net.psforever.objects.equipment.Equipment
 import net.psforever.packet.PlanetSideGamePacket
-import net.psforever.packet.game.{ObjectCreateMessage, PlanetSideGUID, PlayerStateMessageUpstream}
+import net.psforever.packet.game._
 import net.psforever.packet.game.objectcreate.ConstructorData
-import net.psforever.types.{ExoSuitType, Vector3}
+import net.psforever.types.{ExoSuitType, PlanetSideEmpire, Vector3}
 
 object AvatarResponse {
   trait Response
@@ -19,6 +19,7 @@ object AvatarResponse {
   final case class ChangeFireState_Stop(weapon_guid : PlanetSideGUID) extends Response
   final case class ConcealPlayer() extends Response
   final case class DamageResolution(target : Player, resolution_function : (Any)=>Unit) extends Response
+  final case class DeployableDestroyed(obj : PlanetSideGameObject with Deployable) extends Response
   final case class Destroy(victim : PlanetSideGUID, killer : PlanetSideGUID, weapon : PlanetSideGUID, pos : Vector3) extends Response
   final case class DestroyDisplay(killer : SourceEntry, victim : SourceEntry, method : Int, unk : Int) extends Response
   final case class DropItem(pkt : ObjectCreateMessage) extends Response
@@ -30,8 +31,10 @@ object AvatarResponse {
   final case class ObjectHeld(slot : Int) extends Response
   final case class PlanetsideAttribute(attribute_type : Int, attribute_value : Long) extends Response
   final case class PlayerState(msg : PlayerStateMessageUpstream, spectator : Boolean, weaponInHand : Boolean) extends Response
+  final case class PutDownFDU(target_guid : PlanetSideGUID) extends Response
   final case class Release(player : Player) extends Response
   final case class Reload(weapon_guid : PlanetSideGUID) extends Response
+  final case class SetEmpire(object_guid : PlanetSideGUID, faction : PlanetSideEmpire.Value) extends Response
   final case class StowEquipment(target_guid : PlanetSideGUID, slot : Int, item : Equipment) extends Response
   final case class WeaponDryFire(weapon_guid : PlanetSideGUID) extends Response
 

@@ -1,15 +1,19 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects
 
+import akka.actor.{Actor, ActorContext, ActorRef, Props}
 import net.psforever.objects.definition.ObjectDefinition
 import net.psforever.objects.definition.converter.{ShieldGeneratorConverter, SmallDeployableConverter, SmallTurretConverter}
-import net.psforever.objects.equipment.{CItem, Equipment}
+import net.psforever.objects.equipment.CItem
 import net.psforever.objects.serverobject.PlanetSideServerObject
-import net.psforever.objects.serverobject.affinity.FactionAffinity
+import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
 import net.psforever.objects.serverobject.hackable.Hackable
+import net.psforever.objects.serverobject.mount.MountableBehavior
 import net.psforever.objects.serverobject.turret.{TurretDefinition, WeaponTurret}
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types.PlanetSideEmpire
+
+import scala.concurrent.duration._
 
 /** super classes */
 
@@ -31,6 +35,7 @@ object DeployableCategory extends Enumeration {
 trait Deployable extends FactionAffinity {
   private var faction : PlanetSideEmpire.Value = PlanetSideEmpire.NEUTRAL
   private var owner : Option[PlanetSideGUID] = None
+  private var ownerName : Option[String] = None
 
   def Faction : PlanetSideEmpire.Value = faction
 
@@ -55,7 +60,23 @@ trait Deployable extends FactionAffinity {
     Owner
   }
 
-  def Definition : DeployableDefinition
+  def OwnerName : Option[String] = ownerName
+
+  def OwnerName_=(owner : String) : Option[String] = OwnerName_=(Some(owner))
+
+  def OwnerName_=(owner : Player) : Option[String] = OwnerName_=(Some(owner.Name))
+
+  def OwnerName_=(owner : Option[String]) : Option[String] = {
+    owner match {
+      case Some(_) =>
+        ownerName = owner
+      case None =>
+        ownerName = None
+    }
+    OwnerName
+  }
+
+  def Definition : ObjectDefinition with DeployableDefinition
 }
 
 trait LargeDeployable extends Deployable {
@@ -90,6 +111,7 @@ abstract class ComplexDeployable(cdef : ObjectDefinition with LargeDeployableDef
 
 trait DeployableDefinition {
   private var category : DeployableCategory.Value = DeployableCategory.Boomers
+  private var deployTime : Long = (1 second).toMillis //ms
 
   def Item : CItem.DeployedItem.Value
 
@@ -98,6 +120,32 @@ trait DeployableDefinition {
   def DeployCategory_=(cat : DeployableCategory.Value) : DeployableCategory.Value = {
     category = cat
     DeployCategory
+  }
+
+  def DeployTime : Long = deployTime
+
+  def DeployTime_=(time : FiniteDuration) : Long = DeployTime_=(time.toMillis)
+
+  def DeployTime_=(time: Long) : Long = {
+    deployTime = time
+    DeployTime
+  }
+
+  def Initialize(obj : PlanetSideGameObject with Deployable, context : ActorContext) : Unit = { }
+
+  def Initialize(obj : PlanetSideServerObject with Deployable, context : ActorContext) : Unit = { }
+
+  def Uninitialize(obj : PlanetSideGameObject with Deployable, context : ActorContext) : Unit = { }
+
+  def Uninitialize(obj : PlanetSideServerObject with Deployable, context : ActorContext) : Unit = { }
+}
+
+object DeployableDefinition {
+  def SimpleUninitialize(obj : PlanetSideGameObject, context : ActorContext) : Unit = { }
+
+  def SimpleUninitialize(obj : PlanetSideServerObject, context : ActorContext) : Unit = {
+    obj.Actor ! akka.actor.PoisonPill
+    obj.Actor = ActorRef.noSender
   }
 }
 
@@ -163,6 +211,14 @@ class TurretDeployableDefinition(private val objectId : Int) extends TurretDefin
   override def MaxHealth : Int = super[LargeDeployableDefinition].MaxHealth
   //override to clarify inheritance conflict
   override def MaxHealth_=(toHealth : Int) : Int = super[LargeDeployableDefinition].MaxHealth_=(toHealth)
+
+  override def Initialize(obj : PlanetSideServerObject with Deployable, context : ActorContext) = {
+    obj.Actor = context.actorOf(Props(classOf[TurretControl], obj), s"${obj.Definition.Name}_${obj.GUID.guid}")
+  }
+
+  override def Uninitialize(obj : PlanetSideServerObject with Deployable, context : ActorContext) = {
+    DeployableDefinition.SimpleUninitialize(obj, context)
+  }
 }
 
 object TurretDeployableDefinition {
@@ -171,18 +227,43 @@ object TurretDeployableDefinition {
   }
 }
 
+/** control actors */
+
+class TurretControl(turret : TurretDeployable) extends Actor
+  with FactionAffinityBehavior.Check
+  with MountableBehavior.Mount
+  with MountableBehavior.Dismount {
+  def MountableObject = turret //do not add type!
+
+  def FactionObject : FactionAffinity = turret
+
+  def receive : Receive = checkBehavior
+    .orElse(dismountBehavior)
+    .orElse(turretMountBehavior)
+    .orElse {
+      case _ => ;
+    }
+}
+
 /** implementing classes */
 
 class ExplosiveDeployable(cdef : SimpleDeployableDefinition) extends SimpleDeployable(cdef)
 
 class BoomerDeployable(cdef : SimpleDeployableDefinition) extends SimpleDeployable(cdef) {
-  private var trigger : Option[Equipment] = None
+  private var trigger : Option[BoomerTrigger] = None
 
-  def Trigger : Option[Equipment] = trigger
+  def Trigger : Option[BoomerTrigger] = trigger
 
-  def Trigger_=(item : Equipment) : Option[Equipment] = {
+  def Trigger_=(item : BoomerTrigger) : Option[BoomerTrigger] = {
     if(trigger.isEmpty) { //can only set trigger once
       trigger = Some(item)
+    }
+    Trigger
+  }
+
+  def Trigger_=(item : Option[Any]) : Option[BoomerTrigger] = {
+    if(item.isEmpty) {
+      trigger = None
     }
     Trigger
   }

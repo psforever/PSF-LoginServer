@@ -5,7 +5,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import akka.actor.{Actor, ActorRef, Cancellable, MDCContextAware}
 import net.psforever.packet._
 import net.psforever.packet.control._
-import net.psforever.packet.game.{BattleDiagramAction, _}
+import net.psforever.packet.game.{BattleDiagramAction, ObjectDetachMessage, _}
 import scodec.Attempt.{Failure, Successful}
 import scodec.bits._
 import org.log4s.MDC
@@ -16,7 +16,7 @@ import services.ServiceManager.Lookup
 import net.psforever.objects._
 import net.psforever.objects.avatar.Certification
 import net.psforever.objects.ballistics._
-import net.psforever.objects.definition.{ConstructionFireMode, ToolDefinition}
+import net.psforever.objects.definition.{ConstructionFireMode, ObjectDefinition, ToolDefinition}
 import net.psforever.objects.definition.converter.{CorpseConverter, DestroyedVehicleConverter}
 import net.psforever.objects.equipment.{CItem, _}
 import net.psforever.objects.loadouts._
@@ -38,7 +38,7 @@ import net.psforever.objects.serverobject.structures.{Building, StructureType, W
 import net.psforever.objects.serverobject.terminals._
 import net.psforever.objects.serverobject.terminals.Terminal.TerminalMessage
 import net.psforever.objects.serverobject.tube.SpawnTube
-import net.psforever.objects.serverobject.turret.{FacilityTurret, TurretUpgrade}
+import net.psforever.objects.serverobject.turret.{FacilityTurret, TurretUpgrade, WeaponTurret}
 import net.psforever.objects.vehicles.{AccessPermissionGroup, Cargo, Utility, VehicleLockState, _}
 import net.psforever.objects.vital._
 import net.psforever.objects.zones.{InterstellarCluster, Zone}
@@ -138,6 +138,25 @@ class WorldSessionActor extends Actor with MDCContextAware {
           case _ => ;
         }
       })
+
+      //handle orphaned deployables
+      DisownDeployables()
+      //prepare inventory for saving
+      //clean up boomer triggers
+      val (out, locker) = avatar.Locker.Inventory.Items
+        .partition({ case InventoryItem(obj, _) => obj.isInstanceOf[BoomerTrigger] })
+      out.foreach({ case InventoryItem(obj, index) =>
+        avatar.Locker.Inventory -= index
+        taskResolver ! GUIDTask.UnregisterObjectTask(obj)(continent.GUID)
+      })
+      val equipment = (
+        (player.Holsters()
+          .zipWithIndex
+          .map({ case((slot, index)) => (index, slot.Equipment) })
+          .collect { case((index, Some(obj))) => InventoryItem(obj, index) }
+        ) ++ player.Inventory.Items)
+        .filterNot({ case InventoryItem(obj, _) => obj.isInstanceOf[BoomerTrigger] })
+      //save equipment list items and locker list items
 
       //TODO final character save before doing any of this
       continent.Population ! Zone.Population.Release(avatar)
@@ -418,6 +437,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
             }
           }
 
+        case AvatarResponse.DeployableDestroyed(obj) =>
+          //we currently own the deployable obj
+          avatar.Deployables.Remove(obj)
+          UpdateDeployableUIElements(avatar.Deployables.UpdateUIElement(obj.Definition.Item))
+          //sendResponse(PlanetsideAttributeMessage(guid, 29, 1)) //make deployable invisible?
+
         case AvatarResponse.Destroy(victim, killer, weapon, pos) =>
           // guid = victim // killer = killer ;)
           sendResponse(DestroyMessage(victim, killer, weapon, pos))
@@ -515,6 +540,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
             }
           }
 
+        case AvatarResponse.PutDownFDU(target) =>
+          if(tplayer_guid != guid) {
+            sendResponse(GenericObjectActionMessage(target, 212))
+          }
+
         case AvatarResponse.Release(tplayer) =>
           if(tplayer_guid != guid) {
             TurnPlayerIntoCorpse(tplayer)
@@ -523,6 +553,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case AvatarResponse.Reload(item_guid) =>
           if(tplayer_guid != guid) {
             sendResponse(ReloadMessage(item_guid, 1, 0))
+          }
+
+        case AvatarResponse.SetEmpire(object_guid, faction) =>
+          if(tplayer_guid != guid) {
+            sendResponse(SetEmpireMessage(object_guid, faction))
           }
 
         case AvatarResponse.StowEquipment(target, slot, item) =>
@@ -555,6 +590,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case LocalServiceResponse(_, guid, reply) =>
       val tplayer_guid = if(player.HasGUID) { player.GUID} else { PlanetSideGUID(-1) }
       reply match {
+        case LocalResponse.DeployableMapIcon(behavior, deployInfo) =>
+          if(tplayer_guid != guid) {
+            sendResponse(DeployableObjectsInfoMessage(behavior, deployInfo))
+          }
+
         case LocalResponse.DoorOpens(door_guid) =>
           if(tplayer_guid != guid) {
             sendResponse(GenericObjectStateMsg(door_guid, 16))
@@ -621,6 +661,13 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
         case LocalResponse.SetEmpire(object_guid, empire) =>
           sendResponse(SetEmpireMessage(object_guid, empire))
+
+        case LocalResponse.TriggerEffect1(effect, pos, orient) =>
+          sendResponse(TriggerEffectMessage(effect, TriggeredEffectLocation(pos, orient)))
+
+        case LocalResponse.TriggerEffect2(effect, target, info) =>
+          sendResponse(TriggerEffectMessage(target, effect, info))
+          
         case _ => ;
       }
 
@@ -864,7 +911,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           MountingAction(tplayer, obj, seat_num)
           sendResponse(PlanetsideAttributeMessage(obj.GUID, 0, 1000L)) //health of mech
 
-        case Mountable.CanMount(obj : FacilityTurret, seat_num) =>
+        case Mountable.CanMount(obj : PlanetSideGameObject with WeaponTurret, seat_num) =>
           obj.WeaponControlledFromSeat(seat_num) match {
             case Some(weapon : Tool) =>
               //update mounted weapon belonging to seat
@@ -921,7 +968,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case Mountable.CanDismount(obj : ImplantTerminalMech, seat_num) =>
           DismountAction(tplayer, obj, seat_num)
 
-        case Mountable.CanDismount(obj : FacilityTurret, seat_num) =>
+        case Mountable.CanDismount(obj : PlanetSideGameObject with WeaponTurret, seat_num) =>
           DismountAction(tplayer, obj, seat_num)
 
         case Mountable.CanDismount(obj : Vehicle, seat_num) =>
@@ -1553,54 +1600,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case owner =>
           log.warn(s"Zone.Lattice.SpawnPoint: spawn point on $zone_id at ${spawn_tube.Position} has unexpected owner $owner")
       }
-      respawnTimer.cancel
-      reviveTimer.cancel
-      ClearCurrentAmsSpawnPoint()
-      val sameZone = zone_id == continent.Id
-      val backpack = player.isBackpack
-      val respawnTime : Long = if(sameZone) { 10 } else { 0 } //s
-      val respawnTimeMillis = respawnTime * 1000 //ms
-      deadState = DeadState.RespawnTime
-      sendResponse(AvatarDeadStateMessage(DeadState.RespawnTime, respawnTimeMillis, respawnTimeMillis, Vector3.Zero, player.Faction, true))
-      val tplayer = if(backpack) {
-        RespawnClone(player) //new player
-      }
-      else {
-        val player_guid = player.GUID
-        sendResponse(ObjectDeleteMessage(player_guid, 4))
-        avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player_guid, player_guid, 4))
-        player //player is deconstructing self
-      }
-
-      tplayer.Position = pos
-      tplayer.Orientation = ori
-      val (target, msg) : (ActorRef, Any) = if(sameZone) {
-        if(backpack) {
-          //respawning from unregistered player
-          (taskResolver, RegisterAvatar(tplayer))
-        }
-        else {
-          //move existing player
-          (self, PlayerLoaded(tplayer))
-        }
-      }
-      else {
-        DisownVehicle()
-        continent.Population ! Zone.Population.Leave(avatar)
-        val original = player
-        //TODO check player orientation upon spawn not polluted
-        if(backpack) {
-          //unregister avatar locker + GiveWorld
-          player = tplayer
-          (taskResolver, TaskBeforeZoneChange(GUIDTask.UnregisterLocker(original.Locker)(continent.GUID), zone_id))
-        }
-        else {
-          //unregister avatar whole + GiveWorld
-          (taskResolver, TaskBeforeZoneChange(GUIDTask.UnregisterAvatar(original)(continent.GUID), zone_id))
-        }
-      }
-      import scala.concurrent.ExecutionContext.Implicits.global
-      respawnTimer = context.system.scheduler.scheduleOnce(respawnTime seconds, target, msg)
+      LoadZonePhysicalSpawnPoint(zone_id, pos, ori, if(zone_id == continent.Id) { 10 } else { 0 } )
 
     case Zone.Lattice.NoValidSpawnPoint(zone_number, None) =>
       log.warn(s"Zone.Lattice.SpawnPoint: zone $zone_number could not be accessed as requested")
@@ -1618,42 +1618,57 @@ class WorldSessionActor extends Actor with MDCContextAware {
         RequestSanctuaryZoneSpawn(player, zone_number)
       }
 
-    case Zone.Ground.ItemOnGround(item, pos, orient) =>
-      item.Position = pos
-      item.Orientation = Vector3(0,0, orient.z) //dropped items rotate towards the user's standing direction
-      val exclusionId = player.Find(item) match {
-        case Some(slotNum) =>
-          player.Slot(slotNum).Equipment = None
-          sendResponse(ObjectDetachMessage(player.GUID, item.GUID, pos, orient.z))
-          sendResponse(ActionResultMessage.Pass)
-          player.GUID //we're dropping it; don't need to see it dropped again
-        case None =>
-          PlanetSideGUID(0) //object is being introduced into the world upon drop
+    case Zone.Ground.ItemOnGround(item : BoomerTrigger, pos, orient) =>
+      val playerGUID = player.GUID
+      continent.GUID(item.Companion.getOrElse(PlanetSideGUID(0))) match {
+        case Some(obj : BoomerDeployable) =>
+          val guid = obj.GUID
+          avatar.Deployables.Remove(obj)
+          sendResponse(SetEmpireMessage(guid, PlanetSideEmpire.NEUTRAL))
+          avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.SetEmpire(playerGUID, guid, PlanetSideEmpire.NEUTRAL))
+          val info = DeployableInfo(guid, DeployableIcon.Boomer, obj.Position, obj.Owner.get)
+          sendResponse(DeployableObjectsInfoMessage(DeploymentAction.Dismiss, info))
+          localService ! LocalServiceMessage(continent.Id, LocalAction.DeployableMapIcon(playerGUID, DeploymentAction.Dismiss, info))
+          obj.OwnerName = None
+          //TODO deployable to decay actor
+          PutItemOnGround(item, pos, orient)
+        case Some(_) | None =>
+          //pointless trigger
+          val guid = item.GUID
+          continent.Ground ! Zone.Ground.RemoveItem(guid) //undo; no callback
+          sendResponse(ObjectDeleteMessage(guid, 0))
+          avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(playerGUID, guid))
+          taskResolver ! GUIDTask.UnregisterObjectTask(item)(continent.GUID)
       }
-      avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.DropItem(exclusionId, item, continent))
+
+    case Zone.Ground.ItemOnGround(item : PlanetSideGameObject, pos, orient) =>
+      PutItemOnGround(item, pos, orient)
 
     case Zone.Ground.CanNotDropItem(zone, item, reason) =>
       log.warn(s"DropItem: $player tried to drop stable $item on the ground, but $reason")
 
-    case Zone.Ground.ItemInHand(item) =>
-      player.Fit(item) match {
-        case Some(slotNum) =>
-          val item_guid = item.GUID
-          val player_guid = player.GUID
-          player.Slot(slotNum).Equipment = item
-          val definition = item.Definition
-          sendResponse(
-            ObjectCreateDetailedMessage(
-              definition.ObjectId,
-              item_guid,
-              ObjectCreateMessageParent(player_guid, slotNum),
-              definition.Packet.DetailedConstructorData(item).get
-            )
-          )
-          avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PickupItem(player_guid, continent, player, slotNum, item))
-        case None =>
-          continent.Ground ! Zone.Ground.DropItem(item, item.Position, item.Orientation) //restore previous state
+    case Zone.Ground.ItemInHand(item : BoomerTrigger) =>
+      if(PutItemInHand(item)) {
+        continent.GUID(item.Companion.getOrElse(PlanetSideGUID(0))) match {
+          case Some(obj : BoomerDeployable) =>
+            val guid = obj.GUID
+            val playerGUID = player.GUID
+            obj.Owner = playerGUID
+            obj.OwnerName = player.Name
+            val faction = player.Faction
+            avatar.Deployables.Add(obj)
+            sendResponse(SetEmpireMessage(guid, faction))
+            avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.SetEmpire(playerGUID, guid, faction))
+            val info = DeployableInfo(obj.GUID, DeployableIcon.Boomer, obj.Position, obj.Owner.get)
+            sendResponse(DeployableObjectsInfoMessage(DeploymentAction.Build, info))
+            localService ! LocalServiceMessage(continent.Id, LocalAction.DeployableMapIcon(playerGUID, DeploymentAction.Build, info))
+            //TODO deployable removed from decay actor
+          case Some(_) | None => ; //pointless trigger; see Zone.Ground.ItemOnGround(BoomerTrigger, ...)
+        }
       }
+
+    case Zone.Ground.ItemInHand(item : Equipment) =>
+      PutItemInHand(item)
 
     case Zone.Ground.CanNotPickupItem(zone, item_guid, _) =>
       zone.GUID(item_guid) match {
@@ -1664,214 +1679,176 @@ class WorldSessionActor extends Actor with MDCContextAware {
       }
 
     case Zone.Deployable.DeployableIsBuilt(obj, tool) =>
-      val index = player.Find(tool) match {
-        case Some(x) =>
-          x
-        case None =>
-          player.LastDrawnSlot
-      }
-      val toolOpt : Option[(ConstructionItem, Int)] = tool.Definition match {
-        case GlobalDefinitions.ace =>
-          sendResponse(TriggerEffectMessage("spawn_object_effect", TriggeredEffectLocation(obj.Position, obj.Orientation)))
-          //remove an ace if the deployable is not a boomer; if it is a boomer, it will be handled in the next step
-          obj.Definition match {
-            case GlobalDefinitions.boomer =>
-              Some((tool, index))
-            case _ =>
-              FindEquipmentStock(player, { (e)=> e.Definition == GlobalDefinitions.ace }, 1) match {
-                case x :: _ => //rather than swapping holstered equipment, just delete a free ACE from the player's inventory
-                  player.Inventory -= x.start
-                  sendResponse(ObjectDeleteMessage(x.obj.GUID, 0))
-                  Some(x.obj.asInstanceOf[ConstructionItem], index)
-                case Nil => //no substitute; we have to delete the holstered equipment
-                  player.Slot(index).Equipment = None
-                  sendResponse(ObjectDeleteMessage(tool.GUID, 0))
-                  Some(tool, Player.HandsDownSlot)
-              }
-          }
-        case GlobalDefinitions.advanced_ace =>
-          sendResponse(GenericObjectActionMessage(player.GUID, 212)) //put fdu down; it will be removed from the client's holster
-          player.Slot(index).Equipment = None
-          Some(tool, Player.HandsDownSlot)
-        case _ =>
-          log.warn(s"Zone.Deployable.DeployableIsBuilt: unknown construction object ${tool.Definition.ObjectId}")
-          None
-      }
-      import scala.concurrent.ExecutionContext.Implicits.global
-      context.system.scheduler.scheduleOnce(2 seconds, self, WorldSessionActor.FinalizeDeployable(obj, toolOpt))
-
-    case WorldSessionActor.FinalizeDeployable(obj : TurretDeployable, toolInSlot) =>
-      //spitfires and deployable field turrets
-      val guid = obj.GUID
-      val definition = obj.Definition
-      log.info(s"FinalizeDeployable: ${definition.Name}")
-      sendResponse(GenericObjectActionMessage(obj.GUID, 84)) //reset cooldown on object build
-      sendResponse(ObjectCreateMessage(definition.ObjectId, guid, definition.Packet.ConstructorData(obj).get))
-      sendResponse(DeployableObjectsInfoMessage(DeploymentAction.Build, DeployableInfo(guid, ceicon(definition.Item.id), obj.Position, obj.Owner.getOrElse(PlanetSideGUID(0)))))
-      //
-      toolInSlot match {
-        case Some((tool, slot)) =>
-          if(tool.Definition == GlobalDefinitions.advanced_ace) {
-            sendResponse(ObjectDeleteMessage(tool.GUID, 0)) //delete the fdu, now on the ground
-          }
-          else {
-            //small turret; nothing special
-            //TODO drawing a holstered ace results in it eventually being deleted on the client's side; why?
-//            if(player.DrawnSlot == Player.HandsDownSlot) {
-//              player.DrawnSlot = slot
-//              sendResponse(ObjectHeldMessage(player.GUID, slot, false))
-//            }
-          }
-          taskResolver ! GUIDTask.UnregisterEquipment(tool)(continent.GUID)
-        case None => ;
-      }
-
-    case WorldSessionActor.FinalizeDeployable(obj : ComplexDeployable, toolInSlot) =>
-      //tank_traps and the deployable_shield_generator
-      val guid = obj.GUID
-      val definition = obj.Definition
-      log.info(s"FinalizeDeployable: ${definition.Name}")
-      sendResponse(GenericObjectActionMessage(obj.GUID, 84)) //reset cooldown on object build
-      sendResponse(ObjectCreateMessage(definition.ObjectId, guid, definition.Packet.ConstructorData(obj).get))
-      sendResponse(DeployableObjectsInfoMessage(DeploymentAction.Build, DeployableInfo(guid, ceicon(definition.Item.id), obj.Position, obj.Owner.getOrElse(PlanetSideGUID(0)))))
-      //
-      toolInSlot match {
-        case Some((tool, _)) =>
-          sendResponse(ObjectDeleteMessage(tool.GUID, 0)) //delete the fdu, now on the ground
-          taskResolver ! GUIDTask.UnregisterEquipment(tool)(continent.GUID)
-        case None => ;
-      }
-
-    case WorldSessionActor.FinalizeDeployable(obj : BoomerDeployable, toolInSlot) =>
-      //boomers
-      val guid = obj.GUID
-      val definition = obj.Definition
-      log.info(s"FinalizeDeployable: ${definition.Name}")
-      sendResponse(ObjectCreateMessage(definition.ObjectId, guid, definition.Packet.ConstructorData(obj).get))
-      sendResponse(DeployableObjectsInfoMessage(DeploymentAction.Build, DeployableInfo(guid, ceicon(definition.Item.id), obj.Position, obj.Owner.getOrElse(PlanetSideGUID(0)))))
-      //
-      val trigger = new BoomerTrigger
-      trigger.Companion = guid
-      toolInSlot match {
-        case Some((tool, slot)) =>
-          player.Slot(slot).Equipment = None
-          sendResponse(ObjectDeleteMessage(tool.GUID, 0))
-          //put boomer trigger in same slot, then draw slot
-          taskResolver ! DelayedObjectHeld(player, slot, List(PutEquipmentInSlot(player, trigger, slot)))
-          taskResolver ! GUIDTask.UnregisterEquipment(tool)(continent.GUID)
-        case None =>
-          //don't know where boomer trigger should go; drop on ground
-          taskResolver ! NewItemDrop(player, continent, avatarService)(trigger)
-      }
-
-    case WorldSessionActor.FinalizeDeployable(obj : ExplosiveDeployable, toolInSlot) =>
-      //mines
-      val guid = obj.GUID
-      val definition = obj.Definition
-      log.info(s"FinalizeDeployable: ${definition.Name}")
-      sendResponse(GenericObjectActionMessage(obj.GUID, 84)) //reset cooldown on object build
-      sendResponse(ObjectCreateMessage(definition.ObjectId, guid, definition.Packet.ConstructorData(obj).get))
-      sendResponse(DeployableObjectsInfoMessage(DeploymentAction.Build, DeployableInfo(guid, ceicon(definition.Item.id), obj.Position, obj.Owner.getOrElse(PlanetSideGUID(0)))))
-      //
-      toolInSlot match {
-        case Some((tool, slot)) =>
-          if(player.DrawnSlot == Player.HandsDownSlot) {
-            player.DrawnSlot = slot
-            sendResponse(ObjectHeldMessage(player.GUID, slot, false))
-          }
-          taskResolver ! GUIDTask.UnregisterEquipment(tool)(continent.GUID)
-        case None => ;
-      }
-
-    case WorldSessionActor.FinalizeDeployable(obj : SensorDeployable, toolInSlot) =>
-      //motion alarm sensor and sensor disruptor
-      val guid = obj.GUID
-      val definition = obj.Definition
-      log.info(s"FinalizeDeployable: ${definition.Name}")
-      sendResponse(GenericObjectActionMessage(obj.GUID, 84)) //reset cooldown on object build
-      sendResponse(ObjectCreateMessage(definition.ObjectId, guid, definition.Packet.ConstructorData(obj).get))
-      sendResponse(DeployableObjectsInfoMessage(DeploymentAction.Build, DeployableInfo(guid, ceicon(definition.Item.id), obj.Position, obj.Owner.getOrElse(PlanetSideGUID(0)))))
-      sendResponse(TriggerEffectMessage(guid, "on", TriggeredEffect(true, 1000))) //sensor effect
-      //
-      toolInSlot match {
-        case Some((tool, slot)) =>
-          taskResolver ! GUIDTask.UnregisterEquipment(tool)(continent.GUID) //unregister the ace
-          //draw slot?
-          if(player.DrawnSlot == Player.HandsDownSlot) {
-            player.DrawnSlot = slot
-            sendResponse(ObjectHeldMessage(player.GUID, slot, false))
-          }
-        case None => ;
-      }
-
-    case WorldSessionActor.FinalizeDeployable(obj : PlanetSideGameObject with Deployable, toolInSlot) =>
-      log.warn(s"FinalizeDeployable: deployable ${obj.Definition.asInstanceOf[DeployableDefinition].Item}@${obj.GUID} not handled by specific case")
-      log.warn(s"FinalizeDeployable: deployable will be cleaned up, but may not get unregistered properly")
-      sendResponse(GenericObjectActionMessage(obj.GUID, 84)) //reset cooldown on object build?
-      continent.Deployables ! Zone.Deployable.Dismiss(obj)
-      //
-      toolInSlot match {
-        case Some((tool, slot)) =>
-          if(player.Slot(slot).Equipment.contains(tool)) {
-            player.Slot(slot).Equipment = None
-          }
-          sendResponse(ObjectDeleteMessage(tool.GUID, 0))
-          taskResolver ! GUIDTask.UnregisterEquipment(tool)(continent.GUID)
-        case None => ;
-      }
-
-    case Zone.Deployable.DeployableIsDismissed(obj : TurretDeployable) =>
-      val guid = obj.GUID
-      val definition = obj.Definition.asInstanceOf[DeployableDefinition]
-      sendResponse(TriggerEffectMessage("spawn_object_failed_effect", TriggeredEffectLocation(obj.Position, Vector3.Zero)))
-      sendResponse(PlanetsideAttributeMessage(guid, 29, 1)) //???
-      if(obj.MountPoints.isEmpty) { //the spitfire-variant deployables have no mounting points
-        sendResponse(ObjectDeleteMessage(guid, 2))
+      if(avatar.Deployables.Accept(obj) || (avatar.Deployables.Valid(obj) && !avatar.Deployables.Contains(obj))) {
+        val index = player.Find(tool) match {
+          case Some(x) =>
+            x
+          case None =>
+            player.LastDrawnSlot
+        }
+        tool.Definition match {
+          case GlobalDefinitions.ace =>
+            localService ! LocalServiceMessage(continent.Id, LocalAction.TriggerEffect1(player.GUID, "spawn_object_effect", obj.Position, obj.Orientation))
+          case GlobalDefinitions.advanced_ace =>
+            sendResponse(GenericObjectActionMessage(player.GUID, 212)) //put fdu down; it will be removed from the client's holster
+            avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PutDownFDU(player.GUID))
+          case _ =>
+            log.warn(s"Zone.Deployable.DeployableIsBuilt: not sure what kind of construction item to animate - ${tool.Definition}")
+        }
+        import scala.concurrent.ExecutionContext.Implicits.global
+        context.system.scheduler.scheduleOnce(
+          obj.Definition.DeployTime milliseconds,
+          self,
+          WorldSessionActor.FinalizeDeployable(obj, tool, index)
+        )
       }
       else {
-        sendResponse(ObjectDeleteMessage(guid, 1))
+        TryDropConstructionTool(tool, obj.Position)
+        sendResponse(ObjectDeployedMessage.Failure(obj.Definition.Name))
+        obj.Position = Vector3.Zero
+        obj.Owner = None
+        obj.OwnerName = None
+        continent.Deployables ! Zone.Deployable.Dismiss(obj)
       }
-      sendResponse(DeployableObjectsInfoMessage(DeploymentAction.Dismiss, DeployableInfo(guid, ceicon(definition.Item.id), obj.Position, PlanetSideGUID(0))))
-      taskResolver ! GUIDTask.UnregisterDeployableTurret(obj)(continent.GUID)
 
-    case Zone.Deployable.DeployableIsDismissed(obj : ComplexDeployable) =>
+    case WorldSessionActor.FinalizeDeployable(obj : TurretDeployable, tool, index) =>
+      //spitfires and deployable field turrets
+      DeployableBuildActivity(obj)
+      CommonDeleteConstructionItem(tool, index)
+      FindReplacementConstructionItem(tool, index)
+
+    case WorldSessionActor.FinalizeDeployable(obj : ComplexDeployable, tool, index) =>
+      //tank_traps and the deployable_shield_generator
+      DeployableBuildActivity(obj)
+      CommonDeleteConstructionItem(tool, index)
+      FindReplacementConstructionItem(tool, index)
+
+    case WorldSessionActor.FinalizeDeployable(obj : BoomerDeployable, tool, index) =>
+      //boomers
+      DeployableBuildActivity(obj)
+      //TODO sufficiently delete the tool
+      sendResponse(ObjectDeleteMessage(tool.GUID, 0))
+      avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player.GUID, tool.GUID))
+      taskResolver ! GUIDTask.UnregisterEquipment(tool)(continent.GUID)
+      val trigger = new BoomerTrigger
+      trigger.Companion = obj.GUID
+      obj.Trigger = trigger
+      val holster = player.Slot(index)
+      if(holster.Equipment.contains(tool)) {
+        holster.Equipment = None
+        taskResolver ! DelayedObjectHeld(player, index, List(PutEquipmentInSlot(player, trigger, index)))
+      }
+      else {
+        //don't know where boomer trigger should go; drop it on the ground
+        taskResolver ! NewItemDrop(player, continent, avatarService)(trigger)
+      }
+
+    case WorldSessionActor.FinalizeDeployable(obj : ExplosiveDeployable, tool, index) =>
+      //mines
+      DeployableBuildActivity(obj)
+      CommonDeleteConstructionItem(tool, index)
+      FindReplacementConstructionItem(tool, index)
+
+    case WorldSessionActor.FinalizeDeployable(obj : SensorDeployable, tool, index) =>
+      //motion alarm sensor and sensor disruptor
+      DeployableBuildActivity(obj)
+      localService ! LocalServiceMessage(continent.Id, LocalAction.TriggerEffect2(player.GUID, "on", obj.GUID, TriggeredEffect(true, 1000)))
+      CommonDeleteConstructionItem(tool, index)
+      FindReplacementConstructionItem(tool, index)
+
+    case WorldSessionActor.FinalizeDeployable(obj : PlanetSideGameObject with Deployable, tool, index) =>
       val guid = obj.GUID
-      val definition = obj.Definition.asInstanceOf[DeployableDefinition]
-      sendResponse(TriggerEffectMessage("spawn_object_failed_effect", TriggeredEffectLocation(obj.Position, Vector3.Zero)))
-      sendResponse(PlanetsideAttributeMessage(guid, 29, 1)) //???
-      sendResponse(ObjectDeleteMessage(guid, 1))
-      sendResponse(DeployableObjectsInfoMessage(DeploymentAction.Dismiss, DeployableInfo(guid, ceicon(definition.Item.id), obj.Position, PlanetSideGUID(0))))
+      val definition = obj.Definition
+      sendResponse(GenericObjectActionMessage(guid, 84)) //reset build cooldown
+      sendResponse(ObjectDeployedMessage.Failure(definition.Name))
+      log.warn(s"FinalizeDeployable: deployable ${definition.asInstanceOf[DeployableDefinition].Item}@$guid not handled by specific case")
+      log.warn(s"FinalizeDeployable: deployable will be cleaned up, but may not get unregistered properly")
+      TryDropConstructionTool(tool, obj.Position)
+      obj.Position = Vector3.Zero
+      continent.Deployables ! Zone.Deployable.Dismiss(obj)
+
+    case Zone.Deployable.DeployableIsDismissed(obj) =>
+      val guid = obj.GUID
+      val definition = obj.Definition
+      if(obj.OwnerName.contains(avatar.name)) {
+        avatar.Deployables.Remove(obj)
+        UpdateDeployableUIElements(avatar.Deployables.UpdateUIElement(definition.Item))
+        //sendResponse(PlanetsideAttributeMessage(guid, 29, 1)) //make deployable invisible?
+      }
+      else if(obj.OwnerName.nonEmpty) {
+        avatarService ! AvatarServiceMessage(obj.OwnerName.get, AvatarAction.DeployableDestroyed(player.GUID, obj))
+      }
+      val info = DeployableInfo(guid, ceicon(definition.Item.id), obj.Position, obj.Owner.getOrElse(PlanetSideGUID(0)))
+      sendResponse(DeployableObjectsInfoMessage(DeploymentAction.Dismiss, info))
+      localService ! LocalServiceMessage(continent.Id, LocalAction.DeployableMapIcon(player.GUID, DeploymentAction.Dismiss, info))
+      self ! WorldSessionActor.EliminateDeployable(obj) //TODO if deconstruction time, expand
+
+    case WorldSessionActor.EliminateDeployable(obj : TurretDeployable) =>
+      //the spitfire-variant deployables have no mounting points
+      val seats = obj.Seats.values
+      if(seats.count(_.isOccupied) > 0) {
+        val wasKickedByDriver = obj.OwnerName == player.Name //TODO yeah, I don't know
+        seats.foreach(seat => {
+          seat.Occupant match {
+            case Some(tplayer) =>
+              seat.Occupant = None
+              tplayer.VehicleSeated = None
+              vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.KickPassenger(tplayer.GUID, 4, wasKickedByDriver, obj.GUID))
+            case None => ;
+          }
+        })
+        import scala.concurrent.ExecutionContext.Implicits.global
+        context.system.scheduler.scheduleOnce(
+          2 seconds,
+          self,
+          WorldSessionActor.EliminateDeployable(obj)
+        )
+      }
+      else {
+        DeconstructDeployable(obj, if(obj.MountPoints.isEmpty) 2 else 1)
+        taskResolver ! GUIDTask.UnregisterDeployableTurret(obj)(continent.GUID)
+      }
+
+    case WorldSessionActor.EliminateDeployable(obj : ComplexDeployable) =>
+      DeconstructDeployable(obj, 1)
       taskResolver ! GUIDTask.UnregisterObjectTask(obj)(continent.GUID)
 
-    case Zone.Deployable.DeployableIsDismissed(obj : BoomerDeployable) =>
+    case WorldSessionActor.EliminateDeployable(obj : BoomerDeployable) =>
       val guid = obj.GUID
-      val definition = obj.Definition.asInstanceOf[DeployableDefinition]
-      sendResponse(TriggerEffectMessage("spawn_object_failed_effect", TriggeredEffectLocation(obj.Position, Vector3.Zero)))
-      sendResponse(PlanetsideAttributeMessage(guid, 29, 1)) //???
-      sendResponse(ObjectDeleteMessage(guid, 2))
-      sendResponse(DeployableObjectsInfoMessage(DeploymentAction.Dismiss, DeployableInfo(guid, ceicon(definition.Item.id), obj.Position, PlanetSideGUID(0))))
+      DeconstructDeployable(obj, 2)
       taskResolver ! GUIDTask.UnregisterObjectTask(obj)(continent.GUID)
       //destroy the boomer trigger
       obj.Trigger match {
         case Some(trigger) =>
-          //TODO find where the boomer trigger really is and delete it properly
-          player.Find(trigger) match {
-            case Some(index) =>
-              player.Slot(index).Equipment = None
-            case None => ;
+          obj.Trigger = None
+          trigger.Companion = None
+          //TODO boomer updates owner name when trigger held or dropped; use name to predict trigger location
+          if(trigger.HasGUID) {
+            val tguid = trigger.GUID
+            (player.Find(trigger) match {
+              case Some(index) => //simple case: we have the trigger
+                player.Slot(index).Equipment = None
+                Some(trigger)
+              case None => //expensive case: exhaustive zone search
+                DeconstructEquipmentInZone(trigger)
+            }) match {
+              case Some(found) =>
+                taskResolver ! GUIDTask.UnregisterEquipment(found)(continent.GUID)
+              case None =>
+                log.warn(s"EliminateDeployable(BoomerDeployable): trigger either could not be found in ${continent.Id}")
+            }
+            avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(PlanetSideGUID(0), tguid))
           }
-          sendResponse(ObjectDeleteMessage(trigger.GUID, 2))
-          taskResolver ! GUIDTask.UnregisterObjectTask(trigger)(continent.GUID)
         case None => ;
       }
 
-    case Zone.Deployable.DeployableIsDismissed(obj : PlanetSideGameObject with Deployable) =>
-      val guid = obj.GUID
-      val definition = obj.Definition.asInstanceOf[DeployableDefinition]
-      sendResponse(TriggerEffectMessage("spawn_object_failed_effect", TriggeredEffectLocation(obj.Position, Vector3.Zero)))
-      sendResponse(PlanetsideAttributeMessage(guid, 29, 1)) //???
-      sendResponse(ObjectDeleteMessage(guid, 2))
-      sendResponse(DeployableObjectsInfoMessage(DeploymentAction.Dismiss, DeployableInfo(guid, ceicon(definition.Item.id), obj.Position, PlanetSideGUID(0))))
+    case WorldSessionActor.EliminateDeployable(obj : SensorDeployable) =>
+      DeconstructDeployable(obj, 2)
+      localService ! LocalServiceMessage(continent.Id, LocalAction.TriggerEffect2(player.GUID, "off", obj.GUID, TriggeredEffect(false, 0)))
+      taskResolver ! GUIDTask.UnregisterObjectTask(obj)(continent.GUID)
+
+    case WorldSessionActor.EliminateDeployable(obj : PlanetSideGameObject with Deployable) =>
+      DeconstructDeployable(obj, 2)
       taskResolver ! GUIDTask.UnregisterObjectTask(obj)(continent.GUID)
 
     case InterstellarCluster.ClientInitializationComplete() =>
@@ -1978,6 +1955,14 @@ class WorldSessionActor extends Actor with MDCContextAware {
       //MapObjectStateBlockMessage and ObjectCreateMessage?
       //TacticsMessage?
       StopBundlingPackets()
+
+      //change the owner on our deployables (the UI will still operate correctly)
+      val name = tplayer.Name
+      continent.DeployableList
+        .filter(_.OwnerName.contains(name))
+        .foreach(obj => {
+          obj.Owner = guid
+        })
 
     case NtuCharging(tplayer, vehicle) =>
       log.trace(s"NtuCharging: Vehicle ${vehicle.GUID} is charging NTU capacitor.")
@@ -2168,30 +2153,30 @@ class WorldSessionActor extends Actor with MDCContextAware {
       avatar.Certifications += ATV
       avatar.Certifications += Harasser
       //
-//      avatar.Certifications += InfiltrationSuit
-//      avatar.Certifications += Sniping
-//      avatar.Certifications += AntiVehicular
-//      avatar.Certifications += HeavyAssault
-//      avatar.Certifications += SpecialAssault
-//      avatar.Certifications += EliteAssault
-//      avatar.Certifications += GroundSupport
-//      avatar.Certifications += GroundTransport
-//      avatar.Certifications += Flail
-//      avatar.Certifications += Switchblade
-//      avatar.Certifications += AssaultBuggy
-//      avatar.Certifications += ArmoredAssault1
-//      avatar.Certifications += ArmoredAssault2
-//      avatar.Certifications += AirCavalryScout
-//      avatar.Certifications += AirCavalryAssault
-//      avatar.Certifications += AirCavalryInterceptor
-//      avatar.Certifications += AirSupport
-//      avatar.Certifications += GalaxyGunship
-//      avatar.Certifications += Phantasm
-//      avatar.Certifications += UniMAX
+      avatar.Certifications += InfiltrationSuit
+      avatar.Certifications += Sniping
+      avatar.Certifications += AntiVehicular
+      avatar.Certifications += HeavyAssault
+      avatar.Certifications += SpecialAssault
+      avatar.Certifications += EliteAssault
+      avatar.Certifications += GroundSupport
+      avatar.Certifications += GroundTransport
+      avatar.Certifications += Flail
+      avatar.Certifications += Switchblade
+      avatar.Certifications += AssaultBuggy
+      avatar.Certifications += ArmoredAssault1
+      avatar.Certifications += ArmoredAssault2
+      avatar.Certifications += AirCavalryScout
+      avatar.Certifications += AirCavalryAssault
+      avatar.Certifications += AirCavalryInterceptor
+      avatar.Certifications += AirSupport
+      avatar.Certifications += GalaxyGunship
+      avatar.Certifications += Phantasm
+      avatar.Certifications += UniMAX
       avatar.Certifications += Engineering
-//      avatar.Certifications += CombatEngineering
-//      avatar.Certifications += FortificationEngineering
-//      avatar.Certifications += AssaultEngineering
+      avatar.Certifications += CombatEngineering
+      avatar.Certifications += FortificationEngineering
+      avatar.Certifications += AssaultEngineering
       this.avatar = avatar
 
       InitializeDeployableQuantities(avatar) //set deployables ui elements
@@ -2209,10 +2194,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
       player.Slot(4).Equipment = Tool(GlobalDefinitions.StandardMelee(player.Faction))
       player.Slot(6).Equipment = ConstructionItem(ace) //bullet_9mm
       player.Slot(9).Equipment = ConstructionItem(ace) //bullet_9mm
-      player.Slot(12).Equipment = AmmoBox(frag_cartridge) //bullet_9mm
-      player.Slot(33).Equipment = AmmoBox(bullet_9mm_AP)
-      player.Slot(36).Equipment = AmmoBox(GlobalDefinitions.StandardPistolAmmo(player.Faction))
-      player.Slot(39).Equipment = AmmoBox(plasma_cartridge) //SimpleItem(remote_electronics_kit)
+      player.Slot(12).Equipment = ConstructionItem(ace) //bullet_9mm
+      player.Slot(33).Equipment = ConstructionItem(advanced_ace) //AmmoBox(bullet_9mm_AP)
+      //player.Slot(36).Equipment = AmmoBox(GlobalDefinitions.StandardPistolAmmo(player.Faction))
+      //player.Slot(39).Equipment = SimpleItem(remote_electronics_kit)
       player.Locker.Inventory += 0 -> SimpleItem(remote_electronics_kit)
       //TODO end temp player character auto-loading
       self ! ListAccountCharacters
@@ -2349,6 +2334,28 @@ class WorldSessionActor extends Actor with MDCContextAware {
       sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 112, 1)) //common
       //(0 to 255).foreach(i => { sendResponse(SetEmpireMessage(PlanetSideGUID(i), PlanetSideEmpire.VS)) })
 
+      //render deployable objects
+      //find and reclaim own deployables, if any
+      val guid = player.GUID
+      val faction = player.Faction
+      continent.DeployableList
+        .filter(_.OwnerName.contains(player.Name))
+        .foreach(obj => {
+          obj.Owner = guid
+          avatar.Deployables.Add(obj)
+          //TODO cancel remover for this deployable
+          log.info(s"Found a $obj of ours while loading the zone")
+        })
+      continent.DeployableList.foreach(obj => {
+        val definition = obj.Definition
+        sendResponse(
+          ObjectCreateMessage(
+            definition.ObjectId,
+            obj.GUID,
+            definition.Packet.ConstructorData(obj).get
+          )
+        )
+      })
       //render Equipment that was dropped into zone before the player arrived
       continent.EquipmentOnGround.foreach(item => {
         val definition = item.Definition
@@ -2645,14 +2652,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
       CSRZone.read(traveler, msg) match {
         case (true, zone, pos) =>
           if(player.isAlive) {
-            player.Die //die to suspend client-driven position change updates
+            player.Die //die to suspend client-driven position change updates (in theory)
             PlayerActionsToCancel()
             player.Position = pos
-            traveler.zone = zone
-            continent.Population ! Zone.Population.Release(avatar)
-            continent.Population ! Zone.Population.Leave(avatar)
             avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player.GUID, player.GUID))
-            taskResolver ! TaskBeforeZoneChange(GUIDTask.UnregisterAvatar(player)(continent.GUID), zone)
+            LoadZonePhysicalSpawnPoint(zone, pos, Vector3.Zero, 0)
           }
 
         case (false, _, _) => ;
@@ -2967,41 +2971,20 @@ class WorldSessionActor extends Actor with MDCContextAware {
             log.info(s"RequestDestroy: must own vehicle in order to deconstruct it")
           }
 
-        case Some(obj : Equipment) =>
-          val findFunc : PlanetSideGameObject with Container => Option[(PlanetSideGameObject with Container, Option[Int])] = FindInLocalContainer(object_guid)
-
-          findFunc(player.Locker)
-            .orElse(findFunc(player))
-            .orElse(accessedContainer match {
-              case Some(parent) =>
-                findFunc(parent)
-              case None =>
-                None
-            })
-            .orElse(FindLocalVehicle match {
-              case Some(parent) =>
-                findFunc(parent)
-              case None =>
-                None
-            })
-          match {
-            case Some((parent, Some(slot))) =>
-              obj.Position = Vector3.Zero
-              taskResolver ! RemoveEquipmentFromSlot(parent, obj, slot)
-              log.info(s"RequestDestroy: equipment $obj")
-
-            case _ =>
-              if(continent.EquipmentOnGround.contains(obj)) {
-                obj.Position = Vector3.Zero
-                continent.Ground ! Zone.Ground.RemoveItem(object_guid)
-                avatarService ! AvatarServiceMessage.Ground(RemoverActor.ClearSpecific(List(obj), continent))
-                avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(PlanetSideGUID(0), object_guid))
-                log.info(s"RequestDestroy: equipment $obj on ground")
-              }
-              else {
-                log.warn(s"RequestDestroy: equipment $obj exists, but can not be reached")
-              }
+        case Some(obj : BoomerTrigger) =>
+          if(FindEquipmentToDelete(object_guid, obj)) {
+            continent.GUID(obj.Companion.getOrElse(PlanetSideGUID(0))) match {
+              case Some(boomer : BoomerDeployable) =>
+                boomer.Trigger = None
+                continent.Deployables ! Zone.Deployable.Dismiss(boomer)
+              case Some(thing) =>
+                log.info(s"RequestDestroy: BoomerTrigger object connected to wrong object - $thing")
+              case None => ;
+            }
           }
+
+        case Some(obj : Equipment) =>
+          FindEquipmentToDelete(object_guid, obj)
 
         case Some(_ : LocalProjectile) =>
           FindProjectileEntry(object_guid) match {
@@ -3453,6 +3436,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           dObj.Orientation = orient
           dObj.Faction = player.Faction
           dObj.Owner = player.GUID
+          dObj.OwnerName = player.Name
           val tasking : TaskResolver.GiveTask = dObj match {
             case turret : TurretDeployable =>
               GUIDTask.RegisterDeployableTurret(turret)(continent.GUID)
@@ -5627,6 +5611,18 @@ class WorldSessionActor extends Actor with MDCContextAware {
           }
         case _ => ;
       }
+      //disown boomers and drop triggers
+      val boomers = avatar.Deployables.ClearDeployable(CItem.DeployedItem.boomer)
+      boomers.foreach(boomer => {
+        continent.GUID(boomer) match {
+          case Some(obj : BoomerDeployable) =>
+            obj.OwnerName = None
+            //TODO add to item remover
+          case Some(_) | None => ;
+        }
+      })
+      val triggers = RemoveInventoryBoomerTriggers()
+      triggers.foreach(trigger =>{ NormalItemDrop(obj, continent, avatarService)(trigger) })
     }
   }
 
@@ -6163,6 +6159,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     val guid = PlanetSideGUID(0)
     list.foreach({ case((currElem, curr, maxElem, max)) =>
       //fields must update in this order
+      //log.info(s"Element update: $currElem, $curr; $maxElem, $max")
       sendResponse(PlanetsideAttributeMessage(guid, maxElem, max))
       sendResponse(PlanetsideAttributeMessage(guid, currElem, curr))
     })
@@ -6209,7 +6206,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     }
     while(!ConstructionItemPermissionComparison(certifications, obj.ModePermissions) && originalAmmoIndex != obj.AmmoTypeIndex)
     log.info(s"ChangeFireMode: construction object ${obj.Definition.Name} changed to ${obj.AmmoType} (mode ${obj.FireModeIndex})")
-    sendResponse(ChangeFireModeMessage(obj.GUID, obj.AmmoTypeIndex))
+    sendResponse(ChangeAmmoMessage(obj.GUID, obj.AmmoTypeIndex))
   }
 
   /**
@@ -6238,6 +6235,358 @@ class WorldSessionActor extends Actor with MDCContextAware {
       test intersect engineeringCerts
     }
     (sample intersect testDiff equals testDiff) && (sampleIntersect intersect testIntersect equals testIntersect)
+  }
+
+  /**
+    * na
+    * @param obj na
+    */
+  def DeployableBuildActivity(obj : PlanetSideGameObject with Deployable) : Unit = {
+    val guid = obj.GUID
+    val definition = obj.Definition
+    val item = definition.Item
+    val deployables = avatar.Deployables
+    val (curr, max) = deployables.Count(item)
+    if(curr == max) {
+      deployables.DisplaceFirst(obj) match {
+        case Some(old) =>
+          old.Position = Vector3.Zero
+          old.Owner = None
+          continent.Deployables ! Zone.Deployable.Dismiss(old)
+          sendResponse(ObjectDeployedMessage.Success(definition.Name, curr, max))
+          if(max > 1) {
+            sendResponse(ChatMsg(ChatMessageType.UNK_229, false, "", s"@${definition.Descriptor}OldestDestroyed", None))
+          }
+        case None => ; //should be an invalid case
+      }
+    }
+    else {
+      sendResponse(ObjectDeployedMessage.Success(definition.Name, curr + 1, max))
+      if(max > 1 && curr + 1 == max) {
+        sendResponse(ChatMsg(ChatMessageType.UNK_229, false, "", s"@${definition.Descriptor}LimitReached", None))
+      }
+    }
+    avatar.Deployables.Add(obj)
+    UpdateDeployableUIElements(avatar.Deployables.UpdateUIElement(item))
+    log.info(s"FinalizeDeployable: ${definition.Name}")
+    sendResponse(GenericObjectActionMessage(guid, 84)) //reset build cooldown
+    sendResponse(ObjectCreateMessage(definition.ObjectId, guid, definition.Packet.ConstructorData(obj).get))
+    avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.DeployItem(player.GUID, obj))
+    val deployInfo = DeployableInfo(guid, ceicon(item.id), obj.Position, obj.Owner.getOrElse(PlanetSideGUID(0)))
+    sendResponse(DeployableObjectsInfoMessage(DeploymentAction.Build, deployInfo))
+    localService ! LocalServiceMessage(continent.Id, LocalAction.DeployableMapIcon(player.GUID, DeploymentAction.Build, deployInfo))
+  }
+
+  /**
+    * na
+    * @param tool na
+    * @param pos na
+    */
+  def TryDropConstructionTool(tool : ConstructionItem, pos : Vector3) : Unit = {
+    //while the ACE can stay in its holster, the FDU is already "on the ground"
+    if(tool.Definition == GlobalDefinitions.advanced_ace) {
+      sendResponse(ObjectDeleteMessage(tool.GUID, 0))
+      avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player.GUID, tool.GUID))
+      tool.FireModeIndex = 0
+      tool.AmmoTypeIndex = 0
+      continent.Ground ! Zone.Ground.DropItem(tool, pos, Vector3.Zero)
+    }
+  }
+
+  /**
+    * na
+    * @param tool na
+    * @param index na
+    */
+  def CommonDeleteConstructionItem(tool : ConstructionItem, index : Int) : Unit = {
+    //TODO sufficiently delete the tool
+    val holster = player.Slot(index)
+    if(holster.Equipment.contains(tool)) {
+      holster.Equipment = None
+    }
+    sendResponse(ObjectDeleteMessage(tool.GUID, 0))
+    avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player.GUID, tool.GUID))
+    taskResolver ! GUIDTask.UnregisterEquipment(tool)(continent.GUID)
+  }
+
+  /**
+    * na
+    * @param tool the `ConstructionItem` object to match
+    * @param index where to put the discovered replacement
+    */
+  def FindReplacementConstructionItem(tool : ConstructionItem, index : Int) : Unit = {
+    val fireMode = tool.FireModeIndex
+    val ammoType = tool.AmmoTypeIndex
+    val definition = tool.Definition
+
+    FindEquipmentStock(player, { (e) => e.Definition == definition }, 1) match {
+      case x :: _ =>
+        val guid = player.GUID
+        val obj = x.obj.asInstanceOf[ConstructionItem]
+        if((player.Slot(index).Equipment = obj).contains(obj)) {
+          player.Inventory -= x.start
+          sendResponse(ObjectAttachMessage(guid, obj.GUID, index))
+
+          if(obj.FireModeIndex != fireMode) {
+            obj.FireModeIndex = fireMode
+            sendResponse(ChangeFireModeMessage(obj.GUID, fireMode))
+          }
+          if(obj.AmmoTypeIndex != ammoType) {
+            obj.AmmoTypeIndex = ammoType
+            sendResponse(ChangeAmmoMessage(obj.GUID, ammoType))
+          }
+          if(player.VisibleSlots.contains(index)) {
+            avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.EquipmentInHand(guid, guid, index, obj))
+            if(player.DrawnSlot == Player.HandsDownSlot) {
+              player.DrawnSlot = index
+              sendResponse(ObjectHeldMessage(guid, index, false))
+              avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectHeld(guid, index))
+            }
+          }
+        }
+      case Nil => ; //no replacements found
+    }
+  }
+
+  def FindEquipmentToDelete(object_guid : PlanetSideGUID, obj : Equipment) : Boolean = {
+    val findFunc : PlanetSideGameObject with Container => Option[(PlanetSideGameObject with Container, Option[Int])] = FindInLocalContainer(object_guid)
+
+    findFunc(player.Locker)
+      .orElse(findFunc(player))
+      .orElse(accessedContainer match {
+        case Some(parent) =>
+          findFunc(parent)
+        case None =>
+          None
+      })
+      .orElse(FindLocalVehicle match {
+        case Some(parent) =>
+          findFunc(parent)
+        case None =>
+          None
+      })
+    match {
+      case Some((parent, Some(slot))) =>
+        obj.Position = Vector3.Zero
+        taskResolver ! RemoveEquipmentFromSlot(parent, obj, slot)
+        log.info(s"RequestDestroy: equipment $obj")
+        true
+
+      case _ =>
+        if(continent.EquipmentOnGround.contains(obj)) {
+          obj.Position = Vector3.Zero
+          continent.Ground ! Zone.Ground.RemoveItem(object_guid)
+          avatarService ! AvatarServiceMessage.Ground(RemoverActor.ClearSpecific(List(obj), continent))
+          avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(PlanetSideGUID(0), object_guid))
+          log.info(s"RequestDestroy: equipment $obj on ground")
+          true
+        }
+        else {
+          log.warn(s"RequestDestroy: equipment $obj exists, but can not be reached")
+          false
+        }
+    }
+  }
+
+  def DeconstructDeployable(obj : PlanetSideGameObject with Deployable, deletionType : Int) : Unit = {
+    val guid = obj.GUID
+    val player_guid = player.GUID
+    sendResponse(ObjectDeleteMessage(guid, deletionType))
+    avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player_guid, guid, deletionType))
+    localService ! LocalServiceMessage(continent.Id, LocalAction.TriggerEffect1(player_guid, "spawn_object_failed_effect", obj.Position, obj.Orientation))
+  }
+
+  /**
+    * na
+    * @param equipment na
+    */
+  def DeconstructEquipmentInZone(equipment : Equipment) : Option[Equipment] = {
+    val guid = equipment.GUID
+    ((continent.LivePlayers ++ continent.Corpses).find(_.Find(guid).nonEmpty) match {
+      case Some(tplayer) => Some((tplayer, tplayer.Find(guid)))
+      case _ => None
+    }).orElse(continent.Vehicles.find(_.Find(guid).nonEmpty) match {
+      case Some(vehicle) => Some((vehicle, vehicle.Find(guid)))
+      case _ => None
+    }).orElse(continent.Players.find(_.Locker.Find(guid).nonEmpty) match {
+      case Some(avatar) => Some((avatar.Locker, avatar.Locker.Find(guid)))
+      case _ => None
+    }) match {
+      case Some((obj, Some(index))) =>
+        log.info(s"DeconstructEquipmentInZone: ${equipment.Definition.Name}@$guid has been found contained by an ${obj.Definition.Name}@${obj.GUID.guid}")
+        obj.Slot(index).Equipment = None
+        Some(equipment)
+      case _ =>
+        continent.EquipmentOnGround.find(p => p.GUID == guid) match {
+          case Some(t) =>
+            log.info(s"DeconstructEquipmentInZone: a ${t.Definition.Name}@$guid object has been treated as a dropped item")
+            avatarService ! AvatarServiceMessage.Ground(RemoverActor.HurrySpecific(List(t), continent))
+            None
+          case None =>
+            continent.GUID(guid) match {
+              case Some(o : Equipment) =>
+                log.warn(s"DeconstructEquipmentInZone: an ${o.Definition.Name} @$guid has been found${(if(o == equipment) " but" else ", but it is not the expected object, and")} it seems to be orphaned")
+                Some(o)
+              case Some(_) | None =>
+                log.error(s"DeconstructEquipmentInZone: exhaustive search for Equipment object ${equipment.Definition.Name}@$guid in ${continent.Id} has turned up nothing")
+                None
+            }
+        }
+    }
+  }
+
+  def RemoveLockerBoomerTriggers() : List[BoomerTrigger] = {
+    val player_guid = player.GUID
+    val lockerTriggers = avatar.Locker.Inventory.Items
+      .filter({ case InventoryItem(obj, _) => obj.isInstanceOf[BoomerTrigger] })
+    lockerTriggers.foreach({ case InventoryItem(obj, index) =>
+      avatar.Locker.Inventory -= index
+    })
+    lockerTriggers map { case InventoryItem(obj, index) => obj.asInstanceOf[BoomerTrigger] }
+  }
+
+  def RemoveInventoryBoomerTriggers() : List[BoomerTrigger] = {
+    val player_guid = player.GUID
+    //val inventoryTriggers =
+    ((player.Inventory.Items.collect({ case InventoryItem(obj : BoomerTrigger, index) => (obj, index) })) ++
+      (player.Holsters()
+        .zipWithIndex
+        .map({ case ((slot, index)) => (slot.Equipment, index) })
+        .collect { case ((Some(obj : BoomerTrigger), index)) => (obj, index) }
+        )
+      )
+      .map({ case ((obj, index)) =>
+        player.Slot(index).Equipment = None
+        avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player_guid, obj.GUID))
+        obj
+      })
+  }
+
+  def DisownDeployables() : Unit = {
+    val player_guid = player.GUID
+    avatar.Deployables.Clear()
+      .map(continent.GUID(_))
+      .collect { case Some(obj) => obj.asInstanceOf[PlanetSideGameObject with Deployable] }
+      .foreach(deployable => {
+        val guid = deployable.GUID
+        val pos = deployable.Position
+        val zoneId = continent.Id
+        deployable match {
+          case boomer : BoomerDeployable =>
+            boomer.Trigger = None
+            val info = DeployableInfo(
+              guid,
+              DeployableIcon.Boomer,
+              pos,
+              player_guid
+            )
+            continent.Deployables tell(Zone.Deployable.Dismiss(boomer), null) //do not expect reply
+            localService ! LocalServiceMessage(zoneId, LocalAction.DeployableMapIcon(player_guid, DeploymentAction.Dismiss, info))
+            avatarService ! AvatarServiceMessage(zoneId, AvatarAction.ObjectDelete(player_guid, guid, 2))
+            localService ! LocalServiceMessage(zoneId, LocalAction.TriggerEffect1(player_guid, "spawn_object_failed_effect", pos, boomer.Orientation))
+            taskResolver ! GUIDTask.UnregisterObjectTask(boomer)(continent.GUID)
+          case _ =>
+            deployable.Owner = None
+        }
+      })
+  }
+
+  /**
+    * na
+    * @param zone_id na
+    * @param pos na
+    * @param ori na
+    * @param respawnTime the character downtime spent respawning, as clocked on the redeployment screen
+    */
+  def LoadZonePhysicalSpawnPoint(zone_id : String, pos : Vector3, ori : Vector3, respawnTime : Long) : Unit = {
+    respawnTimer.cancel
+    reviveTimer.cancel
+    ClearCurrentAmsSpawnPoint()
+    val backpack = player.isBackpack
+    val respawnTimeMillis = respawnTime * 1000 //ms
+    deadState = DeadState.RespawnTime
+    sendResponse(AvatarDeadStateMessage(DeadState.RespawnTime, respawnTimeMillis, respawnTimeMillis, Vector3.Zero, player.Faction, true))
+    val tplayer = if(backpack) {
+      RespawnClone(player) //new player
+    }
+    else {
+      val player_guid = player.GUID
+      sendResponse(ObjectDeleteMessage(player_guid, 4))
+      avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player_guid, player_guid, 4))
+      player //player is deconstructing self
+    }
+
+    tplayer.Position = pos
+    tplayer.Orientation = ori
+    val (target, msg) : (ActorRef, Any) = if(zone_id == continent.Id) {
+      if(backpack) {
+        //respawning from unregistered player
+        (taskResolver, RegisterAvatar(tplayer))
+      }
+      else {
+        //move existing player
+        (self, PlayerLoaded(tplayer))
+      }
+    }
+    else {
+      val original = player
+      DisownVehicle()
+      (RemoveLockerBoomerTriggers() ++ RemoveLockerBoomerTriggers()).foreach(obj => {
+        taskResolver ! GUIDTask.UnregisterObjectTask(obj)(continent.GUID)
+      })
+      DisownDeployables()
+      continent.Population ! Zone.Population.Leave(avatar)
+      //TODO check player orientation upon spawn not polluted
+      if(backpack) {
+        //unregister avatar locker + GiveWorld
+        player = tplayer
+        (taskResolver, TaskBeforeZoneChange(GUIDTask.UnregisterLocker(original.Locker)(continent.GUID), zone_id))
+      }
+      else {
+        //unregister avatar whole + GiveWorld
+        (taskResolver, TaskBeforeZoneChange(GUIDTask.UnregisterAvatar(original)(continent.GUID), zone_id))
+      }
+    }
+    import scala.concurrent.ExecutionContext.Implicits.global
+    respawnTimer = context.system.scheduler.scheduleOnce(respawnTime seconds, target, msg)
+  }
+
+  def PutItemOnGround(item : Equipment, pos : Vector3, orient : Vector3) : Unit = {
+    item.Position = pos
+    item.Orientation = Vector3.z(orient.z) //dropped items rotate towards the user's standing direction
+    val exclusionId = player.Find(item) match {
+      case Some(slotNum) =>
+        player.Slot(slotNum).Equipment = None
+        sendResponse(ObjectDetachMessage(player.GUID, item.GUID, pos, orient.z))
+        sendResponse(ActionResultMessage.Pass)
+        player.GUID //we're dropping it; don't need to see it dropped again
+      case None =>
+        PlanetSideGUID(0) //object is being introduced into the world upon drop
+    }
+    avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.DropItem(exclusionId, item, continent))
+  }
+
+  def PutItemInHand(item : Equipment) : Boolean = {
+    player.Fit(item) match {
+      case Some(slotNum) =>
+        val item_guid = item.GUID
+        val player_guid = player.GUID
+        player.Slot(slotNum).Equipment = item
+        val definition = item.Definition
+        sendResponse(
+          ObjectCreateDetailedMessage(
+            definition.ObjectId,
+            item_guid,
+            ObjectCreateMessageParent(player_guid, slotNum),
+            definition.Packet.DetailedConstructorData(item).get
+          )
+        )
+        avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PickupItem(player_guid, continent, player, slotNum, item))
+        true
+      case None =>
+        continent.Ground ! Zone.Ground.DropItem(item, item.Position, item.Orientation) //restore previous state
+        false
+    }
   }
 
   def failWithError(error : String) = {
@@ -6427,7 +6776,9 @@ object WorldSessionActor {
                                        vehicle: Vehicle)
   private final case class NtuDischarging(tplayer: Player, vehicle: Vehicle, silo_guid: PlanetSideGUID)
 
-  private final case class FinalizeDeployable(obj : PlanetSideGameObject with Deployable, tool : Option[(ConstructionItem, Int)])
+  private final case class FinalizeDeployable(obj : PlanetSideGameObject with Deployable, tool : ConstructionItem, index : Int)
+
+  private final case class EliminateDeployable(obj : PlanetSideGameObject with Deployable)
 
   //TODO temporary location
   val cemap : Map[CItem.DeployedItem.Value, ()=>PlanetSideGameObject with Deployable] = Map(

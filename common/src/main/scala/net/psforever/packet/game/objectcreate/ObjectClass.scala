@@ -955,7 +955,7 @@ object ObjectClass {
       case ObjectClass.trek => ConstructorData.genericCodec(WeaponData.codec, "tool")
       //ace deployables
       case ObjectClass.ace => ConstructorData.genericCodec(ACEData.codec, "ace")
-      case ObjectClass.advanced_ace => ConstructorData.genericCodec(CommandDetonaterData.codec, "advanced ace")
+      case ObjectClass.advanced_ace => ConstructorData.genericCodec(ACEData.codec, "advanced ace")
       case ObjectClass.boomer_trigger => ConstructorData.genericCodec(BoomerTriggerData.codec, "boomer trigger")
       //vehicles?
       case ObjectClass.orbital_shuttle => ConstructorData.genericCodec(OrbitalShuttleData.codec, "HART")
@@ -1186,7 +1186,7 @@ object ObjectClass {
       case ObjectClass.trek => DroppedItemData.genericCodec(WeaponData.codec, "tool")
       //ace deployables
       case ObjectClass.ace => DroppedItemData.genericCodec(ACEData.codec, "ace")
-      case ObjectClass.advanced_ace => DroppedItemData.genericCodec(CommandDetonaterData.codec, "advanced ace") //todo temporary?
+      case ObjectClass.advanced_ace => DroppedItemData.genericCodec(ACEData.codec, "advanced ace") //todo temporary?
       case ObjectClass.boomer_trigger => DroppedItemData.genericCodec(BoomerTriggerData.codec, "boomer trigger")
       case ObjectClass.boomer => ConstructorData.genericCodec(SmallDeployableData.codec, "ace deployable")
       case ObjectClass.he_mine => ConstructorData.genericCodec(SmallDeployableData.codec, "ace deployable")

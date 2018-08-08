@@ -42,9 +42,21 @@ class DeployableToolbox {
   }
 
   def Accept(obj : DeployableToolbox.AcceptableDeployable) : Boolean = {
-    deployableCounts(DeployableToolbox.UnifiedTurret(obj.Definition.Item)).Available &&
-      categoryCounts(obj.Definition.DeployCategory).Available &&
-      !deployableLists(obj.Definition.DeployCategory).contains(obj)
+    Valid(obj) && Available(obj) && !Contains(obj)
+  }
+
+  def Valid(obj : DeployableToolbox.AcceptableDeployable) : Boolean = {
+    deployableCounts(DeployableToolbox.UnifiedTurret(obj.Definition.Item)).Max > 0 &&
+      categoryCounts(obj.Definition.DeployCategory).Max > 0
+  }
+
+  def Available(obj : DeployableToolbox.AcceptableDeployable) : Boolean = {
+      deployableCounts(DeployableToolbox.UnifiedTurret(obj.Definition.Item)).Available &&
+      categoryCounts(obj.Definition.DeployCategory).Available
+  }
+
+  def Contains(obj : DeployableToolbox.AcceptableDeployable) : Boolean = {
+    deployableLists(obj.Definition.DeployCategory).contains(obj)
   }
 
   def Add(obj : DeployableToolbox.AcceptableDeployable) : Boolean = {
@@ -113,6 +125,11 @@ class DeployableToolbox {
     deployableLists(filter).map(_.GUID).toList
   }
 
+  def Count(item : DeployedItem.Value) : (Int, Int) = {
+    val dType = deployableCounts(DeployableToolbox.UnifiedTurret(item))
+    (dType.Current, dType.Max)
+  }
+
   def UpdateUI() : List[(Int,Int,Int,Int)] = DeployedItem.values flatMap UpdateUIElement toList
 
   def UpdateUIElement(entry : DeployedItem.Value) : List[(Int,Int,Int,Int)] = {
@@ -160,6 +177,29 @@ class DeployableToolbox {
 
   def UpdateUI(certifications : Set[CertificationType.Value]) : List[(Int,Int,Int,Int)] = {
     certifications flatMap UpdateUI toList
+  }
+
+  def ClearDeployable(item : DeployedItem.Value) : List[PlanetSideGUID] = {
+    val category = DeployableToolbox.DeployablesToCategories(DeployableToolbox.UnifiedTurret(item))
+    val (out, in) = deployableLists(DeployableToolbox.DeployablesToCategories(item))
+      .partition(_.Definition.Item == item)
+
+    deployableLists(category) = in
+    categoryCounts(category).Current = in.size
+    deployableCounts(item).Current = 0
+    out.map(_.GUID).toList
+  }
+
+  def ClearCategory(category : DeployableCategory.Value) : List[PlanetSideGUID] = {
+    val out = deployableLists(category).map(_.GUID).toList
+    deployableLists(category).clear()
+    categoryCounts(category).Current = 0
+    ((for {
+      (ce, cat) <- DeployableToolbox.DeployablesToCategories
+      if cat == category
+    } yield ce) map DeployableToolbox.UnifiedTurret toSet)
+      .foreach({item : DeployedItem.Value => deployableCounts(item).Current = 0 })
+    out
   }
 
   def Clear() : List[PlanetSideGUID] = {
