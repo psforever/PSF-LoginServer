@@ -10,22 +10,26 @@ import scodec.codecs._
   * (Where the child object was before it was moved is not specified or important.)
   * @see `Definition.ObjectId`<br>
   *       `TurretUpgrade`
-  * @param avatar_guid the player
-  * @param item_used_guid the item used;
-  *                       e.g., a REK to hack, or a medkit to heal
-  * @param object_guid the object affected;
-  *                    e.g., door when opened, terminal when accessed, avatar when medkit used
-  * @param unk2 na;
-  *             when upgrading phalanx turrets, 1 for `AVCombo` and 2 for `FlakCombo`
-  * @param unk3 using tools, e.g., a REK or nano-dispenser
-  * @param unk4 na
-  * @param unk5 na
-  * @param unk6 na
-  * @param unk7 na;
-  *             25 when door 223 when terminal
-  * @param unk8 na;
-  *             0 when door 1 when use rek (252 then equipment term)
-  * @param object_id he object id for `object_guid`'s object
+  * @param avatar_guid     the player
+  * @param item_used_guid  the item used;
+  *                        e.g. a REK to hack or a medkit to heal.
+  * @param object_guid     the object affected;
+  *                        e.g., door when opened, terminal when accessed, avatar when medkit used
+  * @param unk2            na;
+  *                        when upgrading phalanx turrets, 1 for `AVCombo` and 2 for `FlakCombo`
+  * @param unk3            using tools, e.g., a REK or nano-dispenser
+  * @param unk4            seems to be related to T-REK viruses.
+  *                        0 - unlock all doors
+  *                        1 - disable linked benefits
+  *                        2 - double ntu drain
+  *                        3 - disable enemy radar
+  *                        4 - access equipment terminals
+  * @param unk6         na
+  * @param unk7         na;
+  *                     25 when door 223 when terminal
+  * @param unk8         na;
+  *                     0 when door 1 when use rek (252 then equipment term)
+  * @param object_id    the object id `object_guid`'s object
   */
 final case class UseItemMessage(avatar_guid : PlanetSideGUID,
                                 item_used_guid : PlanetSideGUID,

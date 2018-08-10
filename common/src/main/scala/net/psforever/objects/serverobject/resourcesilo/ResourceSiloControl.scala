@@ -60,7 +60,7 @@ class ResourceSiloControl(resourceSilo : ResourceSilo) extends Actor with Factio
       if(resourceSilo.CapacitorDisplay != ntuBarLevel) {
         log.trace(s"Silo ${resourceSilo.GUID} NTU bar level has changed from ${resourceSilo.CapacitorDisplay} to ${ntuBarLevel}")
         resourceSilo.CapacitorDisplay = ntuBarLevel
-        resourceSilo.Owner.Actor ! Building.SendMapUpdateToAllClients()
+        resourceSilo.Owner.Actor ! Building.SendMapUpdate(all_clients = true)
         avatarService ! AvatarServiceMessage(resourceSilo.Owner.asInstanceOf[Building].Zone.Id, AvatarAction.PlanetsideAttribute(resourceSilo.GUID, 45, resourceSilo.CapacitorDisplay))
       }
 

@@ -864,6 +864,10 @@ object GlobalDefinitions {
 
   val resource_silo = new ResourceSiloDefinition
 
+  val capture_terminal = new CaptureTerminalDefinition(158) // Base CC
+
+  val secondary_capture = new CaptureTerminalDefinition(751) // Tower CC
+
   val manned_turret = new MannedTurretDefinition(480) {
     Name = "manned_turret"
     MaxHealth = 3600

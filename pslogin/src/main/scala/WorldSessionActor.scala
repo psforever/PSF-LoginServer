@@ -1,4 +1,5 @@
 // Copyright (c) 2017 PSForever
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 
 import akka.actor.{Actor, ActorRef, Cancellable, MDCContextAware}
@@ -53,10 +54,11 @@ import services.vehicle.{VehicleAction, VehicleResponse, VehicleServiceMessage, 
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.annotation.tailrec
-import scala.concurrent.Future
+import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.util.Success
 import akka.pattern.ask
+import services.local.support.HackCaptureActor
 
 class WorldSessionActor extends Actor with MDCContextAware {
   import WorldSessionActor._
@@ -560,10 +562,16 @@ class WorldSessionActor extends Actor with MDCContextAware {
           sendResponse(GenericObjectStateMsg(door_guid, 17))
 
         case LocalResponse.HackClear(target_guid, unk1, unk2) =>
+          log.trace(s"Clearing hack for ${target_guid}")
           // Reset hack state for all players
           sendResponse(HackMessage(0, target_guid, guid, 0, unk1, HackState.HackCleared, unk2))
           // Set the object faction displayed back to it's original owner faction
-          sendResponse(SetEmpireMessage(target_guid, continent.GUID(target_guid).get.asInstanceOf[FactionAffinity].Faction))
+
+          continent.GUID(target_guid) match {
+            case Some(obj) =>
+              sendResponse(SetEmpireMessage(target_guid, obj.asInstanceOf[FactionAffinity].Faction))
+            case None => ;
+          }
 
         case LocalResponse.HackObject(target_guid, unk1, unk2) =>
           if(tplayer_guid != guid && continent.GUID(target_guid).get.asInstanceOf[Hackable].HackedBy.get._1.Faction != player.Faction) {
@@ -576,7 +584,31 @@ class WorldSessionActor extends Actor with MDCContextAware {
             // Make the hacked object look like it belongs to the hacking empire, but only for that empire's players (so that infiltrators on stealth missions won't be given away to opposing factions)
             sendResponse(SetEmpireMessage(target_guid, player.Faction))
           }
+        case LocalResponse.HackCaptureTerminal(target_guid, unk1, unk2, isResecured) =>
+          var value = 0L
 
+          if(isResecured) {
+            value = 17039360L
+          } else {
+            import scala.concurrent.ExecutionContext.Implicits.global
+            val future = ask(localService, HackCaptureActor.GetHackTimeRemainingNanos(target_guid))(1 second)
+            val time = Await.result(future, 1 second).asInstanceOf[Long] // todo: blocking call. Not good.
+            val hack_time_remaining_ms = TimeUnit.MILLISECONDS.convert(time, TimeUnit.NANOSECONDS)
+            val deciseconds_remaining = (hack_time_remaining_ms / 100)
+
+            val hacking_faction = continent.GUID(target_guid).get.asInstanceOf[Hackable].HackedBy.get._1.Faction
+
+            // See PlanetSideAttributeMessage #20 documentation for an explanation of how the timer is calculated
+            val start_num = hacking_faction match {
+              case PlanetSideEmpire.TR => 65536L
+              case PlanetSideEmpire.NC => 131072L
+              case PlanetSideEmpire.VS => 196608L
+            }
+
+            value = start_num + deciseconds_remaining
+          }
+
+          sendResponse(PlanetsideAttributeMessage(target_guid, 20, value))
         case LocalResponse.ProximityTerminalEffect(object_guid, effectState) =>
           if(tplayer_guid != guid) {
             sendResponse(ProximityTerminalUseMessage(PlanetSideGUID(0), object_guid, effectState))
@@ -585,6 +617,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case LocalResponse.TriggerSound(sound, pos, unk, volume) =>
           sendResponse(TriggerSoundMessage(sound, pos, unk, volume))
 
+        case LocalResponse.SetEmpire(object_guid, empire) =>
+          sendResponse(SetEmpireMessage(object_guid, empire))
         case _ => ;
       }
 
@@ -1451,6 +1485,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       val popNC = poplist.count(_.faction == PlanetSideEmpire.NC)
       val popVS = poplist.count(_.faction == PlanetSideEmpire.VS)
 
+      // StopBundlingPackets() is called on ClientInitializationComplete
       StartBundlingPackets()
       zone.Buildings.foreach({ case(id, building) => initBuilding(continentNumber, id, building) })
       sendResponse(ZonePopulationUpdateMessage(continentNumber, 414, 138, popTR, 138, popNC, 138, popVS, 138, popBO))
@@ -2764,7 +2799,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
               case Some(unholsteredItem : Equipment) =>
                 if(unholsteredItem.Definition == GlobalDefinitions.remote_electronics_kit) {
                   // Player has ulholstered a REK - we need to set an atttribute on the REK itself to change the beam/icon colour to the correct one for the player's hack level
-                  avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttribute(unholsteredItem.GUID, 116, GetPlayerHackData().hackLevel))
+                  avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttribute(unholsteredItem.GUID, 116, GetPlayerHackLevel()))
                 }
               case None => ;
             }
@@ -2971,9 +3006,21 @@ class WorldSessionActor extends Actor with MDCContextAware {
       continent.GUID(object_guid) match {
         case Some(door : Door) =>
           if(player.Faction == door.Faction || ((continent.Map.DoorToLock.get(object_guid.guid) match {
-            case Some(lock_guid) => continent.GUID(lock_guid).get.asInstanceOf[IFFLock].HackedBy.isDefined
+            case Some(lock_guid) =>
+              val lock = continent.GUID(lock_guid).get.asInstanceOf[IFFLock]
+
+              var baseIsHacked = false
+              lock.Owner.asInstanceOf[Building].Amenities.filter(x => x.Definition == GlobalDefinitions.capture_terminal).headOption.asInstanceOf[Option[CaptureTerminal]] match {
+                case Some(obj: CaptureTerminal) =>
+                  baseIsHacked = obj.HackedBy.isDefined
+                case None => ;
+              }
+
+              // If the IFF lock has been hacked OR the base is neutral OR the base linked to the lock is hacked then open the door
+              lock.HackedBy.isDefined || baseIsHacked || lock.Faction == PlanetSideEmpire.NEUTRAL
             case None => !door.isOpen
           }) || Vector3.ScalarProjection(door.Outwards, player.Position - door.Position) < 0f)) {
+            // We're on the inside of the door - open the door
             door.Actor ! Door.Use(player, msg)
           }
           else if(door.isOpen) {
@@ -2995,13 +3042,25 @@ class WorldSessionActor extends Actor with MDCContextAware {
           }
 
         case Some(panel : IFFLock) =>
-          if(panel.Faction != player.Faction && panel.HackedBy.isEmpty) {
+          if((panel.Faction != player.Faction && panel.HackedBy.isEmpty) || (panel.Faction == player.Faction && panel.HackedBy.isDefined)) {
             player.Slot(player.DrawnSlot).Equipment match {
               case Some(tool : SimpleItem) =>
                 if(tool.Definition == GlobalDefinitions.remote_electronics_kit) {
-                  progressBarValue = Some(-GetPlayerHackSpeed())
-                  self ! WorldSessionActor.HackingProgress(1, player, panel, tool.GUID, GetPlayerHackSpeed(), FinishHacking(panel, 1114636288L))
-                  log.info("Hacking a door~")
+                  val hackSpeed = GetPlayerHackSpeed(panel)
+
+                  if(hackSpeed > 0) {
+                    progressBarValue = Some(-hackSpeed)
+                    if(panel.Faction != player.Faction) {
+                      // Enemy faction is hacking this IFF lock
+                      self ! WorldSessionActor.HackingProgress(progressType = 1, player, panel, tool.GUID, hackSpeed, FinishHacking(panel, 1114636288L))
+                      log.info("Hacking an IFF lock")
+                    } else {
+                      // IFF Lock is being resecured by it's owner faction
+                      self ! WorldSessionActor.HackingProgress(progressType = 1, player, panel, tool.GUID, hackSpeed, FinishResecuringIFFLock(panel))
+                      log.info("Resecuring an IFF lock")
+                    }
+
+                  }
                 }
               case _ => ;
             }
@@ -3056,18 +3115,22 @@ class WorldSessionActor extends Actor with MDCContextAware {
             }
           }
 
-        case Some(obj : Locker) =>
-          if(obj.Faction != player.Faction && obj.HackedBy.isEmpty) {
+        case Some(locker : Locker) =>
+          if(locker.Faction != player.Faction && locker.HackedBy.isEmpty) {
             player.Slot(player.DrawnSlot).Equipment match {
               case Some(tool: SimpleItem) =>
                 if (tool.Definition == GlobalDefinitions.remote_electronics_kit) {
-                  progressBarValue = Some(-GetPlayerHackSpeed())
-                  self ! WorldSessionActor.HackingProgress(1, player, obj, tool.GUID, GetPlayerHackSpeed(), FinishHacking(obj, 3212836864L))
-                  log.info("Hacking a locker")
+                  val hackSpeed = GetPlayerHackSpeed(locker)
+
+                  if(hackSpeed > 0)  {
+                    progressBarValue = Some(-hackSpeed)
+                    self ! WorldSessionActor.HackingProgress(progressType = 1, player, locker, tool.GUID, hackSpeed, FinishHacking(locker, 3212836864L))
+                    log.info("Hacking a locker")
+                  }
                 }
               case _ => ;
             }
-          } else if(player.Faction == obj.Faction || !obj.HackedBy.isEmpty) {
+          } else if(player.Faction == locker.Faction || !locker.HackedBy.isEmpty) {
             log.info(s"UseItem: $player accessing a locker")
             val container = player.Locker
             accessedContainer = Some(container)
@@ -3075,6 +3138,25 @@ class WorldSessionActor extends Actor with MDCContextAware {
           }
           else {
             log.info(s"UseItem: not $player's locker")
+          }
+
+        case Some(captureTerminal : CaptureTerminal) =>
+          val hackedByCurrentFaction = (captureTerminal.Faction != player.Faction && !captureTerminal.HackedBy.isEmpty && captureTerminal.HackedBy.head._1.Faction == player.Faction)
+          val ownedByPlayerFactionAndHackedByEnemyFaction = (captureTerminal.Faction == player.Faction && !captureTerminal.HackedBy.isEmpty)
+          if(!hackedByCurrentFaction || ownedByPlayerFactionAndHackedByEnemyFaction) {
+            player.Slot(player.DrawnSlot).Equipment match {
+              case Some(tool: SimpleItem) =>
+                if (tool.Definition == GlobalDefinitions.remote_electronics_kit) {
+                  val hackSpeed = GetPlayerHackSpeed(captureTerminal)
+
+                  if(hackSpeed > 0) {
+                    progressBarValue = Some(-hackSpeed)
+                    self ! WorldSessionActor.HackingProgress(progressType = 1, player, captureTerminal, tool.GUID, hackSpeed, FinishHacking(captureTerminal, 3212836864L))
+                    log.info("Hacking a capture terminal")
+                  }
+                }
+              case _ => ;
+            }
           }
 
         case Some(obj : MannedTurret) =>
@@ -3085,11 +3167,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
                 if(ammo == Ammo.upgrade_canister && obj.Seats.values.count(_.isOccupied) == 0) {
                   progressBarValue = Some(-1.25f)
                   self ! WorldSessionActor.HackingProgress(
-                    2,
+                    progressType = 2,
                     player,
                     obj,
                     tool.GUID,
-                    1.25f,
+                    delta = 1.25f,
                     FinishUpgradingMannedTurret(obj, tool, TurretUpgrade(unk2.toInt))
                   )
                 }
@@ -3145,12 +3227,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
             }
           }
 
-        case Some(obj : Terminal) =>
-          if(obj.Definition.isInstanceOf[MatrixTerminalDefinition]) {
+        case Some(terminal : Terminal) =>
+          if(terminal.Definition.isInstanceOf[MatrixTerminalDefinition]) {
             //TODO matrix spawn point; for now, just blindly bind to show work (and hope nothing breaks)
-            sendResponse(BindPlayerMessage(1, "@ams", true, true, 0, 0, 0, obj.Position))
+            sendResponse(BindPlayerMessage(1, "@ams", true, true, 0, 0, 0, terminal.Position))
           }
-          else if(obj.Definition.isInstanceOf[RepairRearmSiloDefinition]) {
+          else if(terminal.Definition.isInstanceOf[RepairRearmSiloDefinition]) {
             FindLocalVehicle match {
               case Some(vehicle) =>
                 sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
@@ -3160,17 +3242,21 @@ class WorldSessionActor extends Actor with MDCContextAware {
             }
           }
           else {
-            if(obj.Faction != player.Faction && obj.HackedBy.isEmpty) {
+            if(terminal.Faction != player.Faction && terminal.HackedBy.isEmpty) {
               player.Slot(player.DrawnSlot).Equipment match {
                 case Some(tool: SimpleItem) =>
                   if (tool.Definition == GlobalDefinitions.remote_electronics_kit) {
-                    progressBarValue = Some(-GetPlayerHackSpeed())
-                    self ! WorldSessionActor.HackingProgress(1, player, obj, tool.GUID, GetPlayerHackSpeed(), FinishHacking(obj, 3212836864L))
-                    log.info("Hacking a terminal")
+                    val hackSpeed = GetPlayerHackSpeed(terminal)
+
+                    if(hackSpeed > 0) {
+                      progressBarValue = Some(-hackSpeed)
+                      self ! WorldSessionActor.HackingProgress(progressType = 1, player, terminal, tool.GUID, hackSpeed, FinishHacking(terminal, 3212836864L))
+                      log.info("Hacking a terminal")
+                    }
                   }
                 case _ => ;
               }
-            } else if (obj.Faction == player.Faction || !obj.HackedBy.isEmpty) {
+            } else if (terminal.Faction == player.Faction || !terminal.HackedBy.isEmpty) {
               // If hacked only allow access to the faction that hacked it
               // Otherwise allow the faction that owns the terminal to use it
               sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
@@ -4135,10 +4221,23 @@ class WorldSessionActor extends Actor with MDCContextAware {
     ask(target.Actor, CommonMessages.Hack(player))(1 second).mapTo[Boolean].onComplete {
       case Success(_) =>
         localService ! LocalServiceMessage(continent.Id, LocalAction.TriggerSound(player.GUID, target.HackSound, player.Position, 30, 0.49803925f))
-        localService ! LocalServiceMessage(continent.Id, LocalAction.HackTemporarily(player.GUID, continent, target, unk))
-      case scala.util.Failure(_) =>
-        log.warn(s"Hack message failed on target guid: ${target.GUID}")
-    }
+    target match {
+          case term : CaptureTerminal =>
+            val isResecured = player.Faction == target.Faction
+            localService ! LocalServiceMessage(continent.Id, LocalAction.HackCaptureTerminal(player.GUID, continent, term, unk, 8L, isResecured))
+          case _ =>localService ! LocalServiceMessage(continent.Id, LocalAction.HackTemporarily(player.GUID, continent, target, unk, target.HackEffectDuration(GetPlayerHackLevel())))
+        }
+      case scala.util.Failure(_) => log.warn(s"Hack message failed on target guid: ${target.GUID}")
+  }
+  }
+
+  /**
+    * The process of resecuring an IFF lock is finished
+    * Clear the hack state and send to clients
+    * @param lock the `IFFLock` object that has been resecured
+    */
+  private def FinishResecuringIFFLock(lock: IFFLock)() : Unit = {
+    localService ! LocalServiceMessage(continent.Id, LocalAction.ClearTemporaryHack(player.GUID, lock))
   }
 
   /**
@@ -4963,38 +5062,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * @param building the building object
     */
   def initFacility(continentNumber : Int, buildingNumber : Int, building : Building) : Unit = {
-    var ntuLevel = 0
-    building.Amenities.filter(x => (x.Definition == GlobalDefinitions.resource_silo)).headOption.asInstanceOf[Option[ResourceSilo]] match {
-      case Some(obj: ResourceSilo) =>
-        ntuLevel = obj.CapacitorDisplay.toInt
-      case _ => ;
-    }
-
-    sendResponse(
-      BuildingInfoUpdateMessage(
-        continent_id = continentNumber,
-        building_id = buildingNumber,
-        ntu_level = ntuLevel,
-        is_hacked = false,
-        empire_hack = PlanetSideEmpire.NEUTRAL,
-        hack_time_remaining = 0, // milliseconds
-        empire_own = building.Faction,
-        unk1 = 0, //!! Field != 0 will cause malformed packet. See class def.
-        unk1x = None,
-        generator_state = PlanetSideGeneratorState.Normal,
-        spawn_tubes_normal = true,
-        force_dome_active = false,
-        lattice_benefit = 0,
-        cavern_benefit = 0, //!! Field > 0 will cause malformed packet. See class def.
-        unk4 = Nil,
-        unk5 = 0,
-        unk6 = false,
-        unk7 = 8, //!! Field != 8 will cause malformed packet. See class def.
-        unk7x = None,
-        boost_spawn_pain = false,
-        boost_generator_pain = false
-      )
-    )
+    building.Actor ! Building.SendMapUpdate(all_clients = false)
     sendResponse(DensityLevelUpdateMessage(continentNumber, buildingNumber, List(0,0, 0,0, 0,0, 0,0)))
   }
 
@@ -5058,18 +5126,35 @@ class WorldSessionActor extends Actor with MDCContextAware {
         amenity.Definition match {
           case GlobalDefinitions.resource_silo =>
             // Synchronise warning light & silo capacity
-            var silo = amenity.asInstanceOf[ResourceSilo]
+            val silo = amenity.asInstanceOf[ResourceSilo]
             sendResponse(PlanetsideAttributeMessage(amenityId, 45, silo.CapacitorDisplay))
             sendResponse(PlanetsideAttributeMessage(amenityId, 47, if(silo.LowNtuWarningOn) 1 else 0))
 
             if(silo.ChargeLevel == 0) {
-              // temporarily disabled until warpgates can bring ANTs from sanctuary, otherwise we'd be stuck in a situation with an unpowered base and no way to get an ANT to refill it.
-              //              sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(silo.Owner.asInstanceOf[Building].ModelId), 48, 1))
+              //todo: temporarily disabled until warpgates can bring ANTs from sanctuary, otherwise we'd be stuck in a situation with an unpowered base and no way to get an ANT to refill it.
+              //sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(silo.Owner.asInstanceOf[Building].ModelId), 48, 1))
             }
           case _ => ;
         }
+
+        // Synchronise hack states to clients joining the zone.
+        // We'll have to fake LocalServiceResponse messages to self, otherwise it means duplicating the same hack handling code twice
+        if(amenity.isInstanceOf[Hackable]) {
+          val hackable = amenity.asInstanceOf[Hackable]
+
+          if(hackable.HackedBy.isDefined) {
+            amenity.Definition match {
+              case GlobalDefinitions.capture_terminal =>
+                self ! LocalServiceResponse("", PlanetSideGUID(0), LocalResponse.HackCaptureTerminal(amenity.GUID, 0L, 0L, false))
+              case _ =>
+                // Generic hackable object
+                self ! LocalServiceResponse("", PlanetSideGUID(0), LocalResponse.HackObject(amenity.GUID, 1114636288L, 8L))
+            }
+          }
+        }
       })
-      sendResponse(HackMessage(3, PlanetSideGUID(building.ModelId), PlanetSideGUID(0), 0, 3212836864L, HackState.HackCleared, 8))
+
+//      sendResponse(HackMessage(3, PlanetSideGUID(building.ModelId), PlanetSideGUID(0), 0, 3212836864L, HackState.HackCleared, 8))
     })
   }
 
@@ -5844,29 +5929,31 @@ class WorldSessionActor extends Actor with MDCContextAware {
     sendResponse(RawPacket(pkt))
   }
 
-  def GetPlayerHackSpeed(): Float = {
-    if(player.Certifications.contains(CertificationType.ExpertHacking) || player.Certifications.contains(CertificationType.ElectronicsExpert)) {
-      10.64f
-    } else if(player.Certifications.contains(CertificationType.AdvancedHacking)) {
-      5.32f
-    } else {
-      2.66f
+  def GetPlayerHackSpeed(obj: PlanetSideServerObject with Hackable): Float = {
+    val playerHackLevel = GetPlayerHackLevel()
+    val timeToHack = obj.HackDuration(playerHackLevel)
+
+    if(timeToHack == 0) {
+      log.warn(s"Player ${player.GUID} tried to hack an object ${obj.GUID} - ${obj.Definition.Name} that they don't have the correct hacking level for")
+      0f
     }
+
+    // 250 ms per tick on the hacking progress bar
+    val ticks = (timeToHack * 1000) / 250
+    100f / ticks
   }
 
-  def GetPlayerHackData(): PlayerHackData = {
+  def GetPlayerHackLevel(): Int = {
     if(player.Certifications.contains(CertificationType.ExpertHacking) || player.Certifications.contains(CertificationType.ElectronicsExpert)) {
-      PlayerHackData(3, 10.64f)
+      3
     } else if(player.Certifications.contains(CertificationType.AdvancedHacking)) {
-      PlayerHackData(2, 7.98f)
+      2
     } else if (player.Certifications.contains(CertificationType.Hacking)) {
-      PlayerHackData(1, 5.32f)
+      1
     } else {
-      PlayerHackData(0, 2.66f)
+      0
     }
   }
-
-  case class PlayerHackData(hackLevel: Int, hackSpeed: Float)
 }
 
 object WorldSessionActor {
@@ -5893,6 +5980,8 @@ object WorldSessionActor {
     * The process of "making progress" with a hack involves sending this message repeatedly until the progress is 100 or more.
     * To calculate the actual amount of change in the progress `delta`,
     * start with 100, divide by the length of time in seconds, then divide once more by 4.
+    * @param progressType 1 - REK hack
+    *                     2 - Turret upgrade with glue gun + upgrade cannister
     * @param tplayer the player
     * @param target the object being hacked
     * @param tool_guid the REK

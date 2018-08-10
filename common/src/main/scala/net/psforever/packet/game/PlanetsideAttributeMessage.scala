@@ -51,6 +51,15 @@ import scodec.codecs._
   * `17 - BEP. Value seems to be the same as BattleExperienceMessage`<br>
   * `18 - CEP.`<br>
   * `19 - Anchors. Value is 0 to disengage, 1 to engage.`<br>
+  * `20 - Control console hacking. "The FactionName has hacked into BaseName` - also sets timer on CC and yellow base warning lights on<br>
+  *   <ul>
+  *     <li>65535 segments per faction in deciseconds (seconds * 10)</li>
+  *     <li>0-65535 = Neutral 0 seconds to 1h 49m 14s</li>
+  *     <li>65536 - 131071 - TR</li>
+  *     <li>131072 - 196607 - NC</li>
+  *     <li>196608 - 262143 - VS</li>
+  *     <li>17039360 - CC Resecured</li>
+  *   </ul>
   * `24 - Learn certifications with value :`<br>
   *         01 : Medium Assault<br>
   *         02 : Heavy Assault<br>
@@ -127,6 +136,8 @@ import scodec.codecs._
   * `116 - Apply colour to REK beam and REK icon above players (0 = yellow, 1 = red, 2 = purple, 3 = blue)`<br>
   * Client to Server : <br>
   * `106 - Custom Head`<br>
+  * `224 - Player/vehicle joins black ops`<br>
+  * `228 - Player/vehicle leaves black ops`<br>
   * <br>
   * `Vehicles:`<br>
   * `10 - Driver seat permissions (0 = Locked, 1 = Group, 3 = Empire)`<br>

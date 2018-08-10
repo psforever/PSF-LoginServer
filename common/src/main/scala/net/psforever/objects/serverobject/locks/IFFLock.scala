@@ -17,6 +17,8 @@ import net.psforever.packet.game.TriggeredSound
 class IFFLock(private val idef : IFFLockDefinition) extends Amenity with Hackable {
   def Definition : IFFLockDefinition = idef
   HackSound = TriggeredSound.HackDoor
+  HackEffectDuration = Array(60, 180, 300, 360)
+  HackDuration = Array(5, 3, 1, 1)
 }
 
 object IFFLock {

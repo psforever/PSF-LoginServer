@@ -7,13 +7,8 @@ import net.psforever.types.Vector3
 trait Hackable {
   /** An entry that maintains a reference to the `Player`, and the player's GUID and location when the message was received. */
   private var hackedBy : Option[(Player, PlanetSideGUID, Vector3)] = None
-
-  private var hackSound : TriggeredSound.Value = TriggeredSound.HackDoor
-
   def HackedBy : Option[(Player, PlanetSideGUID, Vector3)] = hackedBy
-
   def HackedBy_=(agent : Player) : Option[(Player, PlanetSideGUID, Vector3)] = HackedBy_=(Some(agent))
-
   /**
     * Set the hack state of this object by recording important information about the player that caused it.
     * Set the hack state if there is no current hack state.
@@ -41,9 +36,27 @@ trait Hackable {
     HackedBy
   }
 
+  /** The sound made when the object is hacked */
+  private var hackSound : TriggeredSound.Value = TriggeredSound.HackDoor
   def HackSound : TriggeredSound.Value = hackSound
   def HackSound_=(sound : TriggeredSound.Value) : TriggeredSound.Value = {
     hackSound = sound
     hackSound
+  }
+
+  /** The duration in seconds a hack lasts for, based on the hacker's certification level */
+  private var hackEffectDuration = Array(0, 0, 0 , 0)
+  def HackEffectDuration: Array[Int] = hackEffectDuration
+  def HackEffectDuration_=(arr: Array[Int]) : Array[Int] = {
+    hackEffectDuration = arr
+    arr
+  }
+
+  /** How long it takes to hack the object in seconds, based on the hacker's certification level */
+  private var hackDuration = Array(0, 0, 0, 0)
+  def HackDuration: Array[Int] = hackDuration
+  def HackDuration_=(arr: Array[Int]) : Array[Int] = {
+    hackDuration = arr
+    arr
   }
 }

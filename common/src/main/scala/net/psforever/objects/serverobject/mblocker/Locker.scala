@@ -10,6 +10,8 @@ import net.psforever.packet.game.TriggeredSound
 class Locker extends Amenity with Hackable {
   def Definition : LockerDefinition = GlobalDefinitions.mb_locker
   HackSound = TriggeredSound.HackTerminal
+  HackEffectDuration = Array(0, 30, 60, 90)
+  HackDuration = Array(0, 10, 5, 3)
 }
 
 object Locker {
