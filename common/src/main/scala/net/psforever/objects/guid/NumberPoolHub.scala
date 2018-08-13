@@ -208,7 +208,7 @@ class NumberPoolHub(private val source : NumberSource) {
         import net.psforever.objects.guid.selector.SpecificSelector
         val specific = new SpecificSelector
         pool.Selector = specific
-        specific.SelectionIndex = number
+        specific.SelectionIndex = pool.Numbers.indexOf(number)
         pool.Get()
         pool.Selector = slctr
         register_GetAvailableNumberFromSource(number)
@@ -281,10 +281,10 @@ class NumberPoolHub(private val source : NumberSource) {
   }
 
   private def register_GetMonitorFromSource(number : Int) : Try[LoanedKey] = {
-    source.Available(number) match {
-      case Some(key) =>
+    register_GetAvailableNumberFromSource(number) match {
+      case Success(key) =>
         Success(key)
-      case _ =>
+      case Failure(_) =>
         throw NoGUIDException(s"a pool gave us a number $number that is actually unavailable") //stop the show; this is terrible!
     }
   }

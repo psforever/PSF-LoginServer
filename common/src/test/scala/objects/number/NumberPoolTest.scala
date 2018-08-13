@@ -25,13 +25,17 @@ class NumberPoolTest extends Specification {
     }
 
     "get a number" in {
-      val obj = new SimplePool((0 to 10).toList)
+      val min = 10
+      val max = 20
+      val domain = (min to max).toList
+      val obj = new SimplePool(domain)
       obj.Get() match {
         case Success(number) =>
-          (-1 < number && number < 11) mustEqual true
+          (min <= number && number <= max) mustEqual true
         case _ =>
           ko
       }
+      ok
     }
 
     "used number count is always zero" in {
@@ -70,22 +74,28 @@ class NumberPoolTest extends Specification {
     }
 
     "get a number" in {
-      val obj = new ExclusivePool((0 to 10).toList)
+      val min = 10
+      val max = 20
+      val domain = (min to max).toList
+      val obj = new ExclusivePool(domain)
       obj.Get() match {
         case Success(number) =>
-          (-1 < number && number < 11) mustEqual true
+          (min <= number && number <= max) mustEqual true
         case _ =>
           ko
       }
+      ok
     }
 
     "get all the numbers" in {
-      val range = 0 to 10
-      val obj = new ExclusivePool((0 to 10).toList)
-      range.foreach(_ => {
+      val min = 10
+      val max = 20
+      val domain = (min to max).toList
+      val obj = new ExclusivePool(domain)
+      domain.foreach(_ => {
         obj.Get() match {
           case Success(number) =>
-            (-1 < number && number < 11) mustEqual true
+            (min <= number && number <= max) mustEqual true
           case _ =>
             ko
         }
