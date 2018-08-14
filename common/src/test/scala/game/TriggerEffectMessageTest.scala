@@ -40,21 +40,14 @@ class TriggerEffectMessageTest extends Specification {
   }
 
   "encode (motion alarm sensor)" in {
-    val msg = TriggerEffectMessage(
-      PlanetSideGUID(2967),
-      "on",
-      TriggeredEffect(true, 1000L)
-    )
+    val msg = TriggerEffectMessage(PlanetSideGUID(2967), "on", true, 1000L)
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string_motionalarmsensor
   }
 
   "encode (boomer)" in {
-    val msg = TriggerEffectMessage(
-      "spawn_object_effect",
-      TriggeredEffectLocation(Vector3(3567.0156f, 3278.6953f, 114.484375f), Vector3(0, 0, 90))
-    )
+    val msg = TriggerEffectMessage("spawn_object_effect", Vector3(3567.0156f, 3278.6953f, 114.484375f), Vector3(0, 0, 90))
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string_boomer

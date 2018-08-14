@@ -54,11 +54,11 @@ final case class TriggerEffectMessage(object_guid : PlanetSideGUID,
 }
 
 object TriggerEffectMessage extends Marshallable[TriggerEffectMessage] {
-  def apply(object_guid : PlanetSideGUID, effect : String, unk : TriggeredEffect) : TriggerEffectMessage =
-    TriggerEffectMessage(object_guid, effect, Some(unk), None)
+  def apply(object_guid : PlanetSideGUID, effect : String, unk1 : Boolean, unk2 : Long) : TriggerEffectMessage =
+    TriggerEffectMessage(object_guid, effect, Some(TriggeredEffect(unk1, unk2)), None)
 
-  def apply(effect : String, location : TriggeredEffectLocation) : TriggerEffectMessage =
-    TriggerEffectMessage(PlanetSideGUID(0), effect, None, Some(location))
+  def apply(effect : String, position : Vector3, orientation : Vector3) : TriggerEffectMessage =
+    TriggerEffectMessage(PlanetSideGUID(0), effect, None, Some(TriggeredEffectLocation(position, orientation)))
 
   /**
     * A `Codec` for `TriggeredEffect` data.

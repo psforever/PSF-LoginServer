@@ -10,7 +10,6 @@ import services.{GenericEventBus, RemoverActor, Service}
 class AvatarService extends Actor {
   private val undertaker : ActorRef = context.actorOf(Props[CorpseRemovalActor], "corpse-removal-agent")
   private val janitor = context.actorOf(Props[DroppedItemRemover], "item-remover-agent")
-  //undertaker ! "startup"
 
   private [this] val log = org.log4s.getLogger
 
@@ -68,10 +67,6 @@ class AvatarService extends Actor {
         case AvatarAction.Damage(player_guid, target, resolution_function) =>
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.DamageResolution(target, resolution_function))
-          )
-        case AvatarAction.DeployableDestroyed(player_guid, obj) =>
-          AvatarEvents.publish(
-            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.DeployableDestroyed(obj))
           )
         case AvatarAction.DeployItem(player_guid, item) =>
           val definition = item.Definition
@@ -197,6 +192,7 @@ class AvatarService extends Actor {
     case AvatarServiceMessage.Corpse(msg) =>
       undertaker forward msg
 
+    //message to Janitor
     case AvatarServiceMessage.Ground(msg) =>
       janitor forward msg
 

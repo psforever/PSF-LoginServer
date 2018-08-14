@@ -10,11 +10,15 @@ import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.objects.guid.actor.UniqueNumberSystem
 import net.psforever.objects.guid.selector.RandomSelector
 import net.psforever.objects.guid.source.LimitedNumberSource
+import net.psforever.objects.inventory.Container
 import net.psforever.objects.serverobject.structures.{Amenity, Building}
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.serverobject.turret.FacilityTurret
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types.Vector3
+import org.log4s.Logger
+import services.RemoverActor
+import services.avatar.AvatarServiceMessage
 
 import scala.collection.concurrent.TrieMap
 import scala.collection.mutable.ListBuffer
@@ -396,6 +400,17 @@ object Zone {
   final val Nowhere : Zone = new Zone("nowhere", new ZoneMap("nowhere"), 99)
 
   /**
+    * Overloaded constructor.
+    * @param id the privileged name that can be used as the second parameter in the packet `LoadMapMessage`
+    * @param map the map of server objects upon which this `Zone` is based
+    * @param number the numerical index of the `Zone` as it is recognized in a variety of packets
+    * @return a `Zone` object
+    */
+  def apply(id : String, map : ZoneMap, number : Int) : Zone = {
+    new Zone(id, map, number)
+  }
+
+  /**
     * Message to initialize the `Zone`.
     * @see `Zone.Init(implicit ActorContext)`
     */
@@ -529,14 +544,48 @@ object Zone {
     */
   final case class ClientInitialization(zone : Zone)
 
-  /**
-    * Overloaded constructor.
-    * @param id the privileged name that can be used as the second parameter in the packet `LoadMapMessage`
-    * @param map the map of server objects upon which this `Zone` is based
-    * @param number the numerical index of the `Zone` as it is recognized in a variety of packets
-    * @return a `Zone` object
-    */
-  def apply(id : String, map : ZoneMap, number : Int) : Zone = {
-    new Zone(id, map, number)
+  object EquipmentIs {
+    sealed trait ItemLocation
+
+    final case class InContainer(obj : Container, index : Int) extends ItemLocation
+
+    final case class OnGround(zone : Zone) extends ItemLocation
+
+    final case class Orphaned() extends ItemLocation
+
+    /**
+      * na
+      * @param equipment na
+      * @param guid na
+      * @param continent na
+      * @return na
+      */
+    def Where(equipment : Equipment, guid : PlanetSideGUID, continent : Zone) : Option[Zone.EquipmentIs.ItemLocation] = {
+      continent.GUID(guid) match {
+        case Some(_) =>
+          ((continent.LivePlayers ++ continent.Corpses).find(_.Find(guid).nonEmpty) match {
+            case Some(tplayer) => Some((tplayer, tplayer.Find(guid)))
+            case _ => None
+          }).orElse(continent.Vehicles.find(_.Find(guid).nonEmpty) match {
+            case Some(vehicle) => Some((vehicle, vehicle.Find(guid)))
+            case _ => None
+          }).orElse(continent.Players.find(_.Locker.Find(guid).nonEmpty) match {
+            case Some(avatar) => Some((avatar.Locker, avatar.Locker.Find(guid)))
+            case _ => None
+          }) match {
+            case Some((obj, Some(index))) =>
+              Some(Zone.EquipmentIs.InContainer(obj, index))
+            case _ =>
+              continent.EquipmentOnGround.find(_.GUID == guid) match {
+                case Some(t) =>
+                  Some(Zone.EquipmentIs.OnGround(continent))
+                case None =>
+                  Some(Zone.EquipmentIs.Orphaned())
+              }
+          }
+        case None =>
+          None
+      }
+    }
   }
 }

@@ -310,6 +310,15 @@ object EquipmentTerminalDefinition {
   private def MakeKit(kdef : KitDefinition)() : Kit = Kit(kdef)
 
   /**
+    * Create a new `BoomerTrigger`, a unique kind of `SimpleItem`.
+    * @param sdef the `SimpleItemDefinition` object;
+    *             actually ignored, but retained for function definition consistency
+    * @return a curried function that, when called, creates the piece of `Equipment`
+    * @see `GlobalDefinitions`
+    */
+  private def MakeTriggerItem(sdef : SimpleItemDefinition)() : SimpleItem = new BoomerTrigger
+
+  /**
     * Create a new `SimpleItem` from provided `EquipmentDefinition` objects.
     * @param sdef the `SimpleItemDefinition` object
     * @return a curried function that, when called, creates the piece of `Equipment`
@@ -355,6 +364,9 @@ object EquipmentTerminalDefinition {
 
       case obj : ShorthandConstructionItem =>
         MakeConstructionItem(obj.definition)
+
+      case obj : ShorthandTriggerItem =>
+        MakeTriggerItem(obj.definition)
 
       case obj : ShorthandSimpleItem =>
         MakeSimpleItem(obj.definition)

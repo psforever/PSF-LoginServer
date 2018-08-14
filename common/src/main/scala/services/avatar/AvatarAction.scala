@@ -7,7 +7,7 @@ import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.inventory.Container
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.PlanetSideGamePacket
-import net.psforever.packet.game.{DeployableIcon, DeploymentAction, PlanetSideGUID, PlayerStateMessageUpstream}
+import net.psforever.packet.game.{PlanetSideGUID, PlayerStateMessageUpstream}
 import net.psforever.packet.game.objectcreate.{ConstructorData, ObjectCreateMessageParent}
 import net.psforever.types.{ExoSuitType, PlanetSideEmpire, Vector3}
 

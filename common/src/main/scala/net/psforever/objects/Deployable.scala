@@ -247,9 +247,18 @@ class TurretControl(turret : TurretDeployable) extends Actor
 
 /** implementing classes */
 
-class ExplosiveDeployable(cdef : SimpleDeployableDefinition) extends SimpleDeployable(cdef)
+class ExplosiveDeployable(cdef : SimpleDeployableDefinition) extends SimpleDeployable(cdef) {
+  private var exploded : Boolean = false
 
-class BoomerDeployable(cdef : SimpleDeployableDefinition) extends SimpleDeployable(cdef) {
+  def Exploded : Boolean = exploded
+
+  def Exploded_=(fuse : Boolean) : Boolean = {
+    exploded = fuse
+    Exploded
+  }
+}
+
+class BoomerDeployable(cdef : SimpleDeployableDefinition) extends ExplosiveDeployable(cdef) {
   private var trigger : Option[BoomerTrigger] = None
 
   def Trigger : Option[BoomerTrigger] = trigger
