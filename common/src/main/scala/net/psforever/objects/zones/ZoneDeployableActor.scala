@@ -2,8 +2,9 @@
 package net.psforever.objects.zones
 
 import akka.actor.Actor
+import net.psforever.objects.ce.Deployable
 import net.psforever.objects.serverobject.PlanetSideServerObject
-import net.psforever.objects.{Deployable, PlanetSideGameObject}
+import net.psforever.objects.PlanetSideGameObject
 
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer

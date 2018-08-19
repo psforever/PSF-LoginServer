@@ -5,6 +5,7 @@ import akka.actor.{ActorContext, ActorRef, Props}
 import akka.routing.RandomPool
 import net.psforever.objects.ballistics.Projectile
 import net.psforever.objects._
+import net.psforever.objects.ce.Deployable
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.objects.guid.actor.UniqueNumberSystem
@@ -16,9 +17,6 @@ import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.serverobject.turret.FacilityTurret
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types.Vector3
-import org.log4s.Logger
-import services.RemoverActor
-import services.avatar.AvatarServiceMessage
 
 import scala.collection.concurrent.TrieMap
 import scala.collection.mutable.ListBuffer
@@ -545,20 +543,43 @@ object Zone {
   final case class ClientInitialization(zone : Zone)
 
   object EquipmentIs {
+    /**
+      * Tha base `trait` connecting all `Equipment` object location tokens.
+      */
     sealed trait ItemLocation
-
+    /**
+      * The target item is contained within another object.
+      * @see `GridInventory`<br>
+      *       `Container`
+      * @param obj the containing object
+      * @param index the slot where the target is located
+      */
     final case class InContainer(obj : Container, index : Int) extends ItemLocation
-
-    final case class OnGround(zone : Zone) extends ItemLocation
-
+    /**
+      * The target item is found on the Ground.
+      * @see `ZoneGroundActor`
+      */
+    final case class OnGround() extends ItemLocation
+    /**
+      * The target item exists but could not be found belonging to any expected region of the location.
+      */
     final case class Orphaned() extends ItemLocation
 
     /**
-      * na
-      * @param equipment na
-      * @param guid na
-      * @param continent na
-      * @return na
+      * An exhaustive search of the provided zone is conducted in search of the target `Equipment` object
+      * and a token that qualifies the current location of the object in the zone is returned.
+      * The following groups of objects are searched:
+      * the inventories of all players and all corpses,
+      * all vehicles trunks,
+      * the lockers of all players and corpses;
+      * and, if still not found, the ground is scoured too.
+      * @see `ItemLocation`<br>
+      *       `LockerContainer`
+      * @param equipment the target object
+      * @param guid that target object's globally unique identifier
+      * @param continent the zone whose objects to search
+      * @return a token that explains where the object is, if it is found in this zone;
+      *         `None` is the token that is used to indicate not having been found
       */
     def Where(equipment : Equipment, guid : PlanetSideGUID, continent : Zone) : Option[Zone.EquipmentIs.ItemLocation] = {
       continent.GUID(guid) match {
@@ -577,8 +598,8 @@ object Zone {
               Some(Zone.EquipmentIs.InContainer(obj, index))
             case _ =>
               continent.EquipmentOnGround.find(_.GUID == guid) match {
-                case Some(t) =>
-                  Some(Zone.EquipmentIs.OnGround(continent))
+                case Some(_) =>
+                  Some(Zone.EquipmentIs.OnGround())
                 case None =>
                   Some(Zone.EquipmentIs.Orphaned())
               }

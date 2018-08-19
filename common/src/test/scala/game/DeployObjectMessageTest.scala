@@ -16,7 +16,7 @@ class DeployObjectMessageTest extends Specification {
         guid mustEqual PlanetSideGUID(2932)
         unk1 mustEqual 1000L
         pos mustEqual Vector3(5769.297f, 3192.8594f, 97.96875f)
-        orient mustEqual Vector3(0, 0, 92.8125f)
+        orient mustEqual Vector3.z(272.8125f)
         unk2 mustEqual 1L
       case _ =>
         ko
@@ -24,7 +24,7 @@ class DeployObjectMessageTest extends Specification {
   }
 
   "encode" in {
-    val msg = DeployObjectMessage(PlanetSideGUID(2932), 1000L, Vector3(5769.297f, 3192.8594f, 97.96875f), Vector3(0, 0, 92.8125f), 1L)
+    val msg = DeployObjectMessage(PlanetSideGUID(2932), 1000L, Vector3(5769.297f, 3192.8594f, 97.96875f), Vector3.z(272.8125f), 1L)
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string

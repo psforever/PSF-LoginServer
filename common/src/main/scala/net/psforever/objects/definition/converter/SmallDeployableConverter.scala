@@ -1,7 +1,8 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.definition.converter
 
-import net.psforever.objects.{Deployable, PlanetSideGameObject}
+import net.psforever.objects.ce.Deployable
+import net.psforever.objects.PlanetSideGameObject
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.packet.game.objectcreate.{PlacementData, SmallDeployableData}
 

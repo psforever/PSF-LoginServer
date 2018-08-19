@@ -4,7 +4,7 @@ package objects.guidtask
 import base.ActorTest
 import net.psforever.objects.guid.{GUIDTask, TaskResolver}
 
-class GUIDTaskRegister1Test extends ActorTest {
+class GUIDTaskRegisterObjectTest extends ActorTest {
   "RegisterObjectTask" in {
     val (_, uns, taskResolver, probe) = GUIDTaskTest.CommonTestSetup
     val obj = new GUIDTaskTest.TestObject

@@ -1,8 +1,9 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects
 
+import net.psforever.objects.ce.DeployedItem
 import net.psforever.objects.definition.{ConstructionFireMode, ConstructionItemDefinition}
-import net.psforever.objects.equipment.{CItem, Equipment, FireModeSwitch}
+import net.psforever.objects.equipment.{Equipment, FireModeSwitch}
 import net.psforever.types.CertificationType
 
 /**
@@ -46,9 +47,9 @@ class ConstructionItem(private val cItemDef : ConstructionItemDefinition) extend
     AmmoTypeIndex
   }
 
-  def AmmoType : CItem.DeployedItem.Value = FireMode.Deployables(ammoTypeIndex)
+  def AmmoType : DeployedItem.Value = FireMode.Deployables(ammoTypeIndex)
 
-  def NextAmmoType : CItem.DeployedItem.Value = {
+  def NextAmmoType : DeployedItem.Value = {
     AmmoTypeIndex = AmmoTypeIndex + 1
     FireMode.Deployables(ammoTypeIndex)
   }

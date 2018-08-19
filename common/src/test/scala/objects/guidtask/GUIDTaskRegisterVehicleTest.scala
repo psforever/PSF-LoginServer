@@ -5,7 +5,7 @@ import base.ActorTest
 import net.psforever.objects._
 import net.psforever.objects.guid.{GUIDTask, TaskResolver}
 
-class GUIDTaskRegister4Test extends ActorTest {
+class GUIDTaskRegisterVehicleTest extends ActorTest {
   "RegisterVehicle" in {
     val (_, uns, taskResolver, probe) = GUIDTaskTest.CommonTestSetup
     val obj = Vehicle(GlobalDefinitions.fury)

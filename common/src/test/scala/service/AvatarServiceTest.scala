@@ -122,6 +122,29 @@ class EquipmentInHandTest extends ActorTest {
   }
 }
 
+class DeployItemTest extends ActorTest {
+  ServiceManager.boot(system) ! ServiceManager.Register(RandomPool(1).props(Props[TaskResolver]), "taskResolver")
+  val service = system.actorOf(Props[AvatarService], "deploy-item-test-service")
+  val objDef = GlobalDefinitions.motionalarmsensor
+  val obj = new SensorDeployable(objDef)
+  obj.Position = Vector3(1,2,3)
+  obj.Orientation = Vector3(4,5,6)
+  obj.GUID = PlanetSideGUID(40)
+  val pkt = ObjectCreateMessage(
+    objDef.ObjectId,
+    obj.GUID,
+    objDef.Packet.ConstructorData(obj).get
+  )
+
+  "AvatarService" should {
+    "pass DeployItem" in {
+      service ! Service.Join("test")
+      service ! AvatarServiceMessage("test", AvatarAction.DeployItem(PlanetSideGUID(10), obj))
+      expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarResponse.DropItem(pkt)))
+    }
+  }
+}
+
 class DroptItemTest extends ActorTest {
   ServiceManager.boot(system) ! ServiceManager.Register(RandomPool(1).props(Props[TaskResolver]), "taskResolver")
   val service = system.actorOf(Props[AvatarService], "release-test-service")
@@ -207,6 +230,18 @@ class ObjectHeldTest extends ActorTest {
       service ! Service.Join("test")
       service ! AvatarServiceMessage("test", AvatarAction.ObjectHeld(PlanetSideGUID(10), 1))
       expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarResponse.ObjectHeld(1)))
+    }
+  }
+}
+
+class PutDownFDUTest extends ActorTest {
+  "AvatarService" should {
+    "pass PutDownFDU" in {
+      ServiceManager.boot(system)
+      val service = system.actorOf(Props[AvatarService], AvatarServiceTest.TestName)
+      service ! Service.Join("test")
+      service ! AvatarServiceMessage("test", AvatarAction.PutDownFDU(PlanetSideGUID(10)))
+      expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarResponse.PutDownFDU(PlanetSideGUID(10))))
     }
   }
 }

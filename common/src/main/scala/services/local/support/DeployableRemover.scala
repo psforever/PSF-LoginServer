@@ -1,9 +1,10 @@
 // Copyright (c) 2017 PSForever
 package services.local.support
 
+import net.psforever.objects.ce.Deployable
 import net.psforever.objects.guid.{GUIDTask, TaskResolver}
 import net.psforever.objects.zones.Zone
-import net.psforever.objects.{BoomerDeployable, Deployable, PlanetSideGameObject, TurretDeployable}
+import net.psforever.objects.{BoomerDeployable, PlanetSideGameObject, TurretDeployable}
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types.Vector3
 import services.RemoverActor
@@ -43,7 +44,7 @@ class DeployableRemover extends RemoverActor {
           Zone.EquipmentIs.Where(trigger, guid, entry.zone) match {
             case Some(Zone.EquipmentIs.InContainer(container, index)) =>
               container.Slot(index).Equipment = None
-            case Some(Zone.EquipmentIs.OnGround(_)) =>
+            case Some(Zone.EquipmentIs.OnGround()) =>
               entry.zone.Ground ! Zone.Ground.RemoveItem(guid)
             case _ => ;
           }

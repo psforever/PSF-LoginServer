@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package services.avatar
 
-import net.psforever.objects.{Deployable, PlanetSideGameObject, Player}
+import net.psforever.objects.Player
 import net.psforever.objects.ballistics.SourceEntry
 import net.psforever.objects.equipment.Equipment
 import net.psforever.packet.PlanetSideGamePacket

@@ -1,7 +1,8 @@
 // Copyright (c) 2017 PSForever
 package services.local
 
-import net.psforever.objects.{Deployable, PlanetSideGameObject}
+import net.psforever.objects.ce.Deployable
+import net.psforever.objects.PlanetSideGameObject
 import net.psforever.packet.game._
 import net.psforever.types.{PlanetSideEmpire, Vector3}
 

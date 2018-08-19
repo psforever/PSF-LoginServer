@@ -1,15 +1,13 @@
 // Copyright (c) 2017 PSForever
 package objects
 
-import net.psforever.objects.definition.converter.{ACEConverter, CharacterSelectConverter, DestroyedVehicleConverter, REKConverter}
+import net.psforever.objects.definition.converter.{CharacterSelectConverter, DestroyedVehicleConverter, REKConverter}
 import net.psforever.objects._
 import net.psforever.objects.definition._
-import net.psforever.objects.equipment.CItem.{DeployedItem, Unit}
 import net.psforever.objects.equipment._
 import net.psforever.objects.inventory.InventoryTile
 import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.serverobject.tube.SpawnTube
-import net.psforever.objects.vehicles.DestroyedVehicle
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.packet.game.objectcreate._
 import net.psforever.types.{CharacterGender, CharacterVoice, PlanetSideEmpire, Vector3}
@@ -107,30 +105,25 @@ class ConverterTest extends Specification {
       }
     }
 
-//    "ConstructionItem" should {
-//      "convert to packet" in {
-//        val cdef = ConstructionItemDefinition(Unit.advanced_ace)
-//        cdef.Modes += DeployedItem.tank_traps
-//        cdef.Modes += DeployedItem.portable_manned_turret_tr
-//        cdef.Modes += DeployedItem.deployable_shield_generator
-//        cdef.Tile = InventoryTile.Tile63
-//        cdef.Packet = new ACEConverter()
-//        val obj = ConstructionItem(cdef)
-//        obj.GUID = PlanetSideGUID(90)
-//        obj.Definition.Packet.DetailedConstructorData(obj) match {
-//          case Success(pkt) =>
-//            pkt mustEqual DetailedACEData(0)
-//          case _ =>
-//            ko
-//        }
-//        obj.Definition.Packet.ConstructorData(obj) match {
-//          case Success(pkt) =>
-//            pkt mustEqual ACEData(0,0)
-//          case _ =>
-//            ko
-//        }
-//      }
-//    }
+    "ConstructionItem" should {
+      "convert to packet" in {
+        val obj = ConstructionItem(GlobalDefinitions.ace)
+        obj.GUID = PlanetSideGUID(90)
+        obj.Definition.Packet.DetailedConstructorData(obj) match {
+          case Success(pkt) =>
+            pkt mustEqual DetailedACEData(0)
+          case _ =>
+            ko
+        }
+
+        obj.Definition.Packet.ConstructorData(obj) match {
+          case Success(pkt) =>
+            pkt mustEqual ACEData(0,0)
+          case _ =>
+            ko
+        }
+      }
+    }
   }
 
   "SimpleItem" should {
@@ -148,6 +141,158 @@ class ConverterTest extends Specification {
       obj.Definition.Packet.ConstructorData(obj) match {
         case Success(pkt) =>
           pkt mustEqual REKData(8,0)
+        case _ =>
+          ko
+      }
+    }
+  }
+
+  "BoomerTrigger" should {
+    "convert" in {
+      val obj = new BoomerTrigger
+      obj.GUID = PlanetSideGUID(90)
+      obj.Definition.Packet.DetailedConstructorData(obj) match {
+        case Success(pkt) =>
+          pkt mustEqual DetailedBoomerTriggerData()
+        case _ =>
+          ko
+      }
+      obj.Definition.Packet.ConstructorData(obj) match {
+        case Success(pkt) =>
+          pkt mustEqual BoomerTriggerData()
+        case _ =>
+          ko
+      }
+    }
+  }
+
+  "SmallDeployable" should {
+    "convert" in {
+      val obj = new SensorDeployable(GlobalDefinitions.motionalarmsensor)
+      obj.Faction = PlanetSideEmpire.TR
+      obj.Definition.Packet.DetailedConstructorData(obj).isFailure mustEqual true
+
+      obj.Definition.Packet.ConstructorData(obj) match {
+        case Success(pkt) =>
+          pkt mustEqual SmallDeployableData(
+            PlacementData(Vector3.Zero, Vector3.Zero),
+            PlanetSideEmpire.TR,
+            0,
+            false,
+            false
+          )
+        case _ =>
+          ko
+      }
+    }
+  }
+
+  "SmallTurret" should {
+    "convert" in {
+      val obj = new TurretDeployable(GlobalDefinitions.spitfire_turret)
+      obj.Faction = PlanetSideEmpire.TR
+      obj.GUID = PlanetSideGUID(90)
+      obj.Weapons(1).Equipment.get.GUID = PlanetSideGUID(91)
+      obj.Weapons(1).Equipment.get.asInstanceOf[Tool].AmmoSlot.Box.GUID = PlanetSideGUID(92)
+      obj.Definition.Packet.DetailedConstructorData(obj).isFailure mustEqual true
+
+      obj.Definition.Packet.ConstructorData(obj) match {
+        case Success(pkt) =>
+          pkt mustEqual SmallTurretData(
+            SmallDeployableData(
+              PlacementData(Vector3.Zero, Vector3.Zero),
+              PlanetSideEmpire.TR,
+              0,
+              false,
+              false
+            ),
+            255,
+            InventoryData(
+              List(InternalSlot(ObjectClass.spitfire_weapon, PlanetSideGUID(91), 1,
+                WeaponData(4, 8, ObjectClass.spitfire_ammo, PlanetSideGUID(92), 0, AmmoBoxData()))
+              )
+            )
+          )
+        case _ =>
+          ko
+      }
+    }
+  }
+
+  "FieldTurret" should {
+    "convert" in {
+      val obj = new TurretDeployable(GlobalDefinitions.portable_manned_turret_tr)
+      obj.Faction = PlanetSideEmpire.TR
+      obj.GUID = PlanetSideGUID(90)
+      obj.Weapons(1).Equipment.get.GUID = PlanetSideGUID(91)
+      obj.Weapons(1).Equipment.get.asInstanceOf[Tool].AmmoSlot.Box.GUID = PlanetSideGUID(92)
+      obj.Definition.Packet.DetailedConstructorData(obj).isFailure mustEqual true
+
+      obj.Definition.Packet.ConstructorData(obj) match {
+        case Success(pkt) =>
+          pkt mustEqual OneMannedFieldTurretData(
+            SmallDeployableData(
+              PlacementData(Vector3.Zero, Vector3.Zero),
+              PlanetSideEmpire.TR,
+              0,
+              false,
+              false
+            ),
+            255,
+            InventoryData(
+              List(InternalSlot(ObjectClass.energy_gun_tr, PlanetSideGUID(91), 1,
+                WeaponData(4, 8, ObjectClass.energy_gun_ammo, PlanetSideGUID(92), 0, AmmoBoxData()))
+              )
+            )
+          )
+        case _ =>
+          ko
+      }
+    }
+  }
+
+  "TRAP" should {
+    "convert" in {
+      val obj = new TrapDeployable(GlobalDefinitions.tank_traps)
+      obj.Faction = PlanetSideEmpire.TR
+      obj.GUID = PlanetSideGUID(90)
+      obj.Definition.Packet.DetailedConstructorData(obj).isFailure mustEqual true
+
+      obj.Definition.Packet.ConstructorData(obj) match {
+        case Success(pkt) =>
+          pkt mustEqual TRAPData(
+            SmallDeployableData(
+              PlacementData(Vector3.Zero, Vector3.Zero),
+              PlanetSideEmpire.TR,
+              0,
+              false,
+              false
+            ),
+            255
+          )
+        case _ =>
+          ko
+      }
+    }
+  }
+
+  "ShieldGenerator" should {
+    "convert" in {
+      val obj = new ShieldGeneratorDeployable(GlobalDefinitions.deployable_shield_generator)
+      obj.Faction = PlanetSideEmpire.TR
+      obj.GUID = PlanetSideGUID(90)
+      obj.Definition.Packet.DetailedConstructorData(obj).isFailure mustEqual true
+
+      obj.Definition.Packet.ConstructorData(obj) match {
+        case Success(pkt) =>
+          pkt mustEqual AegisShieldGeneratorData(
+            CommonFieldData(
+              PlacementData(Vector3.Zero, Vector3.Zero),
+              PlanetSideEmpire.TR,
+              0
+            ),
+            255
+          )
         case _ =>
           ko
       }

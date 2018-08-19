@@ -2,9 +2,9 @@
 package net.psforever.objects
 
 import net.psforever.objects.ballistics.Projectiles
+import net.psforever.objects.ce.{ComplexDeployableDefinition, DeployableCategory,DeployedItem, SimpleDeployableDefinition}
 import net.psforever.objects.definition._
 import net.psforever.objects.definition.converter._
-import net.psforever.objects.equipment.CItem.DeployedItem
 import net.psforever.objects.equipment._
 import net.psforever.objects.inventory.InventoryTile
 import net.psforever.objects.serverobject.doors.DoorDefinition
@@ -638,9 +638,9 @@ object GlobalDefinitions {
 
   val command_detonater = SimpleItemDefinition(SItem.command_detonater)
 
-  val ace = ConstructionItemDefinition(CItem.Unit.ace)
+  val ace = ConstructionItemDefinition(CItem.ace)
 
-  val advanced_ace = ConstructionItemDefinition(CItem.Unit.advanced_ace)
+  val advanced_ace = ConstructionItemDefinition(CItem.advanced_ace)
 
   val fury_weapon_systema = ToolDefinition(ObjectClass.fury_weapon_systema)
 
@@ -832,31 +832,31 @@ object GlobalDefinitions {
   /*
   combat engineering deployables
    */
-  val boomer = SimpleDeployableDefinition(CItem.DeployedItem.boomer)
+  val boomer = SimpleDeployableDefinition(DeployedItem.boomer)
 
-  val he_mine = SimpleDeployableDefinition(CItem.DeployedItem.he_mine)
+  val he_mine = SimpleDeployableDefinition(DeployedItem.he_mine)
 
-  val jammer_mine = SimpleDeployableDefinition(CItem.DeployedItem.jammer_mine)
+  val jammer_mine = SimpleDeployableDefinition(DeployedItem.jammer_mine)
 
-  val spitfire_turret = TurretDeployableDefinition(CItem.DeployedItem.spitfire_turret)
+  val spitfire_turret = TurretDeployableDefinition(DeployedItem.spitfire_turret)
 
-  val spitfire_cloaked = TurretDeployableDefinition(CItem.DeployedItem.spitfire_cloaked)
+  val spitfire_cloaked = TurretDeployableDefinition(DeployedItem.spitfire_cloaked)
 
-  val spitfire_aa = TurretDeployableDefinition(CItem.DeployedItem.spitfire_aa)
+  val spitfire_aa = TurretDeployableDefinition(DeployedItem.spitfire_aa)
 
-  val motionalarmsensor = SimpleDeployableDefinition(CItem.DeployedItem.motionalarmsensor)
+  val motionalarmsensor = SimpleDeployableDefinition(DeployedItem.motionalarmsensor)
 
-  val sensor_shield = SimpleDeployableDefinition(CItem.DeployedItem.sensor_shield)
+  val sensor_shield = SimpleDeployableDefinition(DeployedItem.sensor_shield)
 
-  val tank_traps = ComplexDeployableDefinition(CItem.DeployedItem.tank_traps)
+  val tank_traps = ComplexDeployableDefinition(DeployedItem.tank_traps)
 
-  val portable_manned_turret = TurretDeployableDefinition(CItem.DeployedItem.portable_manned_turret)
+  val portable_manned_turret = TurretDeployableDefinition(DeployedItem.portable_manned_turret)
 
-  val portable_manned_turret_nc = TurretDeployableDefinition(CItem.DeployedItem.portable_manned_turret_nc)
+  val portable_manned_turret_nc = TurretDeployableDefinition(DeployedItem.portable_manned_turret_nc)
 
-  val portable_manned_turret_tr = TurretDeployableDefinition(CItem.DeployedItem.portable_manned_turret_tr)
+  val portable_manned_turret_tr = TurretDeployableDefinition(DeployedItem.portable_manned_turret_tr)
 
-  val portable_manned_turret_vs = TurretDeployableDefinition(CItem.DeployedItem.portable_manned_turret_vs)
+  val portable_manned_turret_vs = TurretDeployableDefinition(DeployedItem.portable_manned_turret_vs)
 
   val deployable_shield_generator = new ShieldGeneratorDefinition
   init_deployables()

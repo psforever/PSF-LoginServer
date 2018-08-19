@@ -2,7 +2,8 @@
 package services.avatar
 
 import net.psforever.objects.ballistics.SourceEntry
-import net.psforever.objects.{Deployable, PlanetSideGameObject, Player}
+import net.psforever.objects.ce.Deployable
+import net.psforever.objects.{PlanetSideGameObject, Player}
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.inventory.Container
 import net.psforever.objects.zones.Zone
@@ -23,7 +24,6 @@ object AvatarAction {
   final case class ChangeFireState_Stop(player_guid : PlanetSideGUID, weapon_guid : PlanetSideGUID) extends Action
   final case class ConcealPlayer(player_guid : PlanetSideGUID) extends Action
   final case class Damage(player_guid : PlanetSideGUID, target : Player, resolution_function : (Any)=>Unit) extends Action
-  final case class DeployableDestroyed(player_guid : PlanetSideGUID, obj : PlanetSideGameObject with Deployable) extends Action
   final case class DeployItem(player_guid : PlanetSideGUID, item : PlanetSideGameObject with Deployable) extends Action
   final case class Destroy(victim : PlanetSideGUID, killer : PlanetSideGUID, weapon : PlanetSideGUID, pos : Vector3) extends Action
   final case class DestroyDisplay(killer : SourceEntry, victim : SourceEntry, method : Int, unk : Int = 121) extends Action
