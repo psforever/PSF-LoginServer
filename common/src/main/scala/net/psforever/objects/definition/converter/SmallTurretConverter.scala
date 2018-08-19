@@ -12,7 +12,7 @@ import scala.util.{Failure, Success, Try}
 class SmallTurretConverter extends ObjectCreateConverter[TurretDeployable]() {
   override def ConstructorData(obj : TurretDeployable) : Try[SmallTurretData] = {
     val health = 255 * obj.Health / obj.MaxHealth //TODO not precise
-    if(health > 3) {
+    if(health > 0) {
       Success(
         SmallTurretData(
           SmallDeployableData(

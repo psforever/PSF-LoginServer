@@ -8,7 +8,8 @@ import net.psforever.objects.serverobject.structures.Building
 import net.psforever.objects.serverobject.terminals.CaptureTerminal
 import net.psforever.objects.zones.{InterstellarCluster, Zone}
 import net.psforever.objects.{BoomerDeployable, GlobalDefinitions, PlanetSideGameObject, TurretDeployable}
-import net.psforever.packet.game.PlanetSideGUID
+import net.psforever.packet.game.{PlanetSideGUID, TriggeredEffect, TriggeredEffectLocation}
+import net.psforever.objects.vital.Vitality
 import net.psforever.types.Vector3
 import services.local.support.{DeployableRemover, DoorCloseActor, HackClearActor, HackCaptureActor}
 import services.vehicle.{VehicleAction, VehicleServiceMessage}
@@ -60,6 +61,11 @@ class LocalService extends Actor {
 
     case LocalServiceMessage(forChannel, action) =>
       action match {
+        case LocalAction.AlertDestroyDeployable(_, obj) =>
+          LocalEvents.publish(
+            LocalServiceResponse(s"/$forChannel/Local", Service.defaultPlayerGUID, LocalResponse.AlertDestroyDeployable(obj))
+          )
+
         case LocalAction.DeployableMapIcon(player_guid, behavior, deployInfo) =>
           LocalEvents.publish(
             LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.DeployableMapIcon(behavior, deployInfo))
@@ -107,13 +113,17 @@ class LocalService extends Actor {
           LocalEvents.publish(
             LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.ProximityTerminalEffect(object_guid, effectState))
           )
-        case LocalAction.TriggerEffect1(player_guid, effect, pos, orient) =>
+        case LocalAction.TriggerEffect(player_guid, effect, target) =>
           LocalEvents.publish(
-            LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.TriggerEffect1(effect, pos, orient))
+            LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.TriggerEffect(target, effect))
           )
-        case LocalAction.TriggerEffect2(player_guid, effect, target, info) =>
+        case LocalAction.TriggerEffectLocation(player_guid, effect, pos, orient) =>
           LocalEvents.publish(
-            LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.TriggerEffect2(effect, target, info))
+            LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.TriggerEffect(PlanetSideGUID(0), effect, None, Some(TriggeredEffectLocation(pos, orient))))
+          )
+        case LocalAction.TriggerEffectInfo(player_guid, effect, target, unk1, unk2) =>
+          LocalEvents.publish(
+            LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.TriggerEffect(target, effect, Some(TriggeredEffect(unk1, unk2))))
           )
         case LocalAction.TriggerSound(player_guid, sound, pos, unk, volume) =>
           LocalEvents.publish(
@@ -206,18 +216,22 @@ class LocalService extends Actor {
       EliminateDeployable(obj, guid, pos, zone.Id)
       obj.Trigger match {
         case Some(trigger) =>
-          obj.Trigger = None
-          log.warn(s"LocalService: deconstructing boomer in ${zone.Id}, but trigger@${trigger.GUID.guid} should have already been cleaned up")
+          log.warn(s"LocalService: deconstructing boomer in ${zone.Id}, but trigger@${trigger.GUID.guid} still exists")
         case _ => ;
       }
 
     case DeployableRemover.EliminateDeployable(obj, guid, pos, zone) =>
       EliminateDeployable(obj, guid, pos, zone.Id)
 
-    case DeployableRemover.DeleteTrigger(trigger_guid, zone_id) =>
+    case DeployableRemover.DeleteTrigger(trigger_guid, zone) =>
       LocalEvents.publish(
-        LocalServiceResponse(s"/$zone_id/Local", Service.defaultPlayerGUID, LocalResponse.ObjectDelete(trigger_guid, 0))
+        LocalServiceResponse(s"/${zone.Id}/Local", Service.defaultPlayerGUID, LocalResponse.ObjectDelete(trigger_guid, 0))
       )
+
+    //synchronized damage calculations
+    case Vitality.DamageOn(target : Deployable, func) =>
+      func(target)
+      sender ! Vitality.DamageResolution(target)
 
     case msg =>
       log.warn(s"Unhandled message $msg from $sender")
@@ -237,7 +251,7 @@ class LocalService extends Actor {
     obj.OwnerName match {
       case Some(name) =>
         LocalEvents.publish(
-          LocalServiceResponse(s"/$name/Local", Service.defaultPlayerGUID, LocalResponse.AlertEliminateDeployable(obj))
+          LocalServiceResponse(s"/$name/Local", Service.defaultPlayerGUID, LocalResponse.AlertDestroyDeployable(obj))
         )
       case None => ;
     }

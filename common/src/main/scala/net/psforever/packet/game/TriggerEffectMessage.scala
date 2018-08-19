@@ -54,6 +54,9 @@ final case class TriggerEffectMessage(object_guid : PlanetSideGUID,
 }
 
 object TriggerEffectMessage extends Marshallable[TriggerEffectMessage] {
+  def apply(object_guid : PlanetSideGUID, effect : String) : TriggerEffectMessage =
+    TriggerEffectMessage(object_guid, effect, None, None)
+
   def apply(object_guid : PlanetSideGUID, effect : String, unk1 : Boolean, unk2 : Long) : TriggerEffectMessage =
     TriggerEffectMessage(object_guid, effect, Some(TriggeredEffect(unk1, unk2)), None)
 

@@ -2,7 +2,7 @@
 package net.psforever.objects
 
 import net.psforever.objects.ballistics.Projectiles
-import net.psforever.objects.ce.{ComplexDeployableDefinition, DeployableCategory,DeployedItem, SimpleDeployableDefinition}
+import net.psforever.objects.ce.{DeployableCategory, DeployedItem}
 import net.psforever.objects.definition._
 import net.psforever.objects.definition.converter._
 import net.psforever.objects.equipment._
@@ -17,7 +17,7 @@ import net.psforever.objects.serverobject.tube.SpawnTubeDefinition
 import net.psforever.objects.serverobject.resourcesilo.ResourceSiloDefinition
 import net.psforever.objects.serverobject.turret.{TurretDefinition, TurretUpgrade}
 import net.psforever.objects.vehicles.{DestroyedVehicle, SeatArmorRestriction, UtilityType}
-import net.psforever.objects.vital.DamageType
+import net.psforever.objects.vital.{DamageType, StandardResolutions}
 import net.psforever.types.{CertificationType, PlanetSideEmpire}
 
 import scala.collection.mutable
@@ -832,11 +832,11 @@ object GlobalDefinitions {
   /*
   combat engineering deployables
    */
-  val boomer = SimpleDeployableDefinition(DeployedItem.boomer)
+  val boomer = DeployableDefinition(DeployedItem.boomer)
 
-  val he_mine = SimpleDeployableDefinition(DeployedItem.he_mine)
+  val he_mine = DeployableDefinition(DeployedItem.he_mine)
 
-  val jammer_mine = SimpleDeployableDefinition(DeployedItem.jammer_mine)
+  val jammer_mine = DeployableDefinition(DeployedItem.jammer_mine)
 
   val spitfire_turret = TurretDeployableDefinition(DeployedItem.spitfire_turret)
 
@@ -844,11 +844,11 @@ object GlobalDefinitions {
 
   val spitfire_aa = TurretDeployableDefinition(DeployedItem.spitfire_aa)
 
-  val motionalarmsensor = SimpleDeployableDefinition(DeployedItem.motionalarmsensor)
+  val motionalarmsensor = DeployableDefinition(DeployedItem.motionalarmsensor)
 
-  val sensor_shield = SimpleDeployableDefinition(DeployedItem.sensor_shield)
+  val sensor_shield = DeployableDefinition(DeployedItem.sensor_shield)
 
-  val tank_traps = ComplexDeployableDefinition(DeployedItem.tank_traps)
+  val tank_traps = DeployableDefinition(DeployedItem.tank_traps)
 
   val portable_manned_turret = TurretDeployableDefinition(DeployedItem.portable_manned_turret)
 
@@ -5382,18 +5382,24 @@ object GlobalDefinitions {
   private def init_deployables() : Unit = {
     boomer.Name = "boomer"
     boomer.Descriptor = "Boomers"
+    boomer.MaxHealth = 100
     boomer.DeployCategory = DeployableCategory.Boomers
-    boomer.DeployTime = 1000 milliseconds
+    boomer.DeployTime = Duration.create(1000, "ms")
+    boomer.Model = StandardResolutions.SimpleDeployables
 
     he_mine.Name = "he_mine"
     he_mine.Descriptor = "Mines"
+    he_mine.MaxHealth = 100
     he_mine.DeployCategory = DeployableCategory.Mines
-    he_mine.DeployTime = 1000 milliseconds
+    he_mine.DeployTime = Duration.create(1000, "ms")
+    he_mine.Model = StandardResolutions.SimpleDeployables
 
     jammer_mine.Name = "jammer_mine"
     jammer_mine.Descriptor = "JammerMines"
+    jammer_mine.MaxHealth = 100
     jammer_mine.DeployCategory = DeployableCategory.Mines
-    jammer_mine.DeployTime = 1000 milliseconds
+    jammer_mine.DeployTime = Duration.create(1000, "ms")
+    jammer_mine.Model = StandardResolutions.SimpleDeployables
 
     spitfire_turret.Name = "spitfire_turret"
     spitfire_turret.Descriptor= "Spitfires"
@@ -5402,7 +5408,8 @@ object GlobalDefinitions {
     spitfire_turret.Weapons(1) += TurretUpgrade.None -> spitfire_weapon
     spitfire_turret.ReserveAmmunition = false
     spitfire_turret.DeployCategory = DeployableCategory.SmallTurrets
-    spitfire_turret.DeployTime = 5000 milliseconds
+    spitfire_turret.DeployTime = Duration.create(5000, "ms")
+    spitfire_turret.Model = StandardResolutions.ComplexDeployables
 
     spitfire_cloaked.Name = "spitfire_cloaked"
     spitfire_cloaked.Descriptor= "CloakingSpitfires"
@@ -5411,7 +5418,8 @@ object GlobalDefinitions {
     spitfire_cloaked.Weapons(1) += TurretUpgrade.None -> spitfire_weapon
     spitfire_cloaked.ReserveAmmunition = false
     spitfire_cloaked.DeployCategory = DeployableCategory.SmallTurrets
-    spitfire_cloaked.DeployTime = 5000 milliseconds
+    spitfire_cloaked.DeployTime = Duration.create(5000, "ms")
+    spitfire_cloaked.Model = StandardResolutions.ComplexDeployables
 
     spitfire_aa.Name = "spitfire_aa"
     spitfire_aa.Descriptor= "FlakSpitfires"
@@ -5420,23 +5428,30 @@ object GlobalDefinitions {
     spitfire_aa.Weapons(1) += TurretUpgrade.None -> spitfire_aa_weapon
     spitfire_aa.ReserveAmmunition = false
     spitfire_aa.DeployCategory = DeployableCategory.SmallTurrets
-    spitfire_aa.DeployTime = 5000 milliseconds
+    spitfire_aa.DeployTime = Duration.create(5000, "ms")
+    spitfire_aa.Model = StandardResolutions.ComplexDeployables
 
     motionalarmsensor.Name = "motionalarmsensor"
     motionalarmsensor.Descriptor = "MotionSensors"
+    motionalarmsensor.MaxHealth = 100
     motionalarmsensor.DeployCategory = DeployableCategory.Sensors
-    motionalarmsensor.DeployTime = 1000 milliseconds
+    motionalarmsensor.DeployTime = Duration.create(1000, "ms")
+    motionalarmsensor.Model = StandardResolutions.SimpleDeployables
 
     sensor_shield.Name = "sensor_shield"
+    sensor_shield.Descriptor = "SensorShields"
+    sensor_shield.MaxHealth = 100
     sensor_shield.DeployCategory = DeployableCategory.Sensors
-    sensor_shield.DeployTime = 1000 milliseconds
+    sensor_shield.DeployTime = Duration.create(5000, "ms")
+    sensor_shield.Model = StandardResolutions.SimpleDeployables
 
     tank_traps.Name = "tank_traps"
     tank_traps.Descriptor = "TankTraps"
     tank_traps.MaxHealth = 5000
     tank_traps.Packet = new TRAPConverter
     tank_traps.DeployCategory = DeployableCategory.TankTraps
-    tank_traps.DeployTime = 6000 milliseconds
+    tank_traps.DeployTime = Duration.create(6000, "ms")
+    tank_traps.Model = StandardResolutions.SimpleDeployables
 
     val fieldTurretConverter = new FieldTurretConverter
     portable_manned_turret.Name = "portable_manned_turret"
@@ -5450,7 +5465,8 @@ object GlobalDefinitions {
     portable_manned_turret.FactionLocked = true
     portable_manned_turret.Packet = fieldTurretConverter
     portable_manned_turret.DeployCategory = DeployableCategory.FieldTurrets
-    portable_manned_turret.DeployTime = 6000 milliseconds
+    portable_manned_turret.DeployTime = Duration.create(6000, "ms")
+    portable_manned_turret.Model = StandardResolutions.ComplexDeployables
 
     portable_manned_turret_nc.Name = "portable_manned_turret_nc"
     portable_manned_turret_nc.Descriptor = "FieldTurrets"
@@ -5463,7 +5479,8 @@ object GlobalDefinitions {
     portable_manned_turret_nc.FactionLocked = true
     portable_manned_turret_nc.Packet = fieldTurretConverter
     portable_manned_turret_nc.DeployCategory = DeployableCategory.FieldTurrets
-    portable_manned_turret_nc.DeployTime = 6000 milliseconds
+    portable_manned_turret_nc.DeployTime = Duration.create(6000, "ms")
+    portable_manned_turret_nc.Model = StandardResolutions.ComplexDeployables
 
     portable_manned_turret_tr.Name = "portable_manned_turret_tr"
     portable_manned_turret_tr.Descriptor = "FieldTurrets"
@@ -5476,7 +5493,8 @@ object GlobalDefinitions {
     portable_manned_turret_tr.FactionLocked = true
     portable_manned_turret_tr.Packet = fieldTurretConverter
     portable_manned_turret_tr.DeployCategory = DeployableCategory.FieldTurrets
-    portable_manned_turret_tr.DeployTime = 6000 milliseconds
+    portable_manned_turret_tr.DeployTime = Duration.create(6000, "ms")
+    portable_manned_turret_tr.Model = StandardResolutions.ComplexDeployables
 
     portable_manned_turret_vs.Name = "portable_manned_turret_vs"
     portable_manned_turret_vs.Descriptor = "FieldTurrets"
@@ -5489,11 +5507,13 @@ object GlobalDefinitions {
     portable_manned_turret_vs.FactionLocked = true
     portable_manned_turret_vs.Packet = fieldTurretConverter
     portable_manned_turret_vs.DeployCategory = DeployableCategory.FieldTurrets
-    portable_manned_turret_vs.DeployTime = 6000 milliseconds
+    portable_manned_turret_vs.DeployTime = Duration.create(6000, "ms")
+    portable_manned_turret_vs.Model = StandardResolutions.ComplexDeployables
 
     deployable_shield_generator.Name = "deployable_shield_generator"
     deployable_shield_generator.Descriptor = "ShieldGenerators"
     deployable_shield_generator.MaxHealth = 1700
-    deployable_shield_generator.DeployTime = 6000 milliseconds
+    deployable_shield_generator.DeployTime = Duration.create(6000, "ms")
+    deployable_shield_generator.Model = StandardResolutions.ComplexDeployables
   }
 }

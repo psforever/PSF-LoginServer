@@ -16,7 +16,7 @@ import services.ServiceManager.Lookup
 import net.psforever.objects._
 import net.psforever.objects.avatar.Certification
 import net.psforever.objects.ballistics._
-import net.psforever.objects.ce.{ComplexDeployable, Deployable, DeployedItem}
+import net.psforever.objects.ce.{ComplexDeployable, Deployable, DeployedItem, SimpleDeployable}
 import net.psforever.objects.definition.{ConstructionFireMode, DeployableDefinition, ObjectDefinition, ToolDefinition}
 import net.psforever.objects.definition.converter.{CorpseConverter, DestroyedVehicleConverter}
 import net.psforever.objects.equipment.{CItem, _}
@@ -578,7 +578,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case LocalServiceResponse(_, guid, reply) =>
       val tplayer_guid = if(player.HasGUID) { player.GUID} else { PlanetSideGUID(-1) }
       reply match {
-        case LocalResponse.AlertEliminateDeployable(obj) =>
+        case LocalResponse.AlertDestroyDeployable(obj) =>
+          //the (former) owner (obj.OwnerName) should process this message
           avatar.Deployables.Remove(obj)
           UpdateDeployableUIElements(avatar.Deployables.UpdateUIElement(obj.Definition.Item))
 
@@ -596,16 +597,36 @@ class WorldSessionActor extends Actor with MDCContextAware {
           sendResponse(GenericObjectStateMsg(door_guid, 17))
 
         case LocalResponse.EliminateDeployable(obj : TurretDeployable, guid, pos) =>
-          DeconstructDeployable(obj, guid, pos, obj.Orientation, if(obj.MountPoints.isEmpty) 2 else 1)
+          if(obj.Health == 0) {
+            DeconstructDeployable(obj, guid, pos)
+          }
+          else {
+            DeconstructDeployable(obj, guid, pos, obj.Orientation, if(obj.MountPoints.isEmpty) 2 else 1)
+          }
 
         case LocalResponse.EliminateDeployable(obj : ComplexDeployable, guid, pos) =>
-          DeconstructDeployable(obj, guid, pos, obj.Orientation, 1)
+          if(obj.Health == 0) {
+            DeconstructDeployable(obj, guid, pos)
+          }
+          else {
+            DeconstructDeployable(obj, guid, pos, obj.Orientation, 1)
+          }
 
         case LocalResponse.EliminateDeployable(obj : ExplosiveDeployable, guid, pos) =>
-          DeconstructDeployable(obj, guid, pos, obj.Orientation, if(obj.Exploded) 0 else 2)
+          if(obj.Exploded || obj.Health == 0) {
+            DeconstructDeployable(obj, guid, pos)
+          }
+          else {
+            DeconstructDeployable(obj, guid, pos, obj.Orientation, 2)
+          }
 
         case LocalResponse.EliminateDeployable(obj, guid, pos) =>
-          DeconstructDeployable(obj, guid, pos, obj.Orientation, 2)
+          if(obj.Health == 0) {
+            DeconstructDeployable(obj, guid, pos)
+          }
+          else {
+            DeconstructDeployable(obj, guid, pos, obj.Orientation, 2)
+          }
 
         case LocalResponse.HackClear(target_guid, unk1, unk2) =>
           log.trace(s"Clearing hack for ${target_guid}")
@@ -665,17 +686,14 @@ class WorldSessionActor extends Actor with MDCContextAware {
             sendResponse(ProximityTerminalUseMessage(PlanetSideGUID(0), object_guid, effectState))
           }
 
-        case LocalResponse.TriggerSound(sound, pos, unk, volume) =>
-          sendResponse(TriggerSoundMessage(sound, pos, unk, volume))
-
         case LocalResponse.SetEmpire(object_guid, empire) =>
           sendResponse(SetEmpireMessage(object_guid, empire))
 
-        case LocalResponse.TriggerEffect1(effect, pos, orient) =>
-          sendResponse(TriggerEffectMessage(effect, pos, orient))
+        case LocalResponse.TriggerEffect(target_guid, effect, effectInfo, triggerLocation) =>
+          sendResponse(TriggerEffectMessage(target_guid, effect, effectInfo, triggerLocation))
 
-        case LocalResponse.TriggerEffect2(effect, target, info) =>
-          sendResponse(TriggerEffectMessage(target, effect, info.unk1, info.unk2))
+        case LocalResponse.TriggerSound(sound, pos, unk, volume) =>
+          sendResponse(TriggerSoundMessage(sound, pos, unk, volume))
 
         case _ => ;
       }
@@ -1628,18 +1646,23 @@ class WorldSessionActor extends Actor with MDCContextAware {
       }
 
     case Zone.Ground.ItemOnGround(item : BoomerTrigger, pos, orient) =>
+      //dropped the trigger, no longer own the boomer; make certain whole faction is aware of that
       val playerGUID = player.GUID
       continent.GUID(item.Companion.getOrElse(PlanetSideGUID(0))) match {
         case Some(obj : BoomerDeployable) =>
           val guid = obj.GUID
+          val factionOnContinentChannel = s"${continent.Id}/${player.Faction}"
+          obj.Owner = None
           obj.OwnerName = None
+          obj.Faction = PlanetSideEmpire.NEUTRAL
           avatar.Deployables.Remove(obj)
-          sendResponse(SetEmpireMessage(guid, PlanetSideEmpire.NEUTRAL))
-          avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.SetEmpire(playerGUID, guid, PlanetSideEmpire.NEUTRAL))
-          val info = DeployableInfo(guid, DeployableIcon.Boomer, obj.Position, obj.Owner.get)
-          sendResponse(DeployableObjectsInfoMessage(DeploymentAction.Dismiss, info))
-          localService ! LocalServiceMessage(continent.Id, LocalAction.DeployableMapIcon(playerGUID, DeploymentAction.Dismiss, info))
+          UpdateDeployableUIElements(avatar.Deployables.UpdateUIElement(obj.Definition.Item))
           localService ! LocalServiceMessage.Deployables(RemoverActor.AddTask(obj, continent))
+          sendResponse(SetEmpireMessage(guid, PlanetSideEmpire.NEUTRAL))
+          avatarService ! AvatarServiceMessage(factionOnContinentChannel, AvatarAction.SetEmpire(playerGUID, guid, PlanetSideEmpire.NEUTRAL))
+          val info = DeployableInfo(guid, DeployableIcon.Boomer, obj.Position, PlanetSideGUID(0))
+          sendResponse(DeployableObjectsInfoMessage(DeploymentAction.Dismiss, info))
+          localService ! LocalServiceMessage(factionOnContinentChannel, LocalAction.DeployableMapIcon(playerGUID, DeploymentAction.Dismiss, info))
           PutItemOnGround(item, pos, orient)
         case Some(_) | None =>
           //pointless trigger
@@ -1663,20 +1686,24 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case Zone.Ground.ItemInHand(item : BoomerTrigger) =>
       if(PutItemInHand(item)) {
+        //pick up the trigger, own the boomer; make certain whole faction is aware of that
         continent.GUID(item.Companion.getOrElse(PlanetSideGUID(0))) match {
           case Some(obj : BoomerDeployable) =>
             val guid = obj.GUID
             val playerGUID = player.GUID
+            val faction = player.Faction
+            val factionOnContinentChannel = s"${continent.Id}/${faction}"
             obj.Owner = playerGUID
             obj.OwnerName = player.Name
-            val faction = player.Faction
+            obj.Faction = faction
             avatar.Deployables.Add(obj)
+            UpdateDeployableUIElements(avatar.Deployables.UpdateUIElement(obj.Definition.Item))
             localService ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(obj), continent))
             sendResponse(SetEmpireMessage(guid, faction))
-            avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.SetEmpire(playerGUID, guid, faction))
+            avatarService ! AvatarServiceMessage(factionOnContinentChannel, AvatarAction.SetEmpire(playerGUID, guid, faction))
             val info = DeployableInfo(obj.GUID, DeployableIcon.Boomer, obj.Position, obj.Owner.get)
             sendResponse(DeployableObjectsInfoMessage(DeploymentAction.Build, info))
-            localService ! LocalServiceMessage(continent.Id, LocalAction.DeployableMapIcon(playerGUID, DeploymentAction.Build, info))
+            localService ! LocalServiceMessage(factionOnContinentChannel, LocalAction.DeployableMapIcon(playerGUID, DeploymentAction.Build, info))
           case Some(_) | None => ; //pointless trigger; see Zone.Ground.ItemOnGround(BoomerTrigger, ...)
         }
       }
@@ -1702,7 +1729,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       if(avatar.Deployables.Accept(obj) || (avatar.Deployables.Valid(obj) && !avatar.Deployables.Contains(obj))) {
         tool.Definition match {
           case GlobalDefinitions.ace =>
-            localService ! LocalServiceMessage(continent.Id, LocalAction.TriggerEffect1(player.GUID, "spawn_object_effect", obj.Position, obj.Orientation))
+            localService ! LocalServiceMessage(continent.Id, LocalAction.TriggerEffectLocation(player.GUID, "spawn_object_effect", obj.Position, obj.Orientation))
           case GlobalDefinitions.advanced_ace =>
             sendResponse(GenericObjectActionMessage(player.GUID, 212)) //put fdu down; it will be removed from the client's holster
             avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PutDownFDU(player.GUID))
@@ -1734,7 +1761,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       StopBundlingPackets()
 
     case WorldSessionActor.FinalizeDeployable(obj : ComplexDeployable, tool, index) =>
-      //tank_traps and the deployable_shield_generator
+      //deployable_shield_generator
       StartBundlingPackets()
       DeployableBuildActivity(obj)
       CommonDestroyConstructionItem(tool, index)
@@ -1775,7 +1802,15 @@ class WorldSessionActor extends Actor with MDCContextAware {
       //motion alarm sensor and sensor disruptor
       StartBundlingPackets()
       DeployableBuildActivity(obj)
-      localService ! LocalServiceMessage(continent.Id, LocalAction.TriggerEffect2(player.GUID, "on", obj.GUID, TriggeredEffect(true, 1000)))
+      localService ! LocalServiceMessage(continent.Id, LocalAction.TriggerEffectInfo(player.GUID, "on", obj.GUID, true, 1000))
+      CommonDestroyConstructionItem(tool, index)
+      FindReplacementConstructionItem(tool, index)
+      StopBundlingPackets()
+
+    case WorldSessionActor.FinalizeDeployable(obj : SimpleDeployable, tool, index) =>
+      //tank_trap
+      StartBundlingPackets()
+      DeployableBuildActivity(obj)
       CommonDestroyConstructionItem(tool, index)
       FindReplacementConstructionItem(tool, index)
       StopBundlingPackets()
@@ -2062,6 +2097,61 @@ class WorldSessionActor extends Actor with MDCContextAware {
       vehicleService ! VehicleServiceMessage(continentId, VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, targetGUID, 0, target.Health))
       vehicleService ! VehicleServiceMessage(s"${target.Actor}", VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, targetGUID, 68, target.Shields))
 
+    case Vitality.DamageResolution(target : TrapDeployable) =>
+      //tank_traps
+      val guid = target.GUID
+      val health = target.Health
+      avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(guid, 0, health))
+      if(health <= 0) {
+        AnnounceDestroyDeployable(target, None)
+      }
+
+    case Vitality.DamageResolution(target : SimpleDeployable) =>
+      //boomers, sensors, mines
+      val health = target.Health
+      if(health <= 0) { //do not show updated health bar; but do update if destroyed
+        val guid = target.GUID
+        sendResponse(PlanetsideAttributeMessage(guid, 0, health))
+        avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(guid, 0, health))
+        AnnounceDestroyDeployable(target, Some(0 seconds))
+      }
+
+    case Vitality.DamageResolution(target : TurretDeployable) =>
+      //spitfires and field turrets
+      val health = target.Health
+      val guid = target.GUID
+      avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(guid, 0, health))
+      if(health <= 0) {
+        val continentId = continent.Id
+        //if occupants, kill and kick them
+        target.Seats.values
+          .filter(seat => { seat.isOccupied && seat.Occupant.get.isAlive })
+          .foreach(seat => {
+            val tplayer = seat.Occupant.get
+            val tplayerGUID = tplayer.GUID
+            avatarService ! AvatarServiceMessage(tplayer.Name, AvatarAction.KilledWhileInVehicle(tplayerGUID))
+            avatarService ! AvatarServiceMessage(continentId, AvatarAction.ObjectDelete(tplayerGUID, tplayerGUID)) //dead player still sees self
+          })
+        //destroy weapons
+        target.Weapons.values
+          .map(slot => slot.Equipment)
+          .collect { case Some(weapon) =>
+            val wguid = weapon.GUID
+            sendResponse(ObjectDeleteMessage(wguid, 0))
+            avatarService ! AvatarServiceMessage(continentId, AvatarAction.ObjectDelete(player.GUID, wguid))
+          }
+        AnnounceDestroyDeployable(target, None)
+      }
+
+    case Vitality.DamageResolution(target : ComplexDeployable) =>
+      //shield_generators
+      val health = target.Health
+      val guid = target.GUID
+      avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(guid, 0, health))
+      if(health <= 0) {
+        AnnounceDestroyDeployable(target, None)
+      }
+
     case Vitality.DamageResolution(target : PlanetSideGameObject) =>
       log.warn(s"Vital target ${target.Definition.Name} damage resolution not supported using this method")
 
@@ -2098,7 +2188,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       //TODO begin temp player character auto-loading; remove later
       import net.psforever.objects.GlobalDefinitions._
       import net.psforever.types.CertificationType._
-      val avatar = Avatar("TestCharacter" + sessionId.toString, PlanetSideEmpire.VS, CharacterGender.Female, 41, CharacterVoice.Voice1)
+      val avatar = Avatar(s"TestCharacter$sessionId", PlanetSideEmpire.VS, CharacterGender.Female, 41, CharacterVoice.Voice1)
       avatar.Certifications += StandardAssault
       avatar.Certifications += MediumAssault
       avatar.Certifications += StandardExoSuit
@@ -2149,7 +2239,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       player.Slot(6).Equipment = ConstructionItem(ace) //bullet_9mm
       player.Slot(9).Equipment = ConstructionItem(ace) //bullet_9mm
       player.Slot(12).Equipment = ConstructionItem(ace) //bullet_9mm
-      player.Slot(33).Equipment = ConstructionItem(advanced_ace) //AmmoBox(bullet_9mm_AP)
+      player.Slot(33).Equipment = Tool(suppressor) //AmmoBox(bullet_9mm_AP)
       //player.Slot(36).Equipment = AmmoBox(GlobalDefinitions.StandardPistolAmmo(player.Faction))
       //player.Slot(39).Equipment = SimpleItem(remote_electronics_kit)
       player.Locker.Inventory += 0 -> SimpleItem(remote_electronics_kit)
@@ -2274,11 +2364,14 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ BeginZoningMessage() =>
       log.info("Reticulating splines ...")
-      traveler.zone = continent.Id
+      val continentId = continent.Id
+      traveler.zone = continentId
+      val faction = player.Faction
       StartBundlingPackets()
-      avatarService ! Service.Join(continent.Id)
-      localService ! Service.Join(continent.Id)
-      vehicleService ! Service.Join(continent.Id)
+      avatarService ! Service.Join(continentId)
+      localService ! Service.Join(continentId)
+      localService ! Service.Join(s"$continentId/$faction")
+      vehicleService ! Service.Join(continentId)
       galaxyService ! Service.Join("galaxy")
       configZone(continent)
       sendResponse(TimeOfDayMessage(1191182336))
@@ -2288,11 +2381,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
       sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 112, 1)) //common
       //(0 to 255).foreach(i => { sendResponse(SetEmpireMessage(PlanetSideGUID(i), PlanetSideEmpire.VS)) })
 
-      //render deployable objects
       //find and reclaim own deployables, if any
       val guid = player.GUID
-      val faction = player.Faction
-      val foundDeployables = continent.DeployableList.filter(_.OwnerName.contains(player.Name))
+      val foundDeployables = continent.DeployableList.filter(obj => obj.OwnerName.contains(player.Name) && obj.Health > 0)
       localService ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(foundDeployables, continent))
       foundDeployables.foreach(obj => {
         if(avatar.Deployables.Add(obj)) {
@@ -2300,6 +2391,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           log.info(s"Found a ${obj.Definition.Name} of ours while loading the zone")
         }
       })
+      //render deployable objects
       continent.DeployableList.foreach(obj => {
         val definition = obj.Definition
         sendResponse(
@@ -2312,7 +2404,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       })
       //draw our faction's deployables on the map
       continent.DeployableList
-        .filter(_.Faction == faction)
+        .filter(obj => obj.Faction == faction && obj.Health > 0)
         .foreach(obj => {
           val deployInfo = DeployableInfo(obj.GUID, Deployable.Icon(obj.Definition.Item), obj.Position, obj.Owner.getOrElse(PlanetSideGUID(0)))
           sendResponse(DeployableObjectsInfoMessage(DeploymentAction.Build, deployInfo))
@@ -2711,12 +2803,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
             case _ =>
               obj.NextFireMode
           }
-          obj.NextFireMode
           val modeIndex = obj.FireModeIndex
           val tool_guid = obj.GUID
           if(originalModeIndex == modeIndex) {
             obj.FireModeIndex = originalModeIndex
-            sendResponse(ChangeFireModeMessage(tool_guid, originalModeIndex))
+            sendResponse(ChangeFireModeMessage(tool_guid, originalModeIndex)) //reinforcement
           }
           else {
             log.info(s"ChangeFireMode: changing $tool_guid to fire mode $modeIndex")
@@ -2724,7 +2815,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireMode(player.GUID, tool_guid, modeIndex))
           }
         case Some(_) =>
-          log.error(s"ChangeFireMode: the object that was found for $item_guid was not a Tool")
+          log.error(s"ChangeFireMode: the object that was found for $item_guid does not possess fire modes")
         case None =>
           log.error(s"ChangeFireMode: can not find $item_guid")
       }
@@ -2734,7 +2825,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       if(shooting.isEmpty) {
         FindEquipment match {
           case Some(tool : Tool) =>
-            if(tool.GUID == item_guid && tool.Magazine > 0) {
+            if(tool.Magazine > 0) {
               shooting = Some(item_guid)
               avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireState_Start(player.GUID, item_guid))
             }
@@ -2772,6 +2863,22 @@ class WorldSessionActor extends Actor with MDCContextAware {
           if(tool.Magazine == 0) {
             FireCycleCleanup(tool)
           }
+        case Some(trigger : BoomerTrigger) =>
+          val playerGUID = player.GUID
+          avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireState_Start(playerGUID, item_guid))
+          continent.GUID(trigger.Companion.getOrElse(PlanetSideGUID(0))) match {
+            case Some(boomer : BoomerDeployable) =>
+              val boomerGUID = boomer.GUID
+              boomer.Exploded = true
+              sendResponse(TriggerEffectMessage(boomerGUID, "detonate_boomer"))
+              sendResponse(PlanetsideAttributeMessage(boomerGUID, 29, 1))
+              localService ! LocalServiceMessage(continent.Id, LocalAction.TriggerEffect(playerGUID, "detonate_boomer", boomerGUID))
+              avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(boomerGUID, 29, 1))
+              localService ! LocalServiceMessage.Deployables(RemoverActor.AddTask(boomer, continent, Some(0 seconds)))
+            case Some(_) | None => ;
+          }
+          FindEquipmentToDelete(item_guid, trigger)
+          trigger.Companion = None
         case _ => ;
       }
       progressBarUpdate.cancel //TODO independent action?
@@ -3603,6 +3710,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
             case Some(obj : Player) =>
               Some((obj, hitInfo.shot_origin, hitInfo.hit_pos))
             case Some(obj : Vehicle) =>
+              Some((obj, hitInfo.shot_origin, hitInfo.hit_pos))
+            case Some(obj : PlanetSideGameObject with Deployable) =>
               Some((obj, hitInfo.shot_origin, hitInfo.hit_pos))
             case _ =>
               None
@@ -6070,6 +6179,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
       case obj : Vehicle =>
         //damage is synchronized on the vehicle actor (results returned to and distributed from this `WSA`)
         obj.Actor ! Vitality.Damage(func)
+      case obj : Deployable =>
+        //damage is synchronized on `LSA` (results returned to and distributed from this `WSA`)
+        localService ! Vitality.DamageOn(obj, func)
       case _ => ;
     }
   }
@@ -6246,9 +6358,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
       if(!ConstructionItemPermissionComparison(certifications, obj.ModePermissions)) {
         PerformConstructionItemAmmoChange(obj, obj.AmmoTypeIndex)
       }
-      sendResponse(ChangeFireModeMessage(obj.GUID, obj.AmmoTypeIndex))
     }
-    while(!ConstructionItemPermissionComparison(certifications, obj.ModePermissions) || originalModeIndex != obj.FireModeIndex)
+    while(!ConstructionItemPermissionComparison(certifications, obj.ModePermissions) && originalModeIndex != obj.FireModeIndex)
+    sendResponse(ChangeFireModeMessage(obj.GUID, obj.FireModeIndex))
     obj.FireMode
   }
 
@@ -6365,7 +6477,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     //map icon
     val deployInfo = DeployableInfo(guid, Deployable.Icon(item), obj.Position, obj.Owner.getOrElse(PlanetSideGUID(0)))
     sendResponse(DeployableObjectsInfoMessage(DeploymentAction.Build, deployInfo))
-    localService ! LocalServiceMessage(continent.Id, LocalAction.DeployableMapIcon(player.GUID, DeploymentAction.Build, deployInfo))
+    localService ! LocalServiceMessage(s"${continent.Id}/${player.Faction}", LocalAction.DeployableMapIcon(player.GUID, DeploymentAction.Build, deployInfo))
   }
 
   /**
@@ -6549,6 +6661,27 @@ class WorldSessionActor extends Actor with MDCContextAware {
   }
 
   /**
+    * Common behavior for deconstructing expended explosive deployables in the game environment.
+    * @param obj the deployable
+    * @param guid the globally unique identifier for the deployable
+    * @param pos the previous position of the deployable
+    */
+  def DeconstructDeployable(obj : PlanetSideGameObject with Deployable, guid : PlanetSideGUID, pos : Vector3) : Unit = {
+    StartBundlingPackets()
+    sendResponse(SetEmpireMessage(guid, PlanetSideEmpire.NEUTRAL)) //for some, removes the green marker circle
+    sendResponse(ObjectDeleteMessage(guid, 0))
+    if(player.Faction == obj.Faction) {
+      sendResponse(
+        DeployableObjectsInfoMessage(
+          DeploymentAction.Dismiss,
+          DeployableInfo(guid, Deployable.Icon(obj.Definition.Item), pos, obj.Owner.getOrElse(PlanetSideGUID(0)))
+        )
+      )
+    }
+    StopBundlingPackets()
+  }
+
+  /**
     * Common behavior for deconstructing deployables in the game environment.
     * @param obj the deployable
     * @param guid the globally unique identifier for the deployable
@@ -6562,13 +6695,53 @@ class WorldSessionActor extends Actor with MDCContextAware {
     sendResponse(TriggerEffectMessage("spawn_object_failed_effect", pos, orient))
     sendResponse(PlanetsideAttributeMessage(guid, 29, 1)) //make deployable vanish
     sendResponse(ObjectDeleteMessage(guid, deletionType))
-    sendResponse(
-      DeployableObjectsInfoMessage(
-        DeploymentAction.Dismiss,
-        DeployableInfo(guid, Deployable.Icon(obj.Definition.Item), pos, obj.Owner.getOrElse(PlanetSideGUID(0)))
+    if(player.Faction == obj.Faction) {
+      sendResponse(
+        DeployableObjectsInfoMessage(
+          DeploymentAction.Dismiss,
+          DeployableInfo(guid, Deployable.Icon(obj.Definition.Item), pos, obj.Owner.getOrElse(PlanetSideGUID(0)))
+        )
       )
-    )
+    }
     StopBundlingPackets()
+  }
+
+  /**
+    * Distribute information that a deployable has been destroyed.
+    * The deployable may not have yet been eliminated from the game world (client or server),
+    * but its health is zero and it has entered the conditions where it is nearly irrelevant.<br>
+    * <br>
+    * The typical use case of this function involves destruction via weapon fire, attributed to a particular player.
+    * Contrast this to simply destroying a deployable by being the deployable's owner and using the map icon controls.
+    * This function eventually invokes the same routine
+    * but mainly goes into effect when the deployable has been destroyed
+    * and may still leave a physical component in the game world to be cleaned up later.
+    * That is the task `EliminateDeployable` performs.
+    * Additionally, since the player who destroyed the deployable isn't necessarily the owner,
+    * and the real owner will still be aware of the existence of the deployable,
+    * that player must be informed of the loss of the deployable directly.
+    * @see `DeployableRemover`
+    * @see `Vitality.DamageResolution`
+    * @see `LocalResponse.EliminateDeployable`
+    * @see `DeconstructDeployable`
+    * @param target the deployable that is destroyed
+    * @param time length of time that the deployable is allowed to exist in the game world;
+    *             `None` indicates the normal un-owned existence time (180 seconds)
+    */
+  def AnnounceDestroyDeployable(target : PlanetSideGameObject with Deployable, time : Option[FiniteDuration]) : Unit = {
+    target.OwnerName match {
+      case Some(owner) =>
+        target.OwnerName = None
+        localService ! LocalServiceMessage(owner, LocalAction.AlertDestroyDeployable(PlanetSideGUID(0), target))
+      case None => ;
+    }
+    localService ! LocalServiceMessage(s"${continent.Id}/${target.Faction}", LocalAction.DeployableMapIcon(
+      PlanetSideGUID(0),
+      DeploymentAction.Dismiss,
+      DeployableInfo(target.GUID, Deployable.Icon(target.Definition.Item), target.Position, PlanetSideGUID(0)))
+    )
+    localService ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(target), continent))
+    localService ! LocalServiceMessage.Deployables(RemoverActor.AddTask(target, continent, time))
   }
 
   /**

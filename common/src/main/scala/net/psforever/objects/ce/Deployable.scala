@@ -2,15 +2,28 @@
 package net.psforever.objects.ce
 
 import net.psforever.objects._
-import net.psforever.objects.definition.{DeployableDefinition, ObjectDefinition}
+import net.psforever.objects.definition.{BaseDeployableDefinition, ObjectDefinition}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
+import net.psforever.objects.vital.{DamageResistanceModel, Vitality}
 import net.psforever.packet.game.{DeployableIcon, PlanetSideGUID}
 import net.psforever.types.PlanetSideEmpire
 
-trait Deployable extends FactionAffinity {
+trait Deployable extends FactionAffinity
+  with Vitality {
+  this : PlanetSideGameObject =>
+  private var health : Int = 1
   private var faction : PlanetSideEmpire.Value = PlanetSideEmpire.NEUTRAL
   private var owner : Option[PlanetSideGUID] = None
   private var ownerName : Option[String] = None
+
+  def Health : Int = health
+
+  def Health_=(toHealth : Int) : Int = {
+    health = math.min(math.max(0, toHealth), MaxHealth)
+    Health
+  }
+
+  def MaxHealth : Int
 
   def Faction : PlanetSideEmpire.Value = faction
 
@@ -51,7 +64,9 @@ trait Deployable extends FactionAffinity {
     OwnerName
   }
 
-  def Definition : ObjectDefinition with DeployableDefinition
+  def DamageModel : DamageResistanceModel = Definition.asInstanceOf[DamageResistanceModel]
+
+  def Definition : ObjectDefinition with BaseDeployableDefinition
 }
 
 object Deployable {

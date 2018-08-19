@@ -21,24 +21,18 @@ class DeployableRemover extends RemoverActor {
   def InitialJob(entry : RemoverActor.Entry) : Unit = { }
 
   def FirstJob(entry : RemoverActor.Entry) : Unit = {
-    entry.zone.Deployables ! Zone.Deployable.Dismiss(entry.obj.asInstanceOf[PlanetSideGameObject with Deployable])
-  }
-
-  override def SecondJob(entry : RemoverActor.Entry) : Unit = {
-    entry.obj match {
-      case obj : BoomerDeployable =>
-        SecondJobBoomer(obj, entry)
-      case obj : PlanetSideGameObject with Deployable =>
-        SecondJobDeployable(obj, entry)
-      case _ => ; //impossible case
+    val obj = entry.obj
+    obj match {
+      case boomer : BoomerDeployable =>
+        FirstJobBoomer(boomer, entry)
+      case _ => ;
     }
-    super.SecondJob(entry)
+    entry.zone.Deployables ! Zone.Deployable.Dismiss(obj.asInstanceOf[PlanetSideGameObject with Deployable])
   }
 
-  def SecondJobBoomer(obj : BoomerDeployable, entry : RemoverActor.Entry) : Unit = {
+  def FirstJobBoomer(obj : BoomerDeployable, entry : RemoverActor.Entry) : Unit = {
     obj.Trigger match {
       case Some(trigger) =>
-        obj.Trigger = None
         if(trigger.HasGUID) {
           val guid = trigger.GUID
           Zone.EquipmentIs.Where(trigger, guid, entry.zone) match {
@@ -49,15 +43,16 @@ class DeployableRemover extends RemoverActor {
             case _ => ;
           }
           context.parent ! DeployableRemover.DeleteTrigger(guid, entry.zone)
-          taskResolver ! GUIDTask.UnregisterObjectTask(trigger)(entry.zone.GUID)
         }
       case None => ;
     }
-    SecondJobDeployable(obj, entry)
   }
 
-  def SecondJobDeployable(obj : PlanetSideGameObject with Deployable, entry : RemoverActor.Entry) : Unit = {
+  override def SecondJob(entry : RemoverActor.Entry) : Unit = {
+    val obj = entry.obj.asInstanceOf[PlanetSideGameObject with Deployable]
+    info(s"Deleting a ${obj.Definition.Name} deployable")
     context.parent ! DeployableRemover.EliminateDeployable(obj, obj.GUID, obj.Position, entry.zone)
+    super.SecondJob(entry)
   }
 
   def ClearanceTest(entry : RemoverActor.Entry) : Boolean = !entry.zone.DeployableList.contains(entry.obj)
@@ -66,6 +61,14 @@ class DeployableRemover extends RemoverActor {
     entry.obj match {
       case turret : TurretDeployable =>
         GUIDTask.UnregisterDeployableTurret(turret)(entry.zone.GUID)
+      case boomer : BoomerDeployable =>
+        boomer.Trigger match {
+          case Some(trigger) =>
+            boomer.Trigger = None
+            taskResolver ! GUIDTask.UnregisterObjectTask(trigger)(entry.zone.GUID)
+          case None => ;
+        }
+        GUIDTask.UnregisterObjectTask(boomer)(entry.zone.GUID)
       case obj =>
         GUIDTask.UnregisterObjectTask(obj)(entry.zone.GUID)
     }
@@ -79,5 +82,5 @@ object DeployableRemover {
                                        zone : Zone)
 
   final case class DeleteTrigger(trigger_guid : PlanetSideGUID,
-                                 zone_id : Zone)
+                                 zone : Zone)
 }

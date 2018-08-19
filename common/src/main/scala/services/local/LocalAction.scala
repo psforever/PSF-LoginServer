@@ -1,6 +1,8 @@
 // Copyright (c) 2017 PSForever
 package services.local
 
+import net.psforever.objects.PlanetSideGameObject
+import net.psforever.objects.ce.Deployable
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.serverobject.hackable.Hackable
@@ -12,6 +14,7 @@ import net.psforever.types.{PlanetSideEmpire, Vector3}
 object LocalAction {
   trait Action
 
+  final case class AlertDestroyDeployable(player_guid : PlanetSideGUID, obj : PlanetSideGameObject with Deployable) extends Action
   final case class DeployableMapIcon(player_guid : PlanetSideGUID, behavior : DeploymentAction.Value, deployInfo : DeployableInfo) extends Action
   final case class DoorOpens(player_guid : PlanetSideGUID, continent : Zone, door : Door) extends Action
   final case class DoorCloses(player_guid : PlanetSideGUID, door_guid : PlanetSideGUID) extends Action
@@ -20,8 +23,9 @@ object LocalAction {
   final case class ClearTemporaryHack(player_guid: PlanetSideGUID, target: PlanetSideServerObject with Hackable) extends Action
   final case class HackCaptureTerminal(player_guid : PlanetSideGUID, continent : Zone, target : CaptureTerminal, unk1 : Long, unk2 : Long = 8L, isResecured : Boolean) extends Action
   final case class ProximityTerminalEffect(player_guid : PlanetSideGUID, object_guid : PlanetSideGUID, effectState : Boolean) extends Action
-  final case class TriggerEffect1(player_guid : PlanetSideGUID, effect : String, pos : Vector3, orient : Vector3) extends Action
-  final case class TriggerEffect2(player_guid : PlanetSideGUID, effect : String, target : PlanetSideGUID, effectInfo : TriggeredEffect) extends Action
+  final case class TriggerEffect(player_guid : PlanetSideGUID, effect : String, target : PlanetSideGUID) extends Action
+  final case class TriggerEffectInfo(player_guid : PlanetSideGUID, effect : String, target : PlanetSideGUID, unk1 : Boolean, unk2 : Long) extends Action
+  final case class TriggerEffectLocation(player_guid : PlanetSideGUID, effect : String, pos : Vector3, orient : Vector3) extends Action
   final case class TriggerSound(player_guid : PlanetSideGUID, sound : TriggeredSound.Value, pos : Vector3, unk : Int, volume : Float) extends Action
   final case class SetEmpire(object_guid: PlanetSideGUID, empire: PlanetSideEmpire.Value) extends Action
 }

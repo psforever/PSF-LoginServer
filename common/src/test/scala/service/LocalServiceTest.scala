@@ -1,6 +1,6 @@
+// Copyright (c) 2017 PSForever
 package service
 
-// Copyright (c) 2017 PSForever
 import akka.actor.Props
 import base.ActorTest
 import net.psforever.objects.serverobject.PlanetSideServerObject
@@ -122,24 +122,35 @@ class ProximityTerminalEffectTest extends ActorTest {
   }
 }
 
-class TriggerEffect1Test extends ActorTest {
+class TriggerEffectTest extends ActorTest {
   "LocalService" should {
     "pass TriggerEffect (1)" in {
       val service = system.actorOf(Props[LocalService], "service")
       service ! Service.Join("test")
-      service ! LocalServiceMessage("test", LocalAction.TriggerEffect1(PlanetSideGUID(10), "spawn_object_failed_effect", Vector3(1.1f, 2.2f, 3.3f), Vector3(4.4f, 5.5f, 6.6f)))
-      expectMsg(LocalServiceResponse("/test/Local", PlanetSideGUID(10), LocalResponse.TriggerEffect1("spawn_object_failed_effect", Vector3(1.1f, 2.2f, 3.3f), Vector3(4.4f, 5.5f, 6.6f))))
+      service ! LocalServiceMessage("test", LocalAction.TriggerEffect(PlanetSideGUID(10), "on", PlanetSideGUID(40)))
+      expectMsg(LocalServiceResponse("/test/Local", PlanetSideGUID(10), LocalResponse.TriggerEffect(PlanetSideGUID(40), "on", None, None)))
     }
   }
 }
 
-class TriggerEffect2Test extends ActorTest {
+class TriggerEffectInfoTest extends ActorTest {
   "LocalService" should {
     "pass TriggerEffect (2)" in {
       val service = system.actorOf(Props[LocalService], "service")
       service ! Service.Join("test")
-      service ! LocalServiceMessage("test", LocalAction.TriggerEffect2(PlanetSideGUID(10), "on", PlanetSideGUID(40), TriggeredEffect(true, 1000)))
-      expectMsg(LocalServiceResponse("/test/Local", PlanetSideGUID(10), LocalResponse.TriggerEffect2("on", PlanetSideGUID(40), TriggeredEffect(true, 1000))))
+      service ! LocalServiceMessage("test", LocalAction.TriggerEffectInfo(PlanetSideGUID(10), "on", PlanetSideGUID(40), true, 1000))
+      expectMsg(LocalServiceResponse("/test/Local", PlanetSideGUID(10), LocalResponse.TriggerEffect(PlanetSideGUID(40), "on", Some(TriggeredEffect(true, 1000)), None)))
+    }
+  }
+}
+
+class TriggerEffectLocationTest extends ActorTest {
+  "LocalService" should {
+    "pass TriggerEffect (3)" in {
+      val service = system.actorOf(Props[LocalService], "service")
+      service ! Service.Join("test")
+      service ! LocalServiceMessage("test", LocalAction.TriggerEffectLocation(PlanetSideGUID(10), "spawn_object_failed_effect", Vector3(1.1f, 2.2f, 3.3f), Vector3(4.4f, 5.5f, 6.6f)))
+      expectMsg(LocalServiceResponse("/test/Local", PlanetSideGUID(10), LocalResponse.TriggerEffect(PlanetSideGUID(0), "spawn_object_failed_effect", None, Some(TriggeredEffectLocation(Vector3(1.1f, 2.2f, 3.3f), Vector3(4.4f, 5.5f, 6.6f))))))
     }
   }
 }

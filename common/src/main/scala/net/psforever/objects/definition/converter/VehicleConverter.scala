@@ -15,7 +15,7 @@ class VehicleConverter extends ObjectCreateConverter[Vehicle]() {
 
   override def ConstructorData(obj : Vehicle) : Try[VehicleData] = {
     val health = 255 * obj.Health / obj.MaxHealth //TODO not precise
-    if(health > 3) { //active
+    if(health > 0) { //active
       Success(
         VehicleData(
           PlacementData(obj.Position, obj.Orientation, obj.Velocity),

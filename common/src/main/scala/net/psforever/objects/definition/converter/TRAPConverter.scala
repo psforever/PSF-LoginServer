@@ -10,7 +10,7 @@ import scala.util.{Failure, Success, Try}
 class TRAPConverter extends ObjectCreateConverter[TrapDeployable]() {
   override def ConstructorData(obj : TrapDeployable) : Try[TRAPData] = {
     val health = 255 * obj.Health / obj.MaxHealth //TODO not precise
-    if(health > 3) {
+    if(health > 0) {
       Success(
         TRAPData(
           SmallDeployableData(

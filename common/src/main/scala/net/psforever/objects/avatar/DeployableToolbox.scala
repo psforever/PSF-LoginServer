@@ -590,8 +590,8 @@ object DeployableToolbox {
           }
 
         case GroundSupport =>
-          counts(DeployedItem.router_telepad_deployable).Max = 1
-          categories(DeployableCategory.Telepads).Max = 1
+          counts(DeployedItem.router_telepad_deployable).Max = 1024
+          categories(DeployableCategory.Telepads).Max = 1024
 
         case _ => ;
       }
