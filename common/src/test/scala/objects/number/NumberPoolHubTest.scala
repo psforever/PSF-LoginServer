@@ -136,15 +136,33 @@ class NumberPoolHubTest extends Specification {
       }
     }
 
-    "register an object to a specific, pooled number" in {
-      val hub = new NumberPoolHub(new LimitedNumberSource(51))
+    "register an object to a specific, pooled number (list 1)" in {
+      val src = new LimitedNumberSource(51)
+      val hub = new NumberPoolHub(src)
       hub.AddPool("fibonacci", numberList)
+      val obj = new EntityTestClass()
+      obj.GUID must throwA[Exception]
+      hub.register(obj, 5) match {
+        case Success(number) =>
+          obj.GUID mustEqual PlanetSideGUID(number)
+          hub.WhichPool(obj) mustEqual Some("fibonacci")
+          src.Available(5) mustEqual None
+        case _ =>
+          ko
+      }
+    }
+
+    "register an object to a specific, pooled number (list 2)" in {
+      val src = new LimitedNumberSource(51)
+      val hub = new NumberPoolHub(src)
+      hub.AddPool("fibonacci", numberList2)
       val obj = new EntityTestClass()
       obj.GUID must throwA[Exception]
       hub.register(obj, 13) match {
         case Success(number) =>
           obj.GUID mustEqual PlanetSideGUID(number)
           hub.WhichPool(obj) mustEqual Some("fibonacci")
+          src.Available(13) mustEqual None
         case _ =>
           ko
       }
