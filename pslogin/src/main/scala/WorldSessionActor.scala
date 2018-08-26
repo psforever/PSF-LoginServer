@@ -2221,6 +2221,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
       avatar.Certifications += CombatEngineering
       avatar.Certifications += FortificationEngineering
       avatar.Certifications += AssaultEngineering
+      avatar.Certifications += Hacking
+      avatar.Certifications += AdvancedHacking
       this.avatar = avatar
 
       InitializeDeployableQuantities(avatar) //set deployables ui elements
