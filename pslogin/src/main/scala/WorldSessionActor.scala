@@ -14,7 +14,7 @@ import csr.{CSRWarp, CSRZone, Traveler}
 import net.psforever.objects.GlobalDefinitions._
 import services.ServiceManager.Lookup
 import net.psforever.objects._
-import net.psforever.objects.avatar.Certification
+import net.psforever.objects.avatar.{Certification, DeployableToolbox}
 import net.psforever.objects.ballistics._
 import net.psforever.objects.ce.{ComplexDeployable, Deployable, DeployedItem, SimpleDeployable}
 import net.psforever.objects.definition.{ConstructionFireMode, DeployableDefinition, ObjectDefinition, ToolDefinition}
@@ -453,16 +453,23 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
         case AvatarResponse.KilledWhileInVehicle() =>
           if(player.isAlive && player.VehicleSeated.nonEmpty) {
-            continent.GUID(player.VehicleSeated.get) match {
-              case Some(vehicle : Vehicle) =>
-                if(vehicle.Health == 0) {
-                  vehicle.LastShot match {
-                    case Some(cause) =>
-                      player.History(cause)
-                    case None => ;
-                  }
-                  KillPlayer(player)
+            (continent.GUID(player.VehicleSeated.get) match {
+              case Some(obj : Vehicle) =>
+                if(obj.Health == 0) Some(obj) else None
+              case Some(obj : TurretDeployable) =>
+                if(obj.Health == 0) Some(obj) else None
+              case Some(obj : FacilityTurret) =>
+                if(obj.Health == 0) Some(obj) else None
+              case _ =>
+                None
+            }) match {
+              case Some(obj : PlanetSideGameObject with Vitality) =>
+                obj.LastShot match {
+                  case Some(cause) =>
+                    player.History(cause)
+                  case None => ;
                 }
+                KillPlayer(player)
               case _ => ;
             }
           }
@@ -2120,10 +2127,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
       //spitfires and field turrets
       val health = target.Health
       val guid = target.GUID
-      avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(guid, 0, health))
+      val continentId = continent.Id
       if(health <= 0) {
-        val continentId = continent.Id
-        //if occupants, kill and kick them
+        //if occupants, kill them
         target.Seats.values
           .filter(seat => { seat.isOccupied && seat.Occupant.get.isAlive })
           .foreach(seat => {
@@ -2142,6 +2148,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           }
         AnnounceDestroyDeployable(target, None)
       }
+      avatarService ! AvatarServiceMessage(continentId, AvatarAction.PlanetsideAttribute(guid, 0, health))
 
     case Vitality.DamageResolution(target : ComplexDeployable) =>
       //shield_generators
@@ -2394,7 +2401,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
         }
       })
       //render deployable objects
-      continent.DeployableList.foreach(obj => {
+      val (turrets, normal) = continent.DeployableList.partition(obj =>
+        DeployableToolbox.UnifiedType(obj.Definition.Item) == DeployedItem.portable_manned_turret
+      )
+      normal.foreach(obj => {
         val definition = obj.Definition
         sendResponse(
           ObjectCreateMessage(
@@ -2403,6 +2413,34 @@ class WorldSessionActor extends Actor with MDCContextAware {
             definition.Packet.ConstructorData(obj).get
           )
         )
+      })
+      turrets.foreach(obj => {
+        val objGUID = obj.GUID
+        val definition = obj.Definition
+        sendResponse(
+          ObjectCreateMessage(
+            definition.ObjectId,
+            objGUID,
+            definition.Packet.ConstructorData(obj).get
+          )
+        )
+        //seated players
+        obj.asInstanceOf[Mountable].Seats.values
+          .map(_.Occupant) 
+          .collect {
+            case Some(occupant) =>
+              if(occupant.isAlive) {
+                val tdefintion = occupant.Definition
+                sendResponse(
+                  ObjectCreateMessage(
+                    tdefintion.ObjectId,
+                    occupant.GUID,
+                    ObjectCreateMessageParent(objGUID, 0),
+                    tdefintion.Packet.ConstructorData(occupant).get
+                  )
+                )
+              }
+          }
       })
       //draw our faction's deployables on the map
       continent.DeployableList
@@ -4858,7 +4896,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
   }
 
   /**
-    * Given an object that contains a box of amunition in its `Inventry` at a certain location,
+    * Given an object that contains a box of amunition in its `Inventory` at a certain location,
     * change the amount of ammunition within that box.
     * @param obj the `Container`
     * @param box an `AmmoBox` to modify

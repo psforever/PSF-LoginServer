@@ -333,7 +333,11 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
 
   private def AssignAmenities() : Unit = {
     Map.ObjectToBuilding.foreach({ case(object_guid, building_id) =>
-      buildings(building_id).Amenities = guid(object_guid).get.asInstanceOf[Amenity]
+      (buildings.get(building_id), guid(object_guid)) match {
+        case (Some(building), Some(amenity)) =>
+          building.Amenities = amenity.asInstanceOf[Amenity]
+        case (None, _) | (_, None) => ; //let ZoneActor's sanity check catch this error
+      }
     })
   }
 

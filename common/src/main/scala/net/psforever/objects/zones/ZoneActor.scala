@@ -149,17 +149,21 @@ class ZoneActor(zone : Zone) extends Actor {
     val errors = new AtomicInteger(0)
     val validateObject : (Int, (PlanetSideGameObject)=>Boolean, String) => Boolean = ValidateObject(guid, slog, errors)
 
-    //check base to object associations
-    map.ObjectToBuilding.foreach({ case((object_guid, building_id)) =>
+    //check bases
+    map.ObjectToBuilding.values.toSet[Int].foreach(building_id =>
       if(zone.Building(building_id).isEmpty) {
-        slog.error(s"expected a building at id #$building_id")
+        slog.error(s"expected a building for id #$building_id")
         errors.incrementAndGet()
       }
+    )
+
+    //check base to object associations
+    map.ObjectToBuilding.keys.foreach(object_guid =>
       if(guid(object_guid).isEmpty) {
         slog.error(s"expected object id $object_guid to exist, but it did not")
         errors.incrementAndGet()
       }
-    })
+    )
 
     //check door to lock association
     map.DoorToLock.foreach({ case((door_guid, lock_guid)) =>

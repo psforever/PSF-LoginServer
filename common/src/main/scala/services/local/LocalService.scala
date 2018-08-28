@@ -206,6 +206,7 @@ class LocalService extends Actor {
             case None => ;
           }
         })
+        import scala.concurrent.ExecutionContext.Implicits.global
         context.system.scheduler.scheduleOnce(Duration.create(2, "seconds"), self, msg)
       }
       else {

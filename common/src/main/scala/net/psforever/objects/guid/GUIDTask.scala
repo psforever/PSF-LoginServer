@@ -195,7 +195,7 @@ object GUIDTask {
   def RegisterDeployableTurret(obj : PlanetSideGameObject with WeaponTurret)(implicit guid : ActorRef) : TaskResolver.GiveTask = {
     TaskResolver.GiveTask(
       RegisterObjectTask(obj).task,
-      VisibleSlotTaskBuilding(obj.Weapons.values, GUIDTask.RegisterEquipment)
+      VisibleSlotTaskBuilding(obj.Weapons.values, GUIDTask.RegisterEquipment) ++ RegisterInventory(obj)
     )
   }
 
@@ -340,7 +340,7 @@ object GUIDTask {
   def UnregisterDeployableTurret(obj : PlanetSideGameObject with WeaponTurret)(implicit guid : ActorRef) : TaskResolver.GiveTask = {
     TaskResolver.GiveTask(
       UnregisterObjectTask(obj).task,
-      VisibleSlotTaskBuilding(obj.Weapons.values, GUIDTask.UnregisterEquipment)
+      VisibleSlotTaskBuilding(obj.Weapons.values, GUIDTask.UnregisterEquipment) ++ UnregisterInventory(obj)
     )
   }
 

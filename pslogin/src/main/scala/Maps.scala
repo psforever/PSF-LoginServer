@@ -477,7 +477,7 @@ object Maps {
       ObjectToBuilding(923, 10)
       ObjectToBuilding(932, 10)
       ObjectToBuilding(933, 10)
-      ObjectToBuilding(959, 10)
+      //ObjectToBuilding(959, 10) //TODO LLU socket
 
       ObjectToBuilding(971, 10)
       ObjectToBuilding(1105, 10)
@@ -554,6 +554,7 @@ object Maps {
 
     def Building11() : Unit = { // Irkalla
       LocalBuilding(11, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(4812f, 5212f, 0)))) // Todo change pos
+      LocalObject(227, CaptureTerminal.Constructor(capture_terminal))
       LocalObject(562, Door.Constructor)
       LocalObject(563, Door.Constructor)
       LocalObject(566, Door.Constructor)
@@ -631,6 +632,8 @@ object Maps {
 
       //      ObjectToBuilding(1912, 11)
       //      ObjectToBuilding(1913, 11)
+
+      ObjectToBuilding(227, 11)
 
       ObjectToBuilding(562, 11)
       ObjectToBuilding(563, 11)
