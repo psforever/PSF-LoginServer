@@ -67,7 +67,7 @@ class TriggerEffectMessageTest extends Specification {
   }
 
   "encode (boomer explode)" in {
-    val msg = TriggerEffectMessage(PlanetSideGUID(2527), "spawn_object_effect")
+    val msg = TriggerEffectMessage(PlanetSideGUID(2527), "detonate_boomer")
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string_boomer_explode

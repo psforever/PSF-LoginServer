@@ -2376,10 +2376,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
       val continentId = continent.Id
       traveler.zone = continentId
       val faction = player.Faction
+      val factionOnContinentChannel = s"$continentId/$faction"
       StartBundlingPackets()
       avatarService ! Service.Join(continentId)
+      avatarService ! Service.Join(factionOnContinentChannel)
       localService ! Service.Join(continentId)
-      localService ! Service.Join(s"$continentId/$faction")
+      localService ! Service.Join(factionOnContinentChannel)
       vehicleService ! Service.Join(continentId)
       galaxyService ! Service.Join("galaxy")
       configZone(continent)
@@ -6323,8 +6325,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
   def UpdateDeployableUIElements(list : List[(Int,Int,Int,Int)]) : Unit = {
     val guid = PlanetSideGUID(0)
     list.foreach({ case((currElem, curr, maxElem, max)) =>
-      //fields must update in this order
-      //log.info(s"Element update: $currElem, $curr; $maxElem, $max")
+      //fields must update in ordered pairs: max, curr
       sendResponse(PlanetsideAttributeMessage(guid, maxElem, max))
       sendResponse(PlanetsideAttributeMessage(guid, currElem, curr))
     })
@@ -6398,9 +6399,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
       if(!ConstructionItemPermissionComparison(certifications, obj.ModePermissions)) {
         PerformConstructionItemAmmoChange(obj, obj.AmmoTypeIndex)
       }
+      sendResponse(ChangeFireModeMessage(obj.GUID, obj.FireModeIndex))
     }
     while(!ConstructionItemPermissionComparison(certifications, obj.ModePermissions) && originalModeIndex != obj.FireModeIndex)
-    sendResponse(ChangeFireModeMessage(obj.GUID, obj.FireModeIndex))
     obj.FireMode
   }
 

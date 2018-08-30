@@ -46,7 +46,7 @@ object Maps {
 
     def Building5() : Unit = { // Akkan Dropship Center, Ishundar (ID: 24)
       LocalBuilding(5, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(2698.6406f, 4336.914f, 52.046875f)))) //todo ? change ?
-
+      //LocalObject(220, CaptureTerminal.Constructor(capture_terminal))
       //Akkan IDs for courtyard/lobby/dish/bunkers, no access to tower or basement with exception of stairs and backdoor areas only, can't proceed past it into basement)
 
       //Akkan Doors
@@ -123,6 +123,7 @@ object Maps {
       //      LocalObject(1901, ProximityTerminal.Constructor(medical_terminal))
 
       //Akkan ObjectToBuilding
+      //ObjectToBuilding(220, 5)
       ObjectToBuilding(281, 5)
       ObjectToBuilding(282, 5)
       ObjectToBuilding(283, 5)
@@ -725,6 +726,7 @@ object Maps {
 
     def Building25() : Unit = { // Gate Outpost Watch Tower (North of Forseral Warpgate), Ishundar (ID: 74)
       LocalBuilding(25, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(5404f, 4222f, 0)))) // TODO loc
+      LocalObject(2797, CaptureTerminal.Constructor(secondary_capture))
       LocalObject(2973, Door.Constructor)
       LocalObject(2974, Door.Constructor)
       LocalObject(590, Door.Constructor(Vector3(5405.992f, 4220.1797f, 39.1875f), Vector3(0, 0, 180)))
@@ -745,6 +747,7 @@ object Maps {
       LocalObject(2749, SpawnTube.Constructor(respawn_tube_tower, Vector3(5404.8125f, 4215.7344f, 29.484375f), Vector3(0, 0, 90)))
       LocalObject(2750, SpawnTube.Constructor(respawn_tube_tower, Vector3(5404.7656f, 4232.1562f, 29.484375f), Vector3(0, 0, 90)))
 
+      ObjectToBuilding(2797, 25)
       ObjectToBuilding(2973, 25)
       ObjectToBuilding(2974, 25)
       ObjectToBuilding(590, 25)
@@ -817,6 +820,7 @@ object Maps {
     }
     def Building34() : Unit = { // SE Hanish Gun Tower (ID: 60)
       LocalBuilding(34, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(4422f, 4852f, 0)))) // TODO loc
+      LocalObject(2789, CaptureTerminal.Constructor(secondary_capture))
       LocalObject(2951, Door.Constructor)
       LocalObject(2952, Door.Constructor)
       LocalObject(525, Door.Constructor(Vector3(4423.9766f, 4850.164f, 86.203125f), Vector3(0, 0, 180)))
@@ -833,6 +837,7 @@ object Maps {
       LocalObject(2727, SpawnTube.Constructor(respawn_tube_tower, Vector3(4422.8203f, 4845.711f, 76.4375f), Vector3(0, 0, 90)))
       LocalObject(2728, SpawnTube.Constructor(respawn_tube_tower, Vector3(4422.7344f, 4862.1406f, 76.4375f), Vector3(0, 0, 90)))
 
+      ObjectToBuilding(2789, 34)
       ObjectToBuilding(2951, 34)
       ObjectToBuilding(2952, 34)
       ObjectToBuilding(525, 34)
@@ -854,8 +859,10 @@ object Maps {
       DoorToLock(527, 1150)
       DoorToLock(528, 1151)
     }
+
     def Building35() : Unit = { // NE Akkan Watch Tower, Ishundar (ID: 69)
       LocalBuilding(35, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3096f, 5037f, 0)))) // TODO loc
+      LocalObject(2779, CaptureTerminal.Constructor(secondary_capture))
       LocalObject(2917, Door.Constructor)
       LocalObject(2918, Door.Constructor)
       LocalObject(414, Door.Constructor(Vector3(3098.0f, 5032.1484f, 81.9375f), Vector3(0, 0, 180)))
@@ -876,6 +883,7 @@ object Maps {
       LocalObject(2693, SpawnTube.Constructor(respawn_tube_tower, Vector3(3096.6562f, 5027.742f, 72.1875f), Vector3(0, 0, 90)))
       LocalObject(2694, SpawnTube.Constructor(respawn_tube_tower, Vector3(3096.7812f, 5044.1562f, 72.1875f), Vector3(0, 0, 90)))
 
+      ObjectToBuilding(2779, 35)
       ObjectToBuilding(2917, 35)
       ObjectToBuilding(2918, 35)
       ObjectToBuilding(414, 35)
@@ -903,8 +911,10 @@ object Maps {
       DoorToLock(418, 1063)
       DoorToLock(419, 1064)
     }
+
     def Building36() : Unit = { // West Girru Air Tower, Ishundar (ID: 83)
       LocalBuilding(36, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3748f, 6042f, 0)))) // TODO loc
+      LocalObject(2785, CaptureTerminal.Constructor(secondary_capture))
       LocalObject(2935, Door.Constructor)
       LocalObject(2936, Door.Constructor)
       LocalObject(477, Door.Constructor(Vector3(3750.0f, 6040.164f, 56.203125f), Vector3(0, 0, 180)))
@@ -921,6 +931,7 @@ object Maps {
       LocalObject(2711, SpawnTube.Constructor(respawn_tube_tower, Vector3(3748.7266f, 6035.7344f, 46.453125f), Vector3(0, 0, 90)))
       LocalObject(2712, SpawnTube.Constructor(respawn_tube_tower, Vector3(3748.6328f, 6052.125f, 46.453125f), Vector3(0, 0, 90)))
 
+      ObjectToBuilding(2785, 36)
       ObjectToBuilding(2935, 36)
       ObjectToBuilding(2936, 36)
       ObjectToBuilding(477, 36)
@@ -942,8 +953,10 @@ object Maps {
       DoorToLock(479, 1109)
       DoorToLock(480, 1110)
     }
+
     def Building55() : Unit = { // South Irkalla Air Tower, Ishundar (ID: 86)
       LocalBuilding(55, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(4894f, 4935f, 0)))) // TODO loc
+      LocalObject(2795, CaptureTerminal.Constructor(secondary_capture))
       LocalObject(2969, Door.Constructor)
       LocalObject(2970, Door.Constructor)
       LocalObject(581, Door.Constructor(Vector3(4896.0156f, 4932.125f, 67.75f), Vector3(0, 0, 180)))
@@ -960,6 +973,7 @@ object Maps {
       LocalObject(2745, SpawnTube.Constructor(respawn_tube_tower, Vector3(4894.7734f, 4927.742f, 57.984375f), Vector3(0, 0, 90)))
       LocalObject(2746, SpawnTube.Constructor(respawn_tube_tower, Vector3(4894.7734f, 4944.117f, 57.984375f), Vector3(0, 0, 90)))
 
+      ObjectToBuilding(2795, 55)
       ObjectToBuilding(2969, 55)
       ObjectToBuilding(2970, 55)
       ObjectToBuilding(581, 55)
@@ -981,8 +995,10 @@ object Maps {
       DoorToLock(583, 1197)
       DoorToLock(584, 1198)
     }
+
     def Building56() : Unit = { //  SW Hanish Air Tower, Ishundar (ID: 82)
       LocalBuilding(56, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3590f, 5290f, 0)))) // TODO loc
+      LocalObject(2784, CaptureTerminal.Constructor(secondary_capture))
       LocalObject(2932, Door.Constructor)
       LocalObject(2933, Door.Constructor)
       LocalObject(466, Door.Constructor(Vector3(3592.0f, 5286.1562f, 69.390625f), Vector3(0, 0, 180)))
@@ -999,6 +1015,7 @@ object Maps {
       LocalObject(2708, SpawnTube.Constructor(respawn_tube_tower, Vector3(3590.9062f, 5281.742f, 59.6875f), Vector3(0, 0, 90)))
       LocalObject(2709, SpawnTube.Constructor(respawn_tube_tower, Vector3(3590.836f, 5298.1484f, 59.6875f), Vector3(0, 0, 90)))
 
+      ObjectToBuilding(2784, 56)
       ObjectToBuilding(2932, 56)
       ObjectToBuilding(2933, 56)
       ObjectToBuilding(466, 56)
@@ -1020,8 +1037,10 @@ object Maps {
       DoorToLock(468, 1101)
       DoorToLock(469, 1102)
     }
+
     def Building59() : Unit = { // Gate Outpost Watch Tower (South of Cyssor Warpgate), Ishundar (ID: 73)
       LocalBuilding(59, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(4668f, 6625f, 0)))) // TODO loc
+      LocalObject(2793, CaptureTerminal.Constructor(secondary_capture))
       LocalObject(2959, Door.Constructor)
       LocalObject(2960, Door.Constructor)
       LocalObject(546, Door.Constructor(Vector3(4669.992f, 6620.1562f, 42.875f), Vector3(0, 0, 180)))
@@ -1042,6 +1061,7 @@ object Maps {
       LocalObject(2735, SpawnTube.Constructor(respawn_tube_tower, Vector3(4668.7656f, 6615.7344f, 33.109375f), Vector3(0, 0, 90)))
       LocalObject(2736, SpawnTube.Constructor(respawn_tube_tower, Vector3(4668.742f, 6632.1562f, 33.109375f), Vector3(0, 0, 90)))
 
+      ObjectToBuilding(2793, 59)
       ObjectToBuilding(2959, 59)
       ObjectToBuilding(2960, 59)
       ObjectToBuilding(546, 59)
@@ -1069,8 +1089,10 @@ object Maps {
       DoorToLock(550, 1169)
       DoorToLock(551, 1170)
     }
+
     def Building65() : Unit = { // West Hanish Gun Tower, Ishundar (ID: 56)
       LocalBuilding(65, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3012f, 5701f, 0)))) // TODO loc
+      LocalObject(2778, CaptureTerminal.Constructor(secondary_capture))
       LocalObject(2914, Door.Constructor)
       LocalObject(2915, Door.Constructor)
       LocalObject(404, Door.Constructor(Vector3(3003.9688f, 5706.1484f, 56.3125f), Vector3(0, 0, 180)))
@@ -1087,6 +1109,7 @@ object Maps {
       LocalObject(2690, SpawnTube.Constructor(respawn_tube_tower, Vector3(3022.711f, 5701.758f, 47f), Vector3(0, 0, 90)))
       LocalObject(2691, SpawnTube.Constructor(respawn_tube_tower, Vector3(3002.7188f, 5718.1562f, 47f), Vector3(0, 0, 90)))
 
+      ObjectToBuilding(2778, 65)
       ObjectToBuilding(2914, 65)
       ObjectToBuilding(2915, 65)
       ObjectToBuilding(404, 65)
@@ -1165,6 +1188,7 @@ object Maps {
     def Building2() : Unit = {
       //Anguta
       LocalBuilding(2, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(3974.2344f, 4287.914f, 0))))
+      LocalObject(180, CaptureTerminal.Constructor(capture_terminal))
       LocalObject(222, Door.Constructor) //air term building, bay door
       LocalObject(370, Door.Constructor) //courtyard
       LocalObject(371, Door.Constructor) //courtyard
@@ -1287,6 +1311,7 @@ object Maps {
       LocalObject(223,
         VehicleSpawnPad.Constructor(Vector3(4012.3594f, 4364.8047f, 271.90625f), Vector3(0f, 0f, 0f))
       )
+      ObjectToBuilding(180, 2)
       ObjectToBuilding(222, 2)
       ObjectToBuilding(223, 2)
       ObjectToBuilding(224, 2)
@@ -1475,6 +1500,7 @@ object Maps {
       LocalObject(1563, Terminal.Constructor(order_terminal))
       LocalObject(2138, SpawnTube.Constructor(respawn_tube_tower, Vector3(3870.9688f, 4505.7266f, 259.875f), Vector3(0, 0, 90)))
       LocalObject(2139, SpawnTube.Constructor(respawn_tube_tower, Vector3(3870.9688f, 4522.1562f, 259.875f), Vector3(0, 0, 90)))
+      LocalObject(2197, CaptureTerminal.Constructor(secondary_capture))
       LocalObject(2315, Door.Constructor) //spawn tube door
       LocalObject(2316, Door.Constructor) //spawn tube door
       ObjectToBuilding(364, 48)
@@ -1502,6 +1528,7 @@ object Maps {
       ObjectToBuilding(1563, 48)
       ObjectToBuilding(2138, 48)
       ObjectToBuilding(2139, 48)
+      ObjectToBuilding(2197, 48)
       ObjectToBuilding(2315, 48)
       ObjectToBuilding(2316, 48)
       DoorToLock(364, 857)
@@ -1542,6 +1569,7 @@ object Maps {
       LocalObject(1850, Terminal.Constructor(pad_landing)) //air pad N
       LocalObject(2156, SpawnTube.Constructor(respawn_tube_tower, Vector3(4364.633f, 3994.125f, 228.1875f), Vector3(0, 0, 90)))
       LocalObject(2157, SpawnTube.Constructor(respawn_tube_tower, Vector3(4364.633f, 3977.7266f, 228.1875f), Vector3(0, 0, 90)))
+      LocalObject(2203, CaptureTerminal.Constructor(secondary_capture))
       LocalObject(2333, Door.Constructor) //spawn tube door
       LocalObject(2334, Door.Constructor) //spawn tube door
       ObjectToBuilding(430, 49)
@@ -1571,6 +1599,7 @@ object Maps {
       ObjectToBuilding(1850, 49)
       ObjectToBuilding(2156, 49)
       ObjectToBuilding(2157, 49)
+      ObjectToBuilding(2203, 49)
       ObjectToBuilding(2333, 49)
       ObjectToBuilding(2334, 49)
       DoorToLock(430, 906)
@@ -1816,6 +1845,7 @@ object Maps {
       LocalObject(559, IFFLock.Constructor)
       LocalObject(670, FacilityTurret.Constructor(manned_turret))
       LocalObject(671, FacilityTurret.Constructor(manned_turret))
+      LocalObject(1019, CaptureTerminal.Constructor(secondary_capture))
       ObjectToBuilding(330, 29)
       ObjectToBuilding(331, 29)
       ObjectToBuilding(332, 29)
@@ -1826,6 +1856,7 @@ object Maps {
       ObjectToBuilding(559, 29)
       ObjectToBuilding(670, 29)
       ObjectToBuilding(671, 29)
+      ObjectToBuilding(1019, 29)
       DoorToLock(330, 558)
       DoorToLock(331, 559)
       DoorToLock(332, 556)

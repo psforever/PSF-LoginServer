@@ -191,7 +191,7 @@ class ResourceSiloControlUpdate1Test extends ActorTest {
         .actionMessage.asInstanceOf[AvatarAction.PlanetsideAttribute].attribute_value == 0)
 
       val reply4 = probe1.receiveOne(500 milliseconds)
-      assert(obj.LowNtuWarningOn == false)
+      assert(!obj.LowNtuWarningOn)
       assert(reply4.isInstanceOf[AvatarServiceMessage])
       assert(reply4.asInstanceOf[AvatarServiceMessage].forChannel == "nowhere")
       assert(reply4.asInstanceOf[AvatarServiceMessage]
