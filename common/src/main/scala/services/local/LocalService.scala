@@ -65,12 +65,10 @@ class LocalService extends Actor {
           LocalEvents.publish(
             LocalServiceResponse(s"/$forChannel/Local", Service.defaultPlayerGUID, LocalResponse.AlertDestroyDeployable(obj))
           )
-
         case LocalAction.DeployableMapIcon(player_guid, behavior, deployInfo) =>
           LocalEvents.publish(
             LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.DeployableMapIcon(behavior, deployInfo))
           )
-
         case LocalAction.DoorOpens(player_guid, zone, door) =>
           doorCloser ! DoorCloseActor.DoorIsOpen(door, zone)
           LocalEvents.publish(
@@ -113,6 +111,10 @@ class LocalService extends Actor {
           LocalEvents.publish(
             LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.ProximityTerminalEffect(object_guid, effectState))
           )
+        case LocalAction.SetEmpire(object_guid, empire) =>
+          LocalEvents.publish(
+            LocalServiceResponse(s"/$forChannel/Local", Service.defaultPlayerGUID, LocalResponse.SetEmpire(object_guid, empire))
+          )
         case LocalAction.TriggerEffect(player_guid, effect, target) =>
           LocalEvents.publish(
             LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.TriggerEffect(target, effect))
@@ -128,10 +130,6 @@ class LocalService extends Actor {
         case LocalAction.TriggerSound(player_guid, sound, pos, unk, volume) =>
           LocalEvents.publish(
             LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.TriggerSound(sound, pos, unk, volume))
-          )
-        case LocalAction.SetEmpire(object_guid, empire) =>
-          LocalEvents.publish(
-            LocalServiceResponse(s"/$forChannel/Local", PlanetSideGUID(-1), LocalResponse.SetEmpire(object_guid, empire))
           )
         case _ => ;
       }
@@ -239,11 +237,20 @@ class LocalService extends Actor {
   }
 
   /**
-    * na
-    * @param obj na
-    * @param guid na
-    * @param position na
-    * @param zoneId na
+    * Common behavior for distributing information about a deployable's destruction or deconstruction.<br>
+    * <br>
+    * The primary distribution task instructs all clients to eliminate the target deployable.
+    * This is a cosmetic exercise as the deployable should already be unregistered from its zone and
+    * functionally removed from its zone's list of deployable objects by external operations.
+    * The other distribution is a targeted message sent to the former owner of the deployable
+    * if he still exists on the server
+    * to clean up any leftover ownership-specific knowledge about the deployable.
+    * @see `DeployableRemover`
+    * @param obj the deployable object
+    * @param guid the deployable objects globally unique identifier;
+    *             may be a former identifier
+    * @param position the deployable's position
+    * @param zoneId the zone where the deployable is currently placed
     */
   def EliminateDeployable(obj : PlanetSideGameObject with Deployable, guid : PlanetSideGUID, position : Vector3, zoneId : String) : Unit = {
     LocalEvents.publish(

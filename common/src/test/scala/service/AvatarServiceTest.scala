@@ -377,6 +377,33 @@ class ChangeFireStateStopTest extends ActorTest {
   }
 }
 
+class DamageTest extends ActorTest {
+  val test_func_ref : (Any)=>Unit = {
+    def test_func(o : Any) : Unit = { }
+    test_func
+  }
+  val player = Player(Avatar("TestCharacter", PlanetSideEmpire.VS, CharacterGender.Female, 1, CharacterVoice.Voice1))
+
+  "AvatarService" should {
+    "pass Damage" in {
+      ServiceManager.boot(system)
+      val service = system.actorOf(Props[AvatarService], AvatarServiceTest.TestName)
+      service ! Service.Join("test")
+      service ! AvatarServiceMessage("test", AvatarAction.Damage(PlanetSideGUID(10), player, test_func_ref))
+      val msg = receiveOne(1 seconds)
+      assert(msg.isInstanceOf[AvatarServiceResponse])
+      assert(msg.asInstanceOf[AvatarServiceResponse].toChannel == "/test/Avatar")
+      assert(msg.asInstanceOf[AvatarServiceResponse].avatar_guid == PlanetSideGUID(10))
+      assert(msg.asInstanceOf[AvatarServiceResponse].replyMessage
+        .isInstanceOf[AvatarResponse.DamageResolution])
+      assert(msg.asInstanceOf[AvatarServiceResponse].replyMessage
+        .asInstanceOf[AvatarResponse.DamageResolution].target == player)
+      assert(msg.asInstanceOf[AvatarServiceResponse].replyMessage
+        .asInstanceOf[AvatarResponse.DamageResolution].resolution_function == test_func_ref)
+    }
+  }
+}
+
 class WeaponDryFireTest extends ActorTest {
   "AvatarService" should {
     "pass WeaponDryFire" in {
