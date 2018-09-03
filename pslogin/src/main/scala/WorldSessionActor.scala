@@ -35,7 +35,7 @@ import net.psforever.objects.serverobject.mblocker.Locker
 import net.psforever.objects.serverobject.pad.{VehicleSpawnControl, VehicleSpawnPad}
 import net.psforever.objects.serverobject.pad.process.{AutoDriveControls, VehicleSpawnControlGuided}
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
-import net.psforever.objects.serverobject.structures.{Building, StructureType, WarpGate}
+import net.psforever.objects.serverobject.structures.{Amenity, Building, StructureType, WarpGate}
 import net.psforever.objects.serverobject.terminals._
 import net.psforever.objects.serverobject.terminals.Terminal.TerminalMessage
 import net.psforever.objects.serverobject.tube.SpawnTube
@@ -605,6 +605,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
             localService ! LocalServiceMessage(factionOnContinentChannel, LocalAction.DeployableMapIcon(playerGUID, DeploymentAction.Build, info))
           case Some(_) | None => ; //pointless trigger; see Zone.Ground.ItemOnGround(BoomerTrigger, ...)
         }
+      }
+
+    case Zone.Ground.ItemInHand(item : ConstructionItem) =>
+      if(PutItemInHand(item) && item.Definition == GlobalDefinitions.router_telepad && player.Find(item).getOrElse(0) > 5) {
+        //telepad was placed in inventory or in hand; open inventory window
+
       }
 
     case Zone.Ground.ItemInHand(item : Equipment) =>
@@ -1468,7 +1474,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, true))
         }
 
-      case Terminal.BuyEquipment(item) => ;
+      case Terminal.BuyEquipment(item) =>
         tplayer.Fit(item) match {
           case Some(index) =>
             sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, true))
@@ -3618,40 +3624,85 @@ class WorldSessionActor extends Actor with MDCContextAware {
           }
 
         case Some(terminal : Terminal) =>
-          if(terminal.Definition.isInstanceOf[MatrixTerminalDefinition]) {
-            //TODO matrix spawn point; for now, just blindly bind to show work (and hope nothing breaks)
-            sendResponse(BindPlayerMessage(1, "@ams", true, true, 0, 0, 0, terminal.Position))
-          }
-          else if(terminal.Definition.isInstanceOf[RepairRearmSiloDefinition]) {
-            FindLocalVehicle match {
-              case Some(vehicle) =>
-                sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
-                sendResponse(UseItemMessage(avatar_guid, item_used_guid, vehicle.GUID, unk2, unk3, unk4, unk5, unk6, unk7, unk8, vehicle.Definition.ObjectId))
-              case None =>
-                log.error("UseItem: expected seated vehicle, but found none")
+          val tdef = terminal.Definition
+          val owned = terminal.Faction == player.Faction
+          val hacked = terminal.HackedBy.nonEmpty
+          if(owned) {
+            if(tdef.isInstanceOf[MatrixTerminalDefinition]) {
+              //TODO matrix spawn point; for now, just blindly bind to show work (and hope nothing breaks)
+              sendResponse(BindPlayerMessage(1, "@ams", true, true, 0, 0, 0, terminal.Position))
             }
-          }
-          else {
-            if(terminal.Faction != player.Faction && terminal.HackedBy.isEmpty) {
-              player.Slot(player.DrawnSlot).Equipment match {
-                case Some(tool: SimpleItem) =>
-                  if (tool.Definition == GlobalDefinitions.remote_electronics_kit) {
-                    val hackSpeed = GetPlayerHackSpeed(terminal)
-
-                    if(hackSpeed > 0) {
-                      progressBarValue = Some(-hackSpeed)
-                      self ! WorldSessionActor.HackingProgress(progressType = 1, player, terminal, tool.GUID, hackSpeed, FinishHacking(terminal, 3212836864L))
-                      log.info("Hacking a terminal")
-                    }
-                  }
-                case _ => ;
+            else if(tdef.isInstanceOf[RepairRearmSiloDefinition]) {
+              FindLocalVehicle match {
+                case Some(vehicle) =>
+                  sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
+                  sendResponse(UseItemMessage(avatar_guid, item_used_guid, vehicle.GUID, unk2, unk3, unk4, unk5, unk6, unk7, unk8, vehicle.Definition.ObjectId))
+                case None =>
+                  log.error("UseItem: expected seated vehicle, but found none")
               }
-            } else if (terminal.Faction == player.Faction || !terminal.HackedBy.isEmpty) {
-              // If hacked only allow access to the faction that hacked it
-              // Otherwise allow the faction that owns the terminal to use it
+            }
+            else if(tdef.isInstanceOf[TeleportPadTerminalDefinition]) {
+              terminal.Actor ! Terminal.Request(
+                player,
+                ItemTransactionMessage(object_guid, TransactionType.Buy, 0, "router_telepad", 0, PlanetSideGUID(0))
+              )
+            }
+            else {
               sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
             }
           }
+          else if(hacked) {
+            sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
+          }
+          else {
+            player.Slot(player.DrawnSlot).Equipment match {
+              case Some(tool: SimpleItem) =>
+                if (tool.Definition == GlobalDefinitions.remote_electronics_kit) {
+                  val hackSpeed = GetPlayerHackSpeed(terminal)
+
+                  if(hackSpeed > 0) {
+                    progressBarValue = Some(-hackSpeed)
+                    self ! WorldSessionActor.HackingProgress(progressType = 1, player, terminal, tool.GUID, hackSpeed, FinishHacking(terminal, 3212836864L))
+                    log.info("Hacking a terminal")
+                  }
+                }
+              case _ => ;
+            }
+          }
+//          if(terminal.Definition.isInstanceOf[MatrixTerminalDefinition]) {
+//            //TODO matrix spawn point; for now, just blindly bind to show work (and hope nothing breaks)
+//            sendResponse(BindPlayerMessage(1, "@ams", true, true, 0, 0, 0, terminal.Position))
+//          }
+//          else if(terminal.Definition.isInstanceOf[RepairRearmSiloDefinition]) {
+//            FindLocalVehicle match {
+//              case Some(vehicle) =>
+//                sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
+//                sendResponse(UseItemMessage(avatar_guid, item_used_guid, vehicle.GUID, unk2, unk3, unk4, unk5, unk6, unk7, unk8, vehicle.Definition.ObjectId))
+//              case None =>
+//                log.error("UseItem: expected seated vehicle, but found none")
+//            }
+//          }
+//          else {
+//            if(terminal.Faction != player.Faction && terminal.HackedBy.isEmpty) {
+//              player.Slot(player.DrawnSlot).Equipment match {
+//                case Some(tool: SimpleItem) =>
+//                  if (tool.Definition == GlobalDefinitions.remote_electronics_kit) {
+//                    val hackSpeed = GetPlayerHackSpeed(terminal)
+//
+//                    if(hackSpeed > 0) {
+//                      progressBarValue = Some(-hackSpeed)
+//                      self ! WorldSessionActor.HackingProgress(progressType = 1, player, terminal, tool.GUID, hackSpeed, FinishHacking(terminal, 3212836864L))
+//                      log.info("Hacking a terminal")
+//                    }
+//                  }
+//                case _ => ;
+//              }
+//            } else if (terminal.Faction == player.Faction || !terminal.HackedBy.isEmpty) {
+//              // If hacked only allow access to the faction that hacked it
+//              // Otherwise allow the faction that owns the terminal to use it
+//              sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
+//            }
+//          }
 
         case Some(obj : SpawnTube) =>
           //deconstruction

@@ -2,10 +2,11 @@
 package net.psforever.objects.vehicles
 
 import akka.actor.ActorContext
-import net.psforever.objects.{GlobalDefinitions, Vehicle}
+import net.psforever.objects.{GlobalDefinitions, Player, Telepad, Vehicle}
 import net.psforever.objects.serverobject.structures.Amenity
-import net.psforever.objects.serverobject.terminals.{MatrixTerminalDefinition, OrderTerminalABDefinition, Terminal, TerminalDefinition}
+import net.psforever.objects.serverobject.terminals._
 import net.psforever.objects.serverobject.tube.{SpawnTube, SpawnTubeDefinition}
+import net.psforever.packet.game.{ItemTransactionMessage, PlanetSideGUID}
 
 /**
   * An `Enumeration` of the available vehicular utilities.<br>
@@ -21,7 +22,8 @@ object UtilityType extends Enumeration {
   ams_respawn_tube,
   matrix_terminalc,
   order_terminala,
-  order_terminalb
+  order_terminalb,
+  teleportpad_terminal
   = Value
 }
 
@@ -94,6 +96,8 @@ object Utility {
       new TerminalUtility(GlobalDefinitions.order_terminala)
     case UtilityType.order_terminalb =>
       new TerminalUtility(GlobalDefinitions.order_terminalb)
+    case UtilityType.teleportpad_terminal =>
+      new TeleportPadTerminalUtility(GlobalDefinitions.teleportpad_terminal)
   }
 
   /**
@@ -115,6 +119,39 @@ object Utility {
   }
 
   /**
+    * na
+    * @param tdef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
+    */
+  private class TeleportPadTerminalUtility(tdef : TerminalDefinition) extends TerminalUtility(tdef) {
+    private var activeTelepad : Option[PlanetSideGUID] = None
+
+    def Telepad : Option[PlanetSideGUID] = activeTelepad
+
+    def Telepad_=(rguid : PlanetSideGUID) : Option[PlanetSideGUID] = Telepad_=(Some(rguid))
+
+    def Telepad_=(rguid : Option[PlanetSideGUID]) : Option[PlanetSideGUID] = {
+      activeTelepad = rguid
+      Telepad
+    }
+
+    /**
+      * na
+      * @param player na
+      * @param msg na
+      * @return na
+      */
+    override def Buy(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
+      val reply = super.Buy(player, msg)
+      reply match {
+        case Terminal.BuyEquipment(obj : Telepad) =>
+          obj.Router = Owner.GUID
+        case _ => ;
+      }
+      reply
+    }
+  }
+
+  /**
     * Provide the called-out object's logic.
     * @param util the type of the `Amenity` object
     * @return the `Amenity` object
@@ -128,5 +165,7 @@ object Utility {
       OrderTerminalABDefinition.Setup
     case UtilityType.order_terminalb =>
       OrderTerminalABDefinition.Setup
+    case UtilityType.teleportpad_terminal =>
+      TeleportPadTerminalDefinition.Setup
   }
 }
