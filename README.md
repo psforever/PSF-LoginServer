@@ -123,7 +123,7 @@ sbt packArchiveZip # creates a single zip with resources
 
 This will use the sbt-pack plugin to create a JAR file and some helper scripts to run the server. The output for this will be in the `PSF-LoginServer\target` directory. Now you can copy the ZIP file to a server you want to run it on. You will need the Java 8 runtime (JRE only) on the target to run this. In the ZIP file, there is a `bin/` directory with some helper scripts. Run the correct file for your platform (.BAT for Windows and shell script for Unix).
 
-## Troublshooting
+## Troubleshooting
 
 #### Unable to initialize pscrypto
 If you get an error like below
@@ -132,6 +132,8 @@ If you get an error like below
 java.lang.UnsatisfiedLinkError: Unable to load library 'pscrypto': Native library (win32-x86-64/pscrypto.dll) not found in resource path 
 ```
 Then you are missing the native library required to provide cryptographic functions to the login server. To fix this, you need a binary build of [PSCrypto](#downloading-pscrypto).
+
+If you are still having trouble on Linux, try putting the library in `root directory/pscrypto-lib/libpscrypto.so`.
 
 ## Contributing
 Please fork the project and provide a pull request to contribute code. Coding guidelines and contribution checklists coming soon.
