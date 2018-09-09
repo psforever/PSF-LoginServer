@@ -104,7 +104,7 @@ object Utility {
     * Override for `SpawnTube` objects so that they inherit the spatial characteristics of their `Owner`.
     * @param tubeDef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
     */
-  private class SpawnTubeUtility(tubeDef : SpawnTubeDefinition) extends SpawnTube(tubeDef) {
+  class SpawnTubeUtility(tubeDef : SpawnTubeDefinition) extends SpawnTube(tubeDef) {
     override def Position = Owner.Position
     override def Orientation = Owner.Orientation
   }
@@ -113,7 +113,7 @@ object Utility {
     * Override for `Terminal` objects so that they inherit the spatial characteristics of their `Owner`.
     * @param tdef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
     */
-  private class TerminalUtility(tdef : TerminalDefinition) extends Terminal(tdef) {
+  class TerminalUtility(tdef : TerminalDefinition) extends Terminal(tdef) {
     override def Position = Owner.Position
     override def Orientation = Owner.Orientation
   }
@@ -122,7 +122,7 @@ object Utility {
     * na
     * @param tdef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
     */
-  private class TeleportPadTerminalUtility(tdef : TerminalDefinition) extends TerminalUtility(tdef) {
+  class TeleportPadTerminalUtility(tdef : TerminalDefinition) extends TerminalUtility(tdef) {
     private var activeTelepad : Option[PlanetSideGUID] = None
 
     def Telepad : Option[PlanetSideGUID] = activeTelepad

@@ -378,7 +378,7 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
   def Utilities : Map[Int, Utility] = utilities
 
   /**
-    * Get a referenece ot a certain `Utility` attached to this `Vehicle`.
+    * Get a reference to a certain `Utility` attached to this `Vehicle`.
     * @param utilNumber the attachment number of the `Utility`
     * @return the `Utility` or `None` (if invalid)
     */
@@ -393,6 +393,15 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
     }
     else {
       None
+    }
+  }
+
+  def Utility(utilType : UtilityType.Value) : Option[PlanetSideServerObject] = {
+    utilities.values.find(_.UtilType == utilType) match {
+      case Some(util) =>
+        Some(util())
+      case None =>
+        None
     }
   }
 

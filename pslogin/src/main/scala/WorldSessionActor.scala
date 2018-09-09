@@ -638,6 +638,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           case GlobalDefinitions.advanced_ace =>
             sendResponse(GenericObjectActionMessage(player.GUID, 212)) //put fdu down; it will be removed from the client's holster
             avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PutDownFDU(player.GUID))
+          case GlobalDefinitions.router_telepad => ;
           case _ =>
             log.warn(s"Zone.Deployable.DeployableIsBuilt: not sure what kind of construction item to animate - ${tool.Definition}")
         }
@@ -711,6 +712,43 @@ class WorldSessionActor extends Actor with MDCContextAware {
       CommonDestroyConstructionItem(tool, index)
       FindReplacementConstructionItem(tool, index)
       StopBundlingPackets()
+
+    case WorldSessionActor.FinalizeDeployable(obj : TelepadDeployable, tool, index) =>
+      //router telepad deployable
+      if(!obj.Active) {
+        obj.Router = tool.asInstanceOf[Telepad].Router //necessary
+        StartBundlingPackets()
+        DeployableBuildActivity(obj)
+        CommonDestroyConstructionItem(tool, index)
+        StopBundlingPackets()
+        obj.Active = true
+        //it normally takes 60s for the telepad to become active
+        import scala.concurrent.ExecutionContext.Implicits.global
+        context.system.scheduler.scheduleOnce(2500 milliseconds, self, WorldSessionActor.FinalizeDeployable(obj, tool, index))
+      }
+      else {
+        val guid = obj.GUID
+        ((continent.GUID(obj.Router.getOrElse(PlanetSideGUID(0))) match {
+          case Some(router : Vehicle) =>
+            Some(router)
+          case Some(_) | None =>
+            None
+        }) match {
+          case Some(router) =>
+            router.Utility(UtilityType.teleportpad_terminal)
+          case None =>
+            None
+        }) match {
+          case Some(term : Utility.TeleportPadTerminalUtility) =>
+            term.Telepad = guid
+          case Some(_) | None => ;
+        }
+        StartBundlingPackets()
+        sendResponse(PlanetsideAttributeMessage(player.GUID, 64, 1)) //what does this do?
+        sendResponse(GenericObjectActionMessage(guid, 108))
+        sendResponse(GenericObjectActionMessage(guid, 112))
+        StopBundlingPackets()
+      }
 
     case WorldSessionActor.FinalizeDeployable(obj : SimpleDeployable, tool, index) =>
       //tank_trap
@@ -2755,6 +2793,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       })
       StopBundlingPackets()
       self ! SetCurrentAvatar(player)
+sendRawResponse(hex"17 c8000000 f42 6101 33b27 d07b8 9d42 00 00 79 00 8101 ae01 5700c")
 
     case msg @ PlayerStateMessageUpstream(avatar_guid, pos, vel, yaw, pitch, yaw_upper, seq_time, unk3, is_crouching, is_jumping, unk4, is_cloaking, unk5, unk6) =>
       if(player.isAlive) {
@@ -5616,27 +5655,30 @@ class WorldSessionActor extends Actor with MDCContextAware {
             case _ => ;
           }
         }
-        if(obj.Definition == GlobalDefinitions.ant) {
-            obj.DeploymentState match {
-              case DriveState.Deployed =>
-                // We only want this WSA (not other player's WSA) to manage timers
-                if(vehicle.Seat(0).get.Occupant.contains(player)){
-                  // Start ntu regeneration
-                  // If vehicle sends UseItemMessage with silo as target NTU regeneration will be disabled and orb particles will be disabled
-                  antChargingTick = context.system.scheduler.scheduleOnce(1000 milliseconds, self, NtuCharging(player, vehicle))
-                }
-              case DriveState.Undeploying =>
-                // We only want this WSA (not other player's WSA) to manage timers
-                if(vehicle.Seat(0).get.Occupant.contains(player)){
-                  antChargingTick.cancel() // Stop charging NTU if charging
-                }
+        else if(obj.Definition == GlobalDefinitions.ant) {
+          obj.DeploymentState match {
+            case DriveState.Deployed =>
+              // We only want this WSA (not other player's WSA) to manage timers
+              if(vehicle.Seat(0).get.Occupant.contains(player)){
+                // Start ntu regeneration
+                // If vehicle sends UseItemMessage with silo as target NTU regeneration will be disabled and orb particles will be disabled
+                antChargingTick = context.system.scheduler.scheduleOnce(1000 milliseconds, self, NtuCharging(player, vehicle))
+              }
+            case DriveState.Undeploying =>
+              // We only want this WSA (not other player's WSA) to manage timers
+              if(vehicle.Seat(0).get.Occupant.contains(player)){
+                antChargingTick.cancel() // Stop charging NTU if charging
+              }
 
-                avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(obj.GUID, 52, 0L)) // panel glow off
-                avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(obj.GUID, 49, 0L)) // orb particles off
-              case DriveState.Mobile | DriveState.State7 | DriveState.Deploying =>
-              case _ => ;
-            }
+              avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(obj.GUID, 52, 0L)) // panel glow off
+              avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(obj.GUID, 49, 0L)) // orb particles off
+            case DriveState.Mobile | DriveState.State7 | DriveState.Deploying =>
+            case _ => ;
           }
+        }
+        else if(obj.Definition == GlobalDefinitions.router) {
+          //TODO here
+        }
       case _ => ;
     }
   }

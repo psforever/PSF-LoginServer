@@ -861,6 +861,8 @@ object GlobalDefinitions {
   val portable_manned_turret_vs = TurretDeployableDefinition(DeployedItem.portable_manned_turret_vs)
 
   val deployable_shield_generator = new ShieldGeneratorDefinition
+
+  val router_telepad_deployable = DeployableDefinition(DeployedItem.router_telepad_deployable)
   init_deployables()
 
   /*
@@ -5527,5 +5529,11 @@ object GlobalDefinitions {
     deployable_shield_generator.MaxHealth = 1700
     deployable_shield_generator.DeployTime = Duration.create(6000, "ms")
     deployable_shield_generator.Model = StandardResolutions.ComplexDeployables
+
+    router_telepad_deployable.Name = "router_telepad_deployable"
+    router_telepad_deployable.MaxHealth = 100
+    router_telepad_deployable.DeployTime = Duration.create(1, "ms")
+    router_telepad_deployable.Packet = new TelepadDeployableConverter
+    router_telepad_deployable.Model = StandardResolutions.SimpleDeployables
   }
 }
