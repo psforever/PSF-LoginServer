@@ -2,7 +2,9 @@
 package net.psforever.objects.vehicles
 
 import akka.actor.ActorContext
-import net.psforever.objects.{GlobalDefinitions, Player, Telepad, Vehicle}
+import net.psforever.objects.definition.DeployableDefinition
+import net.psforever.objects._
+import net.psforever.objects.ce.TelepadLike
 import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.objects.serverobject.terminals._
 import net.psforever.objects.serverobject.tube.{SpawnTube, SpawnTubeDefinition}
@@ -23,7 +25,8 @@ object UtilityType extends Enumeration {
   matrix_terminalc,
   order_terminala,
   order_terminalb,
-  teleportpad_terminal
+  teleportpad_terminal,
+  internal_router_telepad_deployable
   = Value
 }
 
@@ -98,6 +101,8 @@ object Utility {
       new TerminalUtility(GlobalDefinitions.order_terminalb)
     case UtilityType.teleportpad_terminal =>
       new TeleportPadTerminalUtility(GlobalDefinitions.teleportpad_terminal)
+    case UtilityType.internal_router_telepad_deployable =>
+      new InternalTelepad(GlobalDefinitions.internal_router_telepad_deployable)
   }
 
   /**
@@ -123,17 +128,6 @@ object Utility {
     * @param tdef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
     */
   class TeleportPadTerminalUtility(tdef : TerminalDefinition) extends TerminalUtility(tdef) {
-    private var activeTelepad : Option[PlanetSideGUID] = None
-
-    def Telepad : Option[PlanetSideGUID] = activeTelepad
-
-    def Telepad_=(rguid : PlanetSideGUID) : Option[PlanetSideGUID] = Telepad_=(Some(rguid))
-
-    def Telepad_=(rguid : Option[PlanetSideGUID]) : Option[PlanetSideGUID] = {
-      activeTelepad = rguid
-      Telepad
-    }
-
     /**
       * na
       * @param player na
@@ -149,6 +143,26 @@ object Utility {
       }
       reply
     }
+  }
+
+  class InternalTelepad(ddef : DeployableDefinition) extends Amenity
+    with TelepadLike {
+    private var activeTelepad : Option[PlanetSideGUID] = None
+
+    def Telepad : Option[PlanetSideGUID] = activeTelepad
+
+    def Telepad_=(rguid : PlanetSideGUID) : Option[PlanetSideGUID] = Telepad_=(Some(rguid))
+
+    def Telepad_=(rguid : Option[PlanetSideGUID]) : Option[PlanetSideGUID] = {
+      activeTelepad = rguid
+      Telepad
+    }
+
+    override def Position = Owner.Position
+    override def Orientation = Owner.Orientation
+    override def Router : Option[PlanetSideGUID] = Some(Owner.GUID)
+
+    def Definition = ddef
   }
 
   /**
@@ -167,5 +181,9 @@ object Utility {
       OrderTerminalABDefinition.Setup
     case UtilityType.teleportpad_terminal =>
       TeleportPadTerminalDefinition.Setup
+    case UtilityType.internal_router_telepad_deployable =>
+      TelepadLike.Setup
   }
+
+  //private def defaultSetup(o1 : Amenity, o2 : ActorContext) : Unit = { }
 }

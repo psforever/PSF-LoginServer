@@ -735,11 +735,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
             None
         }) match {
           case Some(router) =>
-            router.Utility(UtilityType.teleportpad_terminal)
+            router.Utility(UtilityType.internal_router_telepad_deployable)
           case None =>
             None
         }) match {
-          case Some(term : Utility.TeleportPadTerminalUtility) =>
+          case Some(term : Utility.InternalTelepad) =>
             term.Telepad = guid
           case Some(_) | None => ;
         }
@@ -3752,6 +3752,34 @@ sendRawResponse(hex"17 c8000000 f42 6101 33b27 d07b8 9d42 00 00 79 00 8101 ae01 
           sendResponse(AvatarDeadStateMessage(DeadState.Release, 0, 0, player.Position, player.Faction, true))
           continent.Population ! Zone.Population.Release(avatar)
 
+        case Some(obj : TelepadDeployable) =>
+          continent.GUID(obj.Router) match {
+            case Some(vehicle : Vehicle) =>
+              vehicle.Utility(UtilityType.internal_router_telepad_deployable) match {
+                case Some(util : Utility.InternalTelepad) =>
+                  if(vehicle.DeploymentState == DriveState.Deployed && util.Active) {
+                    sendResponse(PlayerStateShiftMessage(ShiftState(0, vehicle.Position, player.Orientation.z, player.Velocity)))
+                  }
+                  else {
+
+                  }
+                case _ => ;
+              }
+            case _ =>
+          }
+
+        case Some(obj : Utility.InternalTelepad) =>
+          continent.GUID(obj.Telepad) match {
+            case Some(pad : TelepadDeployable) =>
+              if(obj.Owner.asInstanceOf[Vehicle].DeploymentState == DriveState.Deployed && pad.Active) {
+                sendResponse(PlayerStateShiftMessage(ShiftState(0, pad.Position, player.Orientation.z, player.Velocity)))
+              }
+              else {
+
+              }
+            case _ => ;
+          }
+
         case Some(obj) =>
           log.warn(s"UseItem: don't know how to handle $obj; taking a shot in the dark")
           sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
@@ -5642,7 +5670,7 @@ sendRawResponse(hex"17 c8000000 f42 6101 33b27 d07b8 9d42 00 00 79 00 8101 ae01 
     obj match {
       case vehicle : Vehicle =>
         ReloadVehicleAccessPermissions(vehicle) //TODO we should not have to do this imho
-
+        //ams
         if(obj.Definition == GlobalDefinitions.ams) {
           obj.DeploymentState match {
             case DriveState.Deployed =>
@@ -5655,6 +5683,7 @@ sendRawResponse(hex"17 c8000000 f42 6101 33b27 d07b8 9d42 00 00 79 00 8101 ae01 
             case _ => ;
           }
         }
+        //ant
         else if(obj.Definition == GlobalDefinitions.ant) {
           obj.DeploymentState match {
             case DriveState.Deployed =>
@@ -5676,8 +5705,42 @@ sendRawResponse(hex"17 c8000000 f42 6101 33b27 d07b8 9d42 00 00 79 00 8101 ae01 
             case _ => ;
           }
         }
+        //router
         else if(obj.Definition == GlobalDefinitions.router) {
-          //TODO here
+          obj.DeploymentState match {
+            case DriveState.Deploying =>
+              vehicle.Utility(UtilityType.internal_router_telepad_deployable) match {
+                case Some(util : Utility.InternalTelepad) =>
+                  util.Active = true
+                  val uguid = util.GUID
+                  val udef = util.Definition
+                  sendResponse(
+                    ObjectCreateMessage(
+                      udef.ObjectId,
+                      uguid,
+                      ObjectCreateMessageParent(vehicle.GUID, 2), //TODO stop assuming slot number
+                      udef.Packet.ConstructorData(util).get
+                    )
+                  )
+                  sendResponse(GenericObjectActionMessage(uguid, 108))
+                  sendResponse(GenericObjectActionMessage(uguid, 120))
+
+                  sendResponse(GenericObjectActionMessage(uguid, 108))
+                  sendResponse(GenericObjectActionMessage(uguid, 112))
+                case _ =>
+                  log.warn("DeploymentActivities: could not find internal telepad in Router while deploying")
+              }
+            case DriveState.Undeploying =>
+              vehicle.Utility(UtilityType.internal_router_telepad_deployable) match {
+                case Some(util : Utility.InternalTelepad) =>
+                  util.Active = false
+                  sendResponse(ObjectDeleteMessage(util.GUID, 0))
+                case _ =>
+                  log.warn("DeploymentActivities: could not find internal telepad in Router while undeploying")
+              }
+            //TODO handle any associated TelepadDeployables
+            case _ => ;
+          }
         }
       case _ => ;
     }

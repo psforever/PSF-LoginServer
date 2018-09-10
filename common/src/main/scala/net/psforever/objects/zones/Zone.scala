@@ -238,6 +238,21 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
     * @return the associated object, if it exists
     * @see `GUID(Int)`
     */
+  def GUID(object_guid : Option[PlanetSideGUID]) : Option[PlanetSideGameObject] = {
+    object_guid match {
+      case Some(oguid) =>
+        GUID(oguid.guid)
+      case None =>
+        None
+    }
+  }
+
+  /**
+    * Recover an object from the globally unique identifier system by the number that was assigned previously.
+    * @param object_guid the globally unique identifier requested
+    * @return the associated object, if it exists
+    * @see `GUID(Int)`
+    */
   def GUID(object_guid : PlanetSideGUID) : Option[PlanetSideGameObject] = GUID(object_guid.guid)
 
   /**

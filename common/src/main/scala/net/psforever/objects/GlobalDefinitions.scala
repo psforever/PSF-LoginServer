@@ -863,6 +863,8 @@ object GlobalDefinitions {
   val deployable_shield_generator = new ShieldGeneratorDefinition
 
   val router_telepad_deployable = DeployableDefinition(DeployedItem.router_telepad_deployable)
+
+  val internal_router_telepad_deployable = DeployableDefinition(DeployedItem.router_telepad_deployable)
   init_deployables()
 
   /*
@@ -5135,6 +5137,7 @@ object GlobalDefinitions {
     router.Seats += 0 -> new SeatDefinition()
     router.MountPoints += 1 -> 0
     router.Utilities += 1 -> UtilityType.teleportpad_terminal
+    router.Utilities += 2 -> UtilityType.internal_router_telepad_deployable
     router.TrunkSize = InventoryTile.Tile1511
     router.TrunkOffset = 30
     router.Deployment = true
@@ -5535,5 +5538,10 @@ object GlobalDefinitions {
     router_telepad_deployable.DeployTime = Duration.create(1, "ms")
     router_telepad_deployable.Packet = new TelepadDeployableConverter
     router_telepad_deployable.Model = StandardResolutions.SimpleDeployables
+
+    internal_router_telepad_deployable.Name = "router_telepad_deployable"
+    internal_router_telepad_deployable.MaxHealth = 1
+    internal_router_telepad_deployable.DeployTime = Duration.create(1, "ms")
+    internal_router_telepad_deployable.Packet = new InternalTelepadDeployableConverter
   }
 }
