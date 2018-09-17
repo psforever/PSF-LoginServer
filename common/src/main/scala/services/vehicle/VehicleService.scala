@@ -2,11 +2,13 @@
 package services.vehicle
 
 import akka.actor.{Actor, ActorRef, Props}
+import net.psforever.objects.Vehicle
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
+import net.psforever.objects.vehicles.{Utility, UtilityType}
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.ObjectCreateMessage
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
-import services.vehicle.support.{TurretUpgrader, VehicleRemover}
+import services.vehicle.support.{RouterActivation, TurretUpgrader, VehicleRemover}
 import net.psforever.types.DriveState
 import services.{GenericEventBus, RemoverActor, Service}
 
@@ -15,6 +17,7 @@ import scala.concurrent.duration._
 class VehicleService extends Actor {
   private val vehicleDecon : ActorRef = context.actorOf(Props[VehicleRemover], "vehicle-decon-agent")
   private val turretUpgrade : ActorRef = context.actorOf(Props[TurretUpgrader], "turret-upgrade-agent")
+  private val teleportDeployment : ActorRef = context.actorOf(Props[RouterActivation], "router-activate-agent")
   private [this] val log = org.log4s.getLogger
 
   override def preStart = {
@@ -137,6 +140,10 @@ class VehicleService extends Actor {
     case VehicleServiceMessage.TurretUpgrade(msg) =>
       turretUpgrade forward msg
 
+    //message to RouterActivation
+    case VehicleServiceMessage.Router(msg) =>
+      teleportDeployment forward msg
+
     //from VehicleSpawnControl
     case VehicleSpawnPad.ConcealPlayer(player_guid, zone_id) =>
       VehicleEvents.publish(
@@ -182,6 +189,20 @@ class VehicleService extends Actor {
     //from VehicleSpawnControl
     case VehicleSpawnPad.DisposeVehicle(vehicle, zone) =>
       vehicleDecon forward RemoverActor.HurrySpecific(List(vehicle), zone)
+
+    //from RouterActivation
+    case RouterActivation.ActivateTeleportSystem(router, zone) =>
+      val router_vehicle = router.asInstanceOf[Vehicle]
+      router_vehicle.Utility(UtilityType.internal_router_telepad_deployable) match {
+        case Some(pad : Utility.InternalTelepad) =>
+          pad.Active = true
+          log.info(s"DeploymentActivities: activating the teleportation system on a fully deployed router (#${router.GUID.guid}) in zone ${zone.Id}")
+          VehicleEvents.publish(
+            VehicleServiceResponse(s"/${zone.Id}/Vehicle", Service.defaultPlayerGUID, VehicleResponse.ToggleTeleportSystem(router_vehicle))
+          )
+        case _ =>
+          log.error(s"DeploymentActivities: could not find internal telepad in $router_vehicle while deploying")
+      }
 
     //correspondence from WorldSessionActor
     case VehicleServiceMessage.AMSDeploymentChange(zone) =>

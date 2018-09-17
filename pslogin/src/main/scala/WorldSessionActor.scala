@@ -16,7 +16,7 @@ import services.ServiceManager.Lookup
 import net.psforever.objects._
 import net.psforever.objects.avatar.{Certification, DeployableToolbox}
 import net.psforever.objects.ballistics._
-import net.psforever.objects.ce.{ComplexDeployable, Deployable, DeployedItem, SimpleDeployable}
+import net.psforever.objects.ce._
 import net.psforever.objects.definition.{ConstructionFireMode, DeployableDefinition, ObjectDefinition, ToolDefinition}
 import net.psforever.objects.definition.converter.{CorpseConverter, DestroyedVehicleConverter}
 import net.psforever.objects.equipment.{CItem, _}
@@ -49,7 +49,7 @@ import services.{RemoverActor, _}
 import services.avatar.{AvatarAction, AvatarResponse, AvatarServiceMessage, AvatarServiceResponse}
 import services.galaxy.{GalaxyResponse, GalaxyServiceResponse}
 import services.local.{LocalAction, LocalResponse, LocalServiceMessage, LocalServiceResponse}
-import services.vehicle.support.TurretUpgrader
+import services.vehicle.support.{RouterActivation, TurretUpgrader}
 import services.vehicle.{VehicleAction, VehicleResponse, VehicleServiceMessage, VehicleServiceResponse}
 
 import scala.concurrent.duration._
@@ -59,7 +59,9 @@ import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.util.Success
 import akka.pattern.ask
+import net.psforever.objects.vehicles.Utility.InternalTelepad
 import services.local.support.HackCaptureActor
+import services.support.SupportActor
 
 class WorldSessionActor extends Actor with MDCContextAware {
 
@@ -95,6 +97,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
   var whenUsedLastKit : Long = 0
   val projectiles : Array[Option[Projectile]] = Array.fill[Option[Projectile]](Projectile.RangeUID - Projectile.BaseUID)(None)
   var drawDeloyableIcon : PlanetSideGameObject with Deployable => Unit = RedrawDeployableIcons
+  var recentTeleportAttempt : Long = 0
+
   var amsSpawnPoint : Option[SpawnTube] = None
   var clientKeepAlive : Cancellable = DefaultCancellable.obj
   var progressBarUpdate : Cancellable = DefaultCancellable.obj
@@ -547,7 +551,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case Zone.Ground.ItemOnGround(item : BoomerTrigger, pos, orient) =>
       //dropped the trigger, no longer own the boomer; make certain whole faction is aware of that
       val playerGUID = player.GUID
-      continent.GUID(item.Companion.getOrElse(PlanetSideGUID(0))) match {
+      continent.GUID(item.Companion) match {
         case Some(obj : BoomerDeployable) =>
           val guid = obj.GUID
           val factionOnContinentChannel = s"${continent.Id}/${player.Faction}"
@@ -586,7 +590,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case Zone.Ground.ItemInHand(item : BoomerTrigger) =>
       if(PutItemInHand(item)) {
         //pick up the trigger, own the boomer; make certain whole faction is aware of that
-        continent.GUID(item.Companion.getOrElse(PlanetSideGUID(0))) match {
+        continent.GUID(item.Companion) match {
           case Some(obj : BoomerDeployable) =>
             val guid = obj.GUID
             val playerGUID = player.GUID
@@ -714,41 +718,66 @@ class WorldSessionActor extends Actor with MDCContextAware {
       StopBundlingPackets()
 
     case WorldSessionActor.FinalizeDeployable(obj : TelepadDeployable, tool, index) =>
-      //router telepad deployable
-      if(!obj.Active) {
-        obj.Router = tool.asInstanceOf[Telepad].Router //necessary
-        StartBundlingPackets()
-        DeployableBuildActivity(obj)
-        CommonDestroyConstructionItem(tool, index)
-        StopBundlingPackets()
-        obj.Active = true
-        //it normally takes 60s for the telepad to become active
-        import scala.concurrent.ExecutionContext.Implicits.global
-        context.system.scheduler.scheduleOnce(2500 milliseconds, self, WorldSessionActor.FinalizeDeployable(obj, tool, index))
-      }
-      else {
+      if(obj.Health > 0) {
         val guid = obj.GUID
-        ((continent.GUID(obj.Router.getOrElse(PlanetSideGUID(0))) match {
-          case Some(router : Vehicle) =>
-            Some(router)
-          case Some(_) | None =>
-            None
-        }) match {
-          case Some(router) =>
-            router.Utility(UtilityType.internal_router_telepad_deployable)
-          case None =>
-            None
-        }) match {
-          case Some(term : Utility.InternalTelepad) =>
-            term.Telepad = guid
-          case Some(_) | None => ;
+        //router telepad deployable
+        val router = tool.asInstanceOf[Telepad].Router
+        //router must exist and be deployed
+        continent.GUID(router) match {
+          case Some(vehicle : Vehicle) =>
+            val routerGUID = router.get
+
+            if(!obj.Active) { //1. setup
+              log.info(s"FinalizeDeployable: setup for telepad #${guid.guid} in zone ${continent.Id}")
+              obj.Router = routerGUID //necessary; forwards link to the router
+              StartBundlingPackets()
+              DeployableBuildActivity(obj)
+              CommonDestroyConstructionItem(tool, index)
+              StopBundlingPackets()
+              obj.Active = true
+              //it normally takes 10s for the telepad to become properly active
+              import scala.concurrent.ExecutionContext.Implicits.global
+              context.system.scheduler.scheduleOnce(10000 milliseconds, self, WorldSessionActor.FinalizeDeployable(obj, tool, index))
+            }
+            else if(vehicle.Health == 0) {
+              //the Telepad was successfully deployed; but, before it could configure, its Router was destroyed
+              sendResponse(ChatMsg(ChatMessageType.UNK_229, false, "", "@Telepad_NoDeploy_RouterLost", None))
+              localService ! LocalServiceMessage.Deployables(RemoverActor.AddTask(obj, continent, Some(0 seconds)))
+            }
+            else { //2. configuration
+              val util = vehicle.Utility(UtilityType.internal_router_telepad_deployable) match {
+                case Some(util : Utility.InternalTelepad) => Some(util)
+                  //get rid of any previous remote telepad
+                  continent.GUID(util.Telepad) match {
+                    case Some(telepad : TelepadDeployable) =>
+                      log.info(s"FinalizeDeployable(TelepadDeployable): telepad already associated with Router #${routerGUID.guid} will be deconstructed")
+                      telepad.Active = false
+                      localService ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(telepad), continent))
+                      localService ! LocalServiceMessage.Deployables(RemoverActor.AddTask(telepad, continent, Some(0 milliseconds)))
+                    case Some(_) | None => ;
+                  }
+                  util.Telepad = guid //always
+
+                  if(vehicle.DeploymentState == DriveState.Deployed && util.Active) {
+                    log.info(s"FinalizeDeployable: deploying a telepad (${guid.guid}) for a Router (${routerGUID.guid}) in zone ${continent.Id}")
+                    LinkRouterTelepad(vehicle, util)
+                    localService ! LocalServiceMessage(continent.Id, LocalAction.RouterTelepadDeploy(player.GUID, guid))
+                  }
+                  else {
+                    sendResponse(ChatMsg(ChatMessageType.UNK_229, false, "", "@Teleport_NotDeployed", None))
+                  }
+                case _ => ;
+                //no internal telepad; this is not a Router?
+              }
+            }
+
+          case _ =>
+            //the Telepad was successfully deployed; but, before it could configure, its Router was deconstructed
+            sendResponse(ChatMsg(ChatMessageType.UNK_229, false, "", "@Telepad_NoDeploy_RouterLost", None))
+            localService ! LocalServiceMessage.Deployables(RemoverActor.AddTask(obj, continent, Some(0 seconds)))
         }
-        StartBundlingPackets()
-        sendResponse(PlanetsideAttributeMessage(player.GUID, 64, 1)) //what does this do?
-        sendResponse(GenericObjectActionMessage(guid, 108))
-        sendResponse(GenericObjectActionMessage(guid, 112))
-        StopBundlingPackets()
       }
+
 
     case WorldSessionActor.FinalizeDeployable(obj : SimpleDeployable, tool, index) =>
       //tank_trap
@@ -1176,8 +1205,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           DeconstructDeployable(obj, guid, pos)
         }
         else {
-          DeconstructDeployable(obj, guid, pos, obj.Orientation, if(obj.MountPoints.isEmpty) 2
-          else 1)
+          DeconstructDeployable(obj, guid, pos, obj.Orientation, if(obj.MountPoints.isEmpty) 2 else 1)
         }
 
       case LocalResponse.EliminateDeployable(obj : ComplexDeployable, guid, pos) =>
@@ -1258,6 +1286,14 @@ class WorldSessionActor extends Actor with MDCContextAware {
         if(tplayer_guid != guid) {
           sendResponse(ProximityTerminalUseMessage(PlanetSideGUID(0), object_guid, effectState))
         }
+
+      case LocalResponse.RouterTelepadDeploy(telepad_guid) =>
+        FinalizeRemoteTelepad(telepad_guid)
+
+      case LocalResponse.RouterTelepadTransport(passenger_guid, src_guid, dest_guid) =>
+        StartBundlingPackets()
+        UseRouterTelepadEffect(passenger_guid, src_guid, dest_guid)
+        StopBundlingPackets()
 
       case LocalResponse.SetEmpire(object_guid, empire) =>
         sendResponse(SetEmpireMessage(object_guid, empire))
@@ -1841,11 +1877,26 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * @param reply     na
     */
   def HandleVehicleServiceResponse(toChannel : String, guid : PlanetSideGUID, reply : VehicleResponse.Response) : Unit = {
-    val tplayer_guid = if(player.HasGUID) player.GUID
-    else PlanetSideGUID(0)
+    val tplayer_guid = if(player.HasGUID) player.GUID else PlanetSideGUID(0)
+
     reply match {
-      case VehicleResponse.Ownership(vehicle_guid) =>
-        sendResponse(PlanetsideAttributeMessage(guid, 21, vehicle_guid.guid))
+      case VehicleResponse.ToggleTeleportSystem(router) =>
+        router.Utility(UtilityType.internal_router_telepad_deployable) match {
+          case Some(util : Utility.InternalTelepad) =>
+            //check for a readied remote telepad
+            continent.GUID(util.Telepad) match {
+              case Some(telepad : TelepadDeployable) =>
+                //determine whether to activate both the Router internal telepad and the remote telepad
+                if(util.Active && telepad.Active) {
+                  LinkRouterTelepad(router, util)
+                }
+                else {
+                  sendResponse(ObjectDeleteMessage(util.GUID, 0))
+                }
+              case _ => ;
+            }
+          case _ => ;
+        }
 
       case VehicleResponse.AttachToRails(vehicle_guid, pad_guid) =>
         sendResponse(ObjectAttachMessage(pad_guid, vehicle_guid, 3))
@@ -1924,6 +1975,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
         if(tplayer_guid != guid) {
           sendResponse(ObjectAttachMessage(vehicle_guid, guid, seat))
         }
+
+      case VehicleResponse.Ownership(vehicle_guid) =>
+        sendResponse(PlanetsideAttributeMessage(guid, 21, vehicle_guid.guid))
 
       case VehicleResponse.PlanetsideAttribute(vehicle_guid, attribute_type, attribute_value) =>
         if(tplayer_guid != guid) {
@@ -2618,7 +2672,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         )
         //seated players
         obj.asInstanceOf[Mountable].Seats.values
-          .map(_.Occupant) 
+          .map(_.Occupant)
           .collect {
             case Some(occupant) =>
               if(occupant.isAlive) {
@@ -3099,7 +3153,7 @@ sendRawResponse(hex"17 c8000000 f42 6101 33b27 d07b8 9d42 00 00 79 00 8101 ae01 
         case Some(trigger : BoomerTrigger) =>
           val playerGUID = player.GUID
           avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireState_Start(playerGUID, item_guid))
-          continent.GUID(trigger.Companion.getOrElse(PlanetSideGUID(0))) match {
+          continent.GUID(trigger.Companion) match {
             case Some(boomer : BoomerDeployable) =>
               val boomerGUID = boomer.GUID
               boomer.Exploded = true
@@ -3276,7 +3330,7 @@ sendRawResponse(hex"17 c8000000 f42 6101 33b27 d07b8 9d42 00 00 79 00 8101 ae01 
 
         case Some(obj : BoomerTrigger) =>
           if(FindEquipmentToDelete(object_guid, obj)) {
-            continent.GUID(obj.Companion.getOrElse(PlanetSideGUID(0))) match {
+            continent.GUID(obj.Companion) match {
               case Some(boomer : BoomerDeployable) =>
                 boomer.Trigger = None
                 localService ! LocalServiceMessage.Deployables(RemoverActor.AddTask(boomer, continent, Some(0 seconds)))
@@ -3757,12 +3811,7 @@ sendRawResponse(hex"17 c8000000 f42 6101 33b27 d07b8 9d42 00 00 79 00 8101 ae01 
             case Some(vehicle : Vehicle) =>
               vehicle.Utility(UtilityType.internal_router_telepad_deployable) match {
                 case Some(util : Utility.InternalTelepad) =>
-                  if(vehicle.DeploymentState == DriveState.Deployed && util.Active) {
-                    sendResponse(PlayerStateShiftMessage(ShiftState(0, vehicle.Position, player.Orientation.z, player.Velocity)))
-                  }
-                  else {
-
-                  }
+                  UseRouterTelepadSystem(router = vehicle, routerUtil = util, telepad = obj, src = obj, dest = util)
                 case _ => ;
               }
             case _ =>
@@ -3771,12 +3820,7 @@ sendRawResponse(hex"17 c8000000 f42 6101 33b27 d07b8 9d42 00 00 79 00 8101 ae01 
         case Some(obj : Utility.InternalTelepad) =>
           continent.GUID(obj.Telepad) match {
             case Some(pad : TelepadDeployable) =>
-              if(obj.Owner.asInstanceOf[Vehicle].DeploymentState == DriveState.Deployed && pad.Active) {
-                sendResponse(PlayerStateShiftMessage(ShiftState(0, pad.Position, player.Orientation.z, player.Velocity)))
-              }
-              else {
-
-              }
+              UseRouterTelepadSystem(router = obj.Owner.asInstanceOf[Vehicle], routerUtil = obj, telepad = pad, src = obj, dest = pad)
             case _ => ;
           }
 
@@ -5664,15 +5708,24 @@ sendRawResponse(hex"17 c8000000 f42 6101 33b27 d07b8 9d42 00 00 79 00 8101 ae01 
 
   /**
     * Perform specific operations depending on the target of deployment.
-    * @param obj the object that has deployed
+    * @param obj the object that has had its deployment state changed
     */
   def DeploymentActivities(obj : Deployment.DeploymentObject) : Unit = {
+    DeploymentActivities(obj, obj.DeploymentState)
+  }
+
+  /**
+    * Perform specific operations depending on the target of deployment.
+    * @param obj the object that has had its deployment state changed
+    * @param state the new deployment state
+    */
+  def DeploymentActivities(obj : Deployment.DeploymentObject, state : DriveState.Value) : Unit = {
     obj match {
       case vehicle : Vehicle =>
         ReloadVehicleAccessPermissions(vehicle) //TODO we should not have to do this imho
         //ams
         if(obj.Definition == GlobalDefinitions.ams) {
-          obj.DeploymentState match {
+          state match {
             case DriveState.Deployed =>
               vehicleService ! VehicleServiceMessage.AMSDeploymentChange(continent)
               sendResponse(PlanetsideAttributeMessage(obj.GUID, 81, 1))
@@ -5685,7 +5738,7 @@ sendRawResponse(hex"17 c8000000 f42 6101 33b27 d07b8 9d42 00 00 79 00 8101 ae01 
         }
         //ant
         else if(obj.Definition == GlobalDefinitions.ant) {
-          obj.DeploymentState match {
+          state match {
             case DriveState.Deployed =>
               // We only want this WSA (not other player's WSA) to manage timers
               if(vehicle.Seat(0).get.Occupant.contains(player)){
@@ -5707,38 +5760,31 @@ sendRawResponse(hex"17 c8000000 f42 6101 33b27 d07b8 9d42 00 00 79 00 8101 ae01 
         }
         //router
         else if(obj.Definition == GlobalDefinitions.router) {
-          obj.DeploymentState match {
+          state match {
             case DriveState.Deploying =>
-              vehicle.Utility(UtilityType.internal_router_telepad_deployable) match {
-                case Some(util : Utility.InternalTelepad) =>
-                  util.Active = true
-                  val uguid = util.GUID
-                  val udef = util.Definition
-                  sendResponse(
-                    ObjectCreateMessage(
-                      udef.ObjectId,
-                      uguid,
-                      ObjectCreateMessageParent(vehicle.GUID, 2), //TODO stop assuming slot number
-                      udef.Packet.ConstructorData(util).get
-                    )
-                  )
-                  sendResponse(GenericObjectActionMessage(uguid, 108))
-                  sendResponse(GenericObjectActionMessage(uguid, 120))
-
-                  sendResponse(GenericObjectActionMessage(uguid, 108))
-                  sendResponse(GenericObjectActionMessage(uguid, 112))
-                case _ =>
-                  log.warn("DeploymentActivities: could not find internal telepad in Router while deploying")
-              }
+              vehicleService ! VehicleServiceMessage.Router(RouterActivation.AddTask(vehicle, continent, Some(10 seconds))) //TODO should be 60
             case DriveState.Undeploying =>
+              vehicleService ! VehicleServiceMessage.Router(RemoverActor.ClearSpecific(List(obj), continent))
               vehicle.Utility(UtilityType.internal_router_telepad_deployable) match {
                 case Some(util : Utility.InternalTelepad) =>
                   util.Active = false
                   sendResponse(ObjectDeleteMessage(util.GUID, 0))
+                  val pad = util.Telepad
+                  continent.GUID(pad) match {
+                    case Some(telepad : TelepadDeployable) =>
+                      util.Telepad = None
+                      telepad.Active = false
+                      telepad.Router = None
+                      val guid = pad.get
+                      sendResponse(GenericObjectActionMessage(guid, 116))
+                      sendResponse(GenericObjectActionMessage(guid, 120))
+                      localService ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(telepad), continent))
+                      localService ! LocalServiceMessage.Deployables(RemoverActor.AddTask(telepad, continent, Some(0 milliseconds)))
+                    case Some(_) | None => ;
+                  }
                 case _ =>
                   log.warn("DeploymentActivities: could not find internal telepad in Router while undeploying")
               }
-            //TODO handle any associated TelepadDeployables
             case _ => ;
           }
         }
@@ -6796,9 +6842,13 @@ sendRawResponse(hex"17 c8000000 f42 6101 33b27 d07b8 9d42 00 00 79 00 8101 ae01 
         }
       }
       removed match {
+        case Some(telepad : TelepadDeployable) =>
+          telepad.Owner = None
+          telepad.OwnerName = None
+          localService ! LocalServiceMessage.Deployables(RemoverActor.AddTask(telepad, continent)) //normal decay
         case Some(old) =>
-          old.Position = Vector3.Zero
           old.Owner = None
+          old.OwnerName = None
           localService ! LocalServiceMessage.Deployables(RemoverActor.AddTask(old, continent, Some(0 seconds)))
           if(msg) { //max test
             sendResponse(ChatMsg(ChatMessageType.UNK_229, false, "", s"@${definition.Descriptor}OldestDestroyed", None))
@@ -6806,6 +6856,10 @@ sendRawResponse(hex"17 c8000000 f42 6101 33b27 d07b8 9d42 00 00 79 00 8101 ae01 
         case None => ; //should be an invalid case
           log.warn(s"DeployableBuildActivity: how awkward: we probably shouldn't be allowed to build this deployable right now")
       }
+    }
+    else if(obj.isInstanceOf[TelepadDeployable]) {
+      //always treat the telepad we are putting down as the first and only one
+      sendResponse(ObjectDeployedMessage.Success(definition.Name, 1, 1))
     }
     else {
       sendResponse(ObjectDeployedMessage.Success(definition.Name, curr + 1, max))
@@ -7282,6 +7336,106 @@ sendRawResponse(hex"17 c8000000 f42 6101 33b27 d07b8 9d42 00 00 79 00 8101 ae01 
         continent.Ground ! Zone.Ground.DropItem(item, item.Position, item.Orientation) //restore previous state
         false
     }
+  }
+
+  def LinkRouterTelepad(router : Vehicle) : Unit = {
+    router.Utility(UtilityType.internal_router_telepad_deployable) match {
+      case Some(util : Utility.InternalTelepad) =>
+        LinkRouterTelepad(router, util)
+      case _ => ;
+    }
+  }
+
+  def LinkRouterTelepad(router : Vehicle, util : Utility.InternalTelepad) : Unit = {
+    util.Telepad match {
+      case Some(guid) =>
+        CreateInternalTelepad(router, util)
+        FinalizeRemoteTelepad(guid)
+      case None => ;
+    }
+  }
+
+  def LinkRouterTelepad(router : Vehicle, util : Utility.InternalTelepad, telepad : TelepadDeployable) : Unit = {
+    util.Telepad = telepad.GUID //necessary; backwards link to the (new) remote telepad
+    CreateInternalTelepad(router, util)
+    FinalizeRemoteTelepad(telepad.GUID)
+  }
+
+  def CreateInternalTelepad(router : Vehicle, util : Utility.InternalTelepad) : Unit = {
+    //create the interal telepad each time
+    val rguid = router.GUID
+    val uguid = util.GUID
+    log.info(s"CreateInternalTelepad: internal telepad@${uguid.guid}, part of router@${rguid.guid}")
+    val udef = util.Definition
+    /*
+    the following instantiation and configuration creates the internal Router component
+    normally dispatched while the Router is transitioned into its Deploying state
+    it is safe, however, to perform these actions at any time during and after the Deploying state
+     */
+    sendResponse(
+      ObjectCreateMessage(
+        udef.ObjectId,
+        uguid,
+        ObjectCreateMessageParent(rguid, 2), //TODO stop assuming slot number
+        udef.Packet.ConstructorData(util).get
+      )
+    )
+    sendResponse(GenericObjectActionMessage(uguid, 108))
+    sendResponse(GenericObjectActionMessage(uguid, 120))
+    /*
+    the following configurations create the interactive beam underneath the Deployed Router
+    normally dispatched after the warm-up timer has completed
+     */
+    sendResponse(GenericObjectActionMessage(uguid, 108))
+    sendResponse(GenericObjectActionMessage(uguid, 112))
+  }
+
+  def FinalizeRemoteTelepad(telepad: TelepadDeployable) : Unit = {
+    FinalizeRemoteTelepad(telepad.GUID)
+  }
+
+  def FinalizeRemoteTelepad(telepadGUID: PlanetSideGUID) : Unit = {
+    log.info(s"FinalizeRemoteTelepad: telepad #${telepadGUID.guid}")
+    sendResponse(GenericObjectActionMessage(telepadGUID, 108))
+    sendResponse(GenericObjectActionMessage(telepadGUID, 112))
+  }
+
+  /**
+    * na
+    * @param router the Router vehicle
+    * @param routerUtil the internal telepad within the Router vehicle
+    * @param telepad the remote telepad that is currently associated with this Router
+    * @param src the origin of the teleportation (where the player starts)
+    * @param dest the destination of the teleportation (where the player is going)
+    */
+  def UseRouterTelepadSystem(router: Vehicle, routerUtil: InternalTelepad, telepad: TelepadDeployable, src: PlanetSideGameObject with TelepadLike, dest: PlanetSideGameObject with TelepadLike) = {
+    val time = System.nanoTime
+    if(time - recentTeleportAttempt > 3500 && router.DeploymentState == DriveState.Deployed && routerUtil.Active && telepad.Active) {
+      val pguid = player.GUID
+      val sguid = src.GUID
+      val dguid = dest.GUID
+      StartBundlingPackets()
+      sendResponse(PlayerStateShiftMessage(ShiftState(0, dest.Position, player.Orientation.z, player.Velocity)))
+      UseRouterTelepadEffect(pguid, sguid, dguid)
+      StopBundlingPackets()
+      localService ! LocalServiceMessage(continent.Id, LocalAction.RouterTelepadTransport(pguid, pguid, sguid, dguid))
+    }
+    else {
+      //...
+    }
+    recentTeleportAttempt = time
+  }
+
+  /**
+    * na
+    * @param playerGUID the player being teleported
+    * @param srcGUID the origin of the teleportation
+    * @param destGUID the destination of the teleportation
+    */
+  def UseRouterTelepadEffect(playerGUID : PlanetSideGUID, srcGUID : PlanetSideGUID, destGUID : PlanetSideGUID) : Unit = {
+    sendResponse(PlanetsideAttributeMessage(playerGUID, 64, 1)) //what does this do?
+    sendResponse(GenericObjectActionMessage(srcGUID, 124))
+    sendResponse(GenericObjectActionMessage(destGUID, 128))
   }
 
   def failWithError(error : String) = {

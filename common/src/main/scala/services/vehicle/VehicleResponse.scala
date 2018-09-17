@@ -11,6 +11,7 @@ import net.psforever.types.{BailType, DriveState, Vector3}
 object VehicleResponse {
   trait Response
 
+  final case class ToggleTeleportSystem(router : Vehicle) extends Response
   final case class AttachToRails(vehicle_guid : PlanetSideGUID, rails_guid : PlanetSideGUID) extends Response
   final case class ChildObjectState(object_guid : PlanetSideGUID, pitch : Float, yaw : Float) extends Response
   final case class ConcealPlayer(player_guid : PlanetSideGUID) extends Response

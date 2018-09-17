@@ -19,7 +19,9 @@ object LocalResponse {
   final case class HackCaptureTerminal(target_guid : PlanetSideGUID, unk1 : Long, unk2 : Long, isResecured: Boolean) extends Response
   final case class ObjectDelete(item_guid : PlanetSideGUID, unk : Int) extends Response
   final case class ProximityTerminalEffect(object_guid : PlanetSideGUID, effectState : Boolean) extends Response
+  final case class RouterTelepadDeploy(telepad_guid : PlanetSideGUID) extends Response
+  final case class RouterTelepadTransport(passenger_guid : PlanetSideGUID, src_guid : PlanetSideGUID, dest_guid : PlanetSideGUID) extends Response
+  final case class SetEmpire(object_guid: PlanetSideGUID, empire: PlanetSideEmpire.Value) extends Response
   final case class TriggerEffect(target: PlanetSideGUID, effect: String, effectInfo: Option[TriggeredEffect] = None, triggeredLocation: Option[TriggeredEffectLocation] = None) extends Response
   final case class TriggerSound(sound : TriggeredSound.Value, pos : Vector3, unk : Int, volume : Float) extends Response
-  final case class SetEmpire(object_guid: PlanetSideGUID, empire: PlanetSideEmpire.Value) extends Response
 }

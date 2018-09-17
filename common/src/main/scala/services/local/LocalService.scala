@@ -111,6 +111,14 @@ class LocalService extends Actor {
           LocalEvents.publish(
             LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.ProximityTerminalEffect(object_guid, effectState))
           )
+        case LocalAction.RouterTelepadDeploy(player_guid, telepad_guid) =>
+          LocalEvents.publish(
+            LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.RouterTelepadDeploy(telepad_guid))
+          )
+        case LocalAction.RouterTelepadTransport(player_guid, passenger_guid, src_guid, dest_guid) =>
+          LocalEvents.publish(
+            LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.RouterTelepadTransport(passenger_guid, src_guid, dest_guid))
+          )
         case LocalAction.SetEmpire(object_guid, empire) =>
           LocalEvents.publish(
             LocalServiceResponse(s"/$forChannel/Local", Service.defaultPlayerGUID, LocalResponse.SetEmpire(object_guid, empire))
