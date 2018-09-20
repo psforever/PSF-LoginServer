@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package services.local
 
-import net.psforever.objects.PlanetSideGameObject
+import net.psforever.objects.{PlanetSideGameObject, Vehicle}
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.doors.Door
@@ -23,7 +23,7 @@ object LocalAction {
   final case class ClearTemporaryHack(player_guid: PlanetSideGUID, target: PlanetSideServerObject with Hackable) extends Action
   final case class HackCaptureTerminal(player_guid : PlanetSideGUID, continent : Zone, target : CaptureTerminal, unk1 : Long, unk2 : Long = 8L, isResecured : Boolean) extends Action
   final case class ProximityTerminalEffect(player_guid : PlanetSideGUID, object_guid : PlanetSideGUID, effectState : Boolean) extends Action
-  final case class RouterTelepadDeploy(player_guid : PlanetSideGUID, telepad_guid : PlanetSideGUID) extends Action
+  final case class RouterTelepadDeploy(player_guid : PlanetSideGUID, router : Vehicle) extends Action
   final case class RouterTelepadTransport(player_guid : PlanetSideGUID, passenger_guid : PlanetSideGUID, src_guid : PlanetSideGUID, dest_guid : PlanetSideGUID) extends Action
   final case class SetEmpire(object_guid: PlanetSideGUID, empire: PlanetSideEmpire.Value) extends Action
   final case class TriggerEffect(player_guid : PlanetSideGUID, effect : String, target : PlanetSideGUID) extends Action

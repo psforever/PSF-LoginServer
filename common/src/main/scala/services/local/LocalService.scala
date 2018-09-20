@@ -7,18 +7,20 @@ import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.objects.serverobject.structures.Building
 import net.psforever.objects.serverobject.terminals.CaptureTerminal
 import net.psforever.objects.zones.{InterstellarCluster, Zone}
-import net.psforever.objects.{BoomerDeployable, GlobalDefinitions, PlanetSideGameObject, TurretDeployable}
+import net.psforever.objects._
 import net.psforever.packet.game.{PlanetSideGUID, TriggeredEffect, TriggeredEffectLocation}
 import net.psforever.objects.vital.Vitality
 import net.psforever.types.Vector3
-import services.local.support.{DeployableRemover, DoorCloseActor, HackClearActor, HackCaptureActor}
+import services.local.support.{DeployableRemover, DoorCloseActor, HackCaptureActor, HackClearActor}
 import services.vehicle.{VehicleAction, VehicleServiceMessage}
 import services.{GenericEventBus, Service, ServiceManager}
 
 import scala.util.Success
 import scala.concurrent.duration._
 import akka.pattern.ask
+import net.psforever.objects.vehicles.{Utility, UtilityType}
 import services.ServiceManager.Lookup
+
 import scala.concurrent.duration.Duration
 
 class LocalService extends Actor {
@@ -111,9 +113,9 @@ class LocalService extends Actor {
           LocalEvents.publish(
             LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.ProximityTerminalEffect(object_guid, effectState))
           )
-        case LocalAction.RouterTelepadDeploy(player_guid, telepad_guid) =>
+        case LocalAction.RouterTelepadDeploy(player_guid, router) =>
           LocalEvents.publish(
-            LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.RouterTelepadDeploy(telepad_guid))
+            LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.RouterTelepadDeploy(router))
           )
         case LocalAction.RouterTelepadTransport(player_guid, passenger_guid, src_guid, dest_guid) =>
           LocalEvents.publish(
@@ -226,6 +228,10 @@ class LocalService extends Actor {
           log.warn(s"LocalService: deconstructing boomer in ${zone.Id}, but trigger@${trigger.GUID.guid} still exists")
         case _ => ;
       }
+
+    case DeployableRemover.EliminateDeployable(obj : TelepadDeployable, guid, pos, zone) =>
+      obj.Active = false
+      EliminateDeployable(obj, guid, pos, zone.Id)
 
     case DeployableRemover.EliminateDeployable(obj, guid, pos, zone) =>
       EliminateDeployable(obj, guid, pos, zone.Id)
