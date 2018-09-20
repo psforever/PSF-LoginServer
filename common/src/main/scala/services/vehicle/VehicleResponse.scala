@@ -31,7 +31,6 @@ object VehicleResponse {
   final case class RevealPlayer(player_guid : PlanetSideGUID) extends Response
   final case class SeatPermissions(vehicle_guid : PlanetSideGUID, seat_group : Int, permission : Long) extends Response
   final case class StowEquipment(vehicle_guid : PlanetSideGUID, slot : Int, itype : Int, iguid : PlanetSideGUID, idata : ConstructorData) extends Response
-  final case class ToggleTeleportSystem(router : Vehicle, systemPlan : Option[(Utility.InternalTelepad, TelepadDeployable)]) extends Response
   final case class UnloadVehicle(vehicle : Vehicle) extends Response
   final case class UnstowEquipment(item_guid : PlanetSideGUID) extends Response
   final case class VehicleState(vehicle_guid : PlanetSideGUID, unk1 : Int, pos : Vector3, ang : Vector3, vel : Option[Vector3], unk2 : Option[Int], unk3 : Int, unk4 : Int, wheel_direction : Int, unk5 : Boolean, unk6 : Boolean) extends Response

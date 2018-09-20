@@ -4071,7 +4071,7 @@ object GlobalDefinitions {
     router_telepad.Size = EquipmentSize.Pistol
     router_telepad.Modes += new ConstructionFireMode
     router_telepad.Modes.head.Item(DeployedItem.router_telepad_deployable -> Set(CertificationType.GroundSupport))
-    router_telepad.Tile = InventoryTile.Tile11 //TODO fix
+    router_telepad.Tile = InventoryTile.Tile33
     router_telepad.Packet = new TelepadConverter
 
     fury_weapon_systema.Name = "fury_weapon_systema"

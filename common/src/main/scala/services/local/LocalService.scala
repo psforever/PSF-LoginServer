@@ -11,15 +11,16 @@ import net.psforever.objects._
 import net.psforever.packet.game.{PlanetSideGUID, TriggeredEffect, TriggeredEffectLocation}
 import net.psforever.objects.vital.Vitality
 import net.psforever.types.Vector3
-import services.local.support.{DeployableRemover, DoorCloseActor, HackCaptureActor, HackClearActor}
+import services.local.support._
 import services.vehicle.{VehicleAction, VehicleServiceMessage}
-import services.{GenericEventBus, Service, ServiceManager}
+import services.{GenericEventBus, RemoverActor, Service, ServiceManager}
 
 import scala.util.Success
 import scala.concurrent.duration._
 import akka.pattern.ask
 import net.psforever.objects.vehicles.{Utility, UtilityType}
 import services.ServiceManager.Lookup
+import services.support.SupportActor
 
 import scala.concurrent.duration.Duration
 
@@ -28,6 +29,7 @@ class LocalService extends Actor {
   private val hackClearer = context.actorOf(Props[HackClearActor], "local-hack-clearer")
   private val hackCapturer = context.actorOf(Props[HackCaptureActor], "local-hack-capturer")
   private val engineer = context.actorOf(Props[DeployableRemover], "deployable-remover-agent")
+  private val teleportDeployment : ActorRef = context.actorOf(Props[RouterTelepadActivation], "telepad-activate-agent")
   private [this] val log = org.log4s.getLogger
   var cluster : ActorRef = Actor.noSender
 
@@ -113,10 +115,6 @@ class LocalService extends Actor {
           LocalEvents.publish(
             LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.ProximityTerminalEffect(object_guid, effectState))
           )
-        case LocalAction.RouterTelepadDeploy(player_guid, router) =>
-          LocalEvents.publish(
-            LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.RouterTelepadDeploy(router))
-          )
         case LocalAction.RouterTelepadTransport(player_guid, passenger_guid, src_guid, dest_guid) =>
           LocalEvents.publish(
             LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.RouterTelepadTransport(passenger_guid, src_guid, dest_guid))
@@ -124,6 +122,10 @@ class LocalService extends Actor {
         case LocalAction.SetEmpire(object_guid, empire) =>
           LocalEvents.publish(
             LocalServiceResponse(s"/$forChannel/Local", Service.defaultPlayerGUID, LocalResponse.SetEmpire(object_guid, empire))
+          )
+        case LocalAction.ToggleTeleportSystem(player_guid, router, system_plan) =>
+          LocalEvents.publish(
+            LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.ToggleTeleportSystem(router, system_plan))
           )
         case LocalAction.TriggerEffect(player_guid, effect, target) =>
           LocalEvents.publish(
@@ -231,6 +233,8 @@ class LocalService extends Actor {
 
     case DeployableRemover.EliminateDeployable(obj : TelepadDeployable, guid, pos, zone) =>
       obj.Active = false
+      //ClearSpecific will also remove objects that do not have GUID's; we may not have a GUID at this time
+      teleportDeployment ! SupportActor.ClearSpecific(List(obj), zone)
       EliminateDeployable(obj, guid, pos, zone.Id)
 
     case DeployableRemover.EliminateDeployable(obj, guid, pos, zone) =>
@@ -241,6 +245,54 @@ class LocalService extends Actor {
         LocalServiceResponse(s"/${zone.Id}/Local", Service.defaultPlayerGUID, LocalResponse.ObjectDelete(trigger_guid, 0))
       )
 
+    //message to RouterTelepadActivation
+    case LocalServiceMessage.Telepads(msg) =>
+      teleportDeployment forward msg
+
+    //from RouterTelepadActivation
+    case RouterTelepadActivation.ActivateTeleportSystem(telepad, zone) =>
+      val remoteTelepad = telepad.asInstanceOf[TelepadDeployable]
+      remoteTelepad.Active = true
+      zone.GUID(remoteTelepad.Router) match {
+        case Some(router : Vehicle) =>
+          router.Utility(UtilityType.internal_router_telepad_deployable) match {
+            case Some(internalTelepad : Utility.InternalTelepad) =>
+              //get rid of previous linked remote telepad (if any)
+              zone.GUID(internalTelepad.Telepad) match {
+                case Some(old : TelepadDeployable) =>
+                  log.info(s"ActivateTeleportSystem: old remote telepad@${old.GUID.guid} linked to internal@${internalTelepad.GUID.guid} will be deconstructed")
+                  old.Active = false
+                  engineer ! SupportActor.ClearSpecific(List(old), zone)
+                  engineer ! RemoverActor.AddTask(old, zone, Some(0 seconds))
+                case _ => ;
+              }
+              internalTelepad.Telepad = remoteTelepad.GUID
+              if(internalTelepad.Active) {
+                log.info(s"ActivateTeleportSystem: fully deployed router@${router.GUID.guid} in ${zone.Id} will link internal@${internalTelepad.GUID.guid} and remote@${remoteTelepad.GUID.guid}")
+                LocalEvents.publish(
+                  LocalServiceResponse(s"/${zone.Id}/Local", Service.defaultPlayerGUID, LocalResponse.ToggleTeleportSystem(router, Some((internalTelepad, remoteTelepad))))
+                )
+              }
+              else {
+                remoteTelepad.OwnerName match {
+                  case Some(name) =>
+                    LocalEvents.publish(
+                      LocalServiceResponse(s"/$name/Local", Service.defaultPlayerGUID, LocalResponse.RouterTelepadMessage("@Teleport_NotDeployed"))
+                    )
+                  case None => ;
+                }
+              }
+            case _ =>
+              log.error(s"ActivateTeleportSystem: vehicle@${router.GUID.guid} in ${zone.Id} is not a router?")
+              RouterTelepadError(remoteTelepad, zone, "@Telepad_NoDeploy_RouterLost")
+          }
+        case Some(o) =>
+          log.error(s"ActivateTeleportSystem: ${o.Definition.Name}@${o.GUID.guid} in ${zone.Id} is not a router")
+          RouterTelepadError(remoteTelepad, zone, "@Telepad_NoDeploy_RouterLost")
+        case None =>
+          RouterTelepadError(remoteTelepad, zone, "@Telepad_NoDeploy_RouterLost")
+      }
+
     //synchronized damage calculations
     case Vitality.DamageOn(target : Deployable, func) =>
       func(target)
@@ -248,6 +300,24 @@ class LocalService extends Actor {
 
     case msg =>
       log.warn(s"Unhandled message $msg from $sender")
+  }
+
+  /**
+    * na
+    * @param telepad na
+    * @param zone na
+    * @param msg na
+    */
+  def RouterTelepadError(telepad : TelepadDeployable, zone : Zone, msg : String) : Unit = {
+    telepad.OwnerName match {
+      case Some(name) =>
+        LocalEvents.publish(
+          LocalServiceResponse(s"/$name/Local", Service.defaultPlayerGUID, LocalResponse.RouterTelepadMessage(msg))
+        )
+      case None => ;
+    }
+    engineer ! SupportActor.ClearSpecific(List(telepad), zone)
+    engineer ! RemoverActor.AddTask(telepad, zone, Some(0 seconds))
   }
 
   /**
