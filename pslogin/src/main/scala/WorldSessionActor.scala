@@ -815,14 +815,21 @@ class WorldSessionActor extends Actor with MDCContextAware {
         AnnounceDestroyDeployable(target, None)
       }
 
-    case Vitality.DamageResolution(target : SimpleDeployable) =>
-      //boomers, sensors, mines
+    case Vitality.DamageResolution(target : SensorDeployable) =>
+      //sensors
+      val guid = target.GUID
       val health = target.Health
+      avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(guid, 0, health))
       if(health <= 0) {
-        //do not show updated health bar; but do update if destroyed
+        AnnounceDestroyDeployable(target, Some(0 seconds))
+      }
+
+    case Vitality.DamageResolution(target : SimpleDeployable) =>
+      //boomers, mines
+      if(target.Health <= 0) {
+        //update if destroyed
         val guid = target.GUID
-        sendResponse(PlanetsideAttributeMessage(guid, 0, health))
-        avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(guid, 0, health))
+        avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player.GUID, guid))
         AnnounceDestroyDeployable(target, Some(0 seconds))
       }
 
@@ -3053,8 +3060,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
               boomer.Exploded = true
               sendResponse(TriggerEffectMessage(boomerGUID, "detonate_boomer"))
               sendResponse(PlanetsideAttributeMessage(boomerGUID, 29, 1))
+              sendResponse(ObjectDeleteMessage(boomerGUID, 0))
               localService ! LocalServiceMessage(continent.Id, LocalAction.TriggerEffect(playerGUID, "detonate_boomer", boomerGUID))
               avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(boomerGUID, 29, 1))
+              avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(playerGUID, boomerGUID))
               localService ! LocalServiceMessage.Deployables(RemoverActor.AddTask(boomer, continent, Some(0 seconds)))
             case Some(_) | None => ;
           }
