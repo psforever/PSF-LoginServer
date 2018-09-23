@@ -70,6 +70,13 @@ object Vector3 {
     ).as[Vector3]
 
   /**
+    * A common vector object that only concerns itself with rotation around the world-up axis.
+    * @param yaw the angle of rotation
+    * @return a `Vector3` object
+    */
+  def z(yaw : Float) : Vector3 = Vector3(0, 0, yaw)
+
+  /**
     * Calculate the actual distance between two points.
     * @param pos1 the first point
     * @param pos2 the second point

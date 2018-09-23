@@ -4,7 +4,7 @@ package game.objectcreate
 import net.psforever.packet.PacketCoding
 import net.psforever.packet.game.{ObjectCreateMessage, PlanetSideGUID}
 import net.psforever.packet.game.objectcreate._
-import net.psforever.types.PlanetSideEmpire
+import net.psforever.types.{PlanetSideEmpire, Vector3}
 import org.specs2.mutable._
 import scodec.bits._
 
@@ -22,14 +22,14 @@ class SmallDeployableDataTest extends Specification {
           data.isDefined mustEqual true
           data.get.isInstanceOf[SmallDeployableData] mustEqual true
           val boomer = data.get.asInstanceOf[SmallDeployableData]
-          boomer.deploy.pos.coord.x mustEqual 4704.172f
-          boomer.deploy.pos.coord.y mustEqual 5546.4375f
-          boomer.deploy.pos.coord.z mustEqual 82.234375f
-          boomer.deploy.pos.orient.x mustEqual 0f
-          boomer.deploy.pos.orient.y mustEqual 0f
-          boomer.deploy.pos.orient.z mustEqual 272.8125f
-          boomer.deploy.unk mustEqual 0
-          boomer.deploy.player_guid mustEqual PlanetSideGUID(4145)
+          boomer.pos.coord.x mustEqual 4704.172f
+          boomer.pos.coord.y mustEqual 5546.4375f
+          boomer.pos.coord.z mustEqual 82.234375f
+          boomer.pos.orient.x mustEqual 0f
+          boomer.pos.orient.y mustEqual 0f
+          boomer.pos.orient.z mustEqual 272.8125f
+          boomer.unk1 mustEqual 0
+          boomer.owner_guid mustEqual PlanetSideGUID(8290)
         case _ =>
           ko
       }
@@ -37,10 +37,8 @@ class SmallDeployableDataTest extends Specification {
 
     "encode (boomer)" in {
       val obj = SmallDeployableData(
-        CommonFieldData(
-          PlacementData(4704.172f, 5546.4375f, 82.234375f, 0f, 0f, 272.8125f),
-          PlanetSideEmpire.TR, 0, PlanetSideGUID(4145)
-        )
+        PlacementData(Vector3(4704.172f, 5546.4375f, 82.234375f), Vector3.z(272.8125f)),
+        PlanetSideEmpire.TR, false, false, 0, false, false, PlanetSideGUID(8290)
       )
       val msg = ObjectCreateMessage(ObjectClass.boomer, PlanetSideGUID(3840), obj)
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector

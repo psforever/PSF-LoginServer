@@ -56,6 +56,13 @@ class ZoneActor(zone : Zone) extends Actor {
     case msg @ Zone.Ground.PickupItem =>
       zone.Ground forward msg
 
+    //frwd to Deployable Actor
+    case msg @ Zone.Deployable.Build =>
+      zone.Deployables forward msg
+
+    case msg @ Zone.Deployable.Dismiss =>
+      zone.Deployables forward msg
+
     //frwd to Vehicle Actor
     case msg @ Zone.Vehicle.Spawn =>
       zone.Transport forward msg
@@ -142,17 +149,21 @@ class ZoneActor(zone : Zone) extends Actor {
     val errors = new AtomicInteger(0)
     val validateObject : (Int, (PlanetSideGameObject)=>Boolean, String) => Boolean = ValidateObject(guid, slog, errors)
 
-    //check base to object associations
-    map.ObjectToBuilding.foreach({ case((object_guid, building_id)) =>
+    //check bases
+    map.ObjectToBuilding.values.toSet[Int].foreach(building_id =>
       if(zone.Building(building_id).isEmpty) {
-        slog.error(s"expected a building at id #$building_id")
+        slog.error(s"expected a building for id #$building_id")
         errors.incrementAndGet()
       }
+    )
+
+    //check base to object associations
+    map.ObjectToBuilding.keys.foreach(object_guid =>
       if(guid(object_guid).isEmpty) {
         slog.error(s"expected object id $object_guid to exist, but it did not")
         errors.incrementAndGet()
       }
-    })
+    )
 
     //check door to lock association
     map.DoorToLock.foreach({ case((door_guid, lock_guid)) =>
@@ -174,8 +185,8 @@ class ZoneActor(zone : Zone) extends Actor {
 
     //check manned turret to weapon association
     map.TurretToWeapon.foreach({ case ((turret_guid, weapon_guid)) =>
-      validateObject(turret_guid, MannedTurretCheck, "manned turret mount")
-      if(validateObject(weapon_guid, WeaponCheck, "manned turret weapon")) {
+      validateObject(turret_guid, FacilityTurretCheck, "facility turret mount")
+      if(validateObject(weapon_guid, WeaponCheck, "facility turret weapon")) {
         if(guid(weapon_guid).get.asInstanceOf[Tool].AmmoSlots.count(!_.Box.HasGUID) > 0) {
           slog.error(s"expected weapon $weapon_guid has an unregistered ammunition unit")
           errors.incrementAndGet()
@@ -247,9 +258,9 @@ object ZoneActor {
     obj.isInstanceOf[VehicleSpawnPad]
   }
 
-  def MannedTurretCheck(obj : PlanetSideGameObject) : Boolean = {
-    import net.psforever.objects.serverobject.turret.MannedTurret
-    obj.isInstanceOf[MannedTurret]
+  def FacilityTurretCheck(obj : PlanetSideGameObject) : Boolean = {
+    import net.psforever.objects.serverobject.turret.FacilityTurret
+    obj.isInstanceOf[FacilityTurret]
   }
 
   def WeaponCheck(obj : PlanetSideGameObject) : Boolean = {

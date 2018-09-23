@@ -5,14 +5,16 @@ import akka.actor.{ActorContext, ActorRef, Props}
 import akka.routing.RandomPool
 import net.psforever.objects.ballistics.Projectile
 import net.psforever.objects._
+import net.psforever.objects.ce.Deployable
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.objects.guid.actor.UniqueNumberSystem
 import net.psforever.objects.guid.selector.RandomSelector
 import net.psforever.objects.guid.source.LimitedNumberSource
+import net.psforever.objects.inventory.Container
 import net.psforever.objects.serverobject.structures.{Amenity, Building}
 import net.psforever.objects.serverobject.tube.SpawnTube
-import net.psforever.objects.serverobject.turret.MannedTurret
+import net.psforever.objects.serverobject.turret.FacilityTurret
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types.Vector3
 
@@ -54,6 +56,10 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
   /** Used by the `Zone` to coordinate `Equipment` dropping and collection requests. */
   private var ground : ActorRef = ActorRef.noSender
   /** */
+  private val constructions : ListBuffer[PlanetSideGameObject with Deployable] = ListBuffer[PlanetSideGameObject with Deployable]()
+  /** */
+  private var deployables : ActorRef = ActorRef.noSender
+  /** */
   private var transport : ActorRef = ActorRef.noSender
   /** */
   private val players : TrieMap[Avatar, Option[Player]] = TrieMap[Avatar, Option[Player]]()
@@ -91,6 +97,7 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
       SetupNumberPools()
       accessor = context.actorOf(RandomPool(25).props(Props(classOf[UniqueNumberSystem], guid, UniqueNumberSystem.AllocateNumberPoolActors(guid))), s"$Id-uns")
       ground = context.actorOf(Props(classOf[ZoneGroundActor], this, equipmentOnGround), s"$Id-ground")
+      deployables = context.actorOf(Props(classOf[ZoneDeployableActor], this, constructions), s"$Id-deployables")
       transport = context.actorOf(Props(classOf[ZoneVehicleActor], this, vehicles), s"$Id-vehicles")
       population = context.actorOf(Props(classOf[ZonePopulationActor], this, players, corpses), s"$Id-players")
 
@@ -253,6 +260,8 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
     */
   def EquipmentOnGround : List[Equipment] = equipmentOnGround.toList
 
+  def DeployableList : List[PlanetSideGameObject with Deployable] = constructions.toList
+
   def Vehicles : List[Vehicle] = vehicles.toList
 
   def Players : List[Avatar] = players.keys.toList
@@ -270,6 +279,8 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
     *      `Zone.ItemFromGround`
     */
   def Ground : ActorRef = ground
+
+  def Deployables : ActorRef = deployables
 
   def Transport : ActorRef = transport
 
@@ -290,7 +301,7 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
     //turret to weapon
     Map.TurretToWeapon.foreach({ case ((turret_guid, weapon_guid)) =>
       ((GUID(turret_guid) match {
-        case Some(obj : MannedTurret) =>
+        case Some(obj : FacilityTurret) =>
           Some(obj)
         case _ => ;
           None
@@ -322,7 +333,11 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
 
   private def AssignAmenities() : Unit = {
     Map.ObjectToBuilding.foreach({ case(object_guid, building_id) =>
-      buildings(building_id).Amenities = guid(object_guid).get.asInstanceOf[Amenity]
+      (buildings.get(building_id), guid(object_guid)) match {
+        case (Some(building), Some(amenity)) =>
+          building.Amenities = amenity.asInstanceOf[Amenity]
+        case (None, _) | (_, None) => ; //let ZoneActor's sanity check catch this error
+      }
     })
   }
 
@@ -385,6 +400,17 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
 object Zone {
   /** Default value, non-zone area. */
   final val Nowhere : Zone = new Zone("nowhere", new ZoneMap("nowhere"), 99)
+
+  /**
+    * Overloaded constructor.
+    * @param id the privileged name that can be used as the second parameter in the packet `LoadMapMessage`
+    * @param map the map of server objects upon which this `Zone` is based
+    * @param number the numerical index of the `Zone` as it is recognized in a variety of packets
+    * @return a `Zone` object
+    */
+  def apply(id : String, map : ZoneMap, number : Int) : Zone = {
+    new Zone(id, map, number)
+  }
 
   /**
     * Message to initialize the `Zone`.
@@ -494,6 +520,14 @@ object Zone {
     final case class RemoveItem(item_guid : PlanetSideGUID)
   }
 
+  object Deployable {
+    final case class Build(obj : PlanetSideGameObject with Deployable, withTool : ConstructionItem)
+    final case class DeployableIsBuilt(obj : PlanetSideGameObject with Deployable, withTool : ConstructionItem)
+
+    final case class Dismiss(obj : PlanetSideGameObject with Deployable)
+    final case class DeployableIsDismissed(obj : PlanetSideGameObject with Deployable)
+  }
+
   object Vehicle {
     final case class Spawn(vehicle : Vehicle)
 
@@ -512,14 +546,71 @@ object Zone {
     */
   final case class ClientInitialization(zone : Zone)
 
-  /**
-    * Overloaded constructor.
-    * @param id the privileged name that can be used as the second parameter in the packet `LoadMapMessage`
-    * @param map the map of server objects upon which this `Zone` is based
-    * @param number the numerical index of the `Zone` as it is recognized in a variety of packets
-    * @return a `Zone` object
-    */
-  def apply(id : String, map : ZoneMap, number : Int) : Zone = {
-    new Zone(id, map, number)
+  object EquipmentIs {
+    /**
+      * Tha base `trait` connecting all `Equipment` object location tokens.
+      */
+    sealed trait ItemLocation
+    /**
+      * The target item is contained within another object.
+      * @see `GridInventory`<br>
+      *       `Container`
+      * @param obj the containing object
+      * @param index the slot where the target is located
+      */
+    final case class InContainer(obj : Container, index : Int) extends ItemLocation
+    /**
+      * The target item is found on the Ground.
+      * @see `ZoneGroundActor`
+      */
+    final case class OnGround() extends ItemLocation
+    /**
+      * The target item exists but could not be found belonging to any expected region of the location.
+      */
+    final case class Orphaned() extends ItemLocation
+
+    /**
+      * An exhaustive search of the provided zone is conducted in search of the target `Equipment` object
+      * and a token that qualifies the current location of the object in the zone is returned.
+      * The following groups of objects are searched:
+      * the inventories of all players and all corpses,
+      * all vehicles trunks,
+      * the lockers of all players and corpses;
+      * and, if still not found, the ground is scoured too.
+      * @see `ItemLocation`<br>
+      *       `LockerContainer`
+      * @param equipment the target object
+      * @param guid that target object's globally unique identifier
+      * @param continent the zone whose objects to search
+      * @return a token that explains where the object is, if it is found in this zone;
+      *         `None` is the token that is used to indicate not having been found
+      */
+    def Where(equipment : Equipment, guid : PlanetSideGUID, continent : Zone) : Option[Zone.EquipmentIs.ItemLocation] = {
+      continent.GUID(guid) match {
+        case Some(_) =>
+          ((continent.LivePlayers ++ continent.Corpses).find(_.Find(guid).nonEmpty) match {
+            case Some(tplayer) => Some((tplayer, tplayer.Find(guid)))
+            case _ => None
+          }).orElse(continent.Vehicles.find(_.Find(guid).nonEmpty) match {
+            case Some(vehicle) => Some((vehicle, vehicle.Find(guid)))
+            case _ => None
+          }).orElse(continent.Players.find(_.Locker.Find(guid).nonEmpty) match {
+            case Some(avatar) => Some((avatar.Locker, avatar.Locker.Find(guid)))
+            case _ => None
+          }) match {
+            case Some((obj, Some(index))) =>
+              Some(Zone.EquipmentIs.InContainer(obj, index))
+            case _ =>
+              continent.EquipmentOnGround.find(_.GUID == guid) match {
+                case Some(_) =>
+                  Some(Zone.EquipmentIs.OnGround())
+                case None =>
+                  Some(Zone.EquipmentIs.Orphaned())
+              }
+          }
+        case None =>
+          None
+      }
+    }
   }
 }

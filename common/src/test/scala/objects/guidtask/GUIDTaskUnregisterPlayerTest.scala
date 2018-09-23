@@ -6,7 +6,7 @@ import net.psforever.objects._
 import net.psforever.objects.guid.{GUIDTask, TaskResolver}
 import net.psforever.types.{CharacterGender, CharacterVoice, PlanetSideEmpire}
 
-class GUIDTaskUnregister6Test extends ActorTest {
+class GUIDTaskUnregisterPlayerTest extends ActorTest {
   "UnregisterPlayer" in {
     val (guid, uns, taskResolver, probe) = GUIDTaskTest.CommonTestSetup
     val obj = Player(Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))

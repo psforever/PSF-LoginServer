@@ -2,9 +2,9 @@
 package net.psforever.objects
 
 import net.psforever.objects.ballistics.Projectiles
+import net.psforever.objects.ce.{DeployableCategory, DeployedItem}
 import net.psforever.objects.definition._
 import net.psforever.objects.definition.converter._
-import net.psforever.objects.equipment.CItem.DeployedItem
 import net.psforever.objects.equipment._
 import net.psforever.objects.inventory.InventoryTile
 import net.psforever.objects.serverobject.doors.DoorDefinition
@@ -15,10 +15,10 @@ import net.psforever.objects.serverobject.pad.VehicleSpawnPadDefinition
 import net.psforever.objects.serverobject.terminals._
 import net.psforever.objects.serverobject.tube.SpawnTubeDefinition
 import net.psforever.objects.serverobject.resourcesilo.ResourceSiloDefinition
-import net.psforever.objects.serverobject.turret.{MannedTurretDefinition, TurretUpgrade}
+import net.psforever.objects.serverobject.turret.{TurretDefinition, TurretUpgrade}
 import net.psforever.objects.vehicles.{DestroyedVehicle, SeatArmorRestriction, UtilityType}
-import net.psforever.objects.vital.DamageType
-import net.psforever.types.PlanetSideEmpire
+import net.psforever.objects.vital.{DamageType, StandardResolutions}
+import net.psforever.types.{CertificationType, PlanetSideEmpire}
 
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -497,6 +497,12 @@ object GlobalDefinitions {
   val bullet_150mm = AmmoBoxDefinition(Ammo.bullet_150mm)
 
   val phalanx_ammo = AmmoBoxDefinition(Ammo.phalanx_ammo)
+
+  val spitfire_ammo = AmmoBoxDefinition(Ammo.spitfire_ammo)
+
+  val spitfire_aa_ammo = AmmoBoxDefinition(Ammo.spitfire_aa_ammo)
+
+  val energy_gun_ammo = AmmoBoxDefinition(Ammo.energy_gun_ammo)
   init_ammo()
 
   val chainblade = ToolDefinition(ObjectClass.chainblade)
@@ -622,6 +628,8 @@ object GlobalDefinitions {
 
   val bank = ToolDefinition(ObjectClass.bank)
 
+  val boomer_trigger = SimpleItemDefinition(SItem.boomer_trigger)
+
   val remote_electronics_kit = SimpleItemDefinition(SItem.remote_electronics_kit)
 
   val trek = ToolDefinition(ObjectClass.trek)
@@ -630,9 +638,9 @@ object GlobalDefinitions {
 
   val command_detonater = SimpleItemDefinition(SItem.command_detonater)
 
-  val ace = ConstructionItemDefinition(CItem.Unit.ace)
+  val ace = ConstructionItemDefinition(CItem.ace)
 
-  val advanced_ace = ConstructionItemDefinition(CItem.Unit.advanced_ace)
+  val advanced_ace = ConstructionItemDefinition(CItem.advanced_ace)
 
   val fury_weapon_systema = ToolDefinition(ObjectClass.fury_weapon_systema)
 
@@ -737,6 +745,18 @@ object GlobalDefinitions {
   val phalanx_avcombo = ToolDefinition(ObjectClass.phalanx_avcombo)
 
   val phalanx_flakcombo = ToolDefinition(ObjectClass.phalanx_flakcombo)
+
+  val spitfire_weapon = ToolDefinition(ObjectClass.spitfire_weapon)
+
+  val spitfire_aa_weapon = ToolDefinition(ObjectClass.spitfire_aa_weapon)
+
+  val energy_gun = ToolDefinition(ObjectClass.energy_gun)
+
+  val energy_gun_nc = ToolDefinition(ObjectClass.energy_gun_nc)
+
+  val energy_gun_tr = ToolDefinition(ObjectClass.energy_gun_tr)
+
+  val energy_gun_vs = ToolDefinition(ObjectClass.energy_gun_vs)
   init_tools()
 
   /*
@@ -810,6 +830,38 @@ object GlobalDefinitions {
   init_vehicles()
 
   /*
+  combat engineering deployables
+   */
+  val boomer = DeployableDefinition(DeployedItem.boomer)
+
+  val he_mine = DeployableDefinition(DeployedItem.he_mine)
+
+  val jammer_mine = DeployableDefinition(DeployedItem.jammer_mine)
+
+  val spitfire_turret = TurretDeployableDefinition(DeployedItem.spitfire_turret)
+
+  val spitfire_cloaked = TurretDeployableDefinition(DeployedItem.spitfire_cloaked)
+
+  val spitfire_aa = TurretDeployableDefinition(DeployedItem.spitfire_aa)
+
+  val motionalarmsensor = DeployableDefinition(DeployedItem.motionalarmsensor)
+
+  val sensor_shield = DeployableDefinition(DeployedItem.sensor_shield)
+
+  val tank_traps = DeployableDefinition(DeployedItem.tank_traps)
+
+  val portable_manned_turret = TurretDeployableDefinition(DeployedItem.portable_manned_turret)
+
+  val portable_manned_turret_nc = TurretDeployableDefinition(DeployedItem.portable_manned_turret_nc)
+
+  val portable_manned_turret_tr = TurretDeployableDefinition(DeployedItem.portable_manned_turret_tr)
+
+  val portable_manned_turret_vs = TurretDeployableDefinition(DeployedItem.portable_manned_turret_vs)
+
+  val deployable_shield_generator = new ShieldGeneratorDefinition
+  init_deployables()
+
+  /*
   Miscellaneous
    */
   val order_terminal = new OrderTerminalDefinition
@@ -868,7 +920,7 @@ object GlobalDefinitions {
 
   val secondary_capture = new CaptureTerminalDefinition(751) // Tower CC
 
-  val manned_turret = new MannedTurretDefinition(480) {
+  val manned_turret = new TurretDefinition(480) {
     Name = "manned_turret"
     MaxHealth = 3600
     Weapons += 1 -> new mutable.HashMap()
@@ -1081,6 +1133,15 @@ object GlobalDefinitions {
       case PlanetSideEmpire.NC => nchev_sparrow
       case PlanetSideEmpire.VS => vshev_starfire
       case PlanetSideEmpire.NEUTRAL => suppressor //there are no common pool MAX arms
+    }
+  }
+
+  def PortableMannedTurret(faction :PlanetSideEmpire.Value) : TurretDeployableDefinition = {
+    faction match {
+      case PlanetSideEmpire.TR => portable_manned_turret_tr
+      case PlanetSideEmpire.NC => portable_manned_turret_nc
+      case PlanetSideEmpire.VS => portable_manned_turret_vs
+      case PlanetSideEmpire.NEUTRAL => portable_manned_turret
     }
   }
 
@@ -1541,8 +1602,16 @@ object GlobalDefinitions {
     bullet_150mm.Tile = InventoryTile.Tile44
 
     phalanx_ammo.Name = "phalanx_ammo"
-    phalanx_ammo.Capacity = 4000 //sufficient for a reload
     phalanx_ammo.Size = EquipmentSize.Inventory
+
+    spitfire_ammo.Name = "spitfire_ammo"
+    spitfire_ammo.Size = EquipmentSize.Inventory
+
+    spitfire_aa_ammo.Name = "spitfire_aa_ammo"
+    spitfire_aa_ammo.Size = EquipmentSize.Inventory
+
+    energy_gun_ammo.Name = "energy_gun_ammo"
+    energy_gun_ammo.Size = EquipmentSize.Inventory
   }
 
   /**
@@ -3938,6 +4007,10 @@ object GlobalDefinitions {
     remote_electronics_kit.Packet = new REKConverter
     remote_electronics_kit.Tile = InventoryTile.Tile33
 
+    boomer_trigger.Name = "boomer_trigger"
+    boomer_trigger.Packet = new BoomerTriggerConverter
+    boomer_trigger.Tile = InventoryTile.Tile22
+
     trek.Name = "trek"
     trek.Size = EquipmentSize.Pistol
     trek.AmmoTypes += trek_ammo
@@ -3961,21 +4034,30 @@ object GlobalDefinitions {
     command_detonater.Tile = InventoryTile.Tile33
 
     ace.Name = "ace"
-    ace.Modes += DeployedItem.boomer
-    ace.Modes += DeployedItem.he_mine
-    ace.Modes += DeployedItem.jammer_mine
-    ace.Modes += DeployedItem.spitfire_turret
-    ace.Modes += DeployedItem.spitfire_cloaked
-    ace.Modes += DeployedItem.spitfire_aa
-    ace.Modes += DeployedItem.motionalarmsensor
-    ace.Modes += DeployedItem.sensor_shield
+    ace.Size = EquipmentSize.Pistol
+    ace.Modes += new ConstructionFireMode
+    ace.Modes.head.Item(DeployedItem.boomer -> Set(CertificationType.CombatEngineering))
+    ace.Modes += new ConstructionFireMode
+    ace.Modes(1).Item(DeployedItem.he_mine -> Set(CertificationType.CombatEngineering))
+    ace.Modes(1).Item(DeployedItem.jammer_mine -> Set(CertificationType.AssaultEngineering))
+    ace.Modes += new ConstructionFireMode
+    ace.Modes(2).Item(DeployedItem.spitfire_turret -> Set(CertificationType.CombatEngineering))
+    ace.Modes(2).Item(DeployedItem.spitfire_cloaked -> Set(CertificationType.FortificationEngineering))
+    ace.Modes(2).Item(DeployedItem.spitfire_aa -> Set(CertificationType.FortificationEngineering))
+    ace.Modes += new ConstructionFireMode
+    ace.Modes(3).Item(DeployedItem.motionalarmsensor -> Set(CertificationType.CombatEngineering))
+    ace.Modes(3).Item(DeployedItem.sensor_shield -> Set(CertificationType.AdvancedHacking, CertificationType.CombatEngineering))
     ace.Tile = InventoryTile.Tile33
 
     advanced_ace.Name = "advanced_ace"
-    advanced_ace.Modes += DeployedItem.tank_traps
-    advanced_ace.Modes += DeployedItem.portable_manned_turret
-    advanced_ace.Modes += DeployedItem.deployable_shield_generator
-    advanced_ace.Tile = InventoryTile.Tile63
+    advanced_ace.Size = EquipmentSize.Rifle
+    advanced_ace.Modes += new ConstructionFireMode
+    advanced_ace.Modes.head.Item(DeployedItem.tank_traps -> Set(CertificationType.FortificationEngineering))
+    advanced_ace.Modes += new ConstructionFireMode
+    advanced_ace.Modes(1).Item(DeployedItem.portable_manned_turret -> Set(CertificationType.AssaultEngineering))
+    advanced_ace.Modes += new ConstructionFireMode
+    advanced_ace.Modes(2).Item(DeployedItem.deployable_shield_generator -> Set(CertificationType.AssaultEngineering))
+    advanced_ace.Tile = InventoryTile.Tile93
 
     fury_weapon_systema.Name = "fury_weapon_systema"
     fury_weapon_systema.Size = EquipmentSize.VehicleWeapon
@@ -4510,6 +4592,61 @@ object GlobalDefinitions {
     phalanx_flakcombo.FireModes(1).ProjectileTypeIndices += 1
     phalanx_flakcombo.FireModes(1).AmmoSlotIndex = 0
     phalanx_flakcombo.FireModes(1).Magazine = 4000
+
+    spitfire_weapon.Name = "spitfire_weapon"
+    spitfire_weapon.Size = EquipmentSize.BaseTurretWeapon
+    spitfire_weapon.AmmoTypes += spitfire_ammo
+    spitfire_weapon.ProjectileTypes += spitfire_ammo_projectile
+    spitfire_weapon.FireModes += new InfiniteFireModeDefinition
+    spitfire_weapon.FireModes.head.AmmoTypeIndices += 0
+    spitfire_weapon.FireModes.head.AmmoSlotIndex = 0
+    spitfire_weapon.FireModes.head.Magazine = 4000
+
+    spitfire_aa_weapon.Name = "spitfire_aa_weapon"
+    spitfire_aa_weapon.Size = EquipmentSize.BaseTurretWeapon
+    spitfire_aa_weapon.AmmoTypes += spitfire_aa_ammo
+    spitfire_aa_weapon.ProjectileTypes += spitfire_aa_ammo_projectile
+    spitfire_aa_weapon.FireModes += new InfiniteFireModeDefinition
+    spitfire_aa_weapon.FireModes.head.AmmoTypeIndices += 0
+    spitfire_aa_weapon.FireModes.head.AmmoSlotIndex = 0
+    spitfire_aa_weapon.FireModes.head.Magazine = 4000
+
+    energy_gun.Name = "energy_gun"
+    energy_gun.Size = EquipmentSize.BaseTurretWeapon
+    energy_gun.AmmoTypes += energy_gun_ammo
+    energy_gun.ProjectileTypes += bullet_9mm_projectile //fallback
+    energy_gun.FireModes += new FireModeDefinition
+    energy_gun.FireModes.head.AmmoTypeIndices += 0
+    energy_gun.FireModes.head.AmmoSlotIndex = 0
+    energy_gun.FireModes.head.Magazine = 4000
+
+    energy_gun_nc.Name = "energy_gun_nc"
+    energy_gun_nc.Size = EquipmentSize.BaseTurretWeapon
+    energy_gun_nc.AmmoTypes += energy_gun_ammo
+    energy_gun_nc.ProjectileTypes += energy_gun_nc_projectile
+    energy_gun_nc.FireModes += new PelletFireModeDefinition
+    energy_gun_nc.FireModes.head.AmmoTypeIndices += 0
+    energy_gun_nc.FireModes.head.AmmoSlotIndex = 0
+    energy_gun_nc.FireModes.head.Magazine = 35
+    energy_gun_nc.FireModes.head.Chamber = 9
+
+    energy_gun_tr.Name = "energy_gun_tr"
+    energy_gun_tr.Size = EquipmentSize.BaseTurretWeapon
+    energy_gun_tr.AmmoTypes += energy_gun_ammo
+    energy_gun_tr.ProjectileTypes += energy_gun_tr_projectile
+    energy_gun_tr.FireModes += new FireModeDefinition
+    energy_gun_tr.FireModes.head.AmmoTypeIndices += 0
+    energy_gun_tr.FireModes.head.AmmoSlotIndex = 0
+    energy_gun_tr.FireModes.head.Magazine = 200
+
+    energy_gun_vs.Name = "energy_gun_vs"
+    energy_gun_vs.Size = EquipmentSize.BaseTurretWeapon
+    energy_gun_vs.AmmoTypes += energy_gun_ammo
+    energy_gun_vs.ProjectileTypes += energy_gun_tr_projectile
+    energy_gun_vs.FireModes += new FireModeDefinition
+    energy_gun_vs.FireModes.head.AmmoTypeIndices += 0
+    energy_gun_vs.FireModes.head.AmmoSlotIndex = 0
+    energy_gun_vs.FireModes.head.Magazine = 100
   }
 
   /**
@@ -5237,5 +5374,146 @@ object GlobalDefinitions {
     phantasm.AutoPilotSpeeds = (0, 6)
     phantasm.Packet = variantConverter
     phantasm.DestroyedModel = None //the adb calls out a phantasm_destroyed but no such asset exists
+  }
+
+  /**
+    * Initialize `Deployable` globals.
+    */
+  private def init_deployables() : Unit = {
+    boomer.Name = "boomer"
+    boomer.Descriptor = "Boomers"
+    boomer.MaxHealth = 100
+    boomer.DeployCategory = DeployableCategory.Boomers
+    boomer.DeployTime = Duration.create(1000, "ms")
+    boomer.Model = StandardResolutions.SimpleDeployables
+
+    he_mine.Name = "he_mine"
+    he_mine.Descriptor = "Mines"
+    he_mine.MaxHealth = 100
+    he_mine.DeployCategory = DeployableCategory.Mines
+    he_mine.DeployTime = Duration.create(1000, "ms")
+    he_mine.Model = StandardResolutions.SimpleDeployables
+
+    jammer_mine.Name = "jammer_mine"
+    jammer_mine.Descriptor = "JammerMines"
+    jammer_mine.MaxHealth = 100
+    jammer_mine.DeployCategory = DeployableCategory.Mines
+    jammer_mine.DeployTime = Duration.create(1000, "ms")
+    jammer_mine.Model = StandardResolutions.SimpleDeployables
+
+    spitfire_turret.Name = "spitfire_turret"
+    spitfire_turret.Descriptor= "Spitfires"
+    spitfire_turret.MaxHealth = 100
+    spitfire_turret.Weapons += 1 -> new mutable.HashMap()
+    spitfire_turret.Weapons(1) += TurretUpgrade.None -> spitfire_weapon
+    spitfire_turret.ReserveAmmunition = false
+    spitfire_turret.DeployCategory = DeployableCategory.SmallTurrets
+    spitfire_turret.DeployTime = Duration.create(5000, "ms")
+    spitfire_turret.Model = StandardResolutions.ComplexDeployables
+
+    spitfire_cloaked.Name = "spitfire_cloaked"
+    spitfire_cloaked.Descriptor= "CloakingSpitfires"
+    spitfire_cloaked.MaxHealth = 100
+    spitfire_cloaked.Weapons += 1 -> new mutable.HashMap()
+    spitfire_cloaked.Weapons(1) += TurretUpgrade.None -> spitfire_weapon
+    spitfire_cloaked.ReserveAmmunition = false
+    spitfire_cloaked.DeployCategory = DeployableCategory.SmallTurrets
+    spitfire_cloaked.DeployTime = Duration.create(5000, "ms")
+    spitfire_cloaked.Model = StandardResolutions.ComplexDeployables
+
+    spitfire_aa.Name = "spitfire_aa"
+    spitfire_aa.Descriptor= "FlakSpitfires"
+    spitfire_aa.MaxHealth = 100
+    spitfire_aa.Weapons += 1 -> new mutable.HashMap()
+    spitfire_aa.Weapons(1) += TurretUpgrade.None -> spitfire_aa_weapon
+    spitfire_aa.ReserveAmmunition = false
+    spitfire_aa.DeployCategory = DeployableCategory.SmallTurrets
+    spitfire_aa.DeployTime = Duration.create(5000, "ms")
+    spitfire_aa.Model = StandardResolutions.ComplexDeployables
+
+    motionalarmsensor.Name = "motionalarmsensor"
+    motionalarmsensor.Descriptor = "MotionSensors"
+    motionalarmsensor.MaxHealth = 100
+    motionalarmsensor.DeployCategory = DeployableCategory.Sensors
+    motionalarmsensor.DeployTime = Duration.create(1000, "ms")
+    motionalarmsensor.Model = StandardResolutions.SimpleDeployables
+
+    sensor_shield.Name = "sensor_shield"
+    sensor_shield.Descriptor = "SensorShields"
+    sensor_shield.MaxHealth = 100
+    sensor_shield.DeployCategory = DeployableCategory.Sensors
+    sensor_shield.DeployTime = Duration.create(5000, "ms")
+    sensor_shield.Model = StandardResolutions.SimpleDeployables
+
+    tank_traps.Name = "tank_traps"
+    tank_traps.Descriptor = "TankTraps"
+    tank_traps.MaxHealth = 5000
+    tank_traps.Packet = new TRAPConverter
+    tank_traps.DeployCategory = DeployableCategory.TankTraps
+    tank_traps.DeployTime = Duration.create(6000, "ms")
+    tank_traps.Model = StandardResolutions.SimpleDeployables
+
+    val fieldTurretConverter = new FieldTurretConverter
+    portable_manned_turret.Name = "portable_manned_turret"
+    portable_manned_turret.Descriptor = "FieldTurrets"
+    portable_manned_turret.MaxHealth = 1000
+    portable_manned_turret.MountPoints += 1 -> 0
+    portable_manned_turret.MountPoints += 2 -> 0
+    portable_manned_turret.Weapons += 1 -> new mutable.HashMap()
+    portable_manned_turret.Weapons(1) += TurretUpgrade.None -> energy_gun
+    portable_manned_turret.ReserveAmmunition = true
+    portable_manned_turret.FactionLocked = true
+    portable_manned_turret.Packet = fieldTurretConverter
+    portable_manned_turret.DeployCategory = DeployableCategory.FieldTurrets
+    portable_manned_turret.DeployTime = Duration.create(6000, "ms")
+    portable_manned_turret.Model = StandardResolutions.ComplexDeployables
+
+    portable_manned_turret_nc.Name = "portable_manned_turret_nc"
+    portable_manned_turret_nc.Descriptor = "FieldTurrets"
+    portable_manned_turret_nc.MaxHealth = 1000
+    portable_manned_turret_nc.MountPoints += 1 -> 0
+    portable_manned_turret_nc.MountPoints += 2 -> 0
+    portable_manned_turret_nc.Weapons += 1 -> new mutable.HashMap()
+    portable_manned_turret_nc.Weapons(1) += TurretUpgrade.None -> energy_gun_nc
+    portable_manned_turret_nc.ReserveAmmunition = true
+    portable_manned_turret_nc.FactionLocked = true
+    portable_manned_turret_nc.Packet = fieldTurretConverter
+    portable_manned_turret_nc.DeployCategory = DeployableCategory.FieldTurrets
+    portable_manned_turret_nc.DeployTime = Duration.create(6000, "ms")
+    portable_manned_turret_nc.Model = StandardResolutions.ComplexDeployables
+
+    portable_manned_turret_tr.Name = "portable_manned_turret_tr"
+    portable_manned_turret_tr.Descriptor = "FieldTurrets"
+    portable_manned_turret_tr.MaxHealth = 1000
+    portable_manned_turret_tr.MountPoints += 1 -> 0
+    portable_manned_turret_tr.MountPoints += 2 -> 0
+    portable_manned_turret_tr.Weapons += 1 -> new mutable.HashMap()
+    portable_manned_turret_tr.Weapons(1) += TurretUpgrade.None -> energy_gun_tr
+    portable_manned_turret_tr.ReserveAmmunition = true
+    portable_manned_turret_tr.FactionLocked = true
+    portable_manned_turret_tr.Packet = fieldTurretConverter
+    portable_manned_turret_tr.DeployCategory = DeployableCategory.FieldTurrets
+    portable_manned_turret_tr.DeployTime = Duration.create(6000, "ms")
+    portable_manned_turret_tr.Model = StandardResolutions.ComplexDeployables
+
+    portable_manned_turret_vs.Name = "portable_manned_turret_vs"
+    portable_manned_turret_vs.Descriptor = "FieldTurrets"
+    portable_manned_turret_vs.MaxHealth = 1000
+    portable_manned_turret_vs.MountPoints += 1 -> 0
+    portable_manned_turret_vs.MountPoints += 2 -> 0
+    portable_manned_turret_vs.Weapons += 1 -> new mutable.HashMap()
+    portable_manned_turret_vs.Weapons(1) += TurretUpgrade.None -> energy_gun_vs
+    portable_manned_turret_vs.ReserveAmmunition = true
+    portable_manned_turret_vs.FactionLocked = true
+    portable_manned_turret_vs.Packet = fieldTurretConverter
+    portable_manned_turret_vs.DeployCategory = DeployableCategory.FieldTurrets
+    portable_manned_turret_vs.DeployTime = Duration.create(6000, "ms")
+    portable_manned_turret_vs.Model = StandardResolutions.ComplexDeployables
+
+    deployable_shield_generator.Name = "deployable_shield_generator"
+    deployable_shield_generator.Descriptor = "ShieldGenerators"
+    deployable_shield_generator.MaxHealth = 1700
+    deployable_shield_generator.DeployTime = Duration.create(6000, "ms")
+    deployable_shield_generator.Model = StandardResolutions.ComplexDeployables
   }
 }

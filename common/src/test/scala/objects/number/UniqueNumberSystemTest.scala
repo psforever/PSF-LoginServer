@@ -9,7 +9,7 @@ import net.psforever.objects.guid.actor.{NumberPoolActor, Register, UniqueNumber
 import net.psforever.objects.guid.selector.RandomSelector
 import net.psforever.objects.guid.source.LimitedNumberSource
 
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
 class AllocateNumberPoolActors extends ActorTest {
@@ -305,6 +305,33 @@ class UniqueNumberSystemTest9 extends ActorTest() {
       //ReturnNumberResult B
       uns ! NumberPoolActor.ReturnNumberResult(1001, Some(excp), Some("test"))
       uns ! NumberPoolActor.ReturnNumberResult(1001, Some(excp), Some(1))
+    }
+  }
+}
+
+class UniqueNumberSystemTestA extends ActorTest {
+  class EntityTestClass extends IdentifiableEntity
+
+  "UniqueNumberSystem" should {
+    "remain consistent between registrations" in {
+      val src : LimitedNumberSource = LimitedNumberSource(10)
+      val guid : NumberPoolHub = new NumberPoolHub(src)
+      guid.AddPool("pool1", (0 until 10).toList).Selector = new RandomSelector
+      val uns = system.actorOf(Props(classOf[UniqueNumberSystem], guid, UniqueNumberSystemTest.AllocateNumberPoolActors(guid)), "uns")
+      expectNoMsg(Duration.create(200, "ms"))
+
+      assert(src.CountUsed == 0)
+      (0 to 4).foreach(i => { assert(guid.register(new EntityTestClass(), i).isSuccess) })
+      assert(src.CountUsed == 5)
+
+      (0 to 5).foreach(_ => { uns ! Register(new EntityTestClass(), "pool1") })
+      assert(receiveOne(200 milliseconds).isInstanceOf[Success[_]]) //6th
+      assert(receiveOne(200 milliseconds).isInstanceOf[Success[_]]) //7th
+      assert(receiveOne(200 milliseconds).isInstanceOf[Success[_]]) //8th
+      assert(receiveOne(200 milliseconds).isInstanceOf[Success[_]]) //9th
+      assert(receiveOne(200 milliseconds).isInstanceOf[Success[_]]) //10th
+      assert(receiveOne(200 milliseconds).isInstanceOf[Failure[_]]) //no more
+      assert(src.CountUsed == 10)
     }
   }
 }

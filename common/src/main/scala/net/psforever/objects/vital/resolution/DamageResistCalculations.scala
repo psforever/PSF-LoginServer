@@ -18,10 +18,23 @@ abstract class DamageResistCalculations[A](calcFunc : (ResolvedProjectile)=>((In
                                            applyFunc : (A, ResolvedProjectile)=>ResolutionCalculations.Output)
   extends ResolutionCalculations {
   def Calculate(damages : ProjectileCalculations.Form, resistances : ProjectileCalculations.Form, data : ResolvedProjectile) : ResolutionCalculations.Output = {
+    val modDam = Sample(damages, resistances, data)
+    applyFunc(modDam, data)
+  }
+
+  /**
+    * An intermediate step of the normal `Calculate` operation that retrieves the damage values in their transitory form.
+    * @param damages the function that calculations raw damage values
+    * @param resistances the function that calculates resistance values
+    * @param data a historical projectile interaction;
+    *             the origin of the data used to extract damage and resistance values
+    * @return the transitory form of the modified damage(s);
+    *         usually, a single `Int` value or a tuple of `Int` values
+    */
+  def Sample(damages : ProjectileCalculations.Form, resistances : ProjectileCalculations.Form, data : ResolvedProjectile) : A = {
     val dam : Int = damages(data)
     val res : Int = resistances(data)
     val mod = calcFunc(data)
-    val modDam = mod(dam, res)
-    applyFunc(modDam, data)
+    mod(dam, res)
   }
 }

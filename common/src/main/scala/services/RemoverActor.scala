@@ -48,7 +48,7 @@ abstract class RemoverActor extends SupportActor[RemoverActor.Entry] {
     */
   var secondHeap : List[RemoverActor.Entry] = List()
 
-  private var taskResolver : ActorRef = Actor.noSender
+  protected var taskResolver : ActorRef = Actor.noSender
 
   val sameEntryComparator = new SimilarityComparator[RemoverActor.Entry]() {
     def Test(entry1 : RemoverActor.Entry, entry2 : RemoverActor.Entry) : Boolean = {
@@ -101,7 +101,16 @@ abstract class RemoverActor extends SupportActor[RemoverActor.Entry] {
         val entry = RemoverActor.Entry(obj, zone, duration.getOrElse(FirstStandardDuration).toNanos)
         if(InclusionTest(entry) && !secondHeap.exists(test => sameEntryComparator.Test(test, entry) )) {
           InitialJob(entry)
-          if(firstHeap.isEmpty) {
+          if(entry.duration == 0) {
+            //skip the first queue altogether
+            FirstJob(entry)
+            secondHeap = secondHeap ++ List(RepackageEntry(entry))
+            if(secondHeap.size == 1) {
+              import scala.concurrent.ExecutionContext.Implicits.global
+              secondTask = context.system.scheduler.scheduleOnce(SecondStandardDuration, self, RemoverActor.TryDelete())
+            }
+          }
+          else if(firstHeap.isEmpty) {
             //we were the only entry so the event must be started from scratch
             firstHeap = List(entry)
             trace(s"a remover task has been added: $entry")

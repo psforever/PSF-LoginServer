@@ -13,7 +13,7 @@ import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffi
   * and faction-blind cavern sentry turrets.
   * @param turret the `MannedTurret` object being governed
   */
-class MannedTurretControl(turret : MannedTurret) extends Actor
+class FacilityTurretControl(turret : FacilityTurret) extends Actor
   with FactionAffinityBehavior.Check
   with MountableBehavior.Dismount {
   def MountableObject = turret //do not add type!

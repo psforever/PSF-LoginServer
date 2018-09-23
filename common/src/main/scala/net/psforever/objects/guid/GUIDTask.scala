@@ -4,8 +4,9 @@ package net.psforever.objects.guid
 import akka.actor.ActorRef
 import net.psforever.objects.entity.IdentifiableEntity
 import net.psforever.objects.equipment.Equipment
-import net.psforever.objects.{EquipmentSlot, LockerContainer, Player, Tool, Vehicle}
+import net.psforever.objects._
 import net.psforever.objects.inventory.Container
+import net.psforever.objects.serverobject.turret.WeaponTurret
 
 import scala.annotation.tailrec
 
@@ -191,6 +192,13 @@ object GUIDTask {
     TaskResolver.GiveTask(RegisterObjectTask(vehicle).task, weaponTasks ++ utilTasks ++ inventoryTasks)
   }
 
+  def RegisterDeployableTurret(obj : PlanetSideGameObject with WeaponTurret)(implicit guid : ActorRef) : TaskResolver.GiveTask = {
+    TaskResolver.GiveTask(
+      RegisterObjectTask(obj).task,
+      VisibleSlotTaskBuilding(obj.Weapons.values, GUIDTask.RegisterEquipment) ++ RegisterInventory(obj)
+    )
+  }
+
   /**
     * Construct tasking that unregisters an object from a globally unique identifier system.<br>
     * <br>
@@ -327,6 +335,13 @@ object GUIDTask {
     val utilTasks = Vehicle.EquipmentUtilities(vehicle.Utilities).values.map(util => { UnregisterObjectTask(util())}).toList
     val inventoryTasks = UnregisterInventory(vehicle)
     TaskResolver.GiveTask(UnregisterObjectTask(vehicle).task, weaponTasks ++ utilTasks ++ inventoryTasks)
+  }
+
+  def UnregisterDeployableTurret(obj : PlanetSideGameObject with WeaponTurret)(implicit guid : ActorRef) : TaskResolver.GiveTask = {
+    TaskResolver.GiveTask(
+      UnregisterObjectTask(obj).task,
+      VisibleSlotTaskBuilding(obj.Weapons.values, GUIDTask.UnregisterEquipment) ++ UnregisterInventory(obj)
+    )
   }
 
   /**

@@ -10,7 +10,7 @@ import scala.collection.mutable
   * The definition for any `MannedTurret`.
   * @param objectId the object's identifier number
   */
-class MannedTurretDefinition(private val objectId : Int) extends ObjectDefinition(objectId) {
+class TurretDefinition(private val objectId : Int) extends ObjectDefinition(objectId) {
   Turrets(objectId) //let throw NoSuchElementException
 
   private var maxHealth : Int = 100

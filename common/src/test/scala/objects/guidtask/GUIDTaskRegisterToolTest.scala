@@ -5,7 +5,7 @@ import base.ActorTest
 import net.psforever.objects._
 import net.psforever.objects.guid.{GUIDTask, TaskResolver}
 
-class GUIDTaskRegister3Test extends ActorTest {
+class GUIDTaskRegisterToolTest extends ActorTest {
   "RegisterEquipment -> RegisterTool" in {
     val (_, uns, taskResolver, probe) = GUIDTaskTest.CommonTestSetup
     val obj = Tool(GlobalDefinitions.beamer)

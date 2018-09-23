@@ -1,0 +1,27 @@
+// Copyright (c) 2017 PSForever
+package net.psforever.objects.ce
+
+import net.psforever.objects.definition.DeployableDefinition
+import net.psforever.objects.serverobject.PlanetSideServerObject
+
+abstract class ComplexDeployable(cdef : DeployableDefinition) extends PlanetSideServerObject
+  with Deployable {
+  Health = Definition.MaxHealth
+
+  def MaxHealth : Int = Definition.MaxHealth
+
+  private var shields : Int = 0
+
+  def Shields : Int = shields
+
+  def Shields_=(toShields : Int) : Int = {
+    shields = math.min(math.max(0, toShields), MaxShields)
+    Shields
+  }
+
+  def MaxShields : Int = {
+    0//Definition.MaxShields
+  }
+
+  def Definition = cdef
+}

@@ -111,3 +111,9 @@ object StandardAircraftDamage extends DamageSelection {
   def Splash = AircraftSplashDamage.Calculate
   def Lash = AircraftLashDamage.Calculate
 }
+
+object StandardDeployableDamage extends DamageSelection {
+  def Direct = VehicleHitDamage.Calculate
+  def Splash = VehicleSplashDamage.Calculate
+  def Lash = NoDamage.Calculate
+}

@@ -5,9 +5,9 @@ import net.psforever.objects.Player
 import net.psforever.objects.ballistics.SourceEntry
 import net.psforever.objects.equipment.Equipment
 import net.psforever.packet.PlanetSideGamePacket
-import net.psforever.packet.game.{ObjectCreateMessage, PlanetSideGUID, PlayerStateMessageUpstream}
+import net.psforever.packet.game._
 import net.psforever.packet.game.objectcreate.ConstructorData
-import net.psforever.types.{ExoSuitType, Vector3}
+import net.psforever.types.{ExoSuitType, PlanetSideEmpire, Vector3}
 
 object AvatarResponse {
   trait Response
@@ -30,8 +30,10 @@ object AvatarResponse {
   final case class ObjectHeld(slot : Int) extends Response
   final case class PlanetsideAttribute(attribute_type : Int, attribute_value : Long) extends Response
   final case class PlayerState(msg : PlayerStateMessageUpstream, spectator : Boolean, weaponInHand : Boolean) extends Response
+  final case class PutDownFDU(target_guid : PlanetSideGUID) extends Response
   final case class Release(player : Player) extends Response
   final case class Reload(weapon_guid : PlanetSideGUID) extends Response
+  final case class SetEmpire(object_guid : PlanetSideGUID, faction : PlanetSideEmpire.Value) extends Response
   final case class StowEquipment(target_guid : PlanetSideGUID, slot : Int, item : Equipment) extends Response
   final case class WeaponDryFire(weapon_guid : PlanetSideGUID) extends Response
 

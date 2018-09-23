@@ -102,6 +102,8 @@ object Vitality {
     */
   final case class Damage(func : (Any)=>Unit)
 
+  final case class DamageOn(obj : Vitality, func : (Any)=>Unit)
+
   /**
     * Report that a vitals object must be updated due to damage.
     * @param obj the vital object

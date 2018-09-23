@@ -23,9 +23,21 @@ object VehicleResolutions extends DamageResistCalculations(
   ResolutionCalculations.VehicleApplication
 )
 
+object SimpleDeployableResolutions extends DamageResistCalculations(
+  ResolutionCalculations.VehicleDamageAfterResist,
+  ResolutionCalculations.SimpleDeployableApplication
+)
+
+object ComplexDeployableResolutions extends DamageResistCalculations(
+  ResolutionCalculations.VehicleDamageAfterResist,
+  ResolutionCalculations.ComplexDeployableApplication
+)
+
 object StandardResolutions extends ResolutionSelection {
   def Infantry : ResolutionCalculations.Form = InfantryResolutions.Calculate
   def Max : ResolutionCalculations.Form = MaxResolutions.Calculate
   def Vehicle : ResolutionCalculations.Form = VehicleResolutions.Calculate
   def Aircraft : ResolutionCalculations.Form = VehicleResolutions.Calculate
+  def SimpleDeployables : ResolutionCalculations.Form = SimpleDeployableResolutions.Calculate
+  def ComplexDeployables : ResolutionCalculations.Form = ComplexDeployableResolutions.Calculate
 }

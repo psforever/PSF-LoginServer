@@ -5,7 +5,7 @@ import base.ActorTest
 import net.psforever.objects._
 import net.psforever.objects.guid.{GUIDTask, TaskResolver}
 
-class GUIDTaskRegister2Test extends ActorTest {
+class GUIDTaskRegisterAmmoTest extends ActorTest {
   "RegisterEquipment -> RegisterObjectTask" in {
     val (_, uns, taskResolver, probe) = GUIDTaskTest.CommonTestSetup
     val obj = AmmoBox(GlobalDefinitions.energy_cell)

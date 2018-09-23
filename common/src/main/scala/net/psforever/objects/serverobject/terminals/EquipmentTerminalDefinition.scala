@@ -205,8 +205,8 @@ object EquipmentTerminalDefinition {
     "medicalapplicator" -> MakeTool(medicalapplicator),
     "bank" -> MakeTool(bank, armor_canister),
     "nano_dispenser" -> MakeTool(nano_dispenser),
-    //TODO "ace" -> MakeConstructionItem(ace),
-    //TODO "advanced_ace" -> MakeConstructionItem(advanced_ace),
+    "ace" -> MakeConstructionItem(ace),
+    "advanced_ace" -> MakeConstructionItem(advanced_ace),
     "remote_electronics_kit" -> MakeSimpleItem(remote_electronics_kit),
     "trek" -> MakeTool(trek),
     "command_detonater" -> MakeSimpleItem(command_detonater),
@@ -310,6 +310,15 @@ object EquipmentTerminalDefinition {
   private def MakeKit(kdef : KitDefinition)() : Kit = Kit(kdef)
 
   /**
+    * Create a new `BoomerTrigger`, a unique kind of `SimpleItem`.
+    * @param sdef the `SimpleItemDefinition` object;
+    *             actually ignored, but retained for function definition consistency
+    * @return a curried function that, when called, creates the piece of `Equipment`
+    * @see `GlobalDefinitions`
+    */
+  private def MakeTriggerItem(sdef : SimpleItemDefinition)() : SimpleItem = new BoomerTrigger
+
+  /**
     * Create a new `SimpleItem` from provided `EquipmentDefinition` objects.
     * @param sdef the `SimpleItemDefinition` object
     * @return a curried function that, when called, creates the piece of `Equipment`
@@ -355,6 +364,9 @@ object EquipmentTerminalDefinition {
 
       case obj : ShorthandConstructionItem =>
         MakeConstructionItem(obj.definition)
+
+      case obj : ShorthandTriggerItem =>
+        MakeTriggerItem(obj.definition)
 
       case obj : ShorthandSimpleItem =>
         MakeSimpleItem(obj.definition)

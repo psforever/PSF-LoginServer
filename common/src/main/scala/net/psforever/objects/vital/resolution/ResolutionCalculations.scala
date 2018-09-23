@@ -1,8 +1,9 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.vital.resolution
 
-import net.psforever.objects.{Player, Vehicle}
+import net.psforever.objects.{Player, TurretDeployable, Vehicle}
 import net.psforever.objects.ballistics.{PlayerSource, ResolvedProjectile}
+import net.psforever.objects.ce.{ComplexDeployable, SimpleDeployable}
 import net.psforever.objects.vital.projectile.ProjectileCalculations
 
 /**
@@ -155,6 +156,51 @@ object ResolutionCalculations {
           vehicle.Health = vehicle.Health - damage
         }
       }
+    case _ => ;
+  }
+
+  def SimpleDeployableApplication(damage : Int, data : ResolvedProjectile)(target : Any) : Unit = target match {
+    case ce : SimpleDeployable =>
+      if(ce.Health > 0) {
+        ce.Health -= damage
+        ce.History(data)
+      }
+    case _ =>
+  }
+
+  def ComplexDeployableApplication(damage : Int, data : ResolvedProjectile)(target : Any) : Unit = target match {
+    case ce : ComplexDeployable =>
+      if(ce.Shields > 0) {
+        if(damage > ce.Shields) {
+          ce.Health -= (damage - ce.Shields)
+          ce.Shields = 0
+        }
+        else {
+          ce.Shields -= damage
+        }
+        ce.History(data)
+      }
+      else if(ce.Health > 0) {
+        ce.Health -= damage
+        ce.History(data)
+      }
+
+    case ce : TurretDeployable =>
+      if(ce.Shields > 0) {
+        if(damage > ce.Shields) {
+          ce.Health -= (damage - ce.Shields)
+          ce.Shields = 0
+        }
+        else {
+          ce.Shields -= damage
+        }
+        ce.History(data)
+      }
+      else if(ce.Health > 0) {
+        ce.Health -= damage
+        ce.History(data)
+      }
+
     case _ => ;
   }
 }

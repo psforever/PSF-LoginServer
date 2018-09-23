@@ -97,7 +97,7 @@ object ObjectCreateBase {
     }
     catch {
       case ex : Exception =>
-        log.error(s"${ex.getClass.toString} - ${ex.toString}")
+        log.error(s"${ex.getClass.toString} - ${ex.toString} ($objectClass)")
     }
     out
   }
@@ -125,7 +125,7 @@ object ObjectCreateBase {
     }
     catch {
       case ex : Exception =>
-        log.error(s"${ex.getClass.toString} - ${ex.toString}")
+        log.error(s"${ex.getClass.toString} - ${ex.toString} ($objectClass)")
     }
     out
   }

@@ -246,20 +246,20 @@ class SpawnTubeObjectBuilderTest extends ActorTest {
   }
 }
 
-class MannedTurretObjectBuilderTest extends ActorTest {
+class FacilityTurretObjectBuilderTest extends ActorTest {
   import net.psforever.objects.GlobalDefinitions.manned_turret
-  import net.psforever.objects.serverobject.turret.MannedTurret
-  "MannedTurretObjectBuilder" should {
+  import net.psforever.objects.serverobject.turret.FacilityTurret
+  "FacilityTurretObjectBuilder" should {
     "build" in {
       val hub = ServerObjectBuilderTest.NumberPoolHub
       val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1,
-        MannedTurret.Constructor(manned_turret)), hub), "spawn-tube")
+        FacilityTurret.Constructor(manned_turret)), hub), "spawn-tube")
       actor ! "!"
 
       val reply = receiveOne(Duration.create(1000, "ms"))
-      assert(reply.isInstanceOf[MannedTurret])
-      assert(reply.asInstanceOf[MannedTurret].HasGUID)
-      assert(reply.asInstanceOf[MannedTurret].GUID == PlanetSideGUID(1))
+      assert(reply.isInstanceOf[FacilityTurret])
+      assert(reply.asInstanceOf[FacilityTurret].HasGUID)
+      assert(reply.asInstanceOf[FacilityTurret].GUID == PlanetSideGUID(1))
       assert(reply == hub(1).get)
     }
   }

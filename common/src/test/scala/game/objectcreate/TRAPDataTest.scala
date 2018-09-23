@@ -4,7 +4,7 @@ package game.objectcreate
 import net.psforever.packet.PacketCoding
 import net.psforever.packet.game.{ObjectCreateMessage, PlanetSideGUID}
 import net.psforever.packet.game.objectcreate._
-import net.psforever.types.PlanetSideEmpire
+import net.psforever.types.{PlanetSideEmpire, Vector3}
 import org.specs2.mutable._
 import scodec.bits._
 
@@ -22,16 +22,11 @@ class TRAPDataTest extends Specification {
           data.isDefined mustEqual true
           data.get.isInstanceOf[TRAPData] mustEqual true
           val trap = data.get.asInstanceOf[TRAPData]
-          trap.deploy.pos.coord.x mustEqual 3572.4453f
-          trap.deploy.pos.coord.y mustEqual 3277.9766f
-          trap.deploy.pos.coord.z mustEqual 114.0f
-          trap.deploy.pos.orient.x mustEqual 0f
-          trap.deploy.pos.orient.y mustEqual 0f
-          trap.deploy.pos.orient.z mustEqual 90.0f
+          trap.deploy.pos.coord mustEqual Vector3(3572.4453f, 3277.9766f, 114.0f)
+          trap.deploy.pos.orient mustEqual Vector3(0, 0, 90)
           trap.deploy.faction mustEqual PlanetSideEmpire.VS
-          trap.deploy.unk mustEqual 2
+          trap.deploy.owner_guid mustEqual PlanetSideGUID(4748)
           trap.health mustEqual 255
-          trap.deploy.player_guid mustEqual PlanetSideGUID(2502)
         case _ =>
           ko
       }
@@ -39,9 +34,9 @@ class TRAPDataTest extends Specification {
 
     "encode" in {
       val obj = TRAPData(
-        CommonFieldData(
+        SmallDeployableData(
           PlacementData(3572.4453f, 3277.9766f, 114.0f, 0f, 0f, 90.0f),
-          PlanetSideEmpire.VS, 2, PlanetSideGUID(2502)
+          PlanetSideEmpire.VS, false, false, 2, false, true, PlanetSideGUID(4748)
         ),
         255
       )

@@ -10,7 +10,6 @@ import services.{GenericEventBus, RemoverActor, Service}
 class AvatarService extends Actor {
   private val undertaker : ActorRef = context.actorOf(Props[CorpseRemovalActor], "corpse-removal-agent")
   private val janitor = context.actorOf(Props[DroppedItemRemover], "item-remover-agent")
-  //undertaker ! "startup"
 
   private [this] val log = org.log4s.getLogger
 
@@ -68,6 +67,14 @@ class AvatarService extends Actor {
         case AvatarAction.Damage(player_guid, target, resolution_function) =>
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.DamageResolution(target, resolution_function))
+          )
+        case AvatarAction.DeployItem(player_guid, item) =>
+          val definition = item.Definition
+          val objectData = definition.Packet.ConstructorData(item).get
+          AvatarEvents.publish(
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid,
+              AvatarResponse.DropItem(ObjectCreateMessage(definition.ObjectId, item.GUID, objectData))
+            )
           )
         case AvatarAction.Destroy(victim, killer, weapon, pos) =>
           AvatarEvents.publish(
@@ -148,6 +155,10 @@ class AvatarService extends Actor {
               }
             })
           )
+        case AvatarAction.PutDownFDU(player_guid) =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.PutDownFDU(player_guid))
+          )
         case AvatarAction.Release(player, zone, time) =>
           undertaker forward RemoverActor.AddTask(player, zone, time)
           AvatarEvents.publish(
@@ -156,6 +167,10 @@ class AvatarService extends Actor {
         case AvatarAction.Reload(player_guid, weapon_guid) =>
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.Reload(weapon_guid))
+          )
+        case AvatarAction.SetEmpire(player_guid, target_guid, faction) =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.SetEmpire(target_guid, faction))
           )
         case AvatarAction.StowEquipment(player_guid, target_guid, slot, obj) =>
           AvatarEvents.publish(
@@ -177,6 +192,7 @@ class AvatarService extends Actor {
     case AvatarServiceMessage.Corpse(msg) =>
       undertaker forward msg
 
+    //message to Janitor
     case AvatarServiceMessage.Ground(msg) =>
       janitor forward msg
 

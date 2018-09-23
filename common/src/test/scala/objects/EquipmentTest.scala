@@ -2,11 +2,13 @@
 package objects
 
 import net.psforever.objects._
-import net.psforever.objects.equipment.CItem.{DeployedItem, Unit}
 import net.psforever.objects.equipment._
 import net.psforever.objects.inventory.InventoryTile
 import net.psforever.objects.GlobalDefinitions._
+import net.psforever.objects.ce.DeployedItem
 import net.psforever.objects.definition._
+import net.psforever.packet.game.PlanetSideGUID
+import net.psforever.types.CertificationType
 import org.specs2.mutable._
 
 class EquipmentTest extends Specification {
@@ -329,62 +331,57 @@ class EquipmentTest extends Specification {
   }
 
   "ConstructionItem" should {
-    val advanced_ace_tr = ConstructionItemDefinition(39)
-        advanced_ace_tr.Modes += DeployedItem.tank_traps
-        advanced_ace_tr.Modes += DeployedItem.portable_manned_turret_tr
-        advanced_ace_tr.Modes += DeployedItem.deployable_shield_generator
-        advanced_ace_tr.Tile = InventoryTile.Tile63
-
-    "define" in {
-      val sample = ConstructionItemDefinition(Unit.advanced_ace)
-      sample.Modes += DeployedItem.tank_traps
-      sample.Modes += DeployedItem.portable_manned_turret_tr
-      sample.Modes += DeployedItem.deployable_shield_generator
-      sample.Tile = InventoryTile.Tile63
-      sample.Modes.head mustEqual DeployedItem.tank_traps
-      sample.Modes(1) mustEqual DeployedItem.portable_manned_turret_tr
-      sample.Modes(2) mustEqual DeployedItem.deployable_shield_generator
-      sample.Tile.Width mustEqual InventoryTile.Tile63.Width
-      sample.Tile.Height mustEqual InventoryTile.Tile63.Height
-    }
-
     "construct" in {
-      val obj : ConstructionItem = ConstructionItem(advanced_ace_tr)
-      obj.Definition.ObjectId mustEqual advanced_ace_tr.ObjectId
+      val obj : ConstructionItem = ConstructionItem(GlobalDefinitions.ace)
+      obj.Definition.ObjectId mustEqual GlobalDefinitions.ace.ObjectId
     }
 
-    "fire mode" in {
-      //explanation: router_telepad has one fire mode and that fire mode is our only option
-      val router_telepad : ConstructionItemDefinition = ConstructionItemDefinition(Unit.router_telepad)
-      router_telepad.Modes += DeployedItem.router_telepad_deployable
-      val obj : ConstructionItem = ConstructionItem(router_telepad)
-      //fmode = 0
-      obj.FireModeIndex mustEqual 0
-      obj.FireMode mustEqual DeployedItem.router_telepad_deployable
-      //fmode -> 1 (0)
-      obj.FireModeIndex = 1
-      obj.FireModeIndex mustEqual 0
-      obj.FireMode mustEqual DeployedItem.router_telepad_deployable
+    "fire modes" in {
+      val obj : ConstructionItem = ConstructionItem(GlobalDefinitions.ace)
+      obj.AmmoType mustEqual DeployedItem.boomer
+      obj.NextFireMode
+      obj.AmmoType mustEqual DeployedItem.he_mine
+      obj.NextFireMode
+      obj.AmmoType mustEqual DeployedItem.spitfire_turret
+      obj.NextFireMode
+      obj.AmmoType mustEqual DeployedItem.motionalarmsensor
+      obj.NextFireMode
+      obj.AmmoType mustEqual DeployedItem.boomer
     }
 
-    "multiple fire modes" in {
-      //explanation: advanced_ace_tr has three fire modes; adjusting the FireMode changes between them
-      val obj : ConstructionItem = ConstructionItem(advanced_ace_tr)
-      //fmode = 0
-      obj.FireModeIndex mustEqual 0
-      obj.FireMode mustEqual DeployedItem.tank_traps
-      //fmode -> 1
+    "ammo types" in {
+      val obj : ConstructionItem = ConstructionItem(GlobalDefinitions.ace)
       obj.NextFireMode
-      obj.FireModeIndex mustEqual 1
-      obj.FireMode mustEqual DeployedItem.portable_manned_turret_tr
-      //fmode -> 2
+      obj.AmmoType mustEqual DeployedItem.he_mine
+      obj.NextAmmoType
+      obj.AmmoType mustEqual DeployedItem.jammer_mine
+      obj.NextAmmoType
+      obj.AmmoType mustEqual DeployedItem.he_mine
+    }
+
+    "when switching fire modes, ammo mode resets to the first entry" in {
+      val obj : ConstructionItem = ConstructionItem(GlobalDefinitions.ace)
       obj.NextFireMode
-      obj.FireModeIndex mustEqual 2
-      obj.FireMode mustEqual DeployedItem.deployable_shield_generator
-      //fmode -> 0
+      obj.AmmoType mustEqual DeployedItem.he_mine
+      obj.NextAmmoType
+      obj.AmmoType mustEqual DeployedItem.jammer_mine
+      obj.NextFireMode //spitfire_turret
+      obj.NextFireMode //motionalarmsensor
+      obj.NextFireMode //boomer
       obj.NextFireMode
-      obj.FireModeIndex mustEqual 0
-      obj.FireMode mustEqual DeployedItem.tank_traps
+      obj.AmmoType mustEqual DeployedItem.he_mine
+    }
+
+    "qualify certifications that must be met before ammo types may be used" in {
+      val obj : ConstructionItem = ConstructionItem(GlobalDefinitions.ace)
+      obj.AmmoType mustEqual DeployedItem.boomer
+      obj.ModePermissions mustEqual Set(CertificationType.CombatEngineering)
+      obj.NextFireMode
+      obj.AmmoType mustEqual DeployedItem.he_mine
+      obj.ModePermissions mustEqual Set(CertificationType.CombatEngineering)
+      obj.NextAmmoType
+      obj.AmmoType mustEqual DeployedItem.jammer_mine
+      obj.ModePermissions mustEqual Set(CertificationType.AssaultEngineering)
     }
   }
 
@@ -397,6 +394,23 @@ class EquipmentTest extends Specification {
     "construct" in {
       val obj : SimpleItem = SimpleItem(remote_electronics_kit)
       obj.Definition.ObjectId mustEqual remote_electronics_kit.ObjectId
+    }
+  }
+
+  "BoomerTrigger" should {
+    "construct" in {
+      val obj : BoomerTrigger = new BoomerTrigger
+      obj.Definition.ObjectId mustEqual boomer_trigger.ObjectId
+      obj.Companion mustEqual None
+    }
+
+    "boomer trigger has a companion object referenced by GUID" in {
+      val obj : BoomerTrigger = new BoomerTrigger
+      obj.Companion mustEqual None
+      obj.Companion = PlanetSideGUID(1)
+      obj.Companion.contains(PlanetSideGUID(1)) mustEqual true
+      obj.Companion = None
+      obj.Companion mustEqual None
     }
   }
 }

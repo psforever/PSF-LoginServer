@@ -316,7 +316,7 @@ object CSRZoneImpl {
       "enkidu" -> Vector3(3217, 3574, 37),
       "girru" -> Vector3(4475, 5853, 78),
       "hanish" -> Vector3(3794, 5540, 89),
-      "irkall" -> Vector3(4742, 5270, 66),
+      "irkalla" -> Vector3(4742, 5270, 66),
       "kusag" -> Vector3(6532, 4692, 46),
       "lahar" -> Vector3(6965, 5306, 38),
       "marduk" -> Vector3(3059, 2144, 70),
