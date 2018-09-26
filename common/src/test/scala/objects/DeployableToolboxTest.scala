@@ -440,7 +440,7 @@ class DeployableToolboxTest extends Specification {
       obj.CountDeployable(DeployedItem.portable_manned_turret_tr)._2 mustEqual 1
       obj.CountDeployable(DeployedItem.portable_manned_turret_vs)._2 mustEqual 1
       obj.CountDeployable(DeployedItem.deployable_shield_generator)._2 mustEqual 1
-      obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 1
+      obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 1024
 
       obj.RemoveFromDeployableQuantities(
         GroundSupport,

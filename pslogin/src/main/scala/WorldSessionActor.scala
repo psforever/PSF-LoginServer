@@ -2832,7 +2832,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
       })
       StopBundlingPackets()
       self ! SetCurrentAvatar(player)
-sendRawResponse(hex"17 c8000000 f42 6101 33b27 d07b8 9d42 00 00 79 00 8101 ae01 5700c")
 
     case msg @ PlayerStateMessageUpstream(avatar_guid, pos, vel, yaw, pitch, yaw_upper, seq_time, unk3, is_crouching, is_jumping, unk4, is_cloaking, unk5, unk6) =>
       if(player.isAlive) {
@@ -7434,8 +7433,8 @@ sendRawResponse(hex"17 c8000000 f42 6101 33b27 d07b8 9d42 00 00 79 00 8101 ae01 
   }
 
   /**
-    * na
-    * @param vehicle na
+    * Before a vehicle is removed from the game world, the following actions must be performed.
+    * @param vehicle the vehicle
     */
   def BeforeUnloadVehicle(vehicle : Vehicle) : Unit = {
     vehicle.Definition match {

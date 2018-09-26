@@ -51,6 +51,14 @@ object TelepadLike {
     obj.asInstanceOf[TelepadLike].Router = obj.Owner.GUID
   }
 
+  /**
+    * An analysis of the active system of teleportation utilized by Router vehicles.
+    * Information about the two endpoints - an internal telepad and a remote telepad - are collected, if they are applicable.
+    * The vehicle "Router" itself must be in the drive state of `Deployed`.
+    * @param router the vehicle that serves as the container of an internal telepad unit
+    * @param zone where the router is located
+    * @return the pair of units that compose the teleportation system
+    */
   def AppraiseTeleportationSystem(router : Vehicle, zone : Zone) : Option[(Utility.InternalTelepad, TelepadDeployable)] = {
     import net.psforever.objects.vehicles.UtilityType
     import net.psforever.types.DriveState

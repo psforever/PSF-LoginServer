@@ -3,7 +3,7 @@ package service
 
 import akka.actor.Props
 import base.ActorTest
-import net.psforever.objects.{GlobalDefinitions, SensorDeployable}
+import net.psforever.objects.{GlobalDefinitions, SensorDeployable, Vehicle}
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.packet.game._
 import net.psforever.types.{PlanetSideEmpire, Vector3}
@@ -154,6 +154,19 @@ class ProximityTerminalEffectTest extends ActorTest {
   }
 }
 
+class RouterTelepadTransportTest extends ActorTest {
+  ServiceManager.boot(system)
+
+  "LocalService" should {
+    "pass RouterTelepadTransport" in {
+      val service = system.actorOf(Props[LocalService], "l_service")
+      service ! Service.Join("test")
+      service ! LocalServiceMessage("test", LocalAction.RouterTelepadTransport(PlanetSideGUID(10), PlanetSideGUID(11), PlanetSideGUID(12), PlanetSideGUID(13)))
+      expectMsg(LocalServiceResponse("/test/Local", PlanetSideGUID(10), LocalResponse.RouterTelepadTransport(PlanetSideGUID(11), PlanetSideGUID(12), PlanetSideGUID(13))))
+    }
+  }
+}
+
 class SetEmpireTest extends ActorTest {
   ServiceManager.boot(system)
   val obj = new SensorDeployable(GlobalDefinitions.motionalarmsensor)
@@ -164,6 +177,20 @@ class SetEmpireTest extends ActorTest {
       service ! Service.Join("test")
       service ! LocalServiceMessage("test", LocalAction.SetEmpire(PlanetSideGUID(10), PlanetSideEmpire.TR))
       expectMsg(LocalServiceResponse("/test/Local", PlanetSideGUID(0), LocalResponse.SetEmpire(PlanetSideGUID(10), PlanetSideEmpire.TR)))
+    }
+  }
+}
+
+class ToggleTeleportSystemTest extends ActorTest {
+  ServiceManager.boot(system)
+
+  "LocalService" should {
+    "pass ToggleTeleportSystem" in {
+      val router = Vehicle(GlobalDefinitions.router)
+      val service = system.actorOf(Props[LocalService], "l_service")
+      service ! Service.Join("test")
+      service ! LocalServiceMessage("test", LocalAction.ToggleTeleportSystem(PlanetSideGUID(10), router, None))
+      expectMsg(LocalServiceResponse("/test/Local", PlanetSideGUID(10), LocalResponse.ToggleTeleportSystem(router, None)))
     }
   }
 }

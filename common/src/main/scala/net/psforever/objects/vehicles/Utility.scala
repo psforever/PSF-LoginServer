@@ -145,8 +145,14 @@ object Utility {
     }
   }
 
+  /**
+    * The internal telepad is a component that is contained by the Router when it deploys
+    * and allows it to serve as one of the terminal points of a Router-telepad teleportation system.
+    * @param ddef na
+    */
   class InternalTelepad(ddef : DeployableDefinition) extends Amenity
     with TelepadLike {
+    /** a link to the telepad that serves as the other endpoint of this teleportation system */
     private var activeTelepad : Option[PlanetSideGUID] = None
 
     def Telepad : Option[PlanetSideGUID] = activeTelepad
@@ -160,6 +166,7 @@ object Utility {
 
     override def Position = Owner.Position
     override def Orientation = Owner.Orientation
+    /** the router is the owner */
     override def Router : Option[PlanetSideGUID] = Some(Owner.GUID)
 
     def Definition = ddef

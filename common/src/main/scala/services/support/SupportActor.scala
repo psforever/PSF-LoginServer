@@ -73,17 +73,12 @@ abstract class SupportActor[A <: SupportActor.Entry] extends Actor {
         //a - find targets from entries
         val locatedTargets = for {
           a <- targets
-          b <- list//.filter(entry => entry.zone == zone)
+          b <- list
           if b.obj.HasGUID && a.obj.HasGUID && comparator.Test(b, a)
         } yield b
         if(locatedTargets.nonEmpty) {
           //b - entries, after the found targets are removed (cull any non-GUID entries while at it)
-          val retained = for {
-            a <- locatedTargets
-            b <- list
-            if b.obj.HasGUID && a.obj.HasGUID && !comparator.Test(b, a)
-          } yield b
-          (locatedTargets, retained)
+          (locatedTargets, list filterNot locatedTargets.toSet)
         }
         else {
           (Nil, list)

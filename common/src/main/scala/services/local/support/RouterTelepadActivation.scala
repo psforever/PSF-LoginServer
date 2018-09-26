@@ -13,7 +13,7 @@ class RouterTelepadActivation extends SupportActor[RouterTelepadActivation.Entry
   var telepadList : List[RouterTelepadActivation.Entry] = List()
   val sameEntryComparator = new SimilarityComparator[RouterTelepadActivation.Entry]() {
     def Test(entry1 : RouterTelepadActivation.Entry, entry2 : RouterTelepadActivation.Entry) : Boolean = {
-      entry1.obj == entry2.obj && entry1.zone == entry2.zone && entry1.obj.GUID == entry2.obj.GUID
+      (entry1.obj eq entry2.obj) && (entry1.zone eq entry2.zone) && entry1.obj.GUID == entry2.obj.GUID
     }
   }
   val firstStandardTime : FiniteDuration = 60 seconds
@@ -91,7 +91,7 @@ class RouterTelepadActivation extends SupportActor[RouterTelepadActivation.Entry
         debug(s"no tasks matching the targets $targets have been hurried")
       case (in, out) =>
         debug(s"the following tasks have been hurried: $in")
-        telepadList = out //.sortBy(entry => entry.time + entry.duration)
+        telepadList = out
         if(out.nonEmpty) {
           RetimeFirstTask()
         }

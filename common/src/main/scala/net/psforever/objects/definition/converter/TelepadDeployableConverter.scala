@@ -9,7 +9,7 @@ import scala.util.{Failure, Success, Try}
 
 class TelepadDeployableConverter extends ObjectCreateConverter[TelepadDeployable]() {
   override def ConstructorData(obj : TelepadDeployable) : Try[TelepadDeployableData] = {
-    if(obj.Router.isEmpty) {
+    if(obj.Router.isEmpty || obj.Router.contains(PlanetSideGUID(0))) {
       Failure(new IllegalStateException("TelepadDeployableConverter: telepad deployable needs to know id of its router"))
     }
     else {

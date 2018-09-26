@@ -318,6 +318,38 @@ class TurretControlBetrayalMountTest extends ActorTest {
   }
 }
 
+class TelepadDeployableTest extends Specification {
+  "Telepad" should {
+    "construct" in {
+      val obj = new Telepad(GlobalDefinitions.router_telepad)
+      obj.Active mustEqual false
+      obj.Router mustEqual None
+    }
+
+    "activate and deactivate" in {
+      val obj = new Telepad(GlobalDefinitions.router_telepad)
+      obj.Active mustEqual false
+      obj.Active = true
+      obj.Active mustEqual true
+      obj.Active = false
+      obj.Active mustEqual false
+    }
+
+    "keep track of a Router" in {
+      val obj = new Telepad(GlobalDefinitions.router_telepad)
+      obj.Router mustEqual None
+      obj.Router = PlanetSideGUID(1)
+      obj.Router mustEqual Some(PlanetSideGUID(1))
+      obj.Router = None
+      obj.Router mustEqual None
+      obj.Router = PlanetSideGUID(1)
+      obj.Router mustEqual Some(PlanetSideGUID(1))
+      obj.Router = PlanetSideGUID(0)
+      obj.Router mustEqual None
+    }
+  }
+}
+
 object DeployableTest {
   class TurretInitializer(obj : TurretDeployable) extends Actor {
     def receive : Receive = {

@@ -5,7 +5,7 @@ import akka.actor.{ActorRef, Props}
 import akka.routing.RandomPool
 import akka.testkit.TestProbe
 import base.ActorTest
-import net.psforever.objects.PlanetSideGameObject
+import net.psforever.objects.{GlobalDefinitions, PlanetSideGameObject, Tool}
 import net.psforever.objects.definition.{EquipmentDefinition, ObjectDefinition}
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.guid.TaskResolver
@@ -21,24 +21,26 @@ import scala.concurrent.duration._
 //  "RemoverActor" should {
 //    "handle a simple task" in {
 //      expectNoMsg(500 milliseconds)
-//      val probe = TestProbe()
-//      val remover = system.actorOf(Props(classOf[RemoverActorTest.TestRemover], probe), "test-remover")
+//      val remover = system.actorOf(
+//        Props(classOf[ActorTest.SupportActorInterface], Props[RemoverActorTest.TestRemover], self),
+//        "test-remover"
+//      )
 //      remover ! RemoverActor.AddTask(RemoverActorTest.TestObject, Zone.Nowhere)
 //
-//      val reply1 = probe.receiveOne(200 milliseconds)
+//      val reply1 = receiveOne(500 milliseconds)
 //      assert(reply1.isInstanceOf[RemoverActorTest.InclusionTestAlert])
-//      val reply2 = probe.receiveOne(200 milliseconds)
+//      val reply2 = receiveOne(500 milliseconds)
 //      assert(reply2.isInstanceOf[RemoverActorTest.InitialJobAlert])
-//      probe.expectNoMsg(1 seconds) //delay
-//      val reply3 = probe.receiveOne(300 milliseconds)
+//      expectNoMsg(1 seconds) //delay
+//      val reply3 = receiveOne(500 milliseconds)
 //      assert(reply3.isInstanceOf[RemoverActorTest.FirstJobAlert])
-//      val reply4 = probe.receiveOne(300 milliseconds)
+//      val reply4 = receiveOne(500 milliseconds)
 //      assert(reply4.isInstanceOf[RemoverActorTest.ClearanceTestAlert])
-//      val reply5 = probe.receiveOne(300 milliseconds)
+//      val reply5 = receiveOne(500 milliseconds)
 //      assert(reply5.isInstanceOf[RemoverActorTest.SecondJobAlert])
-//      val reply6 = probe.receiveOne(500 milliseconds)
+//      val reply6 = receiveOne(500 milliseconds)
 //      assert(reply6.isInstanceOf[RemoverActorTest.DeletionTaskAlert])
-//      val reply7 = probe.receiveOne(500 milliseconds)
+//      val reply7 = receiveOne(500 milliseconds)
 //      assert(reply7.isInstanceOf[RemoverActorTest.DeletionTaskRunAlert])
 //    }
 //  }
@@ -50,29 +52,31 @@ import scala.concurrent.duration._
 //  "RemoverActor" should {
 //    "handle a simple task (timed)" in {
 //      expectNoMsg(500 milliseconds)
-//      val probe = TestProbe()
-//      val remover = system.actorOf(Props(classOf[RemoverActorTest.TestRemover], probe), "test-remover")
+//      val remover = system.actorOf(
+//        Props(classOf[ActorTest.SupportActorInterface], Props[RemoverActorTest.TestRemover], self),
+//        "test-remover"
+//      )
 //      remover ! RemoverActor.AddTask(RemoverActorTest.TestObject, Zone.Nowhere, Some(100 milliseconds))
 //
-//      val reply1 = probe.receiveOne(200 milliseconds)
+//      val reply1 = receiveOne(500 milliseconds)
 //      assert(reply1.isInstanceOf[RemoverActorTest.InclusionTestAlert])
-//      val reply2 = probe.receiveOne(200 milliseconds)
+//      val reply2 = receiveOne(500 milliseconds)
 //      assert(reply2.isInstanceOf[RemoverActorTest.InitialJobAlert])
 //      //no delay
-//      val reply3 = probe.receiveOne(300 milliseconds)
+//      val reply3 = receiveOne(500 milliseconds)
 //      assert(reply3.isInstanceOf[RemoverActorTest.FirstJobAlert])
-//      val reply4 = probe.receiveOne(300 milliseconds)
+//      val reply4 = receiveOne(500 milliseconds)
 //      assert(reply4.isInstanceOf[RemoverActorTest.ClearanceTestAlert])
-//      val reply5 = probe.receiveOne(300 milliseconds)
+//      val reply5 = receiveOne(500 milliseconds)
 //      assert(reply5.isInstanceOf[RemoverActorTest.SecondJobAlert])
-//      val reply6 = probe.receiveOne(300 milliseconds)
+//      val reply6 = receiveOne(500 milliseconds)
 //      assert(reply6.isInstanceOf[RemoverActorTest.DeletionTaskAlert])
-//      val reply7 = probe.receiveOne(300 milliseconds)
+//      val reply7 = receiveOne(500 milliseconds)
 //      assert(reply7.isInstanceOf[RemoverActorTest.DeletionTaskRunAlert])
 //    }
 //  }
 //}
-//
+
 //class ExcludedRemoverActorTest extends ActorTest {
 //  ServiceManager.boot ! ServiceManager.Register(RandomPool(2).props(Props[TaskResolver]), "taskResolver")
 //  val AlternateTestObject = new PlanetSideGameObject() { def Definition = new ObjectDefinition(0) { } }
@@ -81,7 +85,10 @@ import scala.concurrent.duration._
 //    "allow only specific objects" in {
 //      expectNoMsg(500 milliseconds)
 //      val probe = TestProbe()
-//      val remover = system.actorOf(Props(classOf[RemoverActorTest.TestRemover], probe), "test-remover")
+//      val remover = system.actorOf(
+//        Props(classOf[ActorTest.SupportActorInterface], Props[RemoverActorTest.TestRemover], self),
+//        "test-remover"
+//      )
 //      remover ! RemoverActor.AddTask(AlternateTestObject, Zone.Nowhere)
 //
 //      val reply1 = probe.receiveOne(200 milliseconds)
@@ -91,7 +98,7 @@ import scala.concurrent.duration._
 //    }
 //  }
 //}
-//
+
 //class MultipleRemoverActorTest extends ActorTest {
 //  ServiceManager.boot ! ServiceManager.Register(RandomPool(2).props(Props[TaskResolver]), "taskResolver")
 //  final val TestObject2 = new Equipment() { def Definition = new EquipmentDefinition(0) { GUID = PlanetSideGUID(2) } }
@@ -494,44 +501,44 @@ object RemoverActorTest {
 
   final case class DeletionTaskRunAlert()
 
-  class TestRemover(probe : TestProbe) extends RemoverActor {
+  class TestRemover extends RemoverActor {
     import net.psforever.objects.guid.{Task, TaskResolver}
     val FirstStandardDuration = 1 seconds
 
     val SecondStandardDuration = 100 milliseconds
 
     def InclusionTest(entry : RemoverActor.Entry) : Boolean = {
-      probe.ref ! InclusionTestAlert()
-      entry.obj.isInstanceOf[Equipment]
+      context.parent ! InclusionTestAlert()
+      true
     }
 
     def InitialJob(entry : RemoverActor.Entry) : Unit = {
-      probe.ref ! InitialJobAlert()
+      context.parent ! InitialJobAlert()
     }
 
     def FirstJob(entry : RemoverActor.Entry) : Unit = {
-      probe.ref ! FirstJobAlert()
+      context.parent ! FirstJobAlert()
     }
 
     override def SecondJob(entry : RemoverActor.Entry) : Unit = {
-      probe.ref ! SecondJobAlert()
+      context.parent ! SecondJobAlert()
       super.SecondJob(entry)
     }
 
     def ClearanceTest(entry : RemoverActor.Entry) : Boolean = {
-      probe.ref ! ClearanceTestAlert()
+      context.parent ! ClearanceTestAlert()
       true
     }
 
     def DeletionTask(entry : RemoverActor.Entry) : TaskResolver.GiveTask = {
-      probe.ref ! DeletionTaskAlert()
+      context.parent ! DeletionTaskAlert()
       TaskResolver.GiveTask(new Task() {
-        private val localProbe = probe
+        private val localProbe = context.parent
 
         override def isComplete = Task.Resolution.Success
 
         def Execute(resolver : ActorRef) : Unit = {
-          localProbe.ref ! DeletionTaskRunAlert()
+          context.parent ! DeletionTaskRunAlert()
           resolver ! scala.util.Success(this)
         }
       })
