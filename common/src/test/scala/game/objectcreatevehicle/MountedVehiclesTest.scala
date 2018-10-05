@@ -57,7 +57,6 @@ class MountedVehiclesTest extends Specification {
                     app.app.sex mustEqual CharacterGender.Male
                     app.app.head mustEqual 5
                     app.app.voice mustEqual CharacterVoice.Voice5
-                    app.voice2 mustEqual 3
                     app.black_ops mustEqual false
                     app.lfs mustEqual false
                     app.outfit_name mustEqual "Black Beret Armoured Corps"
@@ -76,7 +75,7 @@ class MountedVehiclesTest extends Specification {
                     char.armor mustEqual 0
                     char.uniform_upgrade mustEqual UniformStyle.ThirdUpgrade
                     char.command_rank mustEqual 5
-                    char.implant_effects mustEqual None
+                    char.implant_effects.isEmpty mustEqual true
                     char.cosmetics mustEqual Some(Cosmetics(true, true, true, true, false))
                     inv.size mustEqual 4
                     inv.head.objectClass mustEqual ObjectClass.medicalapplicator
@@ -107,7 +106,6 @@ class MountedVehiclesTest extends Specification {
   "encode (Scrawny Ronnie's mosquito)" in {
     val app : (Int)=>CharacterAppearanceData = CharacterAppearanceData(
       BasicCharacterData("ScrawnyRonnie", PlanetSideEmpire.TR, CharacterGender.Male, 5, CharacterVoice.Voice5),
-      3,
       false, false,
       ExoSuitType.Agile,
       "Black Beret Armoured Corps",
@@ -128,7 +126,7 @@ class MountedVehiclesTest extends Specification {
       UniformStyle.ThirdUpgrade,
       0,
       5,
-      None,
+      Nil,
       Some(Cosmetics(true, true, true, true, false))
     )
     val inv : InventoryData = InventoryData(

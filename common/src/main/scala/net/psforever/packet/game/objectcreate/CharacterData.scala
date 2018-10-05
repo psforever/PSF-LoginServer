@@ -8,8 +8,7 @@ import shapeless.{::, HNil}
 
 /**
   * Values for the implant effects on a character model.
-  * The effects can not be activated simultaneously.
-  * In at least one case, attempting to activate multiple effects will cause the PlanetSide client to crash.<br>
+  * The effects are not additive and this value is not a bitmask.<br>
   * <br>
   * `RegenEffects` is a reverse-flagged item - inactive when the corresponding bit is set.
   * For that reason, every other effect is `n`+1, while `NoEffects` is 1 and `RegenEffects` is 0.
@@ -65,7 +64,8 @@ object UniformStyle extends Enumeration {
   * @param command_rank the player's command rank as a number from 0 to 5;
   *                     cosmetic armor associated with the command rank will be applied automatically
   * @param implant_effects the effects of implants that can be seen on a player's character;
-  *                        though many implants can be used simultaneously, only one implant effect can be applied here
+  *                        the number of entries equates to the number of effects applied;
+  *                        the maximu number of effects is three
   * @param cosmetics optional decorative features that are added to the player's head model by console/chat commands;
   *                  they become available at battle rank 24, but here they require the third uniform upgrade (rank 25);
   *                  these flags do not exist if they are not applicable
@@ -82,7 +82,7 @@ final case class CharacterData(health : Int,
                                uniform_upgrade : UniformStyle.Value,
                                unk : Int,
                                command_rank : Int,
-                               implant_effects : Option[ImplantEffects.Value],
+                               implant_effects : List[ImplantEffects.Value],
                                cosmetics : Option[Cosmetics])
                               (is_backpack : Boolean,
                                is_seated : Boolean) extends ConstructorData {
@@ -90,7 +90,7 @@ final case class CharacterData(health : Int,
   override def bitsize : Long = {
     //factor guard bool values into the base size, not its corresponding optional field
     val seatedSize = if(is_seated) { 0 } else { 16 }
-    val effectsSize : Long = if(implant_effects.isDefined) { 4L } else { 0L }
+    val effectsSize : Long = implant_effects.length * 4L
     val cosmeticsSize : Long = if(cosmetics.isDefined) { cosmetics.get.bitsize } else { 0L }
     11L + seatedSize + effectsSize + cosmeticsSize
   }
@@ -107,22 +107,21 @@ object CharacterData extends Marshallable[CharacterData] {
     * @param cosmetics optional decorative features that are added to the player's head model by console/chat commands
     * @return a `CharacterData` object
     */
-  def apply(health : Int, armor : Int, uniform : UniformStyle.Value, cr : Int, implant_effects : Option[ImplantEffects.Value], cosmetics : Option[Cosmetics]) : (Boolean,Boolean)=>CharacterData =
+  def apply(health : Int, armor : Int, uniform : UniformStyle.Value, cr : Int, implant_effects : List[ImplantEffects.Value], cosmetics : Option[Cosmetics]) : (Boolean,Boolean)=>CharacterData =
     CharacterData(health, armor, uniform, 0, cr, implant_effects, cosmetics)
 
   def codec(is_backpack : Boolean) : Codec[CharacterData] = (
     ("health" | uint8L) :: //dead state when health == 0
       ("armor" | uint8L) ::
       (("uniform_upgrade" | UniformStyle.codec) >>:~ { style =>
-        ignore(3) :: //unknown
+        ignore(3) :: //uniform_upgrade is actually interpreted as a 6u field, but the lower 3u seems to be discarded
           ("command_rank" | uintL(3)) ::
-          bool :: //misalignment when == 1
-          optional(bool, "implant_effects" | ImplantEffects.codec) ::
+          listOfN(uint2, "implant_effects" | ImplantEffects.codec) ::
           conditional(style == UniformStyle.ThirdUpgrade, "cosmetics" | Cosmetics.codec)
       })
     ).exmap[CharacterData] (
     {
-      case health :: armor :: uniform :: _ :: cr :: false :: implant_effects :: cosmetics :: HNil =>
+      case health :: armor :: uniform :: _ :: cr :: implant_effects :: cosmetics :: HNil =>
         val newHealth = if(is_backpack) { 0 } else { health }
         Attempt.Successful(CharacterData(newHealth, armor, uniform, 0, cr, implant_effects, cosmetics)(is_backpack, false))
 
@@ -132,7 +131,7 @@ object CharacterData extends Marshallable[CharacterData] {
     {
       case CharacterData(health, armor, uniform, _, cr, implant_effects, cosmetics) =>
         val newHealth = if(is_backpack) { 0 } else { health }
-        Attempt.Successful(newHealth :: armor :: uniform :: () :: cr :: false :: implant_effects :: cosmetics :: HNil)
+        Attempt.Successful(newHealth :: armor :: uniform :: () :: cr :: implant_effects :: cosmetics :: HNil)
 
       case _ =>
         Attempt.Failure(Err("invalid character data; can not decode"))
@@ -141,23 +140,22 @@ object CharacterData extends Marshallable[CharacterData] {
 
   def codec_seated(is_backpack : Boolean) : Codec[CharacterData] = (
     ("uniform_upgrade" | UniformStyle.codec) >>:~ { style =>
-      ignore(3) :: //unknown
+      ignore(3) :: //uniform_upgrade is actually interpreted as a 6u field, but the lower 3u seems to be discarded
         ("command_rank" | uintL(3)) ::
-        bool :: //stream misalignment when != 1
-        optional(bool, "implant_effects" | ImplantEffects.codec) ::
+        listOfN(uint2, "implant_effects" | ImplantEffects.codec) ::
         conditional(style == UniformStyle.ThirdUpgrade, "cosmetics" | Cosmetics.codec)
     }
     ).exmap[CharacterData] (
     {
-      case uniform :: _ :: cr :: false :: implant_effects :: cosmetics :: HNil =>
+      case uniform :: _ :: cr :: implant_effects :: cosmetics :: HNil =>
         Attempt.Successful(new CharacterData(100, 0, uniform, 0, cr, implant_effects, cosmetics)(is_backpack, true))
 
       case _ =>
         Attempt.Failure(Err("invalid character data; can not encode"))
     },
     {
-      case obj @ CharacterData(_, _, uniform, _, cr, implant_effects, cosmetics) =>
-        Attempt.Successful(uniform :: () :: cr :: false :: implant_effects :: cosmetics :: HNil)
+      case CharacterData(_, _, uniform, _, cr, implant_effects, cosmetics) =>
+        Attempt.Successful(uniform :: () :: cr :: implant_effects :: cosmetics :: HNil)
 
       case _ =>
         Attempt.Failure(Err("invalid character data; can not decode"))

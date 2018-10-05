@@ -51,7 +51,6 @@ class CharacterSelectConverter extends AvatarConverter {
   private def MakeAppearanceData(obj : Player) : (Int)=>CharacterAppearanceData = {
     CharacterAppearanceData(
       BasicCharacterData(obj.Name, obj.Faction, obj.Sex, obj.Head, CharacterVoice.Mute),
-      voice2 = 0,
       black_ops = false,
       jammered = false,
       obj.ExoSuit,

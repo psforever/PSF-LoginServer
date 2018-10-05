@@ -44,12 +44,6 @@ final case class ImplantEntry(implant : ImplantType.Value,
   * @param armor for `x / y` of armor points, this is the avatar's `x` value;
   *              range is 0-65535;
   *              the avatar's `y` armor points is tied to their exo-suit type
-  * @param unk1 na;
-  *             defaults to 1
-  * @param unk2 na;
-  *             defaults to 7
-  * @param unk3 na;
-  *             defaults to 7
   * @param staminaMax for `x / y` of stamina points, this is the avatar's `y` value;
   *                   range is 0-65535
   * @param stamina for `x / y` of stamina points, this is the avatar's `x` value;
@@ -73,9 +67,6 @@ final case class DetailedCharacterData(bep : Long,
                                        healthMax : Int,
                                        health : Int,
                                        armor : Int,
-                                       unk1 : Int, //1
-                                       unk2 : Int, //7
-                                       unk3 : Int, //7
                                        staminaMax : Int,
                                        stamina : Int,
                                        certs : List[CertificationType.Value],
@@ -111,24 +102,6 @@ final case class DetailedCharacterData(bep : Long,
 }
 
 object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
-  /**
-    * Overloaded constructor for `DetailedCharacterData` that requires an inventory and drops unknown values.
-    * @param bep the avatar's battle experience points, which determines his Battle Rank
-    * @param cep the avatar's command experience points, which determines his Command Rank
-    * @param healthMax for `x / y` of hitpoints, this is the avatar's `y` value
-    * @param health for `x / y` of hitpoints, this is the avatar's `x` value
-    * @param armor for `x / y` of armor points, this is the avatar's `x` value
-    * @param staminaMax for `x / y` of stamina points, this is the avatar's `y` value
-    * @param stamina for `x / y` of stamina points, this is the avatar's `x` value
-    * @param certs the `List` of active certifications
-    * @param implants the `List` of implant slots currently possessed by this avatar
-    * @param firstTimeEvents the list of first time events performed by this avatar
-    * @param tutorials the list of tutorials completed by this avatar
-    * @return a `DetailedCharacterData` object
-    */
-  def apply(bep : Long, cep : Long, healthMax : Int, health : Int, armor : Int, staminaMax : Int, stamina : Int, certs : List[CertificationType.Value], implants : List[ImplantEntry], firstTimeEvents : List[String], tutorials : List[String], cosmetics : Option[Cosmetics]) : (Option[Int])=>DetailedCharacterData =
-    DetailedCharacterData(bep, cep, healthMax, health, armor, 1, 7, 7, staminaMax, stamina, certs, implants, firstTimeEvents, tutorials, cosmetics)
-
   /**
     * `Codec` for entries in the `List` of implants.
     */
@@ -255,16 +228,14 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
   def codec(pad_length : Option[Int]) : Codec[DetailedCharacterData] = (
     ("bep" | uint32L) >>:~ { bep =>
       ("cep" | uint32L) ::
-        ignore(96) ::
+        uint32L ::
+        uint32L ::
+        uint32L ::
         ("healthMax" | uint16L) ::
         ("health" | uint16L) ::
         ignore(1) ::
         ("armor" | uint16L) ::
-        ignore(9) ::
-        ("unk1" | uint8L) ::
-        ignore(8) ::
-        ("unk2" | uint4L) ::
-        ("unk3" | uintL(3)) ::
+        uint32 :: //TODO switch endianness
         ("staminaMax" | uint16L) ::
         ("stamina" | uint16L) ::
         ignore(147) ::
@@ -290,14 +261,14 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
     }
     ).exmap[DetailedCharacterData] (
     {
-      case bep :: cep :: _ :: hpmax :: hp :: _ :: armor :: _ :: u1 :: _ :: u2 :: u3 :: stamax :: stam :: _ :: certs :: _ :: _  :: implants :: _ :: _ :: fte0 :: fte1 :: _ :: tut0 :: tut1 :: _ :: _ :: _ :: cosmetics :: HNil =>
+      case bep :: cep :: 0 :: 0 :: 0 :: hpmax :: hp :: _ :: armor :: 32831L :: stamax :: stam :: _ :: certs :: _ :: _  :: implants :: _ :: _ :: fte0 :: fte1 :: _ :: tut0 :: tut1 :: _ :: _ :: _ :: cosmetics :: HNil =>
         //prepend the displaced first elements to their lists
         val fteList : List[String] = if(fte0.isDefined) { fte0.get +: fte1 } else { fte1 }
         val tutList : List[String] = if(tut0.isDefined) { tut0.get +: tut1 } else { tut1 }
-        Attempt.successful(DetailedCharacterData(bep, cep, hpmax, hp, armor, u1, u2, u3, stamax, stam, certs, implants, fteList, tutList, cosmetics)(pad_length))
+        Attempt.successful(new DetailedCharacterData(bep, cep, hpmax, hp, armor, stamax, stam, certs, implants, fteList, tutList, cosmetics)(pad_length))
     },
     {
-      case DetailedCharacterData(bep, cep, hpmax, hp, armor, u1, u2, u3, stamax, stam, certs, implants, fteList, tutList, cos) =>
+      case DetailedCharacterData(bep, cep, hpmax, hp, armor, stamax, stam, certs, implants, fteList, tutList, cos) =>
         val implantCapacity : Int = numberOfImplantSlots(bep)
         val implantList = if(implants.length > implantCapacity) {
           implants.slice(0, implantCapacity)
@@ -318,7 +289,7 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
         }
         val br24 : Boolean = isBR24(bep)
         val cosmetics : Option[Cosmetics] = if(br24) { cos } else { None }
-        Attempt.successful(bep :: cep :: () :: hpmax :: hp :: () :: armor :: () :: u1 :: () :: u2 :: u3 :: stamax :: stam :: () :: certs :: None :: () :: implantList :: () :: fteList.size.toLong :: firstEvent :: fteListCopy :: tutList.size.toLong :: firstTutorial :: tutListCopy :: () :: br24 :: () :: cosmetics :: HNil)
+        Attempt.successful(bep :: cep :: 0L :: 0L :: 0L :: hpmax :: hp :: () :: armor :: 32831L :: stamax :: stam :: () :: certs :: None :: () :: implantList :: () :: fteList.size.toLong :: firstEvent :: fteListCopy :: tutList.size.toLong :: firstTutorial :: tutListCopy :: () :: br24 :: () :: cosmetics :: HNil)
     }
   )
 

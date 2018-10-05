@@ -46,7 +46,6 @@ class CorpseConverter extends AvatarConverter {
   private def MakeAppearanceData(obj : Player) : (Int)=>CharacterAppearanceData = {
     CharacterAppearanceData(
       BasicCharacterData(obj.Name, obj.Faction, CharacterGender.Male, 0, CharacterVoice.Mute),
-      voice2 = 0,
       black_ops = false,
       jammered = false,
       obj.ExoSuit,

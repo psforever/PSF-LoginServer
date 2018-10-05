@@ -66,7 +66,6 @@ object AvatarConverter {
   def MakeAppearanceData(obj : Player) : (Int)=>CharacterAppearanceData = {
     CharacterAppearanceData(
       BasicCharacterData(obj.Name, obj.Faction, obj.Sex, obj.Head, obj.Voice),
-      voice2 = 0,
       black_ops = false,
       jammered = false,
       obj.ExoSuit,
@@ -96,7 +95,7 @@ object AvatarConverter {
       }, //TODO not precise
       DressBattleRank(obj),
       DressCommandRank(obj),
-      recursiveMakeImplantEffects(obj.Implants.iterator),
+      MakeImplantEffectList(obj.Implants),
       MakeCosmetics(obj.BEP)
     )
   }
@@ -196,34 +195,24 @@ object AvatarConverter {
   }
 
   /**
-    * Find an active implant whose effect will be displayed on this player.
-    * @param iter an `Iterator` of `ImplantSlot` objects
+    * Find and encode implants whose effect will be displayed on this player.
+    * @param implants a `Sequence` of `ImplantSlot` objects
     * @return the effect of an active implant
     */
-  @tailrec private def recursiveMakeImplantEffects(iter : Iterator[(ImplantType.Value, Long, Boolean)]) : Option[ImplantEffects.Value] = {
-    if(!iter.hasNext) {
-      None
-    }
-    else {
-      val(implant, _, active) = iter.next
-      if(active) {
+  private def MakeImplantEffectList(implants : Seq[(ImplantType.Value, Long, Boolean)]) : List[ImplantEffects.Value] = {
+    implants.collect {
+      case ((implant,_,true)) =>
         implant match {
           case ImplantType.AdvancedRegen =>
-            Some(ImplantEffects.RegenEffects)
+            ImplantEffects.RegenEffects
           case ImplantType.DarklightVision =>
-            Some(ImplantEffects.DarklightEffects)
+            ImplantEffects.DarklightEffects
           case ImplantType.PersonalShield =>
-            Some(ImplantEffects.PersonalShieldEffects)
+            ImplantEffects.PersonalShieldEffects
           case ImplantType.Surge =>
-            Some(ImplantEffects.SurgeEffects)
-          case _ =>
-            recursiveMakeImplantEffects(iter)
+            ImplantEffects.SurgeEffects
         }
-      }
-      else {
-        recursiveMakeImplantEffects(iter)
-      }
-    }
+    }.toList
   }
 
   /**

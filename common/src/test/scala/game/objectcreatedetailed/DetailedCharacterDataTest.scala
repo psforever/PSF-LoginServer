@@ -39,7 +39,6 @@ class DetailedCharacterDataTest extends Specification {
               basic.app.sex mustEqual CharacterGender.Female
               basic.app.head mustEqual 41
               basic.app.voice mustEqual CharacterVoice.Voice1
-              basic.voice2 mustEqual 3
               basic.black_ops mustEqual false
               basic.jammered mustEqual false
               basic.exosuit mustEqual ExoSuitType.Standard
@@ -63,9 +62,6 @@ class DetailedCharacterDataTest extends Specification {
               char.healthMax mustEqual 100
               char.health mustEqual 100
               char.armor mustEqual 50 //standard exosuit value
-              char.unk1 mustEqual 1
-              char.unk2 mustEqual 7
-              char.unk3 mustEqual 7
               char.staminaMax mustEqual 100
               char.stamina mustEqual 100
               char.certs.length mustEqual 7
@@ -175,7 +171,6 @@ class DetailedCharacterDataTest extends Specification {
               basic.app.sex mustEqual CharacterGender.Female
               basic.app.head mustEqual 41
               basic.app.voice mustEqual CharacterVoice.Voice1
-              basic.voice2 mustEqual 3
               basic.black_ops mustEqual false
               basic.jammered mustEqual false
               basic.exosuit mustEqual ExoSuitType.Standard
@@ -199,9 +194,6 @@ class DetailedCharacterDataTest extends Specification {
               char.healthMax mustEqual 100
               char.health mustEqual 100
               char.armor mustEqual 50 //standard exosuit value
-              char.unk1 mustEqual 1
-              char.unk2 mustEqual 7
-              char.unk3 mustEqual 7
               char.staminaMax mustEqual 100
               char.stamina mustEqual 100
               char.certs.length mustEqual 7
@@ -382,7 +374,6 @@ class DetailedCharacterDataTest extends Specification {
           41,
           CharacterVoice.Voice1
         ),
-        3,
         false,
         false,
         ExoSuitType.Standard,
@@ -402,7 +393,6 @@ class DetailedCharacterDataTest extends Specification {
         0,
         100, 100,
         50,
-        1, 7, 7,
         100, 100,
         List(
           CertificationType.StandardAssault,
@@ -453,7 +443,6 @@ class DetailedCharacterDataTest extends Specification {
           41,
           CharacterVoice.Voice1
         ),
-        3,
         false,
         false,
         ExoSuitType.Standard,
@@ -473,7 +462,6 @@ class DetailedCharacterDataTest extends Specification {
         0,
         100, 100,
         50,
-        1, 7, 7,
         100, 100,
         List(
           CertificationType.StandardAssault,
@@ -520,7 +508,6 @@ class DetailedCharacterDataTest extends Specification {
       )
       val app : (Int)=>CharacterAppearanceData = CharacterAppearanceData(
         BasicCharacterData("KiCkJr", PlanetSideEmpire.NC, CharacterGender.Male, 24, CharacterVoice.Voice4),
-        3,
         false, false,
         ExoSuitType.Agile,
         "",
@@ -541,7 +528,6 @@ class DetailedCharacterDataTest extends Specification {
         6366766,
         694787,
         100, 100, 100,
-        1, 7, 7,
         100, 46,
         List(
           CertificationType.StandardAssault,

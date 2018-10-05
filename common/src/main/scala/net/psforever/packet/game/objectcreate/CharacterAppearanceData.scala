@@ -35,9 +35,9 @@ import shapeless.{::, HNil}
   *        `RibbonBars`
   * @see `http://www.planetside-universe.com/p-outfit-decals-31.htm`
   * @param app the player's cardinal appearance settings
-  * @param voice2 na;
-  *               affects the frequency by which the character's voice is heard (somehow);
-  *               commonly 3 for best results
+//  * @param voice2 na;
+//  *               affects the frequency by which the character's voice is heard (somehow);
+//  *               commonly 3 for best results
   * @param black_ops whether or not this avatar is enrolled in Black OPs
   * @param jammered the player has been caught in an EMP blast recently;
   *                 creates a jammered sound effect that follows the player around and can be heard by others
@@ -61,7 +61,6 @@ import shapeless.{::, HNil}
   * @param ribbons the four merit commendation ribbon medals
   */
 final case class CharacterAppearanceData(app : BasicCharacterData,
-                                         voice2 : Int,
                                          black_ops : Boolean,
                                          jammered : Boolean,
                                          exosuit : ExoSuitType.Value,
@@ -140,13 +139,16 @@ object CharacterAppearanceData extends Marshallable[CharacterAppearanceData] {
           ("sex" | CharacterGender.codec) ::
           ("head" | uint8L) ::
           ("voice" | CharacterVoice.codec) ::
-          ("voice2" | uint2L) ::
-          ignore(78) :: //unknown
+          uint32L ::
+          uint16L ::
+          uint16L ::
+          uint16L ::
           uint16L :: //usually either 0 or 65535
           uint32L :: //for outfit_name (below) to be visible in-game, this value should be non-zero
           ("outfit_name" | PacketHelpers.encodedWideStringAligned( outfitNamePadding )) ::
           ("outfit_logo" | uint8L) ::
           ignore(1) :: //unknown
+        //TODO bool :: //ps.c 1069587
           ("backpack" | bool) :: //requires alt_model flag (does NOT require health == 0)
           bool :: //stream misalignment when set
           ("facingPitch" | Angular.codec_pitch) ::
@@ -166,32 +168,34 @@ object CharacterAppearanceData extends Marshallable[CharacterAppearanceData] {
       })
     ).exmap[CharacterAppearanceData] (
     {
-      case _ :: _ :: false :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: true :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: HNil |
-           _ :: _ :: false :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: true :: _ :: HNil =>
+      case _ :: _ :: false :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: true :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: HNil |
+           _ :: _ :: false :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: true :: _ :: HNil =>
         Attempt.Failure(Err("invalid character appearance data; can not encode alternate model without required bit set"))
 
-      case faction :: bops :: _ :: _ :: jamd :: false :: 0 :: name :: suit :: _ :: sex :: head :: v1 :: v2 :: _ :: _ :: _/*has_outfit_name*/ :: outfit :: logo :: _ :: bpack :: false :: facingPitch :: facingYawUpper :: _ :: _ :: _ :: lfs :: gstate :: cloaking :: _ :: false :: charging :: _ :: zipline :: ribbons :: HNil =>
+      case faction :: bops :: _ :: _ :: jamd :: false :: 0 :: name :: suit :: _ :: sex :: head :: v1 :: _ :: _ :: _ :: _ :: _ :: _/*has_outfit_name*/ :: outfit :: logo :: _ :: bpack :: false :: facingPitch :: facingYawUpper :: _ :: _ :: _ :: lfs :: gstate :: cloaking :: _ :: false :: charging :: _ :: zipline :: ribbons :: HNil =>
         Attempt.successful(
-          CharacterAppearanceData(BasicCharacterData(name, faction, sex, head, v1), v2, bops, jamd, suit, outfit, logo, bpack, facingPitch, facingYawUpper, lfs, gstate, cloaking, charging, zipline, ribbons)(name_padding)
+          CharacterAppearanceData(BasicCharacterData(name, faction, sex, head, v1), bops, jamd, suit, outfit, logo, bpack, facingPitch, facingYawUpper, lfs, gstate, cloaking, charging, zipline, ribbons)(name_padding)
         )
 
       case _ =>
         Attempt.Failure(Err("invalid character appearance data; can not encode"))
     },
     {
-      case CharacterAppearanceData(BasicCharacterData(name, PlanetSideEmpire.NEUTRAL, _, _, _), _, _, _, _, _, _, _, _, _, _, _, _, _, _, _) =>
+      case CharacterAppearanceData(BasicCharacterData(name, PlanetSideEmpire.NEUTRAL, _, _, _), _, _, _, _, _, _, _, _, _, _, _, _, _, _) =>
         Attempt.failure(Err(s"character $name's faction can not declare as neutral"))
 
-      case CharacterAppearanceData(BasicCharacterData(name, faction, sex, head, v1), v2, bops, jamd, suit, outfit, logo, bpack, facingPitch, facingYawUpper, lfs, gstate, cloaking, charging, zipline, ribbons) =>
+      case CharacterAppearanceData(BasicCharacterData(name, faction, sex, head, voice), bops, jamd, suit, outfit, logo, bpack, facingPitch, facingYawUpper, lfs, gstate, cloaking, charging, zipline, ribbons) =>
         val has_outfit_name : Long = outfit.length.toLong //TODO this is a kludge
         var alt_model : Boolean = false
         var alt_model_extrabit : Option[Boolean] = None
+        var volume : Long = 192L
         if(zipline || bpack) {
           alt_model = true
           alt_model_extrabit = Some(false)
+          volume = 0L
         }
         Attempt.successful(
-          faction :: bops :: alt_model :: () :: jamd :: false :: 0 :: name :: suit :: () :: sex :: head :: v1 :: v2 :: () :: 0 :: has_outfit_name :: outfit :: logo :: () :: bpack :: false :: facingPitch :: facingYawUpper :: () :: alt_model_extrabit :: () :: lfs :: gstate :: cloaking :: () :: false :: charging :: () :: zipline :: ribbons :: HNil
+          faction :: bops :: alt_model :: () :: jamd :: false :: 0 :: name :: suit :: () :: sex :: head :: voice :: volume :: 0 :: 0 :: 0 :: 0 :: has_outfit_name :: outfit :: logo :: () :: bpack :: false :: facingPitch :: facingYawUpper :: () :: alt_model_extrabit :: () :: lfs :: gstate :: cloaking :: () :: false :: charging :: () :: zipline :: ribbons :: HNil
         )
 
       case _ =>

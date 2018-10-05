@@ -38,7 +38,6 @@ class CharacterDataTest extends Specification {
               basic.app.sex mustEqual CharacterGender.Male
               basic.app.head mustEqual 5
               basic.app.voice mustEqual CharacterVoice.Voice5
-              basic.voice2 mustEqual 3
               basic.black_ops mustEqual false
               basic.jammered mustEqual false
               basic.exosuit mustEqual ExoSuitType.Reinforced
@@ -60,8 +59,8 @@ class CharacterDataTest extends Specification {
               char.armor mustEqual 253
               char.uniform_upgrade mustEqual UniformStyle.ThirdUpgrade
               char.command_rank mustEqual 5
-              char.implant_effects.isDefined mustEqual true
-              char.implant_effects.get mustEqual ImplantEffects.NoEffects
+              char.implant_effects.length mustEqual 1
+              char.implant_effects.head mustEqual ImplantEffects.NoEffects
               char.cosmetics.isDefined mustEqual true
               char.cosmetics.get.no_helmet mustEqual true
               char.cosmetics.get.beret mustEqual true
@@ -131,7 +130,6 @@ class CharacterDataTest extends Specification {
               basic.app.sex mustEqual CharacterGender.Male
               basic.app.head mustEqual 5
               basic.app.voice mustEqual CharacterVoice.Voice5
-              basic.voice2 mustEqual 3
               basic.black_ops mustEqual false
               basic.jammered mustEqual false
               basic.exosuit mustEqual ExoSuitType.Reinforced
@@ -175,7 +173,6 @@ class CharacterDataTest extends Specification {
               basic.app.sex mustEqual CharacterGender.Male
               basic.app.head mustEqual 10
               basic.app.voice mustEqual CharacterVoice.Voice2
-              basic.voice2 mustEqual 0
               basic.black_ops mustEqual false
               basic.jammered mustEqual false
               basic.exosuit mustEqual ExoSuitType.MAX
@@ -197,7 +194,7 @@ class CharacterDataTest extends Specification {
               char.armor mustEqual 0
               char.uniform_upgrade mustEqual UniformStyle.ThirdUpgrade
               char.command_rank mustEqual 2
-              char.implant_effects.isDefined mustEqual false
+              char.implant_effects.isEmpty mustEqual true
               char.cosmetics.isDefined mustEqual true
               char.cosmetics.get.no_helmet mustEqual true
               char.cosmetics.get.beret mustEqual true
@@ -228,7 +225,6 @@ class CharacterDataTest extends Specification {
           5,
           CharacterVoice.Voice5
         ),
-        3,
         false,
         false,
         ExoSuitType.Reinforced,
@@ -250,7 +246,7 @@ class CharacterDataTest extends Specification {
         255, 253,
         UniformStyle.ThirdUpgrade,
         5,
-        Some(ImplantEffects.NoEffects),
+        List(ImplantEffects.NoEffects),
         Some(Cosmetics(true, true, true, true, false))
       )
       val inv = InventoryData(
@@ -284,7 +280,6 @@ class CharacterDataTest extends Specification {
           5,
           CharacterVoice.Voice5
         ),
-        3,
         false,
         false,
         ExoSuitType.Reinforced,
@@ -306,7 +301,7 @@ class CharacterDataTest extends Specification {
         255, 253,
         UniformStyle.ThirdUpgrade,
         5,
-        Some(ImplantEffects.NoEffects),
+        List(ImplantEffects.NoEffects),
         Some(Cosmetics(true, true, true, true, false))
       )
       val inv = InventoryData(
@@ -337,7 +332,6 @@ class CharacterDataTest extends Specification {
           10,
           CharacterVoice.Voice2
         ),
-        0,
         false,
         false,
         ExoSuitType.MAX,
@@ -359,7 +353,7 @@ class CharacterDataTest extends Specification {
         0, 0,
         UniformStyle.ThirdUpgrade,
         2,
-        None,
+        List(),
         Some(Cosmetics(true, true, true, true, false))
       )
       val obj = PlayerData(pos, app, char, DrawnSlot.Pistol1)
