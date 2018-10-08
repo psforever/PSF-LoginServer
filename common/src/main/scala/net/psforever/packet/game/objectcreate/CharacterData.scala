@@ -11,7 +11,7 @@ import shapeless.{::, HNil}
   * The effects are not additive and this value is not a bitmask.<br>
   * <br>
   * `RegenEffects` is a reverse-flagged item - inactive when the corresponding bit is set.
-  * For that reason, every other effect is `n`+1, while `NoEffects` is 1 and `RegenEffects` is 0.
+  * For that reason, every other effect is `n + 1`, while `NoEffects` is `1` and `RegenEffects` is `0`.
   */
 object ImplantEffects extends Enumeration {
   type Type = Value
@@ -55,7 +55,7 @@ object UniformStyle extends Enumeration {
   * @param health the amount of health the player has, as a percentage of a filled bar;
   *               the bar has 85 states, with 3 points for each state;
   *               when 0% (less than 3 of 255), the player will collapse into a death pose on the ground;
-  *               while `is_corpse == true`, `health` will always report as 0;
+  *               while `is_backpack == true`, `health` will always report as 0;
   *               while `is_seated == true`, `health` will (try to) report as 100
   * @param armor the amount of armor the player has, as a percentage of a filled bar;
   *              the bar has 85 states, with 3 points for each state;
@@ -114,24 +114,24 @@ object CharacterData extends Marshallable[CharacterData] {
     ("health" | uint8L) :: //dead state when health == 0
       ("armor" | uint8L) ::
       (("uniform_upgrade" | UniformStyle.codec) >>:~ { style =>
-        ignore(3) :: //uniform_upgrade is actually interpreted as a 6u field, but the lower 3u seems to be discarded
+        uint(3) :: //uniform_upgrade is actually interpreted as a 6u field, but the lower 3u seems to be discarded
           ("command_rank" | uintL(3)) ::
           listOfN(uint2, "implant_effects" | ImplantEffects.codec) ::
           conditional(style == UniformStyle.ThirdUpgrade, "cosmetics" | Cosmetics.codec)
       })
     ).exmap[CharacterData] (
     {
-      case health :: armor :: uniform :: _ :: cr :: implant_effects :: cosmetics :: HNil =>
+      case health :: armor :: uniform :: unk :: cr :: implant_effects :: cosmetics :: HNil =>
         val newHealth = if(is_backpack) { 0 } else { health }
-        Attempt.Successful(CharacterData(newHealth, armor, uniform, 0, cr, implant_effects, cosmetics)(is_backpack, false))
+        Attempt.Successful(CharacterData(newHealth, armor, uniform, unk, cr, implant_effects, cosmetics)(is_backpack, false))
 
       case _ =>
         Attempt.Failure(Err("invalid character data; can not encode"))
     },
     {
-      case CharacterData(health, armor, uniform, _, cr, implant_effects, cosmetics) =>
+      case CharacterData(health, armor, uniform, unk, cr, implant_effects, cosmetics) =>
         val newHealth = if(is_backpack) { 0 } else { health }
-        Attempt.Successful(newHealth :: armor :: uniform :: () :: cr :: implant_effects :: cosmetics :: HNil)
+        Attempt.Successful(newHealth :: armor :: uniform :: unk :: cr :: implant_effects :: cosmetics :: HNil)
 
       case _ =>
         Attempt.Failure(Err("invalid character data; can not decode"))
@@ -140,22 +140,22 @@ object CharacterData extends Marshallable[CharacterData] {
 
   def codec_seated(is_backpack : Boolean) : Codec[CharacterData] = (
     ("uniform_upgrade" | UniformStyle.codec) >>:~ { style =>
-      ignore(3) :: //uniform_upgrade is actually interpreted as a 6u field, but the lower 3u seems to be discarded
+      uint(3) :: //uniform_upgrade is actually interpreted as a 6u field, but the lower 3u seems to be discarded
         ("command_rank" | uintL(3)) ::
         listOfN(uint2, "implant_effects" | ImplantEffects.codec) ::
         conditional(style == UniformStyle.ThirdUpgrade, "cosmetics" | Cosmetics.codec)
     }
     ).exmap[CharacterData] (
     {
-      case uniform :: _ :: cr :: implant_effects :: cosmetics :: HNil =>
-        Attempt.Successful(new CharacterData(100, 0, uniform, 0, cr, implant_effects, cosmetics)(is_backpack, true))
+      case uniform :: unk :: cr :: implant_effects :: cosmetics :: HNil =>
+        Attempt.Successful(new CharacterData(100, 0, uniform, unk, cr, implant_effects, cosmetics)(is_backpack, true))
 
       case _ =>
         Attempt.Failure(Err("invalid character data; can not encode"))
     },
     {
-      case CharacterData(_, _, uniform, _, cr, implant_effects, cosmetics) =>
-        Attempt.Successful(uniform :: () :: cr :: implant_effects :: cosmetics :: HNil)
+      case CharacterData(_, _, uniform, unk, cr, implant_effects, cosmetics) =>
+        Attempt.Successful(uniform :: unk :: cr :: implant_effects :: cosmetics :: HNil)
 
       case _ =>
         Attempt.Failure(Err("invalid character data; can not decode"))

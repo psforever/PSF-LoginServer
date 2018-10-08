@@ -456,7 +456,6 @@ class PacketCodingActorITest extends ActorTest {
   val pos : PlacementData = PlacementData(Vector3.Zero, Vector3.Zero)
   val app : (Int)=>CharacterAppearanceData = CharacterAppearanceData(
     BasicCharacterData("IlllIIIlllIlIllIlllIllI", PlanetSideEmpire.VS, CharacterGender.Female, 41, CharacterVoice.Voice1),
-    3,
     false,
     false,
     ExoSuitType.Standard,
@@ -468,7 +467,7 @@ class PacketCodingActorITest extends ActorTest {
     GrenadeState.None,
     false,
     false,
-    false,
+    None,
     RibbonBars()
   )
   var char : (Option[Int])=>DetailedCharacterData = DetailedCharacterData(
@@ -476,7 +475,6 @@ class PacketCodingActorITest extends ActorTest {
     0,
     100, 100,
     50,
-    1, 7, 7,
     100, 100,
     List(CertificationType.StandardAssault, CertificationType.MediumAssault, CertificationType.ATV, CertificationType.Harasser, CertificationType.StandardExoSuit, CertificationType.AgileExoSuit, CertificationType.ReinforcedExoSuit),
     List(),
@@ -549,7 +547,6 @@ class PacketCodingActorKTest extends ActorTest {
   val pos : PlacementData = PlacementData(Vector3.Zero, Vector3.Zero)
   val app : (Int)=>CharacterAppearanceData = CharacterAppearanceData(
     BasicCharacterData("IlllIIIlllIlIllIlllIllI", PlanetSideEmpire.VS, CharacterGender.Female, 41, CharacterVoice.Voice1),
-    3,
     false,
     false,
     ExoSuitType.Standard,
@@ -561,7 +558,7 @@ class PacketCodingActorKTest extends ActorTest {
     GrenadeState.None,
     false,
     false,
-    false,
+    None,
     RibbonBars()
   )
   var char : (Option[Int])=>DetailedCharacterData = DetailedCharacterData(
@@ -569,7 +566,6 @@ class PacketCodingActorKTest extends ActorTest {
     0,
     100, 100,
     50,
-    1, 7, 7,
     100, 100,
     List(CertificationType.StandardAssault, CertificationType.MediumAssault, CertificationType.ATV, CertificationType.Harasser, CertificationType.StandardExoSuit, CertificationType.AgileExoSuit, CertificationType.ReinforcedExoSuit),
     List(),

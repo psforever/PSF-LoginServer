@@ -65,7 +65,7 @@ object PlayerData extends Marshallable[PlayerData] {
     */
   def apply(basic_appearance : (Int)=>CharacterAppearanceData, character_data : (Boolean,Boolean)=>CharacterData, inventory : InventoryData, drawn_slot : DrawnSlot.Type) : PlayerData = {
     val appearance = basic_appearance(5)
-    PlayerData(None, appearance, character_data(appearance.backpack, true), Some(inventory), drawn_slot)(false)
+    PlayerData(None, appearance, character_data(appearance.a.altModel, true), Some(inventory), drawn_slot)(false)
   }
   /**
     * Overloaded constructor that ignores the coordinate information and the inventory.
@@ -79,7 +79,7 @@ object PlayerData extends Marshallable[PlayerData] {
     */
   def apply(basic_appearance : (Int)=>CharacterAppearanceData, character_data : (Boolean,Boolean)=>CharacterData, drawn_slot : DrawnSlot.Type) : PlayerData = {
     val appearance = basic_appearance(5)
-    PlayerData(None, appearance, character_data(appearance.backpack, true), None, drawn_slot)(false)
+    PlayerData(None, appearance, character_data(appearance.a.altModel, true), None, drawn_slot)(false)
   }
 
   /**
@@ -95,7 +95,7 @@ object PlayerData extends Marshallable[PlayerData] {
     */
   def apply(pos : PlacementData, basic_appearance : (Int)=>CharacterAppearanceData, character_data : (Boolean,Boolean)=>CharacterData, inventory : InventoryData, drawn_slot : DrawnSlot.Type) : PlayerData = {
     val appearance = basic_appearance( PaddingOffset(Some(pos)) )
-    PlayerData(Some(pos), appearance, character_data(appearance.backpack, false), Some(inventory), drawn_slot)(true)
+    PlayerData(Some(pos), appearance, character_data(appearance.a.altModel, false), Some(inventory), drawn_slot)(true)
   }
   /**
     * Overloaded constructor that includes the coordinate information but ignores the inventory.
@@ -109,7 +109,7 @@ object PlayerData extends Marshallable[PlayerData] {
     */
   def apply(pos : PlacementData, basic_appearance : (Int)=>CharacterAppearanceData, character_data : (Boolean,Boolean)=>CharacterData, drawn_slot : DrawnSlot.Type) : PlayerData = {
     val appearance = basic_appearance( PaddingOffset(Some(pos)) )
-    PlayerData(Some(pos), appearance, character_data(appearance.backpack, false), None, drawn_slot)(true)
+    PlayerData(Some(pos), appearance, character_data(appearance.a.altModel, false), None, drawn_slot)(true)
   }
 
   /**
@@ -166,8 +166,8 @@ object PlayerData extends Marshallable[PlayerData] {
     conditional(position_defined, "pos" | PlacementData.codec) >>:~ { pos =>
       ("basic_appearance" | CharacterAppearanceData.codec(PaddingOffset(pos))) >>:~ { app =>
         ("character_data" | newcodecs.binary_choice(position_defined,
-          CharacterData.codec(app.backpack),
-          CharacterData.codec_seated(app.backpack))) ::
+          CharacterData.codec(app.b.backpack),
+          CharacterData.codec_seated(app.b.backpack))) ::
           optional(bool, "inventory" | InventoryData.codec) ::
           ("drawn_slot" | DrawnSlot.codec) ::
           bool //usually false
@@ -193,7 +193,7 @@ object PlayerData extends Marshallable[PlayerData] {
     */
   def codec(offset : Int) : Codec[PlayerData] = (
     ("basic_appearance" | CharacterAppearanceData.codec(offset)) >>:~ { app =>
-      ("character_data" | CharacterData.codec_seated(app.backpack)) ::
+      ("character_data" | CharacterData.codec_seated(app.b.backpack)) ::
         optional(bool, "inventory" | InventoryData.codec) ::
         ("drawn_slot" | DrawnSlot.codec) ::
         bool //usually false

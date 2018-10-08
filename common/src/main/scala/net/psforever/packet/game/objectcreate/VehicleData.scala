@@ -165,7 +165,7 @@ object VehicleData extends Marshallable[VehicleData] {
     */
   def PlayerData(basic_appearance : (Int)=>CharacterAppearanceData, character_data : (Boolean,Boolean)=>CharacterData, inventory : InventoryData, drawn_slot : DrawnSlot.Type, accumulative : Long) : Player_Data = {
     val appearance = basic_appearance(CumulativeSeatedPlayerNamePadding(accumulative))
-    Player_Data(None, appearance, character_data(appearance.backpack, true), Some(inventory), drawn_slot)(false)
+    Player_Data(None, appearance, character_data(appearance.b.backpack, true), Some(inventory), drawn_slot)(false)
   }
   /**
     * Constructor for `PlayerData` that ignores the coordinate information and the inventory
@@ -181,7 +181,7 @@ object VehicleData extends Marshallable[VehicleData] {
     */
   def PlayerData(basic_appearance : (Int)=>CharacterAppearanceData, character_data : (Boolean,Boolean)=>CharacterData, drawn_slot : DrawnSlot.Type, accumulative : Long) : Player_Data = {
     val appearance = basic_appearance(CumulativeSeatedPlayerNamePadding(accumulative))
-    Player_Data.apply(None, appearance, character_data(appearance.backpack, true), None, drawn_slot)(false)
+    Player_Data.apply(None, appearance, character_data(appearance.b.backpack, true), None, drawn_slot)(false)
   }
 
   private val driveState8u = PacketHelpers.createEnumerationCodec(DriveState, uint8L)

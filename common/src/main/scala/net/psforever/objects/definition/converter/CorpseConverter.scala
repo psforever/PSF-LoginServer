@@ -58,7 +58,7 @@ class CorpseConverter extends AvatarConverter {
       GrenadeState.None,
       is_cloaking = false,
       charging_pose = false,
-      on_zipline = false,
+      on_zipline = None,
       RibbonBars()
     )
   }

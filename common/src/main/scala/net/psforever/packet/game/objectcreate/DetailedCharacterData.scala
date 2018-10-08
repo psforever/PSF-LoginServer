@@ -21,9 +21,19 @@ import scala.annotation.tailrec
 final case class ImplantEntry(implant : ImplantType.Value,
                               activation : Option[Int]) extends StreamBitSize {
   override def bitsize : Long = {
-    val activationSize = if(activation.isDefined) { 12L } else { 5L }
-    5L + activationSize
+    val activationSize = if(activation.isDefined) { 8L } else { 1L }
+    9L + activationSize
   }
+}
+
+final case class DCDExtra1(unk1 : String,
+                           unk2 : Int) extends StreamBitSize {
+  override def bitsize : Long = 16L + StreamBitSize.stringBitSize(unk1)
+}
+
+final case class DCDExtra2(unk1 : Int,
+                           unk2 : Int) extends StreamBitSize {
+  override def bitsize : Long = 13L
 }
 
 /**
@@ -32,7 +42,7 @@ final case class ImplantEntry(implant : ImplantType.Value,
   * This densely-packed information outlines most of the specifics required to depict a character as an avatar.
   * It goes into depth about information related to the given character in-game career that is not revealed to other players.
   * To be specific, it passes more thorough data about the character that the client can display to the owner of the client.
-  * For example, health is a full number, rather than a percentage.
+  * For example, health is a full number, rather than a percentage, as is the case with `CharacterData`.
   * Just as prominent is the list of first time events and the list of completed tutorials.
   * Additionally, a full inventory, as opposed to the initial five weapon slots.
   * @param bep the avatar's battle experience points, which determines his Battle Rank
@@ -70,7 +80,10 @@ final case class DetailedCharacterData(bep : Long,
                                        staminaMax : Int,
                                        stamina : Int,
                                        certs : List[CertificationType.Value],
+                                       unk1 : Option[Long],
                                        implants : List[ImplantEntry],
+                                       unk2 : List[DCDExtra1],
+                                       unk3 : List[DCDExtra1],
                                        firstTimeEvents : List[String],
                                        tutorials : List[String],
                                        cosmetics : Option[Cosmetics])
@@ -78,52 +91,89 @@ final case class DetailedCharacterData(bep : Long,
 
   override def bitsize : Long = {
     //factor guard bool values into the base size, not corresponding optional fields, unless contained or enumerated
-    val certSize = (certs.length + 1) * 8 //cert list
-    var implantSize : Long = 0L //implant list
+    //cert list
+    val certSize = (certs.length + 1) * 8
+    //unk1
+    val unk1Size = if(unk1.isDefined) { 32L } else { 0L }
+    //implant list
+    var implantSize : Long = 0L
     for(entry <- implants) {
       implantSize += entry.bitsize
     }
     val implantPadding = DetailedCharacterData.implantFieldPadding(implants, pad_length)
-    val fteLen = firstTimeEvents.size //fte list
+    //fte list
+    val fteLen = firstTimeEvents.size
     var eventListSize : Long = 32L + DetailedCharacterData.ftePadding(fteLen, implantPadding)
     for(str <- firstTimeEvents) {
       eventListSize += StreamBitSize.stringBitSize(str)
     }
-    val tutLen = tutorials.size //tutorial list
+    //unk2, unk3, TODO padding
+    val unk2Len = unk2.size
+    val unk3Len = unk3.size
+    val unkAllLen = unk2Len + unk3Len
+    val unk2_3ListSize : Long = 16L + (if(unk2Len > 0) {
+      unkAllLen * unk2.head.bitsize
+    }
+    else if(unk3Len > 0) {
+      unkAllLen * unk3.head.bitsize
+    }
+    else {
+      0
+    })
+    //tutorial list
+    val tutLen = tutorials.size
     var tutorialListSize : Long = 32L + DetailedCharacterData.tutPadding(fteLen, tutLen, implantPadding)
     for(str <- tutorials) {
       tutorialListSize += StreamBitSize.stringBitSize(str)
     }
-    val br24 = DetailedCharacterData.isBR24(bep) //character is at least BR24
-    val extraBitSize : Long = if(br24) { 33L } else { 46L }
+    //character is at least BR24
+    val br24 = DetailedCharacterData.isBR24(bep)
+    val extraBitSize : Long = if(br24) { 0L } else { 13L }
+    //TODO DCDExtra2
+    //TODO last List of String values, and padding
     val cosmeticsSize : Long = if(br24) { cosmetics.get.bitsize } else { 0L }
-    598L + certSize + implantSize + eventListSize + extraBitSize + cosmeticsSize + tutorialListSize
+    615L + certSize + unk1Size + implantSize + eventListSize + unk2_3ListSize + tutorialListSize + extraBitSize + cosmeticsSize
   }
 }
 
 object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
+  def apply(bep : Long,
+            cep : Long,
+            healthMax : Int,
+            health : Int,
+            armor : Int,
+            staminaMax : Int,
+            stamina : Int,
+            certs : List[CertificationType.Value],
+            implants : List[ImplantEntry],
+            firstTimeEvents : List[String],
+            tutorials : List[String],
+            cosmetics : Option[Cosmetics]) : Option[Int]=>DetailedCharacterData = {
+    DetailedCharacterData(bep, cep, healthMax, health, armor, staminaMax, stamina, certs, None, implants, Nil, Nil, firstTimeEvents, tutorials, cosmetics)
+  }
+
   /**
     * `Codec` for entries in the `List` of implants.
     */
   private val implant_entry_codec : Codec[ImplantEntry] = (
-    ("implant" | ImplantType.codec) ::
+    ("implant" | uint8L) ::
       (bool >>:~ { guard =>
-        newcodecs.binary_choice(guard, uintL(5), uintL(12)).hlist
+        newcodecs.binary_choice(guard, uint(1), uint8L).hlist
       })
   ).xmap[ImplantEntry] (
     {
       case implant :: true :: _ :: HNil =>
-        ImplantEntry(implant, None)
+          ImplantEntry(ImplantType(implant), None) //TODO catch potential NoSuchElementException?
 
       case implant :: false :: extra :: HNil =>
-        ImplantEntry(implant, Some(extra))
+        ImplantEntry(ImplantType(implant), Some(extra)) //TODO catch potential NoSuchElementException?
     },
     {
       case ImplantEntry(implant, None) =>
-        implant :: true :: 0 :: HNil
+        implant.id :: true :: 0 :: HNil
 
       case ImplantEntry(implant, Some(extra)) =>
-        implant :: false :: extra :: HNil
+        implant.id :: false :: extra :: HNil
     }
   )
 
@@ -147,6 +197,64 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
       0
     }
   }
+
+  private def dcd_list_codec(pad : Int) : Codec[List[DCDExtra1]] = (
+    uint8 >>:~ { size =>
+      conditional(size > 0, dcd_extra1_codec(pad)) ::
+        PacketHelpers.listOfNSized(size - 1, dcd_extra1_codec(0))
+    }
+    ).xmap[List[DCDExtra1]] (
+    {
+      case _ :: Some(first) :: Nil :: HNil =>
+        List(first)
+      case _ :: Some(first) :: rest :: HNil =>
+        first +: rest
+      case _ :: None :: _ :: HNil =>
+        List()
+    },
+    {
+      case List() =>
+        0 :: None :: Nil :: HNil
+      case contents =>
+        contents.length :: contents.headOption :: contents.tail :: HNil
+    }
+  )
+
+  private def dcd_extra1_codec(pad : Int) : Codec[DCDExtra1] = (
+    ("unk1" | PacketHelpers.encodedStringAligned(pad)) ::
+      ("unk2" | uint16L)
+    ).xmap[DCDExtra1] (
+    {
+      case unk1 :: unk2 :: HNil =>
+        DCDExtra1(unk1, unk2)
+    },
+    {
+      case DCDExtra1(unk1, unk2) =>
+        unk1.slice(0, 80) :: unk2 :: HNil //max 80 characters
+    }
+  )
+
+  private def eventsListCodec(padFunc : (Long)=>Int) : Codec[List[String]] = (
+    uint32L >>:~ { size =>
+      conditional(size > 0, PacketHelpers.encodedStringAligned(padFunc(size))) ::
+        PacketHelpers.listOfNSized(size - 1, PacketHelpers.encodedString)
+    }
+    ).xmap[List[String]] (
+    {
+      case _ :: Some(first) :: Nil :: HNil =>
+        List(first)
+      case _ :: Some(first) :: rest :: HNil =>
+        first +: rest
+      case _ :: None :: _ :: HNil =>
+        List()
+    },
+    {
+      case List() =>
+        0 :: None :: Nil :: HNil
+      case contents =>
+        contents.length :: contents.headOption :: contents.tail :: HNil
+    }
+  )
 
   /**
     * The padding value of the first entry in either of two byte-aligned `List` structures.
@@ -185,12 +293,22 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
   }
 
   /**
+    * A variant of `ftePadding` where the length of the list has been uncurried.
+    * @see `ftePadding(Int)(Long)`
+    */
+  private def ftePadding(len : Long, implantPadding : Int) : Int = {
+    //TODO the proper padding length should reflect all variability in the stream prior to this point
+    ftePadding(implantPadding)(len)
+  }
+
+  /**
     * Get the padding of the first entry in the first time events list.
+    * @see `ftePadding(Long, Int)`
     * @param len the length of the first time events list
     * @param implantPadding the padding that resulted from implant entries
     * @return the pad length in bits `0 <= n < 8`
     */
-  private def ftePadding(len : Long, implantPadding : Int) : Int = {
+  private def ftePadding(implantPadding : Int)(len : Long) : Int = {
     //TODO the proper padding length should reflect all variability in the stream prior to this point
     if(len > 0) {
       implantPadding
@@ -206,12 +324,13 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
     * The tutorials list follows the first time event list and also contains byte-aligned strings.
     * If the both lists are populated or empty at the same time, the first entry will not need padding.
     * If the first time events list is unpopulated, but this list is populated, the first entry will need padding bits.
+    * @see `tutPadding(Long, Long, Int)`
     * @param len the length of the first time events list
-    * @param len2 the length of the tutorial list
     * @param implantPadding the padding that resulted from implant entries
+    * @param len2 the length of the tutorial list, curried
     * @return the pad length in bits `n < 8`
     */
-  private def tutPadding(len : Long, len2 : Long, implantPadding : Int) : Int = {
+  private def tutPadding(len : Long, implantPadding : Int)(len2 : Long) : Int = {
     if(len > 0) {
       0 //automatic alignment from previous List
     }
@@ -223,7 +342,18 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
     }
   }
 
+  /**
+    * A variant of `tutPadding` where the length of the second list has been uncurried.
+    * @see `tutPadding(Long, Int)(Long)`
+    */
+  private def tutPadding(len : Long, len2 : Long, implantPadding : Int) : Int = tutPadding(len, implantPadding)(len2)
+
   def isBR24(bep : Long) : Boolean = bep > 2286230
+
+  private val dcd_extra2_codec : Codec[DCDExtra2] = (
+    uint(5) ::
+      uint8L
+  ).as[DCDExtra2]
 
   def codec(pad_length : Option[Int]) : Codec[DetailedCharacterData] = (
     ("bep" | uint32L) >>:~ { bep =>
@@ -233,42 +363,46 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
         uint32L ::
         ("healthMax" | uint16L) ::
         ("health" | uint16L) ::
-        ignore(1) ::
+        bool ::
         ("armor" | uint16L) ::
-        uint32 :: //TODO switch endianness
+        uint32 :: //endianness is important here
         ("staminaMax" | uint16L) ::
         ("stamina" | uint16L) ::
-        ignore(147) ::
+        uint16L ::
+        uint(3) ::
+        uint32L ::
+        PacketHelpers.listOfNSized(6, uint16L) ::
         ("certs" | listOfN(uint8L, CertificationType.codec)) ::
-        optional(bool, uint32L) :: //ask about sample CCRIDER
-        ignore(4) ::
+        optional(bool, "unk1" | uint32L) :: //ask about sample CCRIDER
         (("implants" | PacketHelpers.listOfNSized(numberOfImplantSlots(bep), implant_entry_codec)) >>:~ { implants =>
-          ignore(12) ::
-            (("firstTimeEvent_length" | uint32L) >>:~ { len =>
-              conditional(len > 0, "firstTimeEvent_firstEntry" | PacketHelpers.encodedStringAligned(ftePadding(len, implantFieldPadding(implants, pad_length)))) ::
-                ("firstTimeEvent_list" | PacketHelpers.listOfNSized(len - 1, PacketHelpers.encodedString)) ::
-                (("tutorial_length" | uint32L) >>:~ { len2 =>
-                  conditional(len2 > 0, "tutorial_firstEntry" | PacketHelpers.encodedStringAligned(tutPadding(len, len2, implantFieldPadding(implants, pad_length)))) ::
-                    ("tutorial_list" | PacketHelpers.listOfNSized(len2 - 1, PacketHelpers.encodedString)) ::
-                    ignore(160) ::
-                    (bool >>:~ { br24 => //BR24+
-                      newcodecs.binary_choice(br24, ignore(33), ignore(46)) ::
-                        conditional(br24, Cosmetics.codec)
-                    })
-                })
+          ("unk2" | dcd_list_codec(0)) :: //TODO pad value
+            ("unk3" | dcd_list_codec(0)) :: //TODO pad value
+            (("firstTimeEvents" | eventsListCodec(ftePadding(implantFieldPadding(implants, pad_length)))) >>:~ { fte =>
+              ("tutorials" | eventsListCodec(tutPadding(fte.length, implantFieldPadding(implants, pad_length)))) >>:~ { _ =>
+                uint32L ::
+                  uint32L ::
+                  uint32L ::
+                  uint32L ::
+                  uint32L ::
+                  (bool >>:~ { br24 => //BR24+
+                    conditional(!br24, dcd_extra2_codec) ::
+                      listOfN(uint16L, uint32L) ::
+                      listOfN(uint16L, PacketHelpers.encodedString) :: //TODO pad value
+                      bool ::
+                      conditional(br24, Cosmetics.codec)
+                  })
+                }
             })
         })
     }
     ).exmap[DetailedCharacterData] (
     {
-      case bep :: cep :: 0 :: 0 :: 0 :: hpmax :: hp :: _ :: armor :: 32831L :: stamax :: stam :: _ :: certs :: _ :: _  :: implants :: _ :: _ :: fte0 :: fte1 :: _ :: tut0 :: tut1 :: _ :: _ :: _ :: cosmetics :: HNil =>
-        //prepend the displaced first elements to their lists
-        val fteList : List[String] = if(fte0.isDefined) { fte0.get +: fte1 } else { fte1 }
-        val tutList : List[String] = if(tut0.isDefined) { tut0.get +: tut1 } else { tut1 }
-        Attempt.successful(new DetailedCharacterData(bep, cep, hpmax, hp, armor, stamax, stam, certs, implants, fteList, tutList, cosmetics)(pad_length))
+      case o @ (bep :: cep :: 0 :: 0 :: 0 :: hpmax :: hp :: _ :: armor :: 32831L :: stamax :: stam :: 0 :: _ :: _ :: _ :: certs :: unk1 :: implants :: unk2 :: unk3 :: fteList :: tutList :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: cosmetics :: HNil) =>
+        println(o)
+        Attempt.successful(DetailedCharacterData(bep, cep, hpmax, hp, armor, stamax, stam, certs, unk1, implants, unk2, unk3, fteList, tutList, cosmetics)(pad_length))
     },
     {
-      case DetailedCharacterData(bep, cep, hpmax, hp, armor, stamax, stam, certs, implants, fteList, tutList, cos) =>
+      case DetailedCharacterData(bep, cep, hpmax, hp, armor, stamax, stam, certs, unk1, implants, unk2, unk3, fteList, tutList, cos) =>
         val implantCapacity : Int = numberOfImplantSlots(bep)
         val implantList = if(implants.length > implantCapacity) {
           implants.slice(0, implantCapacity)
@@ -276,20 +410,15 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
         else {
           recursiveEnsureImplantSlots(implantCapacity, implants)
         }
-        //shift the first elements off their lists
-        val (firstEvent, fteListCopy) = fteList match {
-          case (f : String) +: Nil => (Some(f), Nil)
-          case ((f : String) +: (rest : List[String])) => (Some(f), rest)
-          case Nil => (None, Nil)
-        }
-        val (firstTutorial, tutListCopy) = tutList match {
-          case (f : String) +: Nil => (Some(f), Nil)
-          case ((f : String) +: (rest : List[String])) => (Some(f), rest)
-          case Nil => (None, Nil)
-        }
         val br24 : Boolean = isBR24(bep)
+        val dcdExtra2Field : Option[DCDExtra2] = if(!br24) {
+          Some(DCDExtra2(0, 0))
+        }
+        else {
+          None
+        }
         val cosmetics : Option[Cosmetics] = if(br24) { cos } else { None }
-        Attempt.successful(bep :: cep :: 0L :: 0L :: 0L :: hpmax :: hp :: () :: armor :: 32831L :: stamax :: stam :: () :: certs :: None :: () :: implantList :: () :: fteList.size.toLong :: firstEvent :: fteListCopy :: tutList.size.toLong :: firstTutorial :: tutListCopy :: () :: br24 :: () :: cosmetics :: HNil)
+        Attempt.successful(bep :: cep :: 0L :: 0L :: 0L :: hpmax :: hp :: false :: armor :: 32831L :: stamax :: stam :: 0 :: 0 :: 0L :: List(0, 0, 0, 0, 0, 0) :: certs :: unk1 :: implantList :: unk2 :: unk3 :: fteList :: tutList :: 0L :: 0L :: 0L :: 0L :: 0L :: br24 :: dcdExtra2Field :: Nil :: Nil :: false :: cosmetics :: HNil)
     }
   )
 
