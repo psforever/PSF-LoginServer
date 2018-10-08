@@ -15,27 +15,28 @@ object TriggeredSound extends Enumeration {
   type Type = Value
 
   val
-  SpawnInTube,
-  HackTerminal,
-  HackVehicle,
-  HackDoor,
-  Unknown4,
-  LockedOut,
-  Unknown6,
-  Unknown7,
-  Unknown8,
-  Unknown9,
-  Unknown10,
-  Unknown11,
-  Unknown12,
-  Unknown13,
-  Unknown14,
-  Unknown15,
-  Unknown16,
-  Unknown17,
-  Unknown18,
-  Unknown19,
-  Unknown20 = Value
+  SpawnInTube, // 3dsounds - respawn_use
+  HackTerminal, // 3dsounds - equipment_rek_successful
+  HackVehicle, // 3dsounds - equipment_jack_successful
+  HackDoor, // 3dsounds - facility_door_hacked
+  TREKSuccessful, // patch5 - t_Rek_Successful (Note this file has the wrong bitrate set in the wav headers. It should be 44100 not 22050. Audio will sound HORRIBLE if you try to play it without fixing the headers)
+  LockedOut, // 3dsounds - facility_door_locked_feedback
+  EMPPhase, // patch1 - emp_phase
+  LLUMaterialize, // patch1 - LLU_Materialize
+  LLUDeconstruct, // patch1 - LLU_Deconstruct
+  LLUInstall, // patch1 - LLU_Install
+  LLUPickup, // patch1 - LLU_Pickup2
+  LLUDrop, // patch1 - LLU_Drop
+  ModuleStabilized, // patch2 - module_stabilized2
+  ModulePickup, // patch2 - module_pickup
+  ModuleDrop, // patch2 - module_drop
+  ModuleAlarmBeep, // patch2 - module_alarm_beep
+  ModuleExpiration, // patch2 - module_Expiration
+  StasisDissipate, // patch2 - statsis_dissipate
+  StasisPickup, // patch2 - stasis_pickup
+  StasisEquip, // patch2 - stasis_equip
+  ModuleFFIntercept // patch2 - module_ff_intercept
+  = Value
 
   implicit val codec = PacketHelpers.createEnumerationCodec(this, uintL(5))
 }
