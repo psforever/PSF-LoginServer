@@ -288,7 +288,7 @@ object CharacterAppearanceData extends Marshallable[CharacterAppearanceData] {
         ("unk1" | bool) :: //serves a different internal purpose depending on the state of alt_model
           (conditional(false, "unk2" | extra_codec) >>:~ { extra => //TODO not sure what causes this branch
             ("jammered" | bool) ::
-              optional(bool, "unk3" | uint16L) :: //TODO factor 16u into bitsize
+              optional(bool, "unk3" | uint16L) ::
               ("unk4" | uint16L) ::
               ("name" | PacketHelpers.encodedWideStringAligned(namePadding(name_padding, extra))) ::
               ("exosuit" | ExoSuitType.codec) ::
@@ -363,22 +363,12 @@ object CharacterAppearanceData extends Marshallable[CharacterAppearanceData] {
     },
     {
       case CharacterAppearanceB(u0, outfit, logo, u1, bpack, u2, u3, u4, facingPitch, facingYawUpper, lfs, gstate, cloaking, u5, u6, charging, u7, zipline) =>
-        val u0Long = if(u0 == 0) {
-          if(outfit.length == 0) {
-            u0
-          }
-          else {
-            outfit.length.toLong
-          }
+        val u0Long = if(u0 == 0 && outfit.nonEmpty) {
+          outfit.length.toLong
         }
         else {
-          if(outfit.length == 0) {
-            0L
-          }
-          else {
-            u0
-          }
-        } //TODO this is a kludge; unk0 must be non-zero if outfit_name is defined, and zero if empty
+          u0
+        } //TODO this is a kludge; unk0 must be (some) non-zero if outfit_name is defined
         val (bpackOpt, zipOpt) = if(alt_model) {
           val bpackOpt = if(bpack) { Some(true) } else { None }
           (bpackOpt, zipline)
