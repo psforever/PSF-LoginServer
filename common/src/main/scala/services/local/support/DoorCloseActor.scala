@@ -43,7 +43,10 @@ class DoorCloseActor() extends Actor {
             true
         }
       })
-      openDoors = (doorsLeftOpen1 ++ doorsLeftOpen2).sortBy(_.time)
+      openDoors = (
+        doorsLeftOpen1 ++
+          doorsLeftOpen2.map(entry => DoorCloseActor.DoorEntry(entry.door, entry.zone, now))
+        ).sortBy(_.time)
       doorsToClose2.foreach(entry => {
         entry.door.Open = None //permissible break from synchronization
         context.parent ! DoorCloseActor.CloseTheDoor(entry.door.GUID, entry.zone.Id) //call up to the main event system
