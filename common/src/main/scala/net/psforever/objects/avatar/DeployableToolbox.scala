@@ -29,12 +29,13 @@ class DeployableToolbox {
     * keys: categories, values: quantity storage object
     */
   private val categoryCounts = DeployableCategory.values.toSeq.map(value => { value -> new DeployableToolbox.Bin }).toMap
-  //)
+  categoryCounts(DeployableCategory.Telepads).Max = 1024
   /**
     * a map of bins for keeping track of the quantities of individual deployables
     * keys: deployable types, values: quantity storage object
     */
   private val deployableCounts = DeployedItem.values.toSeq.map(value => { value -> new DeployableToolbox.Bin }).toMap
+  deployableCounts(DeployedItem.router_telepad_deployable).Max = 1024
   /**
     * a map of tracked/owned individual deployables
     * keys: categories, values: deployable objects
@@ -523,8 +524,8 @@ object DeployableToolbox {
       }
     }
     if(certifications.contains(CertificationType.GroundSupport)) {
-      counts(DeployedItem.router_telepad_deployable).Max = 1
-      categories(DeployableCategory.Telepads).Max = 1
+      counts(DeployedItem.router_telepad_deployable).Max = 1024
+      categories(DeployableCategory.Telepads).Max = 1024
     }
   }
 
@@ -589,9 +590,9 @@ object DeployableToolbox {
             AddToDeployableQuantities(counts, categories, FortificationEngineering, certificationSet ++ Set(FortificationEngineering))
           }
 
-        case GroundSupport =>
-          counts(DeployedItem.router_telepad_deployable).Max = 1024
-          categories(DeployableCategory.Telepads).Max = 1024
+//        case GroundSupport =>
+//          counts(DeployedItem.router_telepad_deployable).Max = 1024
+//          categories(DeployableCategory.Telepads).Max = 1024
 
         case _ => ;
       }
@@ -657,9 +658,9 @@ object DeployableToolbox {
             RemoveFromDeployablesQuantities(counts, categories, FortificationEngineering, certificationSet)
           }
 
-        case GroundSupport =>
-          counts(DeployedItem.router_telepad_deployable).Max = 0
-          categories(DeployableCategory.Telepads).Max = 0
+//        case GroundSupport =>
+//          counts(DeployedItem.router_telepad_deployable).Max = 0
+//          categories(DeployableCategory.Telepads).Max = 0
 
         case _ => ;
       }

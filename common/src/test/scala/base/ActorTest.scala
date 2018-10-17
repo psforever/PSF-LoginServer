@@ -1,7 +1,7 @@
+// Copyright (c) 2017 PSForever
 package base
 
-// Copyright (c) 2017 PSForever
-import akka.actor.ActorSystem
+import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import akka.testkit.{ImplicitSender, TestKit}
 import com.typesafe.config.ConfigFactory
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
@@ -47,5 +47,29 @@ object ActorTest {
       msgs.toList
     }
     out
+  }
+
+  /**
+    * A middleman Actor that accepts a `Props` object to instantiate and accepts messages back from it.
+    * The purpose is to bypass a message receive issue with the `ActorTest` / `TestKit` class
+    * that does not properly queue messages dispatched to it
+    * when messages may be sent to it via a `context.parent` call.
+    * Please do not wrap and parameterize Props objects like this during normal Ops.
+    * @param actorProps the uninitialized `Actor` that uses `context.parent` to direct communication
+    * @param sendTo where to send mesages that have originated from an `actorProps` object;
+    *               typically should point back to the test environment constructed by `TestKit`
+    */
+  class SupportActorInterface(actorProps : Props, sendTo : ActorRef) extends Actor {
+    val test = context.actorOf(actorProps, "support-actor")
+
+    def receive : Receive = {
+      case msg =>
+        (if(sender == test) {
+          sendTo
+        }
+        else {
+          test
+        }) ! msg
+    }
   }
 }

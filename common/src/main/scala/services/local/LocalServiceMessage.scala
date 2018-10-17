@@ -5,4 +5,6 @@ final case class LocalServiceMessage(forChannel : String, actionMessage : LocalA
 
 object LocalServiceMessage {
   final case class Deployables(msg : Any)
+
+  final case class Telepads(msg : Any)
 }

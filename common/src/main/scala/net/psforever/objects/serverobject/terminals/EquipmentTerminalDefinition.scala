@@ -212,6 +212,10 @@ object EquipmentTerminalDefinition {
     "command_detonater" -> MakeSimpleItem(command_detonater),
     "flail_targeting_laser" -> MakeSimpleItem(flail_targeting_laser)
   )
+  /**
+    * A single-element `Map` of the one piece of `Equipment` specific to the Router.
+    */
+  val routerTerminal : Map[String, () => Equipment] = Map("router_telepad" -> MakeTelepad(router_telepad))
 
   /**
     * Create a new `Tool` from provided `EquipmentDefinition` objects.
@@ -333,6 +337,13 @@ object EquipmentTerminalDefinition {
     * @see `GlobalDefinitions`
     */
   private def MakeConstructionItem(cdef : ConstructionItemDefinition)() : ConstructionItem = ConstructionItem(cdef)
+
+  /**
+    * na
+    * @param cdef na
+    * @return na
+    */
+  private def MakeTelepad(cdef : ConstructionItemDefinition)() : Telepad = Telepad(cdef)
 
   /**
     * Accept a simplified blueprint for some piece of `Equipment` and create an actual piece of `Equipment` based on it.

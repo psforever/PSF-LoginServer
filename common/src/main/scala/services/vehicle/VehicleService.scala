@@ -105,10 +105,10 @@ class VehicleService extends Actor {
           VehicleEvents.publish(
             VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.StowEquipment(vehicle_guid, slot, definition.ObjectId, item.GUID, definition.Packet.DetailedConstructorData(item).get))
           )
-        case VehicleAction.UnloadVehicle(player_guid, continent, vehicle) =>
+        case VehicleAction.UnloadVehicle(player_guid, continent, vehicle, vehicle_guid) =>
           vehicleDecon ! RemoverActor.ClearSpecific(List(vehicle), continent) //precaution
           VehicleEvents.publish(
-            VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.UnloadVehicle(vehicle.GUID))
+            VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.UnloadVehicle(vehicle, vehicle_guid))
           )
         case VehicleAction.UnstowEquipment(player_guid, item_guid) =>
           VehicleEvents.publish(

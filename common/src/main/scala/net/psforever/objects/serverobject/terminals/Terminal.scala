@@ -40,13 +40,13 @@ class Terminal(tdef : TerminalDefinition) extends Amenity with Hackable {
     if(Faction == player.Faction || HackedBy.isDefined) {
       msg.transaction_type match {
         case TransactionType.Buy | TransactionType.Learn =>
-          tdef.Buy(player, msg)
+          Buy(player, msg)
 
         case TransactionType.Sell =>
-          tdef.Sell(player, msg)
+          Sell(player, msg)
 
         case TransactionType.Loadout =>
-          tdef.Loadout(player, msg)
+          Loadout(player, msg)
 
         case _ =>
           Terminal.NoDeal()
@@ -55,6 +55,18 @@ class Terminal(tdef : TerminalDefinition) extends Amenity with Hackable {
     else {
       Terminal.NoDeal()
     }
+  }
+
+  def Buy(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
+    tdef.Buy(player, msg)
+  }
+
+  def Sell(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
+    tdef.Sell(player, msg)
+  }
+
+  def Loadout(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
+    tdef.Loadout(player, msg)
   }
 
   def Definition : TerminalDefinition = tdef

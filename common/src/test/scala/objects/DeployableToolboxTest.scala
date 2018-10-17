@@ -20,10 +20,12 @@ class DeployableToolboxTest extends Specification {
       obj.Initialize(Set())
       val list = obj.UpdateUI()
       list.size mustEqual DeployedItem.values.size - 3 //extra field turrets
-      list.foreach({case(_,curr,_,max) =>
+      val (routers, allOthers) = list.partition({ case((_,_,_,max)) => max == 1024 })
+      allOthers.foreach({case(_,curr,_,max) =>
         curr mustEqual 0
         max mustEqual 0
       })
+      routers.length mustEqual 1
       ok
     }
 
@@ -44,7 +46,7 @@ class DeployableToolboxTest extends Specification {
       obj.CountDeployable(DeployedItem.portable_manned_turret_tr)._2 mustEqual 0
       obj.CountDeployable(DeployedItem.portable_manned_turret_vs)._2 mustEqual 0
       obj.CountDeployable(DeployedItem.deployable_shield_generator)._2 mustEqual 0
-      obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 0
+      obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 1024
     }
 
     "initialization (AssaultEngineering)" in {
@@ -64,7 +66,7 @@ class DeployableToolboxTest extends Specification {
       obj.CountDeployable(DeployedItem.portable_manned_turret_tr)._2 mustEqual 1
       obj.CountDeployable(DeployedItem.portable_manned_turret_vs)._2 mustEqual 1
       obj.CountDeployable(DeployedItem.deployable_shield_generator)._2 mustEqual 1
-      obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 0
+      obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 1024
     }
 
     "initialization (FortificationEngineering)" in {
@@ -84,7 +86,7 @@ class DeployableToolboxTest extends Specification {
       obj.CountDeployable(DeployedItem.portable_manned_turret_tr)._2 mustEqual 0
       obj.CountDeployable(DeployedItem.portable_manned_turret_vs)._2 mustEqual 0
       obj.CountDeployable(DeployedItem.deployable_shield_generator)._2 mustEqual 0
-      obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 0
+      obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 1024
     }
 
     "initialization (AdvancedEngineering)" in {
@@ -104,7 +106,7 @@ class DeployableToolboxTest extends Specification {
       obj.CountDeployable(DeployedItem.portable_manned_turret_tr)._2 mustEqual 1
       obj.CountDeployable(DeployedItem.portable_manned_turret_vs)._2 mustEqual 1
       obj.CountDeployable(DeployedItem.deployable_shield_generator)._2 mustEqual 1
-      obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 0
+      obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 1024
     }
 
     "initialization (AdvancedHacking)" in {
@@ -124,7 +126,7 @@ class DeployableToolboxTest extends Specification {
       obj.CountDeployable(DeployedItem.portable_manned_turret_tr)._2 mustEqual 0
       obj.CountDeployable(DeployedItem.portable_manned_turret_vs)._2 mustEqual 0
       obj.CountDeployable(DeployedItem.deployable_shield_generator)._2 mustEqual 0
-      obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 0
+      obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 1024
     }
 
     "initialization (without CombatEngineering)" in {
@@ -144,7 +146,7 @@ class DeployableToolboxTest extends Specification {
       obj.CountDeployable(DeployedItem.portable_manned_turret_tr)._2 mustEqual 0
       obj.CountDeployable(DeployedItem.portable_manned_turret_vs)._2 mustEqual 0
       obj.CountDeployable(DeployedItem.deployable_shield_generator)._2 mustEqual 0
-      obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 0
+      obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 1024
     }
 
     "initialization (GroundSupport)" in {
@@ -164,6 +166,7 @@ class DeployableToolboxTest extends Specification {
       obj.CountDeployable(DeployedItem.portable_manned_turret_tr)._2 mustEqual 0
       obj.CountDeployable(DeployedItem.portable_manned_turret_vs)._2 mustEqual 0
       obj.CountDeployable(DeployedItem.deployable_shield_generator)._2 mustEqual 0
+      obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 1024
     }
 
     "can not initialize twice" in {
@@ -183,7 +186,7 @@ class DeployableToolboxTest extends Specification {
       obj.CountDeployable(DeployedItem.portable_manned_turret_tr)._2 mustEqual 0
       obj.CountDeployable(DeployedItem.portable_manned_turret_vs)._2 mustEqual 0
       obj.CountDeployable(DeployedItem.deployable_shield_generator)._2 mustEqual 0
-      obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 0
+      obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 1024
 
       obj.Initialize(Set(AdvancedEngineering)) mustEqual false
       obj.CountDeployable(DeployedItem.boomer)._2 mustEqual 0
@@ -200,7 +203,7 @@ class DeployableToolboxTest extends Specification {
       obj.CountDeployable(DeployedItem.portable_manned_turret_tr)._2 mustEqual 0
       obj.CountDeployable(DeployedItem.portable_manned_turret_vs)._2 mustEqual 0
       obj.CountDeployable(DeployedItem.deployable_shield_generator)._2 mustEqual 0
-      obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 0
+      obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 1024
     }
 
     "uninitialized fields can not accept deployables" in {
@@ -240,7 +243,7 @@ class DeployableToolboxTest extends Specification {
       obj.CountDeployable(DeployedItem.portable_manned_turret_tr)._2 mustEqual 0
       obj.CountDeployable(DeployedItem.portable_manned_turret_vs)._2 mustEqual 0
       obj.CountDeployable(DeployedItem.deployable_shield_generator)._2 mustEqual 0
-      obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 0
+      obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 1024
 
       obj.AddToDeployableQuantities(
         CombatEngineering,
@@ -260,7 +263,7 @@ class DeployableToolboxTest extends Specification {
       obj.CountDeployable(DeployedItem.portable_manned_turret_tr)._2 mustEqual 0
       obj.CountDeployable(DeployedItem.portable_manned_turret_vs)._2 mustEqual 0
       obj.CountDeployable(DeployedItem.deployable_shield_generator)._2 mustEqual 0
-      obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 0
+      obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 1024
 
       obj.AddToDeployableQuantities(
         FortificationEngineering,
@@ -280,7 +283,7 @@ class DeployableToolboxTest extends Specification {
       obj.CountDeployable(DeployedItem.portable_manned_turret_tr)._2 mustEqual 0
       obj.CountDeployable(DeployedItem.portable_manned_turret_vs)._2 mustEqual 0
       obj.CountDeployable(DeployedItem.deployable_shield_generator)._2 mustEqual 0
-      obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 0
+      obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 1024
 
       obj.AddToDeployableQuantities(
         AssaultEngineering,
@@ -300,7 +303,7 @@ class DeployableToolboxTest extends Specification {
       obj.CountDeployable(DeployedItem.portable_manned_turret_tr)._2 mustEqual 1
       obj.CountDeployable(DeployedItem.portable_manned_turret_vs)._2 mustEqual 1
       obj.CountDeployable(DeployedItem.deployable_shield_generator)._2 mustEqual 1
-      obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 0
+      obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 1024
 
       obj.AddToDeployableQuantities(
         AssaultEngineering,
@@ -320,7 +323,7 @@ class DeployableToolboxTest extends Specification {
       obj.CountDeployable(DeployedItem.portable_manned_turret_tr)._2 mustEqual 1
       obj.CountDeployable(DeployedItem.portable_manned_turret_vs)._2 mustEqual 1
       obj.CountDeployable(DeployedItem.deployable_shield_generator)._2 mustEqual 1
-      obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 0
+      obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 1024
 
       obj.AddToDeployableQuantities(
         AdvancedHacking,
@@ -340,7 +343,7 @@ class DeployableToolboxTest extends Specification {
       obj.CountDeployable(DeployedItem.portable_manned_turret_tr)._2 mustEqual 1
       obj.CountDeployable(DeployedItem.portable_manned_turret_vs)._2 mustEqual 1
       obj.CountDeployable(DeployedItem.deployable_shield_generator)._2 mustEqual 1
-      obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 0
+      obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 1024
     }
 
     "change accessible fields by adding by certification type (GroundSupport)" in {
@@ -360,7 +363,7 @@ class DeployableToolboxTest extends Specification {
       obj.CountDeployable(DeployedItem.portable_manned_turret_tr)._2 mustEqual 0
       obj.CountDeployable(DeployedItem.portable_manned_turret_vs)._2 mustEqual 0
       obj.CountDeployable(DeployedItem.deployable_shield_generator)._2 mustEqual 0
-      obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 0
+      obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 1024
 
       obj.AddToDeployableQuantities(
         GroundSupport,
@@ -400,7 +403,7 @@ class DeployableToolboxTest extends Specification {
       obj.CountDeployable(DeployedItem.portable_manned_turret_tr)._2 mustEqual 0
       obj.CountDeployable(DeployedItem.portable_manned_turret_vs)._2 mustEqual 0
       obj.CountDeployable(DeployedItem.deployable_shield_generator)._2 mustEqual 0
-      obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 0
+      obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 1024
 
       obj.AddToDeployableQuantities(
         AdvancedEngineering,
@@ -420,7 +423,7 @@ class DeployableToolboxTest extends Specification {
       obj.CountDeployable(DeployedItem.portable_manned_turret_tr)._2 mustEqual 1
       obj.CountDeployable(DeployedItem.portable_manned_turret_vs)._2 mustEqual 1
       obj.CountDeployable(DeployedItem.deployable_shield_generator)._2 mustEqual 1
-      obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 0
+      obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 1024
     }
 
     "change accessible fields by removing by certification types (all)" in {
@@ -440,7 +443,7 @@ class DeployableToolboxTest extends Specification {
       obj.CountDeployable(DeployedItem.portable_manned_turret_tr)._2 mustEqual 1
       obj.CountDeployable(DeployedItem.portable_manned_turret_vs)._2 mustEqual 1
       obj.CountDeployable(DeployedItem.deployable_shield_generator)._2 mustEqual 1
-      obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 1
+      obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 1024
 
       obj.RemoveFromDeployableQuantities(
         GroundSupport,
@@ -460,7 +463,7 @@ class DeployableToolboxTest extends Specification {
       obj.CountDeployable(DeployedItem.portable_manned_turret_tr)._2 mustEqual 1
       obj.CountDeployable(DeployedItem.portable_manned_turret_vs)._2 mustEqual 1
       obj.CountDeployable(DeployedItem.deployable_shield_generator)._2 mustEqual 1
-      obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 0
+      obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 1024
 
       obj.RemoveFromDeployableQuantities(
         AdvancedHacking,
@@ -480,7 +483,7 @@ class DeployableToolboxTest extends Specification {
       obj.CountDeployable(DeployedItem.portable_manned_turret_tr)._2 mustEqual 1
       obj.CountDeployable(DeployedItem.portable_manned_turret_vs)._2 mustEqual 1
       obj.CountDeployable(DeployedItem.deployable_shield_generator)._2 mustEqual 1
-      obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 0
+      obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 1024
 
       obj.RemoveFromDeployableQuantities(
         FortificationEngineering,
@@ -500,7 +503,7 @@ class DeployableToolboxTest extends Specification {
       obj.CountDeployable(DeployedItem.portable_manned_turret_tr)._2 mustEqual 1
       obj.CountDeployable(DeployedItem.portable_manned_turret_vs)._2 mustEqual 1
       obj.CountDeployable(DeployedItem.deployable_shield_generator)._2 mustEqual 1
-      obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 0
+      obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 1024
 
       obj.RemoveFromDeployableQuantities(
         AssaultEngineering,
@@ -520,7 +523,7 @@ class DeployableToolboxTest extends Specification {
       obj.CountDeployable(DeployedItem.portable_manned_turret_tr)._2 mustEqual 0
       obj.CountDeployable(DeployedItem.portable_manned_turret_vs)._2 mustEqual 0
       obj.CountDeployable(DeployedItem.deployable_shield_generator)._2 mustEqual 0
-      obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 0
+      obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 1024
 
       obj.RemoveFromDeployableQuantities(
         CombatEngineering,
@@ -540,7 +543,7 @@ class DeployableToolboxTest extends Specification {
       obj.CountDeployable(DeployedItem.portable_manned_turret_tr)._2 mustEqual 0
       obj.CountDeployable(DeployedItem.portable_manned_turret_vs)._2 mustEqual 0
       obj.CountDeployable(DeployedItem.deployable_shield_generator)._2 mustEqual 0
-      obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 0
+      obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 1024
     }
 
     "change accessible fields by removing by certification type (AdvancedEngineering)" in {
@@ -560,7 +563,7 @@ class DeployableToolboxTest extends Specification {
       obj.CountDeployable(DeployedItem.portable_manned_turret_tr)._2 mustEqual 1
       obj.CountDeployable(DeployedItem.portable_manned_turret_vs)._2 mustEqual 1
       obj.CountDeployable(DeployedItem.deployable_shield_generator)._2 mustEqual 1
-      obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 0
+      obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 1024
 
       obj.RemoveFromDeployableQuantities(
         AdvancedEngineering,
@@ -580,7 +583,7 @@ class DeployableToolboxTest extends Specification {
       obj.CountDeployable(DeployedItem.portable_manned_turret_tr)._2 mustEqual 0
       obj.CountDeployable(DeployedItem.portable_manned_turret_vs)._2 mustEqual 0
       obj.CountDeployable(DeployedItem.deployable_shield_generator)._2 mustEqual 0
-      obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 0
+      obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 1024
     }
 
     "can not remove deployables from an unpopulated field" in {

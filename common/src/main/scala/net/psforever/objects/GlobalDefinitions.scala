@@ -642,6 +642,8 @@ object GlobalDefinitions {
 
   val advanced_ace = ConstructionItemDefinition(CItem.advanced_ace)
 
+  val router_telepad = ConstructionItemDefinition(CItem.router_telepad)
+
   val fury_weapon_systema = ToolDefinition(ObjectClass.fury_weapon_systema)
 
   val quadassault_weapon_system = ToolDefinition(ObjectClass.quadassault_weapon_system)
@@ -859,6 +861,10 @@ object GlobalDefinitions {
   val portable_manned_turret_vs = TurretDeployableDefinition(DeployedItem.portable_manned_turret_vs)
 
   val deployable_shield_generator = new ShieldGeneratorDefinition
+
+  val router_telepad_deployable = DeployableDefinition(DeployedItem.router_telepad_deployable)
+
+  val internal_router_telepad_deployable = DeployableDefinition(DeployedItem.router_telepad_deployable)
   init_deployables()
 
   /*
@@ -893,6 +899,8 @@ object GlobalDefinitions {
   val respawn_tube = new SpawnTubeDefinition(732)
 
   val respawn_tube_tower = new SpawnTubeDefinition(733)
+
+  val teleportpad_terminal = new TeleportPadTerminalDefinition
 
   val adv_med_terminal = new MedicalTerminalDefinition(38)
 
@@ -4059,6 +4067,13 @@ object GlobalDefinitions {
     advanced_ace.Modes(2).Item(DeployedItem.deployable_shield_generator -> Set(CertificationType.AssaultEngineering))
     advanced_ace.Tile = InventoryTile.Tile93
 
+    router_telepad.Name = "router_telepad"
+    router_telepad.Size = EquipmentSize.Pistol
+    router_telepad.Modes += new ConstructionFireMode
+    router_telepad.Modes.head.Item(DeployedItem.router_telepad_deployable -> Set(CertificationType.GroundSupport))
+    router_telepad.Tile = InventoryTile.Tile33
+    router_telepad.Packet = new TelepadConverter
+
     fury_weapon_systema.Name = "fury_weapon_systema"
     fury_weapon_systema.Size = EquipmentSize.VehicleWeapon
     fury_weapon_systema.AmmoTypes += hellfire_ammo
@@ -5121,6 +5136,8 @@ object GlobalDefinitions {
     router.MaxShields = 800 + 1
     router.Seats += 0 -> new SeatDefinition()
     router.MountPoints += 1 -> 0
+    router.Utilities += 1 -> UtilityType.teleportpad_terminal
+    router.Utilities += 2 -> UtilityType.internal_router_telepad_deployable
     router.TrunkSize = InventoryTile.Tile1511
     router.TrunkOffset = 30
     router.Deployment = true
@@ -5515,5 +5532,16 @@ object GlobalDefinitions {
     deployable_shield_generator.MaxHealth = 1700
     deployable_shield_generator.DeployTime = Duration.create(6000, "ms")
     deployable_shield_generator.Model = StandardResolutions.ComplexDeployables
+
+    router_telepad_deployable.Name = "router_telepad_deployable"
+    router_telepad_deployable.MaxHealth = 100
+    router_telepad_deployable.DeployTime = Duration.create(1, "ms")
+    router_telepad_deployable.Packet = new TelepadDeployableConverter
+    router_telepad_deployable.Model = StandardResolutions.SimpleDeployables
+
+    internal_router_telepad_deployable.Name = "router_telepad_deployable"
+    internal_router_telepad_deployable.MaxHealth = 1
+    internal_router_telepad_deployable.DeployTime = Duration.create(1, "ms")
+    internal_router_telepad_deployable.Packet = new InternalTelepadDeployableConverter
   }
 }

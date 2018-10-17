@@ -16,7 +16,7 @@ import services.ServiceManager.Lookup
 import net.psforever.objects._
 import net.psforever.objects.avatar.{Certification, DeployableToolbox}
 import net.psforever.objects.ballistics._
-import net.psforever.objects.ce.{ComplexDeployable, Deployable, DeployedItem, SimpleDeployable}
+import net.psforever.objects.ce._
 import net.psforever.objects.definition.{ConstructionFireMode, DeployableDefinition, ObjectDefinition, ToolDefinition}
 import net.psforever.objects.definition.converter.{CorpseConverter, DestroyedVehicleConverter}
 import net.psforever.objects.equipment.{CItem, _}
@@ -35,7 +35,7 @@ import net.psforever.objects.serverobject.mblocker.Locker
 import net.psforever.objects.serverobject.pad.{VehicleSpawnControl, VehicleSpawnPad}
 import net.psforever.objects.serverobject.pad.process.{AutoDriveControls, VehicleSpawnControlGuided}
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
-import net.psforever.objects.serverobject.structures.{Building, StructureType, WarpGate}
+import net.psforever.objects.serverobject.structures.{Amenity, Building, StructureType, WarpGate}
 import net.psforever.objects.serverobject.terminals._
 import net.psforever.objects.serverobject.terminals.Terminal.TerminalMessage
 import net.psforever.objects.serverobject.tube.SpawnTube
@@ -45,7 +45,7 @@ import net.psforever.objects.vital._
 import net.psforever.objects.zones.{InterstellarCluster, Zone}
 import net.psforever.packet.game.objectcreate._
 import net.psforever.types._
-import services.{RemoverActor, _}
+import services.{RemoverActor, vehicle, _}
 import services.avatar.{AvatarAction, AvatarResponse, AvatarServiceMessage, AvatarServiceResponse}
 import services.galaxy.{GalaxyResponse, GalaxyServiceResponse}
 import services.local.{LocalAction, LocalResponse, LocalServiceMessage, LocalServiceResponse}
@@ -59,7 +59,9 @@ import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.util.Success
 import akka.pattern.ask
-import services.local.support.HackCaptureActor
+import net.psforever.objects.vehicles.Utility.InternalTelepad
+import services.local.support.{HackCaptureActor, RouterTelepadActivation}
+import services.support.SupportActor
 
 class WorldSessionActor extends Actor with MDCContextAware {
 
@@ -95,6 +97,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
   var whenUsedLastKit : Long = 0
   val projectiles : Array[Option[Projectile]] = Array.fill[Option[Projectile]](Projectile.RangeUID - Projectile.BaseUID)(None)
   var drawDeloyableIcon : PlanetSideGameObject with Deployable => Unit = RedrawDeployableIcons
+  var recentTeleportAttempt : Long = 0
+
   var amsSpawnPoint : Option[SpawnTube] = None
   var clientKeepAlive : Cancellable = DefaultCancellable.obj
   var progressBarUpdate : Cancellable = DefaultCancellable.obj
@@ -124,6 +128,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     vehicleService ! Service.Leave()
     avatarService ! Service.Leave()
     galaxyService ! Service.Leave()
+    cluster ! Service.Leave()
     LivePlayerList.Remove(sessionId)
     if(player != null && player.HasGUID) {
       val player_guid = player.GUID
@@ -141,15 +146,15 @@ class WorldSessionActor extends Actor with MDCContextAware {
       })
       //handle orphaned deployables
       DisownDeployables()
-      //clean up boomer triggers
+      //clean up boomer triggers and telepads
       val equipment = (
         (player.Holsters()
           .zipWithIndex
           .map({ case ((slot, index)) => (index, slot.Equipment) })
           .collect { case ((index, Some(obj))) => InventoryItem(obj, index) }
           ) ++ player.Inventory.Items)
-        .filterNot({ case InventoryItem(obj, _) => obj.isInstanceOf[BoomerTrigger] })
-      //TODO final character save before doing any of this
+        .filterNot({ case InventoryItem(obj, _) => obj.isInstanceOf[BoomerTrigger] || obj.isInstanceOf[Telepad] })
+      //TODO final character save before doing any of this (use equipment)
       continent.Population ! Zone.Population.Release(avatar)
       if(player.isAlive) {
         //actually being alive or manually deconstructing
@@ -206,13 +211,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
       case None =>
         None
     }) match {
-      case Some(vehicle : Vehicle) =>
-        vehicle.Seat(vehicle.PassengerInSeat(player).get).get.Occupant = None
-        if(vehicle.Seats.values.count(_.isOccupied) == 0) {
-          vehicleService ! VehicleServiceMessage.Decon(RemoverActor.AddTask(vehicle, continent, vehicle.Definition.DeconstructionTime)) //start vehicle decay
-        }
-        vehicleService ! Service.Leave(Some(s"${vehicle.Actor}"))
-
       case Some(mobj : Mountable) =>
         mobj.Seat(mobj.PassengerInSeat(player).get).get.Occupant = None
 
@@ -496,10 +494,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case building : Building =>
           log.info(s"Zone.Lattice.SpawnPoint: spawn point on $zone_id in building ${building.Id} selected")
         case vehicle : Vehicle =>
+//          vehicleService ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(vehicle), continent))
+//          vehicleService ! VehicleServiceMessage.Decon(RemoverActor.AddTask(vehicle, continent, vehicle.Definition.DeconstructionTime))
           //TODO replace this bad math with good math or no math
           //position the player alongside either of the AMS's terminals, facing away from it
-          val side = if(System.currentTimeMillis() % 2 == 0) 1
-          else -1
+          val side = if(System.currentTimeMillis() % 2 == 0) 1 else -1
           //right | left
           val z = spawn_tube.Orientation.z
           val zrot = (z + 90) % 360
@@ -547,7 +546,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case Zone.Ground.ItemOnGround(item : BoomerTrigger, pos, orient) =>
       //dropped the trigger, no longer own the boomer; make certain whole faction is aware of that
       val playerGUID = player.GUID
-      continent.GUID(item.Companion.getOrElse(PlanetSideGUID(0))) match {
+      continent.GUID(item.Companion) match {
         case Some(obj : BoomerDeployable) =>
           val guid = obj.GUID
           val factionOnContinentChannel = s"${continent.Id}/${player.Faction}"
@@ -586,7 +585,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case Zone.Ground.ItemInHand(item : BoomerTrigger) =>
       if(PutItemInHand(item)) {
         //pick up the trigger, own the boomer; make certain whole faction is aware of that
-        continent.GUID(item.Companion.getOrElse(PlanetSideGUID(0))) match {
+        continent.GUID(item.Companion) match {
           case Some(obj : BoomerDeployable) =>
             val guid = obj.GUID
             val playerGUID = player.GUID
@@ -632,6 +631,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           case GlobalDefinitions.advanced_ace =>
             sendResponse(GenericObjectActionMessage(player.GUID, 212)) //put fdu down; it will be removed from the client's holster
             avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PutDownFDU(player.GUID))
+          case GlobalDefinitions.router_telepad => ;
           case _ =>
             log.warn(s"Zone.Deployable.DeployableIsBuilt: not sure what kind of construction item to animate - ${tool.Definition}")
         }
@@ -704,6 +704,39 @@ class WorldSessionActor extends Actor with MDCContextAware {
       localService ! LocalServiceMessage(continent.Id, LocalAction.TriggerEffectInfo(player.GUID, "on", obj.GUID, true, 1000))
       CommonDestroyConstructionItem(tool, index)
       FindReplacementConstructionItem(tool, index)
+      StopBundlingPackets()
+
+    case WorldSessionActor.FinalizeDeployable(obj : TelepadDeployable, tool, index) =>
+      StartBundlingPackets()
+      if(obj.Health > 0) {
+        val guid = obj.GUID
+        //router telepad deployable
+        val router = tool.asInstanceOf[Telepad].Router
+        //router must exist and be deployed
+        continent.GUID(router) match {
+          case Some(vehicle : Vehicle) =>
+            val routerGUID = router.get
+            if(vehicle.Health == 0) {
+              //the Telepad was successfully deployed; but, before it could configure, its Router was destroyed
+              sendResponse(ChatMsg(ChatMessageType.UNK_229, false, "", "@Telepad_NoDeploy_RouterLost", None))
+              localService ! LocalServiceMessage.Deployables(RemoverActor.AddTask(obj, continent, Some(0 seconds)))
+            }
+            else {
+              log.info(s"FinalizeDeployable: setup for telepad #${guid.guid} in zone ${continent.Id}")
+              obj.Router = routerGUID //necessary; forwards link to the router
+              DeployableBuildActivity(obj)
+              CommonDestroyConstructionItem(tool, index)
+              StopBundlingPackets()
+              //it takes 60s for the telepad to become properly active
+              localService ! LocalServiceMessage.Telepads(RouterTelepadActivation.AddTask(obj, continent))
+            }
+
+          case _ =>
+            //the Telepad was successfully deployed; but, before it could configure, its Router was deconstructed
+            sendResponse(ChatMsg(ChatMessageType.UNK_229, false, "", "@Telepad_NoDeploy_RouterLost", None))
+            localService ! LocalServiceMessage.Deployables(RemoverActor.AddTask(obj, continent, Some(0 seconds)))
+        }
+      }
       StopBundlingPackets()
 
     case WorldSessionActor.FinalizeDeployable(obj : SimpleDeployable, tool, index) =>
@@ -1132,8 +1165,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           DeconstructDeployable(obj, guid, pos)
         }
         else {
-          DeconstructDeployable(obj, guid, pos, obj.Orientation, if(obj.MountPoints.isEmpty) 2
-          else 1)
+          DeconstructDeployable(obj, guid, pos, obj.Orientation, if(obj.MountPoints.isEmpty) 2 else 1)
         }
 
       case LocalResponse.EliminateDeployable(obj : ComplexDeployable, guid, pos) =>
@@ -1146,6 +1178,34 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
       case LocalResponse.EliminateDeployable(obj : ExplosiveDeployable, guid, pos) =>
         if(obj.Exploded || obj.Health == 0) {
+          DeconstructDeployable(obj, guid, pos)
+        }
+        else {
+          DeconstructDeployable(obj, guid, pos, obj.Orientation, 2)
+        }
+
+      case LocalResponse.EliminateDeployable(obj : TelepadDeployable, guid, pos) =>
+        //if active, deactivate
+        if(obj.Active) {
+          obj.Active = false
+          sendResponse(GenericObjectActionMessage(guid, 116))
+          sendResponse(GenericObjectActionMessage(guid, 120))
+        }
+        //determine if no replacement teleport system exists
+        continent.GUID(obj.Router) match {
+          case Some(router : Vehicle) =>
+            //if the telepad was replaced, the new system is physically in place but not yet functional
+            if(router.Utility(UtilityType.internal_router_telepad_deployable) match {
+              case Some(internalTelepad : Utility.InternalTelepad) => internalTelepad.Telepad.contains(guid) //same telepad
+              case _ => true
+            }) {
+              //there is no replacement telepad; shut down the system
+              ToggleTeleportSystem(router, None)
+            }
+          case _ => ;
+        }
+        //standard deployable elimination behavior
+        if(obj.Health == 0) {
           DeconstructDeployable(obj, guid, pos)
         }
         else {
@@ -1215,8 +1275,19 @@ class WorldSessionActor extends Actor with MDCContextAware {
           sendResponse(ProximityTerminalUseMessage(PlanetSideGUID(0), object_guid, effectState))
         }
 
+      case LocalResponse.RouterTelepadMessage(msg) =>
+        sendResponse(ChatMsg(ChatMessageType.UNK_229, false, "", msg, None))
+
+      case LocalResponse.RouterTelepadTransport(passenger_guid, src_guid, dest_guid) =>
+        StartBundlingPackets()
+        UseRouterTelepadEffect(passenger_guid, src_guid, dest_guid)
+        StopBundlingPackets()
+
       case LocalResponse.SetEmpire(object_guid, empire) =>
         sendResponse(SetEmpireMessage(object_guid, empire))
+
+      case LocalResponse.ToggleTeleportSystem(router, system_plan) =>
+        ToggleTeleportSystem(router, system_plan)
 
       case LocalResponse.TriggerEffect(target_guid, effect, effectInfo, triggerLocation) =>
         sendResponse(TriggerEffectMessage(target_guid, effect, effectInfo, triggerLocation))
@@ -1257,12 +1328,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
         val obj_guid : PlanetSideGUID = obj.GUID
         val player_guid : PlanetSideGUID = tplayer.GUID
         log.info(s"MountVehicleMsg: $player_guid mounts $obj_guid @ $seat_num")
-        vehicleService ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(obj), continent)) //clear timer
         PlayerActionsToCancel()
         sendResponse(PlanetsideAttributeMessage(obj_guid, 0, obj.Health))
         sendResponse(PlanetsideAttributeMessage(obj_guid, 68, 0)) //shield health
         sendResponse(PlanetsideAttributeMessage(obj_guid, 113, 0)) //capacitor
         if(seat_num == 0) {
+          vehicleService ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(obj), continent)) //clear timer
           //simplistic vehicle ownership management
           obj.Owner match {
             case Some(owner_guid) =>
@@ -1288,8 +1359,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
             })
           case _ => ; //no weapons to update
         }
-        //sendResponse(PlanetsideAttributeMessage(obj.GUID, 0, obj.Health)) //TODO vehicle max health in definition
-        vehicleService ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(obj), continent)) //clear timer
         AccessContents(obj)
         MountingAction(tplayer, obj, seat_num)
 
@@ -1312,9 +1381,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
         }
         else {
           vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.KickPassenger(player_guid, seat_num, true, obj.GUID))
-        }
-        if(obj.Seats.values.count(_.isOccupied) == 0) {
-          vehicleService ! VehicleServiceMessage.Decon(RemoverActor.AddTask(obj, continent, obj.Definition.DeconstructionTime)) //start vehicle decay
         }
 
       case Mountable.CanDismount(obj : Mountable, _) =>
@@ -1468,7 +1534,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, true))
         }
 
-      case Terminal.BuyEquipment(item) => ;
+      case Terminal.BuyEquipment(item) =>
         tplayer.Fit(item) match {
           case Some(index) =>
             sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, true))
@@ -1797,12 +1863,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * @param reply     na
     */
   def HandleVehicleServiceResponse(toChannel : String, guid : PlanetSideGUID, reply : VehicleResponse.Response) : Unit = {
-    val tplayer_guid = if(player.HasGUID) player.GUID
-    else PlanetSideGUID(0)
-    reply match {
-      case VehicleResponse.Ownership(vehicle_guid) =>
-        sendResponse(PlanetsideAttributeMessage(guid, 21, vehicle_guid.guid))
+    val tplayer_guid = if(player.HasGUID) player.GUID else PlanetSideGUID(0)
 
+    reply match {
       case VehicleResponse.AttachToRails(vehicle_guid, pad_guid) =>
         sendResponse(ObjectAttachMessage(pad_guid, vehicle_guid, 3))
 
@@ -1881,6 +1944,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
           sendResponse(ObjectAttachMessage(vehicle_guid, guid, seat))
         }
 
+      case VehicleResponse.Ownership(vehicle_guid) =>
+        sendResponse(PlanetsideAttributeMessage(guid, 21, vehicle_guid.guid))
+
       case VehicleResponse.PlanetsideAttribute(vehicle_guid, attribute_type, attribute_value) =>
         if(tplayer_guid != guid) {
           sendResponse(PlanetsideAttributeMessage(vehicle_guid, attribute_type, attribute_value))
@@ -1906,7 +1972,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
           )
         }
 
-      case VehicleResponse.UnloadVehicle(vehicle_guid) =>
+      case VehicleResponse.UnloadVehicle(vehicle, vehicle_guid) =>
+        BeforeUnloadVehicle(vehicle)
         sendResponse(ObjectDeleteMessage(vehicle_guid, 0))
 
       case VehicleResponse.UnstowEquipment(item_guid) =>
@@ -2079,9 +2146,15 @@ class WorldSessionActor extends Actor with MDCContextAware {
           val wep = slot.Equipment.get
           avatarService ! AvatarServiceMessage(continentId, AvatarAction.ObjectDelete(Service.defaultPlayerGUID, wep.GUID))
         })
-      if(target.Definition == GlobalDefinitions.ams) {
-        target.Actor ! Deployment.TryDeploymentChange(DriveState.Undeploying)
-        ClearCurrentAmsSpawnPoint()
+      target.Definition match {
+        case GlobalDefinitions.ams =>
+          target.Actor ! Deployment.TryDeploymentChange(DriveState.Undeploying)
+          ClearCurrentAmsSpawnPoint()
+        case GlobalDefinitions.router =>
+          target.Actor ! Deployment.TryDeploymentChange(DriveState.Undeploying)
+          BeforeUnloadVehicle(target)
+          localService ! LocalServiceMessage(continent.Id, LocalAction.ToggleTeleportSystem(PlanetSideGUID(0), target, None))
+        case _ => ;
       }
       avatarService ! AvatarServiceMessage(continentId, AvatarAction.Destroy(targetGUID, playerGUID, playerGUID, target.Position))
       vehicleService ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(target), continent))
@@ -2574,7 +2647,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         )
         //seated players
         obj.asInstanceOf[Mountable].Seats.values
-          .map(_.Occupant) 
+          .map(_.Occupant)
           .collect {
             case Some(occupant) =>
               if(occupant.isAlive) {
@@ -2590,6 +2663,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
               }
           }
       })
+      normal
+        .filter(_.Definition.DeployCategory == DeployableCategory.Sensors)
+        .foreach(obj => { sendResponse(TriggerEffectMessage(obj.GUID, "on", true, 1000)) })
       //draw our faction's deployables on the map
       continent.DeployableList
         .filter(obj => obj.Faction == faction && obj.Health > 0)
@@ -2624,7 +2700,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       }
       //load vehicles in zone
       val (wreckages, vehicles) = continent.Vehicles.partition(vehicle => { vehicle.Health == 0 && vehicle.Definition.DestroyedModel.nonEmpty })
-      //active vehicles
+      //active vehicles (and some wreckage)
       vehicles.foreach(vehicle => {
         val vehicle_guid = vehicle.GUID
         val vdefinition = vehicle.Definition
@@ -2646,22 +2722,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
           })
         ReloadVehicleAccessPermissions(vehicle)
       })
-      //Loop over vehicles again to add cargohold occupants after all vehicles have been created on the local client
-      vehicles.foreach(vehicle => {
-          vehicle.CargoHolds.foreach({ case (cargo_num, cargo) => {
-            cargo.Occupant match {
-              case Some(cargo_vehicle) =>
-                if(cargo_vehicle.HasGUID) {
-                  StartBundlingPackets()
-                  sendResponse(ObjectAttachMessage(cargo_vehicle.GUID, vehicle.GUID, cargo_num))
-                  //todo: attaching the vehicle seems to work, but setting the mount point status doesn't?
-                  sendResponse(CargoMountPointStatusMessage(cargo_vehicle.GUID, vehicle.GUID, vehicle.GUID, PlanetSideGUID(0), cargo_num, CargoStatus.Occupied, 0))
-                  StopBundlingPackets()
-                }
-              case None => ; // No vehicle in cargo
-            }
-        }})
-      })
       //vehicle wreckages
       wreckages.foreach(vehicle => {
         sendResponse(
@@ -2671,6 +2731,30 @@ class WorldSessionActor extends Actor with MDCContextAware {
             DestroyedVehicleConverter.converter.ConstructorData(vehicle).get
           )
         )
+      })
+      //Loop over vehicles again to add cargohold occupants after all vehicles have been created on the local client
+      vehicles.filter(_.CargoHolds.nonEmpty).foreach(vehicle => {
+          vehicle.CargoHolds.foreach({ case (cargo_num, cargo) => {
+            cargo.Occupant match {
+              case Some(cargo_vehicle) =>
+                if(cargo_vehicle.HasGUID) {
+                  sendResponse(ObjectAttachMessage(cargo_vehicle.GUID, vehicle.GUID, cargo_num))
+                  //todo: attaching the vehicle seems to work, but setting the mount point status doesn't?
+                  sendResponse(CargoMountPointStatusMessage(cargo_vehicle.GUID, vehicle.GUID, vehicle.GUID, PlanetSideGUID(0), cargo_num, CargoStatus.Occupied, 0))
+                }
+              case None => ; // No vehicle in cargo
+            }
+        }})
+      })
+      //special deploy states
+      val deployedVehicles = vehicles.filter(_.DeploymentState == DriveState.Deployed)
+      deployedVehicles.filter(_.Definition == GlobalDefinitions.ams).foreach(obj => {
+        sendResponse(PlanetsideAttributeMessage(obj.GUID, 81, 1))
+      })
+      deployedVehicles.filter(_.Definition == GlobalDefinitions.router).foreach(obj => {
+        sendResponse(DeployRequestMessage(player.GUID, obj.GUID, DriveState.Deploying, 0, false, Vector3.Zero))
+        sendResponse(DeployRequestMessage(player.GUID, obj.GUID, DriveState.Deployed, 0, false, Vector3.Zero))
+        ToggleTeleportSystem(obj, TelepadLike.AppraiseTeleportationSystem(obj, continent))
       })
 
       //implant terminals
@@ -3054,7 +3138,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case Some(trigger : BoomerTrigger) =>
           val playerGUID = player.GUID
           avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireState_Start(playerGUID, item_guid))
-          continent.GUID(trigger.Companion.getOrElse(PlanetSideGUID(0))) match {
+          continent.GUID(trigger.Companion) match {
             case Some(boomer : BoomerDeployable) =>
               val boomerGUID = boomer.GUID
               boomer.Exploded = true
@@ -3231,7 +3315,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
         case Some(obj : BoomerTrigger) =>
           if(FindEquipmentToDelete(object_guid, obj)) {
-            continent.GUID(obj.Companion.getOrElse(PlanetSideGUID(0))) match {
+            continent.GUID(obj.Companion) match {
               case Some(boomer : BoomerDeployable) =>
                 boomer.Trigger = None
                 localService ! LocalServiceMessage.Deployables(RemoverActor.AddTask(boomer, continent, Some(0 seconds)))
@@ -3279,7 +3363,13 @@ class WorldSessionActor extends Actor with MDCContextAware {
             case None => ;
           }
 
+        case Some(obj : TelepadDeployable) =>
+          localService ! LocalServiceMessage.Telepads(SupportActor.ClearSpecific(List(obj), continent))
+          localService ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(obj), continent))
+          localService ! LocalServiceMessage.Deployables(RemoverActor.AddTask(obj, continent, Some(0 seconds)))
+
         case Some(obj : PlanetSideGameObject with Deployable) =>
+          localService ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(obj), continent))
           localService ! LocalServiceMessage.Deployables(RemoverActor.AddTask(obj, continent, Some(0 seconds)))
 
         case Some(thing) =>
@@ -3618,38 +3708,50 @@ class WorldSessionActor extends Actor with MDCContextAware {
           }
 
         case Some(terminal : Terminal) =>
-          if(terminal.Definition.isInstanceOf[MatrixTerminalDefinition]) {
-            //TODO matrix spawn point; for now, just blindly bind to show work (and hope nothing breaks)
-            sendResponse(BindPlayerMessage(1, "@ams", true, true, 0, 0, 0, terminal.Position))
-          }
-          else if(terminal.Definition.isInstanceOf[RepairRearmSiloDefinition]) {
-            FindLocalVehicle match {
-              case Some(vehicle) =>
-                sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
-                sendResponse(UseItemMessage(avatar_guid, item_used_guid, vehicle.GUID, unk2, unk3, unk4, unk5, unk6, unk7, unk8, vehicle.Definition.ObjectId))
-              case None =>
-                log.error("UseItem: expected seated vehicle, but found none")
+          val tdef = terminal.Definition
+          val owned = terminal.Faction == player.Faction
+          val hacked = terminal.HackedBy.nonEmpty
+          if(owned) {
+            if(tdef.isInstanceOf[MatrixTerminalDefinition]) {
+              //TODO matrix spawn point; for now, just blindly bind to show work (and hope nothing breaks)
+              sendResponse(BindPlayerMessage(1, "@ams", true, true, 0, 0, 0, terminal.Position))
+            }
+            else if(tdef.isInstanceOf[RepairRearmSiloDefinition]) {
+              FindLocalVehicle match {
+                case Some(vehicle) =>
+                  sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
+                  sendResponse(UseItemMessage(avatar_guid, item_used_guid, vehicle.GUID, unk2, unk3, unk4, unk5, unk6, unk7, unk8, vehicle.Definition.ObjectId))
+                case None =>
+                  log.error("UseItem: expected seated vehicle, but found none")
+              }
+            }
+            else if(tdef.isInstanceOf[TeleportPadTerminalDefinition]) {
+              //explicit request
+              terminal.Actor ! Terminal.Request(
+                player,
+                ItemTransactionMessage(object_guid, TransactionType.Buy, 0, "router_telepad", 0, PlanetSideGUID(0))
+              )
+            }
+            else {
+              sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
             }
           }
+          else if(hacked) {
+            sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
+          }
           else {
-            if(terminal.Faction != player.Faction && terminal.HackedBy.isEmpty) {
-              player.Slot(player.DrawnSlot).Equipment match {
-                case Some(tool: SimpleItem) =>
-                  if (tool.Definition == GlobalDefinitions.remote_electronics_kit) {
-                    val hackSpeed = GetPlayerHackSpeed(terminal)
+            player.Slot(player.DrawnSlot).Equipment match {
+              case Some(tool: SimpleItem) =>
+                if (tool.Definition == GlobalDefinitions.remote_electronics_kit) {
+                  val hackSpeed = GetPlayerHackSpeed(terminal)
 
-                    if(hackSpeed > 0) {
-                      progressBarValue = Some(-hackSpeed)
-                      self ! WorldSessionActor.HackingProgress(progressType = 1, player, terminal, tool.GUID, hackSpeed, FinishHacking(terminal, 3212836864L))
-                      log.info("Hacking a terminal")
-                    }
+                  if(hackSpeed > 0) {
+                    progressBarValue = Some(-hackSpeed)
+                    self ! WorldSessionActor.HackingProgress(progressType = 1, player, terminal, tool.GUID, hackSpeed, FinishHacking(terminal, 3212836864L))
+                    log.info("Hacking a terminal")
                   }
-                case _ => ;
-              }
-            } else if (terminal.Faction == player.Faction || !terminal.HackedBy.isEmpty) {
-              // If hacked only allow access to the faction that hacked it
-              // Otherwise allow the faction that owns the terminal to use it
-              sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
+                }
+              case _ => ;
             }
           }
 
@@ -3661,6 +3763,29 @@ class WorldSessionActor extends Actor with MDCContextAware {
           deadState = DeadState.Release
           sendResponse(AvatarDeadStateMessage(DeadState.Release, 0, 0, player.Position, player.Faction, true))
           continent.Population ! Zone.Population.Release(avatar)
+
+        case Some(obj : TelepadDeployable) =>
+          continent.GUID(obj.Router) match {
+            case Some(vehicle : Vehicle) =>
+              vehicle.Utility(UtilityType.internal_router_telepad_deployable) match {
+                case Some(util : Utility.InternalTelepad) =>
+                  UseRouterTelepadSystem(router = vehicle, internalTelepad = util, remoteTelepad = obj, src = obj, dest = util)
+                case _ =>
+                  log.error(s"telepad@${object_guid.guid} is not linked to a router - ${vehicle.Definition.Name}@${obj.Router.get.guid}")
+              }
+            case Some(o) =>
+              log.error(s"telepad@${object_guid.guid} is linked to wrong kind of object - ${o.Definition.Name}@${obj.Router.get.guid}")
+            case None => ;
+          }
+
+        case Some(obj : Utility.InternalTelepad) =>
+          continent.GUID(obj.Telepad) match {
+            case Some(pad : TelepadDeployable) =>
+              UseRouterTelepadSystem(router = obj.Owner.asInstanceOf[Vehicle], internalTelepad = obj, remoteTelepad = pad, src = obj, dest = pad)
+            case Some(o) =>
+              log.error(s"internal telepad@${object_guid.guid} is not linked to a remote telepad - ${o.Definition.Name}@${o.GUID.guid}")
+            case None => ;
+          }
 
         case Some(obj) =>
           log.warn(s"UseItem: don't know how to handle $obj; taking a shot in the dark")
@@ -3719,7 +3844,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             case turret =>
               turret
           }
-          log.info(s"Constructing a ${ammoType}")
+          log.info(s"DeployObject: Constructing a ${ammoType}")
           val dObj : PlanetSideGameObject with Deployable = Deployables.Make(ammoType)()
           dObj.Position = pos
           dObj.Orientation = orient
@@ -3735,9 +3860,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
           taskResolver ! CallBackForTask(tasking, continent.Deployables, Zone.Deployable.Build(dObj, obj))
 
         case Some(obj) =>
-          log.warn(s"$obj is something?")
+          log.warn(s"DeployObject: $obj is something?")
         case None =>
-          log.warn("nothing?")
+          log.warn("DeployObject: nothing?")
 
       }
 
@@ -3896,7 +4021,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       log.info(s"Hit: $msg")
       (hit_info match {
         case Some(hitInfo) =>
-          continent.GUID(hitInfo.hitobject_guid.get) match {
+          continent.GUID(hitInfo.hitobject_guid) match {
             case Some(obj : Player) =>
               Some((obj, hitInfo.shot_origin, hitInfo.hit_pos))
             case Some(obj : Vehicle) =>
@@ -3995,6 +4120,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                     //todo: continue flight path until aircraft crashes if no passengers present (or no passenger seats), then deconstruct.
                     //todo: kick cargo passengers out. To be added after PR #216 is merged
                     if(bailType == BailType.Bailed && seat_num == 0 && GlobalDefinitions.isFlightVehicle(obj.asInstanceOf[Vehicle].Definition)) {
+                      vehicleService ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(obj), continent))
                       vehicleService ! VehicleServiceMessage.Decon(RemoverActor.AddTask(obj, continent, Some(0 seconds))) // Immediately deconstruct vehicle
                     }
 
@@ -4152,7 +4278,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
           avatarService ! AvatarServiceMessage(obj.Name, AvatarAction.HitHint(source_guid, player_guid))
         case _ => ;
       }
-
 
     case msg @ TargetingImplantRequest(list) =>
       log.info("TargetingImplantRequest: "+msg)
@@ -4730,7 +4855,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
   /**
     * Disassociate this client's player (oneself) from a vehicle that he owns.
     */
-  def DisownVehicle() : Unit = DisownVehicle(player)
+  def DisownVehicle() : Option[Vehicle] = DisownVehicle(player)
 
   /**
     * Disassociate a player from a vehicle that he owns.
@@ -4740,30 +4865,38 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * @see `DisownVehicle(Player, Vehicle)`
     * @param tplayer the player
     */
-  def DisownVehicle(tplayer : Player) : Unit = {
+  def DisownVehicle(tplayer : Player) : Option[Vehicle] = {
     tplayer.VehicleOwned match {
       case Some(vehicle_guid) =>
+        tplayer.VehicleOwned = None
         continent.GUID(vehicle_guid) match {
           case Some(vehicle : Vehicle) =>
             DisownVehicle(tplayer, vehicle)
-          case _ => ;
+          case _ =>
+            None
         }
-        tplayer.VehicleOwned = None
-      case None => ;
+      case None =>
+        None
     }
   }
 
   /**
-    * Disassociate a vehicle from the player that owns it.
-    * When a vehicle is disowned
+    * Disassociate a vehicle from the player that owns it, if that player really was the previous owner.
     * This is the vehicle side of vehicle ownership removal.
+    * Additionally, start the vehicle deconstruction timer.
     * @see `DisownVehicle(Player)`
     * @param tplayer the player
     * @param vehicle the discovered vehicle
     */
-  private def DisownVehicle(tplayer : Player, vehicle : Vehicle) : Unit = {
+  private def DisownVehicle(tplayer : Player, vehicle : Vehicle) : Option[Vehicle] = {
     if(vehicle.Owner.contains(tplayer.GUID)) {
       vehicle.Owner = None
+      vehicleService ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(vehicle), continent))
+      vehicleService ! VehicleServiceMessage.Decon(RemoverActor.AddTask(vehicle, continent, vehicle.Definition.DeconstructionTime)) //start vehicle decay
+      Some(vehicle)
+    }
+    else {
+      None
     }
   }
 
@@ -5299,13 +5432,18 @@ class WorldSessionActor extends Actor with MDCContextAware {
     */
   def PermitEquipmentStow(equipment : Equipment, obj : PlanetSideGameObject with Container) : Boolean = {
     equipment match {
-      case item : BoomerTrigger =>
+      case _ : BoomerTrigger =>
         obj.isInstanceOf[Player] //a BoomerTrigger can only be stowed in a player's holsters or inventory
       case _ =>
         true
     }
   }
 
+  /**
+    * na
+    * @param tool na
+    * @param obj na
+    */
   def PerformToolAmmoChange(tool : Tool, obj : PlanetSideGameObject with Container) : Unit = {
     val originalAmmoType = tool.AmmoType
     do {
@@ -5514,6 +5652,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * Drop the item if:<br>
     * - the item is cavern equipment<br>
     * - the item is a `BoomerTrigger` type object<br>
+    * - the item is a `router_telepad` type object<br>
     * - the item is another faction's exclusive equipment
     * @param tplayer the player
     * @return true if the item is to be dropped; false, otherwise
@@ -5522,6 +5661,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     val objDef = entry.obj.Definition
     val faction = GlobalDefinitions.isFactionEquipment(objDef)
     GlobalDefinitions.isCavernEquipment(objDef) ||
+      objDef == GlobalDefinitions.router_telepad ||
       entry.obj.isInstanceOf[BoomerTrigger] ||
       (faction != tplayer.Faction && faction != PlanetSideEmpire.NEUTRAL)
   }
@@ -5546,46 +5686,88 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
   /**
     * Perform specific operations depending on the target of deployment.
-    * @param obj the object that has deployed
+    * @param obj the object that has had its deployment state changed
     */
   def DeploymentActivities(obj : Deployment.DeploymentObject) : Unit = {
+    DeploymentActivities(obj, obj.DeploymentState)
+  }
+
+  /**
+    * Perform specific operations depending on the target of deployment.
+    * @param obj the object that has had its deployment state changed
+    * @param state the new deployment state
+    */
+  def DeploymentActivities(obj : Deployment.DeploymentObject, state : DriveState.Value) : Unit = {
     obj match {
       case vehicle : Vehicle =>
         ReloadVehicleAccessPermissions(vehicle) //TODO we should not have to do this imho
-
-        if(obj.Definition == GlobalDefinitions.ams) {
-          obj.DeploymentState match {
+        //ams
+        if(vehicle.Definition == GlobalDefinitions.ams) {
+          state match {
             case DriveState.Deployed =>
               vehicleService ! VehicleServiceMessage.AMSDeploymentChange(continent)
-              sendResponse(PlanetsideAttributeMessage(obj.GUID, 81, 1))
+              sendResponse(PlanetsideAttributeMessage(vehicle.GUID, 81, 1))
             case DriveState.Undeploying =>
               vehicleService ! VehicleServiceMessage.AMSDeploymentChange(continent)
-              sendResponse(PlanetsideAttributeMessage(obj.GUID, 81, 0))
+              sendResponse(PlanetsideAttributeMessage(vehicle.GUID, 81, 0))
             case DriveState.Mobile | DriveState.State7 =>
             case _ => ;
           }
         }
-        if(obj.Definition == GlobalDefinitions.ant) {
-            obj.DeploymentState match {
-              case DriveState.Deployed =>
-                // We only want this WSA (not other player's WSA) to manage timers
-                if(vehicle.Seat(0).get.Occupant.contains(player)){
-                  // Start ntu regeneration
-                  // If vehicle sends UseItemMessage with silo as target NTU regeneration will be disabled and orb particles will be disabled
-                  antChargingTick = context.system.scheduler.scheduleOnce(1000 milliseconds, self, NtuCharging(player, vehicle))
-                }
-              case DriveState.Undeploying =>
-                // We only want this WSA (not other player's WSA) to manage timers
-                if(vehicle.Seat(0).get.Occupant.contains(player)){
-                  antChargingTick.cancel() // Stop charging NTU if charging
-                }
+        //ant
+        else if(vehicle.Definition == GlobalDefinitions.ant) {
+          state match {
+            case DriveState.Deployed =>
+              // We only want this WSA (not other player's WSA) to manage timers
+              if(vehicle.Seat(0).get.Occupant.contains(player)){
+                // Start ntu regeneration
+                // If vehicle sends UseItemMessage with silo as target NTU regeneration will be disabled and orb particles will be disabled
+                antChargingTick = context.system.scheduler.scheduleOnce(1000 milliseconds, self, NtuCharging(player, vehicle))
+              }
+            case DriveState.Undeploying =>
+              // We only want this WSA (not other player's WSA) to manage timers
+              if(vehicle.Seat(0).get.Occupant.contains(player)){
+                antChargingTick.cancel() // Stop charging NTU if charging
+              }
 
-                avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(obj.GUID, 52, 0L)) // panel glow off
-                avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(obj.GUID, 49, 0L)) // orb particles off
-              case DriveState.Mobile | DriveState.State7 | DriveState.Deploying =>
-              case _ => ;
-            }
+              avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(vehicle.GUID, 52, 0L)) // panel glow off
+              avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(vehicle.GUID, 49, 0L)) // orb particles off
+            case DriveState.Mobile | DriveState.State7 | DriveState.Deploying =>
+            case _ => ;
           }
+        }
+        //router
+        else if(vehicle.Definition == GlobalDefinitions.router) {
+          state match {
+            case DriveState.Deploying =>
+              vehicle.Utility(UtilityType.internal_router_telepad_deployable) match {
+                case Some(util : Utility.InternalTelepad) =>
+                  util.Active = true
+                case _ =>
+                  log.warn(s"DeploymentActivities: could not find internal telepad in router@${vehicle.GUID.guid} while $state")
+              }
+            case DriveState.Deployed =>
+              //let the timer do all the work
+              localService ! LocalServiceMessage(continent.Id, LocalAction.ToggleTeleportSystem(PlanetSideGUID(0), vehicle, TelepadLike.AppraiseTeleportationSystem(vehicle, continent)))
+            case DriveState.Undeploying =>
+              //deactivate internal router before trying to reset the system
+              vehicle.Utility(UtilityType.internal_router_telepad_deployable) match {
+                case Some(util : Utility.InternalTelepad) =>
+                  //any telepads linked with internal mechanism must be deconstructed
+                  continent.GUID(util.Telepad) match {
+                    case Some(telepad : TelepadDeployable) =>
+                      localService ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(telepad), continent))
+                      localService ! LocalServiceMessage.Deployables(RemoverActor.AddTask(telepad, continent, Some(0 milliseconds)))
+                    case Some(_) | None => ;
+                  }
+                  util.Active = false
+                  localService ! LocalServiceMessage(continent.Id, LocalAction.ToggleTeleportSystem(PlanetSideGUID(0), vehicle, None))
+                case _ =>
+                  log.warn(s"DeploymentActivities: could not find internal telepad in router@${vehicle.GUID.guid} while $state")
+              }
+            case _ => ;
+          }
+        }
       case _ => ;
     }
   }
@@ -5934,7 +6116,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         }
       })
       val triggers = RemoveBoomerTriggersFromInventory()
-      triggers.foreach(trigger =>{ NormalItemDrop(obj, continent, avatarService)(trigger) })
+      triggers.foreach(trigger => { NormalItemDrop(obj, continent, avatarService)(trigger) })
     }
   }
 
@@ -6628,7 +6810,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     val item = definition.Item
     val deployables = avatar.Deployables
     val (curr, max) = deployables.CountDeployable(item)
-    log.info(s"FinalizeDeployable: ${definition.Name}")
+    log.info(s"DeployableBuildActivity: ${definition.Name}")
     //two potential messages related to numerical limitations of deployables
     if(!avatar.Deployables.Available(obj)) {
       val (removed, msg) = {
@@ -6640,9 +6822,15 @@ class WorldSessionActor extends Actor with MDCContextAware {
         }
       }
       removed match {
+        case Some(telepad : TelepadDeployable) =>
+          telepad.Owner = None
+          telepad.OwnerName = None
+          localService ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(telepad), continent))
+          localService ! LocalServiceMessage.Deployables(RemoverActor.AddTask(telepad, continent, Some(0 seconds))) //normal decay
         case Some(old) =>
-          old.Position = Vector3.Zero
           old.Owner = None
+          old.OwnerName = None
+          localService ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(old), continent))
           localService ! LocalServiceMessage.Deployables(RemoverActor.AddTask(old, continent, Some(0 seconds)))
           if(msg) { //max test
             sendResponse(ChatMsg(ChatMessageType.UNK_229, false, "", s"@${definition.Descriptor}OldestDestroyed", None))
@@ -6650,6 +6838,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case None => ; //should be an invalid case
           log.warn(s"DeployableBuildActivity: how awkward: we probably shouldn't be allowed to build this deployable right now")
       }
+    }
+    else if(obj.isInstanceOf[TelepadDeployable]) {
+      //always treat the telepad we are putting down as the first and only one
+      sendResponse(ObjectDeployedMessage.Success(definition.Name, 1, 1))
     }
     else {
       sendResponse(ObjectDeployedMessage.Success(definition.Name, curr + 1, max))
@@ -6940,9 +7132,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
     */
   def RemoveBoomerTriggersFromInventory() : List[BoomerTrigger] = {
     val player_guid = player.GUID
-    ((player.Inventory.Items.collect({ case entry @ InventoryItem(obj : BoomerTrigger, index) => (obj, index) })) ++
-      (player.Holsters()
-        .zipWithIndex
+    val holstersWithIndex = player.Holsters().zipWithIndex
+    ((player.Inventory.Items.collect({ case InventoryItem(obj : BoomerTrigger, index) => (obj, index) })) ++
+      (holstersWithIndex
         .map({ case ((slot, index)) => (slot.Equipment, index) })
         .collect { case ((Some(obj : BoomerTrigger), index)) => (obj, index) }
         )
@@ -7125,6 +7317,158 @@ class WorldSessionActor extends Actor with MDCContextAware {
       case None =>
         continent.Ground ! Zone.Ground.DropItem(item, item.Position, item.Orientation) //restore previous state
         false
+    }
+  }
+
+  /**
+    * Attempt to link the router teleport system using the provided terminal information.
+    * Although additional states are necessary to properly use the teleportation system,
+    * e.g., deployment state, active state of the endpoints, etc.,
+    * this decision is not made factoring those other conditions.
+    * @param router the vehicle that houses one end of the teleportation system (the `InternalTelepad` object)
+    * @param systemPlan specific object identification of the two endpoints of the teleportation system;
+    *                   if absent, the knowable endpoint is deleted from the client reflexively
+    */
+  def ToggleTeleportSystem(router : Vehicle, systemPlan : Option[(Utility.InternalTelepad, TelepadDeployable)]) : Unit = {
+    StartBundlingPackets()
+    systemPlan match {
+      case Some((internalTelepad, remoteTelepad)) =>
+        LinkRouterToRemoteTelepad(router, internalTelepad, remoteTelepad)
+      case _ =>
+        router.Utility(UtilityType.internal_router_telepad_deployable) match {
+          case Some(util : Utility.InternalTelepad) =>
+            sendResponse(ObjectDeleteMessage(util.GUID, 0))
+          case _ => ;
+        }
+    }
+    StopBundlingPackets()
+  }
+
+  /**
+    * Link the router teleport system using the provided terminal information.
+    * The internal telepad is made known of the remote telepad, creating the link.
+    * @param router the vehicle that houses one end of the teleportation system (the `internalTelepad`)
+    * @param internalTelepad the endpoint of the teleportation system housed by the router
+    * @param remoteTelepad the endpoint of the teleportation system that exists in the environment
+    */
+  def LinkRouterToRemoteTelepad(router : Vehicle, internalTelepad : Utility.InternalTelepad, remoteTelepad : TelepadDeployable) : Unit = {
+    internalTelepad.Telepad = remoteTelepad.GUID //necessary; backwards link to the (new) telepad
+    CreateRouterInternalTelepad(router, internalTelepad)
+    LinkRemoteTelepad(remoteTelepad.GUID)
+  }
+
+  /**
+    * Create the mechanism that serves as one endpoint of the linked router teleportation system.<br>
+    * <br>
+    * Technically, the mechanism - an `InternalTelepad` object - is always made to exist
+    * due to how the Router vehicle object is encoded into an `ObjectCreateMessage` packet.
+    * Regardless, that internal mechanism is created anew each time the system links a new remote telepad.
+    * @param router the vehicle that houses one end of the teleportation system (the `internalTelepad`)
+    * @param internalTelepad the endpoint of the teleportation system housed by the router
+    */
+  def CreateRouterInternalTelepad(router : Vehicle, internalTelepad : PlanetSideGameObject with TelepadLike) : Unit = {
+    //create the interal telepad each time the link is made
+    val rguid = router.GUID
+    val uguid = internalTelepad.GUID
+    val udef = internalTelepad.Definition
+    /*
+    the following instantiation and configuration creates the internal Router component
+    normally dispatched while the Router is transitioned into its Deploying state
+    it is safe, however, to perform these actions at any time during and after the Deploying state
+     */
+    sendResponse(
+      ObjectCreateMessage(
+        udef.ObjectId,
+        uguid,
+        ObjectCreateMessageParent(rguid, 2), //TODO stop assuming slot number
+        udef.Packet.ConstructorData(internalTelepad).get
+      )
+    )
+    sendResponse(GenericObjectActionMessage(uguid, 108))
+    sendResponse(GenericObjectActionMessage(uguid, 120))
+    /*
+    the following configurations create the interactive beam underneath the Deployed Router
+    normally dispatched after the warm-up timer has completed
+     */
+    sendResponse(GenericObjectActionMessage(uguid, 108))
+    sendResponse(GenericObjectActionMessage(uguid, 112))
+  }
+
+  /**
+    * na
+    * @param telepadGUID na
+    */
+  def LinkRemoteTelepad(telepadGUID: PlanetSideGUID) : Unit = {
+    sendResponse(GenericObjectActionMessage(telepadGUID, 108))
+    sendResponse(GenericObjectActionMessage(telepadGUID, 112))
+  }
+
+  /**
+    * A player uses a fully-linked Router teleportation system.
+    * @param router the Router vehicle
+    * @param internalTelepad the internal telepad within the Router vehicle
+    * @param remoteTelepad the remote telepad that is currently associated with this Router
+    * @param src the origin of the teleportation (where the player starts)
+    * @param dest the destination of the teleportation (where the player is going)
+    */
+  def UseRouterTelepadSystem(router: Vehicle, internalTelepad: InternalTelepad, remoteTelepad: TelepadDeployable, src: PlanetSideGameObject with TelepadLike, dest: PlanetSideGameObject with TelepadLike) = {
+    val time = System.nanoTime
+    if(time - recentTeleportAttempt > (2 seconds).toNanos && router.DeploymentState == DriveState.Deployed && internalTelepad.Active && remoteTelepad.Active) {
+      val pguid = player.GUID
+      val sguid = src.GUID
+      val dguid = dest.GUID
+      StartBundlingPackets()
+      sendResponse(PlayerStateShiftMessage(ShiftState(0, dest.Position, player.Orientation.z, player.Velocity)))
+      UseRouterTelepadEffect(pguid, sguid, dguid)
+      StopBundlingPackets()
+//      vehicleService ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(router), continent))
+//      vehicleService ! VehicleServiceMessage.Decon(RemoverActor.AddTask(router, continent, router.Definition.DeconstructionTime))
+      localService ! LocalServiceMessage(continent.Id, LocalAction.RouterTelepadTransport(pguid, pguid, sguid, dguid))
+    }
+    else {
+      log.warn(s"UseRouterTelepadSystem: can not teleport")
+    }
+    recentTeleportAttempt = time
+  }
+
+  /**
+    * Animate(?) a player using a fully-linked Router teleportation system.
+    * In reality, this seems to do nothing visually?
+    * @param playerGUID the player being teleported
+    * @param srcGUID the origin of the teleportation
+    * @param destGUID the destination of the teleportation
+    */
+  def UseRouterTelepadEffect(playerGUID : PlanetSideGUID, srcGUID : PlanetSideGUID, destGUID : PlanetSideGUID) : Unit = {
+    sendResponse(PlanetsideAttributeMessage(playerGUID, 64, 1)) //what does this do?
+    sendResponse(GenericObjectActionMessage(srcGUID, 124))
+    sendResponse(GenericObjectActionMessage(destGUID, 128))
+  }
+
+  /**
+    * Before a vehicle is removed from the game world, the following actions must be performed.
+    * @param vehicle the vehicle
+    */
+  def BeforeUnloadVehicle(vehicle : Vehicle) : Unit = {
+    vehicle.Definition match {
+      case GlobalDefinitions.router =>
+        log.info("BeforeUnload: cleaning up after a router ...")
+        (vehicle.Utility(UtilityType.internal_router_telepad_deployable) match {
+          case Some(util : Utility.InternalTelepad) =>
+            val telepad = util.Telepad
+            util.Active = false
+            util.Telepad = None
+            continent.GUID(telepad)
+          case _ =>
+            None
+        }) match {
+          case Some(telepad : TelepadDeployable) =>
+            log.info(s"BeforeUnload: deconstructing telepad $telepad that was linked to router $vehicle ...")
+            telepad.Active = false
+            localService ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(telepad), continent))
+            localService ! LocalServiceMessage.Deployables(RemoverActor.AddTask(telepad, continent, Some(0 seconds)))
+          case _ => ;
+        }
+      case _ => ;
     }
   }
 

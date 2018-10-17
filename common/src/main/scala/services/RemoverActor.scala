@@ -226,6 +226,7 @@ abstract class RemoverActor extends SupportActor[RemoverActor.Entry] {
     * No entries in the first pool.
     */
   def ClearAll() : Unit = {
+    trace("all tasks have been cleared")
     firstTask.cancel
     firstHeap = Nil
   }

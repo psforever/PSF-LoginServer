@@ -230,8 +230,6 @@ object ObjectClass {
   final val repeater = 730
   final val rocklet = 737
   final val rotarychaingun_mosquito = 740
-  final val router_telepad = 743
-  final val router_telepad_deployable = 744
   final val scythe = 747
   final val six_shooter = 761
   final val skyguard_weapon_system = 788
@@ -276,7 +274,7 @@ object ObjectClass {
   final val nano_dispenser = 577
   final val command_detonater = 213
   final val flail_targeting_laser = 297
-  //ace deployables
+  //deployables
   final val ace = 32
   final val advanced_ace = 39
   final val boomer = 148
@@ -284,6 +282,8 @@ object ObjectClass {
   final val he_mine = 388
   final val jammer_mine = 420
   final val motionalarmsensor = 575
+  final val router_telepad = 743
+  final val router_telepad_deployable = 744
   final val sensor_shield = 752
   final val spitfire_aa = 819
   final val spitfire_cloaked = 825
@@ -602,7 +602,6 @@ object ObjectClass {
       case ObjectClass.repeater => ConstructorData.genericCodec(DetailedWeaponData.codec, "weapon")
       case ObjectClass.rocklet => ConstructorData.genericCodec(DetailedWeaponData.codec, "weapon")
 //      case ObjectClass.rotarychaingun_mosquito => ConstructorData.genericCodec(DetailedWeaponData.codec, "weapon")
-      case ObjectClass.router_telepad => ConstructorData.genericCodec(DetailedWeaponData.codec, "weapon") //TODO belongs here?
       case ObjectClass.scythe => ConstructorData.genericCodec(DetailedWeaponData.codec, "weapon")
 //      case ObjectClass.skyguard_weapon_system => ConstructorData.genericCodec(DetailedWeaponData.codec, "weapon")
       case ObjectClass.spiker => ConstructorData.genericCodec(DetailedWeaponData.codec, "weapon")
@@ -660,11 +659,11 @@ object ObjectClass {
       case ObjectClass.medicalapplicator => ConstructorData.genericCodec(DetailedWeaponData.codec, "tool")
       case ObjectClass.nano_dispenser => ConstructorData.genericCodec(DetailedWeaponData.codec, "tool")
       case ObjectClass.remote_electronics_kit => ConstructorData.genericCodec(DetailedREKData.codec, "tool")
-      //case ObjectClass.router_telepad => ConstructorData.genericCodec(*.codec, "tool") //TODO
       case ObjectClass.trek => ConstructorData.genericCodec(DetailedWeaponData.codec, "tool")
       //ace deployable
       case ObjectClass.ace => ConstructorData.genericCodec(DetailedACEData.codec, "ace")
       case ObjectClass.advanced_ace => ConstructorData.genericCodec(DetailedACEData.codec, "advanced ace")
+      case ObjectClass.router_telepad => ConstructorData.genericCodec(DetailedTelepadData.codec, "router telepad")
       case ObjectClass.boomer_trigger => ConstructorData.genericCodec(DetailedBoomerTriggerData.codec, "boomer trigger")
       //other
       case ObjectClass.avatar => ConstructorData.genericCodec(DetailedPlayerData.codec(false), "avatar")
@@ -951,11 +950,12 @@ object ObjectClass {
       case ObjectClass.medicalapplicator => ConstructorData.genericCodec(WeaponData.codec, "tool")
       case ObjectClass.nano_dispenser => ConstructorData.genericCodec(WeaponData.codec, "tool")
       case ObjectClass.remote_electronics_kit => ConstructorData.genericCodec(REKData.codec, "tool")
-      //case ObjectClass.router_telepad => ConstructorData.genericCodec(WeaponData.codec, "tool") //TODO
       case ObjectClass.trek => ConstructorData.genericCodec(WeaponData.codec, "tool")
-      //ace deployables
+      //deployables
       case ObjectClass.ace => ConstructorData.genericCodec(ACEData.codec, "ace")
       case ObjectClass.advanced_ace => ConstructorData.genericCodec(ACEData.codec, "advanced ace")
+      case ObjectClass.router_telepad => ConstructorData.genericCodec(TelepadData.codec, "router telepad")
+      case ObjectClass.router_telepad_deployable => ConstructorData.genericCodec(ContainedTelepadDeployableData.codec, "router telepad")
       case ObjectClass.boomer_trigger => ConstructorData.genericCodec(BoomerTriggerData.codec, "boomer trigger")
       //vehicles?
       case ObjectClass.orbital_shuttle => ConstructorData.genericCodec(OrbitalShuttleData.codec, "HART")
@@ -1182,11 +1182,11 @@ object ObjectClass {
       case ObjectClass.medicalapplicator => DroppedItemData.genericCodec(WeaponData.codec, "tool")
       case ObjectClass.nano_dispenser => DroppedItemData.genericCodec(WeaponData.codec, "tool")
       case ObjectClass.remote_electronics_kit => DroppedItemData.genericCodec(REKData.codec, " tool")
-      //case ObjectClass.router_telepad => DroppedItemData.genericCodec(WeaponData.codec, "tool") //TODO
       case ObjectClass.trek => DroppedItemData.genericCodec(WeaponData.codec, "tool")
-      //ace deployables
+      //deployables
       case ObjectClass.ace => DroppedItemData.genericCodec(ACEData.codec, "ace")
-      case ObjectClass.advanced_ace => DroppedItemData.genericCodec(ACEData.codec, "advanced ace") //todo temporary?
+      case ObjectClass.advanced_ace => DroppedItemData.genericCodec(ACEData.codec, "advanced ace")
+      case ObjectClass.router_telepad => DroppedItemData.genericCodec(TelepadData.codec, "router telepad") //TODO not correct
       case ObjectClass.boomer_trigger => DroppedItemData.genericCodec(BoomerTriggerData.codec, "boomer trigger")
       case ObjectClass.boomer => ConstructorData.genericCodec(SmallDeployableData.codec, "ace deployable")
       case ObjectClass.he_mine => ConstructorData.genericCodec(SmallDeployableData.codec, "ace deployable")
@@ -1202,6 +1202,7 @@ object ObjectClass {
       case ObjectClass.portable_manned_turret_nc => ConstructorData.genericCodec(OneMannedFieldTurretData.codec, "field turret")
       case ObjectClass.portable_manned_turret_tr => ConstructorData.genericCodec(OneMannedFieldTurretData.codec, "field turret")
       case ObjectClass.portable_manned_turret_vs => ConstructorData.genericCodec(OneMannedFieldTurretData.codec, "field turret")
+      case ObjectClass.router_telepad_deployable => ConstructorData.genericCodec(TelepadDeployableData.codec, "telepad deployable")
       //projectiles
       case ObjectClass.hunter_seeker_missile_projectile => ConstructorData.genericCodec(TrackedProjectileData.codec, "projectile")
       case ObjectClass.oicw_projectile => ConstructorData.genericCodec(TrackedProjectileData.codec, "projectile")

@@ -22,7 +22,8 @@ object Deployables {
       DeployedItem.portable_manned_turret_nc -> { ()=> new TurretDeployable(GlobalDefinitions.portable_manned_turret_nc) },
       DeployedItem.portable_manned_turret_tr -> { ()=> new TurretDeployable(GlobalDefinitions.portable_manned_turret_tr) },
       DeployedItem.portable_manned_turret_vs -> { ()=> new TurretDeployable(GlobalDefinitions.portable_manned_turret_vs) },
-      DeployedItem.deployable_shield_generator -> { ()=> new ShieldGeneratorDeployable(GlobalDefinitions.deployable_shield_generator) }
+      DeployedItem.deployable_shield_generator -> { ()=> new ShieldGeneratorDeployable(GlobalDefinitions.deployable_shield_generator) },
+      DeployedItem.router_telepad_deployable -> { () => new TelepadDeployable(GlobalDefinitions.router_telepad_deployable) }
     ).withDefaultValue( { ()=> new ExplosiveDeployable(GlobalDefinitions.boomer) } )
   }
 }

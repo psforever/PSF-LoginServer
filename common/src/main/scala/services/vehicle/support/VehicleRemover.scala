@@ -4,6 +4,7 @@ package services.vehicle.support
 import net.psforever.objects.Vehicle
 import net.psforever.objects.guid.{GUIDTask, TaskResolver}
 import net.psforever.objects.zones.Zone
+import net.psforever.types.DriveState
 import services.{RemoverActor, Service}
 import services.vehicle.{VehicleAction, VehicleServiceMessage}
 
@@ -43,8 +44,9 @@ class VehicleRemover extends RemoverActor {
   override def SecondJob(entry : RemoverActor.Entry) : Unit = {
     val vehicle = entry.obj.asInstanceOf[Vehicle]
     val zone = entry.zone
+    vehicle.DeploymentState = DriveState.Mobile
     zone.Transport ! Zone.Vehicle.Despawn(vehicle)
-    context.parent ! VehicleServiceMessage(zone.Id, VehicleAction.UnloadVehicle(Service.defaultPlayerGUID, zone, vehicle))
+    context.parent ! VehicleServiceMessage(zone.Id, VehicleAction.UnloadVehicle(Service.defaultPlayerGUID, zone, vehicle, vehicle.GUID))
     super.SecondJob(entry)
   }
 

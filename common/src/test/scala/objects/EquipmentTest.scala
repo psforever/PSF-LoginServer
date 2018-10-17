@@ -5,7 +5,7 @@ import net.psforever.objects._
 import net.psforever.objects.equipment._
 import net.psforever.objects.inventory.InventoryTile
 import net.psforever.objects.GlobalDefinitions._
-import net.psforever.objects.ce.DeployedItem
+import net.psforever.objects.ce.{DeployedItem, TelepadLike}
 import net.psforever.objects.definition._
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types.CertificationType

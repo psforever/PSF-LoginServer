@@ -118,7 +118,8 @@ object Deployable {
       DeployedItem.portable_manned_turret_tr.id -> DeployableIcon.FieldTurret,
       DeployedItem.portable_manned_turret_nc.id -> DeployableIcon.FieldTurret,
       DeployedItem.portable_manned_turret_vs.id -> DeployableIcon.FieldTurret,
-      DeployedItem.deployable_shield_generator.id -> DeployableIcon.AegisShieldGenerator
+      DeployedItem.deployable_shield_generator.id -> DeployableIcon.AegisShieldGenerator,
+      DeployedItem.router_telepad_deployable.id -> DeployableIcon.RouterTelepad
     ).withDefaultValue(DeployableIcon.Boomer)
   }
 
