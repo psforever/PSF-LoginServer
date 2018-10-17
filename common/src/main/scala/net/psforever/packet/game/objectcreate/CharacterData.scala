@@ -43,15 +43,16 @@ object UniformStyle extends Enumeration {
 /**
   * A representation of a portion of an avatar's `ObjectCreateDetailedMessage` packet data.<br>
   * <br>
-  * This densely-packed information outlines most of the specifics required to depict some other player's character.
+  * This information outlines most of the specifics required to depict some other player's character.
   * Someone else decides how that character is behaving and the server tells each client how to depict that behavior.
   * For that reason, the character is mostly for presentation purposes, rather than really being fleshed-out.
-  * Of the inventory for this character, only the initial five weapon slots are defined.<br>
-  * <br>
+  * Of the inventory for this character, only the initial five weapon slots are defined.
   * In the "backend of the client," the character produced by this data is no different
   * from the kind of character that could be declared a given player's avatar.
   * In terms of equipment and complicated features common to an avatar character, however,
   * any user would find this character ill-equipped.
+  * @see `DetailedCharacterData`
+  * @see `Cosmetics`
   * @param health the amount of health the player has, as a percentage of a filled bar;
   *               the bar has 85 states, with 3 points for each state;
   *               when 0% (less than 3 of 255), the player will collapse into a death pose on the ground;
@@ -74,8 +75,6 @@ object UniformStyle extends Enumeration {
   *                    the alternate model bit should be flipped
   * @param is_seated this player character is seated in a vehicle or mounted to some other object;
   *                  alternate format for data parsing applies
-  * @see `DetailedCharacterData`<br>
-  *       `CharacterAppearanceData`
   */
 final case class CharacterData(health : Int,
                                armor : Int,
@@ -88,7 +87,6 @@ final case class CharacterData(health : Int,
                                is_seated : Boolean) extends ConstructorData {
 
   override def bitsize : Long = {
-    //factor guard bool values into the base size, not its corresponding optional field
     val seatedSize = if(is_seated) { 0 } else { 16 }
     val effectsSize : Long = implant_effects.length * 4L
     val cosmeticsSize : Long = if(cosmetics.isDefined) { cosmetics.get.bitsize } else { 0L }
@@ -98,7 +96,7 @@ final case class CharacterData(health : Int,
 
 object CharacterData extends Marshallable[CharacterData] {
   /**
-    * An overloaded constructor for `CharacterData` that allows for a not-optional inventory.
+    * An overloaded constructor for `CharacterData`.
     * @param health the amount of health the player has, as a percentage of a filled bar
     * @param armor the amount of armor the player has, as a percentage of a filled bar
     * @param uniform the level of upgrade to apply to the player's base uniform

@@ -16,16 +16,7 @@ abstract class IdentifiableEntity extends Identifiable {
   private val container : GUIDContainable = GUIDContainer()
   private var current : GUIDContainable = IdentifiableEntity.noGUIDContainer
 
-  def HasGUID : Boolean = {
-    try {
-      GUID
-      true
-    }
-    catch {
-      case _ : NoGUIDException =>
-        false
-    }
-  }
+  def HasGUID : Boolean = current ne IdentifiableEntity.noGUIDContainer
 
   def GUID : PlanetSideGUID = current.GUID
 

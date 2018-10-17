@@ -13,7 +13,8 @@ import scala.annotation.tailrec
 /**
   * An entry in the `List` of valid implant slots in `DetailedCharacterData`.
   * @param implant the type of implant
-  *                technically, this is unconfirmed
+  * @param initialization the amount of time necessary until this implant is ready to be activated;
+  *                       technically, this is unconfirmed
   * @param active whether this implant is turned on;
   *               technically, this is unconfirmed
   * @see `ImplantType`
@@ -33,11 +34,21 @@ object ImplantEntry {
   }
 }
 
+/**
+  * na
+  * @param unk1 na
+  * @param unk2 na
+  */
 final case class DCDExtra1(unk1 : String,
                            unk2 : Int) extends StreamBitSize {
   override def bitsize : Long = 16L + StreamBitSize.stringBitSize(unk1)
 }
 
+/**
+  * na
+  * @param unk1 an
+  * @param unk2 na
+  */
 final case class DCDExtra2(unk1 : Int,
                            unk2 : Int) extends StreamBitSize {
   override def bitsize : Long = 13L
@@ -124,10 +135,8 @@ final case class DetailedCharacterB(unk1 : Option[Long],
     //implant list
     val implantSize : Long = implants.foldLeft(0L)(_ + _.bitsize)
     //fte list
-    val fteLen = firstTimeEvents.size
     val eventListSize : Long = firstTimeEvents.foldLeft(0L)(_ + StreamBitSize.stringBitSize(_))
     //tutorial list
-    val tutLen = tutorials.size
     val tutorialListSize : Long = tutorials.foldLeft(0L)(_ + StreamBitSize.stringBitSize(_))
     val unk2Len = unk2.size
     val unk3Len = unk3.size
@@ -151,8 +160,8 @@ final case class DetailedCharacterB(unk1 : Option[Long],
     val paddingSize : Int =
       DetailedCharacterData.paddingCalculations(pad_length, implants, Nil)(unk2Len) + /* unk2 */
         DetailedCharacterData.paddingCalculations(pad_length, implants, List(unk2))(unk3Len) + /* unk3 */
-        DetailedCharacterData.paddingCalculations(pad_length, implants, List(unk3, unk2))(fteLen) + /* firstTimeEvents */
-        DetailedCharacterData.paddingCalculations(pad_length, implants, List(firstTimeEvents, unk3, unk2))(tutLen) + /* tutorials */
+        DetailedCharacterData.paddingCalculations(pad_length, implants, List(unk3, unk2))(firstTimeEvents.length) + /* firstTimeEvents */
+        DetailedCharacterData.paddingCalculations(pad_length, implants, List(firstTimeEvents, unk3, unk2))(tutorials.size) + /* tutorials */
         DetailedCharacterData.paddingCalculations(
           DetailedCharacterData.displaceByUnk9(pad_length, unk9, 5),
           implants,
@@ -245,15 +254,15 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
         val activeBool : Boolean = n != 0
         ImplantEntry(ImplantType(implant), None, activeBool) //TODO catch potential NoSuchElementException?
 
-      case implant :: false :: extra :: HNil => //unintialized (timer), inactive
+      case implant :: false :: extra :: HNil => //uninitialized (timer), inactive
         ImplantEntry(ImplantType(implant), Some(extra), false) //TODO catch potential NoSuchElementException?
     },
     {
       case ImplantEntry(implant, None, n) => //initialized (no timer), active/inactive?
-        val activeInt : Int = if(n) { 1 } else  { 0 }
+        val activeInt : Int = if(n) { 1 } else { 0 }
         implant.id :: true :: activeInt :: HNil
 
-      case ImplantEntry(implant, Some(extra), _) => //unintialized (timer), inactive
+      case ImplantEntry(implant, Some(extra), _) => //uninitialized (timer), inactive
         implant.id :: false :: extra :: HNil
     }
   )
@@ -279,6 +288,10 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
     }
   }
 
+  /**
+    * `Codec` for a `List` of `DCDExtra1` objects.
+    * The first entry contains a padded `String` so it must be processed different from the remainder.
+    */
   private def dcd_list_codec(padFunc : (Long)=>Int) : Codec[List[DCDExtra1]] = (
     uint8 >>:~ { size =>
       conditional(size > 0, dcd_extra1_codec(padFunc(size))) ::
@@ -301,6 +314,10 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
     }
   )
 
+  /**
+    * `Codec` for entries in the `List` of `DCDExtra1` objects.
+    * The first entry's size of 80 characters is hard-set by the client.
+    */
   private def dcd_extra1_codec(pad : Int) : Codec[DCDExtra1] = (
     ("unk1" | PacketHelpers.encodedStringAligned(pad)) ::
       ("unk2" | uint16L)
@@ -315,6 +332,12 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
     }
   )
 
+  /**
+    * A common `Codec` for a `List` of `String` objects
+    * used for first time events list and for the tutorials list.
+    * The first entry contains a padded `String` so it must be processed different from the remainder.
+    * @param padFunc a curried function awaiting the extracted length of the current `List`
+    */
   private def eventsListCodec(padFunc : (Long)=>Int) : Codec[List[String]] = (
     uint32L >>:~ { size =>
       conditional(size > 0, PacketHelpers.encodedStringAligned(padFunc(size))) ::
@@ -337,11 +360,22 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
     }
   )
 
+  /**
+    * `Codec` for a `DCDExtra2` object.
+    */
   private val dcd_extra2_codec : Codec[DCDExtra2] = (
     uint(5) ::
       uint8L
     ).as[DCDExtra2]
 
+  /**
+    * `Codec` for a `List` of `String` objects.
+    * The first entry contains a padded `String` so it must be processed different from the remainder.
+    * The padding length is the conclusion of the summation of all the bits up until the point of this `String` object.
+    * Additionally, the length of this current string is also a necessary consideration.
+    * @see `paddingCalculations`
+    * @param padFunc a curried function awaiting the extracted length of the current `List` and will count the padding bits
+    */
   private def unkBCodec(padFunc : (Long)=>Int) : Codec[List[String]] = (
     uint16L >>:~ { size =>
       conditional(size > 0, PacketHelpers.encodedStringAligned(padFunc(size))) ::
@@ -364,11 +398,25 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
     }
   )
 
+  /**
+    * Suport function that obtains the "absolute list value" of an `Option` object.
+    * @param opt the `Option` object
+    * @return if defined, returns a `List` of the `Option` object's contents;
+    *         if undefined (`None`), returns an empty list
+    */
   def optToList(opt : Option[Any]) : List[Any] = opt match {
     case Some(o) => List(o)
     case None => Nil
   }
 
+  /**
+    * A very specific `Option` object addition function.
+    * If a condition is met, the current `Optional` value is incremented by a specific amount.
+    * @param start the original amount
+    * @param test the test on whether to add to `start`
+    * @param value how much to add to `start`
+    * @return the amount after testing
+    */
   def displaceByUnk9(start : Option[Int], test : Option[Any], value : Int) : Option[Int] = test match {
     case Some(_) =>
       Some(start.getOrElse(0) + value)
@@ -376,18 +424,56 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
       start
   }
 
+  /**
+    * A `List` of bit distances between different sets of `String` objects in the `DetailedCharacterData` `Codec`
+    * in reverse order of encountered `String` fields (later to earlier).
+    * The distances are not the actual lengths but are modulo eight.
+    * Specific strings include (the contents of):<br>
+    * - `unk9` (as a `List` object)<br>
+    * - `tutorials`<br>
+    * - `firstTimeEvents`<br>
+    * - `unk3`<br>
+    * - `unk2`
+    */
   private val displacementPerEntry : List[Int] = List(7, 0, 0, 0, 0)
 
+  /**
+    * A curried function to calculate a cumulative padding value
+    * for whichever of the groups of `List` objects of `String` objects are found in a `DetailedCharacterData` object.
+    * Defines the expected base value - the starting value for determining the padding.
+    * The specific `String` object being considered is determined by the number of input lists.
+    * @see `paddingCalculations(Int, Option[Int], List[ImplantEntry], List[List[Any]])(Long)`
+    * @param contextOffset an inherited modification of the `base` padding value
+    * @param implants the list of implants in the stream
+    * @param prevLists all of the important previous lists
+    * @param currListLen the length of the current list
+    * @return the padding value for the target list
+    */
   def paddingCalculations(contextOffset : Option[Int], implants : List[ImplantEntry], prevLists : List[List[Any]])(currListLen : Long) : Int = {
     paddingCalculations(3, contextOffset, implants, prevLists)(currListLen)
   }
 
+  /**
+    * A curried function to calculate a cumulative padding value
+    * for whichever of the groups of `List` objects of `String` objects are found in a `DetailedCharacterData` object.
+    * The specific `String` object being considered is determined by the number of input lists.
+    * @see `paddingCalculations(Option[Int], List[ImplantEntry], List[List[Any/]/])(Long)`
+    * @param base the starting value with no implant entries, or bits from context
+    * @param contextOffset an inherited modification of the `base` padding value
+    * @param implants the list of implants in the stream
+    * @param prevLists all of the important previous lists
+    * @param currListLen the length of the current list
+    * @throws Exception if the number of input lists (`prevLists`) exceeds the number of expected bit distances between known lists
+    * @return the padding value for the target list;
+    *         a value clamped between 0 and 7
+    */
   def paddingCalculations(base : Int, contextOffset : Option[Int], implants : List[ImplantEntry], prevLists : List[List[Any]])(currListLen : Long) : Int = {
-    if(currListLen > 0) {
-      //the offset with no implant entries, or bits from context
+    if(prevLists.length > displacementPerEntry.length) {
+      throw new Exception("mismatched number of input lists compared to bit distances")
+    }
+    else if(currListLen > 0) {
       //displacement into next byte of the content field of the first relevant string without padding
       val baseResult : Int = base + contextOffset.getOrElse(0) + implants.foldLeft(0L)(_ + _.bitsize).toInt
-
       val displacementResult : Int = (if(prevLists.isEmpty) {
         baseResult
       }
@@ -414,21 +500,6 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
     }
   }
 
-//  /**
-//    * The padding value of the first entry in either of two byte-aligned `List` structures.
-//    * @param implants implant entries
-//    * @return the pad length in bits `0 <= n < 8`
-//    */
-//  def implantFieldPadding(implants : List[ImplantEntry], varBit : Option[Int] = None) : Int = {
-//    val base : Int = 5 //the offset with no implant entries
-//    val baseOffset : Int = base - varBit.getOrElse(0)
-//    val resultA = if(baseOffset < 0) { 8 - baseOffset } else { baseOffset % 8 }
-//
-//    val implantOffset = implants.foldLeft(0L)(_ + _.bitsize).toInt
-//    val resultB : Int = resultA - (implantOffset % 8)
-//    if(resultB < 0) { 8 + resultB } else { resultB }
-//  }
-
   /**
     * Players with certain battle rank will always have a certain number of implant slots.
     * The encoding requires it.
@@ -447,6 +518,13 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
     }
   }
 
+  /**
+    * By comparing the battle experience points to a fixed number of points,
+    * determine if the player is at least battle rank 24.
+    * Important things happen if the player is at least battle rank 24 ...
+    * @param bep the battle experience points being compared
+    * @return `true`, if the battle experience points are enough to be a player of the esteemed battle rank
+    */
   def isBR24(bep : Long) : Boolean = bep > 2286230
 
   val a_codec : Codec[DetailedCharacterA] = (
@@ -462,27 +540,27 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
       ("unk5" | uint32) :: //endianness?
       ("staminaMax" | uint16L) ::
       ("stamina" | uint16L) ::
-      //TODO optional 32u-something here; see ps.c: line#1070692
+      conditional(false, uint32L) :: //see ps.c: sub_901150, line#1070692
       ("unk6" | uint16L) ::
       ("unk7" | uint(3)) ::
       ("unk8" | uint32L) ::
-      ("unk9" | PacketHelpers.listOfNSized(6, uint16L)) :: //always 6
+      ("unk9" | PacketHelpers.listOfNSized(6, uint16L)) :: //always length of 6
       ("certs" | listOfN(uint8L, CertificationType.codec))
     ).exmap[DetailedCharacterA] (
     {
-      case bep :: cep :: u1 :: u2 :: u3 :: healthMax :: health :: u4 :: armor :: u5 :: staminaMax :: stamina :: u6 :: u7 :: u8 :: u9 :: certs :: HNil =>
+      case bep :: cep :: u1 :: u2 :: u3 :: healthMax :: health :: u4 :: armor :: u5 :: staminaMax :: stamina :: None :: u6 :: u7 :: u8 :: u9 :: certs :: HNil =>
         Attempt.successful(DetailedCharacterA(bep, cep, u1, u2, u3, healthMax, health, u4, armor, u5, staminaMax, stamina, u6, u7, u8, u9, certs))
     },
     {
       case DetailedCharacterA(bep, cep, u1, u2, u3, healthMax, health, u4, armor, u5, staminaMax, stamina, u6, u7, u8, u9, certs) =>
         Attempt.successful(
-          bep :: cep :: u1 :: u2 :: u3 :: healthMax :: health :: u4 :: armor :: u5 :: staminaMax :: stamina :: u6 :: u7 :: u8 :: u9 :: certs :: HNil
+          bep :: cep :: u1 :: u2 :: u3 :: healthMax :: health :: u4 :: armor :: u5 :: staminaMax :: stamina :: None :: u6 :: u7 :: u8 :: u9 :: certs :: HNil
         )
     }
   )
 
   def b_codec(bep : Long, pad_length : Option[Int]) : Codec[DetailedCharacterB] = (
-    optional(bool, "unk1" | uint32L) :: //ask about sample CCRIDER
+    optional(bool, "unk1" | uint32L) ::
       (("implants" | PacketHelpers.listOfNSized(numberOfImplantSlots(bep), implant_entry_codec)) >>:~ { implants =>
         ("unk2" | dcd_list_codec(paddingCalculations(pad_length, implants, Nil))) >>:~ { unk2 =>
           ("unk3" | dcd_list_codec(paddingCalculations(pad_length, implants, List(unk2)))) >>:~ { unk3 =>

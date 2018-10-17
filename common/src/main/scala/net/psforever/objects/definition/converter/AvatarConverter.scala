@@ -64,36 +64,59 @@ object AvatarConverter {
     * @return the resulting `CharacterAppearanceData`
     */
   def MakeAppearanceData(obj : Player) : (Int)=>CharacterAppearanceData = {
-    CharacterAppearanceData(
+    val alt_model_flag : Boolean = obj.isBackpack
+    val aa : Int=>CharacterAppearanceA = CharacterAppearanceA(
       BasicCharacterData(obj.Name, obj.Faction, obj.Sex, obj.Head, obj.Voice),
       black_ops = false,
+      alt_model_flag,
+      false,
+      None,
       jammered = false,
       obj.ExoSuit,
+      None,
+      0,
+      0,
+      0L,
+      0,
+      0,
+      0,
+      0
+    )
+    val ab : (Boolean,Int)=>CharacterAppearanceB = CharacterAppearanceB(
+      0L,
       outfit_name = "",
       outfit_logo = 0,
+      false,
       obj.isBackpack,
+      false,
+      false,
+      false,
       facingPitch = obj.Orientation.y,
       facingYawUpper = obj.FacingYawUpper,
       lfs = true,
       GrenadeState.None,
-      is_cloaking = false,
+      obj.Cloaked,
+      false,
+      false,
       charging_pose = false,
-      on_zipline = None,
-      RibbonBars()
+      false,
+      on_zipline = None
     )
+    CharacterAppearanceData(aa, ab, RibbonBars())
   }
 
   def MakeCharacterData(obj : Player) : (Boolean,Boolean)=>CharacterData = {
     val MaxArmor = obj.MaxArmor
     CharacterData(
-      255 * obj.Health / obj.MaxHealth, //TODO not precise
+      255 * obj.Health / obj.MaxHealth,
       if(MaxArmor == 0) {
         0
       }
       else {
         255 * obj.Armor / MaxArmor
-      }, //TODO not precise
+      },
       DressBattleRank(obj),
+      0,
       DressCommandRank(obj),
       MakeImplantEffectList(obj.Implants),
       MakeCosmetics(obj.BEP)
@@ -101,20 +124,32 @@ object AvatarConverter {
   }
 
   def MakeDetailedCharacterData(obj : Player) : (Option[Int])=>DetailedCharacterData = {
-    DetailedCharacterData(
-      obj.BEP,
+    val bep = obj.BEP
+    val ba : DetailedCharacterA = DetailedCharacterA(
+      bep,
       obj.CEP,
-      obj.MaxHealth,
-      obj.Health,
+      0L, 0L, 0L,
+      obj.MaxHealth, obj.Health,
+      false,
       obj.Armor,
-      obj.MaxStamina,
-      obj.Stamina,
-      obj.Certifications.toList.sortBy(_.id), //TODO is sorting necessary?
+      0L,
+      obj.MaxStamina, obj.Stamina,
+      0, 0, 0L,
+      List(0, 0, 0, 0, 0, 0),
+      obj.Certifications.toList.sortBy(_.id) //TODO is sorting necessary?
+    )
+    val bb : (Long, Option[Int])=>DetailedCharacterB = DetailedCharacterB(
+      None,
       MakeImplantEntries(obj),
+      Nil, Nil,
       firstTimeEvents = List.empty[String], //TODO fte list
       tutorials = List.empty[String], //TODO tutorial list
-      MakeCosmetics(obj.BEP)
+      0L, 0L, 0L, 0L, 0L,
+      Some(DCDExtra2(0, 0)),
+      Nil, Nil, false,
+      MakeCosmetics(bep)
     )
+    (pad_length : Option[Int]) => DetailedCharacterData(ba, bb(bep, pad_length))(pad_length)
   }
 
   def MakeInventoryData(obj : Player) : InventoryData = {
@@ -184,7 +219,7 @@ object AvatarConverter {
   private def MakeImplantEntries(obj : Player) : List[ImplantEntry] = {
     val numImplants : Int = DetailedCharacterData.numberOfImplantSlots(obj.BEP)
     val implants = obj.Implants
-    obj.Implants.map({ case(implant, initialization, active) =>
+    obj.Implants.map({ case(implant, initialization, _) =>
       if(initialization == 0) {
         ImplantEntry(implant, None)
       }
