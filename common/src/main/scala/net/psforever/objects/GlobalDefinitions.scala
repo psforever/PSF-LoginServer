@@ -3924,6 +3924,7 @@ object GlobalDefinitions {
     nchev_falcon.Name = "nchev_falcon"
     nchev_falcon.Size = EquipmentSize.Max
     nchev_falcon.AmmoTypes += falcon_ammo
+    nchev_falcon.ProjectileTypes += falcon_projectile
     nchev_falcon.FireModes += new FireModeDefinition
     nchev_falcon.FireModes.head.AmmoTypeIndices += 0
     nchev_falcon.FireModes.head.AmmoSlotIndex = 0

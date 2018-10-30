@@ -947,9 +947,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
       case AvatarResponse.DamageResolution(target, resolution_function) =>
         if(player.isAlive) {
+          log.info(s"BEFORE: ${target.Health}HP, ${target.Armor}AR")
           resolution_function(target)
           val health = player.Health
           val armor = player.Armor
+          log.info(s"AFTER: ${health}HP, ${armor}AR")
           val playerGUID = player.GUID
           sendResponse(PlanetsideAttributeMessage(playerGUID, 0, health))
           sendResponse(PlanetsideAttributeMessage(playerGUID, 4, armor))
@@ -978,7 +980,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
         }
 
       case AvatarResponse.HitHint(source_guid) =>
-        sendResponse(HitHint(source_guid, guid))
+        if(player.isAlive) {
+          sendResponse(HitHint(source_guid, guid))
+        }
 
       case AvatarResponse.KilledWhileInVehicle() =>
         if(player.isAlive && player.VehicleSeated.nonEmpty) {
@@ -1899,7 +1903,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
         }
 
       case VehicleResponse.HitHint(source_guid) =>
-        sendResponse(HitHint(source_guid, player.GUID))
+        if(player.isAlive) {
+          sendResponse(HitHint(source_guid, player.GUID))
+        }
 
       case VehicleResponse.InventoryState(obj, parent_guid, start, con_data) =>
         if(tplayer_guid != guid) {
@@ -2415,7 +2421,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       //TODO begin temp player character auto-loading; remove later
       import net.psforever.objects.GlobalDefinitions._
       import net.psforever.types.CertificationType._
-      val avatar = Avatar(s"TestCharacter$sessionId", PlanetSideEmpire.VS, CharacterGender.Female, 41, CharacterVoice.Voice1)
+      val avatar = Avatar(s"TestCharacter$sessionId", (if(sessionId==3) PlanetSideEmpire.VS else PlanetSideEmpire.TR), CharacterGender.Female, 41, CharacterVoice.Voice1)
       avatar.Certifications += StandardAssault
       avatar.Certifications += MediumAssault
       avatar.Certifications += StandardExoSuit
@@ -2462,15 +2468,15 @@ class WorldSessionActor extends Actor with MDCContextAware {
       //player.Position = Vector3(4262.211f ,4067.0625f ,262.35938f) //z6, Akna.tower
       //player.Orientation = Vector3(0f, 0f, 132.1875f)
 //      player.ExoSuit = ExoSuitType.MAX //TODO strange issue; divide number above by 10 when uncommenting
-      player.Slot(0).Equipment = ConstructionItem(ace) //Tool(GlobalDefinitions.StandardPistol(player.Faction))
-      player.Slot(2).Equipment = ConstructionItem(advanced_ace) //punisher //suppressor
+      player.Slot(0).Equipment = Tool(GlobalDefinitions.StandardPistol(player.Faction))
+      player.Slot(2).Equipment = Tool(bolt_driver)
       player.Slot(4).Equipment = Tool(GlobalDefinitions.StandardMelee(player.Faction))
-      player.Slot(6).Equipment = ConstructionItem(ace) //bullet_9mm
-      player.Slot(9).Equipment = ConstructionItem(ace) //bullet_9mm
-      player.Slot(12).Equipment = ConstructionItem(ace) //bullet_9mm
-      player.Slot(33).Equipment = Tool(suppressor) //AmmoBox(bullet_9mm_AP)
-      //player.Slot(36).Equipment = AmmoBox(GlobalDefinitions.StandardPistolAmmo(player.Faction))
-      //player.Slot(39).Equipment = SimpleItem(remote_electronics_kit)
+      player.Slot(6).Equipment = AmmoBox(bolt) //bullet_9mm
+      player.Slot(9).Equipment = AmmoBox(bullet_9mm)
+      player.Slot(12).Equipment = AmmoBox(bullet_9mm)
+      player.Slot(33).Equipment = AmmoBox(bullet_9mm_AP)
+      player.Slot(36).Equipment = AmmoBox(GlobalDefinitions.StandardPistolAmmo(player.Faction))
+      player.Slot(39).Equipment = SimpleItem(remote_electronics_kit)
       player.Locker.Inventory += 0 -> SimpleItem(remote_electronics_kit)
       //TODO end temp player character auto-loading
       self ! ListAccountCharacters
@@ -4048,7 +4054,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       log.info(s"Splash: $msg")
       continent.GUID(direct_victim_uid) match {
         case Some(target : PlanetSideGameObject with FactionAffinity with Vitality) =>
-          ResolveProjectileEntry(projectile_guid, ProjectileResolution.Hit, target, explosion_pos) match {
+          ResolveProjectileEntry(projectile_guid, ProjectileResolution.Splash, target, target.Position) match {
             case Some(projectile) =>
               HandleDealingDamage(target, projectile)
             case None => ;
@@ -4058,7 +4064,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       targets.foreach(elem => {
         continent.GUID(elem.uid) match {
           case Some(target : PlanetSideGameObject with FactionAffinity with Vitality) =>
-            ResolveProjectileEntry(projectile_guid, ProjectileResolution.Splash, target, target.Position) match {
+            ResolveProjectileEntry(projectile_guid, ProjectileResolution.Splash, target, explosion_pos) match {
               case Some(projectile) =>
                 HandleDealingDamage(target, projectile)
               case None => ;
@@ -6051,8 +6057,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
   def AvatarCreate() : Unit = {
     player.VehicleSeated = None //TODO temp, until vehicle gating; unseat player else constructor data is messed up
     player.Spawn
-    player.Health = 50 //TODO temp
-    player.Armor = 25
+    player.Health = 100
+    player.Armor = 50
     val packet = player.Definition.Packet
     val dcdata = packet.DetailedConstructorData(player).get
     val player_guid = player.GUID
