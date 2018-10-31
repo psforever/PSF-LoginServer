@@ -33,14 +33,19 @@ import scodec.codecs._
   * @param lock_accelerator driver has no control over vehicle acceleration
   * @param lock_wheel driver has no control over vehicle turning
   * @param reverse move in reverse
+  *                0 = forward
+  *                1 = reverse
   * @param unk4 na;
   *             something to do with vehicle bailable speed
   * @param lock_vthrust pilot has no control over vertical thrust;
   *                     asserts a constant positive vertical thrust;
   *                     the only valid setting appears to be 1
   * @param lock_strafe pilot has no control over strafing thrust;
-  *                    the only valid setting appears to be 1
-  * @param forward_speed "something like speed"
+  *                    0 = not locked
+  *                    1 = no strafing
+  *                    2 = strafe left automatically
+  *                    3 = strafe right automatically
+  * @param movement_speed "something like speed"
   * @param unk8 na;
   *             set `lock_wheel` to `true` to expose this value
   */
@@ -50,7 +55,7 @@ final case class ServerVehicleOverrideMsg(lock_accelerator : Boolean,
                                           unk4 : Boolean,
                                           lock_vthrust : Int,
                                           lock_strafe : Int,
-                                          forward_speed : Int,
+                                          movement_speed : Int,
                                           unk8 : Option[Long]
                                          ) extends PlanetSideGamePacket {
   type Packet = ServerVehicleOverrideMsg
@@ -66,7 +71,7 @@ object ServerVehicleOverrideMsg extends Marshallable[ServerVehicleOverrideMsg] {
           ("unk4" | bool) ::
           ("lock_vthrust" | uint2L) ::
           ("lock_strafe" | uint2L) ::
-          ("forward_speed" | uintL(9)) ::
+          ("movement_speed" | uintL(9)) ::
           conditional(test, "unk8" | uint32L)
       })
     ).as[ServerVehicleOverrideMsg]

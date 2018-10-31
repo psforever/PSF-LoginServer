@@ -2,9 +2,10 @@
 package net.psforever.packet.game
 
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
-import net.psforever.types.Vector3
+import net.psforever.types.{Angular, Vector3}
 import scodec.Codec
 import scodec.codecs._
+import shapeless.{::, HNil}
 
 /**
   * na
@@ -19,14 +20,11 @@ final case class TriggeredEffect(unk1 : Boolean,
   * Activate an effect that is not directly associated with an existing game object.
   * Without a game object from which to inherit position and orientation, those explicit parameters must be provided.
   * @param pos the position in the game world
-  * @param roll the amount of roll that affects orientation
-  * @param pitch the amount of pitch that affects orientation
-  * @param yaw the amount of yaw that affects orientation
+  * @param orient the angle of orientation
   */
+//TODO must find proper North-corrective angle for orientation
 final case class TriggeredEffectLocation(pos : Vector3,
-                                         roll : Int,
-                                         pitch : Int,
-                                         yaw : Int)
+                                         orient : Vector3)
 
 /**
   * Dispatched by the server to cause a client to display a special graphical effect.<br>
@@ -38,14 +36,14 @@ final case class TriggeredEffectLocation(pos : Vector3,
   * For example, the effect "on" will only work on objects that accept "on" normally, like a deployed `motionalarmsensor`.
   * The effect "spawn_object_effect" can be applied anywhere in the environment;
   * but, it can not be activated in conjunction with an existing object.
-  * @param obj an object that accepts the effect
+  * @param object_guid an object that accepts the effect
   * @param effect the name of the effect
   * @param unk na;
   *            when activating an effect on an existing object
   * @param location an optional position where the effect will be displayed;
   *                 when activating an effect independently
   */
-final case class TriggerEffectMessage(obj : PlanetSideGUID,
+final case class TriggerEffectMessage(object_guid : PlanetSideGUID,
                                       effect : String,
                                       unk : Option[TriggeredEffect] = None,
                                       location : Option[TriggeredEffectLocation] = None
@@ -56,6 +54,15 @@ final case class TriggerEffectMessage(obj : PlanetSideGUID,
 }
 
 object TriggerEffectMessage extends Marshallable[TriggerEffectMessage] {
+  def apply(object_guid : PlanetSideGUID, effect : String) : TriggerEffectMessage =
+    TriggerEffectMessage(object_guid, effect, None, None)
+
+  def apply(object_guid : PlanetSideGUID, effect : String, unk1 : Boolean, unk2 : Long) : TriggerEffectMessage =
+    TriggerEffectMessage(object_guid, effect, Some(TriggeredEffect(unk1, unk2)), None)
+
+  def apply(effect : String, position : Vector3, orientation : Vector3) : TriggerEffectMessage =
+    TriggerEffectMessage(PlanetSideGUID(0), effect, None, Some(TriggeredEffectLocation(position, orientation)))
+
   /**
     * A `Codec` for `TriggeredEffect` data.
     */
@@ -69,15 +76,24 @@ object TriggerEffectMessage extends Marshallable[TriggerEffectMessage] {
     */
   private val effect_location_codec : Codec[TriggeredEffectLocation] = (
     ("pos" | Vector3.codec_pos) ::
-      ("roll" | uint8L) ::
-      ("pitch" | uint8L) ::
-      ("yaw" | uint8L)
+      (("roll" | Angular.codec_roll) ::
+      ("pitch" | Angular.codec_pitch) ::
+      ("yaw" | Angular.codec_yaw())).xmap[Vector3] (
+        {
+          case x :: y :: z :: HNil =>
+            Vector3(x, y, z)
+        },
+        {
+          case Vector3(x, y, z) =>
+            x :: y :: z :: HNil
+        }
+      )
   ).as[TriggeredEffectLocation]
 
   implicit val codec : Codec[TriggerEffectMessage] = (
-    ("obj" | PlanetSideGUID.codec) >>:~ { obj =>
+    ("object_guid" | PlanetSideGUID.codec) >>:~ { guid =>
       ("effect" | PacketHelpers.encodedString) ::
       optional(bool, "unk" | effect_codec) ::
-      conditional(obj.guid == 0, "location" | effect_location_codec)
+      conditional(guid.guid == 0, "location" | effect_location_codec)
     }).as[TriggerEffectMessage]
 }

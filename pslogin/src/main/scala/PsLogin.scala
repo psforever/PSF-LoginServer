@@ -151,8 +151,13 @@ object PsLogin {
         sys.exit(1)
     }
 
-    // TODO: pluralize "processors"
-    logger.info(s"Detected ${Runtime.getRuntime.availableProcessors()} available logical processors")
+    val procNum = Runtime.getRuntime.availableProcessors()
+    logger.info(if(procNum == 1) {
+      "Detected 1 available logical processor"
+    }
+    else {
+      s"Detected $procNum available logical processors"
+    })
     logger.info("Starting actor subsystems...")
 
     /** Make sure we capture Akka messages (but only INFO and above)
@@ -219,7 +224,7 @@ object PsLogin {
     import scala.concurrent.ExecutionContext.Implicits.global
     import scala.concurrent.Future
     import scala.util.{Failure, Success}
-    implicit val timeout = Timeout(500 milliseconds)
+    implicit val timeout = Timeout(5 seconds)
     val requestVehicleEventBus : Future[ServiceManager.LookupResult] =
       (ServiceManager.serviceManager ask ServiceManager.Lookup("vehicle")).mapTo[ServiceManager.LookupResult]
     requestVehicleEventBus.onComplete {

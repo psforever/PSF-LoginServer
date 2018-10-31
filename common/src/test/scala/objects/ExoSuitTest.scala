@@ -2,11 +2,8 @@
 package objects
 
 import net.psforever.objects._
-import net.psforever.objects.equipment.CItem.{DeployedItem, Unit}
 import net.psforever.objects.equipment._
 import net.psforever.objects.inventory.InventoryTile
-import net.psforever.objects.GlobalDefinitions._
-import net.psforever.objects.definition._
 import net.psforever.types.ExoSuitType
 import org.specs2.mutable._
 

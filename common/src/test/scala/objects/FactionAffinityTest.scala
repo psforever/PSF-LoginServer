@@ -2,6 +2,7 @@
 package objects
 
 import akka.actor.{Actor, ActorSystem, Props}
+import base.ActorTest
 import net.psforever.objects.{GlobalDefinitions, Vehicle}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.doors.Door
@@ -55,7 +56,7 @@ class FactionAffinityTest extends Specification {
   }
 }
 
-class FactionAffinity1Test extends ActorTest() {
+class FactionAffinity1Test extends ActorTest {
   "FactionAffinity" should {
     "assert affinity on confirm request" in {
       val obj = FactionAffinityTest.SetUpAgent
@@ -71,7 +72,7 @@ class FactionAffinity1Test extends ActorTest() {
   }
 }
 
-class FactionAffinity2Test extends ActorTest() {
+class FactionAffinity2Test extends ActorTest {
   "FactionAffinity" should {
     "assert affinity on assert request" in {
       val obj = FactionAffinityTest.SetUpAgent
@@ -87,7 +88,7 @@ class FactionAffinity2Test extends ActorTest() {
   }
 }
 
-class FactionAffinity3Test extends ActorTest() {
+class FactionAffinity3Test extends ActorTest {
   "FactionAffinity" should {
     "convert and assert affinity on convert request" in {
       val obj = FactionAffinityTest.SetUpAgent

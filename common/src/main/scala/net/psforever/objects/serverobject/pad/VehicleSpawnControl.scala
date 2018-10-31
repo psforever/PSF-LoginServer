@@ -96,18 +96,16 @@ class VehicleSpawnControl(pad : VehicleSpawnPad) extends VehicleSpawnControlBase
       }
 
     case VehicleSpawnControl.ProcessControl.Flush =>
-      if(!periodicReminder.isCancelled) {
-        periodicReminder.cancel
-        orders.foreach { VehicleSpawnControl.CancelOrder(_, Continent) }
-        orders = Nil
-        trackedOrder match {
-          case Some(entry) =>
-            VehicleSpawnControl.CancelOrder(entry, Continent)
-          case None => ;
-        }
-        trackedOrder = None
-        concealPlayer ! akka.actor.Kill //will cause the actor to restart, which will abort any trapped messages
+      periodicReminder.cancel
+      orders.foreach { VehicleSpawnControl.CancelOrder(_, Continent) }
+      orders = Nil
+      trackedOrder match {
+        case Some(entry) =>
+          VehicleSpawnControl.CancelOrder(entry, Continent)
+        case None => ;
       }
+      trackedOrder = None
+      concealPlayer ! akka.actor.Kill //will cause the actor to restart, which will abort any trapped messages
 
     case _ => ;
   }

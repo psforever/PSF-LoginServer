@@ -2,8 +2,10 @@
 package net.psforever.objects.serverobject.mount
 
 import akka.actor.Actor
+import net.psforever.objects.PlanetSideGameObject
 import net.psforever.objects.entity.{Identifiable, WorldEntity}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
+import net.psforever.objects.serverobject.turret.TurretDefinition
 import net.psforever.types.Vector3
 
 object MountableBehavior {
@@ -16,7 +18,7 @@ object MountableBehavior {
   trait Mount {
     this : Actor =>
 
-    def MountableObject : Mountable with Identifiable with WorldEntity with FactionAffinity
+    def MountableObject : PlanetSideGameObject with Mountable with FactionAffinity
 
     val mountBehavior : Receive = {
       case Mountable.TryMount(user, seat_num) =>
@@ -24,6 +26,25 @@ object MountableBehavior {
         obj.Seat(seat_num) match {
           case Some(seat) =>
             if(user.Faction == obj.Faction && (seat.Occupant = user).contains(user)) {
+              user.VehicleSeated = obj.GUID
+              sender ! Mountable.MountMessages(user, Mountable.CanMount(obj, seat_num))
+            }
+            else {
+              sender ! Mountable.MountMessages(user, Mountable.CanNotMount(obj, seat_num))
+            }
+          case None =>
+            sender ! Mountable.MountMessages(user, Mountable.CanNotMount(obj, seat_num))
+        }
+    }
+
+    val turretMountBehavior : Receive = {
+      case Mountable.TryMount(user, seat_num) =>
+        val obj = MountableObject
+        val definition = obj.Definition.asInstanceOf[TurretDefinition]
+        obj.Seat(seat_num) match {
+          case Some(seat) =>
+            if((!definition.FactionLocked || user.Faction == obj.Faction) &&
+              (seat.Occupant = user).contains(user)) {
               user.VehicleSeated = obj.GUID
               sender ! Mountable.MountMessages(user, Mountable.CanMount(obj, seat_num))
             }

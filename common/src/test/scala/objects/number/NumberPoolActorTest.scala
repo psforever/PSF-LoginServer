@@ -2,14 +2,14 @@
 package objects.number
 
 import akka.actor.{ActorSystem, Props}
+import base.ActorTest
 import net.psforever.objects.guid.actor.NumberPoolActor
 import net.psforever.objects.guid.pool.ExclusivePool
 import net.psforever.objects.guid.selector.RandomSelector
-import objects.ActorTest
 
 import scala.concurrent.duration.Duration
 
-class NumberPoolActorTest extends ActorTest(ActorSystem("test")) {
+class NumberPoolActorTest extends ActorTest {
   "NumberPoolActor" should {
     "GetAnyNumber" in {
       val pool = new ExclusivePool((25 to 50).toList)
@@ -22,7 +22,7 @@ class NumberPoolActorTest extends ActorTest(ActorSystem("test")) {
   }
 }
 
-class NumberPoolActorTest1 extends ActorTest(ActorSystem("test")) {
+class NumberPoolActorTest1 extends ActorTest {
   "NumberPoolActor" should {
     "GetSpecificNumber" in {
       val pool = new ExclusivePool((25 to 50).toList)
@@ -34,7 +34,7 @@ class NumberPoolActorTest1 extends ActorTest(ActorSystem("test")) {
   }
 }
 
-class NumberPoolActorTest2 extends ActorTest(ActorSystem("test")) {
+class NumberPoolActorTest2 extends ActorTest {
   "NumberPoolActor" should {
     "NoNumber" in {
       val pool = new ExclusivePool((25 to 25).toList) //pool only has one number - 25

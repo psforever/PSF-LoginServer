@@ -9,6 +9,7 @@ object EquipmentSize extends Enumeration {
   Rifle, //6x3 and 9x3
   Max, //max weapon only
   VehicleWeapon, //vehicle-mounted weapons
+  BaseTurretWeapon, //common phalanx cannons, and cavern turrets
   BFRArmWeapon, //duel arm weapons for bfr
   BFRGunnerWeapon, //gunner seat for bfr
   Inventory //reserved

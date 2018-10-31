@@ -2,33 +2,42 @@
 package net.psforever.packet.game.objectcreate
 
 import net.psforever.packet.Marshallable
-import scodec.{Attempt, Codec, Err}
+import net.psforever.packet.game.PlanetSideGUID
+import net.psforever.types.PlanetSideEmpire
+import scodec.Codec
 import scodec.codecs._
-import shapeless.{::, HNil}
 
 /**
   * A representation of simple objects that are spawned by the adaptive construction engine.
-  * @param deploy data common to objects spawned by the (advanced) adaptive construction engine
+  * //@param deploy data common to objects spawned by the (advanced) adaptive construction engine
   */
-final case class SmallDeployableData(deploy : CommonFieldData) extends ConstructorData {
-  override def bitsize : Long = deploy.bitsize + 1L
+final case class SmallDeployableData(pos : PlacementData,
+                                     faction : PlanetSideEmpire.Value,
+                                     bops : Boolean,
+                                     destroyed : Boolean,
+                                     unk1 : Int,
+                                     jammered : Boolean,
+                                     unk2 : Boolean,
+                                     owner_guid : PlanetSideGUID) extends ConstructorData {
+  override def bitsize : Long = {
+    val posSize = pos.bitsize
+    24 + posSize
+  }
 }
 
 object SmallDeployableData extends Marshallable[SmallDeployableData] {
-  implicit val codec : Codec[SmallDeployableData] = (
-    ("deploy" | CommonFieldData.codec) ::
-      bool
-    ).exmap[SmallDeployableData] (
-    {
-      case deploy :: false :: HNil =>
-        Attempt.successful(SmallDeployableData(deploy))
+  def apply(pos : PlacementData, faction : PlanetSideEmpire.Value, unk1 : Int, jammered : Boolean, unk2 : Boolean) : SmallDeployableData = {
+    SmallDeployableData(pos, faction, false, false, unk1, jammered, unk2, PlanetSideGUID(0))
+  }
 
-      case _ =>
-        Attempt.failure(Err("invalid small deployable data format"))
-    },
-    {
-      case SmallDeployableData(deploy) =>
-        Attempt.successful(deploy :: false :: HNil)
-    }
-  )
+  implicit val codec : Codec[SmallDeployableData] = (
+    ("pos" | PlacementData.codec) ::
+      ("faction" | PlanetSideEmpire.codec) ::
+      ("bops" | bool) ::
+      ("destroyed" | bool) ::
+      ("unk1" | uint2L) :: //3 - na, 2 - common, 1 - na, 0 - common?
+      ("jammered" | bool) ::
+      ("unk2" | bool) ::
+      ("owner_guid" | PlanetSideGUID.codec)
+    ).as[SmallDeployableData]
 }

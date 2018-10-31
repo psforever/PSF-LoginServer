@@ -205,13 +205,17 @@ object EquipmentTerminalDefinition {
     "medicalapplicator" -> MakeTool(medicalapplicator),
     "bank" -> MakeTool(bank, armor_canister),
     "nano_dispenser" -> MakeTool(nano_dispenser),
-    //TODO "ace" -> MakeConstructionItem(ace),
-    //TODO "advanced_ace" -> MakeConstructionItem(advanced_ace),
+    "ace" -> MakeConstructionItem(ace),
+    "advanced_ace" -> MakeConstructionItem(advanced_ace),
     "remote_electronics_kit" -> MakeSimpleItem(remote_electronics_kit),
     "trek" -> MakeTool(trek),
     "command_detonater" -> MakeSimpleItem(command_detonater),
     "flail_targeting_laser" -> MakeSimpleItem(flail_targeting_laser)
   )
+  /**
+    * A single-element `Map` of the one piece of `Equipment` specific to the Router.
+    */
+  val routerTerminal : Map[String, () => Equipment] = Map("router_telepad" -> MakeTelepad(router_telepad))
 
   /**
     * Create a new `Tool` from provided `EquipmentDefinition` objects.
@@ -310,6 +314,15 @@ object EquipmentTerminalDefinition {
   private def MakeKit(kdef : KitDefinition)() : Kit = Kit(kdef)
 
   /**
+    * Create a new `BoomerTrigger`, a unique kind of `SimpleItem`.
+    * @param sdef the `SimpleItemDefinition` object;
+    *             actually ignored, but retained for function definition consistency
+    * @return a curried function that, when called, creates the piece of `Equipment`
+    * @see `GlobalDefinitions`
+    */
+  private def MakeTriggerItem(sdef : SimpleItemDefinition)() : SimpleItem = new BoomerTrigger
+
+  /**
     * Create a new `SimpleItem` from provided `EquipmentDefinition` objects.
     * @param sdef the `SimpleItemDefinition` object
     * @return a curried function that, when called, creates the piece of `Equipment`
@@ -324,6 +337,13 @@ object EquipmentTerminalDefinition {
     * @see `GlobalDefinitions`
     */
   private def MakeConstructionItem(cdef : ConstructionItemDefinition)() : ConstructionItem = ConstructionItem(cdef)
+
+  /**
+    * na
+    * @param cdef na
+    * @return na
+    */
+  private def MakeTelepad(cdef : ConstructionItemDefinition)() : Telepad = Telepad(cdef)
 
   /**
     * Accept a simplified blueprint for some piece of `Equipment` and create an actual piece of `Equipment` based on it.
@@ -355,6 +375,9 @@ object EquipmentTerminalDefinition {
 
       case obj : ShorthandConstructionItem =>
         MakeConstructionItem(obj.definition)
+
+      case obj : ShorthandTriggerItem =>
+        MakeTriggerItem(obj.definition)
 
       case obj : ShorthandSimpleItem =>
         MakeSimpleItem(obj.definition)

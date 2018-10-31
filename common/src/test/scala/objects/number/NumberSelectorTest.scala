@@ -5,26 +5,28 @@ import net.psforever.objects.guid.selector.{RandomSequenceSelector, _}
 import org.specs2.mutable.Specification
 
 class NumberSelectorTest extends Specification {
-  def randArrayGen(n : Int = 26) : Array[Int] = {
+  def randArrayGen(n : Int = 26, dx : Int = 0) : Array[Int] = {
     val obj = Array.ofDim[Int](n)
-    (0 to 25).foreach(x => { obj(x) = x } )
+    (0 to 25).foreach(x => { obj(x) = x + dx } )
     obj
   }
 
-  "RandomSequenceSelector" should {
+  "RandomSequenceSelector (0, default)" should {
     "construct" in {
       new RandomSequenceSelector
       ok
     }
 
     "get a number" in {
+      val n : Int = 26
       val obj = new RandomSequenceSelector
-      obj.Get(randArrayGen()) mustNotEqual -1
+      obj.Get(randArrayGen(n)) mustNotEqual -1
     }
 
     "return a number" in {
+      val n : Int = 26
       val obj = new RandomSequenceSelector
-      val ary = randArrayGen()
+      val ary = randArrayGen(n)
       val number = obj.Get(ary)
       number mustNotEqual -1
       ary.head mustEqual -1 //regardless of which number we actually got, the head of the array is now -1

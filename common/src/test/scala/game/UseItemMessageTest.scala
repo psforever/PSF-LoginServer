@@ -14,7 +14,7 @@ class UseItemMessageTest extends Specification {
     PacketCoding.DecodePacket(string).require match {
       case UseItemMessage(avatar_guid, unk1, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType) =>
         avatar_guid mustEqual PlanetSideGUID(75)
-        unk1 mustEqual 0
+        unk1 mustEqual PlanetSideGUID(0)
         object_guid mustEqual PlanetSideGUID(372)
         unk2 mustEqual 0xFFFFFFFFL
         unk3 mustEqual false
@@ -30,7 +30,7 @@ class UseItemMessageTest extends Specification {
   }
 
   "encode" in {
-    val msg = UseItemMessage(PlanetSideGUID(75), 0, PlanetSideGUID(372), 0xFFFFFFFFL, false, Vector3(5.0f, 0.0f, 0.0f), Vector3(0.0f, 0.0f, 0.0f), 11, 25, 0, 364)
+    val msg = UseItemMessage(PlanetSideGUID(75), PlanetSideGUID(0), PlanetSideGUID(372), 0xFFFFFFFFL, false, Vector3(5.0f, 0.0f, 0.0f), Vector3(0.0f, 0.0f, 0.0f), 11, 25, 0, 364)
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string

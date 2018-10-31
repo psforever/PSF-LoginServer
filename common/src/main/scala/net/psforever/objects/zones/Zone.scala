@@ -3,14 +3,18 @@ package net.psforever.objects.zones
 
 import akka.actor.{ActorContext, ActorRef, Props}
 import akka.routing.RandomPool
-import net.psforever.objects.{Avatar, PlanetSideGameObject, Player, Vehicle}
+import net.psforever.objects.ballistics.Projectile
+import net.psforever.objects._
+import net.psforever.objects.ce.Deployable
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.objects.guid.actor.UniqueNumberSystem
 import net.psforever.objects.guid.selector.RandomSelector
 import net.psforever.objects.guid.source.LimitedNumberSource
+import net.psforever.objects.inventory.Container
 import net.psforever.objects.serverobject.structures.{Amenity, Building}
 import net.psforever.objects.serverobject.tube.SpawnTube
+import net.psforever.objects.serverobject.turret.FacilityTurret
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types.Vector3
 
@@ -45,14 +49,16 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
   private var accessor : ActorRef = ActorRef.noSender
   /** The basic support structure for the globally unique number system used by this `Zone`. */
   private var guid : NumberPoolHub = new NumberPoolHub(new LimitedNumberSource(65536))
-  guid.AddPool("environment", (0 to 3000).toList) //TODO tailer ro suit requirements of zone
-  guid.AddPool("dynamic", (3001 to 10000).toList).Selector = new RandomSelector //TODO unlump pools later; do not make too big
   /** A synchronized `List` of items (`Equipment`) dropped by players on the ground and can be collected again. */
   private val equipmentOnGround : ListBuffer[Equipment] = ListBuffer[Equipment]()
   /** */
   private val vehicles : ListBuffer[Vehicle] = ListBuffer[Vehicle]()
   /** Used by the `Zone` to coordinate `Equipment` dropping and collection requests. */
   private var ground : ActorRef = ActorRef.noSender
+  /** */
+  private val constructions : ListBuffer[PlanetSideGameObject with Deployable] = ListBuffer[PlanetSideGameObject with Deployable]()
+  /** */
+  private var deployables : ActorRef = ActorRef.noSender
   /** */
   private var transport : ActorRef = ActorRef.noSender
   /** */
@@ -88,16 +94,38 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
   def Init(implicit context : ActorContext) : Unit = {
     if(accessor == ActorRef.noSender) {
       implicit val guid : NumberPoolHub = this.guid //passed into builderObject.Build implicitly
+      SetupNumberPools()
       accessor = context.actorOf(RandomPool(25).props(Props(classOf[UniqueNumberSystem], guid, UniqueNumberSystem.AllocateNumberPoolActors(guid))), s"$Id-uns")
       ground = context.actorOf(Props(classOf[ZoneGroundActor], this, equipmentOnGround), s"$Id-ground")
+      deployables = context.actorOf(Props(classOf[ZoneDeployableActor], this, constructions), s"$Id-deployables")
       transport = context.actorOf(Props(classOf[ZoneVehicleActor], this, vehicles), s"$Id-vehicles")
       population = context.actorOf(Props(classOf[ZonePopulationActor], this, players, corpses), s"$Id-players")
 
-      Map.LocalObjects.foreach({ builderObject => builderObject.Build })
+      BuildLocalObjects(context, guid)
+      BuildSupportObjects()
       MakeBuildings(context)
       AssignAmenities()
       CreateSpawnGroups()
     }
+  }
+
+  def SetupNumberPools() : Unit = {
+    guid.AddPool("environment", (0 to 3000).toList) //TODO tailor to suit requirements of zone
+    //TODO unlump pools later; do not make any single pool too big
+    guid.AddPool("dynamic", (3001 to 10000).toList).Selector = new RandomSelector //TODO all things will be registered here, for now
+    guid.AddPool("b", (10001 to 15000).toList).Selector = new RandomSelector
+    guid.AddPool("c", (15001 to 20000).toList).Selector = new RandomSelector
+    guid.AddPool("d", (20001 to 25000).toList).Selector = new RandomSelector
+    guid.AddPool("e", (25001 to 30000).toList).Selector = new RandomSelector
+    guid.AddPool("f", (30001 to 35000).toList).Selector = new RandomSelector
+    guid.AddPool("g", (35001 until 40100).toList).Selector = new RandomSelector
+    guid.AddPool("projectiles", (Projectile.BaseUID until Projectile.RangeUID).toList)
+    //TODO disabled temporarily to lighten load times
+    //guid.AddPool("h", (40150 to 45000).toList).Selector = new RandomSelector
+    //guid.AddPool("i", (45001 to 50000).toList).Selector = new RandomSelector
+    //guid.AddPool("j", (50001 to 55000).toList).Selector = new RandomSelector
+    //guid.AddPool("k", (55001 to 60000).toList).Selector = new RandomSelector
+    //guid.AddPool("l", (60001 to 65535).toList).Selector = new RandomSelector
   }
 
   /**
@@ -150,15 +178,72 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
   /**
     * Replace the current globally unique identifier system with a new one.
     * The replacement will not occur if the current system is populated or if its synchronized reference has been created.
+    * The primary use of this function should be testing.
+    * A warning will be issued.
     * @return synchronized reference to the globally unique identifier system
     */
   def GUID(hub : NumberPoolHub) : Boolean = {
     if(actor == ActorRef.noSender && guid.Pools.map({case ((_, pool)) => pool.Count}).sum == 0) {
+      import org.fusesource.jansi.Ansi.Color.RED
+      import org.fusesource.jansi.Ansi.ansi
+      println(ansi().fgBright(RED).a(s"""Caution: replacement of the number pool system for zone $Id; function is for testing purposes only""").reset())
       guid = hub
       true
     }
     else {
       false
+    }
+  }
+
+  /**
+    * Wraps around the globally unique identifier system to insert a new number pool.
+    * Throws exceptions for specific reasons if the pool can not be populated before the system has been started.
+    * @see `NumberPoolHub.AddPool`
+    * @param name the name of the pool
+    * @param pool the numbers that will belong to the pool
+    * @return `true`, if the new pool is created;
+    *        `false`, if the new pool can not be created because the system has already been started
+    */
+  def AddPool(name : String, pool : Seq[Int]) : Boolean = {
+    if(accessor == ActorRef.noSender) {
+      guid.AddPool(name, pool.toList)
+      true
+    }
+    else {
+      false
+    }
+  }
+
+  /**
+    * Wraps around the globally unique identifier system to remove an existing number pool.
+    * Throws exceptions for specific reasons if the pool can not be removed before the system has been started.
+    * @see `NumberPoolHub.RemovePool`
+    * @param name the name of the pool
+    * @return `true`, if the new pool is un-made;
+    *        `false`, if the new pool can not be removed because the system has already been started
+    */
+  def RemovePool(name : String) : Boolean = {
+    if(accessor == ActorRef.noSender) {
+      guid.RemovePool(name)
+      true
+    }
+    else {
+      false
+    }
+  }
+
+  /**
+    * Recover an object from the globally unique identifier system by the number that was assigned previously.
+    * @param object_guid the globally unique identifier requested
+    * @return the associated object, if it exists
+    * @see `GUID(Int)`
+    */
+  def GUID(object_guid : Option[PlanetSideGUID]) : Option[PlanetSideGameObject] = {
+    object_guid match {
+      case Some(oguid) =>
+        GUID(oguid.guid)
+      case None =>
+        None
     }
   }
 
@@ -190,6 +275,8 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
     */
   def EquipmentOnGround : List[Equipment] = equipmentOnGround.toList
 
+  def DeployableList : List[PlanetSideGameObject with Deployable] = constructions.toList
+
   def Vehicles : List[Vehicle] = vehicles.toList
 
   def Players : List[Avatar] = players.keys.toList
@@ -208,6 +295,8 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
     */
   def Ground : ActorRef = ground
 
+  def Deployables : ActorRef = deployables
+
   def Transport : ActorRef = transport
 
   def Population : ActorRef = population
@@ -218,6 +307,39 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
     buildings.get(id)
   }
 
+  private def BuildLocalObjects(implicit context : ActorContext, guid : NumberPoolHub) : Unit = {
+    Map.LocalObjects.foreach({ builderObject => builderObject.Build })
+  }
+
+  private def BuildSupportObjects() : Unit = {
+    //guard against errors here, but don't worry about specifics; let ZoneActor.ZoneSetupCheck complain about problems
+    //turret to weapon
+    Map.TurretToWeapon.foreach({ case ((turret_guid, weapon_guid)) =>
+      ((GUID(turret_guid) match {
+        case Some(obj : FacilityTurret) =>
+          Some(obj)
+        case _ => ;
+          None
+      }) match {
+        case Some(obj) =>
+          obj.Weapons.get(1) match {
+            case Some(slot) =>
+              Some(obj, slot.Equipment)
+            case None =>
+              None
+          }
+        case None =>
+          None
+      }) match {
+        case Some((obj, Some(weapon : Tool))) =>
+          guid.register(weapon, weapon_guid)
+          weapon.AmmoSlots.foreach(slot => guid.register(slot.Box, "dynamic"))
+          obj.Inventory.Items.foreach(item => guid.register(item.obj, "dynamic")) //internal ammunition reserves, if any
+        case _ => ;
+      }
+    })
+  }
+
   private def MakeBuildings(implicit context : ActorContext) : PairMap[Int, Building] = {
     val buildingList = Map.LocalBuildings
     buildings = buildingList.map({case(building_id, constructor) => building_id -> constructor.Build(building_id, this) })
@@ -226,7 +348,11 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
 
   private def AssignAmenities() : Unit = {
     Map.ObjectToBuilding.foreach({ case(object_guid, building_id) =>
-      buildings(building_id).Amenities = guid(object_guid).get.asInstanceOf[Amenity]
+      (buildings.get(building_id), guid(object_guid)) match {
+        case (Some(building), Some(amenity)) =>
+          building.Amenities = amenity.asInstanceOf[Amenity]
+        case (None, _) | (_, None) => ; //let ZoneActor's sanity check catch this error
+      }
     })
   }
 
@@ -289,6 +415,17 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
 object Zone {
   /** Default value, non-zone area. */
   final val Nowhere : Zone = new Zone("nowhere", new ZoneMap("nowhere"), 99)
+
+  /**
+    * Overloaded constructor.
+    * @param id the privileged name that can be used as the second parameter in the packet `LoadMapMessage`
+    * @param map the map of server objects upon which this `Zone` is based
+    * @param number the numerical index of the `Zone` as it is recognized in a variety of packets
+    * @return a `Zone` object
+    */
+  def apply(id : String, map : ZoneMap, number : Int) : Zone = {
+    new Zone(id, map, number)
+  }
 
   /**
     * Message to initialize the `Zone`.
@@ -398,6 +535,14 @@ object Zone {
     final case class RemoveItem(item_guid : PlanetSideGUID)
   }
 
+  object Deployable {
+    final case class Build(obj : PlanetSideGameObject with Deployable, withTool : ConstructionItem)
+    final case class DeployableIsBuilt(obj : PlanetSideGameObject with Deployable, withTool : ConstructionItem)
+
+    final case class Dismiss(obj : PlanetSideGameObject with Deployable)
+    final case class DeployableIsDismissed(obj : PlanetSideGameObject with Deployable)
+  }
+
   object Vehicle {
     final case class Spawn(vehicle : Vehicle)
 
@@ -416,14 +561,71 @@ object Zone {
     */
   final case class ClientInitialization(zone : Zone)
 
-  /**
-    * Overloaded constructor.
-    * @param id the privileged name that can be used as the second parameter in the packet `LoadMapMessage`
-    * @param map the map of server objects upon which this `Zone` is based
-    * @param number the numerical index of the `Zone` as it is recognized in a variety of packets
-    * @return a `Zone` object
-    */
-  def apply(id : String, map : ZoneMap, number : Int) : Zone = {
-    new Zone(id, map, number)
+  object EquipmentIs {
+    /**
+      * Tha base `trait` connecting all `Equipment` object location tokens.
+      */
+    sealed trait ItemLocation
+    /**
+      * The target item is contained within another object.
+      * @see `GridInventory`<br>
+      *       `Container`
+      * @param obj the containing object
+      * @param index the slot where the target is located
+      */
+    final case class InContainer(obj : Container, index : Int) extends ItemLocation
+    /**
+      * The target item is found on the Ground.
+      * @see `ZoneGroundActor`
+      */
+    final case class OnGround() extends ItemLocation
+    /**
+      * The target item exists but could not be found belonging to any expected region of the location.
+      */
+    final case class Orphaned() extends ItemLocation
+
+    /**
+      * An exhaustive search of the provided zone is conducted in search of the target `Equipment` object
+      * and a token that qualifies the current location of the object in the zone is returned.
+      * The following groups of objects are searched:
+      * the inventories of all players and all corpses,
+      * all vehicles trunks,
+      * the lockers of all players and corpses;
+      * and, if still not found, the ground is scoured too.
+      * @see `ItemLocation`<br>
+      *       `LockerContainer`
+      * @param equipment the target object
+      * @param guid that target object's globally unique identifier
+      * @param continent the zone whose objects to search
+      * @return a token that explains where the object is, if it is found in this zone;
+      *         `None` is the token that is used to indicate not having been found
+      */
+    def Where(equipment : Equipment, guid : PlanetSideGUID, continent : Zone) : Option[Zone.EquipmentIs.ItemLocation] = {
+      continent.GUID(guid) match {
+        case Some(_) =>
+          ((continent.LivePlayers ++ continent.Corpses).find(_.Find(guid).nonEmpty) match {
+            case Some(tplayer) => Some((tplayer, tplayer.Find(guid)))
+            case _ => None
+          }).orElse(continent.Vehicles.find(_.Find(guid).nonEmpty) match {
+            case Some(vehicle) => Some((vehicle, vehicle.Find(guid)))
+            case _ => None
+          }).orElse(continent.Players.find(_.Locker.Find(guid).nonEmpty) match {
+            case Some(avatar) => Some((avatar.Locker, avatar.Locker.Find(guid)))
+            case _ => None
+          }) match {
+            case Some((obj, Some(index))) =>
+              Some(Zone.EquipmentIs.InContainer(obj, index))
+            case _ =>
+              continent.EquipmentOnGround.find(_.GUID == guid) match {
+                case Some(_) =>
+                  Some(Zone.EquipmentIs.OnGround())
+                case None =>
+                  Some(Zone.EquipmentIs.Orphaned())
+              }
+          }
+        case None =>
+          None
+      }
+    }
   }
 }

@@ -2,10 +2,13 @@
 package net.psforever.objects.vehicles
 
 import akka.actor.ActorContext
-import net.psforever.objects.{GlobalDefinitions, Vehicle}
+import net.psforever.objects.definition.DeployableDefinition
+import net.psforever.objects._
+import net.psforever.objects.ce.TelepadLike
 import net.psforever.objects.serverobject.structures.Amenity
-import net.psforever.objects.serverobject.terminals.{MatrixTerminalDefinition, OrderTerminalABDefinition, Terminal, TerminalDefinition}
+import net.psforever.objects.serverobject.terminals._
 import net.psforever.objects.serverobject.tube.{SpawnTube, SpawnTubeDefinition}
+import net.psforever.packet.game.{ItemTransactionMessage, PlanetSideGUID}
 
 /**
   * An `Enumeration` of the available vehicular utilities.<br>
@@ -21,7 +24,9 @@ object UtilityType extends Enumeration {
   ams_respawn_tube,
   matrix_terminalc,
   order_terminala,
-  order_terminalb
+  order_terminalb,
+  teleportpad_terminal,
+  internal_router_telepad_deployable
   = Value
 }
 
@@ -94,13 +99,17 @@ object Utility {
       new TerminalUtility(GlobalDefinitions.order_terminala)
     case UtilityType.order_terminalb =>
       new TerminalUtility(GlobalDefinitions.order_terminalb)
+    case UtilityType.teleportpad_terminal =>
+      new TeleportPadTerminalUtility(GlobalDefinitions.teleportpad_terminal)
+    case UtilityType.internal_router_telepad_deployable =>
+      new InternalTelepad(GlobalDefinitions.internal_router_telepad_deployable)
   }
 
   /**
     * Override for `SpawnTube` objects so that they inherit the spatial characteristics of their `Owner`.
     * @param tubeDef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
     */
-  private class SpawnTubeUtility(tubeDef : SpawnTubeDefinition) extends SpawnTube(tubeDef) {
+  class SpawnTubeUtility(tubeDef : SpawnTubeDefinition) extends SpawnTube(tubeDef) {
     override def Position = Owner.Position
     override def Orientation = Owner.Orientation
   }
@@ -109,9 +118,58 @@ object Utility {
     * Override for `Terminal` objects so that they inherit the spatial characteristics of their `Owner`.
     * @param tdef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
     */
-  private class TerminalUtility(tdef : TerminalDefinition) extends Terminal(tdef) {
+  class TerminalUtility(tdef : TerminalDefinition) extends Terminal(tdef) {
     override def Position = Owner.Position
     override def Orientation = Owner.Orientation
+  }
+
+  /**
+    * na
+    * @param tdef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
+    */
+  class TeleportPadTerminalUtility(tdef : TerminalDefinition) extends TerminalUtility(tdef) {
+    /**
+      * na
+      * @param player na
+      * @param msg na
+      * @return na
+      */
+    override def Buy(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
+      val reply = super.Buy(player, msg)
+      reply match {
+        case Terminal.BuyEquipment(obj : Telepad) =>
+          obj.Router = Owner.GUID
+        case _ => ;
+      }
+      reply
+    }
+  }
+
+  /**
+    * The internal telepad is a component that is contained by the Router when it deploys
+    * and allows it to serve as one of the terminal points of a Router-telepad teleportation system.
+    * @param ddef na
+    */
+  class InternalTelepad(ddef : DeployableDefinition) extends Amenity
+    with TelepadLike {
+    /** a link to the telepad that serves as the other endpoint of this teleportation system */
+    private var activeTelepad : Option[PlanetSideGUID] = None
+
+    def Telepad : Option[PlanetSideGUID] = activeTelepad
+
+    def Telepad_=(rguid : PlanetSideGUID) : Option[PlanetSideGUID] = Telepad_=(Some(rguid))
+
+    def Telepad_=(rguid : Option[PlanetSideGUID]) : Option[PlanetSideGUID] = {
+      activeTelepad = rguid
+      Telepad
+    }
+
+    override def Position = Owner.Position
+    override def Orientation = Owner.Orientation
+    /** the router is the owner */
+    override def Router : Option[PlanetSideGUID] = Some(Owner.GUID)
+
+    def Definition = ddef
   }
 
   /**
@@ -128,5 +186,11 @@ object Utility {
       OrderTerminalABDefinition.Setup
     case UtilityType.order_terminalb =>
       OrderTerminalABDefinition.Setup
+    case UtilityType.teleportpad_terminal =>
+      TeleportPadTerminalDefinition.Setup
+    case UtilityType.internal_router_telepad_deployable =>
+      TelepadLike.Setup
   }
+
+  //private def defaultSetup(o1 : Amenity, o2 : ActorContext) : Unit = { }
 }

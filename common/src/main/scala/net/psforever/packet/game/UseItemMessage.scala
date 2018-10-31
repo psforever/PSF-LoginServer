@@ -7,21 +7,32 @@ import scodec.Codec
 import scodec.codecs._
 
 /**
-  * (Where the child object was before it was moved is not specified or important.)<br>
-  * @param avatar_guid  the player.
-  * @param item_used_guid  The "item" GUID used e.g. a rek to hack or a medkit to heal.
-  * @param object_guid  can be : Door, Terminal, Avatar (medkit).
-  * @param unk2         ???
-  * @param unk3         ??? true when use a rek (false when door, medkit or open equip term)
-  * @param unk4         ???
-  * @param unk5         ???
-  * @param unk6         ???
-  * @param unk7         ??? 25 when door 223 when terminal
-  * @param unk8         ??? 0 when door 1 when use rek (252 then equipment term)
-  * @param itemType     object ID from game_objects.adb (ex 612 is an equipment terminal, for medkit we have 121 (avatar))
+  * (Where the child object was before it was moved is not specified or important.)
+  * @see `Definition.ObjectId`<br>
+  *       `TurretUpgrade`
+  * @param avatar_guid     the player
+  * @param item_used_guid  the item used;
+  *                        e.g. a REK to hack or a medkit to heal.
+  * @param object_guid     the object affected;
+  *                        e.g., door when opened, terminal when accessed, avatar when medkit used
+  * @param unk2            na;
+  *                        when upgrading phalanx turrets, 1 for `AVCombo` and 2 for `FlakCombo`
+  * @param unk3            using tools, e.g., a REK or nano-dispenser
+  * @param unk4            seems to be related to T-REK viruses.
+  *                        0 - unlock all doors
+  *                        1 - disable linked benefits
+  *                        2 - double ntu drain
+  *                        3 - disable enemy radar
+  *                        4 - access equipment terminals
+  * @param unk6         na
+  * @param unk7         na;
+  *                     25 when door 223 when terminal
+  * @param unk8         na;
+  *                     0 when door 1 when use rek (252 then equipment term)
+  * @param object_id    the object id `object_guid`'s object
   */
 final case class UseItemMessage(avatar_guid : PlanetSideGUID,
-                                item_used_guid : Int,
+                                item_used_guid : PlanetSideGUID,
                                 object_guid : PlanetSideGUID,
                                 unk2 : Long,
                                 unk3 : Boolean,
@@ -30,7 +41,7 @@ final case class UseItemMessage(avatar_guid : PlanetSideGUID,
                                 unk6 : Int,
                                 unk7 : Int,
                                 unk8 : Int,
-                                itemType : Long)
+                                object_id : Long)
   extends PlanetSideGamePacket {
   type Packet = UseItemMessage
   def opcode = GamePacketOpcode.UseItemMessage
@@ -40,7 +51,7 @@ final case class UseItemMessage(avatar_guid : PlanetSideGUID,
 object UseItemMessage extends Marshallable[UseItemMessage] {
   implicit val codec : Codec[UseItemMessage] = (
     ("avatar_guid" | PlanetSideGUID.codec) ::
-      ("item_used_guid" | uint16L) ::
+      ("item_used_guid" | PlanetSideGUID.codec) ::
       ("object_guid" | PlanetSideGUID.codec) ::
       ("unk2" | uint32L) ::
       ("unk3" | bool) ::
@@ -49,6 +60,6 @@ object UseItemMessage extends Marshallable[UseItemMessage] {
       ("unk6" | uint8L) ::
       ("unk7" | uint8L) ::
       ("unk8" | uint8L) ::
-      ("itemType" | uint32L)
+      ("object_id" | uint32L)
     ).as[UseItemMessage]
 }

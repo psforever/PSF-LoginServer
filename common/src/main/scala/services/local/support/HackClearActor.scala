@@ -1,8 +1,11 @@
 // Copyright (c) 2017 PSForever
 package services.local.support
 
+import java.util.concurrent.TimeUnit
+
 import akka.actor.{Actor, Cancellable}
 import net.psforever.objects.DefaultCancellable
+import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.PlanetSideGUID
@@ -20,15 +23,15 @@ class HackClearActor() extends Actor {
   private var clearTrigger : Cancellable = DefaultCancellable.obj
   /** A `List` of currently hacked server objects */
   private var hackedObjects : List[HackClearActor.HackEntry] = Nil
-  //private[this] val log = org.log4s.getLogger
+  private[this] val log = org.log4s.getLogger
 
   def receive : Receive = {
-    case HackClearActor.ObjectIsHacked(target, zone, unk1, unk2, time) =>
-      hackedObjects = hackedObjects :+ HackClearActor.HackEntry(target, zone, unk1, unk2, time)
-      if(hackedObjects.size == 1) { //we were the only entry so the event must be started from scratch
-        import scala.concurrent.ExecutionContext.Implicits.global
-        clearTrigger = context.system.scheduler.scheduleOnce(HackClearActor.timeout, self, HackClearActor.TryClearHacks())
-      }
+    case HackClearActor.ObjectIsHacked(target, zone, unk1, unk2, duration, time) =>
+      val durationNanos = TimeUnit.NANOSECONDS.convert(duration, TimeUnit.SECONDS)
+      hackedObjects = hackedObjects :+ HackClearActor.HackEntry(target, zone, unk1, unk2, time, durationNanos)
+
+      // Restart the timer, in case this is the first object in the hacked objects list
+      RestartTimer()
 
     case HackClearActor.TryClearHacks() =>
       clearTrigger.cancel
@@ -41,13 +44,34 @@ class HackClearActor() extends Actor {
         context.parent ! HackClearActor.ClearTheHack(entry.target.GUID, entry.zone.Id, entry.unk1, entry.unk2) //call up to the main event system
       })
 
-      if(stillHackedObjects.nonEmpty) {
-        val short_timeout : FiniteDuration = math.max(1, HackClearActor.timeout_time - (now - stillHackedObjects.head.time)) nanoseconds
-        import scala.concurrent.ExecutionContext.Implicits.global
-        clearTrigger = context.system.scheduler.scheduleOnce(short_timeout, self, HackClearActor.TryClearHacks())
+      RestartTimer()
+
+    case HackClearActor.ObjectIsResecured(target) =>
+      val obj = hackedObjects.filter(x => x.target == target).headOption
+      obj match {
+        case Some(entry: HackClearActor.HackEntry) =>
+          hackedObjects = hackedObjects.filterNot(x => x.target == target)
+          entry.target.Actor ! CommonMessages.ClearHack()
+          context.parent ! HackClearActor.ClearTheHack(entry.target.GUID, entry.zone.Id, entry.unk1, entry.unk2) //call up to the main event system
+
+          // Restart the timer in case the object we just removed was the next one scheduled
+          RestartTimer()
+        case None => ;
       }
 
     case _ => ;
+  }
+
+  private def RestartTimer(): Unit = {
+    if(hackedObjects.length != 0) {
+      val now = System.nanoTime()
+      val (unhackObjects, stillHackedObjects) = PartitionEntries(hackedObjects, now)
+      val short_timeout : FiniteDuration = math.max(1, stillHackedObjects.head.duration - (now - stillHackedObjects.head.time)) nanoseconds
+
+      log.warn(s"Still items left in hacked objects list. Checking again in ${short_timeout}")
+      import scala.concurrent.ExecutionContext.Implicits.global
+      clearTrigger = context.system.scheduler.scheduleOnce(short_timeout, self, HackClearActor.TryClearHacks())
+    }
   }
 
   /**
@@ -84,7 +108,7 @@ class HackClearActor() extends Actor {
     }
     else {
       val entry = iter.next()
-      if(now - entry.time >= HackClearActor.timeout_time) {
+      if(now - entry.time >= entry.duration) {
         recursivePartitionEntries(iter, now, index + 1)
       }
       else {
@@ -95,26 +119,31 @@ class HackClearActor() extends Actor {
 }
 
 object HackClearActor {
-  /** The wait before a server object is to unhack; as a Long for calculation simplicity */
-  private final val timeout_time : Long = 60000000000L //nanoseconds (60s)
-  /** The wait before a server object is to unhack; as a `FiniteDuration` for `Executor` simplicity */
-  private final val timeout : FiniteDuration = timeout_time nanoseconds
-
   /**
     * Message that carries information about a server object that has been hacked.
     * @param target the server object
     * @param zone the zone in which the object resides
     * @param time when the object was hacked
+    * @param duration how long the object is to stay hacked for in seconds
     * @see `HackEntry`
     */
-  final case class ObjectIsHacked(target : PlanetSideServerObject, zone : Zone, unk1 : Long, unk2 : Long, time : Long = System.nanoTime())
+  final case class ObjectIsHacked(target : PlanetSideServerObject, zone : Zone, unk1 : Long, unk2 : Long, duration: Int, time : Long = System.nanoTime())
+
+  /**
+    * Message used to request that a hack is cleared from the hacked objects list and the unhacked status returned to all clients
+    *
+    */
+  final case class ObjectIsResecured(target: PlanetSideServerObject with Hackable)
+
   /**
     * Message that carries information about a server object that needs its functionality restored.
     * Prompting, as compared to `ObjectIsHacked` which is reactionary.
-    * @param door_guid the server object
+    * @param obj the server object
     * @param zone_id the zone in which the object resides
     */
-  final case class ClearTheHack(door_guid : PlanetSideGUID, zone_id : String, unk1 : Long, unk2 : Long)
+  final case class ClearTheHack(obj : PlanetSideGUID, zone_id : String, unk1 : Long, unk2 : Long)
+
+
   /**
     * Internal message used to signal a test of the queued door information.
     */
@@ -122,11 +151,12 @@ object HackClearActor {
 
   /**
     * Entry of hacked server object information.
-    * The `zone` is maintained separately to ensure that any message resulting in an attempt to close doors is targetted.
+    * The `zone` is maintained separately to ensure that any message resulting in an attempt to close doors is targeted.
     * @param target the server object
     * @param zone the zone in which the object resides
     * @param time when the object was hacked
+    * @param duration The hack duration in nanoseconds
     * @see `ObjectIsHacked`
     */
-  private final case class HackEntry(target : PlanetSideServerObject, zone : Zone, unk1 : Long, unk2 : Long, time : Long)
+  private final case class HackEntry(target : PlanetSideServerObject, zone : Zone, unk1 : Long, unk2 : Long, time : Long, duration: Long)
 }

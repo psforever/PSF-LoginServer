@@ -14,6 +14,8 @@ import net.psforever.types.TransactionType
   */
 class Terminal(tdef : TerminalDefinition) extends Amenity with Hackable {
   HackSound = TriggeredSound.HackTerminal
+  HackEffectDuration = Array(0, 30, 60, 90)
+  HackDuration = Array(0, 10, 5, 3)
 
   //the following fields and related methods are neither finalized nor integrated; GOTO Request
   private var health : Int = 100 //TODO not real health value
@@ -38,13 +40,13 @@ class Terminal(tdef : TerminalDefinition) extends Amenity with Hackable {
     if(Faction == player.Faction || HackedBy.isDefined) {
       msg.transaction_type match {
         case TransactionType.Buy | TransactionType.Learn =>
-          tdef.Buy(player, msg)
+          Buy(player, msg)
 
         case TransactionType.Sell =>
-          tdef.Sell(player, msg)
+          Sell(player, msg)
 
         case TransactionType.Loadout =>
-          tdef.Loadout(player, msg)
+          Loadout(player, msg)
 
         case _ =>
           Terminal.NoDeal()
@@ -53,6 +55,18 @@ class Terminal(tdef : TerminalDefinition) extends Amenity with Hackable {
     else {
       Terminal.NoDeal()
     }
+  }
+
+  def Buy(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
+    tdef.Buy(player, msg)
+  }
+
+  def Sell(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
+    tdef.Sell(player, msg)
+  }
+
+  def Loadout(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
+    tdef.Loadout(player, msg)
   }
 
   def Definition : TerminalDefinition = tdef
@@ -116,16 +130,14 @@ object Terminal {
   /**
     * Provide the certification type unlocked by the player.
     * @param cert the certification unlocked
-    * @param cost the certification point cost
     */
-  final case class LearnCertification(cert : CertificationType.Value, cost : Int) extends Exchange
+  final case class LearnCertification(cert : CertificationType.Value) extends Exchange
 
   /**
     * Provide the certification type freed-up by the player.
     * @param cert the certification returned
-    * @param cost the certification point cost
     */
-  final case class SellCertification(cert : CertificationType.Value, cost : Int) extends Exchange
+  final case class SellCertification(cert : CertificationType.Value) extends Exchange
 
   import net.psforever.objects.definition.ImplantDefinition
   /**

@@ -1,14 +1,14 @@
 // Copyright (c) 2017 PSForever
 package objects
 
-import net.psforever.objects.definition.converter.{ACEConverter, CharacterSelectConverter, REKConverter}
+import net.psforever.objects.definition.converter.{CharacterSelectConverter, DestroyedVehicleConverter, REKConverter}
 import net.psforever.objects._
 import net.psforever.objects.definition._
-import net.psforever.objects.equipment.CItem.{DeployedItem, Unit}
 import net.psforever.objects.equipment._
 import net.psforever.objects.inventory.InventoryTile
 import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.serverobject.tube.SpawnTube
+import net.psforever.objects.vehicles.UtilityType
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.packet.game.objectcreate._
 import net.psforever.types.{CharacterGender, CharacterVoice, PlanetSideEmpire, Vector3}
@@ -108,13 +108,7 @@ class ConverterTest extends Specification {
 
     "ConstructionItem" should {
       "convert to packet" in {
-        val cdef = ConstructionItemDefinition(Unit.advanced_ace)
-        cdef.Modes += DeployedItem.tank_traps
-        cdef.Modes += DeployedItem.portable_manned_turret_tr
-        cdef.Modes += DeployedItem.deployable_shield_generator
-        cdef.Tile = InventoryTile.Tile63
-        cdef.Packet = new ACEConverter()
-        val obj = ConstructionItem(cdef)
+        val obj = ConstructionItem(GlobalDefinitions.ace)
         obj.GUID = PlanetSideGUID(90)
         obj.Definition.Packet.DetailedConstructorData(obj) match {
           case Success(pkt) =>
@@ -122,6 +116,7 @@ class ConverterTest extends Specification {
           case _ =>
             ko
         }
+
         obj.Definition.Packet.ConstructorData(obj) match {
           case Success(pkt) =>
             pkt mustEqual ACEData(0,0)
@@ -150,6 +145,260 @@ class ConverterTest extends Specification {
         case _ =>
           ko
       }
+    }
+  }
+
+  "BoomerTrigger" should {
+    "convert" in {
+      val obj = new BoomerTrigger
+      obj.GUID = PlanetSideGUID(90)
+      obj.Definition.Packet.DetailedConstructorData(obj) match {
+        case Success(pkt) =>
+          pkt mustEqual DetailedBoomerTriggerData()
+        case _ =>
+          ko
+      }
+      obj.Definition.Packet.ConstructorData(obj) match {
+        case Success(pkt) =>
+          pkt mustEqual BoomerTriggerData()
+        case _ =>
+          ko
+      }
+    }
+  }
+
+  "Telepad" should {
+    "convert (success)" in {
+      val obj = new Telepad(GlobalDefinitions.router_telepad)
+      obj.Router = PlanetSideGUID(1001)
+      obj.Definition.Packet.ConstructorData(obj) match {
+        case Success(pkt) =>
+          pkt mustEqual TelepadData(0, PlanetSideGUID(1001))
+        case _ =>
+          ko
+      }
+
+      obj.Definition.Packet.DetailedConstructorData(obj) match {
+        case Success(pkt) =>
+          pkt mustEqual DetailedTelepadData(0, PlanetSideGUID(1001))
+        case _ =>
+          ko
+      }
+    }
+
+    "convert (failure; no router)" in {
+      val obj = new Telepad(GlobalDefinitions.router_telepad)
+      //obj.Router = PlanetSideGUID(1001)
+      obj.Definition.Packet.ConstructorData(obj).isFailure mustEqual true
+
+
+      obj.Definition.Packet.DetailedConstructorData(obj).isFailure mustEqual true
+    }
+  }
+
+  "SmallDeployable" should {
+    "convert" in {
+      val obj = new SensorDeployable(GlobalDefinitions.motionalarmsensor)
+      obj.Faction = PlanetSideEmpire.TR
+      obj.Definition.Packet.DetailedConstructorData(obj).isFailure mustEqual true
+
+      obj.Definition.Packet.ConstructorData(obj) match {
+        case Success(pkt) =>
+          pkt mustEqual SmallDeployableData(
+            PlacementData(Vector3.Zero, Vector3.Zero),
+            PlanetSideEmpire.TR,
+            0,
+            false,
+            false
+          )
+        case _ =>
+          ko
+      }
+    }
+  }
+
+  "SmallTurret" should {
+    "convert" in {
+      val obj = new TurretDeployable(GlobalDefinitions.spitfire_turret)
+      obj.Faction = PlanetSideEmpire.TR
+      obj.GUID = PlanetSideGUID(90)
+      obj.Weapons(1).Equipment.get.GUID = PlanetSideGUID(91)
+      obj.Weapons(1).Equipment.get.asInstanceOf[Tool].AmmoSlot.Box.GUID = PlanetSideGUID(92)
+      obj.Definition.Packet.DetailedConstructorData(obj).isFailure mustEqual true
+
+      obj.Definition.Packet.ConstructorData(obj) match {
+        case Success(pkt) =>
+          pkt mustEqual SmallTurretData(
+            SmallDeployableData(
+              PlacementData(Vector3.Zero, Vector3.Zero),
+              PlanetSideEmpire.TR,
+              0,
+              false,
+              false
+            ),
+            255,
+            InventoryData(
+              List(InternalSlot(ObjectClass.spitfire_weapon, PlanetSideGUID(91), 1,
+                WeaponData(4, 8, ObjectClass.spitfire_ammo, PlanetSideGUID(92), 0, AmmoBoxData()))
+              )
+            )
+          )
+        case _ =>
+          ko
+      }
+    }
+  }
+
+  "FieldTurret" should {
+    "convert" in {
+      val obj = new TurretDeployable(GlobalDefinitions.portable_manned_turret_tr)
+      obj.Faction = PlanetSideEmpire.TR
+      obj.GUID = PlanetSideGUID(90)
+      obj.Weapons(1).Equipment.get.GUID = PlanetSideGUID(91)
+      obj.Weapons(1).Equipment.get.asInstanceOf[Tool].AmmoSlot.Box.GUID = PlanetSideGUID(92)
+      obj.Definition.Packet.DetailedConstructorData(obj).isFailure mustEqual true
+
+      obj.Definition.Packet.ConstructorData(obj) match {
+        case Success(pkt) =>
+          pkt mustEqual OneMannedFieldTurretData(
+            SmallDeployableData(
+              PlacementData(Vector3.Zero, Vector3.Zero),
+              PlanetSideEmpire.TR,
+              0,
+              false,
+              false
+            ),
+            255,
+            InventoryData(
+              List(InternalSlot(ObjectClass.energy_gun_tr, PlanetSideGUID(91), 1,
+                WeaponData(4, 8, ObjectClass.energy_gun_ammo, PlanetSideGUID(92), 0, AmmoBoxData()))
+              )
+            )
+          )
+        case _ =>
+          ko
+      }
+    }
+  }
+
+  "TRAP" should {
+    "convert" in {
+      val obj = new TrapDeployable(GlobalDefinitions.tank_traps)
+      obj.Faction = PlanetSideEmpire.TR
+      obj.GUID = PlanetSideGUID(90)
+      obj.Definition.Packet.DetailedConstructorData(obj).isFailure mustEqual true
+
+      obj.Definition.Packet.ConstructorData(obj) match {
+        case Success(pkt) =>
+          pkt mustEqual TRAPData(
+            SmallDeployableData(
+              PlacementData(Vector3.Zero, Vector3.Zero),
+              PlanetSideEmpire.TR,
+              0,
+              false,
+              false
+            ),
+            255
+          )
+        case _ =>
+          ko
+      }
+    }
+  }
+
+  "ShieldGenerator" should {
+    "convert" in {
+      val obj = new ShieldGeneratorDeployable(GlobalDefinitions.deployable_shield_generator)
+      obj.Faction = PlanetSideEmpire.TR
+      obj.GUID = PlanetSideGUID(90)
+      obj.Definition.Packet.DetailedConstructorData(obj).isFailure mustEqual true
+
+      obj.Definition.Packet.ConstructorData(obj) match {
+        case Success(pkt) =>
+          pkt mustEqual AegisShieldGeneratorData(
+            CommonFieldData(
+              PlacementData(Vector3.Zero, Vector3.Zero),
+              PlanetSideEmpire.TR,
+              0
+            ),
+            255
+          )
+        case _ =>
+          ko
+      }
+    }
+  }
+
+  "TelepadDeployable" should {
+    "convert (success)" in {
+      val obj = new TelepadDeployable(GlobalDefinitions.router_telepad_deployable)
+      obj.Faction = PlanetSideEmpire.TR
+      obj.GUID = PlanetSideGUID(90)
+      obj.Router = PlanetSideGUID(1001)
+      obj.Owner = PlanetSideGUID(5001)
+      obj.Health = 1
+      obj.Definition.Packet.ConstructorData(obj) match {
+        case Success(pkt) =>
+          pkt mustEqual TelepadDeployableData(
+            PlacementData(Vector3.Zero, Vector3.Zero),
+            PlanetSideEmpire.TR,
+            bops = false,
+            destroyed = false,
+            unk1 = 2, unk2 = true,
+            router_guid = PlanetSideGUID(1001),
+            owner_guid = PlanetSideGUID(5001),
+            unk3 = 87, unk4 = 12
+          )
+        case _ =>
+          ko
+      }
+    }
+
+    "convert (success; destroyed)" in {
+      val obj = new TelepadDeployable(GlobalDefinitions.router_telepad_deployable)
+      obj.Faction = PlanetSideEmpire.TR
+      obj.GUID = PlanetSideGUID(90)
+      obj.Router = PlanetSideGUID(1001)
+      obj.Owner = PlanetSideGUID(5001)
+      obj.Health = 0
+      obj.Definition.Packet.ConstructorData(obj) match {
+        case Success(pkt) =>
+          pkt mustEqual TelepadDeployableData(
+            PlacementData(Vector3.Zero, Vector3.Zero),
+            PlanetSideEmpire.TR,
+            bops = false,
+            destroyed = true,
+            unk1 = 2, unk2 = true,
+            router_guid = PlanetSideGUID(1001),
+            owner_guid = PlanetSideGUID(0),
+            unk3 = 0, unk4 = 6
+          )
+        case _ =>
+          ko
+      }
+    }
+
+    "convert (failure; no router)" in {
+      val obj = new TelepadDeployable(GlobalDefinitions.router_telepad_deployable)
+      obj.Faction = PlanetSideEmpire.TR
+      obj.GUID = PlanetSideGUID(90)
+      //obj.Router = PlanetSideGUID(1001)
+      obj.Owner = PlanetSideGUID(5001)
+      obj.Health = 1
+      obj.Definition.Packet.ConstructorData(obj).isFailure mustEqual true
+
+      obj.Router = PlanetSideGUID(0)
+      obj.Definition.Packet.ConstructorData(obj).isFailure mustEqual true
+    }
+
+    "convert (failure; detailed)" in {
+      val obj = new TelepadDeployable(GlobalDefinitions.router_telepad_deployable)
+      obj.Faction = PlanetSideEmpire.TR
+      obj.GUID = PlanetSideGUID(90)
+      obj.Router = PlanetSideGUID(1001)
+      obj.Owner = PlanetSideGUID(5001)
+      obj.Health = 1
+      obj.Definition.Packet.DetailedConstructorData(obj).isFailure mustEqual true
     }
   }
 
@@ -368,7 +617,49 @@ class ConverterTest extends Specification {
       ams.Utilities(4)().GUID = PlanetSideGUID(417)
 
       ams.Definition.Packet.ConstructorData(ams).isSuccess mustEqual true
-      ok //TODO write more of this test
+    }
+
+    "convert to packet (3)" in {
+      val
+      ams = Vehicle(GlobalDefinitions.ams)
+      ams.GUID = PlanetSideGUID(413)
+      ams.Health = 0 //destroyed vehicle
+
+      ams.Definition.Packet.ConstructorData(ams).isSuccess mustEqual true
+      //did not initialize the utilities, but the converter did not fail
+    }
+
+    "convert to packet (4)" in {
+      val
+      router = Vehicle(GlobalDefinitions.router)
+      router.GUID = PlanetSideGUID(413)
+      router.Utility(UtilityType.teleportpad_terminal).get.GUID = PlanetSideGUID(1413)
+      router.Utility(UtilityType.internal_router_telepad_deployable).get.GUID = PlanetSideGUID(2413)
+      router.Definition.Packet.ConstructorData(router).isSuccess mustEqual true
+    }
+  }
+
+  "DestroyedVehicle" should {
+    "not convert a working vehicle" in {
+      val ams = Vehicle(GlobalDefinitions.ams)
+      ams.GUID = PlanetSideGUID(413)
+      ams.Health mustEqual 3000 //not destroyed vehicle
+      DestroyedVehicleConverter.converter.ConstructorData(ams).isFailure mustEqual true
+    }
+
+    "convert to packet" in {
+      val ams = Vehicle(GlobalDefinitions.ams)
+      ams.GUID = PlanetSideGUID(413)
+      ams.Health = 0
+      DestroyedVehicleConverter.converter.ConstructorData(ams).isSuccess mustEqual true
+      //did not initialize the utilities, but the converter did not fail
+    }
+
+    "not convert into a detailed packet" in {
+      val ams = Vehicle(GlobalDefinitions.ams)
+      ams.GUID = PlanetSideGUID(413)
+      ams.Health = 0
+      DestroyedVehicleConverter.converter.DetailedConstructorData(ams).isFailure mustEqual true
     }
   }
 }

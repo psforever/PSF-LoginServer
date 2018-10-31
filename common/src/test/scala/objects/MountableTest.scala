@@ -2,6 +2,7 @@
 package objects
 
 import akka.actor.{Actor, ActorRef, Props}
+import base.ActorTest
 import net.psforever.objects.{Avatar, Player}
 import net.psforever.objects.definition.{ObjectDefinition, SeatDefinition}
 import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior}
@@ -12,7 +13,7 @@ import net.psforever.types.{CharacterGender, CharacterVoice, PlanetSideEmpire}
 
 import scala.concurrent.duration.Duration
 
-class MountableControl1Test extends ActorTest() {
+class MountableControl1Test extends ActorTest {
   "MountableControl" should {
     "construct" in {
       val obj = new MountableTest.MountableTestObject
@@ -22,7 +23,7 @@ class MountableControl1Test extends ActorTest() {
   }
 }
 
-class MountableControl2Test extends ActorTest() {
+class MountableControl2Test extends ActorTest {
   "MountableControl" should {
     "let a player mount" in {
       val player = Player(Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
@@ -43,7 +44,7 @@ class MountableControl2Test extends ActorTest() {
   }
 }
 
-class MountableControl3Test extends ActorTest() {
+class MountableControl3Test extends ActorTest {
   "MountableControl" should {
     "block a player from mounting" in {
       val player1 = Player(Avatar("test1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))

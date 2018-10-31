@@ -21,14 +21,19 @@ import shapeless.{::, HNil}
   * @param health the amount of health the object has, as a percentage of a filled bar
   * @param internals data regarding the mountable weapon
   */
-final case class OneMannedFieldTurretData(deploy : CommonFieldData,
+final case class OneMannedFieldTurretData(deploy : SmallDeployableData,
                                           health : Int,
-                                          internals : Option[InternalSlot] = None
+                                          internals : Option[InventoryData] = None
                                          ) extends ConstructorData {
   override def bitsize : Long = {
     val deploySize = deploy.bitsize
-    val internalSize = if(internals.isDefined) { CommonFieldData.internalWeapon_bitsize + internals.get.bitsize } else { 0L }
-    38L + deploySize + internalSize //16u + 8u + 8u + 2u + 4u
+    val internalSize = internals match {
+      case Some(inv) =>
+        inv.bitsize
+      case None =>
+        0
+    }
+    37L + deploySize + internalSize //16u + 1u + 8u + 5u + 4u + 2u + 1u
   }
 }
 
@@ -40,7 +45,7 @@ object OneMannedFieldTurretData extends Marshallable[OneMannedFieldTurretData] {
     * @param internals data regarding the mountable weapon
     * @return a `OneMannedFieldTurretData` object
     */
-  def apply(deploy : CommonFieldData, health : Int, internals : InternalSlot) : OneMannedFieldTurretData =
+  def apply(deploy : SmallDeployableData, health : Int, internals : InventoryData) : OneMannedFieldTurretData =
     new OneMannedFieldTurretData(deploy, health, Some(internals))
 
   /**
@@ -122,40 +127,44 @@ object OneMannedFieldTurretData extends Marshallable[OneMannedFieldTurretData] {
     )
 
   implicit val codec : Codec[OneMannedFieldTurretData] = (
-    ("deploy" | CommonFieldData.codec) ::
-      bool ::
-      PlanetSideGUID.codec :: //hoist/extract with the CommonFieldData above
+    ("deploy" | SmallDeployableData.codec) ::
+      PlanetSideGUID.codec :: //hoist/extract with the deploy.owner_guid in field above
       bool ::
       ("health" | uint8L) ::
-      uint2L ::
-      uint8L ::
-      bool ::
-      optional(bool, "internals" | CommonFieldData.internalWeaponCodec)
+      uint(5) ::
+      uint4 ::
+      uint2 ::
+      optional(bool, "internals" | InventoryData.codec)
     ).exmap[OneMannedFieldTurretData] (
     {
-      case deploy :: false :: player :: false :: health :: 0 :: 0x1E :: false :: internals :: HNil =>
-        var newHealth : Int = health
-        var newInternals : Option[InternalSlot] = internals
-        if(health == 0 || internals.isEmpty) {
-          newHealth = 0
-          newInternals = None
+      case deploy :: player :: false :: health :: 0 :: 0xF :: 0 :: internals :: HNil =>
+        val (newHealth, newInternals) = if(health == 0 || internals.isEmpty || internals.get.contents.isEmpty) {
+          (0, None)
         }
-        val newDeploy = CommonFieldData(deploy.pos, deploy.faction, deploy.unk, player)
-        Attempt.successful(OneMannedFieldTurretData(newDeploy, newHealth, newInternals))
+        else {
+          (health, internals)
+        }
+        Attempt.successful(
+          OneMannedFieldTurretData(
+            SmallDeployableData(deploy.pos, deploy.faction, deploy.bops, deploy.destroyed, deploy.unk1, deploy.jammered, deploy.unk2, player),
+            newHealth,
+            newInternals
+          )
+        )
 
       case _ =>
        Attempt.failure(Err("invalid omft data format"))
     },
     {
       case OneMannedFieldTurretData(deploy, health, internals) =>
-        var newHealth : Int = health
-        var newInternals : Option[InternalSlot] = internals
-        if(health == 0 || internals.isEmpty) {
-          newHealth = 0
-          newInternals = None
+        val (newHealth, newInternals) = if(health == 0 || internals.isEmpty || internals.get.contents.isEmpty) {
+          (0, None)
         }
-        val newDeploy = CommonFieldData(deploy.pos, deploy.faction, deploy.unk)
-        Attempt.successful(newDeploy :: false :: deploy.player_guid :: false :: newHealth :: 0 :: 0x1E :: false :: newInternals :: HNil)
+        else {
+          (health, internals)
+        }
+        val newDeploy = SmallDeployableData(deploy.pos, deploy.faction, deploy.bops, deploy.destroyed, deploy.unk1, deploy.jammered, deploy.unk2, PlanetSideGUID(0))
+        Attempt.successful(newDeploy :: deploy.owner_guid :: false :: newHealth :: 0 :: 0xF :: 0 :: newInternals :: HNil)
 
       case _ =>
         Attempt.failure(Err("invalid omft data format"))

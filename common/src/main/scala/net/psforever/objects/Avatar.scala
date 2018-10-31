@@ -1,6 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects
 
+import net.psforever.objects.avatar.DeployableToolbox
 import net.psforever.objects.definition.{AvatarDefinition, ImplantDefinition}
 import net.psforever.objects.equipment.EquipmentSize
 import net.psforever.objects.loadouts.Loadout
@@ -36,6 +37,8 @@ class Avatar(val name : String, val faction : PlanetSideEmpire.Value, val sex : 
       s"$name's ${Definition.Name}"
     }
   }
+
+  private val deployables : DeployableToolbox = new DeployableToolbox
 
   def BEP : Long = bep
 
@@ -177,7 +180,9 @@ class Avatar(val name : String, val faction : PlanetSideEmpire.Value, val sex : 
     }
   }
 
-  def Definition : AvatarDefinition = Avatar.definition
+  def Deployables : DeployableToolbox = deployables
+
+  def Definition : AvatarDefinition = GlobalDefinitions.avatar
 
   /*
   Merit Commendations and Ribbons
@@ -210,8 +215,6 @@ class Avatar(val name : String, val faction : PlanetSideEmpire.Value, val sex : 
 }
 
 object Avatar {
-  final private val definition : AvatarDefinition = new AvatarDefinition(121)
-
   def apply(name : String, faction : PlanetSideEmpire.Value, sex : CharacterGender.Value, head : Int, voice : CharacterVoice.Value) : Avatar = {
     new Avatar(name, faction, sex, head, voice)
   }

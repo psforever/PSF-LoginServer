@@ -2,17 +2,27 @@
 
 import akka.actor.{ActorRef, ActorSystem, MDCContextAware}
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
+import com.typesafe.config.ConfigFactory
 import net.psforever.packet.{ControlPacket, GamePacket}
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 import org.specs2.specification.Scope
 
-abstract class ActorTest(sys : ActorSystem = ActorSystem("system")) extends TestKit(sys) with Scope with ImplicitSender with WordSpecLike with Matchers with BeforeAndAfterAll {
+abstract class ActorTest(sys : ActorSystem = ActorSystem("system", ConfigFactory.parseMap(ActorTest.LoggingConfig)))
+  extends TestKit(sys) with Scope with ImplicitSender with WordSpecLike with Matchers with BeforeAndAfterAll {
   override def afterAll {
     TestKit.shutdownActorSystem(system)
   }
 }
 
 object ActorTest {
+  import scala.collection.JavaConverters._
+  private val LoggingConfig = Map(
+    "akka.loggers" -> List("akka.testkit.TestEventListener").asJava,
+    "akka.loglevel" -> "OFF",
+    "akka.stdout-loglevel" -> "OFF",
+    "akka.log-dead-letters" -> "OFF"
+  ).asJava
+
   final case class MDCGamePacket(packet : GamePacket)
 
   final case class MDCControlPacket(packet : ControlPacket)
@@ -29,7 +39,7 @@ object ActorTest {
     Normally inaccessible from the outside, the payload is unwrapped within the standard receive PartialFunction.
     By interacting with a TestProbe constructor param, information that would be concealed by MdcMsg can be polled.
 
-    The l-neighbor of the MDCContextAware is the system of the ActorTest TestKit.
+    The l-neighbor of the MDCContextAware is the system of the base.ActorTest TestKit.
     The r-neighbor of the MDCContextAware is this MDCTestProbe and, indirectly, the TestProbe that was interjected.
     Pass l-input into the MDCContextAware itself.
     The r-output is a normal message that can be polled on that TestProbe.

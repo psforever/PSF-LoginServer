@@ -13,7 +13,8 @@ import scodec.codecs._
   * `67 - ???`<br>
   * <br>
   * Global (GUID=0)<br>
-  * `82 - ???`
+  * `75 - Russian client region check` (value checks with bitmask `& 8`)<br>
+  * `82 - ???`<br>
   * `83 - max boomers`<br>
   * `84 - max he mines`<br>
   * `85 - max disruptor mines`<br>
@@ -51,6 +52,15 @@ import scodec.codecs._
   * `17 - BEP. Value seems to be the same as BattleExperienceMessage`<br>
   * `18 - CEP.`<br>
   * `19 - Anchors. Value is 0 to disengage, 1 to engage.`<br>
+  * `20 - Control console hacking. "The FactionName has hacked into BaseName` - also sets timer on CC and yellow base warning lights on<br>
+  *   <ul>
+  *     <li>65535 segments per faction in deciseconds (seconds * 10)</li>
+  *     <li>0-65535 = Neutral 0 seconds to 1h 49m 14s</li>
+  *     <li>65536 - 131071 - TR</li>
+  *     <li>131072 - 196607 - NC</li>
+  *     <li>196608 - 262143 - VS</li>
+  *     <li>17039360 - CC Resecured</li>
+  *   </ul>
   * `24 - Learn certifications with value :`<br>
   *         01 : Medium Assault<br>
   *         02 : Heavy Assault<br>
@@ -105,10 +115,10 @@ import scodec.codecs._
   * `36 - CR. Value is the CR`<br>
   * `43 - Info on avatar name : 0 = Nothing, 1 = "(LD)" message`<br>
   * `45 - NTU charge bar 0-10, 5 = 50% full. Seems to apply to both ANT and NTU Silo (possibly siphons?)`<br>
-  *  47 - Sets base NTU level to CRITICAL. MUST use base modelId not base GUID
-  *  48 - Set to 1 to send base power loss message & turns on red warning lights throughout base. MUST use base modelId not base GUID
-  * 49 - Vehicle texture effects state? (>0 turns on ANT panel glow or ntu silo panel glow + orbs) (bit?)
-  * `52 - Vehicle particle effects? (>0 turns on orbs going towards ANT. Doesn't affect silo) (bit?)
+  * `47 - Sets base NTU level to CRITICAL. MUST use base modelId not base GUID`<br>
+  * `48 - Set to 1 to send base power loss message & turns on red warning lights throughout base. MUST use base modelId not base GUID`<br>
+  * `49 - Vehicle texture effects state? (>0 turns on ANT panel glow or ntu silo panel glow + orbs) (bit?)`<br>
+  * `52 - Vehicle particle effects? (>0 turns on orbs going towards ANT. Doesn't affect silo) (bit?)`<br>
   * `53 - LFS. Value is 1 to flag LFS`<br>
   * `54 - Player "Aura". Values can be expressed in the first byte's lower nibble:`<br>
   * - 0 is nothing<br>
@@ -127,6 +137,8 @@ import scodec.codecs._
   * `116 - Apply colour to REK beam and REK icon above players (0 = yellow, 1 = red, 2 = purple, 3 = blue)`<br>
   * Client to Server : <br>
   * `106 - Custom Head`<br>
+  * `224 - Player/vehicle joins black ops`<br>
+  * `228 - Player/vehicle leaves black ops`<br>
   * <br>
   * `Vehicles:`<br>
   * `10 - Driver seat permissions (0 = Locked, 1 = Group, 3 = Empire)`<br>
@@ -137,9 +149,10 @@ import scodec.codecs._
   * `22 - Toggles gunner and passenger mount points (1 = hides, 0 = reveals; this also locks their permissions)`<br>
   * `54 -  Vehicle EMP? Plays sound as if vehicle had been hit by EMP`<br>
   * `68 - Vehicle shield health`<br>
+  * `79 - ???`<br>
   * `80 - Damage vehicle (unknown value)`<br>
   * `81 - ???`<br>
-  * `113 - `Vehicle capacitor - e.g. Leviathan EMP charge`
+  * `113 - Vehicle capacitor - e.g. Leviathan EMP charge`
   *
   * @param player_guid the player
   * @param attribute_type na
@@ -155,6 +168,10 @@ final case class PlanetsideAttributeMessage(player_guid : PlanetSideGUID,
 }
 
 object PlanetsideAttributeMessage extends Marshallable[PlanetsideAttributeMessage] {
+  def apply(player_guid : PlanetSideGUID, attribute_type : Int, attribute_value : Int) : PlanetsideAttributeMessage = {
+    PlanetsideAttributeMessage(player_guid, attribute_type, attribute_value.toLong)
+  }
+
   implicit val codec : Codec[PlanetsideAttributeMessage] = (
     ("player_guid" | PlanetSideGUID.codec) ::
       ("attribute_type" | uint8L) ::

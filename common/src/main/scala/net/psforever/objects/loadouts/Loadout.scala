@@ -100,6 +100,12 @@ object Loadout {
     */
   final case class ShorthandConstructionItem(definition : ConstructionItemDefinition) extends Simplification
   /**
+    * The simplified form of a `BoomerTrigger`, a unique kind of `SimpleItem`.
+    * @param definition the `SimpleItemDefinition` that describes this future object;
+    *                   actually ignored, but retained for function definition consistency
+    */
+  final case class ShorthandTriggerItem(definition : SimpleItemDefinition) extends Simplification
+  /**
     * The simplified form of a `SimpleItem`.
     * @param definition the `SimpleItemDefinition` that describes this future object
     */
@@ -223,6 +229,8 @@ object Loadout {
         ShorthandAmmoBox(obj.Definition, obj.Capacity)
       case obj : ConstructionItem =>
         ShorthandConstructionItem(obj.Definition)
+      case obj : BoomerTrigger =>
+        ShorthandTriggerItem(obj.Definition)
       case obj : SimpleItem =>
         ShorthandSimpleItem(obj.Definition)
       case obj : Kit =>
