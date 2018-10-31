@@ -1413,131 +1413,114 @@ class WorldSessionActor extends Actor with MDCContextAware {
     */
   def HandleTerminalMessage(tplayer : Player, msg : ItemTransactionMessage, order : Terminal.Exchange) : Unit = {
     order match {
-      case Terminal.BuyExosuit(exosuit, subtype) => //refresh armor points
-        tplayer.History(HealFromExoSuitChange(PlayerSource(tplayer), exosuit))
-        if(tplayer.ExoSuit == exosuit) {
-          if(exosuit == ExoSuitType.MAX) {
-            //special MAX case - clear any special state
-            player.UsingSpecial = SpecialExoSuitDefinition.Mode.Normal
-            player.ExoSuit = exosuit
-            if(Loadout.DetermineSubtype(tplayer) != subtype) {
-              //special MAX case - suit switching to a different MAX suit; we need to change the main weapon
-              sendResponse(ArmorChangedMessage(tplayer.GUID, exosuit, subtype))
-              avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.ArmorChanged(tplayer.GUID, exosuit, subtype))
-              val arms = tplayer.Slot(0).Equipment.get
-              val putTask = PutEquipmentInSlot(tplayer, Tool(GlobalDefinitions.MAXArms(subtype, tplayer.Faction)), 0)
-              taskResolver ! DelayedObjectHeld(tplayer, 0, List(TaskResolver.GiveTask(putTask.task, putTask.subs :+ RemoveEquipmentFromSlot(tplayer, arms, 0))))
-            }
-          }
-          //outside of the MAX condition above, we should seldom reach this point through conventional methods
-          tplayer.Armor = tplayer.MaxArmor
-          sendResponse(PlanetsideAttributeMessage(tplayer.GUID, 4, tplayer.Armor))
-          avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.PlanetsideAttribute(tplayer.GUID, 4, tplayer.Armor))
-          sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, true))
+      case Terminal.BuyExosuit(exosuit, subtype) =>
+        val originalSuit = tplayer.ExoSuit
+        val originalArmor = tplayer.Armor
+        //load a complete new exo-suit and shuffle the inventory around (save inventory before it gets cleared)
+        val dropPred = DropPredicate(tplayer)
+        val (dropInventory, beforeInventory) = tplayer.Inventory.Clear().partition(dropPred)
+        val (dropHolsters, beforeHolsters) = clearHolsters(tplayer.Holsters().iterator).partition(dropPred)
+        //change suit (clear inventory and change holster sizes; note: holsters must be empty before this point)
+        tplayer.ExoSuit = exosuit
+        val toMaxArmor = tplayer.MaxArmor
+        if(originalArmor > toMaxArmor) {
+          tplayer.Armor = toMaxArmor
+          sendResponse(PlanetsideAttributeMessage(tplayer.GUID, 4, toMaxArmor))
+          avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttribute(tplayer.GUID, 4, toMaxArmor))
         }
         else {
-          //load a complete new exo-suit and shuffle the inventory around
-          val originalSuit = tplayer.ExoSuit
-          //save inventory before it gets cleared (empty holsters)
-          val dropPred = DropPredicate(tplayer)
-          val (dropHolsters, beforeHolsters) = clearHolsters(tplayer.Holsters().iterator).partition(dropPred)
-          val (dropInventory, beforeInventory) = tplayer.Inventory.Clear().partition(dropPred)
-          //change suit (clear inventory and change holster sizes; note: holsters must be empty before this point)
-          tplayer.ExoSuit = exosuit
-          tplayer.Armor = tplayer.MaxArmor
-          //delete everything not dropped
-          (beforeHolsters ++ beforeInventory).foreach({ elem =>
-            sendResponse(ObjectDeleteMessage(elem.obj.GUID, 0))
-          })
-          beforeHolsters.foreach({ elem =>
-            avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.ObjectDelete(tplayer.GUID, elem.obj.GUID))
-          })
-          //report change
-          sendResponse(ArmorChangedMessage(tplayer.GUID, exosuit, subtype))
-          avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.ArmorChanged(tplayer.GUID, exosuit, subtype))
-          sendResponse(PlanetsideAttributeMessage(tplayer.GUID, 4, tplayer.Armor))
-          avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttribute(tplayer.GUID, 4, tplayer.Armor))
-          val finalInventory = if(exosuit == ExoSuitType.MAX) {
-            //MAX weapon to be placed in first pistol slot; slot to be drawn
-            taskResolver ! DelayedObjectHeld(tplayer, 0, List(PutEquipmentInSlot(tplayer, Tool(GlobalDefinitions.MAXArms(subtype, tplayer.Faction)), 0)))
-            //fill melee slot
-            fillEmptyHolsters(List(tplayer.Slot(4)).iterator, beforeHolsters) ++ beforeInventory
+          tplayer.Armor = originalArmor
+        }
+        //delete everything not dropped
+        (beforeHolsters ++ beforeInventory).foreach({ elem =>
+          sendResponse(ObjectDeleteMessage(elem.obj.GUID, 0))
+        })
+        beforeHolsters.foreach({ elem =>
+          avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.ObjectDelete(tplayer.GUID, elem.obj.GUID))
+        })
+        //report change
+        sendResponse(ArmorChangedMessage(tplayer.GUID, exosuit, subtype))
+        avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.ArmorChanged(tplayer.GUID, exosuit, subtype))
+        val finalInventory = if(exosuit == ExoSuitType.MAX) {
+          //MAX weapon to be placed in first pistol slot; slot to be drawn
+          taskResolver ! DelayedObjectHeld(tplayer, 0, List(PutEquipmentInSlot(tplayer, Tool(GlobalDefinitions.MAXArms(subtype, tplayer.Faction)), 0)))
+          //fill melee slot
+          fillEmptyHolsters(List(tplayer.Slot(4)).iterator, beforeHolsters) ++ beforeInventory
+        }
+        else {
+          //remove potential MAX weapon
+          val normalWeapons = if(originalSuit == ExoSuitType.MAX) {
+            val (maxWeapons, normalWeapons) = beforeHolsters.partition(elem => elem.obj.Size == EquipmentSize.Max)
+            maxWeapons.foreach(entry => {
+              taskResolver ! GUIDTask.UnregisterEquipment(entry.obj)(continent.GUID)
+            })
+            normalWeapons
           }
           else {
-            //remove potential MAX weapon
             tplayer.DrawnSlot = Player.HandsDownSlot
             sendResponse(ObjectHeldMessage(tplayer.GUID, Player.HandsDownSlot, true))
-            val normalWeapons = if(originalSuit == ExoSuitType.MAX) {
-              val (maxWeapons, normalWeapons) = beforeHolsters.partition(elem => elem.obj.Size == EquipmentSize.Max)
-              maxWeapons.foreach(entry => {
-                taskResolver ! GUIDTask.UnregisterEquipment(entry.obj)(continent.GUID)
-              })
-              avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.ObjectHeld(player.GUID, player.LastDrawnSlot))
-              normalWeapons
-            }
-            else {
-              beforeHolsters
-            }
-            //fill holsters
-            val (afterHolsters, toInventory) = normalWeapons.partition(elem => elem.obj.Size == tplayer.Slot(elem.start).Size)
-            afterHolsters.foreach({ elem => tplayer.Slot(elem.start).Equipment = elem.obj })
-            fillEmptyHolsters(tplayer.Holsters().iterator, toInventory ++ beforeInventory)
+            avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.ObjectHeld(tplayer.GUID, Player.HandsDownSlot))
+            beforeHolsters
           }
-          //draw holsters
-          tplayer.VisibleSlots.foreach({ index =>
-            tplayer.Slot(index).Equipment match {
-              case Some(obj) =>
-                val definition = obj.Definition
-                sendResponse(
-                  ObjectCreateDetailedMessage(
-                    definition.ObjectId,
-                    obj.GUID,
-                    ObjectCreateMessageParent(tplayer.GUID, index),
-                    definition.Packet.DetailedConstructorData(obj).get
-                  )
-                )
-                avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.EquipmentInHand(player.GUID, player.GUID, index, obj))
-              case None => ;
-            }
-          })
-          //re-draw equipment held in free hand
-          tplayer.FreeHand.Equipment match {
-            case Some(item) =>
-              val definition = item.Definition
+          //fill holsters
+          val (afterHolsters, toInventory) = normalWeapons.partition(elem => elem.obj.Size == tplayer.Slot(elem.start).Size)
+          afterHolsters.foreach({ elem => tplayer.Slot(elem.start).Equipment = elem.obj })
+          fillEmptyHolsters(tplayer.Holsters().iterator, toInventory ++ beforeInventory)
+        }
+        //draw holsters
+        tplayer.VisibleSlots.foreach({ index =>
+          tplayer.Slot(index).Equipment match {
+            case Some(obj) =>
+              val definition = obj.Definition
               sendResponse(
                 ObjectCreateDetailedMessage(
                   definition.ObjectId,
-                  item.GUID,
-                  ObjectCreateMessageParent(tplayer.GUID, Player.FreeHandSlot),
-                  definition.Packet.DetailedConstructorData(item).get
+                  obj.GUID,
+                  ObjectCreateMessageParent(tplayer.GUID, index),
+                  definition.Packet.DetailedConstructorData(obj).get
                 )
               )
+              avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.EquipmentInHand(player.GUID, player.GUID, index, obj))
             case None => ;
           }
-          //put items back into inventory
-          val (stow, drop) = GridInventory.recoverInventory(finalInventory, tplayer.Inventory)
-          stow.foreach(elem => {
-            tplayer.Inventory.Insert(elem.start, elem.obj)
-            val obj = elem.obj
-            val definition = obj.Definition
+        })
+        //re-draw equipment held in free hand
+        tplayer.FreeHand.Equipment match {
+          case Some(item) =>
+            val definition = item.Definition
             sendResponse(
               ObjectCreateDetailedMessage(
                 definition.ObjectId,
-                obj.GUID,
-                ObjectCreateMessageParent(tplayer.GUID, elem.start),
-                definition.Packet.DetailedConstructorData(obj).get
+                item.GUID,
+                ObjectCreateMessageParent(tplayer.GUID, Player.FreeHandSlot),
+                definition.Packet.DetailedConstructorData(item).get
               )
             )
-          })
-          //drop items on ground
-          val pos = tplayer.Position
-          val orient = Vector3(0, 0, tplayer.Orientation.z)
-          ((dropHolsters ++ dropInventory).map(_.obj) ++ drop).foreach(obj => {
-            //TODO make a sound when dropping stuff
-            continent.Ground ! Zone.Ground.DropItem(obj, pos, orient)
-          })
-          sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, true))
+          case None => ;
         }
+        //put items back into inventory
+        val (stow, drop) = GridInventory.recoverInventory(finalInventory, tplayer.Inventory)
+        stow.foreach(elem => {
+          tplayer.Inventory.Insert(elem.start, elem.obj)
+          val obj = elem.obj
+          val definition = obj.Definition
+          sendResponse(
+            ObjectCreateDetailedMessage(
+              definition.ObjectId,
+              obj.GUID,
+              ObjectCreateMessageParent(tplayer.GUID, elem.start),
+              definition.Packet.DetailedConstructorData(obj).get
+            )
+          )
+        })
+        //drop items on ground
+        val pos = tplayer.Position
+        val orient = Vector3.z(tplayer.Orientation.z)
+        ((dropHolsters ++ dropInventory).map(_.obj) ++ drop).foreach(obj => {
+          //TODO make a sound when dropping stuff
+          continent.Ground ! Zone.Ground.DropItem(obj, pos, orient)
+        })
+        sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, true))
 
       case Terminal.BuyEquipment(item) =>
         tplayer.Fit(item) match {
@@ -2421,7 +2404,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       //TODO begin temp player character auto-loading; remove later
       import net.psforever.objects.GlobalDefinitions._
       import net.psforever.types.CertificationType._
-      val avatar = Avatar(s"TestCharacter$sessionId", (if(sessionId==3) PlanetSideEmpire.VS else PlanetSideEmpire.TR), CharacterGender.Female, 41, CharacterVoice.Voice1)
+      val avatar = Avatar(s"TestCharacter$sessionId", PlanetSideEmpire.VS, CharacterGender.Female, 41, CharacterVoice.Voice1)
       avatar.Certifications += StandardAssault
       avatar.Certifications += MediumAssault
       avatar.Certifications += StandardExoSuit
@@ -4280,9 +4263,22 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ HitHint(source_guid, player_guid) =>
       log.info(s"HitHint: $msg")
+      val attributeToSource : PlanetSideGUID = continent.GUID(source_guid) match {
+        case Some(obj : LocalProjectile) =>
+          FindProjectileEntry(source_guid) match {
+            case Some(obj) =>
+              continent.LivePlayers.find(_.Name == obj.owner.Name).getOrElse(player).GUID
+            case None =>
+              player.GUID
+          }
+        case None =>
+          PlanetSideGUID(0) //TODO what to do here
+        case obj =>
+          source_guid
+      }
       continent.GUID(player_guid) match {
         case Some(obj : Player) =>
-          avatarService ! AvatarServiceMessage(obj.Name, AvatarAction.HitHint(source_guid, player_guid))
+          avatarService ! AvatarServiceMessage(obj.Name, AvatarAction.HitHint(attributeToSource, player_guid))
         case _ => ;
       }
 
