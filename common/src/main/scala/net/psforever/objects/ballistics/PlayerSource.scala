@@ -3,6 +3,7 @@ package net.psforever.objects.ballistics
 
 import net.psforever.objects.Player
 import net.psforever.objects.definition.ObjectDefinition
+import net.psforever.objects.vital.resistance.ResistanceProfile
 import net.psforever.types.{ExoSuitType, PlanetSideEmpire, Vector3}
 
 final case class PlayerSource(name : String,
@@ -14,7 +15,8 @@ final case class PlayerSource(name : String,
                               armor : Int,
                               position : Vector3,
                               orientation : Vector3,
-                              velocity : Option[Vector3] = None) extends SourceEntry {
+                              velocity : Option[Vector3],
+                              modifiers : ResistanceProfile) extends SourceEntry {
   override def Name = name
   override def Faction = faction
   def Definition = obj_def
@@ -25,11 +27,12 @@ final case class PlayerSource(name : String,
   def Position = position
   def Orientation = orientation
   def Velocity = velocity
+  def Modifiers = modifiers
 }
 
 object PlayerSource {
   def apply(tplayer : Player) : PlayerSource = {
     PlayerSource(tplayer.Name, tplayer.Definition, tplayer.Faction, tplayer.ExoSuit, tplayer.VehicleSeated.nonEmpty,
-      tplayer.Health, tplayer.Armor, tplayer.Position, tplayer.Orientation, tplayer.Velocity)
+      tplayer.Health, tplayer.Armor, tplayer.Position, tplayer.Orientation, tplayer.Velocity, tplayer.asInstanceOf[ResistanceProfile])
   }
 }

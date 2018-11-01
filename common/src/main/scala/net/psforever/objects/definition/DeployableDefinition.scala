@@ -6,11 +6,13 @@ import net.psforever.objects.PlanetSideGameObject
 import net.psforever.objects.ce.{Deployable, DeployableCategory, DeployedItem}
 import net.psforever.objects.definition.converter.SmallDeployableConverter
 import net.psforever.objects.serverobject.PlanetSideServerObject
-import net.psforever.objects.vital.{DamageResistanceModel, NoResistanceSelection, StandardDeployableDamage}
+import net.psforever.objects.vital.resistance.ResistanceProfileMutators
+import net.psforever.objects.vital.{DamageResistanceModel, NoResistanceSelection, StandardDeployableDamage, StandardResistanceProfile}
 
 import scala.concurrent.duration._
 
-trait BaseDeployableDefinition extends DamageResistanceModel {
+trait BaseDeployableDefinition extends DamageResistanceModel
+  with ResistanceProfileMutators {
   private var category : DeployableCategory.Value = DeployableCategory.Boomers
   private var deployTime : Long = (1 second).toMillis //ms
   private var maxHealth : Int = 1

@@ -27,9 +27,16 @@ abstract class DamageCalculations(damages : DamagesType,
     */
   def Calculate(data : ResolvedProjectile) : Int = {
     val projectile = data.projectile
+    val profile = projectile.profile
+    val modifiers = if(profile.UseDamage1Subtract) {
+      List(projectile.fire_mode.Modifiers, data.target.Modifiers.Subtract)
+    }
+    else {
+      List(projectile.fire_mode.Modifiers)
+    }
     damages(
       projectile,
-      extractor(projectile.profile, List(projectile.fire_mode.Modifiers)),
+      extractor(profile, modifiers),
       distanceFunc(data)
     )
   }

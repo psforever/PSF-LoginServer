@@ -947,18 +947,41 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
       case AvatarResponse.DamageResolution(target, resolution_function) =>
         if(player.isAlive) {
-          log.info(s"BEFORE: ${target.Health}HP, ${target.Armor}AR")
+          val originalHealth = player.Health
+          val originalArmor = player.Armor
           resolution_function(target)
           val health = player.Health
           val armor = player.Armor
-          log.info(s"AFTER: ${health}HP, ${armor}AR")
-          val playerGUID = player.GUID
-          sendResponse(PlanetsideAttributeMessage(playerGUID, 0, health))
-          sendResponse(PlanetsideAttributeMessage(playerGUID, 4, armor))
-          avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(playerGUID, 0, health))
-          avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(playerGUID, 4, armor))
-          if(health == 0 && player.isAlive) {
-            KillPlayer(player)
+          val damageToHealth = originalHealth - health
+          val damageToArmor = originalArmor - armor
+          log.info(s"BEFORE: $originalHealth/$originalArmor, AFTER: $health/$armor, CHANGE: $damageToHealth/$damageToArmor")
+          if(damageToHealth != 0 || damageToArmor != 0) {
+            val playerGUID = player.GUID
+            sendResponse(PlanetsideAttributeMessage(playerGUID, 0, health))
+            sendResponse(PlanetsideAttributeMessage(playerGUID, 4, armor))
+            avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(playerGUID, 0, health))
+            avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(playerGUID, 4, armor))
+            if(health == 0 && player.isAlive) {
+              KillPlayer(player)
+            }
+            else {
+              //first damage entry -> most recent damage source -> killing blow
+              target.History.find(p => p.isInstanceOf[DamagingActivity]) match {
+                case Some(data : DamageFromProjectile) =>
+                  data.data.projectile.owner match {
+                    case pSource : PlayerSource =>
+                      continent.LivePlayers.find(_.Name == pSource.Name) match {
+                        case Some(tplayer) =>
+                          sendResponse(HitHint(tplayer.GUID, player.GUID))
+                        case None => ;
+                      }
+                    case vSource : SourceEntry =>
+                      sendResponse(DamageWithPositionMessage(damageToHealth + damageToArmor, vSource.Position))
+                    case _ => ;
+                  }
+                case _ => ;
+              }
+            }
           }
         }
 
@@ -1423,7 +1446,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         //change suit (clear inventory and change holster sizes; note: holsters must be empty before this point)
         tplayer.ExoSuit = exosuit
         val toMaxArmor = tplayer.MaxArmor
-        if(originalArmor > toMaxArmor) {
+        if((originalSuit != exosuit) || originalArmor > toMaxArmor) {
           tplayer.Armor = toMaxArmor
           sendResponse(PlanetsideAttributeMessage(tplayer.GUID, 4, toMaxArmor))
           avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttribute(tplayer.GUID, 4, toMaxArmor))
@@ -4263,24 +4286,25 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ HitHint(source_guid, player_guid) =>
       log.info(s"HitHint: $msg")
-      val attributeToSource : PlanetSideGUID = continent.GUID(source_guid) match {
-        case Some(obj : LocalProjectile) =>
-          FindProjectileEntry(source_guid) match {
-            case Some(obj) =>
-              continent.LivePlayers.find(_.Name == obj.owner.Name).getOrElse(player).GUID
-            case None =>
-              player.GUID
-          }
-        case None =>
-          PlanetSideGUID(0) //TODO what to do here
-        case obj =>
-          source_guid
-      }
-      continent.GUID(player_guid) match {
-        case Some(obj : Player) =>
-          avatarService ! AvatarServiceMessage(obj.Name, AvatarAction.HitHint(attributeToSource, player_guid))
-        case _ => ;
-      }
+//      val attributeToSource : PlanetSideGUID = continent.GUID(source_guid) match {
+//        case Some(obj : LocalProjectile) =>
+//          log.info(s"Projectiles: $projectiles")
+//          FindProjectileEntry(source_guid) match {
+//            case Some(obj) =>
+//              continent.LivePlayers.find(_.Name == obj.owner.Name).getOrElse(player).GUID
+//            case None =>
+//              player.GUID
+//          }
+//        case None =>
+//          PlanetSideGUID(0) //TODO what to do here
+//        case obj =>
+//          source_guid
+//      }
+//      continent.GUID(player_guid) match {
+//        case Some(obj : Player) =>
+//          avatarService ! AvatarServiceMessage(obj.Name, AvatarAction.HitHint(attributeToSource, player_guid))
+//        case _ => ;
+//      }
 
     case msg @ TargetingImplantRequest(list) =>
       log.info("TargetingImplantRequest: "+msg)
@@ -5345,8 +5369,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
               case obj : Vehicle =>
                 vehicleService ! VehicleServiceMessage(s"${obj.Actor}", VehicleAction.UnstowEquipment(player_guid, item2_guid))
               case obj : Player =>
-                if(obj.isBackpack || destination.VisibleSlots.contains(dest)) { //corpse being looted, or item was in hands
+                if(obj.isBackpack || destination.VisibleSlots.contains(dest)) { //corpse being looted, or item was accessible
                   avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player_guid, item2_guid))
+                  //put hand down locally
+                  if(dest == player.DrawnSlot) {
+                    player.DrawnSlot = Player.HandsDownSlot
+                  }
                 }
               case _ => ;
             }

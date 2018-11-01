@@ -226,10 +226,12 @@ class GridInventory extends Container {
     else {
       val collisions : mutable.Set[InventoryItem] = mutable.Set[InventoryItem]()
       var curr = actualSlot
+      val fixedItems = items.toMap
+      val fixedGrid = grid.toList
       for(_ <- 0 until h) {
         for(col <- 0 until w) {
-          if(grid(curr + col) > -1) {
-            collisions += items(grid(curr + col))
+          if(fixedGrid(curr + col) > -1) {
+            collisions += fixedItems(fixedGrid(curr + col))
           }
         }
         curr += width
