@@ -9,6 +9,7 @@ import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffi
 import net.psforever.objects.serverobject.deploy.DeploymentBehavior
 import net.psforever.objects.vital.{VehicleShieldCharge, Vitality}
 import net.psforever.types.ExoSuitType
+import org.slf4j.Logger
 
 /**
   * An `Actor` that handles messages being dispatched to a specific `Vehicle`.<br>
@@ -63,7 +64,14 @@ class VehicleControl(vehicle : Vehicle) extends Actor
 
       case Vitality.Damage(damage_func) =>
         if(vehicle.Health > 0) {
+          val originalHealth = vehicle.Health
+          val originalShields = vehicle.Shields
           damage_func(vehicle)
+          val health = vehicle.Health
+          val shields = vehicle.Shields
+          val damageToHealth = originalHealth - health
+          val damageToShields = originalShields - shields
+          org.log4s.getLogger("DAMAGE_RESOLUTION").info(s"BEFORE: $originalHealth/$originalShields, AFTER: $health/$shields, CHANGE: $damageToHealth/$damageToShields")
           sender ! Vitality.DamageResolution(vehicle)
         }
 

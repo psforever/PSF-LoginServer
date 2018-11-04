@@ -20,7 +20,7 @@ import scala.annotation.tailrec
 class Tool(private val toolDef : ToolDefinition) extends Equipment
   with FireModeSwitch[FireModeDefinition] {
   /** index of the current fire mode on the `ToolDefinition`'s list of fire modes */
-  private var fireModeIndex : Int = 0
+  private var fireModeIndex : Int = toolDef.DefaultFireModeIndex
   /** current ammunition slot being used by this fire mode */
   private var ammoSlots : List[Tool.FireModeSlot] = List.empty
 

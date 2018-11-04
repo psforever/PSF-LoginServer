@@ -555,11 +555,19 @@ object GlobalDefinitions {
 
   val maelstrom = ToolDefinition(ObjectClass.maelstrom)
 
-  val phoenix = ToolDefinition(ObjectClass.phoenix) //decimator
+  val phoenix = new ToolDefinition(ObjectClass.phoenix) {
+    override def NextFireModeIndex(index : Int) : Int = index
+  } //decimator
 
-  val striker = ToolDefinition(ObjectClass.striker)
+  val striker = new ToolDefinition(ObjectClass.striker) {
+    override def NextFireModeIndex(index : Int) : Int = index
+    DefaultFireModeIndex = 1
+  }
 
-  val hunterseeker = ToolDefinition(ObjectClass.hunterseeker) //phoenix
+  val hunterseeker = new ToolDefinition(ObjectClass.hunterseeker) {
+    override def NextFireModeIndex(index : Int) : Int = index
+    DefaultFireModeIndex = 1
+  } //phoenix
 
   val lancer = ToolDefinition(ObjectClass.lancer)
 
@@ -573,7 +581,7 @@ object GlobalDefinitions {
 
   val bolt_driver = ToolDefinition(ObjectClass.bolt_driver)
 
-  val oicw = ToolDefinition(ObjectClass.oicw) //scorpion
+  val oicw = ToolDefinition(ObjectClass.oicw)
 
   val flamethrower = ToolDefinition(ObjectClass.flamethrower)
 
@@ -718,7 +726,9 @@ object GlobalDefinitions {
 
   val lightgunship_weapon_system = ToolDefinition(ObjectClass.lightgunship_weapon_system)
 
-  val wasp_weapon_system = ToolDefinition(ObjectClass.wasp_weapon_system)
+  val wasp_weapon_system = new ToolDefinition(ObjectClass.wasp_weapon_system) {
+    override def NextFireModeIndex(index : Int) : Int = index
+  }
 
   val liberator_weapon_system = ToolDefinition(ObjectClass.liberator_weapon_system)
 

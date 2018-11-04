@@ -68,6 +68,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
   import WorldSessionActor._
 
   private[this] val log = org.log4s.getLogger
+  private[this] val damageLog = org.log4s.getLogger("DAMAGE_RESOLUTION")
   var sessionId : Long = 0
   var leftRef : ActorRef = ActorRef.noSender
   var rightRef : ActorRef = ActorRef.noSender
@@ -115,8 +116,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * @param b `true` or `false` (or `null`)
     * @return 1 for `true`; 0 for `false`
     */
-  implicit def boolToInt(b : Boolean) : Int = if(b) 1
-  else 0
+  implicit def boolToInt(b : Boolean) : Int = if(b) 1 else 0
 
   override def postStop() = {
     //TODO normally, player avatar persists a minute or so after disconnect; we are subject to the SessionReaper
@@ -128,7 +128,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
     vehicleService ! Service.Leave()
     avatarService ! Service.Leave()
     galaxyService ! Service.Leave()
-    cluster ! Service.Leave()
     LivePlayerList.Remove(sessionId)
     if(player != null && player.HasGUID) {
       val player_guid = player.GUID
@@ -954,7 +953,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           val armor = player.Armor
           val damageToHealth = originalHealth - health
           val damageToArmor = originalArmor - armor
-          log.info(s"BEFORE: $originalHealth/$originalArmor, AFTER: $health/$armor, CHANGE: $damageToHealth/$damageToArmor")
+          damageLog.info(s"BEFORE: $originalHealth/$originalArmor, AFTER: $health/$armor, CHANGE: $damageToHealth/$damageToArmor")
           if(damageToHealth != 0 || damageToArmor != 0) {
             val playerGUID = player.GUID
             sendResponse(PlanetsideAttributeMessage(playerGUID, 0, health))
@@ -2427,7 +2426,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       //TODO begin temp player character auto-loading; remove later
       import net.psforever.objects.GlobalDefinitions._
       import net.psforever.types.CertificationType._
-      val avatar = Avatar(s"TestCharacter$sessionId", PlanetSideEmpire.VS, CharacterGender.Female, 41, CharacterVoice.Voice1)
+      val avatar = Avatar(s"TestCharacter$sessionId", (if(sessionId%4==0) PlanetSideEmpire.NC else if(sessionId%3==0) PlanetSideEmpire.TR else PlanetSideEmpire.VS), CharacterGender.Female, 41, CharacterVoice.Voice1)
       avatar.Certifications += StandardAssault
       avatar.Certifications += MediumAssault
       avatar.Certifications += StandardExoSuit
@@ -2475,9 +2474,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
       //player.Orientation = Vector3(0f, 0f, 132.1875f)
 //      player.ExoSuit = ExoSuitType.MAX //TODO strange issue; divide number above by 10 when uncommenting
       player.Slot(0).Equipment = Tool(GlobalDefinitions.StandardPistol(player.Faction))
-      player.Slot(2).Equipment = Tool(bolt_driver)
+      player.Slot(2).Equipment = Tool(suppressor)
       player.Slot(4).Equipment = Tool(GlobalDefinitions.StandardMelee(player.Faction))
-      player.Slot(6).Equipment = AmmoBox(bolt) //bullet_9mm
+      player.Slot(6).Equipment = AmmoBox(bullet_9mm)
       player.Slot(9).Equipment = AmmoBox(bullet_9mm)
       player.Slot(12).Equipment = AmmoBox(bullet_9mm)
       player.Slot(33).Equipment = AmmoBox(bullet_9mm_AP)
@@ -4011,7 +4010,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
               case Some(projectile) => !projectile.isResolved
               case None => false
             }) {
-              log.warn(s"WeaponFireMessage: former projectile ${projectile_guid.guid} was not resolved properly; overwriting anyway")
+              log.trace(s"WeaponFireMessage: overwriting unresolved projectile ${projectile_guid.guid}")
             }
             val (angle, attribution) = obj match {
               case p : Player =>
