@@ -106,12 +106,12 @@ class DamageCalculationsTests extends Specification {
 
     "calculate splash damage from components (near)" in {
       val result = DamageWithModifiers(DamageAgainstVehicle)(proj_prof, List(wep_prof))
-      SplashDamageWithRadialDegrade(projectile, result, 0) mustEqual 264
+      SplashDamageWithRadialDegrade(projectile, result, 0) mustEqual 132
     }
 
     "calculate splash damage from components (medium)" in {
       val result = DamageWithModifiers(DamageAgainstVehicle)(proj_prof, List(wep_prof))
-      SplashDamageWithRadialDegrade(projectile, result, 5) mustEqual 145
+      SplashDamageWithRadialDegrade(projectile, result, 5) mustEqual 13
     }
 
     "calculate splash damage from components (far)" in {
@@ -341,7 +341,7 @@ class DamageModelTests extends Specification {
       val func : (Any)=>Unit = resprojectile.damage_model.Calculate(resprojectile, ProjectileResolution.Splash)
 
       func(tplayer)
-      tplayer.Health mustEqual 81
+      tplayer.Health mustEqual 98
       tplayer.Armor mustEqual 35
     }
 
@@ -410,7 +410,7 @@ class DamageModelTests extends Specification {
       val func : (Any)=>Unit = resprojectile.damage_model.Calculate(resprojectile, ProjectileResolution.Splash)
 
       func(vehicle)
-      vehicle.Health mustEqual 632
+      vehicle.Health mustEqual 641
     }
   }
 }
