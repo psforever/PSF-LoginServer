@@ -82,7 +82,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
   var player : Player = null
   var avatar : Avatar = null
   var progressBarValue : Option[Float] = None
-  var shooting : Option[PlanetSideGUID] = None
+  var shooting : Option[PlanetSideGUID] = None //ChangeFireStateMessage_Start
+  var prefire : Option[PlanetSideGUID] = None //if WeaponFireMessage precedes ChangeFireStateMessage_Start
   var accessedContainer : Option[PlanetSideGameObject with Container] = None
   var flying : Boolean = false
   var speed : Float = 1.0f
@@ -3109,11 +3110,17 @@ class WorldSessionActor extends Actor with MDCContextAware {
       if(shooting.isEmpty) {
         FindEquipment match {
           case Some(tool : Tool) =>
-            if(tool.Magazine > 0) {
+            if(tool.Magazine > 0 || prefire.contains(item_guid)) {
+              prefire = None
               shooting = Some(item_guid)
               avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireState_Start(player.GUID, item_guid))
             }
+            else {
+              log.warn(s"ChangeFireState_Start: ${tool.Definition.Name} magazine is empty before trying to shoot bullet")
+              EmptyMagazine(item_guid, tool)
+            }
           case Some(_) => //permissible, for now
+            prefire = None
             shooting = Some(item_guid)
             avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireState_Start(player.GUID, item_guid))
           case None =>
@@ -3123,6 +3130,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ ChangeFireStateMessage_Stop(item_guid) =>
       log.info("ChangeFireState_Stop: " + msg)
+      prefire = None
       val weapon : Option[Equipment] = if(shooting.contains(item_guid)) {
         shooting = None
         avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireState_Stop(player.GUID, item_guid))
@@ -3995,14 +4003,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
       FindContainedWeapon match {
         case (Some(obj), Some(tool : Tool)) =>
           if(tool.Magazine <= 0) { //safety: enforce ammunition depletion
-            tool.Magazine = 0
-            sendResponse(InventoryStateMessage(tool.AmmoSlot.Box.GUID, weapon_guid, 0))
-            sendResponse(ChangeFireStateMessage_Stop(weapon_guid))
-            avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireState_Stop(player.GUID, weapon_guid))
-            sendResponse(WeaponDryFireMessage(weapon_guid))
-            avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.WeaponDryFire(player.GUID, weapon_guid))
+            prefire = None
+            EmptyMagazine(weapon_guid, tool)
           }
           else { //shooting
+            prefire = shooting.orElse(Some(weapon_guid))
             tool.Discharge
             val projectileIndex = projectile_guid.guid - Projectile.BaseUID
             val projectilePlace = projectiles(projectileIndex)
@@ -6059,6 +6064,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       case Some(guid) =>
         sendResponse(ChangeFireStateMessage_Stop(guid))
         avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireState_Stop(player.GUID, guid))
+        prefire = None
         shooting = None
       case None => ;
     }
@@ -6102,7 +6108,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     val faction = tplayer.Faction
     val obj = Player.Respawn(tplayer)
     obj.Slot(0).Equipment = Tool(StandardPistol(faction))
-    obj.Slot(2).Equipment = Tool(suppressor)
+    obj.Slot(2).Equipment = Tool(bolt_driver)
     obj.Slot(4).Equipment = Tool(StandardMelee(faction))
     obj.Slot(6).Equipment = AmmoBox(bullet_9mm)
     obj.Slot(9).Equipment = AmmoBox(bullet_9mm)
@@ -7500,6 +7506,33 @@ class WorldSessionActor extends Actor with MDCContextAware {
         }
       case _ => ;
     }
+  }
+
+  /**
+    * For a certain weapon that cna load ammunition, enforce that its magazine is empty.
+    * @param weapon_guid the weapon
+    */
+  def EmptyMagazine(weapon_guid : PlanetSideGUID) : Unit = {
+    continent.GUID(weapon_guid) match {
+      case Some(tool : Tool) =>
+        EmptyMagazine(weapon_guid, tool)
+      case _ => ;
+    }
+  }
+
+  /**
+    * For a certain weapon that cna load ammunition, enforce that its magazine is empty.
+    * Punctuate that emptiness with a ceasation of weapons fire and a dry fire sound effect.
+    * @param weapon_guid the weapon (GUID)
+    * @param tool the weapon (object)
+    */
+  def EmptyMagazine(weapon_guid : PlanetSideGUID, tool : Tool) : Unit = {
+    tool.Magazine = 0
+    sendResponse(InventoryStateMessage(tool.AmmoSlot.Box.GUID, weapon_guid, 0))
+    sendResponse(ChangeFireStateMessage_Stop(weapon_guid))
+    avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireState_Stop(player.GUID, weapon_guid))
+    sendResponse(WeaponDryFireMessage(weapon_guid))
+    avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.WeaponDryFire(player.GUID, weapon_guid))
   }
 
   def failWithError(error : String) = {
