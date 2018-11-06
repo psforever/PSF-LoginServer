@@ -9,7 +9,6 @@ import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffi
 import net.psforever.objects.serverobject.deploy.DeploymentBehavior
 import net.psforever.objects.vital.{VehicleShieldCharge, Vitality}
 import net.psforever.types.ExoSuitType
-import org.slf4j.Logger
 
 /**
   * An `Actor` that handles messages being dispatched to a specific `Vehicle`.<br>
@@ -71,7 +70,9 @@ class VehicleControl(vehicle : Vehicle) extends Actor
           val shields = vehicle.Shields
           val damageToHealth = originalHealth - health
           val damageToShields = originalShields - shields
-          org.log4s.getLogger("DAMAGE_RESOLUTION").info(s"BEFORE: $originalHealth/$originalShields, AFTER: $health/$shields, CHANGE: $damageToHealth/$damageToShields")
+          val name = vehicle.Actor.toString
+          val slashPoint = name.lastIndexOf("/")
+          org.log4s.getLogger("DamageResolution").info(s"${name.substring(slashPoint+1, name.length-1)}: BEFORE=$originalHealth/$originalShields, AFTER=$health/$shields, CHANGE=$damageToHealth/$damageToShields")
           sender ! Vitality.DamageResolution(vehicle)
         }
 

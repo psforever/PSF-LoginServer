@@ -68,7 +68,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
   import WorldSessionActor._
 
   private[this] val log = org.log4s.getLogger
-  private[this] val damageLog = org.log4s.getLogger("DAMAGE_RESOLUTION")
+  private[this] val damageLog = org.log4s.getLogger("DamageResolution")
   var sessionId : Long = 0
   var leftRef : ActorRef = ActorRef.noSender
   var rightRef : ActorRef = ActorRef.noSender
@@ -954,7 +954,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           val armor = player.Armor
           val damageToHealth = originalHealth - health
           val damageToArmor = originalArmor - armor
-          damageLog.info(s"BEFORE: $originalHealth/$originalArmor, AFTER: $health/$armor, CHANGE: $damageToHealth/$damageToArmor")
+          damageLog.info(s"${player.Name}-infantry: BEFORE=$originalHealth/$originalArmor, AFTER=$health/$armor, CHANGE=$damageToHealth/$damageToArmor")
           if(damageToHealth != 0 || damageToArmor != 0) {
             val playerGUID = player.GUID
             sendResponse(PlanetsideAttributeMessage(playerGUID, 0, health))
