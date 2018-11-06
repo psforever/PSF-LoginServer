@@ -456,7 +456,6 @@ class PacketCodingActorITest extends ActorTest {
   val pos : PlacementData = PlacementData(Vector3.Zero, Vector3.Zero)
   val app : (Int)=>CharacterAppearanceData = CharacterAppearanceData(
     BasicCharacterData("IlllIIIlllIlIllIlllIllI", PlanetSideEmpire.VS, CharacterGender.Female, 41, CharacterVoice.Voice1),
-    3,
     false,
     false,
     ExoSuitType.Standard,
@@ -468,7 +467,7 @@ class PacketCodingActorITest extends ActorTest {
     GrenadeState.None,
     false,
     false,
-    false,
+    None,
     RibbonBars()
   )
   var char : (Option[Int])=>DetailedCharacterData = DetailedCharacterData(
@@ -476,7 +475,6 @@ class PacketCodingActorITest extends ActorTest {
     0,
     100, 100,
     50,
-    1, 7, 7,
     100, 100,
     List(CertificationType.StandardAssault, CertificationType.MediumAssault, CertificationType.ATV, CertificationType.Harasser, CertificationType.StandardExoSuit, CertificationType.AgileExoSuit, CertificationType.ReinforcedExoSuit),
     List(),
@@ -486,7 +484,7 @@ class PacketCodingActorITest extends ActorTest {
   )
   val obj = DetailedPlayerData(pos, app, char, InventoryData(Nil), DrawnSlot.None)
   val pkt = MultiPacketBundle(List(ObjectCreateDetailedMessage(0x79, PlanetSideGUID(75), obj)))
-  val string_hex = hex"000900001879060000bc84b000000000000000000002040000097049006c006c006c004900490049006c006c006c0049006c0049006c006c0049006c006c006c0049006c006c0049008452700000000000000000000000000000002000000fe6a703fffffffffffffffffffffffffffffffc00000000000000000000000000000000000000019001900064000001007ec800c80000000000000000000000000000000000000001c00042c54686c7000000000000000000000000000000000000000000000000000000000000000000000000200700"
+  val string_hex = hex"000900001879060000bc84b000000000000000000002040000097049006c006c006c004900490049006c006c006c0049006c0049006c006c0049006c006c006c0049006c006c00490084524000000000000000000000000000000020000007f35703fffffffffffffffffffffffffffffffc000000000000000000000000000000000000000190019000640000000000c800c80000000000000000000000000000000000000001c00042c54686c7000000000000000000000000000000000000000000000000000000000000000000000400e0"
 
   "PacketCodingActor" should {
     "bundle an r-originating packet into an l-facing SlottedMetaPacket byte stream data (SlottedMetaPacket)" in {
@@ -547,36 +545,92 @@ class PacketCodingActorJTest extends ActorTest {
 class PacketCodingActorKTest extends ActorTest {
   import net.psforever.packet.game.objectcreate._
   val pos : PlacementData = PlacementData(Vector3.Zero, Vector3.Zero)
-  val app : (Int)=>CharacterAppearanceData = CharacterAppearanceData(
-    BasicCharacterData("IlllIIIlllIlIllIlllIllI", PlanetSideEmpire.VS, CharacterGender.Female, 41, CharacterVoice.Voice1),
-    3,
+  val aa : Int=>CharacterAppearanceA = CharacterAppearanceA(
+    BasicCharacterData(
+      "IlllIIIlllIlIllIlllIllI",
+      PlanetSideEmpire.VS,
+      CharacterGender.Female,
+      41,
+      CharacterVoice.Voice1
+    ),
     false,
+    false,
+    true,
+    None,
     false,
     ExoSuitType.Standard,
+    None,
+    0,
+    0,
+    41605313L,
+    0,
+    0,
+    0,
+    65535
+  )
+  val ab : (Boolean,Int)=>CharacterAppearanceB = CharacterAppearanceB(
+    0L,
     "",
     0,
     false,
+    false,
+    false,
+    false,
+    false,
     2.8125f, 210.9375f,
-    true,
+    false,
     GrenadeState.None,
     false,
     false,
     false,
-    RibbonBars()
-  )
-  var char : (Option[Int])=>DetailedCharacterData = DetailedCharacterData(
-    0,
-    0,
-    100, 100,
-    50,
-    1, 7, 7,
-    100, 100,
-    List(CertificationType.StandardAssault, CertificationType.MediumAssault, CertificationType.ATV, CertificationType.Harasser, CertificationType.StandardExoSuit, CertificationType.AgileExoSuit, CertificationType.ReinforcedExoSuit),
-    List(),
-    List("xpe_sanctuary_help", "xpe_th_firemodes", "used_beamer", "map13"),
-    List.empty,
+    false,
+    false,
     None
   )
+
+  val app : (Int)=>CharacterAppearanceData = CharacterAppearanceData(
+    aa, ab,
+    RibbonBars()
+  )
+  val ba : DetailedCharacterA = DetailedCharacterA(
+    0L,
+    0L,
+    0L, 0L, 0L,
+    100, 100,
+    false,
+    50,
+    32831L,
+    100, 100,
+    0, 0, 0L,
+    List(0, 0, 0, 0, 0, 0),
+    List(
+      CertificationType.StandardAssault,
+      CertificationType.MediumAssault,
+      CertificationType.ATV,
+      CertificationType.Harasser,
+      CertificationType.StandardExoSuit,
+      CertificationType.AgileExoSuit,
+      CertificationType.ReinforcedExoSuit
+    )
+  )
+  val bb : (Long, Option[Int])=>DetailedCharacterB = DetailedCharacterB(
+    None,
+    Nil,
+    Nil, Nil,
+    List(
+      "xpe_sanctuary_help",
+      "xpe_th_firemodes",
+      "used_beamer",
+      "map13"
+    ),
+    Nil,
+    0L, 0L, 0L, 0L, 0L,
+    Some(DCDExtra2(0, 0)),
+    Nil, Nil, false,
+    None
+  )
+  val char : (Option[Int])=>DetailedCharacterData =
+    (pad_length : Option[Int]) => DetailedCharacterData(ba, bb(ba.bep, pad_length))(pad_length)
   val obj = DetailedPlayerData(pos, app, char, InventoryData(Nil), DrawnSlot.None)
   val list = List(
     ObjectCreateDetailedMessage(0x79, PlanetSideGUID(75), obj),

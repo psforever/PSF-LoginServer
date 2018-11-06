@@ -21,15 +21,16 @@ import shapeless.{::, HNil}
   * The presence or absence of position data as the first division creates a cascading effect
   * causing all of fields in the other two divisions to gain offsets.
   * These offsets exist in the form of `String` and `List` padding.
-  * @see `DetailedCharacterData`<br>
-  *       `InventoryData`<br>
-  *       `DrawnSlot`
+  * @see `CharacterAppearanceData`
+  * @see `DetailedCharacterData`
+  * @see `InventoryData`
+  * @see `DrawnSlot`
   * @param pos the optional position of the character in the world environment
   * @param basic_appearance common fields regarding the the character's appearance
-  * @param character_data the class-specific data that explains about the character
-  * @param position_defined used by the `Codec` to seed the state of the optional `pos` field
-  * @param inventory the player's full inventory
-  * @param drawn_slot the holster that is initially drawn
+  * @param character_data the class-specific data that discusses the character
+  * @param position_defined used to seed the state of the optional position fields
+  * @param inventory the player's full or partial (holsters-only) inventory
+  * @param drawn_slot the holster that is depicted as exposed, or "drawn"
   */
 final case class DetailedPlayerData(pos : Option[PlacementData],
                                     basic_appearance : CharacterAppearanceData,
@@ -54,8 +55,8 @@ object DetailedPlayerData extends Marshallable[DetailedPlayerData] {
     * This constructor should be used for players that are mounted.
     * @param basic_appearance a curried function for the common fields regarding the the character's appearance
     * @param character_data a curried function for the class-specific data that explains about the character
-    * @param inventory the player's inventory
-    * @param drawn_slot the holster that is initially drawn;
+    * @param inventory the player's full or partial (holsters-only) inventory
+    * @param drawn_slot the holster that is depicted as exposed, or "drawn";
     *                   technically, always `DrawnSlot.None`, but the field is preserved to maintain similarity
     * @return a `DetailedPlayerData` object
     */
@@ -70,7 +71,7 @@ object DetailedPlayerData extends Marshallable[DetailedPlayerData] {
     * This constructor should be used for players that are mounted.
     * @param basic_appearance a curried function for the common fields regarding the the character's appearance
     * @param character_data a curried function for the class-specific data that explains about the character
-    * @param drawn_slot the holster that is initially drawn;
+    * @param drawn_slot the holster that is depicted as exposed, or "drawn;"
     *                   technically, always `DrawnSlot.None`, but the field is preserved to maintain similarity
     * @return a `DetailedPlayerData` object
     */
@@ -86,8 +87,8 @@ object DetailedPlayerData extends Marshallable[DetailedPlayerData] {
     * @param pos the optional position of the character in the world environment
     * @param basic_appearance a curried function for the common fields regarding the the character's appearance
     * @param character_data a curried function for the class-specific data that explains about the character
-    * @param inventory the player's inventory
-    * @param drawn_slot the holster that is initially drawn
+    * @param inventory the player's full or partial (holsters-only) inventory
+    * @param drawn_slot the holster that is depicted as exposed, or "drawn"
     * @return a `DetailedPlayerData` object
     */
   def apply(pos : PlacementData, basic_appearance : (Int)=>CharacterAppearanceData, character_data : (Option[Int])=>DetailedCharacterData, inventory : InventoryData, drawn_slot : DrawnSlot.Value) : DetailedPlayerData = {
@@ -102,7 +103,7 @@ object DetailedPlayerData extends Marshallable[DetailedPlayerData] {
     * @param pos the optional position of the character in the world environment
     * @param basic_appearance a curried function for the common fields regarding the the character's appearance
     * @param character_data a curried function for the class-specific data that explains about the character
-    * @param drawn_slot the holster that is initially drawn
+    * @param drawn_slot the holster that is depicted as exposed, or "drawn"
     * @return a `DetailedPlayerData` object
     */
   def apply(pos : PlacementData, basic_appearance : (Int)=>CharacterAppearanceData, character_data : (Option[Int])=>DetailedCharacterData, drawn_slot : DrawnSlot.Value) : DetailedPlayerData = {
