@@ -17,7 +17,7 @@ import scodec.codecs._
   * As long as the event is marked to be logged, when the packet is received, a message is displayed in the events window.
   * If the logged action is applicable, the matrixing sound effect will be played too.
   * Not displaying events is occasionally warranted for aesthetics.
-  * The game will always note if this is your first time binding.<br>
+  * The game will always note if this is your first time binding regardless of the state of this flag.<br>
   * <br>
   * One common occurrence of this packet is during zone transport.
   * Specifically, a packet is dispatched after unloading the current zone but before beginning loading in the new zone.
@@ -46,10 +46,11 @@ import scodec.codecs._
   * @param logging true, to report on bind point change visible in the events window;
   *                false, to render spawn change silent;
   *                a first time event notification will always show
-  * @param unk2 na; if a value, it is usually 40 (hex`28`)
+  * @param unk2 na
   * @param unk3 na
   * @param unk4 na
-  * @param pos a position associated with the binding
+  * @param pos coordinates;
+  *            `x` and `y` determine the position of the icon
   */
 final case class BindPlayerMessage(action : Int,
                                    bindDesc : String,
@@ -68,19 +69,15 @@ final case class BindPlayerMessage(action : Int,
 object BindPlayerMessage extends Marshallable[BindPlayerMessage] {
   /**
     * A common variant of this packet.
-    * `16028004000000000000000000000000000000`
     */
-  val STANDARD = BindPlayerMessage(2, "", false, false, 2, 0, 0, Vector3(0, 0, 0))
+  val Standard = BindPlayerMessage(2, "", false, false, 1, 0, 0, Vector3.Zero)
 
-  //TODO: there are two ignore(1) in this packet; are they in a good position?
   implicit val codec : Codec[BindPlayerMessage] = (
     ("action" | uint8L) ::
       ("bindDesc" | PacketHelpers.encodedString) ::
       ("unk1" | bool) ::
       ("logging" | bool) ::
-      ignore(1) ::
       ("unk2" | uint4L) ::
-      ignore(1) ::
       ("unk3" | uint32L) ::
       ("unk4" | uint32L) ::
       ("pos" | Vector3.codec_pos)
