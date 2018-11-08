@@ -1585,8 +1585,18 @@ class WorldSessionActor extends Actor with MDCContextAware {
         //dropped items are lost
         val beforeFreeHand = tplayer.FreeHand.Equipment
         //change suit (clear inventory and change holster sizes; note: holsters must be empty before this point)
+        val originalSuit = player.ExoSuit
+        val originalArmor = player.Armor
         tplayer.ExoSuit = exosuit
-        tplayer.Armor = tplayer.MaxArmor
+        val toMaxArmor = tplayer.MaxArmor
+        if((originalSuit != exosuit) || originalArmor > toMaxArmor) {
+          tplayer.Armor = toMaxArmor
+          sendResponse(PlanetsideAttributeMessage(tplayer.GUID, 4, toMaxArmor))
+          avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttribute(tplayer.GUID, 4, toMaxArmor))
+        }
+        else {
+          tplayer.Armor = originalArmor
+        }
         //delete everything (not dropped)
         beforeHolsters.foreach({ elem =>
           avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.ObjectDelete(tplayer.GUID, elem.obj.GUID))
