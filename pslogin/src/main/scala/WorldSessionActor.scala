@@ -378,7 +378,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case VehicleSpawnPad.ServerVehicleOverrideStart(vehicle, pad) =>
       val vdef = vehicle.Definition
       if(vehicle.Seats(0).isOccupied) {
-        sendResponse(ObjectDetachMessage(pad.GUID, vehicle.GUID, pad.Position + Vector3(0, 0, 0.5f), pad.Orientation.z))
+        sendResponse(ObjectDetachMessage(pad.GUID, vehicle.GUID, pad.Position + Vector3.z(0.5f), pad.Orientation.z))
       }
       ServerVehicleOverride(vehicle, vdef.AutoPilotSpeed1, GlobalDefinitions.isFlightVehicle(vdef) : Int)
 
@@ -1009,7 +1009,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
       case AvatarResponse.KilledWhileInVehicle() =>
         if(player.isAlive && player.VehicleSeated.nonEmpty) {
-          (continent.GUID(player.VehicleSeated.get) match {
+          (continent.GUID(player.VehicleSeated) match {
             case Some(obj : Vehicle) =>
               if(obj.Health == 0) Some(obj)
               else None
@@ -1026,10 +1026,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
               obj.LastShot match {
                 case Some(cause) =>
                   player.History(cause)
+                  KillPlayer(player)
                 case None => ;
               }
-              KillPlayer(player)
-            case _ => ;
+            case _ =>
+              log.warn(s"${player.Name} was seated in a vehicle and should have been killed, but was not; suicidal fallback")
+              Suicide(player)
           }
         }
 
@@ -1439,10 +1441,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
       case Terminal.BuyExosuit(exosuit, subtype) =>
         val originalSuit = tplayer.ExoSuit
         val originalArmor = tplayer.Armor
-        //load a complete new exo-suit and shuffle the inventory around (save inventory before it gets cleared)
+        //load a complete new exo-suit and save the inventory before it gets cleared
         val dropPred = DropPredicate(tplayer)
-        val (dropInventory, beforeInventory) = tplayer.Inventory.Clear().partition(dropPred)
-        val (dropHolsters, beforeHolsters) = clearHolsters(tplayer.Holsters().iterator).partition(dropPred)
+        val beforeInventory = tplayer.Inventory.Clear()
+        val beforeHolsters = clearHolsters(tplayer.Holsters().iterator)
         //change suit (clear inventory and change holster sizes; note: holsters must be empty before this point)
         tplayer.ExoSuit = exosuit
         val toMaxArmor = tplayer.MaxArmor
@@ -1539,7 +1541,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         //drop items on ground
         val pos = tplayer.Position
         val orient = Vector3.z(tplayer.Orientation.z)
-        ((dropHolsters ++ dropInventory).map(_.obj) ++ drop).foreach(obj => {
+        drop.foreach(obj => {
           //TODO make a sound when dropping stuff
           continent.Ground ! Zone.Ground.DropItem(obj, pos, orient)
         })
@@ -1566,7 +1568,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
         }
 
       case Terminal.InfantryLoadout(exosuit, subtype, holsters, inventory) =>
-        //TODO optimizations against replacing Equipment with the exact same Equipment and potentially for recycling existing Equipment
         log.info(s"$tplayer wants to change equipment loadout to their option #${msg.unk1 + 1}")
         sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Loadout, true))
         tplayer.History(HealFromExoSuitChange(PlayerSource(tplayer), exosuit))
@@ -2427,7 +2428,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       //TODO begin temp player character auto-loading; remove later
       import net.psforever.objects.GlobalDefinitions._
       import net.psforever.types.CertificationType._
-      val avatar = Avatar(s"TestCharacter$sessionId", (if(sessionId%4==0) PlanetSideEmpire.NC else if(sessionId%3==0) PlanetSideEmpire.TR else PlanetSideEmpire.VS), CharacterGender.Female, 41, CharacterVoice.Voice1)
+      val avatar = Avatar(s"TestCharacter$sessionId", PlanetSideEmpire.VS, CharacterGender.Female, 41, CharacterVoice.Voice1)
       avatar.Certifications += StandardAssault
       avatar.Certifications += MediumAssault
       avatar.Certifications += StandardExoSuit
@@ -2855,8 +2856,28 @@ class WorldSessionActor extends Actor with MDCContextAware {
         player.FacingYawUpper = yaw_upper
         player.Crouching = is_crouching
         player.Jumping = is_jumping
+
         if(vel.isDefined && usingMedicalTerminal.isDefined) {
           StopUsingProximityUnit(continent.GUID(usingMedicalTerminal.get).get.asInstanceOf[ProximityTerminal])
+        }
+        accessedContainer match {
+          case Some(veh : Vehicle) =>
+            if(vel.isDefined || Vector3.DistanceSquared(player.Position, veh.Position) > 100) {
+              val guid = player.GUID
+              sendResponse(UnuseItemMessage(guid, veh.GUID))
+              sendResponse(UnuseItemMessage(guid, guid))
+              veh.AccessingTrunk = None
+              UnAccessContents(veh)
+              accessedContainer = None
+            }
+          case Some(container) => //just in case
+            if(vel.isDefined || Vector3.DistanceSquared(player.Position, container.Position) > 25) {
+              val guid = player.GUID
+              sendResponse(UnuseItemMessage(guid, container.GUID))
+              sendResponse(UnuseItemMessage(guid, guid))
+              accessedContainer = None
+            }
+          case None => ;
         }
         val wepInHand : Boolean = player.Slot(player.DrawnSlot).Equipment match {
           case Some(item) => item.Definition == GlobalDefinitions.bolt_driver
@@ -7454,7 +7475,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       val sguid = src.GUID
       val dguid = dest.GUID
       StartBundlingPackets()
-      sendResponse(PlayerStateShiftMessage(ShiftState(0, dest.Position, player.Orientation.z, player.Velocity)))
+      sendResponse(PlayerStateShiftMessage(ShiftState(0, dest.Position, player.Orientation.z)))
       UseRouterTelepadEffect(pguid, sguid, dguid)
       StopBundlingPackets()
 //      vehicleService ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(router), continent))
