@@ -2881,7 +2881,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
               accessedContainer = None
             }
           case Some(container) => //just in case
-            if(vel.isDefined || Vector3.DistanceSquared(player.Position, container.Position) > 25) {
+            if(vel.isDefined) {
               val guid = player.GUID
               sendResponse(UnuseItemMessage(guid, container.GUID))
               sendResponse(UnuseItemMessage(guid, guid))
