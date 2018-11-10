@@ -72,6 +72,7 @@ class CorpseConverter extends AvatarConverter {
   }
 
   private def MakeDetailedCharacterData(obj : Player) : (Option[Int]=>DetailedCharacterData) = {
+    val maxOpt : Option[Long] = if(obj.ExoSuit == ExoSuitType.MAX) { Some(0L) } else { None }
     val ba : DetailedCharacterA = DetailedCharacterA(
       bep = 0L,
       cep = 0L,
@@ -81,6 +82,7 @@ class CorpseConverter extends AvatarConverter {
       0,
       0L,
       0, 0,
+      maxOpt,
       0, 0, 0L,
       List(0, 0, 0, 0, 0, 0),
       certs = List.empty[CertificationType.Value]

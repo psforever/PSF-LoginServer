@@ -3,7 +3,7 @@ package net.psforever.packet.game.objectcreate
 
 import net.psforever.newcodecs.newcodecs
 import net.psforever.packet.{Marshallable, PacketHelpers}
-import net.psforever.types.{CertificationType, ImplantType}
+import net.psforever.types.{CertificationType, ExoSuitType, ImplantType}
 import scodec.{Attempt, Codec}
 import scodec.codecs._
 import shapeless.{::, HNil}
@@ -71,6 +71,8 @@ final case class DCDExtra2(unk1 : Int,
   *                   range is 0-65535
   * @param stamina for `x / y` of stamina points, this is the avatar's `x` value;
   *                range is 0-65535
+  * @param max_field unk;
+  *                  this field exists only when the player is wearing a mechanized assault exo-suit
   * @param certs the `List` of certifications
   */
 final case class DetailedCharacterA(bep : Long,
@@ -85,14 +87,16 @@ final case class DetailedCharacterA(bep : Long,
                                     unk5 : Long,
                                     staminaMax : Int,
                                     stamina : Int,
+                                    max_field : Option[Long],
                                     unk6 : Int,
                                     unk7 : Int,
                                     unk8 : Long,
                                     unk9 : List[Int],
                                     certs : List[CertificationType.Value]) extends StreamBitSize {
   override def bitsize : Long = {
+    val maxFieldSize = max_field match { case Some(_) => 32L ; case None => 0L }
     val certSize : Long = certs.length * 8
-    428L + certSize
+    428L + maxFieldSize + certSize
   }
 }
 
@@ -197,6 +201,7 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
             armor : Int,
             staminaMax : Int,
             stamina : Int,
+            maxField : Option[Long],
             certs : List[CertificationType.Value],
             implants : List[ImplantEntry],
             firstTimeEvents : List[String],
@@ -213,6 +218,7 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
       armor,
       0L,
       staminaMax, stamina,
+      maxField,
       0,
       0,
       0L,
@@ -527,7 +533,7 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
     */
   def isBR24(bep : Long) : Boolean = bep > 2286230
 
-  val a_codec : Codec[DetailedCharacterA] = (
+  def a_codec(suit : ExoSuitType.Value) : Codec[DetailedCharacterA] = (
     ("bep" | uint32L) ::
       ("cep" | uint32L) ::
       ("unk1" | uint32L) ::
@@ -540,7 +546,7 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
       ("unk5" | uint32) :: //endianness?
       ("staminaMax" | uint16L) ::
       ("stamina" | uint16L) ::
-      conditional(false, uint32L) :: //see ps.c: sub_901150, line#1070692
+      conditional(suit == ExoSuitType.MAX, uint32L) ::
       ("unk6" | uint16L) ::
       ("unk7" | uint(3)) ::
       ("unk8" | uint32L) ::
@@ -548,13 +554,13 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
       ("certs" | listOfN(uint8L, CertificationType.codec))
     ).exmap[DetailedCharacterA] (
     {
-      case bep :: cep :: u1 :: u2 :: u3 :: healthMax :: health :: u4 :: armor :: u5 :: staminaMax :: stamina :: None :: u6 :: u7 :: u8 :: u9 :: certs :: HNil =>
-        Attempt.successful(DetailedCharacterA(bep, cep, u1, u2, u3, healthMax, health, u4, armor, u5, staminaMax, stamina, u6, u7, u8, u9, certs))
+      case bep :: cep :: u1 :: u2 :: u3 :: healthMax :: health :: u4 :: armor :: u5 :: staminaMax :: stamina :: max :: u6 :: u7 :: u8 :: u9 :: certs :: HNil =>
+        Attempt.successful(DetailedCharacterA(bep, cep, u1, u2, u3, healthMax, health, u4, armor, u5, staminaMax, stamina, max, u6, u7, u8, u9, certs))
     },
     {
-      case DetailedCharacterA(bep, cep, u1, u2, u3, healthMax, health, u4, armor, u5, staminaMax, stamina, u6, u7, u8, u9, certs) =>
+      case DetailedCharacterA(bep, cep, u1, u2, u3, healthMax, health, u4, armor, u5, staminaMax, stamina, max, u6, u7, u8, u9, certs) =>
         Attempt.successful(
-          bep :: cep :: u1 :: u2 :: u3 :: healthMax :: health :: u4 :: armor :: u5 :: staminaMax :: stamina :: None :: u6 :: u7 :: u8 :: u9 :: certs :: HNil
+          bep :: cep :: u1 :: u2 :: u3 :: healthMax :: health :: u4 :: armor :: u5 :: staminaMax :: stamina :: max :: u6 :: u7 :: u8 :: u9 :: certs :: HNil
         )
     }
   )
@@ -614,8 +620,8 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
     }
   )
 
-  def codec(pad_length : Option[Int]) : Codec[DetailedCharacterData] = (
-    ("a" | a_codec) >>:~ { a =>
+  def codec(suit : ExoSuitType.Value, pad_length : Option[Int]) : Codec[DetailedCharacterData] = (
+    ("a" | a_codec(suit)) >>:~ { a =>
       ("b" | b_codec(a.bep, pad_length)).hlist
     }
     ).exmap[DetailedCharacterData] (
@@ -629,5 +635,5 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
     }
   )
 
-  implicit val codec : Codec[DetailedCharacterData] = codec(None)
+  implicit val codec : Codec[DetailedCharacterData] = codec(ExoSuitType.Standard, None)
 }

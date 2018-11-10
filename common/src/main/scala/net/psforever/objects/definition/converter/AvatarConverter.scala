@@ -4,7 +4,7 @@ package net.psforever.objects.definition.converter
 import net.psforever.objects.{EquipmentSlot, Player}
 import net.psforever.objects.equipment.Equipment
 import net.psforever.packet.game.objectcreate._
-import net.psforever.types.{GrenadeState, ImplantType}
+import net.psforever.types.{ExoSuitType, GrenadeState, ImplantType}
 
 import scala.annotation.tailrec
 import scala.util.{Success, Try}
@@ -124,7 +124,8 @@ object AvatarConverter {
   }
 
   def MakeDetailedCharacterData(obj : Player) : (Option[Int])=>DetailedCharacterData = {
-    val bep = obj.BEP
+    val bep : Long = obj.BEP
+    val maxOpt : Option[Long] = if(obj.ExoSuit == ExoSuitType.MAX) { Some(0L) } else { None }
     val ba : DetailedCharacterA = DetailedCharacterA(
       bep,
       obj.CEP,
@@ -134,6 +135,7 @@ object AvatarConverter {
       obj.Armor,
       0L,
       obj.MaxStamina, obj.Stamina,
+      maxOpt,
       0, 0, 0L,
       List(0, 0, 0, 0, 0, 0),
       obj.Certifications.toList.sortBy(_.id) //TODO is sorting necessary?

@@ -1460,17 +1460,17 @@ class WorldSessionActor extends Actor with MDCContextAware {
           }
           else {
             //remove potential MAX weapon
+            tplayer.DrawnSlot = Player.HandsDownSlot
+            sendResponse(ObjectHeldMessage(tplayer.GUID, Player.HandsDownSlot, true))
             val normalWeapons = if(originalSuit == ExoSuitType.MAX) {
               val (maxWeapons, normalWeapons) = beforeHolsters.partition(elem => elem.obj.Size == EquipmentSize.Max)
               maxWeapons.foreach(entry => {
                 taskResolver ! GUIDTask.UnregisterEquipment(entry.obj)(continent.GUID)
               })
+              avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.ObjectHeld(player.GUID, player.LastDrawnSlot))
               normalWeapons
             }
             else {
-              tplayer.DrawnSlot = Player.HandsDownSlot
-              sendResponse(ObjectHeldMessage(tplayer.GUID, Player.HandsDownSlot, true))
-              avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.ObjectHeld(tplayer.GUID, Player.HandsDownSlot))
               beforeHolsters
             }
             //fill holsters
@@ -2879,7 +2879,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             //we're driving the vehicle
             player.Position = pos //convenient
             if(seat.ControlledWeapon.isEmpty) {
-              player.Orientation = Vector3(0f, 0f, ang.z) //convenient
+              player.Orientation = Vector3.z(ang.z) //convenient
             }
             obj.Position = pos
             obj.Orientation = ang

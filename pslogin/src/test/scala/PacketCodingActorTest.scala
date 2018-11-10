@@ -476,6 +476,7 @@ class PacketCodingActorITest extends ActorTest {
     100, 100,
     50,
     100, 100,
+    None,
     List(CertificationType.StandardAssault, CertificationType.MediumAssault, CertificationType.ATV, CertificationType.Harasser, CertificationType.StandardExoSuit, CertificationType.AgileExoSuit, CertificationType.ReinforcedExoSuit),
     List(),
     List(),
@@ -601,6 +602,7 @@ class PacketCodingActorKTest extends ActorTest {
     50,
     32831L,
     100, 100,
+    None,
     0, 0, 0L,
     List(0, 0, 0, 0, 0, 0),
     List(
