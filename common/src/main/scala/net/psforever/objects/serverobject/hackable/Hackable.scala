@@ -1,10 +1,11 @@
 package net.psforever.objects.serverobject.hackable
 
 import net.psforever.objects.Player
+import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.packet.game.{PlanetSideGUID, TriggeredSound}
 import net.psforever.types.Vector3
 
-trait Hackable {
+trait Hackable extends FactionAffinity {
   /** An entry that maintains a reference to the `Player`, and the player's GUID and location when the message was received. */
   private var hackedBy : Option[(Player, PlanetSideGUID, Vector3)] = None
   def HackedBy : Option[(Player, PlanetSideGUID, Vector3)] = hackedBy
@@ -24,8 +25,8 @@ trait Hackable {
           hackedBy = Some(agent.get, agent.get.GUID, agent.get.Position)
         }
       case Some(_) =>
-        //clear the hack state
-        if(agent.isEmpty) {
+        //clear the hack state if no agent is provided or the agent's faction matches the object faction
+        if(agent.isEmpty || agent.get.Faction == this.Faction) {
           hackedBy = None
         }
         //override the hack state with a new hack state if the new user has different faction affiliation
