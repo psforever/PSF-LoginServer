@@ -6,6 +6,7 @@ import akka.routing.RandomPool
 import net.psforever.objects.ballistics.Projectile
 import net.psforever.objects._
 import net.psforever.objects.ce.Deployable
+import net.psforever.objects.entity.IdentifiableEntity
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.objects.guid.actor.UniqueNumberSystem
@@ -313,6 +314,7 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
 
   private def BuildSupportObjects() : Unit = {
     //guard against errors here, but don't worry about specifics; let ZoneActor.ZoneSetupCheck complain about problems
+    val other : ListBuffer[IdentifiableEntity] = new ListBuffer[IdentifiableEntity]()
     //turret to weapon
     Map.TurretToWeapon.foreach({ case ((turret_guid, weapon_guid)) =>
       ((GUID(turret_guid) match {
@@ -333,11 +335,13 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
       }) match {
         case Some((obj, Some(weapon : Tool))) =>
           guid.register(weapon, weapon_guid)
-          weapon.AmmoSlots.foreach(slot => guid.register(slot.Box, "dynamic"))
-          obj.Inventory.Items.foreach(item => guid.register(item.obj, "dynamic")) //internal ammunition reserves, if any
+          other ++= weapon.AmmoSlots.map(slot => slot.Box)
+          other ++= obj.Inventory.Items.map(item => item.obj) //internal ammunition reserves, if any
         case _ => ;
       }
     })
+    //after all fixed GUID's are defined  ...
+    other.foreach(obj => guid.register(obj, "dynamic"))
   }
 
   private def MakeBuildings(implicit context : ActorContext) : PairMap[Int, Building] = {
