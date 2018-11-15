@@ -879,6 +879,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
         AnnounceDestroyDeployable(target, None)
       }
 
+    case Vitality.DamageResolution(target : FacilityTurret) =>
+      HandleFacilityTurretDamageResolution(target)
+
     case Vitality.DamageResolution(target : PlanetSideGameObject) =>
       log.warn(s"Vital target ${target.Definition.Name} damage resolution not supported using this method")
 
@@ -1017,7 +1020,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
               if(obj.Health == 0) Some(obj)
               else None
             case Some(obj : FacilityTurret) =>
-              if(obj.Health == 0) Some(obj)
+              if(obj.Health == 1) Some(obj) //TODO proper turret death at 0 health
               else None
             case _ =>
               None
@@ -2220,6 +2223,48 @@ class WorldSessionActor extends Actor with MDCContextAware {
       AnnounceDestroyDeployable(target, None)
     }
     avatarService ! AvatarServiceMessage(continentId, AvatarAction.PlanetsideAttribute(guid, 0, health))
+  }
+
+  def HandleFacilityTurretDamageResolution(target : FacilityTurret) : Unit = {
+    val targetGUID = target.GUID
+    val playerGUID = player.GUID
+    val continentId = continent.Id
+    val players = target.Seats.values.filter(seat => {
+      seat.isOccupied && seat.Occupant.get.isAlive
+    })
+    if(target.Health > 1) { //TODO turret "death" at 0, as is proper
+      //alert occupants to damage source
+      players.foreach(seat => {
+        val tplayer = seat.Occupant.get
+        avatarService ! AvatarServiceMessage(tplayer.Name, AvatarAction.HitHint(playerGUID, tplayer.GUID))
+      })
+    }
+    else {
+      //alert to vehicle death (hence, occupants' deaths)
+      players.foreach(seat => {
+        val tplayer = seat.Occupant.get
+        val tplayerGUID = tplayer.GUID
+        avatarService ! AvatarServiceMessage(tplayer.Name, AvatarAction.KilledWhileInVehicle(tplayerGUID))
+        avatarService ! AvatarServiceMessage(continentId, AvatarAction.ObjectDelete(tplayerGUID, tplayerGUID)) //dead player still sees self
+      })
+      //turret wreckage has no weapons
+//      target.Weapons.values
+//        .filter {
+//          _.Equipment.nonEmpty
+//        }
+//        .foreach(slot => {
+//          val wep = slot.Equipment.get
+//          avatarService ! AvatarServiceMessage(continentId, AvatarAction.ObjectDelete(Service.defaultPlayerGUID, wep.GUID))
+//        })
+//      avatarService ! AvatarServiceMessage(continentId, AvatarAction.Destroy(targetGUID, playerGUID, playerGUID, player.Position))
+      target.Health = 1
+      vehicleService ! VehicleServiceMessage(continentId, VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, targetGUID, 0, target.MaxHealth)) //TODO not necessary
+      if(target.Upgrade != TurretUpgrade.None) {
+        vehicleService ! VehicleServiceMessage.TurretUpgrade(TurretUpgrader.ClearSpecific(List(target), continent))
+        vehicleService ! VehicleServiceMessage.TurretUpgrade(TurretUpgrader.AddTask(target, continent, TurretUpgrade.None))
+      }
+    }
+    vehicleService ! VehicleServiceMessage(continentId, VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, targetGUID, 0, target.Health))
   }
 
   /**
@@ -4070,12 +4115,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
       (hit_info match {
         case Some(hitInfo) =>
           continent.GUID(hitInfo.hitobject_guid) match {
-            case Some(obj : Player) =>
-              Some((obj, hitInfo.shot_origin, hitInfo.hit_pos))
-            case Some(obj : Vehicle) =>
-              Some((obj, hitInfo.shot_origin, hitInfo.hit_pos))
-            case Some(obj : PlanetSideGameObject with Deployable) =>
-              Some((obj, hitInfo.shot_origin, hitInfo.hit_pos))
+            case Some(target : PlanetSideGameObject with FactionAffinity with Vitality) =>
+              Some((target, hitInfo.shot_origin, hitInfo.hit_pos))
             case _ =>
               None
           }
@@ -4253,13 +4294,13 @@ class WorldSessionActor extends Actor with MDCContextAware {
                     vehicle.Definition.MountPoints.values.foreach(mountpoint_num => {
                       vehicle.Seat(mountpoint_num) match {
                         case Some(seat) =>
-                      seat.Occupant match {
-                        case Some(tplayer) =>
+                          seat.Occupant match {
+                            case Some(tplayer) =>
                               if(vehicle.SeatPermissionGroup(mountpoint_num).contains(group) && tplayer != player) { //can not kick self
-                            seat.Occupant = None
-                            tplayer.VehicleSeated = None
-                            vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.KickPassenger(tplayer.GUID, 4, false, object_guid))
-                          }
+                                seat.Occupant = None
+                                tplayer.VehicleSeated = None
+                                vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.KickPassenger(tplayer.GUID, 4, false, object_guid))
+                              }
                             case None => ; // No player seated
                           }
                         case None => ; // Not a seat mounting point
@@ -4320,26 +4361,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       log.info("FriendsRequest: "+msg)
 
     case msg @ HitHint(source_guid, player_guid) =>
-      log.info(s"HitHint: $msg")
-//      val attributeToSource : PlanetSideGUID = continent.GUID(source_guid) match {
-//        case Some(obj : LocalProjectile) =>
-//          log.info(s"Projectiles: $projectiles")
-//          FindProjectileEntry(source_guid) match {
-//            case Some(obj) =>
-//              continent.LivePlayers.find(_.Name == obj.owner.Name).getOrElse(player).GUID
-//            case None =>
-//              player.GUID
-//          }
-//        case None =>
-//          PlanetSideGUID(0) //TODO what to do here
-//        case obj =>
-//          source_guid
-//      }
-//      continent.GUID(player_guid) match {
-//        case Some(obj : Player) =>
-//          avatarService ! AvatarServiceMessage(obj.Name, AvatarAction.HitHint(attributeToSource, player_guid))
-//        case _ => ;
-//      }
+      log.trace(s"HitHint: $msg") //HitHint is manually distributed for proper operation
 
     case msg @ TargetingImplantRequest(list) =>
       log.info("TargetingImplantRequest: "+msg)
@@ -4349,7 +4371,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case default => log.error(s"Unhandled GamePacket $pkt")
   }
-
 
   /**
     * Iterate over a group of `EquipmentSlot`s, some of which may be occupied with an item.
@@ -6621,6 +6642,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
       case obj : Deployable =>
         //damage is synchronized on `LSA` (results returned to and distributed from this `WSA`)
         localService ! Vitality.DamageOn(obj, func)
+      case obj : FacilityTurret =>
+        //damage is synchronized on the turret actor (results returned to and distributed from this `WSA`)
+        obj.Actor ! Vitality.Damage(func)
       case _ => ;
     }
   }

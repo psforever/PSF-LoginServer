@@ -4,6 +4,7 @@ package net.psforever.objects.serverobject.turret
 import akka.actor.Actor
 import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior}
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
+import net.psforever.objects.vital.Vitality
 
 /**
   * An `Actor` that handles messages being dispatched to a specific `MannedTurret`.<br>
@@ -36,6 +37,18 @@ class FacilityTurretControl(turret : FacilityTurret) extends Actor
             }
           case None =>
             sender ! Mountable.MountMessages(user, Mountable.CanNotMount(turret, seat_num))
+        }
+
+      case Vitality.Damage(damage_func) =>
+        if(turret.Health > 0) {
+          val originalHealth = turret.Health
+          damage_func(turret)
+          val health = turret.Health
+          val damageToHealth = originalHealth - health
+          val name = turret.Actor.toString
+          val slashPoint = name.lastIndexOf("/")
+          org.log4s.getLogger("DamageResolution").info(s"${name.substring(slashPoint+1, name.length-1)}: BEFORE=$originalHealth, AFTER=$health, CHANGE=$damageToHealth")
+          sender ! Vitality.DamageResolution(turret)
         }
 
       case _ => ;
