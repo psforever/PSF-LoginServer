@@ -44,17 +44,15 @@ class UniqueNumberSystem(private val guid : NumberPoolHub, private val poolActor
   def receive : Receive = {
     case Register(obj, Some(pname), None, call) =>
       val callback = call.getOrElse(sender())
-      try {
-        obj.GUID //stop if object already has a GUID; sometimes this happens
+      if(obj.HasGUID) {
         AlreadyRegistered(obj, pname)
         callback ! Success(obj)
       }
-      catch {
-        case _ : Exception =>
-          val id : Long = index
-          index += 1
-          requestQueue += id -> UniqueNumberSystem.GUIDRequest(obj, pname, callback)
-          RegistrationProcess(pname, id)
+      else {
+        val id : Long = index
+        index += 1
+        requestQueue += id -> UniqueNumberSystem.GUIDRequest(obj, pname, callback)
+        RegistrationProcess(pname, id)
       }
 
     //this message is automatically sent by NumberPoolActor

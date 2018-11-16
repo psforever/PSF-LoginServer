@@ -4,7 +4,7 @@ package net.psforever.objects.definition.converter
 import net.psforever.objects.{EquipmentSlot, Player}
 import net.psforever.objects.equipment.Equipment
 import net.psforever.packet.game.objectcreate._
-import net.psforever.types.{CharacterGender, CharacterVoice, GrenadeState, Vector3}
+import net.psforever.types._
 
 import scala.annotation.tailrec
 import scala.util.{Failure, Success, Try}
@@ -18,20 +18,7 @@ class CorpseConverter extends AvatarConverter {
       DetailedPlayerData.apply(
         PlacementData(obj.Position, Vector3(0,0, obj.Orientation.z)),
         MakeAppearanceData(obj),
-        DetailedCharacterData(
-          bep = 0,
-          cep = 0,
-          healthMax = 0,
-          health = 0,
-          armor = 0,
-          staminaMax = 0,
-          stamina = 0,
-          certs = Nil,
-          implants = Nil,
-          firstTimeEvents = Nil,
-          tutorials = Nil,
-          cosmetics = None
-        ),
+        MakeDetailedCharacterData(obj),
         InventoryData((MakeHolsters(obj) ++ MakeInventory(obj)).sortBy(_.parentSlot)),
         DrawnSlot.None
       )
@@ -44,24 +31,72 @@ class CorpseConverter extends AvatarConverter {
     * @return the resulting `CharacterAppearanceData`
     */
   private def MakeAppearanceData(obj : Player) : (Int)=>CharacterAppearanceData = {
-    CharacterAppearanceData(
+    val aa : Int=>CharacterAppearanceA = CharacterAppearanceA(
       BasicCharacterData(obj.Name, obj.Faction, CharacterGender.Male, 0, CharacterVoice.Mute),
-      voice2 = 0,
       black_ops = false,
+      altModel = true,
+      false,
+      None,
       jammered = false,
       obj.ExoSuit,
+      None,
+      0,
+      0,
+      0L,
+      0,
+      0,
+      0,
+      0
+    )
+    val ab : (Boolean,Int)=>CharacterAppearanceB = CharacterAppearanceB(
+      0L,
       outfit_name = "",
       outfit_logo = 0,
+      false,
       backpack = true,
-      facingPitch = obj.Orientation.y, //TODO is this important?
+      false,
+      false,
+      false,
+      facingPitch = 0,
       facingYawUpper = 0,
-      lfs = true,
+      lfs = false,
       GrenadeState.None,
       is_cloaking = false,
+      false,
+      false,
       charging_pose = false,
-      on_zipline = false,
-      RibbonBars()
+      false,
+      on_zipline = None
     )
+    CharacterAppearanceData(aa, ab, RibbonBars())
+  }
+
+  private def MakeDetailedCharacterData(obj : Player) : (Option[Int]=>DetailedCharacterData) = {
+    val ba : DetailedCharacterA = DetailedCharacterA(
+      bep = 0L,
+      cep = 0L,
+      0L, 0L, 0L,
+      0, 0,
+      false,
+      0,
+      0L,
+      0, 0,
+      0, 0, 0L,
+      List(0, 0, 0, 0, 0, 0),
+      certs = List.empty[CertificationType.Value]
+    )
+    val bb : (Long, Option[Int])=>DetailedCharacterB = DetailedCharacterB(
+      None,
+      implants = List.empty[ImplantEntry],
+      Nil, Nil,
+      firstTimeEvents = List.empty[String],
+      tutorials = List.empty[String],
+      0L, 0L, 0L, 0L, 0L,
+      Some(DCDExtra2(0, 0)),
+      Nil, Nil, false,
+      cosmetics = None
+    )
+    (pad_length : Option[Int]) => DetailedCharacterData(ba, bb(0, pad_length))(pad_length)
   }
 
   /**

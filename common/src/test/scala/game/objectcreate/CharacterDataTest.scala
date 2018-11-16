@@ -33,41 +33,67 @@ class CharacterDataTest extends Specification {
               pos.vel.isDefined mustEqual true
               pos.vel.get mustEqual Vector3(1.4375f, -0.4375f, 0f)
 
-              basic.app.name mustEqual "ScrawnyRonnie"
-              basic.app.faction mustEqual PlanetSideEmpire.TR
-              basic.app.sex mustEqual CharacterGender.Male
-              basic.app.head mustEqual 5
-              basic.app.voice mustEqual CharacterVoice.Voice5
-              basic.voice2 mustEqual 3
-              basic.black_ops mustEqual false
-              basic.jammered mustEqual false
-              basic.exosuit mustEqual ExoSuitType.Reinforced
-              basic.outfit_name mustEqual "Black Beret Armoured Corps"
-              basic.outfit_logo mustEqual 23
-              basic.facingPitch mustEqual 340.3125f
-              basic.facingYawUpper mustEqual 0
-              basic.lfs mustEqual false
-              basic.grenade_state mustEqual GrenadeState.None
-              basic.is_cloaking mustEqual false
-              basic.charging_pose mustEqual false
-              basic.on_zipline mustEqual false
-              basic.ribbons.upper mustEqual MeritCommendation.MarkovVeteran
-              basic.ribbons.middle mustEqual MeritCommendation.HeavyInfantry4
-              basic.ribbons.lower mustEqual MeritCommendation.TankBuster7
-              basic.ribbons.tos mustEqual MeritCommendation.SixYearTR
+              basic match {
+                case CharacterAppearanceData(a, b, ribbons) =>
+                  a.app.name mustEqual "ScrawnyRonnie"
+                  a.app.faction mustEqual PlanetSideEmpire.TR
+                  a.app.sex mustEqual CharacterGender.Male
+                  a.app.head mustEqual 5
+                  a.app.voice mustEqual CharacterVoice.Voice5
+                  a.black_ops mustEqual false
+                  a.jammered mustEqual false
+                  a.exosuit mustEqual ExoSuitType.Reinforced
+                  a.unk1 mustEqual false
+                  a.unk2 mustEqual None
+                  a.unk3 mustEqual None
+                  a.unk4 mustEqual 0
+                  a.unk5 mustEqual 0
+                  a.unk6 mustEqual 30777081L
+                  a.unk7 mustEqual 1
+                  a.unk8 mustEqual 4
+                  a.unk9 mustEqual 0
+                  a.unkA mustEqual 0
+
+                  b.outfit_name mustEqual "Black Beret Armoured Corps"
+                  b.outfit_logo mustEqual 23
+                  b.backpack mustEqual false
+                  b.facingPitch mustEqual 320.625f
+                  b.facingYawUpper mustEqual 0
+                  b.lfs mustEqual false
+                  b.grenade_state mustEqual GrenadeState.None
+                  b.is_cloaking mustEqual false
+                  b.charging_pose mustEqual false
+                  b.on_zipline mustEqual None
+                  b.unk0 mustEqual 316554L
+                  b.unk1 mustEqual false
+                  b.unk2 mustEqual false
+                  b.unk3 mustEqual false
+                  b.unk4 mustEqual false
+                  b.unk5 mustEqual false
+                  b.unk6 mustEqual false
+                  b.unk7 mustEqual false
+
+                  ribbons.upper mustEqual MeritCommendation.MarkovVeteran
+                  ribbons.middle mustEqual MeritCommendation.HeavyInfantry4
+                  ribbons.lower mustEqual MeritCommendation.TankBuster7
+                  ribbons.tos mustEqual MeritCommendation.SixYearTR
+                case _ =>
+                  ko
+              }
 
               char.health mustEqual 255
               char.armor mustEqual 253
               char.uniform_upgrade mustEqual UniformStyle.ThirdUpgrade
               char.command_rank mustEqual 5
-              char.implant_effects.isDefined mustEqual true
-              char.implant_effects.get mustEqual ImplantEffects.NoEffects
+              char.implant_effects.length mustEqual 1
+              char.implant_effects.head mustEqual ImplantEffects.NoEffects
               char.cosmetics.isDefined mustEqual true
               char.cosmetics.get.no_helmet mustEqual true
               char.cosmetics.get.beret mustEqual true
               char.cosmetics.get.sunglasses mustEqual true
               char.cosmetics.get.earpiece mustEqual true
               char.cosmetics.get.brimmed_cap mustEqual false
+              char.unk mustEqual 7
               //short test of inventory items
               inv.isDefined mustEqual true
               val contents = inv.get.contents
@@ -116,7 +142,7 @@ class CharacterDataTest extends Specification {
           ko
       }
     }
-
+//
     "decode (seated)" in {
       PacketCoding.DecodePacket(string_seated).require match {
         case ObjectCreateMessage(len, cls, guid, parent, data) =>
@@ -126,29 +152,54 @@ class CharacterDataTest extends Specification {
           parent mustEqual Some(ObjectCreateMessageParent(PlanetSideGUID(1234), 0))
           data match {
             case Some(PlayerData(None, basic, char, inv, hand)) =>
-              basic.app.name mustEqual "ScrawnyRonnie"
-              basic.app.faction mustEqual PlanetSideEmpire.TR
-              basic.app.sex mustEqual CharacterGender.Male
-              basic.app.head mustEqual 5
-              basic.app.voice mustEqual CharacterVoice.Voice5
-              basic.voice2 mustEqual 3
-              basic.black_ops mustEqual false
-              basic.jammered mustEqual false
-              basic.exosuit mustEqual ExoSuitType.Reinforced
-              basic.outfit_name mustEqual "Black Beret Armoured Corps"
-              basic.outfit_logo mustEqual 23
-              basic.facingPitch mustEqual 340.3125f
-              basic.facingYawUpper mustEqual 0
-              basic.lfs mustEqual false
-              basic.grenade_state mustEqual GrenadeState.None
-              basic.is_cloaking mustEqual false
-              basic.charging_pose mustEqual false
-              basic.on_zipline mustEqual false
-              basic.ribbons.upper mustEqual MeritCommendation.MarkovVeteran
-              basic.ribbons.middle mustEqual MeritCommendation.HeavyInfantry4
-              basic.ribbons.lower mustEqual MeritCommendation.TankBuster7
-              basic.ribbons.tos mustEqual MeritCommendation.SixYearTR
-              //etc..
+              basic match {
+                case CharacterAppearanceData(a, b, ribbons) =>
+                  a.app.name mustEqual "ScrawnyRonnie"
+                  a.app.faction mustEqual PlanetSideEmpire.TR
+                  a.app.sex mustEqual CharacterGender.Male
+                  a.app.head mustEqual 5
+                  a.app.voice mustEqual CharacterVoice.Voice5
+                  a.black_ops mustEqual false
+                  a.jammered mustEqual false
+                  a.exosuit mustEqual ExoSuitType.Reinforced
+                  a.unk1 mustEqual false
+                  a.unk2 mustEqual None
+                  a.unk3 mustEqual None
+                  a.unk4 mustEqual 0
+                  a.unk5 mustEqual 0
+                  a.unk6 mustEqual 192L
+                  a.unk7 mustEqual 0
+                  a.unk8 mustEqual 0
+                  a.unk9 mustEqual 0
+                  a.unkA mustEqual 0
+
+                  b.outfit_name mustEqual "Black Beret Armoured Corps"
+                  b.outfit_logo mustEqual 23
+                  b.backpack mustEqual false
+                  b.facingPitch mustEqual 320.625f
+                  b.facingYawUpper mustEqual 0
+                  b.lfs mustEqual false
+                  b.grenade_state mustEqual GrenadeState.None
+                  b.is_cloaking mustEqual false
+                  b.charging_pose mustEqual false
+                  b.on_zipline mustEqual None
+                  b.unk0 mustEqual 26L
+                  b.unk1 mustEqual false
+                  b.unk2 mustEqual false
+                  b.unk3 mustEqual false
+                  b.unk4 mustEqual false
+                  b.unk5 mustEqual false
+                  b.unk6 mustEqual false
+                  b.unk7 mustEqual false
+
+                  ribbons.upper mustEqual MeritCommendation.MarkovVeteran
+                  ribbons.middle mustEqual MeritCommendation.HeavyInfantry4
+                  ribbons.lower mustEqual MeritCommendation.TankBuster7
+                  ribbons.tos mustEqual MeritCommendation.SixYearTR
+                  //etc..
+                case _ =>
+                  ko
+              }
             case _ =>
               ko
           }
@@ -170,40 +221,67 @@ class CharacterDataTest extends Specification {
               pos.orient mustEqual Vector3(0, 0, 126.5625f)
               pos.vel.isDefined mustEqual false
 
-              basic.app.name mustEqual "Angello"
-              basic.app.faction mustEqual PlanetSideEmpire.VS
-              basic.app.sex mustEqual CharacterGender.Male
-              basic.app.head mustEqual 10
-              basic.app.voice mustEqual CharacterVoice.Voice2
-              basic.voice2 mustEqual 0
-              basic.black_ops mustEqual false
-              basic.jammered mustEqual false
-              basic.exosuit mustEqual ExoSuitType.MAX
-              basic.outfit_name mustEqual "Original District"
-              basic.outfit_logo mustEqual 23
-              basic.facingPitch mustEqual 0
-              basic.facingYawUpper mustEqual 180.0f
-              basic.lfs mustEqual false
-              basic.grenade_state mustEqual GrenadeState.None
-              basic.is_cloaking mustEqual false
-              basic.charging_pose mustEqual false
-              basic.on_zipline mustEqual false
-              basic.ribbons.upper mustEqual MeritCommendation.Jacking2
-              basic.ribbons.middle mustEqual MeritCommendation.ScavengerVS1
-              basic.ribbons.lower mustEqual MeritCommendation.AMSSupport4
-              basic.ribbons.tos mustEqual MeritCommendation.SixYearVS
+              basic match {
+                case CharacterAppearanceData(a, b, ribbons) =>
+                  a.app.name mustEqual "Angello"
+                  a.app.faction mustEqual PlanetSideEmpire.VS
+                  a.app.sex mustEqual CharacterGender.Male
+                  a.app.head mustEqual 10
+                  a.app.voice mustEqual CharacterVoice.Voice2
+                  a.black_ops mustEqual false
+                  a.jammered mustEqual false
+                  a.exosuit mustEqual ExoSuitType.MAX
+                  a.unk1 mustEqual false
+                  a.unk2 mustEqual None
+                  a.unk3 mustEqual None
+                  a.unk4 mustEqual 0
+                  a.unk5 mustEqual 1
+                  a.unk6 mustEqual 0L
+                  a.unk7 mustEqual 0
+                  a.unk8 mustEqual 0
+                  a.unk9 mustEqual 0
+                  a.unkA mustEqual 0
+
+                  b.outfit_name mustEqual "Original District"
+                  b.outfit_logo mustEqual 23
+                  b.backpack mustEqual true
+                  b.facingPitch mustEqual 351.5625f
+                  b.facingYawUpper mustEqual 0
+                  b.lfs mustEqual false
+                  b.grenade_state mustEqual GrenadeState.None
+                  b.is_cloaking mustEqual false
+                  b.charging_pose mustEqual false
+                  b.on_zipline mustEqual None
+                  b.unk0 mustEqual 529687L
+                  b.unk1 mustEqual false
+                  b.unk2 mustEqual false
+                  b.unk3 mustEqual false
+                  b.unk4 mustEqual false
+                  b.unk5 mustEqual false
+                  b.unk6 mustEqual false
+                  b.unk7 mustEqual false
+
+                  ribbons.upper mustEqual MeritCommendation.Jacking2
+                  ribbons.middle mustEqual MeritCommendation.ScavengerVS1
+                  ribbons.lower mustEqual MeritCommendation.AMSSupport4
+                  ribbons.tos mustEqual MeritCommendation.SixYearVS
+                //etc..
+                case _ =>
+                  ko
+              }
 
               char.health mustEqual 0
               char.armor mustEqual 0
               char.uniform_upgrade mustEqual UniformStyle.ThirdUpgrade
               char.command_rank mustEqual 2
-              char.implant_effects.isDefined mustEqual false
+              char.implant_effects.isEmpty mustEqual true
               char.cosmetics.isDefined mustEqual true
               char.cosmetics.get.no_helmet mustEqual true
               char.cosmetics.get.beret mustEqual true
               char.cosmetics.get.sunglasses mustEqual true
               char.cosmetics.get.earpiece mustEqual true
               char.cosmetics.get.brimmed_cap mustEqual false
+              char.unk mustEqual 1
 
               hand mustEqual DrawnSlot.Pistol1
             case _ =>
@@ -220,7 +298,7 @@ class CharacterDataTest extends Specification {
         Vector3(0f, 0f, 64.6875f),
         Some(Vector3(1.4375f, -0.4375f, 0f))
       )
-      val app : (Int)=>CharacterAppearanceData = CharacterAppearanceData(
+      val a : Int=>CharacterAppearanceA = CharacterAppearanceA(
         BasicCharacterData(
           "ScrawnyRonnie",
           PlanetSideEmpire.TR,
@@ -228,17 +306,43 @@ class CharacterDataTest extends Specification {
           5,
           CharacterVoice.Voice5
         ),
-        3,
         false,
+        false,
+        false,
+        None,
         false,
         ExoSuitType.Reinforced,
+        None,
+        0,
+        0,
+        30777081L,
+        1,
+        4,
+        0,
+        0
+      )
+      val b : (Boolean,Int)=>CharacterAppearanceB = CharacterAppearanceB(
+        316554L,
         "Black Beret Armoured Corps",
         23,
         false,
-        340.3125f, 0f,
+        false,
+        false,
+        false,
+        false,
+        320.625f, 0f,
         false,
         GrenadeState.None,
-        false, false, false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        None
+      )
+
+      val app : (Int)=>CharacterAppearanceData = CharacterAppearanceData(
+        a, b,
         RibbonBars(
           MeritCommendation.MarkovVeteran,
           MeritCommendation.HeavyInfantry4,
@@ -249,8 +353,9 @@ class CharacterDataTest extends Specification {
       val char : (Boolean,Boolean)=>CharacterData = CharacterData(
         255, 253,
         UniformStyle.ThirdUpgrade,
+        7,
         5,
-        Some(ImplantEffects.NoEffects),
+        List(ImplantEffects.NoEffects),
         Some(Cosmetics(true, true, true, true, false))
       )
       val inv = InventoryData(
@@ -265,18 +370,11 @@ class CharacterDataTest extends Specification {
 
       val msg = ObjectCreateMessage(ObjectClass.avatar, PlanetSideGUID(3902), obj)
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
-      val pkt_bitv = pkt.toBitVector
-      val ori_bitv = string.toBitVector
-      pkt_bitv.take(452) mustEqual ori_bitv.take(452) //skip 126
-      pkt_bitv.drop(578).take(438) mustEqual ori_bitv.drop(578).take(438) //skip 2
-      pkt_bitv.drop(1018).take(17) mustEqual ori_bitv.drop(1018).take(17) //skip 11
-      pkt_bitv.drop(1046).take(147) mustEqual ori_bitv.drop(1046).take(147) //skip 3
-      pkt_bitv.drop(1196) mustEqual ori_bitv.drop(1196)
-      //TODO work on CharacterData to make this pass as a single stream
+      pkt mustEqual string
     }
 
     "encode (seated)" in {
-      val app : (Int)=>CharacterAppearanceData = CharacterAppearanceData(
+      val a : Int=>CharacterAppearanceA = CharacterAppearanceA(
         BasicCharacterData(
           "ScrawnyRonnie",
           PlanetSideEmpire.TR,
@@ -284,17 +382,43 @@ class CharacterDataTest extends Specification {
           5,
           CharacterVoice.Voice5
         ),
-        3,
         false,
+        false,
+        false,
+        None,
         false,
         ExoSuitType.Reinforced,
+        None,
+        0,
+        0,
+        192L,
+        0,
+        0,
+        0,
+        0
+      )
+      val b : (Boolean,Int)=>CharacterAppearanceB = CharacterAppearanceB(
+        26L,
         "Black Beret Armoured Corps",
         23,
         false,
-        340.3125f, 0f,
+        false,
+        false,
+        false,
+        false,
+        320.625f, 0f,
         false,
         GrenadeState.None,
-        false, false, false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        None
+      )
+
+      val app : (Int)=>CharacterAppearanceData = CharacterAppearanceData(
+        a, b,
         RibbonBars(
           MeritCommendation.MarkovVeteran,
           MeritCommendation.HeavyInfantry4,
@@ -306,7 +430,7 @@ class CharacterDataTest extends Specification {
         255, 253,
         UniformStyle.ThirdUpgrade,
         5,
-        Some(ImplantEffects.NoEffects),
+        List(ImplantEffects.NoEffects),
         Some(Cosmetics(true, true, true, true, false))
       )
       val inv = InventoryData(
@@ -329,7 +453,7 @@ class CharacterDataTest extends Specification {
         Vector3(4629.8906f, 6316.4453f, 54.734375f),
         Vector3(0, 0, 126.5625f)
       )
-      val app : (Int)=>CharacterAppearanceData = CharacterAppearanceData(
+      val a : Int=>CharacterAppearanceA = CharacterAppearanceA(
         BasicCharacterData(
           "Angello",
           PlanetSideEmpire.VS,
@@ -337,17 +461,43 @@ class CharacterDataTest extends Specification {
           10,
           CharacterVoice.Voice2
         ),
-        0,
         false,
+        true,
+        false,
+        None,
         false,
         ExoSuitType.MAX,
+        None,
+        0,
+        1,
+        0L,
+        0,
+        0,
+        0,
+        0
+      )
+      val b : (Boolean,Int)=>CharacterAppearanceB = CharacterAppearanceB(
+        529687L,
         "Original District",
         23,
+        false, //unk1
         true, //backpack
-        0f, 180.0f,
-        false,
+        false, //unk2
+        false, //unk3
+        false, //unk4
+        351.5625f, 0f,
+        false, //lfs
         GrenadeState.None,
-        false, false, false,
+        false, //is_cloaking
+        false, //unk5
+        false, //unk6
+        false, //charging_pose
+        false, //unk7
+        None
+      )
+
+      val app : (Int)=>CharacterAppearanceData = CharacterAppearanceData(
+        a, b,
         RibbonBars(
           MeritCommendation.Jacking2,
           MeritCommendation.ScavengerVS1,
@@ -358,22 +508,19 @@ class CharacterDataTest extends Specification {
       val char : (Boolean,Boolean)=>CharacterData = CharacterData(
         0, 0,
         UniformStyle.ThirdUpgrade,
-        2,
-        None,
+        1,
+        List(),
         Some(Cosmetics(true, true, true, true, false))
       )
       val obj = PlayerData(pos, app, char, DrawnSlot.Pistol1)
 
       val msg = ObjectCreateMessage(ObjectClass.avatar, PlanetSideGUID(3380), obj)
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      //granular test
       val pkt_bitv = pkt.toBitVector
       val ori_bitv = string_backpack.toBitVector
-      pkt_bitv.take(300) mustEqual ori_bitv.take(300) //skip 2
-      pkt_bitv.drop(302).take(14) mustEqual ori_bitv.drop(302).take(14) //skip 126
-      pkt_bitv.drop(442).take(305) mustEqual ori_bitv.drop(442).take(305) //skip 1
-      pkt_bitv.drop(748).take(9) mustEqual ori_bitv.drop(748).take(9) // skip 2
-      pkt_bitv.drop(759).take(157) mustEqual ori_bitv.drop(759).take(157) //skip 1
-      pkt_bitv.drop(917) mustEqual ori_bitv.drop(917)
+      pkt_bitv.take(916) mustEqual pkt_bitv.take(916) //skip 4
+      pkt_bitv.drop(920) mustEqual pkt_bitv.drop(920)
       //TODO work on CharacterData to make this pass as a single stream
     }
   }
