@@ -4,7 +4,7 @@ package game
 import org.specs2.mutable._
 import net.psforever.packet._
 import net.psforever.packet.game._
-import net.psforever.types.Vector3
+import net.psforever.types.{SpawnGroup, Vector3}
 import scodec.bits._
 
 class BindPlayerMessageTest extends Specification {
@@ -16,11 +16,11 @@ class BindPlayerMessageTest extends Specification {
   "decode (standard)" in {
     PacketCoding.DecodePacket(string_standard).require match {
       case BindPlayerMessage(action, bindDesc, unk1, logging, unk2, unk3, unk4, pos) =>
-        action mustEqual 2
+        action mustEqual BindStatus.Unbind
         bindDesc mustEqual ""
         unk1 mustEqual false
         logging mustEqual false
-        unk2 mustEqual 1
+        unk2 mustEqual SpawnGroup.BoundAMS
         unk3 mustEqual 0
         unk4 mustEqual 0
         pos mustEqual Vector3.Zero
@@ -32,11 +32,11 @@ class BindPlayerMessageTest extends Specification {
   "decode (ams)" in {
     PacketCoding.DecodePacket(string_ams).require match {
       case BindPlayerMessage(action, bindDesc, unk1, logging, unk2, unk3, unk4, pos) =>
-        action mustEqual 5
+        action mustEqual BindStatus.Unavailable
         bindDesc mustEqual "@ams"
         unk1 mustEqual false
         logging mustEqual false
-        unk2 mustEqual 2
+        unk2 mustEqual SpawnGroup.AMS
         unk3 mustEqual 10
         unk4 mustEqual 0
         pos mustEqual Vector3.Zero
@@ -48,11 +48,11 @@ class BindPlayerMessageTest extends Specification {
   "decode (tech)" in {
     PacketCoding.DecodePacket(string_tech).require match {
       case BindPlayerMessage(action, bindDesc, unk1, logging, unk2, unk3, unk4, pos) =>
-        action mustEqual 1
+        action mustEqual BindStatus.Bind
         bindDesc mustEqual "@tech_plant"
         unk1 mustEqual true
         logging mustEqual true
-        unk2 mustEqual 5
+        unk2 mustEqual SpawnGroup.BoundFacility
         unk3 mustEqual 10
         unk4 mustEqual 14
         pos mustEqual Vector3(4610.0f, 6292, 69.625f)
@@ -64,11 +64,11 @@ class BindPlayerMessageTest extends Specification {
   "decode (akkan)" in {
     PacketCoding.DecodePacket(string_akkan).require match {
       case BindPlayerMessage(action, bindDesc, unk1, logging, unk2, unk3, unk4, pos) =>
-        action mustEqual 4
+        action mustEqual BindStatus.Available
         bindDesc mustEqual "@ams"
         unk1 mustEqual true
         logging mustEqual false
-        unk2 mustEqual 2
+        unk2 mustEqual SpawnGroup.AMS
         unk3 mustEqual 4
         unk4 mustEqual 5
         pos mustEqual Vector3(2673.039f, 4423.547f, 39.1875f)
@@ -85,21 +85,21 @@ class BindPlayerMessageTest extends Specification {
   }
 
   "encode (ams)" in {
-    val msg = BindPlayerMessage(5, "@ams", false, false, 2, 10, 0, Vector3.Zero)
+    val msg = BindPlayerMessage(BindStatus.Unavailable, "@ams", false, false, SpawnGroup.AMS, 10, 0, Vector3.Zero)
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string_ams
   }
 
   "encode (tech)" in {
-    val msg = BindPlayerMessage(1, "@tech_plant", true, true, 5, 10, 14, Vector3(4610.0f, 6292, 69.625f))
+    val msg = BindPlayerMessage(BindStatus.Bind, "@tech_plant", true, true, SpawnGroup.BoundFacility, 10, 14, Vector3(4610.0f, 6292, 69.625f))
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string_tech
   }
 
   "encode (akkan)" in {
-    val msg = BindPlayerMessage(4, "@ams", true, false, 2, 4, 5, Vector3(2673.039f, 4423.547f, 39.1875f))
+    val msg = BindPlayerMessage(BindStatus.Available, "@ams", true, false, SpawnGroup.AMS, 4, 5, Vector3(2673.039f, 4423.547f, 39.1875f))
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string_akkan
