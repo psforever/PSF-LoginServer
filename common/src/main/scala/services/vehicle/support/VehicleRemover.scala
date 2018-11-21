@@ -27,8 +27,7 @@ class VehicleRemover extends RemoverActor {
     val zoneId = entry.zone.Id
     vehicle.Actor ! Vehicle.PrepareForDeletion
     //kick out all passengers
-    vehicle.Definition.MountPoints.values.foreach(mount => {
-      val seat = vehicle.Seat(mount).get
+    vehicle.Seats.values.foreach(seat => {
       seat.Occupant match {
         case Some(tplayer) =>
           seat.Occupant = None
