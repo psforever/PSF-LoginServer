@@ -100,6 +100,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
   val projectiles : Array[Option[Projectile]] = Array.fill[Option[Projectile]](Projectile.RangeUID - Projectile.BaseUID)(None)
   var drawDeloyableIcon : PlanetSideGameObject with Deployable => Unit = RedrawDeployableIcons
   var recentTeleportAttempt : Long = 0
+  var lastTerminalOrderFulfillment : Boolean = true
 
   var amsSpawnPoint : Option[SpawnTube] = None
   var clientKeepAlive : Cancellable = DefaultCancellable.obj
@@ -1883,6 +1884,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         log.warn(s"${tplayer.Name} made a request but the terminal rejected the $order")
         sendResponse(ItemTransactionResultMessage(msg.terminal_guid, msg.transaction_type, false))
     }
+    lastTerminalOrderFulfillment = true
   }
 
   /**
@@ -3960,12 +3962,15 @@ class WorldSessionActor extends Actor with MDCContextAware {
         }
       }
 
-    case msg @ ItemTransactionMessage(terminal_guid, _, _, _, _, _) =>
+    case msg @ ItemTransactionMessage(terminal_guid, transaction_type, _, _, _, _) =>
       log.info("ItemTransaction: " + msg)
       continent.GUID(terminal_guid) match {
         case Some(term : Terminal) =>
           log.info(s"ItemTransaction: ${term.Definition.Name} found")
-          term.Actor ! Terminal.Request(player, msg)
+          if(lastTerminalOrderFulfillment) {
+            lastTerminalOrderFulfillment = false
+            term.Actor ! Terminal.Request(player, msg)
+          }
         case Some(obj : PlanetSideGameObject) =>
           log.error(s"ItemTransaction: $obj is not a terminal")
         case _ =>
@@ -6047,6 +6052,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
   def PlayerActionsToCancel() : Unit = {
     progressBarUpdate.cancel
     progressBarValue = None
+    lastTerminalOrderFulfillment = true
     accessedContainer match {
       case Some(obj : Vehicle) =>
         if(obj.AccessingTrunk.contains(player.GUID)) {
