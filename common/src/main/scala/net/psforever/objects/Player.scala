@@ -281,6 +281,8 @@ class Player(private val core : Avatar) extends PlanetSideGameObject
     ChangeSpecialAbility()
   }
 
+  def Subtract = exosuit.Subtract
+
   def ResistanceDirectHit = exosuit.ResistanceDirectHit
 
   def ResistanceSplash = exosuit.ResistanceSplash

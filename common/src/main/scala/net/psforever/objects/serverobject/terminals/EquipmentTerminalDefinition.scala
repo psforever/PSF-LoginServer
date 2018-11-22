@@ -366,12 +366,12 @@ object EquipmentTerminalDefinition {
         (0 until tool.MaxAmmoSlot).foreach(index => {
           val slot = tool.AmmoSlots(index)
           slot.AmmoTypeIndex += obj.ammo(index).ammoIndex
-          slot.Box = MakeAmmoBox(ammo(index), Some(obj.ammo(index).ammo.capacity))
+          slot.Box = MakeAmmoBox(ammo(index), Some(slot.Definition.Magazine)) //Some(obj.ammo(index).ammo.capacity)
         })
         tool
 
       case obj : ShorthandAmmoBox =>
-        MakeAmmoBox(obj.definition, Some(obj.capacity))
+        MakeAmmoBox(obj.definition) //Some(obj.capacity)
 
       case obj : ShorthandConstructionItem =>
         MakeConstructionItem(obj.definition)

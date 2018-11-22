@@ -3,13 +3,18 @@ package net.psforever.objects.serverobject.turret
 
 import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.types.Vector3
+import net.psforever.objects.vital.{DamageResistanceModel, StandardResistanceProfile, Vitality}
 
 class FacilityTurret(tDef : TurretDefinition) extends Amenity
-  with WeaponTurret {
+  with WeaponTurret
+  with Vitality
+  with StandardResistanceProfile {
   /** some turrets can be updated; they all start without updates */
   private var upgradePath : TurretUpgrade.Value = TurretUpgrade.None
 
   WeaponTurret.LoadDefinition(this)
+
+  override def Health_=(toHealth : Int) = super.Health_=(math.max(1, toHealth)) //TODO properly handle destroyed facility turrets
 
   def MaxHealth : Int = Definition.MaxHealth
 
@@ -27,6 +32,8 @@ class FacilityTurret(tDef : TurretDefinition) extends Amenity
     })
     Upgrade
   }
+
+  def DamageModel = Definition.asInstanceOf[DamageResistanceModel]
 
   def Definition : TurretDefinition = tDef
 }

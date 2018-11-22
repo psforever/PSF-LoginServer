@@ -27,9 +27,16 @@ abstract class DamageCalculations(damages : DamagesType,
     */
   def Calculate(data : ResolvedProjectile) : Int = {
     val projectile = data.projectile
+    val profile = projectile.profile
+    val modifiers = if(profile.UseDamage1Subtract) {
+      List(projectile.fire_mode.Modifiers, data.target.Modifiers.Subtract)
+    }
+    else {
+      List(projectile.fire_mode.Modifiers)
+    }
     damages(
       projectile,
-      extractor(projectile.profile, List(projectile.fire_mode.Modifiers)),
+      extractor(profile, modifiers),
       distanceFunc(data)
     )
   }
@@ -71,6 +78,17 @@ object DamageCalculations {
   def NoDamage(projectile : Projectile, rawDamage : Int, distance : Float) : Int = 0
 
   /**
+    * Use an unmodified damage value.
+    * @param projectile information about the weapon discharge (itself);
+    *                   unused
+    * @param rawDamage the accumulated amount of damage
+    * @param distance how far the source was from the target;
+    *                 unused
+    * @return the rawDamage value
+    */
+  def SameHit(projectile : Projectile, rawDamage : Int, distance : Float) : Int = rawDamage
+
+  /**
     * Modify the base damage based on the degrade distance of the projectile type
     * and its maximum effective distance.
     * Calls out "direct hit" damage but is recycled for other damage types as well.
@@ -106,8 +124,26 @@ object DamageCalculations {
     val radius = projectile.profile.DamageRadius
     if(distance <= radius) {
       val base : Float = projectile.profile.DamageAtEdge
-      val degrade : Float = (1 - base) * ((radius - distance) / radius) + base
-      rawDamage + (rawDamage * degrade).toInt
+      val degrade : Float = (1 - base) * ((radius - distance)/radius) + base
+      (rawDamage * degrade).toInt
+    }
+    else {
+      0
+    }
+  }
+
+  /**
+    * Calculate a flat lash damage value.
+    * The target needs to be more than five meters away.
+    * @param projectile information about the weapon discharge (itself)
+    * @param rawDamage the accumulated amount of damage
+    * @param distance how far the source was from the target
+    * @return the modified damage value
+    */
+  def LashDamage(projectile : Projectile, rawDamage : Int, distance : Float) : Int = {
+    val profile = projectile.profile
+    if(distance > 5 || distance <= profile.DistanceMax) {
+      (rawDamage * 0.2f) toInt
     }
     else {
       0

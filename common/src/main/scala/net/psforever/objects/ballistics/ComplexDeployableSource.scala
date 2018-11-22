@@ -4,6 +4,7 @@ package net.psforever.objects.ballistics
 import net.psforever.objects.TurretDeployable
 import net.psforever.objects.ce.ComplexDeployable
 import net.psforever.objects.definition.{BaseDeployableDefinition, ObjectDefinition}
+import net.psforever.objects.vital.resistance.ResistanceProfile
 import net.psforever.types.{PlanetSideEmpire, Vector3}
 
 final case class ComplexDeployableSource(obj_def : ObjectDefinition with BaseDeployableDefinition,
@@ -22,6 +23,7 @@ final case class ComplexDeployableSource(obj_def : ObjectDefinition with BaseDep
   def Position = position
   def Orientation = orientation
   def Velocity = None
+  def Modifiers = obj_def.asInstanceOf[ResistanceProfile]
 }
 
 object ComplexDeployableSource {

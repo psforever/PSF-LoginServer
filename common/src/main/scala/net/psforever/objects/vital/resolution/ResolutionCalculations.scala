@@ -4,6 +4,7 @@ package net.psforever.objects.vital.resolution
 import net.psforever.objects.{Player, TurretDeployable, Vehicle}
 import net.psforever.objects.ballistics.{PlayerSource, ResolvedProjectile}
 import net.psforever.objects.ce.{ComplexDeployable, SimpleDeployable}
+import net.psforever.objects.serverobject.turret.FacilityTurret
 import net.psforever.objects.vital.projectile.ProjectileCalculations
 
 /**
@@ -159,11 +160,16 @@ object ResolutionCalculations {
     case _ => ;
   }
 
-  def SimpleDeployableApplication(damage : Int, data : ResolvedProjectile)(target : Any) : Unit = target match {
+  def SimpleApplication(damage : Int, data : ResolvedProjectile)(target : Any) : Unit = target match {
     case ce : SimpleDeployable =>
       if(ce.Health > 0) {
         ce.Health -= damage
         ce.History(data)
+      }
+    case turret : FacilityTurret =>
+      if(turret.Health > 0) {
+        turret.Health -= damage
+        turret.History(data)
       }
     case _ =>
   }

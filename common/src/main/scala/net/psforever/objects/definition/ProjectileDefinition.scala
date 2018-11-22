@@ -2,8 +2,7 @@
 package net.psforever.objects.definition
 
 import net.psforever.objects.ballistics.Projectiles
-import net.psforever.objects.vital.DamageType
-import net.psforever.objects.vital.damage.DamageProfile
+import net.psforever.objects.vital.{DamageType, StandardDamageProfile}
 
 /**
   * The definition that outlines the damage-dealing characteristics of any projectile.
@@ -11,13 +10,8 @@ import net.psforever.objects.vital.damage.DamageProfile
   * @param objectId the object's identifier number
   */
 class ProjectileDefinition(objectId : Int) extends ObjectDefinition(objectId)
-  with DamageProfile {
+  with StandardDamageProfile {
   private val projectileType : Projectiles.Value = Projectiles(objectId) //let throw NoSuchElementException
-  private var damage0 : Int = 0
-  private var damage1 : Option[Int] = None
-  private var damage2 : Option[Int] = None
-  private var damage3 : Option[Int] = None
-  private var damage4 : Option[Int] = None
   private var acceleration : Int = 0
   private var accelerationUntil : Float = 0f
   private var damageType : DamageType.Value = DamageType.None
@@ -43,57 +37,6 @@ class ProjectileDefinition(objectId : Int) extends ObjectDefinition(objectId)
   def UseDamage1Subtract_=(useDamage1Subtract : Boolean) : Boolean = {
     this.useDamage1Subtract = useDamage1Subtract
     UseDamage1Subtract
-  }
-
-  def Damage0 : Int = damage0
-
-  def Damage0_=(damage : Int) : Int = {
-    damage0 = damage
-    damage0
-  }
-
-  def Damage0_=(damage : Option[Int]) : Int = {
-    damage0 = damage match {
-      case Some(value) => value
-      case None => 0 //can not be set to None
-    }
-    Damage0
-  }
-
-  def Damage1 : Int = damage1.getOrElse(Damage0)
-
-  def Damage1_=(damage : Int) : Int = Damage1_=(Some(damage))
-
-  def Damage1_=(damage : Option[Int]) : Int = {
-    this.damage1 = damage
-    Damage1
-  }
-
-  def Damage2 : Int = damage2.getOrElse(Damage1)
-
-  def Damage2_=(damage : Int) : Int = Damage2_=(Some(damage))
-
-  def Damage2_=(damage : Option[Int]) : Int = {
-    this.damage2 = damage
-    Damage2
-  }
-
-  def Damage3 : Int = damage3.getOrElse(Damage2)
-
-  def Damage3_=(damage : Int) : Int = Damage3_=(Some(damage))
-
-  def Damage3_=(damage : Option[Int]) : Int = {
-    this.damage3 = damage
-    Damage3
-  }
-
-  def Damage4 : Int = damage4.getOrElse(Damage3)
-
-  def Damage4_=(damage : Int) : Int = Damage4_=(Some(damage))
-
-  def Damage4_=(damage : Option[Int]) : Int = {
-    this.damage4 = damage
-    Damage4
   }
 
   def Acceleration : Int = acceleration

@@ -1,7 +1,6 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.vital
 
-import net.psforever.objects.ballistics.ResolvedProjectile
 import net.psforever.objects.vital.damage._
 import net.psforever.objects.vital.damage.DamageCalculations._
 
@@ -66,21 +65,35 @@ object AircraftSplashDamage extends DamageCalculations(
   DistanceFromExplosionToTarget
 )
 
-object InfantryLashDamage extends NoDamageBase {
-  override def Calculate(data : ResolvedProjectile) : Int = (InfantryHitDamage.Calculate(data) * 0.2f).toInt
-}
+object InfantrySplashDamageDirect extends DamageCalculations(
+  SplashDamageWithRadialDegrade,
+  DamageWithModifiers(DamageAgainstAircraft),
+  NoDistance
+)
 
-object MaxLashDamage extends NoDamageBase {
-  override def Calculate(data : ResolvedProjectile) : Int = (MaxHitDamage.Calculate(data) * 0.2f).toInt
-}
+object InfantryLashDamage extends DamageCalculations(
+  LashDamage,
+  DamageWithModifiers(DamageAgainstExoSuit),
+  DistanceBetweenTargetandSource
+)
 
-object VehicleLashDamage extends NoDamageBase {
-  override def Calculate(data : ResolvedProjectile) : Int = (VehicleHitDamage.Calculate(data) * 0.2f).toInt
-}
+object MaxLashDamage extends DamageCalculations(
+  LashDamage,
+  DamageWithModifiers(DamageAgainstMaxSuit),
+  DistanceBetweenTargetandSource
+)
 
-object AircraftLashDamage extends NoDamageBase {
-  override def Calculate(data : ResolvedProjectile) : Int = (AircraftHitDamage.Calculate(data) * 0.2f).toInt
-}
+object VehicleLashDamage extends DamageCalculations(
+  LashDamage,
+  DamageWithModifiers(DamageAgainstVehicle),
+  DistanceBetweenTargetandSource
+)
+
+object AircraftLashDamage extends DamageCalculations(
+  LashDamage,
+  DamageWithModifiers(DamageAgainstAircraft),
+  DistanceBetweenTargetandSource
+)
 
 object NoDamageSelection extends DamageSelection {
   def Direct = None

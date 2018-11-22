@@ -60,6 +60,7 @@ class VehicleDefinition(objectId : Int) extends ObjectDefinition(objectId)
   }
 
   def Seats : mutable.HashMap[Int, SeatDefinition] = seats
+
   def Cargo : mutable.HashMap[Int, CargoDefinition] = cargo
 
   def MountPoints : mutable.HashMap[Int, Int] = mountPoints

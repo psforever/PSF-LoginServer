@@ -555,11 +555,19 @@ object GlobalDefinitions {
 
   val maelstrom = ToolDefinition(ObjectClass.maelstrom)
 
-  val phoenix = ToolDefinition(ObjectClass.phoenix) //decimator
+  val phoenix = new ToolDefinition(ObjectClass.phoenix) {
+    override def NextFireModeIndex(index : Int) : Int = index
+  } //decimator
 
-  val striker = ToolDefinition(ObjectClass.striker)
+  val striker = new ToolDefinition(ObjectClass.striker) {
+    override def NextFireModeIndex(index : Int) : Int = index
+    DefaultFireModeIndex = 1
+  }
 
-  val hunterseeker = ToolDefinition(ObjectClass.hunterseeker) //phoenix
+  val hunterseeker = new ToolDefinition(ObjectClass.hunterseeker) {
+    override def NextFireModeIndex(index : Int) : Int = index
+    DefaultFireModeIndex = 1
+  } //phoenix
 
   val lancer = ToolDefinition(ObjectClass.lancer)
 
@@ -573,7 +581,7 @@ object GlobalDefinitions {
 
   val bolt_driver = ToolDefinition(ObjectClass.bolt_driver)
 
-  val oicw = ToolDefinition(ObjectClass.oicw) //scorpion
+  val oicw = ToolDefinition(ObjectClass.oicw)
 
   val flamethrower = ToolDefinition(ObjectClass.flamethrower)
 
@@ -718,7 +726,9 @@ object GlobalDefinitions {
 
   val lightgunship_weapon_system = ToolDefinition(ObjectClass.lightgunship_weapon_system)
 
-  val wasp_weapon_system = ToolDefinition(ObjectClass.wasp_weapon_system)
+  val wasp_weapon_system = new ToolDefinition(ObjectClass.wasp_weapon_system) {
+    override def NextFireModeIndex(index : Int) : Int = index
+  }
 
   val liberator_weapon_system = ToolDefinition(ObjectClass.liberator_weapon_system)
 
@@ -3924,6 +3934,7 @@ object GlobalDefinitions {
     nchev_falcon.Name = "nchev_falcon"
     nchev_falcon.Size = EquipmentSize.Max
     nchev_falcon.AmmoTypes += falcon_ammo
+    nchev_falcon.ProjectileTypes += falcon_projectile
     nchev_falcon.FireModes += new FireModeDefinition
     nchev_falcon.FireModes.head.AmmoTypeIndices += 0
     nchev_falcon.FireModes.head.AmmoSlotIndex = 0
@@ -4763,6 +4774,7 @@ object GlobalDefinitions {
     threemanheavybuggy.TrunkOffset = 30
     threemanheavybuggy.AutoPilotSpeeds = (22, 8)
     threemanheavybuggy.DestroyedModel = Some(DestroyedVehicle.ThreeManHeavyBuggy)
+    threemanheavybuggy.Subtract.Damage1 = 5
 
     twomanheavybuggy.Name = "twomanheavybuggy"
     twomanheavybuggy.MaxHealth = 1800
@@ -4779,6 +4791,7 @@ object GlobalDefinitions {
     twomanheavybuggy.TrunkOffset = 30
     twomanheavybuggy.AutoPilotSpeeds = (22, 8)
     twomanheavybuggy.DestroyedModel = Some(DestroyedVehicle.TwoManHeavyBuggy)
+    twomanheavybuggy.Subtract.Damage1 = 5
 
     twomanhoverbuggy.Name = "twomanhoverbuggy"
     twomanhoverbuggy.MaxHealth = 1600
@@ -4795,6 +4808,7 @@ object GlobalDefinitions {
     twomanhoverbuggy.TrunkOffset = 30
     twomanhoverbuggy.AutoPilotSpeeds = (22, 10)
     twomanhoverbuggy.DestroyedModel = Some(DestroyedVehicle.TwoManHoverBuggy)
+    twomanhoverbuggy.Subtract.Damage1 = 5
 
     mediumtransport.Name = "mediumtransport"
     mediumtransport.MaxHealth = 2500
@@ -4818,6 +4832,7 @@ object GlobalDefinitions {
     mediumtransport.TrunkOffset = 30
     mediumtransport.AutoPilotSpeeds = (18, 6)
     mediumtransport.DestroyedModel = Some(DestroyedVehicle.MediumTransport)
+    mediumtransport.Subtract.Damage1 = 7
 
     battlewagon.Name = "battlewagon"
     battlewagon.MaxHealth = 2500
@@ -4868,6 +4883,7 @@ object GlobalDefinitions {
     thunderer.TrunkOffset = 30
     thunderer.AutoPilotSpeeds = (18, 6)
     thunderer.DestroyedModel = Some(DestroyedVehicle.MediumTransport)
+    thunderer.Subtract.Damage1 = 7
 
     aurora.Name = "aurora"
     aurora.MaxHealth = 2500
@@ -4891,6 +4907,7 @@ object GlobalDefinitions {
     aurora.TrunkOffset = 30
     aurora.AutoPilotSpeeds = (18, 6)
     aurora.DestroyedModel = Some(DestroyedVehicle.MediumTransport)
+    aurora.Subtract.Damage1 = 7
 
     apc_tr.Name = "apc_tr"
     apc_tr.MaxHealth = 6000
@@ -5043,6 +5060,7 @@ object GlobalDefinitions {
     lightning.TrunkOffset = 30
     lightning.AutoPilotSpeeds = (20, 8)
     lightning.DestroyedModel = Some(DestroyedVehicle.Lightning)
+    lightning.Subtract.Damage1 = 7
 
     prowler.Name = "prowler"
     prowler.MaxHealth = 4800
@@ -5062,6 +5080,7 @@ object GlobalDefinitions {
     prowler.TrunkOffset = 30
     prowler.AutoPilotSpeeds = (14, 6)
     prowler.DestroyedModel = Some(DestroyedVehicle.Prowler)
+    prowler.Subtract.Damage1 = 9
 
     vanguard.Name = "vanguard"
     vanguard.MaxHealth = 5400
@@ -5077,6 +5096,7 @@ object GlobalDefinitions {
     vanguard.TrunkOffset = 30
     vanguard.AutoPilotSpeeds = (16, 6)
     vanguard.DestroyedModel = Some(DestroyedVehicle.Vanguard)
+    vanguard.Subtract.Damage1 = 9
 
     magrider.Name = "magrider"
     magrider.MaxHealth = 4200
@@ -5094,6 +5114,7 @@ object GlobalDefinitions {
     magrider.TrunkOffset = 30
     magrider.AutoPilotSpeeds = (18, 6)
     magrider.DestroyedModel = Some(DestroyedVehicle.Magrider)
+    magrider.Subtract.Damage1 = 9
 
     val utilityConverter = new UtilityVehicleConverter
     ant.Name = "ant"
@@ -5110,6 +5131,7 @@ object GlobalDefinitions {
     ant.MaximumCapacitor = 1500
     ant.Packet = utilityConverter
     ant.DestroyedModel = Some(DestroyedVehicle.Ant)
+    ant.Subtract.Damage1 = 5
 
     ams.Name = "ams"
     ams.MaxHealth = 3000
@@ -5129,6 +5151,7 @@ object GlobalDefinitions {
     ams.AutoPilotSpeeds = (18, 6)
     ams.Packet = utilityConverter
     ams.DestroyedModel = Some(DestroyedVehicle.Ams)
+    ams.Subtract.Damage1 = 10
 
     val variantConverter = new VariantVehicleConverter
     router.Name = "router"
@@ -5147,6 +5170,7 @@ object GlobalDefinitions {
     router.AutoPilotSpeeds = (16, 6)
     router.Packet = variantConverter
     router.DestroyedModel = Some(DestroyedVehicle.Router)
+    router.Subtract.Damage1 = 5
 
     switchblade.Name = "switchblade"
     switchblade.MaxHealth = 1750
@@ -5164,6 +5188,8 @@ object GlobalDefinitions {
     switchblade.AutoPilotSpeeds = (22, 8)
     switchblade.Packet = variantConverter
     switchblade.DestroyedModel = Some(DestroyedVehicle.Switchblade)
+    switchblade.Subtract.Damage0 = 5
+    switchblade.Subtract.Damage1 = 5
 
     flail.Name = "flail"
     flail.MaxHealth = 2400
@@ -5180,6 +5206,7 @@ object GlobalDefinitions {
     flail.AutoPilotSpeeds = (14, 6)
     flail.Packet = variantConverter
     flail.DestroyedModel = Some(DestroyedVehicle.Flail)
+    flail.Subtract.Damage1 = 7
 
     mosquito.Name = "mosquito"
     mosquito.MaxHealth = 665
@@ -5210,6 +5237,7 @@ object GlobalDefinitions {
     lightgunship.AutoPilotSpeeds = (0, 4)
     lightgunship.Packet = variantConverter
     lightgunship.DestroyedModel = Some(DestroyedVehicle.LightGunship)
+    lightgunship.Subtract.Damage1 = 3
 
     wasp.Name = "wasp"
     wasp.MaxHealth = 515
@@ -5247,6 +5275,7 @@ object GlobalDefinitions {
     liberator.AutoPilotSpeeds = (0, 4)
     liberator.Packet = variantConverter
     liberator.DestroyedModel = Some(DestroyedVehicle.Liberator)
+    liberator.Subtract.Damage1 = 5
 
     vulture.Name = "vulture"
     vulture.MaxHealth = 2500
@@ -5269,6 +5298,7 @@ object GlobalDefinitions {
     vulture.AutoPilotSpeeds = (0, 4)
     vulture.Packet = variantConverter
     vulture.DestroyedModel = Some(DestroyedVehicle.Liberator) //add_property vulture destroyedphysics liberator_destroyed
+    vulture.Subtract.Damage1 = 5
 
     dropship.Name = "dropship"
     dropship.MaxHealth = 5000
@@ -5323,6 +5353,7 @@ object GlobalDefinitions {
     dropship.AutoPilotSpeeds = (0, 4)
     dropship.Packet = variantConverter
     dropship.DestroyedModel = Some(DestroyedVehicle.Dropship)
+    dropship.Subtract.Damage1 = 7
 
     galaxy_gunship.Name = "galaxy_gunship"
     galaxy_gunship.MaxHealth = 6000
@@ -5354,6 +5385,7 @@ object GlobalDefinitions {
     galaxy_gunship.AutoPilotSpeeds = (0, 4)
     galaxy_gunship.Packet = variantConverter
     galaxy_gunship.DestroyedModel = Some(DestroyedVehicle.Dropship) //the adb calls out a galaxy_gunship_destroyed but no such asset exists
+    galaxy_gunship.Subtract.Damage1 = 7
 
     lodestar.Name = "lodestar"
     lodestar.MaxHealth = 5000
@@ -5367,6 +5399,7 @@ object GlobalDefinitions {
     lodestar.AutoPilotSpeeds = (0, 4)
     lodestar.Packet = variantConverter
     lodestar.DestroyedModel = Some(DestroyedVehicle.Lodestar)
+    lodestar.Subtract.Damage1 = 7
 
     phantasm.Name = "phantasm"
     phantasm.MaxHealth = 2500

@@ -111,6 +111,7 @@ class EquipmentTest extends Specification {
       obj.Size = EquipmentSize.Rifle
       obj.AmmoTypes += GlobalDefinitions.shotgun_shell
       obj.AmmoTypes += GlobalDefinitions.shotgun_shell_AP
+      obj.AmmoTypes += GlobalDefinitions.shotgun_shell_AP
       obj.FireModes += new FireModeDefinition
       obj.FireModes.head.AmmoTypeIndices += 0
       obj.FireModes.head.AmmoTypeIndices += 1
@@ -161,6 +162,29 @@ class EquipmentTest extends Specification {
       obj.FireModeIndex mustEqual 0
       obj.FireMode.Magazine mustEqual 2
       obj.AmmoType mustEqual Ammo.hellfire_ammo
+    }
+
+    "default fire mode (dual magazine feed)" in {
+      val obj = ToolDefinition(1076)
+      obj.AmmoTypes += GlobalDefinitions.shotgun_shell
+      obj.AmmoTypes += GlobalDefinitions.shotgun_shell_AP
+      obj.ProjectileTypes += GlobalDefinitions.shotgun_shell_projectile
+      obj.ProjectileTypes += GlobalDefinitions.shotgun_shell_AP_projectile
+      obj.FireModes += new FireModeDefinition
+      obj.FireModes.head.AmmoTypeIndices += 0
+      obj.FireModes.head.AmmoSlotIndex = 0
+      obj.FireModes += new FireModeDefinition
+      obj.FireModes(1).AmmoTypeIndices += 1
+      obj.FireModes(1).AmmoSlotIndex = 1
+
+      val tool0 = Tool(obj)
+      tool0.FireModeIndex mustEqual 0
+      tool0.ProjectileType mustEqual GlobalDefinitions.shotgun_shell_projectile.ProjectileType
+
+      obj.DefaultFireModeIndex = 1
+      val tool1 = Tool(obj)
+      tool1.FireModeIndex mustEqual 1
+      tool1.ProjectileType mustEqual GlobalDefinitions.shotgun_shell_AP_projectile.ProjectileType
     }
 
     "multiple fire modes" in {

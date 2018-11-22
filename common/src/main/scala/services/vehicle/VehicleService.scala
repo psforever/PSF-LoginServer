@@ -198,7 +198,7 @@ class VehicleService extends Actor {
     import net.psforever.objects.vehicles.UtilityType
     import net.psforever.objects.GlobalDefinitions
     zone.Vehicles
-      .filter(veh => veh.Definition == GlobalDefinitions.ams && veh.DeploymentState == DriveState.Deployed)
+      .filter(veh => veh.Health > 0 && veh.Definition == GlobalDefinitions.ams && veh.DeploymentState == DriveState.Deployed)
       .flatMap(veh => veh.Utilities.values.filter(util => util.UtilType == UtilityType.ams_respawn_tube) )
       .map(util => util().asInstanceOf[SpawnTube])
   }
