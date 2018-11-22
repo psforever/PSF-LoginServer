@@ -2,6 +2,7 @@
 package net.psforever.objects.serverobject.turret
 
 import net.psforever.objects.serverobject.structures.Amenity
+import net.psforever.types.Vector3
 
 class FacilityTurret(tDef : TurretDefinition) extends Amenity
   with WeaponTurret {
@@ -50,6 +51,14 @@ object FacilityTurret {
   def Constructor(tdef : TurretDefinition)(id : Int, context : ActorContext) : FacilityTurret = {
     import akka.actor.Props
     val obj = FacilityTurret(tdef)
+    obj.Actor = context.actorOf(Props(classOf[FacilityTurretControl], obj), s"${tdef.Name}_$id")
+    obj
+  }
+
+  def Constructor(tdef : TurretDefinition, pos: Vector3)(id : Int, context : ActorContext) : FacilityTurret = {
+    import akka.actor.Props
+    val obj = FacilityTurret(tdef)
+    obj.Position = pos
     obj.Actor = context.actorOf(Props(classOf[FacilityTurretControl], obj), s"${tdef.Name}_$id")
     obj
   }
