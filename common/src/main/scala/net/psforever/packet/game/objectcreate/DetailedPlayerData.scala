@@ -114,7 +114,7 @@ object DetailedPlayerData extends Marshallable[DetailedPlayerData] {
   def codec(position_defined : Boolean) : Codec[DetailedPlayerData] = (
     conditional(position_defined, "pos" | PlacementData.codec) >>:~ { pos =>
       ("basic_appearance" | CharacterAppearanceData.codec(PlayerData.PaddingOffset(pos))) >>:~ { app =>
-        ("character_data" | DetailedCharacterData.codec(app.altModelBit)) ::
+        ("character_data" | DetailedCharacterData.codec(app.a.exosuit, app.altModelBit)) ::
           optional(bool, "inventory" | InventoryData.codec_detailed) ::
           ("drawn_slot" | DrawnSlot.codec) ::
           bool //usually false

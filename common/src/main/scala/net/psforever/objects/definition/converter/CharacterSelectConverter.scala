@@ -4,7 +4,7 @@ package net.psforever.objects.definition.converter
 import net.psforever.objects.{EquipmentSlot, Player}
 import net.psforever.objects.equipment.Equipment
 import net.psforever.packet.game.objectcreate._
-import net.psforever.types.{CertificationType, CharacterVoice, GrenadeState, ImplantType}
+import net.psforever.types._
 
 import scala.annotation.tailrec
 import scala.util.{Failure, Success, Try}
@@ -77,7 +77,8 @@ class CharacterSelectConverter extends AvatarConverter {
   }
 
   private def MakeDetailedCharacterData(obj : Player) : (Option[Int]=>DetailedCharacterData) = {
-    val bep = obj.BEP
+    val bep : Long = obj.BEP
+    val maxOpt : Option[Long] = if(obj.ExoSuit == ExoSuitType.MAX) { Some(0L) } else { None }
     val ba : DetailedCharacterA = DetailedCharacterA(
       bep,
       obj.CEP,
@@ -87,6 +88,7 @@ class CharacterSelectConverter extends AvatarConverter {
       0,
       0L,
       1, 1,
+      maxOpt,
       0, 0, 0L,
       List(0, 0, 0, 0, 0, 0),
       certs = List.empty[CertificationType.Value]
