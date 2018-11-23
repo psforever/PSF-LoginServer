@@ -3764,7 +3764,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
               //TODO matrix spawn point; for now, just blindly bind to show work (and hope nothing breaks)
               sendResponse(BindPlayerMessage(BindStatus.Bind, "", true, true, SpawnGroup.Sanctuary, 0, 0, terminal.Position))
             }
-            else if(tdef.isInstanceOf[RepairRearmSiloDefinition]) {
+            else if(tdef.isInstanceOf[RepairRearmSiloDefinition] || tdef == GlobalDefinitions.multivehicle_rearm_terminal) {
               FindLocalVehicle match {
                 case Some(vehicle) =>
                   sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
