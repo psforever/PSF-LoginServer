@@ -190,13 +190,13 @@ object Utility {
     case UtilityType.ams_respawn_tube =>
       SpawnTubeDefinition.Setup
     case UtilityType.bfr_rearm_terminal =>
-      OrderTerminalABDefinition.Setup
+      _OrderTerminalDefinition.Setup
     case UtilityType.lodestar_repair_terminal =>
-      OrderTerminalABDefinition.Setup
+      OrderTerminalABDefinition.Setup //TODO wrong
     case UtilityType.matrix_terminalc =>
       MatrixTerminalDefinition.Setup
     case UtilityType.multivehicle_rearm_terminal =>
-      OrderTerminalABDefinition.Setup
+      _OrderTerminalDefinition.Setup
     case UtilityType.order_terminala =>
       OrderTerminalABDefinition.Setup
     case UtilityType.order_terminalb =>

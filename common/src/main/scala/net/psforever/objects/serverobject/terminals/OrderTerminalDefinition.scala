@@ -1,11 +1,13 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.terminals
 
+import akka.actor.ActorContext
 import net.psforever.objects.definition.ImplantDefinition
 import net.psforever.objects.{Player, Vehicle}
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.loadouts.{InfantryLoadout, VehicleLoadout}
 import net.psforever.objects.inventory.InventoryItem
+import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.packet.game.ItemTransactionMessage
 import net.psforever.objects.serverobject.terminals.EquipmentTerminalDefinition._
 import net.psforever.types.{CertificationType, ExoSuitType}
@@ -220,5 +222,18 @@ object _OrderTerminalDefinition {
     }
 
     def Sell(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = Terminal.NoDeal()
+  }
+
+  /**
+    * Assemble some logic for a provided object.
+    * @param obj an `Amenity` object;
+    *            anticipating a `Terminal` object using this same definition
+    * @param context hook to the local `Actor` system
+    */
+  def Setup(obj : Amenity, context : ActorContext) : Unit = {
+    import akka.actor.{ActorRef, Props}
+    if(obj.Actor == ActorRef.noSender) {
+      obj.Actor = context.actorOf(Props(classOf[TerminalControl], obj), s"${obj.Definition.Name}_${obj.GUID.guid}")
+    }
   }
 }
