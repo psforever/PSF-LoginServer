@@ -20,41 +20,41 @@ class ProximityTest extends Specification {
       obj.NumberUsers mustEqual 0
     }
 
-    "keep track of users (add)" in {
-      val obj = new ProximityTest.SampleTerminal()
-      obj.NumberUsers mustEqual 0
-      obj.AddUser(PlanetSideGUID(10)) mustEqual obj.NumberUsers
-      obj.NumberUsers mustEqual 1
-      obj.AddUser(PlanetSideGUID(20)) mustEqual obj.NumberUsers
-      obj.NumberUsers mustEqual 2
-    }
-
-    "keep track of users (remove)" in {
-      val obj = new ProximityTest.SampleTerminal()
-      obj.AddUser(PlanetSideGUID(10))
-      obj.AddUser(PlanetSideGUID(20))
-      obj.NumberUsers mustEqual 2
-      obj.RemoveUser(PlanetSideGUID(10)) mustEqual obj.NumberUsers
-      obj.NumberUsers mustEqual 1
-      obj.RemoveUser(PlanetSideGUID(20)) mustEqual obj.NumberUsers
-      obj.NumberUsers mustEqual 0
-    }
-
-    "can not add a user twice" in {
-      val obj = new ProximityTest.SampleTerminal()
-      obj.AddUser(PlanetSideGUID(10))
-      obj.NumberUsers mustEqual 1
-      obj.AddUser(PlanetSideGUID(10))
-      obj.NumberUsers mustEqual 1
-    }
-
-    "can not remove a user that was not added" in {
-      val obj = new ProximityTest.SampleTerminal()
-      obj.AddUser(PlanetSideGUID(10))
-      obj.NumberUsers mustEqual 1
-      obj.RemoveUser(PlanetSideGUID(20))
-      obj.NumberUsers mustEqual 1
-    }
+//    "keep track of users (add)" in {
+//      val obj = new ProximityTest.SampleTerminal()
+//      obj.NumberUsers mustEqual 0
+//      obj.AddUser(PlanetSideGUID(10)) mustEqual obj.NumberUsers
+//      obj.NumberUsers mustEqual 1
+//      obj.AddUser(PlanetSideGUID(20)) mustEqual obj.NumberUsers
+//      obj.NumberUsers mustEqual 2
+//    }
+//
+//    "keep track of users (remove)" in {
+//      val obj = new ProximityTest.SampleTerminal()
+//      obj.AddUser(PlanetSideGUID(10))
+//      obj.AddUser(PlanetSideGUID(20))
+//      obj.NumberUsers mustEqual 2
+//      obj.RemoveUser(PlanetSideGUID(10)) mustEqual obj.NumberUsers
+//      obj.NumberUsers mustEqual 1
+//      obj.RemoveUser(PlanetSideGUID(20)) mustEqual obj.NumberUsers
+//      obj.NumberUsers mustEqual 0
+//    }
+//
+//    "can not add a user twice" in {
+//      val obj = new ProximityTest.SampleTerminal()
+//      obj.AddUser(PlanetSideGUID(10))
+//      obj.NumberUsers mustEqual 1
+//      obj.AddUser(PlanetSideGUID(10))
+//      obj.NumberUsers mustEqual 1
+//    }
+//
+//    "can not remove a user that was not added" in {
+//      val obj = new ProximityTest.SampleTerminal()
+//      obj.AddUser(PlanetSideGUID(10))
+//      obj.NumberUsers mustEqual 1
+//      obj.RemoveUser(PlanetSideGUID(20))
+//      obj.NumberUsers mustEqual 1
+//    }
   }
 
   "ProximityTerminal" should {

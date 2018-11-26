@@ -64,20 +64,20 @@ class MedicalTerminalTest extends Specification {
       ProximityTerminal(GlobalDefinitions.medical_terminal).Actor mustEqual ActorRef.noSender
     }
 
-    "can add a player to a list of users" in {
-      val terminal = ProximityTerminal(GlobalDefinitions.medical_terminal)
-      terminal.NumberUsers mustEqual 0
-      terminal.AddUser(PlanetSideGUID(10))
-      terminal.NumberUsers mustEqual 1
-    }
-
-    "can remove a player from a list of users" in {
-      val terminal = ProximityTerminal(GlobalDefinitions.medical_terminal)
-      terminal.AddUser(PlanetSideGUID(10))
-      terminal.NumberUsers mustEqual 1
-      terminal.RemoveUser(PlanetSideGUID(10))
-      terminal.NumberUsers mustEqual 0
-    }
+//    "can add a player to a list of users" in {
+//      val terminal = ProximityTerminal(GlobalDefinitions.medical_terminal)
+//      terminal.NumberUsers mustEqual 0
+//      terminal.AddUser(PlanetSideGUID(10))
+//      terminal.NumberUsers mustEqual 1
+//    }
+//
+//    "can remove a player from a list of users" in {
+//      val terminal = ProximityTerminal(GlobalDefinitions.medical_terminal)
+//      terminal.AddUser(PlanetSideGUID(10))
+//      terminal.NumberUsers mustEqual 1
+//      terminal.RemoveUser(PlanetSideGUID(10))
+//      terminal.NumberUsers mustEqual 0
+//    }
 
     "player can not interact with the proximity terminal normally (buy)" in {
       val terminal = ProximityTerminal(GlobalDefinitions.medical_terminal)

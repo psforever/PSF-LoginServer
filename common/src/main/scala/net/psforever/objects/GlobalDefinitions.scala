@@ -918,7 +918,9 @@ object GlobalDefinitions {
 
   val crystals_health_b = new MedicalTerminalDefinition(226)
 
-  val medical_terminal = new MedicalTerminalDefinition(529)
+  val medical_terminal = new MedicalTerminalDefinition(529) {
+    TargetValidation += ProximityTerminalControl.ValidatePlayerTarget
+  }
 
   val pad_landing = new RepairRearmSiloDefinition(719)
 

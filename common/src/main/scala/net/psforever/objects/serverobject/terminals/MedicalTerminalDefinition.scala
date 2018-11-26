@@ -8,6 +8,7 @@ package net.psforever.objects.serverobject.terminals
   */
 class MedicalTerminalDefinition(objectId : Int) extends TerminalDefinition(objectId) with ProximityDefinition {
   Name = if(objectId == 38) {
+    UseRadius = 0.75f
     "adv_med_terminal"
   }
   else if(objectId == 225) {
@@ -17,6 +18,7 @@ class MedicalTerminalDefinition(objectId : Int) extends TerminalDefinition(objec
     "crystals_health_b"
   }
   else if(objectId == 529) {
+    UseRadius = 0.75f
     "medical_terminal"
   }
   else if(objectId == 689) {

@@ -13,12 +13,15 @@ import net.psforever.objects.guid.actor.UniqueNumberSystem
 import net.psforever.objects.guid.selector.RandomSelector
 import net.psforever.objects.guid.source.LimitedNumberSource
 import net.psforever.objects.inventory.Container
+import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.objects.serverobject.structures.{Amenity, Building}
+import net.psforever.objects.serverobject.terminals.ProximityUnit
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.serverobject.turret.FacilityTurret
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types.Vector3
+import services.Service
 
 import scala.collection.concurrent.TrieMap
 import scala.collection.mutable.ListBuffer
@@ -365,6 +368,13 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
       .collect {
         case silo : ResourceSilo =>
           silo.Actor ! "startup"
+      }
+    //proximity terminals need to startup
+    buildings.values
+      .flatMap(_.Amenities.filter(_.isInstanceOf[ProximityUnit]))
+      .collect {
+        case o : PlanetSideServerObject =>
+          o.Actor ! Service.Startup()
       }
   }
 

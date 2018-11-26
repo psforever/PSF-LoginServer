@@ -1265,7 +1265,7 @@ object Maps {
       LocalObject(1428, FacilityTurret.Constructor(manned_turret))
       LocalObject(1431, FacilityTurret.Constructor(manned_turret))
       LocalObject(1432, FacilityTurret.Constructor(manned_turret))
-      LocalObject(1492, ProximityTerminal.Constructor(medical_terminal)) //lobby
+      LocalObject(1492, ProximityTerminal.Constructor(medical_terminal, Vector3(3944.8672f, 4211.336f, 266.85938f))) //lobby
       LocalObject(1494, ProximityTerminal.Constructor(medical_terminal)) //kitchen
       LocalObject(1564, Terminal.Constructor(order_terminal))
       LocalObject(1568, Terminal.Constructor(order_terminal))
