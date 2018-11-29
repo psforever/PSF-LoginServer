@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.terminals
 
-import net.psforever.objects.Player
+import net.psforever.objects.PlanetSideGameObject
 
 /**
   * A server object that provides a service, triggered when a certain distance from the unit itself (proximity-based).
@@ -14,19 +14,23 @@ trait ProximityUnit {
   /**
     * A list of targets that are currently affected by this proximity unit.
     */
-  private var targets : Set[Player] = Set.empty
+  private var targets : Set[PlanetSideGameObject] = Set.empty
 
-  def Targets : Seq[Player] = targets toSeq
+  def Targets : Seq[PlanetSideGameObject] = targets toSeq
 
   def NumberUsers : Int = targets.size
 
-  def AddUser(player : Player) : Int = {
+  def AddUser(player : PlanetSideGameObject) : Int = {
     targets += player
     NumberUsers
   }
 
-  def RemoveUser(player : Player) : Int = {
+  def RemoveUser(player : PlanetSideGameObject) : Int = {
     targets -= player
     NumberUsers
   }
+}
+
+object ProximityUnit {
+  final case class ProximityAction(terminal : Terminal with ProximityUnit, target : PlanetSideGameObject)
 }

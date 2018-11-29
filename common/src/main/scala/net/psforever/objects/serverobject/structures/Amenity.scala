@@ -1,6 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.structures
 
+import net.psforever.objects.Vehicle
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.types.PlanetSideEmpire
 
@@ -35,6 +36,12 @@ abstract class Amenity extends PlanetSideServerObject {
   def Owner_=[T : Amenity.AmenityTarget](obj : T) : PlanetSideServerObject = {
     owner = obj.asInstanceOf[PlanetSideServerObject]
     Owner
+  }
+
+  override def Continent = Owner match {
+    case o : Building => o.Zone.Id
+    case o : Vehicle => o.Continent
+    case _ => super.Continent
   }
 }
 

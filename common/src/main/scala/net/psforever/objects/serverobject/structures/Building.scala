@@ -48,6 +48,10 @@ class Building(private val mapId : Int, private val zone : Zone, private val bui
 
   def BuildingType : StructureType.Value = buildingType
 
+  override def Continent : String = zone.Id
+
+  override def Continent_=(zone : String) : String = Continent
+
   def Definition: ObjectDefinition = Building.BuildingDefinition
 }
 

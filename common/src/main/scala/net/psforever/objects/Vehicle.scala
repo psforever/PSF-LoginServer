@@ -10,6 +10,7 @@ import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.deploy.Deployment
 import net.psforever.objects.vehicles._
 import net.psforever.objects.vital.{DamageResistanceModel, StandardResistanceProfile, Vitality}
+import net.psforever.objects.zones.ZoneAware
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types.PlanetSideEmpire
 
@@ -80,6 +81,7 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
   private var jammered : Boolean = false
   private var cloaked : Boolean = false
   private var capacitor : Int = 0
+  private var continent : String = "home2" //the zone id
 
   /**
     * Permissions control who gets to access different parts of the vehicle;
@@ -512,6 +514,13 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
     * @return the vehicle's definition entry
     */
   def Definition : VehicleDefinition = vehicleDef
+
+  override def Continent : String = continent
+
+  override def Continent_=(zoneId : String) : String = {
+    continent = zoneId
+    Continent
+  }
 
   /**
     * Override the string representation to provide additional information.

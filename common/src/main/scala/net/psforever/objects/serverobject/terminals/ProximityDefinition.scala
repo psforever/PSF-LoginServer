@@ -1,10 +1,18 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.terminals
 
-import net.psforever.objects.Player
+import net.psforever.objects.{PlanetSideGameObject, Player}
 import net.psforever.packet.game.ItemTransactionMessage
 
 import scala.collection.mutable
+
+object ProximityTarget extends Enumeration {
+  val
+  Equipment,
+  Player,
+  Vehicle
+    = Value
+}
 
 /**
   * The definition for any `Terminal` that possesses a proximity-based effect.
@@ -14,7 +22,7 @@ import scala.collection.mutable
   */
 trait ProximityDefinition {
   private var useRadius : Float = 0f //TODO belongs on a wider range of object definitions
-  private val targetValidation : mutable.ListBuffer[(Any)=>Boolean] = new mutable.ListBuffer[(Any)=>Boolean]()
+  private val targetValidation : mutable.HashMap[ProximityTarget.Value, (PlanetSideGameObject)=>Boolean] = new mutable.HashMap[ProximityTarget.Value, (PlanetSideGameObject)=>Boolean]()
 
   def UseRadius : Float = useRadius
 
@@ -23,7 +31,9 @@ trait ProximityDefinition {
     UseRadius
   }
 
-  def TargetValidation : mutable.ListBuffer[(Any)=>Boolean] = targetValidation
+  def TargetValidation : mutable.HashMap[ProximityTarget.Value, (PlanetSideGameObject)=>Boolean] = targetValidation
+
+  def Validations : Seq[(PlanetSideGameObject)=>Boolean] = targetValidation.values.toSeq
 
   def Buy(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = Terminal.NoDeal()
 }

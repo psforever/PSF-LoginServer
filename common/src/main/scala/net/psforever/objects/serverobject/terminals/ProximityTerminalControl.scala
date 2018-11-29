@@ -2,7 +2,7 @@
 package net.psforever.objects.serverobject.terminals
 
 import akka.actor.{Actor, ActorRef, Cancellable}
-import net.psforever.objects.{DefaultCancellable, Player}
+import net.psforever.objects.{DefaultCancellable, PlanetSideGameObject, Player}
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
 import net.psforever.packet.game.PlanetSideGUID
@@ -42,24 +42,24 @@ class ProximityTerminalControl(term : Terminal with ProximityUnit) extends Actor
 
   def Run : Receive = checkBehavior
     .orElse {
-      case CommonMessages.Use(player) =>
-        if(TerminalObject.Definition.asInstanceOf[ProximityDefinition].TargetValidation.exists(p => p(player))) {
-          Use(player)
+      case CommonMessages.Use(player, Some(target : PlanetSideGameObject)) =>
+        if(TerminalObject.Definition.asInstanceOf[ProximityDefinition].Validations.exists(p => p(player))) {
+          Use(target, player.Continent)
         }
 
-      case CommonMessages.Unuse(player) =>
-        Unuse(player)
+      case CommonMessages.Unuse(player, Some(target : PlanetSideGameObject)) =>
+        Unuse(target, TerminalObject.Continent)
 
       case ProximityTerminalControl.TerminalAction() =>
         val proxDef = TerminalObject.Definition.asInstanceOf[ProximityDefinition]
         val radius = proxDef.UseRadius * proxDef.UseRadius
-        val validation = proxDef.TargetValidation
+        val validation = proxDef.Validations
         TerminalObject.Targets.foreach(target => {
           if(Vector3.DistanceSquared(TerminalObject.Position, target.Position) <= radius && validation.exists(p => p(target))) {
-            //TODO stuff
+            //TODO reserved for proper functionality; for now, see WorldSessionActor
           }
           else {
-            Unuse(target)
+            Unuse(target, TerminalObject.Continent)
           }
         })
 
@@ -73,22 +73,21 @@ class ProximityTerminalControl(term : Terminal with ProximityUnit) extends Actor
       case _ => ;
     }
 
-  def Use(player : Player) : Unit = {
+  def Use(target : PlanetSideGameObject, zone : String) : Unit = {
     val hadNoUsers = TerminalObject.NumberUsers == 0
-    if(TerminalObject.AddUser(player) == 1 && hadNoUsers) {
+    if(TerminalObject.AddUser(target) == 1 && hadNoUsers) {
       import scala.concurrent.ExecutionContext.Implicits.global
-      println("start terminal action")
       terminalAction.cancel
       terminalAction = context.system.scheduler.schedule(500 milliseconds, 500 milliseconds, self, ProximityTerminalControl.TerminalAction())
-      service ! LocalServiceMessage(player.Continent, LocalAction.ProximityTerminalEffect(PlanetSideGUID(0), TerminalObject.GUID, true))
+      service ! LocalServiceMessage(zone, LocalAction.ProximityTerminalEffect(PlanetSideGUID(0), TerminalObject.GUID, true))
     }
   }
 
-  def Unuse(player : Player) : Unit = {
+  def Unuse(target : PlanetSideGameObject, zone : String) : Unit = {
     val hadUsers = TerminalObject.NumberUsers > 0
-    if(TerminalObject.RemoveUser(player) == 0 && hadUsers) {
+    if(TerminalObject.RemoveUser(target) == 0 && hadUsers) {
       terminalAction.cancel
-      service ! LocalServiceMessage(player.Continent, LocalAction.ProximityTerminalEffect(PlanetSideGUID(0), TerminalObject.GUID, false))
+      service ! LocalServiceMessage(zone, LocalAction.ProximityTerminalEffect(PlanetSideGUID(0), TerminalObject.GUID, false))
     }
   }
 
@@ -96,10 +95,10 @@ class ProximityTerminalControl(term : Terminal with ProximityUnit) extends Actor
 }
 
 object ProximityTerminalControl {
-  def ValidatePlayerTarget(target : Any) : Boolean = {
+  def ValidatePlayerTarget(target : PlanetSideGameObject) : Boolean = {
     target match {
       case p : Player =>
-        p.Health > 0 && p.Health < p.MaxHealth && p.Armor < p.MaxArmor
+        p.Health > 0 && (p.Health < p.MaxHealth || p.Armor < p.MaxArmor)
       case _ =>
         false
     }
