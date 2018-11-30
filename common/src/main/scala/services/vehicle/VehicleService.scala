@@ -6,7 +6,7 @@ import net.psforever.objects.serverobject.pad.VehicleSpawnPad
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.ObjectCreateMessage
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
-import services.vehicle.support.{TurretUpgrader, VehicleRemover}
+import services.vehicle.support.{SiloRepair, TurretUpgrader, VehicleRemover}
 import net.psforever.types.DriveState
 import services.{GenericEventBus, RemoverActor, Service}
 
@@ -15,6 +15,7 @@ import scala.concurrent.duration._
 class VehicleService extends Actor {
   private val vehicleDecon : ActorRef = context.actorOf(Props[VehicleRemover], "vehicle-decon-agent")
   private val turretUpgrade : ActorRef = context.actorOf(Props[TurretUpgrader], "turret-upgrade-agent")
+  private val siloRepair : ActorRef = context.actorOf(Props[SiloRepair], "silo-repair-agent")
   private [this] val log = org.log4s.getLogger
 
   override def preStart = {
@@ -136,6 +137,9 @@ class VehicleService extends Actor {
     //message to TurretUpgrader
     case VehicleServiceMessage.TurretUpgrade(msg) =>
       turretUpgrade forward msg
+
+    case VehicleServiceMessage.Silo(msg) =>
+      siloRepair forward msg
 
     //from VehicleSpawnControl
     case VehicleSpawnPad.ConcealPlayer(player_guid, zone_id) =>

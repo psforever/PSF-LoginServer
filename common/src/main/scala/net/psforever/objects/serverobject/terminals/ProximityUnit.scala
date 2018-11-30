@@ -2,6 +2,7 @@
 package net.psforever.objects.serverobject.terminals
 
 import net.psforever.objects.PlanetSideGameObject
+import net.psforever.types.Vector3
 
 /**
   * A server object that provides a service, triggered when a certain distance from the unit itself (proximity-based).
@@ -20,14 +21,25 @@ trait ProximityUnit {
 
   def NumberUsers : Int = targets.size
 
-  def AddUser(player : PlanetSideGameObject) : Int = {
-    targets += player
+  def AddUser(target : PlanetSideGameObject) : Int = {
+    targets += target
     NumberUsers
   }
 
-  def RemoveUser(player : PlanetSideGameObject) : Int = {
-    targets -= player
+  def RemoveUser(target : PlanetSideGameObject) : Int = {
+    targets -= target
     NumberUsers
+  }
+
+  def Validate(target : PlanetSideGameObject) : Boolean = {
+    val proxDef = Definition.asInstanceOf[ProximityDefinition]
+    val radius = proxDef.UseRadius * proxDef.UseRadius
+    val validation = proxDef.Validations
+    Validate(radius, validation)(target)
+  }
+
+  def Validate(radius : Float, validations : Seq[(PlanetSideGameObject)=>Boolean])(target : PlanetSideGameObject) : Boolean = {
+    targets.contains(target) && Vector3.DistanceSquared(Position, target.Position) <= radius && validations.exists(p => p(target))
   }
 }
 

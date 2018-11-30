@@ -912,19 +912,60 @@ object GlobalDefinitions {
 
   val teleportpad_terminal = new TeleportPadTerminalDefinition
 
-  val adv_med_terminal = new MedicalTerminalDefinition(38)
+  val adv_med_terminal = new MedicalTerminalDefinition(38) {
+    Name = "adv_med_terminal"
+    Delay = 500
+    HealAmount = 8
+    ArmorAmount = 15
+    UseRadius = 0.75f
+    TargetValidation += ProximityTarget.Player -> ProximityTerminalControl.MedicalValidation
+  }
 
-  val crystals_health_a = new MedicalTerminalDefinition(225)
+  val crystals_health_a = new MedicalTerminalDefinition(225) {
+    Name = "crystals_health_a"
+    Delay = 500
+    HealAmount = 4
+    UseRadius = 5
+    TargetValidation += ProximityTarget.Player -> ProximityTerminalControl.CrystalValidation
+  }
 
-  val crystals_health_b = new MedicalTerminalDefinition(226)
+  val crystals_health_b = new MedicalTerminalDefinition(226) {
+    Name = "crystals_health_b"
+    Delay = 500
+    HealAmount = 4
+    UseRadius = 1.3f
+    TargetValidation += ProximityTarget.Player -> ProximityTerminalControl.CrystalValidation
+  }
 
   val medical_terminal = new MedicalTerminalDefinition(529) {
-    TargetValidation += ProximityTarget.Player -> ProximityTerminalControl.ValidatePlayerTarget
+    Name = "medical_terminal"
+    Delay = 500
+    HealAmount = 5
+    ArmorAmount = 10
+    UseRadius = 0.75f
+    TargetValidation += ProximityTarget.Player -> ProximityTerminalControl.MedicalValidation
+  }
+
+  val portable_med_terminal = new MedicalTerminalDefinition(689) {
+    Name = "portable_med_terminal"
+    Delay = 500
+    HealAmount = 5
+    ArmorAmount = 10
+    UseRadius = 3
+    TargetValidation += ProximityTarget.Player -> ProximityTerminalControl.MedicalValidation
   }
 
   val pad_landing = new RepairRearmSiloDefinition(719)
 
   val repair_silo = new RepairRearmSiloDefinition(729)
+
+  val repair_silo_a = new MedicalTerminalDefinition(729) {
+    Name = "repair_silo"
+    Delay = 1000
+    HealAmount = 60
+    UseRadius = 20
+    TargetValidation += ProximityTarget.Vehicle -> ProximityTerminalControl.SiloValidation
+  }
 
   val spawn_pad = new VehicleSpawnPadDefinition
 

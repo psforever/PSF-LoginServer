@@ -15,4 +15,6 @@ object VehicleServiceMessage {
   final case class TurretUpgrade(msg : Any)
 
   final case class AMSDeploymentChange(zone : Zone)
+
+  final case class Silo(msg : Any)
 }

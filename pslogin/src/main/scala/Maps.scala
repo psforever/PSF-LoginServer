@@ -1286,9 +1286,9 @@ object Maps {
       LocalObject(2145, SpawnTube.Constructor(Vector3(3980.4062f, 4252.7656f, 257.5625f), Vector3(0, 0, 90)))
       LocalObject(2146, SpawnTube.Constructor(Vector3(3980.4062f, 4259.992f, 257.5625f), Vector3(0, 0, 90)))
       LocalObject(2147, SpawnTube.Constructor(Vector3(3980.4062f, 4267.3047f, 257.5625f), Vector3(0, 0, 90)))
-      LocalObject(2049, ProximityTerminal.Constructor(repair_silo)) //repair terminal A
+      LocalObject(2049, ProximityTerminal.Constructor(repair_silo_a)) //repair terminal A
       LocalObject(2050, Terminal.Constructor(repair_silo)) //rearm terminal A
-      LocalObject(2061, ProximityTerminal.Constructor(repair_silo)) //repair terminal B
+      LocalObject(2061, ProximityTerminal.Constructor(repair_silo_a, Vector3(4053.3516f, 4281.1562f, 266.4375f))) //repair terminal B
       LocalObject(2062, Terminal.Constructor(repair_silo)) //rearm terminal B
       LocalObject(2094, ResourceSilo.Constructor)
       LocalObject(2239, Terminal.Constructor(spawn_terminal))

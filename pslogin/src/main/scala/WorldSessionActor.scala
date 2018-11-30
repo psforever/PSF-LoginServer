@@ -49,7 +49,7 @@ import services.{RemoverActor, vehicle, _}
 import services.avatar.{AvatarAction, AvatarResponse, AvatarServiceMessage, AvatarServiceResponse}
 import services.galaxy.{GalaxyResponse, GalaxyServiceResponse}
 import services.local.{LocalAction, LocalResponse, LocalServiceMessage, LocalServiceResponse}
-import services.vehicle.support.TurretUpgrader
+import services.vehicle.support.{SiloRepair, TurretUpgrader}
 import services.vehicle.{VehicleAction, VehicleResponse, VehicleServiceMessage, VehicleServiceResponse}
 
 import scala.concurrent.duration._
@@ -3849,7 +3849,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       log.info(s"ProximityTerminalUse: $msg")
       continent.GUID(object_guid) match {
         case Some(obj : Terminal with ProximityUnit) =>
-          StartUsingProximityUnit(obj)
+          HandleProximityTerminalUse(obj)
         case Some(obj) => ;
           log.warn(s"ProximityTerminalUse: object does not have proximity effects - $obj")
         case None =>
@@ -6221,6 +6221,23 @@ class WorldSessionActor extends Actor with MDCContextAware {
   /**
     * na
     * @param terminal na
+    */
+  def HandleProximityTerminalUse(terminal : Terminal with ProximityUnit) : Unit = {
+    val term_guid = terminal.GUID
+    val targets = FindProximityUnitTargetsInScope(terminal)
+    if(!usingProximityTerminal.contains(term_guid)) {
+      StartUsingProximityUnit(terminal, targets)
+    }
+    else {
+      targets.foreach(target =>
+        SelectProximityUnitBehavior(terminal, target) //terminal action
+      )
+    }
+  }
+
+  /**
+    * na
+    * @param terminal na
     * @return na
     */
   def FindProximityUnitTargetsInScope(terminal : Terminal with ProximityUnit) : Seq[PlanetSideGameObject] = {
@@ -6233,28 +6250,36 @@ class WorldSessionActor extends Actor with MDCContextAware {
   }
 
   /**
-    * Start using a proximity-base service.
-    * Special note is warranted in the case of a medical terminal or an advanced medical terminal.
+    * Queue a proximity-base service.
     * @param terminal the proximity-based unit
     */
-  def StartUsingProximityUnit(terminal : Terminal with ProximityUnit) : Unit = {
+  def StartUsingProximityUnit(terminal : Terminal with ProximityUnit, targets : Seq[PlanetSideGameObject]) : Unit = {
     val term_guid = terminal.GUID
-    if(!usingProximityTerminal.contains(term_guid)) {
-      val targets = FindProximityUnitTargetsInScope(terminal)
-      if(targets.nonEmpty) {
-        usingProximityTerminal += term_guid
-        terminal.Definition match {
-          case GlobalDefinitions.adv_med_terminal | GlobalDefinitions.medical_terminal =>
-            usingMedicalTerminal = Some(term_guid)
-          case _ => ;
-        }
-        targets.foreach(target =>
-          terminal.Actor ! CommonMessages.Use(player, Some(target))
-        )
+    if(!usingProximityTerminal.contains(term_guid) && targets.nonEmpty) {
+      targets.foreach(target =>
+        terminal.Actor ! CommonMessages.Use(player, Some(target))
+      )
+      usingProximityTerminal += term_guid
+      terminal.Definition match {
+        case GlobalDefinitions.adv_med_terminal | GlobalDefinitions.medical_terminal =>
+          usingMedicalTerminal = Some(term_guid)
+        case _ => ;
       }
     }
-    else {
-      SelectProximityUnit(terminal) //terminal action
+  }
+
+  /**
+    * Determine which functionality to pursue by a generic proximity-functional unit given the target for its activity.
+    * @param terminal the proximity-based unit
+    * @param target the object being affected by the unit
+    */
+  def SelectProximityUnitBehavior(terminal : Terminal with ProximityUnit, target : PlanetSideGameObject) : Unit = {
+    target match {
+      case o : Player =>
+        HealthAndArmorTerminal(terminal, o)
+      case o : Vehicle =>
+        vehicleService ! VehicleServiceMessage.Silo(SiloRepair.Start(terminal, o))
+      case _ => ;
     }
   }
 
@@ -6303,67 +6328,31 @@ class WorldSessionActor extends Actor with MDCContextAware {
   }
 
   /**
-    * Determine which functionality to pursue, by being given a generic proximity-functional unit
-    * and determinig which kind of unit is being utilized.
-    * @param terminal the proximity-based unit
-    */
-  def SelectProximityUnit(terminal : Terminal with ProximityUnit) : Unit = {
-    terminal.Definition match {
-      case GlobalDefinitions.adv_med_terminal | GlobalDefinitions.medical_terminal =>
-        ProximityMedicalTerminal(terminal)
-
-      case GlobalDefinitions.crystals_health_a | GlobalDefinitions.crystals_health_b =>
-        ProximityHealCrystal(terminal)
-
-      case GlobalDefinitions.repair_silo =>
-        //TODO insert vehicle repair here
-
-      case _ => ;
-    }
-  }
-
-  /**
     * When standing on the platform of a(n advanced) medical terminal,
     * resotre the player's health and armor points (when they need their health and armor points restored).
     * If the player is both fully healed and fully repaired, stop using the terminal.
     * @param unit the medical terminal
+    * @param target the player being healed
     */
-  def ProximityMedicalTerminal(unit : Terminal with ProximityUnit) : Unit = {
-    val healthFull : Boolean = if(player.Health < player.MaxHealth) {
-      player.History(HealFromTerm(PlayerSource(player), 10, 0, unit.Definition))
-      HealAction(player)
+  def HealthAndArmorTerminal(unit : Terminal with ProximityUnit, target : Player) : Unit = {
+    val medDef = unit.Definition.asInstanceOf[MedicalTerminalDefinition]
+    val healAmount = medDef.HealAmount
+    val healthFull : Boolean = if(healAmount != 0 && target.Health < target.MaxHealth) {
+      target.History(HealFromTerm(PlayerSource(target), healAmount, 0, medDef))
+      HealAction(target, healAmount)
     }
     else {
       true
     }
-    val armorFull : Boolean = if(player.Armor < player.MaxArmor) {
-      player.History(HealFromTerm(PlayerSource(player), 0, 10, unit.Definition))
-      ArmorRepairAction(player)
+    val repairAmount = medDef.ArmorAmount
+    val armorFull : Boolean = if(repairAmount != 0 && target.Armor < target.MaxArmor) {
+      target.History(HealFromTerm(PlayerSource(target), 0, repairAmount, medDef))
+      ArmorRepairAction(target, repairAmount)
     }
     else {
       true
     }
     if(healthFull && armorFull) {
-      log.info(s"${player.Name} is all fixed up")
-      StopUsingProximityUnit(unit)
-    }
-  }
-
-  /**
-    * When near a red cavern crystal, resotre the player's health (when they need their health restored).
-    * If the player is fully healed, stop using the crystal.
-    * @param unit the healing crystal
-    */
-  def ProximityHealCrystal(unit : Terminal with ProximityUnit) : Unit = {
-    val healthFull : Boolean = if(player.Health < player.MaxHealth) {
-      player.History(HealFromTerm(PlayerSource(player), 10, 0, unit.Definition))
-      HealAction(player)
-    }
-    else {
-      true
-    }
-    if(healthFull) {
-      log.info(s"${player.Name} is all healed up")
       StopUsingProximityUnit(unit)
     }
   }

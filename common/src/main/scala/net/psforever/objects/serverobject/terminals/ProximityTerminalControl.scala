@@ -2,7 +2,7 @@
 package net.psforever.objects.serverobject.terminals
 
 import akka.actor.{Actor, ActorRef, Cancellable}
-import net.psforever.objects.{DefaultCancellable, PlanetSideGameObject, Player}
+import net.psforever.objects.{DefaultCancellable, PlanetSideGameObject, Player, Vehicle}
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
 import net.psforever.packet.game.PlanetSideGUID
@@ -43,7 +43,7 @@ class ProximityTerminalControl(term : Terminal with ProximityUnit) extends Actor
   def Run : Receive = checkBehavior
     .orElse {
       case CommonMessages.Use(player, Some(target : PlanetSideGameObject)) =>
-        if(TerminalObject.Definition.asInstanceOf[ProximityDefinition].Validations.exists(p => p(player))) {
+        if(TerminalObject.Definition.asInstanceOf[ProximityDefinition].Validations.exists(p => p(target))) {
           Use(target, player.Continent)
         }
 
@@ -52,10 +52,9 @@ class ProximityTerminalControl(term : Terminal with ProximityUnit) extends Actor
 
       case ProximityTerminalControl.TerminalAction() =>
         val proxDef = TerminalObject.Definition.asInstanceOf[ProximityDefinition]
-        val radius = proxDef.UseRadius * proxDef.UseRadius
-        val validation = proxDef.Validations
+        val validateFunc : PlanetSideGameObject=>Boolean = TerminalObject.Validate(proxDef.UseRadius * proxDef.UseRadius, proxDef.Validations)
         TerminalObject.Targets.foreach(target => {
-          if(Vector3.DistanceSquared(TerminalObject.Position, target.Position) <= radius && validation.exists(p => p(target))) {
+          if(validateFunc(target)) {
             //TODO reserved for proper functionality; for now, see WorldSessionActor
           }
           else {
@@ -95,13 +94,25 @@ class ProximityTerminalControl(term : Terminal with ProximityUnit) extends Actor
 }
 
 object ProximityTerminalControl {
-  def ValidatePlayerTarget(target : PlanetSideGameObject) : Boolean = {
-    target match {
-      case p : Player =>
-        p.Health > 0 && (p.Health < p.MaxHealth || p.Armor < p.MaxArmor)
-      case _ =>
-        false
-    }
+  def MedicalValidation(target : PlanetSideGameObject) : Boolean = target match {
+    case p : Player =>
+      p.Health > 0 && (p.Health < p.MaxHealth || p.Armor < p.MaxArmor)
+    case _ =>
+      false
+  }
+
+  def CrystalValidation(target : PlanetSideGameObject) : Boolean = target match {
+    case p : Player =>
+      p.Health > 0 && p.Health < p.MaxHealth
+    case _ =>
+      false
+  }
+
+  def SiloValidation(target : PlanetSideGameObject) : Boolean = target match {
+    case v : Vehicle =>
+      v.Health > 0 && v.Health < v.MaxHealth
+    case _ =>
+      false
   }
 
   private case class TerminalAction()

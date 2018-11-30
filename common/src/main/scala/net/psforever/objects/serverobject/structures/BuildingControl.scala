@@ -91,7 +91,7 @@ class BuildingControl(building : Building) extends Actor with FactionAffinityBeh
         generator_state = PlanetSideGeneratorState.Normal,
         spawn_tubes_normal = true,
         force_dome_active = false,
-        lattice_benefit = 0,
+        lattice_benefit = 31,
         cavern_benefit = 0, //!! Field > 0 will cause malformed packet. See class def.
         unk4 = Nil,
         unk5 = 0,
