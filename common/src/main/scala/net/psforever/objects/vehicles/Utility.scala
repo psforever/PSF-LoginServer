@@ -5,10 +5,11 @@ import akka.actor.ActorContext
 import net.psforever.objects.definition.DeployableDefinition
 import net.psforever.objects._
 import net.psforever.objects.ce.TelepadLike
-import net.psforever.objects.serverobject.structures.Amenity
+import net.psforever.objects.serverobject.structures.{Amenity, Building}
 import net.psforever.objects.serverobject.terminals._
 import net.psforever.objects.serverobject.tube.{SpawnTube, SpawnTubeDefinition}
 import net.psforever.packet.game.{ItemTransactionMessage, PlanetSideGUID}
+import net.psforever.types.Vector3
 
 /**
   * An `Enumeration` of the available vehicular utilities.<br>
@@ -78,6 +79,14 @@ class Utility(util : UtilityType.Value, vehicle : Vehicle) {
 object Utility {
   type UtilLogic = (Amenity, ActorContext)=>Unit
 
+  sealed trait UtilityWorldEntity {
+    this : Amenity =>
+
+    override def Position : Vector3 = Owner.Position
+
+    override def Orientation : Vector3 = Owner.Orientation
+  }
+
   /**
     * Overloaded constructor.
     * @param util the type of the `Amenity` object to be created
@@ -118,19 +127,13 @@ object Utility {
     * Override for `SpawnTube` objects so that they inherit the spatial characteristics of their `Owner`.
     * @param tubeDef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
     */
-  class SpawnTubeUtility(tubeDef : SpawnTubeDefinition) extends SpawnTube(tubeDef) {
-    override def Position = Owner.Position
-    override def Orientation = Owner.Orientation
-  }
+  class SpawnTubeUtility(tubeDef : SpawnTubeDefinition) extends SpawnTube(tubeDef) with UtilityWorldEntity
 
   /**
     * Override for `Terminal` objects so that they inherit the spatial characteristics of their `Owner`.
     * @param tdef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
     */
-  class TerminalUtility(tdef : TerminalDefinition) extends Terminal(tdef) {
-    override def Position = Owner.Position
-    override def Orientation = Owner.Orientation
-  }
+  class TerminalUtility(tdef : TerminalDefinition) extends Terminal(tdef) with UtilityWorldEntity
 
   /**
     * na

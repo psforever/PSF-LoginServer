@@ -981,8 +981,12 @@ object GlobalDefinitions {
 
   val secondary_capture = new CaptureTerminalDefinition(751) // Tower CC
 
-  val lodestar_repair_terminal = new OrderTerminalDefinition { //TODO wrong object class
-    override def ObjectId : Int = 461
+  val lodestar_repair_terminal = new MedicalTerminalDefinition(461) {
+    Name = "lodestar_repair_terminal"
+    Interval = 1000
+    HealAmount = 60
+    UseRadius = 20
+    TargetValidation += ProximityTarget.Vehicle -> ProximityTerminalControl.Validation.RepairSilo
   }
 
   val multivehicle_rearm_terminal = new _OrderTerminalDefinition(576) {
