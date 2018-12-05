@@ -914,45 +914,45 @@ object GlobalDefinitions {
 
   val adv_med_terminal = new MedicalTerminalDefinition(38) {
     Name = "adv_med_terminal"
-    Delay = 500
+    Interval = 500
     HealAmount = 8
     ArmorAmount = 15
     UseRadius = 0.75f
-    TargetValidation += ProximityTarget.Player -> ProximityTerminalControl.MedicalValidation
+    TargetValidation += ProximityTarget.Player -> ProximityTerminalControl.Validation.Medical
   }
 
   val crystals_health_a = new MedicalTerminalDefinition(225) {
     Name = "crystals_health_a"
-    Delay = 500
+    Interval = 500
     HealAmount = 4
     UseRadius = 5
-    TargetValidation += ProximityTarget.Player -> ProximityTerminalControl.CrystalValidation
+    TargetValidation += ProximityTarget.Player -> ProximityTerminalControl.Validation.HealthCrystal
   }
 
   val crystals_health_b = new MedicalTerminalDefinition(226) {
     Name = "crystals_health_b"
-    Delay = 500
+    Interval = 500
     HealAmount = 4
     UseRadius = 1.3f
-    TargetValidation += ProximityTarget.Player -> ProximityTerminalControl.CrystalValidation
+    TargetValidation += ProximityTarget.Player -> ProximityTerminalControl.Validation.HealthCrystal
   }
 
   val medical_terminal = new MedicalTerminalDefinition(529) {
     Name = "medical_terminal"
-    Delay = 500
+    Interval = 500
     HealAmount = 5
     ArmorAmount = 10
     UseRadius = 0.75f
-    TargetValidation += ProximityTarget.Player -> ProximityTerminalControl.MedicalValidation
+    TargetValidation += ProximityTarget.Player -> ProximityTerminalControl.Validation.Medical
   }
 
   val portable_med_terminal = new MedicalTerminalDefinition(689) {
     Name = "portable_med_terminal"
-    Delay = 500
+    Interval = 500
     HealAmount = 5
     ArmorAmount = 10
     UseRadius = 3
-    TargetValidation += ProximityTarget.Player -> ProximityTerminalControl.MedicalValidation
+    TargetValidation += ProximityTarget.Player -> ProximityTerminalControl.Validation.Medical
   }
 
   val pad_landing = new RepairRearmSiloDefinition(719)
@@ -961,10 +961,10 @@ object GlobalDefinitions {
 
   val repair_silo_a = new MedicalTerminalDefinition(729) {
     Name = "repair_silo"
-    Delay = 1000
+    Interval = 1000
     HealAmount = 60
     UseRadius = 20
-    TargetValidation += ProximityTarget.Vehicle -> ProximityTerminalControl.SiloValidation
+    TargetValidation += ProximityTarget.Vehicle -> ProximityTerminalControl.Validation.RepairSilo
   }
 
   val spawn_pad = new VehicleSpawnPadDefinition

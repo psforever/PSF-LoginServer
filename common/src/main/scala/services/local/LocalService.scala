@@ -5,7 +5,7 @@ import akka.actor.{Actor, ActorRef, Props}
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.objects.serverobject.structures.Building
-import net.psforever.objects.serverobject.terminals.CaptureTerminal
+import net.psforever.objects.serverobject.terminals.{CaptureTerminal, ProximityUnit}
 import net.psforever.objects.zones.{InterstellarCluster, Zone}
 import net.psforever.objects._
 import net.psforever.packet.game.{PlanetSideGUID, TriggeredEffect, TriggeredEffectLocation}

@@ -1,6 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects
 
+import akka.actor.ActorRef
 import net.psforever.objects.definition.VehicleDefinition
 import net.psforever.objects.equipment.{Equipment, EquipmentSize}
 import net.psforever.objects.inventory.{Container, GridInventory, InventoryTile}
@@ -66,6 +67,7 @@ import scala.annotation.tailrec
   */
 class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServerObject
   with FactionAffinity
+  with ZoneAware
   with Mountable
   with MountedWeapons
   with Deployment
@@ -520,6 +522,25 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
   override def Continent_=(zoneId : String) : String = {
     continent = zoneId
     Continent
+  }
+
+  def canEqual(other: Any): Boolean = other.isInstanceOf[Vehicle]
+
+  override def equals(other : Any) : Boolean = other match {
+    case that: Vehicle =>
+      (that canEqual this) &&
+        hashCode() == that.hashCode()
+    case _ =>
+      false
+  }
+
+  override def hashCode() : Int = {
+    Actor match {
+      case ActorRef.noSender =>
+        super.hashCode()
+      case actor =>
+        actor.hashCode()
+    }
   }
 
   /**

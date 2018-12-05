@@ -33,7 +33,18 @@ trait ProximityDefinition {
 
   def TargetValidation : mutable.HashMap[ProximityTarget.Value, (PlanetSideGameObject)=>Boolean] = targetValidation
 
-  def Validations : Seq[(PlanetSideGameObject)=>Boolean] = targetValidation.values.toSeq
+  def Validations : Seq[(PlanetSideGameObject)=>Boolean] = {
+    targetValidation.headOption match {
+      case Some(_) =>
+        targetValidation.values.toSeq
+      case None =>
+        Seq(ProximityDefinition.Invalid)
+    }
+  }
 
   def Buy(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = Terminal.NoDeal()
+}
+
+object ProximityDefinition {
+  protected val Invalid : (PlanetSideGameObject=>Boolean) = (_ : PlanetSideGameObject) => false
 }

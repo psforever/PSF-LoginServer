@@ -2,7 +2,10 @@
 package net.psforever.objects.serverobject.terminals
 
 import net.psforever.objects.PlanetSideGameObject
+import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types.Vector3
+
+import scala.collection.mutable
 
 /**
   * A server object that provides a service, triggered when a certain distance from the unit itself (proximity-based).
@@ -15,20 +18,22 @@ trait ProximityUnit {
   /**
     * A list of targets that are currently affected by this proximity unit.
     */
-  private var targets : Set[PlanetSideGameObject] = Set.empty
+  private var targets : mutable.ListBuffer[PlanetSideGameObject] = mutable.ListBuffer[PlanetSideGameObject]()
 
-  def Targets : Seq[PlanetSideGameObject] = targets toSeq
+  def Targets : Seq[PlanetSideGameObject] = targets toList
 
   def NumberUsers : Int = targets.size
 
-  def AddUser(target : PlanetSideGameObject) : Int = {
+  def AddUser(target : PlanetSideGameObject) : Boolean = {
+    val alreadyContains = targets.contains(target)
     targets += target
-    NumberUsers
+    !alreadyContains && targets.contains(target)
   }
 
-  def RemoveUser(target : PlanetSideGameObject) : Int = {
+  def RemoveUser(target : PlanetSideGameObject) : Boolean = {
+    val alreadyContains = targets.contains(target)
     targets -= target
-    NumberUsers
+    alreadyContains && !targets.contains(target)
   }
 
   def Validate(target : PlanetSideGameObject) : Boolean = {
@@ -44,5 +49,7 @@ trait ProximityUnit {
 }
 
 object ProximityUnit {
+  final case class Action(terminal : Terminal with ProximityUnit, target : PlanetSideGameObject)
+  final case class CancelEffectUser(object_guid : PlanetSideGUID)
   final case class ProximityAction(terminal : Terminal with ProximityUnit, target : PlanetSideGameObject)
 }

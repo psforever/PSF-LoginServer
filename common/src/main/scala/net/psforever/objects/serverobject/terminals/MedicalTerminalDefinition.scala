@@ -9,19 +9,19 @@ import scala.concurrent.duration.{Duration, FiniteDuration}
   * Do not confuse the game's internal "medical_terminal" object category and the actual `medical_terminal` object (529).
   */
 class MedicalTerminalDefinition(objectId : Int) extends TerminalDefinition(objectId) with ProximityDefinition {
-  private var delay : FiniteDuration = Duration(0, "seconds")
+  private var interval : FiniteDuration = Duration(0, "seconds")
   private var healAmount : Int = 0
   private var armorAmount : Int = 0
 
-  def Delay : FiniteDuration = delay
+  def Interval : FiniteDuration = interval
 
-  def Delay_=(amount : Int) : FiniteDuration = {
-    Delay_=(Duration(amount, "milliseconds"))
+  def Interval_=(amount : Int) : FiniteDuration = {
+    Interval_=(Duration(amount, "milliseconds"))
   }
 
-  def Delay_=(amount : FiniteDuration) : FiniteDuration = {
-    delay = amount
-    Delay
+  def Interval_=(amount : FiniteDuration) : FiniteDuration = {
+    interval = amount
+    Interval
   }
 
   def HealAmount : Int = healAmount

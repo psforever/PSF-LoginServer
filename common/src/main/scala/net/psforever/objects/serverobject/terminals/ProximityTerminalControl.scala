@@ -6,10 +6,10 @@ import net.psforever.objects.{DefaultCancellable, PlanetSideGameObject, Player, 
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
 import net.psforever.packet.game.PlanetSideGUID
-import net.psforever.types.Vector3
 import services.local.{LocalAction, LocalServiceMessage}
 import services.{Service, ServiceManager}
 
+import scala.collection.mutable
 import scala.concurrent.duration._
 
 /**
@@ -21,6 +21,8 @@ import scala.concurrent.duration._
 class ProximityTerminalControl(term : Terminal with ProximityUnit) extends Actor with FactionAffinityBehavior.Check {
   var service : ActorRef = ActorRef.noSender
   var terminalAction : Cancellable = DefaultCancellable.obj
+  val callbacks : mutable.ListBuffer[(ActorRef, ActorRef)] = new mutable.ListBuffer[(ActorRef, ActorRef)]()
+  val log = org.log4s.getLogger
 
   def FactionObject : FactionAffinity = term
 
@@ -42,23 +44,40 @@ class ProximityTerminalControl(term : Terminal with ProximityUnit) extends Actor
 
   def Run : Receive = checkBehavior
     .orElse {
-      case CommonMessages.Use(player, Some(target : PlanetSideGameObject)) =>
-        if(TerminalObject.Definition.asInstanceOf[ProximityDefinition].Validations.exists(p => p(target))) {
-          Use(target, player.Continent)
+      case CommonMessages.Use(_, Some(target : PlanetSideGameObject)) =>
+        if(term.Definition.asInstanceOf[ProximityDefinition].Validations.exists(p => p(target))) {
+          Use(target, term.Continent, sender, sender)
         }
 
-      case CommonMessages.Unuse(player, Some(target : PlanetSideGameObject)) =>
-        Unuse(target, TerminalObject.Continent)
+      case CommonMessages.Use(_, Some((target : PlanetSideGameObject, callback : ActorRef))) =>
+        if(term.Definition.asInstanceOf[ProximityDefinition].Validations.exists(p => p(target))) {
+          Use(target, term.Continent, callback, sender)
+        }
+
+      case CommonMessages.Use(_, _) =>
+        log.warn(s"unexpected format for CommonMessages.Use in this context")
+
+      case CommonMessages.Unuse(_, Some(target : PlanetSideGameObject)) =>
+        Unuse(target, term.Continent)
+
+      case CommonMessages.Unuse(_, _) =>
+        log.warn(s"unexpected format for CommonMessages.Unuse in this context")
 
       case ProximityTerminalControl.TerminalAction() =>
-        val proxDef = TerminalObject.Definition.asInstanceOf[ProximityDefinition]
-        val validateFunc : PlanetSideGameObject=>Boolean = TerminalObject.Validate(proxDef.UseRadius * proxDef.UseRadius, proxDef.Validations)
-        TerminalObject.Targets.foreach(target => {
+        val proxDef = term.Definition.asInstanceOf[ProximityDefinition]
+        val validateFunc : PlanetSideGameObject=>Boolean = term.Validate(proxDef.UseRadius * proxDef.UseRadius, proxDef.Validations)
+        val callbackList = callbacks.toList
+        term.Targets.zipWithIndex.foreach({ case((target, index)) =>
           if(validateFunc(target)) {
-            //TODO reserved for proper functionality; for now, see WorldSessionActor
+            callbackList.lift(index) match {
+              case Some((_, cback)) =>
+                cback ! ProximityUnit.Action(term, target)
+              case None =>
+                log.error(s"improper callback registered for $target on $term in zone ${term.Owner.Continent}; this may be recoverable")
+            }
           }
           else {
-            Unuse(target, TerminalObject.Continent)
+            Unuse(target, term.Continent)
           }
         })
 
@@ -69,24 +88,52 @@ class ProximityTerminalControl(term : Terminal with ProximityUnit) extends Actor
       case CommonMessages.ClearHack() =>
         term.HackedBy = None
 
+      case ProximityUnit.Action(_, _) =>
+        //reserved
+
       case _ => ;
     }
 
-  def Use(target : PlanetSideGameObject, zone : String) : Unit = {
-    val hadNoUsers = TerminalObject.NumberUsers == 0
-    if(TerminalObject.AddUser(target) == 1 && hadNoUsers) {
-      import scala.concurrent.ExecutionContext.Implicits.global
-      terminalAction.cancel
-      terminalAction = context.system.scheduler.schedule(500 milliseconds, 500 milliseconds, self, ProximityTerminalControl.TerminalAction())
-      service ! LocalServiceMessage(zone, LocalAction.ProximityTerminalEffect(PlanetSideGUID(0), TerminalObject.GUID, true))
+  def Use(target : PlanetSideGameObject, zone : String, callback : ActorRef, sender : ActorRef) : Unit = {
+    val hadNoUsers = term.NumberUsers == 0
+    if(term.AddUser(target)) {
+      //add callback
+      callbacks += ((sender, callback))
+      //activation
+      if(term.NumberUsers == 1 && hadNoUsers) {
+        val medDef = term.Definition.asInstanceOf[MedicalTerminalDefinition]
+        import scala.concurrent.ExecutionContext.Implicits.global
+        terminalAction.cancel
+        terminalAction = context.system.scheduler.schedule(500 milliseconds, medDef.Interval, self, ProximityTerminalControl.TerminalAction())
+        service ! LocalServiceMessage(zone, LocalAction.ProximityTerminalEffect(PlanetSideGUID(0), term.GUID, true))
+      }
+    }
+    else {
+      log.warn(s"ProximityTerminal.Use: $target was rejected by unit ${term.Definition.Name}@${term.GUID.guid}")
     }
   }
 
   def Unuse(target : PlanetSideGameObject, zone : String) : Unit = {
-    val hadUsers = TerminalObject.NumberUsers > 0
-    if(TerminalObject.RemoveUser(target) == 0 && hadUsers) {
-      terminalAction.cancel
-      service ! LocalServiceMessage(zone, LocalAction.ProximityTerminalEffect(PlanetSideGUID(0), TerminalObject.GUID, false))
+    val whereTarget = term.Targets.indexWhere(_ eq target)
+    val previousUsers = term.NumberUsers
+    val hadUsers = previousUsers > 0
+    if(whereTarget > -1 && term.RemoveUser(target)) {
+      //remove callback
+      val originalSender : ActorRef = {
+        val (to, _) = callbacks.remove(whereTarget)
+        to
+      }
+      //de-activation (global / local)
+      if(term.NumberUsers == 0 && hadUsers) {
+        terminalAction.cancel
+        service ! LocalServiceMessage(zone, LocalAction.ProximityTerminalEffect(PlanetSideGUID(0), term.GUID, false))
+      }
+      else if(originalSender ne ActorRef.noSender) {
+        originalSender ! ProximityUnit.CancelEffectUser(term.GUID)
+      }
+    }
+    else {
+      log.debug(s"target by proximity $target is not known to $term, though the unit tried to 'Unuse' it")
     }
   }
 
@@ -94,25 +141,27 @@ class ProximityTerminalControl(term : Terminal with ProximityUnit) extends Actor
 }
 
 object ProximityTerminalControl {
-  def MedicalValidation(target : PlanetSideGameObject) : Boolean = target match {
-    case p : Player =>
-      p.Health > 0 && (p.Health < p.MaxHealth || p.Armor < p.MaxArmor)
-    case _ =>
-      false
-  }
+  object Validation {
+    def Medical(target : PlanetSideGameObject) : Boolean = target match {
+      case p : Player =>
+        p.Health > 0 && (p.Health < p.MaxHealth || p.Armor < p.MaxArmor)
+      case _ =>
+        false
+    }
 
-  def CrystalValidation(target : PlanetSideGameObject) : Boolean = target match {
-    case p : Player =>
-      p.Health > 0 && p.Health < p.MaxHealth
-    case _ =>
-      false
-  }
+    def HealthCrystal(target : PlanetSideGameObject) : Boolean = target match {
+      case p : Player =>
+        p.Health > 0 && p.Health < p.MaxHealth
+      case _ =>
+        false
+    }
 
-  def SiloValidation(target : PlanetSideGameObject) : Boolean = target match {
-    case v : Vehicle =>
-      v.Health > 0 && v.Health < v.MaxHealth
-    case _ =>
-      false
+    def RepairSilo(target : PlanetSideGameObject) : Boolean = target match {
+      case v : Vehicle =>
+        v.Health > 0 && v.Health < v.MaxHealth
+      case _ =>
+        false
+    }
   }
 
   private case class TerminalAction()

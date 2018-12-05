@@ -49,7 +49,7 @@ import services.{RemoverActor, vehicle, _}
 import services.avatar.{AvatarAction, AvatarResponse, AvatarServiceMessage, AvatarServiceResponse}
 import services.galaxy.{GalaxyResponse, GalaxyServiceResponse}
 import services.local.{LocalAction, LocalResponse, LocalServiceMessage, LocalServiceResponse}
-import services.vehicle.support.{SiloRepair, TurretUpgrader}
+import services.vehicle.support.TurretUpgrader
 import services.vehicle.{VehicleAction, VehicleResponse, VehicleServiceMessage, VehicleServiceResponse}
 
 import scala.concurrent.duration._
@@ -132,7 +132,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
     LivePlayerList.Remove(sessionId)
     if(player != null && player.HasGUID) {
       val player_guid = player.GUID
-      CancelAllProximityUnits()
       //handle orphaned deployables
       DisownDeployables()
       //clean up boomer triggers and telepads
@@ -282,6 +281,17 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case Terminal.TerminalMessage(tplayer, msg, order) =>
       HandleTerminalMessage(tplayer, msg, order)
+
+    case ProximityUnit.Action(term, target) =>
+      SelectProximityUnitBehavior(term, target)
+
+    case ProximityUnit.CancelEffectUser(object_guid) =>
+      log.debug(s"ProximityUnit.CancelEffectUser: ${player.Name} suspends use of proximity unit $object_guid")
+      continent.GUID(object_guid) match {
+        case Some(term : Terminal with ProximityUnit) =>
+          StopUsingProximityUnit(term)
+        case _ => ;
+      }
 
     case VehicleServiceResponse(toChannel, guid, reply) =>
       HandleVehicleServiceResponse(toChannel, guid, reply)
@@ -823,9 +833,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case HackingProgress(progressType, tplayer, target, tool_guid, delta, completeAction, tickAction) =>
       HandleHackingProgress(progressType, tplayer, target, tool_guid, delta, completeAction, tickAction)
 
-    case DelayedProximityUnitStop(terminal) =>
-      StopUsingProximityUnit(terminal)
-
     case Vitality.DamageResolution(target : Vehicle) =>
       HandleVehicleDamageResolution(target)
 
@@ -1292,9 +1299,15 @@ class WorldSessionActor extends Actor with MDCContextAware {
           sendResponse(ObjectDeleteMessage(object_guid, unk))
         }
 
-      case LocalResponse.ProximityTerminalEffect(object_guid, effectState) =>
-        if(tplayer_guid != guid) {
-          sendResponse(ProximityTerminalUseMessage(PlanetSideGUID(0), object_guid, effectState))
+      case LocalResponse.ProximityTerminalEffect(object_guid, true) =>
+        sendResponse(ProximityTerminalUseMessage(PlanetSideGUID(0), object_guid, true))
+
+      case LocalResponse.ProximityTerminalEffect(object_guid, false) =>
+        sendResponse(ProximityTerminalUseMessage(PlanetSideGUID(0), object_guid, false))
+        continent.GUID(object_guid) match {
+          case Some(term : Terminal with ProximityUnit) =>
+            StopUsingProximityUnit(term) //redundant, but precautious
+          case _ => ;
         }
 
       case LocalResponse.RouterTelepadMessage(msg) =>
@@ -1857,22 +1870,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         }
         lastTerminalOrderFulfillment = true
 
-      case Terminal.StartProximityEffect(term) =>
-        //do not reset order fulfillment
-        val player_guid = player.GUID
-        val term_guid = term.GUID
-        sendResponse(ProximityTerminalUseMessage(player_guid, term_guid, true))
-        localService ! LocalServiceMessage(continent.Id, LocalAction.ProximityTerminalEffect(player_guid, term_guid, true))
-
-      case Terminal.StopProximityEffect(term) =>
-        //do not reset order fulfillment
-        val player_guid = player.GUID
-        val term_guid = term.GUID
-        StopUsingProximityUnit(term) //redundant but cautious
-        sendResponse(ProximityTerminalUseMessage(player_guid, term_guid, false))
-        localService ! LocalServiceMessage(continent.Id, LocalAction.ProximityTerminalEffect(player_guid, term_guid, false))
-
-      case Terminal.NoDeal() =>
+      case _ =>
         val order : String = if(msg == null) {
           s"order $msg"
         }
@@ -3808,7 +3806,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case Some(obj : SpawnTube) =>
           //deconstruction
           PlayerActionsToCancel()
-          CancelAllProximityUnits()
+          ForgetAllProximityTerminals()
           player.Release
           deadState = DeadState.Release
           sendResponse(AvatarDeadStateMessage(DeadState.Release, 0, 0, player.Position, player.Faction, true))
@@ -6008,7 +6006,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player_guid, 29, 1))
     }
     PlayerActionsToCancel()
-    CancelAllProximityUnits()
+    ForgetAllProximityTerminals()
     //TODO other methods of death?
     val pentry = PlayerSource(tplayer)
     (tplayer.History.find({p => p.isInstanceOf[PlayerSuicide]}) match {
@@ -6225,13 +6223,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
   def HandleProximityTerminalUse(terminal : Terminal with ProximityUnit) : Unit = {
     val term_guid = terminal.GUID
     val targets = FindProximityUnitTargetsInScope(terminal)
-    if(!usingProximityTerminal.contains(term_guid)) {
+    if(!usingProximityTerminal.contains(term_guid) && targets.nonEmpty) {
       StartUsingProximityUnit(terminal, targets)
     }
-    else {
-      targets.foreach(target =>
-        SelectProximityUnitBehavior(terminal, target) //terminal action
-      )
+    else if(targets.isEmpty) {
+      log.warn(s"HandleProximityTerminalUse: ${player.Name} could not find valid targets to give to proximity unit ${terminal.Definition.Name}@${term_guid.guid}")
     }
   }
 
@@ -6255,9 +6251,16 @@ class WorldSessionActor extends Actor with MDCContextAware {
     */
   def StartUsingProximityUnit(terminal : Terminal with ProximityUnit, targets : Seq[PlanetSideGameObject]) : Unit = {
     val term_guid = terminal.GUID
-    if(!usingProximityTerminal.contains(term_guid) && targets.nonEmpty) {
+    if(player.isAlive && !usingProximityTerminal.contains(term_guid) && targets.nonEmpty) {
+      log.info(s"StartUsingProximityUnit: ${player.Name} wants to use ${terminal.Definition.Name}@${term_guid.guid}")
       targets.foreach(target =>
-        terminal.Actor ! CommonMessages.Use(player, Some(target))
+        target match {
+          case o : Player =>
+            terminal.Actor ! CommonMessages.Use(player, Some(target))
+          case o : Vehicle =>
+            terminal.Actor ! CommonMessages.Use(player, Some((target, vehicleService)))
+          case _ => ;
+        }
       )
       usingProximityTerminal += term_guid
       terminal.Definition match {
@@ -6266,10 +6269,14 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case _ => ;
       }
     }
+    else if(targets.isEmpty) {
+      log.warn(s"StartUsingProximityUnit: ${player.Name} did not provide valid targets to proximity unit ${terminal.Definition.Name}@${term_guid.guid}")
+    }
   }
 
   /**
     * Determine which functionality to pursue by a generic proximity-functional unit given the target for its activity.
+    * @see `VehicleService:receive, ProximityUnit.Action`
     * @param terminal the proximity-based unit
     * @param target the object being affected by the unit
     */
@@ -6277,8 +6284,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
     target match {
       case o : Player =>
         HealthAndArmorTerminal(terminal, o)
-      case o : Vehicle =>
-        vehicleService ! VehicleServiceMessage.Silo(SiloRepair.Start(terminal, o))
       case _ => ;
     }
   }
@@ -6293,6 +6298,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
   def StopUsingProximityUnit(terminal : Terminal with ProximityUnit) : Unit = {
     val term_guid = terminal.GUID
     if(usingProximityTerminal.contains(term_guid)) {
+      log.info(s"StopUsingProximityUnit: attempting to stop using proximity unit ${terminal.Definition.Name}@${term_guid.guid}")
       val targets = FindProximityUnitTargetsInScope(terminal)
       if(targets.nonEmpty) {
         usingProximityTerminal -= term_guid
@@ -6303,15 +6309,28 @@ class WorldSessionActor extends Actor with MDCContextAware {
           terminal.Actor ! CommonMessages.Unuse(player, Some(target))
         )
       }
+      else {
+        log.warn(s"StopUsingProximityUnit: ${player.Name} could not find valid targets for proximity unit ${terminal.Definition.Name}@${term_guid.guid}")
+      }
     }
+    else if (player.isAlive) {
+      log.warn(s"StopUsingProximityUnit: ${player.Name} was not aware of using proximity unit ${terminal.Definition.Name}@${term_guid.guid}")
+    }
+  }
+
+  /**
+    *
+    */
+  def ForgetAllProximityTerminals() : Unit = {
+    usingProximityTerminal = Set.empty
+    usingMedicalTerminal = None
   }
 
   /**
     * Cease all current interactions with proximity-based units.
     * Pair with `PlayerActionsToCancel`, except when logging out (stopping).
     * This operations may invoke callback messages.
-    * @see `postStop`<br>
-    *       `Terminal.StopProximityEffects`
+    * @see `postStop`
     */
   def CancelAllProximityUnits() : Unit = {
     usingProximityTerminal.foreach(term_guid => {
@@ -6323,8 +6342,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case _ => ;
       }
     })
-    usingProximityTerminal = Set.empty
-    usingMedicalTerminal = None
+    ForgetAllProximityTerminals()
   }
 
   /**
@@ -7746,7 +7764,6 @@ object WorldSessionActor {
   private final case class ListAccountCharacters()
   private final case class SetCurrentAvatar(tplayer : Player)
   private final case class VehicleLoaded(vehicle : Vehicle)
-  private final case class DelayedProximityUnitStop(unit : Terminal with ProximityUnit)
   private final case class UnregisterCorpseOnVehicleDisembark(corpse : Player)
   private final case class CheckCargoMounting(vehicle_guid : PlanetSideGUID, cargo_vehicle_guid: PlanetSideGUID, cargo_mountpoint: Int, iteration: Int)
   private final case class CheckCargoDismount(vehicle_guid : PlanetSideGUID, cargo_vehicle_guid: PlanetSideGUID, cargo_mountpoint: Int, iteration: Int)
