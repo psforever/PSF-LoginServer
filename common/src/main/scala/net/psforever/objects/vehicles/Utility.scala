@@ -22,7 +22,10 @@ object UtilityType extends Enumeration {
   type Type = Value
   val
   ams_respawn_tube,
+  bfr_rearm_terminal,
+  lodestar_repair_terminal,
   matrix_terminalc,
+  multivehicle_rearm_terminal,
   order_terminala,
   order_terminalb,
   teleportpad_terminal,
@@ -93,8 +96,14 @@ object Utility {
   private def BuildUtilityFunc(util : UtilityType.Value) : Amenity = util match {
     case UtilityType.ams_respawn_tube =>
       new SpawnTubeUtility(GlobalDefinitions.ams_respawn_tube)
+    case UtilityType.bfr_rearm_terminal =>
+      new TerminalUtility(GlobalDefinitions.bfr_rearm_terminal)
+    case UtilityType.lodestar_repair_terminal =>
+      new TerminalUtility(GlobalDefinitions.lodestar_repair_terminal)
     case UtilityType.matrix_terminalc =>
       new TerminalUtility(GlobalDefinitions.matrix_terminalc)
+    case UtilityType.multivehicle_rearm_terminal =>
+      new TerminalUtility(GlobalDefinitions.multivehicle_rearm_terminal)
     case UtilityType.order_terminala =>
       new TerminalUtility(GlobalDefinitions.order_terminala)
     case UtilityType.order_terminalb =>
@@ -180,8 +189,14 @@ object Utility {
   private def SelectUtilitySetupFunc(util : UtilityType.Value) : UtilLogic = util match {
     case UtilityType.ams_respawn_tube =>
       SpawnTubeDefinition.Setup
+    case UtilityType.bfr_rearm_terminal =>
+      _OrderTerminalDefinition.Setup
+    case UtilityType.lodestar_repair_terminal =>
+      OrderTerminalABDefinition.Setup //TODO wrong
     case UtilityType.matrix_terminalc =>
       MatrixTerminalDefinition.Setup
+    case UtilityType.multivehicle_rearm_terminal =>
+      _OrderTerminalDefinition.Setup
     case UtilityType.order_terminala =>
       OrderTerminalABDefinition.Setup
     case UtilityType.order_terminalb =>

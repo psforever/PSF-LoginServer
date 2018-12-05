@@ -938,6 +938,22 @@ object GlobalDefinitions {
 
   val secondary_capture = new CaptureTerminalDefinition(751) // Tower CC
 
+  val lodestar_repair_terminal = new OrderTerminalDefinition { //TODO wrong object class
+    override def ObjectId : Int = 461
+  }
+
+  val multivehicle_rearm_terminal = new _OrderTerminalDefinition(576) {
+    Name = "multivehicle_rearm_terminal"
+    Page += 3 -> _OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
+    Page += 4 -> _OrderTerminalDefinition.VehicleLoadoutPage()
+  }
+
+  val bfr_rearm_terminal = new _OrderTerminalDefinition(142) {
+    Name = "bfr_rearm_terminal"
+    Page += 3 -> _OrderTerminalDefinition.EquipmentPage(Map.empty[String, ()=>Equipment]) //TODO add stock to page
+    Page += 4 -> _OrderTerminalDefinition.VehicleLoadoutPage()
+  }
+
   val manned_turret = new TurretDefinition(480) {
     Name = "manned_turret"
     MaxHealth = 3600
@@ -5394,6 +5410,12 @@ object GlobalDefinitions {
     lodestar.MountPoints += 1 -> 0
     lodestar.MountPoints += 2 -> 1
     lodestar.Cargo += 1 -> new CargoDefinition()
+    lodestar.Utilities += 2 -> UtilityType.lodestar_repair_terminal
+    lodestar.Utilities += 3 -> UtilityType.lodestar_repair_terminal
+    lodestar.Utilities += 4 -> UtilityType.multivehicle_rearm_terminal
+    lodestar.Utilities += 5 -> UtilityType.multivehicle_rearm_terminal
+    lodestar.Utilities += 6 -> UtilityType.bfr_rearm_terminal
+    lodestar.Utilities += 7 -> UtilityType.bfr_rearm_terminal
     lodestar.TrunkSize = InventoryTile.Tile1612
     lodestar.TrunkOffset = 30
     lodestar.AutoPilotSpeeds = (0, 4)
