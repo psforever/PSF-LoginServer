@@ -3764,7 +3764,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
               //TODO matrix spawn point; for now, just blindly bind to show work (and hope nothing breaks)
               sendResponse(BindPlayerMessage(BindStatus.Bind, "", true, true, SpawnGroup.Sanctuary, 0, 0, terminal.Position))
             }
-            else if(tdef.isInstanceOf[RepairRearmSiloDefinition] || tdef == GlobalDefinitions.multivehicle_rearm_terminal) {
+            else if(tdef == GlobalDefinitions.multivehicle_rearm_terminal || tdef == GlobalDefinitions.bfr_rearm_terminal ||
+              tdef == GlobalDefinitions.air_rearm_terminal ||  tdef == GlobalDefinitions.ground_rearm_terminal) {
               FindLocalVehicle match {
                 case Some(vehicle) =>
                   sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
@@ -4292,7 +4293,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           continent.GUID(vehicleGUID) match {
             case Some(obj : Vehicle) =>
               if(obj.Health > 0) { //vehicle will try to charge even if destroyed
-                //obj.Actor ! Vehicle.ChargeShields(15)
+                obj.Actor ! Vehicle.ChargeShields(15)
               }
             case _ =>
               log.warn(s"FacilityBenefitShieldChargeRequest: can not find vehicle ${vehicleGUID.guid} in zone ${continent.Id}")
@@ -6239,7 +6240,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
   def FindProximityUnitTargetsInScope(terminal : Terminal with ProximityUnit) : Seq[PlanetSideGameObject] = {
     terminal.Definition.asInstanceOf[ProximityDefinition].TargetValidation.keySet collect {
       case ProximityTarget.Player => Some(player)
-      case ProximityTarget.Vehicle => continent.GUID(player.VehicleSeated)
+      case ProximityTarget.Vehicle | ProximityTarget.Aircraft => continent.GUID(player.VehicleSeated)
     } collect {
       case Some(a) => a
     } toSeq

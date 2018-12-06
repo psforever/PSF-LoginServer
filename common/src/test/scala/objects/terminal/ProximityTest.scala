@@ -74,7 +74,7 @@ class ProximityTerminalControl1bTest extends ActorTest {
       player.GUID = PlanetSideGUID(10)
 
       assert(obj.NumberUsers == 0)
-      obj.Actor ! CommonMessages.Use(player)
+      obj.Actor ! CommonMessages.Use(player, Some(player))
       val msg = receiveOne(200 milliseconds)
       assert(obj.NumberUsers == 1)
       assert(msg.isInstanceOf[TerminalMessage])

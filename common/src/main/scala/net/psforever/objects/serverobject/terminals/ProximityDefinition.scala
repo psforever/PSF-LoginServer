@@ -6,14 +6,6 @@ import net.psforever.packet.game.ItemTransactionMessage
 
 import scala.collection.mutable
 
-object ProximityTarget extends Enumeration {
-  val
-  Equipment,
-  Player,
-  Vehicle
-    = Value
-}
-
 /**
   * The definition for any `Terminal` that possesses a proximity-based effect.
   * This includes the limited proximity-based functionality of the formal medical terminals

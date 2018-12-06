@@ -922,11 +922,11 @@ object GlobalDefinitions {
 
   val portable_med_terminal = new MedicalTerminalDefinition(689)
 
-  val pad_landing = new RepairRearmSiloDefinition(719)
+  val pad_landing_frame = new MedicalTerminalDefinition(618)
 
-  val repair_silo = new RepairRearmSiloDefinition(729)
+  val pad_landing_tower_frame = new MedicalTerminalDefinition(619)
 
-  val repair_silo_a = new MedicalTerminalDefinition(729)
+  val repair_silo = new MedicalTerminalDefinition(729)
 
   val spawn_pad = new VehicleSpawnPadDefinition
 
@@ -947,6 +947,10 @@ object GlobalDefinitions {
   val multivehicle_rearm_terminal = new _OrderTerminalDefinition(576)
 
   val bfr_rearm_terminal = new _OrderTerminalDefinition(142)
+
+  val air_rearm_terminal = new _OrderTerminalDefinition(42)
+
+  val ground_rearm_terminal = new _OrderTerminalDefinition(384)
 
   val manned_turret = new TurretDefinition(480)
   initMiscellaneous()
@@ -5624,15 +5628,23 @@ object GlobalDefinitions {
     portable_med_terminal.UseRadius = 3
     portable_med_terminal.TargetValidation += ProximityTarget.Player -> ProximityTerminalControl.Validation.Medical
 
-    //val pad_landing = new RepairRearmSiloDefinition(719)
+    pad_landing_frame.Name = "pad_landing_frame"
+    pad_landing_frame.Interval = 1000
+    pad_landing_frame.HealAmount = 60
+    pad_landing_frame.UseRadius = 20
+    pad_landing_frame.TargetValidation += ProximityTarget.Aircraft -> ProximityTerminalControl.Validation.PadLanding
 
-    //val repair_silo = new RepairRearmSiloDefinition(729)
+    pad_landing_tower_frame.Name = "pad_landing_tower_frame"
+    pad_landing_tower_frame.Interval = 1000
+    pad_landing_tower_frame.HealAmount = 60
+    pad_landing_tower_frame.UseRadius = 20
+    pad_landing_tower_frame.TargetValidation += ProximityTarget.Aircraft -> ProximityTerminalControl.Validation.PadLanding
 
-    repair_silo_a.Name = "repair_silo"
-    repair_silo_a.Interval = 1000
-    repair_silo_a.HealAmount = 60
-    repair_silo_a.UseRadius = 20
-    repair_silo_a.TargetValidation += ProximityTarget.Vehicle -> ProximityTerminalControl.Validation.RepairSilo
+    repair_silo.Name = "repair_silo"
+    repair_silo.Interval = 1000
+    repair_silo.HealAmount = 60
+    repair_silo.UseRadius = 20
+    repair_silo.TargetValidation += ProximityTarget.Vehicle -> ProximityTerminalControl.Validation.RepairSilo
 
     lodestar_repair_terminal.Name = "lodestar_repair_terminal"
     lodestar_repair_terminal.Interval = 1000
@@ -5647,6 +5659,14 @@ object GlobalDefinitions {
     bfr_rearm_terminal.Name = "bfr_rearm_terminal"
     bfr_rearm_terminal.Page += 3 -> _OrderTerminalDefinition.EquipmentPage(Map.empty[String, ()=>Equipment]) //TODO add stock to page
     bfr_rearm_terminal.Page += 4 -> _OrderTerminalDefinition.VehicleLoadoutPage()
+
+    air_rearm_terminal.Name = "air_rearm_terminal"
+    air_rearm_terminal.Page += 3 -> _OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
+    air_rearm_terminal.Page += 4 -> _OrderTerminalDefinition.VehicleLoadoutPage()
+
+    ground_rearm_terminal.Name = "ground_rearm_terminal"
+    ground_rearm_terminal.Page += 3 -> _OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
+    ground_rearm_terminal.Page += 4 -> _OrderTerminalDefinition.VehicleLoadoutPage()
 
     manned_turret.Name = "manned_turret"
     manned_turret.MaxHealth = 3600

@@ -55,7 +55,7 @@ object Maps {
       LocalObject(380, Door.Constructor)
       LocalObject(381, Door.Constructor)
       LocalObject(382, Door.Constructor)
-      LocalObject(383, Door.Constructor(Vector3(2674.0938f, 4317.367f, 44.59375f), Vector3(0.0f, 0.0f, 180.0f)))
+      LocalObject(383, Door.Constructor(Vector3(2674.0938f, 4317.367f, 44.59375f), Vector3.z(180.0f)))
       LocalObject(384, Door.Constructor(Vector3(2674.086f, 4321.6953f, 44.59375f), Vector3(0.0f, 357.1875f, 357.1875f)))
       LocalObject(385, Door.Constructor)
       LocalObject(386, Door.Constructor(Vector3(2692.086f, 4316.5703f, 52.03125f), Vector3(0.0f, 2.8125f, 270.0f)))
@@ -77,7 +77,7 @@ object Maps {
       LocalObject(701, Door.Constructor)
       LocalObject(703, Door.Constructor)
       LocalObject(716, Door.Constructor)
-      LocalObject(920, Door.Constructor(Vector3(2708.1953f, 4319.9766f, 39.59375f), Vector3(0.0f, 0.0f, 92.8125f)))
+      LocalObject(920, Door.Constructor(Vector3(2708.1953f, 4319.9766f, 39.59375f), Vector3.z(92.8125f)))
 
       //Akkan Locks
       LocalObject(968, IFFLock.Constructor)
@@ -181,16 +181,16 @@ object Maps {
       LocalObject(516, Door.Constructor)
       LocalObject(517, Door.Constructor)
       LocalObject(518, Door.Constructor)
-      LocalObject(519, Door.Constructor(Vector3(4342.7266f, 5833.461f, 77.890625f), Vector3(0, 0, 272)))
+      LocalObject(519, Door.Constructor(Vector3(4342.7266f, 5833.461f, 77.890625f), Vector3.z(272)))
       LocalObject(520, Door.Constructor)
       LocalObject(521, Door.Constructor)
-      LocalObject(522, Door.Constructor(Vector3(4395.7188f, 5908.2188f, 92.90625f), Vector3(0, 0, 2)))
-      LocalObject(523, Door.Constructor(Vector3(4402.086f, 5891.914f, 92.90625f), Vector3(0, 0, 182)))
+      LocalObject(522, Door.Constructor(Vector3(4395.7188f, 5908.2188f, 92.90625f), Vector3.z(2)))
+      LocalObject(523, Door.Constructor(Vector3(4402.086f, 5891.914f, 92.90625f), Vector3.z(182)))
       LocalObject(524, Door.Constructor)
       LocalObject(535, Door.Constructor)
       LocalObject(536, Door.Constructor)
       LocalObject(537, Door.Constructor)
-      LocalObject(653, Door.Constructor(Vector3(4339.6953f, 5973.828f, 77.875f), Vector3(0, 0, 2)))
+      LocalObject(653, Door.Constructor(Vector3(4339.6953f, 5973.828f, 77.875f), Vector3.z(2)))
       LocalObject(657, Door.Constructor)
       LocalObject(810, Door.Constructor)
       LocalObject(811, Door.Constructor)
@@ -199,19 +199,19 @@ object Maps {
       LocalObject(814, Door.Constructor)
       LocalObject(815, Door.Constructor)
       LocalObject(816, Door.Constructor)
-      LocalObject(817, Door.Constructor(Vector3(4380.5938f, 5892.047f, 92.890625f), Vector3(0, 0, 2)))
+      LocalObject(817, Door.Constructor(Vector3(4380.5938f, 5892.047f, 92.890625f), Vector3.z(2)))
       LocalObject(818, Door.Constructor)
       LocalObject(819, Door.Constructor)
       LocalObject(820, Door.Constructor)
       LocalObject(821, Door.Constructor)
       LocalObject(822, Door.Constructor)
       LocalObject(823, Door.Constructor)
-      LocalObject(824, Door.Constructor(Vector3(4404.328f, 5883.4453f, 70.40625f), Vector3(0, 0, 182)))
-      LocalObject(825, Door.Constructor(Vector3(4405.133f, 5907.117f, 70.390625f), Vector3(0, 0, 2)))
-      LocalObject(826, Door.Constructor(Vector3(4413.3984f, 5914.9688f, 62.890625f), Vector3(0, 0, 182)))
-      LocalObject(827, Door.Constructor(Vector3(4416.4297f, 5886.867f, 62.890625f), Vector3(0, 0, 272)))
+      LocalObject(824, Door.Constructor(Vector3(4404.328f, 5883.4453f, 70.40625f), Vector3.z(182)))
+      LocalObject(825, Door.Constructor(Vector3(4405.133f, 5907.117f, 70.390625f), Vector3.z(2)))
+      LocalObject(826, Door.Constructor(Vector3(4413.3984f, 5914.9688f, 62.890625f), Vector3.z(182)))
+      LocalObject(827, Door.Constructor(Vector3(4416.4297f, 5886.867f, 62.890625f), Vector3.z(272)))
       LocalObject(828, Door.Constructor)
-      LocalObject(925, Door.Constructor(Vector3(4424.492f, 5884.75f, 77.953125f), Vector3(0, 0, 182)))
+      LocalObject(925, Door.Constructor(Vector3(4424.492f, 5884.75f, 77.953125f), Vector3.z(182)))
       LocalObject(973, IFFLock.Constructor)
       LocalObject(980, IFFLock.Constructor)
       LocalObject(1142, IFFLock.Constructor)
@@ -228,9 +228,9 @@ object Maps {
       LocalObject(2016, Terminal.Constructor(order_terminal))
       LocalObject(2017, Terminal.Constructor(order_terminal))
       LocalObject(2658, ResourceSilo.Constructor)
-      LocalObject(2724, SpawnTube.Constructor(Vector3(4396.7656f, 5888.258f, 71.15625f), Vector3(0, 0, 92)))
-      LocalObject(2725, SpawnTube.Constructor(Vector3(4397.211f, 5895.547f, 71.15625f), Vector3(0, 0, 92)))
-      LocalObject(2726, SpawnTube.Constructor(Vector3(4397.2344f, 5902.8203f, 71.15625f), Vector3(0, 0, 92)))
+      LocalObject(2724, SpawnTube.Constructor(Vector3(4396.7656f, 5888.258f, 71.15625f), Vector3.z(92)))
+      LocalObject(2725, SpawnTube.Constructor(Vector3(4397.211f, 5895.547f, 71.15625f), Vector3.z(92)))
+      LocalObject(2726, SpawnTube.Constructor(Vector3(4397.2344f, 5902.8203f, 71.15625f), Vector3.z(92)))
       LocalObject(2948, Door.Constructor) //spawn tube door
       LocalObject(2949, Door.Constructor) //spawn tube door
       LocalObject(2950, Door.Constructor) //spawn tube door
@@ -238,11 +238,11 @@ object Maps {
       LocalObject(2854, Terminal.Constructor(spawn_terminal))
       LocalObject(2859, Terminal.Constructor(spawn_terminal))
       LocalObject(3072, Terminal.Constructor(ground_vehicle_terminal))
-      LocalObject(1888, VehicleSpawnPad.Constructor(Vector3(4337.0f, 5903.0f, 58.0f), Vector3(0f, 0f, 0f)))
+      LocalObject(1888, VehicleSpawnPad.Constructor(Vector3(4337.0f, 5903.0f, 58.0f), Vector3.Zero))
       LocalObject(176, Terminal.Constructor(air_vehicle_terminal))
-      LocalObject(1889, VehicleSpawnPad.Constructor(Vector3(4386.0f, 5928.0f, 93.0f), Vector3(0f, 0f, 0f)))
+      LocalObject(1889, VehicleSpawnPad.Constructor(Vector3(4386.0f, 5928.0f, 93.0f), Vector3.Zero))
       LocalObject(177, Terminal.Constructor(air_vehicle_terminal))
-      LocalObject(1890, VehicleSpawnPad.Constructor(Vector3(4407.0f, 5927.0f, 93.0f), Vector3(0f, 0f, 0f)))
+      LocalObject(1890, VehicleSpawnPad.Constructor(Vector3(4407.0f, 5927.0f, 93.0f), Vector3.Zero))
 
       //      LocalObject(1909, ProximityTerminal.Constructor(medical_terminal))
       //      LocalObject(1910, ProximityTerminal.Constructor(medical_terminal))
@@ -339,14 +339,14 @@ object Maps {
       LocalBuilding(10, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(3749f, 5477f, 0)))) // Todo change pos
       LocalObject(223, CaptureTerminal.Constructor(capture_terminal))
       LocalObject(464, Door.Constructor)
-      LocalObject(470, Door.Constructor(Vector3(3645.3984f, 5451.9688f, 88.890625f), Vector3(0, 0, 182)))
+      LocalObject(470, Door.Constructor(Vector3(3645.3984f, 5451.9688f, 88.890625f), Vector3.z(182)))
       LocalObject(471, Door.Constructor)
       LocalObject(472, Door.Constructor)
       LocalObject(473, Door.Constructor)
       LocalObject(474, Door.Constructor)
-      LocalObject(475, Door.Constructor(Vector3(3740.7422f, 5477.8906f, 98.890625f), Vector3(0, 0, 92)))
+      LocalObject(475, Door.Constructor(Vector3(3740.7422f, 5477.8906f, 98.890625f), Vector3.z(92)))
       LocalObject(476, Door.Constructor)
-      LocalObject(481, Door.Constructor(Vector3(3758.25f, 5497.8047f, 98.890625f), Vector3(0, 0, 182)))
+      LocalObject(481, Door.Constructor(Vector3(3758.25f, 5497.8047f, 98.890625f), Vector3.z(182)))
       LocalObject(482, Door.Constructor)
       LocalObject(483, Door.Constructor)
       LocalObject(484, Door.Constructor)
@@ -358,22 +358,22 @@ object Maps {
       LocalObject(768, Door.Constructor)
       LocalObject(769, Door.Constructor)
       LocalObject(770, Door.Constructor)
-      LocalObject(771, Door.Constructor(Vector3(3738.039f, 5470.0547f, 78.890625f), Vector3(0, 0, 272)))
+      LocalObject(771, Door.Constructor(Vector3(3738.039f, 5470.0547f, 78.890625f), Vector3.z(272)))
       LocalObject(772, Door.Constructor)
       LocalObject(773, Door.Constructor)
-      LocalObject(774, Door.Constructor(Vector3(3741.5312f, 5457.7734f, 71.390625f), Vector3(0, 0, 2)))
+      LocalObject(774, Door.Constructor(Vector3(3741.5312f, 5457.7734f, 71.390625f), Vector3.z(2)))
       LocalObject(775, Door.Constructor)
       LocalObject(776, Door.Constructor)
       LocalObject(777, Door.Constructor)
       LocalObject(778, Door.Constructor)
-      LocalObject(779, Door.Constructor(Vector3(3761.4531f, 5469.5703f, 78.890625f), Vector3(0, 0, 92)))
+      LocalObject(779, Door.Constructor(Vector3(3761.4531f, 5469.5703f, 78.890625f), Vector3.z(92)))
       LocalObject(780, Door.Constructor)
       LocalObject(781, Door.Constructor)
       LocalObject(782, Door.Constructor)
       LocalObject(783, Door.Constructor)
-      LocalObject(784, Door.Constructor(Vector3(3806.3906f, 5504.9766f, 78.890625f), Vector3(0, 0, 182)))
-      LocalObject(785, Door.Constructor(Vector3(3806.5938f, 5512.5703f, 78.890625f), Vector3(0, 0, 2)))
-      LocalObject(923, Door.Constructor(Vector3(3762.7266f, 5477.539f, 88.953125f), Vector3(0, 0, 92)))
+      LocalObject(784, Door.Constructor(Vector3(3806.3906f, 5504.9766f, 78.890625f), Vector3.z(182)))
+      LocalObject(785, Door.Constructor(Vector3(3806.5938f, 5512.5703f, 78.890625f), Vector3.z(2)))
+      LocalObject(923, Door.Constructor(Vector3(3762.7266f, 5477.539f, 88.953125f), Vector3.z(92)))
       LocalObject(932, Door.Constructor)
       LocalObject(933, Door.Constructor)
 
@@ -408,30 +408,30 @@ object Maps {
       LocalObject(1992, Terminal.Constructor(order_terminal))
       LocalObject(1993, Terminal.Constructor(order_terminal))
       LocalObject(1994, Terminal.Constructor(order_terminal))
-      LocalObject(2710, SpawnTube.Constructor(Vector3(3742.6016f, 5477.6797f, 79.640625f), Vector3(0, 0, 182)))
-      LocalObject(2713, SpawnTube.Constructor(Vector3(3749.9062f, 5477.711f, 79.640625f), Vector3(0, 0, 182)))
-      LocalObject(2714, SpawnTube.Constructor(Vector3(3757.1875f, 5477.5312f, 79.640625f), Vector3(0, 0, 182)))
+      LocalObject(2710, SpawnTube.Constructor(Vector3(3742.6016f, 5477.6797f, 79.640625f), Vector3.z(182)))
+      LocalObject(2713, SpawnTube.Constructor(Vector3(3749.9062f, 5477.711f, 79.640625f), Vector3.z(182)))
+      LocalObject(2714, SpawnTube.Constructor(Vector3(3757.1875f, 5477.5312f, 79.640625f), Vector3.z(182)))
       LocalObject(2934, Door.Constructor) //spawn tube door
       LocalObject(2937, Door.Constructor) //spawn tube door
       LocalObject(2938, Door.Constructor) //spawn tube door
 
-      LocalObject(2228, ProximityTerminal.Constructor(pad_landing))
-      LocalObject(2229, Terminal.Constructor(pad_landing))
-      LocalObject(2231, ProximityTerminal.Constructor(pad_landing))
-      LocalObject(2232, Terminal.Constructor(pad_landing))
-      LocalObject(2234, ProximityTerminal.Constructor(pad_landing))
-      LocalObject(2235, Terminal.Constructor(pad_landing))
-      LocalObject(2237, ProximityTerminal.Constructor(pad_landing))
-      LocalObject(2238, Terminal.Constructor(pad_landing))
+      LocalObject(2228, ProximityTerminal.Constructor(pad_landing_frame))
+      LocalObject(2229, Terminal.Constructor(air_rearm_terminal))
+      LocalObject(2231, ProximityTerminal.Constructor(pad_landing_frame))
+      LocalObject(2232, Terminal.Constructor(air_rearm_terminal))
+      LocalObject(2234, ProximityTerminal.Constructor(pad_landing_frame))
+      LocalObject(2235, Terminal.Constructor(air_rearm_terminal))
+      LocalObject(2237, ProximityTerminal.Constructor(pad_landing_frame))
+      LocalObject(2238, Terminal.Constructor(air_rearm_terminal))
 
       LocalObject(2595, ProximityTerminal.Constructor(repair_silo))
-      LocalObject(2596, Terminal.Constructor(repair_silo))
+      LocalObject(2596, Terminal.Constructor(ground_rearm_terminal))
 
       LocalObject(2599, ProximityTerminal.Constructor(repair_silo))
-      LocalObject(2600, Terminal.Constructor(repair_silo))
+      LocalObject(2600, Terminal.Constructor(ground_rearm_terminal))
 
       LocalObject(3070, Terminal.Constructor(vehicle_terminal_combined))
-      LocalObject(1886, VehicleSpawnPad.Constructor(Vector3(3675.0f, 5458.0f, 89.0f), Vector3(0f, 0f, 0f)))
+      LocalObject(1886, VehicleSpawnPad.Constructor(Vector3(3675.0f, 5458.0f, 89.0f), Vector3.Zero))
 
       //      LocalObject(169, ProximityTerminal.Constructor(adv_med_terminal))
       //      LocalObject(1906, ProximityTerminal.Constructor(medical_terminal))
@@ -559,20 +559,20 @@ object Maps {
       LocalObject(563, Door.Constructor)
       LocalObject(566, Door.Constructor)
       LocalObject(567, Door.Constructor)
-      LocalObject(572, Door.Constructor(Vector3(4824.0703f, 5260.3516f, 78.703125f), Vector3(0, 0, 47)))
-      LocalObject(573, Door.Constructor(Vector3(4833.711f, 5231.8203f, 71.25f), Vector3(0, 0, 47)))
-      LocalObject(574, Door.Constructor(Vector3(4834.7188f, 5271.9766f, 71.25f), Vector3(0, 0, 317)))
+      LocalObject(572, Door.Constructor(Vector3(4824.0703f, 5260.3516f, 78.703125f), Vector3.z(47)))
+      LocalObject(573, Door.Constructor(Vector3(4833.711f, 5231.8203f, 71.25f), Vector3.z(47)))
+      LocalObject(574, Door.Constructor(Vector3(4834.7188f, 5271.9766f, 71.25f), Vector3.z(317)))
       LocalObject(575, Door.Constructor)
-      LocalObject(576, Door.Constructor(Vector3(4840.7734f, 5265.5f, 71.25f), Vector3(0, 0, 137)))
+      LocalObject(576, Door.Constructor(Vector3(4840.7734f, 5265.5f, 71.25f), Vector3.z(137)))
       LocalObject(577, Door.Constructor)
-      LocalObject(578, Door.Constructor(Vector3(4854.5625f, 5174.6562f, 66.25f), Vector3(0, 0, 227)))
+      LocalObject(578, Door.Constructor(Vector3(4854.5625f, 5174.6562f, 66.25f), Vector3.z(227)))
       LocalObject(579, Door.Constructor)
       LocalObject(580, Door.Constructor)
       LocalObject(585, Door.Constructor)
-      LocalObject(852, Door.Constructor(Vector3(4793.0547f, 5204.914f, 48.734375f), Vector3(0, 0, 47)))
-      LocalObject(853, Door.Constructor(Vector3(4799.3906f, 5216.047f, 56.234375f), Vector3(0, 0, 317)))
+      LocalObject(852, Door.Constructor(Vector3(4793.0547f, 5204.914f, 48.734375f), Vector3.z(47)))
+      LocalObject(853, Door.Constructor(Vector3(4799.3906f, 5216.047f, 56.234375f), Vector3.z(317)))
       LocalObject(854, Door.Constructor)
-      LocalObject(855, Door.Constructor(Vector3(4815.5f, 5198.75f, 56.234375f), Vector3(0, 0, 137)))
+      LocalObject(855, Door.Constructor(Vector3(4815.5f, 5198.75f, 56.234375f), Vector3.z(137)))
       LocalObject(856, Door.Constructor)
       LocalObject(857, Door.Constructor)
       LocalObject(858, Door.Constructor)
@@ -582,18 +582,18 @@ object Maps {
       LocalObject(862, Door.Constructor)
       LocalObject(863, Door.Constructor)
       LocalObject(864, Door.Constructor)
-      LocalObject(865, Door.Constructor(Vector3(4837.3047f, 5169.672f, 48.75f), Vector3(0, 0, 227)))
-      LocalObject(866, Door.Constructor(Vector3(4842.9844f, 5174.8906f, 48.75f), Vector3(0, 0, 47)))
+      LocalObject(865, Door.Constructor(Vector3(4837.3047f, 5169.672f, 48.75f), Vector3.z(227)))
+      LocalObject(866, Door.Constructor(Vector3(4842.9844f, 5174.8906f, 48.75f), Vector3.z(47)))
       LocalObject(867, Door.Constructor)
       LocalObject(868, Door.Constructor)
       LocalObject(869, Door.Constructor)
       LocalObject(870, Door.Constructor)
       LocalObject(871, Door.Constructor)
-      LocalObject(872, Door.Constructor(Vector3(4857.0547f, 5247.992f, 48.734375f), Vector3(0, 0, 317)))
+      LocalObject(872, Door.Constructor(Vector3(4857.0547f, 5247.992f, 48.734375f), Vector3.z(317)))
       LocalObject(873, Door.Constructor)
       LocalObject(874, Door.Constructor)
       LocalObject(875, Door.Constructor)
-      LocalObject(927, Door.Constructor(Vector3(4810.4297f, 5243.0703f, 66.296875f), Vector3(0, 0, 227)))
+      LocalObject(927, Door.Constructor(Vector3(4810.4297f, 5243.0703f, 66.296875f), Vector3.z(227)))
 
       LocalObject(975, IFFLock.Constructor)
       LocalObject(1182, IFFLock.Constructor)
@@ -617,15 +617,15 @@ object Maps {
       LocalObject(2041, Terminal.Constructor(order_terminal))
       LocalObject(2042, Terminal.Constructor(order_terminal))
       LocalObject(2043, Terminal.Constructor(order_terminal))
-      LocalObject(2740, SpawnTube.Constructor(Vector3(4808.0234f, 5217.9375f, 57f), Vector3(0, 0, 227)))
-      LocalObject(2741, SpawnTube.Constructor(Vector3(4812.992f, 5212.6016f, 57f), Vector3(0, 0, 227)))
-      LocalObject(2742, SpawnTube.Constructor(Vector3(4818.047f, 5207.3125f, 57f), Vector3(0, 0, 227)))
+      LocalObject(2740, SpawnTube.Constructor(Vector3(4808.0234f, 5217.9375f, 57f), Vector3.z(227)))
+      LocalObject(2741, SpawnTube.Constructor(Vector3(4812.992f, 5212.6016f, 57f), Vector3.z(227)))
+      LocalObject(2742, SpawnTube.Constructor(Vector3(4818.047f, 5207.3125f, 57f), Vector3.z(227)))
       LocalObject(2964, Door.Constructor) //spawn tube door
       LocalObject(2965, Door.Constructor) //spawn tube door
       LocalObject(2966, Door.Constructor) //spawn tube door
 
       LocalObject(3074, Terminal.Constructor(vehicle_terminal_combined))
-      LocalObject(1892, VehicleSpawnPad.Constructor(Vector3(4834.0f, 5185.0f, 67.0f), Vector3(0f, 0f, 45.0f)))
+      LocalObject(1892, VehicleSpawnPad.Constructor(Vector3(4834.0f, 5185.0f, 67.0f), Vector3.z(45.0f)))
 
       //      LocalObject(1912, ProximityTerminal.Constructor(medical_terminal))
       //      LocalObject(1913, ProximityTerminal.Constructor(medical_terminal))
@@ -728,12 +728,12 @@ object Maps {
       LocalObject(2797, CaptureTerminal.Constructor(secondary_capture))
       LocalObject(2973, Door.Constructor)
       LocalObject(2974, Door.Constructor)
-      LocalObject(590, Door.Constructor(Vector3(5405.992f, 4220.1797f, 39.1875f), Vector3(0, 0, 180)))
-      LocalObject(591, Door.Constructor(Vector3(5405.992f, 4220.1797f, 49.1875f), Vector3(0, 0, 180)))
-      LocalObject(592, Door.Constructor(Vector3(5405.992f, 4220.1797f, 69.25f), Vector3(0, 0, 180)))
-      LocalObject(595, Door.Constructor(Vector3(5405.9844f, 4235.8047f, 69.25f), Vector3(0, 0, 0)))
-      LocalObject(593, Door.Constructor(Vector3(5405.9844f, 4235.8047f, 39.1875f), Vector3(0, 0, 0)))
-      LocalObject(594, Door.Constructor(Vector3(5405.9844f, 4235.8047f, 49.1875f), Vector3(0, 0, 0)))
+      LocalObject(590, Door.Constructor(Vector3(5405.992f, 4220.1797f, 39.1875f), Vector3.z(180)))
+      LocalObject(591, Door.Constructor(Vector3(5405.992f, 4220.1797f, 49.1875f), Vector3.z(180)))
+      LocalObject(592, Door.Constructor(Vector3(5405.992f, 4220.1797f, 69.25f), Vector3.z(180)))
+      LocalObject(595, Door.Constructor(Vector3(5405.9844f, 4235.8047f, 69.25f), Vector3.Zero))
+      LocalObject(593, Door.Constructor(Vector3(5405.9844f, 4235.8047f, 39.1875f), Vector3.Zero))
+      LocalObject(594, Door.Constructor(Vector3(5405.9844f, 4235.8047f, 49.1875f), Vector3.Zero))
       LocalObject(1208, IFFLock.Constructor)
       LocalObject(1209, IFFLock.Constructor)
       LocalObject(1210, IFFLock.Constructor)
@@ -743,8 +743,8 @@ object Maps {
       LocalObject(2053, Terminal.Constructor(order_terminal))
       LocalObject(2054, Terminal.Constructor(order_terminal))
       LocalObject(2055, Terminal.Constructor(order_terminal))
-      LocalObject(2749, SpawnTube.Constructor(respawn_tube_tower, Vector3(5404.8125f, 4215.7344f, 29.484375f), Vector3(0, 0, 90)))
-      LocalObject(2750, SpawnTube.Constructor(respawn_tube_tower, Vector3(5404.7656f, 4232.1562f, 29.484375f), Vector3(0, 0, 90)))
+      LocalObject(2749, SpawnTube.Constructor(respawn_tube_tower, Vector3(5404.8125f, 4215.7344f, 29.484375f), Vector3.z(90)))
+      LocalObject(2750, SpawnTube.Constructor(respawn_tube_tower, Vector3(5404.7656f, 4232.1562f, 29.484375f), Vector3.z(90)))
 
       ObjectToBuilding(2797, 25)
       ObjectToBuilding(2973, 25)
@@ -780,10 +780,10 @@ object Maps {
       LocalObject(2792, CaptureTerminal.Constructor(secondary_capture))
       LocalObject(2957, Door.Constructor)
       LocalObject(2958, Door.Constructor)
-      LocalObject(542, Door.Constructor(Vector3(4625.9844f, 5910.211f, 55.75f), Vector3(0, 0, 180)))
-      LocalObject(543, Door.Constructor(Vector3(4625.9844f, 5910.211f, 75.75f), Vector3(0, 0, 180)))
-      LocalObject(544, Door.Constructor(Vector3(4626.0312f, 5925.836f, 55.75f), Vector3(0, 0, 0)))
-      LocalObject(545, Door.Constructor(Vector3(4626.0312f, 5925.836f, 75.75f), Vector3(0, 0, 0)))
+      LocalObject(542, Door.Constructor(Vector3(4625.9844f, 5910.211f, 55.75f), Vector3.z(180)))
+      LocalObject(543, Door.Constructor(Vector3(4625.9844f, 5910.211f, 75.75f), Vector3.z(180)))
+      LocalObject(544, Door.Constructor(Vector3(4626.0312f, 5925.836f, 55.75f), Vector3.Zero))
+      LocalObject(545, Door.Constructor(Vector3(4626.0312f, 5925.836f, 75.75f), Vector3.Zero))
       LocalObject(1164, IFFLock.Constructor)
       LocalObject(1165, IFFLock.Constructor)
       LocalObject(1166, IFFLock.Constructor)
@@ -791,8 +791,8 @@ object Maps {
       LocalObject(2027, Terminal.Constructor(order_terminal))
       LocalObject(2028, Terminal.Constructor(order_terminal))
       LocalObject(2029, Terminal.Constructor(order_terminal))
-      LocalObject(2733, SpawnTube.Constructor(respawn_tube_tower, Vector3(4624.758f, 5905.7344f, 45.984375f), Vector3(0, 0, 90)))
-      LocalObject(2734, SpawnTube.Constructor(respawn_tube_tower, Vector3(4624.7266f, 5922.1484f, 45.984375f), Vector3(0, 0, 90)))
+      LocalObject(2733, SpawnTube.Constructor(respawn_tube_tower, Vector3(4624.758f, 5905.7344f, 45.984375f), Vector3.z(90)))
+      LocalObject(2734, SpawnTube.Constructor(respawn_tube_tower, Vector3(4624.7266f, 5922.1484f, 45.984375f), Vector3.z(90)))
 
       ObjectToBuilding(2792, 33)
       ObjectToBuilding(2957, 33)
@@ -822,10 +822,10 @@ object Maps {
       LocalObject(2789, CaptureTerminal.Constructor(secondary_capture))
       LocalObject(2951, Door.Constructor)
       LocalObject(2952, Door.Constructor)
-      LocalObject(525, Door.Constructor(Vector3(4423.9766f, 4850.164f, 86.203125f), Vector3(0, 0, 180)))
-      LocalObject(526, Door.Constructor(Vector3(4423.9766f, 4850.164f, 106.140625f), Vector3(0, 0, 180)))
-      LocalObject(527, Door.Constructor(Vector3(4423.9688f, 4865.8594f, 86.203125f), Vector3(0, 0, 0)))
-      LocalObject(528, Door.Constructor(Vector3(4423.9688f, 4865.8594f, 106.140625f), Vector3(0, 0, 0)))
+      LocalObject(525, Door.Constructor(Vector3(4423.9766f, 4850.164f, 86.203125f), Vector3.z(180)))
+      LocalObject(526, Door.Constructor(Vector3(4423.9766f, 4850.164f, 106.140625f), Vector3.z(180)))
+      LocalObject(527, Door.Constructor(Vector3(4423.9688f, 4865.8594f, 86.203125f), Vector3.Zero))
+      LocalObject(528, Door.Constructor(Vector3(4423.9688f, 4865.8594f, 106.140625f), Vector3.Zero))
       LocalObject(1155, IFFLock.Constructor)
       LocalObject(1156, IFFLock.Constructor)
       LocalObject(1150, IFFLock.Constructor)
@@ -833,8 +833,8 @@ object Maps {
       LocalObject(2018, Terminal.Constructor(order_terminal))
       LocalObject(2019, Terminal.Constructor(order_terminal))
       LocalObject(2020, Terminal.Constructor(order_terminal))
-      LocalObject(2727, SpawnTube.Constructor(respawn_tube_tower, Vector3(4422.8203f, 4845.711f, 76.4375f), Vector3(0, 0, 90)))
-      LocalObject(2728, SpawnTube.Constructor(respawn_tube_tower, Vector3(4422.7344f, 4862.1406f, 76.4375f), Vector3(0, 0, 90)))
+      LocalObject(2727, SpawnTube.Constructor(respawn_tube_tower, Vector3(4422.8203f, 4845.711f, 76.4375f), Vector3.z(90)))
+      LocalObject(2728, SpawnTube.Constructor(respawn_tube_tower, Vector3(4422.7344f, 4862.1406f, 76.4375f), Vector3.z(90)))
 
       ObjectToBuilding(2789, 34)
       ObjectToBuilding(2951, 34)
@@ -864,12 +864,12 @@ object Maps {
       LocalObject(2779, CaptureTerminal.Constructor(secondary_capture))
       LocalObject(2917, Door.Constructor)
       LocalObject(2918, Door.Constructor)
-      LocalObject(414, Door.Constructor(Vector3(3098.0f, 5032.1484f, 81.9375f), Vector3(0, 0, 180)))
-      LocalObject(415, Door.Constructor(Vector3(3098.0f, 5032.1484f, 91.875f), Vector3(0, 0, 180)))
-      LocalObject(416, Door.Constructor(Vector3(3098.0f, 5032.1484f, 111.875f), Vector3(0, 0, 180)))
-      LocalObject(417, Door.Constructor(Vector3(3097.9922f, 5047.875f, 81.953125f), Vector3(0, 0, 0)))
-      LocalObject(418, Door.Constructor(Vector3(3097.9922f, 5047.875f, 91.875f), Vector3(0, 0, 0)))
-      LocalObject(419, Door.Constructor(Vector3(3097.9922f, 5047.875f, 111.875f), Vector3(0, 0, 0)))
+      LocalObject(414, Door.Constructor(Vector3(3098.0f, 5032.1484f, 81.9375f), Vector3.z(180)))
+      LocalObject(415, Door.Constructor(Vector3(3098.0f, 5032.1484f, 91.875f), Vector3.z(180)))
+      LocalObject(416, Door.Constructor(Vector3(3098.0f, 5032.1484f, 111.875f), Vector3.z(180)))
+      LocalObject(417, Door.Constructor(Vector3(3097.9922f, 5047.875f, 81.953125f), Vector3.Zero))
+      LocalObject(418, Door.Constructor(Vector3(3097.9922f, 5047.875f, 91.875f), Vector3.Zero))
+      LocalObject(419, Door.Constructor(Vector3(3097.9922f, 5047.875f, 111.875f), Vector3.Zero))
       LocalObject(1062, IFFLock.Constructor)
       LocalObject(1063, IFFLock.Constructor)
       LocalObject(1064, IFFLock.Constructor)
@@ -879,8 +879,8 @@ object Maps {
       LocalObject(1966, Terminal.Constructor(order_terminal))
       LocalObject(1967, Terminal.Constructor(order_terminal))
       LocalObject(1968, Terminal.Constructor(order_terminal))
-      LocalObject(2693, SpawnTube.Constructor(respawn_tube_tower, Vector3(3096.6562f, 5027.742f, 72.1875f), Vector3(0, 0, 90)))
-      LocalObject(2694, SpawnTube.Constructor(respawn_tube_tower, Vector3(3096.7812f, 5044.1562f, 72.1875f), Vector3(0, 0, 90)))
+      LocalObject(2693, SpawnTube.Constructor(respawn_tube_tower, Vector3(3096.6562f, 5027.742f, 72.1875f), Vector3.z(90)))
+      LocalObject(2694, SpawnTube.Constructor(respawn_tube_tower, Vector3(3096.7812f, 5044.1562f, 72.1875f), Vector3.z(90)))
 
       ObjectToBuilding(2779, 35)
       ObjectToBuilding(2917, 35)
@@ -916,10 +916,10 @@ object Maps {
       LocalObject(2785, CaptureTerminal.Constructor(secondary_capture))
       LocalObject(2935, Door.Constructor)
       LocalObject(2936, Door.Constructor)
-      LocalObject(477, Door.Constructor(Vector3(3750.0f, 6040.164f, 56.203125f), Vector3(0, 0, 180)))
-      LocalObject(478, Door.Constructor(Vector3(3750.0f, 6040.164f, 76.15625f), Vector3(0, 0, 180)))
-      LocalObject(479, Door.Constructor(Vector3(3750.0078f, 6055.789f, 56.203125f), Vector3(0, 0, 0)))
-      LocalObject(480, Door.Constructor(Vector3(3750.0078f, 6055.789f, 76.15625f), Vector3(0, 0, 0)))
+      LocalObject(477, Door.Constructor(Vector3(3750.0f, 6040.164f, 56.203125f), Vector3.z(180)))
+      LocalObject(478, Door.Constructor(Vector3(3750.0f, 6040.164f, 76.15625f), Vector3.z(180)))
+      LocalObject(479, Door.Constructor(Vector3(3750.0078f, 6055.789f, 56.203125f), Vector3.Zero))
+      LocalObject(480, Door.Constructor(Vector3(3750.0078f, 6055.789f, 76.15625f), Vector3.Zero))
       LocalObject(1109, IFFLock.Constructor)
       LocalObject(1110, IFFLock.Constructor)
       LocalObject(1111, IFFLock.Constructor)
@@ -927,8 +927,8 @@ object Maps {
       LocalObject(1995, Terminal.Constructor(order_terminal))
       LocalObject(1996, Terminal.Constructor(order_terminal))
       LocalObject(1997, Terminal.Constructor(order_terminal))
-      LocalObject(2711, SpawnTube.Constructor(respawn_tube_tower, Vector3(3748.7266f, 6035.7344f, 46.453125f), Vector3(0, 0, 90)))
-      LocalObject(2712, SpawnTube.Constructor(respawn_tube_tower, Vector3(3748.6328f, 6052.125f, 46.453125f), Vector3(0, 0, 90)))
+      LocalObject(2711, SpawnTube.Constructor(respawn_tube_tower, Vector3(3748.7266f, 6035.7344f, 46.453125f), Vector3.z(90)))
+      LocalObject(2712, SpawnTube.Constructor(respawn_tube_tower, Vector3(3748.6328f, 6052.125f, 46.453125f), Vector3.z(90)))
 
       ObjectToBuilding(2785, 36)
       ObjectToBuilding(2935, 36)
@@ -958,10 +958,10 @@ object Maps {
       LocalObject(2795, CaptureTerminal.Constructor(secondary_capture))
       LocalObject(2969, Door.Constructor)
       LocalObject(2970, Door.Constructor)
-      LocalObject(581, Door.Constructor(Vector3(4896.0156f, 4932.125f, 67.75f), Vector3(0, 0, 180)))
-      LocalObject(582, Door.Constructor(Vector3(4895.992f, 4932.1484f, 87.75f), Vector3(0, 0, 180)))
-      LocalObject(583, Door.Constructor(Vector3(4896.0156f, 4947.8516f, 67.75f), Vector3(0, 0, 0)))
-      LocalObject(584, Door.Constructor(Vector3(4896.008f, 4947.8438f, 87.75f), Vector3(0, 0, 0)))
+      LocalObject(581, Door.Constructor(Vector3(4896.0156f, 4932.125f, 67.75f), Vector3.z(180)))
+      LocalObject(582, Door.Constructor(Vector3(4895.992f, 4932.1484f, 87.75f), Vector3.z(180)))
+      LocalObject(583, Door.Constructor(Vector3(4896.0156f, 4947.8516f, 67.75f), Vector3.Zero))
+      LocalObject(584, Door.Constructor(Vector3(4896.008f, 4947.8438f, 87.75f), Vector3.Zero))
       LocalObject(1199, IFFLock.Constructor)
       LocalObject(1200, IFFLock.Constructor)
       LocalObject(1197, IFFLock.Constructor)
@@ -969,8 +969,8 @@ object Maps {
       LocalObject(2047, Terminal.Constructor(order_terminal))
       LocalObject(2048, Terminal.Constructor(order_terminal))
       LocalObject(2049, Terminal.Constructor(order_terminal))
-      LocalObject(2745, SpawnTube.Constructor(respawn_tube_tower, Vector3(4894.7734f, 4927.742f, 57.984375f), Vector3(0, 0, 90)))
-      LocalObject(2746, SpawnTube.Constructor(respawn_tube_tower, Vector3(4894.7734f, 4944.117f, 57.984375f), Vector3(0, 0, 90)))
+      LocalObject(2745, SpawnTube.Constructor(respawn_tube_tower, Vector3(4894.7734f, 4927.742f, 57.984375f), Vector3.z(90)))
+      LocalObject(2746, SpawnTube.Constructor(respawn_tube_tower, Vector3(4894.7734f, 4944.117f, 57.984375f), Vector3.z(90)))
 
       ObjectToBuilding(2795, 55)
       ObjectToBuilding(2969, 55)
@@ -1000,10 +1000,10 @@ object Maps {
       LocalObject(2784, CaptureTerminal.Constructor(secondary_capture))
       LocalObject(2932, Door.Constructor)
       LocalObject(2933, Door.Constructor)
-      LocalObject(466, Door.Constructor(Vector3(3592.0f, 5286.1562f, 69.390625f), Vector3(0, 0, 180)))
-      LocalObject(467, Door.Constructor(Vector3(3592.0f, 5286.1562f, 89.453125f), Vector3(0, 0, 180)))
-      LocalObject(468, Door.Constructor(Vector3(3592.0f, 5301.797f, 69.390625f), Vector3(0, 0, 0)))
-      LocalObject(469, Door.Constructor(Vector3(3592.0f, 5301.797f, 89.4375f), Vector3(0, 0, 0)))
+      LocalObject(466, Door.Constructor(Vector3(3592.0f, 5286.1562f, 69.390625f), Vector3.z(180)))
+      LocalObject(467, Door.Constructor(Vector3(3592.0f, 5286.1562f, 89.453125f), Vector3.z(180)))
+      LocalObject(468, Door.Constructor(Vector3(3592.0f, 5301.797f, 69.390625f), Vector3.Zero))
+      LocalObject(469, Door.Constructor(Vector3(3592.0f, 5301.797f, 89.4375f), Vector3.Zero))
       LocalObject(1101, IFFLock.Constructor)
       LocalObject(1102, IFFLock.Constructor)
       LocalObject(1103, IFFLock.Constructor)
@@ -1011,8 +1011,8 @@ object Maps {
       LocalObject(1988, Terminal.Constructor(order_terminal))
       LocalObject(1989, Terminal.Constructor(order_terminal))
       LocalObject(1990, Terminal.Constructor(order_terminal))
-      LocalObject(2708, SpawnTube.Constructor(respawn_tube_tower, Vector3(3590.9062f, 5281.742f, 59.6875f), Vector3(0, 0, 90)))
-      LocalObject(2709, SpawnTube.Constructor(respawn_tube_tower, Vector3(3590.836f, 5298.1484f, 59.6875f), Vector3(0, 0, 90)))
+      LocalObject(2708, SpawnTube.Constructor(respawn_tube_tower, Vector3(3590.9062f, 5281.742f, 59.6875f), Vector3.z(90)))
+      LocalObject(2709, SpawnTube.Constructor(respawn_tube_tower, Vector3(3590.836f, 5298.1484f, 59.6875f), Vector3.z(90)))
 
       ObjectToBuilding(2784, 56)
       ObjectToBuilding(2932, 56)
@@ -1042,12 +1042,12 @@ object Maps {
       LocalObject(2793, CaptureTerminal.Constructor(secondary_capture))
       LocalObject(2959, Door.Constructor)
       LocalObject(2960, Door.Constructor)
-      LocalObject(546, Door.Constructor(Vector3(4669.992f, 6620.1562f, 42.875f), Vector3(0, 0, 180)))
-      LocalObject(547, Door.Constructor(Vector3(4669.992f, 6620.1562f, 52.8125f), Vector3(0, 0, 180)))
-      LocalObject(548, Door.Constructor(Vector3(4669.992f, 6620.1562f, 72.8125f), Vector3(0, 0, 180)))
-      LocalObject(549, Door.Constructor(Vector3(4669.9844f, 6635.8203f, 42.859375f), Vector3(0, 0, 0)))
-      LocalObject(550, Door.Constructor(Vector3(4669.9844f, 6635.8203f, 52.8125f), Vector3(0, 0, 0)))
-      LocalObject(551, Door.Constructor(Vector3(4669.9844f, 6635.8203f, 72.8125f), Vector3(0, 0, 0)))
+      LocalObject(546, Door.Constructor(Vector3(4669.992f, 6620.1562f, 42.875f), Vector3.z(180)))
+      LocalObject(547, Door.Constructor(Vector3(4669.992f, 6620.1562f, 52.8125f), Vector3.z(180)))
+      LocalObject(548, Door.Constructor(Vector3(4669.992f, 6620.1562f, 72.8125f), Vector3.z(180)))
+      LocalObject(549, Door.Constructor(Vector3(4669.9844f, 6635.8203f, 42.859375f), Vector3.Zero))
+      LocalObject(550, Door.Constructor(Vector3(4669.9844f, 6635.8203f, 52.8125f), Vector3.Zero))
+      LocalObject(551, Door.Constructor(Vector3(4669.9844f, 6635.8203f, 72.8125f), Vector3.Zero))
       LocalObject(1168, IFFLock.Constructor)
       LocalObject(1169, IFFLock.Constructor)
       LocalObject(1170, IFFLock.Constructor)
@@ -1057,8 +1057,8 @@ object Maps {
       LocalObject(2030, Terminal.Constructor(order_terminal))
       LocalObject(2031, Terminal.Constructor(order_terminal))
       LocalObject(2032, Terminal.Constructor(order_terminal))
-      LocalObject(2735, SpawnTube.Constructor(respawn_tube_tower, Vector3(4668.7656f, 6615.7344f, 33.109375f), Vector3(0, 0, 90)))
-      LocalObject(2736, SpawnTube.Constructor(respawn_tube_tower, Vector3(4668.742f, 6632.1562f, 33.109375f), Vector3(0, 0, 90)))
+      LocalObject(2735, SpawnTube.Constructor(respawn_tube_tower, Vector3(4668.7656f, 6615.7344f, 33.109375f), Vector3.z(90)))
+      LocalObject(2736, SpawnTube.Constructor(respawn_tube_tower, Vector3(4668.742f, 6632.1562f, 33.109375f), Vector3.z(90)))
 
       ObjectToBuilding(2793, 59)
       ObjectToBuilding(2959, 59)
@@ -1094,10 +1094,10 @@ object Maps {
       LocalObject(2778, CaptureTerminal.Constructor(secondary_capture))
       LocalObject(2914, Door.Constructor)
       LocalObject(2915, Door.Constructor)
-      LocalObject(404, Door.Constructor(Vector3(3003.9688f, 5706.1484f, 56.3125f), Vector3(0, 0, 180)))
-      LocalObject(405, Door.Constructor(Vector3(3003.9688f, 5706.1484f, 76.25f), Vector3(0, 0, 180)))
-      LocalObject(406, Door.Constructor(Vector3(3004.0469f, 5721.875f, 56.328125f), Vector3(0, 0, 0)))
-      LocalObject(407, Door.Constructor(Vector3(3004.0469f, 5721.875f, 76.25f), Vector3(0, 0, 0)))
+      LocalObject(404, Door.Constructor(Vector3(3003.9688f, 5706.1484f, 56.3125f), Vector3.z(180)))
+      LocalObject(405, Door.Constructor(Vector3(3003.9688f, 5706.1484f, 76.25f), Vector3.z(180)))
+      LocalObject(406, Door.Constructor(Vector3(3004.0469f, 5721.875f, 56.328125f), Vector3.Zero))
+      LocalObject(407, Door.Constructor(Vector3(3004.0469f, 5721.875f, 76.25f), Vector3.Zero))
       LocalObject(1054, IFFLock.Constructor)
       LocalObject(1055, IFFLock.Constructor)
       LocalObject(1056, IFFLock.Constructor)
@@ -1105,8 +1105,8 @@ object Maps {
       LocalObject(1960, Terminal.Constructor(order_terminal))
       LocalObject(1961, Terminal.Constructor(order_terminal))
       LocalObject(1962, Terminal.Constructor(order_terminal))
-      LocalObject(2690, SpawnTube.Constructor(respawn_tube_tower, Vector3(3022.711f, 5701.758f, 47f), Vector3(0, 0, 90)))
-      LocalObject(2691, SpawnTube.Constructor(respawn_tube_tower, Vector3(3002.7188f, 5718.1562f, 47f), Vector3(0, 0, 90)))
+      LocalObject(2690, SpawnTube.Constructor(respawn_tube_tower, Vector3(3022.711f, 5701.758f, 47f), Vector3.z(90)))
+      LocalObject(2691, SpawnTube.Constructor(respawn_tube_tower, Vector3(3002.7188f, 5718.1562f, 47f), Vector3.z(90)))
 
       ObjectToBuilding(2778, 65)
       ObjectToBuilding(2914, 65)
@@ -1136,7 +1136,7 @@ object Maps {
     //    // BFR test
     ////    LocalObject(199, Terminal.Constructor(vehicle_terminal_combined)))
     ////    LocalObject(505,
-    ////      VehicleSpawnPad.Constructor(Vector3(3707.0f, 5522.0f, 89.0f), Vector3(0f, 0f, 0f))
+    ////      VehicleSpawnPad.Constructor(Vector3(3707.0f, 5522.0f, 89.0f), Vector3.Zero)
     ////    )) //TODO guid not correct
     ////    ObjectToBuilding(199, 30)
     ////    ObjectToBuilding(505, 30)
@@ -1193,21 +1193,21 @@ object Maps {
       LocalObject(371, Door.Constructor) //courtyard
       LocalObject(372, Door.Constructor) //courtyard
       LocalObject(373, Door.Constructor) //courtyard
-      LocalObject(375, Door.Constructor(Vector3(3924.0f, 4231.2656f, 271.82812f), Vector3(0, 0, 180))) //2nd level door, south
-      LocalObject(376, Door.Constructor(Vector3(3924.0f, 4240.2656f, 271.82812f), Vector3(0, 0, 0))) //2nd level door, north
+      LocalObject(375, Door.Constructor(Vector3(3924.0f, 4231.2656f, 271.82812f), Vector3.z(180))) //2nd level door, south
+      LocalObject(376, Door.Constructor(Vector3(3924.0f, 4240.2656f, 271.82812f), Vector3.Zero)) //2nd level door, north
       LocalObject(383, Door.Constructor) //courtyard
-      LocalObject(384, Door.Constructor(Vector3(3939.6328f, 4232.547f, 279.26562f), Vector3(0, 0, 270))) //3rd floor door
+      LocalObject(384, Door.Constructor(Vector3(3939.6328f, 4232.547f, 279.26562f), Vector3.z(270))) //3rd floor door
       LocalObject(385, Door.Constructor) //courtyard
-      LocalObject(387, Door.Constructor(Vector3(3951.9531f, 4260.008f, 271.82812f), Vector3(0, 0, 270))) //2nd level door, stairwell
+      LocalObject(387, Door.Constructor(Vector3(3951.9531f, 4260.008f, 271.82812f), Vector3.z(270))) //2nd level door, stairwell
       LocalObject(391, Door.Constructor) //courtyard
-      LocalObject(393, Door.Constructor(Vector3(3997.8984f, 4344.3203f, 271.8125f), Vector3(0, 0, 0))) //air term building, upstairs door
-      LocalObject(394, Door.Constructor(Vector3(3999.9766f, 4314.3203f, 266.82812f), Vector3(0, 0, 270))) //air term building, f.door
+      LocalObject(393, Door.Constructor(Vector3(3997.8984f, 4344.3203f, 271.8125f), Vector3.Zero)) //air term building, upstairs door
+      LocalObject(394, Door.Constructor(Vector3(3999.9766f, 4314.3203f, 266.82812f), Vector3.z(270))) //air term building, f.door
       LocalObject(396, Door.Constructor) //courtyard
       LocalObject(398, Door.Constructor) //courtyard
       LocalObject(399, Door.Constructor) //courtyard
       LocalObject(402, Door.Constructor) //courtyard
       LocalObject(403, Door.Constructor) //courtyard
-      LocalObject(404, Door.Constructor(Vector3(4060.0078f, 4319.9766f, 266.8125f), Vector3(0, 0, 0))) //b.door
+      LocalObject(404, Door.Constructor(Vector3(4060.0078f, 4319.9766f, 266.8125f), Vector3.Zero)) //b.door
       LocalObject(603, Door.Constructor)
       LocalObject(604, Door.Constructor)
       LocalObject(605, Door.Constructor)
@@ -1217,19 +1217,19 @@ object Maps {
       LocalObject(611, Door.Constructor)
       LocalObject(614, Door.Constructor)
       LocalObject(619, Door.Constructor)
-      LocalObject(620, Door.Constructor(Vector3(3983.9531f, 4299.992f, 249.29688f), Vector3(0, 0, 90))) //generator room door
+      LocalObject(620, Door.Constructor(Vector3(3983.9531f, 4299.992f, 249.29688f), Vector3.z(90))) //generator room door
       LocalObject(621, Door.Constructor)
-      LocalObject(622, Door.Constructor(Vector3(3988.0078f, 4248.0156f, 256.82812f), Vector3(0, 0, 180))) //spawn room door
-      LocalObject(623, Door.Constructor(Vector3(3988.0078f, 4271.9766f, 256.79688f), Vector3(0, 0, 0))) //spawn room door
-      LocalObject(630, Door.Constructor(Vector3(4000.0078f, 4252.0f, 249.29688f), Vector3(0, 0, 270))) //spawn room door
+      LocalObject(622, Door.Constructor(Vector3(3988.0078f, 4248.0156f, 256.82812f), Vector3.z(180))) //spawn room door
+      LocalObject(623, Door.Constructor(Vector3(3988.0078f, 4271.9766f, 256.79688f), Vector3.Zero)) //spawn room door
+      LocalObject(630, Door.Constructor(Vector3(4000.0078f, 4252.0f, 249.29688f), Vector3.z(270))) //spawn room door
       LocalObject(631, Door.Constructor) //spawn room door, kitchen
       LocalObject(634, Door.Constructor) //air term building, interior
-      LocalObject(638, Door.Constructor(Vector3(4016.0078f, 4212.008f, 249.29688f), Vector3(0, 0, 270))) //cc door
-      LocalObject(642, Door.Constructor(Vector3(4023.9844f, 4212.008f, 249.32812f), Vector3(0, 0, 90))) //cc door, interior
+      LocalObject(638, Door.Constructor(Vector3(4016.0078f, 4212.008f, 249.29688f), Vector3.z(270))) //cc door
+      LocalObject(642, Door.Constructor(Vector3(4023.9844f, 4212.008f, 249.32812f), Vector3.z(90))) //cc door, interior
       LocalObject(643, Door.Constructor) //cc door, exterior
       LocalObject(645, Door.Constructor) //b.door, interior
       LocalObject(646, Door.Constructor) //b.door, interior
-      LocalObject(715, Door.Constructor(Vector3(3961.5938f ,4235.8125f, 266.84375f), Vector3(0, 0, 90))) //f.door
+      LocalObject(715, Door.Constructor(Vector3(3961.5938f ,4235.8125f, 266.84375f), Vector3.z(90))) //f.door
       LocalObject(751, IFFLock.Constructor)
       LocalObject(860, IFFLock.Constructor)
       LocalObject(863, IFFLock.Constructor)
@@ -1265,7 +1265,7 @@ object Maps {
       LocalObject(1431, FacilityTurret.Constructor(manned_turret))
       LocalObject(1432, FacilityTurret.Constructor(manned_turret))
       LocalObject(1492, ProximityTerminal.Constructor(medical_terminal, Vector3(3944.8672f, 4211.336f, 266.85938f))) //lobby
-      LocalObject(1494, ProximityTerminal.Constructor(medical_terminal)) //kitchen
+      LocalObject(1494, ProximityTerminal.Constructor(medical_terminal, Vector3(4008.3594f, 4269.25f, 249.35938f))) //kitchen
       LocalObject(1564, Terminal.Constructor(order_terminal))
       LocalObject(1568, Terminal.Constructor(order_terminal))
       LocalObject(1569, Terminal.Constructor(order_terminal))
@@ -1274,21 +1274,21 @@ object Maps {
       LocalObject(1576, Terminal.Constructor(order_terminal))
       LocalObject(1577, Terminal.Constructor(order_terminal))
       LocalObject(1578, Terminal.Constructor(order_terminal))
-      LocalObject(1744, ProximityTerminal.Constructor(pad_landing)) //air pad A
-      LocalObject(1745, Terminal.Constructor(pad_landing)) //air pad A
-      LocalObject(1747, ProximityTerminal.Constructor(pad_landing)) //air pad B
-      LocalObject(1748, Terminal.Constructor(pad_landing)) //air pad B
-      LocalObject(1756, ProximityTerminal.Constructor(pad_landing)) //air pad C
-      LocalObject(1757, Terminal.Constructor(pad_landing)) //air pad C
-      LocalObject(1765, ProximityTerminal.Constructor(pad_landing)) //air pad D
-      LocalObject(1766, Terminal.Constructor(pad_landing)) //air pad D
-      LocalObject(2145, SpawnTube.Constructor(Vector3(3980.4062f, 4252.7656f, 257.5625f), Vector3(0, 0, 90)))
-      LocalObject(2146, SpawnTube.Constructor(Vector3(3980.4062f, 4259.992f, 257.5625f), Vector3(0, 0, 90)))
-      LocalObject(2147, SpawnTube.Constructor(Vector3(3980.4062f, 4267.3047f, 257.5625f), Vector3(0, 0, 90)))
-      LocalObject(2049, ProximityTerminal.Constructor(repair_silo_a)) //repair terminal East
-      LocalObject(2050, Terminal.Constructor(repair_silo)) //rearm terminal East
-      LocalObject(2061, ProximityTerminal.Constructor(repair_silo_a, Vector3(4053.3516f, 4281.1562f, 266.4375f))) //repair terminal West
-      LocalObject(2062, Terminal.Constructor(repair_silo)) //rearm terminal West
+      LocalObject(1744, ProximityTerminal.Constructor(pad_landing_frame, Vector3(3924.8203f, 4331.789f, 275.92188f))) //air pad North
+      LocalObject(1745, Terminal.Constructor(air_rearm_terminal)) //air pad North
+      LocalObject(1747, ProximityTerminal.Constructor(pad_landing_frame, Vector3(3941.8984f, 4288.9844f, 273.20312f))) //air pad South
+      LocalObject(1748, Terminal.Constructor(air_rearm_terminal)) //air pad South
+      LocalObject(1756, ProximityTerminal.Constructor(pad_landing_frame, Vector3(3995.3516f, 4251.547f, 280.375f))) //air pad West
+      LocalObject(1757, Terminal.Constructor(air_rearm_terminal)) //air pad West
+      LocalObject(1765, ProximityTerminal.Constructor(pad_landing_frame, Vector3(4027.5469f, 4268.414f, 275.92188f))) //air pad East
+      LocalObject(1766, Terminal.Constructor(air_rearm_terminal)) //air pad East
+      LocalObject(2145, SpawnTube.Constructor(Vector3(3980.4062f, 4252.7656f, 257.5625f), Vector3.z(90)))
+      LocalObject(2146, SpawnTube.Constructor(Vector3(3980.4062f, 4259.992f, 257.5625f), Vector3.z(90)))
+      LocalObject(2147, SpawnTube.Constructor(Vector3(3980.4062f, 4267.3047f, 257.5625f), Vector3.z(90)))
+      LocalObject(2049, ProximityTerminal.Constructor(repair_silo, Vector3(3882.0078f, 4278.2266f, 266.4375f))) //repair terminal West
+      LocalObject(2050, Terminal.Constructor(ground_rearm_terminal)) //rearm terminal West
+      LocalObject(2061, ProximityTerminal.Constructor(repair_silo, Vector3(4053.3516f, 4281.1562f, 266.4375f))) //repair terminal East
+      LocalObject(2062, Terminal.Constructor(ground_rearm_terminal)) //rearm terminal East
       LocalObject(2094, ResourceSilo.Constructor)
       LocalObject(2239, Terminal.Constructor(spawn_terminal))
       LocalObject(2244, Terminal.Constructor(spawn_terminal))
@@ -1308,7 +1308,7 @@ object Maps {
       )
       LocalObject(224, Terminal.Constructor(dropship_vehicle_terminal))
       LocalObject(223,
-        VehicleSpawnPad.Constructor(Vector3(4012.3594f, 4364.8047f, 271.90625f), Vector3(0f, 0f, 0f))
+        VehicleSpawnPad.Constructor(Vector3(4012.3594f, 4364.8047f, 271.90625f), Vector3.Zero)
       )
       ObjectToBuilding(180, 2)
       ObjectToBuilding(222, 2)
@@ -1474,12 +1474,12 @@ object Maps {
     def Building48() : Unit = {
       //North Anguta Watchtower
       LocalBuilding(48, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3864.2266f, 4518.0234f, 0))))
-      LocalObject(364, Door.Constructor(Vector3(3871.9688f, 4509.992f, 269.65625f), Vector3(0f, 0f, 180f))) //s1
-      LocalObject(365, Door.Constructor(Vector3(3871.9688f, 4509.992f, 279.57812f), Vector3(0f, 0f, 180f))) //s2
-      LocalObject(366, Door.Constructor(Vector3(3871.9688f, 4509.992f, 299.57812f), Vector3(0f, 0f, 180f))) //s3
-      LocalObject(367, Door.Constructor(Vector3(3871.9688f, 4525.9844f, 269.65625f), Vector3(0f, 0f, 0f))) //n1
-      LocalObject(368, Door.Constructor(Vector3(3871.9688f, 4525.9844f, 279.57812f), Vector3(0f, 0f, 0f))) //n2
-      LocalObject(369, Door.Constructor(Vector3(3871.9688f, 4525.9844f, 299.57812f), Vector3(0f, 0f, 0f))) //n3
+      LocalObject(364, Door.Constructor(Vector3(3871.9688f, 4509.992f, 269.65625f), Vector3.z(180f))) //s1
+      LocalObject(365, Door.Constructor(Vector3(3871.9688f, 4509.992f, 279.57812f), Vector3.z(180f))) //s2
+      LocalObject(366, Door.Constructor(Vector3(3871.9688f, 4509.992f, 299.57812f), Vector3.z(180f))) //s3
+      LocalObject(367, Door.Constructor(Vector3(3871.9688f, 4525.9844f, 269.65625f), Vector3.Zero)) //n1
+      LocalObject(368, Door.Constructor(Vector3(3871.9688f, 4525.9844f, 279.57812f), Vector3.Zero)) //n2
+      LocalObject(369, Door.Constructor(Vector3(3871.9688f, 4525.9844f, 299.57812f), Vector3.Zero)) //n3
       LocalObject(854, IFFLock.Constructor)
       LocalObject(855, IFFLock.Constructor)
       LocalObject(856, IFFLock.Constructor)
@@ -1497,8 +1497,8 @@ object Maps {
       LocalObject(1561, Terminal.Constructor(order_terminal))
       LocalObject(1562, Terminal.Constructor(order_terminal))
       LocalObject(1563, Terminal.Constructor(order_terminal))
-      LocalObject(2138, SpawnTube.Constructor(respawn_tube_tower, Vector3(3870.9688f, 4505.7266f, 259.875f), Vector3(0, 0, 90)))
-      LocalObject(2139, SpawnTube.Constructor(respawn_tube_tower, Vector3(3870.9688f, 4522.1562f, 259.875f), Vector3(0, 0, 90)))
+      LocalObject(2138, SpawnTube.Constructor(respawn_tube_tower, Vector3(3870.9688f, 4505.7266f, 259.875f), Vector3.z(90)))
+      LocalObject(2139, SpawnTube.Constructor(respawn_tube_tower, Vector3(3870.9688f, 4522.1562f, 259.875f), Vector3.z(90)))
       LocalObject(2197, CaptureTerminal.Constructor(secondary_capture))
       LocalObject(2315, Door.Constructor) //spawn tube door
       LocalObject(2316, Door.Constructor) //spawn tube door
@@ -1541,10 +1541,10 @@ object Maps {
     def Building49() : Unit = {
       //North Akna Air Tower
       LocalBuilding(49, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(4358.3203f, 3989.5625f, 0))))
-      LocalObject(430, Door.Constructor(Vector3(4366.0156f, 3981.9922f, 237.96875f), Vector3(0f, 0f, 180f))) //s1
-      LocalObject(431, Door.Constructor(Vector3(4366.0156f, 3981.9922f, 257.89062f), Vector3(0f, 0f, 180f))) //s2
-      LocalObject(432, Door.Constructor(Vector3(4366.0156f, 3997.9297f, 237.96875f), Vector3(0f, 0f, 0f))) //n1
-      LocalObject(433, Door.Constructor(Vector3(4366.0156f, 3997.9297f, 257.89062f), Vector3(0f, 0f, 0f))) //n2
+      LocalObject(430, Door.Constructor(Vector3(4366.0156f, 3981.9922f, 237.96875f), Vector3.z(180f))) //s1
+      LocalObject(431, Door.Constructor(Vector3(4366.0156f, 3981.9922f, 257.89062f), Vector3.z(180f))) //s2
+      LocalObject(432, Door.Constructor(Vector3(4366.0156f, 3997.9297f, 237.96875f), Vector3.Zero)) //n1
+      LocalObject(433, Door.Constructor(Vector3(4366.0156f, 3997.9297f, 257.89062f), Vector3.Zero)) //n2
       LocalObject(902, IFFLock.Constructor)
       LocalObject(903, IFFLock.Constructor)
       LocalObject(906, IFFLock.Constructor)
@@ -1562,12 +1562,12 @@ object Maps {
       LocalObject(1591, Terminal.Constructor(order_terminal))
       LocalObject(1592, Terminal.Constructor(order_terminal))
       LocalObject(1593, Terminal.Constructor(order_terminal))
-      LocalObject(1846, ProximityTerminal.Constructor(pad_landing)) //air pad S
-      LocalObject(1847, Terminal.Constructor(pad_landing)) //air pad S
-      LocalObject(1849, ProximityTerminal.Constructor(pad_landing)) //air pad N
-      LocalObject(1850, Terminal.Constructor(pad_landing)) //air pad N
-      LocalObject(2156, SpawnTube.Constructor(respawn_tube_tower, Vector3(4364.633f, 3994.125f, 228.1875f), Vector3(0, 0, 90)))
-      LocalObject(2157, SpawnTube.Constructor(respawn_tube_tower, Vector3(4364.633f, 3977.7266f, 228.1875f), Vector3(0, 0, 90)))
+      LocalObject(1846, ProximityTerminal.Constructor(pad_landing_tower_frame, Vector3(4352.3984f, 3984.7422f, 266.125f))) //air pad South
+      LocalObject(1847, Terminal.Constructor(air_rearm_terminal)) //air pad South
+      LocalObject(1849, ProximityTerminal.Constructor(pad_landing_tower_frame, Vector3(4352.3984f, 3995.2812f, 266.125f))) //air pad North
+      LocalObject(1850, Terminal.Constructor(air_rearm_terminal)) //air pad North
+      LocalObject(2156, SpawnTube.Constructor(respawn_tube_tower, Vector3(4364.633f, 3994.125f, 228.1875f), Vector3.z(90)))
+      LocalObject(2157, SpawnTube.Constructor(respawn_tube_tower, Vector3(4364.633f, 3977.7266f, 228.1875f), Vector3.z(90)))
       LocalObject(2203, CaptureTerminal.Constructor(secondary_capture))
       LocalObject(2333, Door.Constructor) //spawn tube door
       LocalObject(2334, Door.Constructor) //spawn tube door
@@ -1652,7 +1652,7 @@ object Maps {
       LocalBuilding(67, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1, 0, 0))))
       LocalObject(282, Door.Constructor) //spawn tube door
       LocalObject(396, Door.Constructor) //entrance
-      LocalObject(766, SpawnTube.Constructor(Vector3(3138.0f, 2875.0f, 36.2f), Vector3(0, 0, 180)))
+      LocalObject(766, SpawnTube.Constructor(Vector3(3138.0f, 2875.0f, 36.2f), Vector3.z(180)))
       ObjectToBuilding(282, 67)
       ObjectToBuilding(396, 67)
       ObjectToBuilding(766, 67)
@@ -1685,7 +1685,7 @@ object Maps {
       LocalBuilding(67, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1, 0, 0))))
       LocalObject(282, Door.Constructor) //spawn tube door
       LocalObject(396, Door.Constructor) //entrance
-      LocalObject(766, SpawnTube.Constructor(Vector3(3138.0f, 2875.0f, 36.2f), Vector3(0, 0, 180)))
+      LocalObject(766, SpawnTube.Constructor(Vector3(3138.0f, 2875.0f, 36.2f), Vector3.z(180)))
       ObjectToBuilding(282, 67)
       ObjectToBuilding(396, 67)
       ObjectToBuilding(766, 67)
@@ -1757,10 +1757,10 @@ object Maps {
       LocalObject(691, Locker.Constructor)
       LocalObject(692, Locker.Constructor)
       LocalObject(693, Locker.Constructor)
-      LocalObject(778, ProximityTerminal.Constructor(medical_terminal))
-      LocalObject(779, ProximityTerminal.Constructor(medical_terminal))
-      LocalObject(780, ProximityTerminal.Constructor(medical_terminal))
-      LocalObject(781, ProximityTerminal.Constructor(medical_terminal))
+      LocalObject(778, ProximityTerminal.Constructor(medical_terminal, Vector3(3617.3516f, 2785.3281f, 93.65625f))) //medical terminal Southwest
+      LocalObject(779, ProximityTerminal.Constructor(medical_terminal, Vector3(3617.3516f, 2830.414f, 93.65625f))) //medical terminal Southeast
+      LocalObject(780, ProximityTerminal.Constructor(medical_terminal, Vector3(3758.7031f, 2785.3281f, 93.65625f))) //medical terminal Southeast
+      LocalObject(781, ProximityTerminal.Constructor(medical_terminal, Vector3(3758.7031f, 2830.414f, 93.65625f))) //medical terminal Northeast
       LocalObject(842, Terminal.Constructor(order_terminal))
       LocalObject(843, Terminal.Constructor(order_terminal))
       LocalObject(844, Terminal.Constructor(order_terminal))
@@ -1834,10 +1834,10 @@ object Maps {
     def Building29() : Unit = {
       //South Villa Gun Tower
       LocalBuilding(29, FoundationBuilder(Building.Structure(StructureType.Tower)))
-      LocalObject(330, Door.Constructor(Vector3(3979.9219f, 2592.0547f, 91.140625f), Vector3(0, 0, 180)))
-      LocalObject(331, Door.Constructor(Vector3(3979.9219f, 2592.0547f, 111.140625f), Vector3(0, 0, 180)))
-      LocalObject(332, Door.Constructor(Vector3(3979.9688f, 2608.0625f, 91.140625f), Vector3(0, 0, 0)))
-      LocalObject(333, Door.Constructor(Vector3(3979.9688f, 2608.0625f, 111.140625f), Vector3(0, 0, 0)))
+      LocalObject(330, Door.Constructor(Vector3(3979.9219f, 2592.0547f, 91.140625f), Vector3.z(180)))
+      LocalObject(331, Door.Constructor(Vector3(3979.9219f, 2592.0547f, 111.140625f), Vector3.z(180)))
+      LocalObject(332, Door.Constructor(Vector3(3979.9688f, 2608.0625f, 91.140625f), Vector3.Zero))
+      LocalObject(333, Door.Constructor(Vector3(3979.9688f, 2608.0625f, 111.140625f), Vector3.Zero))
       LocalObject(556, IFFLock.Constructor)
       LocalObject(557, IFFLock.Constructor)
       LocalObject(558, IFFLock.Constructor)
@@ -1881,12 +1881,12 @@ object Maps {
       LocalObject(433, Door.Constructor) //vr door
       LocalObject(434, Door.Constructor) //vr door
       LocalObject(435, Door.Constructor) //vr door
-      LocalObject(744, SpawnTube.Constructor(Vector3(3684.336f, 2709.0469f, 91.9f), Vector3(0, 0, 180)))
-      LocalObject(745, SpawnTube.Constructor(Vector3(3684.336f, 2713.75f, 91.9f), Vector3(0, 0, 0)))
-      LocalObject(746, SpawnTube.Constructor(Vector3(3690.9062f, 2708.4219f, 91.9f), Vector3(0, 0, 180)))
-      LocalObject(747, SpawnTube.Constructor(Vector3(3691.0703f, 2713.8672f, 91.9f), Vector3(0, 0, 0)))
-      LocalObject(748, SpawnTube.Constructor(Vector3(3697.664f, 2708.3984f, 91.9f), Vector3(0, 0, 180)))
-      LocalObject(749, SpawnTube.Constructor(Vector3(3697.711f, 2713.2344f, 91.9f), Vector3(0, 0, 0)))
+      LocalObject(744, SpawnTube.Constructor(Vector3(3684.336f, 2709.0469f, 91.9f), Vector3.z(180)))
+      LocalObject(745, SpawnTube.Constructor(Vector3(3684.336f, 2713.75f, 91.9f), Vector3.Zero))
+      LocalObject(746, SpawnTube.Constructor(Vector3(3690.9062f, 2708.4219f, 91.9f), Vector3.z(180)))
+      LocalObject(747, SpawnTube.Constructor(Vector3(3691.0703f, 2713.8672f, 91.9f), Vector3.Zero))
+      LocalObject(748, SpawnTube.Constructor(Vector3(3697.664f, 2708.3984f, 91.9f), Vector3.z(180)))
+      LocalObject(749, SpawnTube.Constructor(Vector3(3697.711f, 2713.2344f, 91.9f), Vector3.Zero))
       LocalObject(852, Terminal.Constructor(order_terminal)) //s. wall
       LocalObject(853, Terminal.Constructor(order_terminal)) //n. wall
       LocalObject(854, Terminal.Constructor(order_terminal)) //s. wall
@@ -1922,9 +1922,9 @@ object Maps {
     }
 
     def Building51() : Unit = {
-      //air terminal west of HART C
-      LocalObject(12, ProximityTerminal.Constructor(repair_silo)) //repair terminal
-      LocalObject(13, Terminal.Constructor(repair_silo)) //rearm terminal
+      //air terminal & silo west of HART C
+      LocalObject(12, ProximityTerminal.Constructor(repair_silo, Vector3(3646.6328f, 2870.9062f, 91.046875f))) //repair terminal
+      LocalObject(13, Terminal.Constructor(ground_rearm_terminal)) //rearm terminal
       LocalBuilding(51, FoundationBuilder(Building.Structure(StructureType.Platform)))
       LocalObject(304, Terminal.Constructor(dropship_vehicle_terminal))
       LocalObject(292,

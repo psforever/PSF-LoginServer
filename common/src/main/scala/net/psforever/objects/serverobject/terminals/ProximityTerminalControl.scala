@@ -2,7 +2,7 @@
 package net.psforever.objects.serverobject.terminals
 
 import akka.actor.{Actor, ActorRef, Cancellable}
-import net.psforever.objects.{DefaultCancellable, PlanetSideGameObject, Player, Vehicle}
+import net.psforever.objects._
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
 import net.psforever.packet.game.PlanetSideGUID
@@ -161,7 +161,14 @@ object ProximityTerminalControl {
 
     def RepairSilo(target : PlanetSideGameObject) : Boolean = target match {
       case v : Vehicle =>
-        v.Health > 0 && v.Health < v.MaxHealth
+        !GlobalDefinitions.isFlightVehicle(v.Definition) && v.Health > 0 && v.Health < v.MaxHealth
+      case _ =>
+        false
+    }
+
+    def PadLanding(target : PlanetSideGameObject) : Boolean = target match {
+      case v : Vehicle =>
+        GlobalDefinitions.isFlightVehicle(v.Definition) && v.Health > 0 && v.Health < v.MaxHealth
       case _ =>
         false
     }
