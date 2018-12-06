@@ -630,7 +630,12 @@ object Vehicle {
     vehicle.cargoHolds = vdef.Cargo.map({ case(num, definition) => num -> Cargo(definition)}).toMap
 
     //create utilities
-    vehicle.utilities = vdef.Utilities.map({ case(num, util) => num -> Utility(util, vehicle) }).toMap
+    vehicle.utilities = vdef.Utilities.map({
+      case(num, util) =>
+        val obj = Utility(util, vehicle)
+        obj().LocationOffset = vdef.UtilityOffset.get(num)
+        num -> obj
+    }).toMap
     //trunk
     vdef.TrunkSize match {
       case InventoryTile.None => ;

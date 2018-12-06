@@ -4292,7 +4292,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           continent.GUID(vehicleGUID) match {
             case Some(obj : Vehicle) =>
               if(obj.Health > 0) { //vehicle will try to charge even if destroyed
-                obj.Actor ! Vehicle.ChargeShields(15)
+                //obj.Actor ! Vehicle.ChargeShields(15)
               }
             case _ =>
               log.warn(s"FacilityBenefitShieldChargeRequest: can not find vehicle ${vehicleGUID.guid} in zone ${continent.Id}")
@@ -6252,14 +6252,15 @@ class WorldSessionActor extends Actor with MDCContextAware {
   def StartUsingProximityUnit(terminal : Terminal with ProximityUnit, targets : Seq[PlanetSideGameObject]) : Unit = {
     val term_guid = terminal.GUID
     if(player.isAlive && !usingProximityTerminal.contains(term_guid) && targets.nonEmpty) {
-      log.info(s"StartUsingProximityUnit: ${player.Name} wants to use ${terminal.Definition.Name}@${term_guid.guid}")
+      log.info(s"StartUsingProximityUnit: ${player.Name} wants to use ${terminal.Definition.Name}@${term_guid.guid} on $targets")
       targets.foreach(target =>
         target match {
-          case o : Player =>
+          case _ : Player =>
             terminal.Actor ! CommonMessages.Use(player, Some(target))
-          case o : Vehicle =>
+          case _ : Vehicle =>
             terminal.Actor ! CommonMessages.Use(player, Some((target, vehicleService)))
-          case _ => ;
+          case _ =>
+            log.error(s"StartUsingProximityUnit: can not deal with target $target")
         }
       )
       usingProximityTerminal += term_guid
@@ -6270,7 +6271,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       }
     }
     else if(targets.isEmpty) {
-      log.warn(s"StartUsingProximityUnit: ${player.Name} did not provide valid targets to proximity unit ${terminal.Definition.Name}@${term_guid.guid}")
+      log.warn(s"StartUsingProximityUnit: ${player.Name} did not provide targets to proximity unit ${terminal.Definition.Name}@${term_guid.guid}")
     }
   }
 

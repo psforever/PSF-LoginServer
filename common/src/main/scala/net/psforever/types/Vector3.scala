@@ -46,10 +46,48 @@ final case class Vector3(x : Float,
     * @return a new `Vector3` object with only two of the components of the original
     */
   def xy : Vector3 = Vector3(x, y, 0)
+
+  /**
+    * Perform the x-axis rotation of this `Vector3` element where the angle of rotation is assumed in degrees.
+    * For chaining rotations.
+    * @see `Vector3.Rx`
+    * @param ang a rotation angle
+    * @return the rotated vector
+    */
+  def Rx(ang : Float) : Vector3 = Vector3.Rx(this, ang)
+  /**
+    * Perform the y-axis rotation of this `Vector3` element where the angle of rotation is assumed in degrees.
+    * For chaining rotations.
+    * @see `Vector3.Ry`
+    * @param ang a rotation angle
+    * @return the rotated vector
+    */
+  def Ry(ang : Float) : Vector3 = Vector3.Ry(this, ang)
+  /**
+    * Perform the z-axis rotation of this `Vector3` element where the angle of rotation is assumed in degrees.
+    * For chaining rotations.
+    * @see `Vector3.Rz`
+    * @param ang a rotation angle
+    * @return the rotated vector
+    */
+  def Rz(ang : Float) : Vector3 = Vector3.Rz(this, ang)
 }
 
 object Vector3 {
   final val Zero : Vector3 = Vector3(0f, 0f, 0f)
+
+  private def closeToInsignificance(d : Float, epsilon : Float = 10f) : Float = {
+    val ulp = math.ulp(epsilon)
+    math.signum(d) match {
+      case -1f =>
+        val n = math.abs(d)
+        val p = math.abs(n - n.toInt)
+        if(p < ulp || d > ulp) d + p else d
+      case _ =>
+        val p = math.abs(d - d.toInt)
+        if(p < ulp || d < ulp) d - p else d
+    }
+  }
 
   implicit val codec_pos : Codec[Vector3] = (
       ("x" | newcodecs.q_float(0.0, 8192.0, 20)) ::
@@ -207,5 +245,83 @@ object Vector3 {
     */
   def VectorProjection(vec1 : Vector3, vec2 : Vector3) : Vector3 = {
     Unit(vec2) * ScalarProjection(vec1, vec2)
+  }
+
+  /**
+    * Perform the x-axis rotation of a `Vector3` element where the angle of rotation is assumed in degrees.
+    * @see `Vector3.RxRadians(Vector3, Double)`
+    * @param vec a mathematical vector representing direction
+    * @param ang a rotation angle, in degrees
+    * @return the rotated vector
+    */
+  def Rx(vec : Vector3, ang : Float) : Vector3 = Rx(vec, math.toRadians(ang))
+  /**
+    * Perform the x-axis rotation of a `Vector3` element where the angle of rotation is assumed in radians.
+    * @see `Vector3.Rx(Vector3, Float)`
+    * @param vec a mathematical vector representing direction
+    * @param ang a rotation angle, in radians
+    * @return the rotated vector
+    */
+  def Rx(vec : Vector3, ang : Double) : Vector3 = {
+    val cos = math.cos(ang).toFloat
+    val sin = math.sin(ang).toFloat
+    val (x, y, z) = (vec.x, vec.y, vec.z)
+    Vector3(
+      x,
+      closeToInsignificance(y * cos - z * sin),
+      closeToInsignificance(y * sin + z * cos)
+    )
+  }
+
+  /**
+    * Perform the x-axis rotation of a `Vector3` element where the angle of rotation is assumed in degrees.
+    * @see `Vector3.Ry(Vector3, Double)`
+    * @param vec a mathematical vector representing direction
+    * @param ang a rotation angle, in degrees
+    * @return the rotated vector
+    */
+  def Ry(vec : Vector3, ang : Float) : Vector3 = Ry(vec, math.toRadians(ang))
+  /**
+    * Perform the y-axis rotation of a `Vector3` element where the angle of rotation is assumed in radians.
+    * @see `Vector3.Ry(Vector3, Float)`
+    * @param vec a mathematical vector representing direction
+    * @param ang a rotation angle, in radians
+    * @return the rotated vector
+    */
+  def Ry(vec : Vector3, ang : Double) : Vector3 = {
+    val cos = math.cos(ang).toFloat
+    val sin = math.sin(ang).toFloat
+    val (x, y, z) = (vec.x, vec.y, vec.z)
+    Vector3(
+      closeToInsignificance(x * cos + z * sin),
+      y,
+      closeToInsignificance(z * cos - x * sin)
+    )
+  }
+
+  /**
+    * Perform the x-axis rotation of a `Vector3` element where the angle of rotation is assumed in degrees.
+    * @see `Vector3.Rz(Vector3, Double)`
+    * @param vec a mathematical vector representing direction
+    * @param ang a rotation angle, in degrees
+    * @return the rotated vector
+    */
+  def Rz(vec : Vector3, ang : Float) : Vector3 = Rz(vec, math.toRadians(ang))
+  /**
+    * Perform the z-axis rotation of a `Vector3` element where the angle of rotation is assumed in radians.
+    * @see `Vector3.Rz(Vector3, Float)`
+    * @param vec a mathematical vector representing direction
+    * @param ang a rotation angle, in radians
+    * @return the rotation vector
+    */
+  def Rz(vec : Vector3, ang : Double) : Vector3 = {
+    val cos = math.cos(ang).toFloat
+    val sin = math.sin(ang).toFloat
+    val (x, y, z) = (vec.x, vec.y, vec.z)
+    Vector3(
+      closeToInsignificance(x * cos - y * sin),
+      closeToInsignificance(x * sin - y * cos),
+      z
+    )
   }
 }

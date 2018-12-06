@@ -91,12 +91,14 @@ class ProximityTerminalControl(term : Terminal with ProximityUnit) extends Actor
       case ProximityUnit.Action(_, _) =>
         //reserved
 
-      case _ => ;
+      case msg =>
+        log.warn(s"unexpected message $msg")
     }
 
   def Use(target : PlanetSideGameObject, zone : String, callback : ActorRef, sender : ActorRef) : Unit = {
     val hadNoUsers = term.NumberUsers == 0
     if(term.AddUser(target)) {
+      log.info(s"ProximityTerminal.Use: unit ${term.Definition.Name}@${term.GUID.guid} will act on $target")
       //add callback
       callbacks += ((sender, callback))
       //activation
@@ -118,6 +120,7 @@ class ProximityTerminalControl(term : Terminal with ProximityUnit) extends Actor
     val previousUsers = term.NumberUsers
     val hadUsers = previousUsers > 0
     if(whereTarget > -1 && term.RemoveUser(target)) {
+      log.info(s"ProximityTerminal.Unuse: unit ${term.Definition.Name}@${term.GUID.guid} will cease operation on $target")
       //remove callback
       val originalSender : ActorRef = {
         val (to, _) = callbacks.remove(whereTarget)
@@ -133,7 +136,7 @@ class ProximityTerminalControl(term : Terminal with ProximityUnit) extends Actor
       }
     }
     else {
-      log.debug(s"target by proximity $target is not known to $term, though the unit tried to 'Unuse' it")
+      log.debug(s"ProximityTerminal.Unuse: target by proximity $target is not known to $term, though the unit tried to 'Unuse' it")
     }
   }
 

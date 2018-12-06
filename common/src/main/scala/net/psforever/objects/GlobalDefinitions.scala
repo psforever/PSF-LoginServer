@@ -18,7 +18,7 @@ import net.psforever.objects.serverobject.resourcesilo.ResourceSiloDefinition
 import net.psforever.objects.serverobject.turret.{TurretDefinition, TurretUpgrade}
 import net.psforever.objects.vehicles.{DestroyedVehicle, SeatArmorRestriction, UtilityType}
 import net.psforever.objects.vital.{DamageType, StandardResolutions}
-import net.psforever.types.{CertificationType, PlanetSideEmpire}
+import net.psforever.types.{CertificationType, PlanetSideEmpire, Vector3}
 
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -912,60 +912,21 @@ object GlobalDefinitions {
 
   val teleportpad_terminal = new TeleportPadTerminalDefinition
 
-  val adv_med_terminal = new MedicalTerminalDefinition(38) {
-    Name = "adv_med_terminal"
-    Interval = 500
-    HealAmount = 8
-    ArmorAmount = 15
-    UseRadius = 0.75f
-    TargetValidation += ProximityTarget.Player -> ProximityTerminalControl.Validation.Medical
-  }
+  val adv_med_terminal = new MedicalTerminalDefinition(38)
 
-  val crystals_health_a = new MedicalTerminalDefinition(225) {
-    Name = "crystals_health_a"
-    Interval = 500
-    HealAmount = 4
-    UseRadius = 5
-    TargetValidation += ProximityTarget.Player -> ProximityTerminalControl.Validation.HealthCrystal
-  }
+  val crystals_health_a = new MedicalTerminalDefinition(225)
 
-  val crystals_health_b = new MedicalTerminalDefinition(226) {
-    Name = "crystals_health_b"
-    Interval = 500
-    HealAmount = 4
-    UseRadius = 1.3f
-    TargetValidation += ProximityTarget.Player -> ProximityTerminalControl.Validation.HealthCrystal
-  }
+  val crystals_health_b = new MedicalTerminalDefinition(226)
 
-  val medical_terminal = new MedicalTerminalDefinition(529) {
-    Name = "medical_terminal"
-    Interval = 500
-    HealAmount = 5
-    ArmorAmount = 10
-    UseRadius = 0.75f
-    TargetValidation += ProximityTarget.Player -> ProximityTerminalControl.Validation.Medical
-  }
+  val medical_terminal = new MedicalTerminalDefinition(529)
 
-  val portable_med_terminal = new MedicalTerminalDefinition(689) {
-    Name = "portable_med_terminal"
-    Interval = 500
-    HealAmount = 5
-    ArmorAmount = 10
-    UseRadius = 3
-    TargetValidation += ProximityTarget.Player -> ProximityTerminalControl.Validation.Medical
-  }
+  val portable_med_terminal = new MedicalTerminalDefinition(689)
 
   val pad_landing = new RepairRearmSiloDefinition(719)
 
   val repair_silo = new RepairRearmSiloDefinition(729)
 
-  val repair_silo_a = new MedicalTerminalDefinition(729) {
-    Name = "repair_silo"
-    Interval = 1000
-    HealAmount = 60
-    UseRadius = 20
-    TargetValidation += ProximityTarget.Vehicle -> ProximityTerminalControl.Validation.RepairSilo
-  }
+  val repair_silo_a = new MedicalTerminalDefinition(729)
 
   val spawn_pad = new VehicleSpawnPadDefinition
 
@@ -981,37 +942,14 @@ object GlobalDefinitions {
 
   val secondary_capture = new CaptureTerminalDefinition(751) // Tower CC
 
-  val lodestar_repair_terminal = new MedicalTerminalDefinition(461) {
-    Name = "lodestar_repair_terminal"
-    Interval = 1000
-    HealAmount = 60
-    UseRadius = 20
-    TargetValidation += ProximityTarget.Vehicle -> ProximityTerminalControl.Validation.RepairSilo
-  }
+  val lodestar_repair_terminal = new MedicalTerminalDefinition(461)
 
-  val multivehicle_rearm_terminal = new _OrderTerminalDefinition(576) {
-    Name = "multivehicle_rearm_terminal"
-    Page += 3 -> _OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
-    Page += 4 -> _OrderTerminalDefinition.VehicleLoadoutPage()
-  }
+  val multivehicle_rearm_terminal = new _OrderTerminalDefinition(576)
 
-  val bfr_rearm_terminal = new _OrderTerminalDefinition(142) {
-    Name = "bfr_rearm_terminal"
-    Page += 3 -> _OrderTerminalDefinition.EquipmentPage(Map.empty[String, ()=>Equipment]) //TODO add stock to page
-    Page += 4 -> _OrderTerminalDefinition.VehicleLoadoutPage()
-  }
+  val bfr_rearm_terminal = new _OrderTerminalDefinition(142)
 
-  val manned_turret = new TurretDefinition(480) {
-    Name = "manned_turret"
-    MaxHealth = 3600
-    Weapons += 1 -> new mutable.HashMap()
-    Weapons(1) += TurretUpgrade.None -> phalanx_sgl_hevgatcan
-    Weapons(1) += TurretUpgrade.AVCombo -> phalanx_avcombo
-    Weapons(1) += TurretUpgrade.FlakCombo -> phalanx_flakcombo
-    MountPoints += 1 -> 0
-    FactionLocked = true
-    ReserveAmmunition = false
-  }
+  val manned_turret = new TurretDefinition(480)
+  initMiscellaneous()
 
   /**
     * Given a faction, provide the standard assault melee weapon.
@@ -5458,7 +5396,9 @@ object GlobalDefinitions {
     lodestar.MountPoints += 2 -> 1
     lodestar.Cargo += 1 -> new CargoDefinition()
     lodestar.Utilities += 2 -> UtilityType.lodestar_repair_terminal
+    lodestar.UtilityOffset += 2 -> Vector3(0, 20, 0)
     lodestar.Utilities += 3 -> UtilityType.lodestar_repair_terminal
+    lodestar.UtilityOffset += 3 -> Vector3(0, -20, 0)
     lodestar.Utilities += 4 -> UtilityType.multivehicle_rearm_terminal
     lodestar.Utilities += 5 -> UtilityType.multivehicle_rearm_terminal
     lodestar.Utilities += 6 -> UtilityType.bfr_rearm_terminal
@@ -5645,5 +5585,77 @@ object GlobalDefinitions {
     internal_router_telepad_deployable.MaxHealth = 1
     internal_router_telepad_deployable.DeployTime = Duration.create(1, "ms")
     internal_router_telepad_deployable.Packet = new InternalTelepadDeployableConverter
+  }
+
+  /**
+    * Initialize `Miscellaneous` globals.
+    */
+  private def initMiscellaneous() : Unit = {
+    adv_med_terminal.Name = "adv_med_terminal"
+    adv_med_terminal.Interval = 500
+    adv_med_terminal.HealAmount = 8
+    adv_med_terminal.ArmorAmount = 15
+    adv_med_terminal.UseRadius = 0.75f
+    adv_med_terminal.TargetValidation += ProximityTarget.Player -> ProximityTerminalControl.Validation.Medical
+
+    crystals_health_a.Name = "crystals_health_a"
+    crystals_health_a.Interval = 500
+    crystals_health_a.HealAmount = 4
+    crystals_health_a.UseRadius = 5
+    crystals_health_a.TargetValidation += ProximityTarget.Player -> ProximityTerminalControl.Validation.HealthCrystal
+
+    crystals_health_b.Name = "crystals_health_b"
+    crystals_health_b.Interval = 500
+    crystals_health_b.HealAmount = 4
+    crystals_health_b.UseRadius = 1.3f
+    crystals_health_b.TargetValidation += ProximityTarget.Player -> ProximityTerminalControl.Validation.HealthCrystal
+
+    medical_terminal.Name = "medical_terminal"
+    medical_terminal.Interval = 500
+    medical_terminal.HealAmount = 5
+    medical_terminal.ArmorAmount = 10
+    medical_terminal.UseRadius = 0.75f
+    medical_terminal.TargetValidation += ProximityTarget.Player -> ProximityTerminalControl.Validation.Medical
+
+    portable_med_terminal.Name = "portable_med_terminal"
+    portable_med_terminal.Interval = 500
+    portable_med_terminal.HealAmount = 5
+    portable_med_terminal.ArmorAmount = 10
+    portable_med_terminal.UseRadius = 3
+    portable_med_terminal.TargetValidation += ProximityTarget.Player -> ProximityTerminalControl.Validation.Medical
+
+    //val pad_landing = new RepairRearmSiloDefinition(719)
+
+    //val repair_silo = new RepairRearmSiloDefinition(729)
+
+    repair_silo_a.Name = "repair_silo"
+    repair_silo_a.Interval = 1000
+    repair_silo_a.HealAmount = 60
+    repair_silo_a.UseRadius = 20
+    repair_silo_a.TargetValidation += ProximityTarget.Vehicle -> ProximityTerminalControl.Validation.RepairSilo
+
+    lodestar_repair_terminal.Name = "lodestar_repair_terminal"
+    lodestar_repair_terminal.Interval = 1000
+    lodestar_repair_terminal.HealAmount = 60
+    lodestar_repair_terminal.UseRadius = 20
+    lodestar_repair_terminal.TargetValidation += ProximityTarget.Vehicle -> ProximityTerminalControl.Validation.RepairSilo
+
+    multivehicle_rearm_terminal.Name = "multivehicle_rearm_terminal"
+    multivehicle_rearm_terminal.Page += 3 -> _OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
+    multivehicle_rearm_terminal.Page += 4 -> _OrderTerminalDefinition.VehicleLoadoutPage()
+
+    bfr_rearm_terminal.Name = "bfr_rearm_terminal"
+    bfr_rearm_terminal.Page += 3 -> _OrderTerminalDefinition.EquipmentPage(Map.empty[String, ()=>Equipment]) //TODO add stock to page
+    bfr_rearm_terminal.Page += 4 -> _OrderTerminalDefinition.VehicleLoadoutPage()
+
+    manned_turret.Name = "manned_turret"
+    manned_turret.MaxHealth = 3600
+    manned_turret.Weapons += 1 -> new mutable.HashMap()
+    manned_turret.Weapons(1) += TurretUpgrade.None -> phalanx_sgl_hevgatcan
+    manned_turret.Weapons(1) += TurretUpgrade.AVCombo -> phalanx_avcombo
+    manned_turret.Weapons(1) += TurretUpgrade.FlakCombo -> phalanx_flakcombo
+    manned_turret.MountPoints += 1 -> 0
+    manned_turret.FactionLocked = true
+    manned_turret.ReserveAmmunition = false
   }
 }
