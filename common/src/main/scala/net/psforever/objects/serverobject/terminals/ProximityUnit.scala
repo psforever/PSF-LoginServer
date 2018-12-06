@@ -32,8 +32,13 @@ trait ProximityUnit {
     */
   def AddUser(target : PlanetSideGameObject) : Boolean = {
     val alreadyContains = targets.contains(target)
-    targets += target
-    !alreadyContains && targets.contains(target)
+    if(!alreadyContains) {
+      targets += target
+      targets.contains(target)
+    }
+    else {
+      false
+    }
   }
 
   /**
@@ -44,8 +49,13 @@ trait ProximityUnit {
     */
   def RemoveUser(target : PlanetSideGameObject) : Boolean = {
     val alreadyContains = targets.contains(target)
-    targets -= target
-    alreadyContains && !targets.contains(target)
+    if(alreadyContains) {
+      targets -= target
+      !targets.contains(target)
+    }
+    else {
+      false
+    }
   }
 
   /**

@@ -5,8 +5,6 @@ import akka.actor.{Actor, ActorRef, Cancellable}
 import net.psforever.objects._
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
-import net.psforever.packet.game.PlanetSideGUID
-import services.local.{LocalAction, LocalServiceMessage}
 import services.{Service, ServiceManager}
 
 import scala.collection.mutable
@@ -107,7 +105,7 @@ class ProximityTerminalControl(term : Terminal with ProximityUnit) extends Actor
         import scala.concurrent.ExecutionContext.Implicits.global
         terminalAction.cancel
         terminalAction = context.system.scheduler.schedule(500 milliseconds, medDef.Interval, self, ProximityTerminalControl.TerminalAction())
-        service ! LocalServiceMessage(zone, LocalAction.ProximityTerminalEffect(PlanetSideGUID(0), term.GUID, true))
+        service ! Terminal.StartProximityEffect(term)
       }
     }
     else {
@@ -129,7 +127,7 @@ class ProximityTerminalControl(term : Terminal with ProximityUnit) extends Actor
       //de-activation (global / local)
       if(term.NumberUsers == 0 && hadUsers) {
         terminalAction.cancel
-        service ! LocalServiceMessage(zone, LocalAction.ProximityTerminalEffect(PlanetSideGUID(0), term.GUID, false))
+        service ! Terminal.StopProximityEffect(term)
       }
       else if(originalSender ne ActorRef.noSender) {
         originalSender ! ProximityUnit.CancelEffectUser(term.GUID)
