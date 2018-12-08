@@ -3796,7 +3796,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case Some(obj : SpawnTube) =>
           //deconstruction
           PlayerActionsToCancel()
-          ForgetAllProximityTerminals()
+          CancelAllProximityUnits()
           player.Release
           deadState = DeadState.Release
           sendResponse(AvatarDeadStateMessage(DeadState.Release, 0, 0, player.Position, player.Faction, true))
@@ -5996,7 +5996,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
       avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player_guid, 29, 1))
     }
     PlayerActionsToCancel()
-    ForgetAllProximityTerminals()
     //TODO other methods of death?
     val pentry = PlayerSource(tplayer)
     (tplayer.History.find({p => p.isInstanceOf[PlayerSuicide]}) match {
