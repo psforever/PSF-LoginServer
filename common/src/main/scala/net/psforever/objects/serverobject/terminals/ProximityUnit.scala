@@ -2,7 +2,6 @@
 package net.psforever.objects.serverobject.terminals
 
 import net.psforever.objects.PlanetSideGameObject
-import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types.Vector3
 
 import scala.collection.mutable
@@ -92,5 +91,4 @@ trait ProximityUnit {
 
 object ProximityUnit {
   final case class Action(terminal : Terminal with ProximityUnit, target : PlanetSideGameObject)
-  final case class CancelEffectUser(object_guid : PlanetSideGUID)
 }

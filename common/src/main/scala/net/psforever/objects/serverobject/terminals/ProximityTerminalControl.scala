@@ -19,7 +19,7 @@ import scala.concurrent.duration._
 class ProximityTerminalControl(term : Terminal with ProximityUnit) extends Actor with FactionAffinityBehavior.Check {
   var service : ActorRef = ActorRef.noSender
   var terminalAction : Cancellable = DefaultCancellable.obj
-  val callbacks : mutable.ListBuffer[(ActorRef, ActorRef)] = new mutable.ListBuffer[(ActorRef, ActorRef)]()
+  val callbacks : mutable.ListBuffer[ActorRef] = new mutable.ListBuffer[ActorRef]()
   val log = org.log4s.getLogger
 
   def FactionObject : FactionAffinity = term
@@ -44,12 +44,12 @@ class ProximityTerminalControl(term : Terminal with ProximityUnit) extends Actor
     .orElse {
       case CommonMessages.Use(_, Some(target : PlanetSideGameObject)) =>
         if(term.Definition.asInstanceOf[ProximityDefinition].Validations.exists(p => p(target))) {
-          Use(target, term.Continent, sender, sender)
+          Use(target, term.Continent, sender)
         }
 
       case CommonMessages.Use(_, Some((target : PlanetSideGameObject, callback : ActorRef))) =>
         if(term.Definition.asInstanceOf[ProximityDefinition].Validations.exists(p => p(target))) {
-          Use(target, term.Continent, callback, sender)
+          Use(target, term.Continent, callback)
         }
 
       case CommonMessages.Use(_, _) =>
@@ -68,7 +68,7 @@ class ProximityTerminalControl(term : Terminal with ProximityUnit) extends Actor
         term.Targets.zipWithIndex.foreach({ case((target, index)) =>
           if(validateFunc(target)) {
             callbackList.lift(index) match {
-              case Some((_, cback)) =>
+              case Some(cback) =>
                 cback ! ProximityUnit.Action(term, target)
               case None =>
                 log.error(s"improper callback registered for $target on $term in zone ${term.Owner.Continent}; this may be recoverable")
@@ -93,12 +93,12 @@ class ProximityTerminalControl(term : Terminal with ProximityUnit) extends Actor
         log.warn(s"unexpected message $msg")
     }
 
-  def Use(target : PlanetSideGameObject, zone : String, callback : ActorRef, sender : ActorRef) : Unit = {
+  def Use(target : PlanetSideGameObject, zone : String, callback : ActorRef) : Unit = {
     val hadNoUsers = term.NumberUsers == 0
     if(term.AddUser(target)) {
       log.info(s"ProximityTerminal.Use: unit ${term.Definition.Name}@${term.GUID.guid} will act on $target")
       //add callback
-      callbacks += ((sender, callback))
+      callbacks += callback
       //activation
       if(term.NumberUsers == 1 && hadNoUsers) {
         val medDef = term.Definition.asInstanceOf[MedicalTerminalDefinition]
@@ -120,17 +120,11 @@ class ProximityTerminalControl(term : Terminal with ProximityUnit) extends Actor
     if(whereTarget > -1 && term.RemoveUser(target)) {
       log.info(s"ProximityTerminal.Unuse: unit ${term.Definition.Name}@${term.GUID.guid} will cease operation on $target")
       //remove callback
-      val originalSender : ActorRef = {
-        val (to, _) = callbacks.remove(whereTarget)
-        to
-      }
+      callbacks.remove(whereTarget)
       //de-activation (global / local)
       if(term.NumberUsers == 0 && hadUsers) {
         terminalAction.cancel
         service ! Terminal.StopProximityEffect(term)
-      }
-      else if(originalSender ne ActorRef.noSender) {
-        originalSender ! ProximityUnit.CancelEffectUser(term.GUID)
       }
     }
     else {
@@ -173,6 +167,4 @@ object ProximityTerminalControl {
   }
 
   private case class TerminalAction()
-
-  private case class CancelTerminalAction()
 }

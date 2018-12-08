@@ -90,7 +90,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
   var spectator : Boolean = false
   var admin : Boolean = false
   var usingMedicalTerminal : Option[PlanetSideGUID] = None
-  var usingProximityTerminal : Set[PlanetSideGUID] = Set.empty
   var controlled : Option[Int] = None
   //keep track of avatar's ServerVehicleOverride state
   var traveler : Traveler = null
@@ -285,14 +284,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case ProximityUnit.Action(term, target) =>
       SelectProximityUnitBehavior(term, target)
 
-    case ProximityUnit.CancelEffectUser(object_guid) =>
-      log.debug(s"ProximityUnit.CancelEffectUser: ${player.Name} suspends use of proximity unit $object_guid")
-      continent.GUID(object_guid) match {
-        case Some(term : Terminal with ProximityUnit) =>
-          StopUsingProximityUnit(term)
-        case _ => ;
-      }
-
     case VehicleServiceResponse(toChannel, guid, reply) =>
       HandleVehicleServiceResponse(toChannel, guid, reply)
 
@@ -365,6 +356,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
         sendResponse(ObjectHeldMessage(player.GUID, Player.HandsDownSlot, true))
         avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectHeld(player.GUID, player.LastDrawnSlot))
       }
+        vehicle.Health = 1
+        sendResponse(PlanetsideAttributeMessage(vehicle_guid, 0, 1L))
       sendResponse(PlanetsideAttributeMessage(vehicle_guid, 22, 1L)) //mount points off
       sendResponse(PlanetsideAttributeMessage(vehicle_guid, 21, player.GUID.guid)) //ownership
 
@@ -1304,11 +1297,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
       case LocalResponse.ProximityTerminalEffect(object_guid, false) =>
         sendResponse(ProximityTerminalUseMessage(PlanetSideGUID(0), object_guid, false))
-        continent.GUID(object_guid) match {
-          case Some(term : Terminal with ProximityUnit) =>
-            StopUsingProximityUnit(term) //redundant, but precautious
-          case _ => ;
-        }
+        ForgetAllProximityTerminals(object_guid)
 
       case LocalResponse.RouterTelepadMessage(msg) =>
         sendResponse(ChatMsg(ChatMessageType.UNK_229, false, "", msg, None))
@@ -6224,12 +6213,15 @@ class WorldSessionActor extends Actor with MDCContextAware {
   def HandleProximityTerminalUse(terminal : Terminal with ProximityUnit) : Unit = {
     val term_guid = terminal.GUID
     val targets = FindProximityUnitTargetsInScope(terminal)
-    if(!usingProximityTerminal.contains(term_guid) && targets.nonEmpty) {
-      StartUsingProximityUnit(terminal, targets)
-    }
-    else if(targets.isEmpty) {
-      log.warn(s"HandleProximityTerminalUse: ${player.Name} could not find valid targets to give to proximity unit ${terminal.Definition.Name}@${term_guid.guid}")
-    }
+    val currentTargets = terminal.Targets
+    targets.foreach(target => {
+      if(!currentTargets.contains(target)) {
+        StartUsingProximityUnit(terminal, target)
+      }
+      else if(targets.isEmpty) {
+        log.warn(s"HandleProximityTerminalUse: ${player.Name} could not find valid targets to give to proximity unit ${terminal.Definition.Name}@${term_guid.guid}")
+      }
+    })
   }
 
   /**
@@ -6249,30 +6241,25 @@ class WorldSessionActor extends Actor with MDCContextAware {
   /**
     * Queue a proximity-base service.
     * @param terminal the proximity-based unit
+    * @param target the entity that is being considered for terminal operation
     */
-  def StartUsingProximityUnit(terminal : Terminal with ProximityUnit, targets : Seq[PlanetSideGameObject]) : Unit = {
+  def StartUsingProximityUnit(terminal : Terminal with ProximityUnit, target : PlanetSideGameObject) : Unit = {
     val term_guid = terminal.GUID
-    if(player.isAlive && !usingProximityTerminal.contains(term_guid) && targets.nonEmpty) {
-      log.info(s"StartUsingProximityUnit: ${player.Name} wants to use ${terminal.Definition.Name}@${term_guid.guid} on $targets")
-      targets.foreach(target =>
-        target match {
-          case _ : Player =>
-            terminal.Actor ! CommonMessages.Use(player, Some(target))
-          case _ : Vehicle =>
-            terminal.Actor ! CommonMessages.Use(player, Some((target, vehicleService)))
-          case _ =>
-            log.error(s"StartUsingProximityUnit: can not deal with target $target")
-        }
-      )
-      usingProximityTerminal += term_guid
+    if(player.isAlive) {
+      log.info(s"StartUsingProximityUnit: ${player.Name} wants to use ${terminal.Definition.Name}@${term_guid.guid} on $target")
+      target match {
+        case _ : Player =>
+          terminal.Actor ! CommonMessages.Use(player, Some(target))
+        case _ : Vehicle =>
+          terminal.Actor ! CommonMessages.Use(player, Some((target, vehicleService)))
+        case _ =>
+          log.error(s"StartUsingProximityUnit: can not deal with target $target")
+      }
       terminal.Definition match {
         case GlobalDefinitions.adv_med_terminal | GlobalDefinitions.medical_terminal =>
           usingMedicalTerminal = Some(term_guid)
         case _ => ;
       }
-    }
-    else if(targets.isEmpty) {
-      log.warn(s"StartUsingProximityUnit: ${player.Name} did not provide targets to proximity unit ${terminal.Definition.Name}@${term_guid.guid}")
     }
   }
 
@@ -6299,33 +6286,28 @@ class WorldSessionActor extends Actor with MDCContextAware {
     */
   def StopUsingProximityUnit(terminal : Terminal with ProximityUnit) : Unit = {
     val term_guid = terminal.GUID
-    if(usingProximityTerminal.contains(term_guid)) {
-      log.info(s"StopUsingProximityUnit: attempting to stop using proximity unit ${terminal.Definition.Name}@${term_guid.guid}")
-      val targets = FindProximityUnitTargetsInScope(terminal)
-      if(targets.nonEmpty) {
-        usingProximityTerminal -= term_guid
-        if(usingMedicalTerminal.contains(term_guid)) {
-          usingMedicalTerminal = None
-        }
-        targets.foreach(target =>
-          terminal.Actor ! CommonMessages.Unuse(player, Some(target))
-        )
+    log.info(s"StopUsingProximityUnit: attempting to stop using proximity unit ${terminal.Definition.Name}@${term_guid.guid}")
+    val targets = FindProximityUnitTargetsInScope(terminal)
+    if(targets.nonEmpty) {
+      if(usingMedicalTerminal.contains(term_guid)) {
+        usingMedicalTerminal = None
       }
-      else {
-        log.warn(s"StopUsingProximityUnit: ${player.Name} could not find valid targets for proximity unit ${terminal.Definition.Name}@${term_guid.guid}")
-      }
+      targets.foreach(target =>
+        terminal.Actor ! CommonMessages.Unuse(player, Some(target))
+      )
     }
-    else if (player.isAlive) {
-      log.warn(s"StopUsingProximityUnit: ${player.Name} was not aware of using proximity unit ${terminal.Definition.Name}@${term_guid.guid}")
+    else {
+      log.warn(s"StopUsingProximityUnit: ${player.Name} could not find valid targets for proximity unit ${terminal.Definition.Name}@${term_guid.guid}")
     }
   }
 
   /**
     *
     */
-  def ForgetAllProximityTerminals() : Unit = {
-    usingProximityTerminal = Set.empty
-    usingMedicalTerminal = None
+  def ForgetAllProximityTerminals(term_guid : PlanetSideGUID) : Unit = {
+    if(usingMedicalTerminal.contains(term_guid)) {
+      usingMedicalTerminal = None
+    }
   }
 
   /**
@@ -6335,16 +6317,14 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * @see `postStop`
     */
   def CancelAllProximityUnits() : Unit = {
-    usingProximityTerminal.foreach(term_guid => {
-      continent.GUID(term_guid) match {
-        case Some(terminal : Terminal with ProximityUnit) =>
-          FindProximityUnitTargetsInScope(terminal).foreach(target =>
-            terminal.Actor ! CommonMessages.Unuse(player, Some(target))
-          )
-        case _ => ;
-      }
-    })
-    ForgetAllProximityTerminals()
+    continent.GUID(usingMedicalTerminal) match {
+      case Some(terminal : Terminal with ProximityUnit) =>
+        FindProximityUnitTargetsInScope(terminal).foreach(target =>
+          terminal.Actor ! CommonMessages.Unuse(player, Some(target))
+        )
+        ForgetAllProximityTerminals(usingMedicalTerminal.get)
+      case _ => ;
+    }
   }
 
   /**
