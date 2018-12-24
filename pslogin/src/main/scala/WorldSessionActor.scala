@@ -356,8 +356,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
         sendResponse(ObjectHeldMessage(player.GUID, Player.HandsDownSlot, true))
         avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectHeld(player.GUID, player.LastDrawnSlot))
       }
-        vehicle.Health = 1
-        sendResponse(PlanetsideAttributeMessage(vehicle_guid, 0, 1L))
       sendResponse(PlanetsideAttributeMessage(vehicle_guid, 22, 1L)) //mount points off
       sendResponse(PlanetsideAttributeMessage(vehicle_guid, 21, player.GUID.guid)) //ownership
 
