@@ -4,12 +4,15 @@ package net.psforever.objects.serverobject
 import akka.actor.ActorRef
 import net.psforever.objects.PlanetSideGameObject
 import net.psforever.objects.serverobject.affinity.FactionAffinity
+import net.psforever.objects.zones.ZoneAware
 
 /**
   * An object layered on top of the standard game object class that maintains an internal `ActorRef`.
   * A measure of synchronization can be managed using this `Actor`.
   */
-abstract class PlanetSideServerObject extends PlanetSideGameObject  with FactionAffinity {
+abstract class PlanetSideServerObject extends PlanetSideGameObject
+  with FactionAffinity
+  with ZoneAware {
   private var actor = ActorRef.noSender
 
   /**
@@ -30,4 +33,8 @@ abstract class PlanetSideServerObject extends PlanetSideGameObject  with Faction
     }
     actor
   }
+
+  def Continent : String = "nowhere"
+
+  def Continent_=(zone : String) = Continent
 }

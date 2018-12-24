@@ -9,6 +9,7 @@ import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.objects.serverobject.terminals._
 import net.psforever.objects.serverobject.tube.{SpawnTube, SpawnTubeDefinition}
 import net.psforever.packet.game.{ItemTransactionMessage, PlanetSideGUID}
+import net.psforever.types.Vector3
 
 /**
   * An `Enumeration` of the available vehicular utilities.<br>
@@ -79,6 +80,28 @@ object Utility {
   type UtilLogic = (Amenity, ActorContext)=>Unit
 
   /**
+    * Embedded (owned) entities are known in relation to their parent entity.
+    * These overrides to the `Position` method and the `Orientation` method reflect this.
+    */
+  sealed trait UtilityWorldEntity {
+    this : Amenity =>
+
+    override def Position : Vector3 = {
+      val oPos = Owner.Position
+      (Owner, LocationOffset) match {
+        case (_, Vector3.Zero) =>
+          oPos
+        case (_ : Vehicle, v) =>
+          oPos + v.Rz(Orientation.z + 90)
+        case _ =>
+          oPos
+      }
+    }
+
+    override def Orientation : Vector3 = Owner.Orientation
+  }
+
+  /**
     * Overloaded constructor.
     * @param util the type of the `Amenity` object to be created
     * @param vehicle the owner of this object
@@ -99,7 +122,7 @@ object Utility {
     case UtilityType.bfr_rearm_terminal =>
       new TerminalUtility(GlobalDefinitions.bfr_rearm_terminal)
     case UtilityType.lodestar_repair_terminal =>
-      new TerminalUtility(GlobalDefinitions.lodestar_repair_terminal)
+      new ProximityTerminalUtility(GlobalDefinitions.lodestar_repair_terminal)
     case UtilityType.matrix_terminalc =>
       new TerminalUtility(GlobalDefinitions.matrix_terminalc)
     case UtilityType.multivehicle_rearm_terminal =>
@@ -118,22 +141,27 @@ object Utility {
     * Override for `SpawnTube` objects so that they inherit the spatial characteristics of their `Owner`.
     * @param tubeDef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
     */
-  class SpawnTubeUtility(tubeDef : SpawnTubeDefinition) extends SpawnTube(tubeDef) {
-    override def Position = Owner.Position
-    override def Orientation = Owner.Orientation
-  }
+  class SpawnTubeUtility(tubeDef : SpawnTubeDefinition) extends SpawnTube(tubeDef) with UtilityWorldEntity
 
   /**
-    * Override for `Terminal` objects so that they inherit the spatial characteristics of their `Owner`.
+    * Override for a `Terminal` object so that it inherits the spatial characteristics of its `Owner`.
     * @param tdef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
     */
-  class TerminalUtility(tdef : TerminalDefinition) extends Terminal(tdef) {
-    override def Position = Owner.Position
-    override def Orientation = Owner.Orientation
-  }
+  class TerminalUtility(tdef : TerminalDefinition) extends Terminal(tdef) with UtilityWorldEntity
 
   /**
-    * na
+    * Override for a `Terminal` object so that it inherits the spatial characteristics of its `Owner`.
+    * The `Terminal` `Utility` produced has proximity effects.
+    * @param tdef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
+    */
+  class ProximityTerminalUtility(tdef : TerminalDefinition) extends Terminal(tdef)
+    with UtilityWorldEntity
+    with ProximityUnit
+
+  /**
+    * Override for a `Terminal` object so that it inherits the spatial characteristics of its `Owner`.
+    * The `Terminal` `Utility` produced dispenses a specific item
+    * that retain knowledge of the `Owner` of the `Terminal` that dispensed it.
     * @param tdef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
     */
   class TeleportPadTerminalUtility(tdef : TerminalDefinition) extends TerminalUtility(tdef) {
@@ -192,7 +220,7 @@ object Utility {
     case UtilityType.bfr_rearm_terminal =>
       _OrderTerminalDefinition.Setup
     case UtilityType.lodestar_repair_terminal =>
-      OrderTerminalABDefinition.Setup //TODO wrong
+      ProximityTerminal.Setup
     case UtilityType.matrix_terminalc =>
       MatrixTerminalDefinition.Setup
     case UtilityType.multivehicle_rearm_terminal =>

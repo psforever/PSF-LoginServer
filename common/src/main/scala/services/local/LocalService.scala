@@ -5,7 +5,7 @@ import akka.actor.{Actor, ActorRef, Props}
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.objects.serverobject.structures.Building
-import net.psforever.objects.serverobject.terminals.CaptureTerminal
+import net.psforever.objects.serverobject.terminals.{CaptureTerminal, ProximityUnit, Terminal}
 import net.psforever.objects.zones.{InterstellarCluster, Zone}
 import net.psforever.objects._
 import net.psforever.packet.game.{PlanetSideGUID, TriggeredEffect, TriggeredEffectLocation}
@@ -111,10 +111,6 @@ class LocalService extends Actor {
           LocalEvents.publish(
             LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.HackCaptureTerminal(target.GUID, unk1, unk2, isResecured))
           )
-        case LocalAction.ProximityTerminalEffect(player_guid, object_guid, effectState) =>
-          LocalEvents.publish(
-            LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.ProximityTerminalEffect(object_guid, effectState))
-          )
         case LocalAction.RouterTelepadTransport(player_guid, passenger_guid, src_guid, dest_guid) =>
           LocalEvents.publish(
             LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.RouterTelepadTransport(passenger_guid, src_guid, dest_guid))
@@ -157,6 +153,16 @@ class LocalService extends Actor {
       log.warn(s"Clearing hack for $target_guid")
       LocalEvents.publish(
         LocalServiceResponse(s"/$zone_id/Local", Service.defaultPlayerGUID, LocalResponse.HackClear(target_guid, unk1, unk2))
+      )
+
+    //message from ProximityTerminalControl
+    case Terminal.StartProximityEffect(terminal) =>
+      LocalEvents.publish(
+        LocalServiceResponse(s"/${terminal.Owner.Continent}/Local", PlanetSideGUID(0), LocalResponse.ProximityTerminalEffect(terminal.GUID, true))
+      )
+    case Terminal.StopProximityEffect(terminal) =>
+      LocalEvents.publish(
+        LocalServiceResponse(s"/${terminal.Owner.Continent}/Local", PlanetSideGUID(0), LocalResponse.ProximityTerminalEffect(terminal.GUID, false))
       )
 
     case HackCaptureActor.HackTimeoutReached(capture_terminal_guid, zone_id, _, _, hackedByFaction) =>

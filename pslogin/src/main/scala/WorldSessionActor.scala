@@ -90,8 +90,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
   var spectator : Boolean = false
   var admin : Boolean = false
   var usingMedicalTerminal : Option[PlanetSideGUID] = None
-  var usingProximityTerminal : Set[PlanetSideGUID] = Set.empty
-  var delayedProximityTerminalResets : Map[PlanetSideGUID, Cancellable] = Map.empty
   var controlled : Option[Int] = None
   //keep track of avatar's ServerVehicleOverride state
   var traveler : Traveler = null
@@ -133,18 +131,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
     LivePlayerList.Remove(sessionId)
     if(player != null && player.HasGUID) {
       val player_guid = player.GUID
-      //proximity vehicle terminals must be considered too
-      delayedProximityTerminalResets.foreach({ case (_, task) => task.cancel })
-      usingProximityTerminal.foreach(term_guid => {
-        continent.GUID(term_guid) match {
-          case Some(obj : ProximityTerminal) =>
-            if(obj.NumberUsers > 0 && obj.RemoveUser(player_guid) == 0) {
-              //refer to ProximityTerminalControl when modernizng
-              localService ! LocalServiceMessage(continent.Id, LocalAction.ProximityTerminalEffect(player_guid, term_guid, false))
-            }
-          case _ => ;
-        }
-      })
       //handle orphaned deployables
       DisownDeployables()
       //clean up boomer triggers and telepads
@@ -294,6 +280,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case Terminal.TerminalMessage(tplayer, msg, order) =>
       HandleTerminalMessage(tplayer, msg, order)
+
+    case ProximityUnit.Action(term, target) =>
+      SelectProximityUnitBehavior(term, target)
 
     case VehicleServiceResponse(toChannel, guid, reply) =>
       HandleVehicleServiceResponse(toChannel, guid, reply)
@@ -835,9 +824,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case HackingProgress(progressType, tplayer, target, tool_guid, delta, completeAction, tickAction) =>
       HandleHackingProgress(progressType, tplayer, target, tool_guid, delta, completeAction, tickAction)
 
-    case DelayedProximityUnitStop(terminal) =>
-      StopUsingProximityUnit(terminal)
-
     case Vitality.DamageResolution(target : Vehicle) =>
       HandleVehicleDamageResolution(target)
 
@@ -1304,10 +1290,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
           sendResponse(ObjectDeleteMessage(object_guid, unk))
         }
 
-      case LocalResponse.ProximityTerminalEffect(object_guid, effectState) =>
-        if(tplayer_guid != guid) {
-          sendResponse(ProximityTerminalUseMessage(PlanetSideGUID(0), object_guid, effectState))
-        }
+      case LocalResponse.ProximityTerminalEffect(object_guid, true) =>
+        sendResponse(ProximityTerminalUseMessage(PlanetSideGUID(0), object_guid, true))
+
+      case LocalResponse.ProximityTerminalEffect(object_guid, false) =>
+        sendResponse(ProximityTerminalUseMessage(PlanetSideGUID(0), object_guid, false))
+        ForgetAllProximityTerminals(object_guid)
 
       case LocalResponse.RouterTelepadMessage(msg) =>
         sendResponse(ChatMsg(ChatMessageType.UNK_229, false, "", msg, None))
@@ -1569,6 +1557,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         else {
           sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, false))
         }
+        lastTerminalOrderFulfillment = true
 
       case Terminal.BuyEquipment(item) =>
         tplayer.Fit(item) match {
@@ -1578,6 +1567,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           case None =>
             sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, false))
         }
+        lastTerminalOrderFulfillment = true
 
       case Terminal.SellEquipment() =>
         tplayer.FreeHand.Equipment match {
@@ -1589,6 +1579,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           case None =>
             sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Sell, false))
         }
+        lastTerminalOrderFulfillment = true
 
       case Terminal.InfantryLoadout(exosuit, subtype, holsters, inventory) =>
         log.info(s"$tplayer wants to change equipment loadout to their option #${msg.unk1 + 1}")
@@ -1657,6 +1648,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         }) ++ dropHolsters ++ dropInventory).foreach(entry => {
           continent.Ground ! Zone.Ground.DropItem(entry.obj, pos, orient)
         })
+        lastTerminalOrderFulfillment = true
 
       case Terminal.VehicleLoadout(definition, weapons, inventory) =>
         log.info(s"$tplayer wants to change their vehicle equipment loadout to their option #${msg.unk1 + 1}")
@@ -1704,6 +1696,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             log.error(s"can not apply the loadout - can not find a vehicle")
             sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Loadout, false))
         }
+        lastTerminalOrderFulfillment = true
 
       case Terminal.LearnCertification(cert) =>
         val name = tplayer.Name
@@ -1726,6 +1719,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           log.warn(s"$name already knows the $cert certification, so he can't learn it")
           sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Learn, false))
         }
+        lastTerminalOrderFulfillment = true
 
       case Terminal.SellCertification(cert) =>
         val name = tplayer.Name
@@ -1749,6 +1743,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           log.warn(s"$name doesn't know what a $cert certification is, so he can't forget it")
           sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Learn, false))
         }
+        lastTerminalOrderFulfillment = true
 
       case Terminal.LearnImplant(implant) =>
         val terminal_guid = msg.terminal_guid
@@ -1790,6 +1785,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           }
           sendResponse(ItemTransactionResultMessage(terminal_guid, TransactionType.Learn, false))
         }
+        lastTerminalOrderFulfillment = true
 
       case Terminal.SellImplant(implant) =>
         val terminal_guid = msg.terminal_guid
@@ -1825,16 +1821,17 @@ class WorldSessionActor extends Actor with MDCContextAware {
           }
           sendResponse(ItemTransactionResultMessage(terminal_guid, TransactionType.Sell, false))
         }
+        lastTerminalOrderFulfillment = true
 
       case Terminal.BuyVehicle(vehicle, weapons, trunk) =>
         continent.Map.TerminalToSpawnPad.get(msg.terminal_guid.guid) match {
           case Some(pad_guid) =>
             val pad = continent.GUID(pad_guid).get.asInstanceOf[VehicleSpawnPad]
             vehicle.Faction = tplayer.Faction
+            vehicle.Continent = continent.Id
             vehicle.Position = pad.Position
             vehicle.Orientation = pad.Orientation
             //default loadout, weapons
-            log.info(s"default weapons: ${weapons.size}")
             val vWeapons = vehicle.Weapons
             weapons.foreach(entry => {
               val index = entry.start
@@ -1843,11 +1840,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
                   slot.Equipment = None
                   slot.Equipment = entry.obj
                 case None =>
-                  log.warn(s"applying default loadout to $vehicle, can not find a mounted weapon @ $index")
+                  log.warn(s"applying default loadout to $vehicle on spawn, but can not find a mounted weapon @ $index")
               }
             })
             //default loadout, trunk
-            log.info(s"default trunk: ${trunk.size}")
             val vTrunk = vehicle.Trunk
             vTrunk.Clear()
             trunk.foreach(entry => {
@@ -1859,22 +1855,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
           case None =>
             log.error(s"$tplayer wanted to spawn a vehicle, but there was no spawn pad associated with terminal ${msg.terminal_guid} to accept it")
         }
+        lastTerminalOrderFulfillment = true
 
-      case Terminal.StartProximityEffect(term) =>
-        val player_guid = player.GUID
-        val term_guid = term.GUID
-        StartUsingProximityUnit(term) //redundant but cautious
-        sendResponse(ProximityTerminalUseMessage(player_guid, term_guid, true))
-        localService ! LocalServiceMessage(continent.Id, LocalAction.ProximityTerminalEffect(player_guid, term_guid, true))
-
-      case Terminal.StopProximityEffect(term) =>
-        val player_guid = player.GUID
-        val term_guid = term.GUID
-        StopUsingProximityUnit(term) //redundant but cautious
-        sendResponse(ProximityTerminalUseMessage(player_guid, term_guid, false))
-        localService ! LocalServiceMessage(continent.Id, LocalAction.ProximityTerminalEffect(player_guid, term_guid, false))
-
-      case Terminal.NoDeal() =>
+      case _ =>
         val order : String = if(msg == null) {
           s"order $msg"
         }
@@ -1883,8 +1866,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
         }
         log.warn(s"${tplayer.Name} made a request but the terminal rejected the $order")
         sendResponse(ItemTransactionResultMessage(msg.terminal_guid, msg.transaction_type, false))
+        lastTerminalOrderFulfillment = true
     }
-    lastTerminalOrderFulfillment = true
   }
 
   /**
@@ -2866,7 +2849,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
         player.Jumping = is_jumping
 
         if(vel.isDefined && usingMedicalTerminal.isDefined) {
-          StopUsingProximityUnit(continent.GUID(usingMedicalTerminal.get).get.asInstanceOf[ProximityTerminal])
+          continent.GUID(usingMedicalTerminal) match {
+            case Some(term : Terminal with ProximityUnit) =>
+              StopUsingProximityUnit(term)
+            case _ => ;
+          }
         }
         accessedContainer match {
           case Some(veh : Vehicle) =>
@@ -3316,10 +3303,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
           // Stop using proximity terminals if player unholsters a weapon (which should re-trigger the proximity effect and re-holster the weapon)
           if(player.VisibleSlots.contains(held_holsters)) {
-            usingMedicalTerminal match {
-              case Some(term_guid) =>
-                StopUsingProximityUnit(continent.GUID(term_guid).get.asInstanceOf[ProximityTerminal])
-              case None => ;
+            continent.GUID(usingMedicalTerminal) match {
+              case Some(term : Terminal with ProximityUnit) =>
+                StopUsingProximityUnit(term)
+              case _ => ;
             }
           }
         }
@@ -3764,7 +3751,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
               //TODO matrix spawn point; for now, just blindly bind to show work (and hope nothing breaks)
               sendResponse(BindPlayerMessage(BindStatus.Bind, "", true, true, SpawnGroup.Sanctuary, 0, 0, terminal.Position))
             }
-            else if(tdef.isInstanceOf[RepairRearmSiloDefinition] || tdef == GlobalDefinitions.multivehicle_rearm_terminal) {
+            else if(tdef == GlobalDefinitions.multivehicle_rearm_terminal || tdef == GlobalDefinitions.bfr_rearm_terminal ||
+              tdef == GlobalDefinitions.air_rearm_terminal ||  tdef == GlobalDefinitions.ground_rearm_terminal) {
               FindLocalVehicle match {
                 case Some(vehicle) =>
                   sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
@@ -3847,12 +3835,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       log.info(s"ProximityTerminalUse: $msg")
       continent.GUID(object_guid) match {
         case Some(obj : Terminal with ProximityUnit) =>
-          if(usingProximityTerminal.contains(object_guid)) {
-            SelectProximityUnit(obj)
-          }
-          else {
-            StartUsingProximityUnit(obj)
-          }
+          HandleProximityTerminalUse(obj)
         case Some(obj) => ;
           log.warn(s"ProximityTerminalUse: object does not have proximity effects - $obj")
         case None =>
@@ -6011,7 +5994,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
       avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player_guid, 29, 1))
     }
     PlayerActionsToCancel()
-    CancelAllProximityUnits()
     //TODO other methods of death?
     val pentry = PlayerSource(tplayer)
     (tplayer.History.find({p => p.isInstanceOf[PlayerSuicide]}) match {
@@ -6222,21 +6204,73 @@ class WorldSessionActor extends Actor with MDCContextAware {
   }
 
   /**
-    * Start using a proximity-base service.
-    * Special note is warranted in the case of a medical terminal or an advanced medical terminal.
-    * @param terminal the proximity-based unit
+    * na
+    * @param terminal na
     */
-  def StartUsingProximityUnit(terminal : Terminal with ProximityUnit) : Unit = {
+  def HandleProximityTerminalUse(terminal : Terminal with ProximityUnit) : Unit = {
     val term_guid = terminal.GUID
-    if(!usingProximityTerminal.contains(term_guid)) {
-      usingProximityTerminal += term_guid
+    val targets = FindProximityUnitTargetsInScope(terminal)
+    val currentTargets = terminal.Targets
+    targets.foreach(target => {
+      if(!currentTargets.contains(target)) {
+        StartUsingProximityUnit(terminal, target)
+      }
+      else if(targets.isEmpty) {
+        log.warn(s"HandleProximityTerminalUse: ${player.Name} could not find valid targets to give to proximity unit ${terminal.Definition.Name}@${term_guid.guid}")
+      }
+    })
+  }
+
+  /**
+    * na
+    * @param terminal na
+    * @return na
+    */
+  def FindProximityUnitTargetsInScope(terminal : Terminal with ProximityUnit) : Seq[PlanetSideGameObject] = {
+    terminal.Definition.asInstanceOf[ProximityDefinition].TargetValidation.keySet collect {
+      case ProximityTarget.Player => Some(player)
+      case ProximityTarget.Vehicle | ProximityTarget.Aircraft => continent.GUID(player.VehicleSeated)
+    } collect {
+      case Some(a) => a
+    } toSeq
+  }
+
+  /**
+    * Queue a proximity-base service.
+    * @param terminal the proximity-based unit
+    * @param target the entity that is being considered for terminal operation
+    */
+  def StartUsingProximityUnit(terminal : Terminal with ProximityUnit, target : PlanetSideGameObject) : Unit = {
+    val term_guid = terminal.GUID
+    if(player.isAlive) {
+      log.info(s"StartUsingProximityUnit: ${player.Name} wants to use ${terminal.Definition.Name}@${term_guid.guid} on $target")
+      target match {
+        case _ : Player =>
+          terminal.Actor ! CommonMessages.Use(player, Some(target))
+        case _ : Vehicle =>
+          terminal.Actor ! CommonMessages.Use(player, Some((target, vehicleService)))
+        case _ =>
+          log.error(s"StartUsingProximityUnit: can not deal with target $target")
+      }
       terminal.Definition match {
         case GlobalDefinitions.adv_med_terminal | GlobalDefinitions.medical_terminal =>
           usingMedicalTerminal = Some(term_guid)
-        case _ =>
-          SetDelayedProximityUnitReset(terminal)
+        case _ => ;
       }
-      terminal.Actor ! CommonMessages.Use(player)
+    }
+  }
+
+  /**
+    * Determine which functionality to pursue by a generic proximity-functional unit given the target for its activity.
+    * @see `VehicleService:receive, ProximityUnit.Action`
+    * @param terminal the proximity-based unit
+    * @param target the object being affected by the unit
+    */
+  def SelectProximityUnitBehavior(terminal : Terminal with ProximityUnit, target : PlanetSideGameObject) : Unit = {
+    target match {
+      case o : Player =>
+        HealthAndArmorTerminal(terminal, o)
+      case _ => ;
     }
   }
 
@@ -6249,42 +6283,27 @@ class WorldSessionActor extends Actor with MDCContextAware {
     */
   def StopUsingProximityUnit(terminal : Terminal with ProximityUnit) : Unit = {
     val term_guid = terminal.GUID
-    if(usingProximityTerminal.contains(term_guid)) {
-      usingProximityTerminal -= term_guid
-      ClearDelayedProximityUnitReset(term_guid)
+    log.info(s"StopUsingProximityUnit: attempting to stop using proximity unit ${terminal.Definition.Name}@${term_guid.guid}")
+    val targets = FindProximityUnitTargetsInScope(terminal)
+    if(targets.nonEmpty) {
       if(usingMedicalTerminal.contains(term_guid)) {
         usingMedicalTerminal = None
       }
-      terminal.Actor ! CommonMessages.Unuse(player)
+      targets.foreach(target =>
+        terminal.Actor ! CommonMessages.Unuse(player, Some(target))
+      )
+    }
+    else {
+      log.warn(s"StopUsingProximityUnit: ${player.Name} could not find valid targets for proximity unit ${terminal.Definition.Name}@${term_guid.guid}")
     }
   }
 
   /**
-    * For pure proximity-based units and services, a manual attempt at cutting off the functionality.
-    * First, if an existing timer can be found, cancel it.
-    * Then, create a new timer.
-    * If this timer completes, a message will be sent that will attempt to disassociate from the target proximity unit.
-    * @param terminal the proximity-based unit
+    *
     */
-  def SetDelayedProximityUnitReset(terminal : Terminal with ProximityUnit) : Unit = {
-    val terminal_guid = terminal.GUID
-    ClearDelayedProximityUnitReset(terminal_guid)
-    import scala.concurrent.ExecutionContext.Implicits.global
-    delayedProximityTerminalResets += terminal_guid ->
-      context.system.scheduler.scheduleOnce(3000 milliseconds, self, DelayedProximityUnitStop(terminal))
-  }
-
-  /**
-    * For pure proximity-based units and services, disable any manual attempt at cutting off the functionality.
-    * If an existing timer can be found, cancel it.
-    * @param terminal_guid the proximity-based unit
-    */
-  def ClearDelayedProximityUnitReset(terminal_guid : PlanetSideGUID) : Unit = {
-    delayedProximityTerminalResets.get(terminal_guid) match {
-      case Some(task) =>
-        task.cancel
-        delayedProximityTerminalResets -= terminal_guid
-      case None => ;
+  def ForgetAllProximityTerminals(term_guid : PlanetSideGUID) : Unit = {
+    if(usingMedicalTerminal.contains(term_guid)) {
+      usingMedicalTerminal = None
     }
   }
 
@@ -6292,37 +6311,15 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * Cease all current interactions with proximity-based units.
     * Pair with `PlayerActionsToCancel`, except when logging out (stopping).
     * This operations may invoke callback messages.
-    * @see `postStop`<br>
-    *       `Terminal.StopProximityEffects`
+    * @see `postStop`
     */
   def CancelAllProximityUnits() : Unit = {
-    delayedProximityTerminalResets.foreach({case(term_guid, task) =>
-      task.cancel
-      delayedProximityTerminalResets -= term_guid
-    })
-    usingProximityTerminal.foreach(term_guid => {
-      StopUsingProximityUnit(continent.GUID(term_guid).get.asInstanceOf[ProximityTerminal])
-    })
-  }
-
-  /**
-    * Determine which functionality to pursue, by being given a generic proximity-functional unit
-    * and determinig which kind of unit is being utilized.
-    * @param terminal the proximity-based unit
-    */
-  def SelectProximityUnit(terminal : Terminal with ProximityUnit) : Unit = {
-    terminal.Definition match {
-      case GlobalDefinitions.adv_med_terminal | GlobalDefinitions.medical_terminal =>
-        ProximityMedicalTerminal(terminal)
-
-      case GlobalDefinitions.crystals_health_a | GlobalDefinitions.crystals_health_b =>
-        SetDelayedProximityUnitReset(terminal)
-        ProximityHealCrystal(terminal)
-
-      case GlobalDefinitions.repair_silo =>
-        SetDelayedProximityUnitReset(terminal)
-        //TODO insert vehicle repair here; see ProximityMedicalTerminal for example
-
+    continent.GUID(usingMedicalTerminal) match {
+      case Some(terminal : Terminal with ProximityUnit) =>
+        FindProximityUnitTargetsInScope(terminal).foreach(target =>
+          terminal.Actor ! CommonMessages.Unuse(player, Some(target))
+        )
+        ForgetAllProximityTerminals(usingMedicalTerminal.get)
       case _ => ;
     }
   }
@@ -6332,43 +6329,27 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * resotre the player's health and armor points (when they need their health and armor points restored).
     * If the player is both fully healed and fully repaired, stop using the terminal.
     * @param unit the medical terminal
+    * @param target the player being healed
     */
-  def ProximityMedicalTerminal(unit : Terminal with ProximityUnit) : Unit = {
-    val healthFull : Boolean = if(player.Health < player.MaxHealth) {
-      player.History(HealFromTerm(PlayerSource(player), 10, 0, unit.Definition))
-      HealAction(player)
+  def HealthAndArmorTerminal(unit : Terminal with ProximityUnit, target : Player) : Unit = {
+    val medDef = unit.Definition.asInstanceOf[MedicalTerminalDefinition]
+    val healAmount = medDef.HealAmount
+    val healthFull : Boolean = if(healAmount != 0 && target.Health < target.MaxHealth) {
+      target.History(HealFromTerm(PlayerSource(target), healAmount, 0, medDef))
+      HealAction(target, healAmount)
     }
     else {
       true
     }
-    val armorFull : Boolean = if(player.Armor < player.MaxArmor) {
-      player.History(HealFromTerm(PlayerSource(player), 0, 10, unit.Definition))
-      ArmorRepairAction(player)
+    val repairAmount = medDef.ArmorAmount
+    val armorFull : Boolean = if(repairAmount != 0 && target.Armor < target.MaxArmor) {
+      target.History(HealFromTerm(PlayerSource(target), 0, repairAmount, medDef))
+      ArmorRepairAction(target, repairAmount)
     }
     else {
       true
     }
     if(healthFull && armorFull) {
-      log.info(s"${player.Name} is all fixed up")
-      StopUsingProximityUnit(unit)
-    }
-  }
-
-  /**
-    * When near a red cavern crystal, resotre the player's health (when they need their health restored).
-    * If the player is fully healed, stop using the crystal.
-    * @param unit the healing crystal
-    */
-  def ProximityHealCrystal(unit : Terminal with ProximityUnit) : Unit = {
-    val healthFull : Boolean = if(player.Health < player.MaxHealth) {
-      player.History(HealFromTerm(PlayerSource(player), 10, 0, unit.Definition))
-      HealAction(player)
-    }
-    else {
-      true
-    }
-    if(healthFull) {
-      log.info(s"${player.Name} is all healed up")
       StopUsingProximityUnit(unit)
     }
   }
@@ -6382,7 +6363,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * @return whether the player can be repaired for any more health points
     */
   def HealAction(tplayer : Player, healValue : Int = 10) : Boolean = {
-    log.info(s"Dispensing health to ${tplayer.Name} - <3")
     val player_guid = tplayer.GUID
     tplayer.Health = tplayer.Health + healValue
     sendResponse(PlanetsideAttributeMessage(player_guid, 0, tplayer.Health))
@@ -6399,7 +6379,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * @return whether the player can be repaired for any more armor points
     */
   def ArmorRepairAction(tplayer : Player, repairValue : Int = 10) : Boolean = {
-    log.info(s"Dispensing armor to ${tplayer.Name} - c[=")
     val player_guid = tplayer.GUID
     tplayer.Armor = tplayer.Armor + repairValue
     sendResponse(PlanetsideAttributeMessage(player_guid, 4, tplayer.Armor))
@@ -7764,7 +7743,6 @@ object WorldSessionActor {
   private final case class ListAccountCharacters()
   private final case class SetCurrentAvatar(tplayer : Player)
   private final case class VehicleLoaded(vehicle : Vehicle)
-  private final case class DelayedProximityUnitStop(unit : Terminal with ProximityUnit)
   private final case class UnregisterCorpseOnVehicleDisembark(corpse : Player)
   private final case class CheckCargoMounting(vehicle_guid : PlanetSideGUID, cargo_vehicle_guid: PlanetSideGUID, cargo_mountpoint: Int, iteration: Int)
   private final case class CheckCargoDismount(vehicle_guid : PlanetSideGUID, cargo_vehicle_guid: PlanetSideGUID, cargo_mountpoint: Int, iteration: Int)

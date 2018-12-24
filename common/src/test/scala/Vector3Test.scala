@@ -201,5 +201,44 @@ class Vector3Test extends Specification {
       Vector3.VectorProjection(A, B) mustEqual Vector3(1.0384614f, 1.3846153f, 0.34615383f)
       Vector3.VectorProjection(B, A) mustEqual Vector3(2.9999998f, 1.4999999f, -1.4999999f)
     }
+
+    "rotate positive x-axis-vector 90-degrees around the z-axis" in {
+      val A : Vector3 = Vector3(1, 0, 0)
+      A.Rz(0) mustEqual A
+      A.Rz(90) mustEqual Vector3(0, 1, 0)
+      A.Rz(180) mustEqual Vector3(-1, 0, 0)
+      A.Rz(270) mustEqual Vector3(0, -1, 0)
+      A.Rz(360) mustEqual A
+    }
+
+    "rotate positive y-axis-vector 90-degrees around the x-axis" in {
+      val A : Vector3 = Vector3(0, 1, 0)
+      A.Rx(0) mustEqual A
+      A.Rx(90) mustEqual Vector3(0, 0, 1)
+      A.Rx(180) mustEqual Vector3(0, -1, 0)
+      A.Rx(270) mustEqual Vector3(0, 0, -1)
+      A.Rx(360) mustEqual A
+    }
+
+    "rotate positive x-axis-vector 90-degrees around the y-axis" in {
+      val A : Vector3 = Vector3(1, 0, 0)
+      A.Ry(0) mustEqual A
+      A.Ry(90) mustEqual Vector3(0, 0, -1)
+      A.Ry(180) mustEqual Vector3(-1, 0, 0)
+      A.Ry(270) mustEqual Vector3(0, 0, 1)
+      A.Ry(360) mustEqual A
+    }
+
+    "compound rotation" in {
+      val A : Vector3 = Vector3(1, 0, 0)
+      A.Rz(90)
+        .Rx(90)
+        .Ry(90) mustEqual A
+    }
+
+    "45-degree rotation" in {
+      val A : Vector3 = Vector3(1, 0, 0)
+      A.Rz(45) mustEqual Vector3(0.70710677f, 0.70710677f, 0)
+    }
   }
 }

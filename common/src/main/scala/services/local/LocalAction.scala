@@ -23,7 +23,6 @@ object LocalAction {
   final case class HackTemporarily(player_guid : PlanetSideGUID, continent : Zone, target : PlanetSideServerObject, unk1 : Long, duration: Int, unk2 : Long = 8L) extends Action
   final case class ClearTemporaryHack(player_guid: PlanetSideGUID, target: PlanetSideServerObject with Hackable) extends Action
   final case class HackCaptureTerminal(player_guid : PlanetSideGUID, continent : Zone, target : CaptureTerminal, unk1 : Long, unk2 : Long = 8L, isResecured : Boolean) extends Action
-  final case class ProximityTerminalEffect(player_guid : PlanetSideGUID, object_guid : PlanetSideGUID, effectState : Boolean) extends Action
   final case class RouterTelepadTransport(player_guid : PlanetSideGUID, passenger_guid : PlanetSideGUID, src_guid : PlanetSideGUID, dest_guid : PlanetSideGUID) extends Action
   final case class SetEmpire(object_guid: PlanetSideGUID, empire: PlanetSideEmpire.Value) extends Action
   final case class ToggleTeleportSystem(player_guid : PlanetSideGUID, router : Vehicle, systemPlan : Option[(Utility.InternalTelepad, TelepadDeployable)]) extends Action

@@ -6,6 +6,7 @@ import net.psforever.objects.inventory.InventoryTile
 import net.psforever.objects.vehicles.{DestroyedVehicle, UtilityType}
 import net.psforever.objects.vital._
 import net.psforever.objects.vital.resistance.ResistanceProfileMutators
+import net.psforever.types.Vector3
 
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -29,6 +30,7 @@ class VehicleDefinition(objectId : Int) extends ObjectDefinition(objectId)
   private val weapons : mutable.HashMap[Int, ToolDefinition] = mutable.HashMap[Int, ToolDefinition]()
   private var deployment : Boolean = false
   private val utilities : mutable.HashMap[Int, UtilityType.Value] = mutable.HashMap()
+  private val utilityOffsets : mutable.HashMap[Int, Vector3] = mutable.HashMap()
   private var deploymentTime_Deploy : Int = 0 //ms
   private var deploymentTime_Undeploy : Int = 0 //ms
   private var trunkSize : InventoryTile = InventoryTile.None
@@ -88,8 +90,9 @@ class VehicleDefinition(objectId : Int) extends ObjectDefinition(objectId)
     Deployment
   }
 
-
   def Utilities : mutable.HashMap[Int, UtilityType.Value] = utilities
+
+  def UtilityOffset : mutable.HashMap[Int, Vector3] = utilityOffsets
 
   def DeployTime : Int = deploymentTime_Deploy
 
