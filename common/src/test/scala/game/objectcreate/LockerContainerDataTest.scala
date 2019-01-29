@@ -68,11 +68,11 @@ class LockerContainerDataTest extends Specification {
             WeaponData(
               CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, None, PlanetSideGUID(0)),
               0,
-              List(InternalSlot(ObjectClass.armor_canister, PlanetSideGUID(3426), 0, CommonFieldData2()))
+              List(InternalSlot(ObjectClass.armor_canister, PlanetSideGUID(3426), 0, CommonFieldData()(false)))
             )
           ),
-          InventoryItemData(ObjectClass.armor_canister, PlanetSideGUID(4090), 45, CommonFieldData2()),
-          InventoryItemData(ObjectClass.armor_canister, PlanetSideGUID(3326), 78, CommonFieldData2())
+          InventoryItemData(ObjectClass.armor_canister, PlanetSideGUID(4090), 45, CommonFieldData()(false)),
+          InventoryItemData(ObjectClass.armor_canister, PlanetSideGUID(3326), 78, CommonFieldData()(false))
         ))
       )
       val msg = ObjectCreateMessage(ObjectClass.locker_container, PlanetSideGUID(3148), obj)

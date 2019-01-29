@@ -27,7 +27,7 @@ final case class LargeDeployableData(deploy : CommonFieldDataWithPlacement,
 
 object LargeDeployableData extends Marshallable[LargeDeployableData] {
   implicit val codec : Codec[LargeDeployableData] = (
-    ("deploy" | CommonFieldData2WithPlacement.codec) ::
+    ("deploy" | CommonFieldDataWithPlacement.codec2) ::
       ("health" | uint8L) ::
       uintL(7) ::
       uint4L ::

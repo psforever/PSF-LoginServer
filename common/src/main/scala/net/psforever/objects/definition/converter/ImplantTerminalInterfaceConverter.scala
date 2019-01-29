@@ -8,8 +8,8 @@ import scala.util.{Failure, Success, Try}
 
 class ImplantTerminalInterfaceConverter extends ObjectCreateConverter[Terminal]() {
   override def DetailedConstructorData(obj : Terminal) : Try[CommonFieldData] =
-    Failure(new Exception("ImplantTerminalInterfaceConverter should not be used to generate detailed CommonTerminalData"))
+    Failure(new Exception("ImplantTerminalInterfaceConverter should not be used to generate detailed TerminalData"))
 
   override def ConstructorData(obj : Terminal) : Try[CommonFieldData] =
-    Success(CommonFieldData2(obj.Faction))
+    Success(CommonFieldData(obj.Faction)(false))
 }

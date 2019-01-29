@@ -233,7 +233,7 @@ object VehicleData extends Marshallable[VehicleData] {
     import shapeless.::
     (
       ("pos" | PlacementData.codec) >>:~ { pos =>
-        ("data" | CommonFieldData2.codec(false)) ::
+        ("data" | CommonFieldData.codec2(false)) ::
           ("unk3" | bool) ::
           ("health" | uint8L) ::
           ("unk4" | bool) :: //usually 0

@@ -198,16 +198,16 @@ class MountedVehiclesTest extends Specification {
     val inv : InventoryData = InventoryData(
       List(
         InternalSlot(ObjectClass.medicalapplicator, PlanetSideGUID(4201), 0,
-          WeaponData(CommonFieldData(PlanetSideEmpire.TR), 0, List(InternalSlot(ObjectClass.health_canister, PlanetSideGUID(3472), 0, CommonFieldData2())))
+          WeaponData(CommonFieldData(PlanetSideEmpire.TR), 0, List(InternalSlot(ObjectClass.health_canister, PlanetSideGUID(3472), 0, CommonFieldData()(false))))
         ),
         InternalSlot(ObjectClass.bank, PlanetSideGUID(2952), 1,
-          WeaponData(CommonFieldData(PlanetSideEmpire.TR), 0, List(InternalSlot(ObjectClass.armor_canister, PlanetSideGUID(3758), 0, CommonFieldData2())))
+          WeaponData(CommonFieldData(PlanetSideEmpire.TR), 0, List(InternalSlot(ObjectClass.armor_canister, PlanetSideGUID(3758), 0, CommonFieldData()(false))))
         ),
         InternalSlot(ObjectClass.mini_chaingun, PlanetSideGUID(2929), 2,
-          WeaponData(CommonFieldData(PlanetSideEmpire.TR), 0, List(InternalSlot(ObjectClass.bullet_9mm, PlanetSideGUID(3292), 0, CommonFieldData2())))
+          WeaponData(CommonFieldData(PlanetSideEmpire.TR), 0, List(InternalSlot(ObjectClass.bullet_9mm, PlanetSideGUID(3292), 0, CommonFieldData()(false))))
         ),
         InternalSlot(ObjectClass.chainblade, PlanetSideGUID(3222), 4,
-          WeaponData(CommonFieldData(PlanetSideEmpire.TR), 0, List(InternalSlot(ObjectClass.melee_ammo, PlanetSideGUID(3100), 0, CommonFieldData2())))
+          WeaponData(CommonFieldData(PlanetSideEmpire.TR), 0, List(InternalSlot(ObjectClass.melee_ammo, PlanetSideGUID(3100), 0, CommonFieldData()(false))))
         )
       )
     )
@@ -230,7 +230,7 @@ class MountedVehiclesTest extends Specification {
           List(
             InternalSlot(ObjectClass.avatar, PlanetSideGUID(3776), 0, player),
             InternalSlot(ObjectClass.rotarychaingun_mosquito, PlanetSideGUID(3602), 1,
-              WeaponData(CommonFieldData(), 0, List(InternalSlot(ObjectClass.bullet_12mm, PlanetSideGUID(3538), 0, CommonFieldData2())))
+              WeaponData(CommonFieldData(), 0, List(InternalSlot(ObjectClass.bullet_12mm, PlanetSideGUID(3538), 0, CommonFieldData()(false))))
             )
           )
         )

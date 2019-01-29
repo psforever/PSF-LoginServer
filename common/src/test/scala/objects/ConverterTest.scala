@@ -124,8 +124,8 @@ class ConverterTest extends Specification {
             ),
             0,
             List(
-              InternalSlot(Ammo.bullet_9mm.id, PlanetSideGUID(90), 0, CommonFieldData2()),
-              InternalSlot(Ammo.rocket.id, PlanetSideGUID(91), 1, CommonFieldData2())
+              InternalSlot(Ammo.bullet_9mm.id, PlanetSideGUID(90), 0, CommonFieldData()(false)),
+              InternalSlot(Ammo.rocket.id, PlanetSideGUID(91), 1, CommonFieldData()(false))
             )
           )
         case _ =>
@@ -147,7 +147,7 @@ class ConverterTest extends Specification {
       }
       obj.Definition.Packet.ConstructorData(obj) match {
         case Success(pkt) =>
-          pkt mustEqual CommonFieldData2()
+          pkt mustEqual CommonFieldData()(false)
         case _ =>
           ko
       }
@@ -680,7 +680,7 @@ class ConverterTest extends Specification {
 
       obj.Definition.Packet.ConstructorData(obj) match {
         case Success(pkt) =>
-          pkt mustEqual CommonFieldData2(PlanetSideEmpire.NEUTRAL)
+          pkt mustEqual CommonFieldData(PlanetSideEmpire.NEUTRAL)(false)
         case _ =>
           ko
       }
@@ -700,7 +700,7 @@ class ConverterTest extends Specification {
 
       obj.Definition.Packet.ConstructorData(obj) match {
         case Success(pkt) =>
-          pkt mustEqual CommonFieldData2(PlanetSideEmpire.NEUTRAL)
+          pkt mustEqual CommonFieldData(PlanetSideEmpire.NEUTRAL)(false)
         case _ =>
           ko
       }

@@ -285,7 +285,8 @@ class NormalVehiclesTest extends Specification {
               0,
               List(
                 InternalSlot(ObjectClass.hellfire_ammo, PlanetSideGUID(432), 0,
-                  CommonFieldData2(PlanetSideEmpire.NEUTRAL, 2))
+                  CommonFieldData(PlanetSideEmpire.NEUTRAL, 2)(false)
+                )
               )
             )
           )
@@ -313,8 +314,8 @@ class NormalVehiclesTest extends Specification {
               CommonFieldData(PlanetSideEmpire.VS, 2),
               0,
               List(
-                InternalSlot(ObjectClass.bullet_75mm, PlanetSideGUID(92), 0, CommonFieldData2()),
-                InternalSlot(ObjectClass.bullet_25mm, PlanetSideGUID(93), 1, CommonFieldData2())
+                InternalSlot(ObjectClass.bullet_75mm, PlanetSideGUID(92), 0, CommonFieldData()(false)),
+                InternalSlot(ObjectClass.bullet_25mm, PlanetSideGUID(93), 1, CommonFieldData()(false))
               )
             )
           )
@@ -343,7 +344,8 @@ class NormalVehiclesTest extends Specification {
               0,
               List(
                 InternalSlot(ObjectClass.bullet_20mm, PlanetSideGUID(420), 0,
-                  CommonFieldData2(PlanetSideEmpire.NEUTRAL, 2))
+                  CommonFieldData(PlanetSideEmpire.NEUTRAL, 2)(false)
+                )
               )
             )
           ),
@@ -353,7 +355,8 @@ class NormalVehiclesTest extends Specification {
               0,
               List(
                 InternalSlot(ObjectClass.bullet_20mm, PlanetSideGUID(575), 0,
-                  CommonFieldData2(PlanetSideEmpire.NEUTRAL, 2))
+                  CommonFieldData(PlanetSideEmpire.NEUTRAL, 2)(false)
+                )
               )
             )
           )

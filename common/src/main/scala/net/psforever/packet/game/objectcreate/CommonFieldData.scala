@@ -63,6 +63,8 @@ final case class CommonFieldData(faction : PlanetSideEmpire.Value,
     }
     23L + extraSize + v4Size + v5Size
   }
+
+  def apply(flag : Boolean) : CommonFieldData = CommonFieldData(faction, bops, alternate, v1, v2, v3, Some(flag), v5, guid)
 }
 
 object CommonFieldData extends Marshallable[CommonFieldData] {
@@ -93,42 +95,6 @@ object CommonFieldData extends Marshallable[CommonFieldData] {
     CommonFieldData(faction, bops, destroyed, unk>1, None, unk%1==1, None, jammeredField, player_guid)
   }
 
-  final val internalWeapon_bitsize : Long = 10
-
-  /**
-    * `Codec` for transforming reliable `WeaponData` from the internal structure of the turret when it is defined.
-    * Works for both `SmallTurretData` and `OneMannedFieldTurretData`.
-    */
-  val internalWeaponCodec : Codec[InternalSlot] = (
-    uint8L :: //number of internal weapons (should be 1)?
-      uint2L ::
-      InternalSlot.codec
-    ).exmap[InternalSlot] (
-    {
-      case 1 :: 0 :: InternalSlot(a1, b1, c1, WeaponData(data, fmode, ammo)) :: HNil =>
-        Attempt.successful(InternalSlot(a1, b1, c1, WeaponData(data, fmode, ammo)))
-
-      case 1 :: 0 :: InternalSlot(_, _, _, _) :: HNil =>
-        Attempt.failure(Err(s"turret internals must contain weapon data"))
-
-      case n :: 0 :: _ :: HNil =>
-        Attempt.failure(Err(s"turret internals can not have $n weapons"))
-
-      case _ =>
-        Attempt.failure(Err("invalid turret internals data format"))
-    },
-    {
-      case InternalSlot(a1, b1, c1, WeaponData(data, fmode, ammo)) =>
-        Attempt.successful(1 :: 0 :: InternalSlot(a1, b1, c1, WeaponData(data, fmode, ammo)) :: HNil)
-
-      case InternalSlot(_, _, _, _) =>
-        Attempt.failure(Err(s"turret internals must contain weapon data"))
-
-      case _ =>
-        Attempt.failure(Err("invalid turret internals data format"))
-    }
-  )
-
   def codec(extra : Boolean) : Codec[CommonFieldData] = (
     ("faction" | PlanetSideEmpire.codec) ::
       ("bops" | bool) ::
@@ -150,6 +116,32 @@ object CommonFieldData extends Marshallable[CommonFieldData] {
   )
 
   implicit val codec : Codec[CommonFieldData] = codec(false)
+
+  def codec2(extra : Boolean) : Codec[CommonFieldData] = (
+    ("faction" | PlanetSideEmpire.codec) ::
+      ("bops" | bool) ::
+      ("alternate" | bool) ::
+      ("v1" | bool) :: //though the code path differs depending on the previous bit, this one gets read one way or another
+      conditional(extra, "v2" | CommonFieldDataExtra.codec) ::
+      ("v3" | bool) ::
+      optional(bool, "v5" | uint16L) ::
+      ("v4" | bool) ::
+      ("guid" | PlanetSideGUID.codec)
+    ).exmap[CommonFieldData] (
+    {
+      case faction :: bops :: alternate :: v1 :: v2 :: v3 :: v5 :: v4 :: guid :: HNil =>
+        Attempt.successful(CommonFieldData(faction, bops, alternate, v1, v2, v3, Some(v4), v5, guid))
+    },
+    {
+      case CommonFieldData(_, _, _, _, _, _, None, _, _) =>
+        Attempt.Failure(Err("invalid CommonFieldData - expected a field to be defined, but it was 'None'"))
+
+      case CommonFieldData(faction, bops, alternate, v1, v2, v3, Some(v4), v5, player_guid) =>
+        Attempt.successful(faction :: bops :: alternate :: v1 :: v2 :: v3 :: v5 :: v4 :: player_guid :: HNil)
+    }
+  )
+
+  val codec2 : Codec[CommonFieldData] = codec2(false)
 }
 
 object CommonFieldData2 extends Marshallable[CommonFieldData] {

@@ -49,7 +49,7 @@ object SmallTurretData extends Marshallable[SmallTurretData] {
     new SmallTurretData(deploy, health, Some(internals))
 
   implicit val codec : Codec[SmallTurretData] = (
-    ("deploy" | CommonFieldData2WithPlacement.codec) ::
+    ("deploy" | CommonFieldDataWithPlacement.codec2) ::
       ("health" | uint8L) ::
       uintL(7) ::
       uint4L ::

@@ -21,7 +21,7 @@ final case class REKData(data : CommonFieldData,
 
 object REKData extends Marshallable[REKData] {
   implicit val codec : Codec[REKData] = (
-    ("data" | CommonFieldData2.codec) ::
+    ("data" | CommonFieldData.codec2) ::
       uint8 ::
       ("unk" | uint8) ::
       uint(10)

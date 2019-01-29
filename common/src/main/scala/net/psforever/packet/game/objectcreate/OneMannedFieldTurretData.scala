@@ -64,7 +64,7 @@ object OneMannedFieldTurretData extends Marshallable[OneMannedFieldTurretData] {
 //  def generic(wep_guid : PlanetSideGUID, wep_unk1 : Int, wep_unk2 : Int, ammo_guid : PlanetSideGUID, ammo_unk : Int) : InternalSlot =
 //    InternalSlot(ObjectClass.energy_gun, wep_guid, 1,
 //      WeaponData(wep_unk1, wep_unk2, ObjectClass.energy_gun_ammo, ammo_guid, 0,
-//        CommonFieldData2(PlanetSideEmpire.NEUTRAL, ammo_unk)
+//        CommonFieldData(PlanetSideEmpire.NEUTRAL, ammo_unk(false)
 //      )
 //    )
 //
@@ -84,7 +84,7 @@ object OneMannedFieldTurretData extends Marshallable[OneMannedFieldTurretData] {
 //  def avenger(wep_guid : PlanetSideGUID, wep_unk1 : Int, wep_unk2 : Int, ammo_guid : PlanetSideGUID, ammo_unk : Int) : InternalSlot =
 //    InternalSlot(ObjectClass.energy_gun_tr, wep_guid, 1,
 //      WeaponData(wep_unk1, wep_unk2, ObjectClass.energy_gun_ammo, ammo_guid, 0,
-//        CommonFieldData2(PlanetSideEmpire.NEUTRAL, ammo_unk)
+//        CommonFieldData(PlanetSideEmpire.NEUTRAL, ammo_unk(false)
 //      )
 //  )
 //
@@ -103,7 +103,7 @@ object OneMannedFieldTurretData extends Marshallable[OneMannedFieldTurretData] {
 //  def osprey(wep_guid : PlanetSideGUID, wep_unk1 : Int, wep_unk2 : Int, ammo_guid : PlanetSideGUID, ammo_unk : Int) : InternalSlot =
 //    InternalSlot(ObjectClass.energy_gun_nc, wep_guid, 1,
 //      WeaponData(wep_unk1, wep_unk2, ObjectClass.energy_gun_ammo, ammo_guid, 0,
-//        CommonFieldData2(PlanetSideEmpire.NEUTRAL, ammo_unk)
+//        CommonFieldData(PlanetSideEmpire.NEUTRAL, ammo_unk(false)
 //      )
 //    )
 //
@@ -122,12 +122,12 @@ object OneMannedFieldTurretData extends Marshallable[OneMannedFieldTurretData] {
 //  def orion(wep_guid : PlanetSideGUID, wep_unk1 : Int, wep_unk2 : Int, ammo_guid : PlanetSideGUID, ammo_unk : Int) : InternalSlot =
 //    InternalSlot(ObjectClass.energy_gun_vs, wep_guid, 1,
 //      WeaponData(wep_unk1, wep_unk2, ObjectClass.energy_gun_ammo, ammo_guid, 0,
-//        CommonFieldData2(PlanetSideEmpire.NEUTRAL, ammo_unk)
+//        CommonFieldData(PlanetSideEmpire.NEUTRAL, ammo_unk(false)
 //      )
 //    )
 
   implicit val codec : Codec[OneMannedFieldTurretData] = (
-    ("deploy" | CommonFieldData2WithPlacement.codec) ::
+    ("deploy" | CommonFieldDataWithPlacement.codec2) ::
       PlanetSideGUID.codec :: //hoist/extract with the deploy.owner_guid in field above
       bool ::
       ("health" | uint8L) ::

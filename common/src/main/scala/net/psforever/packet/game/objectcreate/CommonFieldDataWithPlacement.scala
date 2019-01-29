@@ -8,7 +8,8 @@ import scodec.Codec
 import scodec.codecs._
 
 /**
-  * Data that is common to a number of game object serializations.
+  * Data that is common to a number of game object serializations, plus position information
+  * @see `DroppedItemData`
   * @param pos the location, orientation, and potential velocity of the object
   * @param data the common fields
   */
@@ -44,34 +45,11 @@ object CommonFieldDataWithPlacement extends Marshallable[CommonFieldDataWithPlac
     ).as[CommonFieldDataWithPlacement]
 
   implicit val codec : Codec[CommonFieldDataWithPlacement] = codec(false)
-}
 
-
-
-object CommonFieldData2WithPlacement extends Marshallable[CommonFieldDataWithPlacement] {
-  /**
-    * Overloaded constructors.
-    * @return a `CommonFieldDataWithPlacement` object
-    */
-  def apply(pos : PlacementData, faction : PlanetSideEmpire.Value) : CommonFieldDataWithPlacement =
-    CommonFieldDataWithPlacement(pos, CommonFieldData2(faction))
-
-  def apply(pos : PlacementData, faction : PlanetSideEmpire.Value, unk : Int) : CommonFieldDataWithPlacement =
-    CommonFieldDataWithPlacement(pos, CommonFieldData2(faction, unk))
-
-  def apply(pos : PlacementData, faction : PlanetSideEmpire.Value, unk : Int, player_guid : PlanetSideGUID) : CommonFieldDataWithPlacement =
-    CommonFieldDataWithPlacement(pos, CommonFieldData2(faction, unk, player_guid))
-
-  def apply(pos : PlacementData, faction : PlanetSideEmpire.Value, destroyed : Boolean, unk : Int) : CommonFieldDataWithPlacement =
-    CommonFieldDataWithPlacement(pos, CommonFieldData2(faction, destroyed, unk))
-
-  def apply(pos : PlacementData, faction : PlanetSideEmpire.Value, destroyed : Boolean, unk : Int, player_guid : PlanetSideGUID) : CommonFieldDataWithPlacement =
-    CommonFieldDataWithPlacement(pos, CommonFieldData2(faction, destroyed, unk, player_guid))
-
-  def codec(extra : Boolean) : Codec[CommonFieldDataWithPlacement] = (
+  def codec2(extra : Boolean) : Codec[CommonFieldDataWithPlacement] = (
     ("pos" | PlacementData.codec) ::
-      CommonFieldData2.codec(extra)
+      CommonFieldData.codec2(extra)
     ).as[CommonFieldDataWithPlacement]
 
-  implicit val codec : Codec[CommonFieldDataWithPlacement] = codec(false)
+  implicit val codec2 : Codec[CommonFieldDataWithPlacement] = codec2(false)
 }

@@ -51,7 +51,7 @@ object CommonFieldDataTest extends Specification {
     "encode (shotgun shells, dropped)" in {
       val obj = DroppedItemData(
         PlacementData(4684.7344f, 5547.4844f, 83.765625f, 0f, 0f, 199.6875f),
-        CommonFieldData2()
+        CommonFieldData()(false)
       )
       val msg = ObjectCreateMessage(ObjectClass.shotgun_shell, PlanetSideGUID(3453), obj)
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
@@ -60,7 +60,7 @@ object CommonFieldDataTest extends Specification {
   }
 
 
-  "CommonTerminalData" should {
+  "TerminalData" should {
     "decode (implant interface)" in {
       PacketCoding.DecodePacket(string_implant_interface).require match {
         case ObjectCreateMessage(len, cls, guid, parent, data) =>
@@ -99,7 +99,7 @@ object CommonFieldDataTest extends Specification {
     }
 
     "encode (implant interface)" in {
-      val obj = CommonFieldData2(PlanetSideEmpire.VS)
+      val obj = CommonFieldData(PlanetSideEmpire.VS)(false)
       val msg = ObjectCreateMessage(0x199, PlanetSideGUID(1075), ObjectCreateMessageParent(PlanetSideGUID(514), 1), obj)
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
       pkt mustEqual string_implant_interface
@@ -108,7 +108,7 @@ object CommonFieldDataTest extends Specification {
     "encode (order terminal a)" in {
       val obj = DroppedItemData(
         PlacementData(4579.3438f, 5615.0703f, 72.953125f, 0f, 0f, 98.4375f),
-        CommonFieldData2(PlanetSideEmpire.NC)
+        CommonFieldData(PlanetSideEmpire.NC)(false)
       )
       val msg = ObjectCreateMessage(ObjectClass.order_terminala, PlanetSideGUID(3827), obj)
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
@@ -116,8 +116,8 @@ object CommonFieldDataTest extends Specification {
     }
 
     "InternalSlot" in {
-      CommonTerminalData(ObjectClass.order_terminala, PlanetSideGUID(1), 1, CommonFieldData2(PlanetSideEmpire.NC)) mustEqual
-        InternalSlot(ObjectClass.order_terminala, PlanetSideGUID(1), 1, CommonFieldData2(PlanetSideEmpire.NC))
+      TerminalData(ObjectClass.order_terminala, PlanetSideGUID(1), 1, CommonFieldData(PlanetSideEmpire.NC)(false)) mustEqual
+        InternalSlot(ObjectClass.order_terminala, PlanetSideGUID(1), 1, CommonFieldData(PlanetSideEmpire.NC)(false))
     }
   }
 }

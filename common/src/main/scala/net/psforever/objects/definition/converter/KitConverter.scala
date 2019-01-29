@@ -8,7 +8,7 @@ import scala.util.{Success, Try}
 
 class KitConverter extends ObjectCreateConverter[Kit]() {
   override def ConstructorData(obj : Kit) : Try[CommonFieldData] = {
-    Success(CommonFieldData2())
+    Success(CommonFieldData()(false))
   }
 
   override def DetailedConstructorData(obj : Kit) : Try[DetailedAmmoBoxData] = {

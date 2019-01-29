@@ -112,8 +112,8 @@ class VariantVehiclesTest extends Specification {
               CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)),
               0,
               List(
-                InternalSlot(ObjectClass.ancient_ammo_vehicle, PlanetSideGUID(366), 0, CommonFieldData2(PlanetSideEmpire.NEUTRAL, 2)),
-                InternalSlot(ObjectClass.ancient_ammo_vehicle, PlanetSideGUID(385), 1, CommonFieldData2(PlanetSideEmpire.NEUTRAL, 2))
+                InternalSlot(ObjectClass.ancient_ammo_vehicle, PlanetSideGUID(366), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, 2)(false)),
+                InternalSlot(ObjectClass.ancient_ammo_vehicle, PlanetSideGUID(385), 1, CommonFieldData(PlanetSideEmpire.NEUTRAL, 2)(false))
               )
             )
           )

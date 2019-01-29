@@ -10,7 +10,7 @@ import scala.util.{Success, Try}
 
 class AmmoBoxConverter extends ObjectCreateConverter[AmmoBox] {
   override def ConstructorData(obj : AmmoBox) : Try[CommonFieldData] = {
-    Success(CommonFieldData2())
+    Success(CommonFieldData()(false))
   }
 
   override def DetailedConstructorData(obj : AmmoBox) : Try[DetailedAmmoBoxData] = {

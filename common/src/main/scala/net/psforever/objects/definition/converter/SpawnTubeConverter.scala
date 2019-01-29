@@ -7,5 +7,5 @@ import net.psforever.packet.game.objectcreate.{CommonFieldData, CommonFieldData2
 import scala.util.{Success, Try}
 
 class SpawnTubeConverter extends ObjectCreateConverter[SpawnTube]() {
-  override def ConstructorData(obj : SpawnTube) : Try[CommonFieldData] = { Success(CommonFieldData2(obj.Faction)) }
+  override def ConstructorData(obj : SpawnTube) : Try[CommonFieldData] = { Success(CommonFieldData(obj.Faction)(false)) }
 }

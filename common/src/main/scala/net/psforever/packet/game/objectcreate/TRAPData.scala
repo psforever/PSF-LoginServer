@@ -22,7 +22,7 @@ final case class TRAPData(deploy : CommonFieldDataWithPlacement,
 
 object TRAPData extends Marshallable[TRAPData] {
   implicit val codec : Codec[TRAPData] = (
-    ("deploy" | CommonFieldData2WithPlacement.codec) ::
+    ("deploy" | CommonFieldDataWithPlacement.codec2) ::
       ("health" | uint8L) ::
       uint(7) ::
       uint4L ::

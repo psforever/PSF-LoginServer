@@ -123,10 +123,10 @@ class UtilityVehiclesTest extends Specification {
         false, true, true,
         Some(UtilityVehicleData(60)), //what does this mean?
         Some(InventoryData(List(
-          InternalSlot(ObjectClass.matrix_terminalc, PlanetSideGUID(3663), 1, CommonFieldData2(PlanetSideEmpire.VS)),
-          InternalSlot(ObjectClass.ams_respawn_tube, PlanetSideGUID(3638), 2, CommonFieldData2(PlanetSideEmpire.VS)),
-          InternalSlot(ObjectClass.order_terminala, PlanetSideGUID(3827), 3, CommonFieldData2(PlanetSideEmpire.VS)),
-          InternalSlot(ObjectClass.order_terminalb, PlanetSideGUID(3556), 4, CommonFieldData2(PlanetSideEmpire.VS))
+          InternalSlot(ObjectClass.matrix_terminalc, PlanetSideGUID(3663), 1, CommonFieldData(PlanetSideEmpire.VS)(false)),
+          InternalSlot(ObjectClass.ams_respawn_tube, PlanetSideGUID(3638), 2, CommonFieldData(PlanetSideEmpire.VS)(false)),
+          InternalSlot(ObjectClass.order_terminala, PlanetSideGUID(3827), 3, CommonFieldData(PlanetSideEmpire.VS)(false)),
+          InternalSlot(ObjectClass.order_terminalb, PlanetSideGUID(3556), 4, CommonFieldData(PlanetSideEmpire.VS)(false))
         )))
       )(VehicleFormat.Utility)
       val msg = ObjectCreateMessage(ObjectClass.ams, PlanetSideGUID(4157), obj)
