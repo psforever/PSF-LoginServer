@@ -2,7 +2,7 @@
 package net.psforever.objects.definition.converter
 
 import net.psforever.objects.Kit
-import net.psforever.packet.game.objectcreate.{CommonFieldData, CommonFieldData2, DetailedAmmoBoxData}
+import net.psforever.packet.game.objectcreate.{CommonFieldData, DetailedAmmoBoxData}
 
 import scala.util.{Success, Try}
 

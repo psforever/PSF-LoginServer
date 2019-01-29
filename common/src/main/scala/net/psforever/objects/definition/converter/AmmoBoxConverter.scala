@@ -3,7 +3,7 @@ package net.psforever.objects.definition.converter
 
 import net.psforever.objects.AmmoBox
 import net.psforever.packet.game.PlanetSideGUID
-import net.psforever.packet.game.objectcreate.{CommonFieldData, CommonFieldData2, DetailedAmmoBoxData}
+import net.psforever.packet.game.objectcreate.{CommonFieldData, DetailedAmmoBoxData}
 import net.psforever.types.PlanetSideEmpire
 
 import scala.util.{Success, Try}
@@ -20,7 +20,7 @@ class AmmoBoxConverter extends ObjectCreateConverter[AmmoBox] {
           PlanetSideEmpire.NEUTRAL,
           bops = false,
           alternate = false,
-          true, //TODO may be false
+          true,
           None,
           false,
           None,

@@ -210,7 +210,7 @@ object Prefab {
             WeaponData(0x6, 0x8, 0, ObjectClass.bullet_35mm, ammo1_guid, 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, 2)(false))
           ) ::
             InventoryItemData(ObjectClass.liberator_bomb_bay, weapon2_guid, 4,
-              WeaponData(0x6, 0x8, 0, ObjectClass.liberator_bomb, ammo2_guid, 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, 2), ObjectClass.liberator_bomb, ammo3_guid, 1, CommonFieldData2(PlanetSideEmpire.NEUTRAL, 2)(false))
+              WeaponData(0x6, 0x8, 0, ObjectClass.liberator_bomb, ammo2_guid, 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, 2), ObjectClass.liberator_bomb, ammo3_guid, 1, CommonFieldData(PlanetSideEmpire.NEUTRAL, 2)(false))
             ) ::
             InventoryItemData(ObjectClass.liberator_25mm_cannon, weapon3_guid, 5,
               WeaponData(0x6, 0x8, 0, ObjectClass.bullet_25mm, ammo4_guid, 0 ,CommonFieldData(PlanetSideEmpire.NEUTRAL, 2)(false))
@@ -224,7 +224,7 @@ object Prefab {
       VehicleData(loc, CommonFieldData(faction, 2), health, DriveState.Mobile, false, VariantVehicleData(0),
         Some(InventoryData(
           InventoryItemData(ObjectClass.lightgunship_weapon_system, weapon_guid, 1,
-            WeaponData(0x6, 0x8, 0, ObjectClass.bullet_20mm, ammo1_guid, 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, 2), ObjectClass.reaver_rocket, ammo2_guid,1, CommonFieldData2(PlanetSideEmpire.NEUTRAL, 2)(false))
+            WeaponData(0x6, 0x8, 0, ObjectClass.bullet_20mm, ammo1_guid, 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, 2), ObjectClass.reaver_rocket, ammo2_guid,1, CommonFieldData(PlanetSideEmpire.NEUTRAL, 2)(false))
           ) :: Nil
         ))
       )
@@ -343,7 +343,7 @@ object Prefab {
       VehicleData(loc, CommonFieldData(faction, 2), health, DriveState.State7, false,
         Some(InventoryData(
           InventoryItemData(ObjectClass.skyguard_weapon_system, weapon_guid, 2,
-            WeaponData(0x6, 0x8, 0, ObjectClass.skyguard_flak_cannon_ammo, ammo1_guid, 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, 2), ObjectClass.bullet_12mm, ammo2_guid, 1, CommonFieldData2(PlanetSideEmpire.NEUTRAL, 2)(false))
+            WeaponData(0x6, 0x8, 0, ObjectClass.skyguard_flak_cannon_ammo, ammo1_guid, 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, 2), ObjectClass.bullet_12mm, ammo2_guid, 1, CommonFieldData(PlanetSideEmpire.NEUTRAL, 2)(false))
           ) :: Nil
         ))
       )
@@ -354,7 +354,7 @@ object Prefab {
       VehicleData(loc, CommonFieldData(faction, 0), health, DriveState.State7, false, VariantVehicleData(0),
         Some(InventoryData(
           InventoryItemData(ObjectClass.scythe, weapon_guid, 1,
-            WeaponData(0x6, 0x8, 0, ObjectClass.ancient_ammo_vehicle, ammo1_guid, 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, 2), ObjectClass.ancient_ammo_vehicle, ammo2_guid, 1, CommonFieldData2(PlanetSideEmpire.NEUTRAL, 2)(false))
+            WeaponData(0x6, 0x8, 0, ObjectClass.ancient_ammo_vehicle, ammo1_guid, 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, 2), ObjectClass.ancient_ammo_vehicle, ammo2_guid, 1, CommonFieldData(PlanetSideEmpire.NEUTRAL, 2)(false))
           ) :: Nil
         ))
       )
@@ -426,7 +426,7 @@ object Prefab {
       VehicleData(loc, CommonFieldData(faction, 2), health, DriveState.State7, false,
         Some(InventoryData(
           InventoryItemData(ObjectClass.vanguard_weapon_system, weapon_guid, 2,
-            WeaponData(0x6, 0x8, 0, ObjectClass.bullet_150mm, ammo1_guid, 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, 2), ObjectClass.bullet_20mm, ammo2_guid, 1, CommonFieldData2(PlanetSideEmpire.NEUTRAL, 2)(false))
+            WeaponData(0x6, 0x8, 0, ObjectClass.bullet_150mm, ammo1_guid, 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, 2), ObjectClass.bullet_20mm, ammo2_guid, 1, CommonFieldData(PlanetSideEmpire.NEUTRAL, 2)(false))
           ) :: Nil
         ))
       )
@@ -454,7 +454,7 @@ object Prefab {
       VehicleData(loc, CommonFieldData(faction, 0), health, DriveState.Mobile, false, VariantVehicleData(0),
         Some(InventoryData(
           InventoryItemData(ObjectClass.wasp_weapon_system, weapon_guid, 1,
-            WeaponData(0x6, 0x8, 0, ObjectClass.wasp_gun_ammo, ammo1_guid, 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, 2), ObjectClass.wasp_rocket_ammo, ammo2_guid, 0, CommonFieldData2(PlanetSideEmpire.NEUTRAL, 2)(false))
+            WeaponData(0x6, 0x8, 0, ObjectClass.wasp_gun_ammo, ammo1_guid, 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, 2), ObjectClass.wasp_rocket_ammo, ammo2_guid, 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, 2)(false))
           ) :: Nil
         ))
       )

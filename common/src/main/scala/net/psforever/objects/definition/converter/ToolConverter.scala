@@ -4,23 +4,19 @@ package net.psforever.objects.definition.converter
 import net.psforever.objects.Tool
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.packet.game.objectcreate.{CommonFieldData, DetailedWeaponData, InternalSlot, WeaponData}
-import net.psforever.types.PlanetSideEmpire
 
-import scala.collection.mutable.ListBuffer
 import scala.util.{Success, Try}
 
 class ToolConverter extends ObjectCreateConverter[Tool]() {
   override def ConstructorData(obj : Tool) : Try[WeaponData] = {
-    val maxSlot : Int = obj.MaxAmmoSlot
-    val slots : ListBuffer[InternalSlot] = ListBuffer[InternalSlot]()
-    (0 until maxSlot).foreach(index => {
+    val slots : List[InternalSlot] = (0 until obj.MaxAmmoSlot).map(index => {
       val box = obj.AmmoSlots(index).Box
-      slots += InternalSlot(box.Definition.ObjectId, box.GUID, index, box.Definition.Packet.ConstructorData(box).get)
-    })
+      InternalSlot(box.Definition.ObjectId, box.GUID, index, box.Definition.Packet.ConstructorData(box).get)
+    }).toList
     Success(
       WeaponData(
         CommonFieldData(
-          PlanetSideEmpire.NEUTRAL, //TODO need faction affinity
+          obj.Faction,
           bops = false,
           alternate = false,
           true,
@@ -31,22 +27,20 @@ class ToolConverter extends ObjectCreateConverter[Tool]() {
           PlanetSideGUID(0)
         ),
         obj.FireModeIndex,
-        slots.toList
+        slots
       )
     )
   }
 
   override def DetailedConstructorData(obj : Tool) : Try[DetailedWeaponData] = {
-    val maxSlot : Int = obj.MaxAmmoSlot
-    val slots : ListBuffer[InternalSlot] = ListBuffer[InternalSlot]()
-    (0 until maxSlot).foreach(index => {
+    val slots : List[InternalSlot] = (0 until obj.MaxAmmoSlot).map(index => {
       val box = obj.AmmoSlots(index).Box
-      slots += InternalSlot(box.Definition.ObjectId, box.GUID, index, box.Definition.Packet.DetailedConstructorData(box).get)
-    })
+      InternalSlot(box.Definition.ObjectId, box.GUID, index, box.Definition.Packet.DetailedConstructorData(box).get)
+    }).toList
     Success(
       DetailedWeaponData(
         CommonFieldData(
-          PlanetSideEmpire.NEUTRAL, //TODO need faction affinity
+          obj.Faction,
           bops = false,
           alternate = false,
           true,
@@ -57,7 +51,7 @@ class ToolConverter extends ObjectCreateConverter[Tool]() {
           PlanetSideGUID(0)
         ),
         obj.FireModeIndex,
-        slots.toList
+        slots
       )
     )
   }

@@ -2,7 +2,7 @@
 package net.psforever.objects.definition.converter
 
 import net.psforever.objects.serverobject.terminals.Terminal
-import net.psforever.packet.game.objectcreate.{CommonFieldData, CommonFieldData2}
+import net.psforever.packet.game.objectcreate.CommonFieldData
 
 import scala.util.{Failure, Success, Try}
 

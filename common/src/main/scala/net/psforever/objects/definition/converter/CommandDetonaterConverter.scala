@@ -13,7 +13,7 @@ class CommandDetonaterConverter extends ObjectCreateConverter[SimpleItem]() {
     Success(
       HandheldData(
         CommonFieldData(
-          PlanetSideEmpire.NEUTRAL, //TODO associate with a faction
+          obj.Faction,
           false,
           false,
           false,
@@ -28,6 +28,10 @@ class CommandDetonaterConverter extends ObjectCreateConverter[SimpleItem]() {
   }
 
   override def DetailedConstructorData(obj : SimpleItem) : Try[DetailedCommandDetonaterData] = {
-    Success(DetailedCommandDetonaterData())
+    Success(
+      DetailedCommandDetonaterData(
+
+      )
+    )
   }
 }

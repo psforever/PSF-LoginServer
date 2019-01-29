@@ -4,7 +4,6 @@ package net.psforever.objects.definition.converter
 import net.psforever.objects.Telepad
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.packet.game.objectcreate.{CommonFieldData, DetailedConstructionToolData, HandheldData}
-import net.psforever.types.PlanetSideEmpire
 
 import scala.util.{Failure, Success, Try}
 
@@ -15,7 +14,7 @@ class TelepadConverter extends ObjectCreateConverter[Telepad]() {
         Success(
           HandheldData(
             CommonFieldData(
-              PlanetSideEmpire.NEUTRAL, //TODO associate with a faction
+              obj.Faction,
               false,
               false,
               false,
@@ -37,7 +36,17 @@ class TelepadConverter extends ObjectCreateConverter[Telepad]() {
       case Some(router) =>
         Success(
           DetailedConstructionToolData(
-            CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, Some(router.guid), PlanetSideGUID(0))
+            CommonFieldData(
+              obj.Faction,
+              false,
+              false,
+              true,
+              None,
+              false,
+              None,
+              Some(router.guid),
+              PlanetSideGUID(0)
+            )
           )
         )
       case None =>
