@@ -73,7 +73,7 @@ class SmallTurretDataTest extends Specification {
               inv.head.parentSlot mustEqual 0
               inv.head.obj.isInstanceOf[WeaponData] mustEqual true
               inv.head.obj match {
-                case WeaponData(CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv4, wv5, wfguid), fmode, List(ammo)) =>
+                case WeaponData(CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv4, wv5, wfguid), fmode, List(ammo), _) =>
                   wfaction mustEqual PlanetSideEmpire.NEUTRAL
                   wbops mustEqual false
                   walternate mustEqual false

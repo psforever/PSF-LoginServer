@@ -29,7 +29,7 @@ class LockerContainerDataTest extends Specification {
               contents.head.guid mustEqual PlanetSideGUID(2935)
               contents.head.parentSlot mustEqual 0
               contents.head.obj match {
-                case WeaponData(CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid), _, _) =>
+                case WeaponData(CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid), _, _, _) =>
                   faction mustEqual PlanetSideEmpire.NEUTRAL
                   bops mustEqual false
                   alternate mustEqual false

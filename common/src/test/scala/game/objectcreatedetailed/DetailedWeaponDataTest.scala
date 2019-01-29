@@ -23,7 +23,7 @@ class DetailedWeaponDataTest extends Specification {
           parent.get.guid mustEqual PlanetSideGUID(75)
           parent.get.slot mustEqual 2
           data match {
-            case DetailedWeaponData(cdata, fmode, ammo) =>
+            case DetailedWeaponData(cdata, fmode, ammo, _) =>
               cdata match {
                 case CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid) =>
                   faction mustEqual PlanetSideEmpire.NC
@@ -64,7 +64,7 @@ class DetailedWeaponDataTest extends Specification {
           parent.get.guid mustEqual PlanetSideGUID(75)
           parent.get.slot mustEqual 2
           data match {
-            case DetailedWeaponData(cdata, fmode, ammo) =>
+            case DetailedWeaponData(cdata, fmode, ammo, _) =>
               cdata match {
                 case CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid) =>
                   faction mustEqual PlanetSideEmpire.TR

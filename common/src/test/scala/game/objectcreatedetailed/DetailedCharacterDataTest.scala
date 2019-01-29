@@ -602,7 +602,10 @@ class DetailedCharacterDataTest extends Specification {
                   )
                 )
               )
-              contents(2) mustEqual InternalSlot(456, PlanetSideGUID(8), 5, DetailedLockerContainerData(8, None))
+              contents(2) mustEqual InternalSlot(456, PlanetSideGUID(8), 5, DetailedLockerContainerData(
+                CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)),
+                None
+              ))
               contents(3) mustEqual InternalSlot(265, PlanetSideGUID(9), 6, DetailedAmmoBoxData(8, 36))
               contents(4) mustEqual InternalSlot(265, PlanetSideGUID(10), 10, DetailedAmmoBoxData(8, 100))
               contents(5) mustEqual InternalSlot(265, PlanetSideGUID(11), 14, DetailedAmmoBoxData(8, 100))
@@ -1063,7 +1066,7 @@ class DetailedCharacterDataTest extends Specification {
               inv.get.contents.head.guid mustEqual PlanetSideGUID(4202)
               inv.get.contents.head.parentSlot mustEqual 0
               inv.get.contents.head.obj match {
-                case DetailedWeaponData(CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid), fmode, ammo) =>
+                case DetailedWeaponData(CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid), fmode, ammo, _) =>
                   faction mustEqual PlanetSideEmpire.NC
                   bops mustEqual false
                   alternate mustEqual false
@@ -1112,7 +1115,7 @@ class DetailedCharacterDataTest extends Specification {
               inv.get.contents(11).guid mustEqual PlanetSideGUID(3661)
               inv.get.contents(11).parentSlot mustEqual 60
               inv.get.contents(11).obj match {
-                case DetailedWeaponData(CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid), fmode, ammo) =>
+                case DetailedWeaponData(CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid), fmode, ammo, _) =>
                   faction mustEqual PlanetSideEmpire.NC
                   bops mustEqual false
                   alternate mustEqual false
@@ -1148,7 +1151,7 @@ class DetailedCharacterDataTest extends Specification {
         case ObjectCreateDetailedMessage(len, _, _, None, data) =>
           len mustEqual 51018L
           data match {
-            case DetailedPlayerData(_, basic, char, _, _) =>
+            case DetailedPlayerData(_, basic, char, inv, _) =>
               basic match {
                 case CharacterAppearanceData(a, b, ribbons) =>
                   a.app mustEqual BasicCharacterData("CCRIDER", PlanetSideEmpire.NC, CharacterGender.Male, 20, CharacterVoice.Voice3)
@@ -1728,7 +1731,10 @@ class DetailedCharacterDataTest extends Specification {
               )
             )
           ),
-          InternalSlot(456, PlanetSideGUID(8), 5, DetailedLockerContainerData(8, None)),
+          InternalSlot(456, PlanetSideGUID(8), 5, DetailedLockerContainerData(
+            CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)),
+            None
+          )),
           InternalSlot(265, PlanetSideGUID(9), 6, DetailedAmmoBoxData(8, 36)),
           InternalSlot(265, PlanetSideGUID(10), 10, DetailedAmmoBoxData(8, 100)),
           InternalSlot(265, PlanetSideGUID(11), 14, DetailedAmmoBoxData(8, 100)),
@@ -2182,161 +2188,164 @@ class DetailedCharacterDataTest extends Specification {
             DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NC, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540, PlanetSideGUID(5009), 0, DetailedAmmoBoxData(8, 1))))
           ),
           InternalSlot(456, PlanetSideGUID(5374), 5,
-            DetailedLockerContainerData(8, Some(InventoryData(List(
-              InternalSlot(429, PlanetSideGUID(3021), 0,
-                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(272, PlanetSideGUID(8729), 0, DetailedAmmoBoxData(8, 0))))
-              ),
-              InternalSlot(838, PlanetSideGUID(8467), 9,
-                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(839, PlanetSideGUID(8603), 0, DetailedAmmoBoxData(8, 5))))
-              ),
-              InternalSlot(272, PlanetSideGUID(3266), 18, DetailedAmmoBoxData(8, 27)),
-              InternalSlot(577, PlanetSideGUID(2934), 22,
-                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(111, PlanetSideGUID(4682), 0, DetailedAmmoBoxData(8, 100))))
-              ),
-              InternalSlot(839, PlanetSideGUID(3271), 90, DetailedAmmoBoxData(8, 15)),
-              InternalSlot(839, PlanetSideGUID(7174), 94, DetailedAmmoBoxData(8, 6)),
-              InternalSlot(429, PlanetSideGUID(6084), 98,
-                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(272, PlanetSideGUID(5928), 0, DetailedAmmoBoxData(8, 35))))
-              ),
-              InternalSlot(462, PlanetSideGUID(5000), 108,
-                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(463, PlanetSideGUID(6277), 0, DetailedAmmoBoxData(8, 150))))
-              ),
-              InternalSlot(429, PlanetSideGUID(4341), 189,
-                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(272, PlanetSideGUID(7043), 0, DetailedAmmoBoxData(8, 35))))
-              ),
-              InternalSlot(556, PlanetSideGUID(4168), 198,
-                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(28, PlanetSideGUID(8937), 0, DetailedAmmoBoxData(8, 100))))
-              ),
-              InternalSlot(272, PlanetSideGUID(3173), 207, DetailedAmmoBoxData(8, 50)),
-              InternalSlot(462, PlanetSideGUID(3221), 210,
-                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(463, PlanetSideGUID(4031), 0, DetailedAmmoBoxData(8, 150))))
-              ),
-              InternalSlot(556, PlanetSideGUID(6853), 280,
-                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(29, PlanetSideGUID(8524), 0, DetailedAmmoBoxData(8, 67))))
-              ),
-              InternalSlot(556, PlanetSideGUID(4569), 290,
-                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(28, PlanetSideGUID(5584), 0, DetailedAmmoBoxData(8, 100))))
-              ),
-              InternalSlot(462, PlanetSideGUID(9294), 300,
-                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(463, PlanetSideGUID(3118), 0, DetailedAmmoBoxData(8, 150))))
-              ),
-              InternalSlot(272, PlanetSideGUID(4759), 387, DetailedAmmoBoxData(8, 50)),
-              InternalSlot(462, PlanetSideGUID(7377), 390,
-                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(463, PlanetSideGUID(8155), 0, DetailedAmmoBoxData(8, 150))))
-              ),
-              InternalSlot(843, PlanetSideGUID(6709), 480, DetailedAmmoBoxData(8, 1)),
-              InternalSlot(843, PlanetSideGUID(5276), 484, DetailedAmmoBoxData(8, 1)),
-              InternalSlot(843, PlanetSideGUID(7769), 488, DetailedAmmoBoxData(8, 1)),
-              InternalSlot(844, PlanetSideGUID(5334), 492, DetailedAmmoBoxData(8, 1)),
-              InternalSlot(844, PlanetSideGUID(6219), 496, DetailedAmmoBoxData(8, 1)),
-              InternalSlot(842, PlanetSideGUID(7279), 500, DetailedAmmoBoxData(8, 1)),
-              InternalSlot(842, PlanetSideGUID(5415), 504, DetailedAmmoBoxData(8, 1)),
-              InternalSlot(175, PlanetSideGUID(5741), 540,
-                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540, PlanetSideGUID(5183), 0, DetailedAmmoBoxData(8, 1))))
-              ),
-              InternalSlot(324, PlanetSideGUID(6208), 541,
-                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540, PlanetSideGUID(5029), 0, DetailedAmmoBoxData(8, 1))))
-              ),
-              InternalSlot(324, PlanetSideGUID(8589), 542,
-                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540, PlanetSideGUID(9217), 0, DetailedAmmoBoxData(8, 1))))
-              ),
-              InternalSlot(175, PlanetSideGUID(8901), 543,
-                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540, PlanetSideGUID(7633), 0, DetailedAmmoBoxData(8, 1))))
-              ),
-              InternalSlot(175, PlanetSideGUID(8419), 544,
-                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540, PlanetSideGUID(6546), 0, DetailedAmmoBoxData(8, 1))))
-              ),
-              InternalSlot(175, PlanetSideGUID(4715), 545,
-                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540, PlanetSideGUID(8453), 0, DetailedAmmoBoxData(8, 1))))
-              ),
-              InternalSlot(324, PlanetSideGUID(3577), 546,
-                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540, PlanetSideGUID(9202), 0, DetailedAmmoBoxData(8, 1))))
-              ),
-              InternalSlot(324, PlanetSideGUID(6003), 547,
-                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540, PlanetSideGUID(3260), 0, DetailedAmmoBoxData(8, 1))))
-              ),
-              InternalSlot(324, PlanetSideGUID(9140), 548,
-                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540,PlanetSideGUID(3815),0,DetailedAmmoBoxData(8, 1))))
-              ),
-              InternalSlot(324, PlanetSideGUID(4913), 549,
-                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540,PlanetSideGUID(7222),0,DetailedAmmoBoxData(8, 1))))
-              ),
-              InternalSlot(324, PlanetSideGUID(6954), 550,
-                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540,PlanetSideGUID(2953),0,DetailedAmmoBoxData(8, 1))))
-              ),
-              InternalSlot(324, PlanetSideGUID(6405), 551,
-                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540,PlanetSideGUID(4676),0,DetailedAmmoBoxData(8, 1))))
-              ),
-              InternalSlot(324, PlanetSideGUID(8915), 552,
-                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540,PlanetSideGUID(4018),0,DetailedAmmoBoxData(8, 1))))
-              ),
-              InternalSlot(324, PlanetSideGUID(4993), 553,
-                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540,PlanetSideGUID(6775),0,DetailedAmmoBoxData(8, 1))))
-              ),
-              InternalSlot(175, PlanetSideGUID(5053), 554,
-                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540,PlanetSideGUID(6418),0,DetailedAmmoBoxData(8, 1))))
-              ),
-              InternalSlot(324, PlanetSideGUID(9244), 555,
-                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540,PlanetSideGUID(3327),0,DetailedAmmoBoxData(8, 1))))
-              ),
-              InternalSlot(468, PlanetSideGUID(6292), 556,
-                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540,PlanetSideGUID(6918),0,DetailedAmmoBoxData(8, 1))))
-              ),
-              InternalSlot(842, PlanetSideGUID(5357), 558, DetailedAmmoBoxData(8, 1)),
-              InternalSlot(844, PlanetSideGUID(4435), 562, DetailedAmmoBoxData(8, 1)),
-              InternalSlot(843, PlanetSideGUID(7242), 566, DetailedAmmoBoxData(8, 1)),
-              InternalSlot(175, PlanetSideGUID(7330), 570,
-                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540, PlanetSideGUID(4786), 0, DetailedAmmoBoxData(8, 1))))
-              ),
-              InternalSlot(468, PlanetSideGUID(7415), 571,
-                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540, PlanetSideGUID(6536), 0, DetailedAmmoBoxData(8, 1))))
-              ),
-              InternalSlot(175, PlanetSideGUID(3949), 572,
-                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540, PlanetSideGUID(7526), 0, DetailedAmmoBoxData(8, 1))))
-              ),
-              InternalSlot(175, PlanetSideGUID(3805), 573,
-                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540, PlanetSideGUID(7358), 0, DetailedAmmoBoxData(8, 1))))
-              ),
-              InternalSlot(324, PlanetSideGUID(4493), 574,
-                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540, PlanetSideGUID(6852), 0, DetailedAmmoBoxData(8, 1))))
-              ),
-              InternalSlot(324, PlanetSideGUID(5762), 575,
-                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540, PlanetSideGUID(3463), 0, DetailedAmmoBoxData(8, 1))))
-              ),
-              InternalSlot(175, PlanetSideGUID(3315), 576,
-                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540, PlanetSideGUID(7619), 0, DetailedAmmoBoxData(8, 1))))
-              ),
-              InternalSlot(324, PlanetSideGUID(6263), 577,
-                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540, PlanetSideGUID(5912), 0, DetailedAmmoBoxData(8, 1))))
-              ),
-              InternalSlot(468, PlanetSideGUID(4028), 578,
-                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540, PlanetSideGUID(8021), 0, DetailedAmmoBoxData(8, 1))))
-              ),
-              InternalSlot(175, PlanetSideGUID(2843), 579,
-                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540, PlanetSideGUID(7250), 0, DetailedAmmoBoxData(8, 1))))
-              ),
-              InternalSlot(175, PlanetSideGUID(9143), 580,
-                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540, PlanetSideGUID(5195), 0, DetailedAmmoBoxData(8, 1))))
-              ),
-              InternalSlot(468, PlanetSideGUID(5024), 581,
-                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540, PlanetSideGUID(4287), 0, DetailedAmmoBoxData(8, 1))))
-              ),
-              InternalSlot(468, PlanetSideGUID(6582), 582,
-                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540, PlanetSideGUID(4915), 0, DetailedAmmoBoxData(8, 1))))
-              ),
-              InternalSlot(468, PlanetSideGUID(6425), 583,
-                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540, PlanetSideGUID(8872), 0, DetailedAmmoBoxData(8, 1))))
-              ),
-              InternalSlot(468, PlanetSideGUID(4431), 584,
-                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540, PlanetSideGUID(4191), 0, DetailedAmmoBoxData(8, 1))))
-              ),
-              InternalSlot(175, PlanetSideGUID(8339), 585,
-                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540, PlanetSideGUID(7317), 0, DetailedAmmoBoxData(8, 1))))
-              ),
-              InternalSlot(175, PlanetSideGUID(3277), 586,
-                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540, PlanetSideGUID(6469), 0, DetailedAmmoBoxData(8, 1))))
+            DetailedLockerContainerData(
+              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)),
+              Some(InventoryData(List(
+                InternalSlot(429, PlanetSideGUID(3021), 0,
+                  DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(272, PlanetSideGUID(8729), 0, DetailedAmmoBoxData(8, 0))))
+                ),
+                InternalSlot(838, PlanetSideGUID(8467), 9,
+                  DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(839, PlanetSideGUID(8603), 0, DetailedAmmoBoxData(8, 5))))
+                ),
+                InternalSlot(272, PlanetSideGUID(3266), 18, DetailedAmmoBoxData(8, 27)),
+                InternalSlot(577, PlanetSideGUID(2934), 22,
+                  DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(111, PlanetSideGUID(4682), 0, DetailedAmmoBoxData(8, 100))))
+                ),
+                InternalSlot(839, PlanetSideGUID(3271), 90, DetailedAmmoBoxData(8, 15)),
+                InternalSlot(839, PlanetSideGUID(7174), 94, DetailedAmmoBoxData(8, 6)),
+                InternalSlot(429, PlanetSideGUID(6084), 98,
+                  DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(272, PlanetSideGUID(5928), 0, DetailedAmmoBoxData(8, 35))))
+                ),
+                InternalSlot(462, PlanetSideGUID(5000), 108,
+                  DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(463, PlanetSideGUID(6277), 0, DetailedAmmoBoxData(8, 150))))
+                ),
+                InternalSlot(429, PlanetSideGUID(4341), 189,
+                  DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(272, PlanetSideGUID(7043), 0, DetailedAmmoBoxData(8, 35))))
+                ),
+                InternalSlot(556, PlanetSideGUID(4168), 198,
+                  DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(28, PlanetSideGUID(8937), 0, DetailedAmmoBoxData(8, 100))))
+                ),
+                InternalSlot(272, PlanetSideGUID(3173), 207, DetailedAmmoBoxData(8, 50)),
+                InternalSlot(462, PlanetSideGUID(3221), 210,
+                  DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(463, PlanetSideGUID(4031), 0, DetailedAmmoBoxData(8, 150))))
+                ),
+                InternalSlot(556, PlanetSideGUID(6853), 280,
+                  DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(29, PlanetSideGUID(8524), 0, DetailedAmmoBoxData(8, 67))))
+                ),
+                InternalSlot(556, PlanetSideGUID(4569), 290,
+                  DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(28, PlanetSideGUID(5584), 0, DetailedAmmoBoxData(8, 100))))
+                ),
+                InternalSlot(462, PlanetSideGUID(9294), 300,
+                  DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(463, PlanetSideGUID(3118), 0, DetailedAmmoBoxData(8, 150))))
+                ),
+                InternalSlot(272, PlanetSideGUID(4759), 387, DetailedAmmoBoxData(8, 50)),
+                InternalSlot(462, PlanetSideGUID(7377), 390,
+                  DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(463, PlanetSideGUID(8155), 0, DetailedAmmoBoxData(8, 150))))
+                ),
+                InternalSlot(843, PlanetSideGUID(6709), 480, DetailedAmmoBoxData(8, 1)),
+                InternalSlot(843, PlanetSideGUID(5276), 484, DetailedAmmoBoxData(8, 1)),
+                InternalSlot(843, PlanetSideGUID(7769), 488, DetailedAmmoBoxData(8, 1)),
+                InternalSlot(844, PlanetSideGUID(5334), 492, DetailedAmmoBoxData(8, 1)),
+                InternalSlot(844, PlanetSideGUID(6219), 496, DetailedAmmoBoxData(8, 1)),
+                InternalSlot(842, PlanetSideGUID(7279), 500, DetailedAmmoBoxData(8, 1)),
+                InternalSlot(842, PlanetSideGUID(5415), 504, DetailedAmmoBoxData(8, 1)),
+                InternalSlot(175, PlanetSideGUID(5741), 540,
+                  DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540, PlanetSideGUID(5183), 0, DetailedAmmoBoxData(8, 1))))
+                ),
+                InternalSlot(324, PlanetSideGUID(6208), 541,
+                  DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540, PlanetSideGUID(5029), 0, DetailedAmmoBoxData(8, 1))))
+                ),
+                InternalSlot(324, PlanetSideGUID(8589), 542,
+                  DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540, PlanetSideGUID(9217), 0, DetailedAmmoBoxData(8, 1))))
+                ),
+                InternalSlot(175, PlanetSideGUID(8901), 543,
+                  DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540, PlanetSideGUID(7633), 0, DetailedAmmoBoxData(8, 1))))
+                ),
+                InternalSlot(175, PlanetSideGUID(8419), 544,
+                  DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540, PlanetSideGUID(6546), 0, DetailedAmmoBoxData(8, 1))))
+                ),
+                InternalSlot(175, PlanetSideGUID(4715), 545,
+                  DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540, PlanetSideGUID(8453), 0, DetailedAmmoBoxData(8, 1))))
+                ),
+                InternalSlot(324, PlanetSideGUID(3577), 546,
+                  DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540, PlanetSideGUID(9202), 0, DetailedAmmoBoxData(8, 1))))
+                ),
+                InternalSlot(324, PlanetSideGUID(6003), 547,
+                  DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540, PlanetSideGUID(3260), 0, DetailedAmmoBoxData(8, 1))))
+                ),
+                InternalSlot(324, PlanetSideGUID(9140), 548,
+                  DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540,PlanetSideGUID(3815),0,DetailedAmmoBoxData(8, 1))))
+                ),
+                InternalSlot(324, PlanetSideGUID(4913), 549,
+                  DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540,PlanetSideGUID(7222),0,DetailedAmmoBoxData(8, 1))))
+                ),
+                InternalSlot(324, PlanetSideGUID(6954), 550,
+                  DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540,PlanetSideGUID(2953),0,DetailedAmmoBoxData(8, 1))))
+                ),
+                InternalSlot(324, PlanetSideGUID(6405), 551,
+                  DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540,PlanetSideGUID(4676),0,DetailedAmmoBoxData(8, 1))))
+                ),
+                InternalSlot(324, PlanetSideGUID(8915), 552,
+                  DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540,PlanetSideGUID(4018),0,DetailedAmmoBoxData(8, 1))))
+                ),
+                InternalSlot(324, PlanetSideGUID(4993), 553,
+                  DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540,PlanetSideGUID(6775),0,DetailedAmmoBoxData(8, 1))))
+                ),
+                InternalSlot(175, PlanetSideGUID(5053), 554,
+                  DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540,PlanetSideGUID(6418),0,DetailedAmmoBoxData(8, 1))))
+                ),
+                InternalSlot(324, PlanetSideGUID(9244), 555,
+                  DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540,PlanetSideGUID(3327),0,DetailedAmmoBoxData(8, 1))))
+                ),
+                InternalSlot(468, PlanetSideGUID(6292), 556,
+                  DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540,PlanetSideGUID(6918),0,DetailedAmmoBoxData(8, 1))))
+                ),
+                InternalSlot(842, PlanetSideGUID(5357), 558, DetailedAmmoBoxData(8, 1)),
+                InternalSlot(844, PlanetSideGUID(4435), 562, DetailedAmmoBoxData(8, 1)),
+                InternalSlot(843, PlanetSideGUID(7242), 566, DetailedAmmoBoxData(8, 1)),
+                InternalSlot(175, PlanetSideGUID(7330), 570,
+                  DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540, PlanetSideGUID(4786), 0, DetailedAmmoBoxData(8, 1))))
+                ),
+                InternalSlot(468, PlanetSideGUID(7415), 571,
+                  DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540, PlanetSideGUID(6536), 0, DetailedAmmoBoxData(8, 1))))
+                ),
+                InternalSlot(175, PlanetSideGUID(3949), 572,
+                  DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540, PlanetSideGUID(7526), 0, DetailedAmmoBoxData(8, 1))))
+                ),
+                InternalSlot(175, PlanetSideGUID(3805), 573,
+                  DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540, PlanetSideGUID(7358), 0, DetailedAmmoBoxData(8, 1))))
+                ),
+                InternalSlot(324, PlanetSideGUID(4493), 574,
+                  DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540, PlanetSideGUID(6852), 0, DetailedAmmoBoxData(8, 1))))
+                ),
+                InternalSlot(324, PlanetSideGUID(5762), 575,
+                  DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540, PlanetSideGUID(3463), 0, DetailedAmmoBoxData(8, 1))))
+                ),
+                InternalSlot(175, PlanetSideGUID(3315), 576,
+                  DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540, PlanetSideGUID(7619), 0, DetailedAmmoBoxData(8, 1))))
+                ),
+                InternalSlot(324, PlanetSideGUID(6263), 577,
+                  DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540, PlanetSideGUID(5912), 0, DetailedAmmoBoxData(8, 1))))
+                ),
+                InternalSlot(468, PlanetSideGUID(4028), 578,
+                  DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540, PlanetSideGUID(8021), 0, DetailedAmmoBoxData(8, 1))))
+                ),
+                InternalSlot(175, PlanetSideGUID(2843), 579,
+                  DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540, PlanetSideGUID(7250), 0, DetailedAmmoBoxData(8, 1))))
+                ),
+                InternalSlot(175, PlanetSideGUID(9143), 580,
+                  DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540, PlanetSideGUID(5195), 0, DetailedAmmoBoxData(8, 1))))
+                ),
+                InternalSlot(468, PlanetSideGUID(5024), 581,
+                  DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540, PlanetSideGUID(4287), 0, DetailedAmmoBoxData(8, 1))))
+                ),
+                InternalSlot(468, PlanetSideGUID(6582), 582,
+                  DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540, PlanetSideGUID(4915), 0, DetailedAmmoBoxData(8, 1))))
+                ),
+                InternalSlot(468, PlanetSideGUID(6425), 583,
+                  DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540, PlanetSideGUID(8872), 0, DetailedAmmoBoxData(8, 1))))
+                ),
+                InternalSlot(468, PlanetSideGUID(4431), 584,
+                  DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540, PlanetSideGUID(4191), 0, DetailedAmmoBoxData(8, 1))))
+                ),
+                InternalSlot(175, PlanetSideGUID(8339), 585,
+                  DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540, PlanetSideGUID(7317), 0, DetailedAmmoBoxData(8, 1))))
+                ),
+                InternalSlot(175, PlanetSideGUID(3277), 586,
+                  DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540, PlanetSideGUID(6469), 0, DetailedAmmoBoxData(8, 1))))
+                )
               )
-            ))))
+            )))
           ),
           InternalSlot(213, PlanetSideGUID(6877), 6, DetailedCommandDetonaterData(4, 8)),
           InternalSlot(755, PlanetSideGUID(6227), 9, DetailedAmmoBoxData(8, 16)),
@@ -2779,77 +2788,80 @@ class DetailedCharacterDataTest extends Specification {
           DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NC, false, false, true, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(540, PlanetSideGUID(6693), 0, DetailedAmmoBoxData(8, 1))))
         ),
         InternalSlot(456, PlanetSideGUID(8199), 5,
-          DetailedLockerContainerData(0, Some(InventoryData(List(
-            InternalSlot(233, PlanetSideGUID(6315), 0,
-              DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(28, PlanetSideGUID(6795), 0, DetailedAmmoBoxData(0, 50))))
-            ),
-            InternalSlot(233, PlanetSideGUID(4302), 6,
-              DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(28, PlanetSideGUID(5511), 0, DetailedAmmoBoxData(0, 50))))
-            ),
-            InternalSlot(233, PlanetSideGUID(6342), 12,
-              DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(28, PlanetSideGUID(7788), 0, DetailedAmmoBoxData(0, 50))))
-            ),
-            InternalSlot(233, PlanetSideGUID(7392), 18,
-              DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(28, PlanetSideGUID(8335), 0, DetailedAmmoBoxData(0, 50))))
-            ),
-            InternalSlot(233, PlanetSideGUID(4432), 24,
-              DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(28, PlanetSideGUID(7020), 0, DetailedAmmoBoxData(0,50))))
-            ),
-            InternalSlot(716, PlanetSideGUID(4219), 90,
-              DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(50, PlanetSideGUID(9275), 0, DetailedAmmoBoxData(0, 25))))
-            ),
-            InternalSlot(716, PlanetSideGUID(3869), 96,
-              DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(50, PlanetSideGUID(6099), 0, DetailedAmmoBoxData(0, 25))))
-            ),
-            InternalSlot(716, PlanetSideGUID(8954), 102,
-              DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(50, PlanetSideGUID(5972), 0, DetailedAmmoBoxData(0, 25))))
-            ),
-            InternalSlot(233, PlanetSideGUID(7476), 108,
-              DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(28, PlanetSideGUID(5704), 0, DetailedAmmoBoxData(0, 50))))
-            ),
-            InternalSlot(272, PlanetSideGUID(8800), 114, DetailedAmmoBoxData(0, 50)),
-            InternalSlot(272, PlanetSideGUID(8649), 177, DetailedAmmoBoxData(0, 50)),
-            InternalSlot(716, PlanetSideGUID(7580), 180,
-              DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(50, PlanetSideGUID(6734), 0, DetailedAmmoBoxData(0, 25))))
-            ),
-            InternalSlot(716, PlanetSideGUID(6464), 186,
-              DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(50, PlanetSideGUID(4738), 0, DetailedAmmoBoxData(0, 25))))
-            ),
-            InternalSlot(716, PlanetSideGUID(5408), 192,
-              DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(50, PlanetSideGUID(3579), 0, DetailedAmmoBoxData(0, 25))))
-            ),
-            InternalSlot(556, PlanetSideGUID(8957), 198,
-              DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(28, PlanetSideGUID(8223), 0, DetailedAmmoBoxData(0, 100))))
-            ),
-            InternalSlot(272, PlanetSideGUID(3928), 267, DetailedAmmoBoxData(0, 50)),
-            InternalSlot(577, PlanetSideGUID(3403), 279,
-              DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(111, PlanetSideGUID(4352), 0, DetailedAmmoBoxData(0, 100))))
-            ),
-            InternalSlot(577, PlanetSideGUID(8454), 285,
-              DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(111, PlanetSideGUID(8724), 0, DetailedAmmoBoxData(0,100))))
-            ),
-            InternalSlot(272, PlanetSideGUID(3397), 357, DetailedAmmoBoxData(0, 50)),
-            InternalSlot(429, PlanetSideGUID(6695), 378,
-              DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(272, PlanetSideGUID(6842), 0, DetailedAmmoBoxData(0, 35))))
-            ),
-            InternalSlot(462, PlanetSideGUID(8304), 420,
-              DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(463, PlanetSideGUID(7089), 0, DetailedAmmoBoxData(0, 150))))
-            ),
-            InternalSlot(462, PlanetSideGUID(3346), 429,
-              DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(463, PlanetSideGUID(7557), 0, DetailedAmmoBoxData(0, 150))))
-            ),
-            InternalSlot(272, PlanetSideGUID(7515), 447, DetailedAmmoBoxData(0, 50)),
-            InternalSlot(462, PlanetSideGUID(4622), 510,
-              DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(463, PlanetSideGUID(6996), 0, DetailedAmmoBoxData(0, 150))))
-            ),
-            InternalSlot(462, PlanetSideGUID(6586), 519,
-              DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(463, PlanetSideGUID(6870), 0, DetailedAmmoBoxData(0, 150))))
-            ),
-            InternalSlot(556, PlanetSideGUID(4806), 528,
-              DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(28, PlanetSideGUID(8798), 0, DetailedAmmoBoxData(0, 100))))
-            ),
-            InternalSlot(272, PlanetSideGUID(8429), 537, DetailedAmmoBoxData(0, 50))
-          ))))
+          DetailedLockerContainerData(
+            CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, None, PlanetSideGUID(0)),
+            Some(InventoryData(List(
+              InternalSlot(233, PlanetSideGUID(6315), 0,
+                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(28, PlanetSideGUID(6795), 0, DetailedAmmoBoxData(0, 50))))
+              ),
+              InternalSlot(233, PlanetSideGUID(4302), 6,
+                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(28, PlanetSideGUID(5511), 0, DetailedAmmoBoxData(0, 50))))
+              ),
+              InternalSlot(233, PlanetSideGUID(6342), 12,
+                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(28, PlanetSideGUID(7788), 0, DetailedAmmoBoxData(0, 50))))
+              ),
+              InternalSlot(233, PlanetSideGUID(7392), 18,
+                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(28, PlanetSideGUID(8335), 0, DetailedAmmoBoxData(0, 50))))
+              ),
+              InternalSlot(233, PlanetSideGUID(4432), 24,
+                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(28, PlanetSideGUID(7020), 0, DetailedAmmoBoxData(0,50))))
+              ),
+              InternalSlot(716, PlanetSideGUID(4219), 90,
+                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(50, PlanetSideGUID(9275), 0, DetailedAmmoBoxData(0, 25))))
+              ),
+              InternalSlot(716, PlanetSideGUID(3869), 96,
+                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(50, PlanetSideGUID(6099), 0, DetailedAmmoBoxData(0, 25))))
+              ),
+              InternalSlot(716, PlanetSideGUID(8954), 102,
+                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(50, PlanetSideGUID(5972), 0, DetailedAmmoBoxData(0, 25))))
+              ),
+              InternalSlot(233, PlanetSideGUID(7476), 108,
+                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(28, PlanetSideGUID(5704), 0, DetailedAmmoBoxData(0, 50))))
+              ),
+              InternalSlot(272, PlanetSideGUID(8800), 114, DetailedAmmoBoxData(0, 50)),
+              InternalSlot(272, PlanetSideGUID(8649), 177, DetailedAmmoBoxData(0, 50)),
+              InternalSlot(716, PlanetSideGUID(7580), 180,
+                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(50, PlanetSideGUID(6734), 0, DetailedAmmoBoxData(0, 25))))
+              ),
+              InternalSlot(716, PlanetSideGUID(6464), 186,
+                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(50, PlanetSideGUID(4738), 0, DetailedAmmoBoxData(0, 25))))
+              ),
+              InternalSlot(716, PlanetSideGUID(5408), 192,
+                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(50, PlanetSideGUID(3579), 0, DetailedAmmoBoxData(0, 25))))
+              ),
+              InternalSlot(556, PlanetSideGUID(8957), 198,
+                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(28, PlanetSideGUID(8223), 0, DetailedAmmoBoxData(0, 100))))
+              ),
+              InternalSlot(272, PlanetSideGUID(3928), 267, DetailedAmmoBoxData(0, 50)),
+              InternalSlot(577, PlanetSideGUID(3403), 279,
+                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(111, PlanetSideGUID(4352), 0, DetailedAmmoBoxData(0, 100))))
+              ),
+              InternalSlot(577, PlanetSideGUID(8454), 285,
+                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(111, PlanetSideGUID(8724), 0, DetailedAmmoBoxData(0,100))))
+              ),
+              InternalSlot(272, PlanetSideGUID(3397), 357, DetailedAmmoBoxData(0, 50)),
+              InternalSlot(429, PlanetSideGUID(6695), 378,
+                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(272, PlanetSideGUID(6842), 0, DetailedAmmoBoxData(0, 35))))
+              ),
+              InternalSlot(462, PlanetSideGUID(8304), 420,
+                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(463, PlanetSideGUID(7089), 0, DetailedAmmoBoxData(0, 150))))
+              ),
+              InternalSlot(462, PlanetSideGUID(3346), 429,
+                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(463, PlanetSideGUID(7557), 0, DetailedAmmoBoxData(0, 150))))
+              ),
+              InternalSlot(272, PlanetSideGUID(7515), 447, DetailedAmmoBoxData(0, 50)),
+              InternalSlot(462, PlanetSideGUID(4622), 510,
+                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(463, PlanetSideGUID(6996), 0, DetailedAmmoBoxData(0, 150))))
+              ),
+              InternalSlot(462, PlanetSideGUID(6586), 519,
+                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(463, PlanetSideGUID(6870), 0, DetailedAmmoBoxData(0, 150))))
+              ),
+              InternalSlot(556, PlanetSideGUID(4806), 528,
+                DetailedWeaponData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, None, PlanetSideGUID(0)), 0, List(InternalSlot(28, PlanetSideGUID(8798), 0, DetailedAmmoBoxData(0, 100))))
+              ),
+              InternalSlot(272, PlanetSideGUID(8429), 537, DetailedAmmoBoxData(0, 50))
+            ))
+          ))
         ),
         InternalSlot(28, PlanetSideGUID(10018), 6, DetailedAmmoBoxData(8, 50)),
         InternalSlot(28, PlanetSideGUID(5612), 9, DetailedAmmoBoxData(8, 50)),

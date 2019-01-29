@@ -39,7 +39,7 @@ class VariantVehiclesTest extends Specification {
           weapon.guid mustEqual PlanetSideGUID(355)
           weapon.parentSlot mustEqual 1
           weapon.obj match {
-            case WeaponData(CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv4, wv5, wfguid), fmode, ammo) =>
+            case WeaponData(CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv4, wv5, wfguid), fmode, ammo, _) =>
               wfaction mustEqual PlanetSideEmpire.NEUTRAL
               wbops mustEqual false
               walternate mustEqual false

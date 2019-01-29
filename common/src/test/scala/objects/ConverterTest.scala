@@ -633,7 +633,7 @@ class ConverterTest extends Specification {
       val obj = LockerContainer()
       obj.Definition.Packet.DetailedConstructorData(obj) match {
         case Success(pkt) =>
-          pkt mustEqual DetailedLockerContainerData(8, None)
+          pkt mustEqual DetailedLockerContainerData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), None)
         case _ =>
           ko
       }

@@ -25,7 +25,7 @@ class WeaponDataTest extends Specification {
           parent.get.guid mustEqual PlanetSideGUID(4141)
           parent.get.slot mustEqual 3
           data match {
-            case WeaponData(CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv4, wv5, wfguid), fmode, List(ammo)) =>
+            case WeaponData(CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv4, wv5, wfguid), fmode, List(ammo), _) =>
               wfaction mustEqual PlanetSideEmpire.VS
               wbops mustEqual false
               walternate mustEqual false
@@ -73,7 +73,7 @@ class WeaponDataTest extends Specification {
           parent.get.guid mustEqual PlanetSideGUID(3092)
           parent.get.slot mustEqual 3
           data match {
-            case WeaponData(CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv4, wv5, wfguid), fmode, ammo) =>
+            case WeaponData(CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv4, wv5, wfguid), fmode, ammo, _) =>
               wfaction mustEqual PlanetSideEmpire.VS
               wbops mustEqual false
               walternate mustEqual false
@@ -146,7 +146,7 @@ class WeaponDataTest extends Specification {
           drop.pos.orient.y mustEqual 0f
           drop.pos.orient.z mustEqual 0f
           drop.obj match {
-            case WeaponData(CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv4, wv5, wfguid), fmode, List(ammo)) =>
+            case WeaponData(CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv4, wv5, wfguid), fmode, List(ammo), _) =>
               wfaction mustEqual PlanetSideEmpire.VS
               wbops mustEqual false
               walternate mustEqual false
@@ -200,7 +200,7 @@ class WeaponDataTest extends Specification {
           drop.pos.orient.y mustEqual 0f
           drop.pos.orient.z mustEqual 306.5625f
           drop.obj match {
-            case WeaponData(CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv4, wv5, wfguid), fmode, ammo) =>
+            case WeaponData(CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv4, wv5, wfguid), fmode, ammo, _) =>
               wfaction mustEqual PlanetSideEmpire.NC
               wbops mustEqual false
               walternate mustEqual false

@@ -25,7 +25,8 @@ import shapeless.{::, HNil}
   */
 final case class WeaponData(data : CommonFieldData,
                             fire_mode : Int,
-                            ammo : List[InternalSlot]
+                            ammo : List[InternalSlot],
+                            unk : Boolean = false
                            ) extends ConstructorData {
   override def bitsize : Long = {
     val dataSize = data.bitsize
@@ -33,21 +34,6 @@ final case class WeaponData(data : CommonFieldData,
     21L + dataSize + ammoSize //11 + 10 (from InventoryData) + ammo
   }
 }
-/*
-final case class WeaponData(unk1 : Int,
-                            unk2 : Int,
-                            fire_mode : Int,
-                            ammo : List[InternalSlot]
-                           ) extends ConstructorData {
-  override def bitsize : Long = {
-    var bitsize : Long = 0L
-    for(o <- ammo) {
-      bitsize += o.bitsize
-    }
-    44L + bitsize
-  }
-}
- */
 
 object WeaponData extends Marshallable[WeaponData] {
   /**
@@ -146,23 +132,23 @@ object WeaponData extends Marshallable[WeaponData] {
       ("fire_mode" | int8) ::
       bool ::
       optional(bool, "ammo" | InventoryData.codec) ::
-      bool
+      ("unk" | bool)
     ).exmap[WeaponData] (
     {
-      case data :: fmode :: false :: Some(InventoryData(ammo)) :: false :: HNil =>
+      case data :: fmode :: false :: Some(InventoryData(ammo)) :: unk :: HNil =>
         val magSize = ammo.size
         if(magSize == 0) {
           Attempt.failure(Err("weapon must decode some ammunition"))
         }
         else {
-          Attempt.successful(WeaponData(data, fmode, ammo))
+          Attempt.successful(WeaponData(data, fmode, ammo, unk))
         }
 
       case data =>
         Attempt.failure(Err(s"invalid weapon data format - $data"))
     },
     {
-      case WeaponData(data, fmode, ammo) =>
+      case WeaponData(data, fmode, ammo, unk) =>
         val magSize = ammo.size
         if(magSize == 0) {
           Attempt.failure(Err("weapon must encode some ammunition"))
@@ -171,7 +157,7 @@ object WeaponData extends Marshallable[WeaponData] {
           Attempt.failure(Err("weapon encodes too much ammunition (255+ types!)"))
         }
         else {
-          Attempt.successful(data :: fmode :: false :: Some(InventoryData(ammo)) :: false :: HNil)
+          Attempt.successful(data :: fmode :: false :: Some(InventoryData(ammo)) :: unk :: HNil)
         }
 
       case _ =>

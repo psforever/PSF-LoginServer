@@ -39,7 +39,7 @@ class OneMannedFieldTurretDataTest extends Specification {
               inv.head.guid mustEqual PlanetSideGUID(2615)
               inv.head.parentSlot mustEqual 1
               inv.head.obj match {
-                case WeaponData(CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv4, wv5, wfguid), fmode, List(ammo)) =>
+                case WeaponData(CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv4, wv5, wfguid), fmode, List(ammo), _) =>
                   wfaction mustEqual PlanetSideEmpire.NEUTRAL
                   wbops mustEqual false
                   walternate mustEqual false

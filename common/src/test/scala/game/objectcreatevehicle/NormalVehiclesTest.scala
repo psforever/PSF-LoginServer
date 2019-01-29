@@ -39,7 +39,7 @@ class NormalVehiclesTest extends Specification {
           mounting.parentSlot mustEqual 1
           mounting.obj.isInstanceOf[WeaponData] mustEqual true
           mounting.obj match {
-            case WeaponData(CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv4, wv5, wfguid), fmode, ammo) =>
+            case WeaponData(CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv4, wv5, wfguid), fmode, ammo, _) =>
               wfaction mustEqual PlanetSideEmpire.NEUTRAL
               wbops mustEqual false
               walternate mustEqual false
@@ -101,7 +101,7 @@ class NormalVehiclesTest extends Specification {
           mounting.guid mustEqual PlanetSideGUID(91)
           mounting.parentSlot mustEqual 1
           mounting.obj match {
-            case WeaponData(CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv4, wv5, wfguid), fmode, ammo) =>
+            case WeaponData(CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv4, wv5, wfguid), fmode, ammo, _) =>
               wfaction mustEqual PlanetSideEmpire.VS
               wbops mustEqual false
               walternate mustEqual false
@@ -189,7 +189,7 @@ class NormalVehiclesTest extends Specification {
               inv.head.guid mustEqual PlanetSideGUID(383)
               inv.head.parentSlot mustEqual 5
               inv.head.obj match {
-                case WeaponData(CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv4, wv5, wfguid), fmode, List(ammo)) =>
+                case WeaponData(CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv4, wv5, wfguid), fmode, List(ammo), _) =>
                   wfaction mustEqual PlanetSideEmpire.NEUTRAL
                   wbops mustEqual false
                   walternate mustEqual false
@@ -227,7 +227,7 @@ class NormalVehiclesTest extends Specification {
               inv(1).guid mustEqual PlanetSideGUID(556)
               inv(1).parentSlot mustEqual 6
               inv(1).obj match {
-                case WeaponData(CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv4, wv5, wfguid), fmode, List(ammo)) =>
+                case WeaponData(CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv4, wv5, wfguid), fmode, List(ammo), _) =>
                   wfaction mustEqual PlanetSideEmpire.NEUTRAL
                   wbops mustEqual false
                   walternate mustEqual false
