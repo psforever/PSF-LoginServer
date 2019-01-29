@@ -2,7 +2,9 @@
 package net.psforever.objects.definition.converter
 
 import net.psforever.objects.Tool
-import net.psforever.packet.game.objectcreate.{DetailedWeaponData, InternalSlot, WeaponData}
+import net.psforever.packet.game.PlanetSideGUID
+import net.psforever.packet.game.objectcreate.{CommonFieldData, DetailedWeaponData, InternalSlot, WeaponData}
+import net.psforever.types.PlanetSideEmpire
 
 import scala.collection.mutable.ListBuffer
 import scala.util.{Success, Try}
@@ -15,7 +17,23 @@ class ToolConverter extends ObjectCreateConverter[Tool]() {
       val box = obj.AmmoSlots(index).Box
       slots += InternalSlot(box.Definition.ObjectId, box.GUID, index, box.Definition.Packet.ConstructorData(box).get)
     })
-    Success(WeaponData(4,8, obj.FireModeIndex, slots.toList)(maxSlot))
+    Success(
+      WeaponData(
+        CommonFieldData(
+          PlanetSideEmpire.NEUTRAL, //TODO need faction affinity
+          bops = false,
+          alternate = false,
+          true,
+          None,
+          false,
+          None,
+          None,
+          PlanetSideGUID(0)
+        ),
+        obj.FireModeIndex,
+        slots.toList
+      )
+    )
   }
 
   override def DetailedConstructorData(obj : Tool) : Try[DetailedWeaponData] = {
@@ -25,6 +43,22 @@ class ToolConverter extends ObjectCreateConverter[Tool]() {
       val box = obj.AmmoSlots(index).Box
       slots += InternalSlot(box.Definition.ObjectId, box.GUID, index, box.Definition.Packet.DetailedConstructorData(box).get)
     })
-    Success(DetailedWeaponData(4,8, obj.FireModeIndex, slots.toList)(maxSlot))
+    Success(
+      DetailedWeaponData(
+        CommonFieldData(
+          PlanetSideEmpire.NEUTRAL, //TODO need faction affinity
+          bops = false,
+          alternate = false,
+          true,
+          None,
+          false,
+          None,
+          None,
+          PlanetSideGUID(0)
+        ),
+        obj.FireModeIndex,
+        slots.toList
+      )
+    )
   }
 }

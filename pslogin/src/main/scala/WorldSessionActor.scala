@@ -1332,20 +1332,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
         MountingAction(tplayer, obj, seat_num)
         sendResponse(PlanetsideAttributeMessage(obj.GUID, 0, 1000L)) //health of mech
 
-      case Mountable.CanMount(obj : PlanetSideGameObject with WeaponTurret, seat_num) =>
-        obj.WeaponControlledFromSeat(seat_num) match {
-          case Some(weapon : Tool) =>
-            //update mounted weapon belonging to seat
-            weapon.AmmoSlots.foreach(slot => {
-              //update the magazine(s) in the weapon, specifically
-              val magazine = slot.Box
-              sendResponse(InventoryStateMessage(magazine.GUID, weapon.GUID, magazine.Capacity.toLong))
-            })
-          case _ => ; //no weapons to update
-        }
-        sendResponse(PlanetsideAttributeMessage(obj.GUID, 0, obj.Health))
-        MountingAction(tplayer, obj, seat_num)
-
       case Mountable.CanMount(obj : Vehicle, seat_num) =>
         val obj_guid : PlanetSideGUID = obj.GUID
         val player_guid : PlanetSideGUID = tplayer.GUID
@@ -1384,13 +1370,24 @@ class WorldSessionActor extends Actor with MDCContextAware {
         AccessContents(obj)
         MountingAction(tplayer, obj, seat_num)
 
+      case Mountable.CanMount(obj : PlanetSideGameObject with WeaponTurret, seat_num) =>
+        obj.WeaponControlledFromSeat(seat_num) match {
+          case Some(weapon : Tool) =>
+            //update mounted weapon belonging to seat
+            weapon.AmmoSlots.foreach(slot => {
+              //update the magazine(s) in the weapon, specifically
+              val magazine = slot.Box
+              sendResponse(InventoryStateMessage(magazine.GUID, weapon.GUID, magazine.Capacity.toLong))
+            })
+          case _ => ; //no weapons to update
+        }
+        sendResponse(PlanetsideAttributeMessage(obj.GUID, 0, obj.Health))
+        MountingAction(tplayer, obj, seat_num)
+
       case Mountable.CanMount(obj : Mountable, _) =>
         log.warn(s"MountVehicleMsg: $obj is some generic mountable object and nothing will happen")
 
       case Mountable.CanDismount(obj : ImplantTerminalMech, seat_num) =>
-        DismountAction(tplayer, obj, seat_num)
-
-      case Mountable.CanDismount(obj : PlanetSideGameObject with WeaponTurret, seat_num) =>
         DismountAction(tplayer, obj, seat_num)
 
       case Mountable.CanDismount(obj : Vehicle, seat_num) =>
@@ -1404,6 +1401,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
         else {
           vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.KickPassenger(player_guid, seat_num, true, obj.GUID))
         }
+
+      case Mountable.CanDismount(obj : PlanetSideGameObject with WeaponTurret, seat_num) =>
+        DismountAction(tplayer, obj, seat_num)
 
       case Mountable.CanDismount(obj : Mountable, _) =>
         log.warn(s"DismountVehicleMsg: $obj is some generic mountable object and nothing will happen")
@@ -5842,7 +5842,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
   /**
     * For a given facility structure, configure a client by dispatching the appropriate packets.
-    * Pay special attention to the details of `BuildingInfoUpdateMessage` when preparing this packet.
+    * Pay special attention to the details of `BuildingInfoUpdateMessage` when preparing this packet.<br>
+    * <br>
+    * 24 Janurtay 2019:<br>
+    * Manual `BIUM` construction to alleviate player login.
     * @see `BuildingInfoUpdateMessage`
     * @see `DensityLevelUpdateMessage`
     * @param continentNumber the zone id
@@ -5850,7 +5853,31 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * @param building the building object
     */
   def initFacility(continentNumber : Int, buildingNumber : Int, building : Building) : Unit = {
-    building.Actor ! Building.SendMapUpdate(all_clients = false)
+    sendResponse(
+      BuildingInfoUpdateMessage(
+        continentNumber,
+        buildingNumber,
+        ntu_level = 8,
+        is_hacked = false,
+        empire_hack = PlanetSideEmpire.NEUTRAL,
+        hack_time_remaining = 0,
+        building.Faction,
+        unk1 = 0, //!! Field != 0 will cause malformed packet. See class def.
+        unk1x = None,
+        PlanetSideGeneratorState.Normal,
+        spawn_tubes_normal = true,
+        force_dome_active = false,
+        lattice_benefit = 0,
+        cavern_benefit = 0, //!! Field > 0 will cause malformed packet. See class def.
+        unk4 = Nil,
+        unk5 = 0,
+        unk6 = false,
+        unk7 = 8, //!! Field != 8 will cause malformed packet. See class def.
+        unk7x = None,
+        boost_spawn_pain = false,
+        boost_generator_pain = false
+      )
+    )
     sendResponse(DensityLevelUpdateMessage(continentNumber, buildingNumber, List(0,0, 0,0, 0,0, 0,0)))
   }
 
@@ -6599,7 +6626,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     //TODO charId should reflect the player more properly
     val killerCharId = math.abs(killer.Name.hashCode)
     var victimCharId = math.abs(victim.Name.hashCode)
-    if(killerCharId == victimCharId && killer.Name != victim.Name) {
+    if(killerCharId == victimCharId && !killer.Name.equals(victim.Name)) {
       //odds of hash collision in a populated zone should be close to odds of being struck by lightning
       victimCharId = Int.MaxValue - victimCharId + 1
     }
@@ -6719,11 +6746,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * Ownership causes icon to be drawn in yellow to the player (as opposed to a white icon)
     * and that signifies a certain level of control over the deployable, at least the ability to quietly deconstruct it.
     * Under normal death/respawn cycles while the player is in a given zone,
-    * the map icons for owned deployables ramin manipulable to that given user.
-    * They do not havwe to be redrawn to stay accurate.
+    * the map icons for owned deployables remain manipulable by that given user.
+    * They do not have to be redrawn to stay accurate.
     * Upon leaving a zone, where the icons are erased, and returning back to the zone, where they are drawn again,
     * the deployables that a player owned should be restored in terms of their map icon visibility.
-    * TThis control can not be recovered, however, until they are updated with the player's globally unique identifier.
+    * This control can not be recovered, however, until they are updated with the player's globally unique identifier.
     * Since the player does not need to redraw his own deployable icons each time he respawns,
     * but will not possess a valid GUID for that zone until he spawns in it at least once,
     * this function swaps out with another after the first spawn in any given zone.
@@ -7667,7 +7694,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
   /**
     * `KeepAliveMessage` is a special `PlanetSideGamePacket` that is excluded from being bundled when it is sent to the network.<br>
     * <br>
-    * The risk of the server getting caught in a state where the packets dispatched to the client are alwaysd bundled is posible.
+    * The risk of the server getting caught in a state where the packets dispatched to the client are always bundled is posible.
     * Starting the bundling functionality but forgetting to transition into a state where it is deactivated can lead to this problem.
     * No packets except for `KeepAliveMessage` will ever be sent until the ever-accumulating packets overflow.
     * To avoid this state, whenever a `KeepAliveMessage` is sent, the packet collector empties its current contents to the network.

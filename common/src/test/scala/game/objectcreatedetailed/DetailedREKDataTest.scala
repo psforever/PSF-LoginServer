@@ -5,6 +5,7 @@ import org.specs2.mutable._
 import net.psforever.packet._
 import net.psforever.packet.game.{ObjectCreateDetailedMessage, _}
 import net.psforever.packet.game.objectcreate._
+import net.psforever.types.PlanetSideEmpire
 import scodec.bits._
 
 class DetailedREKDataTest extends Specification {
@@ -20,16 +21,28 @@ class DetailedREKDataTest extends Specification {
           parent.isDefined mustEqual true
           parent.get.guid mustEqual PlanetSideGUID(75)
           parent.get.slot mustEqual 1
-          data.isDefined mustEqual true
-          data.get.asInstanceOf[DetailedREKData].unk1 mustEqual 4
-          data.get.asInstanceOf[DetailedREKData].unk2 mustEqual 0
+          data match {
+            case DetailedREKData(CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid), unk) =>
+              faction mustEqual PlanetSideEmpire.NC
+              bops mustEqual false
+              alternate mustEqual false
+              v1 mustEqual true
+              v2.isEmpty mustEqual true
+              v3 mustEqual false
+              v4.contains(false) mustEqual true
+              v5.isEmpty mustEqual true
+              fguid mustEqual PlanetSideGUID(0)
+              unk mustEqual 0
+            case _ =>
+              ko
+          }
         case _ =>
           ko
       }
     }
 
     "encode" in {
-      val obj = DetailedREKData(4)
+      val obj = DetailedREKData(CommonFieldData(PlanetSideEmpire.NC, false, false, true, None, false, Some(false), None, PlanetSideGUID(0)))
       val msg = ObjectCreateDetailedMessage(ObjectClass.remote_electronics_kit, PlanetSideGUID(1439), ObjectCreateMessageParent(PlanetSideGUID(75), 1), obj)
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 

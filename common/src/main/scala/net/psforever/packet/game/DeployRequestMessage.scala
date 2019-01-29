@@ -41,10 +41,22 @@ final case class DeployRequestMessage(player_guid : PlanetSideGUID,
 }
 
 object DeployRequestMessage extends Marshallable[DeployRequestMessage] {
+  private val driveState3u = uint(3).xmap[DriveState.Value] (
+    n => DriveState(n),
+    n => {
+      if(n.id > 7) {
+        0
+      }
+      else {
+        n.id
+      }
+    }
+  )
+
   implicit val codec : Codec[DeployRequestMessage] = (
     ("player_guid" | PlanetSideGUID.codec) ::
       ("vehicle_guid" | PlanetSideGUID.codec) ::
-      ("deploy_state" | DriveState.codec) ::
+      ("deploy_state" | driveState3u) ::
       ("unk2" | uint(5)) ::
       ("unk3" | bool) ::
       ("pos" | Vector3.codec_pos)

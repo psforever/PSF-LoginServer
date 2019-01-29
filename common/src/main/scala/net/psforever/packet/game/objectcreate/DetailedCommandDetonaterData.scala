@@ -27,8 +27,9 @@ object DetailedCommandDetonaterData extends Marshallable[DetailedCommandDetonate
     {
       case unk1 :: unk2 :: 0 :: 2 :: 0 :: 4 :: HNil =>
         Attempt.successful(DetailedCommandDetonaterData(unk1, unk2))
-      case _ =>
-        Attempt.failure(Err("invalid command detonator data format"))
+
+      case data =>
+        Attempt.failure(Err(s"invalid detailed command detonater data format - $data"))
     },
     {
       case DetailedCommandDetonaterData(unk1, unk2) =>

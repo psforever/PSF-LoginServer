@@ -45,12 +45,12 @@ object InternalSlot {
       }
     ).xmap[InternalSlot] (
     {
-      case cls :: guid :: slot :: Some(obj) :: HNil =>
+      case cls :: guid :: slot :: obj :: HNil =>
         InternalSlot(cls, guid, slot, obj)
     },
     {
       case InternalSlot(cls, guid, slot, obj) =>
-        cls :: guid :: slot :: Some(obj) :: HNil
+        cls :: guid :: slot :: obj :: HNil
     }
   )
 
@@ -65,12 +65,12 @@ object InternalSlot {
     }
     ).xmap[InternalSlot] (
     {
-      case cls :: guid :: slot :: Some(obj) :: HNil =>
+      case cls :: guid :: slot :: obj :: HNil =>
         InternalSlot(cls, guid, slot, obj)
     },
     {
       case InternalSlot(cls, guid, slot, obj) =>
-        cls :: guid :: slot :: Some(obj) :: HNil
+        cls :: guid :: slot :: obj :: HNil
     }
   )
 }

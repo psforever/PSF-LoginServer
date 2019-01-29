@@ -19,15 +19,24 @@ class AegisShieldGeneratorDataTest extends Specification {
           cls mustEqual ObjectClass.deployable_shield_generator
           guid mustEqual PlanetSideGUID(2556)
           parent.isDefined mustEqual false
-          data.isDefined mustEqual true
-          data.get.isInstanceOf[AegisShieldGeneratorData] mustEqual true
-          val aegis = data.get.asInstanceOf[AegisShieldGeneratorData]
-          aegis.deploy.pos.coord mustEqual Vector3(3571.2266f, 3278.0938f, 114.0f)
-          aegis.deploy.pos.orient mustEqual Vector3(0, 0, 90)
-          aegis.deploy.faction mustEqual PlanetSideEmpire.VS
-          aegis.deploy.unk mustEqual 2
-          aegis.health mustEqual 255
-          aegis.deploy.player_guid mustEqual PlanetSideGUID(2366)
+          data match {
+            case AegisShieldGeneratorData(basic, health) =>
+              basic.pos.coord mustEqual Vector3(3571.2266f, 3278.0938f, 114.0f)
+              basic.pos.orient mustEqual Vector3.z(90.0f)
+
+              basic.data.faction mustEqual PlanetSideEmpire.VS
+              basic.data.bops mustEqual false
+              basic.data.alternate mustEqual false
+              basic.data.v1 mustEqual true
+              basic.data.v2.isDefined mustEqual false
+              basic.data.v3 mustEqual false
+              basic.data.v5.isDefined mustEqual false
+              basic.data.guid mustEqual PlanetSideGUID(2366)
+
+              health mustEqual 255
+            case _ =>
+              ko
+          }
         case _ =>
           ko
       }
@@ -35,7 +44,7 @@ class AegisShieldGeneratorDataTest extends Specification {
 
     "encode" in {
       val obj = AegisShieldGeneratorData(
-        CommonFieldData(
+        CommonFieldDataWithPlacement(
           PlacementData(Vector3(3571.2266f, 3278.0938f, 114.0f), Vector3(0, 0, 90)),
           PlanetSideEmpire.VS, 2, PlanetSideGUID(2366)
         ),

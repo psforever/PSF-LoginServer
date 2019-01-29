@@ -66,6 +66,9 @@ object OrbitalShuttleData extends Marshallable[OrbitalShuttleData] {
     {
       case faction :: 0 :: 255 :: 0 :: 7 :: 0 :: HNil =>
         Attempt.successful(OrbitalShuttleData(faction))
+
+      case data =>
+        Attempt.failure(Err(s"invalid shuttle data format - $data"))
     },
     {
       case OrbitalShuttleData(faction, _) =>
@@ -90,8 +93,8 @@ object OrbitalShuttleData extends Marshallable[OrbitalShuttleData] {
       case pos :: faction :: 0 :: 255 :: 0 :: 255 :: 0 :: 15 :: false :: HNil =>
         Attempt.successful(OrbitalShuttleData(faction, Some(pos)))
 
-      case _ =>
-        Attempt.failure(Err("invalid shuttle data format"))
+      case data =>
+        Attempt.failure(Err(s"invalid shuttle data format - $data"))
     },
     {
       case OrbitalShuttleData(faction, Some(pos)) =>
@@ -99,9 +102,6 @@ object OrbitalShuttleData extends Marshallable[OrbitalShuttleData] {
 
       case OrbitalShuttleData(_, None) =>
         Attempt.failure(Err("invalid shuttle data format (needs position)"))
-
-      case _ =>
-        Attempt.failure(Err("invalid shuttle data format"))
     }
   )
 }

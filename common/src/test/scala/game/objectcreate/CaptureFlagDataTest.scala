@@ -19,9 +19,8 @@ class CaptureFlagDataTest extends Specification {
           cls mustEqual ObjectClass.capture_flag
           guid mustEqual PlanetSideGUID(4330)
           parent.isDefined mustEqual false
-          data.isDefined mustEqual true
-          data.get.isInstanceOf[CaptureFlagData] mustEqual true
-          val flag = data.get.asInstanceOf[CaptureFlagData]
+          data.isInstanceOf[CaptureFlagData] mustEqual true
+          val flag = data.asInstanceOf[CaptureFlagData]
           flag.pos.coord.x mustEqual 3912.0312f
           flag.pos.coord.y mustEqual 5169.4375f
           flag.pos.coord.z mustEqual 59.96875f

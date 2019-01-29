@@ -236,10 +236,10 @@ object PacketHelpers {
     * A `peek` that decodes like the normal but encodes nothing.
     * Decoding `Codec[A]` from the input vector emits a value but reverts to the prior read position.
     * Encoding `Codec[A]` to the input vector appends no new data to the input vector.
-    * In effect, `peek` is a harmless meta-`Codec` that introduces no changes to the input vector.
+    * In effect, `peek` is a harmless meta-`Codec` that processes a value and introduces no changes to the input/output vector.
     * @see `scodec.codecs.peek` or `codecs/package.scala:peek`
     * @param target codec that decodes the value
-    * @return codec that behaves the same as `target` but resets remainder to the input vector
+    * @return `Codec` that behaves the same as `target` but resets the contents of the vector as if `Codec` were never applied
     */
   def peek[A](target: Codec[A]): Codec[A] = new Codec[A] {
     def sizeBound = target.sizeBound

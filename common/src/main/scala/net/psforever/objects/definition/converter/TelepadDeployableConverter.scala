@@ -14,32 +14,48 @@ class TelepadDeployableConverter extends ObjectCreateConverter[TelepadDeployable
     }
     else {
       if(obj.Health > 0) {
-        Success(TelepadDeployableData(
-          PlacementData(obj.Position, obj.Orientation),
-          obj.Faction,
-          bops = false,
-          destroyed = false,
-          unk1 = 2,
-          unk2 = true,
-          obj.Router.get,
-          obj.Owner.getOrElse(PlanetSideGUID(0)),
-          unk3 = 87,
-          unk4 = 12
-        ))
+        Success(
+          TelepadDeployableData(
+            CommonFieldDataWithPlacement(
+              PlacementData(obj.Position, obj.Orientation),
+              CommonFieldData(
+                obj.Faction,
+                bops = false,
+                alternate = false,
+                true,
+                None,
+                false,
+                None,
+                Some(obj.Router.get.guid),
+                obj.Owner.getOrElse(PlanetSideGUID(0))
+              )
+            ),
+            unk1 = 87,
+            unk2 = 12
+          )
+        )
       }
       else {
-        Success(TelepadDeployableData(
-          PlacementData(obj.Position, obj.Orientation),
-          obj.Faction,
-          bops = false,
-          destroyed = true,
-          unk1 = 2,
-          unk2 = true,
-          obj.Router.get,
-          owner_guid = PlanetSideGUID(0),
-          unk3 = 0,
-          unk4 = 6
-        ))
+        Success(
+          TelepadDeployableData(
+            CommonFieldDataWithPlacement(
+              PlacementData(obj.Position, obj.Orientation),
+              CommonFieldData(
+                obj.Faction,
+                bops = false,
+                alternate = true,
+                true,
+                None,
+                false,
+                None,
+                Some(obj.Router.get.guid),
+                PlanetSideGUID(0)
+              )
+            ),
+            unk1 = 0,
+            unk2 = 6
+          )
+        )
       }
     }
   }

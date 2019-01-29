@@ -20,8 +20,7 @@ class DetailedCommandDetonaterDataTest extends Specification {
           parent.isDefined mustEqual true
           parent.get.guid mustEqual PlanetSideGUID(3530)
           parent.get.slot mustEqual 0
-          data.isDefined mustEqual true
-          data.get.isInstanceOf[DetailedCommandDetonaterData] mustEqual true
+          data.isInstanceOf[DetailedCommandDetonaterData] mustEqual true
         case _ =>
           ko
       }

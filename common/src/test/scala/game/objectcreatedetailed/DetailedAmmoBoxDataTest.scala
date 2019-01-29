@@ -20,8 +20,7 @@ class DetailedAmmoBoxDataTest extends Specification {
           parent.isDefined mustEqual true
           parent.get.guid mustEqual PlanetSideGUID(75)
           parent.get.slot mustEqual 33
-          data.isDefined mustEqual true
-          data.get.asInstanceOf[DetailedAmmoBoxData].magazine mustEqual 50
+          data.asInstanceOf[DetailedAmmoBoxData].magazine mustEqual 50
         case _ =>
           ko
       }
@@ -30,7 +29,8 @@ class DetailedAmmoBoxDataTest extends Specification {
     "encode (9mm)" in {
       val obj = DetailedAmmoBoxData(8, 50)
       val msg = ObjectCreateDetailedMessage(ObjectClass.bullet_9mm, PlanetSideGUID(1280), ObjectCreateMessageParent(PlanetSideGUID(75), 33), obj)
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val out = PacketCoding.EncodePacket(msg)
+      val pkt = out.require.toByteVector
 
       pkt mustEqual string_9mm
     }

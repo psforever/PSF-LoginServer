@@ -60,7 +60,7 @@ object DetailedPlayerData extends Marshallable[DetailedPlayerData] {
     *                   technically, always `DrawnSlot.None`, but the field is preserved to maintain similarity
     * @return a `DetailedPlayerData` object
     */
-  def apply(basic_appearance : (Int)=>CharacterAppearanceData, character_data : (Option[Int])=>DetailedCharacterData, inventory : InventoryData, drawn_slot : DrawnSlot.Value) : DetailedPlayerData = {
+  def apply(basic_appearance : Int=>CharacterAppearanceData, character_data : Option[Int]=>DetailedCharacterData, inventory : InventoryData, drawn_slot : DrawnSlot.Value) : DetailedPlayerData = {
     val appearance = basic_appearance(5)
     DetailedPlayerData(None, appearance, character_data(appearance.altModelBit), Some(inventory), drawn_slot)(false)
   }
@@ -75,7 +75,7 @@ object DetailedPlayerData extends Marshallable[DetailedPlayerData] {
     *                   technically, always `DrawnSlot.None`, but the field is preserved to maintain similarity
     * @return a `DetailedPlayerData` object
     */
-  def apply(basic_appearance : (Int)=>CharacterAppearanceData, character_data : (Option[Int])=>DetailedCharacterData, drawn_slot : DrawnSlot.Value) : DetailedPlayerData = {
+  def apply(basic_appearance : Int=>CharacterAppearanceData, character_data : Option[Int]=>DetailedCharacterData, drawn_slot : DrawnSlot.Value) : DetailedPlayerData = {
     val appearance = basic_appearance(5)
     DetailedPlayerData(None, appearance, character_data(appearance.altModelBit), None, drawn_slot)(false)
   }
@@ -91,7 +91,7 @@ object DetailedPlayerData extends Marshallable[DetailedPlayerData] {
     * @param drawn_slot the holster that is depicted as exposed, or "drawn"
     * @return a `DetailedPlayerData` object
     */
-  def apply(pos : PlacementData, basic_appearance : (Int)=>CharacterAppearanceData, character_data : (Option[Int])=>DetailedCharacterData, inventory : InventoryData, drawn_slot : DrawnSlot.Value) : DetailedPlayerData = {
+  def apply(pos : PlacementData, basic_appearance : Int=>CharacterAppearanceData, character_data : Option[Int]=>DetailedCharacterData, inventory : InventoryData, drawn_slot : DrawnSlot.Value) : DetailedPlayerData = {
     val appearance = basic_appearance(PlayerData.PaddingOffset(Some(pos)))
     DetailedPlayerData(Some(pos), appearance, character_data(appearance.altModelBit), Some(inventory), drawn_slot)(true)
   }
@@ -106,7 +106,7 @@ object DetailedPlayerData extends Marshallable[DetailedPlayerData] {
     * @param drawn_slot the holster that is depicted as exposed, or "drawn"
     * @return a `DetailedPlayerData` object
     */
-  def apply(pos : PlacementData, basic_appearance : (Int)=>CharacterAppearanceData, character_data : (Option[Int])=>DetailedCharacterData, drawn_slot : DrawnSlot.Value) : DetailedPlayerData = {
+  def apply(pos : PlacementData, basic_appearance : Int=>CharacterAppearanceData, character_data : Option[Int]=>DetailedCharacterData, drawn_slot : DrawnSlot.Value) : DetailedPlayerData = {
     val appearance = basic_appearance(PlayerData.PaddingOffset(Some(pos)))
     DetailedPlayerData(Some(pos), appearance, character_data(appearance.altModelBit), None, drawn_slot)(true)
   }

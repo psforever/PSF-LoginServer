@@ -39,7 +39,7 @@ final case class ObjectCreateDetailedMessage(streamLength : Long,
                                              objectClass : Int,
                                              guid : PlanetSideGUID,
                                              parentInfo : Option[ObjectCreateMessageParent],
-                                             data : Option[ConstructorData])
+                                             data : ConstructorData)
   extends PlanetSideGamePacket {
   type Packet = ObjectCreateDetailedMessage
   def opcode = GamePacketOpcode.ObjectCreateMessage
@@ -57,7 +57,7 @@ object ObjectCreateDetailedMessage extends Marshallable[ObjectCreateDetailedMess
     */
   def apply(objectClass : Int, guid : PlanetSideGUID, parentInfo : ObjectCreateMessageParent, data : ConstructorData) : ObjectCreateDetailedMessage = {
     val parentInfoOpt : Option[ObjectCreateMessageParent] = Some(parentInfo)
-    ObjectCreateDetailedMessage(ObjectCreateBase.streamLen(parentInfoOpt, data), objectClass, guid, parentInfoOpt, Some(data))
+    ObjectCreateDetailedMessage(ObjectCreateBase.streamLen(parentInfoOpt, data), objectClass, guid, parentInfoOpt, data)
   }
 
   /**
@@ -68,7 +68,7 @@ object ObjectCreateDetailedMessage extends Marshallable[ObjectCreateDetailedMess
     * @return an ObjectCreateMessage
     */
   def apply(objectClass : Int, guid : PlanetSideGUID, data : ConstructorData) : ObjectCreateDetailedMessage = {
-    ObjectCreateDetailedMessage(ObjectCreateBase.streamLen(None, data), objectClass, guid, None, Some(data))
+    ObjectCreateDetailedMessage(ObjectCreateBase.streamLen(None, data), objectClass, guid, None, data)
   }
 
   implicit val codec : Codec[ObjectCreateDetailedMessage] = ObjectCreateBase.baseCodec.exmap[ObjectCreateDetailedMessage] (
@@ -77,31 +77,36 @@ object ObjectCreateDetailedMessage extends Marshallable[ObjectCreateDetailedMess
         Attempt.failure(Err("no data to decode"))
 
       case len :: cls :: guid :: par :: data :: HNil =>
-        val obj = ObjectCreateBase.decodeData(cls, data,
+        ObjectCreateBase.decodeData(cls, data,
           if(par.isDefined) {
             ObjectClass.selectDataDetailedCodec
           }
           else {
             ObjectClass.selectDataDroppedDetailedCodec
           }
-        )
-        Attempt.successful(ObjectCreateDetailedMessage(len, cls, guid, par, obj))
+        ) match {
+          case Attempt.Successful(obj) =>
+            Attempt.successful(ObjectCreateDetailedMessage(len, cls, guid, par, obj))
+          case Attempt.Failure(err) =>
+            Attempt.failure(err)
+        }
     },
     {
-      case ObjectCreateDetailedMessage(_ , _ , _, _, None) =>
-        Attempt.failure(Err("no object to encode"))
-
-      case ObjectCreateDetailedMessage(_, cls, guid, par, Some(obj)) =>
+      case ObjectCreateDetailedMessage(_, cls, guid, par, obj) =>
         val len = ObjectCreateBase.streamLen(par, obj) //even if a stream length has been assigned, it can not be trusted during encoding
-        val bitvec = ObjectCreateBase.encodeData(cls, obj,
+        ObjectCreateBase.encodeData(cls, obj,
           if(par.isDefined) {
             ObjectClass.selectDataDetailedCodec
           }
           else {
             ObjectClass.selectDataDroppedDetailedCodec
           }
-        )
-        Attempt.successful(len :: cls :: guid :: par :: bitvec :: HNil)
+        ) match {
+          case Attempt.Successful(bvec) =>
+            Attempt.successful(len :: cls :: guid :: par :: bvec :: HNil)
+          case Attempt.Failure(err) =>
+            Attempt.failure(err)
+        }
     }
   )
 }

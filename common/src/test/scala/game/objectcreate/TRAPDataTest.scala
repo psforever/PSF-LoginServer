@@ -19,14 +19,23 @@ class TRAPDataTest extends Specification {
           cls mustEqual ObjectClass.tank_traps
           guid mustEqual PlanetSideGUID(2659)
           parent.isDefined mustEqual false
-          data.isDefined mustEqual true
-          data.get.isInstanceOf[TRAPData] mustEqual true
-          val trap = data.get.asInstanceOf[TRAPData]
-          trap.deploy.pos.coord mustEqual Vector3(3572.4453f, 3277.9766f, 114.0f)
-          trap.deploy.pos.orient mustEqual Vector3(0, 0, 90)
-          trap.deploy.faction mustEqual PlanetSideEmpire.VS
-          trap.deploy.owner_guid mustEqual PlanetSideGUID(4748)
-          trap.health mustEqual 255
+          data match {
+            case TRAPData(CommonFieldDataWithPlacement(pos, deploy), health) =>
+              pos.coord mustEqual Vector3(3572.4453f, 3277.9766f, 114.0f)
+              pos.orient mustEqual Vector3.z(90)
+              deploy.faction mustEqual PlanetSideEmpire.VS
+              deploy.bops mustEqual false
+              deploy.alternate mustEqual false
+              deploy.v1 mustEqual true
+              deploy.v2.isEmpty mustEqual true
+              deploy.v3 mustEqual false
+              deploy.v4.contains(true) mustEqual true
+              deploy.v5.isEmpty mustEqual true
+              deploy.guid mustEqual PlanetSideGUID(4748)
+              health mustEqual 255
+            case _ =>
+              ko
+          }
         case _ =>
           ko
       }
@@ -34,9 +43,9 @@ class TRAPDataTest extends Specification {
 
     "encode" in {
       val obj = TRAPData(
-        SmallDeployableData(
-          PlacementData(3572.4453f, 3277.9766f, 114.0f, 0f, 0f, 90.0f),
-          PlanetSideEmpire.VS, false, false, 2, false, true, PlanetSideGUID(4748)
+        CommonFieldDataWithPlacement(
+          PlacementData(Vector3(3572.4453f, 3277.9766f, 114.0f), Vector3.z(90)),
+          CommonFieldData(PlanetSideEmpire.VS, false, false, true, None, false, Some(true), None, PlanetSideGUID(4748))
         ),
         255
       )

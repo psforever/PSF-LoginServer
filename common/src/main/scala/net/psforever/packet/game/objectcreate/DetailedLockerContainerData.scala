@@ -69,8 +69,9 @@ object DetailedLockerContainerData extends Marshallable[DetailedLockerContainerD
 
       case 0xC :: unk :: 0 :: 1 :: Some(inv) :: HNil =>
         Attempt.successful(DetailedLockerContainerData(unk, Some(inv)))
-      case _ =>
-        Attempt.failure(Err(s"invalid locker container data format"))
+
+      case data =>
+        Attempt.failure(Err(s"invalid detailed locker container data format - $data"))
     },
     {
       case DetailedLockerContainerData(unk, None) =>

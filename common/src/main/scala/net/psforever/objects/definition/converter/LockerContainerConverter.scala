@@ -10,7 +10,12 @@ import scala.util.{Success, Try}
 
 class LockerContainerConverter extends ObjectCreateConverter[LockerContainer]() {
   override def ConstructorData(obj : LockerContainer) : Try[LockerContainerData] = {
-    Success(LockerContainerData(InventoryData(MakeInventory(obj.Inventory))))
+    MakeInventory(obj.Inventory) match {
+      case Nil =>
+        Success(LockerContainerData(None))
+      case list =>
+        Success(LockerContainerData(InventoryData(list)))
+    }
   }
 
   override def DetailedConstructorData(obj : LockerContainer) : Try[DetailedLockerContainerData] = {
