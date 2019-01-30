@@ -1562,6 +1562,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       case Terminal.BuyEquipment(item) =>
         tplayer.Fit(item) match {
           case Some(index) =>
+            item.Faction = tplayer.Faction
             sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, true))
             taskResolver ! PutEquipmentInSlot(tplayer, item, index)
           case None =>
@@ -1633,10 +1634,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
         else {
           afterHolsters
         }.foreach(entry => {
+          entry.obj.Faction = tplayer.Faction
           taskResolver ! PutEquipmentInSlot(tplayer, entry.obj, entry.start)
         })
         //put items into inventory
         afterInventory.foreach(entry => {
+          entry.obj.Faction = tplayer.Faction
           taskResolver ! PutEquipmentInSlot(tplayer, entry.obj, entry.start)
         })
         //drop stuff on ground
@@ -1646,6 +1649,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           case Some(item) => List(InventoryItem(item, -1)) //add the item previously in free hand, if any
           case None => Nil
         }) ++ dropHolsters ++ dropInventory).foreach(entry => {
+          entry.obj.Faction = PlanetSideEmpire.NEUTRAL
           continent.Ground ! Zone.Ground.DropItem(entry.obj, pos, orient)
         })
         lastTerminalOrderFulfillment = true
@@ -1690,6 +1694,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                 stow
               }
             }).foreach({ case InventoryItem(obj, index) =>
+              obj.Faction = tplayer.Faction
               taskResolver ! stowEquipment(index, obj)
             })
           case None =>
@@ -1826,8 +1831,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
       case Terminal.BuyVehicle(vehicle, weapons, trunk) =>
         continent.Map.TerminalToSpawnPad.get(msg.terminal_guid.guid) match {
           case Some(pad_guid) =>
+            val toFaction = tplayer.Faction
             val pad = continent.GUID(pad_guid).get.asInstanceOf[VehicleSpawnPad]
-            vehicle.Faction = tplayer.Faction
+            vehicle.Faction = toFaction
             vehicle.Continent = continent.Id
             vehicle.Position = pad.Position
             vehicle.Orientation = pad.Orientation
@@ -1837,6 +1843,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
               val index = entry.start
               vWeapons.get(index) match {
                 case Some(slot) =>
+                  entry.obj.Faction = toFaction
                   slot.Equipment = None
                   slot.Equipment = entry.obj
                 case None =>
@@ -1847,6 +1854,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             val vTrunk = vehicle.Trunk
             vTrunk.Clear()
             trunk.foreach(entry => {
+              entry.obj.Faction = toFaction
               vTrunk += entry.start -> entry.obj
             })
             taskResolver ! RegisterNewVehicle(vehicle, pad)
@@ -2472,7 +2480,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
       //TODO begin temp player character auto-loading; remove later
       import net.psforever.objects.GlobalDefinitions._
       import net.psforever.types.CertificationType._
-      val avatar = Avatar(s"TestCharacter$sessionId", PlanetSideEmpire.VS, CharacterGender.Female, 41, CharacterVoice.Voice1)
+      val faction = PlanetSideEmpire.VS
+      val avatar = Avatar(s"TestCharacter$sessionId", faction, CharacterGender.Female, 41, CharacterVoice.Voice1)
       avatar.Certifications += StandardAssault
       avatar.Certifications += MediumAssault
       avatar.Certifications += StandardExoSuit
@@ -2529,6 +2538,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       player.Slot(36).Equipment = AmmoBox(GlobalDefinitions.StandardPistolAmmo(player.Faction))
       player.Slot(39).Equipment = SimpleItem(remote_electronics_kit)
       player.Locker.Inventory += 0 -> SimpleItem(remote_electronics_kit)
+      player.Inventory.Items.foreach { _.obj.Faction = faction }
       //TODO end temp player character auto-loading
       self ! ListAccountCharacters
       import scala.concurrent.ExecutionContext.Implicits.global
@@ -6131,6 +6141,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     obj.Slot(33).Equipment = AmmoBox(bullet_9mm_AP)
     obj.Slot(36).Equipment = AmmoBox(StandardPistolAmmo(faction))
     obj.Slot(39).Equipment = SimpleItem(remote_electronics_kit)
+    obj.Inventory.Items.foreach { _.obj.Faction = faction }
     obj
   }
 

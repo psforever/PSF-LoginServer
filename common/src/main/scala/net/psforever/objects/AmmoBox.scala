@@ -3,6 +3,7 @@ package net.psforever.objects
 
 import net.psforever.objects.definition.AmmoBoxDefinition
 import net.psforever.objects.equipment.{Ammo, Equipment}
+import net.psforever.types.PlanetSideEmpire
 
 class AmmoBox(private val ammoDef : AmmoBoxDefinition,
               cap : Option[Int] = None
@@ -21,6 +22,8 @@ class AmmoBox(private val ammoDef : AmmoBoxDefinition,
   def FullCapacity : Int = ammoDef.Capacity
 
   def Definition : AmmoBoxDefinition = ammoDef
+
+  override def Faction_=(fact : PlanetSideEmpire.Value) : PlanetSideEmpire.Value = Faction
 
   override def toString : String = {
     AmmoBox.toString(this)
