@@ -3771,7 +3771,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                   log.error("UseItem: expected seated vehicle, but found none")
               }
             }
-            else if(tdef.isInstanceOf[TeleportPadTerminalDefinition]) {
+            else if(tdef == GlobalDefinitions.teleportpad_terminal) {
               //explicit request
               terminal.Actor ! Terminal.Request(
                 player,

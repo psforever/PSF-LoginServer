@@ -23,7 +23,7 @@ class DropshipVehicleTerminalTest extends Specification {
     }
 
     "player can buy a galaxy ('dropship')" in {
-      val msg = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Buy, 0, "dropship", 0, PlanetSideGUID(0))
+      val msg = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Buy, 46769, "dropship", 0, PlanetSideGUID(0))
 
       val reply = terminal.Request(player, msg)
       reply.isInstanceOf[Terminal.BuyVehicle] mustEqual true
@@ -46,7 +46,7 @@ class DropshipVehicleTerminalTest extends Specification {
     }
 
     "player can not buy a fake vehicle ('galaxy')" in {
-      val msg = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Buy, 0, "galaxy", 0, PlanetSideGUID(0))
+      val msg = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Buy, 46769, "galaxy", 0, PlanetSideGUID(0))
 
       terminal.Request(player, msg) mustEqual Terminal.NoDeal()
     }

@@ -880,29 +880,31 @@ object GlobalDefinitions {
   /*
   Miscellaneous
    */
-  val order_terminal = new OrderTerminalDefinition
+  val order_terminal = new OrderTerminalDefinition(612)
 
   val ams_respawn_tube = new SpawnTubeDefinition(49)
 
   val matrix_terminalc = new MatrixTerminalDefinition(519)
 
-  val order_terminala = new OrderTerminalABDefinition(613)
+  val order_terminala = new OrderTerminalDefinition(613)
 
-  val order_terminalb = new OrderTerminalABDefinition(614)
+  val order_terminalb = new OrderTerminalDefinition(614)
 
-  val cert_terminal = new CertTerminalDefinition
+  val cert_terminal = new OrderTerminalDefinition(171)
 
   val implant_terminal_mech = new ImplantTerminalMechDefinition
 
-  val implant_terminal_interface = new ImplantTerminalInterfaceDefinition
+  val implant_terminal_interface = new OrderTerminalDefinition(409)
 
-  val ground_vehicle_terminal = new GroundVehicleTerminalDefinition
+  val ground_vehicle_terminal = new OrderTerminalDefinition(386)
 
-  val air_vehicle_terminal = new AirVehicleTerminalDefinition
+  val air_vehicle_terminal = new OrderTerminalDefinition(43)
 
-  val dropship_vehicle_terminal = new DropshipVehicleTerminalDefinition
+  val dropship_vehicle_terminal = new OrderTerminalDefinition(263)
 
-  val vehicle_terminal_combined = new VehicleTerminalCombinedDefinition
+  val vehicle_terminal_combined = new OrderTerminalDefinition(952)
+
+  val bfr_terminal = new OrderTerminalDefinition(143)
 
   val spawn_terminal = new MatrixTerminalDefinition(812)
 
@@ -910,7 +912,7 @@ object GlobalDefinitions {
 
   val respawn_tube_tower = new SpawnTubeDefinition(733)
 
-  val teleportpad_terminal = new TeleportPadTerminalDefinition
+  val teleportpad_terminal = new OrderTerminalDefinition(853)
 
   val adv_med_terminal = new MedicalTerminalDefinition(38)
 
@@ -944,13 +946,13 @@ object GlobalDefinitions {
 
   val lodestar_repair_terminal = new MedicalTerminalDefinition(461)
 
-  val multivehicle_rearm_terminal = new _OrderTerminalDefinition(576)
+  val multivehicle_rearm_terminal = new OrderTerminalDefinition(576)
 
-  val bfr_rearm_terminal = new _OrderTerminalDefinition(142)
+  val bfr_rearm_terminal = new OrderTerminalDefinition(142)
 
-  val air_rearm_terminal = new _OrderTerminalDefinition(42)
+  val air_rearm_terminal = new OrderTerminalDefinition(42)
 
-  val ground_rearm_terminal = new _OrderTerminalDefinition(384)
+  val ground_rearm_terminal = new OrderTerminalDefinition(384)
 
   val manned_turret = new TurretDefinition(480)
   initMiscellaneous()
@@ -5595,6 +5597,59 @@ object GlobalDefinitions {
     * Initialize `Miscellaneous` globals.
     */
   private def initMiscellaneous() : Unit = {
+    order_terminal.Name = "order_terminal"
+    order_terminal.Page += 0 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.infantryAmmunition ++ EquipmentTerminalDefinition.infantryWeapons)
+    order_terminal.Page += 1 -> OrderTerminalDefinition.ArmorPage(EquipmentTerminalDefinition.suits ++ EquipmentTerminalDefinition.maxSuits, EquipmentTerminalDefinition.maxAmmo)
+    order_terminal.Page += 2 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.supportAmmunition ++ EquipmentTerminalDefinition.supportWeapons)
+    order_terminal.Page += 3 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
+    order_terminal.Page += 4 -> OrderTerminalDefinition.InfantryLoadoutPage()
+    order_terminal.SellEquipmentByDefault = true
+
+    order_terminala.Name = "order_terminala"
+    order_terminala.Page += 0 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.infantryAmmunition ++ EquipmentTerminalDefinition.infantryWeapons)
+    order_terminala.Page += 1 -> OrderTerminalDefinition.ArmorPage(EquipmentTerminalDefinition.suits, EquipmentTerminalDefinition.maxAmmo)
+    order_terminala.Page += 2 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.supportAmmunition ++ EquipmentTerminalDefinition.supportWeapons)
+    order_terminala.Page += 3 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
+    order_terminala.Page += 4 -> OrderTerminalDefinition.InfantryLoadoutPage()
+    order_terminala.SellEquipmentByDefault = true
+
+    order_terminalb.Name = "order_terminalb"
+    order_terminalb.Page += 0 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.infantryAmmunition ++ EquipmentTerminalDefinition.infantryWeapons)
+    order_terminalb.Page += 1 -> OrderTerminalDefinition.ArmorPage(EquipmentTerminalDefinition.suits, EquipmentTerminalDefinition.maxAmmo)
+    order_terminalb.Page += 2 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.supportAmmunition ++ EquipmentTerminalDefinition.supportWeapons)
+    order_terminalb.Page += 3 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
+    order_terminalb.Page += 4 -> OrderTerminalDefinition.InfantryLoadoutPage()
+    order_terminalb.SellEquipmentByDefault = true
+
+    cert_terminal.Name = "cert_terminal"
+    cert_terminal.Page += 0 -> OrderTerminalDefinition.CertificationPage(CertTerminalDefinition.certs)
+
+    implant_terminal_interface.Name = "implant_terminal_interface"
+    implant_terminal_interface.Page += 0 -> OrderTerminalDefinition.ImplantPage(ImplantTerminalDefinition.implants)
+
+    ground_vehicle_terminal.Name = "ground_vehicle_terminal"
+    ground_vehicle_terminal.Page += 46769 -> OrderTerminalDefinition.VehiclePage(VehicleTerminalDefinition.groundVehicles, VehicleTerminalDefinition.trunk)
+    ground_vehicle_terminal.Page += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
+
+    air_vehicle_terminal.Name = "air_vehicle_terminal"
+    air_vehicle_terminal.Page += 46769 -> OrderTerminalDefinition.VehiclePage(VehicleTerminalDefinition.flight1Vehicles, VehicleTerminalDefinition.trunk)
+    air_vehicle_terminal.Page += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
+
+    dropship_vehicle_terminal.Name = "dropship_vehicle_terminal"
+    dropship_vehicle_terminal.Page += 46769 -> OrderTerminalDefinition.VehiclePage(VehicleTerminalDefinition.flight1Vehicles ++ VehicleTerminalDefinition.flight2Vehicles, VehicleTerminalDefinition.trunk)
+    dropship_vehicle_terminal.Page += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
+
+    vehicle_terminal_combined.Name = "vehicle_terminal_combined"
+    vehicle_terminal_combined.Page += 46769 -> OrderTerminalDefinition.VehiclePage(VehicleTerminalDefinition.flight1Vehicles ++ VehicleTerminalDefinition.groundVehicles, VehicleTerminalDefinition.trunk)
+    vehicle_terminal_combined.Page += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
+
+    bfr_terminal.Name = "bfr_terminal"
+    bfr_terminal.Page += 46769 -> OrderTerminalDefinition.VehiclePage(VehicleTerminalDefinition.bfrVehicles, VehicleTerminalDefinition.trunk)
+    bfr_terminal.Page += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
+
+    teleportpad_terminal.Name = "teleportpad_terminal"
+    teleportpad_terminal.Page += 0 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.routerTerminal)
+
     adv_med_terminal.Name = "adv_med_terminal"
     adv_med_terminal.Interval = 500
     adv_med_terminal.HealAmount = 8
@@ -5653,20 +5708,24 @@ object GlobalDefinitions {
     lodestar_repair_terminal.TargetValidation += ProximityTarget.Vehicle -> ProximityTerminalControl.Validation.RepairSilo
 
     multivehicle_rearm_terminal.Name = "multivehicle_rearm_terminal"
-    multivehicle_rearm_terminal.Page += 3 -> _OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
-    multivehicle_rearm_terminal.Page += 4 -> _OrderTerminalDefinition.VehicleLoadoutPage()
+    multivehicle_rearm_terminal.Page += 3 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
+    multivehicle_rearm_terminal.Page += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
+    multivehicle_rearm_terminal.SellEquipmentByDefault = true //TODO ?
 
     bfr_rearm_terminal.Name = "bfr_rearm_terminal"
-    bfr_rearm_terminal.Page += 3 -> _OrderTerminalDefinition.EquipmentPage(Map.empty[String, ()=>Equipment]) //TODO add stock to page
-    bfr_rearm_terminal.Page += 4 -> _OrderTerminalDefinition.VehicleLoadoutPage()
+    bfr_rearm_terminal.Page += 3 -> OrderTerminalDefinition.EquipmentPage(Map.empty[String, ()=>Equipment]) //TODO add stock to page
+    bfr_rearm_terminal.Page += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
+    bfr_rearm_terminal.SellEquipmentByDefault = true //TODO ?
 
     air_rearm_terminal.Name = "air_rearm_terminal"
-    air_rearm_terminal.Page += 3 -> _OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
-    air_rearm_terminal.Page += 4 -> _OrderTerminalDefinition.VehicleLoadoutPage()
+    air_rearm_terminal.Page += 3 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
+    air_rearm_terminal.Page += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
+    air_rearm_terminal.SellEquipmentByDefault = true //TODO ?
 
     ground_rearm_terminal.Name = "ground_rearm_terminal"
-    ground_rearm_terminal.Page += 3 -> _OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
-    ground_rearm_terminal.Page += 4 -> _OrderTerminalDefinition.VehicleLoadoutPage()
+    ground_rearm_terminal.Page += 3 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
+    ground_rearm_terminal.Page += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
+    ground_rearm_terminal.SellEquipmentByDefault = true //TODO ?
 
     manned_turret.Name = "manned_turret"
     manned_turret.MaxHealth = 3600

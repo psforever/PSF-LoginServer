@@ -23,7 +23,7 @@ class VehicleTerminalCombinedTest extends Specification {
     }
 
     "player can buy a ground vehicle, the harasser ('two_man_assault_buggy')" in {
-      val msg = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Buy, 0, "two_man_assault_buggy", 0, PlanetSideGUID(0))
+      val msg = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Buy, 46769, "two_man_assault_buggy", 0, PlanetSideGUID(0))
 
       val reply = terminal.Request(player, msg)
       reply.isInstanceOf[Terminal.BuyVehicle] mustEqual true
@@ -40,7 +40,7 @@ class VehicleTerminalCombinedTest extends Specification {
     }
 
     "player can buy a flying vehicle, the reaver ('lightgunship')" in {
-      val msg = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Buy, 0, "lightgunship", 0, PlanetSideGUID(0))
+      val msg = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Buy, 46769, "lightgunship", 0, PlanetSideGUID(0))
 
       val reply = terminal.Request(player, msg)
       reply.isInstanceOf[Terminal.BuyVehicle] mustEqual true
@@ -57,7 +57,7 @@ class VehicleTerminalCombinedTest extends Specification {
     }
 
     "player can not buy a fake vehicle ('harasser')" in {
-      val msg = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Buy, 0, "harasser", 0, PlanetSideGUID(0))
+      val msg = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Buy, 46769, "harasser", 0, PlanetSideGUID(0))
 
       terminal.Request(player, msg) mustEqual Terminal.NoDeal()
     }

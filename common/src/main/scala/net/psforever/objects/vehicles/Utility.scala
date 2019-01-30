@@ -218,19 +218,19 @@ object Utility {
     case UtilityType.ams_respawn_tube =>
       SpawnTubeDefinition.Setup
     case UtilityType.bfr_rearm_terminal =>
-      _OrderTerminalDefinition.Setup
+      OrderTerminalDefinition.Setup
     case UtilityType.lodestar_repair_terminal =>
       ProximityTerminal.Setup
     case UtilityType.matrix_terminalc =>
       MatrixTerminalDefinition.Setup
     case UtilityType.multivehicle_rearm_terminal =>
-      _OrderTerminalDefinition.Setup
+      OrderTerminalDefinition.Setup
     case UtilityType.order_terminala =>
-      OrderTerminalABDefinition.Setup
+      OrderTerminalDefinition.Setup
     case UtilityType.order_terminalb =>
-      OrderTerminalABDefinition.Setup
+      OrderTerminalDefinition.Setup
     case UtilityType.teleportpad_terminal =>
-      TeleportPadTerminalDefinition.Setup
+      OrderTerminalDefinition.Setup
     case UtilityType.internal_router_telepad_deployable =>
       TelepadLike.Setup
   }
