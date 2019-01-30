@@ -12,24 +12,30 @@ import scala.util.{Failure, Success, Try}
 class InternalTelepadDeployableConverter extends ObjectCreateConverter[PlanetSideGameObject with TelepadLike]() {
   override def ConstructorData(obj : PlanetSideGameObject with TelepadLike) : Try[InternalTelepadDeployableData] = {
     obj.Router match {
+      case Some(PlanetSideGUID(0)) =>
+        Failure(new IllegalStateException("InternalTelepadDeployableConverter: knowledge of parent Router is null"))
+
       case Some(router) =>
         Success(
           InternalTelepadDeployableData(
             CommonFieldData(
               PlanetSideEmpire.NEUTRAL,
-              false,
-              false,
+              bops = false,
+              alternate = false,
               true,
               None,
               false,
               None,
               Some(router.guid),
               PlanetSideGUID(0)
-            )
+            ),
+            unk1 = 128,
+            unk2 = 0
           )
         )
+
       case None =>
-        Failure(new IllegalStateException("InternalTelepadDeployableConverter: telepad needs to know id of its router"))
+        Failure(new IllegalStateException("InternalTelepadDeployableConverter: telepad needs to know id of its parent Router"))
     }
   }
 }

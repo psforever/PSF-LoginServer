@@ -10,26 +10,30 @@ import shapeless.{::, HNil}
 /**
   * na
   */
-final case class InternalTelepadDeployableData(data : CommonFieldData) extends ConstructorData {
+final case class InternalTelepadDeployableData(data : CommonFieldData,
+                                               unk1 : Int,
+                                               unk2 : Int
+                                              ) extends ConstructorData {
   override def bitsize : Long = 59L
 }
 
 object InternalTelepadDeployableData extends Marshallable[InternalTelepadDeployableData] {
   implicit val codec : Codec[InternalTelepadDeployableData] = (
     ("data" | CommonFieldData.codec) ::
-      uint4 ::
-      uint16
+      ("unk1" | uint8) ::
+      uint8 ::
+      ("unk2" | uint4)
     ).exmap[InternalTelepadDeployableData] (
     {
-      case data :: 8 :: 0 :: HNil  =>
-        Attempt.successful(InternalTelepadDeployableData(data))
+      case data :: unk1 :: 0 :: unk2 :: HNil  =>
+        Attempt.successful(InternalTelepadDeployableData(data, unk1, unk2))
 
       case data =>
         Attempt.failure(Err(s"invalid internal telepad data format - $data"))
     },
     {
-      case InternalTelepadDeployableData(data) =>
-        Attempt.successful(data :: 8 :: 0 :: HNil)
+      case InternalTelepadDeployableData(data, unk1, unk2) =>
+        Attempt.successful(data :: unk1 :: 0 :: unk2 :: HNil)
     }
   )
 }

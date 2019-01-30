@@ -21,7 +21,7 @@ class TelepadDeployableDataTest extends Specification {
           guid mustEqual PlanetSideGUID(353)
           parent.isDefined mustEqual false
           data match {
-            case TelepadDeployableData(deploy, a, b) =>
+            case TelepadDeployableData(deploy, u1, u2) =>
               deploy.pos.coord mustEqual Vector3(6559.961f, 1960.1172f, 13.640625f)
               deploy.pos.orient mustEqual Vector3.z(109.6875f)
               deploy.pos.vel.isDefined mustEqual false
@@ -40,6 +40,8 @@ class TelepadDeployableDataTest extends Specification {
                 case _ =>
                   ko
               }
+              u1 mustEqual 87
+              u2 mustEqual 12
             case _ =>
               ko
           }

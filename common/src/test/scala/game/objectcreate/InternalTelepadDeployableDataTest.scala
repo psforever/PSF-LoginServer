@@ -22,7 +22,7 @@ class InternalTelepadDeployableDataTest extends Specification {
           parent.get.guid mustEqual PlanetSideGUID(385)
           parent.get.slot mustEqual 2
           data match {
-            case InternalTelepadDeployableData(CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid)) =>
+            case InternalTelepadDeployableData(CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid), u1, u2) =>
               faction mustEqual PlanetSideEmpire.NEUTRAL
               bops mustEqual false
               alternate mustEqual false
@@ -32,6 +32,9 @@ class InternalTelepadDeployableDataTest extends Specification {
               v4.isEmpty mustEqual true
               v5.contains(385) mustEqual true
               fguid mustEqual PlanetSideGUID(0)
+
+              u1 mustEqual 128
+              u2 mustEqual 0
             case _ =>
               ko
           }
@@ -42,7 +45,8 @@ class InternalTelepadDeployableDataTest extends Specification {
 
     "encode" in {
       val obj = InternalTelepadDeployableData(
-        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, Some(385), PlanetSideGUID(0))
+        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, Some(385), PlanetSideGUID(0)),
+        128, 0
       )
       val msg = ObjectCreateMessage(744, PlanetSideGUID(432), ObjectCreateMessageParent(PlanetSideGUID(385), 2), obj)
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
