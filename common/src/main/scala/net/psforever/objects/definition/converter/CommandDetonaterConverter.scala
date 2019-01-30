@@ -30,7 +30,17 @@ class CommandDetonaterConverter extends ObjectCreateConverter[SimpleItem]() {
   override def DetailedConstructorData(obj : SimpleItem) : Try[DetailedCommandDetonaterData] = {
     Success(
       DetailedCommandDetonaterData(
-
+        CommonFieldData(
+          obj.Faction,
+          false,
+          false,
+          false,
+          None,
+          false,
+          None,
+          None,
+          PlanetSideGUID(0)
+        )
       )
     )
   }

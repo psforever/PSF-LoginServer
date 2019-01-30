@@ -2347,7 +2347,7 @@ class DetailedCharacterDataTest extends Specification {
               )
             )))
           ),
-          InternalSlot(213, PlanetSideGUID(6877), 6, DetailedCommandDetonaterData(4, 8)),
+          InternalSlot(213, PlanetSideGUID(6877), 6, DetailedCommandDetonaterData(CommonFieldData(PlanetSideEmpire.NC, false, false, true, None, false, None, None, PlanetSideGUID(0)))),
           InternalSlot(755, PlanetSideGUID(6227), 9, DetailedAmmoBoxData(8, 16)),
           InternalSlot(728, PlanetSideGUID(7181), 12, DetailedREKData(CommonFieldData(PlanetSideEmpire.NC, false, false, true, None, false, Some(false), None, PlanetSideGUID(0)), 16)),
           InternalSlot(536, PlanetSideGUID(4077), 33, DetailedAmmoBoxData(8, 1)),
