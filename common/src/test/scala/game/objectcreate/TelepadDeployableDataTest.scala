@@ -21,13 +21,13 @@ class TelepadDeployableDataTest extends Specification {
           guid mustEqual PlanetSideGUID(353)
           parent.isDefined mustEqual false
           data match {
-            case TelepadDeployableData(deploy, u1, u2) =>
-              deploy.pos.coord mustEqual Vector3(6559.961f, 1960.1172f, 13.640625f)
-              deploy.pos.orient mustEqual Vector3.z(109.6875f)
-              deploy.pos.vel.isDefined mustEqual false
+            case DroppedItemData(pos, telepad) =>
+              pos.coord mustEqual Vector3(6559.961f, 1960.1172f, 13.640625f)
+              pos.orient mustEqual Vector3.z(109.6875f)
+              pos.vel.isDefined mustEqual false
 
-              deploy.data match {
-                case CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid) =>
+              telepad match {
+                case TelepadDeployableData(CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid), u1, u2) =>
                   faction mustEqual PlanetSideEmpire.TR
                   bops mustEqual false
                   alternate mustEqual false
@@ -37,11 +37,12 @@ class TelepadDeployableDataTest extends Specification {
                   v4.isEmpty mustEqual true
                   v5.contains(385) mustEqual true
                   fguid mustEqual PlanetSideGUID(430)
+
+                  u1 mustEqual 87
+                  u2 mustEqual 12
                 case _ =>
                   ko
               }
-              u1 mustEqual 87
-              u2 mustEqual 12
             case _ =>
               ko
           }
@@ -51,12 +52,12 @@ class TelepadDeployableDataTest extends Specification {
     }
 
     "encode" in {
-      val obj = TelepadDeployableData(
-        CommonFieldDataWithPlacement(
-          PlacementData(
-            Vector3(6559.961f, 1960.1172f, 13.640625f),
-            Vector3.z(109.6875f)
-          ),
+      val obj = DroppedItemData(
+        PlacementData(
+          Vector3(6559.961f, 1960.1172f, 13.640625f),
+          Vector3.z(109.6875f)
+        ),
+        TelepadDeployableData(
           CommonFieldData(
             PlanetSideEmpire.TR,
             bops = false,
@@ -67,9 +68,9 @@ class TelepadDeployableDataTest extends Specification {
             None,
             Some(385),
             PlanetSideGUID(430)
-          )
-        ),
-        87, 12
+          ),
+          87, 12
+        )
       )
       val msg = ObjectCreateMessage(ObjectClass.router_telepad_deployable, PlanetSideGUID(353), obj)
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector

@@ -8,7 +8,7 @@ import net.psforever.packet.game.objectcreate._
 import scala.util.{Failure, Success, Try}
 
 class TelepadDeployableConverter extends ObjectCreateConverter[TelepadDeployable]() {
-  override def ConstructorData(obj : TelepadDeployable) : Try[TelepadDeployableData] = {
+  override def ConstructorData(obj : TelepadDeployable) : Try[DroppedItemData[TelepadDeployableData]] = {
     obj.Router match {
       case Some(PlanetSideGUID(0)) =>
         Failure(new IllegalStateException("TelepadDeployableConverter: knowledge of associated Router is null"))
@@ -16,9 +16,9 @@ class TelepadDeployableConverter extends ObjectCreateConverter[TelepadDeployable
       case Some(router) =>
         if(obj.Health > 0) {
           Success(
-            TelepadDeployableData(
-              CommonFieldDataWithPlacement(
-                PlacementData(obj.Position, obj.Orientation),
+            DroppedItemData(
+              PlacementData(obj.Position, obj.Orientation),
+              TelepadDeployableData(
                 CommonFieldData(
                   obj.Faction,
                   bops = false,
@@ -29,18 +29,18 @@ class TelepadDeployableConverter extends ObjectCreateConverter[TelepadDeployable
                   None,
                   Some(router.guid),
                   obj.Owner.getOrElse(PlanetSideGUID(0))
-                )
-              ),
-              unk1 = 87,
-              unk2 = 12
+                ),
+                unk1 = 87,
+                unk2 = 12
+              )
             )
           )
         }
         else {
           Success(
-            TelepadDeployableData(
-              CommonFieldDataWithPlacement(
-                PlacementData(obj.Position, obj.Orientation),
+            DroppedItemData(
+              PlacementData(obj.Position, obj.Orientation),
+              TelepadDeployableData(
                 CommonFieldData(
                   obj.Faction,
                   bops = false,
@@ -51,10 +51,10 @@ class TelepadDeployableConverter extends ObjectCreateConverter[TelepadDeployable
                   None,
                   Some(router.guid),
                   PlanetSideGUID(0)
-                )
-              ),
-              unk1 = 0,
-              unk2 = 6
+                ),
+                unk1 = 0,
+                unk2 = 6
+              )
             )
           )
         }

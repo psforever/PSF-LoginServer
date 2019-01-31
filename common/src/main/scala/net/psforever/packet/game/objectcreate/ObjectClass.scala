@@ -971,7 +971,7 @@ object ObjectClass {
       case ObjectClass.ace => ConstructorData(HandheldData.codec, "ace")
       case ObjectClass.advanced_ace => ConstructorData(HandheldData.codec, "advanced ace")
       case ObjectClass.router_telepad => ConstructorData(HandheldData.codec, "router telepad")
-      case ObjectClass.router_telepad_deployable => ConstructorData(InternalTelepadDeployableData.codec, "router telepad")
+      case ObjectClass.router_telepad_deployable => ConstructorData(TelepadDeployableData.codec, "router telepad")
       case ObjectClass.boomer_trigger => ConstructorData(HandheldData.codec, "boomer trigger")
       //vehicles?
       case ObjectClass.orbital_shuttle => ConstructorData(OrbitalShuttleData.codec, "HART")
@@ -1218,7 +1218,7 @@ object ObjectClass {
       case ObjectClass.portable_manned_turret_nc => ConstructorData(OneMannedFieldTurretData.codec, "field turret")
       case ObjectClass.portable_manned_turret_tr => ConstructorData(OneMannedFieldTurretData.codec, "field turret")
       case ObjectClass.portable_manned_turret_vs => ConstructorData(OneMannedFieldTurretData.codec, "field turret")
-      case ObjectClass.router_telepad_deployable => ConstructorData(TelepadDeployableData.codec, "telepad deployable")
+      case ObjectClass.router_telepad_deployable => DroppedItemData(TelepadDeployableData.codec, "telepad deployable")
       //projectiles
       case ObjectClass.hunter_seeker_missile_projectile => ConstructorData(TrackedProjectileData.codec, "projectile")
       case ObjectClass.meteor_common => ConstructorData(TrackedProjectileData.codec, "meteor")

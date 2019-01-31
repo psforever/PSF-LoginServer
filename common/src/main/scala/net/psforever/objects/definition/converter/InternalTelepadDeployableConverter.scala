@@ -10,14 +10,14 @@ import net.psforever.types.PlanetSideEmpire
 import scala.util.{Failure, Success, Try}
 
 class InternalTelepadDeployableConverter extends ObjectCreateConverter[PlanetSideGameObject with TelepadLike]() {
-  override def ConstructorData(obj : PlanetSideGameObject with TelepadLike) : Try[InternalTelepadDeployableData] = {
+  override def ConstructorData(obj : PlanetSideGameObject with TelepadLike) : Try[TelepadDeployableData] = {
     obj.Router match {
       case Some(PlanetSideGUID(0)) =>
         Failure(new IllegalStateException("InternalTelepadDeployableConverter: knowledge of parent Router is null"))
 
       case Some(router) =>
         Success(
-          InternalTelepadDeployableData(
+          TelepadDeployableData(
             CommonFieldData(
               PlanetSideEmpire.NEUTRAL,
               bops = false,

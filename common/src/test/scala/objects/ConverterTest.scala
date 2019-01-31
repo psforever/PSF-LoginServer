@@ -462,9 +462,9 @@ class ConverterTest extends Specification {
       obj.Health = 1
       obj.Definition.Packet.ConstructorData(obj) match {
         case Success(pkt) =>
-          pkt mustEqual TelepadDeployableData(
-            CommonFieldDataWithPlacement(
-              PlacementData(Vector3.Zero, Vector3.Zero),
+          pkt mustEqual DroppedItemData(
+            PlacementData(Vector3.Zero, Vector3.Zero),
+            TelepadDeployableData(
               CommonFieldData(
                 PlanetSideEmpire.TR,
                 bops = false,
@@ -475,9 +475,10 @@ class ConverterTest extends Specification {
                 None,
                 Some(1001),
                 PlanetSideGUID(5001)
-              )
-            ),
-            unk1 = 87, unk2 = 12
+              ),
+              unk1 = 87,
+              unk2 = 12
+            )
           )
         case _ =>
           ko
@@ -493,9 +494,9 @@ class ConverterTest extends Specification {
       obj.Health = 0
       obj.Definition.Packet.ConstructorData(obj) match {
         case Success(pkt) =>
-          pkt mustEqual TelepadDeployableData(
-            CommonFieldDataWithPlacement(
-              PlacementData(Vector3.Zero, Vector3.Zero),
+          pkt mustEqual DroppedItemData(
+            PlacementData(Vector3.Zero, Vector3.Zero),
+            TelepadDeployableData(
               CommonFieldData(
                 PlanetSideEmpire.TR,
                 bops = false,
@@ -506,9 +507,10 @@ class ConverterTest extends Specification {
                 None,
                 Some(1001),
                 PlanetSideGUID(0)
-              )
-            ),
-            unk1 = 0, unk2 = 6
+              ),
+              unk1 = 0,
+              unk2 = 6
+            )
           )
         case _ =>
           ko

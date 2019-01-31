@@ -8,21 +8,21 @@ import shapeless.{::, HNil}
 
 /**
   * A representation of simple objects that are spawned by the adaptive construction engine.
-  * @param deploy data common to game objects
+  * @param data data common to game objects
   * @param unk1 na
   * @param unk2 na
   */
-final case class TelepadDeployableData(deploy : CommonFieldDataWithPlacement,
+final case class TelepadDeployableData(data : CommonFieldData,
                                        unk1 : Int,
                                        unk2 : Int) extends ConstructorData {
   override def bitsize : Long = {
-    20 + deploy.bitsize
+    20L + data.bitsize
   }
 }
 
 object TelepadDeployableData extends Marshallable[TelepadDeployableData] {
   implicit val codec : Codec[TelepadDeployableData] = (
-    ("deploy" | CommonFieldDataWithPlacement.codec) ::
+    ("deploy" | CommonFieldData.codec) ::
       ("unk1" | uint8) ::
       uint8 ::
       ("unk2" | uint4)
