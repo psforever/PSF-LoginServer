@@ -5598,57 +5598,57 @@ object GlobalDefinitions {
     */
   private def initMiscellaneous() : Unit = {
     order_terminal.Name = "order_terminal"
-    order_terminal.Page += 0 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.infantryAmmunition ++ EquipmentTerminalDefinition.infantryWeapons)
-    order_terminal.Page += 1 -> OrderTerminalDefinition.ArmorPage(EquipmentTerminalDefinition.suits ++ EquipmentTerminalDefinition.maxSuits, EquipmentTerminalDefinition.maxAmmo)
-    order_terminal.Page += 2 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.supportAmmunition ++ EquipmentTerminalDefinition.supportWeapons)
-    order_terminal.Page += 3 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
-    order_terminal.Page += 4 -> OrderTerminalDefinition.InfantryLoadoutPage()
+    order_terminal.Tab += 0 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.infantryAmmunition ++ EquipmentTerminalDefinition.infantryWeapons)
+    order_terminal.Tab += 1 -> OrderTerminalDefinition.ArmorWithAmmoPage(EquipmentTerminalDefinition.suits ++ EquipmentTerminalDefinition.maxSuits, EquipmentTerminalDefinition.maxAmmo)
+    order_terminal.Tab += 2 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.supportAmmunition ++ EquipmentTerminalDefinition.supportWeapons)
+    order_terminal.Tab += 3 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
+    order_terminal.Tab += 4 -> OrderTerminalDefinition.InfantryLoadoutPage()
     order_terminal.SellEquipmentByDefault = true
 
     order_terminala.Name = "order_terminala"
-    order_terminala.Page += 0 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.infantryAmmunition ++ EquipmentTerminalDefinition.infantryWeapons)
-    order_terminala.Page += 1 -> OrderTerminalDefinition.ArmorPage(EquipmentTerminalDefinition.suits, EquipmentTerminalDefinition.maxAmmo)
-    order_terminala.Page += 2 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.supportAmmunition ++ EquipmentTerminalDefinition.supportWeapons)
-    order_terminala.Page += 3 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
-    order_terminala.Page += 4 -> OrderTerminalDefinition.InfantryLoadoutPage()
+    order_terminala.Tab += 0 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.infantryAmmunition ++ EquipmentTerminalDefinition.infantryWeapons)
+    order_terminala.Tab += 1 -> OrderTerminalDefinition.ArmorWithAmmoPage(EquipmentTerminalDefinition.suits, EquipmentTerminalDefinition.maxAmmo)
+    order_terminala.Tab += 2 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.supportAmmunition ++ EquipmentTerminalDefinition.supportWeapons)
+    order_terminala.Tab += 3 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
+    order_terminala.Tab += 4 -> OrderTerminalDefinition.InfantryLoadoutPage()
     order_terminala.SellEquipmentByDefault = true
 
     order_terminalb.Name = "order_terminalb"
-    order_terminalb.Page += 0 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.infantryAmmunition ++ EquipmentTerminalDefinition.infantryWeapons)
-    order_terminalb.Page += 1 -> OrderTerminalDefinition.ArmorPage(EquipmentTerminalDefinition.suits, EquipmentTerminalDefinition.maxAmmo)
-    order_terminalb.Page += 2 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.supportAmmunition ++ EquipmentTerminalDefinition.supportWeapons)
-    order_terminalb.Page += 3 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
-    order_terminalb.Page += 4 -> OrderTerminalDefinition.InfantryLoadoutPage()
+    order_terminalb.Tab += 0 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.infantryAmmunition ++ EquipmentTerminalDefinition.infantryWeapons)
+    order_terminalb.Tab += 1 -> OrderTerminalDefinition.ArmorWithAmmoPage(EquipmentTerminalDefinition.suits, EquipmentTerminalDefinition.maxAmmo)
+    order_terminalb.Tab += 2 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.supportAmmunition ++ EquipmentTerminalDefinition.supportWeapons)
+    order_terminalb.Tab += 3 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
+    order_terminalb.Tab += 4 -> OrderTerminalDefinition.InfantryLoadoutPage()
     order_terminalb.SellEquipmentByDefault = true
 
     cert_terminal.Name = "cert_terminal"
-    cert_terminal.Page += 0 -> OrderTerminalDefinition.CertificationPage(CertTerminalDefinition.certs)
+    cert_terminal.Tab += 0 -> OrderTerminalDefinition.CertificationPage(CertTerminalDefinition.certs)
 
     implant_terminal_interface.Name = "implant_terminal_interface"
-    implant_terminal_interface.Page += 0 -> OrderTerminalDefinition.ImplantPage(ImplantTerminalDefinition.implants)
+    implant_terminal_interface.Tab += 0 -> OrderTerminalDefinition.ImplantPage(ImplantTerminalDefinition.implants)
 
     ground_vehicle_terminal.Name = "ground_vehicle_terminal"
-    ground_vehicle_terminal.Page += 46769 -> OrderTerminalDefinition.VehiclePage(VehicleTerminalDefinition.groundVehicles, VehicleTerminalDefinition.trunk)
-    ground_vehicle_terminal.Page += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
+    ground_vehicle_terminal.Tab += 46769 -> OrderTerminalDefinition.VehiclePage(VehicleTerminalDefinition.groundVehicles, VehicleTerminalDefinition.trunk)
+    ground_vehicle_terminal.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
 
     air_vehicle_terminal.Name = "air_vehicle_terminal"
-    air_vehicle_terminal.Page += 46769 -> OrderTerminalDefinition.VehiclePage(VehicleTerminalDefinition.flight1Vehicles, VehicleTerminalDefinition.trunk)
-    air_vehicle_terminal.Page += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
+    air_vehicle_terminal.Tab += 46769 -> OrderTerminalDefinition.VehiclePage(VehicleTerminalDefinition.flight1Vehicles, VehicleTerminalDefinition.trunk)
+    air_vehicle_terminal.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
 
     dropship_vehicle_terminal.Name = "dropship_vehicle_terminal"
-    dropship_vehicle_terminal.Page += 46769 -> OrderTerminalDefinition.VehiclePage(VehicleTerminalDefinition.flight1Vehicles ++ VehicleTerminalDefinition.flight2Vehicles, VehicleTerminalDefinition.trunk)
-    dropship_vehicle_terminal.Page += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
+    dropship_vehicle_terminal.Tab += 46769 -> OrderTerminalDefinition.VehiclePage(VehicleTerminalDefinition.flight1Vehicles ++ VehicleTerminalDefinition.flight2Vehicles, VehicleTerminalDefinition.trunk)
+    dropship_vehicle_terminal.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
 
     vehicle_terminal_combined.Name = "vehicle_terminal_combined"
-    vehicle_terminal_combined.Page += 46769 -> OrderTerminalDefinition.VehiclePage(VehicleTerminalDefinition.flight1Vehicles ++ VehicleTerminalDefinition.groundVehicles, VehicleTerminalDefinition.trunk)
-    vehicle_terminal_combined.Page += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
+    vehicle_terminal_combined.Tab += 46769 -> OrderTerminalDefinition.VehiclePage(VehicleTerminalDefinition.flight1Vehicles ++ VehicleTerminalDefinition.groundVehicles, VehicleTerminalDefinition.trunk)
+    vehicle_terminal_combined.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
 
     bfr_terminal.Name = "bfr_terminal"
-    bfr_terminal.Page += 46769 -> OrderTerminalDefinition.VehiclePage(VehicleTerminalDefinition.bfrVehicles, VehicleTerminalDefinition.trunk)
-    bfr_terminal.Page += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
+    bfr_terminal.Tab += 46769 -> OrderTerminalDefinition.VehiclePage(VehicleTerminalDefinition.bfrVehicles, VehicleTerminalDefinition.trunk)
+    bfr_terminal.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
 
     teleportpad_terminal.Name = "teleportpad_terminal"
-    teleportpad_terminal.Page += 0 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.routerTerminal)
+    teleportpad_terminal.Tab += 0 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.routerTerminal)
 
     adv_med_terminal.Name = "adv_med_terminal"
     adv_med_terminal.Interval = 500
@@ -5708,23 +5708,23 @@ object GlobalDefinitions {
     lodestar_repair_terminal.TargetValidation += ProximityTarget.Vehicle -> ProximityTerminalControl.Validation.RepairSilo
 
     multivehicle_rearm_terminal.Name = "multivehicle_rearm_terminal"
-    multivehicle_rearm_terminal.Page += 3 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
-    multivehicle_rearm_terminal.Page += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
+    multivehicle_rearm_terminal.Tab += 3 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
+    multivehicle_rearm_terminal.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
     multivehicle_rearm_terminal.SellEquipmentByDefault = true //TODO ?
 
     bfr_rearm_terminal.Name = "bfr_rearm_terminal"
-    bfr_rearm_terminal.Page += 3 -> OrderTerminalDefinition.EquipmentPage(Map.empty[String, ()=>Equipment]) //TODO add stock to page
-    bfr_rearm_terminal.Page += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
+    bfr_rearm_terminal.Tab += 3 -> OrderTerminalDefinition.EquipmentPage(Map.empty[String, ()=>Equipment]) //TODO add stock to page
+    bfr_rearm_terminal.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
     bfr_rearm_terminal.SellEquipmentByDefault = true //TODO ?
 
     air_rearm_terminal.Name = "air_rearm_terminal"
-    air_rearm_terminal.Page += 3 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
-    air_rearm_terminal.Page += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
+    air_rearm_terminal.Tab += 3 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
+    air_rearm_terminal.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
     air_rearm_terminal.SellEquipmentByDefault = true //TODO ?
 
     ground_rearm_terminal.Name = "ground_rearm_terminal"
-    ground_rearm_terminal.Page += 3 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
-    ground_rearm_terminal.Page += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
+    ground_rearm_terminal.Tab += 3 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
+    ground_rearm_terminal.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
     ground_rearm_terminal.SellEquipmentByDefault = true //TODO ?
 
     manned_turret.Name = "manned_turret"

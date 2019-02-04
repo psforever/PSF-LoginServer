@@ -39,14 +39,17 @@ class Terminal(tdef : TerminalDefinition) extends Amenity with Hackable {
   def Request(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
     if(Faction == player.Faction || HackedBy.isDefined) {
       msg.transaction_type match {
-        case TransactionType.Buy | TransactionType.Learn =>
-          Buy(player, msg)
+        case TransactionType.Buy =>
+          BuyValidate(player, msg)
 
-        case TransactionType.Sell =>
-          Sell(player, msg)
+        case TransactionType.Learn =>
+          LearnValidate(player, msg)
 
         case TransactionType.Loadout =>
-          Loadout(player, msg)
+          LoadoutValidate(player, msg)
+
+        case TransactionType.Sell =>
+          SellValidate(player, msg)
 
         case _ =>
           Terminal.NoDeal()
@@ -57,16 +60,44 @@ class Terminal(tdef : TerminalDefinition) extends Amenity with Hackable {
     }
   }
 
-  def Buy(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
-    tdef.Buy(player, msg)
+  /**
+    * Implement functionality that catches and validates `TransactionType.Buy` requests.
+    * @param player the player
+    * @param msg the original packet carrying the request
+    * @return an actionable message that explains what resulted from interacting with this `Terminal`
+    */
+  def BuyValidate(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
+    tdef.Request(player, msg)
   }
 
-  def Sell(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
-    tdef.Sell(player, msg)
+  /**
+    * Implement functionality that catches and validates `TransactionType.Learn` requests.
+    * @param player the player
+    * @param msg the original packet carrying the request
+    * @return an actionable message that explains what resulted from interacting with this `Terminal`
+    */
+  def LearnValidate(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
+    tdef.Request(player, msg)
   }
 
-  def Loadout(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
-    tdef.Loadout(player, msg)
+  /**
+    * Implement functionality that catches and validates `TransactionType.Loadout` requests.
+    * @param player the player
+    * @param msg the original packet carrying the request
+    * @return an actionable message that explains what resulted from interacting with this `Terminal`
+    */
+  def LoadoutValidate(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
+    tdef.Request(player, msg)
+  }
+
+  /**
+    * Implement functionality that catches and validates `TransactionType.Sell` requests.
+    * @param player the player
+    * @param msg the original packet carrying the request
+    * @return an actionable message that explains what resulted from interacting with this `Terminal`
+    */
+  def SellValidate(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
+    tdef.Request(player, msg)
   }
 
   def Definition : TerminalDefinition = tdef

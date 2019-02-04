@@ -543,7 +543,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
           val factionOnContinentChannel = s"${continent.Id}/${player.Faction}"
           obj.Owner = None
           obj.OwnerName = None
-          obj.Faction = PlanetSideEmpire.NEUTRAL
           avatar.Deployables.Remove(obj)
           UpdateDeployableUIElements(avatar.Deployables.UpdateUIElement(obj.Definition.Item))
           localService ! LocalServiceMessage.Deployables(RemoverActor.AddTask(obj, continent))
@@ -5399,15 +5398,18 @@ class WorldSessionActor extends Actor with MDCContextAware {
             }
             source match {
               case obj : Vehicle =>
+                item2.Faction = PlanetSideEmpire.NEUTRAL
                 vehicleService ! VehicleServiceMessage(s"${obj.Actor}", VehicleAction.StowEquipment(player_guid, source_guid, index, item2))
               case obj : Player =>
+                item2.Faction = obj.Faction
                 if(source.VisibleSlots.contains(index)) { //item is put in hands
                   avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.EquipmentInHand(player_guid, source_guid, index, item2))
                 }
                 else if(obj.isBackpack) { //corpse being given item
                   avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.StowEquipment(player_guid, source_guid, index, item2))
                 }
-              case _ => ;
+              case _ =>
+                item2.Faction = PlanetSideEmpire.NEUTRAL
             }
 
           case None => //item2 does not fit; drop on ground
@@ -5447,15 +5449,19 @@ class WorldSessionActor extends Actor with MDCContextAware {
     }
     destination match {
       case obj : Vehicle =>
+        item.Faction = PlanetSideEmpire.NEUTRAL
         vehicleService ! VehicleServiceMessage(s"${obj.Actor}", VehicleAction.StowEquipment(player_guid, destination_guid, dest, item))
       case obj : Player =>
         if(destination.VisibleSlots.contains(dest)) { //item is put in hands
+          item.Faction = obj.Faction
           avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.EquipmentInHand(player_guid, destination_guid, dest, item))
         }
         else if(obj.isBackpack) { //corpse being given item
+          item.Faction = PlanetSideEmpire.NEUTRAL
           avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.StowEquipment(player_guid, destination_guid, dest, item))
         }
-      case _ => ;
+      case _ =>
+        item.Faction = PlanetSideEmpire.NEUTRAL
     }
   }
 
@@ -7336,6 +7342,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     //TODO delay or reverse dropping item when player is falling down
     item.Position = pos
     item.Orientation = Vector3.z(orient.z)
+    item.Faction = PlanetSideEmpire.NEUTRAL
     //dropped items rotate towards the user's standing direction
     val exclusionId = player.Find(item) match {
       //if the item is in our hands ...
@@ -7362,6 +7369,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
   def PutItemInHand(item : Equipment) : Boolean = {
     player.Fit(item) match {
       case Some(slotNum) =>
+        item.Faction = player.Faction
         val item_guid = item.GUID
         val player_guid = player.GUID
         player.Slot(slotNum).Equipment = item
@@ -7547,7 +7555,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
   }
 
   /**
-    * For a certain weapon that cna load ammunition, enforce that its magazine is empty.
+    * For a certain weapon that can load ammunition, enforce that its magazine is empty.
     * Punctuate that emptiness with a ceasation of weapons fire and a dry fire sound effect.
     * @param weapon_guid the weapon (GUID)
     * @param tool the weapon (object)
@@ -7625,6 +7633,32 @@ class WorldSessionActor extends Actor with MDCContextAware {
         avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.SendResponse(player.GUID, cargoStatusMessage))
         avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.SendResponse(player.GUID, detachMessage))
       case None => ;
+    }
+  }
+
+  def GetPlayerHackSpeed(obj: PlanetSideServerObject with Hackable): Float = {
+    val playerHackLevel = GetPlayerHackLevel()
+    val timeToHack = obj.HackDuration(playerHackLevel)
+
+    if(timeToHack == 0) {
+      log.warn(s"Player ${player.GUID} tried to hack an object ${obj.GUID} - ${obj.Definition.Name} that they don't have the correct hacking level for")
+      0f
+    }
+
+    // 250 ms per tick on the hacking progress bar
+    val ticks = (timeToHack * 1000) / 250
+    100f / ticks
+  }
+
+  def GetPlayerHackLevel(): Int = {
+    if(player.Certifications.contains(CertificationType.ExpertHacking) || player.Certifications.contains(CertificationType.ElectronicsExpert)) {
+      3
+    } else if(player.Certifications.contains(CertificationType.AdvancedHacking)) {
+      2
+    } else if (player.Certifications.contains(CertificationType.Hacking)) {
+      1
+    } else {
+      0
     }
   }
 
@@ -7709,9 +7743,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * Starting the bundling functionality but forgetting to transition into a state where it is deactivated can lead to this problem.
     * No packets except for `KeepAliveMessage` will ever be sent until the ever-accumulating packets overflow.
     * To avoid this state, whenever a `KeepAliveMessage` is sent, the packet collector empties its current contents to the network.
-    * @see `StartBundlingPackets`<br>
-    *       `StopBundlingPackets`<br>
-  *         `clientKeepAlive`
+    * @see `StartBundlingPackets`
+    * @see `StopBundlingPackets`
+    * @see `clientKeepAlive`
     * @param cont a `KeepAliveMessage` packet
     */
   def sendResponse(cont : KeepAliveMessage) : Unit = {
@@ -7741,32 +7775,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
   def sendRawResponse(pkt : ByteVector) = {
     log.trace("WORLD SEND RAW: " + pkt)
     sendResponse(RawPacket(pkt))
-  }
-
-  def GetPlayerHackSpeed(obj: PlanetSideServerObject with Hackable): Float = {
-    val playerHackLevel = GetPlayerHackLevel()
-    val timeToHack = obj.HackDuration(playerHackLevel)
-
-    if(timeToHack == 0) {
-      log.warn(s"Player ${player.GUID} tried to hack an object ${obj.GUID} - ${obj.Definition.Name} that they don't have the correct hacking level for")
-      0f
-    }
-
-    // 250 ms per tick on the hacking progress bar
-    val ticks = (timeToHack * 1000) / 250
-    100f / ticks
-  }
-
-  def GetPlayerHackLevel(): Int = {
-    if(player.Certifications.contains(CertificationType.ExpertHacking) || player.Certifications.contains(CertificationType.ElectronicsExpert)) {
-      3
-    } else if(player.Certifications.contains(CertificationType.AdvancedHacking)) {
-      2
-    } else if (player.Certifications.contains(CertificationType.Hacking)) {
-      1
-    } else {
-      0
-    }
   }
 }
 

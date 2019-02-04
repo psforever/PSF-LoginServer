@@ -1,6 +1,9 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.terminals
 
+import net.psforever.objects.Player
+import net.psforever.packet.game.ItemTransactionMessage
+
 import scala.concurrent.duration.{Duration, FiniteDuration}
 
 /**
@@ -37,4 +40,6 @@ class MedicalTerminalDefinition(objectId : Int) extends TerminalDefinition(objec
     armorAmount = amount
     ArmorAmount
   }
+
+  def Request(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = Terminal.NoDeal()
 }

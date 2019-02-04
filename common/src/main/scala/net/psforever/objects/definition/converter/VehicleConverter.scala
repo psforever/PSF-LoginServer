@@ -14,7 +14,7 @@ class VehicleConverter extends ObjectCreateConverter[Vehicle]() {
     Failure(new Exception("VehicleConverter should not be used to generate detailed VehicleData (nothing should)"))
 
   override def ConstructorData(obj : Vehicle) : Try[VehicleData] = {
-    val health = HealthConverter(obj.Health, obj.MaxHealth)
+    val health = StatConverter.Health(obj.Health, obj.MaxHealth)
     if(health > 0) { //active
       Success(
         VehicleData(

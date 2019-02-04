@@ -26,7 +26,7 @@ class MatrixTerminalDefinition(object_id : Int) extends TerminalDefinition(objec
     throw new IllegalArgumentException("terminal must be object id 517-519 or 812")
   }
 
-  override def Buy(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = Terminal.NoDeal()
+  def Request(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = Terminal.NoDeal()
 }
 
 object MatrixTerminalDefinition {

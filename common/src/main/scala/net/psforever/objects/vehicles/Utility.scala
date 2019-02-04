@@ -171,8 +171,8 @@ object Utility {
       * @param msg na
       * @return na
       */
-    override def Buy(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
-      val reply = super.Buy(player, msg)
+    override def BuyValidate(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
+      val reply = super.BuyValidate(player, msg)
       reply match {
         case Terminal.BuyEquipment(obj : Telepad) =>
           obj.Router = Owner.GUID

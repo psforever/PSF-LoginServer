@@ -9,7 +9,7 @@ import scala.util.{Failure, Success, Try}
 
 class TRAPConverter extends ObjectCreateConverter[TrapDeployable]() {
   override def ConstructorData(obj : TrapDeployable) : Try[TRAPData] = {
-    val health = HealthConverter(obj.Health, obj.MaxHealth)
+    val health = StatConverter.Health(obj.Health, obj.MaxHealth)
     if(health > 0) {
       Success(
         TRAPData(

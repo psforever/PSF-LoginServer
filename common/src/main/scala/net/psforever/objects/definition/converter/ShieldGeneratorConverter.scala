@@ -9,7 +9,7 @@ import scala.util.{Failure, Success, Try}
 
 class ShieldGeneratorConverter extends ObjectCreateConverter[ShieldGeneratorDeployable]() {
   override def ConstructorData(obj : ShieldGeneratorDeployable) : Try[AegisShieldGeneratorData] = {
-    val health = HealthConverter(obj.Health, obj.MaxHealth)
+    val health = StatConverter.Health(obj.Health, obj.MaxHealth)
     if(health > 0) {
       Success(
         AegisShieldGeneratorData(

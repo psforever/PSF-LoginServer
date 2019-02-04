@@ -113,12 +113,12 @@ object AvatarConverter {
   def MakeCharacterData(obj : Player) : (Boolean,Boolean)=>CharacterData = {
     val MaxArmor = obj.MaxArmor
     CharacterData(
-      HealthConverter(obj.Health, obj.MaxHealth),
+      StatConverter.Health(obj.Health, obj.MaxHealth),
       if(MaxArmor == 0) {
         0
       }
       else {
-        HealthConverter(obj.Armor, MaxArmor)
+        StatConverter.Health(obj.Armor, MaxArmor)
       },
       DressBattleRank(obj),
       0,

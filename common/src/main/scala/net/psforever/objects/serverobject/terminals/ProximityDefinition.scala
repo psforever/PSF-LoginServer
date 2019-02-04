@@ -33,8 +33,6 @@ trait ProximityDefinition {
         Seq(ProximityDefinition.Invalid)
     }
   }
-
-  def Buy(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = Terminal.NoDeal()
 }
 
 object ProximityDefinition {

@@ -11,7 +11,7 @@ import scala.util.{Failure, Success, Try}
 
 class SmallTurretConverter extends ObjectCreateConverter[TurretDeployable]() {
   override def ConstructorData(obj : TurretDeployable) : Try[SmallTurretData] = {
-    val health = HealthConverter(obj.Health, obj.MaxHealth)
+    val health = StatConverter.Health(obj.Health, obj.MaxHealth)
     if(health > 0) {
       Success(
         SmallTurretData(
