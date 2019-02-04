@@ -880,11 +880,18 @@ object GlobalDefinitions {
   /*
   Miscellaneous
    */
-  val order_terminal = new OrderTerminalDefinition(612)
 
   val ams_respawn_tube = new SpawnTubeDefinition(49)
 
+  val matrix_terminala = new MatrixTerminalDefinition(517)
+
+  val matrix_terminalb = new MatrixTerminalDefinition(518)
+
   val matrix_terminalc = new MatrixTerminalDefinition(519)
+
+  val spawn_terminal = new MatrixTerminalDefinition(812)
+
+  val order_terminal = new OrderTerminalDefinition(612)
 
   val order_terminala = new OrderTerminalDefinition(613)
 
@@ -905,8 +912,6 @@ object GlobalDefinitions {
   val vehicle_terminal_combined = new OrderTerminalDefinition(952)
 
   val bfr_terminal = new OrderTerminalDefinition(143)
-
-  val spawn_terminal = new MatrixTerminalDefinition(812)
 
   val respawn_tube = new SpawnTubeDefinition(732)
 
@@ -5597,6 +5602,14 @@ object GlobalDefinitions {
     * Initialize `Miscellaneous` globals.
     */
   private def initMiscellaneous() : Unit = {
+    matrix_terminala.Name = "matrix_terminala"
+
+    matrix_terminalb.Name = "matrix_terminalb"
+
+    matrix_terminalc.Name = "matrix_terminalc"
+
+    spawn_terminal.Name = "spawn_terminal"
+
     order_terminal.Name = "order_terminal"
     order_terminal.Tab += 0 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.infantryAmmunition ++ EquipmentTerminalDefinition.infantryWeapons)
     order_terminal.Tab += 1 -> OrderTerminalDefinition.ArmorWithAmmoPage(EquipmentTerminalDefinition.suits ++ EquipmentTerminalDefinition.maxSuits, EquipmentTerminalDefinition.maxAmmo)
