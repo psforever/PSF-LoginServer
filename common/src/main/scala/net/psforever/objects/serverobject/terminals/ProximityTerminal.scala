@@ -13,14 +13,14 @@ import services.Service
   * For example, the cavern crystals are considered owner-neutral elements that are not attached to a `Building` object.
   * @param tdef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
   */
-class ProximityTerminal(tdef : TerminalDefinition with ProximityDefinition) extends Terminal(tdef) with ProximityUnit
+class ProximityTerminal(tdef : ProximityTerminalDefinition) extends Terminal(tdef) with ProximityUnit
 
 object ProximityTerminal {
   /**
     * Overloaded constructor.
     * @param tdef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
     */
-  def apply(tdef : TerminalDefinition with ProximityDefinition) : ProximityTerminal = {
+  def apply(tdef : ProximityTerminalDefinition) : ProximityTerminal = {
     new ProximityTerminal(tdef)
   }
 
@@ -33,7 +33,7 @@ object ProximityTerminal {
     * @param context a context to allow the object to properly set up `ActorSystem` functionality
     * @return the `Terminal` object
     */
-  def Constructor(tdef : TerminalDefinition with ProximityDefinition)(id : Int, context : ActorContext) : Terminal = {
+  def Constructor(tdef : ProximityTerminalDefinition)(id : Int, context : ActorContext) : Terminal = {
     import akka.actor.Props
     val obj = ProximityTerminal(tdef)
     obj.Actor = context.actorOf(Props(classOf[ProximityTerminalControl], obj), s"${tdef.Name}_$id")
@@ -47,7 +47,7 @@ object ProximityTerminal {
     * @param context a context to allow the object to properly set up `ActorSystem` functionality
     * @return the `Terminal` object
     */
-  def Constructor(tdef : TerminalDefinition with ProximityDefinition, pos : Vector3)(id : Int, context : ActorContext) : Terminal = {
+  def Constructor(tdef : ProximityTerminalDefinition, pos : Vector3)(id : Int, context : ActorContext) : Terminal = {
     import akka.actor.Props
     val obj = ProximityTerminal(tdef)
     obj.Position = pos

@@ -1,8 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.terminals
 
-import net.psforever.objects.{PlanetSideGameObject, Player}
-import net.psforever.packet.game.ItemTransactionMessage
+import net.psforever.objects.PlanetSideGameObject
 
 import scala.collection.mutable
 
@@ -14,7 +13,7 @@ import scala.collection.mutable
   */
 trait ProximityDefinition {
   private var useRadius : Float = 0f //TODO belongs on a wider range of object definitions
-  private val targetValidation : mutable.HashMap[ProximityTarget.Value, (PlanetSideGameObject)=>Boolean] = new mutable.HashMap[ProximityTarget.Value, (PlanetSideGameObject)=>Boolean]()
+  private val targetValidation : mutable.HashMap[ProximityTarget.Value, PlanetSideGameObject=>Boolean] = new mutable.HashMap[ProximityTarget.Value, PlanetSideGameObject=>Boolean]()
 
   def UseRadius : Float = useRadius
 
@@ -23,9 +22,9 @@ trait ProximityDefinition {
     UseRadius
   }
 
-  def TargetValidation : mutable.HashMap[ProximityTarget.Value, (PlanetSideGameObject)=>Boolean] = targetValidation
+  def TargetValidation : mutable.HashMap[ProximityTarget.Value, PlanetSideGameObject=>Boolean] = targetValidation
 
-  def Validations : Seq[(PlanetSideGameObject)=>Boolean] = {
+  def Validations : Seq[PlanetSideGameObject=>Boolean] = {
     targetValidation.headOption match {
       case Some(_) =>
         targetValidation.values.toSeq
@@ -36,5 +35,5 @@ trait ProximityDefinition {
 }
 
 object ProximityDefinition {
-  protected val Invalid : (PlanetSideGameObject=>Boolean) = (_ : PlanetSideGameObject) => false
+  protected val Invalid : PlanetSideGameObject=>Boolean = (_ : PlanetSideGameObject) => false
 }

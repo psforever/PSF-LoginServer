@@ -154,9 +154,8 @@ object Utility {
     * The `Terminal` `Utility` produced has proximity effects.
     * @param tdef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
     */
-  class ProximityTerminalUtility(tdef : TerminalDefinition) extends Terminal(tdef)
+  class ProximityTerminalUtility(tdef : ProximityTerminalDefinition) extends ProximityTerminal(tdef)
     with UtilityWorldEntity
-    with ProximityUnit
 
   /**
     * Override for a `Terminal` object so that it inherits the spatial characteristics of its `Owner`.
@@ -171,8 +170,8 @@ object Utility {
       * @param msg na
       * @return na
       */
-    override def BuyValidate(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
-      val reply = super.BuyValidate(player, msg)
+    override def Request(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
+      val reply = super.Request(player, msg)
       reply match {
         case Terminal.BuyEquipment(obj : Telepad) =>
           obj.Router = Owner.GUID

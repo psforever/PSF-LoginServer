@@ -11,7 +11,7 @@ import scala.concurrent.duration.{Duration, FiniteDuration}
   * This includes the functionality of the formal medical terminals and some of the cavern crystals.
   * Do not confuse the game's internal "medical_terminal" object category and the actual `medical_terminal` object (529).
   */
-class MedicalTerminalDefinition(objectId : Int) extends TerminalDefinition(objectId) with ProximityDefinition {
+class MedicalTerminalDefinition(objectId : Int) extends ProximityTerminalDefinition(objectId) {
   private var interval : FiniteDuration = Duration(0, "seconds")
   private var healAmount : Int = 0
   private var armorAmount : Int = 0
@@ -41,5 +41,5 @@ class MedicalTerminalDefinition(objectId : Int) extends TerminalDefinition(objec
     ArmorAmount
   }
 
-  def Request(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = Terminal.NoDeal()
+  override def Request(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = Terminal.NoDeal()
 }
