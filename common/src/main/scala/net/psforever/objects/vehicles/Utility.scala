@@ -45,11 +45,11 @@ object UtilityType extends Enumeration {
   * Ostensibly, the purpose of the additional logic, when it is called,
   * is to initialize a control `Actor` for the contained object.
   * This `Actor` is expected by other logic.
+  * @see `Amenity.Owner`
   * @see `Vehicle.LoadDefinition`
   * @see `VehicleDefinition.Utilities`
   * @param util the type of the `Amenity` object to be created
   * @param vehicle the owner of this object
-  * @see `Amenity.Owner`
   */
 class Utility(util : UtilityType.Value, vehicle : Vehicle) {
   private val obj : Amenity = Utility.BuildUtilityFunc(util)
@@ -165,19 +165,26 @@ object Utility {
     */
   class TeleportPadTerminalUtility(tdef : TerminalDefinition) extends TerminalUtility(tdef) {
     /**
-      * na
-      * @param player na
-      * @param msg na
-      * @return na
+      * This kind of `Terminal` object only produces one object of importance - a Router's telepad unit.
+      * When this `Telepad` object is produced, it shlould be associated with the Router,
+      * that is, with the owner of the `Terminal` object.
+      * @param player the player who made the request
+      * @param msg the request message
+      * @return a message that resolves the transaction
       */
-    override def Request(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
-      val reply = super.Request(player, msg)
-      reply match {
-        case Terminal.BuyEquipment(obj : Telepad) =>
-          obj.Router = Owner.GUID
-        case _ => ;
+    override def Request(player : Player, msg : Any) : Terminal.Exchange = {
+      msg match {
+        case message : ItemTransactionMessage =>
+          val reply = super.Request(player, message)
+          reply match {
+            case Terminal.BuyEquipment(obj : Telepad) =>
+              obj.Router = Owner.GUID
+            case _ => ;
+          }
+          reply
+        case _ =>
+          Terminal.NoDeal()
       }
-      reply
     }
   }
 
@@ -233,6 +240,4 @@ object Utility {
     case UtilityType.internal_router_telepad_deployable =>
       TelepadLike.Setup
   }
-
-  //private def defaultSetup(o1 : Amenity, o2 : ActorContext) : Unit = { }
 }

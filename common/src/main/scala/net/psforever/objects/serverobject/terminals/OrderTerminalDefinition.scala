@@ -51,13 +51,18 @@ class OrderTerminalDefinition(objId : Int) extends TerminalDefinition(objId) {
     SellEquipmentByDefault
   }
 
-  def Request(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = msg.transaction_type match {
-    case TransactionType.Buy | TransactionType.Learn =>
-      Buy(player, msg)
-    case TransactionType.Loadout =>
-      Loadout(player, msg)
-    case TransactionType.Sell =>
-      Sell(player, msg)
+  def Request(player : Player, msg : Any) : Terminal.Exchange = msg match {
+    case message : ItemTransactionMessage =>
+      message.transaction_type match {
+        case TransactionType.Buy | TransactionType.Learn =>
+          Buy(player, message)
+        case TransactionType.Loadout =>
+          Loadout(player, message)
+        case TransactionType.Sell =>
+          Sell(player, message)
+        case _ =>
+          Terminal.NoDeal()
+      }
     case _ =>
       Terminal.NoDeal()
   }

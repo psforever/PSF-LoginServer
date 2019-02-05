@@ -2,16 +2,20 @@
 package net.psforever.objects.serverobject.terminals
 
 import net.psforever.objects.PlanetSideGameObject
+import net.psforever.objects.definition.ObjectDefinition
 
 import scala.collection.mutable
 
 /**
-  * The definition for any `Terminal` that possesses a proximity-based effect.
+  * The definition mix-in for any game object that possesses a proximity-based effect.
   * This includes the limited proximity-based functionality of the formal medical terminals
   * and the actual proximity-based functionality of the cavern crystals.
-  * Objects created by this definition being linked by their use of `ProximityTerminalUseMessage`.
+  * Objects created by this definition being linked by their communication
+  * between the server and client using `ProximityTerminalUseMessage` game packets.
   */
 trait ProximityDefinition {
+  this : ObjectDefinition =>
+
   private var useRadius : Float = 0f //TODO belongs on a wider range of object definitions
   private val targetValidation : mutable.HashMap[ProximityTarget.Value, PlanetSideGameObject=>Boolean] = new mutable.HashMap[ProximityTarget.Value, PlanetSideGameObject=>Boolean]()
 

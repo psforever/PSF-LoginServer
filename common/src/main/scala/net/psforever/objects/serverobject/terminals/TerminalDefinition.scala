@@ -3,10 +3,9 @@ package net.psforever.objects.serverobject.terminals
 
 import net.psforever.objects.Player
 import net.psforever.objects.definition.converter.TerminalConverter
-import net.psforever.packet.game.ItemTransactionMessage
 
 /**
-  * The basic definition for any `Terminal`.
+  * The basic definition for any `Terminal` object.
   * @param objectId the object's identifier number
   */
 abstract class TerminalDefinition(objectId : Int) extends net.psforever.objects.definition.ObjectDefinition(objectId) {
@@ -15,12 +14,11 @@ abstract class TerminalDefinition(objectId : Int) extends net.psforever.objects.
 
   /**
     * The unimplemented functionality for the entry function of form of activity
-    * processed by this terminal and codified by the input message (a "transaction").
-    * @see `ItemTransactionMessage`
+    * processed by this terminal and codified by the input message (a "request").
     * @see `Terminal.Exchange`
     * @param player the player who made the request
-    * @param msg the transaction
+    * @param msg the request message
     * @return a message that resolves the transaction
     */
-  def Request(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange
+  def Request(player : Player, msg : Any) : Terminal.Exchange
 }

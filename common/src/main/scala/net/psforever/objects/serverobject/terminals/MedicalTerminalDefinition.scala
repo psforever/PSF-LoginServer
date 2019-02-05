@@ -2,7 +2,6 @@
 package net.psforever.objects.serverobject.terminals
 
 import net.psforever.objects.Player
-import net.psforever.packet.game.ItemTransactionMessage
 
 import scala.concurrent.duration.{Duration, FiniteDuration}
 
@@ -41,5 +40,5 @@ class MedicalTerminalDefinition(objectId : Int) extends ProximityTerminalDefinit
     ArmorAmount
   }
 
-  override def Request(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = Terminal.NoDeal()
+  override def Request(player : Player, msg : Any) : Terminal.Exchange = Terminal.NoDeal()
 }

@@ -2,8 +2,12 @@
 package net.psforever.objects.serverobject.terminals
 
 import net.psforever.objects.Player
-import net.psforever.packet.game.ItemTransactionMessage
 
+/**
+  *The definition for any `Terminal` that can be accessed for amenities and services,
+  * triggered when a certain distance from the unit itself (proximity-based).
+  * @param objectId the object's identifier number
+  */
 class ProximityTerminalDefinition(objectId : Int) extends TerminalDefinition(objectId) with ProximityDefinition {
-  override def Request(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = Terminal.NoDeal()
+  def Request(player : Player, msg : Any) : Terminal.Exchange = Terminal.NoDeal()
 }
