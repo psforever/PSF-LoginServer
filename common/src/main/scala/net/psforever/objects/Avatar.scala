@@ -182,6 +182,8 @@ class Avatar(val name : String, val faction : PlanetSideEmpire.Value, val sex : 
     loadouts(line) = None
   }
 
+  def Loadouts : Seq[(Int, Loadout)] = loadouts.zipWithIndex.collect { case(Some(loadout), index) => (index, loadout) } toSeq
+
   def Locker : LockerContainer = locker
 
   def FifthSlot : EquipmentSlot = {

@@ -2426,7 +2426,16 @@ class WorldSessionActor extends Actor with MDCContextAware {
     //TODO if Medkit does not have shortcut, add to a free slot or write over slot 64
     sendResponse(CreateShortcutMessage(guid, 1, 0, true, Shortcut.MEDKIT))
     sendResponse(ChangeShortcutBankMessage(guid, 0))
-    //FavoritesMessage
+    //Favorites lists
+    val (inf, veh) = avatar.Loadouts.partition { case (index, _) => index < 10 }
+    inf.foreach {
+      case (index, loadout : InfantryLoadout) =>
+        sendResponse(FavoritesMessage(LoadoutType.Infantry, guid, index, loadout.label, loadout.exosuit.id + loadout.subtype))
+    }
+    veh.foreach {
+      case (index, loadout : VehicleLoadout) =>
+        sendResponse(FavoritesMessage(LoadoutType.Vehicle, guid, index - 10, loadout.label))
+    }
     sendResponse(SetChatFilterMessage(ChatChannel.Local, false, ChatChannel.values.toList)) //TODO will not always be "on" like this
     deadState = DeadState.Alive
     sendResponse(AvatarDeadStateMessage(DeadState.Alive, 0, 0, tplayer.Position, player.Faction, true))
