@@ -1,8 +1,8 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.inventory
 
-import net.psforever.objects.equipment.Equipment
-import net.psforever.objects.{EquipmentSlot, OffhandEquipmentSlot}
+import net.psforever.objects.equipment.{Equipment, EquipmentSlot}
+import net.psforever.objects.OffhandEquipmentSlot
 import net.psforever.packet.game.PlanetSideGUID
 
 import scala.util.Try

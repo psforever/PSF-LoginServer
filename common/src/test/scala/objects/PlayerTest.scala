@@ -3,7 +3,7 @@ package objects
 
 import net.psforever.objects.GlobalDefinitions._
 import net.psforever.objects._
-import net.psforever.objects.definition.{ImplantDefinition, SimpleItemDefinition}
+import net.psforever.objects.definition.{ImplantDefinition, SimpleItemDefinition, SpecialExoSuitDefinition}
 import net.psforever.objects.equipment.EquipmentSize
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.packet.game.objectcreate.{Cosmetics, PersonalStyle}

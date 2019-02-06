@@ -3,8 +3,7 @@ package net.psforever.objects.inventory
 
 import java.util.concurrent.atomic.AtomicInteger
 
-import net.psforever.objects.equipment.Equipment
-import net.psforever.objects.EquipmentSlot
+import net.psforever.objects.equipment.{Equipment, EquipmentSlot}
 import net.psforever.packet.game.PlanetSideGUID
 
 import scala.annotation.tailrec

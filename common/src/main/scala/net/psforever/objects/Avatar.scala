@@ -3,7 +3,7 @@ package net.psforever.objects
 
 import net.psforever.objects.avatar.DeployableToolbox
 import net.psforever.objects.definition.{AvatarDefinition, ImplantDefinition}
-import net.psforever.objects.equipment.EquipmentSize
+import net.psforever.objects.equipment.{EquipmentSize, EquipmentSlot}
 import net.psforever.objects.loadouts.Loadout
 import net.psforever.packet.game.objectcreate.Cosmetics
 import net.psforever.types._

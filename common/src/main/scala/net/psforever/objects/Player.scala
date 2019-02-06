@@ -1,8 +1,8 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects
 
-import net.psforever.objects.definition.AvatarDefinition
-import net.psforever.objects.equipment.{Equipment, EquipmentSize}
+import net.psforever.objects.definition.{AvatarDefinition, ExoSuitDefinition, SpecialExoSuitDefinition}
+import net.psforever.objects.equipment.{Equipment, EquipmentSize, EquipmentSlot}
 import net.psforever.objects.inventory.{Container, GridInventory, InventoryItem}
 import net.psforever.objects.loadouts.Loadout
 import net.psforever.objects.serverobject.affinity.FactionAffinity
@@ -30,7 +30,7 @@ class Player(private val core : Avatar) extends PlanetSideGameObject
   private var maxHealth : Int = 100 //TODO affected by empire benefits, territory benefits, and bops
   private var maxStamina : Int = 100 //does anything affect this?
 
-  private var exosuit : ExoSuitDefinition = ExoSuitDefinition.Standard
+  private var exosuit : ExoSuitDefinition = GlobalDefinitions.Standard
   private val freeHand : EquipmentSlot = new OffhandEquipmentSlot(EquipmentSize.Inventory)
   private val holsters : Array[EquipmentSlot] = Array.fill[EquipmentSlot](5)(new EquipmentSlot)
   private val inventory : GridInventory = GridInventory()

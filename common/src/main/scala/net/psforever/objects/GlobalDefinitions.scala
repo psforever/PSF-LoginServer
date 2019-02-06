@@ -17,8 +17,8 @@ import net.psforever.objects.serverobject.tube.SpawnTubeDefinition
 import net.psforever.objects.serverobject.resourcesilo.ResourceSiloDefinition
 import net.psforever.objects.serverobject.turret.{TurretDefinition, TurretUpgrade}
 import net.psforever.objects.vehicles.{DestroyedVehicle, SeatArmorRestriction, UtilityType}
-import net.psforever.objects.vital.{DamageType, StandardResolutions}
-import net.psforever.types.{CertificationType, PlanetSideEmpire, Vector3}
+import net.psforever.objects.vital.{DamageType, StandardMaxDamage, StandardResolutions}
+import net.psforever.types.{CertificationType, ExoSuitType, PlanetSideEmpire, Vector3}
 
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -28,6 +28,71 @@ object GlobalDefinitions {
   characters
    */
   val avatar = new AvatarDefinition(121)
+  /*
+  Exo-suits
+   */
+  val Standard = ExoSuitDefinition(ExoSuitType.Standard)
+  Standard.Name = "standard"
+  Standard.MaxArmor = 50
+  Standard.InventoryScale = InventoryTile.Tile96
+  Standard.InventoryOffset = 6
+  Standard.Holster(0, EquipmentSize.Pistol)
+  Standard.Holster(2, EquipmentSize.Rifle)
+  Standard.Holster(4, EquipmentSize.Melee)
+  Standard.ResistanceDirectHit = 4
+  Standard.ResistanceSplash = 15
+  Standard.ResistanceAggravated = 8
+
+  val Agile = ExoSuitDefinition(ExoSuitType.Agile)
+  Agile.Name = "agile"
+  Agile.MaxArmor = 100
+  Agile.InventoryScale = InventoryTile.Tile99
+  Agile.InventoryOffset = 6
+  Agile.Holster(0, EquipmentSize.Pistol)
+  Agile.Holster(1, EquipmentSize.Pistol)
+  Agile.Holster(2, EquipmentSize.Rifle)
+  Agile.Holster(4, EquipmentSize.Melee)
+  Agile.ResistanceDirectHit = 6
+  Agile.ResistanceSplash = 25
+  Agile.ResistanceAggravated = 10
+
+  val Reinforced = ExoSuitDefinition(ExoSuitType.Reinforced)
+  Reinforced.Name = "reinforced"
+  Reinforced.Permissions = List(CertificationType.ReinforcedExoSuit)
+  Reinforced.MaxArmor = 200
+  Reinforced.InventoryScale = InventoryTile.Tile1209
+  Reinforced.InventoryOffset = 6
+  Reinforced.Holster(0, EquipmentSize.Pistol)
+  Reinforced.Holster(1, EquipmentSize.Pistol)
+  Reinforced.Holster(2, EquipmentSize.Rifle)
+  Reinforced.Holster(3, EquipmentSize.Rifle)
+  Reinforced.Holster(4, EquipmentSize.Melee)
+  Reinforced.ResistanceDirectHit = 10
+  Reinforced.ResistanceSplash = 35
+  Reinforced.ResistanceAggravated = 12
+
+  val Infiltration = ExoSuitDefinition(ExoSuitType.Infiltration)
+  Infiltration.Name = "infiltration_suit"
+  Infiltration.Permissions = List(CertificationType.InfiltrationSuit)
+  Infiltration.MaxArmor = 0
+  Infiltration.InventoryScale = InventoryTile.Tile66
+  Infiltration.InventoryOffset = 6
+  Infiltration.Holster(0, EquipmentSize.Pistol)
+  Infiltration.Holster(4, EquipmentSize.Melee)
+
+  val MAX = SpecialExoSuitDefinition(ExoSuitType.MAX)
+  MAX.Permissions = List(CertificationType.AIMAX,CertificationType.AVMAX, CertificationType.AAMAX, CertificationType.UniMAX)
+  MAX.MaxArmor = 650
+  MAX.InventoryScale = InventoryTile.Tile1612
+  MAX.InventoryOffset = 6
+  MAX.Holster(0, EquipmentSize.Max)
+  MAX.Holster(4, EquipmentSize.Melee)
+  MAX.Subtract.Damage1 = -2
+  MAX.ResistanceDirectHit = 6
+  MAX.ResistanceSplash = 35
+  MAX.ResistanceAggravated = 10
+  MAX.Damage = StandardMaxDamage
+  MAX.Model = StandardResolutions.Max
   /*
   Implants
    */
@@ -1345,6 +1410,68 @@ object GlobalDefinitions {
     super_staminakit.Name = "super_staminakit"
   }
 
+  /**
+    * Initialize `ExoSuitType` globals.
+    */
+  private def init_exosuit() : Unit = {
+    Standard.Name = "standard"
+    Standard.MaxArmor = 50
+    Standard.InventoryScale = InventoryTile.Tile96
+    Standard.InventoryOffset = 6
+    Standard.Holster(0, EquipmentSize.Pistol)
+    Standard.Holster(2, EquipmentSize.Rifle)
+    Standard.Holster(4, EquipmentSize.Melee)
+    Standard.ResistanceDirectHit = 4
+    Standard.ResistanceSplash = 15
+    Standard.ResistanceAggravated = 8
+
+    Agile.Name = "lite_armor"
+    Agile.MaxArmor = 100
+    Agile.InventoryScale = InventoryTile.Tile99
+    Agile.InventoryOffset = 6
+    Agile.Holster(0, EquipmentSize.Pistol)
+    Agile.Holster(1, EquipmentSize.Pistol)
+    Agile.Holster(2, EquipmentSize.Rifle)
+    Agile.Holster(4, EquipmentSize.Melee)
+    Agile.ResistanceDirectHit = 6
+    Agile.ResistanceSplash = 25
+    Agile.ResistanceAggravated = 10
+
+    Reinforced.Name = "med_armor"
+    Reinforced.Permissions = List(CertificationType.ReinforcedExoSuit)
+    Reinforced.MaxArmor = 200
+    Reinforced.InventoryScale = InventoryTile.Tile1209
+    Reinforced.InventoryOffset = 6
+    Reinforced.Holster(0, EquipmentSize.Pistol)
+    Reinforced.Holster(1, EquipmentSize.Pistol)
+    Reinforced.Holster(2, EquipmentSize.Rifle)
+    Reinforced.Holster(3, EquipmentSize.Rifle)
+    Reinforced.Holster(4, EquipmentSize.Melee)
+    Reinforced.ResistanceDirectHit = 10
+    Reinforced.ResistanceSplash = 35
+    Reinforced.ResistanceAggravated = 12
+
+    Infiltration.Name = "infiltration_suit"
+    Infiltration.Permissions = List(CertificationType.InfiltrationSuit)
+    Infiltration.MaxArmor = 0
+    Infiltration.InventoryScale = InventoryTile.Tile66
+    Infiltration.InventoryOffset = 6
+    Infiltration.Holster(0, EquipmentSize.Pistol)
+    Infiltration.Holster(4, EquipmentSize.Melee)
+
+    MAX.Permissions = List(CertificationType.AIMAX,CertificationType.AVMAX, CertificationType.AAMAX, CertificationType.UniMAX)
+    MAX.MaxArmor = 650
+    MAX.InventoryScale = InventoryTile.Tile1612
+    MAX.InventoryOffset = 6
+    MAX.Holster(0, EquipmentSize.Max)
+    MAX.Holster(4, EquipmentSize.Melee)
+    MAX.Subtract.Damage1 = -2
+    MAX.ResistanceDirectHit = 6
+    MAX.ResistanceSplash = 35
+    MAX.ResistanceAggravated = 10
+    MAX.Damage = StandardMaxDamage
+    MAX.Model = StandardResolutions.Max
+  }
   /**
     * Initialize `AmmoBoxDefinition` globals.
     */

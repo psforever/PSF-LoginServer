@@ -1,8 +1,8 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.definition.converter
 
-import net.psforever.objects.{EquipmentSlot, Player}
-import net.psforever.objects.equipment.Equipment
+import net.psforever.objects.Player
+import net.psforever.objects.equipment.{Equipment, EquipmentSlot}
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.packet.game.objectcreate._
 import net.psforever.types._

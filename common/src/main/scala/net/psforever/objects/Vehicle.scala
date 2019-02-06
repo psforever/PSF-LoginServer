@@ -3,7 +3,7 @@ package net.psforever.objects
 
 import akka.actor.ActorRef
 import net.psforever.objects.definition.VehicleDefinition
-import net.psforever.objects.equipment.{Equipment, EquipmentSize}
+import net.psforever.objects.equipment.{Equipment, EquipmentSize, EquipmentSlot}
 import net.psforever.objects.inventory.{Container, GridInventory, InventoryTile}
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.PlanetSideServerObject

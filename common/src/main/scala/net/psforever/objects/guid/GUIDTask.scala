@@ -3,7 +3,7 @@ package net.psforever.objects.guid
 
 import akka.actor.ActorRef
 import net.psforever.objects.entity.IdentifiableEntity
-import net.psforever.objects.equipment.Equipment
+import net.psforever.objects.equipment.{Equipment, EquipmentSlot}
 import net.psforever.objects._
 import net.psforever.objects.inventory.Container
 import net.psforever.objects.serverobject.turret.WeaponTurret

@@ -17,7 +17,7 @@ import net.psforever.objects._
 import net.psforever.objects.avatar.{Certification, DeployableToolbox}
 import net.psforever.objects.ballistics._
 import net.psforever.objects.ce._
-import net.psforever.objects.definition.{ConstructionFireMode, DeployableDefinition, ObjectDefinition, ToolDefinition}
+import net.psforever.objects.definition._
 import net.psforever.objects.definition.converter.{CorpseConverter, DestroyedVehicleConverter}
 import net.psforever.objects.equipment.{CItem, _}
 import net.psforever.objects.loadouts._
