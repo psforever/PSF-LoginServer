@@ -2,9 +2,13 @@
 package services.vehicle
 
 import akka.actor.{Actor, ActorRef, Props}
+import net.psforever.objects.Vehicle
+import net.psforever.objects.ballistics.VehicleSource
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
+import net.psforever.objects.serverobject.terminals.{MedicalTerminalDefinition, ProximityUnit}
+import net.psforever.objects.vital.RepairFromTerm
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.ObjectCreateMessage
+import net.psforever.packet.game.{ObjectCreateMessage, PlanetSideGUID}
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import services.vehicle.support.{TurretUpgrader, VehicleRemover}
 import net.psforever.types.DriveState
@@ -189,6 +193,18 @@ class VehicleService extends Actor {
         VehicleServiceResponse(s"/${zone.Id}/Vehicle", Service.defaultPlayerGUID, VehicleResponse.UpdateAmsSpawnPoint(AmsSpawnPoints(zone)))
       )
 
+    //from ProximityTerminalControl (?)
+    case ProximityUnit.Action(term, target : Vehicle) =>
+      val medDef = term.Definition.asInstanceOf[MedicalTerminalDefinition]
+      val healAmount = medDef.HealAmount
+      if(healAmount != 0 && term.Validate(target) && target.Health < target.MaxHealth) {
+        target.Health = target.Health + healAmount
+        target.History(RepairFromTerm(VehicleSource(target), healAmount, medDef))
+        VehicleEvents.publish(
+          VehicleServiceResponse(s"/${term.Continent}/Vehicle", PlanetSideGUID(0), VehicleResponse.PlanetsideAttribute(target.GUID, 0, target.Health))
+        )
+      }
+
     case msg =>
       log.info(s"Unhandled message $msg from $sender")
   }
@@ -198,7 +214,7 @@ class VehicleService extends Actor {
     import net.psforever.objects.vehicles.UtilityType
     import net.psforever.objects.GlobalDefinitions
     zone.Vehicles
-      .filter(veh => veh.Definition == GlobalDefinitions.ams && veh.DeploymentState == DriveState.Deployed)
+      .filter(veh => veh.Health > 0 && veh.Definition == GlobalDefinitions.ams && veh.DeploymentState == DriveState.Deployed)
       .flatMap(veh => veh.Utilities.values.filter(util => util.UtilType == UtilityType.ams_respawn_tube) )
       .map(util => util().asInstanceOf[SpawnTube])
   }

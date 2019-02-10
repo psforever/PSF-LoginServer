@@ -63,7 +63,16 @@ class VehicleControl(vehicle : Vehicle) extends Actor
 
       case Vitality.Damage(damage_func) =>
         if(vehicle.Health > 0) {
+          val originalHealth = vehicle.Health
+          val originalShields = vehicle.Shields
           damage_func(vehicle)
+          val health = vehicle.Health
+          val shields = vehicle.Shields
+          val damageToHealth = originalHealth - health
+          val damageToShields = originalShields - shields
+          val name = vehicle.Actor.toString
+          val slashPoint = name.lastIndexOf("/")
+          org.log4s.getLogger("DamageResolution").info(s"${name.substring(slashPoint+1, name.length-1)}: BEFORE=$originalHealth/$originalShields, AFTER=$health/$shields, CHANGE=$damageToHealth/$damageToShields")
           sender ! Vitality.DamageResolution(vehicle)
         }
 

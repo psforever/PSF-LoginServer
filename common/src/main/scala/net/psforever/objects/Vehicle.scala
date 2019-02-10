@@ -1,6 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects
 
+import akka.actor.ActorRef
 import net.psforever.objects.definition.VehicleDefinition
 import net.psforever.objects.equipment.{Equipment, EquipmentSize}
 import net.psforever.objects.inventory.{Container, GridInventory, InventoryTile}
@@ -10,6 +11,7 @@ import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.deploy.Deployment
 import net.psforever.objects.vehicles._
 import net.psforever.objects.vital.{DamageResistanceModel, StandardResistanceProfile, Vitality}
+import net.psforever.objects.zones.ZoneAware
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types.PlanetSideEmpire
 
@@ -65,6 +67,7 @@ import scala.annotation.tailrec
   */
 class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServerObject
   with FactionAffinity
+  with ZoneAware
   with Mountable
   with MountedWeapons
   with Deployment
@@ -80,6 +83,7 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
   private var jammered : Boolean = false
   private var cloaked : Boolean = false
   private var capacitor : Int = 0
+  private var continent : String = "home2" //the zone id
 
   /**
     * Permissions control who gets to access different parts of the vehicle;
@@ -513,6 +517,32 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
     */
   def Definition : VehicleDefinition = vehicleDef
 
+  override def Continent : String = continent
+
+  override def Continent_=(zoneId : String) : String = {
+    continent = zoneId
+    Continent
+  }
+
+  def canEqual(other: Any): Boolean = other.isInstanceOf[Vehicle]
+
+  override def equals(other : Any) : Boolean = other match {
+    case that: Vehicle =>
+      (that canEqual this) &&
+        hashCode() == that.hashCode()
+    case _ =>
+      false
+  }
+
+  override def hashCode() : Int = {
+    Actor match {
+      case ActorRef.noSender =>
+        super.hashCode()
+      case actor =>
+        actor.hashCode()
+    }
+  }
+
   /**
     * Override the string representation to provide additional information.
     * @return the string output
@@ -600,7 +630,12 @@ object Vehicle {
     vehicle.cargoHolds = vdef.Cargo.map({ case(num, definition) => num -> Cargo(definition)}).toMap
 
     //create utilities
-    vehicle.utilities = vdef.Utilities.map({ case(num, util) => num -> Utility(util, vehicle) }).toMap
+    vehicle.utilities = vdef.Utilities.map({
+      case(num, util) =>
+        val obj = Utility(util, vehicle)
+        obj().LocationOffset = vdef.UtilityOffset.get(num)
+        num -> obj
+    }).toMap
     //trunk
     vdef.TrunkSize match {
       case InventoryTile.None => ;

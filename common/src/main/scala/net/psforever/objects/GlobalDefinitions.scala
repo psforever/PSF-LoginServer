@@ -18,7 +18,7 @@ import net.psforever.objects.serverobject.resourcesilo.ResourceSiloDefinition
 import net.psforever.objects.serverobject.turret.{TurretDefinition, TurretUpgrade}
 import net.psforever.objects.vehicles.{DestroyedVehicle, SeatArmorRestriction, UtilityType}
 import net.psforever.objects.vital.{DamageType, StandardResolutions}
-import net.psforever.types.{CertificationType, PlanetSideEmpire}
+import net.psforever.types.{CertificationType, PlanetSideEmpire, Vector3}
 
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -555,11 +555,19 @@ object GlobalDefinitions {
 
   val maelstrom = ToolDefinition(ObjectClass.maelstrom)
 
-  val phoenix = ToolDefinition(ObjectClass.phoenix) //decimator
+  val phoenix = new ToolDefinition(ObjectClass.phoenix) {
+    override def NextFireModeIndex(index : Int) : Int = index
+  } //decimator
 
-  val striker = ToolDefinition(ObjectClass.striker)
+  val striker = new ToolDefinition(ObjectClass.striker) {
+    override def NextFireModeIndex(index : Int) : Int = index
+    DefaultFireModeIndex = 1
+  }
 
-  val hunterseeker = ToolDefinition(ObjectClass.hunterseeker) //phoenix
+  val hunterseeker = new ToolDefinition(ObjectClass.hunterseeker) {
+    override def NextFireModeIndex(index : Int) : Int = index
+    DefaultFireModeIndex = 1
+  } //phoenix
 
   val lancer = ToolDefinition(ObjectClass.lancer)
 
@@ -573,7 +581,7 @@ object GlobalDefinitions {
 
   val bolt_driver = ToolDefinition(ObjectClass.bolt_driver)
 
-  val oicw = ToolDefinition(ObjectClass.oicw) //scorpion
+  val oicw = ToolDefinition(ObjectClass.oicw)
 
   val flamethrower = ToolDefinition(ObjectClass.flamethrower)
 
@@ -718,7 +726,9 @@ object GlobalDefinitions {
 
   val lightgunship_weapon_system = ToolDefinition(ObjectClass.lightgunship_weapon_system)
 
-  val wasp_weapon_system = ToolDefinition(ObjectClass.wasp_weapon_system)
+  val wasp_weapon_system = new ToolDefinition(ObjectClass.wasp_weapon_system) {
+    override def NextFireModeIndex(index : Int) : Int = index
+  }
 
   val liberator_weapon_system = ToolDefinition(ObjectClass.liberator_weapon_system)
 
@@ -910,9 +920,13 @@ object GlobalDefinitions {
 
   val medical_terminal = new MedicalTerminalDefinition(529)
 
-  val pad_landing = new RepairRearmSiloDefinition(719)
+  val portable_med_terminal = new MedicalTerminalDefinition(689)
 
-  val repair_silo = new RepairRearmSiloDefinition(729)
+  val pad_landing_frame = new MedicalTerminalDefinition(618)
+
+  val pad_landing_tower_frame = new MedicalTerminalDefinition(619)
+
+  val repair_silo = new MedicalTerminalDefinition(729)
 
   val spawn_pad = new VehicleSpawnPadDefinition
 
@@ -928,17 +942,18 @@ object GlobalDefinitions {
 
   val secondary_capture = new CaptureTerminalDefinition(751) // Tower CC
 
-  val manned_turret = new TurretDefinition(480) {
-    Name = "manned_turret"
-    MaxHealth = 3600
-    Weapons += 1 -> new mutable.HashMap()
-    Weapons(1) += TurretUpgrade.None -> phalanx_sgl_hevgatcan
-    Weapons(1) += TurretUpgrade.AVCombo -> phalanx_avcombo
-    Weapons(1) += TurretUpgrade.FlakCombo -> phalanx_flakcombo
-    MountPoints += 1 -> 0
-    FactionLocked = true
-    ReserveAmmunition = false
-  }
+  val lodestar_repair_terminal = new MedicalTerminalDefinition(461)
+
+  val multivehicle_rearm_terminal = new _OrderTerminalDefinition(576)
+
+  val bfr_rearm_terminal = new _OrderTerminalDefinition(142)
+
+  val air_rearm_terminal = new _OrderTerminalDefinition(42)
+
+  val ground_rearm_terminal = new _OrderTerminalDefinition(384)
+
+  val manned_turret = new TurretDefinition(480)
+  initMiscellaneous()
 
   /**
     * Given a faction, provide the standard assault melee weapon.
@@ -3924,6 +3939,7 @@ object GlobalDefinitions {
     nchev_falcon.Name = "nchev_falcon"
     nchev_falcon.Size = EquipmentSize.Max
     nchev_falcon.AmmoTypes += falcon_ammo
+    nchev_falcon.ProjectileTypes += falcon_projectile
     nchev_falcon.FireModes += new FireModeDefinition
     nchev_falcon.FireModes.head.AmmoTypeIndices += 0
     nchev_falcon.FireModes.head.AmmoSlotIndex = 0
@@ -4763,6 +4779,7 @@ object GlobalDefinitions {
     threemanheavybuggy.TrunkOffset = 30
     threemanheavybuggy.AutoPilotSpeeds = (22, 8)
     threemanheavybuggy.DestroyedModel = Some(DestroyedVehicle.ThreeManHeavyBuggy)
+    threemanheavybuggy.Subtract.Damage1 = 5
 
     twomanheavybuggy.Name = "twomanheavybuggy"
     twomanheavybuggy.MaxHealth = 1800
@@ -4779,6 +4796,7 @@ object GlobalDefinitions {
     twomanheavybuggy.TrunkOffset = 30
     twomanheavybuggy.AutoPilotSpeeds = (22, 8)
     twomanheavybuggy.DestroyedModel = Some(DestroyedVehicle.TwoManHeavyBuggy)
+    twomanheavybuggy.Subtract.Damage1 = 5
 
     twomanhoverbuggy.Name = "twomanhoverbuggy"
     twomanhoverbuggy.MaxHealth = 1600
@@ -4795,6 +4813,7 @@ object GlobalDefinitions {
     twomanhoverbuggy.TrunkOffset = 30
     twomanhoverbuggy.AutoPilotSpeeds = (22, 10)
     twomanhoverbuggy.DestroyedModel = Some(DestroyedVehicle.TwoManHoverBuggy)
+    twomanhoverbuggy.Subtract.Damage1 = 5
 
     mediumtransport.Name = "mediumtransport"
     mediumtransport.MaxHealth = 2500
@@ -4818,6 +4837,7 @@ object GlobalDefinitions {
     mediumtransport.TrunkOffset = 30
     mediumtransport.AutoPilotSpeeds = (18, 6)
     mediumtransport.DestroyedModel = Some(DestroyedVehicle.MediumTransport)
+    mediumtransport.Subtract.Damage1 = 7
 
     battlewagon.Name = "battlewagon"
     battlewagon.MaxHealth = 2500
@@ -4868,6 +4888,7 @@ object GlobalDefinitions {
     thunderer.TrunkOffset = 30
     thunderer.AutoPilotSpeeds = (18, 6)
     thunderer.DestroyedModel = Some(DestroyedVehicle.MediumTransport)
+    thunderer.Subtract.Damage1 = 7
 
     aurora.Name = "aurora"
     aurora.MaxHealth = 2500
@@ -4891,6 +4912,7 @@ object GlobalDefinitions {
     aurora.TrunkOffset = 30
     aurora.AutoPilotSpeeds = (18, 6)
     aurora.DestroyedModel = Some(DestroyedVehicle.MediumTransport)
+    aurora.Subtract.Damage1 = 7
 
     apc_tr.Name = "apc_tr"
     apc_tr.MaxHealth = 6000
@@ -5043,6 +5065,7 @@ object GlobalDefinitions {
     lightning.TrunkOffset = 30
     lightning.AutoPilotSpeeds = (20, 8)
     lightning.DestroyedModel = Some(DestroyedVehicle.Lightning)
+    lightning.Subtract.Damage1 = 7
 
     prowler.Name = "prowler"
     prowler.MaxHealth = 4800
@@ -5062,6 +5085,7 @@ object GlobalDefinitions {
     prowler.TrunkOffset = 30
     prowler.AutoPilotSpeeds = (14, 6)
     prowler.DestroyedModel = Some(DestroyedVehicle.Prowler)
+    prowler.Subtract.Damage1 = 9
 
     vanguard.Name = "vanguard"
     vanguard.MaxHealth = 5400
@@ -5077,6 +5101,7 @@ object GlobalDefinitions {
     vanguard.TrunkOffset = 30
     vanguard.AutoPilotSpeeds = (16, 6)
     vanguard.DestroyedModel = Some(DestroyedVehicle.Vanguard)
+    vanguard.Subtract.Damage1 = 9
 
     magrider.Name = "magrider"
     magrider.MaxHealth = 4200
@@ -5094,6 +5119,7 @@ object GlobalDefinitions {
     magrider.TrunkOffset = 30
     magrider.AutoPilotSpeeds = (18, 6)
     magrider.DestroyedModel = Some(DestroyedVehicle.Magrider)
+    magrider.Subtract.Damage1 = 9
 
     val utilityConverter = new UtilityVehicleConverter
     ant.Name = "ant"
@@ -5110,6 +5136,7 @@ object GlobalDefinitions {
     ant.MaximumCapacitor = 1500
     ant.Packet = utilityConverter
     ant.DestroyedModel = Some(DestroyedVehicle.Ant)
+    ant.Subtract.Damage1 = 5
 
     ams.Name = "ams"
     ams.MaxHealth = 3000
@@ -5129,6 +5156,7 @@ object GlobalDefinitions {
     ams.AutoPilotSpeeds = (18, 6)
     ams.Packet = utilityConverter
     ams.DestroyedModel = Some(DestroyedVehicle.Ams)
+    ams.Subtract.Damage1 = 10
 
     val variantConverter = new VariantVehicleConverter
     router.Name = "router"
@@ -5147,6 +5175,7 @@ object GlobalDefinitions {
     router.AutoPilotSpeeds = (16, 6)
     router.Packet = variantConverter
     router.DestroyedModel = Some(DestroyedVehicle.Router)
+    router.Subtract.Damage1 = 5
 
     switchblade.Name = "switchblade"
     switchblade.MaxHealth = 1750
@@ -5164,6 +5193,8 @@ object GlobalDefinitions {
     switchblade.AutoPilotSpeeds = (22, 8)
     switchblade.Packet = variantConverter
     switchblade.DestroyedModel = Some(DestroyedVehicle.Switchblade)
+    switchblade.Subtract.Damage0 = 5
+    switchblade.Subtract.Damage1 = 5
 
     flail.Name = "flail"
     flail.MaxHealth = 2400
@@ -5180,6 +5211,7 @@ object GlobalDefinitions {
     flail.AutoPilotSpeeds = (14, 6)
     flail.Packet = variantConverter
     flail.DestroyedModel = Some(DestroyedVehicle.Flail)
+    flail.Subtract.Damage1 = 7
 
     mosquito.Name = "mosquito"
     mosquito.MaxHealth = 665
@@ -5210,6 +5242,7 @@ object GlobalDefinitions {
     lightgunship.AutoPilotSpeeds = (0, 4)
     lightgunship.Packet = variantConverter
     lightgunship.DestroyedModel = Some(DestroyedVehicle.LightGunship)
+    lightgunship.Subtract.Damage1 = 3
 
     wasp.Name = "wasp"
     wasp.MaxHealth = 515
@@ -5247,6 +5280,7 @@ object GlobalDefinitions {
     liberator.AutoPilotSpeeds = (0, 4)
     liberator.Packet = variantConverter
     liberator.DestroyedModel = Some(DestroyedVehicle.Liberator)
+    liberator.Subtract.Damage1 = 5
 
     vulture.Name = "vulture"
     vulture.MaxHealth = 2500
@@ -5269,6 +5303,7 @@ object GlobalDefinitions {
     vulture.AutoPilotSpeeds = (0, 4)
     vulture.Packet = variantConverter
     vulture.DestroyedModel = Some(DestroyedVehicle.Liberator) //add_property vulture destroyedphysics liberator_destroyed
+    vulture.Subtract.Damage1 = 5
 
     dropship.Name = "dropship"
     dropship.MaxHealth = 5000
@@ -5323,6 +5358,7 @@ object GlobalDefinitions {
     dropship.AutoPilotSpeeds = (0, 4)
     dropship.Packet = variantConverter
     dropship.DestroyedModel = Some(DestroyedVehicle.Dropship)
+    dropship.Subtract.Damage1 = 7
 
     galaxy_gunship.Name = "galaxy_gunship"
     galaxy_gunship.MaxHealth = 6000
@@ -5354,6 +5390,7 @@ object GlobalDefinitions {
     galaxy_gunship.AutoPilotSpeeds = (0, 4)
     galaxy_gunship.Packet = variantConverter
     galaxy_gunship.DestroyedModel = Some(DestroyedVehicle.Dropship) //the adb calls out a galaxy_gunship_destroyed but no such asset exists
+    galaxy_gunship.Subtract.Damage1 = 7
 
     lodestar.Name = "lodestar"
     lodestar.MaxHealth = 5000
@@ -5362,11 +5399,20 @@ object GlobalDefinitions {
     lodestar.MountPoints += 1 -> 0
     lodestar.MountPoints += 2 -> 1
     lodestar.Cargo += 1 -> new CargoDefinition()
+    lodestar.Utilities += 2 -> UtilityType.lodestar_repair_terminal
+    lodestar.UtilityOffset += 2 -> Vector3(0, 20, 0)
+    lodestar.Utilities += 3 -> UtilityType.lodestar_repair_terminal
+    lodestar.UtilityOffset += 3 -> Vector3(0, -20, 0)
+    lodestar.Utilities += 4 -> UtilityType.multivehicle_rearm_terminal
+    lodestar.Utilities += 5 -> UtilityType.multivehicle_rearm_terminal
+    lodestar.Utilities += 6 -> UtilityType.bfr_rearm_terminal
+    lodestar.Utilities += 7 -> UtilityType.bfr_rearm_terminal
     lodestar.TrunkSize = InventoryTile.Tile1612
     lodestar.TrunkOffset = 30
     lodestar.AutoPilotSpeeds = (0, 4)
     lodestar.Packet = variantConverter
     lodestar.DestroyedModel = Some(DestroyedVehicle.Lodestar)
+    lodestar.Subtract.Damage1 = 7
 
     phantasm.Name = "phantasm"
     phantasm.MaxHealth = 2500
@@ -5543,5 +5589,93 @@ object GlobalDefinitions {
     internal_router_telepad_deployable.MaxHealth = 1
     internal_router_telepad_deployable.DeployTime = Duration.create(1, "ms")
     internal_router_telepad_deployable.Packet = new InternalTelepadDeployableConverter
+  }
+
+  /**
+    * Initialize `Miscellaneous` globals.
+    */
+  private def initMiscellaneous() : Unit = {
+    adv_med_terminal.Name = "adv_med_terminal"
+    adv_med_terminal.Interval = 500
+    adv_med_terminal.HealAmount = 8
+    adv_med_terminal.ArmorAmount = 15
+    adv_med_terminal.UseRadius = 0.75f
+    adv_med_terminal.TargetValidation += ProximityTarget.Player -> ProximityTerminalControl.Validation.Medical
+
+    crystals_health_a.Name = "crystals_health_a"
+    crystals_health_a.Interval = 500
+    crystals_health_a.HealAmount = 4
+    crystals_health_a.UseRadius = 5
+    crystals_health_a.TargetValidation += ProximityTarget.Player -> ProximityTerminalControl.Validation.HealthCrystal
+
+    crystals_health_b.Name = "crystals_health_b"
+    crystals_health_b.Interval = 500
+    crystals_health_b.HealAmount = 4
+    crystals_health_b.UseRadius = 1.3f
+    crystals_health_b.TargetValidation += ProximityTarget.Player -> ProximityTerminalControl.Validation.HealthCrystal
+
+    medical_terminal.Name = "medical_terminal"
+    medical_terminal.Interval = 500
+    medical_terminal.HealAmount = 5
+    medical_terminal.ArmorAmount = 10
+    medical_terminal.UseRadius = 0.75f
+    medical_terminal.TargetValidation += ProximityTarget.Player -> ProximityTerminalControl.Validation.Medical
+
+    portable_med_terminal.Name = "portable_med_terminal"
+    portable_med_terminal.Interval = 500
+    portable_med_terminal.HealAmount = 5
+    portable_med_terminal.ArmorAmount = 10
+    portable_med_terminal.UseRadius = 3
+    portable_med_terminal.TargetValidation += ProximityTarget.Player -> ProximityTerminalControl.Validation.Medical
+
+    pad_landing_frame.Name = "pad_landing_frame"
+    pad_landing_frame.Interval = 1000
+    pad_landing_frame.HealAmount = 60
+    pad_landing_frame.UseRadius = 20
+    pad_landing_frame.TargetValidation += ProximityTarget.Aircraft -> ProximityTerminalControl.Validation.PadLanding
+
+    pad_landing_tower_frame.Name = "pad_landing_tower_frame"
+    pad_landing_tower_frame.Interval = 1000
+    pad_landing_tower_frame.HealAmount = 60
+    pad_landing_tower_frame.UseRadius = 20
+    pad_landing_tower_frame.TargetValidation += ProximityTarget.Aircraft -> ProximityTerminalControl.Validation.PadLanding
+
+    repair_silo.Name = "repair_silo"
+    repair_silo.Interval = 1000
+    repair_silo.HealAmount = 60
+    repair_silo.UseRadius = 20
+    repair_silo.TargetValidation += ProximityTarget.Vehicle -> ProximityTerminalControl.Validation.RepairSilo
+
+    lodestar_repair_terminal.Name = "lodestar_repair_terminal"
+    lodestar_repair_terminal.Interval = 1000
+    lodestar_repair_terminal.HealAmount = 60
+    lodestar_repair_terminal.UseRadius = 20
+    lodestar_repair_terminal.TargetValidation += ProximityTarget.Vehicle -> ProximityTerminalControl.Validation.RepairSilo
+
+    multivehicle_rearm_terminal.Name = "multivehicle_rearm_terminal"
+    multivehicle_rearm_terminal.Page += 3 -> _OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
+    multivehicle_rearm_terminal.Page += 4 -> _OrderTerminalDefinition.VehicleLoadoutPage()
+
+    bfr_rearm_terminal.Name = "bfr_rearm_terminal"
+    bfr_rearm_terminal.Page += 3 -> _OrderTerminalDefinition.EquipmentPage(Map.empty[String, ()=>Equipment]) //TODO add stock to page
+    bfr_rearm_terminal.Page += 4 -> _OrderTerminalDefinition.VehicleLoadoutPage()
+
+    air_rearm_terminal.Name = "air_rearm_terminal"
+    air_rearm_terminal.Page += 3 -> _OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
+    air_rearm_terminal.Page += 4 -> _OrderTerminalDefinition.VehicleLoadoutPage()
+
+    ground_rearm_terminal.Name = "ground_rearm_terminal"
+    ground_rearm_terminal.Page += 3 -> _OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
+    ground_rearm_terminal.Page += 4 -> _OrderTerminalDefinition.VehicleLoadoutPage()
+
+    manned_turret.Name = "manned_turret"
+    manned_turret.MaxHealth = 3600
+    manned_turret.Weapons += 1 -> new mutable.HashMap()
+    manned_turret.Weapons(1) += TurretUpgrade.None -> phalanx_sgl_hevgatcan
+    manned_turret.Weapons(1) += TurretUpgrade.AVCombo -> phalanx_avcombo
+    manned_turret.Weapons(1) += TurretUpgrade.FlakCombo -> phalanx_flakcombo
+    manned_turret.MountPoints += 1 -> 0
+    manned_turret.FactionLocked = true
+    manned_turret.ReserveAmmunition = false
   }
 }

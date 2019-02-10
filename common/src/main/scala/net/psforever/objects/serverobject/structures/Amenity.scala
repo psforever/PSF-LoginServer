@@ -1,8 +1,9 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.structures
 
+import net.psforever.objects.Vehicle
 import net.psforever.objects.serverobject.PlanetSideServerObject
-import net.psforever.types.PlanetSideEmpire
+import net.psforever.types.{PlanetSideEmpire, Vector3}
 
 /**
   * Amenities are elements of the game that belong to other elements of the game.<br>
@@ -15,7 +16,10 @@ import net.psforever.types.PlanetSideEmpire
   * @see `FactionAffinity`
   */
 abstract class Amenity extends PlanetSideServerObject {
+  /** what other entity has authority over this amenity; usually either a building or a vehicle */
   private var owner : PlanetSideServerObject = Building.NoBuilding
+  /** if the entity exists at a specific position relative to the owner's position */
+  private var offset : Option[Vector3] = None
 
   def Faction : PlanetSideEmpire.Value = Owner.Faction
 
@@ -35,6 +39,26 @@ abstract class Amenity extends PlanetSideServerObject {
   def Owner_=[T : Amenity.AmenityTarget](obj : T) : PlanetSideServerObject = {
     owner = obj.asInstanceOf[PlanetSideServerObject]
     Owner
+  }
+
+  def LocationOffset : Vector3 = offset.getOrElse(Vector3.Zero)
+
+  def LocationOffset_=(off : Vector3) : Vector3 = LocationOffset_=(Some(off))
+
+  def LocationOffset_=(off : Option[Vector3]) : Vector3 = {
+    off match {
+      case Some(Vector3.Zero) =>
+        offset = None
+      case _ =>
+        offset = off
+    }
+    LocationOffset
+  }
+
+  override def Continent = Owner match {
+    case o : Building => o.Zone.Id
+    case o : Vehicle => o.Continent
+    case _ => super.Continent
   }
 }
 

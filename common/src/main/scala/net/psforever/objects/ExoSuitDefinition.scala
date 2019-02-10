@@ -85,6 +85,10 @@ class SpecialExoSuitDefinition(private val suitType : ExoSuitType.Value) extends
     obj.MaxArmor = MaxArmor
     obj.InventoryScale = InventoryScale
     obj.InventoryOffset = InventoryOffset
+    obj.Subtract.Damage0 = Subtract.Damage0
+    obj.Subtract.Damage1 = Subtract.Damage1
+    obj.Subtract.Damage2 = Subtract.Damage2
+    obj.Subtract.Damage3 = Subtract.Damage3
     obj.ResistanceDirectHit = ResistanceDirectHit
     obj.ResistanceSplash = ResistanceSplash
     obj.ResistanceAggravated = ResistanceAggravated
@@ -166,6 +170,7 @@ object ExoSuitDefinition {
   MAX.InventoryOffset = 6
   MAX.Holster(0, EquipmentSize.Max)
   MAX.Holster(4, EquipmentSize.Melee)
+  MAX.Subtract.Damage1 = -2
   MAX.ResistanceDirectHit = 6
   MAX.ResistanceSplash = 35
   MAX.ResistanceAggravated = 10

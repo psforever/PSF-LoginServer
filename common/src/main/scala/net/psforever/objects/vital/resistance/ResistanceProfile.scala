@@ -1,7 +1,8 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.vital.resistance
 
-import net.psforever.objects.vital.DamageType
+import net.psforever.objects.vital.damage.DamageProfile
+import net.psforever.objects.vital.{DamageType, StandardDamageProfile}
 
 /**
   * The different values for four common methods of modifying incoming damage.
@@ -9,6 +10,8 @@ import net.psforever.objects.vital.DamageType
   * This is for defining pure accessor functions.
   */
 trait ResistanceProfile {
+  def Subtract : DamageProfile
+
   def ResistanceDirectHit : Int
 
   def ResistanceSplash : Int
@@ -34,10 +37,24 @@ trait ResistanceProfile {
   * This is for defining both accessor and mutator functions.
   */
 trait ResistanceProfileMutators extends ResistanceProfile {
+  private var subtract : DamageProfile = new StandardDamageProfile {
+    //subtract numbers are always negative modifiers
+    override def Damage0_=(damage : Int) : Int = super.Damage0_=( if(damage < 1) damage else -damage)
+
+    override def Damage1_=(damage : Int) : Int = super.Damage1_=( if(damage < 1) damage else -damage)
+
+    override def Damage2_=(damage : Int) : Int = super.Damage2_=( if(damage < 1) damage else -damage)
+
+    override def Damage3_=(damage : Int) : Int = super.Damage3_=( if(damage < 1) damage else -damage)
+
+    override def Damage4_=(damage : Int) : Int = super.Damage4_=( if(damage < 1) damage else -damage)
+  }
   private var resistanceDirectHit : Int = 0
   private var resistanceSplash : Int = 0
   private var resistanceAggravated : Int = 0
   private var radiationShielding : Float = 0f
+
+  def Subtract : DamageProfile = subtract
 
   def ResistanceDirectHit : Int = resistanceDirectHit
 

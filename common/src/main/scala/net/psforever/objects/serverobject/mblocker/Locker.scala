@@ -35,4 +35,12 @@ object Locker {
     obj.Actor = context.actorOf(Props(classOf[LockerControl], obj), s"${obj.Definition.Name}_$id")
     obj
   }
+
+  import net.psforever.types.Vector3
+  def Constructor(pos: Vector3)(id : Int, context : ActorContext) : Locker = {
+    val obj = Locker()
+    obj.Position = pos
+    obj.Actor = context.actorOf(Props(classOf[LockerControl], obj), s"${obj.Definition.Name}_$id")
+    obj
+  }
 }

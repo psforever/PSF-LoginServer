@@ -71,16 +71,15 @@ object ResourceSilo {
   }
 
   /**
-    * Instantiate an configure a `Resource Silo` object
+    * Instantiate and configure a `Resource Silo` object
     * @param id the unique id that will be assigned to this entity
     * @param context a context to allow the object to properly set up `ActorSystem` functionality;
     *                not necessary for this object, but required by signature
-    * @return the `Locker` object
+    * @return the `ResourceSilo` object
     */
   def Constructor(id : Int, context : ActorContext) : ResourceSilo = {
     val obj = ResourceSilo()
     obj.Actor = context.actorOf(Props(classOf[ResourceSiloControl], obj), s"${obj.Definition.Name}_$id")
-    obj.Actor ! "startup"
     obj
   }
 }

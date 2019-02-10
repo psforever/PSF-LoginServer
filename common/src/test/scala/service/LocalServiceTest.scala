@@ -5,6 +5,7 @@ import akka.actor.Props
 import base.ActorTest
 import net.psforever.objects.{GlobalDefinitions, SensorDeployable, Vehicle}
 import net.psforever.objects.serverobject.PlanetSideServerObject
+import net.psforever.objects.serverobject.terminals.{ProximityTerminal, Terminal}
 import net.psforever.packet.game._
 import net.psforever.types.{PlanetSideEmpire, Vector3}
 import services.{Service, ServiceManager}
@@ -141,15 +142,32 @@ class HackClearTest extends ActorTest {
   }
 }
 
-class ProximityTerminalEffectTest extends ActorTest {
+class ProximityTerminalEffectOnTest extends ActorTest {
   ServiceManager.boot(system)
+  val service = system.actorOf(Props[LocalService], "l_service")
+  val terminal = new ProximityTerminal(GlobalDefinitions.medical_terminal)
+  terminal.GUID = PlanetSideGUID(1)
 
   "LocalService" should {
-    "pass ProximityTerminalEffect" in {
-      val service = system.actorOf(Props[LocalService], "l_service")
-      service ! Service.Join("test")
-      service ! LocalServiceMessage("test", LocalAction.ProximityTerminalEffect(PlanetSideGUID(10), PlanetSideGUID(40), true))
-      expectMsg(LocalServiceResponse("/test/Local", PlanetSideGUID(10), LocalResponse.ProximityTerminalEffect(PlanetSideGUID(40), true)))
+    "pass ProximityTerminalEffect (true)" in {
+      service ! Service.Join("nowhere")
+      service ! Terminal.StartProximityEffect(terminal)
+      expectMsg(LocalServiceResponse("/nowhere/Local", PlanetSideGUID(0), LocalResponse.ProximityTerminalEffect(PlanetSideGUID(1), true)))
+    }
+  }
+}
+
+class ProximityTerminalEffectOffTest extends ActorTest {
+  ServiceManager.boot(system)
+  val service = system.actorOf(Props[LocalService], "l_service")
+  val terminal = new ProximityTerminal(GlobalDefinitions.medical_terminal)
+  terminal.GUID = PlanetSideGUID(1)
+
+  "LocalService" should {
+    "pass ProximityTerminalEffect (false)" in {
+      service ! Service.Join("nowhere")
+      service ! Terminal.StopProximityEffect(terminal)
+      expectMsg(LocalServiceResponse("/nowhere/Local", PlanetSideGUID(0), LocalResponse.ProximityTerminalEffect(PlanetSideGUID(1), false)))
     }
   }
 }
