@@ -312,6 +312,10 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
     buildings.get(id)
   }
 
+  def BuildingByMapId(map_id : Int) : Building = {
+    buildings.filter(x => x._2.MapId == map_id).head._2
+  }
+
   private def BuildLocalObjects(implicit context : ActorContext, guid : NumberPoolHub) : Unit = {
     Map.LocalObjects.foreach({ builderObject => builderObject.Build })
   }
