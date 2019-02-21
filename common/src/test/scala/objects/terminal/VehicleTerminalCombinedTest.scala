@@ -14,7 +14,7 @@ class VehicleTerminalCombinedTest extends Specification {
   "Ground_Vehicle_Terminal" should {
     val player = Player(Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
     val terminal = Terminal(GlobalDefinitions.vehicle_terminal_combined)
-    terminal.Owner = new Building(0, Zone.Nowhere, StructureType.Building)
+    terminal.Owner = new Building(building_guid = 0, map_id = 0, Zone.Nowhere, StructureType.Building)
     terminal.Owner.Faction = PlanetSideEmpire.TR
 
     "construct" in {

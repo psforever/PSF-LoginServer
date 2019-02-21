@@ -14,7 +14,7 @@ class ImplantTerminalInterfaceTest extends Specification {
   "Implant_Terminal_Interface" should {
     val player = Player(Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
     val terminal = Terminal(GlobalDefinitions.implant_terminal_interface)
-    terminal.Owner = new Building(0, Zone.Nowhere, StructureType.Building)
+    terminal.Owner = new Building(building_guid = 0, map_id = 0, Zone.Nowhere, StructureType.Building)
     terminal.Owner.Faction = PlanetSideEmpire.TR
 
     "construct" in {

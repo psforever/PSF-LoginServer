@@ -16,13 +16,13 @@ import scala.concurrent.duration.Duration
 class BuildingBuilderTest extends ActorTest {
   "Building object" should {
     "build" in {
-      val structure : (Int,Zone,ActorContext)=>Building = Building.Structure(StructureType.Building)
-      val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuildingTestActor], structure, 10, Zone.Nowhere), "building")
+      val structure : (Int,Int,Zone,ActorContext)=>Building = Building.Structure(StructureType.Building)
+      val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuildingTestActor], structure, 10, 10, Zone.Nowhere), "building")
       actor ! "!"
 
       val reply = receiveOne(Duration.create(1000, "ms"))
       assert(reply.isInstanceOf[Building])
-      assert(reply.asInstanceOf[Building].Id == 10)
+      assert(reply.asInstanceOf[Building].MapId == 10)
       assert(reply.asInstanceOf[Building].Zone == Zone.Nowhere)
     }
   }
@@ -31,13 +31,13 @@ class BuildingBuilderTest extends ActorTest {
 class WarpGateBuilderTest extends ActorTest {
   "WarpGate object" should {
     "build" in {
-      val structure : (Int,Zone,ActorContext)=>Building = WarpGate.Structure
-      val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuildingTestActor], structure, 10, Zone.Nowhere), "wgate")
+      val structure : (Int,Int,Zone,ActorContext)=>Building = WarpGate.Structure
+      val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuildingTestActor], structure, 10, 10, Zone.Nowhere), "wgate")
       actor ! "!"
 
       val reply = receiveOne(Duration.create(1000, "ms"))
       assert(reply.isInstanceOf[Building])
-      assert(reply.asInstanceOf[Building].Id == 10)
+      assert(reply.asInstanceOf[Building].MapId == 10)
       assert(reply.asInstanceOf[Building].Zone == Zone.Nowhere)
     }
   }
@@ -277,10 +277,10 @@ object ServerObjectBuilderTest {
     }
   }
 
-  class BuildingTestActor(structure_con : (Int,Zone,ActorContext)=>Building, building_id : Int, zone : Zone) extends Actor {
+  class BuildingTestActor(structure_con : (Int,Int,Zone,ActorContext)=>Building, building_guid : Int, map_id : Int, zone : Zone) extends Actor {
     def receive : Receive = {
       case _ =>
-        sender ! FoundationBuilder(structure_con).Build(building_id, zone)(context)
+        sender ! FoundationBuilder(structure_con).Build(building_guid, map_id, zone)(context)
     }
   }
 }

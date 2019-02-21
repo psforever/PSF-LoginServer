@@ -111,9 +111,7 @@ class ResourceSiloControlNtuWarningTest extends ActorTest {
   obj.GUID = PlanetSideGUID(1)
   obj.Actor = system.actorOf(Props(classOf[ResourceSiloControl], obj), "test-silo")
   obj.Actor ! "startup"
-  obj.Owner = new Building(0, Zone.Nowhere, StructureType.Building) {
-    ModelId = 6
-  }
+  obj.Owner = new Building(building_guid = 6, map_id = 0, Zone.Nowhere, StructureType.Building)
 
   "Resource silo" should {
     "announce high ntu" in {
@@ -146,9 +144,7 @@ class ResourceSiloControlUpdate1Test extends ActorTest {
   obj.GUID = PlanetSideGUID(1)
   obj.Actor = system.actorOf(Props(classOf[ResourceSiloControl], obj), "test-silo")
   obj.Actor ! "startup"
-  val bldg = new Building(0, Zone.Nowhere, StructureType.Building) {
-    ModelId = 6
-  }
+  val bldg = new Building(building_guid = 6, map_id = 0, Zone.Nowhere, StructureType.Building)
   val probe2 = TestProbe()
   bldg.Actor = system.actorOf(Props(classOf[ResourceSiloTest.ProbedBuildingControl], probe2), "test-bldg")
   obj.Owner = bldg
@@ -215,9 +211,7 @@ class ResourceSiloControlUpdate2Test extends ActorTest {
   obj.GUID = PlanetSideGUID(1)
   obj.Actor = system.actorOf(Props(classOf[ResourceSiloControl], obj), "test-silo")
   obj.Actor ! "startup"
-  val bldg = new Building(0, Zone.Nowhere, StructureType.Building) {
-    ModelId = 6
-  }
+  val bldg = new Building(building_guid = 6, map_id = 0, Zone.Nowhere, StructureType.Building)
   val probe2 = TestProbe()
   bldg.Actor = system.actorOf(Props(classOf[ResourceSiloTest.ProbedBuildingControl], probe2), "test-bldg")
   obj.Owner = bldg
@@ -276,9 +270,7 @@ class ResourceSiloControlNoUpdateTest extends ActorTest {
   obj.GUID = PlanetSideGUID(1)
   obj.Actor = system.actorOf(Props(classOf[ResourceSiloControl], obj), "test-silo")
   obj.Actor ! "startup"
-  val bldg = new Building(0, Zone.Nowhere, StructureType.Building) {
-    ModelId = 6
-  }
+  val bldg = new Building(building_guid = 6, map_id = 6, Zone.Nowhere, StructureType.Building)
   val probe2 = TestProbe()
   bldg.Actor = system.actorOf(Props(classOf[ResourceSiloTest.ProbedBuildingControl], probe2), "test-bldg")
   obj.Owner = bldg
@@ -298,7 +290,7 @@ class ResourceSiloControlNoUpdateTest extends ActorTest {
       expectNoMsg(500 milliseconds)
       probe1.expectNoMsg(500 milliseconds)
       probe2.expectNoMsg(500 milliseconds)
-      assert(obj.ChargeLevel == 300)
+      assert(obj.ChargeLevel == 299 || obj.ChargeLevel == 300) // Just in case the capacitor level drops while waiting for the message check 299 & 300
       assert(obj.CapacitorDisplay == 3)
       assert(obj.LowNtuWarningOn == false)
     }

@@ -89,7 +89,7 @@ class HackCaptureActor extends Actor {
       val hackEntry = hackedObjects.reduceLeft(minTimeLeft)
       val short_timeout : FiniteDuration = math.max(1, hackEntry.duration.toNanos - (System.nanoTime - hackEntry.hack_timestamp)) nanoseconds
 
-      log.trace(s"Still items left in hacked objects list. Checking again in ${short_timeout}")
+      log.trace(s"Still items left in hacked objects list. Checking again in ${short_timeout.toSeconds} seconds")
       import scala.concurrent.ExecutionContext.Implicits.global
       clearTrigger = context.system.scheduler.scheduleOnce(short_timeout, self, HackCaptureActor.ProcessCompleteHacks())
     }

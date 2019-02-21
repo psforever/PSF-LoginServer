@@ -482,7 +482,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       var ori = spawn_tube.Orientation
       spawn_tube.Owner match {
         case building : Building =>
-          log.info(s"Zone.Lattice.SpawnPoint: spawn point on $zone_id in building ${building.Id} selected")
+          log.info(s"Zone.Lattice.SpawnPoint: spawn point on $zone_id in building ${building.MapId} selected")
           pos = pos + (Vector3(0, 0, 1.5f))
         case vehicle : Vehicle =>
 //          vehicleService ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(vehicle), continent))
@@ -5910,7 +5910,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     */
   def configZone(zone : Zone) : Unit = {
     zone.Buildings.values.foreach(building => {
-      sendResponse(SetEmpireMessage(PlanetSideGUID(building.ModelId), building.Faction))
+      sendResponse(SetEmpireMessage(building.GUID, building.Faction))
       building.Amenities.foreach(amenity => {
         val amenityId = amenity.GUID
         sendResponse(PlanetsideAttributeMessage(amenityId, 50, 0))

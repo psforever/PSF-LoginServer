@@ -8,17 +8,16 @@ import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types.{PlanetSideEmpire, Vector3}
 
-class Building(private val mapId : Int, private val zone : Zone, private val buildingType : StructureType.Value) extends PlanetSideServerObject {
+class Building(private val building_guid : Int, private val map_id : Int, private val zone : Zone, private val buildingType : StructureType.Value) extends PlanetSideServerObject {
   /**
-    * The mapId is the identifier number used in BuildingInfoUpdateMessage.
-    * The modelId is the identifier number used in SetEmpireMessage / Facility hacking / PlanetSideAttributeMessage.
+    * The map_id is the identifier number used in BuildingInfoUpdateMessage. This is the index that the building appears in the MPO file starting from index 1
+    * The GUID is the identifier number used in SetEmpireMessage / Facility hacking / PlanetSideAttributeMessage.
   */
-  private var modelId : Option[Int] = None
   private var faction : PlanetSideEmpire.Value = PlanetSideEmpire.NEUTRAL
   private var amenities : List[Amenity] = List.empty
-  GUID = PlanetSideGUID(0)
+  GUID = PlanetSideGUID(building_guid)
 
-  def Id : Int = mapId
+  def MapId : Int = map_id
 
   def Faction : PlanetSideEmpire.Value = faction
 
@@ -37,15 +36,6 @@ class Building(private val mapId : Int, private val zone : Zone, private val bui
 
   def Zone : Zone = zone
 
-  def ModelId : Int = modelId.getOrElse(Id)
-
-  def ModelId_=(id : Int) : Int = ModelId_=(Some(id))
-
-  def ModelId_=(id : Option[Int]) : Int = {
-    modelId = id
-    ModelId
-  }
-
   def BuildingType : StructureType.Value = buildingType
 
   override def Continent : String = zone.Id
@@ -56,29 +46,29 @@ class Building(private val mapId : Int, private val zone : Zone, private val bui
 }
 
 object Building {
-  final val NoBuilding : Building = new Building(0, Zone.Nowhere, StructureType.Platform) {
+  final val NoBuilding : Building = new Building(building_guid = 0, map_id = 0, Zone.Nowhere, StructureType.Platform) {
     override def Faction_=(faction : PlanetSideEmpire.Value) : PlanetSideEmpire.Value = PlanetSideEmpire.NEUTRAL
     override def Amenities_=(obj : Amenity) : List[Amenity] = Nil
   }
 
   final val BuildingDefinition : ObjectDefinition = new ObjectDefinition(0) { Name = "building" }
 
-  def apply(id : Int, zone : Zone, buildingType : StructureType.Value) : Building = {
-    new Building(id, zone, buildingType)
+  def apply(guid : Int, map_id : Int, zone : Zone, buildingType : StructureType.Value) : Building = {
+    new Building(guid, map_id, zone, buildingType)
   }
 
-  def Structure(buildingType : StructureType.Value, location : Vector3)(id : Int, zone : Zone, context : ActorContext) : Building = {
+  def Structure(buildingType : StructureType.Value, location : Vector3)(guid : Int, map_id : Int, zone : Zone, context : ActorContext) : Building = {
     import akka.actor.Props
-    val obj = new Building(id, zone, buildingType)
+    val obj = new Building(guid, map_id, zone, buildingType)
     obj.Position = location
-    obj.Actor = context.actorOf(Props(classOf[BuildingControl], obj), s"$id-$buildingType-building")
+    obj.Actor = context.actorOf(Props(classOf[BuildingControl], obj), s"$map_id-$buildingType-building")
     obj
   }
 
-  def Structure(buildingType : StructureType.Value)(id : Int, zone : Zone, context : ActorContext) : Building = {
+  def Structure(buildingType : StructureType.Value)(guid: Int, map_id : Int, zone : Zone, context : ActorContext) : Building = {
     import akka.actor.Props
-    val obj = new Building(id, zone, buildingType)
-    obj.Actor = context.actorOf(Props(classOf[BuildingControl], obj), s"$id-$buildingType-building")
+    val obj = new Building(guid, map_id, zone, buildingType)
+    obj.Actor = context.actorOf(Props(classOf[BuildingControl], obj), s"$map_id-$buildingType-building")
     obj
   }
 

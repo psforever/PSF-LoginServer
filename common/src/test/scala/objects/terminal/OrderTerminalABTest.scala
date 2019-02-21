@@ -39,7 +39,7 @@ class OrderTerminalABTest extends Specification {
 
   "Order_Terminal" should {
     val terminal = Terminal(GlobalDefinitions.order_terminala)
-    terminal.Owner = new Building(0, Zone.Nowhere, StructureType.Building)
+    terminal.Owner = new Building(building_guid = 0, map_id = 0, Zone.Nowhere, StructureType.Building)
     terminal.Owner.Faction = PlanetSideEmpire.TR
 
     "construct" in {

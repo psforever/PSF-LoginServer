@@ -43,7 +43,7 @@ class ResourceSiloControl(resourceSilo : ResourceSilo) extends Actor with Factio
     case ResourceSilo.LowNtuWarning(enabled: Boolean) =>
       resourceSilo.LowNtuWarningOn = enabled
       log.trace(s"LowNtuWarning: Silo ${resourceSilo.GUID} low ntu warning set to $enabled")
-      avatarService ! AvatarServiceMessage(resourceSilo.Owner.asInstanceOf[Building].Zone.Id, AvatarAction.PlanetsideAttribute(PlanetSideGUID(resourceSilo.Owner.asInstanceOf[Building].ModelId), 47, if(resourceSilo.LowNtuWarningOn) 1 else 0))
+      avatarService ! AvatarServiceMessage(resourceSilo.Owner.asInstanceOf[Building].Zone.Id, AvatarAction.PlanetsideAttribute(resourceSilo.Owner.asInstanceOf[Building].GUID, 47, if(resourceSilo.LowNtuWarningOn) 1 else 0))
 
     case ResourceSilo.UpdateChargeLevel(amount: Int) =>
       val siloChargeBeforeChange = resourceSilo.ChargeLevel
@@ -81,7 +81,7 @@ class ResourceSiloControl(resourceSilo : ResourceSilo) extends Actor with Factio
       } else if (siloChargeBeforeChange == 0 && resourceSilo.ChargeLevel > 0) {
         // Power restored. Reactor Online. Sensors Online. Weapons Online. All systems nominal.
         //todo: Check generator is online before starting up
-        avatarService ! AvatarServiceMessage(resourceSilo.Owner.asInstanceOf[Building].Zone.Id, AvatarAction.PlanetsideAttribute(PlanetSideGUID(resourceSilo.Owner.asInstanceOf[Building].ModelId), 48, 0))
+        avatarService ! AvatarServiceMessage(resourceSilo.Owner.asInstanceOf[Building].Zone.Id, AvatarAction.PlanetsideAttribute(resourceSilo.Owner.asInstanceOf[Building].GUID, 48, 0))
       }
     case _ => ;
   }
