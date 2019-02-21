@@ -3521,7 +3521,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       // TODO: Not all incoming UseItemMessage's respond with another UseItemMessage (i.e. doors only send out GenericObjectStateMsg)
       continent.GUID(object_guid) match {
         case Some(door : Door) =>
-          if(player.Faction == door.Faction || ((continent.Map.DoorToLock.get(object_guid.guid) match {
+          if(player.Faction == door.Faction || (continent.Map.DoorToLock.get(object_guid.guid) match {
             case Some(lock_guid) =>
               val lock = continent.GUID(lock_guid).get.asInstanceOf[IFFLock]
 
@@ -3532,11 +3532,16 @@ class WorldSessionActor extends Actor with MDCContextAware {
                 case None => ;
               }
 
-              // If the IFF lock has been hacked OR the base is neutral OR the base linked to the lock is hacked then open the door
-              lock.HackedBy.isDefined || baseIsHacked || lock.Faction == PlanetSideEmpire.NEUTRAL
-            case None => !door.isOpen
-          }) || Vector3.ScalarProjection(door.Outwards, player.Position - door.Position) < 0f)) {
-            // We're on the inside of the door - open the door
+              val playerIsOnInside = Vector3.ScalarProjection(lock.Outwards, player.Position - door.Position) < 0f
+
+              // If an IFF lock exists and the IFF lock faction doesn't match the current player and one of the following conditions are met open the door:
+              // A base is neutral
+              // A base is hacked
+              // The lock is hacked
+              // The player is on the inside of the door, determined by the lock orientation
+              lock.HackedBy.isDefined || baseIsHacked || lock.Faction == PlanetSideEmpire.NEUTRAL || playerIsOnInside
+            case None => !door.isOpen // If there's no linked IFF lock just open the door if it's closed.
+          })) {
             door.Actor ! Door.Use(player, msg)
           }
           else if(door.isOpen) {

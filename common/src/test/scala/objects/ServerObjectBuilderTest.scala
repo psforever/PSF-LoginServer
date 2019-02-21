@@ -65,14 +65,12 @@ class DoorObjectBuilderTest2 extends ActorTest {
   "Door object" should {
     "build" in {
       val hub = ServerObjectBuilderTest.NumberPoolHub
-      val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1, Door.Constructor(Vector3(1, 2, 3), Vector3(90, 180, 45))), hub), "door")
+      val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1, Door.Constructor(Vector3(1, 2, 3))), hub), "door")
       actor ! "!"
 
       val reply = receiveOne(Duration.create(1000, "ms"))
       assert(reply.isInstanceOf[Door])
       assert(reply.asInstanceOf[Door].Position == Vector3(1, 2, 3))
-      assert(reply.asInstanceOf[Door].Orientation == Vector3(90, 180, 45))
-      assert(reply.asInstanceOf[Door].Outwards == Vector3(0.70710677f, 0.70710677f, 0f))
       assert(reply.asInstanceOf[Door].HasGUID)
       assert(reply.asInstanceOf[Door].GUID == PlanetSideGUID(1))
       assert(reply == hub(1).get)
@@ -85,7 +83,7 @@ class IFFLockObjectBuilderTest extends ActorTest {
   "IFFLock object" should {
     "build" in {
       val hub = ServerObjectBuilderTest.NumberPoolHub
-      val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1, IFFLock.Constructor), hub), "lock")
+      val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1, IFFLock.Constructor(Vector3(0f, 0f, 0f), Vector3(0f, 0f, 0f))), hub), "lock")
       actor ! "!"
 
       val reply = receiveOne(Duration.create(1000, "ms"))
