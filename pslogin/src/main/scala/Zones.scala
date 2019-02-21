@@ -30,7 +30,7 @@ object Zones {
       BuildingByMapId(16).Faction = PlanetSideEmpire.NC //Zaqar
       BuildingByMapId(17).Faction = PlanetSideEmpire.NC //S_Marduk_Tower
       BuildingByMapId(18).Faction = PlanetSideEmpire.NC //W_Neti_Tower
-//      Building(19).get.Faction = PlanetSideEmpire.NC //W_Zaqar_Tower
+      BuildingByMapId(19).Faction = PlanetSideEmpire.NC //W_Zaqar_Tower
       BuildingByMapId(20).Faction = PlanetSideEmpire.NC //E_Zaqar_Tower
       BuildingByMapId(21).Faction = PlanetSideEmpire.NC //NE_Neti_Tower
       BuildingByMapId(22).Faction = PlanetSideEmpire.NC //SE_Ceryshen_Warpgate_Tower
