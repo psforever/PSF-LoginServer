@@ -483,7 +483,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
       spawn_tube.Owner match {
         case building : Building =>
           log.info(s"Zone.Lattice.SpawnPoint: spawn point on $zone_id in building ${building.MapId} selected")
-          pos = pos + (Vector3(0, 0, 1.5f))
+          val respawn_z_offset = 1.5f // Offset the spawn tube slightly, so the player doesn't spawn in the floor. This value comes from startup.pak/game_objects.adb.lst -> mb_respawn_tube respawn_z_offset setting
+          pos += Vector3(0, 0, respawn_z_offset)
         case vehicle : Vehicle =>
 //          vehicleService ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(vehicle), continent))
 //          vehicleService ! VehicleServiceMessage.Decon(RemoverActor.AddTask(vehicle, continent, vehicle.Definition.DeconstructionTime))
@@ -1904,7 +1905,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
         }
 
       case VehicleResponse.DetachFromRails(vehicle_guid, pad_guid, pad_position, pad_orientation_z) =>
-        sendResponse(ObjectDetachMessage(pad_guid, vehicle_guid, pad_position + Vector3(0, 0, 0.5f), pad_orientation_z))
+        val vehicle_creation_z_offset = 2.52604f // This value comes from startup.pak/game_objects.adb.lst -> mb_pad_creation vehiclecreationzoffset
+        sendResponse(ObjectDetachMessage(pad_guid, vehicle_guid, pad_position + Vector3(0, 0, vehicle_creation_z_offset), pad_orientation_z))
 
       case VehicleResponse.EquipmentInSlot(pkt) =>
         if(tplayer_guid != guid) {
