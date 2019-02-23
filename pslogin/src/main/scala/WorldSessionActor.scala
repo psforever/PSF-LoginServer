@@ -485,6 +485,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           log.info(s"Zone.Lattice.SpawnPoint: spawn point on $zone_id in building ${building.MapId} selected")
           val respawn_z_offset = 1.5f // Offset the spawn tube slightly, so the player doesn't spawn in the floor. This value comes from startup.pak/game_objects.adb.lst -> mb_respawn_tube respawn_z_offset setting
           pos += Vector3(0, 0, respawn_z_offset)
+          ori += Vector3(0, 0, 90f) // Since all spawn tubes seem to have a zero orientation, we need to offset by 90 degrees so the player faces north towards the door, not east.
         case vehicle : Vehicle =>
 //          vehicleService ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(vehicle), continent))
 //          vehicleService ! VehicleServiceMessage.Decon(RemoverActor.AddTask(vehicle, continent, vehicle.Definition.DeconstructionTime))
