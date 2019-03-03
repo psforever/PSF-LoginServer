@@ -10,61 +10,39 @@ import net.psforever.objects.inventory.InventoryItem
 import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.packet.game.ItemTransactionMessage
 import net.psforever.objects.serverobject.terminals.EquipmentTerminalDefinition._
-import net.psforever.types.{CertificationType, ExoSuitType}
+import net.psforever.types.{CertificationType, ExoSuitType, TransactionType}
 
 import scala.collection.mutable
 
 /**
-  * The definition for any `Terminal` that is of a type "order_terminal".
-  * This kind of "order_terminal" is applicable to facilities.<br>
+  * The definition for any `Terminal` from which specifications can be altered.
+  * These specification alternations involve three classifications:
+  * the exchange of denominations of in-game hardware, i.e., `Equipment`,
+  * the modification of lists of personal statistics, e.g., `Certifications`,
+  * and saving and loading of preset configurations, i.e., `Loadouts`.
+  * This hardware is organized as "stock," occasionally supplemented.
+  * Terminals have tabs (visually) that are organized by different stock (internally)
+  * that determines the behavior available from that tab
+  * and what stock can be drawn or returned.<br>
   * <br>
-  * `Buy` and `Sell` `Equipment` items and `AmmoBox` items.
-  * Change `ExoSuitType` and retrieve `Loadout` entries.
+  * Equipment terminals are the property of bases and vehicles ("amenities").
+  * To bases, the `Terminal` object is coupled loosely and may be allowed to diverge.
+  * To vehicles, the `Terminal` object is coupled directly to the faction affiliation of the vehicle.
+  * @see `Amenity`
+  * @see `Terminal`
+  * @see `Utility`
   */
-class OrderTerminalDefinition extends EquipmentTerminalDefinition(612) {
-  Name = "order_terminal"
+class OrderTerminalDefinition(objId : Int) extends TerminalDefinition(objId) {
+  /** An internal object organizing the different specification options found on a terminal's UI. */
+  private val tabs : mutable.HashMap[Int, OrderTerminalDefinition.Tab] =
+    new mutable.HashMap[Int, OrderTerminalDefinition.Tab]()
+  /** Disconnect the ability to return stock back to the terminal
+    * from the type of stock available from the terminal in general
+    * or the type of stock available from its denoted page.
+    * Will always return a message of type `SellEquipment`.*/
+  private var sellEquipmentDefault : Boolean = false
 
-  /**
-    * The `Equipment` available from this `Terminal` on specific pages.
-    */
-  private val buyFunc : (Player, ItemTransactionMessage)=>Terminal.Exchange = EquipmentTerminalDefinition.Buy(
-    infantryAmmunition ++ infantryWeapons,
-    supportAmmunition ++ supportWeapons,
-    suits ++ maxSuits)
-
-  override def Buy(player: Player, msg : ItemTransactionMessage) : Terminal.Exchange = buyFunc(player, msg)
-
-  /**
-    * Process a `TransactionType.Loadout` action by the user.
-    * `Loadout` objects are blueprints composed of exo-suit specifications and simplified `Equipment`-to-slot mappings.
-    * If a valid loadout is found, its data is transformed back into actual `Equipment` for return to the user.
-    * @param player the player
-    * @param msg the original packet carrying the request
-    * @return an actionable message that explains how to process the request
-    */
-  override def Loadout(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
-    if(msg.item_page == 4) { //Favorites tab
-      player.LoadLoadout(msg.unk1) match {
-        case Some(loadout : InfantryLoadout) =>
-          val holsters = loadout.visible_slots.map(entry => { InventoryItem(BuildSimplifiedPattern(entry.item), entry.index) })
-          val inventory = loadout.inventory.map(entry => { InventoryItem(BuildSimplifiedPattern(entry.item), entry.index) })
-          Terminal.InfantryLoadout(loadout.exosuit, loadout.subtype, holsters, inventory)
-        case Some(_) | None =>
-          Terminal.NoDeal()
-      }
-    }
-    else {
-      Terminal.NoDeal()
-    }
-  }
-}
-
-class _OrderTerminalDefinition(objId : Int) extends TerminalDefinition(objId) {
-  private val pages : mutable.HashMap[Int, _OrderTerminalDefinition.PageDefinition] =
-    new mutable.HashMap[Int, _OrderTerminalDefinition.PageDefinition]()
-  private var sellEquipmentDefault : Boolean = true
-
-  def Page : mutable.HashMap[Int, _OrderTerminalDefinition.PageDefinition] = pages
+  def Tab : mutable.HashMap[Int, OrderTerminalDefinition.Tab] = tabs
 
   def SellEquipmentByDefault : Boolean = sellEquipmentDefault
 
@@ -73,8 +51,24 @@ class _OrderTerminalDefinition(objId : Int) extends TerminalDefinition(objId) {
     SellEquipmentByDefault
   }
 
-  override def Buy(player: Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
-    pages.get(msg.item_page) match {
+  def Request(player : Player, msg : Any) : Terminal.Exchange = msg match {
+    case message : ItemTransactionMessage =>
+      message.transaction_type match {
+        case TransactionType.Buy | TransactionType.Learn =>
+          Buy(player, message)
+        case TransactionType.Loadout =>
+          Loadout(player, message)
+        case TransactionType.Sell =>
+          Sell(player, message)
+        case _ =>
+          Terminal.NoDeal()
+      }
+    case _ =>
+      Terminal.NoDeal()
+  }
+
+  private def Buy(player: Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
+    tabs.get(msg.item_page) match {
       case Some(page) =>
         page.Buy(player, msg)
       case _ =>
@@ -82,14 +76,14 @@ class _OrderTerminalDefinition(objId : Int) extends TerminalDefinition(objId) {
     }
   }
 
-  override def Loadout(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = Buy(player, msg)
+  private def Loadout(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = Buy(player, msg)
 
-  override def Sell(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
+  private def Sell(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
     if(sellEquipmentDefault) {
       Terminal.SellEquipment()
     }
     else {
-      pages.get(msg.item_page) match {
+      tabs.get(msg.item_page) match {
         case Some(page) =>
           page.Sell(player, msg)
         case _ =>
@@ -99,14 +93,24 @@ class _OrderTerminalDefinition(objId : Int) extends TerminalDefinition(objId) {
   }
 }
 
-object _OrderTerminalDefinition {
-  abstract class PageDefinition(stock : Map[String, Any]) {
-    def Buy(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange
-    def Sell(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange
+object OrderTerminalDefinition {
+  /**
+    * A basic tab outlining the specific type of stock available from this part of the terminal's interface.
+    * @see `ItemTransactionMessage`
+    */
+  sealed trait Tab {
+    def Buy(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = Terminal.NoDeal()
+    def Sell(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = Terminal.NoDeal()
   }
 
-  final case class ArmorPage(stock : Map[String, (ExoSuitType.Value, Int)]) extends PageDefinition(stock) {
-    def Buy(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
+  /**
+    * The tab used to select an exo-suit to be worn by the player.
+    * @see `ExoSuitType`
+    * @param stock the key is always a `String` value as defined from `ItemTransationMessage` data;
+    *              the value is a tuple composed of an `ExoSuitType` value and a subtype value
+    */
+  final case class ArmorPage(stock : Map[String, (ExoSuitType.Value, Int)]) extends Tab {
+    override def Buy(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
       stock.get(msg.item_name) match {
         case Some((suit : ExoSuitType.Value, subtype : Int)) =>
           Terminal.BuyExosuit(suit, subtype)
@@ -114,12 +118,42 @@ object _OrderTerminalDefinition {
           Terminal.NoDeal()
       }
     }
-
-    def Sell(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = Terminal.NoDeal()
   }
 
-  final case class CertificationPage(stock : Map[String, CertificationType.Value]) extends PageDefinition(stock) {
-    def Buy(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
+  /**
+    * An expanded form of the tab used to select an exo-suit to be worn by the player that also provides some equipment.
+    * @see `ExoSuitType`
+    * @see `Equipment`
+    * @param stock the key is always a `String` value as defined from `ItemTransationMessage` data;
+    *              the value is a tuple composed of an `ExoSuitType` value and a subtype value
+    * @param items the key is always a `String` value as defined from `ItemTransationMessage` data;
+    *              the value is a curried function that produces an `Equipment` object
+    */
+  final case class ArmorWithAmmoPage(stock : Map[String, (ExoSuitType.Value, Int)], items : Map[String, ()=>Equipment]) extends Tab {
+    override def Buy(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
+      stock.get(msg.item_name) match {
+        case Some((suit : ExoSuitType.Value, subtype : Int)) =>
+          Terminal.BuyExosuit(suit, subtype)
+        case _ =>
+          items.get(msg.item_name) match {
+            case Some(item : (()=>Equipment)) =>
+              Terminal.BuyEquipment(item())
+            case _ =>
+              Terminal.NoDeal()
+          }
+      }
+    }
+  }
+
+  /**
+    * The tab used to select a certification to be utilized by the player.
+    * Only certifications may be returned to the interface defined by this page.
+    * @see `CertificationType`
+    * @param stock the key is always a `String` value as defined from `ItemTransationMessage` data;
+    *              the value is a `CertificationType` value
+    */
+  final case class CertificationPage(stock : Map[String, CertificationType.Value]) extends Tab {
+    override def Buy(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
       stock.get(msg.item_name) match {
         case Some(cert : CertificationType.Value) =>
           Terminal.LearnCertification(cert)
@@ -128,7 +162,7 @@ object _OrderTerminalDefinition {
       }
     }
 
-    def Sell(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
+    override def Sell(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
       stock.get(msg.item_name) match {
         case Some(cert : CertificationType.Value) =>
           Terminal.SellCertification(cert)
@@ -138,8 +172,13 @@ object _OrderTerminalDefinition {
     }
   }
 
-  final case class EquipmentPage(stock : Map[String, ()=>Equipment]) extends PageDefinition(stock) {
-    def Buy(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
+  /**
+    * The tab used to produce an `Equipment` object to be used by the player.
+    * @param stock the key is always a `String` value as defined from `ItemTransationMessage` data;
+    *              the value is a curried function that produces an `Equipment` object
+    */
+  final case class EquipmentPage(stock : Map[String, ()=>Equipment]) extends Tab {
+    override def Buy(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
       stock.get(msg.item_name) match {
         case Some(item : (()=>Equipment)) =>
           Terminal.BuyEquipment(item())
@@ -147,12 +186,18 @@ object _OrderTerminalDefinition {
           Terminal.NoDeal()
       }
     }
-
-    def Sell(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = Terminal.SellEquipment()
   }
 
-  final case class ImplantPage(stock : Map[String, ImplantDefinition]) extends PageDefinition(stock) {
-    def Buy(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
+  /**
+    * The tab used to select an implant to be utilized by the player.
+    * A maximum of three implants can be obtained by any player at a time depending on the player's battle rank.
+    * Only implants may be returned to the interface defined by this page.
+    * @see `ImplantDefinition`
+    * @param stock the key is always a `String` value as defined from `ItemTransationMessage` data;
+    *              the value is a `CertificationType` value
+    */
+  final case class ImplantPage(stock : Map[String, ImplantDefinition]) extends Tab {
+    override def Buy(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
       stock.get(msg.item_name) match {
         case Some(implant : ImplantDefinition) =>
           Terminal.LearnImplant(implant)
@@ -161,7 +206,7 @@ object _OrderTerminalDefinition {
       }
     }
 
-    def Sell(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
+    override def Sell(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
       stock.get(msg.item_name) match {
         case Some(implant : ImplantDefinition) =>
           Terminal.SellImplant(implant)
@@ -171,8 +216,19 @@ object _OrderTerminalDefinition {
     }
   }
 
-  final case class InfantryLoadoutPage() extends PageDefinition(Map.empty) {
-    def Buy(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
+  /**
+    * The tab used to select which custom loadout the player is using.
+    * Player loadouts are defined by an exo-suit to be worn by the player
+    * and equipment in the holsters and the inventory.
+    * In this case, the reference to the player that is a parameter of the functions maintains information about the loadouts;
+    * no extra information specific to this page is necessary.
+    * @see `ExoSuitType`
+    * @see `Equipment`
+    * @see `InfantryLoadout`
+    * @see `Loadout`
+    */
+  final case class InfantryLoadoutPage() extends Tab {
+    override def Buy(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
       player.LoadLoadout(msg.unk1) match {
         case Some(loadout : InfantryLoadout) =>
           val holsters = loadout.visible_slots.map(entry => { InventoryItem(BuildSimplifiedPattern(entry.item), entry.index) })
@@ -182,12 +238,20 @@ object _OrderTerminalDefinition {
           Terminal.NoDeal()
       }
     }
-
-    def Sell(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = Terminal.NoDeal()
   }
 
-  final case class VehicleLoadoutPage() extends PageDefinition(Map.empty) {
-    def Buy(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
+  /**
+    * The tab used to select which custom loadout the player's vehicle is using.
+    * Vehicle loadouts are defined by a (superfluous) redefinition of the vehicle's mounted weapons
+    * and equipment in the trunk.
+    * In this case, the reference to the player that is a parameter of the functions maintains information about the loadouts;
+    * no extra information specific to this page is necessary.
+    * @see `Equipment`
+    * @see `Loadout`
+    * @see `VehicleLoadout`
+    */
+  final case class VehicleLoadoutPage() extends Tab {
+    override def Buy(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
       player.LoadLoadout(msg.unk1 + 10) match {
         case Some(loadout : VehicleLoadout) =>
           val weapons = loadout.visible_slots.map(entry => { InventoryItem(BuildSimplifiedPattern(entry.item), entry.index) })
@@ -197,13 +261,21 @@ object _OrderTerminalDefinition {
           Terminal.NoDeal()
       }
     }
-
-    def Sell(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = Terminal.NoDeal()
   }
 
+  /**
+    * The tab used to select a vehicle to be spawned for the player.
+    * Vehicle loadouts are defined by a superfluous redefinition of the vehicle's mounted weapons
+    * and equipment in the trunk
+    * for the purpose of establishing default contents.
+    * @see `Equipment`
+    * @see `Loadout`
+    * @see `Vehicle`
+    * @see `VehicleLoadout`
+    */
   import net.psforever.objects.loadouts.{Loadout => Contents} //distinguish from Terminal.Loadout message
-  final case class VehiclePage(stock : Map[String, ()=>Vehicle], trunk : Map[String, Contents]) extends PageDefinition(stock) {
-    def Buy(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
+  final case class VehiclePage(stock : Map[String, ()=>Vehicle], trunk : Map[String, Contents]) extends Tab {
+    override def Buy(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
       stock.get(msg.item_name) match {
         case Some(vehicle) =>
           val (weapons, inventory) = trunk.get(msg.item_name) match {
@@ -220,8 +292,6 @@ object _OrderTerminalDefinition {
           Terminal.NoDeal()
       }
     }
-
-    def Sell(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = Terminal.NoDeal()
   }
 
   /**

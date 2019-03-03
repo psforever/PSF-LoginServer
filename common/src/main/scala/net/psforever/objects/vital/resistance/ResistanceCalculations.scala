@@ -1,8 +1,9 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.vital.resistance
 
-import net.psforever.objects.{ExoSuitDefinition, GlobalDefinitions}
+import net.psforever.objects.GlobalDefinitions
 import net.psforever.objects.ballistics._
+import net.psforever.objects.definition.ExoSuitDefinition
 import net.psforever.objects.vital.projectile.ProjectileCalculations
 import net.psforever.types.ExoSuitType
 

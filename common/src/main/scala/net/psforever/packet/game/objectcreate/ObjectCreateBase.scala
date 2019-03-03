@@ -84,22 +84,22 @@ object ObjectCreateBase {
     * @return the optional constructed object
     * @see `ObjectClass`
     */
-  def decodeData(objectClass : Int, data : BitVector, getCodecFunc : (Int) => Codec[ConstructorData.genericPattern]) : Option[ConstructorData] = {
-    var out : Option[ConstructorData] = None
+  def decodeData(objectClass : Int, data : BitVector, getCodecFunc : Int => Codec[ConstructorData]) : Attempt[ConstructorData] = {
     try {
       getCodecFunc(objectClass).decode(data) match {
         case Attempt.Successful(decode) =>
-          out = decode.value.asInstanceOf[ConstructorData.genericPattern]
-        case Attempt.Failure(err) =>
+          Attempt.Successful(decode.value)
+        case result @ Attempt.Failure(err) =>
           log.error(s"an object $objectClass failed to decode - ${err.toString}")
           log.debug(s"object type: $objectClass, input: ${data.toString}, problem: ${err.toString}")
+          result
       }
     }
     catch {
       case ex : Exception =>
-        log.error(s"${ex.getClass.toString} - ${ex.toString} ($objectClass)")
+        log.error(s"Decoding error - ${ex.getClass.toString} - ${ex.toString} ($objectClass)")
+        Attempt.failure(Err(ex.getMessage))
     }
-    out
   }
 
   /**
@@ -112,22 +112,23 @@ object ObjectCreateBase {
     * @return the bitstream data
     * @see `ObjectClass`
     */
-  def encodeData(objectClass : Int, obj : ConstructorData, getCodecFunc : (Int) => Codec[ConstructorData.genericPattern]) : BitVector = {
-    var out = BitVector.empty
+  def encodeData(objectClass : Int, obj : ConstructorData, getCodecFunc : Int => Codec[ConstructorData]) : Attempt[BitVector] = {
     try {
-      getCodecFunc(objectClass).encode(Some(obj.asInstanceOf[ConstructorData])) match {
-        case Attempt.Successful(encode) =>
-          out = encode
-        case Attempt.Failure(err) =>
+      getCodecFunc(objectClass).encode(obj.asInstanceOf[ConstructorData]) match {
+        case result @ Attempt.Successful(encode) =>
+          result
+        case result @ Attempt.Failure(err) =>
           log.error(s"an $objectClass object failed to encode - ${err.toString}")
           log.debug(s"object type: $objectClass, input: ${obj.toString}, problem: ${err.toString}")
+          result
+
       }
     }
     catch {
       case ex : Exception =>
-        log.error(s"${ex.getClass.toString} - ${ex.toString} ($objectClass)")
+        log.error(s"Encoding error - ${ex.getClass.toString} - ${ex.toString} ($objectClass)")
+        Attempt.failure(Err(ex.getMessage))
     }
-    out
   }
 
   /**

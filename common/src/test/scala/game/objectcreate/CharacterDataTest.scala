@@ -27,7 +27,7 @@ class CharacterDataTest extends Specification {
           guid mustEqual PlanetSideGUID(3902)
           parent.isDefined mustEqual false
           data match {
-            case Some(PlayerData(Some(pos), basic, char, inv, hand)) =>
+            case PlayerData(Some(pos), basic, char, inv, hand) =>
               pos.coord mustEqual Vector3(3674.8438f, 2726.789f, 91.15625f)
               pos.orient mustEqual Vector3(0f, 0f, 64.6875f)
               pos.vel.isDefined mustEqual true
@@ -40,13 +40,13 @@ class CharacterDataTest extends Specification {
                   a.app.sex mustEqual CharacterGender.Male
                   a.app.head mustEqual 5
                   a.app.voice mustEqual CharacterVoice.Voice5
-                  a.black_ops mustEqual false
-                  a.jammered mustEqual false
+                  a.data.bops mustEqual false
+                  a.data.v1 mustEqual false
+                  a.data.v2.isEmpty mustEqual true
+                  a.data.v3 mustEqual false
+                  a.data.v4.isEmpty mustEqual true
+                  a.data.v5.isEmpty mustEqual true
                   a.exosuit mustEqual ExoSuitType.Reinforced
-                  a.unk1 mustEqual false
-                  a.unk2 mustEqual None
-                  a.unk3 mustEqual None
-                  a.unk4 mustEqual 0
                   a.unk5 mustEqual 0
                   a.unk6 mustEqual 30777081L
                   a.unk7 mustEqual 1
@@ -63,7 +63,7 @@ class CharacterDataTest extends Specification {
                   b.grenade_state mustEqual GrenadeState.None
                   b.is_cloaking mustEqual false
                   b.charging_pose mustEqual false
-                  b.on_zipline mustEqual None
+                  b.on_zipline.isEmpty mustEqual true
                   b.unk0 mustEqual 316554L
                   b.unk1 mustEqual false
                   b.unk2 mustEqual false
@@ -87,12 +87,12 @@ class CharacterDataTest extends Specification {
               char.command_rank mustEqual 5
               char.implant_effects.length mustEqual 1
               char.implant_effects.head mustEqual ImplantEffects.NoEffects
-              char.cosmetics.isDefined mustEqual true
-              char.cosmetics.get.no_helmet mustEqual true
-              char.cosmetics.get.beret mustEqual true
-              char.cosmetics.get.sunglasses mustEqual true
-              char.cosmetics.get.earpiece mustEqual true
-              char.cosmetics.get.brimmed_cap mustEqual false
+              char.cosmetics match {
+                case Some(c : Cosmetics) =>
+                  c.Styles mustEqual Set(PersonalStyle.NoHelmet, PersonalStyle.Beret, PersonalStyle.Sunglasses, PersonalStyle.Earpiece)
+                case None =>
+                  ko
+              }
               char.unk mustEqual 7
               //short test of inventory items
               inv.isDefined mustEqual true
@@ -149,9 +149,9 @@ class CharacterDataTest extends Specification {
           len mustEqual 1795
           cls mustEqual ObjectClass.avatar
           guid mustEqual PlanetSideGUID(3902)
-          parent mustEqual Some(ObjectCreateMessageParent(PlanetSideGUID(1234), 0))
+          parent.contains(ObjectCreateMessageParent(PlanetSideGUID(1234), 0)) mustEqual true
           data match {
-            case Some(PlayerData(None, basic, char, inv, hand)) =>
+            case PlayerData(None, basic, _, _, _) =>
               basic match {
                 case CharacterAppearanceData(a, b, ribbons) =>
                   a.app.name mustEqual "ScrawnyRonnie"
@@ -159,13 +159,13 @@ class CharacterDataTest extends Specification {
                   a.app.sex mustEqual CharacterGender.Male
                   a.app.head mustEqual 5
                   a.app.voice mustEqual CharacterVoice.Voice5
-                  a.black_ops mustEqual false
-                  a.jammered mustEqual false
+                  a.data.bops mustEqual false
+                  a.data.v1 mustEqual false
+                  a.data.v2.isEmpty mustEqual true
+                  a.data.v3 mustEqual false
+                  a.data.v4.isEmpty mustEqual true
+                  a.data.v5.isEmpty mustEqual true
                   a.exosuit mustEqual ExoSuitType.Reinforced
-                  a.unk1 mustEqual false
-                  a.unk2 mustEqual None
-                  a.unk3 mustEqual None
-                  a.unk4 mustEqual 0
                   a.unk5 mustEqual 0
                   a.unk6 mustEqual 192L
                   a.unk7 mustEqual 0
@@ -182,7 +182,7 @@ class CharacterDataTest extends Specification {
                   b.grenade_state mustEqual GrenadeState.None
                   b.is_cloaking mustEqual false
                   b.charging_pose mustEqual false
-                  b.on_zipline mustEqual None
+                  b.on_zipline.isEmpty mustEqual true
                   b.unk0 mustEqual 26L
                   b.unk1 mustEqual false
                   b.unk2 mustEqual false
@@ -216,7 +216,7 @@ class CharacterDataTest extends Specification {
           guid mustEqual PlanetSideGUID(3380)
           parent.isDefined mustEqual false
           data match {
-            case Some(PlayerData(Some(pos), basic, char, None, hand)) =>
+            case PlayerData(Some(pos), basic, char, None, hand) =>
               pos.coord mustEqual Vector3(4629.8906f, 6316.4453f, 54.734375f)
               pos.orient mustEqual Vector3(0, 0, 126.5625f)
               pos.vel.isDefined mustEqual false
@@ -228,13 +228,13 @@ class CharacterDataTest extends Specification {
                   a.app.sex mustEqual CharacterGender.Male
                   a.app.head mustEqual 10
                   a.app.voice mustEqual CharacterVoice.Voice2
-                  a.black_ops mustEqual false
-                  a.jammered mustEqual false
+                  a.data.bops mustEqual false
+                  a.data.v1 mustEqual false
+                  a.data.v2.isEmpty mustEqual true
+                  a.data.v3 mustEqual false
+                  a.data.v4.isEmpty mustEqual true
+                  a.data.v5.isEmpty mustEqual true
                   a.exosuit mustEqual ExoSuitType.MAX
-                  a.unk1 mustEqual false
-                  a.unk2 mustEqual None
-                  a.unk3 mustEqual None
-                  a.unk4 mustEqual 0
                   a.unk5 mustEqual 1
                   a.unk6 mustEqual 0L
                   a.unk7 mustEqual 0
@@ -251,7 +251,7 @@ class CharacterDataTest extends Specification {
                   b.grenade_state mustEqual GrenadeState.None
                   b.is_cloaking mustEqual false
                   b.charging_pose mustEqual false
-                  b.on_zipline mustEqual None
+                  b.on_zipline.isEmpty mustEqual true
                   b.unk0 mustEqual 529687L
                   b.unk1 mustEqual false
                   b.unk2 mustEqual false
@@ -275,12 +275,12 @@ class CharacterDataTest extends Specification {
               char.uniform_upgrade mustEqual UniformStyle.ThirdUpgrade
               char.command_rank mustEqual 2
               char.implant_effects.isEmpty mustEqual true
-              char.cosmetics.isDefined mustEqual true
-              char.cosmetics.get.no_helmet mustEqual true
-              char.cosmetics.get.beret mustEqual true
-              char.cosmetics.get.sunglasses mustEqual true
-              char.cosmetics.get.earpiece mustEqual true
-              char.cosmetics.get.brimmed_cap mustEqual false
+              char.cosmetics match {
+                case Some(c : Cosmetics) =>
+                  c.Styles mustEqual Set(PersonalStyle.NoHelmet, PersonalStyle.Beret, PersonalStyle.Sunglasses, PersonalStyle.Earpiece)
+                case None =>
+                  ko
+              }
               char.unk mustEqual 1
 
               hand mustEqual DrawnSlot.Pistol1
@@ -306,14 +306,18 @@ class CharacterDataTest extends Specification {
           5,
           CharacterVoice.Voice5
         ),
-        false,
-        false,
-        false,
-        None,
-        false,
+        CommonFieldData(
+          PlanetSideEmpire.TR,
+          false,
+          false,
+          false,
+          None,
+          false,
+          None,
+          None,
+          PlanetSideGUID(0)
+        ),
         ExoSuitType.Reinforced,
-        None,
-        0,
         0,
         30777081L,
         1,
@@ -341,7 +345,7 @@ class CharacterDataTest extends Specification {
         None
       )
 
-      val app : (Int)=>CharacterAppearanceData = CharacterAppearanceData(
+      val app : Int=>CharacterAppearanceData = CharacterAppearanceData(
         a, b,
         RibbonBars(
           MeritCommendation.MarkovVeteran,
@@ -359,11 +363,11 @@ class CharacterDataTest extends Specification {
         Some(Cosmetics(true, true, true, true, false))
       )
       val inv = InventoryData(
-        InventoryItemData(ObjectClass.plasma_grenade, PlanetSideGUID(3662), 0, WeaponData(0, 0, ObjectClass.plasma_grenade_ammo, PlanetSideGUID(3751), 0, AmmoBoxData())) ::
-          InventoryItemData(ObjectClass.bank, PlanetSideGUID(3908), 1, WeaponData(0, 0, 1, ObjectClass.armor_canister, PlanetSideGUID(4143), 0, AmmoBoxData())) ::
-          InventoryItemData(ObjectClass.mini_chaingun, PlanetSideGUID(4164), 2, WeaponData(0, 0, ObjectClass.bullet_9mm, PlanetSideGUID(3728), 0, AmmoBoxData())) ::
-          InventoryItemData(ObjectClass.phoenix, PlanetSideGUID(3603), 3, WeaponData(0, 0, ObjectClass.phoenix_missile, PlanetSideGUID(3056), 0, AmmoBoxData())) ::
-          InventoryItemData(ObjectClass.chainblade, PlanetSideGUID(4088), 4, WeaponData(0, 0, 1, ObjectClass.melee_ammo, PlanetSideGUID(3279), 0, AmmoBoxData())) ::
+        InventoryItemData(ObjectClass.plasma_grenade, PlanetSideGUID(3662), 0, WeaponData(0, 0, ObjectClass.plasma_grenade_ammo, PlanetSideGUID(3751), 0, CommonFieldData()(false))) ::
+          InventoryItemData(ObjectClass.bank, PlanetSideGUID(3908), 1, WeaponData(0, 0, 1, ObjectClass.armor_canister, PlanetSideGUID(4143), 0, CommonFieldData()(false))) ::
+          InventoryItemData(ObjectClass.mini_chaingun, PlanetSideGUID(4164), 2, WeaponData(0, 0, ObjectClass.bullet_9mm, PlanetSideGUID(3728), 0, CommonFieldData()(false))) ::
+          InventoryItemData(ObjectClass.phoenix, PlanetSideGUID(3603), 3, WeaponData(0, 0, ObjectClass.phoenix_missile, PlanetSideGUID(3056), 0, CommonFieldData()(false))) ::
+          InventoryItemData(ObjectClass.chainblade, PlanetSideGUID(4088), 4, WeaponData(0, 0, 1, ObjectClass.melee_ammo, PlanetSideGUID(3279), 0, CommonFieldData()(false))) ::
           Nil
       )
       val obj = PlayerData(pos, app, char, inv, DrawnSlot.Rifle1)
@@ -382,14 +386,18 @@ class CharacterDataTest extends Specification {
           5,
           CharacterVoice.Voice5
         ),
-        false,
-        false,
-        false,
-        None,
-        false,
+        CommonFieldData(
+          PlanetSideEmpire.TR,
+          false,
+          false,
+          false,
+          None,
+          false,
+          None,
+          None,
+          PlanetSideGUID(0)
+        ),
         ExoSuitType.Reinforced,
-        None,
-        0,
         0,
         192L,
         0,
@@ -417,7 +425,7 @@ class CharacterDataTest extends Specification {
         None
       )
 
-      val app : (Int)=>CharacterAppearanceData = CharacterAppearanceData(
+      val app : Int=>CharacterAppearanceData = CharacterAppearanceData(
         a, b,
         RibbonBars(
           MeritCommendation.MarkovVeteran,
@@ -434,11 +442,11 @@ class CharacterDataTest extends Specification {
         Some(Cosmetics(true, true, true, true, false))
       )
       val inv = InventoryData(
-        InventoryItemData(ObjectClass.plasma_grenade, PlanetSideGUID(3662), 0, WeaponData(0, 0, ObjectClass.plasma_grenade_ammo, PlanetSideGUID(3751), 0, AmmoBoxData())) ::
-          InventoryItemData(ObjectClass.bank, PlanetSideGUID(3908), 1, WeaponData(0, 0, 1, ObjectClass.armor_canister, PlanetSideGUID(4143), 0, AmmoBoxData())) ::
-          InventoryItemData(ObjectClass.mini_chaingun, PlanetSideGUID(4164), 2, WeaponData(0, 0, ObjectClass.bullet_9mm, PlanetSideGUID(3728), 0, AmmoBoxData())) ::
-          InventoryItemData(ObjectClass.phoenix, PlanetSideGUID(3603), 3, WeaponData(0, 0, ObjectClass.phoenix_missile, PlanetSideGUID(3056), 0, AmmoBoxData())) ::
-          InventoryItemData(ObjectClass.chainblade, PlanetSideGUID(4088), 4, WeaponData(0, 0, 1, ObjectClass.melee_ammo, PlanetSideGUID(3279), 0, AmmoBoxData())) ::
+        InventoryItemData(ObjectClass.plasma_grenade, PlanetSideGUID(3662), 0, WeaponData(0, 0, ObjectClass.plasma_grenade_ammo, PlanetSideGUID(3751), 0, CommonFieldData()(false))) ::
+          InventoryItemData(ObjectClass.bank, PlanetSideGUID(3908), 1, WeaponData(0, 0, 1, ObjectClass.armor_canister, PlanetSideGUID(4143), 0, CommonFieldData()(false))) ::
+          InventoryItemData(ObjectClass.mini_chaingun, PlanetSideGUID(4164), 2, WeaponData(0, 0, ObjectClass.bullet_9mm, PlanetSideGUID(3728), 0, CommonFieldData()(false))) ::
+          InventoryItemData(ObjectClass.phoenix, PlanetSideGUID(3603), 3, WeaponData(0, 0, ObjectClass.phoenix_missile, PlanetSideGUID(3056), 0, CommonFieldData()(false))) ::
+          InventoryItemData(ObjectClass.chainblade, PlanetSideGUID(4088), 4, WeaponData(0, 0, 1, ObjectClass.melee_ammo, PlanetSideGUID(3279), 0, CommonFieldData()(false))) ::
           Nil
       )
       val obj = PlayerData(app, char, inv, DrawnSlot.Rifle1)
@@ -461,14 +469,18 @@ class CharacterDataTest extends Specification {
           10,
           CharacterVoice.Voice2
         ),
-        false,
-        true,
-        false,
-        None,
-        false,
+        CommonFieldData(
+          PlanetSideEmpire.VS,
+          false,
+          true,
+          false,
+          None,
+          false,
+          None,
+          None,
+          PlanetSideGUID(0)
+        ),
         ExoSuitType.MAX,
-        None,
-        0,
         1,
         0L,
         0,
@@ -496,7 +508,7 @@ class CharacterDataTest extends Specification {
         None
       )
 
-      val app : (Int)=>CharacterAppearanceData = CharacterAppearanceData(
+      val app : Int=>CharacterAppearanceData = CharacterAppearanceData(
         a, b,
         RibbonBars(
           MeritCommendation.Jacking2,

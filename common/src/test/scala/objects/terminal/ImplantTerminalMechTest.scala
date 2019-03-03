@@ -28,7 +28,7 @@ class ImplantTerminalMechTest extends Specification {
     }
   }
 
-  "VehicleSpawnPad" should {
+  "Implant_Terminal_Mech" should {
     "construct" in {
       val obj = ImplantTerminalMech(GlobalDefinitions.implant_terminal_mech)
       obj.Actor mustEqual ActorRef.noSender

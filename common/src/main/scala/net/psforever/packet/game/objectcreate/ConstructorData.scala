@@ -16,30 +16,32 @@ abstract class ConstructorData extends StreamBitSize
 
 object ConstructorData {
   /**
-    * This pattern is intended to provide common conversion between all of the `Codec`s of the children of this class.
-    * The casting will be performed through use of `exmap` in the child class.
-    */
-  type genericPattern = Option[ConstructorData]
-
-  /**
-    * Transform a `Codec[T]` for object type `T` into `ConstructorData.genericPattern`.
+    * Transform a `Codec[T]` for object type `T` into `ConstructorData`.
     * @param objCodec a `Codec` that satisfies the transformation `Codec[T] -> T`
     * @param objType a `String` that explains what the object should be identified as in the `Err` message;
     *                defaults to "object"
     * @tparam T a subclass of `ConstructorData` that indicates what type the object is
-    * @return `ConstructorData.genericPattern`
+    * @return `Codec[ConstructorData]`
     */
-  def genericCodec[T <: ConstructorData](objCodec : Codec[T], objType : String = "object") : Codec[ConstructorData.genericPattern] =
-    objCodec.exmap[ConstructorData.genericPattern] (
-    {
-      case x =>
-        Attempt.successful(Some(x.asInstanceOf[ConstructorData]))
-    },
-    {
-      case Some(x) =>
-        Attempt.successful(x.asInstanceOf[T]) //why does this work? shouldn't type erasure be a problem?
-      case _ =>
-        Attempt.failure(Err(s"can not encode as $objType data"))
-    }
-  )
+  def apply[T <: ConstructorData](objCodec : Codec[T], objType : String = "object") : Codec[ConstructorData] =
+    objCodec.exmap[ConstructorData] (
+      x => {
+        try {
+          Attempt.successful(x.asInstanceOf[ConstructorData])
+        }
+        catch {
+          case ex : Exception =>
+            Attempt.failure(Err(s"can not cast decode of $x to $objType - $ex"))
+        }
+      },
+      x => {
+        try {
+          Attempt.successful(x.asInstanceOf[T]) //why does this work? shouldn't type erasure be a problem?
+        }
+        catch {
+          case ex : Exception =>
+            Attempt.failure(Err(s"can not cast encode $x to $objType - $ex"))
+        }
+      }
+    )
 }

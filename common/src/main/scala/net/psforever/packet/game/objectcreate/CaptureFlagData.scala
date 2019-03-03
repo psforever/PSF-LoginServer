@@ -50,8 +50,9 @@ object CaptureFlagData extends Marshallable[CaptureFlagData] {
     {
       case pos :: fac :: false :: 4 :: 0 :: unk1 :: 0 :: unk2 :: 0 :: unk3 :: unk4 :: 0 :: HNil =>
         Attempt.Successful(CaptureFlagData(pos, fac, unk1, unk2, unk3, unk4))
-      case _ =>
-        Attempt.failure(Err("invalid capture flag data"))
+
+      case data =>
+        Attempt.failure(Err(s"invalid capture flag data format - $data"))
     },
     {
       case CaptureFlagData(pos, fac, unk1, unk2, unk3, unk4) =>

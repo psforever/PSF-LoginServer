@@ -2,8 +2,8 @@
 package game.objectcreatevehicle
 
 import net.psforever.packet._
-import net.psforever.packet.game.{ObjectCreateMessage, PlanetSideGUID}
 import net.psforever.packet.game.objectcreate._
+import net.psforever.packet.game.{ObjectCreateMessage, PlanetSideGUID}
 import net.psforever.types._
 import org.specs2.mutable._
 import scodec.bits._
@@ -21,15 +21,14 @@ class NormalVehiclesTest extends Specification {
           cls mustEqual ObjectClass.fury
           guid mustEqual PlanetSideGUID(413)
           parent.isDefined mustEqual false
-          data.isDefined mustEqual true
-          data.get.isInstanceOf[VehicleData] mustEqual true
-          val fury = data.get.asInstanceOf[VehicleData]
+          data.isInstanceOf[VehicleData] mustEqual true
+          val fury = data.asInstanceOf[VehicleData]
           fury.pos.coord mustEqual Vector3(6531.961f, 1872.1406f,24.734375f)
           fury.pos.orient mustEqual Vector3(0, 0, 357.1875f)
-          fury.pos.vel mustEqual None
-          fury.faction mustEqual PlanetSideEmpire.VS
-          fury.unk1 mustEqual 2
-          fury.owner_guid mustEqual PlanetSideGUID(0)
+          fury.pos.vel.isEmpty mustEqual true
+          fury.data.faction mustEqual PlanetSideEmpire.VS
+          fury.data.v1 mustEqual true
+          fury.data.guid mustEqual PlanetSideGUID(0)
           fury.health mustEqual 255
           //
           fury.inventory.isDefined mustEqual true
@@ -39,17 +38,40 @@ class NormalVehiclesTest extends Specification {
           mounting.guid mustEqual PlanetSideGUID(400)
           mounting.parentSlot mustEqual 1
           mounting.obj.isInstanceOf[WeaponData] mustEqual true
-          val weapon = mounting.obj.asInstanceOf[WeaponData]
-          weapon.unk1 mustEqual 0x6
-          weapon.unk2 mustEqual 0x8
-          weapon.fire_mode mustEqual 0
-          weapon.ammo.size mustEqual 1
-          val ammo = weapon.ammo.head
-          ammo.objectClass mustEqual ObjectClass.hellfire_ammo
-          ammo.guid mustEqual PlanetSideGUID(432)
-          ammo.parentSlot mustEqual 0
-          ammo.obj.isInstanceOf[AmmoBoxData] mustEqual true
-          ammo.obj.asInstanceOf[AmmoBoxData].unk mustEqual 0x8
+          mounting.obj match {
+            case WeaponData(CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv4, wv5, wfguid), fmode, ammo, _) =>
+              wfaction mustEqual PlanetSideEmpire.NEUTRAL
+              wbops mustEqual false
+              walternate mustEqual false
+              wv1 mustEqual true
+              wv2.isEmpty mustEqual true
+              wv3 mustEqual false
+              wv4.isEmpty mustEqual true
+              wv5.isEmpty mustEqual true
+              wfguid mustEqual PlanetSideGUID(0)
+
+              fmode mustEqual 0
+
+              ammo.head.objectClass mustEqual ObjectClass.hellfire_ammo
+              ammo.head.guid mustEqual PlanetSideGUID(432)
+              ammo.head.parentSlot mustEqual 0
+              ammo.head.obj match {
+                case CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid) =>
+                  faction mustEqual PlanetSideEmpire.NEUTRAL
+                  bops mustEqual false
+                  alternate mustEqual false
+                  v1 mustEqual true
+                  v2.isEmpty mustEqual true
+                  v3 mustEqual false
+                  v4.contains(false) mustEqual true
+                  v5.isEmpty mustEqual true
+                  fguid mustEqual PlanetSideGUID(0)
+                case _ =>
+                  ko
+              }
+            case _ =>
+              ko
+          }
         case _ =>
           ko
       }
@@ -62,15 +84,14 @@ class NormalVehiclesTest extends Specification {
           cls mustEqual ObjectClass.lightning
           guid mustEqual PlanetSideGUID(90)
           parent.isDefined mustEqual false
-          data.isDefined mustEqual true
-          data.get.isInstanceOf[VehicleData] mustEqual true
-          val lightning = data.get.asInstanceOf[VehicleData]
+          data.isInstanceOf[VehicleData] mustEqual true
+          val lightning = data.asInstanceOf[VehicleData]
           lightning.pos.coord mustEqual Vector3(3674.8438f, 2726.789f, 91.15625f)
           lightning.pos.orient mustEqual Vector3(0, 0, 90)
-          lightning.pos.vel mustEqual None
-          lightning.faction mustEqual PlanetSideEmpire.VS
-          lightning.unk1 mustEqual 2
-          lightning.owner_guid mustEqual PlanetSideGUID(0)
+          lightning.pos.vel.isEmpty mustEqual true
+          lightning.data.faction mustEqual PlanetSideEmpire.VS
+          lightning.data.v1 mustEqual true
+          lightning.data.guid mustEqual PlanetSideGUID(0)
           lightning.health mustEqual 255
 
           lightning.inventory.isDefined mustEqual true
@@ -79,26 +100,59 @@ class NormalVehiclesTest extends Specification {
           mounting.objectClass mustEqual ObjectClass.lightning_weapon_system
           mounting.guid mustEqual PlanetSideGUID(91)
           mounting.parentSlot mustEqual 1
-          mounting.obj.isInstanceOf[WeaponData] mustEqual true
-          val weapon = mounting.obj.asInstanceOf[WeaponData]
-          weapon.unk1 mustEqual 0x4
-          weapon.unk2 mustEqual 0x8
-          weapon.fire_mode mustEqual 0
-          weapon.ammo.size mustEqual 2
-          //0
-          var ammo = weapon.ammo.head
-          ammo.objectClass mustEqual ObjectClass.bullet_75mm
-          ammo.guid mustEqual PlanetSideGUID(92)
-          ammo.parentSlot mustEqual 0
-          ammo.obj.isInstanceOf[AmmoBoxData] mustEqual true
-          ammo.obj.asInstanceOf[AmmoBoxData].unk mustEqual 0x0
-          //1
-          ammo = weapon.ammo(1)
-          ammo.objectClass mustEqual ObjectClass.bullet_25mm
-          ammo.guid mustEqual PlanetSideGUID(93)
-          ammo.parentSlot mustEqual 1
-          ammo.obj.isInstanceOf[AmmoBoxData] mustEqual true
-          ammo.obj.asInstanceOf[AmmoBoxData].unk mustEqual 0x0
+          mounting.obj match {
+            case WeaponData(CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv4, wv5, wfguid), fmode, ammo, _) =>
+              wfaction mustEqual PlanetSideEmpire.VS
+              wbops mustEqual false
+              walternate mustEqual false
+              wv1 mustEqual true
+              wv2.isEmpty mustEqual true
+              wv3 mustEqual false
+              wv4.isEmpty mustEqual true
+              wv5.isEmpty mustEqual true
+              wfguid mustEqual PlanetSideGUID(0)
+
+              fmode mustEqual 0
+
+              //0
+              ammo.head.objectClass mustEqual ObjectClass.bullet_75mm
+              ammo.head.guid mustEqual PlanetSideGUID(92)
+              ammo.head.parentSlot mustEqual 0
+              ammo.head.obj match {
+                case CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid) =>
+                  faction mustEqual PlanetSideEmpire.NEUTRAL
+                  bops mustEqual false
+                  alternate mustEqual false
+                  v1 mustEqual false
+                  v2.isEmpty mustEqual true
+                  v3 mustEqual false
+                  v4.contains(false) mustEqual true
+                  v5.isEmpty mustEqual true
+                  fguid mustEqual PlanetSideGUID(0)
+                case _ =>
+                  ko
+              }
+              //1
+              ammo(1).objectClass mustEqual ObjectClass.bullet_25mm
+              ammo(1).guid mustEqual PlanetSideGUID(93)
+              ammo(1).parentSlot mustEqual 1
+              ammo(1).obj match {
+                case CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid) =>
+                  faction mustEqual PlanetSideEmpire.NEUTRAL
+                  bops mustEqual false
+                  alternate mustEqual false
+                  v1 mustEqual false
+                  v2.isEmpty mustEqual true
+                  v3 mustEqual false
+                  v4.contains(false) mustEqual true
+                  v5.isEmpty mustEqual true
+                  fguid mustEqual PlanetSideGUID(0)
+                case _ =>
+                  ko
+              }
+            case _ =>
+              ko
+          }
         case _ =>
           ko
       }
@@ -111,62 +165,104 @@ class NormalVehiclesTest extends Specification {
           cls mustEqual ObjectClass.mediumtransport
           guid mustEqual PlanetSideGUID(387)
           parent.isDefined mustEqual false
-          data.isDefined mustEqual true
-          data.get.isInstanceOf[VehicleData] mustEqual true
-          val deliverer = data.get.asInstanceOf[VehicleData]
-          deliverer.pos.coord mustEqual Vector3(6531.961f, 1872.1406f, 24.734375f)
-          deliverer.pos.orient mustEqual Vector3(0, 0, 357.1875f)
-          deliverer.pos.vel mustEqual None
-          deliverer.faction mustEqual PlanetSideEmpire.NC
-          deliverer.owner_guid mustEqual PlanetSideGUID(0)
-          deliverer.health mustEqual 255
-          deliverer.driveState mustEqual DriveState.State7
-          deliverer.jammered mustEqual false
-          deliverer.destroyed mustEqual false
-          deliverer.cloak mustEqual false
-          deliverer.unk1 mustEqual 2
-          deliverer.unk2 mustEqual false
-          deliverer.unk3 mustEqual false
-          deliverer.unk4 mustEqual false
-          deliverer.unk5 mustEqual true
-          deliverer.unk6 mustEqual false
-          deliverer.vehicle_format_data mustEqual None
-          deliverer.inventory.isDefined mustEqual true
-          deliverer.inventory.get.contents.size mustEqual 2
-          //0
-          var mounting = deliverer.inventory.get.contents.head
-          mounting.objectClass mustEqual ObjectClass.mediumtransport_weapon_systemA
-          mounting.guid mustEqual PlanetSideGUID(383)
-          mounting.parentSlot mustEqual 5
-          mounting.obj.isInstanceOf[WeaponData] mustEqual true
-          var weapon = mounting.obj.asInstanceOf[WeaponData]
-          weapon.unk1 mustEqual 0x6
-          weapon.unk2 mustEqual 0x8
-          weapon.fire_mode mustEqual 0
-          weapon.ammo.size mustEqual 1
-          var ammo = weapon.ammo.head
-          ammo.objectClass mustEqual ObjectClass.bullet_20mm
-          ammo.guid mustEqual PlanetSideGUID(420)
-          ammo.parentSlot mustEqual 0
-          ammo.obj.isInstanceOf[AmmoBoxData] mustEqual true
-          ammo.obj.asInstanceOf[AmmoBoxData].unk mustEqual 0x8
-          //1
-          mounting = deliverer.inventory.get.contents(1)
-          mounting.objectClass mustEqual ObjectClass.mediumtransport_weapon_systemB
-          mounting.guid mustEqual PlanetSideGUID(556)
-          mounting.parentSlot mustEqual 6
-          mounting.obj.isInstanceOf[WeaponData] mustEqual true
-          weapon = mounting.obj.asInstanceOf[WeaponData]
-          weapon.unk1 mustEqual 0x6
-          weapon.unk2 mustEqual 0x8
-          weapon.fire_mode mustEqual 0
-          weapon.ammo.size mustEqual 1
-          ammo = weapon.ammo.head
-          ammo.objectClass mustEqual ObjectClass.bullet_20mm
-          ammo.guid mustEqual PlanetSideGUID(575)
-          ammo.parentSlot mustEqual 0
-          ammo.obj.isInstanceOf[AmmoBoxData] mustEqual true
-          ammo.obj.asInstanceOf[AmmoBoxData].unk mustEqual 0x8
+          data match {
+            case VehicleData(pos, vdata, unk3, health, unk4, _, driveState, unk5, unk6, _, format, Some(InventoryData(inv))) =>
+              pos.coord mustEqual Vector3(6531.961f, 1872.1406f, 24.734375f)
+              pos.orient mustEqual Vector3.z(357.1875f)
+
+              vdata.faction mustEqual PlanetSideEmpire.NC
+              vdata.alternate mustEqual false
+              vdata.v1 mustEqual true
+              vdata.v3 mustEqual false
+              vdata.v5.isEmpty mustEqual true
+              vdata.guid mustEqual PlanetSideGUID(0)
+
+              health mustEqual 255
+              driveState mustEqual DriveState.State7
+              unk3 mustEqual false
+              unk4 mustEqual false
+              unk5 mustEqual true
+              unk6 mustEqual false
+              format.isEmpty mustEqual true
+              //0
+              inv.head.objectClass mustEqual ObjectClass.mediumtransport_weapon_systemA
+              inv.head.guid mustEqual PlanetSideGUID(383)
+              inv.head.parentSlot mustEqual 5
+              inv.head.obj match {
+                case WeaponData(CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv4, wv5, wfguid), fmode, List(ammo), _) =>
+                  wfaction mustEqual PlanetSideEmpire.NEUTRAL
+                  wbops mustEqual false
+                  walternate mustEqual false
+                  wv1 mustEqual true
+                  wv2.isEmpty mustEqual true
+                  wv3 mustEqual false
+                  wv4.isEmpty mustEqual true
+                  wv5.isEmpty mustEqual true
+                  wfguid mustEqual PlanetSideGUID(0)
+
+                  fmode mustEqual 0
+
+                  ammo.objectClass mustEqual ObjectClass.bullet_20mm
+                  ammo.guid mustEqual PlanetSideGUID(420)
+                  ammo.parentSlot mustEqual 0
+                  ammo.obj match {
+                    case CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid) =>
+                      faction mustEqual PlanetSideEmpire.NEUTRAL
+                      bops mustEqual false
+                      alternate mustEqual false
+                      v1 mustEqual true
+                      v2.isEmpty mustEqual true
+                      v3 mustEqual false
+                      v4.contains(false) mustEqual true
+                      v5.isEmpty mustEqual true
+                      fguid mustEqual PlanetSideGUID(0)
+                    case _ =>
+                      ko
+                  }
+                case _ =>
+                  ko
+              }
+              //1
+              inv(1).objectClass mustEqual ObjectClass.mediumtransport_weapon_systemB
+              inv(1).guid mustEqual PlanetSideGUID(556)
+              inv(1).parentSlot mustEqual 6
+              inv(1).obj match {
+                case WeaponData(CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv4, wv5, wfguid), fmode, List(ammo), _) =>
+                  wfaction mustEqual PlanetSideEmpire.NEUTRAL
+                  wbops mustEqual false
+                  walternate mustEqual false
+                  wv1 mustEqual true
+                  wv2.isEmpty mustEqual true
+                  wv3 mustEqual false
+                  wv4.isEmpty mustEqual true
+                  wv5.isEmpty mustEqual true
+                  wfguid mustEqual PlanetSideGUID(0)
+
+                  fmode mustEqual 0
+
+                  ammo.objectClass mustEqual ObjectClass.bullet_20mm
+                  ammo.guid mustEqual PlanetSideGUID(575)
+                  ammo.parentSlot mustEqual 0
+                  ammo.obj match {
+                    case CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid) =>
+                      faction mustEqual PlanetSideEmpire.NEUTRAL
+                      bops mustEqual false
+                      alternate mustEqual false
+                      v1 mustEqual true
+                      v2.isEmpty mustEqual true
+                      v3 mustEqual false
+                      v4.contains(false) mustEqual true
+                      v5.isEmpty mustEqual true
+                      fguid mustEqual PlanetSideGUID(0)
+                    case _ =>
+                      ko
+                  }
+                case _ =>
+                  ko
+              }
+            case _ =>
+              ko
+          }
         case _ =>
           ko
       }
@@ -175,22 +271,26 @@ class NormalVehiclesTest extends Specification {
     "encode (fury)" in {
       val obj = VehicleData(
         PlacementData(6531.961f, 1872.1406f, 24.734375f, 0f, 0f, 357.1875f),
-        PlanetSideEmpire.VS,
-        false, false,
-        2,
-        false, false,
-        PlanetSideGUID(0),
+        CommonFieldData(PlanetSideEmpire.VS, false, false, true, None, false, Some(false), None, PlanetSideGUID(0)),
         false,
         255,
         false, false,
         DriveState.Mobile,
         false, false, false,
         None,
-        Some(InventoryData(
+        Some(InventoryData(List(
           InventoryItemData(ObjectClass.fury_weapon_systema, PlanetSideGUID(400), 1,
-            WeaponData(0x6, 0x8, 0, ObjectClass.hellfire_ammo, PlanetSideGUID(432), 0, AmmoBoxData(0x8))
-          ) :: Nil
-        ))
+            WeaponData(
+              CommonFieldData(PlanetSideEmpire.NEUTRAL, 2),
+              0,
+              List(
+                InternalSlot(ObjectClass.hellfire_ammo, PlanetSideGUID(432), 0,
+                  CommonFieldData(PlanetSideEmpire.NEUTRAL, 2)(false)
+                )
+              )
+            )
+          )
+        )))
       )(VehicleFormat.Normal)
       val msg = ObjectCreateMessage(ObjectClass.fury, PlanetSideGUID(413), obj)
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
@@ -201,22 +301,25 @@ class NormalVehiclesTest extends Specification {
     "encode (lightning)" in {
       val obj = VehicleData(
         PlacementData(3674.8438f, 2726.789f, 91.15625f, 0f, 0f, 90.0f),
-        PlanetSideEmpire.VS,
-        false, false,
-        2,
-        false, false,
-        PlanetSideGUID(0),
+        CommonFieldData(PlanetSideEmpire.VS, false, false, true, None, false, Some(false), None, PlanetSideGUID(0)),
         false,
         255,
         false, false,
         DriveState.Mobile,
         false, false, false,
         None,
-        Some(InventoryData(
+        Some(InventoryData(List(
           InventoryItemData(ObjectClass.lightning_weapon_system, PlanetSideGUID(91), 1,
-            WeaponData(4, 8, 0, ObjectClass.bullet_75mm, PlanetSideGUID(92), 0, AmmoBoxData(), ObjectClass.bullet_25mm, PlanetSideGUID(93), 1, AmmoBoxData())
-          ) :: Nil
-        ))
+            WeaponData(
+              CommonFieldData(PlanetSideEmpire.VS, 2),
+              0,
+              List(
+                InternalSlot(ObjectClass.bullet_75mm, PlanetSideGUID(92), 0, CommonFieldData()(false)),
+                InternalSlot(ObjectClass.bullet_25mm, PlanetSideGUID(93), 1, CommonFieldData()(false))
+              )
+            )
+          )
+        )))
       )(VehicleFormat.Normal)
       val msg = ObjectCreateMessage(ObjectClass.lightning, PlanetSideGUID(90), obj)
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
@@ -227,25 +330,37 @@ class NormalVehiclesTest extends Specification {
     "encode (medium transport)" in {
       val obj = VehicleData(
         PlacementData(6531.961f, 1872.1406f, 24.734375f, 0f, 0f, 357.1875f),
-        PlanetSideEmpire.NC,
-        false, false,
-        2,
-        false, false,
-        PlanetSideGUID(0),
+        CommonFieldData(PlanetSideEmpire.NC, false, false, true, None, false, Some(false), None, PlanetSideGUID(0)),
         false,
         255,
         false, false,
         DriveState.State7,
         true, false, false,
         None,
-        Some(InventoryData(
+        Some(InventoryData(List(
           InventoryItemData(ObjectClass.mediumtransport_weapon_systemA, PlanetSideGUID(383), 5,
-            WeaponData(6, 8, ObjectClass.bullet_20mm, PlanetSideGUID(420), 0, AmmoBoxData(8))
-          ) ::
-            InventoryItemData(ObjectClass.mediumtransport_weapon_systemB, PlanetSideGUID(556), 6,
-              WeaponData(6, 8, ObjectClass.bullet_20mm, PlanetSideGUID(575), 0, AmmoBoxData(8))
-            ) :: Nil
-        ))
+            WeaponData(
+              CommonFieldData(PlanetSideEmpire.NEUTRAL, 2),
+              0,
+              List(
+                InternalSlot(ObjectClass.bullet_20mm, PlanetSideGUID(420), 0,
+                  CommonFieldData(PlanetSideEmpire.NEUTRAL, 2)(false)
+                )
+              )
+            )
+          ),
+          InventoryItemData(ObjectClass.mediumtransport_weapon_systemB, PlanetSideGUID(556), 6,
+            WeaponData(
+              CommonFieldData(PlanetSideEmpire.NEUTRAL, 2),
+              0,
+              List(
+                InternalSlot(ObjectClass.bullet_20mm, PlanetSideGUID(575), 0,
+                  CommonFieldData(PlanetSideEmpire.NEUTRAL, 2)(false)
+                )
+              )
+            )
+          )
+        )))
       )(VehicleFormat.Normal)
       val msg = ObjectCreateMessage(ObjectClass.mediumtransport, PlanetSideGUID(387), obj)
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector

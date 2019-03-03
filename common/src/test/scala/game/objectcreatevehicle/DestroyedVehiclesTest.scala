@@ -2,8 +2,8 @@
 package game.objectcreatevehicle
 
 import net.psforever.packet._
-import net.psforever.packet.game.{ObjectCreateMessage, PlanetSideGUID}
 import net.psforever.packet.game.objectcreate._
+import net.psforever.packet.game.{ObjectCreateMessage, PlanetSideGUID}
 import org.specs2.mutable._
 import scodec.bits._
 
@@ -18,9 +18,8 @@ class DestroyedVehiclesTest extends Specification {
           cls mustEqual ObjectClass.ams_destroyed
           guid mustEqual PlanetSideGUID(4157)
           parent.isDefined mustEqual false
-          data.isDefined mustEqual true
-          data.get.isInstanceOf[DestroyedVehicleData] mustEqual true
-          val dams = data.get.asInstanceOf[DestroyedVehicleData]
+          data.isInstanceOf[DestroyedVehicleData] mustEqual true
+          val dams = data.asInstanceOf[DestroyedVehicleData]
           dams.pos.coord.x mustEqual 3674.0f
           dams.pos.coord.y mustEqual 2726.789f
           dams.pos.coord.z mustEqual 91.15625f

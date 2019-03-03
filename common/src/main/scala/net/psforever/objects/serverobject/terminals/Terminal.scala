@@ -6,10 +6,14 @@ import net.psforever.objects.definition.VehicleDefinition
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.packet.game.{ItemTransactionMessage, TriggeredSound}
-import net.psforever.types.TransactionType
 
 /**
-  * A structure-owned server object that is a "terminal" that can be accessed for amenities and services.
+  * A server object that can be accessed for services and other amenities.
+  * Terminals are owned by both `Structure` objects and by `Vehicle` objects
+  * and generally conform to the faction affiliation of the owner.
+  * Some `Structure`-owned terminals may be compromised
+  * to extend functionality to other's not of faction affiliation for a short time
+  * while `Vehicle`-owned terminals may not.
   * @param tdef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
   */
 class Terminal(tdef : TerminalDefinition) extends Amenity with Hackable {
@@ -31,42 +35,21 @@ class Terminal(tdef : TerminalDefinition) extends Amenity with Hackable {
   }
 
   /**
-    * Process some `TransactionType` action requested by the user.
+    * Process a message (a "request") dispatched by the user.
+    * To be accessible, the terminal must be owned by the same faction by the user or must be compromised.
+    * @see `FactionAffinity`
+    * @see `PlanetSideEmpire`
     * @param player the player
     * @param msg the original packet carrying the request
     * @return an actionable message that explains what resulted from interacting with this `Terminal`
     */
-  def Request(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
+  def Request(player : Player, msg : Any) : Terminal.Exchange = {
     if(Faction == player.Faction || HackedBy.isDefined) {
-      msg.transaction_type match {
-        case TransactionType.Buy | TransactionType.Learn =>
-          Buy(player, msg)
-
-        case TransactionType.Sell =>
-          Sell(player, msg)
-
-        case TransactionType.Loadout =>
-          Loadout(player, msg)
-
-        case _ =>
-          Terminal.NoDeal()
-      }
+      tdef.Request(player, msg)
     }
     else {
       Terminal.NoDeal()
     }
-  }
-
-  def Buy(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
-    tdef.Buy(player, msg)
-  }
-
-  def Sell(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
-    tdef.Sell(player, msg)
-  }
-
-  def Loadout(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
-    tdef.Loadout(player, msg)
   }
 
   def Definition : TerminalDefinition = tdef

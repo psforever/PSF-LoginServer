@@ -45,11 +45,11 @@ object UtilityType extends Enumeration {
   * Ostensibly, the purpose of the additional logic, when it is called,
   * is to initialize a control `Actor` for the contained object.
   * This `Actor` is expected by other logic.
+  * @see `Amenity.Owner`
   * @see `Vehicle.LoadDefinition`
   * @see `VehicleDefinition.Utilities`
   * @param util the type of the `Amenity` object to be created
   * @param vehicle the owner of this object
-  * @see `Amenity.Owner`
   */
 class Utility(util : UtilityType.Value, vehicle : Vehicle) {
   private val obj : Amenity = Utility.BuildUtilityFunc(util)
@@ -154,9 +154,8 @@ object Utility {
     * The `Terminal` `Utility` produced has proximity effects.
     * @param tdef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
     */
-  class ProximityTerminalUtility(tdef : TerminalDefinition) extends Terminal(tdef)
+  class ProximityTerminalUtility(tdef : ProximityTerminalDefinition) extends ProximityTerminal(tdef)
     with UtilityWorldEntity
-    with ProximityUnit
 
   /**
     * Override for a `Terminal` object so that it inherits the spatial characteristics of its `Owner`.
@@ -166,19 +165,26 @@ object Utility {
     */
   class TeleportPadTerminalUtility(tdef : TerminalDefinition) extends TerminalUtility(tdef) {
     /**
-      * na
-      * @param player na
-      * @param msg na
-      * @return na
+      * This kind of `Terminal` object only produces one object of importance - a Router's telepad unit.
+      * When this `Telepad` object is produced, it shlould be associated with the Router,
+      * that is, with the owner of the `Terminal` object.
+      * @param player the player who made the request
+      * @param msg the request message
+      * @return a message that resolves the transaction
       */
-    override def Buy(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
-      val reply = super.Buy(player, msg)
-      reply match {
-        case Terminal.BuyEquipment(obj : Telepad) =>
-          obj.Router = Owner.GUID
-        case _ => ;
+    override def Request(player : Player, msg : Any) : Terminal.Exchange = {
+      msg match {
+        case message : ItemTransactionMessage =>
+          val reply = super.Request(player, message)
+          reply match {
+            case Terminal.BuyEquipment(obj : Telepad) =>
+              obj.Router = Owner.GUID
+            case _ => ;
+          }
+          reply
+        case _ =>
+          Terminal.NoDeal()
       }
-      reply
     }
   }
 
@@ -218,22 +224,20 @@ object Utility {
     case UtilityType.ams_respawn_tube =>
       SpawnTubeDefinition.Setup
     case UtilityType.bfr_rearm_terminal =>
-      _OrderTerminalDefinition.Setup
+      OrderTerminalDefinition.Setup
     case UtilityType.lodestar_repair_terminal =>
       ProximityTerminal.Setup
     case UtilityType.matrix_terminalc =>
       MatrixTerminalDefinition.Setup
     case UtilityType.multivehicle_rearm_terminal =>
-      _OrderTerminalDefinition.Setup
+      OrderTerminalDefinition.Setup
     case UtilityType.order_terminala =>
-      OrderTerminalABDefinition.Setup
+      OrderTerminalDefinition.Setup
     case UtilityType.order_terminalb =>
-      OrderTerminalABDefinition.Setup
+      OrderTerminalDefinition.Setup
     case UtilityType.teleportpad_terminal =>
-      TeleportPadTerminalDefinition.Setup
+      OrderTerminalDefinition.Setup
     case UtilityType.internal_router_telepad_deployable =>
       TelepadLike.Setup
   }
-
-  //private def defaultSetup(o1 : Amenity, o2 : ActorContext) : Unit = { }
 }

@@ -17,8 +17,8 @@ import net.psforever.objects.serverobject.tube.SpawnTubeDefinition
 import net.psforever.objects.serverobject.resourcesilo.ResourceSiloDefinition
 import net.psforever.objects.serverobject.turret.{TurretDefinition, TurretUpgrade}
 import net.psforever.objects.vehicles.{DestroyedVehicle, SeatArmorRestriction, UtilityType}
-import net.psforever.objects.vital.{DamageType, StandardResolutions}
-import net.psforever.types.{CertificationType, PlanetSideEmpire, Vector3}
+import net.psforever.objects.vital.{DamageType, StandardMaxDamage, StandardResolutions}
+import net.psforever.types.{CertificationType, ExoSuitType, PlanetSideEmpire, Vector3}
 
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -28,6 +28,71 @@ object GlobalDefinitions {
   characters
    */
   val avatar = new AvatarDefinition(121)
+  /*
+  Exo-suits
+   */
+  val Standard = ExoSuitDefinition(ExoSuitType.Standard)
+  Standard.Name = "standard"
+  Standard.MaxArmor = 50
+  Standard.InventoryScale = InventoryTile.Tile96
+  Standard.InventoryOffset = 6
+  Standard.Holster(0, EquipmentSize.Pistol)
+  Standard.Holster(2, EquipmentSize.Rifle)
+  Standard.Holster(4, EquipmentSize.Melee)
+  Standard.ResistanceDirectHit = 4
+  Standard.ResistanceSplash = 15
+  Standard.ResistanceAggravated = 8
+
+  val Agile = ExoSuitDefinition(ExoSuitType.Agile)
+  Agile.Name = "agile"
+  Agile.MaxArmor = 100
+  Agile.InventoryScale = InventoryTile.Tile99
+  Agile.InventoryOffset = 6
+  Agile.Holster(0, EquipmentSize.Pistol)
+  Agile.Holster(1, EquipmentSize.Pistol)
+  Agile.Holster(2, EquipmentSize.Rifle)
+  Agile.Holster(4, EquipmentSize.Melee)
+  Agile.ResistanceDirectHit = 6
+  Agile.ResistanceSplash = 25
+  Agile.ResistanceAggravated = 10
+
+  val Reinforced = ExoSuitDefinition(ExoSuitType.Reinforced)
+  Reinforced.Name = "reinforced"
+  Reinforced.Permissions = List(CertificationType.ReinforcedExoSuit)
+  Reinforced.MaxArmor = 200
+  Reinforced.InventoryScale = InventoryTile.Tile1209
+  Reinforced.InventoryOffset = 6
+  Reinforced.Holster(0, EquipmentSize.Pistol)
+  Reinforced.Holster(1, EquipmentSize.Pistol)
+  Reinforced.Holster(2, EquipmentSize.Rifle)
+  Reinforced.Holster(3, EquipmentSize.Rifle)
+  Reinforced.Holster(4, EquipmentSize.Melee)
+  Reinforced.ResistanceDirectHit = 10
+  Reinforced.ResistanceSplash = 35
+  Reinforced.ResistanceAggravated = 12
+
+  val Infiltration = ExoSuitDefinition(ExoSuitType.Infiltration)
+  Infiltration.Name = "infiltration_suit"
+  Infiltration.Permissions = List(CertificationType.InfiltrationSuit)
+  Infiltration.MaxArmor = 0
+  Infiltration.InventoryScale = InventoryTile.Tile66
+  Infiltration.InventoryOffset = 6
+  Infiltration.Holster(0, EquipmentSize.Pistol)
+  Infiltration.Holster(4, EquipmentSize.Melee)
+
+  val MAX = SpecialExoSuitDefinition(ExoSuitType.MAX)
+  MAX.Permissions = List(CertificationType.AIMAX,CertificationType.AVMAX, CertificationType.AAMAX, CertificationType.UniMAX)
+  MAX.MaxArmor = 650
+  MAX.InventoryScale = InventoryTile.Tile1612
+  MAX.InventoryOffset = 6
+  MAX.Holster(0, EquipmentSize.Max)
+  MAX.Holster(4, EquipmentSize.Melee)
+  MAX.Subtract.Damage1 = -2
+  MAX.ResistanceDirectHit = 6
+  MAX.ResistanceSplash = 35
+  MAX.ResistanceAggravated = 10
+  MAX.Damage = StandardMaxDamage
+  MAX.Model = StandardResolutions.Max
   /*
   Implants
    */
@@ -880,37 +945,44 @@ object GlobalDefinitions {
   /*
   Miscellaneous
    */
-  val order_terminal = new OrderTerminalDefinition
 
   val ams_respawn_tube = new SpawnTubeDefinition(49)
 
+  val matrix_terminala = new MatrixTerminalDefinition(517)
+
+  val matrix_terminalb = new MatrixTerminalDefinition(518)
+
   val matrix_terminalc = new MatrixTerminalDefinition(519)
 
-  val order_terminala = new OrderTerminalABDefinition(613)
+  val spawn_terminal = new MatrixTerminalDefinition(812)
 
-  val order_terminalb = new OrderTerminalABDefinition(614)
+  val order_terminal = new OrderTerminalDefinition(612)
 
-  val cert_terminal = new CertTerminalDefinition
+  val order_terminala = new OrderTerminalDefinition(613)
+
+  val order_terminalb = new OrderTerminalDefinition(614)
+
+  val cert_terminal = new OrderTerminalDefinition(171)
 
   val implant_terminal_mech = new ImplantTerminalMechDefinition
 
-  val implant_terminal_interface = new ImplantTerminalInterfaceDefinition
+  val implant_terminal_interface = new OrderTerminalDefinition(409)
 
-  val ground_vehicle_terminal = new GroundVehicleTerminalDefinition
+  val ground_vehicle_terminal = new OrderTerminalDefinition(386)
 
-  val air_vehicle_terminal = new AirVehicleTerminalDefinition
+  val air_vehicle_terminal = new OrderTerminalDefinition(43)
 
-  val dropship_vehicle_terminal = new DropshipVehicleTerminalDefinition
+  val dropship_vehicle_terminal = new OrderTerminalDefinition(263)
 
-  val vehicle_terminal_combined = new VehicleTerminalCombinedDefinition
+  val vehicle_terminal_combined = new OrderTerminalDefinition(952)
 
-  val spawn_terminal = new MatrixTerminalDefinition(812)
+  val bfr_terminal = new OrderTerminalDefinition(143)
 
   val respawn_tube = new SpawnTubeDefinition(732)
 
   val respawn_tube_tower = new SpawnTubeDefinition(733)
 
-  val teleportpad_terminal = new TeleportPadTerminalDefinition
+  val teleportpad_terminal = new OrderTerminalDefinition(853)
 
   val adv_med_terminal = new MedicalTerminalDefinition(38)
 
@@ -944,13 +1016,13 @@ object GlobalDefinitions {
 
   val lodestar_repair_terminal = new MedicalTerminalDefinition(461)
 
-  val multivehicle_rearm_terminal = new _OrderTerminalDefinition(576)
+  val multivehicle_rearm_terminal = new OrderTerminalDefinition(576)
 
-  val bfr_rearm_terminal = new _OrderTerminalDefinition(142)
+  val bfr_rearm_terminal = new OrderTerminalDefinition(142)
 
-  val air_rearm_terminal = new _OrderTerminalDefinition(42)
+  val air_rearm_terminal = new OrderTerminalDefinition(42)
 
-  val ground_rearm_terminal = new _OrderTerminalDefinition(384)
+  val ground_rearm_terminal = new OrderTerminalDefinition(384)
 
   val manned_turret = new TurretDefinition(480)
   initMiscellaneous()
@@ -1338,6 +1410,68 @@ object GlobalDefinitions {
     super_staminakit.Name = "super_staminakit"
   }
 
+  /**
+    * Initialize `ExoSuitType` globals.
+    */
+  private def init_exosuit() : Unit = {
+    Standard.Name = "standard"
+    Standard.MaxArmor = 50
+    Standard.InventoryScale = InventoryTile.Tile96
+    Standard.InventoryOffset = 6
+    Standard.Holster(0, EquipmentSize.Pistol)
+    Standard.Holster(2, EquipmentSize.Rifle)
+    Standard.Holster(4, EquipmentSize.Melee)
+    Standard.ResistanceDirectHit = 4
+    Standard.ResistanceSplash = 15
+    Standard.ResistanceAggravated = 8
+
+    Agile.Name = "lite_armor"
+    Agile.MaxArmor = 100
+    Agile.InventoryScale = InventoryTile.Tile99
+    Agile.InventoryOffset = 6
+    Agile.Holster(0, EquipmentSize.Pistol)
+    Agile.Holster(1, EquipmentSize.Pistol)
+    Agile.Holster(2, EquipmentSize.Rifle)
+    Agile.Holster(4, EquipmentSize.Melee)
+    Agile.ResistanceDirectHit = 6
+    Agile.ResistanceSplash = 25
+    Agile.ResistanceAggravated = 10
+
+    Reinforced.Name = "med_armor"
+    Reinforced.Permissions = List(CertificationType.ReinforcedExoSuit)
+    Reinforced.MaxArmor = 200
+    Reinforced.InventoryScale = InventoryTile.Tile1209
+    Reinforced.InventoryOffset = 6
+    Reinforced.Holster(0, EquipmentSize.Pistol)
+    Reinforced.Holster(1, EquipmentSize.Pistol)
+    Reinforced.Holster(2, EquipmentSize.Rifle)
+    Reinforced.Holster(3, EquipmentSize.Rifle)
+    Reinforced.Holster(4, EquipmentSize.Melee)
+    Reinforced.ResistanceDirectHit = 10
+    Reinforced.ResistanceSplash = 35
+    Reinforced.ResistanceAggravated = 12
+
+    Infiltration.Name = "infiltration_suit"
+    Infiltration.Permissions = List(CertificationType.InfiltrationSuit)
+    Infiltration.MaxArmor = 0
+    Infiltration.InventoryScale = InventoryTile.Tile66
+    Infiltration.InventoryOffset = 6
+    Infiltration.Holster(0, EquipmentSize.Pistol)
+    Infiltration.Holster(4, EquipmentSize.Melee)
+
+    MAX.Permissions = List(CertificationType.AIMAX,CertificationType.AVMAX, CertificationType.AAMAX, CertificationType.UniMAX)
+    MAX.MaxArmor = 650
+    MAX.InventoryScale = InventoryTile.Tile1612
+    MAX.InventoryOffset = 6
+    MAX.Holster(0, EquipmentSize.Max)
+    MAX.Holster(4, EquipmentSize.Melee)
+    MAX.Subtract.Damage1 = -2
+    MAX.ResistanceDirectHit = 6
+    MAX.ResistanceSplash = 35
+    MAX.ResistanceAggravated = 10
+    MAX.Damage = StandardMaxDamage
+    MAX.Model = StandardResolutions.Max
+  }
   /**
     * Initialize `AmmoBoxDefinition` globals.
     */
@@ -5578,7 +5712,7 @@ object GlobalDefinitions {
     deployable_shield_generator.MaxHealth = 1700
     deployable_shield_generator.DeployTime = Duration.create(6000, "ms")
     deployable_shield_generator.Model = StandardResolutions.ComplexDeployables
-
+    
     router_telepad_deployable.Name = "router_telepad_deployable"
     router_telepad_deployable.MaxHealth = 100
     router_telepad_deployable.DeployTime = Duration.create(1, "ms")
@@ -5595,6 +5729,67 @@ object GlobalDefinitions {
     * Initialize `Miscellaneous` globals.
     */
   private def initMiscellaneous() : Unit = {
+    matrix_terminala.Name = "matrix_terminala"
+
+    matrix_terminalb.Name = "matrix_terminalb"
+
+    matrix_terminalc.Name = "matrix_terminalc"
+
+    spawn_terminal.Name = "spawn_terminal"
+
+    order_terminal.Name = "order_terminal"
+    order_terminal.Tab += 0 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.infantryAmmunition ++ EquipmentTerminalDefinition.infantryWeapons)
+    order_terminal.Tab += 1 -> OrderTerminalDefinition.ArmorWithAmmoPage(EquipmentTerminalDefinition.suits ++ EquipmentTerminalDefinition.maxSuits, EquipmentTerminalDefinition.maxAmmo)
+    order_terminal.Tab += 2 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.supportAmmunition ++ EquipmentTerminalDefinition.supportWeapons)
+    order_terminal.Tab += 3 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
+    order_terminal.Tab += 4 -> OrderTerminalDefinition.InfantryLoadoutPage()
+    order_terminal.SellEquipmentByDefault = true
+
+    order_terminala.Name = "order_terminala"
+    order_terminala.Tab += 0 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.infantryAmmunition ++ EquipmentTerminalDefinition.infantryWeapons)
+    order_terminala.Tab += 1 -> OrderTerminalDefinition.ArmorWithAmmoPage(EquipmentTerminalDefinition.suits, EquipmentTerminalDefinition.maxAmmo)
+    order_terminala.Tab += 2 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.supportAmmunition ++ EquipmentTerminalDefinition.supportWeapons)
+    order_terminala.Tab += 3 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
+    order_terminala.Tab += 4 -> OrderTerminalDefinition.InfantryLoadoutPage()
+    order_terminala.SellEquipmentByDefault = true
+
+    order_terminalb.Name = "order_terminalb"
+    order_terminalb.Tab += 0 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.infantryAmmunition ++ EquipmentTerminalDefinition.infantryWeapons)
+    order_terminalb.Tab += 1 -> OrderTerminalDefinition.ArmorWithAmmoPage(EquipmentTerminalDefinition.suits, EquipmentTerminalDefinition.maxAmmo)
+    order_terminalb.Tab += 2 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.supportAmmunition ++ EquipmentTerminalDefinition.supportWeapons)
+    order_terminalb.Tab += 3 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
+    order_terminalb.Tab += 4 -> OrderTerminalDefinition.InfantryLoadoutPage()
+    order_terminalb.SellEquipmentByDefault = true
+
+    cert_terminal.Name = "cert_terminal"
+    cert_terminal.Tab += 0 -> OrderTerminalDefinition.CertificationPage(CertTerminalDefinition.certs)
+
+    implant_terminal_interface.Name = "implant_terminal_interface"
+    implant_terminal_interface.Tab += 0 -> OrderTerminalDefinition.ImplantPage(ImplantTerminalDefinition.implants)
+
+    ground_vehicle_terminal.Name = "ground_vehicle_terminal"
+    ground_vehicle_terminal.Tab += 46769 -> OrderTerminalDefinition.VehiclePage(VehicleTerminalDefinition.groundVehicles, VehicleTerminalDefinition.trunk)
+    ground_vehicle_terminal.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
+
+    air_vehicle_terminal.Name = "air_vehicle_terminal"
+    air_vehicle_terminal.Tab += 46769 -> OrderTerminalDefinition.VehiclePage(VehicleTerminalDefinition.flight1Vehicles, VehicleTerminalDefinition.trunk)
+    air_vehicle_terminal.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
+
+    dropship_vehicle_terminal.Name = "dropship_vehicle_terminal"
+    dropship_vehicle_terminal.Tab += 46769 -> OrderTerminalDefinition.VehiclePage(VehicleTerminalDefinition.flight1Vehicles ++ VehicleTerminalDefinition.flight2Vehicles, VehicleTerminalDefinition.trunk)
+    dropship_vehicle_terminal.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
+
+    vehicle_terminal_combined.Name = "vehicle_terminal_combined"
+    vehicle_terminal_combined.Tab += 46769 -> OrderTerminalDefinition.VehiclePage(VehicleTerminalDefinition.flight1Vehicles ++ VehicleTerminalDefinition.groundVehicles, VehicleTerminalDefinition.trunk)
+    vehicle_terminal_combined.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
+
+    bfr_terminal.Name = "bfr_terminal"
+    bfr_terminal.Tab += 46769 -> OrderTerminalDefinition.VehiclePage(VehicleTerminalDefinition.bfrVehicles, VehicleTerminalDefinition.trunk)
+    bfr_terminal.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
+
+    teleportpad_terminal.Name = "teleportpad_terminal"
+    teleportpad_terminal.Tab += 0 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.routerTerminal)
+
     adv_med_terminal.Name = "adv_med_terminal"
     adv_med_terminal.Interval = 500
     adv_med_terminal.HealAmount = 8
@@ -5653,20 +5848,24 @@ object GlobalDefinitions {
     lodestar_repair_terminal.TargetValidation += ProximityTarget.Vehicle -> ProximityTerminalControl.Validation.RepairSilo
 
     multivehicle_rearm_terminal.Name = "multivehicle_rearm_terminal"
-    multivehicle_rearm_terminal.Page += 3 -> _OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
-    multivehicle_rearm_terminal.Page += 4 -> _OrderTerminalDefinition.VehicleLoadoutPage()
+    multivehicle_rearm_terminal.Tab += 3 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
+    multivehicle_rearm_terminal.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
+    multivehicle_rearm_terminal.SellEquipmentByDefault = true //TODO ?
 
     bfr_rearm_terminal.Name = "bfr_rearm_terminal"
-    bfr_rearm_terminal.Page += 3 -> _OrderTerminalDefinition.EquipmentPage(Map.empty[String, ()=>Equipment]) //TODO add stock to page
-    bfr_rearm_terminal.Page += 4 -> _OrderTerminalDefinition.VehicleLoadoutPage()
+    bfr_rearm_terminal.Tab += 3 -> OrderTerminalDefinition.EquipmentPage(Map.empty[String, ()=>Equipment]) //TODO add stock to page
+    bfr_rearm_terminal.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
+    bfr_rearm_terminal.SellEquipmentByDefault = true //TODO ?
 
     air_rearm_terminal.Name = "air_rearm_terminal"
-    air_rearm_terminal.Page += 3 -> _OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
-    air_rearm_terminal.Page += 4 -> _OrderTerminalDefinition.VehicleLoadoutPage()
+    air_rearm_terminal.Tab += 3 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
+    air_rearm_terminal.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
+    air_rearm_terminal.SellEquipmentByDefault = true //TODO ?
 
     ground_rearm_terminal.Name = "ground_rearm_terminal"
-    ground_rearm_terminal.Page += 3 -> _OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
-    ground_rearm_terminal.Page += 4 -> _OrderTerminalDefinition.VehicleLoadoutPage()
+    ground_rearm_terminal.Tab += 3 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
+    ground_rearm_terminal.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
+    ground_rearm_terminal.SellEquipmentByDefault = true //TODO ?
 
     manned_turret.Name = "manned_turret"
     manned_turret.MaxHealth = 3600

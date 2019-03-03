@@ -1,8 +1,5 @@
 package net.psforever.types
 
-import net.psforever.packet.PacketHelpers
-import scodec.codecs.uint
-
 /**
   * An `Enumeration` of the mobility states of vehicles.<br>
   * <br>
@@ -19,6 +16,5 @@ object DriveState extends Enumeration {
   val Deploying = Value(2)
   val Deployed = Value(3)
   val State7 = Value(7) //unknown; not encountered on a vehicle that can deploy; functions like Mobile
-
-  implicit val codec = PacketHelpers.createEnumerationCodec(this, uint(3))
+  val State127 = Value(127) //unknown
 }

@@ -2,23 +2,17 @@
 package net.psforever.objects.serverobject.terminals
 
 import net.psforever.objects.definition.VehicleDefinition
-import net.psforever.objects.{Player, Vehicle}
+import net.psforever.objects.Vehicle
 import net.psforever.objects.loadouts.VehicleLoadout
-import net.psforever.objects.inventory.InventoryItem
-import net.psforever.packet.game.ItemTransactionMessage
 
-abstract class VehicleTerminalDefinition(objId : Int) extends TerminalDefinition(objId) {
-  protected var vehicles : Map[String, ()=>Vehicle] = Map()
-  Name = "vehicle_terminal"
-
+object VehicleTerminalDefinition {
   import net.psforever.objects.GlobalDefinitions._
-  import VehicleTerminalDefinition.MakeVehicle
   /**
     * A `Map` of operations for producing a ground-based `Vehicle`.
     * key - an identification string sent by the client
     * value - a curried function that builds the object
     */
-  protected val groundVehicles : Map[String, () => Vehicle] = Map(
+  val groundVehicles : Map[String, () => Vehicle] = Map(
     "quadassault" -> MakeVehicle(quadassault),
     "fury" -> MakeVehicle(fury),
     "quadstealth" -> MakeVehicle(quadstealth),
@@ -50,7 +44,7 @@ abstract class VehicleTerminalDefinition(objId : Int) extends TerminalDefinition
     * key - an identification string sent by the client
     * value - a curried function that builds the object
     */
-  protected val flight1Vehicles : Map[String, ()=>Vehicle] = Map(
+  val flight1Vehicles : Map[String, ()=>Vehicle] = Map(
     "mosquito" -> MakeVehicle(mosquito),
     "lightgunship" -> MakeVehicle(lightgunship),
     "wasp" -> MakeVehicle(wasp),
@@ -64,7 +58,7 @@ abstract class VehicleTerminalDefinition(objId : Int) extends TerminalDefinition
     * key - an identification string sent by the client
     * value - a curried function that builds the object
     */
-  protected val flight2Vehicles : Map[String, ()=>Vehicle] = Map(
+  val flight2Vehicles : Map[String, ()=>Vehicle] = Map(
     "dropship" -> MakeVehicle(dropship),
     "galaxy_gunship" -> MakeVehicle(galaxy_gunship),
     "lodestar" -> MakeVehicle(lodestar)
@@ -75,7 +69,7 @@ abstract class VehicleTerminalDefinition(objId : Int) extends TerminalDefinition
     * key - an identification string sent by the client
     * value - a curried function that builds the object
     */
-  protected val bfrVehicles : Map[String, ()=>Vehicle] = Map(
+  val bfrVehicles : Map[String, ()=>Vehicle] = Map(
     //    "colossus_gunner" -> (()=>Unit),
     //    "colossus_flight" -> (()=>Unit),
     //    "peregrine_gunner" -> (()=>Unit),
@@ -91,7 +85,7 @@ abstract class VehicleTerminalDefinition(objId : Int) extends TerminalDefinition
     * key - an identification string sent by the client (for the vehicle)
     * value - a curried function that builds the object
     */
-  protected val trunk : Map[String, _Loadout] = {
+  val trunk : Map[String, _Loadout] = {
     val ammo_12mm = ShorthandAmmoBox(bullet_12mm, bullet_12mm.Capacity)
     val ammo_15mm = ShorthandAmmoBox(bullet_15mm, bullet_15mm.Capacity)
     val ammo_25mm = ShorthandAmmoBox(bullet_25mm, bullet_25mm.Capacity)
@@ -483,26 +477,6 @@ abstract class VehicleTerminalDefinition(objId : Int) extends TerminalDefinition
     )
   }
 
-  def Buy(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
-    vehicles.get(msg.item_name) match {
-      case Some(vehicle) =>
-        val (weapons, inventory) = trunk.get(msg.item_name) match {
-          case Some(loadout : VehicleLoadout) =>
-            (
-              loadout.visible_slots.map(entry => { InventoryItem(EquipmentTerminalDefinition.BuildSimplifiedPattern(entry.item), entry.index) }),
-              loadout.inventory.map(entry => { InventoryItem(EquipmentTerminalDefinition.BuildSimplifiedPattern(entry.item), entry.index) })
-            )
-          case _ =>
-            (List.empty, List.empty)
-        }
-        Terminal.BuyVehicle(vehicle(), weapons, inventory)
-      case None =>
-        Terminal.NoDeal()
-    }
-  }
-}
-
-object VehicleTerminalDefinition {
   /**
     * Create a new `Vehicle` from provided `VehicleDefinition` objects.
     * @param vdef the `VehicleDefinition` object

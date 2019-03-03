@@ -1,8 +1,8 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.vehicles
 
-import net.psforever.objects.{EquipmentSlot, PlanetSideGameObject}
-import net.psforever.objects.equipment.Equipment
+import net.psforever.objects.PlanetSideGameObject
+import net.psforever.objects.equipment.{Equipment, EquipmentSlot}
 import net.psforever.objects.inventory.Container
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.vehicles.{Seat => Chair}

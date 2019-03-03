@@ -2,8 +2,8 @@
 package game.objectcreatevehicle
 
 import net.psforever.packet._
-import net.psforever.packet.game.{ObjectCreateMessage, PlanetSideGUID}
 import net.psforever.packet.game.objectcreate._
+import net.psforever.packet.game.{ObjectCreateMessage, PlanetSideGUID}
 import net.psforever.types._
 import org.specs2.mutable._
 import scodec.bits._
@@ -22,20 +22,19 @@ class UtilityVehiclesTest extends Specification {
           cls mustEqual ObjectClass.ant
           guid mustEqual PlanetSideGUID(380)
           parent.isDefined mustEqual false
-          data.isDefined mustEqual true
-          data.get.isInstanceOf[VehicleData] mustEqual true
-          val ant = data.get.asInstanceOf[VehicleData]
+          data.isInstanceOf[VehicleData] mustEqual true
+          val ant = data.asInstanceOf[VehicleData]
           ant.pos.coord mustEqual Vector3(3674.8438f, 2726.789f, 91.15625f)
           ant.pos.orient mustEqual Vector3(0, 0, 90)
-          ant.faction mustEqual PlanetSideEmpire.VS
-          ant.owner_guid mustEqual PlanetSideGUID(0)
+          ant.data.faction mustEqual PlanetSideEmpire.VS
+          ant.data.alternate mustEqual false
+          ant.data.v1 mustEqual true
+          ant.data.v3 mustEqual false
+          ant.data.v5.isEmpty mustEqual true
+          ant.data.guid mustEqual PlanetSideGUID(0)
           ant.driveState mustEqual DriveState.Mobile
           ant.health mustEqual 255
-          ant.jammered mustEqual false
-          ant.destroyed mustEqual false
           ant.cloak mustEqual false
-          ant.unk1 mustEqual 2
-          ant.unk2 mustEqual false
           ant.unk3 mustEqual false
           ant.unk4 mustEqual false
           ant.unk5 mustEqual false
@@ -52,22 +51,21 @@ class UtilityVehiclesTest extends Specification {
           cls mustEqual ObjectClass.ams
           guid mustEqual PlanetSideGUID(4157)
           parent.isDefined mustEqual false
-          data.isDefined mustEqual true
-          data.get.isInstanceOf[VehicleData] mustEqual true
-          val ams = data.get.asInstanceOf[VehicleData]
+          data.isInstanceOf[VehicleData] mustEqual true
+          val ams = data.asInstanceOf[VehicleData]
           ams.pos.coord mustEqual Vector3(3674, 2726.789f, 91.15625f)
           ams.pos.orient mustEqual Vector3(0, 0, 90)
           ams.pos.vel mustEqual None
-          ams.faction mustEqual PlanetSideEmpire.VS
-          ams.owner_guid mustEqual PlanetSideGUID(2885)
+          ams.data.faction mustEqual PlanetSideEmpire.VS
+          ams.data.alternate mustEqual false
+          ams.data.v1 mustEqual false
+          ams.data.v3 mustEqual false
+          ams.data.v5.isEmpty mustEqual true
+          ams.data.guid mustEqual PlanetSideGUID(2885)
           ams.driveState mustEqual DriveState.Deployed
           ams.vehicle_format_data mustEqual Some(UtilityVehicleData(60))
           ams.health mustEqual 236
-          ams.jammered mustEqual false
-          ams.destroyed mustEqual false
           ams.cloak mustEqual true
-          ams.unk1 mustEqual 0
-          ams.unk2 mustEqual false
           ams.unk3 mustEqual false
           ams.unk4 mustEqual false
           ams.unk5 mustEqual false
@@ -78,19 +76,19 @@ class UtilityVehiclesTest extends Specification {
           inv.head.objectClass mustEqual ObjectClass.matrix_terminalc
           inv.head.guid mustEqual PlanetSideGUID(3663)
           inv.head.parentSlot mustEqual 1
-          inv.head.obj.isInstanceOf[CommonTerminalData] mustEqual true
+          inv.head.obj.isInstanceOf[CommonFieldData] mustEqual true
           inv(1).objectClass mustEqual ObjectClass.ams_respawn_tube
           inv(1).guid mustEqual PlanetSideGUID(3638)
           inv(1).parentSlot mustEqual 2
-          inv(1).obj.isInstanceOf[CommonTerminalData] mustEqual true
+          inv(1).obj.isInstanceOf[CommonFieldData] mustEqual true
           inv(2).objectClass mustEqual ObjectClass.order_terminala
           inv(2).guid mustEqual PlanetSideGUID(3827)
           inv(2).parentSlot mustEqual 3
-          inv(2).obj.isInstanceOf[CommonTerminalData] mustEqual true
+          inv(2).obj.isInstanceOf[CommonFieldData] mustEqual true
           inv(3).objectClass mustEqual ObjectClass.order_terminalb
           inv(3).guid mustEqual PlanetSideGUID(3556)
           inv(3).parentSlot mustEqual 4
-          inv(3).obj.isInstanceOf[CommonTerminalData] mustEqual true
+          inv(3).obj.isInstanceOf[CommonFieldData] mustEqual true
         case _ =>
           ko
       }
@@ -99,11 +97,7 @@ class UtilityVehiclesTest extends Specification {
     "encode (ant)" in {
       val obj = VehicleData(
         PlacementData(3674.8438f, 2726.789f, 91.15625f, 0f, 0f, 90.0f),
-        PlanetSideEmpire.VS,
-        false, false,
-        2,
-        false, false,
-        PlanetSideGUID(0),
+        CommonFieldData(PlanetSideEmpire.VS, false, false, true, None, false, Some(false), None, PlanetSideGUID(0)),
         false,
         255,
         false, false,
@@ -121,11 +115,7 @@ class UtilityVehiclesTest extends Specification {
     "encode (ams)" in {
       val obj =  VehicleData(
         PlacementData(3674.0f, 2726.789f, 91.15625f, 0f, 0f, 90.0f),
-        PlanetSideEmpire.VS,
-        false, false,
-        0,
-        false, false,
-        PlanetSideGUID(2885),
+        CommonFieldData(PlanetSideEmpire.VS, false, false, false, None, false, Some(false), None, PlanetSideGUID(2885)),
         false,
         236,
         false, false,
@@ -133,10 +123,10 @@ class UtilityVehiclesTest extends Specification {
         false, true, true,
         Some(UtilityVehicleData(60)), //what does this mean?
         Some(InventoryData(List(
-          InternalSlot(ObjectClass.matrix_terminalc, PlanetSideGUID(3663), 1, CommonTerminalData(PlanetSideEmpire.VS)),
-          InternalSlot(ObjectClass.ams_respawn_tube, PlanetSideGUID(3638), 2, CommonTerminalData(PlanetSideEmpire.VS)),
-          InternalSlot(ObjectClass.order_terminala, PlanetSideGUID(3827), 3, CommonTerminalData(PlanetSideEmpire.VS)),
-          InternalSlot(ObjectClass.order_terminalb, PlanetSideGUID(3556), 4, CommonTerminalData(PlanetSideEmpire.VS))
+          InternalSlot(ObjectClass.matrix_terminalc, PlanetSideGUID(3663), 1, CommonFieldData(PlanetSideEmpire.VS)(false)),
+          InternalSlot(ObjectClass.ams_respawn_tube, PlanetSideGUID(3638), 2, CommonFieldData(PlanetSideEmpire.VS)(false)),
+          InternalSlot(ObjectClass.order_terminala, PlanetSideGUID(3827), 3, CommonFieldData(PlanetSideEmpire.VS)(false)),
+          InternalSlot(ObjectClass.order_terminalb, PlanetSideGUID(3556), 4, CommonFieldData(PlanetSideEmpire.VS)(false))
         )))
       )(VehicleFormat.Utility)
       val msg = ObjectCreateMessage(ObjectClass.ams, PlanetSideGUID(4157), obj)

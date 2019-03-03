@@ -1,6 +1,8 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.terminals
 
+import net.psforever.objects.Player
+import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.types.Vector3
 import services.Service
@@ -13,14 +15,23 @@ import services.Service
   * For example, the cavern crystals are considered owner-neutral elements that are not attached to a `Building` object.
   * @param tdef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
   */
-class ProximityTerminal(tdef : TerminalDefinition with ProximityDefinition) extends Terminal(tdef) with ProximityUnit
+class ProximityTerminal(tdef : ProximityTerminalDefinition) extends Terminal(tdef) with ProximityUnit {
+  override def Request(player : Player, msg : Any) : Terminal.Exchange = {
+    msg match {
+      case message : CommonMessages.Use =>
+        Actor ! message
+      case _ =>
+    }
+    Terminal.NoDeal()
+  }
+}
 
 object ProximityTerminal {
   /**
     * Overloaded constructor.
     * @param tdef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
     */
-  def apply(tdef : TerminalDefinition with ProximityDefinition) : ProximityTerminal = {
+  def apply(tdef : ProximityTerminalDefinition) : ProximityTerminal = {
     new ProximityTerminal(tdef)
   }
 
@@ -33,7 +44,7 @@ object ProximityTerminal {
     * @param context a context to allow the object to properly set up `ActorSystem` functionality
     * @return the `Terminal` object
     */
-  def Constructor(tdef : TerminalDefinition with ProximityDefinition)(id : Int, context : ActorContext) : Terminal = {
+  def Constructor(tdef : ProximityTerminalDefinition)(id : Int, context : ActorContext) : Terminal = {
     import akka.actor.Props
     val obj = ProximityTerminal(tdef)
     obj.Actor = context.actorOf(Props(classOf[ProximityTerminalControl], obj), s"${tdef.Name}_$id")
@@ -42,12 +53,13 @@ object ProximityTerminal {
 
   /**
     * Instantiate an configure a `Terminal` object, with position coordinates.
-    * @param tdef    the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
-    * @param id      the unique id that will be assigned to this entity
+    * @param tdef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
+    * @param pos the location of the object
+    * @param id the unique id that will be assigned to this entity
     * @param context a context to allow the object to properly set up `ActorSystem` functionality
     * @return the `Terminal` object
     */
-  def Constructor(tdef : TerminalDefinition with ProximityDefinition, pos : Vector3)(id : Int, context : ActorContext) : Terminal = {
+  def Constructor(tdef : ProximityTerminalDefinition, pos : Vector3)(id : Int, context : ActorContext) : Terminal = {
     import akka.actor.Props
     val obj = ProximityTerminal(tdef)
     obj.Position = pos

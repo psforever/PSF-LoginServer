@@ -3,7 +3,7 @@ package game.objectcreate
 
 import net.psforever.packet.PacketCoding
 import net.psforever.packet.game.{ObjectCreateMessage, PlanetSideGUID}
-import net.psforever.packet.game.objectcreate.{SmallDeployableData, _}
+import net.psforever.packet.game.objectcreate._
 import net.psforever.types.{PlanetSideEmpire, Vector3}
 import org.specs2.mutable._
 import scodec.bits._
@@ -20,17 +20,25 @@ class SmallTurretDataTest extends Specification {
           cls mustEqual ObjectClass.spitfire_turret
           guid mustEqual PlanetSideGUID(4208)
           parent.isDefined mustEqual false
-          data.isDefined mustEqual true
-          data.get.isInstanceOf[SmallTurretData] mustEqual true
-          val turret = data.get.asInstanceOf[SmallTurretData]
-          turret.deploy.pos.coord mustEqual Vector3(4577.7812f, 5624.828f, 72.046875f)
-          turret.deploy.pos.orient mustEqual Vector3(0, 2.8125f, 264.375f)
-          turret.deploy.faction mustEqual PlanetSideEmpire.NC
-          turret.deploy.destroyed mustEqual true
-          turret.deploy.unk1 mustEqual 2
-          turret.deploy.owner_guid mustEqual PlanetSideGUID(7742)
-          turret.health mustEqual 0
-          turret.internals.isDefined mustEqual false
+          data match {
+            case SmallTurretData(CommonFieldDataWithPlacement(pos, deploy), health, None) =>
+              pos.coord mustEqual Vector3(4577.7812f, 5624.828f, 72.046875f)
+              pos.orient mustEqual Vector3(0, 2.8125f, 264.375f)
+
+              deploy.faction mustEqual PlanetSideEmpire.NC
+              deploy.bops mustEqual false
+              deploy.alternate mustEqual true
+              deploy.v1 mustEqual true
+              deploy.v2.isEmpty mustEqual true
+              deploy.v3 mustEqual false
+              deploy.v4.contains(false) mustEqual true
+              deploy.v5.isEmpty mustEqual true
+              deploy.guid mustEqual PlanetSideGUID(7742)
+
+              health mustEqual 0
+            case _ =>
+              ko
+          }
         case _ =>
           ko
       }
@@ -43,31 +51,64 @@ class SmallTurretDataTest extends Specification {
           cls mustEqual ObjectClass.spitfire_turret
           guid mustEqual PlanetSideGUID(4265)
           parent.isDefined mustEqual false
-          data.isDefined mustEqual true
-          data.get.isInstanceOf[SmallTurretData] mustEqual true
-          val turret = data.get.asInstanceOf[SmallTurretData]
-          turret.deploy.pos.coord mustEqual Vector3(4527.633f, 6271.3594f, 70.265625f)
-          turret.deploy.pos.orient mustEqual Vector3(0, 0, 154.6875f)
-          turret.deploy.faction mustEqual PlanetSideEmpire.VS
-          turret.deploy.unk1 mustEqual 2
-          turret.deploy.owner_guid mustEqual PlanetSideGUID(8208)
-          turret.health mustEqual 255
-          turret.internals.isDefined mustEqual true
-          val internals = turret.internals.get.contents
-          internals.head.objectClass mustEqual ObjectClass.spitfire_weapon
-          internals.head.guid mustEqual PlanetSideGUID(3064)
-          internals.head.parentSlot mustEqual 0
-          internals.head.obj.isInstanceOf[WeaponData] mustEqual true
-          val wep = internals.head.obj.asInstanceOf[WeaponData]
-          wep.unk1 mustEqual 0x6
-          wep.unk2 mustEqual 0x8
-          wep.fire_mode mustEqual 0
-          val ammo = wep.ammo.head
-          ammo.objectClass mustEqual ObjectClass.spitfire_ammo
-          ammo.guid mustEqual PlanetSideGUID(3694)
-          ammo.parentSlot mustEqual 0
-          ammo.obj.isInstanceOf[AmmoBoxData] mustEqual true
-          ammo.obj.asInstanceOf[AmmoBoxData].unk mustEqual 8
+          data match {
+            case SmallTurretData(CommonFieldDataWithPlacement(pos, deploy), health, Some(InventoryData(inv))) =>
+              pos.coord mustEqual Vector3(4527.633f, 6271.3594f, 70.265625f)
+              pos.orient mustEqual Vector3.z(154.6875f)
+
+              deploy.faction mustEqual PlanetSideEmpire.VS
+              deploy.bops mustEqual false
+              deploy.alternate mustEqual false
+              deploy.v1 mustEqual true
+              deploy.v2.isEmpty mustEqual true
+              deploy.v3 mustEqual false
+              deploy.v4.contains(true) mustEqual true
+              deploy.v5.isEmpty mustEqual true
+              deploy.guid mustEqual PlanetSideGUID(8208)
+
+              health mustEqual 255
+
+              inv.head.objectClass mustEqual ObjectClass.spitfire_weapon
+              inv.head.guid mustEqual PlanetSideGUID(3064)
+              inv.head.parentSlot mustEqual 0
+              inv.head.obj.isInstanceOf[WeaponData] mustEqual true
+              inv.head.obj match {
+                case WeaponData(CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv4, wv5, wfguid), fmode, List(ammo), _) =>
+                  wfaction mustEqual PlanetSideEmpire.NEUTRAL
+                  wbops mustEqual false
+                  walternate mustEqual false
+                  wv1 mustEqual true
+                  wv2.isEmpty mustEqual true
+                  wv3 mustEqual false
+                  wv4.isEmpty mustEqual true
+                  wv5.isEmpty mustEqual true
+                  wfguid mustEqual PlanetSideGUID(0)
+
+                  fmode mustEqual 0
+
+                  ammo.objectClass mustEqual ObjectClass.spitfire_ammo
+                  ammo.guid mustEqual PlanetSideGUID(3694)
+                  ammo.parentSlot mustEqual 0
+                  ammo.obj match {
+                    case CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid) =>
+                      faction mustEqual PlanetSideEmpire.NEUTRAL
+                      bops mustEqual false
+                      alternate mustEqual false
+                      v1 mustEqual true
+                      v2.isEmpty mustEqual true
+                      v3 mustEqual false
+                      v4.contains(false) mustEqual true
+                      v5.isEmpty mustEqual true
+                      fguid mustEqual PlanetSideGUID(0)
+                    case _ =>
+                      ko
+                  }
+                case _ =>
+                  ko
+              }
+            case _ =>
+              ko
+          }
         case _ =>
           ko
       }
@@ -75,11 +116,11 @@ class SmallTurretDataTest extends Specification {
 
     "encode (spitfire, short)" in {
       val obj = SmallTurretData(
-        SmallDeployableData(
+        CommonFieldDataWithPlacement(
           PlacementData(Vector3(4577.7812f, 5624.828f, 72.046875f), Vector3(0, 2.8125f, 264.375f)),
-          PlanetSideEmpire.NC, false, true, 2, false, false, PlanetSideGUID(7742)
+          CommonFieldData(PlanetSideEmpire.NC, false, true, true, None, false, Some(false), None, PlanetSideGUID(7742))
         ),
-        255 //sets to 0
+        0
       )
       val msg = ObjectCreateMessage(ObjectClass.spitfire_turret, PlanetSideGUID(4208), obj)
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
@@ -88,12 +129,23 @@ class SmallTurretDataTest extends Specification {
 
     "encode (spitfire)" in {
       val obj = SmallTurretData(
-        SmallDeployableData(
+        CommonFieldDataWithPlacement(
           PlacementData(Vector3(4527.633f, 6271.3594f, 70.265625f), Vector3(0, 0, 154.6875f)),
-          PlanetSideEmpire.VS, false, false, 2, false, true, PlanetSideGUID(8208)
+          CommonFieldData(PlanetSideEmpire.VS, false, false, true, None, false, Some(true), None, PlanetSideGUID(8208))
         ),
         255,
-        InventoryData(List(SmallTurretData.spitfire(PlanetSideGUID(3064), 0x6, 0x8, PlanetSideGUID(3694), 8)))
+        InventoryData(List(
+          InternalSlot(ObjectClass.spitfire_weapon, PlanetSideGUID(3064), 0,
+            WeaponData(
+              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)),
+              0,
+              List(InternalSlot(ObjectClass.spitfire_ammo, PlanetSideGUID(3694), 0,
+                CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, Some(false), None, PlanetSideGUID(0))
+              ))
+            )
+          )
+          //SmallTurretData.spitfire(PlanetSideGUID(3064), 0x6, 0x8, PlanetSideGUID(3694), 8)
+        ))
       )
       val msg = ObjectCreateMessage(ObjectClass.spitfire_turret, PlanetSideGUID(4265), obj)
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector

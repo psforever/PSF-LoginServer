@@ -10,24 +10,6 @@ import net.psforever.types.ExoSuitType
 
 import scala.annotation.switch
 
-abstract class EquipmentTerminalDefinition(objId : Int) extends TerminalDefinition(objId) {
-  Name = "equipment_terminal"
-
-  /**
-    * Process a `TransactionType.Sell` action by the user.
-    * There is no specific tab associated with this action.
-    * It is a common button on the terminal interface window.
-    * Additionally, the equipment to be sold ia almost always in the player's `FreeHand` slot.
-    * Selling `Equipment` is always permitted.
-    * @param player the player
-    * @param msg the original packet carrying the request
-    * @return an actionable message that explains how to process the request
-    */
-  override def Sell(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
-    Terminal.SellEquipment()
-  }
-}
-
 object EquipmentTerminalDefinition {
   private[this] val log = org.log4s.getLogger("TerminalDefinition")
 

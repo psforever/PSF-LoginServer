@@ -2,7 +2,7 @@
 package net.psforever.packet.game
 
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PlanetSideGamePacket}
-import net.psforever.packet.game.objectcreate._
+import net.psforever.packet.game.objectcreate.{ObjectCreateBase, _}
 import scodec.{Attempt, Codec, Err}
 import scodec.bits.BitVector
 import shapeless.{::, HNil}
@@ -50,7 +50,7 @@ final case class ObjectCreateMessage(streamLength : Long,
                                      objectClass : Int,
                                      guid : PlanetSideGUID,
                                      parentInfo : Option[ObjectCreateMessageParent],
-                                     data : Option[ConstructorData])
+                                     data : ConstructorData)
   extends PlanetSideGamePacket {
   type Packet = ObjectCreateMessage
   def opcode = GamePacketOpcode.ObjectCreateMessage_Duplicate
@@ -68,7 +68,7 @@ object ObjectCreateMessage extends Marshallable[ObjectCreateMessage] {
     */
   def apply(objectClass : Int, guid : PlanetSideGUID, parentInfo : ObjectCreateMessageParent, data : ConstructorData) : ObjectCreateMessage = {
     val parentInfoOpt : Option[ObjectCreateMessageParent] = Some(parentInfo)
-    ObjectCreateMessage(ObjectCreateBase.streamLen(parentInfoOpt, data), objectClass, guid, parentInfoOpt, Some(data))
+    ObjectCreateMessage(ObjectCreateBase.streamLen(parentInfoOpt, data), objectClass, guid, parentInfoOpt, data)
   }
 
   /**
@@ -79,7 +79,7 @@ object ObjectCreateMessage extends Marshallable[ObjectCreateMessage] {
     * @return an `ObjectCreateMessage`
     */
   def apply(objectClass : Int, guid : PlanetSideGUID, data : ConstructorData) : ObjectCreateMessage = {
-    ObjectCreateMessage(ObjectCreateBase.streamLen(None, data), objectClass, guid, None, Some(data))
+    ObjectCreateMessage(ObjectCreateBase.streamLen(None, data), objectClass, guid, None, data)
   }
 
   implicit val codec : Codec[ObjectCreateMessage] = ObjectCreateBase.baseCodec.exmap[ObjectCreateMessage] (
@@ -88,31 +88,35 @@ object ObjectCreateMessage extends Marshallable[ObjectCreateMessage] {
         Attempt.failure(Err("no data to decode"))
 
       case len :: cls :: guid :: par :: data :: HNil =>
-        val obj = ObjectCreateBase.decodeData(cls, data,
-          if(par.isDefined) {
-            ObjectClass.selectDataCodec
+        ObjectCreateBase.decodeData(cls, data, if(par.isDefined) {
+          ObjectClass.selectDataCodec
           }
           else {
             ObjectClass.selectDataDroppedCodec
           }
-        )
-        Attempt.successful(ObjectCreateMessage(len, cls, guid, par, obj))
+        ) match {
+          case Attempt.Successful(obj) =>
+            Attempt.successful(ObjectCreateMessage(len, cls, guid, par, obj))
+          case Attempt.Failure(err) =>
+            Attempt.failure(err)
+        }
     },
     {
-      case ObjectCreateMessage(_ , _ , _, _, None) =>
-        Attempt.failure(Err("no object to encode"))
-
-      case ObjectCreateMessage(_, cls, guid, par, Some(obj)) =>
+      case ObjectCreateMessage(_, cls, guid, par, obj) =>
         val len = ObjectCreateBase.streamLen(par, obj) //even if a stream length has been assigned, it can not be trusted during encoding
-        val bitvec = ObjectCreateBase.encodeData(cls, obj,
+        ObjectCreateBase.encodeData(cls, obj,
           if(par.isDefined) {
             ObjectClass.selectDataCodec
           }
           else {
             ObjectClass.selectDataDroppedCodec
           }
-        )
-        Attempt.successful(len :: cls :: guid :: par :: bitvec :: HNil)
+        ) match {
+          case Attempt.Successful(bvec) =>
+            Attempt.successful(len :: cls :: guid :: par :: bvec :: HNil)
+          case Attempt.Failure(err) =>
+            Attempt.failure(err)
+        }
     }
   )
 }
