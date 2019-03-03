@@ -1906,6 +1906,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         }
 
       case VehicleResponse.DetachFromRails(vehicle_guid, pad_guid, pad_position, pad_orientation_z) =>
+        //todo: dropship_pad_doors should have a different offset
         val vehicle_creation_z_offset = 2.52604f // This value comes from startup.pak/game_objects.adb.lst -> mb_pad_creation vehiclecreationzoffset
         sendResponse(ObjectDetachMessage(pad_guid, vehicle_guid, pad_position + Vector3(0, 0, vehicle_creation_z_offset), pad_orientation_z))
 
