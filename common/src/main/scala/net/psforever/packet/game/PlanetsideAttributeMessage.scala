@@ -115,6 +115,7 @@ import scodec.codecs._
   * `36 - CR. Value is the CR`<br>
   * `43 - Info on avatar name : 0 = Nothing, 1 = "(LD)" message`<br>
   * `45 - NTU charge bar 0-10, 5 = 50% full. Seems to apply to both ANT and NTU Silo (possibly siphons?)`<br>
+  * `46 - Sends "Generator damage is at a critical level!" message`
   * `47 - Sets base NTU level to CRITICAL. MUST use base modelId not base GUID`<br>
   * `48 - Set to 1 to send base power loss message & turns on red warning lights throughout base. MUST use base modelId not base GUID`<br>
   * `49 - Vehicle texture effects state? (>0 turns on ANT panel glow or ntu silo panel glow + orbs) (bit?)`<br>

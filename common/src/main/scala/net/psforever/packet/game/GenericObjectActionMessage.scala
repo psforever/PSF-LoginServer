@@ -12,6 +12,12 @@ import shapeless.{::, HNil}
   * (Write more some other time.)
   * @param object_guid the target object
   * @param code the action code
+  *             44, 45, 46, 47 - Deploy capital base shield pole with animation and broadcasts "The capitol force dome at X has been activated"
+  *             48, 49, 50, 51 - Stow capital base shield pole with animation and broadcasts "The capitol force dome at X has been deactivated"
+  *             52, 53, 54, 55 - Deploy capital base shield pole (instantly, unless still in the middle of the stow animation)
+  *             60, 61, 62, 63 - Displays "This facility's generator is under attack!"
+  *             64, 65, 66, 67 - Displays "Generator has Overloaded! Evacuate Generator Room Immediately!"
+  *             68, 69, 70, 71 - Displays "This facility's generator is back on line"
   *             96, 97, 98, 99 - Makes the vehicle bounce slightly. Have seen this in packet captures after taking a vehicle through a warpgate
   *             200, 201, 202, 203 - For aircraft - client shows "THe bailing mechanism failed! To fix the mechanism, land and repair the vehicle!"
   *             224 - Sets vehicle or player to be black ops
