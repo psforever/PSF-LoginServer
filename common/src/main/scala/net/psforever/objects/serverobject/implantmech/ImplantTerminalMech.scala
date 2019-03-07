@@ -3,17 +3,23 @@ package net.psforever.objects.serverobject.implantmech
 
 import net.psforever.objects.Player
 import net.psforever.objects.definition.ObjectDefinition
+import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.objects.vehicles.Seat
+import net.psforever.packet.game.TriggeredSound
 
 /**
   * A structure-owned server object that is the visible and `Mountable` component of an implant terminal.
   * For the most part, it merely implements the support data structures indicated by `Mountable`.
   * @param idef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
   */
-class ImplantTerminalMech(private val idef : ImplantTerminalMechDefinition) extends Amenity with Mountable {
+class ImplantTerminalMech(private val idef : ImplantTerminalMechDefinition) extends Amenity with Mountable with Hackable {
   private val seats : Map[Int, Seat] = Map( 0 -> new Seat(idef.Seats(0)) )
+
+  HackSound = TriggeredSound.HackTerminal
+  HackEffectDuration = Array(0, 30, 60, 90)
+  HackDuration = Array(0, 10, 5, 3)
 
   def Seats : Map[Int, Seat] = seats
 

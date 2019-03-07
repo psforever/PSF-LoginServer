@@ -3673,6 +3673,23 @@ class WorldSessionActor extends Actor with MDCContextAware {
             log.info(s"UseItem: not $player's locker")
           }
 
+        case Some(implant_terminal : ImplantTerminalMech) =>
+          if(implant_terminal.Faction != player.Faction && implant_terminal.HackedBy.isEmpty) {
+            player.Slot(player.DrawnSlot).Equipment match {
+              case Some(tool: SimpleItem) =>
+                if (tool.Definition == GlobalDefinitions.remote_electronics_kit) {
+                  val hackSpeed = GetPlayerHackSpeed(implant_terminal)
+
+                  if(hackSpeed > 0)  {
+                    progressBarValue = Some(-hackSpeed)
+                    self ! WorldSessionActor.HackingProgress(progressType = 1, player, implant_terminal, tool.GUID, hackSpeed, FinishHacking(implant_terminal, 3212836864L))
+                    log.info("Hacking an implant terminal")
+                  }
+                }
+              case _ => ;
+            }
+          }
+
         case Some(captureTerminal : CaptureTerminal) =>
           val hackedByCurrentFaction = (captureTerminal.Faction != player.Faction && !captureTerminal.HackedBy.isEmpty && captureTerminal.HackedBy.head._1.Faction == player.Faction)
           val ownedByPlayerFactionAndHackedByEnemyFaction = (captureTerminal.Faction == player.Faction && !captureTerminal.HackedBy.isEmpty)
