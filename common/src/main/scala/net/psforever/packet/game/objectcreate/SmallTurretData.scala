@@ -3,6 +3,7 @@ package net.psforever.packet.game.objectcreate
 
 import net.psforever.packet.Marshallable
 import net.psforever.packet.game.PlanetSideGUID
+import net.psforever.types.PlanetSideEmpire
 import scodec.codecs._
 import scodec.{Attempt, Codec, Err}
 import shapeless.{::, HNil}
@@ -20,7 +21,7 @@ import shapeless.{::, HNil}
   * @param health the amount of health the object has, as a percentage of a filled bar
   * @param internals data regarding the mounted weapon
   */
-final case class SmallTurretData(deploy : SmallDeployableData,
+final case class SmallTurretData(deploy : CommonFieldDataWithPlacement,
                                  health : Int,
                                  internals : Option[InventoryData] = None
                                 ) extends ConstructorData {
@@ -44,49 +45,11 @@ object SmallTurretData extends Marshallable[SmallTurretData] {
     * @param internals data regarding the mounted weapon
     * @return a `SmallTurretData` object
     */
-  def apply(deploy : SmallDeployableData, health : Int, internals : InventoryData) : SmallTurretData =
+  def apply(deploy : CommonFieldDataWithPlacement, health : Int, internals : InventoryData) : SmallTurretData =
     new SmallTurretData(deploy, health, Some(internals))
 
-  /**
-    * Prefabricated weapon data for both Spitfires (`spitfire_turret`) and Shadow Turrets (`spitfire_cloaked`).
-    * @param wep_guid the uid to assign to the weapon
-    * @param wep_unk1 na;
-    *                used by `WeaponData`
-    * @param wep_unk2 na;
-    *                used by `WeaponData`
-    * @param ammo_guid the uid to assign to the ammo
-    * @param ammo_unk na;
-    *                 used by `AmmoBoxData`
-    * @return an `InternalSlot` object
-    */
-  def spitfire(wep_guid : PlanetSideGUID, wep_unk1 : Int, wep_unk2 : Int, ammo_guid : PlanetSideGUID, ammo_unk : Int) : InternalSlot =
-    InternalSlot(ObjectClass.spitfire_weapon, wep_guid, 0,
-      WeaponData(wep_unk1, wep_unk2, ObjectClass.spitfire_ammo, ammo_guid, 0,
-        AmmoBoxData(ammo_unk)
-      )
-    )
-
-  /**
-    * Prefabricated weapon data for Cerebus turrets (`spitfire_aa`).
-    * @param wep_guid the uid to assign to the weapon
-    * @param wep_unk1 na;
-    *                used by `WeaponData`
-    * @param ammo_guid the uid to assign to the ammo
-    * @param wep_unk2 na;
-    *                used by `WeaponData`
-    * @param ammo_unk na;
-    *                 used by `AmmoBoxData`
-    * @return an `InternalSlot` object
-    */
-  def cerebus(wep_guid : PlanetSideGUID, wep_unk1 : Int, wep_unk2 : Int, ammo_guid : PlanetSideGUID, ammo_unk : Int) : InternalSlot =
-    InternalSlot(ObjectClass.spitfire_aa_weapon, wep_guid, 0,
-      WeaponData(wep_unk1, wep_unk2, ObjectClass.spitfire_aa_ammo, ammo_guid, 0,
-        AmmoBoxData(ammo_unk)
-      )
-    )
-
   implicit val codec : Codec[SmallTurretData] = (
-    ("deploy" | SmallDeployableData.codec) ::
+    ("deploy" | CommonFieldDataWithPlacement.codec2) ::
       ("health" | uint8L) ::
       uintL(7) ::
       uint4L ::
@@ -103,8 +66,8 @@ object SmallTurretData extends Marshallable[SmallTurretData] {
         }
         Attempt.successful(SmallTurretData(deploy, newHealth, newInternals))
 
-      case _ =>
-        Attempt.failure(Err("invalid small turret data format"))
+      case data =>
+        Attempt.failure(Err(s"invalid small turret data format - $data"))
     },
     {
       case SmallTurretData(deploy, health, internals) =>

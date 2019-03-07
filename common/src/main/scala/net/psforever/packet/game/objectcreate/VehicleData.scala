@@ -7,7 +7,7 @@ import scodec.Attempt.{Failure, Successful}
 import scodec.{Attempt, Codec, Err}
 import shapeless.HNil //note: do not import shapeless.:: here; it messes up List's :: functionality
 import scodec.codecs._
-import net.psforever.types.{DriveState, PlanetSideEmpire}
+import net.psforever.types.DriveState
 
 import scala.collection.mutable.ListBuffer
 
@@ -27,7 +27,7 @@ object VehicleFormat extends Enumeration {
 /**
   * A basic `Trait` connecting all of the vehicle data formats (excepting `Normal`/`None`).
   */
-sealed trait SpecificVehicleData extends StreamBitSize
+sealed abstract class SpecificVehicleData(val format : VehicleFormat.Value) extends StreamBitSize
 
 /**
   * The format of vehicle data for the type of vehicles that are considered "utility."
@@ -36,7 +36,7 @@ sealed trait SpecificVehicleData extends StreamBitSize
   * the advanced mobile station.
   * @param unk na
   */
-final case class UtilityVehicleData(unk : Int) extends SpecificVehicleData {
+final case class UtilityVehicleData(unk : Int) extends SpecificVehicleData(VehicleFormat.Utility) {
   override def bitsize : Long = 6L
 }
 
@@ -45,24 +45,21 @@ final case class UtilityVehicleData(unk : Int) extends SpecificVehicleData {
   * This category includes all flying vehicles and the ancient cavern vehicles.
   * @param unk na
   */
-final case class VariantVehicleData(unk : Int) extends SpecificVehicleData {
+final case class VariantVehicleData(unk : Int) extends SpecificVehicleData(VehicleFormat.Variant) {
   override def bitsize : Long = 8L
 }
 
 /**
   * A representation of a generic vehicle.
   * @param pos where the vehicle is and how it is oriented in the game world
-  * @param faction the faction that is aligned with this vehicle
-  * @param bops this vehicle belongs to the Black Ops, regardless of the faction field;
-  *             activates the green camo and adjusts permissions
-  * @param destroyed this vehicle has ben destroyed;
-  *                  it's health should be less than 3/255, or 0%
-  * @param unk1 na. Valid values seem to be 0-3. Anything higher spawns a completely broken NC vehicle with no guns that can't move
-  * @param jammered this vehicle is under the influence of a jammer grenade
-  * @param unk2 na
-  * @param owner_guid the vehicle's (official) owner;
-  *                   verified as a living player in the game world on the same continent as the vehicle;
-  *                   sitting in the driver's seat or a `PlanetSideAttributeMessage` of type 21 can influence
+  * @param data common vehicle field data:<br>
+  *             -bops - this vehicle belongs to the Black Ops, regardless of the faction field;
+  *              activates the green camo and adjusts permissions<br>
+  *             -destroyed - this vehicle has ben destroyed;
+  *              health should be less than 3/255, or 0%<br>
+  *             -jammered - vehicles will not be jammered by setting this field<br>
+  *             -player_guid the vehicle's (official) owner;
+  *              a living player in the game world on the same continent as the vehicle who may mount the driver seat
   * @param unk3 na
   * @param health the amount of health the vehicle has, as a percentage of a filled bar (255)
   * @param unk4 na
@@ -82,13 +79,7 @@ final case class VariantVehicleData(unk : Int) extends SpecificVehicleData {
   *                     defaults to `Normal`
   */
 final case class VehicleData(pos : PlacementData,
-                             faction : PlanetSideEmpire.Value,
-                             bops : Boolean,
-                             destroyed : Boolean,
-                             unk1 : Int,
-                             jammered : Boolean,
-                             unk2 : Boolean,
-                             owner_guid : PlanetSideGUID,
+                             data : CommonFieldData,
                              unk3 : Boolean,
                              health : Int,
                              unk4 : Boolean,
@@ -103,9 +94,10 @@ final case class VehicleData(pos : PlacementData,
   override def bitsize : Long = {
     //factor guard bool values into the base size, not its corresponding optional field
     val posSize : Long = pos.bitsize
+    val dataSize : Long = data.bitsize
     val extraBitsSize : Long = if(vehicle_format_data.isDefined) { vehicle_format_data.get.bitsize } else { 0L }
     val inventorySize = if(inventory.isDefined) { inventory.get.bitsize } else { 0L }
-    47L + posSize + extraBitsSize + inventorySize
+    23L + posSize + dataSize + extraBitsSize + inventorySize
   }
 }
 
@@ -118,9 +110,8 @@ object VehicleData extends Marshallable[VehicleData] {
     * @param cloak if a vehicle (that can cloak) is cloaked
     * @param inventory the seats, mounted weapons, and utilities (such as terminals) that are currently included
     */
-  def apply(basic : CommonFieldData, health : Int, driveState : DriveState.Value, cloak : Boolean, inventory : Option[InventoryData]) : VehicleData = {
-    VehicleData(basic.pos, basic.faction, basic.bops, basic.destroyed, 0, basic.jammered, false, basic.player_guid,
-      false, health, false, false, driveState, false, false, cloak, None, inventory)(VehicleFormat.Normal)
+  def apply(pos : PlacementData, basic : CommonFieldData, health : Int, driveState : DriveState.Value, cloak : Boolean, inventory : Option[InventoryData]) : VehicleData = {
+    VehicleData(pos, basic, false, health, false, false, driveState, false, false, cloak, None, inventory)(VehicleFormat.Normal)
   }
 
   /**
@@ -131,9 +122,8 @@ object VehicleData extends Marshallable[VehicleData] {
     * @param cloak if a vehicle (that can cloak) is cloaked
     * @param inventory the seats, mounted weapons, and utilities (such as terminals) that are currently included
     */
-  def apply(basic : CommonFieldData, health : Int, driveState : DriveState.Value, cloak : Boolean, format : UtilityVehicleData, inventory : Option[InventoryData]) : VehicleData = {
-    VehicleData(basic.pos, basic.faction, basic.bops, basic.destroyed, 0, basic.jammered, false, basic.player_guid,
-      false, health, false, false, driveState, false, false, cloak, Some(format), inventory)(VehicleFormat.Utility)
+  def apply(pos : PlacementData, basic : CommonFieldData, health : Int, driveState : DriveState.Value, cloak : Boolean, format : UtilityVehicleData, inventory : Option[InventoryData]) : VehicleData = {
+    VehicleData(pos, basic, false, health, false, false, driveState, false, false, cloak, Some(format), inventory)(VehicleFormat.Utility)
   }
 
   /**
@@ -144,9 +134,8 @@ object VehicleData extends Marshallable[VehicleData] {
     * @param cloak if a vehicle (that can cloak) is cloaked
     * @param inventory the seats, mounted weapons, and utilities (such as terminals) that are currently included
     */
-  def apply(basic : CommonFieldData, health : Int, driveState : DriveState.Value, cloak : Boolean, format : VariantVehicleData, inventory : Option[InventoryData]) : VehicleData = {
-    VehicleData(basic.pos, basic.faction, basic.bops, basic.destroyed, 0, basic.jammered, false, basic.player_guid,
-      false, health, false, false, driveState, false, false, cloak, Some(format), inventory)(VehicleFormat.Variant)
+  def apply(pos : PlacementData, basic : CommonFieldData, health : Int, driveState : DriveState.Value, cloak : Boolean, format : VariantVehicleData, inventory : Option[InventoryData]) : VehicleData = {
+    VehicleData(pos, basic, false, health, false, false, driveState, false, false, cloak, Some(format), inventory)(VehicleFormat.Variant)
   }
 
   import net.psforever.packet.game.objectcreate.{PlayerData => Player_Data}
@@ -163,7 +152,7 @@ object VehicleData extends Marshallable[VehicleData] {
     *                     used to calculate the padding value for the player's name in `CharacterAppearanceData`
     * @return a `PlayerData` object
     */
-  def PlayerData(basic_appearance : (Int)=>CharacterAppearanceData, character_data : (Boolean,Boolean)=>CharacterData, inventory : InventoryData, drawn_slot : DrawnSlot.Type, accumulative : Long) : Player_Data = {
+  def PlayerData(basic_appearance : Int=>CharacterAppearanceData, character_data : (Boolean,Boolean)=>CharacterData, inventory : InventoryData, drawn_slot : DrawnSlot.Type, accumulative : Long) : Player_Data = {
     val appearance = basic_appearance(CumulativeSeatedPlayerNamePadding(accumulative))
     Player_Data(None, appearance, character_data(appearance.b.backpack, true), Some(inventory), drawn_slot)(false)
   }
@@ -179,12 +168,15 @@ object VehicleData extends Marshallable[VehicleData] {
     *                     used to calculate the padding value for the player's name in `CharacterAppearanceData`
     * @return a `PlayerData` object
     */
-  def PlayerData(basic_appearance : (Int)=>CharacterAppearanceData, character_data : (Boolean,Boolean)=>CharacterData, drawn_slot : DrawnSlot.Type, accumulative : Long) : Player_Data = {
+  def PlayerData(basic_appearance : Int=>CharacterAppearanceData, character_data : (Boolean,Boolean)=>CharacterData, drawn_slot : DrawnSlot.Type, accumulative : Long) : Player_Data = {
     val appearance = basic_appearance(CumulativeSeatedPlayerNamePadding(accumulative))
     Player_Data.apply(None, appearance, character_data(appearance.b.backpack, true), None, drawn_slot)(false)
   }
 
-  private val driveState8u = PacketHelpers.createEnumerationCodec(DriveState, uint8L)
+  private val driveState8u = uint8.xmap[DriveState.Value] (
+    n => DriveState(n),
+    n => n.id
+  )
 
   /**
     * `Codec` for the "utility" format.
@@ -241,13 +233,7 @@ object VehicleData extends Marshallable[VehicleData] {
     import shapeless.::
     (
       ("pos" | PlacementData.codec) >>:~ { pos =>
-        ("faction" | PlanetSideEmpire.codec) ::
-          ("bops" | bool) ::
-          ("destroyed" | bool) ::
-          ("unk1" | uint2L) :: //3 - na, 2 - common, 1 - na, 0 - common?
-          ("jammered" | bool) ::
-          ("unk2" | bool) ::
-          ("owner_guid" | PlanetSideGUID.codec) ::
+        ("data" | CommonFieldData.codec2(false)) ::
           ("unk3" | bool) ::
           ("health" | uint8L) ::
           ("unk4" | bool) :: //usually 0
@@ -261,14 +247,14 @@ object VehicleData extends Marshallable[VehicleData] {
       }
       ).exmap[VehicleData] (
       {
-        case pos :: faction :: bops :: destroyed :: u1 :: jamd :: u2 :: owner :: u3 :: health :: u4 :: no_mount :: driveState :: u5 :: u6 :: cloak :: format :: inv :: HNil =>
-          Attempt.successful(new VehicleData(pos, faction, bops, destroyed, u1, jamd, u2, owner, u3, health, u4, no_mount, driveState, u5, u6, cloak, format, inv)(vehicle_type))
+        case pos :: data :: u3 :: health :: u4 :: no_mount :: driveState :: u5 :: u6 :: cloak :: format :: inv :: HNil =>
+          Attempt.successful(new VehicleData(pos, data, u3, health, u4, no_mount, driveState, u5, u6, cloak, format, inv)(vehicle_type))
 
-        case _ =>
-          Attempt.failure(Err("invalid vehicle data format"))
+        case data =>
+          Attempt.failure(Err(s"invalid vehicle data format - $data"))
       },
       {
-        case obj @ VehicleData(pos, faction, bops, destroyed, u1, jamd, u2, owner, u3, health, u4, no_mount, driveState, u5, u6, cloak, format, inv) =>
+        case obj @ VehicleData(pos, data, u3, health, u4, no_mount, driveState, u5, u6, cloak, format, inv) =>
           if(obj.vehicle_type == VehicleFormat.Normal && format.nonEmpty) {
             Attempt.failure(Err("invalid vehicle data format; variable bits not expected"))
           }
@@ -276,11 +262,8 @@ object VehicleData extends Marshallable[VehicleData] {
             Attempt.failure(Err(s"invalid vehicle data format; variable bits for ${obj.vehicle_type} expected"))
           }
           else {
-            Attempt.successful(pos :: faction :: bops :: destroyed :: u1 :: jamd :: u2 :: owner :: u3 :: health :: u4 :: no_mount :: driveState :: u5 :: u6 :: cloak :: format :: inv :: HNil)
+            Attempt.successful(pos :: data :: u3 :: health :: u4 :: no_mount :: driveState :: u5 :: u6 :: cloak :: format :: inv :: HNil)
           }
-
-        case _ =>
-          Attempt.failure(Err("invalid vehicle data format"))
       }
     )
   }

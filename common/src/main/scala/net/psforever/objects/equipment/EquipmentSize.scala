@@ -1,6 +1,10 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.equipment
 
+/**
+  * An `Enumeration` of common equipment sizes in the game.
+  * Check the comments for originating use.
+  */
 object EquipmentSize extends Enumeration {
   val
   Blocked,

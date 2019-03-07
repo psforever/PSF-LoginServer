@@ -12,27 +12,39 @@ import shapeless.{::, HNil}
   * For whatever reason, these "lockers" are typically placed at the origin coordinates.
   * @param inventory the items inside this locker
   */
-final case class LockerContainerData(inventory : InventoryData) extends ConstructorData {
-  override def bitsize : Long =  105L + inventory.bitsize //81u + 2u + 21u + 1u
+final case class LockerContainerData(inventory : Option[InventoryData]) extends ConstructorData {
+  override def bitsize : Long = {
+    val base : Long = 105L
+    (inventory match {
+      case Some(inv) => inv.bitsize
+      case None => 0L
+    }) + base //81u + 2u + 21u + 1u
+  }
 }
 
 object LockerContainerData extends Marshallable[LockerContainerData] {
+  def apply() : LockerContainerData = new LockerContainerData(None)
+
+  def apply(inventory : InventoryData) : LockerContainerData = new LockerContainerData(Some(inventory))
+
+  def apply(inventory : List[InternalSlot]) : LockerContainerData = new LockerContainerData(Some(InventoryData(inventory)))
+
   implicit val codec : Codec[LockerContainerData] = (
-    uint32 :: uint32 :: uint(17) :: //can substitute with PlacementData, if ever necessary
+    uint32 :: uint32 :: uint(17) ::
       uint2L ::
       uint(21) ::
-      bool ::
-      InventoryData.codec
+      ("inventory" | optional(bool, InventoryData.codec))
     ).exmap[LockerContainerData] (
     {
-      case 0 :: 0 :: 0 :: 3 :: 0 :: true :: inv :: HNil  =>
-        Attempt.successful(LockerContainerData(inv))
-      case _ =>
-        Attempt.failure(Err("invalid locker container format"))
+      case 0 :: 0 :: 0 :: 3 :: 0 :: inventory :: HNil  =>
+        Attempt.successful(LockerContainerData(inventory))
+
+      case data =>
+        Attempt.failure(Err(s"invalid locker container data format - $data"))
     },
     {
-      case LockerContainerData(inv) =>
-        Attempt.successful(0L :: 0L :: 0 :: 3 :: 0 :: true :: inv :: HNil)
+      case LockerContainerData(inventory) =>
+        Attempt.successful(0L :: 0L :: 0 :: 3 :: 0 :: inventory :: HNil)
     }
   )
 }

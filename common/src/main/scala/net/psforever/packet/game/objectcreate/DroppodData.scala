@@ -3,7 +3,7 @@ package net.psforever.packet.game.objectcreate
 
 import net.psforever.packet.Marshallable
 import scodec.codecs._
-import scodec.{Attempt, Codec}
+import scodec.{Attempt, Codec, Err}
 import shapeless.{::, HNil}
 
 /**
@@ -31,7 +31,7 @@ import shapeless.{::, HNil}
   * @see `DroppodLaunchRequestMessage`
   * @see `DroppodLaunchResponseMessage`
   */
-final case class DroppodData(basic : CommonFieldData,
+final case class DroppodData(basic : CommonFieldDataWithPlacement,
                              burn : Boolean = false,
                              health : Int = 255
                             ) extends ConstructorData {
@@ -43,7 +43,7 @@ final case class DroppodData(basic : CommonFieldData,
 
 object DroppodData extends Marshallable[DroppodData] {
   implicit val  codec : Codec[DroppodData] = (
-    ("basic" | CommonFieldData.codec) ::
+    ("basic" | CommonFieldDataWithPlacement.codec) ::
       bool ::
       ("health" | uint8L) :: //health
       uintL(5) :: //0x0
@@ -56,6 +56,9 @@ object DroppodData extends Marshallable[DroppodData] {
       case basic :: false :: health :: 0 :: 0xF :: 0 :: boosters :: false :: HNil =>
         val burn : Boolean = boosters == 0
         Attempt.successful(DroppodData(basic, burn, health))
+
+      case data =>
+        Attempt.failure(Err(s"invalid droppod data format - $data"))
     },
     {
       case DroppodData(basic, burn, health) =>

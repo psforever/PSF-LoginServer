@@ -11,22 +11,26 @@ import scala.util.{Failure, Success, Try}
 
 class SmallTurretConverter extends ObjectCreateConverter[TurretDeployable]() {
   override def ConstructorData(obj : TurretDeployable) : Try[SmallTurretData] = {
-    val health = 255 * obj.Health / obj.MaxHealth //TODO not precise
+    val health = StatConverter.Health(obj.Health, obj.MaxHealth)
     if(health > 0) {
       Success(
         SmallTurretData(
-          SmallDeployableData(
+          CommonFieldDataWithPlacement(
             PlacementData(obj.Position, obj.Orientation),
-            obj.Faction,
-            bops = false,
-            destroyed = false,
-            unk1 = 0,
-            obj.Jammered,
-            unk2 = false,
-            obj.Owner match {
-              case Some(owner) => owner
-              case None => PlanetSideGUID(0)
-            }
+            CommonFieldData(
+              obj.Faction,
+              bops = false,
+              alternate = false,
+              false,
+              None,
+              false,
+              Some(true),
+              None,
+              obj.Owner match {
+                case Some(owner) => owner
+                case None => PlanetSideGUID(0)
+              }
+            )
           ),
           health,
           Some(InventoryData(SmallTurretConverter.MakeMountings(obj)))
@@ -36,18 +40,21 @@ class SmallTurretConverter extends ObjectCreateConverter[TurretDeployable]() {
     else {
       Success(
         SmallTurretData(
-          SmallDeployableData(
+          CommonFieldDataWithPlacement(
             PlacementData(obj.Position, obj.Orientation),
-            obj.Faction,
-            bops = false,
-            destroyed = true,
-            unk1 = 0,
-            jammered = false,
-            unk2 = false,
-            owner_guid = PlanetSideGUID(0)
+            CommonFieldData(
+              obj.Faction,
+              bops = false,
+              alternate = true,
+              false,
+              None,
+              false,
+              Some(false),
+              None,
+              PlanetSideGUID(0)
+            )
           ),
-          0,
-          None
+          0
         )
       )
     }

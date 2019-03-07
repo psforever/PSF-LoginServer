@@ -2,8 +2,8 @@
 package game.objectcreatevehicle
 
 import net.psforever.packet._
-import net.psforever.packet.game.{ObjectCreateMessage, PlanetSideGUID}
 import net.psforever.packet.game.objectcreate._
+import net.psforever.packet.game.{ObjectCreateMessage, PlanetSideGUID}
 import net.psforever.types._
 import org.specs2.mutable._
 import scodec.bits._
@@ -21,19 +21,25 @@ class NonstandardVehiclesTest extends Specification {
           cls mustEqual ObjectClass.droppod
           guid mustEqual PlanetSideGUID(3595)
           parent.isDefined mustEqual false
-          data.isDefined mustEqual true
-          data.get.isInstanceOf[DroppodData] mustEqual true
-          val droppod = data.get.asInstanceOf[DroppodData]
-          droppod.basic.pos.coord.x mustEqual 5108.0f
-          droppod.basic.pos.coord.y mustEqual 6164.0f
-          droppod.basic.pos.coord.z mustEqual 1023.9844f
-          droppod.basic.pos.orient.x mustEqual 0f
-          droppod.basic.pos.orient.y mustEqual 0f
-          droppod.basic.pos.orient.z mustEqual 90.0f
-          droppod.basic.unk mustEqual 2
-          droppod.basic.player_guid mustEqual PlanetSideGUID(0)
-          droppod.burn mustEqual false
-          droppod.health mustEqual 255
+          data match {
+            case DroppodData(basic, burn, health) =>
+              basic.pos.coord mustEqual Vector3(5108.0f, 6164.0f, 1023.9844f)
+              basic.pos.orient mustEqual Vector3.z(90.0f)
+
+              basic.data.faction mustEqual PlanetSideEmpire.VS
+              basic.data.bops mustEqual false
+              basic.data.alternate mustEqual false
+              basic.data.v1 mustEqual true
+              basic.data.v2.isDefined mustEqual false
+              basic.data.v3 mustEqual false
+              basic.data.v5.isDefined mustEqual false
+              basic.data.guid mustEqual PlanetSideGUID(0)
+
+              burn mustEqual false
+              health mustEqual 255
+            case _ =>
+              ko
+          }
         case _ =>
           ko
       }
@@ -48,10 +54,9 @@ class NonstandardVehiclesTest extends Specification {
           parent.isDefined mustEqual true
           parent.get.guid mustEqual PlanetSideGUID(786)
           parent.get.slot mustEqual 3
-          data.isDefined mustEqual true
-          data.get.isInstanceOf[OrbitalShuttleData] mustEqual true
-          data.get.asInstanceOf[OrbitalShuttleData].faction mustEqual PlanetSideEmpire.VS
-          data.get.asInstanceOf[OrbitalShuttleData].pos.isDefined mustEqual false
+          data.isInstanceOf[OrbitalShuttleData] mustEqual true
+          data.asInstanceOf[OrbitalShuttleData].faction mustEqual PlanetSideEmpire.VS
+          data.asInstanceOf[OrbitalShuttleData].pos.isDefined mustEqual false
         case _ =>
           ko
       }
@@ -64,9 +69,8 @@ class NonstandardVehiclesTest extends Specification {
           cls mustEqual ObjectClass.orbital_shuttle
           guid mustEqual PlanetSideGUID(1127)
           parent.isDefined mustEqual false
-          data.isDefined mustEqual true
-          data.get.isInstanceOf[OrbitalShuttleData] mustEqual true
-          val shuttle = data.get.asInstanceOf[OrbitalShuttleData]
+          data.isInstanceOf[OrbitalShuttleData] mustEqual true
+          val shuttle = data.asInstanceOf[OrbitalShuttleData]
           shuttle.faction mustEqual PlanetSideEmpire.VS
           shuttle.pos.isDefined mustEqual true
           shuttle.pos.get.coord.x mustEqual 5610.0156f
@@ -82,10 +86,9 @@ class NonstandardVehiclesTest extends Specification {
 
     "encode (droppod)" in {
       val obj = DroppodData(
-        CommonFieldData(
+        CommonFieldDataWithPlacement(
           PlacementData(5108.0f, 6164.0f, 1023.9844f, 0f, 0f, 90.0f),
-          PlanetSideEmpire.VS,
-          2
+          CommonFieldData(PlanetSideEmpire.VS, 2)
         )
       )
       val msg = ObjectCreateMessage(ObjectClass.droppod, PlanetSideGUID(3595), obj)

@@ -11,7 +11,7 @@ import shapeless.{::, HNil}
   * @param deploy data common to objects spawned by the (advanced) adaptive construction engine
   * @param health the amount of health the object has, as a percentage of a filled bar
   */
-final case class AegisShieldGeneratorData(deploy : CommonFieldData,
+final case class AegisShieldGeneratorData(deploy : CommonFieldDataWithPlacement,
                                           health : Int
                                          ) extends ConstructorData {
   override def bitsize : Long = {
@@ -21,15 +21,16 @@ final case class AegisShieldGeneratorData(deploy : CommonFieldData,
 
 object AegisShieldGeneratorData extends Marshallable[AegisShieldGeneratorData] {
   implicit val codec : Codec[AegisShieldGeneratorData] = (
-    ("deploy" | CommonFieldData.codec) ::
+    ("deploy" | CommonFieldDataWithPlacement.codec) ::
       ("health" | uint8L) ::
       uint32 :: uint32 :: uint32 :: uint4L //100 bits
   ).exmap[AegisShieldGeneratorData] (
     {
       case deploy :: health :: 0 :: 0 :: 0 :: 0 :: HNil =>
         Attempt.successful(AegisShieldGeneratorData(deploy, health))
-      case _ =>
-        Attempt.failure(Err("invalid aegis data format"))
+
+      case data =>
+        Attempt.failure(Err(s"invalid aegis data format - $data"))
     },
     {
       case AegisShieldGeneratorData(deploy, health) =>

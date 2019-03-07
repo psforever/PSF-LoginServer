@@ -25,13 +25,36 @@ class ConverterTest extends Specification {
       val obj = AmmoBox(bullet_9mm)
       obj.Definition.Packet.DetailedConstructorData(obj) match {
         case Success(pkt) =>
-          pkt mustEqual DetailedAmmoBoxData(8, 50)
+          pkt mustEqual DetailedAmmoBoxData(
+            CommonFieldData(
+              PlanetSideEmpire.NEUTRAL,
+              bops = false,
+              alternate = false,
+              true,
+              None,
+              false,
+              None,
+              None,
+              PlanetSideGUID(0)
+            ),
+            obj.Capacity
+          )
         case _ =>
           ko
       }
       obj.Definition.Packet.ConstructorData(obj) match {
         case Success(pkt) =>
-          pkt mustEqual AmmoBoxData()
+          pkt mustEqual CommonFieldData(
+            PlanetSideEmpire.NEUTRAL,
+            bops = false,
+            alternate = false,
+            false,
+            None,
+            false,
+            Some(false),
+            None,
+            PlanetSideGUID(0)
+          )
         case _ =>
           ko
       }
@@ -45,13 +68,23 @@ class ConverterTest extends Specification {
 
       obj.Definition.Packet.DetailedConstructorData(obj) match {
         case Success(pkt) =>
-          pkt mustEqual DetailedWeaponData(4,8, Ammo.shotgun_shell.id, PlanetSideGUID(90), 0, DetailedAmmoBoxData(8, 12))
+          pkt mustEqual DetailedWeaponData(
+            CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)),
+            0,
+            List(InternalSlot(Ammo.shotgun_shell.id, PlanetSideGUID(90), 0, DetailedAmmoBoxData(8, 12)))
+          )
         case _ =>
           ko
       }
       obj.Definition.Packet.ConstructorData(obj) match {
         case Success(pkt) =>
-          pkt mustEqual WeaponData(4,8, 0, Ammo.shotgun_shell.id, PlanetSideGUID(90), 0, AmmoBoxData())
+          pkt mustEqual WeaponData(
+            CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)),
+            0,
+            List(InternalSlot(Ammo.shotgun_shell.id, PlanetSideGUID(90), 0,
+              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, Some(false), None, PlanetSideGUID(0)))
+            )
+          )
         case _ =>
           ko
       }
@@ -64,7 +97,9 @@ class ConverterTest extends Specification {
 
       obj.Definition.Packet.DetailedConstructorData(obj) match {
         case Success(pkt) =>
-          pkt mustEqual DetailedWeaponData(4,8, 0,
+          pkt mustEqual DetailedWeaponData(
+            CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)),
+            0,
             List(
               InternalSlot(Ammo.bullet_9mm.id, PlanetSideGUID(90), 0, DetailedAmmoBoxData(8, 30)),
               InternalSlot(Ammo.rocket.id, PlanetSideGUID(91), 1, DetailedAmmoBoxData(8, 1))
@@ -75,10 +110,22 @@ class ConverterTest extends Specification {
       }
       obj.Definition.Packet.ConstructorData(obj) match {
         case Success(pkt) =>
-          pkt mustEqual WeaponData(4,8, 0,
+          pkt mustEqual WeaponData(
+            CommonFieldData(
+              PlanetSideEmpire.NEUTRAL, //TODO need faction affinity
+              bops = false,
+              alternate = false,
+              true,
+              None,
+              false,
+              None,
+              None,
+              PlanetSideGUID(0)
+            ),
+            0,
             List(
-              InternalSlot(Ammo.bullet_9mm.id, PlanetSideGUID(90), 0, AmmoBoxData()),
-              InternalSlot(Ammo.rocket.id, PlanetSideGUID(91), 1, AmmoBoxData())
+              InternalSlot(Ammo.bullet_9mm.id, PlanetSideGUID(90), 0, CommonFieldData()(false)),
+              InternalSlot(Ammo.rocket.id, PlanetSideGUID(91), 1, CommonFieldData()(false))
             )
           )
         case _ =>
@@ -100,7 +147,7 @@ class ConverterTest extends Specification {
       }
       obj.Definition.Packet.ConstructorData(obj) match {
         case Success(pkt) =>
-          pkt mustEqual AmmoBoxData()
+          pkt mustEqual CommonFieldData()(false)
         case _ =>
           ko
       }
@@ -112,14 +159,28 @@ class ConverterTest extends Specification {
         obj.GUID = PlanetSideGUID(90)
         obj.Definition.Packet.DetailedConstructorData(obj) match {
           case Success(pkt) =>
-            pkt mustEqual DetailedACEData(0)
+            pkt mustEqual DetailedConstructionToolData(
+              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0))
+            )
           case _ =>
             ko
         }
 
         obj.Definition.Packet.ConstructorData(obj) match {
           case Success(pkt) =>
-            pkt mustEqual ACEData(0,0)
+            pkt mustEqual HandheldData(
+              CommonFieldData(
+                PlanetSideEmpire.NEUTRAL,
+                false,
+                false,
+                true,
+                None,
+                false,
+                None,
+                None,
+                PlanetSideGUID(0)
+              )
+            )
           case _ =>
             ko
         }
@@ -135,13 +196,37 @@ class ConverterTest extends Specification {
       obj.GUID = PlanetSideGUID(90)
       obj.Definition.Packet.DetailedConstructorData(obj) match {
         case Success(pkt) =>
-          pkt mustEqual DetailedREKData(8)
+          pkt mustEqual DetailedREKData(
+            CommonFieldData(
+              PlanetSideEmpire.NEUTRAL, //TODO faction affinity
+              false,
+              false,
+              true,
+              None,
+              false,
+              Some(false),
+              None,
+              PlanetSideGUID(0)
+            )
+          )
         case _ =>
           ko
       }
       obj.Definition.Packet.ConstructorData(obj) match {
         case Success(pkt) =>
-          pkt mustEqual REKData(8,0)
+          pkt mustEqual REKData(
+            CommonFieldData(
+              PlanetSideEmpire.NEUTRAL,
+              false,
+              false,
+              true,
+              None,
+              false,
+              Some(false),
+              None,
+              PlanetSideGUID(0)
+            )
+          )
         case _ =>
           ko
       }
@@ -154,13 +239,17 @@ class ConverterTest extends Specification {
       obj.GUID = PlanetSideGUID(90)
       obj.Definition.Packet.DetailedConstructorData(obj) match {
         case Success(pkt) =>
-          pkt mustEqual DetailedBoomerTriggerData()
+          pkt mustEqual DetailedConstructionToolData(
+            CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0))
+          )
         case _ =>
           ko
       }
       obj.Definition.Packet.ConstructorData(obj) match {
         case Success(pkt) =>
-          pkt mustEqual BoomerTriggerData()
+          pkt mustEqual HandheldData(
+            CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, None, PlanetSideGUID(0))
+          )
         case _ =>
           ko
       }
@@ -173,14 +262,28 @@ class ConverterTest extends Specification {
       obj.Router = PlanetSideGUID(1001)
       obj.Definition.Packet.ConstructorData(obj) match {
         case Success(pkt) =>
-          pkt mustEqual TelepadData(0, PlanetSideGUID(1001))
+          pkt mustEqual HandheldData(
+            CommonFieldData(
+              PlanetSideEmpire.NEUTRAL,
+              false,
+              false,
+              false,
+              None,
+              false,
+              None,
+              Some(1001),
+              PlanetSideGUID(0)
+            )
+          )
         case _ =>
           ko
       }
 
       obj.Definition.Packet.DetailedConstructorData(obj) match {
         case Success(pkt) =>
-          pkt mustEqual DetailedTelepadData(0, PlanetSideGUID(1001))
+          pkt mustEqual DetailedConstructionToolData(
+            CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, Some(1001), PlanetSideGUID(0))
+          )
         case _ =>
           ko
       }
@@ -204,12 +307,19 @@ class ConverterTest extends Specification {
 
       obj.Definition.Packet.ConstructorData(obj) match {
         case Success(pkt) =>
-          pkt mustEqual SmallDeployableData(
+          pkt mustEqual CommonFieldDataWithPlacement(
             PlacementData(Vector3.Zero, Vector3.Zero),
-            PlanetSideEmpire.TR,
-            0,
-            false,
-            false
+            CommonFieldData(
+              PlanetSideEmpire.TR,
+              false,
+              false,
+              false,
+              None,
+              false,
+              Some(false),
+              None,
+              PlanetSideGUID(0)
+            )
           )
         case _ =>
           ko
@@ -229,17 +339,20 @@ class ConverterTest extends Specification {
       obj.Definition.Packet.ConstructorData(obj) match {
         case Success(pkt) =>
           pkt mustEqual SmallTurretData(
-            SmallDeployableData(
+            CommonFieldDataWithPlacement(
               PlacementData(Vector3.Zero, Vector3.Zero),
-              PlanetSideEmpire.TR,
-              0,
-              false,
-              false
+              CommonFieldData(PlanetSideEmpire.TR, false, false, false, None, false, Some(true), None, PlanetSideGUID(0))
             ),
             255,
             InventoryData(
               List(InternalSlot(ObjectClass.spitfire_weapon, PlanetSideGUID(91), 1,
-                WeaponData(4, 8, ObjectClass.spitfire_ammo, PlanetSideGUID(92), 0, AmmoBoxData()))
+                WeaponData(
+                  CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)),
+                  0,
+                  List(InternalSlot(Ammo.spitfire_ammo.id, PlanetSideGUID(92), 0,
+                    CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, Some(false), None, PlanetSideGUID(0)))
+                  ))
+                )
               )
             )
           )
@@ -261,17 +374,20 @@ class ConverterTest extends Specification {
       obj.Definition.Packet.ConstructorData(obj) match {
         case Success(pkt) =>
           pkt mustEqual OneMannedFieldTurretData(
-            SmallDeployableData(
+            CommonFieldDataWithPlacement(
               PlacementData(Vector3.Zero, Vector3.Zero),
-              PlanetSideEmpire.TR,
-              0,
-              false,
-              false
+              CommonFieldData(PlanetSideEmpire.TR, false, false, true, None, false, Some(false), None, PlanetSideGUID(0))
             ),
             255,
             InventoryData(
               List(InternalSlot(ObjectClass.energy_gun_tr, PlanetSideGUID(91), 1,
-                WeaponData(4, 8, ObjectClass.energy_gun_ammo, PlanetSideGUID(92), 0, AmmoBoxData()))
+                WeaponData(
+                  CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)),
+                  0,
+                  List(InternalSlot(Ammo.energy_gun_ammo.id, PlanetSideGUID(92), 0,
+                    CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, Some(false), None, PlanetSideGUID(0)))
+                  ))
+                )
               )
             )
           )
@@ -291,12 +407,19 @@ class ConverterTest extends Specification {
       obj.Definition.Packet.ConstructorData(obj) match {
         case Success(pkt) =>
           pkt mustEqual TRAPData(
-            SmallDeployableData(
+            CommonFieldDataWithPlacement(
               PlacementData(Vector3.Zero, Vector3.Zero),
-              PlanetSideEmpire.TR,
-              0,
-              false,
-              false
+              CommonFieldData(
+                PlanetSideEmpire.TR,
+                bops = false,
+                alternate = false,
+                true,
+                None,
+                false,
+                Some(true),
+                None,
+                PlanetSideGUID(0)
+              )
             ),
             255
           )
@@ -316,7 +439,7 @@ class ConverterTest extends Specification {
       obj.Definition.Packet.ConstructorData(obj) match {
         case Success(pkt) =>
           pkt mustEqual AegisShieldGeneratorData(
-            CommonFieldData(
+            CommonFieldDataWithPlacement(
               PlacementData(Vector3.Zero, Vector3.Zero),
               PlanetSideEmpire.TR,
               0
@@ -339,15 +462,23 @@ class ConverterTest extends Specification {
       obj.Health = 1
       obj.Definition.Packet.ConstructorData(obj) match {
         case Success(pkt) =>
-          pkt mustEqual TelepadDeployableData(
+          pkt mustEqual DroppedItemData(
             PlacementData(Vector3.Zero, Vector3.Zero),
-            PlanetSideEmpire.TR,
-            bops = false,
-            destroyed = false,
-            unk1 = 2, unk2 = true,
-            router_guid = PlanetSideGUID(1001),
-            owner_guid = PlanetSideGUID(5001),
-            unk3 = 87, unk4 = 12
+            TelepadDeployableData(
+              CommonFieldData(
+                PlanetSideEmpire.TR,
+                bops = false,
+                alternate = false,
+                true,
+                None,
+                false,
+                None,
+                Some(1001),
+                PlanetSideGUID(5001)
+              ),
+              unk1 = 87,
+              unk2 = 12
+            )
           )
         case _ =>
           ko
@@ -363,15 +494,23 @@ class ConverterTest extends Specification {
       obj.Health = 0
       obj.Definition.Packet.ConstructorData(obj) match {
         case Success(pkt) =>
-          pkt mustEqual TelepadDeployableData(
+          pkt mustEqual DroppedItemData(
             PlacementData(Vector3.Zero, Vector3.Zero),
-            PlanetSideEmpire.TR,
-            bops = false,
-            destroyed = true,
-            unk1 = 2, unk2 = true,
-            router_guid = PlanetSideGUID(1001),
-            owner_guid = PlanetSideGUID(0),
-            unk3 = 0, unk4 = 6
+            TelepadDeployableData(
+              CommonFieldData(
+                PlanetSideEmpire.TR,
+                bops = false,
+                alternate = true,
+                true,
+                None,
+                false,
+                None,
+                Some(1001),
+                PlanetSideGUID(0)
+              ),
+              unk1 = 0,
+              unk2 = 6
+            )
           )
         case _ =>
           ko
@@ -496,13 +635,13 @@ class ConverterTest extends Specification {
       val obj = LockerContainer()
       obj.Definition.Packet.DetailedConstructorData(obj) match {
         case Success(pkt) =>
-          pkt mustEqual DetailedLockerContainerData(8, None)
+          pkt mustEqual DetailedLockerContainerData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), None)
         case _ =>
           ko
       }
       obj.Definition.Packet.ConstructorData(obj) match {
         case Success(pkt) =>
-          pkt mustEqual LockerContainerData(InventoryData(List.empty))
+          pkt mustEqual LockerContainerData(None)
         case _ =>
           ko
       }
@@ -517,13 +656,13 @@ class ConverterTest extends Specification {
 
       obj.Definition.Packet.DetailedConstructorData(obj) match {
         case Success(pkt) =>
-          pkt mustEqual DetailedLockerContainerData(8, InternalSlot(remote_electronics_kit.ObjectId, PlanetSideGUID(1), 0, DetailedREKData(8)) :: Nil)
+          pkt mustEqual DetailedLockerContainerData(8, InternalSlot(remote_electronics_kit.ObjectId, PlanetSideGUID(1), 0, DetailedREKData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, Some(false), None, PlanetSideGUID(0)))) :: Nil)
         case _ =>
           ko
       }
       obj.Definition.Packet.ConstructorData(obj) match {
         case Success(pkt) =>
-          pkt mustEqual LockerContainerData(InventoryData(InternalSlot(remote_electronics_kit.ObjectId, PlanetSideGUID(1), 0, REKData(8,0)) :: Nil))
+          pkt mustEqual LockerContainerData(InventoryData(InternalSlot(remote_electronics_kit.ObjectId, PlanetSideGUID(1), 0, REKData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, Some(false), None, PlanetSideGUID(0)))) :: Nil))
         case _ =>
           ko
       }
@@ -543,7 +682,7 @@ class ConverterTest extends Specification {
 
       obj.Definition.Packet.ConstructorData(obj) match {
         case Success(pkt) =>
-          pkt mustEqual CommonTerminalData(PlanetSideEmpire.NEUTRAL)
+          pkt mustEqual CommonFieldData(PlanetSideEmpire.NEUTRAL)(false)
         case _ =>
           ko
       }
@@ -563,7 +702,7 @@ class ConverterTest extends Specification {
 
       obj.Definition.Packet.ConstructorData(obj) match {
         case Success(pkt) =>
-          pkt mustEqual CommonTerminalData(PlanetSideEmpire.NEUTRAL)
+          pkt mustEqual CommonFieldData(PlanetSideEmpire.NEUTRAL)(false)
         case _ =>
           ko
       }

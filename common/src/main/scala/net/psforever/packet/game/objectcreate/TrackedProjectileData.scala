@@ -1,86 +1,57 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.packet.game.objectcreate
 
-import net.psforever.packet.Marshallable
+import net.psforever.packet.{Marshallable, PacketHelpers}
 import scodec.{Attempt, Codec, Err}
 import scodec.codecs._
 import shapeless.{::, HNil}
 
+object TrackedProjectile extends Enumeration {
+  type Type = Value
+
+  val Meteor =       Value(32)
+  val WaspRocket =   Value(208)
+  val Sparrow =      Value(3355579)
+  val OICW =         Value(3355587)
+  val Striker =      Value(6710918)
+  val HunterSeeker = Value(10131913)
+  val Starfire =     Value(10131961)
+
+  implicit val codec = PacketHelpers.createEnumerationCodec(this, uint24)
+}
+
 /**
   * A representation of a projectile that the server must intentionally convey to players other than the shooter.
-  * @param pos where and how the projectile is oriented
-  * @param unk1 na
+  * @param data na
   * @param unk2 na;
   *             data specific to the type of projectile(?)
+  * @param unk3 na
   */
-final case class TrackedProjectileData(pos : PlacementData,
-                                       unk1 : Int,
-                                       unk2 : Int
+final case class TrackedProjectileData(data : CommonFieldDataWithPlacement,
+                                       unk2 : TrackedProjectile.Value,
+                                       unk3 : Int = 0
                                       ) extends ConstructorData {
-  override def bitsize : Long = 56L + pos.bitsize
+  override def bitsize : Long = 33L + data.bitsize
 }
 
 object TrackedProjectileData extends Marshallable[TrackedProjectileData] {
-  final val oicw_projectile_data = 3355587
-  final val striker_missile_targetting_projectile_data = 6710918
-  final val hunter_seeker_missile_projectile_data = 10131913
-  final val starfire_projectile_data = 10131961
-
-  /**
-    * Overloaded constructor specifically for OICW projectiles.
-    * @param pos where and how the projectile is oriented
-    * @param unk na
-    * @return a `TrackedProjectileData` object
-    */
-  def oicw(pos : PlacementData, unk : Int) : TrackedProjectileData =
-    new TrackedProjectileData(pos, unk, oicw_projectile_data)
-
-  /**
-    * Overloaded constructor specifically for Striker projectiles.
-    * @param pos where and how the projectile is oriented
-    * @param unk na
-    * @return a `TrackedProjectileData` object
-    */
-  def striker(pos : PlacementData, unk : Int) : TrackedProjectileData =
-    new TrackedProjectileData(pos, unk, striker_missile_targetting_projectile_data)
-
-  /**
-    * Overloaded constructor specifically for Hunter Seeker (Phoenix) projectiles.
-    * @param pos where and how the projectile is oriented
-    * @param unk na
-    * @return a `TrackedProjectileData` object
-    */
-  def hunter_seeker(pos : PlacementData, unk : Int) : TrackedProjectileData =
-    new TrackedProjectileData(pos, unk, hunter_seeker_missile_projectile_data)
-
-  /**
-    * Overloaded constructor specifically for Starfire projectiles.
-    * @param pos where and how the projectile is oriented
-    * @param unk na
-    * @return a `TrackedProjectileData` object
-    */
-  def starfire(pos : PlacementData, unk : Int) : TrackedProjectileData =
-    new TrackedProjectileData(pos, unk, starfire_projectile_data)
-
   implicit val codec : Codec[TrackedProjectileData] = (
-    ("pos" | PlacementData.codec) ::
-      ("unk1" | uint(3)) ::
-      uint4L ::
-      uint16L ::
-      ("unk2" | uint24) ::
-      uint4L ::
-      uint(5)
+    ("data" | CommonFieldDataWithPlacement.codec) ::
+      ("unk2" | TrackedProjectile.codec) ::
+      uint4 ::
+      uint(3) ::
+      uint2
     ).exmap[TrackedProjectileData] (
     {
-      case pos :: unk1 :: 4 :: 0 :: unk2 :: 4 :: 0 :: HNil =>
-        Attempt.successful(TrackedProjectileData(pos, unk1, unk2))
+      case data :: unk2 :: 4 :: unk3 :: 0 :: HNil =>
+        Attempt.successful(TrackedProjectileData(data, unk2, unk3))
 
-      case _ =>
-        Attempt.failure(Err("invalid projectile data format"))
+      case data =>
+        Attempt.failure(Err(s"invalid projectile data format - $data"))
     },
     {
-      case TrackedProjectileData(pos, unk1, unk2) =>
-        Attempt.successful(pos :: unk1 :: 4 :: 0 :: unk2 :: 4 :: 0 :: HNil)
+      case TrackedProjectileData(data, unk2, unk3) =>
+        Attempt.successful(data :: unk2 :: 4 :: unk3 :: 0 :: HNil)
     }
   )
 }

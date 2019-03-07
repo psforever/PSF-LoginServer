@@ -12,7 +12,7 @@ import shapeless.{::, HNil}
   * @param deploy data common to objects spawned by the (advanced) adaptive construction engine
   * @param health the amount of health the object has, as a percentage of a filled bar
   */
-final case class TRAPData(deploy : SmallDeployableData,
+final case class TRAPData(deploy : CommonFieldDataWithPlacement,
                           health : Int
                          ) extends ConstructorData {
   override def bitsize : Long = {
@@ -22,7 +22,7 @@ final case class TRAPData(deploy : SmallDeployableData,
 
 object TRAPData extends Marshallable[TRAPData] {
   implicit val codec : Codec[TRAPData] = (
-    ("deploy" | SmallDeployableData.codec) ::
+    ("deploy" | CommonFieldDataWithPlacement.codec2) ::
       ("health" | uint8L) ::
       uint(7) ::
       uint4L ::
@@ -32,8 +32,8 @@ object TRAPData extends Marshallable[TRAPData] {
       case deploy :: health :: 0 :: 15 :: 0 :: HNil =>
         Attempt.successful(TRAPData(deploy, health))
 
-      case _ =>
-        Attempt.failure(Err("invalid trap data format"))
+      case data =>
+        Attempt.failure(Err(s"invalid trap data format - $data"))
     },
     {
       case TRAPData(deploy, health) =>

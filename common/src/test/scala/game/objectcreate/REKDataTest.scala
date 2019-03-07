@@ -4,6 +4,7 @@ package game.objectcreate
 import net.psforever.packet.PacketCoding
 import net.psforever.packet.game.{ObjectCreateMessage, PlanetSideGUID}
 import net.psforever.packet.game.objectcreate._
+import net.psforever.types.{PlanetSideEmpire, Vector3}
 import org.specs2.mutable._
 import scodec.bits._
 
@@ -21,12 +22,21 @@ class REKDataTest extends Specification {
           parent.isDefined mustEqual true
           parent.get.guid mustEqual PlanetSideGUID(4174)
           parent.get.slot mustEqual 0
-          data.isDefined mustEqual true
-          data.get.isInstanceOf[REKData] mustEqual true
-          val rek = data.get.asInstanceOf[REKData]
-          rek.unk1 mustEqual 0
-          rek.unk2 mustEqual 8
-          rek.unk3 mustEqual 0
+          data match {
+            case REKData(CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid), unk) =>
+              faction mustEqual PlanetSideEmpire.TR
+              bops mustEqual false
+              alternate mustEqual false
+              v1 mustEqual true
+              v2.isEmpty mustEqual true
+              v3 mustEqual false
+              v4.contains(false) mustEqual true
+              v5.isEmpty mustEqual true
+              fguid mustEqual PlanetSideGUID(0)
+              unk mustEqual 0
+            case _ =>
+              ko
+          }
         case _ =>
           ko
       }
@@ -39,27 +49,32 @@ class REKDataTest extends Specification {
           cls mustEqual ObjectClass.remote_electronics_kit
           guid mustEqual PlanetSideGUID(4355)
           parent.isDefined mustEqual false
-          data.isDefined mustEqual true
-          data.get.isInstanceOf[DroppedItemData[_]] mustEqual true
-          val dropped = data.get.asInstanceOf[DroppedItemData[_]]
-          dropped.pos.coord.x mustEqual 4675.039f
-          dropped.pos.coord.y mustEqual 5506.953f
-          dropped.pos.coord.z mustEqual 72.703125f
-          dropped.pos.orient.x mustEqual 0f
-          dropped.pos.orient.y mustEqual 0f
-          dropped.pos.orient.z mustEqual 230.625f
-          dropped.obj.isInstanceOf[REKData] mustEqual true
-          val rek = dropped.obj.asInstanceOf[REKData]
-          rek.unk1 mustEqual 8
-          rek.unk2 mustEqual 0
-          rek.unk3 mustEqual 3
+          data match {
+            case DroppedItemData(pos, REKData(CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid), unk)) =>
+              pos.coord mustEqual Vector3(4675.039f, 5506.953f, 72.703125f)
+              pos.orient mustEqual Vector3.z(230.625f)
+
+              faction mustEqual PlanetSideEmpire.VS
+              bops mustEqual false
+              alternate mustEqual false
+              v1 mustEqual false
+              v2.isEmpty mustEqual true
+              v3 mustEqual false
+              v4.contains(false) mustEqual true
+              v5.isEmpty mustEqual true
+              fguid mustEqual PlanetSideGUID(0)
+
+              unk mustEqual 3
+            case _ =>
+              ko
+          }
         case _ =>
           ko
       }
     }
 
     "encode (held)" in {
-      val obj = REKData(0, 8)
+      val obj = REKData(CommonFieldData(PlanetSideEmpire.TR, false, false, true, None, false, Some(false), None, PlanetSideGUID(0)))
       val msg = ObjectCreateMessage(ObjectClass.remote_electronics_kit, PlanetSideGUID(3893), ObjectCreateMessageParent(PlanetSideGUID(4174), 0), obj)
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
       pkt mustEqual string_rek_held
@@ -68,7 +83,7 @@ class REKDataTest extends Specification {
     "encode (dropped)" in {
       val obj = DroppedItemData(
         PlacementData(4675.039f, 5506.953f, 72.703125f, 0f, 0f, 230.625f),
-        REKData(8, 0, 3)
+        REKData(CommonFieldData(PlanetSideEmpire.VS, false, false, false, None, false, Some(false), None, PlanetSideGUID(0)), 3)
       )
       val msg = ObjectCreateMessage(ObjectClass.remote_electronics_kit, PlanetSideGUID(4355), obj)
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector

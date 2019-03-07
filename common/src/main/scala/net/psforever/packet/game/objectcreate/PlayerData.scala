@@ -63,9 +63,9 @@ object PlayerData extends Marshallable[PlayerData] {
     *                   technically, always `DrawnSlot.None`, but the field is preserved to maintain similarity
     * @return a `PlayerData` object
     */
-  def apply(basic_appearance : (Int)=>CharacterAppearanceData, character_data : (Boolean,Boolean)=>CharacterData, inventory : InventoryData, drawn_slot : DrawnSlot.Type) : PlayerData = {
+  def apply(basic_appearance : Int=>CharacterAppearanceData, character_data : (Boolean,Boolean)=>CharacterData, inventory : InventoryData, drawn_slot : DrawnSlot.Type) : PlayerData = {
     val appearance = basic_appearance(5)
-    PlayerData(None, appearance, character_data(appearance.a.altModel, true), Some(inventory), drawn_slot)(false)
+    PlayerData(None, appearance, character_data(appearance.altModelBit.isDefined, true), Some(inventory), drawn_slot)(false)
   }
   /**
     * Overloaded constructor that ignores the coordinate information and the inventory.
@@ -77,9 +77,9 @@ object PlayerData extends Marshallable[PlayerData] {
     *                   technically, always `DrawnSlot.None`, but the field is preserved to maintain similarity
     * @return a `PlayerData` object
     */
-  def apply(basic_appearance : (Int)=>CharacterAppearanceData, character_data : (Boolean,Boolean)=>CharacterData, drawn_slot : DrawnSlot.Type) : PlayerData = {
+  def apply(basic_appearance : Int=>CharacterAppearanceData, character_data : (Boolean,Boolean)=>CharacterData, drawn_slot : DrawnSlot.Type) : PlayerData = {
     val appearance = basic_appearance(5)
-    PlayerData(None, appearance, character_data(appearance.a.altModel, true), None, drawn_slot)(false)
+    PlayerData(None, appearance, character_data(appearance.altModelBit.isDefined, true), None, drawn_slot)(false)
   }
 
   /**
@@ -93,9 +93,9 @@ object PlayerData extends Marshallable[PlayerData] {
     * @param drawn_slot the holster that is initially drawn
     * @return a `PlayerData` object
     */
-  def apply(pos : PlacementData, basic_appearance : (Int)=>CharacterAppearanceData, character_data : (Boolean,Boolean)=>CharacterData, inventory : InventoryData, drawn_slot : DrawnSlot.Type) : PlayerData = {
+  def apply(pos : PlacementData, basic_appearance : Int=>CharacterAppearanceData, character_data : (Boolean,Boolean)=>CharacterData, inventory : InventoryData, drawn_slot : DrawnSlot.Type) : PlayerData = {
     val appearance = basic_appearance( PaddingOffset(Some(pos)) )
-    PlayerData(Some(pos), appearance, character_data(appearance.a.altModel, false), Some(inventory), drawn_slot)(true)
+    PlayerData(Some(pos), appearance, character_data(appearance.altModelBit.isDefined, false), Some(inventory), drawn_slot)(true)
   }
   /**
     * Overloaded constructor that includes the coordinate information but ignores the inventory.
@@ -107,9 +107,9 @@ object PlayerData extends Marshallable[PlayerData] {
     * @param drawn_slot the holster that is initially drawn
     * @return a `PlayerData` object
     */
-  def apply(pos : PlacementData, basic_appearance : (Int)=>CharacterAppearanceData, character_data : (Boolean,Boolean)=>CharacterData, drawn_slot : DrawnSlot.Type) : PlayerData = {
+  def apply(pos : PlacementData, basic_appearance : Int=>CharacterAppearanceData, character_data : (Boolean,Boolean)=>CharacterData, drawn_slot : DrawnSlot.Type) : PlayerData = {
     val appearance = basic_appearance( PaddingOffset(Some(pos)) )
-    PlayerData(Some(pos), appearance, character_data(appearance.a.altModel, false), None, drawn_slot)(true)
+    PlayerData(Some(pos), appearance, character_data(appearance.altModelBit.isDefined, false), None, drawn_slot)(true)
   }
 
   /**

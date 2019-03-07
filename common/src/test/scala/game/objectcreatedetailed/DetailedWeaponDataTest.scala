@@ -5,6 +5,7 @@ import org.specs2.mutable._
 import net.psforever.packet._
 import net.psforever.packet.game.{ObjectCreateDetailedMessage, _}
 import net.psforever.packet.game.objectcreate._
+import net.psforever.types.PlanetSideEmpire
 import scodec.bits._
 
 class DetailedWeaponDataTest extends Specification {
@@ -21,15 +22,33 @@ class DetailedWeaponDataTest extends Specification {
           parent.isDefined mustEqual true
           parent.get.guid mustEqual PlanetSideGUID(75)
           parent.get.slot mustEqual 2
-          data.isDefined mustEqual true
-          val obj_wep = data.get.asInstanceOf[DetailedWeaponData]
-          obj_wep.unk1 mustEqual 2
-          obj_wep.unk2 mustEqual 8
-          val obj_ammo = obj_wep.ammo
-          obj_ammo.head.objectClass mustEqual 28
-          obj_ammo.head.guid mustEqual PlanetSideGUID(1286)
-          obj_ammo.head.parentSlot mustEqual 0
-          obj_ammo.head.obj.asInstanceOf[DetailedAmmoBoxData].magazine mustEqual 30
+          data match {
+            case DetailedWeaponData(cdata, fmode, ammo, _) =>
+              cdata match {
+                case CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid) =>
+                  faction mustEqual PlanetSideEmpire.NC
+                  bops mustEqual false
+                  alternate mustEqual false
+                  v1 mustEqual true
+                  v2.isEmpty mustEqual true
+                  v3 mustEqual false
+                  v4.isEmpty mustEqual true
+                  v5.isEmpty mustEqual true
+                  fguid mustEqual PlanetSideGUID(0)
+                case _ =>
+                  ko
+              }
+
+              fmode mustEqual 0
+
+              ammo.size mustEqual 1
+              ammo.head.objectClass mustEqual 28
+              ammo.head.guid mustEqual PlanetSideGUID(1286)
+              ammo.head.parentSlot mustEqual 0
+              ammo.head.obj.asInstanceOf[DetailedAmmoBoxData].magazine mustEqual 30
+            case _ =>
+              ko
+          }
         case _ =>
           ko
       }
@@ -44,27 +63,48 @@ class DetailedWeaponDataTest extends Specification {
           parent.isDefined mustEqual true
           parent.get.guid mustEqual PlanetSideGUID(75)
           parent.get.slot mustEqual 2
-          data.isDefined mustEqual true
-          val obj_wep = data.get.asInstanceOf[DetailedWeaponData]
-          obj_wep.unk1 mustEqual 0
-          obj_wep.unk2 mustEqual 8
-          val obj_ammo = obj_wep.ammo
-          obj_ammo.size mustEqual 2
-          obj_ammo.head.objectClass mustEqual ObjectClass.bullet_9mm
-          obj_ammo.head.guid mustEqual PlanetSideGUID(1693)
-          obj_ammo.head.parentSlot mustEqual 0
-          obj_ammo.head.obj.asInstanceOf[DetailedAmmoBoxData].magazine mustEqual 30
-          obj_ammo(1).objectClass mustEqual ObjectClass.jammer_cartridge
-          obj_ammo(1).guid mustEqual PlanetSideGUID(1564)
-          obj_ammo(1).parentSlot mustEqual 1
-          obj_ammo(1).obj.asInstanceOf[DetailedAmmoBoxData].magazine mustEqual 1
+          data match {
+            case DetailedWeaponData(cdata, fmode, ammo, _) =>
+              cdata match {
+                case CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid) =>
+                  faction mustEqual PlanetSideEmpire.TR
+                  bops mustEqual false
+                  alternate mustEqual false
+                  v1 mustEqual true
+                  v2.isEmpty mustEqual true
+                  v3 mustEqual false
+                  v4.isEmpty mustEqual true
+                  v5.isEmpty mustEqual true
+                  fguid mustEqual PlanetSideGUID(0)
+                case _ =>
+                  ko
+              }
+
+              fmode mustEqual 0
+
+              ammo.size mustEqual 2
+              ammo.head.objectClass mustEqual ObjectClass.bullet_9mm
+              ammo.head.guid mustEqual PlanetSideGUID(1693)
+              ammo.head.parentSlot mustEqual 0
+              ammo.head.obj.asInstanceOf[DetailedAmmoBoxData].magazine mustEqual 30
+              ammo(1).objectClass mustEqual ObjectClass.jammer_cartridge
+              ammo(1).guid mustEqual PlanetSideGUID(1564)
+              ammo(1).parentSlot mustEqual 1
+              ammo(1).obj.asInstanceOf[DetailedAmmoBoxData].magazine mustEqual 1
+            case _ =>
+              ko
+          }
         case _ =>
           ko
       }
     }
 
     "encode (gauss)" in {
-      val obj = DetailedWeaponData(2, 8, ObjectClass.bullet_9mm, PlanetSideGUID(1286), 0, DetailedAmmoBoxData(8, 30))
+      val obj = DetailedWeaponData(
+        CommonFieldData(PlanetSideEmpire.NC, false, false, true, None, false, None, None, PlanetSideGUID(0)),
+        0,
+        List(InternalSlot(ObjectClass.bullet_9mm, PlanetSideGUID(1286), 0, DetailedAmmoBoxData(8, 30)))
+      )
       val msg = ObjectCreateDetailedMessage(ObjectClass.gauss, PlanetSideGUID(1465), ObjectCreateMessageParent(PlanetSideGUID(75), 2), obj)
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
@@ -72,11 +112,24 @@ class DetailedWeaponDataTest extends Specification {
     }
 
     "encode (punisher)" in {
-      val obj = DetailedWeaponData(0, 8, 0,
-        DetailedAmmoBoxData(ObjectClass.bullet_9mm, PlanetSideGUID(1693), 0, DetailedAmmoBoxData(8, 30)) ::
-          DetailedAmmoBoxData(ObjectClass.jammer_cartridge, PlanetSideGUID(1564), 1, DetailedAmmoBoxData(8, 1)) ::
-          Nil
-      )(2)
+      val obj = DetailedWeaponData(
+        CommonFieldData(
+          PlanetSideEmpire.TR,
+          bops = false,
+          alternate = false,
+          true,
+          None,
+          false,
+          None,
+          None,
+          PlanetSideGUID(0)
+        ),
+        0,
+        List(
+          DetailedAmmoBoxData(ObjectClass.bullet_9mm, PlanetSideGUID(1693), 0, DetailedAmmoBoxData(8, 30)),
+          DetailedAmmoBoxData(ObjectClass.jammer_cartridge, PlanetSideGUID(1564), 1, DetailedAmmoBoxData(8, 1))
+        )
+      )
       val msg = ObjectCreateDetailedMessage(ObjectClass.punisher, PlanetSideGUID(1703), ObjectCreateMessageParent(PlanetSideGUID(75), 2), obj)
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 

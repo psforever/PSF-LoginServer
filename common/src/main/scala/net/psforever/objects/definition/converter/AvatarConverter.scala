@@ -1,8 +1,9 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.definition.converter
 
-import net.psforever.objects.{EquipmentSlot, Player}
-import net.psforever.objects.equipment.Equipment
+import net.psforever.objects.Player
+import net.psforever.objects.equipment.{Equipment, EquipmentSlot}
+import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.packet.game.objectcreate._
 import net.psforever.types.{ExoSuitType, GrenadeState, ImplantType}
 
@@ -63,18 +64,22 @@ object AvatarConverter {
     * @param obj the `Player` game object
     * @return the resulting `CharacterAppearanceData`
     */
-  def MakeAppearanceData(obj : Player) : (Int)=>CharacterAppearanceData = {
+  def MakeAppearanceData(obj : Player) : Int=>CharacterAppearanceData = {
     val alt_model_flag : Boolean = obj.isBackpack
     val aa : Int=>CharacterAppearanceA = CharacterAppearanceA(
       BasicCharacterData(obj.Name, obj.Faction, obj.Sex, obj.Head, obj.Voice),
-      black_ops = false,
-      alt_model_flag,
-      false,
-      None,
-      jammered = false,
+      CommonFieldData(
+        obj.Faction,
+        bops = false,
+        alt_model_flag,
+        false,
+        None,
+        false,
+        None,
+        v5 = None,
+        PlanetSideGUID(0)
+      ),
       obj.ExoSuit,
-      None,
-      0,
       0,
       0L,
       0,
@@ -108,22 +113,22 @@ object AvatarConverter {
   def MakeCharacterData(obj : Player) : (Boolean,Boolean)=>CharacterData = {
     val MaxArmor = obj.MaxArmor
     CharacterData(
-      255 * obj.Health / obj.MaxHealth,
+      StatConverter.Health(obj.Health, obj.MaxHealth),
       if(MaxArmor == 0) {
         0
       }
       else {
-        255 * obj.Armor / MaxArmor
+        StatConverter.Health(obj.Armor, MaxArmor)
       },
       DressBattleRank(obj),
       0,
       DressCommandRank(obj),
       MakeImplantEffectList(obj.Implants),
-      MakeCosmetics(obj.BEP)
+      MakeCosmetics(obj)
     )
   }
 
-  def MakeDetailedCharacterData(obj : Player) : (Option[Int])=>DetailedCharacterData = {
+  def MakeDetailedCharacterData(obj : Player) : Option[Int]=>DetailedCharacterData = {
     val bep : Long = obj.BEP
     val maxOpt : Option[Long] = if(obj.ExoSuit == ExoSuitType.MAX) { Some(0L) } else { None }
     val ba : DetailedCharacterA = DetailedCharacterA(
@@ -149,9 +154,9 @@ object AvatarConverter {
       0L, 0L, 0L, 0L, 0L,
       Some(DCDExtra2(0, 0)),
       Nil, Nil, false,
-      MakeCosmetics(bep)
+      MakeCosmetics(obj)
     )
-    (pad_length : Option[Int]) => DetailedCharacterData(ba, bb(bep, pad_length))(pad_length)
+    pad_length : Option[Int] => DetailedCharacterData(ba, bb(bep, pad_length))(pad_length)
   }
 
   def MakeInventoryData(obj : Player) : InventoryData = {
@@ -219,8 +224,8 @@ object AvatarConverter {
     * @see `ImplantEntry` in `DetailedCharacterData`
     */
   private def MakeImplantEntries(obj : Player) : List[ImplantEntry] = {
-    val numImplants : Int = DetailedCharacterData.numberOfImplantSlots(obj.BEP)
-    val implants = obj.Implants
+    //val numImplants : Int = DetailedCharacterData.numberOfImplantSlots(obj.BEP)
+    //val implants = obj.Implants
     obj.Implants.map({ case(implant, initialization, _) =>
       if(initialization == 0) {
         ImplantEntry(implant, None)
@@ -238,7 +243,7 @@ object AvatarConverter {
     */
   private def MakeImplantEffectList(implants : Seq[(ImplantType.Value, Long, Boolean)]) : List[ImplantEffects.Value] = {
     implants.collect {
-      case ((implant,_,true)) =>
+      case (implant,_,true) =>
         implant match {
           case ImplantType.AdvancedRegen =>
             ImplantEffects.RegenEffects
@@ -253,14 +258,16 @@ object AvatarConverter {
   }
 
   /**
-    * Should this player be of battle rank 24 or higher, they will have a mandatory cosmetics object.
-    * @param bep battle experience points
+    * Should this player be of battle rank 24 or higher, they will have a mandatory cosmetics object in their bitstream.
+    * Players that have not yet set any cosmetic personal effects will still have this field recorded as `None`
+    * but it must be represented nonetheless.
+    * @param obj the `Player` game object
     * @see `Cosmetics`
     * @return the `Cosmetics` options
     */
-  def MakeCosmetics(bep : Long) : Option[Cosmetics] =
-    if(DetailedCharacterData.isBR24(bep)) {
-      Some(Cosmetics(false, false, false, false, false))
+  def MakeCosmetics(obj : Player) : Option[Cosmetics] =
+    if(DetailedCharacterData.isBR24(obj.BEP)) {
+      obj.PersonalStyleFeatures.orElse(Some(Cosmetics()))
     }
     else {
       None
@@ -290,7 +297,7 @@ object AvatarConverter {
     * @param builder the function used to transform to the decoded packet form
     * @return a list of all items that were in the holsters in decoded packet form
     */
-  private def MakeHolsters(obj : Player, builder : ((Int, Equipment) => InternalSlot)) : List[InternalSlot] = {
+  private def MakeHolsters(obj : Player, builder : (Int, Equipment) => InternalSlot) : List[InternalSlot] = {
     recursiveMakeHolsters(obj.Holsters().iterator, builder)
   }
 
@@ -338,7 +345,7 @@ object AvatarConverter {
     * @param index which holster is currently being explored
     * @return the `List` of inventory data created from the holsters
     */
-  @tailrec private def recursiveMakeHolsters(iter : Iterator[EquipmentSlot], builder : ((Int, Equipment) => InternalSlot), list : List[InternalSlot] = Nil, index : Int = 0) : List[InternalSlot] = {
+  @tailrec private def recursiveMakeHolsters(iter : Iterator[EquipmentSlot], builder : (Int, Equipment) => InternalSlot, list : List[InternalSlot] = Nil, index : Int = 0) : List[InternalSlot] = {
     if(!iter.hasNext) {
       list
     }

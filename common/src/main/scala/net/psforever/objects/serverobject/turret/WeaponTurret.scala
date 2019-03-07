@@ -3,7 +3,7 @@ package net.psforever.objects.serverobject.turret
 
 import net.psforever.objects.definition.{AmmoBoxDefinition, SeatDefinition, ToolDefinition}
 import net.psforever.objects._
-import net.psforever.objects.equipment.Equipment
+import net.psforever.objects.equipment.{Equipment, EquipmentSlot}
 import net.psforever.objects.inventory.{Container, GridInventory}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.mount.Mountable

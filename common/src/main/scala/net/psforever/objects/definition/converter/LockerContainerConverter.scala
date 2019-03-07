@@ -4,21 +4,34 @@ package net.psforever.objects.definition.converter
 import net.psforever.objects.LockerContainer
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.inventory.GridInventory
+import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.packet.game.objectcreate._
+import net.psforever.types.PlanetSideEmpire
 
 import scala.util.{Success, Try}
 
 class LockerContainerConverter extends ObjectCreateConverter[LockerContainer]() {
   override def ConstructorData(obj : LockerContainer) : Try[LockerContainerData] = {
-    Success(LockerContainerData(InventoryData(MakeInventory(obj.Inventory))))
+    MakeInventory(obj.Inventory) match {
+      case Nil =>
+        Success(LockerContainerData(None))
+      case list =>
+        Success(LockerContainerData(InventoryData(list)))
+    }
   }
 
   override def DetailedConstructorData(obj : LockerContainer) : Try[DetailedLockerContainerData] = {
     if(obj.Inventory.Size > 0) {
-      Success(DetailedLockerContainerData(8, Some(InventoryData(MakeDetailedInventory(obj.Inventory)))))
+      Success(DetailedLockerContainerData(
+        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)),
+        Some(InventoryData(MakeDetailedInventory(obj.Inventory)))
+      ))
     }
     else {
-      Success(DetailedLockerContainerData(8, None))
+      Success(DetailedLockerContainerData(
+        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)),
+        None
+      ))
     }
   }
 

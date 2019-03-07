@@ -1,8 +1,9 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.definition.converter
 
-import net.psforever.objects.{EquipmentSlot, Player}
-import net.psforever.objects.equipment.Equipment
+import net.psforever.objects.Player
+import net.psforever.objects.equipment.{Equipment, EquipmentSlot}
+import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.packet.game.objectcreate._
 import net.psforever.types._
 
@@ -35,17 +36,21 @@ class CharacterSelectConverter extends AvatarConverter {
     * @see `AvatarConverter.MakeAppearanceData`
     * @return the resulting `CharacterAppearanceData`
     */
-  private def MakeAppearanceData(obj : Player) : (Int)=>CharacterAppearanceData = {
+  private def MakeAppearanceData(obj : Player) : Int=>CharacterAppearanceData = {
     val aa : Int=>CharacterAppearanceA = CharacterAppearanceA(
       BasicCharacterData(obj.Name, obj.Faction, obj.Sex, obj.Head, CharacterVoice.Mute),
-      black_ops = false,
-      false,
-      false,
-      None,
-      jammered = false,
+      CommonFieldData(
+        obj.Faction,
+        bops = false,
+        false,
+        false,
+        None,
+        false,
+        None,
+        v5 = None,
+        PlanetSideGUID(0)
+      ),
       obj.ExoSuit,
-      None,
-      0,
       0,
       0L,
       0,
@@ -76,7 +81,7 @@ class CharacterSelectConverter extends AvatarConverter {
     CharacterAppearanceData(aa, ab, RibbonBars())
   }
 
-  private def MakeDetailedCharacterData(obj : Player) : (Option[Int]=>DetailedCharacterData) = {
+  private def MakeDetailedCharacterData(obj : Player) : Option[Int]=>DetailedCharacterData = {
     val bep : Long = obj.BEP
     val maxOpt : Option[Long] = if(obj.ExoSuit == ExoSuitType.MAX) { Some(0L) } else { None }
     val ba : DetailedCharacterA = DetailedCharacterA(
@@ -102,9 +107,9 @@ class CharacterSelectConverter extends AvatarConverter {
       0L, 0L, 0L, 0L, 0L,
       Some(DCDExtra2(0, 0)),
       Nil, Nil, false,
-      AvatarConverter.MakeCosmetics(bep)
+      AvatarConverter.MakeCosmetics(obj)
     )
-    (pad_length : Option[Int]) => DetailedCharacterData(ba, bb(bep, pad_length))(pad_length)
+    pad_length : Option[Int] => DetailedCharacterData(ba, bb(bep, pad_length))(pad_length)
   }
 
   /**

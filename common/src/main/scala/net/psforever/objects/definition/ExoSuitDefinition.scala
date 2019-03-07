@@ -1,24 +1,27 @@
 // Copyright (c) 2017 PSForever
-package net.psforever.objects
+package net.psforever.objects.definition
 
+import net.psforever.objects.GlobalDefinitions
 import net.psforever.objects.equipment.EquipmentSize
 import net.psforever.objects.inventory.InventoryTile
 import net.psforever.objects.vital._
 import net.psforever.objects.vital.resistance.ResistanceProfileMutators
-import net.psforever.types.ExoSuitType
+import net.psforever.types.{CertificationType, ExoSuitType}
 
 /**
   * A definition for producing the personal armor the player wears.
   * Players are influenced by the exo-suit they wear in a variety of ways, with speed and available equipment slots being major differences.
   * @param suitType the `Enumeration` corresponding to this exo-suit
   */
-class ExoSuitDefinition(private val suitType : ExoSuitType.Value) extends ResistanceProfileMutators
+class ExoSuitDefinition(private val suitType : ExoSuitType.Value) extends BasicDefinition
+  with ResistanceProfileMutators
   with DamageResistanceModel {
-  protected var permission : Int = 0 //TODO certification type?
+  protected var permissions : List[CertificationType.Value] = List.empty
   protected var maxArmor : Int = 0
   protected val holsters : Array[EquipmentSize.Value] = Array.fill[EquipmentSize.Value](5)(EquipmentSize.Blocked)
   protected var inventoryScale : InventoryTile = InventoryTile.Tile11 //override with custom InventoryTile
   protected var inventoryOffset : Int = 0
+  Name = "exo-suit"
   Damage = StandardInfantryDamage
   Resistance = StandardInfantryResistance
   Model = StandardResolutions.Infantry
@@ -67,10 +70,19 @@ class ExoSuitDefinition(private val suitType : ExoSuitType.Value) extends Resist
     }
   }
 
+  def Permissions : List[CertificationType.Value] = permissions
+
+  def Permissions_=(certs : List[CertificationType.Value]) : List[CertificationType.Value] = {
+    permissions = certs
+    Permissions
+  }
+
   def Use : ExoSuitDefinition = this
 }
 
 class SpecialExoSuitDefinition(private val suitType : ExoSuitType.Value) extends ExoSuitDefinition(suitType) {
+  Name = "heavy_armor"
+
   private var activatedSpecial : SpecialExoSuitDefinition.Mode.Value = SpecialExoSuitDefinition.Mode.Normal
 
   def UsingSpecial : SpecialExoSuitDefinition.Mode.Value = activatedSpecial
@@ -118,65 +130,6 @@ object SpecialExoSuitDefinition {
 }
 
 object ExoSuitDefinition {
-  final val Standard = ExoSuitDefinition(ExoSuitType.Standard)
-  Standard.MaxArmor = 50
-  Standard.InventoryScale = InventoryTile.Tile96
-  Standard.InventoryOffset = 6
-  Standard.Holster(0, EquipmentSize.Pistol)
-  Standard.Holster(2, EquipmentSize.Rifle)
-  Standard.Holster(4, EquipmentSize.Melee)
-  Standard.ResistanceDirectHit = 4
-  Standard.ResistanceSplash = 15
-  Standard.ResistanceAggravated = 8
-
-  final val Agile = ExoSuitDefinition(ExoSuitType.Agile)
-  Agile.MaxArmor = 100
-  Agile.InventoryScale = InventoryTile.Tile99
-  Agile.InventoryOffset = 6
-  Agile.Holster(0, EquipmentSize.Pistol)
-  Agile.Holster(1, EquipmentSize.Pistol)
-  Agile.Holster(2, EquipmentSize.Rifle)
-  Agile.Holster(4, EquipmentSize.Melee)
-  Agile.ResistanceDirectHit = 6
-  Agile.ResistanceSplash = 25
-  Agile.ResistanceAggravated = 10
-
-  final val Reinforced = ExoSuitDefinition(ExoSuitType.Reinforced)
-  Reinforced.permission = 1
-  Reinforced.MaxArmor = 200
-  Reinforced.InventoryScale = InventoryTile.Tile1209
-  Reinforced.InventoryOffset = 6
-  Reinforced.Holster(0, EquipmentSize.Pistol)
-  Reinforced.Holster(1, EquipmentSize.Pistol)
-  Reinforced.Holster(2, EquipmentSize.Rifle)
-  Reinforced.Holster(3, EquipmentSize.Rifle)
-  Reinforced.Holster(4, EquipmentSize.Melee)
-  Reinforced.ResistanceDirectHit = 10
-  Reinforced.ResistanceSplash = 35
-  Reinforced.ResistanceAggravated = 12
-
-  final val Infiltration = ExoSuitDefinition(ExoSuitType.Infiltration)
-  Infiltration.permission = 1
-  Infiltration.MaxArmor = 0
-  Infiltration.InventoryScale = InventoryTile.Tile66
-  Infiltration.InventoryOffset = 6
-  Infiltration.Holster(0, EquipmentSize.Pistol)
-  Infiltration.Holster(4, EquipmentSize.Melee)
-
-  final val MAX = SpecialExoSuitDefinition(ExoSuitType.MAX)
-  MAX.permission = 1
-  MAX.MaxArmor = 650
-  MAX.InventoryScale = InventoryTile.Tile1612
-  MAX.InventoryOffset = 6
-  MAX.Holster(0, EquipmentSize.Max)
-  MAX.Holster(4, EquipmentSize.Melee)
-  MAX.Subtract.Damage1 = -2
-  MAX.ResistanceDirectHit = 6
-  MAX.ResistanceSplash = 35
-  MAX.ResistanceAggravated = 10
-  MAX.Damage = StandardMaxDamage
-  MAX.Model = StandardResolutions.Max
-
   def apply(suitType : ExoSuitType.Value) : ExoSuitDefinition = {
     new ExoSuitDefinition(suitType)
   }
@@ -188,11 +141,11 @@ object ExoSuitDefinition {
     */
   def Select(suit : ExoSuitType.Value) : ExoSuitDefinition = {
     suit match {
-      case ExoSuitType.Agile => ExoSuitDefinition.Agile.Use
-      case ExoSuitType.Infiltration => ExoSuitDefinition.Infiltration.Use
-      case ExoSuitType.MAX => ExoSuitDefinition.MAX.Use
-      case ExoSuitType.Reinforced => ExoSuitDefinition.Reinforced.Use
-      case _ => ExoSuitDefinition.Standard.Use
+      case ExoSuitType.Agile => GlobalDefinitions.Agile.Use
+      case ExoSuitType.Infiltration => GlobalDefinitions.Infiltration.Use
+      case ExoSuitType.MAX => GlobalDefinitions.MAX.Use
+      case ExoSuitType.Reinforced => GlobalDefinitions.Reinforced.Use
+      case _ => GlobalDefinitions.Standard.Use
     }
   }
 }

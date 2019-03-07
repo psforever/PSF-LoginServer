@@ -1,8 +1,8 @@
 // Copyright (c) 2017 PSForever
 package objects
 
-import net.psforever.objects.{EquipmentSlot, OffhandEquipmentSlot, Tool}
-import net.psforever.objects.equipment.EquipmentSize
+import net.psforever.objects.{OffhandEquipmentSlot, Tool}
+import net.psforever.objects.equipment.{EquipmentSize, EquipmentSlot}
 import net.psforever.objects.GlobalDefinitions.{beamer, repeater, suppressor}
 import org.specs2.mutable._
 

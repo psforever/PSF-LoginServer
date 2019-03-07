@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package objects
 
-import net.psforever.objects._
+import net.psforever.objects.definition.{ExoSuitDefinition, SpecialExoSuitDefinition}
 import net.psforever.objects.equipment._
 import net.psforever.objects.inventory.InventoryTile
 import net.psforever.types.ExoSuitType
