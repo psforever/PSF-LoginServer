@@ -18,20 +18,20 @@ import scala.concurrent.duration._
 class VehicleSpawnPadTest extends Specification {
   "VehicleSpawnPadDefinition" should {
     "define" in {
-      GlobalDefinitions.spawn_pad.ObjectId mustEqual 800
+      GlobalDefinitions.mb_pad_creation.ObjectId mustEqual 525
     }
   }
 
   "VehicleSpawnPad" should {
     "construct" in {
-      val obj = VehicleSpawnPad(GlobalDefinitions.spawn_pad)
+      val obj = VehicleSpawnPad(GlobalDefinitions.mb_pad_creation)
       obj.Actor mustEqual ActorRef.noSender
-      obj.Definition mustEqual GlobalDefinitions.spawn_pad
+      obj.Definition mustEqual GlobalDefinitions.mb_pad_creation
       obj.Railed mustEqual true
     }
 
     "un-railed" in {
-      val obj = VehicleSpawnPad(GlobalDefinitions.spawn_pad)
+      val obj = VehicleSpawnPad(GlobalDefinitions.mb_pad_creation)
       obj.Railed mustEqual true
       obj.Railed = false
       obj.Railed mustEqual false
@@ -42,8 +42,8 @@ class VehicleSpawnPadTest extends Specification {
 class VehicleSpawnControl1Test extends ActorTest {
   "VehicleSpawnControl" should {
     "construct" in {
-      val obj = VehicleSpawnPad(GlobalDefinitions.spawn_pad)
-      obj.Actor = system.actorOf(Props(classOf[VehicleSpawnControl], obj), "door")
+      val obj = VehicleSpawnPad(GlobalDefinitions.mb_pad_creation)
+      obj.Actor = system.actorOf(Props(classOf[VehicleSpawnControl], obj), "mb_pad_creation")
       assert(obj.Actor != ActorRef.noSender)
     }
   }
@@ -337,7 +337,7 @@ object VehicleSpawnPadControlTest {
     zone.Actor ! Zone.Init()
     vehicle.Actor = system.actorOf(Props(classOf[VehicleControl], vehicle), s"vehicle-control-${System.nanoTime()}")
 
-    val pad = VehicleSpawnPad(GlobalDefinitions.spawn_pad)
+    val pad = VehicleSpawnPad(GlobalDefinitions.mb_pad_creation)
     pad.Actor = system.actorOf(Props(classOf[VehicleSpawnControl], pad), s"test-pad-${System.nanoTime()}")
     pad.Owner = new Building(building_guid = 0, map_id = 0, zone, StructureType.Building)
     pad.Owner.Faction = faction

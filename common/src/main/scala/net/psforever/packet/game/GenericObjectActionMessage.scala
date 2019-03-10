@@ -18,6 +18,8 @@ import shapeless.{::, HNil}
   *             60, 61, 62, 63 - Displays "This facility's generator is under attack!"
   *             64, 65, 66, 67 - Displays "Generator has Overloaded! Evacuate Generator Room Immediately!"
   *             68, 69, 70, 71 - Displays "This facility's generator is back on line"
+  *             88, 89, 90, 91 - ???? (Has been seen on vehicle pad objects)
+  *             92, 93, 94, 95 - Plays vehicle pad animation moving downwards
   *             96, 97, 98, 99 - Makes the vehicle bounce slightly. Have seen this in packet captures after taking a vehicle through a warpgate
   *             200, 201, 202, 203 - For aircraft - client shows "THe bailing mechanism failed! To fix the mechanism, land and repair the vehicle!"
   *             224 - Sets vehicle or player to be black ops

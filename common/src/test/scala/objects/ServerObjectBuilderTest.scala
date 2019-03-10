@@ -3,6 +3,7 @@ package objects
 
 import akka.actor.{Actor, ActorContext, Props}
 import base.ActorTest
+import net.psforever.objects.GlobalDefinitions
 import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.objects.serverobject.ServerObjectBuilder
@@ -155,7 +156,7 @@ class VehicleSpawnPadObjectBuilderTest extends ActorTest {
     "build" in {
       val hub = ServerObjectBuilderTest.NumberPoolHub
       val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1,
-        VehicleSpawnPad.Constructor(Vector3(1.1f, 2.2f, 3.3f), Vector3(4.4f, 5.5f, 6.6f))
+        VehicleSpawnPad.Constructor(GlobalDefinitions.mb_pad_creation, Vector3(1.1f, 2.2f, 3.3f), Vector3(4.4f, 5.5f, 6.6f))
       ), hub), "pad")
       actor ! "!"
 
