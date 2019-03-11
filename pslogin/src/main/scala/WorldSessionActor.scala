@@ -1253,24 +1253,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
         log.trace(s"Clearing hack for ${target_guid}")
         // Reset hack state for all players
         sendResponse(HackMessage(0, target_guid, guid, 0, unk1, HackState.HackCleared, unk2))
-        // Set the object faction displayed back to it's original owner faction
-
-        continent.GUID(target_guid) match {
-          case Some(obj) =>
-            sendResponse(SetEmpireMessage(target_guid, obj.asInstanceOf[FactionAffinity].Faction))
-          case None => ;
-        }
-
       case LocalResponse.HackObject(target_guid, unk1, unk2) =>
-        if(tplayer_guid != guid && continent.GUID(target_guid).get.asInstanceOf[Hackable].HackedBy.get.hackerFaction != player.Faction) {
-          // If the player is not in the faction that hacked this object then send the packet that it's been hacked, so they can either unhack it or use the hacked object
-          // Don't send this to the faction that hacked the object, otherwise it will interfere with the new SetEmpireMessage QoL change that changes the object colour to their faction (but only visible to that faction)
           sendResponse(HackMessage(0, target_guid, guid, 100, unk1, HackState.Hacked, unk2))
-        }
-        if(continent.GUID(target_guid).get.asInstanceOf[Hackable].HackedBy.get.hackerFaction == player.Faction) {
-          // Make the hacked object look like it belongs to the hacking empire, but only for that empire's players (so that infiltrators on stealth missions won't be given away to opposing factions)
-          sendResponse(SetEmpireMessage(target_guid, player.Faction))
-        }
       case LocalResponse.HackCaptureTerminal(target_guid, unk1, unk2, isResecured) =>
         var value = 0L
         if(isResecured) {
@@ -3861,6 +3845,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
                 }
               case _ => ;
             }
+          } else {
+            log.warn("IFF lock is being hacked, but don't know how to handle this state")
+            log.warn(s"Lock - HackedBy.isDefined: ${panel.HackedBy.isDefined} Faction: ${panel.Faction} HackedBy.isEmpty: ${panel.HackedBy.isEmpty}")
+            log.warn(s"Hacking player - Faction: ${player.Faction}")
           }
 
         case Some(obj : Player) =>
@@ -5157,7 +5145,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           case term : CaptureTerminal =>
             val isResecured = player.Faction == target.Faction
             localService ! LocalServiceMessage(continent.Id, LocalAction.HackCaptureTerminal(player.GUID, continent, term, unk, 8L, isResecured))
-          case _ =>localService ! LocalServiceMessage(continent.Id, LocalAction.HackTemporarily(player.GUID, continent, target, unk, target.HackEffectDuration(GetPlayerHackLevel())))
+          case _ => localService ! LocalServiceMessage(continent.Id, LocalAction.HackTemporarily(player.GUID, continent, target, unk, target.HackEffectDuration(GetPlayerHackLevel())))
         }
       case scala.util.Failure(_) => log.warn(s"Hack message failed on target guid: ${target.GUID}")
   }
