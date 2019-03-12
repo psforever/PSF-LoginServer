@@ -39,6 +39,14 @@ class Building(private val building_guid : Int, private val map_id : Int, privat
     amenities
   }
 
+  def CaptureConsoleIsHacked : Boolean = {
+    Amenities.filter(x => x.Definition == GlobalDefinitions.capture_terminal).headOption.asInstanceOf[Option[CaptureTerminal]] match {
+      case Some(obj: CaptureTerminal) =>
+        obj.HackedBy.isDefined
+      case None => false
+    }
+  }
+
   def Zone : Zone = zone
 
   def Info : (
