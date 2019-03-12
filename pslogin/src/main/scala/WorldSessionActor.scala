@@ -4024,53 +4024,70 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
         case Some(terminal : Terminal) =>
           val tdef = terminal.Definition
-          val owned = terminal.Faction == player.Faction
-          val hacked = terminal.HackedBy.nonEmpty
-          if(owned) {
-            if(tdef.isInstanceOf[MatrixTerminalDefinition]) {
-              //TODO matrix spawn point; for now, just blindly bind to show work (and hope nothing breaks)
-              sendResponse(BindPlayerMessage(BindStatus.Bind, "", true, true, SpawnGroup.Sanctuary, 0, 0, terminal.Position))
-            }
-            else if(tdef == GlobalDefinitions.multivehicle_rearm_terminal || tdef == GlobalDefinitions.bfr_rearm_terminal ||
-              tdef == GlobalDefinitions.air_rearm_terminal ||  tdef == GlobalDefinitions.ground_rearm_terminal) {
-              FindLocalVehicle match {
-                case Some(vehicle) =>
-                  sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
-                  sendResponse(UseItemMessage(avatar_guid, item_used_guid, vehicle.GUID, unk2, unk3, unk4, unk5, unk6, unk7, unk8, vehicle.Definition.ObjectId))
-                case None =>
-                  log.error("UseItem: expected seated vehicle, but found none")
-              }
-            }
-            else if(tdef == GlobalDefinitions.teleportpad_terminal) {
-              //explicit request
-              terminal.Actor ! Terminal.Request(
-                player,
-                ItemTransactionMessage(object_guid, TransactionType.Buy, 0, "router_telepad", 0, PlanetSideGUID(0))
-              )
-            }
-            else {
-              sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
-            }
-          }
-          else if(hacked) {
-            sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
-          }
-          else {
-            player.Slot(player.DrawnSlot).Equipment match {
-              case Some(tool: SimpleItem) =>
-                if (tool.Definition == GlobalDefinitions.remote_electronics_kit) {
+
+          // If the base this terminal belongs to has been hacked the owning faction needs to be able to hack it to gain access
+          val ownerIsHacked = terminal.Owner.asInstanceOf[Building].CaptureConsoleIsHacked
+          var playerIsHacking = false
+
+          player.Slot(player.DrawnSlot).Equipment match {
+            case Some(tool: SimpleItem) =>
+              if (tool.Definition == GlobalDefinitions.remote_electronics_kit) {
+                if (!terminal.HackedBy.isEmpty) {
+                  log.warn("Player tried to hack a terminal that is already hacked")
+                  log.warn(s"Player faction ${player.Faction} terminal faction: ${terminal.Faction} terminal hacked: ${terminal.HackedBy.isDefined} owner hacked: ${ownerIsHacked}")
+                }
+                else if (terminal.Faction != player.Faction || ownerIsHacked) {
                   val hackSpeed = GetPlayerHackSpeed(terminal)
 
-                  if(hackSpeed > 0) {
+                  if (hackSpeed > 0) {
                     progressBarValue = Some(-hackSpeed)
                     self ! WorldSessionActor.HackingProgress(progressType = 1, player, terminal, tool.GUID, hackSpeed, FinishHacking(terminal, 3212836864L))
+                    playerIsHacking = true
                     log.info("Hacking a terminal")
                   }
                 }
-              case _ => ;
-            }
+              }
+            case _ => ;
           }
 
+          if(!playerIsHacking) {
+            if (terminal.Faction == player.Faction) {
+              if (tdef.isInstanceOf[MatrixTerminalDefinition]) {
+                //TODO matrix spawn point; for now, just blindly bind to show work (and hope nothing breaks)
+                sendResponse(BindPlayerMessage(BindStatus.Bind, "", true, true, SpawnGroup.Sanctuary, 0, 0, terminal.Position))
+              }
+              else if (tdef == GlobalDefinitions.multivehicle_rearm_terminal || tdef == GlobalDefinitions.bfr_rearm_terminal ||
+                tdef == GlobalDefinitions.air_rearm_terminal || tdef == GlobalDefinitions.ground_rearm_terminal) {
+                FindLocalVehicle match {
+                  case Some(vehicle) =>
+                    sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
+                    sendResponse(UseItemMessage(avatar_guid, item_used_guid, vehicle.GUID, unk2, unk3, unk4, unk5, unk6, unk7, unk8, vehicle.Definition.ObjectId))
+                  case None =>
+                    log.error("UseItem: expected seated vehicle, but found none")
+                }
+              }
+              else if (tdef == GlobalDefinitions.teleportpad_terminal) {
+                //explicit request
+                terminal.Actor ! Terminal.Request(
+                  player,
+                  ItemTransactionMessage(object_guid, TransactionType.Buy, 0, "router_telepad", 0, PlanetSideGUID(0))
+                )
+              }
+              else if (!ownerIsHacked || (ownerIsHacked && terminal.HackedBy.isDefined)) {
+                sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
+              }
+              else {
+                log.warn("Tried to use a terminal, but can't handle this case")
+                log.warn(s"Terminal - isHacked ${terminal.HackedBy.isDefined} ownerIsHacked ${ownerIsHacked}")
+              }
+            }
+            else if (terminal.HackedBy.isDefined) {
+              sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
+            } else {
+              log.warn("Tried to use a terminal that doesn't belong to this faction and isn't hacked")
+              log.warn(s"Player faction ${player.Faction} terminal faction: ${terminal.Faction} terminal hacked: ${terminal.HackedBy.isDefined} owner hacked: ${ownerIsHacked}")
+            }
+          }
         case Some(obj : SpawnTube) =>
           //deconstruction
           PlayerActionsToCancel()
