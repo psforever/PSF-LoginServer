@@ -4,7 +4,7 @@ package services.local
 import akka.actor.{Actor, ActorRef, Props}
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
-import net.psforever.objects.serverobject.structures.Building
+import net.psforever.objects.serverobject.structures.{Amenity, Building}
 import net.psforever.objects.serverobject.terminals.{CaptureTerminal, ProximityUnit, Terminal}
 import net.psforever.objects.zones.{InterstellarCluster, Zone}
 import net.psforever.objects._
@@ -18,6 +18,7 @@ import services.{GenericEventBus, RemoverActor, Service, ServiceManager}
 import scala.util.Success
 import scala.concurrent.duration._
 import akka.pattern.ask
+import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.vehicles.{Utility, UtilityType}
 import services.ServiceManager.Lookup
 import services.support.SupportActor
@@ -96,6 +97,11 @@ class LocalService extends Actor {
         case LocalAction.HackCaptureTerminal(player_guid, zone, target, unk1, unk2, isResecured) =>
 
           if(isResecured){
+            val hackableAmenities = target.Owner.asInstanceOf[Building].Amenities.filter(x => x.isInstanceOf[Hackable]).map(x => x.asInstanceOf[Amenity with Hackable])
+            hackableAmenities.foreach(amenity =>
+              if(amenity.HackedBy.isDefined) { hackClearer ! HackClearActor.ObjectIsResecured(amenity) }
+            )
+
             hackCapturer ! HackCaptureActor.ClearHack(target, zone)
           } else {
             target.Definition match {
