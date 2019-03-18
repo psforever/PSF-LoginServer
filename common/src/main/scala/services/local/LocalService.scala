@@ -96,12 +96,13 @@ class LocalService extends Actor {
           hackClearer ! HackClearActor.ObjectIsResecured(target)
         case LocalAction.HackCaptureTerminal(player_guid, zone, target, unk1, unk2, isResecured) =>
 
-          if(isResecured){
-            val hackableAmenities = target.Owner.asInstanceOf[Building].Amenities.filter(x => x.isInstanceOf[Hackable]).map(x => x.asInstanceOf[Amenity with Hackable])
-            hackableAmenities.foreach(amenity =>
-              if(amenity.HackedBy.isDefined) { hackClearer ! HackClearActor.ObjectIsResecured(amenity) }
-            )
+          // When a CC is hacked (or resecured) all amenities for the base should be unhacked
+          val hackableAmenities = target.Owner.asInstanceOf[Building].Amenities.filter(x => x.isInstanceOf[Hackable]).map(x => x.asInstanceOf[Amenity with Hackable])
+          hackableAmenities.foreach(amenity =>
+            if(amenity.HackedBy.isDefined) { hackClearer ! HackClearActor.ObjectIsResecured(amenity) }
+          )
 
+          if(isResecured){
             hackCapturer ! HackCaptureActor.ClearHack(target, zone)
           } else {
             target.Definition match {
