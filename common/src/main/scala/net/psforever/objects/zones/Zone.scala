@@ -312,6 +312,10 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
     buildings.get(id)
   }
 
+  def BuildingByMapId(map_id : Int) : Building = {
+    buildings.filter(x => x._2.MapId == map_id).head._2
+  }
+
   private def BuildLocalObjects(implicit context : ActorContext, guid : NumberPoolHub) : Unit = {
     Map.LocalObjects.foreach({ builderObject => builderObject.Build })
   }
@@ -350,7 +354,7 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
 
   private def MakeBuildings(implicit context : ActorContext) : PairMap[Int, Building] = {
     val buildingList = Map.LocalBuildings
-    buildings = buildingList.map({case(building_id, constructor) => building_id -> constructor.Build(building_id, this) })
+    buildings = buildingList.map({case((building_guid, map_id), constructor) => building_guid -> constructor.Build(building_guid, map_id, this) })
     buildings
   }
 
@@ -388,10 +392,10 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
 
   def SpawnGroups() : Map[Building, List[SpawnTube]] = spawnGroups
 
-  def SpawnGroups(building : Building) : List[SpawnTube] = SpawnGroups(building.Id)
+  def SpawnGroups(building : Building) : List[SpawnTube] = SpawnGroups(building.MapId)
 
   def SpawnGroups(buildingId : Int) : List[SpawnTube] = {
-    spawnGroups.find({ case((building, _)) => building.Id == buildingId }) match {
+    spawnGroups.find({ case((building, _)) => building.MapId == buildingId }) match {
       case Some((_, list)) =>
         list
       case None =>

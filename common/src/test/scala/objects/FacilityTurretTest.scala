@@ -102,7 +102,7 @@ class FacilityTurretControl2Test extends ActorTest {
   val obj = FacilityTurret(GlobalDefinitions.manned_turret)
   obj.GUID = PlanetSideGUID(1)
   obj.Actor = system.actorOf(Props(classOf[FacilityTurretControl], obj), "turret-control")
-  val bldg = Building(0, Zone.Nowhere, StructureType.Building)
+  val bldg = Building(guid = 0, map_id = 0, Zone.Nowhere, StructureType.Building)
   bldg.Amenities = obj
   bldg.Faction = PlanetSideEmpire.TR
 
@@ -129,7 +129,7 @@ class FacilityTurretControl3Test extends ActorTest {
   val obj = FacilityTurret(GlobalDefinitions.manned_turret)
   obj.GUID = PlanetSideGUID(1)
   obj.Actor = system.actorOf(Props(classOf[FacilityTurretControl], obj), "turret-control")
-  val bldg = Building(0, Zone.Nowhere, StructureType.Building)
+  val bldg = Building(guid = 0, map_id = 0, Zone.Nowhere, StructureType.Building)
   bldg.Amenities = obj
 
   "FacilityTurretControl" should {
@@ -157,7 +157,7 @@ class FacilityTurretControl4Test extends ActorTest {
   val obj = FacilityTurret(objDef)
   obj.GUID = PlanetSideGUID(1)
   obj.Actor = system.actorOf(Props(classOf[FacilityTurretControl], obj), "turret-control")
-  val bldg = Building(0, Zone.Nowhere, StructureType.Building)
+  val bldg = Building(guid = 0, map_id = 0, Zone.Nowhere, StructureType.Building)
   bldg.Amenities = obj
 
   "FacilityTurretControl" should {

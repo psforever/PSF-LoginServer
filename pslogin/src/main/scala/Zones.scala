@@ -16,38 +16,67 @@ object Zones {
     override def Init(implicit context : ActorContext) : Unit = {
       super.Init(context)
 
-      import net.psforever.types.PlanetSideEmpire
-      Building(5).get.Faction = PlanetSideEmpire.NEUTRAL //Akkan
-      Building(5).get.ModelId = 24
-      //      Building(6).get.Faction = PlanetSideEmpire.TR //Baal
-      //      Building(6).get.ModelId = 42
-      //      Building(7).get.Faction = PlanetSideEmpire.TR //Dagon
-      //      Building(7).get.ModelId = 27
-      Building(9).get.Faction = PlanetSideEmpire.NC //Girru
-      Building(9).get.ModelId = 48
-      Building(10).get.Faction = PlanetSideEmpire.TR //Hanish
-      Building(10).get.ModelId = 30
-      Building(11).get.Faction = PlanetSideEmpire.VS //Irkalla
-      Building(11).get.ModelId = 21
-      ////      Building(13).get.Faction = PlanetSideEmpire.VS //Lahar
-      Building(25).get.Faction = PlanetSideEmpire.VS //Gate Outpost Watch Tower (North of Forseral Warpgate)
-      Building(25).get.ModelId = 74
-      Building(33).get.Faction = PlanetSideEmpire.TR //East Girru Gun Tower
-      Building(33).get.ModelId = 62
-      Building(34).get.Faction = PlanetSideEmpire.TR //SE Hanish Gun Tower
-      Building(34).get.ModelId = 60
-      Building(35).get.Faction = PlanetSideEmpire.TR //Northeast Akkan Watch tower
-      Building(35).get.ModelId = 69
-      Building(36).get.Faction = PlanetSideEmpire.VS //West Girru Air Tower
-      Building(36).get.ModelId = 83
-      Building(55).get.Faction = PlanetSideEmpire.NC //South Irkalla Air Tower
-      Building(55).get.ModelId = 86
-      Building(56).get.Faction = PlanetSideEmpire.NC //Southwest Hanish Air Tower
-      Building(56).get.ModelId = 82
-      Building(59).get.Faction = PlanetSideEmpire.NC //Gate Outpost Watch Tower (South of Cyssor Warpgate)
-      Building(59).get.ModelId = 73
-      Building(65).get.Faction = PlanetSideEmpire.TR //West Hanish Gun Tower
-      Building(65).get.ModelId = 56
+      BuildingByMapId(5).Faction = PlanetSideEmpire.TR //Akkan
+      BuildingByMapId(6).Faction = PlanetSideEmpire.TR //Baal
+      BuildingByMapId(7).Faction = PlanetSideEmpire.TR //Dagon
+      BuildingByMapId(8).Faction = PlanetSideEmpire.NC //Enkidu
+      BuildingByMapId(9).Faction = PlanetSideEmpire.VS //Girru
+      BuildingByMapId(10).Faction = PlanetSideEmpire.VS //Hanish
+      BuildingByMapId(11).Faction = PlanetSideEmpire.VS //Irkalla
+      BuildingByMapId(12).Faction = PlanetSideEmpire.VS //Kusag
+      BuildingByMapId(13).Faction = PlanetSideEmpire.VS //Lahar
+      BuildingByMapId(14).Faction = PlanetSideEmpire.NC //Marduk
+      BuildingByMapId(15).Faction = PlanetSideEmpire.NC //Neti
+      BuildingByMapId(16).Faction = PlanetSideEmpire.NC //Zaqar
+      BuildingByMapId(17).Faction = PlanetSideEmpire.NC //S_Marduk_Tower
+      BuildingByMapId(18).Faction = PlanetSideEmpire.NC //W_Neti_Tower
+      BuildingByMapId(19).Faction = PlanetSideEmpire.NC //W_Zaqar_Tower
+      BuildingByMapId(20).Faction = PlanetSideEmpire.NC //E_Zaqar_Tower
+      BuildingByMapId(21).Faction = PlanetSideEmpire.NC //NE_Neti_Tower
+      BuildingByMapId(22).Faction = PlanetSideEmpire.NC //SE_Ceryshen_Warpgate_Tower
+      BuildingByMapId(23).Faction = PlanetSideEmpire.VS //S_Kusag_Tower
+      BuildingByMapId(24).Faction = PlanetSideEmpire.VS //NW_Kusag_Tower
+      BuildingByMapId(25).Faction = PlanetSideEmpire.VS //N_Ceryshen_Warpgate_Tower
+      BuildingByMapId(26).Faction = PlanetSideEmpire.VS //SE_Irkalla_Tower
+      BuildingByMapId(27).Faction = PlanetSideEmpire.VS //S_Irkalla_Tower
+      BuildingByMapId(28).Faction = PlanetSideEmpire.TR //NE_Enkidu_Tower
+      BuildingByMapId(29).Faction = PlanetSideEmpire.NC //SE_Akkan_Tower
+      BuildingByMapId(30).Faction = PlanetSideEmpire.NC //SW_Enkidu_Tower
+      BuildingByMapId(31).Faction = PlanetSideEmpire.TR //E_Searhus_Warpgate_Tower
+      BuildingByMapId(32).Faction = PlanetSideEmpire.TR //N_Searhus_Warpgate_Tower
+      BuildingByMapId(33).Faction = PlanetSideEmpire.VS //E_Girru_Tower
+      BuildingByMapId(34).Faction = PlanetSideEmpire.VS //SE_Hanish_Tower
+      BuildingByMapId(35).Faction = PlanetSideEmpire.TR //SW_Hanish_Tower
+      BuildingByMapId(36).Faction = PlanetSideEmpire.VS //W_Girru_Tower
+      BuildingByMapId(37).Faction = PlanetSideEmpire.TR //E_Dagon_Tower
+      BuildingByMapId(38).Faction = PlanetSideEmpire.TR //NE_Baal_Tower
+      BuildingByMapId(39).Faction = PlanetSideEmpire.TR //SE_Baal_Tower
+      BuildingByMapId(40).Faction = PlanetSideEmpire.TR //S_Dagon_Tower
+      BuildingByMapId(41).Faction = PlanetSideEmpire.NC //W_Ceryshen_Warpgate_Tower
+      BuildingByMapId(42).Faction = PlanetSideEmpire.NEUTRAL //dagon bunker
+      BuildingByMapId(43).Faction = PlanetSideEmpire.NEUTRAL //Akkan North Bunker
+      BuildingByMapId(44).Faction = PlanetSideEmpire.NEUTRAL //Enkidu East Bunker
+      BuildingByMapId(45).Faction = PlanetSideEmpire.NEUTRAL //Neti bunker
+      BuildingByMapId(46).Faction = PlanetSideEmpire.NEUTRAL //Hanish West Bunker
+      BuildingByMapId(47).Faction = PlanetSideEmpire.NEUTRAL //Irkalla East Bunker
+      BuildingByMapId(48).Faction = PlanetSideEmpire.NEUTRAL //Zaqar bunker
+      BuildingByMapId(49).Faction = PlanetSideEmpire.NEUTRAL //Kusag West Bunker
+      BuildingByMapId(50).Faction = PlanetSideEmpire.NEUTRAL //marduk bunker
+      BuildingByMapId(51).Faction = PlanetSideEmpire.TR //baal bunker
+      BuildingByMapId(52).Faction = PlanetSideEmpire.NEUTRAL //girru bunker
+      BuildingByMapId(53).Faction = PlanetSideEmpire.NEUTRAL //lahar bunker
+      BuildingByMapId(54).Faction = PlanetSideEmpire.NEUTRAL //akkan bunker
+      BuildingByMapId(55).Faction = PlanetSideEmpire.VS //Irkalla_Tower
+      BuildingByMapId(56).Faction = PlanetSideEmpire.VS //Hanish_Tower
+      BuildingByMapId(57).Faction = PlanetSideEmpire.VS //E_Ceryshen_Warpgate_Tower
+      BuildingByMapId(58).Faction = PlanetSideEmpire.VS //Lahar_Tower
+      BuildingByMapId(59).Faction = PlanetSideEmpire.VS //VSSanc_Warpgate_Tower
+      BuildingByMapId(60).Faction = PlanetSideEmpire.TR //Akkan_Tower
+      BuildingByMapId(61).Faction = PlanetSideEmpire.NC //TRSanc_Warpgate_Tower
+      BuildingByMapId(62).Faction = PlanetSideEmpire.NC //Marduk_Tower
+      BuildingByMapId(63).Faction = PlanetSideEmpire.TR //NW_Dagon_Tower
+      BuildingByMapId(64).Faction = PlanetSideEmpire.NEUTRAL //E7 East Bunker (at north from bridge)
+      BuildingByMapId(65).Faction = PlanetSideEmpire.VS //W_Hanish_Tower
     }
   }
 
@@ -58,14 +87,14 @@ object Zones {
       super.Init(context)
 
       import net.psforever.types.PlanetSideEmpire
-      Building(2).get.Faction = PlanetSideEmpire.VS
-      Building(2).get.ModelId = 20
-      Building(38).get.ModelId = 0
-      Building(42).get.ModelId = 0
-      Building(48).get.Faction = PlanetSideEmpire.VS
-      Building(48).get.ModelId = 59
-      Building(49).get.Faction = PlanetSideEmpire.VS
-      Building(49).get.ModelId = 69
+//      Building(2).get.Faction = PlanetSideEmpire.VS
+//      Building(2).get.ModelId = 20
+//      Building(38).get.ModelId = 0
+//      Building(42).get.ModelId = 0
+//      Building(48).get.Faction = PlanetSideEmpire.VS
+//      Building(48).get.ModelId = 59
+//      Building(49).get.Faction = PlanetSideEmpire.VS
+//      Building(49).get.ModelId = 69
     }
   }
 
@@ -101,11 +130,11 @@ object Zones {
 
       import net.psforever.types.PlanetSideEmpire
       Buildings.values.foreach { _.Faction = PlanetSideEmpire.VS }
-      Building(29).get.Faction = PlanetSideEmpire.NC //South Villa Gun Tower
-      GUID(293).get.asInstanceOf[VehicleSpawnPad].Railed = false //building 52
-      GUID(706).get.asInstanceOf[VehicleSpawnPad].Guide = List(AutoDriveControls.DistanceFromHere(50f)) //building 77
-      GUID(710).get.asInstanceOf[VehicleSpawnPad].Railed = false //building 79
-      GUID(712).get.asInstanceOf[VehicleSpawnPad].Railed = false //building 81
+//      Building(29).get.Faction = PlanetSideEmpire.NC //South Villa Gun Tower
+//      GUID(293).get.asInstanceOf[VehicleSpawnPad].Railed = false //building 52
+//      GUID(706).get.asInstanceOf[VehicleSpawnPad].Guide = List(AutoDriveControls.DistanceFromHere(50f)) //building 77
+//      GUID(710).get.asInstanceOf[VehicleSpawnPad].Railed = false //building 79
+//      GUID(712).get.asInstanceOf[VehicleSpawnPad].Railed = false //building 81
     }
   }
 

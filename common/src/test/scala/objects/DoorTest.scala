@@ -43,34 +43,13 @@ class DoorTest extends Specification {
     }
 
     "be opened and closed (2; toggle)" in {
-      val msg = UseItemMessage(PlanetSideGUID(6585), PlanetSideGUID(0), PlanetSideGUID(372), 4294967295L, false, Vector3(5.0f,0.0f,0.0f), Vector3(0.0f,0.0f,0.0f), 11, 25, 0, 364)
+      val msg = UseItemMessage(PlanetSideGUID(6585), PlanetSideGUID(0), PlanetSideGUID(372), 4294967295L, false, Vector3(5.0f, 0.0f, 0.0f), Vector3(0.0f, 0.0f, 0.0f), 11, 25, 0, 364)
       val door = Door(GlobalDefinitions.door)
       door.Open mustEqual None
       door.Use(player, msg)
       door.Open mustEqual Some(player)
       door.Use(player, msg)
       door.Open mustEqual None
-    }
-
-    "keep track of its orientation as a North-corrected vector" in {
-      val ulp = math.ulp(1)
-      val door = Door(GlobalDefinitions.door)
-
-      door.Orientation = Vector3(0, 0, 0) //face North
-      door.Outwards.x < ulp mustEqual true
-      door.Outwards.y mustEqual 1
-
-      door.Orientation = Vector3(0, 0, 90) //face East
-      door.Outwards.x mustEqual 1
-      door.Outwards.y < ulp mustEqual true
-
-      door.Orientation = Vector3(0, 0, 180) //face South
-      door.Outwards.x < ulp mustEqual true
-      door.Outwards.y mustEqual -1
-
-      door.Orientation = Vector3(0, 0, 270) //face West
-      door.Outwards.x mustEqual -1
-      door.Outwards.y < ulp mustEqual true
     }
   }
 }
@@ -122,7 +101,7 @@ object DoorControlTest {
   def SetUpAgents(faction : PlanetSideEmpire.Value)(implicit system : ActorSystem) : (Player, Door) = {
     val door = Door(GlobalDefinitions.door)
     door.Actor = system.actorOf(Props(classOf[DoorControl], door), "door")
-    door.Owner = new Building(0, Zone.Nowhere, StructureType.Building)
+    door.Owner = new Building(building_guid = 0, map_id = 0, Zone.Nowhere, StructureType.Building)
     door.Owner.Faction = faction
     (Player(Avatar("test", faction, CharacterGender.Male, 0, CharacterVoice.Mute)), door)
   }

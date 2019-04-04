@@ -31,7 +31,7 @@ class ZoneMap(private val name : String) {
   private var linkTerminalInterface : Map[Int, Int] = Map()
   private var linkDoorLock : Map[Int, Int] = Map()
   private var linkObjectBase : Map[Int, Int] = Map()
-  private var buildings : Map[Int, FoundationBuilder] = Map()
+  private var buildings : Map[(Int, Int), FoundationBuilder] = Map()
 
   def Name : String = name
 
@@ -56,11 +56,11 @@ class ZoneMap(private val name : String) {
     localObjects.size
   }
 
-  def LocalBuildings : Map[Int, FoundationBuilder] = buildings
+  def LocalBuildings : Map[(Int, Int), FoundationBuilder] = buildings
 
-  def LocalBuilding(building_id : Int, constructor : FoundationBuilder) : Int = {
-    if(building_id > 0) {
-      buildings = buildings ++ Map(building_id -> constructor)
+  def LocalBuilding(building_guid : Int, map_id : Int, constructor : FoundationBuilder) : Int = {
+    if(building_guid > 0) {
+      buildings = buildings ++ Map((building_guid, map_id) -> constructor)
     }
     buildings.size
   }

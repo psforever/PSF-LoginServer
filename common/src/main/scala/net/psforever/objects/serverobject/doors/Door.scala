@@ -12,29 +12,6 @@ import net.psforever.types.Vector3
   */
 class Door(private val ddef : DoorDefinition) extends Amenity {
   private var openState : Option[Player] = None
-  /** a vector in the direction of the "outside" of a room;
-    * typically, any locking utility is on that same "outside" */
-  private var outwards : Vector3 = Vector3.Zero
-
-  /**
-    * While setting the normal rotation angle for the door (?),
-    * use the angular data to determine an "inside" side and an "outside" side.<br>
-    * <br>
-    * Doors are always positioned with the frame perpendicular to the ground.
-    * The `i` and `j` components can be excused for this reason and only the `k` component (rotation around world-up) matters.
-    * Due to angle-corrected North, add 90 degrees before switching to radians and negate the cosine.
-    * @param orient the orientation of the door
-    * @return the clamped orientation of the door
-    */
-  override def Orientation_=(orient : Vector3) : Vector3 = {
-    val ret = super.Orientation_=(orient)
-    //transform angular data into unit circle components
-    val rang = math.toRadians(orient.z + 90)
-    outwards = Vector3(-math.cos(rang).toFloat, math.sin(rang).toFloat, 0)
-    ret
-  }
-
-  def Outwards : Vector3 = outwards
 
   def isOpen : Boolean = openState.isDefined
 
@@ -128,18 +105,16 @@ object Door {
     * Instantiate and configure a `Door` object that has knowledge of both its position and outwards-facing direction.
     * The assumption is that this door will be paired with an IFF Lock, thus, has conditions for opening.
     * @param pos the position of the door
-    * @param outwards_direction a vector in the direction of the door's outside
     * @param id the unique id that will be assigned to this entity
     * @param context a context to allow the object to properly set up `ActorSystem` functionality
     * @return the `Door` object
     */
-  def Constructor(pos : Vector3, outwards_direction : Vector3)(id : Int, context : ActorContext) : Door = {
+  def Constructor(pos : Vector3)(id : Int, context : ActorContext) : Door = {
     import akka.actor.Props
     import net.psforever.objects.GlobalDefinitions
 
     val obj = Door(GlobalDefinitions.door)
     obj.Position = pos
-    obj.Orientation = outwards_direction
     obj.Actor = context.actorOf(Props(classOf[DoorControl], obj), s"${GlobalDefinitions.door.Name}_$id")
     obj
   }

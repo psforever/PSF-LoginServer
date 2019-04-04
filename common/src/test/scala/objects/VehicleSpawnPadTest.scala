@@ -339,7 +339,7 @@ object VehicleSpawnPadControlTest {
 
     val pad = VehicleSpawnPad(GlobalDefinitions.spawn_pad)
     pad.Actor = system.actorOf(Props(classOf[VehicleSpawnControl], pad), s"test-pad-${System.nanoTime()}")
-    pad.Owner = new Building(0, zone, StructureType.Building)
+    pad.Owner = new Building(building_guid = 0, map_id = 0, zone, StructureType.Building)
     pad.Owner.Faction = faction
     val player = Player(Avatar("test", faction, CharacterGender.Male, 0, CharacterVoice.Mute))
     player.GUID = PlanetSideGUID(10)

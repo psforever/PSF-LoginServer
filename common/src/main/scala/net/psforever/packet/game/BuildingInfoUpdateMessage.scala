@@ -88,7 +88,7 @@ final case class Additional3(unk1 : Boolean,
   * 128 - Pain Module<br>
   * `
   * @param continent_id the continent (zone)
-  * @param building_id the building
+  * @param building_map_id the map id of this building from the MPO files
   * @param ntu_level if the building has a silo, the amount of NTU in that silo;
   *                  NTU is reported in multiples of 10%;
   *                  valid for 0 (0%) to 10 (100%)
@@ -118,7 +118,7 @@ final case class Additional3(unk1 : Boolean,
   * @param boost_generator_pain if the building has a generator, the (boosted) strength of its enemy pain field
   */
 final case class BuildingInfoUpdateMessage(continent_id : Int,
-                                           building_id : Int,
+                                           building_map_id : Int,
                                            ntu_level : Int,
                                            is_hacked : Boolean,
                                            empire_hack : PlanetSideEmpire.Value,

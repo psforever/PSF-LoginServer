@@ -482,8 +482,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
       var ori = spawn_tube.Orientation
       spawn_tube.Owner match {
         case building : Building =>
-          log.info(s"Zone.Lattice.SpawnPoint: spawn point on $zone_id in building ${building.Id} selected")
-          pos = pos + (Vector3(0, 0, 1.5f))
+          log.info(s"Zone.Lattice.SpawnPoint: spawn point on $zone_id in building ${building.MapId} selected")
+          val respawn_z_offset = 1.5f // Offset the spawn tube slightly, so the player doesn't spawn in the floor. This value comes from startup.pak/game_objects.adb.lst -> mb_respawn_tube respawn_z_offset setting
+          pos += Vector3(0, 0, respawn_z_offset)
+          ori += Vector3(0, 0, 90f) // Since all spawn tubes seem to have a zero orientation, we need to offset by 90 degrees so the player faces north towards the door, not east.
         case vehicle : Vehicle =>
 //          vehicleService ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(vehicle), continent))
 //          vehicleService ! VehicleServiceMessage.Decon(RemoverActor.AddTask(vehicle, continent, vehicle.Definition.DeconstructionTime))
@@ -769,7 +771,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       sendResponse(FriendsResponse(FriendAction.InitializeIgnoreList, 0, true, true, Nil))
       avatarService ! Service.Join(avatar.name) //channel will be player.Name
       localService ! Service.Join(avatar.name) //channel will be player.Name
-      cluster ! InterstellarCluster.GetWorld("z6")
+      cluster ! InterstellarCluster.GetWorld("z4")
 
     case InterstellarCluster.GiveWorld(zoneId, zone) =>
       log.info(s"Zone $zoneId will now load")
@@ -1911,7 +1913,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
         }
 
       case VehicleResponse.DetachFromRails(vehicle_guid, pad_guid, pad_position, pad_orientation_z) =>
-        sendResponse(ObjectDetachMessage(pad_guid, vehicle_guid, pad_position + Vector3(0, 0, 0.5f), pad_orientation_z))
+        //todo: dropship_pad_doors should have a different offset
+        val vehicle_creation_z_offset = 2.52604f // This value comes from startup.pak/game_objects.adb.lst -> mb_pad_creation vehiclecreationzoffset
+        sendResponse(ObjectDetachMessage(pad_guid, vehicle_guid, pad_position + Vector3(0, 0, vehicle_creation_z_offset), pad_orientation_z))
 
       case VehicleResponse.EquipmentInSlot(pkt) =>
         if(tplayer_guid != guid) {
@@ -3539,7 +3543,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       // TODO: Not all incoming UseItemMessage's respond with another UseItemMessage (i.e. doors only send out GenericObjectStateMsg)
       continent.GUID(object_guid) match {
         case Some(door : Door) =>
-          if(player.Faction == door.Faction || ((continent.Map.DoorToLock.get(object_guid.guid) match {
+          if(player.Faction == door.Faction || (continent.Map.DoorToLock.get(object_guid.guid) match {
             case Some(lock_guid) =>
               val lock = continent.GUID(lock_guid).get.asInstanceOf[IFFLock]
 
@@ -3550,11 +3554,16 @@ class WorldSessionActor extends Actor with MDCContextAware {
                 case None => ;
               }
 
-              // If the IFF lock has been hacked OR the base is neutral OR the base linked to the lock is hacked then open the door
-              lock.HackedBy.isDefined || baseIsHacked || lock.Faction == PlanetSideEmpire.NEUTRAL
-            case None => !door.isOpen
-          }) || Vector3.ScalarProjection(door.Outwards, player.Position - door.Position) < 0f)) {
-            // We're on the inside of the door - open the door
+              val playerIsOnInside = Vector3.ScalarProjection(lock.Outwards, player.Position - door.Position) < 0f
+
+              // If an IFF lock exists and the IFF lock faction doesn't match the current player and one of the following conditions are met open the door:
+              // A base is neutral
+              // A base is hacked
+              // The lock is hacked
+              // The player is on the inside of the door, determined by the lock orientation
+              lock.HackedBy.isDefined || baseIsHacked || lock.Faction == PlanetSideEmpire.NEUTRAL || playerIsOnInside
+            case None => !door.isOpen // If there's no linked IFF lock just open the door if it's closed.
+          })) {
             door.Actor ! Door.Use(player, msg)
           }
           else if(door.isOpen) {
@@ -5974,7 +5983,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     */
   def configZone(zone : Zone) : Unit = {
     zone.Buildings.values.foreach(building => {
-      sendResponse(SetEmpireMessage(PlanetSideGUID(building.ModelId), building.Faction))
+      sendResponse(SetEmpireMessage(building.GUID, building.Faction))
       building.Amenities.foreach(amenity => {
         val amenityId = amenity.GUID
         sendResponse(PlanetsideAttributeMessage(amenityId, 50, 0))
