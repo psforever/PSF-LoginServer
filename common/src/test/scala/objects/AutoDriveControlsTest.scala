@@ -394,7 +394,7 @@ class GuidedControlTest1 extends ActorTest {
       driver.VehicleSeated = vehicle.GUID
       val sendTo = TestProbe()
       val order = VehicleSpawnControl.Order(driver, vehicle, sendTo.ref)
-      val pad = VehicleSpawnPad(GlobalDefinitions.spawn_pad)
+      val pad = VehicleSpawnPad(GlobalDefinitions.mb_pad_creation)
       pad.GUID = PlanetSideGUID(1)
       pad.Railed = false //suppress certain events
       val guided = system.actorOf(Props(classOf[VehicleSpawnControlGuided], pad), "pad")
@@ -416,7 +416,7 @@ class GuidedControlTest2 extends ActorTest {
       driver.VehicleSeated = vehicle.GUID
       val sendTo = TestProbe()
       val order = VehicleSpawnControl.Order(driver, vehicle, sendTo.ref)
-      val pad = VehicleSpawnPad(GlobalDefinitions.spawn_pad)
+      val pad = VehicleSpawnPad(GlobalDefinitions.mb_pad_creation)
       pad.Railed = false //suppress certain events
       val guided = system.actorOf(Props(classOf[VehicleSpawnControlGuided], pad), "pad")
 
@@ -441,7 +441,7 @@ class GuidedControlTest3 extends ActorTest {
       driver.VehicleSeated = vehicle.GUID
       val sendTo = TestProbe()
       val order = VehicleSpawnControl.Order(driver, vehicle, sendTo.ref)
-      val pad = VehicleSpawnPad(GlobalDefinitions.spawn_pad)
+      val pad = VehicleSpawnPad(GlobalDefinitions.mb_pad_creation)
       pad.Railed = false //suppress certain events
       val guided = system.actorOf(Props(classOf[VehicleSpawnControlGuided], pad), "pad")
 
@@ -479,7 +479,7 @@ class GuidedControlTest4 extends ActorTest {
       driver.VehicleSeated = vehicle.GUID
       val sendTo = TestProbe()
       val order = VehicleSpawnControl.Order(driver, vehicle, sendTo.ref)
-      val pad = VehicleSpawnPad(GlobalDefinitions.spawn_pad)
+      val pad = VehicleSpawnPad(GlobalDefinitions.mb_pad_creation)
       pad.Railed = false //suppress certain events
       val guided = system.actorOf(Props(classOf[VehicleSpawnControlGuided], pad), "pad")
 

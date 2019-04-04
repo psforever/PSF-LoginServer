@@ -36,7 +36,7 @@ class ZoneTest extends Specification {
       map.LocalBuilding(building_guid = 10, map_id = 0, FoundationBuilder(test))
       map.LocalBuildings.keySet.contains((10, 0)) mustEqual true
       map.LocalBuilding(building_guid = -1, map_id = 0, FoundationBuilder(test))
-      map.LocalBuildings.keySet.contains((0, 0)) mustEqual true
+      map.LocalBuildings.keySet.contains((10, 0)) mustEqual true
       map.LocalBuildings.keySet.contains((-1, 0)) mustEqual false
     }
 

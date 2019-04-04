@@ -1000,7 +1000,9 @@ object GlobalDefinitions {
 
   val repair_silo = new MedicalTerminalDefinition(729)
 
-  val spawn_pad = new VehicleSpawnPadDefinition
+  val mb_pad_creation = new VehicleSpawnPadDefinition(525)
+
+  val dropship_pad_doors = new VehicleSpawnPadDefinition(261)
 
   val mb_locker = new LockerDefinition
 
