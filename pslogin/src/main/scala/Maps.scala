@@ -5,7 +5,6 @@ import net.psforever.objects.zones.ZoneMap
 import zonemaps._
 
 object Maps {
-
   val map1 = Map01.ZoneMap
   val map2 = Map02.ZoneMap
   val map3 = Map03.ZoneMap
@@ -33,7 +32,6 @@ object Maps {
   Projectiles(map11)
   Projectiles(map12)
   Projectiles(map13)
-
 
   val map14 = new ZoneMap("map14") {
     Projectiles(this)

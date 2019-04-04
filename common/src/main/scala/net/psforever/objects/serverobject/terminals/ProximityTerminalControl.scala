@@ -5,6 +5,7 @@ import akka.actor.{Actor, ActorRef, Cancellable}
 import net.psforever.objects._
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
+import net.psforever.objects.serverobject.hackable.HackableBehavior
 import services.{Service, ServiceManager}
 
 import scala.collection.mutable
@@ -16,13 +17,14 @@ import scala.concurrent.duration._
   * it returns the same type of messages - wrapped in a `TerminalMessage` - to the `sender`.
   * @param term the proximity unit (terminal)
   */
-class ProximityTerminalControl(term : Terminal with ProximityUnit) extends Actor with FactionAffinityBehavior.Check {
+class ProximityTerminalControl(term : Terminal with ProximityUnit) extends Actor with FactionAffinityBehavior.Check with HackableBehavior.GenericHackable {
   var service : ActorRef = ActorRef.noSender
   var terminalAction : Cancellable = DefaultCancellable.obj
   val callbacks : mutable.ListBuffer[ActorRef] = new mutable.ListBuffer[ActorRef]()
   val log = org.log4s.getLogger
 
   def FactionObject : FactionAffinity = term
+  def HackableObject = term
 
   def TerminalObject : Terminal with ProximityUnit = term
 
@@ -41,7 +43,8 @@ class ProximityTerminalControl(term : Terminal with ProximityUnit) extends Actor
   }
 
   def Run : Receive = checkBehavior
-    .orElse {
+      .orElse(hackableBehavior)
+      .orElse {
       case CommonMessages.Use(_, Some(target : PlanetSideGameObject)) =>
         if(term.Definition.asInstanceOf[ProximityDefinition].Validations.exists(p => p(target))) {
           Use(target, term.Continent, sender)
@@ -78,13 +81,6 @@ class ProximityTerminalControl(term : Terminal with ProximityUnit) extends Actor
             Unuse(target, term.Continent)
           }
         })
-
-      case CommonMessages.Hack(player) =>
-        term.HackedBy = player
-        sender ! true
-
-      case CommonMessages.ClearHack() =>
-        term.HackedBy = None
 
       case ProximityUnit.Action(_, _) =>
         //reserved
