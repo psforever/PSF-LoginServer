@@ -130,6 +130,20 @@ class VehicleService extends Actor {
         //unlike other messages, just return to sender, don't publish
         case VehicleAction.UpdateAmsSpawnPoint(zone : Zone) =>
           sender ! VehicleServiceResponse(s"/$forChannel/Vehicle", Service.defaultPlayerGUID, VehicleResponse.UpdateAmsSpawnPoint(AmsSpawnPoints(zone)))
+
+        case VehicleAction.TransferPassengerChannel(player_guid, old_channel, temp_channel, vehicle) =>
+          VehicleEvents.publish(
+            VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.TransferPassengerChannel(old_channel, temp_channel, vehicle))
+          )
+        case VehicleAction.TransferPassenger(player_guid, temp_channel, vehicle, vehicle_to_delete) =>
+          VehicleEvents.publish(
+            VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.TransferPassenger(temp_channel, vehicle, vehicle_to_delete))
+          )
+
+        case VehicleAction.KickCargo(player_guid, cargo, speed) =>
+          VehicleEvents.publish(
+            VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.KickCargo(cargo, speed))
+          )
         case _ => ;
     }
 

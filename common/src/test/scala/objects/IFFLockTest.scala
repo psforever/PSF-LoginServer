@@ -89,7 +89,7 @@ object IFFLockControlTest {
   def SetUpAgents(faction : PlanetSideEmpire.Value)(implicit system : ActorSystem) : (Player, IFFLock) = {
     val lock = IFFLock(GlobalDefinitions.lock_external)
     lock.Actor = system.actorOf(Props(classOf[IFFLockControl], lock), "lock-control")
-    lock.Owner = new Building(building_guid = 0, map_id = 0, Zone.Nowhere, StructureType.Building)
+    lock.Owner = new Building(building_guid = 0, map_id = 0, Zone.Nowhere, StructureType.Building, GlobalDefinitions.building)
     lock.Owner.Faction = faction
     (Player(Avatar("test", faction, CharacterGender.Male, 0, CharacterVoice.Mute)), lock)
   }

@@ -17,6 +17,7 @@ package net.psforever.types
   * The icons produced by the normal and the bound tower and facility groups are not detailed.
   * The ones that are not designated as "bound" also do not display icons when manually set.
   * The AMS spawn group icons have an overhead AMS glyph and are smaller in radius, identical otherwise.
+  * @see `BindPlayerMessage`
   */
 object SpawnGroup extends Enumeration {
   type Type = Value

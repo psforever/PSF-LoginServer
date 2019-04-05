@@ -1029,6 +1029,41 @@ object GlobalDefinitions {
   val manned_turret = new TurretDefinition(480)
   initMiscellaneous()
 
+  /*
+  Buildings
+   */
+  val building : ObjectDefinition = new ObjectDefinition(474) { Name = "building" } //borrows object id of entity mainbase1
+
+  val warpgate : ObjectDefinition with SpawnPointDefinition = new ObjectDefinition(993) with SpawnPointDefinition
+  warpgate.Name = "warpgate"
+  warpgate.UseRadius = 301.8713f
+  warpgate.Delay = 10
+  warpgate.VehicleAllowance = true
+  warpgate.SpecificPointFunc = SpawnPoint.Gate
+
+  val hst : ObjectDefinition with SpawnPointDefinition = new ObjectDefinition(402) with SpawnPointDefinition
+  hst.Name = "hst"
+  hst.UseRadius = 20.4810f
+  hst.Delay = 10
+  hst.VehicleAllowance = true
+  hst.NoWarp += dropship
+  hst.NoWarp += galaxy_gunship
+  hst.NoWarp += lodestar
+  //hst.NoWarp += aphelion_gunner
+  //hst.NoWarp += aphelion_flight
+  //hst.NoWarp += colossus_gunner
+  //hst.NoWarp += colossus_flight
+  //hst.NoWarp += peregrine_gunner
+  //hst.NoWarp += peregrine_flight
+  hst.SpecificPointFunc = SpawnPoint.Gate
+
+  val warpgate_cavern : ObjectDefinition with SpawnPointDefinition = new ObjectDefinition(994) with SpawnPointDefinition
+  warpgate_cavern.Name = "warpgate_cavern"
+  warpgate_cavern.UseRadius = 55.0522f
+  warpgate_cavern.Delay = 10
+  warpgate_cavern.VehicleAllowance = true
+  warpgate_cavern.SpecificPointFunc = SpawnPoint.Gate
+
   /**
     * Given a faction, provide the standard assault melee weapon.
     * @param faction the faction
@@ -5352,6 +5387,7 @@ object GlobalDefinitions {
     mosquito.Name = "mosquito"
     mosquito.MaxHealth = 665
     mosquito.MaxShields = 133 + 1
+    mosquito.CanFly = true
     mosquito.Seats += 0 -> new SeatDefinition()
     mosquito.Seats(0).Bailable = true
     mosquito.Seats(0).ControlledWeapon = 1
@@ -5367,6 +5403,7 @@ object GlobalDefinitions {
     lightgunship.Name = "lightgunship"
     lightgunship.MaxHealth = 1000
     lightgunship.MaxShields = 200 + 1
+    lightgunship.CanFly = true
     lightgunship.Seats += 0 -> new SeatDefinition()
     lightgunship.Seats(0).Bailable = true
     lightgunship.Seats(0).ControlledWeapon = 1
@@ -5383,6 +5420,7 @@ object GlobalDefinitions {
     wasp.Name = "wasp"
     wasp.MaxHealth = 515
     wasp.MaxShields = 103 + 1
+    wasp.CanFly = true
     wasp.Seats += 0 -> new SeatDefinition()
     wasp.Seats(0).Bailable = true
     wasp.Seats(0).ControlledWeapon = 1
@@ -5398,6 +5436,7 @@ object GlobalDefinitions {
     liberator.Name = "liberator"
     liberator.MaxHealth = 2500
     liberator.MaxShields = 500 + 1
+    liberator.CanFly = true
     liberator.Seats += 0 -> new SeatDefinition()
     liberator.Seats(0).ControlledWeapon = 3
     liberator.Seats += 1 -> new SeatDefinition()
@@ -5421,6 +5460,7 @@ object GlobalDefinitions {
     vulture.Name = "vulture"
     vulture.MaxHealth = 2500
     vulture.MaxShields = 500 + 1
+    vulture.CanFly = true
     vulture.Seats += 0 -> new SeatDefinition()
     vulture.Seats(0).ControlledWeapon = 3
     vulture.Seats += 1 -> new SeatDefinition()
@@ -5444,6 +5484,7 @@ object GlobalDefinitions {
     dropship.Name = "dropship"
     dropship.MaxHealth = 5000
     dropship.MaxShields = 1000 + 1
+    dropship.CanFly = true
     dropship.Seats += 0 -> new SeatDefinition()
     dropship.Seats += 1 -> new SeatDefinition()
     dropship.Seats(1).Bailable = true
@@ -5499,6 +5540,7 @@ object GlobalDefinitions {
     galaxy_gunship.Name = "galaxy_gunship"
     galaxy_gunship.MaxHealth = 6000
     galaxy_gunship.MaxShields = 1200 + 1
+    galaxy_gunship.CanFly = true
     galaxy_gunship.Seats += 0 -> new SeatDefinition()
     galaxy_gunship.Seats += 1 -> new SeatDefinition()
     galaxy_gunship.Seats(1).ControlledWeapon = 6
@@ -5531,6 +5573,7 @@ object GlobalDefinitions {
     lodestar.Name = "lodestar"
     lodestar.MaxHealth = 5000
     lodestar.MaxShields = 1000 + 1
+    lodestar.CanFly = true
     lodestar.Seats += 0 -> new SeatDefinition()
     lodestar.MountPoints += 1 -> 0
     lodestar.MountPoints += 2 -> 1
@@ -5554,6 +5597,7 @@ object GlobalDefinitions {
     phantasm.MaxHealth = 2500
     phantasm.MaxShields = 500 + 1
     phantasm.CanCloak = true
+    phantasm.CanFly = true
     phantasm.Seats += 0 -> new SeatDefinition()
     phantasm.Seats += 1 -> new SeatDefinition()
     phantasm.Seats(1).Bailable = true
@@ -5731,6 +5775,10 @@ object GlobalDefinitions {
     * Initialize `Miscellaneous` globals.
     */
   private def initMiscellaneous() : Unit = {
+    ams_respawn_tube.Name = "ams_respawn_tube"
+    ams_respawn_tube.Delay = 5
+    ams_respawn_tube.SpecificPointFunc = SpawnPoint.AMS
+
     matrix_terminala.Name = "matrix_terminala"
 
     matrix_terminalb.Name = "matrix_terminalb"
@@ -5788,6 +5836,12 @@ object GlobalDefinitions {
     bfr_terminal.Name = "bfr_terminal"
     bfr_terminal.Tab += 46769 -> OrderTerminalDefinition.VehiclePage(VehicleTerminalDefinition.bfrVehicles, VehicleTerminalDefinition.trunk)
     bfr_terminal.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
+
+    respawn_tube.Name = "respawn_tube"
+    respawn_tube.Delay = 10
+
+    respawn_tube_tower.Name = "respawn_tube_tower"
+    respawn_tube_tower.Delay = 10
 
     teleportpad_terminal.Name = "teleportpad_terminal"
     teleportpad_terminal.Tab += 0 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.routerTerminal)

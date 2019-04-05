@@ -54,10 +54,9 @@ object BindStatus extends Enumeration(1) {
   * Find other bind descriptors.
   * @param action the purpose of the packet
   * @param bind_desc a text description of the respawn binding point
-  * @param unk1 na;
-  *             usually set `true` if there is more data in the packet ...
+  * @param display_icon show the selection icon on the redeployment map
   * @param logging true, to report on bind point change visible in the events window;
-  *                false, to render spawn change silent;
+  *                false, to render spawn change silently;
   *                some first time notifications will always display regardless of this flag
   * @param spawn_group the kind of spawn request that will be made;
   *                    affects the type of icon displayed;
@@ -71,7 +70,7 @@ object BindStatus extends Enumeration(1) {
   */
 final case class BindPlayerMessage(action : BindStatus.Value,
                                    bind_desc : String,
-                                   unk1 : Boolean,
+                                   display_icon : Boolean,
                                    logging : Boolean,
                                    spawn_group : SpawnGroup.Value,
                                    zone_number : Long,
@@ -94,7 +93,7 @@ object BindPlayerMessage extends Marshallable[BindPlayerMessage] {
   implicit val codec : Codec[BindPlayerMessage] = (
     ("action" | BindStatus.codec) ::
       ("bind_desc" | PacketHelpers.encodedString) ::
-      ("unk1" | bool) ::
+      ("display_icon" | bool) ::
       ("logging" | bool) ::
       ("spawn_group" | spawnGroupCodec) ::
       ("zone_number" | uint32L) ::

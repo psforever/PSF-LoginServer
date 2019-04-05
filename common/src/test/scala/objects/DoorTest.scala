@@ -101,7 +101,7 @@ object DoorControlTest {
   def SetUpAgents(faction : PlanetSideEmpire.Value)(implicit system : ActorSystem) : (Player, Door) = {
     val door = Door(GlobalDefinitions.door)
     door.Actor = system.actorOf(Props(classOf[DoorControl], door), "door")
-    door.Owner = new Building(building_guid = 0, map_id = 0, Zone.Nowhere, StructureType.Building)
+    door.Owner = new Building(building_guid = 0, map_id = 0, Zone.Nowhere, StructureType.Building, GlobalDefinitions.building)
     door.Owner.Faction = faction
     (Player(Avatar("test", faction, CharacterGender.Male, 0, CharacterVoice.Mute)), door)
   }

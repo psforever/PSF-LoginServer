@@ -82,6 +82,7 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
   private var trunkAccess : Option[PlanetSideGUID] = None
   private var jammered : Boolean = false
   private var cloaked : Boolean = false
+  private var flying : Boolean = false
   private var capacitor : Int = 0
   private var continent : String = "home2" //the zone id
 
@@ -205,6 +206,13 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
   def Cloaked_=(isCloaked : Boolean) : Boolean = {
     cloaked = isCloaked
     Cloaked
+  }
+
+  def Flying : Boolean = flying
+
+  def Flying_=(isFlying : Boolean) : Boolean = {
+    flying = isFlying
+    Flying
   }
 
   def Capacitor : Int = capacitor

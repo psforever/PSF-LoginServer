@@ -1,7 +1,6 @@
 // Copyright (c) 2017 PSForever
 import akka.actor.ActorContext
-import net.psforever.objects.serverobject.pad.VehicleSpawnPad
-import net.psforever.objects.serverobject.pad.process._
+import net.psforever.objects.serverobject.structures.WarpGate
 import net.psforever.objects.zones.Zone
 import net.psforever.types.PlanetSideEmpire
 
@@ -87,14 +86,15 @@ object Zones {
       super.Init(context)
 
       import net.psforever.types.PlanetSideEmpire
-//      Building(2).get.Faction = PlanetSideEmpire.VS
-//      Building(2).get.ModelId = 20
-//      Building(38).get.ModelId = 0
-//      Building(42).get.ModelId = 0
-//      Building(48).get.Faction = PlanetSideEmpire.VS
-//      Building(48).get.ModelId = 59
-//      Building(49).get.Faction = PlanetSideEmpire.VS
-//      Building(49).get.ModelId = 69
+      Building(2).get.Faction = PlanetSideEmpire.VS
+      Building(10).get.asInstanceOf[WarpGate].Broadcast = true
+      Building(11).get.asInstanceOf[WarpGate].Broadcast = true
+      Building(12).get.asInstanceOf[WarpGate].Broadcast = true
+      Building(13).get.asInstanceOf[WarpGate].Broadcast = true
+      Building(48).get.Faction = PlanetSideEmpire.VS
+      Building(49).get.Faction = PlanetSideEmpire.VS
+      Building(18657).get.asInstanceOf[WarpGate].Active = false
+      Building(18658).get.asInstanceOf[WarpGate].Active = false
     }
   }
 
@@ -130,11 +130,9 @@ object Zones {
 
       import net.psforever.types.PlanetSideEmpire
       Buildings.values.foreach { _.Faction = PlanetSideEmpire.VS }
-//      Building(29).get.Faction = PlanetSideEmpire.NC //South Villa Gun Tower
-//      GUID(293).get.asInstanceOf[VehicleSpawnPad].Railed = false //building 52
-//      GUID(706).get.asInstanceOf[VehicleSpawnPad].Guide = List(AutoDriveControls.DistanceFromHere(50f)) //building 77
-//      GUID(710).get.asInstanceOf[VehicleSpawnPad].Railed = false //building 79
-//      GUID(712).get.asInstanceOf[VehicleSpawnPad].Railed = false //building 81
+      Building(29).get.Faction = PlanetSideEmpire.NC //South Villa Gun Tower
+      Building(1).get.asInstanceOf[WarpGate].Broadcast = true
+      Building(3).get.asInstanceOf[WarpGate].Broadcast = true
     }
   }
 
@@ -201,6 +199,34 @@ object Zones {
       case PlanetSideEmpire.TR => 12
       case PlanetSideEmpire.VS => 13
       case PlanetSideEmpire.NEUTRAL => 0 //invalid, not black ops
+    }
+  }
+
+  /**
+    * Given a zone identification string, provide that zone's ordinal number.
+    * As zone identification naming is extremely formulaic,
+    * just being able to poll the zone's identifier by its first few letters will produce its ordinal position.
+    * @param id a zone id string
+    * @return a zone number
+    */
+  def NumberFromId(id : String) : Int = {
+    if(id.startsWith("z")) { //z2 -> 2
+      id.substring(1).toInt
+    }
+    else if(id.startsWith("home")) { //home2 -> 2 + 10 = 12
+      id.substring(4).toInt + 10
+    }
+    else if(id.startsWith("tz")) { //tzconc -> (14 + (3 * 1) + 2) -> 19
+      (List("tr", "nc", "vs").indexOf(id.substring(4)) * 3) + List("sh", "dr", "co").indexOf(id.substring(2, 4)) + 14
+    }
+    else if(id.startsWith("c")) { //c2 -> 2 + 21 = 23
+      id.substring(1).toInt + 21
+    }
+    else if(id.startsWith("i")) { //i2 -> 2 + 28 = 30
+      id.substring(1).toInt + 28
+    }
+    else {
+      0
     }
   }
 }
