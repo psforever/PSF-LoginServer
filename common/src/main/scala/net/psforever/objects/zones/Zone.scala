@@ -17,7 +17,6 @@ import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.objects.serverobject.structures.{Amenity, Building, WarpGate}
 import net.psforever.objects.serverobject.terminals.ProximityUnit
-import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.serverobject.turret.FacilityTurret
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types.Vector3
@@ -312,8 +311,8 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
     buildings.get(id)
   }
 
-  def BuildingByMapId(map_id : Int) : Building = {
-    buildings.filter(x => x._2.MapId == map_id).head._2
+  def BuildingByMapId(map_id : Int) : Option[Building] = {
+    buildings.values.find(_.MapId == map_id)
   }
 
   private def BuildLocalObjects(implicit context : ActorContext, guid : NumberPoolHub) : Unit = {

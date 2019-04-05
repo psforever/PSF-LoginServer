@@ -73,17 +73,14 @@ class Building(private val building_guid : Int, private val map_id : Int, privat
     //TODO if we have a generator, get the current repair state
     val (generatorState, bootGeneratorPain) = (PlanetSideGeneratorState.Normal, false)
     //if we have spawn tubes, determine if any of them are active
-    val (spawnTubesNormal, boostSpawnPain) : (Boolean, Boolean) = if(ntuLevel > 0) {
+    val (spawnTubesNormal, boostSpawnPain) : (Boolean, Boolean) = {
       val o = amenities.collect({ case _ : SpawnTube => true }) ///TODO obj.Health > 0
       if(o.nonEmpty) {
         (o.foldLeft(false)(_ || _), false) //TODO poll pain field strength
       }
       else {
-        (false, false) //TODO (true, false)?
+        (true, false)
       }
-    }
-    else {
-      (false, false)
     }
     //out
     (
@@ -115,7 +112,7 @@ class Building(private val building_guid : Int, private val map_id : Int, privat
 
   override def Continent_=(zone : String) : String = Continent
 
-  def Definition: ObjectDefinition = Building.BuildingDefinition
+  def Definition: ObjectDefinition = buildingDefinition
 }
 
 object Building {
@@ -123,8 +120,6 @@ object Building {
     override def Faction_=(faction : PlanetSideEmpire.Value) : PlanetSideEmpire.Value = PlanetSideEmpire.NEUTRAL
     override def Amenities_=(obj : Amenity) : List[Amenity] = Nil
   }
-
-  final val BuildingDefinition : ObjectDefinition = new ObjectDefinition(0) { Name = "building" }
 
   def apply(guid : Int, map_id : Int, zone : Zone, buildingType : StructureType.Value) : Building = {
     new Building(guid, map_id, zone, buildingType, GlobalDefinitions.building)

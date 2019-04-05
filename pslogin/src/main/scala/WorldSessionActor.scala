@@ -468,7 +468,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       val popVS = poplist.count(_.faction == PlanetSideEmpire.VS)
       // StopBundlingPackets() is called on ClientInitializationComplete
       StartBundlingPackets()
-      zone.Buildings.foreach({ case (id, building) => initBuilding(continentNumber, id, building) })
+      zone.Buildings.foreach({ case (id, building) => initBuilding(continentNumber, building.MapId, building) })
       sendResponse(ZonePopulationUpdateMessage(continentNumber, 414, 138, popTR, 138, popNC, 138, popVS, 138, popBO))
       sendResponse(ContinentalLockUpdateMessage(continentNumber, PlanetSideEmpire.NEUTRAL))
       //CaptureFlagUpdateMessage()
@@ -503,7 +503,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       spawn_tube.Owner match {
         case building : Building =>
           log.info(s"Zone.Lattice.SpawnPoint: spawn point on $zone_id in building ${building.MapId} selected")
-          ori += Vector3(0, 0, 90f) // Since all spawn tubes seem to have a zero orientation, we need to offset by 90 degrees so the player faces north towards the door, not east.
+          //ori += Vector3(0, 0, 90f) // Since all spawn tubes seem to have a zero orientation, we need to offset by 90 degrees so the player faces north towards the door, not east.
         case vehicle : Vehicle =>
           log.info(s"Zone.Lattice.SpawnPoint: spawn point on $zone_id at ams ${vehicle.GUID.guid} selected")
         case owner =>
