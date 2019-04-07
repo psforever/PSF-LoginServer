@@ -144,7 +144,7 @@ object Zones {
 
       import net.psforever.types.PlanetSideEmpire
       Buildings.values.foreach { _.Faction = PlanetSideEmpire.VS }
-      BuildingByMapId(29).get.Faction = PlanetSideEmpire.NC //South Villa Gun Tower
+      BuildingByMapId(60).get.Faction = PlanetSideEmpire.NC //South Villa Gun Tower
       BuildingByMapId(1).get.asInstanceOf[WarpGate].Broadcast = true
       BuildingByMapId(3).get.asInstanceOf[WarpGate].Broadcast = true
     }

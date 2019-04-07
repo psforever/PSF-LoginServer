@@ -980,6 +980,8 @@ object GlobalDefinitions {
 
   val respawn_tube = new SpawnTubeDefinition(732)
 
+  val respawn_tube_sanctuary = new SpawnTubeDefinition(732) //respawn_tube for sanctuary VT_building_* structures
+
   val respawn_tube_tower = new SpawnTubeDefinition(733)
 
   val teleportpad_terminal = new OrderTerminalDefinition(853)
@@ -5839,9 +5841,15 @@ object GlobalDefinitions {
 
     respawn_tube.Name = "respawn_tube"
     respawn_tube.Delay = 10
+    respawn_tube.SpecificPointFunc = SpawnPoint.Tube
+
+    respawn_tube_sanctuary.Name = "respawn_tube"
+    respawn_tube_sanctuary.Delay = 10
+    respawn_tube_sanctuary.SpecificPointFunc = SpawnPoint.Default
 
     respawn_tube_tower.Name = "respawn_tube_tower"
     respawn_tube_tower.Delay = 10
+    respawn_tube_tower.SpecificPointFunc = SpawnPoint.Tube
 
     teleportpad_terminal.Name = "teleportpad_terminal"
     teleportpad_terminal.Tab += 0 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.routerTerminal)

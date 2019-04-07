@@ -63,7 +63,12 @@ trait SpawnPoint {
 }
 
 object SpawnPoint {
-  def Default(obj : SpawnPoint, target : PlanetSideGameObject) : (Vector3, Vector3) = (obj.Position + Vector3.z(1.5f), obj.Orientation)
+  def Default(obj : SpawnPoint, target : PlanetSideGameObject) : (Vector3, Vector3) = (obj.Position, obj.Orientation)
+
+  def Tube(obj : SpawnPoint, target : PlanetSideGameObject) : (Vector3, Vector3) = (
+    obj.Position + Vector3.z(1.5f),
+    obj.Orientation.xy + Vector3.z(obj.Orientation.z + 90 % 360)
+  )
 
   def AMS(obj : SpawnPoint, target : PlanetSideGameObject) : (Vector3, Vector3) = {
     //position the player alongside either of the AMS's terminals, facing away from it
