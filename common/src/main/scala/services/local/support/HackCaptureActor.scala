@@ -23,9 +23,15 @@ class HackCaptureActor extends Actor {
   def receive : Receive = {
     case HackCaptureActor.ObjectIsHacked(target, zone, unk1, unk2, duration, time) =>
       log.trace(s"${target.GUID} is hacked.")
+      target.HackedBy match {
+        case Some(hackInfo) =>
+          target.HackedBy = hackInfo.Duration(duration.toNanos)
+        case None =>
+          log.error(s"Initial $target hack information is missing")
+      }
 
-      hackedObjects.filter(x => x.target == target).headOption match {
-        case Some(x) =>
+      hackedObjects.find(_.target == target) match {
+        case Some(_) =>
           log.trace(s"${target.GUID} was already hacked - removing it from the hacked objects list before re-adding it.")
           hackedObjects = hackedObjects.filterNot(x => x.target == target)
           log.warn(s"len: ${hackedObjects.length}")
@@ -49,7 +55,7 @@ class HackCaptureActor extends Actor {
       unhackObjects.foreach(entry => {
         log.trace(s"Capture terminal hack timeout reached for terminal ${entry.target.GUID}")
 
-        val hackedByFaction = entry.target.HackedBy.get._1.Faction
+        val hackedByFaction = entry.target.HackedBy.get.hackerFaction
         entry.target.Actor ! CommonMessages.ClearHack()
 
         context.parent ! HackCaptureActor.HackTimeoutReached(entry.target.GUID, entry.zone.Id, entry.unk1, entry.unk2, hackedByFaction) //call up to the main event system
@@ -58,7 +64,7 @@ class HackCaptureActor extends Actor {
       // If there's hacked objects left in the list restart the timer with the shortest hack time left
       RestartTimer()
 
-    case HackCaptureActor.ClearHack(target, zone) =>
+    case HackCaptureActor.ClearHack(target, _) =>
       hackedObjects = hackedObjects.filterNot(x => x.target == target)
       target.Owner.Actor ! Building.SendMapUpdate(all_clients = true)
 
@@ -66,19 +72,19 @@ class HackCaptureActor extends Actor {
       RestartTimer()
 
     case HackCaptureActor.GetHackTimeRemainingNanos(capture_console_guid) =>
-      hackedObjects.filter(x => x.target.GUID == capture_console_guid).headOption match {
+      hackedObjects.find(_.target.GUID == capture_console_guid) match {
         case Some(obj: HackCaptureActor.HackEntry) =>
           val time_left: Long = obj.duration.toNanos - (System.nanoTime - obj.hack_timestamp)
           sender ! time_left
         case _ =>
-          log.warn(s"Couldn't find capture terminal guid ${capture_console_guid} in hackedObjects list")
+          log.warn(s"Couldn't find capture terminal guid $capture_console_guid in hackedObjects list")
           sender ! 0L
       }
     case _ => ;
   }
 
   private def RestartTimer(): Unit = {
-    if(hackedObjects.length != 0) {
+    if(hackedObjects.nonEmpty) {
       val now = System.nanoTime()
       def minTimeLeft(entry1: HackCaptureActor.HackEntry, entry2: HackCaptureActor.HackEntry): HackCaptureActor.HackEntry = {
         val entry1TimeLeft = entry1.duration.toNanos - (now - entry1.hack_timestamp)

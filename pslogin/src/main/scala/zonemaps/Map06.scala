@@ -7,7 +7,7 @@ import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.mblocker.Locker
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
-import net.psforever.objects.serverobject.structures.{Building, FoundationBuilder, StructureType}
+import net.psforever.objects.serverobject.structures.{Building, FoundationBuilder, StructureType, WarpGate}
 import net.psforever.objects.serverobject.terminals.{CaptureTerminal, ProximityTerminal, Terminal}
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.serverobject.turret.FacilityTurret
@@ -2279,6 +2279,42 @@ object Map06 {
       TurretToWeapon(1468, 5097)
       LocalObject(1469, FacilityTurret.Constructor(manned_turret, Vector3(6343.497f, 4006.957f, 56.5199f)), owning_building_guid = 73)
       TurretToWeapon(1469, 5098)
+    }
+
+    Building10()
+
+    def Building10() : Unit = { // Name: ??? Type: ??? GUID: 76, MapID: 10
+      LocalBuilding(76, 10, FoundationBuilder(WarpGate.Structure(Vector3(4970.0703f, 2082.1719f, 24.421875f)))) //searhus warp gate
+    }
+
+    Building11()
+
+    def Building11() : Unit = { // Name: ??? Type: ??? GUID: 75, MapID: 11
+      LocalBuilding(75, 11, FoundationBuilder(WarpGate.Structure(Vector3(2587.7969f, 2997.1562f, 195.34375f)))) //cyssor warp gate
+    }
+
+    Building12()
+
+    def Building12() : Unit = { // Name: ??? Type: ??? GUID: 74, MapID: 12
+      LocalBuilding(74, 12, FoundationBuilder(WarpGate.Structure(Vector3(2189.5703f, 5508.164f, 38.765625f)))) //solar warp gate
+    }
+
+    Building13()
+
+    def Building13() : Unit = { // Name: ??? Type: ??? GUID: 77, MapID: 13
+      LocalBuilding(77, 13, FoundationBuilder(WarpGate.Structure(Vector3(5028.1094f, 4499.7188f, 50.09375f)))) //vs sanctuary warp gate
+    }
+
+    Building18657()
+
+    def Building18657() : Unit = { // Name: ??? Type: ??? GUID: 33, MapID: 18657
+      LocalBuilding(33, 18657, FoundationBuilder(WarpGate.Structure(Vector3.Zero, hst))) //geowarp near Tarqaq
+    }
+
+    Building18658()
+
+    def Building18658() : Unit = { // Name: ??? Type: ??? GUID: 34, MapID: 18658
+      LocalBuilding(34, 18658, FoundationBuilder(WarpGate.Structure(Vector3.Zero, hst))) //geowarp near Igaluk
     }
   }
 }

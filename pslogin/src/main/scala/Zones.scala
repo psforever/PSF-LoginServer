@@ -1,7 +1,8 @@
 // Copyright (c) 2017 PSForever
 import akka.actor.ActorContext
-import net.psforever.objects.serverobject.pad.VehicleSpawnPad
-import net.psforever.objects.serverobject.pad.process._
+import net.psforever.objects.GlobalDefinitions
+import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
+import net.psforever.objects.serverobject.structures.WarpGate
 import net.psforever.objects.zones.Zone
 import net.psforever.types.PlanetSideEmpire
 
@@ -16,67 +17,74 @@ object Zones {
     override def Init(implicit context : ActorContext) : Unit = {
       super.Init(context)
 
-      BuildingByMapId(5).Faction = PlanetSideEmpire.TR //Akkan
-      BuildingByMapId(6).Faction = PlanetSideEmpire.TR //Baal
-      BuildingByMapId(7).Faction = PlanetSideEmpire.TR //Dagon
-      BuildingByMapId(8).Faction = PlanetSideEmpire.NC //Enkidu
-      BuildingByMapId(9).Faction = PlanetSideEmpire.VS //Girru
-      BuildingByMapId(10).Faction = PlanetSideEmpire.VS //Hanish
-      BuildingByMapId(11).Faction = PlanetSideEmpire.VS //Irkalla
-      BuildingByMapId(12).Faction = PlanetSideEmpire.VS //Kusag
-      BuildingByMapId(13).Faction = PlanetSideEmpire.VS //Lahar
-      BuildingByMapId(14).Faction = PlanetSideEmpire.NC //Marduk
-      BuildingByMapId(15).Faction = PlanetSideEmpire.NC //Neti
-      BuildingByMapId(16).Faction = PlanetSideEmpire.NC //Zaqar
-      BuildingByMapId(17).Faction = PlanetSideEmpire.NC //S_Marduk_Tower
-      BuildingByMapId(18).Faction = PlanetSideEmpire.NC //W_Neti_Tower
-      BuildingByMapId(19).Faction = PlanetSideEmpire.NC //W_Zaqar_Tower
-      BuildingByMapId(20).Faction = PlanetSideEmpire.NC //E_Zaqar_Tower
-      BuildingByMapId(21).Faction = PlanetSideEmpire.NC //NE_Neti_Tower
-      BuildingByMapId(22).Faction = PlanetSideEmpire.NC //SE_Ceryshen_Warpgate_Tower
-      BuildingByMapId(23).Faction = PlanetSideEmpire.VS //S_Kusag_Tower
-      BuildingByMapId(24).Faction = PlanetSideEmpire.VS //NW_Kusag_Tower
-      BuildingByMapId(25).Faction = PlanetSideEmpire.VS //N_Ceryshen_Warpgate_Tower
-      BuildingByMapId(26).Faction = PlanetSideEmpire.VS //SE_Irkalla_Tower
-      BuildingByMapId(27).Faction = PlanetSideEmpire.VS //S_Irkalla_Tower
-      BuildingByMapId(28).Faction = PlanetSideEmpire.TR //NE_Enkidu_Tower
-      BuildingByMapId(29).Faction = PlanetSideEmpire.NC //SE_Akkan_Tower
-      BuildingByMapId(30).Faction = PlanetSideEmpire.NC //SW_Enkidu_Tower
-      BuildingByMapId(31).Faction = PlanetSideEmpire.TR //E_Searhus_Warpgate_Tower
-      BuildingByMapId(32).Faction = PlanetSideEmpire.TR //N_Searhus_Warpgate_Tower
-      BuildingByMapId(33).Faction = PlanetSideEmpire.VS //E_Girru_Tower
-      BuildingByMapId(34).Faction = PlanetSideEmpire.VS //SE_Hanish_Tower
-      BuildingByMapId(35).Faction = PlanetSideEmpire.TR //SW_Hanish_Tower
-      BuildingByMapId(36).Faction = PlanetSideEmpire.VS //W_Girru_Tower
-      BuildingByMapId(37).Faction = PlanetSideEmpire.TR //E_Dagon_Tower
-      BuildingByMapId(38).Faction = PlanetSideEmpire.TR //NE_Baal_Tower
-      BuildingByMapId(39).Faction = PlanetSideEmpire.TR //SE_Baal_Tower
-      BuildingByMapId(40).Faction = PlanetSideEmpire.TR //S_Dagon_Tower
-      BuildingByMapId(41).Faction = PlanetSideEmpire.NC //W_Ceryshen_Warpgate_Tower
-      BuildingByMapId(42).Faction = PlanetSideEmpire.NEUTRAL //dagon bunker
-      BuildingByMapId(43).Faction = PlanetSideEmpire.NEUTRAL //Akkan North Bunker
-      BuildingByMapId(44).Faction = PlanetSideEmpire.NEUTRAL //Enkidu East Bunker
-      BuildingByMapId(45).Faction = PlanetSideEmpire.NEUTRAL //Neti bunker
-      BuildingByMapId(46).Faction = PlanetSideEmpire.NEUTRAL //Hanish West Bunker
-      BuildingByMapId(47).Faction = PlanetSideEmpire.NEUTRAL //Irkalla East Bunker
-      BuildingByMapId(48).Faction = PlanetSideEmpire.NEUTRAL //Zaqar bunker
-      BuildingByMapId(49).Faction = PlanetSideEmpire.NEUTRAL //Kusag West Bunker
-      BuildingByMapId(50).Faction = PlanetSideEmpire.NEUTRAL //marduk bunker
-      BuildingByMapId(51).Faction = PlanetSideEmpire.TR //baal bunker
-      BuildingByMapId(52).Faction = PlanetSideEmpire.NEUTRAL //girru bunker
-      BuildingByMapId(53).Faction = PlanetSideEmpire.NEUTRAL //lahar bunker
-      BuildingByMapId(54).Faction = PlanetSideEmpire.NEUTRAL //akkan bunker
-      BuildingByMapId(55).Faction = PlanetSideEmpire.VS //Irkalla_Tower
-      BuildingByMapId(56).Faction = PlanetSideEmpire.VS //Hanish_Tower
-      BuildingByMapId(57).Faction = PlanetSideEmpire.VS //E_Ceryshen_Warpgate_Tower
-      BuildingByMapId(58).Faction = PlanetSideEmpire.VS //Lahar_Tower
-      BuildingByMapId(59).Faction = PlanetSideEmpire.VS //VSSanc_Warpgate_Tower
-      BuildingByMapId(60).Faction = PlanetSideEmpire.TR //Akkan_Tower
-      BuildingByMapId(61).Faction = PlanetSideEmpire.NC //TRSanc_Warpgate_Tower
-      BuildingByMapId(62).Faction = PlanetSideEmpire.NC //Marduk_Tower
-      BuildingByMapId(63).Faction = PlanetSideEmpire.TR //NW_Dagon_Tower
-      BuildingByMapId(64).Faction = PlanetSideEmpire.NEUTRAL //E7 East Bunker (at north from bridge)
-      BuildingByMapId(65).Faction = PlanetSideEmpire.VS //W_Hanish_Tower
+      Buildings.values.flatMap {
+        _.Amenities.collect {
+          case amenity if amenity.Definition == GlobalDefinitions.resource_silo =>
+            val silo = amenity.asInstanceOf[ResourceSilo]
+            silo.ChargeLevel = silo.MaximumCharge
+        }
+      }
+      BuildingByMapId(5).get.Faction = PlanetSideEmpire.TR //Akkan
+      BuildingByMapId(6).get.Faction = PlanetSideEmpire.TR //Baal
+      BuildingByMapId(7).get.Faction = PlanetSideEmpire.TR //Dagon
+      BuildingByMapId(8).get.Faction = PlanetSideEmpire.NC //Enkidu
+      BuildingByMapId(9).get.Faction = PlanetSideEmpire.VS //Girru
+      BuildingByMapId(10).get.Faction = PlanetSideEmpire.VS //Hanish
+      BuildingByMapId(11).get.Faction = PlanetSideEmpire.VS //Irkalla
+      BuildingByMapId(12).get.Faction = PlanetSideEmpire.VS //Kusag
+      BuildingByMapId(13).get.Faction = PlanetSideEmpire.VS //Lahar
+      BuildingByMapId(14).get.Faction = PlanetSideEmpire.NC //Marduk
+      BuildingByMapId(15).get.Faction = PlanetSideEmpire.NC //Neti
+      BuildingByMapId(16).get.Faction = PlanetSideEmpire.NC //Zaqar
+      BuildingByMapId(17).get.Faction = PlanetSideEmpire.NC //S_Marduk_Tower
+      BuildingByMapId(18).get.Faction = PlanetSideEmpire.NC //W_Neti_Tower
+      BuildingByMapId(19).get.Faction = PlanetSideEmpire.NC //W_Zaqar_Tower
+      BuildingByMapId(20).get.Faction = PlanetSideEmpire.NC //E_Zaqar_Tower
+      BuildingByMapId(21).get.Faction = PlanetSideEmpire.NC //NE_Neti_Tower
+      BuildingByMapId(22).get.Faction = PlanetSideEmpire.NC //SE_Ceryshen_Warpgate_Tower
+      BuildingByMapId(23).get.Faction = PlanetSideEmpire.VS //S_Kusag_Tower
+      BuildingByMapId(24).get.Faction = PlanetSideEmpire.VS //NW_Kusag_Tower
+      BuildingByMapId(25).get.Faction = PlanetSideEmpire.VS //N_Ceryshen_Warpgate_Tower
+      BuildingByMapId(26).get.Faction = PlanetSideEmpire.VS //SE_Irkalla_Tower
+      BuildingByMapId(27).get.Faction = PlanetSideEmpire.VS //S_Irkalla_Tower
+      BuildingByMapId(28).get.Faction = PlanetSideEmpire.TR //NE_Enkidu_Tower
+      BuildingByMapId(29).get.Faction = PlanetSideEmpire.NC //SE_Akkan_Tower
+      BuildingByMapId(30).get.Faction = PlanetSideEmpire.NC //SW_Enkidu_Tower
+      BuildingByMapId(31).get.Faction = PlanetSideEmpire.TR //E_Searhus_Warpgate_Tower
+      BuildingByMapId(32).get.Faction = PlanetSideEmpire.TR //N_Searhus_Warpgate_Tower
+      BuildingByMapId(33).get.Faction = PlanetSideEmpire.VS //E_Girru_Tower
+      BuildingByMapId(34).get.Faction = PlanetSideEmpire.VS //SE_Hanish_Tower
+      BuildingByMapId(35).get.Faction = PlanetSideEmpire.TR //SW_Hanish_Tower
+      BuildingByMapId(36).get.Faction = PlanetSideEmpire.VS //W_Girru_Tower
+      BuildingByMapId(37).get.Faction = PlanetSideEmpire.TR //E_Dagon_Tower
+      BuildingByMapId(38).get.Faction = PlanetSideEmpire.TR //NE_Baal_Tower
+      BuildingByMapId(39).get.Faction = PlanetSideEmpire.TR //SE_Baal_Tower
+      BuildingByMapId(40).get.Faction = PlanetSideEmpire.TR //S_Dagon_Tower
+      BuildingByMapId(41).get.Faction = PlanetSideEmpire.NC //W_Ceryshen_Warpgate_Tower
+      BuildingByMapId(42).get.Faction = PlanetSideEmpire.NEUTRAL //dagon bunker
+      BuildingByMapId(43).get.Faction = PlanetSideEmpire.NEUTRAL //Akkan North Bunker
+      BuildingByMapId(44).get.Faction = PlanetSideEmpire.NEUTRAL //Enkidu East Bunker
+      BuildingByMapId(45).get.Faction = PlanetSideEmpire.NEUTRAL //Neti bunker
+      BuildingByMapId(46).get.Faction = PlanetSideEmpire.NEUTRAL //Hanish West Bunker
+      BuildingByMapId(47).get.Faction = PlanetSideEmpire.NEUTRAL //Irkalla East Bunker
+      BuildingByMapId(48).get.Faction = PlanetSideEmpire.NEUTRAL //Zaqar bunker
+      BuildingByMapId(49).get.Faction = PlanetSideEmpire.NEUTRAL //Kusag West Bunker
+      BuildingByMapId(50).get.Faction = PlanetSideEmpire.NEUTRAL //marduk bunker
+      BuildingByMapId(51).get.Faction = PlanetSideEmpire.TR //baal bunker
+      BuildingByMapId(52).get.Faction = PlanetSideEmpire.NEUTRAL //girru bunker
+      BuildingByMapId(53).get.Faction = PlanetSideEmpire.NEUTRAL //lahar bunker
+      BuildingByMapId(54).get.Faction = PlanetSideEmpire.NEUTRAL //akkan bunker
+      BuildingByMapId(55).get.Faction = PlanetSideEmpire.VS //Irkalla_Tower
+      BuildingByMapId(56).get.Faction = PlanetSideEmpire.VS //Hanish_Tower
+      BuildingByMapId(57).get.Faction = PlanetSideEmpire.VS //E_Ceryshen_Warpgate_Tower
+      BuildingByMapId(58).get.Faction = PlanetSideEmpire.VS //Lahar_Tower
+      BuildingByMapId(59).get.Faction = PlanetSideEmpire.VS //VSSanc_Warpgate_Tower
+      BuildingByMapId(60).get.Faction = PlanetSideEmpire.TR //Akkan_Tower
+      BuildingByMapId(61).get.Faction = PlanetSideEmpire.NC //TRSanc_Warpgate_Tower
+      BuildingByMapId(62).get.Faction = PlanetSideEmpire.NC //Marduk_Tower
+      BuildingByMapId(63).get.Faction = PlanetSideEmpire.TR //NW_Dagon_Tower
+      BuildingByMapId(64).get.Faction = PlanetSideEmpire.NEUTRAL //E7 East Bunker (at north from bridge)
+      BuildingByMapId(65).get.Faction = PlanetSideEmpire.VS //W_Hanish_Tower
     }
   }
 
@@ -86,15 +94,21 @@ object Zones {
     override def Init(implicit context : ActorContext) : Unit = {
       super.Init(context)
 
+      GUID(2094) match {
+        case Some(silo : ResourceSilo) =>
+          silo.ChargeLevel = silo.MaximumCharge
+        case _ => ;
+      }
       import net.psforever.types.PlanetSideEmpire
-//      Building(2).get.Faction = PlanetSideEmpire.VS
-//      Building(2).get.ModelId = 20
-//      Building(38).get.ModelId = 0
-//      Building(42).get.ModelId = 0
-//      Building(48).get.Faction = PlanetSideEmpire.VS
-//      Building(48).get.ModelId = 59
-//      Building(49).get.Faction = PlanetSideEmpire.VS
-//      Building(49).get.ModelId = 69
+      BuildingByMapId(2).get.Faction = PlanetSideEmpire.VS
+      BuildingByMapId(10).get.asInstanceOf[WarpGate].Broadcast = true
+      BuildingByMapId(11).get.asInstanceOf[WarpGate].Broadcast = true
+      BuildingByMapId(12).get.asInstanceOf[WarpGate].Broadcast = true
+      BuildingByMapId(13).get.asInstanceOf[WarpGate].Broadcast = true
+      BuildingByMapId(48).get.Faction = PlanetSideEmpire.VS
+      BuildingByMapId(49).get.Faction = PlanetSideEmpire.VS
+      BuildingByMapId(18657).get.asInstanceOf[WarpGate].Active = false
+      BuildingByMapId(18658).get.asInstanceOf[WarpGate].Active = false
     }
   }
 
@@ -130,11 +144,9 @@ object Zones {
 
       import net.psforever.types.PlanetSideEmpire
       Buildings.values.foreach { _.Faction = PlanetSideEmpire.VS }
-//      Building(29).get.Faction = PlanetSideEmpire.NC //South Villa Gun Tower
-//      GUID(293).get.asInstanceOf[VehicleSpawnPad].Railed = false //building 52
-//      GUID(706).get.asInstanceOf[VehicleSpawnPad].Guide = List(AutoDriveControls.DistanceFromHere(50f)) //building 77
-//      GUID(710).get.asInstanceOf[VehicleSpawnPad].Railed = false //building 79
-//      GUID(712).get.asInstanceOf[VehicleSpawnPad].Railed = false //building 81
+      BuildingByMapId(60).get.Faction = PlanetSideEmpire.NC //South Villa Gun Tower
+      BuildingByMapId(1).get.asInstanceOf[WarpGate].Broadcast = true
+      BuildingByMapId(3).get.asInstanceOf[WarpGate].Broadcast = true
     }
   }
 
@@ -201,6 +213,34 @@ object Zones {
       case PlanetSideEmpire.TR => 12
       case PlanetSideEmpire.VS => 13
       case PlanetSideEmpire.NEUTRAL => 0 //invalid, not black ops
+    }
+  }
+
+  /**
+    * Given a zone identification string, provide that zone's ordinal number.
+    * As zone identification naming is extremely formulaic,
+    * just being able to poll the zone's identifier by its first few letters will produce its ordinal position.
+    * @param id a zone id string
+    * @return a zone number
+    */
+  def NumberFromId(id : String) : Int = {
+    if(id.startsWith("z")) { //z2 -> 2
+      id.substring(1).toInt
+    }
+    else if(id.startsWith("home")) { //home2 -> 2 + 10 = 12
+      id.substring(4).toInt + 10
+    }
+    else if(id.startsWith("tz")) { //tzconc -> (14 + (3 * 1) + 2) -> 19
+      (List("tr", "nc", "vs").indexOf(id.substring(4)) * 3) + List("sh", "dr", "co").indexOf(id.substring(2, 4)) + 14
+    }
+    else if(id.startsWith("c")) { //c2 -> 2 + 21 = 23
+      id.substring(1).toInt + 21
+    }
+    else if(id.startsWith("i")) { //i2 -> 2 + 28 = 30
+      id.substring(1).toInt + 28
+    }
+    else {
+      0
     }
   }
 }

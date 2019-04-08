@@ -104,7 +104,7 @@ class BuildingTest extends Specification {
 class WarpGateTest extends Specification {
   "WarpGate" should {
     "construct" in {
-      val bldg = WarpGate(0, 10, Zone.Nowhere)
+      val bldg = WarpGate(0, 10, Zone.Nowhere, GlobalDefinitions.warpgate)
       bldg.MapId mustEqual 10
       bldg.Actor mustEqual ActorRef.noSender
       bldg.Amenities mustEqual Nil

@@ -15,21 +15,18 @@ import scodec.codecs._
   * The process of gate transportation should not start until the server responds to this packet.<br>
   * <br>
   * Exploration 1:<br>
-  * Does this packet apply to geowarp transport as well?<br>
-  * <br>
-  * Exploration 2:<br>
-  * Those last two fields that are usually blanked do something?
-  * @param continent_guid the continent (zone)
-  * @param building_guid the warp gate
-  * @param dest_building_guid the destination warp gate
-  * @param dest_continent_guid the destination continent (zone)
+  * Does this packet apply to geowarp transport as well?
+  * @param from_zone the continent (zone)
+  * @param from_gate_guid the warp gate
+  * @param to_gate_mapid the destination warp gate
+  * @param to_zone the destination continent (zone)
   * @param unk1 na; always zero?
   * @param unk2 na; always zero?
   */
-final case class WarpgateRequest(continent_guid : PlanetSideGUID,
-                                 building_guid : PlanetSideGUID,
-                                 dest_building_guid : PlanetSideGUID,
-                                 dest_continent_guid : PlanetSideGUID,
+final case class WarpgateRequest(from_zone : PlanetSideGUID,
+                                 from_gate_guid : PlanetSideGUID,
+                                 to_gate_mapid : PlanetSideGUID,
+                                 to_zone : PlanetSideGUID,
                                  unk1 : Int,
                                  unk2 : Int)
   extends PlanetSideGamePacket {
@@ -40,10 +37,10 @@ final case class WarpgateRequest(continent_guid : PlanetSideGUID,
 
 object WarpgateRequest extends Marshallable[WarpgateRequest] {
   implicit val codec : Codec[WarpgateRequest] = (
-    ("continent_guid" | PlanetSideGUID.codec) ::
-      ("building_guid" | PlanetSideGUID.codec) ::
-      ("dest_building_guid" | PlanetSideGUID.codec) ::
-      ("dest_continent_guid" | PlanetSideGUID.codec) ::
+    ("from_zone" | PlanetSideGUID.codec) ::
+      ("from_gate_guid" | PlanetSideGUID.codec) ::
+      ("to_gate_mapid" | PlanetSideGUID.codec) ::
+      ("to_zone" | PlanetSideGUID.codec) ::
       ("unk1" | uint8L) ::
       ("unk2" | uint8L)
     ).as[WarpgateRequest]

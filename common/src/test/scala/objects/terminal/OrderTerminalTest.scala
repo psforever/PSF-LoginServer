@@ -13,7 +13,7 @@ class OrderTerminalTest extends Specification {
   val avatar = Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)
   val player = Player(avatar)
 
-  val building = new Building(building_guid = 0, map_id = 0, Zone.Nowhere, StructureType.Building)
+  val building = new Building(building_guid = 0, map_id = 0, Zone.Nowhere, StructureType.Building, GlobalDefinitions.building)
   building.Faction = PlanetSideEmpire.TR
   val infantryTerminal = Terminal(GlobalDefinitions.order_terminal)
   infantryTerminal.Owner = building

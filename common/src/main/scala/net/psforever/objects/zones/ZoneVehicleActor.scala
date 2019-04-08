@@ -42,6 +42,7 @@ class ZoneVehicleActor(zone : Zone, vehicleList : ListBuffer[Vehicle]) extends A
       }
       else {
         vehicleList += vehicle
+        vehicle.Continent = zone.Id
         vehicle.Actor = context.actorOf(Props(classOf[VehicleControl], vehicle), s"${vehicle.Definition.Name}_${vehicle.GUID.guid}")
       }
 

@@ -253,6 +253,33 @@ class VehicleStateTest extends ActorTest {
   }
 }
 
+class TransferPassengerChannelTest extends ActorTest {
+  ServiceManager.boot(system)
+
+  "VehicleService" should {
+    "pass TransferPassengerChannel" in {
+      val service = system.actorOf(Props[VehicleService], "v-service")
+      val fury = Vehicle(GlobalDefinitions.fury)
+      service ! Service.Join("test")
+      service ! VehicleServiceMessage("test", VehicleAction.TransferPassengerChannel(PlanetSideGUID(10), "old_channel", "new_channel", fury))
+      expectMsg(VehicleServiceResponse("/test/Vehicle", PlanetSideGUID(10), VehicleResponse.TransferPassengerChannel("old_channel", "new_channel", fury)))
+    }
+  }
+}
+
+class TransferPassengerTest extends ActorTest {
+  ServiceManager.boot(system)
+  "VehicleService" should {
+    "pass TransferPassenger" in {
+      val fury = Vehicle(GlobalDefinitions.fury)
+      val service = system.actorOf(Props[VehicleService], "v-service")
+      service ! Service.Join("test")
+      service ! VehicleServiceMessage("test", VehicleAction.TransferPassenger(PlanetSideGUID(10), "temp_channel", fury, PlanetSideGUID(11)))
+      expectMsg(VehicleServiceResponse("/test/Vehicle", PlanetSideGUID(10), VehicleResponse.TransferPassenger("temp_channel", fury, PlanetSideGUID(11))))
+    }
+  }
+}
+
 object VehicleServiceTest {
   //decoy
 }

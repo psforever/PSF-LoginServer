@@ -7,14 +7,23 @@ import scodec.Codec
 import scodec.codecs._
 
 /**
-  *
-  * @param cargo_vehicle_guid Cargo vehicle GUID (galaxy / lodestar)
-  * @param requesting_vehicle Seems to be vehicle that requested mounting (0 after mount)
-  * @param mounted_vehicle Seems to be vehicle that requested mounting after mount (0 before mount)
-  * @param dismounted_vehicle Seems to be vehicle that was mounted after disembarking (0 before embark or reset to 0 when MountVehicleCargoMsg received)
-  * @param slot Mount point for cargo bay 1 = lodestar, 15 = galaxy
-  * @param mount_status Mount status? 0 = None, 1 = Mount/Dismount in progress, 3 = Mounted
-  * @param orientation 0 = normal, 1 = sideways (e.g. router in lodestar)
+  * na
+  * @see `CargoStatus`
+  * @see `MountVehicleCargoMsg`
+  * @param cargo_vehicle_guid always the carrier vehicle
+  * @param requesting_vehicle cargo vehicle that requested mounting during the mounting process;
+  *                           blank when the process is complete
+  * @param mounted_vehicle    cargo vehicle that requested mounting after the mounting process is complete;
+  *                           blank before the process is complete
+  * @param dismounted_vehicle cargo vehicle that was mounted after disembarking;
+  *                           blank before disembark
+  *                           blank before mounting request, when packet `MountVehicleCargoMsg` is received
+  * @param slot               cargo hold mount position;
+  *                           common values are 1 for the `lodestar` and 15 for the `dropship`
+  * @param mount_status       cargo mount status
+  * @param orientation        direction the cargo vehicle faces when stowed in the carrier cargo bay;
+  *                           0 is "normal," front facing forward;
+  *                           1 is "sideways," front facing the side of the carrier vehicle, e.g. `router`
   */
 final case class CargoMountPointStatusMessage(cargo_vehicle_guid : PlanetSideGUID,
                                               requesting_vehicle: PlanetSideGUID,

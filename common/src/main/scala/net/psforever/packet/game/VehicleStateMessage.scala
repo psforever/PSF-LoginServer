@@ -14,13 +14,17 @@ import scodec.codecs._
   * @param pos the xyz-coordinate location in the world
   * @param ang the orientation of the vehicle
   * @param vel optional movement data
-  * @param unk2 na
+  * @param flying flight information, valid only for a vehicle that can fly when in flight;
+  *               `Some(7)`, when in a flying state (vertical thrust unnecessary to unlock movement)
+  *               `None`, when landed and for all vehicles that do not fly
   * @param unk3 na
   * @param unk4 na
-  * @param wheel_direction for ground vehicles, whether the wheels are being turned;
+  * @param wheel_direction for ground vehicles, whether and how much the wheels are being turned;
   *                        15 for straight;
   *                        0 for hard right;
-  *                        30 for hard left
+  *                        30 for hard left;
+  *                        values in between are possible;
+  *                        vehicles that hover also influence this field as expected
   * @param unk5 na - Possibly a flag to indicate the vehicle is attached to something else e.g. is in a galaxy/lodestar cargo bay
   * @param unk6 na
   * @see `PlacementData`
@@ -30,7 +34,7 @@ final case class VehicleStateMessage(vehicle_guid : PlanetSideGUID,
                                      pos : Vector3,
                                      ang : Vector3,
                                      vel : Option[Vector3],
-                                     unk2 : Option[Int],
+                                     flying : Option[Int],
                                      unk3 : Int,
                                      unk4 : Int,
                                      wheel_direction : Int,
@@ -61,7 +65,7 @@ object VehicleStateMessage extends Marshallable[VehicleStateMessage] {
       ("pos" | Vector3.codec_pos) ::
       ("ang" | codec_orient) ::
       optional(bool, "vel" | Vector3.codec_vel) ::
-      optional(bool, "unk2" | uintL(5)) ::
+      optional(bool, "flying" | uintL(5)) ::
       ("unk3" | uintL(7)) ::
       ("unk4" | uint4L) ::
       ("wheel_direction" | uintL(5)) ::

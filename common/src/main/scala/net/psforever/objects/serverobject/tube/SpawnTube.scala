@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.tube
 
-import net.psforever.objects.GlobalDefinitions
+import net.psforever.objects.{GlobalDefinitions, SpawnPoint}
 import net.psforever.objects.serverobject.structures.Amenity
 
 /**
@@ -9,7 +9,8 @@ import net.psforever.objects.serverobject.structures.Amenity
   * that infantry will be arranged upon spawning into the game world.
   * @param tDef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
   */
-class SpawnTube(tDef : SpawnTubeDefinition) extends Amenity {
+class SpawnTube(tDef : SpawnTubeDefinition) extends Amenity
+  with SpawnPoint {
   def Definition : SpawnTubeDefinition = tDef
 }
 

@@ -121,7 +121,7 @@ object TerminalControlTest {
   def SetUpAgents(tdef : TerminalDefinition, faction : PlanetSideEmpire.Value)(implicit system : ActorSystem) : (Player, Terminal) = {
     val terminal = Terminal(tdef)
     terminal.Actor = system.actorOf(Props(classOf[TerminalControl], terminal), "test-term")
-    terminal.Owner = new Building(building_guid = 0, map_id = 0, Zone.Nowhere, StructureType.Building)
+    terminal.Owner = new Building(building_guid = 0, map_id = 0, Zone.Nowhere, StructureType.Building, GlobalDefinitions.building)
     terminal.Owner.Faction = faction
     (Player(Avatar("test", faction, CharacterGender.Male, 0, CharacterVoice.Mute)), terminal)
   }

@@ -15,9 +15,8 @@ import net.psforever.objects.guid.source.LimitedNumberSource
 import net.psforever.objects.inventory.Container
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
-import net.psforever.objects.serverobject.structures.{Amenity, Building}
+import net.psforever.objects.serverobject.structures.{Amenity, Building, WarpGate}
 import net.psforever.objects.serverobject.terminals.ProximityUnit
-import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.serverobject.turret.FacilityTurret
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types.Vector3
@@ -75,7 +74,7 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
 
   private var buildings : PairMap[Int, Building] = PairMap.empty[Int, Building]
   /** key - spawn zone id, value - buildings belonging to spawn zone */
-  private var spawnGroups : Map[Building, List[SpawnTube]] = PairMap[Building, List[SpawnTube]]()
+  private var spawnGroups : Map[Building, List[SpawnPoint]] = PairMap[Building, List[SpawnPoint]]()
   /** */
   private var vehicleEvents : ActorRef = ActorRef.noSender
 
@@ -92,7 +91,7 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
     * <br>
     * Execution of this operation should be fail-safe.
     * The chances of failure should be mitigated or skipped.
-    * An testing routine should be run after the fact on the results of the process.
+    * A testing routine should be run after the fact on the results of the process.
     * @see `ZoneActor.ZoneSetupCheck`
     * @param context a reference to an `ActorContext` necessary for `Props`
     */
@@ -188,7 +187,7 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
     * @return synchronized reference to the globally unique identifier system
     */
   def GUID(hub : NumberPoolHub) : Boolean = {
-    if(actor == ActorRef.noSender && guid.Pools.map({case ((_, pool)) => pool.Count}).sum == 0) {
+    if(actor == ActorRef.noSender && guid.Pools.map({case (_, pool) => pool.Count}).sum == 0) {
       import org.fusesource.jansi.Ansi.Color.RED
       import org.fusesource.jansi.Ansi.ansi
       println(ansi().fgBright(RED).a(s"""Caution: replacement of the number pool system for zone $Id; function is for testing purposes only""").reset())
@@ -312,8 +311,8 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
     buildings.get(id)
   }
 
-  def BuildingByMapId(map_id : Int) : Building = {
-    buildings.filter(x => x._2.MapId == map_id).head._2
+  def BuildingByMapId(map_id : Int) : Option[Building] = {
+    buildings.values.find(_.MapId == map_id)
   }
 
   private def BuildLocalObjects(implicit context : ActorContext, guid : NumberPoolHub) : Unit = {
@@ -324,7 +323,7 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
     //guard against errors here, but don't worry about specifics; let ZoneActor.ZoneSetupCheck complain about problems
     val other : ListBuffer[IdentifiableEntity] = new ListBuffer[IdentifiableEntity]()
     //turret to weapon
-    Map.TurretToWeapon.foreach({ case ((turret_guid, weapon_guid)) =>
+    Map.TurretToWeapon.foreach({ case (turret_guid, weapon_guid) =>
       ((GUID(turret_guid) match {
         case Some(obj : FacilityTurret) =>
           Some(obj)
@@ -385,27 +384,32 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
   private def CreateSpawnGroups() : Unit = {
     buildings.values
       .filterNot { _.Position == Vector3.Zero }
-      .map(building => { building -> building.Amenities.collect { case(obj : SpawnTube) => obj } })
-      .filter( { case((_, spawns)) => spawns.nonEmpty })
+      .map(building => { building -> building.Amenities.collect { case obj : SpawnPoint => obj } })
+      .filter( { case(_, spawns) => spawns.nonEmpty })
+      .foreach { SpawnGroups }
+
+    buildings.values
+      .filterNot { _.Position == Vector3.Zero }
+      .collect { case building : WarpGate => building -> List(building.asInstanceOf[SpawnPoint]) }
       .foreach { SpawnGroups }
   }
 
-  def SpawnGroups() : Map[Building, List[SpawnTube]] = spawnGroups
+  def SpawnGroups() : Map[Building, List[SpawnPoint]] = spawnGroups
 
-  def SpawnGroups(building : Building) : List[SpawnTube] = SpawnGroups(building.MapId)
+  def SpawnGroups(building : Building) : List[SpawnPoint] = SpawnGroups(building.MapId)
 
-  def SpawnGroups(buildingId : Int) : List[SpawnTube] = {
-    spawnGroups.find({ case((building, _)) => building.MapId == buildingId }) match {
+  def SpawnGroups(buildingId : Int) : List[SpawnPoint] = {
+    spawnGroups.find({ case(building, _) => building.MapId == buildingId }) match {
       case Some((_, list)) =>
         list
       case None =>
-        List.empty[SpawnTube]
+        List.empty[SpawnPoint]
     }
   }
 
-  def SpawnGroups(spawns : (Building, List[SpawnTube])) : Map[Building, List[SpawnTube]] = {
-    val (building, tubes) = spawns
-    val entry : Map[Building, List[SpawnTube]] = PairMap(building -> tubes)
+  def SpawnGroups(spawns : (Building, List[SpawnPoint])) : Map[Building, List[SpawnPoint]] = {
+    val (building, points) = spawns
+    val entry : Map[Building, List[SpawnPoint]] = PairMap(building -> points)
     spawnGroups = spawnGroups ++ entry
     entry
   }
@@ -533,12 +537,14 @@ object Zone {
       * @param spawn_group the category of spawn points the request wants searched
       */
     final case class RequestSpawnPoint(zone_number : Int, player : Player, spawn_group : Int)
+
+    final case class RequestSpecificSpawnPoint(zone_number : Int, player : Player, target : PlanetSideGUID)
     /**
       * Message that returns a discovered spawn point to a request source.
       * @param zone_id the zone's text identifier
-      * @param spawn_tube the spawn point holding object
+      * @param spawn_point the spawn point holding object
       */
-    final case class SpawnPoint(zone_id : String, spawn_tube : SpawnTube)
+    final case class SpawnPoint(zone_id : String, spawn_point : net.psforever.objects.SpawnPoint)
     /**
       * Message that informs a request source that a spawn point could not be discovered with the previous criteria.
       * @param zone_number this zone's numeric identifier

@@ -109,7 +109,7 @@ class ProximityTerminalControlStartTest extends ActorTest {
         AddPool("dynamic", 1 to 10)
       }
     }
-    new Building(building_guid = 0, map_id = 0, zone, StructureType.Facility) {
+    new Building(building_guid = 0, map_id = 0, zone, StructureType.Facility, GlobalDefinitions.building) {
       Amenities = terminal
       Faction = PlanetSideEmpire.VS
     }
@@ -153,7 +153,7 @@ class ProximityTerminalControlTwoUsersTest extends ActorTest {
         AddPool("dynamic", 1 to 10)
       }
     }
-    new Building(building_guid = 0, map_id = 0, zone, StructureType.Facility) {
+    new Building(building_guid = 0, map_id = 0, zone, StructureType.Facility, GlobalDefinitions.building) {
       Amenities = terminal
       Faction = PlanetSideEmpire.VS
     }
@@ -205,7 +205,7 @@ class ProximityTerminalControlStopTest extends ActorTest {
         AddPool("dynamic", 1 to 10)
       }
     }
-    new Building(building_guid = 0, map_id = 0, zone, StructureType.Facility) {
+    new Building(building_guid = 0, map_id = 0, zone, StructureType.Facility, GlobalDefinitions.building) {
       Amenities = terminal
       Faction = PlanetSideEmpire.VS
     }
@@ -256,7 +256,7 @@ class ProximityTerminalControlNotStopTest extends ActorTest {
         AddPool("dynamic", 1 to 10)
       }
     }
-    new Building(building_guid = 0, map_id = 0, zone, StructureType.Facility) {
+    new Building(building_guid = 0, map_id = 0, zone, StructureType.Facility, GlobalDefinitions.building) {
       Amenities = terminal
       Faction = PlanetSideEmpire.VS
     }

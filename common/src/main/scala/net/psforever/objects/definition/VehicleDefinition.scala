@@ -36,6 +36,7 @@ class VehicleDefinition(objectId : Int) extends ObjectDefinition(objectId)
   private var trunkSize : InventoryTile = InventoryTile.None
   private var trunkOffset : Int = 0
   private var canCloak : Boolean = false
+  private var canFly : Boolean = false
   private var canBeOwned : Boolean = true
   private var serverVehicleOverrideSpeeds : (Int, Int) = (0, 0)
   private var deconTime : Option[FiniteDuration] = None
@@ -79,6 +80,13 @@ class VehicleDefinition(objectId : Int) extends ObjectDefinition(objectId)
   def CanCloak_=(cloakable : Boolean) : Boolean =  {
     canCloak = cloakable
     CanCloak
+  }
+
+  def CanFly : Boolean = canFly
+
+  def CanFly_=(flying : Boolean) : Boolean =  {
+    canFly = flying
+    CanFly
   }
 
   def Weapons : mutable.HashMap[Int, ToolDefinition] = weapons
