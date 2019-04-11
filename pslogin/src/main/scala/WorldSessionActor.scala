@@ -1585,17 +1585,28 @@ class WorldSessionActor extends Actor with MDCContextAware {
         //sanitize exo-suit for change
         val originalSuit = player.ExoSuit
         val originalSubtype = Loadout.DetermineSubtype(tplayer)
-        val originalArmor = player.Armor
         val fallbackSuit = ExoSuitType.Standard
-        //a loadout with an unpermited exo-suit type will result in a standard exo-suit
-        val (nextSuit : ExoSuitType.Value, nextSubtype : Int) = if(exosuit != fallbackSuit && tplayer.Certifications.intersect(ExoSuitDefinition.Select(exosuit).Permissions.toSet).nonEmpty) {
+        val fallbackSubtype = 0
+        //a loadout with a prohibited exo-suit type will result in a fallback exo-suit type
+        val (nextSuit : ExoSuitType.Value, nextSubtype : Int) =
+          if(ExoSuitDefinition.Select(exosuit).Permissions match {
+            case Nil =>
+              true
+            case permissions if subtype != 0 =>
+              val certs = tplayer.Certifications
+              certs.intersect(permissions.toSet).nonEmpty &&
+                certs.intersect(InfantryLoadout.DetermineSubtypeC(subtype)).nonEmpty
+            case permissions =>
+              tplayer.Certifications.intersect(permissions.toSet).nonEmpty
+          }) {
           (exosuit, subtype)
         }
         else {
           log.warn(s"$tplayer no longer has permission to wear the exo-suit type $exosuit; will wear $fallbackSuit instead")
-          (fallbackSuit, 0)
+          (fallbackSuit, fallbackSubtype)
         }
         //update suit interally (holsters must be empty before this point)
+        val originalArmor = player.Armor
         tplayer.ExoSuit = nextSuit
         val toMaxArmor = tplayer.MaxArmor
         if(originalSuit != nextSuit || originalSubtype != nextSubtype || originalArmor > toMaxArmor) {
@@ -1635,7 +1646,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
               holsters
                 .filterNot(dropPred)
                 .collect {
-                  case item@InventoryItem(obj, index) if newSuitDef.Holster(index) == obj.Size => item
+                  case item @ InventoryItem(obj, index) if newSuitDef.Holster(index) == obj.Size => item
                 }
             }
             val size = newSuitDef.Holsters.size
