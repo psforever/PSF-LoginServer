@@ -7,19 +7,9 @@ import scodec.{Attempt, Codec, Err}
 import shapeless.{::, HNil}
 
 /**
-  * A representation of the Spitfire-based small turrets deployed using an adaptive construction engine.<br>
-  * <br>
-  * The turret may contain substructure defining a weapon is a turret weapon contained within the turret itself.
-  * Furthermore, that turret-like weapon is loaded with turret-like ammunition.
-  * In other words, this outer turret can be considered a weapons platform for the inner turret weapon.<br>
-  * <br>
-  * If the turret has no `health`, it is rendered as destroyed.
-  * If the turret has no internal weapon, it is safest rendered as destroyed.
-  * @param deploy data common to objects spawned by the (advanced) adaptive construction engine
-  * @param health the amount of health the object has, as a percentage of a filled bar
-  * @param internals data regarding the mounted weapon
+  * This class currently is unused but is based on the `SmallTurretData` `Codec` class.
   */
-final case class LargeDeployableData(deploy : SmallDeployableData,
+final case class LargeDeployableData(deploy : CommonFieldDataWithPlacement,
                                      health : Int,
                                      internals : Option[InventoryData] = None
                                 ) extends ConstructorData {
@@ -37,7 +27,7 @@ final case class LargeDeployableData(deploy : SmallDeployableData,
 
 object LargeDeployableData extends Marshallable[LargeDeployableData] {
   implicit val codec : Codec[LargeDeployableData] = (
-    ("deploy" | SmallDeployableData.codec) ::
+    ("deploy" | CommonFieldDataWithPlacement.codec2) ::
       ("health" | uint8L) ::
       uintL(7) ::
       uint4L ::
@@ -54,8 +44,9 @@ object LargeDeployableData extends Marshallable[LargeDeployableData] {
         }
         Attempt.successful(LargeDeployableData(deploy, newHealth, newInternals))
 
-      case _ =>
-        Attempt.failure(Err("invalid large deployable data format"))
+
+      case data =>
+        Attempt.failure(Err(s"invalid large deployable data format - $data"))
     },
     {
       case LargeDeployableData(deploy, health, internals) =>

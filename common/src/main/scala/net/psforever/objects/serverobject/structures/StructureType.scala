@@ -9,12 +9,12 @@ object StructureType extends Enumeration {
   type Type = Value
 
   val
-  Bridge,
+  Bridge, //technically, a "bridge section"
   Building, //generic
-  Bunker,
-  Facility,
-  Platform, //outdoor amenities like the spawn pads in sanctuary
-  Tower,
-  WarpGate
+  Bunker, //low accessible ground cover
+  Facility, //large base
+  Platform, //outdoor amenities disconnected froma proper base like the vehicle spawn pads in sanctuary
+  Tower, //also called field towers: watchtower, air tower, gun tower
+  WarpGate //transport point between zones
   = Value
 }

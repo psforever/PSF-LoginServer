@@ -4,6 +4,7 @@ package game.objectcreate
 import net.psforever.packet.PacketCoding
 import net.psforever.packet.game.{ObjectCreateMessage, PlanetSideGUID}
 import net.psforever.packet.game.objectcreate._
+import net.psforever.types.PlanetSideEmpire
 import org.specs2.mutable._
 import scodec.bits._
 
@@ -18,36 +19,43 @@ class LockerContainerDataTest extends Specification {
           cls mustEqual ObjectClass.locker_container
           guid mustEqual PlanetSideGUID(3148)
           parent.isDefined mustEqual false
-          data.isDefined mustEqual true
-          data.get.isInstanceOf[LockerContainerData] mustEqual true
-          val locker = data.get.asInstanceOf[LockerContainerData]
-          val contents = locker.inventory.contents
-          contents.size mustEqual 3
-          //0
-          contents.head.objectClass mustEqual ObjectClass.nano_dispenser
-          contents.head.guid mustEqual PlanetSideGUID(2935)
-          contents.head.parentSlot mustEqual 0
-          contents.head.obj.isInstanceOf[WeaponData] mustEqual true
-          val dispenser = contents.head.obj.asInstanceOf[WeaponData]
-          dispenser.unk1 mustEqual 0x6
-          dispenser.unk2 mustEqual 0x0
-          dispenser.ammo.head.objectClass mustEqual ObjectClass.armor_canister
-          dispenser.ammo.head.guid mustEqual PlanetSideGUID(3426)
-          dispenser.ammo.head.parentSlot mustEqual 0
-          dispenser.ammo.head.obj.isInstanceOf[AmmoBoxData] mustEqual true
-          dispenser.ammo.head.obj.asInstanceOf[AmmoBoxData].unk mustEqual 0
-          //1
-          contents(1).objectClass mustEqual ObjectClass.armor_canister
-          contents(1).guid mustEqual PlanetSideGUID(4090)
-          contents(1).parentSlot mustEqual 45
-          contents(1).obj.isInstanceOf[AmmoBoxData] mustEqual true
-          contents(1).obj.asInstanceOf[AmmoBoxData].unk mustEqual 0
-          //2
-          contents(2).objectClass mustEqual ObjectClass.armor_canister
-          contents(2).guid mustEqual PlanetSideGUID(3326)
-          contents(2).parentSlot mustEqual 78
-          contents(2).obj.isInstanceOf[AmmoBoxData] mustEqual true
-          contents(2).obj.asInstanceOf[AmmoBoxData].unk mustEqual 0
+          data.isInstanceOf[LockerContainerData] mustEqual true
+          val locker = data.asInstanceOf[LockerContainerData]
+          locker.inventory match {
+            case Some(InventoryData(contents)) =>
+              contents.size mustEqual 3
+              //0
+              contents.head.objectClass mustEqual ObjectClass.nano_dispenser
+              contents.head.guid mustEqual PlanetSideGUID(2935)
+              contents.head.parentSlot mustEqual 0
+              contents.head.obj match {
+                case WeaponData(CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid), _, _, _) =>
+                  faction mustEqual PlanetSideEmpire.NEUTRAL
+                  bops mustEqual false
+                  alternate mustEqual false
+                  v1 mustEqual false
+                  v2.isEmpty mustEqual true
+                  v3 mustEqual false
+                  v4.isEmpty mustEqual true
+                  v5.isEmpty mustEqual true
+                  fguid mustEqual PlanetSideGUID(0)
+                case _ =>
+                  ko
+              }
+              //1
+              contents(1).objectClass mustEqual ObjectClass.armor_canister
+              contents(1).guid mustEqual PlanetSideGUID(4090)
+              contents(1).parentSlot mustEqual 45
+              contents(1).obj.isInstanceOf[CommonFieldData] mustEqual true
+              //2
+              contents(2).objectClass mustEqual ObjectClass.armor_canister
+              contents(2).guid mustEqual PlanetSideGUID(3326)
+              contents(2).parentSlot mustEqual 78
+              contents(2).obj.isInstanceOf[CommonFieldData] mustEqual true
+            case None =>
+              ko
+          }
+
         case _ =>
           ko
       }
@@ -55,12 +63,17 @@ class LockerContainerDataTest extends Specification {
 
     "encode" in {
       val obj = LockerContainerData(
-        InventoryData(
-          InventoryItemData(ObjectClass.nano_dispenser, PlanetSideGUID(2935), 0, WeaponData(0x6, 0x0, ObjectClass.armor_canister, PlanetSideGUID(3426), 0, AmmoBoxData())) ::
-            InventoryItemData(ObjectClass.armor_canister, PlanetSideGUID(4090), 45, AmmoBoxData()) ::
-            InventoryItemData(ObjectClass.armor_canister, PlanetSideGUID(3326), 78, AmmoBoxData()) ::
-            Nil
-        )
+        InventoryData(List(
+          InventoryItemData(ObjectClass.nano_dispenser, PlanetSideGUID(2935), 0,
+            WeaponData(
+              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, None, PlanetSideGUID(0)),
+              0,
+              List(InternalSlot(ObjectClass.armor_canister, PlanetSideGUID(3426), 0, CommonFieldData()(false)))
+            )
+          ),
+          InventoryItemData(ObjectClass.armor_canister, PlanetSideGUID(4090), 45, CommonFieldData()(false)),
+          InventoryItemData(ObjectClass.armor_canister, PlanetSideGUID(3326), 78, CommonFieldData()(false))
+        ))
       )
       val msg = ObjectCreateMessage(ObjectClass.locker_container, PlanetSideGUID(3148), obj)
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector

@@ -9,21 +9,26 @@ import scala.util.{Failure, Success, Try}
 
 class ShieldGeneratorConverter extends ObjectCreateConverter[ShieldGeneratorDeployable]() {
   override def ConstructorData(obj : ShieldGeneratorDeployable) : Try[AegisShieldGeneratorData] = {
-    val health = 255 * obj.Health / obj.MaxHealth //TODO not precise
+    val health = StatConverter.Health(obj.Health, obj.MaxHealth)
     if(health > 0) {
       Success(
         AegisShieldGeneratorData(
-          CommonFieldData(
+          CommonFieldDataWithPlacement(
             PlacementData(obj.Position, obj.Orientation),
-            obj.Faction,
-            bops = false,
-            destroyed = false,
-            unk = 0,
-            jammered = false,
-            obj.Owner match {
-              case Some(owner) => owner
-              case None => PlanetSideGUID(0)
-            }
+            CommonFieldData(
+              obj.Faction,
+              bops = false,
+              alternate = false,
+              v1 = false,
+              v2 = None,
+              v3 = false,
+              None,
+              None,
+              obj.Owner match {
+                case Some(owner) => owner
+                case None => PlanetSideGUID(0)
+              }
+            )
           ),
           health
         )
@@ -32,14 +37,19 @@ class ShieldGeneratorConverter extends ObjectCreateConverter[ShieldGeneratorDepl
     else {
       Success(
         AegisShieldGeneratorData(
-          CommonFieldData(
+          CommonFieldDataWithPlacement(
             PlacementData(obj.Position, obj.Orientation),
-            obj.Faction,
-            bops = false,
-            destroyed = true,
-            unk = 0,
-            jammered = false,
-            player_guid = PlanetSideGUID(0)
+            CommonFieldData(
+              obj.Faction,
+              bops = false,
+              alternate = true,
+              v1 = false,
+              v2 = None,
+              v3 = false,
+              None,
+              None,
+              PlanetSideGUID(0)
+            )
           ),
           0
         )

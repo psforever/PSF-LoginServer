@@ -9,6 +9,7 @@ import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.objects.serverobject.terminals._
 import net.psforever.objects.serverobject.tube.{SpawnTube, SpawnTubeDefinition}
 import net.psforever.packet.game.{ItemTransactionMessage, PlanetSideGUID}
+import net.psforever.types.Vector3
 
 /**
   * An `Enumeration` of the available vehicular utilities.<br>
@@ -22,7 +23,10 @@ object UtilityType extends Enumeration {
   type Type = Value
   val
   ams_respawn_tube,
+  bfr_rearm_terminal,
+  lodestar_repair_terminal,
   matrix_terminalc,
+  multivehicle_rearm_terminal,
   order_terminala,
   order_terminalb,
   teleportpad_terminal,
@@ -41,11 +45,11 @@ object UtilityType extends Enumeration {
   * Ostensibly, the purpose of the additional logic, when it is called,
   * is to initialize a control `Actor` for the contained object.
   * This `Actor` is expected by other logic.
+  * @see `Amenity.Owner`
   * @see `Vehicle.LoadDefinition`
   * @see `VehicleDefinition.Utilities`
   * @param util the type of the `Amenity` object to be created
   * @param vehicle the owner of this object
-  * @see `Amenity.Owner`
   */
 class Utility(util : UtilityType.Value, vehicle : Vehicle) {
   private val obj : Amenity = Utility.BuildUtilityFunc(util)
@@ -76,6 +80,28 @@ object Utility {
   type UtilLogic = (Amenity, ActorContext)=>Unit
 
   /**
+    * Embedded (owned) entities are known in relation to their parent entity.
+    * These overrides to the `Position` method and the `Orientation` method reflect this.
+    */
+  sealed trait UtilityWorldEntity {
+    this : Amenity =>
+
+    override def Position : Vector3 = {
+      val oPos = Owner.Position
+      (Owner, LocationOffset) match {
+        case (_, Vector3.Zero) =>
+          oPos
+        case (_ : Vehicle, v) =>
+          oPos + v.Rz(Orientation.z + 90)
+        case _ =>
+          oPos
+      }
+    }
+
+    override def Orientation : Vector3 = Owner.Orientation
+  }
+
+  /**
     * Overloaded constructor.
     * @param util the type of the `Amenity` object to be created
     * @param vehicle the owner of this object
@@ -93,8 +119,14 @@ object Utility {
   private def BuildUtilityFunc(util : UtilityType.Value) : Amenity = util match {
     case UtilityType.ams_respawn_tube =>
       new SpawnTubeUtility(GlobalDefinitions.ams_respawn_tube)
+    case UtilityType.bfr_rearm_terminal =>
+      new TerminalUtility(GlobalDefinitions.bfr_rearm_terminal)
+    case UtilityType.lodestar_repair_terminal =>
+      new ProximityTerminalUtility(GlobalDefinitions.lodestar_repair_terminal)
     case UtilityType.matrix_terminalc =>
       new TerminalUtility(GlobalDefinitions.matrix_terminalc)
+    case UtilityType.multivehicle_rearm_terminal =>
+      new TerminalUtility(GlobalDefinitions.multivehicle_rearm_terminal)
     case UtilityType.order_terminala =>
       new TerminalUtility(GlobalDefinitions.order_terminala)
     case UtilityType.order_terminalb =>
@@ -109,39 +141,50 @@ object Utility {
     * Override for `SpawnTube` objects so that they inherit the spatial characteristics of their `Owner`.
     * @param tubeDef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
     */
-  class SpawnTubeUtility(tubeDef : SpawnTubeDefinition) extends SpawnTube(tubeDef) {
-    override def Position = Owner.Position
-    override def Orientation = Owner.Orientation
-  }
+  class SpawnTubeUtility(tubeDef : SpawnTubeDefinition) extends SpawnTube(tubeDef) with UtilityWorldEntity
 
   /**
-    * Override for `Terminal` objects so that they inherit the spatial characteristics of their `Owner`.
+    * Override for a `Terminal` object so that it inherits the spatial characteristics of its `Owner`.
     * @param tdef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
     */
-  class TerminalUtility(tdef : TerminalDefinition) extends Terminal(tdef) {
-    override def Position = Owner.Position
-    override def Orientation = Owner.Orientation
-  }
+  class TerminalUtility(tdef : TerminalDefinition) extends Terminal(tdef) with UtilityWorldEntity
 
   /**
-    * na
+    * Override for a `Terminal` object so that it inherits the spatial characteristics of its `Owner`.
+    * The `Terminal` `Utility` produced has proximity effects.
+    * @param tdef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
+    */
+  class ProximityTerminalUtility(tdef : ProximityTerminalDefinition) extends ProximityTerminal(tdef)
+    with UtilityWorldEntity
+
+  /**
+    * Override for a `Terminal` object so that it inherits the spatial characteristics of its `Owner`.
+    * The `Terminal` `Utility` produced dispenses a specific item
+    * that retain knowledge of the `Owner` of the `Terminal` that dispensed it.
     * @param tdef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
     */
   class TeleportPadTerminalUtility(tdef : TerminalDefinition) extends TerminalUtility(tdef) {
     /**
-      * na
-      * @param player na
-      * @param msg na
-      * @return na
+      * This kind of `Terminal` object only produces one object of importance - a Router's telepad unit.
+      * When this `Telepad` object is produced, it shlould be associated with the Router,
+      * that is, with the owner of the `Terminal` object.
+      * @param player the player who made the request
+      * @param msg the request message
+      * @return a message that resolves the transaction
       */
-    override def Buy(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
-      val reply = super.Buy(player, msg)
-      reply match {
-        case Terminal.BuyEquipment(obj : Telepad) =>
-          obj.Router = Owner.GUID
-        case _ => ;
+    override def Request(player : Player, msg : Any) : Terminal.Exchange = {
+      msg match {
+        case message : ItemTransactionMessage =>
+          val reply = super.Request(player, message)
+          reply match {
+            case Terminal.BuyEquipment(obj : Telepad) =>
+              obj.Router = Owner.GUID
+            case _ => ;
+          }
+          reply
+        case _ =>
+          Terminal.NoDeal()
       }
-      reply
     }
   }
 
@@ -180,17 +223,21 @@ object Utility {
   private def SelectUtilitySetupFunc(util : UtilityType.Value) : UtilLogic = util match {
     case UtilityType.ams_respawn_tube =>
       SpawnTubeDefinition.Setup
+    case UtilityType.bfr_rearm_terminal =>
+      OrderTerminalDefinition.Setup
+    case UtilityType.lodestar_repair_terminal =>
+      ProximityTerminal.Setup
     case UtilityType.matrix_terminalc =>
       MatrixTerminalDefinition.Setup
+    case UtilityType.multivehicle_rearm_terminal =>
+      OrderTerminalDefinition.Setup
     case UtilityType.order_terminala =>
-      OrderTerminalABDefinition.Setup
+      OrderTerminalDefinition.Setup
     case UtilityType.order_terminalb =>
-      OrderTerminalABDefinition.Setup
+      OrderTerminalDefinition.Setup
     case UtilityType.teleportpad_terminal =>
-      TeleportPadTerminalDefinition.Setup
+      OrderTerminalDefinition.Setup
     case UtilityType.internal_router_telepad_deployable =>
       TelepadLike.Setup
   }
-
-  //private def defaultSetup(o1 : Amenity, o2 : ActorContext) : Unit = { }
 }

@@ -28,7 +28,7 @@ class ImplantTerminalMechTest extends Specification {
     }
   }
 
-  "VehicleSpawnPad" should {
+  "Implant_Terminal_Mech" should {
     "construct" in {
       val obj = ImplantTerminalMech(GlobalDefinitions.implant_terminal_mech)
       obj.Actor mustEqual ActorRef.noSender
@@ -161,7 +161,7 @@ object ImplantTerminalMechTest {
 
     val terminal = ImplantTerminalMech(GlobalDefinitions.implant_terminal_mech)
     terminal.Actor = system.actorOf(Props(classOf[ImplantTerminalMechControl], terminal), "mech")
-    terminal.Owner = new Building(0, Zone.Nowhere, StructureType.Building)
+    terminal.Owner = new Building(building_guid = 0, map_id = 0, Zone.Nowhere, StructureType.Building, GlobalDefinitions.building)
     terminal.Owner.Faction = faction
     terminal.GUID = PlanetSideGUID(1)
     (Player(Avatar("test", faction, CharacterGender.Male, 0, CharacterVoice.Mute)), terminal)

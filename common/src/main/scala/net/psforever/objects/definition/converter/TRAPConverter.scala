@@ -9,22 +9,26 @@ import scala.util.{Failure, Success, Try}
 
 class TRAPConverter extends ObjectCreateConverter[TrapDeployable]() {
   override def ConstructorData(obj : TrapDeployable) : Try[TRAPData] = {
-    val health = 255 * obj.Health / obj.MaxHealth //TODO not precise
+    val health = StatConverter.Health(obj.Health, obj.MaxHealth)
     if(health > 0) {
       Success(
         TRAPData(
-          SmallDeployableData(
+          CommonFieldDataWithPlacement(
             PlacementData(obj.Position, obj.Orientation),
-            obj.Faction,
-            bops = false,
-            destroyed = false,
-            unk1 = 0,
-            jammered = false,
-            unk2 = false,
-            obj.Owner match {
-              case Some(owner) => owner
-              case None => PlanetSideGUID(0)
-            }
+            CommonFieldData(
+              obj.Faction,
+              bops = false,
+              alternate = false,
+              true,
+              None,
+              false,
+              Some(true),
+              None,
+              obj.Owner match {
+                case Some(owner) => owner
+                case None => PlanetSideGUID(0)
+              }
+            )
           ),
           health
         )
@@ -33,15 +37,19 @@ class TRAPConverter extends ObjectCreateConverter[TrapDeployable]() {
     else {
       Success(
         TRAPData(
-          SmallDeployableData(
+          CommonFieldDataWithPlacement(
             PlacementData(obj.Position, obj.Orientation),
-            obj.Faction,
-            bops = false,
-            destroyed = true,
-            unk1 = 0,
-            jammered = false,
-            unk2 = false,
-            owner_guid = PlanetSideGUID(0)
+            CommonFieldData(
+              obj.Faction,
+              bops = false,
+              alternate = true,
+              true,
+              None,
+              false,
+              Some(true),
+              None,
+              PlanetSideGUID(0)
+            )
           ),
           0
         )

@@ -13,8 +13,6 @@ import scala.annotation.switch
   * UnknownMessage* means that there, to the best of our knowledge, was no opcode of this value.
   * This was double checked by extracting out the master case statement in PlanetsideComm::OnReceive
   * and by parsing NetMessage RTTI.
-  *
-  * Keep http://psforever.net/wiki/Game_Packets up-to-date with the decoding progress of each packet
   */
 object GamePacketOpcode extends Enumeration {
   type Type = Value
@@ -311,13 +309,13 @@ object GamePacketOpcode extends Enumeration {
   ClientCheatedMessage // last known message type (243, 0xf3)
   = Value
 
-  private def noDecoder(opcode : GamePacketOpcode.Type) = (a : BitVector) =>
+  private def noDecoder(opcode : GamePacketOpcode.Type) = (_ : BitVector) =>
     Attempt.failure(Err(s"Could not find a marshaller for game packet $opcode"))
 
   /// Mapping of packet IDs to decoders. Notice that we are using the @switch annotation which ensures that the Scala
   /// compiler will be able to optimize this as a lookup table (switch statement). Microbenchmarks show a nearly 400x
   /// speedup when using a switch (given the worst case of not finding a decoder)
-  def getPacketDecoder(opcode : GamePacketOpcode.Type) : (BitVector) => Attempt[DecodeResult[PlanetSideGamePacket]] = (opcode.id : @switch) match {
+  def getPacketDecoder(opcode : GamePacketOpcode.Type) : BitVector => Attempt[DecodeResult[PlanetSideGamePacket]] = (opcode.id : @switch) match {
     // OPCODES 0x00-0f
     case 0x00 => noDecoder(Unknown0)
     case 0x01 => game.LoginMessage.decode
@@ -492,7 +490,7 @@ object GamePacketOpcode extends Enumeration {
     // OPCODES 0x90-9f
     case 0x90 => noDecoder(OutfitMemberEvent)
     case 0x91 => noDecoder(OutfitMemberUpdate)
-    case 0x92 => noDecoder(PlanetsideStringAttributeMessage)
+    case 0x92 => game.PlanetsideStringAttributeMessage.decode
     case 0x93 => noDecoder(DataChallengeMessage)
     case 0x94 => noDecoder(DataChallengeMessageResp)
     case 0x95 => game.WeatherMessage.decode

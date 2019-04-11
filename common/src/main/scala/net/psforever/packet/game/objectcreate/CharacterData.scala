@@ -27,7 +27,8 @@ object ImplantEffects extends Enumeration {
 
 /**
   * Values for the four different color designs that impact a player's uniform.
-  * Exo-suits get minor graphical updates at the following battle rank levels: seven, fourteen, and twenty-five.
+  * Exo-suits get minor graphical updates at the following battle rank levels: seven (1), fourteen (2), and twenty-five (4).
+  * The values 3 and 5 also exist and are visually descriptive to the third upgrade.
   */
 object UniformStyle extends Enumeration {
   type Type = Value
@@ -35,9 +36,11 @@ object UniformStyle extends Enumeration {
   val Normal = Value(0)
   val FirstUpgrade = Value(1)
   val SecondUpgrade = Value(2)
+  val SecondUpgradeEx = Value(3)
   val ThirdUpgrade = Value(4)
+  val ThirdUpgradeEx = Value(5)
 
-  implicit val codec = PacketHelpers.createEnumerationCodec(this, uintL(3))
+  implicit val codec = PacketHelpers.createEnumerationCodec(this, uint(3))
 }
 
 /**
@@ -115,7 +118,7 @@ object CharacterData extends Marshallable[CharacterData] {
         uint(3) :: //uniform_upgrade is actually interpreted as a 6u field, but the lower 3u seems to be discarded
           ("command_rank" | uintL(3)) ::
           listOfN(uint2, "implant_effects" | ImplantEffects.codec) ::
-          conditional(style == UniformStyle.ThirdUpgrade, "cosmetics" | Cosmetics.codec)
+          conditional(style.id > UniformStyle.SecondUpgrade.id,"cosmetics" | Cosmetics.codec)
       })
     ).exmap[CharacterData] (
     {
@@ -141,7 +144,7 @@ object CharacterData extends Marshallable[CharacterData] {
       uint(3) :: //uniform_upgrade is actually interpreted as a 6u field, but the lower 3u seems to be discarded
         ("command_rank" | uintL(3)) ::
         listOfN(uint2, "implant_effects" | ImplantEffects.codec) ::
-        conditional(style == UniformStyle.ThirdUpgrade, "cosmetics" | Cosmetics.codec)
+        conditional(style.id > UniformStyle.SecondUpgrade.id, "cosmetics" | Cosmetics.codec)
     }
     ).exmap[CharacterData] (
     {

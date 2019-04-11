@@ -61,6 +61,15 @@ class InterstellarCluster(zones : List[Zone]) extends Actor {
           sender ! Zone.Lattice.NoValidSpawnPoint(zone_number, None)
       }
 
+    case msg @ Zone.Lattice.RequestSpecificSpawnPoint(zone_number, _, _) =>
+      recursiveFindWorldInCluster(zones.iterator, _.Number == zone_number) match {
+        case Some(zone) =>
+          zone.Actor forward msg
+
+        case None => //zone_number does not exist
+          sender ! Zone.Lattice.NoValidSpawnPoint(zone_number, None)
+      }
+
     case _ =>
       log.warn(s"InterstellarCluster received unknown message");
   }

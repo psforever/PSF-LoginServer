@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects
 
-import net.psforever.objects.equipment.EquipmentSize
+import net.psforever.objects.equipment.{EquipmentSize, EquipmentSlot}
 
 /**
   * A size-checked unit of storage (or mounting) for `Equipment`.

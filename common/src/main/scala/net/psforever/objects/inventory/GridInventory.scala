@@ -3,8 +3,7 @@ package net.psforever.objects.inventory
 
 import java.util.concurrent.atomic.AtomicInteger
 
-import net.psforever.objects.equipment.Equipment
-import net.psforever.objects.EquipmentSlot
+import net.psforever.objects.equipment.{Equipment, EquipmentSlot}
 import net.psforever.packet.game.PlanetSideGUID
 
 import scala.annotation.tailrec
@@ -226,10 +225,12 @@ class GridInventory extends Container {
     else {
       val collisions : mutable.Set[InventoryItem] = mutable.Set[InventoryItem]()
       var curr = actualSlot
+      val fixedItems = items.toMap
+      val fixedGrid = grid.toList
       for(_ <- 0 until h) {
         for(col <- 0 until w) {
-          if(grid(curr + col) > -1) {
-            collisions += items(grid(curr + col))
+          if(fixedGrid(curr + col) > -1) {
+            collisions += fixedItems(fixedGrid(curr + col))
           }
         }
         curr += width

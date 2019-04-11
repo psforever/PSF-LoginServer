@@ -1,22 +1,14 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.terminals
 
-import net.psforever.objects.Player
-import net.psforever.packet.game.ItemTransactionMessage
 import net.psforever.types.CertificationType
 
-/**
-  * The definition for any `Terminal` that is of a type "cert_terminal" (certification terminal).
-  * `Learn` and `Sell` `CertificationType` entries, gaining access to different `Equipment` and `Vehicles`.
-  */
-class CertTerminalDefinition extends TerminalDefinition(171) {
-  Name = "cert_terminal"
-
+object CertTerminalDefinition {
   /**
     * The certifications available.
     * All entries are listed on page (tab) number 0.
     */
-  private val certificationList : Map[String, CertificationType.Value] = Map(
+  val certs : Map[String, CertificationType.Value] = Map(
     "medium_assault" -> CertificationType.MediumAssault,
     "reinforced_armor" -> CertificationType.ReinforcedExoSuit,
     "quad_all" -> CertificationType.ATV,
@@ -59,34 +51,4 @@ class CertTerminalDefinition extends TerminalDefinition(171) {
     "advanced_medical" -> CertificationType.AdvancedMedical
     //TODO bfr certification entries
   )
-
-  /**
-    * Process a `TransactionType.Learn` action by the user.
-    * @param player the player
-    * @param msg the original packet carrying the request
-    * @return an actionable message that explains how to process the request
-    */
-  def Buy(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = { //Learn
-    certificationList.get(msg.item_name) match {
-      case Some(cert) =>
-        Terminal.LearnCertification(cert)
-      case None =>
-        Terminal.NoDeal()
-    }
-  }
-
-  /**
-    * Process a `TransactionType.Sell` action by the user.
-    * @param player the player
-    * @param msg the original packet carrying the request
-    * @return an actionable message that explains how to process the request
-    */
-  override def Sell(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
-    certificationList.get(msg.item_name) match {
-      case Some(cert) =>
-        Terminal.SellCertification(cert)
-      case None =>
-        Terminal.NoDeal()
-    }
-  }
 }

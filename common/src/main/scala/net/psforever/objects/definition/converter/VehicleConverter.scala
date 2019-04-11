@@ -4,7 +4,7 @@ package net.psforever.objects.definition.converter
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.Vehicle
 import net.psforever.packet.game.PlanetSideGUID
-import net.psforever.packet.game.objectcreate.{InventoryData, InventoryItemData, ObjectClass, PlacementData, SpecificVehicleData, VehicleData, VehicleFormat}
+import net.psforever.packet.game.objectcreate._
 import net.psforever.types.DriveState
 
 import scala.util.{Failure, Success, Try}
@@ -14,21 +14,25 @@ class VehicleConverter extends ObjectCreateConverter[Vehicle]() {
     Failure(new Exception("VehicleConverter should not be used to generate detailed VehicleData (nothing should)"))
 
   override def ConstructorData(obj : Vehicle) : Try[VehicleData] = {
-    val health = 255 * obj.Health / obj.MaxHealth //TODO not precise
+    val health = StatConverter.Health(obj.Health, obj.MaxHealth)
     if(health > 0) { //active
       Success(
         VehicleData(
           PlacementData(obj.Position, obj.Orientation, obj.Velocity),
-          obj.Faction,
-          bops = false,
-          destroyed = false,
-          unk1 = 0,
-          obj.Jammered,
-          unk2 = false,
-          obj.Owner match {
-            case Some(owner) => owner
-            case None => PlanetSideGUID(0)
-          },
+          CommonFieldData(
+            obj.Faction,
+            bops = false,
+            alternate = false,
+            v1 = false,
+            v2 = None,
+            v3 = false,
+            v4 = Some(false),
+            v5 = None,
+            obj.Owner match {
+              case Some(owner) => owner
+              case None => PlanetSideGUID(0)
+            }
+          ),
           unk3 = false,
           health,
           unk4 = false,
@@ -46,13 +50,17 @@ class VehicleConverter extends ObjectCreateConverter[Vehicle]() {
       Success(
         VehicleData(
           PlacementData(obj.Position, obj.Orientation),
-          obj.Faction,
-          bops = false,
-          destroyed = true,
-          unk1 = 0,
-          jammered = false,
-          unk2 = false,
-          owner_guid = PlanetSideGUID(0),
+          CommonFieldData(
+            obj.Faction,
+            bops = false,
+            alternate = true,
+            v1 = false,
+            v2 = None,
+            v3 = false,
+            v4 = Some(false),
+            v5 = None,
+            guid = PlanetSideGUID(0)
+          ),
           unk3 = false,
           health = 0,
           unk4 = false,
@@ -80,7 +88,7 @@ class VehicleConverter extends ObjectCreateConverter[Vehicle]() {
   
   private def MakeMountings(obj : Vehicle) : List[InventoryItemData.InventoryItem] = {
     obj.Weapons.map({
-      case((index, slot)) =>
+      case(index, slot) =>
         val equip : Equipment = slot.Equipment.get
         val equipDef = equip.Definition
         InventoryItemData(equipDef.ObjectId, equip.GUID, index, equipDef.Packet.ConstructorData(equip).get)

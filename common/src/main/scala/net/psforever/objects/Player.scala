@@ -1,14 +1,16 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects
 
-import net.psforever.objects.definition.AvatarDefinition
-import net.psforever.objects.equipment.{Equipment, EquipmentSize}
+import net.psforever.objects.definition.{AvatarDefinition, ExoSuitDefinition, SpecialExoSuitDefinition}
+import net.psforever.objects.equipment.{Equipment, EquipmentSize, EquipmentSlot}
 import net.psforever.objects.inventory.{Container, GridInventory, InventoryItem}
 import net.psforever.objects.loadouts.Loadout
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.vital.resistance.ResistanceProfile
 import net.psforever.objects.vital.{DamageResistanceModel, Vitality}
+import net.psforever.objects.zones.ZoneAware
 import net.psforever.packet.game.PlanetSideGUID
+import net.psforever.packet.game.objectcreate.{Cosmetics, DetailedCharacterData, PersonalStyle}
 import net.psforever.types._
 
 import scala.annotation.tailrec
@@ -18,7 +20,8 @@ class Player(private val core : Avatar) extends PlanetSideGameObject
   with FactionAffinity
   with Vitality
   with ResistanceProfile
-  with Container {
+  with Container
+  with ZoneAware {
   private var alive : Boolean = false
   private var backpack : Boolean = false
   private var health : Int = 0
@@ -27,18 +30,18 @@ class Player(private val core : Avatar) extends PlanetSideGameObject
   private var maxHealth : Int = 100 //TODO affected by empire benefits, territory benefits, and bops
   private var maxStamina : Int = 100 //does anything affect this?
 
-  private var exosuit : ExoSuitDefinition = ExoSuitDefinition.Standard
+  private var exosuit : ExoSuitDefinition = GlobalDefinitions.Standard
   private val freeHand : EquipmentSlot = new OffhandEquipmentSlot(EquipmentSize.Inventory)
   private val holsters : Array[EquipmentSlot] = Array.fill[EquipmentSlot](5)(new EquipmentSlot)
   private val inventory : GridInventory = GridInventory()
   private var drawnSlot : Int = Player.HandsDownSlot
   private var lastDrawnSlot : Int = Player.HandsDownSlot
+  private var backpackAccess : Option[PlanetSideGUID] = None
 
   private var facingYawUpper : Float = 0f
   private var crouching : Boolean  = false
   private var jumping : Boolean = false
   private var cloaked : Boolean = false
-  private var backpackAccess : Option[PlanetSideGUID] = None
 
   private var vehicleSeated : Option[PlanetSideGUID] = None
   private var vehicleOwned : Option[PlanetSideGUID] = None
@@ -281,6 +284,8 @@ class Player(private val core : Avatar) extends PlanetSideGameObject
     ChangeSpecialAbility()
   }
 
+  def Subtract = exosuit.Subtract
+
   def ResistanceDirectHit = exosuit.ResistanceDirectHit
 
   def ResistanceSplash = exosuit.ResistanceSplash
@@ -343,7 +348,71 @@ class Player(private val core : Avatar) extends PlanetSideGameObject
     Cloaked
   }
 
-  private var usingSpecial : (SpecialExoSuitDefinition.Mode.Value)=>SpecialExoSuitDefinition.Mode.Value = DefaultUsingSpecial
+  def PersonalStyleFeatures : Option[Cosmetics] = core.PersonalStyleFeatures
+
+  def AddToPersonalStyle(value : PersonalStyle.Value) : (Option[Cosmetics], Option[Cosmetics]) = {
+    val original = core.PersonalStyleFeatures
+    if(DetailedCharacterData.isBR24(core.BEP)) {
+      core.PersonalStyleFeatures = original match {
+        case Some(cosmetic) =>
+          cosmetic + value
+        case None =>
+          Cosmetics(value)
+      }
+      (original, core.PersonalStyleFeatures)
+    }
+    else {
+      (None, None)
+    }
+  }
+
+  def RemoveFromPersonalStyle(value : PersonalStyle.Value) : (Option[Cosmetics], Option[Cosmetics]) = {
+    val original = core.PersonalStyleFeatures
+      original match {
+        case Some(cosmetics) =>
+          (original, core.PersonalStyleFeatures = cosmetics - value)
+        case None =>
+          (None, None)
+      }
+  }
+
+  private def BasicFeatureToggle(feature : PersonalStyle.Value) : (Option[Cosmetics], Option[Cosmetics]) = core.PersonalStyleFeatures match {
+    case Some(c : Cosmetics) =>
+      if(c.Styles.contains(feature)) {
+        RemoveFromPersonalStyle(feature)
+      }
+      else {
+        AddToPersonalStyle(feature)
+      }
+    case None =>
+      AddToPersonalStyle(feature)
+  }
+
+  def ToggleHelmet : (Option[Cosmetics], Option[Cosmetics]) = BasicFeatureToggle(PersonalStyle.NoHelmet)
+
+  def ToggleShades : (Option[Cosmetics], Option[Cosmetics]) = BasicFeatureToggle(PersonalStyle.Sunglasses)
+
+  def ToggleEarpiece : (Option[Cosmetics], Option[Cosmetics]) = BasicFeatureToggle(PersonalStyle.Earpiece)
+
+  def ToggleHat : (Option[Cosmetics], Option[Cosmetics]) = {
+    core.PersonalStyleFeatures match {
+      case Some(c : Cosmetics) =>
+        if(c.Styles.contains(PersonalStyle.BrimmedCap)) {
+          (RemoveFromPersonalStyle(PersonalStyle.BrimmedCap)._1,
+            AddToPersonalStyle(PersonalStyle.Beret)._2)
+        }
+        else if(c.Styles.contains(PersonalStyle.Beret)) {
+          RemoveFromPersonalStyle(PersonalStyle.Beret)
+        }
+        else {
+          AddToPersonalStyle(PersonalStyle.BrimmedCap)
+        }
+      case None =>
+        AddToPersonalStyle(PersonalStyle.BrimmedCap)
+    }
+  }
+
+  private var usingSpecial : SpecialExoSuitDefinition.Mode.Value=>SpecialExoSuitDefinition.Mode.Value = DefaultUsingSpecial
 
   private var gettingSpecial : ()=>SpecialExoSuitDefinition.Mode.Value = DefaultGettingSpecial
 

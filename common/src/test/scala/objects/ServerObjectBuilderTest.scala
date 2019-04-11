@@ -3,6 +3,7 @@ package objects
 
 import akka.actor.{Actor, ActorContext, Props}
 import base.ActorTest
+import net.psforever.objects.GlobalDefinitions
 import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.objects.serverobject.ServerObjectBuilder
@@ -16,13 +17,13 @@ import scala.concurrent.duration.Duration
 class BuildingBuilderTest extends ActorTest {
   "Building object" should {
     "build" in {
-      val structure : (Int,Zone,ActorContext)=>Building = Building.Structure(StructureType.Building)
-      val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuildingTestActor], structure, 10, Zone.Nowhere), "building")
+      val structure : (Int,Int,Zone,ActorContext)=>Building = Building.Structure(StructureType.Building)
+      val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuildingTestActor], structure, 10, 10, Zone.Nowhere), "building")
       actor ! "!"
 
       val reply = receiveOne(Duration.create(1000, "ms"))
       assert(reply.isInstanceOf[Building])
-      assert(reply.asInstanceOf[Building].Id == 10)
+      assert(reply.asInstanceOf[Building].MapId == 10)
       assert(reply.asInstanceOf[Building].Zone == Zone.Nowhere)
     }
   }
@@ -31,13 +32,13 @@ class BuildingBuilderTest extends ActorTest {
 class WarpGateBuilderTest extends ActorTest {
   "WarpGate object" should {
     "build" in {
-      val structure : (Int,Zone,ActorContext)=>Building = WarpGate.Structure
-      val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuildingTestActor], structure, 10, Zone.Nowhere), "wgate")
+      val structure : (Int,Int,Zone,ActorContext)=>Building = WarpGate.Structure
+      val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuildingTestActor], structure, 10, 10, Zone.Nowhere), "wgate")
       actor ! "!"
 
       val reply = receiveOne(Duration.create(1000, "ms"))
       assert(reply.isInstanceOf[Building])
-      assert(reply.asInstanceOf[Building].Id == 10)
+      assert(reply.asInstanceOf[Building].MapId == 10)
       assert(reply.asInstanceOf[Building].Zone == Zone.Nowhere)
     }
   }
@@ -65,14 +66,12 @@ class DoorObjectBuilderTest2 extends ActorTest {
   "Door object" should {
     "build" in {
       val hub = ServerObjectBuilderTest.NumberPoolHub
-      val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1, Door.Constructor(Vector3(1, 2, 3), Vector3(90, 180, 45))), hub), "door")
+      val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1, Door.Constructor(Vector3(1, 2, 3))), hub), "door")
       actor ! "!"
 
       val reply = receiveOne(Duration.create(1000, "ms"))
       assert(reply.isInstanceOf[Door])
       assert(reply.asInstanceOf[Door].Position == Vector3(1, 2, 3))
-      assert(reply.asInstanceOf[Door].Orientation == Vector3(90, 180, 45))
-      assert(reply.asInstanceOf[Door].Outwards == Vector3(0.70710677f, 0.70710677f, 0f))
       assert(reply.asInstanceOf[Door].HasGUID)
       assert(reply.asInstanceOf[Door].GUID == PlanetSideGUID(1))
       assert(reply == hub(1).get)
@@ -85,7 +84,7 @@ class IFFLockObjectBuilderTest extends ActorTest {
   "IFFLock object" should {
     "build" in {
       val hub = ServerObjectBuilderTest.NumberPoolHub
-      val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1, IFFLock.Constructor), hub), "lock")
+      val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1, IFFLock.Constructor(Vector3(0f, 0f, 0f), Vector3(0f, 0f, 0f))), hub), "lock")
       actor ! "!"
 
       val reply = receiveOne(Duration.create(1000, "ms"))
@@ -157,7 +156,7 @@ class VehicleSpawnPadObjectBuilderTest extends ActorTest {
     "build" in {
       val hub = ServerObjectBuilderTest.NumberPoolHub
       val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1,
-        VehicleSpawnPad.Constructor(Vector3(1.1f, 2.2f, 3.3f), Vector3(4.4f, 5.5f, 6.6f))
+        VehicleSpawnPad.Constructor(GlobalDefinitions.mb_pad_creation, Vector3(1.1f, 2.2f, 3.3f), Vector3(4.4f, 5.5f, 6.6f))
       ), hub), "pad")
       actor ! "!"
 
@@ -279,10 +278,10 @@ object ServerObjectBuilderTest {
     }
   }
 
-  class BuildingTestActor(structure_con : (Int,Zone,ActorContext)=>Building, building_id : Int, zone : Zone) extends Actor {
+  class BuildingTestActor(structure_con : (Int,Int,Zone,ActorContext)=>Building, building_guid : Int, map_id : Int, zone : Zone) extends Actor {
     def receive : Receive = {
       case _ =>
-        sender ! FoundationBuilder(structure_con).Build(building_id, zone)(context)
+        sender ! FoundationBuilder(structure_con).Build(building_guid, map_id, zone)(context)
     }
   }
 }

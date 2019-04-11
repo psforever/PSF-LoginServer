@@ -8,35 +8,33 @@ import shapeless.{::, HNil}
 
 /**
   * na
-  * @param unk1 na
-  * @param unk2 na;
+  * @param data na
+  * @param unk na;
   *            defaults to 0
   * @see `DetailedREKData`
   */
-final case class REKData(unk1 : Int,
-                         unk2 : Int,
-                         unk3 : Int = 0
+final case class REKData(data : CommonFieldData,
+                         unk : Int = 0
                         ) extends ConstructorData {
   override def bitsize : Long = 50L
 }
 
 object REKData extends Marshallable[REKData] {
   implicit val codec : Codec[REKData] = (
-    ("unk1" | uint4L) ::
-      ("unk2" | uint4L) ::
-      uint(28) ::
-      ("unk3" | uint4L) ::
+    ("data" | CommonFieldData.codec2) ::
+      uint8 ::
+      ("unk" | uint8) ::
       uint(10)
     ).exmap[REKData] (
     {
-      case unk1 :: unk2 :: 0 :: unk3 :: 0 :: HNil  =>
-        Attempt.successful(REKData(unk1, unk2, unk3))
-      case _ :: _ :: _ :: _ :: _ :: HNil =>
-        Attempt.failure(Err("invalid rek data format"))
+      case data :: 0 :: unk :: 0 :: HNil  =>
+        Attempt.successful(REKData(data, unk))
+      case data =>
+        Attempt.failure(Err(s"invalid rek data format - $data"))
     },
     {
-      case REKData(unk1, unk2, unk3) =>
-        Attempt.successful(unk1 :: unk2 :: 0 :: unk3 :: 0 :: HNil)
+      case REKData(data, unk) =>
+        Attempt.successful(data :: 0 :: unk :: 0 :: HNil)
     }
   )
 }

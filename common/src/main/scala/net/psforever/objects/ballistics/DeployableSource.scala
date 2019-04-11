@@ -4,6 +4,7 @@ package net.psforever.objects.ballistics
 import net.psforever.objects.PlanetSideGameObject
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.definition.{BaseDeployableDefinition, ObjectDefinition}
+import net.psforever.objects.vital.resistance.ResistanceProfile
 import net.psforever.types.{PlanetSideEmpire, Vector3}
 
 final case class DeployableSource(obj_def : ObjectDefinition with BaseDeployableDefinition,
@@ -20,6 +21,7 @@ final case class DeployableSource(obj_def : ObjectDefinition with BaseDeployable
   def Position = position
   def Orientation = orientation
   def Velocity = None
+  def Modifiers = obj_def.asInstanceOf[ResistanceProfile]
 }
 
 object DeployableSource {

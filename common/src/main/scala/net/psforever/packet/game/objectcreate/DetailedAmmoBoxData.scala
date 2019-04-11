@@ -3,6 +3,7 @@ package net.psforever.packet.game.objectcreate
 
 import net.psforever.packet.Marshallable
 import net.psforever.packet.game.PlanetSideGUID
+import net.psforever.types.PlanetSideEmpire
 import scodec.{Attempt, Codec, Err}
 import scodec.codecs._
 import shapeless.{::, HNil}
@@ -15,14 +16,17 @@ import shapeless.{::, HNil}
   * The maximum amount of ammunition that can be stored in a single box is 65535 units.
   * Regardless of the interface, however, the number will never be fully visible.
   * Only the first three digits or the first four digits may be represented.
-  * @param unk na
+  * @param data na
   * @param magazine the number of rounds available
-  * @see DetailedWeaponData
+  * @see `DetailedWeaponData`
   */
-final case class DetailedAmmoBoxData(unk : Int,
+final case class DetailedAmmoBoxData(data : CommonFieldData,
                                      magazine : Int
                                     ) extends ConstructorData {
-  override def bitsize : Long = 40L
+  override def bitsize : Long = {
+    val dataSize = data.bitsize
+    17L + dataSize
+  }
 }
 
 object DetailedAmmoBoxData extends Marshallable[DetailedAmmoBoxData] {
@@ -37,22 +41,27 @@ object DetailedAmmoBoxData extends Marshallable[DetailedAmmoBoxData] {
   def apply(cls : Int, guid : PlanetSideGUID, parentSlot : Int, ammo : DetailedAmmoBoxData) : InternalSlot =
     new InternalSlot(cls, guid, parentSlot, ammo)
 
+  def apply(unk : Int, mag : Int) : DetailedAmmoBoxData = {
+    DetailedAmmoBoxData(
+      CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, unk > 0, None, false, None, None, PlanetSideGUID(0)), mag
+    )
+  }
+
   implicit val codec : Codec[DetailedAmmoBoxData] = (
-    uint4L ::
-      ("unk" | uint4L) :: // 8 - common - 4 - safe, 2 - stream misalignment, 1 - safe, 0 - common
-      uint(15) ::
+      ("data" | CommonFieldData.codec) ::
       ("magazine" | uint16L) ::
       bool
     ).exmap[DetailedAmmoBoxData] (
     {
-      case 0xC :: unk :: 0 :: mag :: false :: HNil =>
-        Attempt.successful(DetailedAmmoBoxData(unk, mag))
-      case _ =>
-        Attempt.failure(Err("invalid ammunition data format"))
+      case data :: mag :: false :: HNil =>
+        Attempt.successful(DetailedAmmoBoxData(data, mag))
+
+      case data =>
+        Attempt.failure(Err(s"invalid detailed ammunition data format - $data"))
     },
     {
-      case DetailedAmmoBoxData(unk, mag) =>
-        Attempt.successful(0xC :: unk :: 0 :: mag :: false:: HNil)
+      case DetailedAmmoBoxData(data, mag) =>
+        Attempt.successful(data :: mag :: false:: HNil)
     }
   )
 }

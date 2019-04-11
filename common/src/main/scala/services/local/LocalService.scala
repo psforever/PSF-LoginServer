@@ -5,7 +5,7 @@ import akka.actor.{Actor, ActorRef, Props}
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.objects.serverobject.structures.Building
-import net.psforever.objects.serverobject.terminals.CaptureTerminal
+import net.psforever.objects.serverobject.terminals.{CaptureTerminal, ProximityUnit, Terminal}
 import net.psforever.objects.zones.{InterstellarCluster, Zone}
 import net.psforever.objects._
 import net.psforever.packet.game.{PlanetSideGUID, TriggeredEffect, TriggeredEffectLocation}
@@ -111,10 +111,6 @@ class LocalService extends Actor {
           LocalEvents.publish(
             LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.HackCaptureTerminal(target.GUID, unk1, unk2, isResecured))
           )
-        case LocalAction.ProximityTerminalEffect(player_guid, object_guid, effectState) =>
-          LocalEvents.publish(
-            LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.ProximityTerminalEffect(object_guid, effectState))
-          )
         case LocalAction.RouterTelepadTransport(player_guid, passenger_guid, src_guid, dest_guid) =>
           LocalEvents.publish(
             LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.RouterTelepadTransport(passenger_guid, src_guid, dest_guid))
@@ -159,6 +155,16 @@ class LocalService extends Actor {
         LocalServiceResponse(s"/$zone_id/Local", Service.defaultPlayerGUID, LocalResponse.HackClear(target_guid, unk1, unk2))
       )
 
+    //message from ProximityTerminalControl
+    case Terminal.StartProximityEffect(terminal) =>
+      LocalEvents.publish(
+        LocalServiceResponse(s"/${terminal.Owner.Continent}/Local", PlanetSideGUID(0), LocalResponse.ProximityTerminalEffect(terminal.GUID, true))
+      )
+    case Terminal.StopProximityEffect(terminal) =>
+      LocalEvents.publish(
+        LocalServiceResponse(s"/${terminal.Owner.Continent}/Local", PlanetSideGUID(0), LocalResponse.ProximityTerminalEffect(terminal.GUID, false))
+      )
+
     case HackCaptureActor.HackTimeoutReached(capture_terminal_guid, zone_id, _, _, hackedByFaction) =>
       import scala.concurrent.ExecutionContext.Implicits.global
       ask(cluster, InterstellarCluster.GetWorld(zone_id))(1 seconds).onComplete {
@@ -177,10 +183,10 @@ class LocalService extends Actor {
             }
 
             if(ntuLevel > 0) {
-              log.info(s"Setting base ${building.ModelId} as owned by $hackedByFaction")
+              log.info(s"Setting base ${building.GUID} / MapId: ${building.MapId} as owned by $hackedByFaction")
 
               building.Faction = hackedByFaction
-              self ! LocalServiceMessage(zone.Id, LocalAction.SetEmpire(PlanetSideGUID(building.ModelId), hackedByFaction))
+              self ! LocalServiceMessage(zone.Id, LocalAction.SetEmpire(building.GUID, hackedByFaction))
             } else {
               log.info("Base hack completed, but base was out of NTU.")
             }
@@ -188,7 +194,7 @@ class LocalService extends Actor {
             // Reset CC back to normal operation
             self ! LocalServiceMessage(zone.Id, LocalAction.HackCaptureTerminal(PlanetSideGUID(-1), zone, terminal, 0, 8L, isResecured = true))
             //todo: this appears to be the way to reset the base warning lights after the hack finishes but it doesn't seem to work. The attribute above is a workaround
-            self ! HackClearActor.ClearTheHack(PlanetSideGUID(building.ModelId), zone.Id, 3212836864L, 8L)
+            self ! HackClearActor.ClearTheHack(building.GUID, zone.Id, 3212836864L, 8L)
           case Success(_) =>
             log.warn("Got success from InterstellarCluster.GetWorld but didn't know how to handle it")
 

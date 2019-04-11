@@ -3,7 +3,7 @@ package net.psforever.objects.loadouts
 
 import net.psforever.objects._
 import net.psforever.objects.definition._
-import net.psforever.objects.equipment.Equipment
+import net.psforever.objects.equipment.{Equipment, EquipmentSlot}
 import net.psforever.objects.inventory.InventoryItem
 
 import scala.annotation.tailrec

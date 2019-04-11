@@ -5,6 +5,7 @@ import akka.actor.Actor
 import net.psforever.objects.PlanetSideGameObject
 import net.psforever.objects.entity.{Identifiable, WorldEntity}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
+import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.turret.TurretDefinition
 import net.psforever.types.Vector3
 
@@ -25,7 +26,14 @@ object MountableBehavior {
         val obj = MountableObject
         obj.Seat(seat_num) match {
           case Some(seat) =>
-            if(user.Faction == obj.Faction && (seat.Occupant = user).contains(user)) {
+
+            var isHacked = false
+            if(MountableObject.isInstanceOf[Hackable]) {
+              // This is a special case for implant terminals, since they're both mountable and hackable, but not jackable.
+              isHacked = MountableObject.asInstanceOf[Hackable].HackedBy.isDefined
+            }
+
+            if((user.Faction == obj.Faction || isHacked) && (seat.Occupant = user).contains(user)) {
               user.VehicleSeated = obj.GUID
               sender ! Mountable.MountMessages(user, Mountable.CanMount(obj, seat_num))
             }

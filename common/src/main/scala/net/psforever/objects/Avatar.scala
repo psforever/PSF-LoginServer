@@ -3,8 +3,9 @@ package net.psforever.objects
 
 import net.psforever.objects.avatar.DeployableToolbox
 import net.psforever.objects.definition.{AvatarDefinition, ImplantDefinition}
-import net.psforever.objects.equipment.EquipmentSize
+import net.psforever.objects.equipment.{EquipmentSize, EquipmentSlot}
 import net.psforever.objects.loadouts.Loadout
+import net.psforever.packet.game.objectcreate.Cosmetics
 import net.psforever.types._
 
 import scala.annotation.tailrec
@@ -15,6 +16,8 @@ class Avatar(val name : String, val faction : PlanetSideEmpire.Value, val sex : 
   private var bep : Long = 0
   /** Command Experience Points */
   private var cep : Long = 0
+  /** Cosmetics **/
+  private var pStyle : Option[Cosmetics] = None
   /** Certifications */
   private val certs : mutable.Set[CertificationType.Value] = mutable.Set[CertificationType.Value]()
   /** Implants<br>
@@ -54,6 +57,13 @@ class Avatar(val name : String, val faction : PlanetSideEmpire.Value, val sex : 
   def CEP_=(commandExperiencePoints : Long) : Long = {
     cep = math.max(0L, math.min(commandExperiencePoints, 4294967295L))
     CEP
+  }
+
+  def PersonalStyleFeatures : Option[Cosmetics] = pStyle
+
+  def PersonalStyleFeatures_=(app : Cosmetics) : Option[Cosmetics] = {
+    pStyle = Some(app)
+    pStyle
   }
 
   /**
@@ -166,11 +176,13 @@ class Avatar(val name : String, val faction : PlanetSideEmpire.Value, val sex : 
     }
   }
 
-  def LoadLoadout(line : Int) : Option[Loadout] = loadouts.lift(line).getOrElse(None)
+  def LoadLoadout(line : Int) : Option[Loadout] = loadouts.lift(line).flatten
 
   def DeleteLoadout(line : Int) : Unit = {
     loadouts(line) = None
   }
+
+  def Loadouts : Seq[(Int, Loadout)] = loadouts.zipWithIndex.collect { case(Some(loadout), index) => (index, loadout) } toSeq
 
   def Locker : LockerContainer = locker
 

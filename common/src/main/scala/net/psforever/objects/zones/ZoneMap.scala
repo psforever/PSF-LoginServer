@@ -31,7 +31,7 @@ class ZoneMap(private val name : String) {
   private var linkTerminalInterface : Map[Int, Int] = Map()
   private var linkDoorLock : Map[Int, Int] = Map()
   private var linkObjectBase : Map[Int, Int] = Map()
-  private var buildings : Map[Int, FoundationBuilder] = Map()
+  private var buildings : Map[(Int, Int), FoundationBuilder] = Map()
 
   def Name : String = name
 
@@ -47,20 +47,35 @@ class ZoneMap(private val name : String) {
     * Append the builder for a server object to the list of builders known to this `ZoneMap`.
     * @param id the unique id that will be assigned to this entity
     * @param constructor the logic that initializes the emitted entity
+    * @param owning_building_guid The guid of the building this object should belong to, if specified
+    * @param door_guid The guid of the door this object (typically a lock) should be linked to, if specified
+    * @param terminal_guid The guid of the terminal this object (typically a spawn pad) should be linked to, if specified
     * @return the current number of builders
     */
-  def LocalObject[A <: PlanetSideServerObject](id : Int, constructor : ServerObjectBuilder.ConstructorType[A]) : Int = {
+  def LocalObject[A <: PlanetSideServerObject](id : Int, constructor : ServerObjectBuilder.ConstructorType[A], owning_building_guid : Int = 0, door_guid : Int = 0, terminal_guid: Int = 0) : Int = {
     if(id > 0) {
       localObjects = localObjects :+ ServerObjectBuilder[A](id, constructor)
+
+      if(owning_building_guid > 0) {
+        ObjectToBuilding(id, owning_building_guid)
+      }
+
+      if(door_guid > 0) {
+        DoorToLock(door_guid, id)
+      }
+
+      if(terminal_guid > 0) {
+        TerminalToSpawnPad(terminal_guid, id)
+      }
     }
     localObjects.size
   }
 
-  def LocalBuildings : Map[Int, FoundationBuilder] = buildings
+  def LocalBuildings : Map[(Int, Int), FoundationBuilder] = buildings
 
-  def LocalBuilding(building_id : Int, constructor : FoundationBuilder) : Int = {
-    if(building_id > 0) {
-      buildings = buildings ++ Map(building_id -> constructor)
+  def LocalBuilding(building_guid : Int, map_id : Int, constructor : FoundationBuilder) : Int = {
+    if(building_guid > 0) {
+      buildings = buildings ++ Map((building_guid, map_id) -> constructor)
     }
     buildings.size
   }

@@ -80,7 +80,7 @@ class CertTerminalControl3Test extends ActorTest {
 class VehicleTerminalControl1Test extends ActorTest {
   "TerminalControl can be used to buy a vehicle ('two_man_assault_buggy')" in {
     val (player, terminal) = TerminalControlTest.SetUpAgents(GlobalDefinitions.ground_vehicle_terminal, PlanetSideEmpire.TR)
-    val msg = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Buy, 0, "two_man_assault_buggy", 0, PlanetSideGUID(0))
+    val msg = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Buy, 46769, "two_man_assault_buggy", 0, PlanetSideGUID(0))
 
     terminal.Actor ! Terminal.Request(player, msg)
     val reply = receiveOne(Duration.create(500, "ms"))
@@ -121,7 +121,7 @@ object TerminalControlTest {
   def SetUpAgents(tdef : TerminalDefinition, faction : PlanetSideEmpire.Value)(implicit system : ActorSystem) : (Player, Terminal) = {
     val terminal = Terminal(tdef)
     terminal.Actor = system.actorOf(Props(classOf[TerminalControl], terminal), "test-term")
-    terminal.Owner = new Building(0, Zone.Nowhere, StructureType.Building)
+    terminal.Owner = new Building(building_guid = 0, map_id = 0, Zone.Nowhere, StructureType.Building, GlobalDefinitions.building)
     terminal.Owner.Faction = faction
     (Player(Avatar("test", faction, CharacterGender.Male, 0, CharacterVoice.Mute)), terminal)
   }

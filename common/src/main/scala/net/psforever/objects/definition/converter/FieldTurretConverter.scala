@@ -11,22 +11,26 @@ import scala.util.{Failure, Success, Try}
 
 class FieldTurretConverter extends ObjectCreateConverter[TurretDeployable]() {
   override def ConstructorData(obj : TurretDeployable) : Try[OneMannedFieldTurretData] = {
-    val health = 255 * obj.Health / obj.MaxHealth //TODO not precise
+    val health = StatConverter.Health(obj.Health, obj.MaxHealth)
     if(health > 3) {
       Success(
         OneMannedFieldTurretData(
-          SmallDeployableData(
+          CommonFieldDataWithPlacement(
             PlacementData(obj.Position, obj.Orientation),
-            obj.Faction,
-            bops = false,
-            destroyed = false,
-            unk1 = 0,
-            obj.Jammered,
-            unk2 = false,
-            obj.Owner match {
-              case Some(owner) => owner
-              case None => PlanetSideGUID(0)
-            }
+            CommonFieldData(
+              obj.Faction,
+              bops = false,
+              alternate = false,
+              true,
+              None,
+              false,
+              Some(false),
+              None,
+              obj.Owner match {
+                case Some(owner) => owner
+                case None => PlanetSideGUID(0)
+              }
+            )
           ),
           health,
           Some(InventoryData(FieldTurretConverter.MakeMountings(obj)))
@@ -36,18 +40,21 @@ class FieldTurretConverter extends ObjectCreateConverter[TurretDeployable]() {
     else {
       Success(
         OneMannedFieldTurretData(
-          SmallDeployableData(
+          CommonFieldDataWithPlacement(
             PlacementData(obj.Position, obj.Orientation),
-            obj.Faction,
-            bops = false,
-            destroyed = true,
-            unk1 = 0,
-            jammered = false,
-            unk2 = false,
-            owner_guid = PlanetSideGUID(0)
+            CommonFieldData(
+              obj.Faction,
+              bops = false,
+              alternate = true,
+              true,
+              None,
+              false,
+              Some(false),
+              None,
+              PlanetSideGUID(0)
+            )
           ),
-          0,
-          None
+          0
         )
       )
     }
@@ -60,7 +67,7 @@ class FieldTurretConverter extends ObjectCreateConverter[TurretDeployable]() {
 object FieldTurretConverter {
   private def MakeMountings(obj : WeaponTurret) : List[InventoryItemData.InventoryItem] = {
     obj.Weapons.map({
-      case((index, slot)) =>
+      case(index, slot) =>
         val equip : Equipment = slot.Equipment.get
         val equipDef = equip.Definition
         InventoryItemData(equipDef.ObjectId, equip.GUID, index, equipDef.Packet.ConstructorData(equip).get)

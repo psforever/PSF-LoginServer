@@ -3,9 +3,10 @@ package objects
 
 import net.psforever.objects.GlobalDefinitions._
 import net.psforever.objects._
-import net.psforever.objects.definition.{ImplantDefinition, SimpleItemDefinition}
+import net.psforever.objects.definition.{ImplantDefinition, SimpleItemDefinition, SpecialExoSuitDefinition}
 import net.psforever.objects.equipment.EquipmentSize
 import net.psforever.packet.game.PlanetSideGUID
+import net.psforever.packet.game.objectcreate.{Cosmetics, PersonalStyle}
 import net.psforever.types._
 import org.specs2.mutable._
 
@@ -519,6 +520,115 @@ class PlayerTest extends Specification {
       obj.UsingSpecial mustEqual SpecialExoSuitDefinition.Mode.Normal
       obj.ExoSuit = ExoSuitType.MAX
       obj.UsingSpecial != test mustEqual true
+    }
+
+    "start with a nonexistent cosmetic state" in {
+      TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5).PersonalStyleFeatures.isEmpty mustEqual true
+    }
+
+    "will not gain cosmetic state if player does not have a certain amount of BEP" in {
+      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
+      val obj = Player(avatar)
+      obj.PersonalStyleFeatures.isEmpty mustEqual true
+      val (a1, b1) = obj.AddToPersonalStyle(PersonalStyle.Beret)
+      a1.isEmpty mustEqual true
+      b1.isEmpty mustEqual true
+      obj.PersonalStyleFeatures.isEmpty mustEqual true
+
+      avatar.BEP = 2286231 //BR24
+      val (a2, b2) = obj.AddToPersonalStyle(PersonalStyle.Beret)
+      a2.isEmpty mustEqual true
+      b2 match {
+        case Some(c : Cosmetics) =>
+          c.Styles mustEqual Set(PersonalStyle.Beret)
+        case _ =>
+          ko
+      }
+      obj.PersonalStyleFeatures.isEmpty mustEqual false
+    }
+
+    "will lose cosmetic state" in {
+      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
+      val obj = Player(avatar)
+      avatar.BEP = 2286231 //BR24
+      obj.AddToPersonalStyle(PersonalStyle.Beret)
+      obj.PersonalStyleFeatures.contains(Cosmetics(Set(PersonalStyle.Beret))) mustEqual true
+      val (a2, b2) = obj.RemoveFromPersonalStyle(PersonalStyle.Beret)
+      a2 match {
+        case Some(c : Cosmetics) =>
+          c.Styles mustEqual Set(PersonalStyle.Beret)
+        case _ =>
+          ko
+      }
+      b2 match {
+        case Some(c : Cosmetics) =>
+          c.Styles mustEqual Set.empty
+        case _ =>
+          ko
+      }
+    }
+
+    "will not lose cosmetic state if the player doesn't have any cosmetic state to begin with" in {
+      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
+      val obj = Player(avatar)
+      obj.PersonalStyleFeatures.isEmpty mustEqual true
+      val (a1, b1) = obj.RemoveFromPersonalStyle(PersonalStyle.Beret)
+      a1.isEmpty mustEqual true
+      b1.isEmpty mustEqual true
+    }
+
+    "toggle helmet" in {
+      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
+      val obj = Player(avatar)
+      avatar.BEP = 2286231
+      obj.PersonalStyleFeatures.isEmpty mustEqual true
+      obj.ToggleHelmet
+      obj.PersonalStyleFeatures.contains(Cosmetics(Set(PersonalStyle.NoHelmet))) mustEqual true
+      obj.ToggleHelmet
+      obj.PersonalStyleFeatures.contains(Cosmetics()) mustEqual true
+      obj.ToggleHelmet
+      obj.PersonalStyleFeatures.contains(Cosmetics(Set(PersonalStyle.NoHelmet))) mustEqual true
+    }
+
+    "toggle suglasses" in {
+      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
+      val obj = Player(avatar)
+      avatar.BEP = 2286231
+      obj.PersonalStyleFeatures.isEmpty mustEqual true
+      obj.ToggleShades
+      obj.PersonalStyleFeatures.contains(Cosmetics(Set(PersonalStyle.Sunglasses))) mustEqual true
+      obj.ToggleShades
+      obj.PersonalStyleFeatures.contains(Cosmetics()) mustEqual true
+      obj.ToggleShades
+      obj.PersonalStyleFeatures.contains(Cosmetics(Set(PersonalStyle.Sunglasses))) mustEqual true
+    }
+
+    "toggle earpiece" in {
+      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
+      val obj = Player(avatar)
+      avatar.BEP = 2286231
+      obj.PersonalStyleFeatures.isEmpty mustEqual true
+      obj.ToggleEarpiece
+      obj.PersonalStyleFeatures.contains(Cosmetics(Set(PersonalStyle.Earpiece))) mustEqual true
+      obj.ToggleEarpiece
+      obj.PersonalStyleFeatures.contains(Cosmetics()) mustEqual true
+      obj.ToggleEarpiece
+      obj.PersonalStyleFeatures.contains(Cosmetics(Set(PersonalStyle.Earpiece))) mustEqual true
+    }
+
+    "toggle between brimmed cap and beret" in {
+      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
+      val obj = Player(avatar)
+      avatar.BEP = 2286231
+      obj.PersonalStyleFeatures.isEmpty mustEqual true
+      obj.ToggleHat
+      obj.PersonalStyleFeatures.contains(Cosmetics(Set(PersonalStyle.BrimmedCap))) mustEqual true
+      obj.ToggleHat
+      obj.PersonalStyleFeatures.contains(Cosmetics(Set(PersonalStyle.Beret))) mustEqual true
+      obj.ToggleHat
+      obj.PersonalStyleFeatures.contains(Cosmetics()) mustEqual true
+      obj.ToggleHat
+      obj.PersonalStyleFeatures.contains(Cosmetics(Set(PersonalStyle.BrimmedCap))) mustEqual true
     }
 
     "toString" in {

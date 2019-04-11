@@ -7,32 +7,32 @@ import scodec.codecs._
 import shapeless.{::, HNil}
 
 /**
-  * A representation of the command uplink device.<br>
-  * I don't know much about the command uplink device so someone else has to provide this commentary.
+  * A representation of the command uplink device.
   */
-final case class DetailedCommandDetonaterData(unk1 : Int = 8,
-                                              unk2 : Int = 0) extends ConstructorData {
-  override def bitsize : Long = 51L
+final case class DetailedCommandDetonaterData(data : CommonFieldData) extends ConstructorData {
+  override def bitsize : Long = {
+    val dataSize = data.bitsize
+    28L + dataSize
+  }
 }
 
 object DetailedCommandDetonaterData extends Marshallable[DetailedCommandDetonaterData] {
   implicit val codec : Codec[DetailedCommandDetonaterData] = (
-    ("unk1" | uint4L) ::
-      ("unk2" | uint4L) ::
-      uint(20) ::
-      uint4L ::
+    ("data" | CommonFieldData.codec) ::
+      uint8 ::
       uint16 ::
-      uint(3)
+      uint4
     ).exmap[DetailedCommandDetonaterData] (
     {
-      case unk1 :: unk2 :: 0 :: 2 :: 0 :: 4 :: HNil =>
-        Attempt.successful(DetailedCommandDetonaterData(unk1, unk2))
-      case _ =>
-        Attempt.failure(Err("invalid command detonator data format"))
+      case data :: 1 :: 0 :: 4 :: HNil =>
+        Attempt.successful(DetailedCommandDetonaterData(data))
+
+      case data =>
+        Attempt.failure(Err(s"invalid detailed command detonater data format - $data"))
     },
     {
-      case DetailedCommandDetonaterData(unk1, unk2) =>
-        Attempt.successful(unk1 :: unk2 :: 0 :: 2 :: 0 :: 4 :: HNil)
+      case DetailedCommandDetonaterData(data) =>
+        Attempt.successful(data :: 1 :: 0 :: 4 :: HNil)
     }
   )
 }

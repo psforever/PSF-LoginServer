@@ -1,6 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.packet.game.objectcreate
 
+import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.packet.{Marshallable, PacketHelpers}
 import net.psforever.types._
 import scodec.{Attempt, Codec, Err}
@@ -12,22 +13,20 @@ import shapeless.{::, HNil}
   * @see `CharacterData`
   * @see `DetailedCharacterData`
   * @see `ExoSuitType`
-  * @param app the player's cardinal appearance settings
-  * @param black_ops whether or not this avatar is enrolled in Black OPs
-  * @param jammered the player has been caught in an EMP blast recently;
-  *                 creates a jammered sound effect that follows the player around and can be heard by others
-  * @param exosuit the type of exo-suit the avatar will be depicted in;
-  *                for Black OPs, the agile exo-suit and the reinforced exo-suit are replaced with the Black OPs exo-suits
+  * @param app       the player's cardinal appearance settings
+  * @param data      common field data<br>
+  *                  -bops - this vehicle belongs to the Black Ops, regardless of the faction field;
+  *                   activates the green camo and adjusts permissions<br>
+  *                  -destroyed - flagged when using a model that is not the standard player in some stance<br>
+  *                  -jammered - the player has been caught in an EMP blast recently;
+  *                   creates a jammered sound effect that follows the player around and can be heard by others<br>
+  *                  -player_guid - does nothing?
+  * @param exosuit   the type of exo-suit the avatar will be depicted in;
+  *                  for Black OPs, the agile exo-suit and the reinforced exo-suit are replaced with the Black OPs exo-suits
   */
 final case class CharacterAppearanceA(app : BasicCharacterData,
-                                      black_ops : Boolean,
-                                      altModel : Boolean,
-                                      unk1 : Boolean,
-                                      unk2 : Option[CharacterAppearanceData.ExtraData],
-                                      jammered : Boolean,
+                                      data : CommonFieldData,
                                       exosuit : ExoSuitType.Value,
-                                      unk3 : Option[Int],
-                                      unk4 : Int,
                                       unk5 : Int,
                                       unk6 : Long,
                                       unk7 : Int,
@@ -36,11 +35,9 @@ final case class CharacterAppearanceA(app : BasicCharacterData,
                                       unkA : Int)
                                      (name_padding : Int) extends StreamBitSize {
   override def bitsize : Long = {
-    //factor guard bool values into the base size, not its corresponding optional field
-    val unk2Size : Long = unk2 match { case Some(n) => n.bitsize ; case None => 0L }
+    val dataSize : Long = data.bitsize
     val nameStringSize : Long = StreamBitSize.stringBitSize(app.name, 16) + name_padding
-    val unk3Size : Long = unk3 match { case Some(_) => 32L ; case None => 0L }
-    137L + unk2Size + nameStringSize + unk3Size
+    114L + dataSize + nameStringSize
   }
 }
 
@@ -162,14 +159,23 @@ object CharacterAppearanceData extends Marshallable[CharacterAppearanceData] {
     val altModel : Boolean = backpack || on_zipline.isDefined
     val a = CharacterAppearanceA(
       app,
-      black_ops,
-      altModel,
-      false,
-      None,
-      jammered,
+      CommonFieldData(
+        app.faction,
+        black_ops,
+        altModel,
+        false,
+        None,
+        false,
+        None,
+        if(jammered) {
+          Some(0)
+        }
+        else {
+          None
+        },
+        PlanetSideGUID(0)
+      ),
       exosuit,
-      None,
-      0,
       0,
       0,
       0,
@@ -206,7 +212,7 @@ object CharacterAppearanceData extends Marshallable[CharacterAppearanceData] {
 
   def apply(a : Int=>CharacterAppearanceA, b : (Boolean,Int)=>CharacterAppearanceB, ribbons : RibbonBars)(name_padding : Int) : CharacterAppearanceData = {
     val first = a(name_padding)
-    CharacterAppearanceData(a(name_padding), b(first.altModel, name_padding), ribbons)(name_padding)
+    CharacterAppearanceData(a(name_padding), b(first.data.alternate, name_padding), ribbons)(name_padding)
   }
 
   /**
@@ -238,13 +244,18 @@ object CharacterAppearanceData extends Marshallable[CharacterAppearanceData] {
     * @return the length of the variable field that exists when using alternate models
     */
   def altModelBit(app : CharacterAppearanceData) : Option[Int] = if(app.b.backpack || app.b.on_zipline.isDefined) {
-      Some(1)
+      if(!app.a.data.alternate) {
+        throw new IllegalArgumentException("missing alternate model flag when should be set")
+      }
+      else {
+        Some(1)
+      }
     }
     else {
       None
     }
 
-  def namePadding(inheritPad : Int, pad : Option[ExtraData]) : Int = {
+  def namePadding(inheritPad : Int, pad : Option[CommonFieldDataExtra]) : Int = {
     pad match {
       case Some(n) =>
         val bitsize = n.bitsize.toInt % 8
@@ -282,45 +293,48 @@ object CharacterAppearanceData extends Marshallable[CharacterAppearanceData] {
     * @return na
     */
   def a_codec(name_padding : Int) : Codec[CharacterAppearanceA] = (
-    ("faction" | PlanetSideEmpire.codec) ::
-      ("black_ops" | bool) ::
-      (("alt_model" | bool) >>:~ { alt_model => //modifies stream format (to display alternate player models)
-        ("unk1" | bool) :: //serves a different internal purpose depending on the state of alt_model
-          (conditional(false, "unk2" | extra_codec) >>:~ { extra => //TODO not sure what causes this branch
-            ("jammered" | bool) ::
-              optional(bool, "unk3" | uint16L) ::
-              ("unk4" | uint16L) ::
-              ("name" | PacketHelpers.encodedWideStringAligned(namePadding(name_padding, extra))) ::
-              ("exosuit" | ExoSuitType.codec) ::
-              ("unk5" | uint2) :: //unknown
-              ("sex" | CharacterGender.codec) ::
-              ("head" | uint8L) ::
-              ("voice" | CharacterVoice.codec) ::
-              ("unk6" | uint32L) ::
-              ("unk7" | uint16L) ::
-              ("unk8" | uint16L) ::
-              ("unk9" | uint16L) ::
-              ("unkA" | uint16L) //usually either 0 or 65535
-          })
-      })
+    ("data" | CommonFieldData.codec) >>:~ { data =>
+      ("name" | PacketHelpers.encodedWideStringAligned(namePadding(name_padding, data.v2))) ::
+        ("exosuit" | ExoSuitType.codec) ::
+        ("unk5" | uint2) :: //unknown
+        ("sex" | CharacterGender.codec) ::
+        ("head" | uint8L) ::
+        ("voice" | CharacterVoice.codec) ::
+        ("unk6" | uint32L) ::
+        ("unk7" | uint16L) ::
+        ("unk8" | uint16L) ::
+        ("unk9" | uint16L) ::
+        ("unkA" | uint16L) //usually either 0 or 65535
+      }
     ).exmap[CharacterAppearanceA] (
     {
-      case faction :: bops :: alt :: u1 :: u2 :: jamd :: u3 :: u4 :: name :: suit :: u5 :: sex :: head :: v1 :: u6 :: u7 :: u8 :: u9 :: uA :: HNil =>
+      case data :: name :: suit :: u5 :: sex :: head :: v1 :: u6 :: u7 :: u8 :: u9 :: uA :: HNil =>
         Attempt.successful(
-          CharacterAppearanceA(BasicCharacterData(name, faction, sex, head, v1), bops, alt, u1, u2, jamd, suit, u3, u4, u5, u6, u7, u8, u9, uA)(name_padding)
+          CharacterAppearanceA(BasicCharacterData(name, data.faction, sex, head, v1), data, suit, u5, u6, u7, u8, u9, uA)(name_padding)
         )
 
       case _ =>
         Attempt.Failure(Err("invalid character appearance data; can not encode"))
     },
     {
-      case CharacterAppearanceA(BasicCharacterData(name, PlanetSideEmpire.NEUTRAL, _, _, _), _, _, _, _, _, _, _, _, _, _, _, _, _, _) =>
+      case CharacterAppearanceA(BasicCharacterData(name, PlanetSideEmpire.NEUTRAL, _, _, _), _, _, _, _, _, _, _, _) =>
         Attempt.failure(Err(s"character $name's faction can not declare as neutral"))
 
-      case CharacterAppearanceA(BasicCharacterData(name, faction, sex, head, v1), bops, alt, u1, u2, jamd, suit, u3, u4, u5, u6, u7, u8, u9, uA) =>
-        Attempt.successful(
-          faction :: bops :: alt :: u1 :: u2 :: jamd :: u3 :: u4 :: name :: suit :: u5 :: sex :: head :: v1 :: u6 :: u7 :: u8 :: u9 :: uA :: HNil
-        )
+      case CharacterAppearanceA(BasicCharacterData(name, faction, sex, head, v1), data, suit, u5, u6, u7, u8, u9, uA) =>
+        if(faction != data.faction) {
+          Attempt.failure(Err(s"character $name's faction fields are mismatched, $faction != ${data.faction}"))
+        }
+        else if(data.faction == PlanetSideEmpire.NEUTRAL) {
+          Attempt.successful(
+            CommonFieldData(faction, data.bops, data.alternate, data.v1, data.v2, data.v3, None, data.v5, PlanetSideGUID(0)) ::
+              name :: suit :: u5 :: sex :: head :: v1 :: u6 :: u7 :: u8 :: u9 :: uA :: HNil
+          )
+        }
+        else {
+          Attempt.successful(
+            data :: name :: suit :: u5 :: sex :: head :: v1 :: u6 :: u7 :: u8 :: u9 :: uA :: HNil
+          )
+        }
 
       case _ =>
         Attempt.Failure(Err("invalid character appearance data; can not decode"))
@@ -385,7 +399,7 @@ object CharacterAppearanceData extends Marshallable[CharacterAppearanceData] {
 
   def codec(name_padding : Int) : Codec[CharacterAppearanceData] = (
     ("a" | a_codec(name_padding)) >>:~ { a =>
-      ("b" | b_codec(a.altModel, name_padding)) ::
+      ("b" | b_codec(a.data.alternate, name_padding)) ::
         ("ribbons" | RibbonBars.codec)
     }
     ).xmap[CharacterAppearanceData] (

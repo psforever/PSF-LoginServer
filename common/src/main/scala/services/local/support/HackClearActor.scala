@@ -68,7 +68,7 @@ class HackClearActor() extends Actor {
       val (unhackObjects, stillHackedObjects) = PartitionEntries(hackedObjects, now)
       val short_timeout : FiniteDuration = math.max(1, stillHackedObjects.head.duration - (now - stillHackedObjects.head.time)) nanoseconds
 
-      log.warn(s"Still items left in hacked objects list. Checking again in ${short_timeout}")
+      log.warn(s"Still items left in hacked objects list. Checking again in ${short_timeout.toSeconds} seconds")
       import scala.concurrent.ExecutionContext.Implicits.global
       clearTrigger = context.system.scheduler.scheduleOnce(short_timeout, self, HackClearActor.TryClearHacks())
     }
