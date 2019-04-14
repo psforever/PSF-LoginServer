@@ -7,7 +7,7 @@ import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.mblocker.Locker
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
-import net.psforever.objects.serverobject.structures.{Building, FoundationBuilder, StructureType}
+import net.psforever.objects.serverobject.structures.{Building, FoundationBuilder, StructureType, WarpGate}
 import net.psforever.objects.serverobject.terminals.{CaptureTerminal, ProximityTerminal, Terminal}
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.serverobject.turret.FacilityTurret
@@ -1117,6 +1117,18 @@ object Map02 {
       LocalObject(811, ImplantTerminalMech.Constructor, owning_building_guid = 35)
       LocalObject(805, Terminal.Constructor(implant_terminal_interface), owning_building_guid = 35)
       TerminalToInterface(811, 805)
+    }
+
+    Building18907()
+
+    def Building18907(): Unit = { // Name: "GW_Hossin_S" Type: hst GUID: 39, MapID: 18907
+      LocalBuilding(39, 18907, FoundationBuilder(WarpGate.Structure(Vector3(3949.24f, 2391.62f, 16.04f), hst)))
+    }
+
+    Building18908()
+
+    def Building18908(): Unit = { // Name: "GW_Hossin_N" Type: hst GUID: 40, MapID: 18908
+      LocalBuilding(40, 18908, FoundationBuilder(WarpGate.Structure(Vector3(5240.17f, 4912.36f, 39.88f), hst)))
     }
 
     Building11()
@@ -2323,6 +2335,30 @@ object Map02 {
       TurretToWeapon(1533, 5097)
       LocalObject(1535, FacilityTurret.Constructor(manned_turret, Vector3(6703.497f, 2524.957f, 200.3013f)), owning_building_guid = 74)
       TurretToWeapon(1535, 5098)
+    }
+
+    Building1()
+
+    def Building1(): Unit = { // Name: WG_Hossin_to_Ceryshen Type: warpgate GUID: 75, MapID: 1
+      LocalBuilding(75, 1, FoundationBuilder(WarpGate.Structure(Vector3(1874f, 5018f, 18.43318f))))
+    }
+
+    Building4()
+
+    def Building4(): Unit = { // Name: WG_Hossin_to_Oshur Type: warpgate GUID: 76, MapID: 4
+      LocalBuilding(76, 4, FoundationBuilder(WarpGate.Structure(Vector3(3180f, 1978f, 20.37416f))))
+    }
+
+    Building2()
+
+    def Building2(): Unit = { // Name: WG_Hossin_to_Solsar Type: warpgate GUID: 77, MapID: 2
+      LocalBuilding(77, 2, FoundationBuilder(WarpGate.Structure(Vector3(4774f, 4558f, 26.12384f))))
+    }
+
+    Building3()
+
+    def Building3(): Unit = { // Name: WG_Hossin_to_VSSanc Type: warpgate GUID: 78, MapID: 3
+      LocalBuilding(78, 3, FoundationBuilder(WarpGate.Structure(Vector3(5466f, 1710f, 25.7149f))))
     }
   }
 }

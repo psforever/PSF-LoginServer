@@ -6,7 +6,7 @@ import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.mblocker.Locker
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
-import net.psforever.objects.serverobject.structures.{Building, FoundationBuilder, StructureType}
+import net.psforever.objects.serverobject.structures.{Building, FoundationBuilder, StructureType, WarpGate}
 import net.psforever.objects.serverobject.terminals.{CaptureTerminal, ProximityTerminal, Terminal}
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.serverobject.turret.FacilityTurret
@@ -148,6 +148,12 @@ object Map96 {
       TurretToWeapon(196, 5006)
       LocalObject(197, FacilityTurret.Constructor(manned_turret, Vector3(2042.773f, 1948.733f, 44.32076f)), owning_building_guid = 1)
       TurretToWeapon(197, 5007)
+    }
+
+    Building10000()
+
+    def Building10000(): Unit = { // Name: "Map96_Gate_Three" Type: hst GUID: 4, MapID: 10000
+      LocalBuilding(4, 10000, FoundationBuilder(WarpGate.Structure(Vector3(1387.16f, 1639.74f, 48.78f), hst)))
     }
 
     Building2()

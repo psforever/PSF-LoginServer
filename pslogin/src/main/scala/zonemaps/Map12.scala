@@ -6,7 +6,7 @@ import net.psforever.objects.serverobject.implantmech.ImplantTerminalMech
 import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.mblocker.Locker
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
-import net.psforever.objects.serverobject.structures.{Building, FoundationBuilder, StructureType}
+import net.psforever.objects.serverobject.structures.{Building, FoundationBuilder, StructureType, WarpGate}
 import net.psforever.objects.serverobject.terminals.{CaptureTerminal, ProximityTerminal, Terminal}
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.serverobject.turret.FacilityTurret
@@ -1289,6 +1289,24 @@ object Map12 {
       LocalBuilding(112, 33, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(5342f, 4014f, 35.9291f))))
       LocalObject(1096, Terminal.Constructor(ground_vehicle_terminal), owning_building_guid = 112)
       LocalObject(741, VehicleSpawnPad.Constructor(mb_pad_creation, Vector3(5341.973f, 4014.147f, 34.4581f), Vector3(0, 0, 0)), owning_building_guid = 112, terminal_guid = 1096)
+    }
+
+    Building1()
+
+    def Building1(): Unit = { // Name: WG_TRSanc_to_Ishundar Type: warpgate GUID: 113, MapID: 1
+      LocalBuilding(113, 1, FoundationBuilder(WarpGate.Structure(Vector3(3254f, 4652f, 37.92788f))))
+    }
+
+    Building3()
+
+    def Building3(): Unit = { // Name: WG_TRSanc_to_Cyssor Type: warpgate GUID: 114, MapID: 3
+      LocalBuilding(114, 3, FoundationBuilder(WarpGate.Structure(Vector3(3744f, 3076f, 27.0604f))))
+    }
+
+    Building2()
+
+    def Building2(): Unit = { // Name: WG_TRSanc_to_Forseral Type: warpgate GUID: 115, MapID: 2
+      LocalBuilding(115, 2, FoundationBuilder(WarpGate.Structure(Vector3(5300f, 4504f, 40.2132f))))
     }
   }
 }

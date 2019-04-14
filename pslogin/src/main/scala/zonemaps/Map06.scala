@@ -897,6 +897,18 @@ object Map06 {
       TerminalToInterface(737, 731)
     }
 
+    Building18657()
+
+    def Building18657(): Unit = { // Name: "GW_Ceryshen_S" Type: hst GUID: 33, MapID: 18657
+      LocalBuilding(33, 18657, FoundationBuilder(WarpGate.Structure(Vector3(2248.14f, 1712.18f, 224.5f), hst)))
+    }
+
+    Building18658()
+
+    def Building18658(): Unit = { // Name: "GW_Ceryshen_N" Type: hst GUID: 34, MapID: 18658
+      LocalBuilding(34, 18658, FoundationBuilder(WarpGate.Structure(Vector3(3175.87f, 5324.2f, 232.33f), hst)))
+    }
+
     Building3()
 
     def Building3(): Unit = { // Name: Igaluk Type: tech_plant GUID: 36, MapID: 3
@@ -2281,40 +2293,28 @@ object Map06 {
       TurretToWeapon(1469, 5098)
     }
 
-    Building10()
+    Building12()
 
-    def Building10() : Unit = { // Name: ??? Type: ??? GUID: 76, MapID: 10
-      LocalBuilding(76, 10, FoundationBuilder(WarpGate.Structure(Vector3(4970.0703f, 2082.1719f, 24.421875f)))) //searhus warp gate
+    def Building12(): Unit = { // Name: WG_Ceryshen_to_Forseral Type: warpgate GUID: 74, MapID: 12
+      LocalBuilding(74, 12, FoundationBuilder(WarpGate.Structure(Vector3(2190f, 5506f, 30.16494f))))
     }
 
     Building11()
 
-    def Building11() : Unit = { // Name: ??? Type: ??? GUID: 75, MapID: 11
-      LocalBuilding(75, 11, FoundationBuilder(WarpGate.Structure(Vector3(2587.7969f, 2997.1562f, 195.34375f)))) //cyssor warp gate
+    def Building11(): Unit = { // Name: WG_Ceryshen_to_Amerish Type: warpgate GUID: 75, MapID: 11
+      LocalBuilding(75, 11, FoundationBuilder(WarpGate.Structure(Vector3(2588f, 2998f, 186.0018f))))
     }
 
-    Building12()
+    Building10()
 
-    def Building12() : Unit = { // Name: ??? Type: ??? GUID: 74, MapID: 12
-      LocalBuilding(74, 12, FoundationBuilder(WarpGate.Structure(Vector3(2189.5703f, 5508.164f, 38.765625f)))) //solar warp gate
+    def Building10(): Unit = { // Name: WG_Ceryshen_to_Ishundar Type: warpgate GUID: 76, MapID: 10
+      LocalBuilding(76, 10, FoundationBuilder(WarpGate.Structure(Vector3(4970f, 2082f, 15.07462f))))
     }
 
     Building13()
 
-    def Building13() : Unit = { // Name: ??? Type: ??? GUID: 77, MapID: 13
-      LocalBuilding(77, 13, FoundationBuilder(WarpGate.Structure(Vector3(5028.1094f, 4499.7188f, 50.09375f)))) //vs sanctuary warp gate
-    }
-
-    Building18657()
-
-    def Building18657() : Unit = { // Name: ??? Type: ??? GUID: 33, MapID: 18657
-      LocalBuilding(33, 18657, FoundationBuilder(WarpGate.Structure(Vector3.Zero, hst))) //geowarp near Tarqaq
-    }
-
-    Building18658()
-
-    def Building18658() : Unit = { // Name: ??? Type: ??? GUID: 34, MapID: 18658
-      LocalBuilding(34, 18658, FoundationBuilder(WarpGate.Structure(Vector3.Zero, hst))) //geowarp near Igaluk
+    def Building13(): Unit = { // Name: WG_Ceryshen_to_Hossin Type: warpgate GUID: 77, MapID: 13
+      LocalBuilding(77, 13, FoundationBuilder(WarpGate.Structure(Vector3(5028f, 4498f, 40.75579f))))
     }
   }
 }
