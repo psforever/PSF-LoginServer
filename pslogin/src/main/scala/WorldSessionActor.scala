@@ -2656,6 +2656,19 @@ class WorldSessionActor extends Actor with MDCContextAware {
       })
     StopBundlingPackets()
     drawDeloyableIcon = DontRedrawIcons
+    //if driver of a vehicle, summon any passengers and cargo vehicles left behind on previous continent
+    GetVehicleAndSeat() match {
+      case (Some(vehicle), Some(0)) =>
+        LoadZoneTransferPassengerMessages(
+          guid,
+          continent.Id,
+          TransportVehicleChannelName(vehicle),
+          vehicle,
+          interstellarFerryTopLevelGUID.getOrElse(vehicle.GUID)
+        )
+        interstellarFerryTopLevelGUID = None
+      case _ => ;
+    }
   }
 
   def handleControlPkt(pkt : PlanetSideControlPacket) = {
@@ -2951,16 +2964,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       })
       //our vehicle would have already been loaded; see NewPlayerLoaded/AvatarCreate
       usedVehicle.headOption match {
-        case Some(vehicle) if vehicle.PassengerInSeat(player).contains(0) =>
-          //if driver of vehicle, summon any passengers and cargo vehicles left behind on previous continent
-          LoadZoneTransferPassengerMessages(
-            guid,
-            continentId,
-            TransportVehicleChannelName(vehicle),
-            vehicle,
-            interstellarFerryTopLevelGUID.orElse(player.VehicleSeated).getOrElse(PlanetSideGUID(0))
-          )
-        case Some(vehicle) =>
+        case Some(vehicle) if !vehicle.PassengerInSeat(player).contains(0) =>
           //if passenger, attempt to depict any other passengers already in this zone
           val vguid = vehicle.GUID
           vehicle.Seats
@@ -2977,7 +2981,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                 )
               )
             })
-        case _ => ; //no vehicle
+        case _ => ; //driver, or no vehicle
       }
       //vehicle wreckages
       wreckages.foreach(vehicle => {
@@ -3210,7 +3214,13 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ SpawnRequestMessage(u1, spawn_type, u3, u4, zone_number) =>
       log.info(s"SpawnRequestMessage: $msg")
-      cluster ! Zone.Lattice.RequestSpawnPoint(zone_number.toInt, player, spawn_type.id.toInt)
+      if(deadState != DeadState.Repsawn) {
+        deadState = DeadState.Repsawn
+        cluster ! Zone.Lattice.RequestSpawnPoint(zone_number.toInt, player, spawn_type.id.toInt)
+      }
+      else {
+        log.warn("SpawnRequestMessage: request consumed; already respawning ...")
+      }
 
     case msg @ SetChatFilterMessage(send_channel, origin, whitelist) =>
       //log.info("SetChatFilters: " + msg)
@@ -3255,14 +3265,18 @@ class WorldSessionActor extends Actor with MDCContextAware {
           PlayerActionsToCancel()
           continent.GUID(player.VehicleSeated) match {
             case Some(vehicle : Vehicle) =>
-              vehicle.Position = pos
-              vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.UnloadVehicle(player.GUID, continent, vehicle, vehicle.GUID))
-              LoadZonePhysicalSpawnPoint(zone, pos, Vector3.Zero, 0)
+              vehicle.PassengerInSeat(player) match {
+                case Some(0) =>
+                  vehicle.Position = pos
+                  LoadZonePhysicalSpawnPoint(zone, pos, Vector3.Zero, 0)
+                case _ => //not seated as the driver, in which case we can't move
+                  deadState = DeadState.Alive
+              }
             case None =>
               player.Position = pos
-              avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player.GUID, player.GUID))
+              //avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player.GUID, player.GUID))
               LoadZonePhysicalSpawnPoint(zone, pos, Vector3.Zero, 0)
-            case _ => //seated in something that is not a vehicle, in which case we can't move
+            case _ => //seated in something that is not a vehicle, or we're dead, in which case we can't move
               deadState = DeadState.Alive
           }
 
@@ -3274,13 +3288,19 @@ class WorldSessionActor extends Actor with MDCContextAware {
           deadState = DeadState.Release //cancel movement updates
           PlayerActionsToCancel()
           continent.GUID(player.VehicleSeated) match {
-            case Some(vehicle : Vehicle) =>
-              LoadZonePhysicalSpawnPoint(continent.Id, pos, Vector3.z(vehicle.Orientation.z), 0)
+            case Some(vehicle : Vehicle) if player.isAlive =>
+              vehicle.PassengerInSeat(player) match {
+                case Some(0) =>
+                  vehicle.Position = pos
+                  LoadZonePhysicalSpawnPoint(continent.Id, pos, Vector3.z(vehicle.Orientation.z), 0)
+                case _ => //not seated as the driver, in which case we can't move
+                  deadState = DeadState.Alive
+              }
             case None =>
               player.Position = pos
               sendResponse(PlayerStateShiftMessage(ShiftState(0, pos, player.Orientation.z, None)))
               deadState = DeadState.Alive //must be set here
-            case _ => //seated in something that is not a vehicle, in which case we can't move
+            case _ => //seated in something that is not a vehicle, or we're dead, in which case we can't move
               deadState = DeadState.Alive
           }
 
@@ -4408,17 +4428,23 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ WarpgateRequest(continent_guid, building_guid, dest_building_guid, dest_continent_guid, unk1, unk2) =>
       log.info(s"WarpgateRequest: $msg")
-      continent.Buildings.values.find(building => building.GUID == building_guid) match {
-        case Some(wg : WarpGate) if(wg.Active && (GetKnownVehicleAndSeat() match {
-          case (Some(vehicle), _) =>
-            wg.Definition.VehicleAllowance && !wg.Definition.NoWarp.contains(vehicle.Definition)
-          case _ =>
-            true
-        })) =>
-          cluster ! Zone.Lattice.RequestSpecificSpawnPoint(dest_continent_guid.guid, player, dest_building_guid)
+      if(deadState != DeadState.Respawn) {
+        deadState = DeadState.Respawn
+        continent.Buildings.values.find(building => building.GUID == building_guid) match {
+          case Some(wg : WarpGate) if (wg.Active && (GetKnownVehicleAndSeat() match {
+            case (Some(vehicle), _) =>
+              wg.Definition.VehicleAllowance && !wg.Definition.NoWarp.contains(vehicle.Definition)
+            case _ =>
+              true
+          })) =>
+            cluster ! Zone.Lattice.RequestSpecificSpawnPoint(dest_continent_guid.guid, player, dest_building_guid)
 
-        case _ =>
-          RequestSanctuaryZoneSpawn(player, continent.Number)
+          case _ =>
+            RequestSanctuaryZoneSpawn(player, continent.Number)
+        }
+      }
+      else {
+        log.warn("WarpgateRequest: request consumed; already respawning ...")
       }
 
     case msg @ MountVehicleMsg(player_guid, mountable_guid, entry_point) =>
@@ -6521,15 +6547,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
             case _ =>
               vehicle.MountedIn = None
           }
-          //call for passengers across the expanse
-          LoadZoneTransferPassengerMessages(
-            player.GUID,
-            continent.Id,
-            TransportVehicleChannelName(vehicle),
-            vehicle,
-            interstellarFerryTopLevelGUID.orElse(player.VehicleSeated).getOrElse(PlanetSideGUID(0))
-          )
-          interstellarFerryTopLevelGUID = None
         }
         else {
           //if passenger;
@@ -8497,7 +8514,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
     */
   def CountSpawnDelay(toZoneId : String, toSpawnPoint : SpawnPoint, fromZoneId : String) : Long = {
     val sanctuaryZoneId = Zones.SanctuaryZoneId(player.Faction)
-    if(sanctuaryZoneId.equals(fromZoneId)) { //TODO includes traveing zones
+    if(toSpawnPoint.isInstanceOf[WarpGate]) {
+      0L
+    }
+    if(sanctuaryZoneId.equals(fromZoneId)) {
       0L
     }
     else if(sanctuaryZoneId.equals(toZoneId)) {
