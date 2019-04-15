@@ -7,7 +7,7 @@ import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.mblocker.Locker
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
-import net.psforever.objects.serverobject.structures.{Building, FoundationBuilder, StructureType}
+import net.psforever.objects.serverobject.structures.{Building, FoundationBuilder, StructureType, WarpGate}
 import net.psforever.objects.serverobject.terminals.{CaptureTerminal, ProximityTerminal, Terminal}
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.serverobject.turret.FacilityTurret
@@ -788,6 +788,24 @@ object Map99 {
       TurretToWeapon(486, 5027)
       LocalObject(488, FacilityTurret.Constructor(manned_turret, Vector3(2879.497f, 1394.957f, 86.72056f)), owning_building_guid = 29)
       TurretToWeapon(488, 5028)
+    }
+
+    Building10461()
+
+    def Building10461(): Unit = { // Name: "Map99_Gate_One" Type: warpgate_small GUID: 30, MapID: 10461
+      LocalBuilding(30, 10461, FoundationBuilder(WarpGate.Structure(Vector3(1198.85f, 2094.78f, 66.32f))))
+    }
+
+    Building10462()
+
+    def Building10462(): Unit = { // Name: "Map99_Gate_Two" Type: warpgate_small GUID: 31, MapID: 10462
+      LocalBuilding(31, 10462, FoundationBuilder(WarpGate.Structure(Vector3(2491.85f, 2848.95f, 62.31f))))
+    }
+
+    Building10464()
+
+    def Building10464(): Unit = { // Name: "Map99_Gate_Three" Type: warpgate_small GUID: 32, MapID: 10464
+      LocalBuilding(32, 10464, FoundationBuilder(WarpGate.Structure(Vector3(2547.98f, 1237.04f, 89.09f))))
     }
   }
 }

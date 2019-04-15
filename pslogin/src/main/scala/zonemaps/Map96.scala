@@ -325,5 +325,17 @@ object Map96 {
       LocalObject(283, SpawnTube.Constructor(respawn_tube_tower, Vector3(2448.706f, 2473.742f, 25.19476f), Vector3(0, 0, 0)), owning_building_guid = 9)
       LocalObject(284, SpawnTube.Constructor(respawn_tube_tower, Vector3(2448.706f, 2490.152f, 25.19476f), Vector3(0, 0, 0)), owning_building_guid = 9)
     }
+
+    Building10001()
+
+    def Building10001(): Unit = { // Name: "Map96_Gate_Two" Type: warpgate_small GUID: 10, MapID: 10001
+      LocalBuilding(10, 10001, FoundationBuilder(WarpGate.Structure(Vector3(2407.71f, 2727.84f, 35.71f))))
+    }
+
+    Building10002()
+
+    def Building10002(): Unit = { // Name: "Map96_Gate_One" Type: warpgate_small GUID: 11, MapID: 10002
+      LocalBuilding(11, 10002, FoundationBuilder(WarpGate.Structure(Vector3(2784.82f, 1348.42f, 33.91f))))
+    }
   }
 }
