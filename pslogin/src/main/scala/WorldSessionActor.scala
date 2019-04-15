@@ -3214,8 +3214,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ SpawnRequestMessage(u1, spawn_type, u3, u4, zone_number) =>
       log.info(s"SpawnRequestMessage: $msg")
-      if(deadState != DeadState.Repsawn) {
-        deadState = DeadState.Repsawn
+      if(deadState != DeadState.RespawnTime) {
+        deadState = DeadState.RespawnTime
         cluster ! Zone.Lattice.RequestSpawnPoint(zone_number.toInt, player, spawn_type.id.toInt)
       }
       else {
@@ -4428,8 +4428,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ WarpgateRequest(continent_guid, building_guid, dest_building_guid, dest_continent_guid, unk1, unk2) =>
       log.info(s"WarpgateRequest: $msg")
-      if(deadState != DeadState.Respawn) {
-        deadState = DeadState.Respawn
+      if(deadState != DeadState.RespawnTime) {
+        deadState = DeadState.RespawnTime
         continent.Buildings.values.find(building => building.GUID == building_guid) match {
           case Some(wg : WarpGate) if (wg.Active && (GetKnownVehicleAndSeat() match {
             case (Some(vehicle), _) =>
@@ -7815,7 +7815,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     *                    does not factor in any time required for loading zone or game objects
     */
   def LoadZonePhysicalSpawnPoint(zone_id : String, pos : Vector3, ori : Vector3, respawnTime : Long) : Unit = {
-    log.info(s"Load in zone $zone_id at position $pos")
+    log.info(s"Load in zone $zone_id at position $pos in $respawnTime seconds")
     respawnTimer.cancel
     reviveTimer.cancel
     val backpack = player.isBackpack
@@ -8506,7 +8506,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
   /**
     * Given an origin and a destination, determine how long the process of traveling should take in reconstruction time.
     * For most destinations, the unit of receiving ("spawn point") determines the reconstruction time.
-    * In a special consideration, travel from any sanctuary or sanctuary-special zone should be as immediate as zone loading.
+    * In a special consideration, travel to any sanctuary or sanctuary-special zone should be as immediate as zone loading.
     * @param toZoneId the zone where the target is headed
     * @param toSpawnPoint the unit the target is using as a destination
     * @param fromZoneId the zone where the target current is located
@@ -8514,14 +8514,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
     */
   def CountSpawnDelay(toZoneId : String, toSpawnPoint : SpawnPoint, fromZoneId : String) : Long = {
     val sanctuaryZoneId = Zones.SanctuaryZoneId(player.Faction)
-    if(toSpawnPoint.isInstanceOf[WarpGate]) {
+    if(sanctuaryZoneId.equals(toZoneId)) { //to sanctuary
       0L
-    }
-    if(sanctuaryZoneId.equals(fromZoneId)) {
-      0L
-    }
-    else if(sanctuaryZoneId.equals(toZoneId)) {
-      10L
     }
     else if(!player.isAlive) {
       toSpawnPoint.Definition.Delay //TODO +cumulative death penalty
