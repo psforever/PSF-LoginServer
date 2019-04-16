@@ -6,7 +6,7 @@ import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.mblocker.Locker
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
-import net.psforever.objects.serverobject.structures.{Building, FoundationBuilder, StructureType}
+import net.psforever.objects.serverobject.structures.{Building, FoundationBuilder, StructureType, WarpGate}
 import net.psforever.objects.serverobject.terminals.{CaptureTerminal, ProximityTerminal, Terminal}
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.serverobject.turret.FacilityTurret
@@ -148,6 +148,12 @@ object Map96 {
       TurretToWeapon(196, 5006)
       LocalObject(197, FacilityTurret.Constructor(manned_turret, Vector3(2042.773f, 1948.733f, 44.32076f)), owning_building_guid = 1)
       TurretToWeapon(197, 5007)
+    }
+
+    Building10000()
+
+    def Building10000(): Unit = { // Name: "Map96_Gate_Three" Type: hst GUID: 4, MapID: 10000
+      LocalBuilding(4, 10000, FoundationBuilder(WarpGate.Structure(Vector3(1387.16f, 1639.74f, 48.78f), hst)))
     }
 
     Building2()
@@ -318,6 +324,18 @@ object Map96 {
       LocalObject(225, Terminal.Constructor(order_terminal), owning_building_guid = 9)
       LocalObject(283, SpawnTube.Constructor(respawn_tube_tower, Vector3(2448.706f, 2473.742f, 25.19476f), Vector3(0, 0, 0)), owning_building_guid = 9)
       LocalObject(284, SpawnTube.Constructor(respawn_tube_tower, Vector3(2448.706f, 2490.152f, 25.19476f), Vector3(0, 0, 0)), owning_building_guid = 9)
+    }
+
+    Building10001()
+
+    def Building10001(): Unit = { // Name: "Map96_Gate_Two" Type: warpgate_small GUID: 10, MapID: 10001
+      LocalBuilding(10, 10001, FoundationBuilder(WarpGate.Structure(Vector3(2407.71f, 2727.84f, 35.71f))))
+    }
+
+    Building10002()
+
+    def Building10002(): Unit = { // Name: "Map96_Gate_One" Type: warpgate_small GUID: 11, MapID: 10002
+      LocalBuilding(11, 10002, FoundationBuilder(WarpGate.Structure(Vector3(2784.82f, 1348.42f, 33.91f))))
     }
   }
 }
