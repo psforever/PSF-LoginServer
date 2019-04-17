@@ -3280,7 +3280,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
               deadState = DeadState.Alive
           }
 
-        case (false, _, _) => ;
+        case (_, _, _) => ;
       }
 
       CSRWarp.read(traveler, msg) match {
@@ -3304,7 +3304,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
               deadState = DeadState.Alive
           }
 
-        case (false, _) => ;
+        case (_, _) => ;
       }
 
       // TODO: Prevents log spam, but should be handled correctly
@@ -6306,7 +6306,16 @@ class WorldSessionActor extends Actor with MDCContextAware {
           )
         )
         sendResponse(DensityLevelUpdateMessage(continentNumber, buildingNumber, List(0,0, 0,0, 0,0, 0,0)))
-        sendResponse(BroadcastWarpgateUpdateMessage(continentNumber, buildingNumber, false, false, wg.Broadcast))
+        //TODO one faction knows which gates are broadcast for another faction?
+        sendResponse(
+          BroadcastWarpgateUpdateMessage(
+            continentNumber,
+            buildingNumber,
+            wg.Broadcast(PlanetSideEmpire.TR),
+            wg.Broadcast(PlanetSideEmpire.NC),
+            wg.Broadcast(PlanetSideEmpire.VS)
+          )
+        )
       case _ => ;
     }
   }
@@ -7880,7 +7889,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     else {
       LoadZoneCommonTransferActivity()
       val original = player
-      if(tplayer.isBackpack) {
+      if(player.isBackpack) {
         //unregister avatar locker + GiveWorld
         player = tplayer
         (taskResolver, TaskBeforeZoneChange(GUIDTask.UnregisterLocker(original.Locker)(continent.GUID), zone_id))

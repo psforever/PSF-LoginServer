@@ -7,7 +7,16 @@ import net.psforever.objects.zones.Zone
 import net.psforever.types.PlanetSideEmpire
 
 object Zones {
-  val z1 = new Zone("z1", Maps.map1, 1)
+  val z1 = new Zone("z1", Maps.map1, 1) {
+    override def Init(implicit context : ActorContext) : Unit = {
+      super.Init(context)
+
+      BuildingByMapId(1).get.asInstanceOf[WarpGate].BroadcastFor = PlanetSideEmpire.TR
+      BuildingByMapId(2).get.asInstanceOf[WarpGate].BroadcastFor = PlanetSideEmpire.TR
+      BuildingByMapId(3).get.asInstanceOf[WarpGate].BroadcastFor = PlanetSideEmpire.TR
+      BuildingByMapId(4).get.asInstanceOf[WarpGate].BroadcastFor = PlanetSideEmpire.TR
+    }
+  }
 
   val z2 = new Zone("z2", Maps.map2, 2)
 
@@ -101,10 +110,10 @@ object Zones {
       }
       import net.psforever.types.PlanetSideEmpire
       BuildingByMapId(2).get.Faction = PlanetSideEmpire.VS
-      BuildingByMapId(10).get.asInstanceOf[WarpGate].Broadcast = true
-      BuildingByMapId(11).get.asInstanceOf[WarpGate].Broadcast = true
-      BuildingByMapId(12).get.asInstanceOf[WarpGate].Broadcast = true
-      BuildingByMapId(13).get.asInstanceOf[WarpGate].Broadcast = true
+      BuildingByMapId(10).get.asInstanceOf[WarpGate].BroadcastFor = PlanetSideEmpire.VS
+      BuildingByMapId(11).get.asInstanceOf[WarpGate].BroadcastFor = PlanetSideEmpire.VS
+      BuildingByMapId(12).get.asInstanceOf[WarpGate].BroadcastFor = PlanetSideEmpire.VS
+      BuildingByMapId(13).get.asInstanceOf[WarpGate].BroadcastFor = PlanetSideEmpire.VS
       BuildingByMapId(48).get.Faction = PlanetSideEmpire.VS
       BuildingByMapId(49).get.Faction = PlanetSideEmpire.VS
       BuildingByMapId(18657).get.asInstanceOf[WarpGate].Active = false
@@ -135,6 +144,9 @@ object Zones {
 
       import net.psforever.types.PlanetSideEmpire
       Buildings.values.foreach { _.Faction = PlanetSideEmpire.TR }
+      BuildingByMapId(1).get.asInstanceOf[WarpGate].Broadcast = true
+      BuildingByMapId(2).get.asInstanceOf[WarpGate].Broadcast = true
+      BuildingByMapId(3).get.asInstanceOf[WarpGate].Broadcast = true
     }
   }
 
