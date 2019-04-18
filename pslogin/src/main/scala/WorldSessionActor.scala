@@ -1551,13 +1551,34 @@ class WorldSessionActor extends Actor with MDCContextAware {
         lastTerminalOrderFulfillment = true
 
       case Terminal.BuyEquipment(item) =>
-        tplayer.Fit(item) match {
-          case Some(index) =>
-            item.Faction = tplayer.Faction
-            sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, true))
-            taskResolver ! PutEquipmentInSlot(tplayer, item, index)
-          case None =>
-            sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, false))
+        continent.GUID(tplayer.VehicleSeated) match {
+          //vehicle trunk
+          case Some(vehicle : Vehicle) =>
+            vehicle.Fit(item) match {
+              case Some(index) =>
+                item.Faction = tplayer.Faction
+                sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, true))
+                taskResolver ! StowNewEquipmentInVehicle(vehicle)(index, item)
+              case None => //player free hand?
+                tplayer.FreeHand.Equipment match {
+                  case None =>
+                    item.Faction = tplayer.Faction
+                    sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, true))
+                    taskResolver ! PutEquipmentInSlot(tplayer, item, Player.FreeHandSlot)
+                  case Some(_) =>
+                    sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, false))
+                }
+            }
+          //player backpack or free hand
+          case _ =>
+            tplayer.Fit(item) match {
+              case Some(index) =>
+                item.Faction = tplayer.Faction
+                sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, true))
+                taskResolver ! PutEquipmentInSlot(tplayer, item, index)
+              case None =>
+                sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, false))
+            }
         }
         lastTerminalOrderFulfillment = true
 
@@ -5677,7 +5698,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * @see `ChangeAmmoMessage`
     * @param obj the `Container` object
     * @param index an index in `obj`'s inventory
-    * @param item an `AmmoBox`
+    * @param item the `Equipment` item
     * @return a `TaskResolver.GiveTask` chain that executes the action
     */
   def StowNewEquipment(obj : PlanetSideGameObject with Container)(index : Int, item : Equipment) : TaskResolver.GiveTask = {
@@ -5692,7 +5713,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * @see `ChangeAmmoMessage`
     * @param obj the `Container` object
     * @param index an index in `obj`'s inventory
-    * @param item an `AmmoBox`
+    * @param item the `Equipment` item
     * @return a `TaskResolver.GiveTask` chain that executes the action
     */
   def StowNewEquipmentInVehicle(obj : Vehicle)(index : Int, item : Equipment) : TaskResolver.GiveTask = {
