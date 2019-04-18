@@ -164,6 +164,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           //quickly and briefly kill player to avoid disembark animation
           avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player_guid, 0, 0))
           DismountVehicleOnLogOut()
+          DisownVehicle()
         }
         avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player_guid, player_guid))
         taskResolver ! GUIDTask.UnregisterAvatar(player)(continent.GUID)
@@ -207,14 +208,14 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * Vehicle cleanup that is specific to log out behavior.
     */
   def DismountVehicleOnLogOut() : Unit = {
-    (player.VehicleSeated match {
-      case Some(vehicle_guid) =>
-        continent.GUID(vehicle_guid)
-      case None =>
-        None
+    (continent.GUID(player.VehicleSeated) match {
+      case Some(obj : Mountable) =>
+        (Some(obj), obj.PassengerInSeat(player))
+      case _ =>
+        (None, None)
     }) match {
-      case Some(mobj : Mountable) =>
-        mobj.Seat(mobj.PassengerInSeat(player).get).get.Occupant = None
+      case (Some(mountObj), Some(seatIndex)) =>
+        mountObj.Seats(seatIndex).Occupant = None
 
       case _ => ;
     }
@@ -5281,7 +5282,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * @param vehicle the discovered vehicle
     */
   private def SpecialCaseVehicleDespawn(tplayer : Player, vehicle : Vehicle) : Option[Vehicle] = {
-    if(vehicle.Owner.contains(tplayer.GUID) || !vehicle.Seats(0).isOccupied) {
+    if(vehicle.Owner.contains(tplayer.GUID)) {
       vehicle.Owner = None
       vehicleService ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(vehicle), continent))
       vehicle.CargoHolds.values
@@ -5294,7 +5295,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             vehicle,
             ferry.GUID,
             ferry,
-            true,
+            false,
             false,
             false
           )
@@ -8330,7 +8331,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
     */
   def BeforeUnloadVehicle(vehicle : Vehicle) : Unit = {
     vehicle.Definition match {
+      case GlobalDefinitions.ams if vehicle.Faction == player.Faction =>
+        log.info("BeforeUnload: cleaning up after a mobile spawn vehicle ...")
+        vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.UpdateAmsSpawnPoint(continent))
+        None
       case GlobalDefinitions.router =>
+        //this may repeat for multiple players on the same continent but that's okay(?)
         log.info("BeforeUnload: cleaning up after a router ...")
         (vehicle.Utility(UtilityType.internal_router_telepad_deployable) match {
           case Some(util : Utility.InternalTelepad) =>
@@ -8547,8 +8553,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
         .sortBy(tube => Vector3.DistanceSquared(tube.Position, player.Position))
         .headOption match {
         case Some(tube) =>
+          log.info("DrawCurrentAmsSpawnPoint - new @ams spawn point drawn")
           sendResponse(BindPlayerMessage(BindStatus.Available, "@ams", true, false, SpawnGroup.AMS, continent.Number, 5, tube.Position))
         case None =>
+          log.info("DrawCurrentAmsSpawnPoint - no @ams spawn point drawn")
           sendResponse(BindPlayerMessage(BindStatus.Unavailable, "@ams", false, false, SpawnGroup.AMS, continent.Number, 0, Vector3.Zero))
       }
     }
