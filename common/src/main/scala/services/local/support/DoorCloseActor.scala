@@ -38,8 +38,10 @@ class DoorCloseActor() extends Actor {
       val (doorsToClose2, doorsLeftOpen2) = doorsToClose1.partition(entry => {
         entry.door.Open match {
           case Some(player) =>
-            Vector3.MagnitudeSquared(entry.door.Position - player.Position) > 15
+            // If the player that opened the door is far enough away, or they're dead / backpacked, close the door
+            Vector3.MagnitudeSquared(entry.door.Position - player.Position) > 25.5 || !player.isAlive || player.isBackpack
           case None =>
+            // Door should not be open. Mark it to be closed.
             true
         }
       })
