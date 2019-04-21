@@ -1535,13 +1535,34 @@ class WorldSessionActor extends Actor with MDCContextAware {
         lastTerminalOrderFulfillment = true
 
       case Terminal.BuyEquipment(item) =>
-        tplayer.Fit(item) match {
-          case Some(index) =>
-            item.Faction = tplayer.Faction
-            sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, true))
-            taskResolver ! PutEquipmentInSlot(tplayer, item, index)
-          case None =>
-            sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, false))
+        continent.GUID(tplayer.VehicleSeated) match {
+          //vehicle trunk
+          case Some(vehicle : Vehicle) =>
+            vehicle.Fit(item) match {
+              case Some(index) =>
+                item.Faction = tplayer.Faction
+                sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, true))
+                taskResolver ! StowNewEquipmentInVehicle(vehicle)(index, item)
+              case None => //player free hand?
+                tplayer.FreeHand.Equipment match {
+                  case None =>
+                    item.Faction = tplayer.Faction
+                    sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, true))
+                    taskResolver ! PutEquipmentInSlot(tplayer, item, Player.FreeHandSlot)
+                  case Some(_) =>
+                    sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, false))
+                }
+            }
+          //player backpack or free hand
+          case _ =>
+            tplayer.Fit(item) match {
+              case Some(index) =>
+                item.Faction = tplayer.Faction
+                sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, true))
+                taskResolver ! PutEquipmentInSlot(tplayer, item, index)
+              case None =>
+                sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, false))
+            }
         }
         lastTerminalOrderFulfillment = true
 
@@ -1559,24 +1580,42 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
       case Terminal.InfantryLoadout(exosuit, subtype, holsters, inventory) =>
         log.info(s"$tplayer wants to change equipment loadout to their option #${msg.unk1 + 1}")
-        //TODO check exo-suit permissions
         sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Loadout, true))
         //prepare lists of valid objects
         val beforeFreeHand = tplayer.FreeHand.Equipment
         val dropPred = DropPredicate(tplayer)
         val (dropHolsters, beforeHolsters) = clearHolsters(tplayer.Holsters().iterator).partition(dropPred)
         val (dropInventory, beforeInventory) = tplayer.Inventory.Clear().partition(dropPred)
-        val (_, afterHolsters) = holsters.partition(dropPred) //dropped items are forgotten
-        val (_, afterInventory) = inventory.partition(dropPred) //dropped items are forgotten
-        //change suit (clear inventory and change holster sizes; holsters must be empty before this point)
         tplayer.FreeHand.Equipment = None //terminal and inventory will close, so prematurely dropping should be fine
+        //sanitize exo-suit for change
         val originalSuit = player.ExoSuit
         val originalSubtype = Loadout.DetermineSubtype(tplayer)
+        val fallbackSuit = ExoSuitType.Standard
+        val fallbackSubtype = 0
+        //a loadout with a prohibited exo-suit type will result in a fallback exo-suit type
+        val (nextSuit : ExoSuitType.Value, nextSubtype : Int) =
+          if(ExoSuitDefinition.Select(exosuit).Permissions match {
+            case Nil =>
+              true
+            case permissions if subtype != 0 =>
+              val certs = tplayer.Certifications
+              certs.intersect(permissions.toSet).nonEmpty &&
+                certs.intersect(InfantryLoadout.DetermineSubtypeC(subtype)).nonEmpty
+            case permissions =>
+              tplayer.Certifications.intersect(permissions.toSet).nonEmpty
+          }) {
+          (exosuit, subtype)
+        }
+        else {
+          log.warn(s"$tplayer no longer has permission to wear the exo-suit type $exosuit; will wear $fallbackSuit instead")
+          (fallbackSuit, fallbackSubtype)
+        }
+        //update suit interally (holsters must be empty before this point)
         val originalArmor = player.Armor
-        tplayer.ExoSuit = exosuit
+        tplayer.ExoSuit = nextSuit
         val toMaxArmor = tplayer.MaxArmor
-        if(originalSuit != exosuit || originalSubtype != subtype || originalArmor > toMaxArmor) {
-          tplayer.History(HealFromExoSuitChange(PlayerSource(tplayer), exosuit))
+        if(originalSuit != nextSuit || originalSubtype != nextSubtype || originalArmor > toMaxArmor) {
+          tplayer.History(HealFromExoSuitChange(PlayerSource(tplayer), nextSuit))
           tplayer.Armor = toMaxArmor
           sendResponse(PlanetsideAttributeMessage(tplayer.GUID, 4, toMaxArmor))
           avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttribute(tplayer.GUID, 4, toMaxArmor))
@@ -1590,6 +1629,44 @@ class WorldSessionActor extends Actor with MDCContextAware {
           sendResponse(ObjectHeldMessage(tplayer.GUID, Player.HandsDownSlot, true))
           avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.ObjectHeld(tplayer.GUID, tplayer.LastDrawnSlot))
         }
+        //a change due to exo-suit permissions mismatch will result in (more) items being re-arranged and/or dropped
+        //dropped items can be forgotten safely
+        val (afterHolsters, afterInventory) = if(nextSuit == exosuit) {
+          (
+            holsters.filterNot(dropPred),
+            inventory.filterNot(dropPred)
+          )
+        }
+        else {
+          val newSuitDef = ExoSuitDefinition.Select(nextSuit)
+          val (afterInventory, extra) = GridInventory.recoverInventory(
+            inventory.filterNot(dropPred),
+            tplayer.Inventory
+          )
+          val afterHolsters = {
+            val preservedHolsters = if(exosuit == ExoSuitType.MAX) {
+              holsters.filter(_.start == 4) //melee slot perservation
+            }
+            else {
+              holsters
+                .filterNot(dropPred)
+                .collect {
+                  case item @ InventoryItem(obj, index) if newSuitDef.Holster(index) == obj.Size => item
+                }
+            }
+            val size = newSuitDef.Holsters.size
+            val indexMap = preservedHolsters.map { entry => entry.start }
+            preservedHolsters ++ (extra.map { obj =>
+              tplayer.Fit(obj) match {
+                case Some(index : Int) if index < size && !indexMap.contains(index) =>
+                  InventoryItem(obj, index)
+                case _ =>
+                  InventoryItem(obj, -1)
+              }
+            }).filterNot(entry => entry.start == -1)
+          }
+          (afterHolsters, afterInventory)
+        }
         //delete everything (not dropped)
         beforeHolsters.foreach({ elem =>
           avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.ObjectDelete(tplayer.GUID, elem.obj.GUID))
@@ -1599,9 +1676,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
           taskResolver ! GUIDTask.UnregisterEquipment(elem.obj)(continent.GUID)
         })
         //report change
-        sendResponse(ArmorChangedMessage(tplayer.GUID, exosuit, subtype))
-        avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.ArmorChanged(tplayer.GUID, exosuit, subtype))
-        if(exosuit == ExoSuitType.MAX) {
+        sendResponse(ArmorChangedMessage(tplayer.GUID, nextSuit, nextSubtype))
+        avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.ArmorChanged(tplayer.GUID, nextSuit, nextSubtype))
+        if(nextSuit == ExoSuitType.MAX) {
           val (maxWeapons, otherWeapons) = afterHolsters.partition(entry => { entry.obj.Size == EquipmentSize.Max })
           taskResolver ! DelayedObjectHeld(tplayer, 0, List(PutEquipmentInSlot(tplayer, maxWeapons.head.obj, 0)))
           otherWeapons
@@ -2622,7 +2699,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     val (inf, veh) = avatar.Loadouts.partition { case (index, _) => index < 10 }
     inf.foreach {
       case (index, loadout : InfantryLoadout) =>
-        sendResponse(FavoritesMessage(LoadoutType.Infantry, guid, index, loadout.label, loadout.exosuit.id + loadout.subtype))
+        sendResponse(FavoritesMessage(LoadoutType.Infantry, guid, index, loadout.label, InfantryLoadout.DetermineSubtypeB(loadout.exosuit, loadout.subtype)))
     }
     veh.foreach {
       case (index, loadout : VehicleLoadout) =>
@@ -5622,7 +5699,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * @see `ChangeAmmoMessage`
     * @param obj the `Container` object
     * @param index an index in `obj`'s inventory
-    * @param item an `AmmoBox`
+    * @param item the `Equipment` item
     * @return a `TaskResolver.GiveTask` chain that executes the action
     */
   def StowNewEquipment(obj : PlanetSideGameObject with Container)(index : Int, item : Equipment) : TaskResolver.GiveTask = {
@@ -5637,7 +5714,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * @see `ChangeAmmoMessage`
     * @param obj the `Container` object
     * @param index an index in `obj`'s inventory
-    * @param item an `AmmoBox`
+    * @param item the `Equipment` item
     * @return a `TaskResolver.GiveTask` chain that executes the action
     */
   def StowNewEquipmentInVehicle(obj : Vehicle)(index : Int, item : Equipment) : TaskResolver.GiveTask = {

@@ -136,7 +136,7 @@ object OrderTerminalDefinition {
           Terminal.BuyExosuit(suit, subtype)
         case _ =>
           items.get(msg.item_name) match {
-            case Some(item : (()=>Equipment)) =>
+            case Some(item) =>
               Terminal.BuyEquipment(item())
             case _ =>
               Terminal.NoDeal()
@@ -180,7 +180,7 @@ object OrderTerminalDefinition {
   final case class EquipmentPage(stock : Map[String, ()=>Equipment]) extends Tab {
     override def Buy(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
       stock.get(msg.item_name) match {
-        case Some(item : (()=>Equipment)) =>
+        case Some(item) =>
           Terminal.BuyEquipment(item())
         case _ =>
           Terminal.NoDeal()
@@ -217,22 +217,55 @@ object OrderTerminalDefinition {
   }
 
   /**
+    * The base class for "loadout" type tabs.
+    * Defines logic for enumerating items and entities that should be eliminated from being loaded.
+    * The method for filtering those excluded items, if applicable,
+    * and management of the resulting loadout object
+    * is the responsibility of the specific tab that is instantiated.
+    */
+  abstract class LoadoutTab extends Tab {
+    private var contraband : Seq[Any] = Nil
+
+    def Exclude : Seq[Any] = contraband
+
+    def Exclude_=(equipment : Any) : Seq[Any] = {
+      contraband = Seq(equipment)
+      Exclude
+    }
+
+    def Exclude_=(equipmentList : Seq[Any]) : Seq[Any] = {
+      contraband = equipmentList
+      Exclude
+    }
+  }
+
+  /**
     * The tab used to select which custom loadout the player is using.
     * Player loadouts are defined by an exo-suit to be worn by the player
     * and equipment in the holsters and the inventory.
     * In this case, the reference to the player that is a parameter of the functions maintains information about the loadouts;
     * no extra information specific to this page is necessary.
+    * If an exo-suit type is considered excluded, the whole loadout is blocked.
+    * If the exclusion is written as a `Tuple` object `(A, B)`,
+    * `A` will be expected as an exo-suit type, and `B` will be expected as its subtype,
+    * and the pair must both match to block the whole loadout.
+    * If any of the player's inventory is considered excluded, only those items will be filtered.
     * @see `ExoSuitType`
     * @see `Equipment`
     * @see `InfantryLoadout`
     * @see `Loadout`
     */
-  final case class InfantryLoadoutPage() extends Tab {
+  //TODO block equipment by blocking ammunition type
+  final case class InfantryLoadoutPage() extends LoadoutTab {
     override def Buy(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
       player.LoadLoadout(msg.unk1) match {
-        case Some(loadout : InfantryLoadout) =>
-          val holsters = loadout.visible_slots.map(entry => { InventoryItem(BuildSimplifiedPattern(entry.item), entry.index) })
-          val inventory = loadout.inventory.map(entry => { InventoryItem(BuildSimplifiedPattern(entry.item), entry.index) })
+        case Some(loadout : InfantryLoadout) if !Exclude.contains(loadout.exosuit) && !Exclude.contains((loadout.exosuit, loadout.subtype)) =>
+          val holsters = loadout.visible_slots
+            .map(entry => { InventoryItem(BuildSimplifiedPattern(entry.item), entry.index) })
+            .filterNot { entry => Exclude.contains(entry.obj.Definition) }
+          val inventory = loadout.inventory
+            .map(entry => { InventoryItem(BuildSimplifiedPattern(entry.item), entry.index) })
+            .filterNot { entry => Exclude.contains(entry.obj.Definition) }
           Terminal.InfantryLoadout(loadout.exosuit, loadout.subtype, holsters, inventory)
         case _ =>
           Terminal.NoDeal()
@@ -246,16 +279,21 @@ object OrderTerminalDefinition {
     * and equipment in the trunk.
     * In this case, the reference to the player that is a parameter of the functions maintains information about the loadouts;
     * no extra information specific to this page is necessary.
+    * If a vehicle type (by definition) is considered excluded, the whole loadout is blocked.
+    * If any of the vehicle's inventory is considered excluded, only those items will be filtered.
     * @see `Equipment`
     * @see `Loadout`
     * @see `VehicleLoadout`
     */
-  final case class VehicleLoadoutPage() extends Tab {
+  final case class VehicleLoadoutPage() extends LoadoutTab {
     override def Buy(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
       player.LoadLoadout(msg.unk1 + 10) match {
-        case Some(loadout : VehicleLoadout) =>
-          val weapons = loadout.visible_slots.map(entry => { InventoryItem(BuildSimplifiedPattern(entry.item), entry.index) })
-          val inventory = loadout.inventory.map(entry => { InventoryItem(BuildSimplifiedPattern(entry.item), entry.index) })
+        case Some(loadout : VehicleLoadout) if !Exclude.contains(loadout.vehicle_definition) =>
+          val weapons = loadout.visible_slots
+            .map(entry => { InventoryItem(BuildSimplifiedPattern(entry.item), entry.index) })
+          val inventory = loadout.inventory
+            .map(entry => { InventoryItem(BuildSimplifiedPattern(entry.item), entry.index) })
+            .filterNot { entry => Exclude.contains(entry.obj.Definition) }
           Terminal.VehicleLoadout(loadout.vehicle_definition, weapons, inventory)
         case _ =>
           Terminal.NoDeal()

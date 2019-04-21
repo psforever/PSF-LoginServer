@@ -94,6 +94,7 @@ class SpecialExoSuitDefinition(private val suitType : ExoSuitType.Value) extends
 
   override def Use : ExoSuitDefinition = {
     val obj = new SpecialExoSuitDefinition(SuitType)
+    obj.Permissions = Permissions
     obj.MaxArmor = MaxArmor
     obj.InventoryScale = InventoryScale
     obj.InventoryOffset = InventoryOffset

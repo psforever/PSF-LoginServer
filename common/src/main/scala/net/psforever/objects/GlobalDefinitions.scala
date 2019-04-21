@@ -5803,6 +5803,7 @@ object GlobalDefinitions {
     order_terminala.Tab += 2 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.supportAmmunition ++ EquipmentTerminalDefinition.supportWeapons)
     order_terminala.Tab += 3 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
     order_terminala.Tab += 4 -> OrderTerminalDefinition.InfantryLoadoutPage()
+    order_terminala.Tab(4).asInstanceOf[OrderTerminalDefinition.InfantryLoadoutPage].Exclude = ExoSuitType.MAX
     order_terminala.SellEquipmentByDefault = true
 
     order_terminalb.Name = "order_terminalb"
@@ -5811,6 +5812,7 @@ object GlobalDefinitions {
     order_terminalb.Tab += 2 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.supportAmmunition ++ EquipmentTerminalDefinition.supportWeapons)
     order_terminalb.Tab += 3 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
     order_terminalb.Tab += 4 -> OrderTerminalDefinition.InfantryLoadoutPage()
+    order_terminalb.Tab(4).asInstanceOf[OrderTerminalDefinition.InfantryLoadoutPage].Exclude = ExoSuitType.MAX
     order_terminalb.SellEquipmentByDefault = true
 
     cert_terminal.Name = "cert_terminal"

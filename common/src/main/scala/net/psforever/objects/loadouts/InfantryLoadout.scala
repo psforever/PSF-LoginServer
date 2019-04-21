@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.loadouts
 
-import net.psforever.types.ExoSuitType
+import net.psforever.types.{CertificationType, ExoSuitType}
 
 /**
   * A blueprint of a player's uniform, their holster items, and their inventory items, saved in a specific state.
@@ -98,5 +98,20 @@ object InfantryLoadout {
       case ExoSuitType.MAX => 3 + subtype //4, 5, 6
       case ExoSuitType.Infiltration => 7
     }
+  }
+
+  /**
+    * Assuming the exo-suit is a mechanized assault type,
+    * use the subtype to determine what certifications would be valid for permitted access to that specific exo-suit.
+    * The "C" does not stand for "certification."
+    * @see `CertificationType`
+    * @param subtype the numeric subtype
+    * @return a `Set` of all certifications that would grant access to the mechanized assault exo-suit subtype
+    */
+  def DetermineSubtypeC(subtype : Int) : Set[CertificationType.Value] = subtype match {
+    case 1 => Set(CertificationType.AIMAX, CertificationType.UniMAX)
+    case 2 => Set(CertificationType.AVMAX, CertificationType.UniMAX)
+    case 3 => Set(CertificationType.AAMAX, CertificationType.UniMAX)
+    case _ => Set.empty[CertificationType.Value]
   }
 }
