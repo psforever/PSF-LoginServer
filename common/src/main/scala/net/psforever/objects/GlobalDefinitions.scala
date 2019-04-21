@@ -1039,14 +1039,12 @@ object GlobalDefinitions {
   val warpgate : ObjectDefinition with SpawnPointDefinition = new ObjectDefinition(993) with SpawnPointDefinition
   warpgate.Name = "warpgate"
   warpgate.UseRadius = 301.8713f
-  warpgate.Delay = 10
   warpgate.VehicleAllowance = true
   warpgate.SpecificPointFunc = SpawnPoint.Gate
 
   val hst : ObjectDefinition with SpawnPointDefinition = new ObjectDefinition(402) with SpawnPointDefinition
   hst.Name = "hst"
   hst.UseRadius = 20.4810f
-  hst.Delay = 10
   hst.VehicleAllowance = true
   hst.NoWarp += dropship
   hst.NoWarp += galaxy_gunship
@@ -1062,7 +1060,6 @@ object GlobalDefinitions {
   val warpgate_cavern : ObjectDefinition with SpawnPointDefinition = new ObjectDefinition(994) with SpawnPointDefinition
   warpgate_cavern.Name = "warpgate_cavern"
   warpgate_cavern.UseRadius = 55.0522f
-  warpgate_cavern.Delay = 10
   warpgate_cavern.VehicleAllowance = true
   warpgate_cavern.SpecificPointFunc = SpawnPoint.Gate
 
