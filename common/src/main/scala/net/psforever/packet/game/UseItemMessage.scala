@@ -31,6 +31,19 @@ import scodec.codecs._
   *                     0 when door 1 when use rek (252 then equipment term)
   * @param object_id    the object id `object_guid`'s object
   */
+
+  /*
+    BETA CLIENT DEBUG INFO:
+      User GUID
+      UsedItem GUID
+      Target GUID
+      Old SlotIndex
+      Weapon Fire Use
+      RayTrace Start Position (3 fields - Vector3)
+      RayTrace Intersection Position (3 fields - Vector3)
+      Orientation (3 fields - Vector3)
+      Client Target ClassID
+  */
 final case class UseItemMessage(avatar_guid : PlanetSideGUID,
                                 item_used_guid : PlanetSideGUID,
                                 object_guid : PlanetSideGUID,

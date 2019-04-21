@@ -38,7 +38,7 @@ import shapeless.{::, HNil}
   * @param facingYawUpper a "yaw" angle that represents the angle of the avatar's upper body with respect to its forward-facing direction;
   *                       this number is normally 0 for forward facing;
   *                       the range is limited between approximately 61 degrees of center turned to left or right
-  * @param unk1 na
+  * @param timestamp A sequential counter
   * @param is_crouching avatar is crouching
   * @param is_jumping avatar is jumping;
   *                   must remain flagged for jump to maintain animation
@@ -51,7 +51,7 @@ final case class PlayerStateMessage(guid : PlanetSideGUID,
                                     facingYaw : Float,
                                     facingPitch : Float,
                                     facingYawUpper : Float,
-                                    unk1 : Int,
+                                    timestamp : Int,
                                     is_crouching : Boolean = false,
                                     is_jumping : Boolean = false,
                                     jump_thrust : Boolean = false,

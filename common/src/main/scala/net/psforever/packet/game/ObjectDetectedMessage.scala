@@ -15,6 +15,14 @@ import shapeless.{::, HNil}
   * @param list list of detected objects;
   *             normally contains at least one element
   */
+
+  /*
+    BETA CLIENT DEBUG INFO:
+      Detector
+      Sender
+      Object Count
+      Detected Object[]
+   */
 final case class ObjectDetectedMessage(player_guid1 : PlanetSideGUID,
                                        player_guid2 : PlanetSideGUID,
                                        unk : Int,
