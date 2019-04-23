@@ -79,9 +79,10 @@ object MountableBehavior {
     val dismountBehavior : Receive = {
       case Mountable.TryDismount(user, seat_num) =>
         val obj = MountableObject
+        val velocity = obj.Velocity.getOrElse(Vector3.Zero)
         obj.Seat(seat_num) match {
           case Some(seat) =>
-            if(seat.Bailable || obj.Velocity.isEmpty || Vector3.MagnitudeSquared(obj.Velocity.get).toInt == 0) {
+            if(seat.Bailable || velocity == Vector3.Zero || Vector3.MagnitudeSquared(velocity).toInt == 0) {
               seat.Occupant = None
               user.VehicleSeated = None
               sender ! Mountable.MountMessages(user, Mountable.CanDismount(obj, seat_num))

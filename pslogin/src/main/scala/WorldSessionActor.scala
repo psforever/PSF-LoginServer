@@ -4427,16 +4427,24 @@ class WorldSessionActor extends Actor with MDCContextAware {
             }) {
               log.trace(s"WeaponFireMessage: overwriting unresolved projectile ${projectile_guid.guid}")
             }
-            val (angle, attribution) = obj match {
+            val (angle, attribution, acceptableDistanceToOwner) = obj match {
               case p : Player =>
-                (p.Orientation, tool.Definition.ObjectId) //TODO upper body facing
+                (p.Orientation, tool.Definition.ObjectId, 10f) //TODO upper body facing
+              case v : Vehicle if v.Definition.CanFly =>
+                (tool.Orientation, obj.Definition.ObjectId, 1000f) //TODO this is too simplistic to find proper angle
               case _ : Vehicle =>
-                (tool.Orientation, obj.Definition.ObjectId) //TODO this is too simplistic to find proper angle
+                (tool.Orientation, obj.Definition.ObjectId, 225f) //TODO this is too simplistic to find proper angle
               case _ =>
-                (obj.Orientation, obj.Definition.ObjectId)
+                (obj.Orientation, obj.Definition.ObjectId, 300f)
             }
-            projectiles(projectileIndex) =
-              Some(Projectile(tool.Projectile, tool.Definition, tool.FireMode, player, attribution, shot_origin, angle))
+            val distanceToOwner = Vector3.DistanceSquared(shot_origin, player.Position)
+            if(distanceToOwner <= acceptableDistanceToOwner) {
+              projectiles(projectileIndex) =
+                Some(Projectile(tool.Projectile, tool.Definition, tool.FireMode, player, attribution, shot_origin, angle))
+            }
+            else {
+              log.warn(s"WeaponFireMessage: $player's shot is too far from owner position at time of discharge ($distanceToOwner > $acceptableDistanceToOwner); suspect")
+            }
           }
         case _ => ;
       }

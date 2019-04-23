@@ -167,6 +167,6 @@ object DamageCalculations {
   }
 
   def DistanceBetweenOriginAndImpact(data : ResolvedProjectile) : Float = {
-    Vector3.Distance(data.projectile.shot_origin, data.hit_pos) - 0.5f
+    math.max(Vector3.Distance(data.projectile.shot_origin, data.hit_pos) - 0.5f, 0)
   }
 }
