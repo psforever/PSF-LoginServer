@@ -22,7 +22,7 @@ object InfantrySplashResistance extends ResistanceCalculations[PlayerSource](
 
 object InfantryLashResistance extends ResistanceCalculations[PlayerSource](
   ResistanceCalculations.ValidInfantryTarget,
-  ResistanceCalculations.ExoSuitDirectExtractor
+  ResistanceCalculations.MaximumResistance
 )
 
 object InfantryAggravatedResistance extends ResistanceCalculations[PlayerSource](

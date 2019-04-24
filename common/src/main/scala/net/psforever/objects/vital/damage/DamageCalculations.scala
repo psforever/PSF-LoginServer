@@ -135,16 +135,16 @@ object DamageCalculations {
   /**
     * Calculate a lash damage value.
     * The target needs to be more than five meters away.
-    * Minimum damage before maximum distance is 1.
+    * Since lash damage occurs after the direct hit projectile's damage begins to degrade,
+    * the minimum of five less than distance or zero is calculated.
     * @param projectile information about the weapon discharge (itself)
     * @param rawDamage the accumulated amount of damage
     * @param distance how far the source was from the target
     * @return the modified damage value
     */
   def LashDamage(projectile : Projectile, rawDamage : Int, distance : Float) : Int = {
-    val profile = projectile.profile
-    if(distance > 5 || distance <= profile.DistanceMax) {
-      math.max(DirectHitDamageWithDegrade(projectile, rawDamage, distance) * 0.2f, 1f).toInt
+    if(distance > 5) {
+      (DirectHitDamageWithDegrade(projectile, rawDamage, math.max(distance - 5, 0f)) * 0.2f) toInt
     }
     else {
       0
@@ -162,8 +162,8 @@ object DamageCalculations {
   }
 
   def DistanceFromExplosionToTarget(data : ResolvedProjectile) : Float = {
-    //Vector3.Distance(data.target.Position, data.hit_pos)
-    DistanceBetweenOriginAndImpact(data)
+    math.max(Vector3.Distance(data.target.Position, data.hit_pos) - 1, 0)
+    //DistanceBetweenOriginAndImpact(data)
   }
 
   def DistanceBetweenOriginAndImpact(data : ResolvedProjectile) : Float = {
