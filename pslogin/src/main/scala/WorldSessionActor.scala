@@ -4443,7 +4443,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                 Some(Projectile(tool.Projectile, tool.Definition, tool.FireMode, player, attribution, shot_origin, angle))
             }
             else {
-              log.warn(s"WeaponFireMessage: $player's shot is too far from owner position at time of discharge ($distanceToOwner > $acceptableDistanceToOwner); suspect")
+              log.warn(s"WeaponFireMessage: $player's ${tool.Definition.Name} projectile is too far from owner position at time of discharge ($distanceToOwner > $acceptableDistanceToOwner); suspect")
             }
           }
         case _ => ;
