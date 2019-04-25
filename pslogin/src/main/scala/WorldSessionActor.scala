@@ -132,7 +132,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     */
   implicit def boolToInt(b : Boolean) : Int = if(b) 1 else 0
 
-  override def postStop() = {
+  override def postStop() : Unit = {
     //TODO normally, player avatar persists a minute or so after disconnect; we are subject to the SessionReaper
     clientKeepAlive.cancel
     reviveTimer.cancel
@@ -160,21 +160,22 @@ class WorldSessionActor extends Actor with MDCContextAware {
       if(player.isAlive) {
         //actually being alive or manually deconstructing
         player.Position = Vector3.Zero
-        if(player.VehicleSeated.nonEmpty) {
-          //quickly and briefly kill player to avoid disembark animation
-          avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player_guid, 0, 0))
-          DismountVehicleOnLogOut()
-          DisownVehicle()
+        //if seated, dismount
+        player.VehicleSeated match {
+          case Some(_) =>
+            //quickly and briefly kill player to avoid disembark animation?
+            avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player_guid, 0, 0))
+            DismountVehicleOnLogOut()
+          case _ => ;
         }
         avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player_guid, player_guid))
         taskResolver ! GUIDTask.UnregisterAvatar(player)(continent.GUID)
         //TODO normally, the actual player avatar persists a minute or so after the user disconnects
       }
       else if(continent.LivePlayers.contains(player) && !continent.Corpses.contains(player)) {
-        //player disconnected while waiting for a revive
+        //player disconnected while waiting for a revive, maybe
         //similar to handling ReleaseAvatarRequestMessage
         player.Release
-        DisownVehicle()
         player.VehicleSeated match {
           case None =>
             FriskCorpse(player) //TODO eliminate dead letters
@@ -191,7 +192,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
               taskResolver ! GUIDTask.UnregisterAvatar(player)(continent.GUID)
             }
 
-          case Some(vehicle_guid) =>
+          case Some(_) =>
             val player_guid = player.GUID
             player.Position = Vector3.Zero //save character before doing this
             avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player_guid, player_guid))
@@ -199,7 +200,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
             DismountVehicleOnLogOut()
         }
       }
-      DisownVehicle()
+      //disassociate and start the deconstruction timer for any currently owned vehicle
+      SpecialCaseDisownVehicle()
       continent.Population ! Zone.Population.Leave(avatar)
     }
   }
@@ -218,6 +220,29 @@ class WorldSessionActor extends Actor with MDCContextAware {
         mountObj.Seats(seatIndex).Occupant = None
 
       case _ => ;
+    }
+  }
+
+  /**
+    * If a vehicle is owned by a character, disassociate the vehicle, then schedule it for deconstruction.
+    * @see `DisownVehicle()`
+    * @return the vehicle previously owned, if any
+    */
+  def SpecialCaseDisownVehicle() : Option[Vehicle] = {
+    DisownVehicle() match {
+      case out @ Some(vehicle) =>
+        vehicleService ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(vehicle), continent))
+        vehicleService ! VehicleServiceMessage.Decon(RemoverActor.AddTask(vehicle, continent,
+          if(vehicle.Flying) {
+            Some(0 seconds) //immediate deconstruction
+          }
+          else {
+            vehicle.Definition.DeconstructionTime //normal deconstruction
+          }
+        ))
+        out
+      case None =>
+        None
     }
   }
 
@@ -5325,7 +5350,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * The vehicle must exist in the game world on the current continent.
     * This is similar but unrelated to the natural exchange of ownership when someone else sits in the vehicle's driver seat.
     * This is the player side of vehicle ownership removal.
-    * @see `SpecialCaseVehicleDespawn(Player, Vehicle)`
     * @param tplayer the player
     */
   def DisownVehicle(tplayer : Player) : Option[Vehicle] = {
@@ -5346,7 +5370,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
   /**
     * Disassociate a player from a vehicle that he owns.
     * This is the vehicle side of vehicle ownership removal.
-    * @see `SpecialCaseVehicleDespawn(Player, Vehicle)`
     * @param tplayer the player
     */
   private def DisownVehicle(tplayer : Player, vehicle : Vehicle) : Option[Vehicle] = {
@@ -5356,24 +5379,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
     }
     else {
       None
-    }
-  }
-
-  /**
-    * If a vehicle is owned by a character, disassociate the vehicle, then deconstruct it immediately.
-    * Additionally, start the vehicle deconstruction timer if conditions are valid.
-    * @see `DisownVehicle(Player, Vehicle)`
-    * @param tplayer the player
-    * @param vehicle the vehicle
-    */
-  private def SpecialCaseVehicleDespawn(tplayer : Player, vehicle : Vehicle) : Option[Vehicle] = {
-    DisownVehicle(tplayer, vehicle) match {
-      case Some(_) =>
-        vehicleService ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(vehicle), continent))
-        vehicleService ! VehicleServiceMessage.Decon(RemoverActor.AddTask(vehicle, continent, Some(0 seconds))) //instant vehicleKic decay
-        Some(vehicle)
-      case None =>
-        None
     }
   }
 
@@ -8040,12 +8045,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
         hold.Occupant.get
     }
     occupiedCargoHolds.foreach{ cargo =>
-      cargo.Seat(0) match {
-        case Some(seat) if seat.isOccupied =>
-          vehicleService ! VehicleServiceMessage(s"${seat.Occupant.get.Name}", VehicleAction.TransferPassengerChannel(pguid, s"${cargo.Actor}", toChannel, cargo))
+      cargo.Seats(0).Occupant match {
+        case Some(occupant) =>
+          vehicleService ! VehicleServiceMessage(s"${occupant.Name}", VehicleAction.TransferPassengerChannel(pguid, s"${cargo.Actor}", toChannel, cargo))
         case _ =>
           log.error("LoadZoneInVehicleAsDriver: abort; vehicle in cargo hold missing driver")
-          SpecialCaseVehicleDespawn(player, cargo)
+          HandleDismountVehicleCargo(player.GUID, cargo.GUID, cargo, vehicle.GUID, vehicle, false, false, true)
       }
     }
     //
@@ -8468,6 +8473,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       case Some((mountPoint, hold)) =>
         cargo.MountedIn = None
         hold.Occupant = None
+        val driver = cargo.Seats(0).Occupant
         val rotation : Vector3 = if(CargoOrientation(cargo) == 1) { //TODO: BFRs will likely also need this set
           //dismount router "sideways" in a lodestar
           carrier.Orientation.xy + Vector3.z((carrier.Orientation.z - 90) % 360)
@@ -8498,6 +8504,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
           avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.SendResponse(PlanetSideGUID(0), resetCargoMsg)) //lazy
           log.debug(ejectCargoMsg.toString)
           log.debug(detachCargoMsg.toString)
+          if(driver.isEmpty) {
+            //TODO cargo should back out like normal; until then, deconstruct it
+            vehicleService ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(cargo), continent))
+            vehicleService ! VehicleServiceMessage.Decon(RemoverActor.AddTask(cargo, continent, Some(0 seconds)))
+          }
         }
         else {
           //the carrier vehicle is not flying; just open the door and let the cargo vehicle back out; force it out if necessary
@@ -8508,18 +8519,20 @@ class WorldSessionActor extends Actor with MDCContextAware {
           avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.SendResponse(player_guid, cargoStatusMessage))
           avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.SendResponse(player_guid, cargoDetachMessage))
           if(kicked) {
-            cargo.Seat(0).get.Occupant match {
-              case Some(driver) =>
-                vehicleService ! VehicleServiceMessage(s"${driver.Name}", VehicleAction.KickCargo(player_guid, cargo, cargo.Definition.AutoPilotSpeed2, 4500))
+            driver match {
+              case Some(tplayer) =>
+                vehicleService ! VehicleServiceMessage(s"${tplayer.Name}", VehicleAction.KickCargo(player_guid, cargo, cargo.Definition.AutoPilotSpeed2, 4500))
+                import scala.concurrent.duration._
+                import scala.concurrent.ExecutionContext.Implicits.global
+                //check every quarter second if the vehicle has moved far enough away to be considered dismounted
+                cargoDismountTimer.cancel
+                cargoDismountTimer = context.system.scheduler.scheduleOnce(250 milliseconds, self, CheckCargoDismount(cargoGUID, carrierGUID, mountPoint, iteration = 0))
               case None =>
-              //driverless vehicle will get cleaned up
+                //TODO cargo should drop like a rock like normal; until then, deconstruct it
+                vehicleService ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(cargo), continent))
+                vehicleService ! VehicleServiceMessage.Decon(RemoverActor.AddTask(cargo, continent, Some(0 seconds)))
             }
           }
-          import scala.concurrent.duration._
-          import scala.concurrent.ExecutionContext.Implicits.global
-          //check every quarter second if the vehicle has moved far enough away to be considered dismounted
-          cargoDismountTimer.cancel
-          cargoDismountTimer = context.system.scheduler.scheduleOnce(250 milliseconds, self, CheckCargoDismount(cargoGUID, carrierGUID, mountPoint, iteration = 0))
         }
         StopBundlingPackets()
 
