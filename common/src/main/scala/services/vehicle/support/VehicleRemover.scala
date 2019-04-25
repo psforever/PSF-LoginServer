@@ -4,6 +4,7 @@ package services.vehicle.support
 import net.psforever.objects.Vehicle
 import net.psforever.objects.guid.{GUIDTask, TaskResolver}
 import net.psforever.objects.zones.Zone
+import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types.DriveState
 import services.{RemoverActor, Service}
 import services.vehicle.{VehicleAction, VehicleServiceMessage}
@@ -26,6 +27,21 @@ class VehicleRemover extends RemoverActor {
     val vehicleGUID = vehicle.GUID
     val zoneId = entry.zone.Id
     vehicle.Actor ! Vehicle.PrepareForDeletion
+    //escape being someone else's cargo
+    (vehicle.MountedIn match {
+      case Some(carrierGUID) =>
+        entry.zone.Vehicles.find(v => v.GUID == carrierGUID)
+      case None =>
+        None
+    }) match {
+      case Some(carrier : Vehicle) =>
+        val driverName = carrier.Seats(0).Occupant match {
+          case Some(driver) => driver.Name
+          case _ => zoneId
+        }
+        context.parent ! VehicleServiceMessage(s"$driverName", VehicleAction.ForceDismountVehicleCargo(PlanetSideGUID(0), vehicleGUID, true, false, false))
+      case _ => ;
+    }
     //kick out all passengers
     vehicle.Seats.values.foreach(seat => {
       seat.Occupant match {
@@ -37,6 +53,12 @@ class VehicleRemover extends RemoverActor {
           }
         case None => ;
       }
+      //abandon all cargo
+      vehicle.CargoHolds.values
+        .collect { case hold if hold.isOccupied =>
+          val cargo = hold.Occupant.get
+          context.parent ! VehicleServiceMessage(zoneId, VehicleAction.ForceDismountVehicleCargo(PlanetSideGUID(0), cargo.GUID, true, false, false))
+        }
     })
   }
 

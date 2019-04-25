@@ -2098,7 +2098,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
             }
         }
 
-      case VehicleResponse.KickCargo(vehicle, speed) =>
+      case VehicleResponse.ForceDismountVehicleCargo(vehicle_guid, bailed, requestedByPassenger, kicked) =>
+        DismountVehicleCargo(tplayer_guid, vehicle_guid, bailed, requestedByPassenger, kicked)
+      case VehicleResponse.KickCargo(vehicle, speed, delay) =>
         if(player.VehicleSeated.nonEmpty && deadState == DeadState.Alive) {
           if(speed > 0) {
             val strafe = if(CargoOrientation(vehicle) == 1) 2 else 1
@@ -2107,7 +2109,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             controlled = Some(reverseSpeed)
             sendResponse(ServerVehicleOverrideMsg(true, true, true, false, 0, strafe, reverseSpeed, Some(0)))
             import scala.concurrent.ExecutionContext.Implicits.global
-            context.system.scheduler.scheduleOnce(4500 milliseconds, self, VehicleServiceResponse(toChannel, tplayer_guid, VehicleResponse.KickCargo(vehicle, 0)))
+            context.system.scheduler.scheduleOnce(delay milliseconds, self, VehicleServiceResponse(toChannel, tplayer_guid, VehicleResponse.KickCargo(vehicle, 0, delay)))
           }
           else {
             controlled = None
@@ -2863,16 +2865,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ DismountVehicleCargoMsg(player_guid, vehicle_guid, bailed, requestedByPassenger, kicked) =>
       log.info(msg.toString)
       if(!requestedByPassenger) {
-        continent.GUID(vehicle_guid) match {
-          case Some(cargo : Vehicle) =>
-            continent.GUID(cargo.MountedIn) match {
-              case Some(ferry : Vehicle) =>
-                HandleDismountVehicleCargo(player_guid, vehicle_guid, cargo, ferry.GUID, ferry, bailed, requestedByPassenger, kicked)
-              case _ =>
-                log.warn(s"DismountVehicleCargoMsg: target ${cargo.Definition.Name} does not know what treats it as cargo")
-            }
-          case _ => ;
-        }
+        DismountVehicleCargo(player_guid, vehicle_guid, bailed, requestedByPassenger, kicked)
       }
 
     case msg @ CharacterCreateRequestMessage(name, head, voice, gender, empire) =>
@@ -5341,7 +5334,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         tplayer.VehicleOwned = None
         continent.GUID(vehicle_guid) match {
           case Some(vehicle : Vehicle) =>
-            SpecialCaseVehicleDespawn(tplayer, vehicle)
+            DisownVehicle(tplayer, vehicle)
           case _ =>
             None
         }
@@ -5351,39 +5344,36 @@ class WorldSessionActor extends Actor with MDCContextAware {
   }
 
   /**
-    * Disassociate a vehicle from the player that owns it, if that player really was the previous owner.
+    * Disassociate a player from a vehicle that he owns.
     * This is the vehicle side of vehicle ownership removal.
-    * Additionally, start the vehicle deconstruction timer if conditions are valid.
-    * @see `DisownVehicle(Player)`
+    * @see `SpecialCaseVehicleDespawn(Player, Vehicle)`
     * @param tplayer the player
-    * @param vehicle the discovered vehicle
     */
-  private def SpecialCaseVehicleDespawn(tplayer : Player, vehicle : Vehicle) : Option[Vehicle] = {
+  private def DisownVehicle(tplayer : Player, vehicle : Vehicle) : Option[Vehicle] = {
     if(vehicle.Owner.contains(tplayer.GUID)) {
       vehicle.Owner = None
-      vehicleService ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(vehicle), continent))
-      vehicle.CargoHolds.values
-        .collect { case hold if hold.isOccupied => SpecialCaseVehicleDespawn(player, hold.Occupant.get) }
-      continent.GUID(vehicle.MountedIn) match {
-        case Some(ferry : Vehicle) =>
-          HandleDismountVehicleCargo(
-            PlanetSideGUID(0),
-            vehicle.GUID,
-            vehicle,
-            ferry.GUID,
-            ferry,
-            false,
-            false,
-            false
-          )
-          vehicleService ! VehicleServiceMessage.Decon(RemoverActor.AddTask(vehicle, continent, Some(0 seconds))) //instant vehicle decay
-        case _ =>
-          vehicleService ! VehicleServiceMessage.Decon(RemoverActor.AddTask(vehicle, continent, vehicle.Definition.DeconstructionTime)) //normal vehicle decay
-      }
       Some(vehicle)
     }
     else {
       None
+    }
+  }
+
+  /**
+    * If a vehicle is owned by a character, disassociate the vehicle, then deconstruct it immediately.
+    * Additionally, start the vehicle deconstruction timer if conditions are valid.
+    * @see `DisownVehicle(Player, Vehicle)`
+    * @param tplayer the player
+    * @param vehicle the vehicle
+    */
+  private def SpecialCaseVehicleDespawn(tplayer : Player, vehicle : Vehicle) : Option[Vehicle] = {
+    DisownVehicle(tplayer, vehicle) match {
+      case Some(_) =>
+        vehicleService ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(vehicle), continent))
+        vehicleService ! VehicleServiceMessage.Decon(RemoverActor.AddTask(vehicle, continent, Some(0 seconds))) //instant vehicleKic decay
+        Some(vehicle)
+      case None =>
+        None
     }
   }
 
@@ -8520,7 +8510,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           if(kicked) {
             cargo.Seat(0).get.Occupant match {
               case Some(driver) =>
-                vehicleService ! VehicleServiceMessage(s"${driver.Name}", VehicleAction.KickCargo(player_guid, cargo, cargo.Definition.AutoPilotSpeed2))
+                vehicleService ! VehicleServiceMessage(s"${driver.Name}", VehicleAction.KickCargo(player_guid, cargo, cargo.Definition.AutoPilotSpeed2, 4500))
               case None =>
               //driverless vehicle will get cleaned up
             }
@@ -8535,6 +8525,28 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
       case None =>
         log.warn(s"HandleDismountVehicleCargo: can not locate cargo $cargo in any hold of the carrier vehicle $carrier")
+    }
+  }
+
+  /**
+    * na
+    * @param player_guid na
+    * @param vehicle_guid na
+    * @param bailed na
+    * @param requestedByPassenger na
+    * @param kicked na
+    */
+  def DismountVehicleCargo(player_guid : PlanetSideGUID, vehicle_guid : PlanetSideGUID, bailed : Boolean, requestedByPassenger : Boolean, kicked : Boolean) : Unit = {
+    continent.GUID(vehicle_guid) match {
+      case Some(cargo : Vehicle) =>
+        continent.GUID(cargo.MountedIn) match {
+          case Some(ferry : Vehicle) =>
+            HandleDismountVehicleCargo(player_guid, vehicle_guid, cargo, ferry.GUID, ferry, bailed, requestedByPassenger, kicked)
+          case _ =>
+            log.warn(s"DismountVehicleCargo: target ${cargo.Definition.Name}@$vehicle_guid does not know what treats it as cargo")
+        }
+      case _ =>
+        log.warn(s"DismountVehicleCargo: target $vehicle_guid either is not a vehicle in ${continent.Id} or does not exist")
     }
   }
 

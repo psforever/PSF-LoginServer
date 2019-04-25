@@ -40,5 +40,6 @@ object VehicleResponse {
   final case class TransferPassengerChannel(old_channel : String, temp_channel : String, vehicle : Vehicle) extends Response
   final case class TransferPassenger(temp_channel : String, vehicle : Vehicle, vehicle_to_delete : PlanetSideGUID) extends Response
 
-  final case class KickCargo(cargo : Vehicle, speed : Int) extends Response
+  final case class ForceDismountVehicleCargo(vehicle_guid : PlanetSideGUID, bailed : Boolean, requestedByPassenger : Boolean, kicked : Boolean) extends Response
+  final case class KickCargo(cargo : Vehicle, speed : Int, delay : Long) extends Response
 }
