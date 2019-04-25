@@ -398,7 +398,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectHeld(player.GUID, player.LastDrawnSlot))
       }
       sendResponse(PlanetsideAttributeMessage(vehicle_guid, 22, 1L)) //mount points off
-      sendResponse(PlanetsideAttributeMessage(vehicle_guid, 21, player.GUID.guid)) //ownership
+      sendResponse(PlanetsideAttributeMessage(player.GUID, 21, vehicle_guid)) //ownership
 
     case VehicleSpawnPad.PlayerSeatedInVehicle(vehicle, pad) =>
       val vehicle_guid = vehicle.GUID
@@ -1789,11 +1789,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
           avatar.Certifications += cert
           StartBundlingPackets()
           AddToDeployableQuantities(cert, player.Certifications)
-          sendResponse(PlanetsideAttributeMessage(guid, 24, cert.id.toLong))
+          sendResponse(PlanetsideAttributeMessage(guid, 24, cert.id))
           tplayer.Certifications.intersect(Certification.Dependencies.Like(cert)).foreach(entry => {
             log.info(s"$cert replaces the learned certification $entry that cost ${Certification.Cost.Of(entry)} points")
             avatar.Certifications -= entry
-            sendResponse(PlanetsideAttributeMessage(guid, 25, entry.id.toLong))
+            sendResponse(PlanetsideAttributeMessage(guid, 25, entry.id))
           })
           StopBundlingPackets()
           sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Learn, true))
@@ -1812,12 +1812,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
           avatar.Certifications -= cert
           StartBundlingPackets()
           RemoveFromDeployablesQuantities(cert, player.Certifications)
-          sendResponse(PlanetsideAttributeMessage(guid, 25, cert.id.toLong))
+          sendResponse(PlanetsideAttributeMessage(guid, 25, cert.id))
           tplayer.Certifications.intersect(Certification.Dependencies.FromAll(cert)).foreach(entry => {
             log.info(s"$name is also forgetting the ${Certification.Cost.Of(entry)}-point $entry certification which depends on $cert")
             avatar.Certifications -= entry
             RemoveFromDeployablesQuantities(entry, player.Certifications)
-            sendResponse(PlanetsideAttributeMessage(guid, 25, entry.id.toLong))
+            sendResponse(PlanetsideAttributeMessage(guid, 25, entry.id))
           })
           StopBundlingPackets()
           sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Sell, true))
@@ -2048,7 +2048,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         }
 
       case VehicleResponse.Ownership(vehicle_guid) =>
-        sendResponse(PlanetsideAttributeMessage(guid, 21, vehicle_guid.guid))
+        sendResponse(PlanetsideAttributeMessage(guid, 21, vehicle_guid))
 
       case VehicleResponse.PlanetsideAttribute(vehicle_guid, attribute_type, attribute_value) =>
         if(tplayer_guid != guid) {
@@ -5332,12 +5332,14 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * @param vehicle the `Vehicle`
     */
   def ReloadVehicleAccessPermissions(vehicle : Vehicle) : Unit = {
-    val vehicle_guid = vehicle.GUID
-    (0 to 3).foreach(group => {
-      sendResponse(
-        PlanetsideAttributeMessage(vehicle_guid, group + 10, vehicle.PermissionGroup(group).get.id)
-      )
-    })
+    if(vehicle.Faction == player.Faction) {
+      val vehicle_guid = vehicle.GUID
+      (0 to 3).foreach(group => {
+        sendResponse(
+          PlanetsideAttributeMessage(vehicle_guid, group + 10, vehicle.PermissionGroup(group).get.id)
+        )
+      })
+    }
   }
 
   /**
@@ -5368,13 +5370,25 @@ class WorldSessionActor extends Actor with MDCContextAware {
   }
 
   /**
-    * Disassociate a player from a vehicle that he owns.
+    * Disassociate a player from a vehicle that he owns without associating a different player as the owner.
+    * Set the vehicle's driver seat permissions and passenger and gunner seat permissions to "allow empire,"
+    * then reload them for all clients.
     * This is the vehicle side of vehicle ownership removal.
     * @param tplayer the player
     */
   private def DisownVehicle(tplayer : Player, vehicle : Vehicle) : Option[Vehicle] = {
-    if(vehicle.Owner.contains(tplayer.GUID)) {
+    val pguid = tplayer.GUID
+    if(vehicle.Owner.contains(pguid)) {
       vehicle.Owner = None
+      val factionOnContinent = s"${continent.Id}/${vehicle.Faction}"
+      vehicleService ! VehicleServiceMessage(factionOnContinent, VehicleAction.Ownership(pguid, PlanetSideGUID(0)))
+      val vguid = vehicle.GUID
+      val empire = VehicleLockState.Empire.id
+      (0 to 2).foreach(group => {
+        vehicle.PermissionGroup(group, empire)
+        vehicleService ! VehicleServiceMessage(factionOnContinent, VehicleAction.SeatPermissions(pguid, vguid, group, empire))
+      })
+      ReloadVehicleAccessPermissions(vehicle)
       Some(vehicle)
     }
     else {
