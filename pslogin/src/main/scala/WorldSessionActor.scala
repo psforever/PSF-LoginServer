@@ -3364,7 +3364,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           deadState = DeadState.Release //cancel movement updates
           PlayerActionsToCancel()
           continent.GUID(player.VehicleSeated) match {
-            case Some(vehicle : Vehicle) =>
+            case Some(vehicle : Vehicle) if vehicle.MountedIn.isEmpty =>
               vehicle.PassengerInSeat(player) match {
                 case Some(0) =>
                   vehicle.Position = pos
@@ -3376,7 +3376,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
               player.Position = pos
               //avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player.GUID, player.GUID))
               LoadZonePhysicalSpawnPoint(zone, pos, Vector3.Zero, 0)
-            case _ => //seated in something that is not a vehicle, or we're dead, in which case we can't move
+            case _ => //seated in something that is not a vehicle or the vehicle is cargo, in which case we can't move
               deadState = DeadState.Alive
           }
 
@@ -3388,7 +3388,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           deadState = DeadState.Release //cancel movement updates
           PlayerActionsToCancel()
           continent.GUID(player.VehicleSeated) match {
-            case Some(vehicle : Vehicle) if player.isAlive =>
+            case Some(vehicle : Vehicle) if vehicle.MountedIn.isEmpty =>
               vehicle.PassengerInSeat(player) match {
                 case Some(0) =>
                   vehicle.Position = pos
@@ -3400,7 +3400,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
               player.Position = pos
               sendResponse(PlayerStateShiftMessage(ShiftState(0, pos, player.Orientation.z, None)))
               deadState = DeadState.Alive //must be set here
-            case _ => //seated in something that is not a vehicle, or we're dead, in which case we can't move
+            case _ => //seated in something that is not a vehicle or the vehicle is cargo, in which case we can't move
               deadState = DeadState.Alive
           }
 
