@@ -72,10 +72,10 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
   with MountedWeapons
   with Deployment
   with Vitality
+  with OwnableByPlayer
   with StandardResistanceProfile
   with Container {
   private var faction : PlanetSideEmpire.Value = PlanetSideEmpire.TR
-  private var owner : Option[PlanetSideGUID] = None
   private var health : Int = 1
   private var shields : Int = 0
   private var decal : Int = 0
@@ -137,26 +137,6 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
         this.mountedIn = None
     }
     MountedIn
-  }
-
-  def Owner : Option[PlanetSideGUID] = {
-    this.owner
-  }
-
-  def Owner_=(owner : PlanetSideGUID) : Option[PlanetSideGUID] = Owner_=(Some(owner))
-
-  def Owner_=(owner : Player) : Option[PlanetSideGUID] = Owner_=(Some(owner.GUID))
-
-  def Owner_=(owner : Option[PlanetSideGUID]) : Option[PlanetSideGUID] = {
-    owner match {
-      case Some(_) =>
-        if(Definition.CanBeOwned) {
-          this.owner = owner
-        }
-      case None =>
-        this.owner = None
-    }
-    Owner
   }
 
   def Health : Int = {
@@ -499,7 +479,7 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
     if(trunkAccess.isEmpty || trunkAccess.contains(player.GUID)) {
       groupPermissions(3) match {
         case VehicleLockState.Locked => //only the owner
-          owner.isEmpty || (owner.isDefined && player.GUID == owner.get)
+          Owner.isEmpty || (Owner.isDefined && player.GUID == Owner.get)
         case VehicleLockState.Group => //anyone in the owner's squad or platoon
           faction == player.Faction //TODO this is not correct
         case VehicleLockState.Empire => //anyone of the owner's faction

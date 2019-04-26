@@ -606,7 +606,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             val faction = player.Faction
             val factionOnContinentChannel = s"${continent.Id}/${faction}"
             obj.Owner = playerGUID
-            obj.OwnerName = player.Name
+            obj.OwnerName = player
             obj.Faction = faction
             avatar.Deployables.Add(obj)
             UpdateDeployableUIElements(avatar.Deployables.UpdateUIElement(obj.Definition.Item))
@@ -805,6 +805,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       localService ! Service.Leave(Some(continentId))
       localService ! Service.Leave(Some(factionOnContinentChannel))
       vehicleService ! Service.Leave(Some(continentId))
+      vehicleService ! Service.Leave(Some(factionOnContinentChannel))
       player.Continent = zoneId
       continent = zone
       continent.Population ! Zone.Population.Join(avatar)
@@ -1374,7 +1375,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
             case None => ;
           }
           tplayer.VehicleOwned = Some(obj_guid)
-          obj.Owner = Some(tplayer.GUID)
+          obj.Owner = tplayer
+          obj.OwnerName = tplayer
         }
         AccessContents(obj)
         UpdateWeaponAtSeatPosition(obj, seat_num)
@@ -2048,7 +2050,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         }
 
       case VehicleResponse.Ownership(vehicle_guid) =>
-        sendResponse(PlanetsideAttributeMessage(guid, 21, vehicle_guid))
+        sendResponse(PlanetsideAttributeMessage(tplayer_guid, 21, vehicle_guid))
 
       case VehicleResponse.PlanetsideAttribute(vehicle_guid, attribute_type, attribute_value) =>
         if(tplayer_guid != guid) {
@@ -2705,12 +2707,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
     sendResponse(SetCurrentAvatarMessage(guid, 0, 0))
     sendResponse(ChatMsg(ChatMessageType.CMT_EXPANSIONS, true, "", "1 on", None)) //CC on //TODO once per respawn?
     sendResponse(PlayerStateShiftMessage(ShiftState(1, tplayer.Position, tplayer.Orientation.z)))
-    //transfer vehicle ownership
-    player.VehicleOwned match {
-      case Some(vehicle_guid) if player.VehicleSeated.contains(vehicle_guid) =>
-        vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.Ownership(guid, vehicle_guid))
-      case _ => ;
-    }
     if(spectator) {
       sendResponse(ChatMsg(ChatMessageType.CMT_TOGGLESPECTATORMODE, false, "", "on", None))
     }
@@ -2761,6 +2757,13 @@ class WorldSessionActor extends Actor with MDCContextAware {
       })
     StopBundlingPackets()
     drawDeloyableIcon = DontRedrawIcons
+    //assert or transfer vehicle ownership
+    continent.GUID(player.VehicleOwned) match {
+      case Some(vehicle : Vehicle) if vehicle.OwnerName.contains(tplayer.Name) =>
+        vehicle.Owner = guid
+        vehicleService ! VehicleServiceMessage(s"${continent.Id}/${tplayer.Faction}", VehicleAction.Ownership(guid, vehicle.GUID))
+      case _ => ;
+    }
     //if driver of a vehicle, summon any passengers and cargo vehicles left behind on previous continent
     GetVehicleAndSeat() match {
       case (Some(vehicle), Some(0)) =>
@@ -2926,6 +2929,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       localService ! Service.Join(continentId)
       localService ! Service.Join(factionOnContinentChannel)
       vehicleService ! Service.Join(continentId)
+      vehicleService ! Service.Join(factionOnContinentChannel)
       galaxyService ! Service.Join("galaxy")
       configZone(continent)
       sendResponse(TimeOfDayMessage(1191182336))
@@ -4627,7 +4631,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ DeployRequestMessage(player_guid, vehicle_guid, deploy_state, unk2, unk3, pos) =>
       log.info(s"DeployRequest: $msg")
-      if(player.VehicleOwned == Some(vehicle_guid) && player.VehicleOwned == player.VehicleSeated) {
+      if(player.VehicleOwned.contains(vehicle_guid) && player.VehicleOwned == player.VehicleSeated) {
         continent.GUID(vehicle_guid) match {
           case Some(obj : Vehicle) =>
             obj.Actor ! Deployment.TryDeploymentChange(deploy_state)
@@ -5048,7 +5052,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
         def Execute(resolver : ActorRef) : Unit = {
           localDriver.VehicleSeated = localVehicle.GUID
-          localVehicle.Owner = localDriver.GUID
+          localVehicle.Owner = localDriver
+          localVehicle.OwnerName = localDriver
           localAnnounce ! NewPlayerLoaded(localDriver) //alerts WSA
           resolver ! scala.util.Success(this)
         }
@@ -5380,6 +5385,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     val pguid = tplayer.GUID
     if(vehicle.Owner.contains(pguid)) {
       vehicle.Owner = None
+      vehicle.OwnerName = None
       val factionOnContinent = s"${continent.Id}/${vehicle.Faction}"
       vehicleService ! VehicleServiceMessage(factionOnContinent, VehicleAction.Ownership(pguid, PlanetSideGUID(0)))
       val vguid = vehicle.GUID
@@ -6631,7 +6637,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
         if(seat == 0) {
           //if driver
           player.VehicleOwned = guid
-          vehicle.Owner = player.GUID
+          vehicle.Owner = player
+          vehicle.OwnerName = player
           vehicle.CargoHolds.values
             .collect { case hold if hold.isOccupied => hold.Occupant.get }
             .foreach { _.MountedIn = guid }
