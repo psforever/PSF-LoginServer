@@ -8494,7 +8494,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       case Some((mountPoint, hold)) =>
         cargo.MountedIn = None
         hold.Occupant = None
-        val driver = cargo.Seats(0).Occupant
+        val driverOpt = cargo.Seats(0).Occupant
         val rotation : Vector3 = if(CargoOrientation(cargo) == 1) { //TODO: BFRs will likely also need this set
           //dismount router "sideways" in a lodestar
           carrier.Orientation.xy + Vector3.z((carrier.Orientation.z - 90) % 360)
@@ -8520,13 +8520,13 @@ class WorldSessionActor extends Actor with MDCContextAware {
           val resetCargoMsg = CargoMountPointStatusMessage(carrierGUID, PlanetSideGUID(0), PlanetSideGUID(0), cargoGUID, mountPoint, CargoStatus.Empty, 0)
           sendResponse(ejectCargoMsg) //dismount vehicle on UI and disable "shield" effect on lodestar
           sendResponse(detachCargoMsg)
-          avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.SendResponse(player_guid, ejectCargoMsg))
-          avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.SendResponse(player_guid, detachCargoMsg))
-          avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.SendResponse(PlanetSideGUID(0), resetCargoMsg)) //lazy
+          vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.SendResponse(player_guid, ejectCargoMsg))
+          vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.SendResponse(player_guid, detachCargoMsg))
+          vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.SendResponse(PlanetSideGUID(0), resetCargoMsg)) //lazy
           log.debug(ejectCargoMsg.toString)
           log.debug(detachCargoMsg.toString)
-          if(driver.isEmpty) {
-            //TODO cargo should back out like normal; until then, deconstruct it
+          if(driverOpt.isEmpty) {
+            //TODO cargo should drop like a rock like normal; until then, deconstruct it
             vehicleService ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(cargo), continent))
             vehicleService ! VehicleServiceMessage.Decon(RemoverActor.AddTask(cargo, continent, Some(0 seconds)))
           }
@@ -8539,20 +8539,22 @@ class WorldSessionActor extends Actor with MDCContextAware {
           sendResponse(cargoDetachMessage)
           avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.SendResponse(player_guid, cargoStatusMessage))
           avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.SendResponse(player_guid, cargoDetachMessage))
-          if(kicked) {
-            driver match {
-              case Some(tplayer) =>
-                vehicleService ! VehicleServiceMessage(s"${tplayer.Name}", VehicleAction.KickCargo(player_guid, cargo, cargo.Definition.AutoPilotSpeed2, 4500))
-                import scala.concurrent.duration._
-                import scala.concurrent.ExecutionContext.Implicits.global
-                //check every quarter second if the vehicle has moved far enough away to be considered dismounted
-                cargoDismountTimer.cancel
-                cargoDismountTimer = context.system.scheduler.scheduleOnce(250 milliseconds, self, CheckCargoDismount(cargoGUID, carrierGUID, mountPoint, iteration = 0))
-              case None =>
-                //TODO cargo should drop like a rock like normal; until then, deconstruct it
-                vehicleService ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(cargo), continent))
-                vehicleService ! VehicleServiceMessage.Decon(RemoverActor.AddTask(cargo, continent, Some(0 seconds)))
-            }
+          driverOpt match {
+            case Some(driver) =>
+              if(kicked) {
+                vehicleService ! VehicleServiceMessage(s"${driver.Name}", VehicleAction.KickCargo(player_guid, cargo, cargo.Definition.AutoPilotSpeed2, 4500))
+              }
+              import scala.concurrent.duration._
+              import scala.concurrent.ExecutionContext.Implicits.global
+              //check every quarter second if the vehicle has moved far enough away to be considered dismounted
+              cargoDismountTimer.cancel
+              cargoDismountTimer = context.system.scheduler.scheduleOnce(250 milliseconds, self, CheckCargoDismount(cargoGUID, carrierGUID, mountPoint, iteration = 0))
+            case None =>
+              val resetCargoMsg = CargoMountPointStatusMessage(carrierGUID, PlanetSideGUID(0), PlanetSideGUID(0), cargoGUID, mountPoint, CargoStatus.Empty, 0)
+              vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.SendResponse(PlanetSideGUID(0), resetCargoMsg)) //lazy
+              //TODO cargo should back out like normal; until then, deconstruct it
+              vehicleService ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(cargo), continent))
+              vehicleService ! VehicleServiceMessage.Decon(RemoverActor.AddTask(cargo, continent, Some(0 seconds)))
           }
         }
         StopBundlingPackets()
