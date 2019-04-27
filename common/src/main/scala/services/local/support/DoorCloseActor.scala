@@ -39,7 +39,8 @@ class DoorCloseActor() extends Actor {
         entry.door.Open match {
           case Some(player) =>
             // If the player that opened the door is far enough away, or they're dead / backpacked, close the door
-            Vector3.MagnitudeSquared(entry.door.Position - player.Position) > 25.5 || !player.isAlive || player.isBackpack
+            var playerIsBackpackInZone = entry.zone.Corpses.contains(player)
+            Vector3.MagnitudeSquared(entry.door.Position - player.Position) > 25.5 || playerIsBackpackInZone
           case None =>
             // Door should not be open. Mark it to be closed.
             true
