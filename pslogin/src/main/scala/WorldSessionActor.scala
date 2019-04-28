@@ -64,7 +64,6 @@ import services.local.support.{HackCaptureActor, RouterTelepadActivation}
 import services.support.SupportActor
 
 class WorldSessionActor extends Actor with MDCContextAware {
-
   import WorldSessionActor._
 
   private[this] val log = org.log4s.getLogger
@@ -565,8 +564,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case Some(obj : BoomerDeployable) =>
           val guid = obj.GUID
           val factionOnContinentChannel = s"${continent.Id}/${player.Faction}"
-          obj.Owner = None
-          obj.OwnerName = None
+          obj.AssignOwnership(None)
           avatar.Deployables.Remove(obj)
           UpdateDeployableUIElements(avatar.Deployables.UpdateUIElement(obj.Definition.Item))
           localService ! LocalServiceMessage.Deployables(RemoverActor.AddTask(obj, continent))
@@ -605,8 +603,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             val playerGUID = player.GUID
             val faction = player.Faction
             val factionOnContinentChannel = s"${continent.Id}/${faction}"
-            obj.Owner = playerGUID
-            obj.OwnerName = player
+            obj.AssignOwnership(player)
             obj.Faction = faction
             avatar.Deployables.Add(obj)
             UpdateDeployableUIElements(avatar.Deployables.UpdateUIElement(obj.Definition.Item))
@@ -660,8 +657,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         TryDropConstructionTool(tool, index, obj.Position)
         sendResponse(ObjectDeployedMessage.Failure(obj.Definition.Name))
         obj.Position = Vector3.Zero
-        obj.Owner = None
-        obj.OwnerName = None
+        obj.AssignOwnership(None)
         continent.Deployables ! Zone.Deployable.Dismiss(obj)
       }
 
@@ -1374,9 +1370,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
               }
             case None => ;
           }
-          tplayer.VehicleOwned = Some(obj_guid)
-          obj.Owner = tplayer
-          obj.OwnerName = tplayer
+          OwnVehicle(obj, tplayer)
         }
         AccessContents(obj)
         UpdateWeaponAtSeatPosition(obj, seat_num)
@@ -2762,7 +2756,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
       case Some(vehicle : Vehicle) if vehicle.OwnerName.contains(tplayer.Name) =>
         vehicle.Owner = guid
         vehicleService ! VehicleServiceMessage(s"${continent.Id}/${tplayer.Faction}", VehicleAction.Ownership(guid, vehicle.GUID))
-      case _ => ;
+      case _ =>
+        player.VehicleOwned = None
     }
     //if driver of a vehicle, summon any passengers and cargo vehicles left behind on previous continent
     GetVehicleAndSeat() match {
@@ -4298,8 +4293,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           dObj.Position = pos
           dObj.Orientation = orient
           dObj.Faction = player.Faction
-          dObj.Owner = player.GUID
-          dObj.OwnerName = player.Name
+          dObj.AssignOwnership(player)
           val tasking : TaskResolver.GiveTask = dObj match {
             case turret : TurretDeployable =>
               GUIDTask.RegisterDeployableTurret(turret)(continent.GUID)
@@ -5052,8 +5046,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
         def Execute(resolver : ActorRef) : Unit = {
           localDriver.VehicleSeated = localVehicle.GUID
-          localVehicle.Owner = localDriver
-          localVehicle.OwnerName = localDriver
+          OwnVehicle(localVehicle, localDriver)
           localAnnounce ! NewPlayerLoaded(localDriver) //alerts WSA
           resolver ! scala.util.Success(this)
         }
@@ -5348,6 +5341,31 @@ class WorldSessionActor extends Actor with MDCContextAware {
   }
 
   /**
+    * na
+    * @param vehicle na
+    * @param tplayer na
+    * @return na
+    */
+  def OwnVehicle(vehicle : Vehicle, tplayer : Player) : Option[Vehicle] = OwnVehicle(vehicle, Some(tplayer))
+
+  /**
+    * na
+    * @param vehicle na
+    * @param playerOpt na
+    * @return na
+    */
+  def OwnVehicle(vehicle : Vehicle, playerOpt : Option[Player]) : Option[Vehicle] = {
+    playerOpt match {
+      case Some(tplayer) =>
+        tplayer.VehicleOwned = vehicle.GUID
+        vehicle.AssignOwnership(playerOpt)
+        Some(vehicle)
+      case None =>
+        None
+    }
+  }
+
+  /**
     * Disassociate this client's player (oneself) from a vehicle that he owns.
     */
   def DisownVehicle() : Option[Vehicle] = DisownVehicle(player)
@@ -5384,8 +5402,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
   private def DisownVehicle(tplayer : Player, vehicle : Vehicle) : Option[Vehicle] = {
     val pguid = tplayer.GUID
     if(vehicle.Owner.contains(pguid)) {
-      vehicle.Owner = None
-      vehicle.OwnerName = None
+      vehicle.AssignOwnership(None)
       val factionOnContinent = s"${continent.Id}/${vehicle.Faction}"
       vehicleService ! VehicleServiceMessage(factionOnContinent, VehicleAction.Ownership(pguid, PlanetSideGUID(0)))
       val vguid = vehicle.GUID
@@ -6636,9 +6653,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         player.VehicleSeated = guid
         if(seat == 0) {
           //if driver
-          player.VehicleOwned = guid
-          vehicle.Owner = player
-          vehicle.OwnerName = player
+          OwnVehicle(vehicle, player)
           vehicle.CargoHolds.values
             .collect { case hold if hold.isOccupied => hold.Occupant.get }
             .foreach { _.MountedIn = guid }
@@ -7529,13 +7544,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
       }
       removed match {
         case Some(telepad : TelepadDeployable) =>
-          telepad.Owner = None
-          telepad.OwnerName = None
+          telepad.AssignOwnership(None)
           localService ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(telepad), continent))
           localService ! LocalServiceMessage.Deployables(RemoverActor.AddTask(telepad, continent, Some(0 seconds))) //normal decay
         case Some(old) =>
-          old.Owner = None
-          old.OwnerName = None
+          old.AssignOwnership(None)
           localService ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(old), continent))
           localService ! LocalServiceMessage.Deployables(RemoverActor.AddTask(old, continent, Some(0 seconds)))
           if(msg) { //max test
@@ -7967,7 +7980,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * @param tplayer the target player being moved around;
     *                not necessarily the same player as the `WorldSessionActor`-global `player`
     * @param zone_id the zone in which the player will be placed
-    * @return a tuple composed of an ActorRef` destination and a message to send to that destination
+    * @return a tuple composed of an `ActorRef` destination and a message to send to that destination
     */
   def LoadZoneAsPlayer(tplayer : Player, zone_id : String) : (ActorRef, Any) = {
     if(zone_id == continent.Id) {

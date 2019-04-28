@@ -38,4 +38,28 @@ trait OwnableByPlayer {
     }
     OwnerName
   }
+
+  /**
+    * na
+    * @param player na
+    * @return na
+    */
+  def AssignOwnership(player : Player) : OwnableByPlayer = AssignOwnership(Some(player))
+
+  /**
+    * na
+    * @param playerOpt na
+    * @return na
+    */
+  def AssignOwnership(playerOpt : Option[Player]) : OwnableByPlayer = {
+    playerOpt match {
+      case Some(player) =>
+        Owner = player
+        OwnerName = player
+      case None =>
+        Owner = None
+        OwnerName = None
+    }
+    this
+  }
 }
