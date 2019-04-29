@@ -60,6 +60,7 @@ import scala.concurrent.duration._
 import scala.util.Success
 import akka.pattern.ask
 import net.psforever.objects.vehicles.Utility.InternalTelepad
+import services.galaxy.support.HotSpotProjector
 import services.local.support.{HackCaptureActor, RouterTelepadActivation}
 import services.support.SupportActor
 
@@ -308,6 +309,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case GalaxyServiceResponse(_, reply) =>
       reply match {
+        case GalaxyResponse.HotSpotUpdate(zone_id, priority, hot_spot_info) =>
+          sendResponse(HotSpotUpdateMessage(zone_id, priority, hot_spot_info))
         case GalaxyResponse.MapUpdate(msg) =>
           sendResponse(msg)
       }
@@ -983,6 +986,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             sendResponse(PlanetsideAttributeMessage(playerGUID, 4, armor))
             avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(playerGUID, 0, health))
             avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(playerGUID, 4, armor))
+            galaxyService ! HotSpotProjector.Activity(continent, target.Faction, PlanetSideEmpire.NEUTRAL, target.Position)
             if(health == 0 && player.isAlive) {
               KillPlayer(player)
             }
