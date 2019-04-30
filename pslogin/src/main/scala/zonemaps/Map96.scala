@@ -10,12 +10,13 @@ import net.psforever.objects.serverobject.structures.{Building, FoundationBuilde
 import net.psforever.objects.serverobject.terminals.{CaptureTerminal, ProximityTerminal, Terminal}
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.serverobject.turret.FacilityTurret
-import net.psforever.objects.zones.ZoneMap
+import net.psforever.objects.zones.{MapScale, ZoneMap}
 import net.psforever.types.Vector3
 
 object Map96 {
   // Nexus
   val ZoneMap = new ZoneMap("map96") {
+    Scale = MapScale.Dim4096
 
     Building1()
 

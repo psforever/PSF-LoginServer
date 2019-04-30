@@ -25,6 +25,7 @@ import net.psforever.objects.serverobject.{PlanetSideServerObject, ServerObjectB
   *      `LoadMapMessage`
   */
 class ZoneMap(private val name : String) {
+  private var scale : MapScale = MapScale.Dim8192
   private var localObjects : List[ServerObjectBuilder[_]] = List()
   private var linkTurretWeapon : Map[Int, Int] = Map()
   private var linkTerminalPad : Map[Int, Int] = Map()
@@ -34,6 +35,13 @@ class ZoneMap(private val name : String) {
   private var buildings : Map[(Int, Int), FoundationBuilder] = Map()
 
   def Name : String = name
+
+  def Scale : MapScale = scale
+
+  def Scale_=(dim : MapScale) : MapScale = {
+    scale = dim
+    Scale
+  }
 
   /**
     * The list of all server object builder wrappers that have been assigned to this `ZoneMap`.
