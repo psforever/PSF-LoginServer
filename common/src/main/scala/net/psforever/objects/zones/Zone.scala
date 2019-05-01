@@ -19,7 +19,7 @@ import net.psforever.objects.serverobject.structures.{Amenity, Building, WarpGat
 import net.psforever.objects.serverobject.terminals.ProximityUnit
 import net.psforever.objects.serverobject.turret.FacilityTurret
 import net.psforever.packet.game.PlanetSideGUID
-import net.psforever.types.Vector3
+import net.psforever.types.{PlanetSideEmpire, Vector3}
 import services.Service
 
 import scala.collection.concurrent.TrieMap
@@ -75,6 +75,8 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
   private var buildings : PairMap[Int, Building] = PairMap.empty[Int, Building]
   /** key - spawn zone id, value - buildings belonging to spawn zone */
   private var spawnGroups : Map[Building, List[SpawnPoint]] = PairMap[Building, List[SpawnPoint]]()
+  /** */
+  private var hotspots : ListBuffer[HotSpotInfo] = ListBuffer[HotSpotInfo]()
   /** */
   private var vehicleEvents : ActorRef = ActorRef.noSender
 
@@ -414,6 +416,28 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
     entry
   }
 
+  def HotSpots : List[HotSpotInfo] = hotspots toList
+
+  def HotSpots_=(spots : Seq[HotSpotInfo]) : List[HotSpotInfo] = {
+    hotspots.clear
+    hotspots ++= spots
+    HotSpots
+  }
+
+  def TryHotSpot(info : (Seq[PlanetSideEmpire.Value], Vector3)) : HotSpotInfo = {
+    val (factions, display) = info
+    hotspots.find(spot => spot.DisplayLocation == display) match {
+      case Some(spot) =>
+        //hotspot already exists
+        spot
+      case None =>
+        //insert new hotspot
+        val spot = new HotSpotInfo(factions, display)
+        hotspots += spot
+        spot
+    }
+  }
+
   /**
     * Provide bulk correspondence on all map entities that can be composed into packet messages and reported to a client.
     * These messages are sent in this fashion at the time of joining the server:<br>
@@ -583,6 +607,10 @@ object Zone {
     final case class CanNotSpawn(zone : Zone, vehicle : Vehicle, reason : String)
 
     final case class CanNotDespawn(zone : Zone, vehicle : Vehicle, reason : String)
+  }
+
+  object HotSpot {
+    final case class Activity(zone : Zone, defender : PlanetSideEmpire.Value, attacker : PlanetSideEmpire.Value, location : Vector3)
   }
 
   /**
