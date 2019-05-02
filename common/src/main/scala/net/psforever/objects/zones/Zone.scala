@@ -3,7 +3,7 @@ package net.psforever.objects.zones
 
 import akka.actor.{ActorContext, ActorRef, Props}
 import akka.routing.RandomPool
-import net.psforever.objects.ballistics.Projectile
+import net.psforever.objects.ballistics.{Projectile, SourceEntry}
 import net.psforever.objects._
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.entity.IdentifiableEntity
@@ -19,7 +19,7 @@ import net.psforever.objects.serverobject.structures.{Amenity, Building, WarpGat
 import net.psforever.objects.serverobject.terminals.ProximityUnit
 import net.psforever.objects.serverobject.turret.FacilityTurret
 import net.psforever.packet.game.PlanetSideGUID
-import net.psforever.types.{PlanetSideEmpire, Vector3}
+import net.psforever.types.Vector3
 import services.Service
 
 import scala.collection.concurrent.TrieMap
@@ -76,6 +76,8 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
   /** key - spawn zone id, value - buildings belonging to spawn zone */
   private var spawnGroups : Map[Building, List[SpawnPoint]] = PairMap[Building, List[SpawnPoint]]()
   /** */
+  private var projector : ActorRef = ActorRef.noSender
+  /** */
   private var hotspots : ListBuffer[HotSpotInfo] = ListBuffer[HotSpotInfo]()
   /** */
   private var vehicleEvents : ActorRef = ActorRef.noSender
@@ -106,6 +108,7 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
       deployables = context.actorOf(Props(classOf[ZoneDeployableActor], this, constructions), s"$Id-deployables")
       transport = context.actorOf(Props(classOf[ZoneVehicleActor], this, vehicles), s"$Id-vehicles")
       population = context.actorOf(Props(classOf[ZonePopulationActor], this, players, corpses), s"$Id-players")
+      projector = context.actorOf(Props(classOf[ZoneHotSpotProjector], this), s"$Id-hotpots")
 
       BuildLocalObjects(context, guid)
       BuildSupportObjects()
@@ -416,6 +419,8 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
     entry
   }
 
+  def Activity : ActorRef = projector
+
   def HotSpots : List[HotSpotInfo] = hotspots toList
 
   def HotSpots_=(spots : Seq[HotSpotInfo]) : List[HotSpotInfo] = {
@@ -424,15 +429,14 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
     HotSpots
   }
 
-  def TryHotSpot(info : (Seq[PlanetSideEmpire.Value], Vector3)) : HotSpotInfo = {
-    val (factions, display) = info
-    hotspots.find(spot => spot.DisplayLocation == display) match {
+  def TryHotSpot(displayLoc : Vector3) : HotSpotInfo = {
+    hotspots.find(spot => spot.DisplayLocation == displayLoc) match {
       case Some(spot) =>
         //hotspot already exists
         spot
       case None =>
         //insert new hotspot
-        val spot = new HotSpotInfo(factions, display)
+        val spot = new HotSpotInfo(displayLoc)
         hotspots += spot
         spot
     }
@@ -610,7 +614,13 @@ object Zone {
   }
 
   object HotSpot {
-    final case class Activity(zone : Zone, defender : PlanetSideEmpire.Value, attacker : PlanetSideEmpire.Value, location : Vector3)
+    final case class Activity(defender : SourceEntry, attacker : SourceEntry, location : Vector3)
+
+    final case class ClearAll()
+
+    final case class Update(zone_num : Int, priority : Int, info : List[HotSpotInfo])
+
+    final case class UpdateNow()
   }
 
   /**

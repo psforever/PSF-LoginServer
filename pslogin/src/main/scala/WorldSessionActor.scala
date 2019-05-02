@@ -44,6 +44,7 @@ import net.psforever.objects.vehicles.{AccessPermissionGroup, Cargo, Utility, Ve
 import net.psforever.objects.vital._
 import net.psforever.objects.zones.{InterstellarCluster, Zone}
 import net.psforever.packet.game.objectcreate._
+import net.psforever.packet.game.{HotSpotInfo => PacketHotSpotInfo}
 import net.psforever.types._
 import services.{RemoverActor, vehicle, _}
 import services.avatar.{AvatarAction, AvatarResponse, AvatarServiceMessage, AvatarServiceResponse}
@@ -60,7 +61,6 @@ import scala.concurrent.duration._
 import scala.util.Success
 import akka.pattern.ask
 import net.psforever.objects.vehicles.Utility.InternalTelepad
-import services.galaxy.support.HotSpotProjector
 import services.local.support.{HackCaptureActor, RouterTelepadActivation}
 import services.support.SupportActor
 
@@ -309,8 +309,14 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case GalaxyServiceResponse(_, reply) =>
       reply match {
-        case GalaxyResponse.HotSpotUpdate(zone_id, priority, hot_spot_info) =>
-          sendResponse(HotSpotUpdateMessage(zone_id, priority, hot_spot_info))
+        case GalaxyResponse.HotSpotUpdate(zone_index, priority, hot_spot_info) =>
+          sendResponse(
+            HotSpotUpdateMessage(
+              zone_index,
+              priority,
+              hot_spot_info.map { spot => PacketHotSpotInfo(spot.DisplayLocation.x, spot.DisplayLocation.y, 40) }
+            )
+          )
         case GalaxyResponse.MapUpdate(msg) =>
           sendResponse(msg)
       }
@@ -986,7 +992,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
             sendResponse(PlanetsideAttributeMessage(playerGUID, 4, armor))
             avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(playerGUID, 0, health))
             avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(playerGUID, 4, armor))
-            galaxyService ! HotSpotProjector.Activity(continent, target.Faction, PlanetSideEmpire.NEUTRAL, target.Position)
             if(health == 0 && player.isAlive) {
               KillPlayer(player)
             }
@@ -994,7 +999,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
               //first damage entry -> most recent damage source -> killing blow
               target.History.find(p => p.isInstanceOf[DamagingActivity]) match {
                 case Some(data : DamageFromProjectile) =>
-                  data.data.projectile.owner match {
+                  val owner = data.data.projectile.owner
+                  owner match {
                     case pSource : PlayerSource =>
                       continent.LivePlayers.find(_.Name == pSource.Name) match {
                         case Some(tplayer) =>
@@ -1005,6 +1011,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                       sendResponse(DamageWithPositionMessage(damageToHealth + damageToArmor, vSource.Position))
                     case _ => ;
                   }
+                  continent.Activity ! Zone.HotSpot.Activity(owner, data.Target, target.Position)
                 case _ => ;
               }
             }

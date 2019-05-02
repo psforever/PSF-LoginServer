@@ -1,15 +1,13 @@
 // Copyright (c) 2017 PSForever
 package services.galaxy
 
-import akka.actor.{Actor, ActorRef, Props}
+import akka.actor.Actor
+import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.BuildingInfoUpdateMessage
-import services.galaxy.support.HotSpotProjector
 import services.{GenericEventBus, Service}
 
 class GalaxyService extends Actor {
   private [this] val log = org.log4s.getLogger
-
-  val hotSpots : ActorRef = context.actorOf(Props[HotSpotProjector], "hot-spot-projector")
 
   override def preStart = {
     log.info("Starting...")
@@ -39,10 +37,6 @@ class GalaxyService extends Actor {
 
     case GalaxyServiceMessage(action) =>
       action match {
-        case GalaxyAction.HotSpotUpdate(zone_id, priority, host_spot_info) =>
-          GalaxyEvents.publish(
-            GalaxyServiceResponse(s"/Galaxy", GalaxyResponse.HotSpotUpdate(zone_id, priority, host_spot_info))
-          )
         case GalaxyAction.MapUpdate(msg: BuildingInfoUpdateMessage) =>
           GalaxyEvents.publish(
             GalaxyServiceResponse(s"/Galaxy", GalaxyResponse.MapUpdate(msg))
@@ -50,8 +44,10 @@ class GalaxyService extends Actor {
         case _ => ;
       }
 
-    case msg @ HotSpotProjector.Activity(_, _, _, _) =>
-      hotSpots forward msg
+    case Zone.HotSpot.Update(zone_num, priority, info) =>
+      GalaxyEvents.publish(
+        GalaxyServiceResponse(s"/Galaxy", GalaxyResponse.HotSpotUpdate(zone_num, priority, info))
+      )
 
     case msg =>
       log.info(s"Unhandled message $msg from $sender")

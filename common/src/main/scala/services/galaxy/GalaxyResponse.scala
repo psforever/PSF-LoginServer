@@ -1,7 +1,8 @@
 // Copyright (c) 2017 PSForever
 package services.galaxy
 
-import net.psforever.packet.game.{BuildingInfoUpdateMessage, HotSpotInfo}
+import net.psforever.objects.zones.HotSpotInfo
+import net.psforever.packet.game.BuildingInfoUpdateMessage
 
 object GalaxyResponse {
   trait Response
