@@ -19,7 +19,7 @@ import net.psforever.objects.serverobject.structures.{Amenity, Building, WarpGat
 import net.psforever.objects.serverobject.terminals.ProximityUnit
 import net.psforever.objects.serverobject.turret.FacilityTurret
 import net.psforever.packet.game.PlanetSideGUID
-import net.psforever.types.Vector3
+import net.psforever.types.{PlanetSideEmpire, Vector3}
 import services.Service
 
 import scala.collection.concurrent.TrieMap
@@ -618,7 +618,7 @@ object Zone {
 
     final case class ClearAll()
 
-    final case class Update(zone_num : Int, priority : Int, info : List[HotSpotInfo])
+    final case class Update(faction : PlanetSideEmpire.Value, zone_num : Int, priority : Int, info : List[HotSpotInfo])
 
     final case class UpdateNow()
   }

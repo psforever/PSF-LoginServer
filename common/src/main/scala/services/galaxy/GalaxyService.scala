@@ -15,8 +15,13 @@ class GalaxyService extends Actor {
 
   val GalaxyEvents = new GenericEventBus[GalaxyServiceResponse]
 
-  def receive = {
-    // Service.Join requires a channel to be passed in normally but GalaxyService is an exception in that messages go to ALL connected players
+  def receive : Receive = {
+    case Service.Join(faction) if "TRNCVS".containsSlice(faction) =>
+      val path = s"/$faction/Galaxy"
+      val who = sender()
+      log.info(s"$who has joined $path")
+      GalaxyEvents.subscribe(who, path)
+
     case Service.Join(_) =>
       val path = s"/Galaxy"
       val who = sender()
@@ -44,9 +49,9 @@ class GalaxyService extends Actor {
         case _ => ;
       }
 
-    case Zone.HotSpot.Update(zone_num, priority, info) =>
+    case Zone.HotSpot.Update(faction, zone_num, priority, info) =>
       GalaxyEvents.publish(
-        GalaxyServiceResponse(s"/Galaxy", GalaxyResponse.HotSpotUpdate(zone_num, priority, info))
+        GalaxyServiceResponse(s"/$faction/Galaxy", GalaxyResponse.HotSpotUpdate(zone_num, priority, info))
       )
 
     case msg =>

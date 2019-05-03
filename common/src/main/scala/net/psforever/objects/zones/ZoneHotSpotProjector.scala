@@ -5,14 +5,14 @@ import akka.actor.{Actor, ActorRef, Cancellable}
 import net.psforever.objects.DefaultCancellable
 import net.psforever.objects.ballistics.SourceEntry
 import net.psforever.objects.zones.{HotSpotInfo => ZoneHotSpotInfo}
-import net.psforever.types.Vector3
+import net.psforever.types.{PlanetSideEmpire, Vector3}
 import services.ServiceManager
 
 import scala.concurrent.duration._
 
 class ZoneHotSpotProjector(zone : Zone) extends Actor {
   private var galaxy : ActorRef = ActorRef.noSender
-  private val sectorDivs : Int = 64
+  private val sectorDivs : Int = 80
   private val sectorFunc : (MapScale, Vector3, Int, Int)=>Vector3 = ZoneHotSpotProjector.Sector
   private val timeFunc : (SourceEntry, SourceEntry)=>FiniteDuration = ZoneHotSpotProjector.TimeRules
   private var blanking : Cancellable = DefaultCancellable.obj
@@ -53,7 +53,8 @@ class ZoneHotSpotProjector(zone : Zone) extends Actor {
       if(duration.toNanos > 0) {
         log.trace(s"updating activity status for ${zone.Id} hotspot x=${hotspot.DisplayLocation.x} y=${hotspot.DisplayLocation.y}")
         //update the activity report for these factions
-        Seq(attackerFaction, defenderFaction).foreach { f =>
+        val affectedFactions = Seq(attackerFaction, defenderFaction)
+        affectedFactions.foreach { f =>
           hotspot.ActivityFor(f) match {
             case Some(events) =>
               events.Duration = duration
@@ -63,7 +64,7 @@ class ZoneHotSpotProjector(zone : Zone) extends Actor {
         }
         //if the level of activity changed for one of the participants or the number of hotspots was zero
         if(noPriorActivity || noPriorHotSpots) {
-          UpdateHotSpots(zone, zone.HotSpots)
+          UpdateHotSpots(affectedFactions, zone.HotSpots)
           if(noPriorHotSpots) {
             import scala.concurrent.ExecutionContext.Implicits.global
             blanking.cancel
@@ -76,9 +77,9 @@ class ZoneHotSpotProjector(zone : Zone) extends Actor {
       blanking.cancel
       val curr : Long = System.nanoTime
       //blanking dated activity reports
-      val changed = zone.HotSpots.map(spot => {
+      val changed = zone.HotSpots.flatMap(spot => {
         spot.Activity.collect {
-          case (b, a) if a.LastReport + a.Duration.toNanos <= curr =>
+          case (b, a) if a.LastReport + a.Duration.toNanos >= curr =>
             a.Clear() //this faction has no more activity in this sector
             (b, spot)
         }
@@ -102,23 +103,30 @@ class ZoneHotSpotProjector(zone : Zone) extends Actor {
         blanking.cancel
         blanking = context.system.scheduler.scheduleOnce(blankingDelay, self, ZoneHotSpotProjector.BlankingPhase())
       }
-      //if hotspots changed, redraw the remaining ones
+      //if hotspots changed, redraw the remaining ones for the groups that changed
       if(changed.nonEmpty && changesOnMap > 0) {
-        UpdateHotSpots(zone, spots)
+        UpdateHotSpots(changed.map( { case (a : PlanetSideEmpire.Value, _) => a } ).toSet, spots)
       }
 
     case Zone.HotSpot.ClearAll() =>
       log.trace(s"blanking out all hotspots from zone ${zone.Id} immediately")
       blanking.cancel
       zone.HotSpots = Nil
-      UpdateHotSpots(zone, Nil)
+      UpdateHotSpots(PlanetSideEmpire.values, Nil)
 
     case _ => ;
   }
 
-  def UpdateHotSpots(zone : Zone, hotSpotInfos : List[ZoneHotSpotInfo]) : Unit = {
-    //TODO combined hotspot map; separate by and distribute to empires involved
-    galaxy ! Zone.HotSpot.Update(zone.Number, 0, hotSpotInfos)
+  def UpdateHotSpots(affectedFactions : Iterable[PlanetSideEmpire.Value], hotSpotInfos : List[ZoneHotSpotInfo]) : Unit = {
+    val zoneNumber = zone.Number
+    affectedFactions.foreach(faction =>
+      galaxy ! Zone.HotSpot.Update(
+        faction,
+        zoneNumber,
+        0,
+        hotSpotInfos.filter { spot => spot.ActivityBy(faction) }
+      )
+    )
   }
 }
 
@@ -178,7 +186,7 @@ object ZoneHotSpotProjector {
       0 seconds
     }
     else {
-      //TODO is target occupy-able and occupied, or jammed?
+      //TODO is target occupy-able and occupied, or jammer-able and jammered?
       defender match {
         case _ : PlayerSource =>
           60 seconds
