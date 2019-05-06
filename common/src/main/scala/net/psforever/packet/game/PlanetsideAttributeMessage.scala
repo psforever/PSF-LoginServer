@@ -155,11 +155,11 @@ import scodec.codecs._
   * `81 - ???`<br>
   * `113 - Vehicle capacitor - e.g. Leviathan EMP charge`
   *
-  * @param player_guid the player
-  * @param attribute_type na
-  * @param attribute_value na
+  * @param guid the object
+  * @param attribute_type the field
+  * @param attribute_value the value
   */
-final case class PlanetsideAttributeMessage(player_guid : PlanetSideGUID,
+final case class PlanetsideAttributeMessage(guid : PlanetSideGUID,
                                             attribute_type : Int,
                                             attribute_value : Long)
   extends PlanetSideGamePacket {
@@ -169,12 +169,16 @@ final case class PlanetsideAttributeMessage(player_guid : PlanetSideGUID,
 }
 
 object PlanetsideAttributeMessage extends Marshallable[PlanetsideAttributeMessage] {
-  def apply(player_guid : PlanetSideGUID, attribute_type : Int, attribute_value : Int) : PlanetsideAttributeMessage = {
-    PlanetsideAttributeMessage(player_guid, attribute_type, attribute_value.toLong)
+  def apply(guid : PlanetSideGUID, attribute_type : Int, attribute_value : Int) : PlanetsideAttributeMessage = {
+    PlanetsideAttributeMessage(guid, attribute_type, attribute_value.toLong)
+  }
+
+  def apply(guid : PlanetSideGUID, attribute_type : Int, attribute_value : PlanetSideGUID) : PlanetsideAttributeMessage = {
+    PlanetsideAttributeMessage(guid, attribute_type, attribute_value.guid)
   }
 
   implicit val codec : Codec[PlanetsideAttributeMessage] = (
-    ("player_guid" | PlanetSideGUID.codec) ::
+    ("guid" | PlanetSideGUID.codec) ::
       ("attribute_type" | uint8L) ::
       ("attribute_value" | uint32L)
     ).as[PlanetsideAttributeMessage]

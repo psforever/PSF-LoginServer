@@ -36,5 +36,6 @@ object VehicleAction {
   final case class TransferPassengerChannel(player_guid : PlanetSideGUID, temp_channel : String, new_channel : String, vehicle : Vehicle) extends Action
   final case class TransferPassenger(player_guid : PlanetSideGUID, temp_channel : String, vehicle : Vehicle, vehicle_to_delete : PlanetSideGUID) extends Action
 
-  final case class KickCargo(player_guid : PlanetSideGUID, cargo : Vehicle, speed : Int) extends Action
+  final case class ForceDismountVehicleCargo(player_guid : PlanetSideGUID, vehicle_guid : PlanetSideGUID, bailed : Boolean, requestedByPassenger : Boolean, kicked : Boolean) extends Action
+  final case class KickCargo(player_guid : PlanetSideGUID, cargo : Vehicle, speed : Int, delay : Long) extends Action
 }

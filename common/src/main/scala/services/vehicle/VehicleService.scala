@@ -140,9 +140,13 @@ class VehicleService extends Actor {
             VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.TransferPassenger(temp_channel, vehicle, vehicle_to_delete))
           )
 
-        case VehicleAction.KickCargo(player_guid, cargo, speed) =>
+        case VehicleAction.ForceDismountVehicleCargo(player_guid, vehicle_guid, bailed, requestedByPassenger, kicked) =>
           VehicleEvents.publish(
-            VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.KickCargo(cargo, speed))
+            VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.ForceDismountVehicleCargo(vehicle_guid, bailed, requestedByPassenger, kicked))
+          )
+        case VehicleAction.KickCargo(player_guid, cargo, speed, delay) =>
+          VehicleEvents.publish(
+            VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.KickCargo(cargo, speed, delay))
           )
         case _ => ;
     }

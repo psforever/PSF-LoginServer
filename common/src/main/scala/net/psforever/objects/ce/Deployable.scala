@@ -9,12 +9,11 @@ import net.psforever.packet.game.{DeployableIcon, PlanetSideGUID}
 import net.psforever.types.PlanetSideEmpire
 
 trait Deployable extends FactionAffinity
-  with Vitality {
+  with Vitality
+  with OwnableByPlayer {
   this : PlanetSideGameObject =>
   private var health : Int = 1
   private var faction : PlanetSideEmpire.Value = PlanetSideEmpire.NEUTRAL
-  private var owner : Option[PlanetSideGUID] = None
-  private var ownerName : Option[String] = None
 
   def Health : Int = health
 
@@ -30,38 +29,6 @@ trait Deployable extends FactionAffinity
   override def Faction_=(toFaction : PlanetSideEmpire.Value) : PlanetSideEmpire.Value = {
     faction = toFaction
     Faction
-  }
-
-  def Owner : Option[PlanetSideGUID] = owner
-
-  def Owner_=(owner : PlanetSideGUID) : Option[PlanetSideGUID] = Owner_=(Some(owner))
-
-  def Owner_=(owner : Player) : Option[PlanetSideGUID] = Owner_=(Some(owner.GUID))
-
-  def Owner_=(owner : Option[PlanetSideGUID]) : Option[PlanetSideGUID] = {
-    owner match {
-      case Some(_) =>
-        this.owner = owner
-      case None =>
-        this.owner = None
-    }
-    Owner
-  }
-
-  def OwnerName : Option[String] = ownerName
-
-  def OwnerName_=(owner : String) : Option[String] = OwnerName_=(Some(owner))
-
-  def OwnerName_=(owner : Player) : Option[String] = OwnerName_=(Some(owner.Name))
-
-  def OwnerName_=(owner : Option[String]) : Option[String] = {
-    owner match {
-      case Some(_) =>
-        ownerName = owner
-      case None =>
-        ownerName = None
-    }
-    OwnerName
   }
 
   def DamageModel : DamageResistanceModel = Definition.asInstanceOf[DamageResistanceModel]
