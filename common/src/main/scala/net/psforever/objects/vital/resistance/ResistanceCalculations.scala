@@ -24,8 +24,8 @@ import scala.util.{Failure, Success, Try}
   *                    in essence, should match the type of object container to which these resistances belong;
   *                    never has to be defined explicitly, but will be checked upon object definition
   */
-abstract class ResistanceCalculations[TargetType](validate : (ResolvedProjectile)=>Try[TargetType],
-                                                  extractor : (TargetType)=>Int) extends ProjectileCalculations {
+abstract class ResistanceCalculations[TargetType](validate : ResolvedProjectile=>Try[TargetType],
+                                                  extractor : TargetType=>Int) extends ProjectileCalculations {
   /**
     * Get resistance valuess.
     * @param data the historical `ResolvedProjectile` information
@@ -121,4 +121,6 @@ object ResistanceCalculations {
   def VehicleAggravatedExtractor(target : VehicleSource) : Int = target.Definition.ResistanceAggravated
 
   def VehicleRadiationExtractor(target : VehicleSource) : Float = target.Definition.RadiationShielding
+
+  def MaximumResistance(target : SourceEntry) : Int = Integer.MAX_VALUE
 }

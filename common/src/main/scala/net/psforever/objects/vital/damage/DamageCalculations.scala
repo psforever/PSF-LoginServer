@@ -46,7 +46,7 @@ object DamageCalculations {
   //types
   type DamagesType = (Projectile, Int, Float)=>Int
   type DamageWithModifiersType = (DamageProfile, List[DamageProfile])=>Int
-  type DistanceType = (ResolvedProjectile)=>Float
+  type DistanceType = ResolvedProjectile=>Float
 
   //raw damage selectors
   def NoDamageAgainst(profile : DamageProfile) : Int = 0
@@ -70,7 +70,7 @@ object DamageCalculations {
     * @return the accumulated damage value
     */
   //TODO modifiers come from various sources; expand this part of the calculation model in the future
-  def DamageWithModifiers(extractor : (DamageProfile)=>Int)(base : DamageProfile, modifiers : List[DamageProfile]) : Int = {
+  def DamageWithModifiers(extractor : DamageProfile=>Int)(base : DamageProfile, modifiers : List[DamageProfile]) : Int = {
     extractor(base) + modifiers.foldLeft(0)(_ + extractor(_))
   }
 
@@ -133,17 +133,18 @@ object DamageCalculations {
   }
 
   /**
-    * Calculate a flat lash damage value.
+    * Calculate a lash damage value.
     * The target needs to be more than five meters away.
+    * Since lash damage occurs after the direct hit projectile's damage begins to degrade,
+    * the minimum of five less than distance or zero is calculated.
     * @param projectile information about the weapon discharge (itself)
     * @param rawDamage the accumulated amount of damage
     * @param distance how far the source was from the target
     * @return the modified damage value
     */
   def LashDamage(projectile : Projectile, rawDamage : Int, distance : Float) : Int = {
-    val profile = projectile.profile
-    if(distance > 5 || distance <= profile.DistanceMax) {
-      (rawDamage * 0.2f) toInt
+    if(distance > 5) {
+      (DirectHitDamageWithDegrade(projectile, rawDamage, math.max(distance - 5, 0f)) * 0.2f) toInt
     }
     else {
       0
@@ -156,10 +157,16 @@ object DamageCalculations {
   def TooFar(data : ResolvedProjectile) : Float = Float.MaxValue
 
   def DistanceBetweenTargetandSource(data : ResolvedProjectile) : Float = {
-    Vector3.Distance(data.target.Position, data.projectile.owner.Position)
+    //Vector3.Distance(data.target.Position, data.projectile.owner.Position)
+    DistanceBetweenOriginAndImpact(data)
   }
 
   def DistanceFromExplosionToTarget(data : ResolvedProjectile) : Float = {
-    Vector3.Distance(data.target.Position, data.hit_pos)
+    math.max(Vector3.Distance(data.target.Position, data.hit_pos) - 1, 0)
+    //DistanceBetweenOriginAndImpact(data)
+  }
+
+  def DistanceBetweenOriginAndImpact(data : ResolvedProjectile) : Float = {
+    math.max(Vector3.Distance(data.projectile.shot_origin, data.hit_pos) - 0.5f, 0)
   }
 }
