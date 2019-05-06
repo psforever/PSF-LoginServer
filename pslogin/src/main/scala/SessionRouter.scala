@@ -78,7 +78,7 @@ class SessionRouter(role : String, pipeline : List[SessionPipeline]) extends Act
       var session : Session = null
 
       if(!idBySocket.contains(from)) {
-          session = createNewSession(from)
+        session = createNewSession(from)
         if(PSUtil.IsPSUtilPacket(msg)){
           MDC("sessionId") = session.sessionId.toString
             log.trace(s"PSUtilPacket: ${msg} -> ${inputRef.path.name}")
@@ -96,7 +96,6 @@ class SessionRouter(role : String, pipeline : List[SessionPipeline]) extends Act
       }
 
       if(session.state != Closed()) {
-        
         MDC("sessionId") = session.sessionId.toString
           log.trace(s"RECV: ${msg} -> ${session.getPipeline.head.path.name}")
           session.receive(RawPacket(msg))
