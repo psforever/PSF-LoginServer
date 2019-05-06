@@ -29,6 +29,21 @@ import scodec.codecs._
   * @param unk6 na
   * @see `PlacementData`
   */
+
+  /*
+    BETA CLIENT DEBUG INFO:
+      Guid
+      Agreement Id
+      Turn
+      Brakes
+      Position
+      Orientation
+      Velocity
+      Flight Status
+      Path Number
+      Has Damage Info %d (%d %d %d %d)
+      Cloaking
+   */
 final case class VehicleStateMessage(vehicle_guid : PlanetSideGUID,
                                      unk1 : Int,
                                      pos : Vector3,

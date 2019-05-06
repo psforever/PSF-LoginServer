@@ -46,9 +46,13 @@ import scodec.codecs._
   * `3 - staminaMax`<br>
   * `4 - armor`<br>
   * `5 - armorMax`<br>
-  * `6 - transform the (other) avatar in backpack on ground`<br>
+  * `6 - PA_RELEASED - transform the (other) avatar in backpack on ground`<br>
+  * `7 - Sets charge level for MAX capacitor`<br>
+  * `8 - Enables empire specific max capacitor function - NC Shield, TR Overdrive, VS Jumpjets`
+  * `9 - Possibly unused now - PA_SHIELDSTRENGTH in beta client`
   * `14 - Something with grief`<br>
   * `15 - Weapon Lock. Value exemple : 600 to have 1 min lock. Max possible is 30min lock`<br>
+  * `16 - PA_DECONSTRUCTING in beta client`<br>
   * `17 - BEP. Value seems to be the same as BattleExperienceMessage`<br>
   * `18 - CEP.`<br>
   * `19 - Anchors. Value is 0 to disengage, 1 to engage.`<br>
@@ -107,8 +111,11 @@ import scodec.codecs._
   *         43 : Fortification Engineering<br>
   *         44 : Assault Engineering<br>
   *         45 : Advanced Engineering (= Fortification Engineering + Assault Engineering) Must have Combat Engineering<br>
-  * `25 - Forget certifications (same order as 24)`
-  * `29 - Visible ?! That's not the cloaked effect, Maybe for spectator mode ?. Value is 0 to visible, 1 to invisible.`<br>
+  * `25 - Forget certifications (same order as 24)`<br>
+  * `26 - Certification reset timer (in seconds)`
+  * `27 - PA_JAMMED - plays jammed buzzing sound`<br>
+  * `28 - PA_IMPLANT_ACTIVE - Plays implant sounds. Valid values seem to be up to 20.`<br>
+  * `29 - PA_VAPORIZED - Visible ?! That's not the cloaked effect, Maybe for spectator mode ?. Value is 0 to visible, 1 to invisible.`<br>
   * `31 - Info under avatar name : 0 = LFS, 1 = Looking For Squad Members`<br>
   * `32 - Info under avatar name : 0 = Looking For Squad Members, 1 = LFS`<br>
   * `35 - BR. Value is the BR`<br>

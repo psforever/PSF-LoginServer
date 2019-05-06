@@ -1104,7 +1104,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                 msg.facingYaw,
                 msg.facingPitch,
                 msg.facingYawUpper,
-                unk1 = 0,
+                timestamp = 0,
                 msg.is_crouching,
                 msg.is_jumping,
                 msg.jump_thrust,

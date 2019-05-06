@@ -18,14 +18,14 @@ object GamePacketOpcode extends Enumeration {
   type Type = Value
   val
   // OPCODES 0x00-0f
-  Unknown0,
+  Unknown0, // PPT_NULL in beta client
   LoginMessage,
   LoginRespMessage,
   ConnectToWorldRequestMessage, // found by searching for 83 F8 03 89 in IDA
   ConnectToWorldMessage,
   VNLWorldStatusMessage,
-  UnknownMessage6,
-  UnknownMessage7,
+  UnknownMessage6, // PPT_TRANSFERTOWORLDREQUEST
+  UnknownMessage7, // PPT_TRANSFERTOWORLDRESPONSE
   // 0x08
   PlayerStateMessage,
   HitMessage,
@@ -42,11 +42,11 @@ object GamePacketOpcode extends Enumeration {
   ChatMsg,
   CharacterNoRecordMessage,
   CharacterInfoMessage,
-  UnknownMessage21,
+  UnknownMessage21, // PPT_DISCONNECT
   BindPlayerMessage,
-  ObjectCreateMessage_Duplicate,
+  ObjectCreateMessage_Duplicate, // PPT_OBJECTCREATE
   // 0x18
-  ObjectCreateMessage,
+  ObjectCreateMessage, // PPT_OBJECTCREATEDETAILED
   ObjectDeleteMessage,
   PingMsg,
   VehicleStateMessage,
@@ -56,7 +56,7 @@ object GamePacketOpcode extends Enumeration {
   ActionResultMessage,
 
   // OPCODES 0x20-2f
-  UnknownMessage32,
+  UnknownMessage32, // PPT_ACTIONBEGIN
   ActionProgressMessage,
   ActionCancelMessage,
   ActionCancelAcknowledgeMessage,
@@ -68,10 +68,10 @@ object GamePacketOpcode extends Enumeration {
   CreateShortcutMessage,
   ChangeShortcutBankMessage,
   ObjectAttachMessage,
-  UnknownMessage43,
+  UnknownMessage43, // PPT_OBJECTEMPTY
   PlanetsideAttributeMessage,
   RequestDestroyMessage,
-  UnknownMessage46,
+  UnknownMessage46, // PPT_EQUIPITEM
   CharacterCreateRequestMessage,
 
   // OPCODES 0x30-3f
@@ -104,10 +104,10 @@ object GamePacketOpcode extends Enumeration {
   ChangeAmmoMessage,
   // 0x48
   TimeOfDayMessage,
-  UnknownMessage73,
+  UnknownMessage73, // PPT_PROJECTILE_EVENT_BLOCK
   SpawnRequestMessage,
   DeployRequestMessage,
-  UnknownMessage76,
+  UnknownMessage76, // PPT_BUILDINGSTATECHANGED
   RepairMessage,
   ServerVehicleOverrideMsg,
   LashMessage,
@@ -123,7 +123,7 @@ object GamePacketOpcode extends Enumeration {
   AvatarVehicleTimerMessage,
   // 0x58
   AvatarImplantMessage,
-  UnknownMessage89,
+  UnknownMessage89, // PPT_SEARCHMESSAGE
   DelayedPathMountMsg,
   OrbitalShuttleTimeMsg,
   AIDamage,
@@ -165,8 +165,8 @@ object GamePacketOpcode extends Enumeration {
   UnknownMessage122,
   DamageFeedbackMessage,
   DismountBuildingMsg,
-  UnknownMessage125,
-  UnknownMessage126,
+  UnknownMessage125, // PPT_MOUNTBUILDING
+  UnknownMessage126, // PPT_INTENDEDDROPZONE
   AvatarStatisticsMessage,
 
   // OPCODES 0x80-8f
