@@ -14,6 +14,8 @@ import net.psforever.packet.control.ConnectionClose
 
 import scala.concurrent.duration._
 
+import PSUtil._
+
 sealed trait SessionRouterAPI
 final case class RawPacket(data : ByteVector) extends SessionRouterAPI
 final case class ResponsePacket(data : ByteVector) extends SessionRouterAPI
@@ -76,7 +78,17 @@ class SessionRouter(role : String, pipeline : List[SessionPipeline]) extends Act
       var session : Session = null
 
       if(!idBySocket.contains(from)) {
-        session = createNewSession(from)
+          session = createNewSession(from)
+        if(PSUtil.IsPSUtilPacket(msg)){
+          MDC("sessionId") = session.sessionId.toString
+            log.trace(s"PSUtilPacket: ${msg} -> ${inputRef.path.name}")
+            val response = PSUtil.getResponse(msg.drop(1))
+            log.trace(s"SEND: ${msg} -> ${inputRef.path.name}")
+            session.send(response)
+          MDC.clear()
+          val id = idBySocket{from}
+          removeSessionById(id, "PSUtil Connection: verified Checksum, closing...", graceful = true)
+        }
       }
       else {
         val id = idBySocket{from}
@@ -84,6 +96,7 @@ class SessionRouter(role : String, pipeline : List[SessionPipeline]) extends Act
       }
 
       if(session.state != Closed()) {
+        
         MDC("sessionId") = session.sessionId.toString
           log.trace(s"RECV: ${msg} -> ${session.getPipeline.head.path.name}")
           session.receive(RawPacket(msg))
