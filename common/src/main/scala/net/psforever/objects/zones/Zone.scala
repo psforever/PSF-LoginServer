@@ -25,6 +25,7 @@ import services.Service
 import scala.collection.concurrent.TrieMap
 import scala.collection.mutable.ListBuffer
 import scala.collection.immutable.{Map => PairMap}
+import scala.concurrent.duration._
 
 /**
   * A server object representing the one-landmass planets as well as the individual subterranean caverns.<br>
@@ -79,6 +80,10 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
   private var projector : ActorRef = ActorRef.noSender
   /** */
   private var hotspots : ListBuffer[HotSpotInfo] = ListBuffer[HotSpotInfo]()
+  /** calculate a approximated coordinate from a raw input coordinate */
+  private var hotspotCoordinateFunc : Vector3=>Vector3 = Zone.HotSpot.Rules.OneToOne
+  /** calculate a duration from a given interaction's participants */
+  private var hotspotTimeFunc : (SourceEntry, SourceEntry)=>FiniteDuration = Zone.HotSpot.Rules.NoTime
   /** */
   private var vehicleEvents : ActorRef = ActorRef.noSender
 
@@ -442,6 +447,22 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
     }
   }
 
+  def HotSpotCoordinateFunction : Vector3=>Vector3 = hotspotCoordinateFunc
+
+  def HotSpotCoordinateFunction_=(func : Vector3=>Vector3) : Vector3=>Vector3 = {
+    hotspotCoordinateFunc = func
+    Activity ! ZoneHotSpotProjector.UpdateMappingFunction()
+    HotSpotCoordinateFunction
+  }
+
+  def HotSpotTimeFunction : (SourceEntry, SourceEntry)=>FiniteDuration = hotspotTimeFunc
+
+  def HotSpotTimeFunction_=(func : (SourceEntry, SourceEntry)=>FiniteDuration) : (SourceEntry, SourceEntry)=>FiniteDuration = {
+    hotspotTimeFunc = func
+    Activity ! ZoneHotSpotProjector.UpdateDurationFunction()
+    HotSpotTimeFunction
+  }
+
   /**
     * Provide bulk correspondence on all map entities that can be composed into packet messages and reported to a client.
     * These messages are sent in this fashion at the time of joining the server:<br>
@@ -616,11 +637,33 @@ object Zone {
   object HotSpot {
     final case class Activity(defender : SourceEntry, attacker : SourceEntry, location : Vector3)
 
+    final case class Cleanup()
+
     final case class ClearAll()
 
     final case class Update(faction : PlanetSideEmpire.Value, zone_num : Int, priority : Int, info : List[HotSpotInfo])
 
     final case class UpdateNow()
+
+    object Rules {
+      /**
+        * Produce hotspot coordinates based on map coordinates.
+        * Return the same coordinate as output that was input.
+        * The default function.
+        * @param pos the absolute position of the activity reported
+        * @return the position for a hotspot
+        */
+      def OneToOne(pos : Vector3) : Vector3 = pos
+
+      /**
+        * Determine a duration for which the hotspot will be displayed on the zone map.
+        * The default function.
+        * @param defender the defending party
+        * @param attacker the attacking party
+        * @return the duration
+        */
+      def NoTime(defender : SourceEntry, attacker : SourceEntry) : FiniteDuration = 0 seconds
+    }
   }
 
   /**

@@ -29,8 +29,7 @@ final case class HotSpotInfo(x : Float,
   * The hotspot system is an all-or-nothing affair.
   * The received packet indicates the hotspots to display and the map will display only those hotspots.
   * Inversely, if the received packet indicates no hotspots, the map will display no hotspots at all.
-  * This "no hotspots" packet is always initially sent during zone setup during server login.
-  * To clear away only some hotspots, but retains others, a continental `List` would have to be pruned selectively for the client.<br>
+  * To clear away only some hotspots but retains others, a continental list would have to be pruned selectively for the client.<br>
   * <br>
   * Exploration:<br>
   * What does (zone) priority entail?

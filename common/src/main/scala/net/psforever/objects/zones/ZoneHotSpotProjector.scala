@@ -3,55 +3,114 @@ package net.psforever.objects.zones
 
 import akka.actor.{Actor, ActorRef, Cancellable}
 import net.psforever.objects.DefaultCancellable
-import net.psforever.objects.ballistics.SourceEntry
-import net.psforever.objects.zones.{HotSpotInfo => ZoneHotSpotInfo}
-import net.psforever.types.{PlanetSideEmpire, Vector3}
+import net.psforever.types.PlanetSideEmpire
 import services.ServiceManager
 
 import scala.concurrent.duration._
 
+/**
+  * Manage hotspot information for a given zone,
+  * keeping track of aggressive faction interactions,
+  * and maintaining the visibility state of the hotspots that alert of the location of that activity.
+  * @param zone the zone
+  */
 class ZoneHotSpotProjector(zone : Zone) extends Actor {
+  /** a hook for the `GalaxyService` used to broadcast messages */
   private var galaxy : ActorRef = ActorRef.noSender
-  private val sectorDivs : Int = 80
-  private val sectorFunc : (MapScale, Vector3, Int, Int)=>Vector3 = ZoneHotSpotProjector.Sector
-  private val timeFunc : (SourceEntry, SourceEntry)=>FiniteDuration = ZoneHotSpotProjector.TimeRules
+  /** the timer for the blanking process */
   private var blanking : Cancellable = DefaultCancellable.obj
+  /** how long to wait in between blanking periods while hotspots decay */
   private val blankingDelay : FiniteDuration = 15 seconds
 
-  private[this] val log = org.log4s.getLogger
+  private[this] val log = org.log4s.getLogger(s"${zone.Id.capitalize}HotSpotProjector")
 
+  /**
+    * Actions that occur before this `Actor` is formally started.
+    * Request a hook for the `GalaxyService`.
+    * @see `ServiceManager`
+    * @see `ServiceManager.Lookup`
+    */
   override def preStart() : Unit = {
     super.preStart()
     ServiceManager.serviceManager ! ServiceManager.Lookup("galaxy")
   }
 
+  /**
+    * Actions that occur after this `Actor` is formally stopped.
+    * Cancel all future blanking actions and release the `GalaxyService` hook.
+    */
   override def postStop() : Unit = {
-    galaxy = ActorRef.noSender
     blanking.cancel
+    galaxy = ActorRef.noSender
     super.postStop()
   }
 
   def receive : Receive = Initializing
 
+  /**
+    * Accept the `GalaxyService` hook and switch to active message processing when it arrives.
+    * @see `ActorContext.become`
+    * @see `ServiceManager`
+    * @see `ServiceManager.LookupResult`
+    * @see `ZoneHotSpotProjector.UpdateDurationFunction`
+    * @see `ZoneHotSpotProjector.UpdateMappingFunction`
+    * @return a partial function
+    */
   def Initializing : Receive = {
     case ServiceManager.LookupResult("galaxy", galaxyRef) =>
       galaxy = galaxyRef
       context.become(Established)
-    case _ => ;
+
+    case ZoneHotSpotProjector.UpdateDurationFunction() =>
+      UpdateDurationFunction()
+
+    case ZoneHotSpotProjector.UpdateMappingFunction() =>
+      UpdateMappingFunction()
+
+    case _ =>
+      log.warn("not ready - still waiting on event system hook")
   }
 
+  /**
+    * The active message processing message handler.
+    * @see `Zone.HotSpot.Activity`
+    * @see `Zone.HotSpot.ClearAll`
+    * @see `Zone.HotSpot.UpdateNow`
+    * @see `Zone.ActivityBy`
+    * @see `Zone.ActivityFor`
+    * @see `Zone.TryHotSpot`
+    * @see `ZoneHotSpotProjector.BlankingPhase`
+    * @see `ZoneHotSpotProjector.UpdateDurationFunction`
+    * @see `ZoneHotSpotProjector.UpdateMappingFunction`
+    * @return a partial function
+    */
   def Established : Receive = {
+    case ZoneHotSpotProjector.UpdateDurationFunction() =>
+      blanking.cancel
+      UpdateDurationFunction()
+      UpdateHotSpots(PlanetSideEmpire.values, zone.HotSpots)
+      import scala.concurrent.ExecutionContext.Implicits.global
+      blanking = context.system.scheduler.scheduleOnce(blankingDelay, self, ZoneHotSpotProjector.BlankingPhase())
+
+    case ZoneHotSpotProjector.UpdateMappingFunction() =>
+      //remapped hotspots are produced from their `DisplayLocation` determined by the previous function
+      //this is different from the many individual activity locations that contributed to that `DisplayLocation`
+      blanking.cancel
+      UpdateMappingFunction()
+      UpdateHotSpots(PlanetSideEmpire.values, zone.HotSpots)
+      import scala.concurrent.ExecutionContext.Implicits.global
+      blanking = context.system.scheduler.scheduleOnce(blankingDelay, self, ZoneHotSpotProjector.BlankingPhase())
+
     case Zone.HotSpot.Activity(defender, attacker, location) =>
       log.trace(s"received information about activity in ${zone.Id}@$location")
       val defenderFaction = defender.Faction
       val attackerFaction = attacker.Faction
       val noPriorHotSpots = zone.HotSpots.isEmpty
-      //a new hotspot with no activity will still be generated if the duration is 0 - this is okay
-      val hotspot = zone.TryHotSpot( sectorFunc(zone.Map.Scale, location, sectorDivs, sectorDivs) )
-      val noPriorActivity = !(hotspot.ActivityBy(defenderFaction) && hotspot.ActivityBy(attackerFaction))
-      val duration = timeFunc(defender, attacker)
+      val duration = zone.HotSpotTimeFunction(defender, attacker)
       if(duration.toNanos > 0) {
+        val hotspot = zone.TryHotSpot( zone.HotSpotCoordinateFunction(location) )
         log.trace(s"updating activity status for ${zone.Id} hotspot x=${hotspot.DisplayLocation.x} y=${hotspot.DisplayLocation.y}")
+        val noPriorActivity = !(hotspot.ActivityBy(defenderFaction) && hotspot.ActivityBy(attackerFaction))
         //update the activity report for these factions
         val affectedFactions = Seq(attackerFaction, defenderFaction)
         affectedFactions.foreach { f =>
@@ -73,7 +132,11 @@ class ZoneHotSpotProjector(zone : Zone) extends Actor {
         }
       }
 
-    case ZoneHotSpotProjector.BlankingPhase() | Zone.HotSpot.UpdateNow() =>
+    case Zone.HotSpot.UpdateNow =>
+      log.trace(s"asked to update for zone ${zone.Id} without a blanking period or new activity")
+      UpdateHotSpots(PlanetSideEmpire.values, zone.HotSpots)
+
+    case ZoneHotSpotProjector.BlankingPhase() | Zone.HotSpot.Cleanup() =>
       blanking.cancel
       val curr : Long = System.nanoTime
       //blanking dated activity reports
@@ -97,7 +160,7 @@ class ZoneHotSpotProjector(zone : Zone) extends Actor {
       val changesOnMap = zone.HotSpots.size - spots.size
       log.trace(s"blanking out $changesOnMap hotspots from zone ${zone.Id}; ${spots.size} remain active")
       zone.HotSpots = spots
-      //hotspots still need to be cleared
+      //other hotspots still need to be blanked later
       if(spots.nonEmpty) {
         import scala.concurrent.ExecutionContext.Implicits.global
         blanking.cancel
@@ -117,90 +180,88 @@ class ZoneHotSpotProjector(zone : Zone) extends Actor {
     case _ => ;
   }
 
-  def UpdateHotSpots(affectedFactions : Iterable[PlanetSideEmpire.Value], hotSpotInfos : List[ZoneHotSpotInfo]) : Unit = {
+  /**
+    * Assign a new functionality for determining how long hotspots remain active.
+    * Recalculate all current hotspot information.
+    */
+  def UpdateDurationFunction(): Unit = {
+    zone.HotSpots.foreach { spot =>
+      spot.Activity.values.foreach { report =>
+        val heat = report.Heat
+        report.Clear()
+        report.Report(heat)
+        report.Duration = 0L
+      }
+    }
+    log.trace(s"new duration remapping function provided; reloading ${zone.HotSpots.size} hotspots for one blanking phase")
+  }
+
+  /**
+    * Assign new functionality for determining where to depict howspots on a given zone map.
+    * Recalculate all current hotspot information.
+    */
+  def UpdateMappingFunction() : Unit = {
+    val redoneSpots = zone.HotSpots.map { spot =>
+      val newSpot = new HotSpotInfo( zone.HotSpotCoordinateFunction(spot.DisplayLocation) )
+      PlanetSideEmpire.values.foreach { faction =>
+        if(spot.ActivityBy(faction)) {
+          newSpot.Activity(faction).Report( spot.Activity(faction).Heat )
+          newSpot.Activity(faction).Duration = spot.Activity(faction).Duration
+        }
+      }
+      newSpot
+    }
+    log.info(s"new coordinate remapping function provided; updating ${redoneSpots.size} hotspots")
+    zone.HotSpots = redoneSpots
+  }
+
+  /**
+    * Submit new updates regarding the hotspots for a given group (faction) in this zone.
+    * As per how the client operates, all previous hotspots not represented in this list will be erased.
+    * @param affectedFactions the factions whose hotspots for this zone need to be redrawn;
+    *                         if empty, no update/redraw calls are generated
+    * @param hotSpotInfos the information for the current hotspots in this zone;
+    *                     if empty or contains no information for a selected group,
+    *                     that group's hotspots will be eliminated (blanked) as a result
+    */
+  def UpdateHotSpots(affectedFactions : Iterable[PlanetSideEmpire.Value], hotSpotInfos : List[HotSpotInfo]) : Unit = {
     val zoneNumber = zone.Number
     affectedFactions.foreach(faction =>
       galaxy ! Zone.HotSpot.Update(
         faction,
         zoneNumber,
-        0,
-        hotSpotInfos.filter { spot => spot.ActivityBy(faction) }
+        1,
+        ZoneHotSpotProjector.SpecificHotSpotInfo(faction, hotSpotInfos)
       )
     )
+  }
+
+  def CreateHotSpotUpdate(faction : PlanetSideEmpire.Value, hotSpotInfos : List[HotSpotInfo]) : List[HotSpotInfo] = {
+    Nil
   }
 }
 
 object ZoneHotSpotProjector {
+  /**
+    * Reload the current hotspots for one more blanking phase.
+    */
+  final case class UpdateDurationFunction()
+  /**
+    * Reload the current hotspots by directly mapping the current ones to new positions.
+    */
+  final case class UpdateMappingFunction()
+  /**
+    * The internal message for eliminating hotspot data whose lifespan has exceeded its set duration.
+    */
   private case class BlankingPhase()
 
-  def Sector(scale : MapScale, pos : Vector3, longDivNum : Int, latDivNum : Int) : Vector3 = {
-    val (posx, posy) = (pos.x, pos.y)
-    val width = scale.width
-    val height = scale.height
-    val divWidth : Float = width / longDivNum
-    val divHeight : Float = height / latDivNum
-    Vector3(
-      //x
-      if(posx >= width - divWidth) {
-        width - divWidth
-      }
-      else if(posx >= divWidth) {
-        val sector : Float = (posx * longDivNum / width).toInt * divWidth
-        val nextSector : Float = sector + divWidth
-        if(posx - sector < nextSector - posx) {
-          sector
-        }
-        else {
-          nextSector
-        }
-      }
-      else {
-        divWidth
-      },
-      //y
-      if(posy >= height - divHeight) {
-        height - divHeight
-      }
-      else if(posy >= divHeight) {
-        val sector : Float = (posy * latDivNum / height).toInt * divHeight
-        val nextSector : Float = sector + divHeight
-        if(posy - sector < nextSector - posy) {
-          sector
-        }
-        else {
-          nextSector
-        }
-      }
-      else {
-        divHeight
-      },
-      //z
-      0
-    )
-  }
-
-  def TimeRules(defender : SourceEntry, attacker : SourceEntry) : FiniteDuration = {
-    import net.psforever.objects.ballistics._
-    import net.psforever.objects.GlobalDefinitions
-    if(attacker.Faction == defender.Faction) {
-      0 seconds
-    }
-    else {
-      //TODO is target occupy-able and occupied, or jammer-able and jammered?
-      defender match {
-        case _ : PlayerSource =>
-          60 seconds
-        case _ : VehicleSource =>
-          60 seconds
-        case t : ObjectSource if t.Definition == GlobalDefinitions.manned_turret =>
-          60 seconds
-        case _ : DeployableSource =>
-          30 seconds
-        case _ : ComplexDeployableSource =>
-          30 seconds
-        case _ =>
-          0 seconds
-      }
-    }
+  /**
+    * Extract related hotspot activity information based on association with a faction.
+    * @param faction the faction
+    * @param hotSpotInfos the total activity information
+    * @return the discovered activity information that aligns with `faction`
+    */
+  def SpecificHotSpotInfo(faction : PlanetSideEmpire.Value, hotSpotInfos : List[HotSpotInfo]) : List[HotSpotInfo] = {
+    hotSpotInfos.filter { spot => spot.ActivityBy(faction) }
   }
 }

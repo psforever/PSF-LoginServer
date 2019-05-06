@@ -42,7 +42,7 @@ import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.serverobject.turret.{FacilityTurret, TurretUpgrade, WeaponTurret}
 import net.psforever.objects.vehicles.{AccessPermissionGroup, Cargo, Utility, VehicleLockState, _}
 import net.psforever.objects.vital._
-import net.psforever.objects.zones.{InterstellarCluster, Zone}
+import net.psforever.objects.zones.{InterstellarCluster, Zone, ZoneHotSpotProjector}
 import net.psforever.packet.game.objectcreate._
 import net.psforever.packet.game.{HotSpotInfo => PacketHotSpotInfo}
 import net.psforever.types._
@@ -511,7 +511,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
       sendResponse(ZoneInfoMessage(continentNumber, true, 0))
       sendResponse(ZoneLockInfoMessage(continentNumber, false, true))
       sendResponse(ZoneForcedCavernConnectionsMessage(continentNumber, 0))
-      sendResponse(HotSpotUpdateMessage(continentNumber, 1, Nil)) //normally set in bulk; should be fine doing per continent
+      sendResponse(HotSpotUpdateMessage(
+        continentNumber,
+        1,
+        ZoneHotSpotProjector.SpecificHotSpotInfo(player.Faction, zone.HotSpots)
+          .map { spot => PacketHotSpotInfo(spot.DisplayLocation.x, spot.DisplayLocation.y, 40) }
+      )) //normally set for all zones in bulk; should be fine manually updating per zone like this
 
     case Zone.Population.PlayerHasLeft(zone, None) =>
       log.info(s"$avatar does not have a body on ${zone.Id}")
@@ -6568,6 +6573,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         }
     }) match {
       case Some(shot) =>
+        continent.Activity ! Zone.HotSpot.Activity(pentry, shot.projectile.owner, shot.hit_pos)
         avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.DestroyDisplay(shot.projectile.owner, pentry, shot.projectile.attribute_to))
       case None =>
         avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.DestroyDisplay(pentry, pentry, 0))

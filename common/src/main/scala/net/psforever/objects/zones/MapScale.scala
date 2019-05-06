@@ -1,6 +1,12 @@
 // Copyright (c) 2019 PSForever
 package net.psforever.objects.zones
 
+/**
+  * An object representing the dimensions of the zone map as its maximum coordinates.
+  * @see `InventoryTile`
+  * @param width the longitudinal span of the map
+  * @param height the latitudinal span of the map
+  */
 final case class MapScale(width : Float, height : Float)
 
 object MapScale {
