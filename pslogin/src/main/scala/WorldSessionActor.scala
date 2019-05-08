@@ -804,7 +804,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       avatarService ! Service.Join(avatar.name) //channel will be player.Name
       localService ! Service.Join(avatar.name) //channel will be player.Name
       vehicleService ! Service.Join(avatar.name) //channel will be player.Name
-      galaxyService ! Service.Join("") //for galaxy-wide messages
+      galaxyService ! Service.Join("galaxy") //for galaxy-wide messages
       galaxyService ! Service.Join(s"${avatar.faction}") //for hotspots
       cluster ! InterstellarCluster.GetWorld("home3")
 
