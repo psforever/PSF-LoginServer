@@ -114,7 +114,7 @@ class ActivityReport {
     * @return the current report
     */
   def Report() : ActivityReport = {
-    heat += 1
+    RaiseHeat(1)
     Renew
     this
   }
@@ -125,9 +125,19 @@ class ActivityReport {
     * @return the current report
     */
   def Report(pow : Int) : ActivityReport = {
-    heat += pow
+    RaiseHeat(pow)
     Renew
     this
+  }
+
+  private def RaiseHeat(addHeat : Int) : Int = {
+    if(addHeat < (Integer.MAX_VALUE - heat)) {
+      heat += addHeat
+    }
+    else {
+      heat = Integer.MAX_VALUE
+    }
+    heat
   }
 
   /**
