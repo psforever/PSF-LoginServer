@@ -23,6 +23,7 @@ class ProjectileDefinition(objectId : Int) extends ObjectDefinition(objectId)
   private var damageAtEdge : Float = 1f
   private var damageRadius : Float = 1f
   private var useDamage1Subtract : Boolean = false
+  private var existsOnRemoteClients : Boolean = false //`true` spawns a server-managed object
   //derived calculations
   private var distanceMax : Float = 0f
   private var distanceFromAcceleration : Float = 0f
@@ -107,6 +108,13 @@ class ProjectileDefinition(objectId : Int) extends ObjectDefinition(objectId)
   def DamageRadius_=(damageRadius : Float) : Float = {
     this.damageRadius = damageRadius
     DamageRadius
+  }
+
+  def ExistsOnRemoteClients : Boolean = existsOnRemoteClients
+
+  def ExistsOnRemoteClients_=(existsOnRemoteClients : Boolean) : Boolean = {
+    this.existsOnRemoteClients = existsOnRemoteClients
+    ExistsOnRemoteClients
   }
 
   def DistanceMax : Float = distanceMax //accessor only

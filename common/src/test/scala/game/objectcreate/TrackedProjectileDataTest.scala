@@ -33,7 +33,7 @@ class TrackedProjectileDataTest extends Specification {
               deploy.v5.isEmpty mustEqual true
               deploy.guid mustEqual PlanetSideGUID(0)
 
-              unk2 mustEqual TrackedProjectile.Striker
+              unk2 mustEqual 6710918
 
               unk3 mustEqual 0
             case _ =>
@@ -50,7 +50,7 @@ class TrackedProjectileDataTest extends Specification {
           PlacementData(4644.5938f, 5472.0938f, 82.375f, 0f, 30.9375f, 171.5625f),
           CommonFieldData(PlanetSideEmpire.TR, false, false, true, None, false, None, None, PlanetSideGUID(0))
         ),
-        TrackedProjectile.Striker,
+        6710918,
         0
       )
       val msg = ObjectCreateMessage(ObjectClass.striker_missile_targeting_projectile, PlanetSideGUID(40192), obj)

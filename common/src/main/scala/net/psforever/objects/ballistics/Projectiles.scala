@@ -92,6 +92,7 @@ object Projectiles extends Enumeration {
   final val mine_projectile = Value(551)
   final val mine_sweeper_projectile = Value(554)
   final val mine_sweeper_projectile_enh = Value(555)
+  final val oicw_little_buddy = Value(601)
   final val oicw_projectile = Value(602)
   final val pellet_gun_projectile = Value(631)
   final val peregrine_dual_machine_gun_projectile = Value(639)

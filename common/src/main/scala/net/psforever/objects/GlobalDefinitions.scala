@@ -1,6 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects
 
+import net.psforever.objects.GlobalDefinitions.sparrow_projectile
 import net.psforever.objects.ballistics.Projectiles
 import net.psforever.objects.ce.{DeployableCategory, DeployedItem}
 import net.psforever.objects.definition._
@@ -296,6 +297,8 @@ object GlobalDefinitions {
   val mine_sweeper_projectile_enh = ProjectileDefinition(Projectiles.mine_sweeper_projectile_enh)
 
   val oicw_projectile = ProjectileDefinition(Projectiles.oicw_projectile)
+
+  val oicw_little_buddy = ProjectileDefinition(Projectiles.oicw_little_buddy)
 
   val pellet_gun_projectile = ProjectileDefinition(Projectiles.pellet_gun_projectile)
 
@@ -2216,6 +2219,7 @@ object GlobalDefinitions {
     aphelion_starfire_projectile.InitialVelocity = 45
     aphelion_starfire_projectile.Lifespan = 7f
     aphelion_starfire_projectile.ProjectileDamageType = DamageType.Aggravated
+    aphelion_starfire_projectile.ExistsOnRemoteClients = true
     ProjectileDefinition.CalculateDerivedFields(aphelion_starfire_projectile)
 
     bolt_projectile.Name = "bolt_projectile"
@@ -2692,6 +2696,7 @@ object GlobalDefinitions {
     hunter_seeker_missile_projectile.ProjectileDamageType = DamageType.Splash
     hunter_seeker_missile_projectile.InitialVelocity = 40
     hunter_seeker_missile_projectile.Lifespan = 6.3f
+    hunter_seeker_missile_projectile.ExistsOnRemoteClients = true
     ProjectileDefinition.CalculateDerivedFields(hunter_seeker_missile_projectile)
 
     jammer_cartridge_projectile.Name = "jammer_cartridge_projectile"
@@ -2977,7 +2982,20 @@ object GlobalDefinitions {
     oicw_projectile.ProjectileDamageType = DamageType.Splash
     oicw_projectile.InitialVelocity = 5
     oicw_projectile.Lifespan = 6.1f
+    oicw_projectile.ExistsOnRemoteClients = true
     ProjectileDefinition.CalculateDerivedFields(oicw_projectile)
+
+    oicw_little_buddy.Name = "oicw_projectile"
+    oicw_little_buddy.Damage0 = 75
+    oicw_little_buddy.Damage1 = 75
+    oicw_little_buddy.DamageAtEdge = 0.1f
+    oicw_little_buddy.DamageRadius = 7.5f
+    oicw_little_buddy.ProjectileDamageType = DamageType.Splash
+    oicw_little_buddy.InitialVelocity = 40
+    oicw_little_buddy.Lifespan = 0.5f
+    oicw_little_buddy.ExistsOnRemoteClients = true
+    //add_property oicw_little_buddy multi_stage_spawn_server_side true ...
+    ProjectileDefinition.CalculateDerivedFields(oicw_little_buddy)
 
     pellet_gun_projectile.Name = "pellet_gun_projectile"
     // TODO for later, maybe : set_resource_parent pellet_gun_projectile game_objects shotgun_shell_projectile
@@ -3056,6 +3074,7 @@ object GlobalDefinitions {
     peregrine_sparrow_projectile.ProjectileDamageType = DamageType.Splash
     peregrine_sparrow_projectile.InitialVelocity = 45
     peregrine_sparrow_projectile.Lifespan = 7.5f
+    peregrine_sparrow_projectile.ExistsOnRemoteClients = true
     ProjectileDefinition.CalculateDerivedFields(peregrine_sparrow_projectile)
 
     phalanx_av_projectile.Name = "phalanx_av_projectile"
@@ -3383,6 +3402,7 @@ object GlobalDefinitions {
     sparrow_projectile.ProjectileDamageType = DamageType.Splash
     sparrow_projectile.InitialVelocity = 60
     sparrow_projectile.Lifespan = 5.85f
+    sparrow_projectile.ExistsOnRemoteClients = true
     ProjectileDefinition.CalculateDerivedFields(sparrow_projectile)
 
     sparrow_secondary_projectile.Name = "sparrow_secondary_projectile"
@@ -3397,6 +3417,7 @@ object GlobalDefinitions {
     sparrow_secondary_projectile.ProjectileDamageType = DamageType.Splash
     sparrow_secondary_projectile.InitialVelocity = 60
     sparrow_secondary_projectile.Lifespan = 5.85f
+    sparrow_secondary_projectile.ExistsOnRemoteClients = true
     ProjectileDefinition.CalculateDerivedFields(sparrow_secondary_projectile)
 
     spiker_projectile.Name = "spiker_projectile"
@@ -3447,6 +3468,7 @@ object GlobalDefinitions {
     starfire_projectile.ProjectileDamageType = DamageType.Aggravated
     starfire_projectile.InitialVelocity = 45
     starfire_projectile.Lifespan = 7.8f
+    starfire_projectile.ExistsOnRemoteClients = true
     ProjectileDefinition.CalculateDerivedFields(starfire_projectile)
 
     striker_missile_projectile.Name = "striker_missile_projectile"
@@ -3478,6 +3500,7 @@ object GlobalDefinitions {
     striker_missile_targeting_projectile.ProjectileDamageType = DamageType.Splash
     striker_missile_targeting_projectile.InitialVelocity = 30
     striker_missile_targeting_projectile.Lifespan = 4.2f
+    striker_missile_targeting_projectile.ExistsOnRemoteClients = true
     ProjectileDefinition.CalculateDerivedFields(striker_missile_targeting_projectile)
 
     trek_projectile.Name = "trek_projectile"
@@ -3565,6 +3588,7 @@ object GlobalDefinitions {
     wasp_rocket_projectile.ProjectileDamageType = DamageType.Splash
     wasp_rocket_projectile.InitialVelocity = 60
     wasp_rocket_projectile.Lifespan = 6.5f
+    wasp_rocket_projectile.ExistsOnRemoteClients = true
     ProjectileDefinition.CalculateDerivedFields(wasp_rocket_projectile)
 
     winchester_projectile.Name = "winchester_projectile"

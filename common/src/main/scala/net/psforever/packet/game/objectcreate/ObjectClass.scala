@@ -1230,6 +1230,7 @@ object ObjectClass {
       case ObjectClass.meteor_projectile_large => ConstructorData(TrackedProjectileData.codec, "meteor")
       case ObjectClass.meteor_projectile_medium => ConstructorData(TrackedProjectileData.codec, "meteor")
       case ObjectClass.meteor_projectile_small => ConstructorData(TrackedProjectileData.codec, "meteor")
+      case ObjectClass.oicw_little_buddy => ConstructorData(TrackedProjectileData.codec, "projectile")
       case ObjectClass.oicw_projectile => ConstructorData(TrackedProjectileData.codec, "projectile")
       case ObjectClass.sparrow_projectile => ConstructorData(TrackedProjectileData.codec, "projectile")
       case ObjectClass.starfire_projectile => ConstructorData(TrackedProjectileData.codec, "projectile")
