@@ -1,7 +1,6 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects
 
-import net.psforever.objects.GlobalDefinitions.sparrow_projectile
 import net.psforever.objects.ballistics.Projectiles
 import net.psforever.objects.ce.{DeployableCategory, DeployedItem}
 import net.psforever.objects.definition._
@@ -641,8 +640,8 @@ object GlobalDefinitions {
   }
 
   val hunterseeker = new ToolDefinition(ObjectClass.hunterseeker) {
-    override def NextFireModeIndex(index : Int) : Int = index
-    DefaultFireModeIndex = 1
+//    override def NextFireModeIndex(index : Int) : Int = index
+//    DefaultFireModeIndex = 1
   } //phoenix
 
   val lancer = ToolDefinition(ObjectClass.lancer)

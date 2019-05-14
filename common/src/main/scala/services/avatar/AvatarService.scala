@@ -127,6 +127,12 @@ class AvatarService extends Actor {
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.LoadPlayer(pkt))
           )
+        case AvatarAction.LoadProjectile(player_guid, object_id, obj, cdata) =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.LoadPlayer(
+              ObjectCreateMessage(object_id, obj.GUID, cdata)
+            ))
+          )
         case AvatarAction.ObjectDelete(player_guid, item_guid, unk) =>
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.ObjectDelete(item_guid, unk))
@@ -150,6 +156,10 @@ class AvatarService extends Actor {
         case AvatarAction.PlayerState(guid, pos, vel, yaw, pitch, yaw_upper, seq_time, is_crouching, is_jumping, jump_thrust, is_cloaking, spectating, weaponInHand) =>
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", guid, AvatarResponse.PlayerState(pos, vel, yaw, pitch, yaw_upper, seq_time, is_crouching, is_jumping, jump_thrust, is_cloaking, spectating, weaponInHand))
+          )
+        case AvatarAction.ProjectileState(player_guid, projectile_guid, shot_pos, shot_vel, shot_orient, unk, time_alive) =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.ProjectileState(projectile_guid, shot_pos, shot_vel, shot_orient, unk, time_alive))
           )
         case AvatarAction.PickupItem(player_guid, zone, target, slot, item, unk) =>
           janitor forward RemoverActor.ClearSpecific(List(item), zone)
