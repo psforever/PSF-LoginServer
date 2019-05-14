@@ -35,7 +35,7 @@ final case class Projectile(profile : ProjectileDefinition,
                             attribute_to : Int,
                             shot_origin : Vector3,
                             shot_angle : Vector3,
-                            fire_time: Long = System.nanoTime) {
+                            fire_time: Long = System.nanoTime) extends PlanetSideGameObject {
   /** Information about the current world coordinates and orientation of the projectile */
   val current : SimpleWorldEntity = new SimpleWorldEntity()
   private var resolved : ProjectileResolution.Value = ProjectileResolution.Unresolved
@@ -54,6 +54,8 @@ final case class Projectile(profile : ProjectileDefinition,
   def isResolved : Boolean = resolved == ProjectileResolution.Resolved || resolved == ProjectileResolution.MissedShot
 
   def isMiss : Boolean = resolved == ProjectileResolution.MissedShot
+
+  def Definition = profile
 }
 
 object Projectile {

@@ -20,7 +20,7 @@ class TrackedProjectileDataTest extends Specification {
           guid mustEqual PlanetSideGUID(40192)
           parent.isDefined mustEqual false
           data match {
-            case TrackedProjectileData(CommonFieldDataWithPlacement(pos, deploy), unk2, unk3) =>
+            case TrackedProjectileData(CommonFieldDataWithPlacement(pos, deploy), unk2, lim, unk3, unk4, unk5) =>
               pos.coord mustEqual Vector3(4644.5938f, 5472.0938f, 82.375f)
               pos.orient mustEqual Vector3(0, 30.9375f, 171.5625f)
               deploy.faction mustEqual PlanetSideEmpire.TR
@@ -33,9 +33,11 @@ class TrackedProjectileDataTest extends Specification {
               deploy.v5.isEmpty mustEqual true
               deploy.guid mustEqual PlanetSideGUID(0)
 
-              unk2 mustEqual 6710918
-
-              unk3 mustEqual 0
+              unk2 mustEqual 26214
+              lim mustEqual 134
+              unk3 mustEqual FlightPhysics.State4
+              unk4 mustEqual 0
+              unk5 mustEqual 0
             case _ =>
               ko
           }
@@ -50,11 +52,11 @@ class TrackedProjectileDataTest extends Specification {
           PlacementData(4644.5938f, 5472.0938f, 82.375f, 0f, 30.9375f, 171.5625f),
           CommonFieldData(PlanetSideEmpire.TR, false, false, true, None, false, None, None, PlanetSideGUID(0))
         ),
-        6710918,
-        0
+        26214, 134, FlightPhysics.State4, 0, 0
       )
       val msg = ObjectCreateMessage(ObjectClass.striker_missile_targeting_projectile, PlanetSideGUID(40192), obj)
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      //pkt mustEqual string_striker_projectile
 
       pkt.toBitVector.take(132) mustEqual string_striker_projectile.toBitVector.take(132)
       pkt.toBitVector.drop(133).take(7) mustEqual string_striker_projectile.toBitVector.drop(133).take(7)
