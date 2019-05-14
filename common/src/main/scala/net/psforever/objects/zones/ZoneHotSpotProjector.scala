@@ -142,7 +142,7 @@ class ZoneHotSpotProjector(zone : Zone) extends Actor {
       //blanking dated activity reports
       val changed = zone.HotSpots.flatMap(spot => {
         spot.Activity.collect {
-          case (b, a) if a.LastReport + a.Duration.toNanos >= curr =>
+          case (b, a) if a.LastReport + a.Duration.toNanos <= curr =>
             a.Clear() //this faction has no more activity in this sector
             (b, spot)
         }
