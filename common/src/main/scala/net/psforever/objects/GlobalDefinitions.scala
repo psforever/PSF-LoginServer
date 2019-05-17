@@ -630,9 +630,7 @@ object GlobalDefinitions {
 
   val maelstrom = ToolDefinition(ObjectClass.maelstrom)
 
-  val phoenix = new ToolDefinition(ObjectClass.phoenix) {
-    override def NextFireModeIndex(index : Int) : Int = index
-  } //decimator
+  val phoenix = ToolDefinition(ObjectClass.phoenix) //decimator
 
   val striker = new ToolDefinition(ObjectClass.striker) {
     override def NextFireModeIndex(index : Int) : Int = index
@@ -640,8 +638,8 @@ object GlobalDefinitions {
   }
 
   val hunterseeker = new ToolDefinition(ObjectClass.hunterseeker) {
-//    override def NextFireModeIndex(index : Int) : Int = index
-//    DefaultFireModeIndex = 1
+    override def NextFireModeIndex(index : Int) : Int = index
+    DefaultFireModeIndex = 1
   } //phoenix
 
   val lancer = ToolDefinition(ObjectClass.lancer)
@@ -2221,6 +2219,7 @@ object GlobalDefinitions {
     aphelion_starfire_projectile.Lifespan = 7f
     aphelion_starfire_projectile.ProjectileDamageType = DamageType.Aggravated
     aphelion_starfire_projectile.ExistsOnRemoteClients = true
+    aphelion_starfire_projectile.RemoteClientData = (39577, 249) //starfire_projectile data
     aphelion_starfire_projectile.Packet = projectileConverter
     ProjectileDefinition.CalculateDerivedFields(aphelion_starfire_projectile)
 
@@ -2699,6 +2698,7 @@ object GlobalDefinitions {
     hunter_seeker_missile_projectile.InitialVelocity = 40
     hunter_seeker_missile_projectile.Lifespan = 6.3f
     hunter_seeker_missile_projectile.ExistsOnRemoteClients = true
+    hunter_seeker_missile_projectile.RemoteClientData = (39577, 201)
     hunter_seeker_missile_projectile.Packet = projectileConverter
     ProjectileDefinition.CalculateDerivedFields(hunter_seeker_missile_projectile)
 
@@ -2986,6 +2986,7 @@ object GlobalDefinitions {
     oicw_projectile.InitialVelocity = 5
     oicw_projectile.Lifespan = 6.1f
     oicw_projectile.ExistsOnRemoteClients = true
+    oicw_projectile.RemoteClientData = (13107, 195)
     oicw_projectile.Packet = projectileConverter
     ProjectileDefinition.CalculateDerivedFields(oicw_projectile)
 
@@ -2997,7 +2998,7 @@ object GlobalDefinitions {
     oicw_little_buddy.ProjectileDamageType = DamageType.Splash
     oicw_little_buddy.InitialVelocity = 40
     oicw_little_buddy.Lifespan = 0.5f
-    oicw_little_buddy.ExistsOnRemoteClients = true
+    oicw_little_buddy.ExistsOnRemoteClients = false //TODO true
     oicw_little_buddy.Packet = projectileConverter
     //add_property oicw_little_buddy multi_stage_spawn_server_side true ...
     ProjectileDefinition.CalculateDerivedFields(oicw_little_buddy)
@@ -3080,6 +3081,7 @@ object GlobalDefinitions {
     peregrine_sparrow_projectile.InitialVelocity = 45
     peregrine_sparrow_projectile.Lifespan = 7.5f
     peregrine_sparrow_projectile.ExistsOnRemoteClients = true
+    peregrine_sparrow_projectile.RemoteClientData = (13107, 187) //sparrow_projectile data
     peregrine_sparrow_projectile.Packet = projectileConverter
     ProjectileDefinition.CalculateDerivedFields(peregrine_sparrow_projectile)
 
@@ -3133,6 +3135,7 @@ object GlobalDefinitions {
     phoenix_missile_guided_projectile.InitialVelocity = 0
     phoenix_missile_guided_projectile.Lifespan = 3f
     phoenix_missile_guided_projectile.ExistsOnRemoteClients = true
+    phoenix_missile_guided_projectile.RemoteClientData = (39577, 201) //hunter_seeker_missile_projectile data
     phoenix_missile_guided_projectile.Packet = projectileConverter
     ProjectileDefinition.CalculateDerivedFields(phoenix_missile_guided_projectile)
 
@@ -3411,6 +3414,7 @@ object GlobalDefinitions {
     sparrow_projectile.InitialVelocity = 60
     sparrow_projectile.Lifespan = 5.85f
     sparrow_projectile.ExistsOnRemoteClients = true
+    sparrow_projectile.RemoteClientData = (13107, 187)
     sparrow_projectile.Packet = projectileConverter
     ProjectileDefinition.CalculateDerivedFields(sparrow_projectile)
 
@@ -3427,6 +3431,7 @@ object GlobalDefinitions {
     sparrow_secondary_projectile.InitialVelocity = 60
     sparrow_secondary_projectile.Lifespan = 5.85f
     sparrow_secondary_projectile.ExistsOnRemoteClients = true
+    sparrow_secondary_projectile.RemoteClientData = (13107, 187)
     sparrow_secondary_projectile.Packet = projectileConverter
     ProjectileDefinition.CalculateDerivedFields(sparrow_secondary_projectile)
 
@@ -3479,6 +3484,7 @@ object GlobalDefinitions {
     starfire_projectile.InitialVelocity = 45
     starfire_projectile.Lifespan = 7.8f
     starfire_projectile.ExistsOnRemoteClients = true
+    starfire_projectile.RemoteClientData = (39577, 249)
     starfire_projectile.Packet = projectileConverter
     ProjectileDefinition.CalculateDerivedFields(starfire_projectile)
 
@@ -3512,6 +3518,7 @@ object GlobalDefinitions {
     striker_missile_targeting_projectile.InitialVelocity = 30
     striker_missile_targeting_projectile.Lifespan = 4.2f
     striker_missile_targeting_projectile.ExistsOnRemoteClients = true
+    striker_missile_targeting_projectile.RemoteClientData = (26214, 134)
     striker_missile_targeting_projectile.Packet = projectileConverter
     ProjectileDefinition.CalculateDerivedFields(striker_missile_targeting_projectile)
 
@@ -3601,6 +3608,7 @@ object GlobalDefinitions {
     wasp_rocket_projectile.InitialVelocity = 60
     wasp_rocket_projectile.Lifespan = 6.5f
     wasp_rocket_projectile.ExistsOnRemoteClients = true
+    wasp_rocket_projectile.RemoteClientData = (0, 208)
     wasp_rocket_projectile.Packet = projectileConverter
     ProjectileDefinition.CalculateDerivedFields(wasp_rocket_projectile)
 

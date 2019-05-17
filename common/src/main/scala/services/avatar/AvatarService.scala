@@ -109,6 +109,10 @@ class AvatarService extends Actor {
               AvatarResponse.EquipmentInHand(ObjectCreateMessage(definition.ObjectId, item.GUID, containerData, objectData))
             )
           )
+        case AvatarAction.GenericObjectAction(player_guid, object_guid, action_code) =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.GenericObjectAction(object_guid, action_code))
+          )
         case AvatarAction.HitHint(source_guid, player_guid) =>
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.HitHint(source_guid))
@@ -129,7 +133,7 @@ class AvatarService extends Actor {
           )
         case AvatarAction.LoadProjectile(player_guid, object_id, obj, cdata) =>
           AvatarEvents.publish(
-            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.LoadPlayer(
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.LoadProjectile(
               ObjectCreateMessage(object_id, obj.GUID, cdata)
             ))
           )

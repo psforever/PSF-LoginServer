@@ -41,6 +41,7 @@ object AvatarAction {
   final case class DestroyDisplay(killer : SourceEntry, victim : SourceEntry, method : Int, unk : Int = 121) extends Action
   final case class DropItem(player_guid : PlanetSideGUID, item : Equipment, zone : Zone) extends Action
   final case class EquipmentInHand(player_guid : PlanetSideGUID, target_guid : PlanetSideGUID, slot : Int, item : Equipment) extends Action
+  final case class GenericObjectAction(player_guid : PlanetSideGUID, object_guid : PlanetSideGUID, action_code : Int) extends Action
   final case class HitHint(source_guid : PlanetSideGUID, player_guid : PlanetSideGUID) extends Action
   final case class KilledWhileInVehicle(player_guid : PlanetSideGUID) extends Action
   final case class LoadPlayer(player_guid : PlanetSideGUID, object_id : Int, target_guid : PlanetSideGUID, cdata : ConstructorData, pdata : Option[ObjectCreateMessageParent]) extends Action

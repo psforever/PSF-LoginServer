@@ -1364,6 +1364,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
           sendResponse(pkt)
         }
 
+      case AvatarResponse.GenericObjectAction(object_guid, action_code) =>
+        if(tplayer_guid != guid) {
+          sendResponse(GenericObjectActionMessage(object_guid, action_code))
+        }
+
       case AvatarResponse.HitHint(source_guid) =>
         if(player.isAlive) {
           sendResponse(HitHint(source_guid, guid))
@@ -3453,6 +3458,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       //all head features, faction, and sex also match that test character
       import net.psforever.objects.GlobalDefinitions._
       import net.psforever.types.CertificationType._
+
       val faction = PlanetSideEmpire.VS
       val avatar = new Avatar(41605313L+sessionId, s"TestCharacter$sessionId", faction, CharacterGender.Female, 41, CharacterVoice.Voice1)
       avatar.Certifications += StandardAssault
@@ -3893,6 +3899,27 @@ class WorldSessionActor extends Actor with MDCContextAware {
           avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttributeSelf(player.GUID, 2, player.Stamina))
         }
 
+        if(!player.Crouching && is_crouching) {
+          sendResponse(
+            ObjectCreateMessage(
+              405,
+              PlanetSideGUID(40288),
+              TrackedProjectileData(
+                CommonFieldDataWithPlacement(
+                  PlacementData(Vector3(3561.0f, 2854.0f, 92.859375f), Vector3(0f, 348.75f, 267.1875f), None),
+                  CommonFieldData(PlanetSideEmpire.NC, false, false, true, None, false, None, None, PlanetSideGUID(0))
+                ),
+                39577, 201, FlightPhysics.State4, 0, 0
+              )
+            )
+          )
+        }
+        else if(player.Crouching && !is_crouching) {
+          sendResponse(
+            ObjectDeleteMessage(PlanetSideGUID(40288), 2)
+            //ProjectileStateMessage(PlanetSideGUID(40288),Vector3(3561.0f, 2854.0f, 92.859375f),Vector3(-38.814934f,-2.578959f,-9.313708f),Vector3(0,348.75f,267.1875f),false,0)
+          )
+        }
         player.Position = pos
         player.Velocity = vel
         player.Orientation = Vector3(player.Orientation.x, pitch, yaw)
@@ -4001,19 +4028,16 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ ProjectileStateMessage(projectile_guid, shot_pos, shot_vel, shot_orient, unk, time_alive) =>
       log.info(s"ProjectileState: $msg")
-      projectiles
-        .collect {
-          case Some(projectile) if projectile.HasGUID =>
-            projectile
-        }
-        .find(_.GUID == projectile_guid) match {
-        case Some(projectile) =>
+      projectiles(projectile_guid.guid - Projectile.BaseUID) match {
+        case Some(projectile) if projectile.HasGUID =>
+          val projectileGlobalUID = projectile.GUID
+          log.info(s"ProjectileState: mapped local uid ${projectile_guid.guid} to global uid ${projectileGlobalUID.guid}; updating object ...")
           projectile.Position = shot_pos
           projectile.Orientation = shot_orient
           projectile.Velocity = shot_vel
-          avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ProjectileState(player.GUID, projectile_guid, shot_pos, shot_vel, shot_orient, unk, time_alive))
-        case None =>
-          log.info(s"ProjectileState: the projectile GUID#${projectile_guid.guid} can not be found")
+          avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ProjectileState(player.GUID, projectile.GUID, shot_pos, shot_vel, shot_orient, unk, time_alive))
+        case _ =>
+          log.error(s"ProjectileState: the projectile@${projectile_guid.guid} can not be found")
       }
 
     case msg @ ReleaseAvatarRequestMessage() =>
@@ -5454,6 +5478,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
               val projectile = Projectile(projectile_info, tool.Definition, tool.FireMode, player, attribution, shot_origin, angle)
               projectiles(projectileIndex) = Some(projectile)
               if(projectile_info.ExistsOnRemoteClients) {
+                log.trace(s"WeaponFireMessage: ${projectile_info.Name} is a remote projectile")
                 taskResolver ! ReregisterProjectile(projectile)
               }
             }
@@ -5491,26 +5516,34 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ SplashHitMessage(seq_time, projectile_guid, explosion_pos, direct_victim_uid, unk3, projectile_vel, unk4, targets) =>
       log.info(s"Splash: $msg")
-      continent.GUID(direct_victim_uid) match {
-        case Some(target : PlanetSideGameObject with FactionAffinity with Vitality) =>
-          ResolveProjectileEntry(projectile_guid, ProjectileResolution.Splash, target, target.Position) match {
-            case Some(projectile) =>
-              HandleDealingDamage(target, projectile)
-            case None => ;
+      FindProjectileEntry(projectile_guid) match {
+        case Some(projectile) =>
+          continent.GUID(direct_victim_uid) match {
+            case Some(target : PlanetSideGameObject with FactionAffinity with Vitality) =>
+              ResolveProjectileEntry(projectile, ProjectileResolution.Splash, target, target.Position) match {
+                case Some(projectile) =>
+                  HandleDealingDamage(target, projectile)
+                case None => ;
+              }
+            case _ => ;
           }
-        case _ => ;
-      }
-      targets.foreach(elem => {
-        continent.GUID(elem.uid) match {
-          case Some(target : PlanetSideGameObject with FactionAffinity with Vitality) =>
-            ResolveProjectileEntry(projectile_guid, ProjectileResolution.Splash, target, explosion_pos) match {
-              case Some(projectile) =>
-                HandleDealingDamage(target, projectile)
-              case None => ;
+          targets.foreach(elem => {
+            continent.GUID(elem.uid) match {
+              case Some(target : PlanetSideGameObject with FactionAffinity with Vitality) =>
+                ResolveProjectileEntry(projectile, ProjectileResolution.Splash, target, explosion_pos) match {
+                  case Some(projectile) =>
+                    HandleDealingDamage(target, projectile)
+                  case None => ;
+                }
+              case _ => ;
             }
-          case _ => ;
-        }
-      })
+          })
+          if(projectile.profile.ExistsOnRemoteClients) {
+            //cleanup
+            taskResolver ! UnregisterProjectile(projectile)
+          }
+        case None => ;
+      }
 
     case msg @ LashMessage(seq_time, killer_guid, victim_guid, projectile_guid, pos, unk1) =>
       log.info(s"Lash: $msg")
@@ -6077,6 +6110,13 @@ class WorldSessionActor extends Actor with MDCContextAware {
       }, List(GUIDTask.RegisterAvatar(driver)(continent.GUID), GUIDTask.RegisterVehicle(obj)(continent.GUID)))
   }
 
+  /**
+    * Construct tasking that adds a completed but unregistered projectile into the scene.
+    * After the projectile is registered to the curent zone's global unique identifier system,
+    * all connected clients save for the one that registered it will be informed about the projectile's "creation."
+    * @param obj the projectile to be registered
+    * @return a `TaskResolver.GiveTask` message
+    */
   def RegisterProjectile(obj : Projectile) : TaskResolver.GiveTask = {
     val definition = obj.Definition
     TaskResolver.GiveTask(
@@ -6126,12 +6166,19 @@ class WorldSessionActor extends Actor with MDCContextAware {
       }, List(GUIDTask.UnregisterAvatar(driver)(continent.GUID), GUIDTask.UnregisterVehicle(obj)(continent.GUID)))
   }
 
+  /**
+    * Construct tasking that removes a formerly complete and currently registered projectile from the scene.
+    * After the projectile is unregistered from the curent zone's global unique identifier system,
+    * all connected clients save for the one that registered it will be informed about the projectile's "destruction."
+    * @param obj the projectile to be unregistered
+    * @return a `TaskResolver.GiveTask` message
+    */
   def UnregisterProjectile(obj : Projectile) : TaskResolver.GiveTask = {
     TaskResolver.GiveTask(
       new Task() {
         private val globalProjectile = obj
         private val localAnnounce = avatarService
-        private val localMsg = AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player.GUID, obj.GUID))
+        private val localMsg = AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player.GUID, obj.GUID, 2))
 
         override def isComplete : Task.Resolution.Value = {
           if(!globalProjectile.HasGUID) {
@@ -6192,6 +6239,14 @@ class WorldSessionActor extends Actor with MDCContextAware {
     )
   }
 
+  /**
+    * If the projectile object is unregistered, register it.
+    * If the projectile object is already registered, unregister it and then register it again.
+    * @see `RegisterProjectile(Projectile)`
+    * @see `UnregisterProjectile(Projectile)`
+    * @param obj the projectile to be registered (a second time?)
+    * @return a `TaskResolver.GiveTask` message
+    */
   def ReregisterProjectile(obj : Projectile) : TaskResolver.GiveTask = {
     val reg = RegisterProjectile(obj)
     if(obj.HasGUID) {
@@ -8406,9 +8461,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
   /**
     * Find a projectile with the given globally unique identifier and mark it as a resolved shot.
-    * A `Resolved` shot has either encountered an obstacle or is being cleaned up for not finding an obstacle.
-    * The internal copy of the projectile is retained as merely `Resolved`
-    * while the observed projectile is promoted to the suggested resolution status.
     * @param projectile the projectile object
     * @param index where the projectile was found
     * @param resolution the resolution status to promote the projectile
@@ -8419,8 +8471,23 @@ class WorldSessionActor extends Actor with MDCContextAware {
       log.error(s"expected projectile could not be found at $index; can not resolve")
       None
     }
-    else if(projectile.isMiss) {
-      log.error(s"expected projectile at $index was already counted as a missed shot; can not resolve any further")
+    else {
+      ResolveProjectileEntry(projectile, resolution, target, pos)
+    }
+  }
+
+  /**
+    * Find a projectile with the given globally unique identifier and mark it as a resolved shot.
+    * A `Resolved` shot has either encountered an obstacle or is being cleaned up for not finding an obstacle.
+    * The internal copy of the projectile is retained as merely `Resolved`
+    * while the observed projectile is promoted to the suggested resolution status.
+    * @param projectile the projectile object
+    * @param resolution the resolution status to promote the projectile
+    * @return a copy of the projectile
+    */
+  def ResolveProjectileEntry(projectile : Projectile, resolution : ProjectileResolution.Value, target : PlanetSideGameObject with FactionAffinity with Vitality, pos : Vector3) : Option[ResolvedProjectile] = {
+    if(projectile.isMiss) {
+      log.error("expected projectile was already counted as a missed shot; can not resolve any further")
       None
     }
     else {

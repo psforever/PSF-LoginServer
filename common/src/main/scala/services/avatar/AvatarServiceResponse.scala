@@ -30,6 +30,7 @@ object AvatarResponse {
   final case class DestroyDisplay(killer : SourceEntry, victim : SourceEntry, method : Int, unk : Int) extends Response
   final case class DropItem(pkt : ObjectCreateMessage) extends Response
   final case class EquipmentInHand(pkt : ObjectCreateMessage) extends Response
+  final case class GenericObjectAction(object_guid : PlanetSideGUID, action_code : Int) extends Response
   final case class HitHint(source_guid : PlanetSideGUID) extends Response
   final case class KilledWhileInVehicle() extends Response
   final case class LoadPlayer(pkt : ObjectCreateMessage) extends Response

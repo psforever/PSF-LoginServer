@@ -15,7 +15,7 @@ class ProjectileConverter extends ObjectCreateConverter[Projectile]() {
           PlacementData(
             obj.Position,
             obj.Orientation,
-            obj.Velocity
+            None
           ),
           CommonFieldData(
             obj.owner.Faction,
@@ -29,11 +29,11 @@ class ProjectileConverter extends ObjectCreateConverter[Projectile]() {
             PlanetSideGUID(0)
           )
         ),
+        obj.profile.RemoteClientData._1,
+        obj.profile.RemoteClientData._2,
+        FlightPhysics.State4,
         0,
-        0,
-        FlightPhysics.State3,
-        7,
-        2
+        0
       )
     )
   }

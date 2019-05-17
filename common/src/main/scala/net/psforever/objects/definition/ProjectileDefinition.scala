@@ -24,6 +24,7 @@ class ProjectileDefinition(objectId : Int) extends ObjectDefinition(objectId)
   private var damageRadius : Float = 1f
   private var useDamage1Subtract : Boolean = false
   private var existsOnRemoteClients : Boolean = false //`true` spawns a server-managed object
+  private var remoteClientData : (Int, Int) = (0, 0) //artificial values; for ObjectCreateMessage packet (oicw_little_buddy is undefined)
   //derived calculations
   private var distanceMax : Float = 0f
   private var distanceFromAcceleration : Float = 0f
@@ -115,6 +116,13 @@ class ProjectileDefinition(objectId : Int) extends ObjectDefinition(objectId)
   def ExistsOnRemoteClients_=(existsOnRemoteClients : Boolean) : Boolean = {
     this.existsOnRemoteClients = existsOnRemoteClients
     ExistsOnRemoteClients
+  }
+
+  def RemoteClientData : (Int, Int) = remoteClientData
+
+  def RemoteClientData_=(remoteClientData : (Int, Int)) : (Int, Int) = {
+    this.remoteClientData = remoteClientData
+    RemoteClientData
   }
 
   def DistanceMax : Float = distanceMax //accessor only
