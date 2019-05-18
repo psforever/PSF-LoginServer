@@ -6,7 +6,8 @@ import scodec.codecs._
 
 object SquadRequestType extends Enumeration {
   type Type = Value
-  val Invite,   //00
+  val
+  Invite,   //00
   Unk01,    //01
   Accept,   //02
   Reject,   //03
@@ -14,12 +15,12 @@ object SquadRequestType extends Enumeration {
   Leave,    //05
   Promote,  //06
   Disband,  //07
-  PInvite,  //08
-  PAccept,  //09
-  PReject,  //10
-  PCancel,  //11
-  PLeave,   //12
-  PDisband, //13
+  PlatoonInvite,  //08
+  PlatoonAccept,  //09
+  PlatoonReject,  //10
+  PlatoonCancel,  //11
+  PlatoonLeave,   //12
+  PlatoonDisband, //13
   Unk14,    //14
   Unk15     //15
   = Value

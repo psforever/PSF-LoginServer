@@ -22,7 +22,7 @@ final case class SquadMembershipRequest(request_type : SquadRequestType.Value,
   extends PlanetSideGamePacket {
   request_type match {
     case SquadRequestType.Accept | SquadRequestType.Reject | SquadRequestType.Disband |
-         SquadRequestType.PAccept | SquadRequestType.PReject | SquadRequestType.PDisband =>
+         SquadRequestType.PlatoonAccept | SquadRequestType.PlatoonReject | SquadRequestType.PlatoonDisband =>
       assert(unk3.isEmpty, s"a $request_type request requires the unk3 field be undefined")
     case _ =>
       assert(unk3.nonEmpty, s"a $request_type request requires the unk3 field be defined")
@@ -43,9 +43,9 @@ object SquadMembershipRequest extends Marshallable[SquadMembershipRequest] {
         conditional(request_type != SquadRequestType.Accept &&
           request_type != SquadRequestType.Reject &&
           request_type != SquadRequestType.Disband &&
-          request_type != SquadRequestType.PAccept &&
-          request_type != SquadRequestType.PReject &&
-          request_type != SquadRequestType.PDisband, "unk3" | uint32L) ::
+          request_type != SquadRequestType.PlatoonAccept &&
+          request_type != SquadRequestType.PlatoonReject &&
+          request_type != SquadRequestType.PlatoonDisband, "unk3" | uint32L) ::
         (("player_name" | PacketHelpers.encodedWideStringAligned(4)) >>:~ { pname =>
           conditional(request_type == SquadRequestType.Invite,
             "unk5" | optional(bool, PacketHelpers.encodedWideStringAligned({if(pname.length == 0) 3 else 7}))
