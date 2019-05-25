@@ -2,9 +2,216 @@
 package net.psforever.packet.game
 
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
+import scodec.bits.BitVector
 import scodec.{Attempt, Codec, Err}
 import scodec.codecs._
 import shapeless.{::, HNil}
+
+/**
+  * The generic superclass of a specific behavior for this type of squad definition action.
+  * All behaviors have a "code" that indicates how the rest of the data is parsed.
+  * @param code the action behavior code
+  */
+protected abstract class SquadAction(val code : Int)
+
+object SquadAction{
+  final case class SaveSquadDefinition() extends SquadAction(3)
+
+  final case class ListSquad() extends SquadAction(8)
+
+  final case class SelectRoleForYourself(state : Int) extends SquadAction(10)
+
+  final case class ChangeSquadPurpose(purpose : String) extends SquadAction(19)
+
+  final case class ChangeSquadZone(zone : PlanetSideZoneID) extends SquadAction(20)
+
+  final case class CloseSquadMemberPosition(position : Int) extends SquadAction(21)
+
+  final case class AddSquadMemberPosition(position : Int) extends SquadAction(22)
+
+  final case class ChangeSquadMemberRequirementsRole(u1 : Int, role : String) extends SquadAction(23)
+
+  final case class ChangeSquadMemberRequirementsDetailedOrders(u1 : Int, orders : String) extends SquadAction(24)
+
+  final case class ChangeSquadMemberRequirementsWeapons(u1 : Int, u2 : Long) extends SquadAction(25)
+
+  final case class ResetAll() extends SquadAction(26)
+
+  final case class AutoApproveInvitationRequests(state : Boolean) extends SquadAction(28)
+
+  final case class LocationFollowsSquadLead(state : Boolean) extends SquadAction(31)
+
+  final case class SearchForSquadsWithParticularRole(u1: String, u2 : Long, u3: Int, u4 : Int) extends SquadAction(34)
+
+  final case class CancelSquadSearch() extends SquadAction(35)
+
+  final case class FindLfsSoldiersForRole(state : Int) extends SquadAction(40)
+
+  final case class CancelFind() extends SquadAction(41)
+
+  final case class Unknown(badCode : Int, data : BitVector) extends SquadAction(badCode)
+
+  /**
+    * The `Codec`s used to transform the input stream into the context of a specific action
+    * and extract the field data from that stream.
+    */
+  object Codecs {
+    private val everFailCondition = conditional(included = false, bool)
+
+    val saveSquadDefinitionCodec = everFailCondition.xmap[SaveSquadDefinition] (
+      _ => SaveSquadDefinition(),
+      {
+        case SaveSquadDefinition() => None
+      }
+    )
+
+    val listSquadCodec = everFailCondition.xmap[ListSquad] (
+      _ => ListSquad(),
+      {
+        case ListSquad() => None
+      }
+    )
+
+    val selectRoleForYourselfCodec = uint4.xmap[SelectRoleForYourself] (
+      value => SelectRoleForYourself(value),
+      {
+        case SelectRoleForYourself(value) => value
+      }
+    )
+
+    val changeSquadPurposeCodec = PacketHelpers.encodedWideStringAligned(6).xmap[ChangeSquadPurpose] (
+      purpose => ChangeSquadPurpose(purpose),
+      {
+        case ChangeSquadPurpose(purpose) => purpose
+      }
+    )
+
+    val changeSquadZoneCodec = uint16L.xmap[ChangeSquadZone] (
+      value => ChangeSquadZone(PlanetSideZoneID(value)),
+      {
+        case ChangeSquadZone(value) => value.zoneId.toInt
+      }
+    )
+
+    val closeSquadMemberPositionCodec = uint4.xmap[CloseSquadMemberPosition] (
+      position => CloseSquadMemberPosition(position),
+      {
+        case CloseSquadMemberPosition(position) => position
+      }
+    )
+
+    val addSquadMemberPositionCodec = uint4.xmap[AddSquadMemberPosition] (
+      position => AddSquadMemberPosition(position),
+      {
+        case AddSquadMemberPosition(position) => position
+      }
+    )
+
+    val changeSquadMemberRequirementsRoleCodec = (uint4L :: PacketHelpers.encodedWideStringAligned(2)).xmap[ChangeSquadMemberRequirementsRole] (
+      {
+        case u1 :: role :: HNil => ChangeSquadMemberRequirementsRole(u1, role)
+      },
+      {
+        case ChangeSquadMemberRequirementsRole(u1, role) => u1 :: role :: HNil
+      }
+    )
+
+    val changeSquadMemberRequirementsDetailedOrdersCodec = (uint4L :: PacketHelpers.encodedWideStringAligned(2)).xmap[ChangeSquadMemberRequirementsDetailedOrders] (
+      {
+        case u1 :: role :: HNil => ChangeSquadMemberRequirementsDetailedOrders(u1, role)
+      },
+      {
+        case ChangeSquadMemberRequirementsDetailedOrders(u1, role) => u1 :: role :: HNil
+      }
+    )
+
+    val changeSquadMemberRequirementsWeaponsCodec = (uint4 :: ulongL(46)).xmap[ChangeSquadMemberRequirementsWeapons] (
+      {
+        case u1 :: u2 :: HNil => ChangeSquadMemberRequirementsWeapons(u1, u2)
+      },
+      {
+        case ChangeSquadMemberRequirementsWeapons(u1, u2) => u1 :: u2 :: HNil
+      }
+    )
+
+    val resetAllCodec = everFailCondition.xmap[ResetAll] (
+      _ => ResetAll(),
+      {
+        case ResetAll() => None
+      }
+    )
+
+    val autoApproveInvitationRequestsCodec = bool.xmap[AutoApproveInvitationRequests] (
+      state => AutoApproveInvitationRequests(state),
+      {
+        case AutoApproveInvitationRequests(state) => state
+      }
+    )
+
+    val locationFollowsSquadLeadCodec = bool.xmap[LocationFollowsSquadLead] (
+      state => LocationFollowsSquadLead(state),
+      {
+        case LocationFollowsSquadLead(state) => state
+      }
+    )
+
+    val searchForSquadsWithParticularRoleCodec = (
+      PacketHelpers.encodedWideStringAligned(6) ::
+        ulongL(46) ::
+        uint16L ::
+        uintL(3)).xmap[SearchForSquadsWithParticularRole] (
+      {
+        case u1 :: u2 :: u3 :: u4 :: HNil => SearchForSquadsWithParticularRole(u1, u2, u3, u4)
+      },
+      {
+        case SearchForSquadsWithParticularRole(u1, u2, u3, u4) => u1 :: u2 :: u3 :: u4 :: HNil
+      }
+    )
+
+    val cancelSquadSearchCodec = everFailCondition.xmap[CancelSquadSearch] (
+      _ => CancelSquadSearch(),
+      {
+        case CancelSquadSearch() => None
+      }
+    )
+
+    val findLfsSoldiersForRoleCodec = uint4.xmap[FindLfsSoldiersForRole] (
+      state => FindLfsSoldiersForRole(state),
+      {
+        case FindLfsSoldiersForRole(state) => state
+      }
+    )
+
+    val cancelFindCodec = everFailCondition.xmap[CancelFind] (
+      _ => CancelFind(),
+      {
+        case CancelFind() => None
+      }
+    )
+
+    /**
+      * A common form for known action code indexes with an unknown purpose and transformation is an "Unknown" object.
+      * @param action the action behavior code
+      * @return a transformation between the action code and the unknown bit data
+      */
+    def unknownCodec(action : Int) = bits.xmap[Unknown] (
+     data => Unknown(action, data),
+      {
+        case Unknown(_, data) => data
+      }
+    )
+
+    /**
+      * The action code was completely unanticipated!
+      * @param action the action behavior code
+      * @return nothing; always fail
+      */
+    def failureCodec(action : Int)= everFailCondition.exmap[SquadAction] (
+      _ => Attempt.failure(Err(s"can not match a codec pattern for decoding $action")),
+      _ => Attempt.failure(Err(s"can not match a codec pattern for encoding $action"))
+    )
+  }
+}
 
 /**
   * Manage composition and details of a player's current squad, or the currently-viewed squad.<br>
@@ -12,11 +219,22 @@ import shapeless.{::, HNil}
   * The `action` code indicates the format of the remainder data in the packet.
   * The following formats are translated; their purposes are listed:<br>
   * &nbsp;&nbsp;`(None)`<br>
-  * &nbsp;&nbsp;&nbsp;&nbsp;`3 ` - Save Squad Definition
-  * &nbsp;&nbsp;&nbsp;&nbsp;`8 ` - List Squad
-  * &nbsp;&nbsp;&nbsp;&nbsp;`26` - Reset All
-  * &nbsp;&nbsp;&nbsp;&nbsp;`35` - Cancel Squad Search
-  * &nbsp;&nbsp;&nbsp;&nbsp;`41` - Cancel Find
+  * &nbsp;&nbsp;&nbsp;&nbsp;`0 ` - UNKNOWN<br>
+  * &nbsp;&nbsp;&nbsp;&nbsp;`1 ` - UNKNOWN<br>
+  * &nbsp;&nbsp;&nbsp;&nbsp;`2 ` - UNKNOWN<br>
+  * &nbsp;&nbsp;&nbsp;&nbsp;`3 ` - Save Squad Definition<br>
+  * &nbsp;&nbsp;&nbsp;&nbsp;`4 ` - UNKNOWN<br>
+  * &nbsp;&nbsp;&nbsp;&nbsp;`6 ` - UNKNOWN<br>
+  * &nbsp;&nbsp;&nbsp;&nbsp;`8 ` - List Squad<br>
+  * &nbsp;&nbsp;&nbsp;&nbsp;`9 ` - UNKNOWN<br>
+  * &nbsp;&nbsp;&nbsp;&nbsp;`16` - UNKNOWN<br>
+  * &nbsp;&nbsp;&nbsp;&nbsp;`17` - UNKNOWN<br>
+  * &nbsp;&nbsp;&nbsp;&nbsp;`18` - UNKNOWN<br>
+  * &nbsp;&nbsp;&nbsp;&nbsp;`26` - Reset All<br>
+  * &nbsp;&nbsp;&nbsp;&nbsp;`35` - Cancel Squad Search<br>
+  * &nbsp;&nbsp;&nbsp;&nbsp;`41` - Cancel Find<br>
+  * &nbsp;&nbsp;&nbsp;&nbsp;`42` - UNKNOWN<br>
+  * &nbsp;&nbsp;&nbsp;&nbsp;`43` - UNKNOWN<br>
   * &nbsp;&nbsp;`Boolean`<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`28` - Auto-approve Requests for Invitation<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`29` - UNKNOWN<br>
@@ -48,34 +266,15 @@ import shapeless.{::, HNil}
   * &nbsp;&nbsp;`Long :: Long`<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`36` - UNKNOWN<br>
   * &nbsp;&nbsp;`String :: Long :: Int :: Int`<br>
-  * &nbsp;&nbsp;&nbsp;&nbsp;`34` - Search for Squads with a Particular Role<br>
-  * <br>
-  * Exploration:<br>
-  * Some notes regarding the full list of action codes follows after this packet.
-  * Asides from codes whose behaviors are unknown, some codes also have unknown data format.
-  * No information for codes 1, 5, 9, 27, or 35 has been found yet.
-  * @param action the purpose of this packet;
-  *               also decides the content of the parameter fields
+  * &nbsp;&nbsp;&nbsp;&nbsp;`34` - Search for Squads with a Particular Role
   * @param unk1 na
   * @param unk2 na
-  * @param string_opt the optional `String` parameter
-  * @param int1_opt the first optional `Int` parameter;
-  *                 will not necessarily conform to a single bit length
-  * @param int2_opt the second optional `Int` parameter
-  * @param long1_opt the first optional `Long` parameter;
-  *                 will not necessarily conform to a single bit length
-  * @param long2_opt the second optional `Long` parameter
-  * @param bool_opt the optional `Boolean` parameter
+  * @param action the purpose of this packet;
+  *               also decides the content of the parameter fields
   */
-final case class SquadDefinitionActionMessage(action : Int,
-                                              unk1 : Int,
+final case class SquadDefinitionActionMessage(unk1 : Int,
                                               unk2 : Int,
-                                              string_opt : Option[String],
-                                              int1_opt : Option[Int],
-                                              int2_opt : Option[Int],
-                                              long1_opt : Option[Long],
-                                              long2_opt : Option[Long],
-                                              bool_opt : Option[Boolean])
+                                              action : SquadAction)
   extends PlanetSideGamePacket {
   type Packet = SquadDefinitionActionMessage
   def opcode = GamePacketOpcode.SquadDefinitionActionMessage
@@ -84,266 +283,57 @@ final case class SquadDefinitionActionMessage(action : Int,
 
 object SquadDefinitionActionMessage extends Marshallable[SquadDefinitionActionMessage] {
   /**
-    * Common pattern for the parameters, with enough fields to support all possible outputs.
-    * All fields are `Option`al purposefully.
+    * Use the action code to transform between
+    * the specific action object and its field data
+    * and the stream of bits of the original packet.
+    * @param code the action behavior code
+    * @return the `SquadAction` `Codec` to use for the given `code`
     */
-  private type allPattern = Option[String] :: Option[Int] :: Option[Int] :: Option[Long] :: Option[Long] :: Option[Boolean] :: HNil
-
-  /**
-    * `Codec` for reading nothing from the remainder of the stream data.
-    * @return a filled-out `allPattern` if successful
-    */
-  def noneCodec : Codec[allPattern] = ignore(0).xmap[allPattern] (
-    {
-      case () =>
-        None :: None :: None :: None :: None :: None :: HNil
-    },
-    {
-      case _ :: _ :: _ :: _ :: _ :: _ :: HNil =>
-        ()
-    }
-  )
-
-  /**
-    * `Codec` for reading a single `Boolean` from remaining stream data.
-    * @return a filled-out `allPattern` if successful
-    */
-  def boolCodec : Codec[allPattern] = bool.hlist.exmap[allPattern] (
-    {
-      case n :: HNil =>
-        Attempt.successful(None :: None :: None :: None :: None :: Some(n) :: HNil)
-    },
-    {
-      case _ :: _ :: _ :: _ :: _ :: None :: HNil =>
-        Attempt.failure(Err("expected a boolean value but found nothing"))
-      case _ :: _ :: _ :: _ :: _ :: Some(n) :: HNil =>
-        Attempt.successful(n :: HNil)
-    }
-  )
-
-  /**
-    * `Codec` for reading a single `Int` from remaining stream data.
-    * Multiple bit lengths can be processed from this reading.
-    * @param icodec the `Codec[Int]` read by this method
-    * @return a filled-out `allPattern` if successful
-    */
-  def intCodec(icodec : Codec[Int]) : Codec[allPattern] = icodec.hlist.exmap[allPattern] (
-    {
-      case n :: HNil =>
-        Attempt.successful(None :: Some(n) :: None :: None :: None :: None :: HNil)
-    },
-    {
-      case _ :: None :: _ :: _ :: _ :: _ :: HNil =>
-        Attempt.failure(Err("expected an integer value but found nothing"))
-      case _ :: Some(n) :: _ :: _ :: _ :: _ :: HNil =>
-        Attempt.successful(n :: HNil)
-    }
-  )
-
-  /**
-    * `Codec` for reading a single `Long` from remaining stream data.
-    * @return a filled-out `allPattern` if successful
-    */
-  def longCodec : Codec[allPattern] = uint32L.hlist.exmap[allPattern] (
-    {
-      case n :: HNil =>
-        Attempt.successful(None :: None :: None :: Some(n) :: None :: None :: HNil)
-    },
-    {
-      case _ :: _ :: _ :: None :: _ :: _ :: HNil =>
-        Attempt.failure(Err("expected a long value but found nothing"))
-      case _ :: _ :: _ :: Some(n) :: _ :: _ :: HNil =>
-        Attempt.successful(n :: HNil)
-    }
-  )
-
-  /**
-    * `Codec` for reading a `String` from remaining stream data.
-    * All `String`s processed by this reading are wide character and are padded by six.
-    * @return a filled-out `allPattern` if successful
-    */
-  def stringCodec : Codec[allPattern] = PacketHelpers.encodedWideStringAligned(6).hlist.exmap[allPattern] (
-    {
-      case a :: HNil =>
-        Attempt.successful(Some(a) :: None :: None :: None :: None :: None :: HNil)
-    },
-    {
-      case None:: _ :: _ :: _ :: _ :: _ :: HNil =>
-        Attempt.failure(Err("expected a string value but found nothing"))
-      case Some(a) :: _ :: _ :: _ :: _ :: _ :: HNil =>
-        Attempt.successful(a :: HNil)
-    }
-  )
-
-  /**
-    * `Codec` for reading an `Int` followed by a `Long` from remaining stream data.
-    * Multiple bit lengths can be processed for the `Long1` value from this reading.
-    * @param lcodec the `Codec[Long]` read by this method
-    * @return a filled-out `allPattern` if successful
-    */
-  def intLongCodec(lcodec : Codec[Long]) : Codec[allPattern] = (
-    uint4L ::
-      lcodec
-    ).exmap[allPattern] (
-    {
-      case a :: b :: HNil =>
-        Attempt.successful(None :: Some(a) :: None :: Some(b) :: None :: None :: HNil)
-    },
-    {
-      case _ :: None :: _ :: _ :: _ :: _ :: HNil =>
-        Attempt.failure(Err("expected a integer value but found nothing"))
-      case _ :: _ :: _ :: None :: _ :: _ :: HNil =>
-        Attempt.failure(Err("expected a long value but found nothing"))
-      case _ :: Some(a) :: _ :: Some(b) :: _ :: _ :: HNil =>
-        Attempt.successful(a :: b :: HNil)
-    }
-  )
-
-  /**
-    * `Codec` for reading an `Int` followed by a `String` from remaining stream data.
-    * All `String`s processed by this reading are wide character and are padded by two.
-    * @return a filled-out `allPattern` if successful
-    */
-  def intStringCodec : Codec[allPattern] = (
-    uint4L ::
-      PacketHelpers.encodedWideStringAligned(2)
-    ).exmap[allPattern] (
-    {
-      case a :: b :: HNil =>
-        Attempt.successful(Some(b) :: Some(a) :: None :: None :: None :: None :: HNil)
-    },
-    {
-      case None:: _ :: _ :: _ :: _ :: _ :: HNil =>
-        Attempt.failure(Err("expected a string value but found nothing"))
-      case _ :: None :: _ :: _ :: _ :: _ :: HNil =>
-        Attempt.failure(Err("expected an integer value but found nothing"))
-      case Some(b) :: Some(a) :: _ :: _ :: _ :: _ :: HNil =>
-        Attempt.successful(a :: b :: HNil)
-    }
-  )
-
-  /**
-    * `Codec` for reading two `Long`s from remaining stream data.
-    * @return a filled-out `allPattern` if successful
-    */
-  def longLongCodec : Codec[allPattern] = (
-    ulongL(46) ::
-      uint32L
-    ).exmap[allPattern] (
-    {
-      case a :: b :: HNil =>
-        Attempt.successful(None :: None :: None :: Some(a) :: Some(b) :: None :: HNil)
-    },
-    {
-      case (_ :: _ :: _ :: None :: _ :: _ :: HNil) | (_ :: _ :: _ :: _ :: None :: _ :: HNil) =>
-        Attempt.failure(Err("expected two long values but found one"))
-      case _ :: _ :: _ :: Some(a) :: Some(b) :: _ :: HNil =>
-        Attempt.successful(a :: b :: HNil)
-    }
-  )
-
-  /**
-    * `Codec` for reading a `String`, a `Long`, and two `Int`s from remaining stream data.
-    * All `String`s processed by this reading are wide character and are padded by six.
-    * @return a filled-out `allPattern` if successful
-    */
-  def complexCodec : Codec[allPattern] = (
-    PacketHelpers.encodedWideStringAligned(6) ::
-      ulongL(46) ::
-      uint16L ::
-      uintL(3)
-    ).exmap[allPattern] (
-    {
-      case a :: b :: c :: d :: HNil =>
-        Attempt.successful(Some(a) :: Some(c) :: Some(d) :: Some(b) :: None :: None :: HNil)
-    },
-    {
-      case None:: _ :: _ :: _ :: _ :: _ :: HNil =>
-        Attempt.failure(Err("expected a string value but found nothing"))
-      case _ :: _ :: _ :: None :: _ :: _ :: HNil =>
-        Attempt.failure(Err("expected a long value but found nothing"))
-      case (_ :: None :: _ :: _ :: _ :: _ :: HNil) | (_ :: _ :: None :: _ :: _ :: _ :: HNil) =>
-        Attempt.failure(Err("expected two integer values but found one"))
-      case Some(a) :: Some(c) :: Some(d) :: Some(b) :: _ :: _ :: HNil =>
-        Attempt.successful(a :: b :: c :: d :: HNil)
-    }
-  )
-
-  import scala.annotation.switch
-
-  /**
-    * Select the `Codec` to translate bit data in this packet with an `allPattern` format.
-    * @param action the purpose of this packet;
-    *               also decides the content of the parameter fields
-    * @return an `allPattern` `Codec` that parses the appropriate data
-    */
-  def selectCodec(action : Int) : Codec[allPattern] = (action : @switch) match {
-    case 3 | 8 | 26 | 35 | 41 => //TODO double check these
-      noneCodec
-
-    case 28 | 29 | 30 | 31  =>
-      boolCodec
-
-    case 33 =>
-      intCodec(uintL(3))
-    case 10 | 11 | 21 | 22 | 40 =>
-      intCodec(uint4L)
-    case 20 =>
-      intCodec(uint16L)
-
-    case 13 | 14 | 15 | 37 =>
-      longCodec
-
-    case 7 | 19 =>
-      stringCodec
-
-    case 12 | 38 =>
-      intLongCodec(uint32L)
-    case 25 =>
-      intLongCodec(ulongL(46))
-
-    case 23 | 24 =>
-      intStringCodec
-
-    case 36 =>
-      longLongCodec
-
-    case 34 =>
-      complexCodec
-
-    case _ =>
-      //TODO for debugging purposes only; normal failure condition below
-      bits.hlist.exmap[allPattern] (
-        {
-          case x :: HNil =>
-            org.log4s.getLogger.warn(s"can not match a codec pattern for decoding $action")
-            Attempt.successful(Some(x.toString) :: None :: None :: None :: None :: None :: HNil)
-        },
-        {
-          case Some(x) :: None :: None :: None :: None :: None :: HNil =>
-            org.log4s.getLogger.warn(s"can not match a codec pattern for encoding $action")
-            Attempt.successful(scodec.bits.BitVector.fromValidBin(x) :: HNil)
-        }
-      )
-//      ignore(0).exmap[allPattern] (
-//        {
-//          case () =>
-//            Attempt.failure(Err(s"can not match a codec pattern for decoding $action"))
-//        },
-//        {
-//          case _ :: _ :: _ :: _ :: _ :: _ :: HNil =>
-//            Attempt.failure(Err(s"can not match a codec pattern for encoding $action"))
-//        }
-//      )
+  def selectFromActionCode(code : Int) : Codec[SquadAction] = {
+    import SquadAction.Codecs._
+    import scala.annotation.switch
+    ((code : @switch) match {
+      case 3 => saveSquadDefinitionCodec
+      case 8 => listSquadCodec
+      case 10 => selectRoleForYourselfCodec
+      case 19 => changeSquadPurposeCodec
+      case 20 => changeSquadZoneCodec
+      case 21 => closeSquadMemberPositionCodec
+      case 22 => addSquadMemberPositionCodec
+      case 23 => changeSquadMemberRequirementsRoleCodec
+      case 24 => changeSquadMemberRequirementsDetailedOrdersCodec
+      case 25 => changeSquadMemberRequirementsWeaponsCodec
+      case 26 => resetAllCodec
+      case 28 => autoApproveInvitationRequestsCodec
+      case 31 => locationFollowsSquadLeadCodec
+      case 34 => searchForSquadsWithParticularRoleCodec
+      case 35 => cancelSquadSearchCodec
+      case 40 => findLfsSoldiersForRoleCodec
+      case 41 => cancelFindCodec
+      case 0 | 1 | 2 | 4 | 6 | 7 | 9 |
+           11 | 12 | 13 | 14 | 15 | 16 |
+           17 | 18 | 29 | 30 | 33 | 36 |
+           37 | 38 | 42 | 43 => unknownCodec(code)
+      case _ => failureCodec(code)
+    }).asInstanceOf[Codec[SquadAction]]
   }
 
   implicit val codec : Codec[SquadDefinitionActionMessage] = (
-    ("action" | uintL(6)) >>:~ { action =>
+    uintL(6) >>:~ { code =>
       ("unk1" | uint16L) ::
         ("unk2" | uint4L) ::
-        selectCodec(action)
+        ("action" | selectFromActionCode(code))
     }
-    ).as[SquadDefinitionActionMessage]
+    ).xmap[SquadDefinitionActionMessage] (
+    {
+      case _ :: u1 :: u2 :: action :: HNil =>
+        SquadDefinitionActionMessage(u1, u2, action)
+    },
+    {
+      case SquadDefinitionActionMessage(u1, u2, action) =>
+        action.code :: u1 :: u2 :: action :: HNil
+    }
+  )
 }
 
 /*
