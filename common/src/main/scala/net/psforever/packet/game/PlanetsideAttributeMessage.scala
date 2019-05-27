@@ -37,6 +37,7 @@ import scodec.codecs._
   * `102 - TRAPSs`<br>
   * `103 - OMFTs`<br>
   * `104 - sensor disruptors`<br>
+  * `112 - enable/disable festive backpacks`<br>
   * <br>
   * Players/General:<br>
   * Server to client : <br>
