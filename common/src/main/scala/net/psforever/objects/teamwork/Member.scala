@@ -6,12 +6,13 @@ import net.psforever.types.{CertificationType, Vector3}
 class Member {
   //about the position to be filled
   private var role : String = ""
+  private var orders : String = ""
   private var restrictions : Set[CertificationType.Value] = Set()
   //about the individual filling the position
   private var name : String = ""
   private var health : Int = 0
   private var armor : Int = 0
-  private var zoneId : String = "Nowhere"
+  private var zoneId : Int = 0
   private var position : Vector3 = Vector3.Zero
 
   def Role : String = role
@@ -19,6 +20,13 @@ class Member {
   def Role_=(title : String) : String = {
     role = title
     Role
+  }
+
+  def Orders : String = orders
+
+  def Orders_=(text : String) : String = {
+    orders = text
+    Orders
   }
 
   def Restrictions : Set[CertificationType.Value] = restrictions
@@ -49,9 +57,9 @@ class Member {
     Armor
   }
 
-  def ZoneId : String = zoneId
+  def ZoneId : Int = zoneId
 
-  def ZoneId_=(id : String) : String = {
+  def ZoneId_=(id : Int) : Int = {
     zoneId = id
     ZoneId
   }
@@ -61,5 +69,16 @@ class Member {
   def Position_=(pos : Vector3) : Vector3 = {
     position = pos
     Position
+  }
+
+  def Close() : Unit = {
+    role = ""
+    restrictions = Set()
+    //about the individual filling the position
+    name = ""
+    health = 0
+    armor = 0
+    zoneId = 0
+    position = Vector3.Zero
   }
 }

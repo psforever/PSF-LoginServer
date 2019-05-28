@@ -52,6 +52,7 @@ import services.galaxy.{GalaxyResponse, GalaxyServiceResponse}
 import services.local.{LocalAction, LocalResponse, LocalServiceMessage, LocalServiceResponse}
 import services.vehicle.support.TurretUpgrader
 import services.vehicle.{VehicleAction, VehicleResponse, VehicleServiceMessage, VehicleServiceResponse}
+import services.teamwork._
 
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -76,6 +77,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
   var localService : ActorRef = ActorRef.noSender
   var vehicleService : ActorRef = ActorRef.noSender
   var galaxyService : ActorRef = ActorRef.noSender
+  var squadService : ActorRef = ActorRef.noSender
   var taskResolver : ActorRef = Actor.noSender
   var cluster : ActorRef = Actor.noSender
   var continent : Zone = Zone.Nowhere
@@ -266,6 +268,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       ServiceManager.serviceManager ! Lookup("taskResolver")
       ServiceManager.serviceManager ! Lookup("cluster")
       ServiceManager.serviceManager ! Lookup("galaxy")
+      ServiceManager.serviceManager ! Lookup("squad")
 
     case _ =>
       log.error("Unknown message")
@@ -291,6 +294,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case ServiceManager.LookupResult("cluster", endpoint) =>
       cluster = endpoint
       log.info("ID: " + sessionId + " Got cluster service " + endpoint)
+    case ServiceManager.LookupResult("squad", endpoint) =>
+      squadService = endpoint
+      log.info("ID: " + sessionId + " Got squad service " + endpoint)
 
     case ControlPacket(_, ctrl) =>
       handleControlPkt(ctrl)
@@ -335,6 +341,37 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case VehicleServiceResponse(toChannel, guid, reply) =>
       HandleVehicleServiceResponse(toChannel, guid, reply)
+
+    case SquadServiceResponse(toChannel, response) =>
+      response match {
+        case SquadResponse.Init(infos) if infos.nonEmpty =>
+          sendResponse(ReplicationStreamMessage(infos))
+
+        case SquadResponse.Update(infos) if infos.nonEmpty =>
+          val o = ReplicationStreamMessage(6, None,
+            infos.map { case (index, squadInfo) =>
+              SquadListing(index, squadInfo)
+            }.toVector
+          )
+          log.info(s"updating squad with msg $o")
+          sendResponse(
+            ReplicationStreamMessage(6, None,
+              infos.map { case (index, squadInfo) =>
+                SquadListing(index, squadInfo)
+              }.toVector
+            )
+          )
+
+        case SquadResponse.Remove(infos) if infos.nonEmpty =>
+          sendResponse(
+            ReplicationStreamMessage(1, None,
+              infos.map { index =>
+                SquadListing(index, None)
+              }.toVector
+            )
+          )
+        case _ => ;
+      }
 
     case Deployment.CanDeploy(obj, state) =>
       val vehicle_guid = obj.GUID
@@ -806,6 +843,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
       vehicleService ! Service.Join(avatar.name) //channel will be player.Name
       galaxyService ! Service.Join("galaxy") //for galaxy-wide messages
       galaxyService ! Service.Join(s"${avatar.faction}") //for hotspots
+      squadService ! Service.Join(s"${avatar.faction}") //channel will be player.Faction
+      squadService ! Service.Join(avatar.name) //management of any lingering squad information connected to this player
       cluster ! InterstellarCluster.GetWorld("home3")
 
     case InterstellarCluster.GiveWorld(zoneId, zone) =>
@@ -4733,8 +4772,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ AvatarGrenadeStateMessage(player_guid, state) =>
       log.info("AvatarGrenadeStateMessage: " + msg)
 
-    case msg @ SquadDefinitionActionMessage(a, b, c, d, e, f, g, h, i) =>
-      log.info("SquadDefinitionAction: " + msg)
+    case msg @ SquadDefinitionActionMessage(u1, u2, action) =>
+      log.info(s"SquadDefinitionAction: $msg")
+      squadService ! SquadServiceMessage.SquadDefinitionAction(player, continent.Number, u1, u2, action)
 
     case msg @ GenericCollisionMsg(u1, p, t, php, thp, pv, tv, ppos, tpos, u2, u3, u4) =>
       log.info("Ouch! " + msg)

@@ -12,7 +12,7 @@ import shapeless.{::, HNil}
   * All behaviors have a "code" that indicates how the rest of the data is parsed.
   * @param code the action behavior code
   */
-protected abstract class SquadAction(val code : Int)
+abstract class SquadAction(val code : Int)
 
 object SquadAction{
   final case class SaveSquadDefinition() extends SquadAction(3)
