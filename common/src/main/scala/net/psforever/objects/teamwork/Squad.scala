@@ -14,6 +14,7 @@ class Squad(squadId : PlanetSideGUID, alignment : PlanetSideEmpire.Value) extend
   private val membership : Array[Member] = Array.fill[Member](10)(new Member)
   private val availability : Array[Boolean] = Array.fill[Boolean](10)(true)
   private var listed : Boolean = false
+  private var leaderPositionIndex : Int = 0
 
   override def GUID_=(d : PlanetSideGUID) : PlanetSideGUID = GUID
 
@@ -62,8 +63,17 @@ class Squad(squadId : PlanetSideGUID, alignment : PlanetSideEmpire.Value) extend
 
   def Availability : Array[Boolean] = availability
 
+  def LeaderPositionIndex : Int = leaderPositionIndex
+
+  def LeaderPositionIndex_=(position : Int) : Int = {
+    if(availability.lift(position).contains(true)) {
+      leaderPositionIndex = position
+    }
+    LeaderPositionIndex
+  }
+
   def Leader : String = {
-    membership.headOption match {
+    membership.lift(leaderPositionIndex) match {
       case Some(member) =>
         member.Name
       case None =>

@@ -5,11 +5,15 @@ import org.specs2.mutable._
 import net.psforever.packet._
 import net.psforever.packet.game.SquadAction._
 import net.psforever.packet.game._
+import net.psforever.types.CertificationType
 import scodec.bits._
 
 class SquadDefinitionActionMessageTest extends Specification {
   //local test data; note that the second field - unk1 - is always blank for now, but that probably changes
+  val string_00 = hex"e7 00 0c0000" //guid: 3
   val string_03 = hex"E7 0c 0000c0" //index: 3
+  val string_04 = hex"E7 10 0000c0" //index: 3
+  val string_07 = hex"e7 1c 0000e68043006f0070007300200061006e00640020004d0069006c006900740061007200790020004f006600660069006300650072007300"
   val string_08 = hex"E7 20 000000"
   val string_10 = hex"E7 28 000004" //index: 1
   val string_19 = hex"E7 4c 0000218041002d005400650061006d00" //"A-Team"
@@ -34,12 +38,45 @@ class SquadDefinitionActionMessageTest extends Specification {
   val string_43 = hex"e7 ac 000000"
   val string_failure = hex"E7 ff"
 
+  "decode (00)" in {
+    PacketCoding.DecodePacket(string_00).require match {
+      case SquadDefinitionActionMessage(unk1, unk2, action) =>
+        unk1 mustEqual 3
+        unk2 mustEqual 0
+        action mustEqual DisplaySquad()
+      case _ =>
+        ko
+    }
+  }
+
   "decode (03)" in {
     PacketCoding.DecodePacket(string_03).require match {
       case SquadDefinitionActionMessage(unk1, unk2, action) =>
         unk1 mustEqual 0
         unk2 mustEqual 3
         action mustEqual SaveSquadDefinition()
+      case _ =>
+        ko
+    }
+  }
+
+  "decode (03)" in {
+    PacketCoding.DecodePacket(string_04).require match {
+      case SquadDefinitionActionMessage(unk1, unk2, action) =>
+        unk1 mustEqual 0
+        unk2 mustEqual 3
+        action mustEqual LoadSquadDefinition()
+      case _ =>
+        ko
+    }
+  }
+
+  "decode (07)" in {
+    PacketCoding.DecodePacket(string_07).require match {
+      case SquadDefinitionActionMessage(unk1, unk2, action) =>
+        unk1 mustEqual 0
+        unk2 mustEqual 3
+        action mustEqual ListSquadDefinition("Cops and Military Officers")
       case _ =>
         ko
     }
@@ -138,7 +175,10 @@ class SquadDefinitionActionMessageTest extends Specification {
       case SquadDefinitionActionMessage(unk1, unk2, action) =>
         unk1 mustEqual 0
         unk2 mustEqual 0
-        action mustEqual ChangeSquadMemberRequirementsWeapons(1, 536870928L)
+        action mustEqual ChangeSquadMemberRequirementsCertifications(
+          1,
+          Set(CertificationType.AntiVehicular, CertificationType.InfiltrationSuit)
+        )
       case _ =>
         ko
     }
@@ -280,11 +320,32 @@ class SquadDefinitionActionMessageTest extends Specification {
     PacketCoding.DecodePacket(string_failure).isFailure mustEqual true
   }
 
+  "encode (00)" in {
+    val msg = SquadDefinitionActionMessage(3, 0, DisplaySquad())
+    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+    pkt mustEqual string_00
+  }
+
   "encode (03)" in {
     val msg = SquadDefinitionActionMessage(0, 3, SaveSquadDefinition())
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string_03
+  }
+
+  "encode (03)" in {
+    val msg = SquadDefinitionActionMessage(0, 3, LoadSquadDefinition())
+    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+    pkt mustEqual string_04
+  }
+
+  "encode (07)" in {
+    val msg = SquadDefinitionActionMessage(0, 3, ListSquadDefinition("Cops and Military Officers"))
+    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+    pkt mustEqual string_07
   }
 
   "encode (08)" in {
@@ -344,7 +405,10 @@ class SquadDefinitionActionMessageTest extends Specification {
   }
 
   "encode (25)" in {
-    val msg = SquadDefinitionActionMessage(0, 0, ChangeSquadMemberRequirementsWeapons(1, 536870928L))
+    val msg = SquadDefinitionActionMessage(0, 0, ChangeSquadMemberRequirementsCertifications(
+      1,
+      Set(CertificationType.AntiVehicular, CertificationType.InfiltrationSuit)
+    ))
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string_25

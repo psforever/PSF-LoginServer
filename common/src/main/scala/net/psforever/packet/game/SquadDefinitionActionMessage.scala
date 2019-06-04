@@ -2,6 +2,7 @@
 package net.psforever.packet.game
 
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
+import net.psforever.types.CertificationType
 import scodec.bits.BitVector
 import scodec.{Attempt, Codec, Err}
 import scodec.codecs._
@@ -15,11 +16,19 @@ import shapeless.{::, HNil}
 abstract class SquadAction(val code : Int)
 
 object SquadAction{
+  final case class DisplaySquad() extends SquadAction(0)
+
   final case class SaveSquadDefinition() extends SquadAction(3)
+
+  final case class LoadSquadDefinition() extends SquadAction(4)
+
+  final case class ListSquadDefinition(name : String) extends SquadAction(7)
 
   final case class ListSquad() extends SquadAction(8)
 
   final case class SelectRoleForYourself(state : Int) extends SquadAction(10)
+
+  final case class CancelSelectRoleForYourself(value: Long = 0) extends SquadAction(15)
 
   final case class ChangeSquadPurpose(purpose : String) extends SquadAction(19)
 
@@ -33,7 +42,7 @@ object SquadAction{
 
   final case class ChangeSquadMemberRequirementsDetailedOrders(u1 : Int, orders : String) extends SquadAction(24)
 
-  final case class ChangeSquadMemberRequirementsWeapons(u1 : Int, u2 : Long) extends SquadAction(25)
+  final case class ChangeSquadMemberRequirementsCertifications(u1 : Int, certs : Set[CertificationType.Value]) extends SquadAction(25)
 
   final case class ResetAll() extends SquadAction(26)
 
@@ -58,10 +67,31 @@ object SquadAction{
   object Codecs {
     private val everFailCondition = conditional(included = false, bool)
 
+    val displaySquadCodec = everFailCondition.xmap[DisplaySquad] (
+      _ => DisplaySquad(),
+      {
+        case DisplaySquad() => None
+      }
+    )
+
     val saveSquadDefinitionCodec = everFailCondition.xmap[SaveSquadDefinition] (
       _ => SaveSquadDefinition(),
       {
         case SaveSquadDefinition() => None
+      }
+    )
+
+    val loadSquadDefinitionCodec = everFailCondition.xmap[LoadSquadDefinition] (
+      _ => LoadSquadDefinition(),
+      {
+        case LoadSquadDefinition() => None
+      }
+    )
+
+    val listSquadDefinitionCodec = PacketHelpers.encodedWideStringAligned(6).xmap[ListSquadDefinition] (
+      text => ListSquadDefinition(text),
+      {
+        case ListSquadDefinition(text) => text
       }
     )
 
@@ -76,6 +106,13 @@ object SquadAction{
       value => SelectRoleForYourself(value),
       {
         case SelectRoleForYourself(value) => value
+      }
+    )
+
+    val cancelSelectRoleForYourselfCodec = uint32.xmap[CancelSelectRoleForYourself] (
+      value => CancelSelectRoleForYourself(value),
+      {
+        case CancelSelectRoleForYourself(value) => value
       }
     )
 
@@ -125,12 +162,14 @@ object SquadAction{
       }
     )
 
-    val changeSquadMemberRequirementsWeaponsCodec = (uint4 :: ulongL(46)).xmap[ChangeSquadMemberRequirementsWeapons] (
+    val changeSquadMemberRequirementsCertificationsCodec = (uint4 :: ulongL(46)).xmap[ChangeSquadMemberRequirementsCertifications] (
       {
-        case u1 :: u2 :: HNil => ChangeSquadMemberRequirementsWeapons(u1, u2)
+        case u1 :: u2 :: HNil =>
+          ChangeSquadMemberRequirementsCertifications(u1, CertificationType.fromEncodedLong(u2))
       },
       {
-        case ChangeSquadMemberRequirementsWeapons(u1, u2) => u1 :: u2 :: HNil
+        case ChangeSquadMemberRequirementsCertifications(u1, u2) =>
+          u1 :: CertificationType.toEncodedLong(u2) :: HNil
       }
     )
 
@@ -219,11 +258,11 @@ object SquadAction{
   * The `action` code indicates the format of the remainder data in the packet.
   * The following formats are translated; their purposes are listed:<br>
   * &nbsp;&nbsp;`(None)`<br>
-  * &nbsp;&nbsp;&nbsp;&nbsp;`0 ` - UNKNOWN<br>
+  * &nbsp;&nbsp;&nbsp;&nbsp;`0 ` - Display Squad<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`1 ` - UNKNOWN<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`2 ` - UNKNOWN<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`3 ` - Save Squad Definition<br>
-  * &nbsp;&nbsp;&nbsp;&nbsp;`4 ` - UNKNOWN<br>
+  * &nbsp;&nbsp;&nbsp;&nbsp;`4 ` - Load Squad Definition<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`6 ` - UNKNOWN<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`8 ` - List Squad<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`9 ` - UNKNOWN<br>
@@ -251,10 +290,10 @@ object SquadAction{
   * &nbsp;&nbsp;`Long`<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`13` - UNKNOWN<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`14` - UNKNOWN<br>
-  * &nbsp;&nbsp;&nbsp;&nbsp;`15` - UNKNOWN<br>
+  * &nbsp;&nbsp;&nbsp;&nbsp;`15` - Select this Role for Yourself<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`37` - UNKNOWN<br>
   * &nbsp;&nbsp;`String`<br>
-  * &nbsp;&nbsp;&nbsp;&nbsp;`7 ` - UNKNOWN<br>
+  * &nbsp;&nbsp;&nbsp;&nbsp;`7 ` - List Squad Definition<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`19` - (Squad leader) Change Squad Purpose<br>
   * &nbsp;&nbsp;`Int :: Long`<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`12` - UNKNOWN<br>
@@ -293,16 +332,20 @@ object SquadDefinitionActionMessage extends Marshallable[SquadDefinitionActionMe
     import SquadAction.Codecs._
     import scala.annotation.switch
     ((code : @switch) match {
+      case 0 => displaySquadCodec
       case 3 => saveSquadDefinitionCodec
+      case 4 => loadSquadDefinitionCodec
+      case 7 => listSquadDefinitionCodec
       case 8 => listSquadCodec
       case 10 => selectRoleForYourselfCodec
+      case 15 => cancelSelectRoleForYourselfCodec
       case 19 => changeSquadPurposeCodec
       case 20 => changeSquadZoneCodec
       case 21 => closeSquadMemberPositionCodec
       case 22 => addSquadMemberPositionCodec
       case 23 => changeSquadMemberRequirementsRoleCodec
       case 24 => changeSquadMemberRequirementsDetailedOrdersCodec
-      case 25 => changeSquadMemberRequirementsWeaponsCodec
+      case 25 => changeSquadMemberRequirementsCertificationsCodec
       case 26 => resetAllCodec
       case 28 => autoApproveInvitationRequestsCodec
       case 31 => locationFollowsSquadLeadCodec
@@ -310,8 +353,8 @@ object SquadDefinitionActionMessage extends Marshallable[SquadDefinitionActionMe
       case 35 => cancelSquadSearchCodec
       case 40 => findLfsSoldiersForRoleCodec
       case 41 => cancelFindCodec
-      case 0 | 1 | 2 | 4 | 6 | 7 | 9 |
-           11 | 12 | 13 | 14 | 15 | 16 |
+      case 1 | 2 | 6 | 9 |
+           11 | 12 | 13 | 14 | 16 |
            17 | 18 | 29 | 30 | 33 | 36 |
            37 | 38 | 42 | 43 => unknownCodec(code)
       case _ => failureCodec(code)

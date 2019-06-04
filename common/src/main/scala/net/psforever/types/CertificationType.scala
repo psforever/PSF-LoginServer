@@ -3,6 +3,8 @@ package net.psforever.types
 
 import net.psforever.packet.PacketHelpers
 import scodec.codecs._
+
+import scala.annotation.tailrec
 /**
   * An `Enumeration` of the available certifications.<br>
   * <br>
@@ -76,4 +78,59 @@ object CertificationType extends Enumeration {
   = Value
 
   implicit val codec = PacketHelpers.createEnumerationCodec(this, uint8L)
+
+  /**
+    * Certifications are often stored, in object form, as a 46-member collection.
+    * Encode a subset of certification values for packet form.
+    * @see `ChangeSquadMemberRequirementsCertifications`
+    * @see `changeSquadMemberRequirementsCertificationsCodec`
+    * @param certs the certifications, as a sequence of values
+    * @return the certifications, as a single value
+    */
+  def toEncodedLong(certs : Set[CertificationType.Value]) : Long = {
+    certs
+      .map{ cert => math.pow(2, cert.id).toLong }
+      .foldLeft(0L)(_ + _)
+  }
+
+  /**
+    * Certifications are often stored, in packet form, as an encoded little-endian `46u` value.
+    * Decode a representative value into a subset of certification values.
+    * @see `ChangeSquadMemberRequirementsCertifications`
+    * @see `changeSquadMemberRequirementsCertificationsCodec`
+    * @see `fromEncodedLong(Long, Iterable[Long], Set[CertificationType.Value])`
+    * @param certs the certifications, as a single value
+    * @return the certifications, as a sequence of values
+    */
+  def fromEncodedLong(certs : Long) : Set[CertificationType.Value] = {
+    recursiveFromEncodedLong(
+      certs,
+      CertificationType.values.map{ cert => math.pow(2, cert.id).toLong }.toSeq.sorted
+    )
+  }
+
+  /**
+    * Certifications are often stored, in packet form, as an encoded little-endian `46u` value.
+    * Decode a representative value into a subset of certification values
+    * by repeatedly finding the partition point of values less than a specific one,
+    * providing for both the next lowest value (to subtract) and an index (of a certification).
+    * @see `ChangeSquadMemberRequirementsCertifications`
+    * @see `changeSquadMemberRequirementsCertificationsCodec`
+    * @see `fromEncodedLong(Long)`
+    * @param certs the certifications, as a single value
+    * @param splitList the available values to partition
+    * @param out the accumulating certification values;
+    *            defaults to an empty set
+    * @return the certifications, as a sequence of values
+    */
+  @tailrec
+  private def recursiveFromEncodedLong(certs : Long, splitList : Iterable[Long], out : Set[CertificationType.Value] = Set.empty) : Set[CertificationType.Value] = {
+    if(certs == 0 || splitList.isEmpty) {
+      out
+    }
+    else {
+      val (less, _) = splitList.partition(_ <= certs)
+      recursiveFromEncodedLong(certs - less.last, less, out ++ Set(CertificationType(less.size - 1)))
+    }
+  }
 }

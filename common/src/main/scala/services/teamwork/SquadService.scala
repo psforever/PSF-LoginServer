@@ -50,7 +50,7 @@ class SquadService extends Actor {
       case None =>
         val id = GetNextSquadId()
         val squad = new Squad(id, faction)
-        val leadPosition = squad.Membership(0)
+        val leadPosition = squad.Membership(squad.LeaderPositionIndex)
         leadPosition.Name = name
         leadPosition.Health = player.Health
         leadPosition.Armor = player.Armor
@@ -80,7 +80,7 @@ class SquadService extends Actor {
       val path = s"$name/Squad"
       val who = sender()
       log.info(s"$who has joined $path")
-      SquadEvents.subscribe(who, path)
+      SquadEvents.subscribe(who, path) //TODO squad-specific switchboard
       //check for renewable squad information
       memberToSquad.get(name) match {
         case None => ;
@@ -101,99 +101,107 @@ class SquadService extends Actor {
       val squad = GetSquadFromPlayer(tplayer)
       val member = squad.Membership.find(_.Name == tplayer.Name).get //should never fail
       member.ZoneId = zone_ordinal_number //TODO improve this requirement
-      var listingChanged : List[Int] = Nil
-      action match {
-        case ChangeSquadPurpose(purpose) =>
-          log.info(s"${tplayer.Name}-${tplayer.Faction} has changed his squad's task to $purpose")
-          squad.Description = purpose
-          listingChanged = List(SquadInfo.Field.Task)
+      if(tplayer.Name.equals(squad.Leader)) {
+        var listingChanged : List[Int] = Nil
+        action match {
+          case ChangeSquadPurpose(purpose) =>
+            log.info(s"${tplayer.Name}-${tplayer.Faction} has changed his squad's task to $purpose")
+            squad.Description = purpose
+            listingChanged = List(SquadInfo.Field.Task)
 
-        case ChangeSquadZone(zone) =>
-          log.info(s"${tplayer.Name}-${tplayer.Faction} has changed his squad's ops zone to $zone")
-          squad.ZoneId = zone.zoneId.toInt
-          listingChanged = List(SquadInfo.Field.ZoneId)
+          case ChangeSquadZone(zone) =>
+            log.info(s"${tplayer.Name}-${tplayer.Faction} has changed his squad's ops zone to $zone")
+            squad.ZoneId = zone.zoneId.toInt
+            listingChanged = List(SquadInfo.Field.ZoneId)
 
-        case CloseSquadMemberPosition(position) =>
-          if(position > 0) {
+          case CloseSquadMemberPosition(position) =>
+            if(position != squad.LeaderPositionIndex) {
+              squad.Availability.lift(position) match {
+                case Some(true) =>
+                  squad.Availability.update(position, false)
+                  log.info(s"${tplayer.Name}-${tplayer.Faction} has closed the #$position position in his squad")
+                  val memberPosition = squad.Membership(position)
+                  listingChanged = if(memberPosition.Name.nonEmpty) {
+                    List(SquadInfo.Field.Size, SquadInfo.Field.Capacity)
+                  }
+                  else {
+                    List(SquadInfo.Field.Capacity)
+                  }
+                  memberPosition.Close()
+                case Some(false) => ;
+                case None => ;
+              }
+            }
+            else {
+              log.warn(s"can not close the leader position in squad-${squad.GUID.guid}")
+            }
+
+          case AddSquadMemberPosition(position) =>
+            squad.Availability.lift(position) match {
+              case Some(false) =>
+                log.info(s"${tplayer.Name}-${tplayer.Faction} has opened the #$position position in his squad")
+                squad.Availability.update(position, true)
+                listingChanged = List(SquadInfo.Field.Capacity)
+              case Some(true) => ;
+              case None => ;
+            }
+
+          case ChangeSquadMemberRequirementsRole(position, role) =>
             squad.Availability.lift(position) match {
               case Some(true) =>
-                squad.Availability.update(position, false)
-                log.info(s"${tplayer.Name}-${tplayer.Faction} has closed the #$position position in his squad")
-                val memberPosition = squad.Membership(position)
-                listingChanged = if(memberPosition.Name.nonEmpty) {
-                  List(SquadInfo.Field.Size, SquadInfo.Field.Capacity)
-                }
-                else {
-                  List(SquadInfo.Field.Capacity)
-                }
-                memberPosition.Close()
+                log.info(s"${tplayer.Name}-${tplayer.Faction} has changed the role of squad position #$position")
+                squad.Membership(position).Role = role
               case Some(false) => ;
               case None => ;
             }
-          }
-          else {
-            log.warn(s"can not close the lead position in squad-${squad.GUID.guid}")
-          }
 
-        case AddSquadMemberPosition(position) =>
-          squad.Availability.lift(position) match {
-            case Some(false) =>
-              log.info(s"${tplayer.Name}-${tplayer.Faction} has opened the #$position position in his squad")
-              squad.Availability.update(position, true)
-              listingChanged = List(SquadInfo.Field.Capacity)
-            case Some(true) => ;
-            case None => ;
-          }
+          case ChangeSquadMemberRequirementsDetailedOrders(position, orders) =>
+            squad.Availability.lift(position) match {
+              case Some(true) =>
+                log.info(s"${tplayer.Name}-${tplayer.Faction} has changed the orders for squad position #$position")
+                squad.Membership(position).Orders = orders
+              case Some(false) => ;
+              case None => ;
+            }
 
-        case ChangeSquadMemberRequirementsRole(position, role) =>
-          squad.Availability.lift(position) match {
-            case Some(true) =>
-              squad.Membership(position).Role = role
-            case Some(false) => ;
-            case None => ;
-          }
+          case ChangeSquadMemberRequirementsCertifications(position, certs) =>
+            squad.Availability.lift(position) match {
+              case Some(true) =>
+                log.info(s"${tplayer.Name}-${tplayer.Faction} has changed the requirements for squad position #$position")
+                squad.Membership(position).Requirements = certs
+              case Some(false) => ;
+              case None => ;
+            }
 
-        case ChangeSquadMemberRequirementsDetailedOrders(position, orders) =>
-          squad.Availability.lift(position) match {
-            case Some(true) =>
-              squad.Membership(position).Orders = orders
-            case Some(false) => ;
-            case None => ;
-          }
+          case ListSquad() =>
+            if(!squad.Listed) {
+              log.info(s"${tplayer.Name}-${tplayer.Faction} has opened recruitment for his squad")
+              squad.Listed = true
+            }
 
-        case ListSquad() =>
-          if(!squad.Listed) {
-            log.info(s"${tplayer.Name}-${tplayer.Faction} has opened recruitment for his squad")
-            squad.Listed = true
-          }
-
-        case ResetAll() =>
-          squad.Description = ""
-          squad.ZoneId = None
-          squad.Availability.indices.foreach { i =>
-            squad.Availability.update(i, true)
-          }
+          case ResetAll() =>
+            squad.Description = ""
+            squad.ZoneId = None
+            squad.Availability.indices.foreach { i =>
+              squad.Availability.update(i, true)
+            }
           //TODO squad members?
 
-        case _ => ;
-      }
-      //queue updates
-      if(squad.Listed) {
-        val entry = SquadService.Publish(squad)
-        val faction = squad.Faction
-        val factionListings = publishedLists(faction)
-        factionListings.find(info => {
-          info.squad_guid match {
-            case Some(guid) => guid == squad.GUID
-            case _ => false
-          }
-        }) match {
-          case Some(listedSquad) =>
-            val index = factionListings.indexOf(listedSquad)
-            if(squad.Listed) {
-              //squad information update
-              log.info(s"Squad will be updated")
-              factionListings(index) = entry
+          case _ => ;
+        }
+        //queue updates
+        if(squad.Listed) {
+          val entry = SquadService.Publish(squad)
+          val faction = squad.Faction
+          val factionListings = publishedLists(faction)
+          factionListings.find(info => {
+            info.squad_guid match {
+              case Some(guid) => guid == squad.GUID
+              case _ => false
+            }
+          }) match {
+            case Some(listedSquad) =>
+              val index = factionListings.indexOf(listedSquad)
               val changes = if(listingChanged.nonEmpty) {
                 SquadService.Differences(listingChanged, entry)
               }
@@ -201,27 +209,29 @@ class SquadService extends Actor {
                 SquadService.Differences(listedSquad, entry)
               }
               if(changes != SquadInfo.Blank) {
+                //squad information update
+                log.info(s"Squad will be updated")
+                factionListings(index) = entry
                 SquadEvents.publish(
                   SquadServiceResponse(s"$faction/Squad", SquadResponse.Update(Seq((index, changes))))
                 )
               }
-            }
-            else {
-              //remove squad from listing
-              log.info(s"Squad will be removed")
-              factionListings.remove(index)
+              else {
+                //remove squad from listing
+                log.info(s"Squad will be removed")
+                factionListings.remove(index)
+                SquadEvents.publish(
+                  SquadServiceResponse(s"$faction/Squad", SquadResponse.Remove(Seq(index)))
+                )
+              }
+            case None =>
+              //first time being published
+              log.info(s"Squad will be introduced")
+              factionListings += SquadService.Publish(squad)
               SquadEvents.publish(
-                SquadServiceResponse(s"$faction/Squad", SquadResponse.Remove(Seq(index)))
+                SquadServiceResponse(s"$faction/Squad", SquadResponse.Init(factionListings.toVector))
               )
-            }
-          case None if squad.Listed =>
-            log.info(s"Squad will be introduced")
-            //first time being published?
-            factionListings += SquadService.Publish(squad)
-            SquadEvents.publish(
-              SquadServiceResponse(s"$faction/Squad", SquadResponse.Init(factionListings.toVector))
-            )
-          case _ => ;
+          }
         }
       }
 
@@ -244,18 +254,18 @@ object SquadService {
 
   def Differences(updates : List[Int], info : SquadInfo) : SquadInfo = {
     if(updates.nonEmpty) {
+      val list = Seq(
+        SquadInfo.Blank, //must be index-0
+        SquadInfo(info.leader, None, None, None, None),
+        SquadInfo(None, info.task, None, None, None),
+        SquadInfo(None, None, info.zone_id, None, None),
+        SquadInfo(None, None, None, info.size, None),
+        SquadInfo(None, None, None, None, info.capacity)
+      )
       var out = SquadInfo.Blank
-      ({
-        val list = Seq(
-          SquadInfo.Blank, //must be index-0
-          SquadInfo(info.leader, None, None, None, None),
-          SquadInfo(None, info.task, None, None, None),
-          SquadInfo(None, None, info.zone_id, None, None),
-          SquadInfo(None, None, None, info.size, None),
-          SquadInfo(None, None, None, None, info.capacity)
-        )
-        updates.map(i => list(i)).filterNot { _ == SquadInfo.Blank }
-      }) //ignore what code inspection tells you - the parenthesis is necessary
+      updates
+        .map(i => list(i))
+        .filterNot { _ == SquadInfo.Blank }
         .foreach(sinfo => out = out And sinfo )
       out
     }

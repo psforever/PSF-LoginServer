@@ -7,7 +7,7 @@ class Member {
   //about the position to be filled
   private var role : String = ""
   private var orders : String = ""
-  private var restrictions : Set[CertificationType.Value] = Set()
+  private var requirements : Set[CertificationType.Value] = Set()
   //about the individual filling the position
   private var name : String = ""
   private var health : Int = 0
@@ -29,11 +29,11 @@ class Member {
     Orders
   }
 
-  def Restrictions : Set[CertificationType.Value] = restrictions
+  def Requirements : Set[CertificationType.Value] = requirements
 
-  def Restrictions_=(requirements : Set[CertificationType.Value]) = {
-    restrictions = requirements
-    Restrictions
+  def Requirements_=(req : Set[CertificationType.Value]) : Set[CertificationType.Value] = {
+    requirements = req
+    Requirements
   }
 
   def Name : String = name
@@ -73,7 +73,7 @@ class Member {
 
   def Close() : Unit = {
     role = ""
-    restrictions = Set()
+    requirements = Set()
     //about the individual filling the position
     name = ""
     health = 0
