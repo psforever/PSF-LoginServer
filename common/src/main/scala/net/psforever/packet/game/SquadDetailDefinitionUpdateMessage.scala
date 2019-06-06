@@ -51,6 +51,8 @@ object SquadPositionDetail {
   def apply(role : String, detailed_orders : String, requirements : Set[CertificationType.Value]) : SquadPositionDetail = SquadPositionDetail(is_closed = false, role, detailed_orders, requirements, 0L, "")
 
   def apply(role : String, detailed_orders : String, name : String) : SquadPositionDetail = SquadPositionDetail(is_closed = false, role, detailed_orders, Set.empty, reliableNameHash(name), name)
+
+  def apply(role : String, detailed_orders : String, requirements : Set[CertificationType.Value], name : String) : SquadPositionDetail = SquadPositionDetail(is_closed = false, role, detailed_orders, requirements, reliableNameHash(name), name)
 }
 
 object SquadDetailDefinitionUpdateMessage extends Marshallable[SquadDetailDefinitionUpdateMessage] {

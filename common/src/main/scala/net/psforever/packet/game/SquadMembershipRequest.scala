@@ -28,7 +28,7 @@ final case class SquadMembershipRequest(request_type : SquadRequestType.Value,
       assert(unk3.nonEmpty, s"a $request_type request requires the unk3 field be defined")
   }
   if(request_type == SquadRequestType.Invite) {
-    assert(unk5.nonEmpty, "an Invite request requires the unk5 field be undefined")
+    assert(unk5.nonEmpty, "an Invite request requires the unk5 field be defined")
   }
 
   type Packet = SquadMembershipRequest

@@ -306,13 +306,13 @@ object SquadAction{
   * &nbsp;&nbsp;&nbsp;&nbsp;`36` - UNKNOWN<br>
   * &nbsp;&nbsp;`String :: Long :: Int :: Int`<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`34` - Search for Squads with a Particular Role
-  * @param unk1 na
-  * @param unk2 na
+  * @param squad_guid the unique identifier of the squad, if non-zero
+  * @param line the original listing line number, if applicable
   * @param action the purpose of this packet;
   *               also decides the content of the parameter fields
   */
-final case class SquadDefinitionActionMessage(unk1 : Int,
-                                              unk2 : Int,
+final case class SquadDefinitionActionMessage(squad_guid : PlanetSideGUID,
+                                              line : Int,
                                               action : SquadAction)
   extends PlanetSideGamePacket {
   type Packet = SquadDefinitionActionMessage
@@ -353,28 +353,28 @@ object SquadDefinitionActionMessage extends Marshallable[SquadDefinitionActionMe
       case 35 => cancelSquadSearchCodec
       case 40 => findLfsSoldiersForRoleCodec
       case 41 => cancelFindCodec
-      case 1 | 2 | 6 | 9 |
-           11 | 12 | 13 | 14 | 16 |
-           17 | 18 | 29 | 30 | 33 | 36 |
-           37 | 38 | 42 | 43 => unknownCodec(code)
+      case 1 | 2 | 6 | 9 | 11 |
+           12 | 13 | 14 | 16 | 17 |
+           18 | 29 | 30 | 32 | 33 |
+           36 | 37 | 38 | 42 | 43 => unknownCodec(code)
       case _ => failureCodec(code)
     }).asInstanceOf[Codec[SquadAction]]
   }
 
   implicit val codec : Codec[SquadDefinitionActionMessage] = (
     uintL(6) >>:~ { code =>
-      ("unk1" | uint16L) ::
-        ("unk2" | uint4L) ::
+      ("squad_guid" | PlanetSideGUID.codec) ::
+        ("line" | uint4L) ::
         ("action" | selectFromActionCode(code))
     }
     ).xmap[SquadDefinitionActionMessage] (
     {
-      case _ :: u1 :: u2 :: action :: HNil =>
-        SquadDefinitionActionMessage(u1, u2, action)
+      case _ :: guid :: line :: action :: HNil =>
+        SquadDefinitionActionMessage(guid, line, action)
     },
     {
-      case SquadDefinitionActionMessage(u1, u2, action) =>
-        action.code :: u1 :: u2 :: action :: HNil
+      case SquadDefinitionActionMessage(guid, line, action) =>
+        action.code :: guid :: line :: action :: HNil
     }
   )
 }

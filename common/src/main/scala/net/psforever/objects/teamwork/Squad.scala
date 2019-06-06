@@ -10,18 +10,21 @@ class Squad(squadId : PlanetSideGUID, alignment : PlanetSideEmpire.Value) extend
   private val faction : PlanetSideEmpire.Value = alignment //does not change
   private var zoneId : Option[Int] = None
   private var task : String = ""
-  private var description : String = ""
   private val membership : Array[Member] = Array.fill[Member](10)(new Member)
   private val availability : Array[Boolean] = Array.fill[Boolean](10)(true)
   private var listed : Boolean = false
   private var leaderPositionIndex : Int = 0
+  private var autoApproveInvitationRequests : Boolean = false
+  private var locationFollowsSquadLead : Boolean = false
 
   override def GUID_=(d : PlanetSideGUID) : PlanetSideGUID = GUID
 
   def Faction : PlanetSideEmpire.Value = faction
 
+  def CustomZoneId : Boolean = zoneId.isDefined
+
   def ZoneId : Int = zoneId.getOrElse({
-    membership.headOption match {
+    membership.lift(leaderPositionIndex) match {
       case Some(leader) =>
         leader.ZoneId
       case _ =>
@@ -45,18 +48,25 @@ class Squad(squadId : PlanetSideGUID, alignment : PlanetSideEmpire.Value) extend
     Task
   }
 
-  def Description : String = description
-
-  def Description_=(desc : String) : String = {
-    description = desc
-    Description
-  }
-
   def Listed : Boolean = listed
 
   def Listed_=(announce : Boolean) : Boolean = {
     listed = announce
     Listed
+  }
+
+  def LocationFollowsSquadLead : Boolean = locationFollowsSquadLead
+
+  def LocationFollowsSquadLead_=(follow : Boolean) : Boolean = {
+    locationFollowsSquadLead = follow
+    LocationFollowsSquadLead
+  }
+
+  def AutoApproveInvitationRequests : Boolean = autoApproveInvitationRequests
+
+  def AutoApproveInvitationRequests_=(autoApprove : Boolean) : Boolean = {
+    autoApproveInvitationRequests = autoApprove
+    AutoApproveInvitationRequests
   }
 
   def Membership : Array[Member] = membership
@@ -84,4 +94,17 @@ class Squad(squadId : PlanetSideGUID, alignment : PlanetSideEmpire.Value) extend
   def Size : Int = membership.count(member => !member.Name.equals(""))
 
   def Capacity : Int = availability.count(open => open)
+}
+
+object Squad {
+  final val Blank = new Squad(PlanetSideGUID(0), PlanetSideEmpire.NEUTRAL) {
+    override def ZoneId : Int = 0
+    override def ZoneId_=(id : Int) : Int = 0
+    override def ZoneId_=(id : Option[Int]) : Int = 0
+    override def Task_=(assignment : String) : String =  ""
+    override def Listed_=(announce : Boolean) : Boolean = false
+    override def Membership : Array[Member] = Array.empty[Member]
+    override def Availability : Array[Boolean] = Array.fill[Boolean](10)(false)
+    override def LeaderPositionIndex_=(position : Int) : Int = 0
+  }
 }
