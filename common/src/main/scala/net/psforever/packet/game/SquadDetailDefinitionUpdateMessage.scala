@@ -62,6 +62,25 @@ object SquadDetailDefinitionUpdateMessage extends Marshallable[SquadDetailDefini
     CertificationType.AgileExoSuit
   )
 
+  final val Init = SquadDetailDefinitionUpdateMessage(
+    PlanetSideGUID(0),
+    "",
+    "",
+    PlanetSideZoneID(0),
+    List(
+      SquadPositionDetail(),
+      SquadPositionDetail(),
+      SquadPositionDetail(),
+      SquadPositionDetail(),
+      SquadPositionDetail(),
+      SquadPositionDetail(),
+      SquadPositionDetail(),
+      SquadPositionDetail(),
+      SquadPositionDetail(),
+      SquadPositionDetail()
+    )
+  )
+
   def apply(guid : PlanetSideGUID, leader_name : String, task : String, zone_id : PlanetSideZoneID, member_info : List[SquadPositionDetail]) : SquadDetailDefinitionUpdateMessage = {
     import scodec.bits._
     SquadDetailDefinitionUpdateMessage(guid, hex"080000000000000000000".toBitVector, leader_name, task, zone_id, member_info)

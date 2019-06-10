@@ -18,6 +18,8 @@ abstract class SquadAction(val code : Int)
 object SquadAction{
   final case class DisplaySquad() extends SquadAction(0)
 
+  final case class AnswerSquadJoinRequest() extends SquadAction(1)
+
   final case class SaveSquadDefinition() extends SquadAction(3)
 
   final case class LoadSquadDefinition() extends SquadAction(4)
@@ -71,6 +73,13 @@ object SquadAction{
       _ => DisplaySquad(),
       {
         case DisplaySquad() => None
+      }
+    )
+
+    val answerSquadJoinRequestCodec = everFailCondition.xmap[AnswerSquadJoinRequest] (
+      _ => AnswerSquadJoinRequest(),
+      {
+        case AnswerSquadJoinRequest() => None
       }
     )
 
@@ -259,7 +268,7 @@ object SquadAction{
   * The following formats are translated; their purposes are listed:<br>
   * &nbsp;&nbsp;`(None)`<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`0 ` - Display Squad<br>
-  * &nbsp;&nbsp;&nbsp;&nbsp;`1 ` - UNKNOWN<br>
+  * &nbsp;&nbsp;&nbsp;&nbsp;`1 ` - Answer Squad Join Request<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`2 ` - UNKNOWN<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`3 ` - Save Squad Definition<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`4 ` - Load Squad Definition<br>
@@ -333,6 +342,7 @@ object SquadDefinitionActionMessage extends Marshallable[SquadDefinitionActionMe
     import scala.annotation.switch
     ((code : @switch) match {
       case 0 => displaySquadCodec
+      case 1 => answerSquadJoinRequestCodec
       case 3 => saveSquadDefinitionCodec
       case 4 => loadSquadDefinitionCodec
       case 7 => listSquadDefinitionCodec
@@ -353,7 +363,7 @@ object SquadDefinitionActionMessage extends Marshallable[SquadDefinitionActionMe
       case 35 => cancelSquadSearchCodec
       case 40 => findLfsSoldiersForRoleCodec
       case 41 => cancelFindCodec
-      case 1 | 2 | 6 | 9 | 11 |
+      case 2 | 6 | 9 | 11 |
            12 | 13 | 14 | 16 | 17 |
            18 | 29 | 30 | 32 | 33 |
            36 | 37 | 38 | 42 | 43 => unknownCodec(code)

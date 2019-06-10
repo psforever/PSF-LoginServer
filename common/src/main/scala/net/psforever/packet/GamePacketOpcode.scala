@@ -450,14 +450,14 @@ object GamePacketOpcode extends Enumeration {
     case 0x6f => game.SquadMembershipResponse.decode
 
     // OPCODES 0x70-7f
-    case 0x70 => noDecoder(SquadMemberEvent)
+    case 0x70 => game.SquadMemberEvent.decode
     case 0x71 => noDecoder(PlatoonEvent)
     case 0x72 => game.FriendsRequest.decode
     case 0x73 => game.FriendsResponse.decode
     case 0x74 => game.TriggerEnvironmentalDamageMessage.decode
     case 0x75 => game.TrainingZoneMessage.decode
     case 0x76 => game.DeployableObjectsInfoMessage.decode
-    case 0x77 => noDecoder(SquadState)
+    case 0x77 => game.SquadState.decode
     // 0x78
     case 0x78 => game.OxygenStateMessage.decode
     case 0x79 => noDecoder(TradeMessage)
