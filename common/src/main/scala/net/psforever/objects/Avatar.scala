@@ -1,10 +1,9 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects
 
-import net.psforever.objects.avatar.DeployableToolbox
+import net.psforever.objects.avatar.{DeployableToolbox, LoadoutManager}
 import net.psforever.objects.definition.{AvatarDefinition, ImplantDefinition}
 import net.psforever.objects.equipment.{EquipmentSize, EquipmentSlot}
-import net.psforever.objects.loadouts.Loadout
 import net.psforever.packet.game.objectcreate.Cosmetics
 import net.psforever.types._
 
@@ -12,6 +11,8 @@ import scala.annotation.tailrec
 import scala.collection.mutable
 
 class Avatar(val name : String, val faction : PlanetSideEmpire.Value, val sex : CharacterGender.Value, val head : Int, val voice : CharacterVoice.Value) {
+  /** Character ID; a unique identifier corresponding to a database table row index */
+  private var charId : Long = 0
   /** Battle Experience Points */
   private var bep : Long = 0
   /** Command Experience Points */
@@ -29,11 +30,15 @@ class Avatar(val name : String, val faction : PlanetSideEmpire.Value, val sex : 
     * @see `DetailedCharacterData.implants`
     */
   private val implants : Array[ImplantSlot] = Array.fill[ImplantSlot](3)(new ImplantSlot)
-  /** Loadouts<br>
-    * 0-9 are Infantry loadouts
+  /** Equipment Loadouts<br>
+    * 0-9 are Infantry loadouts<br>
     * 10-14 are Vehicle loadouts
     */
-  private val loadouts : Array[Option[Loadout]] = Array.fill[Option[Loadout]](15)(None)
+  private val equipmentLoadouts : LoadoutManager = new LoadoutManager(15)
+  /**
+    * Squad Loadouts
+    */
+  private val squadLoadouts : LoadoutManager = new LoadoutManager(10)
   /** Locker */
   private val locker : LockerContainer = new LockerContainer() {
     override def toString : String = {
@@ -42,6 +47,15 @@ class Avatar(val name : String, val faction : PlanetSideEmpire.Value, val sex : 
   }
 
   private val deployables : DeployableToolbox = new DeployableToolbox
+
+  def CharId : Long = charId
+
+  def CharId_=(id : Long) : Long = {
+    if(charId == 0) { //does not need to be set but can only set once
+      charId = id
+    }
+    CharId
+  }
 
   def BEP : Long = bep
 
@@ -164,25 +178,9 @@ class Avatar(val name : String, val faction : PlanetSideEmpire.Value, val sex : 
     })
   }
 
-  def SaveLoadout(owner : Player, label : String, line : Int) : Unit = {
-    if(line > -1 && line < 10) {
-      loadouts(line) = Some(Loadout.Create(owner, label))
-    }
-  }
+  def EquipmentLoadouts : LoadoutManager = equipmentLoadouts
 
-  def SaveLoadout(owner : Vehicle, label : String, line : Int) : Unit = {
-    if(line > 9 && line < loadouts.length) {
-      loadouts(line) = Some(Loadout.Create(owner, label))
-    }
-  }
-
-  def LoadLoadout(line : Int) : Option[Loadout] = loadouts.lift(line).flatten
-
-  def DeleteLoadout(line : Int) : Unit = {
-    loadouts(line) = None
-  }
-
-  def Loadouts : Seq[(Int, Loadout)] = loadouts.zipWithIndex.collect { case(Some(loadout), index) => (index, loadout) } toSeq
+  def SquadLoadouts : LoadoutManager = squadLoadouts
 
   def Locker : LockerContainer = locker
 

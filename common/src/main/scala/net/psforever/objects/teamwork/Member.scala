@@ -10,6 +10,7 @@ class Member {
   private var requirements : Set[CertificationType.Value] = Set()
   //about the individual filling the position
   private var name : String = ""
+  private var charId : Long = 0L
   private var health : Int = 0
   private var armor : Int = 0
   private var zoneId : Int = 0
@@ -41,6 +42,13 @@ class Member {
   def Name_=(moniker : String) : String = {
     name = moniker
     Name
+  }
+
+  def CharId : Long = charId
+
+  def CharId_=(id : Long) : Long = {
+    charId = id
+    CharId
   }
 
   def Health : Int = health

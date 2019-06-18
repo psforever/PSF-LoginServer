@@ -281,7 +281,7 @@ class AvatarTest extends Specification {
 
   "does not have any loadout specifications by default" in {
     val (_, avatar) = CreatePlayer()
-    (0 to 9).foreach { avatar.LoadLoadout(_) mustEqual None }
+    (0 to 9).foreach { avatar.EquipmentLoadouts.LoadLoadout(_) mustEqual None }
     ok
   }
 
@@ -289,9 +289,9 @@ class AvatarTest extends Specification {
     val (obj, avatar) = CreatePlayer()
     obj.Slot(0).Equipment.get.asInstanceOf[Tool].Magazine = 1 //non-standard but legal
     obj.Slot(2).Equipment.get.asInstanceOf[Tool].AmmoSlot.Magazine = 100 //non-standard (and out of range, real=25)
-    avatar.SaveLoadout(obj, "test", 0)
+    avatar.EquipmentLoadouts.SaveLoadout(obj, "test", 0)
 
-    avatar.LoadLoadout(0) match {
+    avatar.EquipmentLoadouts.LoadLoadout(0) match {
       case Some(items : InfantryLoadout) =>
         items.label mustEqual "test"
         items.exosuit mustEqual obj.ExoSuit
@@ -329,25 +329,25 @@ class AvatarTest extends Specification {
 
   "save player's current inventory as a loadout, only found in the called-out slot number" in {
     val (obj, avatar) = CreatePlayer()
-    avatar.SaveLoadout(obj, "test", 0)
+    avatar.EquipmentLoadouts.SaveLoadout(obj, "test", 0)
 
-    avatar.LoadLoadout(1).isDefined mustEqual false
-    avatar.LoadLoadout(0).isDefined mustEqual true
+    avatar.EquipmentLoadouts.LoadLoadout(1).isDefined mustEqual false
+    avatar.EquipmentLoadouts.LoadLoadout(0).isDefined mustEqual true
   }
 
   "try to save player's current inventory as a loadout, but will not save to an invalid slot" in {
     val (obj, avatar) = CreatePlayer()
-    avatar.SaveLoadout(obj, "test", 10)
+    avatar.EquipmentLoadouts.SaveLoadout(obj, "test", 10)
 
-    avatar.LoadLoadout(10) mustEqual None
+    avatar.EquipmentLoadouts.LoadLoadout(10) mustEqual None
   }
 
   "save player's current inventory as a loadout, without inventory contents" in {
     val (obj, avatar) = CreatePlayer()
     obj.Inventory.Clear()
-    avatar.SaveLoadout(obj, "test", 0)
+    avatar.EquipmentLoadouts.SaveLoadout(obj, "test", 0)
 
-    avatar.LoadLoadout(0) match {
+    avatar.EquipmentLoadouts.LoadLoadout(0) match {
       case Some(items : InfantryLoadout) =>
         items.label mustEqual "test"
         items.exosuit mustEqual obj.ExoSuit
@@ -364,9 +364,9 @@ class AvatarTest extends Specification {
     obj.Slot(0).Equipment = None
     obj.Slot(2).Equipment = None
     obj.Slot(4).Equipment = None
-    avatar.SaveLoadout(obj, "test", 0)
+    avatar.EquipmentLoadouts.SaveLoadout(obj, "test", 0)
 
-    avatar.LoadLoadout(0) match {
+    avatar.EquipmentLoadouts.LoadLoadout(0) match {
       case Some(items : InfantryLoadout) =>
         items.label mustEqual "test"
         items.exosuit mustEqual obj.ExoSuit
@@ -380,11 +380,11 @@ class AvatarTest extends Specification {
 
   "save, load, delete; rapidly" in {
     val (obj, avatar) = CreatePlayer()
-    avatar.SaveLoadout(obj, "test", 0)
+    avatar.EquipmentLoadouts.SaveLoadout(obj, "test", 0)
 
-    avatar.LoadLoadout(0).isDefined mustEqual true
-    avatar.DeleteLoadout(0)
-    avatar.LoadLoadout(0) mustEqual None
+    avatar.EquipmentLoadouts.LoadLoadout(0).isDefined mustEqual true
+    avatar.EquipmentLoadouts.DeleteLoadout(0)
+    avatar.EquipmentLoadouts.LoadLoadout(0) mustEqual None
   }
 
   "the fifth slot is the locker wrapped in an EquipmentSlot" in {

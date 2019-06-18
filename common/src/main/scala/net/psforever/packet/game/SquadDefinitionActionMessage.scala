@@ -366,7 +366,7 @@ object SquadDefinitionActionMessage extends Marshallable[SquadDefinitionActionMe
       case 2 | 6 | 9 | 11 |
            12 | 13 | 14 | 16 | 17 |
            18 | 29 | 30 | 32 | 33 |
-           36 | 37 | 38 | 42 | 43 => unknownCodec(code)
+           36 | 37 | 38 | 39 | 42 | 43 => unknownCodec(code)
       case _ => failureCodec(code)
     }).asInstanceOf[Codec[SquadAction]]
   }

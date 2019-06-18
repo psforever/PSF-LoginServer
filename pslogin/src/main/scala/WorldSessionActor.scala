@@ -375,6 +375,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           sendResponse(
             SquadDetailDefinitionUpdateMessage(
               guid,
+              member_info.find(_.name == leader).get.char_id,
               leader,
               task,
               zone,
@@ -532,7 +533,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
         player.Stamina = stamina
         player.Armor = armor
       }
-      sendResponse(CharacterInfoMessage(15, PlanetSideZoneID(10000), 41605313, player.GUID, false, 6404428))
+      avatar.CharId = 41605313L
+      sendResponse(CharacterInfoMessage(15, PlanetSideZoneID(10000), avatar.CharId, player.GUID, false, 6404428))
       RemoveCharacterSelectScreenGUID(player)
       sendResponse(CharacterInfoMessage(0, PlanetSideZoneID(1), 0, PlanetSideGUID(0), true, 0))
       sendResponse(CharacterInfoMessage(0, PlanetSideZoneID(1), 0, PlanetSideGUID(0), true, 0))
@@ -2838,7 +2840,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     sendResponse(CreateShortcutMessage(guid, 1, 0, true, Shortcut.MEDKIT))
     sendResponse(ChangeShortcutBankMessage(guid, 0))
     //Favorites lists
-    val (inf, veh) = avatar.Loadouts.partition { case (index, _) => index < 10 }
+    val (inf, veh) = avatar.EquipmentLoadouts.Loadouts.partition { case (index, _) => index < 10 }
     inf.foreach {
       case (index, loadout : InfantryLoadout) =>
         sendResponse(FavoritesMessage(LoadoutType.Infantry, guid, index, loadout.label, InfantryLoadout.DetermineSubtypeB(loadout.exosuit, loadout.subtype)))
@@ -2914,10 +2916,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
         SquadListing(1, SquadInfo(Some("HofD"), Some("=KOK+SPC+FLY= All Welcome"), Some(PlanetSideZoneID(7)), Some(3), Some(10), Some(PlanetSideGUID(3))))
       )
     ))
-    //sendRawResponse(hex"e803008484000c800259e8809fda020043004a0069006d006d0079006e009b48006f006d006900630069006400690061006c00200053006d007500720066007300200041006e006f006e0079006d006f007500730004000000981401064580540061006e006b002000440072006900760065007200a05200650063006f006d006d0065006e00640065006400200074006f0020006800610076006500200065006e00670069006e0065006500720069006e0067002e0000000000800180000c00020c8c46007200650065006200690065002000730070006f007400cf44006f002000770068006100740065007600650072002c0020006200750074002000700072006500660065007200610062006c007900200073007400690063006b002000770069007400680020007400680065002000730071007500610064002e00200044006f006e002700740020006e00650065006400200061006e007900200073007000650063006900660069006300200063006500720074002e0096e27a0290540068006500460069006e0061006c005300740072007500670067006c0065000000000000020c8c46007200650065006200690065002000530070006f007400cf44006f002000770068006100740065007600650072002c0020006200750074002000700072006500660065007200610062006c007900200073007400690063006b002000770069007400680020007400680065002000730071007500610064002e00200044006f006e002700740020006e00650065006400200061006e007900200073007000650063006900660069006300200063006500720074002e0000000000800000000000020c8a41004d0053002000440072006900760065007200b34700690076006500200075007300200073007000610077006e00200070006f0069006e00740073002c0020006800610063006b0069006e006700200061006e006400200069006e00660069006c0020006100720065002000750073006500660075006c002e00fb02790287440030004f004d006700750079000100020c00020c8d410076006500720061006700650020004a0069006d006d007900a05200650069006e0066006f0072006300650064002000450078006f007300750069007400200077006f0075006c00640020006200650020006e0069006300650000000000800300000c00020c8b4100760065007200610067006500200042006f006200a05200650069006e0066006f0072006300650064002000450078006f007300750069007400200077006f0075006c00640020006200650020006e0069006300650000000000800300000c00020c8b410076006500720061006700650020004a006f006500a05200650069006e0066006f0072006300650064002000450078006f007300750069007400200077006f0075006c00640020006200650020006e0069006300650000000000800300000c00020c8753007500700070006f0072007400a2520065007300730075007200650063007400200073006f006c00640069006500720073002c0020006b00650065007000200075007300200061006c006900760065002e0000000000800100000c0c0a0c8845006e00670069006e00650065007200a043006f006d00620061007400200045006e00670069006e0065006500720069006e006700200077006f0075006c00640020006200650020006e0069006300650004b3d101864a0069006d006d0079006e000100000c000a0c854d0065006400690063009a4100640076002e0020004d00650064006900630061006c00200077006f0075006c00640020006200650020006e0069006300650000000000800100000c0400")
     sendResponse(
       SquadDetailDefinitionUpdateMessage(
         PlanetSideGUID(3),
+        42771010L,
         "HofD",
         "\\#ffdc00***\\#9640ff=KOK+SPC+FLY=\\#ffdc00***\\#FF4040 All Welcome",
         PlanetSideZoneID(7),
@@ -3347,17 +3349,19 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ PlayerStateMessageUpstream(avatar_guid, pos, vel, yaw, pitch, yaw_upper, seq_time, unk3, is_crouching, is_jumping, unk4, is_cloaking, unk5, unk6) =>
       if(deadState == DeadState.Alive) {
         if(!player.Crouching && is_crouching) { //SQUAD TESTING CODE
-          sendResponse(SquadMembershipResponse(SquadRequestType.Invite,0,0,42771010,Some(41605313),"HofD",false,None))
-          sendResponse(SquadMembershipResponse(SquadRequestType.Accept,0,0,41605313,Some(42771010),"VirusGiver",true,Some(None)))
-          sendResponse(SquadMemberEvent(0,7,42771010,0,Some("HofD"),Some(7),Some(529745)))
-          sendResponse(SquadMemberEvent(0,7,42644970,1,Some("OpolE"),Some(7),Some(6418)))
-          sendResponse(SquadMemberEvent(0,7,41604210,8,Some("BobaF3tt907"),Some(12),Some(8097)))
-          sendResponse(PlanetsideAttributeMessage(player.GUID, 49, 7))
-          sendResponse(PlanetsideAttributeMessage(player.GUID, 50, 2))
-          sendResponse(PlanetsideAttributeMessage(player.GUID, 51, 8))
-          sendResponse(SquadDefinitionActionMessage(PlanetSideGUID(3), 0, SquadAction.Unknown(18, hex"".toBitVector)))
-          sendResponse(PlanetsideAttributeMessage(player.GUID, 83, 0))
-          sendResponse(SquadState(PlanetSideGUID(7),List(SquadStateInfo(41605313L,64,64,Vector3(3464.0469f,4065.5703f,20.015625f),2,2,false,0,None,None))))
+          //sendRawResponse(hex"e8030080c603c043fe")
+          sendRawResponse(hex"e8 0300 80 c 600408c00000001200008811f6200400144004f007a007a0069004b0069006e006700ff")
+//          sendResponse(SquadMembershipResponse(SquadRequestType.Invite,0,0,42771010,Some(avatar.CharId),"HofD",false,None))
+//          sendResponse(SquadMembershipResponse(SquadRequestType.Accept,0,0,avatar.CharId,Some(42771010),"VirusGiver",true,Some(None)))
+//          sendResponse(SquadMemberEvent(0,7,42771010,0,Some("HofD"),Some(7),Some(529745)))
+//          sendResponse(SquadMemberEvent(0,7,42644970,1,Some("OpolE"),Some(7),Some(6418)))
+//          sendResponse(SquadMemberEvent(0,7,41604210,8,Some("BobaF3tt907"),Some(12),Some(8097)))
+//          sendResponse(PlanetsideAttributeMessage(player.GUID, 49, 7))
+//          sendResponse(PlanetsideAttributeMessage(player.GUID, 50, 2))
+//          sendResponse(PlanetsideAttributeMessage(player.GUID, 51, 8))
+//          sendResponse(SquadDefinitionActionMessage(PlanetSideGUID(3), 0, SquadAction.Unknown(18, hex"".toBitVector)))
+//          sendResponse(PlanetsideAttributeMessage(player.GUID, 83, 0))
+//          sendResponse(SquadState(PlanetSideGUID(7),List(SquadStateInfo(avatar.CharId,64,64,Vector3(3464.0469f,4065.5703f,20.015625f),2,2,false,0,None,None))))
         }
         player.Position = pos
         player.Velocity = vel
@@ -4579,18 +4583,18 @@ class WorldSessionActor extends Actor with MDCContextAware {
               None
             }) match {
               case Some(owner : Player) => //InfantryLoadout
-                avatar.SaveLoadout(owner, name, lineno)
+                avatar.EquipmentLoadouts.SaveLoadout(owner, name, lineno)
                 import InfantryLoadout._
                 sendResponse(FavoritesMessage(list, player_guid, line, name, DetermineSubtypeB(player.ExoSuit, DetermineSubtype(player))))
               case Some(owner : Vehicle) => //VehicleLoadout
-                avatar.SaveLoadout(owner, name, lineno)
+                avatar.EquipmentLoadouts.SaveLoadout(owner, name, lineno)
                 sendResponse(FavoritesMessage(list, player_guid, line, name))
               case Some(_) | None =>
                 log.error("FavoritesRequest: unexpected owner for favorites")
             }
 
           case FavoritesAction.Delete =>
-            avatar.DeleteLoadout(lineno)
+            avatar.EquipmentLoadouts.DeleteLoadout(lineno)
             sendResponse(FavoritesMessage(list, player_guid, line, ""))
 
           case FavoritesAction.Unknown =>
@@ -7574,9 +7578,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
   /**
     * Properly format a `DestroyDisplayMessage` packet
     * given sufficient information about a target (victim) and an actor (killer).
-    * For the packet, the `*_charId` field is most important to determining distinction between players.
-    * The "char id" is not a currently supported field for different players so a name hash is used instead.
-    * The virtually negligent chance of a name hash collision is covered.
+    * For the packet, the `charId` field is important for determining distinction between players.
     * @param killer the killer's entry
     * @param victim the victim's entry
     * @param method the manner of death
@@ -7585,12 +7587,16 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * @return a `DestroyDisplayMessage` packet that is properly formatted
     */
   def DestroyDisplayMessage(killer : SourceEntry, victim : SourceEntry, method : Int, unk : Int = 121) : DestroyDisplayMessage = {
-    //TODO charId should reflect the player more properly
-    val killerCharId = math.abs(killer.Name.hashCode)
-    var victimCharId = math.abs(victim.Name.hashCode)
-    if(killerCharId == victimCharId && !killer.Name.equals(victim.Name)) {
-      //odds of hash collision in a populated zone should be close to odds of being struck by lightning
-      victimCharId = Int.MaxValue - victimCharId + 1
+    val killerCharId : Long = killer.CharId
+    val victimCharId : Long = {
+      //TODO this block of code is only necessary for this particular dev build; use "victim.CharId" normallyLoado
+      val id = victim.CharId
+      if(killerCharId == id) {
+        Int.MaxValue - id + 1
+      }
+      else {
+        id
+      }
     }
     val killer_seated = killer match {
       case obj : PlayerSource => obj.Seated

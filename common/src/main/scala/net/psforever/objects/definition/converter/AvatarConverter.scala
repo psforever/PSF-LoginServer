@@ -81,7 +81,7 @@ object AvatarConverter {
       ),
       obj.ExoSuit,
       0,
-      0L,
+      obj.CharId,
       0,
       0,
       0,

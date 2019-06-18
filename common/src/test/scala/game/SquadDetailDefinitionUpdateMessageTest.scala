@@ -12,7 +12,7 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
   "SquadDetailDefinitionUpdateMessage" should {
     "decode" in {
       PacketCoding.DecodePacket(string).require match {
-        case SquadDetailDefinitionUpdateMessage(guid, unk, leader, task, zone, member_info) =>
+        case SquadDetailDefinitionUpdateMessage(guid, unk1, char_id, unk2, leader, task, zone, member_info) =>
           ok
         case _ =>
           ko
@@ -22,24 +22,25 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
     "encode" in {
       val msg = SquadDetailDefinitionUpdateMessage(
         PlanetSideGUID(3),
+        42771010L,
         "HofD",
         "\\#ffdc00***\\#9640ff=KOK+SPC+FLY=\\#ffdc00***\\#FF4040 All Welcome",
         PlanetSideZoneID(7),
         List(
-          SquadPositionDetail("\\#ff0000 |||||||||||||||||||||||", ""),
+          SquadPositionDetail("\\#ff0000 |||||||||||||||||||||||", "Just a space filler"),
           SquadPositionDetail("\\#ffdc00   C", ""),
-          SquadPositionDetail("\\#ffdc00   H", "", "OpoIE"),
-          SquadPositionDetail("\\#ffdc00    I", "", "BobaF3tt907"),
+          SquadPositionDetail("\\#ffdc00   H", "", Set(), 42644970L, "OpoIE"),
+          SquadPositionDetail("\\#ffdc00    I", "", Set(), 41604210L, "BobaF3tt907"),
           SquadPositionDetail("\\#ffdc00   N", ""),
           SquadPositionDetail("\\#ffdc00   A", ""),
-          SquadPositionDetail("\\#ff0000 |||||||||||||||||||||||", ""),
+          SquadPositionDetail("\\#ff0000 |||||||||||||||||||||||", "Another space filler"),
           SquadPositionDetail("\\#9640ff   K", ""),
-          SquadPositionDetail("\\#9640ff   O", "", "HofD"),
+          SquadPositionDetail("\\#9640ff   O", "", Set(), 42771010L, "HofD"),
           SquadPositionDetail("\\#9640ff   K", "")
         )
       )
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
-      ok
+      pkt mustEqual string
     }
   }
 }

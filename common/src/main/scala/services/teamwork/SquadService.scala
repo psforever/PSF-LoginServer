@@ -121,6 +121,7 @@ class SquadService extends Actor {
               //other players were in the squad; publicly disband it
               squad.Membership.foreach(position => {
                 position.Name = ""
+                position.CharId = 0L
                 position.ZoneId = 0
                 position.Position = Vector3.Zero
                 position.Health = 0
@@ -151,6 +152,8 @@ class SquadService extends Actor {
       import net.psforever.packet.game.SquadAction._
       val squadOpt = GetParticipatingSquad(tplayer, zone_ordinal_number)
       action match {
+        case SaveSquadDefinition() =>
+
         case ChangeSquadPurpose(purpose) =>
           log.info(s"${tplayer.Name}-${tplayer.Faction} has changed his squad's task to $purpose")
           val squad = GetLeadingSquad(tplayer, zone_ordinal_number, squadOpt)
@@ -265,6 +268,7 @@ class SquadService extends Actor {
                   val hadPreviousPosition = squad.Membership.find(_.Name == name) match {
                     case Some(currentPosition)=>
                       currentPosition.Name = ""
+                      currentPosition.CharId = 0L
                       currentPosition.ZoneId = 0
                       currentPosition.Health = 0
                       currentPosition.Armor = 0
@@ -274,6 +278,7 @@ class SquadService extends Actor {
                       false
                   }
                   desiredPosition.Name = name
+                  desiredPosition.CharId = tplayer.CharId
                   desiredPosition.ZoneId = zone_ordinal_number
                   desiredPosition.Health = tplayer.Health
                   desiredPosition.Armor = tplayer.Armor
@@ -380,7 +385,7 @@ class SquadService extends Actor {
       PlanetSideZoneID(squad.ZoneId),
       squad.Membership.zipWithIndex.map({ case (p, index) =>
         if(squad.Availability(index)) {
-          SquadPositionDetail(p.Role, p.Orders, p.Requirements, p.Name)
+          SquadPositionDetail(p.Role, p.Orders, p.Requirements, p.CharId, p.Name)
         }
         else {
           SquadPositionDetail.Closed

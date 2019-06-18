@@ -1,10 +1,10 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects
 
+import net.psforever.objects.avatar.LoadoutManager
 import net.psforever.objects.definition.{AvatarDefinition, ExoSuitDefinition, SpecialExoSuitDefinition}
 import net.psforever.objects.equipment.{Equipment, EquipmentSize, EquipmentSlot}
 import net.psforever.objects.inventory.{Container, GridInventory, InventoryItem}
-import net.psforever.objects.loadouts.Loadout
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.vital.resistance.ResistanceProfile
 import net.psforever.objects.vital.{DamageResistanceModel, Vitality}
@@ -57,6 +57,8 @@ class Player(private val core : Avatar) extends PlanetSideGameObject
   var PlanetsideAttribute : Array[Long] = Array.ofDim(120)
 
   Player.SuitSetup(this, exosuit)
+
+  def CharId : Long = core.CharId
 
   def Name : String = core.name
 
@@ -294,7 +296,9 @@ class Player(private val core : Avatar) extends PlanetSideGameObject
 
   def RadiationShielding = exosuit.RadiationShielding
 
-  def LoadLoadout(line : Int) : Option[Loadout] = core.LoadLoadout(line)
+  def EquipmentLoadouts : LoadoutManager = core.EquipmentLoadouts
+
+  def SquadLoadouts : LoadoutManager = core.SquadLoadouts
 
   def BEP : Long = core.BEP
 
