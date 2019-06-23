@@ -8566,7 +8566,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
     (vehicle.Utility(UtilityType.internal_router_telepad_deployable) match {
       case Some(util : Utility.InternalTelepad) =>
         val telepad = util.Telepad
-        util.Active = false
         util.Telepad = None
         continent.GUID(telepad)
       case _ =>
