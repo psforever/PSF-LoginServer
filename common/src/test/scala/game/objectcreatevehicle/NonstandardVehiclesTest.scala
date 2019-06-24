@@ -22,7 +22,7 @@ class NonstandardVehiclesTest extends Specification {
           guid mustEqual PlanetSideGUID(3595)
           parent.isDefined mustEqual false
           data match {
-            case DroppodData(basic, burn, health) =>
+            case DroppodData(basic, health, burn, unk) =>
               basic.pos.coord mustEqual Vector3(5108.0f, 6164.0f, 1023.9844f)
               basic.pos.orient mustEqual Vector3.z(90.0f)
 

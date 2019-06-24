@@ -25,7 +25,7 @@ class DetailedConstructionToolDataTest extends Specification {
           parent.get.guid mustEqual PlanetSideGUID(3104)
           parent.get.slot mustEqual 0
           data match {
-            case DetailedConstructionToolData(cdata) =>
+            case DetailedConstructionToolData(cdata, mode) =>
               cdata.faction mustEqual PlanetSideEmpire.VS
               cdata.bops mustEqual false
               cdata.alternate mustEqual false
@@ -65,7 +65,7 @@ class DetailedConstructionToolDataTest extends Specification {
           parent.get.guid mustEqual PlanetSideGUID(2502)
           parent.get.slot mustEqual 0
           data match {
-            case DetailedConstructionToolData(cdata) =>
+            case DetailedConstructionToolData(cdata, mode) =>
               cdata.faction mustEqual PlanetSideEmpire.NEUTRAL
               cdata.bops mustEqual false
               cdata.alternate mustEqual false
@@ -105,7 +105,7 @@ class DetailedConstructionToolDataTest extends Specification {
           parent.get.guid mustEqual PlanetSideGUID(414)
           parent.get.slot mustEqual 0
           data match {
-            case DetailedConstructionToolData(cdata) =>
+            case DetailedConstructionToolData(cdata, mode) =>
               cdata.faction mustEqual PlanetSideEmpire.NC
               cdata.bops mustEqual false
               cdata.alternate mustEqual false
@@ -133,7 +133,7 @@ class DetailedConstructionToolDataTest extends Specification {
           parent.get.guid mustEqual PlanetSideGUID(340)
           parent.get.slot mustEqual 9
           data match {
-            case DetailedConstructionToolData(cdata) =>
+            case DetailedConstructionToolData(cdata, mode) =>
               cdata.faction mustEqual PlanetSideEmpire.VS
               cdata.bops mustEqual false
               cdata.alternate mustEqual false

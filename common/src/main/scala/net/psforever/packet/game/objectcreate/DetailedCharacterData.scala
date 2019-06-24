@@ -30,7 +30,7 @@ final case class ImplantEntry(implant : ImplantType.Value,
 
 object ImplantEntry {
   def apply(implant : ImplantType.Value, initialization : Option[Int]) : ImplantEntry = {
-    ImplantEntry(implant, initialization, false)
+    ImplantEntry(implant, initialization, active = false)
   }
 }
 
@@ -155,11 +155,10 @@ final case class DetailedCharacterB(unk1 : Option[Long],
       0L
     }
     //character is at least BR24
-    val br24 = DetailedCharacterData.isBR24(bep)
-    val unk9Size : Long = if(br24) { 0L } else { 13L }
+    val unk9Size : Long = if(unk9.isEmpty) { 0L } else { 13L }
     val unkASize : Long = unkA.length * 32L
     val unkBSize : Long = unkB.foldLeft(0L)(_ + StreamBitSize.stringBitSize(_))
-    val cosmeticsSize : Long = if(br24) { cosmetics.get.bitsize } else { 0L }
+    val cosmeticsSize : Long = if(DetailedCharacterData.isBR24(bep)) { cosmetics.get.bitsize } else { 0L }
 
     val paddingSize : Int =
       DetailedCharacterData.paddingCalculations(pad_length, implants, Nil)(unk2Len) + /* unk2 */
@@ -214,7 +213,7 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
       0L,
       0L,
       healthMax, health,
-      false,
+      unk4 = false,
       armor,
       0L,
       staminaMax, stamina,
@@ -240,10 +239,10 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
       None,
       Nil,
       Nil,
-      false,
+      unkC = false,
       cosmetics
     )
-    (pad_length : Option[Int]) => DetailedCharacterData(a, b(a.bep, pad_length))(pad_length)
+    pad_length : Option[Int] => DetailedCharacterData(a, b(a.bep, pad_length))(pad_length)
   }
 
   /**
@@ -261,7 +260,7 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
         ImplantEntry(ImplantType(implant), None, activeBool) //TODO catch potential NoSuchElementException?
 
       case implant :: false :: extra :: HNil => //uninitialized (timer), inactive
-        ImplantEntry(ImplantType(implant), Some(extra), false) //TODO catch potential NoSuchElementException?
+        ImplantEntry(ImplantType(implant), Some(extra), active = false) //TODO catch potential NoSuchElementException?
     },
     {
       case ImplantEntry(implant, None, n) => //initialized (no timer), active/inactive?
@@ -298,7 +297,7 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
     * `Codec` for a `List` of `DCDExtra1` objects.
     * The first entry contains a padded `String` so it must be processed different from the remainder.
     */
-  private def dcd_list_codec(padFunc : (Long)=>Int) : Codec[List[DCDExtra1]] = (
+  private def dcd_list_codec(padFunc : Long=>Int) : Codec[List[DCDExtra1]] = (
     uint8 >>:~ { size =>
       conditional(size > 0, dcd_extra1_codec(padFunc(size))) ::
         PacketHelpers.listOfNSized(size - 1, dcd_extra1_codec(0))
@@ -344,7 +343,7 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
     * The first entry contains a padded `String` so it must be processed different from the remainder.
     * @param padFunc a curried function awaiting the extracted length of the current `List`
     */
-  private def eventsListCodec(padFunc : (Long)=>Int) : Codec[List[String]] = (
+  private def eventsListCodec(padFunc : Long=>Int) : Codec[List[String]] = (
     uint32L >>:~ { size =>
       conditional(size > 0, PacketHelpers.encodedStringAligned(padFunc(size))) ::
         PacketHelpers.listOfNSized(size - 1, PacketHelpers.encodedString)
@@ -382,7 +381,7 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
     * @see `paddingCalculations`
     * @param padFunc a curried function awaiting the extracted length of the current `List` and will count the padding bits
     */
-  private def unkBCodec(padFunc : (Long)=>Int) : Codec[List[String]] = (
+  private def unkBCodec(padFunc : Long=>Int) : Codec[List[String]] = (
     uint16L >>:~ { size =>
       conditional(size > 0, PacketHelpers.encodedStringAligned(padFunc(size))) ::
         PacketHelpers.listOfNSized(size - 1, PacketHelpers.encodedString)
@@ -405,7 +404,16 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
   )
 
   /**
-    * Suport function that obtains the "absolute list value" of an `Option` object.
+    * A `Codec[Boolean]` that parses a `1u` value according to a NOT truth table.
+    * `0` is `true` and `1` is `false`.
+    */
+  private val isFalse : Codec[Boolean] = bool.xmap[Boolean] (
+    value => !value,
+    value => !value
+  )
+
+  /**
+    * Support function that obtains the "absolute list value" of an `Option` object.
     * @param opt the `Option` object
     * @return if defined, returns a `List` of the `Option` object's contents;
     *         if undefined (`None`), returns an empty list
@@ -577,19 +585,17 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
                   ("unk6" | uint32L) ::
                   ("unk7" | uint32L) ::
                   ("unk8" | uint32L) ::
-                  (bool >>:~ { br24 => //BR24+
-                    conditional(!br24, "unk9" | dcd_extra2_codec) >>:~ { unk9 =>
-                      ("unkA" | listOfN(uint16L, uint32L)) ::
-                        ("unkB" | unkBCodec(
-                          paddingCalculations(
-                            displaceByUnk9(pad_length, unk9, 5),
-                            implants,
-                            List(optToList(unk9), tut, fte, unk3, unk2)
-                          )
-                        )) ::
-                        ("unkC" | bool) ::
-                        conditional(br24, "cosmetics" | Cosmetics.codec)
-                    }
+                  (optional(isFalse, "unk9" | dcd_extra2_codec) >>:~ { unk9 =>
+                    ("unkA" | listOfN(uint16L, uint32L)) ::
+                      ("unkB" | unkBCodec(
+                        paddingCalculations(
+                          displaceByUnk9(pad_length, unk9, 5),
+                          implants,
+                          List(optToList(unk9), tut, fte, unk3, unk2)
+                        )
+                      )) ::
+                      ("unkC" | bool) ::
+                      conditional(isBR24(bep), "cosmetics" | Cosmetics.codec)
                   })
               }
             }
@@ -598,7 +604,7 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
       })
     ).exmap[DetailedCharacterB] (
     {
-      case u1 :: implants :: u2 :: u3 :: fte :: tut :: u4 :: u5 :: u6 :: u7 :: u8 :: _ :: u9 :: uA :: uB :: uC :: cosmetics :: HNil =>
+      case u1 :: implants :: u2 :: u3 :: fte :: tut :: u4 :: u5 :: u6 :: u7 :: u8 :: u9 :: uA :: uB :: uC :: cosmetics :: HNil =>
         Attempt.successful(
           DetailedCharacterB(u1, implants, u2, u3, fte, tut, u4, u5, u6, u7, u8, u9, uA, uB, uC, cosmetics)(bep, pad_length)
         )
@@ -612,10 +618,9 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
         else {
           recursiveEnsureImplantSlots(implantCapacity, implants)
         }
-        val br24 : Boolean = isBR24(bep)
-        val cos : Option[Cosmetics] = if(br24) { cosmetics } else { None }
+        val cos : Option[Cosmetics] = if(isBR24(bep)) { cosmetics } else { None }
         Attempt.successful(
-          u1 :: implantList :: u2 :: u3 :: fte :: tut :: u4 :: u5 :: u6 :: u7 :: u8 :: br24 :: u9 :: uA :: uB :: uC :: cos :: HNil
+          u1 :: implantList :: u2 :: u3 :: fte :: tut :: u4 :: u5 :: u6 :: u7 :: u8 :: u9 :: uA :: uB :: uC :: cos :: HNil
         )
     }
   )
