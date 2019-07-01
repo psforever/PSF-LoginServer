@@ -2919,21 +2919,28 @@ class WorldSessionActor extends Actor with MDCContextAware {
     sendResponse(
       SquadDetailDefinitionUpdateMessage(
         PlanetSideGUID(3),
-        42771010L,
-        "HofD",
-        "\\#ffdc00***\\#9640ff=KOK+SPC+FLY=\\#ffdc00***\\#FF4040 All Welcome",
-        PlanetSideZoneID(7),
-        List(
-          SquadPositionDetail("\\#ff0000 |||||||||||||||||||||||", "Just a space filler"),
-          SquadPositionDetail("\\#ffdc00   C", ""),
-          SquadPositionDetail(false, "\\#ffdc00   H", "", Set(), 42644970L, "OpoIE"),
-          SquadPositionDetail(false, "\\#ffdc00    I", "", Set(), 41604210L, "BobaF3tt907"),
-          SquadPositionDetail("\\#ffdc00   N", ""),
-          SquadPositionDetail("\\#ffdc00   A", ""),
-          SquadPositionDetail("\\#ff0000 |||||||||||||||||||||||", "Another space filler"),
-          SquadPositionDetail("\\#9640ff   K", ""),
-          SquadPositionDetail(false, "\\#9640ff   O", "", Set(), 42771010L, "HofD"),
-          SquadPositionDetail("\\#9640ff   K", "")
+        SquadDetail(
+          3,
+          1792,
+          42771010L,
+          529745L,
+          "HofD",
+          "\\#ffdc00***\\#9640ff=KOK+SPC+FLY=\\#ffdc00***\\#FF4040 All Welcome",
+          PlanetSideZoneID(7),
+          4983296,
+          List(
+            SquadPositionEntry(0, SquadPositionDetail2("\\#ff0000 |||||||||||||||||||||||", "", Set(), 0, "")),
+            SquadPositionEntry(1, SquadPositionDetail2("\\#ffdc00   C", "", Set(), 0, "")),
+            SquadPositionEntry(2, SquadPositionDetail2("\\#ffdc00   H", "", Set(), 42644970L, "OpolE")),
+            SquadPositionEntry(3, SquadPositionDetail2("\\#ffdc00    I", "", Set(), 41604210L, "BobaF3tt907")),
+            SquadPositionEntry(4, SquadPositionDetail2("\\#ffdc00   N", "", Set(), 0, "")),
+            SquadPositionEntry(5, SquadPositionDetail2("\\#ffdc00   A", "", Set(), 0, "")),
+//            SquadPositionEntry(6, SquadPositionDetail2("\\#ff0000 |||||||||||||||||||||||", "", Set(), 0, "")),
+            SquadPositionEntry(6, SquadPositionDetail2("\\#ff0000 |||||||||||||||||||||||", "", Set(), 1, "Test")),
+            SquadPositionEntry(7, SquadPositionDetail2("\\#9640ff   K", "", Set(), 0, "")),
+            SquadPositionEntry(8, SquadPositionDetail2("\\#9640ff   O", "", Set(), 42771010L ,"HofD")),
+            SquadPositionEntry(9, SquadPositionDetail2("\\#9640ff   K", "", Set(), 0, ""))
+          )
         )
       )
     )
@@ -3349,8 +3356,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ PlayerStateMessageUpstream(avatar_guid, pos, vel, yaw, pitch, yaw_upper, seq_time, unk3, is_crouching, is_jumping, unk4, is_cloaking, unk5, unk6) =>
       if(deadState == DeadState.Alive) {
         if(!player.Crouching && is_crouching) { //SQUAD TESTING CODE
-          //sendRawResponse(hex"e8030080c603c043fe")
-          sendRawResponse(hex"e8 0300 80 c 600408c00000001200008811f6200400144004f007a007a0069004b0069006e006700ff")
+          sendRawResponse(hex"e80300818800015c5189004603408c000000012000ff")
 //          sendResponse(SquadMembershipResponse(SquadRequestType.Invite,0,0,42771010,Some(avatar.CharId),"HofD",false,None))
 //          sendResponse(SquadMembershipResponse(SquadRequestType.Accept,0,0,avatar.CharId,Some(42771010),"VirusGiver",true,Some(None)))
 //          sendResponse(SquadMemberEvent(0,7,42771010,0,Some("HofD"),Some(7),Some(529745)))

@@ -1,7 +1,6 @@
 // Copyright (c) 2019 PSForever
 package net.psforever.packet.game
 
-import net.psforever.packet.game.SquadDetailDefinitionUpdateMessage.defaultRequirements
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
 import net.psforever.types.CertificationType
 import scodec.bits.BitVector
@@ -18,7 +17,7 @@ final case class SquadPositionDetail(is_closed : Boolean,
                                      char_id : Long,
                                      name : String)
 
-final case class SquadDetailDefinitionUpdateMessage(guid : PlanetSideGUID,
+final case class OldSquadDetailDefinitionUpdateMessage(guid : PlanetSideGUID,
                                                     unk1 : Int,
                                                     leader_char_id : Long,
                                                     unk2 : BitVector,
@@ -26,11 +25,6 @@ final case class SquadDetailDefinitionUpdateMessage(guid : PlanetSideGUID,
                                                     task : String,
                                                     zone_id : PlanetSideZoneID,
                                                     member_info : List[SquadPositionDetail])
-  extends PlanetSideGamePacket {
-  type Packet = SquadDetailDefinitionUpdateMessage
-  def opcode = GamePacketOpcode.SquadDetailDefinitionUpdateMessage
-  def encode = SquadDetailDefinitionUpdateMessage.encode(this)
-}
 
 object SquadPositionDetail {
   final val Closed : SquadPositionDetail = SquadPositionDetail(is_closed = true, "", "", Set.empty, 0L, "")
@@ -48,169 +42,10 @@ object SquadPositionDetail {
   def apply(role : String, detailed_orders : String, requirements : Set[CertificationType.Value], char_id : Long, name : String) : SquadPositionDetail = SquadPositionDetail(is_closed = false, role, detailed_orders, requirements, char_id, name)
 }
 
-object SquadDetailDefinitionUpdateMessage extends Marshallable[SquadDetailDefinitionUpdateMessage] {
-  final val defaultRequirements : Set[CertificationType.Value] = Set(
-    CertificationType.StandardAssault,
-    CertificationType.StandardExoSuit,
-    CertificationType.AgileExoSuit
-  )
-
-  final val Init = SquadDetailDefinitionUpdateMessage(
-    PlanetSideGUID(0),
-    0L,
-    "",
-    "",
-    PlanetSideZoneID(0),
-    List(
-      SquadPositionDetail(),
-      SquadPositionDetail(),
-      SquadPositionDetail(),
-      SquadPositionDetail(),
-      SquadPositionDetail(),
-      SquadPositionDetail(),
-      SquadPositionDetail(),
-      SquadPositionDetail(),
-      SquadPositionDetail(),
-      SquadPositionDetail()
-    )
-  )
-
-  def apply(guid : PlanetSideGUID, char_id : Long, leader_name : String, task : String, zone_id : PlanetSideZoneID, member_info : List[SquadPositionDetail]) : SquadDetailDefinitionUpdateMessage = {
+object OldSquadDetailDefinitionUpdateMessage {
+  def apply(guid : PlanetSideGUID, char_id : Long, leader_name : String, task : String, zone_id : PlanetSideZoneID, member_info : List[SquadPositionDetail]) : OldSquadDetailDefinitionUpdateMessage = {
     import scodec.bits._
-    SquadDetailDefinitionUpdateMessage(guid, 1, char_id, hex"000000".toBitVector, leader_name, task, zone_id, member_info)
-  }
-
-  private def memberCodec(pad : Int) : Codec[SquadPositionDetail] = {
-    import shapeless.::
-    (
-        uint8 :: //required value = 6
-        ("is_closed" | bool) :: //if all positions are closed, the squad detail menu display no positions at all
-        ("role" | PacketHelpers.encodedWideStringAligned(pad)) ::
-        ("detailed_orders" | PacketHelpers.encodedWideString) ::
-        ("char_id" | uint32L) ::
-        ("name" | PacketHelpers.encodedWideString) ::
-        ("requirements" | ulongL(46))
-      ).exmap[SquadPositionDetail] (
-      {
-        case 6 :: closed :: role :: orders :: char_id :: name :: requirements :: HNil =>
-          Attempt.Successful(
-            SquadPositionDetail(closed, role, orders, defaultRequirements ++ CertificationType.fromEncodedLong(requirements), char_id, name)
-          )
-        case data =>
-          Attempt.Failure(Err(s"can not decode a SquadDetailDefinitionUpdate member's data - $data"))
-      },
-      {
-        case SquadPositionDetail(closed, role, orders, requirements, char_id, name) =>
-          Attempt.Successful(6 :: closed :: role :: orders :: char_id :: name :: CertificationType.toEncodedLong(defaultRequirements ++ requirements) :: HNil)
-      }
-    )
-  }
-
-  private val first_member_codec : Codec[SquadPositionDetail] = memberCodec(pad = 7)
-
-  private val member_codec : Codec[SquadPositionDetail] = memberCodec(pad = 0)
-
-  private case class LinkedMemberList(member : SquadPositionDetail, next : Option[LinkedMemberList])
-
-  private def subsequent_member_codec : Codec[LinkedMemberList] = {
-    import shapeless.::
-    (
-      //disruptive coupling action (e.g., flatPrepend) necessary to allow for recursive Codec
-      ("member" | member_codec) >>:~ { _ =>
-        optional(bool, "next" | subsequent_member_codec).hlist
-      }
-      ).xmap[LinkedMemberList] (
-      {
-        case a :: b :: HNil =>
-          LinkedMemberList(a, b)
-      },
-      {
-        case LinkedMemberList(a, b) =>
-          a :: b :: HNil
-      }
-    )
-  }
-
-  private def initial_member_codec : Codec[LinkedMemberList] = {
-    import shapeless.::
-    (
-      ("member" | first_member_codec) ::
-        optional(bool, "next" | subsequent_member_codec)
-      ).xmap[LinkedMemberList] (
-      {
-        case a :: b :: HNil =>
-          LinkedMemberList(a, b)
-      },
-      {
-        case LinkedMemberList(a, b) =>
-          a :: b :: HNil
-      }
-    )
-  }
-
-  @tailrec
-  private def unlinkMemberList(list : LinkedMemberList, out : List[SquadPositionDetail] = Nil) : List[SquadPositionDetail] = {
-    list.next match {
-      case None =>
-        out :+ list.member
-      case Some(next) =>
-        unlinkMemberList(next, out :+ list.member)
-    }
-  }
-
-  private def linkMemberList(list : List[SquadPositionDetail]) : LinkedMemberList = {
-    list match {
-      case Nil =>
-        throw new Exception("")
-      case x :: Nil =>
-        LinkedMemberList(x, None)
-      case x :: xs =>
-        linkMemberList(xs, LinkedMemberList(x, None))
-    }
-  }
-
-  @tailrec
-  private def linkMemberList(list : List[SquadPositionDetail], out : LinkedMemberList) : LinkedMemberList = {
-    list match {
-      case Nil =>
-        out
-      case x :: Nil =>
-        LinkedMemberList(x, Some(out))
-      case x :: xs =>
-        linkMemberList(xs, LinkedMemberList(x, Some(out)))
-    }
-  }
-
-  implicit val codec : Codec[SquadDetailDefinitionUpdateMessage] = {
-    import shapeless.::
-    (
-      ("guid" | PlanetSideGUID.codec) ::
-        uint4 :: //constant = 8
-        uint4 :: //variable = 0-4
-        bool :: //true, when 4
-        uint4 :: //variable = 0-12?
-        ("unk1" | uint4) ::
-        uint24 :: //unknown, but can be 0'd
-        ("leader_char_id" | uint32L) ::
-        ("unk2" | bits(22)) :: //variable fields, but can be 0'd
-        uint(10) :: //constant = 0
-        ("leader" | PacketHelpers.encodedWideStringAligned(7)) ::
-        ("task" | PacketHelpers.encodedWideString) ::
-        ("zone_id" | PlanetSideZoneID.codec) ::
-        uint(23) :: //constant = 4983296
-        optional(bool, "member_info" | initial_member_codec)
-      ).exmap[SquadDetailDefinitionUpdateMessage] (
-      {
-        case guid :: _ :: _ :: _ :: _ :: u1 :: _ :: char_id:: u2 :: _ :: leader :: task :: zone :: _ :: Some(member_list) :: HNil =>
-          Attempt.Successful(SquadDetailDefinitionUpdateMessage(guid, u1, char_id, u2, leader, task, zone, unlinkMemberList(member_list)))
-        case data =>
-          Attempt.failure(Err(s"can not get squad detail definition from data $data"))
-      },
-      {
-        case SquadDetailDefinitionUpdateMessage(guid, unk1, char_id, unk2, leader, task, zone, member_list) =>
-          Attempt.Successful(guid :: 8 :: 4 :: true :: 0 :: math.max(unk1, 1) :: 0 :: char_id :: unk2.take(22) :: 0 :: leader :: task :: zone :: 4983296 :: Some(linkMemberList(member_list.reverse)) :: HNil)
-      }
-    )
+    OldSquadDetailDefinitionUpdateMessage(guid, 1, char_id, hex"000000".toBitVector, leader_name, task, zone_id, member_info)
   }
 }
 
@@ -241,10 +76,10 @@ final case class SquadPositionDetail2(is_closed : Option[Boolean],
   def And(info : SquadPositionDetail2) : SquadPositionDetail2 = {
     SquadPositionDetail2(
       is_closed match {
-        case Some(true) | None =>
+        case Some(false) | None =>
           info.is_closed.orElse(is_closed)
         case _ =>
-          Some(false)
+          Some(true)
       },
       role.orElse(info.role),
       detailed_orders.orElse(info.detailed_orders),
@@ -258,20 +93,24 @@ final case class SquadPositionDetail2(is_closed : Option[Boolean],
 final case class SquadPositionEntry(index : Int, info : Option[SquadPositionDetail2])
 
 final case class SquadDetail(unk1 : Option[Int],
+                             unk2 : Option[Int],
                              leader_char_id : Option[Long],
-                             unk2 : Option[BitVector],
+                             unk3 : Option[Long],
                              leader_name : Option[String],
                              task : Option[String],
                              zone_id : Option[PlanetSideZoneID],
+                             unk7 : Option[Int],
                              member_info : Option[List[SquadPositionEntry]]) {
   def And(info : SquadDetail) : SquadDetail = {
     SquadDetail(
       unk1.orElse(info.unk1),
-      leader_char_id.orElse(info.leader_char_id),
       unk2.orElse(info.unk2),
+      leader_char_id.orElse(info.leader_char_id),
+      unk3.orElse(info.unk3),
       leader_name.orElse(info.leader_name),
       task.orElse(info.task),
       zone_id.orElse(info.zone_id),
+      unk7.orElse(info.unk7),
       (member_info, info.member_info) match {
         case (Some(info1), Some(info2)) => Some(info1 ++ info2)
         case (Some(info1), _) => Some(info1)
@@ -282,33 +121,57 @@ final case class SquadDetail(unk1 : Option[Int],
   }
 }
 
-final case class SquadDetailDefinitionUpdateMessage2(guid : PlanetSideGUID,
-                                                     detail : SquadDetail)
+final case class SquadDetailDefinitionUpdateMessage(guid : PlanetSideGUID,
+                                                    detail : SquadDetail)
+  extends PlanetSideGamePacket {
+  type Packet = SquadDetailDefinitionUpdateMessage
+  def opcode = GamePacketOpcode.SquadDetailDefinitionUpdateMessage
+  def encode = SquadDetailDefinitionUpdateMessage.encode(this)
+}
 
 object SquadPositionDetail2 {
   final val Blank : SquadPositionDetail2 = SquadPositionDetail2()
   final val Closed : SquadPositionDetail2 = SquadPositionDetail2(is_closed = Some(true), None, None, None, None, None)
+  final val Open : SquadPositionDetail2 = SquadPositionDetail2(is_closed = Some(false), None, None, None, None, None)
 
-  def apply() : SquadPositionDetail2 = SquadPositionDetail2(is_closed = Some(false), None, None, None, None, None)
+  def apply() : SquadPositionDetail2 = SquadPositionDetail2(None, None, None, None, None, None)
 
-  def apply(role : String, detailed_orders : Option[String]) : SquadPositionDetail2 = SquadPositionDetail2(is_closed = Some(false), Some(role), detailed_orders, None, None, None)
+  def apply(role : String, detailed_orders : Option[String]) : SquadPositionDetail2 = SquadPositionDetail2(None, Some(role), detailed_orders, None, None, None)
 
-  def apply(role : Option[String], detailed_orders : String) : SquadPositionDetail2 = SquadPositionDetail2(is_closed = Some(false), role, Some(detailed_orders), None, None, None)
+  def apply(role : Option[String], detailed_orders : String) : SquadPositionDetail2 = SquadPositionDetail2(None, role, Some(detailed_orders), None, None, None)
 
-  def apply(char_id : Long) : SquadPositionDetail2 = SquadPositionDetail2(is_closed = Some(false), None, None, None, Some(char_id), None)
+  def apply(role : String, detailed_orders : String) : SquadPositionDetail2 = SquadPositionDetail2(None, Some(role), Some(detailed_orders), None, None, None)
 
-  def apply(name : String) : SquadPositionDetail2 = SquadPositionDetail2(is_closed = Some(false), None, None, None, None, Some(name))
+  def apply(requirements : Set[CertificationType.Value]) : SquadPositionDetail2 = SquadPositionDetail2(None, None, None, Some(requirements), None, None)
 
-  def apply(requirements : Set[CertificationType.Value]) : SquadPositionDetail2 = SquadPositionDetail2(is_closed = Some(false), None, None, Some(requirements), None, None)
+  def apply(role : String, detailed_orders : String, requirements : Set[CertificationType.Value]) : SquadPositionDetail2 = SquadPositionDetail2(None, Some(role), Some(detailed_orders), Some(requirements), None, None)
+
+  def apply(char_id : Long) : SquadPositionDetail2 = SquadPositionDetail2(None, None, None, None, Some(char_id), None)
+
+  def apply(name : String) : SquadPositionDetail2 = SquadPositionDetail2(None, None, None, None, None, Some(name))
+
+  def apply(char_id : Long, name : String) : SquadPositionDetail2 = SquadPositionDetail2(None, None, None, None, Some(char_id), Some(name))
 
   def apply(role : String, detailed_orders : String, requirements : Set[CertificationType.Value], char_id : Long, name : String) : SquadPositionDetail2 = SquadPositionDetail2(is_closed = Some(false), Some(role), Some(detailed_orders), Some(requirements), Some(char_id), Some(name))
 }
 
 object SquadPositionEntry {
-  import SquadDetailDefinitionUpdateMessage2.paddedStringMetaCodec
+  import SquadDetailDefinitionUpdateMessage.paddedStringMetaCodec
+
+  def apply(index : Int, detail : SquadPositionDetail2) : SquadPositionEntry = SquadPositionEntry(index, Some(detail))
+
+  private val isClosedCodec : Codec[SquadPositionDetail2] = bool.exmap[SquadPositionDetail2] (
+    state => Attempt.successful(SquadPositionDetail2(Some(state), None, None, None, None, None)),
+    {
+      case SquadPositionDetail2(Some(state), _, _, _, _, _) =>
+        Attempt.successful(state)
+      case _ =>
+        Attempt.failure(Err("failed to encode squad position data for availability"))
+    }
+  )
 
   private def roleCodec(bitsOverByte : StreamLengthToken) : Codec[SquadPositionDetail2] = paddedStringMetaCodec(bitsOverByte.Length).exmap[SquadPositionDetail2] (
-    role => Attempt.successful(SquadPositionDetail2(role)),
+    role => Attempt.successful(SquadPositionDetail2(role, None)),
     {
       case SquadPositionDetail2(_, Some(role), _, _, _, _) =>
         Attempt.successful(role)
@@ -364,14 +227,12 @@ object SquadPositionEntry {
     * its determining conditional statement is explicitly `false`
     * and all cases involving explicit failure.
     */
-  private val failureCodec : Codec[SquadPositionDetail2] = conditional(included = false, bool).exmap[SquadPositionDetail2] (
-    _ => Attempt.failure(Err("decoding with unhandled codec")),
-    _ => Attempt.failure(Err("encoding with unhandled codec"))
+  private def failureCodec(code : Int) : Codec[SquadPositionDetail2] = conditional(included = false, bool).exmap[SquadPositionDetail2] (
+    _ => Attempt.failure(Err(s"decoding with unhandled codec - $code")),
+    _ => Attempt.failure(Err(s"encoding with unhandled codec - $code"))
   )
 
   private final case class LinkedSquadPositionInfo(code : Int, info : SquadPositionDetail2, next : Option[LinkedSquadPositionInfo])
-
-  private def unlinkSquadPositionInfo(info : LinkedSquadPositionInfo) : SquadPositionDetail2 = unlinkSquadPositionInfo(Some(info))
 
   /**
     * Concatenate a `SquadInfo` object chain into a single `SquadInfo` object.
@@ -443,8 +304,10 @@ object SquadPositionEntry {
     import shapeless.::
     (
       uint4 >>:~ { code =>
-        selectCodecAction(code, bitsOverByte.Add(4)) ::
-          conditional(size - 1 > 0, listing_codec(size - 1, modifyCodecPadValue(code, bitsOverByte)))
+        selectCodecAction(code,  bitsOverByte.Add(4)) >>:~ { _ =>
+          modifyCodecPadValue(code, bitsOverByte)
+          conditional(size - 1 > 0, listing_codec(size - 1, bitsOverByte)).hlist
+        }
       }
       ).xmap[LinkedSquadPositionInfo] (
       {
@@ -460,17 +323,19 @@ object SquadPositionEntry {
 
   private def selectCodecAction(code : Int, bitsOverByte : StreamLengthToken) : Codec[SquadPositionDetail2] = {
     code match {
+      case 0 => isClosedCodec
       case 1 => roleCodec(bitsOverByte)
       case 2 => ordersCodec(bitsOverByte)
       case 3 => charIdCodec
       case 4 => nameCodec(bitsOverByte)
       case 5 => requirementsCodec
-      case _ => failureCodec
+      case _ => failureCodec(code)
     }
   }
 
   private def modifyCodecPadValue(code : Int, bitsOverByte : StreamLengthToken) : StreamLengthToken = {
     code match {
+      case 0 => bitsOverByte.Add(1) //additional 1u
       case 1 => bitsOverByte.Length = 0 //byte-aligned string; padding zero'd
       case 2 => bitsOverByte.Length = 0 //byte-aligned string; padding zero'd
       case 3 => bitsOverByte //32u = no added padding
@@ -494,9 +359,9 @@ object SquadPositionEntry {
       info => {
         var i = 1
         var dinfo = info
-        while(info.next.nonEmpty) {
+        while(dinfo.next.nonEmpty) {
           i += 1
-          dinfo = info.next.get
+          dinfo = dinfo.next.get
         }
         i :: info :: HNil
       }
@@ -505,52 +370,109 @@ object SquadPositionEntry {
 
   def codec(bitsOverByte : StreamLengthToken) : Codec[SquadPositionEntry] = {
     import shapeless.::
+    /*
+     import net.psforever.newcodecs.newcodecs
+//        newcodecs.binary_choice[Option[LinkedSquadPositionInfo] :: HNil](
+//          index < 255,
+//          (bool :: squad_member_details_codec(bitsOverByte.Add(1))).exmap[Option[LinkedSquadPositionInfo] :: HNil] (
+//            {
+//              case _ :: info :: HNil => Attempt.Successful(Some(info) :: HNil)
+//            },
+//            {
+//              case Some(info) :: HNil => Attempt.Successful(true :: info :: HNil)
+//              case None :: HNil => Attempt.Failure(Err(s"this data for this position should not be None - $index < 255"))
+//            }
+//          ),
+//          bits.xmap[Option[LinkedSquadPositionInfo] :: HNil] (
+//            _ => None :: HNil,
+//            {
+//              case _ :: HNil => BitVector.empty
+//            }
+//          )
+//        )
+    */
     (
       ("index" | uint8) >>:~ { index =>
-        conditional(index < 255, bool) >>:~ { is_open =>
-          conditional(is_open.contains(true) && index < 255, "info" | squad_member_details_codec(bitsOverByte.Add(1))).hlist
-        }
+        conditional(index < 255, bool :: squad_member_details_codec(bitsOverByte.Add(1))) ::
+        conditional(index == 255, bits)
       }
       ).xmap[SquadPositionEntry] (
       {
         case 255 :: _ :: _ :: HNil =>
           SquadPositionEntry(255, None)
-        case ndx :: Some(false) :: None :: HNil =>
-          SquadPositionEntry(ndx, None)
-        case ndx :: Some(true) :: Some(info) :: HNil =>
-          SquadPositionEntry(ndx, Some(unlinkSquadPositionInfo(info)))
+        case ndx :: Some(_ :: info :: HNil) :: _ :: HNil =>
+          SquadPositionEntry(ndx, Some(unlinkSquadPositionInfo(Some(info))))
       },
       {
         case SquadPositionEntry(255, _) =>
-          255 :: None :: None  :: HNil
-        case SquadPositionEntry(ndx, None) =>
-          ndx :: Some(false) :: None :: HNil
+          255 :: None :: None :: HNil
         case SquadPositionEntry(ndx, Some(info)) =>
-          ndx :: Some(true) :: Some(linkSquadPositionInfo(info)) :: HNil
+          ndx :: Some(true :: linkSquadPositionInfo(info) :: HNil) :: None :: HNil
       }
     )
   }
 }
 
 object SquadDetail {
-  final val Blank = SquadDetail(None, None, None, None, None, None, None)
+  final val Blank = SquadDetail(None, None, None, None, None, None, None, None, None)
 
-  def apply(leader_char_id : Long) : SquadDetail = SquadDetail(None, Some(leader_char_id), None, None, None, None, None)
+  def apply(leader_char_id : Long) : SquadDetail = SquadDetail(None, None, Some(leader_char_id), None, None, None, None, None, None)
 
-  def apply(leader_name : String, task : Option[String]) : SquadDetail = SquadDetail(None, None, None, Some(leader_name), task, None, None)
+  def apply(leader_char_id : Long, leader_name : String) : SquadDetail = SquadDetail(None, None, Some(leader_char_id), None, Some(leader_name), None, None, None, None)
 
-  def apply(leader_name : Option[String], task : String) : SquadDetail = SquadDetail(None, None, None, leader_name, Some(task), None, None)
+  def apply(leader_name : String, task : Option[String]) : SquadDetail = SquadDetail(None, None, None, None, Some(leader_name), task, None, None, None)
 
-  def apply(zone_id : PlanetSideZoneID) : SquadDetail = SquadDetail(None, None, None, None, None, Some(zone_id), None)
+  def apply(leader_name : Option[String], task : String) : SquadDetail = SquadDetail(None, None, None, None, leader_name, Some(task), None, None, None)
 
-  def apply(member_list : List[SquadPositionEntry]) : SquadDetail = SquadDetail(None, None, None, None, None, None, Some(member_list))
+  def apply(zone_id : PlanetSideZoneID) : SquadDetail = SquadDetail(None, None, None, None, None, None, Some(zone_id), None, None)
 
-  def apply(unk1 : Int, leader_char_id : Long, unk2 : BitVector, leader_name : String, task : String, zone_id : PlanetSideZoneID, member_info : List[SquadPositionEntry]) : SquadDetail = {
-    SquadDetail(Some(unk1), Some(leader_char_id), Some(unk2), Some(leader_name), Some(task), Some(zone_id), Some(member_info))
+  def apply(member_list : List[SquadPositionEntry]) : SquadDetail = SquadDetail(None, None, None, None, None, None, None, None, Some(member_list))
+
+  def apply(unk1 : Int, unk2 : Int, leader_char_id : Long, unk3 : Long, leader_name : String, task : String, zone_id : PlanetSideZoneID, unk7 : Int, member_info : List[SquadPositionEntry]) : SquadDetail = {
+    SquadDetail(Some(unk1), Some(unk2), Some(leader_char_id), Some(unk3), Some(leader_name), Some(task), Some(zone_id), Some(unk7), Some(member_info))
   }
 }
 
-object SquadDetailDefinitionUpdateMessage2 {
+object SquadDetailDefinitionUpdateMessage extends Marshallable[SquadDetailDefinitionUpdateMessage] {
+  final val DefaultRequirements : Set[CertificationType.Value] = Set(
+    CertificationType.StandardAssault,
+    CertificationType.StandardExoSuit,
+    CertificationType.AgileExoSuit
+  )
+
+  final val Init = SquadDetailDefinitionUpdateMessage(
+    PlanetSideGUID(0),
+    SquadDetail(
+      0,
+      0,
+      0L,
+      0L,
+      "",
+      "",
+      PlanetSideZoneID(0),
+      0,
+      (0 to 9).map { i => SquadPositionEntry(i, SquadPositionDetail2.Blank)} toList
+    )
+  )
+
+
+  /*
+  DECOY CONSTRUCTORS
+   */
+  def apply(guid : PlanetSideGUID,
+             unk1 : Int,
+             leader_char_id : Long,
+             unk2 : BitVector,
+             leader_name : String,
+             task : String,
+             zone_id : PlanetSideZoneID,
+             member_info : List[SquadPositionDetail]) : SquadDetailDefinitionUpdateMessage = {
+    SquadDetailDefinitionUpdateMessage(PlanetSideGUID(0), SquadDetail.Blank)
+  }
+  def apply(guid : PlanetSideGUID, char_id : Long, leader_name : String, task : String, zone_id : PlanetSideZoneID, member_info : List[SquadPositionDetail]) : SquadDetailDefinitionUpdateMessage = {
+    SquadDetailDefinitionUpdateMessage(PlanetSideGUID(0), SquadDetail.Blank)
+  }
+
   /**
     * Produces a `Codec` function for byte-aligned, padded Pascal strings encoded through common manipulations.
     * @see `PacketHelpers.encodedWideStringAligned`
@@ -582,14 +504,14 @@ object SquadDetailDefinitionUpdateMessage2 {
       {
         case 6 :: closed :: role :: orders :: char_id :: name :: requirements :: HNil =>
           Attempt.Successful(
-            SquadPositionDetail2(Some(closed), Some(role), Some(orders), Some(defaultRequirements ++ CertificationType.fromEncodedLong(requirements)), Some(char_id), Some(name))
+            SquadPositionDetail2(Some(closed), Some(role), Some(orders), Some(DefaultRequirements ++ CertificationType.fromEncodedLong(requirements)), Some(char_id), Some(name))
           )
         case data =>
           Attempt.Failure(Err(s"can not decode a SquadDetailDefinitionUpdate member's data - $data"))
       },
       {
         case SquadPositionDetail2(Some(closed), Some(role), Some(orders), Some(requirements), Some(char_id), Some(name)) =>
-          Attempt.Successful(6 :: closed :: role :: orders :: char_id :: name :: CertificationType.toEncodedLong(defaultRequirements ++ requirements) :: HNil)
+          Attempt.Successful(6 :: closed :: role :: orders :: char_id :: name :: CertificationType.toEncodedLong(DefaultRequirements ++ requirements) :: HNil)
       }
     )
   }
@@ -673,20 +595,19 @@ object SquadDetailDefinitionUpdateMessage2 {
     import shapeless.::
     (
       ("unk1" | uint8) ::
-        uint24 :: //unknown, but can be 0'd
+        ("unk2" | uint24) :: //unknown, but can be 0'd
         ("leader_char_id" | uint32L) ::
-        ("unk2" | bits(22)) :: //variable fields, but can be 0'd
-        uint(10) :: //constant = 0
+        ("unk3" | uint32L) :: //variable fields, but can be 0'd
         ("leader" | PacketHelpers.encodedWideStringAligned(7)) ::
         ("task" | PacketHelpers.encodedWideString) ::
         ("zone_id" | PlanetSideZoneID.codec) ::
-        uint(23) :: //constant = 4983296
+        ("unk7" | uint(23)) :: //during full squad mode, constant = 4983296
         optional(bool, "member_info" | initial_member_codec)
       ).exmap[SquadDetail] (
       {
-        case u1 :: _ :: char_id :: u2 :: _ :: leader :: task :: zone :: _ :: Some(member_list) :: HNil =>
+        case u1 :: u2 :: char_id :: u3 :: leader :: task :: zone :: unk7 :: Some(member_list) :: HNil =>
           Attempt.Successful(
-            SquadDetail(Some(u1), Some(char_id), Some(u2), Some(leader), Some(task), Some(zone),
+            SquadDetail(Some(u1), Some(u2), Some(char_id), Some(u3), Some(leader), Some(task), Some(zone), Some(unk7),
               Some(unlinkMemberList(member_list).zipWithIndex.map { case (entry, index) => SquadPositionEntry(index, Some(entry)) })
             )
           )
@@ -694,9 +615,9 @@ object SquadDetailDefinitionUpdateMessage2 {
           Attempt.failure(Err(s"can not get squad detail definition from data $data"))
       },
       {
-        case SquadDetail(Some(u1), Some(char_id), Some(u2), Some(leader), Some(task), Some(zone), Some(member_list)) =>
+        case SquadDetail(Some(u1), Some(u2), Some(char_id), Some(u3), Some(leader), Some(task), Some(zone), Some(unk7), Some(member_list)) =>
           Attempt.Successful(
-            math.max(u1, 1) :: 0 :: char_id :: u2.take(22) :: 0 :: leader :: task :: zone :: 4983296 ::
+            math.max(u1, 1) :: u2 :: char_id :: u3 :: leader :: task :: zone :: unk7 ::
               Some(linkMemberList(member_list.collect { case SquadPositionEntry(_, Some(entry)) => entry }.reverse)) ::
               HNil
           )
@@ -704,20 +625,40 @@ object SquadDetailDefinitionUpdateMessage2 {
     )
   }
 
+  private val field1Codec : Codec[SquadDetail] = uint16L.exmap[SquadDetail] (
+    unk1 => Attempt.successful(SquadDetail(Some(unk1), None, None, None, None, None, None, None, None)),
+    {
+      case SquadDetail(Some(unk1), _, _, _,  _, _, _, _, _) =>
+        Attempt.successful(unk1)
+      case _ =>
+        Attempt.failure(Err("failed to encode squad data for unknown field #1"))
+    }
+  )
+
   private val leaderCharIdCodec : Codec[SquadDetail] = uint32L.exmap[SquadDetail] (
     char_id => Attempt.successful(SquadDetail(char_id)),
     {
-      case SquadDetail(_, Some(char_id), _,  _, _, _, _) =>
+      case SquadDetail(_, _, Some(char_id), _,  _, _, _, _, _) =>
         Attempt.successful(char_id)
       case _ =>
         Attempt.failure(Err("failed to encode squad data for leader id"))
     }
   )
 
+  private val field3Codec : Codec[SquadDetail] = uint32L.exmap[SquadDetail] (
+    unk3 => Attempt.successful(SquadDetail(None, None, None, Some(unk3), None, None, None, None, None)),
+    {
+      case SquadDetail(_, _, _, Some(unk3),  _, _, _, _, _) =>
+        Attempt.successful(unk3)
+      case _ =>
+        Attempt.failure(Err("failed to encode squad data for unknown field #3"))
+    }
+  )
+
   private def leaderNameCodec(bitsOverByte : StreamLengthToken) : Codec[SquadDetail] = paddedStringMetaCodec(bitsOverByte.Length).exmap[SquadDetail] (
     name => Attempt.successful(SquadDetail(name, None)),
     {
-      case SquadDetail(_, _, _, Some(name), _, _, _) =>
+      case SquadDetail(_, _, _, _, Some(name), _, _, _, _) =>
         Attempt.successful(name)
       case _ =>
         Attempt.failure(Err("failed to encode squad data for leader name"))
@@ -727,7 +668,7 @@ object SquadDetailDefinitionUpdateMessage2 {
   private def taskCodec(bitsOverByte : StreamLengthToken) : Codec[SquadDetail] = paddedStringMetaCodec(bitsOverByte.Length).exmap[SquadDetail] (
     task => Attempt.successful(SquadDetail(None, task)),
     {
-      case SquadDetail(_, _, _, _, Some(task), _, _) =>
+      case SquadDetail(_, _, _, _, _, Some(task), _, _, _) =>
         Attempt.successful(task)
       case _ =>
         Attempt.failure(Err("failed to encode squad data for task"))
@@ -737,27 +678,39 @@ object SquadDetailDefinitionUpdateMessage2 {
   private val zoneCodec : Codec[SquadDetail] = PlanetSideZoneID.codec.exmap[SquadDetail] (
     zone_id => Attempt.successful(SquadDetail(zone_id)),
     {
-      case SquadDetail(_, _, _, _, _, Some(zone_id), _) =>
+      case SquadDetail(_, _, _, _, _, _, Some(zone_id), _, _) =>
         Attempt.successful(zone_id)
       case _ =>
         Attempt.failure(Err("failed to encode squad data for zone id"))
     }
   )
 
+  private val field7Codec : Codec[SquadDetail] = {
+    uint4.exmap[SquadDetail] (
+      unk7 => Attempt.successful(SquadDetail(None, None, None, None, None, None, None, Some(unk7), None)),
+      {
+        case SquadDetail(_, _, _,  _, _, _, _, Some(unk7), _) =>
+          Attempt.successful(unk7)
+        case _ =>
+          Attempt.failure(Err("failed to encode squad data for unknown field #7"))
+      }
+    )
+  }
+
   private def membersCodec(bitsOverByte : StreamLengthToken) : Codec[SquadDetail] = {
     import shapeless.::
-    bitsOverByte.Add(19)
+    bitsOverByte.Add(4)
     (
-      uint(19) :: //constant = 0x60040, or 393280 in 19u BE
+      uint4 :: //constant = 12
         vector(SquadPositionEntry.codec(bitsOverByte))
       ).exmap[SquadDetail] (
       {
-        case _ :: member_list :: HNil =>
+        case 12 :: member_list :: HNil =>
           Attempt.successful(SquadDetail(member_list.toList))
       },
       {
-        case SquadDetail(_, _, _, _, _, _, Some(member_list)) =>
-          Attempt.successful(393280 :: member_list.toVector :: HNil)
+        case SquadDetail(_, _, _, _, _, _, _, _, Some(member_list)) =>
+          Attempt.successful(12 :: member_list.toVector :: HNil)
         case _ =>
           Attempt.failure(Err("failed to encode squad data for members"))
       }
@@ -771,10 +724,13 @@ object SquadDetailDefinitionUpdateMessage2 {
 
   private def selectCodecAction(code : Int, bitsOverByte : StreamLengthToken) : Codec[SquadDetail] = {
     code match {
+      case 1 => field1Codec
       case 2 => leaderCharIdCodec
+      case 3 => field3Codec
       case 4 => leaderNameCodec(bitsOverByte)
       case 5 => taskCodec(bitsOverByte)
       case 6 => zoneCodec
+      case 7 => field7Codec
       case 8 => membersCodec(bitsOverByte)
       case _ => failureCodec
     }
@@ -782,10 +738,13 @@ object SquadDetailDefinitionUpdateMessage2 {
 
   private def modifyCodecPadValue(code : Int, bitsOverByte : StreamLengthToken) : StreamLengthToken = {
     code match {
+      case 1 => bitsOverByte //16u = no added padding
       case 2 => bitsOverByte //32u = no added padding
+      case 3 => bitsOverByte //32u = no added padding
       case 4 => bitsOverByte.Length = 0 //byte-aligned string; padding zero'd
       case 5 => bitsOverByte.Length = 0 //byte-aligned string; padding zero'd
       case 6 => bitsOverByte //32u = no added padding
+      case 7 => bitsOverByte.Add(4) //additional 4u
       case 8 => bitsOverByte.Length = 0 //end of stream
       case _ => bitsOverByte.Length = Int.MinValue //wildly incorrect
     }
@@ -808,11 +767,14 @@ object SquadDetailDefinitionUpdateMessage2 {
   private def linkSquadInfo(info : SquadDetail) : LinkedSquadInfo = {
     //import scala.collection.immutable.::
     Seq(
-      (8, SquadDetail(None, None, None, None, None, None, info.member_info)),
-      (6, SquadDetail(None, None, None, None, None, info.zone_id, None)),
-      (5, SquadDetail(None, None, None, None, info.task, None, None)),
-      (4, SquadDetail(None, None, None, info.leader_name, None, None, None)),
-      (2, SquadDetail(None, info.leader_char_id, None, None, None, None, None))
+      (8, SquadDetail(None, None, None, None, None, None, None, None, info.member_info)),
+      (7, SquadDetail(None, None, None, None, None, None, None, info.unk7, None)),
+      (6, SquadDetail(None, None, None, None, None, None, info.zone_id, None, None)),
+      (5, SquadDetail(None, None, None, None, None, info.task, None, None, None)),
+      (4, SquadDetail(None, None, None, None, info.leader_name, None, None, None, None)),
+      (3, SquadDetail(None, None, None, info.unk3, None, None, None, None, None)),
+      (2, SquadDetail(None, None, info.leader_char_id, None, None, None, None, None, None)),
+      (1, SquadDetail(info.unk1, None, None, None, None, None, None, None, None))
     ) //in reverse order so that the linked list is in the correct order
       .filterNot { case (_, sqInfo) => sqInfo == SquadDetail.Blank}
     match {
@@ -869,7 +831,7 @@ object SquadDetailDefinitionUpdateMessage2 {
     }
   }
 
-  private def codec() : Codec[SquadDetailDefinitionUpdateMessage2] = {
+  implicit val codec : Codec[SquadDetailDefinitionUpdateMessage] = {
     import shapeless.::
     (
       ("guid" | PlanetSideGUID.codec) ::
@@ -877,14 +839,14 @@ object SquadDetailDefinitionUpdateMessage2 {
         (uint8 >>:~ { size =>
           squadDetailSelectCodec(size).hlist
         })
-      ).exmap[SquadDetailDefinitionUpdateMessage2] (
+      ).exmap[SquadDetailDefinitionUpdateMessage] (
       {
         case guid :: _ :: _ :: info :: HNil =>
-          Attempt.Successful(SquadDetailDefinitionUpdateMessage2(guid, info))
+          Attempt.Successful(SquadDetailDefinitionUpdateMessage(guid, info))
       },
       {
-        case SquadDetailDefinitionUpdateMessage2(guid, info) =>
-          val occupiedSquadFieldCount = List(info.unk1, info.leader_char_id, info.unk2, info.leader_name, info.task, info.zone_id, info.member_info)
+        case SquadDetailDefinitionUpdateMessage(guid, info) =>
+          val occupiedSquadFieldCount = List(info.unk1, info.unk2, info.leader_char_id, info.unk3, info.leader_name, info.task, info.zone_id, info.unk7, info.member_info)
             .count(_.nonEmpty)
           if(occupiedSquadFieldCount < 9) {
             //itemized detail definition protocol
@@ -916,6 +878,4 @@ object SquadDetailDefinitionUpdateMessage2 {
       }
     )
   }
-
-  implicit val code : Codec[SquadDetailDefinitionUpdateMessage2] = codec()
 }
