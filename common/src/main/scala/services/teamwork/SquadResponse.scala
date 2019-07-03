@@ -1,7 +1,7 @@
 // Copyright (c) 2019 PSForever
 package services.teamwork
 
-import net.psforever.packet.game.{PlanetSideGUID, PlanetSideZoneID, SquadInfo, SquadPositionDetail}
+import net.psforever.packet.game._
 
 object SquadResponse {
   trait Response
