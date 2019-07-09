@@ -198,17 +198,16 @@ final case class SquadDetail(unk1 : Option[Int],
     leader_name.orElse(Some("")),
     task.orElse(Some("")),
     zone_id.orElse(Some(PlanetSideZoneID(0))),
-    unk7.orElse(Some(0)),
+    unk7.orElse(Some(4983296)), //FullSquad value
     {
       val complete = SquadPositionDetail().Complete
       Some(member_info match {
         case Some(info) =>
           //create one list that ensures all existing positions are "complete" then add a list of the missing indices
-          val fields = info.collect {
-            case SquadPositionEntry(a, Some(b)) => SquadPositionEntry(a, b.Complete)
-            case out @ SquadPositionEntry(_, None) => out
-          }
-          val indices = info.map { case SquadPositionEntry(a, _) => a }
+          val (indices, fields) = info.collect {
+            case SquadPositionEntry(a, Some(b)) => (a, SquadPositionEntry(a, b.Complete))
+            case out @ SquadPositionEntry(a, None) => (a, out)
+          }.unzip
           ((0 to 9).toSet.diff(indices.toSet).map { SquadPositionEntry(_, complete) } ++ fields).toList.sortBy(_.index)
         case None =>
           //original list
@@ -585,7 +584,6 @@ object SquadDetailDefinitionUpdateMessage extends Marshallable[SquadDetailDefini
     private def membersCodec(bitsOverByte : StreamLengthToken) : Codec[SquadDetail] = {
       import shapeless.::
       (
-        //TODO you can replace this outer structure with an either Codec
         bool >>:~ { flag =>
           conditional(flag, {
             bitsOverByte.Add(4)
@@ -593,15 +591,15 @@ object SquadDetailDefinitionUpdateMessage extends Marshallable[SquadDetailDefini
           }) ::
             conditional(!flag, {
               bitsOverByte.Add(3)
-              uint(2) :: FullyPopulatedPositions.codec(bitsOverByte)
+              uint2 :: FullyPopulatedPositions.codec(bitsOverByte)
             })
         }
         ).exmap[SquadDetail] (
         {
           case true :: Some(_ :: member_list :: HNil) :: _ :: HNil =>
-            Attempt.successful(SquadDetail(None, None, None, None, None, None, None, None, Some(member_list.toList)))
+            Attempt.successful(SquadDetail(None, None, None, None, None, None, None, None, Some(ignoreTerminatingEntry(member_list.toList))))
           case false :: None :: Some(_ :: member_list :: HNil) :: HNil =>
-            Attempt.successful(SquadDetail(None, None, None, None, None, None, None, None, Some(member_list.toList)))
+            Attempt.successful(SquadDetail(None, None, None, None, None, None, None, None, Some(ignoreTerminatingEntry(member_list.toList))))
         },
         {
           case SquadDetail(_, _, _, _, _, _, _, _, Some(member_list)) =>
@@ -612,16 +610,54 @@ object SquadDetailDefinitionUpdateMessage extends Marshallable[SquadDetailDefini
               }
               .flatten
               .count(_.isEmpty) == 0) {
-              Attempt.successful(false :: None :: Some(2 :: member_list.toVector :: HNil) :: HNil)
+              Attempt.successful(false :: None :: Some(2 :: ensureTerminatingEntry(member_list).toVector :: HNil) :: HNil)
             }
             else {
-              Attempt.successful(true :: Some(4 :: member_list.toVector :: HNil) :: None :: HNil)
+              Attempt.successful(true :: Some(4 :: ensureTerminatingEntry(member_list).toVector :: HNil) :: None :: HNil)
             }
           case _ =>
             Attempt.failure(Err("failed to encode squad data for members"))
         }
       )
     }
+    //TODO while this pattern looks elegant, bitsOverByte does not accumulate properly with the either(bool, L, R); why?
+//    private def membersCodec(bitsOverByte : StreamLengthToken) : Codec[SquadDetail] = {
+//      import shapeless.::
+//      either(bool,
+//        { //false
+//          bitsOverByte.Add(3)
+//          uint2 :: FullyPopulatedPositions.codec(bitsOverByte)
+//        },
+//        { //true
+//          bitsOverByte.Add(4)
+//          uint(3) :: vector(ItemizedPositions.codec(bitsOverByte))
+//        }
+//      ).exmap[SquadDetail] (
+//        {
+//          case Left(_ :: member_list :: HNil) =>
+//            Attempt.successful(SquadDetail(None, None, None, None, None, None, None, None, Some(ignoreTerminatingEntry(member_list.toList))))
+//          case Right(_ :: member_list :: HNil) =>
+//            Attempt.successful(SquadDetail(None, None, None, None, None, None, None, None, Some(ignoreTerminatingEntry(member_list.toList))))
+//        },
+//        {
+//          case SquadDetail(_, _, _, _, _, _, _, _, Some(member_list)) =>
+//            if(member_list
+//              .collect { case position if position.info.nonEmpty =>
+//                val info = position.info.get
+//                List(info.is_closed, info.role, info.detailed_orders, info.requirements, info.char_id, info.name)
+//              }
+//              .flatten
+//              .count(_.isEmpty) == 0) {
+//              Attempt.successful(Left(2 :: ensureTerminatingEntry(member_list).toVector :: HNil))
+//            }
+//            else {
+//              Attempt.successful(Right(4 :: ensureTerminatingEntry(member_list).toVector :: HNil))
+//            }
+//          case _ =>
+//            Attempt.failure(Err("failed to encode squad data for members"))
+//        }
+//      )
+//    }
     /**
       * A failing pattern for when the coded value is not tied to a known field pattern.
       * This pattern does not read or write any bit data.
@@ -1245,10 +1281,9 @@ object SquadDetailDefinitionUpdateMessage extends Marshallable[SquadDetailDefini
         }).xmap[Vector[SquadPositionEntry]] (
         {
           case _ :: _ :: linkedMembers :: HNil =>
-            unlinkFields(linkedMembers).toVector
+            ignoreTerminatingEntry(unlinkFields(linkedMembers)).toVector
         },
-        //TODO "memberList.size - 1"? the only two examples are "10" anyway
-        memberList => memberList.size - 1 :: 12 :: linkFields(memberList.reverse.toList) :: HNil
+        memberList => 10 :: 12 :: linkFields(ensureTerminatingEntry(memberList.toList).reverse) :: HNil
       )
     }
   }
@@ -1318,6 +1353,32 @@ object SquadDetailDefinitionUpdateMessage extends Marshallable[SquadDetailDefini
           Attempt.Successful(6 :: closed :: role :: orders :: char_id :: name :: CertificationType.toEncodedLong(defaultRequirements ++ requirements) :: HNil)
       }
     )
+  }
+
+  /**
+    * The last entry in the sequence of squad information listings should be a dummied listing with an index of 255.
+    * Ensure that this terminal entry is located at the end.
+    * @param list the listing of squad information
+    * @return the listing of squad information, with a specific final entry
+    */
+  private def ensureTerminatingEntry(list : List[SquadPositionEntry]) : List[SquadPositionEntry] = {
+    list.lastOption match {
+      case Some(SquadPositionEntry(255, _)) => list
+      case Some(_) | None => list :+ SquadPositionEntry(255, None)
+    }
+  }
+
+  /**
+    * The last entry in the sequence of squad information listings should be a dummied listing with an index of 255.
+    * Remove this terminal entry from the end of the list so as not to hassle with it.
+    * @param list the listing of squad information
+    * @return the listing of squad information, with a specific final entry truncated
+    */
+  private def ignoreTerminatingEntry(list : List[SquadPositionEntry]) : List[SquadPositionEntry] = {
+    list.lastOption match {
+      case Some(SquadPositionEntry(255, _)) => list.init
+      case Some(_) | None => list
+    }
   }
 
   implicit val codec : Codec[SquadDetailDefinitionUpdateMessage] = {

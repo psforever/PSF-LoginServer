@@ -146,7 +146,7 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
           guid mustEqual PlanetSideGUID(3)
           detail match {
             case SquadDetail(None, None, None, None, None, None, None, None, Some(members)) =>
-              members.size mustEqual 2
+              members.size mustEqual 1
               members.head.index mustEqual 5
               members.head.info match {
                 case Some(SquadPositionDetail(Some(is_closed), None, None, None, None, None)) =>
@@ -169,7 +169,7 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
           guid mustEqual PlanetSideGUID(7)
           detail match {
             case SquadDetail(None, None, None, None, None, None, None, None, Some(members)) =>
-              members.size mustEqual 2
+              members.size mustEqual 1
               members.head.index mustEqual 0
               members.head.info match {
                 case Some(SquadPositionDetail(None, Some(role), None, None, None, None)) =>
@@ -192,7 +192,7 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
           guid mustEqual PlanetSideGUID(1)
           detail match {
             case SquadDetail(None, None, None, None, None, None, None, None, Some(members)) =>
-              members.size mustEqual 2
+              members.size mustEqual 1
               members.head.index mustEqual 6
               members.head.info match {
                 case Some(SquadPositionDetail(None, Some(role), None, Some(req), None, None)) =>
@@ -217,7 +217,7 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
           guid mustEqual PlanetSideGUID(3)
           detail match {
             case SquadDetail(None, None, None, None, None, None, None, None, Some(members)) =>
-              members.size mustEqual 2
+              members.size mustEqual 1
               members.head.index mustEqual 5
               members.head.info match {
                 case Some(SquadPositionDetail(None, None, None, None, Some(char_id), Some(name))) =>
@@ -242,7 +242,7 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
           detail match {
             case SquadDetail(None, None, None, None, None, Some(task), None, None, Some(members)) =>
               task mustEqual "\\#FF0000 The \\#ffffff Blades"
-              members.size mustEqual 11
+              members.size mustEqual 10
               //
               members.head.index mustEqual 9
               members.head.info match {
@@ -399,7 +399,7 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
           detail match {
             case SquadDetail(None, None, None, None, None, Some(task), None, None, Some(member_list)) =>
               task mustEqual "PSForever Packet Collection"
-              member_list.size mustEqual 11
+              member_list.size mustEqual 10
               member_list.head mustEqual SquadPositionEntry(9,Some(
                 SquadPositionDetail(
                   Some(false),
@@ -516,8 +516,7 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
           .Field1(0)
           .LeaderCharId(1221560L)
           .Members(List(
-            SquadPositionEntry(6, SquadPositionDetail().Player(0L, "")),
-            SquadPositionEntry(255, None)
+            SquadPositionEntry(6, SquadPositionDetail().Player(0L, ""))
           ))
       )
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
@@ -540,8 +539,7 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
           .Leader(42631712L, "Jaako")
           .Field3(556403L)
           .Members(List(
-            SquadPositionEntry(0, SquadPositionDetail().Player(0L, "")),
-            SquadPositionEntry(255, None)
+            SquadPositionEntry(0, SquadPositionDetail().Player(0L, ""))
           ))
       )
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
@@ -593,8 +591,7 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
             SquadPositionEntry(3, SquadPositionDetail().Role("The Princess")),
             SquadPositionEntry(2, SquadPositionDetail().Role("The Prince")),
             SquadPositionEntry(1, SquadPositionDetail().Role("The Queen")),
-            SquadPositionEntry(0, SquadPositionDetail().Role("The King")),
-            SquadPositionEntry(255, None)
+            SquadPositionEntry(0, SquadPositionDetail().Role("The King"))
           ))
       )
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
@@ -606,8 +603,7 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
         PlanetSideGUID(3),
         SquadDetail()
           .Members(List(
-            SquadPositionEntry(5, SquadPositionDetail.Closed),
-            SquadPositionEntry(255, None)
+            SquadPositionEntry(5, SquadPositionDetail.Closed)
           ))
       )
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
@@ -620,8 +616,7 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
         PlanetSideGUID(7),
         SquadDetail()
           .Members(List(
-            SquadPositionEntry(0, SquadPositionDetail().Role("Commander")),
-            SquadPositionEntry(255, None)
+            SquadPositionEntry(0, SquadPositionDetail().Role("Commander"))
           ))
       )
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
@@ -635,8 +630,7 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
           .Members(List(
             SquadPositionEntry(6, SquadPositionDetail()
               .Role("ADV Hacker")
-              .Requirements(Set(CertificationType.AdvancedHacking))),
-            SquadPositionEntry(255, None)
+              .Requirements(Set(CertificationType.AdvancedHacking)))
           ))
       )
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
@@ -648,8 +642,7 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
         PlanetSideGUID(3),
         SquadDetail()
           .Members(List(
-          SquadPositionEntry(5, SquadPositionDetail().Player(1218249L, "Duckmaster43")),
-          SquadPositionEntry(255, None)
+          SquadPositionEntry(5, SquadPositionDetail().Player(1218249L, "Duckmaster43"))
         ))
       )
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
@@ -671,8 +664,7 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
             SquadPositionEntry(3, SquadPositionDetail().Role("")),
             SquadPositionEntry(2, SquadPositionDetail().Role("")),
             SquadPositionEntry(1, SquadPositionDetail().Role("")),
-            SquadPositionEntry(0, SquadPositionDetail().Role("")),
-            SquadPositionEntry(255, None)
+            SquadPositionEntry(0, SquadPositionDetail().Role(""))
           ))
       )
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
@@ -715,7 +707,7 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
         PlanetSideGUID(3),
         SquadDetail
           .Task("PSForever Packet Collection")
-          .Members((0 to 9).map { index => SquadPositionEntry(index, position) }.reverse.toList :+ SquadPositionEntry(255, None))
+          .Members((0 to 9).map { index => SquadPositionEntry(index, position) }.reverse.toList)
       )
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
       pkt mustEqual string_mixed

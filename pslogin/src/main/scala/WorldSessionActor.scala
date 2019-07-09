@@ -52,7 +52,7 @@ import services.galaxy.{GalaxyResponse, GalaxyServiceResponse}
 import services.local.{LocalAction, LocalResponse, LocalServiceMessage, LocalServiceResponse}
 import services.vehicle.support.TurretUpgrader
 import services.vehicle.{VehicleAction, VehicleResponse, VehicleServiceMessage, VehicleServiceResponse}
-import services.teamwork._
+import services.teamwork.{SquadAction => SquadServiceAction, SquadServiceMessage, SquadServiceResponse, SquadResponse, SquadService}
 
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -376,16 +376,65 @@ class WorldSessionActor extends Actor with MDCContextAware {
             SquadDetailDefinitionUpdateMessage(
               guid,
               SquadDetail()
-                .LeaderCharId(member_info.find(_.name == leader).get.char_id.get)
+                .LeaderCharId(member_info.find(_.name.contains(leader)).get.char_id.get)
                 .LeaderName(leader)
                 .Task(task)
                 .ZoneId(zone)
-                .Members(
-                  member_info.zipWithIndex.map { case (a, b) => SquadPositionEntry(b, a) }
-                )
+                .Members(member_info.zipWithIndex.map { case (a, b) => SquadPositionEntry(b, a) })
                 .Complete
             )
           )
+
+        case SquadResponse.Membership(request_type, unk1, unk2, unk3, unk4, player_name, unk5, unk6) =>
+          sendResponse(SquadMembershipResponse(request_type, unk1, unk2, unk3, unk4, player_name, unk5, unk6))
+
+        case SquadResponse.Join(squad, positionsToUpdate) =>
+          val leader = squad.Leader
+          val id = 11
+          val membershipPositions = squad.Membership
+            .zipWithIndex
+            .filter { case (_, index ) => positionsToUpdate.contains(index) }
+          sendResponse(SquadMembershipResponse(SquadRequestType.Accept, 0, 0, player.CharId, Some(leader.CharId), player.Name, true, Some(None)))
+          //load each member's entry
+          membershipPositions.foreach { case(member, index) =>
+            sendResponse(SquadMemberEvent(0, id, member.CharId, index, Some(member.Name), Some(member.ZoneId), Some(0)))
+          }
+          //repeat own entry and initialize connection to squad
+          membershipPositions.find({ case(member, _) => member.CharId == avatar.CharId }) match {
+            case Some((member, index)) =>
+              sendResponse(SquadMemberEvent(0, id, member.CharId, index, Some(member.Name), Some(member.ZoneId), Some(0)))
+              sendResponse(PlanetsideAttributeMessage(player.GUID, 31, id)) //associate with squad?
+              sendResponse(PlanetsideAttributeMessage(player.GUID, 32, index)) //associate with member position in squad?
+            case _ => ;
+          }
+          //send first update for map icons
+          sendResponse(SquadState(PlanetSideGUID(id),
+            membershipPositions
+              .filterNot { case (member, _) => member.CharId == avatar.CharId }
+              .map{ case (member, _) => SquadStateInfo(member.CharId, 64,64, member.Position, 2,2, false, 429, None,None) }
+              .toList
+          ))
+          //a finalization? what does this do?
+          sendResponse(SquadDefinitionActionMessage(squad.GUID, 0, SquadAction.Unknown(18, hex"00".toBitVector.take(6))))
+
+        case SquadResponse.Leave(_, positionsToUpdate) =>
+          val id = 11
+          sendResponse(SquadMembershipResponse(SquadRequestType.Leave, 0,1, avatar.CharId, Some(avatar.CharId), avatar.name, true, Some(None)))
+          //remove each member's entry (our own too)
+          positionsToUpdate.foreach { case(member, index) =>
+            sendResponse(SquadMemberEvent(1, id, member, index, None, None, None))
+          }
+          //repeat own entry and rescind connection to squad
+          positionsToUpdate.find({ case(member, _) => member == avatar.CharId }) match {
+            case Some((member, index)) =>
+              sendResponse(SquadMemberEvent(1, id, member, index, None, None, None))
+              sendResponse(PlanetsideAttributeMessage(player.GUID, 31, 0)) //disassociate with squad?
+              sendResponse(PlanetsideAttributeMessage(player.GUID, 32, 0)) //disassociate with member position in squad?
+              sendResponse(PlanetsideAttributeMessage(player.GUID, 34, 4294967295L)) //unknown
+            case _ => ;
+          }
+          //a finalization? what does this do?
+          sendResponse(SquadDefinitionActionMessage(PlanetSideGUID(0), 0, SquadAction.Unknown(18, hex"00".toBitVector.take(6))))
         case _ => ;
       }
 
@@ -2911,42 +2960,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         interstellarFerryTopLevelGUID = None
       case _ => ;
     }
-    //SQUAD TESTING CODE
-    sendResponse(ReplicationStreamMessage(
-      5,
-      Some(6),
-      Vector(
-        SquadListing(0, SquadInfo(Some("xNick"), Some("FLY,ALL WELCOME!"), Some(PlanetSideZoneID(7)), Some(8), Some(10), Some(PlanetSideGUID(1)))),
-        SquadListing(1, SquadInfo(Some("HofD"), Some("=KOK+SPC+FLY= All Welcome"), Some(PlanetSideZoneID(7)), Some(3), Some(10), Some(PlanetSideGUID(3))))
-      )
-    ))
-    sendResponse(
-      SquadDetailDefinitionUpdateMessage(
-        PlanetSideGUID(3),
-        SquadDetail(
-          3,
-          1792,
-          42771010L,
-          529745L,
-          "HofD",
-          "\\#ffdc00***\\#9640ff=KOK+SPC+FLY=\\#ffdc00***\\#FF4040 All Welcome",
-          PlanetSideZoneID(7),
-          4983296,
-          List(
-            SquadPositionEntry(0, SquadPositionDetail("\\#ff0000 |||||||||||||||||||||||", "", Set(), 0, "")),
-            SquadPositionEntry(1, SquadPositionDetail("\\#ffdc00   C", "", Set(), 0, "")),
-            SquadPositionEntry(2, SquadPositionDetail("\\#ffdc00   H", "", Set(), 42644970L, "OpolE")),
-            SquadPositionEntry(3, SquadPositionDetail("\\#ffdc00    I", "", Set(), 41604210L, "BobaF3tt907")),
-            SquadPositionEntry(4, SquadPositionDetail("\\#ffdc00   N", "", Set(), 0, "")),
-            SquadPositionEntry(5, SquadPositionDetail("\\#ffdc00   A", "", Set(), 0, "")),
-            SquadPositionEntry(6, SquadPositionDetail("\\#ff0000 |||||||||||||||||||||||", "", Set(), 0, "")),
-            SquadPositionEntry(7, SquadPositionDetail("\\#9640ff   K", "", Set(), 0, "")),
-            SquadPositionEntry(8, SquadPositionDetail("\\#9640ff   O", "", Set(), 42771010L ,"HofD")),
-            SquadPositionEntry(9, SquadPositionDetail("\\#9640ff   K", "", Set(), 0, ""))
-          )
-        )
-      )
-    )
+    squadService ! Service.Join(s"${avatar.faction}") //channel will be player.Faction
   }
 
   def handleControlPkt(pkt : PlanetSideControlPacket) = {
@@ -3359,18 +3373,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ PlayerStateMessageUpstream(avatar_guid, pos, vel, yaw, pitch, yaw_upper, seq_time, unk3, is_crouching, is_jumping, unk4, is_cloaking, unk5, unk6) =>
       if(deadState == DeadState.Alive) {
         if(!player.Crouching && is_crouching) { //SQUAD TESTING CODE
-          sendRawResponse(hex"e80300818800015c5189004603408c000000012000ff")
-//          sendResponse(SquadMembershipResponse(SquadRequestType.Invite,0,0,42771010,Some(avatar.CharId),"HofD",false,None))
-//          sendResponse(SquadMembershipResponse(SquadRequestType.Accept,0,0,avatar.CharId,Some(42771010),"VirusGiver",true,Some(None)))
-//          sendResponse(SquadMemberEvent(0,7,42771010,0,Some("HofD"),Some(7),Some(529745)))
-//          sendResponse(SquadMemberEvent(0,7,42644970,1,Some("OpolE"),Some(7),Some(6418)))
-//          sendResponse(SquadMemberEvent(0,7,41604210,8,Some("BobaF3tt907"),Some(12),Some(8097)))
-//          sendResponse(PlanetsideAttributeMessage(player.GUID, 49, 7))
-//          sendResponse(PlanetsideAttributeMessage(player.GUID, 50, 2))
-//          sendResponse(PlanetsideAttributeMessage(player.GUID, 51, 8))
-//          sendResponse(SquadDefinitionActionMessage(PlanetSideGUID(3), 0, SquadAction.Unknown(18, hex"".toBitVector)))
-//          sendResponse(PlanetsideAttributeMessage(player.GUID, 83, 0))
-//          sendResponse(SquadState(PlanetSideGUID(7),List(SquadStateInfo(avatar.CharId,64,64,Vector3(3464.0469f,4065.5703f,20.015625f),2,2,false,0,None,None))))
+          //...
         }
         player.Position = pos
         player.Velocity = vel
@@ -4850,7 +4853,29 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ SquadDefinitionActionMessage(u1, u2, action) =>
       log.info(s"SquadDefinitionAction: $msg")
-      squadService ! SquadServiceMessage.SquadDefinitionAction(player, continent.Number, u1, u2, action)
+        squadService ! SquadServiceMessage(player, SquadServiceAction.Definition(player, continent.Number, u1, u2, action))
+
+    case msg @ SquadMembershipRequest(request_type, unk2, unk3, player_name, unk5) =>
+      log.info(s"$msg")
+      squadService ! SquadServiceMessage(player, SquadServiceAction.Membership(request_type, unk2, unk3, player_name, unk5))
+//      if(request_type == SquadRequestType.Accept) {
+//        sendResponse(SquadMembershipResponse(SquadRequestType.Accept, 0, 0, unk2, Some(30910985L), player.Name, true, Some(None)))
+//        sendResponse(SquadMemberEvent(0, 11, 30910985L, 0, Some("Wizkid45"), Some(5), Some(320036)))
+//        sendResponse(SquadMemberEvent(0, 11, 42781919L, 1, Some("xoBLADEox"), Some(5), Some(528805)))
+//        sendResponse(SquadMemberEvent(0, 11, avatar.CharId, 2, Some(player.Name), Some(13), Some(320036)))
+//        sendResponse(SquadMemberEvent(0, 11, 353380L, 3, Some("cabal0428") ,Some(5), Some(8156)))
+//        sendResponse(SquadMemberEvent(0, 11, 41588340L, 4 ,Some("xSkiku"), Some(5), Some(0)))
+//        sendResponse(SquadMemberEvent(0, 11, avatar.CharId, 2, Some(player.Name), Some(13), Some(320036)))
+//        sendResponse(PlanetsideAttributeMessage(player.GUID, 31, 11)) //associate with squad?
+//        sendResponse(PlanetsideAttributeMessage(player.GUID, 32, 2)) //associate with member position in squad?
+//        sendResponse(SquadState(PlanetSideGUID(11),List(
+//          SquadStateInfo(30910985L, 50,64, Vector3(5526.5234f,3818.7344f,54.59375f), 2,2, false, 429, None,None),
+//          SquadStateInfo(42781919L, 64,0, Vector3(4673.5312f,2604.8047f,40.015625f), 2,2, false, 149, None,None),
+//          SquadStateInfo(353380L, 64,64, Vector3(4727.492f,2613.5312f,51.390625f), 2,2, false, 0, None,None),
+//          SquadStateInfo(41588340L, 64,64, Vector3(3675.0f,4789.8047f,63.21875f), 2,2, false, 0, None,None)
+//        )))
+//        sendResponse(SquadDefinitionActionMessage(PlanetSideGUID(3), 0, SquadAction.Unknown(18, hex"00".toBitVector.take(6))))
+//      }
 
     case msg @ GenericCollisionMsg(u1, p, t, php, thp, pv, tv, ppos, tpos, u2, u3, u4) =>
       log.info("Ouch! " + msg)

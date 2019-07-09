@@ -8,10 +8,10 @@ import shapeless.{::, HNil}
 
 final case class SquadMemberEvent(unk1 : Int,
                                   unk2 : Int,
-                                  unk3 : Long,
-                                  unk4 : Int,
-                                  unk5 : Option[String],
-                                  unk6 : Option[Int],
+                                  char_id : Long,
+                                  member_position : Int,
+                                  player_name : Option[String],
+                                  zone_number : Option[Int],
                                   unk7 : Option[Long])
   extends PlanetSideGamePacket {
   type Packet = SquadMemberEvent
@@ -20,40 +20,40 @@ final case class SquadMemberEvent(unk1 : Int,
 }
 
 object SquadMemberEvent extends Marshallable[SquadMemberEvent] {
-  def apply(unk1 : Int, unk2 : Int, unk3 : Long, unk4 : Int) : SquadMemberEvent =
-    SquadMemberEvent(unk1, unk2, unk3, unk4, None, None, None)
+  def apply(unk1 : Int, unk2 : Int, char_id : Long, member_position : Int) : SquadMemberEvent =
+    SquadMemberEvent(unk1, unk2, char_id, member_position, None, None, None)
 
-  def apply(unk2 : Int, unk3 : Long, unk4 : Int, unk5 : String, unk6 : Int, unk7 : Long) : SquadMemberEvent =
-    SquadMemberEvent(0, unk2, unk3, unk4, Some(unk5), Some(unk6), Some(unk7))
+  def apply(unk2 : Int, char_id : Long, member_position : Int, player_name : String, zone_number : Int, unk7 : Long) : SquadMemberEvent =
+    SquadMemberEvent(0, unk2, char_id, member_position, Some(player_name), Some(zone_number), Some(unk7))
 
-  def apply(unk2 : Int, unk3 : Long, unk4 : Int, unk6 : Int) : SquadMemberEvent =
-    SquadMemberEvent(3, unk2, unk3, unk4, None, Some(unk6), None)
+  def apply(unk2 : Int, char_id : Long, member_position : Int, zone_number : Int) : SquadMemberEvent =
+    SquadMemberEvent(3, unk2, char_id, member_position, None, Some(zone_number), None)
 
-  def apply(unk2 : Int, unk3 : Long, unk4 : Int, unk7 : Long) : SquadMemberEvent =
-    SquadMemberEvent(4, unk2, unk3, unk4, None, None, Some(unk7))
+  def apply(unk2 : Int, char_id : Long, member_position : Int, unk7 : Long) : SquadMemberEvent =
+    SquadMemberEvent(4, unk2, char_id, member_position, None, None, Some(unk7))
 
   implicit val codec : Codec[SquadMemberEvent] = (
-    ("unk1" | uintL(3)) >>:~ { unk1 =>
+    ("unk1" | uint(3)) >>:~ { unk1 =>
       ("unk2" | uint16L) ::
-        ("unk3" | uint32L) ::
-        ("unk4" | uintL(4)) ::
-        conditional(unk1 == 0, "unk5" | PacketHelpers.encodedWideStringAligned(1)) ::
-        conditional(unk1 == 0 || unk1 == 3, "unk6" | uint16L) ::
+        ("char_id" | uint32L) ::
+        ("member_position" | uint4) ::
+        conditional(unk1 == 0, "player_name" | PacketHelpers.encodedWideStringAligned(1)) ::
+        conditional(unk1 == 0 || unk1 == 3, "zone_number" | uint16L) ::
         conditional(unk1 == 0 || unk1 == 4, "unk7" | uint32L)
     }).exmap[SquadMemberEvent] (
     {
-      case unk1 :: unk2 :: unk3 :: unk4 :: unk5 :: unk6 :: unk7 :: HNil =>
-        Attempt.Successful(SquadMemberEvent(unk1, unk2, unk3, unk4, unk5, unk6, unk7))
+      case unk1 :: unk2 :: char_id :: member_position :: player_name :: zone_number :: unk7 :: HNil =>
+        Attempt.Successful(SquadMemberEvent(unk1, unk2, char_id, member_position, player_name, zone_number, unk7))
     },
     {
-      case data @ SquadMemberEvent(0, unk2, unk3, unk4, Some(unk5), Some(unk6), Some(unk7)) =>
-        Attempt.Successful(0 :: unk2 :: unk3 :: unk4 :: Some(unk5) :: Some(unk6) :: Some(unk7) :: HNil)
-      case data @ SquadMemberEvent(3, unk2, unk3, unk4, None, Some(unk6), None) =>
-        Attempt.Successful(3 :: unk2 :: unk3 :: unk4 :: None :: Some(unk6) :: None :: HNil)
-      case data @ SquadMemberEvent(4, unk2, unk3, unk4, None, None, Some(unk7)) =>
-        Attempt.Successful(4 :: unk2 :: unk3 :: unk4 :: None :: None :: Some(unk7) :: HNil)
-      case data @ SquadMemberEvent(unk1, unk2, unk3, unk4, None, None, None) =>
-        Attempt.Successful(unk1 :: unk2 :: unk3 :: unk4 :: None :: None :: None :: HNil)
+      case data @ SquadMemberEvent(0, unk2, char_id, member_position, Some(player_name), Some(zone_number), Some(unk7)) =>
+        Attempt.Successful(0 :: unk2 :: char_id :: member_position :: Some(player_name) :: Some(zone_number) :: Some(unk7) :: HNil)
+      case data @ SquadMemberEvent(3, unk2, char_id, member_position, None, Some(zone_number), None) =>
+        Attempt.Successful(3 :: unk2 :: char_id :: member_position :: None :: Some(zone_number) :: None :: HNil)
+      case data @ SquadMemberEvent(4, unk2, char_id, member_position, None, None, Some(unk7)) =>
+        Attempt.Successful(4 :: unk2 :: char_id :: member_position :: None :: None :: Some(unk7) :: HNil)
+      case data @ SquadMemberEvent(unk1, unk2, char_id, member_position, None, None, None) =>
+        Attempt.Successful(unk1 :: unk2 :: char_id :: member_position :: None :: None :: None :: HNil)
       case data =>
         Attempt.Failure(Err(s"SquadMemberEvent can not encode with this pattern - $data"))
     }

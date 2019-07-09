@@ -82,12 +82,12 @@ class Squad(squadId : PlanetSideGUID, alignment : PlanetSideEmpire.Value) extend
     LeaderPositionIndex
   }
 
-  def Leader : String = {
-    membership.lift(leaderPositionIndex) match {
-      case Some(member) =>
-        member.Name
-      case None =>
-        ""
+  def Leader : Member = {
+    membership(leaderPositionIndex) match {
+      case member if !member.Name.equals("") =>
+        member
+      case _ =>
+        throw new Exception("can not find squad leader!")
     }
   }
 
