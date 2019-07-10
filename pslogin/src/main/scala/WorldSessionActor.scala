@@ -54,6 +54,7 @@ import services.vehicle.support.TurretUpgrader
 import services.vehicle.{VehicleAction, VehicleResponse, VehicleServiceMessage, VehicleServiceResponse}
 import services.teamwork.{SquadAction => SquadServiceAction, SquadServiceMessage, SquadServiceResponse, SquadResponse, SquadService}
 
+import scala.collection.mutable.LongMap
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.annotation.tailrec
@@ -115,6 +116,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * no harm should come from leaving the field set to an old unique identifier value after the transfer period
     */
   var interstellarFerryTopLevelGUID : Option[PlanetSideGUID] = None
+  val squadUI : LongMap[SquadUIElement] = new LongMap[SquadUIElement]()
 
   var amsSpawnPoints : List[SpawnPoint] = Nil
   var clientKeepAlive : Cancellable = DefaultCancellable.obj
@@ -394,47 +396,92 @@ class WorldSessionActor extends Actor with MDCContextAware {
           val membershipPositions = squad.Membership
             .zipWithIndex
             .filter { case (_, index ) => positionsToUpdate.contains(index) }
-          sendResponse(SquadMembershipResponse(SquadRequestType.Accept, 0, 0, player.CharId, Some(leader.CharId), player.Name, true, Some(None)))
-          //load each member's entry
-          membershipPositions.foreach { case(member, index) =>
-            sendResponse(SquadMemberEvent(0, id, member.CharId, index, Some(member.Name), Some(member.ZoneId), Some(0)))
-          }
-          //repeat own entry and initialize connection to squad
           membershipPositions.find({ case(member, _) => member.CharId == avatar.CharId }) match {
-            case Some((member, index)) =>
-              sendResponse(SquadMemberEvent(0, id, member.CharId, index, Some(member.Name), Some(member.ZoneId), Some(0)))
+            case Some((ourMember, ourIndex)) =>
+              //we are joining the squad
+              sendResponse(SquadMembershipResponse(SquadRequestType.Accept, 0, 0, player.CharId, Some(leader.CharId), player.Name, true, Some(None)))
+              //load each member's entry (our own too)
+              membershipPositions.foreach { case(member, index) =>
+                sendResponse(SquadMemberEvent(0, id, member.CharId, index, Some(member.Name), Some(member.ZoneId), Some(0)))
+                squadUI(member.CharId) = SquadUIElement(member.Name, index, member.ZoneId, member.Health, member.Armor, member.Position)
+              }
+              //initialization
+              sendResponse(SquadMemberEvent(0, id, ourMember.CharId, ourIndex, Some(ourMember.Name), Some(ourMember.ZoneId), Some(0))) //repeat of our entry
               sendResponse(PlanetsideAttributeMessage(player.GUID, 31, id)) //associate with squad?
-              sendResponse(PlanetsideAttributeMessage(player.GUID, 32, index)) //associate with member position in squad?
-            case _ => ;
+              sendResponse(PlanetsideAttributeMessage(player.GUID, 32, ourIndex)) //associate with member position in squad?
+              //a finalization? what does this do?
+              sendResponse(SquadDefinitionActionMessage(squad.GUID, 0, SquadAction.Unknown(18, hex"00".toBitVector.take(6))))
+            case _ =>
+              //other player is joining our squad
+              //load each member's entry
+              membershipPositions.foreach { case(member, index) =>
+                sendResponse(SquadMemberEvent(0, id, member.CharId, index, Some(member.Name), Some(member.ZoneId), Some(0)))
+                squadUI(member.CharId) = SquadUIElement(member.Name, index, member.ZoneId, member.Health, member.Armor, member.Position)
+              }
           }
-          //send first update for map icons
+          //send an initial dummy update for map icon(s)
           sendResponse(SquadState(PlanetSideGUID(id),
             membershipPositions
               .filterNot { case (member, _) => member.CharId == avatar.CharId }
-              .map{ case (member, _) => SquadStateInfo(member.CharId, 64,64, member.Position, 2,2, false, 429, None,None) }
+              .map{ case (member, _) => SquadStateInfo(member.CharId, member.Health, member.Armor, member.Position, 2,2, false, 429, None,None) }
               .toList
           ))
-          //a finalization? what does this do?
-          sendResponse(SquadDefinitionActionMessage(squad.GUID, 0, SquadAction.Unknown(18, hex"00".toBitVector.take(6))))
 
         case SquadResponse.Leave(_, positionsToUpdate) =>
           val id = 11
-          sendResponse(SquadMembershipResponse(SquadRequestType.Leave, 0,1, avatar.CharId, Some(avatar.CharId), avatar.name, true, Some(None)))
-          //remove each member's entry (our own too)
-          positionsToUpdate.foreach { case(member, index) =>
-            sendResponse(SquadMemberEvent(1, id, member, index, None, None, None))
-          }
-          //repeat own entry and rescind connection to squad
           positionsToUpdate.find({ case(member, _) => member == avatar.CharId }) match {
-            case Some((member, index)) =>
-              sendResponse(SquadMemberEvent(1, id, member, index, None, None, None))
+            case Some((ourMember, ourIndex)) =>
+              //we are leaving the squad
+              sendResponse(SquadMembershipResponse(SquadRequestType.Leave, 0,1, avatar.CharId, Some(avatar.CharId), avatar.name, true, Some(None)))
+              //remove each member's entry (our own too)
+              positionsToUpdate.foreach { case(member, index) =>
+                sendResponse(SquadMemberEvent(1, id, member, index, None, None, None))
+                squadUI.remove(member)
+              }
+              //uninitialize
+              sendResponse(SquadMemberEvent(1, id, ourMember, ourIndex, None, None, None)) //repeat of our entry
               sendResponse(PlanetsideAttributeMessage(player.GUID, 31, 0)) //disassociate with squad?
               sendResponse(PlanetsideAttributeMessage(player.GUID, 32, 0)) //disassociate with member position in squad?
-              sendResponse(PlanetsideAttributeMessage(player.GUID, 34, 4294967295L)) //unknown
-            case _ => ;
+              sendResponse(PlanetsideAttributeMessage(player.GUID, 34, 4294967295L)) //unknown, perhaps unrelated?
+              //a finalization? what does this do?
+              sendResponse(SquadDefinitionActionMessage(PlanetSideGUID(0), 0, SquadAction.Unknown(18, hex"00".toBitVector.take(6))))
+            case _ =>
+              //remove each member's entry
+              positionsToUpdate.foreach { case(member, index) =>
+                sendResponse(SquadMemberEvent(1, id, member, index, None, None, None))
+                squadUI.remove(member)
+              }
           }
-          //a finalization? what does this do?
-          sendResponse(SquadDefinitionActionMessage(PlanetSideGUID(0), 0, SquadAction.Unknown(18, hex"00".toBitVector.take(6))))
+
+        case SquadResponse.UpdateMembers(squad, positions) =>
+          import services.teamwork.SquadAction.{Update => SAUpdate}
+          val pairedEntries = positions.collect {
+            case entry if squadUI.contains(entry.char_id) =>
+              (entry, squadUI(entry.char_id))
+          }
+          //prune entries
+          val updatedEntries = pairedEntries
+            .collect({
+              case (entry, element) if entry.zone_number != element.zone =>
+                //zone gets updated for these entries
+                sendResponse(SquadMemberEvent(3, 11, entry.char_id, element.index, None, Some(entry.zone_number), None))
+                squadUI(entry.char_id) = SquadUIElement(element.name, element.index, entry.zone_number, entry.health, entry.armor, entry.pos)
+                entry
+              case (entry, element) if entry.health != element.health || entry.armor != element.armor || entry.pos != element.position =>
+                //other elements that need to be updated
+                squadUI(entry.char_id) = SquadUIElement(element.name, element.index, entry.zone_number, entry.health, entry.armor, entry.pos)
+                entry
+            })
+            .filterNot(_.char_id == avatar.CharId) //we want to update our backend, but not our frontend
+          if(updatedEntries.nonEmpty) {
+            sendResponse(
+              SquadState(
+                PlanetSideGUID(11),
+                updatedEntries.map { entry => SquadStateInfo(entry.char_id, entry.health, entry.armor, entry.pos, 2,2, false, 429, None,None)}
+              )
+            )
+          }
+
         case _ => ;
       }
 
@@ -586,7 +633,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
         player.Stamina = stamina
         player.Armor = armor
       }
-      avatar.CharId = 41605313L
       sendResponse(CharacterInfoMessage(15, PlanetSideZoneID(10000), avatar.CharId, player.GUID, false, 6404428))
       RemoveCharacterSelectScreenGUID(player)
       sendResponse(CharacterInfoMessage(0, PlanetSideZoneID(1), 0, PlanetSideGUID(0), true, 0))
@@ -2986,7 +3032,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       import net.psforever.objects.GlobalDefinitions._
       import net.psforever.types.CertificationType._
       val faction = PlanetSideEmpire.VS
-      val avatar = Avatar(s"TestCharacter$sessionId", faction, CharacterGender.Female, 41, CharacterVoice.Voice1)
+      val avatar = new Avatar(41605313L+sessionId, s"TestCharacter$sessionId", faction, CharacterGender.Female, 41, CharacterVoice.Voice1)
       avatar.Certifications += StandardAssault
       avatar.Certifications += MediumAssault
       avatar.Certifications += StandardExoSuit
@@ -3373,7 +3419,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ PlayerStateMessageUpstream(avatar_guid, pos, vel, yaw, pitch, yaw_upper, seq_time, unk3, is_crouching, is_jumping, unk4, is_cloaking, unk5, unk6) =>
       if(deadState == DeadState.Alive) {
         if(!player.Crouching && is_crouching) { //SQUAD TESTING CODE
-          //...
+          sendResponse(SquadMemberEvent(3, 11, 353380L, 3, None, Some(13), None))
         }
         player.Position = pos
         player.Velocity = vel
@@ -3416,6 +3462,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           case None => false
         }
         avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlayerState(avatar_guid, msg, spectator, wepInHand))
+        //squadService ! SquadServiceMessage(tplayer, SquadAction.Update(tplayer.CharId, tplayer.Health, tplayer.MaxHealth, tplayer.Armor, tplayer.MaxArmor, pos, zone.Number))
       }
 
     case msg @ ChildObjectStateMessage(object_guid, pitch, yaw) =>
@@ -4858,24 +4905,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ SquadMembershipRequest(request_type, unk2, unk3, player_name, unk5) =>
       log.info(s"$msg")
       squadService ! SquadServiceMessage(player, SquadServiceAction.Membership(request_type, unk2, unk3, player_name, unk5))
-//      if(request_type == SquadRequestType.Accept) {
-//        sendResponse(SquadMembershipResponse(SquadRequestType.Accept, 0, 0, unk2, Some(30910985L), player.Name, true, Some(None)))
-//        sendResponse(SquadMemberEvent(0, 11, 30910985L, 0, Some("Wizkid45"), Some(5), Some(320036)))
-//        sendResponse(SquadMemberEvent(0, 11, 42781919L, 1, Some("xoBLADEox"), Some(5), Some(528805)))
-//        sendResponse(SquadMemberEvent(0, 11, avatar.CharId, 2, Some(player.Name), Some(13), Some(320036)))
-//        sendResponse(SquadMemberEvent(0, 11, 353380L, 3, Some("cabal0428") ,Some(5), Some(8156)))
-//        sendResponse(SquadMemberEvent(0, 11, 41588340L, 4 ,Some("xSkiku"), Some(5), Some(0)))
-//        sendResponse(SquadMemberEvent(0, 11, avatar.CharId, 2, Some(player.Name), Some(13), Some(320036)))
-//        sendResponse(PlanetsideAttributeMessage(player.GUID, 31, 11)) //associate with squad?
-//        sendResponse(PlanetsideAttributeMessage(player.GUID, 32, 2)) //associate with member position in squad?
-//        sendResponse(SquadState(PlanetSideGUID(11),List(
-//          SquadStateInfo(30910985L, 50,64, Vector3(5526.5234f,3818.7344f,54.59375f), 2,2, false, 429, None,None),
-//          SquadStateInfo(42781919L, 64,0, Vector3(4673.5312f,2604.8047f,40.015625f), 2,2, false, 149, None,None),
-//          SquadStateInfo(353380L, 64,64, Vector3(4727.492f,2613.5312f,51.390625f), 2,2, false, 0, None,None),
-//          SquadStateInfo(41588340L, 64,64, Vector3(3675.0f,4789.8047f,63.21875f), 2,2, false, 0, None,None)
-//        )))
-//        sendResponse(SquadDefinitionActionMessage(PlanetSideGUID(3), 0, SquadAction.Unknown(18, hex"00".toBitVector.take(6))))
-//      }
 
     case msg @ GenericCollisionMsg(u1, p, t, php, thp, pv, tv, ppos, tpos, u2, u3, u4) =>
       log.info("Ouch! " + msg)
@@ -7621,17 +7650,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * @return a `DestroyDisplayMessage` packet that is properly formatted
     */
   def DestroyDisplayMessage(killer : SourceEntry, victim : SourceEntry, method : Int, unk : Int = 121) : DestroyDisplayMessage = {
-    val killerCharId : Long = killer.CharId
-    val victimCharId : Long = {
-      //TODO this block of code is only necessary for this particular dev build; use "victim.CharId" normallyLoado
-      val id = victim.CharId
-      if(killerCharId == id) {
-        Int.MaxValue - id + 1
-      }
-      else {
-        id
-      }
-    }
     val killer_seated = killer match {
       case obj : PlayerSource => obj.Seated
       case _ => false
@@ -7641,9 +7659,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
       case _ => false
     }
     new DestroyDisplayMessage(
-      killer.Name, killerCharId, killer.Faction, killer_seated,
+      killer.Name, killer.CharId, killer.Faction, killer_seated,
       unk, method,
-      victim.Name, victimCharId, victim.Faction, victim_seated
+      victim.Name, victim.CharId, victim.Faction, victim_seated
     )
   }
 
@@ -9196,6 +9214,8 @@ object WorldSessionActor {
                                            delta : Float,
                                            completeAction : () => Unit,
                                            tickAction : Option[() => Unit] = None)
+
+  protected final case class SquadUIElement(name : String, index : Int, zone : Int, health : Int, armor : Int, position : Vector3)
 
   private final case class NtuCharging(tplayer: Player,
                                        vehicle: Vehicle)

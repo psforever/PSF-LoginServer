@@ -10,9 +10,8 @@ import net.psforever.types._
 import scala.annotation.tailrec
 import scala.collection.mutable
 
-class Avatar(val name : String, val faction : PlanetSideEmpire.Value, val sex : CharacterGender.Value, val head : Int, val voice : CharacterVoice.Value) {
-  /** Character ID; a unique identifier corresponding to a database table row index */
-  private var charId : Long = 0
+class Avatar(private val char_id : Long, val name : String, val faction : PlanetSideEmpire.Value, val sex : CharacterGender.Value, val head : Int, val voice : CharacterVoice.Value) {
+  /** char_id, Character ID; a unique identifier corresponding to a database table row index */
   /** Battle Experience Points */
   private var bep : Long = 0
   /** Command Experience Points */
@@ -48,14 +47,7 @@ class Avatar(val name : String, val faction : PlanetSideEmpire.Value, val sex : 
 
   private val deployables : DeployableToolbox = new DeployableToolbox
 
-  def CharId : Long = charId
-
-  def CharId_=(id : Long) : Long = {
-    if(charId == 0) { //does not need to be set but can only set once
-      charId = id
-    }
-    CharId
-  }
+  def CharId : Long = char_id
 
   def BEP : Long = bep
 
@@ -226,7 +218,7 @@ class Avatar(val name : String, val faction : PlanetSideEmpire.Value, val sex : 
 
 object Avatar {
   def apply(name : String, faction : PlanetSideEmpire.Value, sex : CharacterGender.Value, head : Int, voice : CharacterVoice.Value) : Avatar = {
-    new Avatar(name, faction, sex, head, voice)
+    new Avatar(0L, name, faction, sex, head, voice)
   }
 
   def toString(avatar : Avatar) : String = s"${avatar.faction} ${avatar.name}"

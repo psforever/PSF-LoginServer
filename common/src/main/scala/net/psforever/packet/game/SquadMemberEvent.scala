@@ -6,6 +6,20 @@ import scodec.{Attempt, Codec, Err}
 import scodec.codecs._
 import shapeless.{::, HNil}
 
+object MemberEvent extends Enumeration {
+  type Type = Value
+
+  val
+  Add,
+  Remove,
+  Unknown2,
+  UpdateZone,
+  Unknown4
+    = Value
+
+  implicit val codec = PacketHelpers.createEnumerationCodec(this, uint(3))
+}
+
 final case class SquadMemberEvent(unk1 : Int,
                                   unk2 : Int,
                                   char_id : Long,

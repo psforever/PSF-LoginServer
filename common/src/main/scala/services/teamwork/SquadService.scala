@@ -3,6 +3,7 @@ package services.teamwork
 
 import akka.actor.Actor
 import net.psforever.objects.Player
+import net.psforever.objects.definition.converter.StatConverter
 import net.psforever.objects.teamwork.Squad
 import net.psforever.packet.game._
 import net.psforever.types.{PlanetSideEmpire, SquadRequestType, Vector3}
@@ -36,18 +37,26 @@ class SquadService extends Actor {
     testSquad.Membership(0).Name = "Wizkid45"
     testSquad.Membership(0).CharId = 30910985L
     testSquad.Membership(0).ZoneId = 5
+    testSquad.Membership(0).Health = 64
+    testSquad.Membership(0).Armor = 34
     testSquad.Membership(0).Position = Vector3(5526.5234f, 3818.7344f, 54.59375f)
     testSquad.Membership(1).Name = "xoBLADEox"
     testSquad.Membership(1).CharId = 42781919L
     testSquad.Membership(1).ZoneId = 5
+    testSquad.Membership(1).Health = 54
+    testSquad.Membership(1).Armor = 44
     testSquad.Membership(1).Position = Vector3(4673.5312f, 2604.8047f, 40.015625f)
     testSquad.Membership(3).Name = "cabal0428"
     testSquad.Membership(3).CharId = 353380L
     testSquad.Membership(3).ZoneId = 5
+    testSquad.Membership(3).Health = 44
+    testSquad.Membership(3).Armor = 54
     testSquad.Membership(3).Position = Vector3(4727.492f, 2613.5312f, 51.390625f)
     testSquad.Membership(4).Name = "xSkiku"
     testSquad.Membership(4).CharId = 41588340L
     testSquad.Membership(4).ZoneId = 5
+    testSquad.Membership(4).Health = 34
+    testSquad.Membership(4).Armor = 64
     testSquad.Membership(4).Position = Vector3(3675.0f, 4789.8047f, 63.21875f)
     idToSquad(PlanetSideGUID(3)) = testSquad
     testSquad.Listed = true
@@ -174,7 +183,7 @@ class SquadService extends Actor {
     case Service.Leave(None) | Service.LeaveAll() => ;
 
     case SquadServiceMessage(tplayer, squad_action) => squad_action match {
-      case SquadAction.Membership(request_type, char_id, optional_char_id, name, unk5) => request_type match {
+      case SquadAction.Membership(request_type, char_id, optional_char_id, _, _) => request_type match {
         case SquadRequestType.Accept =>
           bids.get(char_id) match {
             case Some((squadGUID, line)) if idToSquad.get(squadGUID).nonEmpty =>
@@ -190,10 +199,18 @@ class SquadService extends Actor {
                 position.Position = tplayer.Position
                 position.ZoneId = 13
                 memberToSquad(tplayer.Name) = squad
+                //joining the squad
                 sender ! SquadServiceResponse("", SquadResponse.Join(
                   squad,
                   squad.Membership.zipWithIndex.collect({ case (member, index) if member.CharId != 0 => index }).toList
                 ))
+                //other squad members see us joining the squad
+                val updatedIndex = List(line)
+                squad.Membership
+                  .collect({ case member if member.CharId != 0 && member.CharId != char_id => member.Name })
+                  .foreach { name =>
+                    SquadEvents.publish( SquadServiceResponse(s"$name/Squad", SquadResponse.Join(squad, updatedIndex)) )
+                  }
               }
               bids.remove(char_id)
             case _ => ;
@@ -208,17 +225,66 @@ class SquadService extends Actor {
             val (member, index) = membership
               .find { case (_member, _) => _member.Name == name }
               .get
-            val updateList = membership.collect({ case (_member, _) if _member.CharId > 0 => (_member.CharId, index) }).toList
+            val updateList = membership.collect({ case (_member, _index) if _member.CharId > 0 => (_member.CharId, _index) }).toList
             memberToSquad.remove(name)
             member.Name = ""
             member.CharId = 0
+            //leaving the squad completely
             sender ! SquadServiceResponse("", SquadResponse.Leave(squad, updateList))
+            //other squad members see us leaving the squad
+            val leavingMember = List((char_id, index))
+            membership
+              .collect({ case (_member, _) if _member.CharId > 0 => _member.Name })
+              .foreach { name =>
+                SquadEvents.publish( SquadServiceResponse(s"$name/Squad", SquadResponse.Leave(squad, leavingMember)) )
+            }
           }
 
         case _ => ;
       }
 
-      case SquadAction.Definition(tplayer : Player, zone_ordinal_number : Int, guid : PlanetSideGUID, line : Int, action : SquadAction) =>
+      case SquadAction.Update(char_id, health, max_health, armor, max_armor, pos, zone_number) =>
+        memberToSquad.get(tplayer.Name) match {
+          case Some(squad) =>
+            squad.Membership.find(_.CharId == char_id) match {
+              case Some(member) =>
+                val newHealth = StatConverter.Health(health, max_health, min=1, max=64)
+                val newArmor = StatConverter.Health(armor, max_armor, min=1, max=64)
+                member.Health = newHealth
+                member.Armor = newArmor
+                member.Position = pos
+                member.ZoneId = zone_number
+                sender ! SquadServiceResponse("", SquadResponse.UpdateMembers(
+                  squad,
+                  squad.Membership
+                    .filterNot { _.CharId == 0 }
+                    .map { member => SquadAction.Update(member.CharId, member.Health, 0, member.Armor, 0, member.Position, member.ZoneId) }
+                    .toList
+                ))
+              case _ => ;
+            }
+//            val (self, others) = squad.Membership.partition(_.CharId == char_id)
+//            self match {
+//              case Array(member) =>
+//                val newHealth = StatConverter.Health(health, max_health, min=1, max=64)
+//                val newArmor = StatConverter.Health(armor, max_armor, min=1, max=64)
+//                member.Health = newHealth
+//                member.Armor = newArmor
+//                member.Position = pos
+//                member.ZoneId = zone_number
+//                sender ! SquadServiceResponse("", SquadResponse.UpdateMembers(
+//                  squad,
+//                  others
+//                    .map { member => SquadAction.Update(member.CharId, member.Health, 0, member.Armor, 0, member.Position, member.ZoneId) }
+//                    .toList
+//                ))
+//              case _ => ;
+//            }
+
+          case None => ;
+        }
+
+      case SquadAction.Definition(tplayer : Player, zone_ordinal_number : Int, guid : PlanetSideGUID, _ : Int, action : SquadAction) =>
         import net.psforever.packet.game.SquadAction._
         val squadOpt = GetParticipatingSquad(tplayer, zone_ordinal_number)
         action match {
@@ -320,11 +386,11 @@ class SquadService extends Actor {
 
           case SelectRoleForYourself(position) =>
             //TODO need to ask permission from the squad leader, unless our character is the squad leader or already currently in the squad
-            val name = tplayer.Name
+            //val name = tplayer.Name
             squadOpt match {
               case Some(squad) if squad.GUID == guid =>
               //already a member of this squad; swap positions freely
-              case Some(squad) =>
+              case Some(_) =>
               //not a member of the requesting squad; do nothing
               case None =>
                 //not a member of any squad; consider request of joining the target squad

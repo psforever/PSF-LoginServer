@@ -7,15 +7,17 @@ import scodec.Codec
 import scodec.codecs._
 
 /**
-  * SquadMembershipRequest is a Client->Server message for manipulating squad and platoon members.
-  * @param request_type na
-  * @param unk2 na
-  * @param unk3 na
-  * @param player_name na
-  * @param unk5 na
+  * Dispatched by the client as manipulation protocol for squad and platoon members.
+  * Answerable by a `SquadMembershipResponse` packet.
+  * @param request_type the purpose of the request
+  * @param char_id      a squad member unique identifier;
+  *                     usually, the player being addresses by thie packet
+  * @param unk3         na
+  * @param player_name  name of the player being affected, if applicable
+  * @param unk5         na
   */
 final case class SquadMembershipRequest(request_type : SquadRequestType.Value,
-                                        unk2 : Long,
+                                        char_id : Long,
                                         unk3 : Option[Long],
                                         player_name : String,
                                         unk5 : Option[Option[String]])
