@@ -208,9 +208,6 @@ class LocalService extends Actor {
         case scala.util.Failure(_) => log.warn(s"LocalService Failed to get zone when hack timeout was reached")
       }
 
-    case HackCaptureActor.GetHackTimeRemainingNanos(capture_console_guid) =>
-      hackCapturer forward HackCaptureActor.GetHackTimeRemainingNanos(capture_console_guid)
-
     //message to Engineer
     case LocalServiceMessage.Deployables(msg) =>
       engineer forward msg

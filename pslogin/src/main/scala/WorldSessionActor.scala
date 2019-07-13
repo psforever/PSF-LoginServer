@@ -1284,23 +1284,27 @@ class WorldSessionActor extends Actor with MDCContextAware {
           value = 17039360L
         }
         else {
-          import scala.concurrent.ExecutionContext.Implicits.global
-          val future = ask(localService, HackCaptureActor.GetHackTimeRemainingNanos(target_guid))(1 second)
-          val time = Await.result(future, 1 second).asInstanceOf[Long]
-          // todo: blocking call. Not good.
-          val hack_time_remaining_ms = TimeUnit.MILLISECONDS.convert(time, TimeUnit.NANOSECONDS)
-          val deciseconds_remaining = (hack_time_remaining_ms / 100)
-          val hacking_faction = continent.GUID(target_guid).get.asInstanceOf[Hackable].HackedBy.get.hackerFaction
-          // See PlanetSideAttributeMessage #20 documentation for an explanation of how the timer is calculated
-          val start_num = hacking_faction match {
-            case PlanetSideEmpire.TR => 65536L
-            case PlanetSideEmpire.NC => 131072L
-            case PlanetSideEmpire.VS => 196608L
-          }
-          value = start_num + deciseconds_remaining
-        }
-        sendResponse(PlanetsideAttributeMessage(target_guid, 20, value))
+          continent.GUID(target_guid) match {
+            case Some(capture_terminal: Hackable) =>
+              capture_terminal.HackedBy match {
+                case Some(Hackable.HackInfo(_, _, hfaction, _, start, length)) =>
+                  val hack_time_remaining_ms = TimeUnit.MILLISECONDS.convert(math.max(0, start + length - System.nanoTime), TimeUnit.NANOSECONDS)
+                  val deciseconds_remaining = (hack_time_remaining_ms / 100)
 
+                  // See PlanetSideAttributeMessage #20 documentation for an explanation of how the timer is calculated
+                  val start_num = hfaction match {
+                    case PlanetSideEmpire.TR => 65536L
+                    case PlanetSideEmpire.NC => 131072L
+                    case PlanetSideEmpire.VS => 196608L
+                  }
+                  value = start_num + deciseconds_remaining
+
+                  sendResponse(PlanetsideAttributeMessage(target_guid, 20, value))
+                case _ => log.warn("LocalResponse.HackCaptureTerminal: HackedBy not defined")
+              }
+            case _ => log.warn(s"LocalResponse.HackCaptureTerminal: Couldn't find capture terminal with GUID ${target_guid} in zone ${continent.Id}")
+          }
+        }
       case LocalResponse.ObjectDelete(object_guid, unk) =>
         if(tplayer_guid != guid) {
           sendResponse(ObjectDeleteMessage(object_guid, unk))

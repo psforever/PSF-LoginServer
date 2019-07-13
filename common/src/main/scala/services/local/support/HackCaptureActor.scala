@@ -71,16 +71,6 @@ class HackCaptureActor extends Actor {
 
       // Restart the timer in case the object we just removed was the next one scheduled
       RestartTimer()
-
-    case HackCaptureActor.GetHackTimeRemainingNanos(capture_console_guid) =>
-      hackedObjects.find(_.target.GUID == capture_console_guid) match {
-        case Some(obj: HackCaptureActor.HackEntry) =>
-          val time_left: Long = obj.duration.toNanos - (System.nanoTime - obj.hack_timestamp)
-          sender ! time_left
-        case _ =>
-          log.warn(s"Couldn't find capture terminal guid $capture_console_guid in hackedObjects list")
-          sender ! 0L
-      }
     case _ => ;
   }
 
@@ -109,9 +99,6 @@ object HackCaptureActor {
   final case class HackTimeoutReached(capture_terminal_guid : PlanetSideGUID, zone_id : String, unk1 : Long, unk2 : Long, hackedByFaction : PlanetSideEmpire.Value)
 
   final case class ClearHack(target : CaptureTerminal, zone : Zone)
-
-  final case class GetHackTimeRemainingNanos(capture_console_guid: PlanetSideGUID)
-
 
   private final case class ProcessCompleteHacks()
 
