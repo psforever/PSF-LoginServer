@@ -1,6 +1,8 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.structures
 
+import java.util.concurrent.TimeUnit
+
 import akka.actor.ActorContext
 import net.psforever.objects.GlobalDefinitions
 import net.psforever.objects.definition.ObjectDefinition
@@ -66,12 +68,13 @@ class Building(private val building_guid : Int, private val map_id : Int, privat
       case _ => //we have no silo; we have unlimited power
         10
     }
-    //if we have a capture terminal, get the hack status & time from control console if it exists
+    //if we have a capture terminal, get the hack status & time (in milliseconds) from control console if it exists
     val (hacking, hackingFaction, hackTime) : (Boolean, PlanetSideEmpire.Value, Long) = amenities.find(_.Definition == GlobalDefinitions.capture_terminal) match {
       case Some(obj: CaptureTerminal with Hackable) =>
         obj.HackedBy match {
           case Some(Hackable.HackInfo(_, _, hfaction, _, start, length)) =>
-            (true, hfaction, math.max(0, start + length - System.nanoTime))
+            val hack_time_remaining_ms = TimeUnit.MILLISECONDS.convert(math.max(0, start + length - System.nanoTime), TimeUnit.NANOSECONDS)
+            (true, hfaction, hack_time_remaining_ms)
           case _ =>
             (false, PlanetSideEmpire.NEUTRAL, 0L)
         }
