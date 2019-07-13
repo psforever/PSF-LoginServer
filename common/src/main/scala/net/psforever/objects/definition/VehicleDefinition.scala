@@ -160,6 +160,13 @@ class VehicleDefinition(objectId : Int) extends ObjectDefinition(objectId)
     MaximumCapacitor
   }
 
+  private var jackDuration = Array(0, 0, 0, 0)
+  def JackingDuration: Array[Int] = jackDuration
+  def JackingDuration_=(arr: Array[Int]) : Array[Int] = {
+    jackDuration = arr
+    arr
+  }
+
   def DestroyedModel : Option[DestroyedVehicle.Value] = destroyedModel
 
   def DestroyedModel_=(model : Option[DestroyedVehicle.Value]) : Option[DestroyedVehicle.Value] = {

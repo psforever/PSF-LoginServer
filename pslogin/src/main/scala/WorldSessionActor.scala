@@ -2044,10 +2044,13 @@ class WorldSessionActor extends Actor with MDCContextAware {
         }
 
       case VehicleResponse.Ownership(vehicle_guid) =>
-        sendResponse(PlanetsideAttributeMessage(tplayer_guid, 21, vehicle_guid))
+        if(tplayer_guid == guid) { // Only the player that owns this vehicle needs the ownership packet
+          sendResponse(PlanetsideAttributeMessage(tplayer_guid, 21, vehicle_guid))
+        }
 
       case VehicleResponse.PlanetsideAttribute(vehicle_guid, attribute_type, attribute_value) =>
         if(tplayer_guid != guid) {
+          player.VehicleOwned = Some(vehicle_guid)
           sendResponse(PlanetsideAttributeMessage(vehicle_guid, attribute_type, attribute_value))
         }
 
@@ -2119,8 +2122,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
             }
         }
 
-      case VehicleResponse.ForceDismountVehicleCargo(vehicle_guid, bailed, requestedByPassenger, kicked) =>
-        DismountVehicleCargo(tplayer_guid, vehicle_guid, bailed, requestedByPassenger, kicked)
+      case VehicleResponse.ForceDismountVehicleCargo(cargo_guid, bailed, requestedByPassenger, kicked) =>
+        DismountVehicleCargo(tplayer_guid, cargo_guid, bailed, requestedByPassenger, kicked)
       case VehicleResponse.KickCargo(vehicle, speed, delay) =>
         if(player.VehicleSeated.nonEmpty && deadState == DeadState.Alive) {
           if(speed > 0) {
@@ -2885,10 +2888,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case _ => ;
       }
 
-    case msg @ DismountVehicleCargoMsg(player_guid, vehicle_guid, bailed, requestedByPassenger, kicked) =>
+    case msg @ DismountVehicleCargoMsg(player_guid, cargo_guid, bailed, requestedByPassenger, kicked) =>
       log.info(msg.toString)
       if(!requestedByPassenger) {
-        DismountVehicleCargo(player_guid, vehicle_guid, bailed, requestedByPassenger, kicked)
+        DismountVehicleCargo(player_guid, cargo_guid, bailed, requestedByPassenger, kicked)
       }
 
     case msg @ CharacterCreateRequestMessage(name, head, voice, gender, empire) =>
@@ -4131,8 +4134,13 @@ class WorldSessionActor extends Actor with MDCContextAware {
           else if(equipment.isDefined) {
             equipment.get.Definition match {
               case GlobalDefinitions.remote_electronics_kit =>
-                //TODO hacking behavior
+                val hackSpeed = GetPlayerHackSpeed(obj)
 
+                if(hackSpeed > 0) {
+                  progressBarValue = Some(-hackSpeed)
+                  self ! WorldSessionActor.HackingProgress(progressType = 1, player, obj, equipment.get.GUID, hackSpeed, FinishHackingVehicle(obj, 3212836864L))
+                  log.info("Hacking a vehicle")
+                }
               case _ => ;
             }
           }
@@ -5282,14 +5290,108 @@ class WorldSessionActor extends Actor with MDCContextAware {
     ask(target.Actor, CommonMessages.Hack(player))(1 second).mapTo[Boolean].onComplete {
       case Success(_) =>
         localService ! LocalServiceMessage(continent.Id, LocalAction.TriggerSound(player.GUID, target.HackSound, player.Position, 30, 0.49803925f))
-    target match {
-          case term : CaptureTerminal =>
+        target match {
+          case term: CaptureTerminal =>
             val isResecured = player.Faction == target.Faction
             localService ! LocalServiceMessage(continent.Id, LocalAction.HackCaptureTerminal(player.GUID, continent, term, unk, 8L, isResecured))
           case _ => localService ! LocalServiceMessage(continent.Id, LocalAction.HackTemporarily(player.GUID, continent, target, unk, target.HackEffectDuration(GetPlayerHackLevel())))
         }
       case scala.util.Failure(_) => log.warn(s"Hack message failed on target guid: ${target.GUID}")
+    }
   }
+
+  /**
+    * The process of hacking/jacking a vehicle is complete.
+    * Change the faction of the vehicle to the hacker's faction and remove all occupants.
+    *
+    * @param target The `Vehicle` object that has been hacked/jacked
+    * @param unk na; used by HackMessage` as `unk5`
+    */
+  private def FinishHackingVehicle(target : Vehicle, unk : Long)(): Unit = {
+    log.info(s"Vehicle guid: ${target.GUID} has been jacked")
+
+
+    // Forcefully dismount any cargo
+    target.CargoHolds.values.foreach(cargoHold =>  {
+      cargoHold.Occupant match {
+        case Some(cargo : Vehicle) => {
+          cargo.Seats(0).Occupant match {
+            case Some(cargoDriver: Player) =>
+              DismountVehicleCargo(cargoDriver.GUID, cargo.GUID, bailed = target.Flying, requestedByPassenger = false, kicked = true )
+            case None =>
+              log.error("FinishHackingVehicle: vehicle in cargo hold missing driver")
+              HandleDismountVehicleCargo(player.GUID, cargo.GUID, cargo, target.GUID, target, false, false, true)
+          }
+        }
+        case None => ;
+      }
+    })
+
+    // Forcefully dismount all seated occupants from the vehicle
+    target.Seats.values.foreach(seat => {
+      seat.Occupant match {
+        case Some(tplayer) =>
+          seat.Occupant = None
+          tplayer.VehicleSeated = None
+          if(tplayer.HasGUID) {
+            vehicleService ! VehicleServiceMessage(tplayer.Continent, VehicleAction.KickPassenger(tplayer.GUID, 4, unk2 = false, target.GUID))
+          }
+        case None => ;
+      }
+    })
+
+    // If the vehicle can fly and is flying deconstruct it, and well played to whomever managed to hack a plane in mid air. I'm impressed.
+    if(target.Definition.CanFly && target.Flying) {
+      // todo: Should this force the vehicle to land in the same way as when a pilot bails with passengers on board?
+      vehicleService ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(target), continent))
+      vehicleService ! VehicleServiceMessage.Decon(RemoverActor.AddTask(target, continent, Some(0 seconds)))
+    } else { // Otherwise handle ownership transfer as normal
+      // Remove ownership of our current vehicle, if we have one
+      player.VehicleOwned match {
+        case Some(guid : PlanetSideGUID) =>
+          continent.GUID(guid) match {
+            case Some(vehicle: Vehicle) =>
+              DisownVehicle(player, vehicle)
+            case _ => ;
+          }
+        case _ => ;
+      }
+
+      target.Owner match {
+        case Some(previousOwnerGuid: PlanetSideGUID) =>
+          // Remove ownership of the vehicle from the previous player
+          continent.GUID(previousOwnerGuid) match {
+            case Some(player: Player) =>
+              DisownVehicle(player, target)
+            case _ => ; // Vehicle already has no owner
+          }
+        case _ => ;
+      }
+
+      // Now take ownership of the jacked vehicle
+      target.Faction = player.Faction
+      OwnVehicle(target, player)
+
+      //todo: Send HackMessage -> HackCleared to vehicle? can be found in packet captures. Not sure if necessary.
+
+      // And broadcast the faction change to other clients
+      sendResponse(SetEmpireMessage(target.GUID, player.Faction))
+      avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.SetEmpire(player.GUID, target.GUID, player.Faction))
+    }
+
+    localService ! LocalServiceMessage(continent.Id, LocalAction.TriggerSound(player.GUID, TriggeredSound.HackVehicle, target.Position, 30, 0.49803925f))
+
+    // Clean up after specific vehicles, e.g. remove router telepads
+    // If AMS is deployed, swap it to the new faction
+    target.Definition match {
+      case GlobalDefinitions.router =>
+        log.info("FinishHackingVehicle: cleaning up after a router ...")
+        RemoveTelepads(target)
+      case GlobalDefinitions.ams
+        if(target.DeploymentState == DriveState.Deployed) =>
+        vehicleService ! VehicleServiceMessage.AMSDeploymentChange(continent)
+      case _ => ;
+    }
   }
 
   /**
@@ -5367,6 +5469,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
       case Some(tplayer) =>
         tplayer.VehicleOwned = vehicle.GUID
         vehicle.AssignOwnership(playerOpt)
+
+        vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.Ownership(player.GUID, vehicle.GUID))
+        ReloadVehicleAccessPermissions(vehicle)
         Some(vehicle)
       case None =>
         None
@@ -8452,22 +8557,26 @@ class WorldSessionActor extends Actor with MDCContextAware {
       case GlobalDefinitions.router =>
         //this may repeat for multiple players on the same continent but that's okay(?)
         log.info("BeforeUnload: cleaning up after a router ...")
-        (vehicle.Utility(UtilityType.internal_router_telepad_deployable) match {
-          case Some(util : Utility.InternalTelepad) =>
-            val telepad = util.Telepad
-            util.Active = false
-            util.Telepad = None
-            continent.GUID(telepad)
-          case _ =>
-            None
-        }) match {
-          case Some(telepad : TelepadDeployable) =>
-            log.info(s"BeforeUnload: deconstructing telepad $telepad that was linked to router $vehicle ...")
-            telepad.Active = false
-            localService ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(telepad), continent))
-            localService ! LocalServiceMessage.Deployables(RemoverActor.AddTask(telepad, continent, Some(0 seconds)))
-          case _ => ;
-        }
+        RemoveTelepads(vehicle)
+      case _ => ;
+    }
+  }
+
+  def RemoveTelepads(vehicle: Vehicle) : Unit = {
+    (vehicle.Utility(UtilityType.internal_router_telepad_deployable) match {
+      case Some(util : Utility.InternalTelepad) =>
+        val telepad = util.Telepad
+        util.Active = false
+        util.Telepad = None
+        continent.GUID(telepad)
+      case _ =>
+        None
+    }) match {
+      case Some(telepad : TelepadDeployable) =>
+        log.info(s"BeforeUnload: deconstructing telepad $telepad that was linked to router $vehicle ...")
+        telepad.Active = false
+        localService ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(telepad), continent))
+        localService ! LocalServiceMessage.Deployables(RemoverActor.AddTask(telepad, continent, Some(0 seconds)))
       case _ => ;
     }
   }
@@ -8562,9 +8671,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
           avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.SendResponse(player_guid, cargoDetachMessage))
           driverOpt match {
             case Some(driver) =>
-              if(kicked) {
-                vehicleService ! VehicleServiceMessage(s"${driver.Name}", VehicleAction.KickCargo(player_guid, cargo, cargo.Definition.AutoPilotSpeed2, 4500))
-              }
+              vehicleService ! VehicleServiceMessage(s"${driver.Name}", VehicleAction.KickCargo(player_guid, cargo, cargo.Definition.AutoPilotSpeed2, 2500))
+
               import scala.concurrent.duration._
               import scala.concurrent.ExecutionContext.Implicits.global
               //check every quarter second if the vehicle has moved far enough away to be considered dismounted
@@ -8588,37 +8696,44 @@ class WorldSessionActor extends Actor with MDCContextAware {
   /**
     * na
     * @param player_guid na
-    * @param vehicle_guid na
+    * @param cargo_guid na
     * @param bailed na
     * @param requestedByPassenger na
     * @param kicked na
     */
-  def DismountVehicleCargo(player_guid : PlanetSideGUID, vehicle_guid : PlanetSideGUID, bailed : Boolean, requestedByPassenger : Boolean, kicked : Boolean) : Unit = {
-    continent.GUID(vehicle_guid) match {
+  def DismountVehicleCargo(player_guid : PlanetSideGUID, cargo_guid : PlanetSideGUID, bailed : Boolean, requestedByPassenger : Boolean, kicked : Boolean) : Unit = {
+    continent.GUID(cargo_guid) match {
       case Some(cargo : Vehicle) =>
         continent.GUID(cargo.MountedIn) match {
           case Some(ferry : Vehicle) =>
-            HandleDismountVehicleCargo(player_guid, vehicle_guid, cargo, ferry.GUID, ferry, bailed, requestedByPassenger, kicked)
+            HandleDismountVehicleCargo(player_guid, cargo_guid, cargo, ferry.GUID, ferry, bailed, requestedByPassenger, kicked)
           case _ =>
-            log.warn(s"DismountVehicleCargo: target ${cargo.Definition.Name}@$vehicle_guid does not know what treats it as cargo")
+            log.warn(s"DismountVehicleCargo: target ${cargo.Definition.Name}@$cargo_guid does not know what treats it as cargo")
         }
       case _ =>
-        log.warn(s"DismountVehicleCargo: target $vehicle_guid either is not a vehicle in ${continent.Id} or does not exist")
+        log.warn(s"DismountVehicleCargo: target $cargo_guid either is not a vehicle in ${continent.Id} or does not exist")
     }
   }
 
-  def GetPlayerHackSpeed(obj: PlanetSideServerObject with Hackable): Float = {
+  def GetPlayerHackSpeed(obj: PlanetSideServerObject): Float = {
     val playerHackLevel = GetPlayerHackLevel()
-    val timeToHack = obj.HackDuration(playerHackLevel)
+
+    val timeToHack = obj match {
+        case (hackable: Hackable) => hackable.HackDuration(playerHackLevel)
+        case (vehicle: Vehicle) => vehicle.JackingDuration(playerHackLevel)
+        case _ =>
+          log.warn(s"Player tried to hack an object that has no hack time defined ${obj.GUID} - ${obj.Definition.Name}")
+        0
+    }
 
     if(timeToHack == 0) {
       log.warn(s"Player ${player.GUID} tried to hack an object ${obj.GUID} - ${obj.Definition.Name} that they don't have the correct hacking level for")
       0f
+    } else {
+      // 250 ms per tick on the hacking progress bar
+      val ticks = (timeToHack * 1000) / 250
+      100f / ticks
     }
-
-    // 250 ms per tick on the hacking progress bar
-    val ticks = (timeToHack * 1000) / 250
-    100f / ticks
   }
 
   def GetPlayerHackLevel(): Int = {

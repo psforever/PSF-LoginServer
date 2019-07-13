@@ -123,6 +123,9 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
     faction
   }
 
+  /** How long it takes to jack the vehicle in seconds, based on the hacker's certification level */
+  def JackingDuration: Array[Int] = Definition.JackingDuration
+
   def MountedIn : Option[PlanetSideGUID] = {
     this.mountedIn
   }
