@@ -15,7 +15,7 @@ class BuildingControl(building : Building) extends Actor with FactionAffinityBeh
   private[this] val log = org.log4s.getLogger
 
   override def preStart = {
-    log.info(s"Starting BuildingControl for ${building.GUID} / ${building.MapId}")
+    log.trace(s"Starting BuildingControl for ${building.GUID} / ${building.MapId}")
     ServiceManager.serviceManager ! Lookup("galaxy")
     ServiceManager.serviceManager ! Lookup("local")
   }
@@ -23,10 +23,10 @@ class BuildingControl(building : Building) extends Actor with FactionAffinityBeh
   def receive : Receive = checkBehavior.orElse {
     case ServiceManager.LookupResult("galaxy", endpoint) =>
       galaxyService = endpoint
-      log.info("BuildingControl: Building " + building.GUID + " Got galaxy service " + endpoint)
+      log.trace("BuildingControl: Building " + building.GUID + " Got galaxy service " + endpoint)
     case ServiceManager.LookupResult("local", endpoint) =>
       localService = endpoint
-      log.info("BuildingControl: Building " + building.GUID + " Got local service " + endpoint)
+      log.trace("BuildingControl: Building " + building.GUID + " Got local service " + endpoint)
     case FactionAffinity.ConvertFactionAffinity(faction) =>
       val originalAffinity = building.Faction
       if(originalAffinity != (building.Faction = faction)) {
@@ -37,7 +37,7 @@ class BuildingControl(building : Building) extends Actor with FactionAffinityBeh
     case Building.SendMapUpdate(all_clients: Boolean) =>
       val zoneNumber = building.Zone.Number
       val buildingNumber = building.MapId
-      log.info(s"sending BuildingInfoUpdateMessage update - zone=$zoneNumber, building=$buildingNumber")
+      log.trace(s"sending BuildingInfoUpdateMessage update - zone=$zoneNumber, building=$buildingNumber")
       val (
         ntuLevel,
         isHacked, empireHack, hackTimeRemaining, controllingEmpire,

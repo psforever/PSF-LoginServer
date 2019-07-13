@@ -2780,7 +2780,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
   def handleControlPkt(pkt : PlanetSideControlPacket) = {
     pkt match {
       case sync @ ControlSync(diff, _, _, _, _, _, fa, fb) =>
-        log.debug(s"SYNC: $sync")
+        log.trace(s"SYNC: $sync")
         val serverTick = Math.abs(System.nanoTime().toInt) // limit the size to prevent encoding error
         sendResponse(ControlSyncResp(diff, serverTick, fa, fb, fb, fa))
 

@@ -112,7 +112,7 @@ class SessionRouter(role : String, pipeline : List[SessionPipeline]) extends Act
       }
     case SessionReaper() =>
       sessionById.foreach { case (id, session) =>
-        log.debug(session.toString)
+        log.trace(session.toString)
         if(session.getState == Closed()) {
           // clear mappings
           session.getPipeline.foreach(sessionByActor remove)
