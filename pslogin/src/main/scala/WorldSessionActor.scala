@@ -3215,7 +3215,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
           case Some(container) => //just in case
             if(vel.isDefined) {
               val guid = player.GUID
-              sendResponse(UnuseItemMessage(guid, container.GUID))
+              // If the container is a corpse and gets removed just as this runs it can cause a client disconnect, so we'll check the container has a GUID first.
+              if(container.HasGUID) {
+                sendResponse(UnuseItemMessage(guid, container.GUID))
+              }
               sendResponse(UnuseItemMessage(guid, guid))
               accessedContainer = None
             }
