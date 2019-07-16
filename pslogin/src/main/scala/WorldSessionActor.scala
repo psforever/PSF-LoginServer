@@ -2572,7 +2572,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     if(vehicle.Capacitor < vehicle.Definition.MaximumCapacitor) {
       // Charging
       vehicle.Capacitor += 100
-      sendResponse(PlanetsideAttributeMessage(vehicle.GUID, 45, scala.math.round((vehicle.Capacitor.toFloat / vehicle.Definition.MaximumCapacitor.toFloat) * 10))) // set ntu on vehicle UI
+      sendResponse(PlanetsideAttributeMessage(vehicle.GUID, 45, scala.math.ceil((vehicle.Capacitor.toFloat / vehicle.Definition.MaximumCapacitor.toFloat) * 10).toInt)) // set ntu on vehicle UI
       avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(vehicle.GUID, 52, 1L)) // panel glow on
       avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(vehicle.GUID, 49, 1L)) // orb particle effect on
 
@@ -2580,7 +2580,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     }
     else {
       // Fully charged
-      sendResponse(PlanetsideAttributeMessage(vehicle.GUID, 45, scala.math.round((vehicle.Capacitor.toFloat / vehicle.Definition.MaximumCapacitor.toFloat) * 10).toInt)) // set ntu on vehicle UI
+      sendResponse(PlanetsideAttributeMessage(vehicle.GUID, 45, scala.math.ceil((vehicle.Capacitor.toFloat / vehicle.Definition.MaximumCapacitor.toFloat) * 10).toInt)) // set ntu on vehicle UI
 
       // Turning off glow/orb effects on ANT doesn't seem to work when deployed. Try to undeploy ANT from server side
       context.system.scheduler.scheduleOnce(vehicle.UndeployTime milliseconds, vehicle.Actor, Deployment.TryUndeploy(DriveState.Undeploying))
@@ -2608,7 +2608,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         vehicle.Capacitor -= chargeToDeposit
         silo.Actor ! ResourceSilo.UpdateChargeLevel(chargeToDeposit)
         avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(silo_guid, 49, 1L)) // panel glow on & orb particles on
-        sendResponse(PlanetsideAttributeMessage(vehicle.GUID, 45, scala.math.round((vehicle.Capacitor.toFloat / vehicle.Definition.MaximumCapacitor.toFloat) * 10))) // set ntu on vehicle UI
+        sendResponse(PlanetsideAttributeMessage(vehicle.GUID, 45, scala.math.ceil((vehicle.Capacitor.toFloat / vehicle.Definition.MaximumCapacitor.toFloat) * 10).toInt)) // set ntu on vehicle UI
 
         //todo: grant BEP to user
         //todo: grant BEP to squad in range
