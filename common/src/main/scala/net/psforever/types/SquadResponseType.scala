@@ -4,7 +4,7 @@ package net.psforever.types
 import net.psforever.packet.PacketHelpers
 import scodec.codecs._
 
-object SquadRequestType extends Enumeration {
+object SquadResponseType extends Enumeration {
   type Type = Value
   val
   Invite,
@@ -13,7 +13,6 @@ object SquadRequestType extends Enumeration {
   Reject,
   Cancel,
   Leave,
-  Promote,
   Disband,
   PlatoonInvite,
   PlatoonAccept,
@@ -25,10 +24,10 @@ object SquadRequestType extends Enumeration {
 
   implicit val codec = PacketHelpers.createEnumerationCodec(this, uint4L)
 
-  def toResponse(request : SquadRequestType.Value) : SquadResponseType.Value = {
-    val id = request.id
-    if(id < 6) SquadResponseType(id)
-    else if(id > 6) SquadResponseType(id - 1)
-    else throw new NoSuchElementException("request does not have an applicable response")
+  def fromRequest(response : SquadResponseType.Value) : SquadRequestType.Value = {
+    val id = response.id
+    if(id < 6) SquadRequestType(id)
+    else if(id > 5) SquadRequestType(id + 1)
+    else throw new NoSuchElementException("response does not stem from an applicable request")
   }
 }

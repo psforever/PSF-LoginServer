@@ -20,17 +20,23 @@ object SquadAction{
 
   final case class AnswerSquadJoinRequest() extends SquadAction(1)
 
-  final case class SaveSquadDefinition() extends SquadAction(3)
+  final case class SaveSquadFavorite() extends SquadAction(3)
 
-  final case class LoadSquadDefinition() extends SquadAction(4)
+  final case class LoadSquadFavorite() extends SquadAction(4)
 
-  final case class ListSquadDefinition(name : String) extends SquadAction(7)
+  final case class DeleteSquadFavorite() extends SquadAction(5)
 
-  final case class ListSquad() extends SquadAction(8)
+  final case class ListSquadFavorite(name : String) extends SquadAction(7)
+
+  final case class RequestListSquad() extends SquadAction(8)
+
+  final case class StopListSquad() extends SquadAction(9)
 
   final case class SelectRoleForYourself(state : Int) extends SquadAction(10)
 
   final case class CancelSelectRoleForYourself(value: Long = 0) extends SquadAction(15)
+
+  final case class SetListSquad() extends SquadAction(17)
 
   final case class ChangeSquadPurpose(purpose : String) extends SquadAction(19)
 
@@ -56,11 +62,20 @@ object SquadAction{
 
   final case class CancelSquadSearch() extends SquadAction(35)
 
+  final case class AssignSquadMemberToRole(position : Int, char_id : Long) extends SquadAction(38)
+
   final case class FindLfsSoldiersForRole(state : Int) extends SquadAction(40)
 
   final case class CancelFind() extends SquadAction(41)
 
   final case class Unknown(badCode : Int, data : BitVector) extends SquadAction(badCode)
+
+  object Unknown {
+    import scodec.bits._
+    val StandardBits : BitVector = hex"00".toBitVector.take(6)
+
+    def apply(badCode : Int) : Unknown = Unknown(badCode, StandardBits)
+  }
 
   /**
     * The `Codec`s used to transform the input stream into the context of a specific action
@@ -83,31 +98,45 @@ object SquadAction{
       }
     )
 
-    val saveSquadDefinitionCodec = everFailCondition.xmap[SaveSquadDefinition] (
-      _ => SaveSquadDefinition(),
+    val saveSquadFavoriteCodec = everFailCondition.xmap[SaveSquadFavorite] (
+      _ => SaveSquadFavorite(),
       {
-        case SaveSquadDefinition() => None
+        case SaveSquadFavorite() => None
       }
     )
 
-    val loadSquadDefinitionCodec = everFailCondition.xmap[LoadSquadDefinition] (
-      _ => LoadSquadDefinition(),
+    val loadSquadFavoriteCodec = everFailCondition.xmap[LoadSquadFavorite] (
+      _ => LoadSquadFavorite(),
       {
-        case LoadSquadDefinition() => None
+        case LoadSquadFavorite() => None
       }
     )
 
-    val listSquadDefinitionCodec = PacketHelpers.encodedWideStringAligned(6).xmap[ListSquadDefinition] (
-      text => ListSquadDefinition(text),
+    val deleteSquadFavoriteCodec = everFailCondition.xmap[DeleteSquadFavorite] (
+      _ => DeleteSquadFavorite(),
       {
-        case ListSquadDefinition(text) => text
+        case DeleteSquadFavorite() => None
       }
     )
 
-    val listSquadCodec = everFailCondition.xmap[ListSquad] (
-      _ => ListSquad(),
+    val listSquadFavoriteCodec = PacketHelpers.encodedWideStringAligned(6).xmap[ListSquadFavorite] (
+      text => ListSquadFavorite(text),
       {
-        case ListSquad() => None
+        case ListSquadFavorite(text) => text
+      }
+    )
+
+    val requestListSquadCodec = everFailCondition.xmap[RequestListSquad] (
+      _ => RequestListSquad(),
+      {
+        case RequestListSquad() => None
+      }
+    )
+
+    val stopListSquadCodec = everFailCondition.xmap[StopListSquad] (
+      _ => StopListSquad(),
+      {
+        case StopListSquad() => None
       }
     )
 
@@ -122,6 +151,13 @@ object SquadAction{
       value => CancelSelectRoleForYourself(value),
       {
         case CancelSelectRoleForYourself(value) => value
+      }
+    )
+
+    val setListSquadCodec = everFailCondition.xmap[SetListSquad] (
+      _ => SetListSquad(),
+      {
+        case SetListSquad() => None
       }
     )
 
@@ -223,6 +259,15 @@ object SquadAction{
       }
     )
 
+    val assignSquadMemberToRoleCodec = (uint4 :: uint32L).xmap[AssignSquadMemberToRole] (
+      {
+        case u1 :: u2 :: HNil => AssignSquadMemberToRole(u1, u2)
+      },
+      {
+        case AssignSquadMemberToRole(u1, u2) => u1 :: u2 :: HNil
+      }
+    )
+
     val findLfsSoldiersForRoleCodec = uint4.xmap[FindLfsSoldiersForRole] (
       state => FindLfsSoldiersForRole(state),
       {
@@ -270,13 +315,14 @@ object SquadAction{
   * &nbsp;&nbsp;&nbsp;&nbsp;`0 ` - Display Squad<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`1 ` - Answer Squad Join Request<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`2 ` - UNKNOWN<br>
-  * &nbsp;&nbsp;&nbsp;&nbsp;`3 ` - Save Squad Definition<br>
-  * &nbsp;&nbsp;&nbsp;&nbsp;`4 ` - Load Squad Definition<br>
+  * &nbsp;&nbsp;&nbsp;&nbsp;`3 ` - Save Squad Favorite<br>
+  * &nbsp;&nbsp;&nbsp;&nbsp;`4 ` - Load Squad Favorite<br>
+  * &nbsp;&nbsp;&nbsp;&nbsp;`5 ` - Delete Squad Favorite<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`6 ` - UNKNOWN<br>
-  * &nbsp;&nbsp;&nbsp;&nbsp;`8 ` - List Squad<br>
-  * &nbsp;&nbsp;&nbsp;&nbsp;`9 ` - UNKNOWN<br>
+  * &nbsp;&nbsp;&nbsp;&nbsp;`8 ` - Request List Squad<br>
+  * &nbsp;&nbsp;&nbsp;&nbsp;`9 ` - Stop List Squad<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`16` - UNKNOWN<br>
-  * &nbsp;&nbsp;&nbsp;&nbsp;`17` - UNKNOWN<br>
+  * &nbsp;&nbsp;&nbsp;&nbsp;`17` - Set List Squad (ui)<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`18` - UNKNOWN<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`26` - Reset All<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`35` - Cancel Squad Search<br>
@@ -302,12 +348,12 @@ object SquadAction{
   * &nbsp;&nbsp;&nbsp;&nbsp;`15` - Select this Role for Yourself<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`37` - UNKNOWN<br>
   * &nbsp;&nbsp;`String`<br>
-  * &nbsp;&nbsp;&nbsp;&nbsp;`7 ` - List Squad Definition<br>
+  * &nbsp;&nbsp;&nbsp;&nbsp;`7 ` - List Squad Favorite<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`19` - (Squad leader) Change Squad Purpose<br>
   * &nbsp;&nbsp;`Int :: Long`<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`12` - UNKNOWN<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`25` - (Squad leader) Change Squad Member Requirements - Weapons<br>
-  * &nbsp;&nbsp;&nbsp;&nbsp;`38` - UNKNOWN<br>
+  * &nbsp;&nbsp;&nbsp;&nbsp;`38` - Assign Squad Member To Role<br>
   * &nbsp;&nbsp;`Int :: String`<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`23` - (Squad leader) Change Squad Member Requirements - Role<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`24` - (Squad leader) Change Squad Member Requirements - Detailed Orders<br>
@@ -343,12 +389,15 @@ object SquadDefinitionActionMessage extends Marshallable[SquadDefinitionActionMe
     ((code : @switch) match {
       case 0 => displaySquadCodec
       case 1 => answerSquadJoinRequestCodec
-      case 3 => saveSquadDefinitionCodec
-      case 4 => loadSquadDefinitionCodec
-      case 7 => listSquadDefinitionCodec
-      case 8 => listSquadCodec
+      case 3 => saveSquadFavoriteCodec
+      case 4 => loadSquadFavoriteCodec
+      case 5 => deleteSquadFavoriteCodec
+      case 7 => listSquadFavoriteCodec
+      case 8 => requestListSquadCodec
+      case 9 => stopListSquadCodec
       case 10 => selectRoleForYourselfCodec
       case 15 => cancelSelectRoleForYourselfCodec
+      case 17 => setListSquadCodec
       case 19 => changeSquadPurposeCodec
       case 20 => changeSquadZoneCodec
       case 21 => closeSquadMemberPositionCodec
@@ -361,12 +410,13 @@ object SquadDefinitionActionMessage extends Marshallable[SquadDefinitionActionMe
       case 31 => locationFollowsSquadLeadCodec
       case 34 => searchForSquadsWithParticularRoleCodec
       case 35 => cancelSquadSearchCodec
+      case 38 => assignSquadMemberToRoleCodec
       case 40 => findLfsSoldiersForRoleCodec
       case 41 => cancelFindCodec
-      case 2 | 6 | 9 | 11 |
-           12 | 13 | 14 | 16 | 17 |
+      case 2 | 6 | 11 |
+           12 | 13 | 14 | 16 |
            18 | 29 | 30 | 32 | 33 |
-           36 | 37 | 38 | 39 | 42 | 43 => unknownCodec(code)
+           36 | 37 | 39 | 42 | 43 => unknownCodec(code)
       case _ => failureCodec(code)
     }).asInstanceOf[Codec[SquadAction]]
   }

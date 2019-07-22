@@ -161,7 +161,21 @@ final case class SquadDetail(unk1 : Option[Int],
       task.orElse(info.task),
       zone_id.orElse(info.zone_id),
       unk7.orElse(info.unk7),
-      member_info.orElse(info.member_info)
+      {
+        (member_info, info.member_info) match {
+          case (Some(info1), Some(info2)) =>
+            //combine the first list with the elements of the second list whose indices not found in the first list
+            val indices = info1.map { _.index }
+            Some(info1 ++ (for {
+              position <- info2
+              if !indices.contains(position.index)
+            } yield position).sortBy(_.index))
+          case (Some(info1), None) =>
+            Some(info1)
+          case (None, _) =>
+            info.member_info
+        }
+      }
     )
   }
 
@@ -269,6 +283,15 @@ object SquadPositionDetail {
     * @return a `SquadPositionDetail` object
     */
   def apply(role : String, detailed_orders : String, requirements : Set[CertificationType.Value], char_id : Long, name : String) : SquadPositionDetail = SquadPositionDetail(Some(false), Some(role), Some(detailed_orders), Some(requirements), Some(char_id), Some(name))
+
+  object Fields {
+    final val Closed = 0
+    final val Role = 1
+    final val Orders = 2
+    final val CharId = 3
+    final val Name = 4
+    final val Requirements = 5
+  }
 }
 
 object SquadPositionEntry {
@@ -318,6 +341,17 @@ object SquadDetail {
     SquadDetail(None, None, None, None, None, None, None, Some(unk7), None)
   def Members(list : List[SquadPositionEntry]) : SquadDetail =
     SquadDetail(None, None, None, None, None, None, None, None, Some(list))
+
+  object Fields {
+    final val Field1 = 1
+    final val CharId = 2
+    final val Field3 = 3
+    final val Leader = 4
+    final val Task = 5
+    final val ZoneId = 6
+    final val Field7 = 7
+    final val Members = 8
+  }
 }
 
 object SquadDetailDefinitionUpdateMessage extends Marshallable[SquadDetailDefinitionUpdateMessage] {

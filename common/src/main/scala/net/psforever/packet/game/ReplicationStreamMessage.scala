@@ -51,6 +51,22 @@ final case class SquadInfo(leader : Option[String],
       squad_guid.orElse(info.squad_guid)
     )
   }
+
+  //methods intended to combine the fields of itself and another object
+  def Leader(leader : String) : SquadInfo =
+    this And SquadInfo(Some(leader), None, None, None, None, None)
+  def Task(task : String) : SquadInfo =
+    this And SquadInfo(None, Some(task), None, None, None, None)
+  def ZoneId(zone : PlanetSideZoneID) : SquadInfo =
+    this And SquadInfo(None, None, Some(zone), None, None, None)
+  def ZoneId(zone : Option[PlanetSideZoneID]) : SquadInfo = zone match {
+    case Some(zoneId) => this And SquadInfo(None, None, zone, None, None, None)
+    case None => SquadInfo(leader, task, zone, size, capacity, squad_guid)
+  }
+  def Size(sz : Int) : SquadInfo =
+    this And SquadInfo(None, None, None, Some(sz), None, None)
+  def Capacity(cap : Int) : SquadInfo =
+    this And SquadInfo(None, None, None, None, Some(cap), None)
 }
 
 /**
@@ -117,7 +133,9 @@ object SquadInfo {
   /**
     * An entry where no fields are defined.
     */
-  final val Blank = SquadInfo(None, None, None, None, None)
+  final val Blank = SquadInfo()
+
+  def apply() : SquadInfo = SquadInfo(None, None, None, None, None, None)
 
   /**
     * Alternate constructor for `SquadInfo` that ignores the `Option` requirement for the fields.<br>

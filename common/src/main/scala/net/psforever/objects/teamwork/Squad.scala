@@ -91,7 +91,7 @@ class Squad(squadId : PlanetSideGUID, alignment : PlanetSideEmpire.Value) extend
     }
   }
 
-  def Size : Int = membership.count(member => !member.Name.equals(""))
+  def Size : Int = membership.count(member => member.CharId != 0)
 
   def Capacity : Int = availability.count(open => open)
 }

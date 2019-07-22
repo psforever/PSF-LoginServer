@@ -54,7 +54,7 @@ class SquadDefinitionActionMessageTest extends Specification {
       case SquadDefinitionActionMessage(unk1, unk2, action) =>
         unk1 mustEqual PlanetSideGUID(0)
         unk2 mustEqual 3
-        action mustEqual SaveSquadDefinition()
+        action mustEqual SaveSquadFavorite()
       case _ =>
         ko
     }
@@ -65,7 +65,7 @@ class SquadDefinitionActionMessageTest extends Specification {
       case SquadDefinitionActionMessage(unk1, unk2, action) =>
         unk1 mustEqual PlanetSideGUID(0)
         unk2 mustEqual 3
-        action mustEqual LoadSquadDefinition()
+        action mustEqual LoadSquadFavorite()
       case _ =>
         ko
     }
@@ -76,7 +76,7 @@ class SquadDefinitionActionMessageTest extends Specification {
       case SquadDefinitionActionMessage(unk1, unk2, action) =>
         unk1 mustEqual PlanetSideGUID(0)
         unk2 mustEqual 3
-        action mustEqual ListSquadDefinition("Cops and Military Officers")
+        action mustEqual ListSquadFavorite("Cops and Military Officers")
       case _ =>
         ko
     }
@@ -87,7 +87,7 @@ class SquadDefinitionActionMessageTest extends Specification {
       case SquadDefinitionActionMessage(unk1, unk2, action) =>
         unk1 mustEqual PlanetSideGUID(0)
         unk2 mustEqual 0
-        action mustEqual ListSquad()
+        action mustEqual RequestListSquad()
       case _ =>
         ko
     }
@@ -328,28 +328,28 @@ class SquadDefinitionActionMessageTest extends Specification {
   }
 
   "encode (03)" in {
-    val msg = SquadDefinitionActionMessage(PlanetSideGUID(0), 3, SaveSquadDefinition())
+    val msg = SquadDefinitionActionMessage(PlanetSideGUID(0), 3, SaveSquadFavorite())
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string_03
   }
 
   "encode (03)" in {
-    val msg = SquadDefinitionActionMessage(PlanetSideGUID(0), 3, LoadSquadDefinition())
+    val msg = SquadDefinitionActionMessage(PlanetSideGUID(0), 3, LoadSquadFavorite())
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string_04
   }
 
   "encode (07)" in {
-    val msg = SquadDefinitionActionMessage(PlanetSideGUID(0), 3, ListSquadDefinition("Cops and Military Officers"))
+    val msg = SquadDefinitionActionMessage(PlanetSideGUID(0), 3, ListSquadFavorite("Cops and Military Officers"))
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string_07
   }
 
   "encode (08)" in {
-    val msg = SquadDefinitionActionMessage(PlanetSideGUID(0), 0, ListSquad())
+    val msg = SquadDefinitionActionMessage(PlanetSideGUID(0), 0, RequestListSquad())
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string_08

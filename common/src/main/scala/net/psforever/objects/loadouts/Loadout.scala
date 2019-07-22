@@ -23,7 +23,7 @@ object Loadout {
     owner match {
       case p : Player => Success(Create(p, label))
       case v : Vehicle => Success(Create(v, label))
-      case s : Squad => Success(Create(s, label))
+      case s : Squad => Success(Create(s, s.Task))
       case _ => Failure(new MatchError(s"can not create a loadout based on the (current status of) $owner"))
     }
   }
@@ -65,7 +65,6 @@ object Loadout {
   def Create(squad : Squad, label : String) : Loadout = {
     SquadLoadout(
       label,
-      squad.Task,
       if(squad.CustomZoneId) { Some(squad.ZoneId) } else { None },
       squad.Membership
         .zipWithIndex
