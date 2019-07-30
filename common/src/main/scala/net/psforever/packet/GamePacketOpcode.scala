@@ -595,8 +595,8 @@ object GamePacketOpcode extends Enumeration {
     case 0xe8 => game.SquadDetailDefinitionUpdateMessage.decode
     case 0xe9 => noDecoder(TacticsMessage)
     case 0xea => noDecoder(RabbitUpdateMessage)
-    case 0xeb => noDecoder(SquadInvitationRequestMessage)
-    case 0xec => noDecoder(CharacterKnowledgeMessage)
+    case 0xeb => game.SquadInvitationRequestMessage.decode
+    case 0xec => game.CharacterKnowledgeMessage.decode
     case 0xed => noDecoder(GameScoreUpdateMessage)
     case 0xee => noDecoder(UnknownMessage238)
     case 0xef => noDecoder(OrderTerminalBugMessage)

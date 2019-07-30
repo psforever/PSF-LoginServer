@@ -21,7 +21,7 @@ object SquadResponse {
   final case class Join(squad : Squad, positionsToUpdate : List[Int]) extends Response
   final case class Leave(squad : Squad, positionsToUpdate : List[(Long, Int)]) extends Response
   final case class UpdateMembers(squad : Squad, update_info : List[SquadAction.Update]) extends Response
-  final case class SwapMember(squad : Squad, from_index : Int, to_index : Int) extends Response
+  final case class AssignMember(squad : Squad, from_index : Int, to_index : Int) extends Response
 
-  final case class Detail(guid : PlanetSideGUID, leader : String, task : String, zone : PlanetSideZoneID, member_info : List[SquadPositionDetail]) extends Response
+  final case class Detail(guid : PlanetSideGUID, squad_detail : SquadDetail) extends Response
 }

@@ -376,19 +376,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
             )
           )
 
-        case SquadResponse.Detail(guid, leader, task, zone, member_info) =>
-          sendResponse(
-            SquadDetailDefinitionUpdateMessage(
-              guid,
-              SquadDetail()
-                .LeaderCharId(member_info.find(_.name.contains(leader)).get.char_id.get)
-                .LeaderName(leader)
-                .Task(task)
-                .ZoneId(zone)
-                .Members(member_info.zipWithIndex.map { case (a, b) => SquadPositionEntry(b, a) })
-                .Complete
-            )
-          )
+        case SquadResponse.Detail(guid, detail) =>
+          sendResponse(SquadDetailDefinitionUpdateMessage(guid, detail))
 
         case SquadResponse.InitSquad(squad_guid) =>
           sendResponse(SquadDefinitionActionMessage(squad_guid, 0, SquadAction.Unknown(16)))
@@ -414,7 +403,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
           membershipPositions.find({ case(member, _) => member.CharId == avatar.CharId }) match {
             case Some((ourMember, ourIndex)) =>
               //we are joining the squad
-              sendResponse(SquadMembershipResponse(SquadResponseType.Accept, 0, 0, player.CharId, Some(leader.CharId), player.Name, true, Some(None)))
               //load each member's entry (our own too)
               membershipPositions.foreach { case(member, index) =>
                 sendResponse(SquadMemberEvent(0, id, member.CharId, index, Some(member.Name), Some(member.ZoneId), Some(0)))
@@ -447,7 +435,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
           positionsToUpdate.find({ case(member, _) => member == avatar.CharId }) match {
             case Some((ourMember, ourIndex)) =>
               //we are leaving the squad
-              sendResponse(SquadMembershipResponse(SquadResponseType.Leave, 0,1, avatar.CharId, Some(avatar.CharId), avatar.name, true, Some(None)))
               //remove each member's entry (our own too)
               positionsToUpdate.foreach { case(member, index) =>
                 sendResponse(SquadMemberEvent(1, id, member, index, None, None, None))
@@ -498,23 +485,53 @@ class WorldSessionActor extends Actor with MDCContextAware {
             )
           }
 
-        case SquadResponse.SwapMember(squad, to_index, from_index) =>
-          //this failsafe is not supported by normal squad member operations
-          val member = squad.Membership(to_index)
-          val charId = member.CharId
-          val elem = squadUI(charId)
-          val id = 11
-          squadUI(charId) = SquadUIElement(elem.name, to_index, elem.zone, elem.health, elem.armor, elem.position)
-          sendResponse(SquadMemberEvent(1, id, charId, from_index, None, None, None))
-          sendResponse(SquadMemberEvent(0, id, charId, to_index, Some(elem.name), Some(elem.zone), Some(0)))
-          sendResponse(
-            SquadState(
-              PlanetSideGUID(id),
-              List(SquadStateInfo(charId, elem.health, elem.armor, elem.position, 2,2, false, 429, None,None))
-            )
-          )
-          if(charId == avatar.CharId) {
-            sendResponse(PlanetsideAttributeMessage(player.GUID, 32, to_index))
+        case SquadResponse.AssignMember(squad, from_index, to_index) =>
+          if(squadUI.nonEmpty) {
+            val toMember = squad.Membership(to_index)
+            val toCharId = toMember.CharId
+            val fromMember = squad.Membership(from_index)
+            val fromCharId = fromMember.CharId
+            val id = 11
+            if(fromCharId > 0) {
+              //toMember and fromMember have swapped places
+              val fromElem = squadUI(fromCharId)
+              val toElem = squadUI(toCharId)
+              sendResponse(SquadMemberEvent(1, id, toCharId, from_index, None, None, None))
+              sendResponse(SquadMemberEvent(1, id, fromCharId, to_index, None, None, None))
+              squadUI(toCharId) = SquadUIElement(fromElem.name, to_index, fromElem.zone, fromElem.health, fromElem.armor, fromElem.position)
+              squadUI(fromCharId) = SquadUIElement(toElem.name, from_index, toElem.zone, toElem.health, toElem.armor, toElem.position)
+              sendResponse(SquadMemberEvent(0, id, toCharId, to_index, Some(fromElem.name), Some(fromElem.zone), Some(0)))
+              sendResponse(SquadMemberEvent(0, id, fromCharId, from_index, Some(toElem.name), Some(toElem.zone), Some(0)))
+              sendResponse(
+                SquadState(
+                  PlanetSideGUID(id),
+                  List(
+                    SquadStateInfo(fromCharId, toElem.health, toElem.armor, toElem.position, 2, 2, false, 429, None, None),
+                    SquadStateInfo(toCharId, fromElem.health, fromElem.armor, fromElem.position, 2, 2, false, 429, None, None)
+                  )
+                )
+              )
+            }
+            else {
+              //previous fromMember has moved toMember
+              val elem = squadUI(fromCharId)
+              sendResponse(SquadMemberEvent(1, id, toCharId, from_index, None, None, None))
+              squadUI(toCharId) = SquadUIElement(elem.name, to_index, elem.zone, elem.health, elem.armor, elem.position)
+              sendResponse(SquadMemberEvent(0, id, toCharId, to_index, Some(elem.name), Some(elem.zone), Some(0)))
+              sendResponse(
+                SquadState(
+                  PlanetSideGUID(id),
+                  List(SquadStateInfo(toCharId, elem.health, elem.armor, elem.position, 2, 2, false, 429, None, None))
+                )
+              )
+            }
+            val charId = avatar.CharId
+            if(toCharId == charId) {
+              sendResponse(PlanetsideAttributeMessage(player.GUID, 32, to_index))
+            }
+            else if(fromCharId == charId) {
+              sendResponse(PlanetsideAttributeMessage(player.GUID, 32, from_index))
+            }
           }
 
         case _ => ;
@@ -3454,7 +3471,32 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ PlayerStateMessageUpstream(avatar_guid, pos, vel, yaw, pitch, yaw_upper, seq_time, unk3, is_crouching, is_jumping, unk4, is_cloaking, unk5, unk6) =>
       if(deadState == DeadState.Alive) {
         if(!player.Crouching && is_crouching) { //SQUAD TESTING CODE
-          sendResponse(SquadMembershipResponse(SquadResponseType.Unk01, 0, 0, player.CharId, None, "Dummy", false, Some(None)))
+          sendResponse(
+            CharacterKnowledgeMessage(
+              41577140L,
+              CharacterKnowledgeInfo(
+                "Degrado",
+                Set(
+                  CertificationType.StandardAssault,
+                  CertificationType.ArmoredAssault1,
+                  CertificationType.MediumAssault,
+                  CertificationType.ReinforcedExoSuit,
+                  CertificationType.Harasser,
+                  CertificationType.Engineering,
+                  CertificationType.GroundSupport,
+                  CertificationType.AgileExoSuit,
+                  CertificationType.AIMAX,
+                  CertificationType.StandardExoSuit,
+                  CertificationType.AAMAX,
+                  CertificationType.ArmoredAssault2
+                ),
+                9,
+                0,
+                PlanetSideGUID(1)
+              )
+            )
+          )
+          sendResponse(SquadInvitationRequestMessage(PlanetSideGUID(1), 9, 41577140L, "Degrado"))
         }
         player.Position = pos
         player.Velocity = vel
