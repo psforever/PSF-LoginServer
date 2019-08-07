@@ -222,7 +222,7 @@ class SquadDefinitionActionMessageTest extends Specification {
       case SquadDefinitionActionMessage(unk1, unk2, action) =>
         unk1 mustEqual PlanetSideGUID(0)
         unk2 mustEqual 0
-        action mustEqual SearchForSquadsWithParticularRole("Badass", 0L, 1, 0)
+        action mustEqual SearchForSquadsWithParticularRole("Badass", Set(), 1, SearchMode.AnyPositions)
       case _ =>
         ko
     }
@@ -233,7 +233,7 @@ class SquadDefinitionActionMessageTest extends Specification {
       case SquadDefinitionActionMessage(unk1, unk2, action) =>
         unk1 mustEqual PlanetSideGUID(0)
         unk2 mustEqual 0
-        action mustEqual SearchForSquadsWithParticularRole("Badass", 0L, 2, 0)
+        action mustEqual SearchForSquadsWithParticularRole("Badass", Set(), 2, SearchMode.AnyPositions)
       case _ =>
         ko
     }
@@ -244,7 +244,7 @@ class SquadDefinitionActionMessageTest extends Specification {
       case SquadDefinitionActionMessage(unk1, unk2, action) =>
         unk1 mustEqual PlanetSideGUID(0)
         unk2 mustEqual 0
-        action mustEqual SearchForSquadsWithParticularRole("Badass", 0L, 2, 1)
+        action mustEqual SearchForSquadsWithParticularRole("Badass", Set(), 2, SearchMode.AvailablePositions)
       case _ =>
         ko
     }
@@ -255,7 +255,7 @@ class SquadDefinitionActionMessageTest extends Specification {
       case SquadDefinitionActionMessage(unk1, unk2, action) =>
         unk1 mustEqual PlanetSideGUID(0)
         unk2 mustEqual 0
-        action mustEqual SearchForSquadsWithParticularRole("Badass", 536870928L, 2, 2)
+        action mustEqual SearchForSquadsWithParticularRole("Badass", Set(CertificationType.InfiltrationSuit, CertificationType.AntiVehicular), 2, SearchMode.SomeCertifications)
       case _ =>
         ko
     }
@@ -266,7 +266,7 @@ class SquadDefinitionActionMessageTest extends Specification {
       case SquadDefinitionActionMessage(unk1, unk2, action) =>
         unk1 mustEqual PlanetSideGUID(0)
         unk2 mustEqual 0
-        action mustEqual SearchForSquadsWithParticularRole("Badass", 536870928L, 2, 3)
+        action mustEqual SearchForSquadsWithParticularRole("Badass", Set(CertificationType.InfiltrationSuit, CertificationType.AntiVehicular), 2, SearchMode.AllCertifications)
       case _ =>
         ko
     }
@@ -436,35 +436,35 @@ class SquadDefinitionActionMessageTest extends Specification {
   }
 
   "encode (34a)" in {
-    val msg = SquadDefinitionActionMessage(PlanetSideGUID(0), 0, SearchForSquadsWithParticularRole("Badass", 0L, 1, 0))
+    val msg = SquadDefinitionActionMessage(PlanetSideGUID(0), 0, SearchForSquadsWithParticularRole("Badass", Set(), 1, SearchMode.AnyPositions))
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string_34a
   }
 
   "encode (34b)" in {
-    val msg = SquadDefinitionActionMessage(PlanetSideGUID(0), 0, SearchForSquadsWithParticularRole("Badass", 0L, 2, 0))
+    val msg = SquadDefinitionActionMessage(PlanetSideGUID(0), 0, SearchForSquadsWithParticularRole("Badass", Set(), 2, SearchMode.AnyPositions))
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string_34b
   }
 
   "encode (34c)" in {
-    val msg = SquadDefinitionActionMessage(PlanetSideGUID(0), 0, SearchForSquadsWithParticularRole("Badass", 0L, 2, 1))
+    val msg = SquadDefinitionActionMessage(PlanetSideGUID(0), 0, SearchForSquadsWithParticularRole("Badass", Set(), 2, SearchMode.AvailablePositions))
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string_34c
   }
 
   "encode (34d)" in {
-    val msg = SquadDefinitionActionMessage(PlanetSideGUID(0), 0, SearchForSquadsWithParticularRole("Badass", 536870928L, 2, 2))
+    val msg = SquadDefinitionActionMessage(PlanetSideGUID(0), 0, SearchForSquadsWithParticularRole("Badass", Set(CertificationType.InfiltrationSuit, CertificationType.AntiVehicular), 2, SearchMode.SomeCertifications))
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string_34d
   }
 
   "encode (34e)" in {
-    val msg = SquadDefinitionActionMessage(PlanetSideGUID(0), 0, SearchForSquadsWithParticularRole("Badass", 536870928L, 2, 3))
+    val msg = SquadDefinitionActionMessage(PlanetSideGUID(0), 0, SearchForSquadsWithParticularRole("Badass", Set(CertificationType.InfiltrationSuit, CertificationType.AntiVehicular), 2, SearchMode.AllCertifications))
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string_34e

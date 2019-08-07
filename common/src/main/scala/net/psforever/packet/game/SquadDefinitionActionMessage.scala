@@ -16,9 +16,26 @@ import shapeless.{::, HNil}
 abstract class SquadAction(val code : Int)
 
 object SquadAction{
+  object SearchMode extends Enumeration {
+    type Type = Value
+
+    val
+    AnyPositions,
+    AvailablePositions,
+    SomeCertifications,
+    AllCertifications
+    = Value
+
+    implicit val codec : Codec[SearchMode.Value] = PacketHelpers.createEnumerationCodec(enum = this, uint(bits = 3))
+  }
+
   final case class DisplaySquad() extends SquadAction(0)
 
-  final case class AnswerSquadJoinRequest() extends SquadAction(1)
+  /**
+    * Dispatched from client to server to indicate a squad detail update that has no foundation entry to update?
+    * Not dissimilar from `DisplaySquad`.
+    */
+  final case class DisplayFullSquad() extends SquadAction(1)
 
   final case class SaveSquadFavorite() extends SquadAction(3)
 
@@ -58,11 +75,13 @@ object SquadAction{
 
   final case class LocationFollowsSquadLead(state : Boolean) extends SquadAction(31)
 
-  final case class SearchForSquadsWithParticularRole(u1: String, u2 : Long, u3: Int, u4 : Int) extends SquadAction(34)
+  final case class SearchForSquadsWithParticularRole(role: String, requirements : Set[CertificationType.Value], zone_id: Int, mode : SearchMode.Value) extends SquadAction(34)
 
   final case class CancelSquadSearch() extends SquadAction(35)
 
   final case class AssignSquadMemberToRole(position : Int, char_id : Long) extends SquadAction(38)
+
+  final case class NoSquadSearchResults() extends SquadAction(39)
 
   final case class FindLfsSoldiersForRole(state : Int) extends SquadAction(40)
 
@@ -91,10 +110,10 @@ object SquadAction{
       }
     )
 
-    val answerSquadJoinRequestCodec = everFailCondition.xmap[AnswerSquadJoinRequest] (
-      _ => AnswerSquadJoinRequest(),
+    val displayFullSquadCodec = everFailCondition.xmap[DisplayFullSquad] (
+      _ => DisplayFullSquad(),
       {
-        case AnswerSquadJoinRequest() => None
+        case DisplayFullSquad() => None
       }
     )
 
@@ -243,12 +262,12 @@ object SquadAction{
       PacketHelpers.encodedWideStringAligned(6) ::
         ulongL(46) ::
         uint16L ::
-        uintL(3)).xmap[SearchForSquadsWithParticularRole] (
+        SearchMode.codec).xmap[SearchForSquadsWithParticularRole] (
       {
-        case u1 :: u2 :: u3 :: u4 :: HNil => SearchForSquadsWithParticularRole(u1, u2, u3, u4)
+        case u1 :: u2 :: u3 :: u4 :: HNil => SearchForSquadsWithParticularRole(u1, CertificationType.fromEncodedLong(u2), u3, u4)
       },
       {
-        case SearchForSquadsWithParticularRole(u1, u2, u3, u4) => u1 :: u2 :: u3 :: u4 :: HNil
+        case SearchForSquadsWithParticularRole(u1, u2, u3, u4) => u1 :: CertificationType.toEncodedLong(u2) :: u3 :: u4 :: HNil
       }
     )
 
@@ -265,6 +284,13 @@ object SquadAction{
       },
       {
         case AssignSquadMemberToRole(u1, u2) => u1 :: u2 :: HNil
+      }
+    )
+
+    val noSquadSearchResultsCodec = everFailCondition.xmap[NoSquadSearchResults] (
+      _ => NoSquadSearchResults(),
+      {
+        case NoSquadSearchResults() => None
       }
     )
 
@@ -326,6 +352,7 @@ object SquadAction{
   * &nbsp;&nbsp;&nbsp;&nbsp;`18` - UNKNOWN<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`26` - Reset All<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`35` - Cancel Squad Search<br>
+  * &nbsp;&nbsp;&nbsp;&nbsp;`39` - No Squad Search Results<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`41` - Cancel Find<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`42` - UNKNOWN<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`43` - UNKNOWN<br>
@@ -388,7 +415,7 @@ object SquadDefinitionActionMessage extends Marshallable[SquadDefinitionActionMe
     import scala.annotation.switch
     ((code : @switch) match {
       case 0 => displaySquadCodec
-      case 1 => answerSquadJoinRequestCodec
+      case 1 => displayFullSquadCodec
       case 3 => saveSquadFavoriteCodec
       case 4 => loadSquadFavoriteCodec
       case 5 => deleteSquadFavoriteCodec
@@ -411,12 +438,13 @@ object SquadDefinitionActionMessage extends Marshallable[SquadDefinitionActionMe
       case 34 => searchForSquadsWithParticularRoleCodec
       case 35 => cancelSquadSearchCodec
       case 38 => assignSquadMemberToRoleCodec
+      case 39 => noSquadSearchResultsCodec
       case 40 => findLfsSoldiersForRoleCodec
       case 41 => cancelFindCodec
       case 2 | 6 | 11 |
            12 | 13 | 14 | 16 |
            18 | 29 | 30 | 32 | 33 |
-           36 | 37 | 39 | 42 | 43 => unknownCodec(code)
+           36 | 37 | 42 | 43 => unknownCodec(code)
       case _ => failureCodec(code)
     }).asInstanceOf[Codec[SquadAction]]
   }
