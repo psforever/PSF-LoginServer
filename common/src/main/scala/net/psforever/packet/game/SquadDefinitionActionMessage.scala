@@ -35,7 +35,7 @@ object SquadAction{
     * Dispatched from client to server to indicate a squad detail update that has no foundation entry to update?
     * Not dissimilar from `DisplaySquad`.
     */
-  final case class DisplayFullSquad() extends SquadAction(1)
+  final case class SquadMemberInitializationIssue() extends SquadAction(1)
 
   final case class SaveSquadFavorite() extends SquadAction(3)
 
@@ -52,6 +52,8 @@ object SquadAction{
   final case class SelectRoleForYourself(state : Int) extends SquadAction(10)
 
   final case class CancelSelectRoleForYourself(value: Long = 0) extends SquadAction(15)
+
+  final case class AssociateWithSquad() extends SquadAction(16)
 
   final case class SetListSquad() extends SquadAction(17)
 
@@ -110,10 +112,10 @@ object SquadAction{
       }
     )
 
-    val displayFullSquadCodec = everFailCondition.xmap[DisplayFullSquad] (
-      _ => DisplayFullSquad(),
+    val squadMemberInitializationIssueCodec = everFailCondition.xmap[SquadMemberInitializationIssue] (
+      _ => SquadMemberInitializationIssue(),
       {
-        case DisplayFullSquad() => None
+        case SquadMemberInitializationIssue() => None
       }
     )
 
@@ -170,6 +172,13 @@ object SquadAction{
       value => CancelSelectRoleForYourself(value),
       {
         case CancelSelectRoleForYourself(value) => value
+      }
+    )
+
+    val associateWithSquadCodec = everFailCondition.xmap[AssociateWithSquad] (
+      _ => AssociateWithSquad(),
+      {
+        case AssociateWithSquad() => None
       }
     )
 
@@ -347,7 +356,7 @@ object SquadAction{
   * &nbsp;&nbsp;&nbsp;&nbsp;`6 ` - UNKNOWN<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`8 ` - Request List Squad<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`9 ` - Stop List Squad<br>
-  * &nbsp;&nbsp;&nbsp;&nbsp;`16` - UNKNOWN<br>
+  * &nbsp;&nbsp;&nbsp;&nbsp;`16` - Associate with Squad<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`17` - Set List Squad (ui)<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`18` - UNKNOWN<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`26` - Reset All<br>
@@ -415,7 +424,7 @@ object SquadDefinitionActionMessage extends Marshallable[SquadDefinitionActionMe
     import scala.annotation.switch
     ((code : @switch) match {
       case 0 => displaySquadCodec
-      case 1 => displayFullSquadCodec
+      case 1 => squadMemberInitializationIssueCodec
       case 3 => saveSquadFavoriteCodec
       case 4 => loadSquadFavoriteCodec
       case 5 => deleteSquadFavoriteCodec
@@ -424,6 +433,7 @@ object SquadDefinitionActionMessage extends Marshallable[SquadDefinitionActionMe
       case 9 => stopListSquadCodec
       case 10 => selectRoleForYourselfCodec
       case 15 => cancelSelectRoleForYourselfCodec
+      case 16 => associateWithSquadCodec
       case 17 => setListSquadCodec
       case 19 => changeSquadPurposeCodec
       case 20 => changeSquadZoneCodec
@@ -442,7 +452,7 @@ object SquadDefinitionActionMessage extends Marshallable[SquadDefinitionActionMe
       case 40 => findLfsSoldiersForRoleCodec
       case 41 => cancelFindCodec
       case 2 | 6 | 11 |
-           12 | 13 | 14 | 16 |
+           12 | 13 | 14 |
            18 | 29 | 30 | 32 | 33 |
            36 | 37 | 42 | 43 => unknownCodec(code)
       case _ => failureCodec(code)

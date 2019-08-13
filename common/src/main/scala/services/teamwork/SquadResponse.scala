@@ -14,8 +14,10 @@ object SquadResponse {
   final case class UpdateList(infos : Iterable[(Int, SquadInfo)]) extends Response
   final case class RemoveFromList(infos : Iterable[Int]) extends Response
 
-  final case class InitSquad(squad_guid : PlanetSideGUID) extends Response
+  final case class AssociateWithSquad(squad_guid : PlanetSideGUID) extends Response
+  final case class SetListSquad(squad_guid : PlanetSideGUID) extends Response
   final case class Unknown17(squad : Squad, char_id : Long) extends Response
+
   final case class Membership(request_type : SquadResponseType.Value, unk1 : Int, unk2 : Int, unk3 : Long, unk4 : Option[Long], player_name : String, unk5 : Boolean, unk6 : Option[Option[String]]) extends Response //see SquadMembershipResponse
   final case class Invite(from_char_id : Long, to_char_id : Long, name : String) extends Response
   final case class WantsSquadPosition(bid_name : String) extends Response

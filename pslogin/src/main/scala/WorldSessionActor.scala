@@ -379,8 +379,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case SquadResponse.Detail(guid, detail) =>
           sendResponse(SquadDetailDefinitionUpdateMessage(guid, detail))
 
-        case SquadResponse.InitSquad(squad_guid) =>
-          sendResponse(SquadDefinitionActionMessage(squad_guid, 0, SquadAction.Unknown(16)))
+        case SquadResponse.AssociateWithSquad(squad_guid) =>
+          sendResponse(SquadDefinitionActionMessage(squad_guid, 0, SquadAction.AssociateWithSquad()))
+
+        case SquadResponse.SetListSquad(squad_guid) =>
           sendResponse(SquadDefinitionActionMessage(squad_guid, 0, SquadAction.SetListSquad()))
 
         case SquadResponse.Unknown17(squad, char_id) =>
@@ -3010,7 +3012,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       sendResponse(SquadDefinitionActionMessage(PlanetSideGUID(0), line, SquadAction.ListSquadFavorite("")))
     })
     sendResponse(SquadDetailDefinitionUpdateMessage.Init)
-    sendResponse(SquadDefinitionActionMessage(PlanetSideGUID(0), 0,SquadAction.Unknown(16)))
+    sendResponse(SquadDefinitionActionMessage(PlanetSideGUID(0), 0,SquadAction.AssociateWithSquad()))
     sendResponse(SquadDefinitionActionMessage(PlanetSideGUID(0), 0,SquadAction.SetListSquad()))
     sendResponse(SquadDefinitionActionMessage(PlanetSideGUID(0), 0,SquadAction.Unknown(18)))
     //MapObjectStateBlockMessage and ObjectCreateMessage?
@@ -3108,6 +3110,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       avatar.Certifications += AssaultEngineering
       avatar.Certifications += Hacking
       avatar.Certifications += AdvancedHacking
+      avatar.CEP = 6000001
       this.avatar = avatar
 
       InitializeDeployableQuantities(avatar) //set deployables ui elements
@@ -4957,7 +4960,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ SquadDefinitionActionMessage(u1, u2, action) =>
       log.info(s"SquadDefinitionAction: $msg")
-        squadService ! SquadServiceMessage(player, SquadServiceAction.Definition(player, continent.Number, u1, u2, action))
+        squadService ! SquadServiceMessage(player, SquadServiceAction.Definition(player, continent, u1, u2, action))
 
     case msg @ SquadMembershipRequest(request_type, unk2, unk3, player_name, unk5) =>
       log.info(s"$msg")
