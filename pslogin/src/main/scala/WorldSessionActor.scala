@@ -516,14 +516,31 @@ class WorldSessionActor extends Actor with MDCContextAware {
           log.info(s"SquadCards: ${squadUI.map { case(id, card) => s"[${card.index}:${card.name}/$id]" }.mkString}")
 
         case SquadResponse.PromoteMember(squad, char_id, from_index, to_index) =>
-          //promotion will swap visual cards, but we must fix the backend
+          //promotion will swap cards visually, but we must fix the backend
           val id = 11
           sendResponse(SquadMemberEvent.Promote(id, char_id))
           SwapSquadUIElements(squad, from_index, to_index)
           log.info(s"SquadCards: ${squadUI.map { case(id, card) => s"[${card.index}:${card.name}/$id]" }.mkString}")
 
         case SquadResponse.SquadSearchResults() =>
+          //I don't actually know how to return search results
           sendResponse(SquadDefinitionActionMessage(PlanetSideGUID(0), 0, SquadAction.NoSquadSearchResults()))
+
+        case SquadResponse.InitWaypoints(char_id, waypoints) =>
+          val id = 11
+          StartBundlingPackets()
+          waypoints.foreach { case (waypoint_type, info, unk) =>
+            sendResponse(SquadWaypointEvent.Add(id, char_id, waypoint_type, WaypointEvent(info.zone_number, info.pos, unk)))
+          }
+          StopBundlingPackets()
+
+        case SquadResponse.WaypointEvent(WaypointEventAction.Add, char_id, waypoint_type, _, Some(info), unk) =>
+          val id = 11
+          sendResponse(SquadWaypointEvent.Add(id, char_id, waypoint_type, WaypointEvent(info.zone_number, info.pos, unk)))
+
+        case SquadResponse.WaypointEvent(WaypointEventAction.Remove, char_id, waypoint_type, _, _, _) =>
+          val id = 11
+          sendResponse(SquadWaypointEvent.Remove(id, char_id, waypoint_type))
 
         case _ => ;
       }
@@ -4960,11 +4977,15 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ SquadDefinitionActionMessage(u1, u2, action) =>
       log.info(s"SquadDefinitionAction: $msg")
-        squadService ! SquadServiceMessage(player, SquadServiceAction.Definition(player, continent, u1, u2, action))
+        squadService ! SquadServiceMessage(player, SquadServiceAction.Definition(continent, u1, u2, action))
 
     case msg @ SquadMembershipRequest(request_type, unk2, unk3, player_name, unk5) =>
       log.info(s"$msg")
       squadService ! SquadServiceMessage(player, SquadServiceAction.Membership(request_type, unk2, unk3, player_name, unk5))
+
+    case msg @ SquadWaypointRequest(request, _, wtype, unk, info) =>
+      log.info(s"Waypoint Request: $msg")
+      squadService ! SquadServiceMessage(player, SquadServiceAction.Waypoint(request, wtype, unk, info))
 
     case msg @ GenericCollisionMsg(u1, p, t, php, thp, pv, tv, ppos, tpos, u2, u3, u4) =>
       log.info("Ouch! " + msg)
