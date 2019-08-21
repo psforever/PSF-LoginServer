@@ -781,8 +781,8 @@ object Map13 {
       LocalObject(829, Terminal.Constructor(order_terminal), owning_building_guid = 40)
       LocalObject(732, SpawnTube.Constructor(respawn_tube_sanctuary, Vector3(3137.272f, 4872.455f, 58.11739f), Vector3(0, 0, 180)), owning_building_guid = 40)
       LocalObject(733, SpawnTube.Constructor(respawn_tube_sanctuary, Vector3(3137.272f, 4877.209f, 58.11739f), Vector3(0, 0, 0)), owning_building_guid = 40)
-      LocalObject(734, SpawnTube.Constructor(respawn_tube_sanctuary, Vector3(3143.98f, 4877.21f, 58.11739f), Vector3(0, 0, 0)), owning_building_guid = 40)
-      LocalObject(735, SpawnTube.Constructor(respawn_tube_sanctuary, Vector3(3143.981f, 4872.455f, 58.11739f), Vector3(0, 0, 180)), owning_building_guid = 40)
+      LocalObject(734, SpawnTube.Constructor(respawn_tube_sanctuary, Vector3(3143.981f, 4872.455f, 58.11739f), Vector3(0, 0, 180)), owning_building_guid = 40)
+      LocalObject(735, SpawnTube.Constructor(respawn_tube_sanctuary, Vector3(3143.98f, 4877.21f, 58.11739f), Vector3(0, 0, 0)), owning_building_guid = 40)
       LocalObject(736, SpawnTube.Constructor(respawn_tube_sanctuary, Vector3(3150.688f, 4872.455f, 58.11739f), Vector3(0, 0, 180)), owning_building_guid = 40)
       LocalObject(737, SpawnTube.Constructor(respawn_tube_sanctuary, Vector3(3150.688f, 4877.209f, 58.11739f), Vector3(0, 0, 0)), owning_building_guid = 40)
     }
@@ -941,8 +941,8 @@ object Map13 {
       LocalObject(897, Terminal.Constructor(order_terminal), owning_building_guid = 45)
       LocalObject(756, SpawnTube.Constructor(respawn_tube_sanctuary, Vector3(5487.272f, 4336.455f, 105.264f), Vector3(0, 0, 180)), owning_building_guid = 45)
       LocalObject(757, SpawnTube.Constructor(respawn_tube_sanctuary, Vector3(5487.272f, 4341.209f, 105.264f), Vector3(0, 0, 0)), owning_building_guid = 45)
-      LocalObject(758, SpawnTube.Constructor(respawn_tube_sanctuary, Vector3(5493.98f, 4341.21f, 105.264f), Vector3(0, 0, 0)), owning_building_guid = 45)
-      LocalObject(759, SpawnTube.Constructor(respawn_tube_sanctuary, Vector3(5493.981f, 4336.455f, 105.264f), Vector3(0, 0, 180)), owning_building_guid = 45)
+      LocalObject(758, SpawnTube.Constructor(respawn_tube_sanctuary, Vector3(5493.981f, 4336.455f, 105.264f), Vector3(0, 0, 180)), owning_building_guid = 45)
+      LocalObject(759, SpawnTube.Constructor(respawn_tube_sanctuary, Vector3(5493.98f, 4341.21f, 105.264f), Vector3(0, 0, 0)), owning_building_guid = 45)
       LocalObject(760, SpawnTube.Constructor(respawn_tube_sanctuary, Vector3(5500.688f, 4336.455f, 105.264f), Vector3(0, 0, 180)), owning_building_guid = 45)
       LocalObject(761, SpawnTube.Constructor(respawn_tube_sanctuary, Vector3(5500.688f, 4341.209f, 105.264f), Vector3(0, 0, 0)), owning_building_guid = 45)
     }
