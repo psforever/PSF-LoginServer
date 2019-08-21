@@ -28,7 +28,7 @@ class ResourceSiloControl(resourceSilo : ResourceSilo) extends Actor with Factio
 
     case ServiceManager.LookupResult("avatar", endpoint) =>
       avatarService = endpoint
-      log.info("ResourceSiloControl: Silo " + resourceSilo.GUID + " Got avatar service " + endpoint)
+      log.trace("ResourceSiloControl: Silo " + resourceSilo.GUID + " Got avatar service " + endpoint)
 
       // todo: This is just a temporary solution to drain NTU over time. When base object destruction is properly implemented NTU should be deducted when base objects repair themselves
       context.system.scheduler.schedule(5 second, 5 second, self, ResourceSilo.UpdateChargeLevel(-1))

@@ -12,6 +12,13 @@ import shapeless.{::, HNil}
   * (Write more some other time.)
   * @param object_guid the target object
   * @param code the action code
+  *             24 - deconstructs player
+  *             28 - start imprinting process (progress bar + character animation)
+  *             32 - finish imprinting?
+  *             36 - cloak
+  *             40 - uncloak
+  *             82 - hit flinch?
+  *             138 - time till item can be used ?????
   *             44, 45, 46, 47 - Deploy capital base shield pole with animation and broadcasts "The capitol force dome at X has been activated"
   *             48, 49, 50, 51 - Stow capital base shield pole with animation and broadcasts "The capitol force dome at X has been deactivated"
   *             52, 53, 54, 55 - Deploy capital base shield pole (instantly, unless still in the middle of the stow animation)
