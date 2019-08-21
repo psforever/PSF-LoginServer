@@ -70,6 +70,8 @@ class Player(private val core : Avatar) extends PlanetSideGameObject
 
   def Voice : CharacterVoice.Value = core.voice
 
+  def LFS : Boolean = core.LFS
+
   def isAlive : Boolean = alive
 
   def isBackpack : Boolean = backpack

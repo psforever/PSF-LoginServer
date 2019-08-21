@@ -98,7 +98,7 @@ object AvatarConverter {
       false,
       facingPitch = obj.Orientation.y,
       facingYawUpper = obj.FacingYawUpper,
-      lfs = true,
+      obj.LFS,
       GrenadeState.None,
       obj.Cloaked,
       false,

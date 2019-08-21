@@ -8,7 +8,7 @@ object SquadRequestType extends Enumeration {
   type Type = Value
   val
   Invite,
-  Unk01,
+  ProximityInvite,
   Accept,
   Reject,
   Cancel,

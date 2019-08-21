@@ -118,6 +118,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
     */
   var interstellarFerryTopLevelGUID : Option[PlanetSideGUID] = None
   val squadUI : LongMap[SquadUIElement] = new LongMap[SquadUIElement]()
+  /**
+    * `AvatarConverter` can only rely on the `Avatar`-local Looking For Squad variable.
+    * When joining or creating a squad, the original state of the avatar's LFS variable is stored here.
+    * Upon leaving or disbanding a squad, this value is restored to the avatar's LFS variable.
+    */
+  var lfs : Boolean = false
 
   var amsSpawnPoints : List[SpawnPoint] = Nil
   var clientKeepAlive : Cancellable = DefaultCancellable.obj
@@ -160,6 +166,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
           .collect { case ((index, Some(obj))) => InventoryItem(obj, index) }
           ) ++ player.Inventory.Items)
         .filterNot({ case InventoryItem(obj, _) => obj.isInstanceOf[BoomerTrigger] || obj.isInstanceOf[Telepad] })
+      //put any temporary value back into the avatar
+      if(squadUI.nonEmpty) {
+        avatar.LFS = lfs
+      }
       //TODO final character save before doing any of this (use equipment)
       continent.Population ! Zone.Population.Release(avatar)
       if(player.isAlive) {
@@ -437,6 +447,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
               sendResponse(PlanetsideAttributeMessage(player.GUID, 32, ourIndex)) //associate with member position in squad?
               //a finalization? what does this do?
               sendResponse(SquadDefinitionActionMessage(PlanetSideGUID(0), 0, SquadAction.Unknown(18)))
+              //lfs state management (always OFF)
+              if(avatar.LFS) {
+                lfs = avatar.LFS
+                avatar.LFS = false
+                sendResponse(PlanetsideAttributeMessage(player.GUID, 53, 0))
+              }
             case _ =>
               //other player is joining our squad
               //load each member's entry
@@ -471,6 +487,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
               sendResponse(PlanetsideAttributeMessage(player.GUID, 34, 4294967295L)) //unknown, perhaps unrelated?
               //a finalization? what does this do?
               sendResponse(SquadDefinitionActionMessage(PlanetSideGUID(0), 0, SquadAction.Unknown(18)))
+              //lfs state management (maybe ON)
+              if(lfs) {
+                avatar.LFS = lfs
+                sendResponse(PlanetsideAttributeMessage(player.GUID, 53, 1))
+                lfs = false
+              }
             case _ =>
               //remove each member's entry
               positionsToUpdate.foreach { case(member, index) =>
@@ -3011,7 +3033,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     sendResponse(SetChatFilterMessage(ChatChannel.Local, false, ChatChannel.values.toList)) //TODO will not always be "on" like this
     deadState = DeadState.Alive
     sendResponse(AvatarDeadStateMessage(DeadState.Alive, 0, 0, tplayer.Position, player.Faction, true))
-    sendResponse(PlanetsideAttributeMessage(guid, 53, 1))
+    sendResponse(PlanetsideAttributeMessage(guid, 53, tplayer.LFS))
     sendResponse(AvatarSearchCriteriaMessage(guid, List(0, 0, 0, 0, 0, 0)))
     (1 to 73).foreach(i => {
       // not all GUID's are set, and not all of the set ones will always be zero; what does this section do?
@@ -4663,7 +4685,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             log.info(s"GenericObject: $player is MAX with an unexpected weapon - ${definition.Name}")
         }
       }
-      else if(action == 16) {
+      else if(action == 16) { //max deployment
         log.info(s"GenericObject: $player has released the anchors")
         player.UsingSpecial = SpecialExoSuitDefinition.Mode.Normal
         avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player.GUID, 19, 0))
@@ -4679,6 +4701,26 @@ class WorldSessionActor extends Actor with MDCContextAware {
             sendResponse(ChangeFireModeMessage(tool.GUID, convertFireModeIndex))
           case _ =>
             log.info(s"GenericObject: $player is MAX with an unexpected weapon - ${definition.Name}")
+        }
+      }
+      else if(action == 37) { //Looking For Squad OFF
+        if(squadUI.nonEmpty) {
+          lfs = false
+        }
+        else if(avatar.LFS) {
+          avatar.LFS = false
+          avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player.GUID, 53, 0))
+          log.info(s"GenericObject: ${player.Name} is no longer looking for a squad to join")
+        }
+      }
+      else if(action == 36) { //Looking For Squad ON
+        if(squadUI.nonEmpty) {
+          lfs = true
+        }
+        else if(!avatar.LFS) {
+          avatar.LFS = true
+          avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player.GUID, 53, 1))
+          log.info(s"GenericObject: ${player.Name} has made himself available to join a squad")
         }
       }
 
