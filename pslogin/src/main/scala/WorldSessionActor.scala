@@ -783,7 +783,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       LivePlayerList.Add(sessionId, avatar)
       traveler = new Traveler(self, continent.Id)
       //PropertyOverrideMessage
-      sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 112, 1))
+      sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 112, 0)) // disable festive backpacks
       sendResponse(ReplicationStreamMessage(5, Some(6), Vector(SquadListing()))) //clear squad list
       sendResponse(FriendsResponse(FriendAction.InitializeFriendList, 0, true, true, Nil))
       sendResponse(FriendsResponse(FriendAction.InitializeIgnoreList, 0, true, true, Nil))
@@ -2931,7 +2931,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       //custom
       sendResponse(ContinentalLockUpdateMessage(13, PlanetSideEmpire.VS)) // "The VS have captured the VS Sanctuary."
       sendResponse(ReplicationStreamMessage(5, Some(6), Vector(SquadListing()))) //clear squad list
-      sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 112, 1)) //common
+      sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 112, 0)) // disable festive backpacks
       //(0 to 255).foreach(i => { sendResponse(SetEmpireMessage(PlanetSideGUID(i), PlanetSideEmpire.VS)) })
 
       //find and reclaim own deployables, if any
