@@ -11,26 +11,29 @@ import shapeless.{::, HNil}
   * `DetailedBoomerTriggerData` - `data.faction` can be `NEUTRAL`, `data.unk1` is `true`
   * `DetailedTelepadData` - `data.faction` can be `NEUTRAL`, `data.jammered` is the router's GUID
   */
-final case class DetailedConstructionToolData(data : CommonFieldData) extends ConstructorData {
+final case class DetailedConstructionToolData(data : CommonFieldData, mode : Int) extends ConstructorData {
   override def bitsize : Long = 28L + data.bitsize
 }
 
 object DetailedConstructionToolData extends Marshallable[DetailedConstructionToolData] {
+  def apply(data : CommonFieldData) : DetailedConstructionToolData = DetailedConstructionToolData(data, 0)
+
   implicit val codec : Codec[DetailedConstructionToolData] = (
     ("data" | CommonFieldData.codec(false)) ::
       uint8 ::
-      uint(18) ::
+      ("mode" | uint16) ::
+      uint2 ::
       uint2
     ).exmap[DetailedConstructionToolData] (
     {
-      case data :: 1 :: 1 :: _ :: HNil =>
-        Attempt.successful(DetailedConstructionToolData(data))
+      case data :: 1 :: mode :: 1 :: _ :: HNil =>
+        Attempt.successful(DetailedConstructionToolData(data, mode))
       case data =>
         Attempt.failure(Err(s"invalid detailed construction tool data format - $data"))
     },
     {
-      case DetailedConstructionToolData(data) =>
-        Attempt.successful(data :: 1 :: 1 :: 0 :: HNil)
+      case DetailedConstructionToolData(data, mode) =>
+        Attempt.successful(data :: 1 :: mode :: 1 :: 0 :: HNil)
     }
   )
 }

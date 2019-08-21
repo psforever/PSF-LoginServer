@@ -18,29 +18,34 @@ import shapeless.{::, HNil}
   *             - v4 - not used, i.e., the simple format `CommonFieldData` object is employed
   *             - v5 - for the telepad, this field is expected to be the GUID of the associated Router
   */
-final case class HandheldData(data : CommonFieldData) extends ConstructorData {
+final case class HandheldData(data : CommonFieldData,
+                              mode : Int,
+                              unk : Int) extends ConstructorData {
   override def bitsize : Long = {
     11L + data.bitsize
   }
 }
 
 object HandheldData extends Marshallable[HandheldData] {
+  def apply(data : CommonFieldData) : HandheldData = HandheldData(data, 0, 0)
+
+  def apply(data : CommonFieldData, mode : Int) : HandheldData = HandheldData(data, mode, 0)
+
   implicit val codec : Codec[HandheldData] = (
     ("data" | CommonFieldData.codec) ::
-      uint4 ::
-      uint4 ::
-      uint(3)
+      ("mode" | uint8) ::
+      ("unk" | uint(3))
     ).exmap[HandheldData] (
     {
-      case data :: 0 :: 0 :: 0 :: HNil =>
-        Attempt.successful(HandheldData(data))
+      case data :: mode :: unk :: HNil =>
+        Attempt.successful(HandheldData(data, mode, unk))
 
       case data =>
         Attempt.failure(Err(s"invalid handheld tool data format - $data"))
     },
     {
-      case HandheldData(data) =>
-        Attempt.successful(data :: 0 :: 0 :: 0 :: HNil)
+      case HandheldData(data, mode, unk) =>
+        Attempt.successful(data :: mode :: unk :: HNil)
     }
   )
 }

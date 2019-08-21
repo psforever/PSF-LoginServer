@@ -23,7 +23,7 @@ class HandheldDataTest extends Specification {
           parent.get.guid mustEqual PlanetSideGUID(3336)
           parent.get.slot mustEqual 0
           data match {
-            case HandheldData(CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid)) =>
+            case HandheldData(CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid), mode, unk) =>
               faction mustEqual PlanetSideEmpire.NC
               bops mustEqual false
               alternate mustEqual false
@@ -50,7 +50,7 @@ class HandheldDataTest extends Specification {
           parent.isDefined mustEqual false
           data.isInstanceOf[DroppedItemData[_]] mustEqual true
           data match {
-            case DroppedItemData(pos, HandheldData(CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid))) =>
+            case DroppedItemData(pos, HandheldData(CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid), mode, unk)) =>
               pos.coord mustEqual Vector3(4708.461f, 5547.539f, 72.703125f)
               pos.orient mustEqual Vector3.z(194.0625f)
 
@@ -102,7 +102,7 @@ class HandheldDataTest extends Specification {
           parent.get.guid mustEqual PlanetSideGUID(430)
           parent.get.slot mustEqual 0
           data match {
-            case HandheldData(CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid)) =>
+            case HandheldData(CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid), mode, unk) =>
               faction mustEqual PlanetSideEmpire.TR
               bops mustEqual false
               alternate mustEqual false
@@ -142,7 +142,7 @@ class HandheldDataTest extends Specification {
           parent.get.guid mustEqual PlanetSideGUID(4272)
           parent.get.slot mustEqual 0
           data match {
-            case HandheldData(CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid)) =>
+            case HandheldData(CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid), mode, unk) =>
               faction mustEqual PlanetSideEmpire.NEUTRAL
               bops mustEqual false
               alternate mustEqual false
@@ -182,7 +182,7 @@ class HandheldDataTest extends Specification {
           parent.get.guid mustEqual PlanetSideGUID(4149)
           parent.get.slot mustEqual 0
           data match {
-            case HandheldData(CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid)) =>
+            case HandheldData(CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid), mode, unk) =>
               faction mustEqual PlanetSideEmpire.NC
               bops mustEqual false
               alternate mustEqual false
@@ -208,7 +208,7 @@ class HandheldDataTest extends Specification {
           guid mustEqual PlanetSideGUID(3682)
           parent.isDefined mustEqual false
           data match {
-            case DroppedItemData(pos, HandheldData(CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid))) =>
+            case DroppedItemData(pos, HandheldData(CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid), mode, unk)) =>
               pos.coord mustEqual Vector3(4777.633f, 5485.4062f, 85.8125f)
               pos.orient mustEqual Vector3.z(14.0625f)
 

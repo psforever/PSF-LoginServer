@@ -23,7 +23,7 @@ class REKDataTest extends Specification {
           parent.get.guid mustEqual PlanetSideGUID(4174)
           parent.get.slot mustEqual 0
           data match {
-            case REKData(CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid), unk) =>
+            case REKData(CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid), unk1, unk2) =>
               faction mustEqual PlanetSideEmpire.TR
               bops mustEqual false
               alternate mustEqual false
@@ -33,7 +33,8 @@ class REKDataTest extends Specification {
               v4.contains(false) mustEqual true
               v5.isEmpty mustEqual true
               fguid mustEqual PlanetSideGUID(0)
-              unk mustEqual 0
+              unk1 mustEqual 0
+              unk2 mustEqual 0
             case _ =>
               ko
           }
@@ -50,7 +51,7 @@ class REKDataTest extends Specification {
           guid mustEqual PlanetSideGUID(4355)
           parent.isDefined mustEqual false
           data match {
-            case DroppedItemData(pos, REKData(CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid), unk)) =>
+            case DroppedItemData(pos, REKData(CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid), unk1, unk2)) =>
               pos.coord mustEqual Vector3(4675.039f, 5506.953f, 72.703125f)
               pos.orient mustEqual Vector3.z(230.625f)
 
@@ -64,7 +65,8 @@ class REKDataTest extends Specification {
               v5.isEmpty mustEqual true
               fguid mustEqual PlanetSideGUID(0)
 
-              unk mustEqual 3
+              unk1 mustEqual 3
+              unk2 mustEqual 0
             case _ =>
               ko
           }
@@ -83,7 +85,7 @@ class REKDataTest extends Specification {
     "encode (dropped)" in {
       val obj = DroppedItemData(
         PlacementData(4675.039f, 5506.953f, 72.703125f, 0f, 0f, 230.625f),
-        REKData(CommonFieldData(PlanetSideEmpire.VS, false, false, false, None, false, Some(false), None, PlanetSideGUID(0)), 3)
+        REKData(CommonFieldData(PlanetSideEmpire.VS, false, false, false, None, false, Some(false), None, PlanetSideGUID(0)), 3, 0)
       )
       val msg = ObjectCreateMessage(ObjectClass.remote_electronics_kit, PlanetSideGUID(4355), obj)
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector

@@ -143,7 +143,9 @@ object WeaponData extends Marshallable[WeaponData] {
         else {
           Attempt.successful(WeaponData(data, fmode, ammo, unk))
         }
-
+      case data :: fmode :: false :: None :: unk :: HNil =>
+        //rare pass condition, usually found in LockerContainer objects or temporarily existing as a dropped item
+        Attempt.successful(WeaponData(data, fmode, Nil, unk))
       case data =>
         Attempt.failure(Err(s"invalid weapon data format - $data"))
     },
@@ -159,7 +161,6 @@ object WeaponData extends Marshallable[WeaponData] {
         else {
           Attempt.successful(data :: fmode :: false :: Some(InventoryData(ammo)) :: unk :: HNil)
         }
-
       case _ =>
         Attempt.failure(Err("invalid weapon data format"))
     }

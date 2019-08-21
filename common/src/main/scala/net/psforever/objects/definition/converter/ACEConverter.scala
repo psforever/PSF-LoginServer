@@ -21,7 +21,8 @@ class ACEConverter extends ObjectCreateConverter[ConstructionItem]() {
           None,
           None,
           PlanetSideGUID(0)
-        )
+        ),
+        obj.FireModeIndex
       )
     )
   }
@@ -39,7 +40,8 @@ class ACEConverter extends ObjectCreateConverter[ConstructionItem]() {
           None,
           None,
           PlanetSideGUID(0)
-        )
+        ),
+        obj.FireModeIndex
       )
     )
   }
