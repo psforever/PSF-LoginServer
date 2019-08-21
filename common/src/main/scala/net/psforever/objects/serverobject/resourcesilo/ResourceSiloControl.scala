@@ -55,7 +55,7 @@ class ResourceSiloControl(resourceSilo : ResourceSilo) extends Actor with Factio
       }
 
 
-      val ntuBarLevel = scala.math.round((resourceSilo.ChargeLevel.toFloat / resourceSilo.MaximumCharge.toFloat) * 10)
+      val ntuBarLevel = scala.math.ceil((resourceSilo.ChargeLevel.toFloat / resourceSilo.MaximumCharge.toFloat) * 10).toInt
       // Only send updated capacitor display value to all clients if it has actually changed
       if(resourceSilo.CapacitorDisplay != ntuBarLevel) {
         log.trace(s"Silo ${resourceSilo.GUID} NTU bar level has changed from ${resourceSilo.CapacitorDisplay} to $ntuBarLevel")

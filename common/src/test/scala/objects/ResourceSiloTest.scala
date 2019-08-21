@@ -160,7 +160,7 @@ class ResourceSiloControlUpdate1Test extends ActorTest {
       val reply1 = probe1.receiveOne(500 milliseconds)
       val reply2 = probe2.receiveOne(500 milliseconds)
       assert(obj.ChargeLevel == 305)
-      assert(obj.CapacitorDisplay == 3)
+      assert(obj.CapacitorDisplay == 4)
       assert(reply1.isInstanceOf[AvatarServiceMessage])
       assert(reply1.asInstanceOf[AvatarServiceMessage].forChannel == "nowhere")
       assert(reply1.asInstanceOf[AvatarServiceMessage]
@@ -170,7 +170,7 @@ class ResourceSiloControlUpdate1Test extends ActorTest {
       assert(reply1.asInstanceOf[AvatarServiceMessage]
         .actionMessage.asInstanceOf[AvatarAction.PlanetsideAttribute].attribute_type == 45)
       assert(reply1.asInstanceOf[AvatarServiceMessage]
-        .actionMessage.asInstanceOf[AvatarAction.PlanetsideAttribute].attribute_value == 3)
+        .actionMessage.asInstanceOf[AvatarAction.PlanetsideAttribute].attribute_value == 4)
 
       assert(reply2.isInstanceOf[Building.SendMapUpdate])
 
@@ -231,7 +231,7 @@ class ResourceSiloControlUpdate2Test extends ActorTest {
       val reply1 = probe1.receiveOne(500 milliseconds)
       val reply2 = probe2.receiveOne(500 milliseconds)
       assert(obj.ChargeLevel == 205)
-      assert(obj.CapacitorDisplay == 2)
+      assert(obj.CapacitorDisplay == 3)
       assert(reply1.isInstanceOf[AvatarServiceMessage])
       assert(reply1.asInstanceOf[AvatarServiceMessage].forChannel == "nowhere")
       assert(reply1.asInstanceOf[AvatarServiceMessage]
@@ -241,7 +241,7 @@ class ResourceSiloControlUpdate2Test extends ActorTest {
       assert(reply1.asInstanceOf[AvatarServiceMessage]
         .actionMessage.asInstanceOf[AvatarAction.PlanetsideAttribute].attribute_type == 45)
       assert(reply1.asInstanceOf[AvatarServiceMessage]
-        .actionMessage.asInstanceOf[AvatarAction.PlanetsideAttribute].attribute_value == 2)
+        .actionMessage.asInstanceOf[AvatarAction.PlanetsideAttribute].attribute_value == 3)
 
       assert(reply2.isInstanceOf[Building.SendMapUpdate])
 
