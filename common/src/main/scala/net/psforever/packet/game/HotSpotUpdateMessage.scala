@@ -3,8 +3,10 @@ package net.psforever.packet.game
 
 import net.psforever.newcodecs.newcodecs
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
+import net.psforever.types.Vector3
 import scodec.Codec
 import scodec.codecs._
+import shapeless.{::, HNil}
 
 /**
   * Information for positioning a hotspot on the continental map.<br>
@@ -27,16 +29,15 @@ final case class HotSpotInfo(x : Float,
   * The hotspot system is an all-or-nothing affair.
   * The received packet indicates the hotspots to display and the map will display only those hotspots.
   * Inversely, if the received packet indicates no hotspots, the map will display no hotspots at all.
-  * This "no hotspots" packet is always initially sent during zone setup during server login.
-  * To clear away only some hotspots, but retains others, a continental `List` would have to be pruned selectively for the client.<br>
+  * To clear away only some hotspots but retains others, a continental list would have to be pruned selectively for the client.<br>
   * <br>
   * Exploration:<br>
   * What does (zone) priority entail?
-  * @param continent_id the zone
+  * @param zone_index the zone
   * @param priority na
   * @param spots a List of HotSpotInfo
   */
-final case class HotSpotUpdateMessage(continent_id : Int,
+final case class HotSpotUpdateMessage(zone_index : Int,
                                       priority : Int,
                                       spots : List[HotSpotInfo])
   extends PlanetSideGamePacket {
@@ -60,8 +61,28 @@ object HotSpotInfo extends Marshallable[HotSpotInfo] {
 
 object HotSpotUpdateMessage extends Marshallable[HotSpotUpdateMessage] {
   implicit val codec : Codec[HotSpotUpdateMessage] = (
-    ("continent_guid" | uint16L) ::
+    ("zone_index" | uint16L) ::
       ("priority" | uint4L) ::
       ("spots" | PacketHelpers.listOfNAligned(longL(12), 0, HotSpotInfo.codec))
-    ).as[HotSpotUpdateMessage]
+    ).xmap[HotSpotUpdateMessage] (
+    {
+      case zone_index :: priority :: spots :: HNil =>
+        HotSpotUpdateMessage(zone_index, priority, spots)
+    },
+    {
+      case HotSpotUpdateMessage(zone_index, priority, spots) if spots.size > 4095 =>
+        //maximum number of points is 4095 (12-bit integer) but provided list of hotspot information is greater
+        //focus on depicting the "central" 4095 points only
+        val size = spots.size
+        val center = Vector3(
+          spots.foldLeft(0f)(_ + _.x) / size,
+          spots.foldLeft(0f)(_ + _.y) / size,
+          0
+        )
+        zone_index :: priority :: spots.sortBy(spot => Vector3.DistanceSquared(Vector3(spot.x, spot.y, 0), center)).take(4095) :: HNil
+
+      case HotSpotUpdateMessage(zone_index, priority, spots) =>
+        zone_index :: priority :: spots :: HNil
+    }
+  )
 }

@@ -70,6 +70,16 @@ class ZoneActor(zone : Zone) extends Actor {
     case msg @ Zone.Vehicle.Despawn =>
       zone.Transport forward msg
 
+      //frwd to Projector actor
+    case msg @ Zone.HotSpot.Activity =>
+      zone.Activity forward msg
+
+    case msg @ Zone.HotSpot.UpdateNow =>
+      zone.Activity forward msg
+
+    case msg @ Zone.HotSpot.ClearAll =>
+      zone.Activity forward msg
+
     //own
     case Zone.Lattice.RequestSpawnPoint(zone_number, player, spawn_group) =>
       if(zone_number == zone.Number) {

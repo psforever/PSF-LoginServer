@@ -1,9 +1,9 @@
 // Copyright (c) 2017 PSForever
 package services.galaxy
 
-import akka.actor.{Actor, Props}
+import akka.actor.Actor
+import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.BuildingInfoUpdateMessage
-import services.local.support.{DoorCloseActor, HackClearActor}
 import services.{GenericEventBus, Service}
 
 class GalaxyService extends Actor {
@@ -15,8 +15,13 @@ class GalaxyService extends Actor {
 
   val GalaxyEvents = new GenericEventBus[GalaxyServiceResponse]
 
-  def receive = {
-    // Service.Join requires a channel to be passed in normally but GalaxyService is an exception in that messages go to ALL connected players
+  def receive : Receive = {
+    case Service.Join(faction) if "TRNCVS".containsSlice(faction) =>
+      val path = s"/$faction/Galaxy"
+      val who = sender()
+      log.info(s"$who has joined $path")
+      GalaxyEvents.subscribe(who, path)
+
     case Service.Join(_) =>
       val path = s"/Galaxy"
       val who = sender()
@@ -43,6 +48,12 @@ class GalaxyService extends Actor {
           )
         case _ => ;
       }
+
+    case Zone.HotSpot.Update(faction, zone_num, priority, info) =>
+      GalaxyEvents.publish(
+        GalaxyServiceResponse(s"/$faction/Galaxy", GalaxyResponse.HotSpotUpdate(zone_num, priority, info))
+      )
+
     case msg =>
       log.info(s"Unhandled message $msg from $sender")
   }

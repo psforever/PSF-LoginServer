@@ -3,7 +3,7 @@ package net.psforever.objects.zones
 
 import akka.actor.{ActorContext, ActorRef, Props}
 import akka.routing.RandomPool
-import net.psforever.objects.ballistics.Projectile
+import net.psforever.objects.ballistics.{Projectile, SourceEntry}
 import net.psforever.objects._
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.entity.IdentifiableEntity
@@ -19,12 +19,13 @@ import net.psforever.objects.serverobject.structures.{Amenity, Building, WarpGat
 import net.psforever.objects.serverobject.terminals.ProximityUnit
 import net.psforever.objects.serverobject.turret.FacilityTurret
 import net.psforever.packet.game.PlanetSideGUID
-import net.psforever.types.Vector3
+import net.psforever.types.{PlanetSideEmpire, Vector3}
 import services.Service
 
 import scala.collection.concurrent.TrieMap
 import scala.collection.mutable.ListBuffer
 import scala.collection.immutable.{Map => PairMap}
+import scala.concurrent.duration._
 
 /**
   * A server object representing the one-landmass planets as well as the individual subterranean caverns.<br>
@@ -76,6 +77,14 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
   /** key - spawn zone id, value - buildings belonging to spawn zone */
   private var spawnGroups : Map[Building, List[SpawnPoint]] = PairMap[Building, List[SpawnPoint]]()
   /** */
+  private var projector : ActorRef = ActorRef.noSender
+  /** */
+  private var hotspots : ListBuffer[HotSpotInfo] = ListBuffer[HotSpotInfo]()
+  /** calculate a approximated coordinate from a raw input coordinate */
+  private var hotspotCoordinateFunc : Vector3=>Vector3 = Zone.HotSpot.Rules.OneToOne
+  /** calculate a duration from a given interaction's participants */
+  private var hotspotTimeFunc : (SourceEntry, SourceEntry)=>FiniteDuration = Zone.HotSpot.Rules.NoTime
+  /** */
   private var vehicleEvents : ActorRef = ActorRef.noSender
 
   /**
@@ -104,6 +113,7 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
       deployables = context.actorOf(Props(classOf[ZoneDeployableActor], this, constructions), s"$Id-deployables")
       transport = context.actorOf(Props(classOf[ZoneVehicleActor], this, vehicles), s"$Id-vehicles")
       population = context.actorOf(Props(classOf[ZonePopulationActor], this, players, corpses), s"$Id-players")
+      projector = context.actorOf(Props(classOf[ZoneHotSpotProjector], this), s"$Id-hotpots")
 
       BuildLocalObjects(context, guid)
       BuildSupportObjects()
@@ -414,6 +424,45 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
     entry
   }
 
+  def Activity : ActorRef = projector
+
+  def HotSpots : List[HotSpotInfo] = hotspots toList
+
+  def HotSpots_=(spots : Seq[HotSpotInfo]) : List[HotSpotInfo] = {
+    hotspots.clear
+    hotspots ++= spots
+    HotSpots
+  }
+
+  def TryHotSpot(displayLoc : Vector3) : HotSpotInfo = {
+    hotspots.find(spot => spot.DisplayLocation == displayLoc) match {
+      case Some(spot) =>
+        //hotspot already exists
+        spot
+      case None =>
+        //insert new hotspot
+        val spot = new HotSpotInfo(displayLoc)
+        hotspots += spot
+        spot
+    }
+  }
+
+  def HotSpotCoordinateFunction : Vector3=>Vector3 = hotspotCoordinateFunc
+
+  def HotSpotCoordinateFunction_=(func : Vector3=>Vector3) : Vector3=>Vector3 = {
+    hotspotCoordinateFunc = func
+    Activity ! ZoneHotSpotProjector.UpdateMappingFunction()
+    HotSpotCoordinateFunction
+  }
+
+  def HotSpotTimeFunction : (SourceEntry, SourceEntry)=>FiniteDuration = hotspotTimeFunc
+
+  def HotSpotTimeFunction_=(func : (SourceEntry, SourceEntry)=>FiniteDuration) : (SourceEntry, SourceEntry)=>FiniteDuration = {
+    hotspotTimeFunc = func
+    Activity ! ZoneHotSpotProjector.UpdateDurationFunction()
+    HotSpotTimeFunction
+  }
+
   /**
     * Provide bulk correspondence on all map entities that can be composed into packet messages and reported to a client.
     * These messages are sent in this fashion at the time of joining the server:<br>
@@ -583,6 +632,38 @@ object Zone {
     final case class CanNotSpawn(zone : Zone, vehicle : Vehicle, reason : String)
 
     final case class CanNotDespawn(zone : Zone, vehicle : Vehicle, reason : String)
+  }
+
+  object HotSpot {
+    final case class Activity(defender : SourceEntry, attacker : SourceEntry, location : Vector3)
+
+    final case class Cleanup()
+
+    final case class ClearAll()
+
+    final case class Update(faction : PlanetSideEmpire.Value, zone_num : Int, priority : Int, info : List[HotSpotInfo])
+
+    final case class UpdateNow()
+
+    object Rules {
+      /**
+        * Produce hotspot coordinates based on map coordinates.
+        * Return the same coordinate as output that was input.
+        * The default function.
+        * @param pos the absolute position of the activity reported
+        * @return the position for a hotspot
+        */
+      def OneToOne(pos : Vector3) : Vector3 = pos
+
+      /**
+        * Determine a duration for which the hotspot will be displayed on the zone map.
+        * The default function.
+        * @param defender the defending party
+        * @param attacker the attacking party
+        * @return the duration
+        */
+      def NoTime(defender : SourceEntry, attacker : SourceEntry) : FiniteDuration = 0 seconds
+    }
   }
 
   /**
