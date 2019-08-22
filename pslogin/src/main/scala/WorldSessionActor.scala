@@ -1398,6 +1398,16 @@ class WorldSessionActor extends Actor with MDCContextAware {
         UpdateWeaponAtSeatPosition(obj, seat_num)
         MountingAction(tplayer, obj, seat_num)
 
+      case Mountable.CanMount(obj : FacilityTurret, seat_num) =>
+        if(!obj.isUpgrading) {
+          sendResponse(PlanetsideAttributeMessage(obj.GUID, 0, obj.Health))
+          UpdateWeaponAtSeatPosition(obj, seat_num)
+          MountingAction(tplayer, obj, seat_num)
+        }
+        else {
+          log.warn(s"MountVehicleMsg: ${tplayer.Name} wants to mount turret ${obj.GUID.guid}, but needs to wait until it finishes updating")
+        }
+
       case Mountable.CanMount(obj : PlanetSideGameObject with WeaponTurret, seat_num) =>
         sendResponse(PlanetsideAttributeMessage(obj.GUID, 0, obj.Health))
         UpdateWeaponAtSeatPosition(obj, seat_num)
@@ -3215,43 +3225,43 @@ class WorldSessionActor extends Actor with MDCContextAware {
       })
 
       //base turrets
-      continent.Map.TurretToWeapon.foreach({ case((turret_guid, weapon_guid)) =>
-        val parent_guid = PlanetSideGUID(turret_guid)
-        continent.GUID(turret_guid) match {
-          case Some(turret : FacilityTurret) =>
-            //attached weapon
-            turret.ControlledWeapon(1) match {
+      continent.Map.TurretToWeapon
+        .map { case((turret_guid, _)) => continent.GUID(turret_guid) }
+        .collect { case Some(turret : FacilityTurret) =>
+          val pguid = turret.GUID
+          //attached weapon
+          if(!turret.isUpgrading) {
+            turret.ControlledWeapon(wepNumber = 1) match {
               case Some(obj : Tool) =>
                 val objDef = obj.Definition
                 sendResponse(
                   ObjectCreateMessage(
                     objDef.ObjectId,
                     obj.GUID,
-                    ObjectCreateMessageParent(parent_guid, 1),
+                    ObjectCreateMessageParent(pguid, 1),
                     objDef.Packet.ConstructorData(obj).get
                   )
                 )
               case _ => ;
             }
-            //reserved ammunition?
-            //TODO need to register if it exists
-            //seat turret occupant
-            turret.Seats(0).Occupant match {
-              case Some(tplayer) =>
-                val tdefintion = tplayer.Definition
-                sendResponse(
-                  ObjectCreateMessage(
-                    tdefintion.ObjectId,
-                    tplayer.GUID,
-                    ObjectCreateMessageParent(parent_guid, 0),
-                    tdefintion.Packet.ConstructorData(tplayer).get
-                  )
+          }
+          //reserved ammunition?
+          //TODO need to register if it exists
+          //seat turret occupant
+          turret.Seats(0).Occupant match {
+            case Some(tplayer) =>
+              val tdefintion = tplayer.Definition
+              sendResponse(
+                ObjectCreateMessage(
+                  tdefintion.ObjectId,
+                  tplayer.GUID,
+                  ObjectCreateMessageParent(pguid, 0),
+                  tdefintion.Packet.ConstructorData(tplayer).get
                 )
-              case None => ;
-            }
-          case _ => ;
+              )
+            case None => ;
+          }
         }
-      })
       vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.UpdateAmsSpawnPoint(continent))
       self ! SetCurrentAvatar(player)
 
@@ -3860,6 +3870,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case Some(obj : PlanetSideGameObject with Deployable) =>
           localService ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(obj), continent))
           localService ! LocalServiceMessage.Deployables(RemoverActor.AddTask(obj, continent, Some(0 seconds)))
+
+        case Some(obj : FacilityTurret) =>
+          //obj.Health = 1
+          if(obj.isUpgrading) {
+            FinishUpgradingMannedTurret(obj, TurretUpgrade.None)
+          }
 
         case Some(thing) =>
           log.warn(s"RequestDestroy: not allowed to delete object $thing")
@@ -5487,9 +5503,13 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * @param upgrade the new upgrade state
     */
   private def FinishUpgradingMannedTurret(target : FacilityTurret, tool : Tool, upgrade : TurretUpgrade.Value)() : Unit = {
-    log.info(s"Converting manned wall turret weapon to $upgrade")
     tool.Magazine = 0
     sendResponse(InventoryStateMessage(tool.AmmoSlot.Box.GUID, tool.GUID, 0))
+    FinishUpgradingMannedTurret(target, upgrade)
+  }
+
+  private def FinishUpgradingMannedTurret(target : FacilityTurret, upgrade : TurretUpgrade.Value) : Unit = {
+    log.info(s"Converting manned wall turret weapon to $upgrade")
     vehicleService ! VehicleServiceMessage.TurretUpgrade(TurretUpgrader.ClearSpecific(List(target), continent))
     vehicleService ! VehicleServiceMessage.TurretUpgrade(TurretUpgrader.AddTask(target, continent, upgrade))
   }
@@ -6197,7 +6217,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             sendResponse(ObjectDetachMessage(tool.GUID, previousBox.GUID, Vector3.Zero, 0f))
             sendResponse(ObjectDetachMessage(player.GUID, box.GUID, Vector3.Zero, 0f))
             obj.Inventory -= x.start //remove replacement ammo from inventory
-          val ammoSlotIndex = tool.FireMode.AmmoSlotIndex
+            val ammoSlotIndex = tool.FireMode.AmmoSlotIndex
             tool.AmmoSlots(ammoSlotIndex).Box = box //put replacement ammo in tool
             sendResponse(ObjectAttachMessage(tool.GUID, box.GUID, ammoSlotIndex))
 

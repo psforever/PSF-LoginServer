@@ -176,11 +176,13 @@ class TurretUpgrader extends SupportActor[TurretUpgrader.Entry] {
       })
     info(s"Converting manned wall turret weapon to $upgrade")
 
-    val oldBoxesTask = AllMountedWeaponMagazines(target)
-      .map(box => GUIDTask.UnregisterEquipment(box)(guid))
-      .toList
+    val oldBoxes = AllMountedWeaponMagazines(target)
     target.Upgrade = upgrade //perform upgrade
+    val newBoxes = AllMountedWeaponMagazines(target)
 
+    val oldBoxesTask = oldBoxes
+      .filterNot { box => newBoxes.exists(_ eq box) }
+      .map(box => GUIDTask.UnregisterEquipment(box)(guid)).toList
     val newBoxesTask = TaskResolver.GiveTask(
       new Task() {
         private val localFunc : ()=>Unit = FinishUpgradingTurret(entry)
@@ -188,17 +190,27 @@ class TurretUpgrader extends SupportActor[TurretUpgrader.Entry] {
         override def isComplete = Task.Resolution.Success
 
         def Execute(resolver : ActorRef) : Unit = {
-          localFunc()
           resolver ! scala.util.Success(this)
         }
-      }, AllMountedWeaponMagazines(target).map(box => GUIDTask.RegisterEquipment(box)(guid)).toList
+
+        override def onSuccess() : Unit = {
+          super.onSuccess()
+          localFunc()
+        }
+      },
+      newBoxes
+        .filterNot { box => oldBoxes.exists(_ eq box) }
+        .map(box => GUIDTask.RegisterEquipment(box)(guid)).toList
     )
     taskResolver ! TaskResolver.GiveTask(
       new Task() {
+        private val tasks = oldBoxesTask
+
         def Execute(resolver : ActorRef) : Unit = {
+          tasks.foreach { resolver ! _ }
           resolver ! scala.util.Success(this)
         }
-      }, oldBoxesTask :+ newBoxesTask
+      }, List(newBoxesTask)
     )
   }
 
@@ -225,15 +237,18 @@ class TurretUpgrader extends SupportActor[TurretUpgrader.Entry] {
     val target = entry.obj.asInstanceOf[FacilityTurret]
     val zone = entry.zone
     info(s"Wall turret finished ${target.Upgrade} upgrade")
+    target.ConfirmUpgrade(entry.upgrade)
     val targetGUID = target.GUID
-    target.Weapons
-      .map({ case (index, slot) =>  (index, slot.Equipment) })
-      .collect { case (index, Some(tool : Tool)) =>
-        context.parent ! VehicleServiceMessage(
-          zone.Id,
-          VehicleAction.EquipmentInSlot(PlanetSideGUID(0), targetGUID, index, tool)
-        )
-      }
+    if(target.Health > 0) {
+      target.Weapons
+        .map({ case (index, slot) => (index, slot.Equipment) })
+        .collect { case (index, Some(tool : Tool)) =>
+          context.parent ! VehicleServiceMessage(
+            zone.Id,
+            VehicleAction.EquipmentInSlot(PlanetSideGUID(0), targetGUID, index, tool)
+          )
+        }
+    }
   }
 }
 
