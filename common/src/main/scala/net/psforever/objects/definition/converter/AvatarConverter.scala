@@ -51,7 +51,7 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
           MakeAppearanceData(obj),
           MakeDetailedCharacterData(obj),
           MakeDetailedInventoryData(obj),
-          DrawnSlot.None
+          GetDrawnSlot(obj)
         )
       }
     )
@@ -372,6 +372,9 @@ object AvatarConverter {
     * @return the holster's Enumeration value
     */
   def GetDrawnSlot(obj : Player) : DrawnSlot.Value = {
-    try { DrawnSlot(obj.DrawnSlot) } catch { case _ : Exception => DrawnSlot.None }
+    obj.DrawnSlot match {
+      case Player.HandsDownSlot | Player.FreeHandSlot => DrawnSlot.None
+      case n => DrawnSlot(n)
+    }
   }
 }
