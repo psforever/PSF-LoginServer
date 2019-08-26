@@ -1393,6 +1393,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
             case None => ;
           }
           OwnVehicle(obj, tplayer)
+          if(obj.Definition == GlobalDefinitions.quadstealth) {
+            //wraith cloak state matches the cloak state of the driver
+            //phantasm doesn't uncloak if the driver is uncloaked and no other vehicle cloaks
+            obj.Cloaked = tplayer.Cloaked
+          }
         }
         AccessContents(obj)
         UpdateWeaponAtSeatPosition(obj, seat_num)
