@@ -3504,10 +3504,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
       }
       if(messagetype == ChatMessageType.CMT_DESTROY) {
         val guid = contents.toInt
-        continent.Map.TerminalToSpawnPad.get(guid) match {
-          case Some(padGUID) =>
-            continent.GUID(padGUID).get.asInstanceOf[VehicleSpawnPad].Actor ! VehicleSpawnControl.ProcessControl.Flush
-          case None =>
+        continent.GUID(continent.Map.TerminalToSpawnPad.getOrElse(guid, guid)) match {
+          case Some(pad : VehicleSpawnPad) =>
+            pad.Actor ! VehicleSpawnControl.ProcessControl.Flush
+          case Some(turret : FacilityTurret) if turret.isUpgrading =>
+            FinishUpgradingMannedTurret(turret, TurretUpgrade.None)
+          case _ =>
             self ! PacketCoding.CreateGamePacket(0, RequestDestroyMessage(PlanetSideGUID(guid)))
         }
       }
@@ -3870,12 +3872,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case Some(obj : PlanetSideGameObject with Deployable) =>
           localService ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(obj), continent))
           localService ! LocalServiceMessage.Deployables(RemoverActor.AddTask(obj, continent, Some(0 seconds)))
-
-        case Some(obj : FacilityTurret) =>
-          //obj.Health = 1
-          if(obj.isUpgrading) {
-            FinishUpgradingMannedTurret(obj, TurretUpgrade.None)
-          }
 
         case Some(thing) =>
           log.warn(s"RequestDestroy: not allowed to delete object $thing")
