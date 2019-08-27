@@ -607,6 +607,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case Zone.Ground.CanNotDropItem(zone, item, reason) =>
       log.warn(s"DropItem: $player tried to drop a $item on the ground, but $reason")
+      if(!item.HasGUID) {
+        log.warn(s"DropItem: zone ${continent.Id} contents may be in disarray")
+      }
 
     case Zone.Ground.ItemInHand(item : BoomerTrigger) =>
       if(PutItemInHand(item)) {
@@ -640,6 +643,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           log.warn(s"DropItem: finding a $item on the ground was suggested, but $player can not reach it")
         case None =>
           log.warn(s"DropItem: finding an item ($item_guid) on the ground was suggested, but $player can not see it")
+          sendResponse(ObjectDeleteMessage(item_guid, 0))
       }
 
     case Zone.Deployable.DeployableIsBuilt(obj, tool) =>
@@ -3653,18 +3657,19 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ DropItemMessage(item_guid) =>
       log.info(s"DropItem: $msg")
       continent.GUID(item_guid) match {
-        case Some(item : Equipment) =>
+        case Some(anItem : Equipment) =>
           player.FreeHand.Equipment match {
-            case Some(_) =>
+            case Some(item) =>
               if(item.GUID == item_guid) {
                 continent.Ground ! Zone.Ground.DropItem(item, player.Position, player.Orientation)
               }
             case None =>
-              log.warn(s"DropItem: $player wanted to drop a $item, but it wasn't at hand")
+              log.warn(s"DropItem: $player wanted to drop a $anItem, but it wasn't at hand")
           }
         case Some(obj) => //TODO LLU
           log.warn(s"DropItem: $player wanted to drop a $obj, but that isn't possible")
         case None =>
+          sendResponse(ObjectDeleteMessage(item_guid, 0)) //this is fine; item doesn't exist to the server anyway
           log.warn(s"DropItem: $player wanted to drop an item ($item_guid), but it was nowhere to be found")
       }
 
