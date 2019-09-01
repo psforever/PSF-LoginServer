@@ -833,7 +833,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       log.info(s"Player ${tplayer.Name} has been loaded")
       player = tplayer
       //LoadMapMessage causes the client to send BeginZoningMessage, eventually leading to SetCurrentAvatar
-      sendResponse(LoadMapMessage(continent.Map.Name, continent.Id, 40100, 25, true, 3770441820L))
+      sendResponse(LoadMapMessage(continent.Map.Name, continent.Id, 40100, 25, true, continent.Map.Checksum))
       AvatarCreate() //important! the LoadMapMessage must be processed by the client before the avatar is created
 
     case PlayerLoaded(tplayer) =>

@@ -18,6 +18,7 @@ object Map98 {
   // Ascension
   val ZoneMap = new ZoneMap("map98") {
     Scale = MapScale.Dim4096
+    Checksum = 3654267088L
 
     Building39()
 
@@ -995,19 +996,19 @@ object Map98 {
 
     Building10000()
 
-    def Building10000(): Unit = { // Name: "Map98_Gate_One" Type: warpgate_small GUID: 46, MapID: 10000
+    def Building10000(): Unit = { // Name: Map98_Gate_One Type: warpgate_small GUID: 46, MapID: 10000
       LocalBuilding(46, 10000, FoundationBuilder(WarpGate.Structure(Vector3(1298.27f, 1352.5f, 12.09f))))
     }
 
     Building10001()
 
-    def Building10001(): Unit = { // Name: "Map98_Gate_Three" Type: warpgate_small GUID: 47, MapID: 10001
+    def Building10001(): Unit = { // Name: Map98_Gate_Three Type: warpgate_small GUID: 47, MapID: 10001
       LocalBuilding(47, 10001, FoundationBuilder(WarpGate.Structure(Vector3(2481.78f, 2616.39f, 12.09f))))
     }
 
     Building10002()
 
-    def Building10002(): Unit = { // Name: "Map98_Gate_Two" Type: warpgate_small GUID: 48, MapID: 10002
+    def Building10002(): Unit = { // Name: Map98_Gate_Two Type: warpgate_small GUID: 48, MapID: 10002
       LocalBuilding(48, 10002, FoundationBuilder(WarpGate.Structure(Vector3(2679.7f, 1434.86f, 12.09f))))
     }
   }

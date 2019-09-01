@@ -17,6 +17,7 @@ object Map97 {
   // Desolation
   val ZoneMap = new ZoneMap("map97") {
     Scale = MapScale.Dim4096
+    Checksum = 2810790213L
 
     Building11()
 
@@ -645,19 +646,19 @@ object Map97 {
 
     Building10001()
 
-    def Building10001(): Unit = { // Name: "Map97_Gate_Two" Type: warpgate_small GUID: 20, MapID: 10001
+    def Building10001(): Unit = { // Name: Map97_Gate_Two Type: warpgate_small GUID: 20, MapID: 10001
       LocalBuilding(20, 10001, FoundationBuilder(WarpGate.Structure(Vector3(1173.69f, 2615.84f, 30.79f))))
     }
 
     Building10003()
 
-    def Building10003(): Unit = { // Name: "Map97_Gate_Three" Type: warpgate_small GUID: 21, MapID: 10003
+    def Building10003(): Unit = { // Name: Map97_Gate_Three Type: warpgate_small GUID: 21, MapID: 10003
       LocalBuilding(21, 10003, FoundationBuilder(WarpGate.Structure(Vector3(2830.98f, 1170.55f, 30.79f))))
     }
 
     Building10002()
 
-    def Building10002(): Unit = { // Name: "Map97_Gate_One" Type: warpgate_small GUID: 22, MapID: 10002
+    def Building10002(): Unit = { // Name: Map97_Gate_One Type: warpgate_small GUID: 22, MapID: 10002
       LocalBuilding(22, 10002, FoundationBuilder(WarpGate.Structure(Vector3(2933.49f, 2963.42f, 30.79f))))
     }
   }
