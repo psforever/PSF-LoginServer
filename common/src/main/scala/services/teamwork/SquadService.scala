@@ -1,11 +1,12 @@
 // Copyright (c) 2019 PSForever
 package services.teamwork
 
-import akka.actor.{Actor, ActorRef, Props}
+import akka.actor.{Actor, ActorContext, ActorRef, Props}
 import net.psforever.objects.Player
 import net.psforever.objects.definition.converter.StatConverter
 import net.psforever.objects.loadouts.SquadLoadout
 import net.psforever.objects.teamwork.{Member, Squad}
+import net.psforever.objects.zones.Zone
 import net.psforever.packet.game._
 import net.psforever.types._
 import services.{GenericEventBus, Service}
@@ -19,73 +20,35 @@ import scala.collection.mutable.ListBuffer
 class SquadService extends Actor {
   import SquadService._
 
-  private var memberToSquad : mutable.LongMap[Squad] = mutable.LongMap[Squad]()
-  private var idToSquad : TrieMap[PlanetSideGUID, Squad] = new TrieMap[PlanetSideGUID, Squad]()
-  private var idToSwitchboard : TrieMap[PlanetSideGUID, ActorRef] = new TrieMap[PlanetSideGUID, ActorRef]()
+  /**
+    * The current unique squad identifier, to be wrapped in a `PlanetSideGUID` object later.
+    * The count always starts at 1, even when reset.
+    * A squad of `PlanetSideGUID(0)` indicates both a nonexistent squad and the default no-squad for clients.
+    */
   private var sid : Int = 1
+
+  private var memberToSquad : mutable.LongMap[Squad] = mutable.LongMap[Squad]()
+  private val invites : mutable.LongMap[Invitation] = mutable.LongMap[Invitation]()
+  private val queuedInvites : mutable.LongMap[List[Invitation]] = mutable.LongMap[List[Invitation]]()
+  /**
+    * A placeholder for an absent active invite that has not (yet) been accepted or rejected, equal to the then-current active invite.
+    * Created when removing an active invite.
+    * Checked when trying to add a new invite (if found, the invite is queued).
+    * Cleared when the next queued invite becomes active.
+    */
+  private val previousInvites : mutable.LongMap[Invitation] = mutable.LongMap[Invitation]()
+
+  private var squadFeatures : TrieMap[PlanetSideGUID, SquadService.SquadFeatures] = new TrieMap[PlanetSideGUID, SquadService.SquadFeatures]()
   private val publishedLists : TrieMap[PlanetSideEmpire.Value, ListBuffer[SquadInfo]] = TrieMap[PlanetSideEmpire.Value, ListBuffer[SquadInfo]](
     PlanetSideEmpire.TR -> ListBuffer.empty,
     PlanetSideEmpire.NC -> ListBuffer.empty,
     PlanetSideEmpire.VS -> ListBuffer.empty
   )
-  private val invites : mutable.LongMap[Invitation] = mutable.LongMap[Invitation]()
-  /**
-    * `initialAssociation` per squad is similar to "Does this squad want to recruit members?"
-    * The squad does not have to be listed.
-    * Dispatches an `AssociateWithSquad` `SDAM` to the squad leader and ???
-    * and then a `SDDUM` that includes at least the squad owner name and char id
-    * when a squad entry is removed from the list.
-    * Dispatched only once when a squad is first listed
-    * or when the squad leader searches for recruits by proximity or for certain roles or by invite
-    * or when a spontaneous squad forms,
-    * whichever happens first.
-    * Additionally, the packets are also sent when the check is made when the continent is changed (or set).
-    */
-  private val initialAssociation : ListBuffer[PlanetSideGUID] = new ListBuffer[PlanetSideGUID]()
-  private val queuedInvites : mutable.LongMap[List[Invitation]] = mutable.LongMap[List[Invitation]]()
-  private val waypoints : TrieMap[PlanetSideGUID, Array[WaypointData]] =
-    new TrieMap[PlanetSideGUID, Array[WaypointData]]()
-  private val viewDetails : mutable.LongMap[PlanetSideGUID] = mutable.LongMap[PlanetSideGUID]()
 
   private [this] val log = org.log4s.getLogger
 
   override def preStart : Unit = {
     log.info("Starting...")
-
-//    val testSquad = new Squad(PlanetSideGUID(3), PlanetSideEmpire.VS)
-//    testSquad.Task = "\\#66CCFF Sentinels of Auraxis\\#FFFFFF ... \\#40FF40 Squad Up!!"
-//    testSquad.ZoneId = 5
-//    testSquad.Membership(0).Name = "Wizkid45"
-//    testSquad.Membership(0).Role = "Fearless Leader"
-//    testSquad.Membership(0).CharId = 30910985L
-//    testSquad.Membership(0).ZoneId = 5
-//    testSquad.Membership(0).Health = 64
-//    testSquad.Membership(0).Armor = 34
-//    testSquad.Membership(0).Position = Vector3(5526.5234f, 3818.7344f, 54.59375f)
-//    testSquad.Membership(1).Name = "xoBLADEox"
-//    testSquad.Membership(1).Role = "Right Hand"
-//    testSquad.Membership(1).CharId = 42781919L
-//    testSquad.Membership(1).ZoneId = 5
-//    testSquad.Membership(1).Health = 54
-//    testSquad.Membership(1).Armor = 44
-//    testSquad.Membership(1).Position = Vector3(4673.5312f, 2604.8047f, 40.015625f)
-//    testSquad.Membership(3).Name = "cabal0428"
-//    testSquad.Membership(3).Role = "Left Hand"
-//    testSquad.Membership(3).CharId = 353380L
-//    testSquad.Membership(3).ZoneId = 5
-//    testSquad.Membership(3).Health = 44
-//    testSquad.Membership(3).Armor = 54
-//    testSquad.Membership(3).Position = Vector3(4727.492f, 2613.5312f, 51.390625f)
-//    testSquad.Membership(4).Name = "xSkiku"
-//    testSquad.Membership(4).Role = "Right Foot's Middle Toe's Nail"
-//    testSquad.Membership(4).CharId = 41588340L
-//    testSquad.Membership(4).ZoneId = 5
-//    testSquad.Membership(4).Health = 34
-//    testSquad.Membership(4).Armor = 64
-//    testSquad.Membership(4).Position = Vector3(3675.0f, 4789.8047f, 63.21875f)
-//    idToSquad(PlanetSideGUID(3)) = testSquad
-//    testSquad.Listed = true
-//    UpdateSquadList(testSquad, None)
   }
 
   def GetNextSquadId() : PlanetSideGUID = {
@@ -101,12 +64,19 @@ class SquadService extends Actor {
   }
 
   def TryResetSquadId() : Boolean = {
-    if(idToSquad.isEmpty) {
+    if(squadFeatures.isEmpty) {
       sid = 1
       true
     }
     else {
       false
+    }
+  }
+
+  def GetSquad(id : PlanetSideGUID) : Option[Squad] = {
+    squadFeatures.get(id) match {
+      case Some(features) => Some(features.Squad)
+      case None => None
     }
   }
 
@@ -159,7 +129,6 @@ class SquadService extends Actor {
   }
 
   def CreateSquad(player : Player) : Squad = {
-    val charId = player.CharId
     val faction = player.Faction
     val name = player.Name
     val squad = new Squad(GetNextSquadId(), faction)
@@ -170,18 +139,13 @@ class SquadService extends Actor {
     leadPosition.Armor = player.Armor
     leadPosition.Position = player.Position
     leadPosition.ZoneId = 1
-    log.info(s"$name-$faction has started a new squad")
+    log.info(s"$name-$faction has created a new squad")
     squad
   }
 
   def StartSquad(squad : Squad) : Squad = {
-    val charId = squad.Leader.CharId
-    val id = squad.GUID
-    val switchboard = context.actorOf(Props[SquadSwitchboard], s"squad${id.guid}")
-    memberToSquad += charId -> squad
-    idToSquad += id -> squad
-    idToSwitchboard += id -> switchboard
-    initialAssociation += squad.GUID
+    squadFeatures += squad.GUID -> new SquadService.SquadFeatures(squad).Start
+    memberToSquad += squad.Leader.CharId -> squad
     squad
   }
 
@@ -203,214 +167,334 @@ class SquadService extends Actor {
       //send initial squad catalog
       sender ! SquadServiceResponse(s"/$faction/Squad", SquadResponse.InitList(publishedLists(PlanetSideEmpire(faction)).toVector))
 
-    //subscribe to the player's personal channel - necessary only to inform about any previous squad association
+    //subscribe to the player's personal channel - necessary for future and previous squad information
     case Service.Join(char_id) =>
       val path = s"/$char_id/Squad"
       val who = sender()
       log.info(s"$who has joined $path")
-      SquadEvents.subscribe(who, path) //TODO squad-specific switchboard
+      SquadEvents.subscribe(who, path)
       //check for renewable squad information
-      memberToSquad.get(char_id.toLong) match {
-        case None => ;
-        case Some(_) =>
-          sender ! SquadServiceMessage.RecoverSquadMembership() //TODO?
-      }
-
-    case Service.Leave(Some(char_id)) => ;
-      SquadEvents.unsubscribe(sender())
       val longCharId = char_id.toLong
       memberToSquad.get(longCharId) match {
-        case Some(squad) =>
-          if(squad.Leader.Name.equals(char_id)) {
-            //we were the leader
-            if(squad.Membership.count(p => p.Name.equals("")) > 1) {
-              //other players were in the squad; publicly disband it
-              squad.Membership.foreach(position => {
-                position.Name = ""
-                position.CharId = 0L
-                position.ZoneId = 0
-                position.Position = Vector3.Zero
-                position.Health = 0
-                position.Armor = 0
-              })
-            }
-            memberToSquad.remove(longCharId)
-            idToSquad.remove(squad.GUID)
-            UpdateSquadList(squad, None)
-          }
-          else {
-            //we were just a grunt in the squad
-            val position = squad.Membership.find(_.CharId == longCharId).get
-            position.Name = ""
-            position.ZoneId = 0
-            position.Position = Vector3.Zero
-            position.Health = 0
-            position.Armor = 0
-            UpdateSquadDetail(squad.GUID, squad)
-          }
         case None => ;
+        case Some(squad) =>
+          val guid = squad.GUID
+          val indices = squad.Membership.zipWithIndex.collect({ case (member, index) if member.CharId != 0 => index }).toList
+          SquadEvents.publish(SquadServiceResponse(s"/$char_id/Squad", SquadResponse.AssociateWithSquad(guid)))
+          SquadEvents.publish(SquadServiceResponse(s"/$char_id/Squad", SquadResponse.Join(squad, indices)))
+          InitSquadDetail(guid, Seq(longCharId), squad)
+          InitWaypoints(longCharId, guid)
       }
-    //TODO leave squad, if joined to one, and perform clean-up
+
+    case Service.Leave(Some(char_id)) =>
+      SquadEvents.unsubscribe(sender())
+      val longCharId = char_id.toLong
+      val pSquadOpt = GetParticipatingSquad(longCharId)
+      (pSquadOpt, GetLeadingSquad(longCharId, pSquadOpt)) match {
+        case (Some(_), Some(squad)) =>
+          //leader of a squad; the squad will be disbanded
+          DisbandSquad(squad)
+        case (Some(squad), None) if squad.Size == 2 =>
+          //one of the last two members of a squad; the squad will be disbanded
+          DisbandSquad(squad)
+        case (Some(squad), None) =>
+          //member of the squad; leave the squad
+          LeaveSquad(longCharId, squad)
+        case _ =>
+          //not a member of any squad; nothing to do here
+      }
+      CleanupInvitesFromPlayer(longCharId)
 
     case Service.Leave(None) | Service.LeaveAll() => ;
 
-    case SquadServiceMessage(tplayer, squad_action) => squad_action match {
+    case SquadServiceMessage(tplayer, zone, squad_action) => squad_action match {
       case SquadAction.Membership(SquadRequestType.Invite, invitingPlayer, Some(invitedPlayer), _, _) =>
         //this is just busy work; for actual joining operations, see SquadRequestType.Accept
-        //for the purposes of this code, tplayer.CharId == invitingPlayer
-//        FindBid(invitingPlayer, invitedPlayer) match {
-//          case Some(bid) =>
-//            //invitingPlayer and invitedPlayer have both tried to join each others's squads
-//            //treat this junction as consent
-//            self ! SquadServiceMessage(tplayer, SquadAction.Membership(SquadRequestType.Accept, invitingPlayer, Some(invitedPlayer), "", None))
-//          case _ => ;
-//        }
         (memberToSquad.get(invitingPlayer), memberToSquad.get(invitedPlayer)) match {
           case (Some(squad1), Some(squad2))
             if squad1.GUID == squad2.GUID =>
-          //both players are in the same squad; no need to do anything
+            //both players are in the same squad; no need to do anything
 
           case (Some(squad1), Some(squad2))
             if squad1.Leader.CharId == invitingPlayer && squad2.Leader.CharId == invitedPlayer &&
               squad1.Size > 1 && squad2.Size > 1 =>
-          //we might do some platoon chicanery with this case later
-          // TODO platoons
+            //we might do some platoon chicanery with this case later
+            //TODO platoons
 
-          case (Some(squad1), Some(squad2)) if squad2.Size == 1 =>
-          //both players belong to squads, but the invitedplayer's squad is underutilized by comparison
-          //treat the same as "the classic situation" using squad1
+          case (Some(squad1), Some(squad2))
+            if squad2.Size == 1 && !squadFeatures(squad1.GUID).Refuse.contains(invitedPlayer) =>
+            //both players belong to squads, but the invitedplayer's squad (squad2) is underutilized by comparison
+            //treat the same as "the classic situation" using squad1
             log.info(s"$invitedPlayer has been invited to squad ${squad1.Task} by $invitingPlayer")
             val charId = tplayer.CharId
-            val bid = VacancyInvite(charId, tplayer.Name, squad1.GUID)
-            AddInvite(invitedPlayer, bid) match {
-              case out @ Some(_) if out.contains(bid) =>
-                SquadEvents.publish(SquadServiceResponse(s"/$invitedPlayer/Squad", SquadResponse.Membership(SquadResponseType.Invite, 0, 0, charId, Some(invitedPlayer), tplayer.Name, false, Some(None))))
-                SquadEvents.publish(SquadServiceResponse(s"/$charId/Squad", SquadResponse.Membership(SquadResponseType.Invite, 0, 0, invitedPlayer, Some(charId), tplayer.Name, true, Some(None))))
-              case Some(_) =>
-                SquadEvents.publish(SquadServiceResponse(s"/$charId/Squad", SquadResponse.Membership(SquadResponseType.Invite, 0, 0, invitedPlayer, Some(charId), tplayer.Name, true, Some(None))))
-              case _ => ;
-            }
+            AddInviteAndRespond(
+              invitedPlayer,
+              VacancyInvite(charId, tplayer.Name, squad1.GUID),
+              charId,
+              tplayer.Name
+            )
 
-          case (Some(squad1), Some(squad2)) if squad1.Size == 1 =>
-          //both players belong to squads, but the invitingplayer's squad is underutilized by comparison
-          //treat the same as "indirection ..." using squad2
-            val leaderCharId = squad2.Leader.CharId
-            val bid = IndirectVacancy(tplayer, squad2.GUID)
-            log.warn(s"$invitedPlayer has asked $invitingPlayer for an invitation to squad ${squad2.Task}, but the squad leader needs to approve")
-            AddInvite(leaderCharId, bid) match {
-              case out @ Some(_) if out.contains(bid) =>
-                HandleBidForPosition(bid, tplayer)
-              case _ => ;
-            }
+          case (Some(squad1), Some(squad2))
+            if squad1.Size == 1 && !squadFeatures(squad2.GUID).Refuse.contains(invitingPlayer) =>
+            //both players belong to squads, but the invitingPlayer's squad is underutilized by comparison
+            //treat the same as "indirection ..." using squad2
+            log.warn(s"$invitedPlayer has asked $invitingPlayer for an invitation to squad ${squad2.Task}, but the squad leader may need to approve")
+            AddInviteAndRespond(
+              squad2.Leader.CharId,
+              IndirectInvite(tplayer, squad2.GUID),
+              invitingPlayer,
+              tplayer.Name
+            )
 
-          case (Some(squad), None) =>
+          case (Some(squad), None)
+            if !squadFeatures(squad.GUID).Refuse.contains(invitedPlayer) =>
             //the classic situation
             log.info(s"$invitedPlayer has been invited to squad ${squad.Task} by $invitingPlayer")
-            val charId = tplayer.CharId
-            val bid = VacancyInvite(charId, tplayer.Name, squad.GUID)
-            AddInvite(invitedPlayer, bid) match {
-              case out @ Some(_) if out.contains(bid) =>
-                SquadEvents.publish(SquadServiceResponse(s"/$invitedPlayer/Squad", SquadResponse.Membership(SquadResponseType.Invite, 0, 0, charId, Some(invitedPlayer), tplayer.Name, false, Some(None))))
-                SquadEvents.publish(SquadServiceResponse(s"/$charId/Squad", SquadResponse.Membership(SquadResponseType.Invite, 0, 0, invitedPlayer, Some(charId), tplayer.Name, true, Some(None))))
-              case Some(_) =>
-                SquadEvents.publish(SquadServiceResponse(s"/$charId/Squad", SquadResponse.Membership(SquadResponseType.Invite, 0, 0, invitedPlayer, Some(charId), tplayer.Name, true, Some(None))))
-              case _ => ;
-            }
+            AddInviteAndRespond(
+              invitedPlayer,
+              VacancyInvite(tplayer.CharId, tplayer.Name, squad.GUID),
+              invitingPlayer,
+              tplayer.Name
+            )
 
-          case (None, Some(squad)) =>
+          case (None, Some(squad))
+            if !squadFeatures(squad.GUID).Refuse.contains(invitingPlayer) =>
             //indirection;  we're trying to invite ourselves to someone else's squad
-            val leaderCharId = squad.Leader.CharId
-            val bid = IndirectVacancy(tplayer, squad.GUID)
-            log.warn(s"$invitedPlayer has asked $invitingPlayer for an invitation to squad ${squad.Task}, but the squad leader needs to approve")
-            AddInvite(leaderCharId, bid) match {
-              case out @ Some(_) if out.contains(bid) =>
-                HandleBidForPosition(bid, tplayer)
-              case _ => ;
-            }
+            log.warn(s"$invitedPlayer has asked $invitingPlayer for an invitation to squad ${squad.Task}, but the squad leader may need to approve")
+            AddInviteAndRespond(
+              squad.Leader.CharId,
+              IndirectInvite(tplayer, squad.GUID),
+              invitingPlayer,
+              tplayer.Name
+            )
 
           case (None, None) =>
             //neither the invited player nor the inviting player belong to any squad
             log.info(s"$invitedPlayer has been invited to join $invitingPlayer's spontaneous squad")
-            val bid = SpontaneousInvite(tplayer)
-            AddInvite(invitedPlayer, bid) match {
-              case out @ Some(_) if out.contains(bid) =>
-                SquadEvents.publish(SquadServiceResponse(s"/$invitedPlayer/Squad", SquadResponse.Membership(SquadResponseType.Invite, 0, 0, invitingPlayer, Some(invitedPlayer), tplayer.Name, false, Some(None))))
-                SquadEvents.publish(SquadServiceResponse(s"/$invitingPlayer/Squad", SquadResponse.Membership(SquadResponseType.Invite, 0, 0, invitedPlayer, Some(invitingPlayer), tplayer.Name, true, Some(None))))
-              case Some(_) =>
-                SquadEvents.publish(SquadServiceResponse(s"/$invitingPlayer/Squad", SquadResponse.Membership(SquadResponseType.Invite, 0, 0, invitedPlayer, Some(invitingPlayer), tplayer.Name, true, Some(None))))
-              case _ => ;
+            AddInviteAndRespond(
+              invitedPlayer,
+              SpontaneousInvite(tplayer),
+              invitingPlayer,
+              tplayer.Name
+            )
+
+          case _ => ;
+        }
+
+      case SquadAction.Membership(SquadRequestType.ProximityInvite, invitingPlayer, _, _, _) =>
+        memberToSquad.get(invitingPlayer) match {
+          case Some(squad) =>
+            val sguid = squad.GUID
+            val features = squadFeatures(sguid)
+            features.SearchForRole match {
+              case Some(-1) =>
+                //we've already issued a proximity invitation; no need to do another
+                log.info("ProximityInvite: waiting for existing proximity invitations to clear")
+              case _ =>
+                log.info("ProximityInvite: looking for invitation targets ...")
+                val outstandingActiveInvites = features.SearchForRole match {
+                  case Some(pos) =>
+                    RemoveQueuedInvitesForSquadAndPosition(sguid, pos)
+                    invites.collect { case(charId, InviteForRole(_,_, squad_guid, role)) if squad_guid == sguid && role == pos => charId }
+                  case None =>
+                    List.empty[Long]
+                }
+                features.SearchForRole = Some(-1)
+                val faction = squad.Faction
+                val center = tplayer.Position
+                val excusedInvites = features.Refuse
+                //positions that can be recruited to
+                val positions = squad.Membership.zipWithIndex
+                  .collect { case(member, index) if member.CharId == 0 && squad.Availability(index) => member }
+                /*
+                players who are:
+                - the same faction as the squad
+                - have Looking For Squad enabled
+                - do not currently belong to a squad
+                - are denied the opportunity to be invited
+                - are a certain distance from the squad leader
+                 */
+                (zone.LivePlayers
+                  .collect { case player
+                    if player.Faction == faction && player.LFS && memberToSquad.get(player.CharId).isEmpty &&
+                      !excusedInvites.contains(player.CharId) &&
+                      Vector3.DistanceSquared(player.Position, center) < 100f &&
+                      {
+                        positions
+                          .map { role =>
+                            val requirementsToMeet = role.Requirements
+                            requirementsToMeet.intersect(player.Certifications) == requirementsToMeet
+                          }
+                          .foldLeft(false)(_ || _)
+                      } => player.CharId
+                  }
+                  .partition { charId => outstandingActiveInvites.exists(_ == charId) } match {
+                  case (Nil, Nil) =>
+                    //no one found
+                    log.info("ProximityInvite: no invitation targets found")
+                    outstandingActiveInvites foreach RemoveInvite
+                    features.ProxyInvites = Nil
+                    None
+                  case (outstandingPlayerList, invitedPlayerList) =>
+                    //players who were actively invited for the previous position and are eligible for the new position
+                    log.info(s"ProximityInvite: found ${outstandingPlayerList.size} players already having been invited, and ${invitedPlayerList.size} players to invite")
+                    outstandingPlayerList.foreach { charId =>
+                      val bid = invites(charId).asInstanceOf[InviteForRole]
+                      invites(charId) = ProximityInvite(bid.char_id, bid.name, sguid)
+                    }
+                    //players who were actively invited for the previous position but are ineligible for the new position
+                    (features.ProxyInvites filterNot (outstandingPlayerList contains)) foreach RemoveInvite
+                    features.ProxyInvites = outstandingPlayerList ++ invitedPlayerList
+                    Some(invitedPlayerList)
+                }) match {
+                  //add invitations for position in squad
+                  case Some(invitedPlayers) =>
+                    val invitingPlayer = tplayer.CharId
+                    val name = tplayer.Name
+                    invitedPlayers.foreach { invitedPlayer =>
+                      AddInviteAndRespond(
+                        invitedPlayer,
+                        ProximityInvite(invitingPlayer, name, sguid),
+                        invitingPlayer,
+                        name
+                      )
+                    }
+                  case None => ;
+                }
             }
 
-          case _ => //
+          case None =>
         }
 
       case SquadAction.Membership(SquadRequestType.Accept, invitedPlayer, _, _, _) =>
         val acceptedInvite = RemoveInvite(invitedPlayer)
-        if(EnsureEmptySquad(invitedPlayer, "Accept: the invited player is already a member of a squad and can not join a second one")) {
-          acceptedInvite match {
-            case Some(BidForPosition(petitioner, guid, position)) if idToSquad.get(guid).nonEmpty =>
-              //player requested to join a squad's specific position
-              //invitedPlayer is actually the squad leader; petitioner is the actual "invitedPlayer"
-              JoinSquad(petitioner, idToSquad(guid), position)
+        val msg = "Accept: the invited player is already a member of a squad and can not join a second one"
+        acceptedInvite match {
+          case Some(BidForRole(petitioner, guid, position)) if EnsureEmptySquad(petitioner.CharId, msg) && squadFeatures.get(guid).nonEmpty =>
+            //player requested to join a squad's specific position
+            //invitedPlayer is actually the squad leader; petitioner is the actual "invitedPlayer"
+            val features = squadFeatures(guid)
+            JoinSquad(petitioner, features.Squad, position)
+            RemoveInvitesForSquadAndPosition(guid, position)
 
-            case Some(IndirectVacancy(recruit, guid)) =>
-              //tplayer / invitedPlayer is actually the squad leader
-              val recruitCharId = recruit.CharId
-              HandleVacancyInvite(guid, recruitCharId, invitedPlayer, recruit) match {
-                case Some((squad, line)) =>
-                  SquadEvents.publish(SquadServiceResponse(s"/$recruitCharId/Squad", SquadResponse.Membership(SquadResponseType.Accept, 0, 0, invitedPlayer, Some(recruitCharId), "", true, Some(None))))
-                  JoinSquad(recruit, squad, line)
-                //since we are the squad leader, we do not want to brush off our queued squad invite tasks
-                case _ => ;
-              }
+          case Some(IndirectInvite(recruit, guid)) if EnsureEmptySquad(recruit.CharId, msg) =>
+            //tplayer / invitedPlayer is actually the squad leader
+            val recruitCharId = recruit.CharId
+            HandleVacancyInvite(guid, recruitCharId, invitedPlayer, recruit) match {
+              case Some((squad, line)) =>
+                SquadEvents.publish(SquadServiceResponse(s"/$invitedPlayer/Squad", SquadResponse.Membership(SquadResponseType.Accept, 0, 0, invitedPlayer, Some(recruitCharId), recruit.Name, true, Some(None))))
+                JoinSquad(recruit, squad, line)
+                RemoveInvitesForSquadAndPosition(squad.GUID, line)
+              //since we are the squad leader, we do not want to brush off our queued squad invite tasks
+              case _ => ;
+            }
 
-            case Some(VacancyInvite(invitingPlayer, _, guid)) =>
-              //accepted an invitation to join an existing squad
-              HandleVacancyInvite(guid, invitedPlayer, invitingPlayer, tplayer) match {
-                case Some((squad, line)) =>
-                  SquadEvents.publish(SquadServiceResponse(s"/$invitingPlayer/Squad", SquadResponse.Membership(SquadResponseType.Accept, 0, 0, invitingPlayer, Some(invitedPlayer), tplayer.Name, false, Some(None))))
-                  SquadEvents.publish(SquadServiceResponse(s"/$invitedPlayer/Squad", SquadResponse.Membership(SquadResponseType.Accept, 0, 0, invitedPlayer, Some(invitingPlayer), "", true, Some(None))))
-                  JoinSquad(tplayer, squad, line)
-                  RemoveQueuedInvites(invitedPlayer) //TODO deal with these somehow
-                case _ => ;
-              }
+          case Some(VacancyInvite(invitingPlayer, _, guid)) if EnsureEmptySquad(invitedPlayer, msg) =>
+            //accepted an invitation to join an existing squad
+            HandleVacancyInvite(guid, invitedPlayer, invitingPlayer, tplayer) match {
+              case Some((squad, line)) =>
+                SquadEvents.publish(SquadServiceResponse(s"/$invitingPlayer/Squad", SquadResponse.Membership(SquadResponseType.Accept, 0, 0, invitingPlayer, Some(invitedPlayer), tplayer.Name, false, Some(None))))
+                SquadEvents.publish(SquadServiceResponse(s"/$invitedPlayer/Squad", SquadResponse.Membership(SquadResponseType.Accept, 0, 0, invitedPlayer, Some(invitingPlayer), "", true, Some(None))))
+                JoinSquad(tplayer, squad, line)
+                RemoveQueuedInvites(invitedPlayer) //TODO deal with these somehow
+                RemoveInvitesForSquadAndPosition(squad.GUID, line)
+              case _ => ;
+            }
 
-            case Some(SpontaneousInvite(invitingPlayer)) =>
-              //originally, we were invited by someone into a new squad they would form
-              val invitingPlayerCharId = invitingPlayer.CharId
-              (GetParticipatingSquad(invitingPlayer) match {
-                case Some(participating) =>
-                  //invitingPlayer became part of a squad while invited player was answering the original summons
-                  Some(participating)
-                case _ =>
-                  //generate a new squad, with invitingPlayer as the leader
-                  val squad = StartSquad(invitingPlayer)
-                  squad.Task = s"${invitingPlayer.Name}'s Squad"
-                  SquadEvents.publish( SquadServiceResponse(s"/$invitingPlayerCharId/Squad", SquadResponse.AssociateWithSquad(squad.GUID)) )
-                  Some(squad)
-              }) match {
-                case Some(squad) =>
-                  HandleVacancyInvite(squad.GUID, tplayer.CharId, invitingPlayerCharId, tplayer) match {
-                    case Some((_, line)) =>
-                      SquadEvents.publish( SquadServiceResponse(s"/$invitedPlayer/Squad", SquadResponse.Membership(SquadResponseType.Accept, 0, 0, invitedPlayer, Some(invitingPlayerCharId), "", true, Some(None))) )
-                      JoinSquad(tplayer, squad, line)
-                      SquadEvents.publish( SquadServiceResponse(s"/$invitingPlayerCharId/Squad", SquadResponse.Membership(SquadResponseType.Accept, 0, 0, invitingPlayerCharId, Some(invitedPlayer), tplayer.Name, false, Some(None))) )
-                      RemoveQueuedInvites(tplayer.CharId) //TODO deal with these somehow
-                    case _ => ;
+          case Some(SpontaneousInvite(invitingPlayer)) if EnsureEmptySquad(invitedPlayer, msg) =>
+            //originally, we were invited by someone into a new squad they would form
+            val invitingPlayerCharId = invitingPlayer.CharId
+            (GetParticipatingSquad(invitingPlayer) match {
+              case Some(participating) =>
+                //invitingPlayer became part of a squad while invited player was answering the original summons
+                Some(participating)
+              case _ =>
+                //generate a new squad, with invitingPlayer as the leader
+                val squad = StartSquad(invitingPlayer)
+                squad.Task = s"${invitingPlayer.Name}'s Squad"
+                SquadEvents.publish( SquadServiceResponse(s"/$invitingPlayerCharId/Squad", SquadResponse.AssociateWithSquad(squad.GUID)) )
+                Some(squad)
+            }) match {
+              case Some(squad) =>
+                HandleVacancyInvite(squad.GUID, tplayer.CharId, invitingPlayerCharId, tplayer) match {
+                  case Some((_, line)) =>
+                    SquadEvents.publish( SquadServiceResponse(s"/$invitedPlayer/Squad", SquadResponse.Membership(SquadResponseType.Accept, 0, 0, invitedPlayer, Some(invitingPlayerCharId), "", true, Some(None))) )
+                    SquadEvents.publish( SquadServiceResponse(s"/$invitingPlayerCharId/Squad", SquadResponse.Membership(SquadResponseType.Accept, 0, 0, invitingPlayerCharId, Some(invitedPlayer), tplayer.Name, false, Some(None))) )
+                    JoinSquad(tplayer, squad, line)
+                    RemoveQueuedInvites(tplayer.CharId) //TODO deal with these somehow
+                  case _ => ;
+                }
+              case _ => ;
+            }
+
+          case Some(InviteForRole(invitingPlayer, name, guid, position)) if EnsureEmptySquad(invitedPlayer, msg) =>
+            squadFeatures.get(guid) match {
+              case Some(features) if JoinSquad(tplayer, features.Squad, position) =>
+                //join this squad
+                SquadEvents.publish( SquadServiceResponse(s"/$invitedPlayer/Squad", SquadResponse.Membership(SquadResponseType.Accept, 0, 0, invitedPlayer, Some(invitingPlayer), "", true, Some(None))) )
+                SquadEvents.publish( SquadServiceResponse(s"/$invitingPlayer/Squad", SquadResponse.Membership(SquadResponseType.Accept, 0, 0, invitingPlayer, Some(invitedPlayer), tplayer.Name, false, Some(None))) )
+                RemoveQueuedInvites(tplayer.CharId)
+                features.ProxyInvites = Nil
+                features.SearchForRole = None
+                RemoveInvitesForSquadAndPosition(guid, position)
+
+              case Some(features) =>
+                //can not join squad; position is unavailable or other reasons block action
+                features.ProxyInvites = features.ProxyInvites.filterNot(_ == invitedPlayer)
+                NextInviteAndRespond(invitedPlayer)
+
+              case _ =>
+                //squad no longer exists?
+                NextInviteAndRespond(invitedPlayer)
+            }
+
+          case Some(ProximityInvite(invitingPlayer, _, guid)) if EnsureEmptySquad(invitedPlayer, msg) =>
+            squadFeatures.get(guid) match {
+              case Some(features) =>
+                val squad = features.Squad
+                if(squad.Size < squad.Capacity) {
+                  val positions = squad.Membership.zipWithIndex
+                    .collect { case (member, index) if member.CharId == 0 && squad.Availability(index) && {
+                      val requirementsToMeet = member.Requirements
+                      requirementsToMeet.intersect(tplayer.Certifications) == requirementsToMeet
+                    } =>
+                      (index, member.Requirements.size)
+                    }
+                    .sortBy({ case (_, requirements) => requirements })
+                  ((positions.headOption, positions.lastOption) match {
+                    case (Some((first, size1)), Some((_, size2))) if size1 == size2 => Some(first) //join the first available position
+                    case (Some(_), Some((last, _))) => Some(last) //join the most demanding position
+                    case _ => None //(None, None)
+                  }) match {
+                    case Some(position) if JoinSquad(tplayer, squad, position) =>
+                      //join this squad
+                      SquadEvents.publish( SquadServiceResponse(s"/$invitedPlayer/Squad", SquadResponse.Membership(SquadResponseType.Accept, 0, 0, invitedPlayer, Some(invitingPlayer), "", true, Some(None))) )
+                      SquadEvents.publish( SquadServiceResponse(s"/$invitingPlayer/Squad", SquadResponse.Membership(SquadResponseType.Accept, 0, 0, invitingPlayer, Some(invitedPlayer), tplayer.Name, false, Some(None))) )
+                      RemoveQueuedInvites(invitedPlayer)
+                      features.ProxyInvites = features.ProxyInvites.filterNot(_ == invitedPlayer)
+                    case _ =>
                   }
-                case _ => ;
-              }
+                }
+                if(features.ProxyInvites.isEmpty) {
+                  //all invitations exhausted; this invitation period is concluded
+                  features.SearchForRole = None
+                }
+                else if(squad.Size == squad.Capacity) {
+                  //all available squad positions filled; terminate all remaining invitations
+                  features.SearchForRole = None
+                  features.ProxyInvites = Nil
+                  CleanupInvitesForSquad(guid)
+                  //CleanupInvitesFromPlayer(invitingPlayer)
+                }
 
-            case None =>
-              //the invite either timed-out or was withdrawn; select a new one?
-              NextInvite(invitedPlayer) match {
-                case Some(bid : BidForPosition) if !acceptedInvite.contains(bid) =>
-                  HandleBidForPosition(bid, tplayer)
-                case Some(bid) if !acceptedInvite.contains(bid) =>
-                  SquadEvents.publish(SquadServiceResponse(s"/$invitedPlayer/Squad", SquadResponse.Membership(SquadResponseType.Invite, 0, 0, bid.InviterCharId, Some(invitedPlayer), bid.InviterName, false, Some(None))))
-                case None => ;
-              }
-          }
+              case _ =>
+                //squad no longer exists?
+                NextInviteAndRespond(invitedPlayer)
+            }
+
+          case _ =>
+            //the invite either timed-out or was withdrawn or is now invalid; select a new one?
+            NextInviteAndRespond(invitedPlayer)
         }
 
       case SquadAction.Membership(SquadRequestType.Leave, leavingPlayer, optionalPlayer, _, _) =>
@@ -419,46 +503,58 @@ class SquadService extends Actor {
         if(leavingPlayer == leader || squad.Size == 2) {
           //squad leader is leaving his own squad, so it will be disbanded
           //alternately, squad is only composed of two people, so it will be closed-out when one of them leaves
-          val membership = squad.Membership.collect { case member if member.CharId > 0 => member.CharId }
-          membership.foreach { charId =>
-            SquadEvents.publish(SquadServiceResponse(s"/$charId/Squad", SquadResponse.Membership(SquadResponseType.Leave, 0, 0, charId, None, "", false, Some(None))))
-          }
-          CloseOutSquad(squad)
-          SquadEvents.publish(SquadServiceResponse(s"/$leader/Squad", SquadResponse.Membership(SquadResponseType.Disband, 0, 0, leader, None, "", true, Some(None))))
-          membership
-            .filterNot(_ == leader)
-            .foreach { charId =>
-            SquadEvents.publish(SquadServiceResponse(s"/$charId/Squad", SquadResponse.Membership(SquadResponseType.Disband, 0, 0, charId, None, "", false, Some(None))))
-          }
-          SquadEvents.publish( SquadServiceResponse(s"/$leader/Squad", SquadResponse.AssociateWithSquad(PlanetSideGUID(0))) )
-          SquadEvents.publish( SquadServiceResponse(s"/$leader/Squad", SquadResponse.Detail(PlanetSideGUID(0), SquadDetail().Complete)) )
+          DisbandSquad(squad)
         }
         else {
           if(optionalPlayer.contains(leavingPlayer)) {
             //leaving the squad of own accord
-            LeaveSquad(tplayer, squad)
+            LeaveSquad(tplayer.CharId, squad)
           }
           else if(optionalPlayer.contains(leader)) {
             //kicked by the squad leader
             SquadEvents.publish( SquadServiceResponse(s"/$leavingPlayer/Squad", SquadResponse.Membership(SquadResponseType.Leave, 0, 0, leavingPlayer, Some(leader), tplayer.Name, false, Some(None))) )
             SquadEvents.publish( SquadServiceResponse(s"/$leader/Squad", SquadResponse.Membership(SquadResponseType.Leave, 0, 0, leader, Some(leavingPlayer), "", true, Some(None))) )
-            LeaveSquad(tplayer, squad)
+            squadFeatures(squad.GUID).Refuse = leavingPlayer
+            LeaveSquad(leavingPlayer, squad)
           }
         }
 
-      case SquadAction.Membership(SquadRequestType.Reject, rejectingPlayer, optionalPlayer, _, _) =>
+      case SquadAction.Membership(SquadRequestType.Reject, rejectingPlayer, _, _, _) =>
         val rejectedBid = RemoveInvite(rejectingPlayer)
         //(A, B) -> person who made the rejection, person who was rejected
         (rejectedBid match {
           case Some(SpontaneousInvite(invitingPlayer)) =>
             //rejectingPlayer is the would-be squad member
             (Some(rejectingPlayer), Some(invitingPlayer.CharId))
-          case Some(VacancyInvite(invitingPlayer, _, guid)) if idToSquad(guid).Leader.CharId != rejectingPlayer =>
+          case Some(VacancyInvite(invitingPlayer, _, guid))
+            if squadFeatures.get(guid).nonEmpty && squadFeatures(guid).Squad.Leader.CharId != rejectingPlayer =>
             //rejectingPlayer is the would-be squad member
             (Some(rejectingPlayer), Some(invitingPlayer))
-          case Some(BidForPosition(_, guid, _)) if idToSquad(guid).Leader.CharId != rejectingPlayer =>
+          case Some(BidForRole(_, guid, _))
+            if squadFeatures.get(guid).nonEmpty && squadFeatures(guid).Squad.Leader.CharId == rejectingPlayer =>
             //rejectingPlayer is the squad leader
             (Some(rejectingPlayer), None)
+          case Some(InviteForRole(invitingPlayer, _, guid, position))
+            if squadFeatures.get(guid).nonEmpty && squadFeatures(guid).Squad.Leader.CharId != rejectingPlayer =>
+            //rejectingPlayer is the would-be squad member
+            val features = squadFeatures(guid)
+            features.Refuse = rejectingPlayer //do not bother this player anymore
+            features.ProxyInvites = features.ProxyInvites.filterNot(_ == rejectingPlayer)
+            if(features.ProxyInvites.isEmpty) {
+              features.SearchForRole = None
+            }
+            (None, None)
+          case Some(ProximityInvite(_, _, guid))
+            if squadFeatures.get(guid).nonEmpty && squadFeatures(guid).Squad.Leader.CharId != rejectingPlayer =>
+            //rejectingPlayer is the would-be squad member
+            val features = squadFeatures(guid)
+            features.Refuse = rejectingPlayer //do not bother this player anymore
+            features.ProxyInvites = features.ProxyInvites.filterNot(_ == rejectingPlayer)
+            if(features.ProxyInvites.isEmpty) {
+              //all invitations exhausted; this invitation is concluded
+              features.SearchForRole = None
+            }
+            (None, None)
           case _ => ;
             (None, None)
         }) match {
@@ -469,46 +565,11 @@ class SquadService extends Actor {
             SquadEvents.publish( SquadServiceResponse(s"/$rejected/Squad", SquadResponse.Membership(SquadResponseType.Reject, 0, 0, rejected, Some(rejected), "", true, Some(None))) )
           case _ => ;
         }
-        NextInvite(rejectingPlayer) match {
-          case Some(bid : BidForPosition) if rejectedBid.isEmpty || !rejectedBid.contains(bid) =>
-            HandleBidForPosition(bid, tplayer)
-          case Some(bid) if rejectedBid.isEmpty || !rejectedBid.contains(bid) =>
-            SquadEvents.publish(SquadServiceResponse(s"/$rejectingPlayer/Squad", SquadResponse.Membership(SquadResponseType.Invite, 0, 0, bid.InviterCharId, Some(rejectingPlayer), bid.InviterName, false, Some(None))))
-          case None => ;
-        }
+        NextInviteAndRespond(rejectingPlayer)
 
-//      case SquadAction.Membership(SquadRequestType.Cancel, cancellingPlayer, _, _, _) =>
-//        //look for queued BidForPosition entries where we are the player who wants to join
-//        queuedInvites.foreach { case (leader, queueOfInvites) =>
-//          val list = queueOfInvites.filterNot { entry =>
-//              entry.isInstanceOf[BidForPosition] &&
-//                entry.asInstanceOf[BidForPosition].player.CharId == cancellingPlayer
-//          }
-//          if(list.nonEmpty && list.size != queueOfInvites.size) {
-//            queuedInvites(leader) = list
-//          }
-//          else if(list.isEmpty) {
-//            queuedInvites.remove(leader)
-//          }
-//        }
-//        //clean up active BidForPosition invite entries where we are the player who wants to join
-//        val list = invites.filter { case(_, entry) =>
-//          entry.isInstanceOf[BidForPosition] &&
-//            entry.asInstanceOf[BidForPosition].player.CharId == cancellingPlayer
-//        }
-//        list.foreach {
-//          case(charId, entry : BidForPosition) =>
-//            RemoveInvite(charId)
-//            SquadEvents.publish( SquadServiceResponse(s"/$charId/Squad", SquadResponse.Membership(SquadResponseType.Cancel, 0, 0, cancellingPlayer, None, entry.player.Name, false, None)))
-//            NextInvite(charId) match {
-//              case Some(bid : BidForPosition) =>
-//                HandleBidForPosition(bid, tplayer)
-//              case Some(bid) =>
-//                SquadEvents.publish(SquadServiceResponse(s"/$charId/Squad", SquadResponse.Membership(SquadResponseType.Invite, 0, 0, bid.InviterCharId, Some(charId), bid.InviterName, false, Some(None))))
-//              case _ => ;
-//            }
-//          case _ => ;
-//        }
+      case SquadAction.Membership(SquadRequestType.Cancel, cancellingPlayer, _, _, _) =>
+        //huh?
+        log.warn(s"Huh? what does player $cancellingPlayer want to cancel?")
 
       case SquadAction.Membership(SquadRequestType.Promote, promotingPlayer, Some(promotedPlayer), _, _) =>
         (memberToSquad.get(promotingPlayer), memberToSquad.get(promotedPlayer)) match {
@@ -518,6 +579,27 @@ class SquadService extends Actor {
             val (member, index) = membership.zipWithIndex.find { case (_member, _) => _member.CharId == promotedPlayer }.get
             log.info(s"Player ${leader.Name} steps down from leading ${squad.Task}")
             SwapMemberPosition(squad, leader, member)
+            //move around invites so that the proper squad leader deals with them
+            val leaderInvite = invites.remove(promotingPlayer)
+            val leaderQueuedInvites = queuedInvites.remove(promotingPlayer).toList.flatten
+            invites.get(promotedPlayer).orElse(previousInvites.get(promotedPlayer)) match {
+              case Some(_) =>
+                //the promoted player has an active invite; queue these
+                queuedInvites += promotedPlayer -> (leaderInvite.toList ++ leaderQueuedInvites ++ queuedInvites.remove(promotedPlayer).toList.flatten)
+              case None if leaderInvite.nonEmpty =>
+                //no active invite for the promoted player, but the leader had an active invite; trade the queued invites
+                val invitation = leaderInvite.get
+                AddInviteAndRespond(promotedPlayer, invitation, invitation.InviterCharId, invitation.InviterName)
+                queuedInvites += promotedPlayer -> (leaderQueuedInvites ++ queuedInvites.remove(promotedPlayer).toList.flatten)
+              case None =>
+                //no active invites for anyone; assign the first queued invite from the promoting player, if available, and queue the rest
+                leaderQueuedInvites match {
+                  case Nil => ;
+                  case x :: xs =>
+                    AddInviteAndRespond(promotedPlayer, x, x.InviterCharId, x.InviterName)
+                    queuedInvites += promotedPlayer -> (xs ++ queuedInvites.remove(promotedPlayer).toList.flatten)
+                }
+            }
             log.info(s"Promoting player ${leader.Name} to be the leader of ${squad.Task}")
             membership.foreach { _member =>
               SquadEvents.publish(SquadServiceResponse(s"/${_member.CharId}/Squad", SquadResponse.PromoteMember(squad, promotedPlayer, index, position)))
@@ -539,7 +621,8 @@ class SquadService extends Actor {
                 ))
             )
 
-          case _ => ;
+          case msg =>
+            log.warn(s"Unsupported squad behavior: $msg")
         }
 
       case SquadAction.Waypoint(_, wtype, _, info) =>
@@ -555,7 +638,7 @@ class SquadService extends Actor {
             }
           case _ => (None, None)
         }) match {
-          case (Some(squad), Some(waypoint)) =>
+          case (Some(squad), Some(_)) =>
             //waypoint added or updated
             squad.Membership
               .filterNot { member => member.CharId == tplayer.CharId }
@@ -565,6 +648,7 @@ class SquadService extends Actor {
                   SquadServiceResponse(s"/$charId/Squad", SquadResponse.WaypointEvent(WaypointEventAction.Add, playerCharId, wtype, None, info, 1))
                 )
               }
+
           case (Some(squad), None) =>
             //waypoint removed?
             squad.Membership
@@ -575,10 +659,12 @@ class SquadService extends Actor {
                   SquadServiceResponse(s"/$charId/Squad", SquadResponse.WaypointEvent(WaypointEventAction.Remove, playerCharId, wtype, None, None, 0))
                 )
               }
-          case _ => ;
+
+          case msg =>
+            log.warn(s"Unsupported squad waypoint behavior: $msg")
         }
 
-      case SquadAction.Definition(zone, guid, line, action) =>
+      case SquadAction.Definition(guid, line, action) =>
         import net.psforever.packet.game.SquadAction._
         val pSquadOpt = GetParticipatingSquad(tplayer)
         val lSquadOpt = GetLeadingSquad(tplayer, pSquadOpt)
@@ -633,14 +719,11 @@ class SquadService extends Actor {
                 squad.Availability.update(position, false)
                 log.info(s"${tplayer.Name}-${tplayer.Faction} has closed the #$position position in squad")
                 val memberPosition = squad.Membership(position)
-                val listingChanged = if(memberPosition.Name.nonEmpty) {
-                  SquadInfo().Size(squad.Size).Capacity(squad.Capacity)
-                }
-                else {
-                  SquadInfo().Capacity(squad.Capacity)
+                if(memberPosition.CharId > 0) {
+                  LeaveSquad(memberPosition.CharId, squad)
                 }
                 memberPosition.Close()
-                UpdateSquadListWhenListed(squad, listingChanged)
+                UpdateSquadListWhenListed(squad, SquadInfo().Capacity(squad.Capacity))
                 UpdateSquadDetail(squad.GUID, squad,
                   SquadDetail().Members(List(SquadPositionEntry(position, SquadPositionDetail.Closed)))
                 )
@@ -716,6 +799,113 @@ class SquadService extends Actor {
             val squad = lSquadOpt.getOrElse(StartSquad(tplayer))
             squad.AutoApproveInvitationRequests = state
 
+          case FindLfsSoldiersForRole(position) =>
+            lSquadOpt match {
+              case Some(squad) =>
+                val sguid = squad.GUID
+                val features = squadFeatures(sguid)
+                features.SearchForRole match {
+                  case Some(-1) =>
+                    //a proximity invitation has not yet cleared; nothing will be gained by trying to invite for a specific role
+                    log.debug("FindLfsSoldiersForRole: waiting for proximity invitations to clear")
+                  case _ =>
+                    //either no role has ever been recruited, or some other role has been recruited
+                    //normal LFS recruitment for the given position
+                    val excusedInvites = features.Refuse
+                    val faction = squad.Faction
+                    val requirementsToMeet = squad.Membership(position).Requirements
+                    val outstandingActiveInvites = features.SearchForRole match {
+                      case Some(pos) =>
+                        RemoveQueuedInvitesForSquadAndPosition(sguid, pos)
+                        invites.collect { case(charId, InviteForRole(_,_, squad_guid, role)) if squad_guid == sguid && role == pos => charId }
+                      case None =>
+                        List.empty[Long]
+                    }
+                    features.SearchForRole = position
+                    //this will update the role entry in the GUI to visually indicate being searched for; only one will be displayed at a time
+                    SquadEvents.publish(
+                      SquadServiceResponse(s"/${tplayer.CharId}/Squad", SquadResponse.Detail(
+                        sguid,
+                        SquadDetail().Members(List(SquadPositionEntry(position, SquadPositionDetail().CharId(char_id = 0L).Name(name = ""))))
+                      ))
+                    )
+                    //collect all players that are eligible for invitation to the new position
+                    //divide into players with an active invite (A) and players with a queued invite (B)
+                    //further filter (A) into players whose invitation is renewed (A1) and new invitations (A2)
+                    //TODO only checks the leader's current zone; should check all zones
+                    (zone.LivePlayers
+                      .collect { case player
+                        if !excusedInvites.contains(player.CharId) &&
+                          faction == player.Faction && player.LFS && memberToSquad.get(player.CharId).isEmpty &&
+                          requirementsToMeet.intersect(player.Certifications) == requirementsToMeet =>
+                        player.CharId
+                      }
+                      .partition { charId => outstandingActiveInvites.exists(charId == _) } match {
+                      case (Nil, Nil) =>
+                        outstandingActiveInvites foreach RemoveInvite
+                        features.ProxyInvites = Nil
+                        //TODO cancel the LFS search from the server so that the client updates properly; how?
+                        None
+                      case (outstandingPlayerList, invitedPlayerList) =>
+                        //players who were actively invited for the previous position and are eligible for the new position
+                        outstandingPlayerList.foreach { charId =>
+                          val bid = invites(charId).asInstanceOf[InviteForRole]
+                          invites(charId) = InviteForRole(bid.char_id, bid.name, sguid, position)
+                        }
+                        //players who were actively invited for the previous position but are ineligible for the new position
+                        (features.ProxyInvites filterNot (outstandingPlayerList contains)) foreach RemoveInvite
+                        features.ProxyInvites = outstandingPlayerList ++ invitedPlayerList
+                        Some(invitedPlayerList)
+                    }) match {
+                      //add invitations for position in squad
+                      case Some(invitedPlayers) =>
+                        val invitingPlayer = tplayer.CharId
+                        val name = tplayer.Name
+                        invitedPlayers.foreach { invitedPlayer =>
+                          AddInviteAndRespond(
+                            invitedPlayer,
+                            InviteForRole(invitingPlayer, name, sguid, position),
+                            invitingPlayer,
+                            name
+                          )
+                        }
+                      case None => ;
+                    }
+                }
+
+              case _ => ;
+            }
+
+          case CancelFind() =>
+            lSquadOpt match {
+              case Some(squad) =>
+                val sguid = squad.GUID
+                val position = squadFeatures(sguid).SearchForRole
+                squadFeatures(sguid).SearchForRole = None
+                //remove active invites
+                invites.filter {
+                  case (_, InviteForRole(_, _, _guid, pos)) => _guid == sguid && position.contains(pos)
+                  case _ => false
+                }
+                  .keys.foreach { charId =>
+                  RemoveInvite(charId)
+                }
+                //remove queued invites
+                queuedInvites.foreach { case (charId, queue) =>
+                  val filtered = queue.filterNot {
+                    case InviteForRole(_, _, _guid, _) => _guid == sguid
+                    case _ => false
+                  }
+                  queuedInvites += charId -> filtered
+                  if(filtered.isEmpty) {
+                    queuedInvites.remove(charId)
+                  }
+                }
+                //remove yet-to-be invitedPlayers
+                squadFeatures(sguid).ProxyInvites = Nil
+              case _ => ;
+            }
+
           case RequestListSquad() =>
             val squad = lSquadOpt.getOrElse(StartSquad(tplayer))
             if(!squad.Listed && squad.Task.nonEmpty && squad.ZoneId > 0) {
@@ -738,6 +928,7 @@ class SquadService extends Actor {
           case ResetAll() =>
             lSquadOpt match {
               case Some(squad) if squad.Size > 1 =>
+                val guid = squad.GUID
                 squad.Task = ""
                 squad.ZoneId = None
                 squad.Availability.indices.foreach { i =>
@@ -751,19 +942,172 @@ class SquadService extends Actor {
                 squad.LocationFollowsSquadLead = false
                 squad.AutoApproveInvitationRequests = false
                 UpdateSquadListWhenListed(squad, SquadInfo().Task("").ZoneId(None).Capacity(squad.Capacity))
-                UpdateSquadDetail(squad.GUID, squad)
+                UpdateSquadDetail(guid, squad)
                 sender ! SquadServiceResponse("", SquadResponse.AssociateWithSquad(PlanetSideGUID(0)))
-                if(!initialAssociation.contains(squad.GUID)) {
-                  initialAssociation += squad.GUID
-                }
+                squadFeatures(guid).InitialAssociation = true
                 //do not unlist an already listed squad
               case Some(squad) =>
                 //underutilized squad; just close it out
-                CloseOutSquad(squad)
+                CloseSquad(squad)
               case _ => ;
             }
 
           case _ =>
+            (pSquadOpt, action) match {
+              //the following action can be performed by the squad leader and maybe an unaffiliated player
+              case (Some(squad), SelectRoleForYourself(position)) =>
+                log.info(s"${tplayer.Name} would like the #${position+1} spot in the same squad")
+                val membership = squad.Membership.zipWithIndex
+                val toMember = squad.Membership(position)
+                if(squad.Leader.CharId == tplayer.CharId) {
+                  //TODO squad leader currently disallowed
+                } else
+                //the squad leader may swap to any open position; a normal member has to validate against requirements
+                if((squad.Leader.CharId == tplayer.CharId && toMember.CharId == 0) || ValidOpenSquadPosition(squad, position, toMember, tplayer.Certifications)) {
+                  membership.find { case (member, _) => member.CharId == tplayer.CharId } match {
+                    case Some((fromMember, fromIndex)) =>
+                      SwapMemberPosition(squad, toMember, fromMember)
+                      if(fromIndex == squad.LeaderPositionIndex) {
+                        squad.LeaderPositionIndex = position
+                      }
+                      //RemoveInvite(tplayer.CharId).foreach { _ =>
+                      //close the old bids out
+                      //}
+                      membership
+                        .filter { case (_member, _) => _member.CharId > 0 }
+                        .foreach { case (_member, _) =>
+                          SquadEvents.publish(SquadServiceResponse(s"/${_member.CharId}/Squad", SquadResponse.AssignMember(squad, fromIndex, position)))
+                        }
+                      UpdateSquadDetail(squad.GUID, squad)
+                    case _ => ;
+                    //somehow, this is not our squad; do nothing, for now
+                  }
+                }
+                else {
+                  //not qualified for requested position
+                }
+
+              //the following action can be performed by an unaffiliated player
+              case (None, SelectRoleForYourself(position)) =>
+                //not a member of any squad, but we might become a member of this one
+                GetSquad(guid) match {
+                  case Some(squad) =>
+                    val toMember = squad.Membership(position)
+                    if(ValidOpenSquadPosition(squad, position, toMember, tplayer.Certifications)) {
+                      //we could join but we may need permission from the squad leader first
+                      log.info(s"${tplayer.Name} would like the #${position+1} spot in the squad ${squad.Task}.")
+                      AddInviteAndRespond(
+                        squad.Leader.CharId,
+                        BidForRole(tplayer, guid, position),
+                        invitingPlayer = 0L, //we ourselves technically are ...
+                        tplayer.Name
+                      )
+                    }
+                  case None => ;
+                  //squad does not exist? assume old local data; force update to correct discrepancy
+                }
+
+              //the following action can be performed by anyone who has tried to join a squad
+              case (_, CancelSelectRoleForYourself(_)) =>
+                val cancellingPlayer = tplayer.CharId
+                GetSquad(guid) match {
+                  case Some(squad) =>
+                    //assumption: a player who is cancelling will rarely end up with their invite queued
+                    val leaderCharId = squad.Leader.CharId
+                    //clean up any active BidForRole invite entry where we are the player who wants to join the leader's squad
+                    ((invites.get(leaderCharId) match {
+                      case out @ Some(entry) if entry.isInstanceOf[BidForRole] &&
+                        entry.asInstanceOf[BidForRole].player.CharId == cancellingPlayer =>
+                        out
+                      case _ =>
+                        None
+                    }) match {
+                      case Some(entry : BidForRole) =>
+                        RemoveInvite(leaderCharId)
+                        SquadEvents.publish( SquadServiceResponse(s"/$leaderCharId/Squad", SquadResponse.Membership(SquadResponseType.Cancel, 0, 0, cancellingPlayer, None, entry.player.Name, false, Some(None))))
+                        NextInviteAndRespond(leaderCharId)
+                        Some(true)
+                      case _ =>
+                        None
+                    }).orElse(
+                      //look for a queued BidForRole entry where we are the player who wants to join the leader's squad
+                      (queuedInvites.get(leaderCharId) match {
+                        case Some(_list) =>
+                          (_list, _list.indexWhere { entry =>
+                            entry.isInstanceOf[BidForRole] &&
+                              entry.asInstanceOf[BidForRole].player.CharId == cancellingPlayer
+                          })
+                        case None =>
+                          (Nil, -1)
+                      }) match {
+                        case (_, -1) =>
+                          None //no change
+                        case (list, index) if list.size == 1 =>
+                          val entry = list.head.asInstanceOf[BidForRole]
+                          SquadEvents.publish( SquadServiceResponse(s"/$leaderCharId/Squad", SquadResponse.Membership(SquadResponseType.Cancel, 0, 0, cancellingPlayer, None, entry.player.Name, false, Some(None))))
+                          queuedInvites.remove(leaderCharId)
+                          Some(true)
+                        case (list, index) =>
+                          val entry = list(index).asInstanceOf[BidForRole]
+                          SquadEvents.publish( SquadServiceResponse(s"/$leaderCharId/Squad", SquadResponse.Membership(SquadResponseType.Cancel, 0, 0, cancellingPlayer, None, entry.player.Name, false, Some(None))))
+                          queuedInvites(leaderCharId) = list.take(index) ++ list.drop(index+1)
+                          Some(true)
+                      }
+                    )
+
+                  case _ => ;
+                }
+
+              //the following action can be performed by ???
+              case (Some(squad), AssignSquadMemberToRole(position, char_id)) =>
+                val membership = squad.Membership.zipWithIndex
+                (membership.find({ case (member, _) => member.CharId == char_id}), membership(position)) match {
+                  //TODO squad leader currently disallowed
+                  case (Some((fromMember, fromPosition)), (toMember, _)) if fromPosition != 0 =>
+                    val name = fromMember.Name
+                    SwapMemberPosition(squad, toMember, fromMember)
+                    if(fromPosition == squad.LeaderPositionIndex) {
+                      squad.LeaderPositionIndex = position
+                    }
+                    membership
+                      .filter({ case (_member, _) => _member.CharId > 0 })
+                      .foreach { case (_member, _) =>
+                        SquadEvents.publish(SquadServiceResponse(s"/${_member.CharId}/Squad", SquadResponse.AssignMember(squad, fromPosition, position)))
+                      }
+                    UpdateSquadDetail(squad.GUID, squad,
+                      SquadDetail().Members(List(
+                        SquadPositionEntry(position, SquadPositionDetail().CharId(fromMember.CharId).Name(fromMember.Name)),
+                        SquadPositionEntry(fromPosition, SquadPositionDetail().CharId(char_id).Name(name))
+                      ))
+                    )
+                  case _ => ;
+                }
+
+              //the following action can be peprformed by anyone
+              case (_, SearchForSquadsWithParticularRole(_/*role*/, _/*requirements*/, _/*zone_id*/, _/*search_mode*/)) =>
+                //though we should be able correctly search squads as is intended
+                //I don't know how search results should be prioritized or even how to return search results to the user
+                sender ! SquadServiceResponse("", SquadResponse.SquadSearchResults())
+
+              //the following action can be performed by anyone
+              case (_, DisplaySquad()) =>
+                GetSquad(guid) match {
+                  case Some(squad) =>
+                    sender ! SquadServiceResponse("", SquadResponse.Detail(squad.GUID, SquadService.Detail.Publish(squad)))
+                  case None => ;
+                }
+
+              //the following message is feedback from a specific client, awaiting proper initialization
+              case (_, SquadMemberInitializationIssue()) =>
+              //            GetSquad(guid) match {
+              //              case Some(squad) =>
+              //                sender ! SquadServiceResponse("", SquadResponse.Detail(squad.GUID, SquadService.Detail.Publish(squad)))
+              //              case None => ;
+              //            }
+
+              case msg => ;
+                log.warn(s"Unsupported squad definition behavior: $msg")
+            }
         }
         // etc..
         (pSquadOpt, action) match {
@@ -803,20 +1147,18 @@ class SquadService extends Actor {
           //the following action can be performed by an unaffiliated player
           case (None, SelectRoleForYourself(position)) =>
             //not a member of any squad, but we might become a member of this one
-            idToSquad.get(guid) match {
+            GetSquad(guid) match {
               case Some(squad) =>
                 val toMember = squad.Membership(position)
                 if(ValidOpenSquadPosition(squad, position, toMember, tplayer.Certifications)) {
                   //we could join but we may need permission from the squad leader first
                   log.info(s"Player ${tplayer.Name} would like to join the squad ${squad.Task}.")
-                  val leader = squad.Leader
-                  val bid = BidForPosition(tplayer, guid, position)
-                  val leaderCharId = leader.CharId
-                  AddInvite(leaderCharId, bid) match {
-                    case out @ Some(_) if out.contains(bid) =>
-                      HandleBidForPosition(bid, tplayer)
-                    case _ => ;
-                  }
+                  AddInviteAndRespond(
+                    squad.Leader.CharId,
+                    BidForRole(tplayer, guid, position),
+                    invitingPlayer = 0L, //we ourselves technically are ...
+                    tplayer.Name
+                  )
                 }
               case None => ;
               //squad does not exist? assume old local data; force update to correct discrepancy
@@ -825,38 +1167,32 @@ class SquadService extends Actor {
           //the following action can be performed by anyone who has tried to join a squad
           case (_, CancelSelectRoleForYourself(_)) =>
             val cancellingPlayer = tplayer.CharId
-            idToSquad.get(guid) match {
+            GetSquad(guid) match {
               case Some(squad) =>
                 //assumption: a player who is cancelling will rarely end up with their invite queued
                 val leaderCharId = squad.Leader.CharId
-                //clean up any active BidForPosition invite entry where we are the player who wants to join the leader's squad
+                //clean up any active BidForRole invite entry where we are the player who wants to join the leader's squad
                 ((invites.get(leaderCharId) match {
-                  case out @ Some(entry) if entry.isInstanceOf[BidForPosition] &&
-                    entry.asInstanceOf[BidForPosition].player.CharId == cancellingPlayer =>
+                  case out @ Some(entry) if entry.isInstanceOf[BidForRole] &&
+                    entry.asInstanceOf[BidForRole].player.CharId == cancellingPlayer =>
                     out
                   case _ =>
                     None
                 }) match {
-                  case Some(entry : BidForPosition) =>
+                  case Some(entry : BidForRole) =>
                     RemoveInvite(leaderCharId)
                     SquadEvents.publish( SquadServiceResponse(s"/$leaderCharId/Squad", SquadResponse.Membership(SquadResponseType.Cancel, 0, 0, cancellingPlayer, None, entry.player.Name, false, Some(None))))
-                    NextInvite(leaderCharId) match {
-                      case Some(bid : BidForPosition) =>
-                        HandleBidForPosition(bid, tplayer)
-                      case Some(bid) =>
-                        SquadEvents.publish(SquadServiceResponse(s"/$leaderCharId/Squad", SquadResponse.Membership(SquadResponseType.Invite, 0, 0, bid.InviterCharId, Some(leaderCharId), bid.InviterName, false, Some(None))))
-                      case _ => ;
-                    }
+                    NextInviteAndRespond(leaderCharId)
                     Some(true)
                   case _ =>
                     None
                 }).orElse(
-                  //look for a queued BidForPosition entry where we are the player who wants to join the leader's squad
+                  //look for a queued BidForRole entry where we are the player who wants to join the leader's squad
                   (queuedInvites.get(leaderCharId) match {
                     case Some(_list) =>
                       (_list, _list.indexWhere { entry =>
-                        entry.isInstanceOf[BidForPosition] &&
-                          entry.asInstanceOf[BidForPosition].player.CharId == cancellingPlayer
+                        entry.isInstanceOf[BidForRole] &&
+                          entry.asInstanceOf[BidForRole].player.CharId == cancellingPlayer
                       })
                     case None =>
                       (Nil, -1)
@@ -864,12 +1200,12 @@ class SquadService extends Actor {
                     case (_, -1) =>
                       None //no change
                     case (list, index) if list.size == 1 =>
-                      val entry = list.head.asInstanceOf[BidForPosition]
+                      val entry = list.head.asInstanceOf[BidForRole]
                       SquadEvents.publish( SquadServiceResponse(s"/$leaderCharId/Squad", SquadResponse.Membership(SquadResponseType.Cancel, 0, 0, cancellingPlayer, None, entry.player.Name, false, Some(None))))
                       queuedInvites.remove(leaderCharId)
                       Some(true)
                     case (list, index) =>
-                      val entry = list(index).asInstanceOf[BidForPosition]
+                      val entry = list(index).asInstanceOf[BidForRole]
                       SquadEvents.publish( SquadServiceResponse(s"/$leaderCharId/Squad", SquadResponse.Membership(SquadResponseType.Cancel, 0, 0, cancellingPlayer, None, entry.player.Name, false, Some(None))))
                       queuedInvites(leaderCharId) = list.take(index) ++ list.drop(index+1)
                       Some(true)
@@ -905,23 +1241,22 @@ class SquadService extends Actor {
             }
 
           //the following action can be peprformed by anyone
-          case (_, SearchForSquadsWithParticularRole(role, requirements, zone_id, search_mode)) =>
+          case (_, SearchForSquadsWithParticularRole(_/*role*/, _/*requirements*/, _/*zone_id*/, _/*search_mode*/)) =>
             //though we should be able correctly search squads as is intended
             //I don't know how search results should be prioritized or even how to return search results to the user
             sender ! SquadServiceResponse("", SquadResponse.SquadSearchResults())
 
           //the following action can be performed by anyone
           case (_, DisplaySquad()) =>
-            idToSquad.get(guid) match {
+            GetSquad(guid) match {
               case Some(squad) =>
-                viewDetails(tplayer.CharId) = guid
                 sender ! SquadServiceResponse("", SquadResponse.Detail(squad.GUID, SquadService.Detail.Publish(squad)))
               case None => ;
             }
 
           //the following message is feedback from a specific client, awaiting proper initialization
           case (_, SquadMemberInitializationIssue()) =>
-//            idToSquad.get(guid) match {
+//            GetSquad(guid) match {
 //              case Some(squad) =>
 //                sender ! SquadServiceResponse("", SquadResponse.Detail(squad.GUID, SquadService.Detail.Publish(squad)))
 //              case None => ;
@@ -958,54 +1293,65 @@ class SquadService extends Actor {
   }
 
   /**
-    *
-    * @param invitedPlayer
-    * @param bid
+    * na
+    * @param invitedPlayer the person who will handle the invitation, eventually if not immediately
+    * @param invite the "new" invitation envelop object
     * @return an optional invite;
     *         if added to the active invite position, return the parameter bid;
     *         if added to the queued invite, return the invite in the active position;
     *         if not added, return `None`
     */
-  def AddInvite(invitedPlayer : Long, bid : Invitation) : Option[Invitation] = {
-    invites.get(invitedPlayer) match {
+  def AddInvite(invitedPlayer : Long, invite : Invitation) : Option[Invitation] = {
+    invites.get(invitedPlayer).orElse(previousInvites.get(invitedPlayer)) match {
       case Some(_bid) =>
+        //the active invite does not interact with the given invite; add to queued invites
         queuedInvites.get(invitedPlayer) match {
           case Some(bidList) =>
-            if(_bid.InviterCharId != bid.InviterCharId && !bidList.exists { eachBid => eachBid.InviterCharId == bid.InviterCharId }) {
-              log.debug(s"Invite from ${bid.InviterCharId} to $invitedPlayer stored in queue while active invite request pending")
-              queuedInvites(invitedPlayer) = bid match {
-                case _: BidForPosition =>
-                  val (normals, others) = bidList.partition(_.isInstanceOf[BidForPosition])
-                  (normals :+ bid) ++ others
+            //ensure that new invite does not interact with the queue's invites by invitingPlayer info
+            if(_bid.InviterCharId != invite.InviterCharId && !bidList.exists { eachBid => eachBid.InviterCharId == invite.InviterCharId }) {
+              log.debug(s"Invite from ${invite.InviterCharId} to $invitedPlayer stored in queue while active invite request pending")
+              queuedInvites(invitedPlayer) = invite match {
+                case _: BidForRole =>
+                  val (normals, others) = bidList.partition(_.isInstanceOf[BidForRole])
+                  (normals :+ invite) ++ others
                 case _ =>
-                  bidList :+ bid
+                  bidList :+ invite
               }
-              None
-            }
-            else {
               Some(_bid)
             }
-          case None =>
-            if(_bid.InviterCharId != bid.InviterCharId) {
-              log.debug(s"Invite from ${bid.InviterCharId} to $invitedPlayer stored while active invite request pending")
-              queuedInvites(invitedPlayer) = List[Invitation](bid)
+            else {
+              None
             }
-            Some(_bid)
+          case None =>
+            if(_bid.InviterCharId != invite.InviterCharId) {
+              log.debug(s"Invite from ${invite.InviterCharId} to $invitedPlayer stored while active invite request pending")
+              queuedInvites(invitedPlayer) = List[Invitation](invite)
+              Some(_bid)
+            }
+            else {
+              None
+            }
         }
 
       case None =>
-        invites(invitedPlayer) = bid
-        Some(bid)
+        invites(invitedPlayer) = invite
+        Some(invite)
     }
   }
 
   def RemoveInvite(invitedPlayer : Long) : Option[Invitation] = {
-    invites.remove(invitedPlayer)
+    invites.remove(invitedPlayer) match {
+      case out @ Some(invite) =>
+        previousInvites += invitedPlayer -> invite
+        out
+      case None =>
+        None
+    }
   }
 
   def RemoveQueuedInvites(invitedPlayer : Long) : List[Invitation] = {
     queuedInvites.remove(invitedPlayer) match {
-      case Some(_bidList) => _bidList.toList
+      case Some(_bidList) => _bidList
       case None => Nil
     }
   }
@@ -1032,6 +1378,7 @@ class SquadService extends Actor {
   }
 
   def NextInvite(invitedPlayer : Long) : Option[Invitation] = {
+    previousInvites.remove(invitedPlayer)
     invites.get(invitedPlayer) match {
       case None =>
         queuedInvites.get(invitedPlayer) match {
@@ -1059,7 +1406,7 @@ class SquadService extends Actor {
 
   def HandleVacancyInvite(squad_guid : PlanetSideGUID, invitedPlayer : Long, invitingPlayer : Long, recruit : Player) : Option[(Squad, Int)] = {
     //accepted an invitation to join an existing squad
-    if(idToSquad.get(squad_guid).isEmpty) {
+    if(squadFeatures.get(squad_guid).isEmpty) {
       log.warn(s"Accept->Invite: the squad #${squad_guid.guid} no longer exists")
       None
     }
@@ -1068,16 +1415,15 @@ class SquadService extends Actor {
       None
     }
     else {
-      val squad = idToSquad(squad_guid)
+      val squad = squadFeatures(squad_guid).Squad
       if(!squad.AutoApproveInvitationRequests && squad.Leader.CharId != invitingPlayer) {
         //the inviting player was not the squad leader and this decision should be bounced off the squad leader
-        val bid = IndirectVacancy(recruit, squad_guid)
-        AddInvite(squad.Leader.CharId, bid) match {
-          case out @ Some(_) if out.contains(bid) =>
-            SquadEvents.publish(SquadServiceResponse(s"/$invitingPlayer/Squad", SquadResponse.Membership(SquadResponseType.Accept, 0, 0, invitingPlayer, Some(invitedPlayer), recruit.Name, false, Some(None))))
-            HandleBidForPosition(bid, recruit)
-          case _ => ;
-        }
+        AltAddInviteAndRespond(
+          squad.Leader.CharId,
+          IndirectInvite(recruit, squad_guid),
+          invitingPlayer,
+          name = ""
+        )
         log.info(s"Accept->Invite: ${recruit.Name} must await an invitation from the leader of squad #${squad_guid.guid}")
         None
       }
@@ -1103,44 +1449,44 @@ class SquadService extends Actor {
 
   def InitialAssociation(squad : Squad) : Boolean = {
     val guid = squad.GUID
-    initialAssociation.indexOf(guid) match {
-      case -1 => ;
-      case index =>
-        initialAssociation.remove(index)
-        val charId = squad.Leader.CharId
-        SquadEvents.publish(
-          SquadServiceResponse(s"/$charId/Squad", SquadResponse.AssociateWithSquad(guid))
+    if(squadFeatures(guid).InitialAssociation) {
+      squadFeatures(guid).InitialAssociation = false
+      val charId = squad.Leader.CharId
+      SquadEvents.publish(
+        SquadServiceResponse(s"/$charId/Squad", SquadResponse.AssociateWithSquad(guid))
+      )
+      SquadEvents.publish(
+        SquadServiceResponse(s"/$charId/Squad", SquadResponse.Detail(
+          guid,
+          SquadService.Detail.Publish(squad))
         )
-        SquadEvents.publish(
-          SquadServiceResponse(s"/$charId/Squad", SquadResponse.Detail(
-            guid,
-            SquadService.Detail.Publish(squad))
-          )
-        )
+      )
     }
     false
   }
 
-  def HandleBidForPosition(bid : BidForPosition, player : Player) : Unit = {
-    HandleBidForPosition(bid, bid.squad_guid, bid.player.Name, player)
+  def HandleBidForRole(bid : BidForRole, player : Player) : Boolean = {
+    HandleBidForRole(bid, bid.squad_guid, bid.player.Name, player)
   }
-  def HandleBidForPosition(bid : IndirectVacancy, player : Player) : Unit = {
-    HandleBidForPosition(bid, bid.squad_guid, bid.player.Name, player)
+  def HandleBidForRole(bid : IndirectInvite, player : Player) : Boolean = {
+    HandleBidForRole(bid, bid.squad_guid, bid.player.Name, player)
   }
 
-  def HandleBidForPosition(bid : Invitation, squad_guid : PlanetSideGUID, name : String, player : Player) : Unit = {
-    idToSquad.get(squad_guid) match {
+  def HandleBidForRole(bid : Invitation, squad_guid : PlanetSideGUID, name : String, player : Player) : Boolean = {
+    GetSquad(squad_guid) match {
       case Some(squad) =>
         val leaderCharId = squad.Leader.CharId
         if(squad.AutoApproveInvitationRequests) {
-          self ! SquadServiceMessage(player, SquadAction.Membership(SquadRequestType.Accept, leaderCharId, None, "", None))
+          self ! SquadServiceMessage(player, Zone.Nowhere, SquadAction.Membership(SquadRequestType.Accept, leaderCharId, None, "", None))
         }
         else {
           SquadEvents.publish(SquadServiceResponse(s"/$leaderCharId/Squad", SquadResponse.WantsSquadPosition(name)))
         }
+        true
       case _ =>
         //squad is missing; will this properly short-circuit?
         log.error(s"Attempted to process ${bid.InviterName}'s bid for a position in a squad (id:${squad_guid.guid}) that does not exist")
+        false
     }
   }
 
@@ -1201,27 +1547,31 @@ class SquadService extends Actor {
     }
   }
 
-  def LeaveSquad(player : Player, squad : Squad) : Boolean = {
-    val charId = player.CharId
-    val membership = squad.Membership.zipWithIndex
-    membership.find { case (_member, _) => _member.CharId == charId } match {
-      case Some((member, index)) =>
-        val updateList = membership.collect({ case (_member, _index) if _member.CharId > 0 => (_member.CharId, _index) }).toList
-        //member leaves the squad completely
-        memberToSquad.remove(charId)
-        member.Name = ""
-        member.CharId = 0
-        sender ! SquadServiceResponse("", SquadResponse.Leave(squad, updateList))
-        //other squad members see the member leaving
-        val leavingMember = List((charId, index))
-        membership
-          .filter { case (_member, _) => _member.CharId > 0 }
-          .foreach { case (_member, _) =>
-            SquadEvents.publish( SquadServiceResponse(s"/${_member.CharId}/Squad", SquadResponse.Leave(squad, leavingMember)) )
-          }
-        true
-      case None =>
-        false
+  def RemoveInvitesForSquadAndPosition(guid : PlanetSideGUID, position : Int) : Unit = {
+    //eliminate active invites for this role
+    invites.collect {
+      case(charId, InviteForRole(_,_, sguid, pos)) if sguid == guid && pos == position =>
+        RemoveInvite(charId)
+      case (charId, BidForRole(_, sguid, pos)) if sguid == guid && pos == position =>
+        RemoveInvite(charId)
+    }
+    RemoveQueuedInvitesForSquadAndPosition(guid, position)
+  }
+
+  def RemoveQueuedInvitesForSquadAndPosition(guid : PlanetSideGUID, position : Int) : Unit = {
+    //eliminate other invites for this role
+    queuedInvites.foreach { case(charId, queue) =>
+      val filtered = queue.filterNot {
+        case InviteForRole(_,_, sguid, pos) => sguid == guid && pos == position
+        case BidForRole(_, sguid, pos) => sguid == guid && pos == position
+        case _ => false
+      }
+      if(filtered.isEmpty) {
+        queuedInvites.remove(charId)
+      }
+      else if(queue.size != filtered.size) {
+        queuedInvites += charId -> filtered
+      }
     }
   }
 
@@ -1230,7 +1580,7 @@ class SquadService extends Actor {
       case None =>
         true
       case Some(squad) if squad.Size == 1 =>
-        CloseOutSquad(squad)
+        CloseSquad(squad)
         true
       case _ =>
         log.warn(msg)
@@ -1238,27 +1588,169 @@ class SquadService extends Actor {
     }
   }
 
-  def CloseOutSquad(squad : Squad) : Unit = {
+  def LeaveSquad(charId : Long, squad : Squad) : Boolean = {
     val membership = squad.Membership.zipWithIndex
-    CloseOutSquad(
-      squad,
-      membership,
-      membership.collect({ case (_member, _index) if _member.CharId > 0 => (_member.CharId, _index) }).toList
-    )
+    membership.find { case (_member, _) => _member.CharId == charId } match {
+      case Some((member, index)) =>
+        val entry = (charId, index)
+        val updateList = entry +: membership
+          .collect { case (_member, _index) if _member.CharId > 0 && _member.CharId != charId => (_member.CharId, _index) }
+          .toList
+        //member leaves the squad completely
+        memberToSquad.remove(charId)
+        member.Name = ""
+        member.CharId = 0
+        SquadEvents.publish( SquadServiceResponse(s"/$charId/Squad", SquadResponse.Leave(squad, updateList)))
+        //other squad members see the member leaving
+        val leavingMember = List(entry)
+        membership
+          .filter { case (_member, _) => _member.CharId > 0 }
+          .foreach { case (_member, _) =>
+            SquadEvents.publish( SquadServiceResponse(s"/${_member.CharId}/Squad", SquadResponse.Leave(squad, leavingMember)) )
+          }
+        UpdateSquadListWhenListed(squad, SquadInfo().Size(squad.Size))
+        UpdateSquadDetail(squad.GUID, squad,
+          SquadDetail().Members(List(SquadPositionEntry(index, SquadPositionDetail().Player(char_id = 0, name = ""))))
+        )
+        true
+      case None =>
+        false
+    }
   }
 
-  def CloseOutSquad(squad : Squad, membership : Iterable[(Member, Int)], updateList : List[(Long, Int)]) : Unit = {
-    membership.foreach {
-      case (member, _) =>
-        val charId = member.CharId
+  def CloseSquad(squad : Squad) : Unit = {
+    val guid = squad.GUID
+    val membership = squad.Membership.zipWithIndex
+    val (updateMembers, updateIndices) = membership
+      .collect { case (member, index) if member.CharId > 0 => ((member, member.CharId, index), (member.CharId, index)) }
+      .unzip
+    val updateIndicesList = updateIndices.toList
+    val completelyBlankSquadDetail = SquadDetail().Complete
+    updateMembers
+      .foreach { case (member, charId, index) =>
+        memberToSquad.remove(charId)
         member.Name = ""
         member.CharId = 0L
-        memberToSquad.remove(charId)
-        SquadEvents.publish( SquadServiceResponse(s"/$charId/Squad", SquadResponse.Leave(squad, updateList)) )
+        SquadEvents.publish( SquadServiceResponse(s"/$charId/Squad", SquadResponse.Leave(squad,
+          updateIndicesList.filterNot { case (_, outIndex) => outIndex == index } :+ (charId, index) //we need to be last to leave to see the events
+        )) )
+        SquadEvents.publish( SquadServiceResponse(s"/$charId/Squad", SquadResponse.AssociateWithSquad(PlanetSideGUID(0))) )
+        SquadEvents.publish( SquadServiceResponse(s"/$charId/Squad", SquadResponse.Detail(PlanetSideGUID(0), completelyBlankSquadDetail)) )
+      }
+    UpdateSquadListWhenListed(squad, None)
+    CleanupInvitesForSquad(guid)
+    squadFeatures.remove(guid).get.Stop
+    TryResetSquadId()
+  }
+
+  def DisbandSquad(squad : Squad) : Unit = {
+    CloseSquad(squad)
+    val leader = squad.Leader.CharId
+    SquadEvents.publish(SquadServiceResponse(s"/$leader/Squad", SquadResponse.Membership(SquadResponseType.Disband, 0, 0, leader, None, "", true, Some(None))))
+    squad.Membership
+      .collect { case member if member.CharId > 0 && member.CharId != leader => member.CharId }
+      .foreach { charId =>
+        SquadEvents.publish(SquadServiceResponse(s"/$charId/Squad", SquadResponse.Membership(SquadResponseType.Disband, 0, 0, charId, None, "", false, Some(None))))
+      }
+  }
+
+  def CleanupInvitesForSquad(squadGUID : PlanetSideGUID) : Unit = {
+    //clean up invites
+    invites.collect {
+      case (id, VacancyInvite(_, _, guid)) if squadGUID == guid =>
+        RemoveInvite(id)
+      case (id, IndirectInvite(_, guid)) if squadGUID == guid =>
+        RemoveInvite(id)
+      case (id, InviteForRole(_, _, guid, _)) if squadGUID == guid =>
+        RemoveInvite(id)
+      case (id, BidForRole(_, guid, _)) if squadGUID == guid =>
+        RemoveInvite(id)
+      case (id, ProximityInvite(_, _, guid)) if squadGUID == guid =>
+        RemoveInvite(id)
     }
-    idToSquad.remove(squad.GUID)
-    waypoints.remove(squad.GUID)
-    UpdateSquadList(squad, None)
+    //tidy the queued invitations
+    queuedInvites.foreach { case(id, queue) =>
+      val filteredQueue = queue.filterNot {
+        case VacancyInvite(_, _, guid) => squadGUID == guid
+        case IndirectInvite(_, guid) => squadGUID == guid
+        case InviteForRole(_, _, guid, _) => squadGUID == guid
+        case BidForRole(_, guid, _) => squadGUID == guid
+        case ProximityInvite(_, _, guid) => squadGUID == guid
+        case _ => false
+      }
+      if(filteredQueue.isEmpty) {
+        queuedInvites.remove(id)
+      }
+      else if(filteredQueue.size != queue.size) {
+        queuedInvites.update(id, filteredQueue)
+      }
+    }
+    squadFeatures(squadGUID).SearchForRole match {
+      case None => ;
+      case Some(_) =>
+        squadFeatures(squadGUID).SearchForRole = None
+    }
+  }
+
+  def CleanupInvitesFromPlayer(charId : Long) : Unit = {
+    invites.remove(charId)
+    invites.collect {
+      case (id, SpontaneousInvite(player)) if player.CharId == charId =>
+        RemoveInvite(id)
+      case (id, VacancyInvite(_charId, _, _)) if _charId == charId =>
+        RemoveInvite(id)
+      case (id, IndirectInvite(player, _)) if player.CharId == charId =>
+        RemoveInvite(id)
+      case (id, InviteForRole(_charId, _, _, _)) if _charId == charId =>
+        RemoveInvite(id)
+      case (id, BidForRole(player, _, _)) if player.CharId == charId =>
+        RemoveInvite(id)
+      case (id, ProximityInvite(_charId, _, _)) if charId == _charId =>
+        RemoveInvite(id)
+    }
+    //tidy the queued invitations
+    queuedInvites.remove(charId)
+    queuedInvites.foreach { case(id, queue) =>
+      val filteredQueue = queue.filterNot {
+        case SpontaneousInvite(player) => player.CharId == charId
+        case VacancyInvite(player, _, _) => player == charId
+        case IndirectInvite(player, _) => player.CharId == charId
+        case InviteForRole(player, _, _, _) => player == charId
+        case BidForRole(player, _, _) => player.CharId == charId
+        case ProximityInvite(_charId, _, _) => _charId == charId
+        case _ => false
+      }
+      if(filteredQueue.isEmpty) {
+        queuedInvites.remove(id)
+      }
+      else if(filteredQueue.size != queue.size) {
+        queuedInvites.update(id, filteredQueue)
+      }
+    }
+    previousInvites.remove(charId)
+  }
+
+  def CleanupInvitesToPosition(position : Int) : Unit = {
+    invites.collect {
+      case (id, InviteForRole(_, _, _, _position)) if _position == position =>
+        RemoveInvite(id)
+      case (id, BidForRole(_, _, _position)) if _position == position =>
+        RemoveInvite(id)
+    }
+    //tidy the queued invitations
+    queuedInvites.foreach { case(id, queue) =>
+      val filteredQueue = queue.filterNot {
+        case InviteForRole(_, _, _, _position) => _position == position
+        case BidForRole(_, _, _position) => _position == position
+        case _ => false
+      }
+      if(filteredQueue.isEmpty) {
+        queuedInvites.remove(id)
+      }
+      else if(filteredQueue.size != queue.size) {
+        queuedInvites.update(id, filteredQueue)
+      }
+    }
   }
 
   def SwapMemberPosition(squad : Squad, toMember : Member, fromMember : Member) : Unit = {
@@ -1375,18 +1867,7 @@ class SquadService extends Actor {
   }
 
   def AddWaypoint(guid : PlanetSideGUID, waypointType : Int, info : WaypointInfo) : Option[WaypointData] = {
-    (waypoints.get(guid) match {
-      case Some(array) =>
-        array
-      case None if idToSquad.get(guid).nonEmpty =>
-        log.debug(s"initializing squad waypoint system for squad #${guid.guid}")
-        val array = Array.fill[WaypointData](5)(new WaypointData())
-        waypoints(guid) = array
-        array
-      case _ =>
-        log.warn(s"squad #${guid.guid} does not currently exist so it can not render waypoints")
-        Array.empty[WaypointData]
-    }).lift(waypointType) match {
+    squadFeatures(guid).Waypoints.lift(waypointType) match {
       case Some(point) =>
         //update the waypoint
         log.debug(s"rendering squad waypoint $waypointType for squad #${guid.guid}")
@@ -1400,25 +1881,28 @@ class SquadService extends Actor {
   }
 
   def RemoveWaypoint(guid : PlanetSideGUID, waypointType : Int) : Unit = {
-    (waypoints.get(guid) match {
-      case Some(array) =>
-        array
-      case None =>
-        Array.empty[WaypointData]
-    }).lift(waypointType) match {
-      case Some(point) =>
-        //update the waypoint
-        log.debug(s"removing squad waypoint $waypointType for squad #${guid.guid}")
-        point.zone_number = 1
-        point.pos = Vector3.z(1)
-      case _ => ;
+    squadFeatures.get(guid) match {
+      case Some(features) =>
+        features.Waypoints.lift(waypointType) match {
+          case Some(point) =>
+            //update the waypoint
+            log.debug(s"removing squad waypoint $waypointType for squad #${guid.guid}")
+            point.zone_number = 1
+            point.pos = Vector3.z(1)
+          case _ =>
+            log.warn(s"no squad waypoint $waypointType found")
+        }
+      case _ =>
+        log.warn(s"no squad #$guid found")
     }
   }
 
   def InitWaypoints(toCharId : Long, guid : PlanetSideGUID) : Unit = {
-    (idToSquad.get(guid), waypoints.get(guid)) match {
-      case (Some(squad), Some(list)) =>
-        val vz1 = Vector3.z(1)
+    squadFeatures.get(guid) match {
+      case Some(features) =>
+        val squad = features.Squad
+        val vz1 = Vector3.z(value = 1)
+        val list = features.Waypoints
         SquadEvents.publish(
           SquadServiceResponse(s"/$toCharId/Squad", SquadResponse.InitWaypoints(squad.Leader.CharId,
             list.zipWithIndex.collect { case (point, index) if point.pos != vz1 =>
@@ -1426,7 +1910,81 @@ class SquadService extends Actor {
             }
           ))
         )
-      case _ => ;
+      case None => ;
+    }
+  }
+
+  def indirectInviteResp(bid : IndirectInvite, player : Player, invitedPlayer : Long, invitingPlayer : Long, name : String) : Boolean = {
+    HandleBidForRole(bid, player)
+  }
+
+  def altIndirectInviteResp(bid : IndirectInvite, player : Player, invitedPlayer : Long, invitingPlayer : Long, name : String) : Boolean = {
+    SquadEvents.publish(SquadServiceResponse(s"/$invitingPlayer/Squad", SquadResponse.Membership(SquadResponseType.Accept, 0, 0, invitingPlayer, Some(invitedPlayer), player.Name, false, Some(None))))
+    HandleBidForRole(bid, player)
+  }
+
+  def InviteResponseTemplate(indirectVacancyFunc : (IndirectInvite, Player, Long, Long, String) => Boolean)(targetInvite : Invitation, actualInvite : Option[Invitation], invitedPlayer : Long, invitingPlayer : Long, name : String) : Unit = {
+    if(actualInvite.contains(targetInvite)) {
+      //immediately respond
+      targetInvite match {
+        case VacancyInvite(charId, _name, _) =>
+          SquadEvents.publish(SquadServiceResponse(s"/$invitedPlayer/Squad", SquadResponse.Membership(SquadResponseType.Invite, 0, 0, charId, Some(invitedPlayer), _name, false, Some(None))))
+          SquadEvents.publish(SquadServiceResponse(s"/$charId/Squad", SquadResponse.Membership(SquadResponseType.Invite, 0, 0, invitedPlayer, Some(charId), _name, true, Some(None))))
+
+        case _bid @ IndirectInvite(player, _) =>
+          indirectVacancyFunc(_bid, player, invitedPlayer, invitingPlayer, name)
+
+        case _bid @ SpontaneousInvite(player) =>
+          val bidInvitingPlayer = _bid.InviterCharId
+          SquadEvents.publish(SquadServiceResponse(s"/$invitedPlayer/Squad", SquadResponse.Membership(SquadResponseType.Invite, 0, 0, bidInvitingPlayer, Some(invitedPlayer), player.Name, false, Some(None))))
+          SquadEvents.publish(SquadServiceResponse(s"/$bidInvitingPlayer/Squad", SquadResponse.Membership(SquadResponseType.Invite, 0, 0, invitedPlayer, Some(bidInvitingPlayer), player.Name, true, Some(None))))
+
+        case _bid @ BidForRole(player, _, _) =>
+          HandleBidForRole(_bid, player)
+
+        case InviteForRole(charId, _name, _, _) =>
+          SquadEvents.publish(SquadServiceResponse(s"/$invitedPlayer/Squad", SquadResponse.Membership(SquadResponseType.Invite, 0, 0, invitedPlayer, Some(charId), _name, false, Some(None))))
+
+        case ProximityInvite(charId, _name, _) =>
+          SquadEvents.publish(SquadServiceResponse(s"/$invitedPlayer/Squad", SquadResponse.Membership(SquadResponseType.Invite, 0, 0, invitedPlayer, Some(charId), _name, false, Some(None))))
+
+        case _ =>
+          log.warn(s"AddInviteAndRespond: can not parse discovered unhandled invitation type - $targetInvite")
+      }
+    }
+  }
+
+  def AddInviteAndRespond(invitedPlayer : Long, targetInvite : Invitation, invitingPlayer : Long, name : String) : Unit = {
+    InviteResponseTemplate(indirectInviteResp)(
+      targetInvite,
+      AddInvite(invitedPlayer, targetInvite),
+      invitedPlayer,
+      invitingPlayer,
+      name
+    )
+  }
+
+  def AltAddInviteAndRespond(invitedPlayer : Long, targetInvite : Invitation, invitingPlayer : Long, name : String) : Unit = {
+    InviteResponseTemplate(altIndirectInviteResp)(
+      targetInvite,
+      AddInvite(invitedPlayer, targetInvite),
+      invitedPlayer,
+      invitingPlayer,
+      name
+    )
+  }
+
+  def NextInviteAndRespond(invitedPlayer : Long) : Unit = {
+    NextInvite(invitedPlayer) match {
+      case Some(invite) =>
+        InviteResponseTemplate(indirectInviteResp)(
+          invite,
+          Some(invite),
+          invitedPlayer,
+          invite.InviterCharId,
+          invite.InviterName
+        )
+      case None => ;
     }
   }
 }
@@ -1444,24 +2002,56 @@ object SquadService {
 
   /**
     * Utilized when one player attempts to join an existing squad in a specific role.
-    * @param player na
-    * @param squad_guid na
-    * @param position na
+    * Accessed by the joining player from the squad detail window.
+    * @param player the player who requested the role
+    * @param squad_guid the squad with the role
+    * @param position the index of the role
     */
-  final case class BidForPosition(player : Player, squad_guid : PlanetSideGUID, position : Int)
+  final case class BidForRole(player : Player, squad_guid : PlanetSideGUID, position : Int)
     extends Invitation(player.CharId, player.Name)
 
   /**
     * Utilized when one squad member issues an invite for some other player.
-    * @param char_id na
-    * @param name na
-    * @param squad_guid na
+    * Accessed by an existing squad member using the "Invite" menu option on another player.
+    * @param char_id the unique character identifier of the player who sent the invite
+    * @param name the name the player who sent the invite
+    * @param squad_guid the squad
     */
   final case class VacancyInvite(char_id : Long, name : String, squad_guid : PlanetSideGUID)
     extends Invitation(char_id, name)
 
-  final case class IndirectVacancy(player : Player, squad_guid : PlanetSideGUID)
+  /**
+    * Utilized to redirect an (accepted) invitation request to the proper squad leader.
+    * No direct action causes this message.
+    * @param player the player who would be joining the squad;
+    *               may or may not have actually requested it in the first place
+    * @param squad_guid the squad
+    */
+  final case class IndirectInvite(player : Player, squad_guid : PlanetSideGUID)
     extends Invitation(player.CharId, player.Name)
+
+  /**
+    * Utilized in conjunction with an external queuing data structure
+    * to search for and submit requests to other players
+    * for the purposes of fill out unoccupied squad roles.
+    * @param char_id the unique character identifier of the squad leader
+    * @param name the name of the squad leader
+    * @param squad_guid the squad
+    */
+  final case class ProximityInvite(char_id : Long, name : String, squad_guid : PlanetSideGUID)
+    extends Invitation(char_id, name)
+
+  /**
+    * Utilized in conjunction with an external queuing data structure
+    * to search for and submit requests to other players
+    * for the purposes of fill out an unoccupied squad role.
+    * @param char_id the unique character identifier of the squad leader
+    * @param name the name of the squad leader
+    * @param squad_guid the squad with the role
+    * @param position the index of the role
+    */
+  final case class InviteForRole(char_id : Long, name : String, squad_guid : PlanetSideGUID, position : Int)
+    extends Invitation(char_id, name)
 
   /**
     * Utilized when one player issues an invite for some other player for a squad that does not yet exist.
@@ -1469,6 +2059,104 @@ object SquadService {
     */
   final case class SpontaneousInvite(player : Player)
     extends Invitation(player.CharId, player.Name)
+
+  class SquadFeatures(val Squad : Squad) {
+    /**
+      * `initialAssociation` per squad is similar to "Does this squad want to recruit members?"
+      * The squad does not have to be flagged.
+      * Dispatches an `AssociateWithSquad` `SDAM` to the squad leader and ???
+      * and then a `SDDUM` that includes at least the squad owner name and char id.
+      * Dispatched only once when a squad is first listed
+      * or when the squad leader searches for recruits by proximity or for certain roles or by invite
+      * or when a spontaneous squad forms,
+      * whichever happens first.
+      * Additionally, the packets are also sent when the check is made when the continent is changed (or set).
+      */
+    private var initialAssociation : Boolean = true
+    /**
+      * na
+      */
+    private var switchboard : ActorRef = ActorRef.noSender
+    /**
+      * Waypoint data.
+      * The first four slots are used for squad waypoints.
+      * The fifth slot is used for the squad leader experience waypoint.
+      * @see `Start`
+      */
+    private var waypoints : Array[WaypointData] = Array[WaypointData]()
+    /**
+      * The particular position being recruited right at the moment.
+      * When `None`. no highlighted searches have been indicated.
+      * When a positive integer or 0, indicates distributed `InviteForRole` messages as recorded by `proxyInvites`.
+      * Only one position may bne actively recruited at a time in this case.
+      * When -1, indicates distributed `ProximityIvite` messages as recorded by `proxyInvites`.
+      * Previous efforts may or may not be forgotten if there is a switch between the two modes.
+      */
+    private var searchForRole : Option[Int] = None
+    /**
+      * Handle persistent data related to `ProximityInvite` and `InviteForRole` messages
+      */
+    private var proxyInvites : List[Long] = Nil
+    /**
+      * These useres rejected invitation to this squad.
+      * For the purposes of wide-searches for membership
+      * such as Looking For Squad checks and proximity invitation,
+      * the unique character identifier numbers in this list are skipped.
+      * Direct invitation requests from the non sqad member should remain functional.
+      */
+    private var refusedPlayers : List[Long] = Nil
+
+    def Start(implicit context : ActorContext) : SquadFeatures = {
+      switchboard = context.actorOf(Props[SquadSwitchboard], s"squad${Squad.GUID.guid}")
+      waypoints = Array.fill[WaypointData](5)(new WaypointData())
+      this
+    }
+
+    def Stop : SquadFeatures = {
+      switchboard ! akka.actor.PoisonPill
+      switchboard = Actor.noSender
+      waypoints = Array.empty
+      this
+    }
+
+    def InitialAssociation : Boolean = initialAssociation
+
+    def InitialAssociation_=(assoc : Boolean) : Boolean = {
+      initialAssociation = assoc
+      InitialAssociation
+    }
+
+    def Switchboard : ActorRef = switchboard
+
+    def Waypoints : Array[WaypointData] = waypoints
+
+    def SearchForRole : Option[Int] = searchForRole
+
+    def SearchForRole_=(role : Int) : Option[Int] = SearchForRole_=(Some(role))
+
+    def SearchForRole_=(role : Option[Int]) : Option[Int] = {
+      searchForRole = role
+      SearchForRole
+    }
+
+    def ProxyInvites : List[Long] = proxyInvites
+
+    def ProxyInvites_=(list : List[Long]) : List[Long] = {
+      proxyInvites = list
+      ProxyInvites
+    }
+
+    def Refuse : List[Long] = refusedPlayers
+
+    def Refuse_=(charId : Long) : List[Long] = {
+      Refuse_=(List(charId))
+    }
+
+    def Refuse_=(list : List[Long]) : List[Long] = {
+      refusedPlayers = list ++ refusedPlayers
+      Refuse
+    }
+  }
 
   object SquadList {
     def Publish(squad : Squad) : SquadInfo = {

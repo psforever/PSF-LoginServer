@@ -155,6 +155,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     galaxyService ! Service.Leave()
     LivePlayerList.Remove(sessionId)
     if(player != null && player.HasGUID) {
+      squadService ! Service.Leave(Some(player.CharId.toString))
       val player_guid = player.GUID
       //handle orphaned deployables
       DisownDeployables()
@@ -3561,7 +3562,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           case None => false
         }
         avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlayerState(avatar_guid, msg, spectator, wepInHand))
-        //squadService ! SquadServiceMessage(tplayer, SquadAction.Update(tplayer.CharId, tplayer.Health, tplayer.MaxHealth, tplayer.Armor, tplayer.MaxArmor, pos, zone.Number))
+        //squadService ! SquadServiceMessage(tplayer, continent, SquadAction.Update(tplayer.CharId, tplayer.Health, tplayer.MaxHealth, tplayer.Armor, tplayer.MaxArmor, pos, zone.Number))
       }
 
     case msg @ ChildObjectStateMessage(object_guid, pitch, yaw) =>
@@ -5019,15 +5020,15 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ SquadDefinitionActionMessage(u1, u2, action) =>
       log.info(s"SquadDefinitionAction: $msg")
-        squadService ! SquadServiceMessage(player, SquadServiceAction.Definition(continent, u1, u2, action))
+        squadService ! SquadServiceMessage(player, continent, SquadServiceAction.Definition(u1, u2, action))
 
     case msg @ SquadMembershipRequest(request_type, unk2, unk3, player_name, unk5) =>
       log.info(s"$msg")
-      squadService ! SquadServiceMessage(player, SquadServiceAction.Membership(request_type, unk2, unk3, player_name, unk5))
+      squadService ! SquadServiceMessage(player, continent, SquadServiceAction.Membership(request_type, unk2, unk3, player_name, unk5))
 
     case msg @ SquadWaypointRequest(request, _, wtype, unk, info) =>
       log.info(s"Waypoint Request: $msg")
-      squadService ! SquadServiceMessage(player, SquadServiceAction.Waypoint(request, wtype, unk, info))
+      squadService ! SquadServiceMessage(player, continent, SquadServiceAction.Waypoint(request, wtype, unk, info))
 
     case msg @ GenericCollisionMsg(u1, p, t, php, thp, pv, tv, ppos, tpos, u2, u3, u4) =>
       log.info("Ouch! " + msg)
