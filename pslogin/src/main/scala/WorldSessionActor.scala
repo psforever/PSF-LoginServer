@@ -983,6 +983,26 @@ class WorldSessionActor extends Actor with MDCContextAware {
           sendResponse(GenericObjectActionMessage(guid, 36))
         }
 
+      case AvatarResponse.EnvironmentalDamage(target, amount) =>
+        if(player.isAlive) {
+          val originalHealth = player.Health
+          player.Health = player.Health - amount
+          sendResponse(PlanetsideAttributeMessage(target, 0, player.Health))
+          avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(target, 0, player.Health))
+          damageLog.info(s"${player.Name}-infantry: BEFORE=$originalHealth, AFTER=${player.Health}, CHANGE=$amount")
+          if(amount != 0) {
+            val playerGUID = player.GUID
+            sendResponse(PlanetsideAttributeMessage(playerGUID, 0, player.Health))
+            avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(playerGUID, 0, player.Health))
+            if(player.Health == 0 && player.isAlive) {
+              KillPlayer(player)
+            }
+            else {
+              //todo: History?
+            }
+          }
+        }
+
       case AvatarResponse.DamageResolution(target, resolution_function) =>
         if(player.isAlive) {
           val originalHealth = player.Health
@@ -3748,7 +3768,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             player.Holsters()(held_holsters).Equipment match {
               case Some(unholsteredItem : Equipment) =>
                 if(unholsteredItem.Definition == GlobalDefinitions.remote_electronics_kit) {
-                  // Player has ulholstered a REK - we need to set an atttribute on the REK itself to change the beam/icon colour to the correct one for the player's hack level
+                  // Player has unholstered a REK - we need to set an atttribute on the REK itself to change the beam/icon colour to the correct one for the player's hack level
                   avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttribute(unholsteredItem.GUID, 116, GetPlayerHackLevel()))
                 }
               case None => ;

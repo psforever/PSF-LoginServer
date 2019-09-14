@@ -64,6 +64,10 @@ class AvatarService extends Actor {
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.ConcealPlayer())
           )
+        case AvatarAction.EnvironmentalDamage(player_guid, amount) =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.EnvironmentalDamage(player_guid, amount))
+          )
         case AvatarAction.Damage(player_guid, target, resolution_function) =>
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.DamageResolution(target, resolution_function))

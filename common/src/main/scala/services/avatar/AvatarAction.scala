@@ -23,6 +23,7 @@ object AvatarAction {
   final case class ChangeFireState_Start(player_guid : PlanetSideGUID, weapon_guid : PlanetSideGUID) extends Action
   final case class ChangeFireState_Stop(player_guid : PlanetSideGUID, weapon_guid : PlanetSideGUID) extends Action
   final case class ConcealPlayer(player_guid : PlanetSideGUID) extends Action
+  final case class EnvironmentalDamage(player_guid : PlanetSideGUID, amont: Int) extends Action
   final case class Damage(player_guid : PlanetSideGUID, target : Player, resolution_function : (Any)=>Unit) extends Action
   final case class DeployItem(player_guid : PlanetSideGUID, item : PlanetSideGameObject with Deployable) extends Action
   final case class Destroy(victim : PlanetSideGUID, killer : PlanetSideGUID, weapon : PlanetSideGUID, pos : Vector3) extends Action

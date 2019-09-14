@@ -12,9 +12,11 @@ import net.psforever.objects.serverobject.implantmech.ImplantTerminalMechDefinit
 import net.psforever.objects.serverobject.locks.IFFLockDefinition
 import net.psforever.objects.serverobject.mblocker.LockerDefinition
 import net.psforever.objects.serverobject.pad.VehicleSpawnPadDefinition
+import net.psforever.objects.serverobject.painbox.PainboxDefinition
 import net.psforever.objects.serverobject.terminals._
 import net.psforever.objects.serverobject.tube.SpawnTubeDefinition
 import net.psforever.objects.serverobject.resourcesilo.ResourceSiloDefinition
+import net.psforever.objects.serverobject.structures.SphereOfInfluence
 import net.psforever.objects.serverobject.turret.{TurretDefinition, TurretUpgrade}
 import net.psforever.objects.vehicles.{DestroyedVehicle, SeatArmorRestriction, UtilityType}
 import net.psforever.objects.vital.{DamageType, StandardMaxDamage, StandardResolutions}
@@ -1029,18 +1031,24 @@ object GlobalDefinitions {
   val ground_rearm_terminal = new OrderTerminalDefinition(384)
 
   val manned_turret = new TurretDefinition(480)
+
+  val painbox = new PainboxDefinition(622)
+  val painbox_continuous = new PainboxDefinition(623)
+  val painbox_door_radius = new PainboxDefinition(624)
+  val painbox_door_radius_continuous = new PainboxDefinition(625)
+  val painbox_radius = new PainboxDefinition(626)
+  val painbox_radius_continuous = new PainboxDefinition(627)
+
   initMiscellaneous()
 
   /*
   Buildings
    */
   val building : ObjectDefinition = new ObjectDefinition(474) { Name = "building" } //borrows object id of entity mainbase1
-
-  val warpgate : ObjectDefinition with SpawnPointDefinition = new ObjectDefinition(993) with SpawnPointDefinition
-  warpgate.Name = "warpgate"
-  warpgate.UseRadius = 301.8713f
-  warpgate.VehicleAllowance = true
-  warpgate.SpecificPointFunc = SpawnPoint.Gate
+  val amp_station : ObjectDefinition = new ObjectDefinition(45) with SphereOfInfluence { Name = "amp_station"; SOIRadius = 300 }
+  val comm_station : ObjectDefinition = new ObjectDefinition(211) with SphereOfInfluence { Name = "comm_station"; SOIRadius = 300 }
+  val comm_station_dsp : ObjectDefinition = new ObjectDefinition(212) with SphereOfInfluence { Name = "comm_station_dsp"; SOIRadius = 300 }
+  val cryo_facility : ObjectDefinition = new ObjectDefinition(215) with SphereOfInfluence { Name = "cryo_facility"; SOIRadius = 300 }
 
   val hst : ObjectDefinition with SpawnPointDefinition = new ObjectDefinition(402) with SpawnPointDefinition
   hst.Name = "hst"
@@ -1057,11 +1065,55 @@ object GlobalDefinitions {
   //hst.NoWarp += peregrine_flight
   hst.SpecificPointFunc = SpawnPoint.Gate
 
+  val mainbase1 : ObjectDefinition = new ObjectDefinition(474) { Name = "mainbase1" }
+  val mainbase2 : ObjectDefinition = new ObjectDefinition(475) { Name = "mainbase2" }
+  val mainbase3 : ObjectDefinition = new ObjectDefinition(476) { Name = "mainbase3" }
+  val meeting_center_nc : ObjectDefinition = new ObjectDefinition(537) { Name = "meeting_center_nc" }
+  val meeting_center_tr : ObjectDefinition = new ObjectDefinition(538) { Name = "meeting_center_tr" }
+  val meeting_center_vs : ObjectDefinition = new ObjectDefinition(539) { Name = "meeting_center_vs" }
+  val minibase1 : ObjectDefinition = new ObjectDefinition(557) { Name = "minibase1" }
+  val minibase2 : ObjectDefinition = new ObjectDefinition(558) { Name = "minibase2" }
+  val minibase3 : ObjectDefinition = new ObjectDefinition(559) { Name = "minibase3" }
+  val redoubt : ObjectDefinition = new ObjectDefinition(726) { Name = "redoubt" }
+  val tech_plant : ObjectDefinition = new ObjectDefinition(852) with SphereOfInfluence { Name = "tech_plant"; SOIRadius = 300 }
+  val tower_a : ObjectDefinition = new ObjectDefinition(869) with SphereOfInfluence { Name = "tower_a"; SOIRadius = 50 }
+  val tower_b : ObjectDefinition = new ObjectDefinition(870) with SphereOfInfluence { Name = "tower_b"; SOIRadius = 50 }
+  val tower_c : ObjectDefinition = new ObjectDefinition(871) with SphereOfInfluence { Name = "tower_c"; SOIRadius = 50 }
+  val vanu_control_point : ObjectDefinition = new ObjectDefinition(931) { Name = "vanu_control_point" }
+  val vanu_vehicle_station : ObjectDefinition = new ObjectDefinition(948) { Name = "vanu_vehicle_station" }
+
+  val warpgate : ObjectDefinition with SpawnPointDefinition = new ObjectDefinition(993) with SpawnPointDefinition
+  warpgate.Name = "warpgate"
+  warpgate.UseRadius = 301.8713f
+  warpgate.VehicleAllowance = true
+  warpgate.SpecificPointFunc = SpawnPoint.Gate
+
   val warpgate_cavern : ObjectDefinition with SpawnPointDefinition = new ObjectDefinition(994) with SpawnPointDefinition
   warpgate_cavern.Name = "warpgate_cavern"
-  warpgate_cavern.UseRadius = 55.0522f
+  warpgate_cavern.UseRadius = 51.0522f
   warpgate_cavern.VehicleAllowance = true
   warpgate_cavern.SpecificPointFunc = SpawnPoint.Gate
+
+  val warpgate_small : ObjectDefinition with SpawnPointDefinition = new ObjectDefinition(995) with SpawnPointDefinition
+  warpgate_small.Name = "warpgate_small"
+  warpgate_small.UseRadius = 103f
+  warpgate_small.VehicleAllowance = true
+  warpgate_small.SpecificPointFunc = SpawnPoint.Gate
+
+  val bunker_gauntlet : ObjectDefinition = new ObjectDefinition(150) { Name = "bunker_gauntlet" }
+  val bunker_lg : ObjectDefinition = new ObjectDefinition(151) { Name = "bunker_lg" }
+  val bunker_sm : ObjectDefinition = new ObjectDefinition(152) { Name = "bunker_sm" }
+
+  val orbital_building_nc : ObjectDefinition = new ObjectDefinition(605) { Name = "orbital_building_nc" }
+  val orbital_building_tr : ObjectDefinition = new ObjectDefinition(606) { Name = "orbital_building_tr" }
+  val orbital_building_vs : ObjectDefinition = new ObjectDefinition(607) { Name = "orbital_building_vs" }
+  val VT_building_nc : ObjectDefinition = new ObjectDefinition(978) { Name = "VT_building_nc" }
+  val VT_building_tr : ObjectDefinition = new ObjectDefinition(979) { Name = "VT_building_tr" }
+  val VT_building_vs : ObjectDefinition = new ObjectDefinition(980) { Name = "VT_building_vs" }
+  val vt_dropship : ObjectDefinition = new ObjectDefinition(981) { Name = "vt_dropship" }
+  val vt_spawn : ObjectDefinition = new ObjectDefinition(984) { Name = "vt_spawn" }
+  val vt_vehicle : ObjectDefinition = new ObjectDefinition(985) { Name = "vt_vehicle" }
+
 
   /**
     * Given a faction, provide the standard assault melee weapon.
