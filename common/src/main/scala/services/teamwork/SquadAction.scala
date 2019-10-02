@@ -3,10 +3,13 @@ package services.teamwork
 
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game._
-import net.psforever.types.{SquadRequestType, Vector3}
+import net.psforever.types.{PlanetSideEmpire, SquadRequestType, Vector3}
 
 object SquadAction {
   trait Action
+
+  final case class InitSquadList() extends Action
+  final case class InitCharId() extends Action
 
   final case class Definition(guid : PlanetSideGUID, line : Int, action : SquadAction) extends Action
   final case class Membership(request_type : SquadRequestType.Value, unk2 : Long, unk3 : Option[Long], player_name : String, unk5 : Option[Option[String]]) extends Action

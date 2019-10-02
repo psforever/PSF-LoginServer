@@ -48,13 +48,8 @@ class Avatar(private val char_id : Long, val name : String, val faction : Planet
   private val deployables : DeployableToolbox = new DeployableToolbox
   /**
     * Looking For Squad:<br>
-    * Used to indicate both the marque that appears underneath a player's nameplate and an actual player state<br>
-    * This `Avatar`-specific "Looking for Squad" variable
-    * is used to indicate the active state of the LFS marque in the game
-    * and will change to `false` if the player is the member of a squad.
-    * A client-local version of "Looking for Squad" will maintain the real state of LFS
-    * once the player has joined a squad.
-    * The client-local version will restore the `Avatar`-local variable upon leaving the squad.
+    * Indicates both a player state and the text on the marquee under the player nameplate.
+    * Should only be valid when the player is not in a squad.
     */
   private var lfs : Boolean = false
 

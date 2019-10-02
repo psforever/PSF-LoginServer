@@ -360,6 +360,7 @@ object SquadAction{
   * &nbsp;&nbsp;&nbsp;&nbsp;`17` - Set List Squad (ui)<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`18` - UNKNOWN<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`26` - Reset All<br>
+  * &nbsp;&nbsp;&nbsp;&nbsp;`32` - UNKNOWN<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`35` - Cancel Squad Search<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`39` - No Squad Search Results<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`41` - Cancel Find<br>

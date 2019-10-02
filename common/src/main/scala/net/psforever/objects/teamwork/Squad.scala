@@ -11,11 +11,7 @@ class Squad(squadId : PlanetSideGUID, alignment : PlanetSideEmpire.Value) extend
   private var zoneId : Option[Int] = None
   private var task : String = ""
   private val membership : Array[Member] = Array.fill[Member](10)(new Member)
-  private val availability : Array[Boolean] = Array.fill[Boolean](10)(true)
-  private var listed : Boolean = false
-  private var leaderPositionIndex : Int = 0
-  private var autoApproveInvitationRequests : Boolean = false
-  private var locationFollowsSquadLead : Boolean = false
+  private val availability : Array[Boolean] = Array.fill[Boolean](10)(elem = true)
 
   override def GUID_=(d : PlanetSideGUID) : PlanetSideGUID = GUID
 
@@ -23,14 +19,7 @@ class Squad(squadId : PlanetSideGUID, alignment : PlanetSideEmpire.Value) extend
 
   def CustomZoneId : Boolean = zoneId.isDefined
 
-  def ZoneId : Int = zoneId.getOrElse({
-    membership.lift(leaderPositionIndex) match {
-      case Some(leader) =>
-        leader.ZoneId
-      case _ =>
-        0
-    }
-  })
+  def ZoneId : Int = zoneId.getOrElse(membership(0).ZoneId)
 
   def ZoneId_=(id : Int) : Int = {
     ZoneId_=(Some(id))
@@ -48,42 +37,12 @@ class Squad(squadId : PlanetSideGUID, alignment : PlanetSideEmpire.Value) extend
     Task
   }
 
-  def Listed : Boolean = listed
-
-  def Listed_=(announce : Boolean) : Boolean = {
-    listed = announce
-    Listed
-  }
-
-  def LocationFollowsSquadLead : Boolean = locationFollowsSquadLead
-
-  def LocationFollowsSquadLead_=(follow : Boolean) : Boolean = {
-    locationFollowsSquadLead = follow
-    LocationFollowsSquadLead
-  }
-
-  def AutoApproveInvitationRequests : Boolean = autoApproveInvitationRequests
-
-  def AutoApproveInvitationRequests_=(autoApprove : Boolean) : Boolean = {
-    autoApproveInvitationRequests = autoApprove
-    AutoApproveInvitationRequests
-  }
-
   def Membership : Array[Member] = membership
 
   def Availability : Array[Boolean] = availability
 
-  def LeaderPositionIndex : Int = leaderPositionIndex
-
-  def LeaderPositionIndex_=(position : Int) : Int = {
-    if(availability.lift(position).contains(true)) {
-      leaderPositionIndex = position
-    }
-    LeaderPositionIndex
-  }
-
   def Leader : Member = {
-    membership(leaderPositionIndex) match {
+    membership(0) match {
       case member if !member.Name.equals("") =>
         member
       case _ =>
@@ -102,9 +61,7 @@ object Squad {
     override def ZoneId_=(id : Int) : Int = 0
     override def ZoneId_=(id : Option[Int]) : Int = 0
     override def Task_=(assignment : String) : String =  ""
-    override def Listed_=(announce : Boolean) : Boolean = false
     override def Membership : Array[Member] = Array.empty[Member]
     override def Availability : Array[Boolean] = Array.fill[Boolean](10)(false)
-    override def LeaderPositionIndex_=(position : Int) : Int = 0
   }
 }
