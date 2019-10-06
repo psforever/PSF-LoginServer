@@ -6,6 +6,7 @@ import net.psforever.objects.serverobject.implantmech.ImplantTerminalMech
 import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.mblocker.Locker
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
+import net.psforever.objects.serverobject.painbox.Painbox
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.objects.serverobject.structures.{Building, FoundationBuilder, StructureType, WarpGate}
 import net.psforever.objects.serverobject.terminals.{CaptureTerminal, ProximityTerminal, Terminal}
@@ -22,7 +23,7 @@ object Map05 {
     Building13()
 
     def Building13(): Unit = { // Name: Eadon Type: amp_station GUID: 1, MapID: 13
-      LocalBuilding(1, 13, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(2716f, 2956f, 53.31126f))))
+      LocalBuilding(1, 13, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(2716f, 2956f, 53.31126f), amp_station)))
       LocalObject(156, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 1)
       LocalObject(122, Door.Constructor(Vector3(2710.802f, 2960.397f, 66.21326f)), owning_building_guid = 1)
       LocalObject(123, Door.Constructor(Vector3(2720.914f, 2951.288f, 66.21326f)), owning_building_guid = 1)
@@ -137,12 +138,18 @@ object Map05 {
       TurretToWeapon(1232, 5004)
       LocalObject(1233, FacilityTurret.Constructor(manned_turret, Vector3(2847.859f, 2945.764f, 62.01926f)), owning_building_guid = 1)
       TurretToWeapon(1233, 5005)
+      LocalObject(1629, Painbox.Constructor(Vector3(2750.932f, 3005.082f, 43.38226f), painbox), owning_building_guid = 1)
+      LocalObject(1639, Painbox.Constructor(Vector3(2723.244f, 2966.157f, 50.95966f), painbox_continuous), owning_building_guid = 1)
+      LocalObject(1649, Painbox.Constructor(Vector3(2743.115f, 2993.222f, 39.97026f), painbox_door_radius), owning_building_guid = 1)
+      LocalObject(1659, Painbox.Constructor(Vector3(2711.349f, 2976.335f, 47.21126f), painbox_door_radius_continuous), owning_building_guid = 1)
+      LocalObject(1660, Painbox.Constructor(Vector3(2717.959f, 2952.262f, 49.18986f), painbox_door_radius_continuous), owning_building_guid = 1)
+      LocalObject(1661, Painbox.Constructor(Vector3(2730.88f, 2958.651f, 47.27576f), painbox_door_radius_continuous), owning_building_guid = 1)
     }
 
     Building10()
 
     def Building10(): Unit = { // Name: Pwyll Type: amp_station GUID: 4, MapID: 10
-      LocalBuilding(4, 10, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(4738f, 4852f, 103.9842f))))
+      LocalBuilding(4, 10, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(4738f, 4852f, 103.9842f), amp_station)))
       LocalObject(162, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 4)
       LocalObject(124, Door.Constructor(Vector3(4736.495f, 4858.64f, 116.8862f)), owning_building_guid = 4)
       LocalObject(125, Door.Constructor(Vector3(4739.088f, 4845.279f, 116.8862f)), owning_building_guid = 4)
@@ -257,12 +264,18 @@ object Map05 {
       TurretToWeapon(1282, 5010)
       LocalObject(1283, FacilityTurret.Constructor(manned_turret, Vector3(4837.147f, 4764.471f, 112.6922f)), owning_building_guid = 4)
       TurretToWeapon(1283, 5011)
+      LocalObject(1635, Painbox.Constructor(Vector3(4795.436f, 4870.176f, 94.05519f), painbox), owning_building_guid = 4)
+      LocalObject(1645, Painbox.Constructor(Vector3(4749.898f, 4855.753f, 101.6326f), painbox_continuous), owning_building_guid = 4)
+      LocalObject(1655, Painbox.Constructor(Vector3(4782.056f, 4865.409f, 90.64319f), painbox_door_radius), owning_building_guid = 4)
+      LocalObject(1677, Painbox.Constructor(Vector3(4737.315f, 4847.835f, 99.86279f), painbox_door_radius_continuous), owning_building_guid = 4)
+      LocalObject(1678, Painbox.Constructor(Vector3(4746.523f, 4871.04f, 97.88419f), painbox_door_radius_continuous), owning_building_guid = 4)
+      LocalObject(1679, Painbox.Constructor(Vector3(4751.479f, 4845.162f, 97.94869f), painbox_door_radius_continuous), owning_building_guid = 4)
     }
 
     Building33()
 
     def Building33(): Unit = { // Name: bunkerg1 Type: bunker_gauntlet GUID: 7, MapID: 33
-      LocalBuilding(7, 33, FoundationBuilder(Building.Structure(StructureType.Bunker, Vector3(2700f, 2850f, 53.31126f))))
+      LocalBuilding(7, 33, FoundationBuilder(Building.Structure(StructureType.Bunker, Vector3(2700f, 2850f, 53.31126f), bunker_gauntlet)))
       LocalObject(244, Door.Constructor(Vector3(2682.751f, 2868.089f, 54.83226f)), owning_building_guid = 7)
       LocalObject(248, Door.Constructor(Vector3(2719.782f, 2834.761f, 54.83226f)), owning_building_guid = 7)
     }
@@ -270,7 +283,7 @@ object Map05 {
     Building34()
 
     def Building34(): Unit = { // Name: bunkerg2 Type: bunker_gauntlet GUID: 8, MapID: 34
-      LocalBuilding(8, 34, FoundationBuilder(Building.Structure(StructureType.Bunker, Vector3(4314f, 4146f, 75.96667f))))
+      LocalBuilding(8, 34, FoundationBuilder(Building.Structure(StructureType.Bunker, Vector3(4314f, 4146f, 75.96667f), bunker_gauntlet)))
       LocalObject(335, Door.Constructor(Vector3(4298.736f, 4165.793f, 77.48768f)), owning_building_guid = 8)
       LocalObject(339, Door.Constructor(Vector3(4332.081f, 4128.776f, 77.48768f)), owning_building_guid = 8)
     }
@@ -278,7 +291,7 @@ object Map05 {
     Building35()
 
     def Building35(): Unit = { // Name: bunkerg3 Type: bunker_gauntlet GUID: 9, MapID: 35
-      LocalBuilding(9, 35, FoundationBuilder(Building.Structure(StructureType.Bunker, Vector3(5806f, 4440f, 54.7853f))))
+      LocalBuilding(9, 35, FoundationBuilder(Building.Structure(StructureType.Bunker, Vector3(5806f, 4440f, 54.7853f), bunker_gauntlet)))
       LocalObject(415, Door.Constructor(Vector3(5807.466f, 4464.952f, 56.3063f)), owning_building_guid = 9)
       LocalObject(416, Door.Constructor(Vector3(5808.346f, 4415.139f, 56.3063f)), owning_building_guid = 9)
     }
@@ -286,56 +299,56 @@ object Map05 {
     Building29()
 
     def Building29(): Unit = { // Name: bunker2 Type: bunker_lg GUID: 10, MapID: 29
-      LocalBuilding(10, 29, FoundationBuilder(Building.Structure(StructureType.Bunker, Vector3(4302f, 4344f, 75.92862f))))
+      LocalBuilding(10, 29, FoundationBuilder(Building.Structure(StructureType.Bunker, Vector3(4302f, 4344f, 75.92862f), bunker_lg)))
       LocalObject(337, Door.Constructor(Vector3(4304.169f, 4341.063f, 77.44962f)), owning_building_guid = 10)
     }
 
     Building30()
 
     def Building30(): Unit = { // Name: bunker3 Type: bunker_lg GUID: 11, MapID: 30
-      LocalBuilding(11, 30, FoundationBuilder(Building.Structure(StructureType.Bunker, Vector3(5616f, 3768f, 60.98056f))))
+      LocalBuilding(11, 30, FoundationBuilder(Building.Structure(StructureType.Bunker, Vector3(5616f, 3768f, 60.98056f), bunker_lg)))
       LocalObject(414, Door.Constructor(Vector3(5612.889f, 3769.91f, 62.50156f)), owning_building_guid = 11)
     }
 
     Building31()
 
     def Building31(): Unit = { // Name: bunker4 Type: bunker_sm GUID: 12, MapID: 31
-      LocalBuilding(12, 31, FoundationBuilder(Building.Structure(StructureType.Bunker, Vector3(3206f, 2552f, 56.18124f))))
+      LocalBuilding(12, 31, FoundationBuilder(Building.Structure(StructureType.Bunker, Vector3(3206f, 2552f, 56.18124f), bunker_sm)))
       LocalObject(259, Door.Constructor(Vector3(3206.843f, 2551.109f, 57.70224f)), owning_building_guid = 12)
     }
 
     Building32()
 
     def Building32(): Unit = { // Name: bunker5 Type: bunker_sm GUID: 13, MapID: 32
-      LocalBuilding(13, 32, FoundationBuilder(Building.Structure(StructureType.Bunker, Vector3(3250f, 2604f, 56.18457f))))
+      LocalBuilding(13, 32, FoundationBuilder(Building.Structure(StructureType.Bunker, Vector3(3250f, 2604f, 56.18457f), bunker_sm)))
       LocalObject(260, Door.Constructor(Vector3(3250.931f, 2603.202f, 57.70557f)), owning_building_guid = 13)
     }
 
     Building40()
 
     def Building40(): Unit = { // Name: bunker_sm Type: bunker_sm GUID: 14, MapID: 40
-      LocalBuilding(14, 40, FoundationBuilder(Building.Structure(StructureType.Bunker, Vector3(3650f, 5340f, 50.30309f))))
+      LocalBuilding(14, 40, FoundationBuilder(Building.Structure(StructureType.Bunker, Vector3(3650f, 5340f, 50.30309f), bunker_sm)))
       LocalObject(309, Door.Constructor(Vector3(3650.711f, 5339.001f, 51.82409f)), owning_building_guid = 14)
     }
 
     Building28()
 
     def Building28(): Unit = { // Name: bunker1 Type: bunker_sm GUID: 15, MapID: 28
-      LocalBuilding(15, 28, FoundationBuilder(Building.Structure(StructureType.Bunker, Vector3(3712f, 4644f, 58.56919f))))
+      LocalBuilding(15, 28, FoundationBuilder(Building.Structure(StructureType.Bunker, Vector3(3712f, 4644f, 58.56919f), bunker_sm)))
       LocalObject(324, Door.Constructor(Vector3(3711.142f, 4644.875f, 60.09019f)), owning_building_guid = 15)
     }
 
     Building41()
 
     def Building41(): Unit = { // Name: bunker_sm Type: bunker_sm GUID: 16, MapID: 41
-      LocalBuilding(16, 41, FoundationBuilder(Building.Structure(StructureType.Bunker, Vector3(4888f, 2866f, 61.5153f))))
+      LocalBuilding(16, 41, FoundationBuilder(Building.Structure(StructureType.Bunker, Vector3(4888f, 2866f, 61.5153f), bunker_sm)))
       LocalObject(396, Door.Constructor(Vector3(4887.053f, 2865.221f, 63.0363f)), owning_building_guid = 16)
     }
 
     Building36()
 
     def Building36(): Unit = { // Name: Caer Type: comm_station GUID: 17, MapID: 36
-      LocalBuilding(17, 36, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(4658f, 2644f, 55.99231f))))
+      LocalBuilding(17, 36, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(4658f, 2644f, 55.99231f), comm_station)))
       LocalObject(161, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 17)
       LocalObject(356, Door.Constructor(Vector3(4598.849f, 2685.214f, 57.74331f)), owning_building_guid = 17)
       LocalObject(357, Door.Constructor(Vector3(4603.557f, 2702.787f, 65.70731f)), owning_building_guid = 17)
@@ -441,12 +454,18 @@ object Map05 {
       TurretToWeapon(1278, 5016)
       LocalObject(1280, FacilityTurret.Constructor(manned_turret, Vector3(4744.846f, 2652.255f, 64.70031f)), owning_building_guid = 17)
       TurretToWeapon(1280, 5017)
+      LocalObject(1634, Painbox.Constructor(Vector3(4698f, 2653.844f, 43.59431f), painbox), owning_building_guid = 17)
+      LocalObject(1644, Painbox.Constructor(Vector3(4671.317f, 2592.586f, 50.63711f), painbox_continuous), owning_building_guid = 17)
+      LocalObject(1654, Painbox.Constructor(Vector3(4683.47f, 2657.636f, 41.45101f), painbox_door_radius), owning_building_guid = 17)
+      LocalObject(1674, Painbox.Constructor(Vector3(4652.503f, 2600.01f, 48.01831f), painbox_door_radius_continuous), owning_building_guid = 17)
+      LocalObject(1675, Painbox.Constructor(Vector3(4669.905f, 2580.914f, 49.01831f), painbox_door_radius_continuous), owning_building_guid = 17)
+      LocalObject(1676, Painbox.Constructor(Vector3(4678.684f, 2592.067f, 47.80001f), painbox_door_radius_continuous), owning_building_guid = 17)
     }
 
     Building9()
 
     def Building9(): Unit = { // Name: Dagda Type: comm_station GUID: 20, MapID: 9
-      LocalBuilding(20, 9, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(5912f, 4436f, 54.7319f))))
+      LocalBuilding(20, 9, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(5912f, 4436f, 54.7319f), comm_station)))
       LocalObject(164, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 20)
       LocalObject(417, Door.Constructor(Vector3(5858.486f, 4406.424f, 64.4469f)), owning_building_guid = 20)
       LocalObject(418, Door.Constructor(Vector3(5869.935f, 4392.286f, 56.48289f)), owning_building_guid = 20)
@@ -552,12 +571,18 @@ object Map05 {
       TurretToWeapon(1298, 5022)
       LocalObject(1299, FacilityTurret.Constructor(manned_turret, Vector3(5993.504f, 4452.265f, 63.4399f)), owning_building_guid = 20)
       TurretToWeapon(1299, 5023)
+      LocalObject(1637, Painbox.Constructor(Vector3(5950.147f, 4420.453f, 42.3339f), painbox), owning_building_guid = 20)
+      LocalObject(1647, Painbox.Constructor(Vector3(5892.553f, 4386.578f, 49.37669f), painbox_continuous), owning_building_guid = 20)
+      LocalObject(1657, Painbox.Constructor(Vector3(5940.621f, 4432.061f, 40.1906f), painbox_door_radius), owning_building_guid = 20)
+      LocalObject(1683, Painbox.Constructor(Vector3(5881.696f, 4403.642f, 46.7579f), painbox_door_radius_continuous), owning_building_guid = 20)
+      LocalObject(1684, Painbox.Constructor(Vector3(5884.55f, 4377.965f, 47.7579f), painbox_door_radius_continuous), owning_building_guid = 20)
+      LocalObject(1685, Painbox.Constructor(Vector3(5898.208f, 4381.828f, 46.5396f), painbox_door_radius_continuous), owning_building_guid = 20)
     }
 
     Building12()
 
     def Building12(): Unit = { // Name: Bel Type: comm_station_dsp GUID: 23, MapID: 12
-      LocalBuilding(23, 12, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(3612f, 4694f, 57.91497f))))
+      LocalBuilding(23, 12, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(3612f, 4694f, 57.91497f), comm_station_dsp)))
       LocalObject(159, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 23)
       LocalObject(205, Door.Constructor(Vector3(3680.339f, 4764.464f, 61.29297f)), owning_building_guid = 23)
       LocalObject(280, Door.Constructor(Vector3(3552.196f, 4650.501f, 59.56598f)), owning_building_guid = 23)
@@ -685,12 +710,18 @@ object Map05 {
       TurretToWeapon(1259, 5030)
       LocalObject(1260, FacilityTurret.Constructor(manned_turret, Vector3(3732.773f, 4702.733f, 66.52297f)), owning_building_guid = 23)
       TurretToWeapon(1260, 5031)
+      LocalObject(1632, Painbox.Constructor(Vector3(3640.428f, 4754.057f, 44.40928f), painbox), owning_building_guid = 23)
+      LocalObject(1642, Painbox.Constructor(Vector3(3657.857f, 4714.408f, 52.04247f), painbox_continuous), owning_building_guid = 23)
+      LocalObject(1652, Painbox.Constructor(Vector3(3654.203f, 4752.915f, 43.64717f), painbox_door_radius), owning_building_guid = 23)
+      LocalObject(1668, Painbox.Constructor(Vector3(3655.087f, 4699.386f, 50.44418f), painbox_door_radius_continuous), owning_building_guid = 23)
+      LocalObject(1669, Painbox.Constructor(Vector3(3655.895f, 4728.081f, 50.91497f), painbox_door_radius_continuous), owning_building_guid = 23)
+      LocalObject(1670, Painbox.Constructor(Vector3(3670.317f, 4721.888f, 51.34528f), painbox_door_radius_continuous), owning_building_guid = 23)
     }
 
     Building5()
 
     def Building5(): Unit = { // Name: Ogma Type: cryo_facility GUID: 26, MapID: 5
-      LocalBuilding(26, 5, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(3538f, 3288f, 113.9927f))))
+      LocalBuilding(26, 5, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(3538f, 3288f, 113.9927f), cryo_facility)))
       LocalObject(158, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 26)
       LocalObject(274, Door.Constructor(Vector3(3441.841f, 3272.462f, 115.5137f)), owning_building_guid = 26)
       LocalObject(275, Door.Constructor(Vector3(3452.252f, 3279.257f, 115.5437f)), owning_building_guid = 26)
@@ -825,12 +856,18 @@ object Map05 {
       LocalObject(706, ImplantTerminalMech.Constructor, owning_building_guid = 26)
       LocalObject(700, Terminal.Constructor(implant_terminal_interface), owning_building_guid = 26)
       TerminalToInterface(706, 700)
+      LocalObject(1631, Painbox.Constructor(Vector3(3517.661f, 3285.906f, 128.0215f), painbox), owning_building_guid = 26)
+      LocalObject(1641, Painbox.Constructor(Vector3(3543.033f, 3272.132f, 108.0626f), painbox_continuous), owning_building_guid = 26)
+      LocalObject(1651, Painbox.Constructor(Vector3(3532.151f, 3284.785f, 128.2266f), painbox_door_radius), owning_building_guid = 26)
+      LocalObject(1665, Painbox.Constructor(Vector3(3533.997f, 3278.003f, 106.3486f), painbox_door_radius_continuous), owning_building_guid = 26)
+      LocalObject(1666, Painbox.Constructor(Vector3(3551.919f, 3257.234f, 107.5336f), painbox_door_radius_continuous), owning_building_guid = 26)
+      LocalObject(1667, Painbox.Constructor(Vector3(3561.265f, 3271.189f, 105.7069f), painbox_door_radius_continuous), owning_building_guid = 26)
     }
 
     Building6()
 
     def Building6(): Unit = { // Name: Neit Type: cryo_facility GUID: 29, MapID: 6
-      LocalBuilding(29, 6, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(4350f, 4238f, 75.96667f))))
+      LocalBuilding(29, 6, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(4350f, 4238f, 75.96667f), cryo_facility)))
       LocalObject(160, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 29)
       LocalObject(332, Door.Constructor(Vector3(4273.177f, 4260.066f, 77.51768f)), owning_building_guid = 29)
       LocalObject(333, Door.Constructor(Vector3(4286.697f, 4272.239f, 85.48167f)), owning_building_guid = 29)
@@ -965,12 +1002,18 @@ object Map05 {
       LocalObject(708, ImplantTerminalMech.Constructor, owning_building_guid = 29)
       LocalObject(702, Terminal.Constructor(implant_terminal_interface), owning_building_guid = 29)
       TerminalToInterface(708, 702)
+      LocalObject(1633, Painbox.Constructor(Vector3(4367.316f, 4227.128f, 89.99548f), painbox), owning_building_guid = 29)
+      LocalObject(1643, Painbox.Constructor(Vector3(4355.803f, 4253.603f, 70.03658f), painbox_continuous), owning_building_guid = 29)
+      LocalObject(1653, Painbox.Constructor(Vector3(4356.589f, 4236.933f, 90.20058f), painbox_door_radius), owning_building_guid = 29)
+      LocalObject(1671, Painbox.Constructor(Vector3(4342.017f, 4265.571f, 67.68088f), painbox_door_radius_continuous), owning_building_guid = 29)
+      LocalObject(1672, Painbox.Constructor(Vector3(4357.973f, 4270.813f, 69.50758f), painbox_door_radius_continuous), owning_building_guid = 29)
+      LocalObject(1673, Painbox.Constructor(Vector3(4359.309f, 4243.413f, 68.32257f), painbox_door_radius_continuous), owning_building_guid = 29)
     }
 
     Building7()
 
     def Building7(): Unit = { // Name: Lugh Type: cryo_facility GUID: 32, MapID: 7
-      LocalBuilding(32, 7, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(6148f, 5118f, 71.64068f))))
+      LocalBuilding(32, 7, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(6148f, 5118f, 71.64068f), cryo_facility)))
       LocalObject(165, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 32)
       LocalObject(444, Door.Constructor(Vector3(6107.22f, 5162.573f, 73.19168f)), owning_building_guid = 32)
       LocalObject(445, Door.Constructor(Vector3(6111.929f, 5180.146f, 81.15568f)), owning_building_guid = 32)
@@ -1105,6 +1148,12 @@ object Map05 {
       LocalObject(710, ImplantTerminalMech.Constructor, owning_building_guid = 32)
       LocalObject(704, Terminal.Constructor(implant_terminal_interface), owning_building_guid = 32)
       TerminalToInterface(710, 704)
+      LocalObject(1638, Painbox.Constructor(Vector3(6147.687f, 5138.444f, 85.66948f), painbox), owning_building_guid = 32)
+      LocalObject(1648, Painbox.Constructor(Vector3(6131.754f, 5114.369f, 65.71058f), painbox_continuous), owning_building_guid = 32)
+      LocalObject(1658, Painbox.Constructor(Vector3(6145.307f, 5124.107f, 85.87458f), painbox_door_radius), owning_building_guid = 32)
+      LocalObject(1686, Painbox.Constructor(Vector3(6116.138f, 5106.815f, 65.18158f), painbox_door_radius_continuous), owning_building_guid = 32)
+      LocalObject(1687, Painbox.Constructor(Vector3(6129.226f, 5096.288f, 63.35488f), painbox_door_radius_continuous), owning_building_guid = 32)
+      LocalObject(1688, Painbox.Constructor(Vector3(6138.391f, 5122.859f, 63.99658f), painbox_door_radius_continuous), owning_building_guid = 32)
     }
 
     Building21074()
@@ -1122,7 +1171,7 @@ object Map05 {
     Building11()
 
     def Building11(): Unit = { // Name: Anu Type: tech_plant GUID: 39, MapID: 11
-      LocalBuilding(39, 11, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(3360f, 2538f, 56.18457f))))
+      LocalBuilding(39, 11, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(3360f, 2538f, 56.18457f), tech_plant)))
       LocalObject(157, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 39)
       LocalObject(261, Door.Constructor(Vector3(3295.273f, 2500.649f, 65.68958f)), owning_building_guid = 39)
       LocalObject(262, Door.Constructor(Vector3(3308.578f, 2488.242f, 57.72657f)), owning_building_guid = 39)
@@ -1235,12 +1284,18 @@ object Map05 {
       TurretToWeapon(1239, 5051)
       LocalObject(1241, FacilityTurret.Constructor(manned_turret, Vector3(3491.412f, 2533.257f, 64.68357f)), owning_building_guid = 39)
       TurretToWeapon(1241, 5052)
+      LocalObject(1630, Painbox.Constructor(Vector3(3380.327f, 2554.236f, 44.75787f), painbox), owning_building_guid = 39)
+      LocalObject(1640, Painbox.Constructor(Vector3(3401.112f, 2528.146f, 53.05447f), painbox_continuous), owning_building_guid = 39)
+      LocalObject(1650, Painbox.Constructor(Vector3(3392.442f, 2545.622f, 44.44397f), painbox_door_radius), owning_building_guid = 39)
+      LocalObject(1662, Painbox.Constructor(Vector3(3389.804f, 2537.364f, 51.46077f), painbox_door_radius_continuous), owning_building_guid = 39)
+      LocalObject(1663, Painbox.Constructor(Vector3(3405.831f, 2543.995f, 52.36687f), painbox_door_radius_continuous), owning_building_guid = 39)
+      LocalObject(1664, Painbox.Constructor(Vector3(3409.346f, 2518.011f, 50.91248f), painbox_door_radius_continuous), owning_building_guid = 39)
     }
 
     Building8()
 
     def Building8(): Unit = { // Name: Gwydion Type: tech_plant GUID: 42, MapID: 8
-      LocalBuilding(42, 8, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(5548f, 3858f, 60.98056f))))
+      LocalBuilding(42, 8, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(5548f, 3858f, 60.98056f), tech_plant)))
       LocalObject(163, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 42)
       LocalObject(401, Door.Constructor(Vector3(5447.92f, 3857.235f, 62.52256f)), owning_building_guid = 42)
       LocalObject(402, Door.Constructor(Vector3(5449.761f, 3813.852f, 62.60156f)), owning_building_guid = 42)
@@ -1353,12 +1408,18 @@ object Map05 {
       TurretToWeapon(1290, 5057)
       LocalObject(1291, FacilityTurret.Constructor(manned_turret, Vector3(5636.647f, 3825.774f, 69.47956f)), owning_building_guid = 42)
       TurretToWeapon(1291, 5058)
+      LocalObject(1636, Painbox.Constructor(Vector3(5563.878f, 3837.393f, 49.55386f), painbox), owning_building_guid = 42)
+      LocalObject(1646, Painbox.Constructor(Vector3(5537.431f, 3817.066f, 57.85046f), painbox_continuous), owning_building_guid = 42)
+      LocalObject(1656, Painbox.Constructor(Vector3(5555.054f, 3825.43f, 49.23996f), painbox_door_radius), owning_building_guid = 42)
+      LocalObject(1680, Painbox.Constructor(Vector3(5527.153f, 3809.01f, 55.70846f), painbox_door_radius_continuous), owning_building_guid = 42)
+      LocalObject(1681, Painbox.Constructor(Vector3(5546.843f, 3828.212f, 56.25676f), painbox_door_radius_continuous), owning_building_guid = 42)
+      LocalObject(1682, Painbox.Constructor(Vector3(5553.194f, 3812.071f, 57.16286f), painbox_door_radius_continuous), owning_building_guid = 42)
     }
 
     Building14()
 
     def Building14(): Unit = { // Name: S_Solsar_Warpgate_Tower Type: tower_a GUID: 45, MapID: 14
-      LocalBuilding(45, 14, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(1598f, 3414f, 49.07939f))))
+      LocalBuilding(45, 14, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(1598f, 3414f, 49.07939f), tower_a)))
       LocalObject(1894, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 45)
       LocalObject(230, Door.Constructor(Vector3(1605.495f, 3401.678f, 50.60039f)), owning_building_guid = 45)
       LocalObject(231, Door.Constructor(Vector3(1605.495f, 3401.678f, 70.5994f)), owning_building_guid = 45)
@@ -1387,12 +1448,15 @@ object Map05 {
       TurretToWeapon(1226, 5059)
       LocalObject(1227, FacilityTurret.Constructor(manned_turret, Vector3(1623.895f, 3415.945f, 68.02139f)), owning_building_guid = 45)
       TurretToWeapon(1227, 5060)
+      LocalObject(1689, Painbox.Constructor(Vector3(1600.126f, 3406.171f, 40.57849f), painbox_radius_continuous), owning_building_guid = 45)
+      LocalObject(1690, Painbox.Constructor(Vector3(1609.253f, 3397.965f, 39.17939f), painbox_radius_continuous), owning_building_guid = 45)
+      LocalObject(1691, Painbox.Constructor(Vector3(1614.188f, 3408.753f, 39.17939f), painbox_radius_continuous), owning_building_guid = 45)
     }
 
     Building17()
 
     def Building17(): Unit = { // Name: NE_TRSanc_Warpgate_Tower Type: tower_a GUID: 46, MapID: 17
-      LocalBuilding(46, 17, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3612f, 1746f, 51.49541f))))
+      LocalBuilding(46, 17, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3612f, 1746f, 51.49541f), tower_a)))
       LocalObject(1898, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 46)
       LocalObject(305, Door.Constructor(Vector3(3624f, 1738f, 53.01641f)), owning_building_guid = 46)
       LocalObject(306, Door.Constructor(Vector3(3624f, 1738f, 73.01541f)), owning_building_guid = 46)
@@ -1421,12 +1485,15 @@ object Map05 {
       TurretToWeapon(1248, 5061)
       LocalObject(1251, FacilityTurret.Constructor(manned_turret, Vector3(3634.647f, 1758.707f, 70.43741f)), owning_building_guid = 46)
       TurretToWeapon(1251, 5062)
+      LocalObject(1701, Painbox.Constructor(Vector3(3617.235f, 1739.803f, 42.99451f), painbox_radius_continuous), owning_building_guid = 46)
+      LocalObject(1702, Painbox.Constructor(Vector3(3628.889f, 1748.086f, 41.59541f), painbox_radius_continuous), owning_building_guid = 46)
+      LocalObject(1703, Painbox.Constructor(Vector3(3628.975f, 1736.223f, 41.59541f), painbox_radius_continuous), owning_building_guid = 46)
     }
 
     Building37()
 
     def Building37(): Unit = { // Name: N_Ogma_Tower Type: tower_a GUID: 47, MapID: 37
-      LocalBuilding(47, 37, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3662f, 3532f, 101.2391f))))
+      LocalBuilding(47, 37, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3662f, 3532f, 101.2391f), tower_a)))
       LocalObject(1899, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 47)
       LocalObject(313, Door.Constructor(Vector3(3674f, 3524f, 102.7601f)), owning_building_guid = 47)
       LocalObject(314, Door.Constructor(Vector3(3674f, 3524f, 122.759f)), owning_building_guid = 47)
@@ -1455,12 +1522,15 @@ object Map05 {
       TurretToWeapon(1254, 5063)
       LocalObject(1257, FacilityTurret.Constructor(manned_turret, Vector3(3684.647f, 3544.707f, 120.1811f)), owning_building_guid = 47)
       TurretToWeapon(1257, 5064)
+      LocalObject(1704, Painbox.Constructor(Vector3(3667.235f, 3525.803f, 92.73815f), painbox_radius_continuous), owning_building_guid = 47)
+      LocalObject(1705, Painbox.Constructor(Vector3(3678.889f, 3534.086f, 91.33905f), painbox_radius_continuous), owning_building_guid = 47)
+      LocalObject(1706, Painbox.Constructor(Vector3(3678.975f, 3522.223f, 91.33905f), painbox_radius_continuous), owning_building_guid = 47)
     }
 
     Building27()
 
     def Building27(): Unit = { // Name: S_Bel_Tower Type: tower_a GUID: 48, MapID: 27
-      LocalBuilding(48, 27, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3694f, 4482f, 48.92117f))))
+      LocalBuilding(48, 27, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3694f, 4482f, 48.92117f), tower_a)))
       LocalObject(1900, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 48)
       LocalObject(319, Door.Constructor(Vector3(3694.078f, 4467.578f, 50.44217f)), owning_building_guid = 48)
       LocalObject(320, Door.Constructor(Vector3(3694.078f, 4467.578f, 70.44117f)), owning_building_guid = 48)
@@ -1489,12 +1559,15 @@ object Map05 {
       TurretToWeapon(1255, 5065)
       LocalObject(1258, FacilityTurret.Constructor(manned_turret, Vector3(3717.199f, 4470.331f, 67.86317f)), owning_building_guid = 48)
       TurretToWeapon(1258, 5066)
+      LocalObject(1707, Painbox.Constructor(Vector3(3691.79f, 4474.195f, 40.42027f), painbox_radius_continuous), owning_building_guid = 48)
+      LocalObject(1708, Painbox.Constructor(Vector3(3695.386f, 4462.459f, 39.02117f), painbox_radius_continuous), owning_building_guid = 48)
+      LocalObject(1709, Painbox.Constructor(Vector3(3705.174f, 4469.165f, 39.02117f), painbox_radius_continuous), owning_building_guid = 48)
     }
 
     Building25()
 
     def Building25(): Unit = { // Name: SE_Ceryshen_Warpgate_Tower Type: tower_a GUID: 49, MapID: 25
-      LocalBuilding(49, 25, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3832f, 6326f, 50.13886f))))
+      LocalBuilding(49, 25, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3832f, 6326f, 50.13886f), tower_a)))
       LocalObject(1901, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 49)
       LocalObject(328, Door.Constructor(Vector3(3834.581f, 6311.811f, 51.65986f)), owning_building_guid = 49)
       LocalObject(329, Door.Constructor(Vector3(3834.581f, 6311.811f, 71.65886f)), owning_building_guid = 49)
@@ -1523,12 +1596,15 @@ object Map05 {
       TurretToWeapon(1261, 5067)
       LocalObject(1262, FacilityTurret.Constructor(manned_turret, Vector3(3856.873f, 6318.536f, 69.08086f)), owning_building_guid = 49)
       TurretToWeapon(1262, 5068)
+      LocalObject(1710, Painbox.Constructor(Vector3(3831.179f, 6317.93f, 41.63796f), painbox_radius_continuous), owning_building_guid = 49)
+      LocalObject(1711, Painbox.Constructor(Vector3(3836.759f, 6306.997f, 40.23886f), painbox_radius_continuous), owning_building_guid = 49)
+      LocalObject(1712, Painbox.Constructor(Vector3(3845.233f, 6315.3f, 40.23886f), painbox_radius_continuous), owning_building_guid = 49)
     }
 
     Building39()
 
     def Building39(): Unit = { // Name: W_Pwyll_Tower Type: tower_a GUID: 50, MapID: 39
-      LocalBuilding(50, 39, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(4486f, 4862f, 90.87802f))))
+      LocalBuilding(50, 39, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(4486f, 4862f, 90.87802f), tower_a)))
       LocalObject(1903, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 50)
       LocalObject(352, Door.Constructor(Vector3(4498f, 4854f, 92.39902f)), owning_building_guid = 50)
       LocalObject(353, Door.Constructor(Vector3(4498f, 4854f, 112.398f)), owning_building_guid = 50)
@@ -1557,12 +1633,15 @@ object Map05 {
       TurretToWeapon(1268, 5069)
       LocalObject(1269, FacilityTurret.Constructor(manned_turret, Vector3(4508.647f, 4874.707f, 109.82f)), owning_building_guid = 50)
       TurretToWeapon(1269, 5070)
+      LocalObject(1716, Painbox.Constructor(Vector3(4491.235f, 4855.803f, 82.37712f), painbox_radius_continuous), owning_building_guid = 50)
+      LocalObject(1717, Painbox.Constructor(Vector3(4502.889f, 4864.086f, 80.97802f), painbox_radius_continuous), owning_building_guid = 50)
+      LocalObject(1718, Painbox.Constructor(Vector3(4502.975f, 4852.223f, 80.97802f), painbox_radius_continuous), owning_building_guid = 50)
     }
 
     Building20()
 
     def Building20(): Unit = { // Name: NW_Gwydion_Tower Type: tower_a GUID: 51, MapID: 20
-      LocalBuilding(51, 20, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(5410f, 4044f, 59.84832f))))
+      LocalBuilding(51, 20, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(5410f, 4044f, 59.84832f), tower_a)))
       LocalObject(1906, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 51)
       LocalObject(397, Door.Constructor(Vector3(5422f, 4036f, 61.36932f)), owning_building_guid = 51)
       LocalObject(398, Door.Constructor(Vector3(5422f, 4036f, 81.36832f)), owning_building_guid = 51)
@@ -1591,12 +1670,15 @@ object Map05 {
       TurretToWeapon(1284, 5071)
       LocalObject(1286, FacilityTurret.Constructor(manned_turret, Vector3(5432.647f, 4056.707f, 78.79032f)), owning_building_guid = 51)
       TurretToWeapon(1286, 5072)
+      LocalObject(1725, Painbox.Constructor(Vector3(5415.235f, 4037.803f, 51.34742f), painbox_radius_continuous), owning_building_guid = 51)
+      LocalObject(1726, Painbox.Constructor(Vector3(5426.889f, 4046.086f, 49.94833f), painbox_radius_continuous), owning_building_guid = 51)
+      LocalObject(1727, Painbox.Constructor(Vector3(5426.975f, 4034.223f, 49.94833f), painbox_radius_continuous), owning_building_guid = 51)
     }
 
     Building22()
 
     def Building22(): Unit = { // Name: NW_Lugh_Tower Type: tower_a GUID: 52, MapID: 22
-      LocalBuilding(52, 22, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(5940f, 5298f, 87.00064f))))
+      LocalBuilding(52, 22, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(5940f, 5298f, 87.00064f), tower_a)))
       LocalObject(1908, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 52)
       LocalObject(435, Door.Constructor(Vector3(5952f, 5290f, 88.52164f)), owning_building_guid = 52)
       LocalObject(436, Door.Constructor(Vector3(5952f, 5290f, 108.5206f)), owning_building_guid = 52)
@@ -1625,12 +1707,15 @@ object Map05 {
       TurretToWeapon(1296, 5073)
       LocalObject(1297, FacilityTurret.Constructor(manned_turret, Vector3(5962.647f, 5310.707f, 105.9426f)), owning_building_guid = 52)
       TurretToWeapon(1297, 5074)
+      LocalObject(1731, Painbox.Constructor(Vector3(5945.235f, 5291.803f, 78.49974f), painbox_radius_continuous), owning_building_guid = 52)
+      LocalObject(1732, Painbox.Constructor(Vector3(5956.889f, 5300.086f, 77.10064f), painbox_radius_continuous), owning_building_guid = 52)
+      LocalObject(1733, Painbox.Constructor(Vector3(5956.975f, 5288.223f, 77.10064f), painbox_radius_continuous), owning_building_guid = 52)
     }
 
     Building15()
 
     def Building15(): Unit = { // Name: NW_Eadon_Tower Type: tower_b GUID: 53, MapID: 15
-      LocalBuilding(53, 15, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(2588f, 3168f, 49.78637f))))
+      LocalBuilding(53, 15, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(2588f, 3168f, 49.78637f), tower_b)))
       LocalObject(1895, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 53)
       LocalObject(234, Door.Constructor(Vector3(2591.565f, 3154.025f, 51.30637f)), owning_building_guid = 53)
       LocalObject(235, Door.Constructor(Vector3(2591.565f, 3154.025f, 61.30637f)), owning_building_guid = 53)
@@ -1659,12 +1744,15 @@ object Map05 {
       LocalObject(1345, Terminal.Constructor(order_terminal), owning_building_guid = 53)
       LocalObject(1832, SpawnTube.Constructor(respawn_tube_tower, Vector3(2587.754f, 3151.727f, 39.26837f), Vector3(0, 0, 42)), owning_building_guid = 53)
       LocalObject(1833, SpawnTube.Constructor(respawn_tube_tower, Vector3(2598.734f, 3163.922f, 39.26837f), Vector3(0, 0, 42)), owning_building_guid = 53)
+      LocalObject(1692, Painbox.Constructor(Vector3(2587.297f, 3159.01f, 41.07577f), painbox_radius_continuous), owning_building_guid = 53)
+      LocalObject(1693, Painbox.Constructor(Vector3(2594.089f, 3149.166f, 39.88637f), painbox_radius_continuous), owning_building_guid = 53)
+      LocalObject(1694, Painbox.Constructor(Vector3(2602.236f, 3158.017f, 39.88637f), painbox_radius_continuous), owning_building_guid = 53)
     }
 
     Building26()
 
     def Building26(): Unit = { // Name: N_Bel_Tower Type: tower_b GUID: 54, MapID: 26
-      LocalBuilding(54, 26, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3568f, 5310f, 53.99487f))))
+      LocalBuilding(54, 26, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3568f, 5310f, 53.99487f), tower_b)))
       LocalObject(1897, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 54)
       LocalObject(288, Door.Constructor(Vector3(3580f, 5302f, 55.51487f)), owning_building_guid = 54)
       LocalObject(289, Door.Constructor(Vector3(3580f, 5302f, 65.51488f)), owning_building_guid = 54)
@@ -1693,12 +1781,15 @@ object Map05 {
       LocalObject(1363, Terminal.Constructor(order_terminal), owning_building_guid = 54)
       LocalObject(1844, SpawnTube.Constructor(respawn_tube_tower, Vector3(3578.706f, 5297.742f, 43.47688f), Vector3(0, 0, 0)), owning_building_guid = 54)
       LocalObject(1845, SpawnTube.Constructor(respawn_tube_tower, Vector3(3578.706f, 5314.152f, 43.47688f), Vector3(0, 0, 0)), owning_building_guid = 54)
+      LocalObject(1695, Painbox.Constructor(Vector3(3573.493f, 5302.849f, 45.28427f), painbox_radius_continuous), owning_building_guid = 54)
+      LocalObject(1698, Painbox.Constructor(Vector3(3585.127f, 5300.078f, 44.09487f), painbox_radius_continuous), owning_building_guid = 54)
+      LocalObject(1699, Painbox.Constructor(Vector3(3585.259f, 5312.107f, 44.09487f), painbox_radius_continuous), owning_building_guid = 54)
     }
 
     Building38()
 
     def Building38(): Unit = { // Name: S_Neit_Tower Type: tower_b GUID: 55, MapID: 38
-      LocalBuilding(55, 38, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(4440f, 3986f, 67.92352f))))
+      LocalBuilding(55, 38, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(4440f, 3986f, 67.92352f), tower_b)))
       LocalObject(1902, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 55)
       LocalObject(346, Door.Constructor(Vector3(4452f, 3978f, 69.44352f)), owning_building_guid = 55)
       LocalObject(347, Door.Constructor(Vector3(4452f, 3978f, 79.44353f)), owning_building_guid = 55)
@@ -1727,12 +1818,15 @@ object Map05 {
       LocalObject(1392, Terminal.Constructor(order_terminal), owning_building_guid = 55)
       LocalObject(1861, SpawnTube.Constructor(respawn_tube_tower, Vector3(4450.706f, 3973.742f, 57.40553f), Vector3(0, 0, 0)), owning_building_guid = 55)
       LocalObject(1862, SpawnTube.Constructor(respawn_tube_tower, Vector3(4450.706f, 3990.152f, 57.40553f), Vector3(0, 0, 0)), owning_building_guid = 55)
+      LocalObject(1713, Painbox.Constructor(Vector3(4445.493f, 3978.849f, 59.21292f), painbox_radius_continuous), owning_building_guid = 55)
+      LocalObject(1714, Painbox.Constructor(Vector3(4457.127f, 3976.078f, 58.02352f), painbox_radius_continuous), owning_building_guid = 55)
+      LocalObject(1715, Painbox.Constructor(Vector3(4457.259f, 3988.107f, 58.02352f), painbox_radius_continuous), owning_building_guid = 55)
     }
 
     Building18()
 
     def Building18(): Unit = { // Name: E_TRSanc_Warpgate_Tower Type: tower_b GUID: 56, MapID: 18
-      LocalBuilding(56, 18, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(4822f, 2820f, 67.8167f))))
+      LocalBuilding(56, 18, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(4822f, 2820f, 67.8167f), tower_b)))
       LocalObject(1905, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 56)
       LocalObject(389, Door.Constructor(Vector3(4827.475f, 2833.343f, 69.3367f)), owning_building_guid = 56)
       LocalObject(390, Door.Constructor(Vector3(4827.475f, 2833.343f, 79.3367f)), owning_building_guid = 56)
@@ -1761,12 +1855,15 @@ object Map05 {
       LocalObject(1414, Terminal.Constructor(order_terminal), owning_building_guid = 56)
       LocalObject(1873, SpawnTube.Constructor(respawn_tube_tower, Vector3(4828.554f, 2829.429f, 57.29871f), Vector3(0, 0, 326)), owning_building_guid = 56)
       LocalObject(1874, SpawnTube.Constructor(respawn_tube_tower, Vector3(4837.73f, 2815.824f, 57.29871f), Vector3(0, 0, 326)), owning_building_guid = 56)
+      LocalObject(1722, Painbox.Constructor(Vector3(4830.553f, 2817.143f, 59.1061f), painbox_radius_continuous), owning_building_guid = 56)
+      LocalObject(1723, Painbox.Constructor(Vector3(4835.131f, 2831.398f, 57.9167f), painbox_radius_continuous), owning_building_guid = 56)
+      LocalObject(1724, Painbox.Constructor(Vector3(4841.748f, 2821.352f, 57.9167f), painbox_radius_continuous), owning_building_guid = 56)
     }
 
     Building21()
 
     def Building21(): Unit = { // Name: N_Dagda_Tower Type: tower_b GUID: 57, MapID: 21
-      LocalBuilding(57, 21, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(5896f, 4678f, 50.33113f))))
+      LocalBuilding(57, 21, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(5896f, 4678f, 50.33113f), tower_b)))
       LocalObject(1907, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 57)
       LocalObject(421, Door.Constructor(Vector3(5905.708f, 4688.666f, 51.85113f)), owning_building_guid = 57)
       LocalObject(422, Door.Constructor(Vector3(5905.708f, 4688.666f, 61.85113f)), owning_building_guid = 57)
@@ -1795,12 +1892,15 @@ object Map05 {
       LocalObject(1431, Terminal.Constructor(order_terminal), owning_building_guid = 57)
       LocalObject(1883, SpawnTube.Constructor(respawn_tube_tower, Vector3(5905.383f, 4684.619f, 39.81313f), Vector3(0, 0, 346)), owning_building_guid = 57)
       LocalObject(1884, SpawnTube.Constructor(respawn_tube_tower, Vector3(5909.354f, 4668.696f, 39.81313f), Vector3(0, 0, 346)), owning_building_guid = 57)
+      LocalObject(1728, Painbox.Constructor(Vector3(5903.06f, 4672.39f, 41.62053f), painbox_radius_continuous), owning_building_guid = 57)
+      LocalObject(1729, Painbox.Constructor(Vector3(5912.237f, 4684.22f, 40.43113f), painbox_radius_continuous), owning_building_guid = 57)
+      LocalObject(1730, Painbox.Constructor(Vector3(5915.019f, 4672.516f, 40.43113f), painbox_radius_continuous), owning_building_guid = 57)
     }
 
     Building16()
 
     def Building16(): Unit = { // Name: NE_Anu_Tower Type: tower_c GUID: 58, MapID: 16
-      LocalBuilding(58, 16, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3572f, 2702f, 43.39885f))))
+      LocalBuilding(58, 16, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3572f, 2702f, 43.39885f), tower_c)))
       LocalObject(1896, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 58)
       LocalObject(286, Door.Constructor(Vector3(3575.565f, 2715.975f, 44.91985f)), owning_building_guid = 58)
       LocalObject(287, Door.Constructor(Vector3(3575.565f, 2715.975f, 64.91885f)), owning_building_guid = 58)
@@ -1833,12 +1933,15 @@ object Map05 {
       TurretToWeapon(1245, 5075)
       LocalObject(1246, FacilityTurret.Constructor(manned_turret, Vector3(3579.453f, 2728.838f, 62.34084f)), owning_building_guid = 58)
       TurretToWeapon(1246, 5076)
+      LocalObject(1696, Painbox.Constructor(Vector3(3580.095f, 2699.666f, 35.41835f), painbox_radius_continuous), owning_building_guid = 58)
+      LocalObject(1697, Painbox.Constructor(Vector3(3583.364f, 2714.953f, 33.49885f), painbox_radius_continuous), owning_building_guid = 58)
+      LocalObject(1700, Painbox.Constructor(Vector3(3591.576f, 2705.55f, 33.49885f), painbox_radius_continuous), owning_building_guid = 58)
     }
 
     Building24()
 
     def Building24(): Unit = { // Name: N_Pwyll_Tower Type: tower_c GUID: 59, MapID: 24
-      LocalBuilding(59, 24, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(4728f, 5584f, 48.18415f))))
+      LocalBuilding(59, 24, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(4728f, 5584f, 48.18415f), tower_c)))
       LocalObject(1904, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 59)
       LocalObject(377, Door.Constructor(Vector3(4740f, 5576f, 49.70515f)), owning_building_guid = 59)
       LocalObject(378, Door.Constructor(Vector3(4740f, 5576f, 69.70415f)), owning_building_guid = 59)
@@ -1871,12 +1974,15 @@ object Map05 {
       TurretToWeapon(1276, 5077)
       LocalObject(1281, FacilityTurret.Constructor(manned_turret, Vector3(4751.497f, 5598.957f, 67.12614f)), owning_building_guid = 59)
       TurretToWeapon(1281, 5078)
+      LocalObject(1719, Painbox.Constructor(Vector3(4732.454f, 5576.849f, 40.20365f), painbox_radius_continuous), owning_building_guid = 59)
+      LocalObject(1720, Painbox.Constructor(Vector3(4744.923f, 5573.54f, 38.28415f), painbox_radius_continuous), owning_building_guid = 59)
+      LocalObject(1721, Painbox.Constructor(Vector3(4745.113f, 5586.022f, 38.28415f), painbox_radius_continuous), owning_building_guid = 59)
     }
 
     Building19()
 
     def Building19(): Unit = { // Name: S_Gwydion_Tower Type: tower_c GUID: 60, MapID: 19
-      LocalBuilding(60, 19, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(6018f, 2726f, 46.91305f))))
+      LocalBuilding(60, 19, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(6018f, 2726f, 46.91305f), tower_c)))
       LocalObject(1909, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 60)
       LocalObject(440, Door.Constructor(Vector3(6019.084f, 2711.619f, 48.43405f)), owning_building_guid = 60)
       LocalObject(441, Door.Constructor(Vector3(6019.084f, 2711.619f, 68.43305f)), owning_building_guid = 60)
@@ -1909,12 +2015,15 @@ object Map05 {
       TurretToWeapon(1300, 5079)
       LocalObject(1301, FacilityTurret.Constructor(manned_turret, Vector3(6044.252f, 2716.693f, 65.85505f)), owning_building_guid = 60)
       TurretToWeapon(1301, 5080)
+      LocalObject(1734, Painbox.Constructor(Vector3(6015.107f, 2718.088f, 38.93255f), painbox_radius_continuous), owning_building_guid = 60)
+      LocalObject(1735, Painbox.Constructor(Vector3(6020.176f, 2706.224f, 37.01305f), painbox_radius_continuous), owning_building_guid = 60)
+      LocalObject(1736, Painbox.Constructor(Vector3(6030.129f, 2713.76f, 37.01305f), painbox_radius_continuous), owning_building_guid = 60)
     }
 
     Building23()
 
     def Building23(): Unit = { // Name: W_Oshur_Warpgate_Tower Type: tower_c GUID: 61, MapID: 23
-      LocalBuilding(61, 23, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(7008f, 3838f, 49.3027f))))
+      LocalBuilding(61, 23, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(7008f, 3838f, 49.3027f), tower_c)))
       LocalObject(1910, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 61)
       LocalObject(455, Door.Constructor(Vector3(6997.002f, 3847.33f, 50.8237f)), owning_building_guid = 61)
       LocalObject(456, Door.Constructor(Vector3(6997.002f, 3847.33f, 70.8227f)), owning_building_guid = 61)
@@ -1947,6 +2056,9 @@ object Map05 {
       TurretToWeapon(1307, 5081)
       LocalObject(1308, FacilityTurret.Constructor(manned_turret, Vector3(7026.491f, 3827.771f, 68.2447f)), owning_building_guid = 61)
       TurretToWeapon(1308, 5082)
+      LocalObject(1737, Painbox.Constructor(Vector3(7001.339f, 3853.893f, 39.4027f), painbox_radius_continuous), owning_building_guid = 61)
+      LocalObject(1738, Painbox.Constructor(Vector3(7013.391f, 3857.151f, 39.4027f), painbox_radius_continuous), owning_building_guid = 61)
+      LocalObject(1739, Painbox.Constructor(Vector3(7013.646f, 3844.252f, 41.3222f), painbox_radius_continuous), owning_building_guid = 61)
     }
 
     Building3()

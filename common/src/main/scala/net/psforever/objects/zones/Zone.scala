@@ -14,6 +14,7 @@ import net.psforever.objects.guid.selector.RandomSelector
 import net.psforever.objects.guid.source.LimitedNumberSource
 import net.psforever.objects.inventory.Container
 import net.psforever.objects.serverobject.PlanetSideServerObject
+import net.psforever.objects.serverobject.painbox.{Painbox, PainboxDefinition}
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.objects.serverobject.structures.{Amenity, Building, WarpGate}
 import net.psforever.objects.serverobject.terminals.ProximityUnit
@@ -49,6 +50,9 @@ import scala.concurrent.duration._
 class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
   /** Governs general synchronized external requests. */
   private var actor = ActorRef.noSender
+
+  /** Actor that handles SOI related functionality, for example if a player is in a SOI **/
+  private var soi = ActorRef.noSender
 
   /** Used by the globally unique identifier system to coordinate requests. */
   private var accessor : ActorRef = ActorRef.noSender
@@ -114,6 +118,7 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
       transport = context.actorOf(Props(classOf[ZoneVehicleActor], this, vehicles), s"$Id-vehicles")
       population = context.actorOf(Props(classOf[ZonePopulationActor], this, players, corpses), s"$Id-players")
       projector = context.actorOf(Props(classOf[ZoneHotSpotProjector], this), s"$Id-hotpots")
+      soi = context.actorOf(Props(classOf[SphereOfInfluenceActor], this), s"$Id-soi")
 
       BuildLocalObjects(context, guid)
       BuildSupportObjects()
@@ -388,6 +393,12 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
       .collect {
         case o : PlanetSideServerObject =>
           o.Actor ! Service.Startup()
+      }
+    buildings.values
+      .flatMap(_.Amenities.filter(_.Definition.isInstanceOf[PainboxDefinition]))
+      .collect {
+        case painbox : Painbox =>
+          painbox.Actor ! "startup"
       }
   }
 

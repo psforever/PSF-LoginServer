@@ -4,7 +4,7 @@ package net.psforever.objects.serverobject.structures
 import java.util.concurrent.TimeUnit
 
 import akka.actor.ActorContext
-import net.psforever.objects.GlobalDefinitions
+import net.psforever.objects.{GlobalDefinitions, Player}
 import net.psforever.objects.definition.ObjectDefinition
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.hackable.Hackable
@@ -22,6 +22,8 @@ class Building(private val building_guid : Int, private val map_id : Int, privat
   */
   private var faction : PlanetSideEmpire.Value = PlanetSideEmpire.NEUTRAL
   private var amenities : List[Amenity] = List.empty
+  private var playersInSOI : List[Player] = List.empty
+
   GUID = PlanetSideGUID(building_guid)
 
   def MapId : Int = map_id
@@ -47,6 +49,13 @@ class Building(private val building_guid : Int, private val map_id : Int, privat
         obj.HackedBy.isDefined
       case None => false
     }
+  }
+
+  def PlayersInSOI : List[Player] = playersInSOI
+
+  def PlayersInSOI_=(list : List[Player]) : List[Player] = {
+    playersInSOI = list
+    playersInSOI
   }
 
   def Zone : Zone = zone
@@ -134,6 +143,14 @@ object Building {
 
   def apply(guid : Int, map_id : Int, zone : Zone, buildingType : StructureType.Value) : Building = {
     new Building(guid, map_id, zone, buildingType, GlobalDefinitions.building)
+  }
+
+  def Structure(buildingType : StructureType.Value, location : Vector3, definition: ObjectDefinition)(guid : Int, map_id : Int, zone : Zone, context : ActorContext) : Building = {
+    import akka.actor.Props
+    val obj = new Building(guid, map_id, zone, buildingType, definition)
+    obj.Position = location
+    obj.Actor = context.actorOf(Props(classOf[BuildingControl], obj), s"$map_id-$buildingType-building")
+    obj
   }
 
   def Structure(buildingType : StructureType.Value, location : Vector3)(guid : Int, map_id : Int, zone : Zone, context : ActorContext) : Building = {
