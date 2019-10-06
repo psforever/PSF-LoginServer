@@ -2067,12 +2067,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
       case VehicleResponse.Ownership(vehicle_guid) =>
         if(tplayer_guid == guid) { // Only the player that owns this vehicle needs the ownership packet
+          player.VehicleOwned = Some(vehicle_guid)
           sendResponse(PlanetsideAttributeMessage(tplayer_guid, 21, vehicle_guid))
         }
 
       case VehicleResponse.PlanetsideAttribute(vehicle_guid, attribute_type, attribute_value) =>
         if(tplayer_guid != guid) {
-          player.VehicleOwned = Some(vehicle_guid)
           sendResponse(PlanetsideAttributeMessage(vehicle_guid, attribute_type, attribute_value))
         }
 
