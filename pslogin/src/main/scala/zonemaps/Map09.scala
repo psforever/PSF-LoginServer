@@ -18,6 +18,7 @@ import net.psforever.types.Vector3
 object Map09 {
   // Searhus
   val ZoneMap = new ZoneMap("map09") {
+    Checksum = 1380643455L
 
     Building14()
 

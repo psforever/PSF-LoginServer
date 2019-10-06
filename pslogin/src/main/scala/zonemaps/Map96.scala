@@ -17,6 +17,8 @@ import net.psforever.types.Vector3
 object Map96 {
   // Nexus
   val ZoneMap = new ZoneMap("map96") {
+    Scale = MapScale.Dim4096
+    Checksum = 846603446L
 
     Building1()
 

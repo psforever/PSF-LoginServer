@@ -18,6 +18,7 @@ import net.psforever.types.Vector3
 object Map01 {
   // Solsar
   val ZoneMap = new ZoneMap("map01") {
+    Checksum = 2094187456L
 
     Building10()
 

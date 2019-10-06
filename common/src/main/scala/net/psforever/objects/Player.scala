@@ -341,7 +341,7 @@ class Player(private val core : Avatar) extends PlanetSideGameObject
     Jumping
   }
 
-  def Cloaked : Boolean = jumping
+  def Cloaked : Boolean = cloaked
 
   def Cloaked_=(isCloaked : Boolean) : Boolean = {
     cloaked = isCloaked

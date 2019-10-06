@@ -18,6 +18,7 @@ import net.psforever.types.Vector3
 object Map02 {
   // Hossin
   val ZoneMap = new ZoneMap("map02") {
+    Checksum = 1113780607L
 
     Building12()
 

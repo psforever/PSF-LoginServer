@@ -18,6 +18,7 @@ import net.psforever.types.Vector3
 object Map08 {
   // Oshur Prime
   val ZoneMap = new ZoneMap("map08") {
+    Checksum = 0L
 
     Building10()
 

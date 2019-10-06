@@ -18,6 +18,7 @@ import net.psforever.types.Vector3
 object Map07 {
   // Esamir
   val ZoneMap = new ZoneMap("map07") {
+    Checksum = 1564014762L
 
     Building8()
 

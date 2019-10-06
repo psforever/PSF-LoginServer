@@ -18,6 +18,7 @@ import net.psforever.types.Vector3
 object Map03 {
   // Cyssor
   val ZoneMap = new ZoneMap("map03") {
+    Checksum = 1624200906L
 
     Building1()
 

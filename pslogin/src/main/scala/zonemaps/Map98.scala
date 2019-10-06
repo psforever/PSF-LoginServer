@@ -18,6 +18,8 @@ import net.psforever.types.Vector3
 object Map98 {
   // Ascension
   val ZoneMap = new ZoneMap("map98") {
+    Scale = MapScale.Dim4096
+    Checksum = 3654267088L
 
     Building39()
 

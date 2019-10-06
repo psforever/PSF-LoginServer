@@ -18,6 +18,7 @@ import net.psforever.types.Vector3
 object Map05 {
   // Forseral
   val ZoneMap = new ZoneMap("map05") {
+    Checksum = 107922342L
 
     Building13()
 

@@ -18,6 +18,7 @@ import net.psforever.types.Vector3
 object Map06 {
   // Ceryshen
   val ZoneMap = new ZoneMap("map06") {
+    Checksum = 579139514L
 
     Building1()
 

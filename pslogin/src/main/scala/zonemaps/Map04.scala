@@ -18,6 +18,7 @@ import net.psforever.types.Vector3
 object Map04 {
   // Ishundar
   val ZoneMap = new ZoneMap("map04") {
+    Checksum = 2455050867L
 
     Building8()
 

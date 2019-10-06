@@ -51,7 +51,7 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
           MakeAppearanceData(obj),
           MakeDetailedCharacterData(obj),
           MakeDetailedInventoryData(obj),
-          DrawnSlot.None
+          GetDrawnSlot(obj)
         )
       }
     )
@@ -243,17 +243,10 @@ object AvatarConverter {
     */
   private def MakeImplantEffectList(implants : Seq[(ImplantType.Value, Long, Boolean)]) : List[ImplantEffects.Value] = {
     implants.collect {
-      case (implant,_,true) =>
-        implant match {
-          case ImplantType.AdvancedRegen =>
-            ImplantEffects.RegenEffects
-          case ImplantType.DarklightVision =>
-            ImplantEffects.DarklightEffects
-          case ImplantType.PersonalShield =>
-            ImplantEffects.PersonalShieldEffects
-          case ImplantType.Surge =>
-            ImplantEffects.SurgeEffects
-        }
+      case (ImplantType.AdvancedRegen,_,true) => ImplantEffects.RegenEffects
+      case (ImplantType.DarklightVision,_,true) => ImplantEffects.DarklightEffects
+      case (ImplantType.PersonalShield,_,true) => ImplantEffects.PersonalShieldEffects
+      case (ImplantType.Surge,_,true) => ImplantEffects.SurgeEffects
     }.toList
   }
 
@@ -372,6 +365,9 @@ object AvatarConverter {
     * @return the holster's Enumeration value
     */
   def GetDrawnSlot(obj : Player) : DrawnSlot.Value = {
-    try { DrawnSlot(obj.DrawnSlot) } catch { case _ : Exception => DrawnSlot.None }
+    obj.DrawnSlot match {
+      case Player.HandsDownSlot | Player.FreeHandSlot => DrawnSlot.None
+      case n => DrawnSlot(n)
+    }
   }
 }

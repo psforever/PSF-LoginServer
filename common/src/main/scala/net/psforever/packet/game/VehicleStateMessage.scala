@@ -26,7 +26,7 @@ import scodec.codecs._
   *                        values in between are possible;
   *                        vehicles that hover also influence this field as expected
   * @param unk5 na - Possibly a flag to indicate the vehicle is attached to something else e.g. is in a galaxy/lodestar cargo bay
-  * @param unk6 na
+  * @param is_cloaked vehicle is cloaked
   * @see `PlacementData`
   */
 
@@ -54,7 +54,7 @@ final case class VehicleStateMessage(vehicle_guid : PlanetSideGUID,
                                      unk4 : Int,
                                      wheel_direction : Int,
                                      unk5 : Boolean,
-                                     unk6 : Boolean
+                                     is_cloaked : Boolean
                                     ) extends PlanetSideGamePacket {
   type Packet = VehicleStateMessage
   def opcode = GamePacketOpcode.VehicleStateMessage
@@ -85,6 +85,6 @@ object VehicleStateMessage extends Marshallable[VehicleStateMessage] {
       ("unk4" | uint4L) ::
       ("wheel_direction" | uintL(5)) ::
       ("int5" | bool) ::
-      ("int6" | bool)
+      ("is_cloaked" | bool)
     ).as[VehicleStateMessage]
 }

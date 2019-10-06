@@ -17,6 +17,8 @@ import net.psforever.types.Vector3
 object Map97 {
   // Desolation
   val ZoneMap = new ZoneMap("map97") {
+    Scale = MapScale.Dim4096
+    Checksum = 2810790213L
 
     Building11()
 

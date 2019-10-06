@@ -607,6 +607,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case Zone.Ground.CanNotDropItem(zone, item, reason) =>
       log.warn(s"DropItem: $player tried to drop a $item on the ground, but $reason")
+      if(!item.HasGUID) {
+        log.warn(s"DropItem: zone ${continent.Id} contents may be in disarray")
+      }
 
     case Zone.Ground.ItemInHand(item : BoomerTrigger) =>
       if(PutItemInHand(item)) {
@@ -640,6 +643,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           log.warn(s"DropItem: finding a $item on the ground was suggested, but $player can not reach it")
         case None =>
           log.warn(s"DropItem: finding an item ($item_guid) on the ground was suggested, but $player can not see it")
+          sendResponse(ObjectDeleteMessage(item_guid, 0))
       }
 
     case Zone.Deployable.DeployableIsBuilt(obj, tool) =>
@@ -833,7 +837,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       log.info(s"Player ${tplayer.Name} has been loaded")
       player = tplayer
       //LoadMapMessage causes the client to send BeginZoningMessage, eventually leading to SetCurrentAvatar
-      sendResponse(LoadMapMessage(continent.Map.Name, continent.Id, 40100, 25, true, 3770441820L))
+      sendResponse(LoadMapMessage(continent.Map.Name, continent.Id, 40100, 25, true, continent.Map.Checksum))
       AvatarCreate() //important! the LoadMapMessage must be processed by the client before the avatar is created
 
     case PlayerLoaded(tplayer) =>
@@ -1318,8 +1322,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
           sendResponse(HackMessage(0, target_guid, guid, 100, unk1, HackState.Hacked, unk2))
       case LocalResponse.HackCaptureTerminal(target_guid, unk1, unk2, isResecured) =>
         var value = 0L
-        if(isResecured) {
+
+        if (isResecured) {
           value = 17039360L
+          sendResponse(PlanetsideAttributeMessage(target_guid, 20, value))
         }
         else {
           continent.GUID(target_guid) match {
@@ -1413,10 +1419,25 @@ class WorldSessionActor extends Actor with MDCContextAware {
             case None => ;
           }
           OwnVehicle(obj, tplayer)
+          if(obj.Definition == GlobalDefinitions.quadstealth) {
+            //wraith cloak state matches the cloak state of the driver
+            //phantasm doesn't uncloak if the driver is uncloaked and no other vehicle cloaks
+            obj.Cloaked = tplayer.Cloaked
+          }
         }
         AccessContents(obj)
         UpdateWeaponAtSeatPosition(obj, seat_num)
         MountingAction(tplayer, obj, seat_num)
+
+      case Mountable.CanMount(obj : FacilityTurret, seat_num) =>
+        if(!obj.isUpgrading) {
+          sendResponse(PlanetsideAttributeMessage(obj.GUID, 0, obj.Health))
+          UpdateWeaponAtSeatPosition(obj, seat_num)
+          MountingAction(tplayer, obj, seat_num)
+        }
+        else {
+          log.warn(s"MountVehicleMsg: ${tplayer.Name} wants to mount turret ${obj.GUID.guid}, but needs to wait until it finishes updating")
+        }
 
       case Mountable.CanMount(obj : PlanetSideGameObject with WeaponTurret, seat_num) =>
         sendResponse(PlanetsideAttributeMessage(obj.GUID, 0, obj.Health))
@@ -2013,9 +2034,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
         }
 
       case VehicleResponse.ConcealPlayer(player_guid) =>
-        //TODO this is the correct message; but, I don't know how to undo the effects of it
-        //sendResponse(GenericObjectActionMessage(player_guid, 36))
-        sendResponse(PlanetsideAttributeMessage(player_guid, 29, 1))
+        sendResponse(GenericObjectActionMessage(player_guid, 36))
+        //sendResponse(PlanetsideAttributeMessage(player_guid, 29, 1))
 
       case VehicleResponse.DismountVehicle(bailType, wasKickedByDriver) =>
         if(tplayer_guid != guid) {
@@ -2087,12 +2107,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
       case VehicleResponse.Ownership(vehicle_guid) =>
         if(tplayer_guid == guid) { // Only the player that owns this vehicle needs the ownership packet
+          player.VehicleOwned = Some(vehicle_guid)
           sendResponse(PlanetsideAttributeMessage(tplayer_guid, 21, vehicle_guid))
         }
 
       case VehicleResponse.PlanetsideAttribute(vehicle_guid, attribute_type, attribute_value) =>
         if(tplayer_guid != guid) {
-          player.VehicleOwned = Some(vehicle_guid)
           sendResponse(PlanetsideAttributeMessage(vehicle_guid, attribute_type, attribute_value))
         }
 
@@ -3235,43 +3255,43 @@ class WorldSessionActor extends Actor with MDCContextAware {
       })
 
       //base turrets
-      continent.Map.TurretToWeapon.foreach({ case((turret_guid, weapon_guid)) =>
-        val parent_guid = PlanetSideGUID(turret_guid)
-        continent.GUID(turret_guid) match {
-          case Some(turret : FacilityTurret) =>
-            //attached weapon
-            turret.ControlledWeapon(1) match {
+      continent.Map.TurretToWeapon
+        .map { case((turret_guid, _)) => continent.GUID(turret_guid) }
+        .collect { case Some(turret : FacilityTurret) =>
+          val pguid = turret.GUID
+          //attached weapon
+          if(!turret.isUpgrading) {
+            turret.ControlledWeapon(wepNumber = 1) match {
               case Some(obj : Tool) =>
                 val objDef = obj.Definition
                 sendResponse(
                   ObjectCreateMessage(
                     objDef.ObjectId,
                     obj.GUID,
-                    ObjectCreateMessageParent(parent_guid, 1),
+                    ObjectCreateMessageParent(pguid, 1),
                     objDef.Packet.ConstructorData(obj).get
                   )
                 )
               case _ => ;
             }
-            //reserved ammunition?
-            //TODO need to register if it exists
-            //seat turret occupant
-            turret.Seats(0).Occupant match {
-              case Some(tplayer) =>
-                val tdefintion = tplayer.Definition
-                sendResponse(
-                  ObjectCreateMessage(
-                    tdefintion.ObjectId,
-                    tplayer.GUID,
-                    ObjectCreateMessageParent(parent_guid, 0),
-                    tdefintion.Packet.ConstructorData(tplayer).get
-                  )
+          }
+          //reserved ammunition?
+          //TODO need to register if it exists
+          //seat turret occupant
+          turret.Seats(0).Occupant match {
+            case Some(tplayer) =>
+              val tdefintion = tplayer.Definition
+              sendResponse(
+                ObjectCreateMessage(
+                  tdefintion.ObjectId,
+                  tplayer.GUID,
+                  ObjectCreateMessageParent(pguid, 0),
+                  tdefintion.Packet.ConstructorData(tplayer).get
                 )
-              case None => ;
-            }
-          case _ => ;
+              )
+            case None => ;
+          }
         }
-      })
       vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.UpdateAmsSpawnPoint(continent))
       self ! SetCurrentAvatar(player)
 
@@ -3283,6 +3303,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         player.FacingYawUpper = yaw_upper
         player.Crouching = is_crouching
         player.Jumping = is_jumping
+        player.Cloaked = player.ExoSuit == ExoSuitType.Infiltration && is_cloaking
 
         if(vel.isDefined && usingMedicalTerminal.isDefined) {
           continent.GUID(usingMedicalTerminal) match {
@@ -3339,7 +3360,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           //log.warn(s"ChildObjectState: player $player not related to anything with a controllable agent")
       }
 
-    case msg @ VehicleStateMessage(vehicle_guid, unk1, pos, ang, vel, flight, unk6, unk7, wheels, unk9, unkA) =>
+    case msg @ VehicleStateMessage(vehicle_guid, unk1, pos, ang, vel, flight, unk6, unk7, wheels, unk9, is_cloaked) =>
       if(deadState == DeadState.Alive) {
         GetVehicleAndSeat() match {
           case (Some(obj), Some(0)) =>
@@ -3356,7 +3377,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
               if(obj.Definition.CanFly) {
                 obj.Flying = flight.nonEmpty //usually Some(7)
               }
-              vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.VehicleState(player.GUID, vehicle_guid, unk1, pos, ang, vel, flight, unk6, unk7, wheels, unk9, unkA))
+              obj.Cloaked = obj.Definition.CanCloak && is_cloaked
+              vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.VehicleState(player.GUID, vehicle_guid, unk1, pos, ang, vel, flight, unk6, unk7, wheels, unk9, is_cloaked))
             }
           case (None, _) =>
             //log.error(s"VehicleState: no vehicle $vehicle_guid found in zone")
@@ -3514,10 +3536,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
       }
       if(messagetype == ChatMessageType.CMT_DESTROY) {
         val guid = contents.toInt
-        continent.Map.TerminalToSpawnPad.get(guid) match {
-          case Some(padGUID) =>
-            continent.GUID(padGUID).get.asInstanceOf[VehicleSpawnPad].Actor ! VehicleSpawnControl.ProcessControl.Flush
-          case None =>
+        continent.GUID(continent.Map.TerminalToSpawnPad.getOrElse(guid, guid)) match {
+          case Some(pad : VehicleSpawnPad) =>
+            pad.Actor ! VehicleSpawnControl.ProcessControl.Flush
+          case Some(turret : FacilityTurret) if turret.isUpgrading =>
+            FinishUpgradingMannedTurret(turret, TurretUpgrade.None)
+          case _ =>
             self ! PacketCoding.CreateGamePacket(0, RequestDestroyMessage(PlanetSideGUID(guid)))
         }
       }
@@ -3673,18 +3697,19 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ DropItemMessage(item_guid) =>
       log.info(s"DropItem: $msg")
       continent.GUID(item_guid) match {
-        case Some(item : Equipment) =>
+        case Some(anItem : Equipment) =>
           player.FreeHand.Equipment match {
-            case Some(_) =>
+            case Some(item) =>
               if(item.GUID == item_guid) {
                 continent.Ground ! Zone.Ground.DropItem(item, player.Position, player.Orientation)
               }
             case None =>
-              log.warn(s"DropItem: $player wanted to drop a $item, but it wasn't at hand")
+              log.warn(s"DropItem: $player wanted to drop a $anItem, but it wasn't at hand")
           }
         case Some(obj) => //TODO LLU
           log.warn(s"DropItem: $player wanted to drop a $obj, but that isn't possible")
         case None =>
+          sendResponse(ObjectDeleteMessage(item_guid, 0)) //this is fine; item doesn't exist to the server anyway
           log.warn(s"DropItem: $player wanted to drop an item ($item_guid), but it was nowhere to be found")
       }
 
@@ -5507,9 +5532,13 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * @param upgrade the new upgrade state
     */
   private def FinishUpgradingMannedTurret(target : FacilityTurret, tool : Tool, upgrade : TurretUpgrade.Value)() : Unit = {
-    log.info(s"Converting manned wall turret weapon to $upgrade")
     tool.Magazine = 0
     sendResponse(InventoryStateMessage(tool.AmmoSlot.Box.GUID, tool.GUID, 0))
+    FinishUpgradingMannedTurret(target, upgrade)
+  }
+
+  private def FinishUpgradingMannedTurret(target : FacilityTurret, upgrade : TurretUpgrade.Value) : Unit = {
+    log.info(s"Converting manned wall turret weapon to $upgrade")
     vehicleService ! VehicleServiceMessage.TurretUpgrade(TurretUpgrader.ClearSpecific(List(target), continent))
     vehicleService ! VehicleServiceMessage.TurretUpgrade(TurretUpgrader.AddTask(target, continent, upgrade))
   }
@@ -6217,7 +6246,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             sendResponse(ObjectDetachMessage(tool.GUID, previousBox.GUID, Vector3.Zero, 0f))
             sendResponse(ObjectDetachMessage(player.GUID, box.GUID, Vector3.Zero, 0f))
             obj.Inventory -= x.start //remove replacement ammo from inventory
-          val ammoSlotIndex = tool.FireMode.AmmoSlotIndex
+            val ammoSlotIndex = tool.FireMode.AmmoSlotIndex
             tool.AmmoSlots(ammoSlotIndex).Box = box //put replacement ammo in tool
             sendResponse(ObjectAttachMessage(tool.GUID, box.GUID, ammoSlotIndex))
 

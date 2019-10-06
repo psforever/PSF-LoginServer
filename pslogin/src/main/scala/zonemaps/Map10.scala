@@ -18,6 +18,7 @@ import net.psforever.types.Vector3
 object Map10 {
   // Amerish
   val ZoneMap = new ZoneMap("map10") {
+    Checksum = 230810349L
 
     Building13()
 

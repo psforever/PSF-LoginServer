@@ -18,6 +18,8 @@ import net.psforever.types.Vector3
 object Map99 {
   // Extinction
   val ZoneMap = new ZoneMap("map99") {
+    Scale = MapScale.Dim4096
+    Checksum = 3770866186L
 
     Building7()
 
