@@ -243,17 +243,10 @@ object AvatarConverter {
     */
   private def MakeImplantEffectList(implants : Seq[(ImplantType.Value, Long, Boolean)]) : List[ImplantEffects.Value] = {
     implants.collect {
-      case (implant,_,true) =>
-        implant match {
-          case ImplantType.AdvancedRegen =>
-            ImplantEffects.RegenEffects
-          case ImplantType.DarklightVision =>
-            ImplantEffects.DarklightEffects
-          case ImplantType.PersonalShield =>
-            ImplantEffects.PersonalShieldEffects
-          case ImplantType.Surge =>
-            ImplantEffects.SurgeEffects
-        }
+      case (ImplantType.AdvancedRegen,_,true) => ImplantEffects.RegenEffects
+      case (ImplantType.DarklightVision,_,true) => ImplantEffects.DarklightEffects
+      case (ImplantType.PersonalShield,_,true) => ImplantEffects.PersonalShieldEffects
+      case (ImplantType.Surge,_,true) => ImplantEffects.SurgeEffects
     }.toList
   }
 
