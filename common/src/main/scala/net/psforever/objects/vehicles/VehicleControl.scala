@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.vehicles
 
-import akka.actor.Actor
+import akka.actor.{Actor, ActorRef}
 import net.psforever.objects.Vehicle
 import net.psforever.objects.ballistics.VehicleSource
 import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior}
@@ -32,6 +32,14 @@ class VehicleControl(vehicle : Vehicle) extends Actor
   def DeploymentObject = vehicle
 
   def receive : Receive = Enabled
+
+  override def postStop() : Unit = {
+    super.postStop()
+    vehicle.Utilities.values.foreach { util =>
+      util().Actor ! akka.actor.PoisonPill
+      util().Actor = ActorRef.noSender
+    }
+  }
 
   def Enabled : Receive = checkBehavior
     .orElse(deployBehavior)
