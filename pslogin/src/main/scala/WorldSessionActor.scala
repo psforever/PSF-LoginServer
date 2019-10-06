@@ -1397,6 +1397,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
             case None => ;
           }
           OwnVehicle(obj, tplayer)
+          if(obj.Definition == GlobalDefinitions.quadstealth) {
+            //wraith cloak state matches the cloak state of the driver
+            //phantasm doesn't uncloak if the driver is uncloaked and no other vehicle cloaks
+            obj.Cloaked = tplayer.Cloaked
+          }
         }
         AccessContents(obj)
         UpdateWeaponAtSeatPosition(obj, seat_num)
@@ -1997,9 +2002,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
         }
 
       case VehicleResponse.ConcealPlayer(player_guid) =>
-        //TODO this is the correct message; but, I don't know how to undo the effects of it
-        //sendResponse(GenericObjectActionMessage(player_guid, 36))
-        sendResponse(PlanetsideAttributeMessage(player_guid, 29, 1))
+        sendResponse(GenericObjectActionMessage(player_guid, 36))
+        //sendResponse(PlanetsideAttributeMessage(player_guid, 29, 1))
 
       case VehicleResponse.DismountVehicle(bailType, wasKickedByDriver) =>
         if(tplayer_guid != guid) {
@@ -3267,6 +3271,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         player.FacingYawUpper = yaw_upper
         player.Crouching = is_crouching
         player.Jumping = is_jumping
+        player.Cloaked = player.ExoSuit == ExoSuitType.Infiltration && is_cloaking
 
         if(vel.isDefined && usingMedicalTerminal.isDefined) {
           continent.GUID(usingMedicalTerminal) match {
@@ -3323,7 +3328,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           //log.warn(s"ChildObjectState: player $player not related to anything with a controllable agent")
       }
 
-    case msg @ VehicleStateMessage(vehicle_guid, unk1, pos, ang, vel, flight, unk6, unk7, wheels, unk9, unkA) =>
+    case msg @ VehicleStateMessage(vehicle_guid, unk1, pos, ang, vel, flight, unk6, unk7, wheels, unk9, is_cloaked) =>
       if(deadState == DeadState.Alive) {
         GetVehicleAndSeat() match {
           case (Some(obj), Some(0)) =>
@@ -3340,7 +3345,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
               if(obj.Definition.CanFly) {
                 obj.Flying = flight.nonEmpty //usually Some(7)
               }
-              vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.VehicleState(player.GUID, vehicle_guid, unk1, pos, ang, vel, flight, unk6, unk7, wheels, unk9, unkA))
+              obj.Cloaked = obj.Definition.CanCloak && is_cloaked
+              vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.VehicleState(player.GUID, vehicle_guid, unk1, pos, ang, vel, flight, unk6, unk7, wheels, unk9, is_cloaked))
             }
           case (None, _) =>
             //log.error(s"VehicleState: no vehicle $vehicle_guid found in zone")

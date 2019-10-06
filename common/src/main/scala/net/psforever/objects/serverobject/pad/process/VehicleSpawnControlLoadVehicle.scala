@@ -34,6 +34,7 @@ class VehicleSpawnControlLoadVehicle(pad : VehicleSpawnPad) extends VehicleSpawn
           //load the vehicle in the spawn pad trench, underground, initially
           vehicle.Position = vehicle.Position - Vector3(0, 0, if(GlobalDefinitions.isFlightVehicle(vehicle.Definition)) 9 else 5)
         }
+        vehicle.Cloaked = vehicle.Definition.CanCloak && entry.driver.Cloaked
         Continent.VehicleEvents ! VehicleSpawnPad.LoadVehicle(vehicle, Continent)
         context.system.scheduler.scheduleOnce(100 milliseconds, railJack, VehicleSpawnControl.Process.RailJackAction(entry))
       }
