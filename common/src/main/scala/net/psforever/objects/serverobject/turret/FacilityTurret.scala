@@ -11,6 +11,7 @@ class FacilityTurret(tDef : TurretDefinition) extends Amenity
   with StandardResistanceProfile {
   /** some turrets can be updated; they all start without updates */
   private var upgradePath : TurretUpgrade.Value = TurretUpgrade.None
+  private var middleOfUpgrade : Boolean = false
 
   WeaponTurret.LoadDefinition(this)
 
@@ -23,15 +24,32 @@ class FacilityTurret(tDef : TurretDefinition) extends Amenity
   def Upgrade : TurretUpgrade.Value = upgradePath
 
   def Upgrade_=(upgrade : TurretUpgrade.Value) : TurretUpgrade.Value = {
-    upgradePath = upgrade
+    middleOfUpgrade = true //blocking flag; block early
+    var updated = false
     //upgrade each weapon as long as that weapon has a valid option for that upgrade
     Definition.Weapons.foreach({ case(index, upgradePaths) =>
       if(upgradePaths.contains(upgrade)) {
+        updated = true
         weapons(index).Equipment.get.asInstanceOf[TurretWeapon].Upgrade = upgrade
       }
     })
+    if(updated) {
+      upgradePath = upgrade
+    }
+    else {
+      middleOfUpgrade = false //reset
+    }
     Upgrade
   }
+
+  def ConfirmUpgrade(upgrade : TurretUpgrade.Value) : TurretUpgrade.Value = {
+    if(middleOfUpgrade && upgradePath == upgrade) {
+      middleOfUpgrade = false
+    }
+    upgradePath
+  }
+
+  def isUpgrading : Boolean = middleOfUpgrade
 
   def DamageModel = Definition.asInstanceOf[DamageResistanceModel]
 
