@@ -17,6 +17,7 @@ import net.psforever.types.Vector3
 object Map03 {
   // Cyssor
   val ZoneMap = new ZoneMap("map03") {
+    Checksum = 1624200906L
 
     Building1()
 
@@ -1797,13 +1798,13 @@ object Map03 {
 
     Building25936()
 
-    def Building25936(): Unit = { // Name: "GW_Cyssor_N" Type: hst GUID: 57, MapID: 25936
+    def Building25936(): Unit = { // Name: GW_Cyssor_N Type: hst GUID: 57, MapID: 25936
       LocalBuilding(57, 25936, FoundationBuilder(WarpGate.Structure(Vector3(2467.29f, 4261.36f, 52.85f), hst)))
     }
 
     Building25937()
 
-    def Building25937(): Unit = { // Name: "GW_Cyssor_S" Type: hst GUID: 58, MapID: 25937
+    def Building25937(): Unit = { // Name: GW_Cyssor_S Type: hst GUID: 58, MapID: 25937
       LocalBuilding(58, 25937, FoundationBuilder(WarpGate.Structure(Vector3(4762.97f, 2644.8f, 68.15f), hst)))
     }
 

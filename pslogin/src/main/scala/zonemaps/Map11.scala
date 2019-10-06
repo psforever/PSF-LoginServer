@@ -16,6 +16,7 @@ import net.psforever.types.Vector3
 object Map11 {
   // HOME1 (NEW CONGLOMORATE SANCTUARY)
   val ZoneMap = new ZoneMap("map11") {
+    Checksum = 4129515529L
 
     Building37()
 

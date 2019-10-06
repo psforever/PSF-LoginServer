@@ -17,6 +17,7 @@ object Map96 {
   // Nexus
   val ZoneMap = new ZoneMap("map96") {
     Scale = MapScale.Dim4096
+    Checksum = 846603446L
 
     Building1()
 
@@ -153,7 +154,7 @@ object Map96 {
 
     Building10000()
 
-    def Building10000(): Unit = { // Name: "Map96_Gate_Three" Type: hst GUID: 4, MapID: 10000
+    def Building10000(): Unit = { // Name: Map96_Gate_Three Type: hst GUID: 4, MapID: 10000
       LocalBuilding(4, 10000, FoundationBuilder(WarpGate.Structure(Vector3(1387.16f, 1639.74f, 48.78f), hst)))
     }
 
@@ -329,13 +330,13 @@ object Map96 {
 
     Building10001()
 
-    def Building10001(): Unit = { // Name: "Map96_Gate_Two" Type: warpgate_small GUID: 10, MapID: 10001
+    def Building10001(): Unit = { // Name: Map96_Gate_Two Type: warpgate_small GUID: 10, MapID: 10001
       LocalBuilding(10, 10001, FoundationBuilder(WarpGate.Structure(Vector3(2407.71f, 2727.84f, 35.71f))))
     }
 
     Building10002()
 
-    def Building10002(): Unit = { // Name: "Map96_Gate_One" Type: warpgate_small GUID: 11, MapID: 10002
+    def Building10002(): Unit = { // Name: Map96_Gate_One Type: warpgate_small GUID: 11, MapID: 10002
       LocalBuilding(11, 10002, FoundationBuilder(WarpGate.Structure(Vector3(2784.82f, 1348.42f, 33.91f))))
     }
   }

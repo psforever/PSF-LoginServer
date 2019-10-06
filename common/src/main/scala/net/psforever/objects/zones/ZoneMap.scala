@@ -33,6 +33,7 @@ class ZoneMap(private val name : String) {
   private var linkDoorLock : Map[Int, Int] = Map()
   private var linkObjectBase : Map[Int, Int] = Map()
   private var buildings : Map[(Int, Int), FoundationBuilder] = Map()
+  private var checksum : Long = 0
 
   def Name : String = name
 
@@ -41,6 +42,13 @@ class ZoneMap(private val name : String) {
   def Scale_=(dim : MapScale) : MapScale = {
     scale = dim
     Scale
+  }
+
+  def Checksum : Long = checksum
+
+  def Checksum_=(value : Long) : Long = {
+    checksum = value
+    Checksum
   }
 
   /**

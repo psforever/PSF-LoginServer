@@ -18,6 +18,7 @@ object Map99 {
   // Extinction
   val ZoneMap = new ZoneMap("map99") {
     Scale = MapScale.Dim4096
+    Checksum = 3770866186L
 
     Building7()
 
@@ -793,19 +794,19 @@ object Map99 {
 
     Building10461()
 
-    def Building10461(): Unit = { // Name: "Map99_Gate_One" Type: warpgate_small GUID: 30, MapID: 10461
+    def Building10461(): Unit = { // Name: Map99_Gate_One Type: warpgate_small GUID: 30, MapID: 10461
       LocalBuilding(30, 10461, FoundationBuilder(WarpGate.Structure(Vector3(1198.85f, 2094.78f, 66.32f))))
     }
 
     Building10462()
 
-    def Building10462(): Unit = { // Name: "Map99_Gate_Two" Type: warpgate_small GUID: 31, MapID: 10462
+    def Building10462(): Unit = { // Name: Map99_Gate_Two Type: warpgate_small GUID: 31, MapID: 10462
       LocalBuilding(31, 10462, FoundationBuilder(WarpGate.Structure(Vector3(2491.85f, 2848.95f, 62.31f))))
     }
 
     Building10464()
 
-    def Building10464(): Unit = { // Name: "Map99_Gate_Three" Type: warpgate_small GUID: 32, MapID: 10464
+    def Building10464(): Unit = { // Name: Map99_Gate_Three Type: warpgate_small GUID: 32, MapID: 10464
       LocalBuilding(32, 10464, FoundationBuilder(WarpGate.Structure(Vector3(2547.98f, 1237.04f, 89.09f))))
     }
   }

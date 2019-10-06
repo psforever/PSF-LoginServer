@@ -17,6 +17,7 @@ import net.psforever.types.Vector3
 object Map02 {
   // Hossin
   val ZoneMap = new ZoneMap("map02") {
+    Checksum = 1113780607L
 
     Building12()
 
@@ -1121,13 +1122,13 @@ object Map02 {
 
     Building18907()
 
-    def Building18907(): Unit = { // Name: "GW_Hossin_S" Type: hst GUID: 39, MapID: 18907
+    def Building18907(): Unit = { // Name: GW_Hossin_S Type: hst GUID: 39, MapID: 18907
       LocalBuilding(39, 18907, FoundationBuilder(WarpGate.Structure(Vector3(3949.24f, 2391.62f, 16.04f), hst)))
     }
 
     Building18908()
 
-    def Building18908(): Unit = { // Name: "GW_Hossin_N" Type: hst GUID: 40, MapID: 18908
+    def Building18908(): Unit = { // Name: GW_Hossin_N Type: hst GUID: 40, MapID: 18908
       LocalBuilding(40, 18908, FoundationBuilder(WarpGate.Structure(Vector3(5240.17f, 4912.36f, 39.88f), hst)))
     }
 
