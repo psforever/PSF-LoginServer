@@ -1302,8 +1302,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
           sendResponse(HackMessage(0, target_guid, guid, 100, unk1, HackState.Hacked, unk2))
       case LocalResponse.HackCaptureTerminal(target_guid, unk1, unk2, isResecured) =>
         var value = 0L
-        if(isResecured) {
+
+        if (isResecured) {
           value = 17039360L
+          sendResponse(PlanetsideAttributeMessage(target_guid, 20, value))
         }
         else {
           continent.GUID(target_guid) match {
