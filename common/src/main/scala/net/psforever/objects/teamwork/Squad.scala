@@ -3,7 +3,7 @@ package net.psforever.objects.teamwork
 
 import net.psforever.objects.entity.IdentifiableEntity
 import net.psforever.packet.game.PlanetSideGUID
-import net.psforever.types.PlanetSideEmpire
+import net.psforever.types.{CertificationType, PlanetSideEmpire}
 
 class Squad(squadId : PlanetSideGUID, alignment : PlanetSideEmpire.Value) extends IdentifiableEntity {
   super.GUID_=(squadId)
@@ -53,6 +53,24 @@ class Squad(squadId : PlanetSideGUID, alignment : PlanetSideEmpire.Value) extend
   def Size : Int = membership.count(member => member.CharId != 0)
 
   def Capacity : Int = availability.count(open => open)
+
+  def isAvailable(role : Int) : Boolean = {
+    availability.lift(role) match {
+      case Some(true) =>
+        membership(role).isAvailable
+      case _ =>
+        false
+    }
+  }
+
+  def isAvailable(role : Int, certs : Set[CertificationType.Value]) : Boolean = {
+    availability.lift(role) match {
+      case Some(true) =>
+        membership(role).isAvailable(certs)
+      case _ =>
+        false
+    }
+  }
 }
 
 object Squad {

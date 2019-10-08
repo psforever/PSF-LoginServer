@@ -55,7 +55,7 @@ class SquadService extends Actor {
     */
   private val queuedInvites : mutable.LongMap[List[Invitation]] = mutable.LongMap[List[Invitation]]()
   /**
-    * The gien player has refused participation into this other player's sqaud.<br>
+    * The given player has refused participation into this other player's squad.<br>
     * key - a unique character identifier number; value - a list of unique character identifier numbers
     */
   private val refused : mutable.LongMap[List[Long]] = mutable.LongMap[List[Long]]()
@@ -65,9 +65,10 @@ class SquadService extends Actor {
     */
   private val continueToMonitorDetails : mutable.LongMap[PlanetSideGUID] = mutable.LongMap[PlanetSideGUID]()
   /**
-    * A placeholder for an absent active invite that has not (yet) been accepted or rejected, equal to the then-current active invite.
+    * A placeholder for an absent active invite that has not (yet) been accepted or rejected,
+    * equal to the then-current active invite.
     * Created when removing an active invite.
-    * Checked when trying to add a new invite (if found, the invite is queued).
+    * Checked when trying to add a new invite (if found, the new invite is queued).
     * Cleared when the next queued invite becomes active.<br>
     * key - unique character identifier number; value, unique character identifier number
     */
@@ -91,10 +92,10 @@ class SquadService extends Actor {
     */
   private val SquadEvents = new GenericEventBus[SquadServiceResponse]
   /**
-    * This collection contains the message-sending contact reference for individuals who may become squad members.
+    * This collection contains the message-sending contact reference for individuals.
     * When the user joins the `SquadService` with a `Service.Join` message
     * that includes their unique character identifier,
-    * the origin `ActorRef` is added as a subscription.
+    * and the origin `ActorRef` is added as a subscription.
     * It is maintained until they disconnect entirely.
     * The subscription is anticipated to belong to an instance of `WorldSessionActor`.<br>
     * key - unique character identifier number; value - `ActorRef` reference for that character
@@ -688,7 +689,7 @@ class SquadService extends Actor {
                 if(squad.Size < squad.Capacity) {
                   val positions = (for {
                     (member, index) <- squad.Membership.zipWithIndex
-                    if ValidOpenSquadPosition(squad, index, member, tplayer.Certifications)
+                    if squad.isAvailable(index, tplayer.Certifications)
                   } yield (index, member.Requirements.size))
                     .toList
                     .sortBy({ case (_, reqs) => reqs })
@@ -814,7 +815,7 @@ class SquadService extends Actor {
             }
             (None, None)
 
-          case Some(RequestRole(candidate, guid, _))
+          case Some(RequestRole(_, guid, _))
             if squadFeatures.get(guid).nonEmpty && squadFeatures(guid).Squad.Leader.CharId == rejectingPlayer =>
             //rejectingPlayer is the squad leader; candidate is the would-be squad member who was rejected
             val features = squadFeatures(guid)
@@ -1024,7 +1025,6 @@ class SquadService extends Actor {
                 if(memberPosition.CharId > 0) {
                   LeaveSquad(memberPosition.CharId, squad)
                 }
-                memberPosition.Close()
                 UpdateSquadListWhenListed(squadFeatures(squad.GUID), SquadInfo().Capacity(squad.Capacity))
                 UpdateSquadDetail(
                   squad.GUID,
@@ -1232,11 +1232,11 @@ class SquadService extends Actor {
                   position.Requirements = Set()
                 })
                 val features = squadFeatures(squad.GUID)
-                features.LocationFollowsSquadLead = false
-                features.AutoApproveInvitationRequests = false
+                features.LocationFollowsSquadLead = true
+                features.AutoApproveInvitationRequests = true
                 UpdateSquadListWhenListed(features, SquadInfo().Task("").ZoneId(None).Capacity(squad.Capacity))
                 UpdateSquadDetail(squad)
-                Publish(sender, SquadResponse.AssociateWithSquad(PlanetSideGUID(0)))
+                InitialAssociation(squad)
                 squadFeatures(guid).InitialAssociation = true
                 //do not unlist an already listed squad
               case Some(squad) =>
@@ -1248,13 +1248,13 @@ class SquadService extends Actor {
           case _ =>
             (pSquadOpt, action) match {
               //the following action can be performed by the squad leader and maybe an unaffiliated player
-              case (Some(squad), SelectRoleForYourself(position)) =>
+              case (Some(_), SelectRoleForYourself(_)) =>
                 //TODO should be possible, but doesn't work correctly due to UI squad cards not updating as expected
 //                if(squad.Leader.CharId == tplayer.CharId) {
 //                  //squad leader currently disallowed
 //                } else
 //                //the squad leader may swap to any open position; a normal member has to validate against requirements
-//                if(squad.Leader.CharId == tplayer.CharId || ValidOpenSquadPosition(squad, position, tplayer.Certifications)) {
+//                if(squad.Leader.CharId == tplayer.CharId || squad.isAvailable(position, tplayer.Certifications)) {
 //                  squad.Membership.zipWithIndex.find { case (member, _) => member.CharId == tplayer.CharId } match {
 //                    case Some((fromMember, fromIndex)) =>
 //                      SwapMemberPosition(squad.Membership(position), fromMember)
@@ -1273,7 +1273,7 @@ class SquadService extends Actor {
                 //not a member of any squad, but we might become a member of this one
                 GetSquad(guid) match {
                   case Some(squad) =>
-                    if(ValidOpenSquadPosition(squad, position, tplayer.Certifications)) {
+                    if(squad.isAvailable(position, tplayer.Certifications)) {
                       //we could join but we may need permission from the squad leader first
                       AddInviteAndRespond(
                         squad.Leader.CharId,
@@ -1940,7 +1940,7 @@ class SquadService extends Actor {
     * @param list a list of players to squads with expected entry redundancy
     */
   def RemoveProximityInvites(list : Iterable[(Long, PlanetSideGUID)]) : Unit = {
-    val (ids, squads) = list.unzip
+    val (_, squads) = list.unzip
     squads.toSeq.distinct.foreach { squad =>
       squadFeatures.get(squad) match {
         case Some(features) =>
@@ -2039,7 +2039,6 @@ class SquadService extends Actor {
     * @see `IndirectInvite`
     * @see `SquadFeatures::AutoApproveInvitationRequests`
     * @see `VacancyInvite`
-    * @see `ValidOpenSquadPosition`
     * @param squad the squad
     * @param invitedPlayer the unique character identifier for the player being invited
     * @param invitingPlayer the unique character identifier for the player who invited the former
@@ -2049,8 +2048,8 @@ class SquadService extends Actor {
     */
   def HandleVacancyInvite(squad : Squad, invitedPlayer : Long, invitingPlayer : Long, recruit : Player) : Option[(Squad, Int)] = {
     //accepted an invitation to join an existing squad
-    squad.Membership.zipWithIndex.find({ case (member, index) =>
-      ValidOpenSquadPosition(squad, index, member, recruit.Certifications)
+    squad.Membership.zipWithIndex.find({ case (_, index) =>
+      squad.isAvailable(index, recruit.Certifications)
     }) match {
       case Some((_, line)) =>
         //position in squad found
@@ -2206,7 +2205,6 @@ class SquadService extends Actor {
     * @see `SquadResponse.Join`
     * @see `StatConverter.Health`
     * @see `UpdateSquadListWhenListed`
-    * @see `ValidOpenSquadPosition`
     * @param player the new squad member;
     *               this player is NOT the squad leader
     * @param squad the squad the player is joining
@@ -2217,7 +2215,7 @@ class SquadService extends Actor {
   def JoinSquad(player : Player, squad : Squad, position : Int) : Boolean = {
     val charId = player.CharId
     val role = squad.Membership(position)
-    if(UserEvents.get(charId).nonEmpty && squad.Leader.CharId != charId && ValidOpenSquadPosition(squad, position, role, player.Certifications)) {
+    if(UserEvents.get(charId).nonEmpty && squad.Leader.CharId != charId && squad.isAvailable(position, player.Certifications)) {
       role.Name = player.Name
       role.CharId = charId
       role.Health = StatConverter.Health(player.Health, player.MaxHealth, min=1, max=64)
@@ -2617,19 +2615,6 @@ class SquadService extends Actor {
   }
 
   /**
-    * Dispatch a message entailing the composition of this squad
-    * and focus on any specific aspects of it, purported as being changed recently.
-    * @see `SquadInfo`
-    * @see `UpdateSquadList(Squad, Option[SquadInfo])`
-    * @param squad the squad
-    * @param changes the highlighted aspects of the squad;
-    *                these "changes" do not have to reflect the actual squad but are related to the contents of the message
-    */
-  private def UpdateSquadList(squad : Squad, changes : SquadInfo) : Unit = {
-    UpdateSquadList(squad, Some(changes))
-  }
-
-  /**
     * Dispatch a message entailing the composition of this squad when that squad is publicly available
     * and focus on any specific aspects of it, purported as being changed recently.
     * @see `SquadInfo`
@@ -2988,64 +2973,5 @@ object SquadService {
       member.Orders = position.orders
       member.Requirements = position.requirements
     }
-  }
-
-  /**
-    * Determine if the indicated squad role can be used for a player trying to join the squad.
-    * @see `ValidOpenSquadPosition`
-    * @param squad the squad
-    * @param position the position of the squad role being tested
-    * @param certs the certifications being offered for comparison testing
-    * @return `true`, if the squad role may accept the player with the given certification permissions;
-    *        `false`, otherwise
-    */
-  def ValidOpenSquadPosition(squad : Squad, position : Int, certs : Set[CertificationType.Value]) : Boolean = {
-    squad.Membership.lift(position) match {
-      case Some(member) =>
-        ValidOpenSquadPosition(squad, position, member, certs)
-      case None =>
-        false
-    }
-  }
-
-  /**
-    * Determine if the indicated squad role can be used for a player trying to join the squad.
-    * @see `AvailableSquadPosition`
-    * @param squad the squad
-    * @param position the position of the squad role being tested
-    * @param member the squad role being tested
-    * @param certs the certifications being offered for comparison testing
-    * @return `true`, if the squad role may accept the player with the given certification permissions;
-    *        `false`, otherwise
-    */
-  def ValidOpenSquadPosition(squad : Squad, position : Int, member : Member, certs : Set[CertificationType.Value]) : Boolean = {
-    AvailableSquadPosition(squad, position, member) && certs.intersect(member.Requirements) == member.Requirements
-  }
-
-  /**
-    * Determine if the indicated squad role is unoccupied but is also capable of being occupied.
-    * @see `AvailableSquadPosition(Squad, Int, Member)`
-    * @param squad the squad
-    * @param position the position of the squad role being tested
-    * @return `true`, if the squad role is unoccupied;
-    *        `false`, otherwise
-    */
-  def AvailableSquadPosition(squad : Squad, position : Int) : Boolean = squad.Membership.lift(position) match {
-    case Some(member) =>
-      AvailableSquadPosition(squad, position, member)
-    case None =>
-      false
-  }
-
-  /**
-    * Determine if the indicated squad role is unoccupied but is also capable of being occupied.
-    * @param squad the squad
-    * @param position the position of the squad role being tested
-    * @param member the squad role being tested
-    * @return `true`, if the squad role is unoccupied;
-    *        `false`, otherwise
-    */
-  def AvailableSquadPosition(squad : Squad, position : Int, member : Member) : Boolean = {
-    squad.Availability(position) && member.CharId == 0
   }
 }

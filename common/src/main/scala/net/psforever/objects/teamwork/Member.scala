@@ -79,14 +79,11 @@ class Member {
     Position
   }
 
-  def Close() : Unit = {
-    role = ""
-    requirements = Set()
-    //about the individual filling the position
-    name = ""
-    health = 0
-    armor = 0
-    zoneId = 0
-    position = Vector3.Zero
+  def isAvailable : Boolean = {
+    charId == 0
+  }
+
+  def isAvailable(certs : Set[CertificationType.Value]) : Boolean = {
+    isAvailable && certs.intersect(requirements) == requirements
   }
 }

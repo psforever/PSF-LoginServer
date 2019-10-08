@@ -370,7 +370,7 @@ object SquadAction{
   * &nbsp;&nbsp;&nbsp;&nbsp;`28` - Auto-approve Requests for Invitation<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`29` - UNKNOWN<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`30` - UNKNOWN<br>
-  * &nbsp;&nbsp;&nbsp;&nbsp;`31` - Location Follows Squad Lead<br>
+  * &nbsp;&nbsp;&nbsp;&nbsp;`31` - Location Follows Squad Leader<br>
   * &nbsp;&nbsp;`Int`<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`10` - Select this Role for Yourself<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`11` - UNKNOWN<br>
@@ -452,10 +452,9 @@ object SquadDefinitionActionMessage extends Marshallable[SquadDefinitionActionMe
       case 39 => noSquadSearchResultsCodec
       case 40 => findLfsSoldiersForRoleCodec
       case 41 => cancelFindCodec
-      case 2 | 6 | 11 |
-           12 | 13 | 14 |
-           18 | 29 | 30 | 32 | 33 |
-           36 | 37 | 42 | 43 => unknownCodec(code)
+      case  2 |  6 | 11 | 12 | 13 |
+           14 | 18 | 29 | 30 | 32 |
+           33 | 36 | 37 | 42 | 43 => unknownCodec(code)
       case _ => failureCodec(code)
     }).asInstanceOf[Codec[SquadAction]]
   }
@@ -477,48 +476,3 @@ object SquadDefinitionActionMessage extends Marshallable[SquadDefinitionActionMe
     }
   )
 }
-
-/*
-("change" specifically indicates the perspective is from the SL; "update" indicates squad members other than the oen who made the change
-("[#]" indicates the mode is detected but not properly parsed; the length of the combined fields may follow
-
-[0] - clicking on a squad listed in the "Find Squad" tab / cancel squad search (6 bits/pad?)
-[2] - ? (6 bits/pad?)
-[3] - save squad favorite (6 bits/pad?)
-[4] - load a squad definition favorite (6 bits/pad?)
-[6] - ? (6 bits/pad?)
-7 - ?
-[8] - list squad (6 bits/pad?)
-10 - select this role for yourself
-11 - ?
-12 - ?
-13 - ?
-14 - ?
-15 - ?
-[16] - ? (6 bits/pad?)
-[17] - ? (6 bits/pad?)
-[18] - ? (6 bits/pad?)
-19 - change purpose
-20 - change zone
-21 - change/close squad member position
-22 - change/add squad member position
-23 - change squad member req role
-24 - change squad member req detailed orders
-25 - change squad member req weapons
-[26] - reset all (6 bits/pad?)
-28 - auto-approve requests for invitation
-29 -
-30 -
-31 - location follows squad lead
-[32] - ? (6 bits/pad?)
-33 -
-34 - search for squads with a particular role
-36 -
-37 -
-38 -
-[39] - ? (?)
-40 - find LFS soldiers that meet the requirements for this role
-[41] - cancel search for LFS soldiers (6 bits)
-[42] - ? (6 bits/pad?)
-[43] - ? (6 bits/pad?)
-*/
