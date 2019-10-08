@@ -15,7 +15,7 @@ class SquadFeatures(val Squad : Squad) {
     * Dispatched only once when a squad is first listed
     * or when the squad leader searches for recruits by proximity or for certain roles or by invite
     * or when a spontaneous squad forms,
-    * whichever happens first.
+    * whatever happens first.
     * Additionally, the packets are also sent when the check is made when the continent is changed (or set).
     */
   private var initialAssociation : Boolean = true

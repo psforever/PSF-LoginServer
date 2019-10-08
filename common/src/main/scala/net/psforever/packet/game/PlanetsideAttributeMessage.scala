@@ -122,7 +122,8 @@ import scodec.codecs._
   * ` - 0 is LFS`<br>
   * ` - 1 is LFSM (Looking for Squad Members)`<br>
   * ` - n is the supplemental squad identifier number; same as "LFS;" for the leader, sets "LFSM" after the first manual flagging`<br>
-  * `32 - Info under avatar name : 0 = Looking For Squad Members, 1 = LFS`<br>
+  * `32 - Maintain the squad role index, when a member of a squad;<br>
+  *  - OLD: "Info under avatar name : 0 = Looking For Squad Members, 1 = LFS`"<br>
   * `35 - BR. Value is the BR`<br>
   * `36 - CR. Value is the CR`<br>
   * `43 - Info on avatar name : 0 = Nothing, 1 = "(LD)" message`<br>

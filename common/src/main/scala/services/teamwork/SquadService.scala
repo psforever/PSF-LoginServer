@@ -2240,7 +2240,13 @@ class SquadService extends Actor {
         val toChannel = s"/${features.ToChannel}/Squad"
         memberCharIds.foreach { charId =>
           SquadEvents.subscribe(UserEvents(charId), toChannel)
-          Publish(charId, SquadResponse.Join(squad, indices, toChannel))
+          Publish(charId,
+            SquadResponse.Join(
+              squad,
+              indices.filterNot(_ == position) :+ position,
+              toChannel
+            )
+          )
           InitWaypoints(charId, squad.GUID)
         }
         //fully update for all users
@@ -2255,7 +2261,11 @@ class SquadService extends Actor {
           charId,
           SquadResponse.Join(
             squad,
-            squad.Membership.zipWithIndex.collect({ case (member, index) if member.CharId > 0 => index }).toList,
+            squad.Membership
+              .zipWithIndex
+              .collect({ case (member, index) if member.CharId > 0 => index })
+              .filterNot(_== position)
+              .toList :+ position,
             toChannel
           )
         )
@@ -2580,10 +2590,20 @@ class SquadService extends Actor {
     }
   }
 
+  /**
+    * na
+    * @param charId the player's unique character identifier number
+    * @param sender the `ActorRef` associated with this character
+    */
   def LeaveService(charId : String, sender : ActorRef) : Unit = {
     LeaveService(charId.toLong, sender)
   }
 
+  /**
+    * na
+    * @param charId the player's unique character identifier number
+    * @param sender the `ActorRef` associated with this character
+    */
   def LeaveService(charId : Long, sender : ActorRef) : Unit = {
     refused.remove(charId)
     continueToMonitorDetails.remove(charId)
@@ -2690,6 +2710,7 @@ class SquadService extends Actor {
             //remove squad from listing
             factionListings.remove(index)
             //Publish(faction, SquadResponse.RemoveFromList(Seq(index)))
+            squadFeatures(squad.GUID).Refuse
             Publish(faction, SquadResponse.InitList(PublishedLists(factionListings)))
         }
       case None =>

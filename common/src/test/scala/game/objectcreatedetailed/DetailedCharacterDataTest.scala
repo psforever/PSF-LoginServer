@@ -1315,7 +1315,7 @@ class DetailedCharacterDataTest extends Specification {
                   a.data.v5.isEmpty mustEqual true
                   a.exosuit mustEqual ExoSuitType.Standard
                   a.unk5 mustEqual 0
-                  a.unk6 mustEqual 1267466L
+                  a.char_id mustEqual 1267466L
                   a.unk7 mustEqual 3
                   a.unk8 mustEqual 3
                   a.unk9 mustEqual 0

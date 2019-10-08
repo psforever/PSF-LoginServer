@@ -411,9 +411,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
             }
             sendResponse(SquadMembershipResponse(request_type, unk1, unk2, char_id, opt_char_id, name, unk5, unk6))
 
-          case SquadResponse.Invite(from_char_id, to_char_id, name) =>
-            sendResponse(SquadMembershipResponse(SquadResponseType.Invite, 0, 0, from_char_id, Some(to_char_id), s"$name", false, Some(None)))
-
           case SquadResponse.WantsSquadPosition(_, name) =>
             sendResponse(
               ChatMsg(
@@ -425,9 +422,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
           case SquadResponse.Join(squad, positionsToUpdate, toChannel) =>
             val leader = squad.Leader
-            val membershipPositions = squad.Membership
-              .zipWithIndex
-              .filter { case (_, index ) => positionsToUpdate.contains(index) }
+            val membershipPositions = positionsToUpdate map squad.Membership.zipWithIndex
             StartBundlingPackets()
             membershipPositions.find({ case(member, _) => member.CharId == avatar.CharId }) match {
               case Some((ourMember, ourIndex)) =>
@@ -6592,7 +6587,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             sendResponse(ObjectDetachMessage(tool.GUID, previousBox.GUID, Vector3.Zero, 0f))
             sendResponse(ObjectDetachMessage(player.GUID, box.GUID, Vector3.Zero, 0f))
             obj.Inventory -= x.start //remove replacement ammo from inventory
-          val ammoSlotIndex = tool.FireMode.AmmoSlotIndex
+            val ammoSlotIndex = tool.FireMode.AmmoSlotIndex
             tool.AmmoSlots(ammoSlotIndex).Box = box //put replacement ammo in tool
             sendResponse(ObjectAttachMessage(tool.GUID, box.GUID, ammoSlotIndex))
 
