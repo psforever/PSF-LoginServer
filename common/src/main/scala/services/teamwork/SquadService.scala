@@ -2710,7 +2710,6 @@ class SquadService extends Actor {
             //remove squad from listing
             factionListings.remove(index)
             //Publish(faction, SquadResponse.RemoveFromList(Seq(index)))
-            squadFeatures(squad.GUID).Refuse
             Publish(faction, SquadResponse.InitList(PublishedLists(factionListings)))
         }
       case None =>
