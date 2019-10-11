@@ -3,6 +3,14 @@ jdk: oraclejdk8
 dist: trusty
 scala:
   - 2.11.8
+cache:
+  directories:
+    - $HOME/.ivy2/cache
+    - $HOME/.sbt
+before_cache:
+  - rm -fv $HOME/.ivy2/.sbt.ivy.lock
+  - find $HOME/.ivy2/cache -name "ivydata-*.properties" -print -delete
+  - find $HOME/.sbt        -name "*.lock"               -print -delete
 before_script:
   - wget https://github.com/psforever/PSCrypto/releases/download/v1.1/pscrypto-lib-1.1.zip
   - unzip pscrypto-lib-1.1.zip
