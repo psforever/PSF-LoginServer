@@ -7,6 +7,6 @@ before_script:
   - wget https://github.com/psforever/PSCrypto/releases/download/v1.1/pscrypto-lib-1.1.zip
   - unzip pscrypto-lib-1.1.zip
 script:
-  - sbt ++$TRAVIS_SCALA_VERSION clean coverage test coverageReport
+  - sbt ++$TRAVIS_SCALA_VERSION clean coverage test:compile test coverageReport
 after_success:
     - bash <(curl -s https://codecov.io/bash)
