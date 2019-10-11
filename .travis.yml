@@ -1,5 +1,6 @@
 language: scala
 jdk: oraclejdk8
+dist: trusty
 scala:
   - 2.11.8
 before_script:
