@@ -26,6 +26,8 @@ final case class HealFromImplant(target : PlayerSource, amount : Int, implant : 
 
 final case class HealFromExoSuitChange(target : PlayerSource, exosuit : ExoSuitType.Value) extends HealingActivity(target)
 
+final case class RepairFromKit(target : PlayerSource, amount : Int, kit_def : KitDefinition) extends HealingActivity(target)
+
 final case class RepairFromTerm(target : VehicleSource, amount : Int, term_def : TerminalDefinition) extends HealingActivity(target)
 
 final case class VehicleShieldCharge(target : VehicleSource, amount : Int) extends HealingActivity(target) //TODO facility

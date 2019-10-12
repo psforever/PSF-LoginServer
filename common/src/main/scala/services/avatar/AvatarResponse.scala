@@ -30,6 +30,7 @@ object AvatarResponse {
   final case class ObjectDelete(item_guid : PlanetSideGUID, unk : Int) extends Response
   final case class ObjectHeld(slot : Int) extends Response
   final case class PlanetsideAttribute(attribute_type : Int, attribute_value : Long) extends Response
+  final case class PlanetsideAttributeSelf(attribute_type : Int, attribute_value : Long) extends Response
   final case class PlayerState(msg : PlayerStateMessageUpstream, spectator : Boolean, weaponInHand : Boolean) extends Response
   final case class PutDownFDU(target_guid : PlanetSideGUID) extends Response
   final case class Release(player : Player) extends Response

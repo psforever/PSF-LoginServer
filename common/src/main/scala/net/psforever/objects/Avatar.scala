@@ -12,6 +12,8 @@ import scala.annotation.tailrec
 import scala.collection.mutable
 
 class Avatar(val name : String, val faction : PlanetSideEmpire.Value, val sex : CharacterGender.Value, val head : Int, val voice : CharacterVoice.Value) {
+  /** Character ID from the DB */
+  private var charId : Long = 0
   /** Battle Experience Points */
   private var bep : Long = 0
   /** Command Experience Points */
@@ -42,6 +44,13 @@ class Avatar(val name : String, val faction : PlanetSideEmpire.Value, val sex : 
   }
 
   private val deployables : DeployableToolbox = new DeployableToolbox
+
+  def CharId : Long = charId
+
+  def CharId_=(add : Long) : Long = {
+    charId = add
+    CharId
+  }
 
   def BEP : Long = bep
 

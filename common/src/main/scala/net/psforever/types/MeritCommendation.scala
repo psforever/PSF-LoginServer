@@ -507,6 +507,9 @@ object MeritCommendation extends Enumeration {
         if(n > Int.MaxValue) {
           Attempt.failure(Err(s"value $n is too high, above maximum integer value ${Int.MaxValue}"))
         }
+        else if(n > 429) { // TODO remove that. It's for use Xtoolspar.
+          Attempt.failure(Err(s"value $n should not exist"))
+        }
         else {
           Attempt.successful(MeritCommendation(n.toInt))
         }

@@ -155,6 +155,7 @@ object Building {
 
   def Structure(buildingType : StructureType.Value, location : Vector3)(guid : Int, map_id : Int, zone : Zone, context : ActorContext) : Building = {
     import akka.actor.Props
+
     val obj = new Building(guid, map_id, zone, buildingType, GlobalDefinitions.building)
     obj.Position = location
     obj.Actor = context.actorOf(Props(classOf[BuildingControl], obj), s"$map_id-$buildingType-building")
