@@ -3607,9 +3607,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ PlayerStateMessageUpstream(avatar_guid, pos, vel, yaw, pitch, yaw_upper, seq_time, unk3, is_crouching, is_jumping, unk4, is_cloaking, unk5, unk6) =>
       if(deadState == DeadState.Alive) {
-        if(!player.Crouching && is_crouching) { //SQUAD TESTING CODE
-          //...
-        }
         player.Position = pos
         player.Velocity = vel
         player.Orientation = Vector3(player.Orientation.x, pitch, yaw)
