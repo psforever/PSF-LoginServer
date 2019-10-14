@@ -955,11 +955,18 @@ class SquadService extends Actor {
         }) match {
           case (Some(squad), Some(_)) =>
             //waypoint added or updated
-            SquadServiceResponse(s"/${squadFeatures(squad.GUID).ToChannel}/Squad", tplayer.CharId, SquadResponse.WaypointEvent(WaypointEventAction.Add, playerCharId, wtype, None, info, 1))
-
+            Publish(
+              s"${squadFeatures(squad.GUID).ToChannel}",
+              SquadResponse.WaypointEvent(WaypointEventAction.Add, playerCharId, wtype, None, info, 1),
+              Seq(tplayer.CharId)
+            )
           case (Some(squad), None) =>
-            //waypoint removed?
-            SquadServiceResponse(s"/${squadFeatures(squad.GUID).ToChannel}/Squad", tplayer.CharId, SquadResponse.WaypointEvent(WaypointEventAction.Remove, playerCharId, wtype, None, None, 0))
+            //waypoint removed
+            Publish(
+              s"${squadFeatures(squad.GUID).ToChannel}",
+              SquadResponse.WaypointEvent(WaypointEventAction.Remove, playerCharId, wtype, None, None, 0),
+              Seq(tplayer.CharId)
+            )
 
           case msg =>
             log.warn(s"Unsupported squad waypoint behavior: $msg")

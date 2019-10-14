@@ -1057,7 +1057,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
       galaxyService ! Service.Join(s"${avatar.faction}") //for hotspots
       squadService ! Service.Join(s"${avatar.faction}") //channel will be player.Faction
       squadService ! Service.Join(s"${avatar.CharId}") //channel will be player.CharId (in order to work with packets)
-      squadService ! Service.Join(s"${avatar.faction}") //channel will be player.Faction
       cluster ! InterstellarCluster.GetWorld("home3")
 
     case InterstellarCluster.GiveWorld(zoneId, zone) =>
