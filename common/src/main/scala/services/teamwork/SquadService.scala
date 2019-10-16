@@ -378,7 +378,7 @@ class SquadService extends Actor {
 
     case Service.Leave(Some(char_id)) => LeaveService(char_id, sender)
 
-    case Service.Leave(None) | Service.LeaveAll() => UserEvents find { case(_, subscription) => subscription == sender} match {
+    case Service.Leave(None) | Service.LeaveAll() => UserEvents find { case(_, subscription) => subscription.path.equals(sender.path)} match {
       case Some((to, _)) =>
         LeaveService(to, sender)
       case _ => ;
@@ -414,14 +414,17 @@ class SquadService extends Actor {
         //this is just busy work; for actual joining operations, see SquadRequestType.Accept
         (if(invitedName.nonEmpty) {
           //validate player with name exists
-          LivePlayerList.WorldPopulation({ case (_, a : Avatar) => a.name == invitedName }).headOption match {
+          LivePlayerList.WorldPopulation({ case (_, a : Avatar) => a.name.equalsIgnoreCase(invitedName) && a.faction == tplayer.Faction }).headOption match {
             case Some(player) => UserEvents.keys.find(_ == player.CharId)
             case None => None
           }
         }
         else {
           //validate player with id exists
-          UserEvents.keys.find(_ == _invitedPlayer)
+          LivePlayerList.WorldPopulation({ case (_, a : Avatar) => a.CharId == _invitedPlayer && a.faction == tplayer.Faction }).headOption match {
+            case Some(player) => Some(_invitedPlayer)
+            case None => None
+          }
         }) match {
           case Some(invitedPlayer) =>
             (memberToSquad.get(invitingPlayer), memberToSquad.get(invitedPlayer)) match {
@@ -738,44 +741,54 @@ class SquadService extends Actor {
         }
         NextInviteAndRespond(invitedPlayer)
 
-      case SquadAction.Membership(SquadRequestType.Leave, leavingPlayer, optionalPlayer, name, _) =>
-        GetParticipatingSquad(leavingPlayer) match {
+      case SquadAction.Membership(SquadRequestType.Leave, actingPlayer, _leavingPlayer, name, _) =>
+        GetParticipatingSquad(actingPlayer) match {
           case Some(squad) =>
-            val kickedPlayer = if(name.nonEmpty) {
+            val leader = squad.Leader.CharId
+            (if(name.nonEmpty) {
               //validate player with name
-              LivePlayerList.WorldPopulation({ case (_, a : Avatar) => a.name == name }).headOption match {
-                case Some(player) => UserEvents.keys.find(_ == player.CharId)
+              LivePlayerList.WorldPopulation({ case (_, a : Avatar) => a.name.equalsIgnoreCase(name) }).headOption match {
+                case Some(a) => UserEvents.keys.find(_ == a.CharId)
                 case None => None
               }
             }
             else {
               //validate player with id
-              optionalPlayer match {
+              _leavingPlayer match {
                 case Some(id) => UserEvents.keys.find(_ == id)
                 case None => None
               }
-            }
-            val leader = squad.Leader.CharId
-            if(leavingPlayer == leader || squad.Size == 2) {
-              //squad leader is leaving his own squad, so it will be disbanded
-              //alternately, squad is only composed of two people, so it will be closed-out when one of them leaves
-              DisbandSquad(squad)
-            }
-            else {
-              if(kickedPlayer.isEmpty || kickedPlayer.contains(leavingPlayer)) {
-                //leaving the squad of own accord
-                LeaveSquad(tplayer.CharId, squad)
-              }
-              else if(kickedPlayer.contains(leader)) {
-                //kicked by the squad leader
-                Publish(leavingPlayer, SquadResponse.Membership(SquadResponseType.Leave, 0, 0, leavingPlayer, Some(leader), tplayer.Name, false, Some(None)))
-                Publish(leader, SquadResponse.Membership(SquadResponseType.Leave, 0, 0, leader, Some(leavingPlayer), "", true, Some(None)))
-                squadFeatures(squad.GUID).Refuse = leavingPlayer
-                LeaveSquad(leavingPlayer, squad)
-              }
-            }
+            }) match {
+              case out @ Some(leavingPlayer) if GetParticipatingSquad(leavingPlayer).contains(squad) => //kicked player must be in the same squad
+                log.info(s"leader=$leader, acting=$actingPlayer, leaving=$leavingPlayer")
+                if(actingPlayer == leader) {
+                  if(leavingPlayer == leader || squad.Size == 2) {
+                    //squad leader is leaving his own squad, so it will be disbanded
+                    //OR squad is only composed of two people, so it will be closed-out when one of them leaves
+                    DisbandSquad(squad)
+                  }
+                  else {
+                    //kicked by the squad leader
+                    Publish(leavingPlayer, SquadResponse.Membership(SquadResponseType.Leave, 0, 0, leavingPlayer, Some(leader), tplayer.Name, false, Some(None)))
+                    Publish(leader, SquadResponse.Membership(SquadResponseType.Leave, 0, 0, leader, Some(leavingPlayer), "", true, Some(None)))
+                    squadFeatures(squad.GUID).Refuse = leavingPlayer
+                    LeaveSquad(leavingPlayer, squad)
+                  }
+                }
+                else if(leavingPlayer == actingPlayer) {
+                  if(squad.Size == 2) {
+                    //squad is only composed of two people, so it will be closed-out when one of them leaves
+                    DisbandSquad(squad)
+                  }
+                  else {
+                    //leaving the squad of own accord
+                    LeaveSquad(actingPlayer, squad)
+                  }
+                }
 
-          case None =>
+              case _ => ;
+            }
+          case _ => ;
         }
 
       case SquadAction.Membership(SquadRequestType.Reject, rejectingPlayer, _, _, _) =>
@@ -2244,9 +2257,9 @@ class SquadService extends Actor {
           .filterNot { case (member, _) => member.CharId == 0 }
           .toList
           .unzip { case (member, index) => (member.CharId, index) }
-        val toChannel = s"/${features.ToChannel}/Squad"
+        val toChannel = features.ToChannel
         memberCharIds.foreach { charId =>
-          SquadEvents.subscribe(UserEvents(charId), toChannel)
+          SquadEvents.subscribe(UserEvents(charId), s"/$toChannel/Squad")
           Publish(charId,
             SquadResponse.Join(
               squad,
@@ -2262,29 +2275,29 @@ class SquadService extends Actor {
       else {
         //joining an active squad; everybody updates differently
         val updatedIndex = List(position)
-        val toChannel = s"/${features.ToChannel}/Squad"
+        val toChannel = features.ToChannel
         //new member gets full squad UI updates
         Publish(
           charId,
           SquadResponse.Join(
             squad,
-            squad.Membership
+            position +: squad.Membership
               .zipWithIndex
               .collect({ case (member, index) if member.CharId > 0 => index })
-              .filterNot(_== position)
-              .toList :+ position,
+              .filterNot(_ == position)
+              .toList,
             toChannel
           )
         )
         //other squad members see new member joining the squad
-        Publish(features.ToChannel, SquadResponse.Join(squad, updatedIndex, ""))
+        Publish(toChannel, SquadResponse.Join(squad, updatedIndex, ""))
         InitWaypoints(charId, squad.GUID)
         InitSquadDetail(squad.GUID, Seq(charId), squad)
         UpdateSquadDetail(
           squad.GUID,
           SquadDetail().Members(List(SquadPositionEntry(position, SquadPositionDetail().CharId(charId).Name(player.Name))))
         )
-        SquadEvents.subscribe(UserEvents(charId), toChannel)
+        SquadEvents.subscribe(UserEvents(charId), s"/$toChannel/Squad")
       }
       UpdateSquadListWhenListed(features, SquadInfo().Size(size))
       true
@@ -2378,7 +2391,7 @@ class SquadService extends Actor {
         member.Name = ""
         member.CharId = 0
         //other squad members see the member leaving
-        Publish(squadFeatures(squad.GUID).ToChannel, SquadResponse.Leave(squad, List(entry)))
+        Publish(squadFeatures(squad.GUID).ToChannel, SquadResponse.Leave(squad, List(entry)), Seq(charId))
         UpdateSquadListWhenListed(squadFeatures(squad.GUID), SquadInfo().Size(squad.Size))
         UpdateSquadDetail(
           squad.GUID,

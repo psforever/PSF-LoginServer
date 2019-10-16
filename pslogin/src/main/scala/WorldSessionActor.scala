@@ -493,6 +493,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                 lfs = false
                 //a finalization? what does this do?
                 sendResponse(SquadDefinitionActionMessage(PlanetSideGUID(0), 0, SquadAction.Unknown(18)))
+                squad_supplement_id = 0
                 updateSquad = NoSquadUpdates
                 squadChannel = None
               case _ =>
@@ -507,7 +508,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
                 )
             }
             StopBundlingPackets()
-            squad_supplement_id = 0
 
           case SquadResponse.AssignMember(squad, from_index, to_index) =>
             //we've already swapped position internally; now we swap the cards
