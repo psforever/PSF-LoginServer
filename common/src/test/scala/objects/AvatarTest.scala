@@ -121,19 +121,19 @@ class AvatarTest extends Specification {
     obj.Implants(0).Active mustEqual false
     obj.Implants(0).Implant mustEqual ImplantType.None
     obj.Implant(0) mustEqual ImplantType.None
-    obj.Implants(0).Installed mustEqual None
+    obj.Implants(0).Installed.isEmpty mustEqual true
     obj.Implants(1).Unlocked mustEqual false
     obj.Implants(1).Initialized mustEqual false
     obj.Implants(1).Active mustEqual false
     obj.Implants(1).Implant mustEqual ImplantType.None
     obj.Implant(1) mustEqual ImplantType.None
-    obj.Implants(1).Installed mustEqual None
+    obj.Implants(1).Installed.isEmpty mustEqual true
     obj.Implants(2).Unlocked mustEqual false
     obj.Implants(2).Initialized mustEqual false
     obj.Implants(2).Active mustEqual false
     obj.Implants(2).Implant mustEqual ImplantType.None
     obj.Implant(2) mustEqual ImplantType.None
-    obj.Implants(2).Installed mustEqual None
+    obj.Implants(2).Installed.isEmpty mustEqual true
 
     obj.Implant(3) mustEqual ImplantType.None //invalid slots beyond the third always reports as ImplantType.None
   }
@@ -142,10 +142,10 @@ class AvatarTest extends Specification {
     val testplant : ImplantDefinition = ImplantDefinition(1)
     val obj = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
     obj.Implants(0).Unlocked = true
-    obj.InstallImplant(testplant) mustEqual Some(0)
+    obj.InstallImplant(testplant).contains(0) mustEqual true
     obj.Implants.find({p => p.Implant == ImplantType(1)}) match { //find the installed implant
       case Some(slot) =>
-        slot.Installed mustEqual Some(testplant)
+        slot.Installed.contains(testplant) mustEqual true
       case _ =>
         ko
     }
@@ -159,8 +159,8 @@ class AvatarTest extends Specification {
     obj.Implants(0).Unlocked = true
     obj.Implants(1).Unlocked = true
 
-    obj.InstallImplant(testplant1) mustEqual Some(0)
-    obj.InstallImplant(testplant2) mustEqual Some(1)
+    obj.InstallImplant(testplant1).contains(0) mustEqual true
+    obj.InstallImplant(testplant2).contains(1) mustEqual true
   }
 
   "can not install the same type of implant twice" in {
@@ -170,8 +170,8 @@ class AvatarTest extends Specification {
     obj.Implants(0).Unlocked = true
     obj.Implants(1).Unlocked = true
 
-    obj.InstallImplant(testplant1) mustEqual Some(0)
-    obj.InstallImplant(testplant2) mustEqual None
+    obj.InstallImplant(testplant1).contains(0) mustEqual true
+    obj.InstallImplant(testplant2).isEmpty mustEqual true
   }
 
   "can not install more implants than slots available (two unlocked)" in {
@@ -182,9 +182,9 @@ class AvatarTest extends Specification {
     obj.Implants(0).Unlocked = true
     obj.Implants(1).Unlocked = true
 
-    obj.InstallImplant(testplant1) mustEqual Some(0)
-    obj.InstallImplant(testplant2) mustEqual Some(1)
-    obj.InstallImplant(testplant3) mustEqual None
+    obj.InstallImplant(testplant1).contains(0) mustEqual true
+    obj.InstallImplant(testplant2).contains(1) mustEqual true
+    obj.InstallImplant(testplant3).isEmpty mustEqual true
   }
 
   "can not install more implants than slots available (four implants)" in {
@@ -197,21 +197,21 @@ class AvatarTest extends Specification {
     obj.Implants(1).Unlocked = true
     obj.Implants(2).Unlocked = true
 
-    obj.InstallImplant(testplant1) mustEqual Some(0)
-    obj.InstallImplant(testplant2) mustEqual Some(1)
-    obj.InstallImplant(testplant3) mustEqual Some(2)
-    obj.InstallImplant(testplant4) mustEqual None
+    obj.InstallImplant(testplant1).contains(0) mustEqual true
+    obj.InstallImplant(testplant2).contains(1) mustEqual true
+    obj.InstallImplant(testplant3).contains(2) mustEqual true
+    obj.InstallImplant(testplant4).isEmpty mustEqual true
   }
 
   "can uninstall an implant" in {
     val testplant : ImplantDefinition = ImplantDefinition(1)
     val obj = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
     obj.Implants(0).Unlocked = true
-    obj.InstallImplant(testplant) mustEqual Some(0)
-    obj.Implants(0).Installed mustEqual Some(testplant)
+    obj.InstallImplant(testplant).contains(0) mustEqual true
+    obj.Implants(0).Installed.contains(testplant) mustEqual true
 
-    obj.UninstallImplant(testplant.Type) mustEqual Some(0)
-    obj.Implants(0).Installed mustEqual None
+    obj.UninstallImplant(testplant.Type).contains(0) mustEqual true
+    obj.Implants(0).Installed.isEmpty mustEqual true
   }
 
   "can uninstall just a specific implant" in {
@@ -222,14 +222,14 @@ class AvatarTest extends Specification {
     obj.Implants(0).Unlocked = true
     obj.Implants(1).Unlocked = true
     obj.Implants(2).Unlocked = true
-    obj.InstallImplant(testplant1) mustEqual Some(0)
-    obj.InstallImplant(testplant2) mustEqual Some(1)
-    obj.InstallImplant(testplant3) mustEqual Some(2)
+    obj.InstallImplant(testplant1).contains(0) mustEqual true
+    obj.InstallImplant(testplant2).contains(1) mustEqual true
+    obj.InstallImplant(testplant3).contains(2) mustEqual true
 
     obj.Implant(0) mustEqual testplant1.Type
     obj.Implant(1) mustEqual testplant2.Type
     obj.Implant(2) mustEqual testplant3.Type
-    obj.UninstallImplant(testplant2.Type) mustEqual Some(1)
+    obj.UninstallImplant(testplant2.Type).contains(1) mustEqual true
     obj.Implant(0) mustEqual testplant1.Type
     obj.Implant(1) mustEqual ImplantType.None
     obj.Implant(2) mustEqual testplant3.Type
@@ -243,16 +243,16 @@ class AvatarTest extends Specification {
     obj.Implants(0).Unlocked = true
     obj.Implants(1).Unlocked = true
     obj.Implants(2).Unlocked = true
-    obj.InstallImplant(testplant1) mustEqual Some(0)
-    obj.InstallImplant(testplant2) mustEqual Some(1)
-    obj.InstallImplant(testplant3) mustEqual Some(2)
-    obj.UninstallImplant(testplant2.Type) mustEqual Some(1)
+    obj.InstallImplant(testplant1).contains(0) mustEqual true
+    obj.InstallImplant(testplant2).contains(1) mustEqual true
+    obj.InstallImplant(testplant3).contains(2) mustEqual true
+    obj.UninstallImplant(testplant2.Type).contains(1) mustEqual true
     obj.Implant(0) mustEqual testplant1.Type
     obj.Implant(1) mustEqual ImplantType.None
     obj.Implant(2) mustEqual testplant3.Type
 
     val testplant4 : ImplantDefinition = ImplantDefinition(4)
-    obj.InstallImplant(testplant4) mustEqual Some(1)
+    obj.InstallImplant(testplant4).contains(1) mustEqual true
     obj.Implant(0) mustEqual testplant1.Type
     obj.Implant(1) mustEqual testplant4.Type
     obj.Implant(2) mustEqual testplant3.Type
@@ -264,8 +264,8 @@ class AvatarTest extends Specification {
     val obj = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
     obj.Implants(0).Unlocked = true
     obj.Implants(1).Unlocked = true
-    obj.InstallImplant(testplant1) mustEqual Some(0)
-    obj.InstallImplant(testplant2) mustEqual Some(1)
+    obj.InstallImplant(testplant1).contains(0) mustEqual true
+    obj.InstallImplant(testplant2).contains(1) mustEqual true
     obj.Implants(0).Initialized = true
     obj.Implants(0).Active = true
     obj.Implants(1).Initialized = true
@@ -281,7 +281,7 @@ class AvatarTest extends Specification {
 
   "does not have any loadout specifications by default" in {
     val (_, avatar) = CreatePlayer()
-    (0 to 9).foreach { avatar.EquipmentLoadouts.LoadLoadout(_) mustEqual None }
+    (0 to 9).foreach { avatar.EquipmentLoadouts.LoadLoadout(_).isEmpty mustEqual true }
     ok
   }
 
@@ -337,9 +337,9 @@ class AvatarTest extends Specification {
 
   "try to save player's current inventory as a loadout, but will not save to an invalid slot" in {
     val (obj, avatar) = CreatePlayer()
-    avatar.EquipmentLoadouts.SaveLoadout(obj, "test", 10)
+    avatar.EquipmentLoadouts.SaveLoadout(obj, "test", 50)
 
-    avatar.EquipmentLoadouts.LoadLoadout(10) mustEqual None
+    avatar.EquipmentLoadouts.LoadLoadout(50).isEmpty mustEqual true
   }
 
   "save player's current inventory as a loadout, without inventory contents" in {
@@ -384,7 +384,7 @@ class AvatarTest extends Specification {
 
     avatar.EquipmentLoadouts.LoadLoadout(0).isDefined mustEqual true
     avatar.EquipmentLoadouts.DeleteLoadout(0)
-    avatar.EquipmentLoadouts.LoadLoadout(0) mustEqual None
+    avatar.EquipmentLoadouts.LoadLoadout(0).isEmpty mustEqual true
   }
 
   "the fifth slot is the locker wrapped in an EquipmentSlot" in {

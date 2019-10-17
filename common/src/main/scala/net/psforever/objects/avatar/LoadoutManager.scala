@@ -11,7 +11,7 @@ class LoadoutManager(size : Int) {
 
   def SaveLoadout(owner : Any, label : String, line : Int) : Unit = {
     Loadout.Create(owner, label) match {
-      case Success(loadout) =>
+      case Success(loadout) if entries.length > line =>
         entries(line) = Some(loadout)
       case _ => ;
     }
@@ -20,7 +20,9 @@ class LoadoutManager(size : Int) {
   def LoadLoadout(line : Int) : Option[Loadout] = entries.lift(line).flatten
 
   def DeleteLoadout(line : Int) : Unit = {
-    entries(line) = None
+    if(entries.length > line) {
+      entries(line) = None
+    }
   }
 
   def Loadouts : Seq[(Int, Loadout)] = entries.zipWithIndex.collect { case(Some(loadout), index) => (index, loadout) } toSeq

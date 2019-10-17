@@ -206,7 +206,7 @@ class SquadMembershipResponseTest extends Specification {
     "decode (7-1)" in {
       PacketCoding.DecodePacket(string_71).require match {
         case SquadMembershipResponse(unk1, unk2, unk3, unk4, unk5, unk6, unk7, unk8) =>
-          unk1 mustEqual SquadResponseType.Disband
+          unk1 mustEqual SquadResponseType.PlatoonInvite
           unk2 mustEqual 2
           unk3 mustEqual 0
           unk4 mustEqual 1176612L
@@ -222,7 +222,7 @@ class SquadMembershipResponseTest extends Specification {
     "decode (7-2)" in {
       PacketCoding.DecodePacket(string_72).require match {
         case SquadMembershipResponse(unk1, unk2, unk3, unk4, unk5, unk6, unk7, unk8) =>
-          unk1 mustEqual SquadResponseType.Disband
+          unk1 mustEqual SquadResponseType.PlatoonInvite
           unk2 mustEqual 0
           unk3 mustEqual 0
           unk4 mustEqual 41578085L
@@ -238,7 +238,7 @@ class SquadMembershipResponseTest extends Specification {
     "decode (8-1)" in {
       PacketCoding.DecodePacket(string_81).require match {
         case SquadMembershipResponse(unk1, unk2, unk3, unk4, unk5, unk6, unk7, unk8) =>
-          unk1 mustEqual SquadResponseType.PlatoonInvite
+          unk1 mustEqual SquadResponseType.PlatoonAccept
           unk2 mustEqual 0
           unk3 mustEqual 0
           unk4 mustEqual 30910985L
@@ -254,7 +254,7 @@ class SquadMembershipResponseTest extends Specification {
     "decode (9-1)" in {
       PacketCoding.DecodePacket(string_91).require match {
         case SquadMembershipResponse(unk1, unk2, unk3, unk4, unk5, unk6, unk7, unk8) =>
-          unk1 mustEqual SquadResponseType.PlatoonAccept
+          unk1 mustEqual SquadResponseType.PlatoonReject
           unk2 mustEqual 0
           unk3 mustEqual 0
           unk4 mustEqual 297025L
@@ -270,7 +270,7 @@ class SquadMembershipResponseTest extends Specification {
     "decode (9-2)" in {
       PacketCoding.DecodePacket(string_92).require match {
         case SquadMembershipResponse(unk1, unk2, unk3, unk4, unk5, unk6, unk7, unk8) =>
-          unk1 mustEqual SquadResponseType.PlatoonAccept
+          unk1 mustEqual SquadResponseType.PlatoonReject
           unk2 mustEqual 0
           unk3 mustEqual 0
           unk4 mustEqual 30910985L
@@ -286,7 +286,7 @@ class SquadMembershipResponseTest extends Specification {
     "decode (b-1)" in {
       PacketCoding.DecodePacket(string_b1).require match {
         case SquadMembershipResponse(unk1, unk2, unk3, unk4, unk5, unk6, unk7, unk8) =>
-          unk1 mustEqual SquadResponseType.PlatoonCancel
+          unk1 mustEqual SquadResponseType.PlatoonLeave
           unk2 mustEqual 0
           unk3 mustEqual 1
           unk4 mustEqual 30910985L
@@ -377,42 +377,42 @@ class SquadMembershipResponseTest extends Specification {
     }
 
     "encode (7-1)" in {
-      val msg = SquadMembershipResponse(SquadResponseType.Disband, 2, 0, 1176612L, Some(0L), "", true, Some(None))
+      val msg = SquadMembershipResponse(SquadResponseType.PlatoonInvite, 2, 0, 1176612L, Some(0L), "", true, Some(None))
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
       pkt mustEqual string_71
     }
 
     "encode (7-2)" in {
-      val msg = SquadMembershipResponse(SquadResponseType.Disband, 0, 0, 41578085L, Some(30910985L), "Wizkid45", true, Some(None))
+      val msg = SquadMembershipResponse(SquadResponseType.PlatoonInvite, 0, 0, 41578085L, Some(30910985L), "Wizkid45", true, Some(None))
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
       pkt mustEqual string_72
     }
 
     "encode (8-1)" in {
-      val msg = SquadMembershipResponse(SquadResponseType.PlatoonInvite, 0, 0, 30910985L, Some(41578085L), "Wizkid45", false, Some(None))
+      val msg = SquadMembershipResponse(SquadResponseType.PlatoonAccept, 0, 0, 30910985L, Some(41578085L), "Wizkid45", false, Some(None))
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
       pkt mustEqual string_81
     }
 
     "encode (9-1)" in {
-      val msg = SquadMembershipResponse(SquadResponseType.PlatoonAccept, 0, 0, 297025L, Some(41605002L), "", true, Some(None))
+      val msg = SquadMembershipResponse(SquadResponseType.PlatoonReject, 0, 0, 297025L, Some(41605002L), "", true, Some(None))
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
       pkt mustEqual string_91
     }
 
     "encode (9-2)" in {
-      val msg = SquadMembershipResponse(SquadResponseType.PlatoonAccept, 0, 0, 30910985L, Some(41578085L), "Wizkid45", false, Some(None))
+      val msg = SquadMembershipResponse(SquadResponseType.PlatoonReject, 0, 0, 30910985L, Some(41578085L), "Wizkid45", false, Some(None))
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
       pkt mustEqual string_92
     }
 
     "encode (b-1)" in {
-      val msg = SquadMembershipResponse(SquadResponseType.PlatoonCancel, 0, 1, 30910985L, Some(41578085L), "SAraisVanu", false, Some(None))
+      val msg = SquadMembershipResponse(SquadResponseType.PlatoonLeave, 0, 1, 30910985L, Some(41578085L), "SAraisVanu", false, Some(None))
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
       pkt mustEqual string_b1

@@ -152,11 +152,11 @@ class SquadService extends Actor {
   }
 
   /**
-    * Set the unique squad identifier back to the start (1) if no squads are active.
+    * Set the unique squad identifier back to the start (1) if no squads are active and no players are logged on.
     * @return `true`, if the identifier is reset; `false`, otherwise
     */
   def TryResetSquadId() : Boolean = {
-    if(squadFeatures.isEmpty) {
+    if(UserEvents.isEmpty && squadFeatures.isEmpty) {
       sid = 1
       true
     }
@@ -2451,7 +2451,6 @@ class SquadService extends Actor {
       squadFeatures.remove(guid).get.Stop,
       None
     )
-    TryResetSquadId()
   }
 
   /**
@@ -2652,6 +2651,7 @@ class SquadService extends Actor {
         UserEvents.remove(charId)
     }
     SquadEvents.unsubscribe(sender) //just to make certain
+    TryResetSquadId()
   }
 
   /**
