@@ -3,6 +3,20 @@ lazy val commonSettings = Seq(
   version := "1.0.2-SNAPSHOT",
   scalaVersion := "2.11.8",
   scalacOptions := Seq("-unchecked", "-feature", "-deprecation", "-encoding", "utf8", "-language:postfixOps"),
+  // scaladoc flags: https://github.com/scala/scala/blob/2.11.x/src/scaladoc/scala/tools/nsc/doc/Settings.scala
+  // Trick taken from https://groups.google.com/d/msg/scala-user/mxV9ok7J_Eg/kt-LnsrD0bkJ
+  scalacOptions in (Compile,doc) <<= baseDirectory map {
+    bd => Seq(
+    "-groups",
+    "-implicits",
+    "-doc-title", "PSF-LoginServer - ",
+    "-doc-version", "master",
+    "-doc-footer", "Copyright PSForever",
+    // For non unidoc builds, you may need bd.getName before the template parameter
+    "-doc-source-url", "https://github.com/psforever/PSF-LoginServer/blob/master/€{FILE_PATH}.scala",
+    "-sourcepath", bd.getAbsolutePath // needed for scaladoc relative source paths
+    )
+  },
   resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
   libraryDependencies ++= Seq(
     "com.typesafe.akka"          %% "akka-actor"    % "2.4.4",
@@ -39,6 +53,7 @@ lazy val psloginPackSettings = packAutoSettings ++ Seq(
 
 lazy val root = (project in file(".")).
   settings(commonSettings: _*).
+  enablePlugins(ScalaUnidocPlugin).
   settings(psloginPackSettings: _*).
   aggregate(pslogin, common)
 
