@@ -131,6 +131,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
   var lfs : Boolean = false
   var squadChannel : Option[String] = None
   var squadSetup : () => Unit = FirstTimeSquadSetup
+  var squadUpdateCounter : Int = 0
+  val queuedSquadActions : Seq[() => Unit] = Seq(SquadUpdates, NoSquadUpdates, NoSquadUpdates, NoSquadUpdates)
 
   var amsSpawnPoints : List[SpawnPoint] = Nil
   var clientKeepAlive : Cancellable = DefaultCancellable.obj
@@ -450,7 +452,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                 sendResponse(PlanetsideAttributeMessage(playerGuid, 32, ourIndex))
                 //a finalization? what does this do?
                 sendResponse(SquadDefinitionActionMessage(squad.GUID, 0, SquadAction.Unknown(18)))
-                updateSquad = UpdatesWhenEnrolledInSquad
+                updateSquad = PeriodicUpdatesWhenEnrolledInSquad
                 squadChannel = Some(toChannel)
               case _ =>
                 //other player is joining our squad
@@ -494,6 +496,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                 //a finalization? what does this do?
                 sendResponse(SquadDefinitionActionMessage(PlanetSideGUID(0), 0, SquadAction.Unknown(18)))
                 squad_supplement_id = 0
+                squadUpdateCounter = 0
                 updateSquad = NoSquadUpdates
                 squadChannel = None
               case _ =>
@@ -9326,7 +9329,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
   def NoSquadUpdates() : Unit = { }
 
-  def UpdatesWhenEnrolledInSquad() : Unit = {
+  def SquadUpdates() : Unit = {
     squadService ! SquadServiceMessage(
       player,
       continent,
@@ -9339,6 +9342,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
           SquadServiceAction.Update(player.CharId, player.Health, player.MaxHealth, player.Armor, player.MaxArmor, player.Position, continent.Number)
       }
     )
+  }
+
+  def PeriodicUpdatesWhenEnrolledInSquad() : Unit = {
+    queuedSquadActions(squadUpdateCounter)()
+    squadUpdateCounter = (squadUpdateCounter + 1) % queuedSquadActions.length
   }
 
   def failWithError(error : String) = {

@@ -426,7 +426,7 @@ class SquadService extends Actor {
             case None => None
           }
         }) match {
-          case Some(invitedPlayer) =>
+          case Some(invitedPlayer) if invitingPlayer != invitedPlayer =>
             (memberToSquad.get(invitingPlayer), memberToSquad.get(invitedPlayer)) match {
               case (Some(squad1), Some(squad2)) if squad1.GUID == squad2.GUID =>
               //both players are in the same squad; no need to do anything
@@ -519,7 +519,7 @@ class SquadService extends Actor {
 
               case _ => ;
             }
-          case None => ;
+          case _ => ;
         }
 
       case SquadAction.Membership(SquadRequestType.ProximityInvite, invitingPlayer, _, _, _) =>
@@ -760,7 +760,6 @@ class SquadService extends Actor {
               }
             }) match {
               case out @ Some(leavingPlayer) if GetParticipatingSquad(leavingPlayer).contains(squad) => //kicked player must be in the same squad
-                log.info(s"leader=$leader, acting=$actingPlayer, leaving=$leavingPlayer")
                 if(actingPlayer == leader) {
                   if(leavingPlayer == leader || squad.Size == 2) {
                     //squad leader is leaving his own squad, so it will be disbanded
@@ -1254,11 +1253,15 @@ class SquadService extends Actor {
                 val features = squadFeatures(squad.GUID)
                 features.LocationFollowsSquadLead = true
                 features.AutoApproveInvitationRequests = true
-                UpdateSquadListWhenListed(features, SquadInfo().Task("").ZoneId(None).Capacity(squad.Capacity))
+                if(features.Listed) {
+                  //unlist the squad
+                  features.Listed = false
+                  Publish(features.ToChannel, SquadResponse.SetListSquad(PlanetSideGUID(0)))
+                  UpdateSquadList(squad, None)
+                }
                 UpdateSquadDetail(squad)
                 InitialAssociation(squad)
                 squadFeatures(guid).InitialAssociation = true
-                //do not unlist an already listed squad
               case Some(squad) =>
                 //underutilized squad; just close it out
                 CloseSquad(squad)
@@ -2159,7 +2162,7 @@ class SquadService extends Actor {
     * The initial formation of a squad of two players is the most common expected situation.
     * While the underlying flag is normally only set once, its state can be reset and triggered anew if necessary.
     * @see `Publish`
-    * @see `ResetAll`
+    * @see ``ResetAll
     * @see `SquadResponse.AssociateWithSquad`
     * @see `SquadResponse.Detail`
     * @see `SquadService.Detail.Publish`
@@ -2425,7 +2428,11 @@ class SquadService extends Actor {
       .unzip
     val updateIndicesList = updateIndices.toList
     val completelyBlankSquadDetail = SquadDetail().Complete
-    val channel = s"/${squadFeatures(squad.GUID).ToChannel}/Squad"
+    val features = squadFeatures(guid)
+    val channel = s"/${features.ToChannel}/Squad"
+    if(features.Listed) {
+      Publish(squad.Leader.CharId, SquadResponse.SetListSquad(PlanetSideGUID(0)))
+    }
     updateMembers
       .foreach {
         case (member, charId, _, None) =>
