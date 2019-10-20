@@ -2544,16 +2544,14 @@ class SquadService extends Actor {
     * @see `SquadWaypointRequest`
     * @see `WaypointInfo`
     * @param guid the squad's unique identifier
-    * @param waypointType the type of the waypoint as an integer;
-    *                     0-4 are squad waypoints;
-    *                     5 is the squad leader's experience waypoint
+    * @param waypointType the type of the waypoint
     * @param info information about the waypoint, as was reported by the client's packet
     * @return the waypoint data, if the waypoint type is changed
     */
-  def AddWaypoint(guid : PlanetSideGUID, waypointType : Int, info : WaypointInfo) : Option[WaypointData] = {
+  def AddWaypoint(guid : PlanetSideGUID, waypointType : SquadWaypoints.Value, info : WaypointInfo) : Option[WaypointData] = {
     squadFeatures.get(guid) match {
       case Some(features) =>
-        features.Waypoints.lift(waypointType) match {
+        features.Waypoints.lift(waypointType.id) match {
           case Some(point) =>
             point.zone_number = info.zone_number
             point.pos = info.pos
@@ -2576,14 +2574,12 @@ class SquadService extends Actor {
     * All of the waypoints constantly exist as long as the squad to which they are attached exists.
     * They are merely "activated" and "deactivated."
     * @param guid the squad's unique identifier
-    * @param waypointType the type of the waypoint as an integer;
-    *                     0-4 are squad waypoints;
-    *                     5 is the squad leader's experience waypoint
+    * @param waypointType the type of the waypoint
     */
-  def RemoveWaypoint(guid : PlanetSideGUID, waypointType : Int) : Unit = {
+  def RemoveWaypoint(guid : PlanetSideGUID, waypointType : SquadWaypoints.Value) : Unit = {
     squadFeatures.get(guid) match {
       case Some(features) =>
-        features.Waypoints.lift(waypointType) match {
+        features.Waypoints.lift(waypointType.id) match {
           case Some(point) =>
             point.pos = Vector3.z(1)
           case _ =>
@@ -2608,7 +2604,7 @@ class SquadService extends Actor {
         Publish(
           toCharId, SquadResponse.InitWaypoints(squad.Leader.CharId,
             list.zipWithIndex.collect { case (point, index) if point.pos != vz1 =>
-              (index, WaypointInfo(point.zone_number, point.pos), 1)
+              (SquadWaypoints(index), WaypointInfo(point.zone_number, point.pos), 1)
             }
           )
         )

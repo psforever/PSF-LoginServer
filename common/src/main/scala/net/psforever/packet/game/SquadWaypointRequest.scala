@@ -2,7 +2,7 @@
 package net.psforever.packet.game
 
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
-import net.psforever.types.Vector3
+import net.psforever.types.{SquadWaypoints, Vector3}
 import scodec.{Attempt, Codec, Err}
 import scodec.codecs._
 import shapeless.{::, HNil}
@@ -46,7 +46,7 @@ final case class WaypointInfo(zone_number : Int,
   */
 final case class SquadWaypointRequest(request_type : WaypointEventAction.Value,
                                       char_id : Long,
-                                      waypoint_type : Int,
+                                      waypoint_type : SquadWaypoints.Value,
                                       unk4 : Option[Long],
                                       waypoint_info : Option[WaypointInfo])
   extends PlanetSideGamePacket {
@@ -56,13 +56,13 @@ final case class SquadWaypointRequest(request_type : WaypointEventAction.Value,
 }
 
 object SquadWaypointRequest extends Marshallable[SquadWaypointRequest] {
-  def Add(char_id : Long, waypoint_type : Int, waypoint : WaypointInfo) : SquadWaypointRequest =
+  def Add(char_id : Long, waypoint_type : SquadWaypoints.Value, waypoint : WaypointInfo) : SquadWaypointRequest =
     SquadWaypointRequest(WaypointEventAction.Add, char_id, waypoint_type, None, Some(waypoint))
 
-  def Unknown1(char_id : Long, waypoint_type : Int, unk_a : Long) : SquadWaypointRequest =
+  def Unknown1(char_id : Long, waypoint_type : SquadWaypoints.Value, unk_a : Long) : SquadWaypointRequest =
     SquadWaypointRequest(WaypointEventAction.Unknown1, char_id, waypoint_type, Some(unk_a), None)
 
-  def Remove(char_id : Long, waypoint_type : Int) : SquadWaypointRequest =
+  def Remove(char_id : Long, waypoint_type : SquadWaypoints.Value) : SquadWaypointRequest =
     SquadWaypointRequest(WaypointEventAction.Remove, char_id, waypoint_type, None, None)
 
   private val waypoint_codec : Codec[WaypointInfo] = (
@@ -80,7 +80,7 @@ object SquadWaypointRequest extends Marshallable[SquadWaypointRequest] {
   implicit val codec : Codec[SquadWaypointRequest] = (
     ("request_type" | WaypointEventAction.codec) >>:~ { request_type =>
       ("char_id" | uint32L) ::
-        ("waypoint_type" | uint8L) ::
+        ("waypoint_type" | SquadWaypoints.codec) ::
         ("unk4" | conditional(request_type == WaypointEventAction.Unknown1, uint32L)) ::
         ("waypoint" | conditional(request_type == WaypointEventAction.Add, waypoint_codec))
     }

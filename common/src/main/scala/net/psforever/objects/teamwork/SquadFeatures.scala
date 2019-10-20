@@ -3,6 +3,7 @@ package net.psforever.objects.teamwork
 
 import akka.actor.{Actor, ActorContext, ActorRef, Cancellable, Props}
 import net.psforever.objects.DefaultCancellable
+import net.psforever.types.SquadWaypoints
 import services.teamwork.SquadService.WaypointData
 import services.teamwork.SquadSwitchboard
 
@@ -70,7 +71,7 @@ class SquadFeatures(val Squad : Squad) {
 
   def Start(implicit context : ActorContext) : SquadFeatures = {
     switchboard = context.actorOf(Props[SquadSwitchboard], s"squad${Squad.GUID.guid}")
-    waypoints = Array.fill[WaypointData](5)(new WaypointData())
+    waypoints = Array.fill[WaypointData](SquadWaypoints.values.size)(new WaypointData())
     this
   }
 

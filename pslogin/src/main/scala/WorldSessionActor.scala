@@ -121,14 +121,14 @@ class WorldSessionActor extends Actor with MDCContextAware {
   val squadUI : LongMap[SquadUIElement] = new LongMap[SquadUIElement]()
   var squad_supplement_id : Int = 0
   /**
-    * `AvatarConverter` can only rely on the `Avatar`-local Looking For Squad variable.
-    * When joining or creating a squad, the original state of the avatar's local LFS variable is blanked.
+    * When joining or creating a squad, the original state of the avatar's internal LFS variable is blanked.
     * This `WSA`-local variable is then used to indicate the ongoing state of the LFS UI component,
     * now called "Looking for Squad Member."
+    * Only the squad leader may toggle the LFSM marquee.
     * Upon leaving or disbanding a squad, this value is made false.
-    * Control switching between the `Avatar`-local and the `WSA`-local variable is contingent on `squadUI` being populated.
+    * Control switching between the `Avatar`-local and the `WorldSessionActor`-local variable is contingent on `squadUI` being populated.
     */
-  var lfs : Boolean = false
+  var lfsm : Boolean = false
   var squadChannel : Option[String] = None
   var squadSetup : () => Unit = FirstTimeSquadSetup
   var squadUpdateCounter : Int = 0
@@ -492,7 +492,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                 avatarService ! AvatarServiceMessage(s"${continent.Id}/${player.Faction}", AvatarAction.PlanetsideAttribute(playerGuid, 31, 0))
                 sendResponse(PlanetsideAttributeMessage(playerGuid, 32, 0)) //disassociate with member position in squad?
                 sendResponse(PlanetsideAttributeMessage(playerGuid, 34, 4294967295L)) //unknown, perhaps unrelated?
-                lfs = false
+                lfsm = false
                 //a finalization? what does this do?
                 sendResponse(SquadDefinitionActionMessage(PlanetSideGUID(0), 0, SquadAction.Unknown(18)))
                 squad_supplement_id = 0
@@ -523,11 +523,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
             //are we being demoted?
             if(squadUI(charId).index == 0) {
               //lfsm -> lfs
-              if(lfs) {
+              if(lfsm) {
                 sendResponse(PlanetsideAttributeMessage(guid, 53, 0))
                 avatarService ! AvatarServiceMessage(factionOnContinentChannel, AvatarAction.PlanetsideAttribute(guid, 53, 0))
               }
-              lfs = false
+              lfsm = false
               sendResponse(PlanetsideAttributeMessage(guid, 32, from_index)) //associate with member position in squad
             }
             //are we being promoted?
@@ -3055,7 +3055,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     deadState = DeadState.Alive
     sendResponse(AvatarDeadStateMessage(DeadState.Alive, 0, 0, tplayer.Position, player.Faction, true))
     //looking for squad (members)
-    if(tplayer.LFS || lfs) {
+    if(tplayer.LFS || lfsm) {
       sendResponse(PlanetsideAttributeMessage(guid, 53, 1))
       avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(guid, 53, 1))
     }
@@ -3692,7 +3692,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
               }
               vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.VehicleState(player.GUID, vehicle_guid, unk1, pos, ang, vel, flight, unk6, unk7, wheels, unk9, unkA))
             }
-            //vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.VehicleState(player.GUID, vehicle_guid, unk1, pos, ang, vel, flight, unk6, unk7, wheels, unk9, unkA))
             updateSquad()
           case (None, _) =>
             //log.error(s"VehicleState: no vehicle $vehicle_guid found in zone")
@@ -4797,8 +4796,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
       }
       else if(action == 36) { //Looking For Squad ON
         if(squadUI.nonEmpty) {
-          if(!lfs && squadUI(player.CharId).index == 0) {
-            lfs = true
+          if(!lfsm && squadUI(player.CharId).index == 0) {
+            lfsm = true
             avatarService ! AvatarServiceMessage(s"${continent.Id}/${player.Faction}", AvatarAction.PlanetsideAttribute(player.GUID, 53, 1))
           }
         }
@@ -4809,8 +4808,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
       }
       else if(action == 37) { //Looking For Squad OFF
         if(squadUI.nonEmpty) {
-          if(lfs && squadUI(player.CharId).index == 0) {
-            lfs = false
+          if(lfsm && squadUI(player.CharId).index == 0) {
+            lfsm = false
             avatarService ! AvatarServiceMessage(s"${continent.Id}/${player.Faction}", AvatarAction.PlanetsideAttribute(player.GUID, 53, 0))
           }
         }

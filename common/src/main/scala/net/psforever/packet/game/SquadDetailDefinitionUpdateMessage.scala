@@ -114,7 +114,10 @@ final case class SquadPositionDetail(is_closed : Option[Boolean],
   *              when 255, this indicated the end of enumerated squad position data and the data for that position is absent
   * @param info the squad position field data
   */
-final case class SquadPositionEntry(index : Int, info : Option[SquadPositionDetail])
+final case class SquadPositionEntry(index : Int, info : Option[SquadPositionDetail]) {
+  assert((index > -1 && index < 10) || index == 255, "index value is out of range 0=>n<=9 or n=255")
+  assert(if(index == 255) { info.isEmpty } else { true }, "index=255 indicates end of stream exclusively and field data should be blank")
+}
 
 /**
   * Information regarding a squad's position as a series of common fields.

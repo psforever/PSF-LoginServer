@@ -23,11 +23,4 @@ object SquadResponseType extends Enumeration {
   = Value
 
   implicit val codec = PacketHelpers.createEnumerationCodec(this, uint4L)
-
-  def fromRequest(response : SquadResponseType.Value) : SquadRequestType.Value = {
-    val id = response.id
-    if(id < 6) SquadRequestType(id)
-    else if(id > 5) SquadRequestType(id + 1)
-    else throw new NoSuchElementException("response does not stem from an applicable request")
-  }
 }

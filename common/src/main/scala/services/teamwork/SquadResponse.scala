@@ -3,7 +3,7 @@ package services.teamwork
 
 import net.psforever.objects.teamwork.Squad
 import net.psforever.packet.game._
-import net.psforever.types.SquadResponseType
+import net.psforever.types.{SquadResponseType, SquadWaypoints}
 
 object SquadResponse {
   trait Response
@@ -27,8 +27,8 @@ object SquadResponse {
 
   final case class Detail(guid : PlanetSideGUID, squad_detail : SquadDetail) extends Response
 
-  final case class InitWaypoints(char_id : Long, waypoints : Iterable[(Int, WaypointInfo, Int)]) extends Response
-  final case class WaypointEvent(event_type : WaypointEventAction.Value, char_id : Long, waypoint_type : Int, unk5 : Option[Long], waypoint_info : Option[WaypointInfo], unk : Int) extends Response
+  final case class InitWaypoints(char_id : Long, waypoints : Iterable[(SquadWaypoints.Value, WaypointInfo, Int)]) extends Response
+  final case class WaypointEvent(event_type : WaypointEventAction.Value, char_id : Long, waypoint_type : SquadWaypoints.Value, unk5 : Option[Long], waypoint_info : Option[WaypointInfo], unk : Int) extends Response
 
   final case class SquadSearchResults() extends Response
 }

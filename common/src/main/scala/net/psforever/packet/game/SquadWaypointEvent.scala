@@ -1,8 +1,8 @@
-// Copyright (c) 2017 PSForever
+// Copyright (c) 2019 PSForever
 package net.psforever.packet.game
 
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PlanetSideGamePacket}
-import net.psforever.types.Vector3
+import net.psforever.types.{SquadWaypoints, Vector3}
 import scodec.{Attempt, Codec, Err}
 import scodec.codecs._
 import shapeless.{::, HNil}
@@ -14,7 +14,7 @@ final case class WaypointEvent(zone_number : Int,
 final case class SquadWaypointEvent(event_type : WaypointEventAction.Value,
                                     unk : Int,
                                     char_id : Long,
-                                    waypoint_type : Int,
+                                    waypoint_type : SquadWaypoints.Value,
                                     unk5 : Option[Long],
                                     waypoint_info : Option[WaypointEvent])
   extends PlanetSideGamePacket {
@@ -24,13 +24,13 @@ final case class SquadWaypointEvent(event_type : WaypointEventAction.Value,
 }
 
 object SquadWaypointEvent extends Marshallable[SquadWaypointEvent] {
-  def Add(unk : Int, char_id : Long, waypoint_type : Int, waypoint : WaypointEvent) : SquadWaypointEvent =
+  def Add(unk : Int, char_id : Long, waypoint_type : SquadWaypoints.Value, waypoint : WaypointEvent) : SquadWaypointEvent =
     SquadWaypointEvent(WaypointEventAction.Add, unk, char_id, waypoint_type, None, Some(waypoint))
 
-  def Unknown1(unk : Int, char_id : Long, waypoint_type : Int, unk_a : Long) : SquadWaypointEvent =
+  def Unknown1(unk : Int, char_id : Long, waypoint_type : SquadWaypoints.Value, unk_a : Long) : SquadWaypointEvent =
     SquadWaypointEvent(WaypointEventAction.Unknown1, unk, char_id, waypoint_type, Some(unk_a), None)
 
-  def Remove(unk : Int, char_id : Long, waypoint_type : Int) : SquadWaypointEvent =
+  def Remove(unk : Int, char_id : Long, waypoint_type : SquadWaypoints.Value) : SquadWaypointEvent =
     SquadWaypointEvent(WaypointEventAction.Remove, unk, char_id, waypoint_type, None, None)
 
   private val waypoint_codec : Codec[WaypointEvent] = (
@@ -43,7 +43,7 @@ object SquadWaypointEvent extends Marshallable[SquadWaypointEvent] {
     ("event_type" | WaypointEventAction.codec) >>:~ { event_type =>
       ("unk" | uint16L) ::
       ("char_id" | uint32L) ::
-        ("waypoint_type" | uint8L) ::
+        ("waypoint_type" | SquadWaypoints.codec) ::
         ("unk5" | conditional(event_type == WaypointEventAction.Unknown1, uint32L)) ::
         ("waypoint_info" | conditional(event_type == WaypointEventAction.Add, waypoint_codec))
     }

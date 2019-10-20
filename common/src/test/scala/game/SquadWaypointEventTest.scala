@@ -3,8 +3,8 @@ package game
 
 import org.specs2.mutable._
 import net.psforever.packet._
-import net.psforever.packet.game.{SquadWaypointEvent, WaypointEventAction, WaypointEvent}
-import net.psforever.types.Vector3
+import net.psforever.packet.game.{SquadWaypointEvent, WaypointEvent, WaypointEventAction}
+import net.psforever.types.{SquadWaypoints, Vector3}
 import scodec.bits._
 
 class SquadWaypointEventTest extends Specification {
@@ -19,7 +19,7 @@ class SquadWaypointEventTest extends Specification {
         unk1 mustEqual WaypointEventAction.Remove
         unk2 mustEqual 11
         unk3 mustEqual 31155863L
-        unk4 mustEqual 0
+        unk4 mustEqual SquadWaypoints.One
         unk5.isEmpty mustEqual true
         unk6.isEmpty mustEqual true
       case _ =>
@@ -33,7 +33,7 @@ class SquadWaypointEventTest extends Specification {
         unk1 mustEqual WaypointEventAction.Remove
         unk2 mustEqual 10
         unk3 mustEqual 0L
-        unk4 mustEqual 4
+        unk4 mustEqual SquadWaypoints.ExperienceRally
         unk5.isEmpty mustEqual true
         unk6.isEmpty mustEqual true
       case _ =>
@@ -47,7 +47,7 @@ class SquadWaypointEventTest extends Specification {
         unk1 mustEqual WaypointEventAction.Add
         unk2 mustEqual 3
         unk3 mustEqual 41581052L
-        unk4 mustEqual 1
+        unk4 mustEqual SquadWaypoints.Two
         unk5.isEmpty mustEqual true
         unk6.contains( WaypointEvent(10, Vector3(3457.9688f, 5514.4688f, 0.0f), 1) ) mustEqual true
       case _ =>
@@ -61,7 +61,7 @@ class SquadWaypointEventTest extends Specification {
         unk1 mustEqual WaypointEventAction.Unknown1
         unk2 mustEqual 3
         unk3 mustEqual 41581052L
-        unk4 mustEqual 1
+        unk4 mustEqual SquadWaypoints.Two
         unk5.contains( 4L ) mustEqual true
         unk6.isEmpty mustEqual true
       case _ =>
@@ -70,28 +70,28 @@ class SquadWaypointEventTest extends Specification {
   }
 
   "encode (1)" in {
-    val msg = SquadWaypointEvent.Remove(11, 31155863L, 0)
+    val msg = SquadWaypointEvent.Remove(11, 31155863L, SquadWaypoints.One)
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string_1
   }
 
   "encode (2)" in {
-    val msg = SquadWaypointEvent.Remove(10, 0L, 4)
+    val msg = SquadWaypointEvent.Remove(10, 0L, SquadWaypoints.ExperienceRally)
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string_2
   }
 
   "encode (3)" in {
-    val msg = SquadWaypointEvent.Add(3, 41581052L, 1, WaypointEvent(10, Vector3(3457.9688f, 5514.4688f, 0.0f), 1))
+    val msg = SquadWaypointEvent.Add(3, 41581052L, SquadWaypoints.Two, WaypointEvent(10, Vector3(3457.9688f, 5514.4688f, 0.0f), 1))
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string_3
   }
 
   "encode (4)" in {
-    val msg = SquadWaypointEvent.Unknown1(3, 41581052L, 1, 4L)
+    val msg = SquadWaypointEvent.Unknown1(3, 41581052L, SquadWaypoints.Two, 4L)
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string_4
