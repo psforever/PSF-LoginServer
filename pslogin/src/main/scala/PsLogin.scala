@@ -11,6 +11,7 @@ import ch.qos.logback.core.joran.spi.JoranException
 import ch.qos.logback.core.status._
 import ch.qos.logback.core.util.StatusPrinter
 import com.typesafe.config.ConfigFactory
+import net.psforever.config.{Valid, Invalid}
 import net.psforever.crypto.CryptoInterface
 import net.psforever.objects.zones._
 import net.psforever.objects.guid.TaskResolver
@@ -102,6 +103,33 @@ object PsLogin {
     }
   }
 
+  def loadConfig(configDirectory : String) = {
+    val worldConfigFile = configDirectory + File.separator + "worldserver.ini"
+    // For fallback when no user-specific config file has been created
+    val worldDefaultConfigFile = configDirectory + File.separator + "worldserver.ini.dist"
+
+    val worldConfigToLoad = if ((new File(worldConfigFile)).exists()) {
+      worldConfigFile
+    } else if ((new File(worldDefaultConfigFile)).exists()) {
+      println("WARNING: loading the default worldserver.ini.dist config file")
+      println("WARNING: Please create a worldserver.ini file to override server defaults")
+
+      worldDefaultConfigFile
+    } else {
+      println("FATAL: unable to load any worldserver.ini file")
+      sys.exit(1)
+    }
+
+    WorldConfig.Load(worldConfigToLoad) match {
+      case Valid =>
+        println("Loaded world config from " + worldConfigFile)
+      case i : Invalid =>
+        println("FATAL: Error loading config from " + worldConfigFile)
+        println(WorldConfig.FormatErrors(i).mkString("\n"))
+        sys.exit(1)
+    }
+  }
+
   def parseArgs(args : Array[String]) : Unit = {
     if(args.length == 1) {
       LoginConfig.serverIpAddress = InetAddress.getByName(args{0})
@@ -125,8 +153,14 @@ object PsLogin {
       configDirectory = System.getProperty("prog.home") + File.separator + "config"
     }
 
-    initializeLogging(configDirectory + File.separator + "logback.xml")
     parseArgs(this.args)
+
+    val loggingConfigFile = configDirectory + File.separator + "logback.xml"
+
+    loadConfig(configDirectory)
+
+    println(s"Initializing logging from ${loggingConfigFile}...")
+    initializeLogging(loggingConfigFile)
 
     /** Initialize the PSCrypto native library
       *
@@ -194,9 +228,8 @@ object PsLogin {
       SessionPipeline("world-session-", Props[WorldSessionActor])
     )
 
-    val loginServerPort = 51000
-    val worldServerPort = 51001
-
+    val loginServerPort = WorldConfig.Get[Int]("loginserver.ListeningPort")
+    val worldServerPort = WorldConfig.Get[Int]("worldserver.ListeningPort")
 
     // Uncomment for network simulation
     // TODO: make this config or command flag
