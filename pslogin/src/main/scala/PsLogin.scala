@@ -51,9 +51,25 @@ object PsLogin {
 
   /** Grabs the most essential system information and returns it as a preformatted string */
   def systemInformation : String = {
+    val procNum = Runtime.getRuntime.availableProcessors();
+    val processorString = if(procNum == 1) {
+      "Detected 1 available logical processor"
+    }
+    else {
+      s"Detected $procNum available logical processors"
+    }
+
+    val freeMemory = Runtime.getRuntime.freeMemory() / 1048576;
+    // how much memory has been allocated out of the maximum that can be
+    val totalMemory = Runtime.getRuntime.totalMemory() / 1048576;
+    // the maximum amount of memory that the JVM can hold before OOM errors
+    val maxMemory = Runtime.getRuntime.maxMemory() / 1048576;
+
     s"""|~~~ System Information ~~~
-       |${System.getProperty("os.name")} (v. ${System.getProperty("os.version")}, ${System.getProperty("os.arch")})
-       |${System.getProperty("java.vm.name")} (build ${System.getProperty("java.version")}), ${System.getProperty("java.vendor")} - ${System.getProperty("java.vendor.url")}
+       |SYS: ${System.getProperty("os.name")} (v. ${System.getProperty("os.version")}, ${System.getProperty("os.arch")})
+       |CPU: ${processorString}
+       |MEM: ${maxMemory}MB available to the JVM (tune with -Xmx flag)
+       |JVM: ${System.getProperty("java.vm.name")} (build ${System.getProperty("java.version")}), ${System.getProperty("java.vendor")} - ${System.getProperty("java.vendor.url")}
     """.stripMargin
   }
 
@@ -185,13 +201,6 @@ object PsLogin {
         sys.exit(1)
     }
 
-    val procNum = Runtime.getRuntime.availableProcessors()
-    logger.info(if(procNum == 1) {
-      "Detected 1 available logical processor"
-    }
-    else {
-      s"Detected $procNum available logical processors"
-    })
     logger.info("Starting actor subsystems...")
 
     /** Make sure we capture Akka messages (but only INFO and above)
