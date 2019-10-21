@@ -612,7 +612,6 @@ class SquadService extends Actor {
             //player requested to join a squad's specific position
             //invitedPlayer is actually the squad leader; petitioner is the actual "invitedPlayer"
             val features = squadFeatures(guid)
-            features.Prompt.cancel
             JoinSquad(petitioner, features.Squad, position)
             RemoveInvitesForSquadAndPosition(guid, position)
 
@@ -832,7 +831,6 @@ class SquadService extends Actor {
             //rejectingPlayer is the squad leader; candidate is the would-be squad member who was rejected
             val features = squadFeatures(guid)
             features.Refuse = rejectingPlayer
-            features.Prompt.cancel
             (Some(rejectingPlayer), None)
 
           case _ => ;
@@ -902,8 +900,6 @@ class SquadService extends Actor {
             val (member, index) = membership.zipWithIndex.find { case (_member, _) => _member.CharId == promotedPlayer }.get
             val features = squadFeatures(squad.GUID)
             SwapMemberPosition(leader, member)
-            //cancel previous leader invite prompt, if any
-            features.Prompt.cancel
             //move around invites so that the proper squad leader deals with them
             val leaderInvite = invites.remove(promotingPlayer)
             val leaderQueuedInvites = queuedInvites.remove(promotingPlayer).toList.flatten
@@ -1108,6 +1104,28 @@ class SquadService extends Actor {
           case AutoApproveInvitationRequests(state) =>
             val features = squadFeatures(lSquadOpt.getOrElse(StartSquad(tplayer)).GUID)
             features.AutoApproveInvitationRequests = state
+            if(state) {
+              //allowed auto-approval - resolve the requests (only)
+              val charId = tplayer.CharId
+              val (requests, others) = (invites.get(charId).toList ++ queuedInvites.get(charId).toList)
+                .partition({ case _ : RequestRole => true})
+              invites.remove(charId)
+              queuedInvites.remove(charId)
+              previousInvites.remove(charId)
+              requests.foreach {
+                case request : RequestRole =>
+                  JoinSquad(request.player, features.Squad, request.position)
+                case _ => ;
+              }
+              others.collect { case invite : Invitation => invite } match {
+                case Nil => ;
+                case x :: Nil =>
+                  AddInviteAndRespond(charId, x, x.InviterCharId, x.InviterName)
+                case x :: xs =>
+                  AddInviteAndRespond(charId, x, x.InviterCharId, x.InviterName)
+                  queuedInvites += charId -> xs
+              }
+            }
 
           case FindLfsSoldiersForRole(position) =>
             lSquadOpt match {
@@ -1438,9 +1456,6 @@ class SquadService extends Actor {
       case msg =>
         debug(s"Unhandled message $msg from $sender")
     }
-
-    case data @ SquadResponse.WantsSquadPosition(leader_char_id, _) =>
-      Publish(leader_char_id, data)
 
     case msg =>
       debug(s"Unhandled message $msg from $sender")
@@ -2145,9 +2160,7 @@ class SquadService extends Actor {
           self ! SquadServiceMessage(player, Zone.Nowhere, SquadAction.Membership(SquadRequestType.Accept, leaderCharId, None, "", None))
         }
         else {
-          import scala.concurrent.duration._
-          import scala.concurrent.ExecutionContext.Implicits.global
-          features.Prompt = context.system.scheduler.schedule(1 milliseconds, 45000 milliseconds, self, SquadResponse.WantsSquadPosition(leaderCharId, player.Name))
+          Publish(leaderCharId, SquadResponse.WantsSquadPosition(leaderCharId, player.Name))
         }
         true
       case _ =>

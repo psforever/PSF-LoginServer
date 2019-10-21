@@ -1,8 +1,7 @@
 // Copyright (c) 2019 PSForever
 package net.psforever.objects.teamwork
 
-import akka.actor.{Actor, ActorContext, ActorRef, Cancellable, Props}
-import net.psforever.objects.DefaultCancellable
+import akka.actor.{Actor, ActorContext, ActorRef, Props}
 import net.psforever.types.SquadWaypoints
 import services.teamwork.SquadService.WaypointData
 import services.teamwork.SquadSwitchboard
@@ -11,8 +10,8 @@ class SquadFeatures(val Squad : Squad) {
   /**
     * `initialAssociation` per squad is similar to "Does this squad want to recruit members?"
     * The squad does not have to be flagged.
-    * Dispatches an `AssociateWithSquad` `SDAM` to the squad leader and ???
-    * and then a `SDDUM` that includes at least the squad owner name and char id.
+    * Dispatches an `AssociateWithSquad` `SquadDefinitionActionMessage` packet to the squad leader and ???
+    * and then a `SquadDetailDefinitionUpdateMessage` that includes at least the squad owner name and char id.
     * Dispatched only once when a squad is first listed
     * or when the squad leader searches for recruits by proximity or for certain roles or by invite
     * or when a spontaneous squad forms,
@@ -52,8 +51,6 @@ class SquadFeatures(val Squad : Squad) {
     * Handle persistent data related to `ProximityInvite` and `LookingForSquadRoleInvite` messages
     */
   private var proxyInvites : List[Long] = Nil
-
-  private var requestInvitePrompt : Cancellable = DefaultCancellable.obj
   /**
     * These useres rejected invitation to this squad.
     * For the purposes of wide-searches for membership
@@ -79,7 +76,6 @@ class SquadFeatures(val Squad : Squad) {
     switchboard ! akka.actor.PoisonPill
     switchboard = Actor.noSender
     waypoints = Array.empty
-    requestInvitePrompt.cancel
     this
   }
 
@@ -143,13 +139,4 @@ class SquadFeatures(val Squad : Squad) {
   }
 
   def ToChannel : String = channel
-
-  def Prompt : Cancellable = requestInvitePrompt
-
-  def Prompt_=(callback: Cancellable) : Cancellable = {
-    if(requestInvitePrompt.isCancelled) {
-      requestInvitePrompt = callback
-    }
-    Prompt
-  }
 }

@@ -426,16 +426,23 @@ object SquadDefinitionActionMessage extends Marshallable[SquadDefinitionActionMe
     ((code : @switch) match {
       case 0 => displaySquadCodec
       case 1 => squadMemberInitializationIssueCodec
+      case 2 => unknownCodec(action = 2)
       case 3 => saveSquadFavoriteCodec
       case 4 => loadSquadFavoriteCodec
       case 5 => deleteSquadFavoriteCodec
+      case 6 => unknownCodec(action = 6)
       case 7 => listSquadFavoriteCodec
       case 8 => requestListSquadCodec
       case 9 => stopListSquadCodec
       case 10 => selectRoleForYourselfCodec
+      case 11 => unknownCodec(action = 11)
+      case 12 => unknownCodec(action = 12)
+      case 13 => unknownCodec(action = 13)
+      case 14 => unknownCodec(action = 14)
       case 15 => cancelSelectRoleForYourselfCodec
       case 16 => associateWithSquadCodec
       case 17 => setListSquadCodec
+      case 18 => unknownCodec(action = 18)
       case 19 => changeSquadPurposeCodec
       case 20 => changeSquadZoneCodec
       case 21 => closeSquadMemberPositionCodec
@@ -444,17 +451,23 @@ object SquadDefinitionActionMessage extends Marshallable[SquadDefinitionActionMe
       case 24 => changeSquadMemberRequirementsDetailedOrdersCodec
       case 25 => changeSquadMemberRequirementsCertificationsCodec
       case 26 => resetAllCodec
+      //case 27 => ?
       case 28 => autoApproveInvitationRequestsCodec
+      case 29 => unknownCodec(action = 29)
+      case 30 => unknownCodec(action = 30)
       case 31 => locationFollowsSquadLeadCodec
+      case 32 => unknownCodec(action = 32)
+      case 33 => unknownCodec(action = 33)
       case 34 => searchForSquadsWithParticularRoleCodec
       case 35 => cancelSquadSearchCodec
+      case 36 => unknownCodec(action = 36)
+      case 37 => unknownCodec(action = 37)
       case 38 => assignSquadMemberToRoleCodec
       case 39 => noSquadSearchResultsCodec
       case 40 => findLfsSoldiersForRoleCodec
       case 41 => cancelFindCodec
-      case  2 |  6 | 11 | 12 | 13 |
-           14 | 18 | 29 | 30 | 32 |
-           33 | 36 | 37 | 42 | 43 => unknownCodec(code)
+      case 42 => unknownCodec(action = 42)
+      case 43 => unknownCodec(action = 43)
       case _ => failureCodec(code)
     }).asInstanceOf[Codec[SquadAction]]
   }

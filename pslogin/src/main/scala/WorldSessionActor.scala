@@ -539,7 +539,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
             SwapSquadUIElements(squad, from_index, to_index)
 
           case SquadResponse.UpdateMembers(squad, positions) =>
-            import services.teamwork.SquadAction.{Update => SAUpdate}
             val pairedEntries = positions.collect {
               case entry if squadUI.contains(entry.char_id) =>
                 (entry, squadUI(entry.char_id))
@@ -3220,6 +3219,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
       val clientVersion = s"Client Version: $majorVersion.$minorVersion.$revision, $buildDate"
       log.info(s"New world login to $server with Token:$token. $clientVersion")
       //TODO begin temp player character auto-loading; remove later
+      //this is all just temporary character creation used in the dev branch, making explicit values that allow for testing
+      //the unique character identifier number for this testing character is based on the original test character,
+      //whose identifier number was 41605314
+      //all head features, faction, and sex also match that test character
       import net.psforever.objects.GlobalDefinitions._
       import net.psforever.types.CertificationType._
       val faction = PlanetSideEmpire.VS
