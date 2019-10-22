@@ -55,13 +55,6 @@ class Avatar(private val char_id : Long, val name : String, val faction : Planet
 
   def CharId : Long = char_id
 
-  def CharId : Long = charId
-
-  def CharId_=(add : Long) : Long = {
-    charId = add
-    CharId
-  }
-
   def BEP : Long = bep
 
   def BEP_=(battleExperiencePoints : Long) : Long = {
