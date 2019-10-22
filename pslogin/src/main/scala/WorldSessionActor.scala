@@ -90,7 +90,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
   var flying : Boolean = false
   var speed : Float = 1.0f
   var spectator : Boolean = false
-  var admin : Boolean = true
+  var admin : Boolean = false
   var noSpawnPointHere : Boolean = false
   var usingMedicalTerminal : Option[PlanetSideGUID] = None
   var controlled : Option[Int] = None
