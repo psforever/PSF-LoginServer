@@ -1,14 +1,13 @@
 language: scala
 jdk: oraclejdk8
 dist: trusty
+
+scala:
+  - 2.11.8
+env:
+  - SBT_COMMAND="test:compile test"
+  - SBT_COMMAND="coverage test:compile test coverageReport" ALLOW_FAIL=1
 matrix:
-  include:
-  - name: "PSForever Tests"
-    scala: 2.11.8
-    env: SBT_COMMAND="test:compile test"
-  - name: "PSForever Test Coverage"
-    scala: 2.11.8
-    env: SBT_COMMAND="coverage test:compile test coverageReport" ALLOW_FAIL=1
   allow_failures:
     - env: ALLOW_FAIL=1
   fast_finish: true
