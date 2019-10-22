@@ -6,7 +6,7 @@ import net.psforever.packet.game.{ChatMsg, PlanetSideGUID}
 import net.psforever.types.{PlanetSideEmpire, Vector3}
 
 object ChatAction {
-  trait Action
+  sealed trait Action
 
   final case class Local(player_guid : PlanetSideGUID, player_name : String, continent : Zone, player_pos : Vector3, player_faction : PlanetSideEmpire.Value, msg : ChatMsg) extends Action
   final case class Tell(player_guid : PlanetSideGUID, player_name : String, msg : ChatMsg) extends Action

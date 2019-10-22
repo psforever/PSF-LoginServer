@@ -5,7 +5,7 @@ import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types.ChatMessageType
 
 object ChatResponse {
-  trait Response
+  sealed trait Response
 
   final case class Local(sender : String, messageType : ChatMessageType.Value, wideContents : Boolean, recipient : String, contents : String, note : Option[String]) extends Response
   final case class Tell(sender : String, messageType : ChatMessageType.Value, wideContents : Boolean, recipient : String, contents : String, note : Option[String]) extends Response
