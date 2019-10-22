@@ -61,7 +61,9 @@ lazy val root = (project in file(".")).
 lazy val pslogin = (project in file("pslogin")).
   settings(commonSettings: _*).
   settings(
-    name := "pslogin"
+    name := "pslogin",
+    // ActorTests have specific timing requirements and will be flaky if run in parallel
+    parallelExecution in Test := false
   ).
   settings(pscryptoSettings: _*).
   dependsOn(common)
