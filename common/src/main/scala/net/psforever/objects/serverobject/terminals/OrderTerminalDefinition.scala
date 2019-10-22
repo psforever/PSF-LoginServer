@@ -258,7 +258,7 @@ object OrderTerminalDefinition {
   //TODO block equipment by blocking ammunition type
   final case class InfantryLoadoutPage() extends LoadoutTab {
     override def Buy(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
-      player.LoadLoadout(msg.unk1) match {
+      player.EquipmentLoadouts.LoadLoadout(msg.unk1) match {
         case Some(loadout : InfantryLoadout) if !Exclude.contains(loadout.exosuit) && !Exclude.contains((loadout.exosuit, loadout.subtype)) =>
           val holsters = loadout.visible_slots
             .map(entry => { InventoryItem(BuildSimplifiedPattern(entry.item), entry.index) })
@@ -287,7 +287,7 @@ object OrderTerminalDefinition {
     */
   final case class VehicleLoadoutPage() extends LoadoutTab {
     override def Buy(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = {
-      player.LoadLoadout(msg.unk1 + 10) match {
+      player.EquipmentLoadouts.LoadLoadout(msg.unk1 + 10) match {
         case Some(loadout : VehicleLoadout) if !Exclude.contains(loadout.vehicle_definition) =>
           val weapons = loadout.visible_slots
             .map(entry => { InventoryItem(BuildSimplifiedPattern(entry.item), entry.index) })

@@ -5,90 +5,98 @@ import net.psforever.newcodecs.newcodecs
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
 import scodec.{Attempt, Codec, Err}
 import scodec.codecs._
-import shapeless.{::, HNil}
+import shapeless.HNil //DO NOT IMPORT shapeless.:: HERE; it interferes with required scala.collection.immutable.::
+
+import scala.annotation.tailrec
 
 /**
-  * Maintains squad information changes performed by this listing.
+  * Maintain squad information for a given squad's listing.
   * Only certain information will be transmitted depending on the purpose of the packet.
-  * @param leader the name of the squad leader as a wide character string, or `None` if not applicable
-  * @param task the task the squad is trying to perform as a wide character string, or `None` if not applicable
-  * @param zone_id the continent on which the squad is acting, or `None` if not applicable
-  * @param size the current size of the squad, or `None` if not applicable;
-  *             "can" be greater than `capacity`, though with issues
-  * @param capacity the maximum number of members that the squad can tolerate, or `None` if not applicable;
+  * @param leader the name of the squad leader, usually the first person in the squad member list;
+  *               `None` if not applicable
+  * @param task the task the squad is trying to perform as a wide character string;
+  *             `None` if not applicable
+  * @param zone_id the continent on which the squad is acting;
+  *                `None` if not applicable
+  * @param size the current size of the squad;
+  *             "can" be greater than `capacity`, though with issues;
+  *             `None` if not applicable
+  * @param capacity the maximum number of members that the squad can tolerate;
   *                 normal count is 10;
-  *                 maximum is 15 but naturally can not be assigned that many
-  * @param squad_guid a GUID associated with the squad, used to recover the squad definition, or `None` if not applicable;
-  *                   sometimes it is defined but is still not applicable
+  *                 maximum is 15 but naturally can not be assigned that many;
+  *                 `None` if not applicable
+  * @param squad_guid a GUID associated with the squad, used to recover the squad definition;
+  *                   sometimes it is defined but is still not applicable;
+  *                   `None` if not applicable (rarely applicable)
   */
 final case class SquadInfo(leader : Option[String],
                            task : Option[String],
                            zone_id : Option[PlanetSideZoneID],
                            size : Option[Int],
                            capacity : Option[Int],
-                           squad_guid : Option[PlanetSideGUID] = None)
+                           squad_guid : Option[PlanetSideGUID] = None) {
+  /**
+    * Populate the undefined fields of this object with the populated fields of a second object.
+    * If the field is already defined in this object, the provided object does not contribute new data.
+    * @param info the `SquadInfo` data to be incorporated into this object's data
+    * @return a new `SquadInfo` object, combining with two objects' field data
+    */
+  def And(info : SquadInfo) : SquadInfo = {
+    SquadInfo(
+      leader.orElse(info.leader),
+      task.orElse(info.task),
+      zone_id.orElse(info.zone_id),
+      size.orElse(info.size),
+      capacity.orElse(info.capacity),
+      squad_guid.orElse(info.squad_guid)
+    )
+  }
+
+  //methods intended to combine the fields of itself and another object
+  def Leader(leader : String) : SquadInfo =
+    this And SquadInfo(Some(leader), None, None, None, None, None)
+  def Task(task : String) : SquadInfo =
+    this And SquadInfo(None, Some(task), None, None, None, None)
+  def ZoneId(zone : PlanetSideZoneID) : SquadInfo =
+    this And SquadInfo(None, None, Some(zone), None, None, None)
+  def ZoneId(zone : Option[PlanetSideZoneID]) : SquadInfo = zone match {
+    case Some(zoneId) => this And SquadInfo(None, None, zone, None, None, None)
+    case None => SquadInfo(leader, task, zone, size, capacity, squad_guid)
+  }
+  def Size(sz : Int) : SquadInfo =
+    this And SquadInfo(None, None, None, Some(sz), None, None)
+  def Capacity(cap : Int) : SquadInfo =
+    this And SquadInfo(None, None, None, None, Some(cap), None)
+}
 
 /**
-  * Define three fields determining the purpose of data in this listing.<br>
-  * <br>
-  * The third field `unk3` is not always be defined and will be supplanted by the squad (definition) GUID during initialization and a full update.<br>
-  * <br>
-  * Actions:<br>
-  * `unk1&nbsp;unk2&nbsp;&nbsp;unk3`<br>
-  * `0&nbsp;&nbsp;&nbsp;&nbsp;true&nbsp;&nbsp;4 -- `Remove a squad from listing<br>
-  * `128&nbsp;&nbsp;true&nbsp;&nbsp;0 -- `Update a squad's leader<br>
-  * `128&nbsp;&nbsp;true&nbsp;&nbsp;1 -- `Update a squad's task or continent<br>
-  * `128&nbsp;&nbsp;true&nbsp;&nbsp;2 -- `Update a squad's size<br>
-  * `129&nbsp;&nbsp;false&nbsp;0 -- `Update a squad's leader or size<br>
-  * `129&nbsp;&nbsp;false&nbsp;1 -- `Update a squad's task and continent<br>
-  * `131&nbsp;&nbsp;false&nbsp;X -- `Add all squads during initialization / update all information pertaining to this squad
-  * @param unk1 na
-  * @param unk2 na
-  * @param unk3 na;
-  *             not always defined
-  * @param info information pertaining to this squad listing
-  */
-//TODO when these unk# values are better understood, transform SquadHeader to streamline the actions to be performed
-final case class SquadHeader(unk1 : Int,
-                             unk2 : Boolean,
-                             unk3 : Option[Int],
-                             info : Option[SquadInfo] = None)
-
-/**
-  * An indexed entry in the listing of squads.<br>
-  * <br>
-  * Squad listing indices are not an arbitrary order.
-  * The server communicates changes to the client by referencing a squad's listing index, defined at the time of list initialization.
-  * Once initialized, each client may organize their squads however they wish, e.g., by leader, by task, etc., without compromising this index.
-  * During the list initialization process, the entries must always follow numerical order, increasing from `0`.
-  * During any other operation, the entries may be prefixed with whichever index is necessary to indicate the squad listing in question.
-  * @param index the index of this listing;
-  *              first entry should be 0, and subsequent valid entries are sequentially incremental;
-  *              last entry is always a placeholder with index 255
-  * @param listing the data for this entry, defining both the actions and the pertinent squad information
+  * An indexed entry in the listing of squads.
+  * @param index the listing entry index for this squad;
+  *              zero-based;
+  *              255 is the maximum index and is reserved to indicate the end of the listings for the packet
+  * @param listing the squad data;
+  *                `None` when the index is 255, or when invoking a "remove" action on any squad at a known index
   */
 final case class SquadListing(index : Int = 255,
-                              listing : Option[SquadHeader] = None)
+                              listing : Option[SquadInfo] = None)
 
 /**
-  * Modify the list of squads available to a given player.
-  * The squad list updates in real time rather than just whenever a player opens the squad information window.<br>
+  * Display the list of squads available to a given player.<br>
   * <br>
-  * The four main operations are: initializing the list, updating entries in the list, removing entries from the list, and clearing the list.
+  * The four main operations are:
+  * initializing the list,
+  * updating entries in the list,
+  * removing entries from the list,
+  * and clearing the list.
   * The process of initializing the list and clearing the list actually are performed by similar behavior.
   * Squads would just not be added after the list clears.
   * Moreover, removing entries from the list overrides the behavior to update entries in the list.
-  * The two-three codes per entry (see `SquadHeader`) are important for determining the effect of a specific entry.
-  * As of the moment, the important details of the behaviors is that they modify how the packet is encoded and padded.<br>
+  * Squad list entries are typically referenced by their line index.<br>
   * <br>
-  * Referring to information in `SquadListing`, entries are identified by their index in the list.
-  * This is followed by a coded section that indicates what action the entry will execute on that squad listing.
-  * After the "coded action" section is the "general information" section where the data for the change is specified.
-  * In this manner, all the entries will have a knowable length.<br>
-  * <br>
-  * The total number of entries in a packet is not known until they have all been parsed.
+  * Though often specified with a global identifier, squads are rarely accessed using that identifier.
+  * Outside of initialization activities, the specific index of the squad listing is referenced.
   * During the list initialization process, the entries must be in ascending order of index.
-  * Otherwise, the specific index of the squad listing is referenced.
+  * The total number of entries in a packet is not known until they have all been parsed.
   * The minimum number of entries is "no entries."
   * The maximum number of entries is supposedly 254.
   * The last item is always the index 255 and this is interpreted as the end of the stream.<br>
@@ -106,9 +114,10 @@ final case class SquadListing(index : Int = 255,
   * `5&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;6&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; `Clear squad list and initialize new squad list<br>
   * `5&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;6&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; `Clear squad list (transitions directly into 255-entry)<br>
   * `6&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; `Update a squad in the list
-  * @param behavior a code that suggests the primary purpose of the data in this packet
-  * @param behavior2 during initialization, this code is read;
-  *                  it supplements the normal `behavior` and is typically is an "update" code
+  * @param behavior a required code that suggests the operations of the data in this packet
+  * @param behavior2 an optional code that suggests the operations of the data in this packet;
+  *                  during initialization, this code is read;
+  *                  it typically flags an "update" action
   * @param entries a `Vector` of the squad listings
   */
 final case class ReplicationStreamMessage(behavior : Int,
@@ -122,14 +131,21 @@ final case class ReplicationStreamMessage(behavior : Int,
 
 object SquadInfo {
   /**
+    * An entry where no fields are defined.
+    */
+  final val Blank = SquadInfo()
+
+  def apply() : SquadInfo = SquadInfo(None, None, None, None, None, None)
+
+  /**
     * Alternate constructor for `SquadInfo` that ignores the `Option` requirement for the fields.<br>
     * <br>
     * This constructor is not actually used at the moment.
-    * @param leader the name of the squad leader
-    * @param task the task the squad is trying to perform
+    * @param leader         the name of the squad leader
+    * @param task           the task the squad is trying to perform
     * @param continent_guid the continent on which the squad is acting
-    * @param size the current size of the squad
-    * @param capacity the maximum number of members that the squad can tolerate
+    * @param size           the current size of the squad
+    * @param capacity       the maximum number of members that the squad can tolerate
     * @return a `SquadInfo` object
     */
   def apply(leader : String, task : String, continent_guid : PlanetSideZoneID, size : Int, capacity : Int) : SquadInfo = {
@@ -139,13 +155,13 @@ object SquadInfo {
   /**
     * Alternate constructor for `SquadInfo` that ignores the `Option` requirement for the fields.<br>
     * <br>
-    * This constructor is used by the `initCodec`, `alt_initCodec`, and `allCodec`.
-    * @param leader the name of the squad leader
-    * @param task the task the squad is trying to perform
+    * This constructor is used by the `infoCodec`, `alt_infoCodec`, and `allCodec`.
+    * @param leader         the name of the squad leader
+    * @param task           the task the squad is trying to perform
     * @param continent_guid the continent on which the squad is acting
-    * @param size the current size of the squad
-    * @param capacity the maximum number of members that the squad can tolerate
-    * @param squad_guid a GUID associated with the squad, used to recover the squad definition
+    * @param size           the current size of the squad
+    * @param capacity       the maximum number of members that the squad can tolerate
+    * @param squad_guid     a GUID associated with the squad, used to recover the squad definition
     * @return a `SquadInfo` object
     */
   def apply(leader : String, task : String, continent_guid : PlanetSideZoneID, size : Int, capacity : Int, squad_guid : PlanetSideGUID) : SquadInfo = {
@@ -153,33 +169,23 @@ object SquadInfo {
   }
 
   /**
-    * Alternate constructor for `SquadInfo` that ignores the `Option` requirement for the important field.<br>
-    * <br>
-    * This constructor is used by `leaderCodec`.
-    * Two of the fields normally are `Option[String]`s.
-    * Only the `leader` field in this packet is a `String`, giving the method a distinct signature.
-    * The other field - an `Option[String]` for `task` - can still be set if passed.<br>
-    * <br>
-    * Recommended use: `SquadInfo(leader, None)`
+    * Alternate constructor for `SquadInfo` that ignores the `Option` requirement for the important field.
     * @param leader the name of the squad leader
-    * @param task the task the squad is trying to perform, if not `None`
     * @return a `SquadInfo` object
     */
-  def apply(leader : String, task : Option[String]) : SquadInfo = {
-    SquadInfo(Some(leader), task, None, None, None)
+  def apply(leader : String) : SquadInfo = {
+    SquadInfo(Some(leader), None, None, None, None)
   }
 
   /**
     * Alternate constructor for `SquadInfo` that ignores the `Option` requirement for the important field.<br>
     * <br>
-    * This constructor is used by `taskOrContinentCodec`.
-    * Two of the fields normally are `Option[String]`s.
     * Only the `task` field in this packet is a `String`, giving the method a distinct signature.
     * The other field - an `Option[String]` for `leader` - can still be set if passed.<br>
     * <br>
     * Recommended use: `SquadInfo(None, task)`
     * @param leader the name of the squad leader, if not `None`
-    * @param task the task the squad is trying to perform
+    * @param task   the task the squad is trying to perform
     * @return a `SquadInfo` object
     */
   def apply(leader : Option[String], task : String) : SquadInfo = {
@@ -187,9 +193,7 @@ object SquadInfo {
   }
 
   /**
-    * Alternate constructor for `SquadInfo` that ignores the `Option` requirement for the field.<br>
-    * <br>
-    * This constructor is used by `taskOrContinentCodec`.
+    * Alternate constructor for `SquadInfo` that ignores the `Option` requirement for the field.
     * @param continent_guid the continent on which the squad is acting
     * @return a `SquadInfo` object
     */
@@ -198,463 +202,589 @@ object SquadInfo {
   }
 
   /**
-    * Alternate constructor for `SquadInfo` that ignores the `Option` requirement for the important field.<br>
-    * <br>
-    * This constructor is used by `sizeCodec`.
-    * Two of the fields normally are `Option[Int]`s.
-    * Only the `size` field in this packet is an `Int`, giving the method a distinct signature.<br>
-    * <br>
-    * Recommended use: `SquadInfo(size, None)`<br>
-    * <br>
-    * Exploration:<br>
-    * We do not currently know any `SquadHeader` action codes for adjusting `capacity`.
-    * @param size the current size of the squad
-    * @param capacity the maximum number of members that the squad can tolerate, if not `None`
+    * Alternate constructor for `SquadInfo` that ignores the `Option` requirement for the important field.
+    * @param size     the current size of the squad
     * @return a `SquadInfo` object
     */
-  def apply(size : Int, capacity : Option[Int]) : SquadInfo = {
+  def apply(size : Int) : SquadInfo = {
     SquadInfo(None, None, None, Some(size), None)
   }
 
   /**
     * Alternate constructor for `SquadInfo` that ignores the `Option` requirement for the important field.<br>
     * <br>
-    * This constructor is not actually used at the moment.
     * Two of the fields normally are `Option[Int]`s.
-    * Only the `capacity` field in this packet is an `Int`, giving the method a distinct signature.<br>
+    * Only the `capacity` field in this packet is an `Int`, giving the method a distinct signature.
+    * The other field - an `Option[Int]` for `size` - can still be set if passed.<br>
     * <br>
-    * Recommended use: `SquadInfo(None, capacity)`<br>
-    * <br>
-    * Exploration:<br>
-    * We do not currently know any `SquadHeader` action codes for adjusting `capacity`.
-    * @param size the current size of the squad
+    * Recommended use: `SquadInfo(None, capacity)`
+    * @param size     the current size of the squad
     * @param capacity the maximum number of members that the squad can tolerate, if not `None`
     * @return a `SquadInfo` object
     */
   def apply(size : Option[Int], capacity : Int) : SquadInfo = {
-    SquadInfo(None, None, None, None, Some(capacity))
+    SquadInfo(None, None, None, size, Some(capacity))
   }
 
   /**
-    * Alternate constructor for `SquadInfo` that ignores the `Option` requirement for the fields.<br>
-    * <br>
-    * This constructor is used by `leaderSizeCodec`.
-    * @param leader the name of the squad leader
-    * @param size the current size of the squad
-    * @return a `SquadInfo` object
+    * The codes related to the specific application of different `Codec`s when parsing squad information as different fields.
+    * Hence, "field codes."
+    * These fields are identified when using `SquadInfo` data in `ReplicationStreamMessage`'s "update" format
+    * but are considered absent when performing squad list initialization.
     */
-  def apply(leader : String, size : Int) : SquadInfo = {
-    SquadInfo(Some(leader), None, None, Some(size), None)
-  }
-
-  /**
-    * Alternate constructor for `SquadInfo` that ignores the Option requirement for the fields.<br>
-    * <br>
-    * This constructor is used by `taskAndContinentCodec`.
-    * @param task the task the squad is trying to perform
-    * @param continent_guid the continent on which the squad is acting
-    * @return a `SquadInfo` object
-    */
-  def apply(task : String, continent_guid : PlanetSideZoneID) : SquadInfo = {
-    SquadInfo(None, Some(task), Some(continent_guid), None, None, None)
+  object Field {
+    final val Leader = 1
+    final val Task = 2
+    final val ZoneId = 3
+    final val Size = 4
+    final val Capacity = 5
   }
 }
 
+/**
+  * An object that contains all of the logic necessary to transform between
+  * the various forms of squad information found in formulaic packet data structures
+  * and a singular `SquadInfo` object with only the important data fields that were defined.
+  */
 object SquadHeader {
-  /**
-    * Alternate constructor for SquadInfo that ignores the Option requirement for the `info` field.
-    * @param unk1 na
-    * @param unk2 na
-    * @param unk3 na; not always defined
-    * @param info information pertaining to this squad listing
-    */
-  def apply(unk1 : Int, unk2 : Boolean, unk3 : Option[Int], info : SquadInfo) : SquadHeader = {
-    SquadHeader(unk1, unk2, unk3, Some(info))
-  }
-
-  /**
-    * `squadPattern` completes the fields for the `SquadHeader` class.
-    * It translates an indeterminate number of bit regions into something that can be processed as an `Option[SquadInfo]`.
-    */
-  private type squadPattern = Option[SquadInfo] :: HNil
+  //DO NOT IMPORT shapeless.:: TOP LEVEL TO THIS OBJECT - it interferes with required scala.collection.immutable.::
 
   /**
     * `Codec` for reading `SquadInfo` data from the first entry from a packet with squad list initialization entries.
     */
-  private val initCodec : Codec[squadPattern] = (
-    ("squad_guid" | PlanetSideGUID.codec) ::
+  private val infoCodec : Codec[SquadInfo] = {
+    import shapeless.::
+    (("squad_guid" | PlanetSideGUID.codec) ::
       ("leader" | PacketHelpers.encodedWideString) ::
       ("task" | PacketHelpers.encodedWideString) ::
       ("continent_guid" | PlanetSideZoneID.codec) ::
       ("size" | uint4L) ::
       ("capacity" | uint4L)
-    ).exmap[squadPattern] (
-    {
-      case sguid :: lead :: tsk :: cguid :: sz :: cap :: HNil =>
-        Attempt.successful(Some(SquadInfo(lead, tsk, cguid, sz, cap, sguid)) :: HNil)
-      case _ =>
-        Attempt.failure(Err("failed to decode squad data for adding [A] a squad entry"))
-    },
-    {
-      case Some(SquadInfo(Some(lead), Some(tsk), Some(cguid), Some(sz), Some(cap), Some(sguid))) :: HNil =>
-        Attempt.successful(sguid :: lead :: tsk :: cguid :: sz :: cap :: HNil)
-      case _ =>
-        Attempt.failure(Err("failed to encode squad data for adding [A] a squad entry"))
-    }
-  )
+      ).exmap[SquadInfo](
+      {
+        case sguid :: lead :: tsk :: cguid :: sz :: cap :: HNil =>
+          Attempt.successful(SquadInfo(lead, tsk, cguid, sz, cap, sguid))
+        case _ =>
+          Attempt.failure(Err("failed to decode squad data for adding the initial squad entry"))
+      },
+      {
+        case SquadInfo(Some(lead), Some(tsk), Some(cguid), Some(sz), Some(cap), Some(sguid)) =>
+          Attempt.successful(sguid :: lead :: tsk :: cguid :: sz :: cap :: HNil)
+        case _ =>
+          Attempt.failure(Err("failed to encode squad data for adding the initial squad entry"))
+      }
+    )
+  }
 
   /**
     * `Codec` for reading `SquadInfo` data from all entries other than the first from a packet with squad list initialization entries.
     */
-  private val alt_initCodec : Codec[squadPattern] = (
-    ("squad_guid" | PlanetSideGUID.codec) ::
-      ("leader" | PacketHelpers.encodedWideStringAligned(7)) ::
-      ("task" | PacketHelpers.encodedWideString) ::
-      ("continent_guid" | PlanetSideZoneID.codec) ::
-      ("size" | uint4L) ::
-      ("capacity" | uint4L)
-    ).exmap[squadPattern] (
-    {
-      case sguid :: lead :: tsk :: cguid :: sz :: cap :: HNil =>
-        Attempt.successful(Some(SquadInfo(lead, tsk, cguid, sz, cap, sguid)) :: HNil)
-      case _ =>
-        Attempt.failure(Err("failed to decode squad data for adding [B] a squad entry"))
-    },
-    {
-      case Some(SquadInfo(Some(lead), Some(tsk), Some(cguid), Some(sz), Some(cap), Some(sguid))) :: HNil =>
-        Attempt.successful(sguid :: lead :: tsk :: cguid :: sz :: cap :: HNil)
-      case _ =>
-        Attempt.failure(Err("failed to encode squad data for adding [B] a squad entry"))
-    }
-  )
+  private val alt_infoCodec : Codec[SquadInfo] = {
+    import shapeless.::
+    (
+      ("squad_guid" | PlanetSideGUID.codec) ::
+        ("leader" | PacketHelpers.encodedWideStringAligned(7)) ::
+        ("task" | PacketHelpers.encodedWideString) ::
+        ("continent_guid" | PlanetSideZoneID.codec) ::
+        ("size" | uint4L) ::
+        ("capacity" | uint4L)
+      ).exmap[SquadInfo] (
+      {
+        case sguid :: lead :: tsk :: cguid :: sz :: cap :: HNil =>
+          Attempt.successful(SquadInfo(lead, tsk, cguid, sz, cap, sguid))
+        case _ =>
+          Attempt.failure(Err("failed to decode squad data for adding an additional squad entry"))
+      },
+      {
+        case SquadInfo(Some(lead), Some(tsk), Some(cguid), Some(sz), Some(cap), Some(sguid)) =>
+          Attempt.successful(sguid :: lead :: tsk :: cguid :: sz :: cap :: HNil)
+        case _ =>
+          Attempt.failure(Err("failed to encode squad data for adding an additional squad entry"))
+      }
+    )
+  }
 
   /**
     * `Codec` for reading the `SquadInfo` data in an "update all squad data" entry.
     */
-  private val allCodec : Codec[squadPattern] = (
-    ("squad_guid" | PlanetSideGUID.codec) ::
-      ("leader" | PacketHelpers.encodedWideStringAligned(3)) ::
-      ("task" | PacketHelpers.encodedWideString) ::
-      ("continent_guid" | PlanetSideZoneID.codec) ::
-      ("size" | uint4L) ::
-      ("capacity" | uint4L)
-    ).exmap[squadPattern] (
-    {
-      case sguid :: lead :: tsk :: cguid :: sz :: cap :: HNil =>
-        Attempt.successful(Some(SquadInfo(lead, tsk, cguid, sz, cap, sguid)) :: HNil)
-      case _ =>
-        Attempt.failure(Err("failed to decode squad data for updating a squad entry"))
-    },
-    {
-      case Some(SquadInfo(Some(lead), Some(tsk), Some(cguid), Some(sz), Some(cap), Some(sguid))) :: HNil =>
-        Attempt.successful(sguid :: lead :: tsk :: cguid :: sz :: cap :: HNil)
-      case _ =>
-        Attempt.failure(Err("failed to encode squad data for updating a squad entry"))
+  private val allCodec : Codec[SquadInfo] = {
+    import shapeless.::
+    (
+      ("squad_guid" | PlanetSideGUID.codec) ::
+        ("leader" | PacketHelpers.encodedWideStringAligned(3)) ::
+        ("task" | PacketHelpers.encodedWideString) ::
+        ("continent_guid" | PlanetSideZoneID.codec) ::
+        ("size" | uint4L) ::
+        ("capacity" | uint4L)
+      ).exmap[SquadInfo] (
+      {
+        case sguid :: lead :: tsk :: cguid :: sz :: cap :: HNil =>
+          Attempt.successful(SquadInfo(lead, tsk, cguid, sz, cap, sguid))
+        case _ =>
+          Attempt.failure(Err("failed to decode squad data for updating a squad entry"))
+      },
+      {
+        case SquadInfo(Some(lead), Some(tsk), Some(cguid), Some(sz), Some(cap), Some(sguid)) =>
+          Attempt.successful(sguid :: lead :: tsk :: cguid :: sz :: cap :: HNil)
+        case _ =>
+          Attempt.failure(Err("failed to encode squad data for updating a squad entry"))
+      }
+    )
+  }
+
+  /**
+    * Produces a `Codec` function for byte-aligned, padded Pascal strings encoded through common manipulations.
+    * @see `PacketHelpers.encodedWideStringAligned`
+    * @param over the number of bits past the previous byte-aligned index;
+    *             should be a 0-7 number that gets converted to a 1-7 string padding number
+    * @return the encoded string `Codec`
+    */
+  private def paddedStringMetaCodec(over : Int) : Codec[String] = PacketHelpers.encodedWideStringAligned({
+    val mod8 = over % 8
+    if(mod8 == 0) {
+      0
     }
-  )
+    else {
+      8 - mod8
+    }
+  })
 
   /**
     * `Codec` for reading the `SquadInfo` data in an "update squad leader" entry.
     */
-  private val leaderCodec : Codec[squadPattern] = (
-    bool ::
-      ("leader" | PacketHelpers.encodedWideStringAligned(7))
-    ).exmap[squadPattern] (
+  private def leaderCodec(over : Int) : Codec[SquadInfo] = paddedStringMetaCodec(over).exmap[SquadInfo] (
+    lead => Attempt.successful(SquadInfo(lead)),
     {
-      case true :: lead :: HNil =>
-        Attempt.successful(Some(SquadInfo(lead, None)) :: HNil)
-      case _ =>
-        Attempt.failure(Err("failed to decode squad data for a leader name"))
-    },
-    {
-      case Some(SquadInfo(Some(lead), _, _, _, _, _)) :: HNil =>
-        Attempt.successful(true :: lead :: HNil)
+      case SquadInfo(Some(lead), _, _, _, _, _) =>
+        Attempt.successful(lead)
       case _ =>
         Attempt.failure(Err("failed to encode squad data for a leader name"))
     }
   )
 
   /**
-    * `Codec` for reading the `SquadInfo` data in an "update squad task or continent" entry.
+    * `Codec` for reading the `SquadInfo` data in an "update task text" entry.
     */
-  private val taskOrContinentCodec : Codec[squadPattern] = (
-    bool >>:~ { path =>
-      conditional(path, "continent_guid" | PlanetSideZoneID.codec) ::
-        conditional(!path, "task" | PacketHelpers.encodedWideStringAligned(7))
-    }
-    ).exmap[squadPattern] (
+  private def taskCodec(over : Int) : Codec[SquadInfo] = paddedStringMetaCodec(over).exmap[SquadInfo] (
+    task => Attempt.successful(SquadInfo(None, task)),
     {
-      case true :: Some(cguid) :: _ :: HNil =>
-        Attempt.successful(Some(SquadInfo(cguid)) :: HNil)
-      case true :: None :: _ :: HNil =>
-        Attempt.failure(Err("failed to decode squad data for a task - no continent"))
-      case false :: _ :: Some(tsk) :: HNil =>
-        Attempt.successful(Some(SquadInfo(None, tsk)) :: HNil)
-      case false :: _ :: None :: HNil =>
-        Attempt.failure(Err("failed to decode squad data for a task - no task"))
-    },
-    {
-      case Some(SquadInfo(_, None, Some(cguid), _, _, _)) :: HNil =>
-        Attempt.successful(true :: Some(cguid) :: None :: HNil)
-      case Some(SquadInfo(_, Some(tsk), None, _, _, _)) :: HNil =>
-        Attempt.successful(false :: None :: Some(tsk) :: HNil)
-      case Some(SquadInfo(_, Some(_), Some(_), _, _, _)) :: HNil =>
-        Attempt.failure(Err("failed to encode squad data for either a task or a continent - multiple encodings reachable"))
+      case SquadInfo(_, Some(task), _, _, _, _) =>
+        Attempt.successful(task)
       case _ =>
-        Attempt.failure(Err("failed to encode squad data for either a task or a continent"))
+        Attempt.failure(Err("failed to encode squad data for a task string"))
+    }
+  )
+
+  /**
+    * `Codec` for reading the `SquadInfo` data in an "update squad zone id" entry.
+    * In reality, the "zone's id"  is the zone's server ordinal index.
+    */
+  private val zoneIdCodec : Codec[SquadInfo] = PlanetSideZoneID.codec.exmap[SquadInfo] (
+    cguid => Attempt.successful(SquadInfo(cguid)),
+    {
+      case SquadInfo(_, _, Some(cguid), _, _, _) =>
+        Attempt.successful(cguid)
+      case _ =>
+        Attempt.failure(Err("failed to encode squad data for a continent number"))
     }
   )
 
   /**
     * `Codec` for reading the `SquadInfo` data in an "update squad size" entry.
     */
-  private val sizeCodec : Codec[squadPattern] = (
-    bool ::
-      ("size" | uint4L)
-    ).exmap[squadPattern] (
+  private val sizeCodec : Codec[SquadInfo] = uint4L.exmap[SquadInfo] (
+    sz => Attempt.successful(SquadInfo(sz)),
     {
-      case false :: sz :: HNil =>
-        Attempt.successful(Some(SquadInfo(sz, None)) :: HNil)
+      case SquadInfo(_, _, _, Some(sz), _, _) =>
+        Attempt.successful(sz)
       case _ =>
-        Attempt.failure(Err("failed to decode squad data for a size"))
-    },
-    {
-      case Some(SquadInfo(_, _, _, Some(sz), _, _)) :: HNil =>
-        Attempt.successful(false :: sz :: HNil)
-      case _ =>
-        Attempt.failure(Err("failed to encode squad data for a size"))
+        Attempt.failure(Err("failed to encode squad data for squad size"))
     }
   )
 
   /**
-    * `Codec` for reading the `SquadInfo` data in an "update squad leader and size" entry.
+    * `Codec` for reading the `SquadInfo` data in an "update squad capacity" entry.
     */
-  private val leaderSizeCodec : Codec[squadPattern] = (
-    bool ::
-      ("leader" | PacketHelpers.encodedWideStringAligned(7)) ::
-      uint4L ::
-      ("size" | uint4L)
-    ).exmap[squadPattern] (
+  private val capacityCodec : Codec[SquadInfo] = uint4L.exmap[SquadInfo] (
+    cap => Attempt.successful(SquadInfo(None, cap)),
     {
-      case true :: lead :: 4 :: sz :: HNil =>
-        Attempt.successful(Some(SquadInfo(lead, sz)) :: HNil)
+      case SquadInfo(_, _, _, _, Some(cap), _) =>
+        Attempt.successful(cap)
       case _ =>
-        Attempt.failure(Err("failed to decode squad data for a leader and a size"))
-    },
-    {
-      case Some(SquadInfo(Some(lead), _, _, Some(sz), _, _)) :: HNil =>
-        Attempt.successful(true :: lead :: 4 :: sz :: HNil)
-      case _ =>
-        Attempt.failure(Err("failed to encode squad data for a leader and a size"))
+        Attempt.failure(Err("failed to encode squad data for squad capacity"))
     }
   )
 
   /**
-    * `Codec` for reading the `SquadInfo` data in an "update squad task and continent" entry.
+    * `Codec` for reading the `SquadInfo` data in a "remove squad from list" entry.
+    * While the input has no impact, it always writes the number four to a `3u` field - or `0x100`.
     */
-  private val taskAndContinentCodec : Codec[squadPattern] = (
-    bool ::
-      ("task" | PacketHelpers.encodedWideStringAligned(7)) ::
-      uintL(3) ::
-      bool ::
-      ("continent_guid" | PlanetSideZoneID.codec)
-    ).exmap[squadPattern] (
-    {
-      case false :: tsk :: 1 :: true :: cguid :: HNil =>
-        Attempt.successful(Some(SquadInfo(tsk, cguid)) :: HNil)
-      case _ =>
-        Attempt.failure(Err("failed to decode squad data for a task and a continent"))
-    },
-    {
-      case Some(SquadInfo(_, Some(tsk), Some(cguid), _, _, _)) :: HNil =>
-        Attempt.successful(false :: tsk :: 1 :: true :: cguid :: HNil)
-      case _ =>
-        Attempt.failure(Err("failed to encode squad data for a task and a continent"))
-    }
-  )
-
-  /**
-    * Codec for reading the `SquadInfo` data in a "remove squad from list" entry.
-    * This `Codec` is unique because it is considered a valid `Codec` that does not read any bit data.
-    * The `conditional` will always return `None` because its determining conditional statement is explicitly `false`.
-    */
-  private val removeCodec : Codec[squadPattern] = conditional(false, bool).exmap[squadPattern] (
-    {
-      case None | _ =>
-        Attempt.successful(None :: HNil)
-    },
-    {
-      case None :: HNil | _ =>
-        Attempt.successful(None)
-    }
+  private val removeCodec : Codec[SquadInfo] = uint(3).exmap[SquadInfo] (
+    _ => Attempt.successful(SquadInfo.Blank),
+    _ => Attempt.successful(4)
   )
 
   /**
     * `Codec` for failing to determine a valid `Codec` based on the entry data.
     * This `Codec` is an invalid codec that does not read any bit data.
-    * The `conditional` will always return `None` because its determining conditional statement is explicitly `false`.
+    * The `conditional` will always return `None` because
+    * its determining conditional statement is explicitly `false`
+    * and all cases involving explicit failure.
     */
-  private val failureCodec : Codec[squadPattern] = conditional(false, bool).exmap[squadPattern] (
-    {
-      case None | _ =>
-        Attempt.failure(Err("decoding with unhandled codec"))
-    },
-    {
-      case None :: HNil | _ =>
-        Attempt.failure(Err("encoding with unhandled codec"))
-    }
+  private val failureCodec : Codec[SquadInfo] = conditional(included = false, bool).exmap[SquadInfo] (
+    _ => Attempt.failure(Err("decoding with unhandled codec")),
+    _ => Attempt.failure(Err("encoding with unhandled codec"))
   )
 
   /**
-    * Select the `Codec` to translate bit data in this packet into an `Option[SquadInfo]` using other fields of the same packet.
-    * Refer to comments for the primary `case class` constructor for `SquadHeader` to explain how the conditions in this function path.
-    * @param a na
-    * @param b na
-    * @param c na; may be `None`
-    * @param optionalCodec a to-be-defined `Codec` that is determined by the suggested mood of the packet and listing of the squad;
-    *                      despite the name, actually a required parameter
-    * @return a `Codec` that corresponds to a `squadPattern` translation
+    * An internal class that assists in the process of transforming squad data
+    * encoded in the "update" format of a `ReplicationStreamMessage` packet as index-coded fields
+    * into a singular decoded `SquadInfo` object that is populated with all of the previously-discovered fields.
+    * @param code the field code for the current data
+    * @param info the current squad data
+    * @param next a potential next encoded squad field
     */
-  private def selectCodec(a : Int, b : Boolean, c : Option[Int], optionalCodec : Codec[squadPattern]) : Codec[squadPattern] = {
-    if(c.isDefined) {
-      val cVal = c.get
-      if(a == 0 && b)
-        if(cVal == 4)
-          return removeCodec
-      if(a == 128 && b) {
-        if(cVal == 0)
-          return leaderCodec
-        else if(cVal == 1)
-          return taskOrContinentCodec
-        else if(cVal == 2)
-          return sizeCodec
-      }
-      else if(a == 129 && !b) {
-        if(cVal == 0)
-          return leaderSizeCodec
-        else if(cVal == 1)
-          return taskAndContinentCodec
-      }
+  private final case class LinkedSquadInfo(code : Int, info : SquadInfo, next : Option[LinkedSquadInfo])
+
+  /**
+    * Concatenate a `SquadInfo` object chain into a single `SquadInfo` object.
+    * @param info the chain
+    * @return the concatenated `SquadInfo` object
+    */
+  private def unlinkSquadInfo(info : LinkedSquadInfo) : SquadInfo = unlinkSquadInfo(Some(info))
+
+  /**
+    * Concatenate a `SquadInfo` object chain into a single `SquadInfo` object.
+    * Recursively visits every link in a `SquadInfo` object chain.
+    * @param info the current link in the chain
+    * @param squadInfo the persistent `SquadInfo` concatenation object;
+    *                  defaults to `SquadInfo.Blank`
+    * @return the concatenated `SquadInfo` object
+    */
+  @tailrec
+  private def unlinkSquadInfo(info : Option[LinkedSquadInfo], squadInfo : SquadInfo = SquadInfo.Blank) : SquadInfo = {
+    info match {
+      case None =>
+        squadInfo
+      case Some(sqInfo) =>
+        unlinkSquadInfo(sqInfo.next, squadInfo And sqInfo.info)
+    }
+  }
+
+  /**
+    * Decompose a single `SquadInfo` object into a `SquadInfo` object chain of the original's fields.
+    * The fields as a linked list are explicitly organized "leader", "task", "zone_id", "size", "capacity,"
+    * or as "(leader, (task, (zone_id, (size, (capacity, None)))))" when fully populated and composed.
+    * @param info a `SquadInfo` object that has all relevant fields populated
+    * @return a linked list of `SquadInfo` objects, each with a single field from the input `SquadInfo` object
+    */
+  private def linkSquadInfo(info : SquadInfo) : LinkedSquadInfo = {
+    //import scala.collection.immutable.::
+    Seq(
+      (SquadInfo.Field.Capacity, SquadInfo(None, None, None, None, info.capacity)),
+      (SquadInfo.Field.Size, SquadInfo(None, None, None, info.size, None)),
+      (SquadInfo.Field.ZoneId, SquadInfo(None, None, info.zone_id, None, None)),
+      (SquadInfo.Field.Task, SquadInfo(None, info.task, None, None, None)),
+      (SquadInfo.Field.Leader, SquadInfo(info.leader, None, None, None, None))
+    ) //in reverse order so that the linked list is in the correct order
+      .filterNot { case (_, sqInfo) => sqInfo == SquadInfo.Blank }
+    match {
+      case Nil =>
+        throw new Exception("no linked list squad fields encountered where at least one was expected") //bad end
+      case x :: Nil =>
+        val (code, squadInfo) = x
+        LinkedSquadInfo(code, squadInfo, None)
+      case x :: xs =>
+        val (code, squadInfo) = x
+        linkSquadInfo(xs, LinkedSquadInfo(code, squadInfo, None))
+    }
+  }
+
+  /**
+    * Decompose a single `SquadInfo` object into a `SquadInfo` object chain of the original's fields.
+    * The fields as a linked list are explicitly organized "leader", "task", "zone_id", "size", "capacity,"
+    * or as "(leader, (task, (zone_id, (size, (capacity, None)))))" when fully populated and composed.
+    * @param infoList a series of paired field codes and `SquadInfo` objects with data in the indicated fields
+    * @return a linked list of `SquadInfo` objects, each with a single field from the input `SquadInfo` object
+    */
+  @tailrec
+  private def linkSquadInfo(infoList : Seq[(Int, SquadInfo)], linkedInfo : LinkedSquadInfo) : LinkedSquadInfo = {
+    if(infoList.isEmpty) {
+      linkedInfo
     }
     else {
-      if(a == 131 && !b)
-        return optionalCodec
+      val (code, data) = infoList.head
+      linkSquadInfo(infoList.tail, LinkedSquadInfo(code, data, Some(linkedInfo)))
     }
-    //we've not encountered a valid Codec
-    failureCodec
+  }
+
+  /**
+    * Parse a known number of knowable format data fields for squad info
+    * until no more fields are left for parsing.
+    * @see `selectCodecAction`
+    * @see `modifyPadValue`
+    * @param size the total number of data fields to parse
+    * @param pad the current overflow/padding value
+    * @return a `LinkedSquadInfo` `Codec` object (linked list)
+    */
+  private def listing_codec(size : Int, pad : Int = 1) : Codec[LinkedSquadInfo] = {
+    import shapeless.::
+    (
+      uint4 >>:~ { code =>
+        selectCodecAction(code, pad) ::
+          conditional(size - 1 > 0, listing_codec(size - 1, (pad + modifyPadValue(code, pad)) % 8))
+      }
+      ).xmap[LinkedSquadInfo] (
+      {
+        case code :: entry :: next :: HNil =>
+          LinkedSquadInfo(code, entry, next)
+      },
+      {
+        case LinkedSquadInfo(code, entry, next) =>
+          code :: entry :: next :: HNil
+      }
+    )
+  }
+
+  /**
+    * Given the field code value of the current `SquadInfo` object's data,
+    * select the `Codec` object that is most suitable to parse that data.
+    * @param code the field code number
+    * @param pad  the current overflow/padding value;
+    *             the number of bits past the previous byte-aligned index;
+    *             should be a 0-7 number that gets converted to a 1-7 string padding number
+    * @return a `Codec` object for the specific field's data
+    */
+  private def selectCodecAction(code : Int, pad : Int) : Codec[SquadInfo] = {
+    code match {
+      case SquadInfo.Field.Leader => leaderCodec(pad)
+      case SquadInfo.Field.Task => taskCodec(pad)
+      case SquadInfo.Field.ZoneId => zoneIdCodec
+      case SquadInfo.Field.Size => sizeCodec
+      case SquadInfo.Field.Capacity => capacityCodec
+      case _ => failureCodec
+    }
+  }
+
+  /**
+    * Given the field code value of the current `SquadInfo` object's data,
+    * determine how the inherited overflow/padding value for string data should be adjusted for future entries.
+    * There are three paths: becomes zero, doesn't change, or increases by four units.
+    * The invalid condition leads to an extremely negative number, but this condition should also never be encountered.
+    * @param code the field code number
+    * @param pad  the current overflow/padding value;
+    *             the number of bits past the previous byte-aligned index;
+    *             should be a 0-7 number that gets converted to a 1-7 string padding number
+    * @return the number of units that the current overflow/padding value should be modified, in terms of addition
+    */
+  private def modifyPadValue(code : Int, pad : Int) : Int = {
+    code match {
+      case SquadInfo.Field.Leader => -pad //byte-aligned string; padding zero'd
+      case SquadInfo.Field.Task => -pad //byte-aligned string; padding zero'd
+      case SquadInfo.Field.ZoneId => 4 //4u + 32u = 4u + 8*4u = additional 4u
+      case SquadInfo.Field.Size => 0 //4u + 4u = no change to padding
+      case SquadInfo.Field.Capacity => 0 //4u + 4u = no change to padding
+      case _ => Int.MinValue //wildly incorrect
+    }
+  }
+
+  /**
+    * The framework for transforming data from squad listing entries.
+    * Three paths lead from this position:
+    * processing the data in the course of an entry removal action,
+    * processing the data in the course of a total squad listing initialization action, and
+    * processing the data of a single entry in a piecemeal fashion that parses a coded field-by-field format.
+    * For the second - initialization - another `Codec` object is utilized to determine how the data should be interpreted.
+    * @param providedCodec the `Codec` for processing a `SquadInfo` object during the squad list initialization process
+    * @return a `SquadListing` `Codec` object
+    */
+  private def meta_codec(providedCodec : Codec[SquadInfo]) : Codec[Option[SquadInfo]] = {
+    import shapeless.::
+    (
+      bool >>:~ { unk1 =>
+        uint8 >>:~ { unk2 =>
+          conditional(!unk1 && unk2 == 1, removeCodec) ::
+            conditional(unk1 && unk2 == 6, providedCodec) ::
+            conditional(unk1 && unk2 != 6, listing_codec(unk2))
+        }
+      }).exmap[Option[SquadInfo]] (
+      {
+        case false :: 1 :: Some(SquadInfo.Blank) :: None :: None :: HNil => //'remove' case
+          Attempt.Successful( None )
+
+        case true :: 6 :: None :: Some(info) :: None :: HNil => //handle complete squad info; no field codes
+          Attempt.Successful( Some(info) )
+
+        case true :: _ :: None :: None:: Some(result) :: HNil => //iterable field codes
+          Attempt.Successful( Some(unlinkSquadInfo(result)) )
+
+        case data => //error
+          Attempt.failure(Err(s"$data can not be encoded as a squad header"))
+      },
+      {
+        case None => //'remove' case
+          Attempt.Successful( false :: 1 :: Some(SquadInfo.Blank) :: None :: None :: HNil )
+
+        case info @ Some(SquadInfo(Some(_), Some(_), Some(_), Some(_), Some(_), Some(_))) => //handle complete squad info; no field codes
+          Attempt.Successful( true :: 6 :: None :: info :: None :: HNil )
+
+        case Some(info) => //iterable field codes
+          val linkedInfo = linkSquadInfo(info)
+          var count = 1
+          var linkNext = linkedInfo.next
+          while(linkNext.nonEmpty) {
+            count += 1
+            linkNext = linkNext.get.next
+          }
+          Attempt.Successful( true :: count :: None :: None :: Some(linkSquadInfo(info)) :: HNil )
+
+        case data => //error
+          Attempt.failure(Err(s"$data can not be decoded into a squad header"))
+      }
+    )
   }
 
   /**
     * `Codec` for standard `SquadHeader` entries.
     */
-  val codec : Codec[SquadHeader] = (
-    ("unk1" | uint8L) >>:~ { unk1 =>
-      ("unk2" | bool) >>:~ { unk2 =>
-        conditional(unk1 != 131, "unk3" | uintL(3)) >>:~ { unk3 =>
-          selectCodec(unk1, unk2, unk3, allCodec)
-        }
-      }
-    }).as[SquadHeader]
+  val codec : Codec[Option[SquadInfo]] = meta_codec(allCodec)
 
   /**
     * `Codec` for types of `SquadHeader` initializations.
     */
-  val init_codec : Codec[SquadHeader] = (
-    ("unk1" | uint8L) >>:~ { unk1 =>
-      ("unk2" | bool) >>:~ { unk2 =>
-        conditional(unk1 != 131, "unk3" | uintL(3)) >>:~ { unk3 =>
-          selectCodec(unk1, unk2, unk3, initCodec)
-        }
-      }
-    }).as[SquadHeader]
+  val info_codec : Codec[Option[SquadInfo]] = meta_codec(infoCodec)
 
   /**
     * Alternate `Codec` for types of `SquadHeader` initializations.
     */
-  val alt_init_codec : Codec[SquadHeader] = (
-    ("unk1" | uint8L) >>:~ { unk1 =>
-      ("unk2" | bool) >>:~ { unk2 =>
-        conditional(unk1 != 131, "unk3" | uintL(3)) >>:~ { unk3 =>
-          selectCodec(unk1, unk2, unk3, alt_initCodec)
-        }
-      }
-    }).as[SquadHeader]
+  val alt_info_codec : Codec[Option[SquadInfo]] = meta_codec(alt_infoCodec)
 }
 
 object SquadListing {
+  import shapeless.::
+
   /**
-    * `Codec` for standard `SquadListing` entries.
+    * Overloaded constructor for guaranteed squad information.
+    * @param index the listing entry index for this squad
+    * @param info the squad data
+    * @return a `SquadListing` object
     */
-  val codec : Codec[SquadListing] = (
+  def apply(index : Int, info : SquadInfo) : SquadListing = {
+    SquadListing(index, Some(info))
+  }
+
+  /**
+    * The framework for transforming data from squad listing entries.
+    * @param entryFunc the `Codec` for processing a given `SquadListing` object
+    * @return a `SquadListing` `Codec` object
+    */
+  private def meta_codec(entryFunc : Int=>Codec[Option[SquadInfo]]) : Codec[SquadListing] = (
     ("index" | uint8L) >>:~ { index =>
-      conditional(index < 255, "listing" | SquadHeader.codec) ::
-        conditional(index == 255, bits) //consume n < 8 bits padding the tail entry, else vector will try to operate on invalid data
+      conditional(index < 255, "listing" | entryFunc(index)) ::
+        conditional(index == 255, bits) //consume n < 8 bits after the tail entry, else vector will try to operate on invalid data
     }).xmap[SquadListing] (
     {
-      case ndx :: lstng :: _ :: HNil =>
+      case ndx :: Some(lstng) :: _ :: HNil =>
         SquadListing(ndx, lstng)
+      case ndx :: None :: _ :: HNil =>
+        SquadListing(ndx, None)
     },
     {
       case SquadListing(ndx, lstng) =>
-        ndx :: lstng :: None :: HNil
+        ndx :: Some(lstng) :: None :: HNil
     }
   )
+
+  /**
+    * `Codec` for standard `SquadListing` entries.
+    */
+  val codec : Codec[SquadListing] = meta_codec({ _ => SquadHeader.codec })
 
   /**
     * `Codec` for branching types of `SquadListing` initializations.
     */
-  val init_codec : Codec[SquadListing] = (
-    ("index" | uint8L) >>:~ { index =>
-      conditional(index < 255,
-        newcodecs.binary_choice(index == 0,
-          "listing" | SquadHeader.init_codec,
-          "listing" | SquadHeader.alt_init_codec)
-      ) ::
-        conditional(index == 255, bits) //consume n < 8 bits padding the tail entry, else vector will try to operate on invalid data
-    }).xmap[SquadListing] (
-    {
-      case ndx :: lstng :: _ :: HNil =>
-        SquadListing(ndx, lstng)
-    },
-    {
-      case SquadListing(ndx, lstng) =>
-        ndx :: lstng :: None :: HNil
-    }
-  )
+  val info_codec : Codec[SquadListing] = meta_codec({ index : Int =>
+    newcodecs.binary_choice(index == 0,
+      "listing" | SquadHeader.info_codec,
+      "listing" | SquadHeader.alt_info_codec
+    )
+  })
 }
 
 object ReplicationStreamMessage extends Marshallable[ReplicationStreamMessage] {
+  import shapeless.::
+
+  /**
+    * A shortcut for the squad list initialization format of the packet.
+    * Supplied squad data is given a zero-indexed counter and transformed into formal "`Listing`s" for processing.
+    * @param infos the squad data to be composed into formal list entries
+    * @return a `ReplicationStreamMessage` packet object
+    */
+  def apply(infos : Iterable[SquadInfo]) : ReplicationStreamMessage = {
+    ReplicationStreamMessage(5, Some(6), infos
+      .zipWithIndex
+      .map { case (info, index) => SquadListing(index, Some(info)) }
+      .toVector
+    )
+  }
+
   implicit val codec : Codec[ReplicationStreamMessage] = (
     ("behavior" | uintL(3)) >>:~ { behavior =>
       conditional(behavior == 5, "behavior2" | uintL(3)) ::
         conditional(behavior != 1, bool) ::
         newcodecs.binary_choice(behavior != 5,
           "entries" | vector(SquadListing.codec),
-          "entries" | vector(SquadListing.init_codec)
+          "entries" | vector(SquadListing.info_codec)
         )
     }).xmap[ReplicationStreamMessage] (
     {
       case bhvr :: bhvr2 :: _ :: lst :: HNil =>
-        ReplicationStreamMessage(bhvr, bhvr2, lst)
+        ReplicationStreamMessage(bhvr, bhvr2, ignoreTerminatingEntry(lst))
     },
     {
       case ReplicationStreamMessage(1, bhvr2, lst) =>
-        1 :: bhvr2 :: None :: lst :: HNil
+        1 :: bhvr2 :: None :: ensureTerminatingEntry(lst) :: HNil
       case ReplicationStreamMessage(bhvr, bhvr2, lst) =>
-        bhvr :: bhvr2 :: Some(false) :: lst :: HNil
+        bhvr :: bhvr2 :: Some(false) :: ensureTerminatingEntry(lst) :: HNil
     }
   )
+
+  /**
+    * The last entry in the sequence of squad information listings should be a dummied listing with an index of 255.
+    * Ensure that this terminal entry is located at the end.
+    * @param list the listing of squad information
+    * @return the listing of squad information, with a specific final entry
+    */
+  private def ensureTerminatingEntry(list : Vector[SquadListing]) : Vector[SquadListing] = {
+    list.lastOption match {
+      case Some(SquadListing(255, _)) => list
+      case Some(_) | None => list :+ SquadListing()
+    }
+  }
+
+  /**
+    * The last entry in the sequence of squad information listings should be a dummied listing with an index of 255.
+    * Remove this terminal entry from the end of the list so as not to hassle with it.
+    * @param list the listing of squad information
+    * @return the listing of squad information, with a specific final entry truncated
+    */
+  private def ignoreTerminatingEntry(list : Vector[SquadListing]) : Vector[SquadListing] = {
+    list.lastOption match {
+      case Some(SquadListing(255, _)) => list.init
+      case Some(_) | None => list
+    }
+  }
 }
 
 /*
-                         +-> SquadListing.codec -------> SquadHeader.codec ----------+
-                         |                                                           |
-                         |                                                           |
-ReplicationStream.codec -+                                                           |
-                         |                                                           |
-                         |                           +-> SquadHeader.init_codec -----+-> SquadInfo
-                         |                           |                               |
-                         +-> SquadListing.initCodec -+                               |
-                                                     |                               |
-                                                     +-> SquadHeader.alt_init_codec -+
+                         +-> SquadListing.codec --------> SquadHeader.codec ----------+
+                         |                                                            |
+                         |                                                            |
+ReplicationStream.codec -+                                                            |
+                         |                                                            |
+                         |                            +-> SquadHeader.info_codec -----+-> SquadInfo
+                         |                            |                               |
+                         +-> SquadListing.info_codec -+                               |
+                                                      |                               |
+                                                      +-> SquadHeader.alt_info_codec -+
 */

@@ -1,4 +1,4 @@
-# PlanetSide Login Server [![Build Status](https://travis-ci.org/psforever/PSF-LoginServer.svg?branch=master)](https://travis-ci.org/psforever/PSF-LoginServer) [![Code coverage](https://codecov.io/gh/psforever/PSF-LoginServer/coverage.svg?branch=master)](https://codecov.io/gh/psforever/PSF-LoginServer/)
+# PlanetSide Login Server [![Build Status](https://travis-ci.org/psforever/PSF-LoginServer.svg?branch=master)](https://travis-ci.org/psforever/PSF-LoginServer) [![Code coverage](https://codecov.io/gh/psforever/PSF-LoginServer/coverage.svg?branch=master)](https://codecov.io/gh/psforever/PSF-LoginServer/) [![Documentation](https://img.shields.io/badge/documentation-master-lightgrey)](https://psforever.github.io/docs/master/index.html)
 This project contains the code to run and manage the login and world server roles for PlanetSide 1.
 The login server and world server are currently combined for ease of contributing.
 
@@ -52,6 +52,11 @@ cd PSF-LoginServer
 sbt pslogin/run
 ```
 This will clone the repository and SBT will compile and run the login server. Note: SBT is quite slow at starting up. It's recommended you have an open SBT console in order to avoid this startup time.
+
+### Generating Documentation
+Using SBT, you can generate documentation for both the common and pslogin projects using `sbt unidoc`.
+
+Current documentation is available at [https://psforever.github.io/docs/master/index.html](https://psforever.github.io/docs/master/index.html)
 
 ## Running the Server
 

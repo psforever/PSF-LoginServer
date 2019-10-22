@@ -245,34 +245,34 @@ class PlayerTest extends Specification {
       val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       obj.Slot(-1).Equipment = wep
 
-      obj.Slot(-1).Equipment mustEqual None
+      obj.Slot(-1).Equipment.isEmpty mustEqual true
     }
 
     "search for the smallest available slot in which to store equipment" in {
       val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       obj.Inventory.Resize(3,3) //fits one item
 
-      obj.Fit(Tool(GlobalDefinitions.beamer)) mustEqual Some(0)
+      obj.Fit(Tool(GlobalDefinitions.beamer)).contains(0) mustEqual true
 
-      obj.Fit(Tool(GlobalDefinitions.suppressor)) mustEqual Some(2)
+      obj.Fit(Tool(GlobalDefinitions.suppressor)).contains(2) mustEqual true
 
       val ammo = AmmoBox(GlobalDefinitions.bullet_9mm)
       val ammo2 = AmmoBox(GlobalDefinitions.bullet_9mm)
       val ammo3 = AmmoBox(GlobalDefinitions.bullet_9mm)
-      obj.Fit(ammo) mustEqual Some(6)
+      obj.Fit(ammo).contains(6) mustEqual true
       obj.Slot(6).Equipment = ammo
-      obj.Fit(ammo2) mustEqual Some(Player.FreeHandSlot)
+      obj.Fit(ammo2).contains(Player.FreeHandSlot) mustEqual true
       obj.Slot(Player.FreeHandSlot).Equipment = ammo2
-      obj.Fit(ammo3) mustEqual None
+      obj.Fit(ammo3).isEmpty mustEqual true
     }
 
     "can use their free hand to hold things" in {
       val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       val ammo = AmmoBox(GlobalDefinitions.bullet_9mm)
-      obj.FreeHand.Equipment mustEqual None
+      obj.FreeHand.Equipment.isEmpty mustEqual true
 
       obj.FreeHand.Equipment = ammo
-      obj.FreeHand.Equipment mustEqual Some(ammo)
+      obj.FreeHand.Equipment.contains(ammo) mustEqual true
     }
 
     "can access the player's locker-space" in {
@@ -308,12 +308,12 @@ class PlayerTest extends Specification {
         item
       }
 
-      obj.Find(PlanetSideGUID(1)) mustEqual Some(0) //holsters
-      obj.Find(PlanetSideGUID(2)) mustEqual Some(4) //holsters, melee
-      obj.Find(PlanetSideGUID(3)) mustEqual Some(6) //inventory
-      obj.Find(PlanetSideGUID(4)) mustEqual None //can not find in locker-space
-      obj.Find(PlanetSideGUID(5)) mustEqual Some(Player.FreeHandSlot) //free hand
-      obj.Find(PlanetSideGUID(6)) mustEqual None //not here
+      obj.Find(PlanetSideGUID(1)).contains(0) mustEqual true //holsters
+      obj.Find(PlanetSideGUID(2)).contains(4) mustEqual true //holsters, melee
+      obj.Find(PlanetSideGUID(3)).contains(6) mustEqual true //inventory
+      obj.Find(PlanetSideGUID(4)).isEmpty mustEqual true //can not find in locker-space
+      obj.Find(PlanetSideGUID(5)).contains(Player.FreeHandSlot) mustEqual true //free hand
+      obj.Find(PlanetSideGUID(6)).isEmpty mustEqual true //not here
     }
 
     "does equipment collision checking (are we already holding something there?)" in {
@@ -437,20 +437,20 @@ class PlayerTest extends Specification {
 
     "seat in a vehicle" in {
       val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
-      obj.VehicleSeated mustEqual None
+      obj.VehicleSeated.isEmpty mustEqual true
       obj.VehicleSeated = PlanetSideGUID(65)
-      obj.VehicleSeated mustEqual Some(PlanetSideGUID(65))
+      obj.VehicleSeated.contains(PlanetSideGUID(65)) mustEqual true
       obj.VehicleSeated = None
-      obj.VehicleSeated mustEqual None
+      obj.VehicleSeated.isEmpty mustEqual true
     }
 
     "own in a vehicle" in {
       val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
-      obj.VehicleOwned mustEqual None
+      obj.VehicleOwned.isEmpty mustEqual true
       obj.VehicleOwned = PlanetSideGUID(65)
-      obj.VehicleOwned mustEqual Some(PlanetSideGUID(65))
+      obj.VehicleOwned.contains(PlanetSideGUID(65)) mustEqual true
       obj.VehicleOwned = None
-      obj.VehicleOwned mustEqual None
+      obj.VehicleOwned.isEmpty mustEqual true
     }
 
     "remember what zone he is in" in {

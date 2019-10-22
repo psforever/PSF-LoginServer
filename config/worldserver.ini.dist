@@ -1,0 +1,9 @@
+#######################################
+# PSForever Server configuration file #
+#######################################
+[worldserver]
+ListeningPort = 51001
+
+[loginserver]
+ListeningPort = 51000
+

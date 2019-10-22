@@ -48,7 +48,7 @@ class CharacterDataTest extends Specification {
                   a.data.v5.isEmpty mustEqual true
                   a.exosuit mustEqual ExoSuitType.Reinforced
                   a.unk5 mustEqual 0
-                  a.unk6 mustEqual 30777081L
+                  a.char_id mustEqual 30777081L
                   a.unk7 mustEqual 1
                   a.unk8 mustEqual 4
                   a.unk9 mustEqual 0
@@ -167,7 +167,7 @@ class CharacterDataTest extends Specification {
                   a.data.v5.isEmpty mustEqual true
                   a.exosuit mustEqual ExoSuitType.Reinforced
                   a.unk5 mustEqual 0
-                  a.unk6 mustEqual 192L
+                  a.char_id mustEqual 192L
                   a.unk7 mustEqual 0
                   a.unk8 mustEqual 0
                   a.unk9 mustEqual 0
@@ -236,7 +236,7 @@ class CharacterDataTest extends Specification {
                   a.data.v5.isEmpty mustEqual true
                   a.exosuit mustEqual ExoSuitType.MAX
                   a.unk5 mustEqual 1
-                  a.unk6 mustEqual 0L
+                  a.char_id mustEqual 0L
                   a.unk7 mustEqual 0
                   a.unk8 mustEqual 0
                   a.unk9 mustEqual 0

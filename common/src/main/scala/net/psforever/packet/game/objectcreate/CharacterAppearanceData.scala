@@ -23,12 +23,13 @@ import shapeless.{::, HNil}
   *                  -player_guid - does nothing?
   * @param exosuit   the type of exo-suit the avatar will be depicted in;
   *                  for Black OPs, the agile exo-suit and the reinforced exo-suit are replaced with the Black OPs exo-suits
+  * @param char_id   a unique character reference identification number
   */
 final case class CharacterAppearanceA(app : BasicCharacterData,
                                       data : CommonFieldData,
                                       exosuit : ExoSuitType.Value,
                                       unk5 : Int,
-                                      unk6 : Long,
+                                      char_id : Long,
                                       unk7 : Int,
                                       unk8 : Int,
                                       unk9 : Int,

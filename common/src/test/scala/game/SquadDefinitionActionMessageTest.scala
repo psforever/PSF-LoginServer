@@ -3,12 +3,17 @@ package game
 
 import org.specs2.mutable._
 import net.psforever.packet._
+import net.psforever.packet.game.SquadAction._
 import net.psforever.packet.game._
+import net.psforever.types.CertificationType
 import scodec.bits._
 
 class SquadDefinitionActionMessageTest extends Specification {
   //local test data; note that the second field - unk1 - is always blank for now, but that probably changes
+  val string_00 = hex"e7 00 0c0000" //guid: 3
   val string_03 = hex"E7 0c 0000c0" //index: 3
+  val string_04 = hex"E7 10 0000c0" //index: 3
+  val string_07 = hex"e7 1c 0000e68043006f0070007300200061006e00640020004d0069006c006900740061007200790020004f006600660069006300650072007300"
   val string_08 = hex"E7 20 000000"
   val string_10 = hex"E7 28 000004" //index: 1
   val string_19 = hex"E7 4c 0000218041002d005400650061006d00" //"A-Team"
@@ -30,18 +35,48 @@ class SquadDefinitionActionMessageTest extends Specification {
   val string_40 = hex"E7 a0 000004" //index: 1
   val string_41 = hex"E7 a4 000000"
 
+  val string_43 = hex"e7 ac 000000"
+  val string_failure = hex"E7 ff"
+
+  "decode (00)" in {
+    PacketCoding.DecodePacket(string_00).require match {
+      case SquadDefinitionActionMessage(unk1, unk2, action) =>
+        unk1 mustEqual PlanetSideGUID(3)
+        unk2 mustEqual 0
+        action mustEqual DisplaySquad()
+      case _ =>
+        ko
+    }
+  }
+
   "decode (03)" in {
     PacketCoding.DecodePacket(string_03).require match {
-      case SquadDefinitionActionMessage(action, unk1, unk2, str, int1, int2, long1, long2, bool) =>
-        action mustEqual 3
-        unk1 mustEqual 0
+      case SquadDefinitionActionMessage(unk1, unk2, action) =>
+        unk1 mustEqual PlanetSideGUID(0)
         unk2 mustEqual 3
-        str.isDefined mustEqual false
-        int1.isDefined mustEqual false
-        int2.isDefined mustEqual false
-        long1.isDefined mustEqual false
-        long2.isDefined mustEqual false
-        bool.isDefined mustEqual false
+        action mustEqual SaveSquadFavorite()
+      case _ =>
+        ko
+    }
+  }
+
+  "decode (03)" in {
+    PacketCoding.DecodePacket(string_04).require match {
+      case SquadDefinitionActionMessage(unk1, unk2, action) =>
+        unk1 mustEqual PlanetSideGUID(0)
+        unk2 mustEqual 3
+        action mustEqual LoadSquadFavorite()
+      case _ =>
+        ko
+    }
+  }
+
+  "decode (07)" in {
+    PacketCoding.DecodePacket(string_07).require match {
+      case SquadDefinitionActionMessage(unk1, unk2, action) =>
+        unk1 mustEqual PlanetSideGUID(0)
+        unk2 mustEqual 3
+        action mustEqual ListSquadFavorite("Cops and Military Officers")
       case _ =>
         ko
     }
@@ -49,16 +84,10 @@ class SquadDefinitionActionMessageTest extends Specification {
 
   "decode (08)" in {
     PacketCoding.DecodePacket(string_08).require match {
-      case SquadDefinitionActionMessage(action, unk1, unk2, str, int1, int2, long1, long2, bool) =>
-        action mustEqual 8
-        unk1 mustEqual 0
+      case SquadDefinitionActionMessage(unk1, unk2, action) =>
+        unk1 mustEqual PlanetSideGUID(0)
         unk2 mustEqual 0
-        str.isDefined mustEqual false
-        int1.isDefined mustEqual false
-        int2.isDefined mustEqual false
-        long1.isDefined mustEqual false
-        long2.isDefined mustEqual false
-        bool.isDefined mustEqual false
+        action mustEqual RequestListSquad()
       case _ =>
         ko
     }
@@ -66,17 +95,10 @@ class SquadDefinitionActionMessageTest extends Specification {
 
   "decode (10)" in {
     PacketCoding.DecodePacket(string_10).require match {
-      case SquadDefinitionActionMessage(action, unk1, unk2, str, int1, int2, long1, long2, bool) =>
-        action mustEqual 10
-        unk1 mustEqual 0
+      case SquadDefinitionActionMessage(unk1, unk2, action) =>
+        unk1 mustEqual PlanetSideGUID(0)
         unk2 mustEqual 0
-        str.isDefined mustEqual false
-        int1.isDefined mustEqual true
-        int1.get mustEqual 1
-        int2.isDefined mustEqual false
-        long1.isDefined mustEqual false
-        long2.isDefined mustEqual false
-        bool.isDefined mustEqual false
+        action mustEqual SelectRoleForYourself(1)
       case _ =>
         ko
     }
@@ -84,17 +106,10 @@ class SquadDefinitionActionMessageTest extends Specification {
 
   "decode (19)" in {
     PacketCoding.DecodePacket(string_19).require match {
-      case SquadDefinitionActionMessage(action, unk1, unk2, str, int1, int2, long1, long2, bool) =>
-        action mustEqual 19
-        unk1 mustEqual 0
+      case SquadDefinitionActionMessage(unk1, unk2, action) =>
+        unk1 mustEqual PlanetSideGUID(0)
         unk2 mustEqual 0
-        str.isDefined mustEqual true
-        str.get mustEqual "A-Team"
-        int1.isDefined mustEqual false
-        int2.isDefined mustEqual false
-        long1.isDefined mustEqual false
-        long2.isDefined mustEqual false
-        bool.isDefined mustEqual false
+        action mustEqual ChangeSquadPurpose("A-Team")
       case _ =>
         ko
     }
@@ -102,17 +117,10 @@ class SquadDefinitionActionMessageTest extends Specification {
 
   "decode (20)" in {
     PacketCoding.DecodePacket(string_20).require match {
-      case SquadDefinitionActionMessage(action, unk1, unk2, str, int1, int2, long1, long2, bool) =>
-        action mustEqual 20
-        unk1 mustEqual 0
+      case SquadDefinitionActionMessage(unk1, unk2, action) =>
+        unk1 mustEqual PlanetSideGUID(0)
         unk2 mustEqual 0
-        str.isDefined mustEqual false
-        int1.isDefined mustEqual true
-        int1.get mustEqual 1
-        int2.isDefined mustEqual false
-        long1.isDefined mustEqual false
-        long2.isDefined mustEqual false
-        bool.isDefined mustEqual false
+        action mustEqual ChangeSquadZone(PlanetSideZoneID(1))
       case _ =>
         ko
     }
@@ -120,17 +128,10 @@ class SquadDefinitionActionMessageTest extends Specification {
 
   "decode (21)" in {
     PacketCoding.DecodePacket(string_21).require match {
-      case SquadDefinitionActionMessage(action, unk1, unk2, str, int1, int2, long1, long2, bool) =>
-        action mustEqual 21
-        unk1 mustEqual 0
+      case SquadDefinitionActionMessage(unk1, unk2, action) =>
+        unk1 mustEqual PlanetSideGUID(0)
         unk2 mustEqual 0
-        str.isDefined mustEqual false
-        int1.isDefined mustEqual true
-        int1.get mustEqual 2
-        int2.isDefined mustEqual false
-        long1.isDefined mustEqual false
-        long2.isDefined mustEqual false
-        bool.isDefined mustEqual false
+        action mustEqual CloseSquadMemberPosition(2)
       case _ =>
         ko
     }
@@ -138,17 +139,10 @@ class SquadDefinitionActionMessageTest extends Specification {
 
   "decode (22)" in {
     PacketCoding.DecodePacket(string_22).require match {
-      case SquadDefinitionActionMessage(action, unk1, unk2, str, int1, int2, long1, long2, bool) =>
-        action mustEqual 22
-        unk1 mustEqual 0
+      case SquadDefinitionActionMessage(unk1, unk2, action) =>
+        unk1 mustEqual PlanetSideGUID(0)
         unk2 mustEqual 0
-        str.isDefined mustEqual false
-        int1.isDefined mustEqual true
-        int1.get mustEqual 2
-        int2.isDefined mustEqual false
-        long1.isDefined mustEqual false
-        long2.isDefined mustEqual false
-        bool.isDefined mustEqual false
+        action mustEqual AddSquadMemberPosition(2)
       case _ =>
         ko
     }
@@ -156,18 +150,10 @@ class SquadDefinitionActionMessageTest extends Specification {
 
   "decode (23)" in {
     PacketCoding.DecodePacket(string_23).require match {
-      case SquadDefinitionActionMessage(action, unk1, unk2, str, int1, int2, long1, long2, bool) =>
-        action mustEqual 23
-        unk1 mustEqual 0
+      case SquadDefinitionActionMessage(unk1, unk2, action) =>
+        unk1 mustEqual PlanetSideGUID(0)
         unk2 mustEqual 0
-        str.isDefined mustEqual true
-        str.get mustEqual "BLUFOR"
-        int1.isDefined mustEqual true
-        int1.get mustEqual 1
-        int2.isDefined mustEqual false
-        long1.isDefined mustEqual false
-        long2.isDefined mustEqual false
-        bool.isDefined mustEqual false
+        action mustEqual ChangeSquadMemberRequirementsRole(1, "BLUFOR")
       case _ =>
         ko
     }
@@ -175,18 +161,10 @@ class SquadDefinitionActionMessageTest extends Specification {
 
   "decode (24)" in {
     PacketCoding.DecodePacket(string_24).require match {
-      case SquadDefinitionActionMessage(action, unk1, unk2, str, int1, int2, long1, long2, bool) =>
-        action mustEqual 24
-        unk1 mustEqual 0
+      case SquadDefinitionActionMessage(unk1, unk2, action) =>
+        unk1 mustEqual PlanetSideGUID(0)
         unk2 mustEqual 0
-        str.isDefined mustEqual true
-        str.get mustEqual "kill bad dudes"
-        int1.isDefined mustEqual true
-        int1.get mustEqual 1
-        int2.isDefined mustEqual false
-        long1.isDefined mustEqual false
-        long2.isDefined mustEqual false
-        bool.isDefined mustEqual false
+        action mustEqual ChangeSquadMemberRequirementsDetailedOrders(1, "kill bad dudes")
       case _ =>
         ko
     }
@@ -194,18 +172,13 @@ class SquadDefinitionActionMessageTest extends Specification {
 
   "decode (25)" in {
     PacketCoding.DecodePacket(string_25).require match {
-      case SquadDefinitionActionMessage(action, unk1, unk2, str, int1, int2, long1, long2, bool) =>
-        action mustEqual 25
-        unk1 mustEqual 0
+      case SquadDefinitionActionMessage(unk1, unk2, action) =>
+        unk1 mustEqual PlanetSideGUID(0)
         unk2 mustEqual 0
-        str.isDefined mustEqual false
-        int1.isDefined mustEqual true
-        int1.get mustEqual 1
-        int2.isDefined mustEqual false
-        long1.isDefined mustEqual true
-        long1.get mustEqual 536870928L
-        long2.isDefined mustEqual false
-        bool.isDefined mustEqual false
+        action mustEqual ChangeSquadMemberRequirementsCertifications(
+          1,
+          Set(CertificationType.AntiVehicular, CertificationType.InfiltrationSuit)
+        )
       case _ =>
         ko
     }
@@ -213,16 +186,10 @@ class SquadDefinitionActionMessageTest extends Specification {
 
   "decode (26)" in {
     PacketCoding.DecodePacket(string_26).require match {
-      case SquadDefinitionActionMessage(action, unk1, unk2, str, int1, int2, long1, long2, bool) =>
-        action mustEqual 26
-        unk1 mustEqual 0
+      case SquadDefinitionActionMessage(unk1, unk2, action) =>
+        unk1 mustEqual PlanetSideGUID(0)
         unk2 mustEqual 0
-        str.isDefined mustEqual false
-        int1.isDefined mustEqual false
-        int2.isDefined mustEqual false
-        long1.isDefined mustEqual false
-        long2.isDefined mustEqual false
-        bool.isDefined mustEqual false
+        action mustEqual ResetAll()
       case _ =>
         ko
     }
@@ -230,17 +197,10 @@ class SquadDefinitionActionMessageTest extends Specification {
 
   "decode (28)" in {
     PacketCoding.DecodePacket(string_28).require match {
-      case SquadDefinitionActionMessage(action, unk1, unk2, str, int1, int2, long1, long2, bool) =>
-        action mustEqual 28
-        unk1 mustEqual 0
+      case SquadDefinitionActionMessage(unk1, unk2, action) =>
+        unk1 mustEqual PlanetSideGUID(0)
         unk2 mustEqual 0
-        str.isDefined mustEqual false
-        int1.isDefined mustEqual false
-        int2.isDefined mustEqual false
-        long1.isDefined mustEqual false
-        long2.isDefined mustEqual false
-        bool.isDefined mustEqual true
-        bool.get mustEqual true
+        action mustEqual AutoApproveInvitationRequests(true)
       case _ =>
         ko
     }
@@ -248,17 +208,10 @@ class SquadDefinitionActionMessageTest extends Specification {
 
   "decode (31)" in {
     PacketCoding.DecodePacket(string_31).require match {
-      case SquadDefinitionActionMessage(action, unk1, unk2, str, int1, int2, long1, long2, bool) =>
-        action mustEqual 31
-        unk1 mustEqual 0
+      case SquadDefinitionActionMessage(unk1, unk2, action) =>
+        unk1 mustEqual PlanetSideGUID(0)
         unk2 mustEqual 0
-        str.isDefined mustEqual false
-        int1.isDefined mustEqual false
-        int2.isDefined mustEqual false
-        long1.isDefined mustEqual false
-        long2.isDefined mustEqual false
-        bool.isDefined mustEqual true
-        bool.get mustEqual true
+        action mustEqual LocationFollowsSquadLead(true)
       case _ =>
         ko
     }
@@ -266,20 +219,10 @@ class SquadDefinitionActionMessageTest extends Specification {
 
   "decode (34a)" in {
     PacketCoding.DecodePacket(string_34a).require match {
-      case SquadDefinitionActionMessage(action, unk1, unk2, str, int1, int2, long1, long2, bool) =>
-        action mustEqual 34
-        unk1 mustEqual 0
+      case SquadDefinitionActionMessage(unk1, unk2, action) =>
+        unk1 mustEqual PlanetSideGUID(0)
         unk2 mustEqual 0
-        str.isDefined mustEqual true
-        str.get mustEqual "Badass"
-        int1.isDefined mustEqual true
-        int1.get mustEqual 1
-        int2.isDefined mustEqual true
-        int2.get mustEqual 0
-        long1.isDefined mustEqual true
-        long1.get mustEqual 0
-        long2.isDefined mustEqual false
-        bool.isDefined mustEqual false
+        action mustEqual SearchForSquadsWithParticularRole("Badass", Set(), 1, SearchMode.AnyPositions)
       case _ =>
         ko
     }
@@ -287,20 +230,10 @@ class SquadDefinitionActionMessageTest extends Specification {
 
   "decode (34b)" in {
     PacketCoding.DecodePacket(string_34b).require match {
-      case SquadDefinitionActionMessage(action, unk1, unk2, str, int1, int2, long1, long2, bool) =>
-        action mustEqual 34
-        unk1 mustEqual 0
+      case SquadDefinitionActionMessage(unk1, unk2, action) =>
+        unk1 mustEqual PlanetSideGUID(0)
         unk2 mustEqual 0
-        str.isDefined mustEqual true
-        str.get mustEqual "Badass"
-        int1.isDefined mustEqual true
-        int1.get mustEqual 2
-        int2.isDefined mustEqual true
-        int2.get mustEqual 0
-        long1.isDefined mustEqual true
-        long1.get mustEqual 0
-        long2.isDefined mustEqual false
-        bool.isDefined mustEqual false
+        action mustEqual SearchForSquadsWithParticularRole("Badass", Set(), 2, SearchMode.AnyPositions)
       case _ =>
         ko
     }
@@ -308,20 +241,10 @@ class SquadDefinitionActionMessageTest extends Specification {
 
   "decode (34c)" in {
     PacketCoding.DecodePacket(string_34c).require match {
-      case SquadDefinitionActionMessage(action, unk1, unk2, str, int1, int2, long1, long2, bool) =>
-        action mustEqual 34
-        unk1 mustEqual 0
+      case SquadDefinitionActionMessage(unk1, unk2, action) =>
+        unk1 mustEqual PlanetSideGUID(0)
         unk2 mustEqual 0
-        str.isDefined mustEqual true
-        str.get mustEqual "Badass"
-        int1.isDefined mustEqual true
-        int1.get mustEqual 2
-        int2.isDefined mustEqual true
-        int2.get mustEqual 1
-        long1.isDefined mustEqual true
-        long1.get mustEqual 0
-        long2.isDefined mustEqual false
-        bool.isDefined mustEqual false
+        action mustEqual SearchForSquadsWithParticularRole("Badass", Set(), 2, SearchMode.AvailablePositions)
       case _ =>
         ko
     }
@@ -329,20 +252,10 @@ class SquadDefinitionActionMessageTest extends Specification {
 
   "decode (34d)" in {
     PacketCoding.DecodePacket(string_34d).require match {
-      case SquadDefinitionActionMessage(action, unk1, unk2, str, int1, int2, long1, long2, bool) =>
-        action mustEqual 34
-        unk1 mustEqual 0
+      case SquadDefinitionActionMessage(unk1, unk2, action) =>
+        unk1 mustEqual PlanetSideGUID(0)
         unk2 mustEqual 0
-        str.isDefined mustEqual true
-        str.get mustEqual "Badass"
-        int1.isDefined mustEqual true
-        int1.get mustEqual 2
-        int2.isDefined mustEqual true
-        int2.get mustEqual 2
-        long1.isDefined mustEqual true
-        long1.get mustEqual 536870928L
-        long2.isDefined mustEqual false
-        bool.isDefined mustEqual false
+        action mustEqual SearchForSquadsWithParticularRole("Badass", Set(CertificationType.InfiltrationSuit, CertificationType.AntiVehicular), 2, SearchMode.SomeCertifications)
       case _ =>
         ko
     }
@@ -350,20 +263,10 @@ class SquadDefinitionActionMessageTest extends Specification {
 
   "decode (34e)" in {
     PacketCoding.DecodePacket(string_34e).require match {
-      case SquadDefinitionActionMessage(action, unk1, unk2, str, int1, int2, long1, long2, bool) =>
-        action mustEqual 34
-        unk1 mustEqual 0
+      case SquadDefinitionActionMessage(unk1, unk2, action) =>
+        unk1 mustEqual PlanetSideGUID(0)
         unk2 mustEqual 0
-        str.isDefined mustEqual true
-        str.get mustEqual "Badass"
-        int1.isDefined mustEqual true
-        int1.get mustEqual 2
-        int2.isDefined mustEqual true
-        int2.get mustEqual 3
-        long1.isDefined mustEqual true
-        long1.get mustEqual 536870928L
-        long2.isDefined mustEqual false
-        bool.isDefined mustEqual false
+        action mustEqual SearchForSquadsWithParticularRole("Badass", Set(CertificationType.InfiltrationSuit, CertificationType.AntiVehicular), 2, SearchMode.AllCertifications)
       case _ =>
         ko
     }
@@ -371,16 +274,10 @@ class SquadDefinitionActionMessageTest extends Specification {
 
   "decode (35)" in {
     PacketCoding.DecodePacket(string_35).require match {
-      case SquadDefinitionActionMessage(action, unk1, unk2, str, int1, int2, long1, long2, bool) =>
-        action mustEqual 35
-        unk1 mustEqual 0
+      case SquadDefinitionActionMessage(unk1, unk2, action) =>
+        unk1 mustEqual PlanetSideGUID(0)
         unk2 mustEqual 0
-        str.isDefined mustEqual false
-        int1.isDefined mustEqual false
-        int2.isDefined mustEqual false
-        long1.isDefined mustEqual false
-        long2.isDefined mustEqual false
-        bool.isDefined mustEqual false
+        action mustEqual CancelSquadSearch()
       case _ =>
         ko
     }
@@ -388,17 +285,10 @@ class SquadDefinitionActionMessageTest extends Specification {
 
   "decode (40)" in {
     PacketCoding.DecodePacket(string_40).require match {
-      case SquadDefinitionActionMessage(action, unk1, unk2, str, int1, int2, long1, long2, bool) =>
-        action mustEqual 40
-        unk1 mustEqual 0
+      case SquadDefinitionActionMessage(unk1, unk2, action) =>
+        unk1 mustEqual PlanetSideGUID(0)
         unk2 mustEqual 0
-        str.isDefined mustEqual false
-        int1.isDefined mustEqual true
-        int1.get mustEqual 1
-        int2.isDefined mustEqual false
-        long1.isDefined mustEqual false
-        long2.isDefined mustEqual false
-        bool.isDefined mustEqual false
+        action mustEqual FindLfsSoldiersForRole(1)
       case _ =>
         ko
     }
@@ -406,165 +296,205 @@ class SquadDefinitionActionMessageTest extends Specification {
 
   "decode (41)" in {
     PacketCoding.DecodePacket(string_41).require match {
-      case SquadDefinitionActionMessage(action, unk1, unk2, str, int1, int2, long1, long2, bool) =>
-        action mustEqual 41
-        unk1 mustEqual 0
+      case SquadDefinitionActionMessage(unk1, unk2, action) =>
+        unk1 mustEqual PlanetSideGUID(0)
         unk2 mustEqual 0
-        str.isDefined mustEqual false
-        int1.isDefined mustEqual false
-        int2.isDefined mustEqual false
-        long1.isDefined mustEqual false
-        long2.isDefined mustEqual false
-        bool.isDefined mustEqual false
+        action mustEqual CancelFind()
       case _ =>
         ko
     }
   }
 
+  "decode (43, unknown)" in {
+    PacketCoding.DecodePacket(string_43).require match {
+      case SquadDefinitionActionMessage(unk1, unk2, action) =>
+        unk1 mustEqual PlanetSideGUID(0)
+        unk2 mustEqual 0
+        action mustEqual Unknown(43, hex"00".toBitVector.take(6))
+      case _ =>
+        ko
+    }
+  }
+
+  "decode (failure)" in {
+    PacketCoding.DecodePacket(string_failure).isFailure mustEqual true
+  }
+
+  "encode (00)" in {
+    val msg = SquadDefinitionActionMessage(PlanetSideGUID(3), 0, DisplaySquad())
+    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+    pkt mustEqual string_00
+  }
+
   "encode (03)" in {
-    val msg = SquadDefinitionActionMessage(3, 0, 3, None, None, None, None, None, None)
+    val msg = SquadDefinitionActionMessage(PlanetSideGUID(0), 3, SaveSquadFavorite())
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string_03
   }
 
+  "encode (03)" in {
+    val msg = SquadDefinitionActionMessage(PlanetSideGUID(0), 3, LoadSquadFavorite())
+    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+    pkt mustEqual string_04
+  }
+
+  "encode (07)" in {
+    val msg = SquadDefinitionActionMessage(PlanetSideGUID(0), 3, ListSquadFavorite("Cops and Military Officers"))
+    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+    pkt mustEqual string_07
+  }
+
   "encode (08)" in {
-    val msg = SquadDefinitionActionMessage(8, 0, 0, None, None, None, None, None, None)
+    val msg = SquadDefinitionActionMessage(PlanetSideGUID(0), 0, RequestListSquad())
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string_08
   }
 
   "encode (10)" in {
-    val msg = SquadDefinitionActionMessage(10, 0, 0, None, Some(1), None, None, None, None)
+    val msg = SquadDefinitionActionMessage(PlanetSideGUID(0), 0, SelectRoleForYourself(1))
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string_10
   }
 
   "encode (19)" in {
-    val msg = SquadDefinitionActionMessage(19, 0, 0, Some("A-Team"), None, None, None, None, None)
+    val msg = SquadDefinitionActionMessage(PlanetSideGUID(0), 0, ChangeSquadPurpose("A-Team"))
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string_19
   }
 
   "encode (20)" in {
-    val msg = SquadDefinitionActionMessage(20, 0, 0, None, Some(1), None, None, None, None)
+    val msg = SquadDefinitionActionMessage(PlanetSideGUID(0), 0, ChangeSquadZone(PlanetSideZoneID(1)))
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string_20
   }
 
   "encode (21)" in {
-    val msg = SquadDefinitionActionMessage(21, 0, 0, None, Some(2), None, None, None, None)
+    val msg = SquadDefinitionActionMessage(PlanetSideGUID(0), 0, CloseSquadMemberPosition(2))
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string_21
   }
 
   "encode (22)" in {
-    val msg = SquadDefinitionActionMessage(22, 0, 0, None, Some(2), None, None, None, None)
+    val msg = SquadDefinitionActionMessage(PlanetSideGUID(0), 0, AddSquadMemberPosition(2))
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string_22
   }
 
   "encode (23)" in {
-    val msg = SquadDefinitionActionMessage(23, 0, 0, Some("BLUFOR"), Some(1), None, None, None, None)
+    val msg = SquadDefinitionActionMessage(PlanetSideGUID(0), 0, ChangeSquadMemberRequirementsRole(1, "BLUFOR"))
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string_23
   }
 
   "encode (24)" in {
-    val msg = SquadDefinitionActionMessage(24, 0, 0, Some("kill bad dudes"), Some(1), None, None, None, None)
+    val msg = SquadDefinitionActionMessage(PlanetSideGUID(0), 0, ChangeSquadMemberRequirementsDetailedOrders(1, "kill bad dudes"))
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string_24
   }
 
   "encode (25)" in {
-    val msg = SquadDefinitionActionMessage(25, 0, 0, None, Some(1), None, Some(536870928L), None, None)
+    val msg = SquadDefinitionActionMessage(PlanetSideGUID(0), 0, ChangeSquadMemberRequirementsCertifications(
+      1,
+      Set(CertificationType.AntiVehicular, CertificationType.InfiltrationSuit)
+    ))
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string_25
   }
 
   "encode (26)" in {
-    val msg = SquadDefinitionActionMessage(26, 0, 0, None, None, None, None, None, None)
+    val msg = SquadDefinitionActionMessage(PlanetSideGUID(0), 0, ResetAll())
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string_26
   }
 
   "encode (28)" in {
-    val msg = SquadDefinitionActionMessage(28, 0, 0, None, None, None, None, None, Some(true))
+    val msg = SquadDefinitionActionMessage(PlanetSideGUID(0), 0, AutoApproveInvitationRequests(true))
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string_28
   }
 
   "encode (31)" in {
-    val msg = SquadDefinitionActionMessage(31, 0, 0, None, None, None, None, None, Some(true))
+    val msg = SquadDefinitionActionMessage(PlanetSideGUID(0), 0, LocationFollowsSquadLead(true))
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string_31
   }
 
   "encode (34a)" in {
-    val msg = SquadDefinitionActionMessage(34, 0, 0, Some("Badass"), Some(1), Some(0), Some(0L), None, None)
+    val msg = SquadDefinitionActionMessage(PlanetSideGUID(0), 0, SearchForSquadsWithParticularRole("Badass", Set(), 1, SearchMode.AnyPositions))
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string_34a
   }
 
   "encode (34b)" in {
-    val msg = SquadDefinitionActionMessage(34, 0, 0, Some("Badass"), Some(2), Some(0), Some(0L), None, None)
+    val msg = SquadDefinitionActionMessage(PlanetSideGUID(0), 0, SearchForSquadsWithParticularRole("Badass", Set(), 2, SearchMode.AnyPositions))
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string_34b
   }
 
   "encode (34c)" in {
-    val msg = SquadDefinitionActionMessage(34, 0, 0, Some("Badass"), Some(2), Some(1), Some(0L), None, None)
+    val msg = SquadDefinitionActionMessage(PlanetSideGUID(0), 0, SearchForSquadsWithParticularRole("Badass", Set(), 2, SearchMode.AvailablePositions))
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string_34c
   }
 
   "encode (34d)" in {
-    val msg = SquadDefinitionActionMessage(34, 0, 0, Some("Badass"), Some(2), Some(2), Some(536870928L), None, None)
+    val msg = SquadDefinitionActionMessage(PlanetSideGUID(0), 0, SearchForSquadsWithParticularRole("Badass", Set(CertificationType.InfiltrationSuit, CertificationType.AntiVehicular), 2, SearchMode.SomeCertifications))
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string_34d
   }
 
   "encode (34e)" in {
-    val msg = SquadDefinitionActionMessage(34, 0, 0, Some("Badass"), Some(2), Some(3), Some(536870928L), None, None)
+    val msg = SquadDefinitionActionMessage(PlanetSideGUID(0), 0, SearchForSquadsWithParticularRole("Badass", Set(CertificationType.InfiltrationSuit, CertificationType.AntiVehicular), 2, SearchMode.AllCertifications))
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string_34e
   }
 
   "encode (35)" in {
-    val msg = SquadDefinitionActionMessage(35, 0, 0, None, None, None, None, None, None)
+    val msg = SquadDefinitionActionMessage(PlanetSideGUID(0), 0, CancelSquadSearch())
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string_35
   }
 
   "encode (40)" in {
-    val msg = SquadDefinitionActionMessage(40, 0, 0, None, Some(1), None, None, None, None)
+    val msg = SquadDefinitionActionMessage(PlanetSideGUID(0), 0, FindLfsSoldiersForRole(1))
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string_40
   }
 
   "encode (41)" in {
-    val msg = SquadDefinitionActionMessage(41, 0, 0, None, None, None, None, None, None)
+    val msg = SquadDefinitionActionMessage(PlanetSideGUID(0), 0, CancelFind())
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string_41
+  }
+
+  "encode (43, unknown)" in {
+    val msg = SquadDefinitionActionMessage(PlanetSideGUID(0), 0, Unknown(43, BitVector.empty))
+    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+
+    pkt mustEqual string_43
   }
 }

@@ -87,7 +87,7 @@ class OrderTerminalTest extends Specification {
       player.ExoSuit = ExoSuitType.Agile
       player.Slot(0).Equipment = Tool(GlobalDefinitions.beamer)
       player.Slot(6).Equipment = Tool(GlobalDefinitions.beamer)
-      avatar.SaveLoadout(player, "test", 0)
+      avatar.EquipmentLoadouts.SaveLoadout(player, "test", 0)
 
       val msg = infantryTerminal.Request(player, ItemTransactionMessage(PlanetSideGUID(10), TransactionType.Loadout, 4, "", 0, PlanetSideGUID(0)))
       msg.isInstanceOf[Terminal.InfantryLoadout] mustEqual true
@@ -137,7 +137,7 @@ class OrderTerminalTest extends Specification {
     "player can retrieve a vehicle loadout" in {
       val fury = Vehicle(GlobalDefinitions.fury)
       fury.Slot(30).Equipment = AmmoBox(GlobalDefinitions.hellfire_ammo)
-      avatar.SaveLoadout(fury, "test", 10)
+      avatar.EquipmentLoadouts.SaveLoadout(fury, "test", 10)
 
       val msg = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Loadout, 4, "test", 0, PlanetSideGUID(0))
       terminal.Request(player, msg) match {
