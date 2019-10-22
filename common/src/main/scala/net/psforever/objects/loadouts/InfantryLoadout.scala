@@ -28,7 +28,7 @@ final case class InfantryLoadout(label : String,
                                  visible_slots : List[Loadout.SimplifiedEntry],
                                  inventory : List[Loadout.SimplifiedEntry],
                                  exosuit : ExoSuitType.Value,
-                                 subtype : Int) extends Loadout(label, visible_slots, inventory)
+                                 subtype : Int) extends EquipmentLoadout(label, visible_slots, inventory)
 
 object InfantryLoadout {
   import net.psforever.objects.Player

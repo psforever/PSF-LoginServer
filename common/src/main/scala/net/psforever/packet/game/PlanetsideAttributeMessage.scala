@@ -118,8 +118,12 @@ import scodec.codecs._
   * `27 - PA_JAMMED - plays jammed buzzing sound`<br>
   * `28 - PA_IMPLANT_ACTIVE - Plays implant sounds. Valid values seem to be up to 20.`<br>
   * `29 - PA_VAPORIZED - Visible ?! That's not the cloaked effect, Maybe for spectator mode ?. Value is 0 to visible, 1 to invisible.`<br>
-  * `31 - Info under avatar name : 0 = LFS, 1 = Looking For Squad Members`<br>
-  * `32 - Info under avatar name : 0 = Looking For Squad Members, 1 = LFS`<br>
+  * `31 - Looking for Squad info (marquee and ui):<br>
+  * ` - 0 is LFS`<br>
+  * ` - 1 is LFSM (Looking for Squad Members)`<br>
+  * ` - n is the supplemental squad identifier number; same as "LFS;" for the leader, sets "LFSM" after the first manual flagging`<br>
+  * `32 - Maintain the squad role index, when a member of a squad;<br>
+  *  - OLD: "Info under avatar name : 0 = Looking For Squad Members, 1 = LFS`"<br>
   * `35 - BR. Value is the BR`<br>
   * `36 - CR. Value is the CR`<br>
   * `43 - Info on avatar name : 0 = Nothing, 1 = "(LD)" message`<br>

@@ -22,6 +22,7 @@ import services.ServiceManager
 import services.avatar._
 import services.galaxy.GalaxyService
 import services.local._
+import services.teamwork.SquadService
 import services.vehicle.VehicleService
 
 import scala.collection.JavaConverters._
@@ -258,6 +259,7 @@ object PsLogin {
     serviceManager ! ServiceManager.Register(Props[LocalService], "local")
     serviceManager ! ServiceManager.Register(Props[VehicleService], "vehicle")
     serviceManager ! ServiceManager.Register(Props[GalaxyService], "galaxy")
+    serviceManager ! ServiceManager.Register(Props[SquadService], "squad")
     serviceManager ! ServiceManager.Register(Props(classOf[InterstellarCluster], continentList), "cluster")
 
     //attach event bus entry point to each zone

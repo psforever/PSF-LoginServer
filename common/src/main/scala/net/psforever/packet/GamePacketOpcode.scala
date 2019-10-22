@@ -446,18 +446,18 @@ object GamePacketOpcode extends Enumeration {
     case 0x6b => game.TriggerSoundMessage.decode
     case 0x6c => game.LootItemMessage.decode
     case 0x6d => game.VehicleSubStateMessage.decode
-    case 0x6e => noDecoder(SquadMembershipRequest)
-    case 0x6f => noDecoder(SquadMembershipResponse)
+    case 0x6e => game.SquadMembershipRequest.decode
+    case 0x6f => game.SquadMembershipResponse.decode
 
     // OPCODES 0x70-7f
-    case 0x70 => noDecoder(SquadMemberEvent)
+    case 0x70 => game.SquadMemberEvent.decode
     case 0x71 => noDecoder(PlatoonEvent)
     case 0x72 => game.FriendsRequest.decode
     case 0x73 => game.FriendsResponse.decode
     case 0x74 => game.TriggerEnvironmentalDamageMessage.decode
     case 0x75 => game.TrainingZoneMessage.decode
     case 0x76 => game.DeployableObjectsInfoMessage.decode
-    case 0x77 => noDecoder(SquadState)
+    case 0x77 => game.SquadState.decode
     // 0x78
     case 0x78 => game.OxygenStateMessage.decode
     case 0x79 => noDecoder(TradeMessage)
@@ -472,7 +472,7 @@ object GamePacketOpcode extends Enumeration {
     case 0x80 => noDecoder(GenericObjectAction2Message)
     case 0x81 => game.DestroyDisplayMessage.decode
     case 0x82 => noDecoder(TriggerBotAction)
-    case 0x83 => noDecoder(SquadWaypointRequest)
+    case 0x83 => game.SquadWaypointRequest.decode
     case 0x84 => game.SquadWaypointEvent.decode
     case 0x85 => noDecoder(OffshoreVehicleMessage)
     case 0x86 => game.ObjectDeployedMessage.decode
@@ -592,11 +592,11 @@ object GamePacketOpcode extends Enumeration {
     case 0xe6 => game.ReplicationStreamMessage.decode
     case 0xe7 => game.SquadDefinitionActionMessage.decode
     // 0xe8
-    case 0xe8 => noDecoder(SquadDetailDefinitionUpdateMessage)
+    case 0xe8 => game.SquadDetailDefinitionUpdateMessage.decode
     case 0xe9 => noDecoder(TacticsMessage)
     case 0xea => noDecoder(RabbitUpdateMessage)
-    case 0xeb => noDecoder(SquadInvitationRequestMessage)
-    case 0xec => noDecoder(CharacterKnowledgeMessage)
+    case 0xeb => game.SquadInvitationRequestMessage.decode
+    case 0xec => game.CharacterKnowledgeMessage.decode
     case 0xed => noDecoder(GameScoreUpdateMessage)
     case 0xee => noDecoder(UnknownMessage238)
     case 0xef => noDecoder(OrderTerminalBugMessage)

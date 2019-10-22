@@ -5,30 +5,29 @@ import net.psforever.objects._
 import net.psforever.objects.definition._
 import net.psforever.objects.equipment.{Equipment, EquipmentSlot}
 import net.psforever.objects.inventory.InventoryItem
+import net.psforever.objects.teamwork.Squad
 
 import scala.annotation.tailrec
+import scala.util.{Failure, Success, Try}
 
 /**
   * The base of all specific kinds of blueprint containers.
   * This previous state can be restored on any appropriate template from which the loadout was copied
-  * by reconstructing the items (if permitted).
-  * The three fields are the name assigned to the loadout,
-  * the visible items that are created (which obey different rules depending on the source),
-  * and the concealed items that are created and added to the source's `Inventory`.<br>
-  * For example, the `visible_slots` on a `Player`-borne loadout will transform into the form `Array[EquipmentSlot]`;
-  * `Vehicle`-originating loadouts transform into the form `Map[Int, Equipment]`.
-  * <br>
-  * The lists of user-specific loadouts are initialized with `FavoritesMessage` packets.
-  * Specific entries are loaded or removed using `FavoritesRequest` packets.
+  * by reconstructing any items (if warranted and permitted) or restoring any appropriate fields.
   * @param label the name by which this inventory will be known when displayed in a Favorites list
-  * @param visible_slots simplified representation of the `Equipment` that can see "seen" on the target
-  * @param inventory simplified representation of the `Equipment` in the target's inventory or trunk
   */
-abstract class Loadout(label : String,
-                       visible_slots : List[Loadout.SimplifiedEntry],
-                       inventory : List[Loadout.SimplifiedEntry])
+abstract class Loadout(label : String)
 
 object Loadout {
+  def Create(owner : Any, label : String) : Try[Loadout] = {
+    owner match {
+      case p : Player => Success(Create(p, label))
+      case v : Vehicle => Success(Create(v, label))
+      case s : Squad => Success(Create(s, s.Task))
+      case _ => Failure(new MatchError(s"can not create a loadout based on the (current status of) $owner"))
+    }
+  }
+
   /**
     * Produce the blueprint on a player.
     * @param player the player
@@ -54,9 +53,28 @@ object Loadout {
   def Create(vehicle : Vehicle, label : String) : Loadout = {
     VehicleLoadout(
       label,
-      packageSimplifications(vehicle.Weapons.map({ case ((index, weapon)) => InventoryItem(weapon.Equipment.get, index) }).toList),
+      packageSimplifications(vehicle.Weapons.map({ case (index, weapon) => InventoryItem(weapon.Equipment.get, index) }).toList),
       packageSimplifications(vehicle.Trunk.Items),
       vehicle.Definition
+    )
+  }
+
+  /**
+    *  na
+    */
+  def Create(squad : Squad, label : String) : Loadout = {
+    SquadLoadout(
+      label,
+      if(squad.CustomZoneId) { Some(squad.ZoneId) } else { None },
+      squad.Membership
+        .zipWithIndex
+        .filter { case (_, index) =>
+          squad.Availability(index)
+        }
+        .map {case (member, index) =>
+          SquadPositionLoadout(index, member.Role, member.Orders, member.Requirements)
+        }
+        .toList
     )
   }
 

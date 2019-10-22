@@ -62,7 +62,7 @@ class MountedVehiclesTest extends Specification {
                         a.data.v5.isEmpty mustEqual true
                         a.exosuit mustEqual ExoSuitType.Agile
                         a.unk5 mustEqual 0
-                        a.unk6 mustEqual 30777081L
+                        a.char_id mustEqual 30777081L
                         a.unk7 mustEqual 1
                         a.unk8 mustEqual 4
                         a.unk9 mustEqual 0

@@ -70,11 +70,11 @@ class DamageCalculationsTests extends Specification {
     }
 
     "calculate distance between target and source" in {
-      DistanceBetweenTargetandSource(resprojectile) mustEqual 10
+      DistanceBetweenTargetandSource(resprojectile) mustEqual 67.38225f
     }
 
     "calculate distance between target and explosion (splash)" in {
-      DistanceFromExplosionToTarget(resprojectile) mustEqual 64.03124f
+      DistanceFromExplosionToTarget(resprojectile) mustEqual 63.031242f
     }
 
     "calculate no damage from components" in {
