@@ -1162,7 +1162,12 @@ object SquadDetailDefinitionUpdateMessage extends Marshallable[SquadDetailDefini
     private def unlinkFields(list : LinkedFields, out : List[SquadPositionEntry] = Nil) : List[SquadPositionEntry] = {
       list.next match {
         case None =>
-          out :+ SquadPositionEntry(list.index, list.info)
+          list.info match {
+            case SquadPositionDetail.Blank =>
+              out :+ SquadPositionEntry(list.index, None)
+            case _ =>
+              out :+ SquadPositionEntry(list.index, list.info)
+          }
         case Some(next) =>
           unlinkFields(next, out :+ SquadPositionEntry(list.index, list.info))
       }
