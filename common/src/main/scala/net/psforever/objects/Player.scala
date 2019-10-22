@@ -81,8 +81,6 @@ class Player(private val core : Avatar) extends PlanetSideGameObject
 
   def isBackpack : Boolean = backpack
 
-  def CharId : Long = core.CharId
-
   def Spawn : Boolean = {
     if(!isAlive && !isBackpack) {
       alive = true
