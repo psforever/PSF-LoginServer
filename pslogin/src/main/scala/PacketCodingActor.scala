@@ -55,7 +55,7 @@ class PacketCodingActor extends Actor with MDCContextAware {
   private var relatedABufferTimeout : Cancellable = DefaultCancellable.obj
 
   def AddSlottedPacketToLog(subslot: Int, packet : ByteVector): Unit = {
-    val log_limit = 100 // Number of SlottedMetaPackets to keep in history
+    val log_limit = 500 // Number of SlottedMetaPackets to keep in history
     if(slottedPacketLog.size > log_limit) {
       slottedPacketLog = slottedPacketLog.drop(slottedPacketLog.size - log_limit)
     }
@@ -326,7 +326,7 @@ class PacketCodingActor extends Actor with MDCContextAware {
       case Successful(packet) =>
         handlePacketContainer(packet)
       case Failure(ex) =>
-        log.info(s"Failed to unmarshal $description: $ex")
+        log.info(s"Failed to unmarshal $description: $ex. Data : $data")
     }
   }
 
@@ -372,7 +372,7 @@ class PacketCodingActor extends Actor with MDCContextAware {
         packets.foreach { UnmarshalInnerPacket(_, "the inner packet of a MultiPacketEx") }
 
       case RelatedA(slot, subslot) =>
-        log.trace(s"Client indicated a packet is missing prior to slot: $slot subslot: $subslot")
+        log.trace(s"Client indicated a packet is missing prior to slot: $slot subslot: $subslot, session: ${sessionId}")
 
         relatedALog += subslot
 
@@ -382,14 +382,16 @@ class PacketCodingActor extends Actor with MDCContextAware {
         relatedABufferTimeout = context.system.scheduler.scheduleOnce(100 milliseconds, self, PacketCodingActor.SubslotResend())
 
       case RelatedB(slot, subslot) =>
-        log.trace(s"result $slot: subslot $subslot accepted")
+        log.trace(s"result $slot: subslot $subslot accepted, session: ${sessionId}")
 
         // The client has indicated it's received up to a certain subslot, that means we can purge the log of any subslots prior to and including the confirmed subslot
         // Find where this subslot is stored in the packet log (if at all) and drop anything to the left of it, including itself
-        val pos = slottedPacketLog.keySet.toArray.indexOf(subslot)
-        if(pos != -1) {
-          slottedPacketLog = slottedPacketLog.drop(pos+1)
-          log.trace(s"Subslots left in log: ${slottedPacketLog.keySet.toString()}")
+        if(relatedABufferTimeout.isCancelled || relatedABufferTimeout == DefaultCancellable.obj) {
+          val pos = slottedPacketLog.keySet.toArray.indexOf(subslot)
+          if(pos != -1) {
+            slottedPacketLog = slottedPacketLog.drop(pos+1)
+            log.trace(s"Subslots left in log: ${slottedPacketLog.keySet.toString()}")
+          }
         }
       case _ =>
         sendResponseRight(container)

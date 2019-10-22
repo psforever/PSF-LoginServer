@@ -66,7 +66,10 @@ object EquipmentTerminalDefinition {
     "lancer_cartridge" -> MakeAmmoBox(lancer_cartridge),
     "bolt" -> MakeAmmoBox(bolt),
     "oicw_ammo" -> MakeAmmoBox(oicw_ammo), //scorpion missile
-    "flamethrower_ammo" -> MakeAmmoBox(flamethrower_ammo)
+    "flamethrower_ammo" -> MakeAmmoBox(flamethrower_ammo),
+    "winchester_ammo" -> MakeAmmoBox(winchester_ammo),
+    "pellet_gun_ammo" -> MakeAmmoBox(pellet_gun_ammo),
+    "six_shooter_ammo" -> MakeAmmoBox(six_shooter_ammo)
   )
   val maxAmmo : Map[String, () => Equipment] = Map(
     "dualcycler_ammo" -> MakeAmmoBox(dualcycler_ammo),
@@ -172,7 +175,11 @@ object EquipmentTerminalDefinition {
     "heavy_sniper" -> MakeTool(heavy_sniper), //hsr
     "bolt_driver" -> MakeTool(bolt_driver),
     "oicw" -> MakeTool(oicw), //scorpion
-    "flamethrower" -> MakeTool(flamethrower)
+    "flamethrower" -> MakeTool(flamethrower),
+    "winchester" -> MakeTool(winchester),
+    "pellet_gun" -> MakeTool(pellet_gun),
+    "six_shooter" -> MakeTool(six_shooter),
+    "dynomite" -> MakeTool(dynomite)
   )
   /**
     * A `Map` of operations for producing the `Tool` `Equipment` for utilities.

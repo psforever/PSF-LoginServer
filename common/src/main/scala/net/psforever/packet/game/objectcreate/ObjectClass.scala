@@ -392,6 +392,8 @@ object ObjectClass {
   final val order_terminal = 612
   final val order_terminala = 613
   final val order_terminalb = 614
+  final val portable_ammo_terminal = 684
+  final val portable_order_terminal = 690
   final val targeting_laser_dispenser = 851
   final val teleportpad_terminal = 853
 

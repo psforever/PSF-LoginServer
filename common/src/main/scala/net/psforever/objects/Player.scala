@@ -48,9 +48,14 @@ class Player(private val core : Avatar) extends PlanetSideGameObject
 
   private var continent : String = "home2" //the zone id
 
-  //SouNourS things
-  /** Last medkituse. */
-  var lastMedkit : Long = 0
+  var silenced : Boolean = false
+  var firstLoad : Boolean = false
+  def FirstLoad : Boolean = firstLoad
+  def FirstLoad_=(status : Boolean) : Boolean = {
+    firstLoad = status
+    FirstLoad
+  }
+  var death_by : Int = 0
   var lastSeenStreamMessage : Array[Long] = Array.fill[Long](65535)(0L)
   var lastShotSeq_time : Int = -1
   /** From PlanetsideAttributeMessage */

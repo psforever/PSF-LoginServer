@@ -80,6 +80,7 @@ class CryptoSessionActor extends Actor with MDCContextAware {
               clientNonce = nonce
               serverNonce = Math.abs(random.nextInt())
               sendResponse(PacketCoding.CreateControlPacket(ServerStart(nonce, serverNonce)))
+              log.trace(s"ClientStart($nonce), $serverNonce")
 
               context.become(CryptoExchange)
             case _ =>

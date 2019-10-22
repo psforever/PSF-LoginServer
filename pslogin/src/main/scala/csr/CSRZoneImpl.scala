@@ -337,7 +337,7 @@ object CSRZoneImpl {
       "anu" -> Vector3(3479, 2556, 56),
       "bel" -> Vector3(3665, 4626, 58),
       "caer" -> Vector3(4570, 2601, 56),
-      "dagd" -> Vector3(5825, 4449, 55),
+      "dagda" -> Vector3(5825, 4449, 55),
       "eadon" -> Vector3(2725, 2853, 53),
       "gwydion" -> Vector3(5566, 3739, 61),
       "lugh" -> Vector3(6083, 5069, 72),

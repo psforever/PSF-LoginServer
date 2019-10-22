@@ -20,6 +20,7 @@ import org.fusesource.jansi.Ansi._
 import org.fusesource.jansi.Ansi.Color._
 import services.ServiceManager
 import services.avatar._
+import services.chat.ChatService
 import services.galaxy.GalaxyService
 import services.local._
 import services.teamwork.SquadService
@@ -257,6 +258,7 @@ object PsLogin {
     serviceManager ! ServiceManager.Register(RandomPool(50).props(Props[TaskResolver]), "taskResolver")
     serviceManager ! ServiceManager.Register(Props[AvatarService], "avatar")
     serviceManager ! ServiceManager.Register(Props[LocalService], "local")
+    serviceManager ! ServiceManager.Register(Props[ChatService], "chat")
     serviceManager ! ServiceManager.Register(Props[VehicleService], "vehicle")
     serviceManager ! ServiceManager.Register(Props[GalaxyService], "galaxy")
     serviceManager ! ServiceManager.Register(Props[SquadService], "squad")

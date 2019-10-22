@@ -9,6 +9,7 @@ object CargoStatus extends Enumeration {
 
   val Empty = Value(0)
   val InProgress = Value(1)
+  val UNK1 = Value(2) // to have Xtoolspar working
   val Occupied = Value(3)
 
   implicit val codec = PacketHelpers.createEnumerationCodec(this, uint4L)
