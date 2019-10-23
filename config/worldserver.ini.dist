@@ -1,9 +1,104 @@
 #######################################
 # PSForever Server configuration file #
 #######################################
+
+###################################################################################################
+# EXAMPLE CONFIG
+#
+#    Variable (type)
+#        Description: Brief description what the variable is doing.
+#        Important:   Annotation for important things about this variable.
+#        Example:     "Example, i.e. if the value is a string"
+#        Range:       [0, 10] - (Disabled, Enabled)
+#        Default:     10 - (Enabled|Comment|Variable name in case of grouped config options)
+#                     0  - (Disabled|Comment|Variable name in case of grouped config options)
+#
+# Note to developers:
+# - Copy this example to keep the formatting.
+# - Line breaks should be at column 100.
+###################################################################################################
+
+###################################################################################################
+# WORLDSERVER SETTINGS
+###################################################################################################
+
 [worldserver]
+
+#    ListeningPort (int)
+#        Description: The UDP listening port for the worldserver.
+#        Important:   Must be different from the loginserver.ListeningPort. Ports below 1024 are
+#                     privileged on Linux and may require root.
+#        Range:       [1, 65535] - (UDP port 1, UDP port 65535)
+#        Default:     51001      - (Listen on UDP port 51001)
+
 ListeningPort = 51001
 
+###################################################################################################
+# LOGINSERVER SETTINGS
+###################################################################################################
+
 [loginserver]
+
+#    ListeningPort (int)
+#        Description: The UDP listening port for the loginserver.
+#        Important:   Must be different from the worldserver.ListeningPort. Ports below 1024 are
+#                     privileged on Linux and may require root.
+#        Range:       [1, 65535] - (UDP port 1, UDP port 65535)
+#        Default:     51000      - (Listen on UDP port 5100)
+
 ListeningPort = 51000
 
+###################################################################################################
+# DEVELOPER SETTINGS
+#    - NETWORK SIMULATOR
+###################################################################################################
+
+[developer]
+
+###################################################################################################
+# NETWORK SIMULATOR
+#
+#    NetSim.Active (boolean)
+#        Description: Enable artificial packet unreliability. Used for development testing.
+#                     Active equally on upstream and downstream packets.
+#        Important:   DO NOT enable on servers with a high packet rate as buffering increases
+#                     the memory load of the server and it will (by design) affect performance.
+#        Default:     no  - (Disabled)
+#                     yes - (Enabled)
+NetSim.Active = no
+
+#    NetSim.Loss (float)
+#        Description: The percentage of outgoing and incoming packets that are dropped.
+#        Range:       [0.0, 1.0] - (0% loss, 100% packet loss)
+#        Default:     0.02       - (2% packet loss)
+
+NetSim.Loss = 0.02
+
+#    NetSim.Delay (time)
+#        Description: The time a packet is buffered before being delivered to simulate delay.
+#                     The artificial delay is in addition to any real network latency.
+#        Important:   Longer delays will lead to larger packet buffering, which may cause
+#                     out-of-memory errors depending on packet rate.
+#        Range:       [0, 2 seconds]   - (No delay, 2 seconds delay)
+#        Default:     150 milliseconds - (Packets lag for 150 milliseconds)
+
+NetSim.Delay = 150 milliseconds
+
+#    NetSim.ReorderChance (float)
+#        Description: The percentage chance that a packet will be ordered randomly in the delay
+#                     buffer. If the NetSim.Delay is too small then packets won't be reordered.
+#        Range:       [0.0, 1.0] - (No packet reordering, reorder every packet)
+#        Default:     0.005      - (0.5% chance of a packet being reordered)
+
+NetSim.ReorderChance = 0.005
+
+#    NetSim.ReorderTime (time)
+#        Description: If a packet is reordered, the maximum time in the future or the past where
+#                     it will randomly appear.
+#        Range:       [0, 2 seconds]   - (No packet reordering, randomly shift +/- 2 seconds)
+#        Default:     150 milliseconds - (+/- 150 milliseconds)
+
+NetSim.ReorderTime = 150 milliseconds
+
+#
+###################################################################################################
