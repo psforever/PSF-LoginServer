@@ -114,6 +114,7 @@ object Cosmetics {
             sunglasses : Boolean,
             earpiece : Boolean,
             brimmed_cap : Boolean) : Cosmetics = {
+    import scala.language.implicitConversions
     implicit def bool2int(b : Boolean) : Int = if(b) 1 else 0
     Cosmetics(
       (no_helmet * 16) +

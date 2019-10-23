@@ -26,7 +26,7 @@ import scodec.codecs._
   *                        values in between are possible;
   *                        vehicles that hover also influence this field as expected
   * @param unk5 na - Possibly a flag to indicate the vehicle is attached to something else e.g. is in a galaxy/lodestar cargo bay
-  * @param is_cloaked vehicle is cloaked
+  * @param is_cloaked vehicle is cloaked by virtue of being a Wraith or a Phantasm
   * @see `PlacementData`
   */
 
