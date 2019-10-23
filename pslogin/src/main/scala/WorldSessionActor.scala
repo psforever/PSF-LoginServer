@@ -151,16 +151,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
   var timeDL : Long = 0
   var timeSurge : Long = 0
   lazy val unsignedIntMaxValue : Long = Int.MaxValue.toLong * 2L + 1L
-  val sysTime : ()=>Long = {
-    //if the first nanoTime call is negative, subsequent calls will be only "slightly less negative"
-    //even with math.abs, each call to nanoTime would result in time counting down
-    if(System.nanoTime > 0) {
-      System.nanoTime
-    }
-    else {
-      System.currentTimeMillis
-    }
-  }
   var serverTime : Long = 0
 
   var amsSpawnPoints : List[SpawnPoint] = Nil
@@ -3423,7 +3413,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * @return a number that indicates server tick time
     */
   def ServerTick : Long = {
-    serverTime = sysTime() & unsignedIntMaxValue
+    serverTime = System.currentTimeMillis() & unsignedIntMaxValue
     serverTime
   }
 
