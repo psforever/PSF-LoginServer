@@ -140,9 +140,9 @@ object PsLogin {
 
     WorldConfig.Load(worldConfigToLoad) match {
       case Valid =>
-        println("Loaded world config from " + worldConfigFile)
+        println("Loaded world config from " + worldConfigToLoad)
       case i : Invalid =>
-        println("FATAL: Error loading config from " + worldConfigFile)
+        println("FATAL: Error loading config from " + worldConfigToLoad)
         println(WorldConfig.FormatErrors(i).mkString("\n"))
         sys.exit(1)
     }
