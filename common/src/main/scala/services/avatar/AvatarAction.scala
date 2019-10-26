@@ -45,8 +45,10 @@ object AvatarAction {
   final case class SetEmpire(player_guid : PlanetSideGUID, object_guid : PlanetSideGUID, faction : PlanetSideEmpire.Value) extends Action
   final case class StowEquipment(player_guid : PlanetSideGUID, target_guid : PlanetSideGUID, slot : Int, item : Equipment) extends Action
   final case class WeaponDryFire(player_guid : PlanetSideGUID, weapon_guid : PlanetSideGUID) extends Action
+  final case class Revive(target_guid: PlanetSideGUID) extends Action
 
   final case class SendResponse(player_guid: PlanetSideGUID, msg: PlanetSideGamePacket) extends Action
+  final case class SendResponseTargeted(target_guid: PlanetSideGUID, msg: PlanetSideGamePacket) extends Action
 
   //  final case class PlayerStateShift(killer : PlanetSideGUID, victim : PlanetSideGUID) extends Action
 //  final case class DestroyDisplay(killer : PlanetSideGUID, victim : PlanetSideGUID) extends Action

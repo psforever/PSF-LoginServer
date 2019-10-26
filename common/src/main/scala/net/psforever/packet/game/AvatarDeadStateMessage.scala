@@ -92,7 +92,7 @@ object AvatarDeadStateMessage extends Marshallable[AvatarDeadStateMessage] {
       ("timer_max" | uint32L) ::
       ("timer" | uint32L) ::
       ("pos" | Vector3.codec_pos) ::
-      ("unk4" | factionLongCodec) ::
+      ("faction" | factionLongCodec) ::
       ("unk5" | bool)
     ).as[AvatarDeadStateMessage]
 }

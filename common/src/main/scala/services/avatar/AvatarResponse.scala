@@ -38,7 +38,9 @@ object AvatarResponse {
   final case class SetEmpire(object_guid : PlanetSideGUID, faction : PlanetSideEmpire.Value) extends Response
   final case class StowEquipment(target_guid : PlanetSideGUID, slot : Int, item : Equipment) extends Response
   final case class WeaponDryFire(weapon_guid : PlanetSideGUID) extends Response
+  final case class Revive(target_guid: PlanetSideGUID) extends Response
 
   final case class SendResponse(msg: PlanetSideGamePacket) extends Response
+  final case class SendResponseTargeted(target_guid : PlanetSideGUID, msg: PlanetSideGamePacket) extends Response
   //  final case class PlayerStateShift(itemID : PlanetSideGUID) extends Response
 }

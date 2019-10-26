@@ -1230,6 +1230,18 @@ class WorldSessionActor extends Actor with MDCContextAware {
       case AvatarResponse.SendResponse(msg) =>
         sendResponse(msg)
 
+      case AvatarResponse.SendResponseTargeted(target_guid, msg) =>
+        if(tplayer_guid == target_guid) {
+          sendResponse(msg)
+        }
+
+      case AvatarResponse.Revive(target_guid) =>
+        if(tplayer_guid == target_guid) {
+          deadState = DeadState.Alive
+          reviveTimer.cancel
+          sendResponse(AvatarDeadStateMessage(DeadState.Alive, 0, 0, player.Position, player.Faction, true))
+        }
+
       case AvatarResponse.ArmorChanged(suit, subtype) =>
         if(tplayer_guid != guid) {
           sendResponse(ArmorChangedMessage(guid, suit, subtype))
@@ -4878,19 +4890,17 @@ class WorldSessionActor extends Actor with MDCContextAware {
                   continent.GUID(object_guid) match {
                     case Some(tplayer: Player) =>
                       if (player.GUID != tplayer.GUID && Vector3.Distance(player.Position, tplayer.Position) < 5 && player.Faction == tplayer.Faction && player.Velocity.isEmpty) {
-                        if (tplayer.MaxHealth - tplayer.Health <= 10) {
-                          tplayer.Health = tplayer.MaxHealth
-                          //                sendResponse(QuantityUpdateMessage(PlanetSideGUID(8214),ammo_quantity_left))
-                          val RepairPercent: Int = tplayer.Health * 100 / tplayer.MaxHealth
-                          sendResponse(RepairMessage(object_guid, RepairPercent))
-                          avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.PlanetsideAttributeSelf(tplayer.GUID, 0, tplayer.Health))
-                          avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.PlanetsideAttribute(tplayer.GUID, 0, tplayer.Health))
+                        tplayer.Health += 10
+                        //                sendResponse(QuantityUpdateMessage(PlanetSideGUID(8214),ammo_quantity_left))
+                        val RepairPercent: Int = tplayer.Health * 100 / tplayer.MaxHealth
+                        sendResponse(RepairMessage(object_guid, RepairPercent))
+
+                        if(!tplayer.isAlive && tplayer.Health == tplayer.MaxHealth) {
+                          tplayer.Revive
+                          avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.Revive(tplayer.GUID))
                         }
-                        if (tplayer.MaxHealth - tplayer.Health > 10) {
-                          tplayer.Health += 10
-                          //                sendResponse(QuantityUpdateMessage(PlanetSideGUID(8214),ammo_quantity_left))
-                          val RepairPercent: Int = tplayer.Health * 100 / tplayer.MaxHealth
-                          sendResponse(RepairMessage(object_guid, RepairPercent))
+
+                        if(tplayer.isAlive) {
                           avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.PlanetsideAttributeSelf(tplayer.GUID, 0, tplayer.Health))
                           avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.PlanetsideAttribute(tplayer.GUID, 0, tplayer.Health))
                         }
