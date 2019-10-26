@@ -4854,14 +4854,16 @@ class WorldSessionActor extends Actor with MDCContextAware {
                     case Some(tplayer: Player) =>
                       if (player.GUID != tplayer.GUID && Vector3.Distance(player.Position, tplayer.Position) < 5 && player.Faction == tplayer.Faction && player.Velocity.isEmpty) {
                         tplayer.Armor += 15
-                        //                sendResponse(QuantityUpdateMessage(PlanetSideGUID(8214),ammo_quantity_left))
+                        tool.Discharge
+                        sendResponse(InventoryStateMessage(tool.AmmoSlot.Box.GUID, obj.GUID, tool.Magazine))
                         val RepairPercent: Int = tplayer.Armor * 100 / tplayer.MaxArmor
                         sendResponse(RepairMessage(object_guid, RepairPercent))
 
                         avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.PlanetsideAttributeToAll(tplayer.GUID, 4, tplayer.Armor))
                       } else if (player.GUID == tplayer.GUID && player.Velocity.isEmpty) {
                         player.Armor += 15
-                        //              sendResponse(QuantityUpdateMessage(PlanetSideGUID(8214),ammo_quantity_left))
+                        tool.Discharge
+                        sendResponse(InventoryStateMessage(tool.AmmoSlot.Box.GUID, obj.GUID, tool.Magazine))
                         avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttributeToAll(player.GUID, 4, player.Armor))
                       }
                     case _ => ;
@@ -4871,7 +4873,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
                     case Some(tplayer: Player) =>
                       if (player.GUID != tplayer.GUID && Vector3.Distance(player.Position, tplayer.Position) < 5 && player.Faction == tplayer.Faction && player.Velocity.isEmpty) {
                         tplayer.Health += 10
-                        //                sendResponse(QuantityUpdateMessage(PlanetSideGUID(8214),ammo_quantity_left))
+                        tool.Discharge
+                        sendResponse(InventoryStateMessage(tool.AmmoSlot.Box.GUID, obj.GUID, tool.Magazine))
                         val repairPercent: Int = tplayer.Health * 100 / tplayer.MaxHealth
                         sendResponse(RepairMessage(object_guid, repairPercent))
 
@@ -4885,7 +4888,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
                         }
                       } else if (player.GUID == tplayer.GUID && player.Velocity.isEmpty) {
                         player.Health += 10
-                        //              sendResponse(QuantityUpdateMessage(PlanetSideGUID(8214),ammo_quantity_left))
+                        tool.Discharge
+                        sendResponse(InventoryStateMessage(tool.AmmoSlot.Box.GUID, obj.GUID, tool.Magazine))
                         avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttributeToAll(player.GUID, 0, player.Health))
                       }
                     case _ => ;
