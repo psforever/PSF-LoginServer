@@ -145,7 +145,7 @@ class Player(private val core : Avatar) extends PlanetSideGameObject
   def Armor : Int = armor
 
   def Armor_=(assignArmor : Int) : Int = {
-    armor = if(isAlive) { math.min(math.max(0, assignArmor), MaxArmor) } else { 0 }
+    armor = math.min(math.max(0, assignArmor), MaxArmor)
     Armor
   }
 
