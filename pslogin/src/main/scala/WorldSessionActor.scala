@@ -5118,11 +5118,14 @@ class WorldSessionActor extends Actor with MDCContextAware {
             }
           }
         case Some(obj : SpawnTube) =>
-          //deconstruction
-          PlayerActionsToCancel()
-          CancelAllProximityUnits()
-          continent.Population ! Zone.Population.Release(avatar)
-          GoToDeploymentMap()
+          if(item_used_guid == PlanetSideGUID(0)) { // Ensure that we're not trying to use a tool on the spawn tube, e.g. medical applicator
+            //deconstruction
+            PlayerActionsToCancel()
+            CancelAllProximityUnits()
+            continent.Population ! Zone.Population.Release(avatar)
+            GoToDeploymentMap()
+          }
+
 
         case Some(obj : TelepadDeployable) =>
           continent.GUID(obj.Router) match {
