@@ -139,6 +139,10 @@ class AvatarService extends Actor {
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", guid, AvatarResponse.PlanetsideAttribute(attribute_type, attribute_value))
           )
+        case AvatarAction.PlanetsideAttributeToAll(guid, attribute_type, attribute_value) =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(s"/$forChannel/Avatar", guid, AvatarResponse.PlanetsideAttributeToAll(attribute_type, attribute_value))
+          )
         case AvatarAction.PlanetsideAttributeSelf(guid, attribute_type, attribute_value) =>
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", guid, AvatarResponse.PlanetsideAttributeSelf(attribute_type, attribute_value))
