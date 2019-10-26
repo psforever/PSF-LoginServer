@@ -147,9 +147,9 @@ class AvatarService extends Actor {
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", guid, AvatarResponse.PlanetsideAttributeSelf(attribute_type, attribute_value))
           )
-        case AvatarAction.PlayerState(guid, msg, spectator, weapon) =>
+        case AvatarAction.PlayerState(guid, pos, vel, yaw, pitch, yaw_upper, seq_time, is_crouching, is_jumping, jump_thrust, is_cloaking, spectating, weaponInHand) =>
           AvatarEvents.publish(
-            AvatarServiceResponse(s"/$forChannel/Avatar", guid, AvatarResponse.PlayerState(msg, spectator, weapon))
+            AvatarServiceResponse(s"/$forChannel/Avatar", guid, AvatarResponse.PlayerState(pos, vel, yaw, pitch, yaw_upper, seq_time, is_crouching, is_jumping, jump_thrust, is_cloaking, spectating, weaponInHand))
           )
         case AvatarAction.PickupItem(player_guid, zone, target, slot, item, unk) =>
           janitor forward RemoverActor.ClearSpecific(List(item), zone)

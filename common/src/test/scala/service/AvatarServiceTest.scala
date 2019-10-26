@@ -266,8 +266,8 @@ class PlayerStateTest extends ActorTest {
       ServiceManager.boot(system)
       val service = system.actorOf(Props[AvatarService], AvatarServiceTest.TestName)
       service ! Service.Join("test")
-      service ! AvatarServiceMessage("test", AvatarAction.PlayerState(PlanetSideGUID(10), msg, false, false))
-      expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarResponse.PlayerState(msg, false, false)))
+      service ! AvatarServiceMessage("test", AvatarAction.PlayerState(PlanetSideGUID(10), Vector3(3694.1094f, 2735.4531f, 90.84375f), Some(Vector3(4.375f, 2.59375f, 0.0f)), 61.875f, 351.5625f, 0.0f, 136, false, false, false, false, false, false))
+      expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarResponse.PlayerState(Vector3(3694.1094f, 2735.4531f, 90.84375f), Some(Vector3(4.375f, 2.59375f, 0.0f)), 61.875f, 351.5625f, 0.0f, 136, false, false, false, false, false, false)))
     }
   }
 }
