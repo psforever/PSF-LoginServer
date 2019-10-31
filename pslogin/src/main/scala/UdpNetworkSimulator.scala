@@ -16,13 +16,16 @@ import scala.concurrent.duration._
   *                             forward or backwards in time)
   */
 case class NetworkSimulatorParameters(packetLoss : Double,
-                                      packetDelay : Int,
+                                      packetDelay : Long,
                                       packetReorderingChance : Double,
-                                      packetReorderingTime : Int) {
+                                      packetReorderingTime : Long) {
   assert(packetLoss >= 0.0 && packetLoss <= 1.0)
   assert(packetDelay >= 0)
   assert(packetReorderingChance >= 0.0 && packetReorderingChance <= 1.0)
   assert(packetReorderingTime >= 0)
+
+  override def toString = "NetSimParams: loss %.2f%% / delay %dms / reorder %.2f%% / reorder +/- %dms".format(
+    packetLoss*100, packetDelay, packetReorderingChance*100, packetReorderingTime);
 }
 
 

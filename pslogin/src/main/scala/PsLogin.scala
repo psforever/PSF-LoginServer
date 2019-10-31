@@ -242,16 +242,19 @@ object PsLogin {
     val loginServerPort = WorldConfig.Get[Int]("loginserver.ListeningPort")
     val worldServerPort = WorldConfig.Get[Int]("worldserver.ListeningPort")
 
-    // Uncomment for network simulation
-    // TODO: make this config or command flag
-    /*
-    val netParams = NetworkSimulatorParameters(
-      packetLoss = 0.02,
-      packetDelay = 500,
-      packetReorderingChance = 0.005,
-      packetReorderingTime = 400
-    )
-    */
+    val netSim : Option[NetworkSimulatorParameters] = WorldConfig.Get[Boolean]("developer.NetSim.Active") match {
+      case true =>
+        val params = NetworkSimulatorParameters(
+          WorldConfig.Get[Float]("developer.NetSim.Loss"),
+          WorldConfig.Get[Duration]("developer.NetSim.Delay").toMillis,
+          WorldConfig.Get[Float]("developer.NetSim.ReorderChance"),
+          WorldConfig.Get[Duration]("developer.NetSim.ReorderTime").toMillis
+        )
+        logger.warn("NetSim is active")
+        logger.warn(params.toString)
+        Some(params)
+      case false => None
+    }
 
     val continentList = createContinents()
     val serviceManager = ServiceManager.boot
@@ -283,8 +286,8 @@ object PsLogin {
     /** Create two actors for handling the login and world server endpoints */
     loginRouter = Props(new SessionRouter("Login", loginTemplate))
     worldRouter = Props(new SessionRouter("World", worldTemplate))
-    loginListener = system.actorOf(Props(new UdpListener(loginRouter, "login-session-router", LoginConfig.serverIpAddress, loginServerPort, None)), "login-udp-endpoint")
-    worldListener = system.actorOf(Props(new UdpListener(worldRouter, "world-session-router", LoginConfig.serverIpAddress, worldServerPort, None)), "world-udp-endpoint")
+    loginListener = system.actorOf(Props(new UdpListener(loginRouter, "login-session-router", LoginConfig.serverIpAddress, loginServerPort, netSim)), "login-udp-endpoint")
+    worldListener = system.actorOf(Props(new UdpListener(worldRouter, "world-session-router", LoginConfig.serverIpAddress, worldServerPort, netSim)), "world-udp-endpoint")
 
     logger.info(s"NOTE: Set client.ini to point to ${LoginConfig.serverIpAddress.getHostAddress}:$loginServerPort")
 
