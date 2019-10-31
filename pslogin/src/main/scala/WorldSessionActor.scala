@@ -5519,7 +5519,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ WarpgateRequest(continent_guid, building_guid, dest_building_guid, dest_continent_guid, unk1, unk2) =>
       log.info(s"WarpgateRequest: $msg")
       if(deadState != DeadState.RespawnTime) {
-        deadState = DeadState.RespawnTime
         continent.Buildings.values.find(building => building.GUID == building_guid) match {
           case Some(wg : WarpGate) if (wg.Active && (GetKnownVehicleAndSeat() match {
             case (Some(vehicle), _) =>
@@ -5527,12 +5526,14 @@ class WorldSessionActor extends Actor with MDCContextAware {
             case _ =>
               true
           })) =>
+            deadState = DeadState.RespawnTime
             cluster ! Zone.Lattice.RequestSpecificSpawnPoint(dest_continent_guid.guid, player, dest_building_guid)
 
         case Some(wg : WarpGate) if(!wg.Active) =>
           log.info(s"WarpgateRequest: inactive WarpGate")
 
         case _ =>
+          deadState = DeadState.RespawnTime
           RequestSanctuaryZoneSpawn(player, continent.Number)
         }
       }
