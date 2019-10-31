@@ -1234,6 +1234,18 @@ class WorldSessionActor extends Actor with MDCContextAware {
       case AvatarResponse.SendResponse(msg) =>
         sendResponse(msg)
 
+      case AvatarResponse.SendResponseTargeted(target_guid, msg) =>
+        if(tplayer_guid == target_guid) {
+          sendResponse(msg)
+        }
+
+      case AvatarResponse.Revive(target_guid) =>
+        if(tplayer_guid == target_guid) {
+          deadState = DeadState.Alive
+          reviveTimer.cancel
+          sendResponse(AvatarDeadStateMessage(DeadState.Alive, 0, 0, player.Position, player.Faction, true))
+        }
+
       case AvatarResponse.ArmorChanged(suit, subtype) =>
         if(tplayer_guid != guid) {
           sendResponse(ArmorChangedMessage(guid, suit, subtype))
@@ -1404,6 +1416,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
         if(tplayer_guid != guid) {
           sendResponse(PlanetsideAttributeMessage(guid, attribute_type, attribute_value))
         }
+
+      case AvatarResponse.PlanetsideAttributeToAll(attribute_type, attribute_value) =>
+        sendResponse(PlanetsideAttributeMessage(guid, attribute_type, attribute_value))
 
       case AvatarResponse.PlanetsideAttributeSelf(attribute_type, attribute_value) =>
         if (tplayer_guid == guid) {
@@ -4853,89 +4868,54 @@ class WorldSessionActor extends Actor with MDCContextAware {
                 log.warn(s"UseItem: anticipated a Kit $item_used_guid, but can't find it")
             }
           }
-          else if (itemType == 121 && unk3) {
+          else if (itemType == ObjectClass.avatar && unk3) {
             FindWeapon match {
               case Some(tool: Tool) =>
-                if (tool.Definition.ObjectId == 132) {
-                  // TODO : bank ?
+                if (tool.Definition == GlobalDefinitions.bank) {
                   continent.GUID(object_guid) match {
                     case Some(tplayer: Player) =>
-                      if (player.GUID != tplayer.GUID && Vector3.Distance(player.Position, tplayer.Position) < 5 && player.Faction == tplayer.Faction && player.Velocity.isEmpty) {
-                        if (tplayer.MaxArmor - tplayer.Armor <= 15) {
-                          tplayer.Armor = tplayer.MaxArmor
-                          //                sendResponse(QuantityUpdateMessage(PlanetSideGUID(8214),ammo_quantity_left))
-                          val RepairPercent: Int = tplayer.Armor * 100 / tplayer.MaxArmor
-                          sendResponse(RepairMessage(object_guid, RepairPercent))
-                          avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.PlanetsideAttributeSelf(tplayer.GUID, 4, tplayer.Armor))
-                          avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.PlanetsideAttribute(tplayer.GUID, 4, tplayer.Armor))
-                        }
-                        if (tplayer.MaxArmor - tplayer.Armor > 15) {
-                          tplayer.Armor += 15
-                          //                sendResponse(QuantityUpdateMessage(PlanetSideGUID(8214),ammo_quantity_left))
-                          val RepairPercent: Int = tplayer.Armor * 100 / tplayer.MaxArmor
-                          sendResponse(RepairMessage(object_guid, RepairPercent))
-                          avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.PlanetsideAttributeSelf(tplayer.GUID, 4, tplayer.Armor))
-                          avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.PlanetsideAttribute(tplayer.GUID, 4, tplayer.Armor))
-                        }
-                      } else if (player.GUID == object_guid && player.Velocity.isEmpty) {
-                        if (player.MaxArmor - player.Armor <= 15) {
-                          player.Armor = player.MaxArmor
-                          //              sendResponse(QuantityUpdateMessage(PlanetSideGUID(8214),ammo_quantity_left))
-//                          sendResponse(RepairMessage(object_guid, player.Armor)) // Todo is that needed ?
-                          sendResponse(PlanetsideAttributeMessage(player.GUID, 4, player.Armor))
-                          avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttribute(player.GUID, 4, player.Armor))
-                        }
-                        if (player.MaxArmor - player.Armor > 15) {
-                          player.Armor += 15
-                          //              sendResponse(QuantityUpdateMessage(PlanetSideGUID(8214),ammo_quantity_left))
-//                          sendResponse(RepairMessage(object_guid, player.Armor)) // Todo is that needed ?
-                          sendResponse(PlanetsideAttributeMessage(player.GUID, 4, player.Armor))
-                          avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttribute(player.GUID, 4, player.Armor))
-                        }
-                      }
-                    case _ => ;
-                  }
-                } else if (tool.Definition.ObjectId == 531) {
-                  // TODO : med app ?
-                  continent.GUID(object_guid) match {
-                    case Some(tplayer: Player) =>
-                      if (player.GUID != tplayer.GUID && Vector3.Distance(player.Position, tplayer.Position) < 5 && player.Faction == tplayer.Faction && player.Velocity.isEmpty) {
-                        if (tplayer.MaxHealth - tplayer.Health <= 10) {
-                          tplayer.Health = tplayer.MaxHealth
-                          //                sendResponse(QuantityUpdateMessage(PlanetSideGUID(8214),ammo_quantity_left))
-                          val RepairPercent: Int = tplayer.Health * 100 / tplayer.MaxHealth
-                          sendResponse(RepairMessage(object_guid, RepairPercent))
-                          avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.PlanetsideAttributeSelf(tplayer.GUID, 0, tplayer.Health))
-                          avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.PlanetsideAttribute(tplayer.GUID, 0, tplayer.Health))
-                        }
-                        if (tplayer.MaxHealth - tplayer.Health > 10) {
-                          tplayer.Health += 10
-                          //                sendResponse(QuantityUpdateMessage(PlanetSideGUID(8214),ammo_quantity_left))
-                          val RepairPercent: Int = tplayer.Health * 100 / tplayer.MaxHealth
-                          sendResponse(RepairMessage(object_guid, RepairPercent))
-                          avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.PlanetsideAttributeSelf(tplayer.GUID, 0, tplayer.Health))
-                          avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.PlanetsideAttribute(tplayer.GUID, 0, tplayer.Health))
-                        }
-                      }
-                    case _ => ;
-                  }
-                  if (player.GUID == object_guid && player.Velocity.isEmpty) {
-                    if (player.MaxHealth - player.Health <= 10) {
-                      player.Health = player.MaxHealth
-                      //              sendResponse(QuantityUpdateMessage(PlanetSideGUID(8214),ammo_quantity_left))
-//                      sendResponse(RepairMessage(object_guid, player.Health)) // Todo is that needed ?
-                      sendResponse(PlanetsideAttributeMessage(player.GUID, 0, player.Health))
-                      avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttribute(player.GUID, 0, player.Health))
-                    }
-                    if (player.MaxHealth - player.Health > 10) {
-                      player.Health += 10
-                      //              sendResponse(QuantityUpdateMessage(PlanetSideGUID(8214),ammo_quantity_left))
-//                      sendResponse(RepairMessage(object_guid, player.Health)) // Todo is that needed ?
-                      sendResponse(PlanetsideAttributeMessage(player.GUID, 0, player.Health))
-                      avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttribute(player.GUID, 0, player.Health))
-                    }
-                  }
+                      if (player.GUID != tplayer.GUID && Vector3.Distance(player.Position, tplayer.Position) < 5 && player.Faction == tplayer.Faction && player.Velocity.isEmpty && tplayer.MaxArmor > 0) {
+                        tplayer.Armor += 15
+                        tool.Discharge
+                        sendResponse(InventoryStateMessage(tool.AmmoSlot.Box.GUID, obj.GUID, tool.Magazine))
+                        val RepairPercent: Int = tplayer.Armor * 100 / tplayer.MaxArmor
+                        sendResponse(RepairMessage(object_guid, RepairPercent))
 
+                        avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.PlanetsideAttributeToAll(tplayer.GUID, 4, tplayer.Armor))
+                      } else if (player.GUID == tplayer.GUID && player.Velocity.isEmpty && tplayer.MaxArmor > 0) {
+                        player.Armor += 15
+                        tool.Discharge
+                        sendResponse(InventoryStateMessage(tool.AmmoSlot.Box.GUID, obj.GUID, tool.Magazine))
+                        avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttributeToAll(player.GUID, 4, player.Armor))
+                      }
+                    case _ => ;
+                  }
+                } else if (tool.Definition == GlobalDefinitions.medicalapplicator) {
+                  continent.GUID(object_guid) match {
+                    case Some(tplayer: Player) =>
+                      if (player.GUID != tplayer.GUID && Vector3.Distance(player.Position, tplayer.Position) < 5 && player.Faction == tplayer.Faction && player.Velocity.isEmpty && tplayer.MaxHealth > 0) {
+                        tplayer.Health += 10
+                        tool.Discharge
+                        sendResponse(InventoryStateMessage(tool.AmmoSlot.Box.GUID, obj.GUID, tool.Magazine))
+                        val repairPercent: Int = tplayer.Health * 100 / tplayer.MaxHealth
+                        sendResponse(RepairMessage(object_guid, repairPercent))
+
+                        if(!tplayer.isAlive && tplayer.Health == tplayer.MaxHealth) {
+                          tplayer.Revive
+                          avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.Revive(tplayer.GUID))
+                        }
+
+                        if(tplayer.isAlive) {
+                          avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.PlanetsideAttributeToAll(tplayer.GUID, 0, tplayer.Health))
+                        }
+                      } else if (player.GUID == tplayer.GUID && player.Velocity.isEmpty && tplayer.MaxHealth > 0) {
+                        player.Health += 10
+                        tool.Discharge
+                        sendResponse(InventoryStateMessage(tool.AmmoSlot.Box.GUID, obj.GUID, tool.Magazine))
+                        avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttributeToAll(player.GUID, 0, player.Health))
+                      }
+                    case _ => ;
+                  }
                 }
               case None => ;
             }
@@ -5160,11 +5140,14 @@ class WorldSessionActor extends Actor with MDCContextAware {
             }
           }
         case Some(obj : SpawnTube) =>
-          //deconstruction
-          PlayerActionsToCancel()
-          CancelAllProximityUnits()
-          continent.Population ! Zone.Population.Release(avatar)
-          GoToDeploymentMap()
+          if(item_used_guid == PlanetSideGUID(0)) { // Ensure that we're not trying to use a tool on the spawn tube, e.g. medical applicator
+            //deconstruction
+            PlayerActionsToCancel()
+            CancelAllProximityUnits()
+            continent.Population ! Zone.Population.Release(avatar)
+            GoToDeploymentMap()
+          }
+
 
         case Some(obj : TelepadDeployable) =>
           continent.GUID(obj.Router) match {

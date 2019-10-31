@@ -99,6 +99,11 @@ class Player(private val core : Avatar) extends PlanetSideGameObject
     false
   }
 
+  def Revive : Boolean = {
+    alive = true
+    true
+  }
+
   def Release : Boolean = {
     if(!isAlive) {
       backpack = true
@@ -112,7 +117,7 @@ class Player(private val core : Avatar) extends PlanetSideGameObject
   def Health : Int = health
 
   def Health_=(assignHealth : Int) : Int = {
-    health = if(isAlive) { math.min(math.max(0, assignHealth), MaxHealth) } else { 0 }
+    health = math.min(math.max(0, assignHealth), MaxHealth)
     Health
   }
 
@@ -140,7 +145,7 @@ class Player(private val core : Avatar) extends PlanetSideGameObject
   def Armor : Int = armor
 
   def Armor_=(assignArmor : Int) : Int = {
-    armor = if(isAlive) { math.min(math.max(0, assignArmor), MaxArmor) } else { 0 }
+    armor = math.min(math.max(0, assignArmor), MaxArmor)
     Armor
   }
 

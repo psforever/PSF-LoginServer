@@ -139,6 +139,10 @@ class AvatarService extends Actor {
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", guid, AvatarResponse.PlanetsideAttribute(attribute_type, attribute_value))
           )
+        case AvatarAction.PlanetsideAttributeToAll(guid, attribute_type, attribute_value) =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(s"/$forChannel/Avatar", guid, AvatarResponse.PlanetsideAttributeToAll(attribute_type, attribute_value))
+          )
         case AvatarAction.PlanetsideAttributeSelf(guid, attribute_type, attribute_value) =>
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", guid, AvatarResponse.PlanetsideAttributeSelf(attribute_type, attribute_value))
@@ -191,6 +195,14 @@ class AvatarService extends Actor {
         case AvatarAction.SendResponse(player_guid, msg) =>
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.SendResponse(msg))
+          )
+        case AvatarAction.SendResponseTargeted(target_guid, msg) =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(s"/$forChannel/Avatar", target_guid, AvatarResponse.SendResponseTargeted(target_guid, msg))
+          )
+        case AvatarAction.Revive(target_guid) =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(s"/$forChannel/Avatar", target_guid, AvatarResponse.Revive(target_guid))
           )
 
         case _ => ;
