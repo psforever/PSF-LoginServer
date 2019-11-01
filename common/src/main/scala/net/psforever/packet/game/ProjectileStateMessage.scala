@@ -37,22 +37,22 @@ import shapeless.{::, HNil}
   * A minor loss of lifespan may be levied.
   * @see `ProjectileDefinition`
   * @see `TrackedProjectileData`
-  * @param projectile_guid the client-specific local unique identifier of the projectile;
-  *                        this is __not__ the global unique identifier for the synchronized projectile object
+  * @param projectile_guid when dispatched by the client, the client-specific local unique identifier of the projectile;
+  *                        when dispatched by the server, the global unique identifier for the synchronized projectile object
   * @param shot_pos the position of the projectile
   * @param shot_vel the velocity of the projectile
   * @param shot_orient the orientation of the projectile
   * @param unk na;
   *            usually `false`
-  * @param time_alive how long the projectile has been in the air;
-  *                   often expressed in multiples of 2
+  * @param progress a measure of how long the projectile has been in the air;
+  *                 often expressed in multiples of 2
   */
 final case class ProjectileStateMessage(projectile_guid : PlanetSideGUID,
                                         shot_pos : Vector3,
                                         shot_vel : Vector3,
                                         shot_orient : Vector3,
                                         unk : Boolean,
-                                        time_alive : Int)
+                                        progress : Int)
   extends PlanetSideGamePacket {
   type Packet = ProjectileStateMessage
   def opcode = GamePacketOpcode.ProjectileStateMessage
@@ -68,15 +68,15 @@ object ProjectileStateMessage extends Marshallable[ProjectileStateMessage] {
       ("pitch" | Angular.codec_pitch) ::
       ("yaw" | Angular.codec_yaw()) ::
       ("unk" | bool) ::
-      ("time_alive" | uint16L)
+      ("progress" | uint16L)
     ).xmap[ProjectileStateMessage] (
     {
-      case guid :: pos :: vel :: roll :: pitch :: yaw :: unk :: time :: HNil =>
-        ProjectileStateMessage(guid, pos, vel, Vector3(roll, pitch, yaw), unk, time)
+      case guid :: pos :: vel :: roll :: pitch :: yaw :: unk :: progress :: HNil =>
+        ProjectileStateMessage(guid, pos, vel, Vector3(roll, pitch, yaw), unk, progress)
     },
     {
-      case ProjectileStateMessage(guid, pos, vel, Vector3(roll, pitch, yaw), unk, time) =>
-        guid :: pos :: vel :: roll :: pitch :: yaw :: unk :: time :: HNil
+      case ProjectileStateMessage(guid, pos, vel, Vector3(roll, pitch, yaw), unk, progress) =>
+        guid :: pos :: vel :: roll :: pitch :: yaw :: unk :: progress :: HNil
     }
   )
 }

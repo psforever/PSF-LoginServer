@@ -15,7 +15,7 @@ class ProjectileConverter extends ObjectCreateConverter[Projectile]() {
           PlacementData(
             obj.Position,
             obj.Orientation,
-            None
+            obj.Velocity
           ),
           CommonFieldData(
             obj.owner.Faction,

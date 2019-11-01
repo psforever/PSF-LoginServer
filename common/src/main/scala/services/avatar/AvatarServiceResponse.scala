@@ -2,7 +2,7 @@
 package services.avatar
 
 import net.psforever.objects.Player
-import net.psforever.objects.ballistics.SourceEntry
+import net.psforever.objects.ballistics.{Projectile, SourceEntry}
 import net.psforever.objects.equipment.Equipment
 import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game.objectcreate.ConstructorData
@@ -38,14 +38,11 @@ object AvatarResponse {
   final case class ObjectDelete(item_guid : PlanetSideGUID, unk : Int) extends Response
   final case class ObjectHeld(slot : Int) extends Response
   final case class PlanetsideAttribute(attribute_type : Int, attribute_value : Long) extends Response
-<<<<<<< fa7365e8af5d0b21c3934ed745895edd46f741a6:common/src/main/scala/services/avatar/AvatarServiceResponse.scala
   final case class PlanetsideAttributeToAll(attribute_type : Int, attribute_value : Long) extends Response
   final case class PlanetsideAttributeSelf(attribute_type : Int, attribute_value : Long) extends Response
   final case class PlayerState(pos : Vector3, vel : Option[Vector3], facingYaw : Float, facingPitch : Float, facingYawUpper : Float, timestamp : Int, is_crouching : Boolean, is_jumping : Boolean, jump_thrust : Boolean, is_cloaked : Boolean, spectator : Boolean, weaponInHand : Boolean) extends Response
-=======
-  final case class PlayerState(msg : PlayerStateMessageUpstream, spectator : Boolean, weaponInHand : Boolean) extends Response
+  final case class ProjectileExplodes(projectile_guid : PlanetSideGUID, projectile : Projectile) extends Response
   final case class ProjectileState(projectile_guid : PlanetSideGUID, shot_pos : Vector3, shot_vel : Vector3, shot_orient : Vector3, unk : Boolean, time_alive : Int) extends Response
->>>>>>> removed fire mode override for the Phoenix; added events for loading and manipulation of remote projectiles to AvatarService; ProjectileStateMessage handles projectile data in a simple way; remote projectiles can now be registered and unregistered:common/src/main/scala/services/avatar/AvatarResponse.scala
   final case class PutDownFDU(target_guid : PlanetSideGUID) extends Response
   final case class Release(player : Player) extends Response
   final case class Reload(weapon_guid : PlanetSideGUID) extends Response

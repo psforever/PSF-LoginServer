@@ -161,6 +161,10 @@ class AvatarService extends Actor {
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", guid, AvatarResponse.PlayerState(pos, vel, yaw, pitch, yaw_upper, seq_time, is_crouching, is_jumping, jump_thrust, is_cloaking, spectating, weaponInHand))
           )
+        case AvatarAction.ProjectileExplodes(player_guid, projectile_guid, projectile) =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.ProjectileExplodes(projectile_guid, projectile))
+          )
         case AvatarAction.ProjectileState(player_guid, projectile_guid, shot_pos, shot_vel, shot_orient, unk, time_alive) =>
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.ProjectileState(projectile_guid, shot_pos, shot_vel, shot_orient, unk, time_alive))

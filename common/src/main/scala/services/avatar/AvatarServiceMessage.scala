@@ -1,12 +1,8 @@
 // Copyright (c) 2017 PSForever
 package services.avatar
 
-<<<<<<< fa7365e8af5d0b21c3934ed745895edd46f741a6:common/src/main/scala/services/avatar/AvatarServiceMessage.scala
 import net.psforever.objects.{PlanetSideGameObject, Player}
-import net.psforever.objects.ballistics.SourceEntry
-=======
 import net.psforever.objects.ballistics.{Projectile, SourceEntry}
->>>>>>> removed fire mode override for the Phoenix; added events for loading and manipulation of remote projectiles to AvatarService; ProjectileStateMessage handles projectile data in a simple way; remote projectiles can now be registered and unregistered:common/src/main/scala/services/avatar/AvatarAction.scala
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.inventory.Container
@@ -53,6 +49,7 @@ object AvatarAction {
   final case class PlanetsideAttributeSelf(player_guid : PlanetSideGUID, attribute_type : Int, attribute_value : Long) extends Action
   final case class PlayerState(player_guid : PlanetSideGUID, pos : Vector3, vel : Option[Vector3], facingYaw : Float, facingPitch : Float, facingYawUpper : Float, timestamp : Int, is_crouching : Boolean, is_jumping : Boolean, jump_thrust : Boolean, is_cloaked : Boolean, spectator : Boolean, weaponInHand : Boolean) extends Action
   final case class PickupItem(player_guid : PlanetSideGUID, zone : Zone, target : PlanetSideGameObject with Container, slot : Int, item : Equipment, unk : Int = 0) extends Action
+  final case class ProjectileExplodes(player_guid : PlanetSideGUID, projectile_guid : PlanetSideGUID, projectile : Projectile) extends Action
   final case class ProjectileState(player_guid : PlanetSideGUID, projectile_guid : PlanetSideGUID, shot_pos : Vector3, shot_vel : Vector3, shot_orient : Vector3, unk : Boolean, time_alive : Int) extends Action
   final case class PutDownFDU(player_guid : PlanetSideGUID) extends Action
   final case class Release(player : Player, zone : Zone, time : Option[FiniteDuration] = None) extends Action

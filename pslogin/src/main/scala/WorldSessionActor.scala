@@ -1473,9 +1473,31 @@ class WorldSessionActor extends Actor with MDCContextAware {
           }
         }
 
+      case AvatarResponse.ProjectileExplodes(projectile_guid, projectile) =>
+        //turn the projectile into a boomer
+        sendResponse(
+          ObjectCreateMessage(
+            GlobalDefinitions.boomer.ObjectId,
+            projectile_guid,
+            CommonFieldDataWithPlacement(
+              PlacementData(projectile.Position, projectile.Orientation),
+              CommonFieldData(projectile.owner.Faction,false,false,false,None,false,Some(false),None, PlanetSideGUID(0))
+            )
+          )
+        )
+        //detonate the boomer, then clean it up
+        sendResponse(TriggerEffectMessage(projectile_guid, "detonate_boomer"))
+        sendResponse(ObjectDeleteMessage(projectile_guid, 2))
+
       case AvatarResponse.ProjectileState(projectile_guid, shot_pos, shot_vel, shot_orient, unk, time_alive) =>
         if(tplayer_guid != guid) {
-          sendResponse(ProjectileStateMessage(projectile_guid, shot_pos, shot_vel, shot_orient, unk, time_alive))
+          //sendResponse(ProjectileStateMessage(projectile_guid, shot_pos, shot_vel, shot_orient, unk, time_alive))
+          continent.GUID(projectile_guid) match {
+            case Some(obj) =>
+              val definition = obj.Definition
+              sendResponse(ObjectCreateMessage(definition.ObjectId, projectile_guid, definition.Packet.ConstructorData(obj).get))
+            case _ => ;
+          }
         }
 
       case AvatarResponse.PutDownFDU(target) =>
@@ -3509,14 +3531,15 @@ class WorldSessionActor extends Actor with MDCContextAware {
       //player.Orientation = Vector3(0f, 0f, 132.1875f)
 //      player.ExoSuit = ExoSuitType.MAX //TODO strange issue; divide number above by 10 when uncommenting
       player.Slot(0).Equipment = Tool(GlobalDefinitions.StandardPistol(player.Faction))
-      player.Slot(2).Equipment = Tool(suppressor)
+      player.Slot(2).Equipment = Tool(hunterseeker) //Tool(suppressor)
       player.Slot(4).Equipment = Tool(GlobalDefinitions.StandardMelee(player.Faction))
-      player.Slot(6).Equipment = AmmoBox(bullet_9mm)
-      player.Slot(9).Equipment = AmmoBox(bullet_9mm)
-      player.Slot(12).Equipment = AmmoBox(bullet_9mm)
-      player.Slot(33).Equipment = AmmoBox(bullet_9mm_AP)
-      player.Slot(36).Equipment = AmmoBox(GlobalDefinitions.StandardPistolAmmo(player.Faction))
-      player.Slot(39).Equipment = SimpleItem(remote_electronics_kit)
+      player.Slot(6).Equipment = AmmoBox(hunter_seeker_missile, 65535)
+      //player.Slot(6).Equipment = AmmoBox(bullet_9mm)
+      //player.Slot(9).Equipment = AmmoBox(bullet_9mm)
+      //player.Slot(12).Equipment = AmmoBox(bullet_9mm)
+      //player.Slot(33).Equipment = AmmoBox(bullet_9mm_AP)
+      //player.Slot(36).Equipment = AmmoBox(GlobalDefinitions.StandardPistolAmmo(player.Faction))
+      //player.Slot(39).Equipment = SimpleItem(remote_electronics_kit)
       player.Locker.Inventory += 0 -> SimpleItem(remote_electronics_kit)
       player.Inventory.Items.foreach { _.obj.Faction = faction }
       //TODO end temp player character auto-loading
@@ -3900,25 +3923,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         }
 
         if(!player.Crouching && is_crouching) {
-          sendResponse(
-            ObjectCreateMessage(
-              405,
-              PlanetSideGUID(40288),
-              TrackedProjectileData(
-                CommonFieldDataWithPlacement(
-                  PlacementData(Vector3(3561.0f, 2854.0f, 92.859375f), Vector3(0f, 348.75f, 267.1875f), None),
-                  CommonFieldData(PlanetSideEmpire.NC, false, false, true, None, false, None, None, PlanetSideGUID(0))
-                ),
-                39577, 201, FlightPhysics.State4, 0, 0
-              )
-            )
-          )
-        }
-        else if(player.Crouching && !is_crouching) {
-          sendResponse(
-            ObjectDeleteMessage(PlanetSideGUID(40288), 2)
-            //ProjectileStateMessage(PlanetSideGUID(40288),Vector3(3561.0f, 2854.0f, 92.859375f),Vector3(-38.814934f,-2.578959f,-9.313708f),Vector3(0,348.75f,267.1875f),false,0)
-          )
+          //...
         }
         player.Position = pos
         player.Velocity = vel
@@ -4026,16 +4031,15 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ VehicleSubStateMessage(vehicle_guid, player_guid, vehicle_pos, vehicle_ang, vel, unk1, unk2) =>
     //log.info(s"VehicleSubState: $vehicle_guid, $player_guid, $vehicle_pos, $vehicle_ang, $vel, $unk1, $unk2")
 
-    case msg @ ProjectileStateMessage(projectile_guid, shot_pos, shot_vel, shot_orient, unk, time_alive) =>
-      log.info(s"ProjectileState: $msg")
+    case msg @ ProjectileStateMessage(projectile_guid, shot_pos, shot_vel, shot_orient, unk, progress) =>
+      //log.info(s"ProjectileState: $msg")
       projectiles(projectile_guid.guid - Projectile.BaseUID) match {
         case Some(projectile) if projectile.HasGUID =>
           val projectileGlobalUID = projectile.GUID
-          log.info(s"ProjectileState: mapped local uid ${projectile_guid.guid} to global uid ${projectileGlobalUID.guid}; updating object ...")
           projectile.Position = shot_pos
           projectile.Orientation = shot_orient
           projectile.Velocity = shot_vel
-          avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ProjectileState(player.GUID, projectile.GUID, shot_pos, shot_vel, shot_orient, unk, time_alive))
+          avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ProjectileState(player.GUID, projectileGlobalUID, shot_pos, shot_vel, shot_orient, unk, progress))
         case _ =>
           log.error(s"ProjectileState: the projectile@${projectile_guid.guid} can not be found")
       }
@@ -5540,6 +5544,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           })
           if(projectile.profile.ExistsOnRemoteClients) {
             //cleanup
+            avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ProjectileExplodes(player.GUID, projectile_guid, projectile))
             taskResolver ! UnregisterProjectile(projectile)
           }
         case None => ;
@@ -8108,7 +8113,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
   }
 
   /**
-    * If the corpse has been well-looted, it has no items in its primary holsters nor any items in its inventory.
+    * If the corpse has been well-lootedP, it has no items in its primary holsters nor any items in its inventory.
     * @param obj the corpse
     * @return `true`, if the `obj` is actually a corpse and has no objects in its holsters or backpack;
     *        `false`, otherwise

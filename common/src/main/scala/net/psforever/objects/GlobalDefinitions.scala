@@ -31,70 +31,18 @@ object GlobalDefinitions {
    */
   val avatar = new AvatarDefinition(121)
   /*
-  Exo-suits
+  exo-suits
    */
   val Standard = ExoSuitDefinition(ExoSuitType.Standard)
-  Standard.Name = "standard"
-  Standard.MaxArmor = 50
-  Standard.InventoryScale = InventoryTile.Tile96
-  Standard.InventoryOffset = 6
-  Standard.Holster(0, EquipmentSize.Pistol)
-  Standard.Holster(2, EquipmentSize.Rifle)
-  Standard.Holster(4, EquipmentSize.Melee)
-  Standard.ResistanceDirectHit = 4
-  Standard.ResistanceSplash = 15
-  Standard.ResistanceAggravated = 8
 
   val Agile = ExoSuitDefinition(ExoSuitType.Agile)
-  Agile.Name = "agile"
-  Agile.MaxArmor = 100
-  Agile.InventoryScale = InventoryTile.Tile99
-  Agile.InventoryOffset = 6
-  Agile.Holster(0, EquipmentSize.Pistol)
-  Agile.Holster(1, EquipmentSize.Pistol)
-  Agile.Holster(2, EquipmentSize.Rifle)
-  Agile.Holster(4, EquipmentSize.Melee)
-  Agile.ResistanceDirectHit = 6
-  Agile.ResistanceSplash = 25
-  Agile.ResistanceAggravated = 10
 
   val Reinforced = ExoSuitDefinition(ExoSuitType.Reinforced)
-  Reinforced.Name = "reinforced"
-  Reinforced.Permissions = List(CertificationType.ReinforcedExoSuit)
-  Reinforced.MaxArmor = 200
-  Reinforced.InventoryScale = InventoryTile.Tile1209
-  Reinforced.InventoryOffset = 6
-  Reinforced.Holster(0, EquipmentSize.Pistol)
-  Reinforced.Holster(1, EquipmentSize.Pistol)
-  Reinforced.Holster(2, EquipmentSize.Rifle)
-  Reinforced.Holster(3, EquipmentSize.Rifle)
-  Reinforced.Holster(4, EquipmentSize.Melee)
-  Reinforced.ResistanceDirectHit = 10
-  Reinforced.ResistanceSplash = 35
-  Reinforced.ResistanceAggravated = 12
 
   val Infiltration = ExoSuitDefinition(ExoSuitType.Infiltration)
-  Infiltration.Name = "infiltration_suit"
-  Infiltration.Permissions = List(CertificationType.InfiltrationSuit)
-  Infiltration.MaxArmor = 0
-  Infiltration.InventoryScale = InventoryTile.Tile66
-  Infiltration.InventoryOffset = 6
-  Infiltration.Holster(0, EquipmentSize.Pistol)
-  Infiltration.Holster(4, EquipmentSize.Melee)
 
   val MAX = SpecialExoSuitDefinition(ExoSuitType.MAX)
-  MAX.Permissions = List(CertificationType.AIMAX,CertificationType.AVMAX, CertificationType.AAMAX, CertificationType.UniMAX)
-  MAX.MaxArmor = 650
-  MAX.InventoryScale = InventoryTile.Tile1612
-  MAX.InventoryOffset = 6
-  MAX.Holster(0, EquipmentSize.Max)
-  MAX.Holster(4, EquipmentSize.Melee)
-  MAX.Subtract.Damage1 = -2
-  MAX.ResistanceDirectHit = 6
-  MAX.ResistanceSplash = 35
-  MAX.ResistanceAggravated = 10
-  MAX.Damage = StandardMaxDamage
-  MAX.Model = StandardResolutions.Max
+  init_exosuit()
   /*
   Implants
    */
@@ -632,15 +580,9 @@ object GlobalDefinitions {
 
   val phoenix = ToolDefinition(ObjectClass.phoenix) //decimator
 
-  val striker = new ToolDefinition(ObjectClass.striker) {
-    override def NextFireModeIndex(index : Int) : Int = index
-    DefaultFireModeIndex = 1
-  }
+  val striker = ToolDefinition(ObjectClass.striker)
 
-  val hunterseeker = new ToolDefinition(ObjectClass.hunterseeker) {
-    override def NextFireModeIndex(index : Int) : Int = index
-    DefaultFireModeIndex = 1
-  } //phoenix
+  val hunterseeker = ToolDefinition(ObjectClass.hunterseeker)
 
   val lancer = ToolDefinition(ObjectClass.lancer)
 
@@ -807,9 +749,7 @@ object GlobalDefinitions {
 
   val lightgunship_weapon_system = ToolDefinition(ObjectClass.lightgunship_weapon_system)
 
-  val wasp_weapon_system = new ToolDefinition(ObjectClass.wasp_weapon_system) {
-    override def NextFireModeIndex(index : Int) : Int = index
-  }
+  val wasp_weapon_system = new ToolDefinition(ObjectClass.wasp_weapon_system)
 
   val liberator_weapon_system = ToolDefinition(ObjectClass.liberator_weapon_system)
 
@@ -955,13 +895,13 @@ object GlobalDefinitions {
 
   val router_telepad_deployable = DeployableDefinition(DeployedItem.router_telepad_deployable)
 
+  //this is only treated like a deployable
   val internal_router_telepad_deployable = DeployableDefinition(DeployedItem.router_telepad_deployable)
   init_deployables()
 
   /*
   Miscellaneous
    */
-
   val ams_respawn_tube = new SpawnTubeDefinition(49)
 
   val matrix_terminala = new MatrixTerminalDefinition(517)
