@@ -4770,16 +4770,18 @@ class WorldSessionActor extends Actor with MDCContextAware {
                       }
                       else {
                         player.Find(kit) match {
-                          case Some(index) =>
-                            whenUsedLastKit = System.currentTimeMillis
-                            player.Slot(index).Equipment = None //remove from slot immediately; must exist on client for next packet
-                            sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, 0, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
-                            sendResponse(ObjectDeleteMessage(kit.GUID, 0))
-                            taskResolver ! GUIDTask.UnregisterEquipment(kit)(continent.GUID)
-                            player.History(HealFromKit(PlayerSource(player), 25, kit.Definition))
-                            player.Health = player.Health + 25
-                            sendResponse(PlanetsideAttributeMessage(avatar_guid, 0, player.Health))
-                            avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(avatar_guid, 0, player.Health))
+                          case Some(index)  =>
+                            if (player.isAlive) {
+                              whenUsedLastKit = System.currentTimeMillis
+                              player.Slot(index).Equipment = None //remove from slot immediately; must exist on client for next packet
+                              sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, 0, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
+                              sendResponse(ObjectDeleteMessage(kit.GUID, 0))
+                              taskResolver ! GUIDTask.UnregisterEquipment(kit)(continent.GUID)
+                              player.History(HealFromKit(PlayerSource(player), 25, kit.Definition))
+                              player.Health = player.Health + 25
+                              sendResponse(PlanetsideAttributeMessage(avatar_guid, 0, player.Health))
+                              avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(avatar_guid, 0, player.Health))
+                            }
                           case None =>
                             log.error(s"UseItem: anticipated a $kit, but can't find it")
                         }
@@ -4910,6 +4912,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                         }
                       } else if (player.GUID == tplayer.GUID && player.Velocity.isEmpty && tplayer.MaxHealth > 0) {
                         player.Health += 10
+                      } else if (player.GUID == tplayer.GUID && player.Velocity.isEmpty && tplayer.MaxHealth > 0 && player.isAlive) {
                         tool.Discharge
                         sendResponse(InventoryStateMessage(tool.AmmoSlot.Box.GUID, obj.GUID, tool.Magazine))
                         avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttributeToAll(player.GUID, 0, player.Health))
