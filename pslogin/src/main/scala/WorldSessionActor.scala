@@ -4756,7 +4756,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
             accessedContainer = Some(obj)
           }
-          else if(!unk3) { //potential kit use
+          else if(!unk3 && player.isAlive) { //potential kit use
             continent.GUID(item_used_guid) match {
               case Some(kit : Kit) =>
                 player.Find(kit) match {
@@ -4771,17 +4771,15 @@ class WorldSessionActor extends Actor with MDCContextAware {
                       else {
                         player.Find(kit) match {
                           case Some(index)  =>
-                            if (player.isAlive) {
-                              whenUsedLastKit = System.currentTimeMillis
-                              player.Slot(index).Equipment = None //remove from slot immediately; must exist on client for next packet
-                              sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, 0, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
-                              sendResponse(ObjectDeleteMessage(kit.GUID, 0))
-                              taskResolver ! GUIDTask.UnregisterEquipment(kit)(continent.GUID)
-                              player.History(HealFromKit(PlayerSource(player), 25, kit.Definition))
-                              player.Health = player.Health + 25
-                              sendResponse(PlanetsideAttributeMessage(avatar_guid, 0, player.Health))
-                              avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(avatar_guid, 0, player.Health))
-                            }
+                            whenUsedLastKit = System.currentTimeMillis
+                            player.Slot(index).Equipment = None //remove from slot immediately; must exist on client for next packet
+                            sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, 0, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
+                            sendResponse(ObjectDeleteMessage(kit.GUID, 0))
+                            taskResolver ! GUIDTask.UnregisterEquipment(kit)(continent.GUID)
+                            player.History(HealFromKit(PlayerSource(player), 25, kit.Definition))
+                            player.Health = player.Health + 25
+                            sendResponse(PlanetsideAttributeMessage(avatar_guid, 0, player.Health))
+                            avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(avatar_guid, 0, player.Health))
                           case None =>
                             log.error(s"UseItem: anticipated a $kit, but can't find it")
                         }
