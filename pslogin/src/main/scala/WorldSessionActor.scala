@@ -4874,7 +4874,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                 if (tool.Definition == GlobalDefinitions.bank) {
                   continent.GUID(object_guid) match {
                     case Some(tplayer: Player) =>
-                      if (player.GUID != tplayer.GUID && Vector3.Distance(player.Position, tplayer.Position) < 5 && player.Faction == tplayer.Faction && player.Velocity.isEmpty && tplayer.MaxArmor > 0) {
+                      if (player.GUID != tplayer.GUID && Vector3.Distance(player.Position, tplayer.Position) < 5 && player.Faction == tplayer.Faction && player.Velocity.isEmpty && tplayer.MaxArmor > 0 && tplayer.Armor < tplayer.MaxArmor) {
                         tplayer.Armor += 15
                         tool.Discharge
                         sendResponse(InventoryStateMessage(tool.AmmoSlot.Box.GUID, obj.GUID, tool.Magazine))
@@ -4893,8 +4893,15 @@ class WorldSessionActor extends Actor with MDCContextAware {
                 } else if (tool.Definition == GlobalDefinitions.medicalapplicator) {
                   continent.GUID(object_guid) match {
                     case Some(tplayer: Player) =>
-                      if (player.GUID != tplayer.GUID && Vector3.Distance(player.Position, tplayer.Position) < 5 && player.Faction == tplayer.Faction && player.Velocity.isEmpty && tplayer.MaxHealth > 0) {
-                        tplayer.Health += 10
+                      if (player.GUID != tplayer.GUID && Vector3.Distance(player.Position, tplayer.Position) < 5 && player.Faction == tplayer.Faction && player.Velocity.isEmpty && tplayer.MaxHealth > 0 && tplayer.Health < tplayer.MaxHealth) {
+                        if(tplayer.isAlive) {
+                          tplayer.Health += 10
+                        } else {
+                          // Reviving another player is normally 25 "medical energy" (ammo) and 5,000 milliseconds duration, based on the game properties revive_ammo_required and revive_time
+                          //todo: @NotEnoughAmmoToRevive=You do not have enough medical energy to revive this corpse.
+                          tplayer.Health += 4 // 4 health per tick = 5 second revive timer from 0 health
+                        }
+
                         tool.Discharge
                         sendResponse(InventoryStateMessage(tool.AmmoSlot.Box.GUID, obj.GUID, tool.Magazine))
                         val repairPercent: Int = tplayer.Health * 100 / tplayer.MaxHealth
