@@ -2160,6 +2160,7 @@ object GlobalDefinitions {
     aphelion_starfire_projectile.ProjectileDamageType = DamageType.Aggravated
     aphelion_starfire_projectile.ExistsOnRemoteClients = true
     aphelion_starfire_projectile.RemoteClientData = (39577, 249) //starfire_projectile data
+    aphelion_starfire_projectile.AutoLock = true
     aphelion_starfire_projectile.Packet = projectileConverter
     ProjectileDefinition.CalculateDerivedFields(aphelion_starfire_projectile)
 
@@ -3022,6 +3023,7 @@ object GlobalDefinitions {
     peregrine_sparrow_projectile.Lifespan = 7.5f
     peregrine_sparrow_projectile.ExistsOnRemoteClients = true
     peregrine_sparrow_projectile.RemoteClientData = (13107, 187) //sparrow_projectile data
+    peregrine_sparrow_projectile.AutoLock = true
     peregrine_sparrow_projectile.Packet = projectileConverter
     ProjectileDefinition.CalculateDerivedFields(peregrine_sparrow_projectile)
 
@@ -3355,6 +3357,7 @@ object GlobalDefinitions {
     sparrow_projectile.Lifespan = 5.85f
     sparrow_projectile.ExistsOnRemoteClients = true
     sparrow_projectile.RemoteClientData = (13107, 187)
+    sparrow_projectile.AutoLock = true
     sparrow_projectile.Packet = projectileConverter
     ProjectileDefinition.CalculateDerivedFields(sparrow_projectile)
 
@@ -3372,6 +3375,7 @@ object GlobalDefinitions {
     sparrow_secondary_projectile.Lifespan = 5.85f
     sparrow_secondary_projectile.ExistsOnRemoteClients = true
     sparrow_secondary_projectile.RemoteClientData = (13107, 187)
+    sparrow_secondary_projectile.AutoLock = true
     sparrow_secondary_projectile.Packet = projectileConverter
     ProjectileDefinition.CalculateDerivedFields(sparrow_secondary_projectile)
 
@@ -3425,6 +3429,7 @@ object GlobalDefinitions {
     starfire_projectile.Lifespan = 7.8f
     starfire_projectile.ExistsOnRemoteClients = true
     starfire_projectile.RemoteClientData = (39577, 249)
+    starfire_projectile.AutoLock = true
     starfire_projectile.Packet = projectileConverter
     ProjectileDefinition.CalculateDerivedFields(starfire_projectile)
 
@@ -3459,6 +3464,7 @@ object GlobalDefinitions {
     striker_missile_targeting_projectile.Lifespan = 4.2f
     striker_missile_targeting_projectile.ExistsOnRemoteClients = true
     striker_missile_targeting_projectile.RemoteClientData = (26214, 134)
+    striker_missile_targeting_projectile.AutoLock = true
     striker_missile_targeting_projectile.Packet = projectileConverter
     ProjectileDefinition.CalculateDerivedFields(striker_missile_targeting_projectile)
 
@@ -3549,6 +3555,7 @@ object GlobalDefinitions {
     wasp_rocket_projectile.Lifespan = 6.5f
     wasp_rocket_projectile.ExistsOnRemoteClients = true
     wasp_rocket_projectile.RemoteClientData = (0, 208)
+    wasp_rocket_projectile.AutoLock = true
     wasp_rocket_projectile.Packet = projectileConverter
     ProjectileDefinition.CalculateDerivedFields(wasp_rocket_projectile)
 

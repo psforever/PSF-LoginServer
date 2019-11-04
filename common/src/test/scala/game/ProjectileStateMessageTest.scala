@@ -8,17 +8,18 @@ import net.psforever.types.Vector3
 import scodec.bits._
 
 class ProjectileStateMessageTest extends Specification {
-  val string = hex"3f 259d c5019 30e4a 9514 c52c9541 d9ba05c2 c5973941 00 f8 ec 020000"
+  val string =  hex"3f 259d c5019 30e4a 9514 c52c9541 d9ba05c2 c5973941 00 f8 ec 02000000"
 
   "decode" in {
     PacketCoding.DecodePacket(string).require match {
-      case ProjectileStateMessage(projectile, pos, vel, orient, unk, time_alive) =>
+      case ProjectileStateMessage(projectile, pos, vel, orient, sequence, explode, unk) =>
         projectile mustEqual PlanetSideGUID(40229)
         pos mustEqual Vector3(4611.539f, 5576.375f, 82.328125f)
         vel mustEqual Vector3(18.64686f, -33.43247f, 11.599553f)
-        orient mustEqual Vector3(0, 22.5f, 56.25f)
-        unk mustEqual false
-        time_alive mustEqual 4
+        orient mustEqual Vector3(0, 22.5f, 146.25f)
+        sequence mustEqual 2
+        explode mustEqual false
+        unk mustEqual 0
       case _ =>
         ko
     }
@@ -29,9 +30,10 @@ class ProjectileStateMessageTest extends Specification {
       PlanetSideGUID(40229),
       Vector3(4611.539f, 5576.375f, 82.328125f),
       Vector3(18.64686f, -33.43247f, 11.599553f),
-      Vector3(0, 22.5f, 56.25f),
+      Vector3(0, 22.5f, 146.25f),
+      2,
       false,
-      4
+      0
     )
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 

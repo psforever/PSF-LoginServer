@@ -22,17 +22,15 @@ import shapeless.{::, HNil}
   * This packet will continue to be dispatched by the client for as long as the projectile being tracked is in the air.
   * All projectiles have a maximum lifespan before they will lose control and either despawn and/or explode.
   * This number is tracked in the packet for simplicity.
-  * If the projectile strikes a valid target, the count will jump to a significantly enormous value beyond its normal lifespan.
-  * This ensures that the projectile - locally and the shared model - will despawn.
   * <br>
-  * This control can not be exerted until that projectile is physically constructed on the other clients
+  * This control can not be demonstrated until that projectile is physically constructed on the other clients
   * in the same way that a player or a vehicle is constructed.
   * A projectile that exhibits intentional construction behavior is flagged using the property `exists_on_remote_client`.
   * The model comes with a number of caveats,
   * some that originate from the object construction process itself,
   * but also some from this packet.
   * For example,
-  * as indicated by the static `shot_orient` values reported by this packet.
+  * as indicated by the static `shot_original_orient` values reported by this packet.
   * a discharged controlled projectile will not normally rotate.
   * A minor loss of lifespan may be levied.
   * @see `ProjectileDefinition`
@@ -41,18 +39,19 @@ import shapeless.{::, HNil}
   *                        when dispatched by the server, the global unique identifier for the synchronized projectile object
   * @param shot_pos the position of the projectile
   * @param shot_vel the velocity of the projectile
-  * @param shot_orient the orientation of the projectile
-  * @param unk na;
-  *            usually `false`
-  * @param progress a measure of how long the projectile has been in the air;
-  *                 often expressed in multiples of 2
+  * @param shot_original_orient the orientation of the projectile when it was discharged
+  * @param sequence_num an incrementing index of the packet in this projectile's lifetime;
+  *                     suggests the "time alive" and indicates a place in packet ordering
+  * @param explode indicates the projectile should explode
+  * @param unk na
   */
 final case class ProjectileStateMessage(projectile_guid : PlanetSideGUID,
                                         shot_pos : Vector3,
                                         shot_vel : Vector3,
-                                        shot_orient : Vector3,
-                                        unk : Boolean,
-                                        progress : Int)
+                                        shot_original_orient : Vector3,
+                                        sequence_num : Int,
+                                        explode : Boolean,
+                                        unk : Int)
   extends PlanetSideGamePacket {
   type Packet = ProjectileStateMessage
   def opcode = GamePacketOpcode.ProjectileStateMessage
@@ -67,16 +66,17 @@ object ProjectileStateMessage extends Marshallable[ProjectileStateMessage] {
       ("roll" | Angular.codec_roll) ::
       ("pitch" | Angular.codec_pitch) ::
       ("yaw" | Angular.codec_yaw()) ::
-      ("unk" | bool) ::
-      ("progress" | uint16L)
+      ("sequence_num" | uint8) ::
+      ("explode" | bool) ::
+      ("unk" | uint16L)
     ).xmap[ProjectileStateMessage] (
     {
-      case guid :: pos :: vel :: roll :: pitch :: yaw :: unk :: progress :: HNil =>
-        ProjectileStateMessage(guid, pos, vel, Vector3(roll, pitch, yaw), unk, progress)
+      case guid :: pos :: vel :: roll :: pitch :: yaw :: sequence_num :: explode :: unk :: HNil =>
+        ProjectileStateMessage(guid, pos, vel, Vector3(roll, pitch, yaw), sequence_num , explode, unk)
     },
     {
-      case ProjectileStateMessage(guid, pos, vel, Vector3(roll, pitch, yaw), unk, progress) =>
-        guid :: pos :: vel :: roll :: pitch :: yaw :: unk :: progress :: HNil
+      case ProjectileStateMessage(guid, pos, vel, Vector3(roll, pitch, yaw), sequence_num, explode, unk) =>
+        guid :: pos :: vel :: roll :: pitch :: yaw :: sequence_num :: explode :: unk :: HNil
     }
   )
 }
