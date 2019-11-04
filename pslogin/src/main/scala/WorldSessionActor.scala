@@ -4915,8 +4915,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
                         if(tplayer.isAlive) {
                           avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.PlanetsideAttributeToAll(tplayer.GUID, 0, tplayer.Health))
                         }
-                      } else if (player.GUID == tplayer.GUID && player.Velocity.isEmpty && tplayer.MaxHealth > 0) {
-                        player.Health += 10
                       } else if (player.GUID == tplayer.GUID && player.Velocity.isEmpty && tplayer.MaxHealth > 0 && player.isAlive) {
                         tool.Discharge
                         sendResponse(InventoryStateMessage(tool.AmmoSlot.Box.GUID, obj.GUID, tool.Magazine))
