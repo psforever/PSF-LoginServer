@@ -3186,30 +3186,43 @@ class WorldSessionActor extends Actor with MDCContextAware {
   def HandleHackingProgress(progressType : Int, tplayer : Player, target : PlanetSideServerObject, tool_guid : PlanetSideGUID, delta : Float, completeAction : ()=>Unit, tickAction : Option[()=>Unit]) : Unit = {
     progressBarUpdate.cancel
     if(progressBarValue.isDefined) {
-      val progressBarVal : Float = progressBarValue.get + delta
+      val progressBarVal : Float = if (progressBarValue.get + delta > 100) { 100f } else { progressBarValue.get + delta }
+
       val vis = if(progressBarVal == 0L) {
         //hack state for progress bar visibility
         HackState.Start
       }
-      else if(progressBarVal > 100L) {
+      else if(progressBarVal >= 100L) {
         HackState.Finished
+      }
+      else if(target.Velocity.isDefined && Vector3.Distance(Vector3.Zero, target.Velocity.get) > 1f) {
+        // If the object is moving (more than slightly to account for things like magriders rotating, or the last velocity reported being the magrider dipping down on dismount) then cancel the hack
+        HackState.Cancelled
       }
       else {
         HackState.Ongoing
       }
-      sendResponse(HackMessage(progressType, target.GUID, player.GUID, progressBarVal.toInt, 0L, vis, 8L))
-      if(progressBarVal > 100) {
-        //done
-        progressBarValue = None
-        //          sendResponse(HackMessage(0, target.GUID, player.GUID, 100, 1114636288L, HackState.Hacked, 8L))
-        completeAction()
+
+      if(vis == HackState.Cancelled) {
+        // Object moved. Cancel the hack (e.g. vehicle drove away)
+        sendResponse(HackMessage(progressType, target.GUID, player.GUID, 0, 0L, vis, 8L))
       }
-      else {
-        //continue next tick
-        tickAction.getOrElse(() => Unit)()
-        progressBarValue = Some(progressBarVal)
-        import scala.concurrent.ExecutionContext.Implicits.global
-        progressBarUpdate = context.system.scheduler.scheduleOnce(250 milliseconds, self, HackingProgress(progressType, tplayer, target, tool_guid, delta, completeAction))
+      else
+      {
+        sendResponse(HackMessage(progressType, target.GUID, player.GUID, progressBarVal.toInt, 0L, vis, 8L))
+
+        if(progressBarVal >= 100) {
+          //done
+          progressBarValue = None
+          completeAction()
+        }
+        else {
+          //continue next tick
+          tickAction.getOrElse(() => Unit)()
+          progressBarValue = Some(progressBarVal)
+          import scala.concurrent.ExecutionContext.Implicits.global
+          progressBarUpdate = context.system.scheduler.scheduleOnce(250 milliseconds, self, HackingProgress(progressType, tplayer, target, tool_guid, delta, completeAction))
+        }
       }
     }
   }
