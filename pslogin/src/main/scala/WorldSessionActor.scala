@@ -3452,7 +3452,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
       avatar.Certifications += ReinforcedExoSuit
       avatar.Certifications += ATV
       avatar.Certifications += Harasser
-      //
       avatar.Certifications += InfiltrationSuit
       avatar.Certifications += Sniping
       avatar.Certifications += AntiVehicular
@@ -3479,6 +3478,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
       avatar.Certifications += AssaultEngineering
       avatar.Certifications += Hacking
       avatar.Certifications += AdvancedHacking
+      avatar.Certifications += ElectronicsExpert
+      avatar.Certifications += Medical
+      avatar.Certifications += AdvancedMedical
       avatar.CEP = 6000001
       this.avatar = avatar
 
