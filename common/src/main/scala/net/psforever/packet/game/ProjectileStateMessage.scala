@@ -34,7 +34,7 @@ import shapeless.{::, HNil}
   * a discharged controlled projectile will not normally rotate.
   * A minor loss of lifespan may be levied.
   * @see `ProjectileDefinition`
-  * @see `TrackedProjectileData`
+  * @see `RemoteProjectileData`
   * @param projectile_guid when dispatched by the client, the client-specific local unique identifier of the projectile;
   *                        when dispatched by the server, the global unique identifier for the synchronized projectile object
   * @param shot_pos the position of the projectile
@@ -42,16 +42,18 @@ import shapeless.{::, HNil}
   * @param shot_original_orient the orientation of the projectile when it was discharged
   * @param sequence_num an incrementing index of the packet in this projectile's lifetime;
   *                     suggests the "time alive" and indicates a place in packet ordering
-  * @param explode indicates the projectile should explode
-  * @param unk na
+  * @param end indicates the projectile has reached the end of its lifespan;
+  *            usually, it should explode
+  * @param hit_target_guid the global unique identifier of the object the projwectile collided with;
+  *                        will be 0 if it reached the end of its life naturally, without colliding with anything
   */
 final case class ProjectileStateMessage(projectile_guid : PlanetSideGUID,
                                         shot_pos : Vector3,
                                         shot_vel : Vector3,
                                         shot_original_orient : Vector3,
                                         sequence_num : Int,
-                                        explode : Boolean,
-                                        unk : Int)
+                                        end : Boolean,
+                                        hit_target_guid : PlanetSideGUID)
   extends PlanetSideGamePacket {
   type Packet = ProjectileStateMessage
   def opcode = GamePacketOpcode.ProjectileStateMessage
@@ -67,8 +69,8 @@ object ProjectileStateMessage extends Marshallable[ProjectileStateMessage] {
       ("pitch" | Angular.codec_pitch) ::
       ("yaw" | Angular.codec_yaw()) ::
       ("sequence_num" | uint8) ::
-      ("explode" | bool) ::
-      ("unk" | uint16L)
+      ("end" | bool) ::
+      ("hit_target" | PlanetSideGUID.codec)
     ).xmap[ProjectileStateMessage] (
     {
       case guid :: pos :: vel :: roll :: pitch :: yaw :: sequence_num :: explode :: unk :: HNil =>

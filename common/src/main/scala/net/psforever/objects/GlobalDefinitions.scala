@@ -3076,9 +3076,11 @@ object GlobalDefinitions {
     phoenix_missile_guided_projectile.ProjectileDamageType = DamageType.Splash
     phoenix_missile_guided_projectile.InitialVelocity = 0
     phoenix_missile_guided_projectile.Lifespan = 3f
+    //not naturally a remote projectile, but being governed as one for convenience
     phoenix_missile_guided_projectile.ExistsOnRemoteClients = true
-    phoenix_missile_guided_projectile.RemoteClientData = (39577, 201) //hunter_seeker_missile_projectile data
+    phoenix_missile_guided_projectile.RemoteClientData = (0,63)
     phoenix_missile_guided_projectile.Packet = projectileConverter
+    //
     ProjectileDefinition.CalculateDerivedFields(phoenix_missile_guided_projectile)
 
     phoenix_missile_projectile.Name = "phoenix_missile_projectile"

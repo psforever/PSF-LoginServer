@@ -3,14 +3,14 @@ package net.psforever.objects.definition.converter
 
 import net.psforever.objects.ballistics.Projectile
 import net.psforever.packet.game.PlanetSideGUID
-import net.psforever.packet.game.objectcreate.{CommonFieldData, CommonFieldDataWithPlacement, FlightPhysics, PlacementData, TrackedProjectileData}
+import net.psforever.packet.game.objectcreate.{CommonFieldData, CommonFieldDataWithPlacement, FlightPhysics, PlacementData, RemoteProjectileData}
 
 import scala.util.{Failure, Success, Try}
 
 class ProjectileConverter extends ObjectCreateConverter[Projectile]() {
-  override def ConstructorData(obj : Projectile) : Try[TrackedProjectileData] = {
+  override def ConstructorData(obj : Projectile) : Try[RemoteProjectileData] = {
     Success(
-      TrackedProjectileData(
+      RemoteProjectileData(
         CommonFieldDataWithPlacement(
           PlacementData(
             obj.Position,
@@ -38,6 +38,6 @@ class ProjectileConverter extends ObjectCreateConverter[Projectile]() {
     )
   }
 
-  override def DetailedConstructorData(obj : Projectile) : Try[TrackedProjectileData] =
+  override def DetailedConstructorData(obj : Projectile) : Try[RemoteProjectileData] =
     Failure(new Exception("ProjectileConverter should not be used to generate detailed projectile data (nothing should)"))
 }

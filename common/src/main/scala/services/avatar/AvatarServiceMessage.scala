@@ -50,9 +50,8 @@ object AvatarAction {
   final case class PlayerState(player_guid : PlanetSideGUID, pos : Vector3, vel : Option[Vector3], facingYaw : Float, facingPitch : Float, facingYawUpper : Float, timestamp : Int, is_crouching : Boolean, is_jumping : Boolean, jump_thrust : Boolean, is_cloaked : Boolean, spectator : Boolean, weaponInHand : Boolean) extends Action
   final case class PickupItem(player_guid : PlanetSideGUID, zone : Zone, target : PlanetSideGameObject with Container, slot : Int, item : Equipment, unk : Int = 0) extends Action
   final case class ProjectileAutoLockAwareness(mode : Int) extends Action
-  final case class ProjectileTrackingAwareness(projectile_guid : PlanetSideGUID) extends Action
   final case class ProjectileExplodes(player_guid : PlanetSideGUID, projectile_guid : PlanetSideGUID, projectile : Projectile) extends Action
-  final case class ProjectileState(player_guid : PlanetSideGUID, projectile_guid : PlanetSideGUID, shot_pos : Vector3, shot_vel : Vector3, shot_orient : Vector3, unk1 : Int, unk2 : Boolean, unk3 : Int) extends Action
+  final case class ProjectileState(player_guid : PlanetSideGUID, projectile_guid : PlanetSideGUID, shot_pos : Vector3, shot_vel : Vector3, shot_orient : Vector3, sequence : Int, end : Boolean, hit_target : PlanetSideGUID) extends Action
   final case class PutDownFDU(player_guid : PlanetSideGUID) extends Action
   final case class Release(player : Player, zone : Zone, time : Option[FiniteDuration] = None) extends Action
   final case class Revive(target_guid: PlanetSideGUID) extends Action

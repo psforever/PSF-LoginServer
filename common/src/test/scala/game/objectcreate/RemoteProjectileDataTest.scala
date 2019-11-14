@@ -8,11 +8,11 @@ import net.psforever.types.{PlanetSideEmpire, Vector3}
 import org.specs2.mutable._
 import scodec.bits._
 
-class TrackedProjectileDataTest extends Specification {
+class RemoteProjectileDataTest extends Specification {
   val string_striker_projectile = hex"17 C5000000 A4B 009D 4C129 0CB0A 9814 00 F5 E3 040000666686400"
   val string_hunter_seeker_missile_projectile = hex"17 c5000000 ca9 ab9e af127 ec465 3723 00 15 c4 2400009a99c9400"
 
-  "TrackedProjectileData" should {
+  "RemoteProjectileData" should {
     "decode (striker_missile_targeting_projectile)" in {
       PacketCoding.DecodePacket(string_striker_projectile).require match {
         case ObjectCreateMessage(len, cls, guid, parent, data) =>
@@ -21,7 +21,7 @@ class TrackedProjectileDataTest extends Specification {
           guid mustEqual PlanetSideGUID(40192)
           parent.isDefined mustEqual false
           data match {
-            case TrackedProjectileData(CommonFieldDataWithPlacement(pos, deploy), unk2, lim, unk3, unk4, unk5) =>
+            case RemoteProjectileData(CommonFieldDataWithPlacement(pos, deploy), unk2, lim, unk3, unk4, unk5) =>
               pos.coord mustEqual Vector3(4644.5938f, 5472.0938f, 82.375f)
               pos.orient mustEqual Vector3(0, 30.9375f, 171.5625f)
               deploy.faction mustEqual PlanetSideEmpire.TR
@@ -55,7 +55,7 @@ class TrackedProjectileDataTest extends Specification {
           guid mustEqual PlanetSideGUID(40619)
           parent.isDefined mustEqual false
           data match {
-            case TrackedProjectileData(CommonFieldDataWithPlacement(pos, deploy), unk2, lim, unk3, unk4, unk5) =>
+            case RemoteProjectileData(CommonFieldDataWithPlacement(pos, deploy), unk2, lim, unk3, unk4, unk5) =>
               pos.coord mustEqual Vector3(3621.3672f, 2701.8438f, 140.85938f)
               pos.orient mustEqual Vector3(0, 300.9375f, 258.75f)
               deploy.faction mustEqual PlanetSideEmpire.NC
@@ -82,7 +82,7 @@ class TrackedProjectileDataTest extends Specification {
     }
 
     "encode (striker_missile_targeting_projectile)" in {
-      val obj = TrackedProjectileData(
+      val obj = RemoteProjectileData(
         CommonFieldDataWithPlacement(
           PlacementData(4644.5938f, 5472.0938f, 82.375f, 0f, 30.9375f, 171.5625f),
           CommonFieldData(PlanetSideEmpire.TR, false, false, true, None, false, None, None, PlanetSideGUID(0))
@@ -100,7 +100,7 @@ class TrackedProjectileDataTest extends Specification {
   }
 
   "encode (hunter_seeker_missile_projectile)" in {
-    val obj = TrackedProjectileData(
+    val obj = RemoteProjectileData(
       CommonFieldDataWithPlacement(
         PlacementData(3621.3672f, 2701.8438f, 140.85938f, 0, 300.9375f, 258.75f),
         CommonFieldData(PlanetSideEmpire.NC, false, false, true, None, false, None, None, PlanetSideGUID(0))

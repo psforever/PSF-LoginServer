@@ -19,7 +19,7 @@ class ProjectileStateMessageTest extends Specification {
         orient mustEqual Vector3(0, 22.5f, 146.25f)
         sequence mustEqual 2
         explode mustEqual false
-        unk mustEqual 0
+        unk mustEqual PlanetSideGUID(0)
       case _ =>
         ko
     }
@@ -33,7 +33,7 @@ class ProjectileStateMessageTest extends Specification {
       Vector3(0, 22.5f, 146.25f),
       2,
       false,
-      0
+      PlanetSideGUID(0)
     )
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 

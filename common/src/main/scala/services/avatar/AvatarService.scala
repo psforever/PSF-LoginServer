@@ -165,17 +165,13 @@ class AvatarService extends Actor {
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", PlanetSideGUID(0), AvatarResponse.ProjectileAutoLockAwareness(mode))
           )
-        case AvatarAction.ProjectileTrackingAwareness(guid) =>
-          AvatarEvents.publish(
-            AvatarServiceResponse(s"/$forChannel/Avatar", PlanetSideGUID(0), AvatarResponse.ProjectileTrackingAwareness(guid))
-          )
         case AvatarAction.ProjectileExplodes(player_guid, projectile_guid, projectile) =>
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.ProjectileExplodes(projectile_guid, projectile))
           )
-        case AvatarAction.ProjectileState(player_guid, projectile_guid, shot_pos, shot_vel, shot_orient, unk1, unk2, unk3) =>
+        case AvatarAction.ProjectileState(player_guid, projectile_guid, shot_pos, shot_vel, shot_orient, sequence, end, target) =>
           AvatarEvents.publish(
-            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.ProjectileState(projectile_guid, shot_pos, shot_vel, shot_orient, unk1, unk2, unk3))
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.ProjectileState(projectile_guid, shot_pos, shot_vel, shot_orient, sequence, end, target))
           )
         case AvatarAction.PickupItem(player_guid, zone, target, slot, item, unk) =>
           janitor forward RemoverActor.ClearSpecific(List(item), zone)
