@@ -37,7 +37,7 @@ class DamageFeedbackMessageTest extends Specification {
     pkt mustEqual string
   }
 
-  "failures" in {
+  "assert catches" in {
     //unk2: no parameters
     DamageFeedbackMessage(3, true, None, None, None, true, Some(PlanetSideGUID(2913)), None, None, None, 1, 2, 0) must throwA[AssertionError]
     //unk2: two exclusive parameters

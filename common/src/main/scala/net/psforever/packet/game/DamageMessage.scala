@@ -6,6 +6,13 @@ import net.psforever.types.Angular
 import scodec.Codec
 import scodec.codecs._
 
+/**
+  * na
+  * @param guid1 na
+  * @param unk1 na
+  * @param guid2 na
+  * @param unk2 na
+  */
 final case class DamageMessage(guid1 : PlanetSideGUID,
                                unk1 : Int,
                                guid2 : PlanetSideGUID,

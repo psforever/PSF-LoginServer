@@ -165,7 +165,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
   var cargoDismountTimer : Cancellable = DefaultCancellable.obj
   var antChargingTick : Cancellable = DefaultCancellable.obj
   var antDischargingTick : Cancellable = DefaultCancellable.obj
-  var weaponAutoLockDecay : Cancellable = DefaultCancellable.obj
 
 
   /**
@@ -3491,7 +3490,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       import net.psforever.types.CertificationType._
 
       val faction = PlanetSideEmpire.VS
-      val avatar = new Avatar(41605313L+sessionId, s"TestCharacter$sessionId", PlanetSideEmpire.VS, CharacterGender.Female, 41, CharacterVoice.Voice1)
+      val avatar = new Avatar(41605313L+sessionId, s"TestCharacter$sessionId", faction, CharacterGender.Female, 41, CharacterVoice.Voice1)
       avatar.Certifications += StandardAssault
       avatar.Certifications += MediumAssault
       avatar.Certifications += StandardExoSuit

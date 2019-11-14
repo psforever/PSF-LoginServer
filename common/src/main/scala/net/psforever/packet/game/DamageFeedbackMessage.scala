@@ -21,14 +21,24 @@ final case class DamageFeedbackMessage(unk1 : Int,
                                        unk6 : Int)
   extends PlanetSideGamePacket {
   assert(
-    if(unk2a.nonEmpty) unk2b.isEmpty && unk2c.isEmpty
-    else if(unk2b.nonEmpty) unk2 && unk2a.isEmpty && unk2c.isEmpty
-    else unk2a.isEmpty && !unk2 && unk2b.isEmpty && unk2c.nonEmpty
+    {
+      val unk2aEmpty = unk2a.isEmpty
+      val unk2bEmpty = unk2b.isEmpty
+      val unk2cEmpty = unk2c.isEmpty
+      if(unk2a.nonEmpty) unk2bEmpty && unk2cEmpty
+      else if(unk2b.nonEmpty) unk2 && unk2aEmpty && unk2cEmpty
+      else unk2aEmpty && !unk2 && unk2bEmpty && unk2c.nonEmpty
+    }
   )
   assert(
-    if(unk3a.nonEmpty) unk3b.isEmpty && unk3c.isEmpty
-    else if(unk3b.nonEmpty) unk3 && unk3a.isEmpty && unk3c.isEmpty
-    else unk3a.isEmpty && !unk3 && unk3b.isEmpty && unk3c.nonEmpty
+    {
+      val unk3aEmpty = unk3a.isEmpty
+      val unk3bEmpty = unk3b.isEmpty
+      val unk3cEmpty = unk3c.isEmpty
+      if(unk3a.nonEmpty) unk3bEmpty && unk3cEmpty
+      else if(unk3b.nonEmpty) unk3 && unk3aEmpty && unk3cEmpty
+      else unk3aEmpty && !unk3 && unk3bEmpty && unk3c.nonEmpty
+    }
   )
   assert(unk3a.isEmpty == unk3d.nonEmpty)
 
