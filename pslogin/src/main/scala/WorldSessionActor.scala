@@ -4325,17 +4325,14 @@ class WorldSessionActor extends Actor with MDCContextAware {
       log.trace("ChangeFireState_Start: " + msg)
       if(shooting.isEmpty) {
         FindEquipment match {
-          //special case - suppress the decimator's alternate fire mode
-          case Some(tool : Tool)
-            if tool.Projectile == GlobalDefinitions.phoenix_missile_guided_projectile &&
-              (tool.Magazine > 0 || prefire.contains(item_guid)) =>
-            prefire = None
-            shooting = Some(item_guid)
           case Some(tool : Tool) =>
             if(tool.Magazine > 0 || prefire.contains(item_guid)) {
               prefire = None
               shooting = Some(item_guid)
-              avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireState_Start(player.GUID, item_guid))
+              //special case - suppress the decimator's alternate fire mode, by projectile
+              if(tool.Projectile != GlobalDefinitions.phoenix_missile_guided_projectile) {
+                avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireState_Start(player.GUID, item_guid))
+              }
             }
             else {
               log.warn(s"ChangeFireState_Start: ${tool.Definition.Name} magazine is empty before trying to shoot bullet")

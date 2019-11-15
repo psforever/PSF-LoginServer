@@ -5,6 +5,8 @@ package net.psforever.objects.ballistics
   * An `Enumeration` of all the projectile types in the game, paired with their object id as the `Value`.
   */
 object Projectiles extends Enumeration {
+  final val no_projectile = Value(0)
+
   final val bullet_105mm_projectile = Value(1)
   final val bullet_12mm_projectile = Value(4)
   final val bullet_12mm_projectileb = Value(5)

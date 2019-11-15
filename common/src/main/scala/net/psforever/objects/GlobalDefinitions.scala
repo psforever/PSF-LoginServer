@@ -69,6 +69,8 @@ object GlobalDefinitions {
   /*
   Projectiles
    */
+  val no_projectile = new ProjectileDefinition(0) //also called none in ADB
+
   val bullet_105mm_projectile = ProjectileDefinition(Projectiles.bullet_105mm_projectile)
 
   val bullet_12mm_projectile = ProjectileDefinition(Projectiles.bullet_12mm_projectile)
@@ -1888,6 +1890,9 @@ object GlobalDefinitions {
     */
   private def init_projectile() : Unit = {
     val projectileConverter : ProjectileConverter = new ProjectileConverter
+
+    no_projectile.Name = "none"
+    ProjectileDefinition.CalculateDerivedFields(no_projectile)
 
     bullet_105mm_projectile.Name = "105mmbullet_projectile"
     bullet_105mm_projectile.Damage0 = 150
@@ -4331,6 +4336,7 @@ object GlobalDefinitions {
     medicalapplicator.Name = "medicalapplicator"
     medicalapplicator.Size = EquipmentSize.Pistol
     medicalapplicator.AmmoTypes += health_canister
+    medicalapplicator.ProjectileTypes += no_projectile
     medicalapplicator.FireModes += new FireModeDefinition
     medicalapplicator.FireModes.head.AmmoTypeIndices += 0
     medicalapplicator.FireModes.head.AmmoSlotIndex = 0
@@ -4345,6 +4351,7 @@ object GlobalDefinitions {
     nano_dispenser.Size = EquipmentSize.Rifle
     nano_dispenser.AmmoTypes += armor_canister
     nano_dispenser.AmmoTypes += upgrade_canister
+    nano_dispenser.ProjectileTypes += no_projectile
     nano_dispenser.FireModes += new FireModeDefinition
     nano_dispenser.FireModes.head.AmmoTypeIndices += 0
     nano_dispenser.FireModes.head.AmmoTypeIndices += 1
@@ -4358,6 +4365,7 @@ object GlobalDefinitions {
     bank.Name = "bank"
     bank.Size = EquipmentSize.Pistol
     bank.AmmoTypes += armor_canister
+    bank.ProjectileTypes += no_projectile
     bank.FireModes += new FireModeDefinition
     bank.FireModes.head.AmmoTypeIndices += 0
     bank.FireModes.head.AmmoSlotIndex = 0
