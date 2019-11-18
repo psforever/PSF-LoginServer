@@ -3890,6 +3890,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         player.Crouching = is_crouching
         player.Jumping = is_jumping
         player.Cloaked = player.ExoSuit == ExoSuitType.Infiltration && is_cloaking
+        log.info(s"$yaw + $yaw_upper = ${yaw + yaw_upper}")
 
         if(vel.isDefined && usingMedicalTerminal.isDefined) {
           continent.GUID(usingMedicalTerminal) match {
