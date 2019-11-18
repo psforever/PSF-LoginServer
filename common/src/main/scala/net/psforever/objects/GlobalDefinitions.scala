@@ -4355,6 +4355,8 @@ object GlobalDefinitions {
     nano_dispenser.FireModes += new FireModeDefinition
     nano_dispenser.FireModes.head.AmmoTypeIndices += 0
     nano_dispenser.FireModes.head.AmmoTypeIndices += 1
+    nano_dispenser.FireModes.head.ProjectileTypeIndices += 0 //armor_canister
+    nano_dispenser.FireModes.head.ProjectileTypeIndices += 0 //upgrade_canister
     nano_dispenser.FireModes.head.AmmoSlotIndex = 0
     nano_dispenser.FireModes.head.Magazine = 100
     nano_dispenser.FireModes.head.CustomMagazine = Ammo.upgrade_canister -> 1
