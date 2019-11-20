@@ -64,7 +64,7 @@ import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.util.Success
 import akka.pattern.ask
-import net.psforever.objects.entity.WorldEntity
+import net.psforever.objects.entity.{SimpleWorldEntity, WorldEntity}
 import net.psforever.objects.vehicles.Utility.InternalTelepad
 import services.local.support.{HackCaptureActor, RouterTelepadActivation}
 import services.support.SupportActor
@@ -5418,7 +5418,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             }
             val (angle, attribution, acceptableDistanceToOwner) = obj match {
               case p : Player =>
-                (p.Orientation + Vector3.z(p.FacingYawUpper), tool.Definition.ObjectId, 10f)
+                (SimpleWorldEntity.validateOrientationEntry(p.Orientation + Vector3.z(p.FacingYawUpper)), tool.Definition.ObjectId, 10f)
               case v : Vehicle if v.Definition.CanFly =>
                 (tool.Orientation, obj.Definition.ObjectId, 1000f) //TODO this is too simplistic to find proper angle
               case _ : Vehicle =>
