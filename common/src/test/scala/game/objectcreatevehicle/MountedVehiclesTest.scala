@@ -71,7 +71,7 @@ class MountedVehiclesTest extends Specification {
                         b.outfit_name mustEqual "Black Beret Armoured Corps"
                         b.outfit_logo mustEqual 23
                         b.backpack mustEqual false
-                        b.facingPitch mustEqual 348.75f
+                        b.facingPitch mustEqual -11.25f
                         b.facingYawUpper mustEqual 0
                         b.lfs mustEqual false
                         b.grenade_state mustEqual GrenadeState.None
@@ -167,7 +167,7 @@ class MountedVehiclesTest extends Specification {
       false,
       false,
       false,
-      348.75f, 0,
+      -11.25f, 0,
       false,
       GrenadeState.None,
       false,

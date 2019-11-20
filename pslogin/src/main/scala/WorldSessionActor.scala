@@ -54,7 +54,7 @@ import services.local.{LocalAction, LocalResponse, LocalServiceMessage, LocalSer
 import services.chat._
 import services.vehicle.support.TurretUpgrader
 import services.vehicle.{VehicleAction, VehicleResponse, VehicleServiceMessage, VehicleServiceResponse}
-import services.teamwork.{SquadAction => SquadServiceAction, SquadServiceMessage, SquadServiceResponse, SquadResponse, SquadService}
+import services.teamwork.{SquadResponse, SquadService, SquadServiceMessage, SquadServiceResponse, SquadAction => SquadServiceAction}
 
 import scala.collection.mutable.LongMap
 import scala.concurrent.duration._
@@ -64,6 +64,7 @@ import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.util.Success
 import akka.pattern.ask
+import net.psforever.objects.entity.WorldEntity
 import net.psforever.objects.vehicles.Utility.InternalTelepad
 import services.local.support.{HackCaptureActor, RouterTelepadActivation}
 import services.support.SupportActor
@@ -1441,7 +1442,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             (distanceSq < 10000 && time > 500) ||
             (distanceSq < 160000 && (
               (is_jumping || time < 200)) ||
-              ((vel.isEmpty || Vector3.MagnitudeSquared(vel.get).toInt == 0) && time > 2000) ||
+              (!WorldEntity.isMoving(vel) && time > 2000) ||
               (time > 1000)) ||
             (distanceSq > 160000 && time > 5000)) {
             sendResponse(
@@ -3878,7 +3879,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
             timeSurge = 0
           }
         }
-        if (vel.isEmpty && player.Stamina != player.MaxStamina) {
+        val isMoving = WorldEntity.isMoving(vel)
+        if (!isMoving && player.Stamina < player.MaxStamina) {
           player.Stamina = player.Stamina + 1
           avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttributeSelf(player.GUID, 2, player.Stamina))
         }
@@ -3890,9 +3892,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
         player.Crouching = is_crouching
         player.Jumping = is_jumping
         player.Cloaked = player.ExoSuit == ExoSuitType.Infiltration && is_cloaking
-        log.info(s"$yaw + $yaw_upper = ${yaw + yaw_upper}")
 
-        if(vel.isDefined && usingMedicalTerminal.isDefined) {
+        if(isMoving && usingMedicalTerminal.isDefined) {
           continent.GUID(usingMedicalTerminal) match {
             case Some(term : Terminal with ProximityUnit) =>
               StopUsingProximityUnit(term)
@@ -3901,7 +3902,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         }
         accessedContainer match {
           case Some(veh : Vehicle) =>
-            if(vel.isDefined || Vector3.DistanceSquared(player.Position, veh.Position) > 100) {
+            if(isMoving || Vector3.DistanceSquared(player.Position, veh.Position) > 100) {
               val guid = player.GUID
               sendResponse(UnuseItemMessage(guid, veh.GUID))
               sendResponse(UnuseItemMessage(guid, guid))
@@ -3910,7 +3911,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
               accessedContainer = None
             }
           case Some(container) => //just in case
-            if(vel.isDefined) {
+            if(isMoving) {
               val guid = player.GUID
               // If the container is a corpse and gets removed just as this runs it can cause a client disconnect, so we'll check the container has a GUID first.
               if(container.HasGUID) {
@@ -4875,7 +4876,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                 if (tool.Definition == GlobalDefinitions.bank) {
                   continent.GUID(object_guid) match {
                     case Some(tplayer: Player) =>
-                      if (player.GUID != tplayer.GUID && Vector3.Distance(player.Position, tplayer.Position) < 5 && player.Faction == tplayer.Faction && player.Velocity.isEmpty && tplayer.MaxArmor > 0) {
+                      if (player.GUID != tplayer.GUID && Vector3.Distance(player.Position, tplayer.Position) < 5 && player.Faction == tplayer.Faction && !player.isMoving && tplayer.MaxArmor > 0) {
                         tplayer.Armor += 15
                         tool.Discharge
                         sendResponse(InventoryStateMessage(tool.AmmoSlot.Box.GUID, obj.GUID, tool.Magazine))
@@ -4883,7 +4884,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                         sendResponse(RepairMessage(object_guid, RepairPercent))
 
                         avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.PlanetsideAttributeToAll(tplayer.GUID, 4, tplayer.Armor))
-                      } else if (player.GUID == tplayer.GUID && player.Velocity.isEmpty && tplayer.MaxArmor > 0) {
+                      } else if (player.GUID == tplayer.GUID && !player.isMoving && tplayer.MaxArmor > 0) {
                         player.Armor += 15
                         tool.Discharge
                         sendResponse(InventoryStateMessage(tool.AmmoSlot.Box.GUID, obj.GUID, tool.Magazine))
@@ -4894,7 +4895,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                 } else if (tool.Definition == GlobalDefinitions.medicalapplicator) {
                   continent.GUID(object_guid) match {
                     case Some(tplayer: Player) =>
-                      if (player.GUID != tplayer.GUID && Vector3.Distance(player.Position, tplayer.Position) < 5 && player.Faction == tplayer.Faction && player.Velocity.isEmpty && tplayer.MaxHealth > 0) {
+                      if (player.GUID != tplayer.GUID && Vector3.Distance(player.Position, tplayer.Position) < 5 && player.Faction == tplayer.Faction && !player.isMoving && tplayer.MaxHealth > 0) {
                         tplayer.Health += 10
                         tool.Discharge
                         sendResponse(InventoryStateMessage(tool.AmmoSlot.Box.GUID, obj.GUID, tool.Magazine))
@@ -4909,7 +4910,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                         if(tplayer.isAlive) {
                           avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.PlanetsideAttributeToAll(tplayer.GUID, 0, tplayer.Health))
                         }
-                      } else if (player.GUID == tplayer.GUID && player.Velocity.isEmpty && tplayer.MaxHealth > 0) {
+                      } else if (player.GUID == tplayer.GUID && !player.isMoving && tplayer.MaxHealth > 0) {
                         player.Health += 10
                         tool.Discharge
                         sendResponse(InventoryStateMessage(tool.AmmoSlot.Box.GUID, obj.GUID, tool.Magazine))
@@ -5042,7 +5043,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
               equipment.get.Definition match {
                 case GlobalDefinitions.nano_dispenser =>
                   //TODO repairing behavior
-                  if (player.Velocity.isEmpty && Vector3.Distance(player.Position, obj.Position) < 5) {
+                  if (!player.isMoving && Vector3.Distance(player.Position, obj.Position) < 5) {
                     if (obj.Health < obj.MaxHealth) {
                       obj.Health += 48
                       //                sendResponse(QuantityUpdateMessage(PlanetSideGUID(8214),ammo_quantity_left))
@@ -5417,7 +5418,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             }
             val (angle, attribution, acceptableDistanceToOwner) = obj match {
               case p : Player =>
-                (p.Orientation, tool.Definition.ObjectId, 10f) //TODO upper body facing
+                (p.Orientation + Vector3.z(p.FacingYawUpper), tool.Definition.ObjectId, 10f)
               case v : Vehicle if v.Definition.CanFly =>
                 (tool.Orientation, obj.Definition.ObjectId, 1000f) //TODO this is too simplistic to find proper angle
               case _ : Vehicle =>
