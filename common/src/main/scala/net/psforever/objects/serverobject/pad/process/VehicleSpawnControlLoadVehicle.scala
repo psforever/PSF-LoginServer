@@ -26,21 +26,17 @@ class VehicleSpawnControlLoadVehicle(pad : VehicleSpawnPad) extends VehicleSpawn
   val railJack = context.actorOf(Props(classOf[VehicleSpawnControlRailJack], pad), s"${context.parent.path.name}-rails")
 
   def receive : Receive = {
-    case VehicleSpawnControl.Process.LoadVehicle(entry) =>
-      val vehicle = entry.vehicle
-      if(entry.driver.Continent == Continent.Id) {
+    case order @ VehicleSpawnControl.Order(driver, vehicle) =>
+      if(driver.Continent == Continent.Id && vehicle.Health > 0) {
         trace(s"loading the ${vehicle.Definition.Name}")
-        if(pad.Railed) {
-          //load the vehicle in the spawn pad trench, underground, initially
-          vehicle.Position = vehicle.Position - Vector3(0, 0, if(GlobalDefinitions.isFlightVehicle(vehicle.Definition)) 9 else 5)
-        }
-        vehicle.Cloaked = vehicle.Definition.CanCloak && entry.driver.Cloaked
-        Continent.VehicleEvents ! VehicleSpawnPad.LoadVehicle(vehicle, Continent)
-        context.system.scheduler.scheduleOnce(100 milliseconds, railJack, VehicleSpawnControl.Process.RailJackAction(entry))
+        vehicle.Position = vehicle.Position - Vector3.z(if(GlobalDefinitions.isFlightVehicle(vehicle.Definition)) 9 else 5)
+        vehicle.Cloaked = vehicle.Definition.CanCloak && driver.Cloaked
+        Continent.VehicleEvents ! VehicleSpawnPad.LoadVehicle(vehicle)
+        context.system.scheduler.scheduleOnce(100 milliseconds, railJack, order)
       }
       else {
-        trace("owner lost; abort order fulfillment")
-        VehicleSpawnControl.DisposeVehicle(entry, Continent)
+        trace("owner lost or vehicle in poor condition; abort order fulfillment")
+        VehicleSpawnControl.DisposeSpawnedVehicle(order, Continent)
         context.parent ! VehicleSpawnControl.ProcessControl.GetNewOrder
       }
 

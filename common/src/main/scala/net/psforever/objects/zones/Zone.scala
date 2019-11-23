@@ -22,6 +22,7 @@ import net.psforever.objects.serverobject.turret.FacilityTurret
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types.{PlanetSideEmpire, Vector3}
 import services.Service
+import services.vehicle.VehicleService
 
 import scala.collection.concurrent.TrieMap
 import scala.collection.mutable.ListBuffer
@@ -89,6 +90,10 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
   /** calculate a duration from a given interaction's participants */
   private var hotspotTimeFunc : (SourceEntry, SourceEntry)=>FiniteDuration = Zone.HotSpot.Rules.NoTime
   /** */
+  private var avatarEvents : ActorRef = ActorRef.noSender
+  /** */
+  private var localEvents : ActorRef = ActorRef.noSender
+  /** */
   private var vehicleEvents : ActorRef = ActorRef.noSender
 
   /**
@@ -110,9 +115,8 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
     */
   def Init(implicit context : ActorContext) : Unit = {
     if(accessor == ActorRef.noSender) {
-      implicit val guid : NumberPoolHub = this.guid //passed into builderObject.Build implicitly
       SetupNumberPools()
-      accessor = context.actorOf(RandomPool(25).props(Props(classOf[UniqueNumberSystem], guid, UniqueNumberSystem.AllocateNumberPoolActors(guid))), s"$Id-uns")
+      accessor = context.actorOf(RandomPool(25).props(Props(classOf[UniqueNumberSystem], this.guid, UniqueNumberSystem.AllocateNumberPoolActors(this.guid))), s"$Id-uns")
       ground = context.actorOf(Props(classOf[ZoneGroundActor], this, equipmentOnGround), s"$Id-ground")
       deployables = context.actorOf(Props(classOf[ZoneDeployableActor], this, constructions), s"$Id-deployables")
       transport = context.actorOf(Props(classOf[ZoneVehicleActor], this, vehicles), s"$Id-vehicles")
@@ -120,6 +124,9 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
       projector = context.actorOf(Props(classOf[ZoneHotSpotProjector], this), s"$Id-hotpots")
       soi = context.actorOf(Props(classOf[SphereOfInfluenceActor], this), s"$Id-soi")
 
+      vehicleEvents = context.actorOf(Props(classOf[VehicleService], this), s"$Id-vehicle-events")
+
+      implicit val guid : NumberPoolHub = this.guid //passed into builderObject.Build implicitly
       BuildLocalObjects(context, guid)
       BuildSupportObjects()
       MakeBuildings(context)
@@ -492,12 +499,24 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
     */
   def ClientInitialization() : Zone = this
 
+  def AvatarEvents : ActorRef = avatarEvents
+
+  def AvatarEvents_=(bus : ActorRef) : ActorRef = {
+    avatarEvents = bus
+    AvatarEvents
+  }
+
+  def LocalEvents : ActorRef = localEvents
+
+  def LocalEvents_=(bus : ActorRef) : ActorRef = {
+    localEvents = bus
+    LocalEvents
+  }
+
   def VehicleEvents : ActorRef = vehicleEvents
 
   def VehicleEvents_=(bus : ActorRef) : ActorRef = {
-    if(vehicleEvents == ActorRef.noSender) {
-      vehicleEvents = bus
-    }
+    vehicleEvents = bus
     VehicleEvents
   }
 }

@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.pad.process
 
-import akka.actor.{ActorRef, Props}
+import akka.actor.Props
 import net.psforever.objects.serverobject.pad.{VehicleSpawnControl, VehicleSpawnPad}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -24,17 +24,16 @@ class VehicleSpawnControlConcealPlayer(pad : VehicleSpawnPad) extends VehicleSpa
   val loadVehicle = context.actorOf(Props(classOf[VehicleSpawnControlLoadVehicle], pad), s"${context.parent.path.name}-load")
 
   def receive : Receive = {
-    case VehicleSpawnControl.Process.ConcealPlayer(entry) =>
-      val driver = entry.driver
+    case order @ VehicleSpawnControl.Order(driver, _) =>
       //TODO how far can the driver get stray from the Terminal before his order is cancelled?
-      if(entry.sendTo != ActorRef.noSender && driver.Continent == Continent.Id && driver.VehicleSeated.isEmpty) {
+      if(driver.Continent == Continent.Id && driver.VehicleSeated.isEmpty) {
         trace(s"hiding ${driver.Name}")
-        Continent.VehicleEvents ! VehicleSpawnPad.ConcealPlayer(driver.GUID, Continent.Id)
-        context.system.scheduler.scheduleOnce(2000 milliseconds, loadVehicle, VehicleSpawnControl.Process.LoadVehicle(entry))
+        Continent.VehicleEvents ! VehicleSpawnPad.ConcealPlayer(driver.GUID)
+        context.system.scheduler.scheduleOnce(2000 milliseconds, loadVehicle, order)
       }
       else {
         trace(s"integral component lost; abort order fulfillment")
-        VehicleSpawnControl.DisposeVehicle(entry, Continent)
+        VehicleSpawnControl.DisposeSpawnedVehicle(order, Continent)
         context.parent ! VehicleSpawnControl.ProcessControl.GetNewOrder
       }
 

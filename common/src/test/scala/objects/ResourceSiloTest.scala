@@ -9,7 +9,7 @@ import net.psforever.objects.guid.TaskResolver
 import net.psforever.objects.{Avatar, GlobalDefinitions, Player}
 import net.psforever.objects.serverobject.resourcesilo.{ResourceSilo, ResourceSiloControl, ResourceSiloDefinition}
 import net.psforever.objects.serverobject.structures.{Building, StructureType}
-import net.psforever.objects.zones.Zone
+import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.packet.game.{PlanetSideGUID, UseItemMessage}
 import net.psforever.types.{CharacterGender, CharacterVoice, PlanetSideEmpire, Vector3}
 import org.specs2.mutable.Specification
@@ -298,7 +298,7 @@ class ResourceSiloControlNoUpdateTest extends ActorTest {
 }
 
 object ResourceSiloTest {
-  val player = Player(Avatar("TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+  val player = Player(new Avatar(0L, "TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
 
   class ProbedAvatarService(probe : TestProbe) extends Actor {
     override def receive : Receive = {

@@ -262,26 +262,10 @@ object PsLogin {
     serviceManager ! ServiceManager.Register(Props[AvatarService], "avatar")
     serviceManager ! ServiceManager.Register(Props[LocalService], "local")
     serviceManager ! ServiceManager.Register(Props[ChatService], "chat")
-    serviceManager ! ServiceManager.Register(Props[VehicleService], "vehicle")
+//    serviceManager ! ServiceManager.Register(Props[VehicleService], "vehicle")
     serviceManager ! ServiceManager.Register(Props[GalaxyService], "galaxy")
     serviceManager ! ServiceManager.Register(Props[SquadService], "squad")
     serviceManager ! ServiceManager.Register(Props(classOf[InterstellarCluster], continentList), "cluster")
-
-    //attach event bus entry point to each zone
-    import akka.pattern.ask
-    import akka.util.Timeout
-    import scala.concurrent.ExecutionContext.Implicits.global
-    import scala.concurrent.Future
-    import scala.util.{Failure, Success}
-    implicit val timeout = Timeout(5 seconds)
-    val requestVehicleEventBus : Future[ServiceManager.LookupResult] =
-      (ServiceManager.serviceManager ask ServiceManager.Lookup("vehicle")).mapTo[ServiceManager.LookupResult]
-    requestVehicleEventBus.onComplete {
-      case Success(ServiceManager.LookupResult(_, bus)) =>
-        continentList.foreach { _.VehicleEvents = bus }
-      case Failure(_) => ;
-        //TODO how to fail
-    }
 
     /** Create two actors for handling the login and world server endpoints */
     loginRouter = Props(new SessionRouter("Login", loginTemplate))
@@ -301,6 +285,7 @@ object PsLogin {
   def createContinents() : List[Zone] = {
     import Zones._
     List(
+      Zone.Nowhere,
       z1, z2, z3, z4, z5, z6, z7, z8, z9, z10,
       home1, tzshtr, tzdrtr, tzcotr,
       home2, tzshnc, tzdrnc, tzconc,
