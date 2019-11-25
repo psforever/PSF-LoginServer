@@ -6,7 +6,8 @@ import net.psforever.objects._
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
 import net.psforever.objects.serverobject.hackable.HackableBehavior
-import services.{Service, ServiceManager}
+import net.psforever.objects.serverobject.structures.Building
+import services.Service
 
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -18,7 +19,6 @@ import scala.concurrent.duration._
   * @param term the proximity unit (terminal)
   */
 class ProximityTerminalControl(term : Terminal with ProximityUnit) extends Actor with FactionAffinityBehavior.Check with HackableBehavior.GenericHackable {
-  var service : ActorRef = ActorRef.noSender
   var terminalAction : Cancellable = DefaultCancellable.obj
   val callbacks : mutable.ListBuffer[ActorRef] = new mutable.ListBuffer[ActorRef]()
   val log = org.log4s.getLogger
@@ -33,10 +33,6 @@ class ProximityTerminalControl(term : Terminal with ProximityUnit) extends Actor
   def Start : Receive = checkBehavior
     .orElse {
     case Service.Startup() =>
-      ServiceManager.serviceManager ! ServiceManager.Lookup("local")
-
-    case ServiceManager.LookupResult("local", ref) =>
-      service = ref
       context.become(Run)
 
     case _ => ;
@@ -68,7 +64,7 @@ class ProximityTerminalControl(term : Terminal with ProximityUnit) extends Actor
         val proxDef = term.Definition.asInstanceOf[ProximityDefinition]
         val validateFunc : PlanetSideGameObject=>Boolean = term.Validate(proxDef.UseRadius * proxDef.UseRadius, proxDef.Validations)
         val callbackList = callbacks.toList
-        term.Targets.zipWithIndex.foreach({ case((target, index)) =>
+        term.Targets.zipWithIndex.foreach({ case(target, index) =>
           if(validateFunc(target)) {
             callbackList.lift(index) match {
               case Some(cback) =>
@@ -101,7 +97,7 @@ class ProximityTerminalControl(term : Terminal with ProximityUnit) extends Actor
         import scala.concurrent.ExecutionContext.Implicits.global
         terminalAction.cancel
         terminalAction = context.system.scheduler.schedule(500 milliseconds, medDef.Interval, self, ProximityTerminalControl.TerminalAction())
-        service ! Terminal.StartProximityEffect(term)
+        TerminalObject.Owner.asInstanceOf[Building].Zone.LocalEvents ! Terminal.StartProximityEffect(term)
       }
     }
     else {
@@ -120,7 +116,7 @@ class ProximityTerminalControl(term : Terminal with ProximityUnit) extends Actor
       //de-activation (global / local)
       if(term.NumberUsers == 0 && hadUsers) {
         terminalAction.cancel
-        service ! Terminal.StopProximityEffect(term)
+        TerminalObject.Owner.asInstanceOf[Building].Zone.LocalEvents ! Terminal.StopProximityEffect(term)
       }
     }
     else {

@@ -77,7 +77,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
   var leftRef : ActorRef = ActorRef.noSender
   var rightRef : ActorRef = ActorRef.noSender
   var avatarService : ActorRef = ActorRef.noSender
-  var localService : ActorRef = ActorRef.noSender
   var chatService: ActorRef = ActorRef.noSender
   var galaxyService : ActorRef = ActorRef.noSender
   var squadService : ActorRef = ActorRef.noSender
@@ -177,7 +176,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     reviveTimer.cancel
     respawnTimer.cancel
     PlayerActionsToCancel()
-    localService ! Service.Leave()
+    continent.LocalEvents ! Service.Leave()
     chatService ! Service.Leave()
     continent.VehicleEvents ! Service.Leave()
     avatarService ! Service.Leave()
@@ -303,9 +302,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       }
       context.become(Started)
       ServiceManager.serviceManager ! Lookup("avatar")
-      ServiceManager.serviceManager ! Lookup("local")
       ServiceManager.serviceManager ! Lookup("chat")
-      ServiceManager.serviceManager ! Lookup("vehicle")
       ServiceManager.serviceManager ! Lookup("taskResolver")
       ServiceManager.serviceManager ! Lookup("cluster")
       ServiceManager.serviceManager ! Lookup("galaxy")
@@ -320,9 +317,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case ServiceManager.LookupResult("avatar", endpoint) =>
       avatarService = endpoint
       log.info("ID: " + sessionId + " Got avatar service " + endpoint)
-    case ServiceManager.LookupResult("local", endpoint) =>
-      localService = endpoint
-      log.info("ID: " + sessionId + " Got local service " + endpoint)
     case ServiceManager.LookupResult("chat", endpoint) =>
       chatService = endpoint
       log.info("ID: " + sessionId + " Got chat service " + endpoint)
@@ -817,12 +811,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
           obj.AssignOwnership(None)
           avatar.Deployables.Remove(obj)
           UpdateDeployableUIElements(avatar.Deployables.UpdateUIElement(obj.Definition.Item))
-          localService ! LocalServiceMessage.Deployables(RemoverActor.AddTask(obj, continent))
+          continent.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.AddTask(obj, continent))
           sendResponse(SetEmpireMessage(guid, PlanetSideEmpire.NEUTRAL))
           avatarService ! AvatarServiceMessage(factionOnContinentChannel, AvatarAction.SetEmpire(playerGUID, guid, PlanetSideEmpire.NEUTRAL))
           val info = DeployableInfo(guid, DeployableIcon.Boomer, obj.Position, PlanetSideGUID(0))
           sendResponse(DeployableObjectsInfoMessage(DeploymentAction.Dismiss, info))
-          localService ! LocalServiceMessage(factionOnContinentChannel, LocalAction.DeployableMapIcon(playerGUID, DeploymentAction.Dismiss, info))
+          continent.LocalEvents ! LocalServiceMessage(factionOnContinentChannel, LocalAction.DeployableMapIcon(playerGUID, DeploymentAction.Dismiss, info))
           PutItemOnGround(item, pos, orient)
         case Some(_) | None =>
           //pointless trigger
@@ -860,12 +854,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
             obj.Faction = faction
             avatar.Deployables.Add(obj)
             UpdateDeployableUIElements(avatar.Deployables.UpdateUIElement(obj.Definition.Item))
-            localService ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(obj), continent))
+            continent.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(obj), continent))
             sendResponse(SetEmpireMessage(guid, faction))
             avatarService ! AvatarServiceMessage(factionOnContinentChannel, AvatarAction.SetEmpire(playerGUID, guid, faction))
             val info = DeployableInfo(obj.GUID, DeployableIcon.Boomer, obj.Position, obj.Owner.get)
             sendResponse(DeployableObjectsInfoMessage(DeploymentAction.Build, info))
-            localService ! LocalServiceMessage(factionOnContinentChannel, LocalAction.DeployableMapIcon(playerGUID, DeploymentAction.Build, info))
+            continent.LocalEvents ! LocalServiceMessage(factionOnContinentChannel, LocalAction.DeployableMapIcon(playerGUID, DeploymentAction.Build, info))
           case Some(_) | None => ; //pointless trigger; see Zone.Ground.ItemOnGround(BoomerTrigger, ...)
         }
       }
@@ -892,7 +886,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       if(avatar.Deployables.Accept(obj) || (avatar.Deployables.Valid(obj) && !avatar.Deployables.Contains(obj))) {
         tool.Definition match {
           case GlobalDefinitions.ace =>
-            localService ! LocalServiceMessage(continent.Id, LocalAction.TriggerEffectLocation(player.GUID, "spawn_object_effect", obj.Position, obj.Orientation))
+            continent.LocalEvents ! LocalServiceMessage(continent.Id, LocalAction.TriggerEffectLocation(player.GUID, "spawn_object_effect", obj.Position, obj.Orientation))
           case GlobalDefinitions.advanced_ace =>
             sendResponse(GenericObjectActionMessage(player.GUID, 212)) //put fdu down; it will be removed from the client's holster
             avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PutDownFDU(player.GUID))
@@ -965,7 +959,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       //motion alarm sensor and sensor disruptor
       StartBundlingPackets()
       DeployableBuildActivity(obj)
-      localService ! LocalServiceMessage(continent.Id, LocalAction.TriggerEffectInfo(player.GUID, "on", obj.GUID, true, 1000))
+      continent.LocalEvents ! LocalServiceMessage(continent.Id, LocalAction.TriggerEffectInfo(player.GUID, "on", obj.GUID, true, 1000))
       CommonDestroyConstructionItem(tool, index)
       FindReplacementConstructionItem(tool, index)
       StopBundlingPackets()
@@ -983,7 +977,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             if(vehicle.Health == 0) {
               //the Telepad was successfully deployed; but, before it could configure, its Router was destroyed
               sendResponse(ChatMsg(ChatMessageType.UNK_229, false, "", "@Telepad_NoDeploy_RouterLost", None))
-              localService ! LocalServiceMessage.Deployables(RemoverActor.AddTask(obj, continent, Some(0 seconds)))
+              continent.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.AddTask(obj, continent, Some(0 seconds)))
             }
             else {
               log.info(s"FinalizeDeployable: setup for telepad #${guid.guid} in zone ${continent.Id}")
@@ -992,13 +986,13 @@ class WorldSessionActor extends Actor with MDCContextAware {
               CommonDestroyConstructionItem(tool, index)
               StopBundlingPackets()
               //it takes 60s for the telepad to become properly active
-              localService ! LocalServiceMessage.Telepads(RouterTelepadActivation.AddTask(obj, continent))
+              continent.LocalEvents ! LocalServiceMessage.Telepads(RouterTelepadActivation.AddTask(obj, continent))
             }
 
           case _ =>
             //the Telepad was successfully deployed; but, before it could configure, its Router was deconstructed
             sendResponse(ChatMsg(ChatMessageType.UNK_229, false, "", "@Telepad_NoDeploy_RouterLost", None))
-            localService ! LocalServiceMessage.Deployables(RemoverActor.AddTask(obj, continent, Some(0 seconds)))
+            continent.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.AddTask(obj, continent, Some(0 seconds)))
         }
       }
       StopBundlingPackets()
@@ -1042,7 +1036,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
       sendResponse(FriendsResponse(FriendAction.InitializeFriendList, 0, true, true, Nil))
       sendResponse(FriendsResponse(FriendAction.InitializeIgnoreList, 0, true, true, Nil))
       avatarService ! Service.Join(avatar.name) //channel will be player.Name
-      localService ! Service.Join(avatar.name) //channel will be player.Name
       galaxyService ! Service.Join("galaxy") //for galaxy-wide messages
       galaxyService ! Service.Join(s"${avatar.faction}") //for hotspots
       squadService ! Service.Join(s"${avatar.faction}") //channel will be player.Faction
@@ -1055,8 +1048,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       val factionOnContinentChannel = s"$continentId/${avatar.faction}"
       avatarService ! Service.Leave(Some(continentId))
       avatarService ! Service.Leave(Some(factionOnContinentChannel))
-      localService ! Service.Leave(Some(continentId))
-      localService ! Service.Leave(Some(factionOnContinentChannel))
+      continent.LocalEvents ! Service.Leave()
       continent.VehicleEvents ! Service.Leave()
       player.Continent = zoneId
       continent = zone
@@ -1468,7 +1460,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         continent.GUID(door_guid) match {
           case Some(door : Door) =>
             sendResponse(GenericObjectStateMsg(door_guid, 16))
-            localService ! LocalServiceMessage(continent.Id, LocalAction.DoorOpens(tplayer.GUID, continent, door))
+            continent.LocalEvents ! LocalServiceMessage(continent.Id, LocalAction.DoorOpens(tplayer.GUID, continent, door))
 
           case _ =>
             log.warn(s"door $door_guid wanted to be opened but could not be found")
@@ -1476,7 +1468,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
       case Door.CloseEvent() =>
         sendResponse(GenericObjectStateMsg(door_guid, 17))
-        localService ! LocalServiceMessage(continent.Id, LocalAction.DoorCloses(tplayer.GUID, door_guid))
+        continent.LocalEvents ! LocalServiceMessage(continent.Id, LocalAction.DoorCloses(tplayer.GUID, door_guid))
 
       case Door.NoEvent() => ;
     }
@@ -2973,7 +2965,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       case GlobalDefinitions.router =>
         target.Actor ! Deployment.TryDeploymentChange(DriveState.Undeploying)
         BeforeUnloadVehicle(target)
-        localService ! LocalServiceMessage(continent.Id, LocalAction.ToggleTeleportSystem(PlanetSideGUID(0), target, None))
+        continent.LocalEvents ! LocalServiceMessage(continent.Id, LocalAction.ToggleTeleportSystem(PlanetSideGUID(0), target, None))
       case _ => ;
     }
     avatarService ! AvatarServiceMessage(continentId, AvatarAction.Destroy(target.GUID, playerGUID, playerGUID, target.Position))
@@ -3554,8 +3546,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
       val factionOnContinentChannel = s"$continentId/$faction"
       avatarService ! Service.Join(continentId)
       avatarService ! Service.Join(factionOnContinentChannel)
-      localService ! Service.Join(continentId)
-      localService ! Service.Join(factionOnContinentChannel)
+      continent.LocalEvents ! Service.Join(avatar.name)
+      continent.LocalEvents ! Service.Join(continentId)
+      continent.LocalEvents ! Service.Join(factionOnContinentChannel)
       continent.VehicleEvents ! Service.Join(avatar.name)
       continent.VehicleEvents ! Service.Join(continentId)
       continent.VehicleEvents ! Service.Join(factionChannel)
@@ -3570,7 +3563,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       //find and reclaim own deployables, if any
       val guid = player.GUID
       val foundDeployables = continent.DeployableList.filter(obj => obj.OwnerName.contains(player.Name) && obj.Health > 0)
-      localService ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(foundDeployables, continent))
+      continent.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(foundDeployables, continent))
       foundDeployables.foreach(obj => {
         if(avatar.Deployables.Add(obj)) {
           obj.Owner = guid
@@ -4307,10 +4300,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
               sendResponse(TriggerEffectMessage(boomerGUID, "detonate_boomer"))
               sendResponse(PlanetsideAttributeMessage(boomerGUID, 29, 1))
               sendResponse(ObjectDeleteMessage(boomerGUID, 0))
-              localService ! LocalServiceMessage(continent.Id, LocalAction.TriggerEffect(playerGUID, "detonate_boomer", boomerGUID))
+              continent.LocalEvents ! LocalServiceMessage(continent.Id, LocalAction.TriggerEffect(playerGUID, "detonate_boomer", boomerGUID))
               avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(boomerGUID, 29, 1))
               avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(playerGUID, boomerGUID))
-              localService ! LocalServiceMessage.Deployables(RemoverActor.AddTask(boomer, continent, Some(0 seconds)))
+              continent.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.AddTask(boomer, continent, Some(0 seconds)))
             case Some(_) | None => ;
           }
           FindEquipmentToDelete(item_guid, trigger)
@@ -4484,7 +4477,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             continent.GUID(obj.Companion) match {
               case Some(boomer : BoomerDeployable) =>
                 boomer.Trigger = None
-                localService ! LocalServiceMessage.Deployables(RemoverActor.AddTask(boomer, continent, Some(0 seconds)))
+                continent.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.AddTask(boomer, continent, Some(0 seconds)))
                 //continent.Deployables ! Zone.Deployable.Dismiss(boomer)
               case Some(thing) =>
                 log.info(s"RequestDestroy: BoomerTrigger object connected to wrong object - $thing")
@@ -4509,7 +4502,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           }
 
         case Some(obj : BoomerDeployable) =>
-          localService ! LocalServiceMessage.Deployables(RemoverActor.AddTask(obj, continent, Some(0 seconds)))
+          continent.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.AddTask(obj, continent, Some(0 seconds)))
           obj.Trigger match {
             case Some(trigger) =>
               obj.Trigger = None
@@ -4530,13 +4523,13 @@ class WorldSessionActor extends Actor with MDCContextAware {
           }
 
         case Some(obj : TelepadDeployable) =>
-          localService ! LocalServiceMessage.Telepads(SupportActor.ClearSpecific(List(obj), continent))
-          localService ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(obj), continent))
-          localService ! LocalServiceMessage.Deployables(RemoverActor.AddTask(obj, continent, Some(0 seconds)))
+          continent.LocalEvents ! LocalServiceMessage.Telepads(SupportActor.ClearSpecific(List(obj), continent))
+          continent.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(obj), continent))
+          continent.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.AddTask(obj, continent, Some(0 seconds)))
 
         case Some(obj : PlanetSideGameObject with Deployable) =>
-          localService ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(obj), continent))
-          localService ! LocalServiceMessage.Deployables(RemoverActor.AddTask(obj, continent, Some(0 seconds)))
+          continent.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(obj), continent))
+          continent.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.AddTask(obj, continent, Some(0 seconds)))
 
         case Some(thing) =>
           log.warn(s"RequestDestroy: not allowed to delete object $thing")
@@ -6254,12 +6247,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
     import scala.concurrent.ExecutionContext.Implicits.global
     ask(target.Actor, CommonMessages.Hack(player))(1 second).mapTo[Boolean].onComplete {
       case Success(_) =>
-        localService ! LocalServiceMessage(continent.Id, LocalAction.TriggerSound(player.GUID, target.HackSound, player.Position, 30, 0.49803925f))
+        continent.LocalEvents ! LocalServiceMessage(continent.Id, LocalAction.TriggerSound(player.GUID, target.HackSound, player.Position, 30, 0.49803925f))
         target match {
           case term: CaptureTerminal =>
             val isResecured = player.Faction == target.Faction
-            localService ! LocalServiceMessage(continent.Id, LocalAction.HackCaptureTerminal(player.GUID, continent, term, unk, 8L, isResecured))
-          case _ => localService ! LocalServiceMessage(continent.Id, LocalAction.HackTemporarily(player.GUID, continent, target, unk, target.HackEffectDuration(GetPlayerHackLevel())))
+            continent.LocalEvents ! LocalServiceMessage(continent.Id, LocalAction.HackCaptureTerminal(player.GUID, continent, term, unk, 8L, isResecured))
+          case _ => continent.LocalEvents ! LocalServiceMessage(continent.Id, LocalAction.HackTemporarily(player.GUID, continent, target, unk, target.HackEffectDuration(GetPlayerHackLevel())))
         }
       case scala.util.Failure(_) => log.warn(s"Hack message failed on target guid: ${target.GUID}")
     }
@@ -6344,7 +6337,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.SetEmpire(player.GUID, target.GUID, player.Faction))
     }
 
-    localService ! LocalServiceMessage(continent.Id, LocalAction.TriggerSound(player.GUID, TriggeredSound.HackVehicle, target.Position, 30, 0.49803925f))
+    continent.LocalEvents ! LocalServiceMessage(continent.Id, LocalAction.TriggerSound(player.GUID, TriggeredSound.HackVehicle, target.Position, 30, 0.49803925f))
 
     // Clean up after specific vehicles, e.g. remove router telepads
     // If AMS is deployed, swap it to the new faction
@@ -6365,7 +6358,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * @param lock the `IFFLock` object that has been resecured
     */
   private def FinishResecuringIFFLock(lock: IFFLock)() : Unit = {
-    localService ! LocalServiceMessage(continent.Id, LocalAction.ClearTemporaryHack(player.GUID, lock))
+    continent.LocalEvents ! LocalServiceMessage(continent.Id, LocalAction.ClearTemporaryHack(player.GUID, lock))
   }
 
   /**
@@ -7360,7 +7353,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
               }
             case DriveState.Deployed =>
               //let the timer do all the work
-              localService ! LocalServiceMessage(continent.Id, LocalAction.ToggleTeleportSystem(PlanetSideGUID(0), vehicle, TelepadLike.AppraiseTeleportationSystem(vehicle, continent)))
+              continent.LocalEvents ! LocalServiceMessage(continent.Id, LocalAction.ToggleTeleportSystem(PlanetSideGUID(0), vehicle, TelepadLike.AppraiseTeleportationSystem(vehicle, continent)))
             case DriveState.Undeploying =>
               //deactivate internal router before trying to reset the system
               vehicle.Utility(UtilityType.internal_router_telepad_deployable) match {
@@ -7368,12 +7361,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
                   //any telepads linked with internal mechanism must be deconstructed
                   continent.GUID(util.Telepad) match {
                     case Some(telepad : TelepadDeployable) =>
-                      localService ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(telepad), continent))
-                      localService ! LocalServiceMessage.Deployables(RemoverActor.AddTask(telepad, continent, Some(0 milliseconds)))
+                      continent.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(telepad), continent))
+                      continent.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.AddTask(telepad, continent, Some(0 milliseconds)))
                     case Some(_) | None => ;
                   }
                   util.Active = false
-                  localService ! LocalServiceMessage(continent.Id, LocalAction.ToggleTeleportSystem(PlanetSideGUID(0), vehicle, None))
+                  continent.LocalEvents ! LocalServiceMessage(continent.Id, LocalAction.ToggleTeleportSystem(PlanetSideGUID(0), vehicle, None))
                 case _ =>
                   log.warn(s"DeploymentActivities: could not find internal telepad in router@${vehicle.GUID.guid} while $state")
               }
@@ -7925,7 +7918,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         continent.GUID(boomer) match {
           case Some(obj : BoomerDeployable) =>
             obj.OwnerName = None
-            localService ! LocalServiceMessage.Deployables(RemoverActor.AddTask(obj, continent))
+            continent.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.AddTask(obj, continent))
           case Some(_) | None => ;
         }
       })
@@ -8373,7 +8366,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         obj.Actor ! Vitality.Damage(func)
       case obj : Deployable =>
         //damage is synchronized on `LSA` (results returned to and distributed from this `WSA`)
-        localService ! Vitality.DamageOn(obj, func)
+        continent.LocalEvents ! Vitality.DamageOn(obj, func)
       case obj : FacilityTurret =>
         //damage is synchronized on the turret actor (results returned to and distributed from this `WSA`)
         obj.Actor ! Vitality.Damage(func)
@@ -8638,12 +8631,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
       removed match {
         case Some(telepad : TelepadDeployable) =>
           telepad.AssignOwnership(None)
-          localService ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(telepad), continent))
-          localService ! LocalServiceMessage.Deployables(RemoverActor.AddTask(telepad, continent, Some(0 seconds))) //normal decay
+          continent.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(telepad), continent))
+          continent.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.AddTask(telepad, continent, Some(0 seconds))) //normal decay
         case Some(old) =>
           old.AssignOwnership(None)
-          localService ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(old), continent))
-          localService ! LocalServiceMessage.Deployables(RemoverActor.AddTask(old, continent, Some(0 seconds)))
+          continent.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(old), continent))
+          continent.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.AddTask(old, continent, Some(0 seconds)))
           if(msg) { //max test
             sendResponse(ChatMsg(ChatMessageType.UNK_229, false, "", s"@${definition.Descriptor}OldestDestroyed", None))
           }
@@ -8670,7 +8663,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     //map icon
     val deployInfo = DeployableInfo(guid, Deployable.Icon(item), obj.Position, obj.Owner.getOrElse(PlanetSideGUID(0)))
     sendResponse(DeployableObjectsInfoMessage(DeploymentAction.Build, deployInfo))
-    localService ! LocalServiceMessage(s"${continent.Id}/${player.Faction}", LocalAction.DeployableMapIcon(player.GUID, DeploymentAction.Build, deployInfo))
+    continent.LocalEvents ! LocalServiceMessage(s"${continent.Id}/${player.Faction}", LocalAction.DeployableMapIcon(player.GUID, DeploymentAction.Build, deployInfo))
   }
 
   /**
@@ -8925,16 +8918,16 @@ class WorldSessionActor extends Actor with MDCContextAware {
     target.OwnerName match {
       case Some(owner) =>
         target.OwnerName = None
-        localService ! LocalServiceMessage(owner, LocalAction.AlertDestroyDeployable(PlanetSideGUID(0), target))
+        continent.LocalEvents ! LocalServiceMessage(owner, LocalAction.AlertDestroyDeployable(PlanetSideGUID(0), target))
       case None => ;
     }
-    localService ! LocalServiceMessage(s"${continent.Id}/${target.Faction}", LocalAction.DeployableMapIcon(
+    continent.LocalEvents ! LocalServiceMessage(s"${continent.Id}/${target.Faction}", LocalAction.DeployableMapIcon(
       PlanetSideGUID(0),
       DeploymentAction.Dismiss,
       DeployableInfo(target.GUID, Deployable.Icon(target.Definition.Item), target.Position, PlanetSideGUID(0)))
     )
-    localService ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(target), continent))
-    localService ! LocalServiceMessage.Deployables(RemoverActor.AddTask(target, continent, time))
+    continent.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(target), continent))
+    continent.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.AddTask(target, continent, time))
   }
 
   /**
@@ -8978,12 +8971,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
         .partition(_.isInstanceOf[BoomerDeployable])
     //do not change the OwnerName field at this time
     boomers.collect({ case obj : BoomerDeployable =>
-      localService ! LocalServiceMessage.Deployables(RemoverActor.AddTask(obj, continent, Some(0 seconds))) //near-instant
+      continent.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.AddTask(obj, continent, Some(0 seconds))) //near-instant
       obj.Owner = None
       obj.Trigger = None
     })
     deployables.foreach(obj => {
-      localService ! LocalServiceMessage.Deployables(RemoverActor.AddTask(obj, continent)) //normal decay
+      continent.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.AddTask(obj, continent)) //normal decay
       obj.Owner = None
     })
     boomers ++ deployables
@@ -9504,7 +9497,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       StopBundlingPackets()
       //      continent.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(router), continent))
       //      continent.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.AddTask(router, continent, router.Definition.DeconstructionTime))
-      localService ! LocalServiceMessage(continent.Id, LocalAction.RouterTelepadTransport(pguid, pguid, sguid, dguid))
+      continent.LocalEvents ! LocalServiceMessage(continent.Id, LocalAction.RouterTelepadTransport(pguid, pguid, sguid, dguid))
     }
     else {
       log.warn(s"UseRouterTelepadSystem: can not teleport")
@@ -9555,8 +9548,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
       case Some(telepad : TelepadDeployable) =>
         log.info(s"BeforeUnload: deconstructing telepad $telepad that was linked to router $vehicle ...")
         telepad.Active = false
-        localService ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(telepad), continent))
-        localService ! LocalServiceMessage.Deployables(RemoverActor.AddTask(telepad, continent, Some(0 seconds)))
+        continent.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(telepad), continent))
+        continent.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.AddTask(telepad, continent, Some(0 seconds)))
       case _ => ;
     }
   }
