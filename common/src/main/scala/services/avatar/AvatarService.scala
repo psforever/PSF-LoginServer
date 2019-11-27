@@ -131,10 +131,10 @@ class AvatarService extends Actor {
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.LoadPlayer(pkt))
           )
-        case AvatarAction.LoadProjectile(player_guid, object_id, obj, cdata) =>
+        case AvatarAction.LoadProjectile(player_guid, object_id, object_guid, cdata) =>
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.LoadProjectile(
-              ObjectCreateMessage(object_id, obj.GUID, cdata)
+              ObjectCreateMessage(object_id, object_guid, cdata)
             ))
           )
         case AvatarAction.ObjectDelete(player_guid, item_guid, unk) =>

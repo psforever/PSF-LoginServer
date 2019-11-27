@@ -117,6 +117,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
   var whenUsedLastSAKit : Long = 0
   var whenUsedLastSSKit : Long = 0
   val projectiles : Array[Option[Projectile]] = Array.fill[Option[Projectile]](Projectile.RangeUID - Projectile.BaseUID)(None)
+  val projectilesToCleanUp : Array[Boolean] = Array.fill[Boolean](Projectile.RangeUID - Projectile.BaseUID)(false)
   var drawDeloyableIcon : PlanetSideGameObject with Deployable => Unit = RedrawDeployableIcons
   var updateSquad : () => Unit = NoSquadUpdates
   var recentTeleportAttempt : Long = 0
@@ -1221,15 +1222,26 @@ class WorldSessionActor extends Actor with MDCContextAware {
       log.info(s"Received a direct message: $pkt")
       sendResponse(pkt)
 
-    case LoadedRemoteProjectile(projectile_guid) =>
+    case LoadedRemoteProjectile(projectile_guid, Some(projectile)) =>
+      if(projectile.profile.ExistsOnRemoteClients) {
+        //spawn projectile on other clients
+        val definition = projectile.Definition
+        avatarService ! AvatarServiceMessage(
+          continent.Id,
+          AvatarAction.LoadProjectile(player.GUID, definition.ObjectId, projectile_guid, definition.Packet.ConstructorData(projectile).get)
+        )
+      }
+      //immediately slated for deletion?
+      CleanUpRemoteProjectile(projectile.GUID, projectile)
+
+    case LoadedRemoteProjectile(projectile_guid, None) =>
       continent.GUID(projectile_guid) match {
         case Some(obj : Projectile) if obj.profile.ExistsOnRemoteClients =>
           //spawn projectile on other clients
-          val projectileGlobalUID = obj.GUID
           val definition = obj.Definition
           avatarService ! AvatarServiceMessage(
             continent.Id,
-            AvatarAction.LoadProjectile(player.GUID, definition.ObjectId, obj, definition.Packet.ConstructorData(obj).get)
+            AvatarAction.LoadProjectile(player.GUID, definition.ObjectId, projectile_guid, definition.Packet.ConstructorData(obj).get)
           )
         case _ => ;
       }
@@ -4036,17 +4048,19 @@ class WorldSessionActor extends Actor with MDCContextAware {
     //log.info(s"VehicleSubState: $vehicle_guid, $player_guid, $vehicle_pos, $vehicle_ang, $vel, $unk1, $unk2")
 
     case msg @ ProjectileStateMessage(projectile_guid, shot_pos, shot_vel, shot_orient, seq, end, target_guid) =>
-      log.info(s"ProjectileState: $msg")
-      projectiles(projectile_guid.guid - Projectile.BaseUID) match {
+      //log.trace(s"ProjectileState: $msg")
+      val index = projectile_guid.guid - Projectile.BaseUID
+      projectiles(index) match {
         case Some(projectile) if projectile.HasGUID =>
           val projectileGlobalUID = projectile.GUID
           projectile.Position = shot_pos
           projectile.Orientation = shot_orient
           projectile.Velocity = shot_vel
           avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ProjectileState(player.GUID, projectileGlobalUID, shot_pos, shot_vel, shot_orient, seq, end, target_guid))
-
+        case _ if seq == 0 =>
+        /* missing the first packet in the sequence is permissible  */
         case _ =>
-          log.error(s"ProjectileState: constructed projectile ${projectile_guid.guid} can not be found")
+          log.warn(s"ProjectileState: constructed projectile ${projectile_guid.guid} can not be found")
       }
 
     case msg @ ReleaseAvatarRequestMessage() =>
@@ -5500,8 +5514,15 @@ class WorldSessionActor extends Actor with MDCContextAware {
               projectiles(projectileIndex) = Some(projectile)
               if(projectile_info.ExistsOnRemoteClients) {
                 log.trace(s"WeaponFireMessage: ${projectile_info.Name} is a remote projectile")
-                taskResolver ! ReregisterProjectile(projectile)
+                taskResolver ! (if(projectile.HasGUID) {
+                  avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ProjectileExplodes(player.GUID, projectile.GUID, projectile))
+                  ReregisterProjectile(projectile)
+                }
+                else {
+                  RegisterProjectile(projectile)
+                })
               }
+              projectilesToCleanUp(projectileIndex) = false
             }
             else {
               log.warn(s"WeaponFireMessage: $player's ${tool.Definition.Name} projectile is too far from owner position at time of discharge ($distanceToOwner > $acceptableDistanceToOwner); suspect")
@@ -5576,10 +5597,15 @@ class WorldSessionActor extends Actor with MDCContextAware {
               case _ => ;
             }
           })
-          if(projectile.profile.ExistsOnRemoteClients) {
+          if(projectile.profile.ExistsOnRemoteClients && projectile.HasGUID) {
             //cleanup
-            avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ProjectileExplodes(player.GUID, projectile.GUID, projectile))
-            taskResolver ! UnregisterProjectile(projectile)
+            val localIndex = projectile_guid.guid - Projectile.BaseUID
+            if(projectile.HasGUID) {
+              CleanUpRemoteProjectile(projectile.GUID, projectile, localIndex)
+            }
+            else {
+              projectilesToCleanUp(localIndex) = true
+            }
           }
         case None => ;
       }
@@ -6173,7 +6199,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         }
 
         def Execute(resolver : ActorRef) : Unit = {
-          localAnnounce ! LoadedRemoteProjectile(globalProjectile.GUID)
+          localAnnounce ! LoadedRemoteProjectile(globalProjectile.GUID, Some(globalProjectile))
           resolver ! scala.util.Success(this)
         }
       }, List(GUIDTask.RegisterObjectTask(obj)(continent.GUID))
@@ -7959,7 +7985,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             case _ => ;
           }
         }
-        log.info(s"AvatarCreate (vehicle): $guid -> $data")
+        //log.info(s"AvatarCreate (vehicle): $guid -> $data")
         //player, passenger
         AvatarCreateInVehicle(player, vehicle, seat)
 
@@ -7970,7 +7996,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
         val guid = player.GUID
         sendResponse(ObjectCreateDetailedMessage(ObjectClass.avatar, guid, data))
         avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.LoadPlayer(guid, ObjectClass.avatar, guid, packet.ConstructorData(player).get, None))
-        log.info(s"AvatarCreate: $guid -> $data")
+        //log.info(s"AvatarCreate: $guid -> $data")
+        log.trace(s"AvatarCreate: ${player.Name}")
     }
     continent.Population ! Zone.Population.Spawn(avatar, player)
     //cautious redundancy
@@ -8066,7 +8093,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
     avatarService ! AvatarServiceMessage(vehicle.Continent, AvatarAction.LoadPlayer(guid, pdef.ObjectId, guid, pdef.Packet.ConstructorData(player).get, Some(parent)))
     AccessContents(vehicle)
     UpdateWeaponAtSeatPosition(vehicle, seat)
-    log.info(s"AvatarCreateInVehicle: $guid -> $data")
+    //log.info(s"AvatarCreateInVehicle: $guid -> $data")
+    log.trace(s"AvatarCreateInVehicle: ${player.Name} in ${vehicle.Definition.Name}")
   }
 
   /**
@@ -10080,6 +10108,14 @@ class WorldSessionActor extends Actor with MDCContextAware {
     squadUpdateCounter = (squadUpdateCounter + 1) % queuedSquadActions.length
   }
 
+  /**
+    * The main purpose of this method is to determine which targets will receive "locked on" warnings from remote projectiles.
+    * For a given series of globally unique identifiers, indicating targets,
+    * and that may include mounted elements (players),
+    * estimate a series of channel names for communication with the vulnerable targets.
+    * @param targets the globally unique identifiers of the immediate detected targets
+    * @return channels names that allow direct communication to specific realized targets
+    */
   def FindDetectedProjectileTargets(targets : Iterable[PlanetSideGUID]) : Iterable[String] = {
     targets
       .map { continent.GUID }
@@ -10092,6 +10128,48 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case Some(obj : Player) if obj.ExoSuit == ExoSuitType.MAX =>
           Seq(obj.Name)
       }
+  }
+
+  /**
+    * For a given registered remote projectile, perform all the actions necessary to properly dispose of it.
+    * Those actions involve:
+    * informing that the projectile should explode,
+    * unregistering the projectile's globally unique identifier,
+    * and managing the projectiles's local status information.
+    * @see `CleanUpRemoteProjectile(PlanetSideGUID, Projectile, Int)`
+    * @param projectile_guid the globally unique identifier of the projectile
+    * @param projectile the projectile
+    */
+  def CleanUpRemoteProjectile(projectile_guid : PlanetSideGUID, projectile : Projectile) : Unit = {
+    projectiles.indexWhere({
+      case Some(p) => p eq projectile
+      case None => false
+    }) match {
+      case -1 => ; //required catch
+      case index if projectilesToCleanUp(index) =>
+        CleanUpRemoteProjectile(projectile_guid, projectile, index)
+      case _ => ;
+    }
+  }
+
+  /**
+    * For a given registered remote projectile, perform all the actions necessary to properly dispose of it.
+    * Those actions involve:
+    * informing that the projectile should explode,
+    * unregistering the projectile's globally unique identifier,
+    * and managing the projectiles's local status information.
+    * @param projectile_guid the globally unique identifier of the projectile
+    * @param projectile the projectile
+    * @param local_index an index of the absolute sequence of the projectile, for internal lists
+    */
+  def CleanUpRemoteProjectile(projectile_guid : PlanetSideGUID, projectile : Projectile, local_index : Int) : Unit = {
+    avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ProjectileExplodes(player.GUID, projectile_guid, projectile))
+    taskResolver ! UnregisterProjectile(projectile)
+    projectiles(local_index) match {
+      case Some(obj) if !obj.isResolved => obj.Miss
+      case None => ;
+    }
+    projectilesToCleanUp(local_index) = false
   }
 
   def failWithError(error : String) = {
@@ -10258,5 +10336,5 @@ object WorldSessionActor {
 
   private final case class FinalizeDeployable(obj : PlanetSideGameObject with Deployable, tool : ConstructionItem, index : Int)
 
-  private final case class LoadedRemoteProjectile(projectile_guid : PlanetSideGUID)
+  private final case class LoadedRemoteProjectile(projectile_guid : PlanetSideGUID, projectile : Option[Projectile])
 }
