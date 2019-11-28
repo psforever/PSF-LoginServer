@@ -22,6 +22,7 @@ import net.psforever.objects.serverobject.turret.FacilityTurret
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types.{PlanetSideEmpire, Vector3}
 import services.Service
+import services.avatar.AvatarService
 import services.local.LocalService
 import services.vehicle.VehicleService
 
@@ -125,6 +126,7 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
       projector = context.actorOf(Props(classOf[ZoneHotSpotProjector], this), s"$Id-hotpots")
       soi = context.actorOf(Props(classOf[SphereOfInfluenceActor], this), s"$Id-soi")
 
+      avatarEvents = context.actorOf(Props(classOf[AvatarService], this), s"$Id-avatar-events")
       localEvents = context.actorOf(Props(classOf[LocalService], this), s"$Id-local-events")
       vehicleEvents = context.actorOf(Props(classOf[VehicleService], this), s"$Id-vehicle-events")
 

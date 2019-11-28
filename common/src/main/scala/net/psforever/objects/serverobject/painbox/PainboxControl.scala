@@ -1,35 +1,25 @@
 package net.psforever.objects.serverobject.painbox
 
-import akka.actor.{Actor, ActorRef, Cancellable}
-import net.psforever.objects.{DefaultCancellable, GlobalDefinitions}
+import akka.actor.{Actor, Cancellable}
+import net.psforever.objects.DefaultCancellable
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.serverobject.structures.Building
 import net.psforever.types.{PlanetSideEmpire, Vector3}
-import services.ServiceManager
-import services.ServiceManager.Lookup
 import services.avatar.{AvatarAction, AvatarServiceMessage}
 
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class PainboxControl(painbox: Painbox) extends Actor {
-  var avatarService : ActorRef = Actor.noSender
   private[this] val log = org.log4s.getLogger(s"Painbox")
   private var painboxTick: Cancellable = DefaultCancellable.obj
   private var nearestDoor : Door = null
 
   def receive : Receive = {
     case "startup" =>
-      ServiceManager.serviceManager ! Lookup("avatar")
-      nearestDoor = painbox.Owner.asInstanceOf[Building].Amenities.filter(x => x.isInstanceOf[Door])
-          .map(x => x.asInstanceOf[Door])
-          .sortBy(door => Vector3.DistanceSquared(painbox.Position, door.Position))
-          .head
-
-    case ServiceManager.LookupResult("avatar", endpoint) =>
-      avatarService = endpoint
-      log.trace("PainboxControl: " + painbox.GUID + " Got avatar service " + endpoint)
-
+      nearestDoor = painbox.Owner.asInstanceOf[Building].Amenities
+        .collect { case door : Door => door }
+        .minBy(door => Vector3.DistanceSquared(painbox.Position, door.Position))
       context.become(Processing)
       painboxTick = context.system.scheduler.schedule(0 seconds,1 second, self, Painbox.Tick())
 
@@ -43,7 +33,7 @@ class PainboxControl(painbox: Painbox) extends Actor {
       if(painbox.Definition.HasNearestDoorDependency && nearestDoor.Open.isEmpty) return null
 
       val playersToCheck = painbox.Owner.asInstanceOf[Building].PlayersInSOI
-      if(playersToCheck.length == 0) return null
+      if(playersToCheck.isEmpty) return null
       // todo: Disable if no base power
 
       val playersInRange = playersToCheck.filter(p =>
@@ -54,7 +44,10 @@ class PainboxControl(painbox: Painbox) extends Actor {
 
       // Make 'em hurt.
       playersInRange.foreach({ p =>
-        avatarService ! AvatarServiceMessage(p.Name, AvatarAction.EnvironmentalDamage(p.GUID, painbox.Definition.Damage))
+        painbox.Owner.asInstanceOf[Building].Zone.AvatarEvents ! AvatarServiceMessage(
+          p.Name,
+          AvatarAction.EnvironmentalDamage(p.GUID, painbox.Definition.Damage)
+        )
         // todo: Pain module
         // todo: REK boosting
       })

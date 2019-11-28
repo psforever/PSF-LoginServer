@@ -76,7 +76,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
   var sessionId : Long = 0
   var leftRef : ActorRef = ActorRef.noSender
   var rightRef : ActorRef = ActorRef.noSender
-  var avatarService : ActorRef = ActorRef.noSender
   var chatService: ActorRef = ActorRef.noSender
   var galaxyService : ActorRef = ActorRef.noSender
   var squadService : ActorRef = ActorRef.noSender
@@ -176,10 +175,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
     reviveTimer.cancel
     respawnTimer.cancel
     PlayerActionsToCancel()
-    continent.LocalEvents ! Service.Leave()
     chatService ! Service.Leave()
+    continent.AvatarEvents ! Service.Leave()
+    continent.LocalEvents ! Service.Leave()
     continent.VehicleEvents ! Service.Leave()
-    avatarService ! Service.Leave()
     galaxyService ! Service.Leave()
     LivePlayerList.Remove(sessionId)
     if(player != null && player.HasGUID) {
@@ -205,11 +204,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
         player.VehicleSeated match {
           case Some(_) =>
             //quickly and briefly kill player to avoid disembark animation?
-            avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player_guid, 0, 0))
+            continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player_guid, 0, 0))
             DismountVehicleOnLogOut()
           case _ => ;
         }
-        avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player_guid, player_guid))
+        continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player_guid, player_guid))
         taskResolver ! GUIDTask.UnregisterAvatar(player)(continent.GUID)
         //TODO normally, the actual player avatar persists a minute or so after the user disconnects
       }
@@ -222,21 +221,21 @@ class WorldSessionActor extends Actor with MDCContextAware {
             FriskCorpse(player) //TODO eliminate dead letters
             if(!WellLootedCorpse(player)) {
               continent.Population ! Zone.Corpse.Add(player)
-              avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.Release(player, continent))
+              continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.Release(player, continent))
               taskResolver ! GUIDTask.UnregisterLocker(player.Locker)(continent.GUID) //rest of player will be cleaned up with corpses
             }
             else {
               //no items in inventory; leave no corpse
               val player_guid = player.GUID
               player.Position = Vector3.Zero //save character before doing this
-              avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player_guid, player_guid))
+              continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player_guid, player_guid))
               taskResolver ! GUIDTask.UnregisterAvatar(player)(continent.GUID)
             }
 
           case Some(_) =>
             val player_guid = player.GUID
             player.Position = Vector3.Zero //save character before doing this
-            avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player_guid, player_guid))
+            continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player_guid, player_guid))
             taskResolver ! GUIDTask.UnregisterAvatar(player)(continent.GUID)
             DismountVehicleOnLogOut()
         }
@@ -301,7 +300,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
         rightRef = sender()
       }
       context.become(Started)
-      ServiceManager.serviceManager ! Lookup("avatar")
       ServiceManager.serviceManager ! Lookup("chat")
       ServiceManager.serviceManager ! Lookup("taskResolver")
       ServiceManager.serviceManager ! Lookup("cluster")
@@ -314,9 +312,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
   }
 
   def Started : Receive = {
-    case ServiceManager.LookupResult("avatar", endpoint) =>
-      avatarService = endpoint
-      log.info("ID: " + sessionId + " Got avatar service " + endpoint)
     case ServiceManager.LookupResult("chat", endpoint) =>
       chatService = endpoint
       log.info("ID: " + sessionId + " Got chat service " + endpoint)
@@ -475,15 +470,15 @@ class WorldSessionActor extends Actor with MDCContextAware {
                 sendResponse(SquadMemberEvent.Add(squad_supplement_id, ourMember.CharId, ourIndex, ourMember.Name, ourMember.ZoneId, unk7 = 0)) //repeat of our entry
                 val playerGuid = player.GUID
                 //turn lfs off
-                val factionOnContinentChannel = s"${continent.Id}/${player.Faction}"
+                val factionChannel = s"${player.Faction}"
                 if(avatar.LFS) {
                   avatar.LFS = false
                   sendResponse(PlanetsideAttributeMessage(playerGuid, 53, 0))
-                  avatarService ! AvatarServiceMessage(factionOnContinentChannel, AvatarAction.PlanetsideAttribute(playerGuid, 53, 0))
+                  continent.AvatarEvents ! AvatarServiceMessage(factionChannel, AvatarAction.PlanetsideAttribute(playerGuid, 53, 0))
                 }
                 //squad colors
                 GiveSquadColorsInZone()
-                avatarService ! AvatarServiceMessage(factionOnContinentChannel, AvatarAction.PlanetsideAttribute(playerGuid, 31, squad_supplement_id))
+                continent.AvatarEvents ! AvatarServiceMessage(factionChannel, AvatarAction.PlanetsideAttribute(playerGuid, 31, squad_supplement_id))
                 //associate with member position in squad
                 sendResponse(PlanetsideAttributeMessage(playerGuid, 32, ourIndex))
                 //a finalization? what does this do?
@@ -525,7 +520,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                 val playerGuid = player.GUID
                 sendResponse(SquadMemberEvent.Remove(squad_supplement_id, ourMember, ourIndex)) //repeat of our entry
                 sendResponse(PlanetsideAttributeMessage(playerGuid, 31, 0)) //disassociate with squad?
-                avatarService ! AvatarServiceMessage(s"${continent.Id}/${player.Faction}", AvatarAction.PlanetsideAttribute(playerGuid, 31, 0))
+                continent.AvatarEvents ! AvatarServiceMessage(s"${player.Faction}", AvatarAction.PlanetsideAttribute(playerGuid, 31, 0))
                 sendResponse(PlanetsideAttributeMessage(playerGuid, 32, 0)) //disassociate with member position in squad?
                 sendResponse(PlanetsideAttributeMessage(playerGuid, 34, 4294967295L)) //unknown, perhaps unrelated?
                 lfsm = false
@@ -555,13 +550,13 @@ class WorldSessionActor extends Actor with MDCContextAware {
           case SquadResponse.PromoteMember(squad, char_id, from_index, to_index) =>
             val charId = player.CharId
             val guid = player.GUID
-            lazy val factionOnContinentChannel = s"${continent.Id}/${player.Faction}"
+            lazy val factionChannel = s"${player.Faction}"
             //are we being demoted?
             if(squadUI(charId).index == 0) {
               //lfsm -> lfs
               if(lfsm) {
                 sendResponse(PlanetsideAttributeMessage(guid, 53, 0))
-                avatarService ! AvatarServiceMessage(factionOnContinentChannel, AvatarAction.PlanetsideAttribute(guid, 53, 0))
+                continent.AvatarEvents ! AvatarServiceMessage(factionChannel, AvatarAction.PlanetsideAttribute(guid, 53, 0))
               }
               lfsm = false
               sendResponse(PlanetsideAttributeMessage(guid, 32, from_index)) //associate with member position in squad
@@ -570,7 +565,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             else if(charId == char_id) {
               sendResponse(PlanetsideAttributeMessage(guid, 32, 0)) //associate with member position in squad
             }
-            avatarService ! AvatarServiceMessage(factionOnContinentChannel, AvatarAction.PlanetsideAttribute(guid, 31, squad_supplement_id))
+            continent.AvatarEvents ! AvatarServiceMessage(factionChannel, AvatarAction.PlanetsideAttribute(guid, 31, squad_supplement_id))
             //we must fix the squad cards backend
             SwapSquadUIElements(squad, from_index, to_index)
 
@@ -807,22 +802,22 @@ class WorldSessionActor extends Actor with MDCContextAware {
       continent.GUID(item.Companion) match {
         case Some(obj : BoomerDeployable) =>
           val guid = obj.GUID
-          val factionOnContinentChannel = s"${continent.Id}/${player.Faction}"
+          val factionChannel = s"${player.Faction}"
           obj.AssignOwnership(None)
           avatar.Deployables.Remove(obj)
           UpdateDeployableUIElements(avatar.Deployables.UpdateUIElement(obj.Definition.Item))
           continent.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.AddTask(obj, continent))
           sendResponse(SetEmpireMessage(guid, PlanetSideEmpire.NEUTRAL))
-          avatarService ! AvatarServiceMessage(factionOnContinentChannel, AvatarAction.SetEmpire(playerGUID, guid, PlanetSideEmpire.NEUTRAL))
+          continent.AvatarEvents ! AvatarServiceMessage(factionChannel, AvatarAction.SetEmpire(playerGUID, guid, PlanetSideEmpire.NEUTRAL))
           val info = DeployableInfo(guid, DeployableIcon.Boomer, obj.Position, PlanetSideGUID(0))
           sendResponse(DeployableObjectsInfoMessage(DeploymentAction.Dismiss, info))
-          continent.LocalEvents ! LocalServiceMessage(factionOnContinentChannel, LocalAction.DeployableMapIcon(playerGUID, DeploymentAction.Dismiss, info))
+          continent.LocalEvents ! LocalServiceMessage(factionChannel, LocalAction.DeployableMapIcon(playerGUID, DeploymentAction.Dismiss, info))
           PutItemOnGround(item, pos, orient)
         case Some(_) | None =>
           //pointless trigger
           val guid = item.GUID
           continent.Ground ! Zone.Ground.RemoveItem(guid) //undo; no callback
-          avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(PlanetSideGUID(0), guid))
+          continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(PlanetSideGUID(0), guid))
           taskResolver ! GUIDTask.UnregisterObjectTask(item)(continent.GUID)
       }
 
@@ -849,17 +844,17 @@ class WorldSessionActor extends Actor with MDCContextAware {
             val guid = obj.GUID
             val playerGUID = player.GUID
             val faction = player.Faction
-            val factionOnContinentChannel = s"${continent.Id}/${faction}"
+            val factionChannel = s"$faction"
             obj.AssignOwnership(player)
             obj.Faction = faction
             avatar.Deployables.Add(obj)
             UpdateDeployableUIElements(avatar.Deployables.UpdateUIElement(obj.Definition.Item))
             continent.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(obj), continent))
             sendResponse(SetEmpireMessage(guid, faction))
-            avatarService ! AvatarServiceMessage(factionOnContinentChannel, AvatarAction.SetEmpire(playerGUID, guid, faction))
+            continent.AvatarEvents ! AvatarServiceMessage(factionChannel, AvatarAction.SetEmpire(playerGUID, guid, faction))
             val info = DeployableInfo(obj.GUID, DeployableIcon.Boomer, obj.Position, obj.Owner.get)
             sendResponse(DeployableObjectsInfoMessage(DeploymentAction.Build, info))
-            continent.LocalEvents ! LocalServiceMessage(factionOnContinentChannel, LocalAction.DeployableMapIcon(playerGUID, DeploymentAction.Build, info))
+            continent.LocalEvents ! LocalServiceMessage(factionChannel, LocalAction.DeployableMapIcon(playerGUID, DeploymentAction.Build, info))
           case Some(_) | None => ; //pointless trigger; see Zone.Ground.ItemOnGround(BoomerTrigger, ...)
         }
       }
@@ -889,7 +884,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             continent.LocalEvents ! LocalServiceMessage(continent.Id, LocalAction.TriggerEffectLocation(player.GUID, "spawn_object_effect", obj.Position, obj.Orientation))
           case GlobalDefinitions.advanced_ace =>
             sendResponse(GenericObjectActionMessage(player.GUID, 212)) //put fdu down; it will be removed from the client's holster
-            avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PutDownFDU(player.GUID))
+            continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PutDownFDU(player.GUID))
           case GlobalDefinitions.router_telepad => ;
           case _ =>
             log.warn(s"Zone.Deployable.DeployableIsBuilt: not sure what kind of construction item to animate - ${tool.Definition}")
@@ -931,7 +926,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       DeployableBuildActivity(obj)
       //TODO sufficiently delete the tool
       sendResponse(ObjectDeleteMessage(tool.GUID, 0))
-      avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player.GUID, tool.GUID))
+      continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player.GUID, tool.GUID))
       taskResolver ! GUIDTask.UnregisterEquipment(tool)(continent.GUID)
       val trigger = new BoomerTrigger
       trigger.Companion = obj.GUID
@@ -943,7 +938,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       }
       else {
         //don't know where boomer trigger should go; drop it on the ground
-        taskResolver ! NewItemDrop(player, continent, avatarService)(trigger)
+        taskResolver ! NewItemDrop(player, continent, continent.AvatarEvents)(trigger)
       }
       StopBundlingPackets()
 
@@ -1035,7 +1030,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
       sendResponse(ReplicationStreamMessage(5, Some(6), Vector.empty)) //clear squad list
       sendResponse(FriendsResponse(FriendAction.InitializeFriendList, 0, true, true, Nil))
       sendResponse(FriendsResponse(FriendAction.InitializeIgnoreList, 0, true, true, Nil))
-      avatarService ! Service.Join(avatar.name) //channel will be player.Name
       galaxyService ! Service.Join("galaxy") //for galaxy-wide messages
       galaxyService ! Service.Join(s"${avatar.faction}") //for hotspots
       squadService ! Service.Join(s"${avatar.faction}") //channel will be player.Faction
@@ -1044,10 +1038,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case InterstellarCluster.GiveWorld(zoneId, zone) =>
       log.info(s"Zone $zoneId will now load")
-      val continentId = continent.Id
-      val factionOnContinentChannel = s"$continentId/${avatar.faction}"
-      avatarService ! Service.Leave(Some(continentId))
-      avatarService ! Service.Leave(Some(factionOnContinentChannel))
+      continent.AvatarEvents ! Service.Leave()
       continent.LocalEvents ! Service.Leave()
       continent.VehicleEvents ! Service.Leave()
       player.Continent = zoneId
@@ -1111,7 +1102,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       //tank_traps
       val guid = target.GUID
       val health = target.Health
-      avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(guid, 0, health))
+      continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(guid, 0, health))
       if(health <= 0) {
         AnnounceDestroyDeployable(target, None)
       }
@@ -1120,7 +1111,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       //sensors
       val guid = target.GUID
       val health = target.Health
-      avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(guid, 0, health))
+      continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(guid, 0, health))
       if(health <= 0) {
         AnnounceDestroyDeployable(target, Some(0 seconds))
       }
@@ -1130,7 +1121,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       if(target.Health <= 0) {
         //update if destroyed
         val guid = target.GUID
-        avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player.GUID, guid))
+        continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player.GUID, guid))
         AnnounceDestroyDeployable(target, Some(0 seconds))
       }
 
@@ -1141,7 +1132,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       //shield_generators
       val health = target.Health
       val guid = target.GUID
-      avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(guid, 0, health))
+      continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(guid, 0, health))
       if(health <= 0) {
         AnnounceDestroyDeployable(target, None)
       }
@@ -1232,12 +1223,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
           val originalHealth = player.Health
           player.Health = player.Health - amount
           sendResponse(PlanetsideAttributeMessage(target, 0, player.Health))
-          avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(target, 0, player.Health))
+          continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(target, 0, player.Health))
           damageLog.info(s"${player.Name}-infantry: BEFORE=$originalHealth, AFTER=${player.Health}, CHANGE=$amount")
           if(amount != 0) {
             val playerGUID = player.GUID
             sendResponse(PlanetsideAttributeMessage(playerGUID, 0, player.Health))
-            avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(playerGUID, 0, player.Health))
+            continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(playerGUID, 0, player.Health))
             if(player.Health == 0 && player.isAlive) {
               KillPlayer(player)
             }
@@ -1261,8 +1252,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
             val playerGUID = player.GUID
             sendResponse(PlanetsideAttributeMessage(playerGUID, 0, health))
             sendResponse(PlanetsideAttributeMessage(playerGUID, 4, armor))
-            avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(playerGUID, 0, health))
-            avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(playerGUID, 4, armor))
+            continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(playerGUID, 0, health))
+            continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(playerGUID, 4, armor))
             if(health == 0 && player.isAlive) {
               KillPlayer(player)
             }
@@ -1841,7 +1832,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             tplayer.History(HealFromExoSuitChange(PlayerSource(tplayer), exosuit))
             tplayer.Armor = toMaxArmor
             sendResponse(PlanetsideAttributeMessage(tplayer.GUID, 4, toMaxArmor))
-            avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttribute(tplayer.GUID, 4, toMaxArmor))
+            continent.AvatarEvents ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttribute(tplayer.GUID, 4, toMaxArmor))
           }
           else {
             tplayer.Armor = originalArmor
@@ -1850,18 +1841,18 @@ class WorldSessionActor extends Actor with MDCContextAware {
           if(tplayer.DrawnSlot != Player.HandsDownSlot) {
             tplayer.DrawnSlot = Player.HandsDownSlot
             sendResponse(ObjectHeldMessage(tplayer.GUID, Player.HandsDownSlot, true))
-            avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.ObjectHeld(tplayer.GUID, tplayer.LastDrawnSlot))
+            continent.AvatarEvents ! AvatarServiceMessage(tplayer.Continent, AvatarAction.ObjectHeld(tplayer.GUID, tplayer.LastDrawnSlot))
           }
           //delete everything not dropped
           (beforeHolsters ++ beforeInventory).foreach({ elem =>
             sendResponse(ObjectDeleteMessage(elem.obj.GUID, 0))
           })
           beforeHolsters.foreach({ elem =>
-            avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.ObjectDelete(tplayer.GUID, elem.obj.GUID))
+            continent.AvatarEvents ! AvatarServiceMessage(tplayer.Continent, AvatarAction.ObjectDelete(tplayer.GUID, elem.obj.GUID))
           })
           //report change
           sendResponse(ArmorChangedMessage(tplayer.GUID, exosuit, subtype))
-          avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.ArmorChanged(tplayer.GUID, exosuit, subtype))
+          continent.AvatarEvents ! AvatarServiceMessage(player.Continent, AvatarAction.ArmorChanged(tplayer.GUID, exosuit, subtype))
           //sterilize holsters
           val normalHolsters = if(originalSuit == ExoSuitType.MAX) {
             val (maxWeapons, normalWeapons) = beforeHolsters.partition(elem => elem.obj.Size == EquipmentSize.Max)
@@ -1897,7 +1888,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                     definition.Packet.DetailedConstructorData(obj).get
                   )
                 )
-                avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.EquipmentInHand(player.GUID, player.GUID, index, obj))
+                continent.AvatarEvents ! AvatarServiceMessage(player.Continent, AvatarAction.EquipmentInHand(player.GUID, player.GUID, index, obj))
               case None => ;
             }
           })
@@ -2048,7 +2039,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           tplayer.History(HealFromExoSuitChange(PlayerSource(tplayer), nextSuit))
           tplayer.Armor = toMaxArmor
           sendResponse(PlanetsideAttributeMessage(tplayer.GUID, 4, toMaxArmor))
-          avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttribute(tplayer.GUID, 4, toMaxArmor))
+          continent.AvatarEvents ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttribute(tplayer.GUID, 4, toMaxArmor))
         }
         else {
           tplayer.Armor = originalArmor
@@ -2057,7 +2048,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         if(tplayer.DrawnSlot != Player.HandsDownSlot) {
           tplayer.DrawnSlot = Player.HandsDownSlot
           sendResponse(ObjectHeldMessage(tplayer.GUID, Player.HandsDownSlot, true))
-          avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.ObjectHeld(tplayer.GUID, tplayer.LastDrawnSlot))
+          continent.AvatarEvents ! AvatarServiceMessage(tplayer.Continent, AvatarAction.ObjectHeld(tplayer.GUID, tplayer.LastDrawnSlot))
         }
         //a change due to exo-suit permissions mismatch will result in (more) items being re-arranged and/or dropped
         //dropped items can be forgotten safely
@@ -2099,7 +2090,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         }
         //delete everything (not dropped)
         beforeHolsters.foreach({ elem =>
-          avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.ObjectDelete(tplayer.GUID, elem.obj.GUID))
+          continent.AvatarEvents ! AvatarServiceMessage(tplayer.Continent, AvatarAction.ObjectDelete(tplayer.GUID, elem.obj.GUID))
         })
         (beforeHolsters ++ beforeInventory).foreach({ elem =>
           sendResponse(ObjectDeleteMessage(elem.obj.GUID, 0))
@@ -2107,7 +2098,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         })
         //report change
         sendResponse(ArmorChangedMessage(tplayer.GUID, nextSuit, nextSubtype))
-        avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.ArmorChanged(tplayer.GUID, nextSuit, nextSubtype))
+        continent.AvatarEvents ! AvatarServiceMessage(tplayer.Continent, AvatarAction.ArmorChanged(tplayer.GUID, nextSuit, nextSubtype))
         if(nextSuit == ExoSuitType.MAX) {
           val (maxWeapons, otherWeapons) = afterHolsters.partition(entry => { entry.obj.Size == EquipmentSize.Max })
           taskResolver ! DelayedObjectHeld(tplayer, 0, List(PutEquipmentInSlot(tplayer, maxWeapons.head.obj, 0)))
@@ -2546,7 +2537,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         if(player.VisibleSlots.contains(player.DrawnSlot)) {
           player.DrawnSlot = Player.HandsDownSlot
           sendResponse(ObjectHeldMessage(player.GUID, Player.HandsDownSlot, true))
-          avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectHeld(player.GUID, player.LastDrawnSlot))
+          continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectHeld(player.GUID, player.LastDrawnSlot))
         }
         sendResponse(PlanetsideAttributeMessage(vehicle_guid, 22, 1L)) //mount points off
         sendResponse(PlanetsideAttributeMessage(player.GUID, 21, vehicle_guid)) //ownership
@@ -2906,7 +2897,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       seat.isOccupied && seat.Occupant.get.isAlive
     }).foreach(seat => {
       val tplayer = seat.Occupant.get
-      avatarService ! AvatarServiceMessage(tplayer.Name, AvatarAction.HitHint(attribution, tplayer.GUID))
+      continent.AvatarEvents ! AvatarServiceMessage(tplayer.Name, AvatarAction.HitHint(attribution, tplayer.GUID))
     })
     //alert cargo occupants to damage source
     target.CargoHolds.values.foreach(hold => {
@@ -2936,8 +2927,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
     }).foreach(seat => {
       val tplayer = seat.Occupant.get
       val tplayerGUID = tplayer.GUID
-      avatarService ! AvatarServiceMessage(tplayer.Name, AvatarAction.KilledWhileInVehicle(tplayerGUID))
-      avatarService ! AvatarServiceMessage(continentId, AvatarAction.ObjectDelete(tplayerGUID, tplayerGUID)) //dead player still sees self
+      continent.AvatarEvents ! AvatarServiceMessage(tplayer.Name, AvatarAction.KilledWhileInVehicle(tplayerGUID))
+      continent.AvatarEvents ! AvatarServiceMessage(continentId, AvatarAction.ObjectDelete(tplayerGUID, tplayerGUID)) //dead player still sees self
     })
     //vehicle wreckage has no weapons
     target.Weapons.values
@@ -2946,7 +2937,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       }
       .foreach(slot => {
         val wep = slot.Equipment.get
-        avatarService ! AvatarServiceMessage(continentId, AvatarAction.ObjectDelete(Service.defaultPlayerGUID, wep.GUID))
+        continent.AvatarEvents ! AvatarServiceMessage(continentId, AvatarAction.ObjectDelete(Service.defaultPlayerGUID, wep.GUID))
       })
     target.CargoHolds.values.foreach(hold => {
       hold.Occupant match {
@@ -2968,7 +2959,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         continent.LocalEvents ! LocalServiceMessage(continent.Id, LocalAction.ToggleTeleportSystem(PlanetSideGUID(0), target, None))
       case _ => ;
     }
-    avatarService ! AvatarServiceMessage(continentId, AvatarAction.Destroy(target.GUID, playerGUID, playerGUID, target.Position))
+    continent.AvatarEvents ! AvatarServiceMessage(continentId, AvatarAction.Destroy(target.GUID, playerGUID, playerGUID, target.Position))
     continent.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(target), continent))
     continent.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.AddTask(target, continent, Some(1 minute)))
   }
@@ -2991,8 +2982,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
         .foreach(seat => {
           val tplayer = seat.Occupant.get
           val tplayerGUID = tplayer.GUID
-          avatarService ! AvatarServiceMessage(tplayer.Name, AvatarAction.KilledWhileInVehicle(tplayerGUID))
-          avatarService ! AvatarServiceMessage(continentId, AvatarAction.ObjectDelete(tplayerGUID, tplayerGUID)) //dead player still sees self
+          continent.AvatarEvents ! AvatarServiceMessage(tplayer.Name, AvatarAction.KilledWhileInVehicle(tplayerGUID))
+          continent.AvatarEvents ! AvatarServiceMessage(continentId, AvatarAction.ObjectDelete(tplayerGUID, tplayerGUID)) //dead player still sees self
         })
       //destroy weapons
       target.Weapons.values
@@ -3000,11 +2991,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
         .collect { case Some(weapon) =>
           val wguid = weapon.GUID
           sendResponse(ObjectDeleteMessage(wguid, 0))
-          avatarService ! AvatarServiceMessage(continentId, AvatarAction.ObjectDelete(player.GUID, wguid))
+          continent.AvatarEvents ! AvatarServiceMessage(continentId, AvatarAction.ObjectDelete(player.GUID, wguid))
         }
       AnnounceDestroyDeployable(target, None)
     }
-    avatarService ! AvatarServiceMessage(continentId, AvatarAction.PlanetsideAttribute(guid, 0, health))
+    continent.AvatarEvents ! AvatarServiceMessage(continentId, AvatarAction.PlanetsideAttribute(guid, 0, health))
   }
 
   def HandleFacilityTurretDamageResolution(target : FacilityTurret) : Unit = {
@@ -3018,7 +3009,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       //alert occupants to damage source
       players.foreach(seat => {
         val tplayer = seat.Occupant.get
-        avatarService ! AvatarServiceMessage(tplayer.Name, AvatarAction.HitHint(playerGUID, tplayer.GUID))
+        continent.AvatarEvents ! AvatarServiceMessage(tplayer.Name, AvatarAction.HitHint(playerGUID, tplayer.GUID))
       })
     }
     else {
@@ -3026,8 +3017,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
       players.foreach(seat => {
         val tplayer = seat.Occupant.get
         val tplayerGUID = tplayer.GUID
-        avatarService ! AvatarServiceMessage(tplayer.Name, AvatarAction.KilledWhileInVehicle(tplayerGUID))
-        avatarService ! AvatarServiceMessage(continentId, AvatarAction.ObjectDelete(tplayerGUID, tplayerGUID)) //dead player still sees self
+        continent.AvatarEvents ! AvatarServiceMessage(tplayer.Name, AvatarAction.KilledWhileInVehicle(tplayerGUID))
+        continent.AvatarEvents ! AvatarServiceMessage(continentId, AvatarAction.ObjectDelete(tplayerGUID, tplayerGUID)) //dead player still sees self
       })
       //turret wreckage has no weapons
 //      target.Weapons.values
@@ -3036,9 +3027,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
 //        }
 //        .foreach(slot => {
 //          val wep = slot.Equipment.get
-//          avatarService ! AvatarServiceMessage(continentId, AvatarAction.ObjectDelete(Service.defaultPlayerGUID, wep.GUID))
+//          continent.AvatarEvents ! AvatarServiceMessage(continentId, AvatarAction.ObjectDelete(Service.defaultPlayerGUID, wep.GUID))
 //        })
-//      avatarService ! AvatarServiceMessage(continentId, AvatarAction.Destroy(targetGUID, playerGUID, playerGUID, player.Position))
+//      continent.AvatarEvents ! AvatarServiceMessage(continentId, AvatarAction.Destroy(targetGUID, playerGUID, playerGUID, player.Position))
       target.Health = 1
       continent.VehicleEvents ! VehicleServiceMessage(continentId, VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, targetGUID, 0, target.MaxHealth)) //TODO not necessary
       if(target.Upgrade != TurretUpgrade.None) {
@@ -3060,8 +3051,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
       // Charging
       vehicle.Capacitor += 100
       sendResponse(PlanetsideAttributeMessage(vehicle.GUID, 45, scala.math.ceil((vehicle.Capacitor.toFloat / vehicle.Definition.MaximumCapacitor.toFloat) * 10).toInt)) // set ntu on vehicle UI
-      avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(vehicle.GUID, 52, 1L)) // panel glow on
-      avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(vehicle.GUID, 49, 1L)) // orb particle effect on
+      continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(vehicle.GUID, 52, 1L)) // panel glow on
+      continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(vehicle.GUID, 49, 1L)) // orb particle effect on
 
       antChargingTick = context.system.scheduler.scheduleOnce(1000 milliseconds, self, NtuCharging(player, vehicle)) // Repeat until fully charged
     }
@@ -3082,8 +3073,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
     */
   def HandleNtuDischarging(tplayer : Player, vehicle : Vehicle, silo_guid : PlanetSideGUID) : Unit = {
     log.trace(s"NtuDischarging: Vehicle ${vehicle.GUID} is discharging NTU into silo $silo_guid")
-    avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(vehicle.GUID, 49, 0L)) // orb particle effect off
-    avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(vehicle.GUID, 52, 1L)) // panel glow on
+    continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(vehicle.GUID, 49, 0L)) // orb particle effect off
+    continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(vehicle.GUID, 52, 1L)) // panel glow on
 
     var silo = continent.GUID(silo_guid).get.asInstanceOf[ResourceSilo]
     // Check vehicle is still deployed before continuing. User can undeploy manually or vehicle may not longer be present.
@@ -3094,7 +3085,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         var chargeToDeposit = Math.min(Math.min(vehicle.Capacitor, 100), (silo.MaximumCharge - silo.ChargeLevel))
         vehicle.Capacitor -= chargeToDeposit
         silo.Actor ! ResourceSilo.UpdateChargeLevel(chargeToDeposit)
-        avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(silo_guid, 49, 1L)) // panel glow on & orb particles on
+        continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(silo_guid, 49, 1L)) // panel glow on & orb particles on
         sendResponse(PlanetsideAttributeMessage(vehicle.GUID, 45, scala.math.ceil((vehicle.Capacitor.toFloat / vehicle.Definition.MaximumCapacitor.toFloat) * 10).toInt)) // set ntu on vehicle UI
 
         //todo: grant BEP to user
@@ -3112,7 +3103,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           log.trace(s"NtuDischarging: ANT NTU empty or Silo NTU full.")
           // Turning off glow/orb effects on ANT doesn't seem to work when deployed. Try to undeploy ANT from server side
           context.system.scheduler.scheduleOnce(vehicle.UndeployTime milliseconds, vehicle.Actor, Deployment.TryUndeploy(DriveState.Undeploying))
-          avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(silo_guid, 49, 0L)) // panel glow off & orb particles off
+          continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(silo_guid, 49, 0L)) // panel glow off & orb particles off
           antDischargingTick.cancel()
         }
       }
@@ -3121,15 +3112,15 @@ class WorldSessionActor extends Actor with MDCContextAware {
         log.warn(s"NtuDischarging: Invalid discharge state. ANT Capacitor: ${vehicle.Capacitor} Silo Capacitor: ${silo.ChargeLevel}")
         // Turning off glow/orb effects on ANT doesn't seem to work when deployed. Try to undeploy ANT from server side
         context.system.scheduler.scheduleOnce(vehicle.UndeployTime milliseconds, vehicle.Actor, Deployment.TryUndeploy(DriveState.Undeploying))
-        avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(silo_guid, 49, 0L)) // panel glow off & orb particles off
+        continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(silo_guid, 49, 0L)) // panel glow off & orb particles off
         antDischargingTick.cancel()
       }
     }
     else {
       log.trace(s"NtuDischarging: Vehicle is no longer deployed. Removing effects")
       // Vehicle has changed from deployed and this should be the last timer tick sent
-      avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(vehicle.GUID, 52, 0L)) // panel glow off
-      avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(silo_guid, 49, 0L)) // panel glow off & orb particles off
+      continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(vehicle.GUID, 52, 0L)) // panel glow off
+      continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(silo_guid, 49, 0L)) // panel glow off & orb particles off
       antDischargingTick.cancel()
     }
   }
@@ -3229,7 +3220,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     //looking for squad (members)
     if(tplayer.LFS || lfsm) {
       sendResponse(PlanetsideAttributeMessage(guid, 53, 1))
-      avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(guid, 53, 1))
+      continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(guid, 53, 1))
     }
     sendResponse(AvatarSearchCriteriaMessage(guid, List(0, 0, 0, 0, 0, 0)))
     (1 to 73).foreach(i => {
@@ -3263,7 +3254,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     continent.GUID(player.VehicleOwned) match {
       case Some(vehicle : Vehicle) if vehicle.OwnerName.contains(tplayer.Name) =>
         vehicle.Owner = guid
-        continent.VehicleEvents ! VehicleServiceMessage(s"${continent.Id}/${tplayer.Faction}", VehicleAction.Ownership(guid, vehicle.GUID))
+        continent.VehicleEvents ! VehicleServiceMessage(s"${tplayer.Faction}", VehicleAction.Ownership(guid, vehicle.GUID))
       case _ =>
         player.VehicleOwned = None
     }
@@ -3317,7 +3308,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
   def RespawnSquadSetup() : Unit = {
     if(squadUI.nonEmpty) {
       sendResponse(PlanetsideAttributeMessage(player.GUID, 31, squad_supplement_id))
-      avatarService ! AvatarServiceMessage(s"${continent.Id}/${player.Faction}", AvatarAction.PlanetsideAttribute(player.GUID, 31, squad_supplement_id))
+      continent.AvatarEvents ! AvatarServiceMessage(s"${player.Faction}", AvatarAction.PlanetsideAttribute(player.GUID, 31, squad_supplement_id))
       sendResponse(PlanetsideAttributeMessage(player.GUID, 32, squadUI(player.CharId).index))
     }
   }
@@ -3493,7 +3484,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             case Some((mountPoint, _)) => //begin the mount process - open the cargo door
               val reply = CargoMountPointStatusMessage(cargo_vehicle_guid, PlanetSideGUID(0), vehicle_guid, PlanetSideGUID(0), mountPoint, CargoStatus.InProgress, 0)
               log.debug(reply.toString)
-              avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.SendResponse(player.GUID, reply))
+              continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.SendResponse(player.GUID, reply))
               sendResponse(reply)
 
               import scala.concurrent.duration._
@@ -3543,12 +3534,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
       traveler.zone = continentId
       val faction = player.Faction
       val factionChannel = s"$faction"
-      val factionOnContinentChannel = s"$continentId/$faction"
-      avatarService ! Service.Join(continentId)
-      avatarService ! Service.Join(factionOnContinentChannel)
+      continent.AvatarEvents ! Service.Join(avatar.name)
+      continent.AvatarEvents ! Service.Join(continentId)
+      continent.AvatarEvents ! Service.Join(factionChannel)
       continent.LocalEvents ! Service.Join(avatar.name)
       continent.LocalEvents ! Service.Join(continentId)
-      continent.LocalEvents ! Service.Join(factionOnContinentChannel)
+      continent.LocalEvents ! Service.Join(factionChannel)
       continent.VehicleEvents ! Service.Join(avatar.name)
       continent.VehicleEvents ! Service.Join(continentId)
       continent.VehicleEvents ! Service.Join(factionChannel)
@@ -3822,45 +3813,45 @@ class WorldSessionActor extends Actor with MDCContextAware {
         if (timeDL != 0) {
           if (System.currentTimeMillis() - timeDL > 500) {
             player.Stamina = player.Stamina - 1
-            avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttributeSelf(player.GUID, 2, player.Stamina))
+            continent.AvatarEvents ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttributeSelf(player.GUID, 2, player.Stamina))
             timeDL = System.currentTimeMillis()
           }
         }
         if (timeSurge != 0) {
           if (System.currentTimeMillis() - timeSurge > 500 && player.ExoSuit == ExoSuitType.Agile) {
             player.Stamina = player.Stamina - 1
-            avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttributeSelf(player.GUID, 2, player.Stamina))
+            continent.AvatarEvents ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttributeSelf(player.GUID, 2, player.Stamina))
             timeSurge = System.currentTimeMillis()
           }
           else if (System.currentTimeMillis() - timeSurge > 333 && player.ExoSuit == ExoSuitType.Reinforced) {
             player.Stamina = player.Stamina - 1
-            avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttributeSelf(player.GUID, 2, player.Stamina))
+            continent.AvatarEvents ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttributeSelf(player.GUID, 2, player.Stamina))
             timeSurge = System.currentTimeMillis()
           }
           else if (System.currentTimeMillis() - timeSurge > 1000 && (player.ExoSuit == ExoSuitType.Infiltration || player.ExoSuit == ExoSuitType.Standard)) {
             player.Stamina = player.Stamina - 1
-            avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttributeSelf(player.GUID, 2, player.Stamina))
+            continent.AvatarEvents ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttributeSelf(player.GUID, 2, player.Stamina))
             timeSurge = System.currentTimeMillis()
           }
         }
         if (player.Stamina == 0) {
           if (avatar.Implants(0).Active) {
             avatar.Implants(0).Active = false
-            avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player.GUID, 28, avatar.Implant(0).id * 2))
-            sendResponse(AvatarImplantMessage(PlanetSideGUID(player.GUID.guid), ImplantAction.Activation, 0, 0))
+            continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player.GUID, 28, avatar.Implant(0).id * 2))
+            sendResponse(AvatarImplantMessage(PlanetSideGUID(player.GUID.guid),ImplantAction.Activation,0,0))
             timeDL = 0
           }
           if (avatar.Implants(1).Active) {
             avatar.Implants(1).Active = false
-            avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player.GUID, 28, avatar.Implant(1).id * 2))
-            sendResponse(AvatarImplantMessage(PlanetSideGUID(player.GUID.guid), ImplantAction.Activation, 1, 0))
+            continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player.GUID, 28, avatar.Implant(1).id * 2))
+            sendResponse(AvatarImplantMessage(PlanetSideGUID(player.GUID.guid),ImplantAction.Activation,1,0))
             timeSurge = 0
           }
         }
         val isMoving = WorldEntity.isMoving(vel)
         if (!isMoving && player.Stamina < player.MaxStamina) {
           player.Stamina = player.Stamina + 1
-          avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttributeSelf(player.GUID, 2, player.Stamina))
+          continent.AvatarEvents ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttributeSelf(player.GUID, 2, player.Stamina))
         }
       }
 
@@ -3899,14 +3890,14 @@ class WorldSessionActor extends Actor with MDCContextAware {
             sendResponse(UnuseItemMessage(guid, guid))
             accessedContainer = None
           }
-        case None => ;
-      }
-      val wepInHand : Boolean = player.Slot(player.DrawnSlot).Equipment match {
-        case Some(item) => item.Definition == GlobalDefinitions.bolt_driver
-        case None => false
-      }
-      avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlayerState(avatar_guid, player.Position, player.Velocity, yaw, pitch, yaw_upper, seq_time, is_crouching, is_jumping, jump_thrust, is_cloaking, spectator, wepInHand))
-      updateSquad()
+          case None => ;
+        }
+        val wepInHand : Boolean = player.Slot(player.DrawnSlot).Equipment match {
+          case Some(item) => item.Definition == GlobalDefinitions.bolt_driver
+          case None => false
+        }
+        continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlayerState(avatar_guid, player.Position, player.Velocity, yaw, pitch, yaw_upper, seq_time, is_crouching, is_jumping, jump_thrust, is_cloaking, spectator, wepInHand))
+        updateSquad()
 
     case msg @ ChildObjectStateMessage(object_guid, pitch, yaw) =>
       //the majority of the following check retrieves information to determine if we are in control of the child
@@ -3979,20 +3970,20 @@ class WorldSessionActor extends Actor with MDCContextAware {
           if(!WellLootedCorpse(player)) {
             TurnPlayerIntoCorpse(player)
             continent.Population ! Zone.Corpse.Add(player) //TODO move back out of this match case when changing below issue
-            avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.Release(player, continent))
+            continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.Release(player, continent))
           }
           else {
             //no items in inventory; leave no corpse
             val player_guid = player.GUID
             sendResponse(ObjectDeleteMessage(player_guid, 0))
-            avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player_guid, player_guid, 0))
+            continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player_guid, player_guid, 0))
             taskResolver ! GUIDTask.UnregisterPlayer(player)(continent.GUID)
           }
 
         case Some(_) =>
           val player_guid = player.GUID
           sendResponse(ObjectDeleteMessage(player_guid, 0))
-          avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player_guid, player_guid, 0))
+          continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player_guid, player_guid, 0))
           self ! PacketCoding.CreateGamePacket(0, DismountVehicleMsg(player_guid, BailType.Normal, true)) //let vehicle try to clean up its fields
 
           import scala.concurrent.ExecutionContext.Implicits.global
@@ -4061,7 +4052,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
               }
             case None =>
               player.Position = pos
-              //avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player.GUID, player.GUID))
+              //continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player.GUID, player.GUID))
               LoadZonePhysicalSpawnPoint(zone, pos, Vector3.Zero, 0)
             case _ => //seated in something that is not a vehicle or the vehicle is cargo, in which case we can't move
               deadState = DeadState.Alive
@@ -4232,7 +4223,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           else {
             log.info(s"ChangeFireMode: changing $tool_guid to fire mode $modeIndex")
             sendResponse(ChangeFireModeMessage(tool_guid, modeIndex))
-            avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireMode(player.GUID, tool_guid, modeIndex))
+            continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireMode(player.GUID, tool_guid, modeIndex))
           }
         case Some(_) =>
           log.error(s"ChangeFireMode: the object that was found for $item_guid does not possess fire modes")
@@ -4248,7 +4239,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             if(tool.Magazine > 0 || prefire.contains(item_guid)) {
               prefire = None
               shooting = Some(item_guid)
-              avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireState_Start(player.GUID, item_guid))
+              continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireState_Start(player.GUID, item_guid))
             }
             else {
               log.warn(s"ChangeFireState_Start: ${tool.Definition.Name} magazine is empty before trying to shoot bullet")
@@ -4257,7 +4248,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           case Some(_) => //permissible, for now
             prefire = None
             shooting = Some(item_guid)
-            avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireState_Start(player.GUID, item_guid))
+            continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireState_Start(player.GUID, item_guid))
           case None =>
             log.error(s"ChangeFireState_Start: can not find $item_guid")
         }
@@ -4268,7 +4259,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       prefire = None
       val weapon : Option[Equipment] = if(shooting.contains(item_guid)) {
         shooting = None
-        avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireState_Stop(player.GUID, item_guid))
+        continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireState_Stop(player.GUID, item_guid))
         FindEquipment
       }
       else {
@@ -4276,8 +4267,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
         FindEquipment match {
           case Some(tool) =>
             if(tool.Definition == GlobalDefinitions.phoenix) {
-              avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireState_Start(player.GUID, item_guid))
-              avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireState_Stop(player.GUID, item_guid))
+              continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireState_Start(player.GUID, item_guid))
+              continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireState_Stop(player.GUID, item_guid))
             }
             Some(tool)
           case _ =>
@@ -4292,7 +4283,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           }
         case Some(trigger : BoomerTrigger) =>
           val playerGUID = player.GUID
-          avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireState_Start(playerGUID, item_guid))
+          continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireState_Start(playerGUID, item_guid))
           continent.GUID(trigger.Companion) match {
             case Some(boomer : BoomerDeployable) =>
               val boomerGUID = boomer.GUID
@@ -4301,8 +4292,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
               sendResponse(PlanetsideAttributeMessage(boomerGUID, 29, 1))
               sendResponse(ObjectDeleteMessage(boomerGUID, 0))
               continent.LocalEvents ! LocalServiceMessage(continent.Id, LocalAction.TriggerEffect(playerGUID, "detonate_boomer", boomerGUID))
-              avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(boomerGUID, 29, 1))
-              avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(playerGUID, boomerGUID))
+              continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(boomerGUID, 29, 1))
+              continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(playerGUID, boomerGUID))
               continent.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.AddTask(boomer, continent, Some(0 seconds)))
             case Some(_) | None => ;
           }
@@ -4385,7 +4376,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                 log.info(s"ReloadMessage: success, $tool <- $actualReloadValue ${tool.AmmoType}")
                 tool.Magazine = actualReloadValue
                 sendResponse(ReloadMessage(item_guid, actualReloadValue, unk1))
-                avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.Reload(player.GUID, item_guid))
+                continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.Reload(player.GUID, item_guid))
             }
           }
           else {
@@ -4407,7 +4398,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           sendResponse(ObjectHeldMessage(avatar_guid, 0, true))
         }
         else if((player.DrawnSlot = held_holsters) != before) {
-          avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.ObjectHeld(player.GUID, player.LastDrawnSlot))
+          continent.AvatarEvents ! AvatarServiceMessage(player.Continent, AvatarAction.ObjectHeld(player.GUID, player.LastDrawnSlot))
 
           // Ignore non-equipment holsters
           //todo: check current suit holster slots?
@@ -4416,7 +4407,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
               case Some(unholsteredItem : Equipment) =>
                 if(unholsteredItem.Definition == GlobalDefinitions.remote_electronics_kit) {
                   // Player has unholstered a REK - we need to set an atttribute on the REK itself to change the beam/icon colour to the correct one for the player's hack level
-                  avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttribute(unholsteredItem.GUID, 116, GetPlayerHackLevel()))
+                  continent.AvatarEvents ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttribute(unholsteredItem.GUID, 116, GetPlayerHackLevel()))
                 }
               case None => ;
             }
@@ -4437,7 +4428,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       //log.info("AvatarJump: " + msg)
       player.Stamina = player.Stamina - 10
       if(player.Stamina < 0) player.Stamina = 0
-      avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttributeSelf(player.GUID, 2, player.Stamina))
+      continent.AvatarEvents ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttributeSelf(player.GUID, 2, player.Stamina))
 
     case msg @ ZipLineMessage(player_guid,origin_side,action,id,pos) =>
       log.info("ZipLineMessage: " + msg)
@@ -4516,7 +4507,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                   log.warn(s"RequestDestroy: boomer_trigger@$guid has been found but it seems to be orphaned")
                 case _ => ;
               }
-              avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(PlanetSideGUID(0), guid))
+              continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(PlanetSideGUID(0), guid))
               GUIDTask.UnregisterObjectTask(trigger)(continent.GUID)
 
             case None => ;
@@ -4641,16 +4632,16 @@ class WorldSessionActor extends Actor with MDCContextAware {
       if (avatar.Implants(slot).Initialized) {
         if(action == ImplantAction.Activation && status == 1) { // active
           avatar.Implants(slot).Active = true
-          avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player.GUID, 28, avatar.Implant(slot).id * 2 + 1))
+          continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player.GUID, 28, avatar.Implant(slot).id * 2 + 1))
           if (avatar.Implant(slot).id == 3) {
             timeDL = System.currentTimeMillis()
             player.Stamina = player.Stamina - 3
-            avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttributeSelf(player.GUID, 2, player.Stamina))
+            continent.AvatarEvents ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttributeSelf(player.GUID, 2, player.Stamina))
           }
           if (avatar.Implant(slot).id == 9) timeSurge = System.currentTimeMillis()
         } else if(action == ImplantAction.Activation && status == 0) { //desactive
           avatar.Implants(slot).Active = false
-          avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player.GUID, 28, avatar.Implant(slot).id * 2))
+          continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player.GUID, 28, avatar.Implant(slot).id * 2))
           if (avatar.Implant(slot).id == 3) timeDL = 0
           if (avatar.Implant(slot).id == 9) timeSurge = 0
         }
@@ -4755,7 +4746,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                             player.History(HealFromKit(PlayerSource(player), 25, kit.Definition))
                             player.Health = player.Health + 25
                             sendResponse(PlanetsideAttributeMessage(avatar_guid, 0, player.Health))
-                            avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(avatar_guid, 0, player.Health))
+                            continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(avatar_guid, 0, player.Health))
                           case None =>
                             log.error(s"UseItem: anticipated a $kit, but can't find it")
                         }
@@ -4779,7 +4770,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                             player.History(HealFromKit(PlayerSource(player), 100, kit.Definition))
                             player.Health = player.Health + 100
                             sendResponse(PlanetsideAttributeMessage(avatar_guid, 0, player.Health))
-                            avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(avatar_guid, 0, player.Health))
+                            continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(avatar_guid, 0, player.Health))
                           case None =>
                             log.error(s"UseItem: anticipated a $kit, but can't find it")
                         }
@@ -4803,7 +4794,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                             player.History(RepairFromKit(PlayerSource(player), 200, kit.Definition))
                             player.Armor = player.Armor + 200
                             sendResponse(PlanetsideAttributeMessage(avatar_guid, 4, player.Armor))
-                            avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(avatar_guid, 4, player.Armor))
+                            continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(avatar_guid, 4, player.Armor))
                           case None =>
                             log.error(s"UseItem: anticipated a $kit, but can't find it")
                         }
@@ -4856,13 +4847,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
                         sendResponse(InventoryStateMessage(tool.AmmoSlot.Box.GUID, obj.GUID, tool.Magazine))
                         val RepairPercent: Int = tplayer.Armor * 100 / tplayer.MaxArmor
                         sendResponse(RepairMessage(object_guid, RepairPercent))
-
-                        avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.PlanetsideAttributeToAll(tplayer.GUID, 4, tplayer.Armor))
+                        continent.AvatarEvents ! AvatarServiceMessage(tplayer.Continent, AvatarAction.PlanetsideAttributeToAll(tplayer.GUID, 4, tplayer.Armor))
                       } else if (player.GUID == tplayer.GUID && !player.isMoving && tplayer.MaxArmor > 0) {
                         player.Armor += 15
                         tool.Discharge
                         sendResponse(InventoryStateMessage(tool.AmmoSlot.Box.GUID, obj.GUID, tool.Magazine))
-                        avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttributeToAll(player.GUID, 4, player.Armor))
+                        continent.AvatarEvents ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttributeToAll(player.GUID, 4, player.Armor))
                       }
                     case _ => ;
                   }
@@ -4884,17 +4874,17 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
                         if(!tplayer.isAlive && tplayer.Health == tplayer.MaxHealth) {
                           tplayer.Revive
-                          avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.Revive(tplayer.GUID))
+                          continent.AvatarEvents ! AvatarServiceMessage(tplayer.Continent, AvatarAction.Revive(tplayer.GUID))
                         }
 
                         if(tplayer.isAlive) {
-                          avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.PlanetsideAttributeToAll(tplayer.GUID, 0, tplayer.Health))
+                          continent.AvatarEvents ! AvatarServiceMessage(tplayer.Continent, AvatarAction.PlanetsideAttributeToAll(tplayer.GUID, 0, tplayer.Health))
                         }
                       } else if (player.GUID == tplayer.GUID && !player.isMoving && tplayer.MaxHealth > 0 && player.isAlive) {
                         player.Health += 10
                         tool.Discharge
                         sendResponse(InventoryStateMessage(tool.AmmoSlot.Box.GUID, obj.GUID, tool.Magazine))
-                        avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttributeToAll(player.GUID, 0, player.Health))
+                        continent.AvatarEvents ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttributeToAll(player.GUID, 0, player.Health))
                       }
                     case _ => ;
                   }
@@ -4987,7 +4977,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                   //                sendResponse(QuantityUpdateMessage(PlanetSideGUID(8214),ammo_quantity_left))
                   val RepairPercent: Int = obj.Health * 100 / obj.MaxHealth
                   sendResponse(RepairMessage(object_guid, RepairPercent))
-                  avatarService ! AvatarServiceMessage(obj.Continent, AvatarAction.PlanetsideAttribute(obj.GUID, 0, obj.Health))
+                  continent.AvatarEvents ! AvatarServiceMessage(obj.Continent, AvatarAction.PlanetsideAttribute(obj.GUID, 0, obj.Health))
                 }
               }
               else if(tool.Definition == GlobalDefinitions.trek) {
@@ -5029,7 +5019,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                       //                sendResponse(QuantityUpdateMessage(PlanetSideGUID(8214),ammo_quantity_left))
                       val RepairPercent: Int = obj.Health * 100 / obj.MaxHealth
                       sendResponse(RepairMessage(object_guid, RepairPercent))
-                      avatarService ! AvatarServiceMessage(obj.Continent, AvatarAction.PlanetsideAttribute(obj.GUID, 0, obj.Health))
+                      continent.AvatarEvents ! AvatarServiceMessage(obj.Continent, AvatarAction.PlanetsideAttribute(obj.GUID, 0, obj.Health))
                     }
                   }
 
@@ -5241,7 +5231,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       if(action == 15) { //max deployment
         log.info(s"GenericObject: $player is anchored")
         player.UsingSpecial = SpecialExoSuitDefinition.Mode.Anchored
-        avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player.GUID, 19, 1))
+        continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player.GUID, 19, 1))
         definition match {
           case GlobalDefinitions.trhev_dualcycler | GlobalDefinitions.trhev_burster =>
             val tool = toolOpt.get
@@ -5259,7 +5249,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       else if(action == 16) { //max deployment
         log.info(s"GenericObject: $player has released the anchors")
         player.UsingSpecial = SpecialExoSuitDefinition.Mode.Normal
-        avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player.GUID, 19, 0))
+        continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player.GUID, 19, 0))
         definition match {
           case GlobalDefinitions.trhev_dualcycler | GlobalDefinitions.trhev_burster =>
             val tool = toolOpt.get
@@ -5278,24 +5268,24 @@ class WorldSessionActor extends Actor with MDCContextAware {
         if(squadUI.nonEmpty) {
           if(!lfsm && squadUI(player.CharId).index == 0) {
             lfsm = true
-            avatarService ! AvatarServiceMessage(s"${continent.Id}/${player.Faction}", AvatarAction.PlanetsideAttribute(player.GUID, 53, 1))
+            continent.AvatarEvents ! AvatarServiceMessage(s"${player.Faction}", AvatarAction.PlanetsideAttribute(player.GUID, 53, 1))
           }
         }
         else if(!avatar.LFS) {
           avatar.LFS = true
-          avatarService ! AvatarServiceMessage(s"${continent.Id}/${player.Faction}", AvatarAction.PlanetsideAttribute(player.GUID, 53, 1))
+          continent.AvatarEvents ! AvatarServiceMessage(s"${player.Faction}", AvatarAction.PlanetsideAttribute(player.GUID, 53, 1))
         }
       }
       else if(action == 37) { //Looking For Squad OFF
         if(squadUI.nonEmpty) {
           if(lfsm && squadUI(player.CharId).index == 0) {
             lfsm = false
-            avatarService ! AvatarServiceMessage(s"${continent.Id}/${player.Faction}", AvatarAction.PlanetsideAttribute(player.GUID, 53, 0))
+            continent.AvatarEvents ! AvatarServiceMessage(s"${player.Faction}", AvatarAction.PlanetsideAttribute(player.GUID, 53, 0))
           }
         }
         else if(avatar.LFS) {
           avatar.LFS = false
-          avatarService ! AvatarServiceMessage(s"${continent.Id}/${player.Faction}", AvatarAction.PlanetsideAttribute(player.GUID, 53, 0))
+          continent.AvatarEvents ! AvatarServiceMessage(s"${player.Faction}", AvatarAction.PlanetsideAttribute(player.GUID, 53, 0))
         }
       }
 
@@ -5362,7 +5352,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       log.info("WeaponDryFireMessage: "+msg)
       FindWeapon match {
         case Some(tool : Tool) =>
-          avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.WeaponDryFire(player.GUID, weapon_guid))
+          continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.WeaponDryFire(player.GUID, weapon_guid))
         case _ => ;
       }
 
@@ -5383,7 +5373,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           else { //shooting
             if (tool.FireModeIndex == 1 && (tool.Definition.Name == "anniversary_guna" || tool.Definition.Name == "anniversary_gun" || tool.Definition.Name == "anniversary_gunb")) {
               player.Stamina = 0
-              avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttributeSelf(player.GUID, 2, player.Stamina))
+              continent.AvatarEvents ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttributeSelf(player.GUID, 2, player.Stamina))
             }
 
             prefire = shooting.orElse(Some(weapon_guid))
@@ -5834,7 +5824,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         private val localIndex = index
         private val localObject = obj
         private val localAnnounce = self
-        private val localService = avatarService
+        private val localService = continent.AvatarEvents
 
         override def isComplete : Task.Resolution.Value = {
           if(localTarget.Slot(localIndex).Equipment.contains(localObject)) {
@@ -6067,7 +6057,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         private val localObject = obj
         private val localObjectGUID = obj.GUID
         private val localAnnounce = self //self may not be the same when it executes
-        private val localService = avatarService
+        private val localService = continent.AvatarEvents
         private val localContinent = continent.Id
 
         override def isComplete : Task.Resolution.Value = {
@@ -6109,7 +6099,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         private val localPlayer = player
         private val localSlot = index
         private val localAnnounce = self
-        private val localService = avatarService
+        private val localService = continent.AvatarEvents
 
         override def isComplete : Task.Resolution.Value = {
           if(localPlayer.DrawnSlot == localSlot) {
@@ -6334,7 +6324,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
       // And broadcast the faction change to other clients
       sendResponse(SetEmpireMessage(target.GUID, player.Faction))
-      avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.SetEmpire(player.GUID, target.GUID, player.Faction))
+      continent.AvatarEvents ! AvatarServiceMessage(player.Continent, AvatarAction.SetEmpire(player.GUID, target.GUID, player.Faction))
     }
 
     continent.LocalEvents ! LocalServiceMessage(continent.Id, LocalAction.TriggerSound(player.GUID, TriggeredSound.HackVehicle, target.Position, 30, 0.49803925f))
@@ -6478,13 +6468,13 @@ class WorldSessionActor extends Actor with MDCContextAware {
     val pguid = tplayer.GUID
     if(vehicle.Owner.contains(pguid)) {
       vehicle.AssignOwnership(None)
-      val factionOnContinent = s"${continent.Id}/${vehicle.Faction}"
-      continent.VehicleEvents ! VehicleServiceMessage(factionOnContinent, VehicleAction.Ownership(pguid, PlanetSideGUID(0)))
+      val factionChannel = s"${vehicle.Faction}"
+      continent.VehicleEvents ! VehicleServiceMessage(factionChannel, VehicleAction.Ownership(pguid, PlanetSideGUID(0)))
       val vguid = vehicle.GUID
       val empire = VehicleLockState.Empire.id
       (0 to 2).foreach(group => {
         vehicle.PermissionGroup(group, empire)
-        continent.VehicleEvents ! VehicleServiceMessage(factionOnContinent, VehicleAction.SeatPermissions(pguid, vguid, group, empire))
+        continent.VehicleEvents ! VehicleServiceMessage(factionChannel, VehicleAction.SeatPermissions(pguid, vguid, group, empire))
       })
       ReloadVehicleAccessPermissions(vehicle)
       Some(vehicle)
@@ -6915,7 +6905,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         continent.VehicleEvents ! VehicleServiceMessage(s"${obj.Actor}", VehicleAction.UnstowEquipment(player_guid, item_guid))
       case obj : Player =>
         if(obj.isBackpack || source.VisibleSlots.contains(index)) { //corpse being looted, or item was in hands
-          avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player_guid, item_guid))
+          continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player_guid, item_guid))
         }
       case _ => ;
     }
@@ -6937,7 +6927,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                 continent.VehicleEvents ! VehicleServiceMessage(s"${obj.Actor}", VehicleAction.UnstowEquipment(player_guid, item2_guid))
               case obj : Player =>
                 if(obj.isBackpack || destination.VisibleSlots.contains(dest)) { //corpse being looted, or item was accessible
-                  avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player_guid, item2_guid))
+                  continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player_guid, item2_guid))
                   //put hand down locally
                   if(dest == player.DrawnSlot) {
                     player.DrawnSlot = Player.HandsDownSlot
@@ -6967,10 +6957,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
               case obj : Player =>
                 item2.Faction = obj.Faction
                 if(source.VisibleSlots.contains(index)) { //item is put in hands
-                  avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.EquipmentInHand(player_guid, source_guid, index, item2))
+                  continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.EquipmentInHand(player_guid, source_guid, index, item2))
                 }
                 else if(obj.isBackpack) { //corpse being given item
-                  avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.StowEquipment(player_guid, source_guid, index, item2))
+                  continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.StowEquipment(player_guid, source_guid, index, item2))
                 }
               case _ =>
                 item2.Faction = PlanetSideEmpire.NEUTRAL
@@ -6990,7 +6980,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
               case _ => ;
               //Player does not require special case; the act of dropping forces the item and icon to change
             }
-            avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.DropItem(player_guid, item2, continent))
+            continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.DropItem(player_guid, item2, continent))
         }
 
       case None => ;
@@ -7018,11 +7008,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
       case obj : Player =>
         if(destination.VisibleSlots.contains(dest)) { //item is put in hands
           item.Faction = obj.Faction
-          avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.EquipmentInHand(player_guid, destination_guid, dest, item))
+          continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.EquipmentInHand(player_guid, destination_guid, dest, item))
         }
         else if(obj.isBackpack) { //corpse being given item
           item.Faction = PlanetSideEmpire.NEUTRAL
-          avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.StowEquipment(player_guid, destination_guid, dest, item))
+          continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.StowEquipment(player_guid, destination_guid, dest, item))
         }
       case _ =>
         item.Faction = PlanetSideEmpire.NEUTRAL
@@ -7094,7 +7084,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             val box_guid = box.GUID
             val tool_guid = tool.GUID
             sendResponse(ChangeAmmoMessage(tool_guid, box.Capacity))
-            avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeAmmo(player.GUID, tool_guid, ammoSlotIndex,previous_box_guid, boxDef.ObjectId, box.GUID, boxDef.Packet.ConstructorData(box).get))
+            continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeAmmo(player.GUID, tool_guid, ammoSlotIndex,previous_box_guid, boxDef.ObjectId, box.GUID, boxDef.Packet.ConstructorData(box).get))
 
             //handle inventory contents
             box.Capacity = (if(sumReloadValue <= fullMagazine) {
@@ -7142,9 +7132,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
                 case Some(index) =>
                   stowFunc(index, previousBox)
                 case None =>
-                  NormalItemDrop(player, continent, avatarService)(previousBox)
+                  NormalItemDrop(player, continent, continent.AvatarEvents)(previousBox)
               }
-              val dropFunc : (Equipment)=>TaskResolver.GiveTask = NewItemDrop(player, continent, avatarService)
+              val dropFunc : (Equipment)=>TaskResolver.GiveTask = NewItemDrop(player, continent, continent.AvatarEvents)
               AmmoBox.Split(previousBox) match {
                 case Nil  | _ :: Nil => ; //done (the former case is technically not possible)
                 case _ :: xs =>
@@ -7335,8 +7325,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
                 antChargingTick.cancel() // Stop charging NTU if charging
               }
 
-              avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(vehicle.GUID, 52, 0L)) // panel glow off
-              avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(vehicle.GUID, 49, 0L)) // orb particles off
+              continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(vehicle.GUID, 52, 0L)) // panel glow off
+              continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(vehicle.GUID, 49, 0L)) // orb particles off
             case DriveState.Mobile | DriveState.State7 | DriveState.Deploying =>
             case _ => ;
           }
@@ -7591,7 +7581,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     timeSurge = 0
     sendResponse(PlanetsideAttributeMessage(player_guid, 0, 0))
     sendResponse(PlanetsideAttributeMessage(player_guid, 2, 0))
-    avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player_guid, 0, 0))
+    continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player_guid, 0, 0))
     sendResponse(DestroyMessage(player_guid, player_guid, PlanetSideGUID(0), pos)) //how many players get this message?
     sendResponse(AvatarDeadStateMessage(DeadState.Dead, respawnTimer, respawnTimer, pos, player.Faction, true))
     if(tplayer.VehicleSeated.nonEmpty) {
@@ -7603,7 +7593,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       }
       //make player invisible (if not, the cadaver sticks out the side in a seated position)
       sendResponse(PlanetsideAttributeMessage(player_guid, 29, 1))
-      avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player_guid, 29, 1))
+      continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player_guid, 29, 1))
     }
     PlayerActionsToCancel()
     //TODO other methods of death?
@@ -7626,9 +7616,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
     }) match {
       case Some(shot) =>
         continent.Activity ! Zone.HotSpot.Activity(pentry, shot.projectile.owner, shot.hit_pos)
-        avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.DestroyDisplay(shot.projectile.owner, pentry, shot.projectile.attribute_to))
+        continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.DestroyDisplay(shot.projectile.owner, pentry, shot.projectile.attribute_to))
       case None =>
-        avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.DestroyDisplay(pentry, pentry, 0))
+        continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.DestroyDisplay(pentry, pentry, 0))
     }
     if(shotsWhileDead > 0) {
       log.warn(s"KillPlayer/SHOTS_WHILE_DEAD: client of ${avatar.name} fired $shotsWhileDead rounds while character was dead on server")
@@ -7669,7 +7659,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     shooting match {
       case Some(guid) =>
         sendResponse(ChangeFireStateMessage_Stop(guid))
-        avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireState_Stop(player.GUID, guid))
+        continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireState_Stop(player.GUID, guid))
         prefire = None
         shooting = None
       case None => ;
@@ -7767,7 +7757,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         val data = packet.DetailedConstructorData(player).get
         val guid = player.GUID
         sendResponse(ObjectCreateDetailedMessage(ObjectClass.avatar, guid, data))
-        avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.LoadPlayer(guid, ObjectClass.avatar, guid, packet.ConstructorData(player).get, None))
+        continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.LoadPlayer(guid, ObjectClass.avatar, guid, packet.ConstructorData(player).get, None))
         log.info(s"AvatarCreate: $guid -> $data")
     }
     continent.Population ! Zone.Population.Spawn(avatar, player)
@@ -7861,7 +7851,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         data
       )
     )
-    avatarService ! AvatarServiceMessage(vehicle.Continent, AvatarAction.LoadPlayer(guid, pdef.ObjectId, guid, pdef.Packet.ConstructorData(player).get, Some(parent)))
+    continent.AvatarEvents ! AvatarServiceMessage(vehicle.Continent, AvatarAction.LoadPlayer(guid, pdef.ObjectId, guid, pdef.Packet.ConstructorData(player).get, Some(parent)))
     AccessContents(vehicle)
     UpdateWeaponAtSeatPosition(vehicle, seat)
     log.info(s"AvatarCreateInVehicle: $guid -> $data")
@@ -7923,7 +7913,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         }
       })
       val triggers = RemoveBoomerTriggersFromInventory()
-      triggers.foreach(trigger => { NormalItemDrop(obj, continent, avatarService)(trigger) })
+      triggers.foreach(trigger => { NormalItemDrop(obj, continent, continent.AvatarEvents)(trigger) })
     }
   }
 
@@ -7958,7 +7948,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     */
   def TryDisposeOfLootedCorpse(obj : Player) : Boolean = {
     if(WellLootedCorpse(obj)) {
-      avatarService ! AvatarServiceMessage.Corpse(RemoverActor.HurrySpecific(List(obj), continent))
+      continent.AvatarEvents ! AvatarServiceMessage.Corpse(RemoverActor.HurrySpecific(List(obj), continent))
       true
     }
     else {
@@ -8158,7 +8148,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     val player_guid = tplayer.GUID
     tplayer.Health = tplayer.Health + healValue
     sendResponse(PlanetsideAttributeMessage(player_guid, 0, tplayer.Health))
-    avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player_guid, 0, tplayer.Health))
+    continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player_guid, 0, tplayer.Health))
     tplayer.Health == tplayer.MaxHealth
   }
 
@@ -8174,7 +8164,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     val player_guid = tplayer.GUID
     tplayer.Armor = tplayer.Armor + repairValue
     sendResponse(PlanetsideAttributeMessage(player_guid, 4, tplayer.Armor))
-    avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player_guid, 4, tplayer.Armor))
+    continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player_guid, 4, tplayer.Armor))
     tplayer.Armor == tplayer.MaxArmor
   }
 
@@ -8360,7 +8350,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     target match {
       case obj : Player =>
         //damage is synchronized on the target player's `WSA` (results distributed from there)
-        avatarService ! AvatarServiceMessage(obj.Name, AvatarAction.Damage(player.GUID, obj, func))
+        continent.AvatarEvents ! AvatarServiceMessage(obj.Name, AvatarAction.Damage(player.GUID, obj, func))
       case obj : Vehicle =>
         //damage is synchronized on the vehicle actor (results returned to and distributed from this `WSA`)
         obj.Actor ! Vitality.Damage(func)
@@ -8659,11 +8649,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
     UpdateDeployableUIElements(avatar.Deployables.UpdateUIElement(item))
     sendResponse(GenericObjectActionMessage(guid, 84)) //reset build cooldown
     sendResponse(ObjectCreateMessage(definition.ObjectId, guid, definition.Packet.ConstructorData(obj).get))
-    avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.DeployItem(player.GUID, obj))
+    continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.DeployItem(player.GUID, obj))
     //map icon
     val deployInfo = DeployableInfo(guid, Deployable.Icon(item), obj.Position, obj.Owner.getOrElse(PlanetSideGUID(0)))
     sendResponse(DeployableObjectsInfoMessage(DeploymentAction.Build, deployInfo))
-    continent.LocalEvents ! LocalServiceMessage(s"${continent.Id}/${player.Faction}", LocalAction.DeployableMapIcon(player.GUID, DeploymentAction.Build, deployInfo))
+    continent.LocalEvents ! LocalServiceMessage(s"${player.Faction}", LocalAction.DeployableMapIcon(player.GUID, DeploymentAction.Build, deployInfo))
   }
 
   /**
@@ -8730,7 +8720,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       }
     }) {
       sendResponse(ObjectDeleteMessage(tool.GUID, 0))
-      avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player.GUID, tool.GUID))
+      continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player.GUID, tool.GUID))
       true
     }
     else {
@@ -8776,11 +8766,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
               sendResponse(ChangeAmmoMessage(obj.GUID, ammoType))
             }
             if(player.VisibleSlots.contains(index)) {
-              avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.EquipmentInHand(guid, guid, index, obj))
+              continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.EquipmentInHand(guid, guid, index, obj))
               if(player.DrawnSlot == Player.HandsDownSlot) {
                 player.DrawnSlot = index
                 sendResponse(ObjectHeldMessage(guid, index, false))
-                avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectHeld(guid, index))
+                continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectHeld(guid, index))
               }
             }
           }
@@ -8834,8 +8824,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
         if(continent.EquipmentOnGround.contains(obj)) {
           obj.Position = Vector3.Zero
           continent.Ground ! Zone.Ground.RemoveItem(object_guid)
-          avatarService ! AvatarServiceMessage.Ground(RemoverActor.ClearSpecific(List(obj), continent))
-          avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(PlanetSideGUID(0), object_guid))
+          continent.AvatarEvents ! AvatarServiceMessage.Ground(RemoverActor.ClearSpecific(List(obj), continent))
+          continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(PlanetSideGUID(0), object_guid))
           log.info(s"RequestDestroy: equipment $obj on ground")
           true
         }
@@ -8921,7 +8911,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         continent.LocalEvents ! LocalServiceMessage(owner, LocalAction.AlertDestroyDeployable(PlanetSideGUID(0), target))
       case None => ;
     }
-    continent.LocalEvents ! LocalServiceMessage(s"${continent.Id}/${target.Faction}", LocalAction.DeployableMapIcon(
+    continent.LocalEvents ! LocalServiceMessage(s"${target.Faction}", LocalAction.DeployableMapIcon(
       PlanetSideGUID(0),
       DeploymentAction.Dismiss,
       DeployableInfo(target.GUID, Deployable.Icon(target.Definition.Item), target.Position, PlanetSideGUID(0)))
@@ -8948,7 +8938,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         player.Slot(index).Equipment = None
         sendResponse(ObjectDeleteMessage(obj.GUID, 0))
         if(player.VisibleSlots.contains(index)) {
-          avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player_guid, obj.GUID))
+          continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player_guid, obj.GUID))
         }
         obj
       })
@@ -9039,7 +9029,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case _ => //player is deconstructing self
           val player_guid = player.GUID
           sendResponse(ObjectDeleteMessage(player_guid, 4))
-          avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player_guid, player_guid, 4))
+          continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player_guid, player_guid, 4))
           player.Position = pos
           player.Orientation = ori
           LoadZoneAsPlayer(player, zone_id)
@@ -9358,7 +9348,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       case None =>
         PlanetSideGUID(0) //item is being introduced into the world upon drop
     }
-    avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.DropItem(exclusionId, item, continent))
+    continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.DropItem(exclusionId, item, continent))
   }
 
   /**
@@ -9386,7 +9376,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             definition.Packet.DetailedConstructorData(item).get
           )
         )
-        avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PickupItem(player_guid, continent, player, slotNum, item))
+        continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PickupItem(player_guid, continent, player, slotNum, item))
         true
       case None =>
         continent.Ground ! Zone.Ground.DropItem(item, item.Position, item.Orientation) //restore previous state
@@ -9576,9 +9566,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
     tool.Magazine = 0
     sendResponse(InventoryStateMessage(tool.AmmoSlot.Box.GUID, weapon_guid, 0))
     sendResponse(ChangeFireStateMessage_Stop(weapon_guid))
-    avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireState_Stop(player.GUID, weapon_guid))
+    continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireState_Stop(player.GUID, weapon_guid))
     sendResponse(WeaponDryFireMessage(weapon_guid))
-    avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.WeaponDryFire(player.GUID, weapon_guid))
+    continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.WeaponDryFire(player.GUID, weapon_guid))
   }
 
   /**
@@ -9640,8 +9630,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
           val cargoDetachMessage = ObjectDetachMessage(carrierGUID, cargoGUID, cargoHoldPosition + Vector3.z(1f), rotation)
           sendResponse(cargoStatusMessage)
           sendResponse(cargoDetachMessage)
-          avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.SendResponse(player_guid, cargoStatusMessage))
-          avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.SendResponse(player_guid, cargoDetachMessage))
+          continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.SendResponse(player_guid, cargoStatusMessage))
+          continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.SendResponse(player_guid, cargoDetachMessage))
           driverOpt match {
             case Some(driver) =>
               continent.VehicleEvents ! VehicleServiceMessage(s"${driver.Name}", VehicleAction.KickCargo(player_guid, cargo, cargo.Definition.AutoPilotSpeed2, 2500))
