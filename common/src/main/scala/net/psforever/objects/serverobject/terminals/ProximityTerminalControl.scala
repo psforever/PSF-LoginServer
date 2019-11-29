@@ -86,7 +86,7 @@ class ProximityTerminalControl(term : Terminal with ProximityUnit) extends Actor
   def Use(target : PlanetSideGameObject, zone : String, callback : ActorRef) : Unit = {
     val hadNoUsers = term.NumberUsers == 0
     if(term.AddUser(target)) {
-      log.info(s"ProximityTerminal.Use: unit ${term.Definition.Name}@${term.GUID.guid} will act on $target")
+      log.trace(s"ProximityTerminal.Use: unit ${term.Definition.Name}@${term.GUID.guid} will act on $target")
       //add callback
       callbacks += callback
       //activation
@@ -108,7 +108,7 @@ class ProximityTerminalControl(term : Terminal with ProximityUnit) extends Actor
     val previousUsers = term.NumberUsers
     val hadUsers = previousUsers > 0
     if(whereTarget > -1 && term.RemoveUser(target)) {
-      log.info(s"ProximityTerminal.Unuse: unit ${term.Definition.Name}@${term.GUID.guid} will cease operation on $target")
+      log.trace(s"ProximityTerminal.Unuse: unit ${term.Definition.Name}@${term.GUID.guid} will cease operation on $target")
       //remove callback
       callbacks.remove(whereTarget)
       //de-activation (global / local)

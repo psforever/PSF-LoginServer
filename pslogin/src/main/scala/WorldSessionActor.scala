@@ -5152,7 +5152,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       }
 
     case msg @ ProximityTerminalUseMessage(player_guid, object_guid, _) =>
-      log.info(s"ProximityTerminalUse: $msg")
+      log.trace(s"ProximityTerminalUse: $msg")
       continent.GUID(object_guid) match {
         case Some(obj : Terminal with ProximityUnit) =>
           HandleProximityTerminalUse(obj)
@@ -8023,8 +8023,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
     */
   def StartUsingProximityUnit(terminal : Terminal with ProximityUnit, target : PlanetSideGameObject) : Unit = {
     val term_guid = terminal.GUID
+    //log.trace(s"StartUsingProximityUnit: ${player.Name} wants to use ${terminal.Definition.Name}@${term_guid.guid} on $target")
     if(player.isAlive) {
-      log.info(s"StartUsingProximityUnit: ${player.Name} wants to use ${terminal.Definition.Name}@${term_guid.guid} on $target")
       target match {
         case _ : Player =>
           terminal.Actor ! CommonMessages.Use(player, Some(target))
@@ -8064,7 +8064,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     */
   def StopUsingProximityUnit(terminal : Terminal with ProximityUnit) : Unit = {
     val term_guid = terminal.GUID
-    log.info(s"StopUsingProximityUnit: attempting to stop using proximity unit ${terminal.Definition.Name}@${term_guid.guid}")
+    //log.trace(s"StopUsingProximityUnit: attempting to stop using proximity unit ${terminal.Definition.Name}@${term_guid.guid}")
     val targets = FindProximityUnitTargetsInScope(terminal)
     if(targets.nonEmpty) {
       if(usingMedicalTerminal.contains(term_guid)) {
