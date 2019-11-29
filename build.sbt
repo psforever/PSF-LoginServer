@@ -54,7 +54,7 @@ lazy val psloginPackSettings = packAutoSettings ++ Seq(
 
 lazy val root = (project in file(".")).
   settings(commonSettings: _*).
-  enablePlugins(ScalaUnidocPlugin).
+  //enablePlugins(ScalaUnidocPlugin).
   settings(psloginPackSettings: _*).
   aggregate(pslogin, common)
 

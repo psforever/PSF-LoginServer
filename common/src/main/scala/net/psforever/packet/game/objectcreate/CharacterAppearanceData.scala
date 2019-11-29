@@ -357,8 +357,8 @@ object CharacterAppearanceData extends Marshallable[CharacterAppearanceData] {
       ("unk2" | bool) :: //requires alt_model flag (does NOT require health == 0)
       ("unk3" | bool) :: //stream misalignment when set
       ("unk4" | bool) :: //unknown
-      ("facingPitch" | Angular.codec_pitch) ::
-      ("facingYawUpper" | Angular.codec_yaw(0f)) ::
+      ("facingPitch" | Angular.codec_zero_centered) ::
+      ("facingYawUpper" | Angular.codec_zero_centered) ::
       ("lfs" | uint2) ::
       ("grenade_state" | GrenadeState.codec_2u) :: //note: bin10 and bin11 are neutral (bin00 is not defined)
       ("is_cloaking" | bool) ::

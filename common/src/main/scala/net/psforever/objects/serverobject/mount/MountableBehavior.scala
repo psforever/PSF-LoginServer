@@ -7,7 +7,6 @@ import net.psforever.objects.entity.{Identifiable, WorldEntity}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.turret.TurretDefinition
-import net.psforever.types.Vector3
 
 object MountableBehavior {
   /**
@@ -79,10 +78,9 @@ object MountableBehavior {
     val dismountBehavior : Receive = {
       case Mountable.TryDismount(user, seat_num) =>
         val obj = MountableObject
-        val velocity = obj.Velocity.getOrElse(Vector3.Zero)
         obj.Seat(seat_num) match {
           case Some(seat) =>
-            if(seat.Bailable || velocity == Vector3.Zero || Vector3.MagnitudeSquared(velocity).toInt == 0) {
+            if(seat.Bailable || !obj.isMoving) {
               seat.Occupant = None
               user.VehicleSeated = None
               sender ! Mountable.MountMessages(user, Mountable.CanDismount(obj, seat_num))
