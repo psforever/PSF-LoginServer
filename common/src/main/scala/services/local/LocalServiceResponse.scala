@@ -3,6 +3,7 @@ package services.local
 
 import net.psforever.objects.{PlanetSideGameObject, TelepadDeployable, Vehicle}
 import net.psforever.objects.ce.Deployable
+import net.psforever.objects.serverobject.terminals.{ProximityUnit, Terminal}
 import net.psforever.objects.vehicles.Utility
 import net.psforever.packet.game._
 import net.psforever.types.{PlanetSideEmpire, Vector3}
@@ -25,6 +26,7 @@ object LocalResponse {
   final case class HackObject(target_guid : PlanetSideGUID, unk1 : Long, unk2 : Long) extends Response
   final case class HackCaptureTerminal(target_guid : PlanetSideGUID, unk1 : Long, unk2 : Long, isResecured: Boolean) extends Response
   final case class ObjectDelete(item_guid : PlanetSideGUID, unk : Int) extends Response
+  final case class ProximityTerminalAction(terminal : Terminal with ProximityUnit, target : PlanetSideGameObject) extends Response
   final case class ProximityTerminalEffect(object_guid : PlanetSideGUID, effectState : Boolean) extends Response
   final case class RouterTelepadMessage(msg : String) extends Response
   final case class RouterTelepadTransport(passenger_guid : PlanetSideGUID, src_guid : PlanetSideGUID, dest_guid : PlanetSideGUID) extends Response

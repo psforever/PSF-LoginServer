@@ -15,8 +15,8 @@ import scala.concurrent.duration._
   * Each object performs on (or more than one related) actions upon the vehicle order that was submitted.<br>
   * <br>
   * This object introduces the vehicle into the game environment.
-  * The vehicle must be added to the `Continent`, loaded onto other players' clients, and given an initial timed deconstruction event.
-  * For actual details on this process, please refer to the external source represented by `Continent.VehicleEvents`.
+  * The vehicle must be added to the `Zone` object, loaded onto other players' clients, and given an initial timed deconstruction event.
+  * For actual details on this process, please refer to the external source represented by `pad.Owner.Zone.VehicleEvents`.
   * It has failure cases should the driver be in an incorrect state.
   * @param pad the `VehicleSpawnPad` object being governed
   */
@@ -27,16 +27,16 @@ class VehicleSpawnControlLoadVehicle(pad : VehicleSpawnPad) extends VehicleSpawn
 
   def receive : Receive = {
     case order @ VehicleSpawnControl.Order(driver, vehicle) =>
-      if(driver.Continent == Continent.Id && vehicle.Health > 0) {
+      if(driver.Continent == pad.Continent && vehicle.Health > 0) {
         trace(s"loading the ${vehicle.Definition.Name}")
         vehicle.Position = vehicle.Position - Vector3.z(if(GlobalDefinitions.isFlightVehicle(vehicle.Definition)) 9 else 5)
         vehicle.Cloaked = vehicle.Definition.CanCloak && driver.Cloaked
-        Continent.VehicleEvents ! VehicleSpawnPad.LoadVehicle(vehicle)
+        pad.Owner.Zone.VehicleEvents ! VehicleSpawnPad.LoadVehicle(vehicle)
         context.system.scheduler.scheduleOnce(100 milliseconds, railJack, order)
       }
       else {
         trace("owner lost or vehicle in poor condition; abort order fulfillment")
-        VehicleSpawnControl.DisposeSpawnedVehicle(order, Continent)
+        VehicleSpawnControl.DisposeSpawnedVehicle(order, pad.Owner.Zone)
         context.parent ! VehicleSpawnControl.ProcessControl.GetNewOrder
       }
 

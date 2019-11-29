@@ -11,17 +11,21 @@ import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class PainboxControl(painbox: Painbox) extends Actor {
-  private[this] val log = org.log4s.getLogger(s"Painbox")
+  //private[this] val log = org.log4s.getLogger(s"Painbox")
   private var painboxTick: Cancellable = DefaultCancellable.obj
   private var nearestDoor : Door = null
 
   def receive : Receive = {
     case "startup" =>
-      nearestDoor = painbox.Owner.asInstanceOf[Building].Amenities
-        .collect { case door : Door => door }
-        .minBy(door => Vector3.DistanceSquared(painbox.Position, door.Position))
-      context.become(Processing)
-      painboxTick = context.system.scheduler.schedule(0 seconds,1 second, self, Painbox.Tick())
+      painbox.Owner match {
+        case obj : Building =>
+          nearestDoor = obj.Amenities
+            .collect { case door : Door => door }
+            .minBy(door => Vector3.DistanceSquared(painbox.Position, door.Position))
+          painboxTick = context.system.scheduler.schedule(0 seconds,1 second, self, Painbox.Tick())
+          context.become(Processing)
+        case _ => ;
+      }
 
     case _ => ;
   }
@@ -29,27 +33,21 @@ class PainboxControl(painbox: Painbox) extends Actor {
   def Processing : Receive = {
     case Painbox.Tick() =>
       //todo: Account for overlapping pain fields
-      if(painbox.Owner.Faction == PlanetSideEmpire.NEUTRAL) return null
-      if(painbox.Definition.HasNearestDoorDependency && nearestDoor.Open.isEmpty) return null
-
-      val playersToCheck = painbox.Owner.asInstanceOf[Building].PlayersInSOI
-      if(playersToCheck.isEmpty) return null
-      // todo: Disable if no base power
-
-      val playersInRange = playersToCheck.filter(p =>
-        p.Faction != painbox.Owner.Faction
-          && p.Health > 0
-          && Math.pow(p.Position.x - painbox.Position.x, 2) + Math.pow(p.Position.y - painbox.Position.y, 2) + Math.pow(p.Position.z - painbox.Position.z, 2) < Math.pow(painbox.Definition.Radius, 2)
-      )
-
-      // Make 'em hurt.
-      playersInRange.foreach({ p =>
-        painbox.Owner.asInstanceOf[Building].Zone.AvatarEvents ! AvatarServiceMessage(
-          p.Name,
-          AvatarAction.EnvironmentalDamage(p.GUID, painbox.Definition.Damage)
-        )
-        // todo: Pain module
-        // todo: REK boosting
-      })
+      //todo: Pain module
+      //todo: REK boosting
+      val owner = painbox.Owner.asInstanceOf[Building]
+      val faction = owner.Faction
+      if(faction != PlanetSideEmpire.NEUTRAL && nearestDoor.Open.nonEmpty) {
+        val events = owner.Zone.AvatarEvents
+        val damage = painbox.Definition.Damage
+        val radius = painbox.Definition.Radius * painbox.Definition.Radius
+        val position = painbox.Position
+        owner.PlayersInSOI
+          .collect { case p if p.Faction != faction
+            && p.Health > 0
+            && Vector3.DistanceSquared(p.Position, position) < radius =>
+            events ! AvatarServiceMessage(p.Name, AvatarAction.EnvironmentalDamage(p.GUID, damage))
+          }
+      }
   }
 }

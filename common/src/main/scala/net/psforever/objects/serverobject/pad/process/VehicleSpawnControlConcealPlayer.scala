@@ -26,14 +26,14 @@ class VehicleSpawnControlConcealPlayer(pad : VehicleSpawnPad) extends VehicleSpa
   def receive : Receive = {
     case order @ VehicleSpawnControl.Order(driver, _) =>
       //TODO how far can the driver get stray from the Terminal before his order is cancelled?
-      if(driver.Continent == Continent.Id && driver.VehicleSeated.isEmpty) {
+      if(driver.Continent == pad.Continent && driver.VehicleSeated.isEmpty) {
         trace(s"hiding ${driver.Name}")
-        Continent.VehicleEvents ! VehicleSpawnPad.ConcealPlayer(driver.GUID)
+        pad.Owner.Zone.VehicleEvents ! VehicleSpawnPad.ConcealPlayer(driver.GUID)
         context.system.scheduler.scheduleOnce(2000 milliseconds, loadVehicle, order)
       }
       else {
         trace(s"integral component lost; abort order fulfillment")
-        VehicleSpawnControl.DisposeSpawnedVehicle(order, Continent)
+        VehicleSpawnControl.DisposeSpawnedVehicle(order, pad.Owner.Zone)
         context.parent ! VehicleSpawnControl.ProcessControl.GetNewOrder
       }
 

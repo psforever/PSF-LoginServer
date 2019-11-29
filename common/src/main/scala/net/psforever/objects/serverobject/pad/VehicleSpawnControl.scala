@@ -61,7 +61,7 @@ class VehicleSpawnControl(pad : VehicleSpawnPad) extends VehicleSpawnControlBase
         SelectOrder()
       }
       else {
-        Continent.VehicleEvents ! VehicleSpawnPad.PeriodicReminder(player.Name, VehicleSpawnPad.Reminders.Queue, Some(orders.length + 1))
+        pad.Owner.Zone.VehicleEvents ! VehicleSpawnPad.PeriodicReminder(player.Name, VehicleSpawnPad.Reminders.Queue, Some(orders.length + 1))
       }
 
     case VehicleSpawnControl.ProcessControl.GetNewOrder =>
@@ -160,15 +160,15 @@ class VehicleSpawnControl(pad : VehicleSpawnPad) extends VehicleSpawnControlBase
   def CancelOrder(entry : VehicleSpawnControl.Order)(implicit context : ActorContext) : Unit = {
     val vehicle = entry.vehicle
     if(vehicle.Seats.values.count(_.isOccupied) == 0) {
-      VehicleSpawnControl.DisposeSpawnedVehicle(entry, Continent)
-      Continent.VehicleEvents ! VehicleSpawnPad.PeriodicReminder(entry.driver.Name, VehicleSpawnPad.Reminders.Cancelled)
+      VehicleSpawnControl.DisposeSpawnedVehicle(entry, pad.Owner.Zone)
+      pad.Owner.Zone.VehicleEvents ! VehicleSpawnPad.PeriodicReminder(entry.driver.Name, VehicleSpawnPad.Reminders.Cancelled)
     }
   }
 
   @tailrec private final def recursiveBlockedReminder(iter : Iterator[VehicleSpawnControl.Order], cause : Option[Any]) : Unit = {
     if(iter.hasNext) {
       val recipient = iter.next
-      Continent.VehicleEvents ! VehicleSpawnPad.PeriodicReminder(recipient.driver.Name, VehicleSpawnPad.Reminders.Blocked, cause)
+      pad.Owner.Zone.VehicleEvents ! VehicleSpawnPad.PeriodicReminder(recipient.driver.Name, VehicleSpawnPad.Reminders.Blocked, cause)
       recursiveBlockedReminder(iter, cause)
     }
   }
@@ -176,7 +176,7 @@ class VehicleSpawnControl(pad : VehicleSpawnPad) extends VehicleSpawnControlBase
   @tailrec private final def recursiveOrderReminder(iter : Iterator[VehicleSpawnControl.Order], position : Int = 2) : Unit = {
     if(iter.hasNext) {
       val recipient = iter.next
-      Continent.VehicleEvents ! VehicleSpawnPad.PeriodicReminder(recipient.driver.Name, VehicleSpawnPad.Reminders.Queue, Some(position))
+      pad.Owner.Zone.VehicleEvents ! VehicleSpawnPad.PeriodicReminder(recipient.driver.Name, VehicleSpawnPad.Reminders.Queue, Some(position))
       recursiveOrderReminder(iter, position + 1)
     }
   }

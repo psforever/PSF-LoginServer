@@ -153,11 +153,11 @@ class LocalService(zone : Zone) extends Actor {
     //message from ProximityTerminalControl
     case Terminal.StartProximityEffect(terminal) =>
       LocalEvents.publish(
-        LocalServiceResponse(s"/${terminal.Owner.Continent}/Local", PlanetSideGUID(0), LocalResponse.ProximityTerminalEffect(terminal.GUID, true))
+        LocalServiceResponse(s"/${zone.Id}/Local", PlanetSideGUID(0), LocalResponse.ProximityTerminalEffect(terminal.GUID, true))
       )
     case Terminal.StopProximityEffect(terminal) =>
       LocalEvents.publish(
-        LocalServiceResponse(s"/${terminal.Owner.Continent}/Local", PlanetSideGUID(0), LocalResponse.ProximityTerminalEffect(terminal.GUID, false))
+        LocalServiceResponse(s"/${zone.Id}/Local", PlanetSideGUID(0), LocalResponse.ProximityTerminalEffect(terminal.GUID, false))
       )
 
     case HackCaptureActor.HackTimeoutReached(capture_terminal_guid, _, _, _, hackedByFaction) =>

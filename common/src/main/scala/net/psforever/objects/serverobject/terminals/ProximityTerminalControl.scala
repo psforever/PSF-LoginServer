@@ -6,7 +6,6 @@ import net.psforever.objects._
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
 import net.psforever.objects.serverobject.hackable.HackableBehavior
-import net.psforever.objects.serverobject.structures.Building
 import services.Service
 
 import scala.collection.mutable
@@ -41,15 +40,14 @@ class ProximityTerminalControl(term : Terminal with ProximityUnit) extends Actor
   def Run : Receive = checkBehavior
       .orElse(hackableBehavior)
       .orElse {
-      case CommonMessages.Use(_, Some(target : PlanetSideGameObject)) =>
-        if(term.Definition.asInstanceOf[ProximityDefinition].Validations.exists(p => p(target))) {
-          Use(target, term.Continent, sender)
-        }
-
-      case CommonMessages.Use(_, Some((target : PlanetSideGameObject, callback : ActorRef))) =>
-        if(term.Definition.asInstanceOf[ProximityDefinition].Validations.exists(p => p(target))) {
-          Use(target, term.Continent, callback)
-        }
+        case CommonMessages.Use(_, Some(target : PlanetSideGameObject)) =>
+          if(term.Definition.asInstanceOf[ProximityDefinition].Validations.exists(p => p(target))) {
+            Use(target, term.Continent, sender)
+          }
+        case CommonMessages.Use(_, Some((target : PlanetSideGameObject, callback : ActorRef))) =>
+          if(term.Definition.asInstanceOf[ProximityDefinition].Validations.exists(p => p(target))) {
+            Use(target, term.Continent, callback)
+          }
 
       case CommonMessages.Use(_, _) =>
         log.warn(s"unexpected format for CommonMessages.Use in this context")
@@ -97,7 +95,7 @@ class ProximityTerminalControl(term : Terminal with ProximityUnit) extends Actor
         import scala.concurrent.ExecutionContext.Implicits.global
         terminalAction.cancel
         terminalAction = context.system.scheduler.schedule(500 milliseconds, medDef.Interval, self, ProximityTerminalControl.TerminalAction())
-        TerminalObject.Owner.asInstanceOf[Building].Zone.LocalEvents ! Terminal.StartProximityEffect(term)
+        TerminalObject.Owner.Zone.LocalEvents ! Terminal.StartProximityEffect(term)
       }
     }
     else {
@@ -116,7 +114,7 @@ class ProximityTerminalControl(term : Terminal with ProximityUnit) extends Actor
       //de-activation (global / local)
       if(term.NumberUsers == 0 && hadUsers) {
         terminalAction.cancel
-        TerminalObject.Owner.asInstanceOf[Building].Zone.LocalEvents ! Terminal.StopProximityEffect(term)
+        TerminalObject.Owner.Zone.LocalEvents ! Terminal.StopProximityEffect(term)
       }
     }
     else {

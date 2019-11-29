@@ -38,9 +38,9 @@ class VehicleSpawnControlSeatDriver(pad : VehicleSpawnPad) extends VehicleSpawnC
 
     case VehicleSpawnControlSeatDriver.BeginDriverInSeat(entry) =>
       val driver = entry.driver
-      if(entry.vehicle.Health > 0 && driver.isAlive && driver.Continent == Continent.Id && driver.VehicleSeated.isEmpty) {
+      if(entry.vehicle.Health > 0 && driver.isAlive && driver.Continent == pad.Continent && driver.VehicleSeated.isEmpty) {
         trace("driver to be made seated in vehicle")
-        Continent.VehicleEvents ! VehicleSpawnPad.StartPlayerSeatedInVehicle(entry.driver.Name, entry.vehicle, pad)
+        pad.Owner.Zone.VehicleEvents ! VehicleSpawnPad.StartPlayerSeatedInVehicle(entry.driver.Name, entry.vehicle, pad)
       }
       else{
         trace("driver lost; vehicle stranded on pad")
@@ -50,7 +50,7 @@ class VehicleSpawnControlSeatDriver(pad : VehicleSpawnPad) extends VehicleSpawnC
     case VehicleSpawnControlSeatDriver.DriverInSeat(entry) =>
       if(entry.driver.isAlive && entry.vehicle.PassengerInSeat(entry.driver).contains(0)) {
         trace(s"driver ${entry.driver.Name} has taken the wheel")
-        Continent.VehicleEvents ! VehicleSpawnPad.PlayerSeatedInVehicle(entry.driver.Name, entry.vehicle, pad)
+        pad.Owner.Zone.VehicleEvents ! VehicleSpawnPad.PlayerSeatedInVehicle(entry.driver.Name, entry.vehicle, pad)
       }
       else {
         trace("driver lost, but operations can continue")

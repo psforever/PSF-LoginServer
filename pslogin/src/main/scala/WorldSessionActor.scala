@@ -2312,7 +2312,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
               val toFaction = tplayer.Faction
               val pad = continent.GUID(pad_guid).get.asInstanceOf[VehicleSpawnPad]
               vehicle.Faction = toFaction
-              vehicle.Continent = continent.Id
               vehicle.Position = pad.Position
               vehicle.Orientation = pad.Orientation
               //default loadout, weapons

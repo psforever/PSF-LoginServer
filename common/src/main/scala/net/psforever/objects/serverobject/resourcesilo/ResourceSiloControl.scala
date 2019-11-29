@@ -32,9 +32,9 @@ class ResourceSiloControl(resourceSilo : ResourceSilo) extends Actor with Factio
     case ResourceSilo.LowNtuWarning(enabled: Boolean) =>
       resourceSilo.LowNtuWarningOn = enabled
       log.trace(s"LowNtuWarning: Silo ${resourceSilo.GUID} low ntu warning set to $enabled")
-      val building = resourceSilo.Owner.asInstanceOf[Building]
+      val building = resourceSilo.Owner
       val zone = building.Zone
-      zone.AvatarEvents ! AvatarServiceMessage(
+      building.Zone.AvatarEvents ! AvatarServiceMessage(
         zone.Id,
         AvatarAction.PlanetsideAttribute(building.GUID, 47, if(resourceSilo.LowNtuWarningOn) 1 else 0)
       )
@@ -54,7 +54,7 @@ class ResourceSiloControl(resourceSilo : ResourceSilo) extends Actor with Factio
         log.trace(s"Silo ${resourceSilo.GUID} NTU bar level has changed from ${resourceSilo.CapacitorDisplay} to $ntuBarLevel")
         resourceSilo.CapacitorDisplay = ntuBarLevel
         resourceSilo.Owner.Actor ! Building.SendMapUpdate(all_clients = true)
-        val building = resourceSilo.Owner.asInstanceOf[Building]
+        val building = resourceSilo.Owner
         val zone = building.Zone
         zone.AvatarEvents ! AvatarServiceMessage(
           zone.Id,
@@ -69,7 +69,7 @@ class ResourceSiloControl(resourceSilo : ResourceSilo) extends Actor with Factio
         self ! ResourceSilo.LowNtuWarning(enabled = true)
       }
 
-      val building = resourceSilo.Owner.asInstanceOf[Building]
+      val building = resourceSilo.Owner
       val zone = building.Zone
       if(resourceSilo.ChargeLevel == 0 && siloChargeBeforeChange > 0) {
         // Oops, someone let the base run out of power. Shut it all down.
@@ -85,7 +85,7 @@ class ResourceSiloControl(resourceSilo : ResourceSilo) extends Actor with Factio
         //todo: Check generator is online before starting up
         zone.AvatarEvents ! AvatarServiceMessage(
           zone.Id,
-          AvatarAction.PlanetsideAttribute(resourceSilo.Owner.asInstanceOf[Building].GUID, 48, 0)
+          AvatarAction.PlanetsideAttribute(building.GUID, 48, 0)
         )
       }
     case _ => ;

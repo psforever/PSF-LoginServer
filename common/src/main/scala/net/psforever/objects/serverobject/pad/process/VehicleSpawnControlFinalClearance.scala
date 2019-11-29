@@ -26,13 +26,14 @@ class VehicleSpawnControlFinalClearance(pad : VehicleSpawnPad) extends VehicleSp
 
   def receive : Receive = {
     case order @ VehicleSpawnControl.Order(driver, vehicle) =>
-      Continent.VehicleEvents ! VehicleSpawnPad.ResetSpawnPad(pad)
+      pad.Owner.Zone.VehicleEvents ! VehicleSpawnPad.ResetSpawnPad(pad)
       if(vehicle.PassengerInSeat(driver).isEmpty) {
         //ensure the vehicle is outside of the trench
-        val z = (Continent.Map
+        val zone = pad.Owner.Zone
+        val z = (zone.Map
           .TerminalToSpawnPad
           .find { case (_, b) => b == pad.GUID.guid } match {
-          case Some((a, _)) => Continent.GUID(a)
+          case Some((a, _)) => zone.GUID(a)
           case None => None
         }) match {
           //most terminals are at least as high as the pad
@@ -41,7 +42,7 @@ class VehicleSpawnControlFinalClearance(pad : VehicleSpawnPad) extends VehicleSp
         }
         vehicle.Position = pad.Position.xy + Vector3.z(z)
         val definition = vehicle.Definition
-        Continent.VehicleEvents ! VehicleServiceMessage(s"${Continent.Id}", VehicleAction.LoadVehicle(PlanetSideGUID(0), vehicle, definition.ObjectId, vehicle.GUID, definition.Packet.ConstructorData(vehicle).get))
+        pad.Owner.Zone.VehicleEvents ! VehicleServiceMessage(s"${pad.Continent}", VehicleAction.LoadVehicle(PlanetSideGUID(0), vehicle, definition.ObjectId, vehicle.GUID, definition.Packet.ConstructorData(vehicle).get))
       }
       context.parent ! VehicleSpawnControl.ProcessControl.Reminder
       self ! VehicleSpawnControlFinalClearance.Test(order)

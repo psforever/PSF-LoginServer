@@ -27,8 +27,8 @@ class VehicleSpawnControlServerVehicleOverride(pad : VehicleSpawnPad) extends Ve
   def receive : Receive = {
     case order @ VehicleSpawnControl.Order(driver, vehicle) =>
       val vehicleFailState = vehicle.Health == 0 || vehicle.Position == Vector3.Zero
-      val driverFailState = !driver.isAlive || driver.Continent != Continent.Id || !vehicle.PassengerInSeat(driver).contains(0)
-      Continent.VehicleEvents ! VehicleSpawnPad.DetachFromRails(vehicle, pad)
+      val driverFailState = !driver.isAlive || driver.Continent != pad.Continent || !vehicle.PassengerInSeat(driver).contains(0)
+      pad.Owner.Zone.VehicleEvents ! VehicleSpawnPad.DetachFromRails(vehicle, pad)
       if(vehicleFailState || driverFailState) {
         if(vehicleFailState) {
           trace(s"vehicle was already destroyed")
@@ -36,12 +36,12 @@ class VehicleSpawnControlServerVehicleOverride(pad : VehicleSpawnPad) extends Ve
         else {
           trace(s"driver is not ready")
         }
-        Continent.VehicleEvents ! VehicleSpawnPad.RevealPlayer(order.DriverGUID)
+        pad.Owner.Zone.VehicleEvents ! VehicleSpawnPad.RevealPlayer(order.DriverGUID)
         driverControl ! order
       }
       else {
         trace(s"telling ${driver.Name} that the server is assuming control of the ${vehicle.Definition.Name}")
-        Continent.VehicleEvents ! VehicleSpawnPad.ServerVehicleOverrideStart(driver.Name, vehicle, pad)
+        pad.Owner.Zone.VehicleEvents ! VehicleSpawnPad.ServerVehicleOverrideStart(driver.Name, vehicle, pad)
         context.system.scheduler.scheduleOnce(4000 milliseconds, driverControl, order)
       }
 
