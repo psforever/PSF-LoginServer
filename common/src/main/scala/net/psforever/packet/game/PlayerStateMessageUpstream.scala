@@ -16,10 +16,13 @@ import scodec.codecs._
   * @param pos where the player is in the world
   * @param vel how the player is moving
   * @param facingYaw a "yaw" angle
-  * @param facingPitch a "pitch" angle
+  * @param facingPitch a "pitch" angle;
+  *                    0 for forward-facing;
+  *                    75.9375 for the up-facing limit;
+  *                    -73.125 for the down-facing limit
   * @param facingYawUpper a "yaw" angle that represents the angle of the avatar's upper body with respect to its forward-facing direction;
-  *                       this number is normally 0 for forward facing;
-  *                       the range is limited between approximately 61 degrees of center turned to left or right
+  *                       0 for forward-facing;
+  *                       +/-61.875 for the clockwise/counterclockwise turn limits, respectively
   * @param seq_time the "time frame" according to the server;
   *                 starts at 0; max value is 1023 before resetting
   * @param unk1 na
@@ -59,8 +62,8 @@ object PlayerStateMessageUpstream extends Marshallable[PlayerStateMessageUpstrea
       ("pos" | Vector3.codec_pos) ::
       ("vel" | optional(bool, Vector3.codec_vel)) ::
       ("facingYaw" | Angular.codec_yaw()) ::
-      ("facingPitch" | Angular.codec_pitch) ::
-      ("facingYawUpper" | Angular.codec_yaw(0f)) ::
+      ("facingPitch" | Angular.codec_zero_centered) ::
+      ("facingYawUpper" | Angular.codec_zero_centered) ::
       ("seq_time" | uintL(10)) ::
       ("unk1" | uintL(3)) ::
       ("is_crouching" | bool) ::

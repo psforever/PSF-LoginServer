@@ -21,10 +21,7 @@ object Angular {
       case _ :: roll :: HNil =>
         roll
     },
-    {
-      case roll : Float =>
-        () :: roll :: HNil
-    }
+    roll => () :: roll :: HNil
   )
 
   def codec_roll(bits : Int) : Codec[Float] = newcodecs.q_float(0.0f, 360.0f, bits)
@@ -38,21 +35,12 @@ object Angular {
       case _ :: pitch :: HNil =>
         pitch
     },
-    {
-      case pitch : Float =>
-        () :: pitch :: HNil
-    }
+    pitch => () :: pitch :: HNil
   )
 
   def codec_pitch(bits : Int) : Codec[Float] = newcodecs.q_float(360.0f, 0.0f, bits).xmap[Float] (
-    {
-      case pitch =>
-        decodeCorrectedAngle(pitch)
-    },
-    {
-      case pitch : Float =>
-        encodeCorrectedAngle(pitch)
-    }
+    pitch => decodeCorrectedAngle(pitch),
+    pitch => encodeCorrectedAngle(pitch)
   )
 
   //yaw
@@ -64,20 +52,21 @@ object Angular {
       case _ :: yaw :: HNil =>
         yaw
     },
-    {
-      case yaw : Float =>
-        () :: yaw :: HNil
-    }
+    yaw => () :: yaw :: HNil
   )
 
   def codec_yaw(bits : Int, North : Float) : Codec[Float] = newcodecs.q_float(360.0f, 0.0f, bits).xmap[Float] (
-    {
-      case yaw =>
-        decodeCorrectedAngle(yaw, North)
-    },
-    {
-      case yaw : Float =>
-        encodeCorrectedAngle(yaw, North)
+    yaw => decodeCorrectedAngle(yaw, North),
+    yaw => encodeCorrectedAngle(yaw, North)
+  )
+
+  val codec_zero_centered : Codec[Float] =  codec_yaw(North = 0).xmap[Float] (
+    out => if(out > 180) out - 360 else out,
+    in => {
+      val adjustedIn = in % 360
+      if(adjustedIn < 0) 360 + adjustedIn
+      else if(adjustedIn > 180) 360 - adjustedIn
+      else adjustedIn
     }
   )
 

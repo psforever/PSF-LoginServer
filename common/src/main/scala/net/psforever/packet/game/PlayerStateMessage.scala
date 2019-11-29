@@ -94,8 +94,8 @@ object PlayerStateMessage extends Marshallable[PlayerStateMessage] {
       ("pos" | Vector3.codec_pos) ::
       optional(bool, "vel" | Vector3.codec_vel) ::
       ("facingYaw" | Angular.codec_yaw()) ::
-      ("facingPitch" | Angular.codec_pitch) ::
-      ("facingYawUpper" | Angular.codec_yaw(0f)) ::
+      ("facingPitch" | Angular.codec_zero_centered) ::
+      ("facingYawUpper" | Angular.codec_zero_centered) ::
       ("unk1" | uintL(10)) ::
       (bool >>:~ { fourBools =>
         newcodecs.binary_choice(!fourBools, booleanCodec, defaultCodec)

@@ -51,7 +51,7 @@ object AutoDriveControls {
       * @param vehicle the vehicle being controlled
       * @return `true`, if the action can (probably) be accomplished under the current conditions; `false`, otherwise
       */
-    def Validate(vehicle : Vehicle) : Boolean = Vector3.MagnitudeSquared(vehicle.Velocity.getOrElse(Vector3.Zero).xy) > 0
+    def Validate(vehicle : Vehicle) : Boolean = vehicle.isMoving
     /**
       * Perform a test to determine if the vehicle has reached a set of conditions
       * where the action performed by the instruction has been fulfilled.
@@ -84,7 +84,7 @@ object AutoDriveControls {
 
     override def Validate(vehicle : Vehicle) : Boolean = true
 
-    def CompletionTest(vehicle : Vehicle) = Vector3.MagnitudeSquared(vehicle.Velocity.getOrElse(Vector3.Zero).xy) > 0
+    def CompletionTest(vehicle : Vehicle) = vehicle.isMoving
   }
 
   protected final case class AutoDriveDistance(start : Vector3, sqDistance : Float) extends Setting {
@@ -162,7 +162,7 @@ object AutoDriveControls {
 
     override def Data = Some(speed)
 
-    def CompletionTest(vehicle : Vehicle) = Vector3.MagnitudeSquared(vehicle.Velocity.getOrElse(Vector3.Zero)) > 0
+    def CompletionTest(vehicle : Vehicle) = vehicle.isMoving
 
     override def Validate(vehicle : Vehicle) : Boolean = {
       speed = vehicle.Definition.AutoPilotSpeed1
@@ -177,7 +177,7 @@ object AutoDriveControls {
 
     override def Data = Some(speed)
 
-    def CompletionTest(vehicle : Vehicle) = Vector3.MagnitudeSquared(vehicle.Velocity.getOrElse(Vector3.Zero)) > 0
+    def CompletionTest(vehicle : Vehicle) = vehicle.isMoving
 
     override def Validate(vehicle : Vehicle) : Boolean = {
       speed = vehicle.Definition.AutoPilotSpeed2

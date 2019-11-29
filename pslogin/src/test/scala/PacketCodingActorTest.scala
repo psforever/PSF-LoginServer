@@ -369,8 +369,8 @@ class PacketCodingActorETest extends ActorTest {
   "PacketCodingActor" should {
     "unwind l-originating hexadecimal data into multiple r-facing packets (MultiPacket -> 2 PlayerStateMessageUpstream)" in {
       val string_hex = RawPacket(hex"00 03 18 BD E8 04 5C 02  60 E3 F9 19 0E C1 41 27  00 04 02 60 20 0C 58 0B  20 00 00 18 BD E8 04 86  02 62 13 F9 19 0E D8 40  4D 00 04 02 60 20 0C 78  0A 80 00 00")
-      val string_obj1 = GamePacket(GamePacketOpcode.PlayerStateMessageUpstream, 0, PlayerStateMessageUpstream(PlanetSideGUID(1256),Vector3(3076.7188f,4734.1094f,56.390625f),Some(Vector3(4.0625f,4.59375f,0.0f)),36.5625f,357.1875f,0.0f,866,0,false,false,false,false,178,0))
-      val string_obj2 = GamePacket(GamePacketOpcode.PlayerStateMessageUpstream, 0, PlayerStateMessageUpstream(PlanetSideGUID(1256),Vector3(3077.0469f,4734.258f,56.390625f),Some(Vector3(5.5f,1.1875f,0.0f)),36.5625f,357.1875f,0.0f,867,0,false,false,false,false,168,0))
+      val string_obj1 = GamePacket(GamePacketOpcode.PlayerStateMessageUpstream, 0, PlayerStateMessageUpstream(PlanetSideGUID(1256),Vector3(3076.7188f,4734.1094f,56.390625f),Some(Vector3(4.0625f,4.59375f,0.0f)),36.5625f,-2.8125f,0.0f,866,0,false,false,false,false,178,0))
+      val string_obj2 = GamePacket(GamePacketOpcode.PlayerStateMessageUpstream, 0, PlayerStateMessageUpstream(PlanetSideGUID(1256),Vector3(3077.0469f,4734.258f,56.390625f),Some(Vector3(5.5f,1.1875f,0.0f)),36.5625f,-2.8125f,0.0f,867,0,false,false,false,false,168,0))
 
       val probe1 = TestProbe()
       val probe2 = system.actorOf(Props(classOf[ActorTest.MDCTestProbe], probe1), "mdc-probe")
@@ -454,7 +454,7 @@ class PacketCodingActorHTest extends ActorTest {
 class PacketCodingActorITest extends ActorTest {
   import net.psforever.packet.game.objectcreate._
   val pos : PlacementData = PlacementData(Vector3.Zero, Vector3.Zero)
-  val app : (Int)=>CharacterAppearanceData = CharacterAppearanceData(
+  val app : Int=>CharacterAppearanceData = CharacterAppearanceData(
     BasicCharacterData("IlllIIIlllIlIllIlllIllI", PlanetSideEmpire.VS, CharacterGender.Female, 41, CharacterVoice.Voice1),
     false,
     false,
@@ -462,7 +462,7 @@ class PacketCodingActorITest extends ActorTest {
     "",
     0,
     false,
-    2.8125f, 210.9375f,
+    2.8125f, 0f,
     true,
     GrenadeState.None,
     false,
@@ -470,7 +470,7 @@ class PacketCodingActorITest extends ActorTest {
     None,
     RibbonBars()
   )
-  var char : (Option[Int])=>DetailedCharacterData = DetailedCharacterData(
+  var char : Option[Int]=>DetailedCharacterData = DetailedCharacterData(
     0,
     0,
     100, 100,
@@ -484,8 +484,9 @@ class PacketCodingActorITest extends ActorTest {
     None
   )
   val obj = DetailedPlayerData(pos, app, char, InventoryData(Nil), DrawnSlot.None)
+  //println(s"${PacketCoding.EncodePacket(ObjectCreateDetailedMessage(0x79, PlanetSideGUID(75), obj))}")
   val pkt = MultiPacketBundle(List(ObjectCreateDetailedMessage(0x79, PlanetSideGUID(75), obj)))
-  val string_hex = hex"00090000186c060000bc84b000000000000000000002040000097049006c006c006c004900490049006c006c006c0049006c0049006c006c0049006c006c006c0049006c006c00490084524000000000000000000000000000000020000007f35703fffffffffffffffffffffffffffffffc000000000000000000000000000000000000000190019000640000000000c800c80000000000000000000000000000000000000001c00042c54686c7000000000000000000000000000000000000000000000000000000000000100000000400e0"
+  val string_hex = hex"00090000186c060000bc84b000000000000000000002040000097049006c006c006c004900490049006c006c006c0049006c0049006c006c0049006c006c006c0049006c006c00490084524000000000000000000000000000000020000007f00703fffffffffffffffffffffffffffffffc000000000000000000000000000000000000000190019000640000000000c800c80000000000000000000000000000000000000001c00042c54686c7000000000000000000000000000000000000000000000000000000000000100000000400e0"
 
   "PacketCodingActor" should {
     "bundle an r-originating packet into an l-facing SlottedMetaPacket byte stream data (SlottedMetaPacket)" in {
@@ -582,7 +583,7 @@ class PacketCodingActorKTest extends ActorTest {
     false,
     false,
     false,
-    2.8125f, 210.9375f,
+    2.8125f, 0f,
     false,
     GrenadeState.None,
     false,
@@ -593,7 +594,7 @@ class PacketCodingActorKTest extends ActorTest {
     None
   )
 
-  val app : (Int)=>CharacterAppearanceData = CharacterAppearanceData(
+  val app : Int=>CharacterAppearanceData = CharacterAppearanceData(
     aa, ab,
     RibbonBars()
   )
@@ -635,7 +636,7 @@ class PacketCodingActorKTest extends ActorTest {
     Nil, Nil, false,
     None
   )
-  val char : (Option[Int])=>DetailedCharacterData =
+  val char : Option[Int]=>DetailedCharacterData =
     (pad_length : Option[Int]) => DetailedCharacterData(ba, bb(ba.bep, pad_length))(pad_length)
   val obj = DetailedPlayerData(pos, app, char, InventoryData(Nil), DrawnSlot.None)
   val list = List(

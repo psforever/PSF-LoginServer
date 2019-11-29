@@ -66,7 +66,7 @@ class PlayerStateMessageTest extends Specification {
         vel.get.y mustEqual 6.5625f
         vel.get.z mustEqual 0.0f
         facingYaw mustEqual 22.5f
-        facingPitch mustEqual 348.75f
+        facingPitch mustEqual -11.25f
         facingUpper mustEqual 0f
         unk1 mustEqual 165
         crouching mustEqual false
@@ -105,7 +105,7 @@ class PlayerStateMessageTest extends Specification {
       PlanetSideGUID(1696),
       Vector3(4008.6016f, 5987.6016f, 44.1875f),
       Some(Vector3(2.53125f, 6.5625f, 0f)),
-      22.5f, 348.75f, 0f, 165,
+      22.5f, -11.25f, 0f, 165,
       false, false, false, false)
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
     pkt mustEqual string_vel

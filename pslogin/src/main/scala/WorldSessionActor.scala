@@ -65,6 +65,7 @@ import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.util.Success
 import akka.pattern.ask
+import net.psforever.objects.entity.{SimpleWorldEntity, WorldEntity}
 import net.psforever.objects.vehicles.Utility.InternalTelepad
 import services.local.support.{HackCaptureActor, RouterTelepadActivation}
 import services.support.SupportActor
@@ -1480,7 +1481,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             (distanceSq < 10000 && time > 500) ||
             (distanceSq < 160000 && (
               (is_jumping || time < 200)) ||
-              ((vel.isEmpty || Vector3.MagnitudeSquared(vel.get).toInt == 0) && time > 2000) ||
+              (!WorldEntity.isMoving(vel) && time > 2000) ||
               (time > 1000)) ||
             (distanceSq > 160000 && time > 5000)) {
             sendResponse(
@@ -3243,30 +3244,43 @@ class WorldSessionActor extends Actor with MDCContextAware {
   def HandleHackingProgress(progressType : Int, tplayer : Player, target : PlanetSideServerObject, tool_guid : PlanetSideGUID, delta : Float, completeAction : ()=>Unit, tickAction : Option[()=>Unit]) : Unit = {
     progressBarUpdate.cancel
     if(progressBarValue.isDefined) {
-      val progressBarVal : Float = progressBarValue.get + delta
+      val progressBarVal : Float = if (progressBarValue.get + delta > 100) { 100f } else { progressBarValue.get + delta }
+
       val vis = if(progressBarVal == 0L) {
         //hack state for progress bar visibility
         HackState.Start
       }
-      else if(progressBarVal > 100L) {
+      else if(progressBarVal >= 100L) {
         HackState.Finished
+      }
+      else if(target.Velocity.isDefined && Vector3.Distance(Vector3.Zero, target.Velocity.get) > 1f) {
+        // If the object is moving (more than slightly to account for things like magriders rotating, or the last velocity reported being the magrider dipping down on dismount) then cancel the hack
+        HackState.Cancelled
       }
       else {
         HackState.Ongoing
       }
-      sendResponse(HackMessage(progressType, target.GUID, player.GUID, progressBarVal.toInt, 0L, vis, 8L))
-      if(progressBarVal > 100) {
-        //done
-        progressBarValue = None
-        //          sendResponse(HackMessage(0, target.GUID, player.GUID, 100, 1114636288L, HackState.Hacked, 8L))
-        completeAction()
+
+      if(vis == HackState.Cancelled) {
+        // Object moved. Cancel the hack (e.g. vehicle drove away)
+        sendResponse(HackMessage(progressType, target.GUID, player.GUID, 0, 0L, vis, 8L))
       }
-      else {
-        //continue next tick
-        tickAction.getOrElse(() => Unit)()
-        progressBarValue = Some(progressBarVal)
-        import scala.concurrent.ExecutionContext.Implicits.global
-        progressBarUpdate = context.system.scheduler.scheduleOnce(250 milliseconds, self, HackingProgress(progressType, tplayer, target, tool_guid, delta, completeAction))
+      else
+      {
+        sendResponse(HackMessage(progressType, target.GUID, player.GUID, progressBarVal.toInt, 0L, vis, 8L))
+
+        if(progressBarVal >= 100) {
+          //done
+          progressBarValue = None
+          completeAction()
+        }
+        else {
+          //continue next tick
+          tickAction.getOrElse(() => Unit)()
+          progressBarValue = Some(progressBarVal)
+          import scala.concurrent.ExecutionContext.Implicits.global
+          progressBarUpdate = context.system.scheduler.scheduleOnce(250 milliseconds, self, HackingProgress(progressType, tplayer, target, tool_guid, delta, completeAction))
+        }
       }
     }
   }
@@ -3510,7 +3524,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
       avatar.Certifications += ReinforcedExoSuit
       avatar.Certifications += ATV
       avatar.Certifications += Harasser
-      //
       avatar.Certifications += InfiltrationSuit
       avatar.Certifications += Sniping
       avatar.Certifications += AntiVehicular
@@ -3537,6 +3550,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
       avatar.Certifications += AssaultEngineering
       avatar.Certifications += Hacking
       avatar.Certifications += AdvancedHacking
+      avatar.Certifications += ElectronicsExpert
+      avatar.Certifications += Medical
+      avatar.Certifications += AdvancedMedical
       avatar.CEP = 6000001
       this.avatar = avatar
 
@@ -3897,98 +3913,94 @@ class WorldSessionActor extends Actor with MDCContextAware {
       self ! SetCurrentAvatar(player)
 
     case msg @ PlayerStateMessageUpstream(avatar_guid, pos, vel, yaw, pitch, yaw_upper, seq_time, unk3, is_crouching, is_jumping, jump_thrust, is_cloaking, unk5, unk6) =>
-      if(deadState == DeadState.Alive) {
-        val time = System.currentTimeMillis()
-        if (timeDL != 0) {
-          if (time - timeDL > 500) {
-            player.Stamina = player.Stamina - 1
-            avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttributeSelf(player.GUID, 2, player.Stamina))
-            timeDL = time
-          }
-        }
-        if (timeSurge != 0) {
-          if (time - timeSurge > 500 && player.ExoSuit == ExoSuitType.Agile) {
-            player.Stamina = player.Stamina - 1
-            avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttributeSelf(player.GUID, 2, player.Stamina))
-            timeSurge = time
-          }
-          else if (time - timeSurge > 333 && player.ExoSuit == ExoSuitType.Reinforced) {
-            player.Stamina = player.Stamina - 1
-            avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttributeSelf(player.GUID, 2, player.Stamina))
-            timeSurge = time
-          }
-          else if (time - timeSurge > 1000 && ( player.ExoSuit == ExoSuitType.Infiltration || player.ExoSuit == ExoSuitType.Standard )) {
-            player.Stamina = player.Stamina - 1
-            avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttributeSelf(player.GUID, 2, player.Stamina))
-            timeSurge = time
-          }
-        }
-        if (player.Stamina == 0) {
-          if (avatar.Implants(0).Active) {
-            avatar.Implants(0).Active = false
-            avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player.GUID, 28, avatar.Implant(0).id * 2))
-            sendResponse(AvatarImplantMessage(PlanetSideGUID(player.GUID.guid),ImplantAction.Activation,0,0))
-            timeDL = 0
-          }
-          if (avatar.Implants(1).Active) {
-            avatar.Implants(1).Active = false
-            avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player.GUID, 28, avatar.Implant(1).id * 2))
-            sendResponse(AvatarImplantMessage(PlanetSideGUID(player.GUID.guid),ImplantAction.Activation,1,0))
-            timeSurge = 0
-          }
-        }
-        if (vel.isEmpty && player.Stamina != player.MaxStamina) {
-          player.Stamina = player.Stamina + 1
+      //if(deadState == DeadState.Alive) {
+      val time = System.currentTimeMillis()
+      if (timeDL != 0) {
+        if (time - timeDL > 500) {
+          player.Stamina = player.Stamina - 1
           avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttributeSelf(player.GUID, 2, player.Stamina))
+          timeDL = time
         }
-        player.Position = pos
-        player.Velocity = vel
-        player.Orientation = Vector3(player.Orientation.x, pitch, yaw)
-        player.FacingYawUpper = yaw_upper
-        player.Crouching = is_crouching
-        player.Jumping = is_jumping
-        player.Cloaked = player.ExoSuit == ExoSuitType.Infiltration && is_cloaking
+      }
+      if (timeSurge != 0) {
+        if (time - timeSurge > 500 && player.ExoSuit == ExoSuitType.Agile) {
+          player.Stamina = player.Stamina - 1
+          avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttributeSelf(player.GUID, 2, player.Stamina))
+          timeSurge = time
+        }
+        else if (time - timeSurge > 333 && player.ExoSuit == ExoSuitType.Reinforced) {
+          player.Stamina = player.Stamina - 1
+          avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttributeSelf(player.GUID, 2, player.Stamina))
+          timeSurge = time
+        }
+        else if (time - timeSurge > 1000 && ( player.ExoSuit == ExoSuitType.Infiltration || player.ExoSuit == ExoSuitType.Standard )) {
+          player.Stamina = player.Stamina - 1
+          avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttributeSelf(player.GUID, 2, player.Stamina))
+          timeSurge = time
+        }
+      }
+      if (player.Stamina == 0) {
+        if (avatar.Implants(0).Active) {
+          avatar.Implants(0).Active = false
+          avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player.GUID, 28, avatar.Implant(0).id * 2))
+          sendResponse(AvatarImplantMessage(PlanetSideGUID(player.GUID.guid), ImplantAction.Activation, 0, 0))
+          timeDL = 0
+        }
+        if (avatar.Implants(1).Active) {
+          avatar.Implants(1).Active = false
+          avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player.GUID, 28, avatar.Implant(1).id * 2))
+          sendResponse(AvatarImplantMessage(PlanetSideGUID(player.GUID.guid), ImplantAction.Activation, 1, 0))
+          timeSurge = 0
+        }
+      }
+      val isMoving = WorldEntity.isMoving(vel)
+      if (!isMoving && player.Stamina < player.MaxStamina) {
+        player.Stamina = player.Stamina + 1
+        avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttributeSelf(player.GUID, 2, player.Stamina))
+      }
+      player.Position = pos
+      player.Velocity = vel
+      player.Orientation = Vector3(player.Orientation.x, pitch, yaw)
+      player.FacingYawUpper = yaw_upper
+      player.Crouching = is_crouching
+      player.Jumping = is_jumping
+      player.Cloaked = player.ExoSuit == ExoSuitType.Infiltration && is_cloaking
 
-        if(vel.isDefined && usingMedicalTerminal.isDefined) {
-          continent.GUID(usingMedicalTerminal) match {
-            case Some(term : Terminal with ProximityUnit) =>
-              StopUsingProximityUnit(term)
-            case _ => ;
+      if(isMoving && usingMedicalTerminal.isDefined) {
+        continent.GUID(usingMedicalTerminal) match {
+          case Some(term : Terminal with ProximityUnit) =>
+            StopUsingProximityUnit(term)
+          case _ => ;
+        }
+      }
+      accessedContainer match {
+        case Some(veh : Vehicle) =>
+          if(isMoving || Vector3.DistanceSquared(player.Position, veh.Position) > 100) {
+            val guid = player.GUID
+            sendResponse(UnuseItemMessage(guid, veh.GUID))
+            sendResponse(UnuseItemMessage(guid, guid))
+            veh.AccessingTrunk = None
+            UnAccessContents(veh)
+            accessedContainer = None
           }
-        }
-        accessedContainer match {
-          case Some(veh : Vehicle) =>
-            if(vel.isDefined || Vector3.DistanceSquared(player.Position, veh.Position) > 100) {
-              val guid = player.GUID
-              sendResponse(UnuseItemMessage(guid, veh.GUID))
-              sendResponse(UnuseItemMessage(guid, guid))
-              veh.AccessingTrunk = None
-              UnAccessContents(veh)
-              accessedContainer = None
+        case Some(container) => //just in case
+          if(isMoving) {
+            val guid = player.GUID
+            // If the container is a corpse and gets removed just as this runs it can cause a client disconnect, so we'll check the container has a GUID first.
+            if(container.HasGUID) {
+              sendResponse(UnuseItemMessage(guid, container.GUID))
             }
-          case Some(container) => //just in case
-            if(vel.isDefined) {
-              val guid = player.GUID
-              // If the container is a corpse and gets removed just as this runs it can cause a client disconnect, so we'll check the container has a GUID first.
-              if(container.HasGUID) {
-                sendResponse(UnuseItemMessage(guid, container.GUID))
-              }
-              sendResponse(UnuseItemMessage(guid, guid))
-              accessedContainer = None
-            }
-          case None => ;
-        }
-        val wepInHand : Boolean = player.Slot(player.DrawnSlot).Equipment match {
-          case Some(item) => item.Definition == GlobalDefinitions.bolt_driver
-          case None => false
-        }
-        avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlayerState(avatar_guid, player.Position, player.Velocity, yaw, pitch, yaw_upper, seq_time, is_crouching, is_jumping, jump_thrust, is_cloaking, spectator, wepInHand))
-        updateSquad()
+            sendResponse(UnuseItemMessage(guid, guid))
+            accessedContainer = None
+          }
+        case None => ;
       }
-      else {
-        timeDL = 0
-        timeSurge = 0
+      val wepInHand : Boolean = player.Slot(player.DrawnSlot).Equipment match {
+        case Some(item) => item.Definition == GlobalDefinitions.bolt_driver
+        case None => false
       }
+      avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlayerState(avatar_guid, player.Position, player.Velocity, yaw, pitch, yaw_upper, seq_time, is_crouching, is_jumping, jump_thrust, is_cloaking, spectator, wepInHand))
+      updateSquad()
 
     case msg @ ChildObjectStateMessage(object_guid, pitch, yaw) =>
       //the majority of the following check retrieves information to determine if we are in control of the child
@@ -4839,7 +4851,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
             accessedContainer = Some(obj)
           }
-          else if(!unk3) { //potential kit use
+          else if(!unk3 && player.isAlive) { //potential kit use
             continent.GUID(item_used_guid) match {
               case Some(kit : Kit) =>
                 player.Find(kit) match {
@@ -4853,7 +4865,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                       }
                       else {
                         player.Find(kit) match {
-                          case Some(index) =>
+                          case Some(index)  =>
                             whenUsedLastKit = System.currentTimeMillis
                             player.Slot(index).Equipment = None //remove from slot immediately; must exist on client for next packet
                             sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, 0, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
@@ -4957,7 +4969,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                 if (tool.Definition == GlobalDefinitions.bank) {
                   continent.GUID(object_guid) match {
                     case Some(tplayer: Player) =>
-                      if (player.GUID != tplayer.GUID && Vector3.Distance(player.Position, tplayer.Position) < 5 && player.Faction == tplayer.Faction && player.Velocity.isEmpty && tplayer.MaxArmor > 0) {
+                      if (player.GUID != tplayer.GUID && Vector3.Distance(player.Position, tplayer.Position) < 5 && player.Faction == tplayer.Faction && !player.isMoving && tplayer.MaxArmor > 0 && tplayer.Armor < tplayer.MaxArmor) {
                         tplayer.Armor += 15
                         tool.Discharge
                         sendResponse(InventoryStateMessage(tool.AmmoSlot.Box.GUID, obj.GUID, tool.Magazine))
@@ -4965,7 +4977,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                         sendResponse(RepairMessage(object_guid, RepairPercent))
 
                         avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.PlanetsideAttributeToAll(tplayer.GUID, 4, tplayer.Armor))
-                      } else if (player.GUID == tplayer.GUID && player.Velocity.isEmpty && tplayer.MaxArmor > 0) {
+                      } else if (player.GUID == tplayer.GUID && !player.isMoving && tplayer.MaxArmor > 0) {
                         player.Armor += 15
                         tool.Discharge
                         sendResponse(InventoryStateMessage(tool.AmmoSlot.Box.GUID, obj.GUID, tool.Magazine))
@@ -4976,8 +4988,14 @@ class WorldSessionActor extends Actor with MDCContextAware {
                 } else if (tool.Definition == GlobalDefinitions.medicalapplicator) {
                   continent.GUID(object_guid) match {
                     case Some(tplayer: Player) =>
-                      if (player.GUID != tplayer.GUID && Vector3.Distance(player.Position, tplayer.Position) < 5 && player.Faction == tplayer.Faction && player.Velocity.isEmpty && tplayer.MaxHealth > 0) {
-                        tplayer.Health += 10
+                      if (player.GUID != tplayer.GUID && Vector3.Distance(player.Position, tplayer.Position) < 5 && player.Faction == tplayer.Faction && !player.isMoving && tplayer.MaxHealth > 0 && tplayer.Health < tplayer.MaxHealth) {
+                        if(tplayer.isAlive) {
+                          tplayer.Health += 10
+                        } else {
+                          // Reviving another player is normally 25 "medical energy" (ammo) and 5,000 milliseconds duration, based on the game properties revive_ammo_required and revive_time
+                          //todo: @NotEnoughAmmoToRevive=You do not have enough medical energy to revive this corpse.
+                          tplayer.Health += 4 // 4 health per tick = 5 second revive timer from 0 health
+                        }
                         tool.Discharge
                         sendResponse(InventoryStateMessage(tool.AmmoSlot.Box.GUID, obj.GUID, tool.Magazine))
                         val repairPercent: Int = tplayer.Health * 100 / tplayer.MaxHealth
@@ -4991,7 +5009,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                         if(tplayer.isAlive) {
                           avatarService ! AvatarServiceMessage(tplayer.Continent, AvatarAction.PlanetsideAttributeToAll(tplayer.GUID, 0, tplayer.Health))
                         }
-                      } else if (player.GUID == tplayer.GUID && player.Velocity.isEmpty && tplayer.MaxHealth > 0) {
+                      } else if (player.GUID == tplayer.GUID && !player.isMoving && tplayer.MaxHealth > 0 && player.isAlive) {
                         player.Health += 10
                         tool.Discharge
                         sendResponse(InventoryStateMessage(tool.AmmoSlot.Box.GUID, obj.GUID, tool.Magazine))
@@ -5124,7 +5142,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
               equipment.get.Definition match {
                 case GlobalDefinitions.nano_dispenser =>
                   //TODO repairing behavior
-                  if (player.Velocity.isEmpty && Vector3.Distance(player.Position, obj.Position) < 5) {
+                  if (!player.isMoving && Vector3.Distance(player.Position, obj.Position) < 5) {
                     if (obj.Health < obj.MaxHealth) {
                       obj.Health += 48
                       //                sendResponse(QuantityUpdateMessage(PlanetSideGUID(8214),ammo_quantity_left))
@@ -5499,7 +5517,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             }
             val (angle, attribution, acceptableDistanceToOwner) = obj match {
               case p : Player =>
-                (p.Orientation, tool.Definition.ObjectId, 10f + (if(p.Velocity.nonEmpty) { 5f } else { 0f })) //TODO upper body facing
+                (SimpleWorldEntity.validateOrientationEntry(p.Orientation + Vector3.z(p.FacingYawUpper)), tool.Definition.ObjectId, 10f + (if(p.Velocity.nonEmpty) { 5f } else { 0f }))
               case v : Vehicle if v.Definition.CanFly =>
                 (tool.Orientation, obj.Definition.ObjectId, 1000f) //TODO this is too simplistic to find proper angle
               case _ : Vehicle =>
@@ -7817,6 +7835,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
     val respawnTimer = 300000 //milliseconds
     tplayer.Die
     deadState = DeadState.Dead
+    timeDL = 0
+    timeSurge = 0
     sendResponse(PlanetsideAttributeMessage(player_guid, 0, 0))
     sendResponse(PlanetsideAttributeMessage(player_guid, 2, 0))
     avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player_guid, 0, 0))
