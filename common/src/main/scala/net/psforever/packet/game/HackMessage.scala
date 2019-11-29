@@ -21,7 +21,7 @@ object HackState extends Enumeration {
   val
   Unknown0,
   Start,
-  Unknown2,
+  Cancelled,
   Ongoing,
   Finished,
   Unknown5,
