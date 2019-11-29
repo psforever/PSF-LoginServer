@@ -3913,51 +3913,70 @@ class WorldSessionActor extends Actor with MDCContextAware {
       self ! SetCurrentAvatar(player)
 
     case msg @ PlayerStateMessageUpstream(avatar_guid, pos, vel, yaw, pitch, yaw_upper, seq_time, unk3, is_crouching, is_jumping, jump_thrust, is_cloaking, unk5, unk6) =>
-      //if(deadState == DeadState.Alive) {
-      val time = System.currentTimeMillis()
-      if (timeDL != 0) {
-        if (time - timeDL > 500) {
-          player.Stamina = player.Stamina - 1
-          avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttributeSelf(player.GUID, 2, player.Stamina))
-          timeDL = time
+      val isMoving = WorldEntity.isMoving(vel)
+      //implants and stamina management start
+      val implantsAreActive = avatar.Implants(0).Active || avatar.Implants(1).Active
+      val staminaBefore = player.Stamina
+      val hadStaminaBefore = staminaBefore > 0
+      val hasStaminaAfter = if(deadState == DeadState.Alive) {
+        if(implantsAreActive && hadStaminaBefore) {
+          val time = System.currentTimeMillis()
+          if(timeDL != 0) {
+            val duration = time - timeSurge
+            if(duration > 500) {
+              val units = (duration / 500).toInt
+              player.Stamina = player.Stamina - units
+              timeDL += units * 500
+            }
+          }
+          if(timeSurge != 0) {
+            val duration = time - timeSurge
+            val period = player.ExoSuit match {
+              case ExoSuitType.Agile => 500
+              case ExoSuitType.Reinforced => 333
+              case ExoSuitType.Infiltration => 1000
+              case ExoSuitType.Standard => 1000
+              case _ => 1
+            }
+            if(duration > period) {
+              val units = (duration / period).toInt
+              player.Stamina = player.Stamina - units
+              timeSurge += period * units
+            }
+          }
+        }
+        //if the player lost all stamina this turn (had stamina at the start), do not renew 1 stamina
+        if(!isMoving && (if(player.Stamina > 0) player.Stamina < player.MaxStamina else !hadStaminaBefore)) {
+          player.Stamina = player.Stamina + 1
+          true
+        }
+        else {
+          player.Stamina > 0
         }
       }
-      if (timeSurge != 0) {
-        if (time - timeSurge > 500 && player.ExoSuit == ExoSuitType.Agile) {
-          player.Stamina = player.Stamina - 1
-          avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttributeSelf(player.GUID, 2, player.Stamina))
-          timeSurge = time
-        }
-        else if (time - timeSurge > 333 && player.ExoSuit == ExoSuitType.Reinforced) {
-          player.Stamina = player.Stamina - 1
-          avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttributeSelf(player.GUID, 2, player.Stamina))
-          timeSurge = time
-        }
-        else if (time - timeSurge > 1000 && ( player.ExoSuit == ExoSuitType.Infiltration || player.ExoSuit == ExoSuitType.Standard )) {
-          player.Stamina = player.Stamina - 1
-          avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttributeSelf(player.GUID, 2, player.Stamina))
-          timeSurge = time
-        }
+      else {
+        timeDL = 0
+        timeSurge = 0
+        false
       }
-      if (player.Stamina == 0) {
-        if (avatar.Implants(0).Active) {
+      if(staminaBefore != player.Stamina) { //stamina changed
+        sendResponse(PlanetsideAttributeMessage(player.GUID, 2, player.Stamina))
+      }
+      if(implantsAreActive && !hasStaminaAfter) { //implants deactivated at 0 stamina
+        if(avatar.Implants(0).Active) {
           avatar.Implants(0).Active = false
           avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player.GUID, 28, avatar.Implant(0).id * 2))
           sendResponse(AvatarImplantMessage(PlanetSideGUID(player.GUID.guid), ImplantAction.Activation, 0, 0))
           timeDL = 0
         }
-        if (avatar.Implants(1).Active) {
+        if(avatar.Implants(1).Active) {
           avatar.Implants(1).Active = false
           avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player.GUID, 28, avatar.Implant(1).id * 2))
           sendResponse(AvatarImplantMessage(PlanetSideGUID(player.GUID.guid), ImplantAction.Activation, 1, 0))
           timeSurge = 0
         }
       }
-      val isMoving = WorldEntity.isMoving(vel)
-      if (!isMoving && player.Stamina < player.MaxStamina) {
-        player.Stamina = player.Stamina + 1
-        avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttributeSelf(player.GUID, 2, player.Stamina))
-      }
+      //implants and stamina management finish
       player.Position = pos
       player.Velocity = vel
       player.Orientation = Vector3(player.Orientation.x, pitch, yaw)
@@ -4552,7 +4571,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       //log.info("AvatarJump: " + msg)
       player.Stamina = player.Stamina - 10
       if(player.Stamina < 0) player.Stamina = 0
-      avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttributeSelf(player.GUID, 2, player.Stamina))
+      sendResponse(PlanetsideAttributeMessage(player.GUID, 2, player.Stamina))
 
     case msg @ ZipLineMessage(player_guid,origin_side,action,id,pos) =>
       log.info("ZipLineMessage: " + msg)
@@ -4764,7 +4783,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           if (avatar.Implant(slot).id == 3) {
             timeDL = System.currentTimeMillis()
             player.Stamina = player.Stamina - 3
-            avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttributeSelf(player.GUID, 2, player.Stamina))
+            sendResponse(PlanetsideAttributeMessage(player.GUID, 2, player.Stamina))
           }
           if (avatar.Implant(slot).id == 9) timeSurge = System.currentTimeMillis()
         } else if(action == ImplantAction.Activation && status == 0) { //desactive
@@ -5502,7 +5521,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           else { //shooting
             if (tool.FireModeIndex == 1 && (tool.Definition.Name == "anniversary_guna" || tool.Definition.Name == "anniversary_gun" || tool.Definition.Name == "anniversary_gunb")) {
               player.Stamina = 0
-              avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttributeSelf(player.GUID, 2, player.Stamina))
+              sendResponse(PlanetsideAttributeMessage(player.GUID, 2, 0))
             }
 
             prefire = shooting.orElse(Some(weapon_guid))
