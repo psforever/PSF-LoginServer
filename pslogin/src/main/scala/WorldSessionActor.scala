@@ -3936,8 +3936,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
             sendResponse(UnuseItemMessage(guid, guid))
             accessedContainer = None
           }
-          sendResponse(UnuseItemMessage(guid, guid))
-          accessedContainer = None
         case None => ;
       }
       val wepInHand : Boolean = player.Slot(player.DrawnSlot).Equipment match {
