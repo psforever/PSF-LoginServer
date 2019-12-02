@@ -2,7 +2,6 @@
 package net.psforever.objects.serverobject.pad.process
 
 import net.psforever.objects.serverobject.pad.{VehicleSpawnControl, VehicleSpawnPad}
-import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types.Vector3
 import services.vehicle.{VehicleAction, VehicleServiceMessage}
@@ -26,21 +25,9 @@ class VehicleSpawnControlFinalClearance(pad : VehicleSpawnPad) extends VehicleSp
 
   def receive : Receive = {
     case order @ VehicleSpawnControl.Order(driver, vehicle) =>
-      pad.Owner.Zone.VehicleEvents ! VehicleSpawnPad.ResetSpawnPad(pad)
       if(vehicle.PassengerInSeat(driver).isEmpty) {
-        //ensure the vehicle is outside of the trench
-        val zone = pad.Owner.Zone
-        val z = (zone.Map
-          .TerminalToSpawnPad
-          .find { case (_, b) => b == pad.GUID.guid } match {
-          case Some((a, _)) => zone.GUID(a)
-          case None => None
-        }) match {
-          //most terminals are at least as high as the pad
-          case Some(term : Terminal) => (term.Position.z + pad.Position.z) / 2
-          case _ => pad.Position.z + 9
-        }
-        vehicle.Position = pad.Position.xy + Vector3.z(z)
+        //ensure the vacant vehicle is above the trench and doors
+        vehicle.Position = pad.Position + Vector3.z(pad.Definition.VehicleCreationZOffset)
         val definition = vehicle.Definition
         pad.Owner.Zone.VehicleEvents ! VehicleServiceMessage(s"${pad.Continent}", VehicleAction.LoadVehicle(PlanetSideGUID(0), vehicle, definition.ObjectId, vehicle.GUID, definition.Packet.ConstructorData(vehicle).get))
       }
@@ -50,6 +37,7 @@ class VehicleSpawnControlFinalClearance(pad : VehicleSpawnPad) extends VehicleSp
     case test @ VehicleSpawnControlFinalClearance.Test(entry) =>
       if(Vector3.DistanceSquared(entry.vehicle.Position, pad.Position) > 100.0f) { //10m away from pad
         trace("pad cleared")
+        pad.Owner.Zone.VehicleEvents ! VehicleSpawnPad.ResetSpawnPad(pad)
         context.parent ! VehicleSpawnControl.ProcessControl.GetNewOrder
       }
       else {

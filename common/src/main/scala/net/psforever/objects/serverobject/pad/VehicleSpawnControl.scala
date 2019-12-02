@@ -34,6 +34,7 @@ class VehicleSpawnControl(pad : VehicleSpawnPad) extends VehicleSpawnControlBase
   /** the current vehicle order being acted upon;
     * used as a guard condition to control order processing rate */
   private var trackedOrder : Option[VehicleSpawnControl.Order] = None
+  var handleOrderFunc : VehicleSpawnControl.Order => Unit = NewTasking
 
   def LogId = ""
 
@@ -55,13 +56,26 @@ class VehicleSpawnControl(pad : VehicleSpawnPad) extends VehicleSpawnControlBase
 
   def receive : Receive = checkBehavior.orElse {
     case VehicleSpawnPad.VehicleOrder(player, vehicle) =>
-      trace(s"order from $player for $vehicle received")
-      orders = orders :+ VehicleSpawnControl.Order(player, vehicle)
-      if(trackedOrder.isEmpty && orders.length == 1) {
-        SelectOrder()
+      try {
+        val newOrder = VehicleSpawnControl.Order(player, vehicle)
+        trace(s"order from $player for $vehicle received")
+        if((trackedOrder match {
+          case Some(order) => !order.driver.Name.equals(player.Name)
+          case None => true
+        }) && orders.forall { !_.driver.Name.equals(player.Name) }) {
+          //not a second order from an existing order's player
+          handleOrderFunc(newOrder)
+        }
+        else {
+          VehicleSpawnControl.DisposeSpawnedVehicle(newOrder, pad.Owner.Zone)
+        }
       }
-      else {
-        pad.Owner.Zone.VehicleEvents ! VehicleSpawnPad.PeriodicReminder(player.Name, VehicleSpawnPad.Reminders.Queue, Some(orders.length + 1))
+      catch {
+        case _ : AssertionError if vehicle.HasGUID => //same as order being dropped
+          VehicleSpawnControl.DisposeSpawnedVehicle(vehicle, pad.Owner.Zone)
+        case _ : AssertionError => ; //shrug
+        case e : Exception => //something unexpected
+          e.printStackTrace()
       }
 
     case VehicleSpawnControl.ProcessControl.GetNewOrder =>
@@ -89,7 +103,7 @@ class VehicleSpawnControl(pad : VehicleSpawnPad) extends VehicleSpawnControlBase
             )
           }
           else {
-            BlockedReminder(entry, entry +: orders)
+            BlockedReminder(entry, orders)
           }
         case None => ;
           periodicReminder.cancel
@@ -105,35 +119,76 @@ class VehicleSpawnControl(pad : VehicleSpawnPad) extends VehicleSpawnControlBase
         case None => ;
       }
       trackedOrder = None
-      concealPlayer ! akka.actor.Kill //will cause the actor to restart, which will abort any trapped messages
+      concealPlayer ! akka.actor.Kill //should cause the actor to restart, which will abort any trapped messages
 
     case _ => ;
   }
 
-  def SelectOrder() : Unit = {
+  /**
+    * Take this order - the "first order" - and immediately begin processing it.
+    * All orders accepted in the meantime will be queued and a note about priority will be issued.
+    * @param order the order being accepted
+    */
+  def NewTasking(order : VehicleSpawnControl.Order) : Unit = {
+    handleOrderFunc = QueuedTasking
+    ProcessOrder(Some(order))
+  }
+
+  /**
+    * While an order is being processed,
+    * all orders accepted in the meantime will be queued and a note about priority will be issued.
+    * @param order the order being accepted
+    */
+  def QueuedTasking(order : VehicleSpawnControl.Order) : Unit = {
+    orders = orders :+ order
+    pad.Owner.Zone.VehicleEvents ! VehicleSpawnPad.PeriodicReminder(order.driver.Name, VehicleSpawnPad.Reminders.Queue, Some(orders.length + 1))
+  }
+
+  /**
+    * Select the next available queued order and begin processing it.
+    */
+  def SelectOrder() : Unit = ProcessOrder(SelectFirstOrder())
+
+  /**
+    * Select the next-available queued order if there is no current order being fulfilled.
+    * If the queue has been exhausted, set functionality to prepare to accept the next order as a "first order."
+    * @return the next-available order
+    */
+  def SelectFirstOrder() : Option[VehicleSpawnControl.Order] = {
     trackedOrder match {
       case None =>
-        periodicReminder.cancel
         val (completeOrder, remainingOrders) : (Option[VehicleSpawnControl.Order], List[VehicleSpawnControl.Order]) = orders match {
           case x :: Nil =>
             (Some(x), Nil)
           case x :: b =>
-            trace(s"order backlog size: ${b.size}")
-            recursiveOrderReminder(b.iterator)
             (Some(x), b)
           case Nil =>
+            handleOrderFunc = NewTasking
             (None, Nil)
         }
         orders = remainingOrders
-        completeOrder match {
-          case Some(entry) =>
-            trace(s"processing next order - a ${entry.vehicle.Definition.Name} for ${entry.driver.Name}")
-            trackedOrder = completeOrder //guard on
-            context.system.scheduler.scheduleOnce(2000 milliseconds, concealPlayer, entry)
-          case None =>
-            trackedOrder = None
-        }
-      case Some(_) => ; //do not work on new orders
+        completeOrder
+      case Some(_) =>
+        None
+    }
+  }
+
+  /**
+    * If a new order is accepted, begin processing it.
+    * Inform all customers whose orders are still queued of their priority number
+    * and activate the guard to ensure multiple orders don't get processed at the same time.
+    * @param order the order being accepted;
+    *              `None`, if no order found or submitted
+    */
+  def ProcessOrder(order : Option[VehicleSpawnControl.Order]) : Unit = {
+    periodicReminder.cancel
+    order match {
+      case Some(_order) =>
+        recursiveOrderReminder(orders.iterator)
+        trace(s"processing next order - a ${_order.vehicle.Definition.Name} for ${_order.driver.Name}")
+        trackedOrder = order //guard on
+        context.system.scheduler.scheduleOnce(2000 milliseconds, concealPlayer, _order)
+      case None => ;
     }
   }
 
@@ -143,13 +198,18 @@ class VehicleSpawnControl(pad : VehicleSpawnPad) extends VehicleSpawnControlBase
     * @param recipients all of the customers who will be receiving the message
     */
   def BlockedReminder(blockedOrder : VehicleSpawnControl.Order, recipients : Seq[VehicleSpawnControl.Order]) : Unit = {
-    val wrecked : Option[Any] = if(blockedOrder.vehicle.Health == 0) {
-      Option("Clear the wreckage.")
+    val relevantRecipients = blockedOrder.vehicle.Seats(0).Occupant match {
+      case Some(p) =>
+        (VehicleSpawnControl.Order(p, blockedOrder.vehicle) +: recipients).iterator //who took possession of the vehicle
+      case None =>
+        (blockedOrder +: recipients).iterator //who ordered the vehicle
     }
-    else {
-      None
-    }
-    recursiveBlockedReminder(recipients.iterator, wrecked)
+    recursiveBlockedReminder(relevantRecipients,
+      if(blockedOrder.vehicle.Health == 0)
+        Option("Clear the wreckage.")
+      else
+        None
+    )
   }
 
   /**
@@ -198,12 +258,13 @@ object VehicleSpawnControl {
   }
 
   /**
-    * An entry that stores vehicle spawn pad spawning tasks (called "orders").
+    * An entry that stores a vehicle spawn pad spawning task (called an "order").
     * @param driver the player who wants the vehicle
     * @param vehicle the vehicle
     */
   final case class Order(driver : Player, vehicle : Vehicle) {
-    assert(driver.HasGUID, "when ordering a vehicle, driver does not have GUID")
+    assert(driver.HasGUID, s"when ordering a vehicle, the prospective driver ${driver.Name} does not have a GUID")
+    assert(vehicle.HasGUID, s"when ordering a vehicle, the ${vehicle.Definition.Name} does not have a GUID")
     val DriverGUID = driver.GUID
   }
 
@@ -213,7 +274,16 @@ object VehicleSpawnControl {
     * @param zone the continent on which the vehicle was registered
     */
   def DisposeSpawnedVehicle(entry : VehicleSpawnControl.Order, zone: Zone) : Unit = {
-    zone.VehicleEvents ! VehicleSpawnPad.DisposeVehicle(entry.vehicle)
+    DisposeSpawnedVehicle(entry.vehicle, zone)
     zone.VehicleEvents ! VehicleSpawnPad.RevealPlayer(entry.DriverGUID)
+  }
+
+  /**
+    * Properly clean up a vehicle that has been registered and spawned into the game world.
+    * @param vehicle the vehicle being cancelled
+    * @param zone the continent on which the vehicle was registered
+    */
+  def DisposeSpawnedVehicle(vehicle : Vehicle, zone: Zone) : Unit = {
+    zone.VehicleEvents ! VehicleSpawnPad.DisposeVehicle(vehicle)
   }
 }

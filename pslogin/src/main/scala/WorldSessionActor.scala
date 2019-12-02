@@ -1214,9 +1214,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         }
 
       case AvatarResponse.ConcealPlayer() =>
-        if(tplayer_guid != guid) {
-          sendResponse(GenericObjectActionMessage(guid, 36))
-        }
+        sendResponse(GenericObjectActionMessage(guid, 36))
 
       case AvatarResponse.EnvironmentalDamage(target, amount) =>
         if(player.isAlive) {
@@ -2313,7 +2311,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
               val pad = continent.GUID(pad_guid).get.asInstanceOf[VehicleSpawnPad]
               vehicle.Faction = toFaction
               vehicle.Position = pad.Position
-              vehicle.Orientation = pad.Orientation
+              vehicle.Orientation = pad.Orientation + Vector3.z(pad.Definition.VehicleCreationZOrientOffset)
               //default loadout, weapons
               val vWeapons = vehicle.Weapons
               weapons.foreach(entry => {
@@ -2464,8 +2462,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         sendResponse(GenericObjectActionMessage(pad_guid, 92))
 
       case VehicleResponse.RevealPlayer(player_guid) =>
-        //TODO see note in ConcealPlayer
-        sendResponse(PlanetsideAttributeMessage(player_guid, 29, 0))
+        sendResponse(GenericObjectActionMessage(player_guid, 40))
 
       case VehicleResponse.SeatPermissions(vehicle_guid, seat_group, permission) =>
         if(tplayer_guid != guid) {

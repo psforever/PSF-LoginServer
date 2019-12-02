@@ -29,7 +29,7 @@ class VehicleSpawnControlLoadVehicle(pad : VehicleSpawnPad) extends VehicleSpawn
     case order @ VehicleSpawnControl.Order(driver, vehicle) =>
       if(driver.Continent == pad.Continent && vehicle.Health > 0) {
         trace(s"loading the ${vehicle.Definition.Name}")
-        vehicle.Position = vehicle.Position - Vector3.z(if(GlobalDefinitions.isFlightVehicle(vehicle.Definition)) 9 else 5)
+        vehicle.Position = vehicle.Position - Vector3.z(if(GlobalDefinitions.isFlightVehicle(vehicle.Definition)) 9 else 5) //appear below the trench and doors
         vehicle.Cloaked = vehicle.Definition.CanCloak && driver.Cloaked
         pad.Owner.Zone.VehicleEvents ! VehicleSpawnPad.LoadVehicle(vehicle)
         context.system.scheduler.scheduleOnce(100 milliseconds, railJack, order)

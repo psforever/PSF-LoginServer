@@ -201,11 +201,10 @@ class VehicleService(zone : Zone) extends Actor {
       )
 
     case VehicleSpawnPad.PeriodicReminder(to, reason, data) =>
-      to.foreach { name =>
-        VehicleEvents.publish(
-          VehicleServiceResponse(s"/$name/Vehicle", Service.defaultPlayerGUID, VehicleResponse.PeriodicReminder(reason, data))
-        )
-      }
+      VehicleEvents.publish(
+        VehicleServiceResponse(s"/$to/Vehicle", Service.defaultPlayerGUID, VehicleResponse.PeriodicReminder(reason, data))
+      )
+
     case VehicleSpawnPad.LoadVehicle(vehicle) =>
       val definition = vehicle.Definition
       val vtype = definition.ObjectId
@@ -219,7 +218,7 @@ class VehicleService(zone : Zone) extends Actor {
       vehicleDecon forward RemoverActor.AddTask(vehicle, zone, Some(30 seconds))
 
     case VehicleSpawnPad.DisposeVehicle(vehicle) =>
-      vehicleDecon forward RemoverActor.Entry(vehicle, zone, 0)
+      vehicleDecon forward RemoverActor.AddTask(vehicle, zone, Some(0 seconds))
       vehicleDecon forward RemoverActor.HurrySpecific(List(vehicle), zone)
 
     //correspondence from WorldSessionActor
