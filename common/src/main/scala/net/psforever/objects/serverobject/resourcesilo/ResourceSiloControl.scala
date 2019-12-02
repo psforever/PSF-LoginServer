@@ -76,8 +76,7 @@ class ResourceSiloControl(resourceSilo : ResourceSilo) extends Actor with Factio
         // Oops, someone let the base run out of power. Shut it all down.
         //todo: Make base neutral if silo hits zero NTU
 
-        //todo: temporarily disabled until warpgates can bring ANTs from sanctuary, otherwise we'd be stuck in a situation with an unpowered base and no way to get an ANT to refill it.
-//        avatarService ! AvatarServiceMessage(resourceSilo.Owner.asInstanceOf[Building].Zone.Id, AvatarAction.PlanetsideAttribute(PlanetSideGUID(resourceSilo.Owner.asInstanceOf[Building].ModelId), 48, 1))
+        avatarService ! AvatarServiceMessage(resourceSilo.Owner.asInstanceOf[Building].Zone.Id, AvatarAction.PlanetsideAttribute(resourceSilo.Owner.asInstanceOf[Building].GUID, 48, 1))
       } else if (siloChargeBeforeChange == 0 && resourceSilo.ChargeLevel > 0) {
         // Power restored. Reactor Online. Sensors Online. Weapons Online. All systems nominal.
         //todo: Check generator is online before starting up

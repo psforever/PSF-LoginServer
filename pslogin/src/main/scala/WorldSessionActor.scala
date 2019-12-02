@@ -7547,8 +7547,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             sendResponse(PlanetsideAttributeMessage(amenityId, 47, if(silo.LowNtuWarningOn) 1 else 0))
 
             if(silo.ChargeLevel == 0) {
-              // temporarily disabled until warpgates can bring ANTs from sanctuary, otherwise we'd be stuck in a situation with an unpowered base and no way to get an ANT to refill it.
-              //              sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(silo.Owner.asInstanceOf[Building].ModelId), 48, 1))
+              sendResponse(PlanetsideAttributeMessage(silo.Owner.asInstanceOf[Building].GUID, 48, 1))
             }
           case _ => ;
         }
