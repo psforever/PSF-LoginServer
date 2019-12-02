@@ -174,7 +174,7 @@ class ZoneActorTest extends ActorTest {
       val map6 = new ZoneMap("map6") {
         LocalBuilding(building_guid = 1, map_id = 1, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1,1,1))))
         LocalObject(1, SpawnTube.Constructor(Vector3.Zero, Vector3.Zero))
-        LocalObject(2, Terminal.Constructor(GlobalDefinitions.dropship_vehicle_terminal))
+        LocalObject(2, Terminal.Constructor(Vector3.Zero, GlobalDefinitions.dropship_vehicle_terminal))
         LocalObject(3, SpawnTube.Constructor(Vector3.Zero, Vector3.Zero))
         ObjectToBuilding(1, 1)
         ObjectToBuilding(2, 1)
@@ -185,9 +185,9 @@ class ZoneActorTest extends ActorTest {
         ObjectToBuilding(7, 2)
 
         LocalBuilding(building_guid = 3, map_id = 3, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1,1,1))))
-        LocalObject(4, Terminal.Constructor(GlobalDefinitions.dropship_vehicle_terminal))
+        LocalObject(4, Terminal.Constructor(Vector3.Zero, GlobalDefinitions.dropship_vehicle_terminal))
         LocalObject(5, SpawnTube.Constructor(Vector3.Zero, Vector3.Zero))
-        LocalObject(6, Terminal.Constructor(GlobalDefinitions.dropship_vehicle_terminal))
+        LocalObject(6, Terminal.Constructor(Vector3.Zero, GlobalDefinitions.dropship_vehicle_terminal))
         ObjectToBuilding(4, 3)
         ObjectToBuilding(5, 3)
         ObjectToBuilding(6, 3)

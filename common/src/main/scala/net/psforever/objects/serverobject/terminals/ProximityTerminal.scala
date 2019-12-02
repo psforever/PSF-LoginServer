@@ -59,7 +59,7 @@ object ProximityTerminal {
     * @param context a context to allow the object to properly set up `ActorSystem` functionality
     * @return the `Terminal` object
     */
-  def Constructor(tdef : ProximityTerminalDefinition, pos : Vector3)(id : Int, context : ActorContext) : Terminal = {
+  def Constructor(pos : Vector3, tdef : ProximityTerminalDefinition)(id : Int, context : ActorContext) : Terminal = {
     import akka.actor.Props
     val obj = ProximityTerminal(tdef)
     obj.Position = pos
