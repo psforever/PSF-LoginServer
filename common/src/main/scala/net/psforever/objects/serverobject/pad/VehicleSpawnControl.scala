@@ -12,28 +12,31 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
 /**
-  * An `Actor` that handles vehicle spawning orders for a `VehicleSpawnPad`.
-  * The basic `VehicleSpawnControl` is the root of a simple tree of "spawn control" objects that chain to each other.
-  * Each object performs on (or more than one related) actions upon the vehicle order that was submitted.<br>
+  * An `Actor` that handles vehicle spawning orders for a `VehicleSpawnPad` entity.
+  * The basic `VehicleSpawnControl` is the root of a sequence of "spawn control" objects that chain to each other.
+  * Each object performs one (or more related) actions upon the vehicle order that was submitted.<br>
   * <br>
-  * The purpose of the base actor is to serve as the entry point for the spawning process.
-  * A spawn pad receives vehicle orders from an attached `Terminal` object.
+  * The purpose of the base actor is to serve as the entry point for the spawning process
+  * and to manage the order queue.
+  * A spawn pad receives vehicle orders from a related `Terminal` object.
   * The control object accepts orders, enqueues them, and,
   * whenever prompted by a previous complete order or by an absence of active orders,
   * will select the first available order to be completed.
   * This order will be "tracked" and will be given to the first functional "spawn control" object of the process.
   * If the process is completed, or is ever aborted by any of the subsequent tasks,
   * control will propagate down back to this control object.
+  * At this time, (or) once again, a new order can be submitted or will be selected.
   * @param pad the `VehicleSpawnPad` object being governed
   */
 class VehicleSpawnControl(pad : VehicleSpawnPad) extends VehicleSpawnControlBase(pad) with FactionAffinityBehavior.Check {
   /** a reminder sent to future customers */
   var periodicReminder : Cancellable = DefaultCancellable.obj
   /** a list of vehicle orders that have been submitted for this spawn pad */
-  private var orders : List[VehicleSpawnControl.Order] = List.empty[VehicleSpawnControl.Order]
+  var orders : List[VehicleSpawnControl.Order] = List.empty[VehicleSpawnControl.Order]
   /** the current vehicle order being acted upon;
     * used as a guard condition to control order processing rate */
-  private var trackedOrder : Option[VehicleSpawnControl.Order] = None
+  var trackedOrder : Option[VehicleSpawnControl.Order] = None
+  /** how to process either the first order or every subsequent order */
   var handleOrderFunc : VehicleSpawnControl.Order => Unit = NewTasking
 
   def LogId = ""
@@ -56,19 +59,9 @@ class VehicleSpawnControl(pad : VehicleSpawnPad) extends VehicleSpawnControlBase
 
   def receive : Receive = checkBehavior.orElse {
     case VehicleSpawnPad.VehicleOrder(player, vehicle) =>
+      trace(s"order from ${player.Name} for a ${vehicle.Definition.Name} received")
       try {
-        val newOrder = VehicleSpawnControl.Order(player, vehicle)
-        trace(s"order from $player for $vehicle received")
-        if((trackedOrder match {
-          case Some(order) => !order.driver.Name.equals(player.Name)
-          case None => true
-        }) && orders.forall { !_.driver.Name.equals(player.Name) }) {
-          //not a second order from an existing order's player
-          handleOrderFunc(newOrder)
-        }
-        else {
-          VehicleSpawnControl.DisposeSpawnedVehicle(newOrder, pad.Owner.Zone)
-        }
+        handleOrderFunc(VehicleSpawnControl.Order(player, vehicle))
       }
       catch {
         case _ : AssertionError if vehicle.HasGUID => //same as order being dropped
@@ -140,8 +133,18 @@ class VehicleSpawnControl(pad : VehicleSpawnPad) extends VehicleSpawnControlBase
     * @param order the order being accepted
     */
   def QueuedTasking(order : VehicleSpawnControl.Order) : Unit = {
-    orders = orders :+ order
-    pad.Owner.Zone.VehicleEvents ! VehicleSpawnPad.PeriodicReminder(order.driver.Name, VehicleSpawnPad.Reminders.Queue, Some(orders.length + 1))
+    val name = order.driver.Name
+    if((trackedOrder match {
+      case Some(tracked) => !tracked.driver.Name.equals(name)
+      case None => true
+    }) && orders.forall { !_.driver.Name.equals(name) }) {
+      //not a second order from an existing order's player
+      orders = orders :+ order
+      pad.Owner.Zone.VehicleEvents ! VehicleSpawnPad.PeriodicReminder(name, VehicleSpawnPad.Reminders.Queue, Some(orders.length + 1))
+    }
+    else {
+      VehicleSpawnControl.DisposeSpawnedVehicle(order, pad.Owner.Zone)
+    }
   }
 
   /**
@@ -195,13 +198,13 @@ class VehicleSpawnControl(pad : VehicleSpawnPad) extends VehicleSpawnControlBase
   /**
     * na
     * @param blockedOrder the previous order whose vehicle is blocking the spawn pad from operating
-    * @param recipients all of the customers who will be receiving the message
+    * @param recipients all of the other customers who will be receiving the message
     */
   def BlockedReminder(blockedOrder : VehicleSpawnControl.Order, recipients : Seq[VehicleSpawnControl.Order]) : Unit = {
-    val relevantRecipients = blockedOrder.vehicle.Seats(0).Occupant match {
-      case Some(p) =>
+    val relevantRecipients = blockedOrder.vehicle.Seats(0).Occupant.orElse(pad.Owner.Zone.GUID(blockedOrder.vehicle.Owner)) match {
+      case Some(p : Player) =>
         (VehicleSpawnControl.Order(p, blockedOrder.vehicle) +: recipients).iterator //who took possession of the vehicle
-      case None =>
+      case _ =>
         (blockedOrder +: recipients).iterator //who ordered the vehicle
     }
     recursiveBlockedReminder(relevantRecipients,
@@ -270,6 +273,7 @@ object VehicleSpawnControl {
 
   /**
     * Properly clean up a vehicle that has been registered and spawned into the game world.
+    * Call this downstream of "`ConcealPlayer`".
     * @param entry the order being cancelled
     * @param zone the continent on which the vehicle was registered
     */
