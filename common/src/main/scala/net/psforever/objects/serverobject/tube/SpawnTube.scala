@@ -35,7 +35,7 @@ object SpawnTube {
     * @return the `SpawnTube` object
     */
   def Constructor(pos : Vector3, orient : Vector3)(id : Int, context : ActorContext) : SpawnTube = {
-    Constructor(GlobalDefinitions.respawn_tube, pos, orient)(id, context)
+    Constructor(pos, GlobalDefinitions.respawn_tube, orient)(id, context)
   }
 
   /**
@@ -47,7 +47,7 @@ object SpawnTube {
     * @param context a context to allow the object to properly set up `ActorSystem` functionality
     * @return the `SpawnTube` object
     */
-  def Constructor(tdef : SpawnTubeDefinition, pos : Vector3, orient : Vector3)(id : Int, context : ActorContext) : SpawnTube = {
+  def Constructor(pos : Vector3, tdef : SpawnTubeDefinition, orient : Vector3)(id : Int, context : ActorContext) : SpawnTube = {
     import akka.actor.Props
 
     val obj = SpawnTube(tdef)
