@@ -191,6 +191,7 @@ object Terminal {
     import akka.actor.Props
 
     val obj = Terminal(tdef)
+    obj.Position = pos
     obj.Actor = context.actorOf(Props(classOf[TerminalControl], obj), s"${tdef.Name}_$id")
     obj
   }
