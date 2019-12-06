@@ -111,7 +111,7 @@ class ResourceSiloControlNtuWarningTest extends ActorTest {
   obj.GUID = PlanetSideGUID(1)
   obj.Actor = system.actorOf(Props(classOf[ResourceSiloControl], obj), "test-silo")
   obj.Actor ! "startup"
-  obj.Owner = new Building(building_guid = 6, map_id = 0, Zone.Nowhere, StructureType.Building, GlobalDefinitions.building)
+  obj.Owner = new Building("Building", building_guid = 6, map_id = 0, Zone.Nowhere, StructureType.Building, GlobalDefinitions.building)
 
   "Resource silo" should {
     "announce high ntu" in {
@@ -144,7 +144,7 @@ class ResourceSiloControlUpdate1Test extends ActorTest {
   obj.GUID = PlanetSideGUID(1)
   obj.Actor = system.actorOf(Props(classOf[ResourceSiloControl], obj), "test-silo")
   obj.Actor ! "startup"
-  val bldg = new Building(building_guid = 6, map_id = 0, Zone.Nowhere, StructureType.Building, GlobalDefinitions.building)
+  val bldg = new Building("Building", building_guid = 6, map_id = 0, Zone.Nowhere, StructureType.Building, GlobalDefinitions.building)
   val probe2 = TestProbe()
   bldg.Actor = system.actorOf(Props(classOf[ResourceSiloTest.ProbedBuildingControl], probe2), "test-bldg")
   obj.Owner = bldg
@@ -211,7 +211,7 @@ class ResourceSiloControlUpdate2Test extends ActorTest {
   obj.GUID = PlanetSideGUID(1)
   obj.Actor = system.actorOf(Props(classOf[ResourceSiloControl], obj), "test-silo")
   obj.Actor ! "startup"
-  val bldg = new Building(building_guid = 6, map_id = 0, Zone.Nowhere, StructureType.Building, GlobalDefinitions.building)
+  val bldg = new Building("Building", building_guid = 6, map_id = 0, Zone.Nowhere, StructureType.Building, GlobalDefinitions.building)
   val probe2 = TestProbe()
   bldg.Actor = system.actorOf(Props(classOf[ResourceSiloTest.ProbedBuildingControl], probe2), "test-bldg")
   obj.Owner = bldg
@@ -270,7 +270,7 @@ class ResourceSiloControlNoUpdateTest extends ActorTest {
   obj.GUID = PlanetSideGUID(1)
   obj.Actor = system.actorOf(Props(classOf[ResourceSiloControl], obj), "test-silo")
   obj.Actor ! "startup"
-  val bldg = new Building(building_guid = 6, map_id = 6, Zone.Nowhere, StructureType.Building, GlobalDefinitions.building)
+  val bldg = new Building("Building", building_guid = 6, map_id = 6, Zone.Nowhere, StructureType.Building, GlobalDefinitions.building)
   val probe2 = TestProbe()
   bldg.Actor = system.actorOf(Props(classOf[ResourceSiloTest.ProbedBuildingControl], probe2), "test-bldg")
   obj.Owner = bldg

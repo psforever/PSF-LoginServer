@@ -22,7 +22,7 @@ import org.specs2.mutable.Specification
 import scala.concurrent.duration._
 
 class ZoneTest extends Specification {
-  def test(a: Int, b: Int, c : Zone, d : ActorContext) : Building = { Building.NoBuilding }
+  def test(a: String, b: Int, c: Int, d : Zone, e : ActorContext) : Building = { Building.NoBuilding }
 
   "ZoneMap" should {
     "construct" in {
@@ -33,11 +33,11 @@ class ZoneTest extends Specification {
     "references bases by a positive building id (defaults to 0)" in {
       val map = new ZoneMap("map13")
       map.LocalBuildings mustEqual Map.empty
-      map.LocalBuilding(building_guid = 10, map_id = 0, FoundationBuilder(test))
-      map.LocalBuildings.keySet.contains((10, 0)) mustEqual true
-      map.LocalBuilding(building_guid = -1, map_id = 0, FoundationBuilder(test))
-      map.LocalBuildings.keySet.contains((10, 0)) mustEqual true
-      map.LocalBuildings.keySet.contains((-1, 0)) mustEqual false
+      map.LocalBuilding("Building", building_guid = 10, map_id = 0, FoundationBuilder(test))
+      map.LocalBuildings.keySet.contains(("Building", 10, 0)) mustEqual true
+      map.LocalBuilding("Building", building_guid = -1, map_id = 0, FoundationBuilder(test))
+      map.LocalBuildings.keySet.contains(("Building", 10, 0)) mustEqual true
+      map.LocalBuildings.keySet.contains(("Building", -1, 0)) mustEqual false
     }
 
     "associates objects to bases (doesn't check numbers)" in {
@@ -87,7 +87,7 @@ class ZoneTest extends Specification {
   }
 
   val map13 = new ZoneMap("map13")
-  map13.LocalBuilding(building_guid = 0, map_id = 10, FoundationBuilder(test))
+  map13.LocalBuilding("Building", building_guid = 0, map_id = 10, FoundationBuilder(test))
   class TestObject extends IdentifiableEntity
 
   "Zone" should {
@@ -172,7 +172,7 @@ class ZoneActorTest extends ActorTest {
 
     "set up spawn groups based on buildings" in {
       val map6 = new ZoneMap("map6") {
-        LocalBuilding(building_guid = 1, map_id = 1, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1,1,1))))
+        LocalBuilding("Building", building_guid = 1, map_id = 1, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1,1,1))))
         LocalObject(1, SpawnTube.Constructor(Vector3.Zero, Vector3.Zero))
         LocalObject(2, Terminal.Constructor(Vector3.Zero, GlobalDefinitions.dropship_vehicle_terminal))
         LocalObject(3, SpawnTube.Constructor(Vector3.Zero, Vector3.Zero))
@@ -180,11 +180,11 @@ class ZoneActorTest extends ActorTest {
         ObjectToBuilding(2, 1)
         ObjectToBuilding(3, 1)
 
-        LocalBuilding(building_guid = 2, map_id = 2, FoundationBuilder(Building.Structure(StructureType.Building)))
+        LocalBuilding("Building", building_guid = 2, map_id = 2, FoundationBuilder(Building.Structure(StructureType.Building)))
         LocalObject(7, SpawnTube.Constructor(Vector3.Zero, Vector3.Zero))
         ObjectToBuilding(7, 2)
 
-        LocalBuilding(building_guid = 3, map_id = 3, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1,1,1))))
+        LocalBuilding("Building", building_guid = 3, map_id = 3, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1,1,1))))
         LocalObject(4, Terminal.Constructor(Vector3.Zero, GlobalDefinitions.dropship_vehicle_terminal))
         LocalObject(5, SpawnTube.Constructor(Vector3.Zero, Vector3.Zero))
         LocalObject(6, Terminal.Constructor(Vector3.Zero, GlobalDefinitions.dropship_vehicle_terminal))
@@ -222,11 +222,11 @@ class ZoneActorTest extends ActorTest {
 
     "select spawn points based on the position of the player in reference to buildings" in {
       val map6 = new ZoneMap("map6") {
-        LocalBuilding(building_guid = 1, map_id = 1, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1,1,1))))
+        LocalBuilding("Building", building_guid = 1, map_id = 1, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1,1,1))))
         LocalObject(1, SpawnTube.Constructor(Vector3.Zero, Vector3.Zero))
         ObjectToBuilding(1, 1)
 
-        LocalBuilding(building_guid = 3, map_id = 3, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(4,4,4))))
+        LocalBuilding("Building", building_guid = 3, map_id = 3, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(4,4,4))))
         LocalObject(5, SpawnTube.Constructor(Vector3.Zero, Vector3.Zero))
         ObjectToBuilding(5, 3)
       }
@@ -255,9 +255,9 @@ class ZoneActorTest extends ActorTest {
 
     "will report if no spawn points have been found in a zone" in {
       val map6 = new ZoneMap("map6") {
-        LocalBuilding(building_guid = 1, map_id = 1, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1,1,1))))
+        LocalBuilding("Building", building_guid = 1, map_id = 1, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1,1,1))))
 
-        LocalBuilding(building_guid = 3, map_id = 3, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(4,4,4))))
+        LocalBuilding("Building", building_guid = 3, map_id = 3, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(4,4,4))))
         LocalObject(5, SpawnTube.Constructor(Vector3.Zero, Vector3.Zero))
         ObjectToBuilding(5, 3)
       }

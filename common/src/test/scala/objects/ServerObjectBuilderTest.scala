@@ -17,7 +17,7 @@ import scala.concurrent.duration.Duration
 class BuildingBuilderTest extends ActorTest {
   "Building object" should {
     "build" in {
-      val structure : (Int,Int,Zone,ActorContext)=>Building = Building.Structure(StructureType.Building)
+      val structure : (String, Int,Int,Zone,ActorContext)=>Building = Building.Structure(StructureType.Building)
       val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuildingTestActor], structure, 10, 10, Zone.Nowhere), "building")
       actor ! "!"
 
@@ -32,7 +32,7 @@ class BuildingBuilderTest extends ActorTest {
 class WarpGateBuilderTest extends ActorTest {
   "WarpGate object" should {
     "build" in {
-      val structure : (Int,Int,Zone,ActorContext)=>Building = WarpGate.Structure
+      val structure : (String,Int,Int,Zone,ActorContext)=>Building = WarpGate.Structure
       val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuildingTestActor], structure, 10, 10, Zone.Nowhere), "wgate")
       actor ! "!"
 
@@ -279,10 +279,10 @@ object ServerObjectBuilderTest {
     }
   }
 
-  class BuildingTestActor(structure_con : (Int,Int,Zone,ActorContext)=>Building, building_guid : Int, map_id : Int, zone : Zone) extends Actor {
+  class BuildingTestActor(structure_con : (String,Int,Int,Zone,ActorContext)=>Building, name: String, building_guid : Int, map_id : Int, zone : Zone) extends Actor {
     def receive : Receive = {
       case _ =>
-        sender ! FoundationBuilder(structure_con).Build(building_guid, map_id, zone)(context)
+        sender ! FoundationBuilder(structure_con).Build(name, building_guid, map_id, zone)(context)
     }
   }
 }

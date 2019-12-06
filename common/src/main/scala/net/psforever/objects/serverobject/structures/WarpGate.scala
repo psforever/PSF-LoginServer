@@ -11,8 +11,8 @@ import net.psforever.types.{PlanetSideEmpire, Vector3}
 
 import scala.collection.mutable
 
-class WarpGate(building_guid : Int, map_id : Int, zone : Zone, buildingDefinition : ObjectDefinition with SpawnPointDefinition)
-  extends Building(building_guid, map_id, zone, StructureType.WarpGate, buildingDefinition)
+class WarpGate(name : String, building_guid : Int, map_id : Int, zone : Zone, buildingDefinition : ObjectDefinition with SpawnPointDefinition)
+  extends Building(name, building_guid, map_id, zone, StructureType.WarpGate, buildingDefinition)
     with SpawnPoint {
   /** can this building be used as an active warp gate */
   private var active : Boolean = true
@@ -160,28 +160,28 @@ class WarpGate(building_guid : Int, map_id : Int, zone : Zone, buildingDefinitio
 }
 
 object WarpGate {
-  def apply(guid : Int, map_id : Int, zone : Zone, buildingDefinition : ObjectDefinition with SpawnPointDefinition) : WarpGate = {
-    new WarpGate(guid, map_id, zone, buildingDefinition)
+  def apply(name : String, guid : Int, map_id : Int, zone : Zone, buildingDefinition : ObjectDefinition with SpawnPointDefinition) : WarpGate = {
+    new WarpGate(name, guid, map_id, zone, buildingDefinition)
   }
 
-  def Structure(guid : Int, map_id : Int, zone : Zone, context : ActorContext) : WarpGate = {
+  def Structure(name : String, guid : Int, map_id : Int, zone : Zone, context : ActorContext) : WarpGate = {
     import akka.actor.Props
-    val obj = new WarpGate(guid, map_id, zone, GlobalDefinitions.warpgate)
+    val obj = new WarpGate(name, guid, map_id, zone, GlobalDefinitions.warpgate)
     obj.Actor = context.actorOf(Props(classOf[BuildingControl], obj), s"$map_id-gate")
     obj
   }
 
-  def Structure(location : Vector3)(guid : Int, map_id : Int, zone : Zone, context : ActorContext) : WarpGate = {
+  def Structure(location : Vector3)(name : String, guid : Int, map_id : Int, zone : Zone, context : ActorContext) : WarpGate = {
     import akka.actor.Props
-    val obj = new WarpGate(guid, map_id, zone, GlobalDefinitions.warpgate)
+    val obj = new WarpGate(name, guid, map_id, zone, GlobalDefinitions.warpgate)
     obj.Position = location
     obj.Actor = context.actorOf(Props(classOf[BuildingControl], obj), s"$map_id-gate")
     obj
   }
 
-  def Structure(location : Vector3, buildingDefinition : ObjectDefinition with SpawnPointDefinition)(guid : Int, map_id : Int, zone : Zone, context : ActorContext) : WarpGate = {
+  def Structure(location : Vector3, buildingDefinition : ObjectDefinition with SpawnPointDefinition)(name : String, guid : Int, map_id : Int, zone : Zone, context : ActorContext) : WarpGate = {
     import akka.actor.Props
-    val obj = new WarpGate(guid, map_id, zone, buildingDefinition)
+    val obj = new WarpGate(name, guid, map_id, zone, buildingDefinition)
     obj.Position = location
     obj.Actor = context.actorOf(Props(classOf[BuildingControl], obj), s"$map_id-gate")
     obj

@@ -3,6 +3,8 @@ package net.psforever.objects.zones
 
 import net.psforever.objects.serverobject.structures.FoundationBuilder
 import net.psforever.objects.serverobject.{PlanetSideServerObject, ServerObjectBuilder}
+import scalax.collection.Graph
+import scalax.collection.GraphPredef._, scalax.collection.GraphEdge._
 
 /**
   * The fixed instantiation and relation of a series of server objects.<br>
@@ -32,7 +34,8 @@ class ZoneMap(private val name : String) {
   private var linkTerminalInterface : Map[Int, Int] = Map()
   private var linkDoorLock : Map[Int, Int] = Map()
   private var linkObjectBase : Map[Int, Int] = Map()
-  private var buildings : Map[(Int, Int), FoundationBuilder] = Map()
+  private var buildings : Map[(String, Int, Int), FoundationBuilder] = Map()
+  private var lattice: Set[(String, String)] = Set()
   private var checksum : Long = 0
 
   def Name : String = name
@@ -87,11 +90,11 @@ class ZoneMap(private val name : String) {
     localObjects.size
   }
 
-  def LocalBuildings : Map[(Int, Int), FoundationBuilder] = buildings
+  def LocalBuildings : Map[(String, Int, Int), FoundationBuilder] = buildings
 
-  def LocalBuilding(building_guid : Int, map_id : Int, constructor : FoundationBuilder) : Int = {
+  def LocalBuilding(name : String, building_guid : Int, map_id : Int, constructor : FoundationBuilder) : Int = {
     if(building_guid > 0) {
-      buildings = buildings ++ Map((building_guid, map_id) -> constructor)
+      buildings = buildings ++ Map((name, building_guid, map_id) -> constructor)
     }
     buildings.size
   }
@@ -124,5 +127,11 @@ class ZoneMap(private val name : String) {
 
   def TurretToWeapon(turret_guid : Int, weapon_guid : Int) : Unit = {
     linkTurretWeapon = linkTurretWeapon ++ Map(turret_guid -> weapon_guid)
+  }
+
+  def LatticeLink : Set[(String, String)] = lattice
+
+  def LatticeLink(source : String, target: String) : Unit = {
+    lattice = lattice ++ Set((source, target))
   }
 }
