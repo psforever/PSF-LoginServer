@@ -3855,6 +3855,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
       self ! SetCurrentAvatar(player)
 
     case msg @ PlayerStateMessageUpstream(avatar_guid, pos, vel, yaw, pitch, yaw_upper, seq_time, unk3, is_crouching, is_jumping, jump_thrust, is_cloaking, unk5, unk6) =>
+      val isMoving = WorldEntity.isMoving(vel)
+
       if(deadState == DeadState.Alive) {
         if (timeDL != 0) {
           if (System.currentTimeMillis() - timeDL > 500) {
@@ -3894,7 +3896,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
             timeSurge = 0
           }
         }
-        val isMoving = WorldEntity.isMoving(vel)
         if (!isMoving && player.Stamina < player.MaxStamina) {
           player.Stamina = player.Stamina + 1
           avatarService ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttributeSelf(player.GUID, 2, player.Stamina))
