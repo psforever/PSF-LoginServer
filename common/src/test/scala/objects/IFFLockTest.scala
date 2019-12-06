@@ -70,7 +70,7 @@ class IFFLockControl2Test extends ActorTest {
 
 class IFFLockControl3Test extends ActorTest {
   "IFFLockControl" should {
-    "can hack" in {
+    "can clear hack" in {
       val (player, lock) = IFFLockControlTest.SetUpAgents(PlanetSideEmpire.TR)
       player.GUID = PlanetSideGUID(1)
       assert(lock.HackedBy.isEmpty)

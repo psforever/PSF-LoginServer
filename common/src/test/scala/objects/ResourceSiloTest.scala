@@ -47,7 +47,7 @@ class ResourceSiloTest extends Specification {
       obj.ChargeLevel = -5
       obj.ChargeLevel mustEqual 0
 
-      obj.ChargeLevel = 1250
+      obj.ChargeLevel = obj.MaximumCharge + 100
       obj.ChargeLevel mustEqual 1000
       obj.ChargeLevel mustEqual obj.MaximumCharge
     }
