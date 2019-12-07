@@ -2686,6 +2686,14 @@ object GlobalDefinitions {
     jammer_cartridge_projectile.ProjectileDamageType = DamageType.Splash
     jammer_cartridge_projectile.InitialVelocity = 30
     jammer_cartridge_projectile.Lifespan = 15f
+    jammer_cartridge_projectile.AdditionalEffect = true
+    jammer_cartridge_projectile.JammerProjectile = true
+    jammer_cartridge_projectile.JammedEffectDuration += TargetValidation(EffectTarget.Category.Player, EffectTarget.Validation.Player) -> (1 seconds)
+    jammer_cartridge_projectile.JammedEffectDuration += TargetValidation(EffectTarget.Category.Vehicle, EffectTarget.Validation.AMS) -> (5 seconds)
+    jammer_cartridge_projectile.JammedEffectDuration += TargetValidation(EffectTarget.Category.Deployable, EffectTarget.Validation.MotionSensor) -> (30 seconds)
+    jammer_cartridge_projectile.JammedEffectDuration += TargetValidation(EffectTarget.Category.Deployable, EffectTarget.Validation.Spitfire) -> (30 seconds)
+    jammer_cartridge_projectile.JammedEffectDuration += TargetValidation(EffectTarget.Category.Turret, EffectTarget.Validation.Turret) -> (30 seconds)
+    jammer_cartridge_projectile.JammedEffectDuration += TargetValidation(EffectTarget.Category.Vehicle, EffectTarget.Validation.VehicleNotAMS) -> (10 seconds)
     ProjectileDefinition.CalculateDerivedFields(jammer_cartridge_projectile)
 
     jammer_cartridge_projectile_b.Name = "jammer_cartridge_projectile_b"
@@ -2697,6 +2705,14 @@ object GlobalDefinitions {
     jammer_cartridge_projectile_b.ProjectileDamageType = DamageType.Splash
     jammer_cartridge_projectile_b.InitialVelocity = 30
     jammer_cartridge_projectile_b.Lifespan = 2f
+    jammer_cartridge_projectile_b.AdditionalEffect = true
+    jammer_cartridge_projectile_b.JammerProjectile = true
+    jammer_cartridge_projectile_b.JammedEffectDuration += TargetValidation(EffectTarget.Category.Player, EffectTarget.Validation.Player) -> (1 seconds)
+    jammer_cartridge_projectile_b.JammedEffectDuration += TargetValidation(EffectTarget.Category.Vehicle, EffectTarget.Validation.AMS) -> (5 seconds)
+    jammer_cartridge_projectile_b.JammedEffectDuration += TargetValidation(EffectTarget.Category.Deployable, EffectTarget.Validation.MotionSensor) -> (30 seconds)
+    jammer_cartridge_projectile_b.JammedEffectDuration += TargetValidation(EffectTarget.Category.Deployable, EffectTarget.Validation.Spitfire) -> (30 seconds)
+    jammer_cartridge_projectile_b.JammedEffectDuration += TargetValidation(EffectTarget.Category.Turret, EffectTarget.Validation.Turret) -> (30 seconds)
+    jammer_cartridge_projectile_b.JammedEffectDuration += TargetValidation(EffectTarget.Category.Vehicle, EffectTarget.Validation.VehicleNotAMS) -> (10 seconds)
     ProjectileDefinition.CalculateDerivedFields(jammer_cartridge_projectile_b)
 
     jammer_grenade_projectile.Name = "jammer_grenade_projectile"
@@ -2707,6 +2723,14 @@ object GlobalDefinitions {
     jammer_grenade_projectile.ProjectileDamageType = DamageType.Splash
     jammer_grenade_projectile.InitialVelocity = 30
     jammer_grenade_projectile.Lifespan = 15f
+    jammer_grenade_projectile.AdditionalEffect = true
+    jammer_grenade_projectile.JammerProjectile = true
+    jammer_grenade_projectile.JammedEffectDuration += TargetValidation(EffectTarget.Category.Player, EffectTarget.Validation.Player) -> (1 seconds)
+    jammer_grenade_projectile.JammedEffectDuration += TargetValidation(EffectTarget.Category.Vehicle, EffectTarget.Validation.AMS) -> (5 seconds)
+    jammer_grenade_projectile.JammedEffectDuration += TargetValidation(EffectTarget.Category.Deployable, EffectTarget.Validation.MotionSensor) -> (30 seconds)
+    jammer_grenade_projectile.JammedEffectDuration += TargetValidation(EffectTarget.Category.Deployable, EffectTarget.Validation.Spitfire) -> (30 seconds)
+    jammer_grenade_projectile.JammedEffectDuration += TargetValidation(EffectTarget.Category.Turret, EffectTarget.Validation.Turret) -> (30 seconds)
+    jammer_grenade_projectile.JammedEffectDuration += TargetValidation(EffectTarget.Category.Vehicle, EffectTarget.Validation.VehicleNotAMS) -> (10 seconds)
     ProjectileDefinition.CalculateDerivedFields(jammer_grenade_projectile)
 
     jammer_grenade_projectile_enh.Name = "jammer_grenade_projectile_enh"
@@ -2718,6 +2742,13 @@ object GlobalDefinitions {
     jammer_grenade_projectile_enh.ProjectileDamageType = DamageType.Splash
     jammer_grenade_projectile_enh.InitialVelocity = 30
     jammer_grenade_projectile_enh.Lifespan = 3f
+    jammer_grenade_projectile_enh.AdditionalEffect = true
+    jammer_grenade_projectile_enh.JammerProjectile = true
+    jammer_grenade_projectile_enh.JammedEffectDuration += TargetValidation(EffectTarget.Category.Player, EffectTarget.Validation.Player) -> (1 seconds)
+    jammer_grenade_projectile_enh.JammedEffectDuration += TargetValidation(EffectTarget.Category.Vehicle, EffectTarget.Validation.AMS) -> (5 seconds)
+    jammer_grenade_projectile_enh.JammedEffectDuration += TargetValidation(EffectTarget.Category.Deployable, EffectTarget.Validation.MotionSensor) -> (30 seconds)
+    jammer_grenade_projectile_enh.JammedEffectDuration += TargetValidation(EffectTarget.Category.Deployable, EffectTarget.Validation.Spitfire) -> (30 seconds)
+    jammer_grenade_projectile_enh.JammedEffectDuration += TargetValidation(EffectTarget.Category.Turret, EffectTarget.Validation.Turret) -> (30 seconds)
     ProjectileDefinition.CalculateDerivedFields(jammer_grenade_projectile_enh)
 
     katana_projectile.Name = "katana_projectile"
@@ -6096,62 +6127,62 @@ object GlobalDefinitions {
     teleportpad_terminal.Name = "teleportpad_terminal"
     teleportpad_terminal.Tab += 0 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.routerTerminal)
 
-    adv_med_terminal.Name = "adv_med_terminal"
-    adv_med_terminal.Interval = 500
-    adv_med_terminal.HealAmount = 8
-    adv_med_terminal.ArmorAmount = 15
-    adv_med_terminal.UseRadius = 0.75f
-    adv_med_terminal.TargetValidation += ProximityTarget.Player -> ProximityTerminalControl.Validation.Medical
-
-    crystals_health_a.Name = "crystals_health_a"
-    crystals_health_a.Interval = 500
-    crystals_health_a.HealAmount = 4
-    crystals_health_a.UseRadius = 5
-    crystals_health_a.TargetValidation += ProximityTarget.Player -> ProximityTerminalControl.Validation.HealthCrystal
-
-    crystals_health_b.Name = "crystals_health_b"
-    crystals_health_b.Interval = 500
-    crystals_health_b.HealAmount = 4
-    crystals_health_b.UseRadius = 1.3f
-    crystals_health_b.TargetValidation += ProximityTarget.Player -> ProximityTerminalControl.Validation.HealthCrystal
-
     medical_terminal.Name = "medical_terminal"
     medical_terminal.Interval = 500
     medical_terminal.HealAmount = 5
     medical_terminal.ArmorAmount = 10
     medical_terminal.UseRadius = 0.75f
-    medical_terminal.TargetValidation += ProximityTarget.Player -> ProximityTerminalControl.Validation.Medical
+    medical_terminal.TargetValidation += EffectTarget.Category.Player -> EffectTarget.Validation.Medical
+
+    adv_med_terminal.Name = "adv_med_terminal"
+    adv_med_terminal.Interval = 500
+    adv_med_terminal.HealAmount = 8
+    adv_med_terminal.ArmorAmount = 15
+    adv_med_terminal.UseRadius = 0.75f
+    adv_med_terminal.TargetValidation += EffectTarget.Category.Player -> EffectTarget.Validation.Medical
+
+    crystals_health_a.Name = "crystals_health_a"
+    crystals_health_a.Interval = 500
+    crystals_health_a.HealAmount = 4
+    crystals_health_a.UseRadius = 5
+    crystals_health_a.TargetValidation += EffectTarget.Category.Player -> EffectTarget.Validation.HealthCrystal
+
+    crystals_health_b.Name = "crystals_health_b"
+    crystals_health_b.Interval = 500
+    crystals_health_b.HealAmount = 4
+    crystals_health_b.UseRadius = 1.3f
+    crystals_health_b.TargetValidation += EffectTarget.Category.Player -> EffectTarget.Validation.HealthCrystal
 
     portable_med_terminal.Name = "portable_med_terminal"
     portable_med_terminal.Interval = 500
     portable_med_terminal.HealAmount = 5
     portable_med_terminal.ArmorAmount = 10
     portable_med_terminal.UseRadius = 3
-    portable_med_terminal.TargetValidation += ProximityTarget.Player -> ProximityTerminalControl.Validation.Medical
+    portable_med_terminal.TargetValidation += EffectTarget.Category.Player -> EffectTarget.Validation.Medical
 
     pad_landing_frame.Name = "pad_landing_frame"
     pad_landing_frame.Interval = 1000
     pad_landing_frame.HealAmount = 60
     pad_landing_frame.UseRadius = 20
-    pad_landing_frame.TargetValidation += ProximityTarget.Aircraft -> ProximityTerminalControl.Validation.PadLanding
+    pad_landing_frame.TargetValidation += EffectTarget.Category.Aircraft -> EffectTarget.Validation.PadLanding
 
     pad_landing_tower_frame.Name = "pad_landing_tower_frame"
     pad_landing_tower_frame.Interval = 1000
     pad_landing_tower_frame.HealAmount = 60
     pad_landing_tower_frame.UseRadius = 20
-    pad_landing_tower_frame.TargetValidation += ProximityTarget.Aircraft -> ProximityTerminalControl.Validation.PadLanding
+    pad_landing_tower_frame.TargetValidation += EffectTarget.Category.Aircraft -> EffectTarget.Validation.PadLanding
 
     repair_silo.Name = "repair_silo"
     repair_silo.Interval = 1000
     repair_silo.HealAmount = 60
     repair_silo.UseRadius = 20
-    repair_silo.TargetValidation += ProximityTarget.Vehicle -> ProximityTerminalControl.Validation.RepairSilo
+    repair_silo.TargetValidation += EffectTarget.Category.Vehicle -> EffectTarget.Validation.RepairSilo
 
     lodestar_repair_terminal.Name = "lodestar_repair_terminal"
     lodestar_repair_terminal.Interval = 1000
     lodestar_repair_terminal.HealAmount = 60
     lodestar_repair_terminal.UseRadius = 20
-    lodestar_repair_terminal.TargetValidation += ProximityTarget.Vehicle -> ProximityTerminalControl.Validation.RepairSilo
+    lodestar_repair_terminal.TargetValidation += EffectTarget.Category.Vehicle -> EffectTarget.Validation.RepairSilo
 
     multivehicle_rearm_terminal.Name = "multivehicle_rearm_terminal"
     multivehicle_rearm_terminal.Tab += 3 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)

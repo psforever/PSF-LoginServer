@@ -2,7 +2,11 @@
 package net.psforever.objects.definition
 
 import net.psforever.objects.ballistics.Projectiles
+import net.psforever.objects.serverobject.terminals.TargetValidation
 import net.psforever.objects.vital.{DamageType, StandardDamageProfile}
+
+import scala.collection.mutable
+import scala.concurrent.duration.Duration
 
 /**
   * The definition that outlines the damage-dealing characteristics of any projectile.
@@ -26,6 +30,9 @@ class ProjectileDefinition(objectId : Int) extends ObjectDefinition(objectId)
   private var existsOnRemoteClients : Boolean = false //`true` spawns a server-managed object
   private var remoteClientData : (Int, Int) = (0, 0) //artificial values; for ObjectCreateMessage packet (oicw_little_buddy is undefined)
   private var autoLock : Boolean = false
+  private var additionalEffect : Boolean = false
+  private var jammerProjectile : Boolean = false
+  private val jammedEffectDuration : mutable.ListBuffer[(TargetValidation, Duration)] = new mutable.ListBuffer()
   //derived calculations
   private var distanceMax : Float = 0f
   private var distanceFromAcceleration : Float = 0f
@@ -132,6 +139,24 @@ class ProjectileDefinition(objectId : Int) extends ObjectDefinition(objectId)
     autoLock = lockState
     AutoLock
   }
+
+  def AdditionalEffect : Boolean = additionalEffect
+
+  def AdditionalEffect_=(effect : Boolean) : Boolean = {
+    additionalEffect = effect
+    AdditionalEffect
+  }
+
+  def JammerProjectile : Boolean = jammerProjectile
+
+  def JammerProjectile_=(effect : Boolean) : Boolean = {
+    jammerProjectile = effect
+    JammerProjectile
+  }
+
+  def HasJammedEffectDuration : Boolean = jammedEffectDuration.isEmpty
+
+  def JammedEffectDuration : mutable.ListBuffer[(TargetValidation, Duration)] = jammedEffectDuration
 
   def DistanceMax : Float = distanceMax //accessor only
 

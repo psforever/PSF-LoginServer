@@ -126,35 +126,5 @@ class ProximityTerminalControl(term : Terminal with ProximityUnit) extends Actor
 }
 
 object ProximityTerminalControl {
-  object Validation {
-    def Medical(target : PlanetSideGameObject) : Boolean = target match {
-      case p : Player =>
-        p.Health > 0 && (p.Health < p.MaxHealth || p.Armor < p.MaxArmor)
-      case _ =>
-        false
-    }
-
-    def HealthCrystal(target : PlanetSideGameObject) : Boolean = target match {
-      case p : Player =>
-        p.Health > 0 && p.Health < p.MaxHealth
-      case _ =>
-        false
-    }
-
-    def RepairSilo(target : PlanetSideGameObject) : Boolean = target match {
-      case v : Vehicle =>
-        !GlobalDefinitions.isFlightVehicle(v.Definition) && v.Health > 0 && v.Health < v.MaxHealth
-      case _ =>
-        false
-    }
-
-    def PadLanding(target : PlanetSideGameObject) : Boolean = target match {
-      case v : Vehicle =>
-        GlobalDefinitions.isFlightVehicle(v.Definition) && v.Health > 0 && v.Health < v.MaxHealth
-      case _ =>
-        false
-    }
-  }
-
   private case class TerminalAction()
 }

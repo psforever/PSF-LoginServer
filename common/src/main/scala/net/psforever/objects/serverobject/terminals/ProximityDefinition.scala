@@ -17,7 +17,7 @@ trait ProximityDefinition {
   this : ObjectDefinition =>
 
   private var useRadius : Float = 0f //TODO belongs on a wider range of object definitions
-  private val targetValidation : mutable.HashMap[ProximityTarget.Value, PlanetSideGameObject=>Boolean] = new mutable.HashMap[ProximityTarget.Value, PlanetSideGameObject=>Boolean]()
+  private val targetValidation : mutable.HashMap[EffectTarget.Category.Value, PlanetSideGameObject=>Boolean] = new mutable.HashMap[EffectTarget.Category.Value, PlanetSideGameObject=>Boolean]()
 
   def UseRadius : Float = useRadius
 
@@ -26,18 +26,14 @@ trait ProximityDefinition {
     UseRadius
   }
 
-  def TargetValidation : mutable.HashMap[ProximityTarget.Value, PlanetSideGameObject=>Boolean] = targetValidation
+  def TargetValidation : mutable.HashMap[EffectTarget.Category.Value, PlanetSideGameObject=>Boolean] = targetValidation
 
   def Validations : Seq[PlanetSideGameObject=>Boolean] = {
     targetValidation.headOption match {
       case Some(_) =>
         targetValidation.values.toSeq
       case None =>
-        Seq(ProximityDefinition.Invalid)
+        Seq(EffectTarget.Validation.Invalid)
     }
   }
-}
-
-object ProximityDefinition {
-  protected val Invalid : PlanetSideGameObject=>Boolean = (_ : PlanetSideGameObject) => false
 }
