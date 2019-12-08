@@ -26,78 +26,20 @@ import scala.collection.mutable
 import scala.concurrent.duration._
 
 object GlobalDefinitions {
-  /*
-  characters
-   */
+  // Characters
   val avatar = new AvatarDefinition(121)
-  /*
-  Exo-suits
-   */
+
+  // Exo-suits
   val Standard = ExoSuitDefinition(ExoSuitType.Standard)
-  Standard.Name = "standard"
-  Standard.MaxArmor = 50
-  Standard.InventoryScale = InventoryTile.Tile96
-  Standard.InventoryOffset = 6
-  Standard.Holster(0, EquipmentSize.Pistol)
-  Standard.Holster(2, EquipmentSize.Rifle)
-  Standard.Holster(4, EquipmentSize.Melee)
-  Standard.ResistanceDirectHit = 4
-  Standard.ResistanceSplash = 15
-  Standard.ResistanceAggravated = 8
-
   val Agile = ExoSuitDefinition(ExoSuitType.Agile)
-  Agile.Name = "agile"
-  Agile.MaxArmor = 100
-  Agile.InventoryScale = InventoryTile.Tile99
-  Agile.InventoryOffset = 6
-  Agile.Holster(0, EquipmentSize.Pistol)
-  Agile.Holster(1, EquipmentSize.Pistol)
-  Agile.Holster(2, EquipmentSize.Rifle)
-  Agile.Holster(4, EquipmentSize.Melee)
-  Agile.ResistanceDirectHit = 6
-  Agile.ResistanceSplash = 25
-  Agile.ResistanceAggravated = 10
-
   val Reinforced = ExoSuitDefinition(ExoSuitType.Reinforced)
-  Reinforced.Name = "reinforced"
-  Reinforced.Permissions = List(CertificationType.ReinforcedExoSuit)
-  Reinforced.MaxArmor = 200
-  Reinforced.InventoryScale = InventoryTile.Tile1209
-  Reinforced.InventoryOffset = 6
-  Reinforced.Holster(0, EquipmentSize.Pistol)
-  Reinforced.Holster(1, EquipmentSize.Pistol)
-  Reinforced.Holster(2, EquipmentSize.Rifle)
-  Reinforced.Holster(3, EquipmentSize.Rifle)
-  Reinforced.Holster(4, EquipmentSize.Melee)
-  Reinforced.ResistanceDirectHit = 10
-  Reinforced.ResistanceSplash = 35
-  Reinforced.ResistanceAggravated = 12
-
   val Infiltration = ExoSuitDefinition(ExoSuitType.Infiltration)
-  Infiltration.Name = "infiltration_suit"
-  Infiltration.Permissions = List(CertificationType.InfiltrationSuit)
-  Infiltration.MaxArmor = 0
-  Infiltration.InventoryScale = InventoryTile.Tile66
-  Infiltration.InventoryOffset = 6
-  Infiltration.Holster(0, EquipmentSize.Pistol)
-  Infiltration.Holster(4, EquipmentSize.Melee)
+  val VSMAX = SpecialExoSuitDefinition(ExoSuitType.MAX)
+  val TRMAX = SpecialExoSuitDefinition(ExoSuitType.MAX)
+  val NCMAX = SpecialExoSuitDefinition(ExoSuitType.MAX)
+  init_exosuit()
 
-  val MAX = SpecialExoSuitDefinition(ExoSuitType.MAX)
-  MAX.Permissions = List(CertificationType.AIMAX,CertificationType.AVMAX, CertificationType.AAMAX, CertificationType.UniMAX)
-  MAX.MaxArmor = 650
-  MAX.InventoryScale = InventoryTile.Tile1612
-  MAX.InventoryOffset = 6
-  MAX.Holster(0, EquipmentSize.Max)
-  MAX.Holster(4, EquipmentSize.Melee)
-  MAX.Subtract.Damage1 = -2
-  MAX.ResistanceDirectHit = 6
-  MAX.ResistanceSplash = 35
-  MAX.ResistanceAggravated = 10
-  MAX.Damage = StandardMaxDamage
-  MAX.Model = StandardResolutions.Max
-  /*
-  Implants
-   */
+  // Implants
   val advanced_regen = ImplantDefinition(0)
 
   val targeting = ImplantDefinition(1)
@@ -1585,7 +1527,7 @@ object GlobalDefinitions {
     Standard.ResistanceSplash = 15
     Standard.ResistanceAggravated = 8
 
-    Agile.Name = "lite_armor"
+    Agile.Name = "agile"
     Agile.MaxArmor = 100
     Agile.InventoryScale = InventoryTile.Tile99
     Agile.InventoryOffset = 6
@@ -1597,7 +1539,7 @@ object GlobalDefinitions {
     Agile.ResistanceSplash = 25
     Agile.ResistanceAggravated = 10
 
-    Reinforced.Name = "med_armor"
+    Reinforced.Name = "reinforced"
     Reinforced.Permissions = List(CertificationType.ReinforcedExoSuit)
     Reinforced.MaxArmor = 200
     Reinforced.InventoryScale = InventoryTile.Tile1209
@@ -1619,18 +1561,39 @@ object GlobalDefinitions {
     Infiltration.Holster(0, EquipmentSize.Pistol)
     Infiltration.Holster(4, EquipmentSize.Melee)
 
-    MAX.Permissions = List(CertificationType.AIMAX,CertificationType.AVMAX, CertificationType.AAMAX, CertificationType.UniMAX)
-    MAX.MaxArmor = 650
-    MAX.InventoryScale = InventoryTile.Tile1612
-    MAX.InventoryOffset = 6
-    MAX.Holster(0, EquipmentSize.Max)
-    MAX.Holster(4, EquipmentSize.Melee)
-    MAX.Subtract.Damage1 = -2
-    MAX.ResistanceDirectHit = 6
-    MAX.ResistanceSplash = 35
-    MAX.ResistanceAggravated = 10
-    MAX.Damage = StandardMaxDamage
-    MAX.Model = StandardResolutions.Max
+    def CommonMaxConfig(max : SpecialExoSuitDefinition): Unit = {
+      max.Permissions = List(CertificationType.AIMAX,CertificationType.AVMAX, CertificationType.AAMAX, CertificationType.UniMAX)
+      max.MaxArmor = 650
+      max.InventoryScale = InventoryTile.Tile1612
+      max.InventoryOffset = 6
+      max.Holster(0, EquipmentSize.Max)
+      max.Holster(4, EquipmentSize.Melee)
+      max.Subtract.Damage1 = -2
+      max.ResistanceDirectHit = 6
+      max.ResistanceSplash = 35
+      max.ResistanceAggravated = 10
+      max.Damage = StandardMaxDamage
+      max.Model = StandardResolutions.Max
+    }
+
+    CommonMaxConfig(VSMAX)
+    VSMAX.MaxCapacitor = 50
+    VSMAX.CapacitorRechargeDelayMillis = 5000
+    VSMAX.CapacitorRechargePerSecond = 3
+    VSMAX.CapacitorDrainPerSecond = 20
+
+    CommonMaxConfig(TRMAX)
+    TRMAX.MaxCapacitor = 300
+    TRMAX.CapacitorRechargeDelayMillis = 10000
+    TRMAX.CapacitorRechargePerSecond = 10
+    TRMAX.CapacitorDrainPerSecond = 30
+
+    CommonMaxConfig(NCMAX)
+    NCMAX.MaxCapacitor = 400
+    NCMAX.CapacitorRechargeDelayMillis = 10000
+    NCMAX.CapacitorRechargePerSecond = 4
+    NCMAX.CapacitorDrainPerSecond = 4
+
   }
   /**
     * Initialize `AmmoBoxDefinition` globals.

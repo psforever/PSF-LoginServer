@@ -2072,7 +2072,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         val fallbackSubtype = 0
         //a loadout with a prohibited exo-suit type will result in a fallback exo-suit type
         val (nextSuit : ExoSuitType.Value, nextSubtype : Int) =
-          if(ExoSuitDefinition.Select(exosuit).Permissions match {
+          if(ExoSuitDefinition.Select(exosuit, player.Faction).Permissions match {
             case Nil =>
               true
             case permissions if subtype != 0 =>
@@ -2127,7 +2127,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           )
         }
         else {
-          val newSuitDef = ExoSuitDefinition.Select(nextSuit)
+          val newSuitDef = ExoSuitDefinition.Select(nextSuit, player.Faction)
           val (afterInventory, extra) = GridInventory.recoverInventory(
             inventory.filterNot(dropPred),
             tplayer.Inventory

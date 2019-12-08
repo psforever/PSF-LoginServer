@@ -106,13 +106,13 @@ object ResistanceCalculations {
   //extractors
   def NoResistExtractor(target : SourceEntry) : Int = 0
 
-  def ExoSuitDirectExtractor(target : PlayerSource) : Int = ExoSuitDefinition.Select(target.ExoSuit).ResistanceDirectHit
+  def ExoSuitDirectExtractor(target : PlayerSource) : Int = ExoSuitDefinition.Select(target.ExoSuit, target.Faction).ResistanceDirectHit
 
-  def ExoSuitSplashExtractor(target : PlayerSource) : Int = ExoSuitDefinition.Select(target.ExoSuit).ResistanceSplash
+  def ExoSuitSplashExtractor(target : PlayerSource) : Int = ExoSuitDefinition.Select(target.ExoSuit, target.Faction).ResistanceSplash
 
-  def ExoSuitAggravatedExtractor(target : PlayerSource) : Int = ExoSuitDefinition.Select(target.ExoSuit).ResistanceAggravated
+  def ExoSuitAggravatedExtractor(target : PlayerSource) : Int = ExoSuitDefinition.Select(target.ExoSuit, target.Faction).ResistanceAggravated
 
-  def ExoSuitRadiationExtractor(target : PlayerSource) : Float = ExoSuitDefinition.Select(target.ExoSuit).RadiationShielding
+  def ExoSuitRadiationExtractor(target : PlayerSource) : Float = ExoSuitDefinition.Select(target.ExoSuit, target.Faction).RadiationShielding
 
   def VehicleDirectExtractor(target : VehicleSource) : Int = target.Definition.ResistanceDirectHit
 

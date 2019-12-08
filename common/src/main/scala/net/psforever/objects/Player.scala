@@ -292,7 +292,7 @@ class Player(private val core : Avatar) extends PlanetSideGameObject
   def ExoSuit : ExoSuitType.Value = exosuit.SuitType
 
   def ExoSuit_=(suit : ExoSuitType.Value) : Unit = {
-    val eSuit = ExoSuitDefinition.Select(suit)
+    val eSuit = ExoSuitDefinition.Select(suit, Faction)
     exosuit = eSuit
     Player.SuitSetup(this, eSuit)
     ChangeSpecialAbility()

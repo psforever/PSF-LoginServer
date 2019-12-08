@@ -6,7 +6,7 @@ import net.psforever.objects.equipment.EquipmentSize
 import net.psforever.objects.inventory.InventoryTile
 import net.psforever.objects.vital._
 import net.psforever.objects.vital.resistance.ResistanceProfileMutators
-import net.psforever.types.{CertificationType, ExoSuitType}
+import net.psforever.types.{CertificationType, ExoSuitType, PlanetSideEmpire}
 
 /**
   * A definition for producing the personal armor the player wears.
@@ -21,6 +21,10 @@ class ExoSuitDefinition(private val suitType : ExoSuitType.Value) extends BasicD
   protected val holsters : Array[EquipmentSize.Value] = Array.fill[EquipmentSize.Value](5)(EquipmentSize.Blocked)
   protected var inventoryScale : InventoryTile = InventoryTile.Tile11 //override with custom InventoryTile
   protected var inventoryOffset : Int = 0
+  protected var maxCapacitor : Int = 0
+  protected var capacitorRechargeDelayMillis : Int = 0
+  protected var capacitorRechargePerSecond : Int = 0
+  protected var capacitorDrainPerSecond : Int = 0
   Name = "exo-suit"
   Damage = StandardInfantryDamage
   Resistance = StandardInfantryResistance
@@ -33,6 +37,34 @@ class ExoSuitDefinition(private val suitType : ExoSuitType.Value) extends BasicD
   def MaxArmor_=(armor : Int) : Int = {
     maxArmor = math.min(math.max(0, armor), 65535)
     MaxArmor
+  }
+
+  def MaxCapacitor : Int = maxCapacitor
+
+  def MaxCapacitor_=(value : Int) : Int = {
+    maxCapacitor = value
+    maxCapacitor
+  }
+
+  def CapacitorRechargeDelayMillis : Int = capacitorRechargeDelayMillis
+
+  def CapacitorRechargeDelayMillis_=(value : Int) : Int = {
+    capacitorRechargeDelayMillis = value
+    capacitorRechargeDelayMillis
+  }
+
+  def CapacitorRechargePerSecond : Int = capacitorRechargePerSecond
+
+  def CapacitorRechargePerSecond_=(value : Int) : Int = {
+    capacitorRechargePerSecond = value
+    capacitorRechargePerSecond
+  }
+
+  def CapacitorDrainPerSecond : Int = capacitorDrainPerSecond
+
+  def CapacitorDrainPerSecond_=(value : Int) : Int = {
+    capacitorDrainPerSecond = value
+    capacitorDrainPerSecond
   }
 
   def InventoryScale : InventoryTile = inventoryScale
@@ -96,6 +128,10 @@ class SpecialExoSuitDefinition(private val suitType : ExoSuitType.Value) extends
     val obj = new SpecialExoSuitDefinition(SuitType)
     obj.Permissions = Permissions
     obj.MaxArmor = MaxArmor
+    obj.MaxCapacitor = MaxCapacitor
+    obj.CapacitorRechargePerSecond = CapacitorRechargePerSecond
+    obj.CapacitorDrainPerSecond = CapacitorDrainPerSecond
+    obj.CapacitorRechargeDelayMillis = CapacitorRechargeDelayMillis
     obj.InventoryScale = InventoryScale
     obj.InventoryOffset = InventoryOffset
     obj.Subtract.Damage0 = Subtract.Damage0
@@ -138,14 +174,19 @@ object ExoSuitDefinition {
   /**
     * A function to retrieve the correct defintion of an exo-suit from the type of exo-suit.
     * @param suit the `Enumeration` corresponding to this exo-suit
+    * @param faction the faction the player belongs to for this exosuit
     * @return the exo-suit definition
     */
-  def Select(suit : ExoSuitType.Value) : ExoSuitDefinition = {
+  def Select(suit : ExoSuitType.Value, faction : PlanetSideEmpire.Value) : ExoSuitDefinition = {
     suit match {
-      case ExoSuitType.Agile => GlobalDefinitions.Agile.Use
       case ExoSuitType.Infiltration => GlobalDefinitions.Infiltration.Use
-      case ExoSuitType.MAX => GlobalDefinitions.MAX.Use
+      case ExoSuitType.Agile => GlobalDefinitions.Agile.Use
       case ExoSuitType.Reinforced => GlobalDefinitions.Reinforced.Use
+      case ExoSuitType.MAX => faction match {
+        case PlanetSideEmpire.TR => GlobalDefinitions.TRMAX.Use
+        case PlanetSideEmpire.NC => GlobalDefinitions.NCMAX.Use
+        case PlanetSideEmpire.VS => GlobalDefinitions.VSMAX.Use
+      }
       case _ => GlobalDefinitions.Standard.Use
     }
   }
