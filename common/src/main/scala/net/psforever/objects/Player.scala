@@ -509,9 +509,9 @@ class Player(private val core : Avatar) extends PlanetSideGameObject
       SpecialExoSuitDefinition.Mode.Normal
   }
 
-  def isAnchored : Boolean = ExoSuit == ExoSuitType.MAX && Faction == PlanetSideEmpire.NC && UsingSpecial == SpecialExoSuitDefinition.Mode.Anchored
+  def isAnchored : Boolean = ExoSuit == ExoSuitType.MAX && Faction == PlanetSideEmpire.TR && UsingSpecial == SpecialExoSuitDefinition.Mode.Anchored
 
-  def isOverdrived : Boolean = ExoSuit == ExoSuitType.MAX && Faction == PlanetSideEmpire.NC && UsingSpecial == SpecialExoSuitDefinition.Mode.Overdrive
+  def isOverdrived : Boolean = ExoSuit == ExoSuitType.MAX && Faction == PlanetSideEmpire.TR && UsingSpecial == SpecialExoSuitDefinition.Mode.Overdrive
 
   def isShielded : Boolean = ExoSuit == ExoSuitType.MAX && Faction == PlanetSideEmpire.NC && UsingSpecial == SpecialExoSuitDefinition.Mode.Shielded
 
