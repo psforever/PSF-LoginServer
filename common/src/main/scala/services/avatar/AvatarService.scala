@@ -2,7 +2,7 @@
 package services.avatar
 
 import akka.actor.{Actor, ActorRef, Props}
-import net.psforever.packet.game.ObjectCreateMessage
+import net.psforever.packet.game.{ObjectCreateMessage, PlanetSideGUID}
 import net.psforever.packet.game.objectcreate.{DroppedItemData, ObjectCreateMessageParent, PlacementData}
 import services.avatar.support.{CorpseRemovalActor, DroppedItemRemover}
 import services.{GenericEventBus, RemoverActor, Service}
@@ -109,6 +109,10 @@ class AvatarService extends Actor {
               AvatarResponse.EquipmentInHand(ObjectCreateMessage(definition.ObjectId, item.GUID, containerData, objectData))
             )
           )
+        case AvatarAction.GenericObjectAction(player_guid, object_guid, action_code) =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.GenericObjectAction(object_guid, action_code))
+          )
         case AvatarAction.HitHint(source_guid, player_guid) =>
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.HitHint(source_guid))
@@ -126,6 +130,12 @@ class AvatarService extends Actor {
           }
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.LoadPlayer(pkt))
+          )
+        case AvatarAction.LoadProjectile(player_guid, object_id, object_guid, cdata) =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.LoadProjectile(
+              ObjectCreateMessage(object_id, object_guid, cdata)
+            ))
           )
         case AvatarAction.ObjectDelete(player_guid, item_guid, unk) =>
           AvatarEvents.publish(
@@ -150,6 +160,18 @@ class AvatarService extends Actor {
         case AvatarAction.PlayerState(guid, pos, vel, yaw, pitch, yaw_upper, seq_time, is_crouching, is_jumping, jump_thrust, is_cloaking, spectating, weaponInHand) =>
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", guid, AvatarResponse.PlayerState(pos, vel, yaw, pitch, yaw_upper, seq_time, is_crouching, is_jumping, jump_thrust, is_cloaking, spectating, weaponInHand))
+          )
+        case AvatarAction.ProjectileAutoLockAwareness(mode) =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(s"/$forChannel/Avatar", PlanetSideGUID(0), AvatarResponse.ProjectileAutoLockAwareness(mode))
+          )
+        case AvatarAction.ProjectileExplodes(player_guid, projectile_guid, projectile) =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.ProjectileExplodes(projectile_guid, projectile))
+          )
+        case AvatarAction.ProjectileState(player_guid, projectile_guid, shot_pos, shot_vel, shot_orient, sequence, end, target) =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.ProjectileState(projectile_guid, shot_pos, shot_vel, shot_orient, sequence, end, target))
           )
         case AvatarAction.PickupItem(player_guid, zone, target, slot, item, unk) =>
           janitor forward RemoverActor.ClearSpecific(List(item), zone)
