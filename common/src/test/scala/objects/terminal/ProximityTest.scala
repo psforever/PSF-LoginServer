@@ -4,7 +4,6 @@ package objects.terminal
 import akka.actor.Props
 import akka.testkit.TestProbe
 import base.ActorTest
-import net.psforever.objects.guid.TaskResolver
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.structures.{Building, StructureType}
 import net.psforever.objects.serverobject.terminals.{ProximityTerminal, ProximityTerminalControl, ProximityUnit, Terminal}
@@ -13,8 +12,8 @@ import net.psforever.objects.{Avatar, GlobalDefinitions, Player}
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types.{CharacterGender, CharacterVoice, PlanetSideEmpire}
 import org.specs2.mutable.Specification
-import services.{Service, ServiceManager}
-import services.local.{LocalResponse, LocalService, LocalServiceResponse}
+import services.Service
+import services.local.LocalService
 
 import scala.concurrent.duration._
 
@@ -96,19 +95,14 @@ class ProximityTest extends Specification {
 class ProximityTerminalControlStartTest extends ActorTest {
   "ProximityTerminalControl" should {
     //setup
-    val probe = new TestProbe(system)
-    val service = ServiceManager.boot(system)
-    service ! ServiceManager.Register(Props(classOf[ProximityTest.ProbedLocalService], probe), "local")
-    service ! ServiceManager.Register(Props[TaskResolver], "taskResolver")
-    service ! ServiceManager.Register(Props[TaskResolver], "cluster")
-    val terminal = new ProximityTerminal(GlobalDefinitions.medical_terminal)
-    terminal.Actor = system.actorOf(Props(classOf[ProximityTerminalControl], terminal), "test-prox")
     val zone : Zone = new Zone("test", new ZoneMap("test-map"), 0) {
       Actor = system.actorOf(Props(classOf[ZoneActor], this), "test-zone")
       override def SetupNumberPools() = {
         AddPool("dynamic", 1 to 10)
       }
     }
+    val terminal = new ProximityTerminal(GlobalDefinitions.medical_terminal)
+    terminal.Actor = system.actorOf(Props(classOf[ProximityTerminalControl], terminal), "test-prox")
     new Building("Building", building_guid = 0, map_id = 0, zone, StructureType.Facility, GlobalDefinitions.building) {
       Amenities = terminal
       Faction = PlanetSideEmpire.VS
@@ -122,17 +116,18 @@ class ProximityTerminalControlStartTest extends ActorTest {
     terminal.GUID = PlanetSideGUID(2)
     terminal.Actor ! Service.Startup()
     expectNoMsg(500 milliseconds) //spacer
+    val probe1 = new TestProbe(system, "local-events")
+    val probe2 = new TestProbe(system, "target-callback")
+    zone.LocalEvents = probe1.ref
 
     "send out a start message" in {
       assert(terminal.NumberUsers == 0)
       assert(terminal.Owner.Continent.equals("test"))
-      terminal.Actor ! CommonMessages.Use(avatar, Some(avatar))
 
-      val msg = probe.receiveOne(500 milliseconds)
+      terminal.Actor.tell(CommonMessages.Use(avatar, Some(avatar)), probe2.ref)
+      probe1.expectMsgClass(1 second, classOf[Terminal.StartProximityEffect])
+      probe2.expectMsgClass(1 second, classOf[ProximityUnit.Action])
       assert(terminal.NumberUsers == 1)
-      assert(msg.isInstanceOf[LocalServiceResponse])
-      val resp = msg.asInstanceOf[LocalServiceResponse]
-      assert(resp.replyMessage == LocalResponse.ProximityTerminalEffect(PlanetSideGUID(2), true))
     }
   }
 }
@@ -140,50 +135,50 @@ class ProximityTerminalControlStartTest extends ActorTest {
 class ProximityTerminalControlTwoUsersTest extends ActorTest {
   "ProximityTerminalControl" should {
     //setup
-    val probe = new TestProbe(system)
-    val service = ServiceManager.boot(system)
-    service ! ServiceManager.Register(Props(classOf[ProximityTest.ProbedLocalService], probe), "local")
-    service ! ServiceManager.Register(Props[TaskResolver], "taskResolver")
-    service ! ServiceManager.Register(Props[TaskResolver], "cluster")
-    val terminal = new ProximityTerminal(GlobalDefinitions.medical_terminal)
-    terminal.Actor = system.actorOf(Props(classOf[ProximityTerminalControl], terminal), "test-prox")
     val zone : Zone = new Zone("test", new ZoneMap("test-map"), 0) {
       Actor = system.actorOf(Props(classOf[ZoneActor], this), "test-zone")
       override def SetupNumberPools() = {
         AddPool("dynamic", 1 to 10)
       }
     }
+    val terminal = new ProximityTerminal(GlobalDefinitions.medical_terminal)
+    terminal.Actor = system.actorOf(Props(classOf[ProximityTerminalControl], terminal), "test-prox")
     new Building("Building", building_guid = 0, map_id = 0, zone, StructureType.Facility, GlobalDefinitions.building) {
       Amenities = terminal
       Faction = PlanetSideEmpire.VS
     }
+
     val avatar = Player(Avatar("TestCharacter1", PlanetSideEmpire.VS, CharacterGender.Female, 1, CharacterVoice.Voice1))
     avatar.Continent = "test"
     avatar.Spawn
     avatar.Health = 50
+    val avatar2 = Player(Avatar("TestCharacter2", PlanetSideEmpire.VS, CharacterGender.Female, 1, CharacterVoice.Voice1))
+    avatar2.Continent = "test"
+    avatar2.Spawn
+    avatar2.Health = 50
 
     avatar.GUID = PlanetSideGUID(1)
-    terminal.GUID = PlanetSideGUID(2)
+    avatar.GUID = PlanetSideGUID(2)
+    terminal.GUID = PlanetSideGUID(3)
     terminal.Actor ! Service.Startup()
     expectNoMsg(500 milliseconds) //spacer
+    val probe1 = new TestProbe(system, "local-events")
+    val probe2 = new TestProbe(system, "target-callback-1")
+    val probe3 = new TestProbe(system, "target-callback-2")
+    zone.LocalEvents = probe1.ref
 
-    "will not send out a start message if not the first user" in {
+    "not send out a start message if not the first user" in {
       assert(terminal.NumberUsers == 0)
       assert(terminal.Owner.Continent.equals("test"))
 
-      terminal.Actor ! CommonMessages.Use(avatar, Some(avatar))
-      val msg = probe.receiveOne(500 milliseconds)
-      assert(terminal.NumberUsers == 1)
-      assert(msg.isInstanceOf[LocalServiceResponse])
-      val resp = msg.asInstanceOf[LocalServiceResponse]
-      assert(resp.replyMessage == LocalResponse.ProximityTerminalEffect(PlanetSideGUID(2), true))
+      terminal.Actor.tell(CommonMessages.Use(avatar, Some(avatar)), probe2.ref)
+      probe1.expectMsgClass(1 second, classOf[Terminal.StartProximityEffect])
+      probe2.expectMsgClass(1 second, classOf[ProximityUnit.Action])
 
-      val avatar2 = Player(Avatar("TestCharacter2", PlanetSideEmpire.VS, CharacterGender.Female, 1, CharacterVoice.Voice1))
-      avatar2.Continent = "test"
-      avatar2.Spawn
-      avatar2.Health = 50
-      terminal.Actor ! CommonMessages.Use(avatar2, Some(avatar2))
-      probe.expectNoMsg(500 milliseconds)
+      terminal.Actor.tell(CommonMessages.Use(avatar2, Some(avatar2)), probe3.ref)
+      probe1.expectNoMsg(1 second)
+      probe2.expectMsgClass(1 second, classOf[ProximityUnit.Action])
+      probe3.expectMsgClass(1 second, classOf[ProximityUnit.Action])
       assert(terminal.NumberUsers == 2)
     }
   }
@@ -192,19 +187,14 @@ class ProximityTerminalControlTwoUsersTest extends ActorTest {
 class ProximityTerminalControlStopTest extends ActorTest {
   "ProximityTerminalControl" should {
     //setup
-    val probe = new TestProbe(system)
-    val service = ServiceManager.boot(system)
-    service ! ServiceManager.Register(Props(classOf[ProximityTest.ProbedLocalService], probe), "local")
-    service ! ServiceManager.Register(Props[TaskResolver], "taskResolver")
-    service ! ServiceManager.Register(Props[TaskResolver], "cluster")
-    val terminal = new ProximityTerminal(GlobalDefinitions.medical_terminal)
-    terminal.Actor = system.actorOf(Props(classOf[ProximityTerminalControl], terminal), "test-prox")
     val zone : Zone = new Zone("test", new ZoneMap("test-map"), 0) {
       Actor = system.actorOf(Props(classOf[ZoneActor], this), "test-zone")
       override def SetupNumberPools() = {
         AddPool("dynamic", 1 to 10)
       }
     }
+    val terminal = new ProximityTerminal(GlobalDefinitions.medical_terminal)
+    terminal.Actor = system.actorOf(Props(classOf[ProximityTerminalControl], terminal), "test-prox")
     new Building("Building", building_guid = 0, map_id = 0, zone, StructureType.Facility, GlobalDefinitions.building) {
       Amenities = terminal
       Faction = PlanetSideEmpire.VS
@@ -218,24 +208,21 @@ class ProximityTerminalControlStopTest extends ActorTest {
     terminal.GUID = PlanetSideGUID(2)
     terminal.Actor ! Service.Startup()
     expectNoMsg(500 milliseconds) //spacer
+    val probe1 = new TestProbe(system, "local-events")
+    val probe2 = new TestProbe(system, "target-callback-1")
+    zone.LocalEvents = probe1.ref
 
     "send out a stop message" in {
       assert(terminal.NumberUsers == 0)
       assert(terminal.Owner.Continent.equals("test"))
 
-      terminal.Actor ! CommonMessages.Use(avatar, Some(avatar))
-      val msg1 = probe.receiveOne(500 milliseconds)
-      assert(terminal.NumberUsers == 1)
-      assert(msg1.isInstanceOf[LocalServiceResponse])
-      val resp1 = msg1.asInstanceOf[LocalServiceResponse]
-      assert(resp1.replyMessage == LocalResponse.ProximityTerminalEffect(PlanetSideGUID(2), true))
+      terminal.Actor.tell(CommonMessages.Use(avatar, Some(avatar)), probe2.ref)
+      probe1.expectMsgClass(1 second, classOf[Terminal.StartProximityEffect])
+      probe2.expectMsgClass(1 second, classOf[ProximityUnit.Action])
 
       terminal.Actor ! CommonMessages.Unuse(avatar, Some(avatar))
-      val msg2 = probe.receiveWhile(500 milliseconds) {
-        case LocalServiceResponse(_, _, replyMessage) => replyMessage
-      }
+      probe1.expectMsgClass(1 second, classOf[Terminal.StopProximityEffect])
       assert(terminal.NumberUsers == 0)
-      assert(msg2.last == LocalResponse.ProximityTerminalEffect(PlanetSideGUID(2), false))
     }
   }
 }
@@ -243,58 +230,57 @@ class ProximityTerminalControlStopTest extends ActorTest {
 class ProximityTerminalControlNotStopTest extends ActorTest {
   "ProximityTerminalControl" should {
     //setup
-    val probe = new TestProbe(system)
-    val service = ServiceManager.boot(system)
-    service ! ServiceManager.Register(Props(classOf[ProximityTest.ProbedLocalService], probe), "local")
-    service ! ServiceManager.Register(Props[TaskResolver], "taskResolver")
-    service ! ServiceManager.Register(Props[TaskResolver], "cluster")
-    val terminal = new ProximityTerminal(GlobalDefinitions.medical_terminal)
-    terminal.Actor = system.actorOf(Props(classOf[ProximityTerminalControl], terminal), "test-prox")
     val zone : Zone = new Zone("test", new ZoneMap("test-map"), 0) {
       Actor = system.actorOf(Props(classOf[ZoneActor], this), "test-zone")
       override def SetupNumberPools() = {
         AddPool("dynamic", 1 to 10)
       }
     }
+    val terminal = new ProximityTerminal(GlobalDefinitions.medical_terminal)
+    terminal.Actor = system.actorOf(Props(classOf[ProximityTerminalControl], terminal), "test-prox")
     new Building("Building", building_guid = 0, map_id = 0, zone, StructureType.Facility, GlobalDefinitions.building) {
       Amenities = terminal
       Faction = PlanetSideEmpire.VS
     }
+
     val avatar = Player(Avatar("TestCharacter1", PlanetSideEmpire.VS, CharacterGender.Female, 1, CharacterVoice.Voice1))
     avatar.Continent = "test"
     avatar.Spawn
     avatar.Health = 50
+    val avatar2 = Player(Avatar("TestCharacter2", PlanetSideEmpire.VS, CharacterGender.Female, 1, CharacterVoice.Voice1))
+    avatar2.Continent = "test"
+    avatar2.Spawn
+    avatar2.Health = 50
 
     avatar.GUID = PlanetSideGUID(1)
-    terminal.GUID = PlanetSideGUID(2)
+    avatar.GUID = PlanetSideGUID(2)
+    terminal.GUID = PlanetSideGUID(3)
     terminal.Actor ! Service.Startup()
     expectNoMsg(500 milliseconds) //spacer
+    val probe1 = new TestProbe(system, "local-events")
+    val probe2 = new TestProbe(system, "target-callback-1")
+    val probe3 = new TestProbe(system, "target-callback-2")
+    zone.LocalEvents = probe1.ref
 
     "will not send out one stop message until last user" in {
       assert(terminal.NumberUsers == 0)
       assert(terminal.Owner.Continent.equals("test"))
 
-      terminal.Actor ! CommonMessages.Use(avatar, Some(avatar))
-      val msg = probe.receiveOne(500 milliseconds)
+      terminal.Actor.tell(CommonMessages.Use(avatar, Some(avatar)), probe2.ref)
+      probe1.expectMsgClass(100 millisecond, classOf[Terminal.StartProximityEffect])
       assert(terminal.NumberUsers == 1)
-      assert(msg.isInstanceOf[LocalServiceResponse])
-      val resp = msg.asInstanceOf[LocalServiceResponse]
-      assert(resp.replyMessage == LocalResponse.ProximityTerminalEffect(PlanetSideGUID(2), true))
 
-      val avatar2 = Player(Avatar("TestCharacter2", PlanetSideEmpire.VS, CharacterGender.Female, 1, CharacterVoice.Voice1))
-      avatar2.Continent = "test"
-      avatar2.Spawn
-      avatar2.Health = 50
-      terminal.Actor ! CommonMessages.Use(avatar2, Some(avatar2))
-      probe.expectNoMsg(500 milliseconds)
+      terminal.Actor.tell(CommonMessages.Use(avatar2, Some(avatar2)), probe3.ref)
+      probe1.expectNoMsg(100 millisecond)
       assert(terminal.NumberUsers == 2)
 
       terminal.Actor ! CommonMessages.Unuse(avatar, Some(avatar))
-      val msg2 = probe.receiveWhile(500 milliseconds) {
-        case LocalServiceResponse(_, _, replyMessage) => replyMessage
-      }
+      probe1.expectNoMsg(100 millisecond)
       assert(terminal.NumberUsers == 1)
-      assert(!msg2.contains(LocalResponse.ProximityTerminalEffect(PlanetSideGUID(2), false)))
+
+      terminal.Actor ! CommonMessages.Unuse(avatar2, Some(avatar2))
+      probe1.expectMsgClass(100 millisecond, classOf[Terminal.StopProximityEffect])
+      assert(terminal.NumberUsers == 0)
     }
   }
 }
@@ -302,7 +288,7 @@ class ProximityTerminalControlNotStopTest extends ActorTest {
 object ProximityTest {
   class SampleTerminal extends Terminal(GlobalDefinitions.dropship_vehicle_terminal) with ProximityUnit
 
-  class ProbedLocalService(probe : TestProbe) extends LocalService {
+  class ProbedLocalService(probe : TestProbe, zone : Zone) extends LocalService(zone) {
     self.tell(Service.Join("test"), probe.ref)
   }
 }

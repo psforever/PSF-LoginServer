@@ -19,12 +19,9 @@ import org.slf4j
 import org.fusesource.jansi.Ansi._
 import org.fusesource.jansi.Ansi.Color._
 import services.ServiceManager
-import services.avatar._
 import services.chat.ChatService
 import services.galaxy.GalaxyService
-import services.local._
 import services.teamwork.SquadService
-import services.vehicle.VehicleService
 
 import scala.collection.JavaConverters._
 import scala.concurrent.Await
@@ -69,7 +66,7 @@ object PsLogin {
 
     s"""|~~~ System Information ~~~
        |SYS: ${System.getProperty("os.name")} (v. ${System.getProperty("os.version")}, ${System.getProperty("os.arch")})
-       |CPU: ${processorString}
+       |CPU: $processorString
        |MEM: ${maxMemory}MB available to the JVM (tune with -Xmx flag)
        |JVM: ${System.getProperty("java.vm.name")} (build ${System.getProperty("java.version")}), ${System.getProperty("java.vendor")} - ${System.getProperty("java.vendor.url")}
     """.stripMargin
@@ -177,7 +174,7 @@ object PsLogin {
 
     loadConfig(configDirectory)
 
-    println(s"Initializing logging from ${loggingConfigFile}...")
+    println(s"Initializing logging from $loggingConfigFile...")
     initializeLogging(loggingConfigFile)
 
     /** Initialize the PSCrypto native library
@@ -259,29 +256,10 @@ object PsLogin {
     val continentList = createContinents()
     val serviceManager = ServiceManager.boot
     serviceManager ! ServiceManager.Register(RandomPool(50).props(Props[TaskResolver]), "taskResolver")
-    serviceManager ! ServiceManager.Register(Props[AvatarService], "avatar")
-    serviceManager ! ServiceManager.Register(Props[LocalService], "local")
     serviceManager ! ServiceManager.Register(Props[ChatService], "chat")
-    serviceManager ! ServiceManager.Register(Props[VehicleService], "vehicle")
     serviceManager ! ServiceManager.Register(Props[GalaxyService], "galaxy")
     serviceManager ! ServiceManager.Register(Props[SquadService], "squad")
     serviceManager ! ServiceManager.Register(Props(classOf[InterstellarCluster], continentList), "cluster")
-
-    //attach event bus entry point to each zone
-    import akka.pattern.ask
-    import akka.util.Timeout
-    import scala.concurrent.ExecutionContext.Implicits.global
-    import scala.concurrent.Future
-    import scala.util.{Failure, Success}
-    implicit val timeout = Timeout(5 seconds)
-    val requestVehicleEventBus : Future[ServiceManager.LookupResult] =
-      (ServiceManager.serviceManager ask ServiceManager.Lookup("vehicle")).mapTo[ServiceManager.LookupResult]
-    requestVehicleEventBus.onComplete {
-      case Success(ServiceManager.LookupResult(_, bus)) =>
-        continentList.foreach { _.VehicleEvents = bus }
-      case Failure(_) => ;
-        //TODO how to fail
-    }
 
     /** Create two actors for handling the login and world server endpoints */
     loginRouter = Props(new SessionRouter("Login", loginTemplate))
@@ -301,6 +279,7 @@ object PsLogin {
   def createContinents() : List[Zone] = {
     import Zones._
     List(
+      Zone.Nowhere,
       z1, z2, z3, z4, z5, z6, z7, z8, z9, z10,
       home1, tzshtr, tzdrtr, tzcotr,
       home2, tzshnc, tzdrnc, tzconc,

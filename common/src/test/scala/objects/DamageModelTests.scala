@@ -223,7 +223,7 @@ class ResolutionCalculationsTests extends Specification {
       InfantryDamageAfterResist(100,100)(50, 10) mustEqual (40,10)
     }
 
-    "calculate health and armor damage, with bonus damage, for infantry target" in {
+    "calculate health and armor damage, with bleed through damage, for infantry target" in {
       //health = 100, armor = 5 -> resist 10 but only have 5, so rollover extra -> damages (40+5, 5)
       InfantryDamageAfterResist(100,5)(50, 10) mustEqual (45,5)
     }

@@ -1,10 +1,11 @@
 // Copyright (c) 2017 PSForever
 package objects
 
+import net.psforever.objects.GlobalDefinitions
 import net.psforever.objects.definition.{ExoSuitDefinition, SpecialExoSuitDefinition}
 import net.psforever.objects.equipment._
 import net.psforever.objects.inventory.InventoryTile
-import net.psforever.types.ExoSuitType
+import net.psforever.types.{ExoSuitType, PlanetSideEmpire}
 import org.specs2.mutable._
 
 class ExoSuitTest extends Specification {
@@ -127,15 +128,47 @@ class ExoSuitTest extends Specification {
 
   "ExoSuitDefinition.Select" should {
     "produce common, shared instances of exo suits" in {
-      ExoSuitDefinition.Select(ExoSuitType.Standard) eq ExoSuitDefinition.Select(ExoSuitType.Standard)
-      ExoSuitDefinition.Select(ExoSuitType.Agile) eq ExoSuitDefinition.Select(ExoSuitType.Agile)
-      ExoSuitDefinition.Select(ExoSuitType.Reinforced) eq ExoSuitDefinition.Select(ExoSuitType.Reinforced)
-      ExoSuitDefinition.Select(ExoSuitType.Infiltration) eq ExoSuitDefinition.Select(ExoSuitType.Infiltration)
+      ExoSuitDefinition.Select(ExoSuitType.Standard, PlanetSideEmpire.VS) eq ExoSuitDefinition.Select(ExoSuitType.Standard, PlanetSideEmpire.VS)
+      ExoSuitDefinition.Select(ExoSuitType.Agile, PlanetSideEmpire.VS) eq ExoSuitDefinition.Select(ExoSuitType.Agile, PlanetSideEmpire.VS)
+      ExoSuitDefinition.Select(ExoSuitType.Reinforced, PlanetSideEmpire.VS) eq ExoSuitDefinition.Select(ExoSuitType.Reinforced, PlanetSideEmpire.VS)
+      ExoSuitDefinition.Select(ExoSuitType.Infiltration, PlanetSideEmpire.VS) eq ExoSuitDefinition.Select(ExoSuitType.Infiltration, PlanetSideEmpire.VS)
+    }
+
+    "produce common, shared instances of exo suits across factions" in {
+      ExoSuitDefinition.Select(ExoSuitType.Standard, PlanetSideEmpire.VS) eq ExoSuitDefinition.Select(ExoSuitType.Standard, PlanetSideEmpire.TR)
+      ExoSuitDefinition.Select(ExoSuitType.Standard, PlanetSideEmpire.VS) eq ExoSuitDefinition.Select(ExoSuitType.Standard, PlanetSideEmpire.NC)
+
+      ExoSuitDefinition.Select(ExoSuitType.Agile, PlanetSideEmpire.VS) eq ExoSuitDefinition.Select(ExoSuitType.Agile, PlanetSideEmpire.TR)
+      ExoSuitDefinition.Select(ExoSuitType.Agile, PlanetSideEmpire.VS) eq ExoSuitDefinition.Select(ExoSuitType.Agile, PlanetSideEmpire.NC)
+
+      ExoSuitDefinition.Select(ExoSuitType.Reinforced, PlanetSideEmpire.VS) eq ExoSuitDefinition.Select(ExoSuitType.Reinforced, PlanetSideEmpire.TR)
+      ExoSuitDefinition.Select(ExoSuitType.Reinforced, PlanetSideEmpire.VS) eq ExoSuitDefinition.Select(ExoSuitType.Reinforced, PlanetSideEmpire.NC)
+
+      ExoSuitDefinition.Select(ExoSuitType.Infiltration, PlanetSideEmpire.VS) eq ExoSuitDefinition.Select(ExoSuitType.Infiltration, PlanetSideEmpire.TR)
+      ExoSuitDefinition.Select(ExoSuitType.Infiltration, PlanetSideEmpire.VS) eq ExoSuitDefinition.Select(ExoSuitType.Infiltration, PlanetSideEmpire.NC)
+    }
+
+    "can select max for TR" in {
+      val obj = ExoSuitDefinition.Select(ExoSuitType.MAX, PlanetSideEmpire.TR)
+      obj.isInstanceOf[SpecialExoSuitDefinition] mustEqual true
+      obj.MaxCapacitor mustEqual 300
+    }
+
+    "can select max for VS" in {
+      val obj = ExoSuitDefinition.Select(ExoSuitType.MAX, PlanetSideEmpire.VS)
+      obj.isInstanceOf[SpecialExoSuitDefinition] mustEqual true
+      obj.MaxCapacitor mustEqual 50
+    }
+
+    "can select max for NC" in {
+      val obj = ExoSuitDefinition.Select(ExoSuitType.MAX, PlanetSideEmpire.NC)
+      obj.isInstanceOf[SpecialExoSuitDefinition] mustEqual true
+      obj.MaxCapacitor mustEqual 400
     }
 
     "produces unique instances of the mechanized assault exo suit" in {
-      val obj = ExoSuitDefinition.Select(ExoSuitType.MAX)
-      obj ne ExoSuitDefinition.Select(ExoSuitType.MAX)
+      val obj = ExoSuitDefinition.Select(ExoSuitType.MAX, PlanetSideEmpire.VS)
+      obj ne ExoSuitDefinition.Select(ExoSuitType.MAX, PlanetSideEmpire.VS)
       obj.isInstanceOf[SpecialExoSuitDefinition] mustEqual true
     }
   }

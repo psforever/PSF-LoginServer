@@ -26,75 +26,26 @@ import scala.collection.mutable
 import scala.concurrent.duration._
 
 object GlobalDefinitions {
-  /*
-  characters
-   */
+  // Characters
   val avatar = new AvatarDefinition(121)
   /*
-  Exo-suits
+  exo-suits
    */
   val Standard = ExoSuitDefinition(ExoSuitType.Standard)
-  Standard.Name = "standard"
-  Standard.MaxArmor = 50
-  Standard.InventoryScale = InventoryTile.Tile96
-  Standard.InventoryOffset = 6
-  Standard.Holster(0, EquipmentSize.Pistol)
-  Standard.Holster(2, EquipmentSize.Rifle)
-  Standard.Holster(4, EquipmentSize.Melee)
-  Standard.ResistanceDirectHit = 4
-  Standard.ResistanceSplash = 15
-  Standard.ResistanceAggravated = 8
-
+  
   val Agile = ExoSuitDefinition(ExoSuitType.Agile)
-  Agile.Name = "agile"
-  Agile.MaxArmor = 100
-  Agile.InventoryScale = InventoryTile.Tile99
-  Agile.InventoryOffset = 6
-  Agile.Holster(0, EquipmentSize.Pistol)
-  Agile.Holster(1, EquipmentSize.Pistol)
-  Agile.Holster(2, EquipmentSize.Rifle)
-  Agile.Holster(4, EquipmentSize.Melee)
-  Agile.ResistanceDirectHit = 6
-  Agile.ResistanceSplash = 25
-  Agile.ResistanceAggravated = 10
-
+  
   val Reinforced = ExoSuitDefinition(ExoSuitType.Reinforced)
-  Reinforced.Name = "reinforced"
-  Reinforced.Permissions = List(CertificationType.ReinforcedExoSuit)
-  Reinforced.MaxArmor = 200
-  Reinforced.InventoryScale = InventoryTile.Tile1209
-  Reinforced.InventoryOffset = 6
-  Reinforced.Holster(0, EquipmentSize.Pistol)
-  Reinforced.Holster(1, EquipmentSize.Pistol)
-  Reinforced.Holster(2, EquipmentSize.Rifle)
-  Reinforced.Holster(3, EquipmentSize.Rifle)
-  Reinforced.Holster(4, EquipmentSize.Melee)
-  Reinforced.ResistanceDirectHit = 10
-  Reinforced.ResistanceSplash = 35
-  Reinforced.ResistanceAggravated = 12
-
+  
   val Infiltration = ExoSuitDefinition(ExoSuitType.Infiltration)
-  Infiltration.Name = "infiltration_suit"
-  Infiltration.Permissions = List(CertificationType.InfiltrationSuit)
-  Infiltration.MaxArmor = 0
-  Infiltration.InventoryScale = InventoryTile.Tile66
-  Infiltration.InventoryOffset = 6
-  Infiltration.Holster(0, EquipmentSize.Pistol)
-  Infiltration.Holster(4, EquipmentSize.Melee)
+  
+  val VSMAX = SpecialExoSuitDefinition(ExoSuitType.MAX)
+  
+  val TRMAX = SpecialExoSuitDefinition(ExoSuitType.MAX)
+  
+  val NCMAX = SpecialExoSuitDefinition(ExoSuitType.MAX)
+  init_exosuit()
 
-  val MAX = SpecialExoSuitDefinition(ExoSuitType.MAX)
-  MAX.Permissions = List(CertificationType.AIMAX,CertificationType.AVMAX, CertificationType.AAMAX, CertificationType.UniMAX)
-  MAX.MaxArmor = 650
-  MAX.InventoryScale = InventoryTile.Tile1612
-  MAX.InventoryOffset = 6
-  MAX.Holster(0, EquipmentSize.Max)
-  MAX.Holster(4, EquipmentSize.Melee)
-  MAX.Subtract.Damage1 = -2
-  MAX.ResistanceDirectHit = 6
-  MAX.ResistanceSplash = 35
-  MAX.ResistanceAggravated = 10
-  MAX.Damage = StandardMaxDamage
-  MAX.Model = StandardResolutions.Max
   /*
   Implants
    */
@@ -121,6 +72,8 @@ object GlobalDefinitions {
   /*
   Projectiles
    */
+  val no_projectile = new ProjectileDefinition(0) //also called none in ADB
+
   val bullet_105mm_projectile = ProjectileDefinition(Projectiles.bullet_105mm_projectile)
 
   val bullet_12mm_projectile = ProjectileDefinition(Projectiles.bullet_12mm_projectile)
@@ -296,6 +249,8 @@ object GlobalDefinitions {
   val mine_sweeper_projectile_enh = ProjectileDefinition(Projectiles.mine_sweeper_projectile_enh)
 
   val oicw_projectile = ProjectileDefinition(Projectiles.oicw_projectile)
+
+  val oicw_little_buddy = ProjectileDefinition(Projectiles.oicw_little_buddy)
 
   val pellet_gun_projectile = ProjectileDefinition(Projectiles.pellet_gun_projectile)
 
@@ -628,19 +583,11 @@ object GlobalDefinitions {
 
   val maelstrom = ToolDefinition(ObjectClass.maelstrom)
 
-  val phoenix = new ToolDefinition(ObjectClass.phoenix) {
-    override def NextFireModeIndex(index : Int) : Int = index
-  } //decimator
+  val phoenix = ToolDefinition(ObjectClass.phoenix) //decimator
 
-  val striker = new ToolDefinition(ObjectClass.striker) {
-    override def NextFireModeIndex(index : Int) : Int = index
-    DefaultFireModeIndex = 1
-  }
+  val striker = ToolDefinition(ObjectClass.striker)
 
-  val hunterseeker = new ToolDefinition(ObjectClass.hunterseeker) {
-    override def NextFireModeIndex(index : Int) : Int = index
-    DefaultFireModeIndex = 1
-  } //phoenix
+  val hunterseeker = ToolDefinition(ObjectClass.hunterseeker)
 
   val lancer = ToolDefinition(ObjectClass.lancer)
 
@@ -807,9 +754,7 @@ object GlobalDefinitions {
 
   val lightgunship_weapon_system = ToolDefinition(ObjectClass.lightgunship_weapon_system)
 
-  val wasp_weapon_system = new ToolDefinition(ObjectClass.wasp_weapon_system) {
-    override def NextFireModeIndex(index : Int) : Int = index
-  }
+  val wasp_weapon_system = new ToolDefinition(ObjectClass.wasp_weapon_system)
 
   val liberator_weapon_system = ToolDefinition(ObjectClass.liberator_weapon_system)
 
@@ -955,13 +900,13 @@ object GlobalDefinitions {
 
   val router_telepad_deployable = DeployableDefinition(DeployedItem.router_telepad_deployable)
 
+  //this is only treated like a deployable
   val internal_router_telepad_deployable = DeployableDefinition(DeployedItem.router_telepad_deployable)
   init_deployables()
 
   /*
   Miscellaneous
    */
-
   val ams_respawn_tube = new SpawnTubeDefinition(49)
 
   val matrix_terminala = new MatrixTerminalDefinition(517)
@@ -1585,7 +1530,7 @@ object GlobalDefinitions {
     Standard.ResistanceSplash = 15
     Standard.ResistanceAggravated = 8
 
-    Agile.Name = "lite_armor"
+    Agile.Name = "agile"
     Agile.MaxArmor = 100
     Agile.InventoryScale = InventoryTile.Tile99
     Agile.InventoryOffset = 6
@@ -1597,7 +1542,7 @@ object GlobalDefinitions {
     Agile.ResistanceSplash = 25
     Agile.ResistanceAggravated = 10
 
-    Reinforced.Name = "med_armor"
+    Reinforced.Name = "reinforced"
     Reinforced.Permissions = List(CertificationType.ReinforcedExoSuit)
     Reinforced.MaxArmor = 200
     Reinforced.InventoryScale = InventoryTile.Tile1209
@@ -1619,18 +1564,39 @@ object GlobalDefinitions {
     Infiltration.Holster(0, EquipmentSize.Pistol)
     Infiltration.Holster(4, EquipmentSize.Melee)
 
-    MAX.Permissions = List(CertificationType.AIMAX,CertificationType.AVMAX, CertificationType.AAMAX, CertificationType.UniMAX)
-    MAX.MaxArmor = 650
-    MAX.InventoryScale = InventoryTile.Tile1612
-    MAX.InventoryOffset = 6
-    MAX.Holster(0, EquipmentSize.Max)
-    MAX.Holster(4, EquipmentSize.Melee)
-    MAX.Subtract.Damage1 = -2
-    MAX.ResistanceDirectHit = 6
-    MAX.ResistanceSplash = 35
-    MAX.ResistanceAggravated = 10
-    MAX.Damage = StandardMaxDamage
-    MAX.Model = StandardResolutions.Max
+    def CommonMaxConfig(max : SpecialExoSuitDefinition): Unit = {
+      max.Permissions = List(CertificationType.AIMAX,CertificationType.AVMAX, CertificationType.AAMAX, CertificationType.UniMAX)
+      max.MaxArmor = 650
+      max.InventoryScale = InventoryTile.Tile1612
+      max.InventoryOffset = 6
+      max.Holster(0, EquipmentSize.Max)
+      max.Holster(4, EquipmentSize.Melee)
+      max.Subtract.Damage1 = -2
+      max.ResistanceDirectHit = 6
+      max.ResistanceSplash = 35
+      max.ResistanceAggravated = 10
+      max.Damage = StandardMaxDamage
+      max.Model = StandardResolutions.Max
+    }
+
+    CommonMaxConfig(VSMAX)
+    VSMAX.MaxCapacitor = 50
+    VSMAX.CapacitorRechargeDelayMillis = 5000
+    VSMAX.CapacitorRechargePerSecond = 3
+    VSMAX.CapacitorDrainPerSecond = 20
+
+    CommonMaxConfig(TRMAX)
+    TRMAX.MaxCapacitor = 300
+    TRMAX.CapacitorRechargeDelayMillis = 10000
+    TRMAX.CapacitorRechargePerSecond = 10
+    TRMAX.CapacitorDrainPerSecond = 30
+
+    CommonMaxConfig(NCMAX)
+    NCMAX.MaxCapacitor = 400
+    NCMAX.CapacitorRechargeDelayMillis = 10000
+    NCMAX.CapacitorRechargePerSecond = 4
+    NCMAX.CapacitorDrainPerSecond = 4
+
   }
   /**
     * Initialize `AmmoBoxDefinition` globals.
@@ -1947,6 +1913,11 @@ object GlobalDefinitions {
     * Initialize `ProjectileDefinition` globals.
     */
   private def init_projectile() : Unit = {
+    val projectileConverter : ProjectileConverter = new ProjectileConverter
+
+    no_projectile.Name = "none"
+    ProjectileDefinition.CalculateDerivedFields(no_projectile)
+
     bullet_105mm_projectile.Name = "105mmbullet_projectile"
     bullet_105mm_projectile.Damage0 = 150
     bullet_105mm_projectile.Damage1 = 300
@@ -2216,6 +2187,10 @@ object GlobalDefinitions {
     aphelion_starfire_projectile.InitialVelocity = 45
     aphelion_starfire_projectile.Lifespan = 7f
     aphelion_starfire_projectile.ProjectileDamageType = DamageType.Aggravated
+    aphelion_starfire_projectile.ExistsOnRemoteClients = true
+    aphelion_starfire_projectile.RemoteClientData = (39577, 249) //starfire_projectile data
+    aphelion_starfire_projectile.AutoLock = true
+    aphelion_starfire_projectile.Packet = projectileConverter
     ProjectileDefinition.CalculateDerivedFields(aphelion_starfire_projectile)
 
     bolt_projectile.Name = "bolt_projectile"
@@ -2692,6 +2667,9 @@ object GlobalDefinitions {
     hunter_seeker_missile_projectile.ProjectileDamageType = DamageType.Splash
     hunter_seeker_missile_projectile.InitialVelocity = 40
     hunter_seeker_missile_projectile.Lifespan = 6.3f
+    hunter_seeker_missile_projectile.ExistsOnRemoteClients = true
+    hunter_seeker_missile_projectile.RemoteClientData = (39577, 201)
+    hunter_seeker_missile_projectile.Packet = projectileConverter
     ProjectileDefinition.CalculateDerivedFields(hunter_seeker_missile_projectile)
 
     jammer_cartridge_projectile.Name = "jammer_cartridge_projectile"
@@ -2977,7 +2955,23 @@ object GlobalDefinitions {
     oicw_projectile.ProjectileDamageType = DamageType.Splash
     oicw_projectile.InitialVelocity = 5
     oicw_projectile.Lifespan = 6.1f
+    oicw_projectile.ExistsOnRemoteClients = true
+    oicw_projectile.RemoteClientData = (13107, 195)
+    oicw_projectile.Packet = projectileConverter
     ProjectileDefinition.CalculateDerivedFields(oicw_projectile)
+
+    oicw_little_buddy.Name = "oicw_projectile"
+    oicw_little_buddy.Damage0 = 75
+    oicw_little_buddy.Damage1 = 75
+    oicw_little_buddy.DamageAtEdge = 0.1f
+    oicw_little_buddy.DamageRadius = 7.5f
+    oicw_little_buddy.ProjectileDamageType = DamageType.Splash
+    oicw_little_buddy.InitialVelocity = 40
+    oicw_little_buddy.Lifespan = 0.5f
+    oicw_little_buddy.ExistsOnRemoteClients = false //TODO true
+    oicw_little_buddy.Packet = projectileConverter
+    //add_property oicw_little_buddy multi_stage_spawn_server_side true ...
+    ProjectileDefinition.CalculateDerivedFields(oicw_little_buddy)
 
     pellet_gun_projectile.Name = "pellet_gun_projectile"
     // TODO for later, maybe : set_resource_parent pellet_gun_projectile game_objects shotgun_shell_projectile
@@ -3056,6 +3050,10 @@ object GlobalDefinitions {
     peregrine_sparrow_projectile.ProjectileDamageType = DamageType.Splash
     peregrine_sparrow_projectile.InitialVelocity = 45
     peregrine_sparrow_projectile.Lifespan = 7.5f
+    peregrine_sparrow_projectile.ExistsOnRemoteClients = true
+    peregrine_sparrow_projectile.RemoteClientData = (13107, 187) //sparrow_projectile data
+    peregrine_sparrow_projectile.AutoLock = true
+    peregrine_sparrow_projectile.Packet = projectileConverter
     ProjectileDefinition.CalculateDerivedFields(peregrine_sparrow_projectile)
 
     phalanx_av_projectile.Name = "phalanx_av_projectile"
@@ -3107,6 +3105,11 @@ object GlobalDefinitions {
     phoenix_missile_guided_projectile.ProjectileDamageType = DamageType.Splash
     phoenix_missile_guided_projectile.InitialVelocity = 0
     phoenix_missile_guided_projectile.Lifespan = 3f
+    //not naturally a remote projectile, but being governed as one for convenience
+    phoenix_missile_guided_projectile.ExistsOnRemoteClients = true
+    phoenix_missile_guided_projectile.RemoteClientData = (0,63)
+    phoenix_missile_guided_projectile.Packet = projectileConverter
+    //
     ProjectileDefinition.CalculateDerivedFields(phoenix_missile_guided_projectile)
 
     phoenix_missile_projectile.Name = "phoenix_missile_projectile"
@@ -3383,6 +3386,10 @@ object GlobalDefinitions {
     sparrow_projectile.ProjectileDamageType = DamageType.Splash
     sparrow_projectile.InitialVelocity = 60
     sparrow_projectile.Lifespan = 5.85f
+    sparrow_projectile.ExistsOnRemoteClients = true
+    sparrow_projectile.RemoteClientData = (13107, 187)
+    sparrow_projectile.AutoLock = true
+    sparrow_projectile.Packet = projectileConverter
     ProjectileDefinition.CalculateDerivedFields(sparrow_projectile)
 
     sparrow_secondary_projectile.Name = "sparrow_secondary_projectile"
@@ -3397,6 +3404,10 @@ object GlobalDefinitions {
     sparrow_secondary_projectile.ProjectileDamageType = DamageType.Splash
     sparrow_secondary_projectile.InitialVelocity = 60
     sparrow_secondary_projectile.Lifespan = 5.85f
+    sparrow_secondary_projectile.ExistsOnRemoteClients = true
+    sparrow_secondary_projectile.RemoteClientData = (13107, 187)
+    sparrow_secondary_projectile.AutoLock = true
+    sparrow_secondary_projectile.Packet = projectileConverter
     ProjectileDefinition.CalculateDerivedFields(sparrow_secondary_projectile)
 
     spiker_projectile.Name = "spiker_projectile"
@@ -3447,6 +3458,10 @@ object GlobalDefinitions {
     starfire_projectile.ProjectileDamageType = DamageType.Aggravated
     starfire_projectile.InitialVelocity = 45
     starfire_projectile.Lifespan = 7.8f
+    starfire_projectile.ExistsOnRemoteClients = true
+    starfire_projectile.RemoteClientData = (39577, 249)
+    starfire_projectile.AutoLock = true
+    starfire_projectile.Packet = projectileConverter
     ProjectileDefinition.CalculateDerivedFields(starfire_projectile)
 
     striker_missile_projectile.Name = "striker_missile_projectile"
@@ -3478,6 +3493,10 @@ object GlobalDefinitions {
     striker_missile_targeting_projectile.ProjectileDamageType = DamageType.Splash
     striker_missile_targeting_projectile.InitialVelocity = 30
     striker_missile_targeting_projectile.Lifespan = 4.2f
+    striker_missile_targeting_projectile.ExistsOnRemoteClients = true
+    striker_missile_targeting_projectile.RemoteClientData = (26214, 134)
+    striker_missile_targeting_projectile.AutoLock = true
+    striker_missile_targeting_projectile.Packet = projectileConverter
     ProjectileDefinition.CalculateDerivedFields(striker_missile_targeting_projectile)
 
     trek_projectile.Name = "trek_projectile"
@@ -3565,6 +3584,10 @@ object GlobalDefinitions {
     wasp_rocket_projectile.ProjectileDamageType = DamageType.Splash
     wasp_rocket_projectile.InitialVelocity = 60
     wasp_rocket_projectile.Lifespan = 6.5f
+    wasp_rocket_projectile.ExistsOnRemoteClients = true
+    wasp_rocket_projectile.RemoteClientData = (0, 208)
+    wasp_rocket_projectile.AutoLock = true
+    wasp_rocket_projectile.Packet = projectileConverter
     ProjectileDefinition.CalculateDerivedFields(wasp_rocket_projectile)
 
     winchester_projectile.Name = "winchester_projectile"
@@ -4337,6 +4360,7 @@ object GlobalDefinitions {
     medicalapplicator.Name = "medicalapplicator"
     medicalapplicator.Size = EquipmentSize.Pistol
     medicalapplicator.AmmoTypes += health_canister
+    medicalapplicator.ProjectileTypes += no_projectile
     medicalapplicator.FireModes += new FireModeDefinition
     medicalapplicator.FireModes.head.AmmoTypeIndices += 0
     medicalapplicator.FireModes.head.AmmoSlotIndex = 0
@@ -4351,9 +4375,12 @@ object GlobalDefinitions {
     nano_dispenser.Size = EquipmentSize.Rifle
     nano_dispenser.AmmoTypes += armor_canister
     nano_dispenser.AmmoTypes += upgrade_canister
+    nano_dispenser.ProjectileTypes += no_projectile
     nano_dispenser.FireModes += new FireModeDefinition
     nano_dispenser.FireModes.head.AmmoTypeIndices += 0
     nano_dispenser.FireModes.head.AmmoTypeIndices += 1
+    nano_dispenser.FireModes.head.ProjectileTypeIndices += 0 //armor_canister
+    nano_dispenser.FireModes.head.ProjectileTypeIndices += 0 //upgrade_canister
     nano_dispenser.FireModes.head.AmmoSlotIndex = 0
     nano_dispenser.FireModes.head.Magazine = 100
     nano_dispenser.FireModes.head.CustomMagazine = Ammo.upgrade_canister -> 1
@@ -4364,6 +4391,7 @@ object GlobalDefinitions {
     bank.Name = "bank"
     bank.Size = EquipmentSize.Pistol
     bank.AmmoTypes += armor_canister
+    bank.ProjectileTypes += no_projectile
     bank.FireModes += new FireModeDefinition
     bank.FireModes.head.AmmoTypeIndices += 0
     bank.FireModes.head.AmmoSlotIndex = 0
