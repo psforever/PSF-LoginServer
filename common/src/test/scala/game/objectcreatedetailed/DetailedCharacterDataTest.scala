@@ -458,7 +458,7 @@ class DetailedCharacterDataTest extends Specification {
                   b.outfit_name mustEqual ""
                   b.outfit_logo mustEqual 0
                   b.backpack mustEqual false
-                  b.facingPitch mustEqual 348.75f
+                  b.facingPitch mustEqual -11.25f
                   b.facingYawUpper mustEqual 0
                   b.lfs mustEqual true
                   b.grenade_state mustEqual GrenadeState.None
@@ -666,8 +666,8 @@ class DetailedCharacterDataTest extends Specification {
                   b.outfit_name mustEqual ""
                   b.outfit_logo mustEqual 14
                   b.backpack mustEqual false
-                  b.facingPitch mustEqual 348.75f
-                  b.facingYawUpper mustEqual 348.75f
+                  b.facingPitch mustEqual -11.25f
+                  b.facingYawUpper mustEqual -11.25f
                   b.lfs mustEqual false
                   b.grenade_state mustEqual GrenadeState.None
                   b.is_cloaking mustEqual false
@@ -1759,7 +1759,7 @@ class DetailedCharacterDataTest extends Specification {
         false,
         false,
         false,
-        348.75f, 0,
+        -11.25f, 0,
         true,
         GrenadeState.None,
         false,
@@ -1949,7 +1949,7 @@ class DetailedCharacterDataTest extends Specification {
         false,
         false,
         false,
-        348.75f, 348.75f,
+        -11.25f, -11.25f,
         false,
         GrenadeState.None,
         false,

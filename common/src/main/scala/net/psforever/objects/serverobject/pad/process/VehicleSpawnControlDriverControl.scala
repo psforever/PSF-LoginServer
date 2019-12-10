@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.pad.process
 
-import akka.actor.{ActorRef, Props}
+import akka.actor.Props
 import net.psforever.objects.serverobject.pad.{VehicleSpawnControl, VehicleSpawnPad}
 
 /**
@@ -20,34 +20,21 @@ class VehicleSpawnControlDriverControl(pad : VehicleSpawnPad) extends VehicleSpa
   val finalClear = context.actorOf(Props(classOf[VehicleSpawnControlFinalClearance], pad), s"${context.parent.path.name}-final")
 
   def receive : Receive = {
-    case VehicleSpawnControl.Process.DriverVehicleControl(entry) =>
-      val vehicle = entry.vehicle
-      if(pad.Railed) {
-        Continent.VehicleEvents ! VehicleSpawnPad.ResetSpawnPad(pad, Continent.Id)
-      }
+    case order @ VehicleSpawnControl.Order(driver, vehicle) =>
       if(vehicle.Health == 0) {
         trace(s"vehicle was already destroyed; but, everything is fine")
       }
-      if(entry.sendTo != ActorRef.noSender) {
-        val driver = entry.driver
-        entry.sendTo ! VehicleSpawnPad.ServerVehicleOverrideEnd(vehicle, pad)
-        if(driver.VehicleSeated.contains(vehicle.GUID)) {
-          trace(s"returning control of ${vehicle.Definition.Name} to ${driver.Name}")
-        }
-        else {
-          trace(s"${driver.Name} is not seated in ${vehicle.Definition.Name}; vehicle controls have been locked")
-        }
+      if(vehicle.PassengerInSeat(driver).contains(0)) {
+        trace(s"returning control of ${vehicle.Definition.Name} to ${driver.Name}")
+        pad.Owner.Zone.VehicleEvents ! VehicleSpawnPad.ServerVehicleOverrideEnd(driver.Name, vehicle, pad)
       }
       else {
-        trace("can not properly return control to driver")
+        trace(s"${driver.Name} is not seated in ${vehicle.Definition.Name}; vehicle controls have been locked")
       }
-      finalClear ! VehicleSpawnControl.Process.FinalClearance(entry)
+      finalClear ! order
 
     case msg @ (VehicleSpawnControl.ProcessControl.Reminder | VehicleSpawnControl.ProcessControl.GetNewOrder) =>
       context.parent ! msg
-
-    case msg @ VehicleSpawnControl.Process.FinalClearance(_) =>
-      finalClear ! msg
 
     case _ => ;
   }

@@ -295,7 +295,7 @@ object ObjectClass {
   final val portable_manned_turret_tr = 687
   final val portable_manned_turret_vs = 688
   //projectiles
-  final val hunter_seeker_missile_projectile = 405
+  final val hunter_seeker_missile_projectile = 405 //phoenix projectile
   final val meteor_common = 543
   final val meteor_projectile_b_large = 544
   final val meteor_projectile_b_medium = 545
@@ -303,13 +303,14 @@ object ObjectClass {
   final val meteor_projectile_large = 547
   final val meteor_projectile_medium = 548
   final val meteor_projectile_small = 549
-  final val oicw_little_buddy = 601
-  final val oicw_projectile = 602
+  final val phoenix_missile_guided_projectile = 675 //decimator projectile
+  final val oicw_little_buddy = 601 //scorpion projectile's projectiles
+  final val oicw_projectile = 602 //scorpion projectile
   final val radiator_cload = 717
-  final val sparrow_projectile = 792
-  final val starfire_projectile = 831
-  final val striker_missile_targeting_projectile = 841
-  final val wasp_rocket_projectile = 1001
+  final val sparrow_projectile = 792 //nc aa max projectile
+  final val starfire_projectile = 831 //vs aa max projectile
+  final val striker_missile_targeting_projectile = 841 //striker projectile
+  final val wasp_rocket_projectile = 1001 //wasp projectile
   //vehicles
   final val apc_destroyed = 65
   final val apc_tr = 67 //juggernaut
@@ -1222,19 +1223,21 @@ object ObjectClass {
       case ObjectClass.portable_manned_turret_vs => ConstructorData(OneMannedFieldTurretData.codec, "field turret")
       case ObjectClass.router_telepad_deployable => DroppedItemData(TelepadDeployableData.codec, "telepad deployable")
       //projectiles
-      case ObjectClass.hunter_seeker_missile_projectile => ConstructorData(TrackedProjectileData.codec, "projectile")
-      case ObjectClass.meteor_common => ConstructorData(TrackedProjectileData.codec, "meteor")
-      case ObjectClass.meteor_projectile_b_large => ConstructorData(TrackedProjectileData.codec, "meteor")
-      case ObjectClass.meteor_projectile_b_medium => ConstructorData(TrackedProjectileData.codec, "meteor")
-      case ObjectClass.meteor_projectile_b_small => ConstructorData(TrackedProjectileData.codec, "meteor")
-      case ObjectClass.meteor_projectile_large => ConstructorData(TrackedProjectileData.codec, "meteor")
-      case ObjectClass.meteor_projectile_medium => ConstructorData(TrackedProjectileData.codec, "meteor")
-      case ObjectClass.meteor_projectile_small => ConstructorData(TrackedProjectileData.codec, "meteor")
-      case ObjectClass.oicw_projectile => ConstructorData(TrackedProjectileData.codec, "projectile")
-      case ObjectClass.sparrow_projectile => ConstructorData(TrackedProjectileData.codec, "projectile")
-      case ObjectClass.starfire_projectile => ConstructorData(TrackedProjectileData.codec, "projectile")
-      case ObjectClass.striker_missile_targeting_projectile => ConstructorData(TrackedProjectileData.codec, "projectile")
-      case ObjectClass.wasp_rocket_projectile => ConstructorData(TrackedProjectileData.codec, "projectile")
+      case ObjectClass.hunter_seeker_missile_projectile => ConstructorData(RemoteProjectileData.codec, "projectile")
+      case ObjectClass.meteor_common => ConstructorData(RemoteProjectileData.codec, "meteor")
+      case ObjectClass.meteor_projectile_b_large => ConstructorData(RemoteProjectileData.codec, "meteor")
+      case ObjectClass.meteor_projectile_b_medium => ConstructorData(RemoteProjectileData.codec, "meteor")
+      case ObjectClass.meteor_projectile_b_small => ConstructorData(RemoteProjectileData.codec, "meteor")
+      case ObjectClass.meteor_projectile_large => ConstructorData(RemoteProjectileData.codec, "meteor")
+      case ObjectClass.meteor_projectile_medium => ConstructorData(RemoteProjectileData.codec, "meteor")
+      case ObjectClass.meteor_projectile_small => ConstructorData(RemoteProjectileData.codec, "meteor")
+      case ObjectClass.phoenix_missile_guided_projectile => ConstructorData(RemoteProjectileData.codec, "projectile")
+      case ObjectClass.oicw_little_buddy => ConstructorData(RemoteProjectileData.codec, "projectile")
+      case ObjectClass.oicw_projectile => ConstructorData(RemoteProjectileData.codec, "projectile")
+      case ObjectClass.sparrow_projectile => ConstructorData(RemoteProjectileData.codec, "projectile")
+      case ObjectClass.starfire_projectile => ConstructorData(RemoteProjectileData.codec, "projectile")
+      case ObjectClass.striker_missile_targeting_projectile => ConstructorData(RemoteProjectileData.codec, "projectile")
+      case ObjectClass.wasp_rocket_projectile => ConstructorData(RemoteProjectileData.codec, "projectile")
       //vehicles
       case ObjectClass.ams => ConstructorData(VehicleData.codec(VehicleFormat.Utility), "ams")
       case ObjectClass.ams_destroyed => ConstructorData(DestroyedVehicleData.codec, "wreckage")

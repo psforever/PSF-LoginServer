@@ -6,6 +6,7 @@ import base.ActorTest
 import net.psforever.objects.{GlobalDefinitions, SensorDeployable, Vehicle}
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.terminals.{ProximityTerminal, Terminal}
+import net.psforever.objects.zones.Zone
 import net.psforever.packet.game._
 import net.psforever.types.{PlanetSideEmpire, Vector3}
 import services.{Service, ServiceManager}
@@ -16,7 +17,7 @@ class LocalService1Test extends ActorTest {
 
   "LocalService" should {
     "construct" in {
-      system.actorOf(Props[LocalService], "l_service")
+      system.actorOf(Props(classOf[LocalService], Zone.Nowhere), "l_service")
       assert(true)
     }
   }
@@ -27,7 +28,7 @@ class LocalService2Test extends ActorTest {
 
   "LocalService" should {
     "subscribe" in {
-      val service = system.actorOf(Props[LocalService], "l_service")
+      val service = system.actorOf(Props(classOf[LocalService], Zone.Nowhere), "l_service")
       service ! Service.Join("test")
       assert(true)
     }
@@ -39,7 +40,7 @@ class LocalService3Test extends ActorTest {
 
   "LocalService" should {
     "subscribe to a specific channel" in {
-      val service = system.actorOf(Props[LocalService], "l_service")
+      val service = system.actorOf(Props(classOf[LocalService], Zone.Nowhere), "l_service")
       service ! Service.Join("test")
       service ! Service.Leave()
       assert(true)
@@ -52,7 +53,7 @@ class LocalService4Test extends ActorTest {
 
   "LocalService" should {
     "subscribe" in {
-      val service = system.actorOf(Props[LocalService], "l_service")
+      val service = system.actorOf(Props(classOf[LocalService], Zone.Nowhere), "l_service")
       service ! Service.Join("test")
       service ! Service.LeaveAll()
       assert(true)
@@ -65,7 +66,7 @@ class LocalService5Test extends ActorTest {
 
   "LocalService" should {
     "pass an unhandled message" in {
-      val service = system.actorOf(Props[LocalService], "l_service")
+      val service = system.actorOf(Props(classOf[LocalService], Zone.Nowhere), "l_service")
       service ! Service.Join("test")
       service ! "hello"
       expectNoMsg()
@@ -79,7 +80,7 @@ class AlertDestroyDeployableTest extends ActorTest {
 
   "LocalService" should {
     "pass AlertDestroyDeployable" in {
-      val service = system.actorOf(Props[LocalService], "l_service")
+      val service = system.actorOf(Props(classOf[LocalService], Zone.Nowhere), "l_service")
       service ! Service.Join("test")
       service ! LocalServiceMessage("test", LocalAction.AlertDestroyDeployable(PlanetSideGUID(10), obj))
       expectMsg(LocalServiceResponse("/test/Local", PlanetSideGUID(0), LocalResponse.AlertDestroyDeployable(obj)))
@@ -92,7 +93,7 @@ class DeployableMapIconTest extends ActorTest {
 
   "LocalService" should {
     "pass DeployableMapIcon" in {
-      val service = system.actorOf(Props[LocalService], "l_service")
+      val service = system.actorOf(Props(classOf[LocalService], Zone.Nowhere), "l_service")
       service ! Service.Join("test")
       service ! LocalServiceMessage("test",
         LocalAction.DeployableMapIcon(
@@ -116,7 +117,7 @@ class DoorClosesTest extends ActorTest {
 
   "LocalService" should {
     "pass DoorCloses" in {
-      val service = system.actorOf(Props[LocalService], "l_service")
+      val service = system.actorOf(Props(classOf[LocalService], Zone.Nowhere), "l_service")
       service ! Service.Join("test")
       service ! LocalServiceMessage("test", LocalAction.DoorCloses(PlanetSideGUID(10), PlanetSideGUID(40)))
       expectMsg(LocalServiceResponse("/test/Local", PlanetSideGUID(10), LocalResponse.DoorCloses(PlanetSideGUID(40))))
@@ -134,7 +135,7 @@ class HackClearTest extends ActorTest {
 
   "LocalService" should {
     "pass HackClear" in {
-      val service = system.actorOf(Props[LocalService], "l_service")
+      val service = system.actorOf(Props(classOf[LocalService], Zone.Nowhere), "l_service")
       service ! Service.Join("test")
       service ! LocalServiceMessage("test", LocalAction.HackClear(PlanetSideGUID(10), obj, 0L, 1000L))
       expectMsg(LocalServiceResponse("/test/Local", PlanetSideGUID(10), LocalResponse.HackClear(PlanetSideGUID(40), 0L, 1000L)))
@@ -144,7 +145,7 @@ class HackClearTest extends ActorTest {
 
 class ProximityTerminalEffectOnTest extends ActorTest {
   ServiceManager.boot(system)
-  val service = system.actorOf(Props[LocalService], "l_service")
+  val service = system.actorOf(Props(classOf[LocalService], Zone.Nowhere), "l_service")
   val terminal = new ProximityTerminal(GlobalDefinitions.medical_terminal)
   terminal.GUID = PlanetSideGUID(1)
 
@@ -159,7 +160,7 @@ class ProximityTerminalEffectOnTest extends ActorTest {
 
 class ProximityTerminalEffectOffTest extends ActorTest {
   ServiceManager.boot(system)
-  val service = system.actorOf(Props[LocalService], "l_service")
+  val service = system.actorOf(Props(classOf[LocalService], Zone.Nowhere), "l_service")
   val terminal = new ProximityTerminal(GlobalDefinitions.medical_terminal)
   terminal.GUID = PlanetSideGUID(1)
 
@@ -177,7 +178,7 @@ class RouterTelepadTransportTest extends ActorTest {
 
   "LocalService" should {
     "pass RouterTelepadTransport" in {
-      val service = system.actorOf(Props[LocalService], "l_service")
+      val service = system.actorOf(Props(classOf[LocalService], Zone.Nowhere), "l_service")
       service ! Service.Join("test")
       service ! LocalServiceMessage("test", LocalAction.RouterTelepadTransport(PlanetSideGUID(10), PlanetSideGUID(11), PlanetSideGUID(12), PlanetSideGUID(13)))
       expectMsg(LocalServiceResponse("/test/Local", PlanetSideGUID(10), LocalResponse.RouterTelepadTransport(PlanetSideGUID(11), PlanetSideGUID(12), PlanetSideGUID(13))))
@@ -191,7 +192,7 @@ class SetEmpireTest extends ActorTest {
 
   "LocalService" should {
     "pass SetEmpire" in {
-      val service = system.actorOf(Props[LocalService], "l_service")
+      val service = system.actorOf(Props(classOf[LocalService], Zone.Nowhere), "l_service")
       service ! Service.Join("test")
       service ! LocalServiceMessage("test", LocalAction.SetEmpire(PlanetSideGUID(10), PlanetSideEmpire.TR))
       expectMsg(LocalServiceResponse("/test/Local", PlanetSideGUID(0), LocalResponse.SetEmpire(PlanetSideGUID(10), PlanetSideEmpire.TR)))
@@ -205,7 +206,7 @@ class ToggleTeleportSystemTest extends ActorTest {
   "LocalService" should {
     "pass ToggleTeleportSystem" in {
       val router = Vehicle(GlobalDefinitions.router)
-      val service = system.actorOf(Props[LocalService], "l_service")
+      val service = system.actorOf(Props(classOf[LocalService], Zone.Nowhere), "l_service")
       service ! Service.Join("test")
       service ! LocalServiceMessage("test", LocalAction.ToggleTeleportSystem(PlanetSideGUID(10), router, None))
       expectMsg(LocalServiceResponse("/test/Local", PlanetSideGUID(10), LocalResponse.ToggleTeleportSystem(router, None)))
@@ -218,7 +219,7 @@ class TriggerEffectTest extends ActorTest {
 
   "LocalService" should {
     "pass TriggerEffect (1)" in {
-      val service = system.actorOf(Props[LocalService], "l_service")
+      val service = system.actorOf(Props(classOf[LocalService], Zone.Nowhere), "l_service")
       service ! Service.Join("test")
       service ! LocalServiceMessage("test", LocalAction.TriggerEffect(PlanetSideGUID(10), "on", PlanetSideGUID(40)))
       expectMsg(LocalServiceResponse("/test/Local", PlanetSideGUID(10), LocalResponse.TriggerEffect(PlanetSideGUID(40), "on", None, None)))
@@ -231,7 +232,7 @@ class TriggerEffectInfoTest extends ActorTest {
 
   "LocalService" should {
     "pass TriggerEffect (2)" in {
-      val service = system.actorOf(Props[LocalService], "l_service")
+      val service = system.actorOf(Props(classOf[LocalService], Zone.Nowhere), "l_service")
       service ! Service.Join("test")
       service ! LocalServiceMessage("test", LocalAction.TriggerEffectInfo(PlanetSideGUID(10), "on", PlanetSideGUID(40), true, 1000))
       expectMsg(LocalServiceResponse("/test/Local", PlanetSideGUID(10), LocalResponse.TriggerEffect(PlanetSideGUID(40), "on", Some(TriggeredEffect(true, 1000)), None)))
@@ -244,7 +245,7 @@ class TriggerEffectLocationTest extends ActorTest {
 
   "LocalService" should {
     "pass TriggerEffect (3)" in {
-      val service = system.actorOf(Props[LocalService], "l_service")
+      val service = system.actorOf(Props(classOf[LocalService], Zone.Nowhere), "l_service")
       service ! Service.Join("test")
       service ! LocalServiceMessage("test", LocalAction.TriggerEffectLocation(PlanetSideGUID(10), "spawn_object_failed_effect", Vector3(1.1f, 2.2f, 3.3f), Vector3(4.4f, 5.5f, 6.6f)))
       expectMsg(LocalServiceResponse("/test/Local", PlanetSideGUID(10), LocalResponse.TriggerEffect(PlanetSideGUID(0), "spawn_object_failed_effect", None, Some(TriggeredEffectLocation(Vector3(1.1f, 2.2f, 3.3f), Vector3(4.4f, 5.5f, 6.6f))))))
@@ -258,7 +259,7 @@ class TriggerSoundTest extends ActorTest {
 
   "LocalService" should {
     "pass TriggerSound" in {
-      val service = system.actorOf(Props[LocalService], "l_service")
+      val service = system.actorOf(Props(classOf[LocalService], Zone.Nowhere), "l_service")
       service ! Service.Join("test")
       service ! LocalServiceMessage("test", LocalAction.TriggerSound(PlanetSideGUID(10), TriggeredSound.LockedOut, Vector3(1.1f, 2.2f, 3.3f), 0, 0.75f))
       expectMsg(LocalServiceResponse("/test/Local", PlanetSideGUID(10), LocalResponse.TriggerSound(TriggeredSound.LockedOut, Vector3(1.1f, 2.2f, 3.3f), 0, 0.75f)))

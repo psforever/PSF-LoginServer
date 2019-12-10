@@ -25,15 +25,9 @@ class VehicleSpawnControlRailJack(pad : VehicleSpawnPad) extends VehicleSpawnCon
   val seatDriver = context.actorOf(Props(classOf[VehicleSpawnControlSeatDriver], pad), s"${context.parent.path.name}-seat")
 
   def receive : Receive = {
-    case VehicleSpawnControl.Process.RailJackAction(entry) =>
-      if(pad.Railed) {
-        trace(s"attaching vehicle to railed platform")
-        Continent.VehicleEvents ! VehicleSpawnPad.AttachToRails(entry.vehicle, pad, Continent.Id)
-      }
-      else {
-        trace(s"railed platform skipped; vehicle positioned in pad trench temporarily")
-      }
-      context.system.scheduler.scheduleOnce(10 milliseconds, seatDriver, VehicleSpawnControl.Process.SeatDriver(entry))
+    case order @ VehicleSpawnControl.Order(_, vehicle) =>
+      pad.Owner.Zone.VehicleEvents ! VehicleSpawnPad.AttachToRails(vehicle, pad)
+      context.system.scheduler.scheduleOnce(10 milliseconds, seatDriver, order)
 
     case msg @ (VehicleSpawnControl.ProcessControl.Reminder | VehicleSpawnControl.ProcessControl.GetNewOrder) =>
       context.parent ! msg

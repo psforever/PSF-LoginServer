@@ -1,54 +1,26 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.pad
 
-import net.psforever.objects.serverobject.pad.process.AutoDriveControls
 import net.psforever.objects.{Player, Vehicle}
 import net.psforever.objects.serverobject.structures.Amenity
-import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.PlanetSideGUID
 
 /**
   * A structure-owned server object that is a "spawn pad" for vehicles.<br>
   * <br>
-  * Spawn pads have no purpose on their own but
-  * maintain the operative queue that introduces the vehicle into the game world and applies initial activity to it and
-  * maintain a position and a direction where the vehicle will be made to appear (as a `PlanetSideServerObject`).
-  * The actual functionality managed by this object is wholly found on its accompanying `Actor`.
+  * Spawn pads have no purpose on their own, save to represent the position and orientation of the game object.
+  * Their control `Actor` object maintains the operative queue by which a vehicle is introduced into the game world.
+  * The common features of spawn pads are its horizontal doors.
+  * Most spawn pads also contain a lifting platform that hoists the vehicles out a concealed trench.
+  * The Battleframe Robotics spawn sheds do not have lifting platforms as they are vertical structures.
   * @see `VehicleSpawnControl`
   * @param spDef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
   */
 class VehicleSpawnPad(spDef : VehicleSpawnPadDefinition) extends Amenity {
-  /**
-    * Use the in-game railed platform to lift the spawned vehicle out of the trench.
-    * When set, the client performs the standard vehicle entry procedure, including lifting platform animations.
-    * When unset, the client depicts the player manually boarding the new vehicle within the trench area.
-    * Eventually, the vehicle is then hoisted out into the open; without this set, that hoisting is abrupt.
-    * The main reason to disable this feature is to avoid an `ObjectAttachMessage` for an incorrect object designation.
-    * Unset if not guaranteed to have the correct globally unique id of the spawn pad.
-    */
-  private var onRails : Boolean = true
-
-  private var guidedPath : List[AutoDriveControls.Configuration] = Nil
-
-  def Railed : Boolean = onRails
-
-  def Railed_=(useRails : Boolean) : Boolean = {
-    onRails = useRails
-    Railed
-  }
-
-  def Guide : List[AutoDriveControls.Configuration] = guidedPath
-
-  def Guide_=(path : List[AutoDriveControls.Configuration]) : List[AutoDriveControls.Configuration] = {
-    guidedPath = path
-    Guide
-  }
-
   def Definition : VehicleSpawnPadDefinition = spDef
 }
 
 object VehicleSpawnPad {
-
   /**
     * Message to the spawn pad to enqueue the following vehicle order.
     * This is the entry point to vehicle spawn pad functionality.
@@ -61,24 +33,21 @@ object VehicleSpawnPad {
     * Message to indicate that a certain player should be made transparent.
     * @see `GenericObjectActionMessage`
     * @param player_guid the player
-    * @param zone_id the zone in which the spawn pad is located
     */
-  final case class ConcealPlayer(player_guid : PlanetSideGUID, zone_id : String)
+  final case class ConcealPlayer(player_guid: PlanetSideGUID)
 
   /**
     * Message is intended to undo the effects of the above message, `ConcealPlayer`.
     * @see `ConcealPlayer`
     * @param player_guid the player
-    * @param zone_id the zone in which the spawn pad is located
     */
-  final case class RevealPlayer(player_guid : PlanetSideGUID, zone_id : String)
+  final case class RevealPlayer(player_guid: PlanetSideGUID)
 
   /**
     * Message to properly introduce the vehicle into the zone.
     * @param vehicle the vehicle being spawned
-    * @param zone the zone in which the spawn pad is located
     */
-  final case class LoadVehicle(vehicle : Vehicle, zone : Zone)
+  final case class LoadVehicle(vehicle: Vehicle)
 
   /**
     * Message to attach the vehicle to the spawn pad's lifting platform ("put on rails").
@@ -86,76 +55,77 @@ object VehicleSpawnPad {
     * @see `ObjectAttachMessage`
     * @param vehicle the vehicle being spawned
     * @param pad the spawn pad
-    * @param zone_id the zone in which the spawn pad is located
     */
-  final case class AttachToRails(vehicle : Vehicle, pad : VehicleSpawnPad, zone_id : String)
+  final case class AttachToRails(vehicle: Vehicle, pad: VehicleSpawnPad)
 
   /**
     * Message to detach the vehicle from the spawn pad's lifting platform ("put on rails").
     * @see `ObjectDetachMessage`
     * @param vehicle the vehicle being spawned
     * @param pad the spawn pad
-    * @param zone_id the zone in which the spawn pad is located
     */
-  final case class DetachFromRails(vehicle : Vehicle, pad : VehicleSpawnPad, zone_id : String)
+  final case class DetachFromRails(vehicle: Vehicle, pad: VehicleSpawnPad)
 
   /**
     * Message that resets the spawn pad for its next order fulfillment operation by lowering the lifting platform.
     * @see `GenericObjectActionMessage`
     * @param pad the spawn pad
-    * @param zone_id the zone in which the spawn pad is located
     */
-  final case class ResetSpawnPad(pad : VehicleSpawnPad, zone_id : String)
+  final case class ResetSpawnPad(pad: VehicleSpawnPad)
 
   /**
     * Message that acts as callback to the driver that the process of sitting in the driver seat will be initiated soon.
     * This information should only be communicated to the driver's client only.
+    * @param driver_name the person who will drive the vehicle
     * @param vehicle the vehicle being spawned
     * @param pad the spawn pad
     */
-  final case class StartPlayerSeatedInVehicle(vehicle : Vehicle, pad : VehicleSpawnPad)
+  final case class StartPlayerSeatedInVehicle(driver_name : String, vehicle : Vehicle, pad : VehicleSpawnPad)
 
   /**
     * Message that acts as callback to the driver that the process of sitting in the driver seat should be finished.
     * This information should only be communicated to the driver's client only.
+    * @param driver_name the person who will drive the vehicle
     * @param vehicle the vehicle being spawned
     * @param pad the spawn pad
     */
-  final case class PlayerSeatedInVehicle(vehicle : Vehicle, pad : VehicleSpawnPad) //TODO while using fake rails
+  final case class PlayerSeatedInVehicle(driver_name : String, vehicle : Vehicle, pad : VehicleSpawnPad) //TODO while using fake rails
 
   /**
     * Message that starts the newly-spawned vehicle to begin driving away from the spawn pad.
     * Information about the driving process is available on the vehicle itself.
     * This information should only be communicated to the driver's client only.
     * @see `VehicleDefinition`
+    * @param driver_name the person who will drive the vehicle
     * @param vehicle the vehicle
     * @param pad the spawn pad
     */
-  final case class ServerVehicleOverrideStart(vehicle : Vehicle, pad : VehicleSpawnPad)
+  final case class ServerVehicleOverrideStart(driver_name : String, vehicle : Vehicle, pad : VehicleSpawnPad)
 
   /**
     * Message that transitions the newly-spawned vehicle into a cancellable auto-drive state.
     * Information about the driving process is available on the vehicle itself.
     * This information should only be communicated to the driver's client only.
     * @see `VehicleDefinition`
+    * @param driver_name the person who will drive the vehicle
     * @param vehicle the vehicle
     * @param pad the spawn pad
     */
-  final case class ServerVehicleOverrideEnd(vehicle : Vehicle, pad : VehicleSpawnPad)
+  final case class ServerVehicleOverrideEnd(driver_name : String, vehicle : Vehicle, pad : VehicleSpawnPad)
 
   /**
     * Message to initiate the process of properly disposing of the vehicle that may have been or was spawned into the game world.
     * @param vehicle the vehicle
-    * @param zone the zone in which the spawn pad is located
     */
-  final case class DisposeVehicle(vehicle : Vehicle, zone : Zone)
+  final case class DisposeVehicle(vehicle: Vehicle)
 
   /**
     * Message to send targeted messages to the clients of specific users.
+    * @param driver_name the person who will drive the vehicle
     * @param reason the nature of the message
     * @param data optional information for rendering the message to the client
     */
-  final case class PeriodicReminder(reason : Reminders.Value, data : Option[Any] = None)
+  final case class PeriodicReminder(driver_name : String, reason : Reminders.Value, data : Option[Any] = None)
 
   /**
     * An `Enumeration` of reasons for sending a periodic reminder to the user.
@@ -179,7 +149,6 @@ object VehicleSpawnPad {
 
   import akka.actor.ActorContext
   import net.psforever.types.Vector3
-
   /**
     * Instantiate and configure a `VehicleSpawnPad` object
     * @param pdef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
@@ -189,9 +158,8 @@ object VehicleSpawnPad {
     * @param context a context to allow the object to properly set up `ActorSystem` functionality
     * @return the `VehicleSpawnPad` object
     */
-  def Constructor(pdef: VehicleSpawnPadDefinition, pos : Vector3, orient : Vector3)(id : Int, context : ActorContext) : VehicleSpawnPad = {
+  def Constructor(pos : Vector3, pdef: VehicleSpawnPadDefinition, orient : Vector3)(id : Int, context : ActorContext) : VehicleSpawnPad = {
     import akka.actor.Props
-    import net.psforever.objects.GlobalDefinitions
 
     val obj = VehicleSpawnPad(pdef)
     obj.Position = pos

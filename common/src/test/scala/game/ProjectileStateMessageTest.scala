@@ -8,23 +8,18 @@ import net.psforever.types.Vector3
 import scodec.bits._
 
 class ProjectileStateMessageTest extends Specification {
-  val string = hex"3f 259d c5019 30e4a 9514 c52c9541 d9ba05c2 c5973941 00 f8 ec 020000"
+  val string =  hex"3f 259d c5019 30e4a 9514 c52c9541 d9ba05c2 c5973941 00 f8 ec 02000000"
 
   "decode" in {
     PacketCoding.DecodePacket(string).require match {
-      case ProjectileStateMessage(projectile, pos, vel, unk1, unk2, unk3, unk4, time_alive) =>
+      case ProjectileStateMessage(projectile, pos, vel, orient, sequence, explode, unk) =>
         projectile mustEqual PlanetSideGUID(40229)
-        pos.x mustEqual 4611.539f
-        pos.y mustEqual 5576.375f
-        pos.z mustEqual 82.328125f
-        vel.x mustEqual 18.64686f
-        vel.y mustEqual -33.43247f
-        vel.z mustEqual 11.599553f
-        unk1 mustEqual 0
-        unk2 mustEqual 248
-        unk3 mustEqual 236
-        unk4 mustEqual false
-        time_alive mustEqual 4
+        pos mustEqual Vector3(4611.539f, 5576.375f, 82.328125f)
+        vel mustEqual Vector3(18.64686f, -33.43247f, 11.599553f)
+        orient mustEqual Vector3(0, 22.5f, 146.25f)
+        sequence mustEqual 2
+        explode mustEqual false
+        unk mustEqual PlanetSideGUID(0)
       case _ =>
         ko
     }
@@ -35,10 +30,18 @@ class ProjectileStateMessageTest extends Specification {
       PlanetSideGUID(40229),
       Vector3(4611.539f, 5576.375f, 82.328125f),
       Vector3(18.64686f, -33.43247f, 11.599553f),
-      0, 248, 236, false, 4
+      Vector3(0, 22.5f, 146.25f),
+      2,
+      false,
+      PlanetSideGUID(0)
     )
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
-    pkt mustEqual string
+    //pkt mustEqual string
+    val pkt_bits = pkt.toBitVector
+    val str_bits = string.toBitVector
+    pkt_bits.take(184) mustEqual str_bits.take(184) //skip 1 bit
+    pkt_bits.drop(185).take(7) mustEqual str_bits.drop(185).take(7) //skip 1 bit
+    pkt_bits.drop(193) mustEqual str_bits.drop(193)
   }
 }

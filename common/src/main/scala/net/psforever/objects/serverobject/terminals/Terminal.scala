@@ -6,6 +6,7 @@ import net.psforever.objects.definition.VehicleDefinition
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.packet.game.{ItemTransactionMessage, TriggeredSound}
+import net.psforever.types.Vector3
 
 /**
   * A server object that can be accessed for services and other amenities.
@@ -180,15 +181,17 @@ object Terminal {
   import akka.actor.ActorContext
   /**
     * Instantiate an configure a `Terminal` object
+    * @param pos The location of the object
     * @param tdef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
     * @param id the unique id that will be assigned to this entity
     * @param context a context to allow the object to properly set up `ActorSystem` functionality
     * @return the `Terminal` object
     */
-  def Constructor(tdef : TerminalDefinition)(id : Int, context : ActorContext) : Terminal = {
+  def Constructor(pos: Vector3, tdef : TerminalDefinition)(id : Int, context : ActorContext) : Terminal = {
     import akka.actor.Props
 
     val obj = Terminal(tdef)
+    obj.Position = pos
     obj.Actor = context.actorOf(Props(classOf[TerminalControl], obj), s"${tdef.Name}_$id")
     obj
   }

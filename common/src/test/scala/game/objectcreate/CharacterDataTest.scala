@@ -57,7 +57,7 @@ class CharacterDataTest extends Specification {
                   b.outfit_name mustEqual "Black Beret Armoured Corps"
                   b.outfit_logo mustEqual 23
                   b.backpack mustEqual false
-                  b.facingPitch mustEqual 320.625f
+                  b.facingPitch mustEqual -39.375f
                   b.facingYawUpper mustEqual 0
                   b.lfs mustEqual false
                   b.grenade_state mustEqual GrenadeState.None
@@ -176,7 +176,7 @@ class CharacterDataTest extends Specification {
                   b.outfit_name mustEqual "Black Beret Armoured Corps"
                   b.outfit_logo mustEqual 23
                   b.backpack mustEqual false
-                  b.facingPitch mustEqual 320.625f
+                  b.facingPitch mustEqual -39.375f
                   b.facingYawUpper mustEqual 0
                   b.lfs mustEqual false
                   b.grenade_state mustEqual GrenadeState.None
@@ -245,7 +245,7 @@ class CharacterDataTest extends Specification {
                   b.outfit_name mustEqual "Original District"
                   b.outfit_logo mustEqual 23
                   b.backpack mustEqual true
-                  b.facingPitch mustEqual 351.5625f
+                  b.facingPitch mustEqual -8.4375f
                   b.facingYawUpper mustEqual 0
                   b.lfs mustEqual false
                   b.grenade_state mustEqual GrenadeState.None
@@ -334,7 +334,7 @@ class CharacterDataTest extends Specification {
         false,
         false,
         false,
-        320.625f, 0f,
+        -39.375f, 0f,
         false,
         GrenadeState.None,
         false,
@@ -414,7 +414,7 @@ class CharacterDataTest extends Specification {
         false,
         false,
         false,
-        320.625f, 0f,
+        -39.375f, 0f,
         false,
         GrenadeState.None,
         false,
@@ -497,7 +497,7 @@ class CharacterDataTest extends Specification {
         false, //unk2
         false, //unk3
         false, //unk4
-        351.5625f, 0f,
+        351.5625f, 0f, //also: -8.4375f, 0f
         false, //lfs
         GrenadeState.None,
         false, //is_cloaking

@@ -133,26 +133,26 @@ class PlayerTest extends Specification {
       obj.Stamina mustEqual 456
     }
 
-    "set new values (health, armor, stamina) but only when alive" in {
-      val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
-      obj.Health = 23
-      obj.Armor = 34
-      obj.Stamina = 45
-      obj.Health mustEqual 0
-      obj.Armor mustEqual 0
-      obj.Stamina mustEqual 0
-
-      obj.Spawn
-      obj.Health mustEqual obj.MaxHealth
-      obj.Armor mustEqual obj.MaxArmor
-      obj.Stamina mustEqual obj.MaxStamina
-      obj.Health = 23
-      obj.Armor = 34
-      obj.Stamina = 45
-      obj.Health mustEqual 23
-      obj.Armor mustEqual 34
-      obj.Stamina mustEqual 45
-    }
+//    "set new values (health, armor, stamina) but only when alive" in {
+//      val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
+//      obj.Health = 23
+//      obj.Armor = 34
+//      obj.Stamina = 45
+//      obj.Health mustEqual 0
+//      obj.Armor mustEqual 0
+//      obj.Stamina mustEqual 0
+//
+//      obj.Spawn
+//      obj.Health mustEqual obj.MaxHealth
+//      obj.Armor mustEqual obj.MaxArmor
+//      obj.Stamina mustEqual obj.MaxStamina
+//      obj.Health = 23
+//      obj.Armor = 34
+//      obj.Stamina = 45
+//      obj.Health mustEqual 23
+//      obj.Armor mustEqual 34
+//      obj.Stamina mustEqual 45
+//    }
 
     "has visible slots" in {
       val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)

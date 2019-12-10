@@ -329,7 +329,7 @@ object GamePacketOpcode extends Enumeration {
     case 0x08 => game.PlayerStateMessage.decode
     case 0x09 => game.HitMessage.decode
     case 0x0a => game.HitHint.decode
-    case 0x0b => noDecoder(DamageMessage)
+    case 0x0b => game.DamageMessage.decode
     case 0x0c => game.DestroyMessage.decode
     case 0x0d => game.ReloadMessage.decode
     case 0x0e => game.MountVehicleMsg.decode
@@ -462,7 +462,7 @@ object GamePacketOpcode extends Enumeration {
     case 0x78 => game.OxygenStateMessage.decode
     case 0x79 => noDecoder(TradeMessage)
     case 0x7a => noDecoder(UnknownMessage122)
-    case 0x7b => noDecoder(DamageFeedbackMessage)
+    case 0x7b => game.DamageFeedbackMessage.decode
     case 0x7c => game.DismountBuildingMsg.decode
     case 0x7d => noDecoder(UnknownMessage125)
     case 0x7e => noDecoder(UnknownMessage126)

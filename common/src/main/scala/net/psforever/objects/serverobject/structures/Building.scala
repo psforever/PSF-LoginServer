@@ -15,7 +15,8 @@ import net.psforever.objects.zones.Zone
 import net.psforever.packet.game._
 import net.psforever.types.{PlanetSideEmpire, Vector3}
 
-class Building(private val building_guid : Int, private val map_id : Int, private val zone : Zone, private val buildingType : StructureType.Value, private val buildingDefinition : ObjectDefinition) extends PlanetSideServerObject {
+class Building(private val building_guid : Int, private val map_id : Int, val zone : Zone, private val buildingType : StructureType.Value, private val buildingDefinition : ObjectDefinition) extends PlanetSideServerObject
+  with AmenityOwner {
   /**
     * The map_id is the identifier number used in BuildingInfoUpdateMessage. This is the index that the building appears in the MPO file starting from index 1
     * The GUID is the identifier number used in SetEmpireMessage / Facility hacking / PlanetSideAttributeMessage.
@@ -23,6 +24,7 @@ class Building(private val building_guid : Int, private val map_id : Int, privat
   private var faction : PlanetSideEmpire.Value = PlanetSideEmpire.NEUTRAL
   private var amenities : List[Amenity] = List.empty
   private var playersInSOI : List[Player] = List.empty
+  super.Zone_=(zone)
 
   GUID = PlanetSideGUID(building_guid)
 
@@ -44,7 +46,7 @@ class Building(private val building_guid : Int, private val map_id : Int, privat
   }
 
   def CaptureConsoleIsHacked : Boolean = {
-    Amenities.filter(x => x.Definition == GlobalDefinitions.capture_terminal).headOption.asInstanceOf[Option[CaptureTerminal]] match {
+    Amenities.find(x => x.Definition == GlobalDefinitions.capture_terminal).asInstanceOf[Option[CaptureTerminal]] match {
       case Some(obj: CaptureTerminal) =>
         obj.HackedBy.isDefined
       case None => false
@@ -57,8 +59,6 @@ class Building(private val building_guid : Int, private val map_id : Int, privat
     playersInSOI = list
     playersInSOI
   }
-
-  def Zone : Zone = zone
 
   def Info : (
     Int,
@@ -128,9 +128,11 @@ class Building(private val building_guid : Int, private val map_id : Int, privat
 
   def BuildingType : StructureType.Value = buildingType
 
-  override def Continent : String = zone.Id
+  override def Zone_=(zone : Zone) : Zone = Zone //building never leaves zone after being set in constructor
 
-  override def Continent_=(zone : String) : String = Continent
+  override def Continent : String = Zone.Id
+
+  override def Continent_=(zone : String) : String = Continent //building never leaves zone after being set in constructor
 
   def Definition: ObjectDefinition = buildingDefinition
 }

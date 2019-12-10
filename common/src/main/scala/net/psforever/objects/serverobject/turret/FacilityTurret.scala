@@ -80,7 +80,7 @@ object FacilityTurret {
     obj
   }
 
-  def Constructor(tdef : TurretDefinition, pos: Vector3)(id : Int, context : ActorContext) : FacilityTurret = {
+  def Constructor(pos: Vector3, tdef : TurretDefinition)(id : Int, context : ActorContext) : FacilityTurret = {
     import akka.actor.Props
     val obj = FacilityTurret(tdef)
     obj.Position = pos

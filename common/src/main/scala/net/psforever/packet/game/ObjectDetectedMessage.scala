@@ -11,7 +11,8 @@ import shapeless.{::, HNil}
   * @param player_guid1 the player
   * @param player_guid2 the player(?);
   *                     often matches with `player_guid1`
-  * @param unk na
+  * @param unk na;
+  *            commonly, zero
   * @param list list of detected objects;
   *             normally contains at least one element
   */
@@ -20,7 +21,7 @@ import shapeless.{::, HNil}
     BETA CLIENT DEBUG INFO:
       Detector
       Sender
-      Object Count
+      Object Count (not really)
       Detected Object[]
    */
 final case class ObjectDetectedMessage(player_guid1 : PlanetSideGUID,
