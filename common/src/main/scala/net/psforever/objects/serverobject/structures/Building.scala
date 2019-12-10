@@ -20,7 +20,7 @@ class Building(private val name: String,
                private val map_id : Int,
                private val zone : Zone,
                private val buildingType : StructureType.Value,
-               private val buildingDefinition : ObjectDefinition) extends PlanetSideServerObject {
+               private val buildingDefinition : ObjectDefinition) extends PlanetSideServerObject
   with AmenityOwner {
   /**
     * The map_id is the identifier number used in BuildingInfoUpdateMessage. This is the index that the building appears in the MPO file starting from index 1
@@ -68,8 +68,6 @@ class Building(private val name: String,
     playersInSOI = list
     playersInSOI
   }
-
-  def Zone : Zone = zone
 
   // Get all lattice neighbours
   def Neighbours: Option[Set[Building]] = {
