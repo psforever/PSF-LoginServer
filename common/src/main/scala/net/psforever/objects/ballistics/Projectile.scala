@@ -35,7 +35,16 @@ final case class Projectile(profile : ProjectileDefinition,
                             attribute_to : Int,
                             shot_origin : Vector3,
                             shot_angle : Vector3,
-                            fire_time: Long = System.nanoTime) {
+                            fire_time: Long = System.nanoTime) extends PlanetSideGameObject {
+  Position = shot_origin
+  Orientation = shot_angle
+  Velocity = {
+    val initVel : Int = profile.InitialVelocity //initial velocity
+    val radAngle : Double = math.toRadians(shot_angle.y) //angle of elevation
+    val rise : Float = initVel * math.sin(radAngle).toFloat //z
+    val ground : Float = initVel * math.cos(radAngle).toFloat //base
+    Vector3.Rz(Vector3(0, -ground, 0), shot_angle.z) + Vector3.z(rise)
+  }
   /** Information about the current world coordinates and orientation of the projectile */
   val current : SimpleWorldEntity = new SimpleWorldEntity()
   private var resolved : ProjectileResolution.Value = ProjectileResolution.Unresolved
@@ -54,6 +63,8 @@ final case class Projectile(profile : ProjectileDefinition,
   def isResolved : Boolean = resolved == ProjectileResolution.Resolved || resolved == ProjectileResolution.MissedShot
 
   def isMiss : Boolean = resolved == ProjectileResolution.MissedShot
+
+  def Definition = profile
 }
 
 object Projectile {

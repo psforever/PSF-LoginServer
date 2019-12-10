@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.pad
 
-import akka.actor.{ActorContext, ActorRef, Cancellable, Props}
+import akka.actor.{ActorContext, Cancellable, Props}
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
 import net.psforever.objects.serverobject.pad.process.{VehicleSpawnControlBase, VehicleSpawnControlConcealPlayer}
 import net.psforever.objects.zones.Zone
@@ -12,28 +12,32 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
 /**
-  * An `Actor` that handles vehicle spawning orders for a `VehicleSpawnPad`.
-  * The basic `VehicleSpawnControl` is the root of a simple tree of "spawn control" objects that chain to each other.
-  * Each object performs on (or more than one related) actions upon the vehicle order that was submitted.<br>
+  * An `Actor` that handles vehicle spawning orders for a `VehicleSpawnPad` entity.
+  * The basic `VehicleSpawnControl` is the root of a sequence of "spawn control" objects that chain to each other.
+  * Each object performs one (or more related) actions upon the vehicle order that was submitted.<br>
   * <br>
-  * The purpose of the base actor is to serve as the entry point for the spawning process.
-  * A spawn pad receives vehicle orders from an attached `Terminal` object.
+  * The purpose of the base actor is to serve as the entry point for the spawning process
+  * and to manage the order queue.
+  * A spawn pad receives vehicle orders from a related `Terminal` object.
   * The control object accepts orders, enqueues them, and,
   * whenever prompted by a previous complete order or by an absence of active orders,
   * will select the first available order to be completed.
   * This order will be "tracked" and will be given to the first functional "spawn control" object of the process.
   * If the process is completed, or is ever aborted by any of the subsequent tasks,
   * control will propagate down back to this control object.
+  * At this time, (or) once again, a new order can be submitted or will be selected.
   * @param pad the `VehicleSpawnPad` object being governed
   */
 class VehicleSpawnControl(pad : VehicleSpawnPad) extends VehicleSpawnControlBase(pad) with FactionAffinityBehavior.Check {
   /** a reminder sent to future customers */
   var periodicReminder : Cancellable = DefaultCancellable.obj
   /** a list of vehicle orders that have been submitted for this spawn pad */
-  private var orders : List[VehicleSpawnControl.Order] = List.empty[VehicleSpawnControl.Order]
+  var orders : List[VehicleSpawnControl.Order] = List.empty[VehicleSpawnControl.Order]
   /** the current vehicle order being acted upon;
     * used as a guard condition to control order processing rate */
-  private var trackedOrder : Option[VehicleSpawnControl.Order] = None
+  var trackedOrder : Option[VehicleSpawnControl.Order] = None
+  /** how to process either the first order or every subsequent order */
+  var handleOrderFunc : VehicleSpawnControl.Order => Unit = NewTasking
 
   def LogId = ""
 
@@ -55,13 +59,16 @@ class VehicleSpawnControl(pad : VehicleSpawnPad) extends VehicleSpawnControlBase
 
   def receive : Receive = checkBehavior.orElse {
     case VehicleSpawnPad.VehicleOrder(player, vehicle) =>
-      trace(s"order from $player for $vehicle received")
-      orders = orders :+ VehicleSpawnControl.Order(player, vehicle, sender)
-      if(trackedOrder.isEmpty && orders.length == 1) {
-        SelectOrder()
+      trace(s"order from ${player.Name} for a ${vehicle.Definition.Name} received")
+      try {
+        handleOrderFunc(VehicleSpawnControl.Order(player, vehicle))
       }
-      else {
-        sender ! VehicleSpawnControl.RenderOrderRemainderMsg(orders.length + 1)
+      catch {
+        case _ : AssertionError if vehicle.HasGUID => //same as order being dropped
+          VehicleSpawnControl.DisposeSpawnedVehicle(vehicle, pad.Owner.Zone)
+        case _ : AssertionError => ; //shrug
+        case e : Exception => //something unexpected
+          e.printStackTrace()
       }
 
     case VehicleSpawnControl.ProcessControl.GetNewOrder =>
@@ -89,7 +96,7 @@ class VehicleSpawnControl(pad : VehicleSpawnPad) extends VehicleSpawnControlBase
             )
           }
           else {
-            VehicleSpawnControl.BlockedReminder(entry, entry +: orders)
+            BlockedReminder(entry, orders)
           }
         case None => ;
           periodicReminder.cancel
@@ -97,43 +104,143 @@ class VehicleSpawnControl(pad : VehicleSpawnPad) extends VehicleSpawnControlBase
 
     case VehicleSpawnControl.ProcessControl.Flush =>
       periodicReminder.cancel
-      orders.foreach { VehicleSpawnControl.CancelOrder(_, Continent) }
+      orders.foreach { CancelOrder }
       orders = Nil
       trackedOrder match {
         case Some(entry) =>
-          VehicleSpawnControl.CancelOrder(entry, Continent)
+          CancelOrder(entry)
         case None => ;
       }
       trackedOrder = None
-      concealPlayer ! akka.actor.Kill //will cause the actor to restart, which will abort any trapped messages
+      concealPlayer ! akka.actor.Kill //should cause the actor to restart, which will abort any trapped messages
 
     case _ => ;
   }
 
-  def SelectOrder() : Unit = {
+  /**
+    * Take this order - the "first order" - and immediately begin processing it.
+    * All orders accepted in the meantime will be queued and a note about priority will be issued.
+    * @param order the order being accepted
+    */
+  def NewTasking(order : VehicleSpawnControl.Order) : Unit = {
+    handleOrderFunc = QueuedTasking
+    ProcessOrder(Some(order))
+  }
+
+  /**
+    * While an order is being processed,
+    * all orders accepted in the meantime will be queued and a note about priority will be issued.
+    * @param order the order being accepted
+    */
+  def QueuedTasking(order : VehicleSpawnControl.Order) : Unit = {
+    val name = order.driver.Name
+    if((trackedOrder match {
+      case Some(tracked) => !tracked.driver.Name.equals(name)
+      case None => true
+    }) && orders.forall { !_.driver.Name.equals(name) }) {
+      //not a second order from an existing order's player
+      orders = orders :+ order
+      pad.Owner.Zone.VehicleEvents ! VehicleSpawnPad.PeriodicReminder(name, VehicleSpawnPad.Reminders.Queue, Some(orders.length + 1))
+    }
+    else {
+      VehicleSpawnControl.DisposeSpawnedVehicle(order, pad.Owner.Zone)
+    }
+  }
+
+  /**
+    * Select the next available queued order and begin processing it.
+    */
+  def SelectOrder() : Unit = ProcessOrder(SelectFirstOrder())
+
+  /**
+    * Select the next-available queued order if there is no current order being fulfilled.
+    * If the queue has been exhausted, set functionality to prepare to accept the next order as a "first order."
+    * @return the next-available order
+    */
+  def SelectFirstOrder() : Option[VehicleSpawnControl.Order] = {
     trackedOrder match {
       case None =>
-        periodicReminder.cancel
         val (completeOrder, remainingOrders) : (Option[VehicleSpawnControl.Order], List[VehicleSpawnControl.Order]) = orders match {
           case x :: Nil =>
             (Some(x), Nil)
           case x :: b =>
-            trace(s"order backlog size: ${b.size}")
-            VehicleSpawnControl.recursiveOrderReminder(b.iterator)
             (Some(x), b)
           case Nil =>
+            handleOrderFunc = NewTasking
             (None, Nil)
         }
         orders = remainingOrders
-        completeOrder match {
-          case Some(entry) =>
-            trace(s"processing next order - a ${entry.vehicle.Definition.Name} for ${entry.driver.Name}")
-            trackedOrder = completeOrder //guard on
-            context.system.scheduler.scheduleOnce(2000 milliseconds, concealPlayer, VehicleSpawnControl.Process.ConcealPlayer(entry))
-          case None =>
-            trackedOrder = None
-        }
-      case Some(_) => ; //do not work on new orders
+        completeOrder
+      case Some(_) =>
+        None
+    }
+  }
+
+  /**
+    * If a new order is accepted, begin processing it.
+    * Inform all customers whose orders are still queued of their priority number
+    * and activate the guard to ensure multiple orders don't get processed at the same time.
+    * @param order the order being accepted;
+    *              `None`, if no order found or submitted
+    */
+  def ProcessOrder(order : Option[VehicleSpawnControl.Order]) : Unit = {
+    periodicReminder.cancel
+    order match {
+      case Some(_order) =>
+        recursiveOrderReminder(orders.iterator)
+        trace(s"processing next order - a ${_order.vehicle.Definition.Name} for ${_order.driver.Name}")
+        trackedOrder = order //guard on
+        context.system.scheduler.scheduleOnce(2000 milliseconds, concealPlayer, _order)
+      case None => ;
+    }
+  }
+
+  /**
+    * na
+    * @param blockedOrder the previous order whose vehicle is blocking the spawn pad from operating
+    * @param recipients all of the other customers who will be receiving the message
+    */
+  def BlockedReminder(blockedOrder : VehicleSpawnControl.Order, recipients : Seq[VehicleSpawnControl.Order]) : Unit = {
+    val relevantRecipients = blockedOrder.vehicle.Seats(0).Occupant.orElse(pad.Owner.Zone.GUID(blockedOrder.vehicle.Owner)) match {
+      case Some(p : Player) =>
+        (VehicleSpawnControl.Order(p, blockedOrder.vehicle) +: recipients).iterator //who took possession of the vehicle
+      case _ =>
+        (blockedOrder +: recipients).iterator //who ordered the vehicle
+    }
+    recursiveBlockedReminder(relevantRecipients,
+      if(blockedOrder.vehicle.Health == 0)
+        Option("Clear the wreckage.")
+      else
+        None
+    )
+  }
+
+  /**
+    * Cancel this vehicle order and inform the person who made it, if possible.
+    * @param entry the order being cancelled
+    * @param context an `ActorContext` object for which to create the `TaskResolver` object
+    */
+  def CancelOrder(entry : VehicleSpawnControl.Order)(implicit context : ActorContext) : Unit = {
+    val vehicle = entry.vehicle
+    if(vehicle.Seats.values.count(_.isOccupied) == 0) {
+      VehicleSpawnControl.DisposeSpawnedVehicle(entry, pad.Owner.Zone)
+      pad.Owner.Zone.VehicleEvents ! VehicleSpawnPad.PeriodicReminder(entry.driver.Name, VehicleSpawnPad.Reminders.Cancelled)
+    }
+  }
+
+  @tailrec private final def recursiveBlockedReminder(iter : Iterator[VehicleSpawnControl.Order], cause : Option[Any]) : Unit = {
+    if(iter.hasNext) {
+      val recipient = iter.next
+      pad.Owner.Zone.VehicleEvents ! VehicleSpawnPad.PeriodicReminder(recipient.driver.Name, VehicleSpawnPad.Reminders.Blocked, cause)
+      recursiveBlockedReminder(iter, cause)
+    }
+  }
+
+  @tailrec private final def recursiveOrderReminder(iter : Iterator[VehicleSpawnControl.Order], position : Int = 2) : Unit = {
+    if(iter.hasNext) {
+      val recipient = iter.next
+      pad.Owner.Zone.VehicleEvents ! VehicleSpawnPad.PeriodicReminder(recipient.driver.Name, VehicleSpawnPad.Reminders.Queue, Some(position))
+      recursiveOrderReminder(iter, position + 1)
     }
   }
 }
@@ -152,159 +259,35 @@ object VehicleSpawnControl {
     Flush
     = Value
   }
-  /**
-    * An `Enumeration` of the stages of a full vehicle spawning process, passing the current order being processed.
-    * Messages in this group are used by the `receive` entry points of the multiple child objects
-    * that perform the vehicle spawning operation.
-    */
-  object Process {
-    sealed class Order(entry : VehicleSpawnControl.Order)
-
-    final case class ConcealPlayer(entry : VehicleSpawnControl.Order) extends Order(entry)
-    final case class LoadVehicle(entry : VehicleSpawnControl.Order) extends Order(entry)
-    final case class SeatDriver(entry : VehicleSpawnControl.Order) extends Order(entry)
-    final case class RailJackAction(entry : VehicleSpawnControl.Order) extends Order(entry)
-    final case class ServerVehicleOverride(entry : VehicleSpawnControl.Order) extends Order(entry)
-    final case class StartGuided(entry : VehicleSpawnControl.Order) extends Order(entry)
-    final case class DriverVehicleControl(entry : VehicleSpawnControl.Order) extends Order(entry)
-    final case class FinalClearance(entry : VehicleSpawnControl.Order) extends Order(entry)
-  }
 
   /**
-    * An entry that stores vehicle spawn pad spawning tasks (called "orders").
+    * An entry that stores a vehicle spawn pad spawning task (called an "order").
     * @param driver the player who wants the vehicle
     * @param vehicle the vehicle
-    * @param sendTo a callback `Actor` associated with the player (in other words, `WorldSessionActor`)
     */
-  final case class Order(driver : Player, vehicle : Vehicle, sendTo : ActorRef)
-
-  /**
-    * Properly clean up a vehicle that has been registered, but not yet been spawned into the game world.<br>
-    * <br>
-    * Constructs a temporary `TaskResolver` to deal with the vehicle's registration status.
-    * This "temporary" router will persist as if it were a `static` variable in some other language
-    * due to the fact that the `ActorSystem` object will remember it existing.
-    * After the primary task is complete, the router that was created is stopped so that it can be garbage collected.
-    * We could re-use it theoretically, but the `context` might be untrustworthy.
-    * @param entry the order being cancelled
-    * @param zone the continent on which the vehicle was registered
-    * @param context an `ActorContext` object for which to create the `TaskResolver` object
-    */
-  def DisposeVehicle(entry : VehicleSpawnControl.Order, zone: Zone)(implicit context : ActorContext) : Unit = {
-    import akka.actor.{ActorRef, PoisonPill}
-    import akka.routing.SmallestMailboxPool
-    import net.psforever.objects.guid.{GUIDTask, Task, TaskResolver}
-    import net.psforever.types.Vector3
-    val vehicle = entry.vehicle
-    vehicle.Position = Vector3.Zero
-    zone.VehicleEvents ! VehicleSpawnPad.RevealPlayer(entry.driver.GUID, zone.Id)
-
-    val router = context.actorOf(
-      SmallestMailboxPool(10).props(Props[TaskResolver]),
-      s"vehicle-spawn-control-emergency-decon-resolver-${System.nanoTime}"
-    )
-    router !
-    TaskResolver.GiveTask(
-      new Task() {
-        private val localRouter = router
-
-        override def isComplete = Task.Resolution.Success
-
-        def Execute(resolver : ActorRef) : Unit = {
-          resolver ! scala.util.Success(this)
-        }
-
-        override def Cleanup() : Unit = { localRouter ! PoisonPill } //where the router is stopped
-      }, List(GUIDTask.UnregisterVehicle(vehicle)(zone.GUID))
-    )
+  final case class Order(driver : Player, vehicle : Vehicle) {
+    assert(driver.HasGUID, s"when ordering a vehicle, the prospective driver ${driver.Name} does not have a GUID")
+    assert(vehicle.HasGUID, s"when ordering a vehicle, the ${vehicle.Definition.Name} does not have a GUID")
+    val DriverGUID = driver.GUID
   }
 
   /**
     * Properly clean up a vehicle that has been registered and spawned into the game world.
+    * Call this downstream of "`ConcealPlayer`".
     * @param entry the order being cancelled
     * @param zone the continent on which the vehicle was registered
     */
   def DisposeSpawnedVehicle(entry : VehicleSpawnControl.Order, zone: Zone) : Unit = {
-    //TODO this cleanup will handle the vehicle; but, the former driver may be thrown into the void
-    zone.VehicleEvents ! VehicleSpawnPad.DisposeVehicle(entry.vehicle, zone)
-    zone.VehicleEvents ! VehicleSpawnPad.RevealPlayer(entry.driver.GUID, zone.Id)
+    DisposeSpawnedVehicle(entry.vehicle, zone)
+    zone.VehicleEvents ! VehicleSpawnPad.RevealPlayer(entry.DriverGUID)
   }
 
   /**
-    * Remind a customer how long it will take for their vehicle order to be processed.
-    * @param position position in the queue
-    * @return an index-appropriate `VehicleSpawnPad.PeriodicReminder` object
-    */
-  def RenderOrderRemainderMsg(position : Int) : VehicleSpawnPad.PeriodicReminder = {
-    VehicleSpawnPad.PeriodicReminder(VehicleSpawnPad.Reminders.Queue, Some(s"$position"))
-  }
-
-  /**
-    *
-    * @param blockedOrder the previous order whose vehicle is blocking the spawn pad from operating
-    * @param recipients all of the customers who will be receiving the message
-    */
-  def BlockedReminder(blockedOrder : VehicleSpawnControl.Order, recipients : Seq[VehicleSpawnControl.Order]) : Unit = {
-      val wrecked : Option[Any] = if(blockedOrder.vehicle.Health == 0) {
-        Option("Clear the wreckage.")
-      }
-      else {
-        None
-      }
-      VehicleSpawnControl.recursiveBlockedReminder(recipients.iterator, wrecked)
-  }
-
-  /**
-    * Cancel this vehicle order and inform the person who made it, if possible.
-    * @param entry the order being cancelled
+    * Properly clean up a vehicle that has been registered and spawned into the game world.
+    * @param vehicle the vehicle being cancelled
     * @param zone the continent on which the vehicle was registered
-    * @param context an `ActorContext` object for which to create the `TaskResolver` object
     */
-  def CancelOrder(entry : VehicleSpawnControl.Order, zone : Zone)(implicit context : ActorContext) : Unit = {
-    val vehicle = entry.vehicle
-    if(vehicle.Seats.values.count(_.isOccupied) == 0) {
-      if(vehicle.Actor != ActorRef.noSender) {
-        VehicleSpawnControl.DisposeSpawnedVehicle(entry, zone)
-      }
-      else {
-        VehicleSpawnControl.DisposeVehicle(entry, zone)
-      }
-      if(entry.sendTo != ActorRef.noSender) {
-        entry.sendTo ! VehicleSpawnPad.PeriodicReminder(VehicleSpawnPad.Reminders.Cancelled)
-      }
-    }
-  }
-
-//  @tailrec private final def recursiveFindOrder(iter : Iterator[VehicleSpawnControl.Order], target : ActorRef, index : Int = 0) : Option[Int] = {
-//    if(!iter.hasNext) {
-//      None
-//    }
-//    else {
-//      val recipient = iter.next
-//      if(recipient.sendTo == target) {
-//        Some(index)
-//      }
-//      else {
-//        recursiveFindOrder(iter, target, index + 1)
-//      }
-//    }
-//  }
-
-  @tailrec private final def recursiveBlockedReminder(iter : Iterator[VehicleSpawnControl.Order], cause : Option[Any]) : Unit = {
-    if(iter.hasNext) {
-      val recipient = iter.next
-      recipient.sendTo ! VehicleSpawnPad.PeriodicReminder(VehicleSpawnPad.Reminders.Blocked, cause)
-      recursiveBlockedReminder(iter, cause)
-    }
-  }
-
-  @tailrec private final def recursiveOrderReminder(iter : Iterator[VehicleSpawnControl.Order], position : Int = 2) : Unit = {
-    if(iter.hasNext) {
-      val recipient = iter.next
-      if(recipient.sendTo != ActorRef.noSender) {
-        recipient.sendTo ! RenderOrderRemainderMsg(position)
-      }
-      recursiveOrderReminder(iter, position + 1)
-    }
+  def DisposeSpawnedVehicle(vehicle : Vehicle, zone: Zone) : Unit = {
+    zone.VehicleEvents ! VehicleSpawnPad.DisposeVehicle(vehicle)
   }
 }

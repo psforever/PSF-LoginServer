@@ -2,7 +2,9 @@
 package net.psforever.objects.serverobject.pad.process
 
 import net.psforever.objects.serverobject.pad.{VehicleSpawnControl, VehicleSpawnPad}
+import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types.Vector3
+import services.vehicle.{VehicleAction, VehicleServiceMessage}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -22,17 +24,24 @@ class VehicleSpawnControlFinalClearance(pad : VehicleSpawnPad) extends VehicleSp
   def LogId = "-clearer"
 
   def receive : Receive = {
-    case VehicleSpawnControl.Process.FinalClearance(entry) =>
+    case order @ VehicleSpawnControl.Order(driver, vehicle) =>
+      if(vehicle.PassengerInSeat(driver).isEmpty) {
+        //ensure the vacant vehicle is above the trench and doors
+        vehicle.Position = pad.Position + Vector3.z(pad.Definition.VehicleCreationZOffset)
+        val definition = vehicle.Definition
+        pad.Owner.Zone.VehicleEvents ! VehicleServiceMessage(s"${pad.Continent}", VehicleAction.LoadVehicle(PlanetSideGUID(0), vehicle, definition.ObjectId, vehicle.GUID, definition.Packet.ConstructorData(vehicle).get))
+      }
       context.parent ! VehicleSpawnControl.ProcessControl.Reminder
-      self ! VehicleSpawnControlFinalClearance.Test(entry)
+      self ! VehicleSpawnControlFinalClearance.Test(order)
 
-    case VehicleSpawnControlFinalClearance.Test(entry) =>
+    case test @ VehicleSpawnControlFinalClearance.Test(entry) =>
       if(Vector3.DistanceSquared(entry.vehicle.Position, pad.Position) > 100.0f) { //10m away from pad
         trace("pad cleared")
+        pad.Owner.Zone.VehicleEvents ! VehicleSpawnPad.ResetSpawnPad(pad)
         context.parent ! VehicleSpawnControl.ProcessControl.GetNewOrder
       }
       else {
-        context.system.scheduler.scheduleOnce(2000 milliseconds, self, VehicleSpawnControlFinalClearance.Test(entry))
+        context.system.scheduler.scheduleOnce(2000 milliseconds, self, test)
       }
 
     case _ => ;
