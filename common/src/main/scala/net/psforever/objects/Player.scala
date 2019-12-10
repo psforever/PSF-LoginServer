@@ -27,6 +27,12 @@ class Player(private val core : Avatar) extends PlanetSideGameObject
   private var health : Int = 0
   private var stamina : Int = 0
   private var armor : Int = 0
+
+  private var capacitor : Float = 0f
+  private var capacitorState : CapacitorStateType.Value = CapacitorStateType.Idle
+  private var capacitorLastUsedMillis : Long = 0
+  private var capacitorLastChargedMillis : Long = 0
+
   private var maxHealth : Int = 100 //TODO affected by empire benefits, territory benefits, and bops
   private var maxStamina : Int = 100 //does anything affect this?
 
@@ -87,6 +93,7 @@ class Player(private val core : Avatar) extends PlanetSideGameObject
       Health = MaxHealth
       Stamina = MaxStamina
       Armor = MaxArmor
+      Capacitor = 0
       ResetAllImplants()
     }
     isAlive
@@ -150,6 +157,44 @@ class Player(private val core : Avatar) extends PlanetSideGameObject
   }
 
   def MaxArmor : Int = exosuit.MaxArmor
+
+  def Capacitor : Float = capacitor
+
+  def Capacitor_=(value : Float) : Float = {
+    val newValue = math.min(math.max(0, value), ExoSuitDef.MaxCapacitor)
+
+    if(newValue < capacitor) {
+      capacitorLastUsedMillis = System.currentTimeMillis()
+      capacitorLastChargedMillis = 0
+    }
+    else if(newValue > capacitor && newValue < ExoSuitDef.MaxCapacitor) {
+      capacitorLastChargedMillis = System.currentTimeMillis()
+      capacitorLastUsedMillis = 0
+    }
+    else if(newValue > capacitor && newValue == ExoSuitDef.MaxCapacitor) {
+      capacitorLastChargedMillis = 0
+      capacitorLastUsedMillis = 0
+      capacitorState = CapacitorStateType.Idle
+    }
+
+    capacitor = newValue
+    capacitor
+  }
+
+  def CapacitorState : CapacitorStateType.Value = capacitorState
+  def CapacitorState_=(value : CapacitorStateType.Value) : CapacitorStateType.Value = {
+    value match {
+      case CapacitorStateType.Charging => capacitorLastChargedMillis = System.currentTimeMillis()
+      case CapacitorStateType.Discharging => capacitorLastUsedMillis = System.currentTimeMillis()
+      case _ => ;
+    }
+
+    capacitorState = value
+    capacitorState
+  }
+
+  def CapacitorLastUsedMillis = capacitorLastUsedMillis
+  def CapacitorLastChargedMillis = capacitorLastChargedMillis
 
   def VisibleSlots : Set[Int] = if(exosuit.SuitType == ExoSuitType.MAX) {
     Set(0)
@@ -290,9 +335,10 @@ class Player(private val core : Avatar) extends PlanetSideGameObject
   def LastDrawnSlot : Int = lastDrawnSlot
 
   def ExoSuit : ExoSuitType.Value = exosuit.SuitType
+  def ExoSuitDef : ExoSuitDefinition = exosuit
 
   def ExoSuit_=(suit : ExoSuitType.Value) : Unit = {
-    val eSuit = ExoSuitDefinition.Select(suit)
+    val eSuit = ExoSuitDefinition.Select(suit, Faction)
     exosuit = eSuit
     Player.SuitSetup(this, eSuit)
     ChangeSpecialAbility()
@@ -509,9 +555,9 @@ class Player(private val core : Avatar) extends PlanetSideGameObject
       SpecialExoSuitDefinition.Mode.Normal
   }
 
-  def isAnchored : Boolean = ExoSuit == ExoSuitType.MAX && Faction == PlanetSideEmpire.NC && UsingSpecial == SpecialExoSuitDefinition.Mode.Anchored
+  def isAnchored : Boolean = ExoSuit == ExoSuitType.MAX && Faction == PlanetSideEmpire.TR && UsingSpecial == SpecialExoSuitDefinition.Mode.Anchored
 
-  def isOverdrived : Boolean = ExoSuit == ExoSuitType.MAX && Faction == PlanetSideEmpire.NC && UsingSpecial == SpecialExoSuitDefinition.Mode.Overdrive
+  def isOverdrived : Boolean = ExoSuit == ExoSuitType.MAX && Faction == PlanetSideEmpire.TR && UsingSpecial == SpecialExoSuitDefinition.Mode.Overdrive
 
   def isShielded : Boolean = ExoSuit == ExoSuitType.MAX && Faction == PlanetSideEmpire.NC && UsingSpecial == SpecialExoSuitDefinition.Mode.Shielded
 

@@ -34,10 +34,15 @@ import scodec.codecs._
   * 45 - ?<br>
   * <br>
   * Actions (when sent from client):<br>
+  * 15 - Max anchor
+  * 16 - Max unanchor
+  * 20 - Client requests MAX special effect (NC shield and TR overdrive. VS jump jets are handled by the jump_thrust boolean on PlayerStateMessageUpstream)
+  * 21 - Disable MAX special effect (NC shield)
   * 29 - AFK<br>
   * 30 - back in game<br>
   * 36 - turn on "Looking for Squad"<br>
   * 37 - turn off "Looking for Squad"
+  *
   * @param action what this packet does
   */
 final case class GenericActionMessage(action : Int)

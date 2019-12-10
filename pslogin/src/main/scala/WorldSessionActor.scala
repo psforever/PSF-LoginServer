@@ -1269,14 +1269,30 @@ class WorldSessionActor extends Actor with MDCContextAware {
         if(player.isAlive) {
           val originalHealth = player.Health
           val originalArmor = player.Armor
+          val originalCapacitor = player.Capacitor.toInt
           resolution_function(target)
           val health = player.Health
           val armor = player.Armor
+          val capacitor = player.Capacitor.toInt
           val damageToHealth = originalHealth - health
           val damageToArmor = originalArmor - armor
-          damageLog.info(s"${player.Name}-infantry: BEFORE=$originalHealth/$originalArmor, AFTER=$health/$armor, CHANGE=$damageToHealth/$damageToArmor")
-          if(damageToHealth != 0 || damageToArmor != 0) {
+          val damageToCapacitor = originalCapacitor - capacitor
+          damageLog.info(s"${player.Name}-infantry: BEFORE=$originalHealth/$originalArmor/$originalCapacitor, AFTER=$health/$armor/$capacitor, CHANGE=$damageToHealth/$damageToArmor/$damageToCapacitor")
+          if(damageToHealth != 0 || damageToArmor != 0 || damageToCapacitor != 0) {
             val playerGUID = player.GUID
+            if(damageToHealth > 0) {
+              sendResponse(PlanetsideAttributeMessage(playerGUID, 0, health))
+              avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(playerGUID, 0, health))
+            }
+
+            if(damageToArmor > 0) {
+              sendResponse(PlanetsideAttributeMessage(playerGUID, 4, armor))
+              avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(playerGUID, 4, armor))
+            }
+
+            if(damageToCapacitor > 0) {
+              sendResponse(PlanetsideAttributeMessage(playerGUID, 7, capacitor))
+            }
             sendResponse(PlanetsideAttributeMessage(playerGUID, 0, health))
             sendResponse(PlanetsideAttributeMessage(playerGUID, 4, armor))
             continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(playerGUID, 0, health))
@@ -2067,7 +2083,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         val fallbackSubtype = 0
         //a loadout with a prohibited exo-suit type will result in a fallback exo-suit type
         val (nextSuit : ExoSuitType.Value, nextSubtype : Int) =
-          if(ExoSuitDefinition.Select(exosuit).Permissions match {
+          if(ExoSuitDefinition.Select(exosuit, player.Faction).Permissions match {
             case Nil =>
               true
             case permissions if subtype != 0 =>
@@ -2122,7 +2138,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           )
         }
         else {
-          val newSuitDef = ExoSuitDefinition.Select(nextSuit)
+          val newSuitDef = ExoSuitDefinition.Select(nextSuit, player.Faction)
           val (afterInventory, extra) = GridInventory.recoverInventory(
             inventory.filterNot(dropPred),
             tplayer.Inventory
@@ -3911,6 +3927,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
         else {
           player.Stamina > 0
         }
+
+        CapacitorTick(jump_thrust)
       }
       else {
         timeDL = 0
@@ -5347,7 +5365,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             tool.ToFireMode = convertFireModeIndex
             sendResponse(ChangeFireModeMessage(tool.GUID, convertFireModeIndex))
           case _ =>
-            log.info(s"GenericObject: $player is MAX with an unexpected weapon - ${definition.Name}")
+            log.warn(s"GenericObject: $player is MAX with an unexpected weapon - ${definition.Name}")
         }
       }
       else if(action == 16) { //max deployment
@@ -5365,7 +5383,25 @@ class WorldSessionActor extends Actor with MDCContextAware {
             tool.ToFireMode = convertFireModeIndex
             sendResponse(ChangeFireModeMessage(tool.GUID, convertFireModeIndex))
           case _ =>
-            log.info(s"GenericObject: $player is MAX with an unexpected weapon - ${definition.Name}")
+            log.warn(s"GenericObject: $player is MAX with an unexpected weapon - ${definition.Name}")
+        }
+      }
+      else if (action == 20) {
+        if(player.ExoSuit == ExoSuitType.MAX) {
+          ToggleMaxSpecialState(enable = true)
+        } else {
+          log.warn("Got GenericActionMessage 20 but can't handle it")
+        }
+      }
+      else if (action == 21) {
+        if(player.ExoSuit == ExoSuitType.MAX) {
+            player.Faction match {
+              case PlanetSideEmpire.NC =>
+                ToggleMaxSpecialState(enable = false)
+              case _ => log.warn(s"Player ${player.Name} tried to cancel an uncancellable MAX special ability")
+            }
+        } else {
+          log.warn("Got GenericActionMessage 21 but can't handle it")
         }
       }
       else if(action == 36) { //Looking For Squad ON
@@ -5462,6 +5498,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ WeaponFireMessage(seq_time, weapon_guid, projectile_guid, shot_origin, unk1, unk2, unk3, unk4, unk5, unk6, unk7) =>
       log.info(s"WeaponFire: $msg")
+      if(player.isShielded) {
+        // Cancel NC MAX shield if it's active
+        ToggleMaxSpecialState(enable = false)
+      }
       FindContainedWeapon match {
         case (Some(obj), Some(tool : Tool)) =>
           if(tool.Magazine <= 0) { //safety: enforce ammunition depletion
@@ -7807,6 +7847,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     val player_guid = tplayer.GUID
     val pos = tplayer.Position
     val respawnTimer = 300000 //milliseconds
+    ToggleMaxSpecialState(enable = false)
     tplayer.Die
     deadState = DeadState.Dead
     timeDL = 0
@@ -10101,6 +10142,75 @@ class WorldSessionActor extends Actor with MDCContextAware {
     queuedSquadActions(squadUpdateCounter)()
     squadUpdateCounter = (squadUpdateCounter + 1) % queuedSquadActions.length
   }
+
+  def CapacitorTick(jump_thrust : Boolean): Unit = {
+    if(player.ExoSuit == ExoSuitType.MAX) {
+      //Discharge
+      if(jump_thrust || player.isOverdrived || player.isShielded) {
+        if(player.CapacitorState == CapacitorStateType.Discharging) {
+          // Previous tick was already discharging, calculate how much energy to drain from time between the two ticks
+          val timeDiff = (System.currentTimeMillis() - player.CapacitorLastUsedMillis).toFloat / 1000
+          val drainAmount = player.ExoSuitDef.CapacitorDrainPerSecond.toFloat * timeDiff
+          player.Capacitor -= drainAmount
+          sendResponse(PlanetsideAttributeMessage(player.GUID, 7, player.Capacitor.toInt))
+        } else {
+          // Start discharging
+          player.CapacitorState = CapacitorStateType.Discharging
+        }
+      }
+      // Charge
+      else if(player.Capacitor < player.ExoSuitDef.MaxCapacitor
+        && (player.CapacitorState == CapacitorStateType.Idle || player.CapacitorState == CapacitorStateType.Charging || (player.CapacitorState == CapacitorStateType.ChargeDelay && System.currentTimeMillis() - player.CapacitorLastUsedMillis > player.ExoSuitDef.CapacitorRechargeDelayMillis)))
+      {
+        if(player.CapacitorState == CapacitorStateType.Charging) {
+          val timeDiff = (System.currentTimeMillis() - player.CapacitorLastChargedMillis).toFloat / 1000
+          val chargeAmount = player.ExoSuitDef.CapacitorRechargePerSecond * timeDiff
+          player.Capacitor += chargeAmount
+          sendResponse(PlanetsideAttributeMessage(player.GUID, 7, player.Capacitor.toInt))
+        } else {
+          player.CapacitorState = CapacitorStateType.Charging
+        }
+      }
+
+      if(player.Faction == PlanetSideEmpire.VS) {
+        // Start charge delay for VS when not boosting
+        if(!jump_thrust && player.CapacitorState == CapacitorStateType.Discharging ) {
+          player.CapacitorState = CapacitorStateType.ChargeDelay
+        }
+      }
+      else {
+        // Start charge delay for other factions if capacitor is empty or special ability is off
+        if(player.CapacitorState == CapacitorStateType.Discharging && (player.Capacitor == 0 || (!player.isOverdrived && !player.isShielded))) {
+          player.CapacitorState = CapacitorStateType.ChargeDelay
+          ToggleMaxSpecialState(enable = false)
+        }
+      }
+    }
+    else {
+      if(player.CapacitorState != CapacitorStateType.Idle) {
+        player.CapacitorState = CapacitorStateType.Idle
+      }
+    }
+  }
+
+  def ToggleMaxSpecialState(enable : Boolean): Unit = {
+    if(player.ExoSuit == ExoSuitType.MAX) {
+      if(enable) {
+        player.Faction match {
+          case PlanetSideEmpire.TR => if(player.Capacitor == player.ExoSuitDef.MaxCapacitor) player.UsingSpecial = SpecialExoSuitDefinition.Mode.Overdrive
+          case PlanetSideEmpire.NC => if(player.Capacitor > 0) player.UsingSpecial = SpecialExoSuitDefinition.Mode.Shielded
+          case _ => log.warn(s"Player ${player.Name} tried to use a MAX special ability but their faction doesn't have one")
+        }
+
+        if(player.UsingSpecial == SpecialExoSuitDefinition.Mode.Overdrive || player.UsingSpecial == SpecialExoSuitDefinition.Mode.Shielded) {
+          avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttributeToAll(player.GUID, 8, 1))
+        }
+      }
+      else {
+        player.UsingSpecial = SpecialExoSuitDefinition.Mode.Normal
+        avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttributeToAll(player.GUID, 8, 0))
+      }
+    }
 
   /**
     * The main purpose of this method is to determine which targets will receive "locked on" warnings from remote projectiles.
