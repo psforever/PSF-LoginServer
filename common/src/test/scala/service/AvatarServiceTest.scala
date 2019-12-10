@@ -19,7 +19,7 @@ class AvatarService1Test extends ActorTest {
   "AvatarService" should {
     "construct" in {
       ServiceManager.boot(system)
-      system.actorOf(Props[AvatarService], AvatarServiceTest.TestName)
+      system.actorOf(Props(classOf[AvatarService], Zone.Nowhere), AvatarServiceTest.TestName)
       assert(true)
     }
   }
@@ -29,7 +29,7 @@ class AvatarService2Test extends ActorTest {
   "AvatarService" should {
     "subscribe" in {
       ServiceManager.boot(system)
-      val service = system.actorOf(Props[AvatarService], AvatarServiceTest.TestName)
+      val service = system.actorOf(Props(classOf[AvatarService], Zone.Nowhere), AvatarServiceTest.TestName)
       service ! Service.Join("test")
       assert(true)
     }
@@ -40,7 +40,7 @@ class AvatarService3Test extends ActorTest {
   "AvatarService" should {
     ServiceManager.boot(system)
     "subscribe to a specific channel" in {
-      val service = system.actorOf(Props[AvatarService], AvatarServiceTest.TestName)
+      val service = system.actorOf(Props(classOf[AvatarService], Zone.Nowhere), AvatarServiceTest.TestName)
       service ! Service.Join("test")
       service ! Service.Leave()
       assert(true)
@@ -52,7 +52,7 @@ class AvatarService4Test extends ActorTest {
   "AvatarService" should {
     "subscribe" in {
       ServiceManager.boot(system)
-      val service = system.actorOf(Props[AvatarService], AvatarServiceTest.TestName)
+      val service = system.actorOf(Props(classOf[AvatarService], Zone.Nowhere), AvatarServiceTest.TestName)
       service ! Service.Join("test")
       service ! Service.LeaveAll()
       assert(true)
@@ -64,7 +64,7 @@ class AvatarService5Test extends ActorTest {
   "AvatarService" should {
     "pass an unhandled message" in {
       ServiceManager.boot(system)
-      val service = system.actorOf(Props[AvatarService], AvatarServiceTest.TestName)
+      val service = system.actorOf(Props(classOf[AvatarService], Zone.Nowhere), AvatarServiceTest.TestName)
       service ! Service.Join("test")
       service ! "hello"
       expectNoMsg()
@@ -76,7 +76,7 @@ class ArmorChangedTest extends ActorTest {
   "AvatarService" should {
     "pass ArmorChanged" in {
       ServiceManager.boot(system)
-      val service = system.actorOf(Props[AvatarService], AvatarServiceTest.TestName)
+      val service = system.actorOf(Props(classOf[AvatarService], Zone.Nowhere), AvatarServiceTest.TestName)
       service ! Service.Join("test")
       service ! AvatarServiceMessage("test", AvatarAction.ArmorChanged(PlanetSideGUID(10), ExoSuitType.Reinforced, 0))
       expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarResponse.ArmorChanged(ExoSuitType.Reinforced, 0)))
@@ -88,7 +88,7 @@ class ConcealPlayerTest extends ActorTest {
   "AvatarService" should {
     "pass ConcealPlayer" in {
       ServiceManager.boot(system)
-      val service = system.actorOf(Props[AvatarService], AvatarServiceTest.TestName)
+      val service = system.actorOf(Props(classOf[AvatarService], Zone.Nowhere), AvatarServiceTest.TestName)
       service ! Service.Join("test")
       service ! AvatarServiceMessage("test", AvatarAction.ConcealPlayer(PlanetSideGUID(10)))
       expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarResponse.ConcealPlayer()))
@@ -97,11 +97,8 @@ class ConcealPlayerTest extends ActorTest {
 }
 
 class EquipmentInHandTest extends ActorTest {
-  ServiceManager.boot(system) ! ServiceManager.Register(RandomPool(1).props(Props[TaskResolver]), "taskResolver")
-  val service = system.actorOf(Props[AvatarService], "release-test-service")
-  val zone = new Zone("test", new ZoneMap("test-map"), 0)
-  val taskResolver = system.actorOf(Props[TaskResolver], "release-test-resolver")
-
+  ServiceManager.boot(system)
+  val service = system.actorOf(Props(classOf[AvatarService], Zone.Nowhere), "release-test-service")
   val toolDef = GlobalDefinitions.beamer
   val tool = Tool(toolDef)
   tool.GUID = PlanetSideGUID(40)
@@ -123,8 +120,8 @@ class EquipmentInHandTest extends ActorTest {
 }
 
 class DeployItemTest extends ActorTest {
-  ServiceManager.boot(system) ! ServiceManager.Register(RandomPool(1).props(Props[TaskResolver]), "taskResolver")
-  val service = system.actorOf(Props[AvatarService], "deploy-item-test-service")
+  ServiceManager.boot(system)
+  val service = system.actorOf(Props(classOf[AvatarService], Zone.Nowhere), "deploy-item-test-service")
   val objDef = GlobalDefinitions.motionalarmsensor
   val obj = new SensorDeployable(objDef)
   obj.Position = Vector3(1,2,3)
@@ -146,13 +143,8 @@ class DeployItemTest extends ActorTest {
 }
 
 class DroptItemTest extends ActorTest {
-  ServiceManager.boot(system) ! ServiceManager.Register(RandomPool(1).props(Props[TaskResolver]), "taskResolver")
-  val service = system.actorOf(Props[AvatarService], "release-test-service")
-  val zone = new Zone("test", new ZoneMap("test-map"), 0)
-  val taskResolver = system.actorOf(Props[TaskResolver], "drop-item-test-resolver")
-  zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "drop-item-test-zone")
-  zone.Actor ! Zone.Init()
-
+  ServiceManager.boot(system)
+  val service = system.actorOf(Props(classOf[AvatarService], Zone.Nowhere), "release-test-service")
   val toolDef = GlobalDefinitions.beamer
   val tool = Tool(toolDef)
   tool.Position = Vector3(1,2,3)
@@ -171,7 +163,7 @@ class DroptItemTest extends ActorTest {
   "AvatarService" should {
     "pass DropItem" in {
       service ! Service.Join("test")
-      service ! AvatarServiceMessage("test", AvatarAction.DropItem(PlanetSideGUID(10), tool, zone))
+      service ! AvatarServiceMessage("test", AvatarAction.DropItem(PlanetSideGUID(10), tool, Zone.Nowhere))
       expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarResponse.DropItem(pkt)))
     }
   }
@@ -191,7 +183,7 @@ class LoadPlayerTest extends ActorTest {
   "AvatarService" should {
     "pass LoadPlayer" in {
       ServiceManager.boot(system)
-      val service = system.actorOf(Props[AvatarService], AvatarServiceTest.TestName)
+      val service = system.actorOf(Props(classOf[AvatarService], Zone.Nowhere), AvatarServiceTest.TestName)
       service ! Service.Join("test")
       //no parent data
       service ! AvatarServiceMessage("test", AvatarAction.LoadPlayer(
@@ -211,7 +203,7 @@ class ObjectDeleteTest extends ActorTest {
   "AvatarService" should {
     "pass ObjectDelete" in {
       ServiceManager.boot(system)
-      val service = system.actorOf(Props[AvatarService], AvatarServiceTest.TestName)
+      val service = system.actorOf(Props(classOf[AvatarService], Zone.Nowhere), AvatarServiceTest.TestName)
       service ! Service.Join("test")
       service ! AvatarServiceMessage("test", AvatarAction.ObjectDelete(PlanetSideGUID(10), PlanetSideGUID(11)))
       expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarResponse.ObjectDelete(PlanetSideGUID(11), 0)))
@@ -226,7 +218,7 @@ class ObjectHeldTest extends ActorTest {
   "AvatarService" should {
     "pass ObjectHeld" in {
       ServiceManager.boot(system)
-      val service = system.actorOf(Props[AvatarService], AvatarServiceTest.TestName)
+      val service = system.actorOf(Props(classOf[AvatarService], Zone.Nowhere), AvatarServiceTest.TestName)
       service ! Service.Join("test")
       service ! AvatarServiceMessage("test", AvatarAction.ObjectHeld(PlanetSideGUID(10), 1))
       expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarResponse.ObjectHeld(1)))
@@ -238,7 +230,7 @@ class PutDownFDUTest extends ActorTest {
   "AvatarService" should {
     "pass PutDownFDU" in {
       ServiceManager.boot(system)
-      val service = system.actorOf(Props[AvatarService], AvatarServiceTest.TestName)
+      val service = system.actorOf(Props(classOf[AvatarService], Zone.Nowhere), AvatarServiceTest.TestName)
       service ! Service.Join("test")
       service ! AvatarServiceMessage("test", AvatarAction.PutDownFDU(PlanetSideGUID(10)))
       expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarResponse.PutDownFDU(PlanetSideGUID(10))))
@@ -250,7 +242,7 @@ class PlanetsideAttributeTest extends ActorTest {
   "AvatarService" should {
     "pass PlanetsideAttribute" in {
       ServiceManager.boot(system)
-      val service = system.actorOf(Props[AvatarService], AvatarServiceTest.TestName)
+      val service = system.actorOf(Props(classOf[AvatarService], Zone.Nowhere), AvatarServiceTest.TestName)
       service ! Service.Join("test")
       service ! AvatarServiceMessage("test", AvatarAction.PlanetsideAttribute(PlanetSideGUID(10), 5, 1200L))
       expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarResponse.PlanetsideAttribute(5, 1200L)))
@@ -264,7 +256,7 @@ class PlayerStateTest extends ActorTest {
   "AvatarService" should {
     "pass PlayerState" in {
       ServiceManager.boot(system)
-      val service = system.actorOf(Props[AvatarService], AvatarServiceTest.TestName)
+      val service = system.actorOf(Props(classOf[AvatarService], Zone.Nowhere), AvatarServiceTest.TestName)
       service ! Service.Join("test")
       service ! AvatarServiceMessage("test", AvatarAction.PlayerState(PlanetSideGUID(10), Vector3(3694.1094f, 2735.4531f, 90.84375f), Some(Vector3(4.375f, 2.59375f, 0.0f)), 61.875f, 351.5625f, 0.0f, 136, false, false, false, false, false, false))
       expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarResponse.PlayerState(Vector3(3694.1094f, 2735.4531f, 90.84375f), Some(Vector3(4.375f, 2.59375f, 0.0f)), 61.875f, 351.5625f, 0.0f, 136, false, false, false, false, false, false)))
@@ -290,7 +282,7 @@ class PickupItemATest extends ActorTest {
 
   "pass PickUpItem as EquipmentInHand (visible pistol slot)" in {
     ServiceManager.boot(system)
-    val service = system.actorOf(Props[AvatarService], AvatarServiceTest.TestName)
+    val service = system.actorOf(Props(classOf[AvatarService], Zone.Nowhere), AvatarServiceTest.TestName)
     service ! Service.Join("test")
     service ! AvatarServiceMessage("test", AvatarAction.PickupItem(PlanetSideGUID(10), Zone.Nowhere, obj, 0, tool))
     expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarResponse.EquipmentInHand(pkt)))
@@ -304,7 +296,7 @@ class PickupItemBTest extends ActorTest {
 
   "pass PickUpItem as ObjectDelete (not visible inventory space)" in {
     ServiceManager.boot(system)
-    val service = system.actorOf(Props[AvatarService], AvatarServiceTest.TestName)
+    val service = system.actorOf(Props(classOf[AvatarService], Zone.Nowhere), AvatarServiceTest.TestName)
     service ! Service.Join("test")
     service ! AvatarServiceMessage("test", AvatarAction.PickupItem(PlanetSideGUID(10), Zone.Nowhere, obj, 6, tool))
     expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarResponse.ObjectDelete(tool.GUID, 0)))
@@ -315,7 +307,7 @@ class ReloadTest extends ActorTest {
   "AvatarService" should {
     "pass Reload" in {
       ServiceManager.boot(system)
-      val service = system.actorOf(Props[AvatarService], AvatarServiceTest.TestName)
+      val service = system.actorOf(Props(classOf[AvatarService], Zone.Nowhere), AvatarServiceTest.TestName)
       service ! Service.Join("test")
       service ! AvatarServiceMessage("test", AvatarAction.Reload(PlanetSideGUID(10), PlanetSideGUID(40)))
       expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarResponse.Reload(PlanetSideGUID(40))))
@@ -330,7 +322,7 @@ class ChangeAmmoTest extends ActorTest {
   "AvatarService" should {
     "pass ChangeAmmo" in {
       ServiceManager.boot(system)
-      val service = system.actorOf(Props[AvatarService], AvatarServiceTest.TestName)
+      val service = system.actorOf(Props(classOf[AvatarService], Zone.Nowhere), AvatarServiceTest.TestName)
       service ! Service.Join("test")
       service ! AvatarServiceMessage("test", AvatarAction.ChangeAmmo(PlanetSideGUID(10), PlanetSideGUID(40), 0, PlanetSideGUID(40), ammoDef.ObjectId, PlanetSideGUID(41), ammoDef.Packet.ConstructorData(ammoBox).get))
       expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarResponse.ChangeAmmo(PlanetSideGUID(40), 0, PlanetSideGUID(40), ammoDef.ObjectId, PlanetSideGUID(41), ammoDef.Packet.ConstructorData(ammoBox).get)))
@@ -345,7 +337,7 @@ class ChangeFireModeTest extends ActorTest {
   "AvatarService" should {
     "pass ChangeFireMode" in {
       ServiceManager.boot(system)
-      val service = system.actorOf(Props[AvatarService], AvatarServiceTest.TestName)
+      val service = system.actorOf(Props(classOf[AvatarService], Zone.Nowhere), AvatarServiceTest.TestName)
       service ! Service.Join("test")
       service ! AvatarServiceMessage("test", AvatarAction.ChangeFireMode(PlanetSideGUID(10), PlanetSideGUID(40), 0))
       expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarResponse.ChangeFireMode(PlanetSideGUID(40), 0)))
@@ -357,7 +349,7 @@ class ChangeFireStateStartTest extends ActorTest {
   "AvatarService" should {
     "pass ChangeFireState_Start" in {
       ServiceManager.boot(system)
-      val service = system.actorOf(Props[AvatarService], AvatarServiceTest.TestName)
+      val service = system.actorOf(Props(classOf[AvatarService], Zone.Nowhere), AvatarServiceTest.TestName)
       service ! Service.Join("test")
       service ! AvatarServiceMessage("test", AvatarAction.ChangeFireState_Start(PlanetSideGUID(10), PlanetSideGUID(40)))
       expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarResponse.ChangeFireState_Start(PlanetSideGUID(40))))
@@ -369,7 +361,7 @@ class ChangeFireStateStopTest extends ActorTest {
   "AvatarService" should {
     "pass ChangeFireState_Stop" in {
       ServiceManager.boot(system)
-      val service = system.actorOf(Props[AvatarService], AvatarServiceTest.TestName)
+      val service = system.actorOf(Props(classOf[AvatarService], Zone.Nowhere), AvatarServiceTest.TestName)
       service ! Service.Join("test")
       service ! AvatarServiceMessage("test", AvatarAction.ChangeFireState_Stop(PlanetSideGUID(10), PlanetSideGUID(40)))
       expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarResponse.ChangeFireState_Stop(PlanetSideGUID(40))))
@@ -387,7 +379,7 @@ class DamageTest extends ActorTest {
   "AvatarService" should {
     "pass Damage" in {
       ServiceManager.boot(system)
-      val service = system.actorOf(Props[AvatarService], AvatarServiceTest.TestName)
+      val service = system.actorOf(Props(classOf[AvatarService], Zone.Nowhere), AvatarServiceTest.TestName)
       service ! Service.Join("test")
       service ! AvatarServiceMessage("test", AvatarAction.Damage(PlanetSideGUID(10), player, test_func_ref))
       val msg = receiveOne(1 seconds)
@@ -408,7 +400,7 @@ class WeaponDryFireTest extends ActorTest {
   "AvatarService" should {
     "pass WeaponDryFire" in {
       ServiceManager.boot(system)
-      val service = system.actorOf(Props[AvatarService], AvatarServiceTest.TestName)
+      val service = system.actorOf(Props(classOf[AvatarService], Zone.Nowhere), AvatarServiceTest.TestName)
       service ! Service.Join("test")
       service ! AvatarServiceMessage("test", AvatarAction.WeaponDryFire(PlanetSideGUID(10), PlanetSideGUID(40)))
       expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarResponse.WeaponDryFire(PlanetSideGUID(40))))
@@ -422,7 +414,7 @@ class AvatarStowEquipmentTest extends ActorTest {
   "AvatarService" should {
     "pass StowEquipment" in {
       ServiceManager.boot(system)
-      val service = system.actorOf(Props[AvatarService], AvatarServiceTest.TestName)
+      val service = system.actorOf(Props(classOf[AvatarService], Zone.Nowhere), AvatarServiceTest.TestName)
       service ! Service.Join("test")
       service ! AvatarServiceMessage("test", AvatarAction.StowEquipment(PlanetSideGUID(10), PlanetSideGUID(11), 2, tool))
       expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarResponse.StowEquipment(PlanetSideGUID(11), 2, tool)))
@@ -448,8 +440,8 @@ Even with all this work, the tests have a high chance of failure just due to bei
  */
 class AvatarReleaseTest extends ActorTest {
   ServiceManager.boot(system) ! ServiceManager.Register(RandomPool(1).props(Props[TaskResolver]), "taskResolver")
-  val service = system.actorOf(Props[AvatarService], "release-test-service")
   val zone = new Zone("test", new ZoneMap("test-map"), 0) { override def SetupNumberPools() = { AddPool("dynamic", 1 to 10) } }
+  val service = system.actorOf(Props(classOf[AvatarService], zone), "release-test-service")
   val taskResolver = system.actorOf(Props[TaskResolver], "release-test-resolver")
   zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "release-test-zone")
   zone.Actor ! Zone.Init()
@@ -497,8 +489,8 @@ class AvatarReleaseTest extends ActorTest {
 
 class AvatarReleaseEarly1Test extends ActorTest {
   ServiceManager.boot(system) ! ServiceManager.Register(RandomPool(1).props(Props[TaskResolver]), "taskResolver")
-  val service = system.actorOf(Props[AvatarService], "release-test-service")
   val zone = new Zone("test", new ZoneMap("test-map"), 0) { override def SetupNumberPools() = { AddPool("dynamic", 1 to 10) } }
+  val service = system.actorOf(Props(classOf[AvatarService], zone), "release-test-service")
   val taskResolver = system.actorOf(Props[TaskResolver], "release-test-resolver")
   zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "release-test-zone")
   zone.Actor ! Zone.Init()
@@ -547,8 +539,8 @@ class AvatarReleaseEarly1Test extends ActorTest {
 
 class AvatarReleaseEarly2Test extends ActorTest {
   ServiceManager.boot(system) ! ServiceManager.Register(RandomPool(1).props(Props[TaskResolver]), "taskResolver")
-  val service = system.actorOf(Props[AvatarService], "release-test-service")
   val zone = new Zone("test", new ZoneMap("test-map"), 0) { override def SetupNumberPools() = { AddPool("dynamic", 1 to 10) } }
+  val service = system.actorOf(Props(classOf[AvatarService], zone), "release-test-service")
   val taskResolver = system.actorOf(Props[TaskResolver], "release-test-resolver")
   zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "release-test-zone")
   zone.Actor ! Zone.Init()

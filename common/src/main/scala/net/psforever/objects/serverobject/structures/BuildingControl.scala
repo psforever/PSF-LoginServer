@@ -11,22 +11,17 @@ import services.galaxy.{GalaxyAction, GalaxyResponse, GalaxyServiceMessage, Gala
 class BuildingControl(building : Building) extends Actor with FactionAffinityBehavior.Check {
   def FactionObject : FactionAffinity = building
   var galaxyService : ActorRef = Actor.noSender
-  var localService : ActorRef = Actor.noSender
   private[this] val log = org.log4s.getLogger
 
   override def preStart = {
     log.trace(s"Starting BuildingControl for ${building.GUID} / ${building.MapId}")
     ServiceManager.serviceManager ! Lookup("galaxy")
-    ServiceManager.serviceManager ! Lookup("local")
   }
 
   def receive : Receive = checkBehavior.orElse {
     case ServiceManager.LookupResult("galaxy", endpoint) =>
       galaxyService = endpoint
       log.trace("BuildingControl: Building " + building.GUID + " Got galaxy service " + endpoint)
-    case ServiceManager.LookupResult("local", endpoint) =>
-      localService = endpoint
-      log.trace("BuildingControl: Building " + building.GUID + " Got local service " + endpoint)
     case FactionAffinity.ConvertFactionAffinity(faction) =>
       val originalAffinity = building.Faction
       if(originalAffinity != (building.Faction = faction)) {

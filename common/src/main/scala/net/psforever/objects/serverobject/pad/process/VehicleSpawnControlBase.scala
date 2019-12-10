@@ -3,7 +3,6 @@ package net.psforever.objects.serverobject.pad.process
 
 import akka.actor.Actor
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
-import net.psforever.objects.serverobject.structures.Building
 import net.psforever.objects.zones.Zone
 import org.log4s.Logger
 
@@ -26,11 +25,11 @@ abstract class VehicleSpawnControlBase(pad : VehicleSpawnPad) extends Actor {
     */
   private def GetLogger(logid : String) : Logger = baseLogger match {
     case None =>
-      if(!pad.HasGUID || Continent == Zone.Nowhere) {
+      if(!pad.HasGUID || pad.Owner.Zone == Zone.Nowhere) {
         org.log4s.getLogger(s"uninitialized_${pad.Definition.Name}$logid")
       }
       else {
-        baseLogger = Some(org.log4s.getLogger(s"${Continent.Id}-${pad.Definition.Name}-${pad.GUID.guid}$logid"))
+        baseLogger = Some(org.log4s.getLogger(s"${pad.Continent}-${pad.Definition.Name}-${pad.GUID.guid}$logid"))
         baseLogger.get
       }
     case Some(logger) =>
@@ -56,14 +55,4 @@ abstract class VehicleSpawnControlBase(pad : VehicleSpawnPad) extends Actor {
     * @param msg the message
     */
   def trace(msg : String) : Unit = log.trace(msg)
-
-  /**
-    * The continent the pad recognizes as a place of installation will change as its `Owner` changes.
-    * Originally, it belongs to a default non-`Building` object that is owned by a default non-`Zone` object.
-    * Eventually, it will belong to an active `Building` object that will belong to an active `Zone` object.
-    * With respect to `GetLogger(String)`, the active `Zone` object will be valid shortly after the object is registered,
-    * but will still be separated from being owned by a valid `Building` object by a few validation checks.
-    * @return the (current) `Zone` object
-    */
-  def Continent : Zone = pad.Owner.asInstanceOf[Building].Zone
 }

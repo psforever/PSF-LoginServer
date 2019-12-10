@@ -211,7 +211,7 @@ class ZoneHotSpotProjector(zone : Zone) extends Actor {
       }
       newSpot
     }
-    log.info(s"new coordinate remapping function provided; updating ${redoneSpots.size} hotspots")
+    log.trace(s"new coordinate remapping function provided; updating ${redoneSpots.size} hotspots")
     zone.HotSpots = redoneSpots
   }
 
