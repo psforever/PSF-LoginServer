@@ -43,7 +43,7 @@ class FactionAffinityTest extends Specification {
 
     "inherits affinity from owner 2" in {
       val obj = new Door(GlobalDefinitions.door)
-      val bldg = new Building(building_guid = 0, map_id = 1, Zone.Nowhere, StructureType.Building, GlobalDefinitions.building)
+      val bldg = new Building("Building", building_guid = 0, map_id = 1, Zone.Nowhere, StructureType.Building, GlobalDefinitions.building)
       obj.Owner = bldg
       obj.Faction mustEqual PlanetSideEmpire.NEUTRAL
 

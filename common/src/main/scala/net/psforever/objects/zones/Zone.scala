@@ -31,6 +31,9 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.immutable.{Map => PairMap}
 import scala.concurrent.duration._
 
+import scalax.collection.Graph
+import scalax.collection.GraphPredef._, scalax.collection.GraphEdge._
+
 /**
   * A server object representing the one-landmass planets as well as the individual subterranean caverns.<br>
   * <br>
@@ -81,6 +84,9 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
   private var population : ActorRef = ActorRef.noSender
 
   private var buildings : PairMap[Int, Building] = PairMap.empty[Int, Building]
+
+  private var lattice : Graph[Building, UnDiEdge] = Graph()
+
   /** key - spawn zone id, value - buildings belonging to spawn zone */
   private var spawnGroups : Map[Building, List[SpawnPoint]] = PairMap[Building, List[SpawnPoint]]()
   /** */
@@ -134,6 +140,7 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
       BuildLocalObjects(context, guid)
       BuildSupportObjects()
       MakeBuildings(context)
+      MakeLattice()
       AssignAmenities()
       CreateSpawnGroups()
     }
@@ -337,8 +344,16 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
     buildings.get(id)
   }
 
+  def Building(name : String) : Option[Building] = {
+    buildings.values.find(_.Name == name)
+  }
+
   def BuildingByMapId(map_id : Int) : Option[Building] = {
     buildings.values.find(_.MapId == map_id)
+  }
+
+  def Lattice : Graph[Building, UnDiEdge] = {
+    lattice
   }
 
   private def BuildLocalObjects(implicit context : ActorContext, guid : NumberPoolHub) : Unit = {
@@ -379,7 +394,7 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
 
   private def MakeBuildings(implicit context : ActorContext) : PairMap[Int, Building] = {
     val buildingList = Map.LocalBuildings
-    buildings = buildingList.map({case((building_guid, map_id), constructor) => building_guid -> constructor.Build(building_guid, map_id, this) })
+    buildings = buildingList.map({case((name, building_guid, map_id), constructor) => building_guid -> constructor.Build(name, building_guid, map_id, this) })
     buildings
   }
 
@@ -411,6 +426,22 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
         case painbox : Painbox =>
           painbox.Actor ! "startup"
       }
+  }
+
+  private def MakeLattice(): Unit = {
+    Map.LatticeLink.foreach({ case(source, target) =>
+      val sourceBuilding = Building(source) match {
+        case Some(building) => building
+        case _ => throw new NoSuchElementException(s"Can't create lattice link between ${source} ${target}. Source is missing")
+      }
+
+      val targetBuilding = Building(target) match {
+        case Some(building) => building
+        case _ => throw new NoSuchElementException(s"Can't create lattice link between ${source} ${target}. Target is missing")
+      }
+
+      lattice += sourceBuilding~targetBuilding
+    })
   }
 
   private def CreateSpawnGroups() : Unit = {

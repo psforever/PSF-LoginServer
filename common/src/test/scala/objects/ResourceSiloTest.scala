@@ -47,7 +47,7 @@ class ResourceSiloTest extends Specification {
       obj.ChargeLevel = -5
       obj.ChargeLevel mustEqual 0
 
-      obj.ChargeLevel = 1250
+      obj.ChargeLevel = obj.MaximumCharge + 100
       obj.ChargeLevel mustEqual 1000
       obj.ChargeLevel mustEqual obj.MaximumCharge
     }
@@ -103,13 +103,12 @@ class ResourceSiloControlUseTest extends ActorTest {
 }
 
 class ResourceSiloControlNtuWarningTest extends ActorTest {
-  val zone = new Zone("nowhere", new ZoneMap("nowhere-map"), 0)
-  val bldg = new Building(building_guid = 6, map_id = 0, zone, StructureType.Building, GlobalDefinitions.building)
   val obj = ResourceSilo()
   obj.GUID = PlanetSideGUID(1)
   obj.Actor = system.actorOf(Props(classOf[ResourceSiloControl], obj), "test-silo")
   obj.Actor ! "startup"
-  obj.Owner = bldg
+  val zone = new Zone("nowhere", new ZoneMap("nowhere-map"), 0)
+  obj.Owner = new Building("Building", building_guid = 6, map_id = 0, Zone.Nowhere, StructureType.Building, GlobalDefinitions.building)
   val zoneEvents = TestProbe("zone-events")
 
   "Resource silo" should {
@@ -135,12 +134,12 @@ class ResourceSiloControlNtuWarningTest extends ActorTest {
 }
 
 class ResourceSiloControlUpdate1Test extends ActorTest {
-  val zone = new Zone("nowhere", new ZoneMap("nowhere-map"), 0)
-  val bldg = new Building(building_guid = 6, map_id = 0, zone, StructureType.Building, GlobalDefinitions.building)
   val obj = ResourceSilo()
   obj.GUID = PlanetSideGUID(1)
   obj.Actor = system.actorOf(Props(classOf[ResourceSiloControl], obj), "test-silo")
   obj.Actor ! "startup"
+  val zone = new Zone("nowhere", new ZoneMap("nowhere-map"), 0)
+  val bldg = new Building("Building", building_guid = 6, map_id = 0, Zone.Nowhere, StructureType.Building, GlobalDefinitions.building)
   obj.Owner = bldg
   val zoneEvents = TestProbe("zone-events")
   val buildingEvents = TestProbe("building-events")
@@ -200,12 +199,12 @@ class ResourceSiloControlUpdate1Test extends ActorTest {
 }
 
 class ResourceSiloControlUpdate2Test extends ActorTest {
-  val zone = new Zone("nowhere", new ZoneMap("nowhere-map"), 0)
-  val bldg = new Building(building_guid = 6, map_id = 0, zone, StructureType.Building, GlobalDefinitions.building)
   val obj = ResourceSilo()
   obj.GUID = PlanetSideGUID(1)
   obj.Actor = system.actorOf(Props(classOf[ResourceSiloControl], obj), "test-silo")
   obj.Actor ! "startup"
+  val zone = new Zone("nowhere", new ZoneMap("nowhere-map"), 0)
+  val bldg = new Building("Building", building_guid = 6, map_id = 0, Zone.Nowhere, StructureType.Building, GlobalDefinitions.building)
   obj.Owner = bldg
   val zoneEvents = TestProbe("zone-events")
   val buildingEvents = TestProbe("building-events")
@@ -257,12 +256,12 @@ class ResourceSiloControlUpdate2Test extends ActorTest {
 }
 
 class ResourceSiloControlNoUpdateTest extends ActorTest {
-  val zone = new Zone("nowhere", new ZoneMap("nowhere-map"), 0)
-  val bldg = new Building(building_guid = 6, map_id = 0, zone, StructureType.Building, GlobalDefinitions.building)
   val obj = ResourceSilo()
   obj.GUID = PlanetSideGUID(1)
   obj.Actor = system.actorOf(Props(classOf[ResourceSiloControl], obj), "test-silo")
   obj.Actor ! "startup"
+  val zone = new Zone("nowhere", new ZoneMap("nowhere-map"), 0)
+  val bldg = new Building("Building", building_guid = 6, map_id = 0, Zone.Nowhere, StructureType.Building, GlobalDefinitions.building)
   obj.Owner = bldg
   val zoneEvents = TestProbe("zone-events")
   val buildingEvents = TestProbe("building-events")

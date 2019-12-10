@@ -23,7 +23,7 @@ object Map96 {
     Building1()
 
     def Building1(): Unit = { // Name: Nexus_Base Type: comm_station_dsp GUID: 1, MapID: 1
-      LocalBuilding(1, 1, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(1922f, 1940f, 35.71276f), comm_station_dsp)))
+      LocalBuilding("Nexus_Base", 1, 1, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(1922f, 1940f, 35.71276f))))
       LocalObject(21, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 1)
       LocalObject(23, Door.Constructor(Vector3(1990.339f, 2010.464f, 39.09076f)), owning_building_guid = 1)
       LocalObject(36, Door.Constructor(Vector3(1862.196f, 1896.501f, 37.36376f)), owning_building_guid = 1)
@@ -162,13 +162,13 @@ object Map96 {
     Building10000()
 
     def Building10000(): Unit = { // Name: Map96_Gate_Three Type: hst GUID: 4, MapID: 10000
-      LocalBuilding(4, 10000, FoundationBuilder(WarpGate.Structure(Vector3(1387.16f, 1639.74f, 48.78f), hst)))
+      LocalBuilding("Map96_Gate_Three", 4, 10000, FoundationBuilder(WarpGate.Structure(Vector3(1387.16f, 1639.74f, 48.78f), hst)))
     }
 
     Building2()
 
     def Building2(): Unit = { // Name: North_Rim_Tower Type: tower_a GUID: 5, MapID: 2
-      LocalBuilding(5, 2, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(1740f, 2280f, 71.42857f), tower_a)))
+      LocalBuilding("North_Rim_Tower", 5, 2, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(1740f, 2280f, 71.42857f))))
       LocalObject(285, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 5)
       LocalObject(28, Door.Constructor(Vector3(1750.428f, 2289.962f, 72.94958f)), owning_building_guid = 5)
       LocalObject(29, Door.Constructor(Vector3(1750.428f, 2289.962f, 92.94858f)), owning_building_guid = 5)
@@ -205,7 +205,7 @@ object Map96 {
     Building4()
 
     def Building4(): Unit = { // Name: South_Rim_Tower Type: tower_a GUID: 6, MapID: 4
-      LocalBuilding(6, 4, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(1756f, 1628f, 71.42857f), tower_a)))
+      LocalBuilding("South_Rim_Tower", 6, 4, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(1756f, 1628f, 71.42857f))))
       LocalObject(286, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 6)
       LocalObject(32, Door.Constructor(Vector3(1768f, 1620f, 72.94958f)), owning_building_guid = 6)
       LocalObject(33, Door.Constructor(Vector3(1768f, 1620f, 92.94858f)), owning_building_guid = 6)
@@ -242,7 +242,7 @@ object Map96 {
     Building3()
 
     def Building3(): Unit = { // Name: East_Rim_Tower Type: tower_a GUID: 7, MapID: 3
-      LocalBuilding(7, 3, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(2358f, 1940f, 71.42857f), tower_a)))
+      LocalBuilding("East_Rim_Tower", 7, 3, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(2358f, 1940f, 71.42857f))))
       LocalObject(288, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 7)
       LocalObject(61, Door.Constructor(Vector3(2352.205f, 1953.207f, 72.94958f)), owning_building_guid = 7)
       LocalObject(62, Door.Constructor(Vector3(2352.205f, 1953.207f, 92.94858f)), owning_building_guid = 7)
@@ -279,7 +279,7 @@ object Map96 {
     Building6()
 
     def Building6(): Unit = { // Name: South_Gate_Tower Type: tower_b GUID: 8, MapID: 6
-      LocalBuilding(8, 6, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(2242f, 1264f, 35.71276f), tower_b)))
+      LocalBuilding("South_Gate_Tower", 8, 6, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(2242f, 1264f, 35.71276f))))
       LocalObject(287, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 8)
       LocalObject(55, Door.Constructor(Vector3(2254f, 1256f, 37.23276f)), owning_building_guid = 8)
       LocalObject(56, Door.Constructor(Vector3(2254f, 1256f, 47.23276f)), owning_building_guid = 8)
@@ -316,7 +316,7 @@ object Map96 {
     Building5()
 
     def Building5(): Unit = { // Name: North_Gate_Tower Type: tower_b GUID: 9, MapID: 5
-      LocalBuilding(9, 5, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(2438f, 2486f, 35.71276f), tower_b)))
+      LocalBuilding("North_Gate_Tower", 9, 5, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(2438f, 2486f, 35.71276f))))
       LocalObject(289, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 9)
       LocalObject(65, Door.Constructor(Vector3(2450f, 2478f, 37.23276f)), owning_building_guid = 9)
       LocalObject(66, Door.Constructor(Vector3(2450f, 2478f, 47.23276f)), owning_building_guid = 9)
@@ -353,13 +353,21 @@ object Map96 {
     Building10001()
 
     def Building10001(): Unit = { // Name: Map96_Gate_Two Type: warpgate_small GUID: 10, MapID: 10001
-      LocalBuilding(10, 10001, FoundationBuilder(WarpGate.Structure(Vector3(2407.71f, 2727.84f, 35.71f))))
+      LocalBuilding("Map96_Gate_Two", 10, 10001, FoundationBuilder(WarpGate.Structure(Vector3(2407.71f, 2727.84f, 35.71f))))
     }
 
     Building10002()
 
     def Building10002(): Unit = { // Name: Map96_Gate_One Type: warpgate_small GUID: 11, MapID: 10002
-      LocalBuilding(11, 10002, FoundationBuilder(WarpGate.Structure(Vector3(2784.82f, 1348.42f, 33.91f))))
+      LocalBuilding("Map96_Gate_One", 11, 10002, FoundationBuilder(WarpGate.Structure(Vector3(2784.82f, 1348.42f, 33.91f))))
     }
+
+    def Lattice(): Unit = {
+      LatticeLink("Nexus_Base", "Map96_Gate_One")
+      LatticeLink("Nexus_Base", "Map96_Gate_Two")
+      LatticeLink("Nexus_Base", "Map96_Gate_Three")
+    }
+
+    Lattice()
   }
 }

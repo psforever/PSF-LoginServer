@@ -103,7 +103,7 @@ class ProximityTerminalControlStartTest extends ActorTest {
     }
     val terminal = new ProximityTerminal(GlobalDefinitions.medical_terminal)
     terminal.Actor = system.actorOf(Props(classOf[ProximityTerminalControl], terminal), "test-prox")
-    new Building(building_guid = 0, map_id = 0, zone, StructureType.Facility, GlobalDefinitions.building) {
+    new Building("Building", building_guid = 0, map_id = 0, zone, StructureType.Facility, GlobalDefinitions.building) {
       Amenities = terminal
       Faction = PlanetSideEmpire.VS
     }
@@ -143,7 +143,7 @@ class ProximityTerminalControlTwoUsersTest extends ActorTest {
     }
     val terminal = new ProximityTerminal(GlobalDefinitions.medical_terminal)
     terminal.Actor = system.actorOf(Props(classOf[ProximityTerminalControl], terminal), "test-prox")
-    new Building(building_guid = 0, map_id = 0, zone, StructureType.Facility, GlobalDefinitions.building) {
+    new Building("Building", building_guid = 0, map_id = 0, zone, StructureType.Facility, GlobalDefinitions.building) {
       Amenities = terminal
       Faction = PlanetSideEmpire.VS
     }
@@ -195,7 +195,7 @@ class ProximityTerminalControlStopTest extends ActorTest {
     }
     val terminal = new ProximityTerminal(GlobalDefinitions.medical_terminal)
     terminal.Actor = system.actorOf(Props(classOf[ProximityTerminalControl], terminal), "test-prox")
-    new Building(building_guid = 0, map_id = 0, zone, StructureType.Facility, GlobalDefinitions.building) {
+    new Building("Building", building_guid = 0, map_id = 0, zone, StructureType.Facility, GlobalDefinitions.building) {
       Amenities = terminal
       Faction = PlanetSideEmpire.VS
     }
@@ -236,11 +236,9 @@ class ProximityTerminalControlNotStopTest extends ActorTest {
         AddPool("dynamic", 1 to 10)
       }
     }
-    val probe = new TestProbe(system)
-    zone.LocalEvents = probe.ref
     val terminal = new ProximityTerminal(GlobalDefinitions.medical_terminal)
     terminal.Actor = system.actorOf(Props(classOf[ProximityTerminalControl], terminal), "test-prox")
-    new Building(building_guid = 0, map_id = 0, zone, StructureType.Facility, GlobalDefinitions.building) {
+    new Building("Building", building_guid = 0, map_id = 0, zone, StructureType.Facility, GlobalDefinitions.building) {
       Amenities = terminal
       Faction = PlanetSideEmpire.VS
     }
