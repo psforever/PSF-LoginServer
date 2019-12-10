@@ -698,7 +698,7 @@ class VehicleControlShieldsNotChargingDamagedTest extends ActorTest {
 
   "not charge vehicle shields if recently damaged" in {
     assert(vehicle.Shields == 0)
-    vehicle.Actor ! Vitality.Damage({case v : Vehicle => v.History(obj)})
+    vehicle.Actor ! Vitality.Damage({case v : Vehicle => v.History(obj); obj })
 
     val msg = receiveOne(200 milliseconds)
     assert(msg.isInstanceOf[Vitality.DamageResolution])

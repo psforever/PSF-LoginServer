@@ -4,6 +4,7 @@ package services.avatar
 import net.psforever.objects.Player
 import net.psforever.objects.ballistics.{Projectile, SourceEntry}
 import net.psforever.objects.equipment.Equipment
+import net.psforever.objects.vital.resolution.ResolutionCalculations
 import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game.objectcreate.ConstructorData
 import net.psforever.packet.game.{ObjectCreateMessage, PlanetSideGUID}
@@ -25,7 +26,7 @@ object AvatarResponse {
   final case class ChangeFireState_Stop(weapon_guid : PlanetSideGUID) extends Response
   final case class ConcealPlayer() extends Response
   final case class EnvironmentalDamage(target : PlanetSideGUID, amount : Int) extends Response
-  final case class DamageResolution(target : Player, resolution_function : Any=>Unit) extends Response
+  final case class DamageResolution(target : Player, resolution_function : ResolutionCalculations.Output) extends Response
   final case class Destroy(victim : PlanetSideGUID, killer : PlanetSideGUID, weapon : PlanetSideGUID, pos : Vector3) extends Response
   final case class DestroyDisplay(killer : SourceEntry, victim : SourceEntry, method : Int, unk : Int) extends Response
   final case class DropItem(pkt : ObjectCreateMessage) extends Response

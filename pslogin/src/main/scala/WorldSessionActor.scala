@@ -1270,7 +1270,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           val originalHealth = player.Health
           val originalArmor = player.Armor
           val originalCapacitor = player.Capacitor.toInt
-          resolution_function(target)
+          val cause = resolution_function(target)
           val health = player.Health
           val armor = player.Armor
           val capacitor = player.Capacitor.toInt
@@ -1301,10 +1301,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
               KillPlayer(player)
             }
             else {
-              //first damage entry -> most recent damage source -> killing blow
-              target.History.find(p => p.isInstanceOf[DamagingActivity]) match {
-                case Some(data : DamageFromProjectile) =>
-                  val owner = data.data.projectile.owner
+              //damage cause -> recent damage source -> killing blow?
+              cause match {
+                case data : ResolvedProjectile =>
+                  val owner = data.projectile.owner
                   owner match {
                     case pSource : PlayerSource =>
                       continent.LivePlayers.find(_.Name == pSource.Name) match {
@@ -1316,9 +1316,18 @@ class WorldSessionActor extends Actor with MDCContextAware {
                       sendResponse(DamageWithPositionMessage(damageToHealth + damageToArmor, vSource.Position))
                     case _ => ;
                   }
-                  continent.Activity ! Zone.HotSpot.Activity(owner, data.Target, target.Position)
+                  continent.Activity ! Zone.HotSpot.Activity(owner, data.target, target.Position)
                 case _ => ;
               }
+            }
+          }
+          if(cause.projectile.profile.JammerProjectile) {
+            val radius = cause.projectile.profile.DamageRadius
+            FindJammerDuration(cause.projectile.profile, target) match {
+              case Some(dur) if Vector3.DistanceSquared(cause.hit_pos, cause.target.Position) < radius * radius =>
+                //TODO jammer messaging here
+                sendResponse(PlanetsideAttributeMessage(player.GUID, 54, 1))
+              case _ => ;
             }
           }
         }
@@ -5609,6 +5618,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case Some(projectile) =>
           projectile.Position = explosion_pos
           projectile.Velocity = projectile_vel
+          //direct_victim_uid
           continent.GUID(direct_victim_uid) match {
             case Some(target : PlanetSideGameObject with FactionAffinity with Vitality) =>
               ResolveProjectileEntry(projectile, ProjectileResolution.Splash, target, target.Position) match {
@@ -5618,6 +5628,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
               }
             case _ => ;
           }
+          //other victims
           targets.foreach(elem => {
             continent.GUID(elem.uid) match {
               case Some(target : PlanetSideGameObject with FactionAffinity with Vitality) =>
@@ -5641,6 +5652,34 @@ class WorldSessionActor extends Actor with MDCContextAware {
           }
         case None => ;
       }
+
+//      FindProjectileEntry(projectile_guid) match {
+//        case Some(projectile) =>
+//          val allTargets = (continent.GUID(direct_victim_uid) match {
+//            case Some(target : PlanetSideGameObject with FactionAffinity with Vitality) =>
+//              HandleDealingDamage(target, ResolveProjectileEntry(projectile, ProjectileResolution.Splash, target, target.Position).get)
+//              Seq(target)
+//            case _ =>
+//              Nil
+//          }) ++
+//            targets
+//              .map { a => continent.GUID(a.uid) }
+//              .collect {
+//                case Some(target : PlanetSideGameObject with FactionAffinity with Vitality) =>
+//                  HandleDealingDamage(target, ResolveProjectileEntry(projectile, ProjectileResolution.Splash, target, explosion_pos).get)
+//                  target
+//              }
+//          if(projectile.profile.JammerProjectile) {
+//            val jammableTargets = FindJammerTargetsInScope(projectile.profile, allTargets)
+//            jammableTargets
+//              .zip(FindJammerDuration(projectile.profile, jammableTargets))
+//              .collect { case (target, Some(time)) =>
+//                //TODO jamming messages here
+//              }
+//          }
+//
+//        case None => ;
+//      }
 
     case msg @ LashMessage(seq_time, killer_guid, victim_guid, projectile_guid, pos, unk1) =>
       log.info(s"Lash: $msg")
@@ -7245,7 +7284,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             val orient : Vector3 = Vector3(0f, 0f, sourceOrientZ)
             continent.Ground ! Zone.Ground.DropItem(item2, pos, orient)
             sendResponse(ObjectDetachMessage(destination_guid, item2_guid, pos, sourceOrientZ)) //ground
-          val objDef = item2.Definition
+            val objDef = item2.Definition
             destination match {
               case obj : Vehicle =>
                 continent.VehicleEvents ! VehicleServiceMessage(s"${obj.Actor}", VehicleAction.UnstowEquipment(player_guid, item2_guid))
@@ -8284,8 +8323,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
     */
   def FindProximityUnitTargetsInScope(terminal : Terminal with ProximityUnit) : Seq[PlanetSideGameObject] = {
     terminal.Definition.asInstanceOf[ProximityDefinition].TargetValidation.keySet collect {
-      case ProximityTarget.Player => Some(player)
-      case ProximityTarget.Vehicle | ProximityTarget.Aircraft => continent.GUID(player.VehicleSeated)
+      case EffectTarget.Category.Player => Some(player)
+      case EffectTarget.Category.Vehicle | EffectTarget.Category.Aircraft => continent.GUID(player.VehicleSeated)
     } collect {
       case Some(a) => a
     } toSeq
@@ -8548,8 +8587,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
   def ResolveProjectileEntry(projectile_guid : PlanetSideGUID, resolution : ProjectileResolution.Value, target : PlanetSideGameObject with FactionAffinity with Vitality, pos : Vector3) : Option[ResolvedProjectile] = {
     FindProjectileEntry(projectile_guid) match {
       case Some(projectile) =>
-        val index =  projectile_guid.guid - Projectile.BaseUID
-        ResolveProjectileEntry(projectile, index, resolution, target, pos)
+        ResolveProjectileEntry(projectile, resolution, target, pos)
       case None =>
         log.warn(s"ResolveProjectile: expected projectile, but ${projectile_guid.guid} not found")
         None
@@ -8588,9 +8626,19 @@ class WorldSessionActor extends Actor with MDCContextAware {
       None
     }
     else {
-      projectile.Resolve()
-      Some(ResolvedProjectile(resolution, projectile, SourceEntry(target), target.DamageModel, pos))
+      ResolveProjectileEntry(projectile, resolution, target, pos)
     }
+  }
+
+  /**
+    * na
+    * @param projectile the projectile object
+    * @param resolution the resolution status to promote the projectile
+    * @return a copy of the projectile
+    */
+  def ResolveProjectileEntry(projectile : Projectile, resolution : ProjectileResolution.Value, target : PlanetSideGameObject with FactionAffinity with Vitality, pos : Vector3) : Option[ResolvedProjectile] = {
+    projectile.Resolve()
+    Some(ResolvedProjectile(resolution, projectile, SourceEntry(target), target.DamageModel, pos))
   }
 
   /**
@@ -10274,6 +10322,76 @@ class WorldSessionActor extends Actor with MDCContextAware {
     }
     projectilesToCleanUp(local_index) = false
   }
+
+  def FindJammerTargetsInScope(jammer : Any with JammingUnit) : Seq[PlanetSideGameObject] = {
+    (jammer match {
+      case p : ProjectileDefinition if !p.JammerProjectile => None
+      case p => Some(p)
+    }) match {
+      case Some(p : JammingUnit) =>
+        p.JammedEffectDuration
+          .map { case (a, _) => a }
+          .collect {
+            case TargetValidation(EffectTarget.Category.Player, test) if test(player) => Some(player)
+            case TargetValidation(EffectTarget.Category.Vehicle, test) if {
+              continent.GUID(player.VehicleSeated) match {
+                case Some(v) => test(v)
+                case None => false
+              }
+            } => continent.GUID(player.VehicleSeated)
+            case TargetValidation(EffectTarget.Category.Aircraft, test) if {
+              continent.GUID(player.VehicleSeated) match {
+                case Some(v) => test(v)
+                case None => false
+              }
+            } => continent.GUID(player.VehicleSeated)
+          } collect {
+          case Some(a) => a
+        } toSeq
+      case _ =>
+        Seq.empty[PlanetSideGameObject]
+    }
+  }
+
+  def CompileJammerTests(jammer : JammingUnit) : Iterable[EffectTarget.Validation.Value] = {
+    jammer.JammedEffectDuration map { case (TargetValidation(_, test), _) => test }
+  }
+
+  def CompileJammerTests(jammer : JammingUnit, target : EffectTarget.Category.Value) : Iterable[EffectTarget.Validation.Value] = {
+    jammer.JammedEffectDuration collect { case (TargetValidation(filter, test), _) if filter == target => test }
+  }
+
+  def FindJammerTargetsInScope(jammer : JammingUnit, scope : Seq[PlanetSideGUID], zone : Zone) : Seq[(PlanetSideGUID, PlanetSideGameObject)] = {
+    val tests = CompileJammerTests(jammer)
+    (for {
+      uid <- scope
+      obj = zone.GUID(uid)
+      if obj.nonEmpty
+    } yield (uid, obj.get))
+      .collect {
+        case out @ (_, b) if tests.foldLeft(false)(_ || _(b)) => out
+      }
+  }
+
+  def FindJammerTargetsInScope(jammer : JammingUnit, scope : Seq[PlanetSideGameObject]) : Seq[PlanetSideGameObject] = {
+    val tests = CompileJammerTests(jammer)
+    scope collect {
+      case a if tests.foldLeft(false)(_ || _(a)) => a
+    }
+  }
+
+  def FindJammerDuration(jammer : JammingUnit, target : PlanetSideGameObject) : Option[Duration] = {
+    jammer.JammedEffectDuration
+      .collect { case (TargetValidation(_, test), duration) if test(target) => duration }
+      .toList
+      .sortWith(_.toMillis > _.toMillis)
+      .headOption
+  }
+
+  def FindJammerDuration(jammer : JammingUnit, targets : Seq[PlanetSideGameObject]) : Seq[Option[Duration]] = {
+    targets.map { target => FindJammerDuration(jammer, target) }
+  }
+
 
   def failWithError(error : String) = {
     log.error(error)

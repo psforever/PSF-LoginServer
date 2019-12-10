@@ -2,11 +2,8 @@
 package net.psforever.objects.definition
 
 import net.psforever.objects.ballistics.Projectiles
-import net.psforever.objects.serverobject.terminals.TargetValidation
+import net.psforever.objects.equipment.JammingUnit
 import net.psforever.objects.vital.{DamageType, StandardDamageProfile}
-
-import scala.collection.mutable
-import scala.concurrent.duration.Duration
 
 /**
   * The definition that outlines the damage-dealing characteristics of any projectile.
@@ -14,6 +11,7 @@ import scala.concurrent.duration.Duration
   * @param objectId the object's identifier number
   */
 class ProjectileDefinition(objectId : Int) extends ObjectDefinition(objectId)
+  with JammingUnit
   with StandardDamageProfile {
   private val projectileType : Projectiles.Value = Projectiles(objectId) //let throw NoSuchElementException
   private var acceleration : Int = 0
@@ -32,7 +30,6 @@ class ProjectileDefinition(objectId : Int) extends ObjectDefinition(objectId)
   private var autoLock : Boolean = false
   private var additionalEffect : Boolean = false
   private var jammerProjectile : Boolean = false
-  private val jammedEffectDuration : mutable.ListBuffer[(TargetValidation, Duration)] = new mutable.ListBuffer()
   //derived calculations
   private var distanceMax : Float = 0f
   private var distanceFromAcceleration : Float = 0f
@@ -153,10 +150,6 @@ class ProjectileDefinition(objectId : Int) extends ObjectDefinition(objectId)
     jammerProjectile = effect
     JammerProjectile
   }
-
-  def HasJammedEffectDuration : Boolean = jammedEffectDuration.isEmpty
-
-  def JammedEffectDuration : mutable.ListBuffer[(TargetValidation, Duration)] = jammedEffectDuration
 
   def DistanceMax : Float = distanceMax //accessor only
 

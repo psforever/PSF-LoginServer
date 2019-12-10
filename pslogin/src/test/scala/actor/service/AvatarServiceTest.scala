@@ -5,6 +5,7 @@ import akka.actor.Props
 import akka.routing.RandomPool
 import actor.base.ActorTest
 import net.psforever.objects._
+import net.psforever.objects.ballistics.ResolvedProjectile
 import net.psforever.objects.guid.{GUIDTask, TaskResolver}
 import net.psforever.objects.zones.{Zone, ZoneActor, ZoneMap}
 import net.psforever.packet.game.objectcreate.{DroppedItemData, ObjectClass, ObjectCreateMessageParent, PlacementData}
@@ -370,8 +371,8 @@ class ChangeFireStateStopTest extends ActorTest {
 }
 
 class DamageTest extends ActorTest {
-  val test_func_ref : (Any)=>Unit = {
-    def test_func(o : Any) : Unit = { }
+  val test_func_ref : Any=>ResolvedProjectile = {
+    def test_func(o : Any) : ResolvedProjectile = { null }
     test_func
   }
   val player = Player(Avatar("TestCharacter", PlanetSideEmpire.VS, CharacterGender.Female, 1, CharacterVoice.Voice1))
