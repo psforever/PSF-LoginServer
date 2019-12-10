@@ -1624,7 +1624,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         }
         else {
           continent.GUID(target_guid) match {
-            case Some(capture_terminal: Hackable) =>
+            case Some(capture_terminal: Amenity with Hackable) =>
               capture_terminal.HackedBy match {
                 case Some(Hackable.HackInfo(_, _, hfaction, _, start, length)) =>
                   val hack_time_remaining_ms = TimeUnit.MILLISECONDS.convert(math.max(0, start + length - System.nanoTime), TimeUnit.NANOSECONDS)
@@ -1639,6 +1639,14 @@ class WorldSessionActor extends Actor with MDCContextAware {
                   value = start_num + deciseconds_remaining
 
                   sendResponse(PlanetsideAttributeMessage(target_guid, 20, value))
+
+                  continent.GUID(player.VehicleSeated) match {
+                    case Some(mountable: Amenity with Mountable) =>
+                      if(mountable.Owner.GUID == capture_terminal.Owner.GUID) {
+                        vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.KickPassenger(player.GUID, mountable.Seats.head._1, true, mountable.GUID))
+                      }
+                    case _ => ;
+                  }
                 case _ => log.warn("LocalResponse.HackCaptureTerminal: HackedBy not defined")
               }
             case _ => log.warn(s"LocalResponse.HackCaptureTerminal: Couldn't find capture terminal with GUID ${target_guid} in zone ${continent.Id}")
@@ -7744,8 +7752,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             sendResponse(PlanetsideAttributeMessage(amenityId, 47, if(silo.LowNtuWarningOn) 1 else 0))
 
             if(silo.ChargeLevel == 0) {
-              // temporarily disabled until warpgates can bring ANTs from sanctuary, otherwise we'd be stuck in a situation with an unpowered base and no way to get an ANT to refill it.
-              //              sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(silo.Owner.asInstanceOf[Building].ModelId), 48, 1))
+              sendResponse(PlanetsideAttributeMessage(silo.Owner.asInstanceOf[Building].GUID, 48, 1))
             }
           case _ => ;
         }

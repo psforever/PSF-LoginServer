@@ -60,11 +60,11 @@ import scodec.codecs._
   * `20 - Control console hacking. "The FactionName has hacked into BaseName` - also sets timer on CC and yellow base warning lights on<br>
   *   <ul>
   *     <li>65535 segments per faction in deciseconds (seconds * 10)</li>
-  *     <li>0-65535 = Neutral 0 seconds to 1h 49m 14s</li>
-  *     <li>65536 - 131071 - TR</li>
-  *     <li>131072 - 196607 - NC</li>
-  *     <li>196608 - 262143 - VS</li>
-  *     <li>17039360 - CC Resecured</li>
+  *     <li>0-65535 = Neutral 0 seconds to 1h 49m 14s - 0x 00 00 00 00 to 0x FF FF 00 00</li>
+  *     <li>65536 - 131071 - TR - 0x 00 00 01 00</li>
+  *     <li>131072 - 196607 - NC - 0x 00 00 02 00</li>
+  *     <li>196608 - 262143 - VS - 0x 00 00 03 00</li>
+  *     <li>17039360 - CC Resecured - 0x 00 00 04 01</li>
   *   </ul>
   *   <br>These values seem to correspond to the following data structure: Time left - 2 bytes, faction - 1 byte (1-4), isResecured - 1 byte (0-1)<br>
   * `24 - Learn certifications with value :`<br>
