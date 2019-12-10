@@ -119,13 +119,14 @@ class TerminalObjectBuilderTest extends ActorTest {
   "Terminal object" should {
     "build" in {
       val hub = ServerObjectBuilderTest.NumberPoolHub
-      val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1, Terminal.Constructor(order_terminal)), hub), "term")
+      val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1, Terminal.Constructor(Vector3(1.1f, 2.2f, 3.3f), order_terminal)), hub), "term")
       actor ! "!"
 
       val reply = receiveOne(Duration.create(1000, "ms"))
       assert(reply.isInstanceOf[Terminal])
       assert(reply.asInstanceOf[Terminal].HasGUID)
       assert(reply.asInstanceOf[Terminal].GUID == PlanetSideGUID(1))
+      assert(reply.asInstanceOf[Terminal].Position == Vector3(1.1f, 2.2f, 3.3f))
       assert(reply == hub(1).get)
     }
   }
@@ -156,7 +157,7 @@ class VehicleSpawnPadObjectBuilderTest extends ActorTest {
     "build" in {
       val hub = ServerObjectBuilderTest.NumberPoolHub
       val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1,
-        VehicleSpawnPad.Constructor(GlobalDefinitions.mb_pad_creation, Vector3(1.1f, 2.2f, 3.3f), Vector3(4.4f, 5.5f, 6.6f))
+        VehicleSpawnPad.Constructor(Vector3(1.1f, 2.2f, 3.3f), GlobalDefinitions.mb_pad_creation, Vector3(4.4f, 5.5f, 6.6f))
       ), hub), "pad")
       actor ! "!"
 

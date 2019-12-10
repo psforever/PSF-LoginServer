@@ -158,7 +158,7 @@ object VehicleSpawnPad {
     * @param context a context to allow the object to properly set up `ActorSystem` functionality
     * @return the `VehicleSpawnPad` object
     */
-  def Constructor(pdef: VehicleSpawnPadDefinition, pos : Vector3, orient : Vector3)(id : Int, context : ActorContext) : VehicleSpawnPad = {
+  def Constructor(pos : Vector3, pdef: VehicleSpawnPadDefinition, orient : Vector3)(id : Int, context : ActorContext) : VehicleSpawnPad = {
     import akka.actor.Props
 
     val obj = VehicleSpawnPad(pdef)
