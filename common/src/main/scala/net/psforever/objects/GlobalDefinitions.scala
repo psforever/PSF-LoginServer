@@ -1530,7 +1530,8 @@ object GlobalDefinitions {
     Standard.ResistanceSplash = 15
     Standard.ResistanceAggravated = 8
 
-    Agile.Name = "agile"
+    Agile.Name = "lite_armor"
+    Agile.Descriptor = "agile"
     Agile.MaxArmor = 100
     Agile.InventoryScale = InventoryTile.Tile99
     Agile.InventoryOffset = 6
@@ -1542,7 +1543,8 @@ object GlobalDefinitions {
     Agile.ResistanceSplash = 25
     Agile.ResistanceAggravated = 10
 
-    Reinforced.Name = "reinforced"
+    Reinforced.Name = "med_armor"
+    Reinforced.Descriptor = "reinforced"
     Reinforced.Permissions = List(CertificationType.ReinforcedExoSuit)
     Reinforced.MaxArmor = 200
     Reinforced.InventoryScale = InventoryTile.Tile1209
@@ -1580,18 +1582,21 @@ object GlobalDefinitions {
     }
 
     CommonMaxConfig(VSMAX)
+    VSMAX.Name = "vshev"
     VSMAX.MaxCapacitor = 50
     VSMAX.CapacitorRechargeDelayMillis = 5000
     VSMAX.CapacitorRechargePerSecond = 3
     VSMAX.CapacitorDrainPerSecond = 20
 
     CommonMaxConfig(TRMAX)
+    TRMAX.Name = "trhev"
     TRMAX.MaxCapacitor = 300
     TRMAX.CapacitorRechargeDelayMillis = 10000
     TRMAX.CapacitorRechargePerSecond = 10
     TRMAX.CapacitorDrainPerSecond = 30
 
     CommonMaxConfig(NCMAX)
+    NCMAX.Name = "nchev"
     NCMAX.MaxCapacitor = 400
     NCMAX.CapacitorRechargeDelayMillis = 10000
     NCMAX.CapacitorRechargePerSecond = 4

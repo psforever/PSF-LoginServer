@@ -7791,7 +7791,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             sendResponse(PlanetsideAttributeMessage(amenityId, 47, if(silo.LowNtuWarningOn) 1 else 0))
 
             if(silo.ChargeLevel == 0) {
-              sendResponse(PlanetsideAttributeMessage(silo.Owner.asInstanceOf[Building].GUID, 48, 1))
+              sendResponse(PlanetsideAttributeMessage(silo.Owner.GUID, 48, 1))
             }
           case _ => ;
         }
