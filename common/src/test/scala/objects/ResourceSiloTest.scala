@@ -13,7 +13,7 @@ import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.packet.game.{PlanetSideGUID, UseItemMessage}
 import net.psforever.types.{CharacterGender, CharacterVoice, PlanetSideEmpire, Vector3}
 import org.specs2.mutable.Specification
-import services.{Service, ServiceManager}
+import services.ServiceManager
 import services.avatar.{AvatarAction, AvatarServiceMessage}
 
 import scala.concurrent.duration._
@@ -108,7 +108,7 @@ class ResourceSiloControlNtuWarningTest extends ActorTest {
   obj.Actor = system.actorOf(Props(classOf[ResourceSiloControl], obj), "test-silo")
   obj.Actor ! "startup"
   val zone = new Zone("nowhere", new ZoneMap("nowhere-map"), 0)
-  obj.Owner = new Building("Building", building_guid = 6, map_id = 0, Zone.Nowhere, StructureType.Building, GlobalDefinitions.building)
+  obj.Owner = new Building("Building", building_guid = 6, map_id = 0, zone, StructureType.Building, GlobalDefinitions.building)
   val zoneEvents = TestProbe("zone-events")
 
   "Resource silo" should {
@@ -139,7 +139,7 @@ class ResourceSiloControlUpdate1Test extends ActorTest {
   obj.Actor = system.actorOf(Props(classOf[ResourceSiloControl], obj), "test-silo")
   obj.Actor ! "startup"
   val zone = new Zone("nowhere", new ZoneMap("nowhere-map"), 0)
-  val bldg = new Building("Building", building_guid = 6, map_id = 0, Zone.Nowhere, StructureType.Building, GlobalDefinitions.building)
+  val bldg = new Building("Building", building_guid = 6, map_id = 0, zone, StructureType.Building, GlobalDefinitions.building)
   obj.Owner = bldg
   val zoneEvents = TestProbe("zone-events")
   val buildingEvents = TestProbe("building-events")
@@ -204,7 +204,7 @@ class ResourceSiloControlUpdate2Test extends ActorTest {
   obj.Actor = system.actorOf(Props(classOf[ResourceSiloControl], obj), "test-silo")
   obj.Actor ! "startup"
   val zone = new Zone("nowhere", new ZoneMap("nowhere-map"), 0)
-  val bldg = new Building("Building", building_guid = 6, map_id = 0, Zone.Nowhere, StructureType.Building, GlobalDefinitions.building)
+  val bldg = new Building("Building", building_guid = 6, map_id = 0, zone, StructureType.Building, GlobalDefinitions.building)
   obj.Owner = bldg
   val zoneEvents = TestProbe("zone-events")
   val buildingEvents = TestProbe("building-events")
@@ -222,8 +222,8 @@ class ResourceSiloControlUpdate2Test extends ActorTest {
       assert(obj.LowNtuWarningOn)
       obj.Actor ! ResourceSilo.UpdateChargeLevel(105)
 
-      val reply1 = zoneEvents.receiveOne(500 milliseconds)
-      val reply2 = buildingEvents.receiveOne(500 milliseconds)
+      val reply1 = zoneEvents.receiveOne(1000 milliseconds)
+      val reply2 = buildingEvents.receiveOne(1000 milliseconds)
       assert(obj.ChargeLevel == 205)
       assert(obj.CapacitorDisplay == 3)
       assert(reply1.isInstanceOf[AvatarServiceMessage])
@@ -261,7 +261,7 @@ class ResourceSiloControlNoUpdateTest extends ActorTest {
   obj.Actor = system.actorOf(Props(classOf[ResourceSiloControl], obj), "test-silo")
   obj.Actor ! "startup"
   val zone = new Zone("nowhere", new ZoneMap("nowhere-map"), 0)
-  val bldg = new Building("Building", building_guid = 6, map_id = 0, Zone.Nowhere, StructureType.Building, GlobalDefinitions.building)
+  val bldg = new Building("Building", building_guid = 6, map_id = 0, zone, StructureType.Building, GlobalDefinitions.building)
   obj.Owner = bldg
   val zoneEvents = TestProbe("zone-events")
   val buildingEvents = TestProbe("building-events")
