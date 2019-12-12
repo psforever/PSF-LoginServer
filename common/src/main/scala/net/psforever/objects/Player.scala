@@ -52,7 +52,7 @@ class Player(private val core : Avatar) extends PlanetSideGameObject
   private var vehicleSeated : Option[PlanetSideGUID] = None
   private var vehicleOwned : Option[PlanetSideGUID] = None
 
-  private var continent : String = "home2" //the zone id
+  Continent = "home2" //the zone id
 
   var silenced : Boolean = false
   var firstLoad : Boolean = false
@@ -610,13 +610,6 @@ class Player(private val core : Avatar) extends PlanetSideGameObject
   def VehicleOwned_=(guid : Option[PlanetSideGUID]) : Option[PlanetSideGUID] = {
     vehicleOwned = guid
     VehicleOwned
-  }
-
-  def Continent : String = continent
-
-  def Continent_=(zoneId : String) : String = {
-    continent = zoneId
-    Continent
   }
 
   def DamageModel = exosuit.asInstanceOf[DamageResistanceModel]

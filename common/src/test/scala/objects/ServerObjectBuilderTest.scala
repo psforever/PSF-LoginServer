@@ -18,7 +18,7 @@ class BuildingBuilderTest extends ActorTest {
   "Building object" should {
     "build" in {
       val structure : (String, Int,Int,Zone,ActorContext)=>Building = Building.Structure(StructureType.Building)
-      val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuildingTestActor], structure, 10, 10, Zone.Nowhere), "building")
+      val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuildingTestActor], structure, "Building", 10, 10, Zone.Nowhere), "building")
       actor ! "!"
 
       val reply = receiveOne(Duration.create(1000, "ms"))
@@ -33,7 +33,7 @@ class WarpGateBuilderTest extends ActorTest {
   "WarpGate object" should {
     "build" in {
       val structure : (String,Int,Int,Zone,ActorContext)=>Building = WarpGate.Structure
-      val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuildingTestActor], structure, 10, 10, Zone.Nowhere), "wgate")
+      val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuildingTestActor], structure, "wgate", 10, 10, Zone.Nowhere), "wgate")
       actor ! "!"
 
       val reply = receiveOne(Duration.create(1000, "ms"))

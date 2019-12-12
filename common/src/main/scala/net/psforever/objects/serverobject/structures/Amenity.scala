@@ -1,28 +1,9 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.structures
 
-import net.psforever.objects.Vehicle
 import net.psforever.objects.serverobject.PlanetSideServerObject
-import net.psforever.objects.zones.{Zone => World }
+import net.psforever.objects.zones.Zone
 import net.psforever.types.{PlanetSideEmpire, Vector3}
-
-/**
-  * Amenities are elements of the game that belong to other elements of the game.
-  * Their owners are also elements of the game, ones that understand that they belong to a specific `Zone` object.
-  * @see `PlanetSideServerObject`
-  * @see `Zone`
-  * @see `ZoneAware`
-  */
-trait AmenityOwner extends PlanetSideServerObject {
-  private var zoneRef : World = World.Nowhere
-
-  def Zone_=(zone : World) : World = {
-    zoneRef = zone
-    Zone
-  }
-
-  def Zone : World = zoneRef
-}
 
 /**
   * Amenities are elements of the game that belong to other elements of the game.<br>
@@ -31,7 +12,7 @@ trait AmenityOwner extends PlanetSideServerObject {
   * An `Amenity` is a server object that maintains a fixed association with another server object.
   * This association strips away at the internalization and redirects a reference to some properties somewhere else.
   * An `Amenity` object belongs to its `Owner` object;
-  * the `Amenity` objects looks to its `Owner` object for some of its properties.
+  * the `Amenity` objects look to its `Owner` object for some of its properties.
   * @see `FactionAffinity`
   */
 abstract class Amenity extends PlanetSideServerObject {
@@ -73,9 +54,11 @@ abstract class Amenity extends PlanetSideServerObject {
     LocationOffset
   }
 
-  override def Continent = Owner match {
-    case o : Building => o.Zone.Id
-    case o : Vehicle => o.Continent
-    case _ => super.Continent
-  }
+  override def Zone : Zone = Owner.Zone
+
+  override def Zone_=(zone : Zone) = Owner.Zone
+
+  override def Continent : String = Owner.Continent
+
+  override def Continent_=(str : String) : String = Owner.Continent
 }

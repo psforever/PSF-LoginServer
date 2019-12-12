@@ -114,6 +114,7 @@ class ExoSuitDefinition(private val suitType : ExoSuitType.Value) extends BasicD
 
 class SpecialExoSuitDefinition(private val suitType : ExoSuitType.Value) extends ExoSuitDefinition(suitType) {
   Name = "heavy_armor"
+  Descriptor = "heavy_armor"
 
   private var activatedSpecial : SpecialExoSuitDefinition.Mode.Value = SpecialExoSuitDefinition.Mode.Normal
 

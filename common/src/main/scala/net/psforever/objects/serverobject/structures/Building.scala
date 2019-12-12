@@ -6,7 +6,6 @@ import java.util.concurrent.TimeUnit
 import akka.actor.ActorContext
 import net.psforever.objects.{GlobalDefinitions, Player}
 import net.psforever.objects.definition.ObjectDefinition
-import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.objects.serverobject.terminals.CaptureTerminal
@@ -20,14 +19,12 @@ class Building(private val name: String,
                private val map_id : Int,
                private val zone : Zone,
                private val buildingType : StructureType.Value,
-               private val buildingDefinition : ObjectDefinition) extends PlanetSideServerObject {
-  with AmenityOwner {
+               private val buildingDefinition : ObjectDefinition) extends AmenityOwner {
   /**
     * The map_id is the identifier number used in BuildingInfoUpdateMessage. This is the index that the building appears in the MPO file starting from index 1
     * The GUID is the identifier number used in SetEmpireMessage / Facility hacking / PlanetSideAttributeMessage.
   */
   private var faction : PlanetSideEmpire.Value = PlanetSideEmpire.NEUTRAL
-  private var amenities : List[Amenity] = List.empty
   private var playersInSOI : List[Player] = List.empty
   super.Zone_=(zone)
 
@@ -46,14 +43,6 @@ class Building(private val name: String,
     Faction
   }
 
-  def Amenities : List[Amenity] = amenities
-
-  def Amenities_=(obj : Amenity) : List[Amenity] = {
-    amenities = amenities :+ obj
-    obj.Owner = this
-    amenities
-  }
-
   def CaptureConsoleIsHacked : Boolean = {
     Amenities.find(x => x.Definition == GlobalDefinitions.capture_terminal).asInstanceOf[Option[CaptureTerminal]] match {
       case Some(obj: CaptureTerminal) =>
@@ -69,8 +58,6 @@ class Building(private val name: String,
     playersInSOI
   }
 
-  def Zone : Zone = zone
-
   // Get all lattice neighbours
   def Neighbours: Option[Set[Building]] = {
     zone.Lattice find this match {
@@ -82,10 +69,9 @@ class Building(private val name: String,
   // Get all lattice neighbours matching the specified faction
   def Neighbours(faction: PlanetSideEmpire.Value): Option[Set[Building]] = {
     this.Neighbours match {
-      case Some(x: Set[Building]) => {
+      case Some(x: Set[Building]) =>
         val matching = x.filter(b => b.Faction == faction)
         if(matching.isEmpty) None else Some(matching)
-      }
       case None => None
     }
   }
@@ -101,14 +87,14 @@ class Building(private val name: String,
       Boolean, Boolean
     ) = {
     //if we have a silo, get the NTU level
-    val ntuLevel : Int = amenities.find(_.Definition == GlobalDefinitions.resource_silo) match {
+    val ntuLevel : Int = Amenities.find(_.Definition == GlobalDefinitions.resource_silo) match {
       case Some(obj: ResourceSilo) =>
         obj.CapacitorDisplay.toInt
       case _ => //we have no silo; we have unlimited power
         10
     }
     //if we have a capture terminal, get the hack status & time (in milliseconds) from control console if it exists
-    val (hacking, hackingFaction, hackTime) : (Boolean, PlanetSideEmpire.Value, Long) = amenities.find(_.Definition == GlobalDefinitions.capture_terminal) match {
+    val (hacking, hackingFaction, hackTime) : (Boolean, PlanetSideEmpire.Value, Long) = Amenities.find(_.Definition == GlobalDefinitions.capture_terminal) match {
       case Some(obj: CaptureTerminal with Hackable) =>
         obj.HackedBy match {
           case Some(Hackable.HackInfo(_, _, hfaction, _, start, length)) =>
@@ -124,7 +110,7 @@ class Building(private val name: String,
     val (generatorState, bootGeneratorPain) = (PlanetSideGeneratorState.Normal, false)
     //if we have spawn tubes, determine if any of them are active
     val (spawnTubesNormal, boostSpawnPain) : (Boolean, Boolean) = {
-      val o = amenities.collect({ case _ : SpawnTube => true }) ///TODO obj.Health > 0
+      val o = Amenities.collect({ case _ : SpawnTube => true }) ///TODO obj.Health > 0
       if(o.nonEmpty) {
         (o.foldLeft(false)(_ || _), false) //TODO poll pain field strength
       }

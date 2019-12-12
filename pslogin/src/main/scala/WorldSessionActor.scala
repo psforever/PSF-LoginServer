@@ -1159,7 +1159,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       if(projectile.profile.ExistsOnRemoteClients) {
         //spawn projectile on other clients
         val definition = projectile.Definition
-        avatarService ! AvatarServiceMessage(
+        continent.AvatarEvents ! AvatarServiceMessage(
           continent.Id,
           AvatarAction.LoadProjectile(player.GUID, definition.ObjectId, projectile_guid, definition.Packet.ConstructorData(projectile).get)
         )
@@ -1172,7 +1172,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case Some(obj : Projectile) if obj.profile.ExistsOnRemoteClients =>
           //spawn projectile on other clients
           val definition = obj.Definition
-          avatarService ! AvatarServiceMessage(
+          continent.AvatarEvents ! AvatarServiceMessage(
             continent.Id,
             AvatarAction.LoadProjectile(player.GUID, definition.ObjectId, projectile_guid, definition.Packet.ConstructorData(obj).get)
           )
@@ -1282,12 +1282,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
             val playerGUID = player.GUID
             if(damageToHealth > 0) {
               sendResponse(PlanetsideAttributeMessage(playerGUID, 0, health))
-              avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(playerGUID, 0, health))
+              continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(playerGUID, 0, health))
             }
 
             if(damageToArmor > 0) {
               sendResponse(PlanetsideAttributeMessage(playerGUID, 4, armor))
-              avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(playerGUID, 4, armor))
+              continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(playerGUID, 4, armor))
             }
 
             if(damageToCapacitor > 0) {
@@ -1659,7 +1659,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                   continent.GUID(player.VehicleSeated) match {
                     case Some(mountable: Amenity with Mountable) =>
                       if(mountable.Owner.GUID == capture_terminal.Owner.GUID) {
-                        vehicleService ! VehicleServiceMessage(continent.Id, VehicleAction.KickPassenger(player.GUID, mountable.Seats.head._1, true, mountable.GUID))
+                        continent.VehicleEvents ! VehicleServiceMessage(continent.Id, VehicleAction.KickPassenger(player.GUID, mountable.Seats.head._1, true, mountable.GUID))
                       }
                     case _ => ;
                   }
@@ -3919,6 +3919,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             }
           }
         }
+        CapacitorTick(jump_thrust)
         //if the player lost all stamina this turn (had stamina at the start), do not renew 1 stamina
         if(!isMoving && (if(player.Stamina > 0) player.Stamina < player.MaxStamina else !hadStaminaBefore)) {
           player.Stamina = player.Stamina + 1
@@ -3927,8 +3928,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
         else {
           player.Stamina > 0
         }
-
-        CapacitorTick(jump_thrust)
       }
       else {
         timeDL = 0
@@ -3941,13 +3940,13 @@ class WorldSessionActor extends Actor with MDCContextAware {
       if(implantsAreActive && !hasStaminaAfter) { //implants deactivated at 0 stamina
         if(avatar.Implants(0).Active) {
           avatar.Implants(0).Active = false
-          avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player.GUID, 28, avatar.Implant(0).id * 2))
+          continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player.GUID, 28, avatar.Implant(0).id * 2))
           sendResponse(AvatarImplantMessage(PlanetSideGUID(player.GUID.guid), ImplantAction.Activation, 0, 0))
           timeDL = 0
         }
         if(avatar.Implants(1).Active) {
           avatar.Implants(1).Active = false
-          avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player.GUID, 28, avatar.Implant(1).id * 2))
+          continent.AvatarEvents  ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player.GUID, 28, avatar.Implant(1).id * 2))
           sendResponse(AvatarImplantMessage(PlanetSideGUID(player.GUID.guid), ImplantAction.Activation, 1, 0))
           timeSurge = 0
         }
@@ -4063,7 +4062,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           projectile.Position = shot_pos
           projectile.Orientation = shot_orient
           projectile.Velocity = shot_vel
-          avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ProjectileState(player.GUID, projectileGlobalUID, shot_pos, shot_vel, shot_orient, seq, end, target_guid))
+          continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ProjectileState(player.GUID, projectileGlobalUID, shot_pos, shot_vel, shot_orient, seq, end, target_guid))
         case _ if seq == 0 =>
         /* missing the first packet in the sequence is permissible  */
         case _ =>
@@ -4352,7 +4351,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
               shooting = Some(item_guid)
               //special case - suppress the decimator's alternate fire mode, by projectile
               if(tool.Projectile != GlobalDefinitions.phoenix_missile_guided_projectile) {
-                avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireState_Start(player.GUID, item_guid))
+                continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireState_Start(player.GUID, item_guid))
               }
             }
             else {
@@ -4383,12 +4382,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
             if(tool.Definition == GlobalDefinitions.phoenix &&
               tool.Projectile != GlobalDefinitions.phoenix_missile_guided_projectile) {
               //suppress the decimator's alternate fire mode, however
-              avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireState_Start(player.GUID, item_guid))
+              continent.AvatarEvents  ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireState_Start(player.GUID, item_guid))
             }
-            avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireState_Stop(player.GUID, item_guid))
+            continent.AvatarEvents  ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireState_Stop(player.GUID, item_guid))
             Some(tool)
           case Some(tool) => //permissible, for now
-            avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireState_Stop(player.GUID, item_guid))
+            continent.AvatarEvents  ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireState_Stop(player.GUID, item_guid))
             Some(tool)
           case _ =>
             log.warn(s"ChangeFireState_Stop: received an unexpected message about $item_guid")
@@ -4606,7 +4605,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
               else {
                 projectile.Miss()
                 if(projectile.profile.ExistsOnRemoteClients && projectile.HasGUID) {
-                  avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ProjectileExplodes(player.GUID, projectile.GUID, projectile))
+                  continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ProjectileExplodes(player.GUID, projectile.GUID, projectile))
                   taskResolver ! UnregisterProjectile(projectile)
                 }
               }
@@ -5548,7 +5547,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
               if(projectile_info.ExistsOnRemoteClients) {
                 log.trace(s"WeaponFireMessage: ${projectile_info.Name} is a remote projectile")
                 taskResolver ! (if(projectile.HasGUID) {
-                  avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ProjectileExplodes(player.GUID, projectile.GUID, projectile))
+                  continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ProjectileExplodes(player.GUID, projectile.GUID, projectile))
                   ReregisterProjectile(projectile)
                 }
                 else {
@@ -5576,7 +5575,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           if(detectedTargets.nonEmpty) {
             val mode = 7 + (weapon.Projectile == GlobalDefinitions.wasp_rocket_projectile)
             detectedTargets.foreach { target =>
-              avatarService ! AvatarServiceMessage(target, AvatarAction.ProjectileAutoLockAwareness(mode))
+              continent.AvatarEvents ! AvatarServiceMessage(target, AvatarAction.ProjectileAutoLockAwareness(mode))
             }
           }
         case _ => ;
@@ -6271,7 +6270,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     TaskResolver.GiveTask(
       new Task() {
         private val globalProjectile = obj
-        private val localAnnounce = avatarService
+        private val localAnnounce = continent.AvatarEvents
         private val localMsg = AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player.GUID, obj.GUID, 2))
 
         override def isComplete : Task.Resolution.Value = {
@@ -7792,7 +7791,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             sendResponse(PlanetsideAttributeMessage(amenityId, 47, if(silo.LowNtuWarningOn) 1 else 0))
 
             if(silo.ChargeLevel == 0) {
-              sendResponse(PlanetsideAttributeMessage(silo.Owner.asInstanceOf[Building].GUID, 48, 1))
+              sendResponse(PlanetsideAttributeMessage(silo.Owner.GUID, 48, 1))
             }
           case _ => ;
         }
@@ -10201,16 +10200,16 @@ class WorldSessionActor extends Actor with MDCContextAware {
           case PlanetSideEmpire.NC => if(player.Capacitor > 0) player.UsingSpecial = SpecialExoSuitDefinition.Mode.Shielded
           case _ => log.warn(s"Player ${player.Name} tried to use a MAX special ability but their faction doesn't have one")
         }
-
         if(player.UsingSpecial == SpecialExoSuitDefinition.Mode.Overdrive || player.UsingSpecial == SpecialExoSuitDefinition.Mode.Shielded) {
-          avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttributeToAll(player.GUID, 8, 1))
+          continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttributeToAll(player.GUID, 8, 1))
         }
       }
       else {
         player.UsingSpecial = SpecialExoSuitDefinition.Mode.Normal
-        avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttributeToAll(player.GUID, 8, 0))
+        continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttributeToAll(player.GUID, 8, 0))
       }
     }
+  }
 
   /**
     * The main purpose of this method is to determine which targets will receive "locked on" warnings from remote projectiles.
@@ -10267,7 +10266,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * @param local_index an index of the absolute sequence of the projectile, for internal lists
     */
   def CleanUpRemoteProjectile(projectile_guid : PlanetSideGUID, projectile : Projectile, local_index : Int) : Unit = {
-    avatarService ! AvatarServiceMessage(continent.Id, AvatarAction.ProjectileExplodes(player.GUID, projectile_guid, projectile))
+    continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ProjectileExplodes(player.GUID, projectile_guid, projectile))
     taskResolver ! UnregisterProjectile(projectile)
     projectiles(local_index) match {
       case Some(obj) if !obj.isResolved => obj.Miss
