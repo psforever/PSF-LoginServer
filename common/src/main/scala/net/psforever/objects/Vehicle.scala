@@ -12,7 +12,6 @@ import net.psforever.objects.serverobject.deploy.Deployment
 import net.psforever.objects.serverobject.structures.AmenityOwner
 import net.psforever.objects.vehicles._
 import net.psforever.objects.vital.{DamageResistanceModel, StandardResistanceProfile, Vitality}
-import net.psforever.objects.zones.{Zone, ZoneAware}
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types.PlanetSideEmpire
 
@@ -66,15 +65,13 @@ import scala.annotation.tailrec
   *                   stores and unloads pertinent information about the `Vehicle`'s configuration;
   *                   used in the initialization process (`loadVehicleDefinition`)
   */
-class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServerObject
+class Vehicle(private val vehicleDef : VehicleDefinition) extends AmenityOwner
   with FactionAffinity
-  with ZoneAware
   with Mountable
   with MountedWeapons
   with Deployment
   with Vitality
   with OwnableByPlayer
-  with AmenityOwner
   with StandardResistanceProfile
   with Container {
   private var faction : PlanetSideEmpire.Value = PlanetSideEmpire.TR
@@ -86,12 +83,6 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
   private var cloaked : Boolean = false
   private var flying : Boolean = false
   private var capacitor : Int = 0
-/**
-  * Normally, the vehicle is the resident of a `Zone` object and that is what it considers its "continent."
-  * Since the `Vehicle` object can switch between `Zone` objects, however,
-  * it may become useful to allow the vehicle to identify as belonging to its future zone earlier than reference assignment.
-  */
-  private var continent : Option[String] = None //the zone id
   /**
     * Permissions control who gets to access different parts of the vehicle;
     * the groups are Driver (seat), Gunner (seats), Passenger (seats), and the Trunk
@@ -514,28 +505,6 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends PlanetSideServ
     */
   def Definition : VehicleDefinition = vehicleDef
 
-  /**
-    * When assigning a new `Zone` object for the `Vehicle` object, eliminate
-    * @param zone a reference to the `Zone` object
-    * @return a reference to the `Zone` object
-    */
-  override def Zone_=(zone : Zone) : Zone = {
-    continent = None
-    super.Zone_=(zone)
-  }
-
-  override def Continent : String = continent.getOrElse(Zone.Id)
-
-  /**
-    * Give the `Vehicle` object a custom `Zone` identifier.
-    * @param zoneId the custom identifier of the `Zone` object
-    * @return the identifier of the `Zone` object
-    */
-  override def Continent_=(zoneId : String) : String = {
-    continent = Some(zoneId)
-    Continent
-  }
-
   def canEqual(other: Any): Boolean = other.isInstanceOf[Vehicle]
 
   override def equals(other : Any) : Boolean = other match {
@@ -645,7 +614,9 @@ object Vehicle {
     vehicle.utilities = vdef.Utilities.map({
       case(num, util) =>
         val obj = Utility(util, vehicle)
-        obj().LocationOffset = vdef.UtilityOffset.get(num)
+        val utilObj = obj()
+        vehicle.Amenities = utilObj
+        utilObj.LocationOffset = vdef.UtilityOffset.get(num)
         num -> obj
     }).toMap
     //trunk

@@ -33,8 +33,4 @@ abstract class PlanetSideServerObject extends PlanetSideGameObject
     }
     actor
   }
-
-  def Continent : String = "nowhere"
-
-  def Continent_=(zone : String) = Continent
 }
