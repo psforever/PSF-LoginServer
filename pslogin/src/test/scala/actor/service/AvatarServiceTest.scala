@@ -1,9 +1,9 @@
 // Copyright (c) 2017 PSForever
-package service
+package actor.service
 
 import akka.actor.Props
 import akka.routing.RandomPool
-import base.ActorTest
+import actor.base.ActorTest
 import net.psforever.objects._
 import net.psforever.objects.guid.{GUIDTask, TaskResolver}
 import net.psforever.objects.zones.{Zone, ZoneActor, ZoneMap}

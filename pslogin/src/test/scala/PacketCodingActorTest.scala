@@ -1,5 +1,5 @@
 // Copyright (c) 2017 PSForever
-
+import actor.base.ActorTest
 import akka.actor.{ActorRef, Props}
 import akka.testkit.TestProbe
 import net.psforever.packet.control.{ControlSync, MultiPacketBundle, SlottedMetaPacket}
@@ -36,7 +36,7 @@ class PacketCodingActor3Test extends ActorTest {
   "PacketCodingActor" should {
     "initialize (an r-neighbor)" in {
       val probe1 = TestProbe()
-      val probe2 = system.actorOf(Props(classOf[ActorTest.MDCTestProbe], probe1), "mdc-probe")
+      val probe2 = system.actorOf(Props(classOf[MDCTestProbe], probe1), "mdc-probe")
       val pca : ActorRef = system.actorOf(Props[PacketCodingActor], "pca")
       val iter = List(probe2).iterator
       val msg = HelloFriend(135, iter)
@@ -56,12 +56,12 @@ class PacketCodingActor4Test extends ActorTest {
   "PacketCodingActor" should {
     "translate r-originating game packet into l-facing hexadecimal data" in {
       val probe1 = TestProbe()
-      val probe2 = system.actorOf(Props(classOf[ActorTest.MDCTestProbe], probe1), "mdc-probe")
+      val probe2 = system.actorOf(Props(classOf[MDCTestProbe], probe1), "mdc-probe")
       val pca : ActorRef = system.actorOf(Props[PacketCodingActor], "pca")
       pca ! HelloFriend(135, List(probe2).iterator)
       probe1.receiveOne(100 milli) //consume
 
-      val msg = ActorTest.MDCGamePacket(PacketCoding.CreateGamePacket(0, string_obj))
+      val msg = MDCGamePacket(PacketCoding.CreateGamePacket(0, string_obj))
       probe2 ! msg
       val reply1 = receiveOne(300 milli) //we get a MdcMsg message back
       probe2 ! reply1 //by feeding the MdcMsg into the actor, we get normal output on the probe
@@ -77,7 +77,7 @@ class PacketCodingActor5Test extends ActorTest {
   "PacketCodingActor" should {
     "translate l-originating hexadecimal data into r-facing game packet" in {
       val probe1 = TestProbe()
-      val probe2 = system.actorOf(Props(classOf[ActorTest.MDCTestProbe], probe1), "mdc-probe")
+      val probe2 = system.actorOf(Props(classOf[MDCTestProbe], probe1), "mdc-probe")
       val pca : ActorRef = system.actorOf(Props[PacketCodingActor], "pca")
       pca ! HelloFriend(135, List(probe2).iterator)
       probe1.receiveOne(100 milli) //consume
@@ -100,7 +100,7 @@ class PacketCodingActor6Test extends ActorTest {
   "PacketCodingActor" should {
     "permit l-originating game packet to pass through as an r-facing game packet" in {
       val probe1 = TestProbe()
-      val probe2 = system.actorOf(Props(classOf[ActorTest.MDCTestProbe], probe1), "mdc-probe")
+      val probe2 = system.actorOf(Props(classOf[MDCTestProbe], probe1), "mdc-probe")
       val pca : ActorRef = system.actorOf(Props[PacketCodingActor], "pca")
       pca ! HelloFriend(135, List(probe2).iterator)
       probe1.receiveOne(100 milli) //consume
@@ -119,12 +119,12 @@ class PacketCodingActor7Test extends ActorTest {
   "PacketCodingActor" should {
     "translate r-originating control packet into l-facing hexadecimal data" in {
       val probe1 = TestProbe()
-      val probe2 = system.actorOf(Props(classOf[ActorTest.MDCTestProbe], probe1), "mdc-probe")
+      val probe2 = system.actorOf(Props(classOf[MDCTestProbe], probe1), "mdc-probe")
       val pca : ActorRef = system.actorOf(Props[PacketCodingActor], "pca")
       pca ! HelloFriend(135, List(probe2).iterator)
       probe1.receiveOne(100 milli) //consume
 
-      val msg = ActorTest.MDCControlPacket(PacketCoding.CreateControlPacket(string_obj))
+      val msg = MDCControlPacket(PacketCoding.CreateControlPacket(string_obj))
       probe2 ! msg
       val reply1 = receiveOne(300 milli) //we get a MdcMsg message back
       probe2 ! reply1 //by feeding the MdcMsg into the actor, we get normal output on the probe
@@ -140,7 +140,7 @@ class PacketCodingActor8Test extends ActorTest {
   "PacketCodingActor" should {
     "translate l-originating hexadecimal data into r-facing control packet" in {
       val probe1 = TestProbe()
-      val probe2 = system.actorOf(Props(classOf[ActorTest.MDCTestProbe], probe1), "mdc-probe")
+      val probe2 = system.actorOf(Props(classOf[MDCTestProbe], probe1), "mdc-probe")
       val pca : ActorRef = system.actorOf(Props[PacketCodingActor], "pca")
       pca ! HelloFriend(135, List(probe2).iterator)
       probe1.receiveOne(100 milli) //consume
@@ -163,7 +163,7 @@ class PacketCodingActor9Test extends ActorTest {
   "PacketCodingActor" should {
     "permit l-originating control packet to pass through as an r-facing control packet" in {
       val probe1 = TestProbe()
-      val probe2 = system.actorOf(Props(classOf[ActorTest.MDCTestProbe], probe1), "mdc-probe")
+      val probe2 = system.actorOf(Props(classOf[MDCTestProbe], probe1), "mdc-probe")
       val pca : ActorRef = system.actorOf(Props[PacketCodingActor], "pca")
       pca ! HelloFriend(135, List(probe2).iterator)
       probe1.receiveOne(100 milli) //consume
@@ -179,7 +179,7 @@ class PacketCodingActorATest extends ActorTest {
   "PacketCodingActor" should {
     "permit l-originating unhandled message to pass through as an r-facing unhandled message" in {
       val probe1 = TestProbe()
-      val probe2 = system.actorOf(Props(classOf[ActorTest.MDCTestProbe], probe1), "mdc-probe")
+      val probe2 = system.actorOf(Props(classOf[MDCTestProbe], probe1), "mdc-probe")
       val pca : ActorRef = system.actorOf(Props[PacketCodingActor], "pca")
       pca ! HelloFriend(135, List(probe2).iterator)
       probe1.receiveOne(100 milli) //consume
@@ -194,7 +194,7 @@ class PacketCodingActorBTest extends ActorTest {
   "PacketCodingActor" should {
     "permit r-originating unhandled message to pass through as an l-facing unhandled message" in {
       val probe1 = TestProbe()
-      val probe2 = system.actorOf(Props(classOf[ActorTest.MDCTestProbe], probe1), "mdc-probe")
+      val probe2 = system.actorOf(Props(classOf[MDCTestProbe], probe1), "mdc-probe")
       val pca : ActorRef = system.actorOf(Props[PacketCodingActor], "pca")
       pca ! HelloFriend(135, List(probe2).iterator)
       probe1.receiveOne(100 milli) //consume
@@ -213,7 +213,7 @@ class PacketCodingActorCTest extends ActorTest {
   "PacketCodingActor" should {
     "should split r-originating hexadecimal data if it is larger than the MTU limit" in {
       val probe1 = TestProbe()
-      val probe2 = system.actorOf(Props(classOf[ActorTest.MDCTestProbe], probe1), "mdc-probe")
+      val probe2 = system.actorOf(Props(classOf[MDCTestProbe], probe1), "mdc-probe")
       val pca : ActorRef = system.actorOf(Props[PacketCodingActor], "pca")
       pca ! HelloFriend(135, List(probe2).iterator)
       probe1.receiveOne(100 milli) //consume
@@ -353,12 +353,12 @@ class PacketCodingActorDTest extends ActorTest {
   "PacketCodingActor" should {
     "should split r-originating game packet if it is larger than the MTU limit" in {
       val probe1 = TestProbe()
-      val probe2 = system.actorOf(Props(classOf[ActorTest.MDCTestProbe], probe1), "mdc-probe")
+      val probe2 = system.actorOf(Props(classOf[MDCTestProbe], probe1), "mdc-probe")
       val pca : ActorRef = system.actorOf(Props[PacketCodingActor], "pca")
       pca ! HelloFriend(135, List(probe2).iterator)
       probe1.receiveOne(100 milli) //consume
 
-      val msg = ActorTest.MDCGamePacket(PacketCoding.CreateGamePacket(0, string_obj))
+      val msg = MDCGamePacket(PacketCoding.CreateGamePacket(0, string_obj))
       probe2 ! msg
       receiveN(4)
     }
@@ -373,7 +373,7 @@ class PacketCodingActorETest extends ActorTest {
       val string_obj2 = GamePacket(GamePacketOpcode.PlayerStateMessageUpstream, 0, PlayerStateMessageUpstream(PlanetSideGUID(1256),Vector3(3077.0469f,4734.258f,56.390625f),Some(Vector3(5.5f,1.1875f,0.0f)),36.5625f,-2.8125f,0.0f,867,0,false,false,false,false,168,0))
 
       val probe1 = TestProbe()
-      val probe2 = system.actorOf(Props(classOf[ActorTest.MDCTestProbe], probe1), "mdc-probe")
+      val probe2 = system.actorOf(Props(classOf[MDCTestProbe], probe1), "mdc-probe")
       val pca : ActorRef = system.actorOf(Props[PacketCodingActor], "pca")
       pca ! HelloFriend(135, List(probe2).iterator)
       probe1.receiveOne(100 milli) //consume
@@ -394,7 +394,7 @@ class PacketCodingActorFTest extends ActorTest {
       val string_obj = GamePacket(GamePacketOpcode.GenericObjectStateMsg, 0, GenericObjectStateMsg(PlanetSideGUID(242), 16))
 
       val probe1 = TestProbe()
-      val probe2 = system.actorOf(Props(classOf[ActorTest.MDCTestProbe], probe1), "mdc-probe")
+      val probe2 = system.actorOf(Props(classOf[MDCTestProbe], probe1), "mdc-probe")
       val pca : ActorRef = system.actorOf(Props[PacketCodingActor], "pca")
       pca ! HelloFriend(135, List(probe2).iterator)
       probe1.receiveOne(100 milli) //consume
@@ -415,7 +415,7 @@ class PacketCodingActorGTest extends ActorTest {
       val string_obj = GamePacket(GamePacketOpcode.GenericObjectStateMsg, 0, GenericObjectStateMsg(PlanetSideGUID(242), 16))
 
       val probe1 = TestProbe()
-      val probe2 = system.actorOf(Props(classOf[ActorTest.MDCTestProbe], probe1), "mdc-probe")
+      val probe2 = system.actorOf(Props(classOf[MDCTestProbe], probe1), "mdc-probe")
       val pca : ActorRef = system.actorOf(Props[PacketCodingActor], "pca")
       pca ! HelloFriend(135, List(probe2).iterator)
       probe1.receiveOne(100 milli) //consume
@@ -437,7 +437,7 @@ class PacketCodingActorHTest extends ActorTest {
       val string_obj2 = GamePacket(GamePacketOpcode.ObjectDeleteMessage, 0, ObjectDeleteMessage(PlanetSideGUID(1105), 2))
 
       val probe1 = TestProbe()
-      val probe2 = system.actorOf(Props(classOf[ActorTest.MDCTestProbe], probe1), "mdc-probe")
+      val probe2 = system.actorOf(Props(classOf[MDCTestProbe], probe1), "mdc-probe")
       val pca : ActorRef = system.actorOf(Props[PacketCodingActor], "pca")
       pca ! HelloFriend(135, List(probe2).iterator)
       probe1.receiveOne(100 milli) //consume
@@ -491,7 +491,7 @@ class PacketCodingActorITest extends ActorTest {
   "PacketCodingActor" should {
     "bundle an r-originating packet into an l-facing SlottedMetaPacket byte stream data (SlottedMetaPacket)" in {
       val probe1 = TestProbe()
-      val probe2 = system.actorOf(Props(classOf[ActorTest.MDCTestProbe], probe1), "mdc-probe")
+      val probe2 = system.actorOf(Props(classOf[MDCTestProbe], probe1), "mdc-probe")
       val pca : ActorRef = system.actorOf(Props[PacketCodingActor], "pca")
       pca ! HelloFriend(135, List(probe2).iterator)
       probe1.receiveOne(100 milli) //consume
@@ -525,7 +525,7 @@ class PacketCodingActorJTest extends ActorTest {
       val string_hex = hex"00090000001904194f044004195104400419530440"
 
       val probe1 = TestProbe()
-      val probe2 = system.actorOf(Props(classOf[ActorTest.MDCTestProbe], probe1), "mdc-probe")
+      val probe2 = system.actorOf(Props(classOf[MDCTestProbe], probe1), "mdc-probe")
       val pca : ActorRef = system.actorOf(Props[PacketCodingActor], "pca")
       pca ! HelloFriend(135, List(probe2).iterator)
       probe1.receiveOne(100 milli) //consume
@@ -653,7 +653,7 @@ class PacketCodingActorKTest extends ActorTest {
       val pkt = MultiPacketBundle(list)
 
       val probe1 = TestProbe()
-      val probe2 = system.actorOf(Props(classOf[ActorTest.MDCTestProbe], probe1), "mdc-probe")
+      val probe2 = system.actorOf(Props(classOf[MDCTestProbe], probe1), "mdc-probe")
       val pca : ActorRef = system.actorOf(Props[PacketCodingActor], "pca")
       pca ! HelloFriend(135, List(probe2).iterator)
       probe1.receiveOne(100 milli) //consume
@@ -804,7 +804,7 @@ class PacketCodingActorLTest extends ActorTest {
   "PacketCodingActor" should {
     "split, rather than bundle, r-originating packets into a number of MTU-acceptable l-facing byte streams" in {
       val probe1 = TestProbe()
-      val probe2 = system.actorOf(Props(classOf[ActorTest.MDCTestProbe], probe1), "mdc-probe")
+      val probe2 = system.actorOf(Props(classOf[MDCTestProbe], probe1), "mdc-probe")
       val pca : ActorRef = system.actorOf(Props[PacketCodingActor], "pca")
       pca ! HelloFriend(135, List(probe2).iterator)
       probe1.receiveOne(100 milli) //consume
