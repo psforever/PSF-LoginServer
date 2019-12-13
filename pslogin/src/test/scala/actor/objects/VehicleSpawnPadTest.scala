@@ -224,6 +224,12 @@ object VehicleSpawnPadControlTest {
     }
     zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), s"test-zone-${System.nanoTime()}")
     zone.Actor ! Zone.Init()
+
+    // Hack: Wait for the Zone to finish booting, otherwise later tests will fail randomly due to race conditions
+    // with actor probe setting
+    // TODO(chord): Remove when Zone supports notification of booting being complete
+    Thread.sleep(5000)
+
     vehicle.Actor = system.actorOf(Props(classOf[VehicleControl], vehicle), s"vehicle-control-${System.nanoTime()}")
 
     val pad = VehicleSpawnPad(GlobalDefinitions.mb_pad_creation)
