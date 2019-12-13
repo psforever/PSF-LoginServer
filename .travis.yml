@@ -5,9 +5,8 @@ dist: trusty
 scala:
   - 2.11.8
 env:
-  - SBT_COMMAND="test:compile test"
-  # TODO(chord): uncomment when WorldSessionActor is refactored
-  #- SBT_COMMAND="coverage test:compile test coverageReport"
+  - SBT_COMMAND="test:compile test packArchiveZip"
+  - SBT_COMMAND="coverage test:compile test coverageReport"
 
 cache:
   directories:
@@ -17,7 +16,7 @@ before_cache:
   - rm -fv $HOME/.ivy2/.sbt.ivy.lock
   - find $HOME/.ivy2/cache -name "ivydata-*.properties" -print -delete
   - find $HOME/.sbt        -name "*.lock"               -print -delete
-  
+
 before_script:
   - wget https://github.com/psforever/PSCrypto/releases/download/v1.1/pscrypto-lib-1.1.zip
   - unzip pscrypto-lib-1.1.zip
@@ -25,3 +24,8 @@ script:
   - sbt ++$TRAVIS_SCALA_VERSION $SBT_COMMAND  
 after_success:
     - bash <(curl -s https://codecov.io/bash)
+
+addons:
+  artifacts: true
+    paths:
+      - $(ls target/pslogin*.zip | tr "\n" ":")

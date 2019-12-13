@@ -64,7 +64,9 @@ lazy val pslogin = (project in file("pslogin")).
   settings(
     name := "pslogin",
     // ActorTests have specific timing requirements and will be flaky if run in parallel
-    parallelExecution in Test := false
+    parallelExecution in Test := false,
+    // TODO(chord): remove exclusion when WorldSessionActor is refactored: https://github.com/psforever/PSF-LoginServer/issues/279
+    coverageExcludedPackages :=  "WorldSessionActor.*;zonemaps.*"
   ).
   settings(pscryptoSettings: _*).
   dependsOn(common)

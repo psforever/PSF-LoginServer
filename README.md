@@ -1,4 +1,4 @@
-# PlanetSide Login Server [![Build Status](https://travis-ci.org/psforever/PSF-LoginServer.svg?branch=master)](https://travis-ci.org/psforever/PSF-LoginServer) [![Code coverage](https://codecov.io/gh/psforever/PSF-LoginServer/coverage.svg?branch=master)](https://codecov.io/gh/psforever/PSF-LoginServer/) [![Documentation](https://img.shields.io/badge/documentation-master-lightgrey)](https://psforever.github.io/docs/master/index.html)
+# PlanetSide Login Server [![Build Status](https://travis-ci.org/psforever/PSF-LoginServer.svg?branch=master)](https://travis-ci.com/psforever/PSF-LoginServer) [![Code coverage](https://codecov.io/gh/psforever/PSF-LoginServer/coverage.svg?branch=master)](https://codecov.io/gh/psforever/PSF-LoginServer/) [![Documentation](https://img.shields.io/badge/documentation-master-lightgrey)](https://psforever.github.io/docs/master/index.html)
 This project contains the code to run and manage the login and world server roles for PlanetSide 1.
 The login server and world server are currently combined for ease of contributing.
 
