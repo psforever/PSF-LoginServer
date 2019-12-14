@@ -151,8 +151,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
   var timeDL : Long = 0
   var timeSurge : Long = 0
+  var skipStaminaRegenForTurns : Int = 0
   lazy val unsignedIntMaxValue : Long = Int.MaxValue.toLong * 2L + 1L
   var serverTime : Long = 0
+  var jammeredEquipment : Seq[PlanetSideGUID] = Nil
 
   var amsSpawnPoints : List[SpawnPoint] = Nil
   var clientKeepAlive : Cancellable = DefaultCancellable.obj
@@ -163,6 +165,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
   var cargoDismountTimer : Cancellable = DefaultCancellable.obj
   var antChargingTick : Cancellable = DefaultCancellable.obj
   var antDischargingTick : Cancellable = DefaultCancellable.obj
+  var jammeredSoundTimer : Cancellable = DefaultCancellable.obj
+  var jammeredStatusTimer : Cancellable = DefaultCancellable.obj
 
 
   /**
@@ -1179,6 +1183,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case _ => ;
       }
 
+    case ClearJammeredSound() =>
+      CancelJammeredSound()
+
+    case ClearJammeredStatus() =>
+      CancelJammeredStatus()
+
     case default =>
       log.warn(s"Invalid packet class received: $default from $sender")
   }
@@ -1325,8 +1335,24 @@ class WorldSessionActor extends Actor with MDCContextAware {
             val radius = cause.projectile.profile.DamageRadius
             FindJammerDuration(cause.projectile.profile, target) match {
               case Some(dur) if Vector3.DistanceSquared(cause.hit_pos, cause.target.Position) < radius * radius =>
-                //TODO jammer messaging here
+                //implants
+                DeactivateImplants()
+                //jammered sound
                 sendResponse(PlanetsideAttributeMessage(player.GUID, 54, 1))
+                continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player.GUID, 54, 1))
+                import scala.concurrent.ExecutionContext.Implicits.global
+                jammeredSoundTimer = context.system.scheduler.scheduleOnce(30 seconds, self, ClearJammeredSound())
+                //jammered status
+                skipStaminaRegenForTurns = 5
+                sendResponse(PlanetsideAttributeMessage(player.GUID, 2, 0))
+                jammeredEquipment = player.Holsters()
+                  .map { _.Equipment }
+                    .collect {
+                      case Some(item) if item.Size != EquipmentSize.Melee =>
+                        sendResponse(GenericObjectActionMessage(item.GUID, 156))
+                        item.GUID
+                    }
+                jammeredStatusTimer = context.system.scheduler.scheduleOnce(dur milliseconds, self, ClearJammeredStatus())
               case _ => ;
             }
           }
@@ -3897,6 +3923,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
     case msg @ PlayerStateMessageUpstream(avatar_guid, pos, vel, yaw, pitch, yaw_upper, seq_time, unk3, is_crouching, is_jumping, jump_thrust, is_cloaking, unk5, unk6) =>
       val isMoving = WorldEntity.isMoving(vel)
+      val isMovingPlus = isMoving || is_jumping || jump_thrust
       //implants and stamina management start
       val implantsAreActive = avatar.Implants(0).Active || avatar.Implants(1).Active
       val staminaBefore = player.Stamina
@@ -3928,14 +3955,23 @@ class WorldSessionActor extends Actor with MDCContextAware {
             }
           }
         }
-        CapacitorTick(jump_thrust)
-        //if the player lost all stamina this turn (had stamina at the start), do not renew 1 stamina
-        if(!isMoving && (if(player.Stamina > 0) player.Stamina < player.MaxStamina else !hadStaminaBefore)) {
-          player.Stamina = player.Stamina + 1
-          true
+        if(skipStaminaRegenForTurns > 0) {
+          //do not renew stamina for a while
+          skipStaminaRegenForTurns -= 1
+          player.Stamina > 0
+        }
+        else if(player.Stamina == 0 && hadStaminaBefore) {
+          //if the player lost all stamina this turn (had stamina at the start), do not renew stamina for a while
+          skipStaminaRegenForTurns = 4
+          player.Stamina > 0
+        }
+        else if(isMovingPlus || player.Stamina == player.MaxStamina) {
+          //ineligible for stamina regen
+          player.Stamina > 0
         }
         else {
-          player.Stamina > 0
+          player.Stamina = player.Stamina + 1
+          true
         }
       }
       else {
@@ -3947,18 +3983,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         sendResponse(PlanetsideAttributeMessage(player.GUID, 2, player.Stamina))
       }
       if(implantsAreActive && !hasStaminaAfter) { //implants deactivated at 0 stamina
-        if(avatar.Implants(0).Active) {
-          avatar.Implants(0).Active = false
-          continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player.GUID, 28, avatar.Implant(0).id * 2))
-          sendResponse(AvatarImplantMessage(PlanetSideGUID(player.GUID.guid), ImplantAction.Activation, 0, 0))
-          timeDL = 0
-        }
-        if(avatar.Implants(1).Active) {
-          avatar.Implants(1).Active = false
-          continent.AvatarEvents  ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player.GUID, 28, avatar.Implant(1).id * 2))
-          sendResponse(AvatarImplantMessage(PlanetSideGUID(player.GUID.guid), ImplantAction.Activation, 1, 0))
-          timeSurge = 0
-        }
+        DeactivateImplants()
       }
       //implants and stamina management finish
       player.Position = pos
@@ -3968,8 +3993,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
       player.Crouching = is_crouching
       player.Jumping = is_jumping
       player.Cloaked = player.ExoSuit == ExoSuitType.Infiltration && is_cloaking
+      CapacitorTick(jump_thrust)
 
-      if(isMoving && usingMedicalTerminal.isDefined) {
+      if(isMovingPlus && usingMedicalTerminal.isDefined) {
         continent.GUID(usingMedicalTerminal) match {
           case Some(term : Terminal with ProximityUnit) =>
             StopUsingProximityUnit(term)
@@ -3987,7 +4013,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             accessedContainer = None
           }
         case Some(container) => //just in case
-          if(isMoving) {
+          if(isMovingPlus) {
             val guid = player.GUID
             // If the container is a corpse and gets removed just as this runs it can cause a client disconnect, so we'll check the container has a GUID first.
             if(container.HasGUID) {
@@ -4554,6 +4580,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case msg @ AvatarJumpMessage(state) =>
       //log.info("AvatarJump: " + msg)
       player.Stamina = player.Stamina - 10
+      skipStaminaRegenForTurns = 5
       sendResponse(PlanetsideAttributeMessage(player.GUID, 2, player.Stamina))
 
     case msg @ ZipLineMessage(player_guid,origin_side,action,id,pos) =>
@@ -7951,9 +7978,14 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * This is not a complete list but, for the purpose of enforcement, some pointers will be documented here.
     */
   def PlayerActionsToCancel() : Unit = {
+    if(!jammeredSoundTimer.isCancelled) {
+      CancelJammeredSound()
+    }
+    jammeredStatusTimer.cancel
     progressBarUpdate.cancel
     progressBarValue = None
     lastTerminalOrderFulfillment = true
+    skipStaminaRegenForTurns = 0
     accessedContainer match {
       case Some(obj : Vehicle) =>
         if(obj.AccessingTrunk.contains(player.GUID)) {
@@ -8612,10 +8644,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
   }
 
   /**
-    * Find a projectile with the given globally unique identifier and mark it as a resolved shot.
-    * A `Resolved` shot has either encountered an obstacle or is being cleaned up for not finding an obstacle.
-    * The internal copy of the projectile is retained as merely `Resolved`
-    * while the observed projectile is promoted to the suggested resolution status.
+    * na
     * @param projectile the projectile object
     * @param resolution the resolution status to promote the projectile
     * @return a copy of the projectile
@@ -8626,19 +8655,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
       None
     }
     else {
-      ResolveProjectileEntry(projectile, resolution, target, pos)
+      projectile.Resolve()
+      Some(ResolvedProjectile(resolution, projectile, SourceEntry(target), target.DamageModel, pos))
     }
-  }
-
-  /**
-    * na
-    * @param projectile the projectile object
-    * @param resolution the resolution status to promote the projectile
-    * @return a copy of the projectile
-    */
-  def ResolveProjectileEntry(projectile : Projectile, resolution : ProjectileResolution.Value, target : PlanetSideGameObject with FactionAffinity with Vitality, pos : Vector3) : Option[ResolvedProjectile] = {
-    projectile.Resolve()
-    Some(ResolvedProjectile(resolution, projectile, SourceEntry(target), target.DamageModel, pos))
   }
 
   /**
@@ -10380,18 +10399,54 @@ class WorldSessionActor extends Actor with MDCContextAware {
     }
   }
 
-  def FindJammerDuration(jammer : JammingUnit, target : PlanetSideGameObject) : Option[Duration] = {
+  def FindJammerDuration(jammer : JammingUnit, target : PlanetSideGameObject) : Option[Int] = {
     jammer.JammedEffectDuration
       .collect { case (TargetValidation(_, test), duration) if test(target) => duration }
       .toList
-      .sortWith(_.toMillis > _.toMillis)
+      .sortWith(_ > _)
       .headOption
   }
 
-  def FindJammerDuration(jammer : JammingUnit, targets : Seq[PlanetSideGameObject]) : Seq[Option[Duration]] = {
+  def FindJammerDuration(jammer : JammingUnit, targets : Seq[PlanetSideGameObject]) : Seq[Option[Int]] = {
     targets.map { target => FindJammerDuration(jammer, target) }
   }
 
+  def DeactivateImplants() : Unit = {
+    DeactivateImplantDarkLight()
+    DeactivateImplantSurge()
+  }
+
+  def DeactivateImplantDarkLight() : Unit = {
+    if(avatar.Implants(0).Active) {
+      avatar.Implants(0).Active = false
+      continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player.GUID, 28, avatar.Implant(0).id * 2))
+      sendResponse(AvatarImplantMessage(PlanetSideGUID(player.GUID.guid), ImplantAction.Activation, 0, 0))
+      timeDL = 0
+    }
+  }
+
+  def DeactivateImplantSurge() : Unit = {
+    if(avatar.Implants(1).Active) {
+      avatar.Implants(1).Active = false
+      continent.AvatarEvents  ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player.GUID, 28, avatar.Implant(1).id * 2))
+      sendResponse(AvatarImplantMessage(PlanetSideGUID(player.GUID.guid), ImplantAction.Activation, 1, 0))
+      timeSurge = 0
+    }
+  }
+
+  def CancelJammeredSound() : Unit = {
+    jammeredSoundTimer.cancel
+    sendResponse(PlanetsideAttributeMessage(player.GUID, 54, 0))
+    continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player.GUID, 54, 0))
+  }
+
+  def CancelJammeredStatus() : Unit = {
+    if(!jammeredSoundTimer.isCancelled) {
+      CancelJammeredSound()
+    }
+    jammeredEquipment.foreach { id => sendResponse(GenericObjectActionMessage(id, 152)) }
+    jammeredEquipment = Nil
+  }
 
   def failWithError(error : String) = {
     log.error(error)
@@ -10558,4 +10613,8 @@ object WorldSessionActor {
   private final case class FinalizeDeployable(obj : PlanetSideGameObject with Deployable, tool : ConstructionItem, index : Int)
 
   private final case class LoadedRemoteProjectile(projectile_guid : PlanetSideGUID, projectile : Option[Projectile])
+
+  private final case class ClearJammeredSound()
+
+  private final case class ClearJammeredStatus()
 }

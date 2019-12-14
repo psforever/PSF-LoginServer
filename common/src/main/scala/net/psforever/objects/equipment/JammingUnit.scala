@@ -7,9 +7,9 @@ import scala.collection.mutable
 import scala.concurrent.duration.Duration
 
 trait JammingUnit {
-  private val jammedEffectDuration : mutable.ListBuffer[(TargetValidation, Duration)] = new mutable.ListBuffer()
+  private val jammedEffectDuration : mutable.ListBuffer[(TargetValidation, Int)] = new mutable.ListBuffer()
 
   def HasJammedEffectDuration : Boolean = jammedEffectDuration.isEmpty
 
-  def JammedEffectDuration : mutable.ListBuffer[(TargetValidation, Duration)] = jammedEffectDuration
+  def JammedEffectDuration : mutable.ListBuffer[(TargetValidation, Int)] = jammedEffectDuration
 }

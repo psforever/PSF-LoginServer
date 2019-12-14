@@ -2688,12 +2688,12 @@ object GlobalDefinitions {
     jammer_cartridge_projectile.Lifespan = 15f
     jammer_cartridge_projectile.AdditionalEffect = true
     jammer_cartridge_projectile.JammerProjectile = true
-    jammer_cartridge_projectile.JammedEffectDuration += TargetValidation(EffectTarget.Category.Player, EffectTarget.Validation.Player) -> (1 seconds)
-    jammer_cartridge_projectile.JammedEffectDuration += TargetValidation(EffectTarget.Category.Vehicle, EffectTarget.Validation.AMS) -> (5 seconds)
-    jammer_cartridge_projectile.JammedEffectDuration += TargetValidation(EffectTarget.Category.Deployable, EffectTarget.Validation.MotionSensor) -> (30 seconds)
-    jammer_cartridge_projectile.JammedEffectDuration += TargetValidation(EffectTarget.Category.Deployable, EffectTarget.Validation.Spitfire) -> (30 seconds)
-    jammer_cartridge_projectile.JammedEffectDuration += TargetValidation(EffectTarget.Category.Turret, EffectTarget.Validation.Turret) -> (30 seconds)
-    jammer_cartridge_projectile.JammedEffectDuration += TargetValidation(EffectTarget.Category.Vehicle, EffectTarget.Validation.VehicleNotAMS) -> (10 seconds)
+    jammer_cartridge_projectile.JammedEffectDuration += TargetValidation(EffectTarget.Category.Player, EffectTarget.Validation.Player) -> 1000
+    jammer_cartridge_projectile.JammedEffectDuration += TargetValidation(EffectTarget.Category.Vehicle, EffectTarget.Validation.AMS) -> 5000
+    jammer_cartridge_projectile.JammedEffectDuration += TargetValidation(EffectTarget.Category.Deployable, EffectTarget.Validation.MotionSensor) -> 30000
+    jammer_cartridge_projectile.JammedEffectDuration += TargetValidation(EffectTarget.Category.Deployable, EffectTarget.Validation.Spitfire) -> 30000
+    jammer_cartridge_projectile.JammedEffectDuration += TargetValidation(EffectTarget.Category.Turret, EffectTarget.Validation.Turret) -> 30000
+    jammer_cartridge_projectile.JammedEffectDuration += TargetValidation(EffectTarget.Category.Vehicle, EffectTarget.Validation.VehicleNotAMS) -> 10000
     ProjectileDefinition.CalculateDerivedFields(jammer_cartridge_projectile)
 
     jammer_cartridge_projectile_b.Name = "jammer_cartridge_projectile_b"
@@ -2707,12 +2707,12 @@ object GlobalDefinitions {
     jammer_cartridge_projectile_b.Lifespan = 2f
     jammer_cartridge_projectile_b.AdditionalEffect = true
     jammer_cartridge_projectile_b.JammerProjectile = true
-    jammer_cartridge_projectile_b.JammedEffectDuration += TargetValidation(EffectTarget.Category.Player, EffectTarget.Validation.Player) -> (1 seconds)
-    jammer_cartridge_projectile_b.JammedEffectDuration += TargetValidation(EffectTarget.Category.Vehicle, EffectTarget.Validation.AMS) -> (5 seconds)
-    jammer_cartridge_projectile_b.JammedEffectDuration += TargetValidation(EffectTarget.Category.Deployable, EffectTarget.Validation.MotionSensor) -> (30 seconds)
-    jammer_cartridge_projectile_b.JammedEffectDuration += TargetValidation(EffectTarget.Category.Deployable, EffectTarget.Validation.Spitfire) -> (30 seconds)
-    jammer_cartridge_projectile_b.JammedEffectDuration += TargetValidation(EffectTarget.Category.Turret, EffectTarget.Validation.Turret) -> (30 seconds)
-    jammer_cartridge_projectile_b.JammedEffectDuration += TargetValidation(EffectTarget.Category.Vehicle, EffectTarget.Validation.VehicleNotAMS) -> (10 seconds)
+    jammer_cartridge_projectile_b.JammedEffectDuration += TargetValidation(EffectTarget.Category.Player, EffectTarget.Validation.Player) -> 1000
+    jammer_cartridge_projectile_b.JammedEffectDuration += TargetValidation(EffectTarget.Category.Vehicle, EffectTarget.Validation.AMS) -> 5000
+    jammer_cartridge_projectile_b.JammedEffectDuration += TargetValidation(EffectTarget.Category.Deployable, EffectTarget.Validation.MotionSensor) -> 30000
+    jammer_cartridge_projectile_b.JammedEffectDuration += TargetValidation(EffectTarget.Category.Deployable, EffectTarget.Validation.Spitfire) -> 30000
+    jammer_cartridge_projectile_b.JammedEffectDuration += TargetValidation(EffectTarget.Category.Turret, EffectTarget.Validation.Turret) -> 30000
+    jammer_cartridge_projectile_b.JammedEffectDuration += TargetValidation(EffectTarget.Category.Vehicle, EffectTarget.Validation.VehicleNotAMS) -> 10000
     ProjectileDefinition.CalculateDerivedFields(jammer_cartridge_projectile_b)
 
     jammer_grenade_projectile.Name = "jammer_grenade_projectile"
@@ -2725,12 +2725,12 @@ object GlobalDefinitions {
     jammer_grenade_projectile.Lifespan = 15f
     jammer_grenade_projectile.AdditionalEffect = true
     jammer_grenade_projectile.JammerProjectile = true
-    jammer_grenade_projectile.JammedEffectDuration += TargetValidation(EffectTarget.Category.Player, EffectTarget.Validation.Player) -> (1 seconds)
-    jammer_grenade_projectile.JammedEffectDuration += TargetValidation(EffectTarget.Category.Vehicle, EffectTarget.Validation.AMS) -> (5 seconds)
-    jammer_grenade_projectile.JammedEffectDuration += TargetValidation(EffectTarget.Category.Deployable, EffectTarget.Validation.MotionSensor) -> (30 seconds)
-    jammer_grenade_projectile.JammedEffectDuration += TargetValidation(EffectTarget.Category.Deployable, EffectTarget.Validation.Spitfire) -> (30 seconds)
-    jammer_grenade_projectile.JammedEffectDuration += TargetValidation(EffectTarget.Category.Turret, EffectTarget.Validation.Turret) -> (30 seconds)
-    jammer_grenade_projectile.JammedEffectDuration += TargetValidation(EffectTarget.Category.Vehicle, EffectTarget.Validation.VehicleNotAMS) -> (10 seconds)
+    jammer_grenade_projectile.JammedEffectDuration += TargetValidation(EffectTarget.Category.Player, EffectTarget.Validation.Player) -> 1000
+    jammer_grenade_projectile.JammedEffectDuration += TargetValidation(EffectTarget.Category.Vehicle, EffectTarget.Validation.AMS) -> 5000
+    jammer_grenade_projectile.JammedEffectDuration += TargetValidation(EffectTarget.Category.Deployable, EffectTarget.Validation.MotionSensor) -> 30000
+    jammer_grenade_projectile.JammedEffectDuration += TargetValidation(EffectTarget.Category.Deployable, EffectTarget.Validation.Spitfire) -> 30000
+    jammer_grenade_projectile.JammedEffectDuration += TargetValidation(EffectTarget.Category.Turret, EffectTarget.Validation.Turret) -> 30000
+    jammer_grenade_projectile.JammedEffectDuration += TargetValidation(EffectTarget.Category.Vehicle, EffectTarget.Validation.VehicleNotAMS) -> 10000
     ProjectileDefinition.CalculateDerivedFields(jammer_grenade_projectile)
 
     jammer_grenade_projectile_enh.Name = "jammer_grenade_projectile_enh"
@@ -2744,11 +2744,11 @@ object GlobalDefinitions {
     jammer_grenade_projectile_enh.Lifespan = 3f
     jammer_grenade_projectile_enh.AdditionalEffect = true
     jammer_grenade_projectile_enh.JammerProjectile = true
-    jammer_grenade_projectile_enh.JammedEffectDuration += TargetValidation(EffectTarget.Category.Player, EffectTarget.Validation.Player) -> (1 seconds)
-    jammer_grenade_projectile_enh.JammedEffectDuration += TargetValidation(EffectTarget.Category.Vehicle, EffectTarget.Validation.AMS) -> (5 seconds)
-    jammer_grenade_projectile_enh.JammedEffectDuration += TargetValidation(EffectTarget.Category.Deployable, EffectTarget.Validation.MotionSensor) -> (30 seconds)
-    jammer_grenade_projectile_enh.JammedEffectDuration += TargetValidation(EffectTarget.Category.Deployable, EffectTarget.Validation.Spitfire) -> (30 seconds)
-    jammer_grenade_projectile_enh.JammedEffectDuration += TargetValidation(EffectTarget.Category.Turret, EffectTarget.Validation.Turret) -> (30 seconds)
+    jammer_grenade_projectile_enh.JammedEffectDuration += TargetValidation(EffectTarget.Category.Player, EffectTarget.Validation.Player) -> 1000
+    jammer_grenade_projectile_enh.JammedEffectDuration += TargetValidation(EffectTarget.Category.Vehicle, EffectTarget.Validation.AMS) -> 5000
+    jammer_grenade_projectile_enh.JammedEffectDuration += TargetValidation(EffectTarget.Category.Deployable, EffectTarget.Validation.MotionSensor) -> 30000
+    jammer_grenade_projectile_enh.JammedEffectDuration += TargetValidation(EffectTarget.Category.Deployable, EffectTarget.Validation.Spitfire) -> 30000
+    jammer_grenade_projectile_enh.JammedEffectDuration += TargetValidation(EffectTarget.Category.Turret, EffectTarget.Validation.Turret) -> 30000
     ProjectileDefinition.CalculateDerivedFields(jammer_grenade_projectile_enh)
 
     katana_projectile.Name = "katana_projectile"
