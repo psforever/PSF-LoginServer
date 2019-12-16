@@ -16,12 +16,9 @@ class VNLWorldStatusMessageTest extends Specification {
 
   "decode" in {
     PacketCoding.DecodePacket(string).require match {
-      case VNLWorldStatusMessage(message, worlds) =>
-        worlds.length mustEqual 1
+      case VNLWorldStatusMessage(message, _, world, extra_worlds) =>
+        extra_worlds.length mustEqual 0
         message mustEqual "Welcome to PlanetSide! "
-        val world = worlds {
-          0
-        }
         world.name mustEqual "gemini"
         world.empireNeed mustEqual PlanetSideEmpire.NC
         world.status mustEqual WorldStatus.Up
@@ -39,13 +36,11 @@ class VNLWorldStatusMessageTest extends Specification {
   }
 
   "encode" in {
-    val msg = VNLWorldStatusMessage("Welcome to PlanetSide! ",
-      Vector(
-        WorldInformation("gemini", WorldStatus.Up, ServerType.Released,
-          Vector(
-            WorldConnectionInfo(new InetSocketAddress(InetAddress.getByName("64.37.158.69"), 30007))
-          ), PlanetSideEmpire.NC
-        )
+    val msg = VNLWorldStatusMessage("Welcome to PlanetSide! ", 1,
+      WorldInformation("gemini", WorldStatus.Up, ServerType.Released,
+        Vector(
+          WorldConnectionInfo(new InetSocketAddress(InetAddress.getByName("64.37.158.69"), 30007))
+        ), PlanetSideEmpire.NC
       )
     )
     //0100 04 00 01459e2540377540
@@ -56,15 +51,15 @@ class VNLWorldStatusMessageTest extends Specification {
   }
 
   "encode and decode multiple worlds" in {
-    val msg = VNLWorldStatusMessage("Welcome to PlanetSide! ",
+    val msg = VNLWorldStatusMessage("Welcome to PlanetSide! ", 2,
+      WorldInformation("ABCDABCD1", WorldStatus.Up, ServerType.Released, Vector(), PlanetSideEmpire.NC),
       Vector(
-        WorldInformation("PSForever1", WorldStatus.Up, ServerType.Released, Vector(), PlanetSideEmpire.NC),
-        WorldInformation("PSForever2", WorldStatus.Down, ServerType.Beta, Vector(), PlanetSideEmpire.TR)
+        WorldInformation("ABCDABCD2", WorldStatus.Down, ServerType.Beta, Vector(), PlanetSideEmpire.TR)
       ))
 
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
-    //println(pkt)
+    println(pkt)
 
     // TODO: actually test something
     ok

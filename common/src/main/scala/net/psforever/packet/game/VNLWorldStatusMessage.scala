@@ -30,7 +30,8 @@ final case class WorldInformation(name : String, status : WorldStatus.Value,
                                   connections : Vector[WorldConnectionInfo],
                                   empireNeed : PlanetSideEmpire.Value)
 
-final case class VNLWorldStatusMessage(welcomeMessage : String, worlds : Vector[WorldInformation])
+final case class VNLWorldStatusMessage(welcomeMessage : String, world_count : Int, world : WorldInformation,
+                                       other_worlds : Vector[WorldInformation] = Vector())
   extends PlanetSideGamePacket {
   type Packet = VNLWorldStatusMessage
   def opcode = GamePacketOpcode.VNLWorldStatusMessage
@@ -99,17 +100,28 @@ object VNLWorldStatusMessage extends Marshallable[VNLWorldStatusMessage] {
     (bytes(4) :: uint16L).xmap(decode, encode).as[WorldConnectionInfo]
   }
 
+  implicit val world_codec : Codec[WorldInformation] = (
+    ("world_name" | PacketHelpers.encodedString) :: (
+    ("status_and_type" | statusCodec) :+
+      // TODO: limit the size of this vector to 11 as the client will fail on any more
+      ("connections" | vectorOfN(uint8L, connectionCodec))
+      :+
+      ("empire_need" | PlanetSideEmpire.codec)
+    )).as[WorldInformation]
+
+  implicit val world_codec_aligned : Codec[WorldInformation] = (
+    ("world_name" | PacketHelpers.encodedStringAligned(6)) :: (
+    ("status_and_type" | statusCodec) :+
+      // TODO: limit the size of this vector to 11 as the client will fail on any more
+      ("connections" | vectorOfN(uint8L, connectionCodec))
+      :+
+      ("empire_need" | PlanetSideEmpire.codec)
+    )).as[WorldInformation]
+
   implicit val codec : Codec[VNLWorldStatusMessage] = (
     ("welcome_message" | PacketHelpers.encodedWideString) ::
-      ("worlds" | vectorOfN(uint8L, (
-        // XXX: this needs to be limited to 0x20 bytes
-        // XXX: this needs to be byte aligned, but not sure how to do this
-        ("world_name" | PacketHelpers.encodedString) :: (
-          ("status_and_type" | statusCodec) :+
-          // TODO: limit the size of this vector to 11 as the client will fail on any more
-          ("connections" | vectorOfN(uint8L, connectionCodec)) :+
-          ("empire_need" | PlanetSideEmpire.codec)
-        )
-      ).as[WorldInformation]
-      ))).as[VNLWorldStatusMessage]
+      (("num_worlds" | uint8L) flatPrepend { num_worlds =>
+        ("primary_world" | world_codec) ::
+        ("extra_worlds" | vectorOfN(provide(num_worlds-1), world_codec_aligned)
+      )})).as[VNLWorldStatusMessage]
 }
