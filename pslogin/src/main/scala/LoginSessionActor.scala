@@ -164,13 +164,10 @@ class LoginSessionActor extends Actor with MDCContextAware {
   }
 
   def updateServerList() = {
-    val msg = VNLWorldStatusMessage("Welcome to PlanetSide! ", 2,
-      WorldInformation(
-        serverName, WorldStatus.Up, ServerType.Beta, Vector(WorldConnectionInfo(serverAddress)), PlanetSideEmpire.VS
-      ),
+    val msg = VNLWorldStatusMessage("Welcome to PlanetSide! ",
       Vector(
         WorldInformation(
-          serverName + "A", WorldStatus.Up, ServerType.Beta, Vector(WorldConnectionInfo(serverAddress)), PlanetSideEmpire.TR
+          serverName, WorldStatus.Up, ServerType.Beta, Vector(WorldConnectionInfo(serverAddress)), PlanetSideEmpire.VS
         )
       )
     )

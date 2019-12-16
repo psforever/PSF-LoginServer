@@ -5,6 +5,7 @@ import java.net.{InetAddress, InetSocketAddress}
 
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
 import net.psforever.types.PlanetSideEmpire
+import net.psforever.newcodecs.newcodecs._
 import scodec._
 import scodec.bits._
 import scodec.codecs._
@@ -30,8 +31,7 @@ final case class WorldInformation(name : String, status : WorldStatus.Value,
                                   connections : Vector[WorldConnectionInfo],
                                   empireNeed : PlanetSideEmpire.Value)
 
-final case class VNLWorldStatusMessage(welcomeMessage : String, world_count : Int, world : WorldInformation,
-                                       other_worlds : Vector[WorldInformation] = Vector())
+final case class VNLWorldStatusMessage(welcomeMessage : String, worlds : Vector[WorldInformation])
   extends PlanetSideGamePacket {
   type Packet = VNLWorldStatusMessage
   def opcode = GamePacketOpcode.VNLWorldStatusMessage
@@ -119,9 +119,7 @@ object VNLWorldStatusMessage extends Marshallable[VNLWorldStatusMessage] {
     )).as[WorldInformation]
 
   implicit val codec : Codec[VNLWorldStatusMessage] = (
-    ("welcome_message" | PacketHelpers.encodedWideString) ::
-      (("num_worlds" | uint8L) flatPrepend { num_worlds =>
-        ("primary_world" | world_codec) ::
-        ("extra_worlds" | vectorOfN(provide(num_worlds-1), world_codec_aligned)
-      )})).as[VNLWorldStatusMessage]
+      ("welcome_message" | PacketHelpers.encodedWideString) ::
+      ("worlds" | prefixedVectorOfN(uint8L, world_codec, world_codec_aligned))
+    ).as[VNLWorldStatusMessage]
 }
