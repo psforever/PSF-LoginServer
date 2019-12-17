@@ -71,37 +71,30 @@ class VNLWorldStatusMessageTest extends Specification {
   }
 
   "encode and decode multiple worlds" in {
-    var string = hex" 0597570065006c0063006f006d006500200074006f00200050006c0061006e0065007400530069006400650021002000028941424344414243443101000300006240414243444142434432000002020000"
+    var string = hex"0597570065006c0063006f006d006500200074006f00200050006c0061006e0065007400530069006400650021002000048941424344414243443101000300006240414243444142434432000002020022404142434441424344330000010100a2404142434441424344340500040000c0"
 
-    val msg = VNLWorldStatusMessage("Welcome to PlanetSide! ",
-      Vector(
-      WorldInformation("ABCDABCD1", WorldStatus.Up, ServerType.Released, Vector(), PlanetSideEmpire.NC),
-        WorldInformation("ABCDABCD2", WorldStatus.Down, ServerType.Beta, Vector(), PlanetSideEmpire.TR)
-      ))
+    val worlds = Vector(
+        WorldInformation("ABCDABCD1", WorldStatus.Up, ServerType.Released, Vector(), PlanetSideEmpire.NC),
+        WorldInformation("ABCDABCD2", WorldStatus.Down, ServerType.Beta, Vector(), PlanetSideEmpire.TR),
+        WorldInformation("ABCDABCD3", WorldStatus.Locked, ServerType.Development, Vector(), PlanetSideEmpire.VS),
+        WorldInformation("ABCDABCD4", WorldStatus.Full, ServerType.Released_Gemini, Vector(), PlanetSideEmpire.NEUTRAL)
+    )
 
+    val msg = VNLWorldStatusMessage("Welcome to PlanetSide! ", worlds) 
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string
 
-    string = hex" 0597570065006c0063006f006d006500200074006f00200050006c0061006e0065007400530069006400650021002000028941424344414243443101000300006240414243444142434432000002020000"
-
     PacketCoding.DecodePacket(string).require match {
-      case VNLWorldStatusMessage(message, worlds) =>
+      case VNLWorldStatusMessage(message, pkt_worlds) =>
         message mustEqual "Welcome to PlanetSide! "
 
-        worlds.length mustEqual 2
+        pkt_worlds.length mustEqual worlds.length
 
-        worlds(0).name mustEqual "ABCDABCD1"
-        worlds(0).empireNeed mustEqual PlanetSideEmpire.NC
-        worlds(0).status mustEqual WorldStatus.Up
-        worlds(0).serverType mustEqual ServerType.Released
-        worlds(0).connections.length mustEqual 0
+        for (i <- 0 to pkt_worlds.length-1)
+          pkt_worlds(i) mustEqual worlds(i)
 
-        worlds(1).name mustEqual "ABCDABCD2"
-        worlds(1).empireNeed mustEqual PlanetSideEmpire.TR
-        worlds(1).status mustEqual WorldStatus.Down
-        worlds(1).serverType mustEqual ServerType.Beta
-        worlds(1).connections.length mustEqual 0
+        ok
       case _ =>
         ko
     }
