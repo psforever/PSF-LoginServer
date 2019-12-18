@@ -1,10 +1,25 @@
 // Copyright (c) 2019 PSForever
 package net.psforever.objects.equipment
 
+import net.psforever.objects.PlanetSideGameObject
 import net.psforever.objects.serverobject.terminals.TargetValidation
 
 import scala.collection.mutable
-import scala.concurrent.duration.Duration
+
+trait JammableUnit {
+  private var jammed : Boolean = false
+
+  def Jammed : Boolean = jammed
+
+  def Jammed_=(state : Boolean) : Boolean = {
+    jammed = state
+    Jammed
+  }
+}
+
+object JammableUnit {
+  final case class Jammer()
+}
 
 trait JammingUnit {
   private val jammedEffectDuration : mutable.ListBuffer[(TargetValidation, Int)] = new mutable.ListBuffer()
@@ -12,4 +27,18 @@ trait JammingUnit {
   def HasJammedEffectDuration : Boolean = jammedEffectDuration.isEmpty
 
   def JammedEffectDuration : mutable.ListBuffer[(TargetValidation, Int)] = jammedEffectDuration
+}
+
+object JammingUnit {
+  def FindJammerDuration(jammer : JammingUnit, target : PlanetSideGameObject) : Option[Int] = {
+    jammer.JammedEffectDuration
+      .collect { case (TargetValidation(_, test), duration) if test(target) => duration }
+      .toList
+      .sortWith(_ > _)
+      .headOption
+  }
+
+  def FindJammerDuration(jammer : JammingUnit, targets : Seq[PlanetSideGameObject]) : Seq[Option[Int]] = {
+    targets.map { target => FindJammerDuration(jammer, target) }
+  }
 }

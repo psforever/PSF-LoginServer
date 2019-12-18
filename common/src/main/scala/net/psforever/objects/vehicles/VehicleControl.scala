@@ -1,14 +1,23 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.vehicles
 
-import akka.actor.{Actor, ActorRef}
-import net.psforever.objects.Vehicle
-import net.psforever.objects.ballistics.VehicleSource
+import akka.actor.{Actor, ActorRef, Cancellable}
+import net.psforever.objects.{DefaultCancellable, GlobalDefinitions, Tool, Vehicle}
+import net.psforever.objects.ballistics.{ResolvedProjectile, VehicleSource}
+import net.psforever.objects.equipment.JammingUnit
 import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior}
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
-import net.psforever.objects.serverobject.deploy.DeploymentBehavior
+import net.psforever.objects.serverobject.deploy.{Deployment, DeploymentBehavior}
 import net.psforever.objects.vital.{VehicleShieldCharge, Vitality}
-import net.psforever.types.ExoSuitType
+import net.psforever.objects.zones.Zone
+import net.psforever.packet.game.PlanetSideGUID
+import net.psforever.types.{DriveState, ExoSuitType, Vector3}
+import services.{RemoverActor, Service}
+import services.avatar.{AvatarAction, AvatarServiceMessage}
+import services.local.{LocalAction, LocalServiceMessage}
+import services.vehicle.{VehicleAction, VehicleService, VehicleServiceMessage}
+
+import scala.concurrent.duration._
 
 /**
   * An `Actor` that handles messages being dispatched to a specific `Vehicle`.<br>
@@ -22,6 +31,9 @@ class VehicleControl(vehicle : Vehicle) extends Actor
   with DeploymentBehavior
   with MountableBehavior.Mount
   with MountableBehavior.Dismount {
+  var jammeredSoundTimer : Cancellable = DefaultCancellable.obj
+  var jammeredStatusTimer : Cancellable = DefaultCancellable.obj
+
   //make control actors belonging to utilities when making control actor belonging to vehicle
   vehicle.Utilities.foreach({case (_, util) => util.Setup })
 
@@ -73,15 +85,17 @@ class VehicleControl(vehicle : Vehicle) extends Actor
         if(vehicle.Health > 0) {
           val originalHealth = vehicle.Health
           val originalShields = vehicle.Shields
-          damage_func(vehicle)
+          val cause = damage_func(vehicle)
           val health = vehicle.Health
           val shields = vehicle.Shields
           val damageToHealth = originalHealth - health
           val damageToShields = originalShields - shields
-          val name = vehicle.Actor.toString
-          val slashPoint = name.lastIndexOf("/")
-          org.log4s.getLogger("DamageResolution").info(s"${name.substring(slashPoint+1, name.length-1)}: BEFORE=$originalHealth/$originalShields, AFTER=$health/$shields, CHANGE=$damageToHealth/$damageToShields")
-          sender ! Vitality.DamageResolution(vehicle)
+          VehicleControl.HandleVehicleDamageResolution(vehicle, cause, damageToHealth + damageToShields)
+          if(damageToHealth > 0 || damageToShields > 0) {
+            val name = vehicle.Actor.toString
+            val slashPoint = name.lastIndexOf("/")
+            org.log4s.getLogger("DamageResolution").info(s"${name.substring(slashPoint + 1, name.length - 1)}: BEFORE=$originalHealth/$originalShields, AFTER=$health/$shields, CHANGE=$damageToHealth/$damageToShields")
+          }
         }
 
       case Vehicle.ChargeShields(amount) =>
@@ -91,7 +105,7 @@ class VehicleControl(vehicle : Vehicle) extends Actor
           !vehicle.History.exists(VehicleControl.LastShieldChargeOrDamage(now))) {
           vehicle.History(VehicleShieldCharge(VehicleSource(vehicle), amount))
           vehicle.Shields = vehicle.Shields + amount
-          sender ! Vehicle.UpdateShieldsCharge(vehicle)
+          vehicle.Zone.VehicleEvents ! VehicleServiceMessage(s"${vehicle.Actor}", VehicleAction.PlanetsideAttribute(PlanetSideGUID(0), vehicle.GUID, 68, vehicle.Shields))
         }
 
       case FactionAffinity.ConvertFactionAffinity(faction) =>
@@ -100,6 +114,15 @@ class VehicleControl(vehicle : Vehicle) extends Actor
           vehicle.Utilities.foreach({ case(_ : Int, util : Utility) => util().Actor forward FactionAffinity.ConfirmFactionAffinity() })
         }
         sender ! FactionAffinity.AssertFactionAffinity(vehicle, faction)
+
+      case VehicleControl.Jammered(cause) =>
+        TryJammerVehicleWithProjectile(vehicle, cause)
+
+      case VehicleControl.ClearJammeredSound() =>
+        CancelJammeredSound(vehicle)
+
+      case VehicleControl.ClearJammeredStatus() =>
+        StopJammeredStatus(vehicle)
 
       case Vehicle.PrepareForDeletion =>
         context.become(Disabled)
@@ -110,14 +133,61 @@ class VehicleControl(vehicle : Vehicle) extends Actor
   def Disabled : Receive = checkBehavior
     .orElse(dismountBehavior)
     .orElse {
+      case VehicleControl.ClearJammeredSound() =>
+        CancelJammeredSound(vehicle)
+
+      case VehicleControl.ClearJammeredStatus() =>
+        StopJammeredStatus(vehicle)
+
       case Vehicle.Reactivate =>
         context.become(Enabled)
 
       case _ => ;
     }
+
+  def TryJammerVehicleWithProjectile(target : Vehicle, cause : ResolvedProjectile) : Unit = {
+    val radius = cause.projectile.profile.DamageRadius
+    JammingUnit.FindJammerDuration(cause.projectile.profile, target) match {
+      case Some(dur) if Vector3.DistanceSquared(cause.hit_pos, cause.target.Position) < radius * radius =>
+        //jammered sound
+        target.Zone.VehicleEvents ! VehicleServiceMessage(target.Zone.Id, VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, target.GUID, 54, 1))
+        import scala.concurrent.ExecutionContext.Implicits.global
+        jammeredSoundTimer = context.system.scheduler.scheduleOnce(30 seconds, self, VehicleControl.ClearJammeredSound())
+        //jammered status
+        StartJammeredStatus(target, dur)
+      case _ => ;
+    }
+  }
+
+  def StartJammeredStatus(target : Vehicle, dur : Int) : Boolean = {
+    if(jammeredStatusTimer.isCancelled) {
+      VehicleControl.JammeredStatus(target, 1)
+      import scala.concurrent.ExecutionContext.Implicits.global
+      jammeredStatusTimer = context.system.scheduler.scheduleOnce(dur milliseconds, self, VehicleControl.ClearJammeredStatus())
+      true
+    }
+    else {
+      false
+    }
+  }
+
+  def StopJammeredStatus(target : Vehicle) : Boolean = {
+    VehicleControl.JammeredStatus(target, 0)
+    jammeredStatusTimer.cancel
+  }
+
+  def CancelJammeredSound(target : Vehicle) : Unit = {
+    jammeredSoundTimer.cancel
+    target.Zone.VehicleEvents ! VehicleServiceMessage(target.Zone.Id, VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, target.GUID, 54, 0))
+  }
 }
 
 object VehicleControl {
+  private final case class Jammered(cause : ResolvedProjectile)
+
+  private final case class ClearJammeredSound()
+
+  private final case class ClearJammeredStatus()
   import net.psforever.objects.vital.{DamageFromProjectile, VehicleShieldCharge, VitalsActivity}
   import scala.concurrent.duration._
 
@@ -135,5 +205,122 @@ object VehicleControl {
       case vsc : VehicleShieldCharge => now - vsc.time < (1 seconds).toNanos //previous charge delays next by 1s
       case _ => false
     }
+  }
+
+  /**
+    * na
+    * @param target na
+    */
+  def HandleVehicleDamageResolution(target : Vehicle, cause : ResolvedProjectile, damage : Int) : Unit = {
+    val targetGUID = target.GUID
+    val playerGUID = target.Zone.LivePlayers.find { p => cause.projectile.owner.Name.equals(p.Name) } match {
+      case Some(player) => player.GUID
+      case _ => PlanetSideGUID(0)
+    }
+    if(target.Health > 0) {
+      //activity on map
+      if(damage > 0) {
+        target.Zone.Activity ! Zone.HotSpot.Activity(cause.target, cause.projectile.owner, cause.hit_pos)
+        //alert occupants to damage source
+        HandleVehicleDamageAwareness(target, playerGUID, cause)
+      }
+      if(cause.projectile.profile.JammerProjectile) {
+        target.Actor ! VehicleControl.Jammered(cause)
+      }
+    }
+    else {
+      //alert to vehicle death (hence, occupants' deaths)
+      HandleVehicleDestructionAwareness(target, playerGUID, cause)
+    }
+    target.Zone.VehicleEvents ! VehicleServiceMessage(target.Zone.Id, VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, targetGUID, 0, target.Health))
+    target.Zone.VehicleEvents ! VehicleServiceMessage(s"${target.Actor}", VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, targetGUID, 68, target.Shields))
+  }
+
+  /**
+    * na
+    * @param target na
+    * @param attribution na
+    * @param lastShot na
+    */
+  def HandleVehicleDamageAwareness(target : Vehicle, attribution : PlanetSideGUID, lastShot : ResolvedProjectile) : Unit = {
+    //alert occupants to damage source
+    target.Seats.values.filter(seat => {
+      seat.isOccupied && seat.Occupant.get.isAlive
+    }).foreach(seat => {
+      val tplayer = seat.Occupant.get
+      target.Zone.AvatarEvents ! AvatarServiceMessage(tplayer.Name, AvatarAction.HitHint(attribution, tplayer.GUID))
+    })
+    //alert cargo occupants to damage source
+    target.CargoHolds.values.foreach(hold => {
+      hold.Occupant match {
+        case Some(cargo) =>
+          cargo.Health = 0
+          cargo.Shields = 0
+          cargo.History(lastShot)
+          HandleVehicleDamageAwareness(cargo, attribution, lastShot)
+        case None => ;
+      }
+    })
+  }
+
+  /**
+    * na
+    * @param target na
+    * @param attribution na
+    * @param lastShot na
+    */
+  def HandleVehicleDestructionAwareness(target : Vehicle, attribution : PlanetSideGUID, lastShot : ResolvedProjectile) : Unit = {
+    val continentId = target.Zone.Id
+    //alert to vehicle death (hence, occupants' deaths)
+    target.Seats.values.filter(seat => {
+      seat.isOccupied && seat.Occupant.get.isAlive
+    }).foreach(seat => {
+      val tplayer = seat.Occupant.get
+      val tplayerGUID = tplayer.GUID
+      target.Zone.AvatarEvents ! AvatarServiceMessage(tplayer.Name, AvatarAction.KilledWhileInVehicle(tplayerGUID))
+      target.Zone.AvatarEvents ! AvatarServiceMessage(continentId, AvatarAction.ObjectDelete(tplayerGUID, tplayerGUID)) //dead player still sees self
+    })
+    //vehicle wreckage has no weapons
+    target.Weapons.values
+      .filter {
+        _.Equipment.nonEmpty
+      }
+      .foreach(slot => {
+        val wep = slot.Equipment.get
+        target.Zone.AvatarEvents ! AvatarServiceMessage(continentId, AvatarAction.ObjectDelete(Service.defaultPlayerGUID, wep.GUID))
+      })
+    target.CargoHolds.values.foreach(hold => {
+      hold.Occupant match {
+        case Some(cargo) =>
+          cargo.Health = 0
+          cargo.Shields = 0
+          cargo.Position += Vector3.z(1)
+          cargo.History(lastShot) //necessary to kill cargo vehicle occupants //TODO: collision damage
+          HandleVehicleDestructionAwareness(cargo, attribution, lastShot) //might cause redundant packets
+        case None => ;
+      }
+    })
+    target.Definition match {
+      case GlobalDefinitions.ams =>
+        target.Actor ! Deployment.TryDeploymentChange(DriveState.Undeploying)
+      case GlobalDefinitions.router =>
+        target.Actor ! Deployment.TryDeploymentChange(DriveState.Undeploying)
+        VehicleService.BeforeUnloadVehicle(target, target.Zone)
+        target.Zone.LocalEvents ! LocalServiceMessage(target.Zone.Id, LocalAction.ToggleTeleportSystem(PlanetSideGUID(0), target, None))
+      case _ => ;
+    }
+    target.Zone.AvatarEvents ! AvatarServiceMessage(continentId, AvatarAction.Destroy(target.GUID, attribution, attribution, target.Position))
+    target.Zone.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(target), target.Zone))
+    target.Zone.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.AddTask(target, target.Zone, Some(1 minute)))
+  }
+
+  def JammeredStatus(target : Vehicle, statusCode : Int) : Unit = {
+    target.Zone.VehicleEvents ! VehicleServiceMessage(target.Zone.Id, VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, target.GUID, 27, statusCode))
+    target.Weapons.values
+      .map { _.Equipment }
+      .collect {
+        case Some(item : Tool) =>
+          target.Zone.VehicleEvents ! VehicleServiceMessage(target.Zone.Id, VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, item.GUID, 27, statusCode))
+      }
   }
 }

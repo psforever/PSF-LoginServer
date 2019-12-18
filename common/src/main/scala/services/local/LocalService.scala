@@ -283,8 +283,8 @@ class LocalService(zone : Zone) extends Actor {
 
     //synchronized damage calculations
     case Vitality.DamageOn(target : Deployable, func) =>
-      func(target)
-      sender ! Vitality.DamageResolution(target)
+      val cause = func(target)
+      sender ! Vitality.DamageResolution(target, cause)
 
     case msg =>
       log.warn(s"Unhandled message $msg from $sender")

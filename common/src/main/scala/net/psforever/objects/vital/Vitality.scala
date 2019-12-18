@@ -111,5 +111,5 @@ object Vitality {
     * Report that a vitals object must be updated due to damage.
     * @param obj the vital object
     */
-  final case class DamageResolution(obj : Vitality)
+  final case class DamageResolution(obj : Vitality, cause : ResolvedProjectile)
 }

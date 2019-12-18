@@ -1104,10 +1104,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     case HackingProgress(progressType, tplayer, target, tool_guid, delta, completeAction, tickAction) =>
       HandleHackingProgress(progressType, tplayer, target, tool_guid, delta, completeAction, tickAction)
 
-    case Vitality.DamageResolution(target : Vehicle) =>
-      HandleVehicleDamageResolution(target)
-
-    case Vitality.DamageResolution(target : TrapDeployable) =>
+    case Vitality.DamageResolution(target : TrapDeployable, _) =>
       //tank_traps
       val guid = target.GUID
       val health = target.Health
@@ -1116,7 +1113,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         AnnounceDestroyDeployable(target, None)
       }
 
-    case Vitality.DamageResolution(target : SensorDeployable) =>
+    case Vitality.DamageResolution(target : SensorDeployable, _) =>
       //sensors
       val guid = target.GUID
       val health = target.Health
@@ -1125,7 +1122,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         AnnounceDestroyDeployable(target, Some(0 seconds))
       }
 
-    case Vitality.DamageResolution(target : SimpleDeployable) =>
+    case Vitality.DamageResolution(target : SimpleDeployable, _) =>
       //boomers, mines
       if(target.Health <= 0) {
         //update if destroyed
@@ -1134,10 +1131,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
         AnnounceDestroyDeployable(target, Some(0 seconds))
       }
 
-    case Vitality.DamageResolution(target : TurretDeployable) =>
+    case Vitality.DamageResolution(target : TurretDeployable, _) =>
       HandleTurretDeployableDamageResolution(target)
 
-    case Vitality.DamageResolution(target : ComplexDeployable) =>
+    case Vitality.DamageResolution(target : ComplexDeployable, _) =>
       //shield_generators
       val health = target.Health
       val guid = target.GUID
@@ -1146,14 +1143,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
         AnnounceDestroyDeployable(target, None)
       }
 
-    case Vitality.DamageResolution(target : FacilityTurret) =>
+    case Vitality.DamageResolution(target : FacilityTurret, _) =>
       HandleFacilityTurretDamageResolution(target)
 
-    case Vitality.DamageResolution(target : PlanetSideGameObject) =>
+    case Vitality.DamageResolution(target : PlanetSideGameObject, _) =>
       log.warn(s"Vital target ${target.Definition.Name} damage resolution not supported using this method")
-
-    case Vehicle.UpdateShieldsCharge(vehicle) =>
-      continent.VehicleEvents ! VehicleServiceMessage(s"${vehicle.Actor}", VehicleAction.PlanetsideAttribute(PlanetSideGUID(0), vehicle.GUID, 68, vehicle.Shields))
 
     case ResponseToSelf(pkt) =>
       log.info(s"Received a direct message: $pkt")
@@ -1331,9 +1325,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
               }
             }
           }
-          if(cause.projectile.profile.JammerProjectile) {
+          if(target.isAlive && cause.projectile.profile.JammerProjectile) {
             val radius = cause.projectile.profile.DamageRadius
-            FindJammerDuration(cause.projectile.profile, target) match {
+            JammingUnit.FindJammerDuration(cause.projectile.profile, target) match {
               case Some(dur) if Vector3.DistanceSquared(cause.hit_pos, cause.target.Position) < radius * radius =>
                 //implants
                 DeactivateImplants()
@@ -1344,12 +1338,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
                 jammeredSoundTimer = context.system.scheduler.scheduleOnce(30 seconds, self, ClearJammeredSound())
                 //jammered status
                 skipStaminaRegenForTurns = 5
-                sendResponse(PlanetsideAttributeMessage(player.GUID, 2, 0))
                 jammeredEquipment = player.Holsters()
                   .map { _.Equipment }
                     .collect {
                       case Some(item) if item.Size != EquipmentSize.Melee =>
-                        sendResponse(GenericObjectActionMessage(item.GUID, 156))
+                        sendResponse(PlanetsideAttributeMessage(item.GUID, 24, 1))
                         item.GUID
                     }
                 jammeredStatusTimer = context.system.scheduler.scheduleOnce(dur milliseconds, self, ClearJammeredStatus())
@@ -2493,7 +2486,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
       case VehicleResponse.ConcealPlayer(player_guid) =>
         sendResponse(GenericObjectActionMessage(player_guid, 9))
-        //sendResponse(PlanetsideAttributeMessage(player_guid, 29, 1))
 
       case VehicleResponse.DismountVehicle(bailType, wasKickedByDriver) =>
         if(tplayer_guid != guid) {
@@ -2967,113 +2959,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
     CargoMountMessagesForUs(attachMessage, mountPointStatusMessage)
     CargoMountMessagesForOthers(attachMessage, mountPointStatusMessage)
     msgs
-  }
-
-  /**
-    * na
-    * @param target na
-    */
-  def HandleVehicleDamageResolution(target : Vehicle) : Unit = {
-    val targetGUID = target.GUID
-    val playerGUID = player.GUID
-    val players = target.Seats.values.filter(seat => {
-      seat.isOccupied && seat.Occupant.get.isAlive
-    })
-    target.LastShot match { //TODO: collision damage from/in history
-      case Some(shot) =>
-        if(target.Health > 0) {
-          //activity on map
-          continent.Activity ! Zone.HotSpot.Activity(shot.target, shot.projectile.owner, shot.hit_pos)
-          //alert occupants to damage source
-          HandleVehicleDamageAwareness(target, playerGUID, shot)
-        }
-        else {
-          //alert to vehicle death (hence, occupants' deaths)
-          HandleVehicleDestructionAwareness(target, shot)
-        }
-        continent.VehicleEvents ! VehicleServiceMessage(continent.Id, VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, targetGUID, 0, target.Health))
-        continent.VehicleEvents ! VehicleServiceMessage(s"${target.Actor}", VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, targetGUID, 68, target.Shields))
-      case None => ;
-    }
-  }
-
-  /**
-    * na
-    * @param target na
-    * @param attribution na
-    * @param lastShot na
-    */
-  def HandleVehicleDamageAwareness(target : Vehicle, attribution : PlanetSideGUID, lastShot : ResolvedProjectile) : Unit = {
-    //alert occupants to damage source
-    target.Seats.values.filter(seat => {
-      seat.isOccupied && seat.Occupant.get.isAlive
-    }).foreach(seat => {
-      val tplayer = seat.Occupant.get
-      continent.AvatarEvents ! AvatarServiceMessage(tplayer.Name, AvatarAction.HitHint(attribution, tplayer.GUID))
-    })
-    //alert cargo occupants to damage source
-    target.CargoHolds.values.foreach(hold => {
-      hold.Occupant match {
-        case Some(cargo) =>
-          cargo.Health = 0
-          cargo.Shields = 0
-          cargo.History(lastShot)
-          HandleVehicleDamageAwareness(cargo, attribution, lastShot)
-        case None => ;
-      }
-    })
-  }
-
-  /**
-    * na
-    * @param target na
-    * @param attribution na
-    * @param lastShot na
-    */
-  def HandleVehicleDestructionAwareness(target : Vehicle, lastShot : ResolvedProjectile) : Unit = {
-    val playerGUID = player.GUID
-    val continentId = continent.Id
-    //alert to vehicle death (hence, occupants' deaths)
-    target.Seats.values.filter(seat => {
-      seat.isOccupied && seat.Occupant.get.isAlive
-    }).foreach(seat => {
-      val tplayer = seat.Occupant.get
-      val tplayerGUID = tplayer.GUID
-      continent.AvatarEvents ! AvatarServiceMessage(tplayer.Name, AvatarAction.KilledWhileInVehicle(tplayerGUID))
-      continent.AvatarEvents ! AvatarServiceMessage(continentId, AvatarAction.ObjectDelete(tplayerGUID, tplayerGUID)) //dead player still sees self
-    })
-    //vehicle wreckage has no weapons
-    target.Weapons.values
-      .filter {
-        _.Equipment.nonEmpty
-      }
-      .foreach(slot => {
-        val wep = slot.Equipment.get
-        continent.AvatarEvents ! AvatarServiceMessage(continentId, AvatarAction.ObjectDelete(Service.defaultPlayerGUID, wep.GUID))
-      })
-    target.CargoHolds.values.foreach(hold => {
-      hold.Occupant match {
-        case Some(cargo) =>
-          cargo.Health = 0
-          cargo.Shields = 0
-          cargo.Position += Vector3.z(1)
-          cargo.History(lastShot) //necessary to kill cargo vehicle occupants //TODO: collision damage
-          HandleVehicleDestructionAwareness(cargo, lastShot) //might cause redundant packets
-        case None => ;
-      }
-    })
-    target.Definition match {
-      case GlobalDefinitions.ams =>
-        target.Actor ! Deployment.TryDeploymentChange(DriveState.Undeploying)
-      case GlobalDefinitions.router =>
-        target.Actor ! Deployment.TryDeploymentChange(DriveState.Undeploying)
-        BeforeUnloadVehicle(target)
-        continent.LocalEvents ! LocalServiceMessage(continent.Id, LocalAction.ToggleTeleportSystem(PlanetSideGUID(0), target, None))
-      case _ => ;
-    }
-    continent.AvatarEvents ! AvatarServiceMessage(continentId, AvatarAction.Destroy(target.GUID, playerGUID, playerGUID, target.Position))
-    continent.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(target), continent))
-    continent.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.AddTask(target, continent, Some(1 minute)))
   }
 
   /**
@@ -5531,6 +5416,15 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case _ => ;
       }
 
+    case msg @ WeaponJammedMessage(weapon_guid) =>
+      FindWeapon match {
+        case Some(tool : Tool) =>
+          log.info(s"WeaponJammed: ${tool.Definition.Name}@${weapon_guid.guid}")
+          //TODO
+        case _ =>
+          log.info(s"WeaponJammed: ${weapon_guid.guid}")
+      }
+
     case msg @ WeaponFireMessage(seq_time, weapon_guid, projectile_guid, shot_origin, unk1, unk2, unk3, unk4, unk5, unk6, unk7) =>
       log.info(s"WeaponFire: $msg")
       if(player.isShielded) {
@@ -5679,34 +5573,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
           }
         case None => ;
       }
-
-//      FindProjectileEntry(projectile_guid) match {
-//        case Some(projectile) =>
-//          val allTargets = (continent.GUID(direct_victim_uid) match {
-//            case Some(target : PlanetSideGameObject with FactionAffinity with Vitality) =>
-//              HandleDealingDamage(target, ResolveProjectileEntry(projectile, ProjectileResolution.Splash, target, target.Position).get)
-//              Seq(target)
-//            case _ =>
-//              Nil
-//          }) ++
-//            targets
-//              .map { a => continent.GUID(a.uid) }
-//              .collect {
-//                case Some(target : PlanetSideGameObject with FactionAffinity with Vitality) =>
-//                  HandleDealingDamage(target, ResolveProjectileEntry(projectile, ProjectileResolution.Splash, target, explosion_pos).get)
-//                  target
-//              }
-//          if(projectile.profile.JammerProjectile) {
-//            val jammableTargets = FindJammerTargetsInScope(projectile.profile, allTargets)
-//            jammableTargets
-//              .zip(FindJammerDuration(projectile.profile, jammableTargets))
-//              .collect { case (target, Some(time)) =>
-//                //TODO jamming messages here
-//              }
-//          }
-//
-//        case None => ;
-//      }
 
     case msg @ LashMessage(seq_time, killer_guid, victim_guid, projectile_guid, pos, unk1) =>
       log.info(s"Lash: $msg")
@@ -9870,7 +9736,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
       case GlobalDefinitions.ams if vehicle.Faction == player.Faction =>
         log.info("BeforeUnload: cleaning up after a mobile spawn vehicle ...")
         continent.VehicleEvents ! VehicleServiceMessage(continent.Id, VehicleAction.UpdateAmsSpawnPoint(continent))
-        None
       case GlobalDefinitions.router =>
         //this may repeat for multiple players on the same continent but that's okay(?)
         log.info("BeforeUnload: cleaning up after a router ...")
@@ -10337,7 +10202,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     taskResolver ! UnregisterProjectile(projectile)
     projectiles(local_index) match {
       case Some(obj) if !obj.isResolved => obj.Miss
-      case None => ;
+      case _ => ;
     }
     projectilesToCleanUp(local_index) = false
   }
@@ -10399,18 +10264,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
     }
   }
 
-  def FindJammerDuration(jammer : JammingUnit, target : PlanetSideGameObject) : Option[Int] = {
-    jammer.JammedEffectDuration
-      .collect { case (TargetValidation(_, test), duration) if test(target) => duration }
-      .toList
-      .sortWith(_ > _)
-      .headOption
-  }
-
-  def FindJammerDuration(jammer : JammingUnit, targets : Seq[PlanetSideGameObject]) : Seq[Option[Int]] = {
-    targets.map { target => FindJammerDuration(jammer, target) }
-  }
-
   def DeactivateImplants() : Unit = {
     DeactivateImplantDarkLight()
     DeactivateImplantSurge()
@@ -10444,7 +10297,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     if(!jammeredSoundTimer.isCancelled) {
       CancelJammeredSound()
     }
-    jammeredEquipment.foreach { id => sendResponse(GenericObjectActionMessage(id, 152)) }
+    jammeredEquipment.foreach { id => sendResponse(PlanetsideAttributeMessage(id, 24, 0)) }
     jammeredEquipment = Nil
   }
 
