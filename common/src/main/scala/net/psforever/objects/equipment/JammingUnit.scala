@@ -2,6 +2,7 @@
 package net.psforever.objects.equipment
 
 import net.psforever.objects.PlanetSideGameObject
+import net.psforever.objects.ballistics.ResolvedProjectile
 import net.psforever.objects.serverobject.terminals.TargetValidation
 
 import scala.collection.mutable
@@ -19,6 +20,12 @@ trait JammableUnit {
 
 object JammableUnit {
   final case class Jammer()
+
+  final case class Jammered(cause : ResolvedProjectile)
+
+  final case class ClearJammeredSound()
+
+  final case class ClearJammeredStatus()
 }
 
 trait JammingUnit {

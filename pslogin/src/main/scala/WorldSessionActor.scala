@@ -1143,9 +1143,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
         AnnounceDestroyDeployable(target, None)
       }
 
-    case Vitality.DamageResolution(target : FacilityTurret, _) =>
-      HandleFacilityTurretDamageResolution(target)
-
     case Vitality.DamageResolution(target : PlanetSideGameObject, _) =>
       log.warn(s"Vital target ${target.Definition.Name} damage resolution not supported using this method")
 
@@ -1335,16 +1332,18 @@ class WorldSessionActor extends Actor with MDCContextAware {
                 sendResponse(PlanetsideAttributeMessage(player.GUID, 54, 1))
                 continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player.GUID, 54, 1))
                 import scala.concurrent.ExecutionContext.Implicits.global
+                jammeredSoundTimer.cancel
                 jammeredSoundTimer = context.system.scheduler.scheduleOnce(30 seconds, self, ClearJammeredSound())
                 //jammered status
                 skipStaminaRegenForTurns = 5
-                jammeredEquipment = player.Holsters()
+                jammeredEquipment = (jammeredEquipment ++ player.Holsters()
                   .map { _.Equipment }
                     .collect {
                       case Some(item) if item.Size != EquipmentSize.Melee =>
-                        sendResponse(PlanetsideAttributeMessage(item.GUID, 24, 1))
+                        sendResponse(PlanetsideAttributeMessage(item.GUID, 27, 1))
                         item.GUID
-                    }
+                    }).distinct
+                jammeredStatusTimer.cancel
                 jammeredStatusTimer = context.system.scheduler.scheduleOnce(dur milliseconds, self, ClearJammeredStatus())
               case _ => ;
             }
@@ -2993,48 +2992,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
       AnnounceDestroyDeployable(target, None)
     }
     continent.AvatarEvents ! AvatarServiceMessage(continentId, AvatarAction.PlanetsideAttribute(guid, 0, health))
-  }
-
-  def HandleFacilityTurretDamageResolution(target : FacilityTurret) : Unit = {
-    val targetGUID = target.GUID
-    val playerGUID = player.GUID
-    val continentId = continent.Id
-    val players = target.Seats.values.filter(seat => {
-      seat.isOccupied && seat.Occupant.get.isAlive
-    })
-    if(target.Health > 1) { //TODO turret "death" at 0, as is proper
-      //alert occupants to damage source
-      players.foreach(seat => {
-        val tplayer = seat.Occupant.get
-        continent.AvatarEvents ! AvatarServiceMessage(tplayer.Name, AvatarAction.HitHint(playerGUID, tplayer.GUID))
-      })
-    }
-    else {
-      //alert to vehicle death (hence, occupants' deaths)
-      players.foreach(seat => {
-        val tplayer = seat.Occupant.get
-        val tplayerGUID = tplayer.GUID
-        continent.AvatarEvents ! AvatarServiceMessage(tplayer.Name, AvatarAction.KilledWhileInVehicle(tplayerGUID))
-        continent.AvatarEvents ! AvatarServiceMessage(continentId, AvatarAction.ObjectDelete(tplayerGUID, tplayerGUID)) //dead player still sees self
-      })
-      //turret wreckage has no weapons
-//      target.Weapons.values
-//        .filter {
-//          _.Equipment.nonEmpty
-//        }
-//        .foreach(slot => {
-//          val wep = slot.Equipment.get
-//          continent.AvatarEvents ! AvatarServiceMessage(continentId, AvatarAction.ObjectDelete(Service.defaultPlayerGUID, wep.GUID))
-//        })
-//      continent.AvatarEvents ! AvatarServiceMessage(continentId, AvatarAction.Destroy(targetGUID, playerGUID, playerGUID, player.Position))
-      target.Health = 1
-      continent.VehicleEvents ! VehicleServiceMessage(continentId, VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, targetGUID, 0, target.MaxHealth)) //TODO not necessary
-      if(target.Upgrade != TurretUpgrade.None) {
-        continent.VehicleEvents ! VehicleServiceMessage.TurretUpgrade(TurretUpgrader.ClearSpecific(List(target), continent))
-        continent.VehicleEvents ! VehicleServiceMessage.TurretUpgrade(TurretUpgrader.AddTask(target, continent, TurretUpgrade.None))
-      }
-    }
-    continent.VehicleEvents ! VehicleServiceMessage(continentId, VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, targetGUID, 0, target.Health))
   }
 
   /**
@@ -4691,7 +4648,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       }
 
     case msg @ UseItemMessage(avatar_guid, item_used_guid, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType) =>
-      log.info("UseItem: " + msg)
+      //log.info("UseItem: " + msg)
       // TODO: Not all fields in the response are identical to source in real packet logs (but seems to be ok)
       // TODO: Not all incoming UseItemMessage's respond with another UseItemMessage (i.e. doors only send out GenericObjectStateMsg)
       continent.GUID(object_guid) match {
@@ -7844,10 +7801,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * This is not a complete list but, for the purpose of enforcement, some pointers will be documented here.
     */
   def PlayerActionsToCancel() : Unit = {
-    if(!jammeredSoundTimer.isCancelled) {
-      CancelJammeredSound()
-    }
-    jammeredStatusTimer.cancel
+    CancelJammeredSound()
+    CancelJammeredStatus()
     progressBarUpdate.cancel
     progressBarValue = None
     lastTerminalOrderFulfillment = true
@@ -8571,14 +8526,14 @@ class WorldSessionActor extends Actor with MDCContextAware {
         //damage is synchronized on the target player's `WSA` (results distributed from there)
         continent.AvatarEvents ! AvatarServiceMessage(obj.Name, AvatarAction.Damage(player.GUID, obj, func))
       case obj : Vehicle =>
-        //damage is synchronized on the vehicle actor (results returned to and distributed from this `WSA`)
+        //damage is synchronized on the vehicle actor
+        obj.Actor ! Vitality.Damage(func)
+      case obj : FacilityTurret =>
+        //damage is synchronized on the turret actor
         obj.Actor ! Vitality.Damage(func)
       case obj : Deployable =>
         //damage is synchronized on `LSA` (results returned to and distributed from this `WSA`)
         continent.LocalEvents ! Vitality.DamageOn(obj, func)
-      case obj : FacilityTurret =>
-        //damage is synchronized on the turret actor (results returned to and distributed from this `WSA`)
-        obj.Actor ! Vitality.Damage(func)
       case _ => ;
     }
   }
@@ -10294,10 +10249,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
   }
 
   def CancelJammeredStatus() : Unit = {
-    if(!jammeredSoundTimer.isCancelled) {
-      CancelJammeredSound()
-    }
-    jammeredEquipment.foreach { id => sendResponse(PlanetsideAttributeMessage(id, 24, 0)) }
+    jammeredStatusTimer.cancel
+    jammeredEquipment.foreach { id => sendResponse(PlanetsideAttributeMessage(id, 27, 0)) }
     jammeredEquipment = Nil
   }
 

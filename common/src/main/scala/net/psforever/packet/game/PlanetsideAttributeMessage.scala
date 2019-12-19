@@ -118,7 +118,7 @@ import scodec.codecs._
   * `27 - PA_JAMMED - plays jammed buzzing sound`<br>
   * `28 - PA_IMPLANT_ACTIVE - Plays implant sounds. Valid values seem to be up to 20.`<br>
   * `29 - PA_VAPORIZED - Visible ?! That's not the cloaked effect, Maybe for spectator mode ?. Value is 0 to visible, 1 to invisible.`<br>
-  * `31 - Looking for Squad info (marquee and ui):<br>
+  * `31 - Looking for Squad info (marquee and ui):`<br>
   * ` - 0 is LFS`<br>
   * ` - 1 is LFSM (Looking for Squad Members)`<br>
   * ` - n is the supplemental squad identifier number; same as "LFS;" for the leader, sets "LFSM" after the first manual flagging`<br>
