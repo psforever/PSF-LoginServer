@@ -3,7 +3,7 @@ package net.psforever.objects
 
 import akka.actor.ActorRef
 import net.psforever.objects.definition.VehicleDefinition
-import net.psforever.objects.equipment.{Equipment, EquipmentSize, EquipmentSlot}
+import net.psforever.objects.equipment.{Equipment, EquipmentSize, EquipmentSlot, JammableUnit}
 import net.psforever.objects.inventory.{Container, GridInventory, InventoryTile}
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.PlanetSideServerObject
@@ -73,6 +73,7 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends AmenityOwner
   with Vitality
   with OwnableByPlayer
   with StandardResistanceProfile
+  with JammableUnit
   with Container {
   private var faction : PlanetSideEmpire.Value = PlanetSideEmpire.TR
   private var health : Int = 1

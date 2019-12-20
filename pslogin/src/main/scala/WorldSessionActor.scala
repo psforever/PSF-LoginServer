@@ -71,7 +71,9 @@ import services.support.SupportActor
 
 import scala.collection.mutable
 
-class WorldSessionActor extends Actor with MDCContextAware {
+class WorldSessionActor extends Actor
+  with MDCContextAware
+  with JammableBehavior {
   import WorldSessionActor._
 
   private[this] val log = org.log4s.getLogger
@@ -165,8 +167,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
   var cargoDismountTimer : Cancellable = DefaultCancellable.obj
   var antChargingTick : Cancellable = DefaultCancellable.obj
   var antDischargingTick : Cancellable = DefaultCancellable.obj
-  var jammeredSoundTimer : Cancellable = DefaultCancellable.obj
-  var jammeredStatusTimer : Cancellable = DefaultCancellable.obj
 
 
   /**
@@ -178,12 +178,13 @@ class WorldSessionActor extends Actor with MDCContextAware {
   import scala.language.implicitConversions
   implicit def boolToInt(b : Boolean) : Int = if(b) 1 else 0
 
+  def JammableObject = player
+
   override def postStop() : Unit = {
     //TODO normally, player avatar persists a minute or so after disconnect; we are subject to the SessionReaper
     clientKeepAlive.cancel
     reviveTimer.cancel
     respawnTimer.cancel
-    PlayerActionsToCancel()
     chatService ! Service.Leave()
     continent.AvatarEvents ! Service.Leave()
     continent.LocalEvents ! Service.Leave()
@@ -191,6 +192,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     galaxyService ! Service.Leave()
     LivePlayerList.Remove(sessionId)
     if(player != null && player.HasGUID) {
+      PlayerActionsToCancel()
       squadService ! Service.Leave(Some(player.CharId.toString))
       val player_guid = player.GUID
       //handle orphaned deployables
@@ -320,7 +322,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       context.stop(self)
   }
 
-  def Started : Receive = {
+  def Started : Receive = jammableBehavior.orElse {
     case ServiceManager.LookupResult("chat", endpoint) =>
       chatService = endpoint
       log.info("ID: " + sessionId + " Got chat service " + endpoint)
@@ -1174,12 +1176,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
         case _ => ;
       }
 
-    case ClearJammeredSound() =>
-      CancelJammeredSound()
-
-    case ClearJammeredStatus() =>
-      CancelJammeredStatus()
-
     case default =>
       log.warn(s"Invalid packet class received: $default from $sender")
   }
@@ -1323,30 +1319,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             }
           }
           if(target.isAlive && cause.projectile.profile.JammerProjectile) {
-            val radius = cause.projectile.profile.DamageRadius
-            JammingUnit.FindJammerDuration(cause.projectile.profile, target) match {
-              case Some(dur) if Vector3.DistanceSquared(cause.hit_pos, cause.target.Position) < radius * radius =>
-                //implants
-                DeactivateImplants()
-                //jammered sound
-                sendResponse(PlanetsideAttributeMessage(player.GUID, 54, 1))
-                continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player.GUID, 54, 1))
-                import scala.concurrent.ExecutionContext.Implicits.global
-                jammeredSoundTimer.cancel
-                jammeredSoundTimer = context.system.scheduler.scheduleOnce(30 seconds, self, ClearJammeredSound())
-                //jammered status
-                skipStaminaRegenForTurns = 5
-                jammeredEquipment = (jammeredEquipment ++ player.Holsters()
-                  .map { _.Equipment }
-                    .collect {
-                      case Some(item) if item.Size != EquipmentSize.Melee =>
-                        sendResponse(PlanetsideAttributeMessage(item.GUID, 27, 1))
-                        item.GUID
-                    }).distinct
-                jammeredStatusTimer.cancel
-                jammeredStatusTimer = context.system.scheduler.scheduleOnce(dur milliseconds, self, ClearJammeredStatus())
-              case _ => ;
-            }
+            self ! JammableUnit.Jammered(cause)
           }
         }
 
@@ -3425,6 +3398,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       player.Slot(39).Equipment = SimpleItem(remote_electronics_kit)
       player.Locker.Inventory += 0 -> SimpleItem(remote_electronics_kit)
       player.Inventory.Items.foreach { _.obj.Faction = faction }
+      player.Actor = self
       //TODO end temp player character auto-loading
       self ! ListAccountCharacters
       import scala.concurrent.ExecutionContext.Implicits.global
@@ -7801,8 +7775,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * This is not a complete list but, for the purpose of enforcement, some pointers will be documented here.
     */
   def PlayerActionsToCancel() : Unit = {
-    CancelJammeredSound()
-    CancelJammeredStatus()
+    CancelJammeredSound(player)
+    CancelJammeredStatus(player)
     progressBarUpdate.cancel
     progressBarValue = None
     lastTerminalOrderFulfillment = true
@@ -10242,16 +10216,55 @@ class WorldSessionActor extends Actor with MDCContextAware {
     }
   }
 
-  def CancelJammeredSound() : Unit = {
-    jammeredSoundTimer.cancel
-    sendResponse(PlanetsideAttributeMessage(player.GUID, 54, 0))
-    continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player.GUID, 54, 0))
+  def TryJammerEffectActivate(target : Any, cause : ResolvedProjectile) : Unit = target match {
+    case obj : Player =>
+      val radius = cause.projectile.profile.DamageRadius
+      JammingUnit.FindJammerDuration(cause.projectile.profile, obj) match {
+        case Some(dur) if Vector3.DistanceSquared(cause.hit_pos, cause.target.Position) < radius * radius =>
+          DeactivateImplants()
+          skipStaminaRegenForTurns = 5
+          StartJammeredSound(obj)
+          StartJammeredStatus(obj, dur)
+        case _ => ;
+      }
+    case _ => ;
   }
 
-  def CancelJammeredStatus() : Unit = {
-    jammeredStatusTimer.cancel
-    jammeredEquipment.foreach { id => sendResponse(PlanetsideAttributeMessage(id, 27, 0)) }
-    jammeredEquipment = Nil
+  override def StartJammeredSound(target : Any, dur : Int) : Unit = target match {
+    case obj : Player =>
+      sendResponse(PlanetsideAttributeMessage(obj.GUID, 27, 1))
+      continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(obj.GUID, 27, 1))
+      super.StartJammeredSound(obj, dur)
+    case _ => ;
+  }
+
+  override def StartJammeredStatus(target : Any, dur : Int) : Unit = target match {
+    case obj : Player =>
+      jammeredEquipment = (jammeredEquipment ++ obj.Holsters()
+        .map { _.Equipment }
+        .collect {
+          case Some(item) if item.Size != EquipmentSize.Melee =>
+            sendResponse(PlanetsideAttributeMessage(item.GUID, 27, 1))
+            item.GUID
+        }).distinct
+      super.StartJammeredStatus(obj, dur)
+    case _ => ;
+  }
+
+  override def CancelJammeredSound(target : Any) : Unit = target match {
+    case obj : Player =>
+      sendResponse(PlanetsideAttributeMessage(obj.GUID, 27, 0))
+      continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(obj.GUID, 27, 0))
+      super.CancelJammeredSound(obj)
+    case _ => ;
+  }
+
+  override def CancelJammeredStatus(target : Any) : Unit = target match {
+    case obj : Player =>
+      jammeredEquipment.foreach { id => sendResponse(PlanetsideAttributeMessage(id, 27, 0)) }
+      jammeredEquipment = Nil
+      super.CancelJammeredStatus(obj)
+    case _ => ;
   }
 
   def failWithError(error : String) = {
@@ -10412,15 +10425,11 @@ object WorldSessionActor {
 
   protected final case class SquadUIElement(name : String, index : Int, zone : Int, health : Int, armor : Int, position : Vector3)
 
-  private final case class NtuCharging(tplayer: Player,
-                                       vehicle: Vehicle)
+  private final case class NtuCharging(tplayer: Player, vehicle: Vehicle)
+
   private final case class NtuDischarging(tplayer: Player, vehicle: Vehicle, silo_guid: PlanetSideGUID)
 
   private final case class FinalizeDeployable(obj : PlanetSideGameObject with Deployable, tool : ConstructionItem, index : Int)
 
   private final case class LoadedRemoteProjectile(projectile_guid : PlanetSideGUID, projectile : Option[Projectile])
-
-  private final case class ClearJammeredSound()
-
-  private final case class ClearJammeredStatus()
 }

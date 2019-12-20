@@ -3,8 +3,9 @@ package net.psforever.objects
 
 import net.psforever.objects.avatar.LoadoutManager
 import net.psforever.objects.definition.{AvatarDefinition, ExoSuitDefinition, SpecialExoSuitDefinition}
-import net.psforever.objects.equipment.{Equipment, EquipmentSize, EquipmentSlot}
+import net.psforever.objects.equipment.{Equipment, EquipmentSize, EquipmentSlot, JammableUnit}
 import net.psforever.objects.inventory.{Container, GridInventory, InventoryItem}
+import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.vital.resistance.ResistanceProfile
 import net.psforever.objects.vital.{DamageResistanceModel, Vitality}
@@ -16,11 +17,12 @@ import net.psforever.types._
 import scala.annotation.tailrec
 import scala.util.{Success, Try}
 
-class Player(private val core : Avatar) extends PlanetSideGameObject
+class Player(private val core : Avatar) extends PlanetSideServerObject
   with FactionAffinity
   with Vitality
   with ResistanceProfile
   with Container
+  with JammableUnit
   with ZoneAware {
   private var alive : Boolean = false
   private var backpack : Boolean = false

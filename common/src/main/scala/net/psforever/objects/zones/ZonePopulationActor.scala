@@ -1,7 +1,9 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.zones
 
-import akka.actor.Actor
+import akka.actor.{Actor, ActorRef, Props}
+import net.psforever.objects.avatar.PlayerControl
+import net.psforever.objects.vehicles.VehicleControl
 import net.psforever.objects.{Avatar, Player}
 
 import scala.annotation.tailrec
@@ -34,8 +36,12 @@ class ZonePopulationActor(zone : Zone, playerMap : TrieMap[Avatar, Option[Player
     case Zone.Population.Spawn(avatar, player) =>
       PopulationSpawn(avatar, player, playerMap) match {
         case Some(tplayer) =>
+          tplayer.Zone = zone
           if(tplayer ne player) {
             sender ! Zone.Population.PlayerAlreadySpawned(zone, player)
+          }
+          else {
+            player.Actor = context.actorOf(Props(classOf[PlayerControl], player), s"${player.Name}_${player.GUID.guid}")
           }
         case None =>
           sender ! Zone.Population.PlayerCanNotSpawn(zone, player)
@@ -43,7 +49,9 @@ class ZonePopulationActor(zone : Zone, playerMap : TrieMap[Avatar, Option[Player
 
     case Zone.Population.Release(avatar) =>
       PopulationRelease(avatar, playerMap) match {
-        case Some(_) => ;
+        case Some(tplayer) =>
+          tplayer.Actor ! akka.actor.PoisonPill
+          tplayer.Actor = ActorRef.noSender
         case None =>
           sender ! Zone.Population.PlayerHasLeft(zone, None)
       }

@@ -1,11 +1,10 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.vehicles
 
-import akka.actor.{Actor, ActorRef, Cancellable}
-import net.psforever.objects.{DefaultCancellable, GlobalDefinitions, Tool, Vehicle}
+import akka.actor.{Actor, ActorRef}
+import net.psforever.objects.{GlobalDefinitions, Vehicle}
 import net.psforever.objects.ballistics.{ResolvedProjectile, VehicleSource}
-import net.psforever.objects.equipment.{JammableUnit, JammingUnit}
-import net.psforever.objects.serverobject.PlanetSideServerObject
+import net.psforever.objects.equipment.{JammableMountedWeapons, JammableUnit}
 import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior}
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
 import net.psforever.objects.serverobject.deploy.{Deployment, DeploymentBehavior}
@@ -18,8 +17,6 @@ import services.avatar.{AvatarAction, AvatarServiceMessage}
 import services.local.{LocalAction, LocalServiceMessage}
 import services.vehicle.{VehicleAction, VehicleService, VehicleServiceMessage}
 
-import scala.concurrent.duration._
-
 /**
   * An `Actor` that handles messages being dispatched to a specific `Vehicle`.<br>
   * <br>
@@ -31,14 +28,15 @@ class VehicleControl(vehicle : Vehicle) extends Actor
   with FactionAffinityBehavior.Check
   with DeploymentBehavior
   with MountableBehavior.Mount
-  with MountableBehavior.Dismount {
-  var jammeredSoundTimer : Cancellable = DefaultCancellable.obj
-  var jammeredStatusTimer : Cancellable = DefaultCancellable.obj
+  with MountableBehavior.Dismount
+  with JammableMountedWeapons {
 
   //make control actors belonging to utilities when making control actor belonging to vehicle
   vehicle.Utilities.foreach({case (_, util) => util.Setup })
 
   def MountableObject = vehicle
+
+  def JammableObject = vehicle
 
   def FactionObject = vehicle
 
@@ -57,6 +55,7 @@ class VehicleControl(vehicle : Vehicle) extends Actor
   def Enabled : Receive = checkBehavior
     .orElse(deployBehavior)
     .orElse(dismountBehavior)
+    .orElse(jammableBehavior)
     .orElse {
       case Mountable.TryMount(user, seat_num) =>
         val exosuit = user.ExoSuit
@@ -116,16 +115,9 @@ class VehicleControl(vehicle : Vehicle) extends Actor
         }
         sender ! FactionAffinity.AssertFactionAffinity(vehicle, faction)
 
-      case JammableUnit.Jammered(cause) =>
-        TryJammerWithProjectile(vehicle, cause)
-
-      case JammableUnit.ClearJammeredSound() =>
-        CancelJammeredSound(vehicle)
-
-      case JammableUnit.ClearJammeredStatus() =>
-        StopJammeredStatus(vehicle)
-
       case Vehicle.PrepareForDeletion =>
+        CancelJammeredSound(vehicle)
+        CancelJammeredStatus(vehicle)
         context.become(Disabled)
 
       case _ => ;
@@ -134,49 +126,11 @@ class VehicleControl(vehicle : Vehicle) extends Actor
   def Disabled : Receive = checkBehavior
     .orElse(dismountBehavior)
     .orElse {
-      case JammableUnit.ClearJammeredSound() =>
-        CancelJammeredSound(vehicle)
-
-      case JammableUnit.ClearJammeredStatus() =>
-        StopJammeredStatus(vehicle)
-
       case Vehicle.Reactivate =>
         context.become(Enabled)
 
       case _ => ;
     }
-
-  def TryJammerWithProjectile(target : Vehicle, cause : ResolvedProjectile) : Unit = {
-    val radius = cause.projectile.profile.DamageRadius
-    JammingUnit.FindJammerDuration(cause.projectile.profile, target) match {
-      case Some(dur) if Vector3.DistanceSquared(cause.hit_pos, cause.target.Position) < radius * radius =>
-        //jammered sound
-        jammeredSoundTimer.cancel
-        target.Zone.VehicleEvents ! VehicleServiceMessage(target.Zone.Id, VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, target.GUID, 54, 1))
-        import scala.concurrent.ExecutionContext.Implicits.global
-        jammeredSoundTimer = context.system.scheduler.scheduleOnce(30 seconds, self, JammableUnit.ClearJammeredSound())
-        //jammered status
-        StartJammeredStatus(target, dur)
-      case _ => ;
-    }
-  }
-
-  def StartJammeredStatus(target : PlanetSideServerObject with MountedWeapons, dur : Int) : Unit = {
-    jammeredStatusTimer.cancel
-    VehicleControl.JammeredStatus(target, 1)
-    import scala.concurrent.ExecutionContext.Implicits.global
-    jammeredStatusTimer = context.system.scheduler.scheduleOnce(dur milliseconds, self, JammableUnit.ClearJammeredStatus())
-  }
-
-  def StopJammeredStatus(target : PlanetSideServerObject with MountedWeapons) : Boolean = {
-    VehicleControl.JammeredStatus(target, 0)
-    jammeredStatusTimer.cancel
-  }
-
-  def CancelJammeredSound(target : PlanetSideServerObject) : Unit = {
-    jammeredSoundTimer.cancel
-    target.Zone.VehicleEvents ! VehicleServiceMessage(target.Zone.Id, VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, target.GUID, 54, 0))
-  }
 }
 
 object VehicleControl {
@@ -309,17 +263,5 @@ object VehicleControl {
     zone.AvatarEvents ! AvatarServiceMessage(continentId, AvatarAction.Destroy(target.GUID, attribution, attribution, target.Position))
     zone.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(target), zone))
     zone.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.AddTask(target, zone, Some(1 minute)))
-  }
-
-  def JammeredStatus(target : PlanetSideServerObject with MountedWeapons, statusCode : Int) : Unit = {
-    val zone = target.Zone
-    val zoneId = zone.Id
-    zone.VehicleEvents ! VehicleServiceMessage(zoneId, VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, target.GUID, 27, statusCode))
-    target.Weapons.values
-      .map { _.Equipment }
-      .collect {
-        case Some(item : Tool) =>
-          zone.VehicleEvents ! VehicleServiceMessage(zoneId, VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, item.GUID, 27, statusCode))
-      }
   }
 }

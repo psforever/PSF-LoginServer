@@ -1,12 +1,14 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.turret
 
+import net.psforever.objects.equipment.JammableUnit
 import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.types.Vector3
 import net.psforever.objects.vital.{DamageResistanceModel, StandardResistanceProfile, Vitality}
 
 class FacilityTurret(tDef : TurretDefinition) extends Amenity
   with WeaponTurret
+  with JammableUnit
   with Vitality
   with StandardResistanceProfile {
   /** some turrets can be updated; they all start without updates */

@@ -1,24 +1,18 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.turret
 
-import akka.actor.{Actor, Cancellable}
-import net.psforever.objects.{DefaultCancellable, Tool}
+import akka.actor.Actor
 import net.psforever.objects.ballistics.ResolvedProjectile
-import net.psforever.objects.equipment.{JammableUnit, JammingUnit}
-import net.psforever.objects.serverobject.PlanetSideServerObject
+import net.psforever.objects.equipment.{JammableMountedWeapons, JammableUnit}
 import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior}
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
-import net.psforever.objects.vehicles.MountedWeapons
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.PlanetSideGUID
-import net.psforever.types.Vector3
 import services.Service
 import services.avatar.{AvatarAction, AvatarServiceMessage}
 import services.vehicle.{VehicleAction, VehicleServiceMessage}
 import services.vehicle.support.TurretUpgrader
-
-import scala.concurrent.duration._
 
 /**
   * An `Actor` that handles messages being dispatched to a specific `MannedTurret`.<br>
@@ -30,11 +24,12 @@ import scala.concurrent.duration._
   */
 class FacilityTurretControl(turret : FacilityTurret) extends Actor
   with FactionAffinityBehavior.Check
-  with MountableBehavior.Dismount {
-  var jammeredSoundTimer : Cancellable = DefaultCancellable.obj
-  var jammeredStatusTimer : Cancellable = DefaultCancellable.obj
+  with MountableBehavior.Dismount
+  with JammableMountedWeapons {
 
-  def MountableObject = turret //do not add type!
+  def MountableObject = turret
+
+  def JammableObject = turret
 
   def FactionObject : FactionAffinity = turret
 
@@ -70,48 +65,8 @@ class FacilityTurretControl(turret : FacilityTurret) extends Actor
           }
         }
 
-      case JammableUnit.Jammered(cause) =>
-        TryJammerWithProjectile(turret, cause)
-
-      case JammableUnit.ClearJammeredSound() =>
-        CancelJammeredSound(turret)
-
-      case JammableUnit.ClearJammeredStatus() =>
-        StopJammeredStatus(turret)
-
       case _ => ;
     }
-
-  def TryJammerWithProjectile(target : FacilityTurret, cause : ResolvedProjectile) : Unit = {
-    val radius = cause.projectile.profile.DamageRadius
-    JammingUnit.FindJammerDuration(cause.projectile.profile, target) match {
-      case Some(dur) if Vector3.DistanceSquared(cause.hit_pos, cause.target.Position) < radius * radius =>
-        //jammered sound
-        target.Zone.VehicleEvents ! VehicleServiceMessage(target.Zone.Id, VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, target.GUID, 54, 1))
-        import scala.concurrent.ExecutionContext.Implicits.global
-        jammeredSoundTimer = context.system.scheduler.scheduleOnce(30 seconds, self, JammableUnit.ClearJammeredSound())
-        //jammered status
-        StartJammeredStatus(target, dur)
-      case _ => ;
-    }
-  }
-
-  def StartJammeredStatus(target : PlanetSideServerObject with MountedWeapons, dur : Int) : Unit = {
-    jammeredStatusTimer.cancel
-    FacilityTurretControl.JammeredStatus(target, 1)
-    import scala.concurrent.ExecutionContext.Implicits.global
-    jammeredStatusTimer = context.system.scheduler.scheduleOnce(dur milliseconds, self, JammableUnit.ClearJammeredStatus())
-  }
-
-  def StopJammeredStatus(target : PlanetSideServerObject with MountedWeapons) : Boolean = {
-    FacilityTurretControl.JammeredStatus(target, 0)
-    jammeredStatusTimer.cancel
-  }
-
-  def CancelJammeredSound(target : PlanetSideServerObject) : Unit = {
-    jammeredSoundTimer.cancel
-    target.Zone.VehicleEvents ! VehicleServiceMessage(target.Zone.Id, VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, target.GUID, 54, 0))
-  }
 }
 
 object FacilityTurretControl {
@@ -194,17 +149,5 @@ object FacilityTurretControl {
       zone.VehicleEvents ! VehicleServiceMessage.TurretUpgrade(TurretUpgrader.ClearSpecific(List(target), zone))
       zone.VehicleEvents ! VehicleServiceMessage.TurretUpgrade(TurretUpgrader.AddTask(target, zone, TurretUpgrade.None))
     }
-  }
-
-  def JammeredStatus(target : PlanetSideServerObject with MountedWeapons, statusCode : Int) : Unit = {
-    val zone = target.Zone
-    val zoneId = zone.Id
-    zone.VehicleEvents ! VehicleServiceMessage(zoneId, VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, target.GUID, 27, statusCode))
-    target.Weapons.values
-      .map { _.Equipment }
-      .collect {
-        case Some(item : Tool) =>
-          zone.VehicleEvents ! VehicleServiceMessage(zoneId, VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, item.GUID, 27, statusCode))
-      }
   }
 }
