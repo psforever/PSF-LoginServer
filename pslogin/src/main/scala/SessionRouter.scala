@@ -111,6 +111,9 @@ class SessionRouter(role : String, pipeline : List[SessionPipeline]) extends Act
         log.error(s"Requested to drop non-existent session ID=$id from ${sender()}")
       }
     case SessionReaper() =>
+      val inboundGrace = WorldConfig.Get[Duration]("network.Session.InboundGraceTime").toMillis
+      val outboundGrace = WorldConfig.Get[Duration]("network.Session.OutboundGraceTime").toMillis
+
       sessionById.foreach { case (id, session) =>
         log.trace(session.toString)
         if(session.getState == Closed()) {
@@ -119,9 +122,9 @@ class SessionRouter(role : String, pipeline : List[SessionPipeline]) extends Act
           sessionById.remove(id)
           idBySocket.remove(session.socketAddress)
           log.debug(s"Reaped session ID=$id")
-        } else if(session.timeSinceLastInboundEvent > 10000) {
+        } else if(session.timeSinceLastInboundEvent > inboundGrace) {
           removeSessionById(id, "session timed out (inbound)", graceful = false)
-        } else if(session.timeSinceLastOutboundEvent > 4000) {
+        } else if(session.timeSinceLastOutboundEvent > outboundGrace) {
           removeSessionById(id, "session timed out (outbound)", graceful = true) // tell client to STFU
         }
       }

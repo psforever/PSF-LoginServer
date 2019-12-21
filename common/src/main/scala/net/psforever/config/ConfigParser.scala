@@ -105,7 +105,17 @@ trait ConfigParser {
   protected val config_template : Seq[ConfigSection]
 
   // Misuse of this function can lead to run time exceptions when the types don't match
-  def Get[T : ConfigTypeRequired](key : String) : T = config_map(key).asInstanceOf[T]
+  // ClassTag is needed due to type erasure on T
+  // https://dzone.com/articles/scala-classtag-a-simple-use-case
+  def Get[T : ConfigTypeRequired](key : String)(implicit m: ClassTag[T]) : T = {
+    config_map.get(key) match {
+      case Some(value : T) => value
+      case None =>
+        throw new NoSuchElementException(s"Config key '${key}' not found")
+      case Some(value : Any) =>
+        throw new ClassCastException(s"Incorrect type T = ${m.runtimeClass.getSimpleName} passed to Get[T]: needed ${value.getClass.getSimpleName}")
+    }
+  }
 
   def Load(filename : String) : ValidationResult = {
     val ini = new org.ini4j.Ini()
