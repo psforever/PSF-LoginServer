@@ -1,4 +1,5 @@
 // Copyright (c) 2019 PSForever
+import java.io._
 import scala.io.Source
 import org.specs2.mutable._
 import net.psforever.config._
@@ -11,6 +12,25 @@ class ConfigTest extends Specification {
     "have no errors" in {
       WorldConfig.Load("config/worldserver.ini.dist") mustEqual Valid
     }
+
+    "be formatted correctly" in {
+      var lineno = 1
+      for (line <- Source.fromFile("config/worldserver.ini.dist").getLines) {
+        val linee :String = line
+        val ctx = s"worldserver.ini.dist:${lineno}"
+        val maxLen = 100
+        val lineLen = line.length
+
+        lineLen aka s"${ctx} - line length" must beLessThan(maxLen)
+        line.slice(0, 1) aka s"${ctx} - leading whitespace found" mustNotEqual " "
+        line.slice(line.length-1, line.length) aka s"${ctx} - trailing whitespace found" mustNotEqual " "
+
+        lineno += 1
+      }
+
+      ok
+    }
+
   }
 
   "TestConfig" should {
@@ -25,6 +45,19 @@ class ConfigTest extends Specification {
       TestConfig.Get[Boolean]("default.bool_true") mustEqual true
       TestConfig.Get[Boolean]("default.bool_false") mustEqual false
       TestConfig.Get[Int]("default.missing") mustEqual 1337
+    }
+
+    "throw when getting non-existant keys" in {
+      TestConfig.Load(testConfig) mustEqual Valid
+      TestConfig.Get[Int]("missing.key") must throwA[NoSuchElementException](message = "Config key 'missing.key' not found")
+      TestConfig.Get[String]("missing.key") must throwA[NoSuchElementException](message = "Config key 'missing.key' not found")
+    }
+
+    "throw when Get is not passed the right type parameter" in {
+      TestConfig.Load(testConfig) mustEqual Valid
+      TestConfig.Get[Duration]("default.string") must throwA[ClassCastException](message = "Incorrect type T = Duration passed to Get\\[T\\]: needed String")
+      TestConfig.Get[String]("default.int") must throwA[ClassCastException](message = "Incorrect type T = String passed to Get\\[T\\]: needed Int")
+      ok
     }
   }
 

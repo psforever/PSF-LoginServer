@@ -12,6 +12,10 @@ object WorldConfig extends ConfigParser {
     ConfigSection("worldserver",
       ConfigEntryInt("ListeningPort", 51001, Constraints.min(1), Constraints.max(65535))
     ),
+    ConfigSection("network",
+      ConfigEntryTime("Session.InboundGraceTime", 1 minute, Constraints.min(10 seconds)),
+      ConfigEntryTime("Session.OutboundGraceTime", 1 minute, Constraints.min(10 seconds))
+    ),
     ConfigSection("developer",
       ConfigEntryBool ("NetSim.Active", false),
       ConfigEntryFloat("NetSim.Loss", 0.02f, Constraints.min(0.0f), Constraints.max(1.0f)),

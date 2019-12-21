@@ -49,6 +49,35 @@ ListeningPort = 51001
 ListeningPort = 51000
 
 ###################################################################################################
+# NETWORK SETTINGS
+###################################################################################################
+
+[network]
+
+#    Session.InboundGraceTime (time)
+#        Description: The maximum amount of time since the last inbound packet from a UDP session
+#                     before it is dropped.
+#        Important:   Lower values will cause legitimate clients to be dropped during loading
+#                     screens, but higher values will make the server be more susceptible to
+#                     denial of service attacks and running out of memory.
+#        Range:       [10 seconds, 10 minutes] - (10 second grace, 10 minute grace)
+#        Default:     1 minute                 - (Clients sending a packet at least
+#                                                 once a minute stay alive)
+
+Session.InboundGraceTime = 1 minute
+
+#    Session.OutboundGraceTime (time)
+#        Description: The maximum amount of time since the last outbound packet for a UDP session
+#                     before it is dropped. Can be used as a watchdog for hung server sessions.
+#        Important:   Lower values will cause legitimate clients to be dropped during server
+#                     lag spikes or Zone transitions.
+#        Range:       [10 seconds, 10 minutes] - (10 second grace, 10 minute grace)
+#        Default:     1 minute                 - (Clients receiving a packet at least
+#                                                 once a minute stay alive)
+
+Session.OutboundGraceTime = 1 minute
+
+###################################################################################################
 # DEVELOPER SETTINGS
 #    - NETWORK SIMULATOR
 ###################################################################################################
