@@ -1,9 +1,9 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects
 
-import net.psforever.objects.definition.DeployableDefinition
+import net.psforever.objects.definition.SimpleDeployableDefinition
 
-class BoomerDeployable(cdef : DeployableDefinition) extends ExplosiveDeployable(cdef) {
+class BoomerDeployable(cdef : SimpleDeployableDefinition) extends ExplosiveDeployable(cdef) {
   private var trigger : Option[BoomerTrigger] = None
 
   def Trigger : Option[BoomerTrigger] = trigger

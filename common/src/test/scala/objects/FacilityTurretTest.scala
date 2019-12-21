@@ -19,7 +19,7 @@ import scala.concurrent.duration._
 class FacilityTurretTest extends Specification {
   "FacilityTurretTest" should {
     "define" in {
-      val obj = new TurretDefinition(480)
+      val obj = new FacilityTurretDefinition(480)
       obj.Weapons mustEqual mutable.HashMap.empty[TurretUpgrade.Value, ToolDefinition]
       obj.ReserveAmmunition mustEqual false
       obj.FactionLocked mustEqual true
@@ -152,7 +152,7 @@ class FacilityTurretControl3Test extends ActorTest {
 
 class FacilityTurretControl4Test extends ActorTest {
   val player = Player(Avatar("", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
-  val objDef = new TurretDefinition(480)
+  val objDef = new FacilityTurretDefinition(480)
   objDef.FactionLocked = false
   val obj = FacilityTurret(objDef)
   obj.GUID = PlanetSideGUID(1)

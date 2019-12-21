@@ -2,7 +2,7 @@
 package net.psforever.objects.vehicles
 
 import akka.actor.ActorContext
-import net.psforever.objects.definition.DeployableDefinition
+import net.psforever.objects.definition.SimpleDeployableDefinition
 import net.psforever.objects._
 import net.psforever.objects.ce.TelepadLike
 import net.psforever.objects.serverobject.structures.Amenity
@@ -193,7 +193,7 @@ object Utility {
     * and allows it to serve as one of the terminal points of a Router-telepad teleportation system.
     * @param ddef na
     */
-  class InternalTelepad(ddef : DeployableDefinition) extends Amenity
+  class InternalTelepad(ddef : SimpleDeployableDefinition) extends Amenity
     with TelepadLike {
     /** a link to the telepad that serves as the other endpoint of this teleportation system */
     private var activeTelepad : Option[PlanetSideGUID] = None

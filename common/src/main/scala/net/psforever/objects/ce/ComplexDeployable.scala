@@ -1,10 +1,10 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.ce
 
-import net.psforever.objects.definition.DeployableDefinition
+import net.psforever.objects.definition.ComplexDeployableDefinition
 import net.psforever.objects.serverobject.PlanetSideServerObject
 
-abstract class ComplexDeployable(cdef : DeployableDefinition) extends PlanetSideServerObject
+abstract class ComplexDeployable(cdef : ComplexDeployableDefinition) extends PlanetSideServerObject
   with Deployable {
   Health = Definition.MaxHealth
 

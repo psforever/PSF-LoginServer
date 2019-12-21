@@ -915,16 +915,8 @@ class WorldSessionActor extends Actor
         continent.Deployables ! Zone.Deployable.Dismiss(obj)
       }
 
-    case WorldSessionActor.FinalizeDeployable(obj : TurretDeployable, tool, index) =>
-      //spitfires and deployable field turrets
-      StartBundlingPackets()
-      DeployableBuildActivity(obj)
-      CommonDestroyConstructionItem(tool, index)
-      FindReplacementConstructionItem(tool, index)
-      StopBundlingPackets()
-
     case WorldSessionActor.FinalizeDeployable(obj : ComplexDeployable, tool, index) =>
-      //deployable_shield_generator
+      //spitfires and deployable field turrets and the deployable_shield_generator
       StartBundlingPackets()
       DeployableBuildActivity(obj)
       CommonDestroyConstructionItem(tool, index)
@@ -1017,7 +1009,7 @@ class WorldSessionActor extends Actor
       StartBundlingPackets()
       sendResponse(GenericObjectActionMessage(guid, 21)) //reset build cooldown
       sendResponse(ObjectDeployedMessage.Failure(definition.Name))
-      log.warn(s"FinalizeDeployable: deployable ${definition.asInstanceOf[DeployableDefinition].Item}@$guid not handled by specific case")
+      log.warn(s"FinalizeDeployable: deployable ${definition.asInstanceOf[SimpleDeployableDefinition].Item}@$guid not handled by specific case")
       log.warn(s"FinalizeDeployable: deployable will be cleaned up, but may not get unregistered properly")
       TryDropConstructionTool(tool, index, obj.Position)
       obj.Position = Vector3.Zero
@@ -1133,18 +1125,6 @@ class WorldSessionActor extends Actor
         AnnounceDestroyDeployable(target, Some(0 seconds))
       }
 
-    case Vitality.DamageResolution(target : TurretDeployable, _) =>
-      HandleTurretDeployableDamageResolution(target)
-
-    case Vitality.DamageResolution(target : ComplexDeployable, _) =>
-      //shield_generators
-      val health = target.Health
-      val guid = target.GUID
-      continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(guid, 0, health))
-      if(health <= 0) {
-        AnnounceDestroyDeployable(target, None)
-      }
-
     case Vitality.DamageResolution(target : PlanetSideGameObject, _) =>
       log.warn(s"Vital target ${target.Definition.Name} damage resolution not supported using this method")
 
@@ -1243,22 +1223,19 @@ class WorldSessionActor extends Actor
         sendResponse(GenericObjectActionMessage(guid, 9))
 
       case AvatarResponse.EnvironmentalDamage(target, amount) =>
-        if(player.isAlive) {
+        if(player.isAlive && amount != 0) {
+          val armor = player.Armor
+          val capacitor = player.Capacitor
           val originalHealth = player.Health
-          player.Health = player.Health - amount
+          player.Health = originalHealth - amount
           sendResponse(PlanetsideAttributeMessage(target, 0, player.Health))
           continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(target, 0, player.Health))
-          damageLog.info(s"${player.Name}-infantry: BEFORE=$originalHealth, AFTER=${player.Health}, CHANGE=$amount")
-          if(amount != 0) {
-            val playerGUID = player.GUID
-            sendResponse(PlanetsideAttributeMessage(playerGUID, 0, player.Health))
-            continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(playerGUID, 0, player.Health))
-            if(player.Health == 0 && player.isAlive) {
-              KillPlayer(player)
-            }
-            else {
-              //todo: History?
-            }
+          damageLog.info(s"${player.Name}-infantry: BEFORE=$originalHealth/$armor/$capacitor, AFTER=${player.Health}/$armor/$capacitor, CHANGE=$amount/0/0")
+          if(player.Health == 0 && player.isAlive) {
+            KillPlayer(player)
+          }
+          else {
+            //todo: History?
           }
         }
 
@@ -1274,19 +1251,17 @@ class WorldSessionActor extends Actor
           val damageToHealth = originalHealth - health
           val damageToArmor = originalArmor - armor
           val damageToCapacitor = originalCapacitor - capacitor
-          damageLog.info(s"${player.Name}-infantry: BEFORE=$originalHealth/$originalArmor/$originalCapacitor, AFTER=$health/$armor/$capacitor, CHANGE=$damageToHealth/$damageToArmor/$damageToCapacitor")
           if(damageToHealth != 0 || damageToArmor != 0 || damageToCapacitor != 0) {
+            damageLog.info(s"${player.Name}-infantry: BEFORE=$originalHealth/$originalArmor/$originalCapacitor, AFTER=$health/$armor/$capacitor, CHANGE=$damageToHealth/$damageToArmor/$damageToCapacitor")
             val playerGUID = player.GUID
             if(damageToHealth > 0) {
               sendResponse(PlanetsideAttributeMessage(playerGUID, 0, health))
               continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(playerGUID, 0, health))
             }
-
             if(damageToArmor > 0) {
               sendResponse(PlanetsideAttributeMessage(playerGUID, 4, armor))
               continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(playerGUID, 4, armor))
             }
-
             if(damageToCapacitor > 0) {
               sendResponse(PlanetsideAttributeMessage(playerGUID, 7, capacitor))
             }
@@ -2931,40 +2906,6 @@ class WorldSessionActor extends Actor
     CargoMountMessagesForUs(attachMessage, mountPointStatusMessage)
     CargoMountMessagesForOthers(attachMessage, mountPointStatusMessage)
     msgs
-  }
-
-  /**
-    * na
-    * @param target na
-    */
-  def HandleTurretDeployableDamageResolution(target : TurretDeployable) : Unit = {
-    //spitfires and field turrets
-    val health = target.Health
-    val guid = target.GUID
-    val continentId = continent.Id
-    if(health <= 0) {
-      //if occupants, kill them
-      target.Seats.values
-        .filter(seat => {
-          seat.isOccupied && seat.Occupant.get.isAlive
-        })
-        .foreach(seat => {
-          val tplayer = seat.Occupant.get
-          val tplayerGUID = tplayer.GUID
-          continent.AvatarEvents ! AvatarServiceMessage(tplayer.Name, AvatarAction.KilledWhileInVehicle(tplayerGUID))
-          continent.AvatarEvents ! AvatarServiceMessage(continentId, AvatarAction.ObjectDelete(tplayerGUID, tplayerGUID)) //dead player still sees self
-        })
-      //destroy weapons
-      target.Weapons.values
-        .map(slot => slot.Equipment)
-        .collect { case Some(weapon) =>
-          val wguid = weapon.GUID
-          sendResponse(ObjectDeleteMessage(wguid, 0))
-          continent.AvatarEvents ! AvatarServiceMessage(continentId, AvatarAction.ObjectDelete(player.GUID, wguid))
-        }
-      AnnounceDestroyDeployable(target, None)
-    }
-    continent.AvatarEvents ! AvatarServiceMessage(continentId, AvatarAction.PlanetsideAttribute(guid, 0, health))
   }
 
   /**
@@ -8499,13 +8440,12 @@ class WorldSessionActor extends Actor
       case obj : Player =>
         //damage is synchronized on the target player's `WSA` (results distributed from there)
         continent.AvatarEvents ! AvatarServiceMessage(obj.Name, AvatarAction.Damage(player.GUID, obj, func))
-      case obj : Vehicle =>
-        //damage is synchronized on the vehicle actor
-        obj.Actor ! Vitality.Damage(func)
-      case obj : FacilityTurret =>
-        //damage is synchronized on the turret actor
-        obj.Actor ! Vitality.Damage(func)
-      case obj : Deployable =>
+
+      case obj : Vehicle => obj.Actor ! Vitality.Damage(func)
+      case obj : FacilityTurret => obj.Actor ! Vitality.Damage(func)
+      case obj : ComplexDeployable => obj.Actor ! Vitality.Damage(func)
+
+      case obj : SimpleDeployable =>
         //damage is synchronized on `LSA` (results returned to and distributed from this `WSA`)
         continent.LocalEvents ! Vitality.DamageOn(obj, func)
       case _ => ;
@@ -10216,7 +10156,7 @@ class WorldSessionActor extends Actor
     }
   }
 
-  def TryJammerEffectActivate(target : Any, cause : ResolvedProjectile) : Unit = target match {
+  override def TryJammerEffectActivate(target : Any, cause : ResolvedProjectile) : Unit = target match {
     case obj : Player =>
       val radius = cause.projectile.profile.DamageRadius
       JammingUnit.FindJammerDuration(cause.projectile.profile, obj) match {

@@ -7,7 +7,7 @@ import net.psforever.objects.ce.{Deployable, DeployableCategory, DeployedItem}
 import net.psforever.objects.definition.converter.SmallDeployableConverter
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.vital.resistance.ResistanceProfileMutators
-import net.psforever.objects.vital.{DamageResistanceModel, NoResistanceSelection, StandardDeployableDamage, StandardResistanceProfile}
+import net.psforever.objects.vital.{DamageResistanceModel, NoResistanceSelection, StandardDeployableDamage}
 
 import scala.concurrent.duration._
 
@@ -53,7 +53,7 @@ trait BaseDeployableDefinition extends DamageResistanceModel
   def Uninitialize(obj : PlanetSideServerObject with Deployable, context : ActorContext) : Unit = { }
 }
 
-class DeployableDefinition(private val objectId : Int) extends ObjectDefinition(objectId)
+class SimpleDeployableDefinition(private val objectId : Int) extends ObjectDefinition(objectId)
   with BaseDeployableDefinition {
   private val item = DeployedItem(objectId) //let throw NoSuchElementException
   Packet = new SmallDeployableConverter
@@ -61,9 +61,16 @@ class DeployableDefinition(private val objectId : Int) extends ObjectDefinition(
   def Item : DeployedItem.Value = item
 }
 
-object DeployableDefinition {
-  def apply(item : DeployedItem.Value) : DeployableDefinition =
-    new DeployableDefinition(item.id)
+abstract class ComplexDeployableDefinition(private val objectId : Int) extends ObjectDefinition(objectId)
+  with BaseDeployableDefinition {
+  private val item = DeployedItem(objectId) //let throw NoSuchElementException
+
+  def Item : DeployedItem.Value = item
+}
+
+object SimpleDeployableDefinition {
+  def apply(item : DeployedItem.Value) : SimpleDeployableDefinition =
+    new SimpleDeployableDefinition(item.id)
 
   def SimpleUninitialize(obj : PlanetSideGameObject, context : ActorContext) : Unit = { }
 

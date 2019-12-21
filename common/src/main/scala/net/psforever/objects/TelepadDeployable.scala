@@ -2,7 +2,7 @@
 package net.psforever.objects
 
 import net.psforever.objects.ce.{SimpleDeployable, TelepadLike}
-import net.psforever.objects.definition.DeployableDefinition
+import net.psforever.objects.definition.SimpleDeployableDefinition
 
-class TelepadDeployable(ddef : DeployableDefinition) extends SimpleDeployable(ddef)
+class TelepadDeployable(ddef : SimpleDeployableDefinition) extends SimpleDeployable(ddef)
   with TelepadLike

@@ -2,9 +2,9 @@
 package net.psforever.objects.ce
 
 import net.psforever.objects.PlanetSideGameObject
-import net.psforever.objects.definition.DeployableDefinition
+import net.psforever.objects.definition.SimpleDeployableDefinition
 
-abstract class SimpleDeployable(cdef : DeployableDefinition) extends PlanetSideGameObject
+abstract class SimpleDeployable(cdef : SimpleDeployableDefinition) extends PlanetSideGameObject
   with Deployable {
   Health = Definition.MaxHealth
 

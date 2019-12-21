@@ -17,7 +17,7 @@ import net.psforever.objects.serverobject.terminals._
 import net.psforever.objects.serverobject.tube.SpawnTubeDefinition
 import net.psforever.objects.serverobject.resourcesilo.ResourceSiloDefinition
 import net.psforever.objects.serverobject.structures.SphereOfInfluence
-import net.psforever.objects.serverobject.turret.{TurretDefinition, TurretUpgrade}
+import net.psforever.objects.serverobject.turret.{FacilityTurretDefinition, TurretUpgrade}
 import net.psforever.objects.vehicles.{DestroyedVehicle, SeatArmorRestriction, UtilityType}
 import net.psforever.objects.vital.{DamageType, StandardMaxDamage, StandardResolutions}
 import net.psforever.types.{CertificationType, ExoSuitType, PlanetSideEmpire, Vector3}
@@ -870,11 +870,11 @@ object GlobalDefinitions {
   /*
   combat engineering deployables
    */
-  val boomer = DeployableDefinition(DeployedItem.boomer)
+  val boomer = SimpleDeployableDefinition(DeployedItem.boomer)
 
-  val he_mine = DeployableDefinition(DeployedItem.he_mine)
+  val he_mine = SimpleDeployableDefinition(DeployedItem.he_mine)
 
-  val jammer_mine = DeployableDefinition(DeployedItem.jammer_mine)
+  val jammer_mine = SimpleDeployableDefinition(DeployedItem.jammer_mine)
 
   val spitfire_turret = TurretDeployableDefinition(DeployedItem.spitfire_turret)
 
@@ -882,11 +882,11 @@ object GlobalDefinitions {
 
   val spitfire_aa = TurretDeployableDefinition(DeployedItem.spitfire_aa)
 
-  val motionalarmsensor = DeployableDefinition(DeployedItem.motionalarmsensor)
+  val motionalarmsensor = SimpleDeployableDefinition(DeployedItem.motionalarmsensor)
 
-  val sensor_shield = DeployableDefinition(DeployedItem.sensor_shield)
+  val sensor_shield = SimpleDeployableDefinition(DeployedItem.sensor_shield)
 
-  val tank_traps = DeployableDefinition(DeployedItem.tank_traps)
+  val tank_traps = SimpleDeployableDefinition(DeployedItem.tank_traps)
 
   val portable_manned_turret = TurretDeployableDefinition(DeployedItem.portable_manned_turret)
 
@@ -898,10 +898,10 @@ object GlobalDefinitions {
 
   val deployable_shield_generator = new ShieldGeneratorDefinition
 
-  val router_telepad_deployable = DeployableDefinition(DeployedItem.router_telepad_deployable)
+  val router_telepad_deployable = SimpleDeployableDefinition(DeployedItem.router_telepad_deployable)
 
   //this is only treated like a deployable
-  val internal_router_telepad_deployable = DeployableDefinition(DeployedItem.router_telepad_deployable)
+  val internal_router_telepad_deployable = SimpleDeployableDefinition(DeployedItem.router_telepad_deployable)
   init_deployables()
 
   /*
@@ -989,7 +989,7 @@ object GlobalDefinitions {
 
   val ground_rearm_terminal = new OrderTerminalDefinition(384)
 
-  val manned_turret = new TurretDefinition(480)
+  val manned_turret = new FacilityTurretDefinition(480)
 
   val painbox = new PainboxDefinition(622)
   val painbox_continuous = new PainboxDefinition(623)

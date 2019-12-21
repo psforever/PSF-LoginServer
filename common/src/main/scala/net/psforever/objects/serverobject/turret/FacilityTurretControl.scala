@@ -34,6 +34,7 @@ class FacilityTurretControl(turret : FacilityTurret) extends Actor
   def FactionObject : FactionAffinity = turret
 
   def receive : Receive = checkBehavior
+    .orElse(jammableBehavior)
     .orElse(dismountBehavior)
     .orElse {
       case Mountable.TryMount(user, seat_num) =>

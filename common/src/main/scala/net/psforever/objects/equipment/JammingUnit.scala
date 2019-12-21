@@ -65,7 +65,17 @@ trait JammableBehavior {
 
   def JammableObject : PlanetSideServerObject with JammableUnit with ZoneAware
 
-  def TryJammerEffectActivate(target : Any, cause : ResolvedProjectile) : Unit
+  def TryJammerEffectActivate(target : Any, cause : ResolvedProjectile) : Unit = target match {
+    case obj : PlanetSideServerObject =>
+      val radius = cause.projectile.profile.DamageRadius
+      JammingUnit.FindJammerDuration(cause.projectile.profile, obj) match {
+        case Some(dur) if Vector3.DistanceSquared(cause.hit_pos, cause.target.Position) < radius * radius =>
+          StartJammeredSound(obj)
+          StartJammeredStatus(obj, dur)
+        case _ => ;
+      }
+    case _ => ;
+  }
 
   def StartJammeredSound(target : Any, dur : Int = 30000) : Unit = {
     import scala.concurrent.ExecutionContext.Implicits.global
@@ -89,7 +99,7 @@ trait JammableBehavior {
     jammeredStatusTimer.cancel
   }
 
-  def jammableBehavior : Receive = {
+  val jammableBehavior : Receive = {
     case JammableUnit.Jammered(cause) =>
       TryJammerEffectActivate(JammableObject, cause)
 
@@ -101,20 +111,8 @@ trait JammableBehavior {
   }
 }
 
-trait JammableMountedWeapons extends Actor with JammableBehavior {
+trait JammableMountedWeapons extends JammableBehavior {
   _ : Actor =>
-
-  def TryJammerEffectActivate(target : Any, cause : ResolvedProjectile) : Unit = target match {
-    case obj : PlanetSideServerObject with MountedWeapons =>
-      val radius = cause.projectile.profile.DamageRadius
-      JammingUnit.FindJammerDuration(cause.projectile.profile, obj) match {
-        case Some(dur) if Vector3.DistanceSquared(cause.hit_pos, cause.target.Position) < radius * radius =>
-          StartJammeredSound(obj)
-          StartJammeredStatus(obj, dur)
-        case _ => ;
-      }
-    case _ => ;
-  }
 
   override def StartJammeredSound(target : Any, dur : Int) : Unit = target match {
     case obj : PlanetSideServerObject with MountedWeapons =>
