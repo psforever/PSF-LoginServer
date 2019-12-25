@@ -1116,6 +1116,16 @@ class WorldSessionActor extends Actor
         AnnounceDestroyDeployable(target, Some(0 seconds))
       }
 
+    case Vitality.DamageResolution(target : BoomerDeployable, _) =>
+      //boomer
+      if(target.Jammed) {
+        continent.LocalEvents ! LocalServiceMessage(continent.Id, LocalAction.Detonate(target.GUID, target))
+        AnnounceDestroyDeployable(target, Some(500 milliseconds))
+      }
+      else if(target.Health <= 0) {
+        AnnounceDestroyDeployable(target, Some(0 seconds))
+      }
+
     case Vitality.DamageResolution(target : SimpleDeployable, _) =>
       //boomers, mines
       if(target.Health <= 0) {
@@ -1531,6 +1541,14 @@ class WorldSessionActor extends Actor
           sendResponse(DeployableObjectsInfoMessage(behavior, deployInfo))
         }
 
+      case LocalResponse.Detonate(guid, obj : BoomerDeployable) =>
+        sendResponse(TriggerEffectMessage(guid, "detonate_boomer"))
+        sendResponse(PlanetsideAttributeMessage(guid, 29, 1))
+        sendResponse(ObjectDeleteMessage(guid, 0))
+
+      case LocalResponse.Detonate(guid, obj) =>
+        log.warn(s"LocalAction.Detonate: ${obj.Definition.Name} not configured to explode correctly")
+
       case LocalResponse.DoorOpens(door_guid) =>
         if(tplayer_guid != guid) {
           sendResponse(GenericObjectStateMsg(door_guid, 16))
@@ -1556,7 +1574,7 @@ class WorldSessionActor extends Actor
         }
 
       case LocalResponse.EliminateDeployable(obj : ExplosiveDeployable, guid, pos) =>
-        if(obj.Exploded || obj.Health == 0) {
+        if(obj.Exploded || obj.Jammed || obj.Health == 0) {
           DeconstructDeployable(obj, guid, pos)
         }
         else {
@@ -4196,15 +4214,9 @@ class WorldSessionActor extends Actor
           continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireState_Start(playerGUID, item_guid))
           continent.GUID(trigger.Companion) match {
             case Some(boomer : BoomerDeployable) =>
-              val boomerGUID = boomer.GUID
               boomer.Exploded = true
-              sendResponse(TriggerEffectMessage(boomerGUID, "detonate_boomer"))
-              sendResponse(PlanetsideAttributeMessage(boomerGUID, 29, 1))
-              sendResponse(ObjectDeleteMessage(boomerGUID, 0))
-              continent.LocalEvents ! LocalServiceMessage(continent.Id, LocalAction.TriggerEffect(playerGUID, "detonate_boomer", boomerGUID))
-              continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(boomerGUID, 29, 1))
-              continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(playerGUID, boomerGUID))
-              continent.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.AddTask(boomer, continent, Some(0 seconds)))
+              continent.LocalEvents ! LocalServiceMessage(continent.Id, LocalAction.Detonate(boomer.GUID, boomer))
+              AnnounceDestroyDeployable(boomer, Some(500 milliseconds))
             case Some(_) | None => ;
           }
           FindEquipmentToDelete(item_guid, trigger)

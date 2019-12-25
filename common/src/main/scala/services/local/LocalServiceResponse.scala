@@ -19,6 +19,7 @@ object LocalResponse {
 
   final case class AlertDestroyDeployable(obj : PlanetSideGameObject with Deployable) extends Response
   final case class DeployableMapIcon(action : DeploymentAction.Value, deployInfo : DeployableInfo) extends Response
+  final case class Detonate(guid : PlanetSideGUID, obj : PlanetSideGameObject) extends Response
   final case class DoorOpens(door_guid : PlanetSideGUID) extends Response
   final case class DoorCloses(door_guid : PlanetSideGUID) extends Response
   final case class EliminateDeployable(obj : PlanetSideGameObject with Deployable, object_guid : PlanetSideGUID, pos : Vector3) extends Response
