@@ -21,22 +21,14 @@ class BuildingControl(building : Building) extends Actor with FactionAffinityBeh
     ServiceManager.serviceManager ! Lookup("cluster")
   }
 
-  def receive : Receive = {
+  def receive : Receive = checkBehavior.orElse {
     case ServiceManager.LookupResult("galaxy", endpoint) =>
       galaxyService = endpoint
       log.trace("BuildingControl: Building " + building.GUID + " Got galaxy service " + endpoint)
-      CheckReady()
     case ServiceManager.LookupResult("cluster", endpoint) =>
       interstellarCluster = endpoint
       log.trace("BuildingControl: Building " + building.GUID + " Got interstellar cluster service " + endpoint)
-      CheckReady()
-  }
 
-  def CheckReady(): Unit = {
-    if(galaxyService != Actor.noSender && interstellarCluster != Actor.noSender) context.become(Processing)
-  }
-
-  def Processing : Receive = checkBehavior.orElse {
     case FactionAffinity.ConvertFactionAffinity(faction) =>
       val originalAffinity = building.Faction
       if(originalAffinity != (building.Faction = faction)) {
@@ -44,7 +36,7 @@ class BuildingControl(building : Building) extends Actor with FactionAffinityBeh
       }
       sender ! FactionAffinity.AssertFactionAffinity(building, faction)
     case Building.TriggerZoneMapUpdate(zone_num: Int) =>
-      interstellarCluster ! InterstellarCluster.ZoneMapUpdate(zone_num)
+      if(interstellarCluster != ActorRef.noSender) interstellarCluster ! InterstellarCluster.ZoneMapUpdate(zone_num)
     case Building.SendMapUpdate(all_clients: Boolean) =>
       val zoneNumber = building.Zone.Number
       val buildingNumber = building.MapId
@@ -73,7 +65,7 @@ class BuildingControl(building : Building) extends Actor with FactionAffinityBeh
       )
 
       if(all_clients) {
-        galaxyService ! GalaxyServiceMessage(GalaxyAction.MapUpdate(msg))
+        if(galaxyService != ActorRef.noSender) galaxyService ! GalaxyServiceMessage(GalaxyAction.MapUpdate(msg))
       } else {
         // Fake a GalaxyServiceResponse response back to just the sender
         sender ! GalaxyServiceResponse("", GalaxyResponse.MapUpdate(msg))

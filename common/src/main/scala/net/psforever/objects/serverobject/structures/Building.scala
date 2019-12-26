@@ -3,7 +3,7 @@ package net.psforever.objects.serverobject.structures
 
 import java.util.concurrent.TimeUnit
 
-import akka.actor.ActorContext
+import akka.actor.{ActorContext, ActorRef}
 import net.psforever.objects.{GlobalDefinitions, Player}
 import net.psforever.objects.definition.ObjectDefinition
 import net.psforever.objects.serverobject.hackable.Hackable
@@ -79,7 +79,7 @@ class Building(private val name: String,
   }
 
   def TriggerZoneMapUpdate(): Unit = {
-    Actor ! Building.TriggerZoneMapUpdate(Zone.Number)
+    if(Actor != ActorRef.noSender) Actor ! Building.TriggerZoneMapUpdate(Zone.Number)
   }
 
   // Get all lattice neighbours matching the specified faction
