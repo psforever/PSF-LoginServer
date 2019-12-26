@@ -1126,6 +1126,22 @@ class WorldSessionActor extends Actor
         AnnounceDestroyDeployable(target, Some(0 seconds))
       }
 
+    case Vitality.DamageResolution(target : ExplosiveDeployable, _) if target.Definition eq he_mine =>
+      //he_mine
+      if(target.Jammed) {
+        continent.LocalEvents ! LocalServiceMessage(continent.Id, LocalAction.Detonate(target.GUID, target))
+        AnnounceDestroyDeployable(target, Some(500 milliseconds))
+      }
+      else if(target.Health <= 0) {
+        AnnounceDestroyDeployable(target, Some(0 seconds))
+      }
+
+    case Vitality.DamageResolution(target : ExplosiveDeployable, _) if target.Definition eq jammer_mine =>
+      //jammer_mine
+      if(target.Jammed || target.Health <= 0) {
+        AnnounceDestroyDeployable(target, Some(0 seconds))
+      }
+
     case Vitality.DamageResolution(target : SimpleDeployable, _) =>
       //boomers, mines
       if(target.Health <= 0) {
@@ -1444,13 +1460,7 @@ class WorldSessionActor extends Actor
       case AvatarResponse.ProjectileState(projectile_guid, shot_pos, shot_vel, shot_orient, seq, end, target_guid) =>
         if(tplayer_guid != guid) {
           sendResponse(ProjectileStateMessage(projectile_guid, shot_pos, shot_vel, shot_orient, seq, end, target_guid))
-//          continent.GUID(projectile_guid) match {
-//            case Some(obj) =>
-//              val definition = obj.Definition
-//              sendResponse(ObjectCreateMessage(definition.ObjectId, projectile_guid, definition.Packet.ConstructorData(obj).get))
-//            case _ => ;
-//          }
-          }
+        }
 
       case AvatarResponse.PutDownFDU(target) =>
         if(tplayer_guid != guid) {
@@ -1546,8 +1556,13 @@ class WorldSessionActor extends Actor
         sendResponse(PlanetsideAttributeMessage(guid, 29, 1))
         sendResponse(ObjectDeleteMessage(guid, 0))
 
+      case LocalResponse.Detonate(guid, obj : ExplosiveDeployable) =>
+        sendResponse(GenericObjectActionMessage(guid, 76))
+        sendResponse(PlanetsideAttributeMessage(guid, 29, 1))
+        sendResponse(ObjectDeleteMessage(guid, 0))
+
       case LocalResponse.Detonate(guid, obj) =>
-        log.warn(s"LocalAction.Detonate: ${obj.Definition.Name} not configured to explode correctly")
+        log.warn(s"LocalResponse.Detonate: ${obj.Definition.Name} not configured to explode correctly")
 
       case LocalResponse.DoorOpens(door_guid) =>
         if(tplayer_guid != guid) {
@@ -3346,15 +3361,15 @@ class WorldSessionActor extends Actor
       //player.Position = Vector3(4262.211f ,4067.0625f ,262.35938f) //z6, Akna.tower
       //player.Orientation = Vector3(0f, 0f, 132.1875f)
 //      player.ExoSuit = ExoSuitType.MAX //TODO strange issue; divide number above by 10 when uncommenting
-      player.Slot(0).Equipment = Tool(GlobalDefinitions.StandardPistol(player.Faction))
+      player.Slot(0).Equipment = Tool(jammer_grenade) //Tool(GlobalDefinitions.StandardPistol(player.Faction))
       player.Slot(2).Equipment = Tool(suppressor)
       player.Slot(4).Equipment = Tool(GlobalDefinitions.StandardMelee(player.Faction))
-      player.Slot(6).Equipment = AmmoBox(bullet_9mm)
-      player.Slot(9).Equipment = AmmoBox(bullet_9mm)
-      player.Slot(12).Equipment = AmmoBox(bullet_9mm)
-      player.Slot(33).Equipment = AmmoBox(bullet_9mm_AP)
-      player.Slot(36).Equipment = AmmoBox(GlobalDefinitions.StandardPistolAmmo(player.Faction))
-      player.Slot(39).Equipment = SimpleItem(remote_electronics_kit)
+      player.Slot(6).Equipment = ConstructionItem(ace) //AmmoBox(bullet_9mm)
+      player.Slot(9).Equipment = ConstructionItem(ace) //AmmoBox(bullet_9mm)
+      player.Slot(12).Equipment = ConstructionItem(ace) //AmmoBox(bullet_9mm)
+      player.Slot(33).Equipment = ConstructionItem(ace) //AmmoBox(bullet_9mm_AP)
+      player.Slot(36).Equipment = ConstructionItem(ace) //AmmoBox(GlobalDefinitions.StandardPistolAmmo(player.Faction))
+      player.Slot(39).Equipment = Tool(jammer_grenade) //SimpleItem(remote_electronics_kit)
       player.Locker.Inventory += 0 -> SimpleItem(remote_electronics_kit)
       player.Inventory.Items.foreach { _.obj.Faction = faction }
       player.Actor = self
@@ -3761,6 +3776,9 @@ class WorldSessionActor extends Actor
         DeactivateImplants()
       }
       //implants and stamina management finish
+      if(is_crouching && !player.Crouching) {
+        // ...
+      }
       player.Position = pos
       player.Velocity = vel
       player.Orientation = Vector3(player.Orientation.x, pitch, yaw)
