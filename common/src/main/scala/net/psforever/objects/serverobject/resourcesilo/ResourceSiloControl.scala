@@ -69,12 +69,13 @@ class ResourceSiloControl(resourceSilo : ResourceSilo) extends Actor with Factio
         self ! ResourceSilo.LowNtuWarning(enabled = true)
       }
 
-      val building = resourceSilo.Owner
+      val building = resourceSilo.Owner.asInstanceOf[Building]
       val zone = building.Zone
       if(resourceSilo.ChargeLevel == 0 && siloChargeBeforeChange > 0) {
         // Oops, someone let the base run out of power. Shut it all down.
         //todo: Make base neutral if silo hits zero NTU
         zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.PlanetsideAttribute(building.GUID, 48, 1))
+        building.TriggerZoneMapUpdate()
       } else if (siloChargeBeforeChange == 0 && resourceSilo.ChargeLevel > 0) {
         // Power restored. Reactor Online. Sensors Online. Weapons Online. All systems nominal.
         //todo: Check generator is online before starting up
@@ -82,6 +83,7 @@ class ResourceSiloControl(resourceSilo : ResourceSilo) extends Actor with Factio
           zone.Id,
           AvatarAction.PlanetsideAttribute(building.GUID, 48, 0)
         )
+        building.TriggerZoneMapUpdate()
       }
     case _ => ;
   }

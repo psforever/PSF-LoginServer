@@ -3,7 +3,6 @@ package services.local
 
 import akka.actor.{Actor, ActorRef, Props}
 import net.psforever.objects.ce.Deployable
-import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.objects.serverobject.structures.{Amenity, Building}
 import net.psforever.objects.serverobject.terminals.{CaptureTerminal, Terminal}
 import net.psforever.objects.zones.Zone
@@ -87,10 +86,12 @@ class LocalService(zone : Zone) extends Actor {
           hackClearer ! HackClearActor.ObjectIsResecured(target)
         case LocalAction.HackCaptureTerminal(player_guid, _, target, unk1, unk2, isResecured) =>
           // When a CC is hacked (or resecured) all amenities for the base should be unhacked
-          val hackableAmenities = target.Owner.asInstanceOf[Building].Amenities.filter(x => x.isInstanceOf[Hackable]).map(x => x.asInstanceOf[Amenity with Hackable])
+          val building = target.Owner.asInstanceOf[Building]
+          val hackableAmenities = building.Amenities.filter(x => x.isInstanceOf[Hackable]).map(x => x.asInstanceOf[Amenity with Hackable])
           hackableAmenities.foreach(amenity =>
             if(amenity.HackedBy.isDefined) { hackClearer ! HackClearActor.ObjectIsResecured(amenity) }
           )
+
           if(isResecured){
             hackCapturer ! HackCaptureActor.ClearHack(target, zone)
           } else {
@@ -103,9 +104,16 @@ class LocalService(zone : Zone) extends Actor {
                 hackCapturer ! HackCaptureActor.ObjectIsHacked(target, zone, unk1, unk2, duration = 1 nanosecond)
             }
           }
+
           LocalEvents.publish(
             LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.HackCaptureTerminal(target.GUID, unk1, unk2, isResecured))
           )
+
+          // If the owner of this capture terminal is on the lattice trigger a zone wide map update to update lattice benefits
+          zone.Lattice find building match {
+            case Some(_) => building.TriggerZoneMapUpdate()
+            case None => ;
+          }
         case LocalAction.RouterTelepadTransport(player_guid, passenger_guid, src_guid, dest_guid) =>
           LocalEvents.publish(
             LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.RouterTelepadTransport(passenger_guid, src_guid, dest_guid))
@@ -163,16 +171,8 @@ class LocalService(zone : Zone) extends Actor {
     case HackCaptureActor.HackTimeoutReached(capture_terminal_guid, _, _, _, hackedByFaction) =>
       val terminal = zone.GUID(capture_terminal_guid).get.asInstanceOf[CaptureTerminal]
       val building = terminal.Owner.asInstanceOf[Building]
-      // todo: Move this to a function for Building
-      var ntuLevel = building.Amenities.find(_.Definition == GlobalDefinitions.resource_silo) match {
-        case Some(obj: ResourceSilo) =>
-          obj.CapacitorDisplay.toInt
-        case _ =>
-          // Base has no NTU silo - likely a tower / cavern CC
-          1
-      }
 
-      if(ntuLevel > 0) {
+      if(building.NtuLevel > 0) {
         log.info(s"Setting base ${building.GUID} / MapId: ${building.MapId} as owned by $hackedByFaction")
 
         building.Faction = hackedByFaction

@@ -3,6 +3,7 @@ package net.psforever.objects.serverobject.structures
 
 import akka.actor.{Actor, ActorRef}
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
+import net.psforever.objects.zones.InterstellarCluster
 import net.psforever.packet.game.BuildingInfoUpdateMessage
 import services.ServiceManager
 import services.ServiceManager.Lookup
@@ -11,24 +12,39 @@ import services.galaxy.{GalaxyAction, GalaxyResponse, GalaxyServiceMessage, Gala
 class BuildingControl(building : Building) extends Actor with FactionAffinityBehavior.Check {
   def FactionObject : FactionAffinity = building
   var galaxyService : ActorRef = Actor.noSender
+  var interstellarCluster : ActorRef = Actor.noSender
   private[this] val log = org.log4s.getLogger
 
   override def preStart = {
     log.trace(s"Starting BuildingControl for ${building.GUID} / ${building.MapId}")
     ServiceManager.serviceManager ! Lookup("galaxy")
+    ServiceManager.serviceManager ! Lookup("cluster")
   }
 
-  def receive : Receive = checkBehavior.orElse {
+  def receive : Receive = {
     case ServiceManager.LookupResult("galaxy", endpoint) =>
       galaxyService = endpoint
       log.trace("BuildingControl: Building " + building.GUID + " Got galaxy service " + endpoint)
+      CheckReady()
+    case ServiceManager.LookupResult("cluster", endpoint) =>
+      interstellarCluster = endpoint
+      log.trace("BuildingControl: Building " + building.GUID + " Got interstellar cluster service " + endpoint)
+      CheckReady()
+  }
+
+  def CheckReady(): Unit = {
+    if(galaxyService != Actor.noSender && interstellarCluster != Actor.noSender) context.become(Processing)
+  }
+
+  def Processing : Receive = checkBehavior.orElse {
     case FactionAffinity.ConvertFactionAffinity(faction) =>
       val originalAffinity = building.Faction
       if(originalAffinity != (building.Faction = faction)) {
         building.Amenities.foreach(_.Actor forward FactionAffinity.ConfirmFactionAffinity())
       }
       sender ! FactionAffinity.AssertFactionAffinity(building, faction)
-
+    case Building.TriggerZoneMapUpdate(zone_num: Int) =>
+      interstellarCluster ! InterstellarCluster.ZoneMapUpdate(zone_num)
     case Building.SendMapUpdate(all_clients: Boolean) =>
       val zoneNumber = building.Zone.Number
       val buildingNumber = building.MapId
