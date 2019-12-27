@@ -11,13 +11,10 @@ import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.{DeployableInfo, DeploymentAction, PlanetSideGUID}
+import net.psforever.packet.game.PlanetSideGUID
 import services.avatar.{AvatarAction, AvatarServiceMessage}
-import services.local.{LocalAction, LocalServiceMessage}
-import services.{RemoverActor, Service}
+import services.Service
 import services.vehicle.{VehicleAction, VehicleServiceMessage}
-
-import scala.concurrent.duration.FiniteDuration
 
 class ShieldGeneratorDeployable(cdef : ShieldGeneratorDefinition) extends ComplexDeployable(cdef)
   with Hackable
@@ -103,7 +100,7 @@ object ShieldGeneratorControl {
     else {
       HandleDestructionAwareness(target, playerGUID, cause)
     }
-    zone.VehicleEvents ! VehicleServiceMessage(zone.Id, VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, targetGUID, 0, target.Health))
+    zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.PlanetsideAttribute(targetGUID, 0, target.Health))
   }
 
   /**
@@ -116,24 +113,7 @@ object ShieldGeneratorControl {
     target.Actor ! JammableUnit.ClearJammeredSound()
     target.Actor ! JammableUnit.ClearJammeredStatus()
     val zone = target.Zone
-    AnnounceDestroyDeployable(target, None)
+    Deployables.AnnounceDestroyDeployable(target, None)
     zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.Destroy(target.GUID, attribution, attribution, target.Position))
-  }
-
-  def AnnounceDestroyDeployable(target : PlanetSideServerObject with Deployable, time : Option[FiniteDuration]) : Unit = {
-    val zone = target.Zone
-    target.OwnerName match {
-      case Some(owner) =>
-        target.OwnerName = None
-        zone.LocalEvents ! LocalServiceMessage(owner, LocalAction.AlertDestroyDeployable(PlanetSideGUID(0), target))
-      case None => ;
-    }
-    zone.LocalEvents ! LocalServiceMessage(s"${target.Faction}", LocalAction.DeployableMapIcon(
-      PlanetSideGUID(0),
-      DeploymentAction.Dismiss,
-      DeployableInfo(target.GUID, Deployable.Icon(target.Definition.Item), target.Position, PlanetSideGUID(0)))
-    )
-    zone.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(target), zone))
-    zone.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.AddTask(target, zone, time))
   }
 }

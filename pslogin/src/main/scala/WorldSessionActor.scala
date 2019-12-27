@@ -915,10 +915,11 @@ class WorldSessionActor extends Actor
         continent.Deployables ! Zone.Deployable.Dismiss(obj)
       }
 
-    case WorldSessionActor.FinalizeDeployable(obj : ComplexDeployable, tool, index) =>
-      //spitfires and deployable field turrets and the deployable_shield_generator
+    case WorldSessionActor.FinalizeDeployable(obj : SensorDeployable, tool, index) =>
+      //motion alarm sensor and sensor disruptor
       StartBundlingPackets()
       DeployableBuildActivity(obj)
+      continent.LocalEvents ! LocalServiceMessage(continent.Id, LocalAction.TriggerEffectInfo(player.GUID, "on", obj.GUID, true, 1000))
       CommonDestroyConstructionItem(tool, index)
       FindReplacementConstructionItem(tool, index)
       StopBundlingPackets()
@@ -953,11 +954,10 @@ class WorldSessionActor extends Actor
       FindReplacementConstructionItem(tool, index)
       StopBundlingPackets()
 
-    case WorldSessionActor.FinalizeDeployable(obj : SensorDeployable, tool, index) =>
-      //motion alarm sensor and sensor disruptor
+    case WorldSessionActor.FinalizeDeployable(obj : ComplexDeployable, tool, index) =>
+      //spitfires and deployable field turrets and the deployable_shield_generator
       StartBundlingPackets()
       DeployableBuildActivity(obj)
-      continent.LocalEvents ! LocalServiceMessage(continent.Id, LocalAction.TriggerEffectInfo(player.GUID, "on", obj.GUID, true, 1000))
       CommonDestroyConstructionItem(tool, index)
       FindReplacementConstructionItem(tool, index)
       StopBundlingPackets()
@@ -1107,43 +1107,8 @@ class WorldSessionActor extends Actor
         AnnounceDestroyDeployable(target, None)
       }
 
-    case Vitality.DamageResolution(target : SensorDeployable, _) =>
-      //sensors
-      val guid = target.GUID
-      val health = target.Health
-      continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(guid, 0, health))
-      if(health <= 0) {
-        AnnounceDestroyDeployable(target, Some(0 seconds))
-      }
-
-    case Vitality.DamageResolution(target : BoomerDeployable, _) =>
-      //boomer
-      if(target.Jammed) {
-        continent.LocalEvents ! LocalServiceMessage(continent.Id, LocalAction.Detonate(target.GUID, target))
-        AnnounceDestroyDeployable(target, Some(500 milliseconds))
-      }
-      else if(target.Health <= 0) {
-        AnnounceDestroyDeployable(target, Some(0 seconds))
-      }
-
-    case Vitality.DamageResolution(target : ExplosiveDeployable, _) if target.Definition eq he_mine =>
-      //he_mine
-      if(target.Jammed) {
-        continent.LocalEvents ! LocalServiceMessage(continent.Id, LocalAction.Detonate(target.GUID, target))
-        AnnounceDestroyDeployable(target, Some(500 milliseconds))
-      }
-      else if(target.Health <= 0) {
-        AnnounceDestroyDeployable(target, Some(0 seconds))
-      }
-
-    case Vitality.DamageResolution(target : ExplosiveDeployable, _) if target.Definition eq jammer_mine =>
-      //jammer_mine
-      if(target.Jammed || target.Health <= 0) {
-        AnnounceDestroyDeployable(target, Some(0 seconds))
-      }
-
-    case Vitality.DamageResolution(target : SimpleDeployable, _) =>
-      //boomers, mines
+    case Vitality.DamageResolution(target : TelepadDeployable, _) =>
+      //telepads
       if(target.Health <= 0) {
         //update if destroyed
         val guid = target.GUID
@@ -1580,20 +1545,20 @@ class WorldSessionActor extends Actor
           DeconstructDeployable(obj, guid, pos, obj.Orientation, if(obj.MountPoints.isEmpty) 2 else 1)
         }
 
-      case LocalResponse.EliminateDeployable(obj : ComplexDeployable, guid, pos) =>
-        if(obj.Health == 0) {
-          DeconstructDeployable(obj, guid, pos)
-        }
-        else {
-          DeconstructDeployable(obj, guid, pos, obj.Orientation, 1)
-        }
-
       case LocalResponse.EliminateDeployable(obj : ExplosiveDeployable, guid, pos) =>
         if(obj.Exploded || obj.Jammed || obj.Health == 0) {
           DeconstructDeployable(obj, guid, pos)
         }
         else {
           DeconstructDeployable(obj, guid, pos, obj.Orientation, 2)
+        }
+
+      case LocalResponse.EliminateDeployable(obj : ComplexDeployable, guid, pos) =>
+        if(obj.Health == 0) {
+          DeconstructDeployable(obj, guid, pos)
+        }
+        else {
+          DeconstructDeployable(obj, guid, pos, obj.Orientation, 1)
         }
 
       case LocalResponse.EliminateDeployable(obj : TelepadDeployable, guid, pos) =>
@@ -4234,7 +4199,7 @@ class WorldSessionActor extends Actor
             case Some(boomer : BoomerDeployable) =>
               boomer.Exploded = true
               continent.LocalEvents ! LocalServiceMessage(continent.Id, LocalAction.Detonate(boomer.GUID, boomer))
-              AnnounceDestroyDeployable(boomer, Some(500 milliseconds))
+              Deployables.AnnounceDestroyDeployable(boomer, Some(500 milliseconds))
             case Some(_) | None => ;
           }
           FindEquipmentToDelete(item_guid, trigger)

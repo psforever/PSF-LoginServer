@@ -7,7 +7,6 @@ import net.psforever.objects.serverobject.structures.{Amenity, Building}
 import net.psforever.objects.serverobject.terminals.{CaptureTerminal, Terminal}
 import net.psforever.objects.zones.Zone
 import net.psforever.objects._
-import net.psforever.objects.equipment.JammableUnit
 import net.psforever.packet.game.{PlanetSideGUID, TriggeredEffect, TriggeredEffectLocation}
 import net.psforever.objects.vital.Vitality
 import net.psforever.types.Vector3
@@ -287,19 +286,6 @@ class LocalService(zone : Zone) extends Actor {
       }
 
     //synchronized damage calculations
-    case Vitality.DamageOn(target : Deployable with JammableUnit, damage_func) =>
-      if(target.Health > 0) {
-        val cause = damage_func(target)
-        target.Jammed = if(cause.projectile.profile.JammerProjectile) {
-          val radius = cause.projectile.profile.DamageRadius
-          Vector3.DistanceSquared(cause.hit_pos, cause.target.Position) < radius * radius
-        }
-        else {
-          false
-        }
-        sender ! Vitality.DamageResolution(target, cause)
-      }
-
     case Vitality.DamageOn(target : Deployable, damage_func) =>
       val cause = damage_func(target)
       sender ! Vitality.DamageResolution(target, cause)

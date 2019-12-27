@@ -870,11 +870,11 @@ object GlobalDefinitions {
   /*
   combat engineering deployables
    */
-  val boomer = SimpleDeployableDefinition(DeployedItem.boomer)
+  val boomer = ExplosiveDeployableDefinition(DeployedItem.boomer)
 
-  val he_mine = SimpleDeployableDefinition(DeployedItem.he_mine)
+  val he_mine = ExplosiveDeployableDefinition(DeployedItem.he_mine)
 
-  val jammer_mine = SimpleDeployableDefinition(DeployedItem.jammer_mine)
+  val jammer_mine = ExplosiveDeployableDefinition(DeployedItem.jammer_mine)
 
   val spitfire_turret = TurretDeployableDefinition(DeployedItem.spitfire_turret)
 
@@ -882,9 +882,9 @@ object GlobalDefinitions {
 
   val spitfire_aa = TurretDeployableDefinition(DeployedItem.spitfire_aa)
 
-  val motionalarmsensor = SimpleDeployableDefinition(DeployedItem.motionalarmsensor)
+  val motionalarmsensor = SensorDeployableDefinition(DeployedItem.motionalarmsensor)
 
-  val sensor_shield = SimpleDeployableDefinition(DeployedItem.sensor_shield)
+  val sensor_shield = SensorDeployableDefinition(DeployedItem.sensor_shield)
 
   val tank_traps = SimpleDeployableDefinition(DeployedItem.tank_traps)
 
@@ -5901,24 +5901,20 @@ object GlobalDefinitions {
     boomer.MaxHealth = 100
     boomer.DeployCategory = DeployableCategory.Boomers
     boomer.DeployTime = Duration.create(1000, "ms")
-    boomer.Model = StandardResolutions.SimpleDeployables
 
     he_mine.Name = "he_mine"
     he_mine.Descriptor = "Mines"
     he_mine.MaxHealth = 100
-    he_mine.DeployCategory = DeployableCategory.Mines
     he_mine.DeployTime = Duration.create(1000, "ms")
-    he_mine.Model = StandardResolutions.SimpleDeployables
 
     jammer_mine.Name = "jammer_mine"
     jammer_mine.Descriptor = "JammerMines"
     jammer_mine.MaxHealth = 100
-    jammer_mine.DeployCategory = DeployableCategory.Mines
     jammer_mine.DeployTime = Duration.create(1000, "ms")
-    jammer_mine.Model = StandardResolutions.SimpleDeployables
+    jammer_mine.DetonateOnJamming = false
 
     spitfire_turret.Name = "spitfire_turret"
-    spitfire_turret.Descriptor= "Spitfires"
+    spitfire_turret.Descriptor = "Spitfires"
     spitfire_turret.MaxHealth = 100
     spitfire_turret.Weapons += 1 -> new mutable.HashMap()
     spitfire_turret.Weapons(1) += TurretUpgrade.None -> spitfire_weapon
@@ -5928,7 +5924,7 @@ object GlobalDefinitions {
     spitfire_turret.Model = StandardResolutions.ComplexDeployables
 
     spitfire_cloaked.Name = "spitfire_cloaked"
-    spitfire_cloaked.Descriptor= "CloakingSpitfires"
+    spitfire_cloaked.Descriptor = "CloakingSpitfires"
     spitfire_cloaked.MaxHealth = 100
     spitfire_cloaked.Weapons += 1 -> new mutable.HashMap()
     spitfire_cloaked.Weapons(1) += TurretUpgrade.None -> spitfire_weapon
@@ -5938,7 +5934,7 @@ object GlobalDefinitions {
     spitfire_cloaked.Model = StandardResolutions.ComplexDeployables
 
     spitfire_aa.Name = "spitfire_aa"
-    spitfire_aa.Descriptor= "FlakSpitfires"
+    spitfire_aa.Descriptor = "FlakSpitfires"
     spitfire_aa.MaxHealth = 100
     spitfire_aa.Weapons += 1 -> new mutable.HashMap()
     spitfire_aa.Weapons(1) += TurretUpgrade.None -> spitfire_aa_weapon
@@ -5950,16 +5946,12 @@ object GlobalDefinitions {
     motionalarmsensor.Name = "motionalarmsensor"
     motionalarmsensor.Descriptor = "MotionSensors"
     motionalarmsensor.MaxHealth = 100
-    motionalarmsensor.DeployCategory = DeployableCategory.Sensors
     motionalarmsensor.DeployTime = Duration.create(1000, "ms")
-    motionalarmsensor.Model = StandardResolutions.SimpleDeployables
 
     sensor_shield.Name = "sensor_shield"
     sensor_shield.Descriptor = "SensorShields"
     sensor_shield.MaxHealth = 100
-    sensor_shield.DeployCategory = DeployableCategory.Sensors
     sensor_shield.DeployTime = Duration.create(5000, "ms")
-    sensor_shield.Model = StandardResolutions.SimpleDeployables
 
     tank_traps.Name = "tank_traps"
     tank_traps.Descriptor = "TankTraps"

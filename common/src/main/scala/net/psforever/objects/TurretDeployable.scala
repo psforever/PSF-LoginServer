@@ -14,10 +14,9 @@ import net.psforever.objects.serverobject.mount.MountableBehavior
 import net.psforever.objects.serverobject.turret.{TurretDefinition, WeaponTurret}
 import net.psforever.objects.vital.{StandardResolutions, StandardVehicleDamage, StandardVehicleResistance, Vitality}
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.{DeployableInfo, DeploymentAction, PlanetSideGUID}
-import services.{RemoverActor, Service}
+import net.psforever.packet.game.PlanetSideGUID
+import services.Service
 import services.avatar.{AvatarAction, AvatarServiceMessage}
-import services.local.{LocalAction, LocalServiceMessage}
 import services.vehicle.{VehicleAction, VehicleServiceMessage}
 
 class TurretDeployable(tdef : TurretDeployableDefinition) extends ComplexDeployable(tdef)
@@ -101,8 +100,6 @@ class TurretControl(turret : TurretDeployable) extends Actor
 }
 
 object TurretControl {
-  import scala.concurrent.duration._
-
   /**
     * na
     * @param target na
@@ -178,24 +175,7 @@ object TurretControl {
         val wep = slot.Equipment.get
         zone.AvatarEvents ! AvatarServiceMessage(continentId, AvatarAction.ObjectDelete(Service.defaultPlayerGUID, wep.GUID))
       })
-    AnnounceDestroyDeployable(target, None)
+    Deployables.AnnounceDestroyDeployable(target, None)
     zone.AvatarEvents ! AvatarServiceMessage(continentId, AvatarAction.Destroy(target.GUID, attribution, attribution, target.Position))
-  }
-
-  def AnnounceDestroyDeployable(target : PlanetSideServerObject with Deployable, time : Option[FiniteDuration]) : Unit = {
-    val zone = target.Zone
-    target.OwnerName match {
-      case Some(owner) =>
-        target.OwnerName = None
-        zone.LocalEvents ! LocalServiceMessage(owner, LocalAction.AlertDestroyDeployable(PlanetSideGUID(0), target))
-      case None => ;
-    }
-    zone.LocalEvents ! LocalServiceMessage(s"${target.Faction}", LocalAction.DeployableMapIcon(
-      PlanetSideGUID(0),
-      DeploymentAction.Dismiss,
-      DeployableInfo(target.GUID, Deployable.Icon(target.Definition.Item), target.Position, PlanetSideGUID(0)))
-    )
-    zone.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(target), zone))
-    zone.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.AddTask(target, zone, time))
   }
 }
