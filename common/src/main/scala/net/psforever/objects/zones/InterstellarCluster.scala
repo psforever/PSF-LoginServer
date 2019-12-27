@@ -2,6 +2,7 @@
 package net.psforever.objects.zones
 
 import akka.actor.{Actor, Props}
+import net.psforever.objects.serverobject.structures.Building
 
 import scala.annotation.tailrec
 
@@ -69,6 +70,9 @@ class InterstellarCluster(zones : List[Zone]) extends Actor {
         case None => //zone_number does not exist
           sender ! Zone.Lattice.NoValidSpawnPoint(zone_number, None)
       }
+    case InterstellarCluster.ZoneMapUpdate(zone_num: Int) =>
+      val zone = zones.find(x => x.Number == zone_num).get
+      zone.Buildings.values.foreach(b => b.Actor ! Building.SendMapUpdate(all_clients = true))
 
     case _ =>
       log.warn(s"InterstellarCluster received unknown message");
@@ -122,6 +126,13 @@ object InterstellarCluster {
     * @see `WorldSessionActor`
     */
   final case class ClientInitializationComplete()
+
+  /**
+    * Requests that all buildings within a zone send a map update for the purposes of refreshing lattice benefits, such as when a base is hacked, changes faction or loses power
+    * @see `BuildingInfoUpdateMessage`
+    * @param zone_num the zone number to request building map updates for
+    */
+  final case class ZoneMapUpdate(zone_num: Int)
 }
 
 /*

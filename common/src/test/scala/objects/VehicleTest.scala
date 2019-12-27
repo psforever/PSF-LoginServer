@@ -696,7 +696,7 @@ class VehicleControlShieldsNotChargingDamagedTest extends ActorTest {
   val fury_dm = Vehicle(GlobalDefinitions.fury).DamageModel
   val obj = ResolvedProjectile(ProjectileResolution.Hit, projectile, p_source, fury_dm, Vector3(1.2f, 3.4f, 5.6f), System.nanoTime)
 
-  "charge vehicle shields" in {
+  "not charge vehicle shields if recently damaged" in {
     assert(vehicle.Shields == 0)
     vehicle.Actor ! Vitality.Damage({case v : Vehicle => v.History(obj)})
 

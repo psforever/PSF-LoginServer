@@ -43,7 +43,7 @@ class HackCaptureActor extends Actor {
       // Restart the timer, in case this is the first object in the hacked objects list or the object was removed and re-added
       RestartTimer()
 
-      target.Owner.Actor ! Building.SendMapUpdate(all_clients = true)
+      if(target.isInstanceOf[CaptureTerminal]) { target.Owner.asInstanceOf[Building].TriggerZoneMapUpdate() }
 
     case HackCaptureActor.ProcessCompleteHacks() =>
       log.trace("Processing complete hacks")
@@ -67,7 +67,7 @@ class HackCaptureActor extends Actor {
     case HackCaptureActor.ClearHack(target, _) =>
       hackedObjects = hackedObjects.filterNot(x => x.target == target)
 
-      if(target.isInstanceOf[CaptureTerminal]) { target.Owner.Actor ! Building.SendMapUpdate(all_clients = true) }
+      if(target.isInstanceOf[CaptureTerminal]) { target.Owner.asInstanceOf[Building].TriggerZoneMapUpdate() }
 
       // Restart the timer in case the object we just removed was the next one scheduled
       RestartTimer()
