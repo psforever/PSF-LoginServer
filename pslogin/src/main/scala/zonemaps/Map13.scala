@@ -22,7 +22,7 @@ object Map13 {
     Building22()
 
     def Building22(): Unit = { // Name: Hart_Ishundar Type: orbital_building_vs GUID: 1, MapID: 22
-      LocalBuilding("Hart_Ishundar", 1, 22, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(2978f, 4834f, 56.08539f))))
+      LocalBuilding("Hart_Ishundar", 1, 22, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(2978f, 4834f, 56.08539f), orbital_building_vs)))
       LocalObject(360, Door.Constructor(Vector3(2898f, 4821.99f, 60.19139f)), owning_building_guid = 1)
       LocalObject(361, Door.Constructor(Vector3(2898f, 4845.99f, 60.19139f)), owning_building_guid = 1)
       LocalObject(362, Door.Constructor(Vector3(3058f, 4822.01f, 60.19139f)), owning_building_guid = 1)
@@ -128,7 +128,7 @@ object Map13 {
     Building4()
 
     def Building4(): Unit = { // Name: Hart_Esamir Type: orbital_building_vs GUID: 2, MapID: 4
-      LocalBuilding("Hart_Esamir", 2, 4, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(3688f, 2808f, 90.85312f))))
+      LocalBuilding("Hart_Esamir", 2, 4, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(3688f, 2808f, 90.85312f), orbital_building_vs)))
       LocalObject(370, Door.Constructor(Vector3(3608f, 2795.99f, 94.95912f)), owning_building_guid = 2)
       LocalObject(371, Door.Constructor(Vector3(3608f, 2819.99f, 94.95912f)), owning_building_guid = 2)
       LocalObject(374, Door.Constructor(Vector3(3768f, 2796.01f, 94.95912f)), owning_building_guid = 2)
@@ -234,7 +234,7 @@ object Map13 {
     Building40()
 
     def Building40(): Unit = { // Name: Hart_Hossin Type: orbital_building_vs GUID: 3, MapID: 40
-      LocalBuilding("Hart_Hossin", 3, 40, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(5610f, 4238f, 103.2289f))))
+      LocalBuilding("Hart_Hossin", 3, 40, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(5610f, 4238f, 103.2289f), orbital_building_vs)))
       LocalObject(382, Door.Constructor(Vector3(5530f, 4225.99f, 107.3349f)), owning_building_guid = 3)
       LocalObject(383, Door.Constructor(Vector3(5530f, 4249.99f, 107.3349f)), owning_building_guid = 3)
       LocalObject(384, Door.Constructor(Vector3(5690f, 4226.01f, 107.3349f)), owning_building_guid = 3)
@@ -340,7 +340,7 @@ object Map13 {
     Building58()
 
     def Building58(): Unit = { // Name: S_Ishundar_WG_tower Type: tower_a GUID: 28, MapID: 58
-      LocalBuilding("S_Ishundar_WG_tower", 28, 58, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(2708f, 5084f, 56.14882f))))
+      LocalBuilding("S_Ishundar_WG_tower", 28, 58, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(2708f, 5084f, 56.14882f), tower_a)))
       LocalObject(1015, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 28)
       LocalObject(312, Door.Constructor(Vector3(2720f, 5076f, 57.66982f)), owning_building_guid = 28)
       LocalObject(313, Door.Constructor(Vector3(2720f, 5076f, 77.66882f)), owning_building_guid = 28)
@@ -377,7 +377,7 @@ object Map13 {
     Building63()
 
     def Building63(): Unit = { // Name: Esamir_WG_tower Type: tower_a GUID: 29, MapID: 63
-      LocalBuilding("Esamir_WG_tower", 29, 63, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3968f, 2600f, 90.86123f))))
+      LocalBuilding("Esamir_WG_tower", 29, 63, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3968f, 2600f, 90.86123f), tower_a)))
       LocalObject(1019, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 29)
       LocalObject(330, Door.Constructor(Vector3(3980f, 2592f, 92.38223f)), owning_building_guid = 29)
       LocalObject(331, Door.Constructor(Vector3(3980f, 2592f, 112.3812f)), owning_building_guid = 29)
@@ -414,7 +414,7 @@ object Map13 {
     Building66()
 
     def Building66(): Unit = { // Name: SE_Hossin_WG_tower Type: tower_a GUID: 30, MapID: 66
-      LocalBuilding("SE_Hossin_WG_tower", 30, 66, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(6006f, 4414f, 97.87095f))))
+      LocalBuilding("SE_Hossin_WG_tower", 30, 66, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(6006f, 4414f, 97.87095f), tower_a)))
       LocalObject(1024, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 30)
       LocalObject(354, Door.Constructor(Vector3(6018f, 4406f, 99.39195f)), owning_building_guid = 30)
       LocalObject(355, Door.Constructor(Vector3(6018f, 4406f, 119.3909f)), owning_building_guid = 30)
@@ -451,7 +451,7 @@ object Map13 {
     Building60()
 
     def Building60(): Unit = { // Name: NW_Esamir_WG_tower Type: tower_b GUID: 31, MapID: 60
-      LocalBuilding("NW_Esamir_WG_tower", 31, 60, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3208f, 3524f, 92.25745f))))
+      LocalBuilding("NW_Esamir_WG_tower", 31, 60, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3208f, 3524f, 92.25745f), tower_b)))
       LocalObject(1016, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 31)
       LocalObject(316, Door.Constructor(Vector3(3220f, 3516f, 93.77745f)), owning_building_guid = 31)
       LocalObject(317, Door.Constructor(Vector3(3220f, 3516f, 103.7775f)), owning_building_guid = 31)
@@ -488,7 +488,7 @@ object Map13 {
     Building64()
 
     def Building64(): Unit = { // Name: W_Hossin_WG_tower Type: tower_b GUID: 32, MapID: 64
-      LocalBuilding("W_Hossin_WG_tower", 32, 64, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3988f, 4380f, 87.9162f))))
+      LocalBuilding("W_Hossin_WG_tower", 32, 64, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3988f, 4380f, 87.9162f), tower_b)))
       LocalObject(1020, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 32)
       LocalObject(334, Door.Constructor(Vector3(4000f, 4372f, 89.4362f)), owning_building_guid = 32)
       LocalObject(335, Door.Constructor(Vector3(4000f, 4372f, 99.4362f)), owning_building_guid = 32)
@@ -525,7 +525,7 @@ object Map13 {
     Building67()
 
     def Building67(): Unit = { // Name: NE_Esamir_WG_tower Type: tower_b GUID: 33, MapID: 67
-      LocalBuilding("NE_Esamir_WG_tower", 33, 67, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(5098f, 2978f, 97.9873f))))
+      LocalBuilding("NE_Esamir_WG_tower", 33, 67, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(5098f, 2978f, 97.9873f), tower_b)))
       LocalObject(1022, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 33)
       LocalObject(344, Door.Constructor(Vector3(5110f, 2970f, 99.5073f)), owning_building_guid = 33)
       LocalObject(345, Door.Constructor(Vector3(5110f, 2970f, 109.5073f)), owning_building_guid = 33)
@@ -562,7 +562,7 @@ object Map13 {
     Building59()
 
     def Building59(): Unit = { // Name: SE_Ishundar_WG_tower Type: tower_c GUID: 34, MapID: 59
-      LocalBuilding("SE_Ishundar_WG_tower", 34, 59, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3224f, 4594f, 56.08539f))))
+      LocalBuilding("SE_Ishundar_WG_tower", 34, 59, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3224f, 4594f, 56.08539f), tower_c)))
       LocalObject(1017, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 34)
       LocalObject(322, Door.Constructor(Vector3(3236f, 4586f, 57.60639f)), owning_building_guid = 34)
       LocalObject(323, Door.Constructor(Vector3(3236f, 4586f, 77.60539f)), owning_building_guid = 34)
@@ -603,7 +603,7 @@ object Map13 {
     Building62()
 
     def Building62(): Unit = { // Name: N_Esamir_WG_tower Type: tower_c GUID: 35, MapID: 62
-      LocalBuilding("N_Esamir_WG_tower", 35, 62, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3670f, 3180f, 89.51079f))))
+      LocalBuilding("N_Esamir_WG_tower", 35, 62, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3670f, 3180f, 89.51079f), tower_c)))
       LocalObject(1018, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 35)
       LocalObject(326, Door.Constructor(Vector3(3682f, 3172f, 91.03179f)), owning_building_guid = 35)
       LocalObject(327, Door.Constructor(Vector3(3682f, 3172f, 111.0308f)), owning_building_guid = 35)
@@ -644,7 +644,7 @@ object Map13 {
     Building61()
 
     def Building61(): Unit = { // Name: Continent_Central_tower Type: tower_c GUID: 36, MapID: 61
-      LocalBuilding("Continent_Central_tower", 36, 61, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(4410f, 3728f, 83.92174f))))
+      LocalBuilding("Continent_Central_tower", 36, 61, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(4410f, 3728f, 83.92174f), tower_c)))
       LocalObject(1021, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 36)
       LocalObject(340, Door.Constructor(Vector3(4422f, 3720f, 85.44274f)), owning_building_guid = 36)
       LocalObject(341, Door.Constructor(Vector3(4422f, 3720f, 105.4417f)), owning_building_guid = 36)
@@ -685,7 +685,7 @@ object Map13 {
     Building65()
 
     def Building65(): Unit = { // Name: SW_Hossin_WG_tower Type: tower_c GUID: 37, MapID: 65
-      LocalBuilding("SW_Hossin_WG_tower", 37, 65, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(5160f, 4266f, 93.25694f))))
+      LocalBuilding("SW_Hossin_WG_tower", 37, 65, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(5160f, 4266f, 93.25694f), tower_c)))
       LocalObject(1023, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 37)
       LocalObject(350, Door.Constructor(Vector3(5172f, 4258f, 94.77794f)), owning_building_guid = 37)
       LocalObject(351, Door.Constructor(Vector3(5172f, 4258f, 114.7769f)), owning_building_guid = 37)
@@ -726,7 +726,7 @@ object Map13 {
     Building33()
 
     def Building33(): Unit = { // Name: VT_building_vs Type: VT_building_vs GUID: 38, MapID: 33
-      LocalBuilding("VT_building_vs", 38, 33, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(2848f, 4948f, 56.08539f))))
+      LocalBuilding("VT_building_vs", 38, 33, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(2848f, 4948f, 56.08539f), VT_building_vs)))
       LocalObject(234, Door.Constructor(Vector3(2801.93f, 4911.454f, 58.16139f)), owning_building_guid = 38)
       LocalObject(235, Door.Constructor(Vector3(2806.54f, 4916.042f, 58.16139f)), owning_building_guid = 38)
       LocalObject(236, Door.Constructor(Vector3(2806.672f, 4906.712f, 58.16139f)), owning_building_guid = 38)
@@ -758,7 +758,7 @@ object Map13 {
     Building35()
 
     def Building35(): Unit = { // Name: VT_building_vs Type: VT_building_vs GUID: 39, MapID: 35
-      LocalBuilding("VT_building_vs", 39, 35, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(3122f, 4690f, 56.08539f))))
+      LocalBuilding("VT_building_vs", 39, 35, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(3122f, 4690f, 56.08539f), VT_building_vs)))
       LocalObject(240, Door.Constructor(Vector3(3075.97f, 4726.587f, 58.16139f)), owning_building_guid = 39)
       LocalObject(241, Door.Constructor(Vector3(3080.558f, 4721.976f, 58.16139f)), owning_building_guid = 39)
       LocalObject(242, Door.Constructor(Vector3(3080.712f, 4731.328f, 58.16139f)), owning_building_guid = 39)
@@ -790,7 +790,7 @@ object Map13 {
     Building34()
 
     def Building34(): Unit = { // Name: VT_building_vs Type: VT_building_vs GUID: 40, MapID: 34
-      LocalBuilding("VT_building_vs", 40, 34, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(3144f, 4930f, 56.08539f))))
+      LocalBuilding("VT_building_vs", 40, 34, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(3144f, 4930f, 56.08539f), VT_building_vs)))
       LocalObject(246, Door.Constructor(Vector3(3137.266f, 4871.582f, 58.16139f)), owning_building_guid = 40)
       LocalObject(247, Door.Constructor(Vector3(3137.281f, 4878.085f, 58.16139f)), owning_building_guid = 40)
       LocalObject(248, Door.Constructor(Vector3(3143.972f, 4871.582f, 58.16139f)), owning_building_guid = 40)
@@ -822,7 +822,7 @@ object Map13 {
     Building7()
 
     def Building7(): Unit = { // Name: VT_building_vs Type: VT_building_vs GUID: 41, MapID: 7
-      LocalBuilding("VT_building_vs", 41, 7, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(3592f, 2966f, 90.8536f))))
+      LocalBuilding("VT_building_vs", 41, 7, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(3592f, 2966f, 90.8536f), VT_building_vs)))
       LocalObject(252, Door.Constructor(Vector3(3584.247f, 2907.708f, 92.9296f)), owning_building_guid = 41)
       LocalObject(253, Door.Constructor(Vector3(3584.376f, 2914.211f, 92.9296f)), owning_building_guid = 41)
       LocalObject(254, Door.Constructor(Vector3(3590.952f, 2907.591f, 92.9296f)), owning_building_guid = 41)
@@ -854,7 +854,7 @@ object Map13 {
     Building12()
 
     def Building12(): Unit = { // Name: VT_building_vs Type: VT_building_vs GUID: 42, MapID: 12
-      LocalBuilding("VT_building_vs", 42, 12, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(3690f, 2656f, 90.84919f))))
+      LocalBuilding("VT_building_vs", 42, 12, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(3690f, 2656f, 90.84919f), VT_building_vs)))
       LocalObject(258, Door.Constructor(Vector3(3684.214f, 2708.023f, 92.92519f)), owning_building_guid = 42)
       LocalObject(259, Door.Constructor(Vector3(3684.343f, 2714.527f, 92.92519f)), owning_building_guid = 42)
       LocalObject(260, Door.Constructor(Vector3(3690.919f, 2707.906f, 92.92519f)), owning_building_guid = 42)
@@ -886,7 +886,7 @@ object Map13 {
     Building13()
 
     def Building13(): Unit = { // Name: VT_building_vs Type: VT_building_vs GUID: 43, MapID: 13
-      LocalBuilding("VT_building_vs", 43, 13, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(3788f, 2968f, 90.8505f))))
+      LocalBuilding("VT_building_vs", 43, 13, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(3788f, 2968f, 90.8505f), VT_building_vs)))
       LocalObject(264, Door.Constructor(Vector3(3780.247f, 2909.708f, 92.9265f)), owning_building_guid = 43)
       LocalObject(265, Door.Constructor(Vector3(3780.376f, 2916.211f, 92.9265f)), owning_building_guid = 43)
       LocalObject(266, Door.Constructor(Vector3(3786.952f, 2909.591f, 92.9265f)), owning_building_guid = 43)
@@ -918,7 +918,7 @@ object Map13 {
     Building50()
 
     def Building50(): Unit = { // Name: VT_building_vs Type: VT_building_vs GUID: 44, MapID: 50
-      LocalBuilding("VT_building_vs", 44, 50, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(5470f, 4094f, 103.2367f))))
+      LocalBuilding("VT_building_vs", 44, 50, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(5470f, 4094f, 103.2367f), VT_building_vs)))
       LocalObject(276, Door.Constructor(Vector3(5501.976f, 4135.442f, 105.3127f)), owning_building_guid = 44)
       LocalObject(277, Door.Constructor(Vector3(5506.587f, 4140.03f, 105.3127f)), owning_building_guid = 44)
       LocalObject(278, Door.Constructor(Vector3(5506.718f, 4130.7f, 105.3127f)), owning_building_guid = 44)
@@ -950,7 +950,7 @@ object Map13 {
     Building49()
 
     def Building49(): Unit = { // Name: VT_building_vs Type: VT_building_vs GUID: 45, MapID: 49
-      LocalBuilding("VT_building_vs", 45, 49, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(5494f, 4394f, 103.232f))))
+      LocalBuilding("VT_building_vs", 45, 49, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(5494f, 4394f, 103.232f), VT_building_vs)))
       LocalObject(270, Door.Constructor(Vector3(5487.266f, 4335.582f, 105.308f)), owning_building_guid = 45)
       LocalObject(271, Door.Constructor(Vector3(5487.281f, 4342.085f, 105.308f)), owning_building_guid = 45)
       LocalObject(272, Door.Constructor(Vector3(5493.972f, 4335.582f, 105.308f)), owning_building_guid = 45)
@@ -982,7 +982,7 @@ object Map13 {
     Building48()
 
     def Building48(): Unit = { // Name: VT_building_vs Type: VT_building_vs GUID: 46, MapID: 48
-      LocalBuilding("VT_building_vs", 46, 48, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(5796f, 4330f, 103.2358f))))
+      LocalBuilding("VT_building_vs", 46, 48, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(5796f, 4330f, 103.2358f), VT_building_vs)))
       LocalObject(282, Door.Constructor(Vector3(5749.93f, 4293.454f, 105.3118f)), owning_building_guid = 46)
       LocalObject(283, Door.Constructor(Vector3(5754.54f, 4298.042f, 105.3118f)), owning_building_guid = 46)
       LocalObject(284, Door.Constructor(Vector3(5754.672f, 4288.712f, 105.3118f)), owning_building_guid = 46)
@@ -1014,7 +1014,7 @@ object Map13 {
     Building37()
 
     def Building37(): Unit = { // Name: vt_dropship Type: vt_dropship GUID: 47, MapID: 37
-      LocalBuilding("vt_dropship", 47, 37, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(2764f, 4842f, 56.08539f))))
+      LocalBuilding("vt_dropship", 47, 37, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(2764f, 4842f, 56.08539f), vt_dropship)))
       LocalObject(300, Terminal.Constructor(Vector3(2787.469f, 4841.71f, 58.95339f), dropship_vehicle_terminal), owning_building_guid = 47)
       LocalObject(288, VehicleSpawnPad.Constructor(Vector3(2767.589f, 4841.958f, 52.10039f), dropship_pad_doors, Vector3(0, 0, 181)), owning_building_guid = 47, terminal_guid = 300)
     }
@@ -1022,7 +1022,7 @@ object Map13 {
     Building24()
 
     def Building24(): Unit = { // Name: vt_dropship Type: vt_dropship GUID: 48, MapID: 24
-      LocalBuilding("vt_dropship", 48, 24, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(2928f, 5050f, 56.08539f))))
+      LocalBuilding("vt_dropship", 48, 24, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(2928f, 5050f, 56.08539f), vt_dropship)))
       LocalObject(301, Terminal.Constructor(Vector3(2927.71f, 5026.531f, 58.95339f), dropship_vehicle_terminal), owning_building_guid = 48)
       LocalObject(289, VehicleSpawnPad.Constructor(Vector3(2927.957f, 5046.411f, 52.10039f), dropship_pad_doors, Vector3(0, 0, -89)), owning_building_guid = 48, terminal_guid = 301)
     }
@@ -1030,7 +1030,7 @@ object Map13 {
     Building36()
 
     def Building36(): Unit = { // Name: vt_dropship Type: vt_dropship GUID: 49, MapID: 36
-      LocalBuilding("vt_dropship", 49, 36, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(3018f, 4618f, 56.08539f))))
+      LocalBuilding("vt_dropship", 49, 36, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(3018f, 4618f, 56.08539f), vt_dropship)))
       LocalObject(302, Terminal.Constructor(Vector3(3018.29f, 4641.469f, 58.95339f), dropship_vehicle_terminal), owning_building_guid = 49)
       LocalObject(290, VehicleSpawnPad.Constructor(Vector3(3018.043f, 4621.589f, 52.10039f), dropship_pad_doors, Vector3(0, 0, 91)), owning_building_guid = 49, terminal_guid = 302)
     }
@@ -1038,7 +1038,7 @@ object Map13 {
     Building23()
 
     def Building23(): Unit = { // Name: vt_dropship Type: vt_dropship GUID: 50, MapID: 23
-      LocalBuilding("vt_dropship", 50, 23, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(3212f, 4768f, 56.08539f))))
+      LocalBuilding("vt_dropship", 50, 23, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(3212f, 4768f, 56.08539f), vt_dropship)))
       LocalObject(303, Terminal.Constructor(Vector3(3188.531f, 4768.29f, 58.95339f), dropship_vehicle_terminal), owning_building_guid = 50)
       LocalObject(291, VehicleSpawnPad.Constructor(Vector3(3208.411f, 4768.042f, 52.10039f), dropship_pad_doors, Vector3(0, 0, 1)), owning_building_guid = 50, terminal_guid = 303)
     }
@@ -1046,7 +1046,7 @@ object Map13 {
     Building6()
 
     def Building6(): Unit = { // Name: vt_dropship Type: vt_dropship GUID: 51, MapID: 6
-      LocalBuilding("vt_dropship", 51, 6, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(3506f, 2896f, 90.85538f))))
+      LocalBuilding("vt_dropship", 51, 6, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(3506f, 2896f, 90.85538f), vt_dropship)))
       LocalObject(304, Terminal.Constructor(Vector3(3529.469f, 2895.71f, 93.72339f), dropship_vehicle_terminal), owning_building_guid = 51)
       LocalObject(292, VehicleSpawnPad.Constructor(Vector3(3509.589f, 2895.957f, 86.87038f), dropship_pad_doors, Vector3(0, 0, 181)), owning_building_guid = 51, terminal_guid = 304)
     }
@@ -1054,7 +1054,7 @@ object Map13 {
     Building15()
 
     def Building15(): Unit = { // Name: vt_dropship Type: vt_dropship GUID: 52, MapID: 15
-      LocalBuilding("vt_dropship", 52, 15, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(3572f, 2652f, 90.85646f))))
+      LocalBuilding("vt_dropship", 52, 15, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(3572f, 2652f, 90.85646f), vt_dropship)))
       LocalObject(305, Terminal.Constructor(Vector3(3588.8f, 2668.39f, 93.72446f), dropship_vehicle_terminal), owning_building_guid = 52)
       LocalObject(293, VehicleSpawnPad.Constructor(Vector3(3574.568f, 2654.508f, 86.87146f), dropship_pad_doors, Vector3(0, 0, 136)), owning_building_guid = 52, terminal_guid = 305)
     }
@@ -1062,7 +1062,7 @@ object Map13 {
     Building14()
 
     def Building14(): Unit = { // Name: vt_dropship Type: vt_dropship GUID: 53, MapID: 14
-      LocalBuilding("vt_dropship", 53, 14, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(3808f, 2654f, 90.85372f))))
+      LocalBuilding("vt_dropship", 53, 14, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(3808f, 2654f, 90.85372f), vt_dropship)))
       LocalObject(306, Terminal.Constructor(Vector3(3791.61f, 2670.8f, 93.72173f), dropship_vehicle_terminal), owning_building_guid = 53)
       LocalObject(294, VehicleSpawnPad.Constructor(Vector3(3805.492f, 2656.568f, 86.86872f), dropship_pad_doors, Vector3(0, 0, 46)), owning_building_guid = 53, terminal_guid = 306)
     }
@@ -1070,7 +1070,7 @@ object Map13 {
     Building5()
 
     def Building5(): Unit = { // Name: vt_dropship Type: vt_dropship GUID: 54, MapID: 5
-      LocalBuilding("vt_dropship", 54, 5, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(3876f, 2896f, 90.85098f))))
+      LocalBuilding("vt_dropship", 54, 5, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(3876f, 2896f, 90.85098f), vt_dropship)))
       LocalObject(307, Terminal.Constructor(Vector3(3852.531f, 2896.29f, 93.71898f), dropship_vehicle_terminal), owning_building_guid = 54)
       LocalObject(295, VehicleSpawnPad.Constructor(Vector3(3872.411f, 2896.043f, 86.86597f), dropship_pad_doors, Vector3(0, 0, 1)), owning_building_guid = 54, terminal_guid = 307)
     }
@@ -1078,7 +1078,7 @@ object Map13 {
     Building52()
 
     def Building52(): Unit = { // Name: vt_dropship Type: vt_dropship GUID: 55, MapID: 52
-      LocalBuilding("vt_dropship", 55, 52, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(5394f, 4238f, 103.2297f))))
+      LocalBuilding("vt_dropship", 55, 52, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(5394f, 4238f, 103.2297f), vt_dropship)))
       LocalObject(308, Terminal.Constructor(Vector3(5417.469f, 4237.71f, 106.0977f), dropship_vehicle_terminal), owning_building_guid = 55)
       LocalObject(296, VehicleSpawnPad.Constructor(Vector3(5397.589f, 4237.958f, 99.24469f), dropship_pad_doors, Vector3(0, 0, 181)), owning_building_guid = 55, terminal_guid = 308)
     }
@@ -1086,7 +1086,7 @@ object Map13 {
     Building51()
 
     def Building51(): Unit = { // Name: vt_dropship Type: vt_dropship GUID: 56, MapID: 51
-      LocalBuilding("vt_dropship", 56, 51, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(5600f, 4034f, 103.2345f))))
+      LocalBuilding("vt_dropship", 56, 51, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(5600f, 4034f, 103.2345f), vt_dropship)))
       LocalObject(309, Terminal.Constructor(Vector3(5600.29f, 4057.469f, 106.1025f), dropship_vehicle_terminal), owning_building_guid = 56)
       LocalObject(297, VehicleSpawnPad.Constructor(Vector3(5600.042f, 4037.589f, 99.24946f), dropship_pad_doors, Vector3(0, 0, 91)), owning_building_guid = 56, terminal_guid = 309)
     }
@@ -1094,7 +1094,7 @@ object Map13 {
     Building42()
 
     def Building42(): Unit = { // Name: vt_dropship Type: vt_dropship GUID: 57, MapID: 42
-      LocalBuilding("vt_dropship", 57, 42, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(5622f, 4456f, 103.2351f))))
+      LocalBuilding("vt_dropship", 57, 42, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(5622f, 4456f, 103.2351f), vt_dropship)))
       LocalObject(310, Terminal.Constructor(Vector3(5621.71f, 4432.531f, 106.1031f), dropship_vehicle_terminal), owning_building_guid = 57)
       LocalObject(298, VehicleSpawnPad.Constructor(Vector3(5621.958f, 4452.411f, 99.25006f), dropship_pad_doors, Vector3(0, 0, -89)), owning_building_guid = 57, terminal_guid = 310)
     }
@@ -1102,7 +1102,7 @@ object Map13 {
     Building41()
 
     def Building41(): Unit = { // Name: vt_dropship Type: vt_dropship GUID: 58, MapID: 41
-      LocalBuilding("vt_dropship", 58, 41, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(5834f, 4218f, 103.2365f))))
+      LocalBuilding("vt_dropship", 58, 41, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(5834f, 4218f, 103.2365f), vt_dropship)))
       LocalObject(311, Terminal.Constructor(Vector3(5810.531f, 4218.29f, 106.1045f), dropship_vehicle_terminal), owning_building_guid = 58)
       LocalObject(299, VehicleSpawnPad.Constructor(Vector3(5830.411f, 4218.042f, 99.25149f), dropship_pad_doors, Vector3(0, 0, 1)), owning_building_guid = 58, terminal_guid = 311)
     }
@@ -1110,79 +1110,79 @@ object Map13 {
     Building30()
 
     def Building30(): Unit = { // Name: VS_NW_Tport_01 Type: vt_spawn GUID: 59, MapID: 30
-      LocalBuilding("VS_NW_Tport_01", 59, 30, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(2900f, 4758f, 56.08539f))))
+      LocalBuilding("VS_NW_Tport_01", 59, 30, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(2900f, 4758f, 56.08539f), vt_spawn)))
     }
 
     Building29()
 
     def Building29(): Unit = { // Name: VS_NW_Tport_02 Type: vt_spawn GUID: 60, MapID: 29
-      LocalBuilding("VS_NW_Tport_02", 60, 29, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(2940f, 4932f, 56.08539f))))
+      LocalBuilding("VS_NW_Tport_02", 60, 29, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(2940f, 4932f, 56.08539f), vt_spawn)))
     }
 
     Building32()
 
     def Building32(): Unit = { // Name: VS_NW_Tport_03 Type: vt_spawn GUID: 61, MapID: 32
-      LocalBuilding("VS_NW_Tport_03", 61, 32, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(3060f, 4908f, 56.08539f))))
+      LocalBuilding("VS_NW_Tport_03", 61, 32, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(3060f, 4908f, 56.08539f), vt_spawn)))
     }
 
     Building31()
 
     def Building31(): Unit = { // Name: VS_NW_Tport_04 Type: vt_spawn GUID: 62, MapID: 31
-      LocalBuilding("VS_NW_Tport_04", 62, 31, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(3124f, 4776f, 56.08539f))))
+      LocalBuilding("VS_NW_Tport_04", 62, 31, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(3124f, 4776f, 56.08539f), vt_spawn)))
     }
 
     Building19()
 
     def Building19(): Unit = { // Name: VS_S_Tport_03 Type: vt_spawn GUID: 63, MapID: 19
-      LocalBuilding("VS_S_Tport_03", 63, 19, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(3610f, 2732f, 90.85205f))))
+      LocalBuilding("VS_S_Tport_03", 63, 19, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(3610f, 2732f, 90.85205f), vt_spawn)))
     }
 
     Building18()
 
     def Building18(): Unit = { // Name: VS_S_Tport_01 Type: vt_spawn GUID: 64, MapID: 18
-      LocalBuilding("VS_S_Tport_01", 64, 18, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(3652f, 2908f, 90.8536f))))
+      LocalBuilding("VS_S_Tport_01", 64, 18, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(3652f, 2908f, 90.8536f), vt_spawn)))
     }
 
     Building21()
 
     def Building21(): Unit = { // Name: VS_S_Tport_02 Type: vt_spawn GUID: 65, MapID: 21
-      LocalBuilding("VS_S_Tport_02", 65, 21, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(3730f, 2908f, 90.8536f))))
+      LocalBuilding("VS_S_Tport_02", 65, 21, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(3730f, 2908f, 90.8536f), vt_spawn)))
     }
 
     Building20()
 
     def Building20(): Unit = { // Name: VS_S_Tport_04 Type: vt_spawn GUID: 66, MapID: 20
-      LocalBuilding("VS_S_Tport_04", 66, 20, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(3766f, 2732f, 90.84919f))))
+      LocalBuilding("VS_S_Tport_04", 66, 20, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(3766f, 2732f, 90.84919f), vt_spawn)))
     }
 
     Building45()
 
     def Building45(): Unit = { // Name: VS_NE_Tport_04 Type: vt_spawn GUID: 67, MapID: 45
-      LocalBuilding("VS_NE_Tport_04", 67, 45, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(5484f, 4208f, 103.2298f))))
+      LocalBuilding("VS_NE_Tport_04", 67, 45, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(5484f, 4208f, 103.2298f), vt_spawn)))
     }
 
     Building44()
 
     def Building44(): Unit = { // Name: VS_NE_Tport_01 Type: vt_spawn GUID: 68, MapID: 44
-      LocalBuilding("VS_NE_Tport_01", 68, 44, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(5552f, 4344f, 103.2289f))))
+      LocalBuilding("VS_NE_Tport_01", 68, 44, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(5552f, 4344f, 103.2289f), vt_spawn)))
     }
 
     Building46()
 
     def Building46(): Unit = { // Name: VS_NE_Tport_03 Type: vt_spawn GUID: 69, MapID: 46
-      LocalBuilding("VS_NE_Tport_03", 69, 46, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(5690f, 4164f, 103.2289f))))
+      LocalBuilding("VS_NE_Tport_03", 69, 46, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(5690f, 4164f, 103.2289f), vt_spawn)))
     }
 
     Building47()
 
     def Building47(): Unit = { // Name: VS_NE_Tport_02 Type: vt_spawn GUID: 70, MapID: 47
-      LocalBuilding("VS_NE_Tport_02", 70, 47, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(5692f, 4312f, 103.2289f))))
+      LocalBuilding("VS_NE_Tport_02", 70, 47, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(5692f, 4312f, 103.2289f), vt_spawn)))
     }
 
     Building26()
 
     def Building26(): Unit = { // Name: vt_vehicle Type: vt_vehicle GUID: 71, MapID: 26
-      LocalBuilding("vt_vehicle", 71, 26, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(2768f, 4768f, 56.08539f))))
+      LocalBuilding("vt_vehicle", 71, 26, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(2768f, 4768f, 56.08539f), vt_vehicle)))
       LocalObject(1057, Terminal.Constructor(Vector3(2782.49f, 4767.755f, 58.77239f), ground_vehicle_terminal), owning_building_guid = 71)
       LocalObject(702, VehicleSpawnPad.Constructor(Vector3(2767.853f, 4767.976f, 54.61439f), mb_pad_creation, Vector3(0, 0, -89)), owning_building_guid = 71, terminal_guid = 1057)
     }
@@ -1190,7 +1190,7 @@ object Map13 {
     Building38()
 
     def Building38(): Unit = { // Name: vt_vehicle Type: vt_vehicle GUID: 72, MapID: 38
-      LocalBuilding("vt_vehicle", 72, 38, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(2816f, 4700f, 56.08539f))))
+      LocalBuilding("vt_vehicle", 72, 38, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(2816f, 4700f, 56.08539f), vt_vehicle)))
       LocalObject(1058, Terminal.Constructor(Vector3(2826.242f, 4710.253f, 58.77239f), ground_vehicle_terminal), owning_building_guid = 72)
       LocalObject(703, VehicleSpawnPad.Constructor(Vector3(2815.915f, 4699.877f, 54.61439f), mb_pad_creation, Vector3(0, 0, 225)), owning_building_guid = 72, terminal_guid = 1058)
     }
@@ -1198,7 +1198,7 @@ object Map13 {
     Building28()
 
     def Building28(): Unit = { // Name: vt_vehicle Type: vt_vehicle GUID: 73, MapID: 28
-      LocalBuilding("vt_vehicle", 73, 28, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(2946f, 4622f, 56.08539f))))
+      LocalBuilding("vt_vehicle", 73, 28, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(2946f, 4622f, 56.08539f), vt_vehicle)))
       LocalObject(1059, Terminal.Constructor(Vector3(2946.245f, 4636.49f, 58.77239f), ground_vehicle_terminal), owning_building_guid = 73)
       LocalObject(704, VehicleSpawnPad.Constructor(Vector3(2946.024f, 4621.853f, 54.61439f), mb_pad_creation, Vector3(0, 0, 181)), owning_building_guid = 73, terminal_guid = 1059)
     }
@@ -1206,7 +1206,7 @@ object Map13 {
     Building25()
 
     def Building25(): Unit = { // Name: vt_vehicle Type: vt_vehicle GUID: 74, MapID: 25
-      LocalBuilding("vt_vehicle", 74, 25, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(3000f, 5048f, 56.08539f))))
+      LocalBuilding("vt_vehicle", 74, 25, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(3000f, 5048f, 56.08539f), vt_vehicle)))
       LocalObject(1060, Terminal.Constructor(Vector3(2999.755f, 5033.51f, 58.77239f), ground_vehicle_terminal), owning_building_guid = 74)
       LocalObject(705, VehicleSpawnPad.Constructor(Vector3(2999.976f, 5048.147f, 54.61439f), mb_pad_creation, Vector3(0, 0, 1)), owning_building_guid = 74, terminal_guid = 1060)
     }
@@ -1214,7 +1214,7 @@ object Map13 {
     Building39()
 
     def Building39(): Unit = { // Name: vt_vehicle Type: vt_vehicle GUID: 75, MapID: 39
-      LocalBuilding("vt_vehicle", 75, 39, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(3094f, 5010f, 56.08539f))))
+      LocalBuilding("vt_vehicle", 75, 39, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(3094f, 5010f, 56.08539f), vt_vehicle)))
       LocalObject(1061, Terminal.Constructor(Vector3(3083.758f, 4999.747f, 58.77239f), ground_vehicle_terminal), owning_building_guid = 75)
       LocalObject(706, VehicleSpawnPad.Constructor(Vector3(3094.085f, 5010.123f, 54.61439f), mb_pad_creation, Vector3(0, 0, 45)), owning_building_guid = 75, terminal_guid = 1061)
     }
@@ -1222,7 +1222,7 @@ object Map13 {
     Building27()
 
     def Building27(): Unit = { // Name: vt_vehicle Type: vt_vehicle GUID: 76, MapID: 27
-      LocalBuilding("vt_vehicle", 76, 27, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(3212f, 4842f, 56.08539f))))
+      LocalBuilding("vt_vehicle", 76, 27, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(3212f, 4842f, 56.08539f), vt_vehicle)))
       LocalObject(1062, Terminal.Constructor(Vector3(3197.51f, 4842.245f, 58.77239f), ground_vehicle_terminal), owning_building_guid = 76)
       LocalObject(707, VehicleSpawnPad.Constructor(Vector3(3212.147f, 4842.024f, 54.61439f), mb_pad_creation, Vector3(0, 0, 91)), owning_building_guid = 76, terminal_guid = 1062)
     }
@@ -1230,7 +1230,7 @@ object Map13 {
     Building17()
 
     def Building17(): Unit = { // Name: vt_vehicle Type: vt_vehicle GUID: 77, MapID: 17
-      LocalBuilding("vt_vehicle", 77, 17, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(3506f, 2820f, 90.8536f))))
+      LocalBuilding("vt_vehicle", 77, 17, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(3506f, 2820f, 90.8536f), vt_vehicle)))
       LocalObject(1063, Terminal.Constructor(Vector3(3520.49f, 2819.755f, 93.5406f), ground_vehicle_terminal), owning_building_guid = 77)
       LocalObject(708, VehicleSpawnPad.Constructor(Vector3(3505.853f, 2819.976f, 89.3826f), mb_pad_creation, Vector3(0, 0, -89)), owning_building_guid = 77, terminal_guid = 1063)
     }
@@ -1238,7 +1238,7 @@ object Map13 {
     Building8()
 
     def Building8(): Unit = { // Name: vt_vehicle Type: vt_vehicle GUID: 78, MapID: 8
-      LocalBuilding("vt_vehicle", 78, 8, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(3658f, 3020f, 90.8536f))))
+      LocalBuilding("vt_vehicle", 78, 8, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(3658f, 3020f, 90.8536f), vt_vehicle)))
       LocalObject(1064, Terminal.Constructor(Vector3(3657.755f, 3005.51f, 93.5406f), ground_vehicle_terminal), owning_building_guid = 78)
       LocalObject(709, VehicleSpawnPad.Constructor(Vector3(3657.976f, 3020.147f, 89.3826f), mb_pad_creation, Vector3(0, 0, 1)), owning_building_guid = 78, terminal_guid = 1064)
     }
@@ -1246,7 +1246,7 @@ object Map13 {
     Building11()
 
     def Building11(): Unit = { // Name: vt_vehicle Type: vt_vehicle GUID: 79, MapID: 11
-      LocalBuilding("vt_vehicle", 79, 11, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(3660f, 2590f, 90.8536f))))
+      LocalBuilding("vt_vehicle", 79, 11, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(3660f, 2590f, 90.8536f), vt_vehicle)))
       LocalObject(1065, Terminal.Constructor(Vector3(3660.245f, 2604.49f, 93.5406f), ground_vehicle_terminal), owning_building_guid = 79)
       LocalObject(710, VehicleSpawnPad.Constructor(Vector3(3660.024f, 2589.853f, 89.3826f), mb_pad_creation, Vector3(0, 0, 181)), owning_building_guid = 79, terminal_guid = 1065)
     }
@@ -1254,7 +1254,7 @@ object Map13 {
     Building9()
 
     def Building9(): Unit = { // Name: vt_vehicle Type: vt_vehicle GUID: 80, MapID: 9
-      LocalBuilding("vt_vehicle", 80, 9, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(3722f, 3020f, 90.8536f))))
+      LocalBuilding("vt_vehicle", 80, 9, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(3722f, 3020f, 90.8536f), vt_vehicle)))
       LocalObject(1066, Terminal.Constructor(Vector3(3721.755f, 3005.51f, 93.5406f), ground_vehicle_terminal), owning_building_guid = 80)
       LocalObject(711, VehicleSpawnPad.Constructor(Vector3(3721.976f, 3020.147f, 89.3826f), mb_pad_creation, Vector3(0, 0, 1)), owning_building_guid = 80, terminal_guid = 1066)
     }
@@ -1262,7 +1262,7 @@ object Map13 {
     Building10()
 
     def Building10(): Unit = { // Name: vt_vehicle Type: vt_vehicle GUID: 81, MapID: 10
-      LocalBuilding("vt_vehicle", 81, 10, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(3724f, 2588f, 90.85265f))))
+      LocalBuilding("vt_vehicle", 81, 10, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(3724f, 2588f, 90.85265f), vt_vehicle)))
       LocalObject(1067, Terminal.Constructor(Vector3(3724.245f, 2602.49f, 93.53964f), ground_vehicle_terminal), owning_building_guid = 81)
       LocalObject(712, VehicleSpawnPad.Constructor(Vector3(3724.024f, 2587.853f, 89.38165f), mb_pad_creation, Vector3(0, 0, 181)), owning_building_guid = 81, terminal_guid = 1067)
     }
@@ -1270,7 +1270,7 @@ object Map13 {
     Building16()
 
     def Building16(): Unit = { // Name: vt_vehicle Type: vt_vehicle GUID: 82, MapID: 16
-      LocalBuilding("vt_vehicle", 82, 16, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(3878f, 2824f, 90.8536f))))
+      LocalBuilding("vt_vehicle", 82, 16, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(3878f, 2824f, 90.8536f), vt_vehicle)))
       LocalObject(1068, Terminal.Constructor(Vector3(3863.51f, 2824.245f, 93.5406f), ground_vehicle_terminal), owning_building_guid = 82)
       LocalObject(713, VehicleSpawnPad.Constructor(Vector3(3878.147f, 2824.024f, 89.3826f), mb_pad_creation, Vector3(0, 0, 91)), owning_building_guid = 82, terminal_guid = 1068)
     }
@@ -1278,7 +1278,7 @@ object Map13 {
     Building55()
 
     def Building55(): Unit = { // Name: vt_vehicle Type: vt_vehicle GUID: 83, MapID: 55
-      LocalBuilding("vt_vehicle", 83, 55, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(5420f, 4174f, 103.2318f))))
+      LocalBuilding("vt_vehicle", 83, 55, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(5420f, 4174f, 103.2318f), vt_vehicle)))
       LocalObject(1069, Terminal.Constructor(Vector3(5434.49f, 4173.755f, 105.9188f), ground_vehicle_terminal), owning_building_guid = 83)
       LocalObject(714, VehicleSpawnPad.Constructor(Vector3(5419.853f, 4173.976f, 101.7608f), mb_pad_creation, Vector3(0, 0, -89)), owning_building_guid = 83, terminal_guid = 1069)
     }
@@ -1286,7 +1286,7 @@ object Map13 {
     Building43()
 
     def Building43(): Unit = { // Name: vt_vehicle Type: vt_vehicle GUID: 84, MapID: 43
-      LocalBuilding("vt_vehicle", 84, 43, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(5420f, 4298f, 103.2333f))))
+      LocalBuilding("vt_vehicle", 84, 43, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(5420f, 4298f, 103.2333f), vt_vehicle)))
       LocalObject(1070, Terminal.Constructor(Vector3(5434.49f, 4297.755f, 105.9203f), ground_vehicle_terminal), owning_building_guid = 84)
       LocalObject(715, VehicleSpawnPad.Constructor(Vector3(5419.853f, 4297.976f, 101.7623f), mb_pad_creation, Vector3(0, 0, -89)), owning_building_guid = 84, terminal_guid = 1070)
     }
@@ -1294,7 +1294,7 @@ object Map13 {
     Building54()
 
     def Building54(): Unit = { // Name: vt_vehicle Type: vt_vehicle GUID: 85, MapID: 54
-      LocalBuilding("vt_vehicle", 85, 54, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(5686f, 4420f, 103.2329f))))
+      LocalBuilding("vt_vehicle", 85, 54, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(5686f, 4420f, 103.2329f), vt_vehicle)))
       LocalObject(1071, Terminal.Constructor(Vector3(5675.758f, 4409.747f, 105.9199f), ground_vehicle_terminal), owning_building_guid = 85)
       LocalObject(716, VehicleSpawnPad.Constructor(Vector3(5686.085f, 4420.123f, 101.7619f), mb_pad_creation, Vector3(0, 0, 45)), owning_building_guid = 85, terminal_guid = 1071)
     }
@@ -1302,7 +1302,7 @@ object Map13 {
     Building57()
 
     def Building57(): Unit = { // Name: vt_vehicle Type: vt_vehicle GUID: 86, MapID: 57
-      LocalBuilding("vt_vehicle", 86, 57, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(5710f, 4046f, 103.2289f))))
+      LocalBuilding("vt_vehicle", 86, 57, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(5710f, 4046f, 103.2289f), vt_vehicle)))
       LocalObject(1072, Terminal.Constructor(Vector3(5699.747f, 4056.242f, 105.9159f), ground_vehicle_terminal), owning_building_guid = 86)
       LocalObject(717, VehicleSpawnPad.Constructor(Vector3(5710.123f, 4045.915f, 101.7579f), mb_pad_creation, Vector3(0, 0, 135)), owning_building_guid = 86, terminal_guid = 1072)
     }
@@ -1310,7 +1310,7 @@ object Map13 {
     Building53()
 
     def Building53(): Unit = { // Name: vt_vehicle Type: vt_vehicle GUID: 87, MapID: 53
-      LocalBuilding("vt_vehicle", 87, 53, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(5752f, 4088f, 103.2289f))))
+      LocalBuilding("vt_vehicle", 87, 53, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(5752f, 4088f, 103.2289f), vt_vehicle)))
       LocalObject(1073, Terminal.Constructor(Vector3(5741.747f, 4098.242f, 105.9159f), ground_vehicle_terminal), owning_building_guid = 87)
       LocalObject(718, VehicleSpawnPad.Constructor(Vector3(5752.123f, 4087.915f, 101.7579f), mb_pad_creation, Vector3(0, 0, 135)), owning_building_guid = 87, terminal_guid = 1073)
     }
@@ -1318,7 +1318,7 @@ object Map13 {
     Building56()
 
     def Building56(): Unit = { // Name: vt_vehicle Type: vt_vehicle GUID: 88, MapID: 56
-      LocalBuilding("vt_vehicle", 88, 56, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(5794f, 4132f, 103.2289f))))
+      LocalBuilding("vt_vehicle", 88, 56, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(5794f, 4132f, 103.2289f), vt_vehicle)))
       LocalObject(1074, Terminal.Constructor(Vector3(5783.747f, 4142.242f, 105.9159f), ground_vehicle_terminal), owning_building_guid = 88)
       LocalObject(719, VehicleSpawnPad.Constructor(Vector3(5794.123f, 4131.915f, 101.7579f), mb_pad_creation, Vector3(0, 0, 135)), owning_building_guid = 88, terminal_guid = 1074)
     }

@@ -37,7 +37,7 @@ class PainboxControl(painbox: Painbox) extends Actor {
       //todo: REK boosting
       val owner = painbox.Owner.asInstanceOf[Building]
       val faction = owner.Faction
-      if(faction != PlanetSideEmpire.NEUTRAL && nearestDoor.Open.nonEmpty) {
+      if(faction != PlanetSideEmpire.NEUTRAL && (!painbox.Definition.HasNearestDoorDependency || (painbox.Definition.HasNearestDoorDependency && nearestDoor.Open.nonEmpty))) {
         val events = owner.Zone.AvatarEvents
         val damage = painbox.Definition.Damage
         val radius = painbox.Definition.Radius * painbox.Definition.Radius
