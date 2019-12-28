@@ -4777,16 +4777,18 @@ class WorldSessionActor extends Actor with MDCContextAware {
           if(player.Faction == door.Faction || (continent.Map.DoorToLock.get(object_guid.guid) match {
             case Some(lock_guid) =>
               val lock = continent.GUID(lock_guid).get.asInstanceOf[IFFLock]
+              val owner = lock.Owner.asInstanceOf[Building]
 
               val playerIsOnInside = Vector3.ScalarProjection(lock.Outwards, player.Position - door.Position) < 0f
 
               // If an IFF lock exists and the IFF lock faction doesn't match the current player and one of the following conditions are met open the door:
-              // A base is neutral
-              // A base is hacked
-              // The lock is hacked
               // The player is on the inside of the door, determined by the lock orientation
+              // The lock is hacked
+              // A base is hacked
+              // A base is neutral
+              // todo: A base is out of power (generator down)
 
-              lock.HackedBy.isDefined || lock.Owner.asInstanceOf[Building].CaptureConsoleIsHacked || lock.Faction == PlanetSideEmpire.NEUTRAL || playerIsOnInside
+              playerIsOnInside || lock.HackedBy.isDefined || owner.CaptureConsoleIsHacked || lock.Faction == PlanetSideEmpire.NEUTRAL
             case None => !door.isOpen // If there's no linked IFF lock just open the door if it's closed.
           })) {
             door.Actor ! Door.Use(player, msg)
