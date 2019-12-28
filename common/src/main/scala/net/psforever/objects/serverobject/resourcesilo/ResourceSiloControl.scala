@@ -41,6 +41,8 @@ class ResourceSiloControl(resourceSilo : ResourceSilo) extends Actor with Factio
 
     case ResourceSilo.UpdateChargeLevel(amount: Int) =>
       val siloChargeBeforeChange = resourceSilo.ChargeLevel
+      val building = resourceSilo.Owner.asInstanceOf[Building]
+      val zone = building.Zone
 
       // Increase if positive passed in or decrease charge level if negative number is passed in
       resourceSilo.ChargeLevel += amount
@@ -54,12 +56,11 @@ class ResourceSiloControl(resourceSilo : ResourceSilo) extends Actor with Factio
         log.trace(s"Silo ${resourceSilo.GUID} NTU bar level has changed from ${resourceSilo.CapacitorDisplay} to $ntuBarLevel")
         resourceSilo.CapacitorDisplay = ntuBarLevel
         resourceSilo.Owner.Actor ! Building.SendMapUpdate(all_clients = true)
-        val building = resourceSilo.Owner
-        val zone = building.Zone
         zone.AvatarEvents ! AvatarServiceMessage(
           zone.Id,
           AvatarAction.PlanetsideAttribute(resourceSilo.GUID, 45, resourceSilo.CapacitorDisplay)
         )
+        building.Actor ! Building.SendMapUpdate(all_clients = true)
       }
 
       val ntuIsLow = resourceSilo.ChargeLevel.toFloat / resourceSilo.MaximumCharge.toFloat < 0.2f
@@ -69,8 +70,6 @@ class ResourceSiloControl(resourceSilo : ResourceSilo) extends Actor with Factio
         self ! ResourceSilo.LowNtuWarning(enabled = true)
       }
 
-      val building = resourceSilo.Owner.asInstanceOf[Building]
-      val zone = building.Zone
       if(resourceSilo.ChargeLevel == 0 && siloChargeBeforeChange > 0) {
         // Oops, someone let the base run out of power. Shut it all down.
         //todo: Make base neutral if silo hits zero NTU

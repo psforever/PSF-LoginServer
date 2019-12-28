@@ -3167,7 +3167,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
         //todo: grant BEP to user
         //todo: grant BEP to squad in range
-        //todo: notify map service to update ntu % on map for all users
 
         //todo: handle silo orb / panel glow properly if more than one person is refilling silo and one player stops. effects should stay on until all players stop
 
