@@ -7787,7 +7787,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             // Synchronise warning light & silo capacity
             val silo = amenity.asInstanceOf[ResourceSilo]
             sendResponse(PlanetsideAttributeMessage(amenityId, 45, silo.CapacitorDisplay))
-            sendResponse(PlanetsideAttributeMessage(amenityId, 47, if(silo.LowNtuWarningOn) 1 else 0))
+            sendResponse(PlanetsideAttributeMessage(silo.Owner.GUID, 47, if(silo.LowNtuWarningOn) 1 else 0))
 
             if(silo.ChargeLevel == 0) {
               sendResponse(PlanetsideAttributeMessage(silo.Owner.GUID, 48, 1))
