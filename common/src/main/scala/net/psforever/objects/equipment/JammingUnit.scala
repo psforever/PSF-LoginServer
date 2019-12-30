@@ -128,7 +128,7 @@ trait JammableBehavior {
       val radius = cause.projectile.profile.DamageRadius
       JammingUnit.FindJammerDuration(cause.projectile.profile, obj) match {
         case Some(dur) if Vector3.DistanceSquared(cause.hit_pos, cause.target.Position) < radius * radius =>
-          StartJammeredSound(obj)
+          StartJammeredSound(obj, dur)
           StartJammeredStatus(obj, dur)
         case _ => ;
       }
@@ -148,7 +148,7 @@ trait JammableBehavior {
       jammedSound = true
       import scala.concurrent.ExecutionContext.Implicits.global
       jammeredSoundTimer.cancel
-      jammeredSoundTimer = context.system.scheduler.scheduleOnce(30 seconds, self, JammableUnit.ClearJammeredSound())
+      jammeredSoundTimer = context.system.scheduler.scheduleOnce(dur seconds, self, JammableUnit.ClearJammeredSound())
     }
   }
 

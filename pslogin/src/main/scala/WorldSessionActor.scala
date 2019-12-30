@@ -156,7 +156,6 @@ class WorldSessionActor extends Actor
   var skipStaminaRegenForTurns : Int = 0
   lazy val unsignedIntMaxValue : Long = Int.MaxValue.toLong * 2L + 1L
   var serverTime : Long = 0
-  var jammeredEquipment : Seq[PlanetSideGUID] = Nil
 
   var amsSpawnPoints : List[SpawnPoint] = Nil
   var clientKeepAlive : Cancellable = DefaultCancellable.obj
@@ -10106,6 +10105,8 @@ class WorldSessionActor extends Actor
 
   /**
     * Start the jammered buzzing.
+    * Although, as a rule, the jammering sound effect should last as long as the jammering status,
+    * Infantry seem to hear the sound for a bit longer than the effect.
     * @see `JammableHevaior.StartJammeredSound`
     * @param target an object that can be affected by the jammered status
     * @param dur the duration of the timer, in milliseconds;
@@ -10115,7 +10116,7 @@ class WorldSessionActor extends Actor
     case obj : Player if !jammedSound =>
       sendResponse(PlanetsideAttributeMessage(obj.GUID, 27, 1))
       continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(obj.GUID, 27, 1))
-      super.StartJammeredSound(obj, dur)
+      super.StartJammeredSound(obj, 3000)
     case _ => ;
   }
 
@@ -10129,18 +10130,10 @@ class WorldSessionActor extends Actor
     * @param dur the duration of the timer, in milliseconds
     */
   override def StartJammeredStatus(target : Any, dur : Int) : Unit = target match {
-    case obj : Player if !obj.Jammed =>
+    case obj : Player =>
       DeactivateImplants()
       skipStaminaRegenForTurns = 10
-      jammeredEquipment = (jammeredEquipment ++ obj.Holsters()
-        .map { _.Equipment }
-        .collect {
-          case Some(item : Tool) if item.Size != EquipmentSize.Melee =>
-            item.Jammed = true
-            sendResponse(PlanetsideAttributeMessage(item.GUID, 27, 1))
-            item.GUID
-        }).distinct
-      super.StartJammeredStatus(obj, dur)
+      super.StartJammeredStatus(target, dur)
     case _ => ;
   }
 
@@ -10154,25 +10147,6 @@ class WorldSessionActor extends Actor
       sendResponse(PlanetsideAttributeMessage(obj.GUID, 27, 0))
       continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(obj.GUID, 27, 0))
       super.CancelJammeredSound(obj)
-    case _ => ;
-  }
-
-  /**
-    * Reset jammered status of previously-affected equipment.
-    * @see `JammableHevaior.CancelJammeredStatus`
-    * @param target an object that can be affected by the jammered status
-    */
-  override def CancelJammeredStatus(target : Any) : Unit = target match {
-    case obj : Player if obj.Jammed =>
-      jammeredEquipment.foreach { id =>
-        continent.GUID(id) match {
-          case Some(item : JammableUnit) => item.Jammed = false
-          case _ => ;
-        }
-        sendResponse(PlanetsideAttributeMessage(id, 27, 0))
-      }
-      jammeredEquipment = Nil
-      super.CancelJammeredStatus(obj)
     case _ => ;
   }
 
