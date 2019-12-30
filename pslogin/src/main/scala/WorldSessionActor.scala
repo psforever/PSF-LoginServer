@@ -3231,7 +3231,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
         HackState.Ongoing
       }
 
-      if(vis == HackState.Cancelled) {
+      if(!target.HasGUID) {
+        // Target is gone, cancel the hack.
+        // Note: I couldn't find any examples of an object that no longer has a GUID in packet captures, but sending the hacking player's GUID as the target to cancel the hack seems to work
+        sendResponse(HackMessage(progressType, player.GUID, player.GUID, 0, 0L, HackState.Cancelled, 8L))
+      }
+      else if(vis == HackState.Cancelled) {
         // Object moved. Cancel the hack (e.g. vehicle drove away)
         sendResponse(HackMessage(progressType, target.GUID, player.GUID, 0, 0L, vis, 8L))
       }
