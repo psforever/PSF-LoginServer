@@ -31,7 +31,7 @@ class DetailedConstructionToolDataTest extends Specification {
               cdata.alternate mustEqual false
               cdata.v1 mustEqual true
               cdata.v2.isEmpty mustEqual true
-              cdata.v3 mustEqual false
+              cdata.jammered mustEqual false
               cdata.v4.isEmpty mustEqual true
               cdata.v5.isEmpty mustEqual true
               cdata.guid mustEqual PlanetSideGUID(0)
@@ -71,7 +71,7 @@ class DetailedConstructionToolDataTest extends Specification {
               cdata.alternate mustEqual false
               cdata.v1 mustEqual true
               cdata.v2.isEmpty mustEqual true
-              cdata.v3 mustEqual false
+              cdata.jammered mustEqual false
               cdata.v4.isEmpty mustEqual true
               cdata.v5.isEmpty mustEqual true
               cdata.guid mustEqual PlanetSideGUID(0)
@@ -111,7 +111,7 @@ class DetailedConstructionToolDataTest extends Specification {
               cdata.alternate mustEqual false
               cdata.v1 mustEqual true
               cdata.v2.isEmpty mustEqual true
-              cdata.v3 mustEqual false
+              cdata.jammered mustEqual false
               cdata.v4.isEmpty mustEqual true
               cdata.v5.contains(564) mustEqual true
               cdata.guid mustEqual PlanetSideGUID(0)
@@ -139,7 +139,7 @@ class DetailedConstructionToolDataTest extends Specification {
               cdata.alternate mustEqual false
               cdata.v1 mustEqual false
               cdata.v2.isEmpty mustEqual true
-              cdata.v3 mustEqual false
+              cdata.jammered mustEqual false
               cdata.v4.isEmpty mustEqual true
               cdata.v5.isEmpty mustEqual true
               cdata.guid mustEqual PlanetSideGUID(0)

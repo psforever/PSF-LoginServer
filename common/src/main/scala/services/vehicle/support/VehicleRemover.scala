@@ -26,7 +26,7 @@ class VehicleRemover extends RemoverActor {
     val vehicle = entry.obj.asInstanceOf[Vehicle]
     val vehicleGUID = vehicle.GUID
     val zoneId = entry.zone.Id
-    vehicle.Actor ! Vehicle.PrepareForDeletion
+    vehicle.Actor ! Vehicle.PrepareForDeletion()
     //escape being someone else's cargo
     (vehicle.MountedIn match {
       case Some(carrierGUID) =>

@@ -3,6 +3,7 @@ package net.psforever.objects.definition.converter
 
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.PlanetSideGameObject
+import net.psforever.objects.equipment.JammableUnit
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.packet.game.objectcreate._
 
@@ -15,11 +16,14 @@ class SmallDeployableConverter extends ObjectCreateConverter[PlanetSideGameObjec
         PlacementData(obj.Position, obj.Orientation),
         CommonFieldData(
           obj.Faction,
-          false,
-          false,
+          bops = false,
+          alternate = false,
           false,
           None,
-          false,
+          jammered = obj match {
+            case o : JammableUnit => o.Jammed
+            case _ => false
+          },
           Some(false),
           None,
           obj.Owner match {

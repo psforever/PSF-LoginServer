@@ -74,7 +74,7 @@ object AvatarConverter {
         alt_model_flag,
         false,
         None,
-        false,
+        obj.Jammed,
         None,
         v5 = None,
         PlanetSideGUID(0)

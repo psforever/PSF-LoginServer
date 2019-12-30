@@ -3,6 +3,7 @@ package net.psforever.objects.serverobject.terminals
 
 import net.psforever.objects.PlanetSideGameObject
 import net.psforever.objects.definition.ObjectDefinition
+import net.psforever.objects.equipment.EffectTarget
 
 import scala.collection.mutable
 

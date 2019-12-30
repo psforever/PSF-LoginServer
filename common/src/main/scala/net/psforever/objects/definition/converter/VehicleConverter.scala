@@ -25,7 +25,7 @@ class VehicleConverter extends ObjectCreateConverter[Vehicle]() {
             alternate = false,
             v1 = false,
             v2 = None,
-            v3 = false,
+            jammered = obj.Jammed,
             v4 = Some(false),
             v5 = None,
             obj.Owner match {
@@ -56,7 +56,7 @@ class VehicleConverter extends ObjectCreateConverter[Vehicle]() {
             alternate = true,
             v1 = false,
             v2 = None,
-            v3 = false,
+            jammered = obj.Jammed,
             v4 = Some(false),
             v5 = None,
             guid = PlanetSideGUID(0)

@@ -18,7 +18,8 @@ import scala.annotation.tailrec
   * @param toolDef the `ObjectDefinition` that constructs this item and maintains some of its immutable fields
   */
 class Tool(private val toolDef : ToolDefinition) extends Equipment
-  with FireModeSwitch[FireModeDefinition] {
+  with FireModeSwitch[FireModeDefinition]
+  with JammableUnit {
   /** index of the current fire mode on the `ToolDefinition`'s list of fire modes */
   private var fireModeIndex : Int = toolDef.DefaultFireModeIndex
   /** current ammunition slot being used by this fire mode */

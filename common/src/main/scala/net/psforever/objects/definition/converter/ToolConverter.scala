@@ -21,7 +21,7 @@ class ToolConverter extends ObjectCreateConverter[Tool]() {
           alternate = false,
           true,
           None,
-          false,
+          obj.Jammed,
           None,
           None,
           PlanetSideGUID(0)
@@ -45,7 +45,7 @@ class ToolConverter extends ObjectCreateConverter[Tool]() {
           alternate = false,
           true,
           None,
-          false,
+          obj.Jammed,
           None,
           None,
           PlanetSideGUID(0)

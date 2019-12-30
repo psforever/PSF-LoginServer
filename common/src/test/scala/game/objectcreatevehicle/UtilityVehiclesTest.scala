@@ -29,7 +29,7 @@ class UtilityVehiclesTest extends Specification {
           ant.data.faction mustEqual PlanetSideEmpire.VS
           ant.data.alternate mustEqual false
           ant.data.v1 mustEqual true
-          ant.data.v3 mustEqual false
+          ant.data.jammered mustEqual false
           ant.data.v5.isEmpty mustEqual true
           ant.data.guid mustEqual PlanetSideGUID(0)
           ant.driveState mustEqual DriveState.Mobile
@@ -59,7 +59,7 @@ class UtilityVehiclesTest extends Specification {
           ams.data.faction mustEqual PlanetSideEmpire.VS
           ams.data.alternate mustEqual false
           ams.data.v1 mustEqual false
-          ams.data.v3 mustEqual false
+          ams.data.jammered mustEqual false
           ams.data.v5.isEmpty mustEqual true
           ams.data.guid mustEqual PlanetSideGUID(2885)
           ams.driveState mustEqual DriveState.Deployed

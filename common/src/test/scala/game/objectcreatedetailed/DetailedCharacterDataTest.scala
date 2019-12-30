@@ -71,7 +71,7 @@ class DetailedCharacterDataTest extends Specification {
                   a.data.bops mustEqual false
                   a.data.v1 mustEqual true
                   a.data.v2.isEmpty mustEqual true
-                  a.data.v3 mustEqual false
+                  a.data.jammered mustEqual false
                   a.data.v4.isEmpty mustEqual true
                   a.data.v5.isEmpty mustEqual true
                   a.exosuit mustEqual ExoSuitType.Standard
@@ -259,7 +259,7 @@ class DetailedCharacterDataTest extends Specification {
                   a.data.bops mustEqual false
                   a.data.v1 mustEqual false
                   a.data.v2.isEmpty mustEqual true
-                  a.data.v3 mustEqual false
+                  a.data.jammered mustEqual false
                   a.data.v4.isEmpty mustEqual true
                   a.data.v5.isEmpty mustEqual true
                   a.exosuit mustEqual ExoSuitType.Standard
@@ -444,7 +444,7 @@ class DetailedCharacterDataTest extends Specification {
                   a.data.bops mustEqual false
                   a.data.v1 mustEqual true
                   a.data.v2.isEmpty mustEqual true
-                  a.data.v3 mustEqual false
+                  a.data.jammered mustEqual false
                   a.data.v4.isEmpty mustEqual true
                   a.data.v5.isEmpty mustEqual true
                   a.exosuit mustEqual ExoSuitType.MAX
@@ -652,7 +652,7 @@ class DetailedCharacterDataTest extends Specification {
                   a.data.bops mustEqual false
                   a.data.v1 mustEqual true
                   a.data.v2.isEmpty mustEqual true
-                  a.data.v3 mustEqual false
+                  a.data.jammered mustEqual false
                   a.data.v4.isEmpty mustEqual true
                   a.data.v5.isEmpty mustEqual true
                   a.exosuit mustEqual ExoSuitType.Agile
@@ -1104,7 +1104,7 @@ class DetailedCharacterDataTest extends Specification {
                   cdata.data.alternate mustEqual false
                   cdata.data.v1 mustEqual true
                   cdata.data.v2.isEmpty mustEqual true
-                  cdata.data.v3 mustEqual false
+                  cdata.data.jammered mustEqual false
                   cdata.data.v4.isEmpty mustEqual true
                   cdata.data.v5.isEmpty mustEqual true
                   cdata.data.guid mustEqual PlanetSideGUID(0)
@@ -1160,7 +1160,7 @@ class DetailedCharacterDataTest extends Specification {
                   a.data.alternate mustEqual false
                   a.data.v1 mustEqual false
                   a.data.v2.isEmpty mustEqual true
-                  a.data.v3 mustEqual false
+                  a.data.jammered mustEqual false
                   a.data.v4.isEmpty mustEqual true
                   a.data.v5.isEmpty mustEqual true
                   a.exosuit mustEqual ExoSuitType.Standard
@@ -1310,7 +1310,7 @@ class DetailedCharacterDataTest extends Specification {
                   a.data.alternate mustEqual false
                   a.data.v1 mustEqual false
                   a.data.v2.isEmpty mustEqual true
-                  a.data.v3 mustEqual false
+                  a.data.jammered mustEqual false
                   a.data.v4.isEmpty mustEqual true
                   a.data.v5.isEmpty mustEqual true
                   a.exosuit mustEqual ExoSuitType.Standard

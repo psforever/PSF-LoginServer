@@ -60,19 +60,21 @@ class ShieldGeneratorControl(gen : ShieldGeneratorDeployable) extends Actor
   override def StartJammeredSound(target : Any, dur : Int) : Unit =  { }
 
   override def StartJammeredStatus(target : Any, dur : Int) : Unit = target match {
-    case obj : PlanetSideServerObject =>
-      obj.Zone.VehicleEvents ! VehicleServiceMessage(obj.Zone.Id, VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, obj.GUID, 54, 1))
+    case obj : PlanetSideServerObject with JammableUnit if !obj.Jammed =>
+      obj.Zone.VehicleEvents ! VehicleServiceMessage(obj.Zone.Id, VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, obj.GUID, 27, 1))
       super.StartJammeredStatus(obj, dur)
     case _ => ;
   }
 
   override def CancelJammeredSound(target : Any) : Unit =  { }
 
-  override def CancelJammeredStatus(target : Any) : Unit = target match {
-    case obj : PlanetSideServerObject =>
-      obj.Zone.VehicleEvents ! VehicleServiceMessage(obj.Zone.Id, VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, obj.GUID, 54, 0))
-      super.CancelJammeredStatus(obj)
-    case _ => ;
+  override def CancelJammeredStatus(target : Any) : Unit = {
+    target match {
+      case obj : PlanetSideServerObject with JammableUnit  if obj.Jammed =>
+        obj.Zone.VehicleEvents ! VehicleServiceMessage(obj.Zone.Id, VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, obj.GUID, 27, 0))
+      case _ => ;
+    }
+    super.CancelJammeredStatus(target)
   }
 }
 

@@ -3326,15 +3326,15 @@ class WorldSessionActor extends Actor
       //player.Position = Vector3(4262.211f ,4067.0625f ,262.35938f) //z6, Akna.tower
       //player.Orientation = Vector3(0f, 0f, 132.1875f)
 //      player.ExoSuit = ExoSuitType.MAX //TODO strange issue; divide number above by 10 when uncommenting
-      player.Slot(0).Equipment = Tool(jammer_grenade) //Tool(GlobalDefinitions.StandardPistol(player.Faction))
+      player.Slot(0).Equipment = Tool(GlobalDefinitions.StandardPistol(player.Faction))
       player.Slot(2).Equipment = Tool(suppressor)
       player.Slot(4).Equipment = Tool(GlobalDefinitions.StandardMelee(player.Faction))
-      player.Slot(6).Equipment = ConstructionItem(ace) //AmmoBox(bullet_9mm)
-      player.Slot(9).Equipment = ConstructionItem(ace) //AmmoBox(bullet_9mm)
-      player.Slot(12).Equipment = ConstructionItem(ace) //AmmoBox(bullet_9mm)
-      player.Slot(33).Equipment = ConstructionItem(ace) //AmmoBox(bullet_9mm_AP)
-      player.Slot(36).Equipment = ConstructionItem(ace) //AmmoBox(GlobalDefinitions.StandardPistolAmmo(player.Faction))
-      player.Slot(39).Equipment = Tool(jammer_grenade) //SimpleItem(remote_electronics_kit)
+      player.Slot(6).Equipment = AmmoBox(bullet_9mm)
+      player.Slot(9).Equipment = AmmoBox(bullet_9mm)
+      player.Slot(12).Equipment = AmmoBox(bullet_9mm)
+      player.Slot(33).Equipment = AmmoBox(bullet_9mm_AP)
+      player.Slot(36).Equipment = AmmoBox(GlobalDefinitions.StandardPistolAmmo(player.Faction))
+      player.Slot(39).Equipment = SimpleItem(remote_electronics_kit)
       player.Locker.Inventory += 0 -> SimpleItem(remote_electronics_kit)
       player.Inventory.Items.foreach { _.obj.Faction = faction }
       player.Actor = self
@@ -3741,9 +3741,6 @@ class WorldSessionActor extends Actor
         DeactivateImplants()
       }
       //implants and stamina management finish
-      if(is_crouching && !player.Crouching) {
-        // ...
-      }
       player.Position = pos
       player.Velocity = vel
       player.Orientation = Vector3(player.Orientation.x, pitch, yaw)
@@ -10071,68 +10068,20 @@ class WorldSessionActor extends Actor
     projectilesToCleanUp(local_index) = false
   }
 
-  def FindJammerTargetsInScope(jammer : Any with JammingUnit) : Seq[PlanetSideGameObject] = {
-    (jammer match {
-      case p : ProjectileDefinition if !p.JammerProjectile => None
-      case p => Some(p)
-    }) match {
-      case Some(p : JammingUnit) =>
-        p.JammedEffectDuration
-          .map { case (a, _) => a }
-          .collect {
-            case TargetValidation(EffectTarget.Category.Player, test) if test(player) => Some(player)
-            case TargetValidation(EffectTarget.Category.Vehicle, test) if {
-              continent.GUID(player.VehicleSeated) match {
-                case Some(v) => test(v)
-                case None => false
-              }
-            } => continent.GUID(player.VehicleSeated)
-            case TargetValidation(EffectTarget.Category.Aircraft, test) if {
-              continent.GUID(player.VehicleSeated) match {
-                case Some(v) => test(v)
-                case None => false
-              }
-            } => continent.GUID(player.VehicleSeated)
-          } collect {
-          case Some(a) => a
-        } toSeq
-      case _ =>
-        Seq.empty[PlanetSideGameObject]
-    }
-  }
-
-  def CompileJammerTests(jammer : JammingUnit) : Iterable[EffectTarget.Validation.Value] = {
-    jammer.JammedEffectDuration map { case (TargetValidation(_, test), _) => test }
-  }
-
-  def CompileJammerTests(jammer : JammingUnit, target : EffectTarget.Category.Value) : Iterable[EffectTarget.Validation.Value] = {
-    jammer.JammedEffectDuration collect { case (TargetValidation(filter, test), _) if filter == target => test }
-  }
-
-  def FindJammerTargetsInScope(jammer : JammingUnit, scope : Seq[PlanetSideGUID], zone : Zone) : Seq[(PlanetSideGUID, PlanetSideGameObject)] = {
-    val tests = CompileJammerTests(jammer)
-    (for {
-      uid <- scope
-      obj = zone.GUID(uid)
-      if obj.nonEmpty
-    } yield (uid, obj.get))
-      .collect {
-        case out @ (_, b) if tests.foldLeft(false)(_ || _(b)) => out
-      }
-  }
-
-  def FindJammerTargetsInScope(jammer : JammingUnit, scope : Seq[PlanetSideGameObject]) : Seq[PlanetSideGameObject] = {
-    val tests = CompileJammerTests(jammer)
-    scope collect {
-      case a if tests.foldLeft(false)(_ || _(a)) => a
-    }
-  }
-
+  /**
+    * Deactivate all active implants.
+    * This method is intended to support only the current Live server implants that are functional,
+    * the darklight vision implant and the surge implant.
+    */
   def DeactivateImplants() : Unit = {
     DeactivateImplantDarkLight()
     DeactivateImplantSurge()
   }
 
+  /**
+    * Deactivate the darklight vision implant.
+    * This method is intended to support only the current Live server implants.
+    */
   def DeactivateImplantDarkLight() : Unit = {
     if(avatar.Implants(0).Active) {
       avatar.Implants(0).Active = false
@@ -10142,6 +10091,10 @@ class WorldSessionActor extends Actor
     }
   }
 
+  /**
+    * Deactivate the surge implant.
+    * This method is intended to support only the current Live server implants.
+    */
   def DeactivateImplantSurge() : Unit = {
     if(avatar.Implants(1).Active) {
       avatar.Implants(1).Active = false
@@ -10151,34 +10104,39 @@ class WorldSessionActor extends Actor
     }
   }
 
-  override def TryJammerEffectActivate(target : Any, cause : ResolvedProjectile) : Unit = target match {
-    case obj : Player =>
-      val radius = cause.projectile.profile.DamageRadius
-      JammingUnit.FindJammerDuration(cause.projectile.profile, obj) match {
-        case Some(dur) if Vector3.DistanceSquared(cause.hit_pos, cause.target.Position) < radius * radius =>
-          DeactivateImplants()
-          skipStaminaRegenForTurns = 5
-          StartJammeredSound(obj)
-          StartJammeredStatus(obj, dur)
-        case _ => ;
-      }
-    case _ => ;
-  }
-
+  /**
+    * Start the jammered buzzing.
+    * @see `JammableHevaior.StartJammeredSound`
+    * @param target an object that can be affected by the jammered status
+    * @param dur the duration of the timer, in milliseconds;
+    *            by default, 30000
+    */
   override def StartJammeredSound(target : Any, dur : Int) : Unit = target match {
-    case obj : Player =>
+    case obj : Player if !jammedSound =>
       sendResponse(PlanetsideAttributeMessage(obj.GUID, 27, 1))
       continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(obj.GUID, 27, 1))
       super.StartJammeredSound(obj, dur)
     case _ => ;
   }
 
+  /**
+    * Perform a variety of tasks to indicate being jammered.
+    * Deactivate implants (should also uninitialize them),
+    * delay stamina regeneration for a certain number of turns,
+    * and set the jammered status on specific holstered equipment.
+    * @see `JammableHevaior.StartJammeredStatus`
+    * @param target an object that can be affected by the jammered status
+    * @param dur the duration of the timer, in milliseconds
+    */
   override def StartJammeredStatus(target : Any, dur : Int) : Unit = target match {
-    case obj : Player =>
+    case obj : Player if !obj.Jammed =>
+      DeactivateImplants()
+      skipStaminaRegenForTurns = 10
       jammeredEquipment = (jammeredEquipment ++ obj.Holsters()
         .map { _.Equipment }
         .collect {
-          case Some(item) if item.Size != EquipmentSize.Melee =>
+          case Some(item : Tool) if item.Size != EquipmentSize.Melee =>
+            item.Jammed = true
             sendResponse(PlanetsideAttributeMessage(item.GUID, 27, 1))
             item.GUID
         }).distinct
@@ -10186,17 +10144,33 @@ class WorldSessionActor extends Actor
     case _ => ;
   }
 
+  /**
+    * Stop the jammered buzzing.
+    * @see `JammableHevaior.CancelJammeredSound`
+    * @param target an object that can be affected by the jammered status
+    */
   override def CancelJammeredSound(target : Any) : Unit = target match {
-    case obj : Player =>
+    case obj : Player if jammedSound =>
       sendResponse(PlanetsideAttributeMessage(obj.GUID, 27, 0))
       continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(obj.GUID, 27, 0))
       super.CancelJammeredSound(obj)
     case _ => ;
   }
 
+  /**
+    * Reset jammered status of previously-affected equipment.
+    * @see `JammableHevaior.CancelJammeredStatus`
+    * @param target an object that can be affected by the jammered status
+    */
   override def CancelJammeredStatus(target : Any) : Unit = target match {
-    case obj : Player =>
-      jammeredEquipment.foreach { id => sendResponse(PlanetsideAttributeMessage(id, 27, 0)) }
+    case obj : Player if obj.Jammed =>
+      jammeredEquipment.foreach { id =>
+        continent.GUID(id) match {
+          case Some(item : JammableUnit) => item.Jammed = false
+          case _ => ;
+        }
+        sendResponse(PlanetsideAttributeMessage(id, 27, 0))
+      }
       jammeredEquipment = Nil
       super.CancelJammeredStatus(obj)
     case _ => ;

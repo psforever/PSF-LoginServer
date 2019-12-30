@@ -115,7 +115,7 @@ class VehicleControl(vehicle : Vehicle) extends Actor
         }
         sender ! FactionAffinity.AssertFactionAffinity(vehicle, faction)
 
-      case Vehicle.PrepareForDeletion =>
+      case Vehicle.PrepareForDeletion() =>
         CancelJammeredSound(vehicle)
         CancelJammeredStatus(vehicle)
         context.become(Disabled)
@@ -126,10 +126,10 @@ class VehicleControl(vehicle : Vehicle) extends Actor
   def Disabled : Receive = checkBehavior
     .orElse(dismountBehavior)
     .orElse {
-      case Vehicle.Reactivate =>
+      case Vehicle.Reactivate() =>
         context.become(Enabled)
 
-      case _ => ;
+      case _ =>
     }
 }
 

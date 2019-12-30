@@ -32,7 +32,7 @@ class MountedVehiclesTest extends Specification {
             vdata.data.bops mustEqual false
             vdata.data.alternate mustEqual false
             vdata.data.v1 mustEqual false
-            vdata.data.v3 mustEqual false
+            vdata.data.jammered mustEqual false
             vdata.data.v5.isEmpty mustEqual true
             vdata.data.guid mustEqual PlanetSideGUID(3776)
             vdata.health mustEqual 255
@@ -57,7 +57,7 @@ class MountedVehiclesTest extends Specification {
                         a.data.bops mustEqual false
                         a.data.v1 mustEqual false
                         a.data.v2.isEmpty mustEqual true
-                        a.data.v3 mustEqual false
+                        a.data.jammered mustEqual false
                         a.data.v4.isEmpty mustEqual true
                         a.data.v5.isEmpty mustEqual true
                         a.exosuit mustEqual ExoSuitType.Agile
