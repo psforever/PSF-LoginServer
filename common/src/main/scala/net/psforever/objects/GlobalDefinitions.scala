@@ -2749,6 +2749,7 @@ object GlobalDefinitions {
     jammer_grenade_projectile_enh.JammedEffectDuration += TargetValidation(EffectTarget.Category.Deployable, EffectTarget.Validation.MotionSensor) -> 30000
     jammer_grenade_projectile_enh.JammedEffectDuration += TargetValidation(EffectTarget.Category.Deployable, EffectTarget.Validation.Spitfire) -> 30000
     jammer_grenade_projectile_enh.JammedEffectDuration += TargetValidation(EffectTarget.Category.Turret, EffectTarget.Validation.Turret) -> 30000
+    jammer_grenade_projectile_enh.JammedEffectDuration += TargetValidation(EffectTarget.Category.Vehicle, EffectTarget.Validation.VehicleNotAMS) -> 10000
     ProjectileDefinition.CalculateDerivedFields(jammer_grenade_projectile_enh)
 
     katana_projectile.Name = "katana_projectile"
