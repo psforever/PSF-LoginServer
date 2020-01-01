@@ -888,7 +888,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           case GlobalDefinitions.ace =>
             continent.LocalEvents ! LocalServiceMessage(continent.Id, LocalAction.TriggerEffectLocation(player.GUID, "spawn_object_effect", obj.Position, obj.Orientation))
           case GlobalDefinitions.advanced_ace =>
-            sendResponse(GenericObjectActionMessage(player.GUID, 212)) //put fdu down; it will be removed from the client's holster
+            sendResponse(GenericObjectActionMessage(player.GUID, 53)) //put fdu down; it will be removed from the client's holster
             continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PutDownFDU(player.GUID))
           case GlobalDefinitions.router_telepad => ;
           case _ =>
@@ -1009,7 +1009,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       val guid = obj.GUID
       val definition = obj.Definition
       StartBundlingPackets()
-      sendResponse(GenericObjectActionMessage(guid, 84)) //reset build cooldown
+      sendResponse(GenericObjectActionMessage(guid, 21)) //reset build cooldown
       sendResponse(ObjectDeployedMessage.Failure(definition.Name))
       log.warn(s"FinalizeDeployable: deployable ${definition.asInstanceOf[DeployableDefinition].Item}@$guid not handled by specific case")
       log.warn(s"FinalizeDeployable: deployable will be cleaned up, but may not get unregistered properly")
@@ -1243,7 +1243,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         }
 
       case AvatarResponse.ConcealPlayer() =>
-        sendResponse(GenericObjectActionMessage(guid, 36))
+        sendResponse(GenericObjectActionMessage(guid, 9))
 
       case AvatarResponse.EnvironmentalDamage(target, amount) =>
         if(player.isAlive) {
@@ -1469,7 +1469,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
       case AvatarResponse.PutDownFDU(target) =>
         if(tplayer_guid != guid) {
-          sendResponse(GenericObjectActionMessage(target, 212))
+          sendResponse(GenericObjectActionMessage(target, 53))
         }
 
       case AvatarResponse.Release(tplayer) =>
@@ -1592,8 +1592,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
         //if active, deactivate
         if(obj.Active) {
           obj.Active = false
-          sendResponse(GenericObjectActionMessage(guid, 116))
-          sendResponse(GenericObjectActionMessage(guid, 120))
+          sendResponse(GenericObjectActionMessage(guid, 29))
+          sendResponse(GenericObjectActionMessage(guid, 30))
         }
         //determine if no replacement teleport system exists
         continent.GUID(obj.Router) match {
@@ -2457,7 +2457,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         }
 
       case VehicleResponse.ConcealPlayer(player_guid) =>
-        sendResponse(GenericObjectActionMessage(player_guid, 36))
+        sendResponse(GenericObjectActionMessage(player_guid, 9))
         //sendResponse(PlanetsideAttributeMessage(player_guid, 29, 1))
 
       case VehicleResponse.DismountVehicle(bailType, wasKickedByDriver) =>
@@ -2540,10 +2540,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
         }
 
       case VehicleResponse.ResetSpawnPad(pad_guid) =>
-        sendResponse(GenericObjectActionMessage(pad_guid, 92))
+        sendResponse(GenericObjectActionMessage(pad_guid, 23))
 
       case VehicleResponse.RevealPlayer(player_guid) =>
-        sendResponse(GenericObjectActionMessage(player_guid, 40))
+        sendResponse(GenericObjectActionMessage(player_guid, 10))
 
       case VehicleResponse.SeatPermissions(vehicle_guid, seat_group, permission) =>
         if(tplayer_guid != guid) {
@@ -8933,7 +8933,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     }
     avatar.Deployables.Add(obj)
     UpdateDeployableUIElements(avatar.Deployables.UpdateUIElement(item))
-    sendResponse(GenericObjectActionMessage(guid, 84)) //reset build cooldown
+    sendResponse(GenericObjectActionMessage(guid, 21)) //reset build cooldown
     sendResponse(ObjectCreateMessage(definition.ObjectId, guid, definition.Packet.ConstructorData(obj).get))
     continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.DeployItem(player.GUID, obj))
     //map icon
@@ -9734,14 +9734,14 @@ class WorldSessionActor extends Actor with MDCContextAware {
         udef.Packet.ConstructorData(internalTelepad).get
       )
     )
-    sendResponse(GenericObjectActionMessage(uguid, 108))
-    sendResponse(GenericObjectActionMessage(uguid, 120))
+    sendResponse(GenericObjectActionMessage(uguid, 27))
+    sendResponse(GenericObjectActionMessage(uguid, 30))
     /*
     the following configurations create the interactive beam underneath the Deployed Router
     normally dispatched after the warm-up timer has completed
      */
-    sendResponse(GenericObjectActionMessage(uguid, 108))
-    sendResponse(GenericObjectActionMessage(uguid, 112))
+    sendResponse(GenericObjectActionMessage(uguid, 27))
+    sendResponse(GenericObjectActionMessage(uguid, 28))
   }
 
   /**
@@ -9749,8 +9749,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * @param telepadGUID na
     */
   def LinkRemoteTelepad(telepadGUID: PlanetSideGUID) : Unit = {
-    sendResponse(GenericObjectActionMessage(telepadGUID, 108))
-    sendResponse(GenericObjectActionMessage(telepadGUID, 112))
+    sendResponse(GenericObjectActionMessage(telepadGUID, 27))
+    sendResponse(GenericObjectActionMessage(telepadGUID, 28))
   }
 
   /**
@@ -9790,8 +9790,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
     */
   def UseRouterTelepadEffect(playerGUID : PlanetSideGUID, srcGUID : PlanetSideGUID, destGUID : PlanetSideGUID) : Unit = {
     sendResponse(PlanetsideAttributeMessage(playerGUID, 64, 1)) //what does this do?
-    sendResponse(GenericObjectActionMessage(srcGUID, 124))
-    sendResponse(GenericObjectActionMessage(destGUID, 128))
+    sendResponse(GenericObjectActionMessage(srcGUID, 31))
+    sendResponse(GenericObjectActionMessage(destGUID, 32))
   }
 
   /**
