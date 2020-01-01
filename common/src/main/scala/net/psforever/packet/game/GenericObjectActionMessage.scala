@@ -11,26 +11,34 @@ import shapeless.{::, HNil}
   * Dispatched by the server to enact an effect on some game object.
   * (Write more some other time.)
   * @param object_guid the target object
-  * @param code the action code
-  *             24 - deconstructs player
-  *             28 - start imprinting process (progress bar + character animation)
-  *             32 - finish imprinting?
-  *             36 - cloak
-  *             40 - uncloak
-  *             82 - hit flinch?
-  *             138 - time till item can be used ?????
-  *             44, 45, 46, 47 - Deploy capital base shield pole with animation and broadcasts "The capitol force dome at X has been activated"
-  *             48, 49, 50, 51 - Stow capital base shield pole with animation and broadcasts "The capitol force dome at X has been deactivated"
-  *             52, 53, 54, 55 - Deploy capital base shield pole (instantly, unless still in the middle of the stow animation)
-  *             60, 61, 62, 63 - Displays "This facility's generator is under attack!"
-  *             64, 65, 66, 67 - Displays "Generator has Overloaded! Evacuate Generator Room Immediately!"
-  *             68, 69, 70, 71 - Displays "This facility's generator is back on line"
-  *             88, 89, 90, 91 - ???? (Has been seen on vehicle pad objects, possibly some sort of reset flag after base faction flip / hack clear?)
-  *             92, 93, 94, 95 - Plays vehicle pad animation moving downwards
-  *             96, 97, 98, 99 - Makes the vehicle bounce slightly. Have seen this in packet captures after taking a vehicle through a warpgate
-  *             200, 201, 202, 203 - For aircraft - client shows "THe bailing mechanism failed! To fix the mechanism, land and repair the vehicle!"
-  *             224 - Sets vehicle or player to be black ops
-  *             228 - Reverts player from black ops
+  * @param code the action code (0-63)
+  *             6 - Deconstructs player
+  *             7 - Start imprinting process (progress bar + character animation)
+  *             8 - Finish imprinting?
+  *             9 - Cloak
+  *             10 - Uncloak
+  *             11 - Deploy capital base shield pole with animation and broadcasts "The capitol force dome at X has been activated"
+  *             12 - Stow capital base shield pole with animation and broadcasts "The capitol force dome at X has been deactivated"
+  *             13 - Deploy capital base shield pole (instantly, unless still in the middle of the stow animation)
+  *             15 - Displays "This facility's generator is under attack!"
+  *             16 - Displays "Generator has Overloaded! Evacuate Generator Room Immediately!"
+  *             17 - Displays "This facility's generator is back on line"
+  *             20 - Hit flinch? (orig, 82->80)
+  *             21 - Reset build cooldown from using an ACE
+  *             22 - ???? (Has been seen on vehicle pad objects, possibly some sort of reset flag after base faction flip / hack clear?)
+  *             23 - Plays vehicle pad animation moving downwards
+  *             24 - Makes the vehicle bounce slightly. Have seen this in packet captures after taking a vehicle through a warpgate
+  *             27 - Activates the router internal telepad for linking
+  *             28 - Activates the router internal telepad for linking
+  *             29 - Activates the telepad deployable (also used on the router's internal telepad)
+  *             30 - Activates the telepad deployable (also used on the router's internal telepad)
+  *             31 - Animation during router teleportation (source)
+  *             32 - Animation during router teleportation (destination)
+  *             34 - Time until item can be used ?????
+  *             50 - For aircraft - client shows "The bailing mechanism failed! To fix the mechanism, land and repair the vehicle!"
+  *             53 - Put down an FDU
+  *             56 - Sets vehicle or player to be black ops
+  *             57 - Reverts player from black ops
   */
 final case class GenericObjectActionMessage(object_guid : PlanetSideGUID,
                                             code : Int)
@@ -43,7 +51,7 @@ final case class GenericObjectActionMessage(object_guid : PlanetSideGUID,
 object GenericObjectActionMessage extends Marshallable[GenericObjectActionMessage] {
   implicit val codec : Codec[GenericObjectActionMessage] = (
     ("object_guid" | PlanetSideGUID.codec) ::
-      ("code" | uint8L) ::
+      ("code" | uint(bits = 6)) ::
       ("ex" | bits) //"code" may extract at odd sizes
     ).exmap[GenericObjectActionMessage] (
     {
