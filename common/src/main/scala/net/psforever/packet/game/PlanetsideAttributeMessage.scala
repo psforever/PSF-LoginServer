@@ -115,10 +115,10 @@ import scodec.codecs._
   *         45 : Advanced Engineering (= Fortification Engineering + Assault Engineering) Must have Combat Engineering<br>
   * `25 - Forget certifications (same order as 24)`<br>
   * `26 - Certification reset timer (in seconds)`
-  * `27 - PA_JAMMED - plays jammed buzzing sound`<br>
+  * `27 - PA_JAMMED - plays jammed buzzing sound in vicinity of target, jams weapon discharge`<br>
   * `28 - PA_IMPLANT_ACTIVE - Plays implant sounds. Valid values seem to be up to 20.`<br>
   * `29 - PA_VAPORIZED - Visible ?! That's not the cloaked effect, Maybe for spectator mode ?. Value is 0 to visible, 1 to invisible.`<br>
-  * `31 - Looking for Squad info (marquee and ui):<br>
+  * `31 - Looking for Squad info (marquee and ui):`<br>
   * ` - 0 is LFS`<br>
   * ` - 1 is LFSM (Looking for Squad Members)`<br>
   * ` - n is the supplemental squad identifier number; same as "LFS;" for the leader, sets "LFSM" after the first manual flagging`<br>
@@ -162,7 +162,7 @@ import scodec.codecs._
   * `13 - Trunk permissions (same)`<br>
   * `21 - Declare a player the vehicle's owner, by globally unique identifier`<br>
   * `22 - Toggles gunner and passenger mount points (1 = hides, 0 = reveals; this also locks their permissions)`<br>
-  * `54 -  Vehicle EMP? Plays sound as if vehicle had been hit by EMP`<br>
+  * `54 - Plays jammed buzzing sound in vicinity of target`<br>
   * `68 - Vehicle shield health`<br>
   * `79 - ???`<br>
   * `80 - Damage vehicle (unknown value)`<br>

@@ -324,7 +324,7 @@ class DamageModelTests extends Specification {
       tplayer.Armor mustEqual 50
 
       val resprojectile = ResolvedProjectile(ProjectileResolution.Hit, projectile, SourceEntry(tplayer), tplayer.DamageModel, Vector3.Zero)
-      val func : (Any)=>Unit = resprojectile.damage_model.Calculate(resprojectile)
+      val func : Any=>ResolvedProjectile = resprojectile.damage_model.Calculate(resprojectile)
 
       func(tplayer)
       tplayer.Health mustEqual 87
@@ -338,7 +338,7 @@ class DamageModelTests extends Specification {
       tplayer.Armor mustEqual 50
 
       val resprojectile = ResolvedProjectile(ProjectileResolution.Hit, projectile, SourceEntry(tplayer), tplayer.DamageModel, Vector3.Zero)
-      val func : (Any)=>Unit = resprojectile.damage_model.Calculate(resprojectile, ProjectileResolution.Splash)
+      val func : Any=>ResolvedProjectile = resprojectile.damage_model.Calculate(resprojectile, ProjectileResolution.Splash)
 
       func(tplayer)
       tplayer.Health mustEqual 98
@@ -352,7 +352,7 @@ class DamageModelTests extends Specification {
       tplayer.Armor mustEqual 50
 
       val resprojectile = ResolvedProjectile(ProjectileResolution.Hit, projectile, SourceEntry(tplayer), tplayer.DamageModel, Vector3.Zero)
-      val func : (Any)=>Unit = resprojectile.damage_model.Calculate(resprojectile)
+      val func : Any=>ResolvedProjectile = resprojectile.damage_model.Calculate(resprojectile)
       tplayer.Armor = 0
 
       func(tplayer)
@@ -365,7 +365,7 @@ class DamageModelTests extends Specification {
       vehicle.Health mustEqual 650
 
       val resprojectile = ResolvedProjectile(ProjectileResolution.Hit, projectile, SourceEntry(vehicle), vehicle.DamageModel, Vector3.Zero)
-      val func : (Any)=>Unit = resprojectile.damage_model.Calculate(resprojectile)
+      val func : Any=>ResolvedProjectile = resprojectile.damage_model.Calculate(resprojectile)
 
       func(vehicle)
       vehicle.Health mustEqual 641
@@ -378,7 +378,7 @@ class DamageModelTests extends Specification {
       vehicle.Shields mustEqual 10
 
       val resprojectile = ResolvedProjectile(ProjectileResolution.Hit, projectile, SourceEntry(vehicle), vehicle.DamageModel, Vector3.Zero)
-      val func : (Any)=>Unit = resprojectile.damage_model.Calculate(resprojectile)
+      val func : Any=>ResolvedProjectile = resprojectile.damage_model.Calculate(resprojectile)
 
       func(vehicle)
       vehicle.Health mustEqual 650
@@ -392,7 +392,7 @@ class DamageModelTests extends Specification {
       vehicle.Shields mustEqual 10
 
       val resprojectile = ResolvedProjectile(ProjectileResolution.Hit, projectile, SourceEntry(vehicle), vehicle.DamageModel, Vector3.Zero)
-      val func : (Any)=>Unit = resprojectile.damage_model.Calculate(resprojectile)
+      val func : Any=>ResolvedProjectile = resprojectile.damage_model.Calculate(resprojectile)
 
       func(vehicle)
       vehicle.Health mustEqual 650
@@ -407,7 +407,7 @@ class DamageModelTests extends Specification {
       vehicle.Health mustEqual 650
 
       val resprojectile = ResolvedProjectile(ProjectileResolution.Hit, projectile, SourceEntry(vehicle), vehicle.DamageModel, Vector3.Zero)
-      val func : (Any)=>Unit = resprojectile.damage_model.Calculate(resprojectile, ProjectileResolution.Splash)
+      val func : Any=>ResolvedProjectile = resprojectile.damage_model.Calculate(resprojectile, ProjectileResolution.Splash)
 
       func(vehicle)
       vehicle.Health mustEqual 641

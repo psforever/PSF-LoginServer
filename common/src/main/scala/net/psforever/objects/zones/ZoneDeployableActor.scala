@@ -25,6 +25,7 @@ class ZoneDeployableActor(zone : Zone, deployableList : ListBuffer[PlanetSideGam
           case _ =>
             obj.Definition.Initialize(obj, context)
         }
+        obj.Zone = zone
         sender ! Zone.Deployable.DeployableIsBuilt(obj, tool)
       }
 

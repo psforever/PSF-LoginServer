@@ -43,7 +43,7 @@ class CharacterDataTest extends Specification {
                   a.data.bops mustEqual false
                   a.data.v1 mustEqual false
                   a.data.v2.isEmpty mustEqual true
-                  a.data.v3 mustEqual false
+                  a.data.jammered mustEqual false
                   a.data.v4.isEmpty mustEqual true
                   a.data.v5.isEmpty mustEqual true
                   a.exosuit mustEqual ExoSuitType.Reinforced
@@ -162,7 +162,7 @@ class CharacterDataTest extends Specification {
                   a.data.bops mustEqual false
                   a.data.v1 mustEqual false
                   a.data.v2.isEmpty mustEqual true
-                  a.data.v3 mustEqual false
+                  a.data.jammered mustEqual false
                   a.data.v4.isEmpty mustEqual true
                   a.data.v5.isEmpty mustEqual true
                   a.exosuit mustEqual ExoSuitType.Reinforced
@@ -231,7 +231,7 @@ class CharacterDataTest extends Specification {
                   a.data.bops mustEqual false
                   a.data.v1 mustEqual false
                   a.data.v2.isEmpty mustEqual true
-                  a.data.v3 mustEqual false
+                  a.data.jammered mustEqual false
                   a.data.v4.isEmpty mustEqual true
                   a.data.v5.isEmpty mustEqual true
                   a.exosuit mustEqual ExoSuitType.MAX

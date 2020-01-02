@@ -64,6 +64,10 @@ class LocalService(zone : Zone) extends Actor {
           LocalEvents.publish(
             LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.DeployableMapIcon(behavior, deployInfo))
           )
+        case LocalAction.Detonate(guid, obj) =>
+          LocalEvents.publish(
+            LocalServiceResponse(s"/$forChannel/Local", Service.defaultPlayerGUID, LocalResponse.Detonate(guid, obj))
+          )
         case LocalAction.DoorOpens(player_guid, _, door) =>
           doorCloser ! DoorCloseActor.DoorIsOpen(door, zone)
           LocalEvents.publish(
@@ -282,9 +286,9 @@ class LocalService(zone : Zone) extends Actor {
       }
 
     //synchronized damage calculations
-    case Vitality.DamageOn(target : Deployable, func) =>
-      func(target)
-      sender ! Vitality.DamageResolution(target)
+    case Vitality.DamageOn(target : Deployable, damage_func) =>
+      val cause = damage_func(target)
+      sender ! Vitality.DamageResolution(target, cause)
 
     case msg =>
       log.warn(s"Unhandled message $msg from $sender")

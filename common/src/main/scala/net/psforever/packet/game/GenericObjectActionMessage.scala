@@ -23,6 +23,7 @@ import shapeless.{::, HNil}
   *             15 - Displays "This facility's generator is under attack!"
   *             16 - Displays "Generator has Overloaded! Evacuate Generator Room Immediately!"
   *             17 - Displays "This facility's generator is back on line"
+  *             19 - Cause mines to explode
   *             20 - Hit flinch? (orig, 82->80)
   *             21 - Reset build cooldown from using an ACE
   *             22 - ???? (Has been seen on vehicle pad objects, possibly some sort of reset flag after base faction flip / hack clear?)

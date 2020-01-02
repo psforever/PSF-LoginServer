@@ -8,13 +8,13 @@ import scodec.{Attempt, Codec, Err}
 import scodec.codecs._
 import shapeless.{::, HNil}
 
-final case class CommonFieldDataExtra(unk1 : Int, unk2 : Boolean) extends StreamBitSize {
+final case class CommonFieldDataExtra(unk1 : Option[Int], unk2 : Boolean) extends StreamBitSize {
   override def bitsize : Long = 17L
 }
 
 object CommonFieldDataExtra {
-  implicit val codec : Codec[CommonFieldDataExtra] = (
-    ("unk1" | uint16L) ::
+  def codec(unk1 : Boolean) : Codec[CommonFieldDataExtra] = (
+    ("unk1" | conditional(unk1, uint16L)) :: //not sure what flags this field
       ("unk2" | bool)
     ).as[CommonFieldDataExtra]
 }
@@ -28,10 +28,9 @@ object CommonFieldDataExtra {
   *                  when set on a tool, that tool will be rendered nonfunctional instead (though it can still be equipped)
   * @param v1        na
   * @param v2        na;
-  *                  optional data whose reading is triggered in unknown conditions;
-  *                  flag a weapon as "jammered"
-  * @param v3        na;
-  *                  for weapons, works like `alternate`
+  *                  optional data whose reading is triggered in unknown conditions
+  * @param jammered  flag as "jammered;"
+  *                  set on most game objects, that object will produce the characteristic jammered buzz
   * @param v4        na;
   *                  a field used by a second encoding format for this data
   * @param v5        na;
@@ -43,7 +42,7 @@ final case class CommonFieldData(faction : PlanetSideEmpire.Value,
                                  alternate : Boolean,
                                  v1 : Boolean,
                                  v2 : Option[CommonFieldDataExtra],
-                                 v3 : Boolean,
+                                 jammered : Boolean,
                                  v4 : Option[Boolean],
                                  v5 : Option[Int],
                                  guid : PlanetSideGUID
@@ -64,7 +63,7 @@ final case class CommonFieldData(faction : PlanetSideEmpire.Value,
     23L + extraSize + v4Size + v5Size
   }
 
-  def apply(flag : Boolean) : CommonFieldData = CommonFieldData(faction, bops, alternate, v1, v2, v3, Some(flag), v5, guid)
+  def apply(flag : Boolean) : CommonFieldData = CommonFieldData(faction, bops, alternate, v1, v2, jammered, Some(flag), v5, guid)
 }
 
 object CommonFieldData extends Marshallable[CommonFieldData] {
@@ -100,8 +99,8 @@ object CommonFieldData extends Marshallable[CommonFieldData] {
       ("bops" | bool) ::
       ("alternate" | bool) ::
       ("v1" | bool) :: //the purpose of this bit changes depending on the previous bit
-      conditional(extra, "v2" | CommonFieldDataExtra.codec) ::
-      ("v3" | bool) ::
+      conditional(extra, "v2" | CommonFieldDataExtra.codec(unk1 = false)) ::
+      ("jammered" | bool) ::
       optional(bool, "v5" | uint16L) ::
       ("guid" | PlanetSideGUID.codec)
     ).xmap[CommonFieldData] (
@@ -122,8 +121,8 @@ object CommonFieldData extends Marshallable[CommonFieldData] {
       ("bops" | bool) ::
       ("alternate" | bool) ::
       ("v1" | bool) :: //though the code path differs depending on the previous bit, this one gets read one way or another
-      conditional(extra, "v2" | CommonFieldDataExtra.codec) ::
-      ("v3" | bool) ::
+      conditional(extra, "v2" | CommonFieldDataExtra.codec(unk1 = false)) ::
+      ("jammered" | bool) ::
       optional(bool, "v5" | uint16L) ::
       ("v4" | bool) ::
       ("guid" | PlanetSideGUID.codec)

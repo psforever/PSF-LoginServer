@@ -5,6 +5,7 @@ import net.psforever.objects.PlanetSideGameObject
 import net.psforever.objects.ballistics.{PlayerSource, ResolvedProjectile, SourceEntry, VehicleSource}
 import net.psforever.objects.definition.KitDefinition
 import net.psforever.objects.serverobject.terminals.TerminalDefinition
+import net.psforever.objects.vital.resolution.ResolutionCalculations
 import net.psforever.types.{ExoSuitType, ImplantType}
 
 abstract class VitalsActivity(target : SourceEntry) {
@@ -102,13 +103,13 @@ object Vitality {
     * upon a given vital object.
     * @param func a function literal
     */
-  final case class Damage(func : (Any)=>Unit)
+  final case class Damage(func : ResolutionCalculations.Output)
 
-  final case class DamageOn(obj : Vitality, func : (Any)=>Unit)
+  final case class DamageOn(obj : Vitality, func : ResolutionCalculations.Output)
 
   /**
     * Report that a vitals object must be updated due to damage.
     * @param obj the vital object
     */
-  final case class DamageResolution(obj : Vitality)
+  final case class DamageResolution(obj : Vitality, cause : ResolvedProjectile)
 }

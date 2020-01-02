@@ -173,7 +173,7 @@ class NormalVehiclesTest extends Specification {
               vdata.faction mustEqual PlanetSideEmpire.NC
               vdata.alternate mustEqual false
               vdata.v1 mustEqual true
-              vdata.v3 mustEqual false
+              vdata.jammered mustEqual false
               vdata.v5.isEmpty mustEqual true
               vdata.guid mustEqual PlanetSideGUID(0)
 

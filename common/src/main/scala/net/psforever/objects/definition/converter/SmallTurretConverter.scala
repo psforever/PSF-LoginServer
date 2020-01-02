@@ -23,7 +23,7 @@ class SmallTurretConverter extends ObjectCreateConverter[TurretDeployable]() {
               alternate = false,
               false,
               None,
-              false,
+              jammered = obj.Jammed,
               Some(true),
               None,
               obj.Owner match {

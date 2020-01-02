@@ -14,7 +14,7 @@ import net.psforever.objects.vital.projectile.ProjectileCalculations
   * @tparam A an internal type that converts between `calcFunc`'s output and `applyFunc`'s input;
   *           never has to be defined explicitly, but will be checked upon object definition
   */
-abstract class DamageResistCalculations[A](calcFunc : (ResolvedProjectile)=>((Int, Int)=>A),
+abstract class DamageResistCalculations[A](calcFunc : ResolvedProjectile=>(Int, Int)=>A,
                                            applyFunc : (A, ResolvedProjectile)=>ResolutionCalculations.Output)
   extends ResolutionCalculations {
   def Calculate(damages : ProjectileCalculations.Form, resistances : ProjectileCalculations.Form, data : ResolvedProjectile) : ResolutionCalculations.Output = {

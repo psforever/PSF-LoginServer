@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.definition.converter
 
-import net.psforever.objects.Player
+import net.psforever.objects.{Player, Tool}
 import net.psforever.objects.equipment.{Equipment, EquipmentSlot}
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.packet.game.objectcreate._
@@ -136,17 +136,38 @@ class CharacterSelectConverter extends AvatarConverter {
     }
     else {
       val slot : EquipmentSlot = iter.next
-      if(slot.Equipment.isDefined) {
-        val equip : Equipment = slot.Equipment.get
-        recursiveMakeHolsters(
-          iter,
-          list :+ AvatarConverter.BuildDetailedEquipment(index, equip),
-          index + 1
-        )
+      slot.Equipment match {
+        case Some(equip : Tool) =>
+          val jammed = equip.Jammed
+          equip.Jammed = false
+          val slot = AvatarConverter.BuildDetailedEquipment(index, equip)
+          equip.Jammed = jammed
+          recursiveMakeHolsters(
+            iter,
+            list :+ slot,
+            index + 1
+          )
+        case Some(equip) =>
+          recursiveMakeHolsters(
+            iter,
+            list :+ AvatarConverter.BuildDetailedEquipment(index, equip),
+            index + 1
+          )
+        case _ =>
+          recursiveMakeHolsters(iter, list, index + 1)
       }
-      else {
-        recursiveMakeHolsters(iter, list, index + 1)
-      }
+//      if(slot.Equipment.isDefined) {
+//
+//        val equip : Equipment = slot.Equipment.get
+//        recursiveMakeHolsters(
+//          iter,
+//          list :+ AvatarConverter.BuildDetailedEquipment(index, equip),
+//          index + 1
+//        )
+//      }
+//      else {
+//        recursiveMakeHolsters(iter, list, index + 1)
+//      }
     }
   }
 }

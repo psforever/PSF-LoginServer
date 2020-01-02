@@ -28,7 +28,7 @@ class OneMannedFieldTurretDataTest extends Specification {
               deploy.alternate mustEqual false
               deploy.v1 mustEqual true
               deploy.v2.isEmpty mustEqual true
-              deploy.v3 mustEqual false
+              deploy.jammered mustEqual false
               deploy.v4.contains(false) mustEqual true
               deploy.v5.isEmpty mustEqual true
               deploy.guid mustEqual PlanetSideGUID(2502)

@@ -327,7 +327,7 @@ object CharacterAppearanceData extends Marshallable[CharacterAppearanceData] {
         }
         else if(data.faction == PlanetSideEmpire.NEUTRAL) {
           Attempt.successful(
-            CommonFieldData(faction, data.bops, data.alternate, data.v1, data.v2, data.v3, None, data.v5, PlanetSideGUID(0)) ::
+            CommonFieldData(faction, data.bops, data.alternate, data.v1, data.v2, data.jammered, None, data.v5, PlanetSideGUID(0)) ::
               name :: suit :: u5 :: sex :: head :: v1 :: u6 :: u7 :: u8 :: u9 :: uA :: HNil
           )
         }

@@ -3,7 +3,7 @@ package net.psforever.objects.ballistics
 
 import net.psforever.objects.ce.{ComplexDeployable, SimpleDeployable}
 import net.psforever.objects.definition.ObjectDefinition
-import net.psforever.objects.{PlanetSideGameObject, Player, TurretDeployable, Vehicle}
+import net.psforever.objects.{PlanetSideGameObject, Player, Vehicle}
 import net.psforever.objects.entity.WorldEntity
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.vital.resistance.ResistanceProfile
@@ -34,7 +34,6 @@ object SourceEntry {
       case obj : Player => PlayerSource(obj)
       case obj : Vehicle => VehicleSource(obj)
       case obj : ComplexDeployable => ComplexDeployableSource(obj)
-      case obj : TurretDeployable => ComplexDeployableSource(obj)
       case obj : SimpleDeployable => DeployableSource(obj)
       case _ => ObjectSource(target)
     }

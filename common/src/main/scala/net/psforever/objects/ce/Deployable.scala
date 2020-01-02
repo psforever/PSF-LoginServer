@@ -5,12 +5,14 @@ import net.psforever.objects._
 import net.psforever.objects.definition.{BaseDeployableDefinition, ObjectDefinition}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.vital.{DamageResistanceModel, Vitality}
-import net.psforever.packet.game.{DeployableIcon, PlanetSideGUID}
+import net.psforever.objects.zones.ZoneAware
+import net.psforever.packet.game.DeployableIcon
 import net.psforever.types.PlanetSideEmpire
 
 trait Deployable extends FactionAffinity
   with Vitality
-  with OwnableByPlayer {
+  with OwnableByPlayer
+  with ZoneAware {
   this : PlanetSideGameObject =>
   private var health : Int = 1
   private var faction : PlanetSideEmpire.Value = PlanetSideEmpire.NEUTRAL

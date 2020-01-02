@@ -2,6 +2,7 @@
 package net.psforever.objects.definition
 
 import net.psforever.objects.ballistics.Projectiles
+import net.psforever.objects.equipment.JammingUnit
 import net.psforever.objects.vital.{DamageType, StandardDamageProfile}
 
 /**
@@ -10,6 +11,7 @@ import net.psforever.objects.vital.{DamageType, StandardDamageProfile}
   * @param objectId the object's identifier number
   */
 class ProjectileDefinition(objectId : Int) extends ObjectDefinition(objectId)
+  with JammingUnit
   with StandardDamageProfile {
   private val projectileType : Projectiles.Value = Projectiles(objectId) //let throw NoSuchElementException
   private var acceleration : Int = 0
@@ -26,6 +28,8 @@ class ProjectileDefinition(objectId : Int) extends ObjectDefinition(objectId)
   private var existsOnRemoteClients : Boolean = false //`true` spawns a server-managed object
   private var remoteClientData : (Int, Int) = (0, 0) //artificial values; for ObjectCreateMessage packet (oicw_little_buddy is undefined)
   private var autoLock : Boolean = false
+  private var additionalEffect : Boolean = false
+  private var jammerProjectile : Boolean = false
   //derived calculations
   private var distanceMax : Float = 0f
   private var distanceFromAcceleration : Float = 0f
@@ -131,6 +135,20 @@ class ProjectileDefinition(objectId : Int) extends ObjectDefinition(objectId)
   def AutoLock_=(lockState : Boolean) : Boolean = {
     autoLock = lockState
     AutoLock
+  }
+
+  def AdditionalEffect : Boolean = additionalEffect
+
+  def AdditionalEffect_=(effect : Boolean) : Boolean = {
+    additionalEffect = effect
+    AdditionalEffect
+  }
+
+  def JammerProjectile : Boolean = jammerProjectile
+
+  def JammerProjectile_=(effect : Boolean) : Boolean = {
+    jammerProjectile = effect
+    JammerProjectile
   }
 
   def DistanceMax : Float = distanceMax //accessor only

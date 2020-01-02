@@ -23,7 +23,7 @@ class FieldTurretConverter extends ObjectCreateConverter[TurretDeployable]() {
               alternate = false,
               true,
               None,
-              false,
+              jammered = obj.Jammed,
               Some(false),
               None,
               obj.Owner match {

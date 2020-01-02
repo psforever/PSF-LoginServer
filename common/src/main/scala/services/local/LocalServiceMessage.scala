@@ -25,6 +25,7 @@ object LocalAction {
 
   final case class AlertDestroyDeployable(player_guid : PlanetSideGUID, obj : PlanetSideGameObject with Deployable) extends Action
   final case class DeployableMapIcon(player_guid : PlanetSideGUID, behavior : DeploymentAction.Value, deployInfo : DeployableInfo) extends Action
+  final case class Detonate(guid : PlanetSideGUID, obj : PlanetSideGameObject) extends Action
   final case class DoorOpens(player_guid : PlanetSideGUID, continent : Zone, door : Door) extends Action
   final case class DoorCloses(player_guid : PlanetSideGUID, door_guid : PlanetSideGUID) extends Action
   final case class HackClear(player_guid : PlanetSideGUID, target : PlanetSideServerObject, unk1 : Long, unk2 : Long = 8L) extends Action

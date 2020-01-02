@@ -31,7 +31,7 @@ class NonstandardVehiclesTest extends Specification {
               basic.data.alternate mustEqual false
               basic.data.v1 mustEqual true
               basic.data.v2.isDefined mustEqual false
-              basic.data.v3 mustEqual false
+              basic.data.jammered mustEqual false
               basic.data.v5.isDefined mustEqual false
               basic.data.guid mustEqual PlanetSideGUID(0)
 

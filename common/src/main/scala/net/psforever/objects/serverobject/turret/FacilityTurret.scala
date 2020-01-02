@@ -1,12 +1,14 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.turret
 
+import net.psforever.objects.equipment.JammableUnit
 import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.types.Vector3
 import net.psforever.objects.vital.{DamageResistanceModel, StandardResistanceProfile, Vitality}
 
-class FacilityTurret(tDef : TurretDefinition) extends Amenity
+class FacilityTurret(tDef : FacilityTurretDefinition) extends Amenity
   with WeaponTurret
+  with JammableUnit
   with Vitality
   with StandardResistanceProfile {
   /** some turrets can be updated; they all start without updates */
@@ -53,7 +55,7 @@ class FacilityTurret(tDef : TurretDefinition) extends Amenity
 
   def DamageModel = Definition.asInstanceOf[DamageResistanceModel]
 
-  def Definition : TurretDefinition = tDef
+  def Definition : FacilityTurretDefinition = tDef
 }
 
 object FacilityTurret {
@@ -62,7 +64,7 @@ object FacilityTurret {
     * @param tDef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
     * @return a `FacilityTurret` object
     */
-  def apply(tDef : TurretDefinition) : FacilityTurret = {
+  def apply(tDef : FacilityTurretDefinition) : FacilityTurret = {
     new FacilityTurret(tDef)
   }
 
@@ -73,14 +75,14 @@ object FacilityTurret {
     * @param context a context to allow the object to properly set up `ActorSystem` functionality
     * @return the `MannedTurret` object
     */
-  def Constructor(tdef : TurretDefinition)(id : Int, context : ActorContext) : FacilityTurret = {
+  def Constructor(tdef : FacilityTurretDefinition)(id : Int, context : ActorContext) : FacilityTurret = {
     import akka.actor.Props
     val obj = FacilityTurret(tdef)
     obj.Actor = context.actorOf(Props(classOf[FacilityTurretControl], obj), s"${tdef.Name}_$id")
     obj
   }
 
-  def Constructor(pos: Vector3, tdef : TurretDefinition)(id : Int, context : ActorContext) : FacilityTurret = {
+  def Constructor(pos: Vector3, tdef : FacilityTurretDefinition)(id : Int, context : ActorContext) : FacilityTurret = {
     import akka.actor.Props
     val obj = FacilityTurret(tdef)
     obj.Position = pos

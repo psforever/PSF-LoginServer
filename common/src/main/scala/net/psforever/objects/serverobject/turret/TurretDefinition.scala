@@ -3,19 +3,18 @@ package net.psforever.objects.serverobject.turret
 
 import net.psforever.objects.definition.{ObjectDefinition, ToolDefinition}
 import net.psforever.objects.vehicles.Turrets
-import net.psforever.objects.vital.{DamageResistanceModel, StandardResolutions, StandardVehicleDamage, StandardVehicleResistance}
+import net.psforever.objects.vital.DamageResistanceModel
 import net.psforever.objects.vital.resistance.ResistanceProfileMutators
 
 import scala.collection.mutable
 
 /**
   * The definition for any `MannedTurret`.
-  * @param objectId the object's identifier number
   */
-class TurretDefinition(private val objectId : Int) extends ObjectDefinition(objectId)
-  with ResistanceProfileMutators
+trait TurretDefinition extends ResistanceProfileMutators
   with DamageResistanceModel {
-  Turrets(objectId) //let throw NoSuchElementException
+  odef : ObjectDefinition =>
+  Turrets(odef.ObjectId) //let throw NoSuchElementException
 
   private var maxHealth : Int = 100
   /* key - entry point index, value - seat index */
@@ -29,9 +28,6 @@ class TurretDefinition(private val objectId : Int) extends ObjectDefinition(obje
   /** creates internal ammunition reserves that can not become depleted
     * see `MannedTurret.TurretAmmoBox` for details */
   private var hasReserveAmmunition : Boolean = false
-  Damage = StandardVehicleDamage
-  Resistance = StandardVehicleResistance
-  Model = StandardResolutions.FacilityTurrets
 
   def MaxHealth : Int = maxHealth
 
