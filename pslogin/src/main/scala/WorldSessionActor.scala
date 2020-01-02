@@ -1521,7 +1521,7 @@ class WorldSessionActor extends Actor
         sendResponse(ObjectDeleteMessage(guid, 0))
 
       case LocalResponse.Detonate(guid, obj : ExplosiveDeployable) =>
-        sendResponse(GenericObjectActionMessage(guid, 76))
+        sendResponse(GenericObjectActionMessage(guid, 19))
         sendResponse(PlanetsideAttributeMessage(guid, 29, 1))
         sendResponse(ObjectDeleteMessage(guid, 0))
 

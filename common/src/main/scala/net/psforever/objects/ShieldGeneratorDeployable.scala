@@ -56,7 +56,11 @@ class ShieldGeneratorControl(gen : ShieldGeneratorDeployable) extends Actor
 
       case _ => ;
     }
-
+  /*
+  while the shield generator is technically a supported jammable target, how that works is currently unknown
+  electing to use a "status only, no sound" approach by overriding one with an empty function is not entirely arbitrary
+  the superclass of "status" calls also sets the jammed object property
+   */
   override def StartJammeredSound(target : Any, dur : Int) : Unit =  { }
 
   override def StartJammeredStatus(target : Any, dur : Int) : Unit = target match {
