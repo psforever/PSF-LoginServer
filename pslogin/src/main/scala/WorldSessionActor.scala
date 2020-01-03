@@ -33,6 +33,7 @@ import net.psforever.objects.serverobject.implantmech.ImplantTerminalMech
 import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.mblocker.Locker
 import net.psforever.objects.serverobject.pad.{VehicleSpawnControl, VehicleSpawnPad}
+import net.psforever.objects.serverobject.painbox.Painbox
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.objects.serverobject.structures.{Amenity, Building, StructureType, WarpGate}
 import net.psforever.objects.serverobject.terminals._
@@ -1212,20 +1213,24 @@ class WorldSessionActor extends Actor
       case AvatarResponse.ConcealPlayer() =>
         sendResponse(GenericObjectActionMessage(guid, 9))
 
-      case AvatarResponse.EnvironmentalDamage(target, amount) =>
-        if(player.isAlive && amount != 0) {
+      case AvatarResponse.EnvironmentalDamage(target, source, amount) =>
+        if(player.isAlive && amount > 0) {
+          val playerGUID = player.GUID
           val armor = player.Armor
           val capacitor = player.Capacitor
           val originalHealth = player.Health
+          //history
+          continent.GUID(source) match {
+            case Some(obj : Painbox) =>
+              player.History(DamageFromPainbox(PlayerSource(player), obj, amount))
+            case _ => ;
+          }
           player.Health = originalHealth - amount
           sendResponse(PlanetsideAttributeMessage(target, 0, player.Health))
           continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(target, 0, player.Health))
           damageLog.info(s"${player.Name}-infantry: BEFORE=$originalHealth/$armor/$capacitor, AFTER=${player.Health}/$armor/$capacitor, CHANGE=$amount/0/0")
           if(player.Health == 0 && player.isAlive) {
             KillPlayer(player)
-          }
-          else {
-            //todo: History?
           }
         }
 
@@ -3274,7 +3279,7 @@ class WorldSessionActor extends Actor
       import net.psforever.objects.GlobalDefinitions._
       import net.psforever.types.CertificationType._
 
-      val faction = PlanetSideEmpire.VS
+      val faction = PlanetSideEmpire.TR
       val avatar = new Avatar(41605313L+sessionId, s"TestCharacter$sessionId", faction, CharacterGender.Female, 41, CharacterVoice.Voice1)
       avatar.Certifications += StandardAssault
       avatar.Certifications += MediumAssault

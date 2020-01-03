@@ -4,6 +4,7 @@ package net.psforever.objects.vital
 import net.psforever.objects.PlanetSideGameObject
 import net.psforever.objects.ballistics.{PlayerSource, ResolvedProjectile, SourceEntry, VehicleSource}
 import net.psforever.objects.definition.KitDefinition
+import net.psforever.objects.serverobject.painbox.Painbox
 import net.psforever.objects.serverobject.terminals.TerminalDefinition
 import net.psforever.objects.vital.resolution.ResolutionCalculations
 import net.psforever.types.{ExoSuitType, ImplantType}
@@ -34,6 +35,8 @@ final case class RepairFromTerm(target : VehicleSource, amount : Int, term_def :
 final case class VehicleShieldCharge(target : VehicleSource, amount : Int) extends HealingActivity(target) //TODO facility
 
 final case class DamageFromProjectile(data : ResolvedProjectile) extends DamagingActivity(data.target)
+
+final case class DamageFromPainbox(target : PlayerSource, painbox : Painbox, damage : Int) extends DamagingActivity(target)
 
 final case class PlayerSuicide(target : PlayerSource) extends DamagingActivity(target)
 

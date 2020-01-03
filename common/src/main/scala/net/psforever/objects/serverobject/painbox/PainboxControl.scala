@@ -39,6 +39,7 @@ class PainboxControl(painbox: Painbox) extends Actor {
       //todo: Account for overlapping pain fields
       //todo: Pain module
       //todo: REK boosting
+      val guid = painbox.GUID
       val owner = painbox.Owner.asInstanceOf[Building]
       val faction = owner.Faction
       if(faction != PlanetSideEmpire.NEUTRAL && (!painbox.Definition.HasNearestDoorDependency || (painbox.Definition.HasNearestDoorDependency && nearestDoor.Open.nonEmpty))) {
@@ -50,7 +51,7 @@ class PainboxControl(painbox: Painbox) extends Actor {
           .collect { case p if p.Faction != faction
             && p.Health > 0
             && Vector3.DistanceSquared(p.Position, position) < radius =>
-            events ! AvatarServiceMessage(p.Name, AvatarAction.EnvironmentalDamage(p.GUID, damage))
+            events ! AvatarServiceMessage(p.Name, AvatarAction.EnvironmentalDamage(p.GUID, guid, damage))
           }
       }
 

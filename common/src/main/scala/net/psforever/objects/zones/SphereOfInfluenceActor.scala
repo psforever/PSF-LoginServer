@@ -26,7 +26,7 @@ class SphereOfInfluenceActor(zone: Zone) extends Actor {
     case SOI.Populate() =>
       UpdateSOI()
 
-    case SOI.StopPopulation() =>
+    case SOI.Stop() =>
       context.become(Stopped)
       populateTick.cancel
       sois.foreach { case (facility, _) => facility.PlayersInSOI = Nil }
@@ -35,7 +35,7 @@ class SphereOfInfluenceActor(zone: Zone) extends Actor {
   }
 
   def Stopped : Receive = Build.orElse {
-    case SOI.Populate() =>
+    case SOI.Start() =>
       context.become(Running)
       UpdateSOI()
 
@@ -53,6 +53,7 @@ class SphereOfInfluenceActor(zone: Zone) extends Actor {
 
   def UpdateSOI(): Unit = {
     SOI.Populate(sois.iterator, zone.LivePlayers)
+    populateTick.cancel
     populateTick = context.system.scheduler.scheduleOnce(5 seconds, self, SOI.Populate())
   }
 }
@@ -63,7 +64,9 @@ object SOI {
   /** Populate the list of players within a SOI **/
   final case class Populate()
   /** Stop sorting players into sois */
-  final case class StopPopulation()
+  final case class Start()
+  /** Stop sorting players into sois */
+  final case class Stop()
 
   @tailrec
   def Populate(buildings : Iterator[(Building, Int)], players : List[Player]) : Unit = {

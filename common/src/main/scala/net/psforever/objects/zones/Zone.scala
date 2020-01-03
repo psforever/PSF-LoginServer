@@ -472,20 +472,12 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
 
   def StartPlayerManagementSystems() : Unit = {
     println(s"start player management for $Id")
-    soi ! SOI.Populate()
-//    buildings.values.foreach { _.Amenities.collect {
-//      case box : Painbox =>
-//        box.Actor ! Painbox.Start()
-//    } }
+    soi ! SOI.Start()
   }
 
   def StopPlayerManagementSystems() : Unit = {
     println(s"stop player management for $Id")
-    soi ! SOI.StopPopulation()
-//    buildings.values.foreach { _.Amenities.collect {
-//      case box : Painbox =>
-//        box.Actor ! Painbox.Stop()
-//    } }
+    soi ! SOI.Stop()
   }
 
   def Activity : ActorRef = projector
