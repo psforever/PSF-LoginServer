@@ -22,15 +22,19 @@ class PainboxControl(painbox: Painbox) extends Actor {
           nearestDoor = obj.Amenities
             .collect { case door : Door => door }
             .minBy(door => Vector3.DistanceSquared(painbox.Position, door.Position))
-          painboxTick = context.system.scheduler.schedule(0 seconds,1 second, self, Painbox.Tick())
-          context.become(Processing)
+          context.become(Stopped)
         case _ => ;
       }
 
     case _ => ;
   }
 
-  def Processing : Receive = {
+  def Running : Receive = {
+    case Painbox.Stop() =>
+      context.become(Stopped)
+      painboxTick.cancel
+      painboxTick = DefaultCancellable.obj
+
     case Painbox.Tick() =>
       //todo: Account for overlapping pain fields
       //todo: Pain module
@@ -49,5 +53,16 @@ class PainboxControl(painbox: Painbox) extends Actor {
             events ! AvatarServiceMessage(p.Name, AvatarAction.EnvironmentalDamage(p.GUID, damage))
           }
       }
+
+    case _ => ;
+  }
+
+  def Stopped : Receive = {
+    case Painbox.Start() =>
+      context.become(Running)
+      painboxTick.cancel
+      painboxTick = context.system.scheduler.schedule(0 seconds, 1 second, self, Painbox.Tick())
+
+    case _ => ;
   }
 }

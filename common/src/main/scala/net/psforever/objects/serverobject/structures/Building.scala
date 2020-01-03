@@ -7,6 +7,7 @@ import akka.actor.{ActorContext, ActorRef}
 import net.psforever.objects.{GlobalDefinitions, Player}
 import net.psforever.objects.definition.ObjectDefinition
 import net.psforever.objects.serverobject.hackable.Hackable
+import net.psforever.objects.serverobject.painbox.Painbox
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.objects.serverobject.terminals.CaptureTerminal
 import net.psforever.objects.serverobject.tube.SpawnTube
@@ -56,6 +57,18 @@ class Building(private val name: String,
   def PlayersInSOI : List[Player] = playersInSOI
 
   def PlayersInSOI_=(list : List[Player]) : List[Player] = {
+    if(playersInSOI.isEmpty && list.nonEmpty) {
+      Amenities.collect {
+        case box : Painbox =>
+          box.Actor ! Painbox.Start()
+      }
+    }
+    else if(playersInSOI.nonEmpty && list.isEmpty) {
+      Amenities.collect {
+        case box : Painbox =>
+          box.Actor ! Painbox.Stop()
+      }
+    }
     playersInSOI = list
     playersInSOI
   }

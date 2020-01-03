@@ -6,7 +6,6 @@ import net.psforever.objects._
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
 import net.psforever.objects.serverobject.hackable.HackableBehavior
-import services.Service
 
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -27,17 +26,7 @@ class ProximityTerminalControl(term : Terminal with ProximityUnit) extends Actor
 
   def TerminalObject : Terminal with ProximityUnit = term
 
-  def receive : Receive = Start
-
-  def Start : Receive = checkBehavior
-    .orElse {
-    case Service.Startup() =>
-      context.become(Run)
-
-    case _ => ;
-  }
-
-  def Run : Receive = checkBehavior
+  def receive : Receive = checkBehavior
       .orElse(hackableBehavior)
       .orElse {
         case CommonMessages.Use(_, Some(target : PlanetSideGameObject)) =>
