@@ -1498,7 +1498,7 @@ object Map10 {
       LocalObject(997, IFFLock.Constructor(Vector3(4656.107f, 6322.26f, 55.86405f), Vector3(0, 0, 181)), owning_building_guid = 46, door_guid = 693)
       LocalObject(999, IFFLock.Constructor(Vector3(4659.179f, 6312.717f, 63.36405f), Vector3(0, 0, 91)), owning_building_guid = 46, door_guid = 697)
       LocalObject(1004, IFFLock.Constructor(Vector3(4711.318f, 6249.411f, 70.98005f), Vector3(0, 0, 181)), owning_building_guid = 46, door_guid = 422)
-      LocalObject(1277, Locker.Constructor(Vectmor3(4636.428f, 6325.738f, 54.52805f)), owning_building_guid = 46)
+      LocalObject(1277, Locker.Constructor(Vector3(4636.428f, 6325.738f, 54.52805f)), owning_building_guid = 46)
       LocalObject(1278, Locker.Constructor(Vector3(4636.451f, 6327.062f, 54.52805f)), owning_building_guid = 46)
       LocalObject(1279, Locker.Constructor(Vector3(4636.474f, 6328.397f, 54.52805f)), owning_building_guid = 46)
       LocalObject(1280, Locker.Constructor(Vector3(4636.498f, 6329.734f, 54.52805f)), owning_building_guid = 46)
