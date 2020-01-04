@@ -13,15 +13,12 @@ import net.psforever.objects.guid.actor.UniqueNumberSystem
 import net.psforever.objects.guid.selector.RandomSelector
 import net.psforever.objects.guid.source.LimitedNumberSource
 import net.psforever.objects.inventory.Container
-import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.painbox.{Painbox, PainboxDefinition}
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.objects.serverobject.structures.{Amenity, Building, WarpGate}
-import net.psforever.objects.serverobject.terminals.ProximityUnit
 import net.psforever.objects.serverobject.turret.FacilityTurret
 import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types.{PlanetSideEmpire, Vector3}
-import services.Service
 import services.avatar.AvatarService
 import services.local.LocalService
 import services.vehicle.VehicleService
@@ -30,9 +27,9 @@ import scala.collection.concurrent.TrieMap
 import scala.collection.mutable.ListBuffer
 import scala.collection.immutable.{Map => PairMap}
 import scala.concurrent.duration._
-
 import scalax.collection.Graph
-import scalax.collection.GraphPredef._, scalax.collection.GraphEdge._
+import scalax.collection.GraphPredef._
+import scalax.collection.GraphEdge._
 
 /**
   * A server object representing the one-landmass planets as well as the individual subterranean caverns.<br>
@@ -413,31 +410,27 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
         case silo : ResourceSilo =>
           silo.Actor ! "startup"
       }
-    //proximity terminals need to startup
-    buildings.values
-      .flatMap(_.Amenities.filter(_.isInstanceOf[ProximityUnit]))
-      .collect {
-        case o : PlanetSideServerObject =>
-          o.Actor ! Service.Startup()
-      }
+    //some painfields need to look for their closest door
     buildings.values
       .flatMap(_.Amenities.filter(_.Definition.isInstanceOf[PainboxDefinition]))
       .collect {
         case painbox : Painbox =>
           painbox.Actor ! "startup"
       }
+    //allocate soi information
+    soi ! SOI.Build()
   }
 
   private def MakeLattice(): Unit = {
     Map.LatticeLink.foreach({ case(source, target) =>
       val sourceBuilding = Building(source) match {
         case Some(building) => building
-        case _ => throw new NoSuchElementException(s"Can't create lattice link between ${source} ${target}. Source is missing")
+        case _ => throw new NoSuchElementException(s"Can't create lattice link between $source $target. Source is missing")
       }
 
       val targetBuilding = Building(target) match {
         case Some(building) => building
-        case _ => throw new NoSuchElementException(s"Can't create lattice link between ${source} ${target}. Target is missing")
+        case _ => throw new NoSuchElementException(s"Can't create lattice link between $source $target. Target is missing")
       }
 
       lattice += sourceBuilding~targetBuilding
@@ -475,6 +468,14 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
     val entry : Map[Building, List[SpawnPoint]] = PairMap(building -> points)
     spawnGroups = spawnGroups ++ entry
     entry
+  }
+
+  def StartPlayerManagementSystems() : Unit = {
+    soi ! SOI.Start()
+  }
+
+  def StopPlayerManagementSystems() : Unit = {
+    soi ! SOI.Stop()
   }
 
   def Activity : ActorRef = projector

@@ -10,7 +10,9 @@ class Painbox(tdef : PainboxDefinition) extends Amenity {
 }
 
 object Painbox {
+  final case class Start()
   final case class Tick()
+  final case class Stop()
 
   def apply(tdef : PainboxDefinition) : Painbox = {
     new Painbox(tdef)

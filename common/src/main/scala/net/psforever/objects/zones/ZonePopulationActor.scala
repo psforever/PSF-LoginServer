@@ -3,7 +3,6 @@ package net.psforever.objects.zones
 
 import akka.actor.{Actor, ActorRef, Props}
 import net.psforever.objects.avatar.PlayerControl
-import net.psforever.objects.vehicles.VehicleControl
 import net.psforever.objects.{Avatar, Player}
 
 import scala.annotation.tailrec
@@ -24,13 +23,18 @@ class ZonePopulationActor(zone : Zone, playerMap : TrieMap[Avatar, Option[Player
 
   def receive : Receive = {
     case Zone.Population.Join(avatar) =>
-      PopulationJoin(avatar, playerMap)
+      if(PopulationJoin(avatar, playerMap) && playerMap.size == 1) {
+        zone.StartPlayerManagementSystems()
+      }
 
     case Zone.Population.Leave(avatar) =>
       PopulationLeave(avatar, playerMap) match {
         case None => ;
         case player @ Some(_) =>
           sender ! Zone.Population.PlayerHasLeft(zone, player)
+          if(playerMap.isEmpty) {
+            zone.StopPlayerManagementSystems()
+          }
       }
 
     case Zone.Population.Spawn(avatar, player) =>
@@ -42,6 +46,7 @@ class ZonePopulationActor(zone : Zone, playerMap : TrieMap[Avatar, Option[Player
           }
           else {
             player.Actor = context.actorOf(Props(classOf[PlayerControl], player), s"${player.Name}_${player.GUID.guid}")
+            player.Zone = zone
           }
         case None =>
           sender ! Zone.Population.PlayerCanNotSpawn(zone, player)
