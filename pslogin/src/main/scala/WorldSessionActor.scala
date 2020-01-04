@@ -1781,8 +1781,8 @@ class WorldSessionActor extends Actor
         log.info(s"MountVehicleMsg: $player_guid mounts $obj_guid @ $seat_num")
         PlayerActionsToCancel()
         sendResponse(PlanetsideAttributeMessage(obj_guid, 0, obj.Health))
-        sendResponse(PlanetsideAttributeMessage(obj_guid, 68, 0)) //shield health
-        sendResponse(PlanetsideAttributeMessage(obj_guid, 113, 0)) //capacitor
+        sendResponse(PlanetsideAttributeMessage(obj_guid, 68, obj.Shields)) //shield health
+        sendResponse(PlanetsideAttributeMessage(obj_guid, 113, obj.Capacitor)) //capacitor
         if(seat_num == 0) {
           continent.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(obj), continent)) //clear timer
           //simplistic vehicle ownership management
