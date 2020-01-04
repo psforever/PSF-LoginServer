@@ -471,12 +471,10 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
   }
 
   def StartPlayerManagementSystems() : Unit = {
-    println(s"start player management for $Id")
     soi ! SOI.Start()
   }
 
   def StopPlayerManagementSystems() : Unit = {
-    println(s"stop player management for $Id")
     soi ! SOI.Stop()
   }
 
