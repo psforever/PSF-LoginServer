@@ -1,18 +1,20 @@
 package zonemaps
 
+import net.psforever.objects.zones.ZoneMap
 import net.psforever.objects.GlobalDefinitions._
+import net.psforever.objects.LocalProjectile
+import net.psforever.objects.ballistics.Projectile
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.serverobject.implantmech.ImplantTerminalMech
 import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.mblocker.Locker
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
 import net.psforever.objects.serverobject.painbox.Painbox
-import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.objects.serverobject.structures.{Building, FoundationBuilder, StructureType, WarpGate}
 import net.psforever.objects.serverobject.terminals.{CaptureTerminal, ProximityTerminal, Terminal}
 import net.psforever.objects.serverobject.tube.SpawnTube
+import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.objects.serverobject.turret.FacilityTurret
-import net.psforever.objects.zones.ZoneMap
 import net.psforever.types.Vector3
 
 object Map06 {
@@ -158,16 +160,16 @@ object Map06 {
 
     def Building44(): Unit = { // Name: bunker_gauntlet Type: bunker_gauntlet GUID: 5, MapID: 44
       LocalBuilding("bunker_gauntlet", 5, 44, FoundationBuilder(Building.Structure(StructureType.Bunker, Vector3(4084f, 5194f, 232.2395f), bunker_gauntlet)))
-      LocalObject(405, Door.Constructor(Vector3(4082.088f, 5218.898f, 233.7605f)), owning_building_guid = 5)
-      LocalObject(406, Door.Constructor(Vector3(4082.099f, 5169.077f, 233.7605f)), owning_building_guid = 5)
+      LocalObject(405, Door.Constructor(Vector3(4082.099f, 5169.077f, 233.7605f)), owning_building_guid = 5)
+      LocalObject(406, Door.Constructor(Vector3(4082.088f, 5218.898f, 233.7605f)), owning_building_guid = 5)
     }
 
     Building42()
 
     def Building42(): Unit = { // Name: bunker_gauntlet Type: bunker_gauntlet GUID: 6, MapID: 42
       LocalBuilding("bunker_gauntlet", 6, 42, FoundationBuilder(Building.Structure(StructureType.Bunker, Vector3(4086f, 4288f, 266.4175f), bunker_gauntlet)))
-      LocalObject(407, Door.Constructor(Vector3(4084.088f, 4312.898f, 267.9385f)), owning_building_guid = 6)
-      LocalObject(408, Door.Constructor(Vector3(4084.099f, 4263.077f, 267.9385f)), owning_building_guid = 6)
+      LocalObject(407, Door.Constructor(Vector3(4084.099f, 4263.077f, 267.9385f)), owning_building_guid = 6)
+      LocalObject(408, Door.Constructor(Vector3(4084.088f, 4312.898f, 267.9385f)), owning_building_guid = 6)
     }
 
     Building41()
@@ -445,8 +447,8 @@ object Map06 {
       LocalObject(1577, Terminal.Constructor(Vector3(3994.654f, 4259.139f, 258.1339f), order_terminal), owning_building_guid = 20)
       LocalObject(1578, Terminal.Constructor(Vector3(3994.654f, 4262.928f, 258.1339f), order_terminal), owning_building_guid = 20)
       LocalObject(2239, Terminal.Constructor(Vector3(3942.509f, 4215.959f, 273.1609f), spawn_terminal), owning_building_guid = 20)
-      LocalObject(2244, Terminal.Constructor(Vector3(3980.967f, 4258.535f, 258.6779f), spawn_terminal), owning_building_guid = 20)
-      LocalObject(2245, Terminal.Constructor(Vector3(3980.971f, 4251.243f, 258.6779f), spawn_terminal), owning_building_guid = 20)
+      LocalObject(2244, Terminal.Constructor(Vector3(3980.971f, 4251.243f, 258.6779f), spawn_terminal), owning_building_guid = 20)
+      LocalObject(2245, Terminal.Constructor(Vector3(3980.967f, 4258.535f, 258.6779f), spawn_terminal), owning_building_guid = 20)
       LocalObject(2246, Terminal.Constructor(Vector3(3980.97f, 4265.823f, 258.6779f), spawn_terminal), owning_building_guid = 20)
       LocalObject(2249, Terminal.Constructor(Vector3(3999.103f, 4334.906f, 273.0919f), spawn_terminal), owning_building_guid = 20)
       LocalObject(2250, Terminal.Constructor(Vector3(4008.058f, 4239.409f, 250.5719f), spawn_terminal), owning_building_guid = 20)
@@ -843,22 +845,22 @@ object Map06 {
       LocalObject(941, IFFLock.Constructor(Vector3(5130.988f, 3288.007f, 208.3969f), Vector3(0, 0, 89)), owning_building_guid = 29, door_guid = 685)
       LocalObject(945, IFFLock.Constructor(Vector3(5171.843f, 3332.094f, 208.3969f), Vector3(0, 0, 359)), owning_building_guid = 29, door_guid = 689)
       LocalObject(946, IFFLock.Constructor(Vector3(5175.157f, 3322.398f, 208.3969f), Vector3(0, 0, 179)), owning_building_guid = 29, door_guid = 690)
-      LocalObject(1265, Locker.Constructor(Vector3(5108.412f, 3282.477f, 207.3219f)), owning_building_guid = 29)
-      LocalObject(1266, Locker.Constructor(Vector3(5108.433f, 3281.313f, 207.3219f)), owning_building_guid = 29)
-      LocalObject(1267, Locker.Constructor(Vector3(5108.453f, 3280.166f, 207.3219f)), owning_building_guid = 29)
-      LocalObject(1268, Locker.Constructor(Vector3(5108.473f, 3279.017f, 207.3219f)), owning_building_guid = 29)
-      LocalObject(1269, Locker.Constructor(Vector3(5108.933f, 3265.229f, 206.9689f)), owning_building_guid = 29)
-      LocalObject(1270, Locker.Constructor(Vector3(5108.951f, 3264.173f, 206.9689f)), owning_building_guid = 29)
-      LocalObject(1271, Locker.Constructor(Vector3(5108.969f, 3263.118f, 206.9689f)), owning_building_guid = 29)
-      LocalObject(1272, Locker.Constructor(Vector3(5108.988f, 3262.064f, 206.9689f)), owning_building_guid = 29)
-      LocalObject(1273, Locker.Constructor(Vector3(5109.006f, 3261.004f, 206.9689f)), owning_building_guid = 29)
-      LocalObject(1274, Locker.Constructor(Vector3(5109.024f, 3259.949f, 206.9689f)), owning_building_guid = 29)
-      LocalObject(1275, Locker.Constructor(Vector3(5128.93f, 3265.581f, 206.9689f)), owning_building_guid = 29)
-      LocalObject(1276, Locker.Constructor(Vector3(5128.949f, 3264.527f, 206.9689f)), owning_building_guid = 29)
-      LocalObject(1277, Locker.Constructor(Vector3(5128.967f, 3263.467f, 206.9689f)), owning_building_guid = 29)
-      LocalObject(1278, Locker.Constructor(Vector3(5128.986f, 3262.412f, 206.9689f)), owning_building_guid = 29)
-      LocalObject(1279, Locker.Constructor(Vector3(5129.004f, 3261.357f, 206.9689f)), owning_building_guid = 29)
-      LocalObject(1280, Locker.Constructor(Vector3(5129.022f, 3260.301f, 206.9689f)), owning_building_guid = 29)
+      LocalObject(1265, Locker.Constructor(Vector3(5108.473f, 3279.017f, 207.3219f)), owning_building_guid = 29)
+      LocalObject(1266, Locker.Constructor(Vector3(5108.453f, 3280.166f, 207.3219f)), owning_building_guid = 29)
+      LocalObject(1267, Locker.Constructor(Vector3(5108.433f, 3281.313f, 207.3219f)), owning_building_guid = 29)
+      LocalObject(1268, Locker.Constructor(Vector3(5108.412f, 3282.477f, 207.3219f)), owning_building_guid = 29)
+      LocalObject(1269, Locker.Constructor(Vector3(5108.988f, 3262.064f, 206.9689f)), owning_building_guid = 29)
+      LocalObject(1270, Locker.Constructor(Vector3(5108.969f, 3263.118f, 206.9689f)), owning_building_guid = 29)
+      LocalObject(1271, Locker.Constructor(Vector3(5108.951f, 3264.173f, 206.9689f)), owning_building_guid = 29)
+      LocalObject(1272, Locker.Constructor(Vector3(5108.933f, 3265.229f, 206.9689f)), owning_building_guid = 29)
+      LocalObject(1273, Locker.Constructor(Vector3(5109.024f, 3259.949f, 206.9689f)), owning_building_guid = 29)
+      LocalObject(1274, Locker.Constructor(Vector3(5109.006f, 3261.004f, 206.9689f)), owning_building_guid = 29)
+      LocalObject(1275, Locker.Constructor(Vector3(5128.986f, 3262.412f, 206.9689f)), owning_building_guid = 29)
+      LocalObject(1276, Locker.Constructor(Vector3(5128.967f, 3263.467f, 206.9689f)), owning_building_guid = 29)
+      LocalObject(1277, Locker.Constructor(Vector3(5128.949f, 3264.527f, 206.9689f)), owning_building_guid = 29)
+      LocalObject(1278, Locker.Constructor(Vector3(5128.93f, 3265.581f, 206.9689f)), owning_building_guid = 29)
+      LocalObject(1279, Locker.Constructor(Vector3(5129.022f, 3260.301f, 206.9689f)), owning_building_guid = 29)
+      LocalObject(1280, Locker.Constructor(Vector3(5129.004f, 3261.357f, 206.9689f)), owning_building_guid = 29)
       LocalObject(1289, Locker.Constructor(Vector3(5155.837f, 3278.87f, 207.0559f)), owning_building_guid = 29)
       LocalObject(1290, Locker.Constructor(Vector3(5157.093f, 3278.892f, 207.0559f)), owning_building_guid = 29)
       LocalObject(1291, Locker.Constructor(Vector3(5158.354f, 3278.914f, 207.0559f)), owning_building_guid = 29)
