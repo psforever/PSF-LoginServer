@@ -35,7 +35,7 @@ class SphereOfInfluenceActor(zone: Zone) extends Actor {
   }
 
   def Stopped : Receive = Build.orElse {
-    case SOI.Start() =>
+    case SOI.Start() if sois.nonEmpty =>
       context.become(Running)
       UpdateSOI()
 
