@@ -11,19 +11,31 @@ import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class PainboxControl(painbox: Painbox) extends Actor {
-  //private[this] val log = org.log4s.getLogger(s"Painbox")
-  private var painboxTick: Cancellable = DefaultCancellable.obj
-  private var nearestDoor : Door = null
+  private[this] val log = org.log4s.getLogger(s"Painbox")
+  var painboxTick: Cancellable = DefaultCancellable.obj
+  var nearestDoor : Option[Door] = None
 
   def receive : Receive = {
     case "startup" =>
-      painbox.Owner match {
-        case obj : Building =>
-          nearestDoor = obj.Amenities
-            .collect { case door : Door => door }
-            .minBy(door => Vector3.DistanceSquared(painbox.Position, door.Position))
-          context.become(Stopped)
-        case _ => ;
+      if(painbox.Definition.HasNearestDoorDependency) {
+        (painbox.Owner match {
+          case obj : Building =>
+            obj.Amenities
+              .collect { case door : Door => door }
+              .sortBy(door => Vector3.DistanceSquared(painbox.Position, door.Position))
+              .headOption
+          case _ =>
+            None
+        }) match {
+          case door @ Some(_) =>
+            nearestDoor = door
+            context.become(Stopped)
+          case _ =>
+            log.error(s"object #${painbox.GUID.guid} can not find a door that it needed")
+        }
+      }
+      else {
+        context.become(Stopped)
       }
 
     case _ => ;
@@ -42,7 +54,7 @@ class PainboxControl(painbox: Painbox) extends Actor {
       val guid = painbox.GUID
       val owner = painbox.Owner.asInstanceOf[Building]
       val faction = owner.Faction
-      if(faction != PlanetSideEmpire.NEUTRAL && (!painbox.Definition.HasNearestDoorDependency || (painbox.Definition.HasNearestDoorDependency && nearestDoor.Open.nonEmpty))) {
+      if(faction != PlanetSideEmpire.NEUTRAL && (nearestDoor match { case Some(door) => door.Open.nonEmpty; case _ => true })) {
         val events = owner.Zone.AvatarEvents
         val damage = painbox.Definition.Damage
         val radius = painbox.Definition.Radius * painbox.Definition.Radius

@@ -121,7 +121,9 @@ class WorldSessionActor extends Actor
   var drawDeloyableIcon : PlanetSideGameObject with Deployable => Unit = RedrawDeployableIcons
   var updateSquad : () => Unit = NoSquadUpdates
   var recentTeleportAttempt : Long = 0
-  var lastTerminalOrderFulfillment : Boolean = true  /**
+  var lastTerminalOrderFulfillment : Boolean = true
+  var shiftPosition : Option[Vector3] = None
+  /**
     * used during zone transfers to maintain reference to seated vehicle (which does not yet exist in the new zone)
     * used during intrazone gate transfers, but not in a way distinct from prior zone transfer procedures
     * should only be set during the transient period when moving between one spawn point and the next
@@ -1033,10 +1035,19 @@ class WorldSessionActor extends Actor
       sendResponse(ReplicationStreamMessage(5, Some(6), Vector.empty)) //clear squad list
       sendResponse(FriendsResponse(FriendAction.InitializeFriendList, 0, true, true, Nil))
       sendResponse(FriendsResponse(FriendAction.InitializeIgnoreList, 0, true, true, Nil))
+      //the following subscriptions last until character switch/logout
+      chatService ! Service.Join("local")
+      chatService ! Service.Join("squad")
+      chatService ! Service.Join("voice")
+      chatService ! Service.Join("tell")
+      chatService ! Service.Join("broadcast")
+      chatService ! Service.Join("note")
+      chatService ! Service.Join("gm")
       galaxyService ! Service.Join("galaxy") //for galaxy-wide messages
       galaxyService ! Service.Join(s"${avatar.faction}") //for hotspots
       squadService ! Service.Join(s"${avatar.faction}") //channel will be player.Faction
       squadService ! Service.Join(s"${avatar.CharId}") //channel will be player.CharId (in order to work with packets)
+      //go home
       cluster ! InterstellarCluster.GetWorld("home3")
 
     case InterstellarCluster.GiveWorld(zoneId, zone) =>
@@ -3061,7 +3072,8 @@ class WorldSessionActor extends Actor
     sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 75, 0))
     sendResponse(SetCurrentAvatarMessage(guid, 0, 0))
     sendResponse(ChatMsg(ChatMessageType.CMT_EXPANSIONS, true, "", "1 on", None)) //CC on //TODO once per respawn?
-    sendResponse(PlayerStateShiftMessage(ShiftState(1, tplayer.Position, tplayer.Orientation.z)))
+    sendResponse(PlayerStateShiftMessage(ShiftState(1, shiftPosition.getOrElse(tplayer.Position), tplayer.Orientation.z)))
+    shiftPosition = None
     if(spectator) {
       sendResponse(ChatMsg(ChatMessageType.CMT_TOGGLESPECTATORMODE, false, "", "on", None))
     }
@@ -3279,7 +3291,7 @@ class WorldSessionActor extends Actor
       import net.psforever.objects.GlobalDefinitions._
       import net.psforever.types.CertificationType._
 
-      val faction = PlanetSideEmpire.TR
+      val faction = PlanetSideEmpire.VS
       val avatar = new Avatar(41605313L+sessionId, s"TestCharacter$sessionId", faction, CharacterGender.Female, 41, CharacterVoice.Voice1)
       avatar.Certifications += StandardAssault
       avatar.Certifications += MediumAssault
@@ -3669,15 +3681,6 @@ class WorldSessionActor extends Actor
           }
         }
       continent.VehicleEvents ! VehicleServiceMessage(continent.Id, VehicleAction.UpdateAmsSpawnPoint(continent))
-
-      chatService ! Service.Join("local")
-      chatService ! Service.Join("squad")
-      chatService ! Service.Join("voice")
-      chatService ! Service.Join("tell")
-      chatService ! Service.Join("broadcast")
-      chatService ! Service.Join("note")
-      chatService ! Service.Join("gm")
-
       self ! SetCurrentAvatar(player)
 
     case msg @ PlayerStateMessageUpstream(avatar_guid, pos, vel, yaw, pitch, yaw_upper, seq_time, unk3, is_crouching, is_jumping, jump_thrust, is_cloaking, unk5, unk6) =>
@@ -9098,6 +9101,7 @@ class WorldSessionActor extends Actor
     val respawnTimeMillis = respawnTime * 1000 //ms
     deadState = DeadState.RespawnTime
     sendResponse(AvatarDeadStateMessage(DeadState.RespawnTime, respawnTimeMillis, respawnTimeMillis, Vector3.Zero, player.Faction, true))
+    shiftPosition = Some(pos)
     val (target, msg) = if(backpack) { //if the player is dead, he is handled as dead infantry, even if he died in a vehicle
       //new player is spawning
       val newPlayer = RespawnClone(player)

@@ -68,6 +68,12 @@ object SOI {
   /** Stop sorting players into sois */
   final case class Stop()
 
+  /**
+    * Recursively populate each facility's sphere of influence with players.
+    * @param buildings an iterator of buildings and the radius of its sphere of influence
+    * @param players a list of players to allocate;
+    *                the list gets shorter as each building is allocated
+    */
   @tailrec
   def Populate(buildings : Iterator[(Building, Int)], players : List[Player]) : Unit = {
     if(players.nonEmpty && buildings.hasNext) {
