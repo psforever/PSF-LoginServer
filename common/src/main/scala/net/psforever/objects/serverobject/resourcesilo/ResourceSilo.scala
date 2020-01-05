@@ -9,6 +9,7 @@ import net.psforever.packet.game.UseItemMessage
 class ResourceSilo extends Amenity {
   private var chargeLevel : Int = 0
   private val maximumCharge : Int = 1000
+
   // For the flashing red light on top of the NTU silo on.
   // Default to true until charge level can be persisted across restarts as default charge level is 0
   private var lowNtuWarningOn : Boolean = true

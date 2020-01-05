@@ -2971,7 +2971,6 @@ class WorldSessionActor extends Actor
 
         //todo: grant BEP to user
         //todo: grant BEP to squad in range
-        //todo: notify map service to update ntu % on map for all users
 
         //todo: handle silo orb / panel glow properly if more than one person is refilling silo and one player stops. effects should stay on until all players stop
 
@@ -3036,7 +3035,12 @@ class WorldSessionActor extends Actor
         HackState.Ongoing
       }
 
-      if(vis == HackState.Cancelled) {
+      if(!target.HasGUID) {
+        // Target is gone, cancel the hack.
+        // Note: I couldn't find any examples of an object that no longer has a GUID in packet captures, but sending the hacking player's GUID as the target to cancel the hack seems to work
+        sendResponse(HackMessage(progressType, player.GUID, player.GUID, 0, 0L, HackState.Cancelled, 8L))
+      }
+      else if(vis == HackState.Cancelled) {
         // Object moved. Cancel the hack (e.g. vehicle drove away)
         sendResponse(HackMessage(progressType, target.GUID, player.GUID, 0, 0L, vis, 8L))
       }
@@ -4570,16 +4574,18 @@ class WorldSessionActor extends Actor
           if(player.Faction == door.Faction || (continent.Map.DoorToLock.get(object_guid.guid) match {
             case Some(lock_guid) =>
               val lock = continent.GUID(lock_guid).get.asInstanceOf[IFFLock]
+              val owner = lock.Owner.asInstanceOf[Building]
 
               val playerIsOnInside = Vector3.ScalarProjection(lock.Outwards, player.Position - door.Position) < 0f
 
               // If an IFF lock exists and the IFF lock faction doesn't match the current player and one of the following conditions are met open the door:
-              // A base is neutral
-              // A base is hacked
-              // The lock is hacked
               // The player is on the inside of the door, determined by the lock orientation
+              // The lock is hacked
+              // A base is hacked
+              // A base is neutral
+              // todo: A base is out of power (generator down)
 
-              lock.HackedBy.isDefined || lock.Owner.asInstanceOf[Building].CaptureConsoleIsHacked || lock.Faction == PlanetSideEmpire.NEUTRAL || playerIsOnInside
+              playerIsOnInside || lock.HackedBy.isDefined || owner.CaptureConsoleIsHacked || lock.Faction == PlanetSideEmpire.NEUTRAL
             case None => !door.isOpen // If there's no linked IFF lock just open the door if it's closed.
           })) {
             door.Actor ! Door.Use(player, msg)
@@ -7591,7 +7597,7 @@ class WorldSessionActor extends Actor
             // Synchronise warning light & silo capacity
             val silo = amenity.asInstanceOf[ResourceSilo]
             sendResponse(PlanetsideAttributeMessage(amenityId, 45, silo.CapacitorDisplay))
-            sendResponse(PlanetsideAttributeMessage(amenityId, 47, if(silo.LowNtuWarningOn) 1 else 0))
+            sendResponse(PlanetsideAttributeMessage(silo.Owner.GUID, 47, if(silo.LowNtuWarningOn) 1 else 0))
 
             if(silo.ChargeLevel == 0) {
               sendResponse(PlanetsideAttributeMessage(silo.Owner.GUID, 48, 1))
