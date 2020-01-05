@@ -9268,7 +9268,6 @@ class WorldSessionActor extends Actor
     * @return all discovered `BoomTrigger` objects
     */
   def RemoveBoomerTriggersFromInventory() : List[BoomerTrigger] = {
-    val player_guid = player.GUID
     val holstersWithIndex = player.Holsters().zipWithIndex
     ((player.Inventory.Items.collect({ case InventoryItem(obj : BoomerTrigger, index) => (obj, index) })) ++
       (holstersWithIndex
@@ -9279,8 +9278,8 @@ class WorldSessionActor extends Actor
       .map({ case ((obj, index)) =>
         player.Slot(index).Equipment = None
         sendResponse(ObjectDeleteMessage(obj.GUID, 0))
-        if(player.VisibleSlots.contains(index)) {
-          continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player_guid, obj.GUID))
+        if(player.VisibleSlots.contains(index) && player.HasGUID) {
+          continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player.GUID, obj.GUID))
         }
         obj
       })
