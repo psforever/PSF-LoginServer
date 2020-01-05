@@ -1,18 +1,20 @@
 package zonemaps
 
+import net.psforever.objects.zones.ZoneMap
 import net.psforever.objects.GlobalDefinitions._
+import net.psforever.objects.LocalProjectile
+import net.psforever.objects.ballistics.Projectile
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.serverobject.implantmech.ImplantTerminalMech
 import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.mblocker.Locker
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
 import net.psforever.objects.serverobject.painbox.Painbox
-import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.objects.serverobject.structures.{Building, FoundationBuilder, StructureType, WarpGate}
 import net.psforever.objects.serverobject.terminals.{CaptureTerminal, ProximityTerminal, Terminal}
 import net.psforever.objects.serverobject.tube.SpawnTube
+import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.objects.serverobject.turret.FacilityTurret
-import net.psforever.objects.zones.ZoneMap
 import net.psforever.types.Vector3
 
 object Map02 {
@@ -150,8 +152,8 @@ object Map02 {
 
     def Building46(): Unit = { // Name: bunker_gauntlet Type: bunker_gauntlet GUID: 4, MapID: 46
       LocalBuilding("bunker_gauntlet", 4, 46, FoundationBuilder(Building.Structure(StructureType.Bunker, Vector3(2598f, 3700f, 41.29307f), bunker_gauntlet)))
-      LocalObject(307, Door.Constructor(Vector3(2596.088f, 3724.898f, 42.81407f)), owning_building_guid = 4)
-      LocalObject(308, Door.Constructor(Vector3(2596.099f, 3675.077f, 42.81407f)), owning_building_guid = 4)
+      LocalObject(307, Door.Constructor(Vector3(2596.099f, 3675.077f, 42.81407f)), owning_building_guid = 4)
+      LocalObject(308, Door.Constructor(Vector3(2596.088f, 3724.898f, 42.81407f)), owning_building_guid = 4)
     }
 
     Building44()
@@ -166,8 +168,8 @@ object Map02 {
 
     def Building47(): Unit = { // Name: bunker_gauntlet Type: bunker_gauntlet GUID: 6, MapID: 47
       LocalBuilding("bunker_gauntlet", 6, 47, FoundationBuilder(Building.Structure(StructureType.Bunker, Vector3(4580f, 3462f, 28.62407f), bunker_gauntlet)))
-      LocalObject(450, Door.Constructor(Vector3(4578.088f, 3486.898f, 30.14507f)), owning_building_guid = 6)
-      LocalObject(451, Door.Constructor(Vector3(4578.099f, 3437.077f, 30.14507f)), owning_building_guid = 6)
+      LocalObject(450, Door.Constructor(Vector3(4578.099f, 3437.077f, 30.14507f)), owning_building_guid = 6)
+      LocalObject(451, Door.Constructor(Vector3(4578.088f, 3486.898f, 30.14507f)), owning_building_guid = 6)
     }
 
     Building45()
@@ -438,8 +440,8 @@ object Map02 {
       LocalObject(2296, Terminal.Constructor(Vector3(3279.943f, 5434.591f, 15.30043f), spawn_terminal), owning_building_guid = 20)
       LocalObject(2297, Terminal.Constructor(Vector3(3294.51f, 5401.969f, 37.86043f), spawn_terminal), owning_building_guid = 20)
       LocalObject(2298, Terminal.Constructor(Vector3(3295.409f, 5465.942f, 25.30043f), spawn_terminal), owning_building_guid = 20)
-      LocalObject(2299, Terminal.Constructor(Vector3(3332.967f, 5444.535f, 23.37743f), spawn_terminal), owning_building_guid = 20)
-      LocalObject(2300, Terminal.Constructor(Vector3(3332.971f, 5437.243f, 23.37743f), spawn_terminal), owning_building_guid = 20)
+      LocalObject(2299, Terminal.Constructor(Vector3(3332.971f, 5437.243f, 23.37743f), spawn_terminal), owning_building_guid = 20)
+      LocalObject(2300, Terminal.Constructor(Vector3(3332.967f, 5444.535f, 23.37743f), spawn_terminal), owning_building_guid = 20)
       LocalObject(2301, Terminal.Constructor(Vector3(3332.97f, 5451.823f, 23.37743f), spawn_terminal), owning_building_guid = 20)
       LocalObject(2507, Terminal.Constructor(Vector3(3348.458f, 5480.774f, 33.93043f), vehicle_terminal_combined), owning_building_guid = 20)
       LocalObject(1542, VehicleSpawnPad.Constructor(Vector3(3334.833f, 5480.62f, 29.77243f), mb_pad_creation, Vector3(0, 0, -90)), owning_building_guid = 20, terminal_guid = 2507)
@@ -555,8 +557,8 @@ object Map02 {
       LocalObject(2324, Terminal.Constructor(Vector3(4467.943f, 3490.591f, 12.57207f), spawn_terminal), owning_building_guid = 23)
       LocalObject(2327, Terminal.Constructor(Vector3(4482.51f, 3457.969f, 35.13207f), spawn_terminal), owning_building_guid = 23)
       LocalObject(2328, Terminal.Constructor(Vector3(4483.409f, 3521.942f, 22.57207f), spawn_terminal), owning_building_guid = 23)
-      LocalObject(2332, Terminal.Constructor(Vector3(4520.967f, 3500.535f, 20.64907f), spawn_terminal), owning_building_guid = 23)
-      LocalObject(2333, Terminal.Constructor(Vector3(4520.971f, 3493.243f, 20.64907f), spawn_terminal), owning_building_guid = 23)
+      LocalObject(2332, Terminal.Constructor(Vector3(4520.971f, 3493.243f, 20.64907f), spawn_terminal), owning_building_guid = 23)
+      LocalObject(2333, Terminal.Constructor(Vector3(4520.967f, 3500.535f, 20.64907f), spawn_terminal), owning_building_guid = 23)
       LocalObject(2334, Terminal.Constructor(Vector3(4520.97f, 3507.823f, 20.64907f), spawn_terminal), owning_building_guid = 23)
       LocalObject(2512, Terminal.Constructor(Vector3(4536.458f, 3536.774f, 31.20207f), vehicle_terminal_combined), owning_building_guid = 23)
       LocalObject(1549, VehicleSpawnPad.Constructor(Vector3(4522.833f, 3536.62f, 27.04407f), mb_pad_creation, Vector3(0, 0, -90)), owning_building_guid = 23, terminal_guid = 2512)
@@ -942,14 +944,14 @@ object Map02 {
       LocalObject(1260, Locker.Constructor(Vector3(4499.997f, 2624.527f, 20.42806f)), owning_building_guid = 32)
       LocalObject(1267, Locker.Constructor(Vector3(4512.817f, 2572.36f, 20.34106f)), owning_building_guid = 32)
       LocalObject(1268, Locker.Constructor(Vector3(4512.814f, 2592.361f, 20.34106f)), owning_building_guid = 32)
-      LocalObject(1271, Locker.Constructor(Vector3(4513.868f, 2592.361f, 20.34106f)), owning_building_guid = 32)
-      LocalObject(1272, Locker.Constructor(Vector3(4513.873f, 2572.36f, 20.34106f)), owning_building_guid = 32)
+      LocalObject(1271, Locker.Constructor(Vector3(4513.873f, 2572.36f, 20.34106f)), owning_building_guid = 32)
+      LocalObject(1272, Locker.Constructor(Vector3(4513.868f, 2592.361f, 20.34106f)), owning_building_guid = 32)
       LocalObject(1273, Locker.Constructor(Vector3(4514.928f, 2572.36f, 20.34106f)), owning_building_guid = 32)
       LocalObject(1274, Locker.Constructor(Vector3(4514.929f, 2592.361f, 20.34106f)), owning_building_guid = 32)
       LocalObject(1277, Locker.Constructor(Vector3(4515.983f, 2572.36f, 20.34106f)), owning_building_guid = 32)
       LocalObject(1278, Locker.Constructor(Vector3(4515.984f, 2592.361f, 20.34106f)), owning_building_guid = 32)
-      LocalObject(1279, Locker.Constructor(Vector3(4517.039f, 2592.361f, 20.34106f)), owning_building_guid = 32)
-      LocalObject(1280, Locker.Constructor(Vector3(4517.043f, 2572.36f, 20.34106f)), owning_building_guid = 32)
+      LocalObject(1279, Locker.Constructor(Vector3(4517.043f, 2572.36f, 20.34106f)), owning_building_guid = 32)
+      LocalObject(1280, Locker.Constructor(Vector3(4517.039f, 2592.361f, 20.34106f)), owning_building_guid = 32)
       LocalObject(1281, Locker.Constructor(Vector3(4518.098f, 2572.36f, 20.34106f)), owning_building_guid = 32)
       LocalObject(1282, Locker.Constructor(Vector3(4518.095f, 2592.361f, 20.34106f)), owning_building_guid = 32)
       LocalObject(1412, Locker.Constructor(Vector3(4498.26f, 2557.787f, 30.43306f)), owning_building_guid = 32)
@@ -976,8 +978,8 @@ object Map02 {
       LocalObject(2323, Terminal.Constructor(Vector3(4463.91f, 2513.41f, 24.54606f), spawn_terminal), owning_building_guid = 32)
       LocalObject(2325, Terminal.Constructor(Vector3(4479.407f, 2634f, 22.04606f), spawn_terminal), owning_building_guid = 32)
       LocalObject(2326, Terminal.Constructor(Vector3(4481.905f, 2556.359f, 32.01206f), spawn_terminal), owning_building_guid = 32)
-      LocalObject(2329, Terminal.Constructor(Vector3(4484.967f, 2580.535f, 22.56706f), spawn_terminal), owning_building_guid = 32)
-      LocalObject(2330, Terminal.Constructor(Vector3(4484.971f, 2573.243f, 22.56706f), spawn_terminal), owning_building_guid = 32)
+      LocalObject(2329, Terminal.Constructor(Vector3(4484.971f, 2573.243f, 22.56706f), spawn_terminal), owning_building_guid = 32)
+      LocalObject(2330, Terminal.Constructor(Vector3(4484.967f, 2580.535f, 22.56706f), spawn_terminal), owning_building_guid = 32)
       LocalObject(2331, Terminal.Constructor(Vector3(4484.97f, 2587.823f, 22.56706f), spawn_terminal), owning_building_guid = 32)
       LocalObject(2511, Terminal.Constructor(Vector3(4517.628f, 2506.814f, 32.73806f), vehicle_terminal_combined), owning_building_guid = 32)
       LocalObject(1548, VehicleSpawnPad.Constructor(Vector3(4503.989f, 2506.724f, 28.58006f), mb_pad_creation, Vector3(0, 0, -90)), owning_building_guid = 32, terminal_guid = 2511)
@@ -1010,10 +1012,10 @@ object Map02 {
       LocalObject(1504, FacilityTurret.Constructor(Vector3(4544.813f, 2608.496f, 38.83506f), manned_turret), owning_building_guid = 32)
       TurretToWeapon(1504, 5041)
       LocalObject(808, ImplantTerminalMech.Constructor, owning_building_guid = 32)
-      LocalObject(802, Terminal.Constructor(Vector3(4490.054f, 2629.706f, 19.91006f), implant_terminal_interface), owning_building_guid = 32)
+      LocalObject(802, Terminal.Constructor(Vector3(4490.066f, 2614.386f, 19.91006f), implant_terminal_interface), owning_building_guid = 32)
       TerminalToInterface(808, 802)
       LocalObject(809, ImplantTerminalMech.Constructor, owning_building_guid = 32)
-      LocalObject(803, Terminal.Constructor(Vector3(4490.066f, 2614.386f, 19.91006f), implant_terminal_interface), owning_building_guid = 32)
+      LocalObject(803, Terminal.Constructor(Vector3(4490.054f, 2629.706f, 19.91006f), implant_terminal_interface), owning_building_guid = 32)
       TerminalToInterface(809, 803)
       LocalObject(1948, Painbox.Constructor(Vector3(4485.593f, 2550.334f, 44.46186f), painbox), owning_building_guid = 32)
       LocalObject(1958, Painbox.Constructor(Vector3(4494.753f, 2577.712f, 24.50296f), painbox_continuous), owning_building_guid = 32)
@@ -1256,8 +1258,8 @@ object Map02 {
       LocalObject(1593, Terminal.Constructor(Vector3(2508.654f, 3728.928f, 35.39609f), order_terminal), owning_building_guid = 42)
       LocalObject(2289, Terminal.Constructor(Vector3(2457.942f, 3666.591f, 35.36309f), spawn_terminal), owning_building_guid = 42)
       LocalObject(2290, Terminal.Constructor(Vector3(2489.942f, 3714.591f, 27.86309f), spawn_terminal), owning_building_guid = 42)
-      LocalObject(2291, Terminal.Constructor(Vector3(2494.967f, 3724.535f, 35.94009f), spawn_terminal), owning_building_guid = 42)
-      LocalObject(2292, Terminal.Constructor(Vector3(2494.971f, 3717.243f, 35.94009f), spawn_terminal), owning_building_guid = 42)
+      LocalObject(2291, Terminal.Constructor(Vector3(2494.971f, 3717.243f, 35.94009f), spawn_terminal), owning_building_guid = 42)
+      LocalObject(2292, Terminal.Constructor(Vector3(2494.967f, 3724.535f, 35.94009f), spawn_terminal), owning_building_guid = 42)
       LocalObject(2293, Terminal.Constructor(Vector3(2494.97f, 3731.823f, 35.94009f), spawn_terminal), owning_building_guid = 42)
       LocalObject(2294, Terminal.Constructor(Vector3(2496.532f, 3765.215f, 53.22909f), spawn_terminal), owning_building_guid = 42)
       LocalObject(2295, Terminal.Constructor(Vector3(2519.242f, 3741.639f, 47.88809f), spawn_terminal), owning_building_guid = 42)
@@ -1380,8 +1382,8 @@ object Map02 {
       LocalObject(1644, Terminal.Constructor(Vector3(4046.654f, 5978.928f, 33.47953f), order_terminal), owning_building_guid = 45)
       LocalObject(2315, Terminal.Constructor(Vector3(3995.942f, 5916.591f, 33.44653f), spawn_terminal), owning_building_guid = 45)
       LocalObject(2316, Terminal.Constructor(Vector3(4027.942f, 5964.591f, 25.94653f), spawn_terminal), owning_building_guid = 45)
-      LocalObject(2317, Terminal.Constructor(Vector3(4032.967f, 5974.535f, 34.02353f), spawn_terminal), owning_building_guid = 45)
-      LocalObject(2318, Terminal.Constructor(Vector3(4032.971f, 5967.243f, 34.02353f), spawn_terminal), owning_building_guid = 45)
+      LocalObject(2317, Terminal.Constructor(Vector3(4032.971f, 5967.243f, 34.02353f), spawn_terminal), owning_building_guid = 45)
+      LocalObject(2318, Terminal.Constructor(Vector3(4032.967f, 5974.535f, 34.02353f), spawn_terminal), owning_building_guid = 45)
       LocalObject(2319, Terminal.Constructor(Vector3(4032.97f, 5981.823f, 34.02353f), spawn_terminal), owning_building_guid = 45)
       LocalObject(2320, Terminal.Constructor(Vector3(4034.532f, 6015.215f, 51.31253f), spawn_terminal), owning_building_guid = 45)
       LocalObject(2321, Terminal.Constructor(Vector3(4057.242f, 5991.639f, 45.97153f), spawn_terminal), owning_building_guid = 45)
