@@ -10,6 +10,8 @@ import scodec.Attempt.{Failure, Successful}
 import scodec.bits._
 import org.log4s.{Logger, MDC}
 import MDCContextAware.Implicits._
+import com.github.mauricio.async.db.general.ArrayRowData
+import com.github.mauricio.async.db.{Connection, QueryResult}
 import csr.{CSRWarp, CSRZone, Traveler}
 import net.psforever.objects.GlobalDefinitions._
 import services.ServiceManager.Lookup
@@ -47,7 +49,8 @@ import net.psforever.objects.zones.{InterstellarCluster, Zone, ZoneHotSpotProjec
 import net.psforever.packet.game.objectcreate._
 import net.psforever.packet.game.{HotSpotInfo => PacketHotSpotInfo}
 import net.psforever.types._
-import services.{RemoverActor, vehicle, _}
+import services._
+import services.account.{ReceiveAccountData, RetrieveAccountData}
 import services.avatar.{AvatarAction, AvatarResponse, AvatarServiceMessage, AvatarServiceResponse}
 import services.galaxy.{GalaxyAction, GalaxyResponse, GalaxyServiceMessage, GalaxyServiceResponse}
 import services.local.{LocalAction, LocalResponse, LocalServiceMessage, LocalServiceResponse}
@@ -82,12 +85,14 @@ class WorldSessionActor extends Actor
   var sessionId : Long = 0
   var leftRef : ActorRef = ActorRef.noSender
   var rightRef : ActorRef = ActorRef.noSender
+  var accountIntermediary : ActorRef = ActorRef.noSender
   var chatService: ActorRef = ActorRef.noSender
   var galaxyService : ActorRef = ActorRef.noSender
   var squadService : ActorRef = ActorRef.noSender
   var taskResolver : ActorRef = Actor.noSender
   var cluster : ActorRef = Actor.noSender
   var continent : Zone = Zone.Nowhere
+  var account : Account = null
   var player : Player = null
   var avatar : Avatar = null
   var progressBarValue : Option[Float] = None
@@ -95,10 +100,12 @@ class WorldSessionActor extends Actor
   var prefire : Option[PlanetSideGUID] = None //if WeaponFireMessage precedes ChangeFireStateMessage_Start
   var shotsWhileDead : Int = 0
   var accessedContainer : Option[PlanetSideGameObject with Container] = None
+  var connectionState : Int = 25
   var flying : Boolean = false
   var speed : Float = 1.0f
   var spectator : Boolean = false
   var admin : Boolean = false
+  var loadConfZone : Boolean = false
   var noSpawnPointHere : Boolean = false
   var usingMedicalTerminal : Option[PlanetSideGUID] = None
   var controlled : Option[Int] = None
@@ -313,6 +320,7 @@ class WorldSessionActor extends Actor
         rightRef = sender()
       }
       context.become(Started)
+      ServiceManager.serviceManager ! Lookup("accountIntermediary")
       ServiceManager.serviceManager ! Lookup("chat")
       ServiceManager.serviceManager ! Lookup("taskResolver")
       ServiceManager.serviceManager ! Lookup("cluster")
@@ -325,6 +333,9 @@ class WorldSessionActor extends Actor
   }
 
   def Started : Receive = jammableBehavior.orElse {
+    case ServiceManager.LookupResult("accountIntermediary", endpoint) =>
+      accountIntermediary = endpoint
+      log.info("ID: " + sessionId + " Got account intermediary service " + endpoint)
     case ServiceManager.LookupResult("chat", endpoint) =>
       chatService = endpoint
       log.info("ID: " + sessionId + " Got chat service " + endpoint)
@@ -698,34 +709,110 @@ class WorldSessionActor extends Actor
     case CheckCargoMounting(cargo_guid, carrier_guid, mountPoint, iteration) =>
       HandleCheckCargoMounting(cargo_guid, carrier_guid, mountPoint, iteration)
 
-    case ListAccountCharacters =>
-      import net.psforever.objects.definition.converter.CharacterSelectConverter
-      val gen : AtomicInteger = new AtomicInteger(1)
-      val converter : CharacterSelectConverter = new CharacterSelectConverter
-      //load characters
-      SetCharacterSelectScreenGUID(player, gen)
-      val health = player.Health
-      val stamina = player.Stamina
-      val armor = player.Armor
-      player.Spawn
-      sendResponse(
-        ObjectCreateDetailedMessage(ObjectClass.avatar, player.GUID, converter.DetailedConstructorData(player).get)
-      )
-      if(health > 0) {
-        //player can not be dead; stay spawned as alive
-        player.Health = health
-        player.Stamina = stamina
-        player.Armor = armor
+    case CreateCharacter(connection, name, head, voice, gender, empire) =>
+      log.info(s"Creating new character $name...")
+      val accountUserName : String = account.Username
+
+      connection.get.inTransaction {
+        c => c.sendPreparedStatement(
+          "INSERT INTO characters (name, account_id, faction_id, gender_id, head_id, voice_id) VALUES(?,?,?,?,?,?) RETURNING id",
+          Array(name, account.AccountId, empire.id, gender.id, head, voice.id)
+        )
+      }.onComplete {
+        case Success(insertResult) =>
+          insertResult match {
+            case result: QueryResult =>
+              if (result.rows.nonEmpty) {
+                log.info(s"Successfully created new character for $accountUserName")
+                sendResponse(ActionResultMessage.Pass)
+                self ! ListAccountCharacters(connection)
+              } else {
+                log.error(s"Error creating new character for $accountUserName")
+                sendResponse(ActionResultMessage.Fail(0))
+                self ! ListAccountCharacters(connection)
+              }
+            case _ =>
+              log.error(s"Error creating new character for $accountUserName")
+              sendResponse(ActionResultMessage.Fail(3))
+              self ! ListAccountCharacters(connection)
+          }
+        case _ => failWithError("Something to do ?")
       }
-      sendResponse(CharacterInfoMessage(15, PlanetSideZoneID(10000), avatar.CharId, player.GUID, false, 6404428))
-      RemoveCharacterSelectScreenGUID(player)
-      sendResponse(CharacterInfoMessage(0, PlanetSideZoneID(1), 0, PlanetSideGUID(0), true, 0))
-      sendResponse(CharacterInfoMessage(0, PlanetSideZoneID(1), 0, PlanetSideGUID(0), true, 0))
+
+    case ListAccountCharacters(connection) =>
+      val accountUserName : String = account.Username
+
+      StartBundlingPackets()
+      connection.get.sendPreparedStatement(
+        "SELECT id, name, faction_id, gender_id, head_id, voice_id, deleted, last_login FROM characters where account_id=? ORDER BY last_login", Array(account.AccountId)
+      ).onComplete {
+        case Success(queryResult) =>
+          queryResult match {
+            case result: QueryResult =>
+              if (result.rows.nonEmpty) {
+                import net.psforever.objects.definition.converter.CharacterSelectConverter
+                val gen : AtomicInteger = new AtomicInteger(1)
+                val converter : CharacterSelectConverter = new CharacterSelectConverter
+
+                result.rows foreach{ row  =>
+                  log.info(s"char list : ${row.toString()}")
+                  val nowTimeInSeconds = System.currentTimeMillis()/1000
+                  var avatarArray:Array[Avatar] = Array.ofDim(row.length)
+                  var playerArray:Array[Player] = Array.ofDim(row.length)
+                  row.zipWithIndex.foreach{ case (value,i) =>
+                    val lName : String = value(1).asInstanceOf[String]
+                    val lFaction : PlanetSideEmpire.Value = PlanetSideEmpire(value(2).asInstanceOf[Int])
+                    val lGender : CharacterGender.Value = CharacterGender(value(3).asInstanceOf[Int])
+                    val lHead : Int = value(4).asInstanceOf[Int]
+                    val lVoice : CharacterVoice.Value = CharacterVoice(value(5).asInstanceOf[Int])
+                    val lDeleted : Boolean = value(6).asInstanceOf[Boolean]
+                    val lTime = value(7).asInstanceOf[org.joda.time.LocalDateTime].toDateTime().getMillis()/1000
+                    val secondsSinceLastLogin = nowTimeInSeconds - lTime
+                    if (!lDeleted) {
+                      avatarArray(i) = new Avatar(value(0).asInstanceOf[Int], lName, lFaction, lGender, lHead, lVoice)
+                      AwardBattleExperiencePoints(avatarArray(i), 20000000L)
+                      avatarArray(i).CEP = 600000
+                      playerArray(i) = new Player(avatarArray(i))
+                      playerArray(i).ExoSuit = ExoSuitType.Reinforced
+                      playerArray(i).Slot(0).Equipment = Tool(StandardPistol(playerArray(i).Faction))
+                      playerArray(i).Slot(1).Equipment = Tool(MediumPistol(playerArray(i).Faction))
+                      playerArray(i).Slot(2).Equipment = Tool(HeavyRifle(playerArray(i).Faction))
+                      playerArray(i).Slot(3).Equipment = Tool(AntiVehicularLauncher(playerArray(i).Faction))
+                      playerArray(i).Slot(4).Equipment = Tool(katana)
+                      SetCharacterSelectScreenGUID(playerArray(i), gen)
+                      val health = playerArray(i).Health
+                      val stamina = playerArray(i).Stamina
+                      val armor = playerArray(i).Armor
+                      playerArray(i).Spawn
+                      sendResponse(ObjectCreateDetailedMessage(ObjectClass.avatar, playerArray(i).GUID, converter.DetailedConstructorData(playerArray(i)).get))
+                      if (health > 0) { //player can not be dead; stay spawned as alive
+                        playerArray(i).Health = health
+                        playerArray(i).Stamina = stamina
+                        playerArray(i).Armor = armor
+                      }
+                      sendResponse(CharacterInfoMessage(15, PlanetSideZoneID(4), value(0).asInstanceOf[Int], playerArray(i).GUID, false, secondsSinceLastLogin))
+                      RemoveCharacterSelectScreenGUID(playerArray(i))
+                    }
+                  }
+                  sendResponse(CharacterInfoMessage(0, PlanetSideZoneID(1), 0, PlanetSideGUID(0), true, 0))
+                }
+                Thread.sleep(50)
+                if(connection.nonEmpty) connection.get.disconnect
+              } else {
+                log.info("dunno")
+              }
+            case _ =>
+              log.error(s"Error listing character(s) for account $accountUserName")
+          }
+        case _ => failWithError("Something to do ?")
+      }
+      StopBundlingPackets()
 
     case VehicleLoaded(_ /*vehicle*/) => ;
     //currently being handled by VehicleSpawnPad.LoadVehicle during testing phase
 
     case Zone.ClientInitialization(zone) =>
+      Thread.sleep(connectionState)
       val continentNumber = zone.Number
       val poplist = zone.Players
       val popBO = 0
@@ -749,6 +836,7 @@ class WorldSessionActor extends Actor
       sendResponse(ZoneInfoMessage(continentNumber, true, 0))
       sendResponse(ZoneLockInfoMessage(continentNumber, false, true))
       sendResponse(ZoneForcedCavernConnectionsMessage(continentNumber, 0))
+
       sendResponse(HotSpotUpdateMessage(
         continentNumber,
         1,
@@ -756,6 +844,7 @@ class WorldSessionActor extends Actor
           .map { spot => PacketHotSpotInfo(spot.DisplayLocation.x, spot.DisplayLocation.y, 40) }
       )) //normally set for all zones in bulk; should be fine manually updating per zone like this
 
+      StopBundlingPackets()
     case Zone.Population.PlayerHasLeft(zone, None) =>
       log.info(s"$avatar does not have a body on ${zone.Id}")
 
@@ -1027,9 +1116,9 @@ class WorldSessionActor extends Actor
       taskResolver ! GUIDTask.UnregisterObjectTask(obj)(continent.GUID)
 
     case InterstellarCluster.ClientInitializationComplete() =>
-      StopBundlingPackets()
       LivePlayerList.Add(sessionId, avatar)
       traveler = new Traveler(self, continent.Id)
+      StartBundlingPackets()
       //PropertyOverrideMessage
       sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 112, 0)) // disable festive backpacks
       sendResponse(ReplicationStreamMessage(5, Some(6), Vector.empty)) //clear squad list
@@ -1048,10 +1137,11 @@ class WorldSessionActor extends Actor
       squadService ! Service.Join(s"${avatar.faction}") //channel will be player.Faction
       squadService ! Service.Join(s"${avatar.CharId}") //channel will be player.CharId (in order to work with packets)
       //go home
-      cluster ! InterstellarCluster.GetWorld("home3")
+      cluster ! InterstellarCluster.GetWorld("z6")
 
     case InterstellarCluster.GiveWorld(zoneId, zone) =>
       log.info(s"Zone $zoneId will now load")
+      loadConfZone = true
       continent.AvatarEvents ! Service.Leave()
       continent.LocalEvents ! Service.Leave()
       continent.VehicleEvents ! Service.Leave()
@@ -1134,6 +1224,36 @@ class WorldSessionActor extends Actor
       log.info(s"Received a direct message: $pkt")
       sendResponse(pkt)
 
+    case ReceiveAccountData(account) =>
+      log.info(s"Retrieved account data for accountId = ${account.AccountId}")
+
+      this.account = account
+      admin = account.GM
+
+      Database.getConnection.connect.onComplete { // TODO remove that DB access.
+        case scala.util.Success(connection) =>
+          Database.query(connection.sendPreparedStatement(
+            "SELECT gm FROM accounts where id=?", Array(account.AccountId)
+          )).onComplete {
+            case scala.util.Success(queryResult) =>
+              queryResult match {
+                case row: ArrayRowData => // If we got a row from the database
+                  log.info(s"Ready to load character list for ${account.Username}")
+                  self ! ListAccountCharacters(Some(connection))
+                case _ => // If the account didn't exist in the database
+                  log.error(s"Issue retrieving result set from database for account $account")
+                  Thread.sleep(50)
+                  if (connection.isConnected) connection.disconnect
+                  sendResponse(DropSession(sessionId, "You should not exist !"))
+              }
+            case scala.util.Failure(e) =>
+              log.error("Is there a problem ? " + e.getMessage)
+              Thread.sleep(50)
+              if (connection.isConnected) connection.disconnect
+          }
+        case scala.util.Failure(e) =>
+          log.error("Failed connecting to database for account lookup " + e.getMessage)
+      }
     case LoadedRemoteProjectile(projectile_guid, Some(projectile)) =>
       if(projectile.profile.ExistsOnRemoteClients) {
         //spawn projectile on other clients
@@ -3173,6 +3293,12 @@ class WorldSessionActor extends Actor
         interstellarFerryTopLevelGUID = None
       case _ => ;
     }
+
+    if (loadConfZone && connectionState == 100) {
+      configZone(continent)
+      loadConfZone = false
+    }
+
     if (noSpawnPointHere) {
       RequestSanctuaryZoneSpawn(player, continent.Number)
     }
@@ -3302,81 +3428,16 @@ class WorldSessionActor extends Actor
     case ConnectToWorldRequestMessage(server, token, majorVersion, minorVersion, revision, buildDate, unk) =>
       val clientVersion = s"Client Version: $majorVersion.$minorVersion.$revision, $buildDate"
       log.info(s"New world login to $server with Token:$token. $clientVersion")
-      //TODO begin temp player character auto-loading; remove later
-      //this is all just temporary character creation used in the dev branch, making explicit values that allow for testing
-      //the unique character identifier number for this testing character is based on the original test character,
-      //whose identifier number was 41605314
-      //all head features, faction, and sex also match that test character
-      import net.psforever.objects.GlobalDefinitions._
-      import net.psforever.types.CertificationType._
 
-      val faction = PlanetSideEmpire.VS
-      val avatar = new Avatar(41605313L+sessionId, s"TestCharacter$sessionId", faction, CharacterGender.Female, 41, CharacterVoice.Voice1)
-      avatar.Certifications += StandardAssault
-      avatar.Certifications += MediumAssault
-      avatar.Certifications += StandardExoSuit
-      avatar.Certifications += AgileExoSuit
-      avatar.Certifications += ReinforcedExoSuit
-      avatar.Certifications += ATV
-      avatar.Certifications += Harasser
-      avatar.Certifications += InfiltrationSuit
-      avatar.Certifications += Sniping
-      avatar.Certifications += AntiVehicular
-      avatar.Certifications += HeavyAssault
-      avatar.Certifications += SpecialAssault
-      avatar.Certifications += EliteAssault
-      avatar.Certifications += GroundSupport
-      avatar.Certifications += GroundTransport
-      avatar.Certifications += Flail
-      avatar.Certifications += Switchblade
-      avatar.Certifications += AssaultBuggy
-      avatar.Certifications += ArmoredAssault1
-      avatar.Certifications += ArmoredAssault2
-      avatar.Certifications += AirCavalryScout
-      avatar.Certifications += AirCavalryAssault
-      avatar.Certifications += AirCavalryInterceptor
-      avatar.Certifications += AirSupport
-      avatar.Certifications += GalaxyGunship
-      avatar.Certifications += Phantasm
-      avatar.Certifications += UniMAX
-      avatar.Certifications += Engineering
-      avatar.Certifications += CombatEngineering
-      avatar.Certifications += FortificationEngineering
-      avatar.Certifications += AssaultEngineering
-      avatar.Certifications += Hacking
-      avatar.Certifications += AdvancedHacking
-      avatar.Certifications += ElectronicsExpert
-      avatar.Certifications += Medical
-      avatar.Certifications += AdvancedMedical
-      avatar.CEP = 6000001
-      this.avatar = avatar
+      sendResponse(ChatMsg(ChatMessageType.CMT_CULLWATERMARK, false, "", "", None))
 
-      InitializeDeployableQuantities(avatar) //set deployables ui elements
-      AwardBattleExperiencePoints(avatar, 1000000L)
-      player = new Player(avatar)
-      player.Position = Vector3(3561.0f, 2854.0f, 90.859375f) //home3, HART C
-//      player.Position = Vector3(3940.3984f, 4343.625f, 266.45312f) //z6, Anguta
-//      player.Position = Vector3(3571.2266f, 3278.0938f, 119.0f) //ce test
-      player.Orientation = Vector3(0f, 0f, 90f)
-      //player.Position = Vector3(4262.211f ,4067.0625f ,262.35938f) //z6, Akna.tower
-      //player.Orientation = Vector3(0f, 0f, 132.1875f)
-//      player.ExoSuit = ExoSuitType.MAX //TODO strange issue; divide number above by 10 when uncommenting
-      player.Slot(0).Equipment = Tool(GlobalDefinitions.StandardPistol(player.Faction))
-      player.Slot(2).Equipment = Tool(suppressor)
-      player.Slot(4).Equipment = Tool(GlobalDefinitions.StandardMelee(player.Faction))
-      player.Slot(6).Equipment = AmmoBox(bullet_9mm)
-      player.Slot(9).Equipment = AmmoBox(bullet_9mm)
-      player.Slot(12).Equipment = AmmoBox(bullet_9mm)
-      player.Slot(33).Equipment = AmmoBox(bullet_9mm_AP)
-      player.Slot(36).Equipment = AmmoBox(GlobalDefinitions.StandardPistolAmmo(player.Faction))
-      player.Slot(39).Equipment = SimpleItem(remote_electronics_kit)
-      player.Locker.Inventory += 0 -> SimpleItem(remote_electronics_kit)
-      player.Inventory.Items.foreach { _.obj.Faction = faction }
-      //TODO end temp player character auto-loading
-      self ! ListAccountCharacters
+      Thread.sleep(40)
+
       import scala.concurrent.ExecutionContext.Implicits.global
       clientKeepAlive.cancel
       clientKeepAlive = context.system.scheduler.schedule(0 seconds, 500 milliseconds, self, PokeClient())
+
+      accountIntermediary ! RetrieveAccountData(token)
 
     case msg @ MountVehicleCargoMsg(player_guid, vehicle_guid, cargo_vehicle_guid, unk4) =>
       log.info(msg.toString)
@@ -3410,19 +3471,183 @@ class WorldSessionActor extends Actor
 
     case msg @ CharacterCreateRequestMessage(name, head, voice, gender, empire) =>
       log.info("Handling " + msg)
-      sendResponse(ActionResultMessage.Pass)
-      self ! ListAccountCharacters
+
+      Database.getConnection.connect.onComplete {
+        case scala.util.Success(connection) =>
+          Database.query(connection.sendPreparedStatement(
+            "SELECT account_id FROM characters where name ILIKE ? AND deleted = false", Array(name)
+          )).onComplete {
+            case scala.util.Success(queryResult) =>
+              queryResult match {
+                case row: ArrayRowData => // If we got a row from the database
+                  if (row(0).asInstanceOf[Int] == account.AccountId) { // create char
+//                    self ! CreateCharacter(Some(connection), name, head, voice, gender, empire)
+                    sendResponse(ActionResultMessage.Fail(1))
+                    Thread.sleep(50)
+                    if (connection.isConnected) connection.disconnect
+                  } else { // send "char already exist"
+                    sendResponse(ActionResultMessage.Fail(1))
+                    Thread.sleep(50)
+                    if (connection.isConnected) connection.disconnect
+                  }
+                case _ => // If the char name didn't exist in the database, create char
+                  self ! CreateCharacter(Some(connection), name, head, voice, gender, empire)
+              }
+            case scala.util.Failure(e) =>
+              sendResponse(ActionResultMessage.Fail(4))
+              self ! ListAccountCharacters(Some(connection))
+          }
+        case scala.util.Failure(e) =>
+          log.error("Failed connecting to database for account lookup " + e.getMessage)
+          sendResponse(ActionResultMessage.Fail(5))
+      }
 
     case msg @ CharacterRequestMessage(charId, action) =>
       log.info("Handling " + msg)
       action match {
         case CharacterRequestAction.Delete =>
-          sendResponse(ActionResultMessage.Fail(1))
+          Database.getConnection.connect.onComplete {
+            case scala.util.Success(connection) =>
+              Database.query(connection.sendPreparedStatement(
+                "UPDATE characters SET deleted = true where id=?", Array(charId)
+              )).onComplete {
+                case scala.util.Success(e) =>
+                  log.info(s"Character id = $charId deleted")
+                  sendResponse(ActionResultMessage.Pass)
+                  self ! ListAccountCharacters(Some(connection))
+                case scala.util.Failure(e) =>
+                  sendResponse(ActionResultMessage.Fail(6))
+                  Thread.sleep(50)
+                  if (connection.isConnected) connection.disconnect
+              }
+            case scala.util.Failure(e) =>
+              log.error("Failed connecting to database for account lookup " + e.getMessage)
+          }
+
         case CharacterRequestAction.Select =>
-          //TODO check if can spawn on last continent/location from player?
-          //TODO if yes, get continent guid accessors
-          //TODO if no, get sanctuary guid accessors and reset the player's expectations
-          cluster ! InterstellarCluster.RequestClientInitialization()
+          import net.psforever.objects.GlobalDefinitions._
+          import net.psforever.types.CertificationType._
+
+          Database.getConnection.connect.onComplete {
+            case scala.util.Success(connection) =>
+              Database.query(connection.sendPreparedStatement(
+                "SELECT id, name, faction_id, gender_id, head_id, voice_id FROM characters where id=?", Array(charId)
+              )).onComplete {
+                case Success(queryResult) =>
+                  queryResult match {
+                    case row: ArrayRowData =>
+                      val lName : String = row(1).asInstanceOf[String]
+                      val lFaction : PlanetSideEmpire.Value = PlanetSideEmpire(row(2).asInstanceOf[Int])
+                      val lGender : CharacterGender.Value = CharacterGender(row(3).asInstanceOf[Int])
+                      val lHead : Int = row(4).asInstanceOf[Int]
+                      val lVoice : CharacterVoice.Value = CharacterVoice(row(5).asInstanceOf[Int])
+                      val avatar : Avatar = new Avatar(charId, lName, lFaction, lGender, lHead, lVoice)
+                      avatar.Certifications += StandardAssault
+                      avatar.Certifications += MediumAssault
+                      avatar.Certifications += StandardExoSuit
+                      avatar.Certifications += AgileExoSuit
+                      avatar.Certifications += ReinforcedExoSuit
+                      avatar.Certifications += ATV
+                      //        avatar.Certifications += Harasser
+                      avatar.Certifications += InfiltrationSuit
+                      avatar.Certifications += UniMAX
+                      avatar.Certifications += Medical
+                      avatar.Certifications += AdvancedMedical
+                      avatar.Certifications += Engineering
+                      avatar.Certifications += CombatEngineering
+                      avatar.Certifications += FortificationEngineering
+                      avatar.Certifications += AssaultEngineering
+                      avatar.Certifications += Hacking
+                      avatar.Certifications += AdvancedHacking
+                      avatar.Certifications += ElectronicsExpert
+
+                      avatar.Certifications += Sniping
+                      avatar.Certifications += AntiVehicular
+                      avatar.Certifications += HeavyAssault
+                      avatar.Certifications += SpecialAssault
+                      avatar.Certifications += EliteAssault
+                      avatar.Certifications += GroundSupport
+                      avatar.Certifications += GroundTransport
+                      avatar.Certifications += Flail
+                      avatar.Certifications += Switchblade
+                      avatar.Certifications += AssaultBuggy
+                      avatar.Certifications += ArmoredAssault1
+                      avatar.Certifications += ArmoredAssault2
+                      avatar.Certifications += AirCavalryScout
+                      avatar.Certifications += AirCavalryAssault
+                      avatar.Certifications += AirCavalryInterceptor
+                      avatar.Certifications += AirSupport
+                      avatar.Certifications += GalaxyGunship
+                      avatar.Certifications += Phantasm
+                      //        player.Certifications += BattleFrameRobotics
+                      //        player.Certifications += BFRAntiInfantry
+                      //        player.Certifications += BFRAntiAircraft
+                      this.avatar = avatar
+                      InitializeDeployableQuantities(avatar) //set deployables ui elements
+                      AwardBattleExperiencePoints(avatar, 20000000L)
+                      avatar.CEP = 600000
+
+                      player = new Player(avatar)
+
+                      (0 until 4).foreach( index => {
+                        if (player.Slot(index).Equipment.isDefined) player.Slot(index).Equipment = None
+                      })
+                      player.Inventory.Clear()
+
+                      Database.getConnection.connect.onComplete {
+                        case scala.util.Success(connection) =>
+                          LoadDataBaseLoadouts(player, Some(connection))
+                        case scala.util.Failure(e) =>
+                          log.info(s"shit : ${e.getMessage}")
+                      }
+                  }
+                case _ =>
+                  log.info("toto tata")
+              }
+              Thread.sleep(200)
+              Database.query(connection.sendPreparedStatement(
+                "UPDATE characters SET last_login = ? where id=?", Array(new java.sql.Timestamp(System.currentTimeMillis), charId)
+              ))
+              Thread.sleep(50)
+
+              var faction : String = "tr"
+              if (player.Faction == PlanetSideEmpire.NC) faction = "nc"
+              else if (player.Faction == PlanetSideEmpire.VS) faction = "vs"
+              whenUsedLastMAXName(2) = faction+"hev_antipersonnel"
+              whenUsedLastMAXName(3) = faction+"hev_antivehicular"
+              whenUsedLastMAXName(1) = faction+"hev_antiaircraft"
+
+              (0 until 4).foreach( index => {
+                if (player.Slot(index).Equipment.isDefined) player.Slot(index).Equipment = None
+              })
+              player.Inventory.Clear()
+              player.ExoSuit = ExoSuitType.Standard
+              player.Slot(0).Equipment = Tool(StandardPistol(player.Faction))
+              player.Slot(2).Equipment = Tool(suppressor)
+              player.Slot(4).Equipment = Tool(StandardMelee(player.Faction))
+              player.Slot(6).Equipment = AmmoBox(bullet_9mm)
+              player.Slot(9).Equipment = AmmoBox(bullet_9mm)
+              player.Slot(12).Equipment = AmmoBox(bullet_9mm)
+              player.Slot(33).Equipment = AmmoBox(bullet_9mm_AP)
+              player.Slot(36).Equipment = AmmoBox(StandardPistolAmmo(player.Faction))
+              player.Slot(39).Equipment = SimpleItem(remote_electronics_kit)
+              player.Inventory.Items.foreach { _.obj.Faction = player.Faction }
+              player.Locker.Inventory += 0 -> SimpleItem(remote_electronics_kit)
+              player.Position = Vector3(4000f ,4000f ,500f)
+              player.Orientation = Vector3(0f, 354.375f, 157.5f)
+              player.FirstLoad = true
+              //          LivePlayerList.Add(sessionId, avatar)
+
+              //TODO check if can spawn on last continent/location from player?
+              //TODO if yes, get continent guid accessors
+              //TODO if no, get sanctuary guid accessors and reset the player's expectations
+              cluster ! InterstellarCluster.RequestClientInitialization()
+
+              if(connection.isConnected) connection.disconnect
+            case scala.util.Failure(e) =>
+              log.error("Failed connecting to database for account lookup " + e.getMessage)
+          }
+
         case default =>
           log.error("Unsupported " + default + " in " + msg)
       }
@@ -3445,7 +3670,7 @@ class WorldSessionActor extends Actor
       continent.VehicleEvents ! Service.Join(avatar.name)
       continent.VehicleEvents ! Service.Join(continentId)
       continent.VehicleEvents ! Service.Join(factionChannel)
-      configZone(continent)
+      if(connectionState != 100) configZone(continent)
       sendResponse(TimeOfDayMessage(1191182336))
       //custom
       sendResponse(ContinentalLockUpdateMessage(13, PlanetSideEmpire.VS)) // "The VS have captured the VS Sanctuary."
@@ -3929,7 +4154,7 @@ class WorldSessionActor extends Actor
       //log.info("SetChatFilters: " + msg)
 
     case msg @ ChatMsg(messagetype, has_wide_contents, recipient, contents, note_contents) =>
-      var makeReply : Boolean = true
+      var makeReply : Boolean = false
       var echoContents : String = contents
       val trimContents = contents.trim
       //TODO messy on/off strings may work
@@ -4022,8 +4247,12 @@ class WorldSessionActor extends Actor
         if(player.isAlive && deadState != DeadState.Release) {
           Suicide(player)
         }
-      }
-      if(messagetype == ChatMessageType.CMT_DESTROY) {
+      } else if(messagetype == ChatMessageType.CMT_CULLWATERMARK) {
+        if(trimContents.contains("40 80")) connectionState = 100
+        else if(trimContents.contains("120 200")) connectionState = 25
+        else connectionState = 50
+      } else if(messagetype == ChatMessageType.CMT_DESTROY) {
+        makeReply = true
         val guid = contents.toInt
         continent.GUID(continent.Map.TerminalToSpawnPad.getOrElse(guid, guid)) match {
           case Some(pad : VehicleSpawnPad) =>
@@ -4033,12 +4262,9 @@ class WorldSessionActor extends Actor
           case _ =>
             self ! PacketCoding.CreateGamePacket(0, RequestDestroyMessage(PlanetSideGUID(guid)))
         }
-      }
-      if(messagetype == ChatMessageType.CMT_VOICE) {
+      } else if(messagetype == ChatMessageType.CMT_VOICE) {
         sendResponse(ChatMsg(ChatMessageType.CMT_VOICE, false, player.Name, contents, None))
-      }
-
-      if(messagetype == ChatMessageType.CMT_QUIT) { // TODO: handle this appropriately
+      } else if(messagetype == ChatMessageType.CMT_QUIT) { // TODO: handle this appropriately
         sendResponse(DropCryptoSession())
         sendResponse(DropSession(sessionId, "user quit"))
       }
@@ -5278,7 +5504,9 @@ class WorldSessionActor extends Actor
             }) match {
               case Some(owner : Player) => //InfantryLoadout
                 avatar.EquipmentLoadouts.SaveLoadout(owner, name, lineno)
+                SaveLoadoutToDB(owner, name, lineno)
                 import InfantryLoadout._
+//                println(player_guid, line, name, DetermineSubtypeB(player.ExoSuit, DetermineSubtype(player)), player.ExoSuit, DetermineSubtype(player))
                 sendResponse(FavoritesMessage(list, player_guid, line, name, DetermineSubtypeB(player.ExoSuit, DetermineSubtype(player))))
               case Some(owner : Vehicle) => //VehicleLoadout
                 avatar.EquipmentLoadouts.SaveLoadout(owner, name, lineno)
@@ -7643,6 +7871,7 @@ class WorldSessionActor extends Actor
       })
 
 //      sendResponse(HackMessage(3, PlanetSideGUID(building.ModelId), PlanetSideGUID(0), 0, 3212836864L, HackState.HackCleared, 8))
+      Thread.sleep(connectionState)
     })
   }
 
@@ -9824,6 +10053,632 @@ class WorldSessionActor extends Actor
     }
   }
 
+  def SaveLoadoutToDB(owner : Player, label : String, line : Int) = {
+    var megaList : String = ""
+    var localType : String = ""
+    var ammoInfo : String = ""
+    (0 until 5).foreach(index => {
+      if(owner.Slot(index).Equipment.isDefined) {
+        owner.Slot(index).Equipment.get match {
+          case test : Tool =>
+            localType = "Tool"
+          case test : AmmoBox =>
+            localType = "AmmoBox"
+          case test : ConstructionItem =>
+            localType = "ConstructionItem"
+          case test : BoomerTrigger =>
+            localType = "BoomerTrigger"
+          case test : SimpleItem =>
+            localType = "SimpleItem"
+          case test : Kit =>
+            localType = "Kit"
+          case _ =>
+            localType = ""
+        }
+        if(localType == "Tool") {
+          owner.Slot(index).Equipment.get.asInstanceOf[Tool].AmmoSlots.indices.foreach(index2 => {
+            if (owner.Slot(index).Equipment.get.asInstanceOf[Tool].AmmoSlots(index2).AmmoTypeIndex != 0) {
+              ammoInfo = ammoInfo+"_"+index2+"-"+owner.Slot(index).Equipment.get.asInstanceOf[Tool].AmmoSlots(index2).AmmoTypeIndex+"-"+owner.Slot(index).Equipment.get.asInstanceOf[Tool].AmmoSlots(index2).AmmoType.id
+            }
+          })
+        }
+        megaList = megaList + "/" + localType + "," + index + "," + owner.Slot(index).Equipment.get.Definition.ObjectId + ","  + ammoInfo
+        ammoInfo = ""
+      }
+    })
+    owner.Inventory.Items.foreach(test => {
+      test.obj match {
+        case test : Tool =>
+          localType = "Tool"
+        case test : AmmoBox =>
+          localType = "AmmoBox"
+        case test : ConstructionItem =>
+          localType = "ConstructionItem"
+        case test : BoomerTrigger =>
+          localType = "BoomerTrigger"
+        case test : SimpleItem =>
+          localType = "SimpleItem"
+        case test : Kit =>
+          localType = "Kit"
+        case _ =>
+          localType = ""
+      }
+      if(localType == "Tool") {
+        owner.Slot(test.start).Equipment.get.asInstanceOf[Tool].AmmoSlots.indices.foreach(index2 => {
+          if (owner.Slot(test.start).Equipment.get.asInstanceOf[Tool].AmmoSlots(index2).AmmoTypeIndex != 0) {
+            ammoInfo = ammoInfo+"_"+index2+"-"+owner.Slot(test.start).Equipment.get.asInstanceOf[Tool].AmmoSlots(index2).AmmoTypeIndex+"-"+owner.Slot(test.start).Equipment.get.asInstanceOf[Tool].AmmoSlots(index2).AmmoType.id
+          }
+        })
+      }
+      megaList = megaList + "/" + localType + "," + test.start + "," + owner.Slot(test.start).Equipment.get.Definition.ObjectId + ","  + ammoInfo
+      ammoInfo = ""
+    })
+
+    Database.getConnection.connect.onComplete {
+      case scala.util.Success(connection) =>
+        Database.query(connection.sendPreparedStatement(
+          "SELECT id, exosuit_id, name, items FROM loadouts where characters_id = ? AND loadout_number = ?", Array(owner.CharId, line)
+        )).onComplete {
+          case scala.util.Success(queryResult) =>
+            queryResult match {
+              case row: ArrayRowData => // Update
+                connection.sendPreparedStatement(
+                  "UPDATE loadouts SET exosuit_id=?, name=?, items=? where id=?", Array(owner.ExoSuit.id, label, megaList.drop(1), row(0))
+                ) // Todo maybe add a .onComplete ?
+                Thread.sleep(50)
+                if (connection.isConnected) connection.disconnect
+              case _ => // Save
+                connection.sendPreparedStatement(
+                  "INSERT INTO loadouts (characters_id, loadout_number, exosuit_id, name, items) VALUES(?,?,?,?,?) RETURNING id",
+                  Array(owner.CharId, line, owner.ExoSuit.id, label, megaList.drop(1))
+                ) // Todo maybe add a .onComplete ?
+                Thread.sleep(50)
+                if (connection.isConnected) connection.disconnect
+            }
+          case scala.util.Failure(e) =>
+            log.error("Failed to execute the query " + e.getMessage)
+        }
+      case scala.util.Failure(e) =>
+        log.error("Failed connecting to database " + e.getMessage)
+    }
+  }
+
+  def LoadDataBaseLoadouts(owner : Player, connection: Option[Connection]) = {
+    connection.get.sendPreparedStatement(
+      "SELECT id, loadout_number, exosuit_id, name, items FROM loadouts where characters_id = ?", Array(owner.CharId)
+    ).onComplete {
+      case Success(queryResult) =>
+        queryResult match {
+          case result: QueryResult =>
+            if (result.rows.nonEmpty) {
+              result.rows foreach{ row  =>
+                row.zipWithIndex.foreach{ case (value,i) =>
+                  val lLoadoutNumber : Int = value(1).asInstanceOf[Int]
+                  val lExosuitId : Int = value(2).asInstanceOf[Int]
+                  val lName : String = value(3).asInstanceOf[String]
+                  val lItems : String = value(4).asInstanceOf[String]
+
+                  owner.ExoSuit = ExoSuitType(lExosuitId)
+
+                  val args = lItems.split("/")
+                  args.indices.foreach(i => {
+                    val args2 = args(i).split(",")
+                    val lType = args2(0)
+                    val lIndex : Int = args2(1).toInt
+                    val lObjectId : Int = args2(2).toInt
+
+                    lType match {
+                      case "Tool" =>
+                        owner.Slot(lIndex).Equipment = Tool(GetToolDefFromObjectID(lObjectId).asInstanceOf[ToolDefinition])
+                      case "AmmoBox" =>
+                        owner.Slot(lIndex).Equipment = AmmoBox(GetToolDefFromObjectID(lObjectId).asInstanceOf[AmmoBoxDefinition])
+                      case "ConstructionItem" =>
+                        owner.Slot(lIndex).Equipment = ConstructionItem(GetToolDefFromObjectID(lObjectId).asInstanceOf[ConstructionItemDefinition])
+                      case "BoomerTrigger" =>
+                        log.error("Found a BoomerTrigger in a loadout ?!")
+                      case "SimpleItem" =>
+                        owner.Slot(lIndex).Equipment = SimpleItem(GetToolDefFromObjectID(lObjectId).asInstanceOf[SimpleItemDefinition])
+                      case "Kit" =>
+                        owner.Slot(lIndex).Equipment = Kit(GetToolDefFromObjectID(lObjectId).asInstanceOf[KitDefinition])
+                      case _ =>
+                        log.error("What's that item in the loadout ?!")
+                    }
+                    if (args2.length == 4) {
+                      val args3 = args2(3).split("_")
+                      (1 until args3.length).foreach(j => {
+                        val args4 = args3(j).split("-")
+                        val lAmmoSlots = args4(0).toInt
+                        val lAmmoTypeIndex = args4(1).toInt
+                        val lAmmoBoxDefinition = args4(2).toInt
+                        owner.Slot(lIndex).Equipment.get.asInstanceOf[Tool].AmmoSlots(lAmmoSlots).AmmoTypeIndex = lAmmoTypeIndex
+                        owner.Slot(lIndex).Equipment.get.asInstanceOf[Tool].AmmoSlots(lAmmoSlots).Box = AmmoBox(AmmoBoxDefinition(lAmmoBoxDefinition))
+                      })
+                    }
+                  })
+                  avatar.EquipmentLoadouts.SaveLoadout(owner, lName, lLoadoutNumber)
+                  (0 until 4).foreach( index => {
+                    if (owner.Slot(index).Equipment.isDefined) owner.Slot(index).Equipment = None
+                  })
+                  owner.Inventory.Clear()
+                }
+                // something to do at end of loading ?
+              }
+            }
+            Thread.sleep(50)
+            if (connection.get.isConnected) connection.get.disconnect
+          case _ =>
+            log.error(s"No saved loadout(s) for character ID : ${owner.CharId}")
+        }
+      case scala.util.Failure(e) =>
+        log.error("Failed connecting to database " + e.getMessage)
+    }
+  }
+
+  def LoadDefaultLoadouts() = {
+    // 1
+    player.ExoSuit = ExoSuitType.Agile
+    player.Slot(0).Equipment = Tool(frag_grenade)
+    player.Slot(1).Equipment = Tool(bank)
+    player.Slot(2).Equipment = Tool(HeavyRifle(player.Faction))
+    player.Slot(4).Equipment = Tool(StandardMelee(player.Faction))
+    player.Slot(6).Equipment = Tool(medicalapplicator)
+    player.Slot(9).Equipment = AmmoBox(HeavyRifleAmmo(player.Faction))
+    player.Slot(12).Equipment = AmmoBox(HeavyRifleAmmo(player.Faction))
+    player.Slot(33).Equipment = Tool(phoenix)
+    player.Slot(60).Equipment = SimpleItem(remote_electronics_kit)
+    player.Slot(72).Equipment = Tool(jammer_grenade)
+    player.Slot(74).Equipment = Kit(medkit)
+    avatar.EquipmentLoadouts.SaveLoadout(player, "Agile HA/Deci", 0)
+    (0 until 4).foreach( index => {
+      if (player.Slot(index).Equipment.isDefined) player.Slot(index).Equipment = None
+    })
+    player.Inventory.Clear()
+
+    // 2
+    player.ExoSuit = ExoSuitType.Agile
+    player.Slot(0).Equipment = Tool(frag_grenade)
+    player.Slot(1).Equipment = Tool(frag_grenade)
+    player.Slot(2).Equipment = Tool(HeavyRifle(player.Faction))
+    player.Slot(4).Equipment = Tool(StandardMelee(player.Faction))
+    player.Slot(6).Equipment = AmmoBox(HeavyRifleAmmo(player.Faction))
+    player.Slot(9).Equipment = AmmoBox(HeavyRifleAmmo(player.Faction))
+    player.Slot(12).Equipment = SimpleItem(remote_electronics_kit)
+    player.Slot(33).Equipment = Tool(medicalapplicator)
+    player.Slot(36).Equipment = Tool(frag_grenade)
+    player.Slot(38).Equipment = Kit(medkit)
+    player.Slot(54).Equipment = Tool(frag_grenade)
+    player.Slot(56).Equipment = Kit(medkit)
+    player.Slot(60).Equipment = Tool(bank)
+    player.Slot(72).Equipment = Tool(jammer_grenade)
+    player.Slot(74).Equipment = Kit(medkit)
+    avatar.EquipmentLoadouts.SaveLoadout(player, "Agile HA", 1)
+    (0 until 4).foreach( index => {
+      if (player.Slot(index).Equipment.isDefined) player.Slot(index).Equipment = None
+    })
+    player.Inventory.Clear()
+
+    // 3
+    player.ExoSuit = ExoSuitType.Reinforced
+    player.Slot(0).Equipment = Tool(medicalapplicator)
+    player.Slot(1).Equipment = SimpleItem(remote_electronics_kit)
+    player.Slot(2).Equipment = Tool(HeavyRifle(player.Faction))
+    player.Slot(3).Equipment = Tool(phoenix)
+    player.Slot(4).Equipment = Tool(StandardMelee(player.Faction))
+    player.Slot(6).Equipment = AmmoBox(HeavyRifleAmmo(player.Faction))
+    player.Slot(9).Equipment = AmmoBox(HeavyRifleAmmo(player.Faction))
+    player.Slot(12).Equipment = Kit(medkit)
+    player.Slot(16).Equipment = Tool(frag_grenade)
+    player.Slot(36).Equipment = Kit(medkit)
+    player.Slot(40).Equipment = Tool(frag_grenade)
+    player.Slot(42).Equipment = AmmoBox(HeavyRifleAmmo(player.Faction))
+    player.Slot(45).Equipment = AmmoBox(HeavyRifleAPAmmo(player.Faction))
+    player.Slot(60).Equipment = Kit(medkit)
+    player.Slot(64).Equipment = Tool(jammer_grenade)
+    player.Slot(78).Equipment = Tool(phoenix)
+    player.Slot(87).Equipment = Tool(bank)
+    avatar.EquipmentLoadouts.SaveLoadout(player, "Rexo HA/Deci", 2)
+    (0 until 4).foreach( index => {
+      if (player.Slot(index).Equipment.isDefined) player.Slot(index).Equipment = None
+    })
+    player.Inventory.Clear()
+
+    // 4
+    player.ExoSuit = ExoSuitType.Reinforced
+    player.Slot(0).Equipment = Tool(medicalapplicator)
+    player.Slot(1).Equipment = SimpleItem(remote_electronics_kit)
+    player.Slot(2).Equipment = Tool(MediumRifle(player.Faction))
+    player.Slot(3).Equipment = Tool(AntiVehicularLauncher(player.Faction))
+    player.Slot(4).Equipment = Tool(StandardMelee(player.Faction))
+    player.Slot(6).Equipment = AmmoBox(MediumRifleAmmo(player.Faction))
+    player.Slot(9).Equipment = AmmoBox(MediumRifleAmmo(player.Faction))
+    player.Slot(12).Equipment = AmmoBox(MediumRifleAmmo(player.Faction))
+    player.Slot(15).Equipment = Tool(bank)
+    player.Slot(42).Equipment = Tool(frag_grenade)
+    player.Slot(44).Equipment = Tool(jammer_grenade)
+    player.Slot(46).Equipment = Kit(medkit)
+    player.Slot(50).Equipment = Kit(medkit)
+    player.Slot(66).Equipment = AmmoBox(AntiVehicularAmmo(player.Faction))
+    player.Slot(70).Equipment = AmmoBox(AntiVehicularAmmo(player.Faction))
+    player.Slot(74).Equipment = AmmoBox(AntiVehicularAmmo(player.Faction))
+    avatar.EquipmentLoadouts.SaveLoadout(player, "Rexo MA/AV", 3)
+    (0 until 4).foreach( index => {
+      if (player.Slot(index).Equipment.isDefined) player.Slot(index).Equipment = None
+    })
+    player.Inventory.Clear()
+
+    // 5
+    player.ExoSuit = ExoSuitType.Reinforced
+    player.Slot(0).Equipment = Tool(medicalapplicator)
+    player.Slot(1).Equipment = SimpleItem(remote_electronics_kit)
+    player.Slot(2).Equipment = Tool(HeavyRifle(player.Faction))
+    player.Slot(3).Equipment = Tool(thumper)
+    player.Slot(4).Equipment = Tool(StandardMelee(player.Faction))
+    player.Slot(6).Equipment = AmmoBox(HeavyRifleAmmo(player.Faction))
+    player.Slot(9).Equipment = AmmoBox(HeavyRifleAmmo(player.Faction))
+    player.Slot(12).Equipment = Kit(medkit)
+    player.Slot(16).Equipment = Tool(frag_grenade)
+    player.Slot(36).Equipment = Kit(medkit)
+    player.Slot(40).Equipment = Tool(frag_grenade)
+    player.Slot(42).Equipment = AmmoBox(HeavyRifleAmmo(player.Faction))
+    player.Slot(45).Equipment = AmmoBox(HeavyRifleAPAmmo(player.Faction))
+    player.Slot(60).Equipment = Kit(medkit)
+    player.Slot(64).Equipment = Tool(jammer_grenade)
+    player.Slot(78).Equipment = Tool(bank)
+    player.Slot(81).Equipment = AmmoBox(frag_cartridge)
+    player.Slot(84).Equipment = AmmoBox(frag_cartridge)
+    player.Slot(87).Equipment = AmmoBox(frag_cartridge)
+    avatar.EquipmentLoadouts.SaveLoadout(player, "Rexo HA/Thumper", 4)
+    (0 until 4).foreach( index => {
+      if (player.Slot(index).Equipment.isDefined) player.Slot(index).Equipment = None
+    })
+    player.Inventory.Clear()
+
+    // 6
+    player.ExoSuit = ExoSuitType.Reinforced
+    player.Slot(0).Equipment = Tool(medicalapplicator)
+    player.Slot(1).Equipment = SimpleItem(remote_electronics_kit)
+    player.Slot(2).Equipment = Tool(HeavyRifle(player.Faction))
+    player.Slot(3).Equipment = Tool(rocklet)
+    player.Slot(4).Equipment = Tool(StandardMelee(player.Faction))
+    player.Slot(6).Equipment = AmmoBox(HeavyRifleAmmo(player.Faction))
+    player.Slot(9).Equipment = AmmoBox(HeavyRifleAmmo(player.Faction))
+    player.Slot(12).Equipment = Kit(medkit)
+    player.Slot(16).Equipment = Tool(frag_grenade)
+    player.Slot(36).Equipment = Kit(medkit)
+    player.Slot(40).Equipment = Tool(frag_grenade)
+    player.Slot(42).Equipment = AmmoBox(HeavyRifleAmmo(player.Faction))
+    player.Slot(45).Equipment = AmmoBox(HeavyRifleAPAmmo(player.Faction))
+    player.Slot(60).Equipment = Kit(medkit)
+    player.Slot(64).Equipment = Tool(jammer_grenade)
+    player.Slot(78).Equipment = Tool(bank)
+    player.Slot(81).Equipment = AmmoBox(rocket)
+    player.Slot(84).Equipment = AmmoBox(rocket)
+    player.Slot(87).Equipment = AmmoBox(frag_cartridge)
+    avatar.EquipmentLoadouts.SaveLoadout(player, "Rexo HA/Rocklet", 5)
+    (0 until 4).foreach( index => {
+      if (player.Slot(index).Equipment.isDefined) player.Slot(index).Equipment = None
+    })
+    player.Inventory.Clear()
+
+    // 7
+    player.ExoSuit = ExoSuitType.Reinforced
+    player.Slot(0).Equipment = Tool(medicalapplicator)
+    player.Slot(1).Equipment = SimpleItem(remote_electronics_kit)
+    player.Slot(2).Equipment = Tool(MediumRifle(player.Faction))
+    player.Slot(3).Equipment = Tool(bolt_driver)
+    player.Slot(4).Equipment = Tool(StandardMelee(player.Faction))
+    player.Slot(6).Equipment = AmmoBox(MediumRifleAmmo(player.Faction))
+    player.Slot(9).Equipment = AmmoBox(MediumRifleAmmo(player.Faction))
+    player.Slot(12).Equipment = Kit(medkit)
+    player.Slot(16).Equipment = Tool(frag_grenade)
+    player.Slot(36).Equipment = Kit(medkit)
+    player.Slot(40).Equipment = Tool(frag_grenade)
+    player.Slot(42).Equipment = AmmoBox(MediumRifleAmmo(player.Faction))
+    player.Slot(45).Equipment = AmmoBox(MediumRifleAPAmmo(player.Faction))
+    player.Slot(60).Equipment = Kit(medkit)
+    player.Slot(64).Equipment = Tool(jammer_grenade)
+    player.Slot(78).Equipment = Tool(bank)
+    player.Slot(81).Equipment = AmmoBox(bolt)
+    player.Slot(84).Equipment = AmmoBox(bolt)
+    player.Slot(87).Equipment = AmmoBox(bolt)
+    avatar.EquipmentLoadouts.SaveLoadout(player, "Rexo MA/Sniper", 6)
+    (0 until 4).foreach( index => {
+      if (player.Slot(index).Equipment.isDefined) player.Slot(index).Equipment = None
+    })
+    player.Inventory.Clear()
+
+    // 8
+    player.ExoSuit = ExoSuitType.Reinforced
+    player.Slot(0).Equipment = Tool(medicalapplicator)
+    player.Slot(1).Equipment = SimpleItem(remote_electronics_kit)
+    player.Slot(2).Equipment = Tool(flechette)
+    player.Slot(3).Equipment = Tool(phoenix)
+    player.Slot(4).Equipment = Tool(StandardMelee(player.Faction))
+    player.Slot(6).Equipment = AmmoBox(shotgun_shell)
+    player.Slot(9).Equipment = AmmoBox(shotgun_shell)
+    player.Slot(12).Equipment = Kit(medkit)
+    player.Slot(16).Equipment = Tool(frag_grenade)
+    player.Slot(36).Equipment = Kit(medkit)
+    player.Slot(40).Equipment = Tool(frag_grenade)
+    player.Slot(42).Equipment = AmmoBox(shotgun_shell)
+    player.Slot(45).Equipment = AmmoBox(shotgun_shell_AP)
+    player.Slot(60).Equipment = Kit(medkit)
+    player.Slot(64).Equipment = Tool(jammer_grenade)
+    player.Slot(78).Equipment = Tool(phoenix)
+    player.Slot(87).Equipment = Tool(bank)
+    avatar.EquipmentLoadouts.SaveLoadout(player, "Rexo Sweeper/Deci", 7)
+    (0 until 4).foreach( index => {
+      if (player.Slot(index).Equipment.isDefined) player.Slot(index).Equipment = None
+    })
+    player.Inventory.Clear()
+
+    // 9
+    player.ExoSuit = ExoSuitType.MAX
+    player.Slot(0).Equipment = Tool(AI_MAX(player.Faction))
+    player.Slot(6).Equipment = AmmoBox(AI_MAXAmmo(player.Faction))
+    player.Slot(10).Equipment = AmmoBox(AI_MAXAmmo(player.Faction))
+    player.Slot(14).Equipment = AmmoBox(AI_MAXAmmo(player.Faction))
+    player.Slot(18).Equipment = AmmoBox(AI_MAXAmmo(player.Faction))
+    player.Slot(70).Equipment = AmmoBox(AI_MAXAmmo(player.Faction))
+    player.Slot(74).Equipment = AmmoBox(AI_MAXAmmo(player.Faction))
+    player.Slot(78).Equipment = Kit(medkit)
+    player.Slot(98).Equipment = AmmoBox(health_canister)
+    player.Slot(100).Equipment = AmmoBox(armor_canister)
+    player.Slot(110).Equipment = Kit(medkit)
+    player.Slot(134).Equipment = Kit(medkit)
+    player.Slot(138).Equipment = Kit(medkit)
+    player.Slot(142).Equipment = Kit(medkit)
+    player.Slot(146).Equipment = Kit(medkit)
+    player.Slot(166).Equipment = Kit(medkit)
+    player.Slot(170).Equipment = Kit(medkit)
+    player.Slot(174).Equipment = Kit(medkit)
+    player.Slot(178).Equipment = Kit(medkit)
+    avatar.EquipmentLoadouts.SaveLoadout(player, "AI MAX", 8)
+    (0 until 4).foreach( index => {
+      if (player.Slot(index).Equipment.isDefined) player.Slot(index).Equipment = None
+    })
+    player.Inventory.Clear()
+
+    // 10
+    player.ExoSuit = ExoSuitType.MAX
+    player.Slot(0).Equipment = Tool(AV_MAX(player.Faction))
+    player.Slot(6).Equipment = AmmoBox(AV_MAXAmmo(player.Faction))
+    player.Slot(10).Equipment = AmmoBox(AV_MAXAmmo(player.Faction))
+    player.Slot(14).Equipment = AmmoBox(AV_MAXAmmo(player.Faction))
+    player.Slot(18).Equipment = AmmoBox(AV_MAXAmmo(player.Faction))
+    player.Slot(70).Equipment = AmmoBox(AV_MAXAmmo(player.Faction))
+    player.Slot(74).Equipment = AmmoBox(AV_MAXAmmo(player.Faction))
+    player.Slot(78).Equipment = Kit(medkit)
+    player.Slot(98).Equipment = AmmoBox(health_canister)
+    player.Slot(100).Equipment = AmmoBox(armor_canister)
+    player.Slot(110).Equipment = Kit(medkit)
+    player.Slot(134).Equipment = Kit(medkit)
+    player.Slot(138).Equipment = Kit(medkit)
+    player.Slot(142).Equipment = Kit(medkit)
+    player.Slot(146).Equipment = Kit(medkit)
+    player.Slot(166).Equipment = Kit(medkit)
+    player.Slot(170).Equipment = Kit(medkit)
+    player.Slot(174).Equipment = Kit(medkit)
+    player.Slot(178).Equipment = Kit(medkit)
+    avatar.EquipmentLoadouts.SaveLoadout(player, "AV MAX", 9)
+    (0 until 4).foreach( index => {
+      if (player.Slot(index).Equipment.isDefined) player.Slot(index).Equipment = None
+    })
+    player.Inventory.Clear()
+  }
+
+  def GetToolDefFromObjectID(objectID : Int) : Any = {
+    objectID match {
+      //ammunition
+      case 0 => bullet_105mm
+      case 3 => bullet_12mm
+      case 6 => bullet_150mm
+      case 9 => bullet_15mm
+      case 16 => bullet_20mm
+      case 19 => bullet_25mm
+      case 21 => bullet_35mm
+      case 25 => bullet_75mm
+      case 28 => bullet_9mm
+      case 29 => bullet_9mm_AP
+      case 50 => ancient_ammo_combo
+      case 51 => ancient_ammo_vehicle
+      case 54 => anniversary_ammo
+      case 86 => aphelion_immolation_cannon_ammo
+      case 89 => aphelion_laser_ammo
+      case 97 => aphelion_plasma_rocket_ammo
+      case 101 => aphelion_ppa_ammo
+      case 106 => aphelion_starfire_ammo
+      case 111 => armor_canister
+      case 145 => bolt
+      case 154 => burster_ammo
+      case 180 => colossus_100mm_cannon_ammo
+      case 186 => colossus_burster_ammo
+      case 191 => colossus_chaingun_ammo
+      case 195 => colossus_cluster_bomb_ammo
+      case 205 => colossus_tank_cannon_ammo
+      case 209 => comet_ammo
+      case 265 => dualcycler_ammo
+      case 272 => energy_cell
+      case 275 => energy_gun_ammo
+      case 285 => falcon_ammo
+      case 287 => firebird_missile
+      case 300 => flamethrower_ammo
+      case 307 => flux_cannon_thresher_battery
+      case 310 => fluxpod_ammo
+      case 327 => frag_cartridge
+      case 331 => frag_grenade_ammo
+      case 347 => gauss_cannon_ammo
+      case 389 => health_canister
+      case 391 => heavy_grenade_mortar
+      case 393 => heavy_rail_beam_battery
+      case 399 => hellfire_ammo
+      case 403 => hunter_seeker_missile
+      case 413 => jammer_cartridge
+      case 417 => jammer_grenade_ammo
+      case 426 => lancer_cartridge
+      case 434 => liberator_bomb
+      case 463 => maelstrom_ammo
+      case 540 => melee_ammo
+      case 600 => oicw_ammo
+      case 630 => pellet_gun_ammo
+      case 637 => peregrine_dual_machine_gun_ammo
+      case 645 => peregrine_mechhammer_ammo
+      case 653 => peregrine_particle_cannon_ammo
+      case 656 => peregrine_rocket_pod_ammo
+      case 659 => peregrine_sparrow_ammo
+      case 664 => phalanx_ammo
+      case 674 => phoenix_missile
+      case 677 => plasma_cartridge
+      case 681 => plasma_grenade_ammo
+      case 693 => pounder_ammo
+      case 704 => pulse_battery
+      case 712 => quasar_ammo
+      case 722 => reaver_rocket
+      case 734 => rocket
+      case 745 => scattercannon_ammo
+      case 755 => shotgun_shell
+      case 756 => shotgun_shell_AP
+      case 762 => six_shooter_ammo
+      case 786 => skyguard_flak_cannon_ammo
+      case 791 => sparrow_ammo
+      case 820 => spitfire_aa_ammo
+      case 823 => spitfire_ammo
+      case 830 => starfire_ammo
+      case 839 => striker_missile_ammo
+      case 877 => trek_ammo
+      case 922 => upgrade_canister
+      case 998 => wasp_gun_ammo
+      case 1000 => wasp_rocket_ammo
+      case 1004 => winchester_ammo
+      //weapons
+      case 14 => cannon_dropship_20mm
+      case 40 => advanced_missile_launcher_t
+      case 55 => anniversary_gun
+      case 56 => anniversary_guna
+      case 57 => anniversary_gunb
+      case 63 => apc_ballgun_l
+      case 64 => apc_ballgun_r
+      case 69 => apc_weapon_systema
+      case 70 => apc_weapon_systemb
+      case 72 => apc_weapon_systemc_nc
+      case 73 => apc_weapon_systemc_tr
+      case 74 => apc_weapon_systemc_vs
+      case 76 => apc_weapon_systemd_nc
+      case 77 => apc_weapon_systemd_tr
+      case 78 => apc_weapon_systemd_vs
+      case 119 => aurora_weapon_systema
+      case 120 => aurora_weapon_systemb
+      case 136 => battlewagon_weapon_systema
+      case 137 => battlewagon_weapon_systemb
+      case 138 => battlewagon_weapon_systemc
+      case 139 => battlewagon_weapon_systemd
+      case 140 => beamer
+      case 146 => bolt_driver
+      case 175 => chainblade
+      case 177 => chaingun_p
+      case 233 => cycler
+      case 262 => dropship_rear_turret
+      case 274 => energy_gun
+      case 276 => energy_gun_nc
+      case 278 => energy_gun_tr
+      case 280 => energy_gun_vs
+      case 298 => flail_weapon
+      case 299 => flamethrower
+      case 304 => flechette
+      case 306 => flux_cannon_thresher
+      case 324 => forceblade
+      case 336 => fury_weapon_systema
+      case 339 => galaxy_gunship_cannon
+      case 340 => galaxy_gunship_gun
+      case 342 => galaxy_gunship_tailgun
+      case 345 => gauss
+      case 371 => grenade_launcher_marauder
+      case 394 => heavy_rail_beam_magrider
+      case 396 => heavy_sniper
+      case 406 => hunterseeker
+      case 407 => ilc9
+      case 411 => isp
+      case 421 => katana
+      case 425 => lancer
+      case 429 => lasher
+      case 433 => liberator_25mm_cannon
+      case 435 => liberator_bomb_bay
+      case 440 => liberator_weapon_system
+      case 445 => lightgunship_weapon_system
+      case 448 => lightning_weapon_system
+      case 462 => maelstrom
+      case 468 => magcutter
+      case 534 => mediumtransport_weapon_systemA
+      case 535 => mediumtransport_weapon_systemB
+      case 556 => mini_chaingun
+      case 587 => nchev_falcon
+      case 588 => nchev_scattercannon
+      case 589 => nchev_sparrow
+      case 599 => oicw
+      case 628 => particle_beam_magrider
+      case 629 => pellet_gun
+      case 666 => phalanx_avcombo
+      case 668 => phalanx_flakcombo
+      case 670 => phalanx_sgl_hevgatcan
+      case 673 => phoenix
+      case 699 => prowler_weapon_systemA
+      case 700 => prowler_weapon_systemB
+      case 701 => pulsar
+      case 706 => punisher
+      case 709 => quadassault_weapon_system
+      case 714 => r_shotgun
+      case 716 => radiator
+      case 730 => repeater
+      case 737 => rocklet
+      case 740 => rotarychaingun_mosquito
+      case 747 => scythe
+      case 761 => six_shooter
+      case 788 => skyguard_weapon_system
+      case 817 => spiker
+      case 822 => spitfire_aa_weapon
+      case 827 => spitfire_weapon
+      case 838 => striker
+      case 845 => suppressor
+      case 864 => thumper
+      case 866 => thunderer_weapon_systema
+      case 867 => thunderer_weapon_systemb
+      case 888 => trhev_burster
+      case 889 => trhev_dualcycler
+      case 890 => trhev_pounder
+      case 927 => vanguard_weapon_system
+      case 968 => vshev_comet
+      case 969 => vshev_quasar
+      case 970 => vshev_starfire
+      case 987 => vulture_bomb_bay
+      case 990 => vulture_nose_weapon_system
+      case 992 => vulture_tail_cannon
+      case 1002 => wasp_weapon_system
+      case 1003 => winchester
+      case 267 => dynomite
+      case 330 => frag_grenade
+      case 416 => jammer_grenade
+      case 680 => plasma_grenade
+      //medkits
+      case 536 => medkit
+      case 842 => super_armorkit
+      case 843 => super_medkit
+      case 844 => super_staminakit
+      //tools
+      case 728 => remote_electronics_kit
+      case 876 => trek
+      case 531 => medicalapplicator
+      case 132 => bank
+      case 577 => nano_dispenser
+      case 213 => command_detonater
+      case 297 => flail_targeting_laser
+      //deployables
+      case 32 => ace
+      case 39 => advanced_ace
+      case 148 => boomer
+      case 149 => boomer_trigger
+      case _ => frag_grenade
+    }
+  }
   /**
     * Make this client display the deployment map, and all its available destination spawn points.
     * @see `AvatarDeadStateMessage`
@@ -10309,7 +11164,8 @@ object WorldSessionActor {
   private final case class NewPlayerLoaded(tplayer : Player)
   private final case class PlayerLoaded(tplayer : Player)
   private final case class PlayerFailedToLoad(tplayer : Player)
-  private final case class ListAccountCharacters()
+  private final case class CreateCharacter(connection: Option[Connection], name : String, head : Int, voice : CharacterVoice.Value, gender : CharacterGender.Value, empire : PlanetSideEmpire.Value)
+  private final case class ListAccountCharacters(connection: Option[Connection])
   private final case class SetCurrentAvatar(tplayer : Player)
   private final case class VehicleLoaded(vehicle : Vehicle)
   private final case class UnregisterCorpseOnVehicleDisembark(corpse : Player)
