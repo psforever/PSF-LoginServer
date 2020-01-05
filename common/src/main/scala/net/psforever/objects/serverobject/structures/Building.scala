@@ -15,6 +15,8 @@ import net.psforever.objects.zones.Zone
 import net.psforever.packet.game._
 import net.psforever.types.{PlanetSideEmpire, Vector3}
 import scalax.collection.{Graph, GraphEdge}
+import services.Service
+import services.local.{LocalAction, LocalServiceMessage}
 
 class Building(private val name: String,
                private val building_guid : Int,
@@ -28,6 +30,8 @@ class Building(private val name: String,
   */
   private var faction : PlanetSideEmpire.Value = PlanetSideEmpire.NEUTRAL
   private var playersInSOI : List[Player] = List.empty
+  private val capitols = List("Thoth", "Voltan", "Neit", "Anguta", "Eisa", "Verica")
+  private var forceDomeActive : Boolean = false
   super.Zone_=(zone)
 
   GUID = PlanetSideGUID(building_guid)
@@ -38,10 +42,31 @@ class Building(private val name: String,
 
   def MapId : Int = map_id
 
+  def IsCapitol : Boolean = capitols.contains(name)
+  def IsSubCapitol : Boolean =  {
+    Neighbours match {
+      case Some(buildings: Set[Building]) => !buildings.filter(x => capitols.contains(x.name)).isEmpty
+      case None => false
+    }
+  }
+  def ForceDomeActive : Boolean = forceDomeActive
+  def ForceDomeActive_=(activated : Boolean) : Boolean = {
+    forceDomeActive = activated
+    forceDomeActive
+  }
+
   def Faction : PlanetSideEmpire.Value = faction
 
   override def Faction_=(fac : PlanetSideEmpire.Value) : PlanetSideEmpire.Value = {
     faction = fac
+    if(IsSubCapitol) {
+      Neighbours match {
+        case Some(buildings: Set[Building]) => buildings.filter(x => x.IsCapitol).head.UpdateForceDomeStatus()
+        case None => ;
+      }
+    } else if (IsCapitol) {
+      UpdateForceDomeStatus()
+    }
     TriggerZoneMapUpdate()
     Faction
   }
@@ -93,6 +118,34 @@ class Building(private val name: String,
 
   def TriggerZoneMapUpdate(): Unit = {
     if(Actor != ActorRef.noSender) Actor ! Building.TriggerZoneMapUpdate(Zone.Number)
+  }
+
+  def UpdateForceDomeStatus() : Unit = {
+    if(IsCapitol) {
+      val originalStatus = ForceDomeActive
+
+      if(Faction == PlanetSideEmpire.NEUTRAL) {
+        ForceDomeActive = false
+      } else {
+        val ownedSubCapitols = Neighbours(Faction) match {
+          case Some(buildings: Set[Building]) => buildings.size
+          case None => 0
+        }
+
+        if(ForceDomeActive && ownedSubCapitols <= 1) {
+          ForceDomeActive = false
+        } else if(!ForceDomeActive && ownedSubCapitols > 1) {
+          ForceDomeActive = true
+        }
+      }
+
+      if(originalStatus != ForceDomeActive) {
+        if(Actor != ActorRef.noSender) {
+          Zone.LocalEvents ! LocalServiceMessage(Zone.Id, LocalAction.UpdateForceDomeStatus(Service.defaultPlayerGUID, GUID, ForceDomeActive))
+          Actor ! Building.SendMapUpdate(all_clients = true)
+        }
+      }
+    }
   }
 
   // Get all lattice neighbours matching the specified faction
@@ -192,7 +245,7 @@ class Building(private val name: String,
       None,
       generatorState,
       spawnTubesNormal,
-      false, //force_dome_active
+      ForceDomeActive,
       latticeBenefit,
       0, //cavern_benefit; !! Field > 0 will cause malformed packet. See class def.
       Nil,

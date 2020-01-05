@@ -35,4 +35,5 @@ object LocalResponse {
   final case class ToggleTeleportSystem(router : Vehicle, systemPlan : Option[(Utility.InternalTelepad, TelepadDeployable)]) extends Response
   final case class TriggerEffect(target: PlanetSideGUID, effect: String, effectInfo: Option[TriggeredEffect] = None, triggeredLocation: Option[TriggeredEffectLocation] = None) extends Response
   final case class TriggerSound(sound : TriggeredSound.Value, pos : Vector3, unk : Int, volume : Float) extends Response
+  final case class UpdateForceDomeStatus(building_guid : PlanetSideGUID, activated : Boolean) extends Response
 }
