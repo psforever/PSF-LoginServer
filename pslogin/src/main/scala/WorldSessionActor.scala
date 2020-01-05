@@ -3357,7 +3357,6 @@ class WorldSessionActor extends Actor
       player.Slot(39).Equipment = SimpleItem(remote_electronics_kit)
       player.Locker.Inventory += 0 -> SimpleItem(remote_electronics_kit)
       player.Inventory.Items.foreach { _.obj.Faction = faction }
-      player.Actor = self
       //TODO end temp player character auto-loading
       self ! ListAccountCharacters
       import scala.concurrent.ExecutionContext.Implicits.global
