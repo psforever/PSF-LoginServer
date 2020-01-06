@@ -1,13 +1,14 @@
 PlanetSide Forever (PSForever) would not have been possible without the passion and many hours of hard work of our contributors.
 If you feel you are missing from this list, please open a Pull Request!
 
-Code Contributors (most active first, then anyone who has commits)
+Code Contributors
 ===================
 * FateJH & Chord
 * SouNourS
 * tfarley
 * aphedox
 * L-11
+* xTriad (initial database schema)
 
 Packet Capturing 2015-2016 (in order of most packets captured)
 =================
