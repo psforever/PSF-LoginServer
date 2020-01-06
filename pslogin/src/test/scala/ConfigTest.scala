@@ -6,6 +6,8 @@ import net.psforever.config._
 import scala.concurrent.duration._
 
 class ConfigTest extends Specification {
+  sequential
+
   val testConfig = getClass.getResource("/testconfig.ini").getPath
 
   "WorldConfig" should {
@@ -44,6 +46,7 @@ class ConfigTest extends Specification {
       TestConfig.Get[Float]("default.float") mustEqual 0.1f
       TestConfig.Get[Boolean]("default.bool_true") mustEqual true
       TestConfig.Get[Boolean]("default.bool_false") mustEqual false
+      TestConfig.Get[TestEnum.Value]("default.enum_dog") mustEqual TestEnum.Dog
       TestConfig.Get[Int]("default.missing") mustEqual 1337
     }
 
@@ -70,7 +73,8 @@ class ConfigTest extends Specification {
         ValidationError("bad.bad_float: value format error (expected: Float)"),
         ValidationError("bad.bad_bool: value format error (expected: Bool)"),
         ValidationError("bad.bad_int_range: error.min", 0),
-        ValidationError("bad.bad_int_range2: error.max", 2)
+        ValidationError("bad.bad_int_range2: error.max", 2),
+        ValidationError("bad.bad_enum: value format error (expected: Animal, Dog, Cat)")
       )
 
       error.errors mustEqual check_errors
@@ -78,9 +82,11 @@ class ConfigTest extends Specification {
   }
 }
 
-object TestConfig extends ConfigParser {
-  protected var config_map : Map[String, Any] = Map()
+object TestEnum extends Enumeration {
+  val Animal, Dog, Cat = Value
+}
 
+object TestConfig extends ConfigParser {
   protected val config_template = Seq(
     ConfigSection("default",
       ConfigEntryString("string", ""),
@@ -91,14 +97,13 @@ object TestConfig extends ConfigParser {
       ConfigEntryFloat("float", 0.0f),
       ConfigEntryBool("bool_true", false),
       ConfigEntryBool("bool_false", true),
-      ConfigEntryInt("missing", 1337)
+      ConfigEntryInt("missing", 1337),
+      ConfigEntryEnum[TestEnum.type]("enum_dog", TestEnum.Dog)
     )
   )
 }
 
 object TestBadConfig extends ConfigParser {
-  protected var config_map : Map[String, Any] = Map()
-
   protected val config_template = Seq(
     ConfigSection("bad",
       ConfigEntryInt("bad_int", 0),
@@ -106,7 +111,8 @@ object TestBadConfig extends ConfigParser {
       ConfigEntryFloat("bad_float", 0.0f),
       ConfigEntryBool("bad_bool", false),
       ConfigEntryInt("bad_int_range", 0, Constraints.min(0)),
-      ConfigEntryInt("bad_int_range2", 0, Constraints.min(0), Constraints.max(2))
+      ConfigEntryInt("bad_int_range2", 0, Constraints.min(0), Constraints.max(2)),
+      ConfigEntryEnum[TestEnum.type]("bad_enum", TestEnum.Animal)
     )
   )
 }

@@ -5,7 +5,6 @@ import scala.concurrent.duration._
 import net.psforever.packet.game._
 
 object WorldConfig extends ConfigParser {
-  protected var config_map : Map[String, Any] = Map()
   // hostname, but allow for empty string
   protected val hostname_pattern = Constraints.pattern(raw"^((([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9]))|()$$".r, "hostname")
 
