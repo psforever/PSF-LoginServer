@@ -25,7 +25,7 @@ class NumberSourceTest extends Specification {
       result.isDefined mustEqual true
       result.get.GUID mustEqual 5
       result.get.Policy mustEqual AvailabilityPolicy.Leased
-      result.get.Object mustEqual None
+      result.get.Object.isEmpty mustEqual true
       obj.Size mustEqual 26
       obj.CountAvailable mustEqual 25
       obj.CountUsed mustEqual 1
@@ -46,7 +46,7 @@ class NumberSourceTest extends Specification {
       result.get.GUID mustEqual 5
       obj.CountUsed mustEqual 1
       val ret = obj.Return(result.get)
-      ret mustEqual None
+      ret.isEmpty mustEqual true
       obj.CountUsed mustEqual 0
     }
 
@@ -59,7 +59,7 @@ class NumberSourceTest extends Specification {
       result.get.Object = test
       obj.CountUsed mustEqual 1
       val ret = obj.Return(result.get)
-      ret mustEqual Some(test)
+      ret.contains(test) mustEqual true
       obj.CountUsed mustEqual 0
     }
 
@@ -69,7 +69,7 @@ class NumberSourceTest extends Specification {
       result.isDefined mustEqual true
       result.get.GUID mustEqual 5
       result.get.Policy mustEqual AvailabilityPolicy.Restricted
-      result.get.Object mustEqual None
+      result.get.Object.isEmpty mustEqual true
     }
 
     "restrict a number (assigned + multiple assignments)" in {
@@ -79,13 +79,13 @@ class NumberSourceTest extends Specification {
       val result : Option[LoanedKey] = obj.Restrict(5)
       result.get.GUID mustEqual 5
       result.get.Policy mustEqual AvailabilityPolicy.Restricted
-      result.get.Object mustEqual None
+      result.get.Object.isEmpty mustEqual true
       result.get.Object = None //assignment 1
-      result.get.Object mustEqual None //still unassigned
+      result.get.Object.isEmpty mustEqual true //still unassigned
       result.get.Object = test1 //assignment 2
-      result.get.Object mustEqual Some(test1)
+      result.get.Object.contains(test1) mustEqual true
       result.get.Object = test2 //assignment 3
-      result.get.Object mustEqual Some(test1) //same as above
+      result.get.Object.contains(test1) mustEqual true //same as above
     }
 
     "return a restricted number (correctly fail)" in {
@@ -100,7 +100,7 @@ class NumberSourceTest extends Specification {
       val result2 : Option[SecureKey] = obj.Get(5)
       result2.get.GUID mustEqual 5
       result2.get.Policy mustEqual AvailabilityPolicy.Restricted
-      result2.get.Object mustEqual Some(test)
+      result2.get.Object.contains(test) mustEqual true
     }
 
     "return a secure key" in {
@@ -111,7 +111,7 @@ class NumberSourceTest extends Specification {
       test.GUID = PlanetSideGUID(5)
       val result2 : Option[SecureKey] = obj.Get(5)
 
-      obj.Return(result2.get) mustEqual Some(test)
+      obj.Return(result2.get).contains(test) mustEqual true
     }
 
     "restrict a previously-assigned number" in {
@@ -124,7 +124,7 @@ class NumberSourceTest extends Specification {
       val result2 : Option[LoanedKey] = obj.Restrict(5)
       result2.isDefined mustEqual true
       result2.get.Policy mustEqual AvailabilityPolicy.Restricted
-      result2.get.Object mustEqual Some(test)
+      result2.get.Object.contains(test) mustEqual true
     }
 
     "check a number (not previously gotten)" in {
@@ -132,7 +132,7 @@ class NumberSourceTest extends Specification {
       val result2 : Option[SecureKey] = obj.Get(5)
       result2.get.GUID mustEqual 5
       result2.get.Policy mustEqual AvailabilityPolicy.Available
-      result2.get.Object mustEqual None
+      result2.get.Object.isEmpty mustEqual true
     }
 
     "check a number (previously gotten)" in {
@@ -141,11 +141,11 @@ class NumberSourceTest extends Specification {
       result.isDefined mustEqual true
       result.get.GUID mustEqual 5
       result.get.Policy mustEqual AvailabilityPolicy.Leased
-      result.get.Object mustEqual None
+      result.get.Object.isEmpty mustEqual true
       val result2 : Option[SecureKey] = obj.Get(5)
       result2.get.GUID mustEqual 5
       result2.get.Policy mustEqual AvailabilityPolicy.Leased
-      result2.get.Object mustEqual None
+      result2.get.Object.isEmpty mustEqual true
     }
 
     "check a number (assigned)" in {
@@ -170,10 +170,10 @@ class NumberSourceTest extends Specification {
       val result2 : Option[SecureKey] = obj.Get(5)
       result2.get.Policy mustEqual AvailabilityPolicy.Leased
       result2.get.Object.get mustEqual test
-      obj.Return(5) mustEqual Some(test)
+      obj.Return(5).contains(test) mustEqual true
       val result3 : Option[SecureKey] = obj.Get(5)
       result3.get.Policy mustEqual AvailabilityPolicy.Available
-      result3.get.Object mustEqual None
+      result3.get.Object.isEmpty mustEqual true
     }
 
     "clear" in {

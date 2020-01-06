@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package objects.number
 
-import akka.actor.{ActorSystem, Props}
+import akka.actor.Props
 import base.ActorTest
 import net.psforever.objects.guid.actor.NumberPoolActor
 import net.psforever.objects.guid.pool.ExclusivePool

@@ -106,14 +106,16 @@ class EntityTest extends Specification {
       ok
     }
 
-    "error while unset" in {
+    "error while not set" in {
       val obj : EntityTestClass = new EntityTestClass
+      obj.HasGUID mustEqual false
       obj.GUID must throwA[NoGUIDException]
     }
 
     "work after mutation" in {
       val obj : EntityTestClass = new EntityTestClass
       obj.GUID = PlanetSideGUID(1051)
+      obj.HasGUID mustEqual true
       obj.GUID mustEqual PlanetSideGUID(1051)
     }
 
@@ -127,12 +129,43 @@ class EntityTest extends Specification {
       obj.GUID mustEqual PlanetSideGUID(62)
     }
 
-    "invalidate and resume error" in {
+    "invalidate and report as not having a GUID, but continue to work" in {
       val obj : EntityTestClass = new EntityTestClass
       obj.GUID = PlanetSideGUID(1051)
+      obj.HasGUID mustEqual true
       obj.GUID mustEqual PlanetSideGUID(1051)
       obj.Invalidate()
-      obj.GUID must throwA[NoGUIDException]
+      obj.HasGUID mustEqual false
+      obj.GUID mustEqual PlanetSideGUID(1051)
+    }
+
+    "assign a new GUID after invalidation and continue to work" in {
+      val obj : EntityTestClass = new EntityTestClass
+      obj.GUID = PlanetSideGUID(1051)
+      obj.HasGUID mustEqual true
+      obj.GUID mustEqual PlanetSideGUID(1051)
+      obj.Invalidate()
+      obj.GUID mustEqual PlanetSideGUID(1051)
+      obj.HasGUID mustEqual false
+
+      obj.GUID = PlanetSideGUID(1052)
+      obj.HasGUID mustEqual true
+      obj.GUID mustEqual PlanetSideGUID(1052)
+    }
+
+    "assignthe same GUID after invalidation and continue to work" in {
+      val obj : EntityTestClass = new EntityTestClass
+      val guid = new PlanetSideGUID(1051)
+      obj.GUID = guid
+      obj.HasGUID mustEqual true
+      obj.GUID mustEqual guid
+      obj.Invalidate()
+      obj.GUID mustEqual guid
+      obj.HasGUID mustEqual false
+
+      obj.GUID = guid
+      obj.HasGUID mustEqual true
+      obj.GUID mustEqual guid
     }
   }
 }
