@@ -5,8 +5,7 @@ import net.psforever.objects.ce.Deployable
 import net.psforever.objects.guid.{GUIDTask, TaskResolver}
 import net.psforever.objects.zones.Zone
 import net.psforever.objects.{BoomerDeployable, PlanetSideGameObject, TurretDeployable}
-import net.psforever.packet.game.PlanetSideGUID
-import net.psforever.types.Vector3
+import net.psforever.types.{PlanetSideGUID, Vector3}
 import services.RemoverActor
 
 import scala.concurrent.duration._

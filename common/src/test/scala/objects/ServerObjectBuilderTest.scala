@@ -5,12 +5,11 @@ import akka.actor.{Actor, ActorContext, Props}
 import base.ActorTest
 import net.psforever.objects.GlobalDefinitions
 import net.psforever.objects.guid.NumberPoolHub
-import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.objects.serverobject.ServerObjectBuilder
 import net.psforever.objects.serverobject.structures.{Building, FoundationBuilder, StructureType, WarpGate}
 import net.psforever.objects.serverobject.terminals.ProximityTerminal
 import net.psforever.objects.zones.Zone
-import net.psforever.types.Vector3
+import net.psforever.types.{PlanetSideGUID, Vector3}
 
 import scala.concurrent.duration.Duration
 

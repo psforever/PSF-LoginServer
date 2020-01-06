@@ -11,7 +11,7 @@ import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.PlanetSideGUID
+import net.psforever.types.PlanetSideGUID
 import services.avatar.{AvatarAction, AvatarServiceMessage}
 import services.Service
 import services.vehicle.{VehicleAction, VehicleServiceMessage}

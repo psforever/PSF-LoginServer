@@ -2,7 +2,7 @@
 package net.psforever.packet.game
 
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
-import net.psforever.types.{Angular, Vector3}
+import net.psforever.types.{Angular, PlanetSideGUID, Vector3}
 import scodec.Codec
 import scodec.codecs._
 import shapeless.{::, HNil}

@@ -3,9 +3,10 @@ package net.psforever.packet.game
 
 import net.psforever.newcodecs.newcodecs
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
+import net.psforever.types.PlanetSideGUID
 import scodec.{Attempt, Codec, Err}
 import scodec.codecs._
-import shapeless.HNil //DO NOT IMPORT shapeless.:: HERE; it interferes with required scala.collection.immutable.::
+import shapeless.HNil
 
 import scala.annotation.tailrec
 

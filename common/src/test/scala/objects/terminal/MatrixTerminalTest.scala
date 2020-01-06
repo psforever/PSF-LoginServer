@@ -3,7 +3,7 @@ package objects.terminal
 
 import net.psforever.objects.serverobject.terminals.{MatrixTerminalDefinition, Terminal}
 import net.psforever.objects.{Avatar, GlobalDefinitions, Player, Vehicle}
-import net.psforever.packet.game.{ItemTransactionMessage, PlanetSideGUID}
+import net.psforever.packet.game.ItemTransactionMessage
 import net.psforever.types._
 import org.specs2.mutable.Specification
 

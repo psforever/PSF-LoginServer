@@ -2,8 +2,7 @@
 package net.psforever.packet.game.objectcreate
 
 import net.psforever.packet.Marshallable
-import net.psforever.packet.game.PlanetSideGUID
-import net.psforever.types.PlanetSideEmpire
+import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
 import scodec.Codec
 import scodec.codecs._
 

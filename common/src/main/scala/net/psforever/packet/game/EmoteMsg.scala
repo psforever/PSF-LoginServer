@@ -2,7 +2,7 @@
 package net.psforever.packet.game
 
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PlanetSideGamePacket}
-import net.psforever.types.EmoteType
+import net.psforever.types.{EmoteType, PlanetSideGUID}
 import scodec.Codec
 import scodec.codecs._
 

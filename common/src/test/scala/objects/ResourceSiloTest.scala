@@ -10,8 +10,8 @@ import net.psforever.objects.{Avatar, GlobalDefinitions, Player}
 import net.psforever.objects.serverobject.resourcesilo.{ResourceSilo, ResourceSiloControl, ResourceSiloDefinition}
 import net.psforever.objects.serverobject.structures.{Building, StructureType}
 import net.psforever.objects.zones.{Zone, ZoneMap}
-import net.psforever.packet.game.{PlanetSideGUID, UseItemMessage}
-import net.psforever.types.{CharacterGender, CharacterVoice, PlanetSideEmpire, Vector3}
+import net.psforever.packet.game.UseItemMessage
+import net.psforever.types._
 import org.specs2.mutable.Specification
 import services.ServiceManager
 import services.avatar.{AvatarAction, AvatarServiceMessage}
@@ -72,7 +72,6 @@ class ResourceSiloControlStartupTest extends ActorTest {
       expectNoMsg(500 milliseconds)
       system.actorOf(Props(classOf[ResourceSiloControl], obj), "test-silo")
       expectNoMsg(1 seconds)
-      assert(true)
     }
   }
 }

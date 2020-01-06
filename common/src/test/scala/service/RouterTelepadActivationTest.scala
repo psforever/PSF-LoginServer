@@ -5,7 +5,7 @@ import akka.actor.Props
 import base.ActorTest
 import net.psforever.objects._
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.PlanetSideGUID
+import net.psforever.types.PlanetSideGUID
 import services.local.support.RouterTelepadActivation
 import services.support.SupportActor
 

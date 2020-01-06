@@ -5,8 +5,7 @@ import akka.actor.{Actor, Cancellable}
 import net.psforever.objects.DefaultCancellable
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.PlanetSideGUID
-import net.psforever.types.Vector3
+import net.psforever.types.{PlanetSideGUID, Vector3}
 
 import scala.annotation.tailrec
 import scala.concurrent.duration._

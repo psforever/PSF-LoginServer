@@ -3,9 +3,8 @@ package net.psforever.objects.definition.converter
 
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.Vehicle
-import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.packet.game.objectcreate._
-import net.psforever.types.DriveState
+import net.psforever.types.{DriveState, PlanetSideGUID}
 
 import scala.util.{Failure, Success, Try}
 

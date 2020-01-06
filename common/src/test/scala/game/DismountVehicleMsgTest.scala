@@ -5,7 +5,7 @@ import org.specs2.mutable._
 import net.psforever.packet._
 import net.psforever.packet.game._
 import scodec.bits._
-import net.psforever.types.BailType
+import net.psforever.types.{BailType, PlanetSideGUID}
 
 class DismountVehicleMsgTest extends Specification {
   val string = hex"0F C609 00"

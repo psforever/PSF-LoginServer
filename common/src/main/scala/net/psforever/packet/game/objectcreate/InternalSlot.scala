@@ -2,7 +2,7 @@
 package net.psforever.packet.game.objectcreate
 
 import net.psforever.packet.PacketHelpers
-import net.psforever.packet.game.PlanetSideGUID
+import net.psforever.types.PlanetSideGUID
 import scodec.Codec
 import scodec.codecs._
 import shapeless.{::, HNil}

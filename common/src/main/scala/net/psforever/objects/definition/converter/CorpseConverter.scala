@@ -3,9 +3,8 @@ package net.psforever.objects.definition.converter
 
 import net.psforever.objects.Player
 import net.psforever.objects.equipment.{Equipment, EquipmentSlot}
-import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.packet.game.objectcreate._
-import net.psforever.types._
+import net.psforever.types.{PlanetSideGUID, _}
 
 import scala.annotation.tailrec
 import scala.util.{Failure, Success, Try}

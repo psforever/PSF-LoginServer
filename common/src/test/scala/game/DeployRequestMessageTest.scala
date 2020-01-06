@@ -4,7 +4,7 @@ package game
 import org.specs2.mutable._
 import net.psforever.packet._
 import net.psforever.packet.game._
-import net.psforever.types.{DriveState, Vector3}
+import net.psforever.types.{DriveState, PlanetSideGUID, Vector3}
 import scodec.bits._
 
 class DeployRequestMessageTest extends Specification {

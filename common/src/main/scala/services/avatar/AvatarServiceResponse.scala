@@ -7,8 +7,8 @@ import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.vital.resolution.ResolutionCalculations
 import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game.objectcreate.ConstructorData
-import net.psforever.packet.game.{ObjectCreateMessage, PlanetSideGUID}
-import net.psforever.types.{ExoSuitType, PlanetSideEmpire, Vector3}
+import net.psforever.packet.game.ObjectCreateMessage
+import net.psforever.types.{ExoSuitType, PlanetSideEmpire, PlanetSideGUID, Vector3}
 import services.GenericEventBusMsg
 
 final case class AvatarServiceResponse(toChannel : String,

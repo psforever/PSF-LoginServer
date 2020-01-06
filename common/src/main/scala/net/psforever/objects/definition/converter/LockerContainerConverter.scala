@@ -4,9 +4,8 @@ package net.psforever.objects.definition.converter
 import net.psforever.objects.LockerContainer
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.inventory.GridInventory
-import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.packet.game.objectcreate._
-import net.psforever.types.PlanetSideEmpire
+import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
 
 import scala.util.{Success, Try}
 

@@ -2,9 +2,8 @@
 package net.psforever.objects.definition.converter
 
 import net.psforever.objects.SimpleItem
-import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.packet.game.objectcreate.{CommonFieldData, DetailedConstructionToolData, HandheldData}
-import net.psforever.types.PlanetSideEmpire
+import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
 
 import scala.util.{Success, Try}
 

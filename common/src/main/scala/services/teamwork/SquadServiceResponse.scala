@@ -3,7 +3,7 @@ package services.teamwork
 
 import net.psforever.objects.teamwork.Squad
 import net.psforever.packet.game._
-import net.psforever.types.{SquadResponseType, SquadWaypoints}
+import net.psforever.types.{PlanetSideGUID, SquadResponseType, SquadWaypoints}
 import services.GenericEventBusMsg
 
 final case class SquadServiceResponse(toChannel : String, exclude : Iterable[Long], response : SquadResponse.Response) extends GenericEventBusMsg

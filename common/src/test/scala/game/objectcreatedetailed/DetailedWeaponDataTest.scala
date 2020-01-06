@@ -5,7 +5,7 @@ import org.specs2.mutable._
 import net.psforever.packet._
 import net.psforever.packet.game.{ObjectCreateDetailedMessage, _}
 import net.psforever.packet.game.objectcreate._
-import net.psforever.types.PlanetSideEmpire
+import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
 import scodec.bits._
 
 class DetailedWeaponDataTest extends Specification {

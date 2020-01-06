@@ -5,8 +5,7 @@ import akka.actor.Props
 import base.ActorTest
 import net.psforever.objects._
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.PlanetSideGUID
-import net.psforever.types._
+import net.psforever.types.{PlanetSideGUID, _}
 import services.{Service, ServiceManager}
 import services.vehicle._
 

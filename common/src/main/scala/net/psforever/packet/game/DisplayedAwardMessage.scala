@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.packet.game
 
-import net.psforever.types.MeritCommendation
+import net.psforever.types.{MeritCommendation, PlanetSideGUID}
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
 import scodec.Codec
 import scodec.codecs._

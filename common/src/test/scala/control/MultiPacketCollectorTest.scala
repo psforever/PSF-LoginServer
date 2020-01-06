@@ -4,7 +4,8 @@ package control
 import org.specs2.mutable._
 import net.psforever.packet.control.{ControlSync, MultiPacketBundle, MultiPacketCollector}
 import net.psforever.packet.crypto.{ClientFinished, ServerFinished}
-import net.psforever.packet.game.{ObjectDeleteMessage, PlanetSideGUID}
+import net.psforever.packet.game.ObjectDeleteMessage
+import net.psforever.types.PlanetSideGUID
 
 class MultiPacketCollectorTest extends Specification {
   val packet1 = ObjectDeleteMessage(PlanetSideGUID(1103), 2)

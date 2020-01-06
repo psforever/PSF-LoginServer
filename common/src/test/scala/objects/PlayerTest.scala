@@ -5,9 +5,8 @@ import net.psforever.objects.GlobalDefinitions._
 import net.psforever.objects._
 import net.psforever.objects.definition.{ImplantDefinition, SimpleItemDefinition, SpecialExoSuitDefinition}
 import net.psforever.objects.equipment.EquipmentSize
-import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.packet.game.objectcreate.{Cosmetics, PersonalStyle}
-import net.psforever.types._
+import net.psforever.types.{PlanetSideGUID, _}
 import org.specs2.mutable._
 
 import scala.util.Success

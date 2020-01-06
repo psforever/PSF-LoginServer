@@ -9,8 +9,7 @@ import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.doors.{Door, DoorControl}
 import net.psforever.objects.serverobject.structures._
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.PlanetSideGUID
-import net.psforever.types.PlanetSideEmpire
+import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
 import org.specs2.mutable.Specification
 import services.ServiceManager
 import services.galaxy.GalaxyService

@@ -3,7 +3,7 @@ package objects.number
 
 import net.psforever.objects.guid.AvailabilityPolicy
 import net.psforever.objects.guid.key.{LoanedKey, SecureKey}
-import net.psforever.packet.game.PlanetSideGUID
+import net.psforever.types.PlanetSideGUID
 import org.specs2.mutable.Specification
 
 class NumberSourceTest extends Specification {

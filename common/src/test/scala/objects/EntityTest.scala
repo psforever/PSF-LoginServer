@@ -4,8 +4,7 @@ package objects
 import net.psforever.objects.PlanetSideGameObject
 import net.psforever.objects.definition.ObjectDefinition
 import net.psforever.objects.entity.NoGUIDException
-import net.psforever.packet.game.PlanetSideGUID
-import net.psforever.types.Vector3
+import net.psforever.types.{PlanetSideGUID, Vector3}
 import org.specs2.mutable._
 
 class EntityTest extends Specification {

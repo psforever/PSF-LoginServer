@@ -3,7 +3,7 @@ package services
 
 import akka.event.{ActorEventBus, SubchannelClassification}
 import akka.util.Subclassification
-import net.psforever.packet.game.PlanetSideGUID
+import net.psforever.types.PlanetSideGUID
 
 object Service {
   final val defaultPlayerGUID : PlanetSideGUID = PlanetSideGUID(0)

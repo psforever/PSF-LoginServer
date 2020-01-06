@@ -11,8 +11,7 @@ import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.vehicles._
 import net.psforever.objects.vital.{VehicleShieldCharge, Vitality}
 import net.psforever.objects.zones.{Zone, ZoneMap}
-import net.psforever.packet.game.PlanetSideGUID
-import net.psforever.types._
+import net.psforever.types.{PlanetSideGUID, _}
 import org.specs2.mutable._
 import services.vehicle.{VehicleAction, VehicleServiceMessage}
 

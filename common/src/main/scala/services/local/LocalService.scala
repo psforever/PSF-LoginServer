@@ -7,9 +7,9 @@ import net.psforever.objects.serverobject.structures.{Amenity, Building}
 import net.psforever.objects.serverobject.terminals.{CaptureTerminal, Terminal}
 import net.psforever.objects.zones.Zone
 import net.psforever.objects._
-import net.psforever.packet.game.{PlanetSideGUID, TriggeredEffect, TriggeredEffectLocation}
+import net.psforever.packet.game.{TriggeredEffect, TriggeredEffectLocation}
 import net.psforever.objects.vital.Vitality
-import net.psforever.types.Vector3
+import net.psforever.types.{PlanetSideGUID, Vector3}
 import services.local.support._
 import services.vehicle.{VehicleAction, VehicleServiceMessage}
 import services.{GenericEventBus, RemoverActor, Service}

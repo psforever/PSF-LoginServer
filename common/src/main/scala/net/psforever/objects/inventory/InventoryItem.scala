@@ -2,7 +2,7 @@
 package net.psforever.objects.inventory
 
 import net.psforever.objects.equipment.Equipment
-import net.psforever.packet.game.PlanetSideGUID
+import net.psforever.types.PlanetSideGUID
 
 /**
   * Represent the image placard that is used to visually and spatially manipulate an item placed into the grid-like inventory.

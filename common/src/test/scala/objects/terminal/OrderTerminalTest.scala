@@ -5,7 +5,7 @@ import net.psforever.objects.serverobject.structures.{Building, StructureType}
 import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.zones.Zone
 import net.psforever.objects._
-import net.psforever.packet.game.{ItemTransactionMessage, PlanetSideGUID}
+import net.psforever.packet.game.ItemTransactionMessage
 import net.psforever.types._
 import org.specs2.mutable.Specification
 

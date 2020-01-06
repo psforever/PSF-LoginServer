@@ -8,7 +8,7 @@ import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.terminals.{ProximityTerminal, Terminal}
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game._
-import net.psforever.types.{PlanetSideEmpire, Vector3}
+import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 import services.{Service, ServiceManager}
 import services.local._
 

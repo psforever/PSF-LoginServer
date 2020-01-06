@@ -5,7 +5,7 @@ import org.specs2.mutable._
 import net.psforever.packet._
 import net.psforever.packet.game.SquadAction._
 import net.psforever.packet.game._
-import net.psforever.types.CertificationType
+import net.psforever.types.{CertificationType, PlanetSideGUID}
 import scodec.bits._
 
 class SquadDefinitionActionMessageTest extends Specification {

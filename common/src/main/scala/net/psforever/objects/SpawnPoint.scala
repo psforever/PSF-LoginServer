@@ -3,8 +3,7 @@ package net.psforever.objects
 
 import net.psforever.objects.definition.{ObjectDefinition, VehicleDefinition}
 import net.psforever.objects.serverobject.PlanetSideServerObject
-import net.psforever.packet.game.PlanetSideGUID
-import net.psforever.types.Vector3
+import net.psforever.types.{PlanetSideGUID, Vector3}
 
 import scala.collection.mutable
 

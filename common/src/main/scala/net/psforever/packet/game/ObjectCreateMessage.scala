@@ -3,6 +3,7 @@ package net.psforever.packet.game
 
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PlanetSideGamePacket}
 import net.psforever.packet.game.objectcreate.{ObjectCreateBase, _}
+import net.psforever.types.PlanetSideGUID
 import scodec.{Attempt, Codec, Err}
 import scodec.bits.BitVector
 import shapeless.{::, HNil}

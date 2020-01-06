@@ -1,13 +1,12 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.packet.game.objectcreate
 
-import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.packet.{Marshallable, PacketHelpers}
 import scodec.Attempt.{Failure, Successful}
 import scodec.{Attempt, Codec, Err}
-import shapeless.HNil //note: do not import shapeless.:: here; it messes up List's :: functionality
+import shapeless.HNil
 import scodec.codecs._
-import net.psforever.types.DriveState
+import net.psforever.types.{DriveState, PlanetSideGUID}
 
 import scala.collection.mutable.ListBuffer
 

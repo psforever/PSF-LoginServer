@@ -2,8 +2,8 @@
 package services.chat
 
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.{ChatMsg, PlanetSideGUID}
-import net.psforever.types.{PlanetSideEmpire, Vector3}
+import net.psforever.packet.game.ChatMsg
+import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 import services.GenericEventBusMsg
 
 final case class ChatServiceResponse(toChannel : String,

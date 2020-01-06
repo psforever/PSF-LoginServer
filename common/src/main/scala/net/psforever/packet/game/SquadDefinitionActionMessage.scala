@@ -2,7 +2,7 @@
 package net.psforever.packet.game
 
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
-import net.psforever.types.CertificationType
+import net.psforever.types.{CertificationType, PlanetSideGUID}
 import scodec.bits.BitVector
 import scodec.{Attempt, Codec, Err}
 import scodec.codecs._

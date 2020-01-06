@@ -1,7 +1,7 @@
 // Copyright (c) 2019 PSForever
 package net.psforever.objects
 
-import net.psforever.packet.game.PlanetSideGUID
+import net.psforever.types.PlanetSideGUID
 
 trait OwnableByPlayer {
   private var owner : Option[PlanetSideGUID] = None

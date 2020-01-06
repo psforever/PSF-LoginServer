@@ -3,7 +3,7 @@ package net.psforever.objects.serverobject.pad
 
 import net.psforever.objects.{Player, Vehicle}
 import net.psforever.objects.serverobject.structures.Amenity
-import net.psforever.packet.game.PlanetSideGUID
+import net.psforever.types.PlanetSideGUID
 
 /**
   * A structure-owned server object that is a "spawn pad" for vehicles.<br>

@@ -3,7 +3,8 @@ package net.psforever.objects
 
 import net.psforever.objects.ce.{Deployable, DeployedItem}
 import net.psforever.objects.serverobject.PlanetSideServerObject
-import net.psforever.packet.game.{DeployableInfo, DeploymentAction, PlanetSideGUID}
+import net.psforever.packet.game.{DeployableInfo, DeploymentAction}
+import net.psforever.types.PlanetSideGUID
 import services.RemoverActor
 import services.local.{LocalAction, LocalServiceMessage}
 

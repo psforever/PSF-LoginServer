@@ -3,7 +3,7 @@ package services.chat
 
 import akka.actor.Actor
 import net.psforever.objects.LivePlayerList
-import net.psforever.packet.game.{ChatMsg, PlanetSideGUID}
+import net.psforever.packet.game.ChatMsg
 import net.psforever.types.ChatMessageType
 import services.{GenericEventBus, Service}
 

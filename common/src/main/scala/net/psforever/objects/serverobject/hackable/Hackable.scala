@@ -2,8 +2,8 @@ package net.psforever.objects.serverobject.hackable
 
 import net.psforever.objects.Player
 import net.psforever.objects.serverobject.affinity.FactionAffinity
-import net.psforever.packet.game.{PlanetSideGUID, TriggeredSound}
-import net.psforever.types.{PlanetSideEmpire, Vector3}
+import net.psforever.packet.game.TriggeredSound
+import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 
 trait Hackable extends FactionAffinity {
   import Hackable._

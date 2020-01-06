@@ -3,6 +3,7 @@ package net.psforever.packet.game
 
 import net.psforever.newcodecs.newcodecs
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PlanetSideGamePacket}
+import net.psforever.types.PlanetSideGUID
 import scodec.{Attempt, Codec}
 import scodec.codecs._
 import shapeless.{::, HNil}

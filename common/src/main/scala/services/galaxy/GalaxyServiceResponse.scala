@@ -3,7 +3,8 @@ package services.galaxy
 
 import net.psforever.objects.Vehicle
 import net.psforever.objects.zones.HotSpotInfo
-import net.psforever.packet.game.{BuildingInfoUpdateMessage, PlanetSideGUID}
+import net.psforever.packet.game.BuildingInfoUpdateMessage
+import net.psforever.types.PlanetSideGUID
 import services.GenericEventBusMsg
 
 final case class GalaxyServiceResponse(toChannel : String,

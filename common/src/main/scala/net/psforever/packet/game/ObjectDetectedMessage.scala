@@ -2,6 +2,7 @@
 package net.psforever.packet.game
 
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PlanetSideGamePacket}
+import net.psforever.types.PlanetSideGUID
 import scodec.codecs._
 import scodec.{Attempt, Codec, Err}
 import shapeless.{::, HNil}

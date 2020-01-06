@@ -7,8 +7,7 @@ import net.psforever.objects.serverobject.structures.Building
 import net.psforever.objects.serverobject.terminals.CaptureTerminal
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.PlanetSideGUID
-import net.psforever.types.PlanetSideEmpire
+import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
 
 import scala.concurrent.duration.{FiniteDuration, _}
 

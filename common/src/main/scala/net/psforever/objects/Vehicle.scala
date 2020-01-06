@@ -12,8 +12,7 @@ import net.psforever.objects.serverobject.deploy.Deployment
 import net.psforever.objects.serverobject.structures.AmenityOwner
 import net.psforever.objects.vehicles._
 import net.psforever.objects.vital.{DamageResistanceModel, StandardResistanceProfile, Vitality}
-import net.psforever.packet.game.PlanetSideGUID
-import net.psforever.types.PlanetSideEmpire
+import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
 
 import scala.annotation.tailrec
 

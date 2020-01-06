@@ -8,8 +8,7 @@ import net.psforever.objects.serverobject.pad.{VehicleSpawnControl, VehicleSpawn
 import net.psforever.objects.serverobject.structures.StructureType
 import net.psforever.objects.{Avatar, GlobalDefinitions, Player, Vehicle}
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.PlanetSideGUID
-import net.psforever.types._
+import net.psforever.types.{PlanetSideGUID, _}
 import services.vehicle.{VehicleAction, VehicleServiceMessage}
 
 import scala.concurrent.duration._

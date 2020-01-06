@@ -6,8 +6,7 @@ import net.psforever.objects.ballistics._
 import net.psforever.objects.definition.ProjectileDefinition
 import net.psforever.objects.serverobject.mblocker.Locker
 import net.psforever.objects.vital.DamageType
-import net.psforever.packet.game.PlanetSideGUID
-import net.psforever.types._
+import net.psforever.types.{PlanetSideGUID, _}
 import org.specs2.mutable.Specification
 
 class ProjectileTest extends Specification {
