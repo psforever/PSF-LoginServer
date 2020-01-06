@@ -170,7 +170,6 @@ class WorldSessionActor extends Actor
   var antChargingTick : Cancellable = DefaultCancellable.obj
   var antDischargingTick : Cancellable = DefaultCancellable.obj
 
-
   /**
     * Convert a boolean value into an integer value.
     * Use: `true:Int` or `false:Int`
@@ -1131,7 +1130,7 @@ class WorldSessionActor extends Actor
       log.warn(s"Vital target ${target.Definition.Name} damage resolution not supported using this method")
 
     case ResponseToSelf(pkt) =>
-      log.info(s"Received a direct message: $pkt")
+      //log.info(s"Received a direct message: $pkt")
       sendResponse(pkt)
 
     case LoadedRemoteProjectile(projectile_guid, Some(projectile)) =>

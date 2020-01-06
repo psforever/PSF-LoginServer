@@ -55,7 +55,7 @@ class NumberPoolHubTest extends Specification {
       obj.Numbers.toSet.equals(numberList.toSet) mustEqual true
       obj.RemovePool("fibonacci").toSet.equals(numberList.toSet) mustEqual true
       obj.Numbers.isEmpty mustEqual true
-      obj.GetPool("fibonacci") mustEqual None
+      obj.GetPool("fibonacci").isEmpty mustEqual true
     }
 
     "block removing the default 'generic' pool" in {
@@ -101,7 +101,7 @@ class NumberPoolHubTest extends Specification {
       hub.register(obj, "fibonacci") match {
         case Success(number) =>
           val objFromNumber = hub(number)
-          objFromNumber mustEqual Some(obj)
+          objFromNumber.contains(obj) mustEqual true
         case _ =>
           ko
       }
@@ -111,7 +111,7 @@ class NumberPoolHubTest extends Specification {
       val hub = new NumberPoolHub(new LimitedNumberSource(51))
       hub.AddPool("fibonacci1", numberList1)
       hub.AddPool("fibonacci2", numberList2)
-      hub.WhichPool(13) mustEqual Some("fibonacci2")
+      hub.WhichPool(13).contains("fibonacci2") mustEqual true
     }
 
     "lookup the pool of a registered object" in {
@@ -119,7 +119,7 @@ class NumberPoolHubTest extends Specification {
       hub.AddPool("fibonacci", numberList1)
       val obj = new EntityTestClass()
       hub.register(obj, "fibonacci")
-      hub.WhichPool(obj) mustEqual Some("fibonacci")
+      hub.WhichPool(obj).contains("fibonacci") mustEqual true
     }
 
     "register an object to a specific, unused number; it is assigned to pool 'generic'" in {
@@ -130,7 +130,7 @@ class NumberPoolHubTest extends Specification {
       hub.register(obj, 44) match {
         case Success(number) =>
           obj.GUID mustEqual PlanetSideGUID(number)
-          hub.WhichPool(obj) mustEqual Some("generic")
+          hub.WhichPool(obj).contains("generic") mustEqual true
         case _ =>
           ko
       }
@@ -145,8 +145,8 @@ class NumberPoolHubTest extends Specification {
       hub.register(obj, 5) match {
         case Success(number) =>
           obj.GUID mustEqual PlanetSideGUID(number)
-          hub.WhichPool(obj) mustEqual Some("fibonacci")
-          src.Available(5) mustEqual None
+          hub.WhichPool(obj).contains("fibonacci") mustEqual true
+          src.Available(5).isEmpty mustEqual true
         case _ =>
           ko
       }
@@ -161,8 +161,8 @@ class NumberPoolHubTest extends Specification {
       hub.register(obj, 13) match {
         case Success(number) =>
           obj.GUID mustEqual PlanetSideGUID(number)
-          hub.WhichPool(obj) mustEqual Some("fibonacci")
-          src.Available(13) mustEqual None
+          hub.WhichPool(obj).contains("fibonacci") mustEqual true
+          src.Available(13).isEmpty mustEqual true
         case _ =>
           ko
       }
@@ -172,20 +172,21 @@ class NumberPoolHubTest extends Specification {
       val hub = new NumberPoolHub(new LimitedNumberSource(51))
       val obj = new EntityTestClass()
       hub.register(obj)
-      hub.WhichPool(obj) mustEqual Some("generic")
+      hub.WhichPool(obj).contains("generic") mustEqual true
     }
 
     "unregister an object" in {
       val hub = new NumberPoolHub(new LimitedNumberSource(51))
       hub.AddPool("fibonacci", numberList)
       val obj = new EntityTestClass()
+      obj.HasGUID mustEqual false
       hub.register(obj, "fibonacci")
-      hub.WhichPool(obj) mustEqual Some("fibonacci")
-      try { obj.GUID } catch { case _ : Exception => ko } //passes
+      hub.WhichPool(obj).contains("fibonacci") mustEqual true
+      obj.HasGUID mustEqual true
 
       hub.unregister(obj)
-      hub.WhichPool(obj) mustEqual None
-      obj.GUID must throwA[Exception] //fails
+      obj.HasGUID mustEqual false
+      hub.WhichPool(obj).isEmpty mustEqual true
     }
 
     "not register an object to a different pool" in {
@@ -247,14 +248,15 @@ class NumberPoolHubTest extends Specification {
       hub.register(13) match {
         case Success(key) =>
           key.Object = obj
+          obj.HasGUID mustEqual true
         case _ =>
           ko
       }
-      hub.WhichPool(obj) mustEqual Some("fibonacci")
+      hub.WhichPool(obj).contains("fibonacci") mustEqual true
       hub.unregister(13) match {
         case Success(thing) =>
-          thing mustEqual Some(obj)
-          thing.get.GUID must throwA[Exception]
+          thing.contains(obj) mustEqual true
+          thing.get.HasGUID mustEqual false
         case _ =>
           ko
       }

@@ -158,10 +158,10 @@ class NumberPoolTest extends Specification {
       val obj = new GenericPool(map, 11)
       obj.Selector.asInstanceOf[SpecificSelector].SelectionIndex = 5
       obj.Get()
-      map.get(5) mustEqual Some("generic")
+      map.get(5).contains("generic") mustEqual true
       obj.Numbers.contains(5) mustEqual true
       obj.Return(5) mustEqual true
-      map.get(5) mustEqual None
+      map.get(5).isEmpty mustEqual true
       obj.Numbers.isEmpty mustEqual true
     }
 
