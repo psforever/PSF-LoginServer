@@ -157,8 +157,7 @@ object ImplantTerminalMechTest {
   def SetUpAgents(faction : PlanetSideEmpire.Value)(implicit system : ActorSystem) : (Player, ImplantTerminalMech) = {
     import net.psforever.objects.serverobject.structures.Building
     import net.psforever.objects.zones.Zone
-    import net.psforever.packet.game.PlanetSideGUID
-
+    import net.psforever.types.PlanetSideGUID
     val terminal = ImplantTerminalMech(GlobalDefinitions.implant_terminal_mech)
     terminal.Actor = system.actorOf(Props(classOf[ImplantTerminalMechControl], terminal), "mech")
     terminal.Owner = new Building("Building", building_guid = 0, map_id = 0, Zone.Nowhere, StructureType.Building, GlobalDefinitions.building)

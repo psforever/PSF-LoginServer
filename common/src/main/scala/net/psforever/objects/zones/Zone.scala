@@ -17,8 +17,7 @@ import net.psforever.objects.serverobject.painbox.{Painbox, PainboxDefinition}
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.objects.serverobject.structures.{Amenity, Building, WarpGate}
 import net.psforever.objects.serverobject.turret.FacilityTurret
-import net.psforever.packet.game.PlanetSideGUID
-import net.psforever.types.{PlanetSideEmpire, Vector3}
+import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 import services.avatar.AvatarService
 import services.local.LocalService
 import services.vehicle.VehicleService

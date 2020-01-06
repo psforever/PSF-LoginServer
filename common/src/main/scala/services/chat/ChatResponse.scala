@@ -1,8 +1,7 @@
 // Copyright (c) 2017 PSForever
 package services.chat
 
-import net.psforever.packet.game.PlanetSideGUID
-import net.psforever.types.ChatMessageType
+import net.psforever.types.{ChatMessageType, PlanetSideGUID}
 
 object ChatResponse {
   sealed trait Response

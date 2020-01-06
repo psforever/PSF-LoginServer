@@ -4,7 +4,7 @@ package game.objectcreatedetailed
 import net.psforever.packet._
 import net.psforever.packet.game._
 import net.psforever.packet.game.objectcreate._
-import net.psforever.types.PlanetSideEmpire
+import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
 import org.specs2.mutable._
 import scodec.bits._
 

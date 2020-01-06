@@ -4,7 +4,7 @@ package objects
 import net.psforever.objects.equipment.{EquipmentSize, EquipmentSlot}
 import net.psforever.objects.inventory.{Container, GridInventory, InventoryEquipmentSlot}
 import net.psforever.objects.{GlobalDefinitions, OffhandEquipmentSlot, Tool}
-import net.psforever.packet.game.PlanetSideGUID
+import net.psforever.types.PlanetSideGUID
 import org.specs2.mutable._
 
 import scala.util.Success

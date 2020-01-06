@@ -6,8 +6,7 @@ import base.ActorTest
 import net.psforever.objects.ce.DeployedItem
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.{TurretDeployable, _}
-import net.psforever.packet.game.PlanetSideGUID
-import net.psforever.types.{CharacterGender, CharacterVoice, PlanetSideEmpire}
+import net.psforever.types.{CharacterGender, CharacterVoice, PlanetSideEmpire, PlanetSideGUID}
 import org.specs2.mutable.Specification
 
 import scala.concurrent.duration._

@@ -7,8 +7,8 @@ import net.psforever.objects.{PlanetSideGameObject, Vehicle}
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game.objectcreate.ConstructorData
-import net.psforever.packet.game.{ObjectCreateMessage, PlanetSideGUID}
-import net.psforever.types.{BailType, DriveState, Vector3}
+import net.psforever.packet.game.ObjectCreateMessage
+import net.psforever.types.{BailType, DriveState, PlanetSideGUID, Vector3}
 import services.GenericEventBusMsg
 
 final case class VehicleServiceResponse(toChannel : String,

@@ -9,7 +9,7 @@ import net.psforever.objects.ballistics.ResolvedProjectile
 import net.psforever.objects.guid.{GUIDTask, TaskResolver}
 import net.psforever.objects.zones.{Zone, ZoneActor, ZoneMap}
 import net.psforever.packet.game.objectcreate.{DroppedItemData, ObjectClass, ObjectCreateMessageParent, PlacementData}
-import net.psforever.packet.game.{ObjectCreateMessage, PlanetSideGUID, PlayerStateMessageUpstream}
+import net.psforever.packet.game.{ObjectCreateMessage, PlayerStateMessageUpstream}
 import net.psforever.types._
 import services.{RemoverActor, Service, ServiceManager}
 import services.avatar._

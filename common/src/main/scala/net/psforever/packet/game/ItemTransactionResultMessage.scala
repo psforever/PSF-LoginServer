@@ -2,7 +2,7 @@
 package net.psforever.packet.game
 
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PlanetSideGamePacket}
-import net.psforever.types.TransactionType
+import net.psforever.types.{PlanetSideGUID, TransactionType}
 import scodec.Codec
 import scodec.codecs._
 

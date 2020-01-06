@@ -4,8 +4,7 @@ package services.vehicle.support
 import net.psforever.objects.Vehicle
 import net.psforever.objects.guid.{GUIDTask, TaskResolver}
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.PlanetSideGUID
-import net.psforever.types.DriveState
+import net.psforever.types.{DriveState, PlanetSideGUID}
 import services.{RemoverActor, Service}
 import services.vehicle.{VehicleAction, VehicleServiceMessage}
 

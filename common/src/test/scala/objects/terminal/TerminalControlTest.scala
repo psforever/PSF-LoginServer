@@ -7,7 +7,7 @@ import net.psforever.objects.serverobject.structures.{Building, StructureType}
 import net.psforever.objects.serverobject.terminals.{Terminal, TerminalControl, TerminalDefinition}
 import net.psforever.objects.zones.Zone
 import net.psforever.objects.{Avatar, GlobalDefinitions, Player}
-import net.psforever.packet.game.{ItemTransactionMessage, PlanetSideGUID}
+import net.psforever.packet.game.ItemTransactionMessage
 import net.psforever.types._
 
 import scala.concurrent.duration.Duration

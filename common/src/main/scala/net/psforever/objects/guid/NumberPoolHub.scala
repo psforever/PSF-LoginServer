@@ -5,7 +5,7 @@ import net.psforever.objects.entity.{IdentifiableEntity, NoGUIDException}
 import net.psforever.objects.guid.key.LoanedKey
 import net.psforever.objects.guid.pool.{ExclusivePool, GenericPool, NumberPool}
 import net.psforever.objects.guid.source.NumberSource
-import net.psforever.packet.game.PlanetSideGUID
+import net.psforever.types.PlanetSideGUID
 
 import scala.util.{Failure, Success, Try}
 

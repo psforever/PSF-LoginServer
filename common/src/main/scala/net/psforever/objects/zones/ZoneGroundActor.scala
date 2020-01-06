@@ -3,7 +3,7 @@ package net.psforever.objects.zones
 
 import akka.actor.Actor
 import net.psforever.objects.equipment.Equipment
-import net.psforever.packet.game.PlanetSideGUID
+import net.psforever.types.PlanetSideGUID
 
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer

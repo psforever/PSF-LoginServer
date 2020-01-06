@@ -3,7 +3,7 @@ package net.psforever.objects.inventory
 
 import net.psforever.objects.equipment.{Equipment, EquipmentSlot}
 import net.psforever.objects.OffhandEquipmentSlot
-import net.psforever.packet.game.PlanetSideGUID
+import net.psforever.types.PlanetSideGUID
 
 import scala.util.Try
 

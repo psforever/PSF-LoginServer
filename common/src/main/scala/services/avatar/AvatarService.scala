@@ -3,8 +3,9 @@ package services.avatar
 
 import akka.actor.{Actor, ActorRef, Props}
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.{ObjectCreateMessage, PlanetSideGUID}
+import net.psforever.packet.game.ObjectCreateMessage
 import net.psforever.packet.game.objectcreate.{DroppedItemData, ObjectCreateMessageParent, PlacementData}
+import net.psforever.types.PlanetSideGUID
 import services.avatar.support.{CorpseRemovalActor, DroppedItemRemover}
 import services.{GenericEventBus, RemoverActor, Service}
 

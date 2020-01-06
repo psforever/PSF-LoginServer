@@ -6,7 +6,7 @@ import net.psforever.objects.ce.Deployable
 import net.psforever.objects.serverobject.terminals.{ProximityUnit, Terminal}
 import net.psforever.objects.vehicles.Utility
 import net.psforever.packet.game._
-import net.psforever.types.{PlanetSideEmpire, Vector3}
+import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 import services.GenericEventBusMsg
 
 final case class LocalServiceResponse(toChannel : String,

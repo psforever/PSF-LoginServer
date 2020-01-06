@@ -3,8 +3,7 @@ package net.psforever.objects.avatar
 
 import net.psforever.objects.PlanetSideGameObject
 import net.psforever.objects.ce.{Deployable, DeployableCategory, DeployedItem}
-import net.psforever.packet.game.PlanetSideGUID
-import net.psforever.types.CertificationType
+import net.psforever.types.{CertificationType, PlanetSideGUID}
 
 import scala.collection.mutable
 

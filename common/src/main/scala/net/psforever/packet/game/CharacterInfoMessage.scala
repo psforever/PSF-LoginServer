@@ -2,20 +2,14 @@
 package net.psforever.packet.game
 
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PlanetSideGamePacket}
+import net.psforever.types.PlanetSideGUID
 import scodec.Codec
 import scodec.codecs._
-
 
 case class PlanetSideZoneID(zoneId : Long)
 
 object PlanetSideZoneID {
   implicit val codec = uint32L.as[PlanetSideZoneID]
-}
-
-case class PlanetSideGUID(guid : Int)
-
-object PlanetSideGUID {
-  implicit val codec = uint16L.as[PlanetSideGUID]
 }
 
 /**

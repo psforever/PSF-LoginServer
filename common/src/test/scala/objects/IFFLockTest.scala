@@ -8,8 +8,7 @@ import net.psforever.objects.{Avatar, GlobalDefinitions, Player}
 import net.psforever.objects.serverobject.locks.{IFFLock, IFFLockControl}
 import net.psforever.objects.serverobject.structures.{Building, StructureType}
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.PlanetSideGUID
-import net.psforever.types.{CharacterGender, CharacterVoice, PlanetSideEmpire, Vector3}
+import net.psforever.types._
 import org.specs2.mutable.Specification
 
 class IFFLockTest extends Specification {

@@ -1,8 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.packet.game.objectcreate
 
-import net.psforever.packet.game.PlanetSideGUID
-import net.psforever.types.{DriveState, PlanetSideEmpire}
+import net.psforever.types.{DriveState, PlanetSideEmpire, PlanetSideGUID}
 
 /**
   * A compilation of the common `*Data` objects that would be used for stock game objects.

@@ -13,7 +13,7 @@ import net.psforever.objects.serverobject.terminals.CaptureTerminal
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game._
-import net.psforever.types.{PlanetSideEmpire, Vector3}
+import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 import scalax.collection.{Graph, GraphEdge}
 import services.Service
 import services.local.{LocalAction, LocalServiceMessage}

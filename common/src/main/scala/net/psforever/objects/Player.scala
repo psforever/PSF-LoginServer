@@ -10,9 +10,8 @@ import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.vital.resistance.ResistanceProfile
 import net.psforever.objects.vital.{DamageResistanceModel, Vitality}
 import net.psforever.objects.zones.ZoneAware
-import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.packet.game.objectcreate.{Cosmetics, DetailedCharacterData, PersonalStyle}
-import net.psforever.types._
+import net.psforever.types.{PlanetSideGUID, _}
 
 import scala.annotation.tailrec
 import scala.util.{Success, Try}

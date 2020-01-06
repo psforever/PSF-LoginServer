@@ -2,8 +2,8 @@
 package net.psforever.objects.definition.converter
 
 import net.psforever.objects.Telepad
-import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.packet.game.objectcreate.{CommonFieldData, DetailedConstructionToolData, HandheldData}
+import net.psforever.types.PlanetSideGUID
 
 import scala.util.{Failure, Success, Try}
 

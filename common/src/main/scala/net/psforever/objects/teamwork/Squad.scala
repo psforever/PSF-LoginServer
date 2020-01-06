@@ -2,8 +2,7 @@
 package net.psforever.objects.teamwork
 
 import net.psforever.objects.entity.IdentifiableEntity
-import net.psforever.packet.game.PlanetSideGUID
-import net.psforever.types.{CertificationType, PlanetSideEmpire}
+import net.psforever.types.{CertificationType, PlanetSideEmpire, PlanetSideGUID}
 
 class Squad(squadId : PlanetSideGUID, alignment : PlanetSideEmpire.Value) extends IdentifiableEntity {
   super.GUID_=(squadId)

@@ -3,7 +3,8 @@ package game.objectcreatevehicle
 
 import net.psforever.packet._
 import net.psforever.packet.game.objectcreate._
-import net.psforever.packet.game.{ObjectCreateMessage, PlanetSideGUID}
+import net.psforever.packet.game.ObjectCreateMessage
+import net.psforever.types.PlanetSideGUID
 import org.specs2.mutable._
 import scodec.bits._
 

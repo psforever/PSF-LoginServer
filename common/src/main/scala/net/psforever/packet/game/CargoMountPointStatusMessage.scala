@@ -2,7 +2,7 @@
 package net.psforever.packet.game
 
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PlanetSideGamePacket}
-import net.psforever.types.CargoStatus
+import net.psforever.types.{CargoStatus, PlanetSideGUID}
 import scodec.Codec
 import scodec.codecs._
 

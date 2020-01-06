@@ -9,9 +9,8 @@ import net.psforever.objects.inventory.Container
 import net.psforever.objects.vital.resolution.ResolutionCalculations
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.PlanetSideGamePacket
-import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.packet.game.objectcreate.{ConstructorData, ObjectCreateMessageParent}
-import net.psforever.types.{ExoSuitType, PlanetSideEmpire, Vector3}
+import net.psforever.types.{ExoSuitType, PlanetSideEmpire, PlanetSideGUID, Vector3}
 
 import scala.concurrent.duration.FiniteDuration
 

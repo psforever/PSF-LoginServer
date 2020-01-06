@@ -4,7 +4,7 @@ package game
 import org.specs2.mutable._
 import net.psforever.packet._
 import net.psforever.packet.game._
-import net.psforever.types.LoadoutType
+import net.psforever.types.{LoadoutType, PlanetSideGUID}
 import scodec.bits._
 
 class FavoritesMessageTest extends Specification {

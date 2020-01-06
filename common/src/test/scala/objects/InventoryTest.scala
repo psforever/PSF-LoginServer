@@ -5,7 +5,7 @@ import net.psforever.objects.{AmmoBox, SimpleItem}
 import net.psforever.objects.definition.SimpleItemDefinition
 import net.psforever.objects.inventory.{GridInventory, InventoryItem, InventoryTile}
 import net.psforever.objects.GlobalDefinitions._
-import net.psforever.packet.game.PlanetSideGUID
+import net.psforever.types.PlanetSideGUID
 import org.specs2.mutable._
 
 import scala.collection.mutable.ListBuffer

@@ -8,7 +8,7 @@ import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior}
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.PlanetSideGUID
+import net.psforever.types.PlanetSideGUID
 import services.Service
 import services.avatar.{AvatarAction, AvatarServiceMessage}
 import services.vehicle.{VehicleAction, VehicleServiceMessage}

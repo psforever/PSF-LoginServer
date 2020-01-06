@@ -10,8 +10,7 @@ import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffi
 import net.psforever.objects.serverobject.deploy.{Deployment, DeploymentBehavior}
 import net.psforever.objects.vital.{VehicleShieldCharge, Vitality}
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.PlanetSideGUID
-import net.psforever.types.{DriveState, ExoSuitType, Vector3}
+import net.psforever.types.{DriveState, ExoSuitType, PlanetSideGUID, Vector3}
 import services.{RemoverActor, Service}
 import services.avatar.{AvatarAction, AvatarServiceMessage}
 import services.local.{LocalAction, LocalServiceMessage}

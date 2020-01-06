@@ -1,9 +1,8 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.packet.game.objectcreate
 
-import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.packet.{Marshallable, PacketHelpers}
-import net.psforever.types._
+import net.psforever.types.{PlanetSideGUID, _}
 import scodec.{Attempt, Codec, Err}
 import scodec.codecs._
 import shapeless.{::, HNil}

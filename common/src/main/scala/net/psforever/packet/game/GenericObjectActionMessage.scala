@@ -2,6 +2,7 @@
 package net.psforever.packet.game
 
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PlanetSideGamePacket}
+import net.psforever.types.PlanetSideGUID
 import scodec.bits.BitVector
 import scodec.{Attempt, Codec}
 import scodec.codecs._

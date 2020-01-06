@@ -7,8 +7,7 @@ import net.psforever.objects.inventory.InventoryTile
 import net.psforever.objects.GlobalDefinitions._
 import net.psforever.objects.ce.{DeployedItem, TelepadLike}
 import net.psforever.objects.definition._
-import net.psforever.packet.game.PlanetSideGUID
-import net.psforever.types.CertificationType
+import net.psforever.types.{CertificationType, PlanetSideGUID}
 import org.specs2.mutable._
 
 class EquipmentTest extends Specification {

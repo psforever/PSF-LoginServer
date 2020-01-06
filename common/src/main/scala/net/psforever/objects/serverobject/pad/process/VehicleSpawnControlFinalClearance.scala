@@ -2,8 +2,7 @@
 package net.psforever.objects.serverobject.pad.process
 
 import net.psforever.objects.serverobject.pad.{VehicleSpawnControl, VehicleSpawnPad}
-import net.psforever.packet.game.PlanetSideGUID
-import net.psforever.types.Vector3
+import net.psforever.types.{PlanetSideGUID, Vector3}
 import services.vehicle.{VehicleAction, VehicleServiceMessage}
 
 import scala.concurrent.ExecutionContext.Implicits.global

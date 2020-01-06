@@ -4,7 +4,7 @@ package net.psforever.packet.game
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PlanetSideGamePacket}
 import scodec.Codec
 import scodec.codecs._
-import net.psforever.types.BailType
+import net.psforever.types.{BailType, PlanetSideGUID}
 
 /**
   * Dispatched by the client when the player wishes to get out of a vehicle.

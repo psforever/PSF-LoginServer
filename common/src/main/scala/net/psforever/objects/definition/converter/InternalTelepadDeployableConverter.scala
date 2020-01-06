@@ -3,9 +3,8 @@ package net.psforever.objects.definition.converter
 
 import net.psforever.objects.PlanetSideGameObject
 import net.psforever.objects.ce.TelepadLike
-import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.packet.game.objectcreate._
-import net.psforever.types.PlanetSideEmpire
+import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
 
 import scala.util.{Failure, Success, Try}
 

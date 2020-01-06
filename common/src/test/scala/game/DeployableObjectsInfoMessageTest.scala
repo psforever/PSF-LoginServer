@@ -3,8 +3,8 @@ package game
 
 import org.specs2.mutable._
 import net.psforever.packet._
-import net.psforever.packet.game.{PlanetSideGUID, DeploymentAction, DeployableIcon, DeployableInfo, DeployableObjectsInfoMessage}
-import net.psforever.types.Vector3
+import net.psforever.packet.game.{DeployableIcon, DeployableInfo, DeployableObjectsInfoMessage, DeploymentAction}
+import net.psforever.types.{PlanetSideGUID, Vector3}
 import scodec.bits._
 
 class DeployableObjectsInfoMessageTest extends Specification {

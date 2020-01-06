@@ -7,8 +7,8 @@ import net.psforever.objects.{Avatar, GlobalDefinitions, Player}
 import net.psforever.objects.serverobject.doors.{Door, DoorControl}
 import net.psforever.objects.serverobject.structures.{Building, StructureType}
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.{PlanetSideGUID, UseItemMessage}
-import net.psforever.types.{CharacterGender, CharacterVoice, PlanetSideEmpire, Vector3}
+import net.psforever.packet.game.UseItemMessage
+import net.psforever.types._
 import org.specs2.mutable.Specification
 
 import scala.concurrent.duration.Duration

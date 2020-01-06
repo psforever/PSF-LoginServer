@@ -8,6 +8,8 @@ import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.objects.guid.actor.{NumberPoolActor, Register, UniqueNumberSystem, Unregister}
 import net.psforever.objects.guid.selector.RandomSelector
 import net.psforever.objects.guid.source.LimitedNumberSource
+import net.psforever.types
+import net.psforever.types.PlanetSideGUID
 
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
@@ -237,7 +239,7 @@ class UniqueNumberSystemTest7 extends ActorTest() {
       guid.AddPool("pool3", (5001 to 6000).toList).Selector = new RandomSelector
       val uns = system.actorOf(Props(classOf[UniqueNumberSystem], guid, UniqueNumberSystemTest.AllocateNumberPoolActors(guid)), "uns")
       val testObj = new EntityTestClass()
-      testObj.GUID = net.psforever.packet.game.PlanetSideGUID(6001) //fake registering; number too high
+      testObj.GUID = types.PlanetSideGUID(6001) //fake registering; number too high
       assert(testObj.HasGUID)
       assert(src.CountUsed == 0)
 
@@ -262,7 +264,7 @@ class UniqueNumberSystemTest8 extends ActorTest() {
       guid.AddPool("pool3", (5001 to 6000).toList).Selector = new RandomSelector
       val uns = system.actorOf(Props(classOf[UniqueNumberSystem], guid, UniqueNumberSystemTest.AllocateNumberPoolActors(guid)), "uns")
       val testObj = new EntityTestClass()
-      testObj.GUID = net.psforever.packet.game.PlanetSideGUID(3500) //fake registering
+      testObj.GUID = PlanetSideGUID(3500) //fake registering
       assert(testObj.HasGUID)
       assert(src.CountUsed == 0)
 

@@ -2,7 +2,8 @@
 package services.galaxy
 
 import net.psforever.objects.Vehicle
-import net.psforever.packet.game.{BuildingInfoUpdateMessage, PlanetSideGUID}
+import net.psforever.packet.game.BuildingInfoUpdateMessage
+import net.psforever.types.PlanetSideGUID
 
 final case class GalaxyServiceMessage(forChannel : String, actionMessage : GalaxyAction.Action)
 

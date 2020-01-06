@@ -7,7 +7,7 @@ import net.psforever.objects.guid.{GUIDTask, Task, TaskResolver}
 import net.psforever.objects.serverobject.turret.{FacilityTurret, TurretUpgrade}
 import net.psforever.objects.vehicles.MountedWeapons
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.PlanetSideGUID
+import net.psforever.types.PlanetSideGUID
 import services.support.{SimilarityComparator, SupportActor, SupportActorCaseConversions}
 import services.vehicle.{VehicleAction, VehicleServiceMessage}
 import services.{Service, ServiceManager}

@@ -6,7 +6,7 @@ import net.psforever.objects.{PlanetSideGameObject, TelepadDeployable, Vehicle}
 import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.objects.vehicles.Utility
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.PlanetSideGUID
+import net.psforever.types.PlanetSideGUID
 
 trait TelepadLike {
   private var router : Option[PlanetSideGUID] = None

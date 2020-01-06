@@ -5,9 +5,8 @@ import net.psforever.objects.{PlanetSideGameObject, Vehicle}
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.PlanetSideGamePacket
-import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.packet.game.objectcreate.ConstructorData
-import net.psforever.types.{BailType, DriveState, Vector3}
+import net.psforever.types.{BailType, DriveState, PlanetSideGUID, Vector3}
 
 final case class VehicleServiceMessage(forChannel : String, actionMessage : VehicleAction.Action)
 

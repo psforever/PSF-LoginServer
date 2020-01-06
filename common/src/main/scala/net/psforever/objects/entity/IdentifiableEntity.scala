@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.entity
 
-import net.psforever.packet.game.PlanetSideGUID
+import net.psforever.types.PlanetSideGUID
 
 /**
   * Represent any entity that must have its own globally unique identifier (GUID) to be functional.<br>

@@ -4,7 +4,7 @@ package game
 import org.specs2.mutable._
 import net.psforever.packet._
 import net.psforever.packet.game._
-import net.psforever.types.GrenadeState
+import net.psforever.types.{GrenadeState, PlanetSideGUID}
 import scodec.bits._
 
 class AvatarGrenadeStateMessageTest extends Specification {

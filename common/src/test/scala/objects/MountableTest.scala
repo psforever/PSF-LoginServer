@@ -8,8 +8,7 @@ import net.psforever.objects.definition.{ObjectDefinition, SeatDefinition}
 import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior}
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.vehicles.Seat
-import net.psforever.packet.game.PlanetSideGUID
-import net.psforever.types.{CharacterGender, CharacterVoice, PlanetSideEmpire}
+import net.psforever.types.{CharacterGender, CharacterVoice, PlanetSideEmpire, PlanetSideGUID}
 
 import scala.concurrent.duration.Duration
 

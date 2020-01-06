@@ -9,8 +9,7 @@ import net.psforever.objects.serverobject.structures.{Building, StructureType}
 import net.psforever.objects.serverobject.terminals.{ProximityTerminal, ProximityTerminalControl, ProximityUnit, Terminal}
 import net.psforever.objects.zones.{Zone, ZoneActor, ZoneMap}
 import net.psforever.objects.{Avatar, GlobalDefinitions, Player}
-import net.psforever.packet.game.PlanetSideGUID
-import net.psforever.types.{CharacterGender, CharacterVoice, PlanetSideEmpire}
+import net.psforever.types.{CharacterGender, CharacterVoice, PlanetSideEmpire, PlanetSideGUID}
 import org.specs2.mutable.Specification
 import services.Service
 import services.local.LocalService

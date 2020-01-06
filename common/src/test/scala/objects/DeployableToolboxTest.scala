@@ -4,8 +4,8 @@ package objects
 import net.psforever.objects._
 import net.psforever.objects.avatar.DeployableToolbox
 import net.psforever.objects.ce.{DeployableCategory, DeployedItem}
-import net.psforever.packet.game.PlanetSideGUID
 import net.psforever.types.CertificationType._
+import net.psforever.types.PlanetSideGUID
 import org.specs2.mutable.Specification
 
 class DeployableToolboxTest extends Specification {

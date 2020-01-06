@@ -10,7 +10,7 @@ import net.psforever.objects.definition.{EquipmentDefinition, ObjectDefinition}
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.guid.TaskResolver
 import net.psforever.objects.zones.{Zone, ZoneMap}
-import net.psforever.packet.game.PlanetSideGUID
+import net.psforever.types.PlanetSideGUID
 import services.{RemoverActor, ServiceManager}
 
 import scala.concurrent.duration._

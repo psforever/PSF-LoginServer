@@ -36,7 +36,7 @@ class LoanedKey(private val guid : Int, private val key : Monitor) {
       }
       key.Object = obj
       if(obj.isDefined) {
-        import net.psforever.packet.game.PlanetSideGUID
+        import net.psforever.types.PlanetSideGUID
         obj.get.GUID = PlanetSideGUID(guid)
       }
     }

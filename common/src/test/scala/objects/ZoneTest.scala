@@ -12,8 +12,7 @@ import net.psforever.objects.guid.source.LimitedNumberSource
 import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects._
-import net.psforever.packet.game.PlanetSideGUID
-import net.psforever.types.{CharacterGender, CharacterVoice, PlanetSideEmpire, Vector3}
+import net.psforever.types._
 import net.psforever.objects.serverobject.structures.{Building, FoundationBuilder, StructureType}
 import net.psforever.objects.zones.{Zone, ZoneActor, ZoneMap}
 import net.psforever.objects.Vehicle

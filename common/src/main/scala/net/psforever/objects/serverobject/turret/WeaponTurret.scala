@@ -24,7 +24,9 @@ trait WeaponTurret extends FactionAffinity
   /** may or may not have inaccessible inventory space
     * see `ReserveAmmunition` in the definition */
   protected val inventory : GridInventory = new GridInventory() {
-    import net.psforever.packet.game.PlanetSideGUID
+
+    import net.psforever.types.PlanetSideGUID
+
     override def Remove(index : Int) : Boolean = false
     override def Remove(guid : PlanetSideGUID) : Boolean = false
   }

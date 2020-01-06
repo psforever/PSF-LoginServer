@@ -9,10 +9,10 @@ import net.psforever.objects.serverobject.terminals.{MedicalTerminalDefinition, 
 import net.psforever.objects.vehicles.{Utility, UtilityType}
 import net.psforever.objects.vital.RepairFromTerm
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.{ObjectCreateMessage, PlanetSideGUID}
+import net.psforever.packet.game.ObjectCreateMessage
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import services.vehicle.support.{TurretUpgrader, VehicleRemover}
-import net.psforever.types.DriveState
+import net.psforever.types.{DriveState, PlanetSideGUID}
 import services.local.LocalServiceMessage
 import services.{GenericEventBus, RemoverActor, Service}
 
