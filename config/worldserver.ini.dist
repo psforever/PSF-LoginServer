@@ -19,6 +19,58 @@
 ###################################################################################################
 
 ###################################################################################################
+# DATABASE SETTINGS
+###################################################################################################
+
+[database]
+
+#    Hostname (string)
+#        Description: The hostname of the PostgreSQL server.
+#        Important:   Make sure your database isn't accessible outside of localhost without a
+#                     strong username and password!
+#        Default:     "localhost"
+
+Hostname = "localhost"
+
+#    Port (int)
+#        Description: The TCP port to connect to the database with.
+#        Range:       [1, 65535] - (TCP port 1, TCP port 65535)
+#        Default:     5432       - (Connect to TCP port 5432 -- the default for PostgreSQL)
+
+Port = 5432
+
+#    SSL (enum)
+#        Description: The SSL configuration of the database connection.
+#        Values:      Disable - (Do not use SSL -- not recommended for public servers)
+#                     Prefer  - (Try SSL first, but fallback to unencrypted)
+#                     Require - (Use SSL and fail if it is not enabled or configured correctly
+#                     Verify  - (Use SSL and verify that the certificate is authentic)
+#        Default:     Prefer
+
+SSL = Prefer
+
+#    Database (string)
+#        Description: The database name to use on the SQL server.
+#        Important:   Make sure your username has been granted SELECT and INSERT access to
+#                     the database.
+#        Default:     "psforever"
+
+Database = "psforever"
+
+#    Username (string)
+#        Description: The username to connect to the SQL server with.
+#        Default:     "psforever"
+
+Username = "psforever"
+
+#    Password (string)
+#        Description: The password to connect to the SQL server with.
+#        Important:   CHANGE THIS PASSWORD BEFORE RUNNING A PUBLIC SERVER.
+#        Default:     "psforever"
+
+Password = "psforever"
+
+###################################################################################################
 # WORLDSERVER SETTINGS
 ###################################################################################################
 
@@ -32,6 +84,29 @@
 #        Default:     51001      - (Listen on UDP port 51001)
 
 ListeningPort = 51001
+
+#    Hostname (string)
+#        Description: The server's public hostname or IP address. Required when the server is
+#                     behind a proxy or running in a container/virtual machine.
+#        Important:   If left as the default, the hostname will be the same as the primary
+#                     internet interface.
+#        Default:     ""
+
+Hostname = ""
+
+#    ServerName (string)
+#        Description: The name of the server as displayed in the server browser.
+#        Range:       Length = [1, 31]
+#        Default:     "PSForever"
+
+ServerName = "PSForever"
+
+#    ServerType (enum)
+#        Description: How the server is displayed in the server browser.
+#        Values:      Released, Beta, Development
+#        Default:     Released
+
+ServerType = Released
 
 ###################################################################################################
 # LOGINSERVER SETTINGS
@@ -47,6 +122,17 @@ ListeningPort = 51001
 #        Default:     51000      - (Listen on UDP port 5100)
 
 ListeningPort = 51000
+
+#    CreateMissingAccounts (boolean)
+#        Description: Account usernames that don't exist yet will be automatically created in the
+#                     database. Useful for test servers and development testing.
+#        Important:   Not recommended for production servers as typos are easy to make on
+#                     first registration. Use PSFPortal (https://github.com/psforever/PSFPortal)
+#                     instead.
+#        Default:     yes - (Enabled)
+#                     no  - (Disabled)
+
+CreateMissingAccounts = yes
 
 ###################################################################################################
 # NETWORK SETTINGS
@@ -94,6 +180,7 @@ Session.OutboundGraceTime = 1 minute
 #                     the memory load of the server and it will (by design) affect performance.
 #        Default:     no  - (Disabled)
 #                     yes - (Enabled)
+
 NetSim.Active = no
 
 #    NetSim.Loss (float)

@@ -196,7 +196,7 @@ trait Constraints {
     require(error != null, "error must not be null")
 
     if (o == null) Invalid(ValidationError(error, regex))
-    else regex.unapplySeq(o).map(_ => Valid).getOrElse(Invalid(ValidationError(error, regex)))
+    else regex.unapplySeq(o).map(_ => Valid).getOrElse(Invalid(ValidationError(error, name)))
   }
 
 }

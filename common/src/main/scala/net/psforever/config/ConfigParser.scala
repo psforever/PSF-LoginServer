@@ -3,6 +3,7 @@ package net.psforever.config
 
 import org.ini4j
 import scala.reflect.ClassTag
+import scala.reflect.runtime.universe.TypeTag
 import scala.annotation.implicitNotFound
 import scala.concurrent.duration._
 
@@ -11,9 +12,22 @@ case class ConfigValueMapper[T](name: String)(f: (String => Option[T])) {
 }
 
 object ConfigValueMapper {
+  import scala.language.implicitConversions
+
   implicit val toInt : ConfigValueMapper[Int] = ConfigValueMapper[Int]("toInt") { e =>
     try {
       Some(e.toInt)
+    } catch {
+      case e: Exception => None
+    }
+  }
+
+  // TypeTag is necessary to be able to retrieve an instance of the Enum class
+  // at runtime as it is usually erased at runtime. This is low cost as its only
+  // used during the config parsing
+  implicit def toEnum[E <: Enumeration#Value](implicit m: TypeTag[E]) : ConfigValueMapper[E] = ConfigValueMapper[E]("toEnum") { e =>
+    try {
+      Some(EnumReflector.withName[E](e))
     } catch {
       case e: Exception => None
     }
@@ -75,6 +89,13 @@ final case class ConfigEntryBool(key: String, default : Boolean, constraints : C
   type Value = Boolean
   def getType = "Bool"
   def read(v : String) = ConfigValueMapper.toBool(v)
+}
+
+final case class ConfigEntryEnum[E <: Enumeration](key: String, default : E#Value)(implicit m : TypeTag[E#Value], implicit val m2 : TypeTag[E#ValueSet]) extends ConfigEntry {
+  type Value = E#Value
+  val constraints : Seq[Constraint[E#Value]] = Seq()
+  def getType = EnumReflector.values[E#ValueSet](m2).toString
+  def read(v : String) = ConfigValueMapper.toEnum[E#Value](m)(v)
 }
 
 final case class ConfigEntryFloat(key: String, default : Float, constraints : Constraint[Float]*) extends ConfigEntry {
@@ -171,7 +192,7 @@ trait ConfigParser {
     val full_key = sectionIni.getName + "." + entry.key
 
     val value = if (rawValue == null) {
-      // warn about defaults from unset parameters?
+      println(s"config warning: missing key '${entry.key}', using default value '${entry.default}'")
       entry.default
     } else {
       rawValue = rawValue.stripPrefix("\"").stripSuffix("\"")

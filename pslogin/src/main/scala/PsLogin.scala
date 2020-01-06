@@ -201,6 +201,13 @@ object PsLogin {
         sys.exit(1)
     }
 
+    Database.testConnection match {
+      case scala.util.Failure(e) =>
+        logger.error("Unable to connect to the database")
+        sys.exit(1)
+      case _ =>
+    }
+
     logger.info("Starting actor subsystems...")
 
     /** Make sure we capture Akka messages (but only INFO and above)

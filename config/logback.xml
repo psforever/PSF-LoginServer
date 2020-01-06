@@ -36,4 +36,7 @@
     <appender-ref ref="FILE-TRACE" />
     <appender-ref ref="FILE-DEBUG" />
   </root>
+
+  <!-- Logger specific overrides -->
+  <logger name="com.github.mauricio.async" level="OFF"/>
 </configuration>

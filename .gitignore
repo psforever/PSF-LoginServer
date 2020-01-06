@@ -9,6 +9,9 @@ out/
 *.ipr
 *.iml
 
+# User configs
+config/worldserver.ini
+
 # Log files
 *.log
 logs/

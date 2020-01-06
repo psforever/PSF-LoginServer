@@ -1,5 +1,6 @@
 // Copyright (c) 2017 PSForever
 import java.net.InetSocketAddress
+import java.net.InetAddress
 
 import akka.actor.{Actor, ActorRef, Cancellable, MDCContextAware}
 import net.psforever.packet.{PlanetSideGamePacket, _}
@@ -44,6 +45,16 @@ class LoginSessionActor extends Actor with MDCContextAware {
   var hostName : String = ""
   var canonicalHostName : String = ""
   var port : Int = 0
+
+  val serverName = WorldConfig.Get[String]("worldserver.ServerName");
+
+  // This MUST be an IP address. The client DOES NOT do name resolution 
+  var serverHost : String = if (WorldConfig.Get[String]("worldserver.Hostname") != "")
+    InetAddress.getByName(WorldConfig.Get[String]("worldserver.Hostname")).getHostAddress
+  else
+    LoginConfig.serverIpAddress.getHostAddress
+
+  val serverAddress = new InetSocketAddress(serverHost, WorldConfig.Get[Int]("worldserver.ListeningPort"))
 
   private val numBcryptPasses = 4
 
@@ -102,11 +113,6 @@ class LoginSessionActor extends Actor with MDCContextAware {
         log.error(s"Unhandled ControlPacket $default")
     }
   }
-
-  // TODO: move to global configuration or database lookup
-  val serverName = "PSForever"
-  val serverAddress = new InetSocketAddress(LoginConfig.serverIpAddress.getHostAddress, 51001)
-//  val serverAddress = new InetSocketAddress("62.210.250.199", 51401)
 
   def handleGamePkt(pkt : PlanetSideGamePacket) = pkt match {
     case LoginMessage(majorVersion, minorVersion, buildDate, username, password, token, revision) =>
@@ -181,8 +187,13 @@ class LoginSessionActor extends Actor with MDCContextAware {
         // If the account didn't exist in the database
         case errorCode: Int => errorCode match {
           case Database.EMPTY_RESULT =>
-            self ! CreateNewAccount(connection, username, password, newToken)
-            context.become(createNewAccount)
+            if (WorldConfig.Get[Boolean]("loginserver.CreateMissingAccounts")) {
+              self ! CreateNewAccount(connection, username, password, newToken)
+              context.become(createNewAccount)
+            } else {
+              context.become(finishAccountLogin)
+              self ! FinishAccountLogin(connection, username, newToken, false)
+            }
 
           case _ =>
             log.error(s"Issue retrieving result set from database for account $username")
@@ -334,7 +345,8 @@ class LoginSessionActor extends Actor with MDCContextAware {
     val msg = VNLWorldStatusMessage("Welcome to PlanetSide! ",
       Vector(
         WorldInformation(
-          serverName, WorldStatus.Up, ServerType.Beta, Vector(WorldConnectionInfo(serverAddress)), PlanetSideEmpire.VS
+          serverName, WorldStatus.Up,
+          WorldConfig.Get[ServerType.Value]("worldserver.ServerType"), Vector(WorldConnectionInfo(serverAddress)), PlanetSideEmpire.VS
         )
       )
     )
