@@ -8,7 +8,12 @@ lazy val commonSettings = Seq(
   testOptions in QuietTest += Tests.Argument(TestFrameworks.Specs2, "xonly"),
   // http://www.scalatest.org/user_guide/using_the_runner
   testOptions in QuietTest += Tests.Argument(TestFrameworks.ScalaTest, "-oNCXELOPQRMI"),
-
+  // TODO: remove when upgraded to SBT 1.0+ https://github.com/sbt/sbt/pull/2747/files
+  ivyLoggingLevel := {
+    // This will suppress "Resolving..." logs on Jenkins and Travis.
+    if (sys.env.get("BUILD_NUMBER").isDefined || sys.env.get("CI").isDefined) UpdateLogging.Quiet
+    else UpdateLogging.Default
+  },
   // Trick taken from https://groups.google.com/d/msg/scala-user/mxV9ok7J_Eg/kt-LnsrD0bkJ
   // scaladoc flags: https://github.com/scala/scala/blob/2.11.x/src/scaladoc/scala/tools/nsc/doc/Settings.scala
   scalacOptions in (Compile,doc) <<= baseDirectory map {
