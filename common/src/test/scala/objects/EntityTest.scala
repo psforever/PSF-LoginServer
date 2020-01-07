@@ -4,13 +4,51 @@ package objects
 import net.psforever.objects.PlanetSideGameObject
 import net.psforever.objects.definition.ObjectDefinition
 import net.psforever.objects.entity.NoGUIDException
-import net.psforever.types.{PlanetSideGUID, Vector3}
+import net.psforever.types.{PlanetSideGUID, StalePlanetSideGUID, ValidPlanetSideGUID, Vector3}
 import org.specs2.mutable._
 
 class EntityTest extends Specification {
   //both WorldEntity and IdentifiableEntity are components of PlanetSideGameObject
   private class EntityTestClass extends PlanetSideGameObject {
     def Definition : ObjectDefinition = new ObjectDefinition(0) { }
+  }
+
+  "PlanetSideGUID" should {
+    "construct as valid" in {
+      ValidPlanetSideGUID(1).isInstanceOf[PlanetSideGUID] mustEqual true
+    }
+
+    "construct as stale" in {
+      StalePlanetSideGUID(1).isInstanceOf[PlanetSideGUID] mustEqual true
+    }
+
+    "apply construct (as valid)" in {
+      val guid = PlanetSideGUID(1)
+      guid.isInstanceOf[PlanetSideGUID] mustEqual true
+      guid.isInstanceOf[ValidPlanetSideGUID] mustEqual true
+      guid.isInstanceOf[StalePlanetSideGUID] mustEqual false
+    }
+
+    "valid and stale are equal by guid" in {
+      //your linter will complain; let it
+      ValidPlanetSideGUID(1) == StalePlanetSideGUID(1) mustEqual true
+      ValidPlanetSideGUID(1) == StalePlanetSideGUID(2) mustEqual false
+    }
+
+    "valid and stale are pattern-matchable" in {
+      val guid1 : PlanetSideGUID = ValidPlanetSideGUID(1)
+      val guid2 : PlanetSideGUID = StalePlanetSideGUID(1)
+      def getGuid(o : PlanetSideGUID) : PlanetSideGUID = o //distancing the proper type
+
+      getGuid(guid1) match {
+        case ValidPlanetSideGUID(1) => ok
+        case _ => ko
+      }
+      getGuid(guid2) match {
+        case StalePlanetSideGUID(1) => ok
+        case _ => ko
+      }
+    }
   }
 
   "SimpleWorldEntity" should {
@@ -107,64 +145,129 @@ class EntityTest extends Specification {
 
     "error while not set" in {
       val obj : EntityTestClass = new EntityTestClass
-      obj.HasGUID mustEqual false
       obj.GUID must throwA[NoGUIDException]
     }
 
-    "work after mutation" in {
+    "error if set to an invalid GUID before being set to a valid GUID" in {
+      val obj : EntityTestClass = new EntityTestClass
+      obj.GUID must throwA[NoGUIDException]
+      (obj.GUID = StalePlanetSideGUID(1)) must throwA[NoGUIDException]
+    }
+
+    "work after valid mutation" in {
       val obj : EntityTestClass = new EntityTestClass
       obj.GUID = PlanetSideGUID(1051)
-      obj.HasGUID mustEqual true
       obj.GUID mustEqual PlanetSideGUID(1051)
     }
 
-    "work after multiple mutations" in {
+    "ignore subsequent mutations using a valid GUID" in {
       val obj : EntityTestClass = new EntityTestClass
       obj.GUID = PlanetSideGUID(1051)
       obj.GUID mustEqual PlanetSideGUID(1051)
-      obj.GUID = PlanetSideGUID(30052)
-      obj.GUID mustEqual PlanetSideGUID(30052)
-      obj.GUID = PlanetSideGUID(62)
-      obj.GUID mustEqual PlanetSideGUID(62)
+      obj.GUID = ValidPlanetSideGUID(1)
+      obj.GUID mustEqual PlanetSideGUID(1051)
     }
 
-    "invalidate and report as not having a GUID, but continue to work" in {
+    "ignore subsequent mutations using an invalid GUID" in {
       val obj : EntityTestClass = new EntityTestClass
       obj.GUID = PlanetSideGUID(1051)
-      obj.HasGUID mustEqual true
       obj.GUID mustEqual PlanetSideGUID(1051)
+      obj.GUID = StalePlanetSideGUID(1)
+      obj.GUID mustEqual PlanetSideGUID(1051)
+    }
+
+    "invalidate does nothing by default" in {
+      val obj : EntityTestClass = new EntityTestClass
+      obj.Invalidate()
+      obj.GUID must throwA[NoGUIDException]
+    }
+
+    "invalidate changes the nature of the previous valid mutation" in {
+      val obj : EntityTestClass = new EntityTestClass
+      obj.GUID = PlanetSideGUID(1051)
+      obj.GUID mustEqual PlanetSideGUID(1051)
+      obj.GUID.isInstanceOf[ValidPlanetSideGUID] mustEqual true
+      obj.Invalidate()
+      obj.GUID mustEqual PlanetSideGUID(1051)
+      obj.GUID.isInstanceOf[StalePlanetSideGUID] mustEqual true
+    }
+
+    "setting an invalid GUID after invalidating the previous valid mutation returns the same" in {
+      val obj : EntityTestClass = new EntityTestClass
+      obj.GUID = PlanetSideGUID(1051)
+      obj.GUID mustEqual PlanetSideGUID(1051)
+      obj.GUID.isInstanceOf[ValidPlanetSideGUID] mustEqual true
+      obj.Invalidate()
+      obj.GUID mustEqual PlanetSideGUID(1051)
+      obj.GUID.isInstanceOf[StalePlanetSideGUID] mustEqual true
+      obj.GUID = StalePlanetSideGUID(2)
+      obj.GUID mustEqual PlanetSideGUID(1051)
+      obj.GUID.isInstanceOf[StalePlanetSideGUID] mustEqual true
+    }
+
+    "setting a valid GUID after invalidating correctly sets the new valid GUID" in {
+      val obj : EntityTestClass = new EntityTestClass
+      obj.GUID = PlanetSideGUID(1051)
+      obj.GUID mustEqual PlanetSideGUID(1051)
+      obj.GUID.isInstanceOf[ValidPlanetSideGUID] mustEqual true
+      obj.Invalidate()
+      obj.GUID mustEqual PlanetSideGUID(1051)
+      obj.GUID.isInstanceOf[StalePlanetSideGUID] mustEqual true
+      obj.GUID = PlanetSideGUID(2)
+      obj.GUID mustEqual PlanetSideGUID(2)
+      obj.GUID.isInstanceOf[ValidPlanetSideGUID] mustEqual true
+    }
+
+    "setting the same valid GUID after invalidating correctly resets the valid GUID" in {
+      val obj : EntityTestClass = new EntityTestClass
+      obj.GUID = PlanetSideGUID(1051)
+      obj.GUID mustEqual PlanetSideGUID(1051)
+      obj.GUID.isInstanceOf[ValidPlanetSideGUID] mustEqual true
+      obj.Invalidate()
+      obj.GUID mustEqual PlanetSideGUID(1051)
+      obj.GUID.isInstanceOf[StalePlanetSideGUID] mustEqual true
+      obj.GUID = PlanetSideGUID(1051)
+      obj.GUID mustEqual PlanetSideGUID(1051)
+      obj.GUID.isInstanceOf[ValidPlanetSideGUID] mustEqual true
+    }
+
+    "report not having a GUID when not set" in {
+      val obj : EntityTestClass = new EntityTestClass
+      obj.HasGUID mustEqual false
+    }
+
+    "report having a GUID when a valid GUID is set" in {
+      val obj : EntityTestClass = new EntityTestClass
+      obj.HasGUID mustEqual false
+      obj.GUID = PlanetSideGUID(1051)
+      obj.HasGUID mustEqual true
+    }
+
+    "report not having a GUID after invalidating (staleness)" in {
+      val obj : EntityTestClass = new EntityTestClass
+      obj.HasGUID mustEqual false
+      obj.GUID = PlanetSideGUID(1051)
+      obj.HasGUID mustEqual true
       obj.Invalidate()
       obj.HasGUID mustEqual false
+      //remember that we will still return a GUID in this case
       obj.GUID mustEqual PlanetSideGUID(1051)
     }
 
-    "assign a new GUID after invalidation and continue to work" in {
+    "report having a GUID after setting a valid GUID, after invalidating" in {
       val obj : EntityTestClass = new EntityTestClass
+      obj.HasGUID mustEqual false
       obj.GUID = PlanetSideGUID(1051)
       obj.HasGUID mustEqual true
-      obj.GUID mustEqual PlanetSideGUID(1051)
       obj.Invalidate()
-      obj.GUID mustEqual PlanetSideGUID(1051)
       obj.HasGUID mustEqual false
-
-      obj.GUID = PlanetSideGUID(1052)
+      obj.GUID = PlanetSideGUID(2)
       obj.HasGUID mustEqual true
-      obj.GUID mustEqual PlanetSideGUID(1052)
     }
+  }
 
-    "assignthe same GUID after invalidation and continue to work" in {
-      val obj : EntityTestClass = new EntityTestClass
-      val guid = new PlanetSideGUID(1051)
-      obj.GUID = guid
-      obj.HasGUID mustEqual true
-      obj.GUID mustEqual guid
-      obj.Invalidate()
-      obj.GUID mustEqual guid
-      obj.HasGUID mustEqual false
-
-      obj.GUID = guid
-      obj.HasGUID mustEqual true
-      obj.GUID mustEqual guid
-    }
+  "hachCode test" in {
+    ValidPlanetSideGUID(1051).hashCode mustEqual ValidPlanetSideGUID(1051).hashCode
+    ValidPlanetSideGUID(1051).hashCode mustEqual StalePlanetSideGUID(1051).hashCode
   }
 }

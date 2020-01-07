@@ -15,16 +15,16 @@ class DeployableTest extends Specification {
   "Deployable" should {
     "know its owner by GUID" in {
       val obj = new ExplosiveDeployable(GlobalDefinitions.he_mine)
-      obj.Owner mustEqual None
+      obj.Owner.isEmpty mustEqual true
       obj.Owner = PlanetSideGUID(10)
-      obj.Owner mustEqual Some(PlanetSideGUID(10))
+      obj.Owner.contains(PlanetSideGUID(10)) mustEqual true
     }
 
     "know its owner by GUID" in {
       val obj = new ExplosiveDeployable(GlobalDefinitions.he_mine)
-      obj.OwnerName mustEqual None
+      obj.OwnerName.isEmpty mustEqual true
       obj.OwnerName = "TestCharacter"
-      obj.OwnerName mustEqual Some("TestCharacter")
+      obj.OwnerName.contains("TestCharacter") mustEqual true
     }
 
     "know its faction allegiance" in {
@@ -66,7 +66,7 @@ class BoomerDeployableTest extends Specification {
     "construct" in {
       val obj = new BoomerDeployable(GlobalDefinitions.boomer)
       obj.Exploded mustEqual false
-      obj.Trigger mustEqual None
+      obj.Trigger.isEmpty mustEqual true
     }
 
     "explode" in {
@@ -78,14 +78,14 @@ class BoomerDeployableTest extends Specification {
 
     "manage its trigger" in {
       val obj = new BoomerDeployable(GlobalDefinitions.boomer)
-      obj.Trigger mustEqual None
+      obj.Trigger.isEmpty mustEqual true
 
       val trigger = new BoomerTrigger
       obj.Trigger = trigger
-      obj.Trigger mustEqual Some(trigger)
+      obj.Trigger.contains(trigger) mustEqual true
 
       obj.Trigger = None
-      obj.Trigger mustEqual None
+      obj.Trigger.isEmpty mustEqual true
     }
   }
 }
@@ -322,7 +322,7 @@ class TelepadDeployableTest extends Specification {
     "construct" in {
       val obj = new Telepad(GlobalDefinitions.router_telepad)
       obj.Active mustEqual false
-      obj.Router mustEqual None
+      obj.Router.isEmpty mustEqual true
     }
 
     "activate and deactivate" in {
@@ -336,15 +336,15 @@ class TelepadDeployableTest extends Specification {
 
     "keep track of a Router" in {
       val obj = new Telepad(GlobalDefinitions.router_telepad)
-      obj.Router mustEqual None
+      obj.Router.isEmpty mustEqual true
       obj.Router = PlanetSideGUID(1)
-      obj.Router mustEqual Some(PlanetSideGUID(1))
+      obj.Router.contains(PlanetSideGUID(1)) mustEqual true
       obj.Router = None
-      obj.Router mustEqual None
+      obj.Router.isEmpty mustEqual true
       obj.Router = PlanetSideGUID(1)
-      obj.Router mustEqual Some(PlanetSideGUID(1))
+      obj.Router.contains(PlanetSideGUID(1)) mustEqual true
       obj.Router = PlanetSideGUID(0)
-      obj.Router mustEqual None
+      obj.Router.isEmpty mustEqual true
     }
   }
 }
