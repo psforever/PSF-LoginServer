@@ -3,8 +3,14 @@ lazy val commonSettings = Seq(
   version := "1.0.2-SNAPSHOT",
   scalaVersion := "2.11.8",
   scalacOptions := Seq("-unchecked", "-feature", "-deprecation", "-encoding", "utf8", "-language:postfixOps"),
-  // scaladoc flags: https://github.com/scala/scala/blob/2.11.x/src/scaladoc/scala/tools/nsc/doc/Settings.scala
+
+  // Quiet test options
+  testOptions in QuietTest += Tests.Argument(TestFrameworks.Specs2, "xonly"),
+  // http://www.scalatest.org/user_guide/using_the_runner
+  testOptions in QuietTest += Tests.Argument(TestFrameworks.ScalaTest, "-oNCXELOPQRMI"),
+
   // Trick taken from https://groups.google.com/d/msg/scala-user/mxV9ok7J_Eg/kt-LnsrD0bkJ
+  // scaladoc flags: https://github.com/scala/scala/blob/2.11.x/src/scaladoc/scala/tools/nsc/doc/Settings.scala
   scalacOptions in (Compile,doc) <<= baseDirectory map {
     bd => Seq(
     "-groups",
@@ -54,26 +60,36 @@ lazy val psloginPackSettings = packAutoSettings ++ Seq(
 )
 
 lazy val root = (project in file(".")).
+  configs(QuietTest).
   settings(commonSettings: _*).
   //enablePlugins(ScalaUnidocPlugin).
   settings(psloginPackSettings: _*).
   aggregate(pslogin, common)
 
 lazy val pslogin = (project in file("pslogin")).
+  configs(QuietTest).
   settings(commonSettings: _*).
   settings(
     name := "pslogin",
     // ActorTests have specific timing requirements and will be flaky if run in parallel
     parallelExecution in Test := false,
     // TODO(chord): remove exclusion when WorldSessionActor is refactored: https://github.com/psforever/PSF-LoginServer/issues/279
-    coverageExcludedPackages :=  "WorldSessionActor.*;zonemaps.*"
+    coverageExcludedPackages :=  "WorldSessionActor.*;zonemaps.*",
+    // Copy all tests from Test -> QuietTest (we're only changing the run options)
+    inConfig(QuietTest)(Defaults.testTasks)
   ).
   settings(pscryptoSettings: _*).
   dependsOn(common)
 
 lazy val common = (project in file("common")).
+  configs(QuietTest).
   settings(commonSettings: _*).
   settings(
-    name := "common"
+    name := "common",
+    // Copy all tests from Test -> QuietTest (we're only changing the run options)
+    inConfig(QuietTest)(Defaults.testTasks)
   ).
   settings(pscryptoSettings: _*)
+
+// Special test configuration for really quiet tests (used in CI)
+lazy val QuietTest = config("quiet") extend(Test)

@@ -5,8 +5,8 @@ dist: trusty
 scala:
   - 2.11.8
 env:
-  - SBT_COMMAND="test:compile test packArchiveZip"
-  - SBT_COMMAND="coverage test:compile test coverageReport"
+  - SBT_COMMAND="test:compile quiet:test packArchiveZip"
+  - SBT_COMMAND="coverage test:compile quiet:test coverageReport"
 
 cache:
   directories:
