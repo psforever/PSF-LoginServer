@@ -83,6 +83,7 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends AmenityOwner
   private var jammered : Boolean = false
   private var cloaked : Boolean = false
   private var flying : Boolean = false
+  private var ntuCapacitor : Int = 0
   private var capacitor : Int = 0
   /**
     * Permissions control who gets to access different parts of the vehicle;
@@ -196,11 +197,24 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends AmenityOwner
     Flying
   }
 
+  def NtuCapacitor : Int = ntuCapacitor
+
+  def NtuCapacitor_=(value: Int) : Int = {
+    if(value > Definition.MaxNtuCapacitor) {
+      ntuCapacitor = Definition.MaxNtuCapacitor
+    } else if (value < 0) {
+      ntuCapacitor = 0
+    } else {
+      ntuCapacitor = value
+    }
+    NtuCapacitor
+  }
+
   def Capacitor : Int = capacitor
 
   def Capacitor_=(value: Int) : Int = {
-    if(value > Definition.MaximumCapacitor) {
-      capacitor = Definition.MaximumCapacitor
+    if(value > Definition.MaxCapacitor) {
+      capacitor = Definition.MaxCapacitor
     } else if (value < 0) {
       capacitor = 0
     } else {

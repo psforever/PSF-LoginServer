@@ -40,7 +40,8 @@ class VehicleDefinition(objectId : Int) extends ObjectDefinition(objectId)
   private var canBeOwned : Boolean = true
   private var serverVehicleOverrideSpeeds : (Int, Int) = (0, 0)
   private var deconTime : Option[FiniteDuration] = None
-  private var maximumCapacitor : Int = 0
+  private var maxCapacitor : Int = 0
+  private var maxNtuCapacitor : Int = 0
   private var destroyedModel : Option[DestroyedVehicle.Value] = None
   Name = "vehicle"
   Packet = VehicleDefinition.converter
@@ -153,11 +154,18 @@ class VehicleDefinition(objectId : Int) extends ObjectDefinition(objectId)
 
   def AutoPilotSpeed2 : Int = serverVehicleOverrideSpeeds._2
 
-  def MaximumCapacitor : Int = maximumCapacitor
+  def MaxNtuCapacitor : Int = maxNtuCapacitor
 
-  def MaximumCapacitor_=(maxCapacitor: Int) : Int = {
-    maximumCapacitor = maxCapacitor
-    MaximumCapacitor
+  def MaxNtuCapacitor_=(max: Int) : Int = {
+    maxNtuCapacitor = max
+    MaxNtuCapacitor
+  }
+
+  def MaxCapacitor : Int = maxCapacitor
+
+  def MaxCapacitor_=(max: Int) : Int = {
+    maxCapacitor = max
+    MaxCapacitor
   }
 
   private var jackDuration = Array(0, 0, 0, 0)

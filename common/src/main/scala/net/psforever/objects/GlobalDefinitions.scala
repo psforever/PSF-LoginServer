@@ -5564,7 +5564,7 @@ object GlobalDefinitions {
     ant.DeployTime = 1500
     ant.UndeployTime = 1500
     ant.AutoPilotSpeeds = (18, 6)
-    ant.MaximumCapacitor = 1500
+    ant.MaxNtuCapacitor = 1500
     ant.Packet = utilityConverter
     ant.DestroyedModel = Some(DestroyedVehicle.Ant)
     ant.Subtract.Damage1 = 5

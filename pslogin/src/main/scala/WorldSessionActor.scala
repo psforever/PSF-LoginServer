@@ -1781,8 +1781,16 @@ class WorldSessionActor extends Actor
         log.info(s"MountVehicleMsg: $player_guid mounts $obj_guid @ $seat_num")
         PlayerActionsToCancel()
         sendResponse(PlanetsideAttributeMessage(obj_guid, 0, obj.Health))
-        sendResponse(PlanetsideAttributeMessage(obj_guid, 68, 0)) //shield health
-        sendResponse(PlanetsideAttributeMessage(obj_guid, 113, 0)) //capacitor
+        sendResponse(PlanetsideAttributeMessage(obj_guid, 68, obj.Shields)) //shield health
+        if(obj.Definition.MaxNtuCapacitor > 0) {
+          val ntuCapacitor = scala.math.ceil((obj.NtuCapacitor.toFloat / obj.Definition.MaxNtuCapacitor.toFloat) * 10).toInt
+          sendResponse(PlanetsideAttributeMessage(obj_guid, 45, ntuCapacitor))
+        }
+        if(obj.Definition.MaxCapacitor > 0) {
+          val capacitor = scala.math.ceil((obj.Capacitor.toFloat / obj.Definition.MaxCapacitor.toFloat) * 10).toInt
+          sendResponse(PlanetsideAttributeMessage(obj_guid, 113, capacitor))
+        }
+
         if(seat_num == 0) {
           continent.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(obj), continent)) //clear timer
           //simplistic vehicle ownership management
@@ -2928,10 +2936,10 @@ class WorldSessionActor extends Actor
     */
   def HandleNtuCharging(tplayer : Player, vehicle : Vehicle) : Unit = {
     log.trace(s"NtuCharging: Vehicle ${vehicle.GUID} is charging NTU capacitor.")
-    if(vehicle.Capacitor < vehicle.Definition.MaximumCapacitor) {
+    if(vehicle.NtuCapacitor < vehicle.Definition.MaxNtuCapacitor) {
       // Charging
-      vehicle.Capacitor += 100
-      sendResponse(PlanetsideAttributeMessage(vehicle.GUID, 45, scala.math.ceil((vehicle.Capacitor.toFloat / vehicle.Definition.MaximumCapacitor.toFloat) * 10).toInt)) // set ntu on vehicle UI
+      vehicle.NtuCapacitor += 100
+      sendResponse(PlanetsideAttributeMessage(vehicle.GUID, 45, scala.math.ceil((vehicle.NtuCapacitor.toFloat / vehicle.Definition.MaxNtuCapacitor.toFloat) * 10).toInt)) // set ntu on vehicle UI
       continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(vehicle.GUID, 52, 1L)) // panel glow on
       continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(vehicle.GUID, 49, 1L)) // orb particle effect on
 
@@ -2939,7 +2947,7 @@ class WorldSessionActor extends Actor
     }
     else {
       // Fully charged
-      sendResponse(PlanetsideAttributeMessage(vehicle.GUID, 45, scala.math.ceil((vehicle.Capacitor.toFloat / vehicle.Definition.MaximumCapacitor.toFloat) * 10).toInt)) // set ntu on vehicle UI
+      sendResponse(PlanetsideAttributeMessage(vehicle.GUID, 45, scala.math.ceil((vehicle.NtuCapacitor.toFloat / vehicle.Definition.MaxNtuCapacitor.toFloat) * 10).toInt)) // set ntu on vehicle UI
 
       // Turning off glow/orb effects on ANT doesn't seem to work when deployed. Try to undeploy ANT from server side
       context.system.scheduler.scheduleOnce(vehicle.UndeployTime milliseconds, vehicle.Actor, Deployment.TryUndeploy(DriveState.Undeploying))
@@ -2960,21 +2968,21 @@ class WorldSessionActor extends Actor
     var silo = continent.GUID(silo_guid).get.asInstanceOf[ResourceSilo]
     // Check vehicle is still deployed before continuing. User can undeploy manually or vehicle may not longer be present.
     if(vehicle.DeploymentState == DriveState.Deployed) {
-      if(vehicle.Capacitor > 0 && silo.ChargeLevel < silo.MaximumCharge) {
+      if(vehicle.NtuCapacitor > 0 && silo.ChargeLevel < silo.MaximumCharge) {
 
         // Make sure we don't exceed the silo maximum charge or remove much NTU from ANT if maximum is reached, or try to make ANT go below 0 NTU
-        var chargeToDeposit = Math.min(Math.min(vehicle.Capacitor, 100), (silo.MaximumCharge - silo.ChargeLevel))
-        vehicle.Capacitor -= chargeToDeposit
+        var chargeToDeposit = Math.min(Math.min(vehicle.NtuCapacitor, 100), (silo.MaximumCharge - silo.ChargeLevel))
+        vehicle.NtuCapacitor -= chargeToDeposit
         silo.Actor ! ResourceSilo.UpdateChargeLevel(chargeToDeposit)
         continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(silo_guid, 49, 1L)) // panel glow on & orb particles on
-        sendResponse(PlanetsideAttributeMessage(vehicle.GUID, 45, scala.math.ceil((vehicle.Capacitor.toFloat / vehicle.Definition.MaximumCapacitor.toFloat) * 10).toInt)) // set ntu on vehicle UI
+        sendResponse(PlanetsideAttributeMessage(vehicle.GUID, 45, scala.math.ceil((vehicle.NtuCapacitor.toFloat / vehicle.Definition.MaxNtuCapacitor.toFloat) * 10).toInt)) // set ntu on vehicle UI
 
         //todo: grant BEP to user
         //todo: grant BEP to squad in range
 
         //todo: handle silo orb / panel glow properly if more than one person is refilling silo and one player stops. effects should stay on until all players stop
 
-        if(vehicle.Capacitor > 0 && silo.ChargeLevel < silo.MaximumCharge) {
+        if(vehicle.NtuCapacitor > 0 && silo.ChargeLevel < silo.MaximumCharge) {
           log.trace(s"NtuDischarging: ANT not empty and Silo not full. Scheduling another discharge")
           // Silo still not full and ant still has charge left - keep rescheduling ticks
           antDischargingTick = context.system.scheduler.scheduleOnce(1000 milliseconds, self, NtuDischarging(player, vehicle, silo_guid))
@@ -2989,7 +2997,7 @@ class WorldSessionActor extends Actor
       }
       else {
         // This shouldn't normally be run, only if the client thinks the ANT has capacitor charge when it doesn't, or thinks the silo isn't full when it is.
-        log.warn(s"NtuDischarging: Invalid discharge state. ANT Capacitor: ${vehicle.Capacitor} Silo Capacitor: ${silo.ChargeLevel}")
+        log.warn(s"NtuDischarging: Invalid discharge state. ANT Capacitor: ${vehicle.NtuCapacitor} Silo Capacitor: ${silo.ChargeLevel}")
         // Turning off glow/orb effects on ANT doesn't seem to work when deployed. Try to undeploy ANT from server side
         context.system.scheduler.scheduleOnce(vehicle.UndeployTime milliseconds, vehicle.Actor, Deployment.TryUndeploy(DriveState.Undeploying))
         continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(silo_guid, 49, 0L)) // panel glow off & orb particles off

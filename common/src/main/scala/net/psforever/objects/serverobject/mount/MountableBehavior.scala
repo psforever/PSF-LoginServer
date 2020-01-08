@@ -2,11 +2,12 @@
 package net.psforever.objects.serverobject.mount
 
 import akka.actor.Actor
-import net.psforever.objects.PlanetSideGameObject
+import net.psforever.objects.{PlanetSideGameObject, Vehicle}
 import net.psforever.objects.entity.{Identifiable, WorldEntity}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.turret.TurretDefinition
+import net.psforever.types.DriveState
 
 object MountableBehavior {
   /**
@@ -80,7 +81,7 @@ object MountableBehavior {
         val obj = MountableObject
         obj.Seat(seat_num) match {
           case Some(seat) =>
-            if(seat.Bailable || !obj.isMoving) {
+            if(seat.Bailable || !obj.isMoving(1) || (obj.isInstanceOf[Vehicle] && obj.asInstanceOf[Vehicle].DeploymentState == DriveState.Deployed)) {
               seat.Occupant = None
               user.VehicleSeated = None
               sender ! Mountable.MountMessages(user, Mountable.CanDismount(obj, seat_num))
