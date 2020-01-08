@@ -7,7 +7,7 @@ lazy val commonSettings = Seq(
   // Quiet test options
   testOptions in QuietTest += Tests.Argument(TestFrameworks.Specs2, "xonly"),
   // http://www.scalatest.org/user_guide/using_the_runner
-  testOptions in QuietTest += Tests.Argument(TestFrameworks.ScalaTest, "-oNCXELOPQRMI"),
+  testOptions in QuietTest += Tests.Argument(TestFrameworks.ScalaTest, "-oCEHILMNOPQRX"),
   // TODO: remove when upgraded to SBT 1.0+ https://github.com/sbt/sbt/pull/2747/files
   ivyLoggingLevel := {
     // This will suppress "Resolving..." logs on Jenkins and Travis.
