@@ -3,8 +3,21 @@ lazy val commonSettings = Seq(
   version := "1.0.2-SNAPSHOT",
   scalaVersion := "2.11.8",
   scalacOptions := Seq("-unchecked", "-feature", "-deprecation", "-encoding", "utf8", "-language:postfixOps"),
-  // scaladoc flags: https://github.com/scala/scala/blob/2.11.x/src/scaladoc/scala/tools/nsc/doc/Settings.scala
+
+  // Quiet test options
+  // https://github.com/etorreborre/specs2/blob/8305db76c5084e4b3ce5827ce23117f6fb6beee4/common/shared/src/main/scala/org/specs2/main/Report.scala#L94
+  // https://etorreborre.github.io/specs2/guide/SPECS2-2.4.17/org.specs2.guide.Runners.html
+  testOptions in QuietTest += Tests.Argument(TestFrameworks.Specs2, "showOnly", "x!"),
+  // http://www.scalatest.org/user_guide/using_the_runner
+  testOptions in QuietTest += Tests.Argument(TestFrameworks.ScalaTest, "-oCEHILMNOPQRX"),
+  // TODO: remove when upgraded to SBT 1.0+ https://github.com/sbt/sbt/pull/2747/files
+  ivyLoggingLevel := {
+    // This will suppress "Resolving..." logs on Jenkins and Travis.
+    if (sys.env.get("BUILD_NUMBER").isDefined || sys.env.get("CI").isDefined) UpdateLogging.Quiet
+    else UpdateLogging.Default
+  },
   // Trick taken from https://groups.google.com/d/msg/scala-user/mxV9ok7J_Eg/kt-LnsrD0bkJ
+  // scaladoc flags: https://github.com/scala/scala/blob/2.11.x/src/scaladoc/scala/tools/nsc/doc/Settings.scala
   scalacOptions in (Compile,doc) <<= baseDirectory map {
     bd => Seq(
     "-groups",
@@ -54,26 +67,36 @@ lazy val psloginPackSettings = packAutoSettings ++ Seq(
 )
 
 lazy val root = (project in file(".")).
+  configs(QuietTest).
   settings(commonSettings: _*).
   //enablePlugins(ScalaUnidocPlugin).
   settings(psloginPackSettings: _*).
   aggregate(pslogin, common)
 
 lazy val pslogin = (project in file("pslogin")).
+  configs(QuietTest).
   settings(commonSettings: _*).
   settings(
     name := "pslogin",
     // ActorTests have specific timing requirements and will be flaky if run in parallel
     parallelExecution in Test := false,
     // TODO(chord): remove exclusion when WorldSessionActor is refactored: https://github.com/psforever/PSF-LoginServer/issues/279
-    coverageExcludedPackages :=  "WorldSessionActor.*;zonemaps.*"
+    coverageExcludedPackages :=  "WorldSessionActor.*;zonemaps.*",
+    // Copy all tests from Test -> QuietTest (we're only changing the run options)
+    inConfig(QuietTest)(Defaults.testTasks)
   ).
   settings(pscryptoSettings: _*).
   dependsOn(common)
 
 lazy val common = (project in file("common")).
+  configs(QuietTest).
   settings(commonSettings: _*).
   settings(
-    name := "common"
+    name := "common",
+    // Copy all tests from Test -> QuietTest (we're only changing the run options)
+    inConfig(QuietTest)(Defaults.testTasks)
   ).
   settings(pscryptoSettings: _*)
+
+// Special test configuration for really quiet tests (used in CI)
+lazy val QuietTest = config("quiet") extend(Test)
