@@ -5,7 +5,9 @@ lazy val commonSettings = Seq(
   scalacOptions := Seq("-unchecked", "-feature", "-deprecation", "-encoding", "utf8", "-language:postfixOps"),
 
   // Quiet test options
-  testOptions in QuietTest += Tests.Argument(TestFrameworks.Specs2, "xonly"),
+  // https://github.com/etorreborre/specs2/blob/8305db76c5084e4b3ce5827ce23117f6fb6beee4/common/shared/src/main/scala/org/specs2/main/Report.scala#L94
+  // https://etorreborre.github.io/specs2/guide/SPECS2-2.4.17/org.specs2.guide.Runners.html
+  testOptions in QuietTest += Tests.Argument(TestFrameworks.Specs2, "showOnly", "x!"),
   // http://www.scalatest.org/user_guide/using_the_runner
   testOptions in QuietTest += Tests.Argument(TestFrameworks.ScalaTest, "-oCEHILMNOPQRX"),
   // TODO: remove when upgraded to SBT 1.0+ https://github.com/sbt/sbt/pull/2747/files
