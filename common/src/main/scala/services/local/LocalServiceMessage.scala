@@ -39,4 +39,5 @@ object LocalAction {
   final case class TriggerEffectInfo(player_guid : PlanetSideGUID, effect : String, target : PlanetSideGUID, unk1 : Boolean, unk2 : Long) extends Action
   final case class TriggerEffectLocation(player_guid : PlanetSideGUID, effect : String, pos : Vector3, orient : Vector3) extends Action
   final case class TriggerSound(player_guid : PlanetSideGUID, sound : TriggeredSound.Value, pos : Vector3, unk : Int, volume : Float) extends Action
+  final case class UpdateForceDomeStatus(player_guid : PlanetSideGUID, building_guid : PlanetSideGUID, activated : Boolean) extends Action
 }

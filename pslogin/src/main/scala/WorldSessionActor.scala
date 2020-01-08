@@ -1688,6 +1688,13 @@ class WorldSessionActor extends Actor
       case LocalResponse.TriggerSound(sound, pos, unk, volume) =>
         sendResponse(TriggerSoundMessage(sound, pos, unk, volume))
 
+      case LocalResponse.UpdateForceDomeStatus(building_guid, activated) => {
+        if(activated) {
+          sendResponse(GenericObjectActionMessage(building_guid, 11))
+        } else {
+          sendResponse(GenericObjectActionMessage(building_guid, 12))
+        }
+      }
       case _ => ;
     }
   }
@@ -7594,6 +7601,12 @@ class WorldSessionActor extends Actor
   def configZone(zone : Zone) : Unit = {
     zone.Buildings.values.foreach(building => {
       sendResponse(SetEmpireMessage(building.GUID, building.Faction))
+
+      // Synchronise capitol force dome state
+      if(building.IsCapitol && building.ForceDomeActive) {
+        sendResponse(GenericObjectActionMessage(building.GUID, 13))
+      }
+
       building.Amenities.foreach(amenity => {
         val amenityId = amenity.GUID
         sendResponse(PlanetsideAttributeMessage(amenityId, 50, 0))

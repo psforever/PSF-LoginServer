@@ -146,6 +146,11 @@ class LocalService(zone : Zone) extends Actor {
           LocalEvents.publish(
             LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.TriggerSound(sound, pos, unk, volume))
           )
+        case LocalAction.UpdateForceDomeStatus(player_guid, building_guid, activated) => {
+          LocalEvents.publish(
+            LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.UpdateForceDomeStatus(building_guid, activated))
+          )
+        }
         case _ => ;
       }
 
