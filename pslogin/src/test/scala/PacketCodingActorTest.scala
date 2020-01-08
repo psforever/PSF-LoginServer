@@ -6,7 +6,6 @@ import net.psforever.packet.control.{ControlSync, MultiPacketBundle, SlottedMeta
 import net.psforever.packet.{ControlPacket, GamePacket, GamePacketOpcode, PacketCoding}
 import net.psforever.packet.game._
 import net.psforever.packet.game.objectcreate.ObjectClass
-import net.psforever.types
 import net.psforever.types._
 import scodec.bits._
 
@@ -52,7 +51,7 @@ class PacketCodingActor3Test extends ActorTest {
 
 class PacketCodingActor4Test extends ActorTest {
   val string_hex = RawPacket(hex"2A 9F05 D405 86")
-  val string_obj = ObjectAttachMessage(types.PlanetSideGUID(1439), types.PlanetSideGUID(1492), 6)
+  val string_obj = ObjectAttachMessage(PlanetSideGUID(1439), PlanetSideGUID(1492), 6)
 
   "PacketCodingActor" should {
     "translate r-originating game packet into l-facing hexadecimal data" in {
@@ -73,7 +72,7 @@ class PacketCodingActor4Test extends ActorTest {
 
 class PacketCodingActor5Test extends ActorTest {
   val string_hex = RawPacket(hex"2A 9F05 D405 86")
-  val string_obj = ObjectAttachMessage(types.PlanetSideGUID(1439), types.PlanetSideGUID(1492), 6)
+  val string_obj = ObjectAttachMessage(PlanetSideGUID(1439), PlanetSideGUID(1492), 6)
 
   "PacketCodingActor" should {
     "translate l-originating hexadecimal data into r-facing game packet" in {
@@ -96,7 +95,7 @@ class PacketCodingActor5Test extends ActorTest {
 }
 
 class PacketCodingActor6Test extends ActorTest {
-  val string_obj = ObjectAttachMessage(types.PlanetSideGUID(1439), types.PlanetSideGUID(1492), 6)
+  val string_obj = ObjectAttachMessage(PlanetSideGUID(1439), PlanetSideGUID(1492), 6)
 
   "PacketCodingActor" should {
     "permit l-originating game packet to pass through as an r-facing game packet" in {
@@ -370,8 +369,8 @@ class PacketCodingActorETest extends ActorTest {
   "PacketCodingActor" should {
     "unwind l-originating hexadecimal data into multiple r-facing packets (MultiPacket -> 2 PlayerStateMessageUpstream)" in {
       val string_hex = RawPacket(hex"00 03 18 BD E8 04 5C 02  60 E3 F9 19 0E C1 41 27  00 04 02 60 20 0C 58 0B  20 00 00 18 BD E8 04 86  02 62 13 F9 19 0E D8 40  4D 00 04 02 60 20 0C 78  0A 80 00 00")
-      val string_obj1 = GamePacket(GamePacketOpcode.PlayerStateMessageUpstream, 0, PlayerStateMessageUpstream(types.PlanetSideGUID(1256),Vector3(3076.7188f,4734.1094f,56.390625f),Some(Vector3(4.0625f,4.59375f,0.0f)),36.5625f,-2.8125f,0.0f,866,0,false,false,false,false,178,0))
-      val string_obj2 = GamePacket(GamePacketOpcode.PlayerStateMessageUpstream, 0, PlayerStateMessageUpstream(types.PlanetSideGUID(1256),Vector3(3077.0469f,4734.258f,56.390625f),Some(Vector3(5.5f,1.1875f,0.0f)),36.5625f,-2.8125f,0.0f,867,0,false,false,false,false,168,0))
+      val string_obj1 = GamePacket(GamePacketOpcode.PlayerStateMessageUpstream, 0, PlayerStateMessageUpstream(PlanetSideGUID(1256),Vector3(3076.7188f,4734.1094f,56.390625f),Some(Vector3(4.0625f,4.59375f,0.0f)),36.5625f,-2.8125f,0.0f,866,0,false,false,false,false,178,0))
+      val string_obj2 = GamePacket(GamePacketOpcode.PlayerStateMessageUpstream, 0, PlayerStateMessageUpstream(PlanetSideGUID(1256),Vector3(3077.0469f,4734.258f,56.390625f),Some(Vector3(5.5f,1.1875f,0.0f)),36.5625f,-2.8125f,0.0f,867,0,false,false,false,false,168,0))
 
       val probe1 = TestProbe()
       val probe2 = system.actorOf(Props(classOf[MDCTestProbe], probe1), "mdc-probe")
@@ -392,7 +391,7 @@ class PacketCodingActorFTest extends ActorTest {
   "PacketCodingActor" should {
     "unwind l-originating hexadecimal data into an r-facing packet (MultiPacket -> RelatedB + GenericObjectStateMsg)" in {
       val string_hex = RawPacket(hex"00 03 04 00 15 02 98 0B  00 09 0C 0A 1D F2 00 10 00 00 00")
-      val string_obj = GamePacket(GamePacketOpcode.GenericObjectStateMsg, 0, GenericObjectStateMsg(types.PlanetSideGUID(242), 16))
+      val string_obj = GamePacket(GamePacketOpcode.GenericObjectStateMsg, 0, GenericObjectStateMsg(PlanetSideGUID(242), 16))
 
       val probe1 = TestProbe()
       val probe2 = system.actorOf(Props(classOf[MDCTestProbe], probe1), "mdc-probe")
@@ -413,7 +412,7 @@ class PacketCodingActorGTest extends ActorTest {
   "PacketCodingActor" should {
     "unwind l-originating hexadecimal data into an r-facing packet (MultiPacketEx -> RelatedA + GenericObjectStateMsg)" in {
       val string_hex = RawPacket(hex"00 19 04 00 11 02 98 0B  00 09 0C 0A 1D F2 00 10 00 00 00")
-      val string_obj = GamePacket(GamePacketOpcode.GenericObjectStateMsg, 0, GenericObjectStateMsg(types.PlanetSideGUID(242), 16))
+      val string_obj = GamePacket(GamePacketOpcode.GenericObjectStateMsg, 0, GenericObjectStateMsg(PlanetSideGUID(242), 16))
 
       val probe1 = TestProbe()
       val probe2 = system.actorOf(Props(classOf[MDCTestProbe], probe1), "mdc-probe")
@@ -434,8 +433,8 @@ class PacketCodingActorHTest extends ActorTest {
   "PacketCodingActor" should {
     "unwind l-originating hexadecimal data into two r-facing packets (SlottedMetaPacket/MultiPacketEx -> 2 ObjectDeleteMessage)" in {
       val string_hex = RawPacket(hex"00 09 0A E1 00 19 04 19  4F 04 40 04 19 51 04 40")
-      val string_obj1 = GamePacket(GamePacketOpcode.ObjectDeleteMessage, 0, ObjectDeleteMessage(types.PlanetSideGUID(1103), 2))
-      val string_obj2 = GamePacket(GamePacketOpcode.ObjectDeleteMessage, 0, ObjectDeleteMessage(types.PlanetSideGUID(1105), 2))
+      val string_obj1 = GamePacket(GamePacketOpcode.ObjectDeleteMessage, 0, ObjectDeleteMessage(PlanetSideGUID(1103), 2))
+      val string_obj2 = GamePacket(GamePacketOpcode.ObjectDeleteMessage, 0, ObjectDeleteMessage(PlanetSideGUID(1105), 2))
 
       val probe1 = TestProbe()
       val probe2 = system.actorOf(Props(classOf[MDCTestProbe], probe1), "mdc-probe")
@@ -486,7 +485,7 @@ class PacketCodingActorITest extends ActorTest {
   )
   val obj = DetailedPlayerData(pos, app, char, InventoryData(Nil), DrawnSlot.None)
   //println(s"${PacketCoding.EncodePacket(ObjectCreateDetailedMessage(0x79, PlanetSideGUID(75), obj))}")
-  val pkt = MultiPacketBundle(List(ObjectCreateDetailedMessage(0x79, types.PlanetSideGUID(75), obj)))
+  val pkt = MultiPacketBundle(List(ObjectCreateDetailedMessage(0x79, PlanetSideGUID(75), obj)))
   val string_hex = hex"00090000186c060000bc84b000000000000000000002040000097049006c006c006c004900490049006c006c006c0049006c0049006c006c0049006c006c006c0049006c006c00490084524000000000000000000000000000000020000007f00703fffffffffffffffffffffffffffffffc000000000000000000000000000000000000000190019000640000000000c800c80000000000000000000000000000000000000001c00042c54686c7000000000000000000000000000000000000000000000000000000000000100000000400e0"
 
   "PacketCodingActor" should {
@@ -521,7 +520,7 @@ class PacketCodingActorJTest extends ActorTest {
   "PacketCodingActor" should {
     "bundle r-originating packets into a number of MTU-acceptable l-facing byte streams (1 packets into 1)" in {
       val pkt = MultiPacketBundle(
-        List(ObjectDeleteMessage(types.PlanetSideGUID(1103), 2), ObjectDeleteMessage(types.PlanetSideGUID(1105), 2), ObjectDeleteMessage(types.PlanetSideGUID(1107), 2))
+        List(ObjectDeleteMessage(PlanetSideGUID(1103), 2), ObjectDeleteMessage(PlanetSideGUID(1105), 2), ObjectDeleteMessage(PlanetSideGUID(1107), 2))
       )
       val string_hex = hex"00090000001904194f044004195104400419530440"
 
@@ -565,7 +564,7 @@ class PacketCodingActorKTest extends ActorTest {
       false,
       None,
       None,
-      types.PlanetSideGUID(0)
+      PlanetSideGUID(0)
     ),
     ExoSuitType.Standard,
     0,
@@ -641,12 +640,12 @@ class PacketCodingActorKTest extends ActorTest {
     (pad_length : Option[Int]) => DetailedCharacterData(ba, bb(ba.bep, pad_length))(pad_length)
   val obj = DetailedPlayerData(pos, app, char, InventoryData(Nil), DrawnSlot.None)
   val list = List(
-    ObjectCreateDetailedMessage(0x79, types.PlanetSideGUID(75), obj),
-    ObjectDeleteMessage(types.PlanetSideGUID(1103), 2),
-    ObjectDeleteMessage(types.PlanetSideGUID(1105), 2),
-    ObjectCreateDetailedMessage(0x79, types.PlanetSideGUID(175), obj),
-    ObjectCreateDetailedMessage(0x79, types.PlanetSideGUID(275), obj),
-    ObjectDeleteMessage(types.PlanetSideGUID(1107), 2)
+    ObjectCreateDetailedMessage(0x79, PlanetSideGUID(75), obj),
+    ObjectDeleteMessage(PlanetSideGUID(1103), 2),
+    ObjectDeleteMessage(PlanetSideGUID(1105), 2),
+    ObjectCreateDetailedMessage(0x79, PlanetSideGUID(175), obj),
+    ObjectCreateDetailedMessage(0x79, PlanetSideGUID(275), obj),
+    ObjectDeleteMessage(PlanetSideGUID(1107), 2)
   )
 
   "PacketCodingActor" should {
