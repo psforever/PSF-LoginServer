@@ -56,7 +56,8 @@ class LoginSessionActor extends Actor with MDCContextAware {
 
   val serverAddress = new InetSocketAddress(serverHost, WorldConfig.Get[Int]("worldserver.ListeningPort"))
 
-  private val numBcryptPasses = 4
+  // Reference: https://stackoverflow.com/a/50470009
+  private val numBcryptPasses = 10
 
   override def postStop() = {
     if(updateServerListTask != null)

@@ -61,15 +61,15 @@ Current documentation is available at [https://psforever.github.io/docs/master/i
 ## Setting up the Database
 The Login and World servers require PostgreSQL for persistence.
 
-* Windows - [Official Downloads](https://www.postgresql.org/download/linux/ubuntu/)
+* Windows - [Official Downloads](https://www.postgresql.org/download/windows/)
 * Linux - [Debian](https://www.postgresql.org/download/linux/debian/) or [Ubuntu](https://www.postgresql.org/download/linux/ubuntu/)
 * macOS - Application https://www.postgresql.org/download/ (or `brew install postgresql && brew services start postgresql`)
 
-The default database is named `psforever` and the credentials are `psforever:psforever`. To change these, make a copy of [config/worldserver.ini.dist](config/worldserver.ini.dist) to `config/worldserver.ini` and change the corresponding fields in the database section.
+The default database is named `psforever` and the credentials are `psforever:psforever`. To change these, make a copy of `[config/worldserver.ini.dist](config/worldserver.ini.dist)` to `config/worldserver.ini` and change the corresponding fields in the database section.
 
-Once you have installed the database to your local system or have access to a remote database, you need to synchronize the schema. This is currently available in [schema.db](schema.db).
+Once you have installed the database to your local system or have access to a remote database, you need to synchronize the schema. This is currently available in `[schema.sql](schema.sql)`.
 Loading this in requires access to a graphical tool such as [pgAdmin](https://www.pgadmin.org/download/) (highly recommended) or a PostgreSQL terminal (`psql`) for advanced users.
-To get started using pgAdmin, run the binary. This will start the pgAdmin server and pop-up a tab in your web browser with the interface. Upon first run, enter your connection details that you created during the PostgreSQL installation. When connected, right click the "Databases" menu -> Create... -> Database: psforever -> Save. Next, right click on the newly created database (psforever) -> Query Tool... -> Copy and paste / Open the schema.sql file into the editor -> Hit the "Play/Run" button. The schema should be loaded into the database.
+To get started using pgAdmin, run the binary. This will start the pgAdmin server and pop-up a tab in your web browser with the interface. Upon first run, enter your connection details that you created during the PostgreSQL installation. When connected, right click the "Databases" menu -> Create... -> Database: psforever -> Save. Next, right click on the newly created database (psforever) -> Query Tool... -> Copy and paste / Open the `schema.sql` file into the editor -> Hit the "Play/Run" button. The schema should be loaded into the database.
 Once you have the schema loaded in, the LoginServer will automatically create accounts on first login. If you'd like a nice account management interface, check out the [PSFPortal](https://github.com/psforever/PSFPortal) web interface.
 
 ## Running the Server
