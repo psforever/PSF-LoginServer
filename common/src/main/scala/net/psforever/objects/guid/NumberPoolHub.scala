@@ -285,7 +285,7 @@ class NumberPoolHub(private val source : NumberSource) {
       case Success(key) =>
         Success(key)
       case Failure(_) =>
-        throw NoGUIDException(s"a pool gave us a number $number that is actually unavailable") //stop the show; this is terrible!
+        throw new NoGUIDException(s"a pool gave us a number $number that is actually unavailable") //stop the show; this is terrible!
     }
   }
 

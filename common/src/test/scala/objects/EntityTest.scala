@@ -3,7 +3,7 @@ package objects
 
 import net.psforever.objects.PlanetSideGameObject
 import net.psforever.objects.definition.ObjectDefinition
-import net.psforever.objects.entity.NoGUIDException
+import net.psforever.objects.entity.{AssigningGUIDException, NoGUIDException}
 import net.psforever.types.{PlanetSideGUID, StalePlanetSideGUID, ValidPlanetSideGUID, Vector3}
 import org.specs2.mutable._
 
@@ -151,7 +151,14 @@ class EntityTest extends Specification {
     "error if set to an invalid GUID before being set to a valid GUID" in {
       val obj : EntityTestClass = new EntityTestClass
       obj.GUID must throwA[NoGUIDException]
-      (obj.GUID = StalePlanetSideGUID(1)) must throwA[NoGUIDException]
+      try {
+        obj.GUID = StalePlanetSideGUID(1)
+        ko
+      }
+      catch {
+        case AssigningGUIDException(_, _, _, _ : StalePlanetSideGUID) => ok
+        case _ : Throwable => ko
+      }
     }
 
     "work after valid mutation" in {
@@ -160,20 +167,32 @@ class EntityTest extends Specification {
       obj.GUID mustEqual PlanetSideGUID(1051)
     }
 
-    "ignore subsequent mutations using a valid GUID" in {
+    "raise complaint about subsequent mutations using a valid GUID" in {
       val obj : EntityTestClass = new EntityTestClass
       obj.GUID = PlanetSideGUID(1051)
       obj.GUID mustEqual PlanetSideGUID(1051)
-      obj.GUID = ValidPlanetSideGUID(1)
-      obj.GUID mustEqual PlanetSideGUID(1051)
+      try {
+        obj.GUID = ValidPlanetSideGUID(1)
+        ko
+      }
+      catch {
+        case AssigningGUIDException(_, _, _, ValidPlanetSideGUID(1)) => ok
+        case _ : Throwable => ko
+      }
     }
 
     "ignore subsequent mutations using an invalid GUID" in {
       val obj : EntityTestClass = new EntityTestClass
       obj.GUID = PlanetSideGUID(1051)
       obj.GUID mustEqual PlanetSideGUID(1051)
-      obj.GUID = StalePlanetSideGUID(1)
-      obj.GUID mustEqual PlanetSideGUID(1051)
+      try {
+        obj.GUID = StalePlanetSideGUID(1)
+        ko
+      }
+      catch {
+        case AssigningGUIDException(_, _, _, _ : StalePlanetSideGUID) => ok
+        case _ : Throwable => ko
+      }
     }
 
     "invalidate does nothing by default" in {
@@ -192,7 +211,7 @@ class EntityTest extends Specification {
       obj.GUID.isInstanceOf[StalePlanetSideGUID] mustEqual true
     }
 
-    "setting an invalid GUID after invalidating the previous valid mutation returns the same" in {
+    "setting an invalid GUID after invalidating the previous valid mutation still raises complaint" in {
       val obj : EntityTestClass = new EntityTestClass
       obj.GUID = PlanetSideGUID(1051)
       obj.GUID mustEqual PlanetSideGUID(1051)
@@ -200,9 +219,8 @@ class EntityTest extends Specification {
       obj.Invalidate()
       obj.GUID mustEqual PlanetSideGUID(1051)
       obj.GUID.isInstanceOf[StalePlanetSideGUID] mustEqual true
-      obj.GUID = StalePlanetSideGUID(2)
+      (obj.GUID = StalePlanetSideGUID(2)) must throwA[AssigningGUIDException]
       obj.GUID mustEqual PlanetSideGUID(1051)
-      obj.GUID.isInstanceOf[StalePlanetSideGUID] mustEqual true
     }
 
     "setting a valid GUID after invalidating correctly sets the new valid GUID" in {
