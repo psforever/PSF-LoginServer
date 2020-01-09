@@ -106,11 +106,12 @@ class NumberSourceTest extends Specification {
     "return a secure key" in {
       val obj = LimitedNumberSource(25)
       val test = new TestClass()
+
       val result1 : Option[LoanedKey] = obj.Available(5)
       result1.get.Object = test
-      test.GUID = PlanetSideGUID(5)
-      val result2 : Option[SecureKey] = obj.Get(5)
+      test.GUID mustEqual PlanetSideGUID(5)
 
+      val result2 : Option[SecureKey] = obj.Get(5)
       obj.Return(result2.get).contains(test) mustEqual true
     }
 
@@ -180,18 +181,20 @@ class NumberSourceTest extends Specification {
       val obj = LimitedNumberSource(25)
       val test1 = new TestClass()
       val test2 = new TestClass()
+      val test3 = new TestClass()
       obj.Available(5) //no assignment
       obj.Available(10).get.Object = test1
       obj.Available(15).get.Object = test2
       obj.Restrict(15)
-      obj.Restrict(20).get.Object = test1
+      obj.Restrict(20).get.Object = test3
       obj.CountUsed mustEqual 4
 
       val list : List[IdentifiableEntity] = obj.Clear()
       obj.CountUsed mustEqual 0
       list.size mustEqual 3
-      list.count(obj => obj == test1) mustEqual 2
+      list.count(obj => obj == test1) mustEqual 1
       list.count(obj => obj == test2) mustEqual 1
+      list.count(obj => obj == test3) mustEqual 1
     }
   }
 }

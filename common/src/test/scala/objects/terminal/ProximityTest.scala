@@ -157,7 +157,7 @@ class ProximityTerminalControlTwoUsersTest extends ActorTest {
     avatar2.Health = 50
 
     avatar.GUID = PlanetSideGUID(1)
-    avatar.GUID = PlanetSideGUID(2)
+    avatar2.GUID = PlanetSideGUID(2)
     terminal.GUID = PlanetSideGUID(3)
     terminal.Actor ! Service.Startup()
     expectNoMsg(500 milliseconds) //spacer
@@ -252,7 +252,7 @@ class ProximityTerminalControlNotStopTest extends ActorTest {
     avatar2.Health = 50
 
     avatar.GUID = PlanetSideGUID(1)
-    avatar.GUID = PlanetSideGUID(2)
+    avatar2.GUID = PlanetSideGUID(2)
     terminal.GUID = PlanetSideGUID(3)
     terminal.Actor ! Service.Startup()
     expectNoMsg(500 milliseconds) //spacer
