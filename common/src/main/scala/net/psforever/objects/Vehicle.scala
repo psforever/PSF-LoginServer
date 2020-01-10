@@ -145,7 +145,9 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends AmenityOwner
   }
 
   def Health_=(assignHealth : Int) : Int = {
-    health = math.min(math.max(0, assignHealth), MaxHealth)
+    if(health != 0) {
+      health = math.min(math.max(0, assignHealth), MaxHealth)
+    }
     health
   }
 
