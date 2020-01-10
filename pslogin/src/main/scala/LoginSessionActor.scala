@@ -196,13 +196,14 @@ class LoginSessionActor extends Actor with MDCContextAware {
               self ! FinishAccountLogin(connection, username, newToken, false)
             }
 
-          case default =>
-            log.error(s"Issue retrieving result set from database for account $username - $default")
+          case _ =>
+            log.error(s"Issue retrieving result set from database for account $username")
             context.become(finishAccountLogin)
             self ! FinishAccountLogin(connection, username, newToken, false)
         }
       }
-    case default => failWithError(s"Invalid message '$default' received in startAccountAuthentication")
+    case default =>
+      failWithError(s"Invalid message '$default' received in startAccountAuthentication")
   }
 
   def createNewAccount : Receive = {
@@ -235,9 +236,21 @@ class LoginSessionActor extends Actor with MDCContextAware {
               context.become(finishAccountLogin)
               self ! FinishAccountLogin(connection, username, newToken, false)
           }
-        case default => failWithError(s"Something to do? $default")
+        case Failure(e : com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException) =>
+          log.error(s"Error creating new account - ${e.errorMessage.message}")
+          context.become(finishAccountLogin)
+          self ! FinishAccountLogin(connection, username, newToken, false)
+
+        case Failure(e : java.sql.SQLException) =>
+          log.error(s"Error creating new account - ${e.getMessage}")
+          context.become(finishAccountLogin)
+          self ! FinishAccountLogin(connection, username, newToken, false)
+
+        case _ =>
+          failWithError(s"Something to do?")
       }
-    case default => failWithError(s"Invalid message '$default' received in createNewAccount")
+    case default =>
+      failWithError(s"Invalid message '$default' received in createNewAccount")
   }
 
   // Essentially keeps a record of this individual login occurrence
