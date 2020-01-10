@@ -19,6 +19,7 @@ import org.slf4j
 import org.fusesource.jansi.Ansi._
 import org.fusesource.jansi.Ansi.Color._
 import services.ServiceManager
+import services.account.AccountIntermediaryService
 import services.chat.ChatService
 import services.galaxy.GalaxyService
 import services.teamwork.SquadService
@@ -200,6 +201,13 @@ object PsLogin {
         sys.exit(1)
     }
 
+    Database.testConnection match {
+      case scala.util.Failure(e) =>
+        logger.error("Unable to connect to the database")
+        sys.exit(1)
+      case _ =>
+    }
+
     logger.info("Starting actor subsystems...")
 
     /** Make sure we capture Akka messages (but only INFO and above)
@@ -255,6 +263,7 @@ object PsLogin {
 
     val continentList = createContinents()
     val serviceManager = ServiceManager.boot
+    serviceManager ! ServiceManager.Register(Props[AccountIntermediaryService], "accountIntermediary")
     serviceManager ! ServiceManager.Register(RandomPool(50).props(Props[TaskResolver]), "taskResolver")
     serviceManager ! ServiceManager.Register(Props[ChatService], "chat")
     serviceManager ! ServiceManager.Register(Props[GalaxyService], "galaxy")

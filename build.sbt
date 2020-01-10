@@ -46,7 +46,8 @@ lazy val commonSettings = Seq(
     "org.fusesource.jansi"        % "jansi"         % "1.12",
     "org.scoverage"              %% "scalac-scoverage-plugin" % "1.1.1",
     "com.github.nscala-time"     %% "nscala-time"   % "2.12.0",
-    "com.github.mauricio"        %% "mysql-async"   % "0.2.21",
+    "com.github.mauricio"        %% "postgresql-async" % "0.2.21",
+    "com.github.t3hnar"          %% "scala-bcrypt"  % "3.1",
     "org.ini4j"                  % "ini4j"         % "0.5.4",
     "org.scala-graph"            %% "graph-core"    % "1.12.5"
   )

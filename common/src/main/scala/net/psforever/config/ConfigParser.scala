@@ -3,17 +3,32 @@ package net.psforever.config
 
 import org.ini4j
 import scala.reflect.ClassTag
+import scala.reflect.runtime.universe.TypeTag
 import scala.annotation.implicitNotFound
 import scala.concurrent.duration._
+import scala.collection.mutable.Map
 
 case class ConfigValueMapper[T](name: String)(f: (String => Option[T])) {
   def apply(t: String): Option[T] = f(t)
 }
 
 object ConfigValueMapper {
+  import scala.language.implicitConversions
+
   implicit val toInt : ConfigValueMapper[Int] = ConfigValueMapper[Int]("toInt") { e =>
     try {
       Some(e.toInt)
+    } catch {
+      case e: Exception => None
+    }
+  }
+
+  // TypeTag is necessary to be able to retrieve an instance of the Enum class
+  // at runtime as it is usually erased at runtime. This is low cost as its only
+  // used during the config parsing
+  implicit def toEnum[E <: Enumeration#Value](implicit m: TypeTag[E]) : ConfigValueMapper[E] = ConfigValueMapper[E]("toEnum") { e =>
+    try {
+      Some(EnumReflector.withName[E](e))
     } catch {
       case e: Exception => None
     }
@@ -77,6 +92,13 @@ final case class ConfigEntryBool(key: String, default : Boolean, constraints : C
   def read(v : String) = ConfigValueMapper.toBool(v)
 }
 
+final case class ConfigEntryEnum[E <: Enumeration](key: String, default : E#Value)(implicit m : TypeTag[E#Value], implicit val m2 : TypeTag[E#ValueSet]) extends ConfigEntry {
+  type Value = E#Value
+  val constraints : Seq[Constraint[E#Value]] = Seq()
+  def getType = EnumReflector.values[E#ValueSet](m2).mkString(", ")
+  def read(v : String) = ConfigValueMapper.toEnum[E#Value](m)(v)
+}
+
 final case class ConfigEntryFloat(key: String, default : Float, constraints : Constraint[Float]*) extends ConfigEntry {
   type Value = Float
   def getType = "Float"
@@ -101,7 +123,7 @@ object ConfigTypeRequired {
 }
 
 trait ConfigParser {
-  protected var config_map : Map[String, Any]
+  protected var config_map : Map[String, Any] = Map()
   protected val config_template : Seq[ConfigSection]
 
   // Misuse of this function can lead to run time exceptions when the types don't match
@@ -118,8 +140,25 @@ trait ConfigParser {
   }
 
   def Load(filename : String) : ValidationResult = {
+    var map : Map[String, Any] = scala.collection.mutable.Map()
+
+    LoadMap(filename, map) match {
+      case i : Invalid =>
+        i
+      case Valid =>
+        ReplaceConfig(map)
+        // run post-parse validation only if we successfully parsed
+        postParseChecks match {
+          case i : Invalid =>
+            i
+          case Valid =>
+            Valid
+        }
+    }
+  }
+
+  def LoadMap(filename : String, map : Map[String, Any]) : ValidationResult = {
     val ini = new org.ini4j.Ini()
-    config_map = Map()
 
     try {
       ini.load(new java.io.File(filename))
@@ -136,7 +175,7 @@ trait ConfigParser {
       if (sectionIni == null)
         Seq(Invalid("section.missing", section.name))
       else
-        section.entries.map(parseSection(sectionIni, _))
+        section.entries.map(parseSection(sectionIni, _, map))
     }.reduceLeft((x, y) => x ++ y)
 
     val errors : Seq[Invalid] = result.collect { case iv : Invalid => iv }
@@ -144,8 +183,11 @@ trait ConfigParser {
     if (errors.length > 0)
       errors.reduceLeft((x, y) => x ++ y)
     else
-      // run post-parse validation only if we successfully parsed
-      postParseChecks
+      Valid
+  }
+
+  def ReplaceConfig(map : Map[String, Any]) {
+    config_map = map
   }
 
   def FormatErrors(invalidResult : Invalid) : Seq[String] = {
@@ -166,12 +208,12 @@ trait ConfigParser {
     Valid
   }
 
-  protected def parseSection(sectionIni : org.ini4j.Profile.Section, entry : ConfigEntry) : ValidationResult = {
+  protected def parseSection(sectionIni : org.ini4j.Profile.Section, entry : ConfigEntry, map : Map[String, Any]) : ValidationResult = {
     var rawValue = sectionIni.get(entry.key)
-    val full_key = sectionIni.getName + "." + entry.key
+    val full_key : String = sectionIni.getName + "." + entry.key
 
     val value = if (rawValue == null) {
-      // warn about defaults from unset parameters?
+      println(s"config warning: missing key '${entry.key}', using default value '${entry.default}'")
       entry.default
     } else {
       rawValue = rawValue.stripPrefix("\"").stripSuffix("\"")
@@ -181,7 +223,8 @@ trait ConfigParser {
         case None => return Invalid(ValidationError(String.format("%s: value format error (expected: %s)", full_key, entry.getType)))
       }
     }
-    config_map += (full_key -> value)
+
+    map += (full_key -> value)
 
     ParameterValidator(entry.constraints, Some(value)) match {
       case v @ Valid => v

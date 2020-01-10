@@ -24,6 +24,7 @@ object ServerType extends Enumeration(1) {
   implicit val codec = PacketHelpers.createEnumerationCodec(this, uint8L)
 }
 
+// This MUST be an IP address. The client DOES NOT do name resolution properly
 final case class WorldConnectionInfo(address : InetSocketAddress)
 
 final case class WorldInformation(name : String, status : WorldStatus.Value,
