@@ -4946,7 +4946,7 @@ class WorldSessionActor extends Actor
                 case GlobalDefinitions.nano_dispenser =>
                   //TODO repairing behavior
                   if (!player.isMoving && Vector3.Distance(player.Position, obj.Position) < 5) {
-                    if (obj.Health < obj.MaxHealth) {
+                    if (obj.Health < obj.MaxHealth && obj.Health > 0) {
                       obj.Health += 48
                       //                sendResponse(QuantityUpdateMessage(PlanetSideGUID(8214),ammo_quantity_left))
                       val RepairPercent: Int = obj.Health * 100 / obj.MaxHealth
