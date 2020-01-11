@@ -110,6 +110,9 @@ class LoginSessionActor extends Actor with MDCContextAware {
         val serverTick = Math.abs(System.nanoTime().toInt) // limit the size to prevent encoding error
         sendResponse(PacketCoding.CreateControlPacket(ControlSyncResp(diff, serverTick, fa, fb, fb, fa)))
 
+      case TeardownConnection(_) =>
+        sendResponse(DropSession(sessionId, "client requested session termination"))
+
       case default =>
         log.error(s"Unhandled ControlPacket $default")
     }
