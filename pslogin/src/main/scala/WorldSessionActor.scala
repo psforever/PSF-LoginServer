@@ -5263,7 +5263,7 @@ class WorldSessionActor extends Actor
                 log.warn(s"Terminal - isHacked ${terminal.HackedBy.isDefined} ownerIsHacked ${ownerIsHacked}")
               }
             }
-            else if (terminal.HackedBy.isDefined) {
+            else if (terminal.HackedBy.isDefined || terminal.Owner.GUID == PlanetSideGUID(0)) {
               sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
             } else {
               log.warn("Tried to use a terminal that doesn't belong to this faction and isn't hacked")
