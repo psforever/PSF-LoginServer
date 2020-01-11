@@ -1069,13 +1069,13 @@ object GlobalDefinitions {
   val minibase1 : ObjectDefinition = new ObjectDefinition(557) { Name = "minibase1" }
   val minibase2 : ObjectDefinition = new ObjectDefinition(558) { Name = "minibase2" }
   val minibase3 : ObjectDefinition = new ObjectDefinition(559) { Name = "minibase3" }
-  val redoubt : ObjectDefinition = new ObjectDefinition(726) { Name = "redoubt" }
+  val redoubt : ObjectDefinition = new ObjectDefinition(726) with SphereOfInfluence { Name = "redoubt"; SOIRadius = 187 }
   val tech_plant : ObjectDefinition = new ObjectDefinition(852) with SphereOfInfluence { Name = "tech_plant"; SOIRadius = 300 }
   val tower_a : ObjectDefinition = new ObjectDefinition(869) with SphereOfInfluence { Name = "tower_a"; SOIRadius = 50 }
   val tower_b : ObjectDefinition = new ObjectDefinition(870) with SphereOfInfluence { Name = "tower_b"; SOIRadius = 50 }
   val tower_c : ObjectDefinition = new ObjectDefinition(871) with SphereOfInfluence { Name = "tower_c"; SOIRadius = 50 }
-  val vanu_control_point : ObjectDefinition = new ObjectDefinition(931) { Name = "vanu_control_point" }
-  val vanu_vehicle_station : ObjectDefinition = new ObjectDefinition(948) { Name = "vanu_vehicle_station" }
+  val vanu_control_point : ObjectDefinition = new ObjectDefinition(931) with SphereOfInfluence { Name = "vanu_control_point"; SOIRadius = 187 }
+  val vanu_vehicle_station : ObjectDefinition = new ObjectDefinition(948) with SphereOfInfluence { Name = "vanu_vehicle_station"; SOIRadius = 187 }
 
   val warpgate : ObjectDefinition with SpawnPointDefinition = new ObjectDefinition(993) with SpawnPointDefinition
   warpgate.Name = "warpgate"
