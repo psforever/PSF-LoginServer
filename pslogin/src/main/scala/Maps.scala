@@ -45,29 +45,19 @@ object Maps {
     Projectiles(this)
   }
 
-  val ugd01 = new ZoneMap("ugd01") {
-    Projectiles(this)
-  }
+  val ugd01 = Ugd01.ZoneMap
+  val ugd02 = Ugd02.ZoneMap
+  val ugd03 = Ugd03.ZoneMap
+  val ugd04 = Ugd04.ZoneMap
+  val ugd05 = Ugd05.ZoneMap
+  val ugd06 = Ugd06.ZoneMap
 
-  val ugd02 = new ZoneMap("ugd02") {
-    Projectiles(this)
-  }
-
-  val ugd03 = new ZoneMap("ugd03") {
-    Projectiles(this)
-  }
-
-  val ugd04 = new ZoneMap("ugd04") {
-    Projectiles(this)
-  }
-
-  val ugd05 = new ZoneMap("ugd05") {
-    Projectiles(this)
-  }
-
-  val ugd06 = new ZoneMap("ugd06") {
-    Projectiles(this)
-  }
+  Projectiles(ugd01)
+  Projectiles(ugd02)
+  Projectiles(ugd03)
+  Projectiles(ugd04)
+  Projectiles(ugd05)
+  Projectiles(ugd06)
 
   val map96 = Map96.ZoneMap
   val map97 = Map97.ZoneMap
