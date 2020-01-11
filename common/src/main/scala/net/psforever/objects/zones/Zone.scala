@@ -17,6 +17,7 @@ import net.psforever.objects.serverobject.painbox.{Painbox, PainboxDefinition}
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.objects.serverobject.structures.{Amenity, Building, WarpGate}
 import net.psforever.objects.serverobject.turret.FacilityTurret
+import net.psforever.objects.serverobject.zipline.ZipLinePath
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 import services.avatar.AvatarService
 import services.local.LocalService
@@ -83,6 +84,8 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
 
   private var lattice : Graph[Building, UnDiEdge] = Graph()
 
+  private var zipLinePaths : List[ZipLinePath] = List()
+
   /** key - spawn zone id, value - buildings belonging to spawn zone */
   private var spawnGroups : Map[Building, List[SpawnPoint]] = PairMap[Building, List[SpawnPoint]]()
   /** */
@@ -139,6 +142,8 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
       MakeLattice()
       AssignAmenities()
       CreateSpawnGroups()
+
+      zipLinePaths = Map.ZipLinePaths
     }
   }
 
@@ -350,6 +355,10 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
 
   def Lattice : Graph[Building, UnDiEdge] = {
     lattice
+  }
+
+  def ZipLinePaths : List[ZipLinePath] = {
+    zipLinePaths
   }
 
   private def BuildLocalObjects(implicit context : ActorContext, guid : NumberPoolHub) : Unit = {

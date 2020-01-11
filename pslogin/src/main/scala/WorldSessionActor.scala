@@ -69,6 +69,7 @@ import scala.concurrent.duration._
 import scala.util.Success
 import akka.pattern.ask
 import net.psforever.objects.entity.{SimpleWorldEntity, WorldEntity}
+import net.psforever.objects.serverobject.zipline.ZipLinePath
 import net.psforever.objects.vehicles.Utility.InternalTelepad
 import net.psforever.types
 import services.local.support.{HackCaptureActor, RouterTelepadActivation}
@@ -4583,22 +4584,33 @@ class WorldSessionActor extends Actor
       skipStaminaRegenForTurns = 5
       sendResponse(PlanetsideAttributeMessage(player.GUID, 2, player.Stamina))
 
-    case msg @ ZipLineMessage(player_guid,origin_side,action,id,pos) =>
+    case msg @ ZipLineMessage(player_guid,started_at_origin,action,path_id,pos) =>
       log.info("ZipLineMessage: " + msg)
-      if (!origin_side && action == 0) {
-        //doing this lets you use the zip line in one direction, cant come back
-        sendResponse(ZipLineMessage(player_guid, origin_side, action, id, pos))
+
+      val (isTeleporter : Boolean, path: Option[ZipLinePath]) = continent.ZipLinePaths.find(x => x.PathId == path_id) match {
+        case Some(x) => (x.IsTeleporter, Some(x))
+        case _ =>
+          log.warn(s"Couldn't find zipline path ${path_id} in zone ${continent.Number} / ${continent.Id}")
+          (false, None)
       }
-      else if (!origin_side && action == 1) {
-        //disembark from zipline at destination !
-        sendResponse(ZipLineMessage(player_guid, origin_side, action, 0, pos))
-      }
-      else if (!origin_side && action == 2) {
-        //get off by force
-        sendResponse(ZipLineMessage(player_guid, origin_side, action, 0, pos))
-      }
-      else if (origin_side && action == 0) {
-        // for teleporters & the other zipline direction
+
+      if(isTeleporter) {
+        val endPoint = path.get.ZipLinePoints.last
+        sendResponse(PlayerStateShiftMessage(ShiftState(0, endPoint, player.Orientation.z, None)))
+      } else {
+        (started_at_origin, action) match {
+          case (true, 0) =>
+            //doing this lets you use the zip line in one direction, cant come back
+            sendResponse(ZipLineMessage(player_guid, started_at_origin, action, path_id, pos))
+          case (_, 1) =>
+            //disembark from zipline at destination !
+            sendResponse(ZipLineMessage(player_guid, started_at_origin, action, 0, pos))
+          case (_, 2) =>
+            //get off by force
+            sendResponse(ZipLineMessage(player_guid, started_at_origin, action, 0, pos))
+          case (_, _) =>
+            log.warn(s"Tried to do something with a zipline but can't handle it. started_at_origin: ${started_at_origin} action: ${action} path_id: ${path_id} zone: ${continent.Number} / ${continent.Id}")
+        }
       }
 
     case msg @ RequestDestroyMessage(object_guid) =>
