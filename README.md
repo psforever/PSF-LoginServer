@@ -65,12 +65,34 @@ The Login and World servers require PostgreSQL for persistence.
 * Linux - [Debian](https://www.postgresql.org/download/linux/debian/) or [Ubuntu](https://www.postgresql.org/download/linux/ubuntu/)
 * macOS - Application https://www.postgresql.org/download/ (or `brew install postgresql && brew services start postgresql`)
 
-The default database is named `psforever` and the credentials are `psforever:psforever`. To change these, make a copy of `[config/worldserver.ini.dist](config/worldserver.ini.dist)` to `config/worldserver.ini` and change the corresponding fields in the database section.
-
-Once you have installed the database to your local system or have access to a remote database, you need to synchronize the schema. This is currently available in `[schema.sql](schema.sql)`.
+The default database is named `psforever` and the credentials are `psforever:psforever`. To change these, make a copy of `[config/worldserver.ini.dist](config/worldserver.ini.dist)` to `config/worldserver.ini` and change the corresponding fields in the database section. This database user will need ALL access to tables, sequences, and functions.
+The permissions required can be summarized by the SQL below.
 Loading this in requires access to a graphical tool such as [pgAdmin](https://www.pgadmin.org/download/) (highly recommended) or a PostgreSQL terminal (`psql`) for advanced users.
-To get started using pgAdmin, run the binary. This will start the pgAdmin server and pop-up a tab in your web browser with the interface. Upon first run, enter your connection details that you created during the PostgreSQL installation. When connected, right click the "Databases" menu -> Create... -> Database: psforever -> Save. Next, right click on the newly created database (psforever) -> Query Tool... -> Copy and paste / Open the `schema.sql` file into the editor -> Hit the "Play/Run" button. The schema should be loaded into the database.
+To get started using pgAdmin, run the binary. This will start the pgAdmin server and pop-up a tab in your web browser with the interface. Upon first run, enter your connection details that you created during the PostgreSQL installation. When connected, right click the "Databases" menu -> Create... -> Database: psforever -> Save.
+Next, right click on the newly created database (psforever) -> Query Tool... -> Copy and paste the commands below -> Hit the "Play/Run" button. The user should be created and granted the right permissions.
+
+```sql
+CREATE USER psforever;
+ALTER USER psforever WITH PASSWORD 'psforever';
+ALTER DEFAULT PRIVILEGES IN SCHEMA PUBLIC GRANT ALL ON TABLES TO psforever;
+ALTER DEFAULT PRIVILEGES IN SCHEMA PUBLIC GRANT ALL ON SEQUENCES TO psforever;
+ALTER DEFAULT PRIVILEGES IN SCHEMA PUBLIC GRANT ALL ON FUNCTIONS TO psforever;
+```
+
+**NOTE:** applying default privileges *after* importing the schema will not apply them to existing objects. To fix this, you must drop all objects and try again or apply permissions manually using the Query Tool / `psql`.
+
+Now you need to synchronize the schema. This is currently available in `[schema.sql](schema.sql)`.
+To do this right click on the psforever database -> Query Tool... -> Copy and paste / Open the `schema.sql` file into the editor -> Hit the "Play/Run" button. The schema should be loaded into the database.
 Once you have the schema loaded in, the LoginServer will automatically create accounts on first login. If you'd like a nice account management interface, check out the [PSFPortal](https://github.com/psforever/PSFPortal) web interface.
+
+### Becoming a GM
+By default users are not granted GM access. To grant a created user GM access execute the following query:
+
+```sql
+UPDATE accounts SET gm=true WHERE id=your_id;
+```
+
+You can find your account id by viewing the accounts table.
 
 ## Running the Server
 
