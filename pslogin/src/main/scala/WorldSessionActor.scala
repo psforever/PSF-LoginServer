@@ -4159,15 +4159,18 @@ class WorldSessionActor extends Actor
       var echoContents : String = contents
       val trimContents = contents.trim
       //TODO messy on/off strings may work
-      if(messagetype == ChatMessageType.CMT_FLY) {
-        if(trimContents.equals("on")) {
+      if(messagetype == ChatMessageType.CMT_FLY && admin) {
+        makeReply = false
+        if(!flying) {
           flying = true
-        }
-        else if(trimContents.equals("off")) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_FLY, msg.wideContents, msg.recipient, "on", msg.note))
+        } else {
           flying = false
+          sendResponse(ChatMsg(ChatMessageType.CMT_FLY, msg.wideContents, msg.recipient, "off", msg.note))
         }
       }
-      else if(messagetype == ChatMessageType.CMT_SPEED) {
+      else if(messagetype == ChatMessageType.CMT_SPEED && admin) {
+        makeReply = true
         speed = {
           try {
             trimContents.toFloat
@@ -4179,12 +4182,14 @@ class WorldSessionActor extends Actor
           }
         }
       }
-      else if(messagetype == ChatMessageType.CMT_TOGGLESPECTATORMODE) {
-        if(trimContents.equals("on")) {
+      else if(messagetype == ChatMessageType.CMT_TOGGLESPECTATORMODE && admin) {
+        makeReply = false
+        if(!spectator) {
           spectator = true
-        }
-        else if(contents.trim.equals("off")) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_TOGGLESPECTATORMODE, msg.wideContents, msg.recipient, "on", msg.note))
+        } else {
           spectator = false
+          sendResponse(ChatMsg(ChatMessageType.CMT_TOGGLESPECTATORMODE, msg.wideContents, msg.recipient, "off", msg.note))
         }
       }
 
