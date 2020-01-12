@@ -1004,8 +1004,9 @@ object GlobalDefinitions {
 
   val painbox_radius_continuous = new PainboxDefinition(627)
 
-  val generator = new GeneratorDefinition(351)
+  val gen_control = new GeneratorTerminalDefinition(349)
 
+  val generator = new GeneratorDefinition(351)
   initMiscellaneous()
 
   /*
@@ -6214,6 +6215,8 @@ object GlobalDefinitions {
     manned_turret.MountPoints += 1 -> 0
     manned_turret.FactionLocked = true
     manned_turret.ReserveAmmunition = false
+
+    gen_control.Name = "gen_control"
 
     generator.Name = "generator"
   }
