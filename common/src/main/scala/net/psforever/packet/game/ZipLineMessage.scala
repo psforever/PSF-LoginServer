@@ -16,16 +16,14 @@ import scodec.codecs._
   * `1 - Arrived at destination`<br>
   * `2 - Forcibly detach from zip line in mid-transit`
   * @param player_guid the player
-  * @param started_at_origin whether this corresponds with the "entry" or the "exit" of the zip line, as per the direction of the light pulse visuals.
-  *                          It will remain consistent throughout travel across the zipline.
-  *                          For example: Entering at the origin will be true, but when exiting at the end of the zipline path it will still be true
+  * @param forwards true if the player is travelling in the direction of the light pulses
   * @param action how the player interacts with the zip line
   * @param path_id the path id that this zipline belongs to, from the relevant .zpl file
   * @param pos the coordinates of the point where the player is interacting with the zip line;
   *            "optional," in theory
   */
 final case class ZipLineMessage(player_guid : PlanetSideGUID,
-                                started_at_origin : Boolean,
+                                forwards : Boolean,
                                 action : Int,
                                 path_id : Long,
                                 pos : Option[Vector3] = None)
@@ -40,21 +38,19 @@ object ZipLineMessage extends Marshallable[ZipLineMessage] {
     * Alternate constructor for `ZipLineMessage` that requirement for the last field.
     *
     * @param player_guid       the player
-    * @param started_at_origin whether this corresponds with the "entry" or the "exit" of the zip line, as per the direction of the light pulse visuals.
-    *                          It will remain consistent throughout travel across the zipline.
-    *                          For example: Entering at the origin will be true, but when exiting at the end of the zipline path it will still be true
+    * @param forwards          true if the player is travelling in the direction of the light pulses
     * @param action            how the player interacts with the zip line
     * @param path_id           the path id that this zipline belongs to, from the relevant .zpl file
     * @param pos               the coordinates of the point where the player is interacting with the zip line
     * @return a `ZipLineMessage` object
     */
-  def apply(player_guid : PlanetSideGUID, started_at_origin : Boolean, action : Int, path_id : Long, pos : Vector3) : ZipLineMessage = {
-    ZipLineMessage(player_guid, started_at_origin, action, path_id, Some(pos))
+  def apply(player_guid : PlanetSideGUID, forwards : Boolean, action : Int, path_id : Long, pos : Vector3) : ZipLineMessage = {
+    ZipLineMessage(player_guid, forwards, action, path_id, Some(pos))
   }
 
   implicit val codec : Codec[ZipLineMessage] = (
     ("player_guid" | PlanetSideGUID.codec) >>:~ { player =>
-      ("started_at_origin" | bool) ::
+      ("forwards" | bool) ::
         ("action" | uint2) ::
         ("id" | uint32L) ::
         conditional(player.guid > 0, Vector3.codec_float) // !(player.guid == 0)
