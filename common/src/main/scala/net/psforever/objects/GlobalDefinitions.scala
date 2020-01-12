@@ -6195,7 +6195,7 @@ object GlobalDefinitions {
     crystals_health_b.Name = "crystals_health_b"
     crystals_health_b.Interval = 500
     crystals_health_b.HealAmount = 4
-    crystals_health_b.UseRadius = 1.3f
+    crystals_health_b.UseRadius = 5
     crystals_health_b.TargetValidation += EffectTarget.Category.Player -> EffectTarget.Validation.HealthCrystal
 
     portable_med_terminal.Name = "portable_med_terminal"
