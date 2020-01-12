@@ -2,7 +2,7 @@
 
 <img src="https://psforever.net/index_files/logo_crop.png" align="left"
      title="PSForever" width="120">
-Welcome to the recreated login and world servers for PlanetSide 1. We are a community of players and developers who took it upon ourselves to preserver PlanetSide 1's unique gameplay and history for all time.
+Welcome to the recreated login and world servers for PlanetSide 1. We are a community of players and developers who took it upon ourselves to preserve PlanetSide 1's unique gameplay and history *forever*.
 
 The login and world servers (this repo runs both by default) are built to work with PlanetSide version 3.15.84.0. Anything older is not guaranteed to work.
 Currently there are no binary releases of the server as the state is pre-alpha. You will need to have a development environment set up in order to get it running.
