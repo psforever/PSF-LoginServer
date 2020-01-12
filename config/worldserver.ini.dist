@@ -51,8 +51,8 @@ SSL = Prefer
 
 #    Database (string)
 #        Description: The database name to use on the SQL server.
-#        Important:   Make sure your username has been granted SELECT and INSERT access to
-#                     the database.
+#        Important:   Make sure your username has been GRANTed ALL PRIVILEGES to the database.
+#                     See the setup documentation for instructions on achieving this.
 #        Default:     "psforever"
 
 Database = "psforever"
