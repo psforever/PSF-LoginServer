@@ -3,6 +3,16 @@ package net.psforever.objects.serverobject.generator
 
 import net.psforever.objects.serverobject.structures.Amenity
 
+/**
+  * The generator is a big feature of all major facilities.
+  * It takes nanites from the NTU Silo and transforms it into power for the other amenities in the facility
+  * as well as distributing nanites for self-repair mechanisms.
+  * The only exception
+  * (in that the "exception" is something that does not require the generator to power it)
+  * is the capture console / control console.
+  * The generator is capable of self-repair from a completely destroyed state, as long as it has an supply of nanites.
+  * @param gdef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
+  */
 class Generator(private val gdef : GeneratorDefinition) extends Amenity {
   //TODO should have Vitality, to indicate damaged/destroyed property
   def Definition : GeneratorDefinition = gdef
