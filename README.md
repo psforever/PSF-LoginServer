@@ -6,7 +6,8 @@ Welcome to the recreated login and world servers for PlanetSide 1. We are a comm
 
 The login and world servers (this repo runs both by default) are built to work with PlanetSide version 3.15.84.0. Anything older is not guaranteed to work.
 Currently there are no binary releases of the server as the state is pre-alpha. You will need to have a development environment set up in order to get it running.
-If you just want to play, join the [public test server](#connecting-to-the-server-through-the-client)!
+If you just want to play, you don't need to set up a development environment. Join the public test server
+by following the *[PSForever Server Connection Guide](https://docs.google.com/document/d/1ZMx1NUylVZCXJNRyhkuVWT0eUKSVYu0JXsU-y3f93BY/edit)*, which has the instructions on downloading the game and using the PSForever launcher to start the game. 
 
 <p align="center">
   <kbd>
@@ -129,30 +130,6 @@ The REPL supports various useful commands. For example, to see the type of an ar
 
 ![image](https://cloud.githubusercontent.com/assets/16912082/18024371/e0b72f9e-6bcd-11e6-9de5-421ec3eff994.png)
 
-## Connecting to the Server through the Client
-To get PlanetSide to connect to your custom server, you will have to navigate to the `client.ini` file (located within the PlanetSide game directory) and modify the IP addresses.
-
-Check to see what IP the server is listening on (look for the `login-udp-endpoint` line) and copy that IP, followed by port 51000 to the the second line of the `client.ini`, which should initially say `login0=64.37.158.81:45000`. Your new line should say `login0=YourIP:51000`.  Delete all of the other lines in the file except `[network]` at the top of the file. Save and enjoy!
-
-The file should now look like this
-
-```ini
-[network]
-login0=your.local.ip:your-port
-```
-
-If you want to connect to the public test server, this is what your file would look like
-
-```ini
-[network]
-login0=play.psforever.net:51000
-```
-
-Afterwards, it is recommended that you create a shortcut to Planetside.exe. Afterwards, right click on the shortcut, select "Properties", and go under the "Shortcut" tab. In there, add these launch arguments in the target box after the quotes:  /K:StagingTest /CC . It should look like this in the target boxa fter you are done: <Directory to your planetside.exe>\planetside.exe" /K:StagingTest /CC . This will allow you to bypass the launcher and directly go to a login screen. /K:StagingTest is the argument that bypasses the launcher, and /CC fixes some errors with certain objects and features related to the Core Combat expansion (like allowing some buildings to appear, ceasing the message that "you must purchase Come Combat", etc.).
-
-As of right now, there is no username/password checking or persistance, so feel free to fill in whatever you like into those boxes. Afterwards, choose your server and select one of the default characters or make your own. There is also no character persistence in the current build of PSForever, so any character you make will be lost when you log out of them.
-
-**You must restart PlanetSide when changing the `client.ini` file!**
 
 ## Creating a Release
 If you want to test the project without an IDE or deploy it to a server for run, you can use sbt-pack to create a release (included with the repository).
