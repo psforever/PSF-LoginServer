@@ -14,7 +14,7 @@ import net.psforever.types.Vector3
 object Ugd02 { // Hunhau
   val ZoneMap = new ZoneMap("ugd02") {
     Scale = MapScale.Dim2560
-    Checksum = 0L
+    Checksum = 2702486449L
 
     Building10093()
 

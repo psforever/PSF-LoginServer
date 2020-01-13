@@ -14,7 +14,7 @@ import net.psforever.types.Vector3
 object Ugd04 { // Byblos
   val ZoneMap = new ZoneMap("ugd04") {
     Scale = MapScale.Dim2048
-    Checksum = 0L
+    Checksum = 3797992164L
 
     Building10076()
 

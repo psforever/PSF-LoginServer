@@ -14,7 +14,7 @@ import net.psforever.types.Vector3
 object Ugd01 { // Supai
   val ZoneMap = new ZoneMap("ugd01") {
     Scale = MapScale.Dim2560
-    Checksum = 0L
+    Checksum = 3405929729L
 
     Building10140()
 

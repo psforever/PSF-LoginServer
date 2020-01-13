@@ -14,7 +14,7 @@ import net.psforever.types.Vector3
 object Ugd06 { // Drugaskan
   val ZoneMap = new ZoneMap("ugd06") {
     Scale = MapScale.Dim2560
-    Checksum = 0L
+    Checksum = 4274683970L
 
     Building10077()
 
