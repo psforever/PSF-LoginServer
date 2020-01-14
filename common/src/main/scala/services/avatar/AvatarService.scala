@@ -70,10 +70,6 @@ class AvatarService(zone : Zone) extends Actor {
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.EnvironmentalDamage(player_guid, source_guid, amount))
           )
-        case AvatarAction.Damage(player_guid, target, resolution_function) =>
-          AvatarEvents.publish(
-            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.DamageResolution(target, resolution_function))
-          )
         case AvatarAction.DeployItem(player_guid, item) =>
           val definition = item.Definition
           val objectData = definition.Packet.ConstructorData(item).get
@@ -118,6 +114,10 @@ class AvatarService(zone : Zone) extends Actor {
         case AvatarAction.HitHint(source_guid, player_guid) =>
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.HitHint(source_guid))
+          )
+        case AvatarAction.Killed(player_guid) =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.Killed())
           )
         case AvatarAction.KilledWhileInVehicle(player_guid) =>
           AvatarEvents.publish(

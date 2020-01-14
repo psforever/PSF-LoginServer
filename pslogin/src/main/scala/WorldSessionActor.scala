@@ -1361,66 +1361,7 @@ class WorldSessionActor extends Actor
           continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(target, 0, player.Health))
           damageLog.info(s"${player.Name}-infantry: BEFORE=$originalHealth/$armor/$capacitor, AFTER=${player.Health}/$armor/$capacitor, CHANGE=$amount/0/0")
           if(player.Health == 0 && player.isAlive) {
-            KillPlayer(player)
-          }
-        }
-
-      case AvatarResponse.DamageResolution(target, resolution_function) =>
-        if(player.isAlive) {
-          val originalHealth = player.Health
-          val originalArmor = player.Armor
-          val originalCapacitor = player.Capacitor.toInt
-          val cause = resolution_function(target)
-          val health = player.Health
-          val armor = player.Armor
-          val capacitor = player.Capacitor.toInt
-          val damageToHealth = originalHealth - health
-          val damageToArmor = originalArmor - armor
-          val damageToCapacitor = originalCapacitor - capacitor
-          if(damageToHealth != 0 || damageToArmor != 0 || damageToCapacitor != 0) {
-            damageLog.info(s"${player.Name}-infantry: BEFORE=$originalHealth/$originalArmor/$originalCapacitor, AFTER=$health/$armor/$capacitor, CHANGE=$damageToHealth/$damageToArmor/$damageToCapacitor")
-            val playerGUID = player.GUID
-            if(damageToHealth > 0) {
-              sendResponse(PlanetsideAttributeMessage(playerGUID, 0, health))
-              continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(playerGUID, 0, health))
-            }
-            if(damageToArmor > 0) {
-              sendResponse(PlanetsideAttributeMessage(playerGUID, 4, armor))
-              continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(playerGUID, 4, armor))
-            }
-            if(damageToCapacitor > 0) {
-              sendResponse(PlanetsideAttributeMessage(playerGUID, 7, capacitor))
-            }
-            sendResponse(PlanetsideAttributeMessage(playerGUID, 0, health))
-            sendResponse(PlanetsideAttributeMessage(playerGUID, 4, armor))
-            continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(playerGUID, 0, health))
-            continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(playerGUID, 4, armor))
-            if(health == 0 && player.isAlive) {
-              KillPlayer(player)
-            }
-            else {
-              //damage cause -> recent damage source -> killing blow?
-              cause match {
-                case data : ResolvedProjectile =>
-                  val owner = data.projectile.owner
-                  owner match {
-                    case pSource : PlayerSource =>
-                      continent.LivePlayers.find(_.Name == pSource.Name) match {
-                        case Some(tplayer) =>
-                          sendResponse(HitHint(tplayer.GUID, player.GUID))
-                        case None => ;
-                      }
-                    case vSource : SourceEntry =>
-                      sendResponse(DamageWithPositionMessage(damageToHealth + damageToArmor, vSource.Position))
-                    case _ => ;
-                  }
-                  continent.Activity ! Zone.HotSpot.Activity(owner, data.target, target.Position)
-                case _ => ;
-              }
-            }
-          }
-          if(target.isAlive && cause.projectile.profile.JammerProjectile) {
-            self ! JammableUnit.Jammered(cause)
+            player.Actor ! Player.Die()
           }
         }
 
@@ -1451,6 +1392,28 @@ class WorldSessionActor extends Actor
           sendResponse(HitHint(source_guid, guid))
         }
 
+      case AvatarResponse.Killed() =>
+        val player_guid = player.GUID
+        val pos = player.Position
+        val respawnTimer = 300000 //milliseconds
+        ToggleMaxSpecialState(enable = false)
+        deadState = DeadState.Dead
+        timeDL = 0
+        timeSurge = 0
+        continent.GUID(player.VehicleSeated) match {
+          case Some(obj : Vehicle) =>
+            TotalDriverVehicleControl(obj)
+            UnAccessContents(obj)
+          case _ => ;
+        }
+        PlayerActionsToCancel()
+        if(shotsWhileDead > 0) {
+          log.warn(s"KillPlayer/SHOTS_WHILE_DEAD: client of ${avatar.name} fired $shotsWhileDead rounds while character was dead on server")
+          shotsWhileDead = 0
+        }
+        import scala.concurrent.ExecutionContext.Implicits.global
+        reviveTimer = context.system.scheduler.scheduleOnce(respawnTimer milliseconds, cluster, Zone.Lattice.RequestSpawnPoint(Zones.SanctuaryZoneNumber(player.Faction), player, 7))
+
       case AvatarResponse.KilledWhileInVehicle() =>
         if(player.isAlive && player.VehicleSeated.nonEmpty) {
           (continent.GUID(player.VehicleSeated) match {
@@ -1470,7 +1433,7 @@ class WorldSessionActor extends Actor
               obj.LastShot match {
                 case Some(cause) =>
                   player.History(cause)
-                  KillPlayer(player)
+                  player.Actor ! Player.Die()
                 case None => ;
               }
             case _ =>
@@ -7883,80 +7846,7 @@ class WorldSessionActor extends Actor
     */
   def Suicide(tplayer : Player) : Unit = {
     tplayer.History(PlayerSuicide(PlayerSource(tplayer)))
-    KillPlayer(tplayer)
-  }
-
-  /**
-    * The player has lost all his vitality and must be killed.<br>
-    * <br>
-    * Shift directly into a state of being dead on the client by setting health to zero points,
-    * whereupon the player will perform a dramatic death animation.
-    * Stamina is also set to zero points.
-    * If the player was in a vehicle at the time of demise, special conditions apply and
-    * the model must be manipulated so it behaves correctly.
-    * Do not move or completely destroy the `Player` object as its coordinates of death will be important.<br>
-    * <br>
-    * A maximum revive waiting timer is started.
-    * When this timer reaches zero, the avatar will attempt to spawn back on its faction-specific sanctuary continent.
-    * @param tplayer the player to be killed
-    */
-  def KillPlayer(tplayer : Player) : Unit = {
-    val player_guid = tplayer.GUID
-    val pos = tplayer.Position
-    val respawnTimer = 300000 //milliseconds
-    ToggleMaxSpecialState(enable = false)
-    tplayer.Die
-    deadState = DeadState.Dead
-    timeDL = 0
-    timeSurge = 0
-    sendResponse(PlanetsideAttributeMessage(player_guid, 0, 0))
-    sendResponse(PlanetsideAttributeMessage(player_guid, 2, 0))
-    continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player_guid, 0, 0))
-    sendResponse(DestroyMessage(player_guid, player_guid, PlanetSideGUID(0), pos)) //how many players get this message?
-    sendResponse(AvatarDeadStateMessage(DeadState.Dead, respawnTimer, respawnTimer, pos, player.Faction, true))
-    if(tplayer.VehicleSeated.nonEmpty) {
-      continent.GUID(tplayer.VehicleSeated.get) match {
-        case Some(obj : Vehicle) =>
-          TotalDriverVehicleControl(obj)
-          UnAccessContents(obj)
-        case _ => ;
-      }
-      //make player invisible (if not, the cadaver sticks out the side in a seated position)
-      sendResponse(PlanetsideAttributeMessage(player_guid, 29, 1))
-      continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player_guid, 29, 1))
-    }
-    PlayerActionsToCancel()
-    //TODO other methods of death?
-    val pentry = PlayerSource(tplayer)
-    (tplayer.History.find({p => p.isInstanceOf[PlayerSuicide]}) match {
-      case Some(PlayerSuicide(_)) =>
-        None
-      case _ =>
-        tplayer.LastShot match {
-          case Some(shot) =>
-            if(System.nanoTime - shot.hit_time < (10 seconds).toNanos) {
-              Some(shot)
-            }
-            else {
-              None //suicide
-            }
-          case None =>
-            None //suicide
-        }
-    }) match {
-      case Some(shot) =>
-        continent.Activity ! Zone.HotSpot.Activity(pentry, shot.projectile.owner, shot.hit_pos)
-        continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.DestroyDisplay(shot.projectile.owner, pentry, shot.projectile.attribute_to))
-      case None =>
-        continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.DestroyDisplay(pentry, pentry, 0))
-    }
-    if(shotsWhileDead > 0) {
-      log.warn(s"KillPlayer/SHOTS_WHILE_DEAD: client of ${avatar.name} fired $shotsWhileDead rounds while character was dead on server")
-      shotsWhileDead = 0
-    }
-
-    import scala.concurrent.ExecutionContext.Implicits.global
-    reviveTimer = context.system.scheduler.scheduleOnce(respawnTimer milliseconds, cluster, Zone.Lattice.RequestSpawnPoint(Zones.SanctuaryZoneNumber(tplayer.Faction), tplayer, 7))
+    tplayer.Actor ! Player.Die()
   }
 
   /**
@@ -8683,6 +8573,8 @@ class WorldSessionActor extends Actor
     * using the information reconstructed from a `Resolvedprojectile`
     * and affect the `target` in a synchronized manner.
     * The active `target` and the target of the `ResolvedProjectile` do not have be the same.
+    * While the "tell" for being able to sustain damage is an entity of type `Vitality`,
+    * only specific `Vitality` entity types are being screened for sustaining damage.
     * @see `DamageResistanceModel`<br>
     *       `Vitality`
     * @param target a valid game object that is known to the server
@@ -8691,10 +8583,7 @@ class WorldSessionActor extends Actor
   def HandleDealingDamage(target : PlanetSideGameObject with Vitality, data : ResolvedProjectile) : Unit = {
     val func = data.damage_model.Calculate(data)
     target match {
-      case obj : Player =>
-        //damage is synchronized on the target player's `WSA` (results distributed from there)
-        continent.AvatarEvents ! AvatarServiceMessage(obj.Name, AvatarAction.Damage(player.GUID, obj, func))
-
+      case obj : Player => obj.Actor ! Vitality.Damage(func)
       case obj : Vehicle => obj.Actor ! Vitality.Damage(func)
       case obj : FacilityTurret => obj.Actor ! Vitality.Damage(func)
       case obj : ComplexDeployable => obj.Actor ! Vitality.Damage(func)

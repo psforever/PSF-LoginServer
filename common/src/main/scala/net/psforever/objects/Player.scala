@@ -639,6 +639,8 @@ object Player {
   final val FreeHandSlot : Int = 250
   final val HandsDownSlot : Int = 255
 
+  final case class Die()
+
   def apply(core : Avatar) : Player = {
     new Player(core)
   }
