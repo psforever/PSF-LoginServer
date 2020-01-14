@@ -162,9 +162,8 @@ object TurretControl {
       seat.isOccupied && seat.Occupant.get.isAlive
     }).foreach(seat => {
       val tplayer = seat.Occupant.get
-      val tplayerGUID = tplayer.GUID
-      zone.AvatarEvents ! AvatarServiceMessage(tplayer.Name, AvatarAction.KilledWhileInVehicle(tplayerGUID))
-      zone.AvatarEvents ! AvatarServiceMessage(continentId, AvatarAction.ObjectDelete(tplayerGUID, tplayerGUID)) //dead player still sees self
+      tplayer.History(lastShot)
+      tplayer.Actor ! Player.Die()
     })
     //vehicle wreckage has no weapons
     target.Weapons.values

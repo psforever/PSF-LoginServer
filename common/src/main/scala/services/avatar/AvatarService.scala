@@ -119,10 +119,6 @@ class AvatarService(zone : Zone) extends Actor {
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.Killed())
           )
-        case AvatarAction.KilledWhileInVehicle(player_guid) =>
-          AvatarEvents.publish(
-            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.KilledWhileInVehicle())
-          )
         case AvatarAction.LoadPlayer(player_guid, object_id, target_guid, cdata, pdata) =>
           val pkt = pdata match {
             case Some(data) =>

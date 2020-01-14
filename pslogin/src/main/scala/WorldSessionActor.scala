@@ -1393,8 +1393,6 @@ class WorldSessionActor extends Actor
         }
 
       case AvatarResponse.Killed() =>
-        val player_guid = player.GUID
-        val pos = player.Position
         val respawnTimer = 300000 //milliseconds
         ToggleMaxSpecialState(enable = false)
         deadState = DeadState.Dead
@@ -1413,34 +1411,6 @@ class WorldSessionActor extends Actor
         }
         import scala.concurrent.ExecutionContext.Implicits.global
         reviveTimer = context.system.scheduler.scheduleOnce(respawnTimer milliseconds, cluster, Zone.Lattice.RequestSpawnPoint(Zones.SanctuaryZoneNumber(player.Faction), player, 7))
-
-      case AvatarResponse.KilledWhileInVehicle() =>
-        if(player.isAlive && player.VehicleSeated.nonEmpty) {
-          (continent.GUID(player.VehicleSeated) match {
-            case Some(obj : Vehicle) =>
-              if(obj.Health == 0) Some(obj)
-              else None
-            case Some(obj : TurretDeployable) =>
-              if(obj.Health == 0) Some(obj)
-              else None
-            case Some(obj : FacilityTurret) =>
-              if(obj.Health == 1) Some(obj) //TODO proper turret death at 0 health
-              else None
-            case _ =>
-              None
-          }) match {
-            case Some(obj : PlanetSideGameObject with Vitality) =>
-              obj.LastShot match {
-                case Some(cause) =>
-                  player.History(cause)
-                  player.Actor ! Player.Die()
-                case None => ;
-              }
-            case _ =>
-              log.warn(s"${player.Name} was seated in a vehicle and should have been killed, but was not; suicidal fallback")
-              Suicide(player)
-          }
-        }
 
       case AvatarResponse.LoadPlayer(pkt) =>
         if(tplayer_guid != guid) {

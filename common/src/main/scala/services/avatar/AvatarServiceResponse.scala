@@ -4,7 +4,6 @@ package services.avatar
 import net.psforever.objects.Player
 import net.psforever.objects.ballistics.{Projectile, SourceEntry}
 import net.psforever.objects.equipment.Equipment
-import net.psforever.objects.vital.resolution.ResolutionCalculations
 import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game.objectcreate.ConstructorData
 import net.psforever.packet.game.ObjectCreateMessage
@@ -33,7 +32,6 @@ object AvatarResponse {
   final case class GenericObjectAction(object_guid : PlanetSideGUID, action_code : Int) extends Response
   final case class HitHint(source_guid : PlanetSideGUID) extends Response
   final case class Killed() extends Response
-  final case class KilledWhileInVehicle() extends Response
   final case class LoadPlayer(pkt : ObjectCreateMessage) extends Response
   final case class LoadProjectile(pkt : ObjectCreateMessage) extends Response
   final case class ObjectDelete(item_guid : PlanetSideGUID, unk : Int) extends Response

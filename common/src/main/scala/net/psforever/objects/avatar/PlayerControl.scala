@@ -139,7 +139,8 @@ object PlayerControl {
     events ! AvatarServiceMessage(nameChannel, AvatarAction.Killed(player_guid))
     if(target.VehicleSeated.nonEmpty) {
       //make player invisible (if not, the cadaver sticks out the side in a seated position)
-      events ! AvatarServiceMessage(zoneChannel, AvatarAction.PlanetsideAttributeToAll(player_guid, 29, 1))
+      events ! AvatarServiceMessage(nameChannel, AvatarAction.PlanetsideAttributeToAll(player_guid, 29, 1))
+      events ! AvatarServiceMessage(zoneChannel, AvatarAction.ObjectDelete(player_guid, player_guid)) ///dead player still "sees" self
     }
     events ! AvatarServiceMessage(zoneChannel, AvatarAction.PlanetsideAttributeToAll(player_guid, 0, 0)) //health
     events ! AvatarServiceMessage(nameChannel, AvatarAction.PlanetsideAttributeToAll(player_guid, 2, 0)) //stamina

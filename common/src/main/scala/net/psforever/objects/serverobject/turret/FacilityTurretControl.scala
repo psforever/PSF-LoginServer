@@ -2,6 +2,7 @@
 package net.psforever.objects.serverobject.turret
 
 import akka.actor.Actor
+import net.psforever.objects.Player
 import net.psforever.objects.ballistics.ResolvedProjectile
 import net.psforever.objects.equipment.{JammableMountedWeapons, JammableUnit}
 import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior}
@@ -130,9 +131,8 @@ object FacilityTurretControl {
       seat.isOccupied && seat.Occupant.get.isAlive
     }).foreach(seat => {
       val tplayer = seat.Occupant.get
-      val tplayerGUID = tplayer.GUID
-      zone.AvatarEvents ! AvatarServiceMessage(tplayer.Name, AvatarAction.KilledWhileInVehicle(tplayerGUID))
-      zone.AvatarEvents ! AvatarServiceMessage(zoneId, AvatarAction.ObjectDelete(tplayerGUID, tplayerGUID)) //dead player still sees self
+      tplayer.History(lastShot)
+      tplayer.Actor ! Player.Die()
     })
     //turret wreckage has no weapons
     //      target.Weapons.values

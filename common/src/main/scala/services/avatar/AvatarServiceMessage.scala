@@ -6,7 +6,6 @@ import net.psforever.objects.ballistics.{Projectile, SourceEntry}
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.inventory.Container
-import net.psforever.objects.vital.resolution.ResolutionCalculations
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game.objectcreate.{ConstructorData, ObjectCreateMessageParent}
@@ -39,7 +38,6 @@ object AvatarAction {
   final case class GenericObjectAction(player_guid : PlanetSideGUID, object_guid : PlanetSideGUID, action_code : Int) extends Action
   final case class HitHint(source_guid : PlanetSideGUID, player_guid : PlanetSideGUID) extends Action
   final case class Killed(player_guid : PlanetSideGUID) extends Action
-  final case class KilledWhileInVehicle(player_guid : PlanetSideGUID) extends Action
   final case class LoadPlayer(player_guid : PlanetSideGUID, object_id : Int, target_guid : PlanetSideGUID, cdata : ConstructorData, pdata : Option[ObjectCreateMessageParent]) extends Action
   final case class LoadProjectile(player_guid : PlanetSideGUID, object_id : Int, projectile_guid : PlanetSideGUID, cdata : ConstructorData) extends Action
   final case class ObjectDelete(player_guid : PlanetSideGUID, item_guid : PlanetSideGUID, unk : Int = 0) extends Action
