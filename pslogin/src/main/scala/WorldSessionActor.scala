@@ -772,7 +772,7 @@ class WorldSessionActor extends Actor
 
     case Zone.Lattice.SpawnPoint(zone_id, spawn_tube) =>
       var (pos, ori) = spawn_tube.SpecificPoint(continent.GUID(player.VehicleSeated) match {
-        case Some(obj : Vehicle) if obj.Health > 0 =>
+        case Some(obj : Vehicle) if !obj.IsDead =>
           obj
         case _ =>
           player
@@ -4944,9 +4944,8 @@ class WorldSessionActor extends Actor
             else if(equipment.isDefined) {
               equipment.get.Definition match {
                 case GlobalDefinitions.nano_dispenser =>
-                  //TODO repairing behavior
                   if (!player.isMoving && Vector3.Distance(player.Position, obj.Position) < 5) {
-                    if (obj.Health < obj.MaxHealth && obj.Health > 0) {
+                    if (obj.Health < obj.MaxHealth && !obj.IsDead) {
                       obj.Health += 48
                       //                sendResponse(QuantityUpdateMessage(PlanetSideGUID(8214),ammo_quantity_left))
                       val RepairPercent: Int = obj.Health * 100 / obj.MaxHealth
@@ -5689,7 +5688,7 @@ class WorldSessionActor extends Actor
         case Some(vehicleGUID) =>
           continent.GUID(vehicleGUID) match {
             case Some(obj : Vehicle) =>
-              if(obj.Health > 0) { //vehicle will try to charge even if destroyed
+              if(!obj.IsDead) { //vehicle will try to charge even if destroyed
                 obj.Actor ! Vehicle.ChargeShields(15)
               }
             case _ =>
@@ -8081,7 +8080,7 @@ class WorldSessionActor extends Actor
     }
     else {
       continent.GUID(player.VehicleSeated) match {
-        case Some(obj : Vehicle) if obj.Health > 0 =>
+        case Some(obj : Vehicle) if !obj.IsDead =>
           cluster ! Zone.Lattice.RequestSpawnPoint(sanctNumber, tplayer, 12) //warp gates for functioning vehicles
         case None =>
           cluster ! Zone.Lattice.RequestSpawnPoint(sanctNumber, tplayer, 7) //player character spawns
