@@ -67,6 +67,7 @@ class Player(private val core : Avatar) extends PlanetSideServerObject
   var lastShotSeq_time : Int = -1
   /** From PlanetsideAttributeMessage */
   var PlanetsideAttribute : Array[Long] = Array.ofDim(120)
+  var skipStaminaRegenForTurns : Int = 0
 
   Player.SuitSetup(this, exosuit)
 

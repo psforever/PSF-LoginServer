@@ -46,6 +46,53 @@ class PlayerControl(player : Player) extends Actor
       }
     case _ => ;
   }
+
+  /**
+    * Start the jammered buzzing.
+    * Although, as a rule, the jammering sound effect should last as long as the jammering status,
+    * Infantry seem to hear the sound for a bit longer than the effect.
+    * @see `JammableBehavior.StartJammeredSound`
+    * @param target an object that can be affected by the jammered status
+    * @param dur the duration of the timer, in milliseconds;
+    *            by default, 30000
+    */
+  override def StartJammeredSound(target : Any, dur : Int) : Unit = target match {
+    case obj : Player if !jammedSound =>
+      obj.Zone.AvatarEvents ! AvatarServiceMessage(obj.Zone.Id, AvatarAction.PlanetsideAttributeToAll(obj.GUID, 27, 1))
+      super.StartJammeredSound(obj, 3000)
+    case _ => ;
+  }
+
+  /**
+    * Perform a variety of tasks to indicate being jammered.
+    * Deactivate implants (should also uninitialize them),
+    * delay stamina regeneration for a certain number of turns,
+    * and set the jammered status on specific holstered equipment.
+    * @see `JammableBehavior.StartJammeredStatus`
+    * @param target an object that can be affected by the jammered status
+    * @param dur the duration of the timer, in milliseconds
+    */
+  override def StartJammeredStatus(target : Any, dur : Int) : Unit = target match {
+    case obj : Player =>
+      //TODO these features
+      obj.Zone.AvatarEvents ! AvatarServiceMessage(obj.Zone.Id, AvatarAction.DeactivateImplantSlot(obj.GUID, 1))
+      obj.Zone.AvatarEvents ! AvatarServiceMessage(obj.Zone.Id, AvatarAction.DeactivateImplantSlot(obj.GUID, 2))
+      obj.skipStaminaRegenForTurns = math.max(obj.skipStaminaRegenForTurns, 10)
+      super.StartJammeredStatus(target, dur)
+    case _ => ;
+  }
+
+  /**
+    * Stop the jammered buzzing.
+    * @see `JammableBehavior.CancelJammeredSound`
+    * @param target an object that can be affected by the jammered status
+    */
+  override def CancelJammeredSound(target : Any) : Unit = target match {
+    case obj : Player if jammedSound =>
+      obj.Zone.AvatarEvents ! AvatarServiceMessage(obj.Zone.Id, AvatarAction.PlanetsideAttributeToAll(obj.GUID, 27, 0))
+      super.CancelJammeredSound(obj)
+    case _ => ;
+  }
 }
 
 object PlayerControl {
@@ -136,11 +183,14 @@ object PlayerControl {
     val nameChannel = target.Name
     val zoneChannel = zone.Id
     target.Die
-    events ! AvatarServiceMessage(nameChannel, AvatarAction.Killed(player_guid))
+    target.Actor ! JammableUnit.ClearJammeredSound()
+    target.Actor ! JammableUnit.ClearJammeredStatus()
+    events ! AvatarServiceMessage(nameChannel, AvatarAction.Killed(player_guid)) //align client interface fields with state
     if(target.VehicleSeated.nonEmpty) {
       //make player invisible (if not, the cadaver sticks out the side in a seated position)
       events ! AvatarServiceMessage(nameChannel, AvatarAction.PlanetsideAttributeToAll(player_guid, 29, 1))
-      events ! AvatarServiceMessage(zoneChannel, AvatarAction.ObjectDelete(player_guid, player_guid)) ///dead player still "sees" self
+      //only the dead player should "see" their own body, so that the death camera has something to focus on
+      events ! AvatarServiceMessage(zoneChannel, AvatarAction.ObjectDelete(player_guid, player_guid))
     }
     events ! AvatarServiceMessage(zoneChannel, AvatarAction.PlanetsideAttributeToAll(player_guid, 0, 0)) //health
     events ! AvatarServiceMessage(nameChannel, AvatarAction.PlanetsideAttributeToAll(player_guid, 2, 0)) //stamina

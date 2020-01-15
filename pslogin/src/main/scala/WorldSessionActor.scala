@@ -77,8 +77,7 @@ import services.support.SupportActor
 import scala.collection.mutable
 
 class WorldSessionActor extends Actor
-  with MDCContextAware
-  with JammableBehavior {
+  with MDCContextAware {
   import WorldSessionActor._
 
   private[this] val log = org.log4s.getLogger
@@ -164,7 +163,6 @@ class WorldSessionActor extends Actor
 
   var timeDL : Long = 0
   var timeSurge : Long = 0
-  var skipStaminaRegenForTurns : Int = 0
   lazy val unsignedIntMaxValue : Long = Int.MaxValue.toLong * 2L + 1L
   var serverTime : Long = 0
 
@@ -332,7 +330,7 @@ class WorldSessionActor extends Actor
       context.stop(self)
   }
 
-  def Started : Receive = jammableBehavior.orElse {
+  def Started : Receive = {
     case ServiceManager.LookupResult("accountIntermediary", endpoint) =>
       accountIntermediary = endpoint
       log.info("ID: " + sessionId + " Got account intermediary service " + endpoint)
@@ -1363,6 +1361,14 @@ class WorldSessionActor extends Actor
           if(player.Health == 0 && player.isAlive) {
             player.Actor ! Player.Die()
           }
+        }
+
+      case AvatarResponse.DeactivateImplantSlot(slot) =>
+        //temporary solution until implants are finalized
+        slot match {
+          case 1 => DeactivateImplantDarkLight()
+          case 2 => DeactivateImplantSurge()
+          case _ => ;
         }
 
       case AvatarResponse.Destroy(victim, killer, weapon, pos) =>
@@ -3893,14 +3899,14 @@ class WorldSessionActor extends Actor
             }
           }
         }
-        if(skipStaminaRegenForTurns > 0) {
+        if(player.skipStaminaRegenForTurns > 0) {
           //do not renew stamina for a while
-          skipStaminaRegenForTurns -= 1
+          player.skipStaminaRegenForTurns -= 1
           player.Stamina > 0
         }
         else if(player.Stamina == 0 && hadStaminaBefore) {
           //if the player lost all stamina this turn (had stamina at the start), do not renew stamina for a while
-          skipStaminaRegenForTurns = 4
+          player.skipStaminaRegenForTurns = 4
           player.Stamina > 0
         }
         else if(isMovingPlus || player.Stamina == player.MaxStamina) {
@@ -4513,7 +4519,7 @@ class WorldSessionActor extends Actor
     case msg @ AvatarJumpMessage(state) =>
       //log.info("AvatarJump: " + msg)
       player.Stamina = player.Stamina - 10
-      skipStaminaRegenForTurns = 5
+      player.skipStaminaRegenForTurns = math.max(player.skipStaminaRegenForTurns, 5)
       sendResponse(PlanetsideAttributeMessage(player.GUID, 2, player.Stamina))
 
     case msg @ ZipLineMessage(player_guid,origin_side,action,id,pos) =>
@@ -5466,15 +5472,6 @@ class WorldSessionActor extends Actor
         case Some(tool : Tool) =>
           continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.WeaponDryFire(player.GUID, weapon_guid))
         case _ => ;
-      }
-
-    case msg @ WeaponJammedMessage(weapon_guid) =>
-      FindWeapon match {
-        case Some(tool : Tool) =>
-          log.info(s"WeaponJammed: ${tool.Definition.Name}@${weapon_guid.guid}")
-          //TODO
-        case _ =>
-          log.info(s"WeaponJammed: ${weapon_guid.guid}")
       }
 
     case msg @ WeaponFireMessage(seq_time, weapon_guid, projectile_guid, shot_origin, unk1, unk2, unk3, unk4, unk5, unk6, unk7) =>
@@ -7830,12 +7827,10 @@ class WorldSessionActor extends Actor
     * This is not a complete list but, for the purpose of enforcement, some pointers will be documented here.
     */
   def PlayerActionsToCancel() : Unit = {
-    CancelJammeredSound(player)
-    CancelJammeredStatus(player)
     progressBarUpdate.cancel
     progressBarValue = None
     lastTerminalOrderFulfillment = true
-    skipStaminaRegenForTurns = 0
+    player.skipStaminaRegenForTurns = 0
     accessedContainer match {
       case Some(obj : Vehicle) =>
         if(obj.AccessingTrunk.contains(player.GUID)) {
@@ -10830,7 +10825,7 @@ class WorldSessionActor extends Actor
     * This method is intended to support only the current Live server implants.
     */
   def DeactivateImplantDarkLight() : Unit = {
-    if(avatar.Implants(0).Active) {
+    if(avatar.Implants(0).Active && avatar.Implants(0).Implant == ImplantType.DarklightVision) {
       avatar.Implants(0).Active = false
       continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player.GUID, 28, avatar.Implant(0).id * 2))
       sendResponse(AvatarImplantMessage(PlanetSideGUID(player.GUID.guid), ImplantAction.Activation, 0, 0))
@@ -10843,59 +10838,12 @@ class WorldSessionActor extends Actor
     * This method is intended to support only the current Live server implants.
     */
   def DeactivateImplantSurge() : Unit = {
-    if(avatar.Implants(1).Active) {
+    if(avatar.Implants(1).Active && avatar.Implants(0).Implant == ImplantType.Surge) {
       avatar.Implants(1).Active = false
       continent.AvatarEvents  ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player.GUID, 28, avatar.Implant(1).id * 2))
       sendResponse(AvatarImplantMessage(PlanetSideGUID(player.GUID.guid), ImplantAction.Activation, 1, 0))
       timeSurge = 0
     }
-  }
-
-  /**
-    * Start the jammered buzzing.
-    * Although, as a rule, the jammering sound effect should last as long as the jammering status,
-    * Infantry seem to hear the sound for a bit longer than the effect.
-    * @see `JammableHevaior.StartJammeredSound`
-    * @param target an object that can be affected by the jammered status
-    * @param dur the duration of the timer, in milliseconds;
-    *            by default, 30000
-    */
-  override def StartJammeredSound(target : Any, dur : Int) : Unit = target match {
-    case obj : Player if !jammedSound =>
-      sendResponse(PlanetsideAttributeMessage(obj.GUID, 27, 1))
-      continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(obj.GUID, 27, 1))
-      super.StartJammeredSound(obj, 3000)
-    case _ => ;
-  }
-
-  /**
-    * Perform a variety of tasks to indicate being jammered.
-    * Deactivate implants (should also uninitialize them),
-    * delay stamina regeneration for a certain number of turns,
-    * and set the jammered status on specific holstered equipment.
-    * @see `JammableHevaior.StartJammeredStatus`
-    * @param target an object that can be affected by the jammered status
-    * @param dur the duration of the timer, in milliseconds
-    */
-  override def StartJammeredStatus(target : Any, dur : Int) : Unit = target match {
-    case obj : Player =>
-      DeactivateImplants()
-      skipStaminaRegenForTurns = 10
-      super.StartJammeredStatus(target, dur)
-    case _ => ;
-  }
-
-  /**
-    * Stop the jammered buzzing.
-    * @see `JammableHevaior.CancelJammeredSound`
-    * @param target an object that can be affected by the jammered status
-    */
-  override def CancelJammeredSound(target : Any) : Unit = target match {
-    case obj : Player if jammedSound =>
-      sendResponse(PlanetsideAttributeMessage(obj.GUID, 27, 0))
-      continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(obj.GUID, 27, 0))
-      super.CancelJammeredSound(obj)
-    case _ => ;
   }
 
   def failWithError(error : String) = {
