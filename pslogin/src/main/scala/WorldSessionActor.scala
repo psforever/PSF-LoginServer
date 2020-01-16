@@ -332,6 +332,21 @@ class WorldSessionActor extends Actor
       context.stop(self)
   }
 
+  def ValidObject(id : Int) : Option[PlanetSideGameObject] = ValidObject(Some(PlanetSideGUID(id)))
+
+  def ValidObject(id : PlanetSideGUID) : Option[PlanetSideGameObject] = ValidObject(Some(id))
+
+  def ValidObject(id : Option[PlanetSideGUID]) : Option[PlanetSideGameObject] = continent.GUID(id) match {
+    case out @ Some(obj) if obj.HasGUID =>
+      out
+    case None if id.nonEmpty =>
+      //delete stale entity reference from client
+      sendResponse(ObjectDeleteMessage(id.get, 0))
+      None
+    case _ =>
+      None
+  }
+
   def Started : Receive = jammableBehavior.orElse {
     case ServiceManager.LookupResult("accountIntermediary", endpoint) =>
       accountIntermediary = endpoint
@@ -4462,7 +4477,7 @@ class WorldSessionActor extends Actor
 
     case msg @ DropItemMessage(item_guid) =>
       log.info(s"DropItem: $msg")
-      continent.GUID(item_guid) match {
+      ValidObject(item_guid) match {
         case Some(anItem : Equipment) =>
           player.FreeHand.Equipment match {
             case Some(item) =>
@@ -4481,7 +4496,7 @@ class WorldSessionActor extends Actor
 
     case msg @ PickupItemMessage(item_guid, player_guid, unk1, unk2) =>
       log.info(s"PickupItem: $msg")
-      continent.GUID(item_guid) match {
+      ValidObject(item_guid) match {
         case Some(item : Equipment) =>
           player.Fit(item) match {
             case Some(_) =>
@@ -4603,7 +4618,7 @@ class WorldSessionActor extends Actor
 
     case msg @ RequestDestroyMessage(object_guid) =>
       // TODO: Make sure this is the correct response for all cases
-      continent.GUID(object_guid) match {
+      ValidObject(object_guid) match {
         case Some(vehicle : Vehicle) =>
           if((player.VehicleOwned.contains(object_guid) && vehicle.Owner.contains(player.GUID))
             || (player.Faction == vehicle.Faction
@@ -4746,7 +4761,7 @@ class WorldSessionActor extends Actor
 
     case msg @ LootItemMessage(item_guid, target_guid) =>
       log.info(s"LootItem: $msg")
-      (continent.GUID(item_guid), continent.GUID(target_guid)) match {
+      (ValidObject(item_guid), ValidObject(target_guid)) match {
         case (Some(item : Equipment), Some(target : Container)) =>
           //figure out the source
           (
@@ -4809,7 +4824,7 @@ class WorldSessionActor extends Actor
       //log.info("UseItem: " + msg)
       // TODO: Not all fields in the response are identical to source in real packet logs (but seems to be ok)
       // TODO: Not all incoming UseItemMessage's respond with another UseItemMessage (i.e. doors only send out GenericObjectStateMsg)
-      continent.GUID(object_guid) match {
+      ValidObject(object_guid) match {
         case Some(door : Door) =>
           if(player.Faction == door.Faction || (continent.Map.DoorToLock.get(object_guid.guid) match {
             case Some(lock_guid) =>
@@ -4883,7 +4898,7 @@ class WorldSessionActor extends Actor
             accessedContainer = Some(obj)
           }
           else if(!unk3 && player.isAlive) { //potential kit use
-            continent.GUID(item_used_guid) match {
+            ValidObject(item_used_guid) match {
               case Some(kit : Kit) =>
                 player.Find(kit) match {
                   case Some(index) =>
@@ -4998,7 +5013,7 @@ class WorldSessionActor extends Actor
             FindWeapon match {
               case Some(tool: Tool) =>
                 if (tool.Definition == GlobalDefinitions.bank) {
-                  continent.GUID(object_guid) match {
+                  ValidObject(object_guid) match {
                     case Some(tplayer: Player) =>
                       if (player.GUID != tplayer.GUID && Vector3.Distance(player.Position, tplayer.Position) < 5 && player.Faction == tplayer.Faction && !player.isMoving && tplayer.MaxArmor > 0 && tplayer.Armor < tplayer.MaxArmor) {
                         tplayer.Armor += 15
@@ -5325,7 +5340,7 @@ class WorldSessionActor extends Actor
     case msg @ UnuseItemMessage(player_guid, object_guid) =>
       log.info(s"UnuseItem: $msg")
       //TODO check for existing accessedContainer value?
-      continent.GUID(object_guid) match {
+      ValidObject(object_guid) match {
         case Some(obj : Vehicle) =>
           if(obj.AccessingTrunk.contains(player.GUID)) {
             obj.AccessingTrunk = None
@@ -5634,7 +5649,7 @@ class WorldSessionActor extends Actor
       log.info(s"Hit: $msg")
       (hit_info match {
         case Some(hitInfo) =>
-          continent.GUID(hitInfo.hitobject_guid) match {
+          ValidObject(hitInfo.hitobject_guid) match {
             case Some(target : PlanetSideGameObject with FactionAffinity with Vitality) =>
               Some((target, hitInfo.shot_origin, hitInfo.hit_pos))
             case _ =>
@@ -5659,7 +5674,7 @@ class WorldSessionActor extends Actor
           projectile.Position = explosion_pos
           projectile.Velocity = projectile_vel
           //direct_victim_uid
-          continent.GUID(direct_victim_uid) match {
+          ValidObject(direct_victim_uid) match {
             case Some(target : PlanetSideGameObject with FactionAffinity with Vitality) =>
               ResolveProjectileEntry(projectile, ProjectileResolution.Splash, target, target.Position) match {
                 case Some(projectile) =>
@@ -5670,7 +5685,7 @@ class WorldSessionActor extends Actor
           }
           //other victims
           targets.foreach(elem => {
-            continent.GUID(elem.uid) match {
+            ValidObject(elem.uid) match {
               case Some(target : PlanetSideGameObject with FactionAffinity with Vitality) =>
                 ResolveProjectileEntry(projectile, ProjectileResolution.Splash, target, explosion_pos) match {
                   case Some(projectile) =>
@@ -5695,7 +5710,7 @@ class WorldSessionActor extends Actor
 
     case msg @ LashMessage(seq_time, killer_guid, victim_guid, projectile_guid, pos, unk1) =>
       log.info(s"Lash: $msg")
-      continent.GUID(victim_guid) match {
+      ValidObject(victim_guid) match {
         case Some(target : PlanetSideGameObject with FactionAffinity with Vitality) =>
           ResolveProjectileEntry(projectile_guid, ProjectileResolution.Lash, target, pos) match {
             case Some(projectile) =>
@@ -5735,7 +5750,7 @@ class WorldSessionActor extends Actor
 
     case msg @ MountVehicleMsg(player_guid, mountable_guid, entry_point) =>
       log.info("MountVehicleMsg: "+msg)
-      continent.GUID(mountable_guid) match {
+      ValidObject(mountable_guid) match {
         case Some(obj : Mountable) =>
           obj.GetSeatFromMountPoint(entry_point) match {
             case Some(seat_num) =>
@@ -5795,7 +5810,7 @@ class WorldSessionActor extends Actor
         //kicking someone else out of a seat; need to own that seat/mountable
         player.VehicleOwned match {
           case Some(obj_guid) =>
-            (continent.GUID(obj_guid), continent.GUID(player_guid)) match {
+            (ValidObject(obj_guid), ValidObject(player_guid)) match {
               case (Some(obj : Mountable), Some(tplayer : Player)) =>
                 obj.PassengerInSeat(tplayer) match {
                   case Some(seat_num : Int) =>
@@ -5857,7 +5872,7 @@ class WorldSessionActor extends Actor
 
     case msg @ PlanetsideAttributeMessage(object_guid, attribute_type, attribute_value) =>
       log.info("PlanetsideAttributeMessage: "+msg)
-      continent.GUID(object_guid) match {
+      ValidObject(object_guid) match {
         case Some(vehicle : Vehicle) =>
           if(player.VehicleOwned.contains(vehicle.GUID)) {
             if(9 < attribute_type && attribute_type < 14) {
@@ -10902,7 +10917,7 @@ class WorldSessionActor extends Actor
     */
   def FindDetectedProjectileTargets(targets : Iterable[PlanetSideGUID]) : Iterable[String] = {
     targets
-      .map { continent.GUID }
+      .map { ValidObject }
       .flatMap {
         case Some(obj : Vehicle) if !obj.Cloaked =>
           //TODO hint: vehicleService ! VehicleServiceMessage(s"${obj.Actor}", VehicleAction.ProjectileAutoLockAwareness(mode))
