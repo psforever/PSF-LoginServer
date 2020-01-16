@@ -3622,7 +3622,7 @@ class WorldSessionActor extends Actor
               })
               player.Inventory.Clear()
               player.ExoSuit = ExoSuitType.Standard
-              player.Slot(0).Equipment = Tool(StandardPistol(player.Faction))
+              player.Slot(0).Equipment = ConstructionItem(ace) //Tool(StandardPistol(player.Faction))
               player.Slot(2).Equipment = Tool(suppressor)
               player.Slot(4).Equipment = Tool(StandardMelee(player.Faction))
               player.Slot(6).Equipment = AmmoBox(bullet_9mm)
@@ -8691,15 +8691,15 @@ class WorldSessionActor extends Actor
   def HandleDealingDamage(target : PlanetSideGameObject with Vitality, data : ResolvedProjectile) : Unit = {
     val func = data.damage_model.Calculate(data)
     target match {
-      case obj : Player =>
+      case obj : Player if obj.Health > 0 =>
         //damage is synchronized on the target player's `WSA` (results distributed from there)
         continent.AvatarEvents ! AvatarServiceMessage(obj.Name, AvatarAction.Damage(player.GUID, obj, func))
 
-      case obj : Vehicle => obj.Actor ! Vitality.Damage(func)
-      case obj : FacilityTurret => obj.Actor ! Vitality.Damage(func)
-      case obj : ComplexDeployable => obj.Actor ! Vitality.Damage(func)
+      case obj : Vehicle if obj.Health > 0 => obj.Actor ! Vitality.Damage(func)
+      case obj : FacilityTurret if obj.Health > 0 => obj.Actor ! Vitality.Damage(func)
+      case obj : ComplexDeployable if obj.Health > 0 => obj.Actor ! Vitality.Damage(func)
 
-      case obj : SimpleDeployable =>
+      case obj : SimpleDeployable if obj.Health > 0 =>
         //damage is synchronized on `LSA` (results returned to and distributed from this `WSA`)
         continent.LocalEvents ! Vitality.DamageOn(obj, func)
       case _ => ;

@@ -126,7 +126,7 @@ object SensorDeployableControl {
     target.Actor ! JammableUnit.ClearJammeredSound()
     target.Actor ! JammableUnit.ClearJammeredStatus()
     val zone = target.Zone
-    Deployables.AnnounceDestroyDeployable(target, Some(0 seconds))
+    Deployables.AnnounceDestroyDeployable(target, None)
     zone.LocalEvents ! LocalServiceMessage(zone.Id, LocalAction.TriggerEffectInfo(Service.defaultPlayerGUID, "on", target.GUID, false, 1000))
     zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.Destroy(target.GUID, attribution, attribution, target.Position))
   }
