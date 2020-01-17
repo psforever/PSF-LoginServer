@@ -3633,11 +3633,11 @@ class WorldSessionActor extends Actor
               whenUsedLastMAXName(1) = faction+"hev_antiaircraft"
 
               (0 until 4).foreach( index => {
-                if (player.Slot(index).Equipment.isDefined) player.Slot(index).Equipment = None
+                player.Slot(index).Equipment = None
               })
               player.Inventory.Clear()
               player.ExoSuit = ExoSuitType.Standard
-              player.Slot(0).Equipment = ConstructionItem(ace) //Tool(StandardPistol(player.Faction))
+              player.Slot(0).Equipment = Tool(StandardPistol(player.Faction))
               player.Slot(2).Equipment = Tool(suppressor)
               player.Slot(4).Equipment = Tool(StandardMelee(player.Faction))
               player.Slot(6).Equipment = AmmoBox(bullet_9mm)

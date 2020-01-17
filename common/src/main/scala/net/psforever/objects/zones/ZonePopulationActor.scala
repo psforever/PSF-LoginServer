@@ -39,13 +39,13 @@ class ZonePopulationActor(zone : Zone, playerMap : TrieMap[Avatar, Option[Player
 
     case Zone.Population.Spawn(avatar, player) =>
       PopulationSpawn(avatar, player, playerMap) match {
-        case Some(tplayer) =>
+        case Some((tplayer, newToZone)) =>
           tplayer.Zone = zone
           if(tplayer ne player) {
             sender ! Zone.Population.PlayerAlreadySpawned(zone, player)
           }
-          else {
-            player.Actor = context.actorOf(Props(classOf[PlayerControl], player), s"${player.Name}_${player.GUID.guid}")
+          else if(newToZone) {
+            player.Actor = context.actorOf(Props(classOf[PlayerControl], player),  s"${player.Name}_${player.GUID.guid}_${System.currentTimeMillis}")
             player.Zone = zone
           }
         case None =>
@@ -110,19 +110,21 @@ object ZonePopulationActor {
     * @param avatar an `Avatar` object
     * @param player a `Player` object
     * @param playerMap the mapping of `Avatar` objects to `Player` objects
-    * @return the `Player` object that is associated with the `Avatar` key
+    * @return a `Tuple` object of the `Player` object that is associated with the `Avatar` key
+    *         and whether that player was added to the zone for the first time;
+    *         `None`, if the player should not be introduced to this zone at this time
     */
-  def PopulationSpawn(avatar : Avatar, player : Player, playerMap : TrieMap[Avatar, Option[Player]]) : Option[Player] = {
+  def PopulationSpawn(avatar : Avatar, player : Player, playerMap : TrieMap[Avatar, Option[Player]]) : Option[(Player, Boolean)] = {
     playerMap.get(avatar) match {
       case None =>
         None
       case Some(tplayer) =>
         tplayer match {
           case Some(aplayer) =>
-            Some(aplayer)
+            Some(aplayer, false)
           case None =>
             playerMap(avatar) = Some(player)
-            Some(player)
+            Some(player, true)
         }
     }
   }

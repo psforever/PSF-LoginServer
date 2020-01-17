@@ -5,6 +5,7 @@ import akka.actor.ActorContext
 import net.psforever.objects.SpawnPointDefinition
 import net.psforever.objects.definition.ObjectDefinition
 import net.psforever.objects.definition.converter.SpawnTubeConverter
+import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.structures.Amenity
 
 /**
@@ -25,7 +26,7 @@ object SpawnTubeDefinition {
   def Setup(obj : Amenity, context : ActorContext) : Unit = {
     import akka.actor.{ActorRef, Props}
     if(obj.Actor == ActorRef.noSender) {
-      obj.Actor = context.actorOf(Props(classOf[SpawnTubeControl], obj), s"${obj.Definition.Name}_${obj.GUID.guid}")
+      obj.Actor = context.actorOf(Props(classOf[SpawnTubeControl], obj), PlanetSideServerObject.UniqueActorName(obj))
     }
   }
 }

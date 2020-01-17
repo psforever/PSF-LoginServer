@@ -30,7 +30,7 @@ class SensorDeployableDefinition(private val objectId : Int) extends ComplexDepl
   Packet = new SmallDeployableConverter
 
   override def Initialize(obj : PlanetSideServerObject with Deployable, context : ActorContext) = {
-    obj.Actor = context.actorOf(Props(classOf[SensorDeployableControl], obj), s"${obj.Definition.Name}_${obj.GUID.guid}")
+    obj.Actor = context.actorOf(Props(classOf[SensorDeployableControl], obj), PlanetSideServerObject.UniqueActorName(obj))
   }
 
   override def Uninitialize(obj : PlanetSideServerObject with Deployable, context : ActorContext) = {

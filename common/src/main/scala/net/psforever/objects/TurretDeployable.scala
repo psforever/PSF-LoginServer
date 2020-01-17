@@ -49,7 +49,7 @@ class TurretDeployableDefinition(private val objectId : Int) extends ComplexDepl
   override def MaxHealth_=(max : Int) : Int = super[ComplexDeployableDefinition].MaxHealth_=(max)
 
   override def Initialize(obj : PlanetSideServerObject with Deployable, context : ActorContext) = {
-    obj.Actor = context.actorOf(Props(classOf[TurretControl], obj), s"${obj.Definition.Name}_${obj.GUID.guid}")
+    obj.Actor = context.actorOf(Props(classOf[TurretControl], obj), PlanetSideServerObject.UniqueActorName(obj))
   }
 
   override def Uninitialize(obj : PlanetSideServerObject with Deployable, context : ActorContext) = {

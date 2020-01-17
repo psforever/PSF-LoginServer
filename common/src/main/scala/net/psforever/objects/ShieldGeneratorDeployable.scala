@@ -25,7 +25,7 @@ class ShieldGeneratorDefinition extends ComplexDeployableDefinition(240) {
   DeployCategory = DeployableCategory.ShieldGenerators
 
   override def Initialize(obj : PlanetSideServerObject with Deployable, context : ActorContext) = {
-    obj.Actor = context.actorOf(Props(classOf[ShieldGeneratorControl], obj), s"${obj.Definition.Name}_${obj.GUID.guid}")
+    obj.Actor = context.actorOf(Props(classOf[ShieldGeneratorControl], obj), PlanetSideServerObject.UniqueActorName(obj))
   }
 
   override def Uninitialize(obj : PlanetSideServerObject with Deployable, context : ActorContext) = {

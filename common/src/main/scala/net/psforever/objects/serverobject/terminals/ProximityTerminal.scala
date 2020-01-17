@@ -2,7 +2,7 @@
 package net.psforever.objects.serverobject.terminals
 
 import net.psforever.objects.Player
-import net.psforever.objects.serverobject.CommonMessages
+import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.types.Vector3
 import services.Service
@@ -76,7 +76,7 @@ object ProximityTerminal {
   def Setup(obj : Amenity, context : ActorContext) : Unit = {
     import akka.actor.{ActorRef, Props}
     if(obj.Actor == ActorRef.noSender) {
-      obj.Actor = context.actorOf(Props(classOf[ProximityTerminalControl], obj), s"${obj.Definition.Name}_${obj.GUID.guid}")
+      obj.Actor = context.actorOf(Props(classOf[ProximityTerminalControl], obj), PlanetSideServerObject.UniqueActorName(obj))
       obj.Actor ! Service.Startup()
     }
   }
