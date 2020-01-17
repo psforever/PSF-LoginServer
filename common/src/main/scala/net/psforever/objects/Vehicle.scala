@@ -77,6 +77,7 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends AmenityOwner
   private var faction : PlanetSideEmpire.Value = PlanetSideEmpire.TR
   private var health : Int = 1
   private var shields : Int = 0
+  private var isDead : Boolean = false
   private var decal : Int = 0
   private var trunkAccess : Option[PlanetSideGUID] = None
   private var jammered : Boolean = false
@@ -140,12 +141,23 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends AmenityOwner
     MountedIn
   }
 
+  def IsDead : Boolean = {
+    isDead
+  }
+
   def Health : Int = {
     health
   }
 
   def Health_=(assignHealth : Int) : Int = {
-    health = math.min(math.max(0, assignHealth), MaxHealth)
+    if(!isDead) {
+      health = math.min(math.max(0, assignHealth), MaxHealth)
+    }
+
+    if(health == 0) {
+      isDead = true
+    }
+
     health
   }
 
