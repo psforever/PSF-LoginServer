@@ -630,6 +630,34 @@ class VehicleControlMountingOwnedUnlockedDriverSeatTest extends ActorTest {
   }
 }
 
+class VehicleControlRepairTest extends ActorTest {
+  val probe = new TestProbe(system)
+  val vehicle = Vehicle(GlobalDefinitions.fury)
+  vehicle.GUID = PlanetSideGUID(10)
+  vehicle.Health = 50
+  vehicle.Actor = system.actorOf(Props(classOf[VehicleControl], vehicle), "vehicle-test")
+  vehicle.Zone = new Zone("test", new ZoneMap("test"), 0) {
+    VehicleEvents = probe.ref
+  }
+
+  "Can repair alive vehicle" in {
+    assert(vehicle.Health == 50)
+
+    vehicle.Health += 10
+    assert(vehicle.Health == 60)
+  }
+
+  "Can't repair dead vehicle" in {
+    assert(vehicle.Health > 0)
+
+    vehicle.Health = 0
+    assert(vehicle.Health == 0)
+
+    vehicle.Health += 10
+    assert(vehicle.Health == 0)
+  }
+}
+
 class VehicleControlShieldsChargingTest extends ActorTest {
   val probe = new TestProbe(system)
   val vehicle = Vehicle(GlobalDefinitions.fury)

@@ -67,6 +67,7 @@ class Player(private val core : Avatar) extends PlanetSideServerObject
   var lastShotSeq_time : Int = -1
   /** From PlanetsideAttributeMessage */
   var PlanetsideAttribute : Array[Long] = Array.ofDim(120)
+  var skipStaminaRegenForTurns : Int = 0
 
   Player.SuitSetup(this, exosuit)
 
@@ -638,6 +639,8 @@ object Player {
   final val LockerSlot : Int = 5
   final val FreeHandSlot : Int = 250
   final val HandsDownSlot : Int = 255
+
+  final case class Die()
 
   def apply(core : Avatar) : Player = {
     new Player(core)

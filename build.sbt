@@ -1,3 +1,5 @@
+import xerial.sbt.pack.PackPlugin._
+
 lazy val commonSettings = Seq(
   organization := "net.psforever",
   version := "1.0.2-SNAPSHOT",
@@ -10,16 +12,9 @@ lazy val commonSettings = Seq(
   testOptions in QuietTest += Tests.Argument(TestFrameworks.Specs2, "showOnly", "x!"),
   // http://www.scalatest.org/user_guide/using_the_runner
   testOptions in QuietTest += Tests.Argument(TestFrameworks.ScalaTest, "-oCEHILMNOPQRX"),
-  // TODO: remove when upgraded to SBT 1.0+ https://github.com/sbt/sbt/pull/2747/files
-  ivyLoggingLevel := {
-    // This will suppress "Resolving..." logs on Jenkins and Travis.
-    if (sys.env.get("BUILD_NUMBER").isDefined || sys.env.get("CI").isDefined) UpdateLogging.Quiet
-    else UpdateLogging.Default
-  },
   // Trick taken from https://groups.google.com/d/msg/scala-user/mxV9ok7J_Eg/kt-LnsrD0bkJ
   // scaladoc flags: https://github.com/scala/scala/blob/2.11.x/src/scaladoc/scala/tools/nsc/doc/Settings.scala
-  scalacOptions in (Compile,doc) <<= baseDirectory map {
-    bd => Seq(
+  scalacOptions in (Compile,doc) := { Seq(
     "-groups",
     "-implicits",
     "-doc-title", "PSF-LoginServer - ",
@@ -27,7 +22,7 @@ lazy val commonSettings = Seq(
     "-doc-footer", "Copyright PSForever",
     // For non unidoc builds, you may need bd.getName before the template parameter
     "-doc-source-url", "https://github.com/psforever/PSF-LoginServer/blob/master/€{FILE_PATH}.scala",
-    "-sourcepath", bd.getAbsolutePath // needed for scaladoc relative source paths
+    "-sourcepath", baseDirectory.value.getAbsolutePath // needed for scaladoc relative source paths
     )
   },
   resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
@@ -59,7 +54,8 @@ lazy val pscryptoSettings = Seq(
   unmanagedClasspath in Compile += (baseDirectory in ThisBuild).value / "pscrypto-lib"
 )
 
-lazy val psloginPackSettings = packAutoSettings ++ Seq(
+lazy val psloginPackSettings = Seq(
+  packMain := Map("ps-login" -> "PsLogin"),
   packArchivePrefix := "pslogin",
   packExtraClasspath := Map("ps-login" -> Seq("${PROG_HOME}/pscrypto-lib",
     "${PROG_HOME}/config")),
@@ -69,10 +65,12 @@ lazy val psloginPackSettings = packAutoSettings ++ Seq(
 
 lazy val root = (project in file(".")).
   configs(QuietTest).
+  enablePlugins(PackPlugin).
   settings(commonSettings: _*).
-  //enablePlugins(ScalaUnidocPlugin).
   settings(psloginPackSettings: _*).
-  aggregate(pslogin, common)
+  //enablePlugins(ScalaUnidocPlugin).
+  aggregate(pslogin, common).
+  dependsOn(pslogin, common)
 
 lazy val pslogin = (project in file("pslogin")).
   configs(QuietTest).

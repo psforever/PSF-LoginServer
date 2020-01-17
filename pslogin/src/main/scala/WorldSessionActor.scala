@@ -77,8 +77,7 @@ import services.support.SupportActor
 import scala.collection.mutable
 
 class WorldSessionActor extends Actor
-  with MDCContextAware
-  with JammableBehavior {
+  with MDCContextAware {
   import WorldSessionActor._
 
   private[this] val log = org.log4s.getLogger
@@ -164,7 +163,6 @@ class WorldSessionActor extends Actor
 
   var timeDL : Long = 0
   var timeSurge : Long = 0
-  var skipStaminaRegenForTurns : Int = 0
   lazy val unsignedIntMaxValue : Long = Int.MaxValue.toLong * 2L + 1L
   var serverTime : Long = 0
 
@@ -347,7 +345,7 @@ class WorldSessionActor extends Actor
       None
   }
 
-  def Started : Receive = jammableBehavior.orElse {
+  def Started : Receive = {
     case ServiceManager.LookupResult("accountIntermediary", endpoint) =>
       accountIntermediary = endpoint
       log.info("ID: " + sessionId + " Got account intermediary service " + endpoint)
@@ -876,7 +874,7 @@ class WorldSessionActor extends Actor
 
     case Zone.Lattice.SpawnPoint(zone_id, spawn_tube) =>
       var (pos, ori) = spawn_tube.SpecificPoint(continent.GUID(player.VehicleSeated) match {
-        case Some(obj : Vehicle) if obj.Health > 0 =>
+        case Some(obj : Vehicle) if !obj.IsDead =>
           obj
         case _ =>
           player
@@ -1376,67 +1374,16 @@ class WorldSessionActor extends Actor
           continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(target, 0, player.Health))
           damageLog.info(s"${player.Name}-infantry: BEFORE=$originalHealth/$armor/$capacitor, AFTER=${player.Health}/$armor/$capacitor, CHANGE=$amount/0/0")
           if(player.Health == 0 && player.isAlive) {
-            KillPlayer(player)
+            player.Actor ! Player.Die()
           }
         }
 
-      case AvatarResponse.DamageResolution(target, resolution_function) =>
-        if(player.isAlive) {
-          val originalHealth = player.Health
-          val originalArmor = player.Armor
-          val originalCapacitor = player.Capacitor.toInt
-          val cause = resolution_function(target)
-          val health = player.Health
-          val armor = player.Armor
-          val capacitor = player.Capacitor.toInt
-          val damageToHealth = originalHealth - health
-          val damageToArmor = originalArmor - armor
-          val damageToCapacitor = originalCapacitor - capacitor
-          if(damageToHealth != 0 || damageToArmor != 0 || damageToCapacitor != 0) {
-            damageLog.info(s"${player.Name}-infantry: BEFORE=$originalHealth/$originalArmor/$originalCapacitor, AFTER=$health/$armor/$capacitor, CHANGE=$damageToHealth/$damageToArmor/$damageToCapacitor")
-            val playerGUID = player.GUID
-            if(damageToHealth > 0) {
-              sendResponse(PlanetsideAttributeMessage(playerGUID, 0, health))
-              continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(playerGUID, 0, health))
-            }
-            if(damageToArmor > 0) {
-              sendResponse(PlanetsideAttributeMessage(playerGUID, 4, armor))
-              continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(playerGUID, 4, armor))
-            }
-            if(damageToCapacitor > 0) {
-              sendResponse(PlanetsideAttributeMessage(playerGUID, 7, capacitor))
-            }
-            sendResponse(PlanetsideAttributeMessage(playerGUID, 0, health))
-            sendResponse(PlanetsideAttributeMessage(playerGUID, 4, armor))
-            continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(playerGUID, 0, health))
-            continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(playerGUID, 4, armor))
-            if(health == 0 && player.isAlive) {
-              KillPlayer(player)
-            }
-            else {
-              //damage cause -> recent damage source -> killing blow?
-              cause match {
-                case data : ResolvedProjectile =>
-                  val owner = data.projectile.owner
-                  owner match {
-                    case pSource : PlayerSource =>
-                      continent.LivePlayers.find(_.Name == pSource.Name) match {
-                        case Some(tplayer) =>
-                          sendResponse(HitHint(tplayer.GUID, player.GUID))
-                        case None => ;
-                      }
-                    case vSource : SourceEntry =>
-                      sendResponse(DamageWithPositionMessage(damageToHealth + damageToArmor, vSource.Position))
-                    case _ => ;
-                  }
-                  continent.Activity ! Zone.HotSpot.Activity(owner, data.target, target.Position)
-                case _ => ;
-              }
-            }
-          }
-          if(target.isAlive && cause.projectile.profile.JammerProjectile) {
-            self ! JammableUnit.Jammered(cause)
-          }
+      case AvatarResponse.DeactivateImplantSlot(slot) =>
+        //temporary solution until implants are finalized
+        slot match {
+          case 1 => DeactivateImplantDarkLight()
+          case 2 => DeactivateImplantSurge()
+          case _ => ;
         }
 
       case AvatarResponse.Destroy(victim, killer, weapon, pos) =>
@@ -1466,33 +1413,25 @@ class WorldSessionActor extends Actor
           sendResponse(HitHint(source_guid, guid))
         }
 
-      case AvatarResponse.KilledWhileInVehicle() =>
-        if(player.isAlive && player.VehicleSeated.nonEmpty) {
-          (continent.GUID(player.VehicleSeated) match {
-            case Some(obj : Vehicle) =>
-              if(obj.Health == 0) Some(obj)
-              else None
-            case Some(obj : TurretDeployable) =>
-              if(obj.Health == 0) Some(obj)
-              else None
-            case Some(obj : FacilityTurret) =>
-              if(obj.Health == 1) Some(obj) //TODO proper turret death at 0 health
-              else None
-            case _ =>
-              None
-          }) match {
-            case Some(obj : PlanetSideGameObject with Vitality) =>
-              obj.LastShot match {
-                case Some(cause) =>
-                  player.History(cause)
-                  KillPlayer(player)
-                case None => ;
-              }
-            case _ =>
-              log.warn(s"${player.Name} was seated in a vehicle and should have been killed, but was not; suicidal fallback")
-              Suicide(player)
-          }
+      case AvatarResponse.Killed() =>
+        val respawnTimer = 300000 //milliseconds
+        ToggleMaxSpecialState(enable = false)
+        deadState = DeadState.Dead
+        timeDL = 0
+        timeSurge = 0
+        continent.GUID(player.VehicleSeated) match {
+          case Some(obj : Vehicle) =>
+            TotalDriverVehicleControl(obj)
+            UnAccessContents(obj)
+          case _ => ;
         }
+        PlayerActionsToCancel()
+        if(shotsWhileDead > 0) {
+          log.warn(s"KillPlayer/SHOTS_WHILE_DEAD: client of ${avatar.name} fired $shotsWhileDead rounds while character was dead on server")
+          shotsWhileDead = 0
+        }
+        import scala.concurrent.ExecutionContext.Implicits.global
+        reviveTimer = context.system.scheduler.scheduleOnce(respawnTimer milliseconds, cluster, Zone.Lattice.RequestSpawnPoint(Zones.SanctuaryZoneNumber(player.Faction), player, 7))
 
       case AvatarResponse.LoadPlayer(pkt) =>
         if(tplayer_guid != guid) {
@@ -3187,8 +3126,7 @@ class WorldSessionActor extends Actor
 
       if(!target.HasGUID) {
         // Target is gone, cancel the hack.
-        // Note: I couldn't find any examples of an object that no longer has a GUID in packet captures, but sending the hacking player's GUID as the target to cancel the hack seems to work
-        sendResponse(HackMessage(progressType, player.GUID, player.GUID, 0, 0L, HackState.Cancelled, 8L))
+        sendResponse(HackMessage(progressType, target.GUID, player.GUID, 0, 0L, HackState.Cancelled, 8L))
       }
       else if(vis == HackState.Cancelled) {
         // Object moved. Cancel the hack (e.g. vehicle drove away)
@@ -3975,14 +3913,14 @@ class WorldSessionActor extends Actor
             }
           }
         }
-        if(skipStaminaRegenForTurns > 0) {
+        if(player.skipStaminaRegenForTurns > 0) {
           //do not renew stamina for a while
-          skipStaminaRegenForTurns -= 1
+          player.skipStaminaRegenForTurns -= 1
           player.Stamina > 0
         }
         else if(player.Stamina == 0 && hadStaminaBefore) {
           //if the player lost all stamina this turn (had stamina at the start), do not renew stamina for a while
-          skipStaminaRegenForTurns = 4
+          player.skipStaminaRegenForTurns = 4
           player.Stamina > 0
         }
         else if(isMovingPlus || player.Stamina == player.MaxStamina) {
@@ -4595,7 +4533,7 @@ class WorldSessionActor extends Actor
     case msg @ AvatarJumpMessage(state) =>
       //log.info("AvatarJump: " + msg)
       player.Stamina = player.Stamina - 10
-      skipStaminaRegenForTurns = 5
+      player.skipStaminaRegenForTurns = math.max(player.skipStaminaRegenForTurns, 5)
       sendResponse(PlanetsideAttributeMessage(player.GUID, 2, player.Stamina))
 
     case msg @ ZipLineMessage(player_guid,origin_side,action,id,pos) =>
@@ -5186,9 +5124,8 @@ class WorldSessionActor extends Actor
             else if(equipment.isDefined) {
               equipment.get.Definition match {
                 case GlobalDefinitions.nano_dispenser =>
-                  //TODO repairing behavior
                   if (!player.isMoving && Vector3.Distance(player.Position, obj.Position) < 5) {
-                    if (obj.Health < obj.MaxHealth) {
+                    if (obj.Health < obj.MaxHealth && !obj.IsDead) {
                       obj.Health += 48
                       //                sendResponse(QuantityUpdateMessage(PlanetSideGUID(8214),ammo_quantity_left))
                       val RepairPercent: Int = obj.Health * 100 / obj.MaxHealth
@@ -5548,15 +5485,6 @@ class WorldSessionActor extends Actor
         case Some(tool : Tool) =>
           continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.WeaponDryFire(player.GUID, weapon_guid))
         case _ => ;
-      }
-
-    case msg @ WeaponJammedMessage(weapon_guid) =>
-      FindWeapon match {
-        case Some(tool : Tool) =>
-          log.info(s"WeaponJammed: ${tool.Definition.Name}@${weapon_guid.guid}")
-          //TODO
-        case _ =>
-          log.info(s"WeaponJammed: ${weapon_guid.guid}")
       }
 
     case msg @ WeaponFireMessage(seq_time, weapon_guid, projectile_guid, shot_origin, unk1, unk2, unk3, unk4, unk5, unk6, unk7) =>
@@ -5933,7 +5861,7 @@ class WorldSessionActor extends Actor
         case Some(vehicleGUID) =>
           continent.GUID(vehicleGUID) match {
             case Some(obj : Vehicle) =>
-              if(obj.Health > 0) { //vehicle will try to charge even if destroyed
+              if(!obj.IsDead) { //vehicle will try to charge even if destroyed
                 obj.Actor ! Vehicle.ChargeShields(15)
               }
             case _ =>
@@ -7898,80 +7826,7 @@ class WorldSessionActor extends Actor
     */
   def Suicide(tplayer : Player) : Unit = {
     tplayer.History(PlayerSuicide(PlayerSource(tplayer)))
-    KillPlayer(tplayer)
-  }
-
-  /**
-    * The player has lost all his vitality and must be killed.<br>
-    * <br>
-    * Shift directly into a state of being dead on the client by setting health to zero points,
-    * whereupon the player will perform a dramatic death animation.
-    * Stamina is also set to zero points.
-    * If the player was in a vehicle at the time of demise, special conditions apply and
-    * the model must be manipulated so it behaves correctly.
-    * Do not move or completely destroy the `Player` object as its coordinates of death will be important.<br>
-    * <br>
-    * A maximum revive waiting timer is started.
-    * When this timer reaches zero, the avatar will attempt to spawn back on its faction-specific sanctuary continent.
-    * @param tplayer the player to be killed
-    */
-  def KillPlayer(tplayer : Player) : Unit = {
-    val player_guid = tplayer.GUID
-    val pos = tplayer.Position
-    val respawnTimer = 300000 //milliseconds
-    ToggleMaxSpecialState(enable = false)
-    tplayer.Die
-    deadState = DeadState.Dead
-    timeDL = 0
-    timeSurge = 0
-    sendResponse(PlanetsideAttributeMessage(player_guid, 0, 0))
-    sendResponse(PlanetsideAttributeMessage(player_guid, 2, 0))
-    continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player_guid, 0, 0))
-    sendResponse(DestroyMessage(player_guid, player_guid, PlanetSideGUID(0), pos)) //how many players get this message?
-    sendResponse(AvatarDeadStateMessage(DeadState.Dead, respawnTimer, respawnTimer, pos, player.Faction, true))
-    if(tplayer.VehicleSeated.nonEmpty) {
-      continent.GUID(tplayer.VehicleSeated.get) match {
-        case Some(obj : Vehicle) =>
-          TotalDriverVehicleControl(obj)
-          UnAccessContents(obj)
-        case _ => ;
-      }
-      //make player invisible (if not, the cadaver sticks out the side in a seated position)
-      sendResponse(PlanetsideAttributeMessage(player_guid, 29, 1))
-      continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player_guid, 29, 1))
-    }
-    PlayerActionsToCancel()
-    //TODO other methods of death?
-    val pentry = PlayerSource(tplayer)
-    (tplayer.History.find({p => p.isInstanceOf[PlayerSuicide]}) match {
-      case Some(PlayerSuicide(_)) =>
-        None
-      case _ =>
-        tplayer.LastShot match {
-          case Some(shot) =>
-            if(System.nanoTime - shot.hit_time < (10 seconds).toNanos) {
-              Some(shot)
-            }
-            else {
-              None //suicide
-            }
-          case None =>
-            None //suicide
-        }
-    }) match {
-      case Some(shot) =>
-        continent.Activity ! Zone.HotSpot.Activity(pentry, shot.projectile.owner, shot.hit_pos)
-        continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.DestroyDisplay(shot.projectile.owner, pentry, shot.projectile.attribute_to))
-      case None =>
-        continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.DestroyDisplay(pentry, pentry, 0))
-    }
-    if(shotsWhileDead > 0) {
-      log.warn(s"KillPlayer/SHOTS_WHILE_DEAD: client of ${avatar.name} fired $shotsWhileDead rounds while character was dead on server")
-      shotsWhileDead = 0
-    }
-
-    import scala.concurrent.ExecutionContext.Implicits.global
-    reviveTimer = context.system.scheduler.scheduleOnce(respawnTimer milliseconds, cluster, Zone.Lattice.RequestSpawnPoint(Zones.SanctuaryZoneNumber(tplayer.Faction), tplayer, 7))
+    tplayer.Actor ! Player.Die()
   }
 
   /**
@@ -7985,12 +7840,10 @@ class WorldSessionActor extends Actor
     * This is not a complete list but, for the purpose of enforcement, some pointers will be documented here.
     */
   def PlayerActionsToCancel() : Unit = {
-    CancelJammeredSound(player)
-    CancelJammeredStatus(player)
     progressBarUpdate.cancel
     progressBarValue = None
     lastTerminalOrderFulfillment = true
-    skipStaminaRegenForTurns = 0
+    player.skipStaminaRegenForTurns = 0
     accessedContainer match {
       case Some(obj : Vehicle) =>
         if(obj.AccessingTrunk.contains(player.GUID)) {
@@ -8326,7 +8179,7 @@ class WorldSessionActor extends Actor
     }
     else {
       continent.GUID(player.VehicleSeated) match {
-        case Some(obj : Vehicle) if obj.Health > 0 =>
+        case Some(obj : Vehicle) if !obj.IsDead =>
           cluster ! Zone.Lattice.RequestSpawnPoint(sanctNumber, tplayer, 12) //warp gates for functioning vehicles
         case None =>
           cluster ! Zone.Lattice.RequestSpawnPoint(sanctNumber, tplayer, 7) //player character spawns
@@ -8698,6 +8551,8 @@ class WorldSessionActor extends Actor
     * using the information reconstructed from a `Resolvedprojectile`
     * and affect the `target` in a synchronized manner.
     * The active `target` and the target of the `ResolvedProjectile` do not have be the same.
+    * While the "tell" for being able to sustain damage is an entity of type `Vitality`,
+    * only specific `Vitality` entity types are being screened for sustaining damage.
     * @see `DamageResistanceModel`<br>
     *       `Vitality`
     * @param target a valid game object that is known to the server
@@ -8706,10 +8561,7 @@ class WorldSessionActor extends Actor
   def HandleDealingDamage(target : PlanetSideGameObject with Vitality, data : ResolvedProjectile) : Unit = {
     val func = data.damage_model.Calculate(data)
     target match {
-      case obj : Player if obj.Health > 0 =>
-        //damage is synchronized on the target player's `WSA` (results distributed from there)
-        continent.AvatarEvents ! AvatarServiceMessage(obj.Name, AvatarAction.Damage(player.GUID, obj, func))
-
+      case obj : Player if obj.Health > 0 => obj.Actor ! Vitality.Damage(func)
       case obj : Vehicle if obj.Health > 0 => obj.Actor ! Vitality.Damage(func)
       case obj : FacilityTurret if obj.Health > 0 => obj.Actor ! Vitality.Damage(func)
       case obj : ComplexDeployable if obj.Health > 0 => obj.Actor ! Vitality.Damage(func)
@@ -10986,7 +10838,7 @@ class WorldSessionActor extends Actor
     * This method is intended to support only the current Live server implants.
     */
   def DeactivateImplantDarkLight() : Unit = {
-    if(avatar.Implants(0).Active) {
+    if(avatar.Implants(0).Active && avatar.Implants(0).Implant == ImplantType.DarklightVision) {
       avatar.Implants(0).Active = false
       continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player.GUID, 28, avatar.Implant(0).id * 2))
       sendResponse(AvatarImplantMessage(PlanetSideGUID(player.GUID.guid), ImplantAction.Activation, 0, 0))
@@ -10999,59 +10851,12 @@ class WorldSessionActor extends Actor
     * This method is intended to support only the current Live server implants.
     */
   def DeactivateImplantSurge() : Unit = {
-    if(avatar.Implants(1).Active) {
+    if(avatar.Implants(1).Active && avatar.Implants(0).Implant == ImplantType.Surge) {
       avatar.Implants(1).Active = false
       continent.AvatarEvents  ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player.GUID, 28, avatar.Implant(1).id * 2))
       sendResponse(AvatarImplantMessage(PlanetSideGUID(player.GUID.guid), ImplantAction.Activation, 1, 0))
       timeSurge = 0
     }
-  }
-
-  /**
-    * Start the jammered buzzing.
-    * Although, as a rule, the jammering sound effect should last as long as the jammering status,
-    * Infantry seem to hear the sound for a bit longer than the effect.
-    * @see `JammableHevaior.StartJammeredSound`
-    * @param target an object that can be affected by the jammered status
-    * @param dur the duration of the timer, in milliseconds;
-    *            by default, 30000
-    */
-  override def StartJammeredSound(target : Any, dur : Int) : Unit = target match {
-    case obj : Player if !jammedSound =>
-      sendResponse(PlanetsideAttributeMessage(obj.GUID, 27, 1))
-      continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(obj.GUID, 27, 1))
-      super.StartJammeredSound(obj, 3000)
-    case _ => ;
-  }
-
-  /**
-    * Perform a variety of tasks to indicate being jammered.
-    * Deactivate implants (should also uninitialize them),
-    * delay stamina regeneration for a certain number of turns,
-    * and set the jammered status on specific holstered equipment.
-    * @see `JammableHevaior.StartJammeredStatus`
-    * @param target an object that can be affected by the jammered status
-    * @param dur the duration of the timer, in milliseconds
-    */
-  override def StartJammeredStatus(target : Any, dur : Int) : Unit = target match {
-    case obj : Player =>
-      DeactivateImplants()
-      skipStaminaRegenForTurns = 10
-      super.StartJammeredStatus(target, dur)
-    case _ => ;
-  }
-
-  /**
-    * Stop the jammered buzzing.
-    * @see `JammableHevaior.CancelJammeredSound`
-    * @param target an object that can be affected by the jammered status
-    */
-  override def CancelJammeredSound(target : Any) : Unit = target match {
-    case obj : Player if jammedSound =>
-      sendResponse(PlanetsideAttributeMessage(obj.GUID, 27, 0))
-      continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(obj.GUID, 27, 0))
-      super.CancelJammeredSound(obj)
-    case _ => ;
   }
 
   def failWithError(error : String) = {
