@@ -924,6 +924,8 @@ object GlobalDefinitions {
 
   val order_terminalb = new OrderTerminalDefinition(614)
 
+  val vanu_equipment_term = new OrderTerminalDefinition(933)
+
   val cert_terminal = new OrderTerminalDefinition(171)
 
   val implant_terminal_mech = new ImplantTerminalMechDefinition
@@ -937,6 +939,10 @@ object GlobalDefinitions {
   val dropship_vehicle_terminal = new OrderTerminalDefinition(263)
 
   val vehicle_terminal_combined = new OrderTerminalDefinition(952)
+
+  val vanu_air_vehicle_term = new OrderTerminalDefinition(928)
+
+  val vanu_vehicle_term = new OrderTerminalDefinition(949)
 
   val bfr_terminal = new OrderTerminalDefinition(143)
 
@@ -968,6 +974,8 @@ object GlobalDefinitions {
 
   val dropship_pad_doors = new VehicleSpawnPadDefinition(261)
 
+  val vanu_vehicle_creation_pad = new VehicleSpawnPadDefinition(947)
+
   val mb_locker = new LockerDefinition
 
   val lock_external = new IFFLockDefinition
@@ -979,6 +987,8 @@ object GlobalDefinitions {
   val capture_terminal = new CaptureTerminalDefinition(158) // Base CC
 
   val secondary_capture = new CaptureTerminalDefinition(751) // Tower CC
+
+  val vanu_control_console = new CaptureTerminalDefinition(930) // Cavern CC
 
   val lodestar_repair_terminal = new MedicalTerminalDefinition(461)
 
@@ -1018,6 +1028,32 @@ object GlobalDefinitions {
   val comm_station_dsp : ObjectDefinition = new ObjectDefinition(212) with SphereOfInfluence { Name = "comm_station_dsp"; SOIRadius = 300 }
   val cryo_facility : ObjectDefinition = new ObjectDefinition(215) with SphereOfInfluence { Name = "cryo_facility"; SOIRadius = 300 }
 
+  val vanu_core : ObjectDefinition = new ObjectDefinition(932) { Name = "vanu_core" }
+
+  val ground_bldg_a : ObjectDefinition = new ObjectDefinition(474) { Name = "ground_bldg_a" } //borrows object id of entity mainbase1
+  val ground_bldg_b : ObjectDefinition = new ObjectDefinition(474) { Name = "ground_bldg_b" } //borrows object id of entity mainbase1
+  val ground_bldg_c : ObjectDefinition = new ObjectDefinition(474) { Name = "ground_bldg_c" } //borrows object id of entity mainbase1
+  val ground_bldg_d : ObjectDefinition = new ObjectDefinition(474) { Name = "ground_bldg_d" } //borrows object id of entity mainbase1
+  val ground_bldg_e : ObjectDefinition = new ObjectDefinition(474) { Name = "ground_bldg_e" } //borrows object id of entity mainbase1
+  val ground_bldg_f : ObjectDefinition = new ObjectDefinition(474) { Name = "ground_bldg_f" } //borrows object id of entity mainbase1
+  val ground_bldg_g : ObjectDefinition = new ObjectDefinition(474) { Name = "ground_bldg_g" } //borrows object id of entity mainbase1
+  val ground_bldg_h : ObjectDefinition = new ObjectDefinition(474) { Name = "ground_bldg_h" } //borrows object id of entity mainbase1
+  val ground_bldg_i : ObjectDefinition = new ObjectDefinition(474) { Name = "ground_bldg_i" } //borrows object id of entity mainbase1
+  val ground_bldg_j : ObjectDefinition = new ObjectDefinition(474) { Name = "ground_bldg_j" } //borrows object id of entity mainbase1
+  val ground_bldg_z : ObjectDefinition = new ObjectDefinition(474) { Name = "ground_bldg_z" } //borrows object id of entity mainbase1
+
+  val ceiling_bldg_a : ObjectDefinition = new ObjectDefinition(474) { Name = "ceiling_bldg_a" } //borrows object id of entity mainbase1
+  val ceiling_bldg_b : ObjectDefinition = new ObjectDefinition(474) { Name = "ceiling_bldg_b" } //borrows object id of entity mainbase1
+  val ceiling_bldg_c : ObjectDefinition = new ObjectDefinition(474) { Name = "ceiling_bldg_c" } //borrows object id of entity mainbase1
+  val ceiling_bldg_d : ObjectDefinition = new ObjectDefinition(474) { Name = "ceiling_bldg_d" } //borrows object id of entity mainbase1
+  val ceiling_bldg_e : ObjectDefinition = new ObjectDefinition(474) { Name = "ceiling_bldg_e" } //borrows object id of entity mainbase1
+  val ceiling_bldg_f : ObjectDefinition = new ObjectDefinition(474) { Name = "ceiling_bldg_f" } //borrows object id of entity mainbase1
+  val ceiling_bldg_g : ObjectDefinition = new ObjectDefinition(474) { Name = "ceiling_bldg_g" } //borrows object id of entity mainbase1
+  val ceiling_bldg_h : ObjectDefinition = new ObjectDefinition(474) { Name = "ceiling_bldg_h" } //borrows object id of entity mainbase1
+  val ceiling_bldg_i : ObjectDefinition = new ObjectDefinition(474) { Name = "ceiling_bldg_i" } //borrows object id of entity mainbase1
+  val ceiling_bldg_j : ObjectDefinition = new ObjectDefinition(474) { Name = "ceiling_bldg_j" } //borrows object id of entity mainbase1
+  val ceiling_bldg_z : ObjectDefinition = new ObjectDefinition(474) { Name = "ceiling_bldg_z" } //borrows object id of entity mainbase1
+
   val hst : ObjectDefinition with SpawnPointDefinition = new ObjectDefinition(402) with SpawnPointDefinition
   hst.Name = "hst"
   hst.UseRadius = 20.4810f
@@ -1042,13 +1078,13 @@ object GlobalDefinitions {
   val minibase1 : ObjectDefinition = new ObjectDefinition(557) { Name = "minibase1" }
   val minibase2 : ObjectDefinition = new ObjectDefinition(558) { Name = "minibase2" }
   val minibase3 : ObjectDefinition = new ObjectDefinition(559) { Name = "minibase3" }
-  val redoubt : ObjectDefinition = new ObjectDefinition(726) { Name = "redoubt" }
+  val redoubt : ObjectDefinition = new ObjectDefinition(726) with SphereOfInfluence { Name = "redoubt"; SOIRadius = 187 }
   val tech_plant : ObjectDefinition = new ObjectDefinition(852) with SphereOfInfluence { Name = "tech_plant"; SOIRadius = 300 }
   val tower_a : ObjectDefinition = new ObjectDefinition(869) with SphereOfInfluence { Name = "tower_a"; SOIRadius = 50 }
   val tower_b : ObjectDefinition = new ObjectDefinition(870) with SphereOfInfluence { Name = "tower_b"; SOIRadius = 50 }
   val tower_c : ObjectDefinition = new ObjectDefinition(871) with SphereOfInfluence { Name = "tower_c"; SOIRadius = 50 }
-  val vanu_control_point : ObjectDefinition = new ObjectDefinition(931) { Name = "vanu_control_point" }
-  val vanu_vehicle_station : ObjectDefinition = new ObjectDefinition(948) { Name = "vanu_vehicle_station" }
+  val vanu_control_point : ObjectDefinition = new ObjectDefinition(931) with SphereOfInfluence { Name = "vanu_control_point"; SOIRadius = 187 }
+  val vanu_vehicle_station : ObjectDefinition = new ObjectDefinition(948) with SphereOfInfluence { Name = "vanu_vehicle_station"; SOIRadius = 187 }
 
   val warpgate : ObjectDefinition with SpawnPointDefinition = new ObjectDefinition(993) with SpawnPointDefinition
   warpgate.Name = "warpgate"
@@ -6088,6 +6124,14 @@ object GlobalDefinitions {
     order_terminalb.Tab(4).asInstanceOf[OrderTerminalDefinition.InfantryLoadoutPage].Exclude = ExoSuitType.MAX
     order_terminalb.SellEquipmentByDefault = true
 
+    vanu_equipment_term.Name = "vanu_equipment_term"
+    vanu_equipment_term.Tab += 0 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.infantryAmmunition ++ EquipmentTerminalDefinition.infantryWeapons)
+    vanu_equipment_term.Tab += 1 -> OrderTerminalDefinition.ArmorWithAmmoPage(EquipmentTerminalDefinition.suits ++ EquipmentTerminalDefinition.maxSuits, EquipmentTerminalDefinition.maxAmmo)
+    vanu_equipment_term.Tab += 2 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.supportAmmunition ++ EquipmentTerminalDefinition.supportWeapons)
+    vanu_equipment_term.Tab += 3 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
+    vanu_equipment_term.Tab += 4 -> OrderTerminalDefinition.InfantryLoadoutPage()
+    vanu_equipment_term.SellEquipmentByDefault = true
+
     cert_terminal.Name = "cert_terminal"
     cert_terminal.Tab += 0 -> OrderTerminalDefinition.CertificationPage(CertTerminalDefinition.certs)
 
@@ -6109,6 +6153,14 @@ object GlobalDefinitions {
     vehicle_terminal_combined.Name = "vehicle_terminal_combined"
     vehicle_terminal_combined.Tab += 46769 -> OrderTerminalDefinition.VehiclePage(VehicleTerminalDefinition.flight1Vehicles ++ VehicleTerminalDefinition.groundVehicles, VehicleTerminalDefinition.trunk)
     vehicle_terminal_combined.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
+
+    vanu_air_vehicle_term.Name = "vanu_air_vehicle_term"
+    vanu_air_vehicle_term.Tab += 46769 -> OrderTerminalDefinition.VehiclePage(VehicleTerminalDefinition.flight1Vehicles, VehicleTerminalDefinition.trunk)
+    vanu_air_vehicle_term.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
+
+    vanu_vehicle_term.Name = "vanu_vehicle_term"
+    vanu_vehicle_term.Tab += 46769 -> OrderTerminalDefinition.VehiclePage(VehicleTerminalDefinition.groundVehicles, VehicleTerminalDefinition.trunk)
+    vanu_vehicle_term.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
 
     bfr_terminal.Name = "bfr_terminal"
     bfr_terminal.Tab += 46769 -> OrderTerminalDefinition.VehiclePage(VehicleTerminalDefinition.bfrVehicles, VehicleTerminalDefinition.trunk)
@@ -6152,7 +6204,7 @@ object GlobalDefinitions {
     crystals_health_b.Name = "crystals_health_b"
     crystals_health_b.Interval = 500
     crystals_health_b.HealAmount = 4
-    crystals_health_b.UseRadius = 1.3f
+    crystals_health_b.UseRadius = 5
     crystals_health_b.TargetValidation += EffectTarget.Category.Player -> EffectTarget.Validation.HealthCrystal
 
     portable_med_terminal.Name = "portable_med_terminal"

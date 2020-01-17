@@ -106,6 +106,8 @@ class LocalService(zone : Zone) extends Actor {
               case GlobalDefinitions.secondary_capture =>
                 // Tower CC
                 hackCapturer ! HackCaptureActor.ObjectIsHacked(target, zone, unk1, unk2, duration = 1 nanosecond)
+              case GlobalDefinitions.vanu_control_console =>
+                hackCapturer ! HackCaptureActor.ObjectIsHacked(target, zone, unk1, unk2, duration = 10 minutes)
             }
           }
 

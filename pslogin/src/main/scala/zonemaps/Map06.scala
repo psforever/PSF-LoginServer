@@ -1,9 +1,6 @@
 package zonemaps
 
-import net.psforever.objects.zones.ZoneMap
 import net.psforever.objects.GlobalDefinitions._
-import net.psforever.objects.LocalProjectile
-import net.psforever.objects.ballistics.Projectile
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.serverobject.generator.Generator
 import net.psforever.objects.serverobject.implantmech.ImplantTerminalMech
@@ -11,15 +8,15 @@ import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.mblocker.Locker
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
 import net.psforever.objects.serverobject.painbox.Painbox
+import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.objects.serverobject.structures.{Building, FoundationBuilder, StructureType, WarpGate}
 import net.psforever.objects.serverobject.terminals.{CaptureTerminal, ProximityTerminal, Terminal}
 import net.psforever.objects.serverobject.tube.SpawnTube
-import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.objects.serverobject.turret.FacilityTurret
+import net.psforever.objects.zones.ZoneMap
 import net.psforever.types.Vector3
 
-object Map06 {
-  // Ceryshen
+object Map06 { // Ceryshen
   val ZoneMap = new ZoneMap("map06") {
     Checksum = 579139514L
 
@@ -2489,5 +2486,6 @@ object Map06 {
     }
 
     Lattice()
+
   }
 }

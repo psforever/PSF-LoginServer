@@ -175,7 +175,7 @@ object PsLogin {
 
     loadConfig(configDirectory)
 
-    println(s"Initializing logging from $loggingConfigFile...")
+    println(s"Initializing logging from $loggingConfigFile")
     initializeLogging(loggingConfigFile)
 
     /** Initialize the PSCrypto native library
@@ -185,6 +185,7 @@ object PsLogin {
       * cryptographic primitives (MD5MAC). See https://github.com/psforever/PSCrypto for more information.
       */
     try {
+      logger.info("Initializing PSCrypto")
       CryptoInterface.initialize()
       logger.info("PSCrypto initialized")
     }
@@ -201,14 +202,13 @@ object PsLogin {
         sys.exit(1)
     }
 
+    logger.info("Testing database connection")
     Database.testConnection match {
       case scala.util.Failure(e) =>
         logger.error("Unable to connect to the database")
         sys.exit(1)
       case _ =>
     }
-
-    logger.info("Starting actor subsystems...")
 
     /** Make sure we capture Akka messages (but only INFO and above)
       *
@@ -221,9 +221,12 @@ object PsLogin {
       "akka.logging-filter" -> "akka.event.slf4j.Slf4jLoggingFilter"
     ).asJava
 
+    logger.info("Starting actor subsystems")
+
     /** Start up the main actor system. This "system" is the home for all actors running on this server */
     system = ActorSystem("PsLogin", ConfigFactory.parseMap(config))
 
+    logger.info("Starting actor pipelines")
     /** Create pipelines for the login and world servers
       *
       * The first node in the pipe is an Actor that handles the crypto for protecting packets.
@@ -261,7 +264,10 @@ object PsLogin {
       case false => None
     }
 
+    logger.info("Creating continents")
     val continentList = createContinents()
+
+    logger.info("Initializing ServiceManager")
     val serviceManager = ServiceManager.boot
     serviceManager ! ServiceManager.Register(Props[AccountIntermediaryService], "accountIntermediary")
     serviceManager ! ServiceManager.Register(RandomPool(50).props(Props[TaskResolver]), "taskResolver")
@@ -270,6 +276,7 @@ object PsLogin {
     serviceManager ! ServiceManager.Register(Props[SquadService], "squad")
     serviceManager ! ServiceManager.Register(Props(classOf[InterstellarCluster], continentList), "cluster")
 
+    logger.info("Initializing loginRouter & worldRouter")
     /** Create two actors for handling the login and world server endpoints */
     loginRouter = Props(new SessionRouter("Login", loginTemplate))
     worldRouter = Props(new SessionRouter("World", worldTemplate))

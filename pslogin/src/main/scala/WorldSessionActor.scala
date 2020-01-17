@@ -69,6 +69,7 @@ import scala.concurrent.duration._
 import scala.util.Success
 import akka.pattern.ask
 import net.psforever.objects.entity.{SimpleWorldEntity, WorldEntity}
+import net.psforever.objects.serverobject.zipline.ZipLinePath
 import net.psforever.objects.vehicles.Utility.InternalTelepad
 import net.psforever.types
 import services.local.support.{HackCaptureActor, RouterTelepadActivation}
@@ -4111,15 +4112,18 @@ class WorldSessionActor extends Actor
       var echoContents : String = contents
       val trimContents = contents.trim
       //TODO messy on/off strings may work
-      if(messagetype == ChatMessageType.CMT_FLY) {
-        if(trimContents.equals("on")) {
+      if(messagetype == ChatMessageType.CMT_FLY && admin) {
+        makeReply = false
+        if(!flying) {
           flying = true
-        }
-        else if(trimContents.equals("off")) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_FLY, msg.wideContents, msg.recipient, "on", msg.note))
+        } else {
           flying = false
+          sendResponse(ChatMsg(ChatMessageType.CMT_FLY, msg.wideContents, msg.recipient, "off", msg.note))
         }
       }
-      else if(messagetype == ChatMessageType.CMT_SPEED) {
+      else if(messagetype == ChatMessageType.CMT_SPEED && admin) {
+        makeReply = true
         speed = {
           try {
             trimContents.toFloat
@@ -4131,12 +4135,14 @@ class WorldSessionActor extends Actor
           }
         }
       }
-      else if(messagetype == ChatMessageType.CMT_TOGGLESPECTATORMODE) {
-        if(trimContents.equals("on")) {
+      else if(messagetype == ChatMessageType.CMT_TOGGLESPECTATORMODE && admin) {
+        makeReply = false
+        if(!spectator) {
           spectator = true
-        }
-        else if(contents.trim.equals("off")) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_TOGGLESPECTATORMODE, msg.wideContents, msg.recipient, "on", msg.note))
+        } else {
           spectator = false
+          sendResponse(ChatMsg(ChatMessageType.CMT_TOGGLESPECTATORMODE, msg.wideContents, msg.recipient, "off", msg.note))
         }
       }
 
@@ -4536,22 +4542,33 @@ class WorldSessionActor extends Actor
       player.skipStaminaRegenForTurns = math.max(player.skipStaminaRegenForTurns, 5)
       sendResponse(PlanetsideAttributeMessage(player.GUID, 2, player.Stamina))
 
-    case msg @ ZipLineMessage(player_guid,origin_side,action,id,pos) =>
+    case msg @ ZipLineMessage(player_guid,forwards,action,path_id,pos) =>
       log.info("ZipLineMessage: " + msg)
-      if (!origin_side && action == 0) {
-        //doing this lets you use the zip line in one direction, cant come back
-        sendResponse(ZipLineMessage(player_guid, origin_side, action, id, pos))
+
+      val (isTeleporter : Boolean, path: Option[ZipLinePath]) = continent.ZipLinePaths.find(x => x.PathId == path_id) match {
+        case Some(x) => (x.IsTeleporter, Some(x))
+        case _ =>
+          log.warn(s"Couldn't find zipline path ${path_id} in zone ${continent.Number} / ${continent.Id}")
+          (false, None)
       }
-      else if (!origin_side && action == 1) {
-        //disembark from zipline at destination !
-        sendResponse(ZipLineMessage(player_guid, origin_side, action, 0, pos))
-      }
-      else if (!origin_side && action == 2) {
-        //get off by force
-        sendResponse(ZipLineMessage(player_guid, origin_side, action, 0, pos))
-      }
-      else if (origin_side && action == 0) {
-        // for teleporters & the other zipline direction
+
+      if(isTeleporter) {
+        val endPoint = path.get.ZipLinePoints.last
+        sendResponse(PlayerStateShiftMessage(ShiftState(0, endPoint, player.Orientation.z, None)))
+      } else {
+        action match {
+          case 0 =>
+            // Travel along the zipline in the direction specified
+            sendResponse(ZipLineMessage(player_guid, forwards, action, path_id, pos))
+          case 1 =>
+            //disembark from zipline at destination !
+            sendResponse(ZipLineMessage(player_guid, forwards, action, 0, pos))
+          case 2 =>
+            //get off by force
+            sendResponse(ZipLineMessage(player_guid, forwards, action, 0, pos))
+          case _ =>
+            log.warn(s"Tried to do something with a zipline but can't handle it. forwards: ${forwards} action: ${action} path_id: ${path_id} zone: ${continent.Number} / ${continent.Id}")
+        }
       }
 
     case msg @ RequestDestroyMessage(object_guid) =>
@@ -5215,7 +5232,7 @@ class WorldSessionActor extends Actor
                 log.warn(s"Terminal - isHacked ${terminal.HackedBy.isDefined} ownerIsHacked ${ownerIsHacked}")
               }
             }
-            else if (terminal.HackedBy.isDefined) {
+            else if (terminal.HackedBy.isDefined || terminal.Owner.GUID == PlanetSideGUID(0)) {
               sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
             } else {
               log.warn("Tried to use a terminal that doesn't belong to this faction and isn't hacked")

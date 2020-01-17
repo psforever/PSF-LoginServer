@@ -6,7 +6,7 @@ import net.psforever.objects.definition.VehicleDefinition
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.packet.game.{ItemTransactionMessage, TriggeredSound}
-import net.psforever.types.Vector3
+import net.psforever.types.{PlanetSideGUID, Vector3}
 
 /**
   * A server object that can be accessed for services and other amenities.
@@ -37,7 +37,10 @@ class Terminal(tdef : TerminalDefinition) extends Amenity with Hackable {
 
   /**
     * Process a message (a "request") dispatched by the user.
-    * To be accessible, the terminal must be owned by the same faction by the user or must be compromised.
+    * To be accessible, the terminal must be:
+    *   owned by the same faction by the user
+    *   or must be compromised
+    *   or must be a zone owned object (GUID == 0, e.g. non-facility buildings in caves)
     * @see `FactionAffinity`
     * @see `PlanetSideEmpire`
     * @param player the player
@@ -45,7 +48,7 @@ class Terminal(tdef : TerminalDefinition) extends Amenity with Hackable {
     * @return an actionable message that explains what resulted from interacting with this `Terminal`
     */
   def Request(player : Player, msg : Any) : Terminal.Exchange = {
-    if(Faction == player.Faction || HackedBy.isDefined) {
+    if(Faction == player.Faction || HackedBy.isDefined || Owner.GUID == PlanetSideGUID(0)) {
       tdef.Request(player, msg)
     }
     else {

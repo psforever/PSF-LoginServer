@@ -2,9 +2,8 @@
 package net.psforever.objects.zones
 
 import net.psforever.objects.serverobject.structures.FoundationBuilder
+import net.psforever.objects.serverobject.zipline.ZipLinePath
 import net.psforever.objects.serverobject.{PlanetSideServerObject, ServerObjectBuilder}
-import scalax.collection.Graph
-import scalax.collection.GraphPredef._, scalax.collection.GraphEdge._
 
 /**
   * The fixed instantiation and relation of a series of server objects.<br>
@@ -37,6 +36,7 @@ class ZoneMap(private val name : String) {
   private var buildings : Map[(String, Int, Int), FoundationBuilder] = Map()
   private var lattice: Set[(String, String)] = Set()
   private var checksum : Long = 0
+  private var zipLinePaths : List[ZipLinePath] = List()
 
   def Name : String = name
 
@@ -88,6 +88,13 @@ class ZoneMap(private val name : String) {
       }
     }
     localObjects.size
+  }
+
+  def ZipLinePaths : List[ZipLinePath] = zipLinePaths
+
+  def ZipLinePaths(path: ZipLinePath): Int = {
+    zipLinePaths = zipLinePaths :+ path
+    zipLinePaths.size
   }
 
   def LocalBuildings : Map[(String, Int, Int), FoundationBuilder] = buildings
