@@ -53,32 +53,13 @@ class VehicleControl(vehicle : Vehicle) extends Actor
 
   def Enabled : Receive = checkBehavior
     .orElse(deployBehavior)
-    .orElse(dismountBehavior)
     .orElse(jammableBehavior)
     .orElse {
-      case Mountable.TryMount(user, seat_num) =>
-        val exosuit = user.ExoSuit
-        val restriction = vehicle.Seats(seat_num).ArmorRestriction
-        val seatGroup = vehicle.SeatPermissionGroup(seat_num).getOrElse(AccessPermissionGroup.Passenger)
-        val permission = vehicle.PermissionGroup(seatGroup.id).getOrElse(VehicleLockState.Empire)
-        if(
-          (if(seatGroup == AccessPermissionGroup.Driver) {
-              vehicle.Owner.contains(user.GUID) || vehicle.Owner.isEmpty || permission != VehicleLockState.Locked
-            }
-            else {
-              permission != VehicleLockState.Locked
-            }) &&
-            (exosuit match {
-              case ExoSuitType.MAX => restriction == SeatArmorRestriction.MaxOnly
-              case ExoSuitType.Reinforced => restriction == SeatArmorRestriction.NoMax
-              case _ => restriction != SeatArmorRestriction.MaxOnly
-            })
-        ) {
-          mountBehavior.apply(Mountable.TryMount(user, seat_num))
-        }
-        else {
-          sender ! Mountable.MountMessages(user, Mountable.CanNotMount(vehicle, seat_num))
-        }
+      case msg : Mountable.TryMount =>
+        tryMountBehavior.apply(msg)
+
+      case msg : Mountable.TryDismount =>
+        dismountBehavior.apply(msg)
 
       case Vitality.Damage(damage_func) =>
         if(vehicle.Health > 0) {
@@ -122,9 +103,37 @@ class VehicleControl(vehicle : Vehicle) extends Actor
       case _ => ;
     }
 
+  val tryMountBehavior : Receive = {
+    case msg @ Mountable.TryMount(user, seat_num) =>
+      val exosuit = user.ExoSuit
+      val restriction = vehicle.Seats(seat_num).ArmorRestriction
+      val seatGroup = vehicle.SeatPermissionGroup(seat_num).getOrElse(AccessPermissionGroup.Passenger)
+      val permission = vehicle.PermissionGroup(seatGroup.id).getOrElse(VehicleLockState.Empire)
+      if(
+        (if(seatGroup == AccessPermissionGroup.Driver) {
+          vehicle.Owner.contains(user.GUID) || vehicle.Owner.isEmpty || permission != VehicleLockState.Locked
+        }
+        else {
+          permission != VehicleLockState.Locked
+        }) &&
+          (exosuit match {
+            case ExoSuitType.MAX => restriction == SeatArmorRestriction.MaxOnly
+            case ExoSuitType.Reinforced => restriction == SeatArmorRestriction.NoMax
+            case _ => restriction != SeatArmorRestriction.MaxOnly
+          })
+      ) {
+        mountBehavior.apply(msg)
+      }
+      else {
+        sender ! Mountable.MountMessages(user, Mountable.CanNotMount(vehicle, seat_num))
+      }
+  }
+
   def Disabled : Receive = checkBehavior
-    .orElse(dismountBehavior)
     .orElse {
+      case msg : Mountable.TryDismount =>
+        dismountBehavior.apply(msg)
+
       case Vehicle.Reactivate() =>
         context.become(Enabled)
 

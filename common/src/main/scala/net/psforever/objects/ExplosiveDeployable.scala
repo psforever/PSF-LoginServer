@@ -45,7 +45,7 @@ class ExplosiveDeployableDefinition(private val objectId : Int) extends ComplexD
   }
 
   override def Initialize(obj : PlanetSideServerObject with Deployable, context : ActorContext) = {
-    obj.Actor = context.actorOf(Props(classOf[ExplosiveDeployableControl], obj), s"${obj.Definition.Name}_${obj.GUID.guid}")
+    obj.Actor = context.actorOf(Props(classOf[ExplosiveDeployableControl], obj), PlanetSideServerObject.UniqueActorName(obj))
   }
 
   override def Uninitialize(obj : PlanetSideServerObject with Deployable, context : ActorContext) = {

@@ -187,14 +187,14 @@ class UniqueNumberSystemTest5 extends ActorTest() {
       assert(src.CountUsed == 0)
 
       uns ! Register(testObj, "pool2")
-      val msg1 = receiveOne(Duration.create(500, "ms"))
+      val msg1 = receiveOne(Duration.create(2000, "ms"))
       assert(msg1.isInstanceOf[Success[_]])
       assert(testObj.HasGUID)
       assert(pool2.contains(testObj.GUID.guid))
       assert(src.CountUsed == 1)
 
       uns ! Unregister(testObj)
-      val msg2 = receiveOne(Duration.create(500, "ms"))
+      val msg2 = receiveOne(Duration.create(2000, "ms"))
       assert(msg2.isInstanceOf[Success[_]])
       assert(!testObj.HasGUID)
       assert(src.CountUsed == 0)

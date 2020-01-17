@@ -3,6 +3,7 @@ package net.psforever.objects.zones
 
 import akka.actor.{Actor, ActorRef, Props}
 import net.psforever.objects.Vehicle
+import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.vehicles.VehicleControl
 
 import scala.annotation.tailrec
@@ -43,7 +44,7 @@ class ZoneVehicleActor(zone : Zone, vehicleList : ListBuffer[Vehicle]) extends A
       else {
         vehicleList += vehicle
         vehicle.Zone = zone
-        vehicle.Actor = context.actorOf(Props(classOf[VehicleControl], vehicle), s"${vehicle.Definition.Name}_${vehicle.GUID.guid}")
+        vehicle.Actor = context.actorOf(Props(classOf[VehicleControl], vehicle), PlanetSideServerObject.UniqueActorName(vehicle))
       }
 
     case Zone.Vehicle.Despawn(vehicle) =>

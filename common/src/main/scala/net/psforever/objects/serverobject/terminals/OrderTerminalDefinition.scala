@@ -7,6 +7,7 @@ import net.psforever.objects.{Player, Vehicle}
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.loadouts.{InfantryLoadout, VehicleLoadout}
 import net.psforever.objects.inventory.InventoryItem
+import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.packet.game.ItemTransactionMessage
 import net.psforever.objects.serverobject.terminals.EquipmentTerminalDefinition._
@@ -341,7 +342,7 @@ object OrderTerminalDefinition {
   def Setup(obj : Amenity, context : ActorContext) : Unit = {
     import akka.actor.{ActorRef, Props}
     if(obj.Actor == ActorRef.noSender) {
-      obj.Actor = context.actorOf(Props(classOf[TerminalControl], obj), s"${obj.Definition.Name}_${obj.GUID.guid}")
+      obj.Actor = context.actorOf(Props(classOf[TerminalControl], obj), PlanetSideServerObject.UniqueActorName(obj))
     }
   }
 }

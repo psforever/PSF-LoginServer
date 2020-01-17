@@ -2,6 +2,7 @@
 package net.psforever.objects.ce
 
 import akka.actor.ActorContext
+import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.{PlanetSideGameObject, TelepadDeployable, Vehicle}
 import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.objects.vehicles.Utility
@@ -49,6 +50,10 @@ object TelepadLike {
     */
   def Setup(obj : Amenity, context : ActorContext) : Unit = {
     obj.asInstanceOf[TelepadLike].Router = obj.Owner.GUID
+    import akka.actor.{ActorRef, Props}
+    if(obj.Actor == ActorRef.noSender) {
+      obj.Actor = context.actorOf(Props(classOf[TelepadControl], obj), PlanetSideServerObject.UniqueActorName(obj))
+    }
   }
 
   /**
@@ -81,5 +86,18 @@ object TelepadLike {
       case _ =>
         None
     }
+  }
+}
+
+/**
+  * Telepad-like components don't actually use control agents right now, but,
+  * since the `trait` is used for a `Vehicle` `Utility` entity as well as a `Deployable` entity,
+  * and all utilities are supposed to have control agents with which to interface,
+  * a placeholder like this is easy to reason around.
+  * @param obj an entity that extends `TelepadLike`
+  */
+class TelepadControl(obj : TelepadLike) extends akka.actor.Actor {
+  def receive : akka.actor.Actor.Receive = {
+    case _ => ;
   }
 }

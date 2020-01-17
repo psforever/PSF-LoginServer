@@ -30,7 +30,7 @@ class SensorDeployableDefinition(private val objectId : Int) extends ComplexDepl
   Packet = new SmallDeployableConverter
 
   override def Initialize(obj : PlanetSideServerObject with Deployable, context : ActorContext) = {
-    obj.Actor = context.actorOf(Props(classOf[SensorDeployableControl], obj), s"${obj.Definition.Name}_${obj.GUID.guid}")
+    obj.Actor = context.actorOf(Props(classOf[SensorDeployableControl], obj), PlanetSideServerObject.UniqueActorName(obj))
   }
 
   override def Uninitialize(obj : PlanetSideServerObject with Deployable, context : ActorContext) = {
@@ -126,7 +126,7 @@ object SensorDeployableControl {
     target.Actor ! JammableUnit.ClearJammeredSound()
     target.Actor ! JammableUnit.ClearJammeredStatus()
     val zone = target.Zone
-    Deployables.AnnounceDestroyDeployable(target, Some(0 seconds))
+    Deployables.AnnounceDestroyDeployable(target, None)
     zone.LocalEvents ! LocalServiceMessage(zone.Id, LocalAction.TriggerEffectInfo(Service.defaultPlayerGUID, "on", target.GUID, false, 1000))
     zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.Destroy(target.GUID, attribution, attribution, target.Position))
   }

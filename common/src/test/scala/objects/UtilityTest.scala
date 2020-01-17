@@ -217,7 +217,7 @@ class UtilityInternalTelepadTest extends ActorTest {
 
       system.actorOf(Props(classOf[UtilityTest.SetupControl], obj), "test") ! ""
       receiveOne(Duration.create(100, "ms")) //consume and discard
-      assert(obj().Actor == ActorRef.noSender)
+      assert(obj().Actor != ActorRef.noSender)
       assert(obj().asInstanceOf[Utility.InternalTelepad].Router.contains(veh.GUID))
     }
   }

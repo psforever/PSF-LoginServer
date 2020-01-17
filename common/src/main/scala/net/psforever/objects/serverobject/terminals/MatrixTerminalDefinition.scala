@@ -3,6 +3,7 @@ package net.psforever.objects.serverobject.terminals
 
 import akka.actor.ActorContext
 import net.psforever.objects.Player
+import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.structures.Amenity
 
 /**
@@ -29,7 +30,7 @@ object MatrixTerminalDefinition {
   def Setup(obj : Amenity, context : ActorContext) : Unit = {
     import akka.actor.{ActorRef, Props}
     if(obj.Actor == ActorRef.noSender) {
-      obj.Actor = context.actorOf(Props(classOf[TerminalControl], obj), s"${obj.Definition.Name}_${obj.GUID.guid}")
+      obj.Actor = context.actorOf(Props(classOf[TerminalControl], obj), PlanetSideServerObject.UniqueActorName(obj))
     }
   }
 }
