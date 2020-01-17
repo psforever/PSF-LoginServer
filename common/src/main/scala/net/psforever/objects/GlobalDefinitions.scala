@@ -8,6 +8,7 @@ import net.psforever.objects.definition.converter._
 import net.psforever.objects.equipment._
 import net.psforever.objects.inventory.InventoryTile
 import net.psforever.objects.serverobject.doors.DoorDefinition
+import net.psforever.objects.serverobject.generator.GeneratorDefinition
 import net.psforever.objects.serverobject.implantmech.ImplantTerminalMechDefinition
 import net.psforever.objects.serverobject.locks.IFFLockDefinition
 import net.psforever.objects.serverobject.mblocker.LockerDefinition
@@ -992,12 +993,20 @@ object GlobalDefinitions {
   val manned_turret = new FacilityTurretDefinition(480)
 
   val painbox = new PainboxDefinition(622)
+
   val painbox_continuous = new PainboxDefinition(623)
+
   val painbox_door_radius = new PainboxDefinition(624)
+
   val painbox_door_radius_continuous = new PainboxDefinition(625)
+
   val painbox_radius = new PainboxDefinition(626)
+
   val painbox_radius_continuous = new PainboxDefinition(627)
 
+  val gen_control = new GeneratorTerminalDefinition(349)
+
+  val generator = new GeneratorDefinition(351)
   initMiscellaneous()
 
   /*
@@ -6206,5 +6215,9 @@ object GlobalDefinitions {
     manned_turret.MountPoints += 1 -> 0
     manned_turret.FactionLocked = true
     manned_turret.ReserveAmmunition = false
+
+    gen_control.Name = "gen_control"
+
+    generator.Name = "generator"
   }
 }
