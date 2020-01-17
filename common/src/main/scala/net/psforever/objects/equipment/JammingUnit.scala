@@ -148,7 +148,7 @@ trait JammableBehavior {
       jammedSound = true
       import scala.concurrent.ExecutionContext.Implicits.global
       jammeredSoundTimer.cancel
-      jammeredSoundTimer = context.system.scheduler.scheduleOnce(dur seconds, self, JammableUnit.ClearJammeredSound())
+      jammeredSoundTimer = context.system.scheduler.scheduleOnce(dur milliseconds, self, JammableUnit.ClearJammeredSound())
     }
   }
 
