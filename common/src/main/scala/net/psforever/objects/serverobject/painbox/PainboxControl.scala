@@ -55,7 +55,7 @@ class PainboxControl(painbox: Painbox) extends Actor {
       val owner = painbox.Owner.asInstanceOf[Building]
       val faction = owner.Faction
       if(faction != PlanetSideEmpire.NEUTRAL && (nearestDoor match { case Some(door) => door.Open.nonEmpty; case _ => true })) {
-        val events = owner.Zone.AvatarEvents
+        val events = painbox.Zone.AvatarEvents
         val damage = painbox.Definition.Damage
         val radius = painbox.Definition.Radius * painbox.Definition.Radius
         val position = painbox.Position

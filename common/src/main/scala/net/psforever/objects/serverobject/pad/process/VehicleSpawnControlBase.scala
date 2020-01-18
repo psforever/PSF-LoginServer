@@ -25,7 +25,7 @@ abstract class VehicleSpawnControlBase(pad : VehicleSpawnPad) extends Actor {
     */
   private def GetLogger(logid : String) : Logger = baseLogger match {
     case None =>
-      if(!pad.HasGUID || pad.Owner.Zone == Zone.Nowhere) {
+      if(!pad.HasGUID || pad.Zone == Zone.Nowhere) {
         org.log4s.getLogger(s"uninitialized_${pad.Definition.Name}$logid")
       }
       else {

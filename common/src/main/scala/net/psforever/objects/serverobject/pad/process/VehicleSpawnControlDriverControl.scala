@@ -26,7 +26,7 @@ class VehicleSpawnControlDriverControl(pad : VehicleSpawnPad) extends VehicleSpa
       }
       if(vehicle.PassengerInSeat(driver).contains(0)) {
         trace(s"returning control of ${vehicle.Definition.Name} to ${driver.Name}")
-        pad.Owner.Zone.VehicleEvents ! VehicleSpawnPad.ServerVehicleOverrideEnd(driver.Name, vehicle, pad)
+        pad.Zone.VehicleEvents ! VehicleSpawnPad.ServerVehicleOverrideEnd(driver.Name, vehicle, pad)
       }
       else {
         trace(s"${driver.Name} is not seated in ${vehicle.Definition.Name}; vehicle controls have been locked")

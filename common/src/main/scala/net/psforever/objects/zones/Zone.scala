@@ -362,7 +362,14 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
   }
 
   private def BuildLocalObjects(implicit context : ActorContext, guid : NumberPoolHub) : Unit = {
-    Map.LocalObjects.foreach({ builderObject => builderObject.Build })
+    Map.LocalObjects.foreach({ builderObject =>
+      builderObject.Build
+
+      val obj = guid(builderObject.Id)
+      obj collect {
+        case el : ZoneAware => el.Zone = this
+      }
+    })
   }
 
   private def BuildSupportObjects() : Unit = {

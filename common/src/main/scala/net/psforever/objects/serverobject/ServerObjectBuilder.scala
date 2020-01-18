@@ -30,6 +30,9 @@ import net.psforever.objects.guid.NumberPoolHub
 class ServerObjectBuilder[A <: PlanetSideServerObject](private val id : Int,
                                                        private val constructor : ServerObjectBuilder.ConstructorType[A]
                                                       ) {
+
+  def Id : Int = id
+
   /**
     * Instantiate and configure the given server object.
     * Specific configuration should have been handled by curried parameters into `constructor`, i.e.,

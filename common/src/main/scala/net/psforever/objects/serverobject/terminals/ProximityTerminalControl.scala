@@ -84,7 +84,7 @@ class ProximityTerminalControl(term : Terminal with ProximityUnit) extends Actor
         import scala.concurrent.ExecutionContext.Implicits.global
         terminalAction.cancel
         terminalAction = context.system.scheduler.schedule(500 milliseconds, medDef.Interval, self, ProximityTerminalControl.TerminalAction())
-        TerminalObject.Owner.Zone.LocalEvents ! Terminal.StartProximityEffect(term)
+        TerminalObject.Zone.LocalEvents ! Terminal.StartProximityEffect(term)
       }
     }
     else {
@@ -103,7 +103,7 @@ class ProximityTerminalControl(term : Terminal with ProximityUnit) extends Actor
       //de-activation (global / local)
       if(term.NumberUsers == 0 && hadUsers) {
         terminalAction.cancel
-        TerminalObject.Owner.Zone.LocalEvents ! Terminal.StopProximityEffect(term)
+        TerminalObject.Zone.LocalEvents ! Terminal.StopProximityEffect(term)
       }
     }
     else {
