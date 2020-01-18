@@ -183,7 +183,7 @@ class Building(private val name: String,
         (false, PlanetSideEmpire.NEUTRAL, 0L)
     }
     //TODO if we have a generator, get the current repair state
-    val (generatorState, bootGeneratorPain) = (PlanetSideGeneratorState.Normal, false)
+    val (generatorState, boostGeneratorPain) = (PlanetSideGeneratorState.Normal, false) // todo: poll pain field strength
     //if we have spawn tubes, determine if any of them are active
     val (spawnTubesNormal, boostSpawnPain) : (Boolean, Boolean) = {
       val o = Amenities.collect({ case _ : SpawnTube => true }) ///TODO obj.Health > 0
@@ -248,13 +248,13 @@ class Building(private val name: String,
       ForceDomeActive,
       latticeBenefit,
       0, //cavern_benefit; !! Field > 0 will cause malformed packet. See class def.
-      Nil,
-      0,
-      false,
-      8, //!! Field != 8 will cause malformed packet. See class def.
-      None,
+      Nil, //unk4
+      0, //unk5
+      false, //unk6
+      8, //!! unk7 Field != 8 will cause malformed packet. See class def.
+      None, //unk7x
       boostSpawnPain, //boost_spawn_pain
-      bootGeneratorPain //boost_generator_pain
+      boostGeneratorPain //boost_generator_pain
     )
   }
 
