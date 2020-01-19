@@ -399,7 +399,12 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
 
   private def MakeBuildings(implicit context : ActorContext) : PairMap[Int, Building] = {
     val buildingList = Map.LocalBuildings
-    buildings = buildingList.map({case((name, building_guid, map_id), constructor) => building_guid -> constructor.Build(name, building_guid, map_id, this) })
+    buildings = buildingList.map({
+      case((name, building_guid, map_id), constructor) =>
+        val building = constructor.Build(name, building_guid, map_id, this)
+        guid.register(building, building_guid)
+        building_guid -> building
+    })
     buildings
   }
 
