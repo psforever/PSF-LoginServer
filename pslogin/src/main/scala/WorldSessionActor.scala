@@ -4555,6 +4555,7 @@ class WorldSessionActor extends Actor
 
       if(isTeleporter) {
         val endPoint = path.get.ZipLinePoints.last
+        sendResponse(ZipLineMessage(PlanetSideGUID(0), forwards, 0, path_id, pos)) // todo: send to zone to show teleport animation to all clients
         sendResponse(PlayerStateShiftMessage(ShiftState(0, endPoint, player.Orientation.z, None)))
       } else {
         action match {
