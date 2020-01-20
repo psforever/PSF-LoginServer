@@ -54,10 +54,9 @@ This will clone the repository and SBT will compile and run the login server ([m
 With a SBT console you can run tests (and you should) using `sbt test`.
 
 ### Downloading PSCrypto
-**The server requires binary builds of PSCrypto in order to run.** [Download the latest release](https://github.com/psforever/PSCrypto/releases/download/v1.1/pscrypto-lib-1.1.zip) and extract the the approprate dll for your operating system to the top level of your source directory (the root directory, not /pslogin/src/main/scala). SBT, IDEA, and Java will automatically find the required libraries when running the server.
-If you are not comfortable with compiled binaries, you can [build the libraries yourself](https://github.com/psforever/PSCrypto).
+**The server requires binary builds of PSCrypto in order to run.** [Download the latest release](https://github.com/psforever/PSCrypto/releases/download/v1.1/pscrypto-lib-1.1.zip) and extract the the approprate dll for your operating system.  If you are not comfortable with compiled binaries, you can [build the libraries yourself](https://github.com/psforever/PSCrypto).
 
-If you have any issues with PSCrypto being detected when trying to run the server try adding `-Djava.library.path=` (no path necessary) to your preferred IDE's build configuration, for example with IDEA: Run -> Edit Configuration -> VM Options
+SBT, IDEA, and Java will automatically find the required libraries when running the server.  The build expects to find the library in a subdirectory of the root directory called /pscrypto-lib/.  Historically, we have recommended placing it directly into the root directory and that has worked as well.  If you still have issues with PSCrypto being detected, try adding `-Djava.library.path=` (no path necessary) to your preferred IDE's build configuration with the library in the root directory.  For example, with IDEA: Run -> Edit Configuration -> (select the configuration) -> Uncheck "Use SBT shell" -> VM Parameters
 
 ## Setting up the Database
 The Login and World servers require PostgreSQL for persistence.

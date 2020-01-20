@@ -339,8 +339,8 @@ class WorldSessionActor extends Actor
     case out @ Some(obj) if obj.HasGUID =>
       out
     case None if id.nonEmpty =>
-      //delete stale entity reference from client
-      sendResponse(ObjectDeleteMessage(id.get, 0))
+      //delete stale entity reference from client (deferred until later)
+      //sendResponse(ObjectDeleteMessage(id.get, 0))
       None
     case _ =>
       None
