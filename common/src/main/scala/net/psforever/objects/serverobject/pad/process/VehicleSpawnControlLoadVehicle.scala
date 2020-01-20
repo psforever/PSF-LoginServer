@@ -16,7 +16,7 @@ import scala.concurrent.duration._
   * <br>
   * This object introduces the vehicle into the game environment.
   * The vehicle must be added to the `Zone` object, loaded onto other players' clients, and given an initial timed deconstruction event.
-  * For actual details on this process, please refer to the external source represented by `pad.Owner.Zone.VehicleEvents`.
+  * For actual details on this process, please refer to the external source represented by `pad.Zone.VehicleEvents`.
   * It has failure cases should the driver be in an incorrect state.
   * @param pad the `VehicleSpawnPad` object being governed
   */
@@ -31,12 +31,12 @@ class VehicleSpawnControlLoadVehicle(pad : VehicleSpawnPad) extends VehicleSpawn
         trace(s"loading the ${vehicle.Definition.Name}")
         vehicle.Position = vehicle.Position - Vector3.z(if(GlobalDefinitions.isFlightVehicle(vehicle.Definition)) 9 else 5) //appear below the trench and doors
         vehicle.Cloaked = vehicle.Definition.CanCloak && driver.Cloaked
-        pad.Owner.Zone.VehicleEvents ! VehicleSpawnPad.LoadVehicle(vehicle)
+        pad.Zone.VehicleEvents ! VehicleSpawnPad.LoadVehicle(vehicle)
         context.system.scheduler.scheduleOnce(100 milliseconds, railJack, order)
       }
       else {
         trace("owner lost or vehicle in poor condition; abort order fulfillment")
-        VehicleSpawnControl.DisposeSpawnedVehicle(order, pad.Owner.Zone)
+        VehicleSpawnControl.DisposeSpawnedVehicle(order, pad.Zone)
         context.parent ! VehicleSpawnControl.ProcessControl.GetNewOrder
       }
 

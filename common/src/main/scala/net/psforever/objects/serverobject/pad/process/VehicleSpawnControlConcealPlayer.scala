@@ -28,12 +28,12 @@ class VehicleSpawnControlConcealPlayer(pad : VehicleSpawnPad) extends VehicleSpa
       //TODO how far can the driver stray from the Terminal before his order is cancelled?
       if(driver.Continent == pad.Continent && driver.VehicleSeated.isEmpty) {
         trace(s"hiding ${driver.Name}")
-        pad.Owner.Zone.VehicleEvents ! VehicleSpawnPad.ConcealPlayer(driver.GUID)
+        pad.Zone.VehicleEvents ! VehicleSpawnPad.ConcealPlayer(driver.GUID)
         context.system.scheduler.scheduleOnce(2000 milliseconds, loadVehicle, order)
       }
       else {
         trace(s"integral component lost; abort order fulfillment")
-        VehicleSpawnControl.DisposeSpawnedVehicle(order.vehicle, pad.Owner.Zone)
+        VehicleSpawnControl.DisposeSpawnedVehicle(order.vehicle, pad.Zone)
         context.parent ! VehicleSpawnControl.ProcessControl.GetNewOrder
       }
 

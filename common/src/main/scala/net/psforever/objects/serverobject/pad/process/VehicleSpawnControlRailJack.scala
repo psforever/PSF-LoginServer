@@ -26,7 +26,7 @@ class VehicleSpawnControlRailJack(pad : VehicleSpawnPad) extends VehicleSpawnCon
 
   def receive : Receive = {
     case order @ VehicleSpawnControl.Order(_, vehicle) =>
-      pad.Owner.Zone.VehicleEvents ! VehicleSpawnPad.AttachToRails(vehicle, pad)
+      pad.Zone.VehicleEvents ! VehicleSpawnPad.AttachToRails(vehicle, pad)
       context.system.scheduler.scheduleOnce(10 milliseconds, seatDriver, order)
 
     case msg @ (VehicleSpawnControl.ProcessControl.Reminder | VehicleSpawnControl.ProcessControl.GetNewOrder) =>

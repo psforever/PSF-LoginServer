@@ -339,7 +339,8 @@ class WorldSessionActor extends Actor
     case out @ Some(obj) if obj.HasGUID =>
       out
     case None if id.nonEmpty =>
-      //delete stale entity reference from client (deferred until later)
+      //delete stale entity reference from client
+      log.warn(s"Player ${player.Name} has an invalid reference to GUID ${id.get} in zone ${continent.Id}. Delete object on client.")
       //sendResponse(ObjectDeleteMessage(id.get, 0))
       None
     case _ =>
@@ -4554,6 +4555,7 @@ class WorldSessionActor extends Actor
 
       if(isTeleporter) {
         val endPoint = path.get.ZipLinePoints.last
+        sendResponse(ZipLineMessage(PlanetSideGUID(0), forwards, 0, path_id, pos)) // todo: send to zone to show teleport animation to all clients
         sendResponse(PlayerStateShiftMessage(ShiftState(0, endPoint, player.Orientation.z, None)))
       } else {
         action match {

@@ -28,7 +28,7 @@ class VehicleSpawnControlFinalClearance(pad : VehicleSpawnPad) extends VehicleSp
         //ensure the vacant vehicle is above the trench and doors
         vehicle.Position = pad.Position + Vector3.z(pad.Definition.VehicleCreationZOffset)
         val definition = vehicle.Definition
-        pad.Owner.Zone.VehicleEvents ! VehicleServiceMessage(s"${pad.Continent}", VehicleAction.LoadVehicle(PlanetSideGUID(0), vehicle, definition.ObjectId, vehicle.GUID, definition.Packet.ConstructorData(vehicle).get))
+        pad.Zone.VehicleEvents ! VehicleServiceMessage(s"${pad.Continent}", VehicleAction.LoadVehicle(PlanetSideGUID(0), vehicle, definition.ObjectId, vehicle.GUID, definition.Packet.ConstructorData(vehicle).get))
       }
       context.parent ! VehicleSpawnControl.ProcessControl.Reminder
       self ! VehicleSpawnControlFinalClearance.Test(order)
@@ -36,7 +36,7 @@ class VehicleSpawnControlFinalClearance(pad : VehicleSpawnPad) extends VehicleSp
     case test @ VehicleSpawnControlFinalClearance.Test(entry) =>
       if(Vector3.DistanceSquared(entry.vehicle.Position, pad.Position) > 100.0f) { //10m away from pad
         trace("pad cleared")
-        pad.Owner.Zone.VehicleEvents ! VehicleSpawnPad.ResetSpawnPad(pad)
+        pad.Zone.VehicleEvents ! VehicleSpawnPad.ResetSpawnPad(pad)
         context.parent ! VehicleSpawnControl.ProcessControl.GetNewOrder
       }
       else {

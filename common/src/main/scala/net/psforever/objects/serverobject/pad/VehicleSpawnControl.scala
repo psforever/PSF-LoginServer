@@ -65,7 +65,7 @@ class VehicleSpawnControl(pad : VehicleSpawnPad) extends VehicleSpawnControlBase
       }
       catch {
         case _ : AssertionError if vehicle.HasGUID => //same as order being dropped
-          VehicleSpawnControl.DisposeSpawnedVehicle(vehicle, pad.Owner.Zone)
+          VehicleSpawnControl.DisposeSpawnedVehicle(vehicle, pad.Zone)
         case _ : AssertionError => ; //shrug
         case e : Exception => //something unexpected
           e.printStackTrace()
@@ -140,10 +140,10 @@ class VehicleSpawnControl(pad : VehicleSpawnPad) extends VehicleSpawnControlBase
     }) && orders.forall { !_.driver.Name.equals(name) }) {
       //not a second order from an existing order's player
       orders = orders :+ order
-      pad.Owner.Zone.VehicleEvents ! VehicleSpawnPad.PeriodicReminder(name, VehicleSpawnPad.Reminders.Queue, Some(orders.length + 1))
+      pad.Zone.VehicleEvents ! VehicleSpawnPad.PeriodicReminder(name, VehicleSpawnPad.Reminders.Queue, Some(orders.length + 1))
     }
     else {
-      VehicleSpawnControl.DisposeSpawnedVehicle(order, pad.Owner.Zone)
+      VehicleSpawnControl.DisposeSpawnedVehicle(order, pad.Zone)
     }
   }
 
@@ -201,7 +201,7 @@ class VehicleSpawnControl(pad : VehicleSpawnPad) extends VehicleSpawnControlBase
     * @param recipients all of the other customers who will be receiving the message
     */
   def BlockedReminder(blockedOrder : VehicleSpawnControl.Order, recipients : Seq[VehicleSpawnControl.Order]) : Unit = {
-    val relevantRecipients = blockedOrder.vehicle.Seats(0).Occupant.orElse(pad.Owner.Zone.GUID(blockedOrder.vehicle.Owner)) match {
+    val relevantRecipients = blockedOrder.vehicle.Seats(0).Occupant.orElse(pad.Zone.GUID(blockedOrder.vehicle.Owner)) match {
       case Some(p : Player) =>
         (VehicleSpawnControl.Order(p, blockedOrder.vehicle) +: recipients).iterator //who took possession of the vehicle
       case _ =>
@@ -223,15 +223,15 @@ class VehicleSpawnControl(pad : VehicleSpawnPad) extends VehicleSpawnControlBase
   def CancelOrder(entry : VehicleSpawnControl.Order)(implicit context : ActorContext) : Unit = {
     val vehicle = entry.vehicle
     if(vehicle.Seats.values.count(_.isOccupied) == 0) {
-      VehicleSpawnControl.DisposeSpawnedVehicle(entry, pad.Owner.Zone)
-      pad.Owner.Zone.VehicleEvents ! VehicleSpawnPad.PeriodicReminder(entry.driver.Name, VehicleSpawnPad.Reminders.Cancelled)
+      VehicleSpawnControl.DisposeSpawnedVehicle(entry, pad.Zone)
+      pad.Zone.VehicleEvents ! VehicleSpawnPad.PeriodicReminder(entry.driver.Name, VehicleSpawnPad.Reminders.Cancelled)
     }
   }
 
   @tailrec private final def recursiveBlockedReminder(iter : Iterator[VehicleSpawnControl.Order], cause : Option[Any]) : Unit = {
     if(iter.hasNext) {
       val recipient = iter.next
-      pad.Owner.Zone.VehicleEvents ! VehicleSpawnPad.PeriodicReminder(recipient.driver.Name, VehicleSpawnPad.Reminders.Blocked, cause)
+      pad.Zone.VehicleEvents ! VehicleSpawnPad.PeriodicReminder(recipient.driver.Name, VehicleSpawnPad.Reminders.Blocked, cause)
       recursiveBlockedReminder(iter, cause)
     }
   }
@@ -239,7 +239,7 @@ class VehicleSpawnControl(pad : VehicleSpawnPad) extends VehicleSpawnControlBase
   @tailrec private final def recursiveOrderReminder(iter : Iterator[VehicleSpawnControl.Order], position : Int = 2) : Unit = {
     if(iter.hasNext) {
       val recipient = iter.next
-      pad.Owner.Zone.VehicleEvents ! VehicleSpawnPad.PeriodicReminder(recipient.driver.Name, VehicleSpawnPad.Reminders.Queue, Some(position))
+      pad.Zone.VehicleEvents ! VehicleSpawnPad.PeriodicReminder(recipient.driver.Name, VehicleSpawnPad.Reminders.Queue, Some(position))
       recursiveOrderReminder(iter, position + 1)
     }
   }
