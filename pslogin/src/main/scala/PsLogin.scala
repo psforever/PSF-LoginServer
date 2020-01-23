@@ -11,7 +11,7 @@ import ch.qos.logback.core.joran.spi.JoranException
 import ch.qos.logback.core.status._
 import ch.qos.logback.core.util.StatusPrinter
 import com.typesafe.config.ConfigFactory
-import net.psforever.config.{Valid, Invalid}
+import net.psforever.config.{Invalid, Valid}
 import net.psforever.crypto.CryptoInterface
 import net.psforever.objects.zones._
 import net.psforever.objects.guid.TaskResolver
@@ -19,7 +19,7 @@ import org.slf4j
 import org.fusesource.jansi.Ansi._
 import org.fusesource.jansi.Ansi.Color._
 import services.ServiceManager
-import services.account.AccountIntermediaryService
+import services.account.{AccountIntermediaryService, AccountPersistenceService}
 import services.chat.ChatService
 import services.galaxy.GalaxyService
 import services.teamwork.SquadService
@@ -275,6 +275,7 @@ object PsLogin {
     serviceManager ! ServiceManager.Register(Props[GalaxyService], "galaxy")
     serviceManager ! ServiceManager.Register(Props[SquadService], "squad")
     serviceManager ! ServiceManager.Register(Props(classOf[InterstellarCluster], continentList), "cluster")
+    serviceManager ! ServiceManager.Register(Props[AccountPersistenceService], "accountPersistence")
 
     logger.info("Initializing loginRouter & worldRouter")
     /** Create two actors for handling the login and world server endpoints */

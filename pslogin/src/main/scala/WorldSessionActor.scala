@@ -50,7 +50,7 @@ import net.psforever.packet.game.objectcreate._
 import net.psforever.packet.game.{HotSpotInfo => PacketHotSpotInfo}
 import net.psforever.types._
 import services._
-import services.account.{ReceiveAccountData, RetrieveAccountData}
+import services.account.{AccountPersistenceService, PlayerToken, ReceiveAccountData, RetrieveAccountData}
 import services.avatar.{AvatarAction, AvatarResponse, AvatarServiceMessage, AvatarServiceResponse}
 import services.galaxy.{GalaxyAction, GalaxyResponse, GalaxyServiceMessage, GalaxyServiceResponse}
 import services.local.{LocalAction, LocalResponse, LocalServiceMessage, LocalServiceResponse}
@@ -87,6 +87,8 @@ class WorldSessionActor extends Actor
   var leftRef : ActorRef = ActorRef.noSender
   var rightRef : ActorRef = ActorRef.noSender
   var accountIntermediary : ActorRef = ActorRef.noSender
+  var accountPersistence : ActorRef = ActorRef.noSender
+  var persistence : ActorRef = ActorRef.noSender
   var chatService: ActorRef = ActorRef.noSender
   var galaxyService : ActorRef = ActorRef.noSender
   var squadService : ActorRef = ActorRef.noSender
@@ -131,6 +133,7 @@ class WorldSessionActor extends Actor
   var recentTeleportAttempt : Long = 0
   var lastTerminalOrderFulfillment : Boolean = true
   var shiftPosition : Option[Vector3] = None
+  var setupAvatarFunc : ()=>Unit = AvatarCreate
   /**
     * used during zone transfers to maintain reference to seated vehicle (which does not yet exist in the new zone)
     * used during intrazone gate transfers, but not in a way distinct from prior zone transfer procedures
@@ -320,6 +323,7 @@ class WorldSessionActor extends Actor
       }
       context.become(Started)
       ServiceManager.serviceManager ! Lookup("accountIntermediary")
+      ServiceManager.serviceManager ! Lookup("accountPersistence")
       ServiceManager.serviceManager ! Lookup("chat")
       ServiceManager.serviceManager ! Lookup("taskResolver")
       ServiceManager.serviceManager ! Lookup("cluster")
@@ -351,6 +355,9 @@ class WorldSessionActor extends Actor
     case ServiceManager.LookupResult("accountIntermediary", endpoint) =>
       accountIntermediary = endpoint
       log.info("ID: " + sessionId + " Got account intermediary service " + endpoint)
+    case ServiceManager.LookupResult("accountPersistence", endpoint) =>
+      accountPersistence = endpoint
+      log.info("ID: " + sessionId + " Got account persistence service " + endpoint)
     case ServiceManager.LookupResult("chat", endpoint) =>
       chatService = endpoint
       log.info("ID: " + sessionId + " Got chat service " + endpoint)
@@ -724,11 +731,13 @@ class WorldSessionActor extends Actor
     case CheckCargoMounting(cargo_guid, carrier_guid, mountPoint, iteration) =>
       HandleCheckCargoMounting(cargo_guid, carrier_guid, mountPoint, iteration)
 
-    case CreateCharacter(connection, name, head, voice, gender, empire) =>
+    case CreateCharacter(None, _, _, _, _, _) =>
+      log.error("CreateCharacter: expected working database connection, but received None")
+
+    case CreateCharacter(Some(connection), name, head, voice, gender, empire) =>
       log.info(s"Creating new character $name...")
       val accountUserName : String = account.Username
-
-      connection.get.inTransaction {
+      connection.inTransaction {
         c => c.sendPreparedStatement(
           "INSERT INTO characters (name, account_id, faction_id, gender_id, head_id, voice_id) VALUES(?,?,?,?,?,?) RETURNING id",
           Array(name, account.AccountId, empire.id, gender.id, head, voice.id)
@@ -740,25 +749,31 @@ class WorldSessionActor extends Actor
               if (result.rows.nonEmpty) {
                 log.info(s"Successfully created new character for $accountUserName")
                 sendResponse(ActionResultMessage.Pass)
-                self ! ListAccountCharacters(connection)
-              } else {
+                self ! ListAccountCharacters(Some(connection))
+              }
+              else {
                 log.error(s"Error creating new character for $accountUserName")
                 sendResponse(ActionResultMessage.Fail(0))
-                self ! ListAccountCharacters(connection)
+                self ! ListAccountCharacters(Some(connection))
               }
             case _ =>
               log.error(s"Error creating new character for $accountUserName")
               sendResponse(ActionResultMessage.Fail(3))
-              self ! ListAccountCharacters(connection)
+              self ! ListAccountCharacters(Some(connection))
           }
-        case _ => failWithError("Something to do ?")
+        case _ =>
+          connection.disconnect
+          failWithError("Something to do ?")
       }
 
-    case ListAccountCharacters(connection) =>
+    case ListAccountCharacters(None) =>
+      log.error("ListAccountCharacters: expected working database connection, but received None")
+
+    case ListAccountCharacters(Some(connection)) =>
       val accountUserName : String = account.Username
 
       StartBundlingPackets()
-      connection.get.sendPreparedStatement(
+      connection.sendPreparedStatement(
         "SELECT id, name, faction_id, gender_id, head_id, voice_id, deleted, last_login FROM characters where account_id=? ORDER BY last_login", Array(account.AccountId)
       ).onComplete {
         case Success(queryResult) =>
@@ -812,8 +827,8 @@ class WorldSessionActor extends Actor
                   sendResponse(CharacterInfoMessage(0, PlanetSideZoneID(1), 0, PlanetSideGUID(0), true, 0))
                 }
                 Thread.sleep(50)
-                if(connection.nonEmpty) connection.get.disconnect
-              } else {
+              }
+              else {
                 log.info("dunno")
               }
             case _ =>
@@ -822,6 +837,7 @@ class WorldSessionActor extends Actor
         case _ => failWithError("Something to do ?")
       }
       StopBundlingPackets()
+      connection.disconnect
 
     case VehicleLoaded(_ /*vehicle*/) => ;
     //currently being handled by VehicleSpawnPad.LoadVehicle during testing phase
@@ -1151,8 +1167,21 @@ class WorldSessionActor extends Actor
       galaxyService ! Service.Join(s"${avatar.faction}") //for hotspots
       squadService ! Service.Join(s"${avatar.faction}") //channel will be player.Faction
       squadService ! Service.Join(s"${avatar.CharId}") //channel will be player.CharId (in order to work with packets)
-      //go home
-      cluster ! InterstellarCluster.GetWorld("z6")
+      player.Zone match {
+        case Zone.Nowhere =>
+          //go home
+          cluster ! InterstellarCluster.GetWorld("z6")
+        case zone =>
+          val zoneId = zone.Id
+          log.info(s"Zone $zoneId will now load")
+          loadConfZone = true
+          continent.AvatarEvents ! Service.Leave()
+          continent.LocalEvents ! Service.Leave()
+          continent.VehicleEvents ! Service.Leave()
+          continent = zone
+          setupAvatarFunc = AvatarRejoin
+          self ! NewPlayerLoaded(player)
+      }
 
     case InterstellarCluster.GiveWorld(zoneId, zone) =>
       log.info(s"Zone $zoneId will now load")
@@ -1176,13 +1205,13 @@ class WorldSessionActor extends Actor
       player = tplayer
       //LoadMapMessage causes the client to send BeginZoningMessage, eventually leading to SetCurrentAvatar
       sendResponse(LoadMapMessage(continent.Map.Name, continent.Id, 40100, 25, true, continent.Map.Checksum))
-      AvatarCreate() //important! the LoadMapMessage must be processed by the client before the avatar is created
+      setupAvatarFunc() //important! the LoadMapMessage must be processed by the client before the avatar is created
 
     case PlayerLoaded(tplayer) =>
       //same zone
       log.info(s"Player ${tplayer.Name} will respawn")
       player = tplayer
-      AvatarCreate()
+      setupAvatarFunc()
       self ! SetCurrentAvatar(tplayer)
 
     case PlayerFailedToLoad(tplayer) =>
@@ -1258,13 +1287,13 @@ class WorldSessionActor extends Actor
                 case _ => // If the account didn't exist in the database
                   log.error(s"Issue retrieving result set from database for account $account")
                   Thread.sleep(50)
-                  if (connection.isConnected) connection.disconnect
+                  connection.disconnect
                   sendResponse(DropSession(sessionId, "You should not exist !"))
               }
             case scala.util.Failure(e) =>
               log.error("Is there a problem ? " + e.getMessage)
               Thread.sleep(50)
-              if (connection.isConnected) connection.disconnect
+              connection.disconnect
           }
         case scala.util.Failure(e) =>
           log.error("Failed connecting to database for account lookup " + e.getMessage)
@@ -1290,6 +1319,103 @@ class WorldSessionActor extends Actor
             continent.Id,
             AvatarAction.LoadProjectile(player.GUID, definition.ObjectId, projectile_guid, definition.Packet.ConstructorData(obj).get)
           )
+        case _ => ;
+      }
+
+    case PlayerToken.LoginInfo(_, Zone.Nowhere, _, _) =>
+      import net.psforever.objects.GlobalDefinitions._
+      import net.psforever.types.CertificationType._
+
+      persistence = sender
+      //TODO poll the database for saved zone and coordinates?
+      //load the player as if new
+      val avatar = this.avatar
+      avatar.Certifications += StandardAssault
+      avatar.Certifications += MediumAssault
+      avatar.Certifications += StandardExoSuit
+      avatar.Certifications += AgileExoSuit
+      avatar.Certifications += ReinforcedExoSuit
+      avatar.Certifications += ATV
+      //        avatar.Certifications += Harasser
+      avatar.Certifications += InfiltrationSuit
+      avatar.Certifications += UniMAX
+      avatar.Certifications += Medical
+      avatar.Certifications += AdvancedMedical
+      avatar.Certifications += Engineering
+      avatar.Certifications += CombatEngineering
+      avatar.Certifications += FortificationEngineering
+      avatar.Certifications += AssaultEngineering
+      avatar.Certifications += Hacking
+      avatar.Certifications += AdvancedHacking
+      avatar.Certifications += ElectronicsExpert
+
+      avatar.Certifications += Sniping
+      avatar.Certifications += AntiVehicular
+      avatar.Certifications += HeavyAssault
+      avatar.Certifications += SpecialAssault
+      avatar.Certifications += EliteAssault
+      avatar.Certifications += GroundSupport
+      avatar.Certifications += GroundTransport
+      avatar.Certifications += Flail
+      avatar.Certifications += Switchblade
+      avatar.Certifications += AssaultBuggy
+      avatar.Certifications += ArmoredAssault1
+      avatar.Certifications += ArmoredAssault2
+      avatar.Certifications += AirCavalryScout
+      avatar.Certifications += AirCavalryAssault
+      avatar.Certifications += AirCavalryInterceptor
+      avatar.Certifications += AirSupport
+      avatar.Certifications += GalaxyGunship
+      avatar.Certifications += Phantasm
+      //        avatar.Certifications += BattleFrameRobotics
+      //        avatar.Certifications += BFRAntiInfantry
+      //        avatar.Certifications += BFRAntiAircraft
+      InitializeDeployableQuantities(avatar) //set deployables ui elements
+      AwardBattleExperiencePoints(avatar, 20000000L)
+      avatar.CEP = 600000
+
+      var faction : String = avatar.faction.toString.toLowerCase
+      whenUsedLastMAXName(2) = faction+"hev_antipersonnel"
+      whenUsedLastMAXName(3) = faction+"hev_antivehicular"
+      whenUsedLastMAXName(1) = faction+"hev_antiaircraft"
+
+      player = new Player(avatar)
+      Database.getConnection.connect.onComplete {
+        case scala.util.Success(connection) =>
+          Database.query(connection.sendPreparedStatement(
+            "UPDATE characters SET last_login = ? where id=?", Array(new java.sql.Timestamp(System.currentTimeMillis), avatar.CharId)
+          ))
+          Thread.sleep(50)
+          connection.disconnect
+        case _ => ;
+      }
+      Database.getConnection.connect.onComplete {
+        case scala.util.Success(connection) =>
+          LoadDataBaseLoadouts(player, Some(connection)).onComplete {
+            case _ =>
+              Thread.sleep(200)
+              LoadClassicDefault(player)
+          }
+          connection.disconnect
+
+        case scala.util.Failure(e) =>
+          LoadClassicDefault(player)
+          log.info(s"shit : ${e.getMessage}")
+      }
+      player.Position = Vector3(4000f ,4000f ,500f) //enjoy the fall
+      player.Orientation = Vector3(0f, 354.375f, 157.5f)
+      player.FirstLoad = true
+      //          LivePlayerList.Add(sessionId, avatar)
+      cluster ! InterstellarCluster.RequestClientInitialization()
+
+    case PlayerToken.LoginInfo(playerName, inZone, regionFaction, zoneFaction) =>
+      persistence = sender
+      //reload previous player
+      (inZone.Players.find(p => p.name.equals(playerName)), inZone.LivePlayers.find(p => p.Name.equals(playerName))) match {
+        case (Some(a), Some(p)) => //alive, in zone
+          avatar = a
+          player = p
+          cluster ! InterstellarCluster.RequestClientInitialization()
         case _ => ;
       }
 
@@ -3436,14 +3562,14 @@ class WorldSessionActor extends Actor
               queryResult match {
                 case row: ArrayRowData => // If we got a row from the database
                   if (row(0).asInstanceOf[Int] == account.AccountId) { // create char
-//                    self ! CreateCharacter(Some(connection), name, head, voice, gender, empire)
+                    self ! CreateCharacter(Some(connection), name, head, voice, gender, empire)
                     sendResponse(ActionResultMessage.Fail(1))
                     Thread.sleep(50)
-                    if (connection.isConnected) connection.disconnect
-                  } else { // send "char already exist"
+                  }
+                  else { // send "char already exist"
                     sendResponse(ActionResultMessage.Fail(1))
                     Thread.sleep(50)
-                    if (connection.isConnected) connection.disconnect
+                    connection.disconnect
                   }
                 case _ => // If the char name didn't exist in the database, create char
                   self ! CreateCharacter(Some(connection), name, head, voice, gender, empire)
@@ -3473,16 +3599,13 @@ class WorldSessionActor extends Actor
                 case scala.util.Failure(e) =>
                   sendResponse(ActionResultMessage.Fail(6))
                   Thread.sleep(50)
-                  if (connection.isConnected) connection.disconnect
+                  connection.disconnect
               }
             case scala.util.Failure(e) =>
               log.error("Failed connecting to database for account lookup " + e.getMessage)
           }
 
         case CharacterRequestAction.Select =>
-          import net.psforever.objects.GlobalDefinitions._
-          import net.psforever.types.CertificationType._
-
           Database.getConnection.connect.onComplete {
             case scala.util.Success(connection) =>
               Database.query(connection.sendPreparedStatement(
@@ -3490,115 +3613,21 @@ class WorldSessionActor extends Actor
               )).onComplete {
                 case Success(queryResult) =>
                   queryResult match {
-                    case row: ArrayRowData =>
+                    case row : ArrayRowData =>
                       val lName : String = row(1).asInstanceOf[String]
                       val lFaction : PlanetSideEmpire.Value = PlanetSideEmpire(row(2).asInstanceOf[Int])
                       val lGender : CharacterGender.Value = CharacterGender(row(3).asInstanceOf[Int])
                       val lHead : Int = row(4).asInstanceOf[Int]
                       val lVoice : CharacterVoice.Value = CharacterVoice(row(5).asInstanceOf[Int])
-                      val avatar : Avatar = new Avatar(charId, lName, lFaction, lGender, lHead, lVoice)
-                      avatar.Certifications += StandardAssault
-                      avatar.Certifications += MediumAssault
-                      avatar.Certifications += StandardExoSuit
-                      avatar.Certifications += AgileExoSuit
-                      avatar.Certifications += ReinforcedExoSuit
-                      avatar.Certifications += ATV
-                      //        avatar.Certifications += Harasser
-                      avatar.Certifications += InfiltrationSuit
-                      avatar.Certifications += UniMAX
-                      avatar.Certifications += Medical
-                      avatar.Certifications += AdvancedMedical
-                      avatar.Certifications += Engineering
-                      avatar.Certifications += CombatEngineering
-                      avatar.Certifications += FortificationEngineering
-                      avatar.Certifications += AssaultEngineering
-                      avatar.Certifications += Hacking
-                      avatar.Certifications += AdvancedHacking
-                      avatar.Certifications += ElectronicsExpert
-
-                      avatar.Certifications += Sniping
-                      avatar.Certifications += AntiVehicular
-                      avatar.Certifications += HeavyAssault
-                      avatar.Certifications += SpecialAssault
-                      avatar.Certifications += EliteAssault
-                      avatar.Certifications += GroundSupport
-                      avatar.Certifications += GroundTransport
-                      avatar.Certifications += Flail
-                      avatar.Certifications += Switchblade
-                      avatar.Certifications += AssaultBuggy
-                      avatar.Certifications += ArmoredAssault1
-                      avatar.Certifications += ArmoredAssault2
-                      avatar.Certifications += AirCavalryScout
-                      avatar.Certifications += AirCavalryAssault
-                      avatar.Certifications += AirCavalryInterceptor
-                      avatar.Certifications += AirSupport
-                      avatar.Certifications += GalaxyGunship
-                      avatar.Certifications += Phantasm
-                      //        player.Certifications += BattleFrameRobotics
-                      //        player.Certifications += BFRAntiInfantry
-                      //        player.Certifications += BFRAntiAircraft
-                      this.avatar = avatar
-                      InitializeDeployableQuantities(avatar) //set deployables ui elements
-                      AwardBattleExperiencePoints(avatar, 20000000L)
-                      avatar.CEP = 600000
-
-                      player = new Player(avatar)
-
-                      (0 until 4).foreach( index => {
-                        if (player.Slot(index).Equipment.isDefined) player.Slot(index).Equipment = None
-                      })
-                      player.Inventory.Clear()
-
-                      Database.getConnection.connect.onComplete {
-                        case scala.util.Success(connection) =>
-                          LoadDataBaseLoadouts(player, Some(connection))
-                        case scala.util.Failure(e) =>
-                          log.info(s"shit : ${e.getMessage}")
-                      }
+                      avatar = new Avatar(charId, lName, lFaction, lGender, lHead, lVoice)
+                      accountPersistence ! AccountPersistenceService.Login(lName)
+                    case _ => ;
                   }
                 case _ =>
                   log.info("toto tata")
               }
-              Thread.sleep(200)
-              Database.query(connection.sendPreparedStatement(
-                "UPDATE characters SET last_login = ? where id=?", Array(new java.sql.Timestamp(System.currentTimeMillis), charId)
-              ))
-              Thread.sleep(50)
+              connection.disconnect
 
-              var faction : String = "tr"
-              if (player.Faction == PlanetSideEmpire.NC) faction = "nc"
-              else if (player.Faction == PlanetSideEmpire.VS) faction = "vs"
-              whenUsedLastMAXName(2) = faction+"hev_antipersonnel"
-              whenUsedLastMAXName(3) = faction+"hev_antivehicular"
-              whenUsedLastMAXName(1) = faction+"hev_antiaircraft"
-
-              (0 until 4).foreach( index => {
-                player.Slot(index).Equipment = None
-              })
-              player.Inventory.Clear()
-              player.ExoSuit = ExoSuitType.Standard
-              player.Slot(0).Equipment = Tool(StandardPistol(player.Faction))
-              player.Slot(2).Equipment = Tool(suppressor)
-              player.Slot(4).Equipment = Tool(StandardMelee(player.Faction))
-              player.Slot(6).Equipment = AmmoBox(bullet_9mm)
-              player.Slot(9).Equipment = AmmoBox(bullet_9mm)
-              player.Slot(12).Equipment = AmmoBox(bullet_9mm)
-              player.Slot(33).Equipment = AmmoBox(bullet_9mm_AP)
-              player.Slot(36).Equipment = AmmoBox(StandardPistolAmmo(player.Faction))
-              player.Slot(39).Equipment = SimpleItem(remote_electronics_kit)
-              player.Inventory.Items.foreach { _.obj.Faction = player.Faction }
-              player.Locker.Inventory += 0 -> SimpleItem(remote_electronics_kit)
-              player.Position = Vector3(4000f ,4000f ,500f)
-              player.Orientation = Vector3(0f, 354.375f, 157.5f)
-              player.FirstLoad = true
-              //          LivePlayerList.Add(sessionId, avatar)
-
-              //TODO check if can spawn on last continent/location from player?
-              //TODO if yes, get continent guid accessors
-              //TODO if no, get sanctuary guid accessors and reset the player's expectations
-              cluster ! InterstellarCluster.RequestClientInitialization()
-
-              if(connection.isConnected) connection.disconnect
             case scala.util.Failure(e) =>
               log.error("Failed connecting to database for account lookup " + e.getMessage)
           }
@@ -3983,13 +4012,14 @@ class WorldSessionActor extends Actor
             accessedContainer = None
           }
           case None => ;
-        }
-        val wepInHand : Boolean = player.Slot(player.DrawnSlot).Equipment match {
-          case Some(item) => item.Definition == GlobalDefinitions.bolt_driver
-          case None => false
-        }
-        continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlayerState(avatar_guid, player.Position, player.Velocity, yaw, pitch, yaw_upper, seq_time, is_crouching, is_jumping, jump_thrust, is_cloaking, spectator, wepInHand))
-        updateSquad()
+      }
+      val wepInHand : Boolean = player.Slot(player.DrawnSlot).Equipment match {
+        case Some(item) => item.Definition == GlobalDefinitions.bolt_driver
+        case None => false
+      }
+      continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlayerState(avatar_guid, player.Position, player.Velocity, yaw, pitch, yaw_upper, seq_time, is_crouching, is_jumping, jump_thrust, is_cloaking, spectator, wepInHand))
+      persistence ! AccountPersistenceService.Update(player.Name, continent, PlanetSideEmpire.NEUTRAL, PlanetSideEmpire.NEUTRAL)
+      updateSquad()
 
     case msg @ ChildObjectStateMessage(object_guid, pitch, yaw) =>
       //the majority of the following check retrieves information to determine if we are in control of the child
@@ -4034,6 +4064,7 @@ class WorldSessionActor extends Actor
               obj.Flying = false
             }
             continent.VehicleEvents ! VehicleServiceMessage(continent.Id, VehicleAction.VehicleState(player.GUID, vehicle_guid, unk1, obj.Position, ang, obj.Velocity, if(obj.Flying) { flying } else { None }, unk6, unk7, wheels, unk9, obj.Cloaked))
+            persistence ! AccountPersistenceService.Update(player.Name, continent, PlanetSideEmpire.NEUTRAL, PlanetSideEmpire.NEUTRAL)
             updateSquad()
           case (None, _) =>
             //log.error(s"VehicleState: no vehicle $vehicle_guid found in zone")
@@ -7996,7 +8027,6 @@ class WorldSessionActor extends Actor
         sendResponse(AvatarVehicleTimerMessage(player.GUID, whenUsedLastMAXName(i), 300 - ((lTime - whenUsedLastMAX(i)) / 1000 toInt), true))
       }
     }
-
   }
 
   /**
@@ -8077,6 +8107,58 @@ class WorldSessionActor extends Actor
     UpdateWeaponAtSeatPosition(vehicle, seat)
     //log.info(s"AvatarCreateInVehicle: $guid -> $data")
     log.trace(s"AvatarCreateInVehicle: ${player.Name} in ${vehicle.Definition.Name}")
+  }
+
+  def AvatarRejoin() : Unit = {
+    GetKnownVehicleAndSeat() match {
+      case (Some(vehicle : Vehicle), Some(seat : Int)) =>
+        //vehicle and driver/passenger
+        val vdef = vehicle.Definition
+        val data = vdef.Packet.ConstructorData(vehicle).get
+        val guid = vehicle.GUID
+        sendResponse(ObjectCreateMessage(vehicle.Definition.ObjectId, guid, data))
+        ReloadVehicleAccessPermissions(vehicle)
+        //if the vehicle is the cargo of another vehicle in this zone
+        player.VehicleSeated = guid
+        //log.info(s"AvatarCreate (vehicle): $guid -> $data")
+        //player, passenger
+        //GOTO AvatarCreateInVehicle(player, vehicle, seat)
+        if(seat != 0) {
+          val pdef = player.Definition
+          val guid = player.GUID
+          val parent = ObjectCreateMessageParent(vehicle.GUID, seat)
+          val data = pdef.Packet.DetailedConstructorData(player).get
+          sendResponse(ObjectCreateDetailedMessage(pdef.ObjectId, guid, parent, data))
+          //log.info(s"AvatarCreateInVehicle: $guid -> $data")
+        }
+        AccessContents(vehicle)
+        UpdateWeaponAtSeatPosition(vehicle, seat)
+        log.trace(s"AvatarCreateInVehicle: ${player.Name} in ${vehicle.Definition.Name}")
+
+      case _ =>
+        player.VehicleSeated = None
+        val packet = player.Definition.Packet
+        val data = packet.DetailedConstructorData(player).get
+        val guid = player.GUID
+        sendResponse(ObjectCreateDetailedMessage(ObjectClass.avatar, guid, data))
+        //log.info(s"AvatarCreate: $guid -> $data")
+        log.trace(s"AvatarCreate: ${player.Name}")
+    }
+    //cautious redundancy
+    deadState = DeadState.Alive
+
+    val lTime = System.currentTimeMillis
+    for (i <- 0 to whenUsedLastItem.length-1) {
+      if (lTime - whenUsedLastItem(i) < 300000) {
+        sendResponse(AvatarVehicleTimerMessage(player.GUID, whenUsedLastItemName(i), 300 - ((lTime - whenUsedLastItem(i)) / 1000 toInt), true))
+      }
+    }
+    for (i <- 1 to 3) {
+      if (lTime - whenUsedLastMAX(i) < 300000) {
+        sendResponse(AvatarVehicleTimerMessage(player.GUID, whenUsedLastMAXName(i), 300 - ((lTime - whenUsedLastMAX(i)) / 1000 toInt), true))
+      }
+    }
+    setupAvatarFunc = AvatarCreate
   }
 
   /**
@@ -10011,15 +10093,14 @@ class WorldSessionActor extends Actor
                   "UPDATE loadouts SET exosuit_id=?, name=?, items=? where id=?", Array(owner.ExoSuit.id, label, megaList.drop(1), row(0))
                 ) // Todo maybe add a .onComplete ?
                 Thread.sleep(50)
-                if (connection.isConnected) connection.disconnect
               case _ => // Save
                 connection.sendPreparedStatement(
                   "INSERT INTO loadouts (characters_id, loadout_number, exosuit_id, name, items) VALUES(?,?,?,?,?) RETURNING id",
                   Array(owner.CharId, line, owner.ExoSuit.id, label, megaList.drop(1))
                 ) // Todo maybe add a .onComplete ?
                 Thread.sleep(50)
-                if (connection.isConnected) connection.disconnect
             }
+            connection.disconnect
           case scala.util.Failure(e) =>
             log.error("Failed to execute the query " + e.getMessage)
         }
@@ -10028,10 +10109,11 @@ class WorldSessionActor extends Actor
     }
   }
 
-  def LoadDataBaseLoadouts(owner : Player, connection: Option[Connection]) = {
-    connection.get.sendPreparedStatement(
+  def LoadDataBaseLoadouts(owner : Player, connection: Option[Connection]) : Future[Any] = {
+    val future = connection.get.sendPreparedStatement(
       "SELECT id, loadout_number, exosuit_id, name, items FROM loadouts where characters_id = ?", Array(owner.CharId)
-    ).onComplete {
+    )
+    future.onComplete {
       case Success(queryResult) =>
         queryResult match {
           case result: QueryResult =>
@@ -10097,6 +10179,25 @@ class WorldSessionActor extends Actor
       case scala.util.Failure(e) =>
         log.error("Failed connecting to database " + e.getMessage)
     }
+    future
+  }
+
+  def LoadClassicDefault(owner : Player) : Unit = {
+    (0 until 4).foreach( index => {
+      owner.Slot(index).Equipment = None
+    })
+    owner.Inventory.Clear()
+    owner.ExoSuit = ExoSuitType.Standard
+    owner.Slot(0).Equipment = Tool(StandardPistol(player.Faction))
+    owner.Slot(2).Equipment = Tool(suppressor)
+    owner.Slot(4).Equipment = Tool(StandardMelee(player.Faction))
+    owner.Slot(6).Equipment = AmmoBox(bullet_9mm)
+    owner.Slot(9).Equipment = AmmoBox(bullet_9mm)
+    owner.Slot(12).Equipment = AmmoBox(bullet_9mm)
+    owner.Slot(33).Equipment = AmmoBox(bullet_9mm_AP)
+    owner.Slot(36).Equipment = AmmoBox(StandardPistolAmmo(player.Faction))
+    owner.Slot(39).Equipment = SimpleItem(remote_electronics_kit)
+    owner.Inventory.Items.foreach { _.obj.Faction = player.Faction }
   }
 
   def LoadDefaultLoadouts() = {
