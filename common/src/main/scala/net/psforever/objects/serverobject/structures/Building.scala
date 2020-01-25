@@ -76,7 +76,7 @@ class Building(private val name: String,
   }
 
   def CaptureConsoleIsHacked : Boolean = {
-    Amenities.find(x => x.Definition == GlobalDefinitions.capture_terminal).asInstanceOf[Option[CaptureTerminal]] match {
+    Amenities.find(x => x.isInstanceOf[CaptureTerminal]).asInstanceOf[Option[CaptureTerminal]] match {
       case Some(obj: CaptureTerminal) =>
         obj.HackedBy.isDefined
       case None => false
