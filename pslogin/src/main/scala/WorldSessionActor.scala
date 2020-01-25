@@ -340,7 +340,7 @@ class WorldSessionActor extends Actor
       out
     case None if id.nonEmpty =>
       //delete stale entity reference from client
-      log.warn(s"Player ${player.Name} has an invalid reference to GUID ${id.get} in zone ${continent.Id}. Delete object on client.")
+      log.warn(s"Player ${player.Name} has an invalid reference to GUID ${id.get} in zone ${continent.Id}.")
       //sendResponse(ObjectDeleteMessage(id.get, 0))
       None
     case _ =>
