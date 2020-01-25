@@ -31,6 +31,8 @@ import scalax.collection.Graph
 import scalax.collection.GraphPredef._
 import scalax.collection.GraphEdge._
 
+import scala.util.Success
+
 /**
   * A server object representing the one-landmass planets as well as the individual subterranean caverns.<br>
   * <br>
@@ -408,9 +410,12 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
     val buildingList = Map.LocalBuildings
     buildings = buildingList.map({
       case((name, building_guid, map_id), constructor) =>
-        val building = constructor.Build(name, building_guid, map_id, this)
-        guid.register(building, building_guid)
-        building_guid -> building
+        guid.register(building_guid) match {
+          case Success(registeredGuid) =>
+            val building = constructor.Build(name, building_guid, map_id, this)
+            registeredGuid.Object = building
+            building_guid -> building
+        }
     })
     buildings
   }
