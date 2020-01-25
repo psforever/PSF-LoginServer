@@ -24,6 +24,7 @@ class Tool(private val toolDef : ToolDefinition) extends Equipment
   private var fireModeIndex : Int = toolDef.DefaultFireModeIndex
   /** current ammunition slot being used by this fire mode */
   private var ammoSlots : List[Tool.FireModeSlot] = List.empty
+  var lastDischarge : Long = 0
 
   Tool.LoadDefinition(this)
 
@@ -97,7 +98,12 @@ class Tool(private val toolDef : ToolDefinition) extends Equipment
   }
 
   def Discharge : Int = {
+    lastDischarge = System.nanoTime()
     Magazine = FireMode.Discharge(this)
+  }
+
+  def LastDischarge : Long = {
+    lastDischarge
   }
 
   def AmmoSlot : Tool.FireModeSlot = ammoSlots(FireMode.AmmoSlotIndex)
