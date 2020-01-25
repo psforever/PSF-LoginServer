@@ -68,6 +68,8 @@ object FacilityTurret {
     new FacilityTurret(tDef)
   }
 
+  final case class RechargeAmmo()
+
   import akka.actor.ActorContext
   /**
     * Instantiate and configure a `FacilityTurret` object

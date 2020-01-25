@@ -785,6 +785,8 @@ object GlobalDefinitions {
 
   val phalanx_flakcombo = ToolDefinition(ObjectClass.phalanx_flakcombo)
 
+  val vanu_sentry_turret_weapon = ToolDefinition(ObjectClass.vanu_sentry_turret_weapon)
+
   val spitfire_weapon = ToolDefinition(ObjectClass.spitfire_weapon)
 
   val spitfire_aa_weapon = ToolDefinition(ObjectClass.spitfire_aa_weapon)
@@ -1001,6 +1003,8 @@ object GlobalDefinitions {
   val ground_rearm_terminal = new OrderTerminalDefinition(384)
 
   val manned_turret = new FacilityTurretDefinition(480)
+
+  val vanu_sentry_turret = new FacilityTurretDefinition(943)
 
   val painbox = new PainboxDefinition(622)
 
@@ -5081,6 +5085,15 @@ object GlobalDefinitions {
     phalanx_flakcombo.FireModes(1).AmmoSlotIndex = 0
     phalanx_flakcombo.FireModes(1).Magazine = 4000
 
+    vanu_sentry_turret_weapon.Name = "vanu_sentry_turret_weapon"
+    vanu_sentry_turret_weapon.Size = EquipmentSize.BaseTurretWeapon
+    vanu_sentry_turret_weapon.AmmoTypes += ancient_ammo_vehicle
+    vanu_sentry_turret_weapon.ProjectileTypes += vanu_sentry_turret_projectile
+    vanu_sentry_turret_weapon.FireModes += new FireModeDefinition
+    vanu_sentry_turret_weapon.FireModes.head.AmmoTypeIndices += 0
+    vanu_sentry_turret_weapon.FireModes.head.AmmoSlotIndex = 0
+    vanu_sentry_turret_weapon.FireModes.head.Magazine = 100
+
     spitfire_weapon.Name = "spitfire_weapon"
     spitfire_weapon.Size = EquipmentSize.BaseTurretWeapon
     spitfire_weapon.AmmoTypes += spitfire_ammo
@@ -6267,6 +6280,15 @@ object GlobalDefinitions {
     manned_turret.MountPoints += 1 -> 0
     manned_turret.FactionLocked = true
     manned_turret.ReserveAmmunition = false
+
+    vanu_sentry_turret.Name = "vanu_sentry_turret"
+    vanu_sentry_turret.MaxHealth = 1500
+    vanu_sentry_turret.Weapons += 1 -> new mutable.HashMap()
+    vanu_sentry_turret.Weapons(1) += TurretUpgrade.None -> vanu_sentry_turret_weapon
+    vanu_sentry_turret.MountPoints += 1 -> 0
+    vanu_sentry_turret.MountPoints += 2 -> 0
+    vanu_sentry_turret.FactionLocked = false
+    vanu_sentry_turret.ReserveAmmunition = false
 
     gen_control.Name = "gen_control"
 

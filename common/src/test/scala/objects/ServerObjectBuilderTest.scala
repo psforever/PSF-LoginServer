@@ -252,7 +252,7 @@ class FacilityTurretObjectBuilderTest extends ActorTest {
     "build" in {
       val hub = ServerObjectBuilderTest.NumberPoolHub
       val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1,
-        FacilityTurret.Constructor(manned_turret)), hub), "spawn-tube")
+        FacilityTurret.Constructor(manned_turret)), hub), "manned-turret")
       actor ! "!"
 
       val reply = receiveOne(Duration.create(1000, "ms"))
