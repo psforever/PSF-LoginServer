@@ -1771,6 +1771,26 @@ class WorldSessionActor extends Actor
           sendResponse(GenericObjectActionMessage(building_guid, 12))
         }
       }
+
+      case LocalResponse.RechargeVehicleWeapon(vehicle_guid, weapon_guid) => {
+        if(tplayer_guid == guid) {
+          continent.GUID(vehicle_guid) match {
+            case Some(vehicle: Mountable with MountedWeapons) =>
+              vehicle.PassengerInSeat(player) match {
+                case Some(seat_num : Int) =>
+                  vehicle.WeaponControlledFromSeat(seat_num) match {
+                    case Some(equipment) if equipment.GUID == weapon_guid =>
+                      val weapon = equipment.asInstanceOf[Tool]
+                      sendResponse(InventoryStateMessage(weapon.AmmoSlot.Box.GUID, weapon.GUID, weapon.Magazine))
+                    case _ => ;
+                  }
+                case _ => ;
+              }
+            case _ => ;
+          }
+        }
+      }
+
       case _ => ;
     }
   }
@@ -1901,6 +1921,9 @@ class WorldSessionActor extends Actor
 
       case Mountable.CanMount(obj : FacilityTurret, seat_num) =>
         if(!obj.isUpgrading) {
+          if(obj.Definition == vanu_sentry_turret) {
+            obj.Zone.LocalEvents ! LocalServiceMessage(obj.Zone.Id, LocalAction.SetEmpire(obj.GUID, player.Faction))
+          }
           sendResponse(PlanetsideAttributeMessage(obj.GUID, 0, obj.Health))
           UpdateWeaponAtSeatPosition(obj, seat_num)
           MountingAction(tplayer, obj, seat_num)
