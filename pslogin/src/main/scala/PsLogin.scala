@@ -15,6 +15,8 @@ import net.psforever.config.{Invalid, Valid}
 import net.psforever.crypto.CryptoInterface
 import net.psforever.objects.zones._
 import net.psforever.objects.guid.TaskResolver
+import net.psforever.psadmin.PsAdminActor
+import net.psforever.WorldConfig
 import org.slf4j
 import org.fusesource.jansi.Ansi._
 import org.fusesource.jansi.Ansi.Color._
@@ -260,6 +262,7 @@ object PsLogin {
 
     val loginServerPort = WorldConfig.Get[Int]("loginserver.ListeningPort")
     val worldServerPort = WorldConfig.Get[Int]("worldserver.ListeningPort")
+    val psAdminPort = WorldConfig.Get[Int]("psadmin.ListeningPort")
 
     val netSim : Option[NetworkSimulatorParameters] = WorldConfig.Get[Boolean]("developer.NetSim.Active") match {
       case true =>
@@ -295,6 +298,8 @@ object PsLogin {
     loginListener = system.actorOf(Props(new UdpListener(loginRouter, "login-session-router", LoginConfig.serverIpAddress, loginServerPort, netSim)), "login-udp-endpoint")
     worldListener = system.actorOf(Props(new UdpListener(worldRouter, "world-session-router", LoginConfig.serverIpAddress, worldServerPort, netSim)), "world-udp-endpoint")
 
+    val adminListener = system.actorOf(Props(new TcpListener(classOf[PsAdminActor], "psadmin-client-", InetAddress.getLoopbackAddress, psAdminPort)), "psadmin-tcp-endpoint")
+
     logger.info(s"NOTE: Set client.ini to point to ${LoginConfig.serverIpAddress.getHostAddress}:$loginServerPort")
 
     // Add our shutdown hook (this works for Control+C as well, but not in Cygwin)
@@ -321,8 +326,5 @@ object PsLogin {
     Locale.setDefault(Locale.US); // to have floats with dots, not comma...
     this.args = args
     run()
-
-    // Wait forever until the actor system shuts down
-    Await.result(system.whenTerminated, Duration.Inf)
   }
 }

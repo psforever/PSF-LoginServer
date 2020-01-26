@@ -119,7 +119,7 @@ ServerType = Released
 #        Important:   Must be different from the worldserver.ListeningPort. Ports below 1024 are
 #                     privileged on Linux and may require root.
 #        Range:       [1, 65535] - (UDP port 1, UDP port 65535)
-#        Default:     51000      - (Listen on UDP port 5100)
+#        Default:     51000      - (Listen on UDP port 51000)
 
 ListeningPort = 51000
 
@@ -133,6 +133,22 @@ ListeningPort = 51000
 #                     no  - (Disabled)
 
 CreateMissingAccounts = yes
+
+###################################################################################################
+# PSADMIN SETTINGS
+###################################################################################################
+
+[psadmin]
+
+#    ListeningPort (int)
+#        Description: The TCP listening port for the server admin interface.
+#        Important:   Must be different from the worldserver and loginserver ListeningPort.
+#                     Ports below 1024 are privileged on Linux and may require root.
+#                     NEVER EXPOSE THIS PORT TO THE INTERNET! CHECK YOUR FIREWALL CONFIG.
+#        Range:       [1, 65535] - (TCP port 1, TCP port 65535)
+#        Default:     51002      - (Listen on TCP port 51002)
+
+ListeningPort = 51002
 
 ###################################################################################################
 # NETWORK SETTINGS

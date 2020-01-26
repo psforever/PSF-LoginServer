@@ -9,6 +9,7 @@ import scala.collection.mutable
 import akka.actor.SupervisorStrategy.Stop
 import net.psforever.packet.PacketCoding
 import net.psforever.packet.control.ConnectionClose
+import net.psforever.WorldConfig
 import services.ServiceManager
 import services.ServiceManager.Lookup
 import services.account.{IPAddress, StoreIPAddress}

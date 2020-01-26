@@ -46,9 +46,9 @@ lazy val commonSettings = Seq(
     "org.ini4j"                  % "ini4j"         % "0.5.4",
     "org.scala-graph"            %% "graph-core"    % "1.12.5",
     "io.kamon"                   %% "kamon-bundle" % "2.1.0",
-    "io.kamon"                   %% "kamon-apm-reporter" % "2.1.0"
+    "io.kamon"                   %% "kamon-apm-reporter" % "2.1.0",
+    "org.json4s"                 %% "json4s-native" % "3.6.8",
   ),
-  classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat
 )
 
 lazy val pscryptoSettings = Seq(

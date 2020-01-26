@@ -3,6 +3,7 @@ import java.io._
 import scala.io.Source
 import org.specs2.mutable._
 import net.psforever.config._
+import net.psforever.WorldConfig
 import scala.concurrent.duration._
 
 class ConfigTest extends Specification {

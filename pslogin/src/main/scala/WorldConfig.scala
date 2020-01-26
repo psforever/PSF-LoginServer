@@ -1,4 +1,6 @@
 // Copyright (c) 2019 PSForever
+package net.psforever
+
 import scala.util.matching.Regex
 import net.psforever.config._
 import scala.concurrent.duration._
@@ -30,6 +32,9 @@ object WorldConfig extends ConfigParser {
     ConfigSection("network",
       ConfigEntryTime("Session.InboundGraceTime", 1 minute, Constraints.min(10 seconds)),
       ConfigEntryTime("Session.OutboundGraceTime", 1 minute, Constraints.min(10 seconds))
+    ),
+    ConfigSection("psadmin",
+      ConfigEntryInt("ListeningPort", 51002, Constraints.min(1), Constraints.max(65535))
     ),
     ConfigSection("developer",
       ConfigEntryBool ("NetSim.Active", false),
