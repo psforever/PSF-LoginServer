@@ -1378,11 +1378,19 @@ class WorldSessionActor extends Actor
     case PlayerToken.LoginInfo(playerName, inZone, regionFaction, zoneFaction) =>
       log.info(s"Player $playerName is already logged; rejoining that character")
       persistence = sender
+      persistence ! AccountPersistenceService.Update(playerName, inZone, PlanetSideEmpire.NEUTRAL, PlanetSideEmpire.NEUTRAL) //make certain does not timeout
       //reload previous player
       (inZone.Players.find(p => p.name.equals(playerName)), inZone.LivePlayers.find(p => p.Name.equals(playerName))) match {
         case (Some(a), Some(p)) => //alive, in zone
           avatar = a
           player = p
+          //if player is sat, will be handled as a matter of course
+          GetVehicleAndSeat() match {
+            case (Some(vehicle), Some(0)) => //driver
+              vehicle.Owner = p.GUID //assert
+              inZone.VehicleEvents ! VehicleServiceMessage(s"${p.Faction}", VehicleAction.Ownership(p.GUID, vehicle.GUID))
+            case _ =>
+          }
           UpdateCharacterLoginTime(avatar.CharId).onComplete {
             case _ =>
               cluster ! InterstellarCluster.RequestClientInitialization()
@@ -1986,7 +1994,7 @@ class WorldSessionActor extends Actor
               }
             case None => ;
           }
-          OwnVehicle(obj, tplayer)
+          Vehicles.Own(obj, tplayer)
           if(obj.Definition == GlobalDefinitions.quadstealth) {
             //wraith cloak state matches the cloak state of the driver
             //phantasm doesn't uncloak if the driver is uncloaked and no other vehicle cloaks
@@ -6218,7 +6226,7 @@ class WorldSessionActor extends Actor
 
         def Execute(resolver : ActorRef) : Unit = {
           localDriver.VehicleSeated = localVehicle.GUID
-          OwnVehicle(localVehicle, localDriver)
+          Vehicles.Own(localVehicle, localDriver)
           localAnnounce ! NewPlayerLoaded(localDriver) //alerts WSA
           resolver ! scala.util.Success(this)
         }
@@ -6612,7 +6620,7 @@ class WorldSessionActor extends Actor
 
       // Now take ownership of the jacked vehicle
       target.Faction = player.Faction
-      OwnVehicle(target, player)
+      Vehicles.Own(target, player)
 
       //todo: Send HackMessage -> HackCleared to vehicle? can be found in packet captures. Not sure if necessary.
 
@@ -6666,34 +6674,6 @@ class WorldSessionActor extends Actor
   }
 
   /**
-    * na
-    * @param vehicle na
-    * @param tplayer na
-    * @return na
-    */
-  def OwnVehicle(vehicle : Vehicle, tplayer : Player) : Option[Vehicle] = OwnVehicle(vehicle, Some(tplayer))
-
-  /**
-    * na
-    * @param vehicle na
-    * @param playerOpt na
-    * @return na
-    */
-  def OwnVehicle(vehicle : Vehicle, playerOpt : Option[Player]) : Option[Vehicle] = {
-    playerOpt match {
-      case Some(tplayer) =>
-        tplayer.VehicleOwned = vehicle.GUID
-        vehicle.AssignOwnership(playerOpt)
-
-        continent.VehicleEvents ! VehicleServiceMessage(continent.Id, VehicleAction.Ownership(player.GUID, vehicle.GUID))
-        Vehicles.ReloadAccessPermissions(vehicle, player.Name)
-        Some(vehicle)
-      case None =>
-        None
-    }
-  }
-
-  /**
     * Gives a target player positive battle experience points only.
     * If the player has access to more implant slots as a result of changing battle experience points, unlock those slots.
     * @param avatar the player
@@ -6728,7 +6708,7 @@ class WorldSessionActor extends Actor
     * @param vehicle the vehicle
     */
   def AccessContents(vehicle : Vehicle) : Unit = {
-    continent.VehicleEvents ! Service.Join(s"${vehicle.Actor}")
+    AccessContentsChannel(vehicle)
     val parent_guid = vehicle.GUID
     vehicle.Trunk.Items.foreach(entry => {
       val obj = entry.obj
@@ -6744,6 +6724,10 @@ class WorldSessionActor extends Actor
     })
   }
 
+  def AccessContentsChannel(container : PlanetSideServerObject) : Unit = {
+    continent.VehicleEvents ! Service.Join(s"${container.Actor}")
+  }
+
   /**
     * Common preparation for disengaging from a vehicle.
     * Leave the vehicle-specific group that was used for shared updates.
@@ -6755,6 +6739,11 @@ class WorldSessionActor extends Actor
     vehicle.Trunk.Items.foreach(entry =>{
       sendResponse(ObjectDeleteMessage(entry.obj.GUID, 0))
     })
+  }
+
+
+  def UnAccessContentsChannel(container : PlanetSideServerObject) : Unit = {
+    continent.VehicleEvents ! Service.Leave(Some(s"${container.Actor}"))
   }
 
   /**
@@ -7869,7 +7858,7 @@ class WorldSessionActor extends Actor
         player.VehicleSeated = guid
         if(seat == 0) {
           //if driver
-          OwnVehicle(vehicle, player)
+          Vehicles.Own(vehicle, player)
           vehicle.CargoHolds.values
             .collect { case hold if hold.isOccupied => hold.Occupant.get }
             .foreach { _.MountedIn = guid }
@@ -8007,26 +7996,32 @@ class WorldSessionActor extends Actor
       case (Some(vehicle : Vehicle), Some(seat : Int)) =>
         //vehicle and driver/passenger
         val vdef = vehicle.Definition
-        val data = vdef.Packet.ConstructorData(vehicle).get
-        val guid = vehicle.GUID
-        sendResponse(ObjectCreateMessage(vehicle.Definition.ObjectId, guid, data))
-        Vehicles.ReloadAccessPermissions(vehicle, player.Name)
-        //if the vehicle is the cargo of another vehicle in this zone
-        player.VehicleSeated = guid
-        //log.info(s"AvatarCreate (vehicle): $guid -> $data")
-        //player, passenger
-        //GOTO AvatarCreateInVehicle(player, vehicle, seat)
-        if(seat != 0) {
-          val pdef = player.Definition
-          val guid = player.GUID
-          val parent = ObjectCreateMessageParent(vehicle.GUID, seat)
-          val data = pdef.Packet.DetailedConstructorData(player).get
-          sendResponse(ObjectCreateDetailedMessage(pdef.ObjectId, guid, parent, data))
-          //log.info(s"AvatarCreateInVehicle: $guid -> $data")
+        val vguid = vehicle.GUID
+        if(seat == 0) {
+          val seat = vehicle.Seat(0).get
+          seat.Occupant = None
+          val vdata = vdef.Packet.ConstructorData(vehicle).get
+          sendResponse(ObjectCreateMessage(vehicle.Definition.ObjectId, vguid, vdata))
+          seat.Occupant = player
         }
+        else {
+          val vdata = vdef.Packet.ConstructorData(vehicle).get
+          sendResponse(ObjectCreateMessage(vehicle.Definition.ObjectId, vguid, vdata))
+        }
+        Vehicles.ReloadAccessPermissions(vehicle, player.Name)
+        //log.info(s"AvatarCreate (vehicle): $vguid -> $vdata")
+        val pdef = player.Definition
+        val pguid = player.GUID
+        val parent = ObjectCreateMessageParent(vguid, seat)
+        player.VehicleSeated = None
+        val pdata = pdef.Packet.DetailedConstructorData(player).get
+        player.VehicleSeated = vguid
+        sendResponse(ObjectCreateDetailedMessage(pdef.ObjectId, pguid, pdata))
+        sendResponse(ObjectAttachMessage(vguid, pguid, seat))
+        //log.info(s"AvatarCreateInVehicle: $pguid -> $pdata")
         AccessContents(vehicle)
         UpdateWeaponAtSeatPosition(vehicle, seat)
-        log.trace(s"AvatarCreateInVehicle: ${player.Name} in ${vehicle.Definition.Name}")
+        //log.trace(s"AvatarCreateInVehicle: ${player.Name} in ${vehicle.Definition.Name}")
 
       case _ =>
         player.VehicleSeated = None
@@ -8035,7 +8030,7 @@ class WorldSessionActor extends Actor
         val guid = player.GUID
         sendResponse(ObjectCreateDetailedMessage(ObjectClass.avatar, guid, data))
         //log.info(s"AvatarCreate: $guid -> $data")
-        log.trace(s"AvatarCreate: ${player.Name}")
+        //log.trace(s"AvatarCreate: ${player.Name}")
     }
     //cautious redundancy
     deadState = DeadState.Alive
@@ -9661,7 +9656,7 @@ class WorldSessionActor extends Actor
       UseRouterTelepadEffect(pguid, sguid, dguid)
       StopBundlingPackets()
       //      continent.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(router), continent))
-      //      continent.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.AddTask(router, continent, router.Definition.DeconstructionTime))
+      //      continent.VehicleEvents p! VehicleServiceMessage.Decon(RemoverActor.AddTask(router, continent, router.Definition.DeconstructionTime))
       continent.LocalEvents ! LocalServiceMessage(continent.Id, LocalAction.RouterTelepadTransport(pguid, pguid, sguid, dguid))
     }
     else {

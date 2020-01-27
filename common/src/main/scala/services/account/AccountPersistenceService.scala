@@ -142,20 +142,34 @@ class PlayerToken(name : String, squadService : ActorRef, taskResolver : ActorRe
     val parent = context.parent
     (inZone.Players.find(p => p.name == name), inZone.LivePlayers.find(p => p.Name == name)) match {
       case (Some(avatar), Some(player)) if player.VehicleSeated.nonEmpty =>
-        log.error("unhandled vehicle condition")
-        //...
+        log.info("HANDLED vehicle condition")
+        //perform any last minute saving now ...
+        (inZone.GUID(player.VehicleSeated) match {
+          case Some(vehicle : Mountable) =>
+            (Some(vehicle), vehicle.Seat(vehicle.PassengerInSeat(player).getOrElse(-1)))
+          case _ => (None, None) //bad data?
+        }) match {
+          case (Some(vehicle : Vehicle), Some(seat)) =>
+            seat.Occupant = None //unseat
+            if(vehicle.Seats.values.forall(seat => !seat.isOccupied)) {
+              inZone.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.AddTask(vehicle, inZone, if(vehicle.Flying) {
+                //TODO gravity
+                Some(0 seconds) //immediate deconstruction
+              }
+              else {
+                vehicle.Definition.DeconstructionTime //normal deconstruction
+              }))
+            }
+          case (Some(_), Some(seat)) =>
+            seat.Occupant = None //unseat
+          case _ => ;
+        }
+        StandardLogout(avatar, player)
 
       case (Some(avatar), Some(player)) =>
         log.info(s"HANDLED infantry condition")
-        val pguid = player.GUID
-        player.Position = Vector3.Zero
-        player.Health = 0
-        squadService.tell(Service.Leave(Some(player.CharId.toString)), parent)
-        Deployables.Disown(inZone, avatar, parent)
-        inZone.Population.tell(Zone.Population.Release(avatar), parent)
-        inZone.AvatarEvents.tell(AvatarServiceMessage(inZone.Id, AvatarAction.ObjectDelete(pguid, pguid)), parent)
-        DisownVehicle(player)
-        taskResolver.tell(GUIDTask.UnregisterAvatar(player)(inZone.GUID), parent)
+        //perform any last minute saving now ...
+        StandardLogout(avatar, player)
 
       case (Some(avatar), None) =>
         log.error("unhandled dead condition")
@@ -228,12 +242,24 @@ class PlayerToken(name : String, squadService : ActorRef, taskResolver : ActorRe
   //      continent.Population ! Zone.Population.Leave(avatar)
   }
 
+  def StandardLogout(avatar : Avatar, player : Player) : Unit = {
+    val pguid = player.GUID
+    player.Position = Vector3.Zero
+    player.Health = 0
+    squadService.tell(Service.Leave(Some(player.CharId.toString)), context.parent)
+    Deployables.Disown(inZone, avatar, context.parent)
+    inZone.Population.tell(Zone.Population.Release(avatar), context.parent)
+    inZone.AvatarEvents.tell(AvatarServiceMessage(inZone.Id, AvatarAction.ObjectDelete(pguid, pguid)), context.parent)
+    DisownVehicle(player)
+    taskResolver.tell(GUIDTask.UnregisterAvatar(player)(inZone.GUID), context.parent)
+  }
+
   /**
     * Vehicle cleanup that is specific to log out behavior.
     */
   def DisownVehicle(player : Player) : Unit = {
     Vehicles.Disown(player, inZone) match {
-      case out @ Some(vehicle) =>
+      case out @ Some(vehicle) if vehicle.Seats.values.forall(seat => !seat.isOccupied) =>
         inZone.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(vehicle), inZone))
         inZone.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.AddTask(vehicle, inZone,
           if(vehicle.Flying) {

@@ -9,6 +9,34 @@ import services.vehicle.{VehicleAction, VehicleServiceMessage}
 
 object Vehicles {
   /**
+    * na
+    * @param vehicle na
+    * @param tplayer na
+    * @return na
+    */
+  def Own(vehicle : Vehicle, tplayer : Player) : Option[Vehicle] = Own(vehicle, Some(tplayer))
+
+  /**
+    * na
+    * @param vehicle na
+    * @param playerOpt na
+    * @return na
+    */
+  def Own(vehicle : Vehicle, playerOpt : Option[Player]) : Option[Vehicle] = {
+    playerOpt match {
+      case Some(tplayer) =>
+        tplayer.VehicleOwned = vehicle.GUID
+        vehicle.AssignOwnership(playerOpt)
+
+        vehicle.Zone.VehicleEvents ! VehicleServiceMessage(vehicle.Zone.Id, VehicleAction.Ownership(tplayer.GUID, vehicle.GUID))
+        Vehicles.ReloadAccessPermissions(vehicle, tplayer.Name)
+        Some(vehicle)
+      case None =>
+        None
+    }
+  }
+
+  /**
     * Disassociate a player from a vehicle that he owns.
     * The vehicle must exist in the game world on the specified continent.
     * This is similar but unrelated to the natural exchange of ownership when someone else sits in the vehicle's driver seat.
