@@ -6029,7 +6029,24 @@ class WorldSessionActor extends Actor
 
     case msg @ TargetingImplantRequest(list) =>
       log.info("TargetingImplantRequest: "+msg)
+      val targetInfo: List[TargetInfo] = list.flatMap(x => {
+        continent.GUID(x.target_guid) match {
+          case Some(player: Player) =>
+            val health = player.Health.toFloat / player.MaxHealth
+            val armor = if (player.MaxArmor > 0) {
+              player.Armor.toFloat / player.MaxArmor
+            } else {
+              0
+            }
 
+            Some(TargetInfo(player.GUID, health, armor))
+          case _ =>
+            log.warn(s"Target info requested for guid ${x.target_guid} but is not a player")
+            None
+        }
+      })
+
+      sendResponse(TargetingInfoMessage(targetInfo))
     case msg @ ActionCancelMessage(u1, u2, u3) =>
       log.info("Cancelled: "+msg)
 
