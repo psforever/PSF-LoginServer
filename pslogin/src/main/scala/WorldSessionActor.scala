@@ -7,10 +7,10 @@ import com.github.mauricio.async.db.{Connection, QueryResult}
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 import org.log4s.{Logger, MDC}
-import scala.annotation.tailrec
+import scala.annotation.{switch, tailrec}
 import scala.collection.concurrent.TrieMap
 import scala.collection.mutable.LongMap
-import scala.concurrent.{Await, Future}
+import scala.concurrent.{Await, Promise, Future}
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.Success
@@ -130,6 +130,7 @@ class WorldSessionActor extends Actor
   var lastTerminalOrderFulfillment : Boolean = true
   var shiftPosition : Option[Vector3] = None
   var setupAvatarFunc : ()=>Unit = AvatarCreate
+  var beginZoningSetCurrentAvatarFunc : (Player)=>Unit = SetCurrentAvatarNormally
   /**
     * used during zone transfers to maintain reference to seated vehicle (which does not yet exist in the new zone)
     * used during intrazone gate transfers, but not in a way distinct from prior zone transfer procedures
@@ -240,8 +241,8 @@ class WorldSessionActor extends Actor
 //        player.Release
 //        player.VehicleSeated match {
 //          case None =>
-//            FriskCorpse(player) //TODO eliminate dead letters
-//            if(!WellLootedCorpse(player)) {
+//            FriskDeadBody(player) //TODO eliminate dead letters
+//            if(!WellLootedDeadBody(player)) {
 //              continent.Population ! Zone.Corpse.Add(player)
 //              continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.Release(player, continent))
 //              taskResolver ! GUIDTask.UnregisterLocker(player.Locker)(continent.GUID) //rest of player will be cleaned up with corpses
@@ -777,7 +778,7 @@ class WorldSessionActor extends Actor
                     val secondsSinceLastLogin = nowTimeInSeconds - lTime
                     if(!lDeleted) {
                       avatarArray(i) = new Avatar(value(0).asInstanceOf[Int], lName, lFaction, lGender, lHead, lVoice)
-                      AwardBattleExperiencePoints(avatarArray(i), 20000000L)
+                      AwardCharacterSelectBattleExperiencePoints(avatarArray(i), 20000000L)
                       avatarArray(i).CEP = 600000
                       playerArray(i) = new Player(avatarArray(i))
                       playerArray(i).ExoSuit = ExoSuitType.Reinforced
@@ -1150,8 +1151,7 @@ class WorldSessionActor extends Actor
       squadService ! Service.Join(s"${avatar.CharId}") //channel will be player.CharId (in order to work with packets)
       player.Zone match {
         case Zone.Nowhere =>
-          //go home
-          cluster ! InterstellarCluster.GetWorld("z6")
+          RequestSanctuaryZoneSpawn(player, currentZone = 0)
         case zone =>
           val zoneId = zone.Id
           log.info(s"Zone $zoneId will now load")
@@ -1160,7 +1160,6 @@ class WorldSessionActor extends Actor
           continent.LocalEvents ! Service.Leave()
           continent.VehicleEvents ! Service.Leave()
           continent = zone
-          setupAvatarFunc = AvatarRejoin
           self ! NewPlayerLoaded(player)
       }
       StopBundlingPackets()
@@ -1174,6 +1173,7 @@ class WorldSessionActor extends Actor
       player.Continent = zoneId
       continent = zone
       continent.Population ! Zone.Population.Join(avatar)
+      persistence ! AccountPersistenceService.Update(avatar.name, continent, PlanetSideEmpire.NEUTRAL, PlanetSideEmpire.NEUTRAL)
       interstellarFerry match {
         case Some(vehicle) if vehicle.PassengerInSeat(player).contains(0) =>
           taskResolver ! RegisterDrivenVehicle(vehicle, player)
@@ -1200,17 +1200,6 @@ class WorldSessionActor extends Actor
       player.Continent match {
         case _ =>
           failWithError(s"${tplayer.Name} failed to load anywhere")
-      }
-
-    case UnregisterCorpseOnVehicleDisembark(corpse) =>
-      if(!corpse.isAlive && corpse.HasGUID) {
-        corpse.VehicleSeated match {
-          case Some(_) =>
-            import scala.concurrent.ExecutionContext.Implicits.global
-            context.system.scheduler.scheduleOnce(50 milliseconds, self, UnregisterCorpseOnVehicleDisembark(corpse))
-          case None =>
-            taskResolver ! GUIDTask.UnregisterPlayer(corpse)(continent.GUID)
-        }
       }
 
     case SetCurrentAvatar(tplayer) =>
@@ -1306,7 +1295,7 @@ class WorldSessionActor extends Actor
     case PlayerToken.LoginInfo(name, Zone.Nowhere, _, _) =>
       import net.psforever.types.CertificationType._
 
-      log.info(s"Player $name is considered a new character")
+      log.info(s"LoginInfo: player $name is considered a new character")
       persistence = sender
       //TODO poll the database for saved zone and coordinates?
       //load the player as if new
@@ -1355,52 +1344,95 @@ class WorldSessionActor extends Actor
       AwardBattleExperiencePoints(avatar, 20000000L)
       avatar.CEP = 600000
 
-      var faction : String = avatar.faction.toString.toLowerCase
-      whenUsedLastMAXName(2) = faction+"hev_antipersonnel"
-      whenUsedLastMAXName(3) = faction+"hev_antivehicular"
-      whenUsedLastMAXName(1) = faction+"hev_antiaircraft"
-
       player = new Player(avatar)
-      player.Position = Vector3(4000f ,4000f ,500f) //enjoy the fall
-      player.Orientation = Vector3(0f, 354.375f, 157.5f)
+      //xy-coordinates indicate sanctuary spawn bias:
+      player.Position = math.abs(scala.util.Random.nextInt() % avatar.name.hashCode % 4) match {
+        case 0 => Vector3(8192, 8192, 0) //NE
+        case 1 => Vector3(8192, -8192, 0) //SE
+        case 2 => Vector3(-8192, -8192, 0) //SW
+        case 3 => Vector3(-8192, 8192, 0) //NW
+      }
+      player.FirstLoad = true
       LoadClassicDefault(player)
-      UpdateCharacterLoginTime(avatar.CharId).onComplete {
+      LoadDataBaseLoadouts(player).onComplete {
         case _ =>
-          val target = player
-          LoadDataBaseLoadouts(target).onComplete {
-            case _ =>
-              target.FirstLoad = true
-              //LivePlayerList.Add(sessionId, avatar)
-              cluster ! InterstellarCluster.RequestClientInitialization()
-          }
+          UpdateLoginTimeThenDoClientInitialization()
       }
 
     case PlayerToken.LoginInfo(playerName, inZone, regionFaction, zoneFaction) =>
-      log.info(s"Player $playerName is already logged; rejoining that character")
+      log.info(s"LoginInfo: player $playerName is already logged; rejoining that character")
       persistence = sender
       persistence ! AccountPersistenceService.Update(playerName, inZone, PlanetSideEmpire.NEUTRAL, PlanetSideEmpire.NEUTRAL) //make certain does not timeout
       //reload previous player
       (inZone.Players.find(p => p.name.equals(playerName)), inZone.LivePlayers.find(p => p.Name.equals(playerName))) match {
-        case (Some(a), Some(p)) => //alive, in zone
+        case (Some(a), Some(p)) if p.isAlive =>
+          //rejoin current avatar/player
           avatar = a
           player = p
+          setupAvatarFunc = AvatarRejoin
           //if player is sat, will be handled as a matter of course
-          GetVehicleAndSeat() match {
-            case (Some(vehicle), Some(0)) => //driver
-              vehicle.Owner = p.GUID //assert
-              inZone.VehicleEvents ! VehicleServiceMessage(s"${p.Faction}", VehicleAction.Ownership(p.GUID, vehicle.GUID))
-            case _ =>
+          UpdateLoginTimeThenDoClientInitialization()
+
+        case (Some(a), Some(p)) =>
+          //convert player to a corpse (unless in vehicle); go to deployment map
+          avatar = a
+          player = p //remember, dead
+          player.Zone = inZone
+          setupAvatarFunc = AvatarDeploymentPassOver
+          beginZoningSetCurrentAvatarFunc = SetCurrentAvatarUponDeployment
+          p.Release
+          inZone.Population ! Zone.Population.Release(avatar)
+          if(p.VehicleSeated.isEmpty) {
+            PrepareToTurnPlayerIntoCorpse(p, inZone)
           }
-          UpdateCharacterLoginTime(avatar.CharId).onComplete {
-            case _ =>
-              cluster ! InterstellarCluster.RequestClientInitialization()
+          else {
+            inZone.GUID(p.VehicleSeated) match {
+              case Some(v : Vehicle) if v.Health == 0 =>
+                inZone.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(v), inZone))
+                inZone.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.AddTask(v, inZone, if(v.Flying) {
+                  //TODO gravity
+                  Some(0 seconds) //immediate deconstruction
+                }
+                else {
+                  v.Definition.DeconstructionTime //normal deconstruction
+                }))
+              case _ => ;
+            }
           }
+          UpdateLoginTimeThenDoClientInitialization()
+
+        case (Some(a), None) =>
+          //respawn avatar as a new player; go to deployment map
+          avatar = a
+          player = inZone.Corpses.find(c => c.Name == playerName) match {
+            case Some(c) =>
+              c
+            case None =>
+              //TODO the server's event log could be searched for the last location associated with this avatar name?
+              val tplayer = Player(a) //throwaway
+              tplayer.Release //for proper respawn
+              tplayer.Zone = inZone
+              tplayer
+          }
+          setupAvatarFunc = AvatarDeploymentPassOver
+          beginZoningSetCurrentAvatarFunc = SetCurrentAvatarUponDeployment
+          UpdateLoginTimeThenDoClientInitialization()
+
         case _ =>
-          log.warn(s"can not find player $playerName in zone ${inZone.Id} as was promised")
+          //fall back to sanctuary/prior?
+          log.error(s"LoginInfo: player $playerName could not be found in game world")
+          self ! PlayerToken.LoginInfo(playerName, Zone.Nowhere, PlanetSideEmpire.NEUTRAL, PlanetSideEmpire.NEUTRAL)
       }
 
     case default =>
       log.warn(s"Invalid packet class received: $default from $sender")
+  }
+
+  def UpdateLoginTimeThenDoClientInitialization() : Unit = {
+    UpdateCharacterLoginTime(avatar.CharId).onComplete {
+      case _ =>
+        cluster ! InterstellarCluster.RequestClientInitialization()
+    }
   }
 
   /**
@@ -3604,6 +3636,11 @@ class WorldSessionActor extends Actor
                       val lVoice : CharacterVoice.Value = CharacterVoice(row(5).asInstanceOf[Int])
                       log.info(s"CharacterRequest/Select: character $lName found in records")
                       avatar = new Avatar(charId, lName, lFaction, lGender, lHead, lVoice)
+
+                      var faction : String = lFaction.toString.toLowerCase
+                      whenUsedLastMAXName(2) = faction+"hev_antipersonnel"
+                      whenUsedLastMAXName(3) = faction+"hev_antivehicular"
+                      whenUsedLastMAXName(1) = faction+"hev_antiaircraft"
                       accountPersistence ! AccountPersistenceService.Login(lName)
                     case _ =>
                       log.error(s"CharacterRequest/Select: no character for $charId found")
@@ -3894,7 +3931,7 @@ class WorldSessionActor extends Actor
           }
         }
       continent.VehicleEvents ! VehicleServiceMessage(continent.Id, VehicleAction.UpdateAmsSpawnPoint(continent))
-      self ! SetCurrentAvatar(player)
+      beginZoningSetCurrentAvatarFunc(player)
 
     case msg @ PlayerStateMessageUpstream(avatar_guid, pos, vel, yaw, pitch, yaw_upper, seq_time, unk3, is_crouching, is_jumping, jump_thrust, is_cloaking, unk5, unk6) =>
       val isMoving = WorldEntity.isMoving(vel)
@@ -4084,32 +4121,29 @@ class WorldSessionActor extends Actor
     case msg @ ReleaseAvatarRequestMessage() =>
       log.info(s"ReleaseAvatarRequest: ${player.GUID} on ${continent.Id} has released")
       reviveTimer.cancel
-      continent.Population ! Zone.Population.Release(avatar)
       GoToDeploymentMap()
+      continent.Population ! Zone.Population.Release(avatar)
       player.VehicleSeated match {
         case None =>
-          FriskCorpse(player)
-          if(!WellLootedCorpse(player)) {
-            TurnPlayerIntoCorpse(player)
-            continent.Population ! Zone.Corpse.Add(player) //TODO move back out of this match case when changing below issue
-            continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.Release(player, continent))
-          }
-          else {
-            //no items in inventory; leave no corpse
-            val player_guid = player.GUID
-            sendResponse(ObjectDeleteMessage(player_guid, 0))
-            continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player_guid, player_guid, 0))
-            taskResolver ! GUIDTask.UnregisterPlayer(player)(continent.GUID)
-          }
+          PrepareToTurnPlayerIntoCorpse(player, continent)
 
         case Some(_) =>
           val player_guid = player.GUID
           sendResponse(ObjectDeleteMessage(player_guid, 0))
-          continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player_guid, player_guid, 0))
-          self ! PacketCoding.CreateGamePacket(0, DismountVehicleMsg(player_guid, BailType.Normal, true)) //let vehicle try to clean up its fields
-
-          import scala.concurrent.ExecutionContext.Implicits.global
-          context.system.scheduler.scheduleOnce(50 milliseconds, self, UnregisterCorpseOnVehicleDisembark(player))
+          GetMountableAndSeat(None) match {
+            case (Some(obj), Some(seatNum)) =>
+              obj.Seats(seatNum).Occupant = None
+              obj match {
+                case v : Vehicle if seatNum == 0 && v.Flying =>
+                  TotalDriverVehicleControl(v)
+                  UnAccessContents(v)
+                  continent.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(obj), continent))
+                  continent.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.AddTask(obj, continent, Some(0 seconds)))
+                case _ => ;
+              }
+            case _ => ; //found no vehicle where one was expected; since we're dead, let's not dwell on it
+          }
+          taskResolver ! GUIDTask.UnregisterPlayer(player)(continent.GUID)
       }
 
     case msg @ SpawnRequestMessage(u1, spawn_type, u3, u4, zone_number) =>
@@ -6434,13 +6468,16 @@ class WorldSessionActor extends Actor
   def TaskBeforeZoneChange(priorTask : TaskResolver.GiveTask, zoneId : String) : TaskResolver.GiveTask = {
     TaskResolver.GiveTask(
       new Task() {
+        private val localZone = continent
+        private val localAvatarMsg = Zone.Population.Leave(avatar)
         private val localService = cluster
-        private val localMsg = InterstellarCluster.GetWorld(zoneId)
+        private val localServiceMsg = InterstellarCluster.GetWorld(zoneId)
 
         override def isComplete : Task.Resolution.Value = priorTask.task.isComplete
 
         def Execute(resolver : ActorRef) : Unit = {
-          localService ! localMsg
+          localZone.Population ! localAvatarMsg
+          localService ! localServiceMsg
           resolver ! scala.util.Success(this)
         }
       }, List(priorTask)
@@ -6702,9 +6739,33 @@ class WorldSessionActor extends Actor
   }
 
   /**
+    * Gives a target player positive battle experience points only.
+    * This value gets set as the battle experience points
+    * rather than be added to any previous total battle experience points.
+    * The number of implant slots that are activated is equal to the allowances calculated from on this value.
+    * We do this quietly.
+    * @param avatar the player
+    * @param bep the total amount of experience points, positive by assertion
+    * @return the player's current battle experience points
+    */
+  def AwardCharacterSelectBattleExperiencePoints(avatar : Avatar, bep : Long) : Long = {
+    if(bep <= 0) {
+      log.error(s"trying to set $bep battle experience points on $avatar; value can not be negative")
+    }
+    else {
+      avatar.BEP = bep
+      val slots = DetailedCharacterData.numberOfImplantSlots(bep)
+      (0 until slots).foreach(slotNumber =>
+        avatar.Implants(slotNumber).Unlocked = true
+      )
+    }
+    bep
+  }
+
+  /**
     * Common preparation for interfacing with a vehicle.
     * Join a vehicle-specific group for shared updates.
-    * Construct every object in the vehicle's inventory fpr shared manipulation updates.
+    * Construct every object in the vehicle's inventory for shared manipulation updates.
     * @param vehicle the vehicle
     */
   def AccessContents(vehicle : Vehicle) : Unit = {
@@ -7911,6 +7972,19 @@ class WorldSessionActor extends Actor
     }
   }
 
+  def GetMountableAndSeat(direct : Option[PlanetSideGameObject with Mountable]) : (Option[PlanetSideGameObject with Mountable], Option[Int]) =
+    direct.orElse(continent.GUID(player.VehicleSeated)) match {
+      case Some(obj : PlanetSideGameObject with Mountable) =>
+        obj.PassengerInSeat(player) match {
+          case index @ Some(_) =>
+            (Some(obj), index)
+          case None =>
+            (None, None)
+        }
+      case _ =>
+        (None, None)
+    }
+
   /**
     * If the player is seated in a vehicle, find that vehicle and get the seat index number at which the player is sat.<br>
     * <br>
@@ -7924,18 +7998,10 @@ class WorldSessionActor extends Actor
     *         if and only if the vehicle is known to this client and the `WorldSessioNActor`-global `player` occupies it;
     *         `(None, None)`, otherwise (even if the vehicle can be determined)
     */
-  def GetKnownVehicleAndSeat() : (Option[Vehicle], Option[Int]) =
-    interstellarFerry.orElse(continent.GUID(player.VehicleSeated)) match {
-      case Some(vehicle : Vehicle) =>
-        vehicle.PassengerInSeat(player) match {
-          case index @ Some(_) =>
-            (Some(vehicle), index)
-          case None =>
-            (None, None)
-        }
-      case _ =>
-        (None, None)
-    }
+  def GetKnownVehicleAndSeat() : (Option[Vehicle], Option[Int]) = GetMountableAndSeat(interstellarFerry) match {
+    case (Some(v : Vehicle), Some(seat)) => (Some(v), Some(seat))
+    case _ => (None, None)
+  }
 
   /**
     * If the player is seated in a vehicle, find that vehicle and get the seat index number at which the player is sat.
@@ -7943,18 +8009,10 @@ class WorldSessionActor extends Actor
     *         if and only if the vehicle is known to this client and the `WorldSessioNActor`-global `player` occupies it;
     *         `(None, None)`, otherwise (even if the vehicle can be determined)
     */
-  def GetVehicleAndSeat() : (Option[Vehicle], Option[Int]) =
-    continent.GUID(player.VehicleSeated) match {
-      case Some(vehicle : Vehicle) =>
-        vehicle.PassengerInSeat(player) match {
-          case index @ Some(_) =>
-            (Some(vehicle), index)
-          case None =>
-            (None, None)
-        }
-      case _ =>
-        (None, None)
-    }
+  def GetVehicleAndSeat() : (Option[Vehicle], Option[Int]) = GetMountableAndSeat(None) match {
+    case (Some(v : Vehicle), Some(seat)) => (Some(v), Some(seat))
+    case _ => (None, None)
+  }
 
   /**
     * Create an avatar character as if that avatar's player is mounted in a vehicle object's seat.<br>
@@ -8049,6 +8107,10 @@ class WorldSessionActor extends Actor
     setupAvatarFunc = AvatarCreate
   }
 
+  def AvatarDeploymentPassOver() : Unit = {
+    setupAvatarFunc = AvatarCreate
+  }
+
   /**
     * Produce a clone of the player that is equipped with the default infantry loadout.
     * The loadout is hardcoded.
@@ -8078,7 +8140,7 @@ class WorldSessionActor extends Actor
     * MAX's have their primary weapon in the designated slot removed.
     * @param obj the player to be turned into a corpse
     */
-  def FriskCorpse(obj : Player) : Unit = {
+  def FriskDeadBody(obj : Player) : Unit = {
     if(obj.isBackpack) {
       obj.Slot(4).Equipment match {
         case None => ;
@@ -8128,7 +8190,7 @@ class WorldSessionActor extends Actor
     * @return `true`, if the `obj` is actually a corpse and has no objects in its holsters or backpack;
     *        `false`, otherwise
     */
-  def WellLootedCorpse(obj : Player) : Boolean = {
+  def WellLootedDeadBody(obj : Player) : Boolean = {
     obj.isBackpack && obj.Holsters().count(_.Equipment.nonEmpty) == 0 && obj.Inventory.Size == 0
   }
 
@@ -8139,7 +8201,7 @@ class WorldSessionActor extends Actor
     *        `false`, otherwise
     */
   def TryDisposeOfLootedCorpse(obj : Player) : Boolean = {
-    if(WellLootedCorpse(obj)) {
+    if(WellLootedDeadBody(obj)) {
       continent.AvatarEvents ! AvatarServiceMessage.Corpse(RemoverActor.HurrySpecific(List(obj), continent))
       true
     }
@@ -8162,7 +8224,7 @@ class WorldSessionActor extends Actor
     val sanctNumber = Zones.SanctuaryZoneNumber(tplayer.Faction)
     if(currentZone == sanctNumber) {
       if(!player.isAlive) {
-        sendResponse(DisconnectMessage("Player failed to load on faction's sanctuary continent.  Please relog."))
+        sendResponse(DisconnectMessage("Player failed to load on faction's sanctuary continent.  Oh no."))
       }
       //we are already on sanctuary, alive; what more is there to do?
     }
@@ -9196,10 +9258,15 @@ class WorldSessionActor extends Actor
         case Some(vehicle : Vehicle) => //driver or passenger in vehicle using a warp gate
           LoadZoneInVehicle(vehicle, pos, ori, zone_id)
 
-        case _ => //player is deconstructing self
+        case _ if player.HasGUID => //player is deconstructing self
           val player_guid = player.GUID
           sendResponse(ObjectDeleteMessage(player_guid, 4))
           continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player_guid, player_guid, 4))
+          player.Position = pos
+          player.Orientation = ori
+          LoadZoneAsPlayer(player, zone_id)
+
+        case _ => //player is logging in
           player.Position = pos
           player.Orientation = ori
           LoadZoneAsPlayer(player, zone_id)
@@ -9487,7 +9554,6 @@ class WorldSessionActor extends Actor
     Deployables.Disown(continent, avatar, self)
     drawDeloyableIcon = RedrawDeployableIcons //important for when SetCurrentAvatar initializes the UI next zone
     squadSetup = ZoneChangeSquadSetup
-    continent.Population ! Zone.Population.Leave(avatar)
   }
 
   /**
@@ -9976,8 +10042,9 @@ class WorldSessionActor extends Actor
   }
 
   def LoadDataBaseLoadouts(owner : Player) : Future[Any] = {
-    val future = Database.getConnection.connect
-    future.onComplete {
+    val result : Promise[Any] = Promise[Any]()
+    val future = result.future
+    Database.getConnection.connect.onComplete {
       case scala.util.Success(connection) =>
         connection.sendPreparedStatement(
           "SELECT id, loadout_number, exosuit_id, name, items FROM loadouts where characters_id = ?", Array(owner.CharId)
@@ -9987,6 +10054,7 @@ class WorldSessionActor extends Actor
               case result: QueryResult =>
                 if (result.rows.nonEmpty) {
                   val doll = new Player(Avatar("doll",PlanetSideEmpire.TR,CharacterGender.Male,0,CharacterVoice.Mute)) //play dress up
+                  log.debug(s"LoadDataBaseLoadouts: ${result.rows.size} saved loadout(s) for character with id ${owner.CharId}")
                   result.rows foreach{ row  =>
                     row.zipWithIndex.foreach{ case (value,i) =>
                       val lLoadoutNumber : Int = value(1).asInstanceOf[Int]
@@ -10037,21 +10105,25 @@ class WorldSessionActor extends Actor
                     // something to do at end of loading ?
                   }
                 }
-                Thread.sleep(50)
               case _ =>
-                log.error(s"LoadDataBaseLoadouts: no saved loadout(s) for character with id ${owner.CharId}")
+                log.debug(s"LoadDataBaseLoadouts: no saved loadout(s) for character with id ${owner.CharId}")
             }
             if(connection.isConnected) connection.disconnect
+            result success queryResult
           case scala.util.Failure(e) =>
             if(connection.isConnected) connection.disconnect
-            log.error(s"LoadDataBaseLoadouts: unexpected query resulty - ${e.getMessage}")
+            val msg = s"LoadDataBaseLoadouts: unexpected query result - ${e.getMessage}"
+            log.error(msg)
+            result failure new Throwable(msg)
         }
       case scala.util.Failure(e) =>
-        log.error(s"LoadDataBaseLoadouts: no connection ${e.getMessage}")
+        val msg = s"LoadDataBaseLoadouts: no connection - ${e.getMessage}"
+        log.error(msg)
+        result failure new Throwable(msg)
     }
     future
   }
-  
+
   def ClearHolstersAndInventory(target : Player) : Unit = {
     (0 until 4).foreach( index => {
       target.Slot(index).Equipment = None
@@ -10555,7 +10627,7 @@ class WorldSessionActor extends Actor
     */
   def CountSpawnDelay(toZoneId : String, toSpawnPoint : SpawnPoint, fromZoneId : String) : Long = {
     val sanctuaryZoneId = Zones.SanctuaryZoneId(player.Faction)
-    if(sanctuaryZoneId.equals(toZoneId)) { //to sanctuary
+    if(fromZoneId.equals("Nowhere") || sanctuaryZoneId.equals(toZoneId)) { //to sanctuary
       0L
     }
     else if(!player.isAlive) {
@@ -10828,19 +10900,48 @@ class WorldSessionActor extends Actor
   }
 
   def UpdateCharacterLoginTime(charId : Long) : Future[Any] = {
-    val future = Database.getConnection.connect
-    future.onComplete {
+    val result : Promise[Any] = Promise[Any]()
+    val future = result.future
+    Database.getConnection.connect.onComplete {
       case scala.util.Success(connection) =>
         Database.query(connection.sendPreparedStatement(
           "UPDATE characters SET last_login = ? where id=?", Array(new java.sql.Timestamp(System.currentTimeMillis), charId)
         )).onComplete {
           case _ =>
             if(connection.isConnected) connection.disconnect
-            Thread.sleep(50)
+            result success true
         }
-      case _ => ;
+      case _ =>
+        val msg = s"UpdateCharacterLoginTime: could not update login time for $charId"
+        log.error(msg)
+        result failure new Throwable(msg)
     }
     future
+  }
+
+  def PrepareToTurnPlayerIntoCorpse(tplayer : Player, zone : Zone) : Unit = {
+    FriskDeadBody(tplayer)
+    if(!WellLootedDeadBody(tplayer)) {
+      TurnPlayerIntoCorpse(tplayer)
+      zone.Population ! Zone.Corpse.Add(tplayer)
+      zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.Release(tplayer, zone))
+    }
+    else {
+      //no items in inventory; leave no corpse
+      val pguid = tplayer.GUID
+      sendResponse(ObjectDeleteMessage(pguid, 0))
+      zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.ObjectDelete(pguid, pguid, 0))
+      taskResolver ! GUIDTask.UnregisterPlayer(tplayer)(zone.GUID)
+    }
+  }
+
+  def SetCurrentAvatarNormally(tplayer : Player) : Unit = {
+    self ! SetCurrentAvatar(tplayer)
+  }
+
+  def SetCurrentAvatarUponDeployment(tplayer : Player) : Unit = {
+    beginZoningSetCurrentAvatarFunc = SetCurrentAvatarNormally
+    continent.Actor ! Zone.Lattice.RequestSpawnPoint(continent.Number, tplayer, 0)
   }
 
   def failWithError(error : String) = {
@@ -10971,7 +11072,6 @@ object WorldSessionActor {
   private final case class ListAccountCharacters()
   private final case class SetCurrentAvatar(tplayer : Player)
   private final case class VehicleLoaded(vehicle : Vehicle)
-  private final case class UnregisterCorpseOnVehicleDisembark(corpse : Player)
   private final case class CheckCargoMounting(vehicle_guid : PlanetSideGUID, cargo_vehicle_guid: PlanetSideGUID, cargo_mountpoint: Int, iteration: Int)
   private final case class CheckCargoDismount(vehicle_guid : PlanetSideGUID, cargo_vehicle_guid: PlanetSideGUID, cargo_mountpoint: Int, iteration: Int)
 

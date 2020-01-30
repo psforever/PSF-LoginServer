@@ -92,8 +92,9 @@ object Vehicles {
       None
     }
   }
+
   /**
-    * Uterate over vehicle permissions and turn them into `PlanetsideAttributeMessage` packets.<br>
+    * Iterate over vehicle permissions and turn them into `PlanetsideAttributeMessage` packets.<br>
     * <br>
     * For the purposes of ensuring that other players are always aware of the proper permission state of the trunk and seats,
     * packets are intentionally dispatched to the current client to update the states.

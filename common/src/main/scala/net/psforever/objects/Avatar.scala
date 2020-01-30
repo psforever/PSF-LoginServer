@@ -53,6 +53,8 @@ class Avatar(private val char_id : Long, val name : String, val faction : Planet
     */
   private var lfs : Boolean = false
 
+  private var vehicleOwned : Option[PlanetSideGUID] = None
+
   def CharId : Long = char_id
 
   def BEP : Long = bep
@@ -195,6 +197,15 @@ class Avatar(private val char_id : Long, val name : String, val faction : Planet
   def LFS_=(looking : Boolean) : Boolean = {
     lfs = looking
     LFS
+  }
+
+  def VehicleOwned : Option[PlanetSideGUID] = vehicleOwned
+
+  def VehicleOwned_=(guid : PlanetSideGUID) : Option[PlanetSideGUID] = VehicleOwned_=(Some(guid))
+
+  def VehicleOwned_=(guid : Option[PlanetSideGUID]) : Option[PlanetSideGUID] = {
+    vehicleOwned = guid
+    VehicleOwned
   }
 
   def Definition : AvatarDefinition = GlobalDefinitions.avatar

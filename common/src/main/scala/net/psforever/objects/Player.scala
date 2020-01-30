@@ -51,7 +51,6 @@ class Player(private val core : Avatar) extends PlanetSideServerObject
   private var cloaked : Boolean = false
 
   private var vehicleSeated : Option[PlanetSideGUID] = None
-  private var vehicleOwned : Option[PlanetSideGUID] = None
 
   Continent = "home2" //the zone id
 
@@ -605,14 +604,11 @@ class Player(private val core : Avatar) extends PlanetSideServerObject
     VehicleSeated
   }
 
-  def VehicleOwned : Option[PlanetSideGUID] = vehicleOwned
+  def VehicleOwned : Option[PlanetSideGUID] = core.VehicleOwned
 
-  def VehicleOwned_=(guid : PlanetSideGUID) : Option[PlanetSideGUID] = VehicleOwned_=(Some(guid))
+  def VehicleOwned_=(guid : PlanetSideGUID) : Option[PlanetSideGUID] = core.VehicleOwned_=(Some(guid))
 
-  def VehicleOwned_=(guid : Option[PlanetSideGUID]) : Option[PlanetSideGUID] = {
-    vehicleOwned = guid
-    VehicleOwned
-  }
+  def VehicleOwned_=(guid : Option[PlanetSideGUID]) : Option[PlanetSideGUID] = core.VehicleOwned_=(guid)
 
   def DamageModel = exosuit.asInstanceOf[DamageResistanceModel]
 
@@ -658,7 +654,6 @@ object Player {
   def Respawn(player : Player) : Player = {
     if(player.Release) {
       val obj = new Player(player.core)
-      obj.VehicleOwned = player.VehicleOwned
       obj.Continent = player.Continent
       obj
     }

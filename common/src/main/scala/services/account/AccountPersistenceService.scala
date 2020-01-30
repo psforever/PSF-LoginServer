@@ -3,7 +3,6 @@ package services.account
 
 import akka.actor.{Actor, ActorRef, Cancellable, Props}
 import net.psforever.objects.guid.GUIDTask
-import net.psforever.objects.inventory.InventoryItem
 import net.psforever.objects.serverobject.mount.Mountable
 
 import scala.collection.mutable
@@ -44,7 +43,7 @@ class AccountPersistenceService extends Actor {
         case Some(ref) =>
           ref ! msg
         case None =>
-          log.warn(s"tried to update a player entry ($name) that did not yet exist; capable of recovery")
+          log.warn(s"tried to update a player entry ($name) that did not yet exist; rebuilding entry ...")
           CreateNewPlayerToken(name).tell(AccountPersistenceService.Login(name), sender)
       }
 
@@ -133,17 +132,17 @@ class PlayerToken(name : String, squadService : ActorRef, taskResolver : ActorRe
   def UpdateTimer() : Unit = {
     if(!timeup) {
       timer.cancel
-      timer = context.system.scheduler.scheduleOnce(60000 milliseconds, self, PlayerToken.Logout(name))
+      timer = context.system.scheduler.scheduleOnce(90000 milliseconds, self, PlayerToken.Logout(name))
     }
   }
 
   def performLogout() : Unit = {
-    log.info(s"attempting logout of $name")
-    val parent = context.parent
+    log.info(s"logout of $name")
     (inZone.Players.find(p => p.name == name), inZone.LivePlayers.find(p => p.Name == name)) match {
       case (Some(avatar), Some(player)) if player.VehicleSeated.nonEmpty =>
-        log.info("HANDLED vehicle condition")
-        //perform any last minute saving now ...
+        //alive or dead in a vehicle
+        //if the avatar is dead while in a vehicle, they haven't released yet
+        //TODO perform any last minute saving now ...
         (inZone.GUID(player.VehicleSeated) match {
           case Some(vehicle : Mountable) =>
             (Some(vehicle), vehicle.Seat(vehicle.PassengerInSeat(player).getOrElse(-1)))
@@ -151,7 +150,8 @@ class PlayerToken(name : String, squadService : ActorRef, taskResolver : ActorRe
         }) match {
           case (Some(vehicle : Vehicle), Some(seat)) =>
             seat.Occupant = None //unseat
-            if(vehicle.Seats.values.forall(seat => !seat.isOccupied)) {
+            if(vehicle.Health == 0 || vehicle.Seats.values.forall(seat => !seat.isOccupied)) {
+              inZone.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(vehicle), inZone))
               inZone.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.AddTask(vehicle, inZone, if(vehicle.Flying) {
                 //TODO gravity
                 Some(0 seconds) //immediate deconstruction
@@ -167,79 +167,27 @@ class PlayerToken(name : String, squadService : ActorRef, taskResolver : ActorRe
         StandardLogout(avatar, player)
 
       case (Some(avatar), Some(player)) =>
-        log.info(s"HANDLED infantry condition")
-        //perform any last minute saving now ...
+        //alive or dead, as Infantry; may be waiting for respawn
+        //TODO perform any last minute saving now ...
         StandardLogout(avatar, player)
 
       case (Some(avatar), None) =>
-        log.error("unhandled dead condition")
-        //...
+        //player has released
+        //our last body was turned into a corpse; just the avatar remains
+        //TODO perform any last minute saving now ...
+        squadService.tell(Service.Leave(Some(avatar.CharId.toString)), context.parent)
+        Deployables.Disown(inZone, avatar, context.parent)
+        inZone.GUID(avatar.VehicleOwned) match {
+          case Some(obj : Vehicle) if obj.OwnerName.contains(avatar.name) =>
+            obj.AssignOwnership(None)
+          case _ => ;
+        }
+        inZone.Population.tell(Zone.Population.Release(avatar), context.parent)
+        taskResolver.tell(GUIDTask.UnregisterLocker(avatar.Locker)(inZone.GUID), context.parent)
 
       case _ =>
-        log.error("unhandled unforeseen condition")
+        //user stalled during initial session, or was caught in between zone transfer
     }
-  //    if(player != null && player.HasGUID) {
-  //      PlayerActionsToCancel()
-  //      val player_guid = player.GUID
-  //      //handle orphaned deployables
-  //      Disown()
-  //      //clean up boomer triggers and telepads
-  //      val equipment = (
-  //        player.Holsters()
-  //          .zipWithIndex
-  //          .collect({ case (slot, index) if slot.Equipment.nonEmpty => InventoryItem(slot.Equipment.get, index) }) ++
-  //          player.Inventory.Items
-  //        )
-  //        .filterNot({ case InventoryItem(obj, _) => obj.isInstanceOf[BoomerTrigger] || obj.isInstanceOf[Telepad] })
-  //      //put any temporary value back into the avatar
-  //      //TODO final character save before doing any of this (use equipment)
-  //      continent.Population ! Zone.Population.Release(avatar)
-  //      if(player.isAlive) {
-  //        //actually being alive or manually deconstructing
-  //        player.Position = Vector3.Zero
-  //        //if seated, dismount
-  //        player.VehicleSeated match {
-  //          case Some(_) =>
-  //            //quickly and briefly kill player to avoid disembark animation?
-  //            continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player_guid, 0, 0))
-  //            DismountVehicleOnLogOut()
-  //          case _ => ;
-  //        }
-  //        continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player_guid, player_guid))
-  //        taskResolver ! GUIDTask.UnregisterAvatar(player)(continent.GUID)
-  //        //TODO normally, the actual player avatar persists a minute or so after the user disconnects
-  //      }
-  //      else if(continent.LivePlayers.contains(player) && !continent.Corpses.contains(player)) {
-  //        //player disconnected while waiting for a revive, maybe
-  //        //similar to handling ReleaseAvatarRequestMessage
-  //        player.Release
-  //        player.VehicleSeated match {
-  //          case None =>
-  //            FriskCorpse(player) //TODO eliminate dead letters
-  //            if(!WellLootedCorpse(player)) {
-  //              continent.Population ! Zone.Corpse.Add(player)
-  //              continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.Release(player, continent))
-  //              taskResolver ! GUIDTask.UnregisterLocker(player.Locker)(continent.GUID) //rest of player will be cleaned up with corpses
-  //            }
-  //            else {
-  //              //no items in inventory; leave no corpse
-  //              val player_guid = player.GUID
-  //              player.Position = Vector3.Zero //save character before doing this
-  //              continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player_guid, player_guid))
-  //              taskResolver ! GUIDTask.UnregisterAvatar(player)(continent.GUID)
-  //            }
-  //
-  //          case Some(_) =>
-  //            val player_guid = player.GUID
-  //            player.Position = Vector3.Zero //save character before doing this
-  //            continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player_guid, player_guid))
-  //            taskResolver ! GUIDTask.UnregisterAvatar(player)(continent.GUID)
-  //            DismountVehicleOnLogOut()
-  //        }
-  //      }
-  //      //disassociate and start the deconstruction timer for any currently owned vehicle
-  //      SpecialCaseDisownVehicle()
-  //      continent.Population ! Zone.Population.Leave(avatar)
   }
 
   def StandardLogout(avatar : Avatar, player : Player) : Unit = {
@@ -259,7 +207,7 @@ class PlayerToken(name : String, squadService : ActorRef, taskResolver : ActorRe
     */
   def DisownVehicle(player : Player) : Unit = {
     Vehicles.Disown(player, inZone) match {
-      case out @ Some(vehicle) if vehicle.Seats.values.forall(seat => !seat.isOccupied) =>
+      case Some(vehicle) if vehicle.Seats.values.forall(seat => !seat.isOccupied) =>
         inZone.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(vehicle), inZone))
         inZone.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.AddTask(vehicle, inZone,
           if(vehicle.Flying) {

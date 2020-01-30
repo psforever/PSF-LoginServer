@@ -31,7 +31,7 @@ abstract class Amenity extends PlanetSideServerObject with ZoneAware {
     */
   def Owner : AmenityOwner = {
     if(owner == Building.NoBuilding) {
-      log.warn(s"Amenity $GUID in zone $Zone tried to access owner, but doesn't have one.")
+      log.warn(s"Amenity $GUID in zone ${Zone.Id} tried to access owner, but doesn't have one.")
     }
     owner
   }
