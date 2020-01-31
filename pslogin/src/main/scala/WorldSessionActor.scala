@@ -7,10 +7,11 @@ import com.github.mauricio.async.db.{Connection, QueryResult}
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 import org.log4s.{Logger, MDC}
+
 import scala.annotation.{switch, tailrec}
 import scala.collection.concurrent.TrieMap
 import scala.collection.mutable.LongMap
-import scala.concurrent.{Await, Promise, Future}
+import scala.concurrent.{Await, Future, Promise}
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.Success
@@ -84,7 +85,6 @@ class WorldSessionActor extends Actor
   var rightRef : ActorRef = ActorRef.noSender
   var accountIntermediary : ActorRef = ActorRef.noSender
   var accountPersistence : ActorRef = ActorRef.noSender
-  var persistence : ActorRef = ActorRef.noSender
   var chatService: ActorRef = ActorRef.noSender
   var galaxyService : ActorRef = ActorRef.noSender
   var squadService : ActorRef = ActorRef.noSender
@@ -131,6 +131,7 @@ class WorldSessionActor extends Actor
   var shiftPosition : Option[Vector3] = None
   var setupAvatarFunc : ()=>Unit = AvatarCreate
   var beginZoningSetCurrentAvatarFunc : (Player)=>Unit = SetCurrentAvatarNormally
+  var persist : ()=>Unit = NoPersistence
   /**
     * used during zone transfers to maintain reference to seated vehicle (which does not yet exist in the new zone)
     * used during intrazone gate transfers, but not in a way distinct from prior zone transfer procedures
@@ -358,9 +359,9 @@ class WorldSessionActor extends Actor
       handleControlPkt(ctrl)
     case GamePacket(_, _, pkt) =>
       handleGamePkt(pkt)
-    // temporary hack to keep the client from disconnecting
-    //it's been a "temporary hack" since 2016 :P
+
     case PokeClient() =>
+      persist()
       sendResponse(KeepAliveMessage())
 
     case AvatarServiceResponse(toChannel, guid, reply) =>
@@ -1173,7 +1174,6 @@ class WorldSessionActor extends Actor
       player.Continent = zoneId
       continent = zone
       continent.Population ! Zone.Population.Join(avatar)
-      persistence ! AccountPersistenceService.Update(avatar.name, continent, PlanetSideEmpire.NEUTRAL, PlanetSideEmpire.NEUTRAL)
       interstellarFerry match {
         case Some(vehicle) if vehicle.PassengerInSeat(player).contains(0) =>
           taskResolver ! RegisterDrivenVehicle(vehicle, player)
@@ -1188,12 +1188,14 @@ class WorldSessionActor extends Actor
       //LoadMapMessage causes the client to send BeginZoningMessage, eventually leading to SetCurrentAvatar
       sendResponse(LoadMapMessage(continent.Map.Name, continent.Id, 40100, 25, true, continent.Map.Checksum))
       setupAvatarFunc() //important! the LoadMapMessage must be processed by the client before the avatar is created
+      persist()
 
     case PlayerLoaded(tplayer) =>
       //same zone
       log.info(s"Player ${tplayer.Name} will respawn")
       player = tplayer
       setupAvatarFunc()
+      persist()
       self ! SetCurrentAvatar(tplayer)
 
     case PlayerFailedToLoad(tplayer) =>
@@ -1292,13 +1294,12 @@ class WorldSessionActor extends Actor
         case _ => ;
       }
 
-    case PlayerToken.LoginInfo(name, Zone.Nowhere, _, _) =>
-      import net.psforever.types.CertificationType._
-
+    case PlayerToken.LoginInfo(name, Zone.Nowhere, _) =>
       log.info(s"LoginInfo: player $name is considered a new character")
-      persistence = sender
       //TODO poll the database for saved zone and coordinates?
-      //load the player as if new
+      persist = UpdatePersistence(sender)
+      //the original standard sim way to load data for this user for the user's avatar and player
+      import net.psforever.types.CertificationType._
       val avatar = this.avatar
       avatar.Certifications += StandardAssault
       avatar.Certifications += MediumAssault
@@ -1318,7 +1319,6 @@ class WorldSessionActor extends Actor
       avatar.Certifications += Hacking
       avatar.Certifications += AdvancedHacking
       avatar.Certifications += ElectronicsExpert
-
       avatar.Certifications += Sniping
       avatar.Certifications += AntiVehicular
       avatar.Certifications += HeavyAssault
@@ -1359,24 +1359,24 @@ class WorldSessionActor extends Actor
           UpdateLoginTimeThenDoClientInitialization()
       }
 
-    case PlayerToken.LoginInfo(playerName, inZone, regionFaction, zoneFaction) =>
+    case PlayerToken.LoginInfo(playerName, inZone, pos) =>
       log.info(s"LoginInfo: player $playerName is already logged; rejoining that character")
-      persistence = sender
-      persistence ! AccountPersistenceService.Update(playerName, inZone, PlanetSideEmpire.NEUTRAL, PlanetSideEmpire.NEUTRAL) //make certain does not timeout
-      //reload previous player
+      persist = UpdatePersistence(sender)
+      //find and reload previous player
       (inZone.Players.find(p => p.name.equals(playerName)), inZone.LivePlayers.find(p => p.Name.equals(playerName))) match {
         case (Some(a), Some(p)) if p.isAlive =>
           //rejoin current avatar/player
           avatar = a
           player = p
+          persist()
           setupAvatarFunc = AvatarRejoin
-          //if player is sat, will be handled as a matter of course
           UpdateLoginTimeThenDoClientInitialization()
 
         case (Some(a), Some(p)) =>
           //convert player to a corpse (unless in vehicle); go to deployment map
           avatar = a
-          player = p //remember, dead
+          player = p
+          persist()
           player.Zone = inZone
           setupAvatarFunc = AvatarDeploymentPassOver
           beginZoningSetCurrentAvatarFunc = SetCurrentAvatarUponDeployment
@@ -1408,8 +1408,8 @@ class WorldSessionActor extends Actor
             case Some(c) =>
               c
             case None =>
-              //TODO the server's event log could be searched for the last location associated with this avatar name?
               val tplayer = Player(a) //throwaway
+              tplayer.Position = pos
               tplayer.Release //for proper respawn
               tplayer.Zone = inZone
               tplayer
@@ -1421,18 +1421,62 @@ class WorldSessionActor extends Actor
         case _ =>
           //fall back to sanctuary/prior?
           log.error(s"LoginInfo: player $playerName could not be found in game world")
-          self ! PlayerToken.LoginInfo(playerName, Zone.Nowhere, PlanetSideEmpire.NEUTRAL, PlanetSideEmpire.NEUTRAL)
+          self ! PlayerToken.LoginInfo(playerName, Zone.Nowhere, player.Position)
       }
 
     case default =>
       log.warn(s"Invalid packet class received: $default from $sender")
   }
 
+  def UpdatePersistence(persistRef : ActorRef)() : Unit = {
+    persistRef ! AccountPersistenceService.Update(player.Name, continent, player.Position)
+  }
+
+  def NoPersistence() : Unit = { }
+
+  /**
+    * Common action to perform before starting the transition to client initialization.
+    * That the operation completes before client initialization begins is important.
+    */
   def UpdateLoginTimeThenDoClientInitialization() : Unit = {
     UpdateCharacterLoginTime(avatar.CharId).onComplete {
       case _ =>
         cluster ! InterstellarCluster.RequestClientInitialization()
     }
+  }
+
+  /**
+    * Updating the character login time is an important bookkeeping aspect of a player who is (re)joining the server.
+    * Logging into the server or relogging from an unexpected connection loss both qualify to update the time.<br>
+    * <br>
+    * The operation requires a database connection and completion of a database transaction,
+    * both of which must completed independently of any subsequent tasking,
+    * especially if that future tasking may require database use.
+    * @see `Connection.sendPreparedStatement`
+    * @see `Database.getConnection`
+    * @see `Future`
+    * @see `java.sql.Timestamp`
+    * @see `Promise`
+    * @param charId the character unique identifier number to update in the system
+    * @return a `Future` predicated by the "promise" of the task being completed
+    */
+  def UpdateCharacterLoginTime(charId : Long) : Future[Any] = {
+    val result : Promise[Any] = Promise[Any]()
+    Database.getConnection.connect.onComplete {
+      case scala.util.Success(connection) =>
+        Database.query(connection.sendPreparedStatement(
+          "UPDATE characters SET last_login = ? where id=?", Array(new java.sql.Timestamp(System.currentTimeMillis), charId)
+        )).onComplete {
+          case _ =>
+            if(connection.isConnected) connection.disconnect
+            result success true
+        }
+      case _ =>
+        val msg = s"UpdateCharacterLoginTime: could not update login time for $charId"
+        log.error(msg)
+        result failure new Throwable(msg)
+    }
+    result.future
   }
 
   /**
@@ -3293,8 +3337,9 @@ class WorldSessionActor extends Actor
   }
 
   /**
-    * na
-    * @param tplayer na
+    * Instruct the client to treat this player as the avatar.
+    * Initialize all client-specific data that is dependent on some player beign decalred the "avatar".
+    * @param tplayer the target player
     */
   def HandleSetCurrentAvatar(tplayer : Player) : Unit = {
     player = tplayer
@@ -3395,6 +3440,30 @@ class WorldSessionActor extends Actor
     if (noSpawnPointHere) {
       RequestSanctuaryZoneSpawn(player, continent.Number)
     }
+  }
+
+  /**
+    * Instruct the client to treat this player as the avatar.
+    * @see `SetCurrentAvatar`
+    * @param tplayer the target player
+    */
+  def SetCurrentAvatarNormally(tplayer : Player) : Unit = {
+    self ! SetCurrentAvatar(tplayer)
+  }
+
+  /**
+    * An interruption of the normal procedure -
+    * "instruct the client to treat this player as the avatar" -
+    * in order to locate a spawn point for this player.
+    * After a spawn point is located, the actual avatar designation will be made.
+    * @see `beginZoningSetCurrentAvatarFunc`
+    * @see `SetCurrentAvatarNormally`
+    * @see `Zone.Lattice.RequestSpawnPoint`
+    * @param tplayer the target player
+    */
+  def SetCurrentAvatarUponDeployment(tplayer : Player) : Unit = {
+    beginZoningSetCurrentAvatarFunc = SetCurrentAvatarNormally
+    continent.Actor ! Zone.Lattice.RequestSpawnPoint(continent.Number, tplayer, 0)
   }
 
   /**
@@ -3810,8 +3879,8 @@ class WorldSessionActor extends Actor
       })
       //our vehicle would have already been loaded; see NewPlayerLoaded/AvatarCreate
       usedVehicle.headOption match {
-        case Some(vehicle) if !vehicle.PassengerInSeat(player).contains(0) =>
-          //if passenger, attempt to depict any other passengers already in this zone
+        case Some(vehicle) =>
+          //depict any other passengers already in this zone
           val vguid = vehicle.GUID
           vehicle.Seats
             .filter({ case(index, seat) => seat.isOccupied && !seat.Occupant.contains(player) && live.contains(seat.Occupant.get) && index > 0 })
@@ -4041,7 +4110,6 @@ class WorldSessionActor extends Actor
         case None => false
       }
       continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlayerState(avatar_guid, player.Position, player.Velocity, yaw, pitch, yaw_upper, seq_time, is_crouching, is_jumping, jump_thrust, is_cloaking, spectator, wepInHand))
-      persistence ! AccountPersistenceService.Update(player.Name, continent, PlanetSideEmpire.NEUTRAL, PlanetSideEmpire.NEUTRAL)
       updateSquad()
 
     case msg @ ChildObjectStateMessage(object_guid, pitch, yaw) =>
@@ -4087,10 +4155,9 @@ class WorldSessionActor extends Actor
               obj.Flying = false
             }
             continent.VehicleEvents ! VehicleServiceMessage(continent.Id, VehicleAction.VehicleState(player.GUID, vehicle_guid, unk1, obj.Position, ang, obj.Velocity, if(obj.Flying) { flying } else { None }, unk6, unk7, wheels, unk9, obj.Cloaked))
-            persistence ! AccountPersistenceService.Update(player.Name, continent, PlanetSideEmpire.NEUTRAL, PlanetSideEmpire.NEUTRAL)
             updateSquad()
           case (None, _) =>
-            //log.error(s"VehicleState: no vehicle $vehicle_guid found in zone")
+            log.error(s"VehicleState: no vehicle $vehicle_guid found in zone")
             //TODO placing a "not driving" warning here may trigger as we are disembarking the vehicle
           case (_, Some(index)) =>
             log.error(s"VehicleState: player should not be dispatching this kind of packet from vehicle#$vehicle_guid  when not the driver ($index)")
@@ -4130,7 +4197,7 @@ class WorldSessionActor extends Actor
         case Some(_) =>
           val player_guid = player.GUID
           sendResponse(ObjectDeleteMessage(player_guid, 0))
-          GetMountableAndSeat(None) match {
+          GetMountableAndSeat(None, player) match {
             case (Some(obj), Some(seatNum)) =>
               obj.Seats(seatNum).Occupant = None
               obj match {
@@ -5395,7 +5462,6 @@ class WorldSessionActor extends Actor
           log.warn(s"DeployObject: $obj is something?")
         case None =>
           log.warn("DeployObject: nothing?")
-
       }
 
     case msg @ GenericObjectStateMsg(object_guid, unk1) =>
@@ -7873,21 +7939,22 @@ class WorldSessionActor extends Actor
     * The function should work regardless of whether the player is alive or dead - it will make them alive.
     * It adds the `WSA`-current `Player` to the current zone and sends out the expected packets.<br>
     * <br>
-    * If that player is the driver of a vehicle, it will construct the vehicle.
-    * If that player is the occupant of a vehicle, it will place them inside that vehicle.
-    * These two previous statements operate through similar though distinct mechanisms and actually imply different conditions.
-    * The vehicle will not be created unless the player is a living driver;
-    * but, the second statement will always trigger so long as the player is in a vehicle.
-    * The first produces a version of the player more suitable to be "another player in the game," and not "the avatar."
-    * The second would write over the product of the first to produce "the avatar."
-    * The vehicle should only be constructed once as, if it created a second time, that distinction will become lost.
+    * If that player is in a vehicle, it will construct that vehicle.
+    * If the player is the driver of the vehicle,
+    * they must temporarily be removed from the driver seat in order for the vehicle to be constructed properly.
+    * These two previous statements operate through similar though distinct mechanisms and imply different conditions.
+    * In reality, they produce the same output but enforce different relationships between the components.
+    * The vehicle without a rendered player will always be created if that vehicle exists.
+    * The vehicle should only be constructed once.
     * @see `BeginZoningMessage`
     * @see `CargoMountBehaviorForOthers`
     * @see `AvatarCreateInVehicle`
     * @see `GetKnownVehicleAndSeat`
     * @see `LoadZoneTransferPassengerMessages`
     * @see `Player.Spawn`
+    * @see `ReloadUsedLastCoolDownTimes`
     * @see `TransportVehicleChannelName`
+    * @see `Vehicles.Own`
     * @see `Vehicles.ReloadAccessPermissions`
     */
   def AvatarCreate() : Unit = {
@@ -7902,13 +7969,6 @@ class WorldSessionActor extends Actor
     }
     GetKnownVehicleAndSeat() match {
       case (Some(vehicle : Vehicle), Some(seat : Int)) =>
-        //vehicle and driver/passenger
-        interstellarFerry = None
-        val vdef = vehicle.Definition
-        val data = vdef.Packet.ConstructorData(vehicle).get
-        val guid = vehicle.GUID
-        sendResponse(ObjectCreateMessage(vehicle.Definition.ObjectId, guid, data))
-        Vehicles.ReloadAccessPermissions(vehicle, player.Name)
         //if the vehicle is the cargo of another vehicle in this zone
         val carrierInfo = continent.GUID(vehicle.MountedIn) match {
           case Some(carrier : Vehicle) =>
@@ -7916,33 +7976,47 @@ class WorldSessionActor extends Actor
           case _ =>
             (None, None)
         }
-        player.VehicleSeated = guid
-        if(seat == 0) {
-          //if driver
+        //vehicle and driver/passenger
+        interstellarFerry = None
+        val vdef = vehicle.Definition
+        val vguid = vehicle.GUID
+        val vdata = if(seat == 0) {
+          //driver
+          //as the driver, we must temporarily exclude ourselves from being in the vehicle during its creation
+          val seat = vehicle.Seats(0)
+          seat.Occupant = None
+          val data = vdef.Packet.ConstructorData(vehicle).get
+          sendResponse(ObjectCreateMessage(vehicle.Definition.ObjectId, vguid, data))
+          seat.Occupant = player
           Vehicles.Own(vehicle, player)
           vehicle.CargoHolds.values
             .collect { case hold if hold.isOccupied => hold.Occupant.get }
-            .foreach { _.MountedIn = guid }
+            .foreach { _.MountedIn = vguid }
           continent.Transport ! Zone.Vehicle.Spawn(vehicle)
-          continent.VehicleEvents ! VehicleServiceMessage(continent.Id, VehicleAction.LoadVehicle(player.GUID, vehicle, vdef.ObjectId, guid, data))
+          continent.VehicleEvents ! VehicleServiceMessage(continent.Id, VehicleAction.LoadVehicle(player.GUID, vehicle, vdef.ObjectId, vguid, data))
           carrierInfo match {
             case (Some(carrier), Some((index, _))) =>
               CargoMountBehaviorForOthers(carrier, vehicle, index)
             case _ =>
               vehicle.MountedIn = None
           }
+          data
         }
         else {
-          //if passenger;
-          //meant for same-zone warping; when player changes zones, redundant information will be sent
+          //passenger
+          //non-drivers are not rendered in the vehicle at this time
+          val data = vdef.Packet.ConstructorData(vehicle).get
+          sendResponse(ObjectCreateMessage(vehicle.Definition.ObjectId, vguid, data))
           carrierInfo match {
             case (Some(carrier), Some((index, _))) =>
               CargoMountBehaviorForUs(carrier, vehicle, index)
             case _ => ;
           }
+          data
         }
+        player.VehicleSeated = vguid
+        Vehicles.ReloadAccessPermissions(vehicle, player.Name)
         //log.info(s"AvatarCreate (vehicle): $guid -> $data")
-        //player, passenger
         AvatarCreateInVehicle(player, vehicle, seat)
 
       case _ =>
@@ -7958,24 +8032,23 @@ class WorldSessionActor extends Actor
     continent.Population ! Zone.Population.Spawn(avatar, player)
     //cautious redundancy
     deadState = DeadState.Alive
-
-    val lTime = System.currentTimeMillis
-    for (i <- 0 to whenUsedLastItem.length-1) {
-      if (lTime - whenUsedLastItem(i) < 300000) {
-        sendResponse(AvatarVehicleTimerMessage(player.GUID, whenUsedLastItemName(i), 300 - ((lTime - whenUsedLastItem(i)) / 1000 toInt), true))
-      }
-    }
-    for (i <- 1 to 3) {
-      if (lTime - whenUsedLastMAX(i) < 300000) {
-        sendResponse(AvatarVehicleTimerMessage(player.GUID, whenUsedLastMAXName(i), 300 - ((lTime - whenUsedLastMAX(i)) / 1000 toInt), true))
-      }
-    }
+    ReloadUsedLastCoolDownTimes()
   }
 
-  def GetMountableAndSeat(direct : Option[PlanetSideGameObject with Mountable]) : (Option[PlanetSideGameObject with Mountable], Option[Int]) =
-    direct.orElse(continent.GUID(player.VehicleSeated)) match {
+  /**
+    * If the player is mounted in some entity, find that entity and get the seat index number at which the player is sat.
+    * The priority of object confirmation is `direct` then `occupant.VehicleSeated`.
+    * Once an object is found, the remainder are ignored.
+    * @param direct a game object in which the player may be sat
+    * @param target the player who is sat and may have specified the game object in which mounted
+    * @return a tuple consisting of a vehicle reference and a seat index
+    *         if and only if the vehicle is known to this client and the `WorldSessioNActor`-global `player` occupies it;
+    *         `(None, None)`, otherwise (even if the vehicle can be determined)
+    */
+  def GetMountableAndSeat(direct : Option[PlanetSideGameObject with Mountable], occupant : Player) : (Option[PlanetSideGameObject with Mountable], Option[Int]) =
+    direct.orElse(continent.GUID(occupant.VehicleSeated)) match {
       case Some(obj : PlanetSideGameObject with Mountable) =>
-        obj.PassengerInSeat(player) match {
+        obj.PassengerInSeat(occupant) match {
           case index @ Some(_) =>
             (Some(obj), index)
           case None =>
@@ -7993,29 +8066,32 @@ class WorldSessionActor extends Actor
     * the value of `interstellarFerry` is also polled.
     * Making certain this field is blanked after the transfer is completed is important
     * to avoid inspecting the wrong vehicle and failing simple vehicle checks where this function may be employed.
+    * @see `GetMountableAndSeat`
     * @see `interstellarFerry`
     * @return a tuple consisting of a vehicle reference and a seat index
     *         if and only if the vehicle is known to this client and the `WorldSessioNActor`-global `player` occupies it;
     *         `(None, None)`, otherwise (even if the vehicle can be determined)
     */
-  def GetKnownVehicleAndSeat() : (Option[Vehicle], Option[Int]) = GetMountableAndSeat(interstellarFerry) match {
+  def GetKnownVehicleAndSeat() : (Option[Vehicle], Option[Int]) = GetMountableAndSeat(interstellarFerry, player) match {
     case (Some(v : Vehicle), Some(seat)) => (Some(v), Some(seat))
     case _ => (None, None)
   }
 
   /**
     * If the player is seated in a vehicle, find that vehicle and get the seat index number at which the player is sat.
+    * @see `GetMountableAndSeat`
     * @return a tuple consisting of a vehicle reference and a seat index
     *         if and only if the vehicle is known to this client and the `WorldSessioNActor`-global `player` occupies it;
     *         `(None, None)`, otherwise (even if the vehicle can be determined)
     */
-  def GetVehicleAndSeat() : (Option[Vehicle], Option[Int]) = GetMountableAndSeat(None) match {
+  def GetVehicleAndSeat() : (Option[Vehicle], Option[Int]) = GetMountableAndSeat(None, player) match {
     case (Some(v : Vehicle), Some(seat)) => (Some(v), Some(seat))
     case _ => (None, None)
   }
 
   /**
-    * Create an avatar character as if that avatar's player is mounted in a vehicle object's seat.<br>
+    * Create an avatar character so that avatar's player is mounted in a vehicle's seat.
+    * A part of the process of spawning the player into the game world.<br>
     * <br>
     * This is a very specific configuration of the player character that is not visited very often.
     * The value of `player.VehicleSeated` should be set to accommodate `Packet.DetailedConstructorData` and,
@@ -8023,32 +8099,76 @@ class WorldSessionActor extends Actor
     * should be the same as the globally unique identifier that is assigned to the `vehicle` parameter for the current zone.
     * The priority of this function is consider "initial" so it introduces the avatar to the game world in this state
     * and is permitted to introduce the avatar to the vehicle's internal settings in a similar way.
+    * Neither the player avatar nor the vehicle should be reconstructed before the next zone load operation
+    * to avoid damaging the critical setup of this function.
     * @see `AccessContents`
     * @see `UpdateWeaponAtSeatPosition`
     * @param tplayer the player avatar seated in the vehicle's seat
-    * @param vehicle the vehicle the player is driving
+    * @param vehicle the vehicle the player is riding
     * @param seat the seat index
     */
   def AvatarCreateInVehicle(tplayer : Player, vehicle : Vehicle, seat : Int) : Unit = {
     val pdef = tplayer.Definition
-    val guid = player.GUID
-    val parent = ObjectCreateMessageParent(vehicle.GUID, seat)
-    val data = pdef.Packet.DetailedConstructorData(player).get
-    sendResponse(
-      ObjectCreateDetailedMessage(
-        pdef.ObjectId,
-        guid,
-        parent,
-        data
-      )
-    )
-    continent.AvatarEvents ! AvatarServiceMessage(vehicle.Continent, AvatarAction.LoadPlayer(guid, pdef.ObjectId, guid, pdef.Packet.ConstructorData(player).get, Some(parent)))
+    val pguid = tplayer.GUID
+    val vguid = vehicle.GUID
+    tplayer.VehicleSeated = None
+    val pdata = pdef.Packet.DetailedConstructorData(tplayer).get
+    tplayer.VehicleSeated = vehicle.GUID
+    sendResponse(ObjectCreateDetailedMessage(pdef.ObjectId, pguid, pdata))
+    sendResponse(ObjectAttachMessage(vguid, pguid, seat))
     AccessContents(vehicle)
     UpdateWeaponAtSeatPosition(vehicle, seat)
-    //log.info(s"AvatarCreateInVehicle: $guid -> $data")
-    log.trace(s"AvatarCreateInVehicle: ${player.Name} in ${vehicle.Definition.Name}")
+    continent.AvatarEvents ! AvatarServiceMessage(
+      continent.Id,
+      AvatarAction.LoadPlayer(
+        pguid,
+        pdef.ObjectId,
+        pguid,
+        pdef.Packet.ConstructorData(tplayer).get,
+        Some(ObjectCreateMessageParent(vguid, seat))
+      )
+    )
+    //log.info(s"AvatarCreateInVehicle: $pguid -> pdata")
   }
 
+  /**
+    * A part of the process of spawning the player into the game world
+    * in the case of a restored game connection (relogging).<br>
+    * <br>
+    * A login protocol that substitutes the first call to `avatarSetupFunc` (replacing `AvatarCreate`)
+    * in consideration of a user re-logging into the game
+    * before the period of time where an avatar/player instance would decay and be cleaned-up.
+    * Large portions of this function operate as a combination of the mechanics
+    * for normal `AvatarCreate` and for `AvatarCreateInVehicle`.
+    * Unlike either of the previous, this functionlality is disinterested in updating other clients
+    * as the target player and potential vehicle already exist as far as other clients are concerned.<br>
+    * <br>
+    * If that player is in a vehicle, it will construct that vehicle.
+    * If the player is the driver of the vehicle,
+    * they must temporarily be removed from the driver seat in order for the vehicle to be constructed properly.
+    * These two previous statements operate through similar though distinct mechanisms and imply different conditions.
+    * In reality, they produce the same output but enforce different relationships between the components.
+    * The vehicle without a rendered player will always be created if that vehicle exists.<br>
+    * <br>
+    * The value of `player.VehicleSeated` should be set to accommodate `Packet.DetailedConstructorData` and,
+    * though not explicitly checked,
+    * should be the same as the globally unique identifier that is assigned to the `vehicle` parameter for the current zone.
+    * The priority of this function is consider "initial" so it introduces the avatar to the game world in this state
+    * and is permitted to introduce the avatar to the vehicle's internal settings in a similar way.
+    * Neither the player avatar nor the vehicle should be reconstructed before the next zone load operation
+    * to avoid damaging the critical setup of this function.
+    * @see `AccessContents`
+    * @see `AccountPersistenceService`
+    * @see `avatarSetupFunc`
+    * @see `AvatarCreate`
+    * @see `GetKnownVehicleAndSeat`
+    * @see `ObjectAttachMessage`
+    * @see `ObjectCreateMessage`
+    * @see `PlayerInfo.LoginInfo`
+    * @see `ReloadUsedLastCoolDownTimes`
+    * @see `UpdateWeaponAtSeatPosition`
+    * @see `Vehicles.ReloadAccessPermissions`
+    */
   def AvatarRejoin() : Unit = {
     GetKnownVehicleAndSeat() match {
       case (Some(vehicle : Vehicle), Some(seat : Int)) =>
@@ -8092,7 +8212,31 @@ class WorldSessionActor extends Actor
     }
     //cautious redundancy
     deadState = DeadState.Alive
+    ReloadUsedLastCoolDownTimes()
+    setupAvatarFunc = AvatarCreate
+  }
 
+  /**
+    * A part of the process of spawning the player into the game world
+    * in the case of a restored game connection (relogging).
+    * Rather than create any avatar here, the process has been skipped for now
+    * and will be handled by a different operation
+    * and this routine's normal operation when it revisits the same code.
+    * @see `avatarSetupFunc`
+    * @see `AvatarCreate`
+    * @see `ReloadUsedLastCoolDownTimes`
+    */
+  def AvatarDeploymentPassOver() : Unit = {
+    ReloadUsedLastCoolDownTimes()
+    setupAvatarFunc = AvatarCreate
+  }
+
+  /**
+    * Sometimes the game stops you from doing something a second time as soon as you would have liked to do it again.
+    * This is called "skill".
+    * @see `AvatarVehicleTimerMessage`
+    */
+  def ReloadUsedLastCoolDownTimes() : Unit = {
     val lTime = System.currentTimeMillis
     for (i <- 0 to whenUsedLastItem.length-1) {
       if (lTime - whenUsedLastItem(i) < 300000) {
@@ -8104,11 +8248,6 @@ class WorldSessionActor extends Actor
         sendResponse(AvatarVehicleTimerMessage(player.GUID, whenUsedLastMAXName(i), 300 - ((lTime - whenUsedLastMAX(i)) / 1000 toInt), true))
       }
     }
-    setupAvatarFunc = AvatarCreate
-  }
-
-  def AvatarDeploymentPassOver() : Unit = {
-    setupAvatarFunc = AvatarCreate
   }
 
   /**
@@ -8121,16 +8260,7 @@ class WorldSessionActor extends Actor
   def RespawnClone(tplayer : Player) : Player = {
     val faction = tplayer.Faction
     val obj = Player.Respawn(tplayer)
-    obj.Slot(0).Equipment = Tool(GlobalDefinitions.StandardPistol(faction))
-    obj.Slot(2).Equipment = Tool(GlobalDefinitions.suppressor)
-    obj.Slot(4).Equipment = Tool(GlobalDefinitions.StandardMelee(faction))
-    obj.Slot(6).Equipment = AmmoBox(GlobalDefinitions.bullet_9mm)
-    obj.Slot(9).Equipment = AmmoBox(GlobalDefinitions.bullet_9mm)
-    obj.Slot(12).Equipment = AmmoBox(GlobalDefinitions.bullet_9mm)
-    obj.Slot(33).Equipment = AmmoBox(GlobalDefinitions.bullet_9mm_AP)
-    obj.Slot(36).Equipment = AmmoBox(GlobalDefinitions.StandardPistolAmmo(faction))
-    obj.Slot(39).Equipment = SimpleItem(GlobalDefinitions.remote_electronics_kit)
-    obj.Inventory.Items.foreach { _.obj.Faction = faction }
+    LoadClassicDefault(obj)
     obj
   }
 
@@ -8168,6 +8298,37 @@ class WorldSessionActor extends Actor
       })
       val triggers = RemoveBoomerTriggersFromInventory()
       triggers.foreach(trigger => { NormalItemDrop(obj, continent, continent.AvatarEvents)(trigger) })
+    }
+  }
+
+  /**
+    * Creates a player that has the characteristics of a corpse
+    * so long as the player has items in their knapsack or their holsters.
+    * If the player has no items stored, the clean solution is to remove the player from the game.
+    * To the game, that is a backpack (or some pastry, festive graphical modification allowing).
+    * @see `AvatarAction.ObjectDelete`
+    * @see `AvatarAction.Release`
+    * @see `AvatarServiceMessage`
+    * @see `FriskDeadBody`
+    * @see `GUIDTask.UnregisterPlayer`
+    * @see `ObjectDeleteMessage`
+    * @see `WellLootedDeadBody`
+    * @see `Zone.Corpse.Add`
+    * @param tplayer the player
+    */
+  def PrepareToTurnPlayerIntoCorpse(tplayer : Player, zone : Zone) : Unit = {
+    FriskDeadBody(tplayer)
+    if(!WellLootedDeadBody(tplayer)) {
+      TurnPlayerIntoCorpse(tplayer)
+      zone.Population ! Zone.Corpse.Add(tplayer)
+      zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.Release(tplayer, zone))
+    }
+    else {
+      //no items in inventory; leave no corpse
+      val pguid = tplayer.GUID
+      sendResponse(ObjectDeleteMessage(pguid, 0))
+      zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.ObjectDelete(pguid, pguid, 0))
+      taskResolver ! GUIDTask.UnregisterPlayer(tplayer)(zone.GUID)
     }
   }
 
@@ -10041,9 +10202,31 @@ class WorldSessionActor extends Actor
     }
   }
 
+  /**
+    * A selection of up to ten customized equipment loadouts that are saved externally.
+    * The loadouts are encoded through number and text and procedural assembly is required.
+    * When loaded properly, these loadouts will become available through an equipment terminal entity
+    * and will influence the equipment terminal to open to the equipment loadout selection tab called "Favorites."<br>
+    * <br>
+    * The operation requires a database connection and completion of a database transaction,
+    * both of which must completed independently of any subsequent tasking,
+    * especially if that future tasking may require database use.
+    * @see `ClearHolstersAndInventory`
+    * @see `Connection.sendPreparedStatement`
+    * @see `Database.getConnection`
+    * @see `ExoSuitType`
+    * @see `Future`
+    * @see `GetToolDefFromObjectID`
+    * @see `Loadout`
+    * @see `Player.EquipmentLoadouts`
+    * @see `Player.EquipmentLoadouts.SaveLoadout`
+    * @see `Promise`
+    * @see `QueryResult`
+    * @param owner the player who will be stipped of equipment
+    * @return a `Future` predicated by the "promise" of the task being completed
+    */
   def LoadDataBaseLoadouts(owner : Player) : Future[Any] = {
     val result : Promise[Any] = Promise[Any]()
-    val future = result.future
     Database.getConnection.connect.onComplete {
       case scala.util.Success(connection) =>
         connection.sendPreparedStatement(
@@ -10053,7 +10236,7 @@ class WorldSessionActor extends Actor
             queryResult match {
               case result: QueryResult =>
                 if (result.rows.nonEmpty) {
-                  val doll = new Player(Avatar("doll",PlanetSideEmpire.TR,CharacterGender.Male,0,CharacterVoice.Mute)) //play dress up
+                  val doll = new Player(Avatar("doll", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //play dress up
                   log.debug(s"LoadDataBaseLoadouts: ${result.rows.size} saved loadout(s) for character with id ${owner.CharId}")
                   result.rows foreach{ row  =>
                     row.zipWithIndex.foreach{ case (value,i) =>
@@ -10121,9 +10304,14 @@ class WorldSessionActor extends Actor
         log.error(msg)
         result failure new Throwable(msg)
     }
-    future
+    result.future
   }
 
+  /**
+    * Remove the equipment from all holsters and from out of the player inventory,
+    * no matter how spacious it is.
+    * @param target the player who will be stipped of equipment
+    */
   def ClearHolstersAndInventory(target : Player) : Unit = {
     (0 until 4).foreach( index => {
       target.Slot(index).Equipment = None
@@ -10131,245 +10319,269 @@ class WorldSessionActor extends Actor
     target.Inventory.Clear()
   }
 
+  /**
+    * The "default loadout."
+    * The selection of equipment that a player respawns in possession of after dying.
+    * Excepting the pistol (slot 0) and its ammo and the melee weapon, which are all faction-associated,
+    * all equipment is generic.
+    * All equipment belongs to the implicit `Standard` certification.
+    * @param target the player who will be assigned this selection of equipment
+    */
   def LoadClassicDefault(target : Player) : Unit = {
-    ClearHolstersAndInventory(target)
+    val faction = target.Faction
     target.ExoSuit = ExoSuitType.Standard
-    target.Slot(0).Equipment = Tool(GlobalDefinitions.StandardPistol(target.Faction))
+    target.Slot(0).Equipment = Tool(GlobalDefinitions.StandardPistol(faction))
     target.Slot(2).Equipment = Tool(GlobalDefinitions.suppressor)
-    target.Slot(4).Equipment = Tool(GlobalDefinitions.StandardMelee(target.Faction))
+    target.Slot(4).Equipment = Tool(GlobalDefinitions.StandardMelee(faction))
     target.Slot(6).Equipment = AmmoBox(GlobalDefinitions.bullet_9mm)
     target.Slot(9).Equipment = AmmoBox(GlobalDefinitions.bullet_9mm)
     target.Slot(12).Equipment = AmmoBox(GlobalDefinitions.bullet_9mm)
     target.Slot(33).Equipment = AmmoBox(GlobalDefinitions.bullet_9mm_AP)
-    target.Slot(36).Equipment = AmmoBox(GlobalDefinitions.StandardPistolAmmo(target.Faction))
+    target.Slot(36).Equipment = AmmoBox(GlobalDefinitions.StandardPistolAmmo(faction))
     target.Slot(39).Equipment = SimpleItem(GlobalDefinitions.remote_electronics_kit)
-    target.Inventory.Items.foreach { _.obj.Faction = target.Faction }
+    target.Inventory.Items.foreach { _.obj.Faction = faction }
   }
 
+  /**
+    * A selection of ten customized equipment loadouts.
+    * Currently, unused.
+    * @see `ClearHolstersAndInventory`
+    * @see `GlobalDefinitions`
+    * @see `Player.EquipmentLoadouts`
+    * @see `Player.EquipmentLoadouts.SaveLoadout`
+    * @see `Player.ExoSuit`
+    * @see `Player.Slot`
+    * @param target the player who will be assigned these loadouts
+    */
   def LoadDefaultLoadouts(target : Player) : Unit = {
-    import net.psforever.objects.GlobalDefinitions._
+    //cached defaults
     val faction = target.Faction
-    val doll = new Player(Avatar("doll",PlanetSideEmpire.TR,CharacterGender.Male,0,CharacterVoice.Mute)) //play dress up
+    val aiMaxAmmo = AmmoBox(GlobalDefinitions.AI_MAXAmmo(faction))
+    val avMaxAmmo = AmmoBox(GlobalDefinitions.AV_MAXAmmo(faction))
+    val antiVehicularAmmo = AmmoBox(GlobalDefinitions.AntiVehicularAmmo(faction))
+    val armorCanister = AmmoBox(GlobalDefinitions.armor_canister)
+    val bank = Tool(GlobalDefinitions.bank)
+    val bolt = AmmoBox(GlobalDefinitions.bolt)
+    val decimator = Tool(GlobalDefinitions.phoenix)
+    val fragGrenade = Tool(GlobalDefinitions.frag_grenade)
+    val fragCartridge = AmmoBox(GlobalDefinitions.frag_cartridge)
+    val healthCanister = AmmoBox(GlobalDefinitions.health_canister)
+    val heavyRifle = Tool(GlobalDefinitions.HeavyRifle(faction))
+    val heavyRifleAmmo= AmmoBox(GlobalDefinitions.HeavyRifleAmmo(faction))
+    val heavyRifleAPAmmo= AmmoBox(GlobalDefinitions.HeavyRifleAPAmmo(faction))
+    val jammerGrenade = Tool(GlobalDefinitions.jammer_grenade)
+    val medicalApplicator = Tool(GlobalDefinitions.medicalapplicator)
+    val mediumRifle = Tool(GlobalDefinitions.MediumRifle(faction))
+    val mediumRifleAmmo = AmmoBox(GlobalDefinitions.MediumRifleAmmo(faction))
+    val medkit = Kit(GlobalDefinitions.medkit)
+    val rek = SimpleItem(GlobalDefinitions.remote_electronics_kit)
+    val rocket = AmmoBox(GlobalDefinitions.rocket)
+    val shotgunAmmo = AmmoBox(GlobalDefinitions.shotgun_shell)
+    //
+    val doll = new Player(Avatar("doll", faction, CharacterGender.Male, 0, CharacterVoice.Mute)) //play dress up
+    doll.Slot(4).Equipment = Tool(GlobalDefinitions.StandardMelee(faction)) //will not be cleared
     // 1
     doll.ExoSuit = ExoSuitType.Agile
-    doll.Slot(0).Equipment = Tool(frag_grenade)
-    doll.Slot(1).Equipment = Tool(bank)
-    doll.Slot(2).Equipment = Tool(HeavyRifle(faction))
-    doll.Slot(4).Equipment = Tool(StandardMelee(faction))
-    doll.Slot(6).Equipment = Tool(medicalapplicator)
-    doll.Slot(9).Equipment = AmmoBox(HeavyRifleAmmo(faction))
-    doll.Slot(12).Equipment = AmmoBox(HeavyRifleAmmo(faction))
-    doll.Slot(33).Equipment = Tool(phoenix)
-    doll.Slot(60).Equipment = SimpleItem(remote_electronics_kit)
-    doll.Slot(72).Equipment = Tool(jammer_grenade)
-    doll.Slot(74).Equipment = Kit(medkit)
+    doll.Slot(0).Equipment = fragGrenade
+    doll.Slot(1).Equipment = bank
+    doll.Slot(2).Equipment = heavyRifle
+    doll.Slot(6).Equipment = medicalApplicator
+    doll.Slot(9).Equipment = heavyRifleAmmo
+    doll.Slot(12).Equipment = heavyRifleAmmo
+    doll.Slot(33).Equipment = decimator
+    doll.Slot(60).Equipment = rek
+    doll.Slot(72).Equipment = jammerGrenade
+    doll.Slot(74).Equipment = medkit
     target.EquipmentLoadouts.SaveLoadout(doll, "Agile HA/Deci", 0)
     ClearHolstersAndInventory(doll)
-
     // 2
     doll.ExoSuit = ExoSuitType.Agile
-    doll.Slot(0).Equipment = Tool(frag_grenade)
-    doll.Slot(1).Equipment = Tool(frag_grenade)
-    doll.Slot(2).Equipment = Tool(HeavyRifle(faction))
-    doll.Slot(4).Equipment = Tool(StandardMelee(faction))
-    doll.Slot(6).Equipment = AmmoBox(HeavyRifleAmmo(faction))
-    doll.Slot(9).Equipment = AmmoBox(HeavyRifleAmmo(faction))
-    doll.Slot(12).Equipment = SimpleItem(remote_electronics_kit)
-    doll.Slot(33).Equipment = Tool(medicalapplicator)
-    doll.Slot(36).Equipment = Tool(frag_grenade)
-    doll.Slot(38).Equipment = Kit(medkit)
-    doll.Slot(54).Equipment = Tool(frag_grenade)
-    doll.Slot(56).Equipment = Kit(medkit)
-    doll.Slot(60).Equipment = Tool(bank)
-    doll.Slot(72).Equipment = Tool(jammer_grenade)
-    doll.Slot(74).Equipment = Kit(medkit)
+    doll.Slot(0).Equipment = fragGrenade
+    doll.Slot(1).Equipment = fragGrenade
+    doll.Slot(2).Equipment = heavyRifle
+    doll.Slot(6).Equipment = heavyRifleAmmo
+    doll.Slot(9).Equipment = heavyRifleAmmo
+    doll.Slot(12).Equipment = rek
+    doll.Slot(33).Equipment = medicalApplicator
+    doll.Slot(36).Equipment = fragGrenade
+    doll.Slot(38).Equipment = medkit
+    doll.Slot(54).Equipment = fragGrenade
+    doll.Slot(56).Equipment = medkit
+    doll.Slot(60).Equipment = bank
+    doll.Slot(72).Equipment = jammerGrenade
+    doll.Slot(74).Equipment = medkit
     target.EquipmentLoadouts.SaveLoadout(doll, "Agile HA", 1)
     ClearHolstersAndInventory(doll)
-
     // 3
     doll.ExoSuit = ExoSuitType.Reinforced
-    doll.Slot(0).Equipment = Tool(medicalapplicator)
-    doll.Slot(1).Equipment = SimpleItem(remote_electronics_kit)
-    doll.Slot(2).Equipment = Tool(HeavyRifle(faction))
-    doll.Slot(3).Equipment = Tool(phoenix)
-    doll.Slot(4).Equipment = Tool(StandardMelee(faction))
-    doll.Slot(6).Equipment = AmmoBox(HeavyRifleAmmo(faction))
-    doll.Slot(9).Equipment = AmmoBox(HeavyRifleAmmo(faction))
-    doll.Slot(12).Equipment = Kit(medkit)
-    doll.Slot(16).Equipment = Tool(frag_grenade)
-    doll.Slot(36).Equipment = Kit(medkit)
-    doll.Slot(40).Equipment = Tool(frag_grenade)
-    doll.Slot(42).Equipment = AmmoBox(HeavyRifleAmmo(faction))
-    doll.Slot(45).Equipment = AmmoBox(HeavyRifleAPAmmo(faction))
-    doll.Slot(60).Equipment = Kit(medkit)
-    doll.Slot(64).Equipment = Tool(jammer_grenade)
-    doll.Slot(78).Equipment = Tool(phoenix)
-    doll.Slot(87).Equipment = Tool(bank)
+    doll.Slot(0).Equipment = medicalApplicator
+    doll.Slot(1).Equipment = rek
+    doll.Slot(2).Equipment = heavyRifle
+    doll.Slot(3).Equipment = decimator
+    doll.Slot(6).Equipment = heavyRifleAmmo
+    doll.Slot(9).Equipment = heavyRifleAmmo
+    doll.Slot(12).Equipment = medkit
+    doll.Slot(16).Equipment = fragGrenade
+    doll.Slot(36).Equipment = medkit
+    doll.Slot(40).Equipment = fragGrenade
+    doll.Slot(42).Equipment = heavyRifleAmmo
+    doll.Slot(45).Equipment = heavyRifleAPAmmo
+    doll.Slot(60).Equipment = medkit
+    doll.Slot(64).Equipment = jammerGrenade
+    doll.Slot(78).Equipment = decimator
+    doll.Slot(87).Equipment = bank
     target.EquipmentLoadouts.SaveLoadout(doll, "Rexo HA/Deci", 2)
     ClearHolstersAndInventory(doll)
-
     // 4
     doll.ExoSuit = ExoSuitType.Reinforced
-    doll.Slot(0).Equipment = Tool(medicalapplicator)
-    doll.Slot(1).Equipment = SimpleItem(remote_electronics_kit)
-    doll.Slot(2).Equipment = Tool(MediumRifle(faction))
-    doll.Slot(3).Equipment = Tool(AntiVehicularLauncher(faction))
-    doll.Slot(4).Equipment = Tool(StandardMelee(faction))
-    doll.Slot(6).Equipment = AmmoBox(MediumRifleAmmo(faction))
-    doll.Slot(9).Equipment = AmmoBox(MediumRifleAmmo(faction))
-    doll.Slot(12).Equipment = AmmoBox(MediumRifleAmmo(faction))
-    doll.Slot(15).Equipment = Tool(bank)
-    doll.Slot(42).Equipment = Tool(frag_grenade)
-    doll.Slot(44).Equipment = Tool(jammer_grenade)
-    doll.Slot(46).Equipment = Kit(medkit)
-    doll.Slot(50).Equipment = Kit(medkit)
-    doll.Slot(66).Equipment = AmmoBox(AntiVehicularAmmo(faction))
-    doll.Slot(70).Equipment = AmmoBox(AntiVehicularAmmo(faction))
-    doll.Slot(74).Equipment = AmmoBox(AntiVehicularAmmo(faction))
+    doll.Slot(0).Equipment = medicalApplicator
+    doll.Slot(1).Equipment = rek
+    doll.Slot(2).Equipment = mediumRifle
+    doll.Slot(3).Equipment = Tool(GlobalDefinitions.AntiVehicularLauncher(faction))
+    doll.Slot(6).Equipment = mediumRifleAmmo
+    doll.Slot(9).Equipment = mediumRifleAmmo
+    doll.Slot(12).Equipment = mediumRifleAmmo
+    doll.Slot(15).Equipment = bank
+    doll.Slot(42).Equipment = fragGrenade
+    doll.Slot(44).Equipment = jammerGrenade
+    doll.Slot(46).Equipment = medkit
+    doll.Slot(50).Equipment = medkit
+    doll.Slot(66).Equipment = antiVehicularAmmo
+    doll.Slot(70).Equipment = antiVehicularAmmo
+    doll.Slot(74).Equipment = antiVehicularAmmo
     target.EquipmentLoadouts.SaveLoadout(doll, "Rexo MA/AV", 3)
     ClearHolstersAndInventory(doll)
-
     // 5
     doll.ExoSuit = ExoSuitType.Reinforced
-    doll.Slot(0).Equipment = Tool(medicalapplicator)
-    doll.Slot(1).Equipment = SimpleItem(remote_electronics_kit)
-    doll.Slot(2).Equipment = Tool(HeavyRifle(faction))
-    doll.Slot(3).Equipment = Tool(thumper)
-    doll.Slot(4).Equipment = Tool(StandardMelee(faction))
-    doll.Slot(6).Equipment = AmmoBox(HeavyRifleAmmo(faction))
-    doll.Slot(9).Equipment = AmmoBox(HeavyRifleAmmo(faction))
-    doll.Slot(12).Equipment = Kit(medkit)
-    doll.Slot(16).Equipment = Tool(frag_grenade)
-    doll.Slot(36).Equipment = Kit(medkit)
-    doll.Slot(40).Equipment = Tool(frag_grenade)
-    doll.Slot(42).Equipment = AmmoBox(HeavyRifleAmmo(faction))
-    doll.Slot(45).Equipment = AmmoBox(HeavyRifleAPAmmo(faction))
-    doll.Slot(60).Equipment = Kit(medkit)
-    doll.Slot(64).Equipment = Tool(jammer_grenade)
-    doll.Slot(78).Equipment = Tool(bank)
-    doll.Slot(81).Equipment = AmmoBox(frag_cartridge)
-    doll.Slot(84).Equipment = AmmoBox(frag_cartridge)
-    doll.Slot(87).Equipment = AmmoBox(frag_cartridge)
+    doll.Slot(0).Equipment = medicalApplicator
+    doll.Slot(1).Equipment = rek
+    doll.Slot(2).Equipment = heavyRifle
+    doll.Slot(3).Equipment = Tool(GlobalDefinitions.thumper)
+    doll.Slot(6).Equipment = heavyRifleAmmo
+    doll.Slot(9).Equipment = heavyRifleAmmo
+    doll.Slot(12).Equipment = medkit
+    doll.Slot(16).Equipment = fragGrenade
+    doll.Slot(36).Equipment = medkit
+    doll.Slot(40).Equipment = fragGrenade
+    doll.Slot(42).Equipment = heavyRifleAmmo
+    doll.Slot(45).Equipment = heavyRifleAPAmmo
+    doll.Slot(60).Equipment = medkit
+    doll.Slot(64).Equipment = jammerGrenade
+    doll.Slot(78).Equipment = bank
+    doll.Slot(81).Equipment = fragCartridge
+    doll.Slot(84).Equipment = fragCartridge
+    doll.Slot(87).Equipment = fragCartridge
     target.EquipmentLoadouts.SaveLoadout(doll, "Rexo HA/Thumper", 4)
     ClearHolstersAndInventory(doll)
-
     // 6
     doll.ExoSuit = ExoSuitType.Reinforced
-    doll.Slot(0).Equipment = Tool(medicalapplicator)
-    doll.Slot(1).Equipment = SimpleItem(remote_electronics_kit)
-    doll.Slot(2).Equipment = Tool(HeavyRifle(faction))
-    doll.Slot(3).Equipment = Tool(rocklet)
-    doll.Slot(4).Equipment = Tool(StandardMelee(faction))
-    doll.Slot(6).Equipment = AmmoBox(HeavyRifleAmmo(faction))
-    doll.Slot(9).Equipment = AmmoBox(HeavyRifleAmmo(faction))
-    doll.Slot(12).Equipment = Kit(medkit)
-    doll.Slot(16).Equipment = Tool(frag_grenade)
-    doll.Slot(36).Equipment = Kit(medkit)
-    doll.Slot(40).Equipment = Tool(frag_grenade)
-    doll.Slot(42).Equipment = AmmoBox(HeavyRifleAmmo(faction))
-    doll.Slot(45).Equipment = AmmoBox(HeavyRifleAPAmmo(faction))
-    doll.Slot(60).Equipment = Kit(medkit)
-    doll.Slot(64).Equipment = Tool(jammer_grenade)
-    doll.Slot(78).Equipment = Tool(bank)
-    doll.Slot(81).Equipment = AmmoBox(rocket)
-    doll.Slot(84).Equipment = AmmoBox(rocket)
-    doll.Slot(87).Equipment = AmmoBox(frag_cartridge)
+    doll.Slot(0).Equipment = medicalApplicator
+    doll.Slot(1).Equipment = rek
+    doll.Slot(2).Equipment = heavyRifle
+    doll.Slot(3).Equipment = Tool(GlobalDefinitions.rocklet)
+    doll.Slot(6).Equipment = heavyRifleAmmo
+    doll.Slot(9).Equipment = heavyRifleAmmo
+    doll.Slot(12).Equipment = medkit
+    doll.Slot(16).Equipment = fragGrenade
+    doll.Slot(36).Equipment = medkit
+    doll.Slot(40).Equipment = fragGrenade
+    doll.Slot(42).Equipment = heavyRifleAmmo
+    doll.Slot(45).Equipment = heavyRifleAPAmmo
+    doll.Slot(60).Equipment = medkit
+    doll.Slot(64).Equipment = jammerGrenade
+    doll.Slot(78).Equipment = bank
+    doll.Slot(81).Equipment = rocket
+    doll.Slot(84).Equipment = rocket
+    doll.Slot(87).Equipment = fragCartridge
     target.EquipmentLoadouts.SaveLoadout(doll, "Rexo HA/Rocklet", 5)
     ClearHolstersAndInventory(doll)
-
     // 7
     doll.ExoSuit = ExoSuitType.Reinforced
-    doll.Slot(0).Equipment = Tool(medicalapplicator)
-    doll.Slot(1).Equipment = SimpleItem(remote_electronics_kit)
-    doll.Slot(2).Equipment = Tool(MediumRifle(faction))
-    doll.Slot(3).Equipment = Tool(bolt_driver)
-    doll.Slot(4).Equipment = Tool(StandardMelee(faction))
-    doll.Slot(6).Equipment = AmmoBox(MediumRifleAmmo(faction))
-    doll.Slot(9).Equipment = AmmoBox(MediumRifleAmmo(faction))
-    doll.Slot(12).Equipment = Kit(medkit)
-    doll.Slot(16).Equipment = Tool(frag_grenade)
-    doll.Slot(36).Equipment = Kit(medkit)
-    doll.Slot(40).Equipment = Tool(frag_grenade)
-    doll.Slot(42).Equipment = AmmoBox(MediumRifleAmmo(faction))
-    doll.Slot(45).Equipment = AmmoBox(MediumRifleAPAmmo(faction))
-    doll.Slot(60).Equipment = Kit(medkit)
-    doll.Slot(64).Equipment = Tool(jammer_grenade)
-    doll.Slot(78).Equipment = Tool(bank)
-    doll.Slot(81).Equipment = AmmoBox(bolt)
-    doll.Slot(84).Equipment = AmmoBox(bolt)
-    doll.Slot(87).Equipment = AmmoBox(bolt)
+    doll.Slot(0).Equipment = medicalApplicator
+    doll.Slot(1).Equipment = rek
+    doll.Slot(2).Equipment = mediumRifle
+    doll.Slot(3).Equipment = Tool(GlobalDefinitions.bolt_driver)
+    doll.Slot(6).Equipment = mediumRifleAmmo
+    doll.Slot(9).Equipment = mediumRifleAmmo
+    doll.Slot(12).Equipment = medkit
+    doll.Slot(16).Equipment = fragGrenade
+    doll.Slot(36).Equipment = medkit
+    doll.Slot(40).Equipment = fragGrenade
+    doll.Slot(42).Equipment = mediumRifleAmmo
+    doll.Slot(45).Equipment = mediumRifleAmmo
+    doll.Slot(60).Equipment = medkit
+    doll.Slot(64).Equipment = jammerGrenade
+    doll.Slot(78).Equipment = bank
+    doll.Slot(81).Equipment = bolt
+    doll.Slot(84).Equipment = bolt
+    doll.Slot(87).Equipment = bolt
     target.EquipmentLoadouts.SaveLoadout(doll, "Rexo MA/Sniper", 6)
     ClearHolstersAndInventory(doll)
-
     // 8
     doll.ExoSuit = ExoSuitType.Reinforced
-    doll.Slot(0).Equipment = Tool(medicalapplicator)
-    doll.Slot(1).Equipment = SimpleItem(remote_electronics_kit)
-    doll.Slot(2).Equipment = Tool(flechette)
-    doll.Slot(3).Equipment = Tool(phoenix)
-    doll.Slot(4).Equipment = Tool(StandardMelee(faction))
-    doll.Slot(6).Equipment = AmmoBox(shotgun_shell)
-    doll.Slot(9).Equipment = AmmoBox(shotgun_shell)
-    doll.Slot(12).Equipment = Kit(medkit)
-    doll.Slot(16).Equipment = Tool(frag_grenade)
-    doll.Slot(36).Equipment = Kit(medkit)
-    doll.Slot(40).Equipment = Tool(frag_grenade)
-    doll.Slot(42).Equipment = AmmoBox(shotgun_shell)
-    doll.Slot(45).Equipment = AmmoBox(shotgun_shell_AP)
-    doll.Slot(60).Equipment = Kit(medkit)
-    doll.Slot(64).Equipment = Tool(jammer_grenade)
-    doll.Slot(78).Equipment = Tool(phoenix)
-    doll.Slot(87).Equipment = Tool(bank)
+    doll.Slot(0).Equipment = medicalApplicator
+    doll.Slot(1).Equipment = rek
+    doll.Slot(2).Equipment = Tool(GlobalDefinitions.flechette)
+    doll.Slot(3).Equipment = decimator
+    doll.Slot(6).Equipment = shotgunAmmo
+    doll.Slot(9).Equipment = shotgunAmmo
+    doll.Slot(12).Equipment = medkit
+    doll.Slot(16).Equipment = fragGrenade
+    doll.Slot(36).Equipment = medkit
+    doll.Slot(40).Equipment = fragGrenade
+    doll.Slot(42).Equipment = shotgunAmmo
+    doll.Slot(45).Equipment = AmmoBox(GlobalDefinitions.shotgun_shell_AP)
+    doll.Slot(60).Equipment = medkit
+    doll.Slot(64).Equipment = jammerGrenade
+    doll.Slot(78).Equipment = decimator
+    doll.Slot(87).Equipment = bank
     target.EquipmentLoadouts.SaveLoadout(doll, "Rexo Sweeper/Deci", 7)
     ClearHolstersAndInventory(doll)
-
     // 9
     doll.ExoSuit = ExoSuitType.MAX
-    doll.Slot(0).Equipment = Tool(AI_MAX(faction))
-    doll.Slot(6).Equipment = AmmoBox(AI_MAXAmmo(faction))
-    doll.Slot(10).Equipment = AmmoBox(AI_MAXAmmo(faction))
-    doll.Slot(14).Equipment = AmmoBox(AI_MAXAmmo(faction))
-    doll.Slot(18).Equipment = AmmoBox(AI_MAXAmmo(faction))
-    doll.Slot(70).Equipment = AmmoBox(AI_MAXAmmo(faction))
-    doll.Slot(74).Equipment = AmmoBox(AI_MAXAmmo(faction))
-    doll.Slot(78).Equipment = Kit(medkit)
-    doll.Slot(98).Equipment = AmmoBox(health_canister)
-    doll.Slot(100).Equipment = AmmoBox(armor_canister)
-    doll.Slot(110).Equipment = Kit(medkit)
-    doll.Slot(134).Equipment = Kit(medkit)
-    doll.Slot(138).Equipment = Kit(medkit)
-    doll.Slot(142).Equipment = Kit(medkit)
-    doll.Slot(146).Equipment = Kit(medkit)
-    doll.Slot(166).Equipment = Kit(medkit)
-    doll.Slot(170).Equipment = Kit(medkit)
-    doll.Slot(174).Equipment = Kit(medkit)
-    doll.Slot(178).Equipment = Kit(medkit)
+    doll.Slot(0).Equipment = Tool(GlobalDefinitions.AI_MAX(faction))
+    doll.Slot(6).Equipment = aiMaxAmmo
+    doll.Slot(10).Equipment = aiMaxAmmo
+    doll.Slot(14).Equipment = aiMaxAmmo
+    doll.Slot(18).Equipment = aiMaxAmmo
+    doll.Slot(70).Equipment = aiMaxAmmo
+    doll.Slot(74).Equipment = aiMaxAmmo
+    doll.Slot(78).Equipment = medkit
+    doll.Slot(98).Equipment = healthCanister
+    doll.Slot(100).Equipment = armorCanister
+    doll.Slot(110).Equipment = medkit
+    doll.Slot(134).Equipment = medkit
+    doll.Slot(138).Equipment = medkit
+    doll.Slot(142).Equipment = medkit
+    doll.Slot(146).Equipment = medkit
+    doll.Slot(166).Equipment = medkit
+    doll.Slot(170).Equipment = medkit
+    doll.Slot(174).Equipment = medkit
+    doll.Slot(178).Equipment = medkit
     target.EquipmentLoadouts.SaveLoadout(doll, "AI MAX", 8)
     ClearHolstersAndInventory(doll)
-
     // 10
     doll.ExoSuit = ExoSuitType.MAX
-    doll.Slot(0).Equipment = Tool(AV_MAX(faction))
-    doll.Slot(6).Equipment = AmmoBox(AV_MAXAmmo(faction))
-    doll.Slot(10).Equipment = AmmoBox(AV_MAXAmmo(faction))
-    doll.Slot(14).Equipment = AmmoBox(AV_MAXAmmo(faction))
-    doll.Slot(18).Equipment = AmmoBox(AV_MAXAmmo(faction))
-    doll.Slot(70).Equipment = AmmoBox(AV_MAXAmmo(faction))
-    doll.Slot(74).Equipment = AmmoBox(AV_MAXAmmo(faction))
-    doll.Slot(78).Equipment = Kit(medkit)
-    doll.Slot(98).Equipment = AmmoBox(health_canister)
-    doll.Slot(100).Equipment = AmmoBox(armor_canister)
-    doll.Slot(110).Equipment = Kit(medkit)
-    doll.Slot(134).Equipment = Kit(GlobalDefinitions.medkit)
-    doll.Slot(138).Equipment = Kit(GlobalDefinitions.medkit)
-    doll.Slot(142).Equipment = Kit(GlobalDefinitions.medkit)
-    doll.Slot(146).Equipment = Kit(GlobalDefinitions.medkit)
-    doll.Slot(166).Equipment = Kit(GlobalDefinitions.medkit)
-    doll.Slot(170).Equipment = Kit(GlobalDefinitions.medkit)
-    doll.Slot(174).Equipment = Kit(GlobalDefinitions.medkit)
-    doll.Slot(178).Equipment = Kit(GlobalDefinitions.medkit)
+    doll.Slot(0).Equipment = Tool(GlobalDefinitions.AV_MAX(faction))
+    doll.Slot(6).Equipment = avMaxAmmo
+    doll.Slot(10).Equipment = avMaxAmmo
+    doll.Slot(14).Equipment = avMaxAmmo
+    doll.Slot(18).Equipment = avMaxAmmo
+    doll.Slot(70).Equipment = avMaxAmmo
+    doll.Slot(74).Equipment = avMaxAmmo
+    doll.Slot(78).Equipment = medkit
+    doll.Slot(98).Equipment = healthCanister
+    doll.Slot(100).Equipment = armorCanister
+    doll.Slot(110).Equipment = medkit
+    doll.Slot(134).Equipment = medkit
+    doll.Slot(138).Equipment = medkit
+    doll.Slot(142).Equipment = medkit
+    doll.Slot(146).Equipment = medkit
+    doll.Slot(166).Equipment = medkit
+    doll.Slot(170).Equipment = medkit
+    doll.Slot(174).Equipment = medkit
+    doll.Slot(178).Equipment = medkit
     target.EquipmentLoadouts.SaveLoadout(doll, "AV MAX", 9)
-    ClearHolstersAndInventory(doll)
   }
 
   def GetToolDefFromObjectID(objectID : Int) : Any = {
@@ -10897,51 +11109,6 @@ class WorldSessionActor extends Actor
       sendResponse(AvatarImplantMessage(PlanetSideGUID(player.GUID.guid), ImplantAction.Activation, 1, 0))
       timeSurge = 0
     }
-  }
-
-  def UpdateCharacterLoginTime(charId : Long) : Future[Any] = {
-    val result : Promise[Any] = Promise[Any]()
-    val future = result.future
-    Database.getConnection.connect.onComplete {
-      case scala.util.Success(connection) =>
-        Database.query(connection.sendPreparedStatement(
-          "UPDATE characters SET last_login = ? where id=?", Array(new java.sql.Timestamp(System.currentTimeMillis), charId)
-        )).onComplete {
-          case _ =>
-            if(connection.isConnected) connection.disconnect
-            result success true
-        }
-      case _ =>
-        val msg = s"UpdateCharacterLoginTime: could not update login time for $charId"
-        log.error(msg)
-        result failure new Throwable(msg)
-    }
-    future
-  }
-
-  def PrepareToTurnPlayerIntoCorpse(tplayer : Player, zone : Zone) : Unit = {
-    FriskDeadBody(tplayer)
-    if(!WellLootedDeadBody(tplayer)) {
-      TurnPlayerIntoCorpse(tplayer)
-      zone.Population ! Zone.Corpse.Add(tplayer)
-      zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.Release(tplayer, zone))
-    }
-    else {
-      //no items in inventory; leave no corpse
-      val pguid = tplayer.GUID
-      sendResponse(ObjectDeleteMessage(pguid, 0))
-      zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.ObjectDelete(pguid, pguid, 0))
-      taskResolver ! GUIDTask.UnregisterPlayer(tplayer)(zone.GUID)
-    }
-  }
-
-  def SetCurrentAvatarNormally(tplayer : Player) : Unit = {
-    self ! SetCurrentAvatar(tplayer)
-  }
-
-  def SetCurrentAvatarUponDeployment(tplayer : Player) : Unit = {
-    beginZoningSetCurrentAvatarFunc = SetCurrentAvatarNormally
-    continent.Actor ! Zone.Lattice.RequestSpawnPoint(continent.Number, tplayer, 0)
   }
 
   def failWithError(error : String) = {

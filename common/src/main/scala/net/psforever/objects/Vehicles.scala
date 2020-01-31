@@ -27,7 +27,6 @@ object Vehicles {
       case Some(tplayer) =>
         tplayer.VehicleOwned = vehicle.GUID
         vehicle.AssignOwnership(playerOpt)
-
         vehicle.Zone.VehicleEvents ! VehicleServiceMessage(vehicle.Zone.Id, VehicleAction.Ownership(tplayer.GUID, vehicle.GUID))
         Vehicles.ReloadAccessPermissions(vehicle, tplayer.Name)
         Some(vehicle)
