@@ -7,7 +7,6 @@ import com.github.mauricio.async.db.{Connection, QueryResult}
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 import org.log4s.{Logger, MDC}
-
 import scala.annotation.{switch, tailrec}
 import scala.collection.concurrent.TrieMap
 import scala.collection.mutable.LongMap
@@ -187,103 +186,29 @@ class WorldSessionActor extends Actor
   import scala.language.implicitConversions
   implicit def boolToInt(b : Boolean) : Int = if(b) 1 else 0
 
-  def JammableObject = player
-
   override def postStop() : Unit = {
     //normally, the player avatar persists a minute or so after disconnect; we are subject to the SessionReaper
     clientKeepAlive.cancel
+    progressBarUpdate.cancel
     reviveTimer.cancel
     respawnTimer.cancel
+    cargoMountTimer.cancel
+    cargoDismountTimer.cancel
+    antChargingTick.cancel
+    antDischargingTick.cancel
     chatService ! Service.Leave()
+    galaxyService ! Service.Leave()
+    squadService ! Service.Leave(Some(s"${avatar.faction}"))
     continent.AvatarEvents ! Service.Leave()
     continent.LocalEvents ! Service.Leave()
     continent.VehicleEvents ! Service.Leave()
-    galaxyService ! Service.Leave()
-    LivePlayerList.Remove(sessionId)
     if(player != null && player.HasGUID) {
       //TODO put any temporary values back into the avatar
-      PlayerActionsToCancel()
-    }
-//    if(player != null && player.HasGUID) {
-//      PlayerActionsToCancel()
-//      squadService ! Service.Leave(Some(player.CharId.toString))
-//      val player_guid = player.GUID
-//      //handle orphaned deployables
-//      Deployables.Disown(continent, avatar, self)
-//      //clean up boomer triggers and telepads
-//      val equipment = (
-//        (player.Holsters()
-//          .zipWithIndex
-//          .map({ case ((slot, index)) => (index, slot.Equipment) })
-//          .collect { case ((index, Some(obj))) => InventoryItem(obj, index) }
-//          ) ++ player.Inventory.Items)
-//        .filterNot({ case InventoryItem(obj, _) => obj.isInstanceOf[BoomerTrigger] || obj.isInstanceOf[Telepad] })
-//      //put any temporary value back into the avatar
-//      //TODO final character save before doing any of this (use equipment)
-//      continent.Population ! Zone.Population.Release(avatar)
-//      if(player.isAlive) {
-//        //actually being alive or manually deconstructing
-//        player.Position = Vector3.Zero
-//        //if seated, dismount
-//        player.VehicleSeated match {
-//          case Some(_) =>
-//            //quickly and briefly kill player to avoid disembark animation?
-//            continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player_guid, 0, 0))
-//            DismountVehicleOnLogOut()
-//          case _ => ;
-//        }
-//        continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player_guid, player_guid))
-//        taskResolver ! GUIDTask.UnregisterAvatar(player)(continent.GUID)
-//        //TODO normally, the actual player avatar persists a minute or so after the user disconnects
-//      }
-//      else if(continent.LivePlayers.contains(player) && !continent.Corpses.contains(player)) {
-//        //player disconnected while waiting for a revive, maybe
-//        //similar to handling ReleaseAvatarRequestMessage
-//        player.Release
-//        player.VehicleSeated match {
-//          case None =>
-//            FriskDeadBody(player) //TODO eliminate dead letters
-//            if(!WellLootedDeadBody(player)) {
-//              continent.Population ! Zone.Corpse.Add(player)
-//              continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.Release(player, continent))
-//              taskResolver ! GUIDTask.UnregisterLocker(player.Locker)(continent.GUID) //rest of player will be cleaned up with corpses
-//            }
-//            else {
-//              //no items in inventory; leave no corpse
-//              val player_guid = player.GUID
-//              player.Position = Vector3.Zero //save character before doing this
-//              continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player_guid, player_guid))
-//              taskResolver ! GUIDTask.UnregisterAvatar(player)(continent.GUID)
-//            }
-//
-//          case Some(_) =>
-//            val player_guid = player.GUID
-//            player.Position = Vector3.Zero //save character before doing this
-//            continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player_guid, player_guid))
-//            taskResolver ! GUIDTask.UnregisterAvatar(player)(continent.GUID)
-//            DismountVehicleOnLogOut()
-//        }
-//      }
-//      //disassociate and start the deconstruction timer for any currently owned vehicle
-//      SpecialCaseDisownVehicle()
-//      continent.Population ! Zone.Population.Leave(avatar)
-//    }
-  }
-
-  /**
-    * Vehicle cleanup that is specific to log out behavior.
-    */
-  def DismountVehicleOnLogOut() : Unit = {
-    (continent.GUID(player.VehicleSeated) match {
-      case Some(obj : Mountable) =>
-        (Some(obj), obj.PassengerInSeat(player))
-      case _ =>
-        (None, None)
-    }) match {
-      case (Some(mountObj), Some(seatIndex)) =>
-        mountObj.Seats(seatIndex).Occupant = None
-
-      case _ => ;
+      prefire.orElse(shooting) match {
+        case Some(guid) =>
+          continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireState_Stop(player.GUID, guid))
+        case None => ;
+      }
     }
   }
 
@@ -1130,7 +1055,7 @@ class WorldSessionActor extends Actor
       taskResolver ! GUIDTask.UnregisterObjectTask(obj)(continent.GUID)
 
     case InterstellarCluster.ClientInitializationComplete() =>
-      LivePlayerList.Add(sessionId, avatar)
+      LivePlayerList.Add(avatar.CharId, avatar)
       traveler = new Traveler(self, continent.Id)
       StartBundlingPackets()
       //PropertyOverrideMessage
@@ -1428,10 +1353,17 @@ class WorldSessionActor extends Actor
       log.warn(s"Invalid packet class received: $default from $sender")
   }
 
+  /**
+    * Update this player avatar for persistence.
+    * @param persistRef reference to the persistence monitor
+    */
   def UpdatePersistence(persistRef : ActorRef)() : Unit = {
     persistRef ! AccountPersistenceService.Update(player.Name, continent, player.Position)
   }
 
+  /**
+    * Do not update this player avatar for persistence.
+    */
   def NoPersistence() : Unit = { }
 
   /**

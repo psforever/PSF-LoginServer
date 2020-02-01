@@ -2,12 +2,12 @@
 package services.account
 
 import akka.actor.{Actor, ActorRef, Cancellable, Props}
+
 import scala.collection.mutable
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
-
 import net.psforever.objects.guid.GUIDTask
-import net.psforever.objects.{Avatar, DefaultCancellable, Deployables, Player, Vehicle, Vehicles}
+import net.psforever.objects._
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.zones.Zone
 import net.psforever.types.Vector3
@@ -328,7 +328,9 @@ class PersistenceMonitor(name : String, squadService : ActorRef, taskResolver : 
     */
   def AvatarLogout(avatar : Avatar) : Unit = {
     val parent = context.parent
-    squadService.tell(Service.Leave(Some(avatar.CharId.toString)), parent)
+    val charId = avatar.CharId
+    LivePlayerList.Remove(charId)
+    squadService.tell(Service.Leave(Some(charId.toString)), parent)
     Deployables.Disown(inZone, avatar, parent)
     inZone.Population.tell(Zone.Population.Leave(avatar), parent)
   }
