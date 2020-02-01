@@ -357,6 +357,7 @@ class ZonePopulationTest extends ActorTest {
       val zone = new Zone("test", new ZoneMap(""), 0) { override def SetupNumberPools() = { } }
       val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       val player = Player(avatar)
+      player.GUID = PlanetSideGUID(1)
       zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), ZoneTest.TestName)
       zone.Actor ! Zone.Init()
       expectNoMsg(200 milliseconds)
