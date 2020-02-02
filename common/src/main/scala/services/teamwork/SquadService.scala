@@ -376,7 +376,23 @@ class SquadService extends Actor {
           e.printStackTrace()
       }
 
-    case Service.Leave(Some(char_id)) => LeaveService(char_id, sender)
+    case Service.Leave(Some(faction)) if "TRNCVS".indexOf(faction) > -1 =>
+      val path = s"/$faction/Squad"
+      val who = sender()
+      debug(s"$who has left $path")
+      SquadEvents.unsubscribe(who, path)
+
+    case Service.Leave(Some(char_id)) =>
+      try {
+        LeaveService(char_id.toLong, sender)
+      }
+      catch {
+        case _ : ClassCastException =>
+          log.warn(s"Service.Leave: tried $char_id as a unique character identifier, but it could not be casted")
+        case e : Exception =>
+          log.error(s"Service.Leave: unexpected exception using $char_id as data - ${e.getLocalizedMessage}")
+          e.printStackTrace()
+      }
 
     case Service.Leave(None) | Service.LeaveAll() => UserEvents find { case(_, subscription) => subscription.path.equals(sender.path)} match {
       case Some((to, _)) =>
