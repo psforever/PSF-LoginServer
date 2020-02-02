@@ -198,16 +198,18 @@ class WorldSessionActor extends Actor
     antDischargingTick.cancel
     chatService ! Service.Leave()
     galaxyService ! Service.Leave()
-    squadService ! Service.Leave(Some(s"${avatar.faction}"))
     continent.AvatarEvents ! Service.Leave()
     continent.LocalEvents ! Service.Leave()
     continent.VehicleEvents ! Service.Leave()
-    if(player != null && player.HasGUID) {
+    if(avatar != null) {
       //TODO put any temporary values back into the avatar
-      prefire.orElse(shooting) match {
-        case Some(guid) =>
-          continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireState_Stop(player.GUID, guid))
-        case None => ;
+      squadService ! Service.Leave(Some(s"${avatar.faction}"))
+      if(player != null && player.HasGUID) {
+        prefire.orElse(shooting) match {
+          case Some(guid) =>
+            continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireState_Stop(player.GUID, guid))
+          case None => ;
+        }
       }
     }
   }
