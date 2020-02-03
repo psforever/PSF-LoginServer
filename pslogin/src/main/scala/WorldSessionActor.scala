@@ -1348,7 +1348,7 @@ class WorldSessionActor extends Actor
         case _ =>
           //fall back to sanctuary/prior?
           log.error(s"LoginInfo: player $playerName could not be found in game world")
-          self ! PlayerToken.LoginInfo(playerName, Zone.Nowhere, player.Position)
+          self ! PlayerToken.LoginInfo(playerName, Zone.Nowhere, pos)
       }
 
     case default =>
@@ -3371,8 +3371,12 @@ class WorldSessionActor extends Actor
       loadConfZone = false
     }
 
-    if (noSpawnPointHere) {
+    if(noSpawnPointHere) {
       RequestSanctuaryZoneSpawn(player, continent.Number)
+    }
+    else if(player.Health == 0) {
+      //player died during setup; probably a relog
+      player.Actor ! Player.Die()
     }
   }
 
