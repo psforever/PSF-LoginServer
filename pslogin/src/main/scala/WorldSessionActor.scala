@@ -1289,6 +1289,8 @@ class WorldSessionActor extends Actor
     case PlayerToken.LoginInfo(playerName, inZone, pos) =>
       log.info(s"LoginInfo: player $playerName is already logged; rejoining that character")
       persist = UpdatePersistence(sender)
+      //tell the old WSA to kill itself by using its own subscriptions against itself
+      inZone.AvatarEvents ! AvatarServiceMessage(playerName, AvatarAction.TeardownConnection())
       //find and reload previous player
       (inZone.Players.find(p => p.name.equals(playerName)), inZone.LivePlayers.find(p => p.Name.equals(playerName))) match {
         case (Some(a), Some(p)) if p.isAlive =>
@@ -1423,6 +1425,10 @@ class WorldSessionActor extends Actor
     val tplayer_guid = if(player.HasGUID) player.GUID
     else PlanetSideGUID(0)
     reply match {
+      case AvatarResponse.TeardownConnection() =>
+        log.info("ending session by event system request (relog)")
+        context.stop(self)
+
       case AvatarResponse.SendResponse(msg) =>
         sendResponse(msg)
 
@@ -9413,9 +9419,13 @@ class WorldSessionActor extends Actor
         player = tplayer
         (taskResolver, TaskBeforeZoneChange(GUIDTask.UnregisterLocker(original.Locker)(continent.GUID), zone_id))
       }
-      else {
+      else if(player.HasGUID) {
         //unregister avatar whole + GiveWorld
         (taskResolver, TaskBeforeZoneChange(GUIDTask.UnregisterAvatar(original)(continent.GUID), zone_id))
+      }
+      else {
+        //not currently registered; so we'll just GiveWorld
+        (cluster, InterstellarCluster.GetWorld(zone_id))
       }
     }
   }

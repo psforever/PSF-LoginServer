@@ -229,6 +229,11 @@ class AvatarService(zone : Zone) extends Actor {
             AvatarServiceResponse(s"/$forChannel/Avatar", target_guid, AvatarResponse.Revive(target_guid))
           )
 
+        case AvatarAction.TeardownConnection() =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(s"/$forChannel/Avatar", Service.defaultPlayerGUID, AvatarResponse.TeardownConnection())
+          )
+
         case _ => ;
     }
 

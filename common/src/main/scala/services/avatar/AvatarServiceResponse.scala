@@ -54,5 +54,7 @@ object AvatarResponse {
 
   final case class SendResponse(msg: PlanetSideGamePacket) extends Response
   final case class SendResponseTargeted(target_guid : PlanetSideGUID, msg: PlanetSideGamePacket) extends Response
+
+  final case class TeardownConnection() extends Response
   //  final case class PlayerStateShift(itemID : PlanetSideGUID) extends Response
 }

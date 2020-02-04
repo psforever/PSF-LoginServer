@@ -62,6 +62,7 @@ object AvatarAction {
   final case class SendResponse(player_guid: PlanetSideGUID, msg: PlanetSideGamePacket) extends Action
   final case class SendResponseTargeted(target_guid: PlanetSideGUID, msg: PlanetSideGamePacket) extends Action
 
+  final case class TeardownConnection() extends Action
   //  final case class PlayerStateShift(killer : PlanetSideGUID, victim : PlanetSideGUID) extends Action
   //  final case class DestroyDisplay(killer : PlanetSideGUID, victim : PlanetSideGUID) extends Action
 }
