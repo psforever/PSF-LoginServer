@@ -102,6 +102,9 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends AmenityOwner
     */
   private var mountedIn : Option[PlanetSideGUID] = None
 
+  private var vehicleGatingManifest : Option[VehicleManifest] = None
+  private var previousVehicleGatingManifest : Option[VehicleManifest] = None
+
   //init
   LoadDefinition()
 
@@ -522,6 +525,23 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends AmenityOwner
     * @return the current access value for the `Vehicle` `Trunk`
     */
   def TrunkLockState :  VehicleLockState.Value = groupPermissions(3)
+
+  def PrepareGatingManifest() : VehicleManifest = {
+    val manifest = VehicleManifest(this)
+    seats.collect { case (index, seat) if index > 0 => seat.Occupant = None }
+    vehicleGatingManifest = Some(manifest)
+    previousVehicleGatingManifest = None
+    manifest
+  }
+
+  def PublishGatingManifest() : Option[VehicleManifest] = {
+    val out = vehicleGatingManifest
+    previousVehicleGatingManifest = vehicleGatingManifest
+    vehicleGatingManifest = None
+    out
+  }
+
+  def PreviousGatingManifest() : Option[VehicleManifest] = previousVehicleGatingManifest
 
   def DamageModel = Definition.asInstanceOf[DamageResistanceModel]
 

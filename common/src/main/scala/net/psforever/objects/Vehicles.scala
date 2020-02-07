@@ -110,4 +110,45 @@ object Vehicles {
       )
     })
   }
+
+  /**
+    * A recursive test that explores all the seats of a target vehicle
+    * and all the seats of any discovered cargo vehicles
+    * and then the same criteria in those cargo vehicles
+    * to determine if any of their combined passenger roster remains in a given zone.<br>
+    * <br>
+    * The original zone is expected to be defined in the internal vehicle gating manifest file
+    * and, if this file does not exist, we fail the testing process.
+    * The target zone is the one wherever the vehicle currently is located (`vehicle.Zone`).
+    * All participant passengers, also defined in the manifest, are expected to be in the target zone at the same time.
+    * This test excludes (rejects) same-zone transitions
+    * though it would automatically pass the test under those conditions.<br>
+    * <br>
+    * While it should be possible to recursively explore up a parent-child relationship -
+    * testing the ferrying vehicle to which the current tested vehicle is considered a cargo vehicle -
+    * the relationship expressed is one of globally unique refertences and not one of object references -
+    * that suggested super-ferrying vehicle may not exist in the zone unless special considerations are imposed.
+    * For the purpose of these special considerations,
+    * implemented by enforcing a strictly downwards order of vehicular zone transportation,
+    * where drivers move vehicles and call passengers and immediate cargo vehicle drivers,
+    * it becomes unnecessary to test any vehicle that might be ferrying the target vehicle.
+    * @see `ZoneAware`
+    * @param vehicle the target vehicle being moved around between zones
+    * @return `true`, if all passengers of the vehicle, and its cargo vehicles, etc., have reported being in the same zone;
+    *        `false`, if no manifest entry exists, or if the vehicle is moving to the same zone
+    */
+  def AllGatedOccupantsInSameZone(vehicle : Vehicle) : Boolean = {
+    val vzone = vehicle.Zone
+    vehicle.PreviousGatingManifest() match {
+      case Some(manifest) if vzone != manifest.origin =>
+        val manifestPassengers = manifest.passengers.collect { case (name, _) => name } :+ manifest.driverName
+        val manifestPassengerResults = manifestPassengers.map { name => vzone.Players.exists(_.name.equals(name)) }
+        manifestPassengerResults.forall(_ == true) &&
+          vehicle.CargoHolds.values
+            .collect { case hold if hold.isOccupied => AllGatedOccupantsInSameZone(hold.Occupant.get) }
+            .forall(_ == true)
+      case _ =>
+        false
+    }
+  }
 }

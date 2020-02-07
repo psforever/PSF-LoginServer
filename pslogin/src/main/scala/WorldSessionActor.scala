@@ -310,19 +310,41 @@ class WorldSessionActor extends Actor
         case GalaxyResponse.MapUpdate(msg) =>
           sendResponse(msg)
 
-        case GalaxyResponse.TransferPassenger(temp_channel, vehicle, vehicle_to_delete) =>
-          vehicle.PassengerInSeat(player) match {
-            case Some(_) =>
+        case GalaxyResponse.TransferPassenger(temp_channel, vehicle, vehicle_to_delete, manifest) =>
+          ((manifest.passengers.find { case (name, _) => player.Name.equals(name) } match {
+            case Some((name, index)) if vehicle.Seats(index).Occupant.isEmpty =>
+              vehicle.Seats(index).Occupant = player
+              Some(vehicle)
+            case None =>
+              None
+          }).orElse(manifest.cargo.find { case (name, _) => player.Name.equals(name) } match {
+            case Some((name, index)) =>
+              vehicle.CargoHolds(index).Occupant match {
+                case Some(cargo) =>
+                  cargo.Seats(0).Occupant match {
+                    case Some(driver) if driver.Name.equals(name) =>
+                      Some(cargo)
+                    case _ =>
+                      None
+                  }
+                case None =>
+                  None
+              }
+            case None =>
+              None
+          })
+            ) match {
+            case Some(v) =>
               galaxyService ! Service.Leave(Some(temp_channel)) //temporary vehicle-specific channel (see above)
               deadState = DeadState.Release
               sendResponse(AvatarDeadStateMessage(DeadState.Release, 0, 0, player.Position, player.Faction, true))
-              interstellarFerry = Some(vehicle) //on the other continent and registered to that continent's GUID system
-              interstellarFerryTopLevelGUID = Some(vehicle_to_delete) //vehicle.GUID, or previously a higher level parent
-              LoadZonePhysicalSpawnPoint(vehicle.Continent, vehicle.Position, vehicle.Orientation, 1)
+              interstellarFerry = Some(v) //on the other continent and registered to that continent's GUID system
+              LoadZonePhysicalSpawnPoint(v.Continent, v.Position, v.Orientation, 1)
             case None =>
               interstellarFerry match {
                 case None =>
-                  continent.VehicleEvents ! Service.Leave(Some(temp_channel)) //no longer being transferred between zones
+                  galaxyService ! Service.Leave(Some(temp_channel)) //no longer being transferred between zones
+                  interstellarFerryTopLevelGUID = None
                 case Some(_) => ;
                 //wait patiently
               }
@@ -2759,8 +2781,10 @@ class WorldSessionActor extends Actor
         }
 
       case VehicleResponse.UnloadVehicle(vehicle, vehicle_guid) =>
-        BeforeUnloadVehicle(vehicle)
-        sendResponse(ObjectDeleteMessage(vehicle_guid, 0))
+        //if(tplayer_guid != guid) {
+          BeforeUnloadVehicle(vehicle)
+          sendResponse(ObjectDeleteMessage(vehicle_guid, 0))
+        //}
 
       case VehicleResponse.UnstowEquipment(item_guid) =>
         if(tplayer_guid != guid) {
@@ -2782,11 +2806,12 @@ class WorldSessionActor extends Actor
         amsSpawnPoints = list.filter(tube => tube.Faction == player.Faction)
         DrawCurrentAmsSpawnPoint()
 
-      case VehicleResponse.TransferPassengerChannel(old_channel, temp_channel, vehicle) =>
+      case VehicleResponse.TransferPassengerChannel(old_channel, temp_channel, vehicle, vehicle_to_delete) =>
         if(tplayer_guid != guid) {
           interstellarFerry = Some(vehicle)
+          interstellarFerryTopLevelGUID = Some(vehicle_to_delete)
           continent.VehicleEvents ! Service.Leave(Some(old_channel)) //old vehicle-specific channel (was s"${vehicle.Actor}")
-          galaxyService ! Service.Join(temp_channel) //temporary vehicle-specific channel (driver name, plus extra)
+          galaxyService ! Service.Join(temp_channel) //temporary vehicle-specific channel
         }
 
       case VehicleResponse.ForceDismountVehicleCargo(cargo_guid, bailed, requestedByPassenger, kicked) =>
@@ -3364,13 +3389,11 @@ class WorldSessionActor extends Actor
         LoadZoneTransferPassengerMessages(
           guid,
           continent.Id,
-          TransportVehicleChannelName(vehicle),
-          vehicle,
-          interstellarFerryTopLevelGUID.getOrElse(vehicle.GUID)
+          vehicle
         )
-        interstellarFerryTopLevelGUID = None
       case _ => ;
     }
+    interstellarFerryTopLevelGUID = None
 
     if (loadConfZone && connectionState == 100) {
       configZone(continent)
@@ -4101,7 +4124,7 @@ class WorldSessionActor extends Actor
             continent.VehicleEvents ! VehicleServiceMessage(continent.Id, VehicleAction.VehicleState(player.GUID, vehicle_guid, unk1, obj.Position, ang, obj.Velocity, if(obj.Flying) { flying } else { None }, unk6, unk7, wheels, unk9, obj.Cloaked))
             updateSquad()
           case (None, _) =>
-            log.error(s"VehicleState: no vehicle $vehicle_guid found in zone")
+            //log.error(s"VehicleState: no vehicle $vehicle_guid found in zone")
             //TODO placing a "not driving" warning here may trigger as we are disembarking the vehicle
           case (_, Some(index)) =>
             log.error(s"VehicleState: player should not be dispatching this kind of packet from vehicle#$vehicle_guid  when not the driver ($index)")
@@ -7897,7 +7920,6 @@ class WorldSessionActor extends Actor
     * @see `LoadZoneTransferPassengerMessages`
     * @see `Player.Spawn`
     * @see `ReloadUsedLastCoolDownTimes`
-    * @see `TransportVehicleChannelName`
     * @see `Vehicles.Own`
     * @see `Vehicles.ReloadAccessPermissions`
     */
@@ -7926,6 +7948,7 @@ class WorldSessionActor extends Actor
         val vguid = vehicle.GUID
         val vdata = if(seat == 0) {
           //driver
+          continent.Transport ! Zone.Vehicle.Spawn(vehicle)
           //as the driver, we must temporarily exclude ourselves from being in the vehicle during its creation
           val seat = vehicle.Seats(0)
           seat.Occupant = None
@@ -7936,7 +7959,6 @@ class WorldSessionActor extends Actor
           vehicle.CargoHolds.values
             .collect { case hold if hold.isOccupied => hold.Occupant.get }
             .foreach { _.MountedIn = vguid }
-          continent.Transport ! Zone.Vehicle.Spawn(vehicle)
           continent.VehicleEvents ! VehicleServiceMessage(continent.Id, VehicleAction.LoadVehicle(player.GUID, vehicle, vdef.ObjectId, vguid, data))
           carrierInfo match {
             case (Some(carrier), Some((index, _))) =>
@@ -7958,7 +7980,15 @@ class WorldSessionActor extends Actor
           }
           data
         }
+        val originalSeated = player.VehicleSeated
         player.VehicleSeated = vguid
+        if(Vehicles.AllGatedOccupantsInSameZone(vehicle)) {
+          //do not dispatch delete action if any hierarchical occupant has not gotten this far through the summoning process
+          val vehicleToDelete = interstellarFerryTopLevelGUID.orElse(originalSeated).getOrElse(PlanetSideGUID(0))
+          val zone = vehicle.PreviousGatingManifest().get.origin
+          zone.VehicleEvents ! VehicleServiceMessage(zone.Id, VehicleAction.UnloadVehicle(player.GUID, zone, vehicle, vehicleToDelete))
+          log.info(s"AvatarCreate: cleaning up ghost of transitioning vehicle ${vehicle.Definition.Name}@${vehicleToDelete.guid} in zone ${zone.Id}")
+        }
         Vehicles.ReloadAccessPermissions(vehicle, player.Name)
         //log.info(s"AvatarCreate (vehicle): $guid -> $data")
         AvatarCreateInVehicle(player, vehicle, seat)
@@ -8057,7 +8087,7 @@ class WorldSessionActor extends Actor
     val vguid = vehicle.GUID
     tplayer.VehicleSeated = None
     val pdata = pdef.Packet.DetailedConstructorData(tplayer).get
-    tplayer.VehicleSeated = vehicle.GUID
+    tplayer.VehicleSeated = vguid
     sendResponse(ObjectCreateDetailedMessage(pdef.ObjectId, pguid, pdata))
     sendResponse(ObjectAttachMessage(vguid, pguid, seat))
     AccessContents(vehicle)
@@ -9491,28 +9521,27 @@ class WorldSessionActor extends Actor
     **/
   def LoadZoneInVehicleAsDriver(vehicle : Vehicle, zone_id : String) : (ActorRef, Any) = {
     log.info(s"LoadZoneInVehicleAsDriver: ${player.Name} is driving a ${vehicle.Definition.Name}")
+    val manifest = vehicle.PrepareGatingManifest()
+    log.info(s"$manifest")
     val pguid = player.GUID
-    val toChannel = TransportVehicleChannelName(vehicle)
-    //standard passengers
-    continent.VehicleEvents ! VehicleServiceMessage(s"${vehicle.Actor}", VehicleAction.TransferPassengerChannel(pguid, s"${vehicle.Actor}", toChannel, vehicle))
-    //cargo
-    val occupiedCargoHolds = vehicle.CargoHolds.values.collect {
-      case hold if hold.isOccupied =>
-        hold.Occupant.get
-    }
-    occupiedCargoHolds.foreach{ cargo =>
-      cargo.Seats(0).Occupant match {
-        case Some(occupant) =>
-          continent.VehicleEvents ! VehicleServiceMessage(s"${occupant.Name}", VehicleAction.TransferPassengerChannel(pguid, s"${cargo.Actor}", toChannel, cargo))
-        case _ =>
-          log.error("LoadZoneInVehicleAsDriver: abort; vehicle in cargo hold missing driver")
-          HandleDismountVehicleCargo(player.GUID, cargo.GUID, cargo, vehicle.GUID, vehicle, false, false, true)
-      }
+    val toChannel = manifest.file
+    val topLevel = interstellarFerryTopLevelGUID.getOrElse(vehicle.GUID)
+    continent.VehicleEvents ! VehicleServiceMessage(
+      s"${vehicle.Actor}",
+      VehicleAction.TransferPassengerChannel(pguid, s"${vehicle.Actor}", toChannel, vehicle, topLevel)
+    )
+    manifest.cargo.foreach {
+      case ("MISSING_DRIVER", index) =>
+        val cargo = vehicle.CargoHolds(index).Occupant.get
+        log.error(s"LoadZoneInVehicleAsDriver: eject cargo in hold $index; vehicle missing driver")
+        HandleDismountVehicleCargo(pguid, cargo.GUID, cargo, vehicle.GUID, vehicle, false, false, true)
+      case (name, index) =>
+        val cargo = vehicle.CargoHolds(index).Occupant.get
+        continent.VehicleEvents ! VehicleServiceMessage(name, VehicleAction.TransferPassengerChannel(pguid, s"${cargo.Actor}", toChannel, cargo, topLevel))
     }
     //
     if(zone_id == continent.Id) {
       //transferring a vehicle between spawn points (warp gates) in the same zone
-      //LoadZoneTransferPassengerMessages(pguid, zone_id, toChannel, vehicle, PlanetSideGUID(0))
       (self, PlayerLoaded(player))
     }
     else {
@@ -9520,31 +9549,18 @@ class WorldSessionActor extends Actor
       LoadZoneCommonTransferActivity()
       player.VehicleSeated = vehicle.GUID
       player.Continent = zone_id //forward-set the continent id to perform a test
-      interstellarFerryTopLevelGUID = (if(vehicle.Seats.values.count(_.isOccupied) == 1 && occupiedCargoHolds.size == 0) {
+      interstellarFerryTopLevelGUID = (if(manifest.passengers.isEmpty && manifest.cargo.count { case (name, _) => !name.equals("MISSING_DRIVER") } == 0) {
         //do not delete if vehicle has passengers or cargo
-        val vehicleToDelete = interstellarFerryTopLevelGUID.orElse(player.VehicleSeated).getOrElse(PlanetSideGUID(0))
-        continent.VehicleEvents ! VehicleServiceMessage(continent.Id, VehicleAction.UnloadVehicle(pguid, continent, vehicle, vehicleToDelete))
+        continent.VehicleEvents ! VehicleServiceMessage(continent.Id, VehicleAction.UnloadVehicle(pguid, continent, vehicle, topLevel))
         None
       }
       else {
-        interstellarFerryTopLevelGUID.orElse(Some(vehicle.GUID))
+        Some(topLevel)
       })
       //unregister vehicle and driver whole + GiveWorld
       continent.Transport ! Zone.Vehicle.Despawn(vehicle)
       (taskResolver, TaskBeforeZoneChange(UnregisterDrivenVehicle(vehicle, player), zone_id))
     }
-  }
-
-  /**
-    * The channel name for summoning passengers to the vehicle
-    * after it has been loaded to a new location or to a new zone.
-    * This channel name should be unique to the vehicle for at least the duration of the transition.
-    * The vehicle-specific channel with which all passengers are coordinated back to the original vehicle.
-    * @param vehicle the vehicle being moved (or having been moved)
-    * @return the channel name
-    */
-  def TransportVehicleChannelName(vehicle : Vehicle) : String = {
-    s"transport-vehicle-channel-${interstellarFerryTopLevelGUID.getOrElse(vehicle.GUID).guid}"
   }
 
   /**
@@ -9563,7 +9579,7 @@ class WorldSessionActor extends Actor
     * This vehicle can be deleted for everyone if no more work can be detected.
     * @see `GUIDTask.UnregisterAvatar`
     * @see `LoadZoneCommonTransferActivity`
-    * @see `NoVehicleOccupantsInZone`
+    * @see `Vehicles.AllGatedOccupantsInSameZone`
     * @see `PlayerLoaded`
     * @see `TaskBeforeZoneChange`
     * @see `UnAccessContents`
@@ -9582,49 +9598,10 @@ class WorldSessionActor extends Actor
       player.VehicleSeated = vehicle.GUID
       player.Continent = zone_id //forward-set the continent id to perform a test
       val continentId = continent.Id
-      if(NoVehicleOccupantsInZone(vehicle, continentId)) {
-        //do not dispatch delete action if any hierarchical occupant has not gotten this far through the summoning process
-        val vehicleToDelete = interstellarFerryTopLevelGUID.orElse(player.VehicleSeated).getOrElse(PlanetSideGUID(0))
-        continent.VehicleEvents ! VehicleServiceMessage(continentId, VehicleAction.UnloadVehicle(player.GUID, continent, vehicle, vehicleToDelete))
-      }
       interstellarFerryTopLevelGUID = None
       //unregister avatar + GiveWorld
       (taskResolver, TaskBeforeZoneChange(GUIDTask.UnregisterAvatar(player)(continent.GUID), zone_id))
     }
-  }
-
-  /**
-    * A recursive test that explores all the seats of a target vehicle
-    * and all the seats of any discovered cargo vehicles
-    * and then the same criteria in those cargo vehicles
-    * to determine if any of their combined passenger roster remains in a given zone.<br>
-    * <br>
-    * While it should be possible to recursively explore up a parent-child relationship -
-    * testing the ferrying vehicle to which of the current tested vehicle in consider a cargo vehicle -
-    * the relationship expressed is one of globally unique refertences and not one of object references -
-    * that suggested super-ferrying vehicle may not exist in the zone unless special considerations are imposed.
-    * For the purpose of these special considerations,
-    * implemented by enforcing a strictly downwards order of vehicular zone transportation,
-    * where drivers move vehicles and call passengers and immediate cargo vehicle drivers,
-    * it becomes unnecessary to test any vehicle that might be ferrying the target vehicle.
-    * @see `ZoneAware`
-    * @param vehicle the target vehicle being moved around
-    * @param zone_id the zone in which the vehicle and its passengers should not be located
-    * @return `true`, if all passengers of the vehicle, and its cargo vehicles, etc., have reported being moved from the zone;
-    *        `false`, otherwise
-    */
-  def NoVehicleOccupantsInZone(vehicle : Vehicle, zoneId : String) : Boolean = {
-    (vehicle.Seats.values
-      .collect { case seat if seat.isOccupied && seat.Occupant.get.Continent == zoneId => true }
-      .isEmpty) &&
-      {
-        vehicle.CargoHolds.values
-          .collect {
-            case hold if hold.isOccupied =>
-              hold.Occupant.get
-          }
-          .foldLeft(true)(_ && NoVehicleOccupantsInZone(_, zoneId))
-      }
   }
 
   /**
@@ -9637,18 +9614,24 @@ class WorldSessionActor extends Actor
     * @param toZoneId the zone where the target vehicle will be moved
     * @param toChannel the vehicle-specific channel with which all passengers are coordinated to the vehicle
     * @param vehicle the vehicle (object)
-    * @param vehicleToDelete the vehicle as it was identified in the zone that it is being moved from
     */
-  def LoadZoneTransferPassengerMessages(player_guid : PlanetSideGUID, toZoneId : String, toChannel : String, vehicle : Vehicle, vehicleToDelete : PlanetSideGUID) : Unit = {
-    galaxyService ! GalaxyServiceMessage(toChannel, GalaxyAction.TransferPassenger(player_guid, toChannel, vehicle, vehicleToDelete))
-    vehicle.CargoHolds.values
-      .collect {
-        case hold if hold.isOccupied =>
-          val cargo = hold.Occupant.get
-          cargo.Continent = toZoneId
-          //point to the cargo vehicle to instigate cargo vehicle driver transportation
-          galaxyService ! GalaxyServiceMessage(toChannel, GalaxyAction.TransferPassenger(player_guid, toChannel, cargo, vehicleToDelete))
-      }
+  def LoadZoneTransferPassengerMessages(player_guid : PlanetSideGUID, toZoneId : String, vehicle : Vehicle) : Unit = {
+    vehicle.PublishGatingManifest() match {
+      case Some(manifest) =>
+        val toChannel = manifest.file
+        val topLevel = interstellarFerryTopLevelGUID.getOrElse(vehicle.GUID)
+        galaxyService ! GalaxyServiceMessage(toChannel, GalaxyAction.TransferPassenger(player_guid, toChannel, vehicle, topLevel, manifest))
+        vehicle.CargoHolds.values
+          .collect {
+            case hold if hold.isOccupied =>
+              val cargo = hold.Occupant.get
+              cargo.Continent = toZoneId
+              //point to the cargo vehicle to instigate cargo vehicle driver transportation
+              galaxyService ! GalaxyServiceMessage(toChannel, GalaxyAction.TransferPassenger(player_guid, toChannel, vehicle, topLevel, manifest))
+          }
+      case None =>
+        log.error("LoadZoneTransferPassengerMessages: expected a manifest for zone transfer; got nothing")
+    }
   }
 
   /**
