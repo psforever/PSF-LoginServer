@@ -315,6 +315,9 @@ class WorldSessionActor extends Actor
             case Some((name, index)) if vehicle.Seats(index).Occupant.isEmpty =>
               vehicle.Seats(index).Occupant = player
               Some(vehicle)
+            case Some((name, index)) =>
+              log.warn(s"TransferPassenger: seat $index is already occupied")
+              None
             case None =>
               None
           }).orElse(manifest.cargo.find { case (name, _) => player.Name.equals(name) } match {
@@ -1103,13 +1106,16 @@ class WorldSessionActor extends Actor
         case Zone.Nowhere =>
           RequestSanctuaryZoneSpawn(player, currentZone = 0)
         case zone =>
-          val zoneId = zone.Id
-          log.info(s"Zone $zoneId will now load")
+          log.info(s"Zone ${zone.Id} will now load")
           loadConfZone = true
-          continent.AvatarEvents ! Service.Leave()
-          continent.LocalEvents ! Service.Leave()
-          continent.VehicleEvents ! Service.Leave()
+          val oldZone = continent
           continent = zone
+          //the only zone-level event system subscription necessary before BeginZoningMessage (for persistence purposes)
+          continent.AvatarEvents ! Service.Join(player.Name)
+          persist()
+          oldZone.AvatarEvents ! Service.Leave()
+          oldZone.LocalEvents ! Service.Leave()
+          oldZone.VehicleEvents ! Service.Leave()
           self ! NewPlayerLoaded(player)
       }
       StopBundlingPackets()
@@ -1117,11 +1123,14 @@ class WorldSessionActor extends Actor
     case InterstellarCluster.GiveWorld(zoneId, zone) =>
       log.info(s"Zone $zoneId will now load")
       loadConfZone = true
-      continent.AvatarEvents ! Service.Leave()
-      continent.LocalEvents ! Service.Leave()
-      continent.VehicleEvents ! Service.Leave()
-      player.Continent = zoneId
+      val oldZone = continent
       continent = zone
+      //the only zone-level event system subscription necessary before BeginZoningMessage (for persistence purposes)
+      continent.AvatarEvents ! Service.Join(player.Name)
+      persist()
+      oldZone.AvatarEvents ! Service.Leave()
+      oldZone.LocalEvents ! Service.Leave()
+      oldZone.VehicleEvents ! Service.Leave()
       continent.Population ! Zone.Population.Join(avatar)
       interstellarFerry match {
         case Some(vehicle) if vehicle.PassengerInSeat(player).contains(0) =>
@@ -1309,7 +1318,7 @@ class WorldSessionActor extends Actor
       }
 
     case PlayerToken.LoginInfo(playerName, inZone, pos) =>
-      log.info(s"LoginInfo: player $playerName is already logged; rejoining that character")
+      log.info(s"LoginInfo: player $playerName is already logged in zone ${inZone.Id}; rejoining that character")
       persist = UpdatePersistence(sender)
       //tell the old WSA to kill itself by using its own subscriptions against itself
       inZone.AvatarEvents ! AvatarServiceMessage(playerName, AvatarAction.TeardownConnection())
@@ -3704,7 +3713,6 @@ class WorldSessionActor extends Actor
       traveler.zone = continentId
       val faction = player.Faction
       val factionChannel = s"$faction"
-      continent.AvatarEvents ! Service.Join(avatar.name)
       continent.AvatarEvents ! Service.Join(continentId)
       continent.AvatarEvents ! Service.Join(factionChannel)
       continent.LocalEvents ! Service.Join(avatar.name)
@@ -3863,6 +3871,10 @@ class WorldSessionActor extends Actor
                 )
               )
             })
+          //since we would have only subscribed recently, we need to reload seat access states
+          (0 to 3).foreach { group =>
+            sendResponse(PlanetsideAttributeMessage(vguid, group + 10, vehicle.PermissionGroup(group).get.id))
+          }
         case _ => ; //driver, or no vehicle
       }
       //vehicle wreckages
@@ -8160,7 +8172,7 @@ class WorldSessionActor extends Actor
           val vdata = vdef.Packet.ConstructorData(vehicle).get
           sendResponse(ObjectCreateMessage(vehicle.Definition.ObjectId, vguid, vdata))
         }
-        Vehicles.ReloadAccessPermissions(vehicle, player.Name)
+        Vehicles.ReloadAccessPermissions(vehicle, continent.Id)
         //log.info(s"AvatarCreate (vehicle): $vguid -> $vdata")
         val pdef = player.Definition
         val pguid = player.GUID
