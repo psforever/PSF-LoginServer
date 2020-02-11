@@ -183,7 +183,7 @@ class GridInventory extends Container {
     val starth : Int = starty + h - 1
     if(actualSlot < 0 || actualSlot >= grid.length || startw >= width || starth >= height) {
       val bounds : String = if(startx < 0) { "left" } else if(startw >= width) { "right" } else { "bottom" }
-      Failure(new IndexOutOfBoundsException(s"requested region escapes the $bounds edge of the grid inventory - $startx, $starty; $w x $h"))
+      Failure(new IndexOutOfBoundsException(s"requested region escapes the $bounds edge of the grid inventory - $startx + $w, $starty + $h"))
     }
     else {
       val collisions : mutable.Set[InventoryItem] = mutable.Set[InventoryItem]()
@@ -220,22 +220,31 @@ class GridInventory extends Container {
       val starty : Int = actualSlot / width
       val startw : Int = startx + w - 1
       val bounds : String = if(startx < 0) { "left" } else if(startw >= width) { "right" } else { "bottom" }
-      Failure(new IndexOutOfBoundsException(s"requested region escapes the $bounds edge of the grid inventory - $startx, $starty; $w x $h"))
+      Failure(new IndexOutOfBoundsException(s"requested region escapes the $bounds edge of the grid inventory - $startx + $w, $starty + $h"))
     }
     else {
       val collisions : mutable.Set[InventoryItem] = mutable.Set[InventoryItem]()
       var curr = actualSlot
       val fixedItems = items.toMap
       val fixedGrid = grid.toList
-      for(_ <- 0 until h) {
-        for(col <- 0 until w) {
-          if(fixedGrid(curr + col) > -1) {
-            collisions += fixedItems(fixedGrid(curr + col))
+      try {
+        for(_ <- 0 until h) {
+          for(col <- 0 until w) {
+            val itemIndex = fixedGrid(curr + col)
+            if(itemIndex > -1) {
+              collisions += fixedItems(itemIndex)
+            }
           }
+          curr += width
         }
-        curr += width
+        Success(collisions.toList)
       }
-      Success(collisions.toList)
+      catch {
+        case e : NoSuchElementException =>
+          Failure(InventoryDisarrayException(s"inventory contained old item data", e))
+        case e : Exception =>
+          Failure(e)
+      }
     }
   }
 
@@ -305,7 +314,7 @@ class GridInventory extends Container {
       val starty : Int = start / width
       val startw : Int = startx + w - 1
       val bounds : String = if(startx < 0) { "left" } else if(startw >= width) { "right" } else { "bottom" }
-      throw new IndexOutOfBoundsException(s"requested region escapes the $bounds of the grid inventory - $startx, $starty; $w x $h")
+      throw new IndexOutOfBoundsException(s"requested region escapes the $bounds of the grid inventory - $startx + $w, $starty + $h")
     }
     else {
       var curr = start

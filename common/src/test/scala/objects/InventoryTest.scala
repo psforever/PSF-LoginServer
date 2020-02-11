@@ -3,7 +3,7 @@ package objects
 
 import net.psforever.objects.{AmmoBox, SimpleItem}
 import net.psforever.objects.definition.SimpleItemDefinition
-import net.psforever.objects.inventory.{GridInventory, InventoryItem, InventoryTile}
+import net.psforever.objects.inventory._
 import net.psforever.objects.GlobalDefinitions._
 import net.psforever.types.PlanetSideGUID
 import org.specs2.mutable._
@@ -18,6 +18,18 @@ class InventoryTest extends Specification {
   val
   bullet9mmBox2 = AmmoBox(bullet_9mm)
   bullet9mmBox2.GUID = PlanetSideGUID(2)
+
+  "InventoryDisarrayException" should {
+    "construct" in {
+      InventoryDisarrayException("slot out of bounds")
+      ok
+    }
+
+    "construct (with Throwable)" in {
+      InventoryDisarrayException("slot out of bounds", new Throwable())
+      ok
+    }
+  }
 
   "GridInventory" should {
     "construct" in {
@@ -40,7 +52,7 @@ class InventoryTest extends Specification {
       obj.TotalCapacity mustEqual 54
       obj.Capacity mustEqual 45
       obj.Size mustEqual 1
-      obj.hasItem(PlanetSideGUID(1)) mustEqual Some(bullet9mmBox1)
+      obj.hasItem(PlanetSideGUID(1)).contains(bullet9mmBox1) mustEqual true
       obj.Clear()
       obj.Size mustEqual 0
     }
@@ -50,11 +62,23 @@ class InventoryTest extends Specification {
       //safe
       obj.CheckCollisionsAsList(0, 3, 3) mustEqual Success(Nil)
       //right
-      obj.CheckCollisionsAsList(-1, 3, 3).isFailure mustEqual true
+      obj.CheckCollisionsAsList(-1, 3, 3) match {
+        case scala.util.Failure(fail) =>
+          fail.isInstanceOf[IndexOutOfBoundsException] mustEqual true
+        case _ => ko
+      }
       //left
-      obj.CheckCollisionsAsList(1, 3, 3).isFailure mustEqual true
+      obj.CheckCollisionsAsList(1, 3, 3) match {
+        case scala.util.Failure(fail) =>
+          fail.isInstanceOf[IndexOutOfBoundsException] mustEqual true
+        case _ => ko
+      }
       //bottom
-      obj.CheckCollisionsAsList(3, 3, 3).isFailure mustEqual true
+      obj.CheckCollisionsAsList(3, 3, 3) match {
+        case scala.util.Failure(fail) =>
+          fail.isInstanceOf[IndexOutOfBoundsException] mustEqual true
+        case _ => ko
+      }
     }
 
     "check for item collision (right insert)" in {
@@ -64,7 +88,7 @@ class InventoryTest extends Specification {
       val w = bullet9mmBox2.Tile.Width
       val h = bullet9mmBox2.Tile.Height
       val list0 = obj.CheckCollisionsAsList(0, w, h)
-      list0 match {
+      obj.CheckCollisionsAsList(0, w, h) match {
         case scala.util.Success(list) => list.length mustEqual 1
         case scala.util.Failure(_) => ko
       }
@@ -267,9 +291,9 @@ class InventoryTest extends Specification {
       val obj : GridInventory = GridInventory(9, 6)
       obj += 0 -> bullet9mmBox1
       obj.Capacity mustEqual 45
-      obj.hasItem(PlanetSideGUID(1)) mustEqual Some(bullet9mmBox1)
+      obj.hasItem(PlanetSideGUID(1)).contains(bullet9mmBox1) mustEqual true
       obj += 2 -> bullet9mmBox2
-      obj.hasItem(PlanetSideGUID(2)) mustEqual None
+      obj.hasItem(PlanetSideGUID(2)).isEmpty mustEqual true
       obj.Clear()
       ok
     }
@@ -277,9 +301,9 @@ class InventoryTest extends Specification {
     "remove item" in {
       val obj : GridInventory = GridInventory(9, 6)
       obj += 0 -> bullet9mmBox1
-      obj.hasItem(PlanetSideGUID(1)) mustEqual Some(bullet9mmBox1)
+      obj.hasItem(PlanetSideGUID(1)).contains(bullet9mmBox1) mustEqual true
       obj -= PlanetSideGUID(1)
-      obj.hasItem(PlanetSideGUID(1)) mustEqual None
+      obj.hasItem(PlanetSideGUID(1)).isEmpty mustEqual true
       obj.Clear()
       ok
     }
@@ -288,10 +312,10 @@ class InventoryTest extends Specification {
       val obj : GridInventory = GridInventory(9, 6)
       obj.CheckCollisions(23, bullet9mmBox1) mustEqual Success(Nil)
       obj += 23 -> bullet9mmBox1
-      obj.hasItem(PlanetSideGUID(1)) mustEqual Some(bullet9mmBox1)
+      obj.hasItem(PlanetSideGUID(1)).contains(bullet9mmBox1) mustEqual true
       obj.CheckCollisions(23, bullet9mmBox1) mustEqual Success(1 :: Nil)
       obj -= PlanetSideGUID(1)
-      obj.hasItem(PlanetSideGUID(1)) mustEqual None
+      obj.hasItem(PlanetSideGUID(1)).isEmpty mustEqual true
       obj.CheckCollisions(23, bullet9mmBox1) mustEqual Success(Nil)
       obj.Clear()
       ok

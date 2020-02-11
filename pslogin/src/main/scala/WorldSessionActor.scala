@@ -716,7 +716,7 @@ class WorldSessionActor extends Actor
                 val converter : CharacterSelectConverter = new CharacterSelectConverter
 
                 result.rows foreach { row =>
-                  log.info(s"char list : ${row.toString()}")
+                  log.trace(s"char list : ${row.toString()}")
                   val nowTimeInSeconds = System.currentTimeMillis() / 1000
                   var avatarArray : Array[Avatar] = Array.ofDim(row.length)
                   var playerArray : Array[Player] = Array.ofDim(row.length)
@@ -2412,7 +2412,13 @@ class WorldSessionActor extends Actor
         continent.AvatarEvents ! AvatarServiceMessage(tplayer.Continent, AvatarAction.ArmorChanged(tplayer.GUID, nextSuit, nextSubtype))
         if(nextSuit == ExoSuitType.MAX) {
           val (maxWeapons, otherWeapons) = afterHolsters.partition(entry => { entry.obj.Size == EquipmentSize.Max })
-          taskResolver ! DelayedObjectHeld(tplayer, 0, List(PutEquipmentInSlot(tplayer, maxWeapons.head.obj, 0)))
+          val weapon = maxWeapons.headOption match {
+            case Some(mweapon) =>
+              mweapon.obj
+            case None =>
+              Tool(GlobalDefinitions.MAXArms(nextSubtype, tplayer.Faction))
+          }
+          taskResolver ! DelayedObjectHeld(tplayer, 0, List(PutEquipmentInSlot(tplayer, weapon, 0)))
           otherWeapons
         }
         else {
@@ -10973,6 +10979,8 @@ class WorldSessionActor extends Actor
           obj.Seats.values.collect { case seat if seat.isOccupied => seat.Occupant.get.Name }
         case Some(obj : Player) if obj.ExoSuit == ExoSuitType.MAX =>
           Seq(obj.Name)
+        case _ =>
+          Seq.empty[String]
       }
   }
 

@@ -6,8 +6,6 @@ import org.log4s.MDC
 import scodec.bits._
 
 import scala.collection.mutable
-import MDCContextAware.Implicits._
-import akka.actor.MDCContextAware.MdcMsg
 import akka.actor.SupervisorStrategy.Stop
 import net.psforever.packet.PacketCoding
 import net.psforever.packet.control.ConnectionClose
@@ -35,10 +33,10 @@ case class SessionPipeline(nameTemplate : String, props : Props)
   *
   *            read()                  route                decrypt
   * UDP Socket -----> [Session Router] -----> [Crypto Actor] -----> [Session Actor]
-  *      ^              |          ^           |        ^                 |
+  *     /|\             |         /|\          |       /|\                |
   *      |     write()  |          |  encrypt  |        |   response      |
   *      +--------------+          +-----------+        +-----------------+
-  **/
+  */
 class SessionRouter(role : String, pipeline : List[SessionPipeline]) extends Actor with MDCContextAware {
   private[this] val log = org.log4s.getLogger(self.path.name)
 
@@ -57,7 +55,7 @@ class SessionRouter(role : String, pipeline : List[SessionPipeline]) extends Act
   override def supervisorStrategy = OneForOneStrategy() { case _ => Stop }
 
   override def preStart = {
-    log.info(s"SessionRouter started...ready for ${role} sessions")
+    log.info(s"SessionRouter (for ${role}s) initializing ...")
   }
 
   def receive = initializing
@@ -65,10 +63,13 @@ class SessionRouter(role : String, pipeline : List[SessionPipeline]) extends Act
   def initializing : Receive = {
     case Hello() =>
       inputRef = sender()
-      context.become(started)
       ServiceManager.serviceManager ! Lookup("accountIntermediary")
+    case ServiceManager.LookupResult("accountIntermediary", endpoint) =>
+      accountIntermediary = endpoint
+      log.info(s"SessionRouter starting; ready for $role sessions")
+      context.become(started)
     case default =>
-      log.error(s"Unknown message $default. Stopping...")
+      log.error(s"Unknown or unexpected message $default before being properly started.  Stopping completely...")
       context.stop(self)
   }
 
@@ -77,9 +78,7 @@ class SessionRouter(role : String, pipeline : List[SessionPipeline]) extends Act
   }
 
   def started : Receive = {
-    case ServiceManager.LookupResult("accountIntermediary", endpoint) =>
-      accountIntermediary = endpoint
-    case recv @ ReceivedPacket(msg, from) =>
+    case _ @ ReceivedPacket(msg, from) =>
       var session : Session = null
 
       if(!idBySocket.contains(from)) {
@@ -92,7 +91,7 @@ class SessionRouter(role : String, pipeline : List[SessionPipeline]) extends Act
 
       if(session.state != Closed()) {
         MDC("sessionId") = session.sessionId.toString
-          log.trace(s"RECV: ${msg} -> ${session.getPipeline.head.path.name}")
+          log.trace(s"RECV: $msg -> ${session.getPipeline.head.path.name}")
           session.receive(RawPacket(msg))
         MDC.clear()
       }
@@ -102,7 +101,7 @@ class SessionRouter(role : String, pipeline : List[SessionPipeline]) extends Act
       if(session.isDefined) {
         if(session.get.state != Closed()) {
           MDC("sessionId") = session.get.sessionId.toString
-            log.trace(s"SEND: ${msg} -> ${inputRef.path.name}")
+            log.trace(s"SEND: $msg -> ${inputRef.path.name}")
             session.get.send(msg)
           MDC.clear()
         }
@@ -160,7 +159,7 @@ class SessionRouter(role : String, pipeline : List[SessionPipeline]) extends Act
       sessionByActor{actor} = session
     }
 
-    log.info(s"New session ID=${id} from " + address.toString)
+    log.info(s"New session ID=$id from " + address.toString)
 
     if(role == "Login") {
         accountIntermediary ! StoreIPAddress(id, new IPAddress(address))
@@ -178,14 +177,14 @@ class SessionRouter(role : String, pipeline : List[SessionPipeline]) extends Act
     val session : Session = sessionOption.get
 
     if(graceful) {
-      for(i <- 0 to 5) {
+      for(_ <- 0 to 5) {
         session.send(closePacket)
       }
     }
 
     // kill all session specific actors
     session.dropSession(graceful)
-    log.info(s"Dropping session ID=${id} (reason: $reason)")
+    log.info(s"Dropping session ID=$id (reason: $reason)")
   }
 
   def newSessionId = {

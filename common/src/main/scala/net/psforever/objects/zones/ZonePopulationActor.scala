@@ -47,7 +47,7 @@ class ZonePopulationActor(zone : Zone, playerMap : TrieMap[Avatar, Option[Player
             sender ! Zone.Population.PlayerAlreadySpawned(zone, player)
           }
           else if(newToZone) {
-            player.Actor = context.actorOf(Props(classOf[PlayerControl], player),  s"${player.Name}_${player.GUID.guid}_${System.currentTimeMillis}")
+            player.Actor = context.actorOf(Props(classOf[PlayerControl], player),  s"${player.CharId}_${player.GUID.guid}_${System.currentTimeMillis}")
             player.Zone = zone
           }
         case None =>

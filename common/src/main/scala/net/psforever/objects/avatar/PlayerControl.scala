@@ -22,6 +22,9 @@ class PlayerControl(player : Player) extends Actor
   with JammableBehavior {
   def JammableObject = player
 
+  private [this] val log = org.log4s.getLogger(player.Name)
+  private [this] val damageLog = org.log4s.getLogger("DamageResolution")
+
   def receive : Receive = jammableBehavior.orElse {
     case Player.Die() =>
       PlayerControl.HandleDestructionAwareness(player, player.GUID, None)
@@ -40,8 +43,7 @@ class PlayerControl(player : Player) extends Actor
         val damageToCapacitor = originalCapacitor - capacitor
         PlayerControl.HandleDamageResolution(player, cause, damageToHealth, damageToArmor, damageToCapacitor)
         if(damageToHealth != 0 || damageToArmor != 0 || damageToCapacitor != 0) {
-          org.log4s.getLogger("DamageResolution")
-            .info(s"${player.Name}-infantry: BEFORE=$originalHealth/$originalArmor/$originalCapacitor, AFTER=$health/$armor/$capacitor, CHANGE=$damageToHealth/$damageToArmor/$damageToCapacitor")
+          damageLog.info(s"${player.Name}-infantry: BEFORE=$originalHealth/$originalArmor/$originalCapacitor, AFTER=$health/$armor/$capacitor, CHANGE=$damageToHealth/$damageToArmor/$damageToCapacitor")
         }
       }
     case _ => ;

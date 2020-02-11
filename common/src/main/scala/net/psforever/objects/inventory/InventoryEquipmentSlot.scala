@@ -35,7 +35,7 @@ class InventoryEquipmentSlot(private val slot : Int, private val inv : GridInven
         val tile = equip.Definition.Tile
         inv.CheckCollisionsVar(slot, tile.Width, tile.Height) match {
           case Success(Nil) => inv.InsertQuickly(slot, equip)
-          case _ => ;
+          case _ => ; //TODO we should handle the exception
         }
 
       case None =>
