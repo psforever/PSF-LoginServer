@@ -1,8 +1,8 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.turret
 
-import akka.actor.Actor
-import net.psforever.objects.Player
+import akka.actor.{Actor, Cancellable}
+import net.psforever.objects.{DefaultCancellable, GlobalDefinitions, Player}
 import net.psforever.objects.ballistics.ResolvedProjectile
 import net.psforever.objects.equipment.{JammableMountedWeapons, JammableUnit}
 import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior}
@@ -12,8 +12,13 @@ import net.psforever.objects.zones.Zone
 import net.psforever.types.PlanetSideGUID
 import services.Service
 import services.avatar.{AvatarAction, AvatarServiceMessage}
+import services.local.{LocalAction, LocalServiceMessage}
 import services.vehicle.{VehicleAction, VehicleServiceMessage}
 import services.vehicle.support.TurretUpgrader
+
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
+
 
 /**
   * An `Actor` that handles messages being dispatched to a specific `MannedTurret`.<br>
@@ -28,6 +33,11 @@ class FacilityTurretControl(turret : FacilityTurret) extends Actor
   with MountableBehavior.Dismount
   with JammableMountedWeapons {
 
+  if(turret.Definition == GlobalDefinitions.vanu_sentry_turret) {
+    // todo: Schedule this to start when weapon is discharged, not all the time
+    context.system.scheduler.schedule(3 seconds, 200 milliseconds, self, FacilityTurret.RechargeAmmo())
+  }
+
   def MountableObject = turret
 
   def JammableObject = turret
@@ -38,6 +48,18 @@ class FacilityTurretControl(turret : FacilityTurret) extends Actor
     .orElse(jammableBehavior)
     .orElse(dismountBehavior)
     .orElse {
+      case FacilityTurret.RechargeAmmo() =>
+        val weapon = turret.ControlledWeapon(1).get.asInstanceOf[net.psforever.objects.Tool]
+
+        // recharge when last shot fired 3s delay, +1, 200ms interval
+        if(weapon.Magazine < weapon.MaxMagazine && System.nanoTime() - weapon.LastDischarge > 3000000000L) {
+          weapon.Magazine += 1
+          val seat = turret.Seat(0).get
+          seat.Occupant match {
+            case Some(player: Player) => turret.Zone.LocalEvents ! LocalServiceMessage(turret.Zone.Id, LocalAction.RechargeVehicleWeapon(player.GUID, turret.GUID, weapon.GUID))
+            case _ => ;
+          }
+        }
       case Mountable.TryMount(user, seat_num) =>
         turret.Seat(seat_num) match {
           case Some(seat) =>
