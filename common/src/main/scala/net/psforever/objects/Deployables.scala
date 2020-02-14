@@ -1,14 +1,16 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects
 
+import akka.actor.ActorRef
+import scala.concurrent.duration._
+
 import net.psforever.objects.ce.{Deployable, DeployedItem}
 import net.psforever.objects.serverobject.PlanetSideServerObject
+import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.{DeployableInfo, DeploymentAction}
 import net.psforever.types.PlanetSideGUID
 import services.RemoverActor
 import services.local.{LocalAction, LocalServiceMessage}
-
-import scala.concurrent.duration.FiniteDuration
 
 object Deployables {
   object Make {
@@ -71,5 +73,33 @@ object Deployables {
     )
     zone.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(target), zone))
     zone.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.AddTask(target, zone, time))
+  }
+
+  /**
+    * Collect all deployables previously owned by the player,
+    * dissociate the avatar's globally unique identifier to remove turnover ownership,
+    * and, on top of performing the above manipulations, dispose of any boomers discovered.
+    * (`BoomerTrigger` objects, the companions of the boomers, should be handled by an external implementation
+    * if they had not already been handled by the time this function is executed.)
+    * @return all previously-owned deployables after they have been processed;
+    *         boomers are listed before all other deployable types
+    */
+  def Disown(zone : Zone, avatar : Avatar, replyTo : ActorRef) : List[PlanetSideGameObject with Deployable] = {
+    val (boomers, deployables) =
+      avatar.Deployables.Clear()
+        .map(zone.GUID)
+        .collect { case Some(obj) => obj.asInstanceOf[PlanetSideGameObject with Deployable] }
+        .partition(_.isInstanceOf[BoomerDeployable])
+    //do not change the OwnerName field at this time
+    boomers.collect({ case obj : BoomerDeployable =>
+      zone.LocalEvents.tell(LocalServiceMessage.Deployables(RemoverActor.AddTask(obj, zone, Some(0 seconds))), replyTo) //near-instant
+      obj.Owner = None
+      obj.Trigger = None
+    })
+    deployables.foreach(obj => {
+      zone.LocalEvents.tell(LocalServiceMessage.Deployables(RemoverActor.AddTask(obj, zone)), replyTo) //normal decay
+      obj.Owner = None
+    })
+    boomers ++ deployables
   }
 }

@@ -1,10 +1,10 @@
 // Copyright (c) 2017 PSForever
 package objects
 
-import net.psforever.objects.{AmmoBox, SimpleItem}
+import net.psforever.objects.{AmmoBox, SimpleItem, Tool}
 import net.psforever.objects.definition.SimpleItemDefinition
-import net.psforever.objects.inventory.{GridInventory, InventoryItem, InventoryTile}
-import net.psforever.objects.GlobalDefinitions._
+import net.psforever.objects.inventory.{GridInventory, InventoryDisarrayException, InventoryItem, InventoryTile}
+import net.psforever.objects.GlobalDefinitions.{bullet_9mm, suppressor}
 import net.psforever.types.PlanetSideGUID
 import org.specs2.mutable._
 
@@ -18,6 +18,18 @@ class InventoryTest extends Specification {
   val
   bullet9mmBox2 = AmmoBox(bullet_9mm)
   bullet9mmBox2.GUID = PlanetSideGUID(2)
+
+  "InventoryDisarrayException" should {
+    "construct" in {
+      InventoryDisarrayException("slot out of bounds")
+      ok
+    }
+
+    "construct (with Throwable)" in {
+      InventoryDisarrayException("slot out of bounds", new Throwable())
+      ok
+    }
+  }
 
   "GridInventory" should {
     "construct" in {
@@ -33,28 +45,28 @@ class InventoryTest extends Specification {
       obj.Size mustEqual 0
     }
 
-    "insert item" in {
-      val obj : GridInventory = GridInventory(9, 6)
-      obj.CheckCollisions(23, bullet9mmBox1) mustEqual Success(Nil)
-      obj += 2 -> bullet9mmBox1
-      obj.TotalCapacity mustEqual 54
-      obj.Capacity mustEqual 45
-      obj.Size mustEqual 1
-      obj.hasItem(PlanetSideGUID(1)) mustEqual Some(bullet9mmBox1)
-      obj.Clear()
-      obj.Size mustEqual 0
-    }
-
     "check for collision with inventory border" in {
       val obj : GridInventory = GridInventory(3, 3)
       //safe
       obj.CheckCollisionsAsList(0, 3, 3) mustEqual Success(Nil)
       //right
-      obj.CheckCollisionsAsList(-1, 3, 3).isFailure mustEqual true
+      obj.CheckCollisionsAsList(-1, 3, 3) match {
+        case scala.util.Failure(fail) =>
+          fail.isInstanceOf[IndexOutOfBoundsException] mustEqual true
+        case _ => ko
+      }
       //left
-      obj.CheckCollisionsAsList(1, 3, 3).isFailure mustEqual true
+      obj.CheckCollisionsAsList(1, 3, 3) match {
+        case scala.util.Failure(fail) =>
+          fail.isInstanceOf[IndexOutOfBoundsException] mustEqual true
+        case _ => ko
+      }
       //bottom
-      obj.CheckCollisionsAsList(3, 3, 3).isFailure mustEqual true
+      obj.CheckCollisionsAsList(3, 3, 3) match {
+        case scala.util.Failure(fail) =>
+          fail.isInstanceOf[IndexOutOfBoundsException] mustEqual true
+        case _ => ko
+      }
     }
 
     "check for item collision (right insert)" in {
@@ -64,7 +76,7 @@ class InventoryTest extends Specification {
       val w = bullet9mmBox2.Tile.Width
       val h = bullet9mmBox2.Tile.Height
       val list0 = obj.CheckCollisionsAsList(0, w, h)
-      list0 match {
+      obj.CheckCollisionsAsList(0, w, h) match {
         case scala.util.Success(list) => list.length mustEqual 1
         case scala.util.Failure(_) => ko
       }
@@ -263,35 +275,120 @@ class InventoryTest extends Specification {
       ok
     }
 
+    "insert item" in {
+      val obj : GridInventory = GridInventory(9, 6)
+      obj.CheckCollisions(23, bullet9mmBox1) mustEqual Success(Nil)
+      obj += 2 -> bullet9mmBox1
+      obj.TotalCapacity mustEqual 54
+      obj.Capacity mustEqual 45
+      obj.Size mustEqual 1
+      obj.hasItem(PlanetSideGUID(1)).contains(bullet9mmBox1) mustEqual true
+      obj.Clear()
+      obj.Size mustEqual 0
+    }
+
+    "not insert into an invalid slot (n < 0)" in {
+      val obj : GridInventory = GridInventory(9, 6)
+      obj.Capacity mustEqual 54
+      obj.Size mustEqual 0
+      obj.Insert(-1, bullet9mmBox1) must throwA[IndexOutOfBoundsException]
+      obj.Capacity mustEqual 54
+      obj.Size mustEqual 0
+    }
+
+    "not insert into an invalid slot (n > capacity)" in {
+      val obj : GridInventory = GridInventory(9, 6)
+      obj.Capacity mustEqual 54
+      obj.Size mustEqual 0
+      obj.Insert(55, bullet9mmBox1) must throwA[IndexOutOfBoundsException]
+      obj.Capacity mustEqual 54
+      obj.Size mustEqual 0
+    }
+
     "block insertion if item collision" in {
       val obj : GridInventory = GridInventory(9, 6)
       obj += 0 -> bullet9mmBox1
       obj.Capacity mustEqual 45
-      obj.hasItem(PlanetSideGUID(1)) mustEqual Some(bullet9mmBox1)
+      obj.hasItem(PlanetSideGUID(1)).contains(bullet9mmBox1) mustEqual true
       obj += 2 -> bullet9mmBox2
-      obj.hasItem(PlanetSideGUID(2)) mustEqual None
+      obj.hasItem(PlanetSideGUID(2)).isEmpty mustEqual true
+    }
+
+    "insert items quickly (risk overwriting entries)" in {
+      val obj : GridInventory = GridInventory(6, 6)
+      (obj += 0 -> bullet9mmBox1) mustEqual true
+      val collision1 = obj.CheckCollisions(0,1,1)
+      obj.CheckCollisions(1,1,1) mustEqual collision1
+      obj.CheckCollisions(2,1,1) mustEqual collision1
+      obj.CheckCollisions(6,1,1) mustEqual collision1
+      obj.CheckCollisions(7,1,1) mustEqual collision1
+      obj.CheckCollisions(8,1,1) mustEqual collision1
+      obj.CheckCollisions(12,1,1) mustEqual collision1
+      obj.CheckCollisions(13,1,1) mustEqual collision1
+      obj.CheckCollisions(14,1,1) mustEqual collision1
+
+      (obj += 7 -> bullet9mmBox2) mustEqual false //can not insert overlapping object
+      obj.CheckCollisions(0,1,1) mustEqual collision1
+      obj.CheckCollisions(1,1,1) mustEqual collision1
+      obj.CheckCollisions(2,1,1) mustEqual collision1
+      obj.CheckCollisions(6,1,1) mustEqual collision1
+      obj.CheckCollisions(7,1,1) mustEqual collision1
+      obj.CheckCollisions(8,1,1) mustEqual collision1
+      obj.CheckCollisions(12,1,1) mustEqual collision1
+      obj.CheckCollisions(13,1,1) mustEqual collision1
+      obj.CheckCollisions(14,1,1) mustEqual collision1
+
+      obj.InsertQuickly(7, bullet9mmBox2) mustEqual true //overwrite
+      val collision2 = obj.CheckCollisions(7,1,1)
+      obj.CheckCollisions(0,1,1) mustEqual collision1
+      obj.CheckCollisions(1,1,1) mustEqual collision1
+      obj.CheckCollisions(2,1,1) mustEqual collision1
+      obj.CheckCollisions(6,1,1) mustEqual collision1
+      obj.CheckCollisions(7,1,1) mustEqual collision2
+      obj.CheckCollisions(8,1,1) mustEqual collision2
+      obj.CheckCollisions(12,1,1) mustEqual collision1
+      obj.CheckCollisions(13,1,1) mustEqual collision2
+      obj.CheckCollisions(14,1,1) mustEqual collision2
+    }
+
+    "clear all items" in {
+      val obj : GridInventory = GridInventory(9, 6)
+      obj += 2 -> bullet9mmBox1
+      obj.Size mustEqual 1
+      obj.hasItem(PlanetSideGUID(1)).contains(bullet9mmBox1) mustEqual true
       obj.Clear()
-      ok
+      obj.Size mustEqual 0
+      obj.hasItem(PlanetSideGUID(1)).isEmpty mustEqual true
     }
 
     "remove item" in {
       val obj : GridInventory = GridInventory(9, 6)
       obj += 0 -> bullet9mmBox1
-      obj.hasItem(PlanetSideGUID(1)) mustEqual Some(bullet9mmBox1)
+      obj.hasItem(PlanetSideGUID(1)).contains(bullet9mmBox1) mustEqual true
       obj -= PlanetSideGUID(1)
-      obj.hasItem(PlanetSideGUID(1)) mustEqual None
+      obj.hasItem(PlanetSideGUID(1)).isEmpty mustEqual true
       obj.Clear()
       ok
+    }
+
+    "fail to remove from an invalid slot (n < 0)" in {
+      val obj : GridInventory = GridInventory(9, 6)
+      (obj -= -1) mustEqual false
+    }
+
+    "fail to remove from an invalid slot (n > capacity)" in {
+      val obj : GridInventory = GridInventory(9, 6)
+      (obj -= 55) mustEqual false
     }
 
     "unblock insertion on item removal" in {
       val obj : GridInventory = GridInventory(9, 6)
       obj.CheckCollisions(23, bullet9mmBox1) mustEqual Success(Nil)
       obj += 23 -> bullet9mmBox1
-      obj.hasItem(PlanetSideGUID(1)) mustEqual Some(bullet9mmBox1)
+      obj.hasItem(PlanetSideGUID(1)).contains(bullet9mmBox1) mustEqual true
       obj.CheckCollisions(23, bullet9mmBox1) mustEqual Success(1 :: Nil)
       obj -= PlanetSideGUID(1)
-      obj.hasItem(PlanetSideGUID(1)) mustEqual None
+      obj.hasItem(PlanetSideGUID(1)).isEmpty mustEqual true
       obj.CheckCollisions(23, bullet9mmBox1) mustEqual Success(Nil)
       obj.Clear()
       ok
@@ -350,41 +447,82 @@ class InventoryTest extends Specification {
       ok
     }
 
-    "insert items quickly (risk overwriting entries)" in {
+    "confirm integrity of inventory as a grid" in {
       val obj : GridInventory = GridInventory(6, 6)
       (obj += 0 -> bullet9mmBox1) mustEqual true
-      val collision1 = obj.CheckCollisions(0,1,1)
-      obj.CheckCollisions(1,1,1) mustEqual collision1
-      obj.CheckCollisions(2,1,1) mustEqual collision1
-      obj.CheckCollisions(6,1,1) mustEqual collision1
-      obj.CheckCollisions(7,1,1) mustEqual collision1
-      obj.CheckCollisions(8,1,1) mustEqual collision1
-      obj.CheckCollisions(12,1,1) mustEqual collision1
-      obj.CheckCollisions(13,1,1) mustEqual collision1
-      obj.CheckCollisions(14,1,1) mustEqual collision1
+      (obj += 21 -> bullet9mmBox2) mustEqual true
+      //artificially pollute the inventory grid-space
+      obj.SetCells(10, 1, 1, 3)
+      obj.SetCells(19, 2, 2, 4)
+      obj.ElementsOnGridMatchList() mustEqual 5 //number of misses repaired
+    }
 
-      (obj += 7 -> bullet9mmBox2) mustEqual false //can not insert overlapping object
-      obj.CheckCollisions(0,1,1) mustEqual collision1
-      obj.CheckCollisions(1,1,1) mustEqual collision1
-      obj.CheckCollisions(2,1,1) mustEqual collision1
-      obj.CheckCollisions(6,1,1) mustEqual collision1
-      obj.CheckCollisions(7,1,1) mustEqual collision1
-      obj.CheckCollisions(8,1,1) mustEqual collision1
-      obj.CheckCollisions(12,1,1) mustEqual collision1
-      obj.CheckCollisions(13,1,1) mustEqual collision1
-      obj.CheckCollisions(14,1,1) mustEqual collision1
+    "confirm integrity of inventory as a list (no overlap)" in {
+      val obj : GridInventory = GridInventory(9, 9)
+      val gun = Tool(suppressor)
+      obj.InsertQuickly(0, gun)
+      obj.InsertQuickly(33, bullet9mmBox1)
+      //nothing should overlap
+      val lists = obj.ElementsInListCollideInGrid()
+      lists.size mustEqual 0
+    }
 
-      obj.InsertQuickly(7, bullet9mmBox2) mustEqual true //overwrite
-      val collision2 = obj.CheckCollisions(7,1,1)
-      obj.CheckCollisions(0,1,1) mustEqual collision1
-      obj.CheckCollisions(1,1,1) mustEqual collision1
-      obj.CheckCollisions(2,1,1) mustEqual collision1
-      obj.CheckCollisions(6,1,1) mustEqual collision1
-      obj.CheckCollisions(7,1,1) mustEqual collision2
-      obj.CheckCollisions(8,1,1) mustEqual collision2
-      obj.CheckCollisions(12,1,1) mustEqual collision1
-      obj.CheckCollisions(13,1,1) mustEqual collision2
-      obj.CheckCollisions(14,1,1) mustEqual collision2
+    "confirm integrity of inventory as a list (normal overlap)" in {
+      val obj : GridInventory = GridInventory(9, 9)
+      val gun = Tool(suppressor)
+      val bullet9mmBox3 = AmmoBox(bullet_9mm)
+      obj.InsertQuickly(0, gun)
+      obj.InsertQuickly(18, bullet9mmBox1)
+      obj.InsertQuickly(38, bullet9mmBox2)
+      obj.InsertQuickly(33, bullet9mmBox3)
+      //gun and box1 should overlap
+      //box1 and box2 should overlap
+      //box3 should not overlap with anything
+      val lists = obj.ElementsInListCollideInGrid()
+      lists.size mustEqual 2
+      lists.foreach { list =>
+        val out = list.map { _.obj }
+        if(out.size == 2 && out.contains(gun) && out.contains(bullet9mmBox1)) {
+          ok
+        }
+        else if(out.size == 2 && out.contains(bullet9mmBox1) && out.contains(bullet9mmBox2)) {
+          ok
+        }
+        else {
+          ko
+        }
+      }
+      ok
+    }
+
+    "confirm integrity of inventory as a list (triple overlap)" in {
+      val obj : GridInventory = GridInventory(9, 9)
+      val gun = Tool(suppressor)
+      val bullet9mmBox3 = AmmoBox(bullet_9mm)
+      val bullet9mmBox4 = AmmoBox(bullet_9mm)
+      obj.InsertQuickly(0, gun)
+      obj.InsertQuickly(18, bullet9mmBox1)
+      obj.InsertQuickly(36, bullet9mmBox2)
+      obj.InsertQuickly(38, bullet9mmBox3)
+      obj.InsertQuickly(33, bullet9mmBox4)
+      //gun and box1 should overlap
+      //box1, box2, and box3 should overlap
+      //box4 should not overlap with anything
+      val lists = obj.ElementsInListCollideInGrid()
+      lists.size mustEqual 2
+      lists.foreach { list =>
+        val out = list.map { _.obj }
+        if(out.size == 2 && out.contains(gun) && out.contains(bullet9mmBox1)) {
+          ok
+        }
+        else if(out.size == 3 && out.contains(bullet9mmBox1) && out.contains(bullet9mmBox2) && out.contains(bullet9mmBox3)) {
+          ok
+        }
+        else {
+          ko
+        }
+      }
+      ok
     }
   }
 }

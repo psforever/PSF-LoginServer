@@ -261,8 +261,8 @@ class TransferPassengerChannelTest extends ActorTest {
       val service = system.actorOf(Props(classOf[VehicleService], Zone.Nowhere), "v-service")
       val fury = Vehicle(GlobalDefinitions.fury)
       service ! Service.Join("test")
-      service ! VehicleServiceMessage("test", VehicleAction.TransferPassengerChannel(PlanetSideGUID(10), "old_channel", "new_channel", fury))
-      expectMsg(VehicleServiceResponse("/test/Vehicle", PlanetSideGUID(10), VehicleResponse.TransferPassengerChannel("old_channel", "new_channel", fury)))
+      service ! VehicleServiceMessage("test", VehicleAction.TransferPassengerChannel(PlanetSideGUID(10), "old_channel", "new_channel", fury, PlanetSideGUID(11)))
+      expectMsg(VehicleServiceResponse("/test/Vehicle", PlanetSideGUID(10), VehicleResponse.TransferPassengerChannel("old_channel", "new_channel", fury, PlanetSideGUID(11))))
     }
   }
 }

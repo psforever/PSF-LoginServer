@@ -183,7 +183,7 @@ class GridInventory extends Container {
     val starth : Int = starty + h - 1
     if(actualSlot < 0 || actualSlot >= grid.length || startw >= width || starth >= height) {
       val bounds : String = if(startx < 0) { "left" } else if(startw >= width) { "right" } else { "bottom" }
-      Failure(new IndexOutOfBoundsException(s"requested region escapes the $bounds edge of the grid inventory - $startx, $starty; $w x $h"))
+      Failure(new IndexOutOfBoundsException(s"requested region escapes the $bounds edge of the grid inventory - $startx + $w, $starty + $h"))
     }
     else {
       val collisions : mutable.Set[InventoryItem] = mutable.Set[InventoryItem]()
@@ -220,22 +220,31 @@ class GridInventory extends Container {
       val starty : Int = actualSlot / width
       val startw : Int = startx + w - 1
       val bounds : String = if(startx < 0) { "left" } else if(startw >= width) { "right" } else { "bottom" }
-      Failure(new IndexOutOfBoundsException(s"requested region escapes the $bounds edge of the grid inventory - $startx, $starty; $w x $h"))
+      Failure(new IndexOutOfBoundsException(s"requested region escapes the $bounds edge of the grid inventory - $startx + $w, $starty + $h"))
     }
     else {
       val collisions : mutable.Set[InventoryItem] = mutable.Set[InventoryItem]()
       var curr = actualSlot
       val fixedItems = items.toMap
       val fixedGrid = grid.toList
-      for(_ <- 0 until h) {
-        for(col <- 0 until w) {
-          if(fixedGrid(curr + col) > -1) {
-            collisions += fixedItems(fixedGrid(curr + col))
+      try {
+        for(_ <- 0 until h) {
+          for(col <- 0 until w) {
+            val itemIndex = fixedGrid(curr + col)
+            if(itemIndex > -1) {
+              collisions += fixedItems(itemIndex)
+            }
           }
+          curr += width
         }
-        curr += width
+        Success(collisions.toList)
       }
-      Success(collisions.toList)
+      catch {
+        case e : NoSuchElementException =>
+          Failure(InventoryDisarrayException(s"inventory contained old item data", e))
+        case e : Exception =>
+          Failure(e)
+      }
     }
   }
 
@@ -280,6 +289,7 @@ class GridInventory extends Container {
 
   /**
     * Define a region of inventory grid cells and set them to a given value.
+    * @see `SetCellsNoOffset`
     * @param start the initial inventory index
     * @param w the width of the region
     * @param h the height of the region
@@ -287,77 +297,136 @@ class GridInventory extends Container {
     *              defaults to -1 (which is "nothing")
     */
   def SetCells(start : Int, w : Int, h : Int, value : Int = -1) : Unit = {
-    SetCellsOffset(math.max(start - offset, 0), w, h, value)
+    grid = SetCellsNoOffset(start - offset, w, h, value)
   }
 
   /**
     * Define a region of inventory grid cells and set them to a given value.
+    * Perform basic boundary checking for the current inventory dimensions.
+    * @see `SetCellsOnlyNoOffset`
     * @param start the initial inventory index, without the inventory offset (required)
     * @param w the width of the region
     * @param h the height of the region
     * @param value the value to set all the cells in the defined region;
     *              defaults to -1 (which is "nothing")
+    * @return a copy of the inventory as a grid, with the anticipated modifications
     * @throws IndexOutOfBoundsException if the region extends outside of the grid boundaries
     */
-  def SetCellsOffset(start : Int, w : Int, h : Int, value : Int = -1) : Unit = {
+  def SetCellsNoOffset(start : Int, w : Int, h : Int, value : Int = -1) : Array[Int] = {
     if(start < 0 || start > grid.length || (start % width) + w - 1 > width || (start / width) + h- 1 > height) {
       val startx : Int = start % width
       val starty : Int = start / width
       val startw : Int = startx + w - 1
       val bounds : String = if(startx < 0) { "left" } else if(startw >= width) { "right" } else { "bottom" }
-      throw new IndexOutOfBoundsException(s"requested region escapes the $bounds of the grid inventory - $startx, $starty; $w x $h")
+      throw new IndexOutOfBoundsException(s"requested region escapes the $bounds of the grid inventory - $startx + $w, $starty + $h")
     }
-    else {
-      var curr = start
-      for(_ <- 0 until h) {
-        for(col <- 0 until w) {
-          grid(curr + col) = value
-        }
-        curr += width
+    SetCellsOnlyNoOffset(start, w, h, value)
+  }
+
+  /**
+    * Define a region of inventory grid cells and set them to a given value.
+    * Ignore inventory boundary checking and just set the appropriate cell values.
+    * Do not use this unless boundary checking was already performed.
+    * @param start the initial inventory index, without the inventory offset (required)
+    * @param w the width of the region
+    * @param h the height of the region
+    * @param value the value to set all the cells in the defined region;
+    *              defaults to -1 (which is "nothing")
+    * @return a copy of the inventory as a grid, with the anticipated modifications
+    */
+  private def SetCellsOnlyNoOffset(start : Int, w : Int, h : Int, value : Int = -1) : Array[Int] = {
+    val out : Array[Int] = grid.clone()
+    var curr = start
+    for(_ <- 0 until h) {
+      for(col <- 0 until w) {
+        out(curr + col) = value
       }
+      curr += width
     }
+    out
   }
 
   def Insert(start : Int, obj : Equipment) : Boolean = {
     val key : Int = entryIndex.getAndIncrement()
     items.get(key) match {
-      case None => //no redundant insertions or other collisions
+      case None => //no redundant insertions
         Insertion_CheckCollisions(start, obj, key)
       case _ =>
         false
     }
   }
 
+  /**
+    * Perform a collisions check and, if it passes, perform the insertion.
+    * @param start the starting slot
+    * @param obj the `Equipment` item to be inserted
+    * @param key the internal numeric identifier for this item
+    * @return the success or the failure of the insertion process
+    */
   def Insertion_CheckCollisions(start : Int, obj : Equipment, key : Int) : Boolean = {
     CheckCollisions(start, obj) match {
       case Success(Nil) =>
-        InsertQuickly(start, obj, key)
+        val tile = obj.Tile
+        grid = SetCellsOnlyNoOffset(start - offset, tile.Width, tile.Height, key)
+        val card = InventoryItem(obj, start)
+        items += key -> card
+        true
       case _ =>
         false
     }
   }
 
+  /**
+    * Just insert an item into the inventory without checking for item collisions.
+    * @param start the starting slot
+    * @param obj the `Equipment` item to be inserted
+    * @return whether the insertion succeeded
+    */
   def InsertQuickly(start : Int, obj : Equipment) : Boolean = InsertQuickly(start, obj, entryIndex.getAndIncrement())
 
+  /**
+    * Just insert an item into the inventory without checking for item collisions.
+    * Inventory boundary checking still occurs but the `Exception` is caught and discarded.
+    * Discarding the `Exception` is normally bad practice; the result is the only thing we care about here.
+    * @param start the starting slot
+    * @param obj the `Equipment` item to be inserted
+    * @param key the internal numeric identifier for this item
+    * @return whether the insertion succeeded
+    */
   private def InsertQuickly(start : Int, obj : Equipment, key : Int) : Boolean = {
-    val card = InventoryItem(obj, start)
-    items += key -> card
-    val tile = obj.Tile
-    SetCells(start, tile.Width, tile.Height, key)
-    true
+    try {
+      val tile = obj.Tile
+      val updated = SetCellsNoOffset(start - offset, tile.Width, tile.Height, key)
+      val card = InventoryItem(obj, start)
+      items += key -> card
+      grid = updated
+      true
+    }
+    catch {
+      case _ : Exception =>
+        false
+    }
   }
 
   def +=(kv : (Int, Equipment)) : Boolean = Insert(kv._1, kv._2)
 
   def Remove(index : Int) : Boolean = {
-    val key = grid(index - Offset)
-    items.remove(key) match {
-      case Some(item) =>
-        val tile = item.obj.Tile
-        SetCells(item.start, tile.Width, tile.Height)
-        true
-      case None =>
-        false
+    val keyVal = index - offset
+    if(keyVal > -1 && keyVal < grid.length) {
+      val key = grid(index - offset)
+      items.get(key) match {
+        case Some(item) =>
+          val tile = item.obj.Tile
+          val updated = SetCellsNoOffset(item.start - offset, tile.Width, tile.Height)
+          items.remove(key)
+          grid = updated
+          true
+        case None =>
+          false
+      }
+    }
+    else {
+      false
     }
   }
 
@@ -365,10 +434,12 @@ class GridInventory extends Container {
 
   def Remove(guid : PlanetSideGUID) : Boolean = {
     recursiveFindIdentifiedObject(items.keys.iterator, guid) match {
-      case Some(index) =>
-        val item = items.remove(index).get
+      case Some(key) =>
+        val item = items(key)
         val tile = item.obj.Tile
-        SetCells(item.start, tile.Width, tile.Height)
+        val updated = SetCellsNoOffset(item.start - offset, tile.Width, tile.Height)
+        items.remove(key)
+        grid = updated
         true
       case None =>
         false
@@ -407,13 +478,107 @@ class GridInventory extends Container {
   }
 
   /**
+    * Align the "inventory as a grid" with the "inventory as a list."
+    * The grid is a faux-two-dimensional map of object identifiers that should point to items in the list.
+    * (Not the same as the global unique identifier number.)
+    * The objects in the list are considered actually being in the inventory.
+    * Only the references to those objects in grid-space can be considered out of alignment
+    * by not pointing to objects in the list.
+    * The inventory as a grid can be repaired but only a higher authority can perform inventory synchronization.
+    * @see `InventoryDisarrayException`
+    * @return the number of stale object references found and corrected
+    */
+  def ElementsOnGridMatchList() : Int = {
+    var misses : Int = 0
+    grid = grid.map {
+      case n if items.get(n).nonEmpty => n
+      case -1 => -1
+      case _ =>
+        misses += 1
+        -1
+    }
+    misses
+  }
+
+  /**
+    * Check whether any items in the "inventory as a list" datastructure would overlap in the "inventory as a grid".
+    * Most likely, if an overlap is discovered,
+    * the grid-space is already compromised by having lost a section of some item's `Tile`.
+    * The inventory system actually lacks mechanics to properly resolve any discovered issues.
+    * For that reason, it will return a list of overlap issues that need to be resolved by a higher authority.
+    * @see `InventoryDisarrayException`
+    * @see `recursiveRelatedListCollisions`
+    * @return a list of item overlap collision combinations
+    */
+  def ElementsInListCollideInGrid() : List[List[InventoryItem]] = {
+    val testGrid : mutable.Map[Int, List[Int]] = mutable.Map[Int, List[Int]]()
+    //on average this will run the same number of times as capacity
+    items.foreach {
+      case (itemId, item) =>
+        var start = item.start
+        val wide = item.obj.Tile.Width
+        val high = item.obj.Tile.Height
+        //allocate all of the slots that comprise this item's tile
+        (0 until high).foreach { _ =>
+          (0 until wide).foreach { w =>
+            val slot = start + w
+            testGrid(slot) = testGrid.getOrElse(slot, Nil) :+ itemId
+          }
+          start += width
+        }
+    }
+    //lists with multiple entries represent a group of items that collide
+    //perform a specific distinct on the list of lists of numeric id overlaps
+    //THEN map each list of list's item id to an item
+    val out = testGrid.collect {
+      case (_, list) if list.size > 1 => list.sortWith(_ < _)
+    }
+    recursiveRelatedListCollisions(out.iterator, out.toList).map { list => list.map { items } }
+  }
+
+  /**
+    * Filter out element overlap combinations until only unique overlap combinations remain.
+    * The filtration operation not only removes exact duplicates, leaving but one of an entry's kind,
+    * but also removes that very entry if another element contains the entry as a subset of itself.
+    * For example:
+    * if A overlaps B and B overlaps C, but A doesn't overlap C, the output will be A-B and B-C;
+    * if A and C do overlap, however, the output will be A-B-C, eliminating both A-B and B-C in the process.
+    * @see `ElementsInListCollideInGrid`
+    * @see `SeqLike.containsSlice`
+    * @see `tailrec`
+    * @param original an iterator of the original list of overlapping elements
+    * @param updated an list of overlapping elements not filtered out of the original list
+    * @return the final list of unique overlapping element combinations
+    */
+  @tailrec private def recursiveRelatedListCollisions(original : Iterator[List[Int]], updated : List[List[Int]]) : List[List[Int]] = {
+    if(original.hasNext) {
+      val target = original.next
+      val filtered = updated.filterNot(item => item.equals(target))
+      val newupdated = if(filtered.size == updated.size) {
+        updated //the lists are the same size, nothing was filtered
+      }
+      else if(updated.exists(test => test.containsSlice(target) && !test.equals(target))) {
+        filtered //some element that is not the target element contains the target element as a subset
+      }
+      else {
+        filtered :+ target //restore one entry for the target element
+      }
+      recursiveRelatedListCollisions(original, newupdated)
+    }
+    else {
+      updated
+    }
+  }
+
+  /**
     * Clear the inventory by removing all of its items.
     * @return a `List` of the previous items in the inventory as their `InventoryItemData` tiles
     */
   def Clear() : List[InventoryItem] = {
     val list = items.values.toList
     items.clear
-    SetCellsOffset(0, width, height)
+    //entryIndex.set(0)
+    grid = SetCellsOnlyNoOffset(0, width, height)
     list
   }
 

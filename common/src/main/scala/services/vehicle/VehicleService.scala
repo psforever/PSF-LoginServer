@@ -133,9 +133,9 @@ class VehicleService(zone : Zone) extends Actor {
         case VehicleAction.UpdateAmsSpawnPoint(zone : Zone) =>
           sender ! VehicleServiceResponse(s"/$forChannel/Vehicle", Service.defaultPlayerGUID, VehicleResponse.UpdateAmsSpawnPoint(AmsSpawnPoints(zone)))
 
-        case VehicleAction.TransferPassengerChannel(player_guid, old_channel, temp_channel, vehicle) =>
+        case VehicleAction.TransferPassengerChannel(player_guid, old_channel, temp_channel, vehicle, vehicle_to_delete) =>
           VehicleEvents.publish(
-            VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.TransferPassengerChannel(old_channel, temp_channel, vehicle))
+            VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.TransferPassengerChannel(old_channel, temp_channel, vehicle, vehicle_to_delete))
           )
 
         case VehicleAction.ForceDismountVehicleCargo(player_guid, vehicle_guid, bailed, requestedByPassenger, kicked) =>

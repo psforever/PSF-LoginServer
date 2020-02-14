@@ -53,9 +53,9 @@ class GalaxyService extends Actor {
             GalaxyServiceResponse(s"/Galaxy", GalaxyResponse.MapUpdate(msg))
           )
 
-        case GalaxyAction.TransferPassenger(player_guid, temp_channel, vehicle, vehicle_to_delete) =>
+        case GalaxyAction.TransferPassenger(player_guid, temp_channel, vehicle, vehicle_to_delete, manifest) =>
           GalaxyEvents.publish(
-            GalaxyServiceResponse(s"/$forChannel/Galaxy", GalaxyResponse.TransferPassenger(temp_channel, vehicle, vehicle_to_delete))
+            GalaxyServiceResponse(s"/$forChannel/Galaxy", GalaxyResponse.TransferPassenger(temp_channel, vehicle, vehicle_to_delete, manifest))
           )
         case _ => ;
       }

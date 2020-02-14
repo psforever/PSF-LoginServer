@@ -30,7 +30,9 @@ class ZonePopulationActor(zone : Zone, playerMap : TrieMap[Avatar, Option[Player
     case Zone.Population.Leave(avatar) =>
       PopulationLeave(avatar, playerMap) match {
         case None => ;
-        case player @ Some(_) =>
+        case player @ Some(tplayer) =>
+          tplayer.Zone = Zone.Nowhere
+          PlayerLeave(tplayer)
           sender ! Zone.Population.PlayerHasLeft(zone, player)
           if(playerMap.isEmpty) {
             zone.StopPlayerManagementSystems()
@@ -45,7 +47,7 @@ class ZonePopulationActor(zone : Zone, playerMap : TrieMap[Avatar, Option[Player
             sender ! Zone.Population.PlayerAlreadySpawned(zone, player)
           }
           else if(newToZone) {
-            player.Actor = context.actorOf(Props(classOf[PlayerControl], player),  s"${player.Name}_${player.GUID.guid}_${System.currentTimeMillis}")
+            player.Actor = context.actorOf(Props(classOf[PlayerControl], player),  s"${player.CharId}_${player.GUID.guid}_${System.currentTimeMillis}")
             player.Zone = zone
           }
         case None =>
@@ -55,8 +57,7 @@ class ZonePopulationActor(zone : Zone, playerMap : TrieMap[Avatar, Option[Player
     case Zone.Population.Release(avatar) =>
       PopulationRelease(avatar, playerMap) match {
         case Some(tplayer) =>
-          tplayer.Actor ! akka.actor.PoisonPill
-          tplayer.Actor = ActorRef.noSender
+          PlayerLeave(tplayer)
         case None =>
           sender ! Zone.Population.PlayerHasLeft(zone, None)
       }
@@ -173,6 +174,11 @@ object ZonePopulationActor {
       case Some(index) =>
         corpseList.remove(index)
     }
+  }
+
+  def PlayerLeave(player : Player) : Unit = {
+    player.Actor ! akka.actor.PoisonPill
+    player.Actor = ActorRef.noSender
   }
 
   /**
