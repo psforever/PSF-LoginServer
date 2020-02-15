@@ -2074,7 +2074,7 @@ class WorldSessionActor extends Actor
 
       case Mountable.CanMount(obj : FacilityTurret, seat_num) =>
         if(!obj.isUpgrading) {
-          if(obj.Definition == vanu_sentry_turret) {
+          if(obj.Definition == GlobalDefinitions.vanu_sentry_turret) {
             obj.Zone.LocalEvents ! LocalServiceMessage(obj.Zone.Id, LocalAction.SetEmpire(obj.GUID, player.Faction))
           }
           sendResponse(PlanetsideAttributeMessage(obj.GUID, 0, obj.Health))

@@ -143,7 +143,7 @@ class UtilityTerminalATest extends ActorTest {
       assert(obj().Actor == ActorRef.noSender)
 
       system.actorOf(Props(classOf[UtilityTest.SetupControl], obj), "test") ! ""
-      receiveOne(Duration.create(100, "ms")) //consume and discard
+      receiveOne(Duration.create(500, "ms")) //consume and discard
       assert(obj().Actor != ActorRef.noSender)
     }
   }
@@ -157,7 +157,7 @@ class UtilityTerminalBTest extends ActorTest {
       assert(obj().Actor == ActorRef.noSender)
 
       system.actorOf(Props(classOf[UtilityTest.SetupControl], obj), "test") ! ""
-      receiveOne(Duration.create(100, "ms")) //consume and discard
+      receiveOne(Duration.create(500, "ms")) //consume and discard
       assert(obj().Actor != ActorRef.noSender)
     }
   }
@@ -171,7 +171,7 @@ class UtilityTerminalCTest extends ActorTest {
       assert(obj().Actor == ActorRef.noSender)
 
       system.actorOf(Props(classOf[UtilityTest.SetupControl], obj), "test") ! ""
-      receiveOne(Duration.create(100, "ms")) //consume and discard
+      receiveOne(Duration.create(500, "ms")) //consume and discard
       assert(obj().Actor != ActorRef.noSender)
     }
   }
@@ -185,7 +185,7 @@ class UtilityRespawnTubeTest extends ActorTest {
       assert(obj().Actor == ActorRef.noSender)
 
       system.actorOf(Props(classOf[UtilityTest.SetupControl], obj), "test") ! ""
-      receiveOne(Duration.create(100, "ms")) //consume and discard
+      receiveOne(Duration.create(500, "ms")) //consume and discard
       assert(obj().Actor != ActorRef.noSender)
     }
   }
@@ -199,7 +199,7 @@ class UtilityTelepadTerminalTest extends ActorTest {
       assert(obj().Actor == ActorRef.noSender)
 
       system.actorOf(Props(classOf[UtilityTest.SetupControl], obj), "test") ! ""
-      receiveOne(Duration.create(100, "ms")) //consume and discard
+      receiveOne(Duration.create(500, "ms")) //consume and discard
       assert(obj().Actor != ActorRef.noSender)
     }
   }
@@ -216,7 +216,7 @@ class UtilityInternalTelepadTest extends ActorTest {
       assert(obj().asInstanceOf[Utility.InternalTelepad].Router.contains(veh.GUID))
 
       system.actorOf(Props(classOf[UtilityTest.SetupControl], obj), "test") ! ""
-      receiveOne(Duration.create(100, "ms")) //consume and discard
+      receiveOne(Duration.create(500, "ms")) //consume and discard
       assert(obj().Actor != ActorRef.noSender)
       assert(obj().asInstanceOf[Utility.InternalTelepad].Router.contains(veh.GUID))
     }

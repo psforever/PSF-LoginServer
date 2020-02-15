@@ -13,12 +13,13 @@ import net.psforever.objects.serverobject.terminals.CaptureTerminal
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game._
-import net.psforever.types.{PlanetSideEmpire, Vector3}
+import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 import scalax.collection.{Graph, GraphEdge}
 import services.Service
 import services.local.{LocalAction, LocalServiceMessage}
 
 class Building(private val name: String,
+               private val building_guid : Int,
                private val map_id : Int,
                private val zone : Zone,
                private val buildingType : StructureType.Value,
@@ -32,13 +33,8 @@ class Building(private val name: String,
   private val capitols = List("Thoth", "Voltan", "Neit", "Anguta", "Eisa", "Verica")
   private var forceDomeActive : Boolean = false
   super.Zone_=(zone)
-
-  /**
-    * An overloaded constructor used for phasing out the need to define the building_guid parameter
-    */
-  def this(name: String, building_guid : Int, map_id : Int, zone : Zone, buildingType : StructureType.Value, buildingDefinition : ObjectDefinition) = {
-    this(name, map_id, zone, buildingType, buildingDefinition)
-  }
+  super.GUID_=(PlanetSideGUID(building_guid)) //set
+  Invalidate() //unset; guid can be used during setup, but does not stop being registered properly later
 
   override def toString = name
 
@@ -274,19 +270,19 @@ class Building(private val name: String,
 }
 
 object Building {
-  final val NoBuilding : Building = new Building(name = "", map_id = 0, Zone.Nowhere, StructureType.Platform, GlobalDefinitions.building) {
+  final val NoBuilding : Building = new Building(name = "", 0, map_id = 0, Zone.Nowhere, StructureType.Platform, GlobalDefinitions.building) {
     override def Faction_=(faction : PlanetSideEmpire.Value) : PlanetSideEmpire.Value = PlanetSideEmpire.NEUTRAL
     override def Amenities_=(obj : Amenity) : List[Amenity] = Nil
     GUID = net.psforever.types.PlanetSideGUID(0)
   }
 
   def apply(name : String, guid : Int, map_id : Int, zone : Zone, buildingType : StructureType.Value) : Building = {
-    new Building(name, map_id, zone, buildingType, GlobalDefinitions.building)
+    new Building(name, guid, map_id, zone, buildingType, GlobalDefinitions.building)
   }
 
   def Structure(buildingType : StructureType.Value, location : Vector3, definition: ObjectDefinition)(name : String, guid : Int, map_id : Int, zone : Zone, context : ActorContext) : Building = {
     import akka.actor.Props
-    val obj = new Building(name, map_id, zone, buildingType, definition)
+    val obj = new Building(name, guid, map_id, zone, buildingType, definition)
     obj.Position = location
     obj.Actor = context.actorOf(Props(classOf[BuildingControl], obj), s"$map_id-$buildingType-building")
     obj
@@ -295,7 +291,7 @@ object Building {
   def Structure(buildingType : StructureType.Value, location : Vector3)(name : String, guid : Int, map_id : Int, zone : Zone, context : ActorContext) : Building = {
     import akka.actor.Props
 
-    val obj = new Building(name, map_id, zone, buildingType, GlobalDefinitions.building)
+    val obj = new Building(name, guid, map_id, zone, buildingType, GlobalDefinitions.building)
     obj.Position = location
     obj.Actor = context.actorOf(Props(classOf[BuildingControl], obj), s"$map_id-$buildingType-building")
     obj
@@ -303,14 +299,14 @@ object Building {
 
   def Structure(buildingType : StructureType.Value)(name : String, guid: Int, map_id : Int, zone : Zone, context : ActorContext) : Building = {
     import akka.actor.Props
-    val obj = new Building(name, map_id, zone, buildingType, GlobalDefinitions.building)
+    val obj = new Building(name, guid, map_id, zone, buildingType, GlobalDefinitions.building)
     obj.Actor = context.actorOf(Props(classOf[BuildingControl], obj), s"$map_id-$buildingType-building")
     obj
   }
 
   def Structure(buildingType : StructureType.Value, buildingDefinition : ObjectDefinition, location : Vector3)(name: String, guid: Int, id : Int, zone : Zone, context : ActorContext) : Building = {
     import akka.actor.Props
-    val obj = new Building(name, id, zone, buildingType, buildingDefinition)
+    val obj = new Building(name, guid, id, zone, buildingType, buildingDefinition)
     obj.Position = location
     obj.Actor = context.actorOf(Props(classOf[BuildingControl], obj), s"$id-$buildingType-building")
     obj
