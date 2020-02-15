@@ -201,7 +201,9 @@ class VehicleSpawnControl(pad : VehicleSpawnPad) extends VehicleSpawnControlBase
     * @param recipients all of the other customers who will be receiving the message
     */
   def BlockedReminder(blockedOrder : VehicleSpawnControl.Order, recipients : Seq[VehicleSpawnControl.Order]) : Unit = {
-    val user = blockedOrder.vehicle.Seats(0).Occupant.orElse(pad.Zone.GUID(blockedOrder.vehicle.Owner))
+    val user = blockedOrder.vehicle.Seats(0).Occupant
+      .orElse(pad.Zone.GUID(blockedOrder.vehicle.Owner))
+      .orElse(pad.Zone.GUID(blockedOrder.DriverGUID))
     val relevantRecipients = user match {
       case Some(p : Player) if !p.HasGUID =>
         recipients.iterator

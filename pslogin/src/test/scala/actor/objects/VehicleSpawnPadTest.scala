@@ -210,17 +210,15 @@ object VehicleSpawnPadControlTest {
 
     val vehicle = Vehicle(GlobalDefinitions.two_man_assault_buggy)
     val weapon = vehicle.WeaponControlledFromSeat(1).get.asInstanceOf[Tool]
+    val guid : NumberPoolHub = new NumberPoolHub(LimitedNumberSource(5))
+    guid.AddPool("test-pool", (0 to 3).toList)
+    guid.register(vehicle, "test-pool")
+    guid.register(weapon, "test-pool")
+    guid.register(weapon.AmmoSlot.Box, "test-pool")
     val zone = new Zone("test-zone", map, 0)  {
-      override def SetupNumberPools() = {
-        val guid : NumberPoolHub = new NumberPoolHub(LimitedNumberSource(5))
-        guid.AddPool("test-pool", (0 to 2).toList)
-        //do not do this under normal conditions
-        guid.register(vehicle, "test-pool")
-        guid.register(weapon, "test-pool")
-        guid.register(weapon.AmmoSlot.Box, "test-pool")
-        GUID(guid)
-      }
+      override def SetupNumberPools() : Unit = { }
     }
+    zone.GUID(guid)
     zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), s"test-zone-${System.nanoTime()}")
     zone.Actor ! Zone.Init()
 
@@ -235,9 +233,10 @@ object VehicleSpawnPadControlTest {
     pad.Actor = system.actorOf(Props(classOf[VehicleSpawnControl], pad), s"test-pad-${System.nanoTime()}")
     pad.Owner = new Building("Building", building_guid = 0, map_id = 0, zone, StructureType.Building, GlobalDefinitions.building)
     pad.Owner.Faction = faction
+    pad.Zone = zone
     val player = Player(Avatar("test", faction, CharacterGender.Male, 0, CharacterVoice.Mute))
-    player.GUID = PlanetSideGUID(10)
-    player.Continent = zone.Id
+    guid.register(player, "test-pool")
+    player.Zone = zone
     player.Spawn
     //note: pad and vehicle are both at Vector3(1,0,0) so they count as blocking
     pad.Position = Vector3(1,0,0)
