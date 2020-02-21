@@ -5,6 +5,7 @@ import net.psforever.objects.Player
 import net.psforever.objects.definition.VehicleDefinition
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.structures.Amenity
+import net.psforever.objects.vital.{DamageResistanceModel, Vitality}
 import net.psforever.packet.game.{ItemTransactionMessage, TriggeredSound}
 import net.psforever.types.{PlanetSideGUID, Vector3}
 
@@ -17,15 +18,22 @@ import net.psforever.types.{PlanetSideGUID, Vector3}
   * while `Vehicle`-owned terminals may not.
   * @param tdef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
   */
-class Terminal(tdef : TerminalDefinition) extends Amenity with Hackable {
+class Terminal(tdef : TerminalDefinition) extends Amenity
+  with Hackable
+  with Vitality {
   HackSound = TriggeredSound.HackTerminal
   HackEffectDuration = Array(0, 30, 60, 90)
   HackDuration = Array(0, 10, 5, 3)
 
   //the following fields and related methods are neither finalized nor integrated; GOTO Request
-  private var health : Int = 100 //TODO not real health value
+  private var health : Int = tdef.MaxHealth //TODO not real health value
 
   def Health : Int = health
+
+  def Health_=(value : Int) : Int = {
+    health = math.max(math.min(value, tdef.MaxHealth), 0)
+    Health
+  }
 
   def Damaged(dam : Int) : Unit = {
     health = Math.max(0, Health - dam)
@@ -55,6 +63,8 @@ class Terminal(tdef : TerminalDefinition) extends Amenity with Hackable {
       Terminal.NoDeal()
     }
   }
+
+  def DamageModel = Definition.asInstanceOf[DamageResistanceModel]
 
   def Definition : TerminalDefinition = tdef
 }

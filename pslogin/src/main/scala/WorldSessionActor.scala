@@ -5099,14 +5099,14 @@ class WorldSessionActor extends Actor
                   ValidObject(object_guid) match {
                     case Some(tplayer: Player) =>
                       if (player.GUID != tplayer.GUID && Vector3.Distance(player.Position, tplayer.Position) < 5 && player.Faction == tplayer.Faction && !player.isMoving && tplayer.MaxArmor > 0 && tplayer.Armor < tplayer.MaxArmor) {
-                        tplayer.Armor += 15
+                        tplayer.Armor += 12
                         tool.Discharge
                         sendResponse(InventoryStateMessage(tool.AmmoSlot.Box.GUID, obj.GUID, tool.Magazine))
                         val RepairPercent: Int = tplayer.Armor * 100 / tplayer.MaxArmor
                         sendResponse(RepairMessage(object_guid, RepairPercent))
                         continent.AvatarEvents ! AvatarServiceMessage(tplayer.Continent, AvatarAction.PlanetsideAttributeToAll(tplayer.GUID, 4, tplayer.Armor))
                       } else if (player.GUID == tplayer.GUID && !player.isMoving && tplayer.MaxArmor > 0) {
-                        player.Armor += 15
+                        player.Armor += 12
                         tool.Discharge
                         sendResponse(InventoryStateMessage(tool.AmmoSlot.Box.GUID, obj.GUID, tool.Magazine))
                         continent.AvatarEvents ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttributeToAll(player.GUID, 4, player.Armor))
@@ -5229,7 +5229,7 @@ class WorldSessionActor extends Actor
                 }
                 else if(ammo == Ammo.armor_canister && obj.Health < obj.MaxHealth) {
                   //repair turret
-                  obj.Health += 48
+                  obj.Health += 12 + tool.FireMode.Modifiers.Damage1
                   if (obj.Health > obj.MaxHealth) obj.Health = obj.MaxHealth
                   //                sendResponse(QuantityUpdateMessage(PlanetSideGUID(8214),ammo_quantity_left))
                   val RepairPercent: Int = obj.Health * 100 / obj.MaxHealth
@@ -5267,12 +5267,12 @@ class WorldSessionActor extends Actor
               }
             }
             else if(equipment.isDefined) {
-              equipment.get.Definition match {
-                case GlobalDefinitions.nano_dispenser =>
+              equipment match {
+                case Some(tool : Tool) if tool.Definition == GlobalDefinitions.nano_dispenser =>
                   if (!player.isMoving && Vector3.Distance(player.Position, obj.Position) < 5) {
                     if (obj.Health < obj.MaxHealth && !obj.IsDead) {
-                      obj.Health += 48
-                      //                sendResponse(QuantityUpdateMessage(PlanetSideGUID(8214),ammo_quantity_left))
+                      obj.Health += 12 + tool.FireMode.Modifiers.Damage1
+                      //sendResponse(QuantityUpdateMessage(PlanetSideGUID(8214),ammo_quantity_left))
                       val RepairPercent: Int = obj.Health * 100 / obj.MaxHealth
                       sendResponse(RepairMessage(object_guid, RepairPercent))
                       continent.AvatarEvents ! AvatarServiceMessage(obj.Continent, AvatarAction.PlanetsideAttribute(obj.GUID, 0, obj.Health))
@@ -5300,42 +5300,33 @@ class WorldSessionActor extends Actor
 
         case Some(terminal : Terminal) =>
           val tdef = terminal.Definition
-
-          // If the base this terminal belongs to has been hacked the owning faction needs to be able to hack it to gain access
-          val ownerIsHacked = terminal.Owner match {
-            case b: Building => b.CaptureConsoleIsHacked
-            case _ => false
+          val equipment = player.Slot(player.DrawnSlot).Equipment match {
+            case out @ Some(item) if item.GUID == item_used_guid => out
+            case _ => None
           }
-          var playerIsHacking = false
-
-          player.Slot(player.DrawnSlot).Equipment match {
-            case Some(tool: SimpleItem) =>
-              if (tool.Definition == GlobalDefinitions.remote_electronics_kit) {
-                if (!terminal.HackedBy.isEmpty) {
-                  log.warn("Player tried to hack a terminal that is already hacked")
-                  log.warn(s"Player faction ${player.Faction} terminal faction: ${terminal.Faction} terminal hacked: ${terminal.HackedBy.isDefined} owner hacked: ${ownerIsHacked}")
-                }
-                else if (terminal.Faction != player.Faction || ownerIsHacked) {
-                  val hackSpeed = GetPlayerHackSpeed(terminal)
-
-                  if (hackSpeed > 0) {
-                    progressBarValue = Some(-hackSpeed)
-                    self ! WorldSessionActor.HackingProgress(progressType = 1, player, terminal, tool.GUID, hackSpeed, FinishHacking(terminal, 3212836864L))
-                    playerIsHacking = true
-                    log.info("Hacking a terminal")
-                  }
-                }
+          (terminal.Owner, equipment) match {
+            case (b : Building, Some(rek : SimpleItem)) if (b.Faction != player.Faction || b.CaptureConsoleIsHacked) && !terminal.HackedBy.isEmpty &&
+              rek.Definition == GlobalDefinitions.remote_electronics_kit =>
+              //hack
+              val hackSpeed = GetPlayerHackSpeed(terminal)
+              if(hackSpeed > 0) {
+                progressBarValue = Some(-hackSpeed)
+                self ! WorldSessionActor.HackingProgress(progressType = 1, player, terminal, item_used_guid, hackSpeed, FinishHacking(terminal, 3212836864L))
+                log.info("Hacking a terminal")
               }
-            case _ => ;
-          }
 
-          if(!playerIsHacking) {
-            if (terminal.Faction == player.Faction) {
-              if (tdef.isInstanceOf[MatrixTerminalDefinition]) {
+            case (b : Building, Some(gluegun : Tool)) if b.Faction == player.Faction &&
+              gluegun.Definition == GlobalDefinitions.nano_dispenser =>
+              //repair
+              terminal.Actor ! CommonMessages.Use(player, Some(gluegun))
+
+            case _ if terminal.Faction == player.Faction =>
+              //function
+              if(tdef.isInstanceOf[MatrixTerminalDefinition]) {
                 //TODO matrix spawn point; for now, just blindly bind to show work (and hope nothing breaks)
                 sendResponse(BindPlayerMessage(BindStatus.Bind, "", true, true, SpawnGroup.Sanctuary, 0, 0, terminal.Position))
               }
-              else if (tdef == GlobalDefinitions.multivehicle_rearm_terminal || tdef == GlobalDefinitions.bfr_rearm_terminal ||
+              else if(tdef == GlobalDefinitions.multivehicle_rearm_terminal || tdef == GlobalDefinitions.bfr_rearm_terminal ||
                 tdef == GlobalDefinitions.air_rearm_terminal || tdef == GlobalDefinitions.ground_rearm_terminal) {
                 FindLocalVehicle match {
                   case Some(vehicle) =>
@@ -5345,28 +5336,20 @@ class WorldSessionActor extends Actor
                     log.error("UseItem: expected seated vehicle, but found none")
                 }
               }
-              else if (tdef == GlobalDefinitions.teleportpad_terminal) {
+              else if(tdef == GlobalDefinitions.teleportpad_terminal) {
                 //explicit request
                 terminal.Actor ! Terminal.Request(
                   player,
                   ItemTransactionMessage(object_guid, TransactionType.Buy, 0, "router_telepad", 0, PlanetSideGUID(0))
                 )
               }
-              else if (!ownerIsHacked || (ownerIsHacked && terminal.HackedBy.isDefined)) {
+              else {
                 sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
               }
-              else {
-                log.warn("Tried to use a terminal, but can't handle this case")
-                log.warn(s"Terminal - isHacked ${terminal.HackedBy.isDefined} ownerIsHacked ${ownerIsHacked}")
-              }
-            }
-            else if (terminal.HackedBy.isDefined || terminal.Owner.GUID == PlanetSideGUID(0)) {
-              sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
-            } else {
-              log.warn("Tried to use a terminal that doesn't belong to this faction and isn't hacked")
-              log.warn(s"Player faction ${player.Faction} terminal faction: ${terminal.Faction} terminal hacked: ${terminal.HackedBy.isDefined} owner hacked: ${ownerIsHacked}")
-            }
+
+            case _ => ;
           }
+
         case Some(obj : SpawnTube) =>
           if(item_used_guid == PlanetSideGUID(0)) { // Ensure that we're not trying to use a tool on the spawn tube, e.g. medical applicator
             //deconstruction
@@ -8780,8 +8763,8 @@ class WorldSessionActor extends Actor
     * The active `target` and the target of the `ResolvedProjectile` do not have be the same.
     * While the "tell" for being able to sustain damage is an entity of type `Vitality`,
     * only specific `Vitality` entity types are being screened for sustaining damage.
-    * @see `DamageResistanceModel`<br>
-    *       `Vitality`
+    * @see `DamageResistanceModel`
+    * @see `Vitality`
     * @param target a valid game object that is known to the server
     * @param data a projectile that will affect the target
     */
@@ -8792,6 +8775,7 @@ class WorldSessionActor extends Actor
       case obj : Vehicle if obj.Health > 0 => obj.Actor ! Vitality.Damage(func)
       case obj : FacilityTurret if obj.Health > 0 => obj.Actor ! Vitality.Damage(func)
       case obj : ComplexDeployable if obj.Health > 0 => obj.Actor ! Vitality.Damage(func)
+      case obj : Terminal if obj.Health > 0 => obj.Actor ! Vitality.Damage(func)
 
       case obj : SimpleDeployable if obj.Health > 0 =>
         //damage is synchronized on `LSA` (results returned to and distributed from this `WSA`)

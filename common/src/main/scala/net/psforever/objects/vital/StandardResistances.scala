@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.vital
 
-import net.psforever.objects.ballistics.{PlayerSource, SourceEntry, VehicleSource}
+import net.psforever.objects.ballistics.{ObjectSource, PlayerSource, SourceEntry, VehicleSource}
 import net.psforever.objects.vital.projectile.ProjectileCalculations
 import net.psforever.objects.vital.resistance.{ResistanceCalculations, ResistanceSelection}
 
@@ -50,6 +50,16 @@ object VehicleAggravatedResistance extends ResistanceCalculations[VehicleSource]
   ResistanceCalculations.VehicleAggravatedExtractor
 )
 
+object AmenityHitResistance extends ResistanceCalculations[ObjectSource](
+  ResistanceCalculations.ValidAmenityTarget,
+  ResistanceCalculations.OtherDirectExtractor
+)
+
+object AMenitySplashResistance extends ResistanceCalculations[ObjectSource](
+  ResistanceCalculations.ValidAmenityTarget,
+  ResistanceCalculations.OtherSplashExtractor
+)
+
 object NoResistanceSelection extends ResistanceSelection {
   def Direct : ProjectileCalculations.Form = None
   def Splash : ProjectileCalculations.Form = None
@@ -69,4 +79,11 @@ object StandardVehicleResistance extends ResistanceSelection {
   def Splash : ProjectileCalculations.Form = VehicleSplashResistance.Calculate
   def Lash : ProjectileCalculations.Form = VehicleLashResistance.Calculate
   def Aggravated : ProjectileCalculations.Form = VehicleAggravatedResistance.Calculate
+}
+
+object StandardAmenityResistance extends ResistanceSelection {
+  def Direct : ProjectileCalculations.Form = AmenityHitResistance.Calculate
+  def Splash : ProjectileCalculations.Form = AmenityHitResistance.Calculate
+  def Lash : ProjectileCalculations.Form = None
+  def Aggravated : ProjectileCalculations.Form = None
 }

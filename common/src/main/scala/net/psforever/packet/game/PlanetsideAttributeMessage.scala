@@ -9,8 +9,17 @@ import scodec.codecs._
 /**
   * na<br>
   * Global:<br>
-  * `50 - Common Initialization?`<br>
-  * `51 - Common Initialization?`<br>
+  * `50 - State initialization for amenities`<br>
+  *  <ul>
+  *    <li>0 - Normal, accessible ("Press 'e' to ...")</li>
+  *    <li>1 - Fully destroyed model, inaccessible ("foo is destroyed and can not be accessed")</li>
+  *  </ul>
+  * `51 - Common initialization for amenities, complementary to attribute 50`<br>
+  *  <ul>
+  *    <li>0 - Normal, accessible</li>
+  *    <li>1 - Partially destroyed model, still accessible</li>
+  *    <li>2 - Explicitly set in transition from state 1; same as state 1?</li>
+  *  </ul>
   * `67 - ???`<br>
   * <br>
   * Global (GUID=0)<br>
@@ -50,8 +59,8 @@ import scodec.codecs._
   * `5 - armorMax`<br>
   * `6 - PA_RELEASED - transform the (other) avatar in backpack on ground`<br>
   * `7 - Sets charge level for MAX capacitor`<br>
-  * `8 - Enables empire specific max capacitor function - NC Shield, TR Overdrive, VS Jumpjets`
-  * `9 - Possibly unused now - PA_SHIELDSTRENGTH in beta client`
+  * `8 - Enables empire specific max capacitor function - NC Shield, TR Overdrive, VS Jumpjets`<br>
+  * `9 - Possibly unused now - PA_SHIELDSTRENGTH in beta client`<br>
   * `14 - Something with grief`<br>
   * `15 - Weapon Lock. Value exemple : 600 to have 1 min lock. Max possible is 30min lock`<br>
   * `16 - PA_DECONSTRUCTING in beta client`<br>
@@ -170,7 +179,6 @@ import scodec.codecs._
   * `80 - Damage vehicle (unknown value)`<br>
   * `81 - ???`<br>
   * `113 - Vehicle capacitor - e.g. Leviathan EMP charge`
-  *
   * @param guid the object
   * @param attribute_type the field
   * @param attribute_value the value

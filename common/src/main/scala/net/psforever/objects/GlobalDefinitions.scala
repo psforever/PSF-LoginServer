@@ -4470,7 +4470,10 @@ object GlobalDefinitions {
     nano_dispenser.FireModes.head.AmmoSlotIndex = 0
     nano_dispenser.FireModes.head.Magazine = 100
     nano_dispenser.FireModes.head.CustomMagazine = Ammo.upgrade_canister -> 1
+    nano_dispenser.FireModes.head.Modifiers.Damage0 = 0
     nano_dispenser.FireModes.head.Modifiers.Damage1 = 20
+    nano_dispenser.FireModes.head.Modifiers.Damage2 = 0
+    nano_dispenser.FireModes.head.Modifiers.Damage3 = 0
     nano_dispenser.FireModes.head.Modifiers.Damage4 = 20
     nano_dispenser.Tile = InventoryTile.Tile63
 
@@ -6118,6 +6121,12 @@ object GlobalDefinitions {
     order_terminal.Tab += 3 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
     order_terminal.Tab += 4 -> OrderTerminalDefinition.InfantryLoadoutPage()
     order_terminal.SellEquipmentByDefault = true
+    order_terminal.MaxHealth = 500
+    order_terminal.Damageable = true
+    order_terminal.DamageDestroysAt = 0
+    order_terminal.Repairable = true
+    order_terminal.RepairRestoresAt = 250
+    order_terminal.Subtract.Damage1 = 8
 
     order_terminala.Name = "order_terminala"
     order_terminala.Tab += 0 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.infantryAmmunition ++ EquipmentTerminalDefinition.infantryWeapons)

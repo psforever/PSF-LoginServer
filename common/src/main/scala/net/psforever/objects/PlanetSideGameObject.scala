@@ -10,6 +10,7 @@ import net.psforever.types.Vector3
   */
 abstract class PlanetSideGameObject extends IdentifiableEntity with WorldEntity {
   private var entity : WorldEntity = new SimpleWorldEntity()
+  private var destroyed : Boolean = false
 
   def Entity : WorldEntity = entity
 
@@ -33,6 +34,13 @@ abstract class PlanetSideGameObject extends IdentifiableEntity with WorldEntity 
 
   def Velocity_=(vec : Option[Vector3]) : Option[Vector3] = {
     Entity.Velocity = vec
+  }
+
+  def Destroyed : Boolean = destroyed
+
+  def Destroyed_=(state : Boolean) : Boolean = {
+    destroyed = state
+    Destroyed
   }
 
   def Definition : ObjectDefinition
