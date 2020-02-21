@@ -33,7 +33,7 @@ object MountableBehavior {
               isHacked = MountableObject.asInstanceOf[Hackable].HackedBy.isDefined
             }
 
-            if((user.Faction == obj.Faction || isHacked) && (seat.Occupant = user).contains(user)) {
+            if(!obj.Destroyed && (user.Faction == obj.Faction || isHacked) && (seat.Occupant = user).contains(user)) {
               user.VehicleSeated = obj.GUID
               sender ! Mountable.MountMessages(user, Mountable.CanMount(obj, seat_num))
             }

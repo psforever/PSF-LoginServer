@@ -294,6 +294,14 @@ class WorldSessionActor extends Actor
     case AvatarServiceResponse(toChannel, guid, reply) =>
       HandleAvatarServiceResponse(toChannel, guid, reply)
 
+    case CommonMessages.Hack(tplayer, obj : Terminal, Some(item : SimpleItem)) if tplayer == player =>
+      val hackSpeed = GetPlayerHackSpeed(obj)
+      if(hackSpeed > 0) {
+        progressBarValue = Some(-hackSpeed)
+        self ! WorldSessionActor.Progress(progressType = 1, player, obj, item.GUID, hackSpeed, FinishHacking(obj, 3212836864L))
+        log.info("Hacking a terminal")
+      }
+
     case Door.DoorMessage(tplayer, msg, order) =>
       HandleDoorMessage(tplayer, msg, order)
 
@@ -1171,8 +1179,8 @@ class WorldSessionActor extends Actor
     case NtuDischarging(tplayer, vehicle, silo_guid) =>
       HandleNtuDischarging(tplayer, vehicle, silo_guid)
 
-    case HackingProgress(progressType, tplayer, target, tool_guid, delta, completeAction, tickAction) =>
-      HandleHackingProgress(progressType, tplayer, target, tool_guid, delta, completeAction, tickAction)
+    case Progress(progressType, tplayer, target, tool_guid, delta, completeAction, tickAction) =>
+      HandleChangeProgress(progressType, tplayer, target, tool_guid, delta, completeAction, tickAction)
 
     case Vitality.DamageResolution(target : TrapDeployable, _) =>
       //tank_traps
@@ -3291,7 +3299,7 @@ class WorldSessionActor extends Actor
     * @param completeAction na
     * @param tickAction na
     */
-  def HandleHackingProgress(progressType : Int, tplayer : Player, target : PlanetSideServerObject, tool_guid : PlanetSideGUID, delta : Float, completeAction : ()=>Unit, tickAction : Option[()=>Unit]) : Unit = {
+  def HandleChangeProgress(progressType : Int, tplayer : Player, target : PlanetSideServerObject, tool_guid : PlanetSideGUID, delta : Float, completeAction : ()=>Unit, tickAction : Option[()=>Unit]) : Unit = {
     progressBarUpdate.cancel
     if(progressBarValue.isDefined) {
       val progressBarVal : Float = if (progressBarValue.get + delta > 100) { 100f } else { progressBarValue.get + delta }
@@ -3333,7 +3341,7 @@ class WorldSessionActor extends Actor
           tickAction.getOrElse(() => Unit)()
           progressBarValue = Some(progressBarVal)
           import scala.concurrent.ExecutionContext.Implicits.global
-          progressBarUpdate = context.system.scheduler.scheduleOnce(250 milliseconds, self, HackingProgress(progressType, tplayer, target, tool_guid, delta, completeAction))
+          progressBarUpdate = context.system.scheduler.scheduleOnce(250 milliseconds, self, Progress(progressType, tplayer, target, tool_guid, delta, completeAction))
         }
       }
     }
@@ -4907,6 +4915,10 @@ class WorldSessionActor extends Actor
       //log.info("UseItem: " + msg)
       // TODO: Not all fields in the response are identical to source in real packet logs (but seems to be ok)
       // TODO: Not all incoming UseItemMessage's respond with another UseItemMessage (i.e. doors only send out GenericObjectStateMsg)
+      val equipment = player.Slot(player.DrawnSlot).Equipment match {
+        case out @ Some(item) if item.GUID == item_used_guid => out
+        case _ => None
+      }
       ValidObject(object_guid) match {
         case Some(door : Door) =>
           if(player.Faction == door.Faction || (continent.Map.DoorToLock.get(object_guid.guid) match {
@@ -4948,27 +4960,26 @@ class WorldSessionActor extends Actor
 
         case Some(panel : IFFLock) =>
           if((panel.Faction != player.Faction && panel.HackedBy.isEmpty) || (panel.Faction == player.Faction && panel.HackedBy.isDefined)) {
-            player.Slot(player.DrawnSlot).Equipment match {
-              case Some(tool : SimpleItem) =>
-                if(tool.Definition == GlobalDefinitions.remote_electronics_kit) {
-                  val hackSpeed = GetPlayerHackSpeed(panel)
-
-                  if(hackSpeed > 0) {
-                    progressBarValue = Some(-hackSpeed)
-                    if(panel.Faction != player.Faction) {
-                      // Enemy faction is hacking this IFF lock
-                      self ! WorldSessionActor.HackingProgress(progressType = 1, player, panel, tool.GUID, hackSpeed, FinishHacking(panel, 1114636288L))
-                      log.info("Hacking an IFF lock")
-                    } else {
-                      // IFF Lock is being resecured by it's owner faction
-                      self ! WorldSessionActor.HackingProgress(progressType = 1, player, panel, tool.GUID, hackSpeed, FinishResecuringIFFLock(panel))
-                      log.info("Resecuring an IFF lock")
-                    }
+            equipment match {
+              case Some(tool : SimpleItem) if tool.Definition == GlobalDefinitions.remote_electronics_kit =>
+                val hackSpeed = GetPlayerHackSpeed(panel)
+                if(hackSpeed > 0) {
+                  progressBarValue = Some(-hackSpeed)
+                  if(panel.Faction != player.Faction) {
+                    // Enemy faction is hacking this IFF lock
+                    self ! WorldSessionActor.Progress(progressType = 1, player, panel, tool.GUID, hackSpeed, FinishHacking(panel, 1114636288L))
+                    log.info("Hacking an IFF lock")
+                  }
+                  else {
+                    // IFF Lock is being resecured by it's owner faction
+                    self ! WorldSessionActor.Progress(progressType = 1, player, panel, tool.GUID, hackSpeed, FinishResecuringIFFLock(panel))
+                    log.info("Resecuring an IFF lock")
                   }
                 }
               case _ => ;
             }
-          } else {
+          }
+          else {
             log.warn("IFF lock is being hacked, but don't know how to handle this state")
             log.warn(s"Lock - HackedBy.isDefined: ${panel.HackedBy.isDefined} Faction: ${panel.Faction} HackedBy.isEmpty: ${panel.HackedBy.isEmpty}")
             log.warn(s"Hacking player - Faction: ${player.Faction}")
@@ -4981,7 +4992,7 @@ class WorldSessionActor extends Actor
             accessedContainer = Some(obj)
           }
           else if(!unk3 && player.isAlive) { //potential kit use
-            ValidObject(item_used_guid) match {
+            equipment match {
               case Some(kit : Kit) =>
                 player.Find(kit) match {
                   case Some(index) =>
@@ -5152,20 +5163,18 @@ class WorldSessionActor extends Actor
 
         case Some(locker : Locker) =>
           if(locker.Faction != player.Faction && locker.HackedBy.isEmpty) {
-            player.Slot(player.DrawnSlot).Equipment match {
-              case Some(tool: SimpleItem) =>
-                if (tool.Definition == GlobalDefinitions.remote_electronics_kit) {
-                  val hackSpeed = GetPlayerHackSpeed(locker)
-
-                  if(hackSpeed > 0)  {
-                    progressBarValue = Some(-hackSpeed)
-                    self ! WorldSessionActor.HackingProgress(progressType = 1, player, locker, tool.GUID, hackSpeed, FinishHacking(locker, 3212836864L))
-                    log.info("Hacking a locker")
-                  }
+            equipment match {
+              case Some(tool: SimpleItem) if tool.Definition == GlobalDefinitions.remote_electronics_kit =>
+                val hackSpeed = GetPlayerHackSpeed(locker)
+                if(hackSpeed > 0)  {
+                  progressBarValue = Some(-hackSpeed)
+                  self ! WorldSessionActor.Progress(progressType = 1, player, locker, tool.GUID, hackSpeed, FinishHacking(locker, 3212836864L))
+                  log.info("Hacking a locker")
                 }
               case _ => ;
             }
-          } else if(player.Faction == locker.Faction || !locker.HackedBy.isEmpty) {
+          }
+          else if(player.Faction == locker.Faction || !locker.HackedBy.isEmpty) {
             log.info(s"UseItem: $player accessing a locker")
             val container = player.Locker
             accessedContainer = Some(container)
@@ -5177,16 +5186,13 @@ class WorldSessionActor extends Actor
 
         case Some(implant_terminal : ImplantTerminalMech) =>
           if(implant_terminal.Faction != player.Faction && implant_terminal.HackedBy.isEmpty) {
-            player.Slot(player.DrawnSlot).Equipment match {
-              case Some(tool: SimpleItem) =>
-                if (tool.Definition == GlobalDefinitions.remote_electronics_kit) {
-                  val hackSpeed = GetPlayerHackSpeed(implant_terminal)
-
-                  if(hackSpeed > 0)  {
-                    progressBarValue = Some(-hackSpeed)
-                    self ! WorldSessionActor.HackingProgress(progressType = 1, player, implant_terminal, tool.GUID, hackSpeed, FinishHacking(implant_terminal, 3212836864L))
-                    log.info("Hacking an implant terminal")
-                  }
+            equipment match {
+              case Some(tool: SimpleItem) if tool.Definition == GlobalDefinitions.remote_electronics_kit =>
+                val hackSpeed = GetPlayerHackSpeed(implant_terminal)
+                if(hackSpeed > 0)  {
+                  progressBarValue = Some(-hackSpeed)
+                  self ! WorldSessionActor.Progress(progressType = 1, player, implant_terminal, tool.GUID, hackSpeed, FinishHacking(implant_terminal, 3212836864L))
+                  log.info("Hacking an implant terminal")
                 }
               case _ => ;
             }
@@ -5196,62 +5202,48 @@ class WorldSessionActor extends Actor
           val hackedByCurrentFaction = (captureTerminal.Faction != player.Faction && !captureTerminal.HackedBy.isEmpty && captureTerminal.HackedBy.get.hackerFaction == player.Faction)
           val ownedByPlayerFactionAndHackedByEnemyFaction = (captureTerminal.Faction == player.Faction && !captureTerminal.HackedBy.isEmpty)
           if(!hackedByCurrentFaction || ownedByPlayerFactionAndHackedByEnemyFaction) {
-            player.Slot(player.DrawnSlot).Equipment match {
-              case Some(tool: SimpleItem) =>
-                if (tool.Definition == GlobalDefinitions.remote_electronics_kit) {
-                  val hackSpeed = GetPlayerHackSpeed(captureTerminal)
-
-                  if(hackSpeed > 0) {
-                    progressBarValue = Some(-hackSpeed)
-                    self ! WorldSessionActor.HackingProgress(progressType = 1, player, captureTerminal, tool.GUID, hackSpeed, FinishHacking(captureTerminal, 3212836864L))
-                    log.info("Hacking a capture terminal")
-                  }
+            equipment match {
+              case Some(tool: SimpleItem) if tool.Definition == GlobalDefinitions.remote_electronics_kit =>
+                val hackSpeed = GetPlayerHackSpeed(captureTerminal)
+                if(hackSpeed > 0) {
+                  progressBarValue = Some(-hackSpeed)
+                  self ! WorldSessionActor.Progress(progressType = 1, player, captureTerminal, tool.GUID, hackSpeed, FinishHacking(captureTerminal, 3212836864L))
+                  log.info("Hacking a capture terminal")
                 }
               case _ => ;
             }
           }
 
         case Some(obj : FacilityTurret) =>
-          player.Slot(player.DrawnSlot).Equipment match {
-            case Some(tool : Tool) =>
-              if(tool.Definition == GlobalDefinitions.nano_dispenser && tool.Magazine > 0) {
-                val ammo = tool.AmmoType
-                if(ammo == Ammo.upgrade_canister && obj.Seats.values.count(_.isOccupied) == 0) {
+          val tdef = obj.Definition
+          (obj.Owner, equipment) match {
+            case (b : Building, Some(gluegun : Tool)) if b.Faction == player.Faction &&
+              gluegun.Definition == GlobalDefinitions.nano_dispenser =>
+              gluegun.AmmoType match {
+                case Ammo.armor_canister => //repair
+                  obj.Actor ! CommonMessages.Use(player, Some(gluegun))
+
+                case Ammo.upgrade_canister if gluegun.Magazine > 0 && obj.Seats.values.forall(!_.isOccupied) =>
                   progressBarValue = Some(-1.25f)
-                  self ! WorldSessionActor.HackingProgress(
+                  self ! WorldSessionActor.Progress(
                     progressType = 2,
                     player,
                     obj,
-                    tool.GUID,
+                    gluegun.GUID,
                     delta = 1.25f,
-                    FinishUpgradingMannedTurret(obj, tool, TurretUpgrade(unk2.toInt))
+                    FinishUpgradingMannedTurret(obj, gluegun, TurretUpgrade(unk2.toInt))
                   )
-                }
-                else if(ammo == Ammo.armor_canister && obj.Health < obj.MaxHealth) {
-                  //repair turret
-                  obj.Health += 12 + tool.FireMode.Modifiers.Damage1
-                  if (obj.Health > obj.MaxHealth) obj.Health = obj.MaxHealth
-                  //                sendResponse(QuantityUpdateMessage(PlanetSideGUID(8214),ammo_quantity_left))
-                  val RepairPercent: Int = obj.Health * 100 / obj.MaxHealth
-                  sendResponse(RepairMessage(object_guid, RepairPercent))
-                  continent.AvatarEvents ! AvatarServiceMessage(obj.Continent, AvatarAction.PlanetsideAttribute(obj.GUID, 0, obj.Health))
-                }
+
+                case _ => ;
               }
-              else if(tool.Definition == GlobalDefinitions.trek) {
-                //infect turret with virus
-              }
+
             case _ => ;
           }
 
         case Some(obj : Vehicle) =>
-          val equipment = player.Slot(player.DrawnSlot).Equipment
           if(player.Faction == obj.Faction) {
             if(equipment match {
-              case Some(tool : Tool) =>
-                tool.Definition match {
-                  case GlobalDefinitions.nano_dispenser => false
-                  case _ => true
-                }
+              case Some(tool : Tool) if tool.Definition != GlobalDefinitions.nano_dispenser => true
               case _ => true
             }) {
               //access to trunk
@@ -5291,7 +5283,7 @@ class WorldSessionActor extends Actor
 
                 if(hackSpeed > 0) {
                   progressBarValue = Some(-hackSpeed)
-                  self ! WorldSessionActor.HackingProgress(progressType = 1, player, obj, equipment.get.GUID, hackSpeed, FinishHackingVehicle(obj, 3212836864L))
+                  self ! WorldSessionActor.Progress(progressType = 1, player, obj, equipment.get.GUID, hackSpeed, FinishHackingVehicle(obj, 3212836864L))
                   log.info("Hacking a vehicle")
                 }
               case _ => ;
@@ -5299,29 +5291,13 @@ class WorldSessionActor extends Actor
           }
 
         case Some(terminal : Terminal) =>
-          val tdef = terminal.Definition
-          val equipment = player.Slot(player.DrawnSlot).Equipment match {
-            case out @ Some(item) if item.GUID == item_used_guid => out
-            case _ => None
-          }
-          (terminal.Owner, equipment) match {
-            case (b : Building, Some(rek : SimpleItem)) if (b.Faction != player.Faction || b.CaptureConsoleIsHacked) && !terminal.HackedBy.isEmpty &&
-              rek.Definition == GlobalDefinitions.remote_electronics_kit =>
-              //hack
-              val hackSpeed = GetPlayerHackSpeed(terminal)
-              if(hackSpeed > 0) {
-                progressBarValue = Some(-hackSpeed)
-                self ! WorldSessionActor.HackingProgress(progressType = 1, player, terminal, item_used_guid, hackSpeed, FinishHacking(terminal, 3212836864L))
-                log.info("Hacking a terminal")
-              }
+          log.info(s"$msg")
+          equipment match {
+            case Some(item) =>
+              terminal.Actor ! CommonMessages.Use(player, Some(item))
 
-            case (b : Building, Some(gluegun : Tool)) if b.Faction == player.Faction &&
-              gluegun.Definition == GlobalDefinitions.nano_dispenser =>
-              //repair
-              terminal.Actor ! CommonMessages.Use(player, Some(gluegun))
-
-            case _ if terminal.Faction == player.Faction =>
-              //function
+            case None if terminal.Faction == player.Faction || terminal.HackedBy.nonEmpty =>
+              val tdef = terminal.Definition
               if(tdef.isInstanceOf[MatrixTerminalDefinition]) {
                 //TODO matrix spawn point; for now, just blindly bind to show work (and hope nothing breaks)
                 sendResponse(BindPlayerMessage(BindStatus.Bind, "", true, true, SpawnGroup.Sanctuary, 0, 0, terminal.Position))
@@ -6631,7 +6607,7 @@ class WorldSessionActor extends Actor
     log.info(s"Hacked a $target")
     // Wait for the target actor to set the HackedBy property, otherwise LocalAction.HackTemporarily will not complete properly
     import scala.concurrent.ExecutionContext.Implicits.global
-    ask(target.Actor, CommonMessages.Hack(player))(1 second).mapTo[Boolean].onComplete {
+    ask(target.Actor, CommonMessages.Hack(player, target))(1 second).mapTo[Boolean].onComplete {
       case Success(_) =>
         continent.LocalEvents ! LocalServiceMessage(continent.Id, LocalAction.TriggerSound(player.GUID, target.HackSound, player.Position, 30, 0.49803925f))
         target match {
@@ -11217,7 +11193,7 @@ object WorldSessionActor {
     * @param completeAction a custom action performed once the hack is completed
     * @param tickAction an optional action is is performed for each tick of progress
     */
-  private final case class HackingProgress(progressType : Int,
+  private final case class Progress(progressType : Int,
                                            tplayer : Player,
                                            target : PlanetSideServerObject,
                                            tool_guid : PlanetSideGUID,

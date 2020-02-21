@@ -6282,6 +6282,11 @@ object GlobalDefinitions {
 
     manned_turret.Name = "manned_turret"
     manned_turret.MaxHealth = 3600
+    manned_turret.Damageable = true
+    manned_turret.DamageDisablesAt = 0
+    manned_turret.DamageDestroysAt = 0
+    manned_turret.Repairable = true
+    manned_turret.RepairRestoresAt = 1800
     manned_turret.Weapons += 1 -> new mutable.HashMap()
     manned_turret.Weapons(1) += TurretUpgrade.None -> phalanx_sgl_hevgatcan
     manned_turret.Weapons(1) += TurretUpgrade.AVCombo -> phalanx_avcombo

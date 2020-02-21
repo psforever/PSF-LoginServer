@@ -1,15 +1,17 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.turret
 
-import akka.actor.{Actor, Cancellable}
-import net.psforever.objects.{DefaultCancellable, GlobalDefinitions, Player}
+import akka.actor.Actor
+import net.psforever.objects.{GlobalDefinitions, Player, Tool}
 import net.psforever.objects.ballistics.ResolvedProjectile
-import net.psforever.objects.equipment.{JammableMountedWeapons, JammableUnit}
+import net.psforever.objects.equipment.{Ammo, JammableMountedWeapons, JammableUnit}
+import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior}
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.zones.Zone
-import net.psforever.types.PlanetSideGUID
+import net.psforever.packet.game.{InventoryStateMessage, RepairMessage}
+import net.psforever.types.{PlanetSideGUID, Vector3}
 import services.Service
 import services.avatar.{AvatarAction, AvatarServiceMessage}
 import services.local.{LocalAction, LocalServiceMessage}
@@ -50,7 +52,6 @@ class FacilityTurretControl(turret : FacilityTurret) extends Actor
     .orElse {
       case FacilityTurret.RechargeAmmo() =>
         val weapon = turret.ControlledWeapon(1).get.asInstanceOf[net.psforever.objects.Tool]
-
         // recharge when last shot fired 3s delay, +1, 200ms interval
         if(weapon.Magazine < weapon.MaxMagazine && System.nanoTime() - weapon.LastDischarge > 3000000000L) {
           weapon.Magazine += 1
@@ -60,6 +61,7 @@ class FacilityTurretControl(turret : FacilityTurret) extends Actor
             case _ => ;
           }
         }
+
       case Mountable.TryMount(user, seat_num) =>
         turret.Seat(seat_num) match {
           case Some(seat) =>
@@ -89,6 +91,37 @@ class FacilityTurretControl(turret : FacilityTurret) extends Actor
           }
         }
 
+      case CommonMessages.Use(player, Some(item : Tool)) if item.Definition == GlobalDefinitions.nano_dispenser =>
+        if(!player.isMoving && Vector3.Distance(player.Position, turret.Position) < 5 &&
+          player.Faction == turret.Faction && turret.Health < turret.Definition.MaxHealth &&
+          item.AmmoType == Ammo.armor_canister && item.Magazine > 0) {
+          val zone = turret.Zone
+          val zoneId = zone.Id
+          val events = zone.AvatarEvents
+          val pname = player.Name
+          val tguid = turret.GUID
+          val magazine = item.Magazine -= 1
+          val health = turret.Health += 12 + item.FireMode.Modifiers.Damage1
+          val repairPercent: Long = health * 100 / turret.Definition.MaxHealth
+          events ! AvatarServiceMessage(pname, AvatarAction.SendResponse(Service.defaultPlayerGUID, InventoryStateMessage(item.AmmoSlot.Box.GUID, item.GUID, magazine.toLong)))
+          events ! AvatarServiceMessage(pname, AvatarAction.SendResponse(Service.defaultPlayerGUID, RepairMessage(tguid, repairPercent)))
+          events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(tguid, 0, health))
+          if(turret.Destroyed && health > turret.Definition.RepairRestoresAt) {
+            turret.Destroyed = false
+            events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(tguid, 50, 0))
+            events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(tguid, 51, 0))
+            turret.Weapons
+              .map({ case (index, slot) => (index, slot.Equipment) })
+              .collect { case (index, Some(tool : Tool)) =>
+                zone.VehicleEvents ! VehicleServiceMessage(
+                  zone.Id,
+                  VehicleAction.EquipmentInSlot(PlanetSideGUID(0), tguid, index, tool)
+                )
+              }
+
+          }
+        }
+
       case _ => ;
     }
 }
@@ -102,7 +135,7 @@ object FacilityTurretControl {
       case _ => targetGUID
     }
     val continentId = zone.Id
-    if(target.Health > 1) {
+    if(target.Health > 0) {
       //alert occupants to damage source
       if(damage > 0) {
         zone.Activity ! Zone.HotSpot.Activity(cause.target, cause.projectile.owner, cause.hit_pos)
@@ -149,6 +182,9 @@ object FacilityTurretControl {
     target.Actor ! JammableUnit.ClearJammeredStatus()
     val zone = target.Zone
     val zoneId = zone.Id
+    val avatarEvents = zone.AvatarEvents
+    val tguid = target.GUID
+    target.Destroyed = true
     target.Seats.values.filter(seat => {
       seat.isOccupied && seat.Occupant.get.isAlive
     }).foreach(seat => {
@@ -157,20 +193,23 @@ object FacilityTurretControl {
       tplayer.Actor ! Player.Die()
     })
     //turret wreckage has no weapons
-    //      target.Weapons.values
-    //        .filter {
-    //          _.Equipment.nonEmpty
-    //        }
-    //        .foreach(slot => {
-    //          val wep = slot.Equipment.get
-    //          zone.AvatarEvents ! AvatarServiceMessage(continentId, AvatarAction.ObjectDelete(Service.defaultPlayerGUID, wep.GUID))
-    //        })
-    //      zone.AvatarEvents ! AvatarServiceMessage(continentId, AvatarAction.Destroy(targetGUID, playerGUID, playerGUID, player.Position))
-    target.Health = 1 //TODO turret "death" at 0, as is proper
-    zone.VehicleEvents ! VehicleServiceMessage(zoneId, VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, target.GUID, 0, target.Health)) //TODO not necessary
+    target.Weapons.values
+      .filter {
+        _.Equipment.nonEmpty
+      }
+      .foreach(slot => {
+        val wep = slot.Equipment.get
+        avatarEvents ! AvatarServiceMessage(zoneId, AvatarAction.ObjectDelete(Service.defaultPlayerGUID, wep.GUID))
+      })
+    target.Health = 0
+    avatarEvents ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(tguid, 50, 1))
+    avatarEvents ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(tguid, 51, 1))
+    avatarEvents ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(tguid, 0, target.Health))
+    avatarEvents ! AvatarServiceMessage(zoneId, AvatarAction.Destroy(tguid, attribution, PlanetSideGUID(0), target.Position))
     if(target.Upgrade != TurretUpgrade.None) {
-      zone.VehicleEvents ! VehicleServiceMessage.TurretUpgrade(TurretUpgrader.ClearSpecific(List(target), zone))
-      zone.VehicleEvents ! VehicleServiceMessage.TurretUpgrade(TurretUpgrader.AddTask(target, zone, TurretUpgrade.None))
+      val vehicleEvents = zone.VehicleEvents
+      vehicleEvents ! VehicleServiceMessage.TurretUpgrade(TurretUpgrader.ClearSpecific(List(target), zone))
+      vehicleEvents ! VehicleServiceMessage.TurretUpgrade(TurretUpgrader.AddTask(target, zone, TurretUpgrade.None))
     }
   }
 }

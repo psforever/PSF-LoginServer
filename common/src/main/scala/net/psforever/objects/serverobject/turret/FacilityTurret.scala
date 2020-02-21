@@ -17,7 +17,7 @@ class FacilityTurret(tDef : FacilityTurretDefinition) extends Amenity
 
   WeaponTurret.LoadDefinition(this)
 
-  override def Health_=(toHealth : Int) = super.Health_=(math.max(1, toHealth)) //TODO properly handle destroyed facility turrets
+  override def Health_=(toHealth : Int) = super.Health_=(math.max(0, toHealth)) //TODO properly handle destroyed facility turrets
 
   def MaxHealth : Int = Definition.MaxHealth
 
