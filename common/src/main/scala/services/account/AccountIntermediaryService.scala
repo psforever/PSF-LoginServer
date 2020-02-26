@@ -37,12 +37,12 @@ class AccountIntermediaryService extends Actor {
 
     // Called by the WorldSessionActor
     case RetrieveAccountData(token) =>
-      val account : Option[Account] = accountsByToken.remove(token)
-      if(account.nonEmpty) {
-        sender() ! ReceiveAccountData(account.get)
-        log.info(s"Retrieving intermediary account data for ${account.get.AccountId}")
-      } else {
-        log.error(s"Unable to retrieve intermediary account data for ${account.get.AccountId}")
+      accountsByToken.remove(token) match {
+        case Some(acc) =>
+          sender() ! ReceiveAccountData(acc)
+          log.info(s"Retrieving intermediary account data for $acc")
+        case None =>
+          log.error(s"Unable to retrieve intermediary account data for $token")
       }
 
     case StoreIPAddress(sessionID, address) =>

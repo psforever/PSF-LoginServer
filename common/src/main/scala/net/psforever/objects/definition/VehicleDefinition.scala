@@ -16,9 +16,9 @@ import scala.concurrent.duration._
   * @param objectId the object id that is associated with this sort of `Vehicle`
   */
 class VehicleDefinition(objectId : Int) extends ObjectDefinition(objectId)
+  with VitalityDefinition
   with ResistanceProfileMutators
   with DamageResistanceModel {
-  private var maxHealth : Int = 100
   /** vehicle shields offered through amp station facility benefits (generally: 20% of health + 1) */
   private var maxShields : Int = 0
   /* key - seat index, value - seat object */
@@ -48,13 +48,6 @@ class VehicleDefinition(objectId : Int) extends ObjectDefinition(objectId)
   Damage = StandardVehicleDamage
   Resistance = StandardVehicleResistance
   Model = StandardResolutions.Vehicle
-
-  def MaxHealth : Int = maxHealth
-
-  def MaxHealth_=(health : Int) : Int = {
-    maxHealth = health
-    MaxHealth
-  }
 
   def MaxShields : Int = maxShields
 

@@ -26,21 +26,13 @@ class Terminal(tdef : TerminalDefinition) extends Amenity
   HackDuration = Array(0, 10, 5, 3)
 
   //the following fields and related methods are neither finalized nor integrated; GOTO Request
-  private var health : Int = tdef.MaxHealth //TODO not real health value
-
-  def Health : Int = health
-
-  def Health_=(value : Int) : Int = {
-    health = math.max(math.min(value, tdef.MaxHealth), 0)
-    Health
-  }
 
   def Damaged(dam : Int) : Unit = {
-    health = Math.max(0, Health - dam)
+    Health = Math.max(0, Health - dam)
   }
 
   def Repair(rep : Int) : Unit = {
-    health = Math.min(Health + rep, 100)
+    Health = Math.min(Health + rep, 100)
   }
 
   /**

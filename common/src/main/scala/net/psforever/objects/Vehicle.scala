@@ -75,7 +75,6 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends AmenityOwner
   with JammableUnit
   with Container {
   private var faction : PlanetSideEmpire.Value = PlanetSideEmpire.TR
-  private var health : Int = 1
   private var shields : Int = 0
   private var isDead : Boolean = false
   private var decal : Int = 0
@@ -148,24 +147,14 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends AmenityOwner
     isDead
   }
 
-  def Health : Int = {
-    health
-  }
-
-  def Health_=(assignHealth : Int) : Int = {
+  override def Health_=(assignHealth : Int) : Int = {
     if(!isDead) {
-      health = math.min(math.max(0, assignHealth), MaxHealth)
+      super.Health_=(assignHealth)
     }
-
-    if(health == 0) {
+    if(Health == 0) {
       isDead = true
     }
-
-    health
-  }
-
-  def MaxHealth : Int = {
-    Definition.MaxHealth
+    Health
   }
 
   def Shields : Int = {
@@ -644,7 +633,7 @@ object Vehicle {
   def LoadDefinition(vehicle : Vehicle) : Vehicle = {
     val vdef : VehicleDefinition = vehicle.Definition
     //general stuff
-    vehicle.Health = vdef.MaxHealth
+    vehicle.Health = vdef.DefaultHealth
     //create weapons
     vehicle.weapons = vdef.Weapons.map({case (num, definition) =>
       val slot = EquipmentSlot(EquipmentSize.VehicleWeapon)

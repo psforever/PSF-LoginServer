@@ -23,14 +23,9 @@ class TurretDeployable(tdef : TurretDeployableDefinition) extends ComplexDeploya
   with WeaponTurret
   with JammableUnit
   with Hackable {
-  WeaponTurret.LoadDefinition(this) //calls the equivalent of Health = Definition.MaxHealth
+  WeaponTurret.LoadDefinition(this)
 
   def MountPoints : Map[Int, Int] = Definition.MountPoints.toMap
-
-  //override to clarify inheritance conflict
-  override def Health : Int = super[ComplexDeployable].Health
-  //override to clarify inheritance conflict
-  override def Health_=(toHealth : Int) : Int = super[ComplexDeployable].Health_=(toHealth)
 
   override def Definition = tdef
 }

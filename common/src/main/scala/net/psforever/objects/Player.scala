@@ -23,9 +23,9 @@ class Player(private val core : Avatar) extends PlanetSideServerObject
   with Container
   with JammableUnit
   with ZoneAware {
+  Health = 0 //player health is artificially managed as a part of their lifecycle; start entity as dead
   private var alive : Boolean = false
   private var backpack : Boolean = false
-  private var health : Int = 0
   private var stamina : Int = 0
   private var armor : Int = 0
 
@@ -34,7 +34,6 @@ class Player(private val core : Avatar) extends PlanetSideServerObject
   private var capacitorLastUsedMillis : Long = 0
   private var capacitorLastChargedMillis : Long = 0
 
-  private var maxHealth : Int = 100 //TODO affected by empire benefits, territory benefits, and bops
   private var maxStamina : Int = 100 //does anything affect this?
 
   private var exosuit : ExoSuitDefinition = GlobalDefinitions.Standard
@@ -91,7 +90,7 @@ class Player(private val core : Avatar) extends PlanetSideServerObject
   def Spawn : Boolean = {
     if(!isAlive && !isBackpack) {
       alive = true
-      Health = MaxHealth
+      Health = Definition.DefaultHealth
       Stamina = MaxStamina
       Armor = MaxArmor
       Capacitor = 0
@@ -120,20 +119,6 @@ class Player(private val core : Avatar) extends PlanetSideServerObject
     else {
       false
     }
-  }
-
-  def Health : Int = health
-
-  def Health_=(assignHealth : Int) : Int = {
-    health = math.min(math.max(0, assignHealth), MaxHealth)
-    Health
-  }
-
-  def MaxHealth : Int = maxHealth
-
-  def MaxHealth_=(max : Int) : Int = {
-    maxHealth = math.min(math.max(0, max), 65535)
-    MaxHealth
   }
 
   def Stamina : Int = stamina

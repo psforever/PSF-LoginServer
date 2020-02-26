@@ -4,7 +4,6 @@ package objects
 import akka.actor.{ActorRef, Props}
 import base.ActorTest
 import net.psforever.objects.GlobalDefinitions
-import net.psforever.objects.definition.ObjectDefinition
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.doors.{Door, DoorControl}
 import net.psforever.objects.serverobject.structures._
@@ -18,7 +17,7 @@ import scala.concurrent.duration._
 
 class AmenityTest extends Specification {
   class AmenityObject extends Amenity {
-    def Definition : ObjectDefinition = null
+    def Definition : AmenityDefinition = null
   }
 
   "Amenity" should {

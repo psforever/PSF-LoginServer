@@ -19,7 +19,7 @@ import net.psforever.objects.serverobject.tube.SpawnTubeDefinition
 import net.psforever.objects.serverobject.resourcesilo.ResourceSiloDefinition
 import net.psforever.objects.serverobject.structures.SphereOfInfluence
 import net.psforever.objects.serverobject.turret.{FacilityTurretDefinition, TurretUpgrade}
-import net.psforever.objects.vehicles.{DestroyedVehicle, SeatArmorRestriction, UtilityType}
+import net.psforever.objects.vehicles.{DestroyedVehicle, InternalTelepadDefinition, SeatArmorRestriction, UtilityType}
 import net.psforever.objects.vital.{DamageType, StandardMaxDamage, StandardResolutions}
 import net.psforever.types.{CertificationType, ExoSuitType, PlanetSideEmpire, Vector3}
 
@@ -29,6 +29,9 @@ import scala.concurrent.duration._
 object GlobalDefinitions {
   // Characters
   val avatar = new AvatarDefinition(121)
+  avatar.MaxHealth = 100
+  avatar.Damageable = true
+  avatar.DamageDestroysAt = 0
   /*
   exo-suits
    */
@@ -904,7 +907,7 @@ object GlobalDefinitions {
   val router_telepad_deployable = SimpleDeployableDefinition(DeployedItem.router_telepad_deployable)
 
   //this is only treated like a deployable
-  val internal_router_telepad_deployable = SimpleDeployableDefinition(DeployedItem.router_telepad_deployable)
+  val internal_router_telepad_deployable = InternalTelepadDefinition() //objectId: 744
   init_deployables()
 
   /*
@@ -6089,12 +6092,14 @@ object GlobalDefinitions {
     router_telepad_deployable.Name = "router_telepad_deployable"
     router_telepad_deployable.MaxHealth = 100
     router_telepad_deployable.DeployTime = Duration.create(1, "ms")
+    router_telepad_deployable.DeployCategory = DeployableCategory.Telepads
     router_telepad_deployable.Packet = new TelepadDeployableConverter
     router_telepad_deployable.Model = StandardResolutions.SimpleDeployables
 
     internal_router_telepad_deployable.Name = "router_telepad_deployable"
     internal_router_telepad_deployable.MaxHealth = 1
     internal_router_telepad_deployable.DeployTime = Duration.create(1, "ms")
+    internal_router_telepad_deployable.DeployCategory = DeployableCategory.Telepads
     internal_router_telepad_deployable.Packet = new InternalTelepadDeployableConverter
   }
 

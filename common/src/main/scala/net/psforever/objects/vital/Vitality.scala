@@ -1,7 +1,6 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.vital
 
-import net.psforever.objects.PlanetSideGameObject
 import net.psforever.objects.ballistics.{PlayerSource, ResolvedProjectile, SourceEntry, VehicleSource}
 import net.psforever.objects.definition.KitDefinition
 import net.psforever.objects.serverobject.painbox.Painbox
@@ -48,7 +47,24 @@ final case class PlayerSuicide(target : PlayerSource) extends DamagingActivity(t
   * The damage model is also provided.
   */
 trait Vitality {
-  this : PlanetSideGameObject =>
+  private var health : Int = Definition.DefaultHealth
+  private var maxHealth : Option[Int] = None
+
+  def Health : Int = health
+
+  def Health_=(assignHealth : Int) : Int = {
+    health = math.min(math.max(0, assignHealth), MaxHealth)
+    Health
+  }
+
+  def MaxHealth : Int = maxHealth.getOrElse(Definition.MaxHealth)
+
+  def MaxHealth_=(default : Int) : Int = MaxHealth_=(Some(default))
+
+  def MaxHealth_=(default : Option[Int]) : Int = {
+    maxHealth = default
+    MaxHealth
+  }
 
   /** a reverse-order list of chronological events that have occurred to these vital statistics */
   private var vitalHistory : List[VitalsActivity] = List.empty[VitalsActivity]
@@ -96,6 +112,8 @@ trait Vitality {
   }
 
   def DamageModel : DamageResistanceModel
+
+  def Definition : VitalityDefinition
 }
 
 object Vitality {

@@ -38,7 +38,7 @@ class ImplantTerminalMech(private val idef : ImplantTerminalMechDefinition) exte
     }
   }
 
-  def Definition : ObjectDefinition = idef
+  def Definition : ImplantTerminalMechDefinition = idef
 }
 
 object ImplantTerminalMech {

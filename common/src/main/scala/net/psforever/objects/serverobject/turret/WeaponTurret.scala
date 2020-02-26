@@ -8,15 +8,14 @@ import net.psforever.objects.inventory.{Container, GridInventory}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.vehicles.{MountedWeapons, Seat => Chair}
+import net.psforever.objects.vital.Vitality
 
 trait WeaponTurret extends FactionAffinity
   with Mountable
   with MountedWeapons
   with Container {
-  this : PlanetSideGameObject =>
+  this : PlanetSideGameObject with Vitality =>
 
-  private var health : Int = 1
-  private var jammered : Boolean = false
   /** manned turrets have just one seat; this is just standard interface */
   protected val seats : Map[Int, Chair] = Map(0 -> Chair(new SeatDefinition() { ControlledWeapon = Some(1) }))
   /** turrets have just one weapon; this is just standard interface */
@@ -24,21 +23,18 @@ trait WeaponTurret extends FactionAffinity
   /** may or may not have inaccessible inventory space
     * see `ReserveAmmunition` in the definition */
   protected val inventory : GridInventory = new GridInventory() {
-
     import net.psforever.types.PlanetSideGUID
-
     override def Remove(index : Int) : Boolean = false
     override def Remove(guid : PlanetSideGUID) : Boolean = false
   }
 
-  def Health : Int = {
-    health
-  }
-
-  def Health_=(toHealth : Int) : Int = {
-    health = toHealth
-    health
-  }
+  /*
+  do not mind what the IDE probably comments about these method prototypes for Health and MaxHealth
+  they do not override methods in Vitality, unless overrode in any class that implements this one
+  due to the inheritance requirement above, these statements are not required to be implemented or overrode ever
+  they are purely for class visibility
+   */
+  def Health : Int
 
   def MaxHealth : Int
 
@@ -81,13 +77,6 @@ trait WeaponTurret extends FactionAffinity
     }
   }
 
-  def Jammered : Boolean = jammered
-
-  def Jammered_=(jamState : Boolean) : Boolean = {
-    jammered = jamState
-    Jammered
-  }
-
   def Definition : TurretDefinition
 }
 
@@ -111,7 +100,7 @@ object WeaponTurret {
   def LoadDefinition(turret : WeaponTurret, tdef : TurretDefinition) : WeaponTurret = {
     import net.psforever.objects.equipment.EquipmentSize.BaseTurretWeapon
     //general stuff
-    turret.Health = tdef.MaxHealth
+    //turret.Health = tdef.MaxHealth
     //create weapons; note the class
     turret.weapons = tdef.Weapons.map({case (num, upgradePaths) =>
       val slot = EquipmentSlot(BaseTurretWeapon)

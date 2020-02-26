@@ -41,12 +41,8 @@ class FacilityTurretTest extends Specification {
       obj.MountPoints(1) mustEqual 0
       obj.Health mustEqual 3600
       obj.Upgrade mustEqual TurretUpgrade.None
-      obj.Jammered mustEqual false
-
       obj.Health = 360
       obj.Health mustEqual 360
-      obj.Jammered = true
-      obj.Jammered mustEqual true
     }
 
     "upgrade to a different weapon" in {
