@@ -5,7 +5,6 @@ import net.psforever.objects.Player
 import net.psforever.objects.definition.VehicleDefinition
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.structures.Amenity
-import net.psforever.objects.vital.{DamageResistanceModel, Vitality}
 import net.psforever.packet.game.{ItemTransactionMessage, TriggeredSound}
 import net.psforever.types.{PlanetSideGUID, Vector3}
 
@@ -19,8 +18,7 @@ import net.psforever.types.{PlanetSideGUID, Vector3}
   * @param tdef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
   */
 class Terminal(tdef : TerminalDefinition) extends Amenity
-  with Hackable
-  with Vitality {
+  with Hackable {
   HackSound = TriggeredSound.HackTerminal
   HackEffectDuration = Array(0, 30, 60, 90)
   HackDuration = Array(0, 10, 5, 3)
@@ -55,8 +53,6 @@ class Terminal(tdef : TerminalDefinition) extends Amenity
       Terminal.NoDeal()
     }
   }
-
-  def DamageModel = Definition.asInstanceOf[DamageResistanceModel]
 
   def Definition : TerminalDefinition = tdef
 }

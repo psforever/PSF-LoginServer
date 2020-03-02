@@ -186,13 +186,8 @@ class Building(private val name: String,
     val (generatorState, boostGeneratorPain) = (PlanetSideGeneratorState.Normal, false) // todo: poll pain field strength
     //if we have spawn tubes, determine if any of them are active
     val (spawnTubesNormal, boostSpawnPain) : (Boolean, Boolean) = {
-      val o = Amenities.collect({ case _ : SpawnTube => true }) ///TODO obj.Health > 0
-      if(o.nonEmpty) {
-        (o.foldLeft(false)(_ || _), false) //TODO poll pain field strength
-      }
-      else {
-        (true, false)
-      }
+      val o = Amenities.collect({ case tube : SpawnTube if !tube.Destroyed => tube })
+      (o.nonEmpty, false) //TODO poll pain field strength
     }
 
     val latticeBenefit : Int = {

@@ -48,8 +48,8 @@ abstract class DeployableDefinition(objectId : Int) extends ObjectDefinition(obj
   with VitalityDefinition
   with BaseDeployableDefinition {
   private val item = DeployedItem(objectId) //let throw NoSuchElementException
-  Damage = StandardDeployableDamage
-  Resistance = NoResistanceSelection
+  DamageUsing = StandardDeployableDamage
+  ResistUsing = NoResistanceSelection
 
   def Item : DeployedItem.Value = item
 }

@@ -31,7 +31,6 @@ object GlobalDefinitions {
   val avatar = new AvatarDefinition(121)
   avatar.MaxHealth = 100
   avatar.Damageable = true
-  avatar.DamageDestroysAt = 0
   /*
   exo-suits
    */
@@ -1629,7 +1628,7 @@ object GlobalDefinitions {
       max.ResistanceDirectHit = 6
       max.ResistanceSplash = 35
       max.ResistanceAggravated = 10
-      max.Damage = StandardMaxDamage
+      max.DamageUsing = StandardMaxDamage
       max.Model = StandardResolutions.Max
     }
 
@@ -5162,6 +5161,9 @@ object GlobalDefinitions {
   private def init_vehicles() : Unit = {
     fury.Name = "fury"
     fury.MaxHealth = 650
+    fury.Damageable = true
+    fury.Repairable = true
+    fury.RepairIfDestroyed = false
     fury.MaxShields = 130 + 1
     fury.Seats += 0 -> new SeatDefinition()
     fury.Seats(0).Bailable = true
@@ -5177,6 +5179,9 @@ object GlobalDefinitions {
 
     quadassault.Name = "quadassault" // Basilisk
     quadassault.MaxHealth = 650
+    quadassault.Damageable = true
+    quadassault.Repairable = true
+    quadassault.RepairIfDestroyed = false
     quadassault.MaxShields = 130 + 1
     quadassault.Seats += 0 -> new SeatDefinition()
     quadassault.Seats(0).Bailable = true
@@ -5192,6 +5197,9 @@ object GlobalDefinitions {
 
     quadstealth.Name = "quadstealth" // Wraith
     quadstealth.MaxHealth = 650
+    quadstealth.Damageable = true
+    quadstealth.Repairable = true
+    quadstealth.RepairIfDestroyed = false
     quadstealth.MaxShields = 130 + 1
     quadstealth.CanCloak = true
     quadstealth.Seats += 0 -> new SeatDefinition()
@@ -5207,6 +5215,9 @@ object GlobalDefinitions {
 
     two_man_assault_buggy.Name = "two_man_assault_buggy" // Harasser
     two_man_assault_buggy.MaxHealth = 1250
+    two_man_assault_buggy.Damageable = true
+    two_man_assault_buggy.Repairable = true
+    two_man_assault_buggy.RepairIfDestroyed = false
     two_man_assault_buggy.MaxShields = 250 + 1
     two_man_assault_buggy.Seats += 0 -> new SeatDefinition()
     two_man_assault_buggy.Seats(0).Bailable = true
@@ -5224,6 +5235,9 @@ object GlobalDefinitions {
 
     skyguard.Name = "skyguard"
     skyguard.MaxHealth = 1000
+    skyguard.Damageable = true
+    skyguard.Repairable = true
+    skyguard.RepairIfDestroyed = false
     skyguard.MaxShields = 200 + 1
     skyguard.Seats += 0 -> new SeatDefinition()
     skyguard.Seats(0).Bailable = true
@@ -5242,6 +5256,9 @@ object GlobalDefinitions {
 
     threemanheavybuggy.Name = "threemanheavybuggy" // Marauder
     threemanheavybuggy.MaxHealth = 1700
+    threemanheavybuggy.Damageable = true
+    threemanheavybuggy.Repairable = true
+    threemanheavybuggy.RepairIfDestroyed = false
     threemanheavybuggy.MaxShields = 340 + 1
     threemanheavybuggy.Seats += 0 -> new SeatDefinition()
     threemanheavybuggy.Seats(0).Bailable = true
@@ -5265,6 +5282,9 @@ object GlobalDefinitions {
 
     twomanheavybuggy.Name = "twomanheavybuggy" // Enforcer
     twomanheavybuggy.MaxHealth = 1800
+    twomanheavybuggy.Damageable = true
+    twomanheavybuggy.Repairable = true
+    twomanheavybuggy.RepairIfDestroyed = false
     twomanheavybuggy.MaxShields = 360 + 1
     twomanheavybuggy.Seats += 0 -> new SeatDefinition()
     twomanheavybuggy.Seats(0).Bailable = true
@@ -5283,6 +5303,9 @@ object GlobalDefinitions {
 
     twomanhoverbuggy.Name = "twomanhoverbuggy" // Thresher
     twomanhoverbuggy.MaxHealth = 1600
+    twomanhoverbuggy.Damageable = true
+    twomanhoverbuggy.Repairable = true
+    twomanhoverbuggy.RepairIfDestroyed = false
     twomanhoverbuggy.MaxShields = 320 + 1
     twomanhoverbuggy.Seats += 0 -> new SeatDefinition()
     twomanhoverbuggy.Seats(0).Bailable = true
@@ -5301,6 +5324,9 @@ object GlobalDefinitions {
 
     mediumtransport.Name = "mediumtransport" // Deliverer
     mediumtransport.MaxHealth = 2500
+    mediumtransport.Damageable = true
+    mediumtransport.Repairable = true
+    mediumtransport.RepairIfDestroyed = false
     mediumtransport.MaxShields = 500 + 1
     mediumtransport.Seats += 0 -> new SeatDefinition()
     mediumtransport.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
@@ -5326,6 +5352,9 @@ object GlobalDefinitions {
 
     battlewagon.Name = "battlewagon" // Raider
     battlewagon.MaxHealth = 2500
+    battlewagon.Damageable = true
+    battlewagon.Repairable = true
+    battlewagon.RepairIfDestroyed = false
     battlewagon.MaxShields = 500 + 1
     battlewagon.Seats += 0 -> new SeatDefinition()
     battlewagon.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
@@ -5354,6 +5383,9 @@ object GlobalDefinitions {
 
     thunderer.Name = "thunderer"
     thunderer.MaxHealth = 2500
+    thunderer.Damageable = true
+    thunderer.Repairable = true
+    thunderer.RepairIfDestroyed = false
     thunderer.MaxShields = 500 + 1
     thunderer.Seats += 0 -> new SeatDefinition()
     thunderer.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
@@ -5379,6 +5411,9 @@ object GlobalDefinitions {
 
     aurora.Name = "aurora"
     aurora.MaxHealth = 2500
+    aurora.Damageable = true
+    aurora.Repairable = true
+    aurora.RepairIfDestroyed = false
     aurora.MaxShields = 500 + 1
     aurora.Seats += 0 -> new SeatDefinition()
     aurora.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
@@ -5404,6 +5439,9 @@ object GlobalDefinitions {
 
     apc_tr.Name = "apc_tr" // Juggernaut
     apc_tr.MaxHealth = 6000
+    apc_tr.Damageable = true
+    apc_tr.Repairable = true
+    apc_tr.RepairIfDestroyed = false
     apc_tr.MaxShields = 1200 + 1
     apc_tr.Seats += 0 -> new SeatDefinition()
     apc_tr.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
@@ -5451,6 +5489,9 @@ object GlobalDefinitions {
 
     apc_nc.Name = "apc_nc" // Vindicator
     apc_nc.MaxHealth = 6000
+    apc_nc.Damageable = true
+    apc_nc.Repairable = true
+    apc_nc.RepairIfDestroyed = false
     apc_nc.MaxShields = 1200 + 1
     apc_nc.Seats += 0 -> new SeatDefinition()
     apc_nc.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
@@ -5498,6 +5539,9 @@ object GlobalDefinitions {
 
     apc_vs.Name = "apc_vs" // Leviathan
     apc_vs.MaxHealth = 6000
+    apc_vs.Damageable = true
+    apc_vs.Repairable = true
+    apc_vs.RepairIfDestroyed = false
     apc_vs.MaxShields = 1200 + 1
     apc_vs.Seats += 0 -> new SeatDefinition()
     apc_vs.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
@@ -5545,6 +5589,9 @@ object GlobalDefinitions {
 
     lightning.Name = "lightning"
     lightning.MaxHealth = 2000
+    lightning.Damageable = true
+    lightning.Repairable = true
+    lightning.RepairIfDestroyed = false
     lightning.MaxShields = 400 + 1
     lightning.Seats += 0 -> new SeatDefinition()
     lightning.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
@@ -5561,6 +5608,9 @@ object GlobalDefinitions {
 
     prowler.Name = "prowler"
     prowler.MaxHealth = 4800
+    prowler.Damageable = true
+    prowler.Repairable = true
+    prowler.RepairIfDestroyed = false
     prowler.MaxShields = 960 + 1
     prowler.Seats += 0 -> new SeatDefinition()
     prowler.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
@@ -5582,6 +5632,9 @@ object GlobalDefinitions {
 
     vanguard.Name = "vanguard"
     vanguard.MaxHealth = 5400
+    vanguard.Damageable = true
+    vanguard.Repairable = true
+    vanguard.RepairIfDestroyed = false
     vanguard.MaxShields = 1080 + 1
     vanguard.Seats += 0 -> new SeatDefinition()
     vanguard.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
@@ -5599,6 +5652,9 @@ object GlobalDefinitions {
 
     magrider.Name = "magrider"
     magrider.MaxHealth = 4200
+    magrider.Damageable = true
+    magrider.Repairable = true
+    magrider.RepairIfDestroyed = false
     magrider.MaxShields = 840 + 1
     magrider.Seats += 0 -> new SeatDefinition()
     magrider.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
@@ -5619,6 +5675,9 @@ object GlobalDefinitions {
     val utilityConverter = new UtilityVehicleConverter
     ant.Name = "ant"
     ant.MaxHealth = 2000
+    ant.Damageable = true
+    ant.Repairable = true
+    ant.RepairIfDestroyed = false
     ant.MaxShields = 400 + 1
     ant.Seats += 0 -> new SeatDefinition()
     ant.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
@@ -5636,6 +5695,9 @@ object GlobalDefinitions {
 
     ams.Name = "ams"
     ams.MaxHealth = 3000
+    ams.Damageable = true
+    ams.Repairable = true
+    ams.RepairIfDestroyed = false
     ams.MaxShields = 600 + 1
     ams.Seats += 0 -> new SeatDefinition()
     ams.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
@@ -5658,6 +5720,9 @@ object GlobalDefinitions {
     val variantConverter = new VariantVehicleConverter
     router.Name = "router"
     router.MaxHealth = 4000
+    router.Damageable = true
+    router.Repairable = true
+    router.RepairIfDestroyed = false
     router.MaxShields = 800 + 1
     router.Seats += 0 -> new SeatDefinition()
     router.MountPoints += 1 -> 0
@@ -5677,6 +5742,9 @@ object GlobalDefinitions {
 
     switchblade.Name = "switchblade"
     switchblade.MaxHealth = 1750
+    switchblade.Damageable = true
+    switchblade.Repairable = true
+    switchblade.RepairIfDestroyed = false
     switchblade.MaxShields = 350 + 1
     switchblade.Seats += 0 -> new SeatDefinition()
     switchblade.Seats(0).ControlledWeapon = 1
@@ -5697,6 +5765,9 @@ object GlobalDefinitions {
 
     flail.Name = "flail"
     flail.MaxHealth = 2400
+    flail.Damageable = true
+    flail.Repairable = true
+    flail.RepairIfDestroyed = false
     flail.MaxShields = 480 + 1
     flail.Seats += 0 -> new SeatDefinition()
     flail.Seats(0).ControlledWeapon = 1
@@ -5715,6 +5786,9 @@ object GlobalDefinitions {
 
     mosquito.Name = "mosquito"
     mosquito.MaxHealth = 665
+    mosquito.Damageable = true
+    mosquito.Repairable = true
+    mosquito.RepairIfDestroyed = false
     mosquito.MaxShields = 133 + 1
     mosquito.CanFly = true
     mosquito.Seats += 0 -> new SeatDefinition()
@@ -5732,6 +5806,9 @@ object GlobalDefinitions {
 
     lightgunship.Name = "lightgunship" // Reaver
     lightgunship.MaxHealth = 1000
+    lightgunship.Damageable = true
+    lightgunship.Repairable = true
+    lightgunship.RepairIfDestroyed = false
     lightgunship.MaxShields = 200 + 1
     lightgunship.CanFly = true
     lightgunship.Seats += 0 -> new SeatDefinition()
@@ -5750,6 +5827,9 @@ object GlobalDefinitions {
 
     wasp.Name = "wasp"
     wasp.MaxHealth = 515
+    wasp.Damageable = true
+    wasp.Repairable = true
+    wasp.RepairIfDestroyed = false
     wasp.MaxShields = 103 + 1
     wasp.CanFly = true
     wasp.Seats += 0 -> new SeatDefinition()
@@ -5767,6 +5847,9 @@ object GlobalDefinitions {
 
     liberator.Name = "liberator"
     liberator.MaxHealth = 2500
+    liberator.Damageable = true
+    liberator.Repairable = true
+    liberator.RepairIfDestroyed = false
     liberator.MaxShields = 500 + 1
     liberator.CanFly = true
     liberator.Seats += 0 -> new SeatDefinition()
@@ -5792,6 +5875,9 @@ object GlobalDefinitions {
 
     vulture.Name = "vulture"
     vulture.MaxHealth = 2500
+    vulture.Damageable = true
+    vulture.Repairable = true
+    vulture.RepairIfDestroyed = false
     vulture.MaxShields = 500 + 1
     vulture.CanFly = true
     vulture.Seats += 0 -> new SeatDefinition()
@@ -5817,6 +5903,9 @@ object GlobalDefinitions {
 
     dropship.Name = "dropship" // Galaxy
     dropship.MaxHealth = 5000
+    dropship.Damageable = true
+    dropship.Repairable = true
+    dropship.RepairIfDestroyed = false
     dropship.MaxShields = 1000 + 1
     dropship.CanFly = true
     dropship.Seats += 0 -> new SeatDefinition()
@@ -5874,6 +5963,9 @@ object GlobalDefinitions {
 
     galaxy_gunship.Name = "galaxy_gunship"
     galaxy_gunship.MaxHealth = 6000
+    galaxy_gunship.Damageable = true
+    galaxy_gunship.Repairable = true
+    galaxy_gunship.RepairIfDestroyed = false
     galaxy_gunship.MaxShields = 1200 + 1
     galaxy_gunship.CanFly = true
     galaxy_gunship.Seats += 0 -> new SeatDefinition()
@@ -5908,6 +6000,9 @@ object GlobalDefinitions {
 
     lodestar.Name = "lodestar"
     lodestar.MaxHealth = 5000
+    lodestar.Damageable = true
+    lodestar.Repairable = true
+    lodestar.RepairIfDestroyed = false
     lodestar.MaxShields = 1000 + 1
     lodestar.CanFly = true
     lodestar.Seats += 0 -> new SeatDefinition()
@@ -5932,6 +6027,9 @@ object GlobalDefinitions {
 
     phantasm.Name = "phantasm"
     phantasm.MaxHealth = 2500
+    phantasm.Damageable = true
+    phantasm.Repairable = true
+    phantasm.RepairIfDestroyed = false
     phantasm.MaxShields = 500 + 1
     phantasm.CanCloak = true
     phantasm.CanFly = true
@@ -5964,23 +6062,32 @@ object GlobalDefinitions {
     boomer.Name = "boomer"
     boomer.Descriptor = "Boomers"
     boomer.MaxHealth = 100
+    boomer.Damageable = true
+    boomer.Repairable = false
     boomer.DeployCategory = DeployableCategory.Boomers
     boomer.DeployTime = Duration.create(1000, "ms")
 
     he_mine.Name = "he_mine"
     he_mine.Descriptor = "Mines"
     he_mine.MaxHealth = 100
+    he_mine.Damageable = true
+    he_mine.Repairable = false
     he_mine.DeployTime = Duration.create(1000, "ms")
 
     jammer_mine.Name = "jammer_mine"
     jammer_mine.Descriptor = "JammerMines"
     jammer_mine.MaxHealth = 100
+    jammer_mine.Damageable = true
+    jammer_mine.Repairable = false
     jammer_mine.DeployTime = Duration.create(1000, "ms")
     jammer_mine.DetonateOnJamming = false
 
     spitfire_turret.Name = "spitfire_turret"
     spitfire_turret.Descriptor = "Spitfires"
     spitfire_turret.MaxHealth = 100
+    spitfire_turret.Damageable = true
+    spitfire_turret.Repairable = true
+    spitfire_turret.RepairIfDestroyed = false
     spitfire_turret.Weapons += 1 -> new mutable.HashMap()
     spitfire_turret.Weapons(1) += TurretUpgrade.None -> spitfire_weapon
     spitfire_turret.ReserveAmmunition = false
@@ -5991,6 +6098,9 @@ object GlobalDefinitions {
     spitfire_cloaked.Name = "spitfire_cloaked"
     spitfire_cloaked.Descriptor = "CloakingSpitfires"
     spitfire_cloaked.MaxHealth = 100
+    spitfire_cloaked.Damageable = true
+    spitfire_cloaked.Repairable = true
+    spitfire_cloaked.RepairIfDestroyed = false
     spitfire_cloaked.Weapons += 1 -> new mutable.HashMap()
     spitfire_cloaked.Weapons(1) += TurretUpgrade.None -> spitfire_weapon
     spitfire_cloaked.ReserveAmmunition = false
@@ -6001,6 +6111,9 @@ object GlobalDefinitions {
     spitfire_aa.Name = "spitfire_aa"
     spitfire_aa.Descriptor = "FlakSpitfires"
     spitfire_aa.MaxHealth = 100
+    spitfire_aa.Damageable = true
+    spitfire_aa.Repairable = true
+    spitfire_aa.RepairIfDestroyed = false
     spitfire_aa.Weapons += 1 -> new mutable.HashMap()
     spitfire_aa.Weapons(1) += TurretUpgrade.None -> spitfire_aa_weapon
     spitfire_aa.ReserveAmmunition = false
@@ -6011,16 +6124,25 @@ object GlobalDefinitions {
     motionalarmsensor.Name = "motionalarmsensor"
     motionalarmsensor.Descriptor = "MotionSensors"
     motionalarmsensor.MaxHealth = 100
+    motionalarmsensor.Damageable = true
+    motionalarmsensor.Repairable = true
+    motionalarmsensor.RepairIfDestroyed = false
     motionalarmsensor.DeployTime = Duration.create(1000, "ms")
 
     sensor_shield.Name = "sensor_shield"
     sensor_shield.Descriptor = "SensorShields"
     sensor_shield.MaxHealth = 100
+    sensor_shield.Damageable = true
+    sensor_shield.Repairable = true
+    sensor_shield.RepairIfDestroyed = false
     sensor_shield.DeployTime = Duration.create(5000, "ms")
 
     tank_traps.Name = "tank_traps"
     tank_traps.Descriptor = "TankTraps"
     tank_traps.MaxHealth = 5000
+    tank_traps.Damageable = true
+    tank_traps.Repairable = true
+    tank_traps.RepairIfDestroyed = false
     tank_traps.Packet = new TRAPConverter
     tank_traps.DeployCategory = DeployableCategory.TankTraps
     tank_traps.DeployTime = Duration.create(6000, "ms")
@@ -6030,6 +6152,9 @@ object GlobalDefinitions {
     portable_manned_turret.Name = "portable_manned_turret"
     portable_manned_turret.Descriptor = "FieldTurrets"
     portable_manned_turret.MaxHealth = 1000
+    portable_manned_turret.Damageable = true
+    portable_manned_turret.Repairable = true
+    portable_manned_turret.RepairIfDestroyed = false
     portable_manned_turret.MountPoints += 1 -> 0
     portable_manned_turret.MountPoints += 2 -> 0
     portable_manned_turret.Weapons += 1 -> new mutable.HashMap()
@@ -6044,6 +6169,9 @@ object GlobalDefinitions {
     portable_manned_turret_nc.Name = "portable_manned_turret_nc"
     portable_manned_turret_nc.Descriptor = "FieldTurrets"
     portable_manned_turret_nc.MaxHealth = 1000
+    portable_manned_turret_nc.Damageable = true
+    portable_manned_turret_nc.Repairable = true
+    portable_manned_turret_nc.RepairIfDestroyed = false
     portable_manned_turret_nc.MountPoints += 1 -> 0
     portable_manned_turret_nc.MountPoints += 2 -> 0
     portable_manned_turret_nc.Weapons += 1 -> new mutable.HashMap()
@@ -6058,6 +6186,9 @@ object GlobalDefinitions {
     portable_manned_turret_tr.Name = "portable_manned_turret_tr"
     portable_manned_turret_tr.Descriptor = "FieldTurrets"
     portable_manned_turret_tr.MaxHealth = 1000
+    portable_manned_turret_tr.Damageable = true
+    portable_manned_turret_tr.Repairable = true
+    portable_manned_turret_tr.RepairIfDestroyed = false
     portable_manned_turret_tr.MountPoints += 1 -> 0
     portable_manned_turret_tr.MountPoints += 2 -> 0
     portable_manned_turret_tr.Weapons += 1 -> new mutable.HashMap()
@@ -6072,6 +6203,9 @@ object GlobalDefinitions {
     portable_manned_turret_vs.Name = "portable_manned_turret_vs"
     portable_manned_turret_vs.Descriptor = "FieldTurrets"
     portable_manned_turret_vs.MaxHealth = 1000
+    portable_manned_turret_vs.Damageable = true
+    portable_manned_turret_vs.Repairable = true
+    portable_manned_turret_vs.RepairIfDestroyed = false
     portable_manned_turret_vs.MountPoints += 1 -> 0
     portable_manned_turret_vs.MountPoints += 2 -> 0
     portable_manned_turret_vs.Weapons += 1 -> new mutable.HashMap()
@@ -6086,11 +6220,16 @@ object GlobalDefinitions {
     deployable_shield_generator.Name = "deployable_shield_generator"
     deployable_shield_generator.Descriptor = "ShieldGenerators"
     deployable_shield_generator.MaxHealth = 1700
+    deployable_shield_generator.Damageable = true
+    deployable_shield_generator.Repairable = true
+    deployable_shield_generator.RepairIfDestroyed = false
     deployable_shield_generator.DeployTime = Duration.create(6000, "ms")
     deployable_shield_generator.Model = StandardResolutions.ComplexDeployables
     
     router_telepad_deployable.Name = "router_telepad_deployable"
     router_telepad_deployable.MaxHealth = 100
+    router_telepad_deployable.Damageable = true
+    router_telepad_deployable.Repairable = false
     router_telepad_deployable.DeployTime = Duration.create(1, "ms")
     router_telepad_deployable.DeployCategory = DeployableCategory.Telepads
     router_telepad_deployable.Packet = new TelepadDeployableConverter
@@ -6098,6 +6237,8 @@ object GlobalDefinitions {
 
     internal_router_telepad_deployable.Name = "router_telepad_deployable"
     internal_router_telepad_deployable.MaxHealth = 1
+    deployable_shield_generator.Damageable = false
+    deployable_shield_generator.Repairable = false
     internal_router_telepad_deployable.DeployTime = Duration.create(1, "ms")
     internal_router_telepad_deployable.DeployCategory = DeployableCategory.Telepads
     internal_router_telepad_deployable.Packet = new InternalTelepadDeployableConverter
@@ -6110,14 +6251,24 @@ object GlobalDefinitions {
     ams_respawn_tube.Name = "ams_respawn_tube"
     ams_respawn_tube.Delay = 5
     ams_respawn_tube.SpecificPointFunc = SpawnPoint.AMS
+    ams_respawn_tube.Damageable = false
+    ams_respawn_tube.Repairable = false
 
     matrix_terminala.Name = "matrix_terminala"
+    matrix_terminala.Damageable = false
+    matrix_terminala.Repairable = false
 
     matrix_terminalb.Name = "matrix_terminalb"
+    matrix_terminalb.Damageable = false
+    matrix_terminalb.Repairable = false
 
     matrix_terminalc.Name = "matrix_terminalc"
+    matrix_terminalc.Damageable = false
+    matrix_terminalc.Repairable = false
 
     spawn_terminal.Name = "spawn_terminal"
+    spawn_terminal.Damageable = false
+    spawn_terminal.Repairable = false
 
     order_terminal.Name = "order_terminal"
     order_terminal.Tab += 0 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.infantryAmmunition ++ EquipmentTerminalDefinition.infantryWeapons)
@@ -6128,9 +6279,8 @@ object GlobalDefinitions {
     order_terminal.SellEquipmentByDefault = true
     order_terminal.MaxHealth = 500
     order_terminal.Damageable = true
-    order_terminal.DamageDestroysAt = 0
     order_terminal.Repairable = true
-    order_terminal.RepairRestoresAt = 250
+    order_terminal.RepairIfDestroyed = true
     order_terminal.Subtract.Damage1 = 8
 
     order_terminala.Name = "order_terminala"
@@ -6141,6 +6291,8 @@ object GlobalDefinitions {
     order_terminala.Tab += 4 -> OrderTerminalDefinition.InfantryLoadoutPage()
     order_terminala.Tab(4).asInstanceOf[OrderTerminalDefinition.InfantryLoadoutPage].Exclude = ExoSuitType.MAX
     order_terminala.SellEquipmentByDefault = true
+    order_terminala.Damageable = false
+    order_terminala.Repairable = false
 
     order_terminalb.Name = "order_terminalb"
     order_terminalb.Tab += 0 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.infantryAmmunition ++ EquipmentTerminalDefinition.infantryWeapons)
@@ -6150,6 +6302,8 @@ object GlobalDefinitions {
     order_terminalb.Tab += 4 -> OrderTerminalDefinition.InfantryLoadoutPage()
     order_terminalb.Tab(4).asInstanceOf[OrderTerminalDefinition.InfantryLoadoutPage].Exclude = ExoSuitType.MAX
     order_terminalb.SellEquipmentByDefault = true
+    order_terminalb.Damageable = false
+    order_terminalb.Repairable = false
 
     vanu_equipment_term.Name = "vanu_equipment_term"
     vanu_equipment_term.Tab += 0 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.infantryAmmunition ++ EquipmentTerminalDefinition.infantryWeapons)
@@ -6158,55 +6312,123 @@ object GlobalDefinitions {
     vanu_equipment_term.Tab += 3 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
     vanu_equipment_term.Tab += 4 -> OrderTerminalDefinition.InfantryLoadoutPage()
     vanu_equipment_term.SellEquipmentByDefault = true
+    vanu_equipment_term.Damageable = false
+    vanu_equipment_term.Repairable = false
 
     cert_terminal.Name = "cert_terminal"
     cert_terminal.Tab += 0 -> OrderTerminalDefinition.CertificationPage(CertTerminalDefinition.certs)
+    cert_terminal.MaxHealth = 500
+    cert_terminal.Damageable = true
+    cert_terminal.Repairable = true
+    cert_terminal.RepairIfDestroyed = true
+    cert_terminal.Subtract.Damage1 = 8
+
+    implant_terminal_mech.Name = "implant_terminal_mech"
+    implant_terminal_mech.MaxHealth = 1000
+    implant_terminal_mech.Damageable = false //TODO true
+    implant_terminal_mech.Repairable = true
+    implant_terminal_mech.RepairIfDestroyed = true
 
     implant_terminal_interface.Name = "implant_terminal_interface"
     implant_terminal_interface.Tab += 0 -> OrderTerminalDefinition.ImplantPage(ImplantTerminalDefinition.implants)
+    implant_terminal_interface.MaxHealth = 500
+    implant_terminal_interface.Damageable = false //TODO true
+    implant_terminal_interface.Repairable = true
+    implant_terminal_interface.RepairIfDestroyed = true
 
     ground_vehicle_terminal.Name = "ground_vehicle_terminal"
     ground_vehicle_terminal.Tab += 46769 -> OrderTerminalDefinition.VehiclePage(VehicleTerminalDefinition.groundVehicles, VehicleTerminalDefinition.trunk)
     ground_vehicle_terminal.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
+    ground_vehicle_terminal.MaxHealth = 500
+    ground_vehicle_terminal.Damageable = true
+    ground_vehicle_terminal.Repairable = true
+    ground_vehicle_terminal.RepairIfDestroyed = true
+    ground_vehicle_terminal.Subtract.Damage1 = 8
 
     air_vehicle_terminal.Name = "air_vehicle_terminal"
     air_vehicle_terminal.Tab += 46769 -> OrderTerminalDefinition.VehiclePage(VehicleTerminalDefinition.flight1Vehicles, VehicleTerminalDefinition.trunk)
     air_vehicle_terminal.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
+    air_vehicle_terminal.MaxHealth = 500
+    air_vehicle_terminal.Damageable = true
+    air_vehicle_terminal.Repairable = true
+    air_vehicle_terminal.RepairIfDestroyed = true
+    air_vehicle_terminal.Subtract.Damage1 = 8
 
     dropship_vehicle_terminal.Name = "dropship_vehicle_terminal"
     dropship_vehicle_terminal.Tab += 46769 -> OrderTerminalDefinition.VehiclePage(VehicleTerminalDefinition.flight1Vehicles ++ VehicleTerminalDefinition.flight2Vehicles, VehicleTerminalDefinition.trunk)
     dropship_vehicle_terminal.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
+    dropship_vehicle_terminal.MaxHealth = 500
+    dropship_vehicle_terminal.Damageable = true
+    dropship_vehicle_terminal.Repairable = true
+    dropship_vehicle_terminal.RepairIfDestroyed = true
+    dropship_vehicle_terminal.Subtract.Damage1 = 8
 
     vehicle_terminal_combined.Name = "vehicle_terminal_combined"
     vehicle_terminal_combined.Tab += 46769 -> OrderTerminalDefinition.VehiclePage(VehicleTerminalDefinition.flight1Vehicles ++ VehicleTerminalDefinition.groundVehicles, VehicleTerminalDefinition.trunk)
     vehicle_terminal_combined.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
+    vehicle_terminal_combined.MaxHealth = 500
+    vehicle_terminal_combined.Damageable = true
+    vehicle_terminal_combined.Repairable = true
+    vehicle_terminal_combined.RepairIfDestroyed = true
+    vehicle_terminal_combined.Subtract.Damage1 = 8
 
     vanu_air_vehicle_term.Name = "vanu_air_vehicle_term"
     vanu_air_vehicle_term.Tab += 46769 -> OrderTerminalDefinition.VehiclePage(VehicleTerminalDefinition.flight1Vehicles, VehicleTerminalDefinition.trunk)
     vanu_air_vehicle_term.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
+    vanu_air_vehicle_term.MaxHealth = 500
+    vanu_air_vehicle_term.Damageable = true
+    vanu_air_vehicle_term.Repairable = true
+    vanu_air_vehicle_term.RepairIfDestroyed = true
+    vanu_air_vehicle_term.Subtract.Damage1 = 8
 
     vanu_vehicle_term.Name = "vanu_vehicle_term"
     vanu_vehicle_term.Tab += 46769 -> OrderTerminalDefinition.VehiclePage(VehicleTerminalDefinition.groundVehicles, VehicleTerminalDefinition.trunk)
     vanu_vehicle_term.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
+    vanu_vehicle_term.MaxHealth = 500
+    vanu_vehicle_term.Damageable = true
+    vanu_vehicle_term.Repairable = true
+    vanu_vehicle_term.RepairIfDestroyed = true
+    vanu_vehicle_term.Subtract.Damage1 = 8
 
     bfr_terminal.Name = "bfr_terminal"
     bfr_terminal.Tab += 46769 -> OrderTerminalDefinition.VehiclePage(VehicleTerminalDefinition.bfrVehicles, VehicleTerminalDefinition.trunk)
     bfr_terminal.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
+    bfr_terminal.MaxHealth = 500
+    bfr_terminal.Damageable = true
+    bfr_terminal.Repairable = true
+    bfr_terminal.RepairIfDestroyed = true
+    bfr_terminal.Subtract.Damage1 = 8
 
     respawn_tube.Name = "respawn_tube"
     respawn_tube.Delay = 10
     respawn_tube.SpecificPointFunc = SpawnPoint.Tube
+    respawn_tube.MaxHealth = 1000
+    respawn_tube.Damageable = true
+    respawn_tube.DamageableByFriendlyFire = false
+    respawn_tube.Repairable = true
+    respawn_tube.RepairIfDestroyed = true
+    respawn_tube.Subtract.Damage1 = 8
 
     respawn_tube_sanctuary.Name = "respawn_tube"
     respawn_tube_sanctuary.Delay = 10
     respawn_tube_sanctuary.SpecificPointFunc = SpawnPoint.Default
+    respawn_tube_sanctuary.Damageable = false
+    respawn_tube_sanctuary.Repairable = false
 
     respawn_tube_tower.Name = "respawn_tube_tower"
     respawn_tube_tower.Delay = 10
     respawn_tube_tower.SpecificPointFunc = SpawnPoint.Tube
+    respawn_tube_tower.MaxHealth = 1000
+    respawn_tube_tower.Damageable = true
+    respawn_tube_tower.DamageableByFriendlyFire = false
+    respawn_tube_tower.Repairable = true
+    respawn_tube_tower.RepairIfDestroyed = true
+    respawn_tube_tower.Subtract.Damage1 = 8
 
     teleportpad_terminal.Name = "teleportpad_terminal"
     teleportpad_terminal.Tab += 0 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.routerTerminal)
+    teleportpad_terminal.Damageable = false
+    teleportpad_terminal.Repairable = false
 
     medical_terminal.Name = "medical_terminal"
     medical_terminal.Interval = 500
@@ -6214,6 +6436,10 @@ object GlobalDefinitions {
     medical_terminal.ArmorAmount = 10
     medical_terminal.UseRadius = 0.75f
     medical_terminal.TargetValidation += EffectTarget.Category.Player -> EffectTarget.Validation.Medical
+    medical_terminal.MaxHealth = 500
+    medical_terminal.Damageable = true
+    medical_terminal.Repairable = true
+    medical_terminal.RepairIfDestroyed = true
 
     adv_med_terminal.Name = "adv_med_terminal"
     adv_med_terminal.Interval = 500
@@ -6221,18 +6447,26 @@ object GlobalDefinitions {
     adv_med_terminal.ArmorAmount = 15
     adv_med_terminal.UseRadius = 0.75f
     adv_med_terminal.TargetValidation += EffectTarget.Category.Player -> EffectTarget.Validation.Medical
+    adv_med_terminal.MaxHealth = 750
+    adv_med_terminal.Damageable = true
+    adv_med_terminal.Repairable = true
+    adv_med_terminal.RepairIfDestroyed = true
 
     crystals_health_a.Name = "crystals_health_a"
     crystals_health_a.Interval = 500
     crystals_health_a.HealAmount = 4
     crystals_health_a.UseRadius = 5
     crystals_health_a.TargetValidation += EffectTarget.Category.Player -> EffectTarget.Validation.HealthCrystal
+    crystals_health_a.Damageable = false
+    crystals_health_a.Repairable = false
 
     crystals_health_b.Name = "crystals_health_b"
     crystals_health_b.Interval = 500
     crystals_health_b.HealAmount = 4
     crystals_health_b.UseRadius = 5
     crystals_health_b.TargetValidation += EffectTarget.Category.Player -> EffectTarget.Validation.HealthCrystal
+    crystals_health_b.Damageable = false
+    crystals_health_b.Repairable = false
 
     portable_med_terminal.Name = "portable_med_terminal"
     portable_med_terminal.Interval = 500
@@ -6240,58 +6474,115 @@ object GlobalDefinitions {
     portable_med_terminal.ArmorAmount = 10
     portable_med_terminal.UseRadius = 3
     portable_med_terminal.TargetValidation += EffectTarget.Category.Player -> EffectTarget.Validation.Medical
+    portable_med_terminal.MaxHealth = 500
+    portable_med_terminal.Damageable = false //TODO actually true
+    portable_med_terminal.Repairable = false
 
     pad_landing_frame.Name = "pad_landing_frame"
     pad_landing_frame.Interval = 1000
     pad_landing_frame.HealAmount = 60
     pad_landing_frame.UseRadius = 20
     pad_landing_frame.TargetValidation += EffectTarget.Category.Aircraft -> EffectTarget.Validation.PadLanding
+    pad_landing_frame.Damageable = false
+    pad_landing_frame.Repairable = false
 
     pad_landing_tower_frame.Name = "pad_landing_tower_frame"
     pad_landing_tower_frame.Interval = 1000
     pad_landing_tower_frame.HealAmount = 60
     pad_landing_tower_frame.UseRadius = 20
     pad_landing_tower_frame.TargetValidation += EffectTarget.Category.Aircraft -> EffectTarget.Validation.PadLanding
+    pad_landing_tower_frame.Damageable = false
+    pad_landing_tower_frame.Repairable = false
 
     repair_silo.Name = "repair_silo"
     repair_silo.Interval = 1000
     repair_silo.HealAmount = 60
     repair_silo.UseRadius = 20
     repair_silo.TargetValidation += EffectTarget.Category.Vehicle -> EffectTarget.Validation.RepairSilo
+    repair_silo.Damageable = false
+    repair_silo.Repairable = false
+
+    mb_pad_creation.Name = "mb_pad_creation"
+    mb_pad_creation.Damageable = false
+    mb_pad_creation.Repairable = false
+
+    dropship_pad_doors.Name = "dropship_pad_doors"
+    dropship_pad_doors.Damageable = false
+    dropship_pad_doors.Repairable = false
+
+    vanu_vehicle_creation_pad.Name = "vanu_vehicle_creation_pad"
+    vanu_vehicle_creation_pad.Damageable = false
+    vanu_vehicle_creation_pad.Repairable = false
+
+    mb_locker.Name = "mb_locker"
+    mb_locker.Damageable = false
+    mb_locker.Repairable = false
+
+    lock_external.Name = "lock_external"
+    lock_external.Damageable = false
+    lock_external.Repairable = false
+
+    door.Name = "door"
+    door.Damageable = false
+    door.Repairable = false
+
+    resource_silo.Name = "resource_silo"
+    resource_silo.Damageable = false
+    resource_silo.Repairable = false
+
+    capture_terminal.Name = "capture_terminal"
+    capture_terminal.Damageable = false
+    capture_terminal.Repairable = false
+
+    secondary_capture.Name = "secondary_capture"
+    secondary_capture.Damageable = false
+    secondary_capture.Repairable = false
+
+    vanu_control_console.Name = "vanu_control_console"
+    vanu_control_console.Damageable = false
+    vanu_control_console.Repairable = false
 
     lodestar_repair_terminal.Name = "lodestar_repair_terminal"
     lodestar_repair_terminal.Interval = 1000
     lodestar_repair_terminal.HealAmount = 60
     lodestar_repair_terminal.UseRadius = 20
     lodestar_repair_terminal.TargetValidation += EffectTarget.Category.Vehicle -> EffectTarget.Validation.RepairSilo
+    lodestar_repair_terminal.Damageable = false
+    lodestar_repair_terminal.Repairable = false
 
     multivehicle_rearm_terminal.Name = "multivehicle_rearm_terminal"
     multivehicle_rearm_terminal.Tab += 3 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
     multivehicle_rearm_terminal.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
     multivehicle_rearm_terminal.SellEquipmentByDefault = true //TODO ?
+    multivehicle_rearm_terminal.Damageable = false
+    multivehicle_rearm_terminal.Repairable = false
 
     bfr_rearm_terminal.Name = "bfr_rearm_terminal"
     bfr_rearm_terminal.Tab += 3 -> OrderTerminalDefinition.EquipmentPage(Map.empty[String, ()=>Equipment]) //TODO add stock to page
     bfr_rearm_terminal.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
     bfr_rearm_terminal.SellEquipmentByDefault = true //TODO ?
+    bfr_rearm_terminal.Damageable = false
+    bfr_rearm_terminal.Repairable = false
 
     air_rearm_terminal.Name = "air_rearm_terminal"
     air_rearm_terminal.Tab += 3 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
     air_rearm_terminal.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
     air_rearm_terminal.SellEquipmentByDefault = true //TODO ?
+    air_rearm_terminal.Damageable = false
+    air_rearm_terminal.Repairable = false
 
     ground_rearm_terminal.Name = "ground_rearm_terminal"
     ground_rearm_terminal.Tab += 3 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
     ground_rearm_terminal.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
     ground_rearm_terminal.SellEquipmentByDefault = true //TODO ?
+    ground_rearm_terminal.Damageable = false
+    ground_rearm_terminal.Repairable = false
 
     manned_turret.Name = "manned_turret"
     manned_turret.MaxHealth = 3600
     manned_turret.Damageable = true
     manned_turret.DamageDisablesAt = 0
-    manned_turret.DamageDestroysAt = 0
     manned_turret.Repairable = true
-    manned_turret.RepairRestoresAt = 1800
     manned_turret.Weapons += 1 -> new mutable.HashMap()
     manned_turret.Weapons(1) += TurretUpgrade.None -> phalanx_sgl_hevgatcan
     manned_turret.Weapons(1) += TurretUpgrade.AVCombo -> phalanx_avcombo
@@ -6302,6 +6593,9 @@ object GlobalDefinitions {
 
     vanu_sentry_turret.Name = "vanu_sentry_turret"
     vanu_sentry_turret.MaxHealth = 1500
+    vanu_sentry_turret.Damageable = true
+    vanu_sentry_turret.DamageDisablesAt = 0
+    vanu_sentry_turret.Repairable = true
     vanu_sentry_turret.Weapons += 1 -> new mutable.HashMap()
     vanu_sentry_turret.Weapons(1) += TurretUpgrade.None -> vanu_sentry_turret_weapon
     vanu_sentry_turret.MountPoints += 1 -> 0
@@ -6309,8 +6603,39 @@ object GlobalDefinitions {
     vanu_sentry_turret.FactionLocked = false
     vanu_sentry_turret.ReserveAmmunition = false
 
+    painbox.Name = "painbox"
+    painbox.Damageable = false
+    painbox.Repairable = false
+
+    painbox_continuous.Name = "painbox_continuous"
+    painbox_continuous.Damageable = false
+    painbox_continuous.Repairable = false
+
+    painbox_door_radius.Name = "painbox_door_radius"
+    painbox_door_radius.Damageable = false
+    painbox_door_radius.Repairable = false
+
+    painbox_door_radius_continuous.Name = "painbox_door_radius_continuous"
+    painbox_door_radius_continuous.Damageable = false
+    painbox_door_radius_continuous.Repairable = false
+
+    painbox_radius.Name = "painbox_radius"
+    painbox_radius.Damageable = false
+    painbox_radius.Repairable = false
+
+    painbox_radius_continuous.Name = "painbox_radius_continuous"
+    painbox_radius_continuous.Damageable = false
+    painbox_radius_continuous.Repairable = false
+
     gen_control.Name = "gen_control"
+    gen_control.Damageable = false
+    gen_control.Repairable = false
 
     generator.Name = "generator"
+    generator.MaxHealth = 4000
+    generator.Damageable = true
+    generator.Repairable = true
+    generator.RepairIfDestroyed = true
+    generator.Subtract.Damage1 = 9
   }
 }

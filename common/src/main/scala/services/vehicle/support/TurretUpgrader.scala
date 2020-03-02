@@ -4,7 +4,8 @@ package services.vehicle.support
 import akka.actor.{Actor, ActorRef, Cancellable}
 import net.psforever.objects.{AmmoBox, DefaultCancellable, PlanetSideGameObject, Tool}
 import net.psforever.objects.guid.{GUIDTask, Task, TaskResolver}
-import net.psforever.objects.serverobject.turret.{FacilityTurret, TurretUpgrade}
+import net.psforever.objects.serverobject.PlanetSideServerObject
+import net.psforever.objects.serverobject.turret.{FacilityTurret, TurretUpgrade, WeaponTurret}
 import net.psforever.objects.vehicles.MountedWeapons
 import net.psforever.objects.zones.Zone
 import net.psforever.types.PlanetSideGUID
@@ -265,7 +266,7 @@ object TurretUpgrader extends SupportActorCaseConversions {
     */
   case class Entry(_obj : PlanetSideGameObject, _zone : Zone, upgrade : TurretUpgrade.Value, _duration : Long) extends SupportActor.Entry(_obj, _zone, _duration)
 
-  final case class AddTask(turret : FacilityTurret, zone : Zone, upgrade : TurretUpgrade.Value, duration : Option[FiniteDuration] = None)
+  final case class AddTask(turret : PlanetSideServerObject with WeaponTurret, zone : Zone, upgrade : TurretUpgrade.Value, duration : Option[FiniteDuration] = None)
 
   final case class Downgrade()
 

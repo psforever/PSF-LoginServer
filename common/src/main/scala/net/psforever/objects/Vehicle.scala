@@ -9,6 +9,7 @@ import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.deploy.Deployment
+import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.structures.AmenityOwner
 import net.psforever.objects.vehicles._
 import net.psforever.objects.vital.{DamageResistanceModel, StandardResistanceProfile, Vitality}
@@ -65,6 +66,7 @@ import scala.annotation.tailrec
   *                   used in the initialization process (`loadVehicleDefinition`)
   */
 class Vehicle(private val vehicleDef : VehicleDefinition) extends AmenityOwner
+  with Hackable
   with FactionAffinity
   with Mountable
   with MountedWeapons

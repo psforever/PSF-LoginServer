@@ -30,7 +30,14 @@ class ResourceSiloControl(resourceSilo : ResourceSilo) extends Actor with Factio
 
   def Processing : Receive = checkBehavior.orElse {
     case ResourceSilo.Use(player, msg) =>
-      sender ! ResourceSilo.ResourceSiloMessage(player, msg, resourceSilo.Use(player, msg))
+      if(resourceSilo.Faction == PlanetSideEmpire.NEUTRAL || player.Faction == resourceSilo.Faction) {
+        resourceSilo.Zone.Vehicles.find(v => v.PassengerInSeat(player).contains(0)) match {
+          case Some(vehicle) =>
+            sender ! ResourceSilo.ResourceSiloMessage(player, msg, resourceSilo.Use(player, msg))
+          case _ =>
+        }
+      }
+
     case ResourceSilo.LowNtuWarning(enabled: Boolean) =>
       resourceSilo.LowNtuWarningOn = enabled
       log.trace(s"LowNtuWarning: Silo ${resourceSilo.GUID} low ntu warning set to $enabled")

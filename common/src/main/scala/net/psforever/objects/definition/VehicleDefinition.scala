@@ -45,8 +45,8 @@ class VehicleDefinition(objectId : Int) extends ObjectDefinition(objectId)
   private var destroyedModel : Option[DestroyedVehicle.Value] = None
   Name = "vehicle"
   Packet = VehicleDefinition.converter
-  Damage = StandardVehicleDamage
-  Resistance = StandardVehicleResistance
+  DamageUsing = StandardVehicleDamage
+  ResistUsing = StandardVehicleResistance
   Model = StandardResolutions.Vehicle
 
   def MaxShields : Int = maxShields

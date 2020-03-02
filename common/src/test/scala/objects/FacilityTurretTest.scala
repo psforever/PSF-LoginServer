@@ -22,7 +22,7 @@ class FacilityTurretTest extends Specification {
       obj.Weapons mustEqual mutable.HashMap.empty[TurretUpgrade.Value, ToolDefinition]
       obj.ReserveAmmunition mustEqual false
       obj.FactionLocked mustEqual true
-      obj.MaxHealth mustEqual 100
+      obj.MaxHealth mustEqual 0
       obj.MountPoints mustEqual mutable.HashMap.empty[Int,Int]
     }
 
@@ -36,7 +36,7 @@ class FacilityTurretTest extends Specification {
           ko
       }
       obj.Seats.size mustEqual 1
-      obj.Seats(0).ControlledWeapon mustEqual Some(1)
+      obj.Seats(0).ControlledWeapon.contains(1) mustEqual true
       obj.MountPoints.size mustEqual 1
       obj.MountPoints(1) mustEqual 0
       obj.Health mustEqual 3600

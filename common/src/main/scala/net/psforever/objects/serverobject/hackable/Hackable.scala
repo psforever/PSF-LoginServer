@@ -6,7 +6,8 @@ import net.psforever.objects.serverobject.hackable.Hackable.HackInfo
 import net.psforever.packet.game.TriggeredSound
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 
-trait Hackable extends FactionAffinity {
+trait Hackable {
+  _ : FactionAffinity =>
   /** inportant information regarding the hack and how it was started */
   private var hackedBy : Option[HackInfo] = None
   def HackedBy : Option[HackInfo] = hackedBy

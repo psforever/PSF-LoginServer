@@ -4,7 +4,7 @@ package net.psforever.objects.vital.resolution
 import net.psforever.objects.{Player, TurretDeployable, Vehicle}
 import net.psforever.objects.ballistics.{PlayerSource, ResolvedProjectile}
 import net.psforever.objects.ce.{ComplexDeployable, Deployable}
-import net.psforever.objects.serverobject.terminals.Terminal
+import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.objects.serverobject.turret.FacilityTurret
 import net.psforever.objects.vital.projectile.ProjectileCalculations
 
@@ -199,7 +199,7 @@ object ResolutionCalculations {
       case turret : FacilityTurret if turret.Health > 0 =>
         turret.Health -= damage
         turret.History(data)
-      case amenity : Terminal =>
+      case amenity : Amenity if amenity.Health > 0 =>
         amenity.Health -= damage
       case _ => ;
     }

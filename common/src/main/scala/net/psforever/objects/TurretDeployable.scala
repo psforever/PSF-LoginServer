@@ -34,8 +34,8 @@ class TurretDeployableDefinition(private val objectId : Int) extends ComplexDepl
   with TurretDefinition {
   Name = "turret_deployable"
   Packet = new SmallTurretConverter
-  Damage = StandardVehicleDamage
-  Resistance = StandardVehicleResistance
+  DamageUsing = StandardVehicleDamage
+  ResistUsing = StandardVehicleResistance
   Model = StandardResolutions.FacilityTurrets
 
   //override to clarify inheritance conflict

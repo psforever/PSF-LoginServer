@@ -1,20 +1,19 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.turret
 
+import net.psforever.objects.{AmmoBox, PlanetSideGameObject, Player, Tool}
 import net.psforever.objects.definition.{AmmoBoxDefinition, SeatDefinition, ToolDefinition}
-import net.psforever.objects._
 import net.psforever.objects.equipment.{Equipment, EquipmentSlot}
 import net.psforever.objects.inventory.{Container, GridInventory}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.vehicles.{MountedWeapons, Seat => Chair}
-import net.psforever.objects.vital.Vitality
 
 trait WeaponTurret extends FactionAffinity
   with Mountable
   with MountedWeapons
   with Container {
-  this : PlanetSideGameObject with Vitality =>
+  _ : PlanetSideGameObject =>
 
   /** manned turrets have just one seat; this is just standard interface */
   protected val seats : Map[Int, Chair] = Map(0 -> Chair(new SeatDefinition() { ControlledWeapon = Some(1) }))
@@ -27,6 +26,9 @@ trait WeaponTurret extends FactionAffinity
     override def Remove(index : Int) : Boolean = false
     override def Remove(guid : PlanetSideGUID) : Boolean = false
   }
+  /** some turrets can be updated; they all start without updates */
+  private var upgradePath : TurretUpgrade.Value = TurretUpgrade.None
+  private var middleOfUpgrade : Boolean = false
 
   /*
   do not mind what the IDE probably comments about these method prototypes for Health and MaxHealth
@@ -76,6 +78,40 @@ trait WeaponTurret extends FactionAffinity
       None
     }
   }
+
+  def Upgrade : TurretUpgrade.Value = upgradePath
+
+  def Upgrade_=(upgrade : TurretUpgrade.Value) : TurretUpgrade.Value = {
+    middleOfUpgrade = true //blocking flag; block early
+    var updated = false
+    //upgrade each weapon as long as that weapon has a valid option for that upgrade
+    Definition match {
+      case definition : TurretDefinition =>
+        definition.Weapons.foreach({ case(index, upgradePaths) =>
+          if(upgradePaths.contains(upgrade)) {
+            updated = true
+            weapons(index).Equipment.get.asInstanceOf[TurretWeapon].Upgrade = upgrade
+          }
+        })
+      case _ => ;
+    }
+    if(updated) {
+      upgradePath = upgrade
+    }
+    else {
+      middleOfUpgrade = false //reset
+    }
+    Upgrade
+  }
+
+  def ConfirmUpgrade(upgrade : TurretUpgrade.Value) : TurretUpgrade.Value = {
+    if(middleOfUpgrade && upgradePath == upgrade) {
+      middleOfUpgrade = false
+    }
+    upgradePath
+  }
+
+  def isUpgrading : Boolean = middleOfUpgrade
 
   def Definition : TurretDefinition
 }

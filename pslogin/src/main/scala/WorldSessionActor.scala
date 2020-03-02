@@ -294,12 +294,60 @@ class WorldSessionActor extends Actor
     case AvatarServiceResponse(toChannel, guid, reply) =>
       HandleAvatarServiceResponse(toChannel, guid, reply)
 
+    case CommonMessages.Hack(tplayer, obj : Locker, Some(item : SimpleItem)) if tplayer == player =>
+      val hackSpeed = GetPlayerHackSpeed(obj)
+      if(hackSpeed > 0) {
+        progressBarValue = Some(-hackSpeed)
+        self ! WorldSessionActor.Progress(progressType = 1, player, obj, item.GUID, hackSpeed, FinishHacking(obj, 3212836864L))
+        log.info(s"${player.Name} is hacking a locker")
+      }
+
+    case CommonMessages.Hack(tplayer, obj : CaptureTerminal, Some(item : SimpleItem)) if tplayer == player =>
+      val hackSpeed = GetPlayerHackSpeed(obj)
+      if(hackSpeed > 0) {
+        progressBarValue = Some(-hackSpeed)
+        self ! WorldSessionActor.Progress(progressType = 1, player, obj, item.GUID, hackSpeed, FinishHackingCaptureConsole(obj, 3212836864L))
+        log.info(s"${player.Name} is hacking a capture terminal")
+      }
+
+    case CommonMessages.Hack(tplayer, obj : ImplantTerminalMech, Some(item : SimpleItem)) if tplayer == player =>
+      val hackSpeed = GetPlayerHackSpeed(obj)
+      if(hackSpeed > 0) {
+        progressBarValue = Some(-hackSpeed)
+        self ! WorldSessionActor.Progress(progressType = 1, player, obj, item.GUID, hackSpeed, FinishHacking(obj, 3212836864L))
+        log.info(s"${player.Name} is hacking an implant terminal")
+      }
+
     case CommonMessages.Hack(tplayer, obj : Terminal, Some(item : SimpleItem)) if tplayer == player =>
       val hackSpeed = GetPlayerHackSpeed(obj)
       if(hackSpeed > 0) {
         progressBarValue = Some(-hackSpeed)
         self ! WorldSessionActor.Progress(progressType = 1, player, obj, item.GUID, hackSpeed, FinishHacking(obj, 3212836864L))
-        log.info("Hacking a terminal")
+        log.info(s"${player.Name} is hacking a terminal")
+      }
+
+    case CommonMessages.Hack(tplayer, obj : IFFLock, Some(item : SimpleItem)) if tplayer == player =>
+      val hackSpeed = GetPlayerHackSpeed(obj)
+      if(hackSpeed > 0) {
+        progressBarValue = Some(-hackSpeed)
+        if(obj.Faction != player.Faction) {
+          // Enemy faction is hacking this IFF lock
+          self ! WorldSessionActor.Progress(progressType = 1, player, obj, item.GUID, hackSpeed, FinishHacking(obj, 1114636288L))
+          log.info(s"${player.Name} is hacking an IFF lock")
+        }
+        else {
+          // IFF Lock is being resecured by it's owner faction
+          self ! WorldSessionActor.Progress(progressType = 1, player, obj, item.GUID, hackSpeed, FinishResecuringIFFLock(obj))
+          log.info(s"${player.Name} is resecuring an IFF lock")
+        }
+      }
+
+    case CommonMessages.Hack(tplayer, obj : Vehicle, Some(item : SimpleItem)) if tplayer == player =>
+      val hackSpeed = GetPlayerHackSpeed(obj)
+      if(hackSpeed > 0) {
+        progressBarValue = Some(-hackSpeed)
+        self ! WorldSessionActor.Progress(progressType = 1, player, obj, item.GUID, hackSpeed, FinishHackingVehicle(obj, 3212836864L))
+        log.trace(s"${player.Name} is hacking a vehicle")
       }
 
     case Door.DoorMessage(tplayer, msg, order) =>
@@ -4946,43 +4994,13 @@ class WorldSessionActor extends Actor
           }
 
         case Some(resourceSilo : ResourceSilo) =>
-          log.info(s"UseItem: Vehicle $avatar_guid is refilling resource silo $object_guid")
-          val vehicle = continent.GUID(avatar_guid).get.asInstanceOf[Vehicle]
-
-          if(resourceSilo.Faction == PlanetSideEmpire.NEUTRAL || player.Faction == resourceSilo.Faction) {
-            if(vehicle.Seat(0).get.Occupant.contains(player)) {
-              log.trace("UseItem: Player matches vehicle driver. Calling ResourceSilo.Use")
-              resourceSilo.Actor ! ResourceSilo.Use(player, msg)
-            }
-          } else {
-            log.warn(s"Player ${player.GUID} - ${player.Faction} tried to refill silo ${resourceSilo.GUID} - ${resourceSilo.Faction} belonging to another empire")
-          }
+          resourceSilo.Actor ! ResourceSilo.Use(player, msg)
 
         case Some(panel : IFFLock) =>
-          if((panel.Faction != player.Faction && panel.HackedBy.isEmpty) || (panel.Faction == player.Faction && panel.HackedBy.isDefined)) {
-            equipment match {
-              case Some(tool : SimpleItem) if tool.Definition == GlobalDefinitions.remote_electronics_kit =>
-                val hackSpeed = GetPlayerHackSpeed(panel)
-                if(hackSpeed > 0) {
-                  progressBarValue = Some(-hackSpeed)
-                  if(panel.Faction != player.Faction) {
-                    // Enemy faction is hacking this IFF lock
-                    self ! WorldSessionActor.Progress(progressType = 1, player, panel, tool.GUID, hackSpeed, FinishHacking(panel, 1114636288L))
-                    log.info("Hacking an IFF lock")
-                  }
-                  else {
-                    // IFF Lock is being resecured by it's owner faction
-                    self ! WorldSessionActor.Progress(progressType = 1, player, panel, tool.GUID, hackSpeed, FinishResecuringIFFLock(panel))
-                    log.info("Resecuring an IFF lock")
-                  }
-                }
-              case _ => ;
-            }
-          }
-          else {
-            log.warn("IFF lock is being hacked, but don't know how to handle this state")
-            log.warn(s"Lock - HackedBy.isDefined: ${panel.HackedBy.isDefined} Faction: ${panel.Faction} HackedBy.isEmpty: ${panel.HackedBy.isEmpty}")
-            log.warn(s"Hacking player - Faction: ${player.Faction}")
+          equipment match {
+            case Some(item) =>
+              panel.Actor ! CommonMessages.Use(player, Some(item))
+            case _ => ;
           }
 
         case Some(obj : Player) =>
@@ -5162,56 +5180,29 @@ class WorldSessionActor extends Actor
           }
 
         case Some(locker : Locker) =>
-          if(locker.Faction != player.Faction && locker.HackedBy.isEmpty) {
-            equipment match {
-              case Some(tool: SimpleItem) if tool.Definition == GlobalDefinitions.remote_electronics_kit =>
-                val hackSpeed = GetPlayerHackSpeed(locker)
-                if(hackSpeed > 0)  {
-                  progressBarValue = Some(-hackSpeed)
-                  self ! WorldSessionActor.Progress(progressType = 1, player, locker, tool.GUID, hackSpeed, FinishHacking(locker, 3212836864L))
-                  log.info("Hacking a locker")
-                }
-              case _ => ;
-            }
-          }
-          else if(player.Faction == locker.Faction || !locker.HackedBy.isEmpty) {
-            log.info(s"UseItem: $player accessing a locker")
-            val container = player.Locker
-            accessedContainer = Some(container)
-            sendResponse(UseItemMessage(avatar_guid, item_used_guid, container.GUID, unk2, unk3, unk4, unk5, unk6, unk7, unk8, 456))
-          }
-          else {
-            log.info(s"UseItem: not $player's locker")
+          equipment match {
+            case Some(item) =>
+              locker.Actor ! CommonMessages.Use(player, Some(item))
+            case None if locker.Faction == player.Faction || !locker.HackedBy.isEmpty =>
+              log.trace(s"UseItem: $player accessing a locker")
+              val container = player.Locker
+              accessedContainer = Some(container)
+              sendResponse(UseItemMessage(avatar_guid, item_used_guid, container.GUID, unk2, unk3, unk4, unk5, unk6, unk7, unk8, 456))
+            case _ => ;
           }
 
-        case Some(implant_terminal : ImplantTerminalMech) =>
-          if(implant_terminal.Faction != player.Faction && implant_terminal.HackedBy.isEmpty) {
-            equipment match {
-              case Some(tool: SimpleItem) if tool.Definition == GlobalDefinitions.remote_electronics_kit =>
-                val hackSpeed = GetPlayerHackSpeed(implant_terminal)
-                if(hackSpeed > 0)  {
-                  progressBarValue = Some(-hackSpeed)
-                  self ! WorldSessionActor.Progress(progressType = 1, player, implant_terminal, tool.GUID, hackSpeed, FinishHacking(implant_terminal, 3212836864L))
-                  log.info("Hacking an implant terminal")
-                }
-              case _ => ;
-            }
+        case Some(mech : ImplantTerminalMech) =>
+          equipment match {
+            case Some(item) =>
+              mech.Actor ! CommonMessages.Use(player, Some(item))
+            case None => ;
           }
 
         case Some(captureTerminal : CaptureTerminal) =>
-          val hackedByCurrentFaction = (captureTerminal.Faction != player.Faction && !captureTerminal.HackedBy.isEmpty && captureTerminal.HackedBy.get.hackerFaction == player.Faction)
-          val ownedByPlayerFactionAndHackedByEnemyFaction = (captureTerminal.Faction == player.Faction && !captureTerminal.HackedBy.isEmpty)
-          if(!hackedByCurrentFaction || ownedByPlayerFactionAndHackedByEnemyFaction) {
-            equipment match {
-              case Some(tool: SimpleItem) if tool.Definition == GlobalDefinitions.remote_electronics_kit =>
-                val hackSpeed = GetPlayerHackSpeed(captureTerminal)
-                if(hackSpeed > 0) {
-                  progressBarValue = Some(-hackSpeed)
-                  self ! WorldSessionActor.Progress(progressType = 1, player, captureTerminal, tool.GUID, hackSpeed, FinishHacking(captureTerminal, 3212836864L))
-                  log.info("Hacking a capture terminal")
-                }
-              case _ => ;
-            }
+          equipment match {
+            case Some(item) =>
+              captureTerminal.Actor ! CommonMessages.Use(player, Some(item))
+            case _ => ;
           }
 
         case Some(obj : FacilityTurret) =>
@@ -5223,7 +5214,7 @@ class WorldSessionActor extends Actor
                 case Ammo.armor_canister => //repair
                   obj.Actor ! CommonMessages.Use(player, Some(gluegun))
 
-                case Ammo.upgrade_canister if gluegun.Magazine > 0 && obj.Seats.values.forall(!_.isOccupied) =>
+                case Ammo.upgrade_canister if gluegun.Magazine > 0 && obj.Seats.values.forall(!_.isOccupied) => //upgrade
                   progressBarValue = Some(-1.25f)
                   self ! WorldSessionActor.Progress(
                     progressType = 2,
@@ -5241,11 +5232,11 @@ class WorldSessionActor extends Actor
           }
 
         case Some(obj : Vehicle) =>
-          if(player.Faction == obj.Faction) {
-            if(equipment match {
-              case Some(tool : Tool) if tool.Definition != GlobalDefinitions.nano_dispenser => true
-              case _ => true
-            }) {
+          equipment match {
+            case Some(item) =>
+              obj.Actor ! CommonMessages.Use(player, Some(item))
+
+            case None if player.Faction == obj.Faction =>
               //access to trunk
               if(obj.AccessingTrunk.isEmpty &&
                 (!obj.PermissionGroup(AccessPermissionGroup.Trunk.id).contains(VehicleLockState.Locked) || obj.Owner.contains(player.GUID))) {
@@ -5254,40 +5245,7 @@ class WorldSessionActor extends Actor
                 AccessContents(obj)
                 sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
               }
-              else {
-                log.info(s"UseItem: $obj's trunk is not currently accessible for $player")
-              }
-            }
-            else if(equipment.isDefined) {
-              equipment match {
-                case Some(tool : Tool) if tool.Definition == GlobalDefinitions.nano_dispenser =>
-                  if (!player.isMoving && Vector3.Distance(player.Position, obj.Position) < 5) {
-                    if (obj.Health < obj.MaxHealth && !obj.IsDead) {
-                      obj.Health += 12 + tool.FireMode.Modifiers.Damage1
-                      //sendResponse(QuantityUpdateMessage(PlanetSideGUID(8214),ammo_quantity_left))
-                      val RepairPercent: Int = obj.Health * 100 / obj.MaxHealth
-                      sendResponse(RepairMessage(object_guid, RepairPercent))
-                      continent.AvatarEvents ! AvatarServiceMessage(obj.Continent, AvatarAction.PlanetsideAttribute(obj.GUID, 0, obj.Health))
-                    }
-                  }
-
-                case _ => ;
-              }
-            }
-          }
-          //enemy player interactions
-          else if(equipment.isDefined) {
-            equipment.get.Definition match {
-              case GlobalDefinitions.remote_electronics_kit =>
-                val hackSpeed = GetPlayerHackSpeed(obj)
-
-                if(hackSpeed > 0) {
-                  progressBarValue = Some(-hackSpeed)
-                  self ! WorldSessionActor.Progress(progressType = 1, player, obj, equipment.get.GUID, hackSpeed, FinishHackingVehicle(obj, 3212836864L))
-                  log.info("Hacking a vehicle")
-                }
-              case _ => ;
-            }
+            case _ => ;
           }
 
         case Some(terminal : Terminal) =>
@@ -5327,14 +5285,17 @@ class WorldSessionActor extends Actor
           }
 
         case Some(obj : SpawnTube) =>
-          if(item_used_guid == PlanetSideGUID(0)) { // Ensure that we're not trying to use a tool on the spawn tube, e.g. medical applicator
-            //deconstruction
-            PlayerActionsToCancel()
-            CancelAllProximityUnits()
-            continent.Population ! Zone.Population.Release(avatar)
-            GoToDeploymentMap()
+          equipment match {
+            case Some(item) =>
+              obj.Actor ! CommonMessages.Use(player, Some(item))
+            case None if player.Faction == obj.Faction =>
+              //deconstruction
+              PlayerActionsToCancel()
+              CancelAllProximityUnits()
+              continent.Population ! Zone.Population.Release(avatar)
+              GoToDeploymentMap()
+            case _ => ;
           }
-
 
         case Some(obj : TelepadDeployable) =>
           continent.GUID(obj.Router) match {
@@ -6607,15 +6568,39 @@ class WorldSessionActor extends Actor
     log.info(s"Hacked a $target")
     // Wait for the target actor to set the HackedBy property, otherwise LocalAction.HackTemporarily will not complete properly
     import scala.concurrent.ExecutionContext.Implicits.global
-    ask(target.Actor, CommonMessages.Hack(player, target))(1 second).mapTo[Boolean].onComplete {
+    val tplayer = player
+    ask(target.Actor, CommonMessages.Hack(tplayer, target))(1 second).mapTo[Boolean].onComplete {
       case Success(_) =>
-        continent.LocalEvents ! LocalServiceMessage(continent.Id, LocalAction.TriggerSound(player.GUID, target.HackSound, player.Position, 30, 0.49803925f))
-        target match {
-          case term: CaptureTerminal =>
-            val isResecured = player.Faction == target.Faction
-            continent.LocalEvents ! LocalServiceMessage(continent.Id, LocalAction.HackCaptureTerminal(player.GUID, continent, term, unk, 8L, isResecured))
-          case _ => continent.LocalEvents ! LocalServiceMessage(continent.Id, LocalAction.HackTemporarily(player.GUID, continent, target, unk, target.HackEffectDuration(GetPlayerHackLevel())))
-        }
+        val zone = target.Zone
+        val zoneId = zone.Id
+        val pguid = tplayer.GUID
+        zone.LocalEvents ! LocalServiceMessage(zoneId, LocalAction.TriggerSound(pguid, target.HackSound, tplayer.Position, 30, 0.49803925f))
+        zone.LocalEvents ! LocalServiceMessage(zoneId, LocalAction.HackTemporarily(pguid, zone, target, unk, target.HackEffectDuration(GetPlayerHackLevel())))
+      case scala.util.Failure(_) => log.warn(s"Hack message failed on target guid: ${target.GUID}")
+    }
+  }
+
+  /**
+    * The process of hacking an object is completed.
+    * Pass the message onto the hackable object and onto the local events system.
+    * @param target the `Hackable` object that has been hacked
+    * @param unk na;
+    *            used by `HackMessage` as `unk5`
+    * @see `HackMessage`
+    */
+  //TODO add params here depending on which params in HackMessage are important
+  private def FinishHackingCaptureConsole(target : CaptureTerminal, unk : Long)() : Unit = {
+    log.info(s"Hacked a $target")
+    // Wait for the target actor to set the HackedBy property, otherwise LocalAction.HackTemporarily will not complete properly
+    import scala.concurrent.ExecutionContext.Implicits.global
+    val tplayer = player
+    ask(target.Actor, CommonMessages.Hack(tplayer, target))(1 second).mapTo[Boolean].onComplete {
+      case Success(_) =>
+        val zone = target.Zone
+        val zoneId = zone.Id
+        val pguid = tplayer.GUID
+        zone.LocalEvents ! LocalServiceMessage(zoneId, LocalAction.TriggerSound(pguid, target.HackSound, tplayer.Position, 30, 0.49803925f))
+        zone.LocalEvents ! LocalServiceMessage(zoneId, LocalAction.HackCaptureTerminal(pguid, zone, target, unk, 8L, tplayer.Faction == target.Faction))
       case scala.util.Failure(_) => log.warn(s"Hack message failed on target guid: ${target.GUID}")
     }
   }
@@ -6689,6 +6674,7 @@ class WorldSessionActor extends Actor
       }
 
       // Now take ownership of the jacked vehicle
+      target.Actor ! CommonMessages.Hack(player, target)
       target.Faction = player.Faction
       Vehicles.Own(target, player)
 
@@ -8747,13 +8733,12 @@ class WorldSessionActor extends Actor
   def HandleDealingDamage(target : PlanetSideGameObject with Vitality, data : ResolvedProjectile) : Unit = {
     val func = data.damage_model.Calculate(data)
     target match {
-      case obj : Player if obj.Health > 0 => obj.Actor ! Vitality.Damage(func)
-      case obj : Vehicle if obj.Health > 0 => obj.Actor ! Vitality.Damage(func)
-      case obj : FacilityTurret if obj.Health > 0 => obj.Actor ! Vitality.Damage(func)
-      case obj : ComplexDeployable if obj.Health > 0 => obj.Actor ! Vitality.Damage(func)
-      case obj : Terminal if obj.Health > 0 => obj.Actor ! Vitality.Damage(func)
+      case obj : Player if obj.CanDamage => obj.Actor ! Vitality.Damage(func)
+      case obj : Vehicle if obj.CanDamage => obj.Actor ! Vitality.Damage(func)
+      case obj : Amenity => obj.Actor ! Vitality.Damage(func)
+      case obj : ComplexDeployable if obj.CanDamage => obj.Actor ! Vitality.Damage(func)
 
-      case obj : SimpleDeployable if obj.Health > 0 =>
+      case obj : SimpleDeployable if obj.CanDamage =>
         //damage is synchronized on `LSA` (results returned to and distributed from this `WSA`)
         continent.LocalEvents ! Vitality.DamageOn(obj, func)
       case _ => ;
@@ -10008,19 +9993,18 @@ class WorldSessionActor extends Actor
 
   def GetPlayerHackSpeed(obj: PlanetSideServerObject): Float = {
     val playerHackLevel = GetPlayerHackLevel()
-
     val timeToHack = obj match {
-        case (hackable: Hackable) => hackable.HackDuration(playerHackLevel)
-        case (vehicle: Vehicle) => vehicle.JackingDuration(playerHackLevel)
-        case _ =>
-          log.warn(s"Player tried to hack an object that has no hack time defined ${obj.GUID} - ${obj.Definition.Name}")
+      case (vehicle : Vehicle) => vehicle.JackingDuration(playerHackLevel)
+      case (hackable : Hackable) => hackable.HackDuration(playerHackLevel)
+      case _ =>
+        log.warn(s"Player tried to hack an object that has no hack time defined ${obj.GUID} - ${obj.Definition.Name}")
         0
     }
-
     if(timeToHack == 0) {
       log.warn(s"Player ${player.GUID} tried to hack an object ${obj.GUID} - ${obj.Definition.Name} that they don't have the correct hacking level for")
       0f
-    } else {
+    }
+    else {
       // 250 ms per tick on the hacking progress bar
       val ticks = (timeToHack * 1000) / 250
       100f / ticks

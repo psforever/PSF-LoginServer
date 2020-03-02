@@ -26,8 +26,8 @@ class ExoSuitDefinition(private val suitType : ExoSuitType.Value) extends BasicD
   protected var capacitorRechargePerSecond : Int = 0
   protected var capacitorDrainPerSecond : Int = 0
   Name = "exo-suit"
-  Damage = StandardInfantryDamage
-  Resistance = StandardInfantryResistance
+  DamageUsing = StandardInfantryDamage
+  ResistUsing = StandardInfantryResistance
   Model = StandardResolutions.Infantry
 
   def SuitType : ExoSuitType.Value = suitType
@@ -142,8 +142,8 @@ class SpecialExoSuitDefinition(private val suitType : ExoSuitType.Value) extends
     obj.ResistanceDirectHit = ResistanceDirectHit
     obj.ResistanceSplash = ResistanceSplash
     obj.ResistanceAggravated = ResistanceAggravated
-    obj.Damage = Damage
-    obj.Resistance = Resistance
+    obj.DamageUsing = DamageUsing
+    obj.ResistUsing = ResistUsing
     obj.Model = Model
     (0 until 5).foreach(index => { obj.Holster(index, Holster(index)) })
     obj

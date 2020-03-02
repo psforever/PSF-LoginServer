@@ -10,8 +10,8 @@ import net.psforever.objects.vital.{StandardResolutions, StandardVehicleDamage, 
   */
 class FacilityTurretDefinition(private val objectId : Int) extends AmenityDefinition(objectId)
   with TurretDefinition {
-  Damage = StandardVehicleDamage
-  Resistance = StandardVehicleResistance
+  DamageUsing = StandardVehicleDamage
+  ResistUsing = StandardVehicleResistance
   Model = StandardResolutions.FacilityTurrets
 }
 
