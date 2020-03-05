@@ -1068,7 +1068,7 @@ class WorldSessionActor extends Actor
       StopBundlingPackets()
 
     case WorldSessionActor.FinalizeDeployable(obj : ComplexDeployable, tool, index) =>
-      //spitfires and deployable field turrets and the deployable_shield_generator
+      //tank_traps, spitfires, deployable field turrets and the deployable_shield_generator
       StartBundlingPackets()
       DeployableBuildActivity(obj)
       CommonDestroyConstructionItem(tool, index)
@@ -1106,14 +1106,6 @@ class WorldSessionActor extends Actor
             continent.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.AddTask(obj, continent, Some(0 seconds)))
         }
       }
-      StopBundlingPackets()
-
-    case WorldSessionActor.FinalizeDeployable(obj : SimpleDeployable, tool, index) =>
-      //tank_trap
-      StartBundlingPackets()
-      DeployableBuildActivity(obj)
-      CommonDestroyConstructionItem(tool, index)
-      FindReplacementConstructionItem(tool, index)
       StopBundlingPackets()
 
     case WorldSessionActor.FinalizeDeployable(obj : PlanetSideGameObject with Deployable, tool, index) =>
@@ -1230,19 +1222,11 @@ class WorldSessionActor extends Actor
     case Progress(progressType, tplayer, target, tool_guid, delta, completeAction, tickAction) =>
       HandleChangeProgress(progressType, tplayer, target, tool_guid, delta, completeAction, tickAction)
 
-    case Vitality.DamageResolution(target : TrapDeployable, _) =>
-      //tank_traps
-      val guid = target.GUID
-      val health = target.Health
-      continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(guid, 0, health))
-      if(health <= 0) {
-        AnnounceDestroyDeployable(target, None)
-      }
-
     case Vitality.DamageResolution(target : TelepadDeployable, _) =>
       //telepads
       if(target.Health <= 0) {
         //update if destroyed
+        target.Destroyed = true
         val guid = target.GUID
         continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player.GUID, guid))
         AnnounceDestroyDeployable(target, Some(0 seconds))
@@ -1842,14 +1826,16 @@ class WorldSessionActor extends Actor
           DeconstructDeployable(obj, guid, pos)
         }
         else {
+          obj.Destroyed = true
           DeconstructDeployable(obj, guid, pos, obj.Orientation, if(obj.MountPoints.isEmpty) 2 else 1)
         }
 
       case LocalResponse.EliminateDeployable(obj : ExplosiveDeployable, guid, pos) =>
-        if(obj.Exploded || obj.Jammed || obj.Health == 0) {
+        if(obj.Destroyed || obj.Jammed || obj.Health == 0) {
           DeconstructDeployable(obj, guid, pos)
         }
         else {
+          obj.Destroyed = true
           DeconstructDeployable(obj, guid, pos, obj.Orientation, 2)
         }
 
@@ -1858,6 +1844,7 @@ class WorldSessionActor extends Actor
           DeconstructDeployable(obj, guid, pos)
         }
         else {
+          obj.Destroyed = true
           DeconstructDeployable(obj, guid, pos, obj.Orientation, 1)
         }
 
@@ -1886,6 +1873,7 @@ class WorldSessionActor extends Actor
           DeconstructDeployable(obj, guid, pos)
         }
         else {
+          obj.Destroyed = true
           DeconstructDeployable(obj, guid, pos, obj.Orientation, 2)
         }
 
@@ -1894,6 +1882,7 @@ class WorldSessionActor extends Actor
           DeconstructDeployable(obj, guid, pos)
         }
         else {
+          obj.Destroyed = true
           DeconstructDeployable(obj, guid, pos, obj.Orientation, 2)
         }
 
@@ -4587,7 +4576,7 @@ class WorldSessionActor extends Actor
           continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireState_Start(playerGUID, item_guid))
           continent.GUID(trigger.Companion) match {
             case Some(boomer : BoomerDeployable) =>
-              boomer.Exploded = true
+              boomer.Destroyed = true
               continent.LocalEvents ! LocalServiceMessage(continent.Id, LocalAction.Detonate(boomer.GUID, boomer))
               Deployables.AnnounceDestroyDeployable(boomer, Some(500 milliseconds))
             case Some(_) | None => ;
@@ -5294,6 +5283,34 @@ class WorldSessionActor extends Actor
               CancelAllProximityUnits()
               continent.Population ! Zone.Population.Release(avatar)
               GoToDeploymentMap()
+            case _ => ;
+          }
+
+        case Some(obj : SensorDeployable) =>
+          equipment match {
+            case Some(item) =>
+              obj.Actor ! CommonMessages.Use(player, Some(item))
+            case _ => ;
+          }
+
+        case Some(obj : TurretDeployable) =>
+          equipment match {
+            case Some(item) =>
+              obj.Actor ! CommonMessages.Use(player, Some(item))
+            case _ => ;
+          }
+
+        case Some(obj : TrapDeployable) =>
+          equipment match {
+            case Some(item) =>
+              obj.Actor ! CommonMessages.Use(player, Some(item))
+            case _ => ;
+          }
+
+        case Some(obj : ShieldGeneratorDeployable) =>
+          equipment match {
+            case Some(item) =>
+              obj.Actor ! CommonMessages.Use(player, Some(item))
             case _ => ;
           }
 
@@ -8735,7 +8752,7 @@ class WorldSessionActor extends Actor
     target match {
       case obj : Player if obj.CanDamage => obj.Actor ! Vitality.Damage(func)
       case obj : Vehicle if obj.CanDamage => obj.Actor ! Vitality.Damage(func)
-      case obj : Amenity => obj.Actor ! Vitality.Damage(func)
+      case obj : Amenity if obj.CanDamage => obj.Actor ! Vitality.Damage(func)
       case obj : ComplexDeployable if obj.CanDamage => obj.Actor ! Vitality.Damage(func)
 
       case obj : SimpleDeployable if obj.CanDamage =>

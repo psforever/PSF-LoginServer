@@ -2,19 +2,16 @@
 package net.psforever.objects.serverobject.turret
 
 import akka.actor.Actor
-import net.psforever.objects.{GlobalDefinitions, Player, Tool}
-import net.psforever.objects.equipment.{Ammo, JammableMountedWeapons}
-import net.psforever.objects.serverobject.CommonMessages
+import net.psforever.objects.{GlobalDefinitions, Player}
+import net.psforever.objects.equipment.JammableMountedWeapons
 import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior}
 import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
 import net.psforever.objects.serverobject.damage.DamageableWeaponTurret
+import net.psforever.objects.serverobject.repair.Repairable.Target
 import net.psforever.objects.serverobject.repair.RepairableWeaponTurret
-import net.psforever.packet.game.{InventoryStateMessage, RepairMessage}
-import net.psforever.types.{PlanetSideGUID, Vector3}
-import services.Service
+import net.psforever.objects.vital.Vitality
 import services.avatar.{AvatarAction, AvatarServiceMessage}
 import services.local.{LocalAction, LocalServiceMessage}
-import services.vehicle.{VehicleAction, VehicleServiceMessage}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -47,7 +44,6 @@ class FacilityTurretControl(turret : FacilityTurret) extends Actor
   def receive : Receive = checkBehavior
     .orElse(jammableBehavior)
     .orElse(dismountBehavior)
-    .orElse(takesDamage)
     .orElse(canBeRepairedByNanoDispenser)
     .orElse {
       case FacilityTurret.RechargeAmmo() =>
@@ -77,37 +73,28 @@ class FacilityTurretControl(turret : FacilityTurret) extends Actor
             sender ! Mountable.MountMessages(user, Mountable.CanNotMount(turret, seat_num))
         }
 
-      case CommonMessages.Use(player, Some(item : Tool)) if item.Definition == GlobalDefinitions.nano_dispenser =>
-        if(!player.isMoving && Vector3.Distance(player.Position, turret.Position) < 5 &&
-          player.Faction == turret.Faction && turret.Health < turret.Definition.MaxHealth &&
-          item.AmmoType == Ammo.armor_canister && item.Magazine > 0) {
+      case msg : Vitality.Damage =>
+        val destroyedBefore = turret.Destroyed
+        takesDamage.apply(msg)
+        if(turret.Destroyed != destroyedBefore) {
           val zone = turret.Zone
           val zoneId = zone.Id
           val events = zone.AvatarEvents
-          val pname = player.Name
           val tguid = turret.GUID
-          val magazine = item.Magazine -= 1
-          val health = turret.Health += 12 + item.FireMode.Modifiers.Damage1
-          val repairPercent: Long = health * 100 / turret.Definition.MaxHealth
-          events ! AvatarServiceMessage(pname, AvatarAction.SendResponse(Service.defaultPlayerGUID, InventoryStateMessage(item.AmmoSlot.Box.GUID, item.GUID, magazine.toLong)))
-          events ! AvatarServiceMessage(pname, AvatarAction.SendResponse(Service.defaultPlayerGUID, RepairMessage(tguid, repairPercent)))
-          events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(tguid, 0, health))
-          if(turret.Destroyed && health > turret.Definition.RepairRestoresAt) {
-            turret.Destroyed = false
-            events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(tguid, 50, 0))
-            events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(tguid, 51, 0))
-            turret.Weapons
-              .map({ case (index, slot) => (index, slot.Equipment) })
-              .collect { case (index, Some(tool : Tool)) =>
-                zone.VehicleEvents ! VehicleServiceMessage(
-                  zone.Id,
-                  VehicleAction.EquipmentInSlot(PlanetSideGUID(0), tguid, index, tool)
-                )
-              }
-
-          }
+          events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(tguid, 50, 1))
+          events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(tguid, 51, 1))
         }
 
       case _ => ;
     }
+
+  override def Restoration(obj : Target) : Unit = {
+    super.Restoration(obj)
+    val zone = turret.Zone
+    val zoneId = zone.Id
+    val events = zone.AvatarEvents
+    val tguid = turret.GUID
+    events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(tguid, 50, 0))
+    events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(tguid, 51, 0))
+  }
 }

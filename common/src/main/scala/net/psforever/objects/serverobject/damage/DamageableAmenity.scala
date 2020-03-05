@@ -16,7 +16,6 @@ trait DamageableAmenity extends Damageable {
   val takesDamage : Receive = {
     case Vitality.Damage(damage_func) =>
       val obj = DamageableObject
-      val definition = obj.Definition
       if(obj.CanDamage) {
         val originalHealth = obj.Health
         val cause = damage_func(obj)

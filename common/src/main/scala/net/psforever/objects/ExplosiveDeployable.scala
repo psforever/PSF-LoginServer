@@ -1,4 +1,4 @@
-// Copyright (c) 2017 PSForever
+// Copyright (c) 2018 PSForever
 package net.psforever.objects
 
 import akka.actor.{Actor, ActorContext, Props}
@@ -17,14 +17,6 @@ import scala.concurrent.duration._
 
 class ExplosiveDeployable(cdef : ExplosiveDeployableDefinition) extends ComplexDeployable(cdef)
   with JammableUnit {
-  private var exploded : Boolean = false
-
-  def Exploded : Boolean = exploded
-
-  def Exploded_=(fuse : Boolean) : Boolean = {
-    exploded = fuse
-    Exploded
-  }
 
   override def Definition : ExplosiveDeployableDefinition = cdef
 }
@@ -102,6 +94,7 @@ object ExplosiveDeployableControl {
     * @param lastShot na
     */
   def HandleDestructionAwareness(target : ExplosiveDeployable, attribution : PlanetSideGUID, lastShot : ResolvedProjectile) : Unit = {
+    target.Destroyed = true
     val zone = target.Zone
     Deployables.AnnounceDestroyDeployable(target, Some(if(target.Jammed) 0 seconds else 500 milliseconds))
     zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.Destroy(target.GUID, attribution, attribution, target.Position))

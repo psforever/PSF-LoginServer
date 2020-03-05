@@ -891,7 +891,7 @@ object GlobalDefinitions {
 
   val sensor_shield = SensorDeployableDefinition(DeployedItem.sensor_shield)
 
-  val tank_traps = SimpleDeployableDefinition(DeployedItem.tank_traps)
+  val tank_traps = TrapDeployableDefinition(DeployedItem.tank_traps)
 
   val portable_manned_turret = TurretDeployableDefinition(DeployedItem.portable_manned_turret)
 
@@ -6143,7 +6143,6 @@ object GlobalDefinitions {
     tank_traps.Damageable = true
     tank_traps.Repairable = true
     tank_traps.RepairIfDestroyed = false
-    tank_traps.Packet = new TRAPConverter
     tank_traps.DeployCategory = DeployableCategory.TankTraps
     tank_traps.DeployTime = Duration.create(6000, "ms")
     tank_traps.Model = StandardResolutions.SimpleDeployables
@@ -6237,8 +6236,8 @@ object GlobalDefinitions {
 
     internal_router_telepad_deployable.Name = "router_telepad_deployable"
     internal_router_telepad_deployable.MaxHealth = 1
-    deployable_shield_generator.Damageable = false
-    deployable_shield_generator.Repairable = false
+    internal_router_telepad_deployable.Damageable = false
+    internal_router_telepad_deployable.Repairable = false
     internal_router_telepad_deployable.DeployTime = Duration.create(1, "ms")
     internal_router_telepad_deployable.DeployCategory = DeployableCategory.Telepads
     internal_router_telepad_deployable.Packet = new InternalTelepadDeployableConverter

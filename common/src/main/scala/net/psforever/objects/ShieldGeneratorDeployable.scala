@@ -7,8 +7,9 @@ import net.psforever.objects.ce.{ComplexDeployable, Deployable, DeployableCatego
 import net.psforever.objects.definition.{ComplexDeployableDefinition, SimpleDeployableDefinition}
 import net.psforever.objects.definition.converter.ShieldGeneratorConverter
 import net.psforever.objects.equipment.{JammableBehavior, JammableUnit}
-import net.psforever.objects.serverobject.PlanetSideServerObject
+import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.serverobject.hackable.Hackable
+import net.psforever.objects.serverobject.repair.RepairableEntity
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.zones.Zone
 import net.psforever.types.PlanetSideGUID
@@ -34,14 +35,15 @@ class ShieldGeneratorDefinition extends ComplexDeployableDefinition(240) {
 }
 
 class ShieldGeneratorControl(gen : ShieldGeneratorDeployable) extends Actor
-  with JammableBehavior {
-
+  with JammableBehavior
+  with RepairableEntity {
   def JammableObject = gen
+  def RepairableObject = gen
 
   def receive : Receive = jammableBehavior
     .orElse {
-      case Vitality.Damage(damage_func) =>  //note: damage status is reported as vehicle events, not local events
-        if(gen.Health > 0) {
+      case Vitality.Damage(damage_func) =>
+        if(gen.CanDamage) {
           val originalHealth = gen.Health
           val cause = damage_func(gen)
           val health = gen.Health
@@ -51,6 +53,19 @@ class ShieldGeneratorControl(gen : ShieldGeneratorDeployable) extends Actor
             val name = gen.Actor.toString
             val slashPoint = name.lastIndexOf("/")
             org.log4s.getLogger("DamageResolution").info(s"${name.substring(slashPoint + 1, name.length - 1)}: BEFORE=$originalHealth, AFTER=$health, CHANGE=$damageToHealth")
+          }
+        }
+
+      case msg @ CommonMessages.Use(_, Some(item : Tool)) if item.Definition == GlobalDefinitions.nano_dispenser =>
+        if(gen.CanRepair) {
+          canBeRepairedByNanoDispenser.apply(msg)
+        }
+        else if(!gen.Destroyed) {
+          if(gen.Shields < gen.MaxShields) {
+            //TODO reinforced shield upgrade not implemented yet
+          }
+          else {
+            //TODO ammunition supply upgrade not implemented yet
           }
         }
 
@@ -118,6 +133,7 @@ object ShieldGeneratorControl {
   def HandleDestructionAwareness(target : ShieldGeneratorDeployable, attribution : PlanetSideGUID, lastShot : ResolvedProjectile) : Unit = {
     target.Actor ! JammableUnit.ClearJammeredSound()
     target.Actor ! JammableUnit.ClearJammeredStatus()
+    target.Destroyed = true
     val zone = target.Zone
     Deployables.AnnounceDestroyDeployable(target, None)
     zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.Destroy(target.GUID, attribution, attribution, target.Position))

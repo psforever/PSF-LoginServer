@@ -112,8 +112,6 @@ object DamageableWeaponTurret {
         avatarEvents ! AvatarServiceMessage(zoneId, AvatarAction.ObjectDelete(Service.defaultPlayerGUID, wep.GUID))
       })
     target.Health = 0
-    avatarEvents ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(tguid, 50, 1))
-    avatarEvents ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(tguid, 51, 1))
     avatarEvents ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(tguid, 0, target.Health))
     avatarEvents ! AvatarServiceMessage(zoneId, AvatarAction.Destroy(tguid, attribution, PlanetSideGUID(0), target.Position))
     if(target.Upgrade != TurretUpgrade.None) {

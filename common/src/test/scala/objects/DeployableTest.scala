@@ -49,14 +49,14 @@ class ExplosiveDeployableTest extends Specification {
   "ExplosiveDeployable" should {
     "construct" in {
       val obj = new ExplosiveDeployable(GlobalDefinitions.he_mine)
-      obj.Exploded mustEqual false
+      obj.Destroyed mustEqual false
     }
 
     "explode" in {
       val obj = new ExplosiveDeployable(GlobalDefinitions.he_mine)
-      obj.Exploded mustEqual false
-      obj.Exploded = true
-      obj.Exploded mustEqual true
+      obj.Destroyed mustEqual false
+      obj.Destroyed = true
+      obj.Destroyed mustEqual true
     }
   }
 }
@@ -65,15 +65,15 @@ class BoomerDeployableTest extends Specification {
   "BoomerDeployable" should {
     "construct" in {
       val obj = new BoomerDeployable(GlobalDefinitions.boomer)
-      obj.Exploded mustEqual false
+      obj.Destroyed mustEqual false
       obj.Trigger.isEmpty mustEqual true
     }
 
     "explode" in {
       val obj = new BoomerDeployable(GlobalDefinitions.boomer)
-      obj.Exploded mustEqual false
-      obj.Exploded = true
-      obj.Exploded mustEqual true
+      obj.Destroyed mustEqual false
+      obj.Destroyed = true
+      obj.Destroyed mustEqual true
     }
 
     "manage its trigger" in {

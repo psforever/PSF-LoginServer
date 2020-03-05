@@ -1,4 +1,4 @@
-// Copyright (c) 2017 PSForever
+// Copyright (c) 2019 PSForever
 package net.psforever.objects
 
 import akka.actor.{Actor, ActorContext, Props}
@@ -9,6 +9,7 @@ import net.psforever.objects.definition.{ComplexDeployableDefinition, SimpleDepl
 import net.psforever.objects.equipment.{JammableBehavior, JammableUnit}
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.hackable.Hackable
+import net.psforever.objects.serverobject.repair.RepairableEntity
 import net.psforever.objects.vital.{StandardResolutions, Vitality}
 import net.psforever.objects.zones.Zone
 import net.psforever.types.PlanetSideGUID
@@ -16,8 +17,6 @@ import services.Service
 import services.avatar.{AvatarAction, AvatarServiceMessage}
 import services.local.{LocalAction, LocalServiceMessage}
 import services.vehicle.{VehicleAction, VehicleServiceMessage}
-
-import scala.concurrent.duration._
 
 class SensorDeployable(cdef : SensorDeployableDefinition) extends ComplexDeployable(cdef)
   with Hackable
@@ -45,17 +44,20 @@ object SensorDeployableDefinition {
 }
 
 class SensorDeployableControl(sensor : SensorDeployable) extends Actor
-  with JammableBehavior {
-
+  with JammableBehavior
+  with RepairableEntity {
   def JammableObject = sensor
+  def RepairableObject = sensor
 
-  def receive : Receive = jammableBehavior.orElse {
-    case Vitality.Damage(damage_func) =>
-      val originalHealth = sensor.Health
-      if(originalHealth > 0) {
-        val cause = damage_func(sensor)
-        SensorDeployableControl.HandleDamageResolution(sensor, cause, originalHealth - sensor.Health)
-      }
+  def receive : Receive = jammableBehavior
+    .orElse(canBeRepairedByNanoDispenser)
+    .orElse {
+      case Vitality.Damage(damage_func) =>
+        if(sensor.CanDamage) {
+          val originalHealth = sensor.Health
+          val cause = damage_func(sensor)
+          SensorDeployableControl.HandleDamageResolution(sensor, cause, originalHealth - sensor.Health)
+        }
 
     case _ => ;
   }
@@ -125,6 +127,7 @@ object SensorDeployableControl {
   def HandleDestructionAwareness(target : SensorDeployable, attribution : PlanetSideGUID, lastShot : ResolvedProjectile) : Unit = {
     target.Actor ! JammableUnit.ClearJammeredSound()
     target.Actor ! JammableUnit.ClearJammeredStatus()
+    target.Destroyed = true
     val zone = target.Zone
     Deployables.AnnounceDestroyDeployable(target, None)
     zone.LocalEvents ! LocalServiceMessage(zone.Id, LocalAction.TriggerEffectInfo(Service.defaultPlayerGUID, "on", target.GUID, false, 1000))
