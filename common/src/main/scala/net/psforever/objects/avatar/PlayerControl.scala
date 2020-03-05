@@ -2,13 +2,14 @@
 package net.psforever.objects.avatar
 
 import akka.actor.Actor
-import net.psforever.objects.Player
+import net.psforever.objects.{GlobalDefinitions, Player, Tool}
 import net.psforever.objects.ballistics.{PlayerSource, ResolvedProjectile, SourceEntry}
-import net.psforever.objects.equipment.{JammableBehavior, JammableUnit}
+import net.psforever.objects.equipment.{Ammo, JammableBehavior, JammableUnit}
+import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.vital.{PlayerSuicide, Vitality}
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game._
-import net.psforever.types.{ExoSuitType, PlanetSideGUID}
+import net.psforever.types.{ExoSuitType, PlanetSideGUID, Vector3}
 import services.Service
 import services.avatar.{AvatarAction, AvatarServiceMessage}
 
@@ -22,7 +23,7 @@ class PlayerControl(player : Player) extends Actor
   with JammableBehavior {
   def JammableObject = player
 
-  private [this] val log = org.log4s.getLogger(player.Name)
+  //private [this] val log = org.log4s.getLogger(player.Name)
   private [this] val damageLog = org.log4s.getLogger("DamageResolution")
 
   def receive : Receive = jammableBehavior.orElse {
@@ -46,6 +47,53 @@ class PlayerControl(player : Player) extends Actor
           damageLog.info(s"${player.Name}-infantry: BEFORE=$originalHealth/$originalArmor/$originalCapacitor, AFTER=$health/$armor/$capacitor, CHANGE=$damageToHealth/$damageToArmor/$damageToCapacitor")
         }
       }
+
+    case CommonMessages.Use(user, Some(item : Tool)) if item.Definition == GlobalDefinitions.medicalapplicator && player.isAlive =>
+      val originalHealth = player.Health
+      if(player.MaxHealth > 0 && originalHealth < player.MaxHealth &&
+        user.Faction == player.Faction &&
+        item.Magazine > 0 &&
+        Vector3.Distance(user.Position, player.Position) < 5) {
+        val definition = player.Definition
+        val zone = player.Zone
+        val events = zone.AvatarEvents
+        val uname = user.Name
+        val guid = player.GUID
+        if(!(player.isMoving || user.isMoving)) { //only allow stationary healing
+          player.Health = originalHealth + 10
+          val magazine = item.Discharge
+          events ! AvatarServiceMessage(uname, AvatarAction.SendResponse(Service.defaultPlayerGUID, InventoryStateMessage(item.AmmoSlot.Box.GUID, item.GUID, magazine.toLong)))
+          events ! AvatarServiceMessage(zone.Id, AvatarAction.PlanetsideAttributeToAll(guid, 0, player.Health))
+        }
+        if(player != user) {
+          //progress bar remains visible for all repair attempts
+          events ! AvatarServiceMessage(uname, AvatarAction.SendResponse(Service.defaultPlayerGUID, RepairMessage(guid, player.Health * 100 / definition.MaxHealth)))
+        }
+      }
+
+    case CommonMessages.Use(user, Some(item : Tool)) if item.Definition == GlobalDefinitions.bank =>
+      val originalArmor = player.Armor
+      if(player.MaxArmor > 0 && originalArmor < player.MaxArmor &&
+        user.Faction == player.Faction &&
+        item.AmmoType == Ammo.armor_canister && item.Magazine > 0 &&
+        Vector3.Distance(user.Position, player.Position) < 5) {
+        val definition = player.Definition
+        val zone = player.Zone
+        val events = zone.AvatarEvents
+        val uname = user.Name
+        val guid = player.GUID
+        if(!(player.isMoving || user.isMoving)) { //only allow stationary repairs
+          player.Armor = originalArmor + 12 + RepairValue(item) + definition.RepairMod
+          val magazine = item.Discharge
+          events ! AvatarServiceMessage(uname, AvatarAction.SendResponse(Service.defaultPlayerGUID, InventoryStateMessage(item.AmmoSlot.Box.GUID, item.GUID, magazine.toLong)))
+          events ! AvatarServiceMessage(zone.Id, AvatarAction.PlanetsideAttributeToAll(guid, 4, player.Armor))
+        }
+        if(player != user) {
+          //progress bar remains visible for all repair attempts
+          events ! AvatarServiceMessage(uname, AvatarAction.SendResponse(Service.defaultPlayerGUID, RepairMessage(guid, player.Armor * 100 / player.MaxArmor)))
+        }
+      }
+
     case _ => ;
   }
 
@@ -94,6 +142,13 @@ class PlayerControl(player : Player) extends Actor
       obj.Zone.AvatarEvents ! AvatarServiceMessage(obj.Zone.Id, AvatarAction.PlanetsideAttributeToAll(obj.GUID, 27, 0))
       super.CancelJammeredSound(obj)
     case _ => ;
+  }
+
+  def RepairValue(item : Tool) : Int = if(player.ExoSuit != ExoSuitType.MAX) {
+    item.FireMode.Modifiers.Damage0
+  }
+  else {
+    item.FireMode.Modifiers.Damage3
   }
 }
 

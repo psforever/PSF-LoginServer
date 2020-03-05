@@ -44,12 +44,11 @@ trait RepairableEntity extends Repairable {
     val events = zone.AvatarEvents
     val pname = player.Name
     val tguid = obj.GUID
-    val health = obj.Health += 12 + RepairValue(item) + definition.RepairMod
-    val repairPercent : Long = health * 100 / definition.MaxHealth
-    //only allow stationary repairs
-    if(!player.isMoving) {
+    val originalHealth = obj.Health
+    val health = originalHealth + 12 + RepairValue(item) + definition.RepairMod
+    if(!(player.isMoving || obj.isMoving)) { //only allow stationary repairs
+      obj.Health = health
       val zoneId = zone.Id
-      val tguid = obj.GUID
       val magazine = item.Discharge
       events ! AvatarServiceMessage(pname, AvatarAction.SendResponse(Service.defaultPlayerGUID, InventoryStateMessage(item.AmmoSlot.Box.GUID, item.GUID, magazine.toLong)))
       events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(tguid, 0, health))
@@ -58,7 +57,7 @@ trait RepairableEntity extends Repairable {
       }
     }
     //progress bar remains visible for all repair attempts
-    events ! AvatarServiceMessage(pname, AvatarAction.SendResponse(Service.defaultPlayerGUID, RepairMessage(tguid, repairPercent)))
+    events ! AvatarServiceMessage(pname, AvatarAction.SendResponse(Service.defaultPlayerGUID, RepairMessage(tguid, health * 100 / definition.MaxHealth)))
   }
 
   override def RepairValue(item : Tool) : Int = item.FireMode.Modifiers.Damage4

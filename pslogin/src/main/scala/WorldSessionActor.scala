@@ -5112,59 +5112,29 @@ class WorldSessionActor extends Actor
           }
           else if (itemType == ObjectClass.avatar && unk3) {
             FindWeapon match {
-              case Some(tool: Tool) =>
-                if (tool.Definition == GlobalDefinitions.bank) {
-                  ValidObject(object_guid) match {
-                    case Some(tplayer: Player) =>
-                      if (player.GUID != tplayer.GUID && Vector3.Distance(player.Position, tplayer.Position) < 5 && player.Faction == tplayer.Faction && !player.isMoving && tplayer.MaxArmor > 0 && tplayer.Armor < tplayer.MaxArmor) {
-                        tplayer.Armor += 12
-                        tool.Discharge
-                        sendResponse(InventoryStateMessage(tool.AmmoSlot.Box.GUID, obj.GUID, tool.Magazine))
-                        val RepairPercent: Int = tplayer.Armor * 100 / tplayer.MaxArmor
-                        sendResponse(RepairMessage(object_guid, RepairPercent))
-                        continent.AvatarEvents ! AvatarServiceMessage(tplayer.Continent, AvatarAction.PlanetsideAttributeToAll(tplayer.GUID, 4, tplayer.Armor))
-                      } else if (player.GUID == tplayer.GUID && !player.isMoving && tplayer.MaxArmor > 0) {
-                        player.Armor += 12
-                        tool.Discharge
-                        sendResponse(InventoryStateMessage(tool.AmmoSlot.Box.GUID, obj.GUID, tool.Magazine))
-                        continent.AvatarEvents ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttributeToAll(player.GUID, 4, player.Armor))
-                      }
-                    case _ => ;
-                  }
-                } else if (tool.Definition == GlobalDefinitions.medicalapplicator) {
-                  continent.GUID(object_guid) match {
-                    case Some(tplayer: Player) =>
-                      if (player.GUID != tplayer.GUID && Vector3.Distance(player.Position, tplayer.Position) < 5 && player.Faction == tplayer.Faction && !player.isMoving && tplayer.MaxHealth > 0 && tplayer.Health < tplayer.MaxHealth) {
-                        if(tplayer.isAlive) {
-                          tplayer.Health += 10
-                        } else {
-                          // Reviving another player is normally 25 "medical energy" (ammo) and 5,000 milliseconds duration, based on the game properties revive_ammo_required and revive_time
-                          //todo: @NotEnoughAmmoToRevive=You do not have enough medical energy to revive this corpse.
-                          tplayer.Health += 4 // 4 health per tick = 5 second revive timer from 0 health
-                        }
-                        tool.Discharge
-                        sendResponse(InventoryStateMessage(tool.AmmoSlot.Box.GUID, obj.GUID, tool.Magazine))
-                        val repairPercent: Int = tplayer.Health * 100 / tplayer.MaxHealth
-                        sendResponse(RepairMessage(object_guid, repairPercent))
+              case Some(tool: Tool) if tool.Definition == GlobalDefinitions.bank =>
+                obj.Actor ! CommonMessages.Use(player, equipment)
 
-                        if(!tplayer.isAlive && tplayer.Health == tplayer.MaxHealth) {
-                          tplayer.Revive
-                          continent.AvatarEvents ! AvatarServiceMessage(tplayer.Continent, AvatarAction.Revive(tplayer.GUID))
-                        }
+              case Some(tool: Tool) if tool.Definition == GlobalDefinitions.medicalapplicator && obj.isAlive =>
+                obj.Actor ! CommonMessages.Use(player, equipment)
 
-                        if(tplayer.isAlive) {
-                          continent.AvatarEvents ! AvatarServiceMessage(tplayer.Continent, AvatarAction.PlanetsideAttributeToAll(tplayer.GUID, 0, tplayer.Health))
-                        }
-                      } else if (player.GUID == tplayer.GUID && !player.isMoving && tplayer.MaxHealth > 0 && player.isAlive) {
-                        player.Health += 10
-                        tool.Discharge
-                        sendResponse(InventoryStateMessage(tool.AmmoSlot.Box.GUID, obj.GUID, tool.Magazine))
-                        continent.AvatarEvents ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttributeToAll(player.GUID, 0, player.Health))
-                      }
-                    case _ => ;
-                  }
+              case Some(tool: Tool) if tool.Definition == GlobalDefinitions.medicalapplicator && !obj.isAlive && player.GUID != object_guid =>
+                // Reviving another player is normally 25 "medical energy" (ammo) and 5,000 milliseconds duration, based on the game properties revive_ammo_required and revive_time
+                //todo: @NotEnoughAmmoToRevive=You do not have enough medical energy to revive this corpse.
+                obj.Health += 4 // 4 health per tick = 5 second revive timer from 0 health
+                tool.Discharge
+                sendResponse(InventoryStateMessage(tool.AmmoSlot.Box.GUID, tool.GUID, tool.Magazine))
+                val repairPercent: Int = obj.Health * 100 / obj.MaxHealth
+                sendResponse(RepairMessage(object_guid, repairPercent))
+                if(!obj.isAlive && obj.Health == obj.MaxHealth) {
+                  obj.Revive
+                  continent.AvatarEvents ! AvatarServiceMessage(obj.Continent, AvatarAction.Revive(obj.GUID))
                 }
-              case None => ;
+                if(obj.isAlive) {
+                  continent.AvatarEvents ! AvatarServiceMessage(obj.Continent, AvatarAction.PlanetsideAttributeToAll(obj.GUID, 0, obj.Health))
+                }
+
+              case _ => ;
             }
           }
 
@@ -6568,6 +6538,44 @@ class WorldSessionActor extends Actor
         item.Invalidate()
       case Some(item : Equipment) =>
         item.Invalidate()
+      case None => ;
+    }
+  }
+
+  private def HackingTickAction(progressType : Int, tplayer : Player, target : PlanetSideServerObject, tool_guid : PlanetSideGUID, delta : Float)() : Unit = {
+    progressBarValue match {
+      case Some(value) =>
+        val vis = if(value <= 0L) {
+          //hack state for progress bar visibility
+          HackState.Start
+        }
+        else if(value >= 100L) {
+          HackState.Finished
+        }
+        else if(target.isMoving(1f)) {
+          // If the object is moving (more than slightly to account for things like magriders rotating, or the last velocity reported being the magrider dipping down on dismount) then cancel the hack
+          HackState.Cancelled
+        }
+        else {
+          HackState.Ongoing
+        }
+        if(!target.HasGUID) {
+          //cancel the hack (target is gone)
+          sendResponse(HackMessage(progressType, target.GUID, player.GUID, 0, 0L, HackState.Cancelled, 8L))
+        }
+        else if(vis == HackState.Cancelled) {
+          //cancel the hack (e.g. vehicle drove away)
+          sendResponse(HackMessage(progressType, target.GUID, player.GUID, 0, 0L, vis, 8L))
+        }
+        else {
+          sendResponse(HackMessage(progressType, target.GUID, player.GUID, value.toInt, 0L, vis, 8L))
+          if(value < 100) {
+            //continue next tick
+            progressBarValue = Some(value)
+            import scala.concurrent.ExecutionContext.Implicits.global
+            //progressBarUpdate = context.system.scheduler.scheduleOnce(250 milliseconds, self, Progress(progressType, tplayer, target, tool_guid, delta, completeAction))
+          }
+        }
       case None => ;
     }
   }
