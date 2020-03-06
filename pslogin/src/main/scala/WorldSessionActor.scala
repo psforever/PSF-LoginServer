@@ -298,7 +298,11 @@ class WorldSessionActor extends Actor
       val hackSpeed = GetPlayerHackSpeed(obj)
       if(hackSpeed > 0) {
         progressBarValue = Some(-hackSpeed)
-        self ! WorldSessionActor.Progress(progressType = 1, player, obj, item.GUID, hackSpeed, FinishHacking(obj, 3212836864L))
+        self ! Progress(
+          hackSpeed,
+          FinishHacking(obj, 3212836864L),
+          HackingTickAction(progressType = 1, player, obj, item.GUID)
+        )
         log.info(s"${player.Name} is hacking a locker")
       }
 
@@ -306,7 +310,11 @@ class WorldSessionActor extends Actor
       val hackSpeed = GetPlayerHackSpeed(obj)
       if(hackSpeed > 0) {
         progressBarValue = Some(-hackSpeed)
-        self ! WorldSessionActor.Progress(progressType = 1, player, obj, item.GUID, hackSpeed, FinishHackingCaptureConsole(obj, 3212836864L))
+        self ! Progress(
+          hackSpeed,
+          FinishHackingCaptureConsole(obj, 3212836864L),
+          HackingTickAction(progressType = 1, player, obj, item.GUID)
+        )
         log.info(s"${player.Name} is hacking a capture terminal")
       }
 
@@ -314,7 +322,11 @@ class WorldSessionActor extends Actor
       val hackSpeed = GetPlayerHackSpeed(obj)
       if(hackSpeed > 0) {
         progressBarValue = Some(-hackSpeed)
-        self ! WorldSessionActor.Progress(progressType = 1, player, obj, item.GUID, hackSpeed, FinishHacking(obj, 3212836864L))
+        self ! Progress(
+          hackSpeed,
+          FinishHacking(obj, 3212836864L),
+          HackingTickAction(progressType = 1, player, obj, item.GUID)
+        )
         log.info(s"${player.Name} is hacking an implant terminal")
       }
 
@@ -322,7 +334,11 @@ class WorldSessionActor extends Actor
       val hackSpeed = GetPlayerHackSpeed(obj)
       if(hackSpeed > 0) {
         progressBarValue = Some(-hackSpeed)
-        self ! WorldSessionActor.Progress(progressType = 1, player, obj, item.GUID, hackSpeed, FinishHacking(obj, 3212836864L))
+        self ! Progress(
+          hackSpeed,
+          FinishHacking(obj, 3212836864L),
+          HackingTickAction(progressType = 1, player, obj, item.GUID)
+        )
         log.info(s"${player.Name} is hacking a terminal")
       }
 
@@ -332,12 +348,20 @@ class WorldSessionActor extends Actor
         progressBarValue = Some(-hackSpeed)
         if(obj.Faction != player.Faction) {
           // Enemy faction is hacking this IFF lock
-          self ! WorldSessionActor.Progress(progressType = 1, player, obj, item.GUID, hackSpeed, FinishHacking(obj, 1114636288L))
+          self ! Progress(
+            hackSpeed,
+            FinishHacking(obj, 1114636288L),
+            HackingTickAction(progressType = 1, player, obj, item.GUID)
+          )
           log.info(s"${player.Name} is hacking an IFF lock")
         }
         else {
           // IFF Lock is being resecured by it's owner faction
-          self ! WorldSessionActor.Progress(progressType = 1, player, obj, item.GUID, hackSpeed, FinishResecuringIFFLock(obj))
+          self ! Progress(
+            hackSpeed,
+            FinishResecuringIFFLock(obj),
+            HackingTickAction(progressType = 1, player, obj, item.GUID)
+          )
           log.info(s"${player.Name} is resecuring an IFF lock")
         }
       }
@@ -346,8 +370,22 @@ class WorldSessionActor extends Actor
       val hackSpeed = GetPlayerHackSpeed(obj)
       if(hackSpeed > 0) {
         progressBarValue = Some(-hackSpeed)
-        self ! WorldSessionActor.Progress(progressType = 1, player, obj, item.GUID, hackSpeed, FinishHackingVehicle(obj, 3212836864L))
+        self ! Progress(
+          hackSpeed,
+          FinishHackingVehicle(obj, 3212836864L),
+          HackingTickAction(progressType = 1, player, obj, item.GUID)
+        )
         log.trace(s"${player.Name} is hacking a vehicle")
+      }
+
+    case CommonMessages.Use(tplayer, Some((item : Tool, user : Player))) =>
+      if(progressBarValue.isEmpty) {
+        progressBarValue = Some(-4)
+        self ! Progress(
+          4,
+          FinishRevivingPlayer(tplayer),
+          RevivingTickAction(tplayer, user, item)
+        )
       }
 
     case Door.DoorMessage(tplayer, msg, order) =>
@@ -1219,8 +1257,8 @@ class WorldSessionActor extends Actor
     case NtuDischarging(tplayer, vehicle, silo_guid) =>
       HandleNtuDischarging(tplayer, vehicle, silo_guid)
 
-    case Progress(progressType, tplayer, target, tool_guid, delta, completeAction, tickAction) =>
-      HandleChangeProgress(progressType, tplayer, target, tool_guid, delta, completeAction, tickAction)
+    case Progress(delta, completeAction, tickAction) =>
+      HandleProgressChange(delta, completeAction, tickAction)
 
     case Vitality.DamageResolution(target : TelepadDeployable, _) =>
       //telepads
@@ -1510,9 +1548,13 @@ class WorldSessionActor extends Actor
 
       case AvatarResponse.Revive(target_guid) =>
         if(tplayer_guid == target_guid) {
-          deadState = DeadState.Alive
           reviveTimer.cancel
+          deadState = DeadState.Alive
+          player.Revive
+          val health = player.Health
+          sendResponse(PlanetsideAttributeMessage(target_guid, 0, health))
           sendResponse(AvatarDeadStateMessage(DeadState.Alive, 0, 0, player.Position, player.Faction, true))
+          continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttributeToAll(target_guid, 0, health))
         }
 
       case AvatarResponse.ArmorChanged(suit, subtype) =>
@@ -3327,60 +3369,66 @@ class WorldSessionActor extends Actor
   }
 
   /**
-    * na
-    * @param progressType na
-    * @param tplayer na
-    * @param target na
-    * @param tool_guid na
-    * @param delta na
-    * @param completeAction na
-    * @param tickAction na
+    * Handle the message that indidctes the level of completion of a process.
+    * The process is any form of user-driven activity with a certain eventual outcome
+    * but indeterminate progress feedback per cycle.<br>
+    * <br>
+    * This task is broken down into the "progression" from its initial state to the eventual outcome
+    * as is reported back to the player through some means of messaging window feedback.
+    * Though common in practice, this is not a requirement
+    * and the progress can accumulate without a user reportable method.
+    * To ensure that completion is reported properly,
+    * an exception is made that 99% completion is accounted uniquely
+    * before the final 100% is achieved.
+    * If the background process recording value is never set before running the initial operation
+    * or gets unset by failing a `tickAction` check
+    * the process is stopped.
+    * @see `progressBarUpdate`
+    * @see `progressBarValue`
+    * @see `WorldSessionActor.Progress`
+    * @param delta how much the progress changes each tick
+    * @param completeAction a custom action performed once the process is completed
+    * @param tickAction an optional action is is performed for each tick of progress;
+    *                   also performs a continuity check to determine if the process has been disrupted
     */
-  def HandleChangeProgress(progressType : Int, tplayer : Player, target : PlanetSideServerObject, tool_guid : PlanetSideGUID, delta : Float, completeAction : ()=>Unit, tickAction : Option[()=>Unit]) : Unit = {
+  def HandleProgressChange(delta : Float, completionAction : ()=>Unit, tickAction : Float=>Boolean) : Unit = {
     progressBarUpdate.cancel
-    if(progressBarValue.isDefined) {
-      val progressBarVal : Float = if (progressBarValue.get + delta > 100) { 100f } else { progressBarValue.get + delta }
-
-      val vis = if(progressBarVal == 0L) {
-        //hack state for progress bar visibility
-        HackState.Start
-      }
-      else if(progressBarVal >= 100L) {
-        HackState.Finished
-      }
-      else if(target.Velocity.isDefined && Vector3.Distance(Vector3.Zero, target.Velocity.get) > 1f) {
-        // If the object is moving (more than slightly to account for things like magriders rotating, or the last velocity reported being the magrider dipping down on dismount) then cancel the hack
-        HackState.Cancelled
-      }
-      else {
-        HackState.Ongoing
-      }
-
-      if(!target.HasGUID) {
-        // Target is gone, cancel the hack.
-        sendResponse(HackMessage(progressType, target.GUID, player.GUID, 0, 0L, HackState.Cancelled, 8L))
-      }
-      else if(vis == HackState.Cancelled) {
-        // Object moved. Cancel the hack (e.g. vehicle drove away)
-        sendResponse(HackMessage(progressType, target.GUID, player.GUID, 0, 0L, vis, 8L))
-      }
-      else
-      {
-        sendResponse(HackMessage(progressType, target.GUID, player.GUID, progressBarVal.toInt, 0L, vis, 8L))
-
-        if(progressBarVal >= 100) {
-          //done
+    progressBarValue match {
+      case Some(value) =>
+        val next = value + delta
+        if(value >= 100f) {
+          //complete
           progressBarValue = None
-          completeAction()
+          tickAction(100)
+          completionAction()
+        }
+        else if(value < 100f && next >= 100f) {
+          if(tickAction(99)) {
+            //will complete after this turn
+            progressBarValue = Some(next)
+            import scala.concurrent.ExecutionContext.Implicits.global
+            progressBarUpdate = context.system.scheduler.scheduleOnce(100 milliseconds, self,
+              Progress(delta, completionAction, tickAction)
+            )
+          }
+          else {
+            progressBarValue = None
+          }
         }
         else {
-          //continue next tick
-          tickAction.getOrElse(() => Unit)()
-          progressBarValue = Some(progressBarVal)
-          import scala.concurrent.ExecutionContext.Implicits.global
-          progressBarUpdate = context.system.scheduler.scheduleOnce(250 milliseconds, self, Progress(progressType, tplayer, target, tool_guid, delta, completeAction))
+          if(tickAction(next)) {
+            //normal progress activity
+            progressBarValue = Some(next)
+            import scala.concurrent.ExecutionContext.Implicits.global
+            progressBarUpdate = context.system.scheduler.scheduleOnce(250 milliseconds, self,
+              Progress(delta, completionAction, tickAction)
+            )
+          }
+          else {
+            progressBarValue = None
+          }
         }
-      }
+      case None => ;
     }
   }
 
@@ -5111,28 +5159,12 @@ class WorldSessionActor extends Actor
             }
           }
           else if (itemType == ObjectClass.avatar && unk3) {
-            FindWeapon match {
+            equipment match {
               case Some(tool: Tool) if tool.Definition == GlobalDefinitions.bank =>
                 obj.Actor ! CommonMessages.Use(player, equipment)
 
-              case Some(tool: Tool) if tool.Definition == GlobalDefinitions.medicalapplicator && obj.isAlive =>
+              case Some(tool: Tool) if tool.Definition == GlobalDefinitions.medicalapplicator =>
                 obj.Actor ! CommonMessages.Use(player, equipment)
-
-              case Some(tool: Tool) if tool.Definition == GlobalDefinitions.medicalapplicator && !obj.isAlive && player.GUID != object_guid =>
-                // Reviving another player is normally 25 "medical energy" (ammo) and 5,000 milliseconds duration, based on the game properties revive_ammo_required and revive_time
-                //todo: @NotEnoughAmmoToRevive=You do not have enough medical energy to revive this corpse.
-                obj.Health += 4 // 4 health per tick = 5 second revive timer from 0 health
-                tool.Discharge
-                sendResponse(InventoryStateMessage(tool.AmmoSlot.Box.GUID, tool.GUID, tool.Magazine))
-                val repairPercent: Int = obj.Health * 100 / obj.MaxHealth
-                sendResponse(RepairMessage(object_guid, repairPercent))
-                if(!obj.isAlive && obj.Health == obj.MaxHealth) {
-                  obj.Revive
-                  continent.AvatarEvents ! AvatarServiceMessage(obj.Continent, AvatarAction.Revive(obj.GUID))
-                }
-                if(obj.isAlive) {
-                  continent.AvatarEvents ! AvatarServiceMessage(obj.Continent, AvatarAction.PlanetsideAttributeToAll(obj.GUID, 0, obj.Health))
-                }
 
               case _ => ;
             }
@@ -5175,13 +5207,10 @@ class WorldSessionActor extends Actor
 
                 case Ammo.upgrade_canister if gluegun.Magazine > 0 && obj.Seats.values.forall(!_.isOccupied) => //upgrade
                   progressBarValue = Some(-1.25f)
-                  self ! WorldSessionActor.Progress(
-                    progressType = 2,
-                    player,
-                    obj,
-                    gluegun.GUID,
+                  self ! Progress(
                     delta = 1.25f,
-                    FinishUpgradingMannedTurret(obj, gluegun, TurretUpgrade(unk2.toInt))
+                    FinishUpgradingMannedTurret(obj, gluegun, TurretUpgrade(unk2.toInt)),
+                    HackingTickAction(progressType = 2, player, obj, gluegun.GUID)
                   )
 
                 case _ => ;
@@ -6542,41 +6571,72 @@ class WorldSessionActor extends Actor
     }
   }
 
-  private def HackingTickAction(progressType : Int, tplayer : Player, target : PlanetSideServerObject, tool_guid : PlanetSideGUID, delta : Float)() : Unit = {
-    progressBarValue match {
-      case Some(value) =>
-        val vis = if(value <= 0L) {
-          //hack state for progress bar visibility
-          HackState.Start
-        }
-        else if(value >= 100L) {
-          HackState.Finished
-        }
-        else if(target.isMoving(1f)) {
-          // If the object is moving (more than slightly to account for things like magriders rotating, or the last velocity reported being the magrider dipping down on dismount) then cancel the hack
-          HackState.Cancelled
-        }
-        else {
-          HackState.Ongoing
-        }
-        if(!target.HasGUID) {
-          //cancel the hack (target is gone)
-          sendResponse(HackMessage(progressType, target.GUID, player.GUID, 0, 0L, HackState.Cancelled, 8L))
-        }
-        else if(vis == HackState.Cancelled) {
-          //cancel the hack (e.g. vehicle drove away)
-          sendResponse(HackMessage(progressType, target.GUID, player.GUID, 0, 0L, vis, 8L))
-        }
-        else {
-          sendResponse(HackMessage(progressType, target.GUID, player.GUID, value.toInt, 0L, vis, 8L))
-          if(value < 100) {
-            //continue next tick
-            progressBarValue = Some(value)
-            import scala.concurrent.ExecutionContext.Implicits.global
-            //progressBarUpdate = context.system.scheduler.scheduleOnce(250 milliseconds, self, Progress(progressType, tplayer, target, tool_guid, delta, completeAction))
-          }
-        }
-      case None => ;
+  /**
+    * Evaluate the progress of the user applying a tool to modify some server object.
+    * This action is using the remote electronics kit to convert an enemy unit into an allied unit, primarily.
+    * The act of transforming allied units of one kind into allied units of another kind (facility turret upgrades)
+    * is also governed by this action per tick of progress.
+    * @see `HackMessage`
+    * @see `HackState`
+    * @param progressType 1 - remote electronics kit hack (various ...);
+    *                     2 - nano dispenser (upgrade canister) turret upgrade
+    * @param tplayer the player performing the action
+    * @param target the object being affected
+    * @param tool_guid the tool being used to affest the object
+    * @param progress the current progress value
+    * @returns `true`, if the next cycle of progress should occur;
+    *         `false`, otherwise
+    */
+  private def HackingTickAction(progressType : Int, tplayer : Player, target : PlanetSideServerObject, tool_guid : PlanetSideGUID)(progress : Float) : Boolean = {
+    //hack state for progress bar visibility
+    val vis = if(progress <= 0L) {
+      HackState.Start
+    }
+    else if(progress >= 100L) {
+      HackState.Finished
+    }
+    else if(target.isMoving(1f)) {
+      // If the object is moving (more than slightly to account for things like magriders rotating, or the last velocity reported being the magrider dipping down on dismount) then cancel the hack
+      HackState.Cancelled
+    }
+    else {
+      HackState.Ongoing
+    }
+    if(!target.HasGUID) {
+      //cancel the hack (target is gone)
+      sendResponse(HackMessage(progressType, target.GUID, player.GUID, 0, 0L, HackState.Cancelled, 8L))
+    }
+    else if(vis == HackState.Cancelled) {
+      //cancel the hack (e.g. vehicle drove away)
+      sendResponse(HackMessage(progressType, target.GUID, player.GUID, 0, 0L, vis, 8L))
+    }
+    else {
+      sendResponse(HackMessage(progressType, target.GUID, player.GUID, progress.toInt, 0L, vis, 8L))
+    }
+    vis != HackState.Cancelled
+  }
+
+  /**
+    * Evaluate the progress of the user applying a tool to modify some other server object.
+    * This action is using the medical applicator to revive a fallen (dead but not released) ally.
+    * @param target the player being affected by the revive action
+    * @param user the player performing the revive action
+    * @param item the tool being used to revive the target player
+    * @param progress the current progress value
+    * @returns `true`, if the next cycle of progress should occur;
+    *         `false`, otherwise
+    */
+  private def RevivingTickAction(target : Player, user : Player, item : Tool)(progress : Float) : Boolean = {
+    if(!target.isAlive && !target.isBackpack &&
+      user.isAlive && !user.isMoving &&
+      user.Slot(user.DrawnSlot).Equipment.contains(item) && item.Magazine > 0) {
+      val magazine = item.Discharge
+      sendResponse(InventoryStateMessage(item.AmmoSlot.Box.GUID, item.GUID, magazine))
+      sendResponse(RepairMessage(target.GUID, progress.toInt))
+      true
+    }
+    else {
+      false
     }
   }
 
@@ -6748,10 +6808,32 @@ class WorldSessionActor extends Actor
     FinishUpgradingMannedTurret(target, upgrade)
   }
 
+  /**
+    * na
+    * @see `FacilityTurret`
+    * @see `TurretUpgrade`
+    * @see `TurretUpgrader.AddTask`
+    * @see `TurretUpgrader.ClearSpecific`
+    * @see `VehicleServiceMessage.TurretUpgrade`
+    * @param target the facility turret being upgraded
+    * @param upgrade the upgrade being applied to the turret (usually, it's weapon system)
+    */
   private def FinishUpgradingMannedTurret(target : FacilityTurret, upgrade : TurretUpgrade.Value) : Unit = {
     log.info(s"Converting manned wall turret weapon to $upgrade")
     continent.VehicleEvents ! VehicleServiceMessage.TurretUpgrade(TurretUpgrader.ClearSpecific(List(target), continent))
     continent.VehicleEvents ! VehicleServiceMessage.TurretUpgrade(TurretUpgrader.AddTask(target, continent, upgrade))
+  }
+
+  /**
+    * na
+    * @see `AvatarAction.Revive`
+    * @see `AvatarResponse.Revive`
+    * @param target the player being revived
+    */
+  private def FinishRevivingPlayer(target : Player)() : Unit = {
+    val name =  target.Name
+    log.info(s"${player.Name} had revived $name")
+    target.Zone.AvatarEvents ! AvatarServiceMessage(name, AvatarAction.Revive(target.GUID))
   }
 
   /**
@@ -11185,30 +11267,18 @@ object WorldSessionActor {
   private final case class CheckCargoMounting(vehicle_guid : PlanetSideGUID, cargo_vehicle_guid: PlanetSideGUID, cargo_mountpoint: Int, iteration: Int)
   private final case class CheckCargoDismount(vehicle_guid : PlanetSideGUID, cargo_vehicle_guid: PlanetSideGUID, cargo_mountpoint: Int, iteration: Int)
 
-
   /**
-    * A message that indicates the user is using a remote electronics kit to hack some server object.<br>
-    * <br>
-    * Each time this message is sent for a given hack attempt counts as a single "tick" of progress.
-    * The process of "making progress" with a hack involves sending this message repeatedly until the progress is 100 or more.
-    * To calculate the actual amount of change in the progress `delta`,
-    * start with 100, divide by the length of time in seconds, then divide once more by 4.
-    * @param progressType 1 - REK hack
-    *                     2 - Turret upgrade with glue gun + upgrade cannister
-    * @param tplayer the player
-    * @param target the object being hacked
-    * @param tool_guid the REK
-    * @param delta how much the progress bar value changes each tick
-    * @param completeAction a custom action performed once the hack is completed
-    * @param tickAction an optional action is is performed for each tick of progress
+    * The message that indidctes the level of completion of a process.
+    * The process is any form of user-driven activity with a certain eventual outcome
+    * but indeterminate progress feedback per cycle.
+    * @param delta how much the progress value changes each tick, which will be treated as a percentage;
+    *              must be a positive value
+    * @param completeAction a finalizing action performed once the progress reaches 100(%)
+    * @param tickAction an action that is performed for each increase of progress
     */
-  private final case class Progress(progressType : Int,
-                                           tplayer : Player,
-                                           target : PlanetSideServerObject,
-                                           tool_guid : PlanetSideGUID,
-                                           delta : Float,
-                                           completeAction : () => Unit,
-                                           tickAction : Option[() => Unit] = None)
+  private final case class Progress(delta : Float, completionAction : ()=>Unit, tickAction : Float=>Boolean) {
+    assert(delta > 0, s"progress activity change value must be positive number - $delta")
+  }
 
   protected final case class SquadUIElement(name : String, index : Int, zone : Int, health : Int, armor : Int, position : Vector3)
 

@@ -49,6 +49,7 @@ class PlayerControl(player : Player) extends Actor
       }
 
     case CommonMessages.Use(user, Some(item : Tool)) if item.Definition == GlobalDefinitions.medicalapplicator && player.isAlive =>
+      //heal
       val originalHealth = player.Health
       if(player.MaxHealth > 0 && originalHealth < player.MaxHealth &&
         user.Faction == player.Faction &&
@@ -69,6 +70,14 @@ class PlayerControl(player : Player) extends Actor
           //progress bar remains visible for all repair attempts
           events ! AvatarServiceMessage(uname, AvatarAction.SendResponse(Service.defaultPlayerGUID, RepairMessage(guid, player.Health * 100 / definition.MaxHealth)))
         }
+      }
+
+    case CommonMessages.Use(user, Some(item : Tool)) if item.Definition == GlobalDefinitions.medicalapplicator && !player.isAlive =>
+      //revive
+      if(user != player && user.isAlive && !user.isMoving &&
+        !player.isBackpack &&
+        item.Magazine >= 25) {
+        sender ! CommonMessages.Use(player, Some((item, user)))
       }
 
     case CommonMessages.Use(user, Some(item : Tool)) if item.Definition == GlobalDefinitions.bank =>

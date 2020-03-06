@@ -108,6 +108,7 @@ class Player(private val core : Avatar) extends PlanetSideServerObject
 
   def Revive : Boolean = {
     alive = true
+    Health = Definition.DefaultHealth
     true
   }
 
